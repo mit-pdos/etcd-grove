@@ -7,6 +7,7 @@ public import Code.google_golang_org.grpc.metadata
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.auth
+public import Code.github_com.mit_pdos.etcd_grove.examples.lib.authwork
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Perennial.Golang.Defn
 
@@ -99,7 +100,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- newUserClient connects a client of addr that authenticates as user name with password pw
     (auth3's).
 
-    go: authlease.go:95:6 -/
+    go: authlease.go:96:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "name"
@@ -139,7 +140,7 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
 /-- reqCtx is a request's context, with the request timeout; the bad principal's carries its token
     (authkv's).
 
-    go: authlease.go:109:6 -/
+    go: authlease.go:110:6 -/
 noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
@@ -193,7 +194,7 @@ noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- refused panics if err is nil: a request the auth state refuses who returned no error.
 
-    go: authlease.go:118:6 -/
+    go: authlease.go:119:6 -/
 noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "what"
@@ -214,7 +215,7 @@ noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
     reports whether it succeeded (auth3's): the member has then applied every entry committed
     before the read.
 
-    go: authlease.go:127:6 -/
+    go: authlease.go:128:6 -/
 noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -291,7 +292,7 @@ noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- barriers runs barrier at every member, and reports whether every one succeeded.
 
-    go: authlease.go:139:6 -/
+    go: authlease.go:140:6 -/
 noncomputable def barriers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ms"
   (Lam "lg"
@@ -333,7 +334,7 @@ noncomputable def barriers.impl [GooseExts] [GoGlobalContext] : val :=
 /-- grantPut grants a lease through cli and puts k with it; it reports the lease and whether both
     succeeded.
 
-    go: authlease.go:150:6 -/
+    go: authlease.go:151:6 -/
 noncomputable def grantPut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "k"
@@ -451,7 +452,7 @@ noncomputable def grantPut.impl [GooseExts] [GoGlobalContext] : val :=
 /-- noAuth is check 1: who (the client with no token, or the one with the invalid token) is refused
     every lease method on id.
 
-    go: authlease.go:168:6 -/
+    go: authlease.go:169:6 -/
 noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -639,7 +640,7 @@ noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
 /-- foreign is checks 4 and 5 (and 3's refusal): who is refused the revocation of id, its
     TimeToLive with keys and the listing of the leases, id holding a key who may not touch.
 
-    go: authlease.go:193:6 -/
+    go: authlease.go:194:6 -/
 noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -758,7 +759,7 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
 /-- absent reports whether root's Get of k through cli succeeded and found no key; it panics if
     the Get succeeded and found one (what the caller expects to be absent).
 
-    go: authlease.go:210:6 -/
+    go: authlease.go:211:6 -/
 noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "root"
   (Lam "k"
@@ -831,7 +832,7 @@ noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
 /-- run is the set-up, the lease set-up and the checks (see the package comment) on the started
     members srvs of the members ms (len(srvs) = len(ms) >= 1).
 
-    go: authlease.go:225:6 -/
+    go: authlease.go:226:6 -/
 noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "ms"
@@ -1328,7 +1329,7 @@ noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUp []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (Val #(W64 1))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1392,7 +1393,7 @@ noncomputable def run.impl [GooseExts] [GoGlobalContext] : val :=
     then runs the lease set-up and checks across them (run), and returns its result (auth.Ok,
     auth.Failed); k = 0, or a member that fails to start, ends Main with auth.Failed.
 
-    go: authlease.go:332:6 -/
+    go: authlease.go:333:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1462,12 +1463,13 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1486,6 +1488,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
@@ -1507,6 +1511,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
   import_auth_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
+  import_authwork_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
 attribute [instance] Assumptions.newUserClient_unfold
@@ -1526,6 +1531,7 @@ attribute [instance] Assumptions.newUserClient_unfold
   Assumptions.import_clientv3_Assumption
   Assumptions.import_etcdserver_Assumption
   Assumptions.import_auth_Assumption
+  Assumptions.import_authwork_Assumption
   Assumptions.import_etcdstart_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.authlease

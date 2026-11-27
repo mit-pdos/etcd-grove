@@ -6,9 +6,9 @@ public import Code.github_com.anishathalye.porcupine
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_uber_org.zap
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Net.Code.github_com.mit_pdos.etcd_grove.examples.lib.remote
+public import Code.github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -87,32 +87,32 @@ noncomputable def encCmp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "c"
   (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (Var "c"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (Var "c"))
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Num"))) (Var "c")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Num"))) (Var "c")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Val"))) (Var "c")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Val"))) (Var "c")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Key"))) (Var "c")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Key"))) (Var "c")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Kind"))) (Var "c")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Kind"))) (Var "c")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))))
   (Val #()))))
 
 /-- go: kvremote.go:43:6 -/
 noncomputable def decCmp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
-  (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (Val #())))
+  (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
@@ -121,148 +121,148 @@ noncomputable def decCmp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Num"))) (Var "c")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Num"))) (Var "c")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Val"))) (Var "c")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Val"))) (Var "c")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Key"))) (Var "c")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Key"))) (Var "c")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty go!"Kind"))) (Var "c")) (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty go!"Kind"))) (Var "c")) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (Var "$res0")))))
 
 /-- go: kvremote.go:52:6 -/
 noncomputable def encTOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "o"
   (Seq (App (Val exceptionDo)
-  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Var "o"))
+  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Var "o"))
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty go!"Val"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty go!"Val"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty go!"Key"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty go!"Key"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty go!"Kind"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty go!"Kind"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))))
   (Val #()))))
 
 /-- go: kvremote.go:58:6 -/
 noncomputable def decTOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
-  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Val #())))
+  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Var "o"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty go!"Val"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty go!"Val"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty go!"Key"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty go!"Key"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty go!"Kind"))) (Var "o")) (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty go!"Kind"))) (Var "o")) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Var "$res0")))))
 
 /-- go: kvremote.go:66:6 -/
 noncomputable def encVR.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "r"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Var "r"))
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty go!"Ver"))) (Var "r")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty go!"Ver"))) (Var "r")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty go!"Mod"))) (Var "r")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty go!"Mod"))) (Var "r")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty go!"Val"))) (Var "r")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty go!"Val"))) (Var "r")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))))
   (Val #()))))
 
 /-- go: kvremote.go:72:6 -/
 noncomputable def decVR.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
-  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Val #())))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty go!"Ver"))) (Var "r")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty go!"Ver"))) (Var "r")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty go!"Mod"))) (Var "r")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty go!"Mod"))) (Var "r")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty go!"Val"))) (Var "r")) (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty go!"Val"))) (Var "r")) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Var "$res0")))))
 
 /-- go: kvremote.go:80:6 -/
 noncomputable def encTRes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "r"
   (Seq (App (Val exceptionDo)
-  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Var "r"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Var "r"))
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"N"))) (Var "r")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"N"))) (Var "r")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"R"))) (Var "r")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"R"))) (Var "r")))
   (App (App (App (Val (GoInstruction (FuncResolve encVR []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"Found"))) (Var "r")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"Found"))) (Var "r")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Bool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"Kind"))) (Var "r")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"Kind"))) (Var "r")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))))
   (Val #()))))
 
 /-- go: kvremote.go:87:6 -/
 noncomputable def decTRes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
-  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Val #())))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Bool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
@@ -272,62 +272,62 @@ noncomputable def decTRes.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"N"))) (Var "r")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"N"))) (Var "r")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"R"))) (Var "r")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"R"))) (Var "r")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"Found"))) (Var "r")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"Found"))) (Var "r")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty go!"Kind"))) (Var "r")) (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty go!"Kind"))) (Var "r")) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Var "$res0")))))
 
 /-- go: kvremote.go:96:6 -/
 noncomputable def encKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "kv"
   (Seq (App (Val exceptionDo)
-  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Var "kv"))
+  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Var "kv"))
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty go!"R"))) (Var "kv")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty go!"R"))) (Var "kv")))
   (App (App (App (Val (GoInstruction (FuncResolve encVR []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty go!"Key"))) (Var "kv")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty go!"Key"))) (Var "kv")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0"))))))))
   (Val #()))))
 
 /-- go: kvremote.go:101:6 -/
 noncomputable def decKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
-  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Val #())))
+  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
   (App (App (Val (GoInstruction (FuncResolve decVR []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Var "kv"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Var "kv"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty go!"R"))) (Var "kv")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty go!"R"))) (Var "kv")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty go!"Key"))) (Var "kv")) (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Var "$res0")))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty go!"Key"))) (Var "kv")) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Var "$res0")))))
 
 /-- EncInput is in's encoding: every field, in order.
 
@@ -336,7 +336,7 @@ noncomputable def EncInput.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "in" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Var "in"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Var "in"))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty))) (LiteralValue [])))
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -359,41 +359,41 @@ noncomputable def EncInput.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Else0"))) (Var "in")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Else0"))) (Var "in")))
   (App (App (App (Val (GoInstruction (FuncResolve encTOp []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"NElse"))) (Var "in")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"NElse"))) (Var "in")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Then2"))) (Var "in")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Then2"))) (Var "in")))
   (App (App (App (Val (GoInstruction (FuncResolve encTOp []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Then1"))) (Var "in")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Then1"))) (Var "in")))
   (App (App (App (Val (GoInstruction (FuncResolve encTOp []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Then0"))) (Var "in")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Then0"))) (Var "in")))
   (App (App (App (Val (GoInstruction (FuncResolve encTOp []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"NThen"))) (Var "in")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"NThen"))) (Var "in")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Cmp0"))) (Var "in")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Cmp0"))) (Var "in")))
   (App (App (App (Val (GoInstruction (FuncResolve encCmp []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"NCmps"))) (Var "in")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"NCmps"))) (Var "in")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Val"))) (Var "in")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Val"))) (Var "in")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Key"))) (Var "in")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Key"))) (Var "in")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Kind"))) (Var "in")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Kind"))) (Var "in")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Pair (Var "e") (Var "$r0")))))))))
@@ -404,7 +404,7 @@ noncomputable def EncInput.impl [GooseExts] [GoGlobalContext] : val :=
     go: kvremote.go:126:6 -/
 noncomputable def DecInput.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
@@ -412,7 +412,7 @@ noncomputable def DecInput.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.NewDec []))) (Val #())) (Var "$a0")))
   (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "in" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Val #())))
+  (Let "in" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Str"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
@@ -440,7 +440,7 @@ noncomputable def DecInput.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
   (App (App (Val (GoInstruction (FuncResolve decTOp []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Var "in"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Var "in"))
   (Let "$r1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -449,32 +449,32 @@ noncomputable def DecInput.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Else0"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Else0"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"NElse"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"NElse"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Then2"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Then2"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Then1"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Then1"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Then0"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Then0"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"NThen"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"NThen"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Cmp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Cmp0"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Cmp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Cmp0"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"NCmps"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"NCmps"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Val"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Val"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Key"))) (Var "in")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Key"))) (Var "in")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go!"Kind"))) (Var "in")) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go!"Kind"))) (Var "in")) (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Pair (Var "d") (Var "$r0")))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
 
 /-- EncOutput is o's encoding: every field, in order.
 
@@ -483,7 +483,7 @@ noncomputable def EncOutput.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Var "o"))
+  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Var "o"))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty))) (LiteralValue [])))
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -509,52 +509,52 @@ noncomputable def EncOutput.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"KV2"))) (Var "o")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"KV2"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve encKV []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"KV1"))) (Var "o")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"KV1"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve encKV []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"KV0"))) (Var "o")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"KV0"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve encKV []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"NKVs"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"NKVs"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Res2"))) (Var "o")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Res2"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve encTRes []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Res1"))) (Var "o")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Res1"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve encTRes []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Res0"))) (Var "o")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Res0"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve encTRes []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"NRes"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"NRes"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Int"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Ok"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Ok"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Bool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"N"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"N"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"R"))) (Var "o")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"R"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve encVR []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Found"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Found"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Bool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Rev"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Rev"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Err"))) (Var "o")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Err"))) (Var "o")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty) go!"Bool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Var "e"))) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc.ty)))) (Pair (Var "e") (Var "$r0")))))))))
@@ -565,7 +565,7 @@ noncomputable def EncOutput.impl [GooseExts] [GoGlobalContext] : val :=
     go: kvremote.go:164:6 -/
 noncomputable def DecOutput.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
@@ -573,7 +573,7 @@ noncomputable def DecOutput.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.NewDec []))) (Val #())) (Var "$a0")))
   (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Val #())))
+  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Val #())))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Bool"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"I64"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
@@ -609,7 +609,7 @@ noncomputable def DecOutput.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))
   (App (App (Val (GoInstruction (FuncResolve decKV []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Var "o"))
   (Let "$r1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty) go!"Done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Var "d"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -618,41 +618,41 @@ noncomputable def DecOutput.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"KV2"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"KV2"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"KV1"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"KV1"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.KV.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"KV0"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.KV.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"KV0"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"NKVs"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"NKVs"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Res2"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Res2"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Res1"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Res1"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TRes.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Res0"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TRes.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Res0"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"NRes"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"NRes"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Ok"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Ok"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"N"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"N"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.VR.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"R"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.VR.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"R"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Found"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Found"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Rev"))) (Var "o")) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Rev"))) (Var "o")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Err"))) (Var "o")) (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Err"))) (Var "o")) (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Dec.ty)))) (Pair (Var "d") (Var "$r0")))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
 
 /-- Codec is txnlin's codec: inputs and outputs as above; a read is an input txnlin's model does not
-    take as a write (txnlin.IsWrite); the unknown output is Output{Err: true}.
+    take as a write (txnwork.IsWrite); the unknown output is Output{Err: true}.
 
     go: kvremote.go:186:6 -/
 noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
@@ -663,7 +663,7 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc go.any))) (Var "in"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "in")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "in")))
   (App (App (Val (GoInstruction (FuncResolve EncInput []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -683,10 +683,10 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "in" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Val #())))
+  (Let "in" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Var "in")))
+  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Var "in")))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -699,13 +699,13 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (Pair (Var "in") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (Pair (Var "in") (Var "$r0"))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
   (Let "$v2" (Lam "out"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "out" (App (Val (GoInstruction (GoAlloc go.any))) (Var "out"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "out")))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "out")))
   (App (App (Val (GoInstruction (FuncResolve EncOutput []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -725,10 +725,10 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Val #())))
+  (Let "o" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Var "o")))
+  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Var "o")))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -741,14 +741,14 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (Pair (Var "o") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (Pair (Var "o") (Var "$r0"))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
   (Let "$v4" (Lam "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc go.any))) (Var "in"))
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Input.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "in")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.IsWrite []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Input.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "in")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.IsWrite []))) (Val #())) (Var "$a0"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -759,8 +759,8 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc go.any))) (Var "in"))
-  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go.any))) (Let "$v0" (Val #true)
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.bool (Var "$v0")))]))))
+  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go.any))) (Let "$v0" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.bool (Var "$v0")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -771,7 +771,7 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "out" (App (Val (GoInstruction (GoAlloc go.any))) (Var "out"))
-  (Let "$r0" (App (Val (GoInstruction (StructFieldGet _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty go!"Err"))) (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Output.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "out"))))
+  (Let "$r0" (App (Val (GoInstruction (StructFieldGet _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty go!"Err"))) (App (Val (GoInstruction (TypeAssert _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Output.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "out"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -800,10 +800,10 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "timeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeout"))
   (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
   (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "nodes"))
-  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model []))) (Val #())) (Val #()))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Model []))) (Val #())) (Val #()))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
   (Let "$a2" (App (App (Val (GoInstruction (FuncResolve Codec []))) (Val #())) (Val #()))
-  (Let "$a3" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen []))) (Val #()))
+  (Let "$a3" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen []))) (Val #()))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
   (Let "$a5" (Val Attempt)
   (Let "$a6" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "timeout"))
@@ -816,7 +816,7 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")))))))
 
 /-- Node is client machine c's program, at addr: a clientv3 client of the endpoints eps (in the
-    order the client prefers), each operation it is asked txnlin.Call through it. It never returns,
+    order the client prefers), each operation it is asked txnwork.Call through it. It never returns,
     except at once if its client fails to be made (no retry: the orchestrator's calls to it then go
     unanswered).
 
@@ -861,7 +861,7 @@ noncomputable def Node.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "sys" (App (Val (GoInstruction (GoAlloc go.any))) (Var "sys"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoLoad go.any))) (Var "sys")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "in"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Call []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Call []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -894,7 +894,7 @@ noncomputable def Node.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_uber_org.zap, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_uber_org.zap, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -918,11 +918,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   encCmp_unfold : FuncUnfold encCmp [] encCmp.impl
@@ -947,9 +947,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_enc_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Assumptions
-  import_txnlin_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
   import_remote_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions
+  import_txnwork_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions
 
 attribute [instance] Assumptions.encCmp_unfold
   Assumptions.decCmp_unfold
@@ -973,9 +973,9 @@ attribute [instance] Assumptions.encCmp_unfold
   Assumptions.import_clientv3_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_enc_Assumption
-  Assumptions.import_txnlin_Assumption
   Assumptions.import_etcdstart_Assumption
   Assumptions.import_remote_Assumption
+  Assumptions.import_txnwork_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 

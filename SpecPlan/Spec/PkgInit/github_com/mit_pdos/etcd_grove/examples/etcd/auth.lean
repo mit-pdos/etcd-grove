@@ -5,16 +5,13 @@ public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.auth
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.sync.Base
-public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
-public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
-public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.etcdserverpb
-public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.mvccpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.authwork
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 
 @[expose] public section

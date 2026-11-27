@@ -7,7 +7,7 @@
 // StartMembers/Serve, the bridges, the partitioner, CutPeer/MendPeer and HardStop, its clients made
 // of the endpoints it is given. Faults are the network's (cuts, delays, refused dials) and the
 // server machines' crashes, never the program's. Where a driver's helpers are exported and take
-// clients, they are called (txnlin.Apply/Gen/Model, etcdstart.Writer/Collect/Check, auth.SetUp/
+// clients, they are called (txnwork.Apply/Gen/Model, etcdstart.Writer/Collect/Check, authwork.SetUp/
 // Work/CheckHistory, ...); where its workload is inline in Main or its helpers are unexported, the
 // code is copied here, each copy saying which driver function it is (the list: the plan's §2,
 // "Copies").

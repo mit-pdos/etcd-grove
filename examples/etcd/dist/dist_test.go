@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/server"
+	"github.com/mit-pdos/etcd-grove/examples/lib/authwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
@@ -339,8 +339,8 @@ func TestWellFormedMaxMembers(t *testing.T) {
 
 // TestNodeCount checks that the auth workload's client machines are its principals.
 func TestNodeCount(t *testing.T) {
-	if deployment.NodeCount(Workload{Kind: deployment.Auth}) != len(auth.Principals()) {
-		t.Error("deployment.AuthPrincipals is not len(auth.Principals())")
+	if deployment.NodeCount(Workload{Kind: deployment.Auth}) != len(authwork.Principals()) {
+		t.Error("deployment.AuthPrincipals is not len(authwork.Principals())")
 	}
 }
 

@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main(clients, ops)` (`examples/etcd/txnlin/etcd_txnlin.go`; linkv-txn stage G): one etcd member started
+`Main(clients, ops)` (`examples/lib/txnwork/etcd_txnlin.go`; linkv-txn stage G): one etcd member started
 in process (as `examples/linkv`'s `Main`, on `linkvtxn`'s ports), a client with etcd's
 default configuration (its default retries; D29), and `Check(cli, clients, ops, 0)`, with a panic if porcupine reports the
 history `Illegal`.

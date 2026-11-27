@@ -1,0 +1,16 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --linkvtxn-main`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The driver's `Check` and `Main`; its
+# workload and model are the library `txnwork`'s (`--linkvtxn`, moved there on 2026-11-27).
+#
+txnwork_Model: @
+txnwork_Gen: @
+txnwork_Apply: @
+Run: @
+CounterClock: @
+txnlin_Check: Run CounterClock txnwork_Model txnwork_Gen txnwork_Apply
+etcdstart_StartServer: @
+etcdstart_Serve: @
+etcdstart_NewClient: @
+zap_NewNop:
+txnlin_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient txnlin_Check =mvcc.api.mvccApi_names_nonempty_law_holds =_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof

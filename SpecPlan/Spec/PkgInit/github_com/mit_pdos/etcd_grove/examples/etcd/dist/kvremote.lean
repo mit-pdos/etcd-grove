@@ -8,9 +8,9 @@ public import SpecPlan.Spec.PkgInit.github_com.anishathalye.porcupine
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.remote
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 
 @[expose] public section
 noncomputable section

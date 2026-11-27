@@ -57,7 +57,7 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Wire
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.Token
