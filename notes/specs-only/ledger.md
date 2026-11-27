@@ -8,6 +8,30 @@ plan stays the target the real proofs converge toward: no silent edits.
 One entry per defect, newest first, in this format:
 
 ```
+## 2026-11-27: the interval tree's specs -- the tree's shape hidden, `visit` under a query premise (nomode X-a2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/pkg/v3/adt/`: `intervalTree.insertFixup.spec`, `intervalTree.Insert_gen.spec`,
+  `intervalNode.visit.spec`, `intervalTree.Visit_gen.spec`, `intervalTree.Contains_gen.spec` (no SpecPlan
+  counterpart states the shape).
+- **Defect.** The specs gave the tree's entries only (`ownIvtK K t L`), and `visit`/`Visit`/`Contains` their result
+  only for a query that is not empty-and-finite (`b = "" ∨ b < e`), some sublist/boolean otherwise. etcd's auth
+  check calls `Contains` on any range Go accepts, inverted ones included, whose answer depends on the tree's
+  shape (`visit` prunes on the subtrees' `max`): with the shape hidden, the verdict cannot be a function of the
+  auth state (design X).
+- **Evidence.** `issues/etcd-auth-perm-order-go-version.md`; the D2 tests (`d2_shape_test.go`).
+- **Proposed change.** `ownIvtT K t T dq` (`Defs.lean`): the tree is exactly `T`; `ownIvtK` unchanged, equivalent to
+  `∃ T, ownIvtT K t T dq ∗ ⌜T.inorder = L⌝` (`ownIvtK_T`, `ownIvtT_K`; an empty tree is `.leaf`, `ownIvtK_nil`, so
+  `NewIntervalTree`'s spec stays). `insertFixup`: the tree is also `C.fixup tz` (`RbCtx.fixup`, the loop as a
+  function). `Insert_gen`: on `ownIvtT`, the result `T.insertRB z` (descent, red leaf, fixup), with its entries
+  `ivtInsert z T.inorder`. `visit`/`Visit_gen`: no query premise, no `IvSorted`; the visited entries are
+  `T.visitL q` when no visitor stopped, a non-empty prefix of it else; the visitor is told a prefix. `Contains_gen`:
+  `r = containsT q T` (the scan over `visitL`) for every query. The entry-level forms follow
+  (`VisitL.lean`: `Visit_gen_L`, `Insert_gen_L`; `containsT_eq`), so the string- and bytes-affine instance specs
+  (`Insert`, `Insert_bytes`, `Visit`, `Contains`, `Contains_bytes`, `Stab`, `Union`) and the clients (mvcc's watcher
+  groups, v3rpc, auth) are unchanged.
+- **Decision.** Accepted (coordinator, design X, 2026-11-27: "visit/Visit: visited entries = a prefix of T.visitL q,
+  with NO query premise; Contains: result = containsT q T; NewIntervalTree: T = leaf").
+
 ## 2026-11-27: the auth model's roles -- a role's record matches the state only up to order (nomode X-a1)
 
 - **Spec.** `auth.grantPerms` (`Proof/.../auth/Steps.lean`, in `roleGrantPermissionR`: the step of

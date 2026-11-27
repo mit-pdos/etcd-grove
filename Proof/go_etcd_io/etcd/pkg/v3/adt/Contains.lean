@@ -159,6 +159,22 @@ def containsRes (q : IvlS) (L : List Entry) : Bool :=
     | none => false
     | some me => decide (affCmp me q.2 ≥ 0 ∧ affCmp z.1.1 q.1 ≤ 0)
 
+/-- **What `Contains(q)` returns on the exact tree `T`** (nomode X-a2): `containsRes`'s scan over the
+entries `visit` visits (`RbT.visitL`), for any query (for a sorted tree and a query that is not
+empty-and-finite, the overlapping ones: `containsT_eq`). -/
+def containsT (q : IvlS) (T : RbT Entry) : Bool :=
+  match T.visitL q with
+  | [] => false
+  | z :: zs =>
+    match scanFrom z.1.2 zs with
+    | none => false
+    | some me => decide (affCmp me q.2 ≥ 0 ∧ affCmp z.1.1 q.1 ≤ 0)
+
+theorem containsT_eq (q : IvlS) (T : RbT Entry) (hs : IvSorted T.inorder)
+    (hq : q.1 = go!"" ∨ affLt q.1 q.2) : containsT q T = containsRes q T.inorder := by
+  unfold containsT containsRes
+  rw [visit_stab q hq T hs]
+
 /-- The scan over one more entry: it breaks when the entry begins above the running maximum,
 else the maximum takes the entry's end when above it (`Contains`' loop body). -/
 theorem scanFrom_snoc (z : Entry) : ∀ (zs : List Entry) (me : GoString),

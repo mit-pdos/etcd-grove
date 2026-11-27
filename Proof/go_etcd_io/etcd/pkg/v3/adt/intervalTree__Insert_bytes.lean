@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert_bytes
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NodeLemmas
 
 @[expose] public section
 
@@ -33,8 +34,10 @@ theorem adt.intervalTree.Insert_bytes.wp_proof
   unfold adt.ownIvtB
   rw [adt.bytesIvl_eq (GF := GF)]
   wp_start_folded as ⟨Ht, Hb, He, %hlen⟩
+  icases adt.ownIvtK_T adt.bytesKey t L _ $$ Ht with ⟨%T, Ht, %hTL⟩
+  subst hTL
   wp_apply (h_Insert_gen adt.bytesKey (adt.bytesKey_ok h_BytesAffineComparable_Compare)
-    t L #b #e bs es v) $$ [Ht Hb He] as Ht
+    t T #b #e bs es v) $$ [Ht Hb He] as Ht
   · simp only [adt.bytesKey_keyAt]
     iframe Ht
     isplitl [Hb]
@@ -43,7 +46,9 @@ theorem adt.intervalTree.Insert_bytes.wp_proof
     · iapply adt.bytesKeyAt_intro $$ He
     ipureintro; exact hlen
   iapply HΦ
-  iexact Ht
+  icases Ht with ⟨Ht, %hin⟩
+  rw [← hin]
+  iapply adt.ownIvtT_K _ _ _ _ $$ Ht
 
 end proof
 

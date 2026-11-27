@@ -490,6 +490,41 @@ theorem ownIvtK_not_null (t : Loc) (L : List Entry) (dq : DFrac) :
   iintro ⟨%tv, %T, Ht, -⟩
   iapply typedPointsto_not_null _ _ _ $$ Ht
 
+/-- **The tree's entries are those of an exact tree** (`ownIvtT`, nomode X-a2). -/
+theorem ownIvtK_T (t : Loc) (L : List Entry) (dq : DFrac) :
+    ownIvtK K t L dq ⊢ ∃ T : RbT Entry, ownIvtT K t T dq ∗ ⌜T.inorder = L⌝ := by
+  unfold ownIvtK ownIvtT
+  iintro ⟨%tv, %T, Ht, Hs, Hn, %Hp⟩
+  obtain ⟨hTL, hrb, hs, hc, hl⟩ := Hp
+  subst hTL
+  iexists T
+  isplitl
+  · iexists tv; iframe; ipureintro; exact ⟨hrb, hs, hc, hl⟩
+  · ipureintro; rfl
+
+/-- An exact tree holds its entries. -/
+theorem ownIvtT_K (t : Loc) (T : RbT Entry) (dq : DFrac) :
+    ownIvtT K t T dq ⊢ ownIvtK K t T.inorder dq := by
+  unfold ownIvtK ownIvtT
+  iintro ⟨%tv, Ht, Hs, Hn, %Hp⟩
+  iexists tv, T
+  iframe
+  ipureintro; exact ⟨rfl, Hp⟩
+
+/-- **An empty tree is the leaf** (`NewIntervalTree`'s: `T = .leaf`). -/
+theorem ownIvtK_nil (t : Loc) (dq : DFrac) : ownIvtK K t [] dq ⊢ ownIvtT K t .leaf dq := by
+  iintro H
+  icases ownIvtK_T K t [] dq $$ H with ⟨%T, H, %hT⟩
+  cases T with
+  | leaf => iexact H
+  | node c l e r => simp at hT
+
+theorem ownIvtT_not_null (t : Loc) (T : RbT Entry) (dq : DFrac) :
+    ownIvtT K t T dq ⊢ ⌜t ≠ null⌝ := by
+  unfold ownIvtT
+  iintro ⟨%tv, Ht, -⟩
+  iapply typedPointsto_not_null _ _ _ $$ Ht
+
 omit K in
 /-- The tree struct as its fields. -/
 theorem ivt_fields (t : Loc) (tv : intervalTree) (dq : DFrac) :
@@ -528,6 +563,33 @@ theorem ownIvtK_read (t : Loc) (L : List Entry) (dq : DFrac) :
   · ipureintro; exact Hp
   iintro ⟨Hr, Hc, Hsn, Hn⟩
   iexists tv, T
+  iframe Hs Hn
+  isplitl [Hr Hc Hsn Hback]
+  · iapply Hback; iframe ∗ #
+  ipureintro; exact Hp
+
+/-- **Reading the exact tree**: its fields and the nodes from the root, given back unchanged. -/
+theorem ownIvtT_read (t : Loc) (T : RbT Entry) (dq : DFrac) :
+    ownIvtT K t T dq ⊢ ∃ tv : intervalTree,
+      t.[intervalTree, go!"root"] ↦{dq} tv.root' ∗
+      t.[intervalTree, go!"count"] ↦{dq} tv.count' ∗
+      t.[intervalTree, go!"sentinel"] ↦{dq} tv.sentinel' ∗
+      ownNode K tv.sentinel' dq tv.sentinel' tv.root' T ∗
+      ⌜RbOk T ∧ IvSorted T.inorder ∧ tv.count' = W64 T.inorder.length ∧
+        T.inorder.length < 2 ^ 63⌝ ∗
+      (t.[intervalTree, go!"root"] ↦{dq} tv.root' ∗
+        t.[intervalTree, go!"count"] ↦{dq} tv.count' ∗
+        t.[intervalTree, go!"sentinel"] ↦{dq} tv.sentinel' ∗
+        ownNode K tv.sentinel' dq tv.sentinel' tv.root' T -∗ ownIvtT K t T dq) := by
+  unfold ownIvtT
+  iintro ⟨%tv, Ht, Hs, Hn, %Hp⟩
+  icases ivt_fields _ _ _ $$ Ht with ⟨Hr, Hc, Hsn, Hback⟩
+  iexists tv
+  iframe Hr Hc Hsn Hn
+  isplitl []
+  · ipureintro; exact Hp
+  iintro ⟨Hr, Hc, Hsn, Hn⟩
+  iexists tv
   iframe Hs Hn
   isplitl [Hr Hc Hsn Hback]
   · iapply Hback; iframe ∗ #

@@ -38,3 +38,24 @@ always does. The proof: `grant_kept_eq` (`GrantPermLemmas.lean`): the sorted rec
 permutation of the kept permissions with the new one, strictly sorted (distinct ranges, `sort.Sort`'s
 postcondition), and so is `grantPerms ps w` (`grantPerms_sorted`); two such lists are equal
 (`List.Perm.eq_of_pairwise`).
+
+## X-a2: the interval tree, exactly
+
+The tree's specs (`pkg/v3/adt`) now state the red-black tree itself, not only its entries, and
+`visit`'s descent for every query (`notes/specs-only/ledger.md`, 2026-11-27). Untrusted (proved code);
+before/after of the vocabulary:
+
+- `adt.ownIvtT K t T dq` (`Defs.lean`, new): the tree at `t` is exactly `T` (with `RbOk T`, `IvSorted T.inorder`,
+  the count). `ownIvtK` is unchanged; `ownIvtK K t L dq ⊣⊢ ∃ T, ownIvtT K t T dq ∗ ⌜T.inorder = L⌝`
+  (`ownIvtK_T`, `ownIvtT_K`); `ownIvtK K t [] dq ⊢ ownIvtT K t .leaf dq` (`ownIvtK_nil`: `NewIntervalTree`'s
+  spec unchanged gives `T = .leaf`).
+- `adt.RbCtx.fixup C t`, `adt.RbT.insertAt z C T`, `adt.RbT.insertRB z T` (`TreeInsert.lean`, new): `insertFixup`'s
+  loop and `Insert` as functions, mirroring the Go code's cases and colour writes.
+- `adt.containsT q T` (`Contains.lean`, new): `containsRes`'s scan over `T.visitL q`; `containsT_eq`: equal to
+  `containsRes q T.inorder` for a sorted tree and a query that is not empty-and-finite.
+- Specs: `insertFixup` adds `T = C.fixup tz`; `Insert_gen` on `ownIvtT`, result `T.insertRB z` (and its entries
+  `ivtInsert z T.inorder`); `visit`/`Visit_gen` (no query premise, no `IvSorted`): the visited entries are
+  `T.visitL q` when no visitor stopped, a non-empty prefix else; `Contains_gen`: `r = containsT q T`.
+  The entry-level forms are derived (`VisitL.lean`: `Visit_gen_L`, `Insert_gen_L`), so the string- and
+  bytes-affine instance specs and every client are unchanged. X-a3 states the auth cache over `ownIvtT`
+  (bytes-affine `Insert`/`Contains` at the tree level: through the `_gen` specs with `bytesKey`).

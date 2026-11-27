@@ -466,6 +466,79 @@ end cases
 
 end RbCtx
 
+/-! ## `insertFixup` and `Insert` as functions (nomode X-a2) -/
+
+namespace RbCtx
+variable {E : Type}
+
+/-- **`insertFixup` at the hole of `C` holding `t`, as a function**: CLRS's `RB-INSERT-FIXUP` as
+the Go loop runs it (`interval_tree.go`): while the hole's parent is red, by the side the parent
+hangs on its own parent (`G`) and the uncle's colour: a red uncle recolours (`P`, `U` black, `G`
+red) and goes on at `G`; a black one rotates (after the inner case's first rotation) and the
+loop ends, the parent of the hole being black; at the end the root is blackened. The colours
+written are the code's, whatever they were (`FixInv` says what they were). -/
+def fixup : RbCtx E → RbT E → RbT E
+  | .inL .red (.inL _ CG ge (.node .red ul ue ur)) pe s1, t =>
+      fixup CG (.node .red (.node .black t pe s1) ge (.node .black ul ue ur))
+  | .inL .red (.inL _ CG ge u) pe s1, t =>
+      (CG.plug (.node .black t pe (.node .red s1 ge u))).blacken
+  | .inR .red s1 pe (.inL _ CG ge (.node .red ul ue ur)), t =>
+      fixup CG (.node .red (.node .black s1 pe t) ge (.node .black ul ue ur))
+  | .inR .red s1 pe (.inL _ CG ge u), .node _ tl ze tr =>
+      (CG.plug (.node .black (.node .red s1 pe tl) ze (.node .red tr ge u))).blacken
+  | .inL .red (.inR _ (.node .red ul ue ur) ge CG) pe s1, t =>
+      fixup CG (.node .red (.node .black ul ue ur) ge (.node .black t pe s1))
+  | .inL .red (.inR _ u ge CG) pe s1, .node _ tl ze tr =>
+      (CG.plug (.node .black (.node .red u ge tl) ze (.node .red tr pe s1))).blacken
+  | .inR .red s1 pe (.inR _ (.node .red ul ue ur) ge CG), t =>
+      fixup CG (.node .red (.node .black ul ue ur) ge (.node .black s1 pe t))
+  | .inR .red s1 pe (.inR _ u ge CG), t =>
+      (CG.plug (.node .black (.node .red u ge s1) pe t)).blacken
+  | C, t => (C.plug t).blacken
+
+/-- The loop's exit: the hole's parent black (or none). -/
+theorem fixup_black (C : RbCtx E) (t : RbT E) (h : C.color = .black) :
+    C.fixup t = (C.plug t).blacken := by
+  cases C with
+  | top => first | rfl | simp [fixup]
+  | inL c p e r => simp only [color] at h; subst h; first | rfl | simp [fixup]
+  | inR c l e p => simp only [color] at h; subst h; first | rfl | simp [fixup]
+
+/-- A black uncle (the uncle `u` not a red node). -/
+theorem fixup_black_LL (cg : RbColor) (CG : RbCtx E) (ge pe : E) (u s1 t : RbT E)
+    (hu : u.color = .black) :
+    (RbCtx.inL .red (.inL cg CG ge u) pe s1).fixup t =
+      (RbCtx.inL .black CG pe (.node .red s1 ge u)).fixup t := by
+  cases u with
+  | leaf => first | rfl | simp [fixup]
+  | node cu ul ue ur => simp only [RbT.color] at hu; subst hu; first | rfl | simp [fixup]
+
+theorem fixup_black_RL (cg : RbColor) (CG : RbCtx E) (ge pe ze : E) (u s1 tl tr : RbT E)
+    (ct : RbColor) (hu : u.color = .black) :
+    (RbCtx.inR .red s1 pe (.inL cg CG ge u)).fixup (.node ct tl ze tr) =
+      (RbCtx.inL .black CG ze (.node .red tr ge u)).fixup (.node .red s1 pe tl) := by
+  cases u with
+  | leaf => first | rfl | simp [fixup]
+  | node cu ul ue ur => simp only [RbT.color] at hu; subst hu; first | rfl | simp [fixup]
+
+theorem fixup_black_LR (cg : RbColor) (CG : RbCtx E) (ge pe ze : E) (u s1 tl tr : RbT E)
+    (ct : RbColor) (hu : u.color = .black) :
+    (RbCtx.inL .red (.inR cg u ge CG) pe s1).fixup (.node ct tl ze tr) =
+      (RbCtx.inR .black (.node .red u ge tl) ze CG).fixup (.node .red tr pe s1) := by
+  cases u with
+  | leaf => first | rfl | simp [fixup]
+  | node cu ul ue ur => simp only [RbT.color] at hu; subst hu; first | rfl | simp [fixup]
+
+theorem fixup_black_RR (cg : RbColor) (CG : RbCtx E) (ge pe : E) (u s1 t : RbT E)
+    (hu : u.color = .black) :
+    (RbCtx.inR .red s1 pe (.inR cg u ge CG)).fixup t =
+      (RbCtx.inR .black (.node .red u ge s1) pe CG).fixup t := by
+  cases u with
+  | leaf => first | rfl | simp [fixup]
+  | node cu ul ue ur => simp only [RbT.color] at hu; subst hu; first | rfl | simp [fixup]
+
+end RbCtx
+
 /-! ## The descent -/
 
 section entries
@@ -537,6 +610,17 @@ def nodeMaxO (lo : Option GoString) (e : Entry) (ro : Option GoString) : GoStrin
 
 theorem nodeMax_eq (l : RbT Entry) (e : Entry) (r : RbT Entry) :
     nodeMax l e r = nodeMaxO l.maxEnd e r.maxEnd := rfl
+
+/-- **`Insert` as a function**: the descent from the hole of `C` (left when the new interval is
+below the node's, by begin then end; right otherwise), the new entry as a red leaf where it ends,
+then `insertFixup` there (`RbCtx.fixup`). -/
+def RbT.insertAt (z : Entry) : RbCtx Entry → RbT Entry → RbT Entry
+  | C, .leaf => C.fixup (.node .red .leaf z .leaf)
+  | C, .node c l e r =>
+    if ivlLt z.1 e.1 then RbT.insertAt z (.inL c C e r) l else RbT.insertAt z (.inR c l e C) r
+
+/-- **The tree `Insert(z)` leaves**, from the root. -/
+def RbT.insertRB (z : Entry) (T : RbT Entry) : RbT Entry := T.insertAt z .top
 
 end entries
 

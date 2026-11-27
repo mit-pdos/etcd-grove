@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_bytes
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NodeLemmas
 
 @[expose] public section
 
@@ -33,21 +34,25 @@ theorem adt.intervalTree.Contains_bytes.wp_proof
   unfold adt.ownIvtB
   rw [adt.bytesIvl_eq (GF := GF)]
   wp_start_folded as ⟨Ht, Hb, He⟩
+  ihave %hs := adt.ownIvtK_sorted adt.bytesKey _ _ _ $$ Ht
+  icases adt.ownIvtK_T adt.bytesKey t L _ $$ Ht with ⟨%T, Ht, %hTL⟩
+  subst hTL
   wp_apply (h_Contains_gen adt.bytesKey (adt.bytesKey_ok h_BytesAffineComparable_Compare)
-    t L #b #e db de bs es dq) $$ [Ht Hb He] as %r ⟨Ht, Hb, He, %Hres⟩
+    t T #b #e db de bs es dq) $$ [Ht Hb He] as %r ⟨Ht, Hb, He, %Hres⟩
   · simp only [adt.bytesKey_keyAt]
     iframe Ht
     isplitl [Hb]
     · iapply adt.bytesKeyAt_intro $$ Hb
     iapply adt.bytesKeyAt_intro $$ He
   iapply HΦ
+  ihave Ht := adt.ownIvtT_K _ _ _ _ $$ Ht
   iframe Ht
   (try simp only [adt.bytesKey_keyAt])
   isplitl [Hb]
   · iapply adt.bytesKeyAt_elim $$ Hb
   isplitl [He]
   · iapply adt.bytesKeyAt_elim $$ He
-  ipureintro; exact Hres
+  ipureintro; intro hq; rw [Hres]; exact adt.containsT_eq _ T hs hq
 
 end proof
 
