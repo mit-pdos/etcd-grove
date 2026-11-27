@@ -94,9 +94,19 @@ instance hc_durW_countable : Pos.Countable AntSim.DurW :=
 
 instance hc_memRec_countable : Pos.Countable AntSim.MemRec :=
   countableOfLeftInverse
-    (fun m : AntSim.MemRec => ((m.role, m.pre, m.term, m.vote), (m.commit, m.ents, m.snap, m.cause, m.byE)))
-    (fun p => ⟨p.1.1, p.1.2.1, p.1.2.2.1, p.1.2.2.2, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩)
+    (fun m : AntSim.MemRec =>
+      (((m.role, m.pre, m.term, m.vote), (m.commit, m.ents, m.snap, m.cause, m.byE)), m.bat))
+    (fun p => ⟨p.1.1.1, p.1.1.2.1, p.1.1.2.2.1, p.1.1.2.2.2, p.1.2.1, p.1.2.2.1, p.1.2.2.2.1,
+      p.1.2.2.2.2.1, p.1.2.2.2.2.2, p.2⟩)
     (fun _ => rfl)
+
+instance hc_wJob_countable : Pos.Countable AntSim.WJob :=
+  countableOfLeftInverse (fun j : AntSim.WJob => (j.wrec, j.resp, j.cause, j.byE, j.st, j.ran))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+
+instance hc_aJob_countable : Pos.Countable AntSim.AJob :=
+  countableOfLeftInverse (fun j : AntSim.AJob => (j.ents, j.byE, j.ran))
+    (fun p => ⟨p.1, p.2.1, p.2.2⟩) (fun _ => rfl)
 
 instance hc_xty_countable : Pos.Countable XTy :=
   countableOfLeftInverse (fun t : XTy => match t with | .transferLeader => (0 : Nat) | .timeoutNow => 1)
@@ -110,7 +120,8 @@ instance hc_nodeView_countable : Pos.Countable AntSim.NodeView :=
   countableOfLeftInverse
     (fun v : AntSim.NodeView =>
       ((v.r, v.delivered, v.dur, v.undo, v.made), (v.mems, v.conf, v.confAt, v.pre, v.reads),
-       (v.alive, v.qs, v.pend, v.xpend, v.ce), (v.rpend, v.byE, v.cause, v.xcause, v.told)))
+       (v.alive, v.qs, v.pend, v.xpend, v.ce),
+       (v.rpend, v.byE, v.cause, v.xcause, v.told, v.jobs, v.ajobs, v.parts)))
     (fun p =>
       { r := p.1.1, delivered := p.1.2.1, dur := p.1.2.2.1, undo := p.1.2.2.2.1, made := p.1.2.2.2.2,
         mems := p.2.1.1, conf := p.2.1.2.1, confAt := p.2.1.2.2.1, pre := p.2.1.2.2.2.1,
@@ -118,7 +129,8 @@ instance hc_nodeView_countable : Pos.Countable AntSim.NodeView :=
         alive := p.2.2.1.1, qs := p.2.2.1.2.1, pend := p.2.2.1.2.2.1, xpend := p.2.2.1.2.2.2.1,
         ce := p.2.2.1.2.2.2.2,
         rpend := p.2.2.2.1, byE := p.2.2.2.2.1, cause := p.2.2.2.2.2.1, xcause := p.2.2.2.2.2.2.1,
-        told := p.2.2.2.2.2.2.2 })
+        told := p.2.2.2.2.2.2.2.1, jobs := p.2.2.2.2.2.2.2.2.1, ajobs := p.2.2.2.2.2.2.2.2.2.1,
+        parts := p.2.2.2.2.2.2.2.2.2.2 })
     (fun _ => rfl)
 
 instance hc_input_countable :

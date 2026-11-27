@@ -129,6 +129,29 @@ structure MemRec where
   snap : Option entryID
   cause : Option Msg
   byE : AntCheck.Str
+  /-- parity B2: a batching node's `mem` (`note`: no `first`; entries only for a leader), not a
+  `Ready`'s (`drainAsync`, `parallel`: rawnode's `state` fields) -/
+  bat : Bool := false
+
+/-- Async (parity B2): a queued storage write (`writeJob`, rawnode's `Write`): the `mem` it announced
+(none: nothing to write, only messages waiting for the write), the messages to others that wait for
+it (the `Ready`'s `AfterAppTy` ones and its held `MsgVote`s, design §6.1), the drain's cause and
+`by`, raft's state at its `Ready`, and whether the storage goroutine ran it (`write`, `wrote`: its
+messages not yet sent). -/
+structure WJob where
+  wrec : Option MemRec
+  resp : List Msg
+  cause : Option Msg
+  byE : AntCheck.Str
+  st : RState
+  ran : Bool := false
+
+/-- Async (parity B2): a queued apply (`applyJob`): the committed entries one `Ready` handed over,
+its drain's `by`, and whether they were handed out (`apply` with `a`; raft not yet told). -/
+structure AJob where
+  ents : List EntryM
+  byE : AntCheck.Str
+  ran : Bool := false
 
 /-- What the relation knows of a node (the invariant's view fragment, `γ.view`): raft's state `r`
 between inputs, or at its last `Ready` in a drain (`toRState`); the committed entries it handed out
@@ -165,6 +188,12 @@ structure NodeView where
   cause : Option Msg := none
   xcause : Option XMsg := none
   told : Bool := false
+  /-- parity B2, async: the queued storage writes (oldest first; the head may be one run whose
+  messages are not yet sent) and applies -/
+  jobs : List WJob := []
+  ajobs : List AJob := []
+  /-- parity B2, split writes: the parts of the `Ready`'s write not yet reported -/
+  parts : List MemRec := []
 
 /-- The view's protocol state (the S4 view's `ps`, kept as a projection). -/
 abbrev NodeView.ps (v : NodeView) : PState := v.r.p
@@ -247,7 +276,8 @@ def UndoIs (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
 
 /-- A queued `mem` report as the binding keeps it (B 452): the report and the message handled. -/
 def MemRec.item (id : w64) (m : MemRec) : AntCheck.QItem :=
-  { ev := evMem id m.byE (roleStr m.pre m.role) m.term m.vote m.commit m.ents m.snap,
+  { ev := if m.bat then evMemB id m.byE (roleStr m.pre m.role) m.term m.vote m.commit m.ents true
+          else evMem id m.byE (roleStr m.pre m.role) m.term m.vote m.commit m.ents m.snap true,
     m := (m.cause.map (fun c => msgOf c id)).toList }
 
 /-- **C1, the queue** (async, B 450-459): the binding's `queue[n]` is the view's announced

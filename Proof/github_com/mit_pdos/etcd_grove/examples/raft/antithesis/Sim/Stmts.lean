@@ -297,41 +297,28 @@ abbrev antSim_boot.stmt : Prop :=
     SimStep R dec evs G (evBoot R (nodeId n)) (setV V n { V n with alive := true }) net xnet
 
 /-- Restart (parity B2, `restartAtSpec`'s post): the state raft restarts at from the disk `d` with
-`a` entries applied, at the configuration `cs` they make (no snapshot: B3 adds the stored one). -/
+`a` entries applied, at the configuration `cs` they make (no snapshot: B3 adds the stored one), with
+no read state, read-only queue or deferred read request (design §7 Q8: `newRaft`'s fresh `readOnly`). -/
 def RestartR (dec : CCDec) (R : RunCfg) (d : DurW) (a : Nat) (cs : CCState) (r0 : RState) : Prop :=
   r0.p.term = d.term ∧ r0.p.vote = d.vote ∧ r0.p.commit = d.commit ∧ r0.p.log = d.log ∧
   r0.p.base = base0 ∧ r0.fp = [] ∧ r0.p.lead = W64 0 ∧ r0.p.role = .follower ∧ r0.p.votes = ∅ ∧
   r0.p.outbox = [] ∧ r0.p.matched = ∅ ∧ uint.nat r0.applied = a ∧ r0.pci = W64 0 ∧
   r0.snap = false ∧ r0.cidx = a ∧ r0.cfg = cs ∧ cfgFold dec R.c0 (d.log.take a) = some cs ∧
-  a ≤ uint.nat d.commit
+  a ≤ uint.nat d.commit ∧ r0.p.rd = {}
 
 /-- The view of a restarted node at its `boot` (the binding's `Boot` clears `pending`, `queue`,
-`reads` and `undo`, and sets `role := follower`, B 162-166). -/
+`reads` and `undo`, and sets `role := follower`, B 162-166); its drain is `boot`'s (`drain("boot")`
+hands the committed entries out again). -/
 def NodeView.boot (v : NodeView) (r0 : RState) (d : DurW) (a : Nat) (cs : CCState) : NodeView :=
   { r := r0, delivered := d.log.take a, dur := d, undo := none, made := true, mems := [],
     conf := cs, confAt := lastConfIdx d.log a, pre := false, reads := [], alive := true,
-    byE := v.byE }
+    byE := go!"boot" }
 
 /-- The last index and term of a full log (the `boot` report's `lastIndex`, `lastTerm`). -/
 def lastIT (l : List EntryM) : Int × Int :=
   match l.getLast? with
   | some e => ((l.length : Int), uint.Z e.Term')
   | none => (0, 0)
-
-/-- **`boot` after a restart** (parity B2, B 162-194): a stopped node restarts from its disk, or from
-the disk before an unmade write; it reports what it recovered and the applied index (within the
-committed log). -/
-abbrev antSim_bootR.stmt : Prop :=
-  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (d : DurW)
-    (a : Nat) (cs : CCState) (r0 : RState),
-    SimPre R dec S V net xnet evs G → (V n).alive = false →
-    (d = (V n).dur ∨ ((V n).undo = some d ∧ (V n).made = false)) → RestartR dec R d a cs r0 →
-    d.log.take a <+: G.committed →
-    SimStep R dec evs G
-      (evBootR (nodeId n) d.term d.vote d.commit (lastIT d.log).1 (lastIT d.log).2 a
-        (confView R.N cs))
-      (setV V n ((V n).boot r0 d a cs)) net xnet
 
 /-- **`recv`** (`reportCause`, B 199-204): the message a node handles, sent to it, is reported (at its
 drain's first report); the binding's `pending[n]` is then it. -/
@@ -439,19 +426,6 @@ def ReadyD.memRec (rd : ReadyD) (v : NodeView) : MemRec :=
   { role := rd.role, pre := rd.pre, term := rd.term, vote := rd.vote, commit := rd.commit,
     ents := rd.ents, snap := rd.snap, cause := v.cause, byE := v.byE }
 
-/-- **`mem`** (async, B 450-459): a reported `Ready` whose write the storage goroutine makes later;
-its in-memory state is queued. -/
-abbrev antSim_mem.stmt : Prop :=
-  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
-    (rd : ReadyD),
-    SimPre R dec S V net xnet evs G → R.md.async = true →
-    Reach R dec (admOf G) net xnet n (V n) r₁ → ReadyOutP R n (V n) r₁ rd → Reported (V n) rd →
-    Told (V n) → ReadyFacts G (nodeId n) r₁ → TermRoom (V n) →
-    SimStep R dec evs G
-      (evMem (nodeId n) (V n).byE (roleStr rd.pre rd.role) rd.term rd.vote rd.commit rd.ents rd.snap)
-      (setV V n { (V n).drainOf r₁ rd with mems := (V n).mems ++ [rd.memRec (V n)] }) net xnet
-
 /-- A disk after a queued state's write: its hard state, its entries from their first index. -/
 def DurW.write (d : DurW) (m : MemRec) : DurW :=
   { term := m.term, vote := m.vote, commit := m.commit,
@@ -459,54 +433,8 @@ def DurW.write (d : DurW) (m : MemRec) : DurW :=
       | none => d.log
       | some e0 => d.log.take (uint.nat e0.Index' - 1) ++ m.ents }
 
-/-- **`write`** (async, B 462-470): the storage goroutine announces the oldest queued state's write. -/
-abbrev antSim_write.stmt : Prop :=
-  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (m : MemRec)
-    (rest : List MemRec),
-    SimPre R dec S V net xnet evs G → R.md.async = true → (V n).mems = m :: rest →
-    SimStep R dec evs G (evWrite (nodeId n) m.term m.vote m.commit m.ents m.snap)
-      (setV V n { V n with dur := (V n).dur.write m, undo := some (V n).dur, made := false,
-                           mems := rest }) net xnet
-
-/-- **`wrote`** (B 502-504): the announced write is made; the messages after it may go. -/
-abbrev antSim_wrote.stmt : Prop :=
-  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N),
-    SimPre R dec S V net xnet evs G → R.md.async = true → (V n).undo ≠ none →
-    SimStep R dec evs G (evWrote (nodeId n)) (setV V n { V n with undo := none, made := true }) net xnet
-
-/-- **`flush`** (batch, B 474-478): the oldest queued `mem` joins the next batch write (`more` for
-every one after the first of a flush). -/
-abbrev antSim_flush.stmt : Prop :=
-  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (m : MemRec)
-    (rest : List MemRec) (more : Bool),
-    SimPre R dec S V net xnet evs G → R.drv.batch = true → (V n).mems = m :: rest →
-    (more = true → (V n).undo ≠ none) →
-    SimStep R dec evs G (evFlush (nodeId n) more)
-      (setV V n { V n with dur := (V n).dur.write m, mems := rest,
-                           undo := if more then (V n).undo else some (V n).dur,
-                           made := if more then (V n).made else false }) net xnet
-
-/-- **`net`** (batch, B 483-492): the batch's write, the union of the flushed states, is announced:
-the disk's hard state and its entries from the lowest conflict (`first`). -/
-abbrev antSim_net.stmt : Prop :=
-  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (d0 : DurW)
-    (es : List EntryM),
-    SimPre R dec S V net xnet evs G → R.drv.batch = true → (V n).undo = some d0 →
-    (∀ e0 ∈ es.head?, (V n).dur.log = (V n).dur.log.take (uint.nat e0.Index' - 1) ++ es ∧
-      ∀ e ∈ d0.log[uint.nat e0.Index' - 1]?, e.Term' ≠ e0.Term') →
-    (es = [] → (V n).dur.log = d0.log) →
-    SimStep R dec evs G (evNet (nodeId n) (V n).dur.term (V n).dur.vote (V n).dur.commit es) V net xnet
-
-/-- **`made`** (batch, B 496-499): the batch's write is on disk. -/
-abbrev antSim_made.stmt : Prop :=
-  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N),
-    SimPre R dec S V net xnet evs G → R.drv.batch = true → (V n).undo ≠ none →
-    SimStep R dec evs G (evMade (nodeId n)) (setV V n { V n with made := true }) net xnet
+/-! The async and batch reports (`mem`, `write`, `wrote`, `flush`, `net`, `made`) and `boot` after a
+restart are stated over the parity-B2 relation, in `StmtsB2.lean`. -/
 
 /-! ## The statements: snapshots and conf changes (parity B3) -/
 

@@ -229,10 +229,21 @@ def stateEv (e : AntCheck.Str) (id : w64) (term vote commit : w64) (es : List En
 /-- Async (parity B2): the `mem` report of what raft has in memory at a `Ready` whose write comes
 later (`withSnap(withByRole(stateEv("mem", hs, rd.Entries), by, role), snap)`). -/
 def evMem (id : w64) (by_ role : AntCheck.Str) (term vote commit : w64) (es : List EntryM)
-    (snap : Option entryID) : AntCheck.Event :=
+    (snap : Option entryID) (w : Bool) : AntCheck.Event :=
   { e := go!"mem", node := nameOf id, byE := some by_, role := some role,
     term := some (uint.Z term), vote := some (nameOf vote), commit := some (uint.Z commit),
-    first := some (firstOf es), entries := some (logOf es), snap := snap.map snapRefOf }
+    first := some (firstOf es), entries := some (logOf es), snap := snap.map snapRefOf,
+    w := some (if w then 1 else 0) }
+
+/-- Batch (parity B2): a batching node's `mem` after an input (`note`: `FBy | FRole | FW | FTerm |
+FVote | FCommit`, and `FEntries` with what a leader appended; no `first`). `es` are the entries the
+input made raft append; the report carries them only for a leader. -/
+def evMemB (id : w64) (by_ role : AntCheck.Str) (term vote commit : w64) (es : List EntryM)
+    (w : Bool) : AntCheck.Event :=
+  { e := go!"mem", node := nameOf id, byE := some by_, role := some role,
+    term := some (uint.Z term), vote := some (nameOf vote), commit := some (uint.Z commit),
+    entries := if role = AntCheck.leader then some (logOf es) else none,
+    w := some (if w then 1 else 0) }
 
 /-- Async (parity B2): the storage goroutine's `write` report (`stateEv("write", after, ents)`, with
 the snapshot it writes). -/
