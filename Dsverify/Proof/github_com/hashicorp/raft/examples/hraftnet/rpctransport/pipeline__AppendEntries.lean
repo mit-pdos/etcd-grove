@@ -6,6 +6,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.rpctransport.pipeline__AppendEntries
 public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Mutex__Unlock
+public import Dsverify.Proof.github_com.hashicorp.raft.ReplBase
 public import Perennial.Spec.time.Now
 
 @[expose] public section
@@ -36,7 +37,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.pipeline.Append
     (wp_Now : time.Now.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.examples.hraftnet.rpctransport.pipeline.AppendEntries.spec (GF := GF) (hG := hG) := by
   intro p γ j T args resp rq rp0 snd prev pt ents lci ss
-  wp_start as ⟨#Hp, #Hargs, Hrq, Hrp, %Hrp0⟩
+  wp_start as ⟨#Hp, #Hargs, #Hrq, Hrp, %Hrp0⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft $$ []
   · iPkgInit
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -76,7 +77,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.pipeline.Append
     · unfold futQ
       iexists ts, args, resp, dc, γd, rq, rp0, snd, prev, pt, ents, lci, ss
       iframe
-      iframe start req resp done Hargs
+      iframe start req resp done Hargs Hrq
       ipureintro; exact Hrp0
     inext
     wp_auto
