@@ -1,18 +1,13 @@
 /- Interpret a physical run as the term of every log index in its closed interval. -/
 module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayAppend
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayLookup
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayJob
 
 @[expose] public section
 noncomputable section
 namespace Perennial
 namespace EtcdGrove
 open go_etcd_io.etcd.server.v3.etcdserver
-
-/-- Every entry above the delivered cursor in this Ready has a readable run with its term. -/
-def replayRunsDescribe [GooseExts] (runs : List replayTermRun) (S : RaftState) (delivered : Nat) : Prop :=
-  ∀ (ci term : w64), delivered < uint.nat ci → plogTermAt S.base S.ents ci = some term →
-    replayRunCovers runs ci = true ∧ ∃ r, replayRunAt runs ci = some r ∧ r.term' = term
 
 variable [GooseExts]
 

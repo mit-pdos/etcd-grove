@@ -22,7 +22,7 @@ the right to close `done` and the claim on the stop's escrow (`rnStopClaim`). Th
 `γ` are the caller's (`node`, `id`, `nl`, `pre`, `ms`, `γs`, `key`, `wal`: raft's node, this
 node's id and pointer, the start log, the `MemoryStorage` with its names, the storage's key and
 the WAL's names; the `MemoryStorage` registry's name is the node's, `RNNames.reg`; and (restart S3
-item 6) the restart point's `a0`, `t0`, `commit0`, `snap0` (and, T10s3b, its durable state `s0`), labels `newRaftNode` claims nothing of)
+item 6) the restart point's `a0`, `t0`, `commit0`, `snap0`, labels `newRaftNode` claims nothing of)
 but the four `newRaftNode` allocates (`ap`, `cum`, `done`, `sc`).
 -/
 module
@@ -51,9 +51,7 @@ abbrev newRaftNode.spec : Prop :=
     (ms : Loc) (γs : MemStorNames) (key : GName) (walK : WalNamesK GF) (ss : Loc) (cv : raftNodeConfig)
     -- (restart S3 item 6, r2db §4.1, review 4: the restart point's names, labels only: `newRaftNode`
     -- allocates `cum` at `[L₀]` and claims nothing of them; until then `[]`, `W64 0`, `0`, `0`)
-    (a0 : List EntryModel) (t0 : w64) (L₀ : List EntryModel) (commit0 snap0 : Nat)
-    -- (T10s3b B3 part 2, 2026-11-27) the restart point's durable state, a label too
-    (s0 : RaftState),
+    (a0 : List EntryModel) (t0 : w64) (L₀ : List EntryModel) (commit0 snap0 : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- (premises to axioms, 2026-11-24: until then the contracts `rnLoggerZapOk ∗ rnTimeoutDetectorOk`,
       -- now the callees' trust-boundary specs, which the proof takes; 2026-11-03: `rnTickerOk E` gone)
@@ -69,8 +67,7 @@ abbrev newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames GF,
         ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
-          γ.key = key ∧ γ.walK = walK ∧ γ.ss = ss ∧ γ.a0 = a0 ∧ γ.t0 = t0 ∧ γ.commit0 = commit0 ∧ γ.snap0 = snap0 ∧
-          γ.s0 = s0⌝ ∗
+          γ.key = key ∧ γ.walK = walK ∧ γ.ss = ss ∧ γ.a0 = a0 ∧ γ.t0 = t0 ∧ γ.commit0 = commit0 ∧ γ.snap0 = snap0⌝ ∗
         rnBuilt E γ r cv L₀ }}
 
 end spec

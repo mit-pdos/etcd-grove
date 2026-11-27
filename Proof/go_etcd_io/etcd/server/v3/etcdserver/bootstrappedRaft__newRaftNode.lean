@@ -268,7 +268,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γr cv.ID' nn pre bv.storage' γs K νk ss
     (raftNodeConfig.mk view bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn.loc) bv.storage' st
-      bv.heartbeat' GoInterface.nil) bt.a0 bt.t0 bt.P bt.commit0 bt.snap0 (bt.view γr).S) $$ []
+      bv.heartbeat' GoInterface.nil) bt.a0 bt.t0 bt.P bt.commit0 bt.snap0) $$ []
     as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
     ipureintro; exact ⟨Hhb, bt.P_prefix⟩

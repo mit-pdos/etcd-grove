@@ -20,6 +20,11 @@ is built on it beyond the draft.
   commit), raft v3.7.0 (the fork's `go.mod`, no replace; the translated raft, `upamanyus/etcd`
   `raft37-goose-lean-a2`, adds three fixes elsewhere and leaves `bootstrap.go` as v3.7.0).
 
+> **WITHDRAWN, 2026-11-27 (T10s3b-12): rows 1-8 all.** The fork's keep guard is replaced by the boot fix (D)
+> (`notes/keepguard-optD/t10-t4-impact.md` §2): B1, B2, B3, B5 step 1, B6 part 1 and `RNNames.s0` were reverted to
+> the (A) base `0fd28cd373` (commit `6a99a0bafa`); rows 6-8 are never made. No
+> axiom's meaning differs from `7ff538e61d`'s; the packet is empty. The text below is kept as the record.
+
 ## Summary
 
 | # | Definition (step) | Axiom | Direction in the axiom | One line |

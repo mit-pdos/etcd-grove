@@ -204,14 +204,13 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
             srvFrozenTerms C.γs (uint.nat C.ai₀ + 1) (A ++ ce) ∗
             rnWalHanded γn (uint.nat C.ai₀ + (A ++ ce).length))) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
-        isNotifyDR γnc nc (taReplayBatch apL γn rt (rnLogOf γn (A ++ ce)).length)
-          (dvView C.ρ.raft dv (ghostOf rp (A ++ ce))) ∗ notifyRcv γnc ∗
+        isNotify γnc nc (dvView C.ρ.raft dv (ghostOf rp (A ++ ce))) ∗ notifyRcv γnc ∗
         dvView C.ρ.raft dv (ghostOf rp A) ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
         es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
         applyResR K C rp A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) ∗
         srvSnapDisk C.s C.γr ∗
         (letI : MemStorReg GF := ⟨C.γr.raft.raft.reg⟩; srvAttachedMem C.ms C.γs C.γr.raft.raft.cl nk C.γr.cursor γn.nl γn.snap0) ∗
-        taRaftTermAddr apL ↦□ rt ∗ taReplayField apL ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
+        taRaftTermAddr apL ↦□ rt ∗ taReplayBatch apL γn rt (rnLogOf γn (A ++ ce)).length ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
@@ -527,7 +526,7 @@ ghost log (`hwin`). After, Go is past the window (`applyResR … A'`). -/
 theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
-    (γn : RNNames GF) (rt : w64) {S2 : IProp GF} (K : AuthC) (hM : C.E.authMode = K.mode)
+    (γn : RNNames GF) (rt : w64) (K : AuthC) (hM : C.E.authMode = K.mode)
     (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
     (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
     (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
@@ -546,7 +545,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
           snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
           nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
         taNotifycAddr apL ↦□ nc ∗
-        isNotify2 γnc nc iprop(∃ j m, walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) S2 ∗
+        isNotify2 γnc nc iprop(∃ j m, walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
         notifyRcvN γnc 0 ∗
         taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) γn.node
@@ -645,7 +644,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     icases HbootField with ⟨%p, Hpt, -⟩; iexists p; iexact Hpt
   have hS := hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x
     (ghostOf rp A) C.ms C.γs C.wt γnc w γn.id γn.key (1 : Qp).half γn rt (rnLogOf γn A').length sa
-    g r0 S2 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia Hloop.1 hids hraft (by rw [Hkc.1, hc00])
+    g r0 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia Hloop.1 hids hraft (by rw [Hkc.1, hc00])
     (by rw [hon]; exact hch) Hlog0 hγn hn (by rw [← hn]; have := ghostOf_length rp A; omega) (by rw [← hγn]; exact hns)
   rw [hon] at hS
   have hlenCursor : (rnLogOf γn A').length = A'.length := by simp [rnLogOf, hpre]
@@ -1308,7 +1307,7 @@ theorem EtcdServer.run.wp_proofG
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
     icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
-      (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok⟩ | Hsnp)
+      (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok, #Hjob⟩ | Hsnp)
     rotate_left
     · -- (R2d'a task 4) the snapshot arm: `run_job_snapC` over `applyAll.specSnapM`, inside
       -- the window or past it
@@ -1397,9 +1396,7 @@ theorem EtcdServer.run.wp_proofG
     -- (R2d'a A10 item 4) over the ghost log (`rnApR_dv`/`rnApGive_dv`, no `γn.a0 = []`)
     have hp0' : γn.pre = [] := Hc0a.2.1
     have hrp : ρ.raft.pre = [] := by rw [← hpre]; exact hp0'
-    ihave #Hncb1 : isNotifyD γnc apv.notifyc'
-        (rnReplayJob γn apv.replayTerms' apv.raftTerm' (rnLogOf γn (A ++ ce)).length)
-        (dvView ρ.raft (rnDv γn ce) (ghostOf ⟨P.length, A₀⟩ (A ++ ce))) $$ []
+    ihave #Hncb : isNotify γnc apv.notifyc' (dvView ρ.raft (rnDv γn ce) (ghostOf ⟨P.length, A₀⟩ (A ++ ce))) $$ []
     · have h := rnApR_dv (GF := GF) γn ρ.raft P.length hrp hnd0 A ce
       simp only [hp0', Ha0, List.nil_append] at h
       rw [← h]; iexact Hncb0
@@ -1436,15 +1433,8 @@ theorem EtcdServer.run.wp_proofG
     ipersist ap
     ihave #Hapf := ap
     iStructNamedSuffix Hapf "A"
-    ihave #HreplayField : taReplayField ap_ptr $$ []
-    · iunfold taReplayField; iexists apv.replayTerms'; iexact replayTermsA
-    -- (T10s3b B3) the first send's deposit, the job, over the apply job's copy of the field
-    ihave #Hncb : isNotifyDR γnc apv.notifyc'
-        (taReplayBatch ap_ptr γn apv.raftTerm' (rnLogOf γn (A ++ ce)).length)
-        (dvView ρ.raft (rnDv γn ce) (ghostOf ⟨P.length, A₀⟩ (A ++ ce))) $$ []
-    · iapply isNotifyDR_of $$ Hncb1
-      iintro !> #Hjob
-      iunfold taReplayBatch; iexists apv.replayTerms'; iframe replayTermsA Hjob
+    ihave #HreplayField : taReplayBatch ap_ptr γn apv.raftTerm' (rnLogOf γn (A ++ ce)).length $$ []
+    · iunfold taReplayBatch; iexists apv.replayTerms'; iframe replayTermsA Hjob
     ihave #HC'' := HC'
     iunfold srvCM at HC''
     icases HC'' with ⟨%Hcp, #Hbw, #Hlbr⟩

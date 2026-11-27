@@ -3831,3 +3831,45 @@ Head built green for `NewServerCrash`, `Link` and the copies' `InvNodeRule` (log
 `out6c.txt` (no definition changed this session). Next: nothing startable without decisions — B7 and B8 (i) wait on the
 keep-guard fork decision (B5 keep arm, B6 part 2); B8 (iii) waits on the lead (above); B8 (iv) is the large
 `.snap.db` hinge, not asked for. No axiom statement, `sorry`, premise, `Spec/` or trusted text changed this session.
+
+### T10 step 3 (B), session 12 (T10s3b-12, 2026-11-27): the reverts to (A) under the boot fix (D); T10's term row
+
+The fork's keep guard is replaced by the boot fix (D) (#50; `notes/keepguard-optD/t10-t4-impact.md`). The split agreed
+with the etcd_safe lead: this branch does the §2 reverts and T10's image row (§3 item 6); the lead's helper does the
+boot contracts, the crash image's guarded term row (§3 item 3) and cindex's pair (§3 item 5), rebasing onto this.
+
+* **Reverts** (commit `6a99a0bafa`): every `Proof/`/`Spec/` file B1, B2, B3 (both parts), B5 step 1, B6 part 1 and
+  `RNNames.s0` touched restored from the (A) base `0fd28cd373` (`NotifyCD.lean` deleted): `ApplyAllSnap`,
+  `EtcdServer__applyAll`, `EtcdServer__applySnapshot`, `EtcdServer__run`, `InvRaftLoop`, `InvRaftNode`, `NodeStart`,
+  `NodeStartLinked`, `ReplayHistory`, `ReplayJob`, `ReplaySeed`, `ReplayWorkerTerms`, `SnapApplyWalk`,
+  `bootstrappedRaft__newRaftNode`, `newRaftNode`, `raftNode__start` (and the four `Spec/` files; ledger entries
+  "… reverted (T10s3b-12)", 2026-11-27, before the revert). Kept: session 11's `confAt_committed` (the four trees'
+  `InvApiDec`/`InvNodeRule`) and `srvCrashImageAt_disk` (`NewServerRAt`, `NewServerCrash`): no other commit since
+  `0fd28cd373` touched those files. `git diff 0fd28cd373` on Lean files is now session 11's alone (theorems only, no
+  definition). The packet `notes/t10s3b-axiom-packet.md` is marked withdrawn (rows 1-8). Sessions 1-11's notes above
+  stay as the record; B5 step 2, B6 part 2, B7 are never done (impact note §1).
+* **T10's term row** (§3 item 6): `bkTermRow A D` (`dist/crash/BackendImage.lean`): the stored term key is `encMeta`
+  of the term of `A`'s last entry (the committed entry at `i`; vacuous at `A = []`, the boot data, whose row is the
+  crash image's, item 3), a conjunct of `bkImg`'s pure part. `bkImg` has no consumer yet (statements only), so
+  nothing else moves. **`batchLockInv`'s row is not added**: its supply needs cindex's pair, the helper's item 5.
+  The interface T10 needs from it:
+  - `UnsafeSave` (the hook's save of `(k, t)`, read once from the pair) returns, persistently, the pair predicate
+    at what it stored: `k ≠ 0 → P k t`, with the server's `P k t := ∃ L, srvRLogLb ρ L ∗ ⌜ai0 + |L| = k ∧
+    (pre ++ L).getLast?.map (·.term) = some t⌝` (or raft's `isCommittedLogLb` of a log of length `k` with last term
+    `t`), and `P k t → t ≠ 0` (entry terms are at least 1; raft fact), so `metaAfterSave mm k t = (k, t)`;
+  - then the server's batch-lock instance keeps `uint.Z ai0 < uint.Z mm.1 → P mm.1 mm.2` beside `ghostVar γ.mt mm`
+    (true at the boot, `mm = m0` with `mm.1 = ai0`; kept by `metaAfterSave`), and `kbStep.law`'s image of `S` gets
+    `bkTermRow (A.take (m - ai0)) S` from it and `srvRLogLb_prefix` (two committed prefixes, same length → same last
+    entry).
+* **Builds and AxCheck** (manifest `/shared/tmp/t10s3b-manifest.json`): the 54 modules of `notes/t10s3b-chk/mods.txt`,
+  `NewServerCrash`, the server's `Link` and `InvNodeRule` in the main tree, `RaftTla`, `RaftNoAx`, `KvRaft`: green
+  (10854 jobs, `/shared/tmp/t10s3b12-b1.log`); `BackendImage` green. `AxCheck6` rerun: `notes/t10s3b-chk/out6d.txt`,
+  149 repo axioms; the hits are the names of its target list that exist at the base (`RNNames`, `rnLoopTok(P)`,
+  `rnWorkerStartTok`, `rnRestartOk`, `isNotify`, `isNotify2`, `rnApN`, `rnApSnap`, `rnApR`, `rnApP`, `rnReplayJob`,
+  `rnStopImage`, `wal.stopImage`), all now at their `0fd28cd373` text; `isNotifyD`, `notifyDInv`, `notifyDMatch` and
+  `rnReplayHist` no longer reached. `0fd28cd373..7ff538e61d` added only definitions no axiom reaches (B1/B2's
+  `rnReplayHist` layer, now gone too), so `NewServer_dist`, `Serve_dist`, `NewPeerHandler_dist` and `PeerServe_dist`
+  mean what they meant at `7ff538e61d`. No residual.
+* **Left** (the helper's, impact note §3-4): the boot contracts, the crash image's guarded term row, cindex's pair,
+  `batchLockInv`'s term conjunct over it (interface above), B8 (iii)/(iv). No axiom, `sorry`, premise or trusted
+  text changed this session.

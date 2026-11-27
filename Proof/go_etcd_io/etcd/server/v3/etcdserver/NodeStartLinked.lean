@@ -105,8 +105,8 @@ theorem raftNode_of_StartNode
     #Hseed, Hbuilt, Hb, Hpeers, #Hdur, #Harm, Hwview, Hwstop, Hwapp, -, ⟨#Hminv, Hmeta⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨#Hsfresh, Hdrv, Hncfg⟩
-  simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0, RNBoot.view, walView0] at Hnames
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0, HwS0⟩ := Hnames
+  simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n.installs pin default $$ HpinW with HpinW
   imod dghostVar_persist pin 1 n.installs $$ HpinW with #Hloc
   ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
@@ -135,7 +135,7 @@ theorem raftNode_of_StartNode
       (1 : Qp).half).1 $$ [Hrun] with ⟨Hrun1, Hrun2⟩
   · rw [Qp.half_add_half]; iexact Hrun
   -- the tokens
-  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre Hwa0 Hwt0 Hwc0 Hws0 HwS0
+  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre Hwa0 Hwt0 Hwc0 Hws0
       (by
         rw [Hwnode]
         unfold SrvRaft.cfg
@@ -199,14 +199,13 @@ theorem raftNode_of_StartNode
       raftNode).raftNodeConfig'.Node' =
       interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl.loc := by
     simp only [Hrvcfg, rnNodeIface, Hwnl]
-  ihave #Hstate : rnReplayHist γw rv.raftNodeConfig'.initialReplayTerms' γw.s0 γw.snap0 $$ []
+  ihave #Hstate : rnReplayState γw rv.raftNodeConfig'.initialReplayTerms' γw.snap0 $$ []
   · rw [Hrvcfg]
-    iunfold rnReplayHist
+    iunfold rnReplayState
     iexists ([] : List replayTermRun)
     isplitr
     · iExactEq Hseed; rfl
-    ipureintro
-    rw [HwS0]; exact replayHistoryMatches_init _
+    ipureintro; simp [Hwa0, replayPending, replayLayout]
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
     $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
@@ -376,8 +375,8 @@ theorem raftNode_of_RestartNode
     #Hseed, Hbuilt, Hb, Hpeers, #Hdur, #Harm, Hwview, Hwstop, Hwapp, -, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, Hncfg, #Hst0⟩
-  simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0, RNBoot.view, walView0] at Hnames
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0, HwS0⟩ := Hnames
+  simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n.installs pin default $$ HpinW with HpinW
   imod dghostVar_persist pin 1 n.installs $$ HpinW with #Hloc
   ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
@@ -439,7 +438,7 @@ theorem raftNode_of_RestartNode
       ⟨γr.cfg, rfl, fun _ h => h, fun _ h1 h2 => absurd h1 h2, H0, Hsz⟩⟩
   ihave ⟨Hloop, Happly⟩ := rnToks_of_restart γw (A₀.take σ.b) σ.hs S
       ⟨min A₀.length σ.commit, Membership.simple γr.cfg⟩ Hwpre hidx (by rw [Hwc0]; exact Nat.le_refl _)
-      (by simp [rnLogOf, Hwpre, Hws0, Nat.min_eq_left Hba]) HwS0 hcfgv
+      (by simp [rnLogOf, Hwpre, Hws0, Nat.min_eq_left Hba]) hcfgv
     $$ [Hdrv Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview]
   · rw [Hsrv, Hwnode, Hwnl, Hwms, Hwγs]
     ihave Hwview' : rnWalViewK γw.walK ((⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ : WalView), none) $$ [Hwview]
@@ -492,15 +491,15 @@ theorem raftNode_of_RestartNode
       raftNode).raftNodeConfig'.Node' =
       interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #γw.nl.loc := by
     simp only [Hrvcfg, rnNodeIface, Hwnl]
-  ihave #Hstate : rnReplayHist γw rv.raftNodeConfig'.initialReplayTerms' γw.s0 γw.snap0 $$ []
+  ihave #Hstate : rnReplayState γw rv.raftNodeConfig'.initialReplayTerms' γw.snap0 $$ []
   · rw [Hrvcfg]
-    iunfold rnReplayHist
+    iunfold rnReplayState
     iexists (σ.ents.map EntryModel.ofM).foldl replayAddEntry []
     isplitr
     · iExactEq Hseed; rfl
     ipureintro
-    rw [Hws0, HwS0]
-    exact replaySeed_history S σ Hhold hseed.2.1 (hseed.1.imp fun h => h.2)
+    rw [Hwa0, Hws0]
+    exact replaySeed_pending S σ A₀ Hhold hseed.2.1 (hseed.1.imp fun h => h.2) hseed.2.2
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
     $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
