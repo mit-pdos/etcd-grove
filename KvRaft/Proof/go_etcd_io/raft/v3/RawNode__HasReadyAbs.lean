@@ -155,7 +155,7 @@ local macro "finish_false" : tactic => `(tactic| (
     split <;> exact Hrd0
   isplit
   · ihave Hpend := pendAt_lentPend γ id rs.bw rs.slent steps rs.steps qs $$ Hpend
-    iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
+    iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin (Hasync.trans Hsa0) Hdlen Hunp
       Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt
       ⟨Hout0, Hnu, Hrd0, Hsn.2 rfl⟩
       Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
@@ -187,7 +187,7 @@ local macro "rest" : tactic => `(tactic| (
       wp_method_call
       wp_call
       wp_auto
-      rw [Hasync]
+      rw [Hasync, Hsa0]
       wp_apply wp_raftLog_hasNextCommittedEnts $$ [Hlog] as %bce ⟨Hlog, _⟩
       · iframe Hlog
       cases bce
@@ -216,6 +216,7 @@ theorem RawNode.HasReady.wp_absProof
     (wp_raft_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     RawNode.HasReady.absSpec (GF := GF) (hG := hG) := by
   intro sc hsc0 γ rn id rs ps qs ip
+  have Hsa0 := scAsync_of4 hsc0
   wp_start as H
   iNamed H
   iNamed Hrn

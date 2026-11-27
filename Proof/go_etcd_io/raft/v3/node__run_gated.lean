@@ -1134,7 +1134,7 @@ theorem node.run.gated_of
     wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L s0 none (fun _ h => by cases h)
       (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $Hsc0 $HhhO]
       as %steps %ss2 %qs' %ip' ⟨#Hss2, %Hssn2, ⟨%fp0, Hrn⟩, Htoks, -⟩
-    ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
+    ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ none rfl $$ Hrn
     -- (step 4) the deposit: the `Ready`'s tokens into the escrow, `run`'s half back at `none`
     imod rtk_depositG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk Htoks with Hrtk
     ihave %Hsse := softStateIs_agree rdv'.SoftState' ss ss2 Hssn1 Hssn2 $$ [$Hss1 $Hss2]

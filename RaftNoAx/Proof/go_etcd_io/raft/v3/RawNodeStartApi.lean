@@ -58,7 +58,7 @@ off): `NewRawNode.restartAtSpec (some md)`'s text over the sealed node, the scop
 `RestartScopeOk … md`, the storage never compacted (`storCapF … 0`), the post's node at the
 restarted state `restartR` with no ghost prefix. -/
 abbrev NewRawNode.restartAtApiSpec : Prop :=
-  ∀ (md : RnMode), md.snapshots = false → md.confChanges = false →
+  ∀ (md : RnMode), md.snapshots = false → md.confChanges = false → md.async = false →
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership) (S : RaftState)
     (F : GName → IProp GF),

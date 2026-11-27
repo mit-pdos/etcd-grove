@@ -117,6 +117,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
   intro γ rn id rs ps qs ip sc hsc0 Hsteps0 Hunp0
+  have Hsa0 := scAsync_of4 hsc0
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -191,7 +192,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_method_call
   wp_call
   wp_auto
-  rw [Hasync]
+  rw [Hasync, Hsa0]
   wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, %Hcesn⟩
   · iframe Hlog
   have Hsoft_iff : (s.lead = sv.Lead' ∧ stateW64 s.role = sv.RaftState') ↔
@@ -431,7 +432,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hhp2' := hsOpt_of_hsRO _ _ $$ Hhp2
   wp_apply (wp_MustSync hp2 rnv.prevHardSt' (hardstateVal (nodeHardstate s)) hprev _)
     $$ [$Hhp2' $Hhard']
-  rw [Hasync]
+  rw [Hasync, Hsa0]
   wp_auto
   generalize HRS : (if s.rd.states = [] then slice.nil else rss) = RS
   generalize HMS : decide (¬sents.len = W64 0 ∨ ¬s.vote = hprev.Vote' ∨
@@ -833,7 +834,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
-    exact ⟨Hwf, Hin, Hasync, Hdlen, HunpS, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff, Hrs_out,
+    exact ⟨Hwf, Hin, Hasync.trans Hsa0, Hdlen, HunpS, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff, Hrs_out,
       Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,

@@ -430,7 +430,7 @@ theorem RawNode.Advance.absProofOut (wp_raft_Step : raft.Step.spec (GF := GF) (h
   intro γ rn id rs ps qs ip rd H1 H2 H3 _
   wp_start_folded as H
   iNamed H
-  ihave Hrn := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip none $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip none rfl $$ Hrn
   wp_apply RawNode.Advance.tracedSpec_proof wp_raft_Step γ rn id rs rd H1 H2 H3
     $$ [$Hrn $Hret $HA1 $Hbw] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca, %Hca2⟩
   icases ownRawNode_at γ rn id (advRS rs t ca) $$ Hrn with ⟨%ps', %qs', %ip', Hrn⟩
@@ -512,7 +512,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
   icases Hpend with ⟨%sts, %Hpa, Hpend⟩
   iclear Hret
   wp_auto
-  rw [Hasync]
+  rw [Hasync, show scAsync (some md) = false from hmd.2.2.2]
   wp_auto
   ihave %Hlen0 := BigSepL2.bigSepL2_length $$ Hpend
   have Hlen : steps.length = rs.steps.length := by

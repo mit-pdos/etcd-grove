@@ -53,6 +53,7 @@ public import RaftTla.Spec.go_etcd_io.raft.v3.RawNode__Propose
 public import RaftTla.Spec.go_etcd_io.raft.v3.RawNode__HasReady
 public import RaftTla.Spec.go_etcd_io.raft.v3.RawNode__Ready
 public import RaftTla.Spec.go_etcd_io.raft.v3.RawNode__Advance
+public import RaftTla.Spec.go_etcd_io.raft.v3.RawNode__BasicStatus
 public import RaftTla.Proof.go_etcd_io.raft.v3.RawNodeStartSpec
 
 @[expose] public section
@@ -80,14 +81,14 @@ def antStepTypes : List w32 :=
 
 /-- (antithesis parity B1, design §2) **The message types the harness's network delivers to
 `RawNode.Step` at the mode `md`**: `antStepTypes`, and each feature's types when it is on (the
-pre-vote pair, the read-index pair, the transfer pair, a forwarded proposal, a snapshot, the storage
-acknowledgements). -/
+pre-vote pair, the read-index pair, the transfer pair, a forwarded proposal, a snapshot). Not the
+storage acknowledgements an async `Ready` carries (antithesis parity B2, round 2): those are
+`RawNode.StoreAck.form`'s, whose post moves `capplied` as `Advance` does (`Step.form`'s keeps it). -/
 def stepTypes (md : RnMode) : List w32 :=
   antStepTypes ++ (if md.prevote then [MsgPreVote, MsgPreVoteResp] else []) ++
   (if md.reads then [MsgReadIndex, MsgReadIndexResp] else []) ++
   (if md.transfer then [MsgTransferLeader, MsgTimeoutNow] else []) ++
-  (if md.forwarding then [MsgProp] else []) ++ (if md.snapshots then [MsgSnap] else []) ++
-  (if md.async then [MsgStorageAppendResp, MsgStorageApplyResp] else [])
+  (if md.forwarding then [MsgProp] else []) ++ (if md.snapshots then [MsgSnap] else [])
 
 /-- The first harness's types: every feature off. -/
 theorem stepTypes_empty : stepTypes {} = antStepTypes := by
@@ -607,9 +608,12 @@ differences. Nothing is queued for `Advance` (`acceptReady` fills `stepsOnAdvanc
 `steps := []`, the queue after `[]`); `rd.Messages` is the messages sent at once `ms` then the append
 message `la` and the apply message `lp` (`readyWithoutAccept`'s order), each owned, with the
 `Responses` they carry (`rsp`, `ack`, `apr`) owned; the write's *enter* gives each message handed out
-and each response released its `isRaftMsg` (so the driver holds a non-leader's messages, the vote
-requests among them, until the write is entered: design §6.1, E1), a leader's messages at once
-(`Hlead`); under `S` the fields `ReadyOutAsync`. The storage side (`Happ`, `Hsnapz`, `Hfrz`, `Hdk`,
+and each response released its `isRaftMsg`, a leader's messages at once (`Hlead`), and (antithesis
+parity B2 round 2, E1 option (b), the coordinator's decision) every message handed out but a vote
+request at once too (`Hearly`: no other type's facts rest on the unwritten durable state; a
+`MsgVote`'s campaign record, `isCamp`, is a promise the write enters, so the driver holds vote
+requests until the write is entered, as their rawnode does, `node.go:870-951`); under `S` the fields
+`ReadyOutAsync`. The storage side (`Happ`, `Hsnapz`, `Hfrz`, `Hdk`,
 `Hhsw`) is sync mode's: the entries and hard state the append message carries are `rd.Entries` and
 `rd.HardState`. -/
 abbrev RawNode.Ready.asyncForm (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
@@ -638,6 +642,7 @@ abbrev RawNode.Ready.asyncForm (R : RaftNames → Loc → w64 → RNState → RS
           genView γ id x q' g ∗
           slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms ++ rsp, isRaftMsg γ id q.st) ∗
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      "#Hearly" ∷ ([∗list] q ∈ ms, ⌜q.st.msg.Type' ≠ MsgVote⌝ -∗ isRaftMsg γ id q.st) ∗
       "#Hsnapto" ∷ ([∗list] q ∈ ms ++ rsp, snapToOk γ id q.st) ∗
       "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn (ms ++ rsp) ∗
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
@@ -663,6 +668,10 @@ abbrev RawNode.Ready.asyncForm (R : RaftNames → Loc → w64 → RNState → RS
         ((dlvAfter rs.delivered ce L).drop rs.delivered.length) ∗
       "%Hout" ∷ ⌜∀ md, S md → r' = rAccepted r ∧
         ReadyOutAsync id rs r.p h es ce ms rsp ack apr la lp ss L ∧
+        -- (antithesis parity B2 round 2, the harness's ask) a vote request only in a `Ready` with an
+        -- append message (the campaign's term and vote are its hard state: the driver holds the vote
+        -- on that append's job)
+        (∀ q ∈ ms, q.st.msg.Type' = MsgVote → la.isSome) ∧
         (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = r.p.log.length ∧
         (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs) ∧
         (∀ q ∈ ms, (absMsgOf q.st).isSome ∨ (xmsgOf q.st).isSome) ∧
@@ -672,6 +681,24 @@ abbrev RawNode.Ready.asyncForm (R : RaftNames → Loc → w64 → RNState → RS
           q.st.msg.Index' = W64 0 ∧ q.st.msg.LogTerm' = W64 0 ∧ q.st.msg.Commit' = W64 0 ∧
             q.st.msg.Reject' = false) ∧
         (roleAfter rs.role ss = StatePreCandidate → rs.k.prevote = true) ∧ sts = r.p.rd.states⌝ }}
+
+/-! ### `RawNode.BasicStatus` -/
+
+/-- (antithesis parity B2 round 2, the harness's ask; a statement, not yet proved) `RawNode.BasicStatus.spec`'s
+triple over `R`, read-only, with the node's protocol reading: the hard state handed out the node's term,
+vote and commit, the soft state's role the node's (`roleProto`). -/
+abbrev RawNode.BasicStatus.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF) :
+    Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ R γ rn id rs r qs ip }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"BasicStatus")) (Val #()))
+  {{ (bs : BasicStatus) (h : HardStateM), RET #bs;
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
+      "#Hhs" ∷ hsRO bs.HardState' h ∗
+      "%Hbs" ∷ ⌜bs.ID' = id ∧ h = HardStateM.mk r.p.term r.p.vote r.p.commit ∧
+        roleProto bs.SoftState'.RaftState' = r.p.role ∧
+        uint.Z bs.Applied' ≤ (rs.delivered.length : Int)⌝ }}
 
 /-! ### A storage acknowledgement stepped back (async) -/
 

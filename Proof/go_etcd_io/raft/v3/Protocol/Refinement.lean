@@ -712,7 +712,7 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
     · iapply outbox_add γ id s _ V πc (.ack s.term s.commit) s.outbox trivial
         (by intro h; cases h) (by intro h; cases h) $$ Hout
     · iapply (outMsgOk_pend γ id (psendMsgs (padoptLeader s m.src) _) _ _ _
-        (fun _ => OutPend_follower _ _ _ rfl) (by intro h; cases h))
+        (fun _ => OutPend_follower _ _ _ rfl) (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl)))
       rw [Hsnoc]
       imodintro
       iintro #Hf
@@ -1487,7 +1487,7 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
         (fun h => absurd h HnoPend) $$ Hout
     iapply outbox_app $$ [] []
     · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => outMsgOk (GF := GF) γ id _ _ _ m)).2
-      iapply outMsgOk_self γ id _ _ _ _ rfl (by intro h; cases h)
+      iapply outMsgOk_self γ id _ _ _ _ rfl (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl))
       rw [Hsnoc]
       imodintro
       iintro #Hf
@@ -3011,7 +3011,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
     iapply outbox_snoc $$ [] []
     · iapply outbox_add_eq γ id s _ V πc (.ack s.term lastnewi) _ (by rfl) trivial
         (by role_tac) (by role_tac) $$ Hout
-    iapply (outMsgOk_pend γ id (psendMsgs _ _) _ _ _ (fun _ => OutPend_follower _ _ _ rfl) (by intro h; cases h))
+    iapply (outMsgOk_pend γ id (psendMsgs _ _) _ _ _ (fun _ => OutPend_follower _ _ _ rfl) (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl)))
     rw [Hsnoc]
     imodintro
     iintro #Hf
@@ -3549,7 +3549,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     iapply outbox_snoc $$ [] []
     · iapply outbox_add_eq γ id s _ V πc (.ack s.term (plastIndex (pappend s nw))) _ (by rfl) trivial
         (by role_tac) (by role_tac) $$ Hout
-    iapply outMsgOk_self γ id _ _ _ _ rfl (by intro h; cases h)
+    iapply outMsgOk_self γ id _ _ _ _ rfl (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl))
     rw [Hsnoc]
     imodintro
     iintro #Hf
@@ -3683,7 +3683,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
     iapply outbox_snoc $$ [] []
     · iapply outbox_add_eq γ id s _ V πc (.ack s.term m.index) _ (by rfl) trivial
         (by role_tac) (by role_tac) $$ Hout
-    iapply (outMsgOk_pend γ id (psendMsgs _ _) _ _ _ (fun _ => OutPend_follower _ _ _ rfl) (by intro h; cases h))
+    iapply (outMsgOk_pend γ id (psendMsgs _ _) _ _ _ (fun _ => OutPend_follower _ _ _ rfl) (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl)))
     rw [Hsnoc]
     imodintro
     iintro #Hf
@@ -3903,7 +3903,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
     iapply outbox_snoc $$ [] []
     · iapply outbox_add_eq γ id s _ V πc (.ack s.term m.index) _ (by rfl) trivial
         (by role_tac) (by role_tac) $$ Hout
-    iapply (outMsgOk_pend γ id (psendMsgs _ _) _ _ _ (fun _ => OutPend_follower _ _ _ rfl) (by intro h; cases h))
+    iapply (outMsgOk_pend γ id (psendMsgs _ _) _ _ _ (fun _ => OutPend_follower _ _ _ rfl) (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl)))
     rw [Hsnoc]
     imodintro
     iintro #Hf
@@ -5027,7 +5027,7 @@ theorem ownRaftGhost_step_grantVote (γ : RaftNames) (id : w64) (m : Msg) (s : P
     · rw [psendMsgs_outbox]
       iapply outbox_snoc $$ [] []
       · iapply outbox_re γ id s _ πc _ _ (by role_tac) (by role_tac) $$ Hout
-      iapply (outMsgOk_pend γ id _ _ _ _ (by exact Hdst _ _ rfl) (by intro h; cases h))
+      iapply (outMsgOk_pend γ id _ _ _ _ (by exact Hdst _ _ rfl) (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl)))
       imodintro
       iintro #Hf
       unfold durFrags
@@ -5096,7 +5096,7 @@ theorem ownRaftGhost_step_grantVote (γ : RaftNames) (id : w64) (m : Msg) (s : P
       iapply outbox_snoc $$ [] []
       · iapply outbox_add_eq γ id s _ V πc (.vote s.term m.src kl.isSome Fv) _ (by rfl) Hfree
           (by role_tac) (by role_tac) $$ Hout
-      iapply (outMsgOk_pend γ id _ _ _ _ (by exact Hdst _ _ rfl) (by intro h; cases h))
+      iapply (outMsgOk_pend γ id _ _ _ _ (by exact Hdst _ _ rfl) (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl)))
       imodintro
       iintro #Hf
       unfold durFrags
@@ -5486,7 +5486,7 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
     · iapply outbox_mono γ id s _ πc _ _ _ _ HLe (fun _ => HOP) $$ Hout
     iapply outbox_app $$ [] []
     · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => outMsgOk (GF := GF) γ id _ _ _ m)).2
-      iapply outMsgOk_self γ id _ _ _ _ rfl (by intro h; cases h)
+      iapply outMsgOk_self γ id _ _ _ _ rfl (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl))
       imodintro
       iintro #Hf
       rw [Happ]
@@ -5502,7 +5502,7 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
       | none => rw [Hd] at Hk; cases Hk
       | some dst =>
         rw [Hd] at Hk; cases Hk
-        iapply outMsgOk_pend γ id _ _ _ _ (fun _ => HOP) (by intro h; cases h)
+        iapply outMsgOk_pend γ id _ _ _ _ (fun _ => HOP) (by first | exact Or.inl rfl | exact Or.inr (Or.inl rfl) | exact Or.inr (Or.inr rfl))
         imodintro
         iintro #Hf
         rw [Happ]

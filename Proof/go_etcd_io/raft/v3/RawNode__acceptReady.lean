@@ -239,6 +239,7 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
   intro γ rn id rs rd ce es ms h L s sc hsc0 Hbnd
+  have Hsa0 := scAsync_of4 hsc0
   wp_start as H
   iNamed H
   -- (2026-10-28, stage U3c) a lent snapshot's committed log ends at its id
@@ -1370,7 +1371,7 @@ theorem RawNode.acceptReady.wp_proof
     (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
-    Hwf Hin Hasync Hdlen'
+    Hwf Hin (Hasync.trans Hsa0.symm) Hdlen'
     (by show nextUnstable s.logst = _; rw [Hlogst, Haf12, Hnu0])
     (fun h => by
       rw [Hlogst, Haf2, Hf_snap]

@@ -35,7 +35,7 @@ theorem RawNode.HasReady.spec_of_abs : RawNode.HasReady.spec_of_abs.law (GF := G
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
   wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip $$ [$Hrn] as %b H
   icases H with (⟨%Hb, H⟩ | ⟨%Hb, -, ⟨H, -⟩⟩)
-  · ihave H := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip none $$ H
+  · ihave H := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip none rfl $$ H
     iapply HΦ
     ileft
     iframe H
@@ -52,7 +52,7 @@ theorem RawNode.Tick.spec_of_abs : RawNode.Tick.spec_of_abs.law (GF := GF) (hG :
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
   wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip H1 H2 H3 $$ [$Hrn] as %t %ps' %ip' H
   iNamed H
-  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ none rfl $$ Hrn
   iapply HΦ $$ %t
   iframe Hrn
   ipureintro; exact Ht
@@ -65,7 +65,7 @@ theorem RawNode.Propose.spec_of_abs : RawNode.Propose.spec_of_abs.law (GF := GF)
   wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip data_sl data H1 $$ [$Hrn $Hdata $Hent $Htk] as %err %ps' %ip' H
   · ipureintro; exact Hmd
   iNamed H
-  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ none rfl $$ Hrn
   iapply HΦ $$ %err
   iframe Hrn Herr
 
@@ -77,7 +77,7 @@ theorem RawNode.Step.spec_of_abs : RawNode.Step.spec_of_abs.law (GF := GF) (hG :
   wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip ml st H1 (fun _ h => by cases h) H2 H3 H4 H5
     $$ [$Hrn $Hm $Hxfer $Hmsg $Hsnap $Hcred] as %err %t %ps' %ip' H
   iNamed H
-  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ none rfl $$ Hrn
   iapply HΦ $$ %err %t
   iframe Hrn
   ipureintro; exact Ht
@@ -90,7 +90,7 @@ theorem RawNode.Advance.spec_of_abs : RawNode.Advance.spec_of_abs.law (GF := GF)
   wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip rd H1 H2 H3 (fun _ h => by cases h)
     $$ [$Hrn $Hret $HA1 $Hbw]
     as %t %ca %ps' %ip' ⟨Hrn, %Ht1, %Ht2, %Hca, %Hca2, -⟩
-  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ none rfl $$ Hrn
   iapply HΦ $$ %t %ca
   iframe Hrn
   ipureintro; exact ⟨Ht1, Ht2, Hca, Hca2⟩
@@ -103,7 +103,7 @@ theorem RawNode.Ready.spec_of_abs : RawNode.Ready.spec_of_abs.law (GF := GF) (hG
   wp_apply Habs none (fun _ h => by cases h) γ rn id x rs ps qs ip q g H1 H2 H3 $$ [$Hrn $Hlive $Hfree]
     as %rd %ce %es %ms %sts %h %steps %L %ss %W %r' %qs' %ip' H
   iNamed H
-  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ none rfl $$ Hrn
   iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss %W
   iframe Hrn Hlive Henter Hlead Hsnapto Hsrcs Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own
     Hmsgs_cred Hsnapz Hrs Hrs_ok Hhard Hhsw Happ Hfrz Hdk

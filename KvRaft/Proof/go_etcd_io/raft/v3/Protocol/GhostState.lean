@@ -2742,8 +2742,18 @@ messages need no promise of its own (`ownRaftGhost_leader_outbox`). -/
 def OutPend (id : w64) (s : PState) (πc : List Prom) : Prop :=
   s.role ≠ .leader ∧ (s.role = .candidate → ∃ F k, Prom.camp s.term F k ∈ πc)
 
+/-- (antithesis parity B2, E1) **The types whose facts may wait for the node's promises**: a vote
+request (its campaign record, `isCamp`), a granted vote (`isVote`) and an accepting acknowledgement
+(`isAcked`); every other message a node sends has its facts outright when it is sent (so an
+async `Ready` may hand it out before its write is entered). -/
+def PendTy (t : MsgType) : Prop := t = .vote ∨ t = .voteResp ∨ t = .appResp
+
+theorem PendTy.ne_snap {t : MsgType} (h : PendTy t) : t ≠ .snap := by
+  rcases h with h | h | h <;> rw [h] <;> intro e <;> cases e
+
 /-- A message in the outbox: its facts, or its facts behind the fragments of the node's virtual
-maps `W` (R7: also the queued batch's promises), the latter only as R9 allows. -/
+maps `W` (R7: also the queued batch's promises), the latter only as R9 allows and only for a
+`PendTy` type (antithesis parity B2, E1). -/
 def outMsgOk (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
     (m : Msg) : IProp GF :=
   iprop(isMessage γ m ∨
@@ -2752,8 +2762,8 @@ def outMsgOk (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : Dur
     -- waiting ones are a follower's responses, a candidate's vote requests and a leader's
     -- self-addressed `MsgAppResp`, `outMsgOk_self`), so a snapshot's
     -- destination fact (`snapDstOk`) is the outright message's, never behind the fragments
-    -- (`outMsgOk_snapDst`)
-    ⌜m.ty ≠ .snap⌝)
+    -- (`outMsgOk_snapDst`); (antithesis parity B2, E1) of a type whose facts are promises
+    ⌜PendTy m.ty⌝)
 
 instance outMsgOk_persistent (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
     (W : DurMaps) (m : Msg) : Persistent (outMsgOk (GF := GF) γ id s πc W m) := by
@@ -2852,7 +2862,7 @@ theorem outMsgOk_intro (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom
 
 /-- A message to the node itself whose facts wait for the maps' fragments. -/
 theorem outMsgOk_self (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
-    (m : Msg) (Hd : m.dst = id) (Hns : m.ty ≠ .snap) :
+    (m : Msg) (Hd : m.dst = id) (Hns : PendTy m.ty) :
     □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
   unfold outMsgOk
   iintro #H; iright
@@ -2861,7 +2871,7 @@ theorem outMsgOk_self (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
 
 /-- A message waiting for the maps' fragments, as R9 allows. -/
 theorem outMsgOk_pend (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
-    (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) (Hns : m.ty ≠ .snap) :
+    (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) (Hns : PendTy m.ty) :
     □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
   unfold outMsgOk
   iintro #H; iright
@@ -2896,7 +2906,7 @@ theorem outMsgOk_snapDst (γ : RaftNames) (id : w64) (s : PState) (πc : List Pr
   unfold outMsgOk
   iintro (#H | ⟨-, -, %Hns⟩)
   · iapply isMessage_snapDst γ m Hty $$ H
-  · exact absurd Hty Hns
+  · exact absurd Hty Hns.ne_snap
 
 theorem EvsOk_mono (T T' : w64) (W : DurMaps) :
     uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' W := by
@@ -3403,6 +3413,29 @@ theorem ownRaftGhost_leader_outbox (γ : RaftNames) (id : w64) (s : PState) :
   iNamed H
   iapply (BigSepL.bigSepL_mono (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m)
     fun _ => outMsgOk_leader γ id s πc (virt V πc) _ Hrole) $$ Hout
+
+/-- (antithesis parity B2, E1) **A message of no `PendTy` type has its facts outright**, at any role:
+only a vote request, a granted vote and an accepting acknowledgement wait for the node's promises. -/
+theorem outMsgOk_early (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) (Hty : ¬ PendTy m.ty) :
+    outMsgOk (GF := GF) γ id s πc W m ⊢ isMessage γ m := by
+  unfold outMsgOk
+  iintro (#H | ⟨-, -, %Hp⟩)
+  · iexact H
+  · exact absurd Hp Hty
+
+/-- (antithesis parity B2, E1) **The outbox's messages of no `PendTy` type have their facts outright**,
+before the batch they are in is entered (`ownRaftGhost_leader_outbox`'s counterpart by type). -/
+theorem ownRaftGhost_early_outbox (γ : RaftNames) (id : w64) (s : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗
+      [∗list] m ∈ s.outbox, ⌜¬ PendTy m.ty⌝ -∗ isMessage γ m := by
+  unfold ownRaftGhost
+  iintro ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  iapply (BigSepL.bigSepL_mono (Φ := fun _ m => outMsgOk (GF := GF) γ id s πc (virt V πc) m)
+    fun _ => by
+      iintro #H %Hty
+      iapply outMsgOk_early γ id s πc (virt V πc) _ Hty $$ H) $$ Hout
 
 theorem ownRaftGhost_isLeader (γ : RaftNames) (id : w64) (s : PState) :
     s.role = .leader →

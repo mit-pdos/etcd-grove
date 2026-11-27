@@ -318,6 +318,24 @@ def rnScopeAt (γ : RaftNames) (id : w64) (sc : Option RnMode) (rs : RNState) (s
                        (md.transfer = true → XScopeOk γ md s)⌝ ∗
                      □ (⌜md.snapshots = false⌝ -∗ storCapF s.logst.storage 0))
 
+/-- (antithesis parity B2) **The scope's `AsyncStorageWrites`**: the mode's `async` flag in the
+harness's scope, `false` outside it (`ownRawNode`'s). -/
+def scAsync : Option RnMode → Bool
+  | none => false
+  | some md => md.async
+
+theorem scAsync_false {sc : Option RnMode} (h : ∀ md, sc = some md → md.async = false) :
+    scAsync sc = false := by
+  cases sc with
+  | none => rfl
+  | some md => exact h md rfl
+
+/-- The same from the absSpecs' scope premise (no snapshots, conf changes, forwarding or async
+writes). -/
+theorem scAsync_of4 {sc : Option RnMode} (h : ∀ md, sc = some md → md.snapshots = false ∧
+    md.confChanges = false ∧ md.forwarding = false ∧ md.async = false) : scAsync sc = false :=
+  scAsync_false fun md hm => (h md hm).2.2.2
+
 /-- **A `RawNode` at its protocol state** (see the file header): `ownRawNode`'s body, conjunct for
 conjunct, but `"Hpend"` with the queued states named (`pendAt`), and three conjuncts more: the
 `RState` reading `toRState rs fp s = r`, the in-progress boundary `ip + 1 = offsetInProgress`, and the
@@ -332,7 +350,8 @@ def ownRawNodeAt (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RSta
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
-  "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
+  -- (antithesis parity B2) the node's `AsyncStorageWrites` the scope's mode's (`false` outside it)
+  "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = scAsync sc⌝ ∗
   "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
   "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* steps ∗
@@ -369,11 +388,12 @@ def ownRawNodeAt (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RSta
   "%Hip" ∷ ⌜uint.nat s.logst.inprogress = ip + 1⌝ ∗
   "Hsc" ∷ rnScopeAt γ id sc rs s)
 
-/-- **Forgetting the protocol state** (design §2.1, `ownRawNodeAt_ownRawNode`): at any scope.
+/-- **Forgetting the protocol state** (design §2.1, `ownRawNodeAt_ownRawNode`): at any scope with
+synchronous storage writes (antithesis parity B2: `ownRawNode` is the synchronous node's).
 By unfolding: `pendAt` gives `pendList`, the rest is `ownRawNode`'s body. -/
 abbrev ownRawNodeAt_ownRawNode.law : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
-    (sc : Option RnMode),
+    (sc : Option RnMode), scAsync sc = false →
     ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc ⊢ ownRawNode γ rn id rs
 
 /-- **Naming the protocol state** (design §2.1, `ownRawNode_at`): every `ownRawNode` is an

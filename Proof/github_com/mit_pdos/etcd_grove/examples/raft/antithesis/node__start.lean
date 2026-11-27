@@ -434,6 +434,7 @@ theorem node.start.wp_proof
   have HmdR : γ.R.md = scopeMd γ.scope := Hrun.2.2.2.2.1
   have Hsn : γ.R.md.snapshots = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.1
   have Hcc : γ.R.md.confChanges = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.2.1
+  have Hasy : γ.R.md.async = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.2.2.2
   have Hmi := inScope_inflight Hscope
   have HN9 : γ.R.N ≤ 9 := γ.R.hK.2.2
   have Hsh := start_storageHolds γ.R v.dur Hdur
@@ -448,7 +449,7 @@ theorem node.start.wp_proof
   have Hcsi := start_confStateIs γ.R
   have Hrso := start_restartScope γ j «$v3_ptr» «$v11_ptr»
     (bootContents (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) v.dur.log) Hscope Hrun Hrc rfl
-  have HNR := wp_NewRawNode γ.R.md Hsn Hcc γ.raft Nr «$a0_ptr»
+  have HNR := wp_NewRawNode γ.R.md Hsn Hcc Hasy γ.raft Nr «$a0_ptr»
       (startConfig γ.mode (AntSim.nodeId j) «$v3_ptr» «$v11_ptr»)
       ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.nodeLogger.ty,
         #«$v11_ptr»⟩

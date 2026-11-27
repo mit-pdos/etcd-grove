@@ -579,8 +579,8 @@ theorem RawNode.Step.wp_absProof
       (md.nonVoters = false → m.From' ∈ γ.reCfg) ∧
       (m.Type' = MsgTransferLeader → (γ.reAcks !! m.From').isSome) := fun md h => by
     obtain ⟨h1, -, h3, h4⟩ := Hscp0 md h
-    obtain ⟨hs, -, hf, ha⟩ := hsc0 md h
-    exact ⟨stepTypes_sub hs hf ha h1, h1, h3, h4⟩
+    obtain ⟨hs, -, hf, -⟩ := hsc0 md h
+    exact ⟨stepTypes_sub hs hf h1, h1, h3, h4⟩
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty

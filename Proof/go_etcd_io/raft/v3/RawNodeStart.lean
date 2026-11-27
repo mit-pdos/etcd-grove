@@ -99,6 +99,9 @@ abbrev NewRawNode.restartAtSpec (sc : Option RnMode) : Prop :=
   -- (2026-11-24) the configuration simple over the names' voters, the node one of them (until then
   -- `γ.rnMode = .static`, which `isCluster` contradicts: the scope was empty)
   (∀ md, sc = some md → RestartScopeOk γ cv σ m md) →
+  -- (antithesis parity B2) synchronous storage writes in the scope too (`ownRawNodeAt`'s `Hasync`
+  -- ties the node's flag to the scope's mode; `NewRawNode.restartAtApiSpecAsync` the async restart)
+  scAsync sc = false →
   ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗ readyFits γ N ∗
@@ -451,7 +454,7 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
   unfold NewRawNode.restartAtSpec
   unfold Cluster.raftNames
   intro γ N c cv lok si σ csm a m S F Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2
-    Hboot Hcs Hnsm Htlk HtrC HSh Hsc x
+    Hboot Hcs Hnsm Htlk HtrC HSh Hsc Hsa x
   have HtrG : γ.raft.reTrace = none := HtrC
   wp_start_folded as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HrS, #Hconf, Hrs, #Hscp⟩
   iunfold EtcdGrove.isCluster at Hcl
@@ -994,7 +997,7 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
   · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rsK (toRState rsK fp s1) []
       (σ.b + σ.ents.length) sc s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       (Hglq := by show s.gh.lq = []; rw [Hgh])
-      Hrel.2 (fun h => by simp only [rsK, rs0] at h; rw [Hmd] at h; cases h) Hasync
+      Hrel.2 (fun h => by simp only [rsK, rs0] at h; rw [Hmd] at h; cases h) (Hasync.trans Hsa.symm)
       (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)
       Hun.symm (fun _ => Hsn0) trivial Ht.symm ⟨Hsg.symm, Hlsn.symm⟩
       ⟨fun _ => preGuardF_fol Hr, rfl, by show uint.Z s.term ≤ uint.Z S.term; rw [Ht, HsT]; exact Int.le_refl _,
@@ -1077,7 +1080,7 @@ theorem NewRawNode_restart_impl
   wp_start_folded as ⟨Hc, Hlg, Hcl, Hvac, Hfits, HrS, Hconf, Hrs⟩
   wp_apply (NewRawNode_restartAt_impl none wp_NewRawNode γ N c cv lok si σ csm a m S F Cert hCert
       H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh
-      (fun _ h => by cases h) x)
+      (fun _ h => by cases h) rfl x)
     $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
     as %rn %err ⟨%Herr, %l, %sn, %g, %K, %fp, Hrn, -, #Hcm, %Hl, Hgen, Hfree, HrS, HF⟩
   · iframe Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs
@@ -1085,7 +1088,7 @@ theorem NewRawNode_restart_impl
   iapply HΦ
   isplitr; · ipureintro; exact Herr
   iexists l, sn, g, K
-  ihave Hrn := ownRawNodeAt_ownRawNode (GF := GF) _ _ _ _ _ _ _ _ $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode (GF := GF) _ _ _ _ _ _ _ none rfl $$ Hrn
   rw [ownRawNode_with_k]
   iframe Hrn Hcm Hgen Hfree HrS HF
   ipureintro; exact Hl
@@ -1196,7 +1199,7 @@ theorem NewRawNode.wp_proofEmptyStartAbs
         cases h
         exact ⟨fun _ => Hpq.1, fun _ => Hpq.2,
           fun _ => by rw [Hmd.1]; exact (GMap.elem_of_list_to_set _ _).2 Hmd.2,
-          fun _ => ⟨Hmd.1.symm, rfl, rfl⟩, fun _ => rfl⟩) x)
+          fun _ => ⟨Hmd.1.symm, rfl, rfl⟩, fun _ => rfl⟩) rfl x)
     $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
     as %rn %err ⟨%Herr, %l, %sn, %g, %K, %fp, Hrn, %Hfp, -, %Hl, Hgen, Hfree, HrS, HF⟩
   · rw [HAn]

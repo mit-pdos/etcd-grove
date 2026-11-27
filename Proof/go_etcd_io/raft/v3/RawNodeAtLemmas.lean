@@ -199,7 +199,7 @@ theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg)
-    (Hasync : rnv.asyncStorageWrites' = false)
+    (Hasync : rnv.asyncStorageWrites' = scAsync sc)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
     (Hunp : rs.unpersisted = s.logst.unpersisted)
     (Hsnap : rs.psnap = false ∧ rs.slent = none → s.logst.snap = none)
@@ -244,11 +244,11 @@ theorem ownRawNode_with_k (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) 
 
 /-- **`ownRawNodeAt_ownRawNode.law`**: forgetting the protocol state. -/
 theorem ownRawNodeAt_ownRawNode : ownRawNodeAt_ownRawNode.law (GF := GF) := by
-  intro γ rn id rs r qs ip sc
+  intro γ rn id rs r qs ip sc Hsa
   iintro H
   iNamed H
   ihave Hpend := pendAt_lentPend γ id rs.bw rs.slent steps rs.steps qs $$ Hpend
-  iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
+  iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin (Hasync.trans Hsa) Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs Hgtr Hglq
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
       Hledger Hdur Hrntr

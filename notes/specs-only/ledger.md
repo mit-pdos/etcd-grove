@@ -9182,3 +9182,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   retryApplyOk`). No top-level statement changes.
 - **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
   independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
+
+## 2026-11-27: B2 raft statements, round 2 (antithesis parity B2, #33)
+
+- **Spec.** `stepTypes`, `RawNode.Ready.asyncForm`, `ownRawNodeAt` (`RawNodeAt.lean`), `ownRawNodeAt_ownRawNode.law`,
+  `NewRawNode.restartAtSpec`/`restartAtApiSpec` (`Proof/go_etcd_io/raft/v3/`), the Sim's `RestartR` (`Sim/Stmts.lean`).
+- **Defect.** (i) `stepTypes md` put `MsgStorageAppendResp`/`MsgStorageApplyResp` under `RawNode.Step.form`, whose post
+  keeps `capplied` and gives no effect for a type without `mtypeOf` (vacuous `%Hend`). (ii) `ownRawNodeAt`'s `%Hasync`
+  was `asyncStorageWrites = false` at every scope, so a spec over `rawNode γ md` at `md.async = true` had an
+  unsatisfiable node. (iii) the Sim's `RestartR` did not give the restarted node's empty read queue (design §7 Q8).
+  (iv) E1: `asyncForm` gave a non-leader's early messages `isRaftMsg` only through the write's enter.
+- **Evidence.** (i) `RawNodeAbsSpecs.lean` (`Step.form`'s `%Hend`); (ii) `RawNodeAt.lean`; (iii) `restartR_rd` (rfl);
+  (iv) `isMessage` (`Protocol/GhostState.lean`): only a vote request (`isCamp`), a granted vote (`isVote`) and an
+  accepting acknowledgement (`isAcked`) rest on promises the write enters; every outbox site that queues a message
+  behind the fragments (`Protocol/Refinement.lean`) is of those three types.
+- **Change.** (i) the storage acknowledgements out of `stepTypes` (they are `RawNode.StoreAck.form`'s). (ii) `%Hasync`
+  is `asyncStorageWrites = scAsync sc` (`md.async` in the scope, `false` outside); `ownRawNodeAt_ownRawNode.law`,
+  `restartAtSpec sc` take `scAsync sc = false`, `restartAtApiSpec` `md.async = false` (the async restart is
+  `restartAtApiSpecAsync`). (iii) `RestartR` gives `r0.p.rd.pend = []`. (iv) `asyncForm`'s post gains
+  `"#Hearly" ∷ [∗list] q ∈ ms, ⌜q.st.msg.Type' ≠ MsgVote⌝ -∗ isRaftMsg γ id q.st`; the ghost's `outMsgOk` lets only a
+  `PendTy` message (vote, granted vote, accepting acknowledgement) wait for the fragments (`ownRaftGhost_early_outbox`).
+- **Decision.** (i)-(iii) lead-approved; (iv) option (b), the coordinator's decision (2026-11-27).
+- **Addendum (the harness's asks, lead 2026-11-27).** `asyncForm`'s `%Hout` gains `∀ q ∈ ms, q.st.msg.Type' =
+  MsgVote → la.isSome` (a campaign changes the term and vote, so its `Ready` has a non-empty hard state differing
+  from `prevHardSt`: `needStorageAppendMsg`); new `RawNode.BasicStatus.form`/`.apiSpec` (the hard state handed
+  out the node's term, vote and commit; the role `roleProto`'s). Statements, not yet proved.

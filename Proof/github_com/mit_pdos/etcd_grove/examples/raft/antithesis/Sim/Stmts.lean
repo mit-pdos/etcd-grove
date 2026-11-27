@@ -297,11 +297,12 @@ abbrev antSim_boot.stmt : Prop :=
     SimStep R dec evs G (evBoot R (nodeId n)) (setV V n { V n with alive := true }) net xnet
 
 /-- Restart (parity B2, `restartAtSpec`'s post): the state raft restarts at from the disk `d` with
-`a` entries applied, at the configuration `cs` they make (no snapshot: B3 adds the stored one). -/
+`a` entries applied, at the configuration `cs` they make (no snapshot: B3 adds the stored one), no
+read request pending (design §7 Q8: `newRaft`'s fresh `readOnly`, `restartR_rd`). -/
 def RestartR (dec : CCDec) (R : RunCfg) (d : DurW) (a : Nat) (cs : CCState) (r0 : RState) : Prop :=
   r0.p.term = d.term ∧ r0.p.vote = d.vote ∧ r0.p.commit = d.commit ∧ r0.p.log = d.log ∧
   r0.p.base = base0 ∧ r0.fp = [] ∧ r0.p.lead = W64 0 ∧ r0.p.role = .follower ∧ r0.p.votes = ∅ ∧
-  r0.p.outbox = [] ∧ r0.p.matched = ∅ ∧ uint.nat r0.applied = a ∧ r0.pci = W64 0 ∧
+  r0.p.outbox = [] ∧ r0.p.rd.pend = [] ∧ r0.p.matched = ∅ ∧ uint.nat r0.applied = a ∧ r0.pci = W64 0 ∧
   r0.snap = false ∧ r0.cidx = a ∧ r0.cfg = cs ∧ cfgFold dec R.c0 (d.log.take a) = some cs ∧
   a ≤ uint.nat d.commit
 

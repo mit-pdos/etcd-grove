@@ -70,11 +70,11 @@ theorem netTypes_sub_stepTypes {md : RnMode} {t : w32} (h : t ∈ netTypes md) :
   unfold stepTypes
   simp only [List.mem_append] at h ⊢
   rcases h with (((h | h) | h) | h) | h
-  · exact .inl (.inl (.inl (.inl (.inl (.inl h)))))
-  · exact .inl (.inl (.inl (.inl (.inl (.inr h)))))
+  · exact .inl (.inl (.inl (.inl (.inl h))))
   · exact .inl (.inl (.inl (.inl (.inr h))))
+  · exact .inl (.inl (.inl (.inr h)))
+  · exact .inr h
   · exact .inl (.inr h)
-  · exact .inl (.inl (.inr h))
 
 /-- **An in-flight protocol message read at its type** (`absMsgOf`, no snapshot): `absMsg`. -/
 theorem netFacts_absMsg {R : AntSim.RunCfg} {st : MsgSt} {m : Msg} (h : NetFacts R st m)

@@ -265,7 +265,7 @@ theorem stepTypes_off {md : RnMode} {t : w32} (h : t ∈ stepTypes md) :
     repeat' split
     all_goals simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
       MsgPreVote, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgTransferLeader, MsgTimeoutNow,
-      MsgProp, MsgSnap, MsgStorageAppendResp, MsgStorageApplyResp]
+      MsgProp, MsgSnap]
 
 /-- No B1 network type is local (`IsLocalMsg`'s table). -/
 theorem netTypesK_not_local {t : w32} (h : t ∈ netTypesK) : t ∉ localMsgTypes := by
