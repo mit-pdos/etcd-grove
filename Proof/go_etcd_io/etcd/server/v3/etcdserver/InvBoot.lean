@@ -44,6 +44,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CIPair
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
@@ -414,7 +415,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (2026-11-01, the user's decision, "bootOk's boot metadata": until then also `γA.m0 = (0, 0)`,
     -- a literal; now the data's facts `Hm0` and `HmEmpty`)
     "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
+    "#HisCI" ∷ isCI cil γA.ci (srvCIPair γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
     -- `SetConfState` `applyConfChange` calls, and (D22 J1a, 2026-10-26) which the snapshot path's

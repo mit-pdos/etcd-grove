@@ -37,20 +37,20 @@ theorem NewConsistentIndex.wp_proof :
   imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γk, Hk⟩
   icases ghostVar_split γk (W64 0) (1 : Qp).half (1 : Qp).half $$ [Hk] with ⟨Hk1, Hk2⟩
   · rw [Qp.half_add_half]; iexact Hk
-  imod inv_alloc ciN ⊤ (ciInv (hG := hG) ci ⟨γi, γk, P⟩) $$ [consistentIndex Hg2 Hk1] with #Hinv
+  imod inv_alloc ciN ⊤ (ciInv (hG := hG) ci ⟨γi, γk⟩) $$ [consistentIndex Hg2 Hk1] with #Hinv
   · inext
     iunfold ciInv
     iexists (W64 0)
     iframe
-  imod sync.init_Mutex (ciPairInv (hG := hG) ci ⟨γi, γk, P⟩) ⊤ (ciPairMuAddr ci) $$ pairMu [term Hk2]
+  imod sync.init_Mutex (ciPairInv (hG := hG) ci ⟨γi, γk⟩) ⊤ (ciPairMuAddr ci) $$ pairMu [term Hk2]
     with #Hpmu
   · inext; iunfold ciPairInv; iexists (W64 0), (W64 0); iframe
-    ipureintro; intro h; exact absurd rfl h
+    ileft; ipureintro; rfl
   ihave ⟨Hbe1, Hbe2⟩ := (ciBe_halves ci be).2 $$ be
   imod sync.init_Mutex (ciLockInv (hG := hG) ci) ⊤ (ciMutexAddr ci) $$ mutex [Hbe1] with #Hmu
   · inext; iunfold ciLockInv; iexists be; iexact Hbe1
   wp_auto
-  iapply HΦ $$ %ci %(⟨γi, γk, P⟩ : CINames)
+  iapply HΦ $$ %ci %(⟨γi, γk⟩ : CINames)
   iunfold isCI
   iunfold ciIdx
   iunfold ciApplying

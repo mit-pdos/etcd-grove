@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 theorem consistentIndex.SetBackend.wp_proof
     (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG)) :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) := by
-  intro ci γ b0 be
+  intro ci γ P b0 be
   wp_start as ⟨#Hci, Hown⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -45,8 +45,8 @@ theorem consistentIndex.SetBackend.wp_proof
   · iframe
   wp_auto
   ihave ⟨Hb, Hb'⟩ := (ciBe_halves ci be).2 $$ Hb
-  wp_apply_core (hS ci γ (W64 0) (W64 0)) $$ [] [HΦ Hb Hb' Hlocked defer]
-  · iframe Hpkg; unfold isCI; iframe Hinv Hmu Hpmu; ipureintro; intro h; exact absurd rfl h
+  wp_apply_core (hS ci γ P (W64 0) (W64 0)) $$ [] [HΦ Hb Hb' Hlocked defer]
+  · iframe Hpkg; unfold isCI; iframe Hinv Hmu Hpmu; ileft; ipureintro; rfl
   imod HΦ with ⟨%k, Hk, HΦ⟩
   imodintro
   iexists k

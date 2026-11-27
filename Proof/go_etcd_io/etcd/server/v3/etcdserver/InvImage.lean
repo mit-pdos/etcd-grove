@@ -49,6 +49,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CIPair
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestLeased
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
@@ -213,8 +214,11 @@ values (`kvModel`, `crevOf`): `srvImage_of_dbImage` gives a member's to the netw
 `dbImage_of_srvImage` the network's at a member's own names. (Strict M1: no compaction mode, the
 store having none.) -/
 def srvImage (γ : SrvRaft) (i : w64) (D : Data) : IProp GF :=
-  iprop(∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧
-    γk.log0 = [[], []]⌝ ∗ dbImage ⟨γ, [], W64 0⟩ γk i D)
+  iprop((∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧
+    γk.log0 = [[], []]⌝ ∗ dbImage ⟨γ, [], W64 0⟩ γk i D) ∗
+    -- (keepfix-d, 7i) the stored term is the committed term of the stored index (the sender's pair,
+    -- saved under `pairMu`)
+    (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)))
 
 instance srvImage_persistent (γ : SrvRaft) (i : w64) (D : Data) :
     Persistent (srvImage (GF := GF) γ i D) := by

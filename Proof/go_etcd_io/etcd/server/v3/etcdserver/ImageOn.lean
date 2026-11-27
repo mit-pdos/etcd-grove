@@ -124,8 +124,9 @@ instance dbImageOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : au
 runs auth on, `srvImageM`): `srvImage`'s, the
 start's chain the mode `on`'s and the model's start state `srvAuthSt0`. -/
 def srvImageOn (γ : SrvRaft) (i : w64) (D : backend.Data) : IProp GF :=
-  iprop(∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧
-    γk.log0 = [[], []]⌝ ∗ dbImageOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 i D)
+  iprop((∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧
+    γk.log0 = [[], []]⌝ ∗ dbImageOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 i D) ∗
+    (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)))
 
 /-- **The image certificate in the cluster's auth mode** (decision 7; #7-on (b), the user's go-ahead
 of 2026-11-03 after review R1's F8): `srvImageOn` when the cluster runs auth on, `srvImage`

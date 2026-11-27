@@ -30,7 +30,7 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
     (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG))
     (hR : schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG)) :
     consistentIndex.UnsafeConsistentIndex.spec (GF := GF) (hG := hG) := by
-  intro ci γ b E View
+  intro ci γ P b E View
   wp_start as ⟨#Hci, Hown, #Hbe⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
@@ -83,11 +83,11 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   iapply readCIAU_A
   iapply readCIAU_wand $$ HΦ
   iintro %m Hm
-  icases Hm with ⟨%HPm, Hm⟩
+  icases Hm with ⟨#HPm, Hm⟩
   (try wp_auto)
   -- the store: the second linearization point
-  wp_apply_core (hS ci γ m.1 m.2) $$ [] [Hm Hown v «$res0»]
-  · iframe Hpkg; iunfold isCI; iframe Hinv Hmu Hpmu; ipureintro; exact HPm
+  wp_apply_core (hS ci γ P m.1 m.2) $$ [] [Hm Hown v «$res0»]
+  · iframe Hpkg; iunfold isCI; iframe Hinv Hmu Hpmu HPm
   imod Hm with ⟨%k', Hk', Hm⟩
   imodintro
   iexists k'

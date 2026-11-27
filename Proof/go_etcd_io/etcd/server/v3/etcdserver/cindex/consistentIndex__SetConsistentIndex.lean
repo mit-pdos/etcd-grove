@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 theorem consistentIndex.SetConsistentIndex.wp_proof :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) := by
-  intro ci γ v term
-  wp_start as ⟨#Hci, %HP⟩
+  intro ci γ P v term
+  wp_start as ⟨#Hci, #HP⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
@@ -73,7 +73,7 @@ theorem consistentIndex.SetConsistentIndex.wp_proof :
   imodintro
   (try wp_auto)
   wp_apply sync.Mutex.wp_Unlock $$ [$Hpmu $Hlocked Hpk Hterm]
-  · inext; iunfold ciPairInv; iexists v, term; iframe Hpk Hterm; ipureintro; exact HP
+  · inext; iunfold ciPairInv; iexists v, term; iframe Hpk Hterm HP
   iexact HΦ
 
 end proof

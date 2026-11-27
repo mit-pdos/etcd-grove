@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 theorem consistentIndex.UnsafeSave.wp_proof
     (hu : schema.UnsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG)) :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) := by
-  intro ci γ tx TM PTi PTt m
+  intro ci γ P tx TM PTi PTt m
   wp_start as ⟨#Hci, #Hw, HTM, HPi, HPt⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -42,7 +42,7 @@ theorem consistentIndex.UnsafeSave.wp_proof
   -- (keepfix-d) the pair mutex: the term field, the index's second mirror and the predicate
   wp_apply sync.Mutex.wp_Lock $$ [$Hpmu] as ⟨Hlocked, HL⟩
   iunfold ciPairInv at HL
-  icases HL with ⟨%kl, %tl, Hpk, Hterm, %HP⟩
+  icases HL with ⟨%kl, %tl, Hpk, Hterm, #HP⟩
   (try wp_auto)
   -- the index: the linearization point; under the pair mutex it is the mutex's `kl`
   wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM HPi HPt Hpk Hterm Hlocked ci tx]
@@ -79,7 +79,7 @@ theorem consistentIndex.UnsafeSave.wp_proof
   imodintro
   (try wp_auto)
   wp_apply sync.Mutex.wp_Unlock $$ [$Hpmu $Hlocked Hpk Hterm]
-  · inext; iunfold ciPairInv; iexists k, tl; iframe Hpk Hterm; ipureintro; exact HP
+  · inext; iunfold ciPairInv; iexists k, tl; iframe Hpk Hterm HP
   (try wp_auto)
   wp_bind (App (App (App (Val (@! schema.UnsafeUpdateConsistentIndex)) (Val #(GoInterface.ok tx)))
       (Val #k)) (Val #tl))
@@ -89,7 +89,7 @@ theorem consistentIndex.UnsafeSave.wp_proof
   inext
   iintro HTM
   (try wp_auto)
-  iapply HΦ $$ %tl %HP HTM
+  iapply HΦ $$ %tl HP HTM
 
 end proof
 

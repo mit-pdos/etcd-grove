@@ -593,7 +593,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "Hmem" ∷ membership.clusterMem bc.cl' (restModel (W64 0) γ.boot L).mem ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
+    "#HisCI" ∷ isCI cil γA.ci (srvCIPair γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
     -- `SetConfState` `applyConfChange` calls, and (D22 J1a) which the snapshot path's
@@ -756,6 +756,8 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
     (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
       ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
+    -- (keepfix-d) the stored term is the committed term of the stored index (T10's `bkTermRow`)
+    (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)) -∗
     {{ -- (sweep repairs 1, L4) a zap logger (`bootstrapContract`'s)
         zapLoggerOk cfg.Logger' ∗
         -- (premise fixes 1) the feature gate (`bootstrapContract`'s)

@@ -183,6 +183,8 @@ def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
       ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
+    -- (keepfix-d) the stored term is the committed term of the stored index (T10's `bkTermRow`)
+    (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)) -∗
     {{ zapLoggerOk cfg.Logger' ∗
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         ⌜EtcdVerifyOff⌝ ∗
@@ -205,6 +207,9 @@ def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
       ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot j Ls Ds ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
       mvcc.api.mvccImage Ds (kvModel γk A) (crevOf γk A) u) -∗
+    -- (keepfix-d) the snapshot file's stored term is the committed term of its index (its image
+    -- certificate's row, `srvImage`)
+    (⌜j = W64 0⌝ ∨ srvCIPair γ.cl j (metaTermOf Ds)) -∗
     {{ zapLoggerOk cfg.Logger' ∗
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         ⌜EtcdVerifyOff⌝ ∗
