@@ -6,13 +6,15 @@ etcd's state there (`cacheGetOk`'s `isEtcdKvs`, at the adapter's model: a log th
 `kmInv`, as `km_step_log`), and holds the watch's events at their revisions (`collect`'s
 `etcdstart.kmRevAt`s, its lower bounds agreeing with the log's); the pure law `checkGetOk_of'`
 (`GetCheck.lean`) does the rest.
+
+Moved here from the cache example's `cache/GetFacts.lean` (2026-11-27): the multi-machine theorem reuses these
+facts (names and namespace `etcd_cache` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.CacheFacts
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.GetCheck
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheGetCheck
 public import Proof.go_etcd_io.etcd.client.v3.PrefixRange
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.cache.hasKey
 
 @[expose] public section
 

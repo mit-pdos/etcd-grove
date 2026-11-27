@@ -9,7 +9,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Cell
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseCell
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AuthViewDist
 
 @[expose] public section

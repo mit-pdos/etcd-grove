@@ -22,10 +22,15 @@ log, every revision from `2` on one put of the plan):
   (`evFact`);
 * `log_ck`: so a log of the cache's watch from revision `2` with no cancel has, as its `j`-th event,
   the put at revision `2 + j` (the key filter keeps every put of the plan, `hkeys`).
+
+Moved here from the cache example's `cache/CacheFacts.lean` (2026-11-27): the multi-machine theorem reuses these
+facts (names and namespace `etcd_cache` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheBase
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkload
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WritesKM
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ClientLaws
 public import Proof.go_etcd_io.etcd.cache.v3.InvCache

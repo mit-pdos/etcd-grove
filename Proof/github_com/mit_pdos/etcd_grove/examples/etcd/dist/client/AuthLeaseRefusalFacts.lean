@@ -5,11 +5,14 @@
 under the cell (u's leased put of `a/x` with `Lz` and its revocation of `Lz`; the revocations of `Lu` by
 `v`, the client with no token and the one with the invalid token), each refuted at its grant
 (`akGrantedL_of_writeGrantG`, `not_akGrantedL_lease`). Lean-first (no Rocq counterpart).
+
+Moved here from the authlease example's `authlease/Refusals.lean` (2026-11-27): the multi-machine theorem
+reuses it (names and namespace `etcd_authlease` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Holds
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.LeaseAttempts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseHolds
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseAttempts
 
 @[expose] public section
 

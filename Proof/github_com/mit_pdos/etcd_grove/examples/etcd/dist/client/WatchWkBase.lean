@@ -6,10 +6,12 @@ counterpart).
 The program's structs by short names (`wkv`, `wev`, `wrec`), the prefix `wkPfx`, `genPut`'s keys
 and values (`genKeys`, `genVals`), `pairOf` (a `kv`'s key and value), `GenKv` (a `kv` `genPut`
 may return), `CheckOk` (what `checkWatch` needs not to panic).
+
+Moved here from `partition/` (2026-11-27): the multi-machine theorem reuses these facts, and no example's
+package `Base` is imported (names and namespace `etcd_partition` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchBase
 
 @[expose] public section
@@ -20,7 +22,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_partition
 
-open github_com.mit_pdos.etcd_grove.examples.etcd.partition
 
 section pure
 variable [GooseExts]
