@@ -50,7 +50,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev Serve.spec : Prop :=
-  ∀ (s : Loc) (addr : GoString) (E : apply.AEnv GF)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (s : Loc) (addr : GoString) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (Q : w64 → w64 → v3rpc.WSrv GF → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗

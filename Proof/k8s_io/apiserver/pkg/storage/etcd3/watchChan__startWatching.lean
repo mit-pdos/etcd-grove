@@ -182,7 +182,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- **The producer's `sendError`** (then it returns): `kProdExited` set first (`kCancelPD`'s producer
 arm, for `wc.cancel()`), the commit from `kResChan`, the running-producer token back. -/
-theorem wp_prod_sendError
+theorem wp_prod_sendError [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (wp_sendError : watchChan.sendError.spec (GF := GF) (hG := hG))
     {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] (wc sp : Loc)

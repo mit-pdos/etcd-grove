@@ -31,7 +31,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev StartMembersAuth.spec : Prop :=
-  ∀ (N : Nat) (token : GoString) (snapCount catchUp : w64)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (token : GoString) (snapCount catchUp : w64)
     (msl : GoSlice) (lg : Loc)
     (xs : List (GMember × MemberG GF)) (ps : List w64) (bootLog : List EntryM)
     (ctxs : List (List w8)) (dir : w64 → List GoString)

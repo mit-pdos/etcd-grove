@@ -29,6 +29,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`kv_served_tbl`, with the `GoAttach` resources given back** (decision 1b, 2026-11-24): its post
 and the member's `srvGoRes` (the thread token it holds), which the serving thread splits again for

@@ -52,7 +52,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Ass
 
 /-- See the file header. -/
 abbrev StartCluster.spec : Prop :=
-  ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (lg : Loc) (cmp : Bool) (lm : lease.Mode),
   cfgOk cfg → BootFacts id₁ id₂ id₃ ps ctxs boot →

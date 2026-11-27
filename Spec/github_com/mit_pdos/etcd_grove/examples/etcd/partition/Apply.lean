@@ -36,7 +36,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
     (clis : List Loc),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → clis ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition -∗

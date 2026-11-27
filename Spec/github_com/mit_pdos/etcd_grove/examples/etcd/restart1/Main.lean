@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.As
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ (N : Nat) (id : w64) (ctxs : List (List w8))
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   BootFacts id ctxs boot →

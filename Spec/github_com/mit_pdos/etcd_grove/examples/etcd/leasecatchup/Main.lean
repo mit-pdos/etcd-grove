@@ -30,7 +30,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchu
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗
       cluster3.startRes (GF := GF) clusterCfg ∗
       threadTok ∗ cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot ∗

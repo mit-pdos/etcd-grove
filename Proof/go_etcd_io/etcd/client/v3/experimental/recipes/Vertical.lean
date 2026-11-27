@@ -44,6 +44,7 @@ variable [recipes_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **The queue, end to end** (see the file header): `NewQueue(client, kp)` (`kp` at most
 `2 ^ 27` bytes; `Enqueue`'s value at most `2 ^ 28`: `notes/invoke-size-b.md`) on a client over a

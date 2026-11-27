@@ -43,7 +43,8 @@ include h_After in
 /-- **The one closed Kubernetes theorem's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/Main.lean`), under the semantic premises of the
 two drivers' linked `MainPartition` results and the named hypothesis of `clock.RealClock.After`. -/
-theorem k8s_all.wp_Main :
+theorem k8s_all.wp_Main
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
   k8s_all.Main.wp_proof k8s_all.holdToken.wp_proof k8s_etcd3.wp_MainPartition
     (k8s_compactor.wp_MainPartition h_After)
@@ -60,7 +61,8 @@ include h_After in
 /-- **The program's entry point does not panic** (`MainChecked.lean`; the pure-premises plan's P5,
 2026-11-24): `Main`'s linked triple behind `ParamsOk`, with the schedules `cluster3.RandomSchedule`
 draws. -/
-theorem k8s_all.wp_MainChecked :
+theorem k8s_all.wp_MainChecked
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
   k8s_all.MainChecked.wp_proof k8s_all.wp_ParamsOk cluster3.wp_RandomSchedule
     (k8s_all.wp_Main h_After)

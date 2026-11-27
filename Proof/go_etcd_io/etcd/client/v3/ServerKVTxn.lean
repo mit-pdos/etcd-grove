@@ -623,6 +623,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **What a transaction's reply gives the clients' model** (`txnReplied` with its update's floor,
 unit W-M3: if the transaction is linearizable, the state its update fired at, the state of the

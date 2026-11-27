@@ -50,7 +50,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget.Assu
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 →
   -- (per-type stage B3) the levels of a thread token the server's gRPC runs use

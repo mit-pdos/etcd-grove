@@ -44,7 +44,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev SetUp.spec_dist : Prop :=
-  ∀ [_root_.Perennial.errors.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [NetProtoGS] (cl api ap : Loc) (eps : List GoString) (V : client.WEnv GF)
     (Γ : etcd_dist.DistView) (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)

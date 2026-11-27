@@ -81,7 +81,7 @@ def syncGsOf (kp : GoString) (recur : Bool) (wr : w64) : List (OpFull → OpFull
 unsorted), through the store's client (`kvObjAt` of its `*kv`), with the read update `Qr` at the
 members: `nil` and the reply `m` (its key-values' slice owned) at a state `σ` the update fired at,
 `m` the server's answer at `σ`; or a client error (`kClientErr`). -/
-theorem wp_syncGet
+theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] {Obj : Type}
     (h_range_any : client.client_range_any.law (GF := GF) (hG := hG))
     (c : StoreCfg GF Obj) (γk : KVNames) (api : Loc) (ctx : GoInterfaceOk)

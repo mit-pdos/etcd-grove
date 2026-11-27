@@ -29,6 +29,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem mvccApi_compactChan_law_holds : compactChan.law (GF := GF) :=
   compactChan.law_holds (mvcc.store.Compact.core_proof

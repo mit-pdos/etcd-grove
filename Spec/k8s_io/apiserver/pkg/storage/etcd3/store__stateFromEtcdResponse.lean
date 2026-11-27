@@ -37,7 +37,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev store.stateFromEtcdResponse.spec : Prop :=
-  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ctx : GoInterface)
     (kvp : Loc) (mkv : Option EtcdKv) (rev : w64) (key : GoString)
     (v : _root_.Perennial.reflect.Value) (p : Loc) (ign : Bool),

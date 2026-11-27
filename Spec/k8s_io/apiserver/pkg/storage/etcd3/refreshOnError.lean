@@ -34,7 +34,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev refreshOnError.spec : Prop :=
-  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (c : StoreCfg GF Obj) (st : Loc) (s : OState Obj)
     (err : GoInterface) (f : GoFunc) (x : GoInterface) (key : GoString) (ign : Bool)
     (R : w64 → w64 → KVState → IProp GF),

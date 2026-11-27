@@ -71,7 +71,7 @@ theorem wp_post_named (e : Expr) (Φ : val → IProp GF) :
 /-- `GetList`'s loop before page `i` (pure): the first page's state `σ` and revision `R` (`σ`'s, or
 the past revision `R0` asked), the scope from page `i`'s start is the scope after its first `m`
 key-values, the loop state `st` is `chunkL` on those, not full, and the counters are in range. -/
-def pgFacts [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+def pgFacts [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     {Obj : Type} [DecidableEq Obj] (c : StoreCfg GF Obj) (sel : Obj → Bool) (kp : GoString)
     (recur : Bool) (lim : Nat) (n R0 : w64) (σ : KVState) (R : w64) (i m : Nat)
     (st : k8s_etcd3.ListModel.LState w8 (Obj × Nat)) (nev : w64) : Prop :=

@@ -65,6 +65,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`Put` is the client's put** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Put.lean`). -/
 theorem put_putKv : Put.spec (GF := GF) (hG := hG) := wp_Put
@@ -105,6 +106,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`Range` in the client's terms**: `Range`'s spec (`txn.Range.spec`) with the success case
 stated over the client model's selection (`rangeResultClient`: `rangeKvsOk` of `rangeSel` of the
@@ -181,6 +183,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`Txn`** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Txn.lean`). -/
 theorem txn_srvRunTxn : Txn.spec (GF := GF) (hG := hG) := wp_Txn

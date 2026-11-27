@@ -46,7 +46,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.authwork.Ass
 
 /-- See the file header. -/
 abbrev Work.spec : Prop :=
-  ∀ [_root_.Perennial.errors.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (cl : Loc) (who addr : GoString) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat),

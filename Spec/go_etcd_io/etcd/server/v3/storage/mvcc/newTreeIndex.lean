@@ -21,6 +21,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `newTreeIndex(lg)` (a zap logger, `zapLoggerOk`: `treeIndex.Compact` logs through it; premise
 fixes 6, until then a non-nil logger): a fresh tree index (as the `index` interface), private

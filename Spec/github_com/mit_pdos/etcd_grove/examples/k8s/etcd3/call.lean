@@ -48,7 +48,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev call.spec : Prop :=
-  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     (sp : Loc) (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (W : IProp GF)
     [Timeless W] (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState → IProp GF)

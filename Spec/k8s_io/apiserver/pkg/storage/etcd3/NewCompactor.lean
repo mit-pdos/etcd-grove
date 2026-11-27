@@ -36,7 +36,7 @@ variable [sync_sem : sync.Assumptions]
 
 /-- See the file header. -/
 abbrev NewCompactor.spec : Prop :=
-  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γk : KVNames)
     (Seen : IProp GF) (recorded : w64 → IProp GF) [Persistent Seen] [∀ c, Persistent (recorded c)]
     (iv : w64) (ck : k8s_io.utils.clock.RealClock) (f : GoFunc),

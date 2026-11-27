@@ -579,6 +579,28 @@ theorem walRecs_closeAU (h : WalH GF) (σ : StorContents) (sized : Bool) (id cid
     refine ⟨?_, hf.2.1.trans hm, hf.2.2.1, hf.2.2.2⟩
     exact walRead_of_fold hf.1 hb
 
+/-- **What a restart reads from closed files is consecutive from its base, and its snapshot record is
+at its base** (2026-11-27, the restart axiom's review R2: the WAL interface's I1 and I4 of `walReadFacts`,
+proved of `walRead`; I2 and I3 are not facts of the read, `walRead` checks neither). -/
+theorem walFiles_readShape (a : WalA GF) (id cid : w64) (σ : StorContents) (sized : Bool) :
+    walFiles (GF := GF) a id cid σ sized ⊢ walFiles a id cid σ sized ∗
+      ⌜walEntsWf σ ∧ ((σ.snap = none ∧ σ.base = entryID.mk (W64 0) (W64 0)) ∨
+        ∃ m, σ.snap = some (SnapshotM.mk [] m) ∧ σ.base = entryID.mk m.Term' m.Index')⌝ := by
+  unfold walFiles
+  iintro ⟨%d, H1, H2, H3, H4, H5, %hp⟩
+  have hr := hp.1
+  isplitl [H1 H2 H3 H4 H5]
+  · iexists d
+    iframe H1 H2 H3 H4 H5
+    ipureintro; exact hp
+  · ipureintro
+    refine ⟨walReadCut_wf (k := 0) (by rw [walReadCut_zero]; exact hr), ?_⟩
+    unfold walRead at hr
+    exact walFoldChkFrom_snapInv
+      (fun sn b => (sn = none ∧ b = entryID.mk (W64 0) (W64 0)) ∨
+        ∃ m, sn = some (SnapshotM.mk [] m) ∧ b = entryID.mk m.Term' m.Index')
+      (fun m => Or.inr ⟨m, rfl, rfl⟩) (Or.inl ⟨rfl, rfl⟩) hr
+
 end defs
 
 end EtcdGrove

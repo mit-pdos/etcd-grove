@@ -49,7 +49,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 spec in both modes; periodic mode, 2026-11-02). -/
 theorem newServerMode.wp_proof
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
-    (wp_NewServer :
+    (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.spec (GF := GF) (hG := hG)) :
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
@@ -178,7 +178,7 @@ theorem newServerMode.wp_proof
 slot's half passed to `NewServer`, `memberBuiltL` from its post. -/
 theorem newServerMode.wp_proofAt
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
-    (wp_NewServer :
+    (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.specAt (GF := GF) (hG := hG)) :
     newServerMode.specAt (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
@@ -451,7 +451,7 @@ theorem newServerMode.wp_proofF
 theorem newServerMode.wp_proofRestart
     (hne : mvcc.api.names_nonempty.law)
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
-    (wp_NewServerR :
+    (wp_NewServerR : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.specR (GF := GF) (hG := hG)) :
     newServerMode.specRestart (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps

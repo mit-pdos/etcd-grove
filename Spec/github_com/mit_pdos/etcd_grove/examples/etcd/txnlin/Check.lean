@@ -39,7 +39,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ (γ : LinkvNames) (cl : Loc) (ep : GoString)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (γ : LinkvNames) (cl : Loc) (ep : GoString)
     (V : EtcdGrove.client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
     (clients ops dur : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

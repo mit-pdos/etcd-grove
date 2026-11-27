@@ -23,6 +23,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- Reader tokens of the index's lock are reader handles (with the tree's address). -/
 theorem mvcc.newTreeIndex.wp_proof

@@ -31,6 +31,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`kv_lease_served`, with what the watch service needs** (lease-mono3's pass 2(c),
 2026-11-06): its post, and the `GoAttach` resources `grpcUp` holds (`srvGoRes`) and the watch server;

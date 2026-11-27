@@ -30,6 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`NewStore(lg, b, le, cfg)` over a real backend `d` holding the image of `L' = [[], []] ++ R`
 at the compaction records `r`** (B3; mvccfull's Freeze, 2026-11-10). Changes from the fresh spec, clause by clause:
