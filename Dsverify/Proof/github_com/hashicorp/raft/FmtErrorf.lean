@@ -5,8 +5,8 @@ Ported from dsverify-lab examples/hraft/proof/HrVerify/Proof/github_com/hashicor
 The specs of raft's five `fmt.Errorf` calls with a fixed format (decisions D24, D25, D26; hub request
 MAINL-3; attacks: notes/axioms/fmt-errorf.md, fmt-errorf-cfg.md, in the lab). Three are proved here from
 Perennial's `fmt.wp_Errorf` (`tnErr`, the lab's one axiom; `nextCfgErr`; `snapCfgErr`); `cfgErr` and
-`rsErr` are not provable over Perennial's model (it is stuck on `%v` of a struct or a pointer), and their
-users take them as callee specs.
+`rsErr` are not provable over Perennial's model (it is stuck on `%v` of a struct or a pointer): the fork's
+call sites are rewritten to format explicitly (#48), and the two specs go once nothing uses them.
 -/
 module
 
@@ -129,8 +129,9 @@ over the struct, reads the `Servers` slice's elements (the caller lends read acc
 Attack: notes/axioms/fmt-errorf-cfg.md.
 **Not proved here** (port, 2026-11-27): the lab proved it from a Perennial `fmt` model that formatted
 nothing (`errors.New(format)`); Perennial's model now formats, and is stuck (`notModelled`) on `%v` of a
-struct, which Go prints by reflection (`pp.printValue`, not translated). So `checkConfiguration`'s proof
-takes it as a callee spec, and its link must discharge it (an approved axiom, or a model extension). -/
+struct, which Go prints by reflection (`pp.printValue`, not translated). Decided (#48, coordinator-E):
+the fork's `checkConfiguration` formats the servers' fields explicitly, and its proof goes over
+`fmt.wp_Errorf`; this spec goes once nothing uses it. -/
 abbrev fmt.Errorf.spec_cfgErr : Prop :=
   ∀ (args_sl : GoSlice) (c : Configuration) (dq : DFrac) (ss : List Server),
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
@@ -229,7 +230,8 @@ replication goroutine (not in the latest configuration), `fmt.Errorf("cannot fin
 formats its address, reads no memory and calls no method). Post: a non-nil error (sent on the transfer's
 `doneCh`, whose receiver only compares it with `nil`).
 **Not proved here** (port, 2026-11-27): as `fmt.Errorf.spec_cfgErr`, Perennial's `fmt` model is stuck on
-`%v` of a pointer (Go's `printValue` prints its address); `leaderLoop`'s proof takes it as a callee spec. -/
+`%v` of a pointer (Go's `printValue` prints its address). Decided (#48): the fork's `leaderLoop` formats
+the dereferenced `ServerID` with `%s`; this spec goes once nothing uses it. -/
 abbrev fmt.Errorf.spec_rsErr : Prop :=
   ∀ (args_sl : GoSlice) (p : Loc),
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
