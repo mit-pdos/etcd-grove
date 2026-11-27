@@ -2,9 +2,11 @@
 Package initialization of `github_com.hashicorp.raft`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`Base.lean`): its error variables (`ErrLeader`, `ErrNotLeader`, `ErrNotVoter`, `ErrLeadershipLost`, `ErrAbortedByRestore`, `ErrRaftShutdown`, `ErrEnqueueTimeout`, `ErrNothingNewToSnapshot`, `ErrUnsupportedProtocol`, `ErrCantBootstrap`, `ErrLeadershipTransferInProgress`, `ErrIncompatibleLogStore`, `ErrTransportShutdown`, `ErrPipelineShutdown`, `ErrLogNotFound`, `ErrPipelineReplicationNotSupported`, `errShortBuffer`, translated
-`errors.New` calls) each hold `errors.New` of their message (`errors.newVar`). Its initializer
-allocates its variables, initializes its imports and runs their translated initializers.
+Its fact (`pkgGlobals`, `Base.lean`, the lab's): its error variables (translated `errors.New`
+calls) hold pairwise distinct errors, each `errors.newVar` of its message (`errVals`), the three
+stable-store keys read-only bytes, and `nextObserverID` an invariant. Its initializer allocates its
+variables, initializes its imports and runs their translated initializers; the proof is the lab's
+`initialize.lean` (its lemmas: `InitLemmas.lean`).
 -/
 module
 
@@ -21,6 +23,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.errors.NewVar
+public import Dsverify.Proof.github_com.hashicorp.raft.InitLemmas
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -106,69 +109,69 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrLeader))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrLeader ⟨#SErrLeader, #MErrLeader⟩
+  wp_apply wp_New_excl as %xErrLeader ⟨#SErrLeader, #EErrLeader, XErrLeader⟩
   -- translated initializer of ErrNotLeader))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNotLeader ⟨#SErrNotLeader, #MErrNotLeader⟩
+  wp_apply wp_New_excl as %xErrNotLeader ⟨#SErrNotLeader, #EErrNotLeader, XErrNotLeader⟩
   -- translated initializer of ErrNotVoter))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNotVoter ⟨#SErrNotVoter, #MErrNotVoter⟩
+  wp_apply wp_New_excl as %xErrNotVoter ⟨#SErrNotVoter, #EErrNotVoter, XErrNotVoter⟩
   -- translated initializer of ErrLeadershipLost))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrLeadershipLost ⟨#SErrLeadershipLost, #MErrLeadershipLost⟩
+  wp_apply wp_New_excl as %xErrLeadershipLost ⟨#SErrLeadershipLost, #EErrLeadershipLost, XErrLeadershipLost⟩
   -- translated initializer of ErrAbortedByRestore))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrAbortedByRestore ⟨#SErrAbortedByRestore, #MErrAbortedByRestore⟩
+  wp_apply wp_New_excl as %xErrAbortedByRestore ⟨#SErrAbortedByRestore, #EErrAbortedByRestore, XErrAbortedByRestore⟩
   -- translated initializer of ErrRaftShutdown))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrRaftShutdown ⟨#SErrRaftShutdown, #MErrRaftShutdown⟩
+  wp_apply wp_New_excl as %xErrRaftShutdown ⟨#SErrRaftShutdown, #EErrRaftShutdown, XErrRaftShutdown⟩
   -- translated initializer of ErrEnqueueTimeout))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrEnqueueTimeout ⟨#SErrEnqueueTimeout, #MErrEnqueueTimeout⟩
+  wp_apply wp_New_excl as %xErrEnqueueTimeout ⟨#SErrEnqueueTimeout, #EErrEnqueueTimeout, XErrEnqueueTimeout⟩
   -- translated initializer of ErrNothingNewToSnapshot))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNothingNewToSnapshot ⟨#SErrNothingNewToSnapshot, #MErrNothingNewToSnapshot⟩
+  wp_apply wp_New_excl as %xErrNothingNewToSnapshot ⟨#SErrNothingNewToSnapshot, #EErrNothingNewToSnapshot, XErrNothingNewToSnapshot⟩
   -- translated initializer of ErrUnsupportedProtocol))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrUnsupportedProtocol ⟨#SErrUnsupportedProtocol, #MErrUnsupportedProtocol⟩
+  wp_apply wp_New_excl as %xErrUnsupportedProtocol ⟨#SErrUnsupportedProtocol, #EErrUnsupportedProtocol, XErrUnsupportedProtocol⟩
   -- translated initializer of ErrCantBootstrap))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrCantBootstrap ⟨#SErrCantBootstrap, #MErrCantBootstrap⟩
+  wp_apply wp_New_excl as %xErrCantBootstrap ⟨#SErrCantBootstrap, #EErrCantBootstrap, XErrCantBootstrap⟩
   -- translated initializer of ErrLeadershipTransferInProgress))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrLeadershipTransferInProgress ⟨#SErrLeadershipTransferInProgress, #MErrLeadershipTransferInProgress⟩
+  wp_apply wp_New_excl as %xErrLeadershipTransferInProgress ⟨#SErrLeadershipTransferInProgress, #EErrLeadershipTransferInProgress, XErrLeadershipTransferInProgress⟩
   -- translated initializer of ErrIncompatibleLogStore))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIncompatibleLogStore ⟨#SErrIncompatibleLogStore, #MErrIncompatibleLogStore⟩
+  wp_apply wp_New_excl as %xErrIncompatibleLogStore ⟨#SErrIncompatibleLogStore, #EErrIncompatibleLogStore, XErrIncompatibleLogStore⟩
   -- translated initializer of errShortBuffer))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrShortBuffer ⟨#SerrShortBuffer, #MerrShortBuffer⟩
+  wp_apply wp_New_excl as %xerrShortBuffer ⟨#SerrShortBuffer, #EerrShortBuffer, XerrShortBuffer⟩
   -- translated initializer of ErrTransportShutdown))
   try wp_auto
   wp_alloc_anon
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTransportShutdown ⟨#SErrTransportShutdown, #MErrTransportShutdown⟩
+  wp_apply wp_New_excl as %xErrTransportShutdown ⟨#SErrTransportShutdown, #EErrTransportShutdown, XErrTransportShutdown⟩
   -- translated initializer of ErrPipelineShutdown))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPipelineShutdown ⟨#SErrPipelineShutdown, #MErrPipelineShutdown⟩
+  wp_apply wp_New_excl as %xErrPipelineShutdown ⟨#SErrPipelineShutdown, #EErrPipelineShutdown, XErrPipelineShutdown⟩
   -- translated initializer of keyCurrentTerm))
   try wp_auto
   wp_alloc_anon
   try wp_auto
-  wp_apply wp_string_to_bytes go!"CurrentTerm" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"CurrentTerm" as %skeyCurrentTerm ⟨SkeyCurrentTerm, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"LastVoteTerm" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"LastVoteTerm" as %skeyLastVoteTerm ⟨SkeyLastVoteTerm, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"LastVoteCand" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"LastVoteCand" as %skeyLastVoteCand ⟨SkeyLastVoteCand, -⟩
   try wp_auto
   -- translated initializer of keyLastVoteTerm))
   -- translated initializer of keyLastVoteCand))
   -- translated initializer of ErrLogNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrLogNotFound ⟨#SErrLogNotFound, #MErrLogNotFound⟩
+  wp_apply wp_New_excl as %xErrLogNotFound ⟨#SErrLogNotFound, #EErrLogNotFound, XErrLogNotFound⟩
   -- translated initializer of ErrPipelineReplicationNotSupported))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPipelineReplicationNotSupported ⟨#SErrPipelineReplicationNotSupported, #MErrPipelineReplicationNotSupported⟩
+  wp_apply wp_New_excl as %xErrPipelineReplicationNotSupported ⟨#SErrPipelineReplicationNotSupported, #EErrPipelineReplicationNotSupported, XErrPipelineReplicationNotSupported⟩
   try wp_auto
   ipersist HErrLeader
   ipersist HErrNotLeader
@@ -187,6 +190,47 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrLogNotFound
   ipersist HErrPipelineReplicationNotSupported
   ipersist HerrShortBuffer
+  ipersist SkeyCurrentTerm
+  ipersist HkeyCurrentTerm
+  ipersist SkeyLastVoteTerm
+  ipersist HkeyLastVoteTerm
+  ipersist SkeyLastVoteCand
+  ipersist HkeyLastVoteCand
+  imod inv_alloc nextObserverIDN ⊤ (∃ n : w64, globalAddr nextObserverID ↦ n) $$ [HnextObserverID]
+    with #Hobs
+  · inext; iexists _; iexact HnextObserverID
+  let g : RaftErr → Loc := fun c =>
+    match c with
+      | .leader => xErrLeader
+      | .notLeader => xErrNotLeader
+      | .notVoter => xErrNotVoter
+      | .leadershipLost => xErrLeadershipLost
+      | .abortedByRestore => xErrAbortedByRestore
+      | .raftShutdown => xErrRaftShutdown
+      | .enqueueTimeout => xErrEnqueueTimeout
+      | .nothingNewToSnapshot => xErrNothingNewToSnapshot
+      | .unsupportedProtocol => xErrUnsupportedProtocol
+      | .cantBootstrap => xErrCantBootstrap
+      | .leadershipTransferInProgress => xErrLeadershipTransferInProgress
+      | .incompatibleLogStore => xErrIncompatibleLogStore
+      | .shortBuffer => xerrShortBuffer
+      | .transportShutdown => xErrTransportShutdown
+      | .pipelineShutdown => xErrPipelineShutdown
+      | .logNotFound => xErrLogNotFound
+      | .pipelineReplicationNotSupported => xErrPipelineReplicationNotSupported
+  ihave %Hnd := exclS_nodup g RaftErr.all $$ [XErrLeader XErrNotLeader XErrNotVoter XErrLeadershipLost XErrAbortedByRestore XErrRaftShutdown XErrEnqueueTimeout XErrNothingNewToSnapshot XErrUnsupportedProtocol XErrCantBootstrap XErrLeadershipTransferInProgress XErrIncompatibleLogStore XerrShortBuffer XErrTransportShutdown XErrPipelineShutdown XErrLogNotFound XErrPipelineReplicationNotSupported]
+  · simp only [RaftErr.all, g]
+    iframe
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  have Hinj : Function.Injective
+      (fun c => interface.mkOk (go.GoType.PointerType errors.errorString.ty) #(g c)) := by
+    intro a b h
+    have h1 : g a = g b := by
+      simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
+      exact go.intoVal_inj h.2
+    have hall : ∀ c, c ∈ RaftErr.all := by intro c; cases c <;> simp [RaftErr.all]
+    exact nodup_map_inj g Hnd (hall a) (hall b) h1
   iframe Hown
   imodintro
   isplitr
@@ -194,40 +238,55 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold _root_.Perennial.errors.newVar
+  unfold pkgGlobals
   isplitr
-  · iexists _; iframe HErrLeader SErrLeader MErrLeader
+  · iexists (fun c => interface.mkOk (go.GoType.PointerType errors.errorString.ty) #(g c))
+    unfold errVals
+    isplitr
+    · ipureintro; exact Hinj
+    iapply (bigSepL_all _).2
+    simp only [g, RaftErr.var, RaftErr.msg]
+    iframe #
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrLeader SErrLeader EErrLeader
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrNotLeader SErrNotLeader EErrNotLeader
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrNotVoter SErrNotVoter EErrNotVoter
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrLeadershipLost SErrLeadershipLost EErrLeadershipLost
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrAbortedByRestore SErrAbortedByRestore EErrAbortedByRestore
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrRaftShutdown SErrRaftShutdown EErrRaftShutdown
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrEnqueueTimeout SErrEnqueueTimeout EErrEnqueueTimeout
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrNothingNewToSnapshot SErrNothingNewToSnapshot EErrNothingNewToSnapshot
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrUnsupportedProtocol SErrUnsupportedProtocol EErrUnsupportedProtocol
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrCantBootstrap SErrCantBootstrap EErrCantBootstrap
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrLeadershipTransferInProgress SErrLeadershipTransferInProgress EErrLeadershipTransferInProgress
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrIncompatibleLogStore SErrIncompatibleLogStore EErrIncompatibleLogStore
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HerrShortBuffer SerrShortBuffer EerrShortBuffer
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrTransportShutdown SErrTransportShutdown EErrTransportShutdown
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrPipelineShutdown SErrPipelineShutdown EErrPipelineShutdown
+    isplitr
+    · iunfold errors.newVar; iexists _; iframe HErrLogNotFound SErrLogNotFound EErrLogNotFound
+    iunfold errors.newVar; iexists _; iframe HErrPipelineReplicationNotSupported SErrPipelineReplicationNotSupported EErrPipelineReplicationNotSupported
   isplitr
-  · iexists _; iframe HErrNotLeader SErrNotLeader MErrNotLeader
+  · iexists skeyCurrentTerm; iframe #
   isplitr
-  · iexists _; iframe HErrNotVoter SErrNotVoter MErrNotVoter
+  · iexists skeyLastVoteTerm; iframe #
   isplitr
-  · iexists _; iframe HErrLeadershipLost SErrLeadershipLost MErrLeadershipLost
-  isplitr
-  · iexists _; iframe HErrAbortedByRestore SErrAbortedByRestore MErrAbortedByRestore
-  isplitr
-  · iexists _; iframe HErrRaftShutdown SErrRaftShutdown MErrRaftShutdown
-  isplitr
-  · iexists _; iframe HErrEnqueueTimeout SErrEnqueueTimeout MErrEnqueueTimeout
-  isplitr
-  · iexists _; iframe HErrNothingNewToSnapshot SErrNothingNewToSnapshot MErrNothingNewToSnapshot
-  isplitr
-  · iexists _; iframe HErrUnsupportedProtocol SErrUnsupportedProtocol MErrUnsupportedProtocol
-  isplitr
-  · iexists _; iframe HErrCantBootstrap SErrCantBootstrap MErrCantBootstrap
-  isplitr
-  · iexists _; iframe HErrLeadershipTransferInProgress SErrLeadershipTransferInProgress MErrLeadershipTransferInProgress
-  isplitr
-  · iexists _; iframe HErrIncompatibleLogStore SErrIncompatibleLogStore MErrIncompatibleLogStore
-  isplitr
-  · iexists _; iframe HErrTransportShutdown SErrTransportShutdown MErrTransportShutdown
-  isplitr
-  · iexists _; iframe HErrPipelineShutdown SErrPipelineShutdown MErrPipelineShutdown
-  isplitr
-  · iexists _; iframe HErrLogNotFound SErrLogNotFound MErrLogNotFound
-  isplitr
-  · iexists _; iframe HErrPipelineReplicationNotSupported SErrPipelineReplicationNotSupported MErrPipelineReplicationNotSupported
-  iexists _; iframe HerrShortBuffer SerrShortBuffer MerrShortBuffer
+  · iexists skeyLastVoteCand; iframe #
+  iexact Hobs
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
