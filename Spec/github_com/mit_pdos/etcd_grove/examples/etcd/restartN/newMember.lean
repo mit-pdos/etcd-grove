@@ -43,7 +43,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.As
 
 /-- See the file header. -/
 abbrev newMember.spec : Prop :=
-  ∀ (N : Nat) (s : Loc) (name peerAddr client : GoString)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (s : Loc) (name peerAddr client : GoString)
     (peer : GoSlice) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
     [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   (netRh γn).owner peerAddr = id →
@@ -60,7 +60,7 @@ abbrev newMember.spec : Prop :=
 
 /-- See the file header (`restartMember`). -/
 abbrev restartMember.spec : Prop :=
-  ∀ (N : Nat) (m : Loc) (γS : SwNames)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (m : Loc) (γS : SwNames)
     (name peerAddr client : GoString) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

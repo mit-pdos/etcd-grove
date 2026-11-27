@@ -31,7 +31,7 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 /-- See the file header. -/
 abbrev writer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (γk : KVNames) (γ : CNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗ levelTok 0 ∗ (clientKvOk cl γk ∗ cinv γk γ) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer)) (Val #cl))

@@ -60,7 +60,8 @@ theorem wp_startCluster :
 /-- **The driver's `MainCluster` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the `k`-member start's). -/
-theorem wp_MainCluster :
+theorem wp_MainCluster
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainCluster.wp_proof zap.wp_NewNop wp_startCluster wp_newStore context.wp_ErrAny
     wp_Check
@@ -68,7 +69,8 @@ theorem wp_MainCluster :
 /-- **The driver's `MainPartition` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`MainCluster`'s, and the cluster's `Partitioner`). -/
-theorem wp_MainPartition :
+theorem wp_MainPartition
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainPartition.wp_proof zap.wp_NewNop wp_startCluster
     cluster3.wp_Partitioner wp_newStore context.wp_ErrAny wp_Check

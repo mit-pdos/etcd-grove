@@ -43,7 +43,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_txnlin.wp_Main`). -/
-theorem linkvtxn_Main :
+theorem linkvtxn_Main
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_txnlin.Main.spec (GF := GF) (hG := hG) :=
   etcd_txnlin.wp_Main
 

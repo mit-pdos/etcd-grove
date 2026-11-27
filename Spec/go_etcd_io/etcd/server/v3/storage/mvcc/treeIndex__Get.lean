@@ -20,6 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `ti.Get(key, atRev)` by a reader with the knowledge `kn` of the index
 (`idxKnows`: a committed log's certificate, or the writer's handle; its log `kn.log`), at a revision below its length: what `log` determines of the key (`kiGetVal` of the key's index

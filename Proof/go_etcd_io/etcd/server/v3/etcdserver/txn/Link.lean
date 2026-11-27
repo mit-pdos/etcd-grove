@@ -356,11 +356,11 @@ theorem traceutil.wp_EnsureTrace :
     EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
 
-theorem wp_deleteRange :
+theorem wp_deleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.deleteRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.deleteRange.wp_proof mvcc.api.mvccApi_shapes_law wp_mkGteRange
 
-theorem wp_DeleteRange :
+theorem wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.DeleteRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.DeleteRange.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds traceutil.wp_EnsureTrace wp_deleteRange
 
@@ -372,19 +372,19 @@ theorem wp_IsTxnSerializable :
     EtcdGrove.txn.IsTxnSerializable.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.IsTxnSerializable.wp_proof RequestOp.wp_GetRequestRange
 
-theorem wp_getPrevKV :
+theorem wp_getPrevKV [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.getPrevKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.getPrevKV.wp_proof mvcc.api.mvccApi_shapes_law traceutil.Trace.wp_StepWithFunction context.wp_TODO
 
-theorem wp_checkAndGetPrevKV :
+theorem wp_checkAndGetPrevKV [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.checkAndGetPrevKV.wp_proof wp_getPrevKV
 
-theorem wp_put :
+theorem wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.put.wp_proof mvcc.api.mvccApi_shapes_law traceutil.wp_Get traceutil.Trace.wp_AddField
 
-theorem wp_Put :
+theorem wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Put.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds traceutil.wp_EnsureTrace proto.wp_Size wp_checkLease wp_checkAndGetPrevKV wp_put
 
@@ -396,27 +396,27 @@ theorem wp_compareKV :
     EtcdGrove.txn.compareKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.compareKV.wp_proof wp_compareInt64
 
-theorem wp_applyCompare :
+theorem wp_applyCompare [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.applyCompare.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.applyCompare.wp_proof mvcc.api.mvccApi_shapes_law context.wp_TODO wp_mkGteRange wp_compareKV
 
-theorem wp_applyCompares :
+theorem wp_applyCompares [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.applyCompares.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.applyCompares.wp_proof wp_applyCompare
 
-theorem wp_compareToPath :
+theorem wp_compareToPath [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.compareToPath.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.compareToPath.wp_proof wp_applyCompares
 
-theorem wp_checkRange :
+theorem wp_checkRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.checkRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.checkRange.wp_proof mvcc.api.mvccApi_shapes_law
 
-theorem wp_checkPut :
+theorem wp_checkPut [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.checkPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.checkPut.wp_proof wp_checkLease wp_checkAndGetPrevKV
 
-theorem wp_checkTxn :
+theorem wp_checkTxn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.checkTxn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.checkTxn.wp_proof wp_checkRange wp_checkPut
 
@@ -424,27 +424,27 @@ theorem wp_newTxnResp :
     EtcdGrove.txn.newTxnResp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.newTxnResp.wp_proof
 
-theorem wp_executeRange :
+theorem wp_executeRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.executeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.executeRange.wp_proof mvcc.api.mvccApi_shapes_law traceutil.wp_Get wp_rangeLimit wp_mkGteRange wp_filterRangeResults wp_sortRangeResults traceutil.Trace.wp_Step wp_asembleRangeResponse
 
-theorem wp_executeTxn :
+theorem wp_executeTxn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.executeTxn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.executeTxn.wp_proof mvcc.api.mvccApi_shapes_law traceutil.wp_Get traceutil.Trace.wp_StartSubTrace wp_executeRange traceutil.Trace.wp_StopSubTrace proto.wp_Size wp_getPrevKV wp_put wp_deleteRange fmt.wp_ErrorfWrap
 
-theorem wp_txn :
+theorem wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.txn.wp_proof mvcc.api.mvccApi_shapes_law wp_newTxnResp wp_executeTxn zap.wp_Error zap.Logger.wp_Error
 
-theorem wp_Txn :
+theorem wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Txn.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds traceutil.wp_EnsureTrace wp_IsTxnReadonly traceutil.Trace.wp_StepWithFunction wp_compareToPath traceutil.Trace.wp_AddField wp_checkTxn traceutil.Trace.wp_Step mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api wp_txn
 
-theorem wp_Range :
+theorem wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Range.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Range.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds traceutil.wp_EnsureTrace wp_RangeSecObserve wp_executeRange
 
-theorem wp_Count :
+theorem wp_Count [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Count.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Count.wp_proof wp_Range
 

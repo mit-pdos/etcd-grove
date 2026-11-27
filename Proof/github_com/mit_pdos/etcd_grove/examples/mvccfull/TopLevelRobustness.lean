@@ -37,7 +37,7 @@ variable [go_gctx : GoGlobalContext]
 /-- `mvccfull_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean`). -/
 theorem mvccfull_robust : mvccfull_robust.spec := by
-  intro lctx sem package_sem srv_sem r HEnv σ g Hfs j0 Hr
+  intro lctx sem package_sem srv_sem cache_sem r HEnv σ g Hfs j0 Hr
   exact
     Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn Hsteps =>
       (mvccfull_adequate_below

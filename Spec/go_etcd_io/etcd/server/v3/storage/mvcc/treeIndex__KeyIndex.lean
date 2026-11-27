@@ -20,6 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `ti.KeyIndex(keyi)` on a tree index no one else can reach (`ownIdxPriv`: its only caller,
 `restoreIntoIndex`'s goroutine, rebuilds a private index; `notes/restore-plan.md`, R3): the pointer

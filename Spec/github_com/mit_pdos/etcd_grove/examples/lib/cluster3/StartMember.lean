@@ -46,7 +46,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Ass
 
 /-- See the file header. -/
 abbrev StartMember.spec : Prop :=
-  ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
     (N : Nat) (name peerAddr client : GoString)
     (peer : GoSlice) (cluster lg : Loc) (sl₁ sl₂ sl₃ : GoSlice)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

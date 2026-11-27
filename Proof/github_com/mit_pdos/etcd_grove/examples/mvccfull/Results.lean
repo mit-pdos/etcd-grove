@@ -46,7 +46,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Every check of mvcc's full tester passes** (`Link.lean`'s `mvccfull.wp_Main`; see the file
 header). -/
-theorem mvccfull_Main :
+theorem mvccfull_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvccfull.Main.spec (GF := GF) (hG := hG) :=
   mvccfull.wp_Main
 
@@ -62,6 +62,7 @@ header and `Adequacy.lean`). -/
 theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     (r : GoString)
     (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)

@@ -40,7 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 
 /-- See the file header. -/
 abbrev startServer.spec : Prop :=
-  ∀ (N : Nat) (lg : Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (lg : Loc)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),

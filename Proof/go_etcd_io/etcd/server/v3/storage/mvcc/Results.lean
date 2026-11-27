@@ -254,6 +254,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
@@ -330,6 +331,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **The store's compaction, linked** (`store.Compact`'s proof with its callees'). -/
 theorem mvcc_store_Compact : mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
@@ -386,6 +388,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **A read below the compaction revision is `ErrCompacted`** (a read not in the future,
 `ro.Rev ≤ rev`, at a revision below `c`): the error and the result `{KVs: nil, Count: -1, Rev:

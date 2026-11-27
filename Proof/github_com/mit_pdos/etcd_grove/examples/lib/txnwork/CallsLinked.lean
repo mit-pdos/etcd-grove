@@ -40,7 +40,7 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `cli.Get(ctx, listFrom, WithRange(listTo))` by `New`'s client of the members `ms`, with a read
 update or none (see the file header). -/
-theorem client_List_st (cl : Loc)
+theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (Q : KVState → IProp GF)
     (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])) :
@@ -112,7 +112,7 @@ theorem client_List_st_law_holds : client_List_st.law (GF := GF) (hG := hG) :=
 
 /-- **`Commit()` of the model's transaction** through a client of the members `ms` (see the file
 header): its update by its kind, one per member. -/
-theorem txn_Commit_st (tp : Loc)
+theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     (ms : List (client.SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (hb : b.model = clientTxn cs t e)

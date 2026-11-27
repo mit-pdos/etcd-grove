@@ -39,7 +39,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 
 theorem startServer.wp_proof
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
-    (wp_NewServer :
+    (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.specM (GF := GF) (hG := hG) true)
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by

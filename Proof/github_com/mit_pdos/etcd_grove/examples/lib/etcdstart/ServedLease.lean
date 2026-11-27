@@ -59,6 +59,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`LeaseGrant` and `LeaseLeases` registered at the specs at the lessor `(mvcc.api.mvccLeases E.γ)`'s
 history** (persistent). Per member, not per cluster: `LeaseLeases` is a member-local read (see
@@ -72,7 +73,7 @@ instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) (γr 
     Persistent (etcdLeaseGrantAt addr E γr) := by
   unfold etcdLeaseGrantAt; infer_instance
 
-omit [HasExt idIssueExt] in
+omit [HasExt idIssueExt] cache_sem in
 /-- **`etcdLeaseGrantAt` gives its two registrations** (lease-mono3's review r2, N1: the
 elimination a client uses in place of unfolding the definition). -/
 theorem etcdLeaseGrantAt_elim (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -119,14 +120,14 @@ instance etcdLeaseServedAt_persistent (m : lease.Mode) (addr : GoString) (s : Lo
     Persistent (etcdLeaseServedAt m addr s E ρ γr cid mid) := by
   cases m <;> unfold etcdLeaseServedAt <;> infer_instance
 
-omit [HasExt idIssueExt] in
+omit [HasExt idIssueExt] cache_sem in
 /-- **`etcdLeaseServedAt` in the mode `none` is the KV calls** (`rfl`; lease-mono3's review r2,
 N1). -/
 theorem etcdLeaseServedAt_none (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (cid mid : w64) :
     etcdLeaseServedAt .none addr s E ρ γr cid mid = etcdKVAt addr E ρ γr cid mid := rfl
 
-omit [HasExt idIssueExt] in
+omit [HasExt idIssueExt] cache_sem in
 /-- **`etcdLeaseServedAt` in the monotone mode is the grant and the listing at the lessor's
 history** (`rfl`; lease-mono3's review r2, N1). -/
 theorem etcdLeaseServedAt_mono (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)

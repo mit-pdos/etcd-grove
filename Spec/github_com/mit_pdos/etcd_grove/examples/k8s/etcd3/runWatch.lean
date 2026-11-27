@@ -48,7 +48,8 @@ theorem plainOut_wEventsRawOut (s : GoString) (rsl : GoSlice) :
 
 /-- See the file header. -/
 abbrev runWatch.spec : Prop :=
-  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     (sp : Loc) (c : StoreCfg GF DObj) (γk : KVNames) (x : Input) (k : GoString) (n : w64)
     (Q : Nat → KVState → IProp GF),

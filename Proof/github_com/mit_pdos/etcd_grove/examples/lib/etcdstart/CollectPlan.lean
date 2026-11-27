@@ -38,7 +38,7 @@ def planEvF (R : Nat → GoString → GoString → IProp GF) (P : List (GoString
 
 /-- **`Collect(wch, upTo)` over a plan of puts** (see the file header). -/
 theorem wp_Collect_plan (wp_Collect : Collect.spec (GF := GF) (hG := hG))
-    (Ok : RespOk GF)
+    [go_etcd_io.etcd.cache.v3.Assumptions] (Ok : RespOk GF)
     (R : Nat → GoString → GoString → IProp GF) (A : IProp GF) (P : List (GoString × GoString))
     (wch : Loc) (γ : EtcdWatchNames) (upTo : w64)
     (hP : ∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),

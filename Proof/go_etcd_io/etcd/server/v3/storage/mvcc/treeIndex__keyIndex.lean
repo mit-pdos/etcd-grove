@@ -22,6 +22,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem mvcc.treeIndex.keyIndex.wp_proof
     (wp_Get : btree.BTree.Get.spec (GF := GF) (hG := hG)) :

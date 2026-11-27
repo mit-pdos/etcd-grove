@@ -30,7 +30,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
 /-- See the file header. -/
 abbrev absent.spec : Prop :=
-  ∀ [_root_.Perennial.errors.Assumptions]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (root : Loc) (k why addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid c : w64)
     (n : Nat) (F : mvcc.Log) (P : GoString → IProp GF) (Q : KVState → IProp GF),

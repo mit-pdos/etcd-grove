@@ -22,6 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `status.Error(c, msg)` (`New(c, msg).Err()`) for a code other than `codes.OK` returns a
 non-nil error (a `*status.Error`), one grpc's `status` accepts (`statusErrOk`, unit P3a; it was

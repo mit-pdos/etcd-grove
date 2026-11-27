@@ -37,7 +37,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev StartServer.spec : Prop :=
-  ∀ (N : Nat) (name peerAddr client : GoString) (lg : Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString) (lg : Loc)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode),
@@ -81,7 +81,7 @@ abbrev StartServer.spec : Prop :=
 of `γl`'s ghost map authority at `∅` and its slot in the pre, the member started with its lessor at `γl`
 (`memberUpL`) in the post. -/
 abbrev StartServer.specAt : Prop :=
-  ∀ (N : Nat) (name peerAddr client : GoString) (lg : Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString) (lg : Loc)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode) (γl : GName),

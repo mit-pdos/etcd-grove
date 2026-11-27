@@ -88,6 +88,7 @@ which fewer than `2 ^ 28` threads are live, no thread is stuck and none has an u
 def k8s_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))

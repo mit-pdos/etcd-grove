@@ -60,7 +60,7 @@ set_option maxHeartbeats 800000 in
 theorem wp_StartServer1 (wp_StartServer : StartServer.spec (GF := GF) (hG := hG))
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law)
+    (hne : mvcc.api.names_nonempty.law) [go_etcd_io.etcd.cache.v3.Assumptions]
     (N : Nat) (name peer client : GoString) (lg : Loc) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) (Hbf : BootFacts id ctxs boot)
     (hpl : types.plainPeerURL (go!"http://" ++ peer)) (hu : utf8Valid name) (hn : name.length ≤ 200)

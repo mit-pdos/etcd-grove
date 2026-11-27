@@ -38,7 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev Collect.spec : Prop :=
-  ∀ (Ok : RespOk GF) (I : Nat → w64 → Prop)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (Ok : RespOk GF) (I : Nat → w64 → Prop)
     (F : Nat → wev → IProp GF) (A : IProp GF) (wch : Loc) (γ : EtcdWatchNames) (upTo c0 : w64),
   I 0 c0 →
   (∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),

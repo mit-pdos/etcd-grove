@@ -111,6 +111,7 @@ variable [go_gctx : GoGlobalContext]
 the file header). -/
 theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (hMain : ∀ hG : HeapGS .hasLC etcdGF,
       etcd_all.MainChecked.spec (GF := etcdGF) (hG := etcdHeapAt hG lctx))

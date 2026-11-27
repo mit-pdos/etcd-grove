@@ -34,7 +34,7 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- `client_List_st`'s statement (`CallsLinked.lean`, a linking module), as a hypothesis of the
 proofs that use it (the import tiers); `client_List_st_law_holds` proves it. -/
 abbrev client_List_st.law : Prop :=
-  ∀ (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
       (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
       (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
@@ -51,7 +51,7 @@ abbrev client_List_st.law : Prop :=
 /-- `txn_Commit_st`'s statement (`CallsLinked.lean`, a linking module), as a hypothesis of the
 proofs that use it (the import tiers); `txn_Commit_st_law_holds` proves it. -/
 abbrev txn_Commit_st.law : Prop :=
-  ∀ (tp : Loc) (ms : List (client.SrvAt GF))
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ms : List (client.SrvAt GF))
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
       (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
       (t e : List (linkv.MOp GoString GoString)) (hb : b.model = clientTxn cs t e)

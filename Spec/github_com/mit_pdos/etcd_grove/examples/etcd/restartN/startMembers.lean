@@ -49,7 +49,7 @@ def memberStarted (lg : Loc) (γn : NetNames GF) (z : Loc × Loc) (x : GMember �
 
 /-- See the file header. -/
 abbrev startMembers.spec : Prop :=
-  ∀ (N : Nat) (msl : GoSlice) (lg : Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (msl : GoSlice) (lg : Loc)
     (xs : List (GMember × MemberG GF)) (ps : List w64) (bootLog : List EntryM)
     (ctxs : List (List w8)) (dir : w64 → List GoString)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
