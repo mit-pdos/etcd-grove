@@ -6,6 +6,9 @@ the puts at revisions `2, 3, ...` of the log), that is the last event of the key
 (`lastPut_of_events`): what `checkGet` compares the cache's answer with (`CheckGetOk`).
 
 Lean-first (no Rocq counterpart).
+
+Moved here from the cache example's `cache/GetCheck.lean` (2026-11-27): the multi-machine theorem reuses these
+facts (names and namespace `etcd_cache` unchanged).
 -/
 module
 

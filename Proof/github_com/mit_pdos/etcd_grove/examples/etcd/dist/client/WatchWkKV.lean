@@ -20,10 +20,13 @@ adapter's model (`isEtcdWatcher_of_km`), so its responses are etcd's watch contr
   becomes the last's (`Cur`); `resp_km` at the adapter.
 * `okFactK`, `okFactK_of_put`: what the program knows of a successful put it logged, from the
   write update's result (`kmWriteQ`) at the state the put met.
+
+Moved here from `partition/` (2026-11-27): the multi-machine theorem reuses these facts, and no example's
+package `Base` is imported (names and namespace `etcd_partition` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchLog
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWkLog
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
 public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher

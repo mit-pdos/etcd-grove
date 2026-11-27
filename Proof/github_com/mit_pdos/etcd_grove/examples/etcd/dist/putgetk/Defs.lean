@@ -15,7 +15,7 @@ per-member premises (`etcdstart.bootPremise` at `etcd_putgetN.dirN` and `etcdsta
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClusterStart
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Base
 public import Perennial.Proof.crypto.sha1.Fips180
 public import Proof.go_etcd_io.raft.v3.BootMarshal

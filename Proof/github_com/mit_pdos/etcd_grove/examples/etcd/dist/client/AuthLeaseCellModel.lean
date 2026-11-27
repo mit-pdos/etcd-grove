@@ -3,6 +3,9 @@
 server, on the client's KV state (`kvOpStep`): a put of a key with a lease (`grantPut`'s), u's
 transaction putting `a/txn` with its lease, a grant, a revocation; the leases they leave on the keys
 (`leaseOf`) and the revisions they keep (`kvOpStep_at`). Lean-first (no Rocq counterpart).
+
+Moved here from the authlease example's `authlease/CellModel.lean` (2026-11-27): the multi-machine theorem
+reuses it (names and namespace `etcd_authlease` unchanged).
 -/
 module
 

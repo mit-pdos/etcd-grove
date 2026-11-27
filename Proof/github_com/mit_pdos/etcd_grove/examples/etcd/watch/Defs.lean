@@ -17,7 +17,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchBase
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Workload
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkload
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 

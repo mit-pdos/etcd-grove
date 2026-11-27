@@ -7,10 +7,13 @@ authority the invariant owns whole (every update is persistent with auth on, so 
 ride in one), and a lower bound of the state's revision (`v`, the lessor law's floor). Every update the
 driver hands the server keeps it (`cell_writeAu`), and a read sees it (`cell_readAu`).
 Lean-first (no Rocq counterpart).
+
+Moved here from the authlease example's `authlease/Cell.lean` (2026-11-27): the multi-machine theorem
+reuses it (names and namespace `etcd_authlease` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.CellModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseCellModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkAuth
