@@ -208,7 +208,7 @@ receipt bound up to `etcdSteps`, no receipt floor): the members crash, the orche
 machines do not; on a well-formed deployment at its addresses, on a malformed one at none; each
 machine's `FsInit` from `ServerStart`/`ClientStart`. -/
 theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have Hfs : ∀ m, m ∈ servers d σs ++ (clients d σc ++ nodeMachines d σn) →
       Fs.FsInit (extLocal Fs.fsExt m.2.world) := fun m hm =>
     machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 (by simpa [machines, List.append_assoc] using hm)
