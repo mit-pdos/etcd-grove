@@ -135,7 +135,7 @@ theorem grantPut.wp_proof
   (try wp_auto)
   wp_apply Hpcancel
   (try wp_auto)
-  icases Hp with (⟨%Hperr, %mp, %σ, -, HQp, -, -, #Hck⟩ | %Hperr)
+  icases Hp with (⟨%Hperr, %mp, %σ, -, HQp, -, #Hck⟩ | %Hperr)
   · subst Hperr
     (try wp_auto)
     iapply HΦ

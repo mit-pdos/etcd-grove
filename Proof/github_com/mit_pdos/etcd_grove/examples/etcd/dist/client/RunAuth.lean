@@ -316,7 +316,7 @@ theorem RunAuth.wp_proof
   (try wp_auto)
   wp_apply Hecancel
   (try wp_auto)
-  icases Hend' with (⟨%Heerr, %em, %σe, Hemsg, -, -, -, -⟩ | %Heerr)
+  icases Hend' with (⟨%Heerr, %em, %σe, Hemsg, -, -, -⟩ | %Heerr)
   rotate_left
   · cases eerr with
     | nil => exact absurd rfl Heerr.1

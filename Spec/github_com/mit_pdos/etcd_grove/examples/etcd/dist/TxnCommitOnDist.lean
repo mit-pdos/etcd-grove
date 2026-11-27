@@ -35,7 +35,9 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `txnSerializable = false` in the read-only case). A read-only transaction's update is `□ AU` (resent at the
 next endpoint on `Unavailable`), its success the member's check (`txnReadCheckedD`); a writing one's is
 `writeAuD` (resent after a token refresh), its success the grant of `irrTxn` (`writeCheckedD`, nested
-operations included). The error arm claims nothing.
+operations included). The error arm claims nothing. No revision lower bound for a writing transaction: the
+in-process `etcdTxnSpecMW` gives one only with auth off, and auth-on revisions follow `kvModelOn`, not
+`kvRevLb`'s `kvModel` (weakened 2026-11-27, `notes/axiom-review/onrevlb-weakening.md`).
 
 **Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; reviewed SOUND,
 `notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write
@@ -87,7 +89,6 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
           (txn.txnReadonly (txnWireOf b.model) = false →
             kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
               (txnWireOf b.model)).2.1))⌝ ∗
-        client.txnRevLb Γ.kv (txnWireOf b.model) m ∗
         (if txn.txnReadonly (txnWireOf b.model) then
           txnReadCheckedD eps Γ γR (principalOf cfg) L₀ (txnWireOf b.model)
         else iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = txnWireOf b.model⌝ ∗

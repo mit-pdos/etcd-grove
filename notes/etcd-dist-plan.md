@@ -508,13 +508,16 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 
 ## 6. Where today's results go
 
+(Errata 2026-11-27, `notes/etcd-dist-f9-errata.md`: the distributed rows cap clusters at 64 members, and
+`authLease`'s refusal checks are weaker than authlease's.)
+
 | Today | In the distributed `etcd_safe` | Changes | Loses | Gains |
 |---|---|---|---|---|
-| single-process `etcd_safe` KV: txnlinfaultsN (`k₁ ≤ 1000`, schedule) | `kv` | partitions are the network's; clients dial members directly | `CutPeer`/`MendPeer` and the bridge's paths (test-only code) | every partition and fault, at any `k` the predicate admits, with crashes |
+| single-process `etcd_safe` KV: txnlinfaultsN (`k₁ ≤ 1000`, schedule) | `kv` | partitions are the network's; clients dial members directly | `CutPeer`/`MendPeer` and the bridge's paths (test-only code); clusters of 65..1000 members | every partition and fault, at any `k` the predicate admits (at most 64, `deployment.MaxMembers`: `notes/etcd-dist-f9-errata.md` §1), with crashes |
 | partition `MainWatch` | `watch` (exclusive) | as above | — | crashes |
 | compactwatch, compacted, cache | `compact`, `putget`, `cache` (exclusive) | the compactor is `cfg.compactor` | — | any compactor setting in the supported set, multiple members |
-| authN, authlease (`k ≤ 300`) | `auth`, `authLease` (exclusive; `cfg.auth`) | — | — | no 300 bound |
-| leaseN, leasecatchup | `leaseRead`, `leaseCatchup` | leasecatchup's cut is the network's (a catch-up by snapshot is one execution) | the guarantee the run takes that path (only the harness makes it likely) | any `k` |
+| authN, authlease (`k ≤ 300`) | `auth`, `authLease` (exclusive; `cfg.auth`) | — | authlease's `TimeToLive`-with-keys and `Leases` refusal checks (dist checks only that no forbidden key is returned; `notes/etcd-dist-f9-errata.md` §2); clusters above 64 members | ~~no 300 bound~~ corrected 2026-11-27: at most 64 members (`deployment.MaxMembers`), not 300 (`notes/etcd-dist-f9-errata.md` §1) |
+| leaseN, leasecatchup | `leaseRead`, `leaseCatchup` | leasecatchup's cut is the network's (a catch-up by snapshot is one execution) | the guarantee the run takes that path (only the harness makes it likely) | any `k` up to 64 members (leaseN reached 300; `notes/etcd-dist-f9-errata.md` §1) |
 | restartN, restart1 | `durable` + crashes | a real crash (power loss, or kill and sync) instead of `HardStop` in one process; Puts through gRPC, not the server's own API | the graceful stop's path (`HardStop`, `raftSwap`); the exact revision check (other clients write) | crash at any step of any member, any number of times |
 | leaseexpiryN (own theorem, N1) | `leaseExpiry`, folded in | the `leasesNoExpiry` premise is conditional on the workloads, and `Compatible` keeps it apart from `authLease`/`leaseCatchup` | — | one theorem (recommended; Q2) |
 | `Hlow` | **gone** | one member per process; the issue record is per machine | — | no cross-cluster token search |
@@ -1369,6 +1372,9 @@ files under `Spec/.../etcdserver/`, `Proof/.../dist/crash/`), D2 step 5 and D2 t
 announce on #28).
 
 ## 13. What the multi-machine theorems make unnecessary (none removed; the owner decides)
+
+(Errata 2026-11-27, `notes/etcd-dist-f9-errata.md`: "Replaced by" below holds only up to 64 members, and
+not for authlease's `TimeToLive`-with-keys and `Leases` refusal checks.)
 
 `examples/lib/cluster3` and its TCP relay `third_party/bridge` exist to inject partitions inside one
 process; over the net extension the network's faults replace them.
