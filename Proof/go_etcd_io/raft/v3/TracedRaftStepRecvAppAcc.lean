@@ -983,7 +983,8 @@ theorem logRecs_lastRec (γ : RaftNames) (F : List EntryM) (hw : PlogWf base0 F)
   · ipureintro; rw [hi]; push_cast; omega
 
 /-- **Raft's commit index covers the bootstrap log** (`ownLogGhost_boot`); the ghost state unchanged. -/
-theorem ownRaftGhost_bootLe (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
+theorem ownRaftGhost_bootLe (γ : RaftNames) (id : w64) (s : PState) {md : Bool}
+    (Htr : γ.reTrace ≠ none) :
     ownRaftGhost (GF := GF) γ id s md ⊢ ownRaftGhost γ id s md ∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ := by
   iintro Hg
   iunfold ownRaftGhost at Hg
@@ -996,7 +997,7 @@ theorem ownRaftGhost_bootLe (γ : RaftNames) (id : w64) (s : PState) {md : Bool}
     iexists γs, V, πc, kl
     iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
     ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
-  · ipureintro; exact Hbt.1
+  · ipureintro; exact Hbt.1 Htr
 
 /-- **The new log's length is within the trace's number bound** (its last index's time receipt,
 `lastRec_receipt`, below the receipts' bound past the bootstrap log). -/

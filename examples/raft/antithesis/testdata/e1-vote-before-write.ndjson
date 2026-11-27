@@ -1,0 +1,5 @@
+{"applied":0,"commit":0,"e":"boot","lastIndex":1,"lastTerm":1,"node":"raft1","outgoing":[],"term":1,"vote":"","voters":["raft1","raft2","raft3"]}
+{"applied":0,"commit":0,"e":"boot","lastIndex":1,"lastTerm":1,"node":"raft2","outgoing":[],"term":1,"vote":"","voters":["raft1","raft2","raft3"]}
+{"applied":0,"commit":0,"e":"boot","lastIndex":1,"lastTerm":1,"node":"raft3","outgoing":[],"term":1,"vote":"","voters":["raft1","raft2","raft3"]}
+{"by":"campaign","commit":0,"e":"mem","node":"raft1","role":"candidate","term":2,"vote":"raft1","w":1}
+{"b":1,"by":"batch","e":"send","msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft2","type":"vote"},"node":"raft1"}

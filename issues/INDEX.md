@@ -4,17 +4,19 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (80)
+## Not reported (82)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
 | [bbolt: `Put` accepts a value of `MaxValueSize` bytes that `Commit` or `Get` then panics on](bbolt-max-value-size-unusable.md) | yes | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#968 pr merged; etcd-io/bbolt#1044 issue closed |
 | [bbolt: a power loss after a process crash and a restart can corrupt the database](bbolt-open-unsynced-meta-kill-then-power-loss.md) | yes | etcd-io/bbolt#778 issue open; etcd-io/bbolt#701 issue closed; etcd-io/bbolt#562 issue closed |
 | [cache: a stale progress notification makes a watch "from now" fail with ErrCompacted](cache-stale-progress-compacts-newest-watch.md) | yes | etcd-io/etcd#15237 pr merged; etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20614 pr merged |
+| [auth: in a cluster mixing etcd v3.5.7 and v3.5.9, the same role grants leave different permissions on the members, and a put is applied on one member and refused on the other](etcd-auth-perm-order-go-version.md) | yes | etcd-io/etcd#21845 pr open |
 | [server: a member with auth enabled panics on a permission check while it restores a snapshot from the leader](etcd-auth-snapshot-closed-backend-panic.md) | yes | etcd-io/etcd#17223 issue closed; etcd-io/etcd#21873 pr closed; etcd-io/etcd#13883 issue closed; etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#14256 issue closed; etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [auth: adding a user or role with a name longer than 32768 bytes makes every member exit](etcd-auth-useradd-long-name-fatal.md) | yes | etcd-io/etcd#10907 pr merged |
 | [etcdserver: a restarted member panics on a leader transfer to it while it applies the entries replayed from its WAL](etcd-compact-past-raft-applied.md) | yes | etcd-io/etcd#9079 issue closed; etcd-io/etcd#12134 pr merged; etcd-io/etcd#7470 issue closed; etcd-io/etcd#18825 pr merged; etcd-io/etcd#17098 issue closed |
 | [etcdserver: two membership changes while the leader's apply loop lags can lose an acknowledged write](etcd-leader-advance-before-applyconfchange.md) | yes | etcd-io/raft#80 issue open; etcd-io/raft#354 issue open |
+| [etcdserver: while a member restores a snapshot, `LeaseLeases` and `LeaseTimeToLive` with keys skip the lease-key permission check](etcd-lease-auth-snapshot-restore-keyless.md) | yes | etcd-io/etcd#15656 pr merged |
 | [etcdserver: a leader that steps down while saving a Ready can send a follower a snapshot of a term above the follower's term](etcd-merged-snapshot-stale-term.md) | yes | etcd-io/etcd#7470 issue closed; etcd-io/etcd#7513 pr merged; etcd-io/raft#47 pr open; etcd-io/raft#108 issue open |
 | [etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota](etcd-quota-stale-backend-after-snapshot.md) | yes | etcd-io/etcd#20553 pr merged |
 | [rafthttp: a raft message the member rejects makes the peer handler panic and answer 500 instead of 403](etcd-rafthttp-pipeline-process-error-panic.md) | yes | etcd-io/etcd#10569 issue closed; etcd-io/etcd#17078 pr merged; etcd-io/etcd#3579 pr merged |

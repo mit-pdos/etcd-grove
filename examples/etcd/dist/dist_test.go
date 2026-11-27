@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/server"
 	"github.com/mit-pdos/etcd-grove/examples/lib/authwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
+	"go.uber.org/zap"
 )
 
 // TestMain runs a member, an orchestrator or a client machine instead of the tests when the test
@@ -268,6 +270,71 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("an unknown kind passed")
 	}
+}
+
+// TestWellFormedMaxMembers: a deployment of deployment.MaxMembers members passes WellFormed (their
+// peer ports chosen so that the member ids' 16 and 15 low bits are distinct and nonzero, condition 3:
+// an id hashes the peer URLs and the token, not the name),
+// and the path a member's machine takes from it runs at that size: ConfigOf of every member, its
+// initial cluster as etcd's URLsMap, the "name=http://peer,..." string bootstrap joins and parses
+// back, and etcd's cluster built from it (membership.NewClusterFromURLsMap), every id distinct.
+func TestWellFormedMaxMembers(t *testing.T) {
+	ws := RandomWorkloads(ShortSizes)
+	small, err := RandomDeployment("max", 3, func(i int) (string, string) {
+		return fmt.Sprintf("10.77.%d.1:2380", i+1), fmt.Sprintf("10.77.%d.1:2379", i+1)
+	}, ws, testNodes(ws))
+	if err != nil {
+		t.Fatalf("a random deployment is not well formed: %v", err)
+	}
+	d := small
+	d.Members = nil
+	low16, low15 := map[uint64]bool{}, map[uint64]bool{}
+	for i := 0; i < deployment.MaxMembers; i++ {
+		host := fmt.Sprintf("10.%d.%d.1", 1+i/250, 1+i%250)
+		c, name := host+":2379", fmt.Sprintf("m%d", i)
+		found := false
+		for k := 0; k < 1000 && !found; k++ {
+			p := fmt.Sprintf("%s:%d", host, 3000+k)
+			id := uint64(membership.NewMember(name, types.URLs{{Scheme: "http", Host: p}}, d.Token, nil).ID)
+			a, b := id&0xffff, id&0x7fff
+			if a == 0 || !deployment.RaftIdOk(id) || low16[a] || low15[b] {
+				continue
+			}
+			low16[a], low15[b] = true, true
+			d.Members = append(d.Members, Member{Name: name, Peer: p, Client: c})
+			found = true
+		}
+		if !found {
+			t.Fatalf("no name for member %d", i)
+		}
+	}
+	if err := WellFormed(d); err != nil {
+		t.Fatalf("a deployment of MaxMembers members refused: %v", err)
+	}
+	for i := range d.Members {
+		c := server.ConfigOf(d, i)
+		if c.Name != d.Members[i].Name || len(c.Cluster) != deployment.MaxMembers {
+			t.Fatalf("ConfigOf(d, %d): name %q, %d peers", i, c.Name, len(c.Cluster))
+		}
+	}
+	c := server.ConfigOf(d, 0)
+	um := types.URLsMap{}
+	for _, p := range c.Cluster {
+		um[p.Name] = types.URLs{{Scheme: "http", Host: p.Addr}}
+	}
+	s := um.String()
+	back, err := types.NewURLsMap(s)
+	if err != nil || len(back) != deployment.MaxMembers || back.String() != s {
+		t.Fatalf("the initial cluster (%d bytes) does not round-trip: %v", len(s), err)
+	}
+	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), d.Token, back)
+	if err != nil {
+		t.Fatalf("NewClusterFromURLsMap: %v", err)
+	}
+	if n := len(cl.MemberIDs()); n != deployment.MaxMembers {
+		t.Fatalf("the cluster has %d member ids, not %d", n, deployment.MaxMembers)
+	}
+	t.Logf("%d members, initial cluster %d bytes", len(d.Members), len(s))
 }
 
 // TestNodeCount checks that the auth workload's client machines are its principals.

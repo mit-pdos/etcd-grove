@@ -75,7 +75,7 @@ theorem localNoLine_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM
     unfold StepEndTy; rcases hp.1 with h | h <;> simp [h]
   have hnh : m.Type' ≠ MsgHup := localTy_ne hp.1 (by decide)
   have hnv : m.Type' ≠ MsgVote := localTy_ne hp.1 (by decide)
-  obtain ⟨pvs, hfn⟩ := (h hty).2.2.2 hns hnh hnv
+  obtain ⟨pvs, hfn⟩ := (h hty (XtRec.of_ne (localTy_ne hp.1 (by decide)))).2.2.2 hns hnh hnv
   rw [hpre pvs] at hfn
   obtain ⟨hf, hc, -⟩ := hfn
   have nVR : m.Type' ≠ MsgVoteResp := localTy_ne hp.1 (by decide)
@@ -465,7 +465,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.onG (GF := GF) (hG := 
         · -- a proposal forwarded to the leader: untraced, the family unchanged
           iintro %_ %out %hout HG
           unfold localF
-          rw [trFam_untraced s.gh.tr γ r id c bt _ Λ s.outbox out hout]
+          rw [trFam_untraced s.gh.tr γ r id c bt _ Λ s.outbox out (fun x hx => (hout x hx).1)]
           unfold trFam
           rw [htr]
           iapply trCapB_gateNone γd γ r id c bt _ _ Λ _ (fun _ _ _ h => h)
@@ -508,7 +508,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.onG (GF := GF) (hG := 
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_notLeader hp.2)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
-    have hend' := localNoLine_end hp hns hpre (hend (by rw [htr]; rfl))
+    have hend' := localNoLine_end hp hns hpre hend
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := by
       intro C; rcases hend' with rfl | ⟨fwd, -, -, -, -, rfl⟩
       · rfl

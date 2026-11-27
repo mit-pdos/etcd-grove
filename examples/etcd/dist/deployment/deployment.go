@@ -58,7 +58,7 @@ type Workload struct {
 // MaxDurable bounds the durable workload's Puts (restartN's keys: one byte after the prefix).
 const MaxDurable = 256
 
-// AuthPrincipals is the auth workload's client machines: one per principal, len(auth.Principals())
+// AuthPrincipals is the auth workload's client machines: one per principal, len(authwork.Principals())
 // (examples/etcd/auth; checked by examples/etcd/dist's TestNodeCount).
 const AuthPrincipals = 4
 
@@ -84,11 +84,12 @@ const (
 // MaxMembers bounds the cluster's size and MaxLen every address and the token (in bytes), so that
 // the strings etcd builds from them (a member's peer URLs joined, the initial cluster's
 // "name=http://peer" list) stay far below strings.Join's length bound (Lean: typed.maxMembers,
-// typed.maxLen). MaxNameLen bounds every member name (Lean: typed.maxNameLen): the member's data
+// typed.maxLen). MaxMembers is also the interim bootstrap axiom's bound on the initial cluster
+// (Lean: bootstrap.wp_proof_dist). MaxNameLen bounds every member name (Lean: typed.maxNameLen): the member's data
 // directory "<name>.etcd" and its WAL area's paths must fit in a path component (255 bytes); the
 // proof's bound is 200.
 const (
-	MaxMembers = 64
+	MaxMembers = 1000
 	MaxLen     = 255
 	MaxNameLen = 200
 )

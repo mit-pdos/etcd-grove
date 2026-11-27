@@ -1,0 +1,25 @@
+# The Antithesis harness (examples/raft/antithesis, #33; notes/antithesis-parity-design.md): the top-level
+# robustness theorem `raft_antithesis_robust_msgs`
+# (Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/TopLevelRobustness.lean), the harness's linked results (Link.lean, Results.lean) and the checker's (check/Link.lean,
+# `etc/gen-link.py --antithesis`). The axioms are raft's protobuf boundary (also the harness's
+# `proto.Clone`, `proto.ClonePb`) and the raftpb codec registrations, all in etc/tcb-baseline.txt, and the
+# opaque `pbModelOf` those registrations are stated in (as for raft.txt): nothing new to the trust base.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/antithesis.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/antithesis.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/antithesis.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/(check/)?(Link|Results|TopLevelRobustness)\.lean$
+axiom pbEntryC_reg
+axiom pbMessageC_reg
+axiom proto.CloneConfState.wp_proof
+axiom proto.ClonePb.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizePb.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+opaque pbModelOf

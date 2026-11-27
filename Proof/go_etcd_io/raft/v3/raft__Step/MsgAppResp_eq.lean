@@ -40,7 +40,7 @@ set_option maxHeartbeats 1000000 in
 default arm runs `r.step(m)`. `stepFollower` and `stepCandidate` have no arm for it
 (`StepC.refl`); `stepLeader` is the replication path, whose `LeaderStepResult` becomes
 `StepC.appResp`/`StepC.commit`/`StepC.sendApps` (`leader_appresp_step`). -/
-theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgAppResp_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -57,7 +57,11 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           uint.Z t0 ≤ 1)))
     -- (2026-11-12, trace-check implementation step 3) no transferee at a traced node
     -- (`raft.Step.spec`'s premise, `stepLeader.spec`'s)
-    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) :
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0)
+    -- (antithesis parity B1, option (b)) a transferee acknowledging the last index recorded in
+    -- `NGhost.xt` (`raft.Step` records it before the step; `stepLeader`'s premise)
+    (Hxta : s.role = .leader → m.Term' = s.term → m.Reject' = false → m.From' = s.lt →
+      m.Index' = logLast s.logst → (s.gh.xt !! (m.From', s.term)).isSome) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -69,12 +73,12 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -128,7 +132,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
@@ -191,7 +195,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => Hack Hrole Hteq)
-      (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+      (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) (by xtx_tac) (by xta_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

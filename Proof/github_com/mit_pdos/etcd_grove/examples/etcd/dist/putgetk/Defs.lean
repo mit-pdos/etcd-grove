@@ -114,7 +114,7 @@ premises `premises`, every member's `bootstrap` contract `etcdstart.bootPremise`
 axiom `bootstrap.wp_proof_dist`): for every member `m` of the configuration with its id `id`, the id is not one
 of raft's local targets, and at every URLs the member's configuration names (`urlsN`) the peers `ps`, contexts
 `ctxs`, the directory `dirN` and `id` are Go's (`bootGo.*` at the token), the URLs and names plain, and the
-initial cluster is `etcd_safe`'s shape: one peer URL per member, **at most 64 members** (`etcd_dist.bootGoAt`).
+initial cluster is `etcd_safe`'s shape: one peer URL per member, **at most `etcd_dist.typed.maxMembers` (1000) members** (`etcd_dist.bootGoAt`).
 Facts of the configuration (SHA-1 ids, the boot log's contexts) not yet evaluated in Lean. -/
 def BootGoK (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8)) : Prop :=
   ∀ (m : GMember) (id : w64), (m, id) ∈ (membersOf peers clients).zip (idsOf peers) →

@@ -375,7 +375,7 @@ theorem Work.wp_proof_dist
   wp_apply (work_commitD wp_Commit cl api tp a V Γ cfg γR who γz hs Lset r ci cd
       ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ (by simp [TxnModel.plain, TxnOp.plain, t1M]) hin1
       (t1M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
-      hro1 hpl1 hop1)
+      hro1 hpl1 hsh1 hop1)
     $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, Hres⟩
   · iframe #
     iframe Hobj
@@ -472,7 +472,7 @@ theorem Work.wp_proof_dist
       (by simp [TxnModel.plain, TxnOp.plain, t2M]) hin2
       (t2M_size _ _ _ (keyOfK_principal_le hwho (by decide) (by decide))
         (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
-      hro2 hpl2 (fun h => absurd h hng2))
+      hro2 hpl2 hsh2 (fun h => absurd h hng2))
     $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, -⟩
   · iframe #
     iframe Hobj
@@ -582,7 +582,7 @@ theorem Work.wp_proof_dist
           by simp [compareM, cmpKeyM], by simp [compareM, cmpKeyM]⟩
         (keyOfK_principal_le hwho (by decide) (by decide))
         (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
-      hro3 hpl3 (fun h => absurd h hng3))
+      hro3 hpl3 hsh3 (fun h => absurd h hng3))
     $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, -⟩
   · iframe #
     iframe Hobj
@@ -646,7 +646,7 @@ theorem Work.wp_proof_dist
   wp_apply wp_keyOf go!"a" who go!"d"
   (try wp_auto)
   have hkd : keyOfK go!"a" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"a" who go!"d")
+  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"a" who go!"d") hkd
       (fun h => by
         obtain ⟨rfl, hr⟩ := akOpGranted_delete who _ hkd h
         exact opHistOk_delete_point _
@@ -687,7 +687,7 @@ theorem Work.wp_proof_dist
   wp_apply wp_keyOf go!"c" who go!"d"
   (try wp_auto)
   have hkc : keyOfK go!"c" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"c" who go!"d")
+  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"c" who go!"d") hkc
       
       (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _))
       (akDelete_sizeOkD hwho (by decide) (by decide)))

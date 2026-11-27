@@ -408,7 +408,7 @@ theorem RunAuthLease.wp_proof
     · iright
       isplitl []
       · ipureintro; exact ⟨hro, Or.inr ⟨hlm, htpl⟩, htnz,
-          txnNestOk_of_plain _ (txnWireOf_plain _ htpm) htin⟩
+          txnNestOk_of_plain _ (txnWireOf_plain _ htpm) htin, leaseTxnD_shape tK lu (by decide)⟩
       iunfold writeAuD
       ihave #Htx := cell_txnTAu Γ.kv γc lz lu ps2 hps2 (opGrantD Γ.kv (principalOf ucfg)
         (.txn (txnWireOf (leaseTxn tK lu))) Lset) $$ []
@@ -591,7 +591,7 @@ theorem RunAuthLease.wp_proof
     · iright
       isplitl []
       · ipureintro; exact ⟨hro', Or.inr ⟨hlm, htpl'⟩, htnz',
-          txnNestOk_of_plain _ (txnWireOf_plain _ htpm') htin'⟩
+          txnNestOk_of_plain _ (txnWireOf_plain _ htpm') htin', leaseTxnD_shape xK lz (by decide)⟩
       rw [hPu]
       iexact Hrft
     ipureintro; exact htsz'

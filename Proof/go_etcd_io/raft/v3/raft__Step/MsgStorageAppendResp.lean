@@ -67,7 +67,7 @@ set_option maxHeartbeats 1000000 in
   excluded by the premise.
 
 The log is re-split (`logStableTo`) and the protocol sees nothing: `StepC.refl`. -/
-theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgStorageAppendResp_none {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) (R : StepG GF) :
@@ -83,7 +83,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -96,8 +96,10 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-11-11, slice 30c) the protocol reading unchanged (`AckEnd`); (2026-11-12, trace-check
-        -- implementation step 2) and the leader transfer and the read state
-        "%Hack" ∷ ⌜toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd⌝ ∗
+        -- implementation step 2) and the leader transfer and the read state; (#33 parity B1 stage 3b)
+        -- and the pending configuration index; (#33 parity B1, step C3) and the leader and the tally
+        "%Hack" ∷ ⌜toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+          s'.lead = s.lead ∧ s'.votes = s.votes⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hsn Hle Hstok Hghoff Hwf
   wp_start as H
@@ -155,7 +157,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       ipureintro
       exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
         rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
-        StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl⟩
+        StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   -- `Term = 0` or `Term = r.Term`: the switch's case
   have Hmt : m.Term' = W64 0 ∨ m.Term' = s.term := by
     by_cases Hz : m.Term' = W64 0
@@ -194,7 +196,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     ipureintro
     exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
         rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
-      StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl⟩
+      StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · rw [decide_eq_false Hi0]
     wp_auto
     -- `r.raftLog.stableTo(entryID{m.LogTerm, m.Index})`
@@ -230,7 +232,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       fun _ => ⟨by unfold logStableTo; split <;> rfl, logStableTo_concat _ _, by unfold logStableTo; split <;> rfl, fun h => Hsn'.trans h,
         by rw [show (logStableTo s.logst (entryID.mk m.LogTerm' m.Index')).applied = s.logst.applied
           by unfold logStableTo; split <;> rfl]; exact Int.le_refl _⟩, ?_, rfl,
-        toPState_logStableTo _ _, rfl, rfl⟩
+        toPState_logStableTo _ _, rfl, rfl, rfl, rfl, rfl⟩
     refine StepCD.frame ?_ ⟨by unfold logStableTo; split <;> rfl, Hsn', fun h => ⟨h, rfl⟩⟩
     rw [toPState_logStableTo]
     exact .refl _
@@ -440,7 +442,7 @@ absorbed (`sat` when it is the pending snapshot). By the term, as without a snap
 
 The log is `ackSnapLog`'s, the rest of the state kept but the tracker, rebuilt at the snapshot's
 configuration (2026-10-28, stage U0: `appliedSnap` switches to it); the protocol sees nothing. -/
-theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgStorageAppendResp_snap {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sv : SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) (R : StepG GF) :
@@ -464,7 +466,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, some sv, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents (some sv) ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents (some sv) ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err;
         "Hphys" ∷ (∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),

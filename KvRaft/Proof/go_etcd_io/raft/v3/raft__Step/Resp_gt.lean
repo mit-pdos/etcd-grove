@@ -43,7 +43,7 @@ set_option maxHeartbeats 1000000 in
 so the preamble runs `becomeFollower(m.Term, None)`; the type switch then reaches its
 default arm, `r.step(m)`, which is `stepFollower` after the step-down, and
 `stepFollower` has no arm for either type. One `StepC.higherTerm`. -/
-theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_Resp_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -58,12 +58,12 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg ty m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -122,7 +122,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
@@ -135,7 +135,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %({ becomeFollower s m.Term' (W64 0) with prvals := pvs })
     iframe Hphys HG
     ipureintro
-    refine ⟨StepEnd.fn_bf hbf hlead (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs
+    refine ⟨StepEndG.fn_bf hbf hlead (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs
         (by subst Hs1; exact StepFnEnd.follower rfl Hres),
       ⟨rfl, rfl⟩, ⟨[absMsg ty m ents], fun _ Hin => List.mem_singleton.1 Hin, ?_⟩, rfl,
       stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩

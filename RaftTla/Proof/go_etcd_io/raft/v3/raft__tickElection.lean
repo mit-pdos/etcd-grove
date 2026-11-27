@@ -154,7 +154,7 @@ theorem raft.tickElection.wp_proof
     · ipureintro
       have Htm' := Htm (by msg_ne)
       obtain ⟨Ht1, Ht2, -, Hi, -, Hpc'⟩ := Htm (by msg_ne)
-      exact ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1, Ht2 rfl, Hi (by msg_ne),
+      exact ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)), Ht1, Ht2 rfl, Hi (by msg_ne),
         fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step Htm' hg, Hpc'.2.1,
         fun h1 h2 => ⟨s, (Hpc'.2.2 h1 h2).2⟩⟩
     iright; iexact HG

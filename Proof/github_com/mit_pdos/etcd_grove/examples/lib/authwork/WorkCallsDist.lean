@@ -240,7 +240,7 @@ set_option maxHeartbeats 800000 in
 theorem work_deleteD (wp_Delete : KV_DeleteOn_dist.spec (GF := GF) (hG := hG)) [NetProtoGS]
     (cl api : Loc) (a : GoString) (V : WEnv GF) (Γ : DistView) (cfg : go_etcd_io.etcd.client.v3.Config)
     (γR : ServerRaftNames) (who : GoString) (γz : GName) (hs : List auth.AuthState) (Lset : List EntryModel)
-    (r : Nat) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString)
+    (r : Nat) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString) (hk : k ≠ [])
     (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) →
       opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
     (hsz : opSizeOk (opDeleteModel k [])) :
@@ -274,9 +274,15 @@ theorem work_deleteD (wp_Delete : KV_DeleteOn_dist.spec (GF := GF) (hG := hG)) [
     iframe #
     isplitl []
     · ipureintro
-      refine ⟨?_, rfl, ?_⟩
+      refine ⟨?_, rfl, ?_, ?_, ?_⟩
       · simp [op_simps, opDeletePanics, opGetPanics, OpFull.deletePanics]
       · simp [op_simps, deleteWireOf, txn.deleteOpOf]
+      · rw [deleteWire_nil]; exact ⟨hk, Or.inl rfl⟩
+      · rw [deleteWire_nil]
+        intro x hx
+        simp [reqPerms, irrDeleteRange, apply.dispatchKind, apply.irrEmpty, txn.deleteOpOf] at hx
+        subst hx
+        exact ⟨hk, Or.inl rfl⟩
     isplitl []
     · rw [deleteWire_nil]
       iexact Hw
@@ -373,6 +379,7 @@ theorem work_commitD (wp_Commit : Txn_CommitOn_dist.spec (GF := GF) (hG := hG)) 
     (hsz : txnSizeOk (txnWireOf b.model))
     (hro : txn.txnReadonly (txnWireOf b.model) = false)
     (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
+    (hsh : ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw))
     (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))) :
     {{ levelTok 0 ∗ akCallEnvD cl api a V Γ cfg γR who γz hs Lset r ∗ txnObjAt tp [a] ci cd b ∗
           metadata.outMD ci (akOut who) ∗ txnKvIs tp api }}
@@ -402,7 +409,7 @@ theorem work_commitD (wp_Commit : Txn_CommitOn_dist.spec (GF := GF) (hG := hG)) 
     isplitl []
     · iright
       ipureintro
-      exact ⟨hro, Or.inl hpl.1, hpl.2, txnNestOk_of_plain _ (txnWireOf_plain _ hp0) hin⟩
+      exact ⟨hro, Or.inl hpl.1, hpl.2, txnNestOk_of_plain _ (txnWireOf_plain _ hp0) hin, hsh⟩
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt
@@ -514,7 +521,8 @@ theorem then_commit_nested_refusedD (wp_Then : EtcdGrove.txn.Then.spec (GF := GF
     · ipureintro; exact hin
     isplitl []
     · iright
-      ipureintro; exact ⟨hro, Or.inl hupd.1, hupd.2.1, hupd.2.2⟩
+      ipureintro; exact ⟨hro, Or.inl hupd.1, hupd.2.1, hupd.2.2,
+        fun tw h => t4M_shape _ _ (keyOfK_ne_nil _ _ _ (by decide)) tw (h.trans hw)⟩
     ipureintro; exact hsz
   icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs', -⟩ | %Herr)
   · isimp only [hro, Bool.false_eq_true, ↓reduceIte] at HQ
