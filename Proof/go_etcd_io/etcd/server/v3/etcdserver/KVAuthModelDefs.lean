@@ -420,18 +420,49 @@ theorem leaseGrantedM_of_plainCover (st : auth.AuthState) (log : mvcc.Log) (rq :
     unfold plainCover at hp; rw [hk] at hp; exact hp.elim
   · trivial
 
+/-- **The kinds `dispatch` applies as an admin step** (`authApplierV3`'s admin requests, the field
+`dispatch` reads first being one `needAdminPermission` reads). -/
+def adminDispatchKind : apply.ReqKind → Bool
+  | .authEnable | .authDisable | .authUserAdd | .authUserDelete | .authUserChangePassword
+  | .authUserGrantRole | .authUserRevokeRole | .authRoleAdd | .authRoleGrantPermission
+  | .authRoleRevokePermission | .authRoleDelete | .authUserList | .authRoleList => true
+  | _ => false
+
+/-- A request `dispatch` applies as an admin step needs the admin permission. -/
+theorem needAdminPermission_of_adminDispatchKind (rq : apply.IRRModel)
+    (h : adminDispatchKind (apply.dispatchKind rq) = true) : apply.needAdminPermission rq = true := by
+  cases hk : apply.dispatchKind rq <;> rw [hk] at h <;>
+    simp only [adminDispatchKind, Bool.false_eq_true] at h <;>
+    simp only [apply.dispatchKind, apply.ite_eq_iff', reduceCtorEq, and_false, false_or, or_false,
+      and_true] at hk <;>
+    simp [apply.needAdminPermission, hk]
+
+/-- **A refused admin request keeps the state**: at a state that does not admit its principal,
+the model's step is the identity (`adminStateR`'s refusal). -/
+theorem adminNext_refused (rq : apply.IRRModel) (st : auth.AuthState)
+    (h : ¬ auth.adminOk st (some (auth.authInfoM (apply.principalOf rq)))) :
+    adminNext rq st = st := by
+  have hr : ∀ st', adminStateR rq st st' ↔ st' = st := by
+    intro st'; unfold adminStateR; simp [h]
+  exact adminNext_of_det rq st st ⟨st, (hr st).2 rfl, fun st'' h'' => (hr st'').1 h''⟩ ((hr st).2 rfl)
+
 open Classical in
-/-- **An entry's effect in the mode `on`** (auth-lease S3a: on the triple state), from the consistent
-index `c₀` with the chain `ch`, on the auth state, the KV log and the lease table `s`: a normal entry
-with data that decodes to `rq` is, above `c₀` (`v3`) and of an admin kind, the admin step (the log and
-the table kept); a request of a kind the auth layer checks (`apply.authKVKind`: the KV kinds and the
-revocation) that it refuses at `s.1`, its lease part at the log's lease items, nothing; otherwise today's
-`kvEntry`/`kvTable` at the table. -/
+/-- **An entry's effect in the mode `on`** (auth-lease S3a: on the triple state; D1, 2026-11-27:
+`authApplierV3.Apply`'s order), from the consistent index `c₀` with the chain `ch`, on the auth
+state, the KV log and the lease table `s`: a normal entry with data that decodes to `rq` is, if `rq`
+needs the admin permission (`needAdminPermission`) and its principal is not admin-permitted at
+`s.1` (`IsAdminPermitted`), nothing; else, above `c₀` (`v3`) and of a kind `dispatch` applies as
+an admin step (`adminDispatchKind`), the admin step (the log and the table kept); else, of a kind
+the auth layer checks (`apply.authKVKind`: the KV kinds and the revocation) that it refuses at
+`s.1`, its lease part at the log's lease items, nothing; otherwise today's `kvEntry`/`kvTable` at
+the table (a request with an admin field beside a KV field dispatches the KV one). -/
 def kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel) : OnState :=
   if m.typ = W32 0 ∧ m.data ≠ [] then
     match apply.irrDecode m.data with
     | some rq =>
-      if uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true then
+      if apply.needAdminPermission rq = true ∧
+          ¬ auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq))) then s
+      else if uint.Z c₀ < uint.Z m.index ∧ adminDispatchKind (apply.dispatchKind rq) = true then
         (adminNext rq s.1, s.2)
       else if apply.authKVKind (apply.dispatchKind rq) = true ∧
           ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq then s
@@ -462,7 +493,9 @@ theorem kvEntryOn_extends (c₀ : w64) (ch : apply.Chain) (st : OnState)
       · exact List.prefix_refl _
       · split
         · exact List.prefix_refl _
-        · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
+        · split
+          · exact List.prefix_refl _
+          · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
     · exact List.prefix_refl _
   · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
 
@@ -478,7 +511,9 @@ theorem kvEntryOn_grow (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryM
       · left; rfl
       · split
         · left; rfl
-        · exact kvEntry_grow c₀ ch s.2.2 s.2.1 m
+        · split
+          · left; rfl
+          · exact kvEntry_grow c₀ ch s.2.2 s.2.1 m
     · left; rfl
   · exact kvEntry_grow c₀ ch s.2.2 s.2.1 m
 
@@ -507,15 +542,44 @@ theorem kvRaftOfOn_snoc (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     kvRaftOfOn c₀ ch s₀ (A ++ [m]) = kvEntryOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) m := by
   rw [kvRaftOfOn_append]; rfl
 
-/-- **An admin entry above `c₀` steps the auth state and keeps the log and the table.** -/
+/-- An admitted admin request (`apply.adminKindOk`) needing the admin permission is of an admin
+kind (`Authenticate`, the one other kind it admits, needs none). -/
+theorem adminDispatchKind_of_adminKindOk (rq : apply.IRRModel) (hk : apply.adminKindOk rq)
+    (ha : apply.needAdminPermission rq = true) : adminDispatchKind (apply.dispatchKind rq) = true := by
+  unfold apply.adminKindOk at hk
+  split at hk <;> rename_i heq <;> simp_all [adminDispatchKind]
+
+/-- A request needing no admin permission is of no admin kind. -/
+theorem adminDispatchKind_of_needAdmin_false (rq : apply.IRRModel)
+    (h : apply.needAdminPermission rq = false) : adminDispatchKind (apply.dispatchKind rq) = false := by
+  cases hk : adminDispatchKind (apply.dispatchKind rq)
+  · rfl
+  · rw [needAdminPermission_of_adminDispatchKind rq hk] at h; cases h
+
+/-- **An admin entry above `c₀` steps the auth state and keeps the log and the table** (its
+refusal, `adminNext_refused`, included). -/
 theorem kvEntryOn_admin (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
-    (ha : apply.needAdminPermission rq = true) :
+    (hk : adminDispatchKind (apply.dispatchKind rq) = true) :
     kvEntryOn c₀ ch s m = (adminNext rq s.1, s.2) := by
   unfold kvEntryOn
   rw [if_pos ⟨ht, hd⟩, hdec]
-  simp only [if_pos (And.intro hv ha)]
+  by_cases hok : auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))
+  · simp only [hok, not_true_eq_false, and_false, ↓reduceIte, hv, hk, and_self]
+  · simp only [needAdminPermission_of_adminDispatchKind rq hk, hok, not_false_eq_true, and_self,
+      ↓reduceIte, adminNext_refused rq s.1 hok]
+
+/-- **A request whose principal is not admin-permitted, needing the admin permission, keeps the
+state** (`authApplierV3.Apply`'s refusal, at any index). -/
+theorem kvEntryOn_adminRefused (c₀ : w64) (ch : apply.Chain) (s : OnState)
+    (m : EntryModel) (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (ha : apply.needAdminPermission rq = true)
+    (hok : ¬ auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))) :
+    kvEntryOn c₀ ch s m = s := by
+  unfold kvEntryOn
+  rw [if_pos ⟨ht, hd⟩, hdec]
+  simp only [ha, hok, not_false_eq_true, and_self, ↓reduceIte]
 
 /-- **An entry the auth layer lets through is today's** (the auth state kept), at the table. -/
 theorem kvEntryOn_of_granted (c₀ : w64) (ch : apply.Chain) (s : OnState)
@@ -524,10 +588,11 @@ theorem kvEntryOn_of_granted (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (hg : apply.authKVKind (apply.dispatchKind rq) = true →
       kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq) :
     kvEntryOn c₀ ch s m = (s.1, kvEntry c₀ ch s.2.2 s.2.1 m, kvTable c₀ ch s.2.2 m) := by
+  have hnk := adminDispatchKind_of_needAdmin_false rq hna
   unfold kvEntryOn
   split
   · rw [hdec]
-    simp only [hna, Bool.false_eq_true, and_false, ↓reduceIte]
+    simp only [hna, hnk, Bool.false_eq_true, false_and, and_false, ↓reduceIte]
     rw [if_neg (fun h => h.2 (hg h.1))]
   · rfl
 
@@ -538,9 +603,10 @@ theorem kvEntryOn_of_refused (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (hk : apply.authKVKind (apply.dispatchKind rq) = true)
     (hr : ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq) :
     kvEntryOn c₀ ch s m = s := by
+  have hnk := adminDispatchKind_of_needAdmin_false rq hna
   unfold kvEntryOn
   rw [if_pos ⟨ht, hd⟩, hdec]
-  simp only [hna, Bool.false_eq_true, and_false, ↓reduceIte]
+  simp only [hna, hnk, Bool.false_eq_true, false_and, and_false, ↓reduceIte]
   rw [if_pos ⟨hk, hr⟩]
 
 /-- **With auth disabled throughout, the mode-`on` model is today's**: if the start's auth state is
@@ -592,23 +658,15 @@ theorem kvRaftOfOn_conf (c₀ : w64) (ch : apply.Chain) :
 
 /-! ### The auth history along a log (the auth-mode merge's 5b, 2026-10-29) -/
 
-/-- **A refused admin request keeps the state**: at a state that does not admit its principal,
-the model's step is the identity (`adminStateR`'s refusal). -/
-theorem adminNext_refused (rq : apply.IRRModel) (st : auth.AuthState)
-    (h : ¬ auth.adminOk st (some (auth.authInfoM (apply.principalOf rq)))) :
-    adminNext rq st = st := by
-  have hr : ∀ st', adminStateR rq st st' ↔ st' = st := by
-    intro st'; unfold adminStateR; simp [h]
-  exact adminNext_of_det rq st st ⟨st, (hr st).2 rfl, fun st'' h'' => (hr st'').1 h''⟩ ((hr st).2 rfl)
-
 /-- **An entry the mode-`on` model records in the auth history at the auth state `st`**
-(`kvEntryOn`'s first branch): a normal entry above `c₀` whose request needs the admin permission,
-whose principal `st` admits (`auth.adminOk`), and whose step changes the state (where the store's
+(`kvEntryOn`'s admin branch): a normal entry above `c₀` whose request `dispatch` applies as an
+admin step (`adminDispatchKind`; D1, 2026-11-27: until then any request needing the admin
+permission), whose principal `st` admits (`auth.adminOk`), and whose step changes the state (where the store's
 history grows: an outcome `.next`). Any other entry keeps the state (a refused one,
 `adminNext_refused`). -/
 def admEntry (c₀ : w64) (st : auth.AuthState) (m : EntryModel) : Prop :=
   m.typ = W32 0 ∧ m.data ≠ [] ∧ ∃ rq, apply.irrDecode m.data = some rq ∧
-    uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true ∧
+    uint.Z c₀ < uint.Z m.index ∧ adminDispatchKind (apply.dispatchKind rq) = true ∧
     auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) ∧ adminNext rq st ≠ st
 
 /-- `kvRaftOfOn`'s step, recording the auth state after each recorded admin entry. -/
@@ -689,13 +747,16 @@ theorem kvEntryOn_fst_of_not_adm (c₀ : w64) (ch : apply.Chain) (s : OnState)
     split
     · rename_i rq hdec
       split
-      · rename_i ha
-        by_cases hok : auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))
-        · by_cases hne : adminNext rq s.1 = s.1
-          · exact hne
-          · exact absurd ⟨hn.1, hn.2, rq, hdec, ha.1, ha.2, hok, hne⟩ h
-        · exact adminNext_refused rq s.1 hok
-      · split <;> rfl
+      · rfl
+      · rename_i hr
+        split
+        · rename_i ha
+          by_cases hok : auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))
+          · by_cases hne : adminNext rq s.1 = s.1
+            · exact hne
+            · exact absurd ⟨hn.1, hn.2, rq, hdec, ha.1, ha.2, hok, hne⟩ h
+          · exact adminNext_refused rq s.1 hok
+        · split <;> rfl
     · rfl
   · rfl
 

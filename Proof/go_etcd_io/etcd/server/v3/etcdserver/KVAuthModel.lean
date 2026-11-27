@@ -98,7 +98,8 @@ theorem admStates_snoc_noadmin (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
   unfold admStates
   apply admStatesR_snoc_other
   rintro ⟨-, -, rq', hdec', -, ha, -⟩
-  rw [hdec] at hdec'; cases hdec'; rw [hna] at ha; cases ha
+  rw [hdec] at hdec'; cases hdec'
+  rw [adminDispatchKind_of_needAdmin_false rq hna] at ha; cases ha
 
 end pure
 
@@ -477,7 +478,9 @@ theorem liveSt_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : Entr
       · exact hs
       · split
         · exact hs
-        · exact liveSt_kvEntry c₀ ch s.2.2 s.2.1 m hs
+        · split
+          · exact hs
+          · exact liveSt_kvEntry c₀ ch s.2.2 s.2.1 m hs
     · exact hs
   · exact liveSt_kvEntry c₀ ch s.2.2 s.2.1 m hs
 
@@ -742,7 +745,9 @@ theorem neSt_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryM
       · exact hs
       · split
         · exact hs
-        · exact neSt_kvEntry c₀ ch s.2.2 s.2.1 m hm hs
+        · split
+          · exact hs
+          · exact neSt_kvEntry c₀ ch s.2.2 s.2.1 m hm hs
     · exact hs
   · exact neSt_kvEntry c₀ ch s.2.2 s.2.1 m hm hs
 
@@ -920,7 +925,9 @@ theorem kvRaftOfOn_table_none (c₀ : w64) (ch : apply.Chain) :
           · rfl
           · split
             · rfl
-            · exact kvTable_plainOn_none c₀ ch _ m hm
+            · split
+              · rfl
+              · exact kvTable_plainOn_none c₀ ch _ m hm
         · rfl
       · exact kvTable_plainOn_none c₀ ch _ m hm
     show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).2.2 = s.2.2
@@ -1660,7 +1667,7 @@ theorem kvRaftOfOn_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
 /-- `admEntry` over a raft log entry (an entry above the start's index). -/
 def admLE (st : auth.AuthState) (x : LogEntry) : Prop :=
   x.type = W32 0 ∧ x.data ≠ [] ∧ ∃ rq, apply.irrDecode x.data = some rq ∧
-    apply.needAdminPermission rq = true ∧
+    adminDispatchKind (apply.dispatchKind rq) = true ∧
     auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) ∧ adminNext rq st ≠ st
 
 /-- `admStep` over raft log entries (`kvOpOn`'s). -/

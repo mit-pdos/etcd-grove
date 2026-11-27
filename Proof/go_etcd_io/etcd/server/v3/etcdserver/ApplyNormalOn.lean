@@ -223,10 +223,12 @@ theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : OnState)
   unfold kvEntryOn
   split
   · split
-    · rw [if_neg (fun h => hv h.1)]
-      split
+    · split
       · rfl
-      · rw [hk, hl]
+      · rw [if_neg (fun h => hv h.1)]
+        split
+        · rfl
+        · rw [hk, hl]
     · rfl
   · rw [hk, hl]
 
@@ -298,7 +300,9 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
       · simp only; omega
       · split
         · simp only; omega
-        · exact hk
+        · split
+          · simp only; omega
+          · exact hk
     · simp only; omega
   · exact hk
 
@@ -403,9 +407,10 @@ theorem kvEntryOn_keep (c₀ : w64) (ch : apply.Chain) (s : OnState)
     Or.inr (Or.inr (fun rq' h => by rw [hdec] at h; cases h; exact hw))
   have hk : kvEntry c₀ ch s.2.2 s.2.1 m = s.2.1 := kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m hw'
   have hl : kvTable c₀ ch s.2.2 m = s.2.2 := kvTable_nonwrite c₀ ch s.2.2 m hw'
+  have hnk := adminDispatchKind_of_needAdmin_false rq hna
   unfold kvEntryOn
   rw [if_pos ⟨ht, hd⟩, hdec]
-  simp only [hna, Bool.false_eq_true, _root_.and_false, ↓reduceIte]
+  simp only [hna, hnk, Bool.false_eq_true, _root_.false_and, _root_.and_false, ↓reduceIte]
   split
   · rfl
   · rw [hk, hl]
