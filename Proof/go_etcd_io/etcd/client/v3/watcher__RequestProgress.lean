@@ -89,7 +89,7 @@ theorem watcher.RequestProgress.wp_proof
     (DFrac.own 1) $$ [$HM] as HM
   wp_join iprop(∃ (G : WgsPrm GF) (M' : GMap GoString Loc), wgs_ptr ↦ G.wgs ∗ m ↦$ M' ∗
       (□ [∗map] k ↦ x ∈ M', ∃ G' : WgsPrm GF, ⌜G'.wgs = x ∧ G'.w = w ∧
-        streamKeyOf G'.omd = k⌝ ∗ isWGS V G' callSl) ∗
+        streamKeyOf G'.omd = k⌝ ∗ wgsGuard V G' callSl) ∗
       ⌜G.w = w⌝ ∗ isWGS V G callSl ∗ w_ptr ↦ w ∗ ctx_ptr ↦ GoInterface.ok ctx ∗
       ctxKey_ptr ↦ ckey ∗ watcherF w go!"streams" ↦ m)
     with [wgs HM w Hctxp ctxKey Hst] as ⟨%G, %M', wgs, HM, #HMs', %HGw, #HG, w, Hctxp, ctxKey, Hst⟩
@@ -108,6 +108,7 @@ theorem watcher.RequestProgress.wp_proof
     · iintro !>
       iapply BigSepM.bigSepM_insert_elim $$ [] HMs
       iexists G
+      ihave #HGg := wgsGuard_intro V G callSl $$ HG
       iframe #
       ipureintro; exact ⟨rfl, HGeq.2, by rw [Hmd.1, hck]⟩
     ipureintro; exact HGeq.2
@@ -115,7 +116,8 @@ theorem watcher.RequestProgress.wp_proof
     | none => exact absurd (by simp [h]; rfl) Hif
     | some x =>
       simp only [h, Option.getD_some] at Hif ⊢
-      ihave ⟨%G, %HGx, #HG⟩ := BigSepM.bigSepM_lookup h $$ HMs
+      ihave ⟨%G, %HGx, #HGg⟩ := BigSepM.bigSepM_lookup h $$ HMs
+      ihave #HG := wgsGuard_elim V G callSl $$ [$Hf $HGg]
       iexists G, M
       rw [HGx.1]
       iframe

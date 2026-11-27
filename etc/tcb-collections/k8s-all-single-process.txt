@@ -13,7 +13,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/(Results|MainLinked)\.lean$
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
@@ -66,10 +65,7 @@ axiom goose_adequacy_start
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
-axiom grpc.CustomCodec.wp_proof
 axiom grpc.NewClient.wp_proof
-axiom grpc.NewServer.wp_proof
-axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpcConn
@@ -77,7 +73,6 @@ axiom grpcConn_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcSrvAtLis
-axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
@@ -233,7 +228,6 @@ axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
@@ -244,7 +238,6 @@ axiom tracing.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
-axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.codec_proto
@@ -303,7 +296,6 @@ opaque lease.leasesNoExpiry
 opaque membership.memBucketsOk
 opaque membership.membersOf
 opaque membership.peerURLsOk
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque metrics.latencyTrackerOk
 opaque mvcc.kvEncode

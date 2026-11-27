@@ -4,12 +4,19 @@ struct literal's, the leases `initAndRecover` made), every ghost name the lessor
 `le.mu` made (`init_RWMutex`, at `lessorMu_fractional`), the channels' idioms (`expiredC` a bag of
 `lessorExpiredC`'s payloads, `stopC` a close-once channel, `doneC` a broadcast channel). What
 `newLessor`'s proof calls once, between `initAndRecover` and `go le.runLoop()`. Lean-first.
+
+`newLessor_alloc_at` (F2's P-L1, 2026-11-26; `notes/specs-only/ledger.md`, "2026-11-26:
+`lessorAbsentStays_dist.law`") makes the lessor at a name `γl` the caller chose, from half of `γl`'s ghost
+map's authority at `∅` and the slot `lessorSlot γl` holding the other half: it opens the slot, joins the
+halves, inserts the lessor's two keys, and closes the slot with the history law (`lessorHistOk_of_rdInv`)
+and a pin. `newLessor_alloc` (a fresh name) allocates the name and the slot and calls it.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.NewLessorGhost
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorMuFrac
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorSlot
 
 @[expose] public section
 
@@ -47,15 +54,17 @@ theorem granted_of_guard (γl : GName) (GA : w64 → IProp GF) :
     iunfold leaseGranted
     iexists GA; iframe Hg Hx
 
-/-- **The fresh lessor at `lp`, its ghost state allocated** (see the file header): the lessor's
-fields after `initAndRecover` (the recovered leases `recs.zip ls`, the minimum TTL `mt`), the
-channels, the grant guard of the records' ids; the lessor's predicates at a fresh `γl`, its lock's
-`actualMaxReaders` reader slots, the expiry loop's token and `doneC`'s close right. -/
-theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface)
+/-- **The lessor at `lp`, its ghost state allocated at the caller's name `γl`** (see the file header):
+the lessor's fields after `initAndRecover` (the recovered leases `recs.zip ls`, the minimum TTL `mt`),
+the channels, the grant guard of the records' ids, half of `γl`'s authority at `∅` and its slot; the
+lessor's predicates at `γl`, its lock's `actualMaxReaders` reader slots, the expiry loop's token and
+`doneC`'s close right. -/
+theorem newLessor_alloc_at (γl : GName) (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface)
     (mt : w64) (ec sc dc : GoChan) (γec γsc γdc : ChanNames) (GA : w64 → IProp GF) (mono : Bool)
     (recs : List (w64 × w64 × w64)) (ls : List Loc) (reqOf : w64 → w64) (Lr : List w64)
     (hlp : lp ≠ null) (hlen : ls.length = recs.length) (hnd : (recs.map (·.1)).Nodup)
     (hrq : ∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) (hLr : Lr.Perm (recs.map (·.1))) :
+    (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool LessorGV) ∗ lessorSlot γl) ∗
     lF go!"mu" lp ↦ (zero_val _root_.Perennial.sync.RWMutex) ∗
       lF go!"demotec" lp ↦ (chan.nil : GoChan) ∗
       lF go!"leaseMap" lp ↦ lm ∗ lm ↦$ recMap (recs.zip ls) ∗
@@ -68,7 +77,7 @@ theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64
       lF go!"doneC" lp ↦□ dc ∗ isChan dc γdc Unit ∗ ownChan γdc Unit ChanState.Idle ∗
       ([∗list] p ∈ recs.zip ls, recLease mt p.1 p.2) ∗ ⧖ recs.length ∗
       □ ([∗list] id ∈ recs.map (·.1), GA id) ⊢
-    |={⊤}=> ∃ γl : GName, lessorInv lp γl ∗ lessorModeIs γl mono ∗ lessorExpiredC lp GA ∗
+    |={⊤}=> lessorInv lp γl ∗ lessorModeIs γl mono ∗ lessorExpiredC lp GA ∗
       lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lessorRd lp γl) ∗
       leaseOwn γl Lr ∅ ∗ lessorWinTie γl [] ∗ leaseEver γl (recs.map (·.1)) ∗ leaseRevokers γl Lr ∗
@@ -76,7 +85,7 @@ theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64
       lessorStopRecv lp ∗ □ ([∗list] x ∈ recs, leaseReqIs γl x.1 (reqOf x.1)) ∗
       lessorAt γl 0 (recMap (recs.zip ls), ∅, recTTLs mt recs) ∗ notifRTok γl ∗
       ownBroadcastChan dc γdc iprop(True) .Pending := by
-  iintro ⟨Hmu, Hdem, Hlm, HM, Him, HI, Hrd, Hcp, Hb, Hnf, Hnot, Hh, Hhq, #Hecf, #Hec, Heco,
+  iintro ⟨⟨Hhalf, #Hslot⟩, Hmu, Hdem, Hlm, HM, Him, HI, Hrd, Hcp, Hb, Hnf, Hnot, Hh, Hhq, #Hecf, #Hec, Heco,
     #Hscf, #Hsc, Hsco, #Hdcf, #Hdc, Hdco, Hrl, #Hr, #HGA⟩
   -- the recovered leases, as `xs`
   have hfst : (recs.zip ls).map Prod.fst = recs := List.map_fst_zip (by omega)
@@ -110,18 +119,27 @@ theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64
   -- the grant guard, the closers' map, the lessor's ghost map
   imod (saved_pred_alloc (GF := GF) GA DFrac.discard trivial) with ⟨%γga, #Hga⟩
   imod (ghost_map_alloc (GF := GF) (recMap (recs.zip ls))) with ⟨%γcl, Hcla, Hcle⟩
-  imod (ghost_map_alloc (GF := GF) (lessorGhost lp γga γcl γr Lr)) with ⟨%γl, Hla, Hle⟩
-  ihave ⟨Hlt, Hlf⟩ : iprop(ghostMapElem (GF := GF) γl true (DFrac.own 1) (Sum.inr Lr : LessorGV) ∗
-      ghostMapElem γl false (DFrac.own 1) (Sum.inl (lp, γga, γcl, γr) : LessorGV)) $$ [Hle]
-  · unfold lessorGhost
-    have h1 : Iris.Std.PartialMap.get?
-        ((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga, γcl, γr))) true = none := by
-      show (((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga, γcl, γr))).lookup true) = none
-      rw [GMap.lookup_insert_ne _ _ (by decide)]; rfl
-    icases (BigSepM.bigSepM_insert h1).1 $$ Hle with ⟨Ht, Hf⟩
-    have h2 : Iris.Std.PartialMap.get? (∅ : GMap Bool LessorGV) false = none := rfl
-    icases (BigSepM.bigSepM_insert h2).1 $$ Hf with ⟨Hf, -⟩
-    iframe Ht Hf
+  -- the slot: the member's half at `∅` excludes the published case (its pin); the halves joined
+  ihave #Hsi := Hslot
+  iunfold lessorSlot at Hsi
+  iinv Hsi with Hsb Hsclose
+  icases Hsb with (>Hh2 | Hpub)
+  rotate_left
+  · icases Hpub with ⟨-, >Hp'⟩
+    icases Hp' with ⟨%γr', #Hp'⟩
+    iexfalso
+    iapply lessorPinR_not_empty γl γr' (1 : Qp).half
+    iframe Hhalf Hp'
+  ihave Hla : iprop(ghostMapAuth (GF := GF) γl 1 (∅ : GMap Bool LessorGV)) $$ [Hhalf Hh2]
+  · iapply (ghostMapAuth_halves γl (∅ : GMap Bool LessorGV)).2; iframe Hhalf Hh2
+  -- the lessor's two keys
+  imod (ghost_map_insert (GF := GF) (m := (∅ : GMap Bool LessorGV)) false
+    (Sum.inl (lp, γga, γcl, γr) : LessorGV) rfl) $$ Hla with ⟨Hla, Hlf⟩
+  have h1 : ((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga, γcl, γr))).lookup true = none := by
+    rw [GMap.lookup_insert_ne _ _ (by decide)]; rfl
+  imod (ghost_map_insert (GF := GF) true (Sum.inr Lr : LessorGV) h1) $$ Hla with ⟨Hla, Hlt⟩
+  ihave Hla : iprop(ghostMapAuth (GF := GF) γl 1 (lessorGhost lp γga γcl γr Lr)) $$ [Hla]
+  · unfold lessorGhost; iexact Hla
   imod (ghostMapElem_persist false γl _ _) $$ Hlf with #Hpin
   ihave #HpinA : lessorPinAll (GF := GF) γl lp γga γcl γr $$ []
   · iunfold lessorPinAll; iexact Hpin
@@ -135,6 +153,10 @@ theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64
   · iunfold lessorRdInv; iexists γr; iframe HpinR Hrinv
   ihave #Hguard : lessorGuard (GF := GF) γl GA $$ []
   · iunfold lessorGuard; iexists lp, γga, γcl; iframe HpinG Hga
+  -- the slot closed with the history law
+  ihave #Hhist := lessorHistOk_of_rdInv γl $$ Hrdinv
+  imod Hsclose $$ [] with -
+  · inext; iright; iframe Hhist; iexists γr; iexact HpinR
   icases ((ghostMapElem_fractional (GF := GF) true γl (Sum.inr Lr : LessorGV)).fractional
     (1 : Qp).half (1 : Qp).half).1 $$ [Hlt] with ⟨Hlt1, Hlt2⟩
   · rw [Qp.half_add_half]; iexact Hlt
@@ -263,7 +285,6 @@ theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64
   ihave #Hunk := ownBroadcastChan_close dc γdc iprop(True) Broadcast.Unknown γbi $$ [$Hbi]
   ihave Hpend := ownBroadcastChan_close dc γdc iprop(True) Broadcast.Pending γbi $$ [$Hbi $Hpend]
   imodintro
-  iexists γl
   iframe Hpend Hguard Hb2
   isplitr
   · iunfold lessorInv; iframe HpinL HmuG Hrdinv; ipureintro; exact hlp
@@ -319,6 +340,46 @@ theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64
       unfold recSnap; rw [hfst]
     rw [← hσ]; iexact Hidx
   iunfold notifRTok; iexists γr; iframe HpinR Hy
+
+/-- **The fresh lessor at `lp`, its ghost state allocated** (see the file header): the lessor's
+fields after `initAndRecover` (the recovered leases `recs.zip ls`, the minimum TTL `mt`), the
+channels, the grant guard of the records' ids; the lessor's predicates at a fresh `γl`, its lock's
+`actualMaxReaders` reader slots, the expiry loop's token and `doneC`'s close right. -/
+theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface)
+    (mt : w64) (ec sc dc : GoChan) (γec γsc γdc : ChanNames) (GA : w64 → IProp GF) (mono : Bool)
+    (recs : List (w64 × w64 × w64)) (ls : List Loc) (reqOf : w64 → w64) (Lr : List w64)
+    (hlp : lp ≠ null) (hlen : ls.length = recs.length) (hnd : (recs.map (·.1)).Nodup)
+    (hrq : ∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) (hLr : Lr.Perm (recs.map (·.1))) :
+    lF go!"mu" lp ↦ (zero_val _root_.Perennial.sync.RWMutex) ∗
+      lF go!"demotec" lp ↦ (chan.nil : GoChan) ∗
+      lF go!"leaseMap" lp ↦ lm ∗ lm ↦$ recMap (recs.zip ls) ∗
+      lF go!"itemMap" lp ↦ im ∗ im ↦$ (∅ : GMap LeaseItem w64) ∗
+      lF go!"rd" lp ↦ func.nil ∗ lF go!"cp" lp ↦ func.nil ∗ lF go!"b" lp ↦ b ∗
+      lF go!"leaseExpiredNotifier" lp ↦ np ∗ notifierAt np 1 ∗
+      lF go!"leaseCheckpointHeap" lp ↦ h ∗ queueAt h hx 1 ∗
+      lF go!"expiredC" lp ↦□ ec ∗ isChan ec γec GoSlice ∗ ownChan γec GoSlice (ChanState.Buffered []) ∗
+      lF go!"stopC" lp ↦□ sc ∗ isChan sc γsc Unit ∗ ownChan γsc Unit ChanState.Idle ∗
+      lF go!"doneC" lp ↦□ dc ∗ isChan dc γdc Unit ∗ ownChan γdc Unit ChanState.Idle ∗
+      ([∗list] p ∈ recs.zip ls, recLease mt p.1 p.2) ∗ ⧖ recs.length ∗
+      □ ([∗list] id ∈ recs.map (·.1), GA id) ⊢
+    |={⊤}=> ∃ γl : GName, lessorInv lp γl ∗ lessorModeIs γl mono ∗ lessorExpiredC lp GA ∗
+      lessorGuard γl GA ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lessorRd lp γl) ∗
+      leaseOwn γl Lr ∅ ∗ lessorWinTie γl [] ∗ leaseEver γl (recs.map (·.1)) ∗ leaseRevokers γl Lr ∗
+      rdOwn γl func.nil ∗ lF go!"b" lp ↦{DFrac.own (1 : Qp).half} b ∗ lessorStopTok lp ∗
+      lessorStopRecv lp ∗ □ ([∗list] x ∈ recs, leaseReqIs γl x.1 (reqOf x.1)) ∗
+      lessorAt γl 0 (recMap (recs.zip ls), ∅, recTTLs mt recs) ∗ notifRTok γl ∗
+      ownBroadcastChan dc γdc iprop(True) .Pending := by
+  iintro H
+  imod (lessorSlot_alloc (GF := GF) ⊤ []) with ⟨%γl, -, Ha1, #Hslot⟩
+  imod (newLessor_alloc_at γl lp lm im np h hx b mt ec sc dc γec γsc γdc GA mono recs ls reqOf Lr
+    hlp hlen hnd hrq hLr) $$ [Ha1 H] with Hpost
+  · isplitl [Ha1]
+    · iframe Ha1 Hslot
+    iexact H
+  imodintro
+  iexists γl
+  iexact Hpost
 
 end alloc
 

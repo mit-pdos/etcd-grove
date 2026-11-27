@@ -166,7 +166,7 @@ theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm
       (gpsOk_of_apart lm ids id0 hid0 hap) ns) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %Hns, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm,
       #Hrc, Hms, Hwns, Hpis⟩
-  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hklm, hgp, hgps⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hklm, hgp, hgps, -⟩ := Hγ
   ihave Hpis := (BigSepL.bigSepL_perm hperm).1 $$ Hpis
   have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklm ▸ h))
   ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms

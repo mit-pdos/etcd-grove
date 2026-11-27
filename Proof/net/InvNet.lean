@@ -45,7 +45,13 @@ namespace EtcdGrove
 
 open Iris Iris.BI Net
 
-/-- **The program's closed-world claim on the address `addr`** (exclusive; see the file header). -/
+/-- **The program's closed-world claim on the address `addr`** (exclusive; see the file header).
+
+Known limitation (W1, 2026-11-26, `notes/axiom-review/phase7-w1.md` §3.3): since `grpcSrvNew` is a
+definition, the axioms `etcd_noRefusal`/`etcd_noOtherRefusal` (`v3rpc/NoRefusal.lean`) resist a server
+certified in another program only through this predicate's opacity (inside `netListenerAt`) and its
+single producer, `goose_adequacy_start`. A change that gives `addrClaim` a definition, a law or another
+producer must re-review those two axioms. -/
 axiom addrClaim {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 /-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,

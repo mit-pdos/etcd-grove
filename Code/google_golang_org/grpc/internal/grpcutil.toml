@@ -1,0 +1,10 @@
+# (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) With their bodies, what the client
+# attempt's `createHeaderFields` calls: `RegisteredCompressors`, `IsCompressorNameRegistered` (over
+# the variable `RegisteredCompressorNames`, no initializer: `nil` unless a compressor is registered,
+# which the model leaves outside: `models/README.md`), `ContentType`, `EncodeDuration` (with `div`).
+translate = ["!*", "RegisteredCompressorNames", "IsCompressorNameRegistered", "RegisteredCompressors",
+  "ContentType", "baseContentType", "EncodeDuration", "div", "maxTimeoutValue"]
+imports = ["!*", "strings", "strconv", "time"]
+
+# translate the definitions of all type declarations goose supports (`mdExtraKey`)
+translate_types = true

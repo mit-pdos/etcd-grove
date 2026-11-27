@@ -533,18 +533,19 @@ theorem WellFormed.wp_proof
                 err_exit
               simp only [Bool.not_true]
               wp_auto
-              ihave HF : (∃ (j : Nat) (wv : deployment.Workload),
-                  "i" ∷ i_ptr ↦ W64 j ∗ "w" ∷ w_ptr ↦ wv ∗
-                  "%Hj" ∷ ⌜j ≤ d.workloads.length ∧ ∀ w ∈ d.workloads.take j,
+              ihave HF : (∃ (j : Nat) (wv : deployment.Workload) (nb : Bool),
+                  "i" ∷ i_ptr ↦ W64 j ∗ "w" ∷ w_ptr ↦ wv ∗ "needed" ∷ needed_ptr ↦ nb ∗
+                  "%Hj" ∷ ⌜j ≤ d.workloads.length ∧ (∀ w ∈ d.workloads.take j,
                     (kindAlone w.kind = true → d.cfg.auth = true) ∧
                     (w.kind = W64 3 → ¬ (d.cfg.retention ≠ W64 0 ∧ d.cfg.compactorMode = go!"periodic")) ∧
-                    (w.kind = W64 9 → d.cfg.auth = false)⌝ : IProp GF) $$ [i w]
-              · iexists 0, _
+                    (w.kind = W64 9 → d.cfg.auth = false)) ∧
+                    (nb = true → ∃ w ∈ d.workloads.take j, kindAlone w.kind = true)⌝ : IProp GF) $$ [i w needed]
+              · iexists 0, _, false
                 iframe
                 ipureintro
-                exact ⟨by omega, fun w hw => by simp at hw⟩
+                exact ⟨by omega, fun w hw => by simp at hw, fun h => by cases h⟩
               wp_for HF
-              obtain ⟨Hf1, Hf2⟩ := Hj
+              obtain ⟨Hf1, Hf2, Hf3⟩ := Hj
               wp_if_destruct
               · have Hif' : sint.Z (W64 (j : Int)) < sint.Z v.Workloads'.len := by
                   first | exact Hif | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
@@ -563,22 +564,47 @@ theorem WellFormed.wp_proof
                 all_goals (
                   wp_for_post
                   iframe
-                  iexists (j + 1), _
+                  iexists (j + 1), _, _
                   rw [hw]
                   iframe
                   ipureintro
-                  refine ⟨by omega, fun w hw' => ?_⟩
-                  rw [htake, List.mem_append, List.mem_singleton] at hw'
-                  rcases hw' with hw' | rfl
-                  · have h := Hf2 w hw'
-                    first | exact h | (simp only [hau] at h; exact h) | simpa [hau] using h
-                  clear hNameOk hNames hBounds hAddr hNodeCount hIds hCompat hAuth hErrorf
-                  refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> simp_all)
+                  refine ⟨by omega, fun w hw' => ?_, fun hnb => ?_⟩
+                  · rw [htake, List.mem_append, List.mem_singleton] at hw'
+                    rcases hw' with hw' | rfl
+                    · have h := Hf2 w hw'
+                      first | exact h | (simp only [hau] at h; exact h) | simpa [hau] using h
+                    clear hNameOk hNames hBounds hAddr hNodeCount hIds hCompat hAuth hErrorf
+                    refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> simp_all
+                  · rw [htake]
+                    first
+                      | exact ⟨ww, List.mem_append_right _ (List.mem_singleton_self _), hal⟩
+                      | (obtain ⟨w, hw', hk⟩ := Hf3 hnb
+                         exact ⟨w, List.mem_append_left _ hw', hk⟩))
               · have Hif' : ¬ sint.Z (W64 (j : Int)) < sint.Z v.Workloads'.len := by
-                  first | exact Hif | exact of_decide_eq_false (GoGlobalContext.intoVal_inj_bool Hif)
+                  first
+                    | exact Hif
+                    | exact of_decide_eq_false (GoGlobalContext.intoVal_inj_bool Hif)
+                    | (intro h; apply Hif; rw [decide_eq_true h])
+                -- the loop's exit `if` may be left as `¬ #(decide _) = #true`: reduce it, so that the
+                -- checks' `wp_if_destruct` below do not split on it again
+                try simp only [decide_eq_false Hif', _root_.decide_true, ↓reduceIte]
                 have hjl := idx_end _ _ _ Hlw.1 Hlw.2 Hif' Hf1
                 subst hjl
-                rw [List.take_length] at Hf2
+                rw [List.take_length] at Hf2 Hf3
+                -- the token provider only with a workload that needs it: `c.Auth && !needed` fails; then
+                -- only with the compactor off: `c.Auth && c.Retention != 0` fails
+                rcases hau : d.cfg.auth with _ | _ <;> rcases hnb : nb with _ | _ <;>
+                  (try simp only [ServerCfg.val, hau]) <;> (try wp_auto)
+                all_goals (repeat' wp_if_destruct)
+                all_goals first | err_exit | skip
+                all_goals (
+                have hneed : d.cfg.auth = true → ∃ w ∈ d.workloads, kindAlone w.kind = true := by
+                  intro ha
+                  first | exact Hf3 hnb | (rw [hau] at ha; exact absurd ha (by decide))
+                -- the token provider only with the compactor off: `c.Auth && c.Retention != 0` fails
+                have hacmp : d.cfg.auth = true → d.cfg.retention = W64 0 := by
+                  intro ha
+                  first | (rw [hau] at ha; exact absurd ha (by decide)) | exact ‹d.cfg.retention = W64 0›
                 iapply HΦ
                 ipureintro
                 intro _
@@ -589,10 +615,10 @@ theorem WellFormed.wp_proof
                 refine ⟨hmem, Hj3, fun m hm => (Hj4 m hm).1, Hk2, hnl', fun a ha => (Hok.2.2 a ha).1,
                   Hok.2.1, ?_, hbid hpeers rfl, htok0, hsnap, hcatch, hret, hbc rfl,
                   fun w hw => (Hf2 w hw).1, fun w hw => (Hf2 w hw).2.1, fun w hw => (Hf2 w hw).2.2,
-                  hmax, fun m hm => (Hj4 m hm).2, fun a ha => (Hok.2.2 a ha).2, ?_⟩
+                  hneed, hacmp, hmax, fun m hm => (Hj4 m hm).2, fun a ha => (Hok.2.2 a ha).2, ?_⟩
                 · intro j' w ns hw hns
                   exact Hn3 j' w ns (List.getElem?_eq_some_iff.1 hw).1 hw hns
-                · unfold etcd_dist.typed.maxLen; rw [← htok]; exact htokl)
+                · unfold etcd_dist.typed.maxLen; rw [← htok]; exact htokl))
       · rw [decide_eq_false hnl]
         (try simp only [Bool.not_false])
         err_exit

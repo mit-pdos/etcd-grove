@@ -42,6 +42,18 @@ abbrev auth.newTokenProviderSimple.spec : Prop :=
       (⌜sint.Z ttl ≤ 0⌝ ∨ ∃ γt γf : GName, auth.simpleOk p γt γf ∗ auth.simpleAdmin p ∗
         ghostMapAuth γf 1 (∅ : GMap GoString Unit)) }}
 
+/-- **`newTokenProviderSimple` at the caller's token names** (#50 F7 S2, P-A1): `spec` with the issued tokens'
+authority `auth.tokAuth γt γf ∅` given (the distributed start's, `authNamesFreshD`) in place of allocated; the
+rights' authority `γf` stays the caller's, so the post does not return it. -/
+abbrev auth.newTokenProviderSimple.specAt : Prop :=
+  ∀ (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (γt γf : GName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
+      auth.tokAuth γt γf ∅ }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg))
+      (Val #iw)) (Val #ttl))
+  {{ (p : Loc), RET #p; auth.tsF go!"indexWaiter" p ↦□ iw ∗
+      (⌜sint.Z ttl ≤ 0⌝ ∨ auth.simpleOk p γt γf ∗ auth.simpleAdmin p) }}
+
 end spec
 
 end EtcdGrove

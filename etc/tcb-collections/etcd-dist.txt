@@ -11,17 +11,16 @@
 #   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist.txt --check    against the lines below
 #   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist.txt --check --update
+# F8 (§30): `etcd_safe_nocrash`, every auth-off deployment proved, the two auth classes' boots its named
+# hypotheses (EtcdAuthBootNC, EtcdAuthLeaseBootNC: hypotheses are not axioms, so they are not listed below).
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness\.lean$
 # M1 `etcd_kv_safe_nocrash` (etcd_safe_nocrash at kv-only, auth-off deployments; notes/etcd-dist-plan.md §21):
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/TopLevelRobustness\.lean$
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
@@ -37,15 +36,39 @@ axiom bootstrap.wp_proof_dist
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom etcdResolver_grpc
+axiom etcd_dist.KV_Compact_dist.wp_proof
 axiom etcd_dist.KV_Delete_dist.wp_proof
 axiom etcd_dist.KV_Get_dist.wp_proof
 axiom etcd_dist.KV_Put_dist.wp_proof
 axiom etcd_dist.NewPeerHandler_dist.wp_proof
 axiom etcd_dist.NewServer_dist.wp_proof
 axiom etcd_dist.PeerServe_dist.wp_proof
+axiom etcd_dist.RequestProgress_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
 axiom etcd_dist.Txn_Commit_dist.wp_proof
+axiom etcd_dist.Watch_dist.wp_proof
+axiom etcd_dist.authd.Auth_AuthEnable_dist.wp_proof
+axiom etcd_dist.authd.Auth_RoleAdd_dist.wp_proof
+axiom etcd_dist.authd.Auth_RoleGrantPermission_dist.wp_proof
+axiom etcd_dist.authd.Auth_UserAdd_dist.wp_proof
+axiom etcd_dist.authd.Auth_UserGrantRole_dist.wp_proof
+axiom etcd_dist.authd.KV_DeleteOn_dist.wp_proof
+axiom etcd_dist.authd.KV_GetOn_dist.wp_proof
+axiom etcd_dist.authd.KV_PutOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_GrantOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_LeasesOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_RevokeOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_TimeToLiveOn_dist.wp_proof
+axiom etcd_dist.authd.New_user_dist.wp_proof
+axiom etcd_dist.authd.Txn_CommitOn_dist.wp_proof
+axiom etcd_dist.authd.WatchOn_dist.wp_proof
 axiom etcd_dist.etcdSvc
+axiom etcd_dist.view.Client_LeaseLeases_dist.wp_proof
+axiom etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
+axiom etcd_dist.view.Lease_GrantLive_dist.wp_proof
+axiom etcd_dist.view.Lease_Grant_dist.wp_proof
+axiom etcd_dist.view.Lease_LeasesGranted_dist.wp_proof
+axiom etcd_dist.view.Lease_LeasesLive_dist.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -75,6 +98,7 @@ axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
+axiom metadata.AppendToOutgoingContext.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getenv.wp_proofEnv
 axiom os.Getpagesize.wp_proof
@@ -127,9 +151,9 @@ axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom streamIcMdIs
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.NewURLs.wp_proof
@@ -177,7 +201,6 @@ opaque leasePeersOk
 opaque membership.memBucketsOk
 opaque membership.membersOf
 opaque membership.peerURLsOk
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk
@@ -188,4 +211,7 @@ opaque peer.transportPeer
 opaque prometheus.vecLabels
 opaque snap.dirReadOk
 opaque storage.dbOpensOk
+opaque streamRepModelOf
+opaque streamReqModelOf
 opaque trace.otelSpan
+opaque v3rpc.ctxCauseOkRaw

@@ -37,10 +37,13 @@ leveled pools, `levelTok lease.lessorLvl`, also `leaseTimeToLive`'s), reading `r
 `requireAuthInfo`'s) and, if it asks for the keys (`r.Keys`), auth disabled at a state no older than
 `n`, or its principal an admin at one or allowed to read every key of the lease `r.ID` at a lessor
 index no older than `m` (`leaseKeysVerdictFrom`; none if the lease was not live there); on an error,
-no response and an error the gRPC layer can take. **The margin**: the keys it checked, not the keys
-it returns. The response is `leaseTimeToLive`'s, which looks the lease up again, on the leader or
-through it (its contract states nothing of the keys), so a key attached in between is returned
-unchecked (`issues/etcd-lease-timetolive-keys-toctou.md`). The revision re-check
+no response and an error the gRPC layer can take. (F7 fork, 2026-11-26, SPECULATIVE: the fork `d26dd5da6`
+closes the margin `issues/etcd-lease-timetolive-keys-toctou.md` described, the keys it checked not being the keys
+it returns) With `r.Keys`, the success arm also owns the response's keys (`w.Keys' ↦* kbs`, their bytes `ks`) and
+carries the second check's verdict on exactly those keys (`checkLeaseTimeToLiveKeys`, after `leaseTimeToLive`):
+auth disabled at a state no older than `n`, or the principal (bound to the token) an admin at one or allowed to
+read (`IsRangePermitted(k, [])`) every returned key at one. The first verdict (`leaseKeysVerdictFrom`, the keys
+of the local lessor's lookup) stays. The revision re-check
 (`ErrAuthOldRevision` unless the auth revision is still the check's) is not stated
 (`checkLeaseRenew.spec`'s margin). Under the deployment premise `leasePeersOk`
 (`leaseTimeToLive`'s). **What the answer says of the lessor `γl`** at the lower bound `m`, under the
@@ -76,7 +79,13 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
             ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
             □ (leaseTTLRow s γl -∗
                 (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
-                lease.leaseAbsentFrom γl m v.ID')) ∗
+                lease.leaseAbsentFrom γl m v.ID') ∗
+            (if v.Keys' then
+              iprop(∃ (kbs : List GoSlice) (ks : List (List w8)), w.Keys' ↦* kbs ∗
+                ([∗list] kb;k ∈ kbs;ks, kb ↦* k) ∗
+                leaseCheckFrom (srvTLSId s) E tok n (fun info =>
+                  [∗list] k ∈ ks, auth.permVerdictFrom E.authMode n info k [] .read GoInterface.nil))
+             else iprop(True))) ∗
           authedOutB s E.authMode tok GoInterface.nil ∗
           leaseCheckFrom (srvTLSId s) E tok n
             (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read

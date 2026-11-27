@@ -10,7 +10,6 @@
 roots ^Proof/go_etcd_io/etcd/client/v3/kubernetes/Link\.lean$
 roots ^Proof/k8s_io/apiserver/pkg/storage/etcd3/Link\.lean$
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -66,7 +65,6 @@ axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
 axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
-axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
@@ -90,7 +88,6 @@ opaque grpcReqModelOf
 opaque grpcSrvPI
 opaque k8sfeature.featureOffRaw
 opaque k8sfeature.featureOnRaw
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque metrics.latencyTrackerOk
 opaque mvcc.kvEncode

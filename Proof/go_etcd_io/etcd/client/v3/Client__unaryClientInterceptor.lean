@@ -127,7 +127,9 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_apply wp_withVersion ctx cd om $$ [$Hctx $Hom] as %c' ⟨%ci, %vsv, %Hc', #Hctx', %vver, #Hver⟩
   subst Hc'
   (try wp_auto)
-  wp_apply wp_filter opts vs $$ [$Hopts $Hok] as %g %r ⟨%gs, %ros', Hg, Hgc, %Hgs, Hr, #Hros', %Hnone⟩
+  wp_apply wp_filter opts vs retryApplyOk (fun _ => inferInstance) $$ [$Hopts]
+    as %g %r ⟨%gs, %ros', Hg, Hgc, %Hgs, Hr, #Hros', %Hnone⟩
+  · iapply callOptsOk_A $$ Hok
   (try wp_auto)
   wp_apply wp_Peer p_ptr as %pv %Hpv
   wp_apply wp_slice_literal (V := GoInterface) [pv]
@@ -465,14 +467,8 @@ theorem Client.unaryClientInterceptor.wp_proof
         -- (C1) the client's connection, under the induction hypothesis
         ihave #Hcc : iprop(▷ isEtcdConn cconn ceps) $$ []
         · inext
-          ihave #Hrd := Hready
-          iunfold clientReady at Hrd
-          icases Hrd with ⟨%_, %_, -, -, -, #Hcst⟩
-          iapply isEtcdConnG_ready
-          iframe Hready
-          unfold isEtcdConnG
-          iexists _
-          iframe Hcg Hcst
+          iapply isEtcdConn_of_ready
+          iframe Hready Hcg
           unfold etcdInterceptorOkG
           iexact IH
         wp_apply wp_refresh c cconn ceps ci { cd with Values := vsv } $$ [$Hc $Hready $Hcc $Hctx' $Htok]

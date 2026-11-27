@@ -63,7 +63,8 @@ structure Member where
   client : GoString
 
 /-- Go's `deployment.ServerCfg`: the auto-compactor's mode and retention (off when the retention is 0),
-the snapshot count, the catch-up entries, the simple token provider. -/
+the snapshot count, the catch-up entries, the simple token provider (in a well-formed deployment, on exactly when
+an auth workload, `auth` or `authLease`, runs: `typed.Deployment.WellFormed`, §27.7 Q1). -/
 structure ServerCfg where
   compactorMode : GoString
   retention : w64

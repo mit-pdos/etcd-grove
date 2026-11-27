@@ -63,11 +63,30 @@ structure ClusterNames [GooseExts] where
   cok : w64 → GName
   rev : w64 → GName
   reg : w64 → GName
+  /-- per member id, its lessor's name (#50 F7, L3: `clusterStartD` allocates it with its slot, injective over
+  all of `w64`; the starts that link no lease contract pass `lsNone`) -/
+  ls : w64 → GName
+  /-- per member id, its auth names (#50 F7, L3: `clusterStartD` allocates them with their authorities, injective
+  over all of `w64`; the other starts pass `auNone`) -/
+  au : w64 → EtcdGrove.auth.AuthNames
 
-/-- **The cluster's view** (`DistView`, O1 option B): its KV names, auth off (the start of an auth-off
-cluster: every member's `memberUp`), and the lessor names a constant until the Prove item P-L1 (no contract
-reads them yet, `notes/etcd-dist-plan.md` §18.3). -/
-def ClusterNames.view [GooseExts] (c : ClusterNames) : DistView := DistView.ofKV c.γk
+/-- The constant lessor names of the starts that allocate none (`DistView.ofKV`'s). -/
+def ClusterNames.lsNone : w64 → GName := fun _ => 0
+
+/-- The constant auth names of the starts that allocate none (`DistView.ofKV`'s). -/
+def ClusterNames.auNone : w64 → EtcdGrove.auth.AuthNames := fun _ => ⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0⟩
+
+/-- **The cluster's view** (`DistView`, O1 option B): its KV names, its members' lessor names `c.ls` and auth
+names `c.au`, and the auth mode `on` (off by default: the start of an auth-off cluster, every member's
+`memberUp`; #50 F7 S2: `on = true` for an auth-on cluster). At `lsNone`/`auNone` and auth off it is
+`DistView.ofKV c.γk`. -/
+def ClusterNames.view [GooseExts] (c : ClusterNames) (on : Bool := false) : DistView :=
+  ⟨c.γk, c.ls, on, c.au⟩
+
+/-- **The start's names are distinct per member** (over all of `w64`): what the lease contracts and the proposed
+`Serve_dist`'s guarded premise need of `Γ.ls` and `Γ.au`. -/
+def ClusterNames.NamesInj [GooseExts] (c : ClusterNames) : Prop :=
+  (∀ a b, c.ls a = c.ls b → a = b) ∧ (∀ a b, c.au a = c.au b → a = b)
 
 section clusterK
 variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
@@ -77,19 +96,21 @@ variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [Has
   [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
 
 /-- **What `clusterAllocN` makes true of the names** (its pure post), for the peers `ps`, the bootstrap
-log `boot`, the lease mode `lm`, the compaction mode `cmp`, `cret` and the members' ids `ids`. -/
+log `boot`, the lease mode `lm`, the compaction mode `cmp`, `cret`, the members' ids `ids` and the auth
+mode `on` (#50 F7 S2: the alarm chain's auth bit, and no compactor with auth on). -/
 abbrev ClusterOk (c : ClusterNames) (ps : List w64) (boot : List LogEntry) (lm : lease.Mode)
-    (cmp : Bool) (cret : Nat) (ids : List w64) : Prop :=
+    (cmp : Bool) (cret : Nat) (ids : List w64) (on : Bool := false) : Prop :=
   c.γ.vs = ps ∧ c.γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
     c.γ.boot = LogEntry.toEntries boot 0 ∧
-    c.γk.c0 = W64 0 ∧ c.γk.ch0 = apply.alarmChain false false false ∧ c.γk.log0 = [[], []] ∧
+    c.γk.c0 = W64 0 ∧ c.γk.ch0 = apply.alarmChain on false false ∧ c.γk.log0 = [[], []] ∧
     c.γk.ids.issued = c.issued ∧ c.γk.ids.wn = c.wn ∧ c.γk.ids.fs = c.fs ∧ c.γk.ids.gen = c.gen ∧
     c.γk.cmp = cmp ∧ c.γk.cret = cret ∧ c.γk.lm = lm ∧ kvPfxOk c.γk ∧ ¬ clusterNoSnap c.γ.cl ∧
-    (∀ id ∈ ids, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ c.γk.gps)
+    (∀ id ∈ ids, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ c.γk.gps) ∧
+    (on = true → cmp = false)
 
-/-- The cluster's persistent facts (`etcdstart.clusterFacts`) at the names `c`. -/
-abbrev clusterFactsOf (c : ClusterNames) : IProp GF :=
-  clusterFacts c.γ c.γk c.issued c.cnt c.wn c.fs c.gen
+/-- The cluster's persistent facts (`etcdstart.clusterFacts`) at the names `c`, in the auth mode `on`. -/
+abbrev clusterFactsOf (c : ClusterNames) (on : Bool := false) : IProp GF :=
+  clusterFacts c.γ c.γk c.issued c.cnt c.wn c.fs c.gen on
 
 /-- Member `id`'s slice (`etcdstart.memberSlice`) at the names `c`, of the cluster of the ids `ids` with
 the peers `ps`, their contexts `ctxs` and the bootstrap log `bl`. -/
@@ -195,7 +216,7 @@ theorem memberSlices_of (ms : List ClusterMember) (ps : List w64) (ctxs : List (
     ([∗list] id ∈ ms.map (·.id), memberSlice (GF := GF) γ ps ctxs bl cnt wn fs gen
         (xsOf (ms.map (·.id)) idx (idPfxOf (W16 (uint.Z id)))) (idx id) (cok id) (rev id) (reg id) id) ⊢
       [∗list] m ∈ ms, memberSliceOf (GF := GF)
-        (⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩ : ClusterNames) (ms.map (·.id)) ps ctxs bl
+        (⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ClusterNames.lsNone, ClusterNames.auNone⟩ : ClusterNames) (ms.map (·.id)) ps ctxs bl
         m.id := by
   rw [BigSepL.bigSepL_map]
 
@@ -229,20 +250,21 @@ theorem etcdClusterStart (S5 : S5Draft GF) (ms : List ClusterMember) (ps : List 
   imod (clusterAllocN (GF := GF) ((m0 :: ms').map (·.id)) ps hperm m0.id hid0 ctxs boot Hbc Hrb Hrb2
       lm hap cmp cret)
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
+  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
   ihave Hsl := memberSlices_of (GF := GF) (m0 :: ms') ps ctxs (LogEntry.toEntries boot 0) γ γk issued
     cnt wn fs gen idx cok rev reg $$ Hsl
   ihave Hs : [∗list] m ∈ m0 :: ms', memberSliceOf (GF := GF)
-      (⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩ : ClusterNames)
+      (⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ClusterNames.lsNone, ClusterNames.auNone⟩ : ClusterNames)
       ((m0 :: ms').map (·.id)) ps ctxs (LogEntry.toEntries boot 0) m.id ∗ addrUnset m.client $$ [Hsl Hc]
   · iapply BigSepL.bigSepL_sep_eqv.2
     isplitl [Hsl]
     · iexact Hsl
     · iexact Hc
-  imod (members_svc_start S5 (⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩ : ClusterNames)
+  imod (members_svc_start S5 (⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ClusterNames.lsNone, ClusterNames.auNone⟩ : ClusterNames)
       (m0 :: ms') ps ctxs (LogEntry.toEntries boot 0) (m0 :: ms'))
     $$ Hreg Hf Hpf Hs with ⟨Hms, #Hcs⟩
   imodintro
-  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩
+  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ClusterNames.lsNone, ClusterNames.auNone⟩
   isplitr
   · ipureintro
     exact Hγ

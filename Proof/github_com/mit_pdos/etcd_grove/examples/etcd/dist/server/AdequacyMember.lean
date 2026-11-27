@@ -16,8 +16,9 @@ proved ones (`MainDeploymentLogger`, `ConfigOf`, `MainLogger` and its leaves, `d
 `os.Getenv.wp_proofEnv` (and `proto.MarshalBootConfChange.wp_proof`, as putgetK's). Each interim axiom enters
 here only, as its spec is a hypothesis of the proof that uses it.
 
-Its one hypothesis beyond `EtcdBootNC`'s premises: the scope `Hauth : d.cfg.auth = false` (`Serve_dist` serves a
-member with auth off). Go's values at the members' URLs (`BootGoD`) follow from the well-formed deployment at the
+Its one hypothesis beyond `EtcdBootNC`'s premises: the scope `Hauth : d.cfg.auth = true → lm = .revocable →
+lease.leasesNoExpiry` (option (a), `notes/specs-only/ledger.md` 2026-11-26: with auth on, in the revocable lease mode
+no lease expires). Go's values at the members' URLs (`BootGoD`) follow from the well-formed deployment at the
 pinned `BootFacts` (`BootGoD.of_wf`, at `distPs d`, `distCtxs d`).
 -/
 module
@@ -71,13 +72,15 @@ theorem member_boot_dist [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sem
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
-    (d : Deployment) (Hd : d.WellFormed) (Hauth : d.cfg.auth = false)
+    (d : Deployment) (Hd : d.WellFormed)
     (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off)
+    (lm : lease.Mode) (Hlm : lm = .mono → lease.leasesNoExpiry)
+    (Hauth : d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry)
     (i : Nat) (m : Member) (hm : d.members[i]? = some m) (σ : state) (Hσ : ServerStart m σ)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ
-      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)) := by
+      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c lm d (distPs d) (distCtxs d) boot i)) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -87,6 +90,17 @@ theorem member_boot_dist [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sem
   haveI : ReceiptBoundLe etcdDistGF (2 ^ 48) := ⟨by unfold etcdSteps at hrb; omega⟩
   haveI : ThreadBoundLe etcdDistGF (2 ^ 28) := ⟨by rw [hT]; unfold etcdThreads; omega⟩
   haveI := etcdFsSemOk
+  have HLv : srvLevels (GF := etcdDistGF) := by
+    unfold srvLevels; rw [hT]; unfold etcdThreads srvLevelK srvRevokeK; omega
+  -- the running server's lease premise at the start's mode (the revocable mode's open case by
+  -- `revokeExpiredLeases`' linked result, as leaseexpiry's `MainLinked`)
+  have Hrun : lease.runCfg (GF := etcdDistGF) lm lm := by
+    cases lm with
+    | none => exact lease.runCfg_none
+    | mono => exact lease.runCfg_mono (Hlm rfl)
+    | revocable =>
+      exact lease.runCfg_revocable (srvRevokeLevels_of_srvLevels HLv)
+        (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
   obtain ⟨-, -, -, -, hnames⟩ := Hd.members
   have hnl : m.name.length ≤ 200 := by
     have := hnames m (List.mem_of_getElem? hm); unfold typed.maxNameLen at this; exact this
@@ -129,8 +143,7 @@ theorem member_boot_dist [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sem
           _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
           (fun {_} {_} => _root_.Perennial.EtcdGrove.bootstrap.wp_proof_dist)
           mvcc.api.mvccApi_names_nonempty_law_holds))
-      v d i m (distPs d) (distCtxs d) boot hm Hauth Hfips Hbf (BootGoD.of_wf Hd)
-      (by unfold srvLevels; rw [hT]; unfold etcdThreads srvLevelK srvRevokeK; omega)
+      v d i m (distPs d) (distCtxs d) boot lm hm Hauth Hfips Hbf (BootGoD.of_wf Hd) Hrun HLv
       Henv.authRecords Henv.underQuota Henv.repliesFit Henv.disk inferInstance)
     $$ [Htok Hwa Hshare]
   · iframe; iframe #

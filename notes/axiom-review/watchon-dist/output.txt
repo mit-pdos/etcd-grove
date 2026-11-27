@@ -1,0 +1,75 @@
+# go1.27.3, etcd fork df6af0c36a6b, grpc v1.84.0; 2026-11-26. Filtered: the test's own WATCHON lines, the snapshot/restore log lines of the restarted member, test verdicts.
+# Run: in a module dir with go.mod/go.sum and watchon_test.go (renamed from .go.txt): PATH=$HOME/sdk/go1.27.3/bin:$PATH GOFLAGS=-mod=mod go test -v -timeout 560s .
+=== RUN   TestWatchOnDist
+    watchon_test.go:39: WATCHON root's issued token "diTWPZtkRiFGffuk.28"
+    watchon_test.go:39: WATCHON [a] member 0 anonymous watch c/: resps=1 events=0 canceled=true reason="rpc error: code = InvalidArgument desc = etcdserver: user name is empty" keys=[]
+    watchon_test.go:39: WATCHON [a] member 0 u watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [a] member 0 v watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [a] member 0 anonymous+token=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [a] member 0 anonymous+authorization=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [a] member 0 ATTACK anonymous+authorization=<root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 0 ATTACK anonymous+authorization=Bearer <root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 0 ATTACK anonymous+token=<root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 0 u+authorization=<root token> (u's own token wins) watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [c] member 0 u's watch of [a,b) from rev 1: 5 events, want 5, exact=true (canceled=false "")
+    watchon_test.go:39: WATCHON [a] member 1 anonymous watch c/: resps=1 events=0 canceled=true reason="rpc error: code = InvalidArgument desc = etcdserver: user name is empty" keys=[]
+    watchon_test.go:39: WATCHON [a] member 1 u watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [a] member 1 v watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [a] member 1 anonymous+token=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [a] member 1 anonymous+authorization=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [a] member 1 ATTACK anonymous+authorization=<root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 1 ATTACK anonymous+authorization=Bearer <root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 1 ATTACK anonymous+token=<root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 1 u+authorization=<root token> (u's own token wins) watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [c] member 1 u's watch of [a,b) from rev 1: 5 events, want 5, exact=true (canceled=false "")
+    watchon_test.go:39: WATCHON [a] member 2 anonymous watch c/: resps=1 events=0 canceled=true reason="rpc error: code = InvalidArgument desc = etcdserver: user name is empty" keys=[]
+    watchon_test.go:39: WATCHON [a] member 2 u watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [a] member 2 v watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [a] member 2 anonymous+token=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [a] member 2 anonymous+authorization=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [a] member 2 ATTACK anonymous+authorization=<root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 2 ATTACK anonymous+authorization=Bearer <root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 2 ATTACK anonymous+token=<root token> watch c/: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [a] member 2 u+authorization=<root token> (u's own token wins) watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [c] member 2 u's watch of [a,b) from rev 1: 5 events, want 5, exact=true (canceled=false "")
+    watchon_test.go:39: WATCHON [c] root watch of everything from rev 1: resps=1 events=11 canceled=false reason="" keys=[a/1 a/2 c/1 c/2 b z a/3 c/3 a/1 a/2 c/1]
+    watchon_test.go:39: WATCHON [d] stream keys: root md "map[a:[1] token:[diTWPZtkRiFGffuk.28]]", colliding md "map[a:[1] token:[diTWPZtkRiFGffuk.28]]", equal=true; colliding md's token values []
+    watchon_test.go:39: WATCHON [d] outTokOkS docstring example: "map[token:[t] x:[1]]" vs "map[x:[1] token:[t]]", equal=false
+    watchon_test.go:39: WATCHON [d] root-first: watch under root md: resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [d] root-first: watch under colliding md (no token key): resps=1 events=4 canceled=false reason="" keys=[c/1 c/2 c/3 c/1]
+    watchon_test.go:39: WATCHON [d] colliding-first: watch under colliding md (no token key): resps=1 events=0 canceled=true reason="rpc error: code = InvalidArgument desc = etcdserver: user name is empty" keys=[]
+    watchon_test.go:39: WATCHON [d] colliding-first: ten watches under root md (root token in its own md), concurrent: events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name is empty" | events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name is empty" | events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name is empty" | events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name is empty" | events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name is empty" | events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name is empty" | events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name is empty" | events=0 canceled=true "rpc error: code = InvalidArgument desc = etcdserver: user name i
+    watchon_test.go:39: WATCHON [b] member 1 (a follower) stopped
+    watchon_test.go:39: WATCHON [b] 80 puts while member 1 is down
+    watchon_test.go:39: WATCHON [b] member 1 restarted
+    logger.go:146: 2026-11-26T10:19:13.932Z	INFO	m1	received and saved database snapshot	{"member": "m1", "local-member-id": "a6f6e33135c5d092", "remote-snapshot-sender-id": "e584ad63a4b3f8aa", "incoming-snapshot-index": 134, "incoming-snapshot-size-bytes": 36864, "incoming-snapshot-size": "37 kB", "download-took": "187.535008ms"}
+    logger.go:146: 2026-11-26T10:19:14.086Z	INFO	m1	restoring mvcc store	{"member": "m1"}
+    logger.go:146: 2026-11-26T10:19:14.164Z	INFO	m1	restoring auth store	{"member": "m1"}
+    logger.go:146: 2026-11-26T10:19:14.164Z	INFO	m1	restored auth store	{"member": "m1"}
+    logger.go:146: 2026-11-26T10:19:14.165Z	INFO	m1	applied snapshot	{"member": "m1", "current-snapshot-index": 134, "current-applied-index": 134, "incoming-leader-snapshot-index": 134, "incoming-leader-snapshot-term": 2}
+    watchon_test.go:39: WATCHON [b] probes during and after the restart: 42946 watches, 42940 answered, 0 with events
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot, anonymous+authorization=<root's pre-restart token>: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot anonymous watch c/: resps=1 events=0 canceled=true reason="rpc error: code = InvalidArgument desc = etcdserver: user name is empty" keys=[]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot u watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot v watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot anonymous+token=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot anonymous+authorization=badtoken watch c/: resps=1 events=0 canceled=true reason="rpc error: code = Unauthenticated desc = etcdserver: invalid auth token" keys=[]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot ATTACK anonymous+authorization=<root token> watch c/: resps=1 events=44 canceled=false reason="" keys=[c/1 c/2 c/3 c/1 c/s00 c/s01 c/s02 c/s03 c/s04 c/s05 c/s06 c/s07 c/s08 c/s09 c/s10 c/s11 c/s12 c/s13 c/s14 c/s15 c/s16 c/s17 c/s18 c/s19 c/s20 c/s21 c/s22 c/s23 c/s24 c/s25 c/s26 c/s27 c/s28 c/s29 c/s30 c/s31 c/s32 c/s33 c/s34 c/s35 c/s36 c/s37 c/s38 c/s39]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot ATTACK anonymous+authorization=Bearer <root token> watch c/: resps=1 events=44 canceled=false reason="" keys=[c/1 c/2 c/3 c/1 c/s00 c/s01 c/s02 c/s03 c/s04 c/s05 c/s06 c/s07 c/s08 c/s09 c/s10 c/s11 c/s12 c/s13 c/s14 c/s15 c/s16 c/s17 c/s18 c/s19 c/s20 c/s21 c/s22 c/s23 c/s24 c/s25 c/s26 c/s27 c/s28 c/s29 c/s30 c/s31 c/s32 c/s33 c/s34 c/s35 c/s36 c/s37 c/s38 c/s39]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot ATTACK anonymous+token=<root token> watch c/: resps=1 events=44 canceled=false reason="" keys=[c/1 c/2 c/3 c/1 c/s00 c/s01 c/s02 c/s03 c/s04 c/s05 c/s06 c/s07 c/s08 c/s09 c/s10 c/s11 c/s12 c/s13 c/s14 c/s15 c/s16 c/s17 c/s18 c/s19 c/s20 c/s21 c/s22 c/s23 c/s24 c/s25 c/s26 c/s27 c/s28 c/s29 c/s30 c/s31 c/s32 c/s33 c/s34 c/s35 c/s36 c/s37 c/s38 c/s39]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot u+authorization=<root token> (u's own token wins) watch c/: resps=1 events=0 canceled=true reason="rpc error: code = PermissionDenied desc = etcdserver: permission denied" keys=[]
+    watchon_test.go:39: WATCHON [b] member 1 after snapshot u's watch of [a,b) from rev 1: 45 events, want 45, exact=true (canceled=false "")
+    watchon_test.go:39: WATCHON unexpected outcomes: 0
+--- PASS: TestWatchOnDist (47.50s)
+=== RUN   TestWatchOnLaggingEnable
+    watchon_test.go:39: WATCHON [lag] member 2 (a follower) stopped, auth off there
+    watchon_test.go:39: WATCHON [lag] member 2 restarted at 10:19:34.821
+    logger.go:146: 2026-11-26T10:19:35.259Z	INFO	m2	received and saved database snapshot	{"member": "m2", "local-member-id": "77993be261875ce0", "remote-snapshot-sender-id": "1868a8d6d90713b4", "incoming-snapshot-index": 78, "incoming-snapshot-size-bytes": 24576, "incoming-snapshot-size": "25 kB", "download-took": "152.653645ms"}
+    logger.go:146: 2026-11-26T10:19:35.316Z	INFO	m2	restoring mvcc store	{"member": "m2"}
+    logger.go:146: 2026-11-26T10:19:35.400Z	INFO	m2	restoring auth store	{"member": "m2"}
+    logger.go:146: 2026-11-26T10:19:35.400Z	INFO	m2	restored auth store	{"member": "m2"}
+    logger.go:146: 2026-11-26T10:19:35.402Z	INFO	m2	applied snapshot	{"member": "m2", "current-snapshot-index": 78, "current-applied-index": 78, "incoming-leader-snapshot-index": 78, "incoming-leader-snapshot-term": 2}
+    watchon_test.go:39: WATCHON [lag] anonymous watches of c/ at member 2 from its restart on: 13556, with events: 2 create sent at or after 10:19:34.863, read until 10:19:35.164: events=1 keys=[c/1]; create sent at or after 10:19:35.164, read until 10:19:35.465: events=61 keys=[c/1 c/s00 c/s01]
+    watchon_test.go:39: WATCHON [lag] after a barrier at member 2: anonymous watch of c/: resps=1 events=0 canceled=true reason="rpc error: code = InvalidArgument desc = etcdserver: user name is empty" keys=[]
+--- PASS: TestWatchOnLaggingEnable (13.44s)
+PASS

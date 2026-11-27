@@ -12,7 +12,7 @@
 
 package grpc
 
-// MODEL: the model's choice points. These two functions are the model's only nondeterminism, and
+// MODEL: the model's choice points. These functions are the model's only nondeterminism, and
 // the only declarations of the package with a hand-written GooseLang body (trusted: any boolean,
 // any index below n; so the model has every behavior on either side of a choice). In Go they
 // take the common side (false, 0), so that a real run behaves as grpc-go usually does, unless the
@@ -66,6 +66,21 @@ func modelChooseLength(n int) int {
 		return rand.IntN(1 << 16)
 	}
 	return n
+}
+
+// modelChooseMessage is an arbitrary string (trusted, as modelChooseN: its GooseLang body is any
+// string): the message of a transport failure whose text grpc-go takes from the kernel's error,
+// which varies with timing (a client head over the server's limit: the server closes the
+// connection with the head unread, so Linux sends a RST and grpc-go's reader reports io.EOF,
+// "connection reset by peer" or a write's "broken pipe"). Its Go body is def, or with
+// GRPC_MODEL_CHOOSE=random one of those variants.
+func modelChooseMessage(def string, variants ...string) string {
+	if modelChooseRandom {
+		if i := rand.IntN(len(variants) + 1); i < len(variants) {
+			return variants[i]
+		}
+	}
+	return def
 }
 
 // modelChooseAddr is the index of the address an attempt dials: an arbitrary index below

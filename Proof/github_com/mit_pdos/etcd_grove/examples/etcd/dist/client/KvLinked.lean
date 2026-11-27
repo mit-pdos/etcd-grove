@@ -38,20 +38,20 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions] [_root_.Perennial.sort.Assumptions]
   [_root_.Perennial.crypto.sha1.Assumptions] [encoding.binary.Assumptions]
 
-/-- **Workload `j`'s orchestrator machine of a `kv`-only deployment** (`Orchestrator.spec OP`), from
+/-- **Workload `j`'s orchestrator machine of a `kv`-only deployment** (`Orchestrator.specKv OP`), from
 `Orch`'s schema at `OP`. -/
 theorem wp_OrchestratorKv (OP : List GoString → w64 → IProp GF)
-    (hOrch : Orch.specWith (GF := GF) (hG := hG) OP) : Orchestrator.spec (GF := GF) (hG := hG) OP :=
-  Orchestrator.wp_proof OP
-    (MainDeployment.wp_proof OP wp_WellFormed Deployment.wp_Endpoints
-      (MainReady.wp_proof OP wp_NodeCount (RunKV.wp_proof OP hOrch)))
+    (hOrch : Orch.specWith (GF := GF) (hG := hG) OP) : Orchestrator.specKv (GF := GF) (hG := hG) OP :=
+  Orchestrator.wp_proofKv OP
+    (MainDeployment.wp_proofKv OP wp_WellFormed Deployment.wp_Endpoints
+      (MainReady.wp_proofKv OP wp_NodeCount (RunKV.wp_proof OP hOrch)))
 
-/-- **The `n`-th client machine of a `kv`-only deployment** (`NodeDeployment.spec NP`), from `Node`'s
+/-- **The `n`-th client machine of a `kv`-only deployment** (`NodeDeployment.specKv NP`), from `Node`'s
 schema at `NP`. -/
 theorem wp_NodeDeploymentKv (NP : w64 → GoString → List GoString → IProp GF)
-    (hNode : Node.specWith (GF := GF) (hG := hG) NP) : NodeDeployment.spec (GF := GF) (hG := hG) NP :=
-  NodeDeployment.wp_proof NP wp_WellFormed Deployment.wp_Endpoints Deployment.wp_Node
-    (NodeMain.wp_proof NP wp_NodeCount Rotate.wp_proof hNode)
+    (hNode : Node.specWith (GF := GF) (hG := hG) NP) : NodeDeployment.specKv (GF := GF) (hG := hG) NP :=
+  NodeDeployment.wp_proofKv NP wp_WellFormed Deployment.wp_Endpoints Deployment.wp_Node
+    (NodeMain.wp_proofKv NP wp_NodeCount Rotate.wp_proof hNode)
 
 end links
 

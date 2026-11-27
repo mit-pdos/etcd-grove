@@ -1,10 +1,12 @@
 /-
-`c.streamClientInterceptor(optFuncs...)` (`client/v3/retry_interceptor.go`, names only; item 5): the
-client's stream interceptor, installed at dial. Lean-first (no Rocq counterpart).
+`c.streamClientInterceptor(optFuncs...)` (`client/v3/retry_interceptor.go`; item 5, proved over its
+body since phase7-s3-interceptor, 2026-11-26): the client's stream interceptor, installed at dial.
+Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -23,15 +25,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.streamClientInterceptor(optFuncs...)` on a client `New` builds (`retryClientOk`), with
-options each building the interceptor's options (`optApplyOk`): etcd's stream interceptor
-(`etcdStreamInterceptor`, what grpc's `NewStream` axiom assumes). -/
+options each building the interceptor's options (`optApplyOk`): etcd's stream interceptor's contract
+once the client is ready (`etcdStreamIcOkG`: grpc's `streamIcOk` at `withVersion`'s relation, from
+which `etcdNewStream` states a stream on the client's connection). Until phase7-s3-interceptor
+(2026-11-26) the post was the pure `etcdStreamInterceptor f`, an axiomatized property, and this a
+trust-boundary axiom. -/
 abbrev Client.streamClientInterceptor.spec : Prop :=
   ∀ (c : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
       sl ↦*□ ros ∗ [∗list] ro ∈ ros, optApplyOk ro.applyFunc' }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"streamClientInterceptor")) (Val #sl))
-  {{ (f : GoFunc), RET #f; ⌜etcdStreamInterceptor f⌝ }}
+  {{ (f : GoFunc), RET #f; etcdStreamIcOkG c f }}
 
 end spec
 

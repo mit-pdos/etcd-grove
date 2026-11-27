@@ -9,7 +9,9 @@ server (`ServerWatcher.lean`). This file holds what the specs of `watch.go`'s fu
 
 **The watcher** (`isClientWatcher w V`, persistent): its read-only fields (the stub, the call options,
 the logger), its lock `mu` guarding the streams map (`watcherMu`: `nil` after `Close`, otherwise
-a map of `*watchGRPCStream`s, each `isWGS`), and the facts about the server (`watchSrvFacts`).
+a map of `*watchGRPCStream`s, each `isWGS` under the servers' facts, `wgsGuard`: the lock holds no
+fact about the servers, `notes/etcd-dist-plan.md` §25), and the facts about the server
+(`watchSrvFacts`).
 
 **A gRPC watch stream's goroutines** (`watchGRPCStream`, one per context key): `run` (the only
 sender on the gRPC stream, the owner of the stream's mutable fields: `substreams`, `resuming`,
@@ -203,6 +205,28 @@ theorem WEnv.atIdx_W (V : WEnv GF) (i : Nat) : (V.atIdx i).W = V.memW i := rfl
 theorem WEnv.atIdx_memWOf (V : WEnv GF) (i : Nat) (a : GoString) :
     (V.atIdx i).memWOf a = V.memWOf a := rfl
 theorem WEnv.atIdx_atIdx (V : WEnv GF) (i j : Nat) : (V.atIdx i).atIdx j = V.atIdx j := rfl
+
+/-- **`V` over the endpoints `eps` a connection dials** (the watcher-environment refactor,
+`notes/etcd-dist-plan.md` §25, 2026-11-26): `V` itself when its members' addresses are `eps`
+(`V.addrs = eps`), otherwise `V` with no member (`nm = 0`, so `watchSrvFacts`, which needs a
+member, is `False` there). `New`'s watcher is over `V.atEps eps` (`isNewClient`): the members a
+watcher's lock may name are the endpoints its connection dials. -/
+def WEnv.atEps (V : WEnv GF) (eps : List GoString) : WEnv GF :=
+  { V with nm := if V.addrs = eps then V.nm else 0 }
+
+/-- `V` over its own addresses is `V`. -/
+theorem WEnv.atEps_of (V : WEnv GF) (eps : List GoString) (h : V.addrs = eps) :
+    V.atEps eps = V := by
+  unfold WEnv.atEps
+  rw [if_pos h]
+
+/-- `V.atEps eps` has members only at `eps`. -/
+theorem WEnv.atEps_addrs (V : WEnv GF) (eps : List GoString) :
+    (V.atEps eps).addrs = eps ∨ (V.atEps eps).nm = 0 := by
+  unfold WEnv.atEps
+  by_cases h : V.addrs = eps
+  · left; rw [if_pos h]; exact h
+  · right; rw [if_neg h]
 
 end envs
 
@@ -1451,16 +1475,46 @@ instance isWGS_persistent (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
     Persistent (isWGS V G callSl) := by
   unfold isWGS; infer_instance
 
+/-- **A gRPC watch stream as the watcher's lock keeps it** (persistent; the watcher-environment
+refactor, `notes/etcd-dist-plan.md` §25, 2026-11-26): its invariants (`isWGS`) for whoever presents
+the facts of the servers the watcher is over (`watchSrvFacts V`). The lock holds no fact about the
+servers: a spec that reads a stream from the map presents them at the call (every such spec takes
+`isClientWatcher V w`, which has them), and the lock's invariant at an environment `V` whose facts
+do not hold (e.g. `V.nm = 0`, where `watchSrvFacts V ⊢ False`) asks nothing of a stream. -/
+def wgsGuard (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
+  iprop(□ (watchSrvFacts V -∗ isWGS V G callSl))
+
+instance wgsGuard_persistent (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
+    Persistent (wgsGuard V G callSl) := by
+  unfold wgsGuard; infer_instance
+
+/-- A stream's invariants give its guarded form. -/
+theorem wgsGuard_intro (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
+    isWGS V G callSl ⊢ wgsGuard V G callSl := by
+  iintro #H
+  unfold wgsGuard
+  iintro !> -
+  iexact H
+
+/-- The guarded form, with the servers' facts, gives the stream's invariants. -/
+theorem wgsGuard_elim (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
+    watchSrvFacts V ∗ wgsGuard V G callSl ⊢ isWGS V G callSl := by
+  iintro ⟨#Hf, #H⟩
+  unfold wgsGuard
+  iapply H
+  iexact Hf
+
 /-! ## The watcher -/
 
 /-- **What the watcher's lock guards**: the streams map, `nil` once closed, otherwise a map from
-context keys to gRPC watch streams (`isWGS`), each at the key of its context's outgoing metadata
-(G2, 2026-10-30: a watch that joins it has a context of the same key). -/
+context keys to gRPC watch streams (`wgsGuard`: their invariants under the servers' facts, §25 of
+`notes/etcd-dist-plan.md`), each at the key of its context's outgoing metadata (G2, 2026-10-30: a
+watch that joins it has a context of the same key). -/
 def watcherMu (V : WEnv GF) (w : Loc) (callSl : GoSlice) : IProp GF :=
   iprop(∃ m : Loc, watcherF w go!"streams" ↦ m ∗
     (⌜m = null⌝ ∨ ∃ M : GMap GoString Loc, ownMap m (DFrac.own 1) M ∗
       [∗map] k ↦ wgs ∈ M, ∃ G : WgsPrm GF, ⌜G.wgs = wgs ∧ G.w = w ∧
-        streamKeyOf G.omd = k⌝ ∗ isWGS V G callSl))
+        streamKeyOf G.omd = k⌝ ∗ wgsGuard V G callSl))
 
 /-- **The watcher `w`** (persistent; the file header): its read-only fields (the stub, the call
 options, the logger), its lock, the server's and the transport's facts. -/

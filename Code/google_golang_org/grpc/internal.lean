@@ -239,10 +239,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.connectivity.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc SetDefaultBufferPool go.any)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc AcceptCompressors go.any)) (Val #()))))))
   (App (Val doExecute)
@@ -279,6 +283,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc JoinServerOptions go.any)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc FromOutgoingContextRaw go.any)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc SetBufferPoolingThresholdForTesting go.any)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc XDSFilterWrapperOption go.any)) (Val #()))))))))
 

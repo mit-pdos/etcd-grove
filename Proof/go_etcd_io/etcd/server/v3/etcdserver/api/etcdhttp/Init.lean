@@ -1,16 +1,23 @@
 /-
 Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (`health.go`, 2026-11-26; until then untranslated, `opaqueInitsOk`): the
+counters `healthSuccess` and `healthFailed` (over prometheus's `NewCounter` spec) and the vectors
+`healthCheckGauge` and `healthCheckCounter` (`NewGaugeVec`, `NewCounterVec`); then its translated `init`
+function (until then the trust-boundary axiom `initFuncsOk`), which registers the four with prometheus's
+default registry (`MustRegister`), with the rights to their names.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.Base
-public import Proof.runtime.PkgInitExt
+public import Proof.github_com.prometheus.client_golang.prometheus.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.runtime.PkgInitRes
 
 @[expose] public section
 
@@ -28,77 +35,27 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([healthSuccess.init,
-        healthFailed.init,
-        healthCheckGauge.init,
-        healthCheckCounter.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
-end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.Assumptions]
-
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
 
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply (opaqueInitsOk healthSuccess.init (by mem_tac))
-  wp_apply (opaqueInitsOk healthFailed.init (by mem_tac))
-  wp_apply (opaqueInitsOk healthCheckGauge.init (by mem_tac))
-  wp_apply (opaqueInitsOk healthCheckCounter.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  iframe Hown
-  is_pkg_init_finish
+/-- The fully-qualified names of the metrics this package's `init()` registers with
+prometheus's default registry, in its order (`MustRegister`; `metrics.go`). -/
+def regNames : List GoString :=
+  [EtcdGrove.prometheus.fqName go!"etcd" go!"server" go!"health_success",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"server" go!"health_failures",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"server" go!"healthcheck",
+   EtcdGrove.prometheus.fqName go!"etcd" go!"server" go!"healthchecks_total"]
 
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+/-- The IDs besides its names' this package's initializer takes the rights to (prom-registry:
+a later registration's, `REG_KEYS`). -/
+def regKeys : List w64 := []
 
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names and other IDs: their registration rights (keyed by ID,
+`EtcdGrove.prometheus.regRes`) are its initializer's resources (`ownInitResL`,
+`Proof/runtime/PkgInitRes.lean`; its `wp_initialize'`'s precondition: `regsFree regQs`). -/
+def regQs : List (GoString × List GoString × List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.regKeys)]
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
-
-end init
 
 end Perennial

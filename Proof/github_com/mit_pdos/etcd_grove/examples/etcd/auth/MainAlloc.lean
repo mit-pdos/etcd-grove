@@ -61,7 +61,7 @@ theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (Li
       (by simp) (by simpa using Hid0.symm)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, -, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns, Hpis⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hlm, -, -⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hlm, -, -, -⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hpis with ⟨#Hpi, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
@@ -70,7 +70,7 @@ theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (Li
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc',
-    hgen'⟩ := Hρ
+    hgen', -⟩ := Hρ
   ihave #Hpi' : idPfxInv ρ.ids.gen ρ.ids.pfx $$ []
   · rw [hgen', hgen, hpfx]; iexact Hpi
   -- (R2c) the member's first key, its store's index registered, at its names

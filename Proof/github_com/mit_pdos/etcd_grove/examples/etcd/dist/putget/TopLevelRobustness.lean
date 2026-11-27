@@ -178,33 +178,42 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
   isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   icases BigSepL.bigSepL_cons.1 $$ Hsl with ⟨Hsl, -⟩
+  -- (F7 step 2) the member's lessor and auth names, which its start makes its lessor at
+  imod (lease.lessorSlot_alloc (GF := putgetGF) ⊤ []) with ⟨%γl, -, Hl, #Hslot⟩
+  imod (etcd_dist.authNamesFreshG_alloc (GF := putgetGF)) with ⟨%γa, Ha⟩
   -- the client's invariant, from the cluster's `etcdKV`
   imod (putGetInvK_alloc (GF := putgetGF) γk (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)))
       go!"k" go!"v") $$ Hetcd with ⟨%γf, #Hinv⟩
   imod (putget_addr peer client
-      (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩) id)
-    $$ Hreg Hs with #Ha
+      (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, fun _ => γl,
+        fun _ => γa⟩) id)
+    $$ Hreg Hs with #Ha'
   imodintro
-  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩
+  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, fun _ => γl,
+        fun _ => γa⟩
   iunfold memberShareIf
   iunfold clientShareIf
-  isplitl [Hsl]
+  isplitl [Hsl Hl Ha]
   · iintro %hg
-    ihave #Hat := Ha $$ %hg.2.1
+    ihave #Hat := Ha' $$ %hg.2.1
     iunfold memberShare
     isplitr
     · ipureintro; exact Hγ
     iframe Hsl
     iframe #
+    iunfold etcd_dist.memberNamesShare
+    iframe Hl Ha
+    iexact Hslot
   · iintro %hc
-    ihave #Hat := Ha $$ %hc
+    ihave #Hat := Ha' $$ %hc
     iunfold clientShare
     isplitl
     · iexact Hat
     isplitr
     · ipureintro; rfl
     iexists γf
-    rw [show (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩).kv = γk
+    rw [show (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, fun _ => γl,
+        fun _ => γa⟩).kv = γk
       from rfl]
     iexact Hinv
 

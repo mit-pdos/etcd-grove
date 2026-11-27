@@ -256,6 +256,34 @@ noncomputable def Error.Is.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Error.ty)))) (Pair (Var "tse") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- IsRestrictedControlPlaneCode returns whether the status includes a code
+    restricted for control plane usage as defined by gRFC A54.
+
+    go: status.go:232:6 -/
+noncomputable def IsRestrictedControlPlaneCode.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Status.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$sw" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Status.ty)))) (Var "s"))) (Val #()))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$sw") (Val #(W32 15)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$sw") (Val #(W32 11)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$sw") (Val #(W32 10)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$sw") (Val #(W32 9)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$sw") (Val #(W32 6)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$sw") (Val #(W32 5)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "$sw") (Val #(W32 3))))))))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.internal.status where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.google_golang_org.genproto.googleapis.rpc.status, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.protobuf.proto]
 
@@ -365,6 +393,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Status_instance : Status.TypeAssumptions
   Error_instance : Error.TypeAssumptions
   New_unfold : FuncUnfold New [] New.impl
+  IsRestrictedControlPlaneCode_unfold : FuncUnfold IsRestrictedControlPlaneCode [] IsRestrictedControlPlaneCode.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_status_Assumption : _root_.Perennial.google_golang_org.genproto.googleapis.rpc.status.Assumptions
   import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
@@ -373,6 +402,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 attribute [instance] Assumptions.Status_instance
   Assumptions.Error_instance
   Assumptions.New_unfold
+  Assumptions.IsRestrictedControlPlaneCode_unfold
   Assumptions.import_fmt_Assumption
   Assumptions.import_status_Assumption
   Assumptions.import_codes_Assumption

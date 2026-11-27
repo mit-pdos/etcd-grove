@@ -1742,6 +1742,76 @@ gets no proof: it would need the cell, which `finish` makes persistent.''',
     alloc_types={'EnableTracing': 'Bool'},
     finish=['ipersist HEnableTracing'] + FIN_PRE[:6],
 )
+# (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) the variables the client attempt's code
+# reads, translated with their initializers (until then goose `[[skip]]`s): `errors.New` of
+# constants (Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing = status.Error(...)` of
+# a constant code other than `OK` (`status.Error.wp_proof`, the existing trust-boundary axiom of
+# grpc's `status`), and the slice literals of codes `transportFailureCodes` and `http2ErrConvTab`.
+# The fact says nothing of them yet (`grpcInit`: a reader's proof adds what it needs).
+_G = SPECIAL['google_golang_org.grpc']
+_G['doc'] = _G['doc'].replace('''runs the
+untranslated initializers of its other variables''', '''runs the
+translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderListTooLarge`
+(`errors.New` of a constant: Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing`
+(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_linked`) and the slice literals of
+codes `transportFailureCodes` and `http2ErrConvTab` (phase 7 S2 core, 2026-11-23: until then not
+translated, goose `[[skip]]`), runs the untranslated initializers of its other variables''')
+newvars_cfg(_G, ['errMalformedFrame', 'errStreamDone', 'errHeaderListTooLarge'])
+_G['alloc_types'].update({'ErrClientConnClosing': 'GoInterface', 'transportFailureCodes': 'GoSlice',
+                          'http2ErrConvTab': 'GoSlice'})
+_G['before'].update({
+    'ErrClientConnClosing': [
+        'try wp_auto',
+        'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_linked as %rErrClientConnClosing -',
+        '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)'],
+    'transportFailureCodes': [
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %stransportFailureCodes ⟨StransportFailureCodes, -⟩',
+        'try wp_auto'],
+    'http2ErrConvTab': [
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %shttp2ErrConvTab ⟨Shttp2ErrConvTab, -⟩',
+        'try wp_auto'],
+})
+_G['imports'].append('Proof.google_golang_org.grpc.status.ErrorLinked')
+# (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(...))`
+# (`stream.go:53`; until then a goose `[[skip]]`): the load through `internal`'s invariant gives
+# `metadata.fromOutgoingContextRaw` (`metadata`'s fact: its `init` stored it), whose type is the asserted one
+_G['doc'] = _G['doc'].replace('''runs the untranslated initializers of its other variables''', '''runs the
+translated initializer of `metadataFromOutgoingContextRaw` (the type assertion of
+`internal.FromOutgoingContextRaw`, which `metadata`'s fact says holds `metadata.fromOutgoingContextRaw`:
+`grpc/internal/FromOutRaw.lean`, `wp_load_fromOutRaw`; phase 7 S2 core, 2026-11-23, until then a goose
+`[[skip]]`), runs the untranslated initializers of its other variables''')
+_G['alloc_types']['metadataFromOutgoingContextRaw'] = 'GoFunc'
+_G['before']['metadataFromOutgoingContextRaw'] = [
+    'try wp_auto',
+    'ihave #Hmdi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.metadata.metadataInit (hG := hG) : IProp GF) $$ []',
+    '· iapply isPkgInit_access $$ {Hd:google_golang_org.grpc.metadata}',
+    'wp_apply (EtcdGrove.grpcInternal.wp_load_fromOutRaw (hG := hG) _ _) $$ [Hmdi Hown] as Hown',
+    '· iframe Hown Hmdi',
+    'try wp_auto']
+_G['imports'].append('Proof.google_golang_org.grpc.internal.FromOutRaw')
+# (W1, 2026-11-26, one batch) grpc's fact gains, read-only for good: `metadataFromOutgoingContextRaw`'s
+# value (the load above), `globalServerOptions` (nil, no initializer) and `defaultServerOptions` (its
+# literal, translated: until then a goose `[[skip]]`), the last two read by `NewServer`'s proof
+_CB = '_root_.Perennial.go_etcd_io.etcd.cache.v3'
+_G['doc'] = _G['doc'].replace('''Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good.''',
+    '''Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good; and (W1,
+2026-11-26) `metadataFromOutgoingContextRaw` holds `metadata.fromOutgoingContextRaw`,
+`globalServerOptions` the nil slice and `defaultServerOptions` its literal (`grpcDefaultSrvOpts`), each
+read-only for good. It runs `defaultServerOptions`' translated initializer, a struct literal of
+constants (until then a goose `[[skip]]`).''')
+assert '(W1,\n2026-11-26)' in _G['doc']
+_G['alloc_types']['defaultServerOptions'] = 'google_golang_org.grpc.serverOptions'
+_G['before']['defaultServerOptions'] = ['try wp_auto']
+_G['finish'] = (['ipersist HEnableTracing', 'ipersist HmetadataFromOutgoingContextRaw',
+                 'ipersist HglobalServerOptions', 'ipersist HdefaultServerOptions'] + FIN_PRE +
+                # (the fact's first conjunct may be split off by FIN_PRE's `try (isplitl []; …)`)
+                [f'try unfold {_CB}.grpcInit', 'try iframe HEnableTracing',
+                 'iframe HmetadataFromOutgoingContextRaw HglobalServerOptions',
+                 'iexists _; iframe HdefaultServerOptions', 'ipureintro',
+                 f'unfold {_CB}.grpcDefaultSrvOpts',
+                 'refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> rfl'])
 
 # (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(
@@ -1790,13 +1860,14 @@ SPECIAL['encoding.base64'] = dict(
     doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
 k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
 `EncodeToString` returns the standard encoding (`stdEnc`), resp. the URL encoding without padding
-(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP.
+(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP; so does
+`RawStdEncoding`'s, the standard encoding without padding (`rawStdEnc`; phase 7 S2 core, 2026-11-23).
 Its initializer allocates its four variables and runs their translated initializers (`base64.go`,
 translated with their bodies since 2026-11-20, prove-b64clock; until then the trust-boundary axioms
 `StdEncoding_init`, `RawURLEncoding_init` and `opaqueInitsOk`): `NewEncoding` of the two alphabets
 (`NewEncoding.wp_proof`; valid alphabets, `stdAlphabet_ok`, `urlAlphabet_ok`), and `WithPadding(NoPadding)`
 of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString`'s spec
-(`stdEncInit_intro`, `rawUrlEncInit_intro`).''',
+(`stdEncInit_intro`, `rawUrlEncInit_intro`, `rawStdEncInit_intro`).''',
     imports=['Proof.encoding.base64.NewEncoding', 'Proof.encoding.base64.Encoding__WithPadding',
              'Proof.encoding.base64.Encoding__EncodeToString', 'Proof.encoding.base64.Encoding__EncodedLen',
              'Proof.encoding.base64.Encoding__Encode', 'Proof.encoding.base64.InitFacts',
@@ -1820,7 +1891,8 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
         'try wp_auto',
         'wp_apply (EtcdGrove.base64.Encoding.WithPadding.wp_proof eU encU _) $$ HeU as %eRU ⟨HeU, HeRU⟩',
         'try wp_auto']},
-    finish=['ipersist HStdEncoding', 'ipersist HRawURLEncoding', 'ipersist HeS', 'ipersist HeRU'] +
+    finish=['ipersist HStdEncoding', 'ipersist HRawURLEncoding', 'ipersist HRawStdEncoding',
+            'ipersist HeS', 'ipersist HeRU', 'ipersist HeRS'] +
            FIN_PRE[:6] + ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
             'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl',
             '· iapply (EtcdGrove.base64.stdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
@@ -1831,13 +1903,18 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
             '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
             '    eRU { encU with padChar\' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU',
             # (prove-authcrypto, 2026-11-21) the decoder's part
-            'iapply (EtcdGrove.base64.stdDecInit_intro (EtcdGrove.base64.Encoding.DecodeString.wp_proof',
-            '    (EtcdGrove.base64.Encoding.DecodedLen.wp_proof EtcdGrove.base64.decodedLen.wp_proof)',
-            '    (EtcdGrove.base64.Encoding.Decode.wp_proof (EtcdGrove.base64.Encoding.decodeQuantum.wp_proof)',
-            '      EtcdGrove.base64.assemble32.wp_proof EtcdGrove.base64.assemble64.wp_proof',
-            '      (EtcdGrove.byteorder.BEPutUint32.wp_proof _root_.Perennial.internal.byteorder.wp_BEPutUint32)',
-            '      (EtcdGrove.byteorder.BEPutUint64.wp_proof _root_.Perennial.internal.byteorder.wp_BEPutUint64)))',
-            '  eS encS hS.1 hS.2.1 (by rw [hS.1]; exact hS.2.2.1) hS.2.2.2) $$ HStdEncoding HeS'],
+            'isplitl',
+            '· iapply (EtcdGrove.base64.stdDecInit_intro (EtcdGrove.base64.Encoding.DecodeString.wp_proof',
+            '      (EtcdGrove.base64.Encoding.DecodedLen.wp_proof EtcdGrove.base64.decodedLen.wp_proof)',
+            '      (EtcdGrove.base64.Encoding.Decode.wp_proof (EtcdGrove.base64.Encoding.decodeQuantum.wp_proof)',
+            '        EtcdGrove.base64.assemble32.wp_proof EtcdGrove.base64.assemble64.wp_proof',
+            '        (EtcdGrove.byteorder.BEPutUint32.wp_proof _root_.Perennial.internal.byteorder.wp_BEPutUint32)',
+            '        (EtcdGrove.byteorder.BEPutUint64.wp_proof _root_.Perennial.internal.byteorder.wp_BEPutUint64)))',
+            '    eS encS hS.1 hS.2.1 (by rw [hS.1]; exact hS.2.2.1) hS.2.2.2) $$ HStdEncoding HeS',
+            # (phase 7 S2 core, 2026-11-23) `RawStdEncoding`'s part, for grpc's `encodeBinHeader`
+            'iapply (EtcdGrove.base64.rawStdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
+            '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
+            '    eRS { encS with padChar\' := W32 (-1) } hS.1 rfl) $$ HRawStdEncoding HeRS'],
 )
 
 # (prove-authcrypto, 2026-11-21) bcrypt's variables translated (until then `opaqueInitsOk`):
@@ -4046,7 +4123,8 @@ NewEncoderID()`, which goose's modelcheck refuses and was the trust-boundary axi
 # reads. Its fact (`internalInit`, `cache/v3/Base.lean`) is the hook cells' invariants
 # (`grpc/internal/Hooks.lean`); a package initializer's store goes through them, lending its package state.
 _GI = 'google_golang_org.grpc.internal'
-_GI_ANY = ['FromOutgoingContextRaw', 'CanonicalString', 'AddGlobalDialOptions',
+_GI_ANY = ['SetDefaultBufferPool', 'SetBufferPoolingThresholdForTesting',
+           'CanonicalString', 'AddGlobalDialOptions',
            'AddGlobalPerTargetDialOptions', 'JoinDialOptions', 'DisableGlobalDialOptions',
            'AcceptCompressors', 'GetServerCredentials', 'IsRegisteredMethod', 'ServerFromContext',
            'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption',
@@ -4084,14 +4162,69 @@ SPECIAL[_GI] = dict(
 which a package initializer holding its package state opens for a plain store (`grpc/internal/Hooks.lean`).
 Its initializer allocates the hook variables that the translated `init`s of `metadata`, `codes` and grpc
 set (`internal.go`, `experimental.go`: no initializers, so each holds `nil`) and puts each cell in its
-invariant (phase7-inits, 2026-11-25; `FromOutgoingContextRaw` first in phase 7 S2 core, 2026-11-23); its
+invariant (phase7-inits, 2026-11-25); `FromOutgoingContextRaw`, which grpc's initializer also reads, in an
+invariant of its own that says `metadata`'s `init` stored `metadata.fromOutgoingContextRaw` in it
+(`fromOutRawInv`, `grpc/internal/FromOutRaw.lean`; phase 7 S2 core, 2026-11-23; W1, 2026-11-26); its
 other variables with initializers are goose `[[skip]]`s (literals), the rest names only.''',
-    alloc_types={**{n: 'GoInterface' for n in _GI_ANY}, **{n: 'GoFunc' for n in _GI_FUNC}},
-    imports=['Proof.google_golang_org.grpc.internal.Hooks'],
+    alloc_types={'FromOutgoingContextRaw': 'GoInterface', **{n: 'GoInterface' for n in _GI_ANY},
+                 **{n: 'GoFunc' for n in _GI_FUNC}},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks', 'Proof.google_golang_org.grpc.internal.FromOutRaw'],
     finish=_hook_alloc_steps('GoInterface', _GI_ANY) + _hook_alloc_steps('GoFunc', _GI_FUNC)
+        + ['imod (EtcdGrove.grpcInternal.fromOutRaw_alloc (hG := hG) _) $$ HFromOutgoingContextRaw with #CFromOutRaw']
         + FIN_PRE[:6] + ['try imodintro',
                          f'unfold {_GI_BASE}.internalInit {_GI_BASE}.hooksAny {_GI_BASE}.hooksFunc',
                          f'simp only [{_GI_BASE}.hookCells]', 'iframe #', 'try (imodintro; itrivial)'],
+)
+# (grpc-mem, 2026-11-26) grpc's `internal/mem` and `mem`, imported by grpc since its `baseCodec` names
+# `mem.BufferSlice`: types only but what their initializers run, with the bodies (their `.toml`s)
+_GIM = 'google_golang_org.grpc.internal.mem'
+_GIMB = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.mem'
+SPECIAL[_GIM] = dict(
+    doc='''Its fact (`internalMemInit`, `cache/v3/Base.lean`; grpc-mem, 2026-11-26): `uintSize` holds `64` for
+good (no translated code writes it; `newBinaryTiered` reads it). Its initializer allocates
+`BufferPoolingThreshold` and `uintSize`, initializes its imports, runs their translated initializers (the
+constants `1 << 10` and `bits.UintSize`) and its translated `init` function, which stores a closure in
+`internal.SetBufferPoolingThresholdForTesting`, through `internal`'s invariants (`grpc/internal/Hooks.lean`).''',
+    alloc_types={'BufferPoolingThreshold': 'w64', 'uintSize': 'w64'},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks'],
+    after={'init.«0»': hook_fact_steps() + hook_store_steps(['SetBufferPoolingThresholdForTesting'])},
+    finish=['ipersist HuintSize'] + FIN_PRE[:6] + ['try imodintro', f'unfold {_GIMB}.internalMemInit',
+                                                   'iexact HuintSize'],
+)
+_GMEM = 'google_golang_org.grpc.mem'
+# `mem.NewBinaryTieredBufferPool`'s proof, linked over `internal/mem`'s and Perennial's results
+_GMEM_POOL = ('(EtcdGrove.grpc.mem.NewBinaryTieredBufferPool.wp_proof (hG := hG)\n'
+              '      (EtcdGrove.grpc.internal.mem.NewBinaryTieredBufferPool.wp_proof (hG := hG)\n'
+              '        (EtcdGrove.grpc.internal.mem.newBinaryTiered.wp_proof (hG := hG)\n'
+              '          EtcdGrove.grpc.internal.mem.compactExponents.wp_proof _root_.Perennial.slices.wp_Repeat)\n'
+              '        EtcdGrove.grpc.internal.mem.newSizedBufferPool.wp_proof))')
+SPECIAL[_GMEM] = dict(
+    doc='''Its fact is `True` (no translated code reads its variables). Its initializer allocates
+`defaultBufferPoolSizeExponents`, `defaultBufferPool` and `bufferObjectPool`, initializes its imports, runs
+the translated initializers of the first and the third (grpc-mem, 2026-11-26: a slice literal of the exponents
+`8, 12, 14, 15, 20`; a `sync.Pool` literal of a function literal) and its translated `init` function
+(`buffer_pool.go:52`), which builds the default pool (`NewBinaryTieredBufferPool`, proved over `internal/mem`'s
+translation: no error, every exponent being at most `62`, so no panic), stores it in `defaultBufferPool`
+and stores a closure in `internal.SetDefaultBufferPool`, through `internal`'s invariants
+(`grpc/internal/Hooks.lean`).''',
+    alloc_types={'defaultBufferPoolSizeExponents': 'GoSlice', 'defaultBufferPool': 'GoInterface',
+                 'bufferObjectPool': '_root_.Perennial.sync.Pool'},
+    before={'defaultBufferPoolSizeExponents': [
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (V := w8) (l := [W8 8, W8 12, W8 14, W8 15, W8 20])); isplitr;'
+        ' (· ipureintro; rfl); iintro %sExp ⟨SExp, -⟩',
+        'try wp_auto'],
+        # a `sync.Pool` literal of a function literal (built, not called)
+        'bufferObjectPool': ['try wp_auto', 'wp_func_lits', 'try wp_auto']},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks', 'Proof.google_golang_org.grpc.mem.NewBinaryTieredBufferPool',
+             'Proof.google_golang_org.grpc.internal.mem.NewBinaryTieredBufferPool',
+             'Proof.google_golang_org.grpc.internal.mem.newBinaryTiered',
+             'Proof.google_golang_org.grpc.internal.mem.compactExponents',
+             'Proof.google_golang_org.grpc.internal.mem.newSizedBufferPool', 'Perennial.Proof.slices.Link'],
+    after={'init.«0»': ['try wp_auto',
+                        f'wp_apply {_GMEM_POOL} _ [W8 8, W8 12, W8 14, W8 15, W8 20] (by decide) (by decide) $$ [SExp] as %lpool -',
+                        '· iframe SExp; try iexact {Hd:google_golang_org.grpc.internal.mem}',
+                        'try wp_auto'] + hook_fact_steps() + hook_store_steps(['SetDefaultBufferPool'])},
 )
 _GC = 'google_golang_org.grpc.codes'
 SPECIAL[_GC] = dict(
@@ -4106,29 +4239,48 @@ initializer's package state (`grpc/internal/Hooks.lean`, `wp_store_hookAny`).'''
     imports=['Proof.google_golang_org.grpc.internal.Hooks'],
     after={'init.«0»': hook_fact_steps() + hook_store_steps(['CanonicalString'])},
 )
+# (phase 7 S2 core, 2026-11-23) grpc's `internal/grpcutil`: `RegisteredCompressorNames`'s cell, nil for good
+SPECIAL['google_golang_org.grpc.internal.grpcutil'] = dict(
+    doc='''Its fact (`grpcutilInit`, `cache/v3/Base.lean`): `RegisteredCompressorNames` holds the nil slice
+for good. Its initializer allocates it (`var RegisteredCompressorNames []string`, `compressor.go`, no
+initializer: nil) and initializes its imports. Only `encoding.RegisterCompressor` writes it, which no
+translated code calls (compression is outside the grpc model); a program that does gets no proof: it
+would need the cell, which `finish` makes persistent.''',
+    alloc_types={'RegisteredCompressorNames': 'GoSlice'},
+    finish=['ipersist HRegisteredCompressorNames'] + FIN_PRE[:6],
+)
 _GM = 'google_golang_org.grpc.metadata'
 SPECIAL[_GM] = dict(
-    doc='''Its fact is `True`. Its initializer allocates `loggableMetadataKeys`, initializes its imports, runs
-its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
+    doc='''Its fact (`metadataInit`, `cache/v3/Base.lean`; phase 7 S2 core, 2026-11-23, until then `True`):
+its `init` has stored `fromOutgoingContextRaw` in `internal.FromOutgoingContextRaw` for good (the counter of
+`internal`'s invariant past `0`). Its initializer allocates `loggableMetadataKeys`, initializes its imports,
+runs its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its translated `init` function
-(phase7-inits, 2026-11-25, first phase 7 S2 core; until then the trust-boundary axiom `initFuncsOk`),
-which stores `fromOutgoingContextRaw`, converted to `any`, in `internal.FromOutgoingContextRaw`, another
-package's variable: through `internal`'s invariants, lending the initializer's package state
-(`grpc/internal/Hooks.lean`, `wp_store_hookAny`).''',
+(phase 7 S2 core, 2026-11-23; until then the trust-boundary axiom `initFuncsOk`), which stores
+`fromOutgoingContextRaw`, converted to `any`, in `internal.FromOutgoingContextRaw`, another package's
+variable: through `internal`'s invariant, lending the initializer's package state
+(`grpc/internal/FromOutRaw.lean`, `wp_store_fromOutRaw`).''',
     alloc_types={'loggableMetadataKeys': 'Loc'},
     before={'loggableMetadataKeys': map_lit_steps('Hlk', 'GoString', 'Bool', 'go.string', 'go.bool', 10)},
-    imports=['Proof.google_golang_org.grpc.internal.Hooks'],
-    after={'init.«0»': hook_fact_steps() + hook_store_steps(['FromOutgoingContextRaw'])},
+    imports=['Proof.google_golang_org.grpc.internal.FromOutRaw'],
+    # (phase 7 S2 core) `init()` (`metadata.go:33`): the store through `internal`'s invariant
+    after={'init.«0»': [
+        'ihave #Hfi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.internalInit (hG := hG) : IProp GF) $$ []',
+        '· iapply isPkgInit_access $$ {Hd:google_golang_org.grpc.internal}',
+        'wp_apply (EtcdGrove.grpcInternal.wp_store_fromOutRaw (hG := hG) _ _) $$ [Hfi Hown] as ⟨Hown, #Hfact⟩',
+        '· iframe Hown Hfi',
+        'try wp_auto']},
+    finish=FIN_PRE[:6],
 )
 # (phase7-inits, 2026-11-25) grpc's three `init`s translated (until then `initFuncsOk`): their stores of
 # function values and closures in `internal`'s hooks, and the slices their closures append to
 # (`globalDialOptions`, `globalPerTargetDialOptions`, `globalServerOptions`: no initializers, allocated)
 _G = SPECIAL['google_golang_org.grpc']
-_G['doc'] = _G['doc'].replace('''runs the
-untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+# (W1, 2026-11-26: matched from `which the` on, since phase 7 S2 core's replacements above reflow the
+# text before it)
+_G['doc'] = _G['doc'].replace('''which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated `init`
-functions, which the trust-boundary axiom `initFuncsOk` says return.''', '''runs the
-untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+functions, which the trust-boundary axiom `initFuncsOk` says return.''', '''which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its three translated `init`
 functions (`dialoptions.go`, `rpc_util.go`, `server.go`; phase7-inits, 2026-11-25, until then the
 trust-boundary axiom `initFuncsOk`), which store function values and closures in `internal`'s hook
@@ -4943,6 +5095,28 @@ register(SPECIAL[_MV], _MV, [
     reg_gfunc('currentRev', _D, _MVR, 'current_revision'),
     reg_gfunc('compactRev', _D, _MVR, 'compact_revision'),
     reg_scalar('totalPutSizeGauge', _D, _MVR, 'total_put_size_in_bytes')])
+
+# (prove-t18, 2026-11-26) etcdhttp's health metrics (`health.go`), translated with its `init()` (the
+# multi-machine server's peer handler package; names only since etcd-dist D2, 2026-11-24): the
+# counters `healthSuccess`, `healthFailed`, the vectors `healthCheckGauge`, `healthCheckCounter`, over
+# prometheus's constructor specs, registered by `init()` (`MustRegister`) with the names' rights. Until
+# then `opaqueInitsOk` and `initFuncsOk`.
+_EH = 'go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp'
+SPECIAL[_EH] = _more_metrics(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (`health.go`, 2026-11-26; until then untranslated, `opaqueInitsOk`): the
+counters `healthSuccess` and `healthFailed` (over prometheus's `NewCounter` spec) and the vectors
+`healthCheckGauge` and `healthCheckCounter` (`NewGaugeVec`, `NewCounterVec`); then its translated `init`
+function (until then the trust-boundary axiom `initFuncsOk`), which registers the four with prometheus's
+default registry (`MustRegister`), with the rights to their names.'''),
+    [('healthSuccess', 'counter'), ('healthFailed', 'counter')])
+promvec(SPECIAL[_EH], 'healthCheckGauge', 'Gauge', ['type', 'name'])
+promvec(SPECIAL[_EH], 'healthCheckCounter', 'Counter', ['type', 'name', 'status'])
+register(SPECIAL[_EH], _EH, [
+    reg_scalar('healthSuccess', _E, _S, 'health_success'),
+    reg_scalar('healthFailed', _E, _S, 'health_failures'),
+    reg_vec('healthCheckGauge', 'Gauge', _E, _S, 'healthcheck'),
+    reg_vec('healthCheckCounter', 'Counter', _E, _S, 'healthchecks_total')])
 
 
 # (prom-registry, route (b), 2026-11-22: notes/prom-registry.md) prometheus's default registry is the real

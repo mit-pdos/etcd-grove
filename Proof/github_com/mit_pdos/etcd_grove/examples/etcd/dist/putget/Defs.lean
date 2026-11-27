@@ -22,6 +22,7 @@ invariant, `putgetPub`.)
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClusterStart
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberNames
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
@@ -63,11 +64,14 @@ variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
 
 /-- **The member's share** of the start (see the file header): the one-member cluster's names `c`
 (`clusterAllocN`'s, `ClusterOk` at the peers `[id]`, lease mode `none`, no compaction), the cluster's
-facts, the member's slice, its client address set to serve etcd's table for `id` at the view `c.view`. -/
+facts, the member's slice, its client address set to serve etcd's table for `id` at the view `c.view`, and (F7
+step 2) its lessor and auth names (`memberNamesShare` at `c.ls id`, `c.au id`: the member's lessor is made at the
+view's `c.view.ls id`). -/
 def memberShare (ep : GoString) (c : ClusterNames) (ctxs : List (List w8)) (boot : List LogEntry)
     (id : w64) : IProp GF :=
   iprop(⌜ClusterOk c [id] boot .none false 0 [id]⌝ ∗ clusterFactsOf c ∗
-    memberSliceOf c [id] [id] ctxs (LogEntry.toEntries boot 0) id ∗ etcdAddrAt ep c.view id)
+    memberSliceOf c [id] [id] ctxs (LogEntry.toEntries boot 0) id ∗ etcdAddrAt ep c.view id ∗
+    memberNamesShare (c.ls id) (c.au id))
 
 /-- **The member machine's share, once its addresses pass its check** (2026-11-24): `Member` returns at
 once unless `peer` and `client` are valid (`AddrOk`) and distinct, so the start owes it `memberShare` only

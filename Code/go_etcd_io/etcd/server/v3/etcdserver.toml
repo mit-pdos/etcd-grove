@@ -127,6 +127,9 @@ translate = ["!*",
   # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go); their
   # entry points (LeaseRenew, LeaseTimeToLive, LeaseLeases) stay names only
   "EtcdServer.checkLeaseRenew", "EtcdServer.checkLeaseTimeToLive", "EtcdServer.checkLeaseLeases",
+  # (F7 fork, 2026-11-26, speculative) the check of the keys `LeaseTimeToLive` returns, the fork's fix
+  # of issues/etcd-lease-timetolive-keys-toctou.md
+  "EtcdServer.checkLeaseTimeToLiveKeys",
   # the lease-read plan (2026-10-31): the two read rows' entry points; `leaseTimeToLive` (the
   # leader's lookup, the forwarding to the leader) stays names only, a contract
   "EtcdServer.LeaseTimeToLive", "EtcdServer.LeaseLeases",

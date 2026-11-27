@@ -1,0 +1,20 @@
+#!/bin/bash
+# 3-member cluster on 127.0.0.1 with faults during n9bcheck.
+W=/shared/tmp/n9b-etcd; cd $W; rm -rf data; mkdir data
+CL="m1=http://127.0.0.1:23801,m2=http://127.0.0.1:23802,m3=http://127.0.0.1:23803"
+start() { i=$1; ./etcd --name m$i --data-dir data/m$i --listen-client-urls http://127.0.0.1:2379$i \
+  --advertise-client-urls http://127.0.0.1:2379$i --listen-peer-urls http://127.0.0.1:2380$i \
+  --initial-advertise-peer-urls http://127.0.0.1:2380$i --initial-cluster $CL \
+  --initial-cluster-state ${2:-new} --log-level error >data/m$i.log 2>&1 & echo $! > data/pid$i; }
+for i in 1 2 3; do start $i; done
+sleep 3
+./n9bcheck http://127.0.0.1:23791 http://127.0.0.1:23792 http://127.0.0.1:23793 > data/check.out 2>&1 & C=$!
+sleep 8;  echo "SIGSTOP m2 (lagging member)"; kill -STOP $(cat data/pid2)
+sleep 6;  echo "SIGCONT m2"; kill -CONT $(cat data/pid2)
+sleep 4;  L=$(for i in 1 2 3; do curl -s http://127.0.0.1:2379$i/v3/maintenance/status -X POST -d '{}' | grep -o '"leader":"[0-9]*"\|"member_id":"[0-9]*"' | tr '\n' ' '; echo " m$i"; done)
+echo "$L"
+for i in 1 2 3; do s=$(curl -s http://127.0.0.1:2379$i/v3/maintenance/status -X POST -d '{}'); m=$(echo "$s"|grep -o '"member_id":"[0-9]*"'|cut -d'"' -f4); l=$(echo "$s"|grep -o '"leader":"[0-9]*"'|cut -d'"' -f4); [ "$m" = "$l" ] && LD=$i; done
+echo "kill -9 leader m$LD"; kill -9 $(cat data/pid$LD)
+sleep 6; echo "restart m$LD"; start $LD existing
+wait $C; echo "n9bcheck exit $?"; cat data/check.out
+for i in 1 2 3; do kill $(cat data/pid$i) 2>/dev/null; done; sleep 1

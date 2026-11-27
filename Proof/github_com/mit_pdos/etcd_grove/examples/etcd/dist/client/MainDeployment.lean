@@ -1,5 +1,8 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/MainDeployment.lean`. Lean-first; N7-kv.
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/MainDeployment.lean`. Lean-first.
+`MainDeployment.wp_proofKv` (N7-kv, M1) and `MainDeployment.wp_proof` (F8): the deployment check, then `MainReady` of
+workload `j` at its share (`orchShareF_eq`), with the pure facts `WellFormed` gives (`wellFormed_wlPure`,
+`members_plain`).
 -/
 module
 
@@ -28,11 +31,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem MainDeployment.wp_proof (OP : List GoString → w64 → IProp GF)
+theorem MainDeployment.wp_proofKv (OP : List GoString → w64 → IProp GF)
     (hWF : WellFormed.spec (GF := GF) (hG := hG))
     (hEp : Deployment.Endpoints.spec (GF := GF) (hG := hG))
-    (hMR : MainReady.spec (GF := GF) (hG := hG) OP) :
-    MainDeployment.spec (GF := GF) (hG := hG) OP := by
+    (hMR : MainReady.specKv (GF := GF) (hG := hG) OP) :
+    MainDeployment.specKv (GF := GF) (hG := hG) OP := by
   intro v d j ready
   wp_start as ⟨%Hp, #Hd, #Hready, Hsh⟩
   obtain ⟨Hkv, Hfips⟩ := Hp
@@ -92,6 +95,85 @@ theorem MainDeployment.wp_proof (OP : List GoString → w64 → IProp GF)
     iapply HΦ; ipureintro; trivial
 
 end proof
+
+section proofFull
+open Net client etcd_dist_client etcd_dist.view
+open github_com.mit_pdos.etcd_grove.examples.lib.remote
+open github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : client.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
+
+set_option maxHeartbeats 800000 in
+theorem MainDeployment.wp_proof
+    (hWF : WellFormed.spec (GF := GF) (hG := hG))
+    (hEp : Deployment.Endpoints.spec (GF := GF) (hG := hG))
+    (hMR : MainReady.spec (GF := GF) (hG := hG)) :
+    MainDeployment.spec (GF := GF) (hG := hG) := by
+  intro π ρ errA fmtA rpcA v d j ready
+  wp_start as ⟨%Hp, Htok, #Hd, #Hready, Hsh⟩
+  obtain ⟨Hfips, Hm⟩ := Hp
+  wp_auto
+  wp_apply (hWF v d Hfips) as %err %Herr
+  · iframe #
+  cases err with
+  | ok i =>
+    wp_auto
+    wp_func_call; wp_call; wp_auto
+    iapply HΦ; ipureintro; trivial
+  | nil =>
+    have hwf := Herr rfl
+    have hnl := wellFormed_nodes_length hwf
+    ispecialize Hsh $$ %hwf
+    wp_auto
+    ihave #Hw := deploymentRepr_workloads v d $$ Hd
+    ihave #Hn' := deploymentRepr_nodes v d $$ Hd
+    icases Hn' with ⟨%ss, #Hn, #Hns⟩
+    ihave %Hwl := ownSlice_len _ _ _ $$ Hw
+    ihave %Hnl := ownSlice_len _ _ _ $$ Hn
+    ihave %Hssl := BigSepL2.bigSepL2_length $$ Hns
+    rw [List.length_map] at Hwl
+    wp_if_destruct
+    · wp_func_call; wp_call; wp_auto
+      iapply HΦ; ipureintro; trivial
+    wp_if_destruct
+    · wp_func_call; wp_call; wp_auto
+      iapply HΦ; ipureintro; trivial
+    have hjw : sint.nat j < d.workloads.length := by word
+    have hjn : sint.nat j < d.nodes.length := by omega
+    have h0 : 0 ≤ sint.Z j := by word
+    obtain ⟨w, hw⟩ : ∃ w, d.workloads[sint.nat j]? = some w := ⟨_, List.getElem?_eq_getElem hjw⟩
+    obtain ⟨ns, hns⟩ : ∃ ns, d.nodes[sint.nat j]? = some ns := ⟨_, List.getElem?_eq_getElem hjn⟩
+    obtain ⟨s, hs⟩ : ∃ s, ss[sint.nat j]? = some s := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    ihave #Hs := BigSepL2.bigSepL2_lookup hs hns $$ Hns
+    have hjl : sint.Z j < sint.Z v.Workloads'.len := by word
+    simp only [h0, hjl, and_self, ↓reduceIte]
+    wp_apply (wp_load_slice_index v.Workloads' (sint.Z j) (d.workloads.map Workload.val) DFrac.discard w.val h0) $$ [] as -
+    · iframe #; ipureintro; rw [List.getElem?_map, hw]; rfl
+    wp_method_call
+    wp_call
+    wp_auto
+    wp_apply (hEp v d) as %eps Heps
+    · iframe #
+    imod ownSlice_persist _ _ _ $$ Heps with #Heps
+    have hjn' : sint.Z j < sint.Z v.Nodes'.len := by word
+    simp only [h0, hjn', and_self, ↓reduceIte]
+    wp_apply (wp_load_slice_index v.Nodes' (sint.Z j) ss DFrac.discard s h0) $$ [] as -
+    · iframe #; ipureintro; exact hs
+    rw [orchShareF_eq d j w ns h0 hw hns]
+    wp_apply (hMR w eps s (d.members.map Member.client) ns ready) $$ [Htok Hsh] as %r -
+    · iframe #
+      iframe
+      ipureintro
+      exact ⟨wellFormed_wlPure hwf (List.mem_of_getElem? hw), members_plain hwf, Hm⟩
+    iapply HΦ; ipureintro; trivial
+
+end proofFull
 
 end etcd_dist
 end EtcdGrove

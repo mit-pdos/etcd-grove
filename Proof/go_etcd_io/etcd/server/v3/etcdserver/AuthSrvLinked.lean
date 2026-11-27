@@ -1,5 +1,5 @@
 /-
-`authSrvTP true` (`authSrvTP_on`), whose proof reaches linked results: moved out of `AuthSrv.lean`
+`authSrvTPAt true` (`authSrvTPAt_on`; until #50 F7 S2 `authSrvTP_on`), whose proof reaches linked results: moved out of `AuthSrv.lean`
 (2026-11-18) so that `AuthSrv.lean`, whose definitions the server's specs name (`srvAuthStoreOn`),
 imports no linked result (CLAUDE.md, "Import tiers"). See `AuthSrv.lean`'s header.
 -/
@@ -27,9 +27,10 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`authSrvTP true`** (see the file header): the simple provider, its names the auth names'
-token names, the auth names allocated over the boot state, the kit in the mode `on`. -/
-theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
+/-- **`authSrvTPAt true`** (see the file header; #50 F7 S2, P-A1: until then `authSrvTP_on`, which allocated the
+names): the simple provider at the caller's token names, the boot authorities the caller's
+(`auth.authBoot_given`), the kit in the mode `on γa`. -/
+theorem authSrvTPAt_on (h25 : auth.NewTokenProvider.specAt (GF := GF) (hG := hG))
     (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_GTP : auth.tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG))
@@ -112,26 +113,29 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (rCABs : schema.authBackend.CreateAuthBuckets.spec (GF := GF) (hG := hG))
     (rLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
     (rCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG)) :
-    authSrvTP (GF := GF) true := by
-  intro lg opts iw ttl γy
-  iintro %Φ ⟨#Hpkg, #Hlg, %Hon, #Hiw⟩ HΦ
+    authSrvTPAt (GF := GF) true := by
+  intro lg opts iw ttl γy γa
+  iintro %Φ ⟨#Hpkg, #Hlg, %Hon, #Hiw, %Hy, Hfr⟩ HΦ
   obtain ⟨hopts, httl⟩ := Hon rfl
-  iapply (h25 lg opts iw ttl) $$ [Hpkg]
-  · iframe Hpkg; iapply zapLoggerOk_orNil; iexact Hlg
+  have hy := Hy rfl
+  ihave Hfr := Hfr $$ []
+  · ipureintro; rfl
+  iunfold authNamesFreshTP at Hfr
+  icases Hfr with ⟨Htk, Hfr, Hboot⟩
+  iapply (h25 lg opts iw ttl γa.tok γa.fresh) $$ [Hpkg Htk]
+  · iframe Hpkg Htk; iapply zapLoggerOk_orNil; iexact Hlg
   iintro !> %tp %err ⟨%Htp, Hres⟩
   iapply HΦ
   isplitr
   · ipureintro; exact Htp
   iintro %Herr
-  icases Hres with (%Hno | ⟨%p, %γt, %γf, %Hp, #Hiwf, #Hok, HA, Hfr⟩)
+  icases Hres with (%Hno | ⟨%p, %Hp, #Hiwf, #Hok, HA⟩)
   · exfalso; rcases Hno with h | h
     · exact h hopts
     · omega
   obtain ⟨-, rfl⟩ := Hp
-  imod (auth.authBoot_alloc (GF := GF) γt γf γy) with ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn, Hbk,
-    Hsucc, HpubQ⟩
-  obtain ⟨hγt, hγf, hγy⟩ := Hγ
-  subst hγt hγf hγy
+  imod (auth.authBoot_given (GF := GF) γa) $$ Hboot with ⟨Hown, Hcur, HI, Hcap, #Hcn, Hbk, Hsucc, HpubQ⟩
+  subst hy
   -- (auth-schema-fix S1 option A) the provider's index waiter: the caller's waiter, once ready
   ihave #Hwok : auth.simpleWaitOk p γa.rdy $$ []
   · iunfold auth.simpleWaitOk
@@ -147,7 +151,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   iexists (.on γa)
   isplitr
   · ipureintro
-    exact ⟨rfl, fun _ => ⟨γa, rfl⟩, fun γa' h => by cases h; rfl⟩
+    exact ⟨rfl, fun _ => rfl, fun γa' h => by cases h; rfl⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hAdminLbO hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hRangeLbR hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hAuthnB hCP hGT

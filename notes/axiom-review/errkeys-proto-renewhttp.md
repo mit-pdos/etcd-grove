@@ -25,7 +25,7 @@ This is a weakening: the old post implied it, so the axiom's trust shrinks. It i
 
 The one consumer, `EtcdServer.LeaseRenew`, needs no more than this. In that arm its `errors.Is(err, ErrLeaseNotFound)` is `false` (`errors.Is.spec`'s post), and it tries the next URL. Every caller still proves, and no top-level statement changes.
 
-## F1: `proto.MarshalIRR.spec` (open, docstring fixed)
+## F1: `proto.MarshalIRR.spec` (fixed 2026-11-26: `nonleaf-status-errs.md`)
 
 Invalid UTF-8 in a proto3 string field is the only error `Marshal` of an `InternalRaftRequest` can return:
 

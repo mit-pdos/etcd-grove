@@ -18,15 +18,12 @@ axiom grpc.ClientConn.Close.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.NewClient.wp_proof
-axiom grpc.NewServer.wp_proof
-axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcSrvAtLis
-axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom metadata.AppendToOutgoingContext.wp_proof
@@ -36,7 +33,6 @@ axiom pbStringValueST_repReg
 axiom pbStringValueST_reqReg
 axiom pbStringValueT_reqReg
 axiom proto.EqualStatus.wp_proof
-axiom streamIcMdIs
 axiom strings.ToLower.wp_proof
 opaque credsYieldRaw
 opaque grpcCliPI
@@ -46,7 +42,6 @@ opaque grpcRepModelOf
 opaque grpcRepliesFit
 opaque grpcReqModelOf
 opaque grpcSrvPI
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque noRefusalAt
 opaque peer.transportPeer

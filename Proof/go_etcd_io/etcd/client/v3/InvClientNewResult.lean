@@ -68,7 +68,7 @@ theorem watchDescOk_of_init :
   · iapply isPkgInit_access $$ Hp
   icases Hi with ⟨-, -, -, -, ⟨%mds, %sds, Hd, %Hs⟩, -⟩
   iunfold pbDescIs at Hd
-  icases Hd with ⟨%msl, %ssl, -, -, -, -, #Hst, #Hsds⟩
+  icases Hd with ⟨%msl, %ssl, -, -, -, -, #Hst, #Hsds, -⟩
   unfold v3rpc.watchDescOk
   iexists ssl, sds
   iframe Hst Hsds
@@ -161,7 +161,8 @@ instance clientCheckFields_persistent (cl : Loc) : Persistent (clientCheckFields
 
 /-- **What `New` returns** (persistent; see the file header): the client `cl`, connected to the
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
-connection, its interceptor and some stub and logger), the watcher without the server's facts
+connection, its interceptor and some stub and logger; §25 of `notes/etcd-dist-plan.md`, 2026-11-26: over
+the endpoints `eps` only, `V.atEps eps`, so no member at an address the connection does not dial), the watcher without the server's facts
 (`isClientWatcherCore`; `isNewClient_watcher` adds them); and (item 1, the client lease) its `Lease`,
 a `*lessor` over the connection (`lessorAt`); and (the auth plan's E2h) its `Auth`, a
 `*authClient` over the connection (`authObjAt`); and (Q1 (c)) its endpoints (`clientEndpointsAt`);
@@ -174,7 +175,7 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
       kvObjAt api eps) ∗
     (∃ (w conn wc lg : Loc) (ics : List GoFunc),
       clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗ etcdWatchConn conn eps ics ∗
-      isClientWatcherCore { V with conn := conn, ics := ics, wc := wc, lg := lg } w) ∗
+      isClientWatcherCore { V.atEps eps with conn := conn, ics := ics, wc := wc, lg := lg } w) ∗
     -- (item 1, the client lease, 2026-10-18) its `Lease`, a `*lessor` over the connection
     (∃ lp : Loc, clientF cl go!"Lease" ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #lp : GoInterface) ∗
@@ -259,8 +260,13 @@ theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.
       ∃ (w conn wc lg : Loc) (ics : List GoFunc),
         clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
         isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
+  have hA : V.addrs = [V.addr] := by
+    first
+    | (unfold WEnv.addrs; rw [hn, hm]; rfl)
+    | simp [WEnv.addrs, hn, hm]
   subst hV
   unfold isNewClient
+  rw [WEnv.atEps_of V _ hA]
   iintro ⟨#P1, #P2, #P3, ⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -, -⟩, #Hf⟩
   iexists w, conn, wc, lg, ics
   iframe Hw
@@ -317,9 +323,10 @@ theorem watchConnFacts_of_members [srv_sem : go_etcd_io.etcd.server.v3.etcdserve
 
 /-- **The client's watcher at the facts of its connection** (W4c; `isNewClient_watcher`, for a
 client of one server, is this at `watchConnFacts_of_addr`): `New`'s client with, for every
-connection to its endpoints, the watcher's facts there. -/
+connection to its endpoints, the watcher's facts there, at an environment whose members are the
+endpoints (`hA`, §25 of `notes/etcd-dist-plan.md`). -/
 theorem isNewClient_watcher_of [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) (hA : V.addrs = eps) :
     isNewClient cl eps V ∗
       (□ ∀ (conn : Loc) (ics : List GoFunc), etcdWatchConn (GF := GF) conn eps ics -∗
         watchConnFacts { V with conn := conn, ics := ics }) ⊢
@@ -327,6 +334,7 @@ theorem isNewClient_watcher_of [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
         clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
         isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
   unfold isNewClient
+  rw [WEnv.atEps_of V eps hA]
   iintro ⟨⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -, -⟩, #Hf⟩
   iexists w, conn, wc, lg, ics
   iframe Hw

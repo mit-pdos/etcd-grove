@@ -74,7 +74,13 @@ guarantee, a key returned only to a user who may read it, is false here.
 
 ## Fix
 
-Not written. Check permission on the keys actually returned, after the lookup that produces them:
+Written (2026-11-26, speculative, `notes/etcd-dist-f7-fork.md`): fork `upamanyus/etcd` branch
+`goose-lean-ttlkeys`, commit `d26dd5da6f383bc9b06a957d685360dc12f8faf2` on the pin `df6af0c36a` (local
+checkout `/shared/etcd-fork-ttlkeys`, not pushed): `checkLeaseTimeToLiveKeys` in
+`server/etcdserver/v3_server.go`, called by `LeaseTimeToLive` on `resp.Keys` before the revision re-check,
+and the regression test `TestV3LeaseTimeToLiveKeysPermission` (leader and follower) in
+`tests/integration/v3_lease_test.go`, which fails at the pin and passes with the fix. Not upstream yet.
+The design: check permission on the keys actually returned, after the lookup that produces them:
 in `LeaseTimeToLive`, after `leaseTimeToLive` returns, run `IsRangePermitted` on each of
 `resp.Keys` (keeping the revision re-check), which covers the leader and the follower paths alike.
 Filtering `resp.Keys` to the readable ones is the alternative, though refusing matches the current
