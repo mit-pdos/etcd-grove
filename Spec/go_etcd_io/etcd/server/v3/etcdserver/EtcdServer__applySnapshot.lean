@@ -176,6 +176,8 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (2026-11-01, J8a-1, item 8) the payload's two-receive `notifyc` (`rnApSnap`'s), before its
     -- first receive (until then a unit bag)
     (γnc : NotifyNames)
+    -- (T10s3b B5, 2026-11-27) its second deposit (`applyAll`'s receive's), untouched here
+    (S2 : IProp GF)
     -- (wal-link L3, 2026-11-19) the raft node's names and the apply thread's share of the WAL (`Release`'s)
     (γw : RNNames GF) (q : Qp)
     -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (`applyAll`'s payload's): the walk
@@ -189,7 +191,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- (wal-link L3, 2026-11-19: until then `walBaseLb (storage.walOf st) i`) the snapshot's WAL record
        taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc
          iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γw.wal.h j m ∗
-           ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
+           ⌜m.Index' = sv.Metadata'.Index'⌝) S2 ∗
        rnWalTokA γw (srvRAddr s) q ∗
        notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗

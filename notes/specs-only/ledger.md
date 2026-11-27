@@ -8449,3 +8449,17 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** Under the user's B5 approval for this draft (option (a), 2026-11-27); no axiom states `specSnapM`
   (`/shared/tmp/t10s3b-chk/AxCheck6.lean`); `rnApSnap` is reached by `NewServer_dist`: `notes/etcd-dist-d6.md`,
   "Option (a): axiom meaning changes".
+
+## 2026-11-27: `EtcdServer.applySnapshot.specSnapM`: `notifyc`'s second deposit generalized (T10s3b B5 step 1, its callee; draft under option (a))
+
+- **Spec.** `EtcdServer.applySnapshot.specSnapM` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean`).
+- **Defect.** Its precondition fixes the payload's two-receive notify at `isNotify2 γnc nc (walSnapRec …) True`, so
+  `applyAll.specSnapM`, whose notify's second deposit is now a parameter `S2` (the entry above: the payload's replay
+  job), cannot call it: `isNotify2`'s deposits are an invariant's, not weakenable by the receiver.
+- **Evidence.** The build of B5 step 1 (`/shared/tmp/t10s3b-s9-b1.log`: `ApplyAllSnap.lean:216`, `wp_apply hS`
+  unsolved at `isNotify2 … iprop(True)`).
+- **Proposed change.** A parameter `S2 : IProp GF` after `γnc`, the notify `isNotify2 γnc nc (…) S2`, as
+  `applySnapshot.specKeep` already has. `applySnapshot` receives only once (the first deposit); the proof never
+  touches `S2`. A weaker premise, the post unchanged.
+- **Decision.** Under the user's B5 approval for this draft (option (a), 2026-11-27); no axiom states
+  `applySnapshot.specSnapM` (`/shared/tmp/t10s3b-chk/AxCheck6.lean`).

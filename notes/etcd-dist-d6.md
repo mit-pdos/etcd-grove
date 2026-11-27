@@ -3671,3 +3671,50 @@ crashed WAL's history `Hs` (with `sd` the snapshot directory's durable indices, 
 `memberGen_crash_law_holds` takes it as a hypothesis.
 
 No axiom, `sorry`, trusted text, top-level premise or top-level statement changed.
+
+### T10 step 3 (B), session 9 (2026-11-27, branch `etcd-safe-t10s3b-a/2026-11-27`; draft under option (a))
+
+**B5 step 1 green: `NewServerCrash` and the server's `Link`** (10085 jobs, log `/shared/tmp/t10s3b-s9-b2.log`). The
+first build (`/shared/tmp/t10s3b-s9-b1.log`) passed `InvRaftLoop`, `raftNode__start` and `run` (session 8's untested
+code all held) and failed only in `ApplyAllSnap.lean`: `applySnapshot.specSnapM` fixed the payload's notify at
+`isNotify2 … (walSnapRec …) True`, so `applyAll.specSnapM`'s generalized `S2` could not reach it. Fix (ledger 2026-11-27,
+"`EtcdServer.applySnapshot.specSnapM`: `notifyc`'s second deposit generalized"): `Spec/…/EtcdServer__applySnapshot.lean`
+`specSnapM` takes `(S2 : IProp GF)` after `γnc`, its notify `isNotify2 γnc nc (…) S2` (as `specKeep` already had);
+`SnapApplyWalk.lean`'s `applySnapshot_walk` the same (`S2` after `γnc`, its `wp_notify2_receive1` at `S2`); callers
+`EtcdServer__applySnapshot.lean` (intro and both walk calls) and `ApplyAllSnap.lean` (both `hASnap` calls). Also
+`ApplyAllSnap.lean`'s two `Hidx $$ %True.intro` became `%(by first | trivial | rfl)` (their error was likely fallout;
+harmless either way). No axiom states `applySnapshot.specSnapM`: to confirm in the AxCheck rerun (its three
+`applySnapshot` specs are now in `AxCheck6.lean`'s targets).
+
+**Not done this session**: step 2 (the 54 modules' build and the `AxCheck6` rerun) and B5 step 2 onward.
+
+**B5 step 2, design notes (not written)**:
+* `applyAll.specKeep` best in `specBatch`'s restart vocabulary (`rp`, rows at `ghostOf rp A`), Go's log `A` to `A'`
+  (`A <+: A'`, `|A'| = k ≤ |rp.A₀|`, so `ghostOf rp A' = ghostOf rp A = A₀`): payload `es ↦*□ []`, `ownSnapM sn … sv`,
+  `taReplayTermsAddr ap ↦□ terms`, `isNotify2 γnc nc S1 (rnReplayJob γn terms rt n)` (after the second receive,
+  `taReplayBatch` from the two); post `specBatch`'s with `A ++ unapplied ai ms` → `A'`, `x' = x`, `ai' = k`, `at'` the
+  snapshot's term, the ghost `g` unchanged. `k ≤ ciEff` in the run: `applyResR`'s `ai₀ + |A₀| ≤ ciEff`.
+* `epCsAt`/`epReplayCfg` are voter facts (`epCsVoters`), so the snapshot's conf state (certified, the voters') fits.
+* The tail is `ApplyAllSnap`'s shape (`snapshotIfNeeded… specNoop`: `specKeep` sets both snapshot indexes to `k`) with
+  the batch's window merge (`mergedCreate_window_replay`, `EtcdServer__applyAll.lean:~610-690`); `raftAdvancedC`'s
+  payload is `rnApSnap`'s (`srvFrozenAt/Below`), not the batch's ranges.
+* The run's keep arm: a `run_job_keepC` beside `run_job_snapC` (`EtcdServer__run.lean:527`), case
+  `A'.length ≤ (ghostOf rp A).length` of `hwin` (`:1327`); reachable only after B6 drops `rnApSnap`'s A8 bound.
+
+**B6's known issue, a design that avoids a new premise**: `rnReplayHist` (`InvRaftNode.lean:2196`) carries
+`replayPending runs γ.a0 n` beside `replayHistoryMatches`; `.empty`'s `|a0| ≤ n` exists only for that conjunct. Its
+only consumer is `rnReplayHist.state`/`rnReplayHistP.state` → `rnReplayState` (used nowhere else since session 7: the
+job is `rnReplayJob_of_lead`, over `.describe`, i.e. `replayHistoryMatches` alone). So drop `replayPending` from
+`rnReplayHist`/`rnReplayHistP` (delete `.state`, the seeds' `replayPending` proofs, possibly `rnReplayState`); then
+`.empty` needs no bound. `rnReplayHist` is reached by `NewServer_dist` (through `rnWorkerStartTok`'s seed): a table
+row, its direction (pre or post of the axiom) to check.
+
+**Handoff T10s3b-9.** Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed), tree `/shared/etcd-grove-t10s3b`, manifest and
+Perennial as Handoff T10s3b-1. Head built green (`NewServerCrash`, `Link`). Next, in order: (1) build the 54 modules
+(`lake build --packages=/shared/tmp/t10s3b-manifest.json $(cat /shared/tmp/t10s3b-chk/mods.txt)` under flock +
+systemd-run) and rerun `lake env --packages=/shared/tmp/t10s3b-manifest.json lean --run
+/shared/tmp/t10s3b-chk/AxCheck6.lean > /shared/tmp/t10s3b-chk/out6c.txt`; expect `out6b.txt`'s hits and none for the
+`applySnapshot` specs; fix the table; (2) B5 step 2 as designed above (ledger entry first for `applyAll.specKeep`),
+then B6 (the `replayPending` drop above, plus `rnRestartOk`/`rnApSnap`'s A8 bound), B7, B8's parts not needing the
+lead's bootLen decision. No axiom statement, `sorry`, premise or trusted text changed; `Spec/` changed this session:
+`applySnapshot.specSnapM` (ledger first).

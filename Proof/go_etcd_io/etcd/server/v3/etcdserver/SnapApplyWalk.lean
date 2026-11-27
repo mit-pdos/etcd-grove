@@ -145,6 +145,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hNUA : EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG))
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
     (hbuq : apply.backendUnderQuota) (γnc : NotifyNames)
+    -- (T10s3b B5, 2026-11-27) `notifyc`'s second deposit, untouched here
+    (S2 : IProp GF)
     -- (wal-link L3, 2026-11-19) the raft node's names and the apply thread's share of the WAL (`Release`'s)
     (γw : RNNames GF) (q : Qp)
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, after its `Recover`
@@ -160,7 +162,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
        taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc
          iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γw.wal.h j m ∗
-           ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
+           ⌜m.Index' = sv.Metadata'.Index'⌝) S2 ∗
        rnWalTokA γw (srvRAddr s) q ∗
        notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
@@ -299,7 +301,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   wp_apply wp_notify2_receive1 γnc nc
       iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γw.wal.h j m ∗
         ⌜m.Index' = sv.Metadata'.Index'⌝)
-      iprop(True) $$ [Hrcv] as ⟨Hrcv, %iw, %mw, #Hwrec, %Hmw⟩
+      S2 $$ [Hrcv] as ⟨Hrcv, %iw, %mw, #Hwrec, %Hmw⟩
   · iframe #; iexact Hrcv
   (try wp_auto)
   -- (D6 T4 round 3, the fork guard) `if ci := s.consistIndex.ConsistentIndex(); GetIndex() <= ci`:
