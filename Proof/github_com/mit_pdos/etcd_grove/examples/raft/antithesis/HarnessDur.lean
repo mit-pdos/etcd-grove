@@ -32,6 +32,9 @@ their specs' text. What changes from B1:
 - **The phases**: `idle` holds a waiting `Ready` in batch mode (for the flusher) and a queue in async
   mode (for the storage goroutine); `down` gains the killed node (`restartRaft`: what the vacate law
   gives back, at the disk).
+- **A storage step in progress** (round 2): `nodeOwnB2H`'s `hole` (`WorkHole`), the job `work` holds
+  between its dequeue and its record (the specs of `runWrite`, `doneWrite`, `runApply`, `doneApply`);
+  `nodeOwnB2` is `nodeOwnB2H … none`. A run write job's enter promise is spent (`writeJobMade`).
 - **The inputs** (`inputOkB2`): flush (9, batch), work (10, async), kill (11, restarts), no resources.
 -/
 module
@@ -125,6 +128,32 @@ structure AJob where
   resp : List MsgSt
   byE : AntCheck.Str
 
+/-- (#33 parity B2 round 2) **A storage job `work` holds between its dequeue and its record** (its
+four arms; `node.go`'s `work`): the oldest write job dequeued (`inflight` set) and not yet run, held at
+`l` (`runWrite`'s); the write job made, held at `l` (`wip` cleared, `inflight` still set: `doneWrite`'s);
+the oldest apply job dequeued (`applying` set), held at `l` (`runApply`'s); the apply job applied, held
+at `l` (`aip` cleared: `doneApply`'s). Outside a storage step there is none (`nodeOwnB2`). -/
+inductive WorkHole where
+  | runW (l : Loc)
+  | doneW (l : Loc)
+  | runA (l : Loc)
+  | doneA (l : Loc)
+
+/-- The write job out of the queue is held by `work` (not in `wip`). -/
+def WorkHole.wHeld : Option WorkHole → Bool
+  | some (.runW _) | some (.doneW _) => true
+  | _ => false
+
+/-- The apply job out of the queue is held by `work` (not in `aip`). -/
+def WorkHole.aHeld : Option WorkHole → Bool
+  | some (.runA _) | some (.doneA _) => true
+  | _ => false
+
+/-- The write job out of the queue is not yet run: its report not made, its write not entered. -/
+def WorkHole.wFresh : Option WorkHole → Bool
+  | some (.runW _) => true
+  | _ => false
+
 /-- How many `mem` reports of the queue a write job stands for: a batch's `k`; otherwise one if it
 writes (its `mem` report had `w = 1`), none if it only carries responses. -/
 def WJob.mems (w : WJob) : Nat :=
@@ -133,7 +162,8 @@ def WJob.mems (w : WJob) : Nat :=
 /-- **The queue against the view** (design §3.3 `QueueIs`, the harness's half): the view's announced,
 unwritten states are the queued jobs', oldest first, then the batch's `items` not yet in a job; a
 job that is not a batch's and writes is its `mem` report's record (`after`'s hard state, the entries).
-The job in flight (`wip`) has left the queue (its `write`/`net` report popped it). -/
+The job in flight (`wip`) has left the queue (its `write`/`net` report popped it); a job dequeued and
+not yet run (`WorkHole.runW`) is still its head (the caller passes it first in `jobs`). -/
 def QueueView (v : AntSim.NodeView) (jobs : List WJob) (items : Nat) : Prop :=
   v.mems.length = (jobs.map WJob.mems).sum + items ∧
   ∀ (i : Nat) (w : WJob), jobs[i]? = some w → w.k < 0 → w.writes = true →
@@ -238,57 +268,83 @@ def jobEnter (γ : RaftNames) (id : w64) (x : CrashNames) (g : Nat) (w : WJob) :
     ownDurGhost γ id w.pre ∗ genView γ id x q' g ={E}=∗
       notCrashed ∗ ownDurGhost γ id w.post ∗ genView γ id x q' g ∗ [∗list] st ∈ w.resp, isRaftMsg γ id st)
 
-/-- **A write job's Go object** at `l` (`writeJob`), with its enter promise. -/
-def writeJobOwn (γ : AntNamesB2) (j : Fin γ.R.N) (x : CrashNames) (g : Nat) (l : Loc) (w : WJob) :
-    IProp GF :=
+/-- (#33 parity B2 round 2) **A message a storage job holds for after it** (`resp`): one to the node
+itself (`id`: a storage acknowledgement, or raft's own vote) owned, as `RawNode.Step` takes it
+(`doneWrite`/`doneApply` step it back); one to another node frozen, as `node.sendMsg` takes it. -/
+def jobMsg (id : w64) (ml : Loc) (st : MsgSt) : IProp GF :=
+  if st.msg.To' = id then
+    iprop(∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗ ⌜c.model = st ∧ c.csUfNil⌝)
+  else iprop(∃ cap : Bool, msgPtsC ml DFrac.discard DFrac.discard cap st)
+
+/-- **A write job's Go object** at `l` (`writeJob`) of node `id`, its fields. -/
+def writeJobObj (id : w64) (l : Loc) (w : WJob) : IProp GF :=
   iprop(∃ (hp ap cl : Loc) (esl rsl : GoSlice) (mls : List Loc),
     l.[H.writeJob, go!"hs"] ↦ hp ∗ hsOptRO hp w.hs ∗ l.[H.writeJob, go!"snap"] ↦ null ∗
     l.[H.writeJob, go!"ents"] ↦ esl ∗ entsRO esl w.ents ∗
     l.[H.writeJob, go!"after"] ↦ ap ∗ hsRO ap w.after ∗
     l.[H.writeJob, go!"resp"] ↦ rsl ∗ rsl ↦* mls ∗ ownSliceCap Loc rsl (DFrac.own 1) ∗
-    ([∗list] ml;st ∈ mls;w.resp, ∃ cap : Bool, msgPtsC ml DFrac.discard DFrac.discard cap st) ∗
+    ([∗list] ml;st ∈ mls;w.resp, jobMsg id ml st) ∗
     l.[H.writeJob, go!"cause"] ↦ cl ∗ causeRO cl w.cause ∗ l.[H.writeJob, go!"by"] ↦ w.byE ∗
     l.[H.writeJob, go!"writes"] ↦ w.writes ∗ l.[H.writeJob, go!"k"] ↦ W64 w.k ∗
-    ⌜w.k = -1 ∨ 0 ≤ w.k⌝ ∗
-    jobEnter γ.raft.raftNames (AntSim.nodeId j) x g w)
+    ⌜w.k = -1 ∨ 0 ≤ w.k⌝)
 
-/-- **An apply job's Go object** at `l` (`applyJob`; no restore in B2). -/
-def applyJobOwn (l : Loc) (a : AJob) : IProp GF :=
+/-- **A queued write job** at `l`: its object and its enter promise. -/
+def writeJobOwn (γ : AntNamesB2) (j : Fin γ.R.N) (x : CrashNames) (g : Nat) (l : Loc) (w : WJob) :
+    IProp GF :=
+  iprop(writeJobObj (AntSim.nodeId j) l w ∗ jobEnter γ.raft.raftNames (AntSim.nodeId j) x g w)
+
+/-- (#33 parity B2 round 2) **A run write job** at `l` (in flight, or held by `work` for `doneWrite`),
+against raft's durable ghost `D`: its enter promise fired at its `saveDisk` (the ghost at its `post`,
+the messages that waited for it certified), or, on a node killed before the save (`dead`), not fired
+(the ghost still at its `pre`, the disk not written). -/
+def writeJobMade (γ : AntNamesB2) (j : Fin γ.R.N) (l : Loc) (w : WJob) (D : RaftState) (dead : Bool) :
+    IProp GF :=
+  iprop(writeJobObj (AntSim.nodeId j) l w ∗
+    ((⌜w.post = D⌝ ∗ [∗list] st ∈ w.resp, isRaftMsg γ.raft.raftNames (AntSim.nodeId j) st) ∨
+     ⌜dead = true ∧ w.pre = D⌝))
+
+/-- **An apply job's Go object** at `l` (`applyJob`; no restore in B2) of node `id`. -/
+def applyJobOwn (id : w64) (l : Loc) (a : AJob) : IProp GF :=
   iprop(∃ (esl rsl : GoSlice) (mls : List Loc),
     l.[H.applyJob, go!"ents"] ↦ esl ∗ entsRO esl a.ents ∗ l.[H.applyJob, go!"restore"] ↦ null ∗
     l.[H.applyJob, go!"resp"] ↦ rsl ∗ rsl ↦* mls ∗
-    ([∗list] ml;st ∈ mls;a.resp, ∃ cap : Bool, msgPtsC ml DFrac.discard DFrac.discard cap st) ∗
+    ([∗list] ml;st ∈ mls;a.resp, jobMsg id ml st) ∗
     l.[H.applyJob, go!"by"] ↦ a.byE)
 
 /-- **Node `j`'s B2 bookkeeping** (`nodeMemB1`'s fields at B2's values) against its view `v`, the
 `RawNode`'s durable state `dur` and raft's durable ghost at the disk `D`: the batch's `items`; `mhs`
 the in-memory hard state the last `mem` reported (batching), `rhs` the last `Ready`'s (async); the
-write queue (`writes`, each job owned) and the job in flight (`wip`, its write entered: `inflight`), the
-enter promises chained from `D` to `dur` (`JobsChain`), the queue against the view (`QueueView`); the
+write queue (`writes`, each job owned) and the job out of it (`inflight`: in `wip`, or held by `work`,
+`hole`; once run, `writeJobMade`), the enter promises chained from `D` to `dur` (`JobsChain`), the queue against the view (`QueueView`); the
 apply queue and the job applying; B3's fields at their off values. In a run without batching or
 async storage both queues are empty and `items` is `0`. -/
 def nodeMemB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (x : CrashNames)
-    (g : Nat) (phs : HardStateM) (dur D : RaftState) : IProp GF :=
+    (g : Nat) (phs : HardStateM) (dur D : RaftState) (dead : Bool) (hole : Option WorkHole) : IProp GF :=
   iprop(∃ (items : Nat) (mhs rhs wip aip : Loc) (wsl asl : GoSlice) (wls als : List Loc)
       (jobs : List WJob) (ajobs : List AJob) (ow : Option WJob) (oa : Option AJob) (hm : HardStateM),
     n.[H.node, go!"items"] ↦ W64 items ∗ n.[H.node, go!"mhs"] ↦ mhs ∗ hsRO mhs hm ∗
     n.[H.node, go!"rhs"] ↦ rhs ∗ hsRO rhs phs ∗
     n.[H.node, go!"writes"] ↦ wsl ∗ wsl ↦* wls ∗ ownSliceCap Loc wsl (DFrac.own 1) ∗
     ([∗list] l;w ∈ wls;jobs, writeJobOwn γ j x g l w) ∗
-    n.[H.node, go!"inflight"] ↦ ow.isSome ∗ n.[H.node, go!"wip"] ↦ wip ∗
+    n.[H.node, go!"inflight"] ↦ ow.isSome ∗
+    n.[H.node, go!"wip"] ↦ (if WorkHole.wHeld hole then null else wip) ∗
     (match ow with
-     | none => iprop(⌜wip = null⌝)
-     | some w => writeJobOwn γ j x g wip w) ∗
+     | none => iprop(⌜wip = null ∧ WorkHole.wHeld hole = false⌝)
+     | some w => if WorkHole.wFresh hole then iprop(writeJobOwn γ j x g wip w ∗ ⌜w.pre = D⌝)
+                 else writeJobMade γ j wip w D dead) ∗
     n.[H.node, go!"applies"] ↦ asl ∗ asl ↦* als ∗ ownSliceCap Loc asl (DFrac.own 1) ∗
-    ([∗list] l;a ∈ als;ajobs, applyJobOwn l a) ∗
-    n.[H.node, go!"applying"] ↦ oa.isSome ∗ n.[H.node, go!"aip"] ↦ aip ∗
+    ([∗list] l;a ∈ als;ajobs, applyJobOwn (AntSim.nodeId j) l a) ∗
+    n.[H.node, go!"applying"] ↦ oa.isSome ∗
+    n.[H.node, go!"aip"] ↦ (if WorkHole.aHeld hole then null else aip) ∗
     (match oa with
-     | none => iprop(⌜aip = null⌝)
-     | some a => applyJobOwn aip a) ∗
+     | none => iprop(⌜aip = null ∧ WorkHole.aHeld hole = false⌝)
+     | some a => applyJobOwn (AntSim.nodeId j) aip a) ∗
     n.[H.node, go!"restoring"] ↦ W64 0 ∗ n.[H.node, go!"confs"] ↦ slice.nil ∗
     n.[H.node, go!"confBase"] ↦ W64 0 ∗
-    ⌜QueueView v jobs items ∧ JobsChain (match ow with | some w => w.post | none => D) jobs dur ∧
-      (∀ w, ow = some w → w.pre = D ∨ w.post = D) ∧
+    ⌜QueueView v ((if WorkHole.wFresh hole then ow.toList else []) ++ jobs) items ∧
+      JobsChain (match ow with | some w => w.post | none => D) jobs dur ∧
+      (∀ l, hole = some (.runW l) ∨ hole = some (.doneW l) → wip = l ∧ ow.isSome) ∧
+      (∀ l, hole = some (.runA l) ∨ hole = some (.doneA l) → aip = l ∧ oa.isSome) ∧
       (γ.mode.Batch' = true → hm = HardStateM.mk v.r.p.term v.r.p.vote v.r.p.commit) ∧
       (γ.mode.Batch' = false → items = 0) ∧
       (γ.mode.Async' = false → jobs = [] ∧ ow = none ∧ ajobs = [] ∧ oa = none)⌝)
@@ -338,8 +394,8 @@ its entries normal, its disk at `dk` related to the view (`DiskRel`); then by ph
   nothing more), or alive with B1's per-phase facts over `RsViewB2` (`idle`'s `PIdle` and empty queue
   only without batching and, for the queue, without async storage), the Go fields agreeing with the
   view (`n.hs` the disk's hard state but while a write is in flight). -/
-def nodeOwnB2 (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (ph : Phase) :
-    IProp GF :=
+def nodeOwnB2H (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (ph : Phase)
+    (hole : Option WorkHole) : IProp GF :=
   iprop(∃ (d rn ms hsl cl csl : Loc) (role : GoString) (applied : w64) (dead : Bool) (fuse : w64)
       (dk : AntSim.DurW),
     n.[H.node, go!"disk"] ↦□ d ∗
@@ -360,7 +416,7 @@ def nodeOwnB2 (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim
         genView γ.raft.raftNames (AntSim.nodeId j) x 1 g ∗
         ownDurGhost γ.raft.raftNames (AntSim.nodeId j) D ∗ rnTermLB γ.raft rs.tc ∗ rnBudget γ.raft ∗
         ⌜StorageHolds D (diskContents dk) ∧ uint.Z D.term ≤ uint.Z rs.tc⌝ ∗
-        nodeMemB2 γ j n v x g rs.phs rs.dur D ∗
+        nodeMemB2 γ j n v x g rs.phs rs.dur D dead hole ∗
         hsRO hsl hn ∗
         if dead then iprop(True)
         else iprop(
@@ -385,6 +441,12 @@ def nodeOwnB2 (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim
               (γ.mode.Batch' = false → PIdle rs r.p) ∧
               (γ.mode.Batch' = false ∧ γ.mode.Async' = false → qs = [] ∧ ip = v.r.p.log.length)⌝ ∗
               causeOwn γ.toAntNames j v cl))))
+
+/-- **Node `j`'s goroutine's state under B2** between its storage steps (`nodeOwnB2H` with no job held
+by `work`). -/
+abbrev nodeOwnB2 (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (ph : Phase) :
+    IProp GF :=
+  nodeOwnB2H c γ j n v ph none
 
 /-- **The `mu` lock's invariant under B2** (`Cluster.down`, `downInv`'s): which node goroutines have
 stopped dead and not been restarted; each such node's state deposited (`nodeOwnB2 … .down`, killed),

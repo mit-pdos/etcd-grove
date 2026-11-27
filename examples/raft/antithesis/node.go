@@ -61,7 +61,8 @@ type node struct {
 	confBase uint64
 
 	// A kill: fuse > 0 is the number of reports until the node dies (rawnode's simulator's fuse);
-	// dead: it has died, and nothing it does from here on is recorded, written or sent.
+	// dead: it has died, and nothing it does from here on is recorded, written or sent; its Ready
+	// loops and storage steps stop at once (its raft is dropped with it, `run`).
 	fuse uint64
 	dead bool
 }
@@ -465,7 +466,7 @@ func (n *node) flush() {
 		}
 		return
 	}
-	for n.rn.HasReady() {
+	for !n.dead && n.rn.HasReady() {
 		rd := n.rn.Ready()
 		if !raft.IsEmptySnap(rd.Snapshot) {
 			// A leader's snapshot is stepped alone (step), and nothing else makes a Ready hold one.
@@ -493,6 +494,9 @@ func (n *node) flush() {
 		}
 		if k > 0 || write {
 			n.emit(&check.Event{E: "made"})
+		}
+		if n.dead {
+			return // died before its write: nothing more it does is seen; raft is dropped with it
 		}
 		for _, m := range rd.Messages {
 			n.emit(n.batchSendEv("batch", m))
@@ -876,7 +880,7 @@ func (n *node) parts(hs *pb.HardState, ents []*pb.Entry) []part {
 // only: TestE1Reproducer, E1=1) turns the hold off.
 func (n *node) drainAsync(by string) {
 	batch := n.c.mode.Batch && by == "batch"
-	for n.rn.HasReady() {
+	for !n.dead && n.rn.HasReady() {
 		rd := n.rn.Ready()
 		var snap *pb.Snapshot
 		if !raft.IsEmptySnap(rd.Snapshot) {
@@ -999,6 +1003,10 @@ func (n *node) runWrite(w *writeJob) {
 
 // doneWrite sends the messages that waited for the write and tells raft it is made.
 func (n *node) doneWrite(w *writeJob) {
+	n.inflight = false
+	if n.dead {
+		return
+	}
 	if w.writes {
 		if w.snap != nil {
 			// The state machine is replaced after what it was handed before, and before what
@@ -1011,7 +1019,6 @@ func (n *node) doneWrite(w *writeJob) {
 		n.storeSave(w.hs, w.ents)
 		n.hs = w.after
 	}
-	n.inflight = false
 	for _, m := range w.resp {
 		if m.GetTo() == n.id {
 			continue
@@ -1056,6 +1063,9 @@ func (n *node) runApply(a *applyJob) {
 // among them.
 func (n *node) doneApply(a *applyJob) {
 	n.applying = false
+	if n.dead {
+		return
+	}
 	if a.restore != nil {
 		n.applied = a.restore.GetMetadata().GetIndex()
 	} else if len(a.ents) > 0 {
