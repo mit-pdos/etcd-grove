@@ -38,8 +38,8 @@ abbrev consistentIndex.UnsafeSave.spec : Prop :=
       metaWriter tx (fun m' => TMx m' r) PTi PTt ∗ metaRtWriter tx TMx PTr ∗ TMx m r ∗ PTi ∗ PTt ∗ PTr) -∗
     (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ k ={∅, ⊤ \ ↑ciN}=∗
       ⌜k ≠ W64 0 → uint.Z m.1 ≤ uint.Z k⌝ ∗
-        ∀ t rt : w64, (⌜k = W64 0⌝ ∨ □ P k t rt) -∗
-          TMx (metaAfterSave m k t) (rtAfterSave r k rt) -∗ Φ #())) -∗
+        ∀ t rt : w64, iprop((⌜k = W64 0⌝ ∨ □ P k t rt) -∗
+          TMx (metaAfterSave m k t) (rtAfterSave r k rt) -∗ Φ #()))) -∗
     WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave")) (Val #(GoInterface.ok tx))) {{ Φ }}
 
 end spec

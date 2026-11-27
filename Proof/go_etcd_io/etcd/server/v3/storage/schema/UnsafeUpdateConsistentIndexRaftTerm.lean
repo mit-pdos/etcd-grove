@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.UnsafeUpdateConsistentIndexRaftTerm.wp_proof
     (hP : binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG)) :
     schema.UnsafeUpdateConsistentIndexRaftTerm.spec (GF := GF) (hG := hG) := by
-  intro tx TMx PTr m r index raftTerm
+  intro tx TMx PTr m r idx rft
   wp_start as ⟨#Hw, HTM, HPr⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -40,16 +40,20 @@ theorem schema.UnsafeUpdateConsistentIndexRaftTerm.wp_proof
   unfold metaRtWriter
   wp_auto
   wp_if_destruct
-  · -- `index == 0 || raftTerm == 0`: nothing is written
+  · -- `index == 0`: nothing is written
+    have h0 : idx = W64 0 := by word
     iapply HΦ
-    have h : index = W64 0 ∨ raftTerm = W64 0 := by
-      by_cases hi : index = W64 0
-      · exact Or.inl hi
-      · right; simp_all
-    simp only [rtAfterSave, h, ↓reduceIte]
+    simp only [rtAfterSave, h0, true_or, ↓reduceIte]
     iexact HTM
-  have hi : index ≠ W64 0 := by intro h; subst h; simp at Hif
-  have ht : raftTerm ≠ W64 0 := by intro h; subst h; simp at Hif
+  have hi : idx ≠ W64 0 := by intro h; subst h; simp at Hif
+  wp_auto
+  wp_if_destruct
+  · -- `raftTerm == 0`: nothing is written
+    have h0 : rft = W64 0 := by word
+    iapply HΦ
+    simp only [rtAfterSave, h0, or_true, ↓reduceIte]
+    iexact HTM
+  have ht : rft ≠ W64 0 := by intro h; subst h; simp at Hif
   wp_apply (wp_slice_make2 (V := w8) (t := go.byte)) as %bs ⟨Hbs, Hcap⟩
   · ipureintro; decide
   ihave %Hlen := ownSlice_len $$ Hbs
@@ -58,15 +62,15 @@ theorem schema.UnsafeUpdateConsistentIndexRaftTerm.wp_proof
   have hc : 16 ≤ sint.Z bs.cap := by omega
   icases (ownSlice_split_all (V := w8) (W64 8) bs _ _ ⟨by decide, by omega⟩).1 $$ Hbs with ⟨H1, H2⟩
   wp_auto
-  wp_apply wp_bePutUint64 hP _ _ index (by simp) $$ [$H1] as H1
+  wp_apply wp_bePutUint64 hP _ _ idx (by simp) $$ [$H1] as H1
   wp_auto
-  wp_apply wp_bePutUint64 hP _ _ raftTerm (by simp; omega) $$ [$H2] as H2
-  ihave Hbs := (ownSlice_split_all (V := w8) (W64 8) bs _ (u64Be index ++ u64Be raftTerm)
+  wp_apply wp_bePutUint64 hP _ _ rft (by simp; omega) $$ [$H2] as H2
+  ihave Hbs := (ownSlice_split_all (V := w8) (W64 8) bs _ (u64Be idx ++ u64Be rft)
     ⟨by decide, by omega⟩).2 $$ [H1 H2]
   · simp [u64Be_length]
     iframe H1 H2
   wp_auto
-  ihave #Hput := Hw $$ %mb %rk %bs %m %r %index %raftTerm
+  ihave #Hput := Hw $$ %mb %rk %bs %m %r %idx %rft
   wp_bind (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #mb)) (Val #rk)) (Val #bs))
   iapply Hput $$ [Hbs HTM HPr]
   · iframe Hmb Hrkb Hbs HTM HPr
