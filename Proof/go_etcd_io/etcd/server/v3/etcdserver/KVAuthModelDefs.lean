@@ -609,38 +609,113 @@ theorem kvEntryOn_of_refused (c₀ : w64) (ch : apply.Chain) (s : OnState)
   simp only [hna, hnk, Bool.false_eq_true, false_and, and_false, ↓reduceIte]
   rw [if_pos ⟨hk, hr⟩]
 
-/-- **With auth disabled throughout, the mode-`on` model is today's**: if the start's auth state is
-disabled and no entry is an admin entry, every request is let through and the auth state is kept,
-so the log is `kvRaftOf`'s; (unit T3, L3a) if no entry changes the empty lease table. -/
-theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState) (log₀ : mvcc.Log)
-    (A : List EntryModel) (hen : st₀.enabled = false)
-    (hA : ∀ m ∈ A, ∀ rq, apply.irrDecode m.data = some rq → apply.needAdminPermission rq = false)
-    (hL : ∀ m ∈ A, kvTable c₀ ch [] m = []) :
-    kvRaftOfOn c₀ ch (st₀, log₀, []) A = (st₀, kvRaftOf c₀ ch log₀ A, []) := by
-  induction A generalizing log₀ with
-  | nil => rfl
-  | cons m A ih =>
-    have hm := hA m (List.mem_cons_self ..)
-    have hT := hL m (List.mem_cons_self ..)
-    have hstep : kvEntryOn c₀ ch (st₀, log₀, []) m = (st₀, kvEntry c₀ ch [] log₀ m, []) := by
-      by_cases hc : m.typ = W32 0 ∧ m.data ≠ []
-      · cases hdec : apply.irrDecode m.data with
-        | some rq =>
-          rw [kvEntryOn_of_granted c₀ ch _ m rq hdec (hm rq hdec)
-            (fun _ => kvGrantedL_of_disabled _ _ rq hen)]
-          simp only [hT]
-        | none =>
-          unfold kvEntryOn kvEntry
-          rw [if_pos hc, hdec, if_pos hc.1, if_neg hc.2]
-      · unfold kvEntryOn
-        rw [if_neg hc]
-        simp only [hT]
-    show List.foldl (kvEntryOn c₀ ch) (kvEntryOn c₀ ch (st₀, log₀, []) m) A =
-      (st₀, (List.foldl (kvEntrySt c₀ ch) (kvEntrySt c₀ ch (log₀, []) m) A).1, [])
-    rw [hstep, show kvEntrySt c₀ ch (log₀, []) m = (kvEntry c₀ ch [] log₀ m, []) by
-      unfold kvEntrySt; rw [hT]]
-    exact ih (kvEntry c₀ ch [] log₀ m) (fun m' hm' => hA m' (List.mem_cons_of_mem _ hm'))
-      (fun m' hm' => hL m' (List.mem_cons_of_mem _ hm'))
+/-- **No `AuthEnable` above `c₀`**: no normal entry of `A` above `c₀` decodes to a request
+`dispatch` applies as `AuthEnable`. -/
+def noAuthEnable (c₀ : w64) (A : List EntryModel) : Prop :=
+  ∀ m ∈ A, ∀ rq, m.typ = W32 0 → m.data ≠ [] → apply.irrDecode m.data = some rq →
+    uint.Z c₀ < uint.Z m.index → apply.dispatchKind rq ≠ .authEnable
+
+/-- **An admin step other than `AuthEnable` keeps the flag** (`AuthDisable` clears it, which a
+disabled state already has; the other steps write users, roles and the revision). -/
+theorem adminStateR_enabled (rq : apply.IRRModel) (st st' : auth.AuthState)
+    (hen : st.enabled = false) (hk : apply.dispatchKind rq ≠ .authEnable)
+    (h : adminStateR rq st st') : st'.enabled = false := by
+  unfold adminStateR at h
+  split at h
+  · split at h
+    · split at h
+      · rcases h with ⟨-, rfl⟩ | ⟨o, ho, rfl⟩
+        · exact hen
+        · simp only [auth.stepOf] at ho; subst ho
+          unfold auth.userAddF; split
+          · exact hen
+          · split <;> exact hen
+      · subst h; exact hen
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf] at ho; subst ho
+        unfold auth.roleAddF; split
+        · exact hen
+        · split <;> exact hen
+      · subst h; exact hen
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        unfold auth.userGrantRoleR at ho
+        split at ho
+        · subst ho; exact hen
+        · split at ho
+          · subst ho; exact hen
+          · split at ho
+            · subst ho; exact hen
+            · obtain ⟨u', -, -, rfl⟩ := ho; exact hen
+      · subst h; exact hen
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        unfold auth.roleGrantPermissionR at ho
+        split at ho
+        · subst ho; exact hen
+        · split at ho
+          · subst ho; exact hen
+          · split at ho <;> (subst ho; exact hen)
+      · subst h; exact hen
+    · rename_i hk'; exact absurd hk' hk
+    · subst h; exact hen
+  · subst h; exact hen
+
+/-- The model's admin step other than `AuthEnable` keeps a disabled flag. -/
+theorem adminNext_enabled (rq : apply.IRRModel) (st : auth.AuthState) (hen : st.enabled = false)
+    (hk : apply.dispatchKind rq ≠ .authEnable) : (adminNext rq st).enabled = false := by
+  unfold adminNext
+  split
+  · rename_i hd; exact adminStateR_enabled rq st _ hen hk (Classical.choose_spec hd).1
+  · exact hen
+
+/-- **An admin kind writes nothing to the log or the table.** -/
+theorem not_writeKind_of_adminDispatchKind (k : apply.ReqKind) (h : adminDispatchKind k = true) :
+    ¬ writeKind k := by
+  unfold writeKind; cases k <;> simp_all [adminDispatchKind]
+
+/-- **The porting lemma** (the no-mode plan, step 4): from a disabled auth state, along a log with
+no `AuthEnable` above `c₀`, the auth-aware model stays disabled and its log and table are the
+auth-free model's (`kvRaftSt`): every check passes (`adminOk`, `kvGrantedL` of a disabled state),
+and an admin step writes neither the log nor the table. -/
+theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) :
+    ∀ (s : OnState) (A : List EntryModel), s.1.enabled = false → noAuthEnable c₀ A →
+      (kvRaftOfOn c₀ ch s A).1.enabled = false ∧ (kvRaftOfOn c₀ ch s A).2 = kvRaftSt c₀ ch s.2 A
+  | s, [], hen, _ => ⟨hen, rfl⟩
+  | s, m :: A, hen, hA => by
+    have hstep : (kvEntryOn c₀ ch s m).1.enabled = false ∧
+        (kvEntryOn c₀ ch s m).2 = kvEntrySt c₀ ch s.2 m := by
+      have hok : ∀ rq, auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq))) :=
+        fun _ => Or.inl hen
+      unfold kvEntryOn
+      split
+      · rename_i hc
+        split
+        · rename_i rq hdec
+          rw [if_neg (fun h => h.2 (hok rq))]
+          split
+          · rename_i ha
+            refine ⟨adminNext_enabled rq s.1 hen
+              (hA m List.mem_cons_self rq hc.1 hc.2 hdec ha.1), ?_⟩
+            have hw : m.data = [] ∨ m.typ ≠ W32 0 ∨ ∀ rq', apply.irrDecode m.data = some rq' →
+                ¬ writeKind (apply.dispatchKind rq') :=
+              Or.inr (Or.inr fun rq' h => by
+                rw [hdec] at h; cases h; exact not_writeKind_of_adminDispatchKind _ ha.2)
+            unfold kvEntrySt
+            rw [kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m hw, kvTable_nonwrite c₀ ch s.2.2 m hw]
+          · rw [if_neg (fun h => h.2 (kvGrantedL_of_disabled _ _ rq hen))]
+            exact ⟨hen, rfl⟩
+        · rename_i hdec
+          refine ⟨hen, ?_⟩
+          unfold kvEntrySt kvEntry kvTable
+          rw [if_pos hc.1, if_neg hc.2, if_pos hc.1, if_neg hc.2, hdec]
+      · exact ⟨hen, rfl⟩
+    have ih := kvRaftOfOn_disabled c₀ ch (kvEntryOn c₀ ch s m) A hstep.1
+      (fun m' hm' => hA m' (List.mem_cons_of_mem _ hm'))
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).1.enabled = false ∧
+      (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).2 = kvRaftSt c₀ ch (kvEntrySt c₀ ch s.2 m) A
+    rw [← hstep.2]; exact ih
 
 /-- **Entries that are no normal entries keep the model's log and table** (the bootstrap log's
 configuration changes). -/
