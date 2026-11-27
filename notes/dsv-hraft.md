@@ -44,6 +44,25 @@ the pure encodings of `WireEnc.lean`, to prove of the generated codec), the tran
 the receiver
 (`RaftRPC`, `deliver`), the pipeline, and the link.
 
+**S4b (2026-11-27, branch `hraft-s4b/2026-11-27`): the transport's methods, receiver and pipeline proved.**
+Vocabulary `rpctransport/Trans.lean`: server `i`'s transport (`isTrans t γ snapP i W C`, persistent: its
+address, its consumer channel `isRpcChan γ snapP i`, its peers, each raft address `a` a `Conn` to a net/rpc
+server whose `RaftRPC` service is `raftSvc γ snapP a` (`peerOk`), the heartbeat handler under the mutex
+(`hbInv`: nil or `hbHandler γ i`), the registered codec `C` and `⌜CodecLaws C⌝`, S4c's laws, so every
+result is parametric in them); the receiver `isRcv`; `errStr` (the `errors.New` errors the transport makes:
+`errOk`, `errNoFmt`); the pipeline's `futQ`/`isPip` (the lab's `PipeBase`). `WireLen.lean`: a request
+whose `*BoundN` is at most `MaxRequest` has an encoding that fits `maxFrameN`. `Ents.lean`: raft's
+read-only `logPtr`s as wire contents and back. Proved (specs and proofs, over the real code): `New`,
+`Receiver`, `send` (`Conn.Call` at the peer), `Consumer`, `LocalAddr`, `EncodePeer`, `DecodePeer`,
+`SetHeartbeatHandler`, the five calls (conversion, size check, `send` with the codec laws, the response
+facts rebuilt from `raftSvc`'s), `isHeartbeat`, `deliver` (the handler on a fresh goroutine,
+`wp_fork_rtok`), the five `RaftRPC` methods (the lab's message predicates rebuilt from `raftSvc`'s wire
+facts; their specs are what S4c's `methodOk` takes), the four `appendFuture` methods, `pipeline.run`,
+`AppendEntries`, `Consumer`, `Close` and `AppendEntriesPipeline` (the lab's inproc proofs, ported).
+`rpctransport/IsTransport.lean`: `Transport_isTransport`, from the method specs (hypotheses, as a proof's
+callees), `isPkgInit ∗ isTrans t … ⊢ ∃ ch, isTransport ⟨*Transport, #t⟩ γ snapP i ch`. Kit change 4
+(below, approved). Not linked yet (the kit's `Link`, S5). No axiom, `sorry` or premise.
+
 ## Provenance
 
 | | |
