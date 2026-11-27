@@ -6,7 +6,7 @@
 (`etcdstart.bootPremise`, every member's `bootstrapContract`, in each statement's `Hprem`); now from the interim
 axiom (`bootstrap.specDist`), as `etcdstart.BootBridge` does from `bootstrap.spec`:
 * `bootGoAt`: the pure facts the axiom asks of a member's URLs: the values the caller names are Go's (`bootGo.*`
-  at the token and the member's name), and the URLs are `etcd_safe`'s shape (one peer URL per entry, at most 64
+  at the token and the member's name), and the URLs are `etcd_safe`'s shape (one peer URL per entry, at most `typed.maxMembers`
   entries, this member's peer URLs its entry's, one client URL);
 * `bootPremiseDist`: `bootPremise` with the round tripper's contract `etcd_dist.bootRTOk` at the raft names `γ`
   as a further hypothesis (the caller has it where it builds the server: `NewServer.specG_dist`'s `#Hpeers`,
@@ -35,14 +35,14 @@ open Iris Iris.BI Net go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3 et
 
 /-- **What `bootstrap` computes at the URLs `U`, and `etcd_safe`'s shape** (pure): the peers `ps`, contexts
 `ctxs`, directory `dir` and member `name`'s id `id` are Go's (`bootGo.*` at the token `token`), the initial
-cluster's URLs and names plain, every entry with one peer URL, at most 64 entries, the member's peer URLs its
+cluster's URLs and names plain, every entry with one peer URL, at most `typed.maxMembers` entries, the member's peer URLs its
 entry's and one client URL, and `bootstrap.spec`'s facts of the URLs (`urlsNe`, `initMapOk`). -/
 def bootGoAt [GooseExts] (ps : List w64) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (token name : GoString) (id : w64) (U : BootURLs) : Prop :=
   bootGo.bootURLsPlain U ∧ bootGo.ps U token = ps ∧ bootGo.ctxs U token = ctxs ∧
     bootGo.dir U token = dir ∧ (bootGo.memberOf U token name).id = id ∧ bootNamesPlain U ∧
     bootGo.urlsNe U ∧ bootGo.initMapOk U token ∧
-    (∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length = 1) ∧ GMap.size U.initMap ≤ 64 ∧
+    (∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length = 1) ∧ GMap.size U.initMap ≤ typed.maxMembers ∧
     U.peer = U.initURLs name ∧ U.client.length = 1
 
 section defs
@@ -89,7 +89,7 @@ theorem bootstrapContract_of_specDist [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundL
     (hb : _root_.Perennial.EtcdGrove.bootstrap.specDist (GF := GF) (hG := hG))
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat)
     (h1 : ∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length = 1)
-    (h64 : GMap.size U.initMap ≤ 64) (hpeer : U.peer = U.initURLs cfg.Name')
+    (h64 : GMap.size U.initMap ≤ typed.maxMembers) (hpeer : U.peer = U.initURLs cfg.Name')
     (hcl : U.client.length = 1)
     (hidr : bootGo.idRaftOk cfg U) (hune : bootGo.urlsNe U)
     (hplain : bootGo.bootURLsPlain U) (hfips : crypto.fips140.GodebugFips140Off)

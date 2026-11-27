@@ -1,0 +1,96 @@
+name: ci
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+    tags: ["*"]
+
+permissions:
+  contents: read
+
+jobs:
+  go-fmt-and-vet:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 'stable'
+          cache: true
+      - name: go fmt
+        run: |
+          files=$(go fmt ./...)
+          if [ -n "$files" ]; then
+            echo "The following file(s) do not conform to go fmt:"
+            echo "$files"
+            exit 1
+          fi
+      - name: go vet
+        run: |
+          PACKAGE_NAMES=$(go list ./... | grep -v github.com/hashicorp/raft/fuzzy)
+          go vet $PACKAGE_NAMES
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+
+  go-test:
+    needs: go-fmt-and-vet
+    strategy:
+      matrix:
+        go: ['stable', 'oldstable']
+        arch: ['x32', 'x64']
+    runs-on: ubuntu-22.04
+    env:
+      INTEG_TESTS: yes
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          architecture: ${{ matrix.arch }}
+          cache: true
+      # x86 specific build.
+      - if: matrix.arch == 'x32'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-multilib
+          go test --tags batchtest ./...
+      # x86-64 specific build.
+      - if: matrix.arch == 'x64'
+        run: go test -race --tags batchtest ./...
+  go-test-compat:
+    needs: go-test
+    strategy:
+      matrix:
+        go: ['stable', 'oldstable']
+        arch: ['x32', 'x64']
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          architecture: ${{ matrix.arch }}
+          cache: true
+          submodules: true
+      # x86 specific build.
+      - if: matrix.arch == 'x32'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-multilib
+          git submodule update --init --recursive
+          cd raft-compat
+          go mod tidy
+          go test -v -coverpkg=./... ./... -coverprofile="${{ github.workspace }}/coverage.out"
+      # x86-64 specific build.
+      - if: matrix.arch == 'x64'
+        run: |
+          git submodule update --init --recursive
+          cd raft-compat
+          go mod tidy
+          go test -race -v -coverpkg=./... ./... -coverprofile="${{ github.workspace }}/coverage.out"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: "${{ github.workspace }}/coverage.out"
+          name: coverage-report-${{matrix.go}}-${{matrix.arch}}

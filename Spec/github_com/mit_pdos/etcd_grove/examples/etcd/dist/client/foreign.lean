@@ -10,6 +10,17 @@ single-process `etcd_authlease.foreign.spec`, the caller refutes what would pani
 (returned): `Revoke`'s success (its result `Qr σ` and its check `writeCheckedD`), and member `mid`'s read verdict
 granting the principal the key `forbidden` at a published index `n ≥ n₀` (what `TimeToLive`'s post says of each
 returned key). Lean-first (no Rocq counterpart); F7 stage S5, the TimeToLive check F7 (fork).
+
+**The property** (rule 41, Upamanyu's option (a), 2026-11-27): no reply discloses a key the caller cannot read:
+`TimeToLive` with keys is refused or carries no forbidden key, and `Leases` returns lease IDs only. Refusal itself
+is not demanded of `TimeToLive` or `Leases`: the single-process `etcd_authlease.foreign` tests etcd's all-or-nothing
+policy (`checkLeaseTimeToLive`, `checkLeaseLeases`: refused when the lease holds any key the user may not read),
+which etcd does not keep during a snapshot's apply. `applySnapshot` calls `lessor.Recover`, which reloads every lease
+with no key attached (`lessor.go:820-826`, `initAndRecover`), before `kv.Restore` re-attaches the keys
+(`server.go:1067,1074`, at etcd `main` `4e090c033`; `mvcc/kvstore.go:403-413`); both checks read the member's own
+lessor and pass in between. `Lease_TimeToLiveOn_dist` and `Lease_LeasesOn_dist` state the checks over some lessor state
+of index `≥ m₀`, so they give no refusal; a Go test at etcd `main` fails on both refusals
+(`issues/etcd-lease-auth-snapshot-restore-keyless.md`).
 -/
 module
 
