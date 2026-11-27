@@ -21,7 +21,7 @@ public import Spec.go_etcd_io.etcd.client.v3.kubernetes.New
 public import Spec.context.ErrAny
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WatchQ
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WatchEnvN
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Contract
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer

@@ -8,12 +8,15 @@
 // the receiving raft travels in the answer (Failed, Err); the RPC methods always return nil.
 //
 // As upstream's NetworkTransport does: a heartbeat (an AppendEntries with a term and a leader and
-// nothing else) goes to the handler raft set (SetHeartbeatHandler), on the receiving connection's
-// goroutine, not through raft's RPC channel; AppendEntriesPipeline is a pipeline whose requests
+// nothing else) goes to the handler raft set (SetHeartbeatHandler), not through raft's RPC
+// channel (upstream runs it on the receiving connection's goroutine; here it runs on a goroutine of
+// its own while the receiving one waits for its answer); AppendEntriesPipeline is a pipeline whose requests
 // are sent one after another and whose answers come back in order; InstallSnapshot carries the
 // snapshot's bytes in the request, and the receiving raft reads them from a reader over a copy.
 // The transport maps a peer's raft address to its network address (New's peers): a raft address
-// need not be a network address.
+// need not be a network address. A request whose encoding may be longer than MaxRequest (the
+// net/rpc model's frame bound; *ReqBound) is refused with an error before it is sent, which raft
+// retries as any failed call: a liveness cost only, which no request of the kit comes near.
 package rpctransport
 
 import (
@@ -138,6 +141,72 @@ type TimeoutResp struct {
 	Failed bool
 	Err    string
 	Hdr    Header
+}
+
+// --- the size check
+
+// MaxRequest is the longest encoded request the transport sends: the net/rpc model has no
+// behavior for a request frame longer than 1 GiB (models/net/rpc/codec.go's maxFrame: a client
+// writing one is stuck), so a request whose wire-size bound exceeds it is refused (an error, which
+// raft retries like any failed call: only liveness is lost; no request of the kit comes near it).
+const MaxRequest uint64 = 1 << 30
+
+// tooLarge is the error of a refused request.
+const tooLarge = "rpctransport: request too large"
+
+// BytesBound bounds the encoded length of a byte-slice field (rpcgen's encoding,
+// models/net/rpc/rpcgen_core.py: a sent flag, the length, 8 bytes per byte), saturating above
+// MaxRequest (so that the sums below do not overflow).
+func BytesBound(b []byte) uint64 {
+	n := uint64(len(b))
+	if n > MaxRequest {
+		return MaxRequest + 1
+	}
+	return 17 + 8*n
+}
+
+// hdrBound bounds the encoded length of a Header field (its flag, the struct's, the version's,
+// both slices).
+func hdrBound(h *Header) uint64 {
+	return 16 + BytesBound(h.ID) + BytesBound(h.Addr)
+}
+
+// tagBound bounds the encoded length of a request's type tag and struct marker (the longest
+// tag, rpctransport.TimeoutResp's, has 68 bytes, after its 8-byte length).
+const tagBound uint64 = 128
+
+// AppendReqBound is a conservative bound on the length of the encoding of a (rpcgen's codec):
+// at least it (rpctransport_test.go's TestBounds, against the generated encoder).
+func AppendReqBound(a *AppendReq) uint64 {
+	n := tagBound + hdrBound(&a.Hdr) + BytesBound(a.Leader) + 64
+	for _, e := range a.Entries {
+		if n > MaxRequest {
+			return n
+		}
+		n = n + 64 + BytesBound(e.Data) + BytesBound(e.Extensions)
+	}
+	return n
+}
+
+// VoteReqBound is a conservative bound on the length of the encoding of a (TestBounds).
+func VoteReqBound(a *VoteReq) uint64 {
+	return tagBound + hdrBound(&a.Hdr) + BytesBound(a.Candidate) + 64
+}
+
+// PreVoteReqBound is a conservative bound on the length of the encoding of a (TestBounds).
+func PreVoteReqBound(a *PreVoteReq) uint64 {
+	return tagBound + hdrBound(&a.Hdr) + 64
+}
+
+// SnapReqBound is a conservative bound on the length of the encoding of a (TestBounds).
+func SnapReqBound(a *SnapReq) uint64 {
+	return tagBound + hdrBound(&a.Hdr) + BytesBound(a.Leader) + BytesBound(a.Peers) +
+		BytesBound(a.Configuration) + BytesBound(a.Data) + 128
+}
+
+// TimeoutReqBound is a conservative bound on the length of the encoding of a (TestBounds).
+func TimeoutReqBound(a *TimeoutReq) uint64 {
+	return tagBound + hdrBound(&a.Hdr)
 }
 
 // copyBytes is a fresh copy of b (nil for nil).
@@ -374,7 +443,7 @@ func (t *Transport) DecodePeer(buf []byte) raft.ServerAddress {
 	return raft.ServerAddress(buf)
 }
 
-// SetHeartbeatHandler sets the handler heartbeats go to, on the receiving connection's goroutine.
+// SetHeartbeatHandler sets the handler heartbeats go to (deliver).
 func (t *Transport) SetHeartbeatHandler(cb func(rpc raft.RPC)) {
 	t.mu.Lock()
 	t.hb = cb
@@ -382,8 +451,12 @@ func (t *Transport) SetHeartbeatHandler(cb func(rpc raft.RPC)) {
 }
 
 func (t *Transport) AppendEntries(id raft.ServerID, target raft.ServerAddress, args *raft.AppendEntriesRequest, resp *raft.AppendEntriesResponse) error {
+	w := toAppendReq(args)
+	if AppendReqBound(w) > MaxRequest {
+		return errors.New(tooLarge)
+	}
 	reply := new(AppendResp)
-	if err := t.send(target, "AppendEntries", toAppendReq(args), reply); err != nil {
+	if err := t.send(target, "AppendEntries", w, reply); err != nil {
 		return err
 	}
 	if reply.Failed {
@@ -394,8 +467,12 @@ func (t *Transport) AppendEntries(id raft.ServerID, target raft.ServerAddress, a
 }
 
 func (t *Transport) RequestVote(id raft.ServerID, target raft.ServerAddress, args *raft.RequestVoteRequest, resp *raft.RequestVoteResponse) error {
+	w := toVoteReq(args)
+	if VoteReqBound(w) > MaxRequest {
+		return errors.New(tooLarge)
+	}
 	reply := new(VoteResp)
-	if err := t.send(target, "RequestVote", toVoteReq(args), reply); err != nil {
+	if err := t.send(target, "RequestVote", w, reply); err != nil {
 		return err
 	}
 	if reply.Failed {
@@ -406,8 +483,12 @@ func (t *Transport) RequestVote(id raft.ServerID, target raft.ServerAddress, arg
 }
 
 func (t *Transport) RequestPreVote(id raft.ServerID, target raft.ServerAddress, args *raft.RequestPreVoteRequest, resp *raft.RequestPreVoteResponse) error {
+	w := toPreVoteReq(args)
+	if PreVoteReqBound(w) > MaxRequest {
+		return errors.New(tooLarge)
+	}
 	reply := new(PreVoteResp)
-	if err := t.send(target, "RequestPreVote", toPreVoteReq(args), reply); err != nil {
+	if err := t.send(target, "RequestPreVote", w, reply); err != nil {
 		return err
 	}
 	if reply.Failed {
@@ -423,8 +504,12 @@ func (t *Transport) InstallSnapshot(id raft.ServerID, target raft.ServerAddress,
 	if err != nil {
 		return err
 	}
+	w := toSnapReq(args, b)
+	if SnapReqBound(w) > MaxRequest {
+		return errors.New(tooLarge)
+	}
 	reply := new(SnapResp)
-	if err := t.send(target, "InstallSnapshot", toSnapReq(args, b), reply); err != nil {
+	if err := t.send(target, "InstallSnapshot", w, reply); err != nil {
 		return err
 	}
 	if reply.Failed {
@@ -435,8 +520,12 @@ func (t *Transport) InstallSnapshot(id raft.ServerID, target raft.ServerAddress,
 }
 
 func (t *Transport) TimeoutNow(id raft.ServerID, target raft.ServerAddress, args *raft.TimeoutNowRequest, resp *raft.TimeoutNowResponse) error {
+	w := &TimeoutReq{Hdr: toHeader(args.RPCHeader)}
+	if TimeoutReqBound(w) > MaxRequest {
+		return errors.New(tooLarge)
+	}
 	reply := new(TimeoutResp)
-	if err := t.send(target, "TimeoutNow", &TimeoutReq{Hdr: toHeader(args.RPCHeader)}, reply); err != nil {
+	if err := t.send(target, "TimeoutNow", w, reply); err != nil {
 		return err
 	}
 	if reply.Failed {
@@ -566,8 +655,11 @@ func isHeartbeat(a *raft.AppendEntriesRequest) bool {
 }
 
 // deliver hands raft cmd (with data, InstallSnapshot's reader; nil otherwise): a heartbeat (hb)
-// to the heartbeat handler if raft set one, on this goroutine, anything else to the consumer;
-// then it waits for raft's response.
+// to the heartbeat handler if raft set one, on a goroutine of its own, anything else to the
+// consumer; then it waits for raft's response. (Upstream's NetworkTransport runs the handler on
+// the connection's goroutine; here the RPC's goroutine waits on respCh while it runs, which is the
+// same behavior: the fresh goroutine is what gives the handler a thread of its own in the proof,
+// since net/rpc's method goroutine lends none.)
 func (t *Transport) deliver(cmd any, data io.Reader, hb bool) (any, error) {
 	respCh := make(chan raft.RPCResponse, 1)
 	r := raft.RPC{Command: cmd, Reader: data, RespChan: respCh}
@@ -578,7 +670,7 @@ func (t *Transport) deliver(cmd any, data io.Reader, hb bool) (any, error) {
 		t.mu.Unlock()
 	}
 	if fn != nil {
-		fn(r)
+		go fn(r)
 	} else {
 		t.consumer <- r
 	}

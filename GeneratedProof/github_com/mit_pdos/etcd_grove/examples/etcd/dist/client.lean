@@ -4,10 +4,10 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.github_com.anishathalye.porcupine
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.auth
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.authwork
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.remote
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb

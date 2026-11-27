@@ -1,9 +1,9 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lib/txnwork/Link.lean`
 # (all Lean-first), read by `etc/gen-link.py --linkvtxn`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `linkvtxn`.
 #
-# the porcupine model (examples/etcd/txnlin/etcd_txnlin.go: Model and its helpers; linkv-txn stage E)
+# the porcupine model (examples/lib/txnwork/txnwork.go: Model and its helpers; linkv-txn stage E)
 lookup:
 setKey:
 delKey:
@@ -37,9 +37,9 @@ cmpConfig: cmpStore cmpInt cmpInput
 addConfig: cmpConfig
 closure: addConfig mstep removeAt
 step: isWrite mstep outEqual
-txnlin_Model: step addConfig closure configEqual
+txnwork_Model: step addConfig closure configEqual
 #
-# `Apply` and its callees (examples/etcd/txnlin/etcd_txnlin.go: `call`, one function per kind, and the
+# `Apply` and its callees (examples/lib/txnwork/txnwork.go: `call`, one function per kind, and the
 # client's builders; linkv-txn stage F); the clientv3 functions linked here as the leasing
 # package's are, under this package's assumptions
 vrOf:
@@ -86,22 +86,14 @@ callPut: context_WithTimeoutBackground context_ErrAny =client.client_Put_st_law_
 callDel: context_WithTimeoutBackground context_ErrAny =client.client_Delete_st_law_holds
 callTxn: context_WithTimeoutBackground context_ErrAny cmpsFor opsOf thenOf elseOf txnRes withRes =client.client_Txn_st_law_holds txn__If txn__Then txn__Else =txn_Commit_st_law_holds
 call: callGet callList callPut callDel callTxn
-txnlin_Apply: call isWrite
+txnwork_Apply: call isWrite
 # remote's client machine (etcd-dist kv, examples/etcd/dist/kvremote): call without prophecies; isWrite exported
-txnlin_Call: call
-txnlin_IsWrite: isWrite
+txnwork_Call: call
+txnwork_IsWrite: isWrite
 #
 # the generator, `Check` (over the driver's, `@`) and `Main` (over the examples' shared start's,
 # `common`'s, `@`), as linkv's (linkv-txn stage G)
 workloadKeys:
 pick:
 genFrom: workloadKeys pick
-txnlin_Gen: genFrom
-Run: @
-CounterClock: @
-txnlin_Check: Run CounterClock txnlin_Model txnlin_Gen txnlin_Apply
-etcdstart_StartServer: @
-etcdstart_Serve: @
-etcdstart_NewClient: @
-zap_NewNop:
-txnlin_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient txnlin_Check =mvcc.api.mvccApi_names_nonempty_law_holds =_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
+txnwork_Gen: genFrom

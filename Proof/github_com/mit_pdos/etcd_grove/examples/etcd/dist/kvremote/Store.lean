@@ -28,9 +28,9 @@ the kv workload's model, txnlin's `linkvtxnS`:
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Enc
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.GenLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Enc
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.GenLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Pend
 
@@ -46,7 +46,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 open EtcdGrove EtcdGrove.etcd_txnlin
 open go_etcd_io.etcd.server.v3.etcdserver mvcc
 open github_com.mit_pdos.etcd_grove.examples.lib.remote
@@ -443,7 +443,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions]
 
 include sem package_sem in
 theorem boxOut_inj {y y' : Output} (h : boxOut y = boxOut y') : y = y' := by

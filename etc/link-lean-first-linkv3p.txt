@@ -11,13 +11,13 @@ cluster3_NewClient: @
 cluster3_Partitioner: @
 # `Apply` over linkvtxn's; `Check` over the driver's `Run` and `CounterClock`, linkvtxn's `Model`
 # and `Gen` (all linked in their `Link.lean`s)
-txnlin_Apply: @
-partition_Apply: txnlin_Apply
+txnwork_Apply: @
+partition_Apply: txnwork_Apply
 Run: @
 CounterClock: @
-txnlin_Model: @
-txnlin_Gen: @
-partition_Check: Run CounterClock txnlin_Model txnlin_Gen partition_Apply
+txnwork_Model: @
+txnwork_Gen: @
+partition_Check: Run CounterClock txnwork_Model txnwork_Gen partition_Apply
 # `startCluster`: the configuration (`config`), the members and the bridges, and the clients (W4 of
 # `notes/watch-cut-plan.md`)
 partition_config:

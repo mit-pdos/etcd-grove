@@ -48,12 +48,14 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --lintest-logkvsnap > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/Link.lean
        etc/gen-link.py --lintest-logkvrw > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/Link.lean
        etc/gen-link.py --lintest-logkvappend > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/Link.lean
-       etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean
+       etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/lib/txnwork/Link.lean
+       etc/gen-link.py --linkvtxn-main > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean
        etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Link.lean
        etc/gen-link.py --prophkv > Proof/github_com/mit_pdos/etcd_grove/examples/goose/prophkv/Link.lean
        etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/Link.lean
-       etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean
+       etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/lib/authwork/Link.lean
+       etc/gen-link.py --authkv-main > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean
        etc/gen-link.py --k8s > Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean
        etc/gen-link.py --k8s-etcd3 > Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean
        etc/gen-link.py --cacher > Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean
@@ -427,16 +429,24 @@ LEAN_FIRST = {
                         "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend.Assumptions",
                         "The log-applied register's variant's proofs (`examples/lib/lintest/logkvappend`)",
                         [""]),
-    # the linearizability instance over the robustness tester's KV workload (examples/etcd/txnlin,
-    # notes/linkv-txn-plan.md): its porcupine model (stage E), `Apply` (stage F), its generator,
-    # `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the client's, `@`;
-    # stage G)
+    # the linearizability instance's KV workload (the library examples/lib/txnwork, moved out of
+    # examples/etcd/txnlin on 2026-11-27; notes/linkv-txn-plan.md): its porcupine model (stage E),
+    # `Apply` (stage F), its generator (stage G)
     "--linkvtxn": ("link-lean-first-linkvtxn.txt",
-                   "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                   "github_com.mit_pdos.etcd_grove.examples.lib.txnwork "
                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                    "github_com.anishathalye.porcupine",
-                   "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions",
-                   "The KV-workload linearizability instance's proofs (`examples/etcd/txnlin`)", [""]),
+                   "github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions",
+                   "The KV-workload linearizability instance's workload proofs (`examples/lib/txnwork`)", [""]),
+    # its driver (examples/etcd/txnlin): `Check` (over lintest's, `@`) and `Main` (over the server's,
+    # v3rpc's and the client's, `@`; stage G), over the library's results (`REUSES`)
+    "--linkvtxn-main": ("link-lean-first-linkvtxn-main.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.txnwork "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions",
+                        "The KV-workload linearizability instance's driver proofs (`examples/etcd/txnlin`)", [""]),
     # the three-member instance under network partitions (examples/etcd/partition, notes/partition-plan.md):
     # its `startCluster` (over `--cluster3`'s `StartCluster` and `NewClient`, `@`; until 2026-11-05
     # its own `startMember`, `startBridge`, `partitioner`), `Apply` (over linkvtxn's `Apply`, `@`),
@@ -444,7 +454,7 @@ LEAN_FIRST = {
     # `MainWatch` (over `--cluster3`'s `Partitioner`, `@`)
     "--linkv3p": ("link-lean-first-linkv3p.txt",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.partition "
-                  "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                  "github_com.mit_pdos.etcd_grove.examples.lib.txnwork "
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                   "github_com.anishathalye.porcupine",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions",
@@ -460,12 +470,19 @@ LEAN_FIRST = {
                   "github_com.mit_pdos.etcd_grove.examples.etcd.watch",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assumptions",
                   "The watch example's proofs (`examples/etcd/watch`)", [""]),
-    # the authentication example (examples/etcd/auth, the auth plan's E2b): its pure checks and
-    # `Main` (not proved yet)
+    # the authentication example's set-up, workload and checks (the library examples/lib/authwork,
+    # moved out of examples/etcd/auth on 2026-11-27; the auth plan's E2b)
     "--authkv": ("link-lean-first-authkv.txt",
-                 "github_com.mit_pdos.etcd_grove.examples.etcd.auth",
-                 "github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions",
-                 "The authentication example's proofs (`examples/etcd/auth`)", [""]),
+                 "github_com.mit_pdos.etcd_grove.examples.lib.authwork",
+                 "github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions",
+                 "The authentication example's workload proofs (`examples/lib/authwork`)", [""]),
+    # its driver (examples/etcd/auth): the member's start, `Run` and `Main`, over the library's
+    # results (`REUSES`)
+    "--authkv-main": ("link-lean-first-authkv-main.txt",
+                      "github_com.mit_pdos.etcd_grove.examples.etcd.auth "
+                      "github_com.mit_pdos.etcd_grove.examples.lib.authwork",
+                      "github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions",
+                      "The authentication example's driver proofs (`examples/etcd/auth`)", [""]),
     # the cache watch example (examples/etcd/cache): watchkv's functions, the cache watch's options,
     # and `Main` (over the server's, v3rpc's, the client's, `context`'s and the cache's, `@`)
     "--cachekv": ("link-lean-first-cachekv.txt",
@@ -608,18 +625,21 @@ EXT_OPENS = {"--bboltfs": "\nopen Fs\n"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
 # model of `idutil`'s `Generator.Next` steps through it, so every mode whose links reach `Next`'s
 # proof (the server's, and those linking over it) takes its `HasExt`.
-for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
+for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--linkvtxn", "--linkvtxn-main", "--watchkv", "--authkv", "--authkv-main",
            "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
     EXTS[_m] = "[HasExt idIssueExt]"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--linkvtxn-main": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--authkv-main": "etcd_auth", "--cachekv": "etcd_cache", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs", "--deployment": "etcd_dist"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
-REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
+REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"],
+          # (2026-11-27) the drivers over their workload libraries' Links
+          "--linkvtxn-main": ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Link"],
+          "--authkv-main": ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
@@ -631,7 +651,7 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # (the import tiers, 2026-11-18) the client's laws its proofs take (`=client.*_law_holds`,
                  # `=etcd_txnlin.*_law_holds` callees)
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
-                           "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
+                           "Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
                  "--raft": ["Perennial.Proof.time.Link", "Perennial.Proof.strings.Link"],
                  # (fmt stage 1, 2026-11-24) Perennial's `strings.Join` (raft's `strings.Join`, `=` callee)
@@ -710,16 +730,16 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
-for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--linkvtxn-main", "--k8setcd3", "--cluster3", "--authkv", "--authkv-main"]:
     EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
 # (premises to axioms, 2026-11-24) the examples' bootstrap logs' `bootMarshal` from `proto.Marshal`'s
 # trust-boundary axiom at a boot conf change (`=_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof`)
-for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--linkvtxn-main", "--k8setcd3", "--cluster3", "--authkv", "--authkv-main"]:
     EXTRA_IMPORTS[_m].append("Proof.google_golang_org.protobuf.proto.MarshalBootConfChange")
 # (the import tiers, 2026-11-18) the laws of the client's linked calls the call proofs take
 # (`=client.*_law_holds`, `=*_law_holds` of `CallsLinked.lean`)
 EXTRA_IMPORTS["--linkvtxn"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
-                                "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"]
+                                "Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.CallsLinked"]
 EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
@@ -764,8 +784,8 @@ EXTRA_IMPORTS["--antithesis"] = ["Perennial.Proof.sync.Link", "Perennial.Proof.t
                                  "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1ReadStates",
                                  "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1SendWp",
                                  "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1AdvWp"]
-EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
-                              "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
+EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn",
+                              "Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
@@ -841,7 +861,7 @@ if ALIAS:
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
 NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--linkv3p",
-            "--linkvtxn", "--kvwitness", "--k8setcd3"}
+            "--linkvtxn", "--linkvtxn-main", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
 # `[StorageModel GF]` are instantiated there.

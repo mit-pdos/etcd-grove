@@ -1,7 +1,7 @@
 /-
 `NewAuthClient(cc)` (`api/etcdserverpb/rpc_grpc.pb.go`, generated): the client stub of the Auth service.
 
-Users: the client's `RetryAuthClient` (1c), `examples/etcd/auth`. Snippet: `examples/specreq/etcdserverpb/stubs.go`.
+Users: the client's `RetryAuthClient` (1c), `examples/lib/authwork`. Snippet: `examples/specreq/etcdserverpb/stubs.go`.
 
 Proof sketch: the body allocates `&authClient{cc}`; persist it (`stubAt`). `remoteAuthAt` (the client's contract
 of the service, `client/v3/Api*.lean`) of the result, per method: the stub's spec (`authClient.*.spec`,

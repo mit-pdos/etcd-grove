@@ -20,10 +20,10 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/txnwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
@@ -307,8 +307,8 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 	t0 := time.Now()
 	apply := func(input any) any {
 		time.Sleep(pause)
-		kind := input.(txnlin.Input).Kind
-		read := kind == txnlin.KGet || kind == txnlin.KList
+		kind := input.(txnwork.Input).Kind
+		read := kind == txnwork.KGet || kind == txnwork.KList
 		var i int
 		if pick != nil {
 			i = pick(read)
@@ -318,10 +318,10 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 			mu.Unlock()
 		}
 		start := time.Since(t0)
-		out := txnlin.Apply(clis[i], input)
+		out := txnwork.Apply(clis[i], input)
 		end := time.Since(t0)
 		mu.Lock()
-		ops = append(ops, cutOp{i, start, end, out.(txnlin.Output).Err, read})
+		ops = append(ops, cutOp{i, start, end, out.(txnwork.Output).Err, read})
 		mu.Unlock()
 		return out
 	}
@@ -334,7 +334,7 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 		}
 		go control(snap, func() time.Duration { return time.Since(t0) })
 	}
-	if r := lintest.Run(txnlin.Model(), apply, txnlin.Gen, lintest.CounterClock(), 3, n,
+	if r := lintest.Run(txnwork.Model(), apply, txnwork.Gen, lintest.CounterClock(), 3, n,
 		0); r != porcupine.Ok {
 		t.Fatalf("got %v", r)
 	}
@@ -388,7 +388,7 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 }
 
 // timedOut: the operation op failed at its request timeout (etcdstart.RequestTimeout after its
-// start, give or take: txnlin.Apply reports only that a call failed).
+// start, give or take: txnwork.Apply reports only that a call failed).
 func timedOut(op cutOp) bool {
 	d := op.end - op.start
 	return op.err && d > etcdstart.RequestTimeout-500*time.Millisecond &&
