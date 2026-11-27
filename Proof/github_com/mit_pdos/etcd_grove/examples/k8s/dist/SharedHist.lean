@@ -189,6 +189,7 @@ structure HRel (A : List Nat) (n0 : Nat) (ρ : Nat → Nat) (W : List Nat) (s c 
     StoredRv n0 W (uint.nat it.obj'.ResourceVersion')
   hist : ∀ x ≤ uint.nat s.st.rv, ∀ y ≤ uint.nat c.st.rv, PairW n0 ρ W x y →
     (histN c.hist y).items = (histN s.hist x).items.map (renItem ρ)
+  seed : ∀ x ≤ n0, histN s.hist x = histN c.hist x
 
 section rel
 variable {A : List Nat} {n0 : Nat} {ρ : Nat → Nat} {W : List Nat} {s c : HSt}
@@ -243,7 +244,7 @@ theorem HRel.init (h0 : HSt) (hlen : h0.hist.length = uint.nat h0.st.rv)
       rw [show (W64 (uint.nat it.obj'.ResourceVersion' : Int)) = it.obj'.ResourceVersion' by word]
     rw [this, List.map_id]
   refine ⟨Nat.le_refl _, Nat.le_refl _, hlen, hlen, hl, hl, fun x h1 h2 => by omega,
-    fun x h1 h2 => by omega, by simp, fun _ _ => rfl, by simp, by simp, by simp, ?_, ?_⟩
+    fun x h1 h2 => by omega, by simp, fun _ _ => rfl, by simp, by simp, by simp, ?_, ?_, ?_⟩
   · intro x _ it hi
     left
     rcases histN_mem h0.hist x with he | he
@@ -255,6 +256,7 @@ theorem HRel.init (h0 : HSt) (hlen : h0.hist.length = uint.nat h0.st.rv)
       · exact hp.1 e
       · omega
     subst this; rw [hid]
+  · intro _ _; rfl
 
 /-- **A foreign revision of the cluster.** -/
 theorem HRel.foreign_c (h : HRel A n0 ρ W s c) (hw : uint.nat c.st.rv + 1 < 2 ^ 64) :
@@ -269,7 +271,8 @@ theorem HRel.foreign_c (h : HRel A n0 ρ W s c) (hw : uint.nat c.st.rv + 1 < 2 ^
   refine ⟨h.n0_le, by rw [hrv]; exact Nat.le_succ_of_le h.le, h.slen, by rw [hh, hrv]; simp [hlen],
     h.slast, htop, h.shrv, fun y h1 h2 => ?_, h.W_in, h.ρ_id,
     fun w hw' => by rw [hrv]; exact ⟨(h.ρ_W w hw').1, Nat.le_succ_of_le (h.ρ_W w hw').2⟩,
-    h.ρ_mono, h.cut, h.stored, fun x hx y hy hp => ?_⟩
+    h.ρ_mono, h.cut, h.stored, fun x hx y hy hp => ?_,
+    fun x hx => by have := h.n0_le; have := h.le; rw [hlow x (by omega)]; exact h.seed x hx⟩
   · rw [hrv] at h2
     rcases Nat.lt_or_eq_of_le h2 with h2 | h2
     · rw [hlow y (by omega)]; exact h.chrv y h1 (by omega)
@@ -308,7 +311,7 @@ theorem HRel.foreign_s (h : HRel A n0 ρ W s c) (hlt : uint.nat s.st.rv < uint.n
   refine ⟨by rw [hrv]; omega, by rw [hrv]; omega, by rw [hh, hrv]; simp [hlen], h.clen, htop, h.clast,
     fun x h1 h2 => ?_, h.chrv, fun w hw' => by rw [hrv]; exact ⟨(h.W_in w hw').1,
       Nat.le_succ_of_le (h.W_in w hw').2⟩, h.ρ_id, h.ρ_W, h.ρ_mono, h.cut, fun x hx it hi => ?_,
-    fun x hx y hy hp => ?_⟩
+    fun x hx y hy hp => ?_, fun x hx => by rw [hlow x (by omega)]; exact h.seed x hx⟩
   · rw [hrv] at h2
     rcases Nat.lt_or_eq_of_le h2 with h2 | h2
     · rw [hlow x (by omega)]; exact h.shrv x h1 (by omega)
@@ -436,7 +439,7 @@ theorem HRel.write (h : HRel A n0 ρ W s c) (x : Input)
   have hmap : ∀ x' ≤ uint.nat s.st.rv, (histN s.hist x').items.map (renItem ρ') =
       (histN s.hist x').items.map (renItem ρ) := fun x' hx' => by
     rw [← hρ']; exact h.map_ext _ x' hx'
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun x' hx' => ?_⟩
   · simp only; omega
   · simp only; omega
   · simp only [List.length_append, List.length_singleton]; omega
@@ -496,6 +499,8 @@ theorem HRel.write (h : HRel A n0 ρ W s c) (x : Input)
     · omega
     · omega
     · subst hx' hy; rw [hstop, hctop]; exact hitems
+  · simp only
+    rw [histN_snoc_le _ _ _ (by omega), histN_snoc_le _ _ _ (by omega)]; exact h.seed x' hx'
 
 end rel
 
