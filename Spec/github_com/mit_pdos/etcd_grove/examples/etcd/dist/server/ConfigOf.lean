@@ -2,7 +2,7 @@
 
 `server.ConfigOf(d, i)` (`examples/etcd/dist/server`): member `i`'s configuration of the deployment held by the
 Go value `v` (`deploymentRepr`): `configRepr` (`MemberDefs.lean`), its initial cluster a fresh slice of every
-member's entry, read-only. At most 64 members (`WellFormed`'s bound; `append` needs fewer than `2 ^ 63`).
+member's entry, read-only. At most `typed.maxMembers` members (`WellFormed`'s bound; `append` needs fewer than `2 ^ 63`).
 -/
 module
 
@@ -30,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server
 /-- See the file header. -/
 abbrev ConfigOf.spec : Prop :=
   ∀ (v : deployment.Deployment) (d : Deployment) (i : Nat) (m : Member),
-  d.members[i]? = some m → d.members.length ≤ 64 →
+  d.members[i]? = some m → d.members.length ≤ typed.maxMembers →
   {{ deploymentRepr (GF := GF) v d }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.ConfigOf)) (Val #v))
       (Val #(W64 i)))

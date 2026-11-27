@@ -2,7 +2,7 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/NodeDeployment.lean`. Lean-first.
 `NodeDeployment.wp_proofKv` (N7-kv, M1) and `NodeDeployment.wp_proof` (F8): the deployment check, then `NodeMain`
 of the `n`-th client machine at its share (`nodeShareF_eq`), with the pure facts `WellFormed` gives
-(`wellFormed_wlPure`, at most 64 members, `rotateL_plain`).
+(`wellFormed_wlPure`, at most `typed.maxMembers` members, `rotateL_plain`).
 -/
 module
 
@@ -53,6 +53,7 @@ theorem NodeDeployment.wp_proofKv (NP : w64 → GoString → List GoString → I
     have hkv := Hkv hwf
     have hnl := wellFormed_nodes_length hwf
     obtain ⟨hml, hclients⟩ := kvOnly_bounds hwf hkv
+    unfold typed.maxMembers at hml
     ispecialize Hsh $$ %hwf
     wp_auto
     ihave #Hw := deploymentRepr_workloads v d $$ Hd
@@ -146,9 +147,7 @@ theorem NodeDeployment.wp_proof
   | nil =>
     have hwf := Herr rfl
     have hnl := wellFormed_nodes_length hwf
-    have hml : d.members.length ≤ 64 := by
-      have := (Deployment.WellFormed.members hwf).2.2.2.1
-      simpa [typed.maxMembers] using this
+    have hml : d.members.length ≤ typed.maxMembers := (Deployment.WellFormed.members hwf).2.2.2.1
     ispecialize Hsh $$ %hwf
     wp_auto
     ihave #Hw := deploymentRepr_workloads v d $$ Hd

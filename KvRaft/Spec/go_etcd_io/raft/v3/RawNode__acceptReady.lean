@@ -9,6 +9,7 @@ module
 
 public import KvRaft.Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import KvRaft.Proof.go_etcd_io.raft.v3.TraceFits
+public import KvRaft.Proof.go_etcd_io.raft.v3.RawNodeAt
 
 @[expose] public section
 
@@ -50,10 +51,22 @@ I fix G2) The node records the batch's durable state (`readyDurable`, as the dri
 `NodeDriverState.afterReady`) and the role after the `Ready`'s soft state `ss` (`roleAfter`).
 (2026-11-11, trace-check Q8 stage 1 slice 28n) One spec for both modes: at a traced cluster the
 `Ready` line (`traceReady`) moves the node's capability from the cut state to the accepted one
-(`rnTrace_fireReady`) and hands out one token per handed-out message (`readyTok`, `True` untraced). -/
+(`rnTrace_fireReady`) and hands out one token per handed-out message (`readyTok`, `True` untraced).
+(#33 S4, 2026-11-24) **At the node's protocol state** (`RawNode.Ready.absSpec`'s second half): the node
+comes in at the named state `s` (`ownRawNodeReadyS`) with the scope at `sc`, and leaves as
+`ownRawNodeAt` at `s`'s protocol reading with the outbox and the read states cleared, its queue `qs'`,
+its in-progress boundary `ip'`, the scope kept; in the scope, the queue reads as the outbox's
+self-addressed messages, the hard state after the `Ready` is the node's, the durable state the
+batch makes has the node's log, the entries handed out are the log's from the in-progress
+boundary on, the boundary moves to the log's end, and no snapshot was handed out. (antithesis parity
+B1, step C4) The scope an `Option RnMode` (at each mode without snapshots, conf changes, forwarding or
+async writes). -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan),
+    (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan) (s : NState)
+    (sc : Option RnMode),
+  (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧ md.forwarding = false ∧
+    md.async = false) →
   -- (2026-11-11, trace-check Q8 stage 1 slice 28n; from 2026-11-09, Q8 stage 0, until then the
   -- premise `γ.reTrace = none`) one spec for both modes: at a traced cluster the `Ready` line's
   -- numbers within the trace's bound (the term below the ceiling, the log by the receipts' fit;
@@ -61,22 +74,38 @@ abbrev RawNode.acceptReady.spec : Prop :=
   -- traceNumBound` spelled out)
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗
+      "Hrn" ∷ ownRawNodeReadyS γ rn id rs rd ce es ms true L s ∗
+      "Hsc" ∷ rnScopeAt γ id sc rs s ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
-  {{ (steps : List Pending) (ss : Option (w64 × StateType)), RET #();
+  {{ (steps : List Pending) (ss : Option (w64 × StateType)) (qs' : List Msg) (ip' : Nat), RET #();
       -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       -- (2026-11-01, durability stage II (k)) `none` at a `nil` pointer
       "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
-      "Hrn" ∷ ownRawNode γ rn id
+      -- (#33 S4; until then `ownRawNode`) at `s`'s protocol reading, the outbox and the read states
+      -- cleared
+      -- (antithesis parity B1) over `RState`: `s`'s reading at some ghost prefix `fp`, the outbox and
+      -- the read states cleared
+      "Hrn" ∷ (∃ fp : List EntryM, ownRawNodeAt γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
                   slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
-                  role := roleAfter rs.role ss } ∗
+                  role := roleAfter rs.role ss }
+        { toRState rs fp s with
+            p := { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } }
+        qs' ip' sc) ∗
       -- (2026-11-11, slice 28n) the handed-out messages' tokens (`readyTok`: nothing untraced; the
       -- `Ready` line's `recvTokOf` traced, `trCap_fire_ready`)
-      "Htoks" ∷ [∗list] q ∈ ms, readyTok γ q.st }}
+      "Htoks" ∷ ([∗list] q ∈ ms, readyTok γ q.st) ∗
+      -- (#33 S4) in the scope, the `Ready` against `s`
+      "%Hout" ∷ ⌜∀ md, sc = some md →
+        qs' ≡ₚ s.outbox.filter (fun m => decide (m.dst = id)) ∧
+        phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed ∧
+        (readyDurable rs.dur (phsNext rs.phs h) L es).ents = (toPState s).log ∧
+        (∀ e0 ∈ es.head?, (toPState s).log.drop (uint.nat e0.Index' - 1) = es ∧
+          uint.nat e0.Index' = uint.nat s.logst.inprogress) ∧
+        ip' = (toPState s).log.length ∧ L = none⌝ }}
 
 end spec
 

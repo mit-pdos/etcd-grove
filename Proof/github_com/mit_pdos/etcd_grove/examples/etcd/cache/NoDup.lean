@@ -15,7 +15,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Workload
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkload
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutexLemmas
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV

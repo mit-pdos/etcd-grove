@@ -36,6 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server
 
 theorem ConfigOf.wp_proof : ConfigOf.spec (GF := GF) (hG := hG) := by
   intro v d i m hm hlen64
+  unfold typed.maxMembers at hlen64
   wp_start as Hrepr
   iunfold deploymentRepr at Hrepr
   icases Hrepr with ⟨#Hmem, %Htok, %Hcfg, -⟩

@@ -434,7 +434,7 @@ theorem cut_durPers (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (
     isplitr; · ipureintro; exact Hevs
     isplitr; · iexact Hcmt
     isplitr; · ipureintro; exact Hlacks
-    ipureintro; exact Hboot
+    ipureintro; rw [← HF]; exact Hboot
   unfold durPers
   iexists kl, F.take m
   rw [Hfeq]
@@ -1477,8 +1477,9 @@ variable [CrashGS GF] in
 unchanged): the vacant slot and the durable half at `S` give the volatile half of a follower of
 `S.term` restarted from a storage holding `S` from the base `b` with the commit `c`
 (`restartP`: `kl` forgotten, the durable `kd` taken; an empty outbox and tally), with the whole
-generation and its free queue slot. Amendment 1: the bootstrap log within the stored commit.
-(2026-11-22, ledger `RestartNode`) The accessor (the client's update) is given the generation's
+generation and its free queue slot. Amendment 1: the bootstrap log within the durable log
+(2026-11-26, #33 parity B1: `S.last`; until then within the stored commit, which now only a traced
+cluster needs). (2026-11-22, ledger `RestartNode`) The accessor (the client's update) is given the generation's
 `notCrashed` and gives it back, so that it may open a crash invariant. -/
 theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : CrashNames)
     (b : entryID) (c : w64) (Φ : RaftState → Prop) (R : RaftState → IProp GF) :
@@ -1487,8 +1488,11 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : C
     (∀ S, Φ S → uint.Z S.base.index' ≤ uint.Z b.index' ∧ uint.Z b.index' ≤ uint.Z c ∧
       uint.Z c ≤ uint.Z S.commit ∧ plogTermAt S.base S.ents b.index' = some b.term' ∧
       -- (2026-11-02, stage II (p)) at or above the commit of the last batch that wrote the log
-      uint.nat S.wcommit ≤ uint.nat c) →
-    (γ.reBoot.length : Int) ≤ uint.Z c →
+      uint.nat S.wcommit ≤ uint.nat c ∧
+      -- (2026-11-26, #33 parity B1) the durable log reaches the bootstrap log's end (or, as
+      -- until then, the commit `c` is past it, which the durable log reaches)
+      ((γ.reBoot.length : Int) ≤ uint.Z c ∨ γ.reBoot.length ≤ S.last)) →
+    (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z c) →
     ⊢ notCrashed -∗ raftArmed (GF := GF) γ id x -∗
       (notCrashed -∗ |={E \ ↑(slotN γ id), ∅}=> ∃ S, ownDurGhost γ id S ∗ ⌜Φ S⌝ ∗
         (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ notCrashed ∗ R S)) ={E}=∗
@@ -1540,7 +1544,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : C
   -- the durable half, through the accessor (the client's update: `RestartNode`'s), while the slot
   -- is open
   imod Hacc $$ Hnc with ⟨%S, Hdur, %HS, Hcl⟩
-  obtain ⟨Hb1, Hb2, Hb3, Hbt, Hwc⟩ := HΦ S HS
+  obtain ⟨Hb1, Hb2, Hb3, Hbt, Hwc, HbL⟩ := HΦ S HS
   unfold ownDurGhost
   icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1, #HI1⟩
   icases durShares_agree γ id _ _ V E1 $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE1⟩
@@ -1567,6 +1571,21 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : C
   icases durPers_rebase γ id S V b c Hb1 Hb2 Hb3 Hbt $$ Hdp with
     ⟨%kd, %fp, %Hp, #Hrb, #Hbb, #Hfp, #Hvl, #Hhs, #Hkl, #Hci, #Hcm, -⟩
   obtain ⟨Hvh, Hak, Hcp, Hev, HfB, Hwfb, Hterms_le, HcL⟩ := Hp
+  -- (2026-11-26, #33 parity B1) the restored full log is `S`'s, so it starts with the bootstrap log
+  ihave #HrFb := logRecs_full γ b fp (S.entsFrom b) HfB $$ Hfp Hrb
+  icases logRecs_boot_prefix γ (fp ++ S.entsFrom b) (full_wf _ _ _ HfB Hwfb) $$ HrFb with %Hbp
+  have HbpS : γ.reBoot <+: fp ++ S.entsFrom b := by
+    apply Hbp
+    have HL := full_last_index b fp (S.entsFrom b) HfB
+    have Hr := (plogTermAt_some_range _ _ _ _ Hbt).2
+    have Hd : (S.entsFrom b).length =
+        S.ents.length - (uint.Z b.index' - uint.Z S.base.index').toNat := by
+      unfold RaftState.entsFrom; rw [List.length_drop]
+    unfold plogLastIndexZ at HL Hr HcL; rw [base0_index] at HL
+    unfold RaftState.last at HbL
+    have := uint_nat_eq S.base.index'
+    rcases HbL with HbL | HbL <;> omega
+  iclear HrFb
   imod durPers_restart_acks E γ id S V b c HE Hb1 Hb2 Hb3 Hbt $$ Hdp Hfr0 with #Hacks
   imod rdCred_zero (GF := GF) γ with Hcr0
   have Hterm : (restartP S b c).term = S.term := rfl
@@ -1658,7 +1677,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : C
     · ipureintro
       unfold LeadAcksOk
       exact ⟨fun h => (by rw [Hrole] at h; cases h), fun h => (by rw [Hrole] at h; cases h)⟩
-    · ipureintro; rw [Hcommit]; exact Hboot
+    · ipureintro; rw [Hlog, Hcommit]; exact ⟨HbpS, Hboot⟩
   isplitr; · ipureintro; intro _ h; exact Hnz h.symm
   isplitr; · ipureintro; intro _; rfl
   isplitr
@@ -2033,7 +2052,8 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x 
     · ipureintro
       unfold LeadAcksOk
       exact ⟨fun h => (by rw [Hrole] at h; cases h), fun h => (by rw [Hrole] at h; cases h)⟩
-    · ipureintro; rw [Hcommit, HWL]; exact Int.le_refl _
+    · ipureintro
+      exact ⟨by rw [Hlog]; exact List.prefix_refl _, fun _ => by rw [Hcommit, HWL]; exact Int.le_refl _⟩
   isplitr; · ipureintro; intro _ h; exact Hnz h.symm
   isplitr; · ipureintro; intro _; rfl
   isplitr

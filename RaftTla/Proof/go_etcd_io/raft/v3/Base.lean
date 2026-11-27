@@ -192,6 +192,18 @@ name, `r.state.String()`). -/
 def stmapV : GoArray GoString 4 :=
   array.mk 4 [go!"StateFollower", go!"StateCandidate", go!"StateLeader", go!"StatePreCandidate"]
 
+/-- The message types `IsLocalMsg` reports local (`util.go`'s `isLocalMsg` table): `MsgHup` (0),
+`MsgBeat` (1), `MsgUnreachable` (10), `MsgSnapStatus` (11), `MsgCheckQuorum` (12), `MsgStorageAppend`
+(19), `MsgStorageAppendResp` (20), `MsgStorageApply` (21), `MsgStorageApplyResp` (22). -/
+def localMsgTypes : List w32 :=
+  [W32 0, W32 1, W32 10, W32 11, W32 12, W32 19, W32 20, W32 21, W32 22]
+
+/-- `isLocalMsg` (`util.go`), the initializer's literal, which nothing writes after it: `true` at
+the indices of `localMsgTypes` (`localMsgsV_get`). -/
+def localMsgsV : GoArray Bool 23 :=
+  array.mk 23 [true, true, false, false, false, false, false, false, false, false, true, true, true,
+    false, false, false, false, false, false, true, true, true, true]
+
 /-- etcd-grove's `isInitialized`: the package-level `error` variables the election
 path compares against (each a non-nil interface value installed by the package
 initializer; a proof that reads one needs the points-to, the load being through
@@ -247,9 +259,12 @@ def isInitialized : IProp GF :=
         es.[raftpb.HardState, go!"state"] ↦ st ∗ es.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
           es.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))) ∗
     -- the tables behind `IsLocalMsg` and `IsResponseMsg` (`util.go`), read by
-    -- `RawNode.Step`; nothing but the initializer writes them, and their contents do
-    -- not matter to the specs (2026-10-09)
+    -- `RawNode.Step`; nothing but the initializer writes them. (2026-11-24, #33 S4) `isLocalMsg`'s
+    -- contents, the literal (`localMsgsV`): `IsLocalMsg`'s exact result, which `RawNode.Step`'s
+    -- strengthened spec needs (a network message is not refused as local); `isResponseMsg`'s
+    -- contents still do not matter to the specs (2026-10-09)
     "#isLocalMsg" ∷ (globalAddr isLocalMsg ↦□ localMsgs : IProp GF) ∗
+    "%HlocalMsgs" ∷ ⌜localMsgs = localMsgsV⌝ ∗
     "#isResponseMsg" ∷ (globalAddr isResponseMsg ↦□ responseMsgs : IProp GF) ∗
     -- the errors `RawNode.Step` returns for a message it does not step
     "#ErrStepLocalMsg" ∷ (globalAddr ErrStepLocalMsg ↦□ errStepLocal : IProp GF) ∗

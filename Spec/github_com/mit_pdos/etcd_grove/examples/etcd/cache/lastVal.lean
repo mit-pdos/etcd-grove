@@ -6,7 +6,7 @@ the events `evs` of `key` at or below revision `r`, and whether there is one (`l
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.GetCheck
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheGetCheck
 
 @[expose] public section
 

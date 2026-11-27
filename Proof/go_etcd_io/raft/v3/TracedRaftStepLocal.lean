@@ -225,7 +225,8 @@ theorem localBeat_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} 
   have hty : StepEndTy m.Type' := by unfold StepEndTy; simp [hp.1]
   have hnh : m.Type' ≠ MsgHup := by rw [hp.1]; exact msgBeat_ne.2.2.2.2.2.2.1
   have hnv : m.Type' ≠ MsgVote := by rw [hp.1]; exact msgBeat_ne.2.2.2.2.2.2.2.1
-  obtain ⟨pvs, hfn⟩ := (h hty).2.2.2 hns hnh hnv
+  obtain ⟨pvs, hfn⟩ := (h hty (XtRec.of_ne (by
+    rw [hp.1]; simp only [MsgBeat, MsgAppResp]; intro h; exact absurd h (of_decide_eq_true rfl)))).2.2.2 hns hnh hnv
   rw [hpre pvs] at hfn
   obtain ⟨d, hres⟩ := hfn.2.2 hp.2
   unfold LeaderStepResultC at hres
@@ -345,7 +346,7 @@ theorem stepBundle_traced_beat : stepBundle_traced.on (GF := GF) (hG := hG) Loca
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne nP)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
-    obtain ⟨ms, pvs, rfl, hm⟩ := localBeat_end hp hns hpre (hend (by rw [htr]; rfl))
+    obtain ⟨ms, pvs, rfl, hm⟩ := localBeat_end hp hns hpre hend
     have hS : ∀ C, SimIdleS C s = SimIdleS C { sendMsgs s ms with prvals := pvs } :=
       fun C => (simIdleS_prvals C s ms pvs hm).symm
     ihave H : lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
@@ -428,7 +429,7 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
     have hmt : mtypeOf (tickMsg MsgBeat id).Type' = none := rfl
     ihave Htok := recvTokOf_untraced (GF := GF) γd (tickMsg MsgBeat id) [] [] hmt
     have hgo := stepBundle_traced_beat (GF := GF) (hG := hG) γ md c r id s2 (tickMsg MsgBeat id) [] none [] []
-      γd Λ bt ⟨hb, hrole⟩ htr2 (hpv2.trans hpv) (hcq2.trans hcq) (by unfold StepEndTy; simp)
+      γd Λ bt ⟨hb, hrole⟩ htr2 (hpv2.trans hpv) (hcq2.trans hcq) (by unfold TrStepTy; simp)
       (hwf2.2 Hwf) (fun _ => rfl) (fun h => absurd (h.symm.trans hb) (by
         simp only [MsgHup, MsgBeat]; exact of_decide_eq_true rfl))
       (fun ty h => by rw [hmt] at h; cases h) (by rw [hT2]; exact hT) (by simp; unfold traceNumBound; omega)

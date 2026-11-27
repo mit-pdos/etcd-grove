@@ -509,7 +509,7 @@ theorem clusterStartDC (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
     | cons m0 ms => exact ⟨m0, ms, rfl⟩
   have hid0 : memberId (go!"http://" ++ m0.peer) d.token ∈ d.ids := by
     simp [Deployment.ids, hm0]
-  have hbl : boot.length ≤ 64 := by
+  have hbl : boot.length ≤ 1000 := by
     rw [Hbc.boot.1, hperm.length_eq]
     simp only [Deployment.ids, List.length_map]
     unfold typed.maxMembers at hlen

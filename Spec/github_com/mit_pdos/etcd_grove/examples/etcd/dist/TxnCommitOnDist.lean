@@ -52,6 +52,11 @@ transaction may nest `OpTxn`s (`examples/etcd/auth`'s T4), as in the in-process 
 
 **Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review: done, `f9-auth-combined-review.md`, SOUND): `authFloorD` also says every state member `mid` records from the floor's index `i` on is the history's after a committed prefix `L' ⊒ L₀` (`srvReqLogLb γR L'`), the shape `readCheckedD` has after N1 (`f7-getOn-n1.md`'s R1 argument).
 
+**Narrowed 2026-11-27** (`notes/axiom-review/txnshape-narrowing.md`; a weakening): the write arm requires every
+permission of the request to have the shape the permission cache decides, `kvShapeAll (irrTxn tw)` for the wire
+transaction, as `client.client_txn_on`'s `hsh`. With auth on, Go refuses a transaction with an empty or inverted
+range (the entry commits as a no-op), while the model granted it and `writeAuD`'s update applied its puts.
+
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean`). Reviews (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C, the Serve tie). Widened since (S5, S11); reviewed `f7-txn-review.md`, `f7-txn-nested-review.md`, and with the set `f9-auth-combined-review.md` (SOUND). -/
 abbrev Txn_CommitOn_dist.spec : Prop :=
@@ -71,7 +76,8 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧
             (txn.txnPlain (txnWireOf b.model) ∨
               (Γ.kv.lm = .revocable ∧ txnPlainL (txnWireOf b.model))) ∧
-            txnNoZeroEnd (txnWireOf b.model) ∧ txnNestOk (txnWireOf b.model)⌝ ∗
+            txnNoZeroEnd (txnWireOf b.model) ∧ txnNestOk (txnWireOf b.model) ∧
+            ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)⌝ ∗
           writeAuD Γ.kv (principalOf cfg) (.txn (txnWireOf b.model)) L₀ Q)) ∗
       ⌜txnSizeOk (txnWireOf b.model)⌝ }}
     (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))

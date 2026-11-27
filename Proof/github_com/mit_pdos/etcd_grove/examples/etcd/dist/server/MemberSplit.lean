@@ -18,7 +18,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MemberDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Dir
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadyRecv
