@@ -160,6 +160,65 @@ def XReadyOk (γ : RaftNames) (md : RnMode) (id : w64) (p : PState) (x : XMsg) :
   -- an unset `From`) or one the cluster's acknowledgement map names (`XScopeOk`'s sender clause)
   (x.ty = .transferLeader → x.src = id ∨ (γ.reAcks !! x.src).isSome)
 
+/-- (antithesis parity B2) `pb.MsgStorageAppend`: a `Ready`'s write, to the local append thread. -/
+def MsgStorageAppend : w32 := W32 19
+/-- (antithesis parity B2) `pb.MsgStorageApply`: a `Ready`'s committed entries, to the local apply
+thread. -/
+def MsgStorageApply : w32 := W32 21
+
+/-- (antithesis parity B2, design §1.3) **The messages a write's `Responses` hold** in async mode
+(`raft.send`, `raft.go:546`: `MsgAppResp`, `MsgVoteResp`, `MsgPreVoteResp` go to `msgsAfterAppend`,
+whatever their destination; the Sim's `AntSim.AfterAppTy`). -/
+def asyncAfterApp (t : MsgType) : Bool := decide (t = .appResp ∨ t = .voteResp ∨ t = .preVoteResp)
+
+/-- (antithesis parity B2, design §4 "Async storage writes") **An async `Ready`'s fields against the
+node's protocol state at the call** (`readyWithoutAccept` with `asyncStorageWrites`,
+`rawnode.go:163-172`; `newStorageAppendMsg`, `newStorageApplyMsg`): the role, the hard state, the log,
+the entries and the committed entries as in sync mode (`ReadyOut`'s); the messages `ms` handed out at
+once (`r.msgs`) the outbox's but the write's responses, none to the node (`send` panics on a
+self-addressed one that is not a response); the responses `rsp` the outbox's others (`msgsAfterAppend`,
+those to the node included: a leader's self-acknowledgement, a candidate's self-vote); the
+append message `la` there exactly when the `Ready` writes something or has responses
+(`needStorageAppendMsg`), its fields the write (`From` the node, the entries `es`, the hard state `h`'s
+fields, no snapshot) and its `Responses` `rsp` then at most one acknowledgement `ack` to the node from
+the append thread at the node's term (`newStorageAppendRespMsg`); the apply message `lp` there exactly
+when there are committed entries, `From` the node, its entries `ce`, its one response `apr` the
+acknowledgement to the node from the apply thread at term `0` with the entries `ce`
+(`newStorageApplyRespMsg`). -/
+def ReadyOutAsync (id : w64) (rs : RNState) (ps : PState) (h : HardStateM)
+    (es ce : List EntryM) (ms rsp ack apr : List QMsg) (la lp : Option QMsg)
+    (ss : Option (w64 × StateType)) (L : Option SnapLoan) : Prop :=
+  (roleProto (roleAfter rs.role ss) = ps.role ∧
+    (roleAfter rs.role ss = StatePreCandidate → ps.lead = W64 0)) ∧
+  phsNext rs.phs h = HardStateM.mk ps.term ps.vote ps.commit ∧
+  (readyDurable rs.dur (phsNext rs.phs h) L es).ents = ps.log ∧
+  (∀ e0 ∈ es.head?, ps.log.drop (uint.nat e0.Index' - 1) = es) ∧
+  rs.delivered ++ ce <+: ps.log ∧ (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
+  L = none ∧
+  -- sent at once
+  ms.filterMap (fun q => absMsgOf q.st) ≡ₚ ps.outbox.filter (fun m => !asyncAfterApp m.ty) ∧
+  (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧
+  -- released by the write
+  rsp.filterMap (fun q => absMsgOf q.st) ≡ₚ ps.outbox.filter (fun m => asyncAfterApp m.ty) ∧
+  (∀ q ∈ rsp, (absMsgOf q.st).isSome) ∧
+  -- the append message
+  (la.isSome ↔ (es ≠ [] ∨ ¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) ∨ rsp ≠ [])) ∧
+  (∀ q, la = some q →
+    q.st.msg.Type' = MsgStorageAppend ∧ q.st.msg.To' = LocalAppendThread ∧ q.st.msg.From' = id ∧
+    q.st.ents = es ∧ HardStateM.mk q.st.msg.Term' q.st.msg.Vote' q.st.msg.Commit' = h ∧
+    q.st.snap = none ∧ q.st.resps = (rsp ++ ack).map QMsg.loc) ∧
+  (la = none → ack = []) ∧ ack.length ≤ 1 ∧
+  (∀ q ∈ ack, q.st.msg.Type' = MsgStorageAppendResp ∧ q.st.msg.To' = id ∧
+    q.st.msg.From' = LocalAppendThread ∧ q.st.msg.Term' = ps.term ∧ q.st.snap = none) ∧
+  -- the apply message
+  (lp.isSome ↔ ce ≠ []) ∧
+  (∀ q, lp = some q →
+    q.st.msg.Type' = MsgStorageApply ∧ q.st.msg.To' = LocalApplyThread ∧ q.st.msg.From' = id ∧
+    q.st.ents = ce ∧ q.st.resps = apr.map QMsg.loc) ∧
+  (lp = none → apr = []) ∧ (lp.isSome → apr.length = 1) ∧
+  (∀ q ∈ apr, q.st.msg.Type' = MsgStorageApplyResp ∧ q.st.msg.To' = id ∧
+    q.st.msg.From' = LocalApplyThread ∧ q.st.msg.Term' = W64 0 ∧ q.st.ents = ce)
+
 end pure
 
 section spec
@@ -540,6 +599,120 @@ abbrev RawNode.Ready.absSpec : Prop :=
 
 abbrev RawNode.Ready.spec_of_abs.law : Prop :=
   RawNode.Ready.absSpec (GF := GF) (hG := hG) → RawNode.Ready.spec (GF := GF) (hG := hG)
+
+/-- (antithesis parity B2, design §4 "Async storage writes"; a statement, proved in round 2)
+**`RawNode.Ready` with `AsyncStorageWrites`**: `RawNode.Ready.form`'s triple with the async
+differences. Nothing is queued for `Advance` (`acceptReady` fills `stepsOnAdvance` only in sync mode:
+`steps := []`, the queue after `[]`); `rd.Messages` is the messages sent at once `ms` then the append
+message `la` and the apply message `lp` (`readyWithoutAccept`'s order), each owned, with the
+`Responses` they carry (`rsp`, `ack`, `apr`) owned; the write's *enter* gives each message handed out
+and each response released its `isRaftMsg` (so the driver holds a non-leader's messages, the vote
+requests among them, until the write is entered: design §6.1, E1), a leader's messages at once
+(`Hlead`); under `S` the fields `ReadyOutAsync`. The storage side (`Happ`, `Hsnapz`, `Hfrz`, `Hdk`,
+`Hhsw`) is sync mode's: the entries and hard state the append message carries are `rd.Entries` and
+`rd.HardState`. -/
+abbrev RawNode.Ready.asyncForm (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (r : RState)
+    (qs : List Msg) (ip : Nat) (q : Qp) (g : Nat),
+  rs.steps = [] →
+  rs.unpersisted = [] →
+  γ.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
+      "Hlive" ∷ genView γ id x q g ∗ "Hfree" ∷ slotFree γ id g }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
+  {{ (rd : Ready) (ce es : List EntryM) (ms rsp ack apr : List QMsg) (la lp : Option QMsg)
+      (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan)
+      (ss : Option (w64 × StateType)) (W : DurMaps) (r' : RState) (ip' : Nat), RET #rd;
+      "Hrn" ∷ R γ rn id
+        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := [],
+                  outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
+                  slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                  role := roleAfter rs.role ss, bw := W } r' [] ip' ∗
+      "Hlive" ∷ genView γ id x q g ∗
+      "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗ notCrashed -∗
+        ownDurGhost γ id rs.dur ∗ genView γ id x q' g ={E}=∗
+          notCrashed ∗ ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗
+          genView γ id x q' g ∗
+          slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms ++ rsp, isRaftMsg γ id q.st) ∗
+      "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      "#Hsnapto" ∷ ([∗list] q ∈ ms ++ rsp, snapToOk γ id q.st) ∗
+      "#Hsrcs" ∷ readyMsgOrigins γ id rs.sn (ms ++ rsp) ∗
+      "#Hss" ∷ softStateIs rd.SoftState' ss ∗
+      "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
+      "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
+      "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
+      "Hmsgs" ∷ rd.Messages' ↦* (ms ++ la.toList ++ lp.toList).map QMsg.loc ∗
+      "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms ++ la.toList ++ lp.toList ++ rsp ++ ack ++ apr,
+        msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
+      "Hmsgs_cred" ∷ ([∗list] q ∈ ms ++ rsp,
+        rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms ++ rsp ++ ack, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
+      "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
+      "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
+      "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
+      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateRaw γ st) ∗
+      "#Hhard" ∷ hsOptC rd.HardState' h ∗
+      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length ∗
+      "Happ" ∷ readyOut rs.storage rs.sn es L ∗
+      "#Hfrz" ∷ (⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) ∗
+      "#Hdk" ∷ dlvKeysAt rs.sn rs.delivered.length
+        ((dlvAfter rs.delivered ce L).drop rs.delivered.length) ∗
+      "%Hout" ∷ ⌜∀ md, S md → r' = rAccepted r ∧
+        ReadyOutAsync id rs r.p h es ce ms rsp ack apr la lp ss L ∧
+        (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = r.p.log.length ∧
+        (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs) ∧
+        (∀ q ∈ ms, (absMsgOf q.st).isSome ∨ (xmsgOf q.st).isSome) ∧
+        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x → XReadyOk γ md id r.p x) ∧
+        (md.transfer = false → ∀ q ∈ ms, (absMsgOf q.st).isSome) ∧
+        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x →
+          q.st.msg.Index' = W64 0 ∧ q.st.msg.LogTerm' = W64 0 ∧ q.st.msg.Commit' = W64 0 ∧
+            q.st.msg.Reject' = false) ∧
+        (roleAfter rs.role ss = StatePreCandidate → rs.k.prevote = true) ∧ sts = r.p.rd.states⌝ }}
+
+/-! ### A storage acknowledgement stepped back (async) -/
+
+/-- (antithesis parity B2, design §1.3 "Async storage"; a statement, proved in round 2)
+**`RawNode.Step` of a storage acknowledgement** (`MsgStorageAppendResp`, `MsgStorageApplyResp`: an
+async `Ready`'s `ack`/`apr`, `ReadyOutAsync`, stepped back once the local thread has written or
+applied; `raft.Step`'s local cases): the append acknowledgement `stableTo`'s its entry (nothing of the
+`RState`: `AckEndR`'s first arm; dropped at a later term), the apply acknowledgement `appliedTo`'s the
+last entry it carries (`AckEndR`'s second arm), which must lie between the applied index and the
+committed entries handed out (`appliedTo` panics outside `[applied, committed]`); in the dynamic mode
+the configuration index moved as `Advance` moves it. The protocol effect under `S`, as `Advance`'s:
+given no undecided conf entry among the entries applied. The write's other responses (`rsp`) are
+ordinary messages, stepped with `RawNode.Step.form`. -/
+abbrev RawNode.StoreAck.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
+    (ml : Loc) (st : MsgSt),
+  (∀ md, S md → md.async = true) →
+  st.msg.To' = id →
+  (st.msg.Type' = MsgStorageAppendResp ∧ st.msg.From' = LocalAppendThread ∧ st.snap = none ∧
+      uint.Z st.msg.Term' ≤ uint.Z rs.term) ∨
+    (st.msg.Type' = MsgStorageApplyResp ∧ st.msg.From' = LocalApplyThread ∧
+      st.msg.Term' = W64 0 ∧ st.ents ≠ [] ∧
+      ∀ e ∈ st.ents.getLast?, uint.nat r.applied ≤ uint.nat e.Index' ∧
+        uint.nat e.Index' ≤ rs.delivered.length) →
+  rs.slent = none →
+  γ.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
+      "Hm" ∷ (∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗
+        ⌜c.model = st ∧ c.csUfNil⌝) }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))
+  {{ (err : GoInterface) (ca : Nat) (r' : RState), RET #err;
+      "Hrn" ∷ R γ rn id { rs with capplied := ca } r' qs ip ∗
+      "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+      "%Hca" ∷ ⌜(rs.mode = .static → ca = rs.capplied) ∧
+        (st.msg.Type' = MsgStorageAppendResp → ca = rs.capplied) ∧
+        (rs.mode.isDyn = true → ∀ e ∈ st.ents.getLast?, st.msg.Type' = MsgStorageApplyResp →
+          ca = max rs.capplied (uint.nat e.Index'))⌝ ∗
+      "%Hend" ∷ ⌜∀ md, S md → γ.reTrace = none →
+        ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec),
+          NoUndecConfIn dec r.full r.cidx rs.delivered.length → AckEndR dec Adm id r r'⌝ }}
 
 /-! ### `RawNode.Advance` -/
 

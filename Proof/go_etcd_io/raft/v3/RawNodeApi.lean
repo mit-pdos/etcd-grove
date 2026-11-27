@@ -99,6 +99,23 @@ abbrev RawNode.TransferLeader.apiSpec : Prop :=
     md.async = false →
     RawNode.TransferLeader.form (fun γ => rawNode (GF := GF) γ md) (fun md' => md' = md)
 
+/-- (antithesis parity B2, design §4; a statement, proved in round 2) `rn.Ready()` with async storage
+writes, at a mode with `async` (`RawNode.Ready.asyncForm`). Round 2 also lifts the `md.async = false`
+premise of the other specs and laws here (expected to hold at an async node unchanged: none reads
+`stepsOnAdvance`; to be checked by their proofs),
+after taking the storage acknowledgements out of `stepTypes` (they are `RawNode.StoreAck`'s). -/
+abbrev RawNode.Ready.asyncApiSpec : Prop :=
+  ∀ md : RnMode, md.snapshots = false → md.confChanges = false → md.forwarding = false →
+    md.async = true →
+    RawNode.Ready.asyncForm (fun γ => rawNode (GF := GF) γ md) (fun md' => md' = md)
+
+/-- (antithesis parity B2, design §1.3; a statement, proved in round 2) `rn.Step(m)` of a storage
+acknowledgement an async `Ready` carried, at a mode with `async` (`RawNode.StoreAck.form`). -/
+abbrev RawNode.StoreAck.apiSpec : Prop :=
+  ∀ md : RnMode, md.snapshots = false → md.confChanges = false → md.forwarding = false →
+    md.async = true →
+    RawNode.StoreAck.form (fun γ => rawNode (GF := GF) γ md) (fun md' => md' = md)
+
 /-- `rn.HasReady()`, read-only; on `false` the protocol-level idle fact `PIdle`, the in-progress
 boundary at the log's end, (antithesis parity B1) no read state. -/
 abbrev RawNode.HasReady.apiSpec : Prop :=
