@@ -296,3 +296,69 @@ A local `etc/lean-check.py` is not usable here (the worktree has no `.lake`); th
 `/shared/tmp/k4-3/qc.sh FILE` / `err.sh FILE` (copies the file into fk-lean1's worktree of the branch and
 runs `lake env lean` on it alone, no lock: the imports must be built there, which a `fklean1-check.sh`
 build of the target does).
+
+## Handoff K4-4 (2026-11-27, branch `k8s-dist-k4/2026-11-27`)
+
+Steps 1-3 of K4-3's list are proved, and the first layer of step 4. New files (pure, no axiom, no
+`sorry`; each checked with `lake env lean` on fk-lean1 through `/shared/tmp/k4-4/qcc.sh`, which
+concatenates the dist files into one scratch module; build of record: see the last line below):
+
+- `SharedAnswer.lean`, **step 1**: `AnsRen` (what the step's answer needs: `ρ` fixes 0 and cuts every
+  stored revision; a resource-version precondition is an anchor; `a ≤ b`; from the cluster's answer
+  `y`'s anchors, `rvA`/`msgA`; from the target, `nf`/`wr`/`rd`), and **`mstepL_ans_ren`**: on
+  `⟨its, a⟩` and `⟨its.map (renItem ρ), b⟩`, `mstepL`'s answers are equal. A "not found" and a new
+  object pin `a = b` (`AnsRen.nf_eq`, `new_eq`); shown objects and a precondition's message are fixed
+  (`obj_fix`, `msg_fix`). `SharedRename`'s `preOkL_ren`/`WriteRen.pre` now need the precondition's
+  revision only when `HasPreRV`.
+- `SharedHist.lean`, **step 2**: `PairW n0 ρ W x y` (below the seeds `x = y`; `w ≤ x ↔ ρ w ≤ y` for
+  `w ∈ W`), `StoredRv n0 W r` (`r ≤ n0 ∨ r ∈ W`), and **`HRel A n0 ρ W s c`** (the handoff's relation:
+  lengths, `histN` at the top is the store, history revisions, `W` in `(n0, s.rv]`, `ρ` identity to
+  `n0`, no earlier, at most `c.rv`, strictly increasing, `CutW`; stored revisions; `hist`: paired
+  stores renamed; `seed`: the stores up to `n0` equal; `squiet`/`cquiet`: a search revision not in `W`,
+  a cluster one no `ρ w`, changes no item). Preservation: `HRel.init` (premises: `hist.length = rv`,
+  `hist.getLast? = some st`, every seed item's revision `≤ n0`), `foreign_c`, `foreign_s`, `skipTo`
+  (to at most `c.rv`), `write` (`a+1` on the search, `b+1` on the cluster, `extR ρ a b`, `W ++ [a+1]`;
+  needs `CutW A (fun _ => b+1) (a+1)`, from `canonL_cut`, or trivial when `a = b`), `stepRen` (both
+  stores change or neither, any `a ≤ b`). Helpers: `mstepL_shape`/`mem`/`same`/`changed`,
+  `kstepL_nonwrite`, `advanceL_same`/`new`, `HRel.cur`, `stored_cut`, `inj`.
+- `SharedList.lean`, **step 3**: `listLoopL_ren`, `listOutL_ok`, `listOutL_ren`, **`mlistL_ren`**
+  (`HRel`, answer not `EOther`, `MinRV` and shown items anchored, the target's bound → equal answers).
+- `SharedWatchEv.lean`, **step 4, first layer**: `renEv`, `renChg`, `changeAtL_ren` (renaming injective
+  on the items), `toEventL_ren` (a deletion's revision renamed with it), **`evAtL_ren`**, `renItem_inj`.
+
+**`FullComplete` needs two more premises on the seeds** (not a counterexample: well-formedness the
+proof uses, true of the seeded store, and `RealReplay.simR_init` already takes the first):
+`h0.hist.getLast? = some h0.st`, and every item of every store of `h0.hist` has a revision `≤ n0`
+(a seed item at a revision a search write takes would be renamed with it). They also give `n0 ≥ 1`
+(used below). **Not yet added to `FullComplete`'s statement**: add them with step 6.
+
+**Left, in order:**
+
+4. `watchOkL` (rest). Plan, all designed:
+   - `eventsInL`: `eventsInL x c.hist lo yc = (eventsInL x s.hist lo xs).map (renEv ρ)` for `xs`, `yc`
+     paired over stored revisions (`∀ r, StoredRv n0 W r → (r < xs ↔ ρ r < yc)`), `lo` paired with
+     itself, `lo ≤ xs ≤ s.rv+1`, `lo ≤ yc ≤ c.rv+1`, by induction on `xs + yc`: (a) `yc-1` no image of a
+     stored revision: the cluster's event there is none (`cquiet`, `changeAtL_self`; `yc-1 ≤ n0` is
+     an image), pair `(xs, yc-1)`; (b) else `xs-1` not stored: none (`squiet`), pair `(xs-1, yc)`;
+     (c) else both are `r`, `ρ r` for one stored `r` (monotone both ways), pair `(xs-1, yc-1)`
+     (`HRel.inj`), and `evAtL_ren` at `r` (`r < 2` is a seed, both none; `PairW (r-1) (ρ r-1)` and
+     `PairW r (ρ r)` hold for stored `r ≤ s.rv`; injectivity from `renItem_inj` + `HRel.inj`). Needs
+     `eventsInL x hs lo (n+1) = eventsInL x hs lo n ++ (evAtL x hs n).toList` (`List.range'_append`).
+   - `lo`, `hi` of `reliableOkL` are anchors or one after (events/bookmarks `≠ 4` anchored, `req`
+     anchored), so paired with themselves (`CutW`); `hi ≤ s.rv + 1` from the target (`evMaxL`); the
+     cluster's events equal `evs`, whose objects are anchors: `renEv` fixes them (`renObj_fix`, the
+     original revision stored or `W`).
+   - `initialPrefixOkL`: cluster `r ∈ [max(req,1), c.rv]`; search `x = r` if `r ≤ n0`, else
+     `max(n0, max(req,1), greatest w ∈ W with ρ w ≤ r)` (pair: `CutW` at `req`, `n0 ≥ 1`); `x ≤ s.rv` by
+     G7's target; `initialEventsL` of a renamed store is the renamed list, prefix objects anchored.
+   - The initial-events-end bookmark: `brv` anchored, `(brv, brv)` paired; `brv ≤ s.rv` (target).
+5. Settle (`SettleL` steps at `canonL A s.rv R` for each cluster write at `R`, `HRel.skipTo` then
+   `HRel.write`; a write with no effect: `drop`, `HRel.stepRen`; foreign steps: `foreign_c`; pending
+   lists equal up to `Perm`, `PSilent.apply`'s `erase` vs `removeAtL`).
+6. `FullComplete` by induction on `SRun`: invariant `HRel` + pending `Perm`; per `PStep`: `ok` non-watch
+   (target → `AnsRen`/`mlistL_ren`; the write: `mstepL_changed` gives `y.RV = b+1`, so the target puts
+   the search at `b`, `HRel.write` with `a = b`), `errW`/`errR` (target 0), `obs` (step 4). Derive
+   `AnsRen`'s fields from `OpAnchors` + `targetL` + `skipToL_rv`.
+
+No new G-item this session. Edit loop: `/shared/tmp/k4-4/qcc.sh SharedRename.lean SharedAnswer.lean
+SharedHist.lean SharedList.lean SharedWatchEv.lean` (first file whole, the others' bodies appended).
