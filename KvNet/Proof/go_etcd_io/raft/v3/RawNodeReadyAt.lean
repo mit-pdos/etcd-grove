@@ -241,7 +241,8 @@ theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
     (hk : rs'.k = rs.k := by rfl)
     (hx : (toPState s').lead = (toPState s).lead ∧ s'.gh.xw = s.gh.xw ∧ s'.term = s.term := by
-      exact ⟨rfl, rfl, rfl⟩) :
+      exact ⟨rfl, rfl, rfl⟩)
+    (hxs : s'.gh.xsrc = s.gh.xsrc := by first | rfl | simp_all) :
     rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
   cases sc with
   | none => unfold rnScopeAt; iintro _; iempintro
@@ -251,7 +252,7 @@ theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
     rw [Hst]
     isplitr
     · ipureintro
-      exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx⟩
+      exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx hxs⟩
     · imodintro; iexact Hc
 
 /-- The scope at one mode `md` kept by a step that keeps `RnScope md` (an input whose effect grows what
@@ -264,14 +265,15 @@ theorem rnScopeAt_keepSome {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : R
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
     (hk : rs'.k = rs.k := by rfl)
     (hx : (toPState s').lead = (toPState s).lead ∧ s'.gh.xw = s.gh.xw ∧ s'.term = s.term := by
-      exact ⟨rfl, rfl, rfl⟩) :
+      exact ⟨rfl, rfl, rfl⟩)
+    (hxs : s'.gh.xsrc = s.gh.xsrc := by first | rfl | simp_all) :
     rnScopeAt (GF := GF) γ id (some md) rs s ⊢ rnScopeAt γ id (some md) rs' s' := by
   unfold rnScopeAt
   iintro ⟨%Hs, #Hc⟩
   rw [Hst]
   isplitr
   · ipureintro
-    exact ⟨H Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx⟩
+    exact ⟨H Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx hxs⟩
   · imodintro; iexact Hc
 
 /-- `rnScopeAt_keepSome` for a step that may change the transfer facts' inputs (a transfer request:

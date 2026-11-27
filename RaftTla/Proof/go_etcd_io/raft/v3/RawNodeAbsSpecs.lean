@@ -156,7 +156,10 @@ def XReadyOk (γ : RaftNames) (md : RnMode) (id : w64) (p : PState) (x : XMsg) :
   (x.ty = .timeoutNow → x.src = id ∧ x.term ≠ W64 0) ∧
   (x.dst ≠ id ∧ uint.Z x.term ≤ uint.Z p.term) ∧
   (x.ty = .transferLeader → x.term ≠ W64 0) ∧
-  (md.nonVoters = false → x.ty = .transferLeader → x.dst ∈ γ.reCfg)
+  (md.nonVoters = false → x.ty = .transferLeader → x.dst ∈ γ.reCfg) ∧
+  -- (antithesis parity B1, transfer source) a forward's sender the node itself (`send` puts its id for
+  -- an unset `From`) or one the cluster's acknowledgement map names (`XScopeOk`'s sender clause)
+  (x.ty = .transferLeader → x.src = id ∨ (γ.reAcks !! x.src).isSome)
 
 end pure
 
@@ -183,9 +186,12 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → RState �
   -- `errStepPeer` with the state unchanged, not `RecvEnd`'s step-down to a higher term;
   -- notes/specs-only/ledger.md. Antithesis parity B1, lead-approved: with non-voters on the sender may
   -- be outside it, `%Hend`'s unchanged arm)
+  -- (antithesis parity B1, transfer source, lead-approved 11-27) a transfer request's sender one the
+  -- cluster's acknowledgement map names (`XScopeOk`'s sender clause, what a `Ready` reads of a forward)
   (∀ md, S md → st.msg.Type' ∈ stepTypes md ∧
     (md.reads = false → st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
-    (md.nonVoters = false → st.msg.From' ∈ γ.reCfg)) →
+    (md.nonVoters = false → st.msg.From' ∈ γ.reCfg) ∧
+    (st.msg.Type' = MsgTransferLeader → (γ.reAcks !! st.msg.From').isSome)) →
   uint.Z st.msg.Term' ≤ uint.Z rs.tc →
   (st.msg.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc) →
   rs.flw = false →
@@ -342,13 +348,16 @@ abbrev RawNode.Propose.spec_of_abs.law : Prop :=
 /-- (antithesis parity B1, Q3; design §4) `RawNode.TransferLeader.spec`'s triple over `R`, and (under
 `S`) the transfer's exact effect `TransferEndR` at the target `to`, the log kept. Only in a scope
 with transfer on (stepping the request sets `NGhost.xs`, which `RnScope` keeps `false` without it).
-No premise on `to`: the driver draws any server of the run; a leader ignores a target outside its
-progress map (`stepLeader`'s `pr == nil`), `TransferEndR`'s `r'.p = r.p` arm. -/
+A leader ignores a target outside its progress map (`stepLeader`'s `pr == nil`), `TransferEndR`'s
+`r'.p = r.p` arm. (antithesis parity B1, transfer source, lead-approved 11-27) Under `S`, the target one
+the cluster's acknowledgement map names (the driver draws a server of the run): a follower forwards
+the request with it as sender (`XScopeOk`'s sender clause, what a `Ready` reads of a forward). -/
 abbrev RawNode.TransferLeader.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
     (S : RnMode → Prop) : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (to : w64),
   (∀ md, S md → md.transfer = true) →
+  (∀ md, S md → (γ.reAcks !! to).isSome) →
   γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ R γ rn id rs r qs ip }}

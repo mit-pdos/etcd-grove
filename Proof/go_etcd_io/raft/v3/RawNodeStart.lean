@@ -983,9 +983,12 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
   have HxR : ∀ md : RnMode, XScopeOk γ.raft md s1 := by
     intro md
     have Hl : (toPState s1).lead = W64 0 := by rw [HtoP1]; rfl
-    refine ⟨fun _ => .inl Hl, fun p hp => ?_, fun h => absurd Hl h⟩
-    change (s.gh.xw !! p).isSome = true at hp
-    rw [Hgh] at hp; simp at hp
+    refine ⟨fun _ => .inl Hl, fun p hp => ?_, fun h => absurd Hl h, fun f hf => ?_⟩
+    · change (s.gh.xw !! p).isSome = true at hp
+      rw [Hgh] at hp; simp at hp
+    · -- (antithesis parity B1, transfer source) no sender recorded
+      change (s.gh.xsrc !! f).isSome = true at hf
+      rw [Hgh] at hf; simp at hf
   ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rsK (toRState rsK fp s1) []
       (σ.b + σ.ents.length) sc $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
   · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rsK (toRState rsK fp s1) []

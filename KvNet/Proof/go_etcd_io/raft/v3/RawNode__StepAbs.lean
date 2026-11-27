@@ -339,7 +339,7 @@ local macro "step_tail" : tactic => `(tactic| (
       icases ownRaftPhysC_sdr cf rnv.raft' id s' $$ Hphys with ⟨#Hsd1, Hphys⟩
       icombine Hsd0 Hsd1 gives %Hsde
       have Hsdr' : s'.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
-      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } := by
+      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } := by
         by_cases hx : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
         · exact ⟨(Hxwf hx).1, (Hxwf hx).2.1⟩
         · obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
@@ -490,18 +490,18 @@ local macro "step_tail" : tactic => `(tactic| (
           (fun _ => ⟨Hpv, Hsn, (Hx md h).2⟩) (Hxs md h) (HroleF md h) Hdom0 Hdom1)
         Hsg (hfl := ⟨Hpre, Hcq', Hsdr'⟩)
         (hx := fun md h _ HX0 => by
-          obtain ⟨hl0, hw0, ht0⟩ := HX0
-          refine ⟨fun hnv => ?_, fun p hp => ?_, Hlt'⟩
+          obtain ⟨hl0, hw0, ht0, hs0⟩ := HX0
+          refine ⟨fun hnv => ?_, fun p hp => ?_, Hlt', fun f hf => ?_⟩
           · rcases (Hlifted md h).2.2.2 with e | e | e | ⟨e, hr⟩
             · rw [e]; exact hl0 hnv
             · exact .inl e
-            · rw [e]; exact .inr ((Hscp md h).2.2 hnv)
+            · rw [e]; exact .inr ((Hscp md h).2.2.1 hnv)
             · rw [e]; right
               refine id_mem_of_roleFn (hsc0 md h).2.1 (Hscope md h).1 (Hscope md h).2.1 (HCf md h).1
                 (HCf md h).2.1 (HroleF md h).2 Hdom0 (fun hf => ?_)
               rw [toPState_role, hf] at hr; cases hr
           · by_cases hx : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
-            · obtain ⟨-, -, -, Hgrow⟩ := Hxwf hx
+            · obtain ⟨-, -, -, Hgrow, -⟩ := Hxwf hx
               rcases Hgrow p hp with hp' | ⟨rfl, hr, hl0'⟩
               · exact hw0 _ hp'
               · -- the forward's record: the follower's known leader, at its term (past `0`)
@@ -513,7 +513,18 @@ local macro "step_tail" : tactic => `(tactic| (
             · obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
                 Hfr Hs (by not_net) (fun h => hx (.inl h)) (fun h => absurd h (by not_net))
                   (fun h1 h2 => Classical.byContradiction fun h3 => hx (.inr ⟨h1, h2, h3⟩))
-              rw [a8] at hp; exact hw0 p hp) $$ Hsc
+              rw [a8] at hp; exact hw0 p hp
+          · -- (antithesis parity B1, transfer source) a sender recorded only of a transfer request,
+            -- the request's own (`%Hxwframe`), which the scope's premise names
+            by_cases hx : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
+            · obtain ⟨-, -, -, -, Hsg⟩ := Hxwf hx
+              rcases Hsg f hf with hf' | ⟨hty, rfl⟩
+              · exact hs0 _ hf'
+              · exact (Hscp md h).2.2.2 hty
+            · obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
+                Hfr Hs (by not_net) (fun h => hx (.inl h)) (fun h => absurd h (by not_net))
+                  (fun h1 h2 => Classical.byContradiction fun h3 => hx (.inr ⟨h1, h2, h3⟩))
+              rw [a8] at hf; exact hs0 f hf) $$ Hsc
       iclear Hrntr
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgx]; exact Hgtr.trans HtrG)
@@ -566,10 +577,11 @@ theorem RawNode.Step.wp_absProof
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok Hscp0 Hmtc Htn ⊢
   have Hscp : ∀ md, sc = some md → m.Type' ∈ netTypesK ∧ m.Type' ∈ stepTypes md ∧
-      (md.nonVoters = false → m.From' ∈ γ.reCfg) := fun md h => by
-    obtain ⟨h1, -, h3⟩ := Hscp0 md h
+      (md.nonVoters = false → m.From' ∈ γ.reCfg) ∧
+      (m.Type' = MsgTransferLeader → (γ.reAcks !! m.From').isSome) := fun md h => by
+    obtain ⟨h1, -, h3, h4⟩ := Hscp0 md h
     obtain ⟨hs, -, hf, ha⟩ := hsc0 md h
-    exact ⟨stepTypes_sub hs hf ha h1, h1, h3⟩
+    exact ⟨stepTypes_sub hs hf ha h1, h1, h3, h4⟩
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty

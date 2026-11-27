@@ -164,7 +164,10 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (m.Type' = MsgTimeoutNow → (s.gh.xt !! (m.To', s.term)).isSome) ∧
     -- (2026-11-24, #33 S4) once a transfer request was stepped (`NGhost.xs`): until then every
     -- queued message is of a described type (`XfOk`'s last clause)
-    s.gh.xs = true))
+    s.gh.xs = true ∧
+    -- (antithesis parity B1, transfer source) a forwarded `MsgTransferLeader`'s sender recorded
+    -- (`NGhost.xsrc`; `raft.Step`'s transfer arm records it with `xw`'s record)
+    (m.Type' = MsgTransferLeader → (s.gh.xsrc !! m.From').isSome)))
   ∨
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧

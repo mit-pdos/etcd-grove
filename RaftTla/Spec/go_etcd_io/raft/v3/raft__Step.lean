@@ -831,11 +831,14 @@ abbrev raft.Step.spec : Prop :=
       "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader ∨
                      (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0) →
                    NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } ∧
                    (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
                    -- (#33 parity B1) the one record a step adds: a follower's forward to its leader
                    (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨
-                      (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0))⌝ ∗
+                      (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)) ∧
+                   -- (antithesis parity B1, transfer source) the forwarded requests' senders
+                   -- (`NGhost.xsrc`): at most the request's own `From` added
+                   (∀ f, f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (m.Type' = MsgTransferLeader ∧ f = m.From'))⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)

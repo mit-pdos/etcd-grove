@@ -253,13 +253,14 @@ theorem RawNode.Tick.wp_absProof
             (fun _ => by rw [Hgh]) (HroleT md h).1 (HroleT md h).2 Hdom Hdom1)
         Hsg (hfl := ⟨Hpre, Hcq', Hsdr'⟩)
         (hx := fun md h _ HX0 => by
-          obtain ⟨hl0, hw0, ht0⟩ := HX0
+          obtain ⟨hl0, hw0, ht0, hs0⟩ := HX0
           rcases tickEnd_lead (Hlifted md h).1 with e | e
           · refine ⟨(fun hnv => by rw [e]; exact hl0 hnv), fun p hp => hw0 p (by rw [Hgh] at hp; exact hp),
-              fun hne => ?_⟩
+              fun hne => ?_, fun f hf => hs0 f (by rw [Hgh] at hf; exact hf)⟩
             have h1 := ht0 (by rw [← e]; exact hne)
             intro e0; apply h1; rw [e0] at Ht1; word
-          · exact ⟨fun _ => .inl e, fun p hp => hw0 p (by rw [Hgh] at hp; exact hp), fun hne => absurd e hne⟩) $$ Hsc
+          · exact ⟨fun _ => .inl e, fun p hp => hw0 p (by rw [Hgh] at hp; exact hp), fun hne => absurd e hne,
+          fun f hf => hs0 f (by rw [Hgh] at hf; exact hf)⟩) $$ Hsc
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgh]; exact Hgtr.trans HtrG)
       iapply HΦ $$ %s'.term %(toRState { rs with term := s'.term } fp s') %(uint.nat s'.logst.inprogress - 1)

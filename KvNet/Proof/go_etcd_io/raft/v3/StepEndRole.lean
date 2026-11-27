@@ -229,7 +229,7 @@ theorem roleFn_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
   rotate_left 3
   · -- `MsgTransferLeader`
     by_cases hst : StaleMsg s m
-    · obtain ⟨X, Y, b, rfl⟩ := h.xstale hst e
+    · obtain ⟨X, Y, b, Z, rfl⟩ := h.xstale hst e
       exact RoleFn.keep rfl rfl rfl
     by_cases hb : PreBF m s
     · obtain ⟨g, pvs, rfl⟩ := transferEnd_of_stepEnd_gt e hst hb h

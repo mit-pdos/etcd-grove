@@ -46,7 +46,7 @@ theorem node.transferLeader.wp_proof
   ihave #Hc' := Hc
   iunfold antCluster at Hc'
   icases Hc' with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, %Hmode, #Hr, #Hrec, #Hro, #Hnodes, #Hstop, #Hbc,
-    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm⟩
+    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm, #Hrdm, #Hasi, %Hnames⟩
   icases nodeOwn_idle_open h_bp c γ j n v $$ Hown with
     ⟨%rn, %rs, Hrnf, Hraw, Htc, #Hb, %Hst, Hcause, Hv, Hl, %Hpr, Hclose⟩
   obtain ⟨hrv, hI, hP, hN, hk⟩ := Hpr
@@ -56,7 +56,9 @@ theorem node.transferLeader.wp_proof
     rw [Hmode.2.2.2.2.2.1]; exact hTr Htr.1
   try wp_auto
   wp_apply wp_TL γ.R.md hs hcc hfw has γ.raft.raftNames rn (AntSim.nodeId j) rs v.r [] v.r.p.log.length to
-      (fun md h => h ▸ htmd) Hst.1 $$ [$Hrpkg $Hraw] as %r' ⟨Hraw, %Hend⟩
+      (fun md h => h ▸ htmd)
+      -- (antithesis parity B1, transfer source) the target a server, which raft's names acknowledge
+      (fun _ _ => Htr.2.elim fun i hi => hi ▸ Hnames.2.2 i) Hst.1 $$ [$Hrpkg $Hraw] as %r' ⟨Hraw, %Hend⟩
   have hTE := Hend γ.R.md rfl
   ihave #Hsw : □ (∀ m, ⌜AntSim.Input.transfer to = .recv m⌝ -∗ sentW (GF := GF) γ m) $$ []
   · imodintro; iintro %m %h; cases h

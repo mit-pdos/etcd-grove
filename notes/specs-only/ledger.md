@@ -6972,3 +6972,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `causeReadNums`; DrainB1ReadNums.lean (new): `causeNums_reach` (reads on or off). MsgShape (`outShape_readIdx`'s
   forward arm), Quiet, Ready (`afterOk_of`), Init; DrainB1Send's `pend_shape` (mechanical `-`).
 - **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: a forwarded MsgTransferLeader's sender is a server (#33)
+- **Defect.** `node.drain` needs, of a `Ready`'s forwarded `MsgTransferLeader`, `∃ i, x.src = nodeId i`
+  (`DrainMsgOkB1`); raft tracked nothing of a forward's `From`. A forward is only of an unstamped request
+  (`stepFollower`'s premise; a stamped one reaches only its term's leader, `#Hxfer`): its `From` is
+  `RawNode.TransferLeader`'s target or a stepped request's `From`; `send` puts the node's id for an unset `From`.
+- **Statement (raft, lead-approved 2026-11-27, design R2).** `NGhost.xsrc : GMap w64 Unit` (pure ghost, no witness, only
+  grows): the forwarded requests' senders. `raft.Step`'s transfer arm records `m.From'` (at a follower or a leader)
+  with `xw`'s record (`ownRaftPhysC_xsrc_record`, `ownStepGhost_set_xsrc`); `%Hxwframe`'s ghost equation names
+  `xsrc` and a 5th clause (`f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (MsgTransferLeader ∧ f = m.From')`); `SendOk`'s transfer
+  arm and `stepFollower`'s transfer premise take the record. **`XQOk`** (not `XfOk`, the lead's approved deviation:
+  `send` stamps `From := id` for `From = 0`) += `MsgTransferLeader → From = id ∨ (xsrc !! From).isSome`. Scope only:
+  `XScopeOk` += `∀ f, (xsrc !! f).isSome → (γ.reAcks !! f).isSome`; `RawNode.Step.form`'s scope premise +=
+  `MsgTransferLeader → (γ.reAcks !! From).isSome`; `RawNode.TransferLeader.form` += `∀ md, S md → (γ.reAcks !!
+  to).isSome`; `XReadyOk` += `x.ty = .transferLeader → x.src = id ∨ (γ.reAcks !! x.src).isSome`. `raft.Step.spec`
+  takes no new premise; the old `RawNode.Step.spec`/`RawNode.TransferLeader.spec`, the node API (`node.Step`,
+  `stepIn`, `isRaftMsg`) unchanged: no obligation on etcdserver or the kv drivers.
+- **Statement (harness, lead-approved).** `antCluster`'s names conjunct and `antRaft_alloc`'s post += `∀ j : Fin γ.R.N,
+  (γ.raft.raftNames.reAcks !! nodeId j).isSome` (from `ClusterAllocRun`'s `domSet reAcks = listToSet ids`).
+- **Proofs.** node.step and node.transferLeader discharge the scope premises (XNetFacts' server sender; the
+  spec's server target). The drain closes `DrainMsgOkB1`'s transfer clause from `XReadyOk` and `antCluster`.
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.

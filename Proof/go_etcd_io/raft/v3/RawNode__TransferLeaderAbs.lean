@@ -71,17 +71,17 @@ theorem transferEnd_of_stepEnd_cur {c : CfgM} {id : w64} {m : MessageM} {ents : 
           SendsEnd c id (toPState s) (toPState s'))) := by
   have hnh : m.Type' ≠ MsgHup := fun h => by tl_absurd
   have hnp : m.Type' ≠ MsgProp := fun h => by tl_absurd
-  obtain ⟨X, Y, b, pvs0, hfn⟩ := h.xfer hst hty
-  rw [ie_preState_nobf (s := { s with gh := { s.gh with xw := X, xt := Y, xs := b } }) (fun h' => hnb h')] at hfn
+  obtain ⟨X, Y, b, Z, pvs0, hfn⟩ := h.xfer hst hty
+  rw [ie_preState_nobf (s := { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } }) (fun h' => hnb h')] at hfn
   obtain ⟨hf, hc, hl⟩ := hfn
-  have hkeep : s' = { s with gh := { s.gh with xw := X, xt := Y, xs := b } } →
+  have hkeep : s' = { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } →
       ∃ (g : NGhost) (l : w64) (o : List Msg) (pvs : GMap w64 Progress),
         s' = { s with gh := g, lt := l, outbox := o, prvals := pvs } ∧
         prvalsMatch pvs = prvalsMatch s.prvals ∧
         (toPState s' = toPState s ∨
           (s.role = .leader ∧ m.From' ∈ c.voters ∧ m.From' ≠ id ∧
             SendsEnd c id (toPState s) (toPState s'))) := fun he =>
-    ⟨{ s.gh with xw := X, xt := Y, xs := b }, s.lt, s.outbox, s.prvals, by rw [he], rfl,
+    ⟨{ s.gh with xw := X, xt := Y, xs := b, xsrc := Z }, s.lt, s.outbox, s.prvals, by rw [he], rfl,
       .inl (by rw [he]; rfl)⟩
   have hroles : s.role = .follower ∨ s.role = .candidate ∨ s.role = .preCandidate ∨
       s.role = .leader := by cases s.role <;> simp
@@ -105,10 +105,10 @@ theorem transferEnd_of_stepEnd_cur {c : CfgM} {id : w64} {m : MessageM} {ents : 
     rcases hres with ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ |
       ⟨-, lt', ms, pvs, rfl, ⟨hrs, hx⟩, hpm, -⟩ | ⟨h, -⟩
     rotate_right 2
-    · have hP : toPState { sendMsgs { { s with gh := { s.gh with xw := X, xt := Y, xs := b } } with
+    · have hP : toPState { sendMsgs { { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } with
             lt := lt' } ms with prvals := pvs } = psendMsgs (toPState s) ms :=
         ie_toPState_send_prvals _ ms pvs (fun _ => hpm)
-      refine ⟨{ s.gh with xw := X, xt := Y, xs := b }, lt', s.outbox ++ ms, pvs, rfl, hpm, ?_⟩
+      refine ⟨{ s.gh with xw := X, xt := Y, xs := b, xsrc := Z }, lt', s.outbox ++ ms, pvs, rfl, hpm, ?_⟩
       by_cases hms : ms = []
       · subst hms
         left
@@ -143,8 +143,8 @@ theorem transferEnd_of_stepEnd_gt {c : CfgM} {id : w64} {m : MessageM} {ents : L
     (hb : PreBF m s) (h : StepEnd c id m ents ctx s s') :
     ∃ (g : NGhost) (pvs : GMap w64 Progress),
       s' = { becomeFollower { s with gh := g } m.Term' (W64 0) with prvals := pvs } := by
-  obtain ⟨X, Y, b, pvs0, hfn⟩ := h.xfer hst hty
-  have hb' : PreBF m { s with gh := { s.gh with xw := X, xt := Y, xs := b } } := hb
+  obtain ⟨X, Y, b, Z, pvs0, hfn⟩ := h.xfer hst hty
+  have hb' : PreBF m { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } := hb
   have hpl : preLead m = W64 0 := by
     unfold preLead
     rw [if_neg (by rw [hty]; simp [MsgApp, MsgHeartbeat, MsgSnap, MsgTransferLeader])]
@@ -189,7 +189,7 @@ theorem transferRecvEndR_of_stale {rs : RNState} {fp : List EntryM} {c : CfgM} {
     {ents : List EntryM} {ctx : List w8} {s s' : NState} {x : XMsg} (hty : m.Type' = MsgTransferLeader)
     (hst : StaleMsg s m) (hxt : x.term = m.Term') (h : StepEnd c id m ents ctx s s') :
     TransferRecvEndR id (toRState rs fp s) x (toRState rs fp s') := by
-  obtain ⟨X, Y, b, rfl⟩ := h.xstale hst hty
+  obtain ⟨X, Y, b, Z, rfl⟩ := h.xstale hst hty
   exact .inl ⟨by rw [hxt]; exact hst.1, by rw [hxt]; exact hst.2, rfl⟩
 
 set_option maxHeartbeats 1000000 in
@@ -236,7 +236,7 @@ theorem RawNode.TransferLeader.wp_absProof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.TransferLeader.absSpec (GF := GF) (hG := hG) := by
   have wp_raft_StepNs := raft.Step.untracedNs wp_raft_Step
-  intro md hsn hcc γ rn id rs ps qs ip transferee htr HtrG
+  intro md hsn hcc γ rn id rs ps qs ip transferee htr Hack HtrG
   have htrf : md.transfer = true := htr md rfl
   wp_start as H
   iNamed H
@@ -315,7 +315,7 @@ theorem RawNode.TransferLeader.wp_absProof
   wp_auto
   -- the forward may record `(lead, term)` in `xw` (`"%Hxwframe"`): `NetFrame` at the ghost state
   -- before the step, which the step changes only in `xw`, `xt`, `xs`
-  obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx, -, Hgrow⟩ := Hxwf (.inl rfl)
+  obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx, -, Hgrow, Hsrcg⟩ := Hxwf (.inl rfl)
   simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'
   -- the end state: `s` but for the ghost state, the transferee, the outbox, the `Progress` values
   obtain ⟨g, l, o, pvs, Hse, Hpm, Hpe⟩ := transferEnd_of_stepEnd (s := s) (s' := s') rfl rfl Htd.2 Hns' Hend
@@ -338,10 +338,12 @@ theorem RawNode.TransferLeader.wp_absProof
         fun a b c => mem_domSet_of_prvalsMatch Hpm (h9 a b c)⟩)
     (by rw [Hse]) (hfl := by rw [Hse]; exact ⟨rfl, rfl, rfl⟩)
     (hx := fun _ Hx => by
-      obtain ⟨hl, hw, ht⟩ := Hx
+      obtain ⟨hl, hw, ht, hs⟩ := Hx
       have hlead : (toPState s').lead = (toPState s).lead := by rw [Hse]; rfl
       have hterm : s'.term = s.term := by rw [Hse]
-      refine ⟨(fun hnv => by rw [hlead]; exact hl hnv), fun p hp => ?_, by rw [hlead, hterm]; exact ht⟩
+      -- (antithesis parity B1, transfer source) the sender recorded: the target, which the premise names
+      refine ⟨(fun hnv => by rw [hlead]; exact hl hnv), fun p hp => ?_, by rw [hlead, hterm]; exact ht,
+        fun f hf => (Hsrcg f hf).elim (hs f) (fun h => by rw [h.2]; exact Hack md rfl)⟩
       rcases Hgrow p hp with hp' | ⟨rfl, hr, hl0⟩
       · exact hw p hp'
       · -- the forward's record: the follower's known leader, at its term (past `0`: `XScopeOk`'s last)

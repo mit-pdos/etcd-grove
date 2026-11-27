@@ -291,13 +291,19 @@ term `0`. A `Ready` reads them for the forwarded `MsgTransferLeader`'s term and 
 def XScopeOk (γ : RaftNames) (md : RnMode) (s : NState) : Prop :=
   (md.nonVoters = false → (toPState s).lead = W64 0 ∨ (toPState s).lead ∈ γ.reCfg) ∧
   (∀ p : w64 × w64, (s.gh.xw !! p).isSome → (md.nonVoters = false → p.1 ∈ γ.reCfg) ∧ p.2 ≠ W64 0) ∧
-  ((toPState s).lead ≠ W64 0 → s.term ≠ W64 0)
+  ((toPState s).lead ≠ W64 0 → s.term ≠ W64 0) ∧
+  -- (antithesis parity B1, transfer source) every forwarded request's sender (`NGhost.xsrc`) one the
+  -- cluster's acknowledgement map names (`Step.form`'s and `TransferLeader.form`'s premise): what a
+  -- `Ready` reads for a forward's sender (`XReadyOk`)
+  (∀ f : w64, (s.gh.xsrc !! f).isSome → (γ.reAcks !! f).isSome)
 
-/-- `XScopeOk` across a step that keeps the known leader, the stamped requests and the term. -/
+/-- `XScopeOk` across a step that keeps the known leader, the stamped requests, the term and the
+forwarded requests' senders. -/
 theorem XScopeOk.keep {γ : RaftNames} {md : RnMode} {s s' : NState} (H : XScopeOk γ md s)
-    (hx : (toPState s').lead = (toPState s).lead ∧ s'.gh.xw = s.gh.xw ∧ s'.term = s.term) :
+    (hx : (toPState s').lead = (toPState s).lead ∧ s'.gh.xw = s.gh.xw ∧ s'.term = s.term)
+    (hf : s'.gh.xsrc = s.gh.xsrc := by first | rfl | simp_all) :
     XScopeOk γ md s' := by
-  unfold XScopeOk at *; rw [hx.1, hx.2.1, hx.2.2]; exact H
+  unfold XScopeOk at *; rw [hx.1, hx.2.1, hx.2.2, hf]; exact H
 
 /-- **The harness's scope, owned part**: at `some md` `RnScope md`, the node in the harness's
 configuration (`RnCfgIn md`) and, without `snapshots`, the storage never compacted past `0`

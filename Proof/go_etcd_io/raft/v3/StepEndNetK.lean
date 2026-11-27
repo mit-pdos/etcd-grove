@@ -218,7 +218,7 @@ theorem bkLog_of_stepEnd_netK {c : CfgM} {id : w64} {m : MessageM} {ents : List 
       (by rw [e]; nk_tyclose MsgVote) h fun Y _ H => bkLog_of_fn (s := { s with gh := { s.gh with xt := Y } }) rfl (bk_fn_readIndexResp e H)
   · -- `MsgTransferLeader`
     by_cases hst : StaleMsg s m
-    · obtain ⟨X, Y, b, rfl⟩ := h.xstale hst e
+    · obtain ⟨X, Y, b, Z, rfl⟩ := h.xstale hst e
       exact hkeep _ rfl rfl rfl
     by_cases hb : PreBF m s
     · obtain ⟨g, pvs, rfl⟩ := transferEnd_of_stepEnd_gt e hst hb h

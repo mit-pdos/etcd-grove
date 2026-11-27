@@ -387,7 +387,7 @@ the receipts' fit, the proposer's minting, raft's ghost names' static facts as `
 needs them, the storage registry's invariant (`antStorInv`, at the run's `AntStor` name: `node.start`
 registers its `bootStorage` there), and (antithesis parity B1, group E) raft's acknowledgement and win
 maps named for the run's servers only (an `isAcked`'s or `isLeader`'s node, a transfer message's
-destination, is one of the `N` nodes). -/
+destination, is one of the `N` nodes), and (transfer source) every server named in the former. -/
 def antCluster [AntStor GF] (c : Loc) (γ : AntNames) : IProp GF :=
   iprop(∃ (cfg : H.Config) (r : Loc) (ns : List Loc) (stop : Loc),
     c.[H.Cluster, go!"cfg"] ↦□ cfg ∗ ⌜CfgOk cfg⌝ ∗
@@ -400,7 +400,10 @@ def antCluster [AntStor GF] (c : Loc) (γ : AntNames) : IProp GF :=
     sync.isMutex (c.[H.Cluster, go!"mu"]) (downInv c γ) ∗
     inv antN (antInv γ) ∗ ⌜antRunFits GF⌝ ∗ propMinter γ ∗ rdMinter γ ∗ antStorInv ∗
     ⌜(∀ a : w64, (γ.raft.raftNames.reAcks !! a).isSome → ∃ j : Fin γ.R.N, a = AntSim.nodeId j) ∧
-      (∀ a : w64, (γ.raft.raftNames.reWins !! a).isSome → ∃ j : Fin γ.R.N, a = AntSim.nodeId j)⌝)
+      (∀ a : w64, (γ.raft.raftNames.reWins !! a).isSome → ∃ j : Fin γ.R.N, a = AntSim.nodeId j) ∧
+      -- (antithesis parity B1, transfer source, lead-approved 11-27) and every server acknowledges
+      -- (`domSet reAcks` the run's ids): a transfer request's sender, a server, one raft's scope names
+      (∀ j : Fin γ.R.N, (γ.raft.raftNames.reAcks !! AntSim.nodeId j).isSome)⌝)
 
 /-- **A share `q` of the right to add network goroutines** (`netWg`). -/
 def netAdder (c : Loc) (γ : AntNames) (q : Qp) : IProp GF :=
