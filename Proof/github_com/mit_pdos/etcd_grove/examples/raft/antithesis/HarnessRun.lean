@@ -329,15 +329,23 @@ def rdMinter (γ : AntNames) : IProp GF :=
   iprop(□ (⧗ 1 ={⊤}=∗ rdCred γ.raft.raftNames 1))
 
 /-- **A read context handed out** (exclusive: the reader hands each context to one node, once):
-`ReadIndex`'s premise in the driver. Raft's own read credit (`ReadIndex`'s `rdCred`, design §4) joins
-this body when raft's spec of `ReadIndex` lands. -/
-def readOk (γ : AntNames) (ctx : List w8) : IProp GF := authSetFrag γ.rctx ctx
+`ReadIndex`'s premises in the driver: raft's fresh token for the context and its trivial read update
+(`rawNode_read_mint`, the reader's), and a time receipt (the reader's, for `node.readIndex`'s
+`readreq` report, whose one resolution before it gives the other). The read credit (`rdCred`) is
+`node.readIndex`'s (`rdMinter`). -/
+def readOk (γ : AntNames) (ctx : List w8) : IProp GF :=
+  iprop(authSetFrag γ.rctx ctx ∗ rdFresh γ.raft.raftNames ctx ∗
+    readAu γ.raft.raftNames (fun _ => iprop(True)) ∗ ⧗ 1)
 
 /-- **The reader's contexts**: those handed out so far, `"r1" … "r(k-1)"` (the reader's counter at
-`k`); the reader mints `readOk` for `"r<k>"` from it. -/
+`k`), in the harness's set and in raft's (`ownReadCtxs`, the cluster's, which `rawNode_read_mint`
+grows); the reader mints `readOk` for `"r<k>"` from them. -/
 def readerOwn (γ : AntNames) (k : w64) : IProp GF :=
-  authSetAuth γ.rctx (GMap.listToSet ((List.range (uint.nat k - 1)).map fun (i : Nat) =>
-    (go!"r" ++ internal.strconv.fmtUint (W64 ((i : Int) + 1)) (W64 10) : List w8)))
+  iprop(authSetAuth γ.rctx (GMap.listToSet ((List.range (uint.nat k - 1)).map fun (i : Nat) =>
+    (go!"r" ++ internal.strconv.fmtUint (W64 ((i : Int) + 1)) (W64 10) : List w8))) ∗
+    ownReadCtxs γ.raft (GMap.listToSet ((List.range (uint.nat k - 1)).map fun (i : Nat) =>
+      (go!"r" ++ internal.strconv.fmtUint (W64 ((i : Int) + 1)) (W64 10) : List w8))) ∗
+    ∃ N : Namespace, isCluster γ.raft N)
 
 /-- **An input to node `j`** (what `n.in` holds), by its kind (`driver.go`'s `in*` constants):
 a message to it in flight (`inMsg`, 0); a proposal's data with its resources (`inProp`, 1); a read

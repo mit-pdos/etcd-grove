@@ -6900,3 +6900,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   message. A follower forwards a stepped `MsgTransferLeader` with only `To` changed (stepFollower), and raft's Step
   premise `NetMsgOk` constrains a stepped `MsgTransferLeader` only in its entries and context.
 - **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group D: the reader mints raft's read resources; node.readIndex proved (#33)
+- **Statements (HarnessRun, lead-approved plumbing for `rawNode_read_mint`).** `readerOwn γ k` gains raft's contexts
+  `ownReadCtxs γ.raft S_k` (the same set `"r1" … "r(k-1)"` as the harness's) and `∃ N, isCluster γ.raft N`;
+  `readOk γ ctx` gains `rdFresh γ.raft.raftNames ctx ∗ readAu γ.raft.raftNames (fun _ => True) ∗ ⧗ 1`. The receipt
+  (beyond the approved list; reported to the lead): `node.readIndex`'s `readreq` report weighs 2 and only `emit`'s
+  resolution precedes it, so the reader passes one receipt (its `deliver` resolution's). The read credit is
+  `node.readIndex`'s own (`rdMinter`, the receipt of `ReadIndex`'s resolution).
+- **HarnessReport (group D's lemma, only caller node.readIndex).** `report_updG`/`report_auG`: `hstep` also takes the
+  run's relation `AntRun` (what `runInMask` takes, for `antSim_readreq_in`'s `InMask`); the continuation also gets
+  `raftFactsOwn γ.raft.raftNames G` (persistent; `ReadIndex`'s `isCommitted γ G.committed`, `L0 := G.committed`, the
+  committed log whose length the view records as the read's floor).
+- **Proofs.** Cluster__reader (`rawNode_read_mint` per context, freshness `rctx_fresh`), RunCluster (`HU` and
+  `isCluster` at `antRaftN` into `readerOwn γ 1`), node__readIndex (NEW: `readreq` by `report_updG` +
+  `antSim_readreq_in` at `mskB1`, `RawNode.ReadIndex`, `view_input` at `.readIndex ctx`, `Reach.input`, `input "read"`).
+- **Open (for the drain's `read` report).** `ReadIndex`'s `∃ Lc, ⌜G.committed <+: Lc⌝ ∗ readReq γ ctx Lc` is dropped:
+  nothing in `nodeOwn`/the invariant keeps it for the view's read `(ctx, G.committed.length)`.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.

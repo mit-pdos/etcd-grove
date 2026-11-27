@@ -4,7 +4,8 @@ Lean-first (no Rocq counterpart). #33 parity B1: the proof of
 iteration takes a time receipt (`wp_take_receipt`, at `running`'s resolution) and keeps it, so the
 counter `k` is the reader's receipts plus one, below `receiptBound GF ≤ 2 ^ 61` (`antRunFits`):
 `k` never wraps, and `"r<k>"` is not among `"r1" … "r(k-1)"` (`parseUint_fmtUint10`), so the reader
-mints its `readOk` (`auth_set_alloc`).
+mints its `readOk` (`auth_set_alloc`; raft's fresh token and trivial read update, `rawNode_read_mint`; the
+receipt of `deliver`'s resolution).
 -/
 module
 
@@ -16,6 +17,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Clust
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessPersist
 public import Proof.ReceiptTactics
 public import Perennial.Proof.internal.strconv.FormatBasics
+public import Proof.go_etcd_io.raft.v3.RawNodeStartSpec
 
 @[expose] public section
 
@@ -71,6 +73,11 @@ private theorem rctx_step (kv : w64) (h1 : 1 ≤ uint.nat kv) (hb : uint.nat kv 
     List.map_nil, List.mem_cons, List.not_mem_nil, or_false, rctx, hk, List.mem_append]
   exact Or.comm
 
+/-- A context added to a set (raft's `insert`, the harness's `{[c]} ∪`). -/
+private theorem gset_insert_eq (c : List w8) (U : GSet (List w8)) :
+    (insert c U : GSet (List w8)) = {[c]} ∪ U :=
+  GMap.insert_union_singleton_l U c ()
+
 /-- The counter below the receipts' bound. -/
 private theorem kv_bound {B : Nat} (hB : B + 3 ≤ 2 ^ 61) (n : Nat) (h : n - 1 + 1 < B) (h1 : 1 ≤ n) :
     n < 2 ^ 61 := by omega
@@ -107,30 +114,37 @@ theorem Cluster.reader.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := 
     have hkb : uint.nat kv < 2 ^ 61 := kv_bound Hfits _ Hlt Hk1
     wp_apply wp_FormatUint kv (W64 10) (by decide) (by decide) $$ [$Hsc]
     try wp_auto
-    wp_apply wp_string_to_bytes as %ds ⟨Hds, -⟩
+    wp_apply +noauto wp_string_to_bytes as %ds ⟨Hds, -⟩
     imod ownSlice_persist $$ Hds with #Hds
     iunfold readerOwn at Hrd
+    icases Hrd with ⟨Hrd, HU, %N, #Hcl⟩
     imod (auth_set_alloc _ _ _ (rctx_fresh kv Hk1)) $$ Hrd with ⟨Hrd, Hok⟩
-    try wp_auto
-    wp_apply wp_deliver c γ n j _ $$ [$Hpkg $Hc $Hn Hds Hok]
+    imod rawNode_read_mint (GF := GF) γ.raft N _ _ ⊤ (fun _ _ => CoPset.mem_full) $$ Hcl HU
+      %(rctx_fresh kv Hk1) with ⟨HU, Hfr, #Hau⟩
+    wp_take_receipt as Hr2
+    wp_apply wp_deliver c γ n j _ $$ [$Hpkg $Hc $Hn Hds Hok Hfr Hr2]
     · iunfold inputOk
       iright; iright; ileft
       isplitr
       · ipureintro; exact ⟨rfl, Hreads⟩
       iexists _
-      isplitr [Hok]
+      isplitr [Hok Hfr Hr2]
       · iexact Hds
       iunfold readOk
-      iexact Hok
+      iframe Hok Hfr Hau Hr2
     try wp_auto
     wp_for_post
     iframe
     iexists _
     iframe
-    isplitl [Hrd]
+    isplitl [Hrd HU]
     · iunfold readerOwn
       rw [rctx_step kv Hk1 hkb]
-      iexact Hrd
+      isplitl [Hrd]
+      · iexact Hrd
+      isplitl [HU]
+      · rw [← gset_insert_eq]; iexact HU
+      iexists N; iexact Hcl
     isplitl [Hrk]
     · have : uint.nat (kv + W64 1) - 1 = uint.nat kv - 1 + 1 := by word
       rw [this]; iexact Hrk

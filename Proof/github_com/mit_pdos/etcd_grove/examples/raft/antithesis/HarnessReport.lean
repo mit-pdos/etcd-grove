@@ -200,13 +200,15 @@ theorem report_auG (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
     (hnums : ev.NumsOk) (hchg : ev.ChgOk 0)
     (hstep : ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin γ.R.N → AntSim.NodeView)
       (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
+      AntRun γ.R γ.dec evs S V net xnet →
       AntSim.SimPre γ.R γ.dec S V net xnet evs G0 → (∀ i : Fin γ.R.N, (V i).r.full ∈ G0.logs) →
       Q G0 G → V j = v → net₀ <+: net → xnet₀ <+: xnet →
       AntSim.SimStep γ.R γ.dec evs G ev (AntSim.setV V j (v' G)) (net ++ add) (xnet ++ xadd) ∧
         AntSim.RaftLaws G ∧ ∀ i : Fin γ.R.N, (AntSim.setV V j (v' G) i).r.full ∈ G.logs) :
     iprop(antCluster (GF := GF) c γ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗ □ factsExt γ Q) ∗
         iprop(viewFrag γ j v ∗ nodeLive γ j ∗
-          (∀ G : AntSim.RaftFacts, ⌜∃ G0, Q G0 G⌝ -∗ viewFrag γ j (v' G) -∗ nodeLive γ j -∗
+          (∀ G : AntSim.RaftFacts, ⌜∃ G0, Q G0 G⌝ -∗ raftFactsOwn γ.raft.raftNames G -∗
+            viewFrag γ j (v' G) -∗ nodeLive γ j -∗
             (∃ (net : List Msg) (xnet : List XMsg), sentLb γ net ∗ xsentLb γ xnet ∗
               ⌜net₀ <+: net ∧ (∀ m ∈ add, m ∈ net) ∧ xnet₀ <+: xnet ∧ ∀ x ∈ xadd, x ∈ xnet⌝) -∗ Φ)) ⊢
       AU <{ ∃∃ evs, recAuth (GF := GF) γ.strm evs }> @ ⊤, ∅
@@ -253,7 +255,7 @@ theorem report_auG (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
       · iframe Hv Hviews
       obtain ⟨hR, hL0, hG0, hlogs0⟩ := Hpure
       obtain ⟨⟨S', hP', hA', hG'⟩, hL, hlogs⟩ :=
-        hstep evs S V net xnet G0 G ⟨hR.1, hR.2.1, hL0, hG0⟩ hlogs0 HQ HVj Hpre.2 Hxpre.2
+        hstep evs S V net xnet G0 G hR ⟨hR.1, hR.2.1, hL0, hG0⟩ hlogs0 HQ HVj Hpre.2 Hxpre.2
       have hR' := antRun_snoc GF hR hP' hA' hnums hchg Hfit Hrf
       imod monoListAuthOwn_update_app (GF := GF) (γ := γ.sent) add $$ Hnet with ⟨Hnet, #Hlb'⟩
       imod monoListAuthOwn_update_app (GF := GF) (γ := γ.xsent) xadd $$ Hxnet with ⟨Hxnet, #Hxlb'⟩
@@ -266,7 +268,7 @@ theorem report_auG (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
         iframe Hstr Hviews Hnet Hxnet HF
         ipureintro; exact ⟨hR', hL, hG', hlogs⟩
       imodintro
-      iapply HΦ $$ %G %(⟨G0, HQ⟩) Hv Hl
+      iapply HΦ $$ %G %(⟨G0, HQ⟩) HF Hv Hl
       iexists net ++ add, xnet ++ xadd
       iunfold sentLb
       iunfold xsentLb
@@ -310,7 +312,9 @@ theorem report_upd (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
 
 /-- **A report's update with the new view a function of raft's grown facts** (`report_upd` at
 `v' G`; the `readreq` report, whose view records the read's committed log): the caller's
-continuation takes the facts `G` the commit grew to (`Q G0 G` for some `G0`). -/
+continuation takes the facts `G` the commit grew to (`Q G0 G` for some `G0`) and their ghost facts
+(`raftFactsOwn`, persistent: `readIndex`'s `isCommitted γ G.committed`); the step `hstep` may read the run's
+relation (`AntRun`: what `runInMask` takes). -/
 theorem report_updG (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law (GF := GF))
     (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (v' : AntSim.RaftFacts → AntSim.NodeView)
     (ev : AntCheck.Event) (net₀ add : List Msg) (xnet₀ xadd : List XMsg)
@@ -318,13 +322,15 @@ theorem report_updG (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.la
     (hnums : ev.NumsOk) (hchg : ev.ChgOk 0)
     (hstep : ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin γ.R.N → AntSim.NodeView)
       (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
+      AntRun γ.R γ.dec evs S V net xnet →
       AntSim.SimPre γ.R γ.dec S V net xnet evs G0 → (∀ i : Fin γ.R.N, (V i).r.full ∈ G0.logs) →
       Q G0 G → V j = v → net₀ <+: net → xnet₀ <+: xnet →
       AntSim.SimStep γ.R γ.dec evs G ev (AntSim.setV V j (v' G)) (net ++ add) (xnet ++ xadd) ∧
         AntSim.RaftLaws G ∧ ∀ i : Fin γ.R.N, (AntSim.setV V j (v' G) i).r.full ∈ G.logs) :
     antCluster (GF := GF) c γ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗ □ factsExt γ Q ∗ ⧗ ev.weight ∗
         viewFrag γ j v ∗ nodeLive γ j ∗
-        (∀ G : AntSim.RaftFacts, ⌜∃ G0, Q G0 G⌝ -∗ viewFrag γ j (v' G) -∗ nodeLive γ j -∗
+        (∀ G : AntSim.RaftFacts, ⌜∃ G0, Q G0 G⌝ -∗ raftFactsOwn γ.raft.raftNames G -∗
+            viewFrag γ j (v' G) -∗ nodeLive γ j -∗
           (∃ (net : List Msg) (xnet : List XMsg), sentLb γ net ∗ xsentLb γ xnet ∗
             ⌜net₀ <+: net ∧ (∀ m ∈ add, m ∈ net) ∧ xnet₀ <+: xnet ∧ ∀ x ∈ xadd, x ∈ xnet⌝) -∗ Φ) ⊢
       reports γ.strm [ev] Φ := by

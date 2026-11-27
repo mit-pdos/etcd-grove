@@ -756,20 +756,24 @@ theorem RunCluster.wp_proof
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ threadTok ∗ ∃ k : w32,
       sync.join.ownAdder (cl.[H.Cluster, go!"behWg"]) k iprop(True) ∗ ⌜uint.Z k ≤ 3⌝)))
-    $$ [Htok Hbeh Hra]
+    $$ [Htok Hbeh Hra HU]
   · icases Hbeh with ⟨%k, Hbeh, %Hk⟩
     cases Hif : mode.Reads'
     rotate_left
     · try wp_auto
       wp_apply (wp_spawn cl (methods (go.GoType.PointerType
           github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty) go!"reader" #cl)
-          k _ (by word)) $$ [$Hpkg $Hbeh $Htok Hra] as ⟨Hbeh, Htok⟩
+          k _ (by word)) $$ [$Hpkg $Hbeh $Htok Hra HU] as ⟨Hbeh, Htok⟩
       · iintro Htt
-        wp_apply wp_reader cl γ $$ [$Hpkg $Hc $Htt Hra] as Htt
+        wp_apply wp_reader cl γ $$ [$Hpkg $Hc $Htt Hra HU] as Htt
         · iunfold readerOwn
           rw [show uint.nat (W64 1) - 1 = 0 from rfl]
-          isplitl [Hra]
-          · iExactEq Hra; rfl
+          isplitl [Hra HU]
+          · isplitl [Hra]
+            · iExactEq Hra; rfl
+            isplitl [HU]
+            · iExactEq HU; rfl
+            iexists antRaftN; iexact Hcl
           ipureintro; exact Hif
         iframe Htt; ipureintro; rfl
       try wp_auto
