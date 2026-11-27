@@ -76,19 +76,39 @@ theorem nodeOkD_syncOff {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} 
   · obtain ⟨c1, c2⟩ := hc hrc
     exact ⟨c1, c2 (by rw [hd]; rfl)⟩
 
+/-- **The in-memory commit is recorded** when it is the disk's (sync, between writes): C3's commit
+facts for the node (`BindingOk`). -/
+theorem memCommitOk_of_disk {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {v : NodeView}
+    (hb : BindingOk R dec S) (hd : DiskIs S n v) (hdur : v.dur = durOf v.r) : MemCommitOk S v := by
+  intro _
+  obtain ⟨d1, -, d3, d4⟩ := hd
+  have ec : v.dur.commit = v.ps.commit := by rw [hdur]; rfl
+  have et : v.dur.term = v.ps.term := by rw [hdur]; rfl
+  have el : v.dur.log = v.r.full := by rw [hdur]; rfl
+  rw [ec] at d4; rw [et] at d1; rw [el] at d3
+  obtain ⟨c1, c2⟩ := hb.2.2.1 n
+  rw [d4, d3] at c2; rw [d4] at c1
+  have hnat : (uint.Z v.ps.commit).toNat = uint.nat v.ps.commit := by word
+  rw [hnat] at c2
+  refine ⟨c1, c2, ?_⟩
+  rcases hb.2.2.2.1 n with h | ⟨p, hp, hp1, hp2⟩
+  · rw [d4] at h; exact .inl (by word)
+  · rw [d4] at hp2; rw [d1] at hp1; exact .inr ⟨p, hp, hp1, hp2⟩
+
 /-- Back: the node part of the run with the driver modes off is the B2 node part of a `-parallel`
 run, given the B2 bookkeeping of the view before (`w`: the same disk, undo record, queues). -/
 theorem nodeOk_syncOffD {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N}
     {v w : NodeView} (ha : R.md.async = false) (hb : R.drv.batch = false)
     (hpar : R.drv.parallel = true) (hm : v.mems = []) (hdu : v.dur = w.dur) (hun : v.undo = w.undo)
-    (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w)
+    (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w) (hbo : BindingOk R dec S)
     (h : NodeOk R.syncOff dec S net n v) : NodeOkD R dec S net n v := by
   obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hp, hx, hqs, ht, hca, hxc, hlo, hvs⟩ := h
   have hd : v.dur = durOf v.r := (d3 ha rfl rfl rfl).2.1
   obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := hf
   refine ⟨d1, d2, fun _ _ _ hp0 => (by rw [hpar] at hp0; cases hp0), d4, d5, d6, d7,
     ⟨fun _ => f1, f2, f3, f4, f5, fun _ => f6, f7⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
-    fun hb' => (by rw [hb] at hb'; cases hb'), hx, hqs, ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_⟩
+    fun hb' => (by rw [hb] at hb'; cases hb'), hx, hqs, ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_,
+    fun _ _ => (d3 ha rfl rfl rfl).2.2, memCommitOk_of_disk hbo d1 hd⟩
   · obtain ⟨l1, l2, l3, l4, l5, l6⟩ := hl hrl
     refine ⟨l1, l2, l3, l4, fun _ => ⟨l5, ?_⟩⟩
     have hlog : v.dur.log = v.r.full := by rw [hd]; rfl
@@ -109,18 +129,20 @@ theorem nodeOkD_pendPerm {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg}
     {v : NodeView} (p : List Msg) (hp : ∀ q, q ∈ p ↔ q ∈ v.pend) (h : NodeOkD R dec S net n v) :
     NodeOkD R dec S net n { v with pend := p } := by
   obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hpo, hpb, hx, hqs, ht, hca, hxc, hlo, hvs, huf, hdf,
-    hjo, hac⟩ := h
+    hjo, hac, hum, hmc⟩ := h
   obtain ⟨f1, f2, f3, f4, f5, f6, f7, f8⟩ := hf
   obtain ⟨j1, j2, j3, j4, j5, j6⟩ := hjo
   exact ⟨d1, d2, d3, d4, d5, d6, d7, ⟨f1, f2, f3, f4, f5, f6, fun q hq => f7 q ((hp q).mp hq), f8⟩, hl, hc,
-    fun hb q hq => hpo hb q ((hp q).mp hq), fun hb q hq => hpb hb q ((hp q).mp hq), hx, hqs, ht, hca,
-    hxc, hlo, hvs, huf, hdf, ⟨j1, j2, j3, j4, j5, fun ha q hq => j6 ha q ((hp q).mp hq)⟩, hac⟩
+    fun hb q hq => hpo hb q ((hp q).mp hq), fun hb hm q hq => hpb hb hm q ((hp q).mp hq), hx, hqs, ht,
+    hca, hxc, hlo, hvs, huf, hdf, ⟨j1, j2, j3, j4, j5, fun ha q hq => j6 ha q ((hp q).mp hq)⟩, hac, hum,
+    hmc⟩
 
 /-- **A `-parallel` leader's `Ready` the harness does not report** (no write, the same role;
 `QuietIn.silentReady`'s step over `AntSimD`): the drain phase, its requests (appends and heartbeats)
 pending first, in their order, then the others in theirs. The node has no queued write and no split
-write in progress, and an announced write of it is not made (what the harness knows at a leader's
-`Ready`: its last `-parallel` write was made and `wrote`). -/
+write in progress (what the harness knows at a leader's `Ready`: its last `-parallel` write was made
+and `wrote`). Other nodes may have announced commits not yet written: the B1 lemma reads them at
+`liftC`. -/
 theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView)
       (net : List Msg) (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
@@ -128,7 +150,7 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
       InMask msk R net xnet → AntSimD R dec S V net xnet → RaftLaws G →
       GlobalOk R S net G →
       R.md.async = false → R.drv.batch = false → R.drv.parallel = true →
-      (V n).mems = [] → (V n).parts = [] → ((V n).undo ≠ none → (V n).made = false) →
+      (V n).mems = [] → (V n).parts = [] →
       ReachIn msk R dec Adm net xnet n (V n) r₁ → ReadyOutP R n (V n) r₁ rd →
       rd.role = .leader → rd.snap = none → ¬ Reported (V n) rd →
       ReadyFacts G (nodeId n) r₁ →
@@ -136,20 +158,26 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
         (setV V n { ((V n).drainOf r₁ rd) with
           pend := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q) })
         net xnet := by
-  intro R dec S V net xnet G n r₁ rd Adm hin hs _ _ ha hb hpar hm hparts hu hr hrop _ _ hrep _
+  intro R dec S V net xnet G n r₁ rd Adm hin hs _ _ ha hb hpar hm hparts hr hrop _ _ hrep _
   obtain ⟨hsh, hbd, hn, hxn, hno⟩ := hs
   have hv := hno n
+  have hu : (V n).undo ≠ none → (V n).made = false :=
+    hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 ha hb
+  have hqn : S.queue[n.val]! = [] := by
+    have hqi : QueueIs S n (V n) := hv.2.2.2.2.1
+    unfold QueueIs at hqi; rw [hqi, hm]; rfl
   have hd : (V n).dur = durOf (V n).r := by
     have := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 hparts
     rw [hm] at this; exact this
   have hjo := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   have huf := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
-  have hv' := nodeOkD_syncOff ha hb hm hd hu hv
+  have hv' := nodeOk_liftC (R := R.syncOff) hqn (nodeOkD_syncOff ha hb hm hd hu hv)
   have hq : QuietIn msk.b1Of R.syncOff dec Adm net xnet n (V n) ((V n).drainOf r₁ rd) :=
     .silentReady _ r₁ rd hr.syncOff hrop hrep
-  have h1 := nodeOk_quiet (SimMask.b1Of_le hmsk) hin.syncOff hsh.1 (netOkD_toB1 ha hn) hv' hq
+  have h1 := nodeOk_unliftC (R := R.syncOff) hqn
+    (nodeOk_quiet (SimMask.b1Of_le hmsk) hin.syncOff hsh.1 (netOkD_toB1L ha hsh.2.2.2.2.2.1 hn) hv' hq)
   have h2 : NodeOkD R dec S net n ((V n).drainOf r₁ rd) :=
-    nodeOk_syncOffD ha hb hpar hm rfl rfl ((hjo.1 ha).1) ((hjo.1 ha).2) huf h1
+    nodeOk_syncOffD ha hb hpar hm rfl rfl ((hjo.1 ha).1) ((hjo.1 ha).2) huf hbd.1 h1
   have h3 := nodeOkD_pendPerm (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))
     (fun q => by
       show q ∈ _ ↔ q ∈ rd.msgs

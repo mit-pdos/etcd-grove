@@ -216,14 +216,27 @@ def ApplyChainOk (R : RunCfg) (S : AntCheck.State) (n : Fin R.N) (v : NodeView) 
     ap <+: v.dur.log ∧ (ap.length : Int) ≤ S.chain.length ∧
       S.chain.take ap.length = logOf ap
 
+/-- **The in-memory commit is recorded** (outside a split write's parts): raft's commit is within
+`chain`, which agrees with raft's log up to it, and is recorded in `termLen` under a term at most
+raft's (`InMemory` extends `chain` and `termLen` at the `mem` that announces the commit, before its
+write: what `Sendable`'s `RecordedIn` reads of a `-parallel` request sent before the write). -/
+def MemCommitOk (S : AntCheck.State) (v : NodeView) : Prop :=
+  v.parts = [] →
+    uint.Z v.ps.commit ≤ S.chain.length ∧
+    S.chain.take (uint.nat v.ps.commit) = (logOf v.r.full).take (uint.nat v.ps.commit) ∧
+    (v.ps.commit = W64 0 ∨ ∃ p ∈ S.termLen, p.1 ≤ uint.Z v.ps.term ∧ uint.Z v.ps.commit ≤ p.2)
+
 /-- **C1, C2 and the drain's facts, B2** (`NodeOk` with `NodeFactsD`, `LeaderPartD`, `CandPartD`; a
-batch's pending messages by `PendOkB`), and the B2 bookkeeping. -/
+batch's pending messages by `PendOkB` once its queued `mem`s are written: a vote, a vote request
+and an acknowledgement are recorded by the write, `OnDisk`), and the B2 bookkeeping: in a sync,
+unbatched run an announced write is not `made` while the binding keeps its undo record (the first
+`send` after it ends it, B 1026), and the in-memory commit is recorded (`MemCommitOk`). -/
 def NodeOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n : Fin R.N)
     (v : NodeView) : Prop :=
   DiskIs S n v ∧ MemIs R.N S n v ∧ SyncDisk R v ∧ UndoIs S n v ∧ QueueIs S n v ∧ ReadsIs S n v ∧
   ConfLag dec R v ∧ NodeFactsD R n v ∧ LeaderPartD S n v ∧ CandPartD S n v ∧
   (R.drv.batch = false → ∀ q ∈ v.pend, PendOk R.N (nodeId n) v q) ∧
-  (R.drv.batch = true → ∀ q ∈ v.pend, PendOkB S n v q) ∧
+  (R.drv.batch = true → v.mems = [] → ∀ q ∈ v.pend, PendOkB S n v q) ∧
   (∀ x ∈ v.xpend, XPendOk R.N (nodeId n) v.ps x) ∧
   (∀ q ∈ v.qs, QsOk R S n v q) ∧
   (v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
@@ -231,7 +244,8 @@ def NodeOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n 
   (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧
   (∀ x, v.xcause = some x → x.dst = nodeId n ∧ v.cause = none) ∧
   LeadOk n v ∧ VoteSelf n v ∧
-  UndoFacts R v ∧ DiskFold v ∧ JobsOk R n net v ∧ ApplyChainOk R S n v
+  UndoFacts R v ∧ DiskFold v ∧ JobsOk R n net v ∧ ApplyChainOk R S n v ∧
+  (R.md.async = false → R.drv.batch = false → v.undo ≠ none → v.made = false) ∧ MemCommitOk S v
 
 /-- **C3 with restarts**: what `GC` keeps is kept while some node's `EffTerm` (B 152: the lower of its
 term and its unmade write's undo term) is at most the term, so the `currentTerm` forms of
@@ -265,6 +279,15 @@ def HbCommitOkD (N : Nat) (S : AntCheck.State) (net : List Msg) : Prop :=
       (u.confirmed.term = uint.Z m.term ∧ uint.Z m.commit ≤ u.confirmed.index) ∨
         uint.Z m.commit ≤ u.commit)
 
+/-- **C4, a leader's message's commit, B2** (`LeadCommitMsgOk` over the in-memory commit,
+`MemCommit`, B 139): a `-parallel` leader sends its requests before their `Ready`'s write, so an
+append or heartbeat carries a commit its sender has announced (its last queued `mem`'s) but maybe not
+written. -/
+def LeadCommitMsgOkD (N : Nat) (S : AntCheck.State) (net : List Msg) : Prop :=
+  ∀ m ∈ net, (m.ty = .app ∨ m.ty = .heartbeat) → ∀ i : Fin N, m.src = nodeId i →
+    S.role[i.val]! ≠ AntCheck.follower → S.currentTerm[i.val]! = uint.Z m.term →
+    ∃ c, S.memCommit i.val = .ok c ∧ uint.Z m.commit ≤ c
+
 /-- **C4, B2** (`NetOk` restated): every message sent is between two nodes, of a type in scope; its
 term is one some node has written (`EffTerm`: kept by restarts; what `OnDisk`'s `adopt` asks), and
 in sync mode within its sender's (async sends a heartbeat response or a read answer at raft's
@@ -289,7 +312,7 @@ def NetOkD (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
             AntCheck.Fact) ∈ S.msgs) ∧
         ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
           AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
-  HbCommitOkD R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net ∧ (∀ m ∈ net, MsgMask R m) ∧
+  HbCommitOkD R.N S net ∧ NetShape net ∧ LeadCommitMsgOkD R.N S net ∧ (∀ m ∈ net, MsgMask R m) ∧
   (∀ m ∈ net, PreVoterOk R m) ∧ ∀ m ∈ net, m.ty = .readIndexResp → MsgNums (2 ^ 61) m
 
 /-- **C4, the transfer messages, B2**: of a term some node has written (`EffTerm`). -/
