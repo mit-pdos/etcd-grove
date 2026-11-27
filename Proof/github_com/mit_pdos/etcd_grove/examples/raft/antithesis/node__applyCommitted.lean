@@ -14,6 +14,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node_
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__entries
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__switchConf
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -61,7 +62,7 @@ theorem node.applyCommitted.wp_proof (wp_reportCause : node.reportCause.spec (GF
     rw [decide_eq_true H0]
     wp_auto
     iapply HΦ
-    rw [if_pos rfl, if_pos rfl]
+    repeat rw [if_pos rfl]
     iframe
     iframe Hents
     iapply (show reports (GF := GF) γ.strm (List.map (atNode (AntSim.nameOf (AntSim.nodeId j))) []) Q ⊢ Q
@@ -76,13 +77,7 @@ theorem node.applyCommitted.wp_proof (wp_reportCause : node.reportCause.spec (GF
       have h1 : sint.nat sl.len ≠ 0 := by rw [← Hsll.1]; simp
       intro h; apply h1; rw [h]; rfl
     rw [decide_eq_false H0]
-    have hq : ((if e :: r = [] then [] else o.toList ++ [applyEvM by_ (e :: r)]).map
-        (atNode (AntSim.nameOf (AntSim.nodeId j)))) =
-        o.toList.map (atNode (AntSim.nameOf (AntSim.nodeId j))) ++
-          [atNode (AntSim.nameOf (AntSim.nodeId j)) (applyEvM by_ (e :: r))] := by simp
-    ihave Hrep : reports γ.strm (o.toList.map (atNode (AntSim.nameOf (AntSim.nodeId j))))
-        (reports γ.strm [atNode (AntSim.nameOf (AntSim.nodeId j)) (applyEvM by_ (e :: r))] Q) $$ [Hrep]
-    · rw [← reports_app, ← hq]; iexact Hrep
+    simp only [List.cons_ne_nil, ↓reduceIte]
     wp_auto
     wp_apply wp_reportCause c γ n j cl o _ $$ [$Hpkg $Hc $Hn $Hok $Hcl $Hpc $Hrep] as ⟨Hok, Hcl, Hrep⟩
     try wp_auto
@@ -90,12 +85,18 @@ theorem node.applyCommitted.wp_proof (wp_reportCause : node.reportCause.spec (GF
     have Hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len := by
       have h1 := Hsll.1; simp only [List.length_cons] at h1; constructor <;> word
     simp only [Hb, _root_.and_self, ↓reduceIte]
-    wp_apply wp_load_slice_index sl (sint.Z (W64 0)) (l :: ls) dq l (by decide) $$ [Hsl] as Hsl
+    wp_apply +noauto wp_load_slice_index sl (sint.Z (W64 0)) (l :: ls) dq l (by decide) $$ [Hsl] as Hsl
     · iframe Hsl; ipureintro; rfl
-    wp_apply wp_GetIndex.1 l DFrac.discard e $$ [$Hpb $He] as -
-    try wp_auto
-    wp_apply wp_entries c γ n j sl dq (l :: ls) (e :: r) hn $$ [$Hpkg $Hc $Hn $Hsl $Hents]
-      as %out ⟨Hsl, -, #Hlog, -⟩
+    wp_take_receipt as Hr1
+    wp_apply +noauto wp_GetIndex.1 l DFrac.discard e $$ [$Hpb $He] as -
+    wp_take_receipt as Hr2
+    wp_apply +noauto wp_entries c γ n j sl dq (l :: ls) (e :: r) hn $$ [$Hpkg $Hc $Hn $Hsl $Hents]
+      as %out ⟨Hsl, -, #Hlog, Hr3⟩
+    ihave Hrep := Hrep $$ [Hr1 Hr2 Hr3]
+    · iapply (receipt_add (GF := GF) ((e :: r).length + 1) 1).2
+      iframe Hr2
+      iapply (receipt_add (GF := GF) (e :: r).length 1).2
+      iframe Hr3 Hr1
     try wp_auto
     wp_apply wp_emit c γ n j _ (applyEvM by_ (e :: r)) _ $$ [$Hpkg $Hc $Hn $Hok Hrep «$a0»] as ⟨Hok, Hrep⟩
     · iframe Hrep
@@ -147,7 +148,6 @@ theorem node.applyCommitted.wp_proof (wp_reportCause : node.reportCause.spec (GF
     wp_apply wp_GetIndex.1 lx DFrac.discard ex $$ [$Hpb $Hx] as -
     try wp_auto
     iapply HΦ
-    rw [if_neg (List.cons_ne_nil e r)]
     have hlast : (e :: r).getLast? = some ex := by
       rw [List.getLast?_eq_getElem?]; simpa [hrl] using hex
     rw [hlast]

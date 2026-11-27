@@ -502,6 +502,29 @@ inductive AdvanceEndR (Adm : List EntryM → CCState → Prop) (dec : CCDec) (k 
   | cons (r r1 r' : RState) (q : Msg) (qs : List Msg) :
       RecvEndR Adm k id r q r1 → AdvanceEndR Adm dec k id r1 qs r' → AdvanceEndR Adm dec k id r (q :: qs) r'
 
+/-- (antithesis parity B1, lead-approved 11-27) **`AckEndR` without a snapshot applied**: its first
+two arms (nothing, or the applied index moved), what `Advance` does with snapshots off. -/
+def AckEndRNoSnap (dec : CCDec) (Adm : List EntryM → CCState → Prop) (id : w64) (r r' : RState) : Prop :=
+  (r' = r) ∨
+  (∃ a, StepR Adm dec id 0 r [] { r with applied := a, cidx := max r.cidx (uint.nat a) } ∧
+        r' = { r with applied := a, cidx := max r.cidx (uint.nat a) })
+
+/-- (antithesis parity B1) **`Advance` with no snapshot applied**: `AdvanceEndR` over
+`AckEndRNoSnap`. -/
+inductive AdvanceEndRNoSnap (Adm : List EntryM → CCState → Prop) (dec : CCDec) (k : NodeK) (id : w64) :
+    RState → List Msg → RState → Prop
+  | nil (r r' : RState) : AckEndRNoSnap dec Adm id r r' → AdvanceEndRNoSnap Adm dec k id r [] r'
+  | cons (r r1 r' : RState) (q : Msg) (qs : List Msg) :
+      RecvEndR Adm k id r q r1 → AdvanceEndRNoSnap Adm dec k id r1 qs r' →
+      AdvanceEndRNoSnap Adm dec k id r (q :: qs) r'
+
+theorem AdvanceEndRNoSnap.advanceEndR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {k : NodeK}
+    {id : w64} {r r' : RState} {qs : List Msg} (h : AdvanceEndRNoSnap Adm dec k id r qs r') :
+    AdvanceEndR Adm dec k id r qs r' := by
+  induction h with
+  | nil r r' ha => exact .nil _ _ (ha.elim .inl (fun h => .inr (.inl h)))
+  | cons r r1 r' q qs hr _ ih => exact .cons _ _ _ _ _ hr ih
+
 /-- `hasUnappliedConfChanges` (`raft.go:1013`): a conf entry committed and not applied. -/
 def UnappliedConf (r : RState) : Prop :=
   ∃ (k : Nat) (e : EntryM), uint.nat r.applied ≤ k ∧ k < uint.nat r.p.commit ∧ r.full[k]? = some e ∧

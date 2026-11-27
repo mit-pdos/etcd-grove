@@ -564,7 +564,7 @@ theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : C
       · exact .recvP _ m _ hi hbe hca hmn hmd' (hne hpt (.inl rfl)) (.inl hpt)
           (fun h1 => by rw [hpt] at h1; cases h1) hs.1
       · refine .recvP _ m _ hi hbe hca hmn hmd' (hne hpt (.inr rfl)) (.inr hpt) (fun h1 h2 => ?_) hs.1
-        have := ((hnet.2.2.2.2.2 m hmn) hcc).2 h1 h2
+        have := ((hnet.2.2.2.2.2.1 m hmn) hcc).2 h1 h2
         rw [(hv.facts.conf0 hcc).1, CfgM.voters_simple, ← hmd']; exact this
     · have hti' : TickBy v.byE := by rcases hti with rfl | rfl <;> simp [hbe, Input.byE, TickBy]
       exact .tick _ _ hi hti' hs.1

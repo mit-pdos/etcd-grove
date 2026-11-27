@@ -922,7 +922,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1) {dec : CCDec}
       subst this
       obtain ⟨h1, h2⟩ := hx x' rfl
       exact ⟨h2, rfl⟩
-  | noReady r₁ hr hX _ ht hvo hc hro hfl =>
+  | noReady r₁ hr hX hst0 ht hvo hc hro hfl =>
     obtain ⟨⟨hcfg, hfp, hsnap⟩, hpe, hxpe⟩ := reach_keep hmsk hin hv hr
     have hl : r₁.p.log = v.ps.log := log_of_full hfl hfp
     have hkp := quiet_reach hmsk hin hcf hnet hv hr hro ht hl
@@ -936,7 +936,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1) {dec : CCDec}
       .inl ⟨?_, ?_⟩, ⟨hX, fun _ => ⟨hkp.1.trans hsnap0.1, hfp.trans hsnap0.2.1, hsnap.trans hsnap0.2.2⟩,
         fun h => ⟨by show r₁.cfg.cfg = _; rw [hcfg]; exact (f3 h).1, hfl ▸ (f3 h).2.1, (f3 h).2.2⟩, f4, f5, f6, f7,
         by show uint.Z v.dur.term ≤ uint.Z r₁.p.term; rw [ht]; exact f8,
-        fun h => hro.trans (f9 h), fun h => hroOk h, f11, hrsr.1, hrsr.2, hrok⟩,
+        fun h => hro.trans (f9 h), fun h => hroOk h, f11, hrsr.1, hrsr.2, hrok, hst0⟩,
       leaderPart_of d9 hro ht hfl (fun hr' hm => hkp.2.2.1 (hro.trans hr') hm),
       candPart_of d10 hro (fun hr' hm => hkp.2.2.2 (hro.trans hr') hm),
       ?_, ?_, ?_, d14, d15, d16, hlead, fun h => hvo.trans (d18 fun h' => h (hro.trans h'))⟩
@@ -992,7 +992,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1) {dec : CCDec}
           (f3 h).2.2⟩, f4, by show v.delivered ++ rd.ce <+: v.dur.log; rw [← hfull]; exact hpfx,
         by show (v.delivered ++ rd.ce).length ≤ uint.nat v.dur.commit; rw [← hcm']; exact hlen,
         fun q hq => ?_, by show uint.Z v.dur.term ≤ uint.Z r₁.p.term; rw [← hT, h1]; exact Int.le_refl _,
-        (fun h => hR.symm.trans (hpre h).1), fun h => hroOk h, fun h => (hpre h).2, hrsr.1, hrsr.2, hrok⟩,
+        (fun h => hR.symm.trans (hpre h).1), fun h => hroOk h, fun h => (hpre h).2, hrsr.1, hrsr.2, hrok, rfl⟩,
       leaderPart_of d9 hRole ht hfl (fun hr' hm => hkp.2.2.1 (hRole.trans hr') hm),
       candPart_of d10 hRole (fun hr' hm => hkp.2.2.2 (hRole.trans hr') hm),
       hpend, ?_, ?_, d14, d15, d16, hlead, fun h => hvo.trans (d18 fun h' => h (hRole.trans h'))⟩

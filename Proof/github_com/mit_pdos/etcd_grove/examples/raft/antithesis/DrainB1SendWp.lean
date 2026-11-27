@@ -487,7 +487,7 @@ theorem drainSendB1
             ⌜net₂ <+: net ∧ (∀ m ∈ [q], m ∈ net) ∧ xnet₂ <+: xnet ∧
               ∀ y ∈ ([] : List XMsg), y ∈ xnet⌝)))
         (evSend_numsOk habs hns hnums hterm _ _) (evSend_chgOk _ _ _)
-        (sendHstep j _ q rest net₂ xnet₂ hinm has hpend' htold) $$ [Hvf Hl Hrc]
+        (sendHstep j _ q rest net₂ xnet₂ hinm has hpend' htold (fun _ => hN q habs)) $$ [Hvf Hl Hrc]
       · iframe Hc Hlb2 Hxlb2 Hext Hrc Hvf Hl
         iintro H; iexact H
       have hev : atNode (AntSim.nameOf (AntSim.nodeId j)) (sendEvM I.v.byE I.ms[i].st) =

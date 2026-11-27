@@ -215,7 +215,7 @@ theorem antSim_init : antSim_init.stmt := by
         · rw [initS_ledAt, hb]; simp [TermFn.get]; rfl
         · rw [initS_ledConf, hb]; simp [TermFn.get, confView_c0]; rfl
   · unfold NetOk HbCommitOk NetShape LeadCommitMsgOk
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
   · intro x hx; cases hx
   · intro n
     obtain ⟨⟨hterm, hvote0, hlead, hrole, _, hout, hbase, hlog0, hcommit, _, _, _, hsnap, hcidx, hcfg, hfp, hrd⟩,
@@ -258,7 +258,8 @@ theorem antSim_init : antSim_init.stmt := by
       · exact ⟨by rw [hdur]; exact Int.le_refl _, fun _ => hrole, fun _ => ⟨hpd, fun h => (by rw [hrole] at h; cases h)⟩,
           fun h => (by rw [hpre] at h; cases h), fun p hp => (by rw [hpd] at hp; cases hp),
           fun h => (by rw [hrole] at h; cases h),
-          fun p hp => (by rw [hpd] at hp; cases hp), fun h => (by rw [hrole] at h; cases h)⟩
+          ⟨fun p hp => (by rw [hpd] at hp; cases hp), fun h => (by rw [hrole] at h; cases h)⟩,
+          by show (V n).r.p.rd.states = []; rw [hrd]⟩
     · intro h; rw [hrole] at h; cases h
     · intro h; rw [hrole] at h; cases h
     · rw [hpend]; intro q hq; cases hq
