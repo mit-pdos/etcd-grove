@@ -9217,6 +9217,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   The library's proofs take no client spec as a callee. No top-level statement, axiom, premise or trusted text
   changes (`k8s_all`'s and authz's `TopLevelRobustness` Spec files byte-identical).
 - **Decision.** Coordinator brief (K5, 2026-11-27); intermediate specs only.
+- **Extension (K5-3, 2026-11-27).** The interface grew while the specs moved onto it; each addition is a
+  Spec-visible part of `K8sEtcd`/`K8sEtcd.Laws` (defs `EtcdClient.lean`), named by the specs through
+  `k8sClient`: `K.kvAt api` and the laws `kvField`/`kvGet` (the watch's initial list, C2: `wp_syncGet` now takes
+  `□ c.K.kvAt api`), `ctxFields` (`New`'s ctx and `CheckClient` fields), the derived `K8sEtcd.Laws.getLatest`,
+  and C3 for the compactor: `K.txnAt` (a transaction of the client's `KV.Txn`) and the laws `endpoints` (returns
+  `K.eps`), `kvTxn`, `txnIf`/`txnThen`/`txnElse`, `casCommit` (the round's `casClientTxn`, update at each of
+  `K.kvs`). The compactor's specs (`Compact`, `compactor.{runCompactLoop,runWatchLoop}`, `NewCompactor`,
+  `StartCompactorPerEndpoint`) take `K` and `k8sClient K cl` for `ms`/`V`/`isNewClient … ∗ clientWriteOnce … ∗
+  [∗list] kvRegsAt` (also dropped from `Compact`'s post: persistent), `∀ γ ∈ K.kvs, kvSame γ γk`, `casOk K.kvs`
+  (`casOk` over `List KVNames`), `[∗list] ep ∈ K.eps, epOf …`. `Compact`'s `Client.Compact` and
+  `getCompactRev`'s `Get` still go through `clientKvOk cl γk`, and `runWatchLoop`'s `Watch` through
+  `clientWatchOk`: per-cluster predicates already, as the store's watch (K5-2), so no law. The in-process
+  proofs (`inProcEtcd_laws`) take the specs as hypotheses; `inProcEtcd_laws.law` is proved in the linking
+  module `InProcLinked.lean` and passed to the drivers' proofs (`newStore`) as `=k8s.inProcEtcd_laws_law_holds`.
 ## 2026-11-27: grpc health `HealthCheckResponse_ServingStatus.String.spec` takes its package's `isPkgInit` (prove-healthstr)
 
 - **Spec.** `grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec`

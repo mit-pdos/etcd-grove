@@ -363,6 +363,40 @@ linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the en
   --check`, the two `TopLevelRobustness` Spec files byte-identical to lean. Extend the ledger entry if
   `kvAt`/`ctxFields` count as a design change (they are additions inside the K5 interface).
 
+#### Handoff K5-3 (2026-11-27)
+
+- **Merged** lean `457833b241` (clean). Pin unchanged (Perennial `02e741641`, as fk-lean1's warm tree).
+- **Item 1** (`87683b0d9b`): `wp_syncGet` takes `□ c.K.kvAt api` (the caller's `#Hkv` from `kvField`).
+- **Batch 4** (`940556c4d9`): C3 in `K8sEtcd`/`Laws` (`EtcdClient.lean`): field `txnAt tp ci cd b`; laws `endpoints`
+  (`sl ↦* K.eps`), `kvTxn`, `txnIf`, `txnThen`, `txnElse` (plain), `casCommit` (`casClientTxn ev rev`, moved here from
+  `Compact.lean`; update at each of `K.kvs`, premise `∀ γ ∈ K.kvs, kvSame γ γk`). In-process (`EtcdClientInProc`):
+  `txnAt := txnObjAt … ∗ txnWriteOnce … ∗ [∗list] kvRegsAt`, the six proofs, `cas_commit`/`casTxn_size` moved there;
+  `inProcEtcd_laws` takes six more specs (`Client.Endpoints`, `kv.Txn`, `txn.{If,Then,Else}`, `txn.Commit.specM`).
+  `casOk` over `ks : List KVNames`. Specs and proofs of `Compact`, `compactor.{runCompactLoop,runWatchLoop}`,
+  `NewCompactor`, `StartCompactorPerEndpoint`: `K`/`k8sClient K cl` for `ms V`/`isNewClient …` (runWatchLoop: for
+  `eps V`), `Endpoints` through `hK.endpoints` (the endpoint equality is now `K.eps` itself). Compact's `Client.Compact`,
+  getCompactRev's `Get` and runWatchLoop's `Watch` stay on `clientKvOk`/`clientWatchOk` (per cluster already; no law,
+  as K5-2 decided for the store's watch). Link list (`etc/link-lean-first-k8s-etcd3.txt`) drops their `Client__Endpoints`,
+  `kv__Txn`, `txn__*`, `wp_CommitM` callees; `Link.lean` regenerated (`--k8s-etcd3`).
+- **Batch 5, started** (`16328f584a`): `storeCfgD [v3rpc.Assumptions] kc cl ms V …` has `K := inProcEtcd ms V` (its
+  signature is unchanged, so `Main*` keep passing `ms V`); `inProcEtcd_laws.law` (defs, `EtcdClientInProc`) proved by
+  `inProcEtcd_laws_law_holds` in the new linking module `Proof/k8s_io/apiserver/pkg/storage/etcd3/InProcLinked.lean`
+  (imported by the `--k8setcd3` Link through `EXTRA_IMPORTS`); `newStore.wp_proof` takes it (`h_inproc`, last; link
+  list appends `=k8s.inProcEtcd_laws_law_holds`) and builds `k8sClient` by `k8sClient_inProc` before `New`.
+- **Ledger.** K5-1's entry extended (`notes/specs-only/ledger.md`, "Extension (K5-3)"): `kvAt`, `ctxFields`, `getLatest`,
+  C3.
+- **Build** (fk-lean1, log `/shared/tmp/k5-3-b4.log`; targets `EtcdClientInProc`, `InProcLinked`, the etcd3 `Link`,
+  examples `newStore`): see the result line below.
+- **Left (batch 5).** Driver Specs `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/{Check,Apply,call,runWatch,
+  watchEvents}`: `∀ x ∈ c.ms, noRefusalAt x.addr` → `c.K.live`, `[∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv` →
+  `[∗list] γv ∈ c.K.kvs, kInv γ c g0 γv`, `c.ms ≠ []` → `c.K.kvs ≠ []`; their proofs and `Calls`, `Apply`, `WatchQ`;
+  `Main`/`MainCluster`/`MainPartition` (`(storeCfgD …).ms = …` rewrites become `.K.kvs`/`.K.live` by `rfl` through
+  `inProcEtcd`, `bigSepL_map`); the compactor example (`examples/k8s/compactor/{Aus,Inv,apiserver}`: `casOk ms` →
+  `casOk (ms.map (·.γr.kv))`, `StartCompactorPerEndpoint`'s `ms V` → `inProcEtcd ms V` with `k8sClient_inProc` and
+  `h_inproc`, its Link list gains `=k8s.inProcEtcd_laws_law_holds`); `k8s/all`. Then `etc/gen-link.py --k8setcd3` (and
+  the compactor's link mode, if it has one; `MainLinked` there is hand-written), build `k8s_all`'s `Results` and
+  `TopLevelRobustness`, `etc/tcb-report.py --check`, `git diff <lean> --` the two `TopLevelRobustness` Spec files.
+
 ## 5. Approvals
 
 | What | Who |
