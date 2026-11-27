@@ -707,10 +707,10 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
       (rest : List Msg),
       InMask msk R net xnet →
       SimPre R dec S V net xnet evs G → R.md.async = false → (V n).pend = q :: rest → Told (V n) →
-      MsgFacts G q →
+      MsgFacts G q → (q.ty = .readIndexResp → MsgNums (2 ^ 61) q) →
       SimStep R dec evs G (evSend (nodeId n) (V n).byE q)
         (setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet := by
-  intro R dec S V net xnet evs G n q rest hin ⟨hp, hs, hl, hgo⟩ hasync hpend htold hmf
+  intro R dec S V net xnet evs G n q rest hin ⟨hp, hs, hl, hgo⟩ hasync hpend htold hmf hnum
   obtain ⟨hmd, hbt, hpar, hspl, _, _⟩ := hin.b1 hmsk
   have hq7 : q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .heartbeat ∨
       q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp ∨
@@ -727,7 +727,7 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
       SendOk R S1 n q M C by
     obtain ⟨M, C, hst, hok⟩ := h
     have hshape := pendOk_shape ((hs1.2.2.2.2 n).pend q (by rw [hpend]; exact List.mem_cons_self ..)) hq7
-    obtain ⟨hs2, hgo2⟩ := send_rel hs1 hgo1 hpend hmf hok hshape hdt
+    obtain ⟨hs2, hgo2⟩ := send_rel hs1 hgo1 hpend hmf hok hshape hdt hnum
     exact ⟨_, Prefix.snoc hp hgc hst (violated_nil hs2.2.1.1 hl hgo2), hs2, hgo2⟩
   obtain ⟨hsh, hb, hnet, -, hno⟩ := hs1
   have hd := (hno n).disk
@@ -943,7 +943,7 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
       refine fun hcc => ⟨fun h => (nomatch hty.symm.trans h), fun _ hrej => ?_⟩
       obtain ⟨m, hcm, hmty, hqd⟩ := hgr hrej
       obtain ⟨hmn, -⟩ := hca m hcm
-      rw [hqd]; exact (hnet.2.2.2.2.2 m hmn hcc).1 hmty
+      rw [hqd]; exact (hnet.2.2.2.2.2.1 m hmn hcc).1 hmty
     exact ⟨_, _, send_pre_eq n q _ hc hsrv hne' (.inr hty) h1,
       SendOk.plainP hsh hb (by simp [hty]) ⟨h1, hsrc⟩ hpvo ⟨j, hj⟩
         (fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))

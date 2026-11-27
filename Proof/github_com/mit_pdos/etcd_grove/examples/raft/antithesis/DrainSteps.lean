@@ -211,11 +211,12 @@ theorem readyHstep (h_ready : antSim_readyA.law) {R : AntSim.RunCfg} {dec : CCDe
     hout hrep htold hrf hterm
 
 /-- **A `send` report's step** (the next pending message `q`; raft's facts grown by the message's,
-`MsgFacts`). -/
+`MsgFacts`; a read request's answer's numbers within `2 ^ 61`, `NetOk`'s). -/
 theorem sendHstep {R : AntSim.RunCfg} {dec : CCDec} (j : Fin R.N) (v : AntSim.NodeView) (q : Msg)
     (rest : List Msg) (net₀ : List Msg) (xnet₀ : List XMsg)
     (hinm : ∀ S V net xnet, AntSim.AntSim R dec S V net xnet → AntSim.InMask AntSim.mskB1 R net xnet)
-    (hasync : R.md.async = false) (hpend : v.pend = q :: rest) (htold : AntSim.Told v) :
+    (hasync : R.md.async = false) (hpend : v.pend = q :: rest) (htold : AntSim.Told v)
+    (hnum : q.ty = .readIndexResp → AntSim.MsgNums (2 ^ 61) q) :
     ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
       (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
       AntSim.SimPre R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
@@ -233,7 +234,7 @@ theorem sendHstep {R : AntSim.RunCfg} {dec : CCDec} (j : Fin R.N) (v : AntSim.No
   refine ⟨?_, hL, setV_logs hlogs hle.2.2.2.1 (hle.2.2.2.1 _ (hlogs j))⟩
   simp only [List.append_nil]
   exact AntSim.antSim_send_in AntSim.mskB1 mskB1_le R dec S V net xnet evs G j q rest
-    (hinm S V net xnet hpre.2.1) hpre' hasync hpend htold hmf
+    (hinm S V net xnet hpre.2.1) hpre' hasync hpend htold hmf hnum
 
 /-- **A transfer message's `send` report's step** (the next pending transfer message `x`; nothing
 grown). -/

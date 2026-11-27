@@ -142,7 +142,7 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CC
       (fun h => hroOk h), (fun h => (hpre h).2),
       by have h := readSrc_reach hmsk hin hnet hv hr; exact h.1,
       by have h := readSrc_reach hmsk hin hnet hv hr; exact h.2,
-      by have h := readOk_reach hmsk hin hnet hv hr; exact h⟩
+      by have h := readOk_reach hmsk hin hnet hv hr; exact h, rfl⟩
     hpend := by have h := pendOk_of_reach hmsk hin hnet hv hr hro'; exact h
     hxpend := fun x hx => hxm x hx
     drain := ⟨rfl, rfl, rfl⟩

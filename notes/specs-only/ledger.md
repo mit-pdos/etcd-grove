@@ -6993,4 +6993,35 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (γ.raft.raftNames.reAcks !! nodeId j).isSome` (from `ClusterAllocRun`'s `domSet reAcks = listToSet ids`).
 - **Proofs.** node.step and node.transferLeader discharge the scope premises (XNetFacts' server sender; the
   spec's server target). The drain closes `DrainMsgOkB1`'s transfer clause from `XReadyOk` and `antCluster`.
+## 2026-11-27 — antithesis parity B1: the `read` and `apply` reports' receipts are the callee's (#33)
+- **Defect.** `node.reads.spec` and `node.applyCommitted.spec` took `reports γ.strm (…) Q` for all their reports up
+  front, so the caller had to hold `⧗ 2` per read state and `⧗ (|ce| + 2)` for the `apply` report before the call;
+  `node.drain`'s iteration end (`tailE`) has a bounded number of steps before each call and no other receipts
+  (`drainMidB1` carries none), so `drainAdvanceB1.stmt` was unprovable for an unbounded number of read states or
+  committed entries. (S4 reported `apply` inline, with `entriesOf`'s `⧗ ce.length`.)
+- **Statement (Spec, lead-approved 2026-11-27; edits of the one spec each).** `node.reads.spec`'s pre:
+  `reports γ.strm ((if rss = [] then [] else o.toList).map (atNode nm)) (readsAfter γ.strm nm rss Q)`, with
+  `readsAfter γr nm [] Q = Q`, `readsAfter γr nm (r :: rs) Q = ⧗ 2 -∗ reports γr [atNode nm (readEvM r)]
+  (readsAfter γr nm rs Q)` (each iteration's `reportCause` and `emit` steps supply them). `node.applyCommitted.spec`'s
+  pre: `reports γ.strm ((if es = [] then [] else o.toList).map (atNode nm)) (if es = [] then Q else ⧗ (es.length + 2)
+  -∗ reports γ.strm [atNode nm (applyEvM by_ es)] Q)` (`GetIndex`, `entries` and its `⧗ es.length`). Posts unchanged.
+- **Proofs.** node__reads (`readsLeft` over `readsAfter`, `wp_take_receipt` at `reportCause` and `emit`),
+  node__applyCommitted (`wp_take_receipt` at `GetIndex` and `entries`). Callers: only the drain (not yet linked).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: a read state's index within `2 ^ 61` (#33)
+- **Defect.** The drain's `read` report needs `(evRead id ctx i).NumsOk` (`uint.Z i < 2 ^ 61`; also `readEvM`'s
+  `sint.Z` against `evRead`'s `uint.Z`), and no invariant bounded a `Ready`'s read states: a follower's takes its index
+  from a received `MsgReadIndexResp`, on which nothing bounded the numbers, and the view's own read states were in no
+  fact (always `[]` in practice: `accepted` clears them, `Quiet.noReady` has none, the boot state none).
+- **Why not `MsgMask += (m.ty = .readIndexResp → MsgNums (2 ^ 61) m)` (the first proposal).** `MsgMask` is also
+  `NodeFacts`' clause of the pending messages, which the `Ready` step sets from `MShape`, without numbers: an answer's
+  index is a queued request's, at most the leader's commit, bounded only by the drain's `StateNums`.
+- **Statement (Sim/Rel, lead-approved 2026-11-27).** `NetOk`'s last conjunct `∀ m ∈ net, m.ty = .readIndexResp →
+  MsgNums (2 ^ 61) m` (net grows only by `send`: `send_rel`/`antSim_send_in` and `DrainSteps.sendHstep` take
+  `q.ty = .readIndexResp → MsgNums (2 ^ 61) q`, which the drain's send loop reads off `DrainMsgOkB1`). `NodeFacts`'
+  last conjunct `ReadOk v.ps ∧ v.ps.rd.states = []` (the strong form held at every step: Init, `Quiet.noReady`'s
+  premise, `drainOf`/`afterReady`'s `accepted`); `NodeFacts.states0`.
+- **Fallout.** Send.lean/Scope.lean (`PreVoterOk`'s position), Init (`NetOk`'s seven conjuncts, the boot state's
+  `rd`), Quiet (`nodeOk_quiet`'s two arms), Ready (`afterOk_of`), DrainSteps (`sendHstep`), DrainB1SendWp (the premise).
 - **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.

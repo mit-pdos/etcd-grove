@@ -157,7 +157,8 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
     {rest : List Msg} {M : List Fact} {C : List Confirmed}
     (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G) (hpend : (V n).pend = q :: rest)
     (hmf : MsgFacts G q) (hok : SendOk R S n q M C) (hshape : MsgShape q)
-    (hdt : ∀ k, (V k).dur.term = (V k).ps.term) :
+    (hdt : ∀ k, (V k).dur.term = (V k).ps.term)
+    (hnum : q.ty = .readIndexResp → MsgNums (2 ^ 61) q) :
     AntSim R dec (sendS S n.val M C) (setV V n { V n with pend := rest, undo := none, made := true })
         (net ++ [q]) xnet ∧
       GlobalOk R (sendS S n.val M C) (net ++ [q]) G := by
@@ -212,7 +213,7 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
         rw [hok.cother k hk]; exact hb14 k
   · -- NetOk
     refine ⟨fun m hm => ?_, ?_, fun m hm => ?_, fun m hm hty i hsrc hro hct => ?_, fun m hm => ?_,
-      fun m hm => ?_⟩
+      fun m hm => ?_, fun m hm => ?_⟩
     · rcases List.mem_append.mp hm with hm | hm
       · obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm
         refine ⟨hty, hsrc, j, hdst, fun hle => ?_⟩
@@ -266,9 +267,13 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
       · exact hn.2.2.2.2.1 m hm
       · rw [List.mem_singleton] at hm; subst hm; exact hmask
     · rcases List.mem_append.mp hm with hm | hm
-      · exact hn.2.2.2.2.2 m hm
+      · exact hn.2.2.2.2.2.1 m hm
       · rw [List.mem_singleton] at hm; subst hm
         exact hok.pvo
+    · rcases List.mem_append.mp hm with hm | hm
+      · exact hn.2.2.2.2.2.2 m hm
+      · rw [List.mem_singleton] at hm; subst hm
+        exact hnum
   · -- NodeOk
     intro k
     by_cases hk : k = n

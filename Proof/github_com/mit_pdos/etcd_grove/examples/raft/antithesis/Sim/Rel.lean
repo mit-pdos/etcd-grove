@@ -345,7 +345,8 @@ that its answer (`preadRespond`: a `MsgReadIndexResp` unless local) is to a serv
 enter only with a `MsgReadIndex`: the local one's `0`, a network one's sender; `pbecomeLeader` resets
 the queue), and without conf changes its entries (the context the answer carries) are normal (the
 local request's entry is normal, `readMsg`; a network one's by `MsgMask`); the read requests'
-numbers (`ReadOk`). -/
+numbers (`ReadOk`); (#33 parity B1, lead-approved 11-27) no read state left (the `Ready` took them:
+a view's state is `accepted`'s, or a quiet step's with none). -/
 def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
   (R.md.confChanges = false →
@@ -360,7 +361,7 @@ def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
     (R.md.confChanges = false → EntsNormal p.2)) ∧
   (v.ps.role = .leader → ∀ q ∈ v.ps.rd.ro.pending, (q.src = W64 0 ∨ ∃ j : Fin R.N, q.src = nodeId j) ∧
     (R.md.confChanges = false → EntsNormal q.ents)) ∧
-  ReadOk v.ps
+  ReadOk v.ps ∧ v.ps.rd.states = []
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -670,7 +671,11 @@ theorem NodeFacts.readSrc {R : RunCfg} {n : Fin R.N} {v : NodeView}
 
 theorem NodeFacts.readOk {R : RunCfg} {n : Fin R.N} {v : NodeView}
     (h : NodeFacts R n v) : ReadOk v.ps :=
-  h.2.2.2.2.2.2.2.2.2.2.2.2.2
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeFacts.states0 {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) : v.ps.rd.states = [] :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 
@@ -862,7 +867,9 @@ ack) and is kept while its receiver has not passed its term (GC drops only what 
 passed, B 696-709); a heartbeat's commit within its receiver's confirmation or commit
 (`HbCommitOk`); every message's shape (`NetShape`); a leader's message's commit within its own
 (`LeadCommitMsgOk`); every message under the run's mask (`MsgMask`); the pre-vote messages'
-voters (`PreVoterOk`). -/
+voters (`PreVoterOk`); (#33 parity B1, lead-approved 11-27) a read request's answer's numbers within
+`2 ^ 61` (a follower's read state takes its index; the drain's `send` reads them off the `Ready`'s,
+`readyMsgNums`). -/
 def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
   (∀ m ∈ net,
     (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
@@ -880,7 +887,7 @@ def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
         ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
           AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
   HbCommitOk R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net ∧ (∀ m ∈ net, MsgMask R m) ∧
-  ∀ m ∈ net, PreVoterOk R m
+  (∀ m ∈ net, PreVoterOk R m) ∧ ∀ m ∈ net, m.ty = .readIndexResp → MsgNums (2 ^ 61) m
 
 /-- **C4, the transfer messages**: every `MsgTransferLeader`/`MsgTimeoutNow` sent (`xnet`) is of a
 term some server has reached (its sender's, at the send: what `OnDisk`'s `adopt` asks of a higher
