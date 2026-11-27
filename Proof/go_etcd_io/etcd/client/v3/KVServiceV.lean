@@ -314,12 +314,14 @@ theorem etcdPutSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : R
   iapply Hr
   ipureintro; trivial
 
-/-- **The view's `Range` meets a member's auth-off spec** (after an update): at names of the same
-KV, with the store's receipts bounded. -/
-theorem etcdRangeSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (γr : ReadNames)
-    (cid mid : w64) (γk : KVNames) (hk : kvSame γr.kv γk) (hrb : receiptBound GF ≤ 2 ^ 62) :
+/-- **The view's `Range` meets a member's spec in either auth mode** (after an update): at names
+of the same KV, with the store's receipts bounded; the auth index's lower bound `0`
+(`authPubLbM_zero`), the reply's auth facts unused. -/
+theorem etcdRangeSpecV_M (on : Bool) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
+    (γr : ReadNames) (cid mid : w64) (γk : KVNames) (hk : kvSame γr.kv γk)
+    (hrb : receiptBound GF ≤ 2 ^ 62) :
     ∀ md o Φ Ψe, etcdRangeSpecV (GF := GF) γk md o Φ Ψe ⊢
-      |==> etcdRangeSpecM false T E γr cid mid md o Φ Ψe := by
+      |==> etcdRangeSpecM on T E γr cid mid md o Φ Ψe := by
   intro md o Φ Ψe
   unfold etcdRangeSpecV etcdRangeSpecM etcdRangeSpecMW
   iintro ⟨#HΨe, %Q, #Hq, Hk⟩

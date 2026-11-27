@@ -2473,7 +2473,7 @@ theorem etcd_kvRunOksV (p q s : Loc)
     rw [hon]; exact etcdPutSpecV_M (srvTLSId s) E ρ cid mid γk hk' hrb
   have hR : ∀ md o Φ Ψe, etcdRangeSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdRangeSpecM E.authOn (srvTLSId s) E γr cid mid md o Φ Ψe := by
-    rw [hon]; exact etcdRangeSpecV_M (srvTLSId s) E γr cid mid γk hk hrb
+    exact etcdRangeSpecV_M E.authOn (srvTLSId s) E γr cid mid γk hk hrb
   have hD : ∀ md o Φ Ψe, etcdDeleteSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdDeleteSpecM E.authOn (srvTLSId s) E ρ cid mid md o Φ Ψe := by
     rw [hon]; exact etcdDeleteSpecV_M (srvTLSId s) E ρ cid mid γk hk' hrb
