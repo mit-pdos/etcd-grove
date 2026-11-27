@@ -3456,6 +3456,37 @@ targets added: `rnWorkerStartTok`, `rnLoopTok`, `rnLoopTokP`, `RNNames`, the two
 then B5, B6, B7 with their table rows, then B8 as in Handoff T10s3b-5. No axiom statement, `sorry`, premise or trusted
 text changed; `Spec/` changes: the two `newRaftNode` specs (ledger first).
 
+### T10 step 3 (B), session 7 (2026-11-27, branch `etcd-safe-t10s3b-a/2026-11-27`; draft under option (a))
+
+**B3 part 2, step 2 (the loop's `Hhistory` over `rnReplayHist`): written; one error left, fixed but not rebuilt.**
+* *The snapshot arm's open premise is not open*: "a snapshot Ready's entries start above the snapshot index" is
+  already in raft's `readySnap … (some l)` (`InvNode.lean:883`): `LogIndicesOk (snapId l.snap) es` (entry `k` at
+  `snap.Index + k + 1`), destructured in `raftNode__start.lean` as `Hli` (and used there already for
+  `MemoryStorage.Append`'s `h1`). No new raft law, premise or axiom: `hbS` is `Hli 0 first.toM`.
+* `raftNode__start.lean` edits: the seed `rnReplayHist.advance γ initial γ.s0 γ.s0 _ _ hbase rfl rfl`; `HI`'s
+  `Hhistory : rnReplayHist γ view S (rnLogOf γ L').length`; entries arm `rnReplayHist.appendEntriesP`, the join over
+  `rnReplayHistP γ next (replayBatchP S (rnLogOf γ L').length es) …`, `rnReplayHistP.after`; the old
+  `rnReplayState.job` `ihave` deleted; at the entries arm's *enter* (`wp_auto_lc 3`): `rnEnvOk_logInv`, `isCluster`
+  from `srvClusterOk`, `rnDurK_leadLaw` (with `Hlc3`), `hbE` (from `HσvOk`: `S.base ≤ σv.base`, `σv.b ≤ σv.commit`,
+  `σv.hs = p`, and `Hentries.2`), `replayBatchP_next`, `rnReplayHistP.elim` → `#Hhist`, `hb0`, `hrtE`, and `#Hjob :=
+  rnReplayJob_of_lead …` there (the two first sends keep `$Hjob`); the snapshot arm: `Sb` (`obtain ⟨Sb, hSb⟩`, the
+  snapshot's id as base, no entries), `rnReplayHist.empty γ Sb`, `appendEntriesP` from `Sb`, at its *enter*
+  (`wp_auto_lc 3`) `rnDurK_leadLaw` for `PlogWf S'`, `hbS`, `replayBatchP_next Sb S' …`, `.elim` → `#Hhist`; the six
+  loop posts `iframe Hhist`.
+* *Build* (`lake build … raftNode__start`, log `/shared/tmp/t10s3b-s7-b1.log`): the snapshot arm and everything up
+  to `:1673` elaborated; the one error, `:1673`, was `rnReplayJob_of_lead … $$ Hhist Hrok Hlaw` with `Hlaw : rnLeadLaw γ
+  (durOf (⟨S', …⟩, none))` (not syntactically `S'`). Fixed in this commit by `ihave #HlawS : rnLeadLaw γ S' $$ [] · iexact
+  Hlaw` (defeq: `durOf (v, none) = v.S`), **not rebuilt** (the coordinator's context stop).
+
+**Handoff T10s3b-7.** Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed), tree `/shared/etcd-grove-t10s3b`, manifest and
+Perennial as Handoff T10s3b-1. Next, in order: (1) rebuild `Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start`
+(if `iexact` refuses the defeq, `simp only [durOf] at Hlaw` before it); then `NewServerCrash` and the server's `Link`
+(the `rnReplayState.job`/`rnReplayHist.state` uses left elsewhere, if any, are unaffected: only the loop changed);
+(2) build the 54 axiom-declaring modules and rerun `/shared/tmp/t10s3b-chk/AxCheck6.lean` (output `out6.txt`); no
+definition an axiom reaches changed this session (only `raftNode__start.lean`'s proof), so no new table row is
+expected; (3) B5, B6, B7 with their rows; B8 as in Handoff T10s3b-5. No axiom statement, `sorry`, premise, trusted
+text or `Spec/` file changed this session.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

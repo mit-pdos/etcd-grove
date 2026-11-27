@@ -153,11 +153,10 @@ theorem raftNode.start.wp_proof
     -- bound at each exit (`rnRestartOk_a0_le`)
     iunfold rnLoopTok at Htok
     icases Htok with ⟨%hbase, %p0, Htok⟩
-    ihave #Hinitial := rnReplayState.advance γ initial _ _ hbase $$ [Hseed]
-    · iapply rnReplayHist.state γ initial γ.s0 γ.snap0 $$ Hseed
+    ihave #Hinitial := rnReplayHist.advance γ initial γ.s0 γ.s0 _ _ hbase rfl rfl $$ Hseed
     ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM) (view : GoSlice)
         (S : RaftState),
-        "#Hhistory" ∷ rnReplayState γ view (rnLogOf γ L').length ∗
+        "#Hhistory" ∷ rnReplayHist γ view S (rnLogOf γ L').length ∗
         "terms" ∷ terms_ptr ↦ view ∗ "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
         "%Hrt" ∷ ⌜uint.Z rt = 0 ∨ rt = p.Term'⌝ ∗
         "Htok" ∷ rnLoopTokP γ L' p b S ∗ "HR" ∷ R ∗ "HS" ∷ E.S ∗
@@ -522,10 +521,18 @@ theorem raftNode.start.wp_proof
           rcases Hbwa with ha | ha
           · simp [ha]
           · exact Nat.le_of_lt ha
-        ihave #Hempty := rnReplayState.empty γ _ ha
+        -- (T10s3b B3 part 2) the empty view at the snapshot's base `Sb` (no term above its index)
+        obtain ⟨Sb, hSb⟩ : ∃ Sb : RaftState, Sb = { S with
+            base := entryID.mk l.snap.Metadata'.Term' l.snap.Metadata'.Index', ents := [] } := ⟨_, rfl⟩
+        ihave #Hempty := rnReplayHist.empty γ Sb _ ha (fun ci t h ht => by
+          rw [hSb] at ht
+          simp only [rnLogOf, List.length_map, hlenA] at h
+          unfold plogTermAt at ht
+          rw [if_neg (by word), if_neg (by word)] at ht
+          simp at ht)
         rw [method_unfold (t := go.GoType.PointerType replayTerms.ty) (m := go!"appendEntries")]
         (try wp_auto)
-        wp_apply rnReplayState.appendEntries γ slice.nil rd.Entries' _ esL es Horder
+        wp_apply rnReplayHist.appendEntriesP γ slice.nil rd.Entries' Sb _ esL es Horder
           (fun _ _ h => False.elim (Nat.not_lt_of_ge ha h)) wp_EntryIndex wp_EntryTerm
           $$ [$Hpkg $Hempty $Hes $Hesa] as %next #Hnext
         ihave %hce0 : ⌜ceL.length = 0⌝ $$ []
@@ -767,7 +774,7 @@ theorem raftNode.start.wp_proof
             iintro %v Hf
             iexfalso
             iexact Hf
-          wp_auto_lc 2
+          wp_auto_lc 3
           -- (2026-11-03, R2b-3) *enter*, after the `Save`; (P5) after the `Sync`, the batch's record synced
           -- (`rnDurK_enter.law`: a snapshot batch need not be commit-only)
           iapply (wp_ncfupd _ _ (by rfl))
@@ -776,6 +783,34 @@ theorem raftNode.start.wp_proof
           imod rnDurK_enter_law_holds γ.node γ.id γ.walK γ.wal.h _ _ γb Hs.length γ.nl _ _ qms (1 : Qp).half
               $$ Hdur Hnc Hlc1 Hlc2 Hwv Hsp [Hsynced] with ⟨Hnc, Hwv, Hbdrv, #Hsent, Hrun⟩
           · ileft; iexact Hsynced
+          -- (T10s3b B3 part 2) the entered state's log well formed (`rnDurK_leadLaw`): the replay view's
+          -- batch premises at `S'` (`replayBatchP_next` from the snapshot's base `Sb`; the batch starts
+          -- right above the snapshot's index, raft's `LogIndicesOk (snapId l.snap)`)
+          ihave #HisClS : isCluster γ.node.cl srvClusterN $$ []
+          · ihave #HRL2 := HRL
+            iunfold srvRaftLogInv at HRL2
+            icases HRL2 with ⟨-, #Hcl2, -⟩
+            iunfold srvClusterOk at Hcl2
+            icases Hcl2 with ⟨#H, -⟩
+            rw [← HEnR]; iexact H
+          imod rnDurK_leadLaw γ E.γr.raft HEnR γ.walK γ.wal.h _ $$ [$Hdur $Hnc $Hlc3 $Hwv $Hrok $HisClS $HRL]
+            with ⟨Hnc, Hwv, -, %Hwf'⟩
+          have hbS : ∀ first, es.head? = some first → uint.Z Sb.base.index' < uint.Z first.index := by
+            intro first hf
+            have hf' : (es.map EntryModel.toM)[0]? = some first.toM := by
+              cases es with
+              | nil => cases hf
+              | cons e rest =>
+                simp only [List.head?_cons, Option.some.injEq] at hf
+                subst hf; simp
+            have h0 := Hli 0 first.toM hf'
+            simp only [snapId, EntryModel.toM] at h0
+            rw [hSb]
+            simp only
+            word
+          have hBatch := replayBatchP_next Sb S' p'.Term' p'.Vote' p'.Commit' es (rnLogOf γ A').length
+            (by rw [HSeq, hSb]; rfl) (by rw [HSeq, hSb]; rfl) (Horder.imp fun h => h.2) hbS Hwf'
+          ihave #Hhist := rnReplayHistP.elim γ next _ _ S' hBatch $$ Hnext
           ihave Hwv : rnWalView γ _ $$ [Hwv]
           · iunfold rnWalView; iexact Hwv
           imodintro
@@ -1001,7 +1036,7 @@ theorem raftNode.start.wp_proof
               wp_for_post
               iframe
               iexists A', false, rt', p', next, _
-              iframe Hnext
+              iframe Hhist
               iframe
               isplitr
               · ipureintro; exact Hrt'
@@ -1054,7 +1089,7 @@ theorem raftNode.start.wp_proof
               wp_for_post
               iframe
               iexists A', true, rt', p', next, _
-              iframe Hnext
+              iframe Hhist
               iframe
               isplitr
               · ipureintro; exact Hrt'
@@ -1366,7 +1401,7 @@ theorem raftNode.start.wp_proof
       (try wp_auto)
       rw [method_unfold (t := go.GoType.PointerType replayTerms.ty) (m := go!"appendEntries")]
       (try wp_auto)
-      wp_apply rnReplayState.appendEntries γ view rd.Entries' _ esL es Hentries.1
+      wp_apply rnReplayHist.appendEntriesP γ view rd.Entries' S _ esL es Hentries.1
           (fun e he _ => Nat.lt_of_le_of_lt Ha0p (Hentries.2 e he)) wp_EntryIndex wp_EntryTerm
           $$ [$Hpkg $Hhistory $Hes $Hesa] as %updated #Hupdated
       (try wp_auto)
@@ -1374,7 +1409,8 @@ theorem raftNode.start.wp_proof
       iunfold entriesAt at Hces
       icases Hces with ⟨%hcel, #Hcent⟩
       ihave %hlen := ownSlice_len rd.CommittedEntries' _ ceL $$ Hce
-      wp_join iprop(∃ next : GoSlice, terms_ptr ↦ next ∗ committedEntries_ptr ↦ rd.CommittedEntries' ∗ rnReplayState γ next (rnLogOf γ (L' ++ ce)).length)
+      wp_join iprop(∃ next : GoSlice, terms_ptr ↦ next ∗ committedEntries_ptr ↦ rd.CommittedEntries' ∗
+          rnReplayHistP γ next (replayBatchP S (rnLogOf γ L').length es) (rnLogOf γ (L' ++ ce)).length)
         at next with [terms committedEntries] as ⟨%next, terms, committedEntries, #Hnext⟩
       · by_cases hc : 0 < ceL.length
         · have hcmp : sint.Z (W64 0) < sint.Z rd.CommittedEntries'.len := by word
@@ -1403,7 +1439,7 @@ theorem raftNode.start.wp_proof
           (try wp_auto)
           rw [method_unfold (t := go.GoType.PointerType replayTerms.ty) (m := go!"after")]
           (try wp_auto)
-          wp_apply rnReplayState.after γ updated _ m.index hle wp_after $$ [$Hpkg $Hupdated] as %next #Hm
+          wp_apply rnReplayHistP.after γ updated _ _ m.index hle wp_after $$ [$Hpkg $Hupdated] as %next #Hm
           (try wp_auto)
           isplitr; · itrivial
           iexists next; iframe terms committedEntries
@@ -1417,8 +1453,7 @@ theorem raftNode.start.wp_proof
           rw [hempty, List.append_nil]; iexact Hupdated
       (try wp_auto)
       -- (T10s3b B3) `notifyc`'s invariant: the first send (after the *enter*) deposits the batch's
-      -- replay job over the view `next`
-      ihave #Hjob := rnReplayState.job γ next rt' (rnLogOf γ (L' ++ ce)).length $$ Hnext
+      -- replay job over the view `next` (made at the *enter*: `rnReplayJob_of_lead`)
       imod start_notifyD (rnReplayJob γ next rt' (rnLogOf γ (L' ++ ce)).length) (rnApR γ L' ce) nc
           γnc0 (by rw [Hncap]; rfl) $$ Hncch Hncown with
         ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
@@ -1574,7 +1609,7 @@ theorem raftNode.start.wp_proof
         subst Herr
         ihave Hwt : rnWalTok γ r (1 : Qp).half $$ [Hwo]
         · iunfold rnWalTok; iexists _; iframe Hst Hwo
-        wp_auto_lc 2
+        wp_auto_lc 3
         -- (2026-11-03, R2b-3) *enter*, after the `Save`: the busy driver, the messages' sends; (P5) through
         -- the crash-aware invariant (`rnDurK_enter.law`), the batch synced or commit-only
         iapply (wp_ncfupd _ _ (by rfl))
@@ -1598,6 +1633,46 @@ theorem raftNode.start.wp_proof
             $$ Hdur Hnc Hlc1 Hlc2 Hwv Hsp Hcase with ⟨Hnc, Hwv, Hbusy, #Hsent, Hrun⟩
         ihave Hbusy : rnBusyN γ L' ce es p' S' r' $$ [Hbusy]
         · iunfold rnBusyN; iexact Hbusy
+        -- (T10s3b B3 part 2) at the entered state `S'`: raft's lead law and its log well formed
+        -- (`rnDurK_leadLaw`), the replay view's batch premises discharged there (`replayBatchP_next`),
+        -- and the batch's replay job (`rnReplayJob_of_lead`) for notifyc's first send
+        icases rnEnvOk_logInv E γ $$ Henv with ⟨%HEnR', #HRL'⟩
+        ihave #HisClE : isCluster γ.node.cl srvClusterN $$ []
+        · ihave #HRL2 := HRL'
+          iunfold srvRaftLogInv at HRL2
+          icases HRL2 with ⟨-, #Hcl2, -⟩
+          iunfold srvClusterOk at Hcl2
+          icases Hcl2 with ⟨#H, -⟩
+          rw [← HEnR']; iexact H
+        imod rnDurK_leadLaw γ E.γr.raft HEnR' γ.walK γ.wal.h _ $$ [$Hdur $Hnc $Hlc3 $Hwv $Hrok $HisClE $HRL']
+          with ⟨Hnc, Hwv, #Hlaw, %Hwf'⟩
+        have hbE : ∀ first, es.head? = some first → uint.Z S.base.index' < uint.Z first.index := by
+          intro first hf
+          have h1 := HσvOk.1.1
+          have h2 := HσvOk.1.2.2.2.2.2.1
+          have h3 := HσvOk.2.1
+          have h4 := Hentries.2 first hf
+          simp only [StorContents.b, StorContents.commit, h3] at h2
+          word
+        have hBatch := replayBatchP_next S S' p'.Term' p'.Vote' p'.Commit' es (rnLogOf γ L').length
+          (by rw [HSeq]; rfl) (by rw [HSeq]; rfl) (Hentries.1.imp fun h => h.2) hbE Hwf'
+        ihave #Hhist := rnReplayHistP.elim γ next _ _ S' hBatch $$ Hnext
+        have hb0 : uint.nat S'.base.index' ≤ (rnLogOf γ (L' ++ ce)).length := by
+          have hsb : S'.base = S.base := by rw [HSeq]; rfl
+          rw [hsb]
+          have h1 := HσvOk.1.1
+          have h2 := HσvOk.2.2.1
+          simp only [StorContents.b, srvLE, rnLogOf, List.length_map,
+            List.length_append] at h2 ⊢
+          word
+        have hrtE : S'.term = rt' ∨ uint.Z rt' = 0 := by
+          rcases Hrt' with h | h
+          · right; exact h
+          · left; rw [h, HSeq]; rfl
+        ihave #HlawS : rnLeadLaw γ S' $$ []
+        · iexact Hlaw
+        ihave #Hjob := rnReplayJob_of_lead γ next S' rt' (rnLogOf γ (L' ++ ce)).length hb0 hrtE
+          $$ Hhist Hrok HlawS
         ihave Hwv : rnWalView γ ⟨S', p', none, srvLE γ.srv (L' ++ ce)⟩ $$ [Hwv]
         · iunfold rnWalView; iexact Hwv
         imodintro
@@ -1769,7 +1844,7 @@ theorem raftNode.start.wp_proof
             wp_for_post
             iframe
             iexists (L' ++ ce), false, rt', p', next, _
-            iframe Hnext
+            iframe Hhist
             iframe
             isplitr
             · ipureintro; exact Hrt'
@@ -1835,7 +1910,7 @@ theorem raftNode.start.wp_proof
               wp_for_post
               iframe
               iexists (L' ++ ce), false, rt', p', next, _
-              iframe Hnext
+              iframe Hhist
               iframe
               isplitr
               · ipureintro; exact Hrt'
@@ -1915,7 +1990,7 @@ theorem raftNode.start.wp_proof
             wp_for_post
             iframe
             iexists (L' ++ ce), true, rt', p', next, _
-            iframe Hnext
+            iframe Hhist
             iframe
             isplitr
             · ipureintro; exact Hrt'
@@ -1975,7 +2050,7 @@ theorem raftNode.start.wp_proof
               wp_for_post
               iframe
               iexists (L' ++ ce), true, rt', p', next, _
-              iframe Hnext
+              iframe Hhist
               iframe
               isplitr
               · ipureintro; exact Hrt'
