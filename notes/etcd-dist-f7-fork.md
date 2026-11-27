@@ -440,3 +440,46 @@ no `sorry` and no new axiom. No `Spec/`, axiom or `Spec/.../TopLevelRobustness` 
     `KV_{Put,Get,...}_dist` pair entries for these (lines ~103-111). The F7 axioms need the same kind of pair
     entries, which are trust-review entries for the lead. Not added.
 - **Next:** the lead classifies the three trust-review gates (mode-allow, errdesc REVIEWED, model-param-allow pairs).
+
+### Handoff INTEG-F9-1 (2026-11-27; integration on F9, build NOT yet green; context limit)
+
+Branch `etcd-safe-integ-f9/2026-11-27` (pushed), built on fk-lean1 in `~/eg/wt/etcd-safe-t10b`
+(script `~/eg/scratch/integf9-build.sh`: Perennial `~/eg/perennial-da0a82c26` through
+`.lake/package-overrides.json`, etcd fork pin 30df685e4 from the local mirror `~/eg/scratch/etcd-integ-pins`,
+gen-init and every gen-link mode, `lake build` under flock + MemoryMax=55G, then gates and tcb; logs
+`~/eg/logs/integf9/`). Base `etcd-safe-full-f9/2026-11-26` @ `7936f73336` (Perennial pin `da0a82c26`, the
+same as the fork's). Commits after the base:
+
+1. `d569a1b90f` merge `etcd-safe-t10b/2026-11-26` @ `9f2a8ff9ea`. Every conflicted file except the two
+   STATUS files is one F9 did not change since the fork `37fd5d261b`, so each takes etcd-safe-integ's
+   `1b0ff6698e` resolution verbatim (WAL/os proofs: the fork pin's tactics with t10b's lemma calls; etcd fork
+   pin 30df685e4 in `etc/goose.py` and the go.mod/go.sum files; the PkgTables). STATUS/status-history by
+   `etc/merge-status.py` (run as merge drivers with `git -c`); the "Last updated" line cut to ten by hand (F9
+   AuthC, T10 step 2, T10b session 3, K-8, K-7, K-5, K-3, the F7 fork Go fix, S14, S13), the other ten appended
+   to status-history (append-only: both parents' lines all kept).
+2. `f4cc2e7399` merge `etcd-safe-crash-b4move/2026-11-26` @ `16fdd8add3`: MemberCrash as `449ff48895`;
+   `notes/axiom-review/README.md` keeps both sides' rows (F9's two, b4move's `gracefulstop-dist`) — the only
+   resolution that differs from the earlier integ (F9 added rows there).
+3. `dbfdd1d0d4` `fa6fc1dc72` re-applied unchanged (the incoming FieldAssumptions binders dropped; PkgTables,
+   etcdserver Link). gen-init and all gen-link modes: no further change at `da0a82c26`.
+4. `f6c5a61fbb` the port of t10b's crash proofs to `da0a82c26`. The earlier integ never built: its build
+   failed on the same eight modules (`~/eg/logs/integ/build.log`). Ported as the fork ported their siblings,
+   no statement changed: CrashStILSpec/CrashStILLong (three-way merged with CrashStSpec's port of the G proofs
+   they copy: `wp_stub` before each fs call, `wp_for_bind`/`wp_for_step`/`wp_for_post` around retry loops,
+   `ownFile`'s `nonblock`/`appendMode`, `wp_errnoErr`; CrashStILLong's chunk `if` now joins at `max_ptr`;
+   imports ForLoeb, IgnoringEINTR, ErrorOk), CrashStILASpec, NsSNE (as NsChildS), syncDir and BootSkel (one
+   `_` fewer to intro), SnapDirCrash's `snapDir_crash.law` and OpenSnapshotBackend (`FsCtx`/`theFs` take no
+   `hG` and have no `fa`/`fsa` fields now; the law's text drops only those `(hG := …)` arguments). Each file
+   checked with `etc/lean-check.py -a`.
+
+Build 2 (at `f6c5a61fbb`): EXIT 1, two modules left (the rest built):
+- `dist/crash/MemberCrash.lean:1028`: `backend.theFs_eq GF (hG := …) (S := Sc) (ok := okc) (has := hasc)
+  (fa := fac) (fsa := fsac) (ne := nec)`: drop `(hG := …)`, `(fa := fac)`, `(fsa := fsac)` (and the `fac`/`fsac`
+  binders where `Sc … nec` are obtained); the `968:82 unsolved goals` is probably downstream of it.
+- `dist/BootBad.lean:288` `etcdBootCBad_holds`: `intro _ lctx _ _ _ _ _ _ _ _ _ d …` has one `_` too many
+  (the dropped FieldAssumptions binder, as BootSkel's `etcd_safe_of_boot`).
+Gates and tcb not yet run (the script runs them only after a green build).
+
+Next: fix those two (`etc/lean-check.py -a`), commit, rerun `~/eg/scratch/integf9-build.sh` (rebuild, then
+`etc/gates.sh` with `GATES_FAILFAST=0`, then `tcb-report.py --check`); report any gate failure. No top-level
+statement, premise or axiom changed so far.
