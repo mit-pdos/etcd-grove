@@ -329,6 +329,18 @@ theorem mstepL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64)
       · exact mupdateL_ren ρ x its a b h
       · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
 
+/-- **An object an answer shows is not renamed**: its renamed revision is an anchor, so the renaming
+fixes it (`CutW.fix`). -/
+theorem renObj_fix {A : List Nat} {ρ : Nat → Nat} (o : Obj)
+    (hc : CutW A ρ (uint.nat o.ResourceVersion')) (hf : ρ (uint.nat o.ResourceVersion') < 2 ^ 64)
+    (hA : uint.nat (renObj ρ o).ResourceVersion' ∈ A) : renObj ρ o = o := by
+  have hn : uint.nat (renObj ρ o).ResourceVersion' = ρ (uint.nat o.ResourceVersion') := by
+    simp only [renObj]; word
+  rw [hn] at hA
+  have he := hc.fix hA
+  simp only [renObj, he]
+  rw [show (W64 (uint.nat o.ResourceVersion' : Int)) = o.ResourceVersion' by word]
+
 end go
 
 end k8s_dist

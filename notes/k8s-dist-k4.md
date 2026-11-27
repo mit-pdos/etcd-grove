@@ -205,9 +205,9 @@ events); (5) settle: the cluster's pending writes before an operation, in order,
 anchors a successful write's `RV` only with a name (Go's `HistoryRevs`), but `targetL` uses `RV - 1` for
 every successful write; if a nameless successful write answer can occur, (1) needs a case.
 
-## K4-3: two more gaps (counterexamples), G8 and G9 (2026-11-27)
+## K4-3: more gaps (counterexamples), G8, G9 and G10 (2026-11-27)
 
-K4-3 settled the handoff's open question and found two more histories that linearize in the semantic
+K4-3 settled the handoff's open question and found three more histories that linearize in the semantic
 model and that `FullComplete`, as K4-2 stated it, refuses. Both are outside the driver's generator (it
 sends writes with `MinRV ""` and names every object), as G7's was; both are fixed by a one-line Go
 change, and the Lean statement now carries both fixes, **explicitly** (not a weakening: the search and
@@ -230,9 +230,17 @@ the anchors change, so K9 must match them in Go).
   Illegal. (Lean's `landingsFull` has no answer's-own landing: the 2-operation history (1), (3) already
   fails there.) **Fix:** drop `out.Name != ""` (a zero `RV` is not anchored anyway); `OpAnchors` now
   anchors `y.RV'` of every successful non-watch answer.
+- **G10: every kind `mstep` answers with `mget` needs its `MinRV`.** `mstep` sends every kind but
+  create, delete and update to `mget` (which refuses a `MinRV` above the store's revision), but
+  `target` gives `req` only to `KGet`; any other such kind (`Kind` is a `uint64`: 6, 7, ...) falls to the
+  write arm. History (same seeds): `Input{Kind: 7, Key: <a seeded key>, MinRV: rvBytes(10)}`,
+  `Output{Err: ENone, <the seed object at RV 2>}`. Semantic model: foreign 4..10, `mget` answers it.
+  Search: target 0 (the answer's `RV` 2 is below 3), `mget` at 3 answers `ETooLarge`: Illegal. **Fix:**
+  the write arm only for `KCreate`, `KDelete`, `KUpdate`; every other kind (`KGet` included) `req`
+  (`targetL` now does).
 - **The open question** (a successful write answered without a name): with G8, `targetL` of a
   successful write answering `RV > rv` is `RV - 1`, the cluster's revision before it, whether or not
   `RV` is an anchor; the step's write is at `RV` on both sides (`ρ` the identity there). No case needed.
 
-Go side (for K9's session, branch `k8s-dist-go/2026-11-27`): G8 and G9 in `examples/k8s/etcd3/export.go`
+Go side (for K9's session, branch `k8s-dist-go/2026-11-27`): G8, G9 and G10 in `examples/k8s/etcd3/export.go`
 (`target`, `HistoryRevs`), with the two histories above as tests.
