@@ -1,7 +1,6 @@
 package dist
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
@@ -9,29 +8,40 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
 
 	etcddist "github.com/mit-pdos/etcd-grove/examples/etcd/dist"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 
-	comp "github.com/mit-pdos/etcd-grove/examples/k8s/dist/compactorcopy"
-	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
+	comp "github.com/mit-pdos/etcd-grove/examples/k8s/compactor"
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
 )
 
 // The role of a k8s client machine's process (a member's is etcd-dist's server role).
 const roleK8s = "k8s"
 
+// procArgs is a k8s client machine's process configuration (the JSON file of roleK8s): the
+// deployment, and which machine: the orchestrator of workload Index, or (IsNode) the Index-th
+// client machine.
+type procArgs struct {
+	D      Deployment
+	IsNode bool
+	Index  int
+}
+
 // runProcess runs a process of a deployment: a member (etcd-dist's server role: server.Main), or
-// a k8s client machine (roleK8s with an Args JSON file): an orchestrator (MainReady, its result
-// printed, its set-up done marked by FILE.ready) or a client machine (NodeMain, which never
-// returns).
+// a k8s client machine (roleK8s with a procArgs JSON file): an orchestrator (MainDeployment, its
+// result printed, its set-up done marked by FILE.ready, its history dumped (DIST_DUMP);
+// Orchestrator but for the observer and the line) or a client machine (NodeDeployment, which
+// never returns).
 func runProcess(args []string) error {
 	if len(args) == 0 || args[0] != roleK8s {
 		return etcddist.RunProcess(args)
@@ -43,16 +53,17 @@ func runProcess(args []string) error {
 	if err != nil {
 		return err
 	}
-	var a Args
+	var a procArgs
 	if err := json.Unmarshal(b, &a); err != nil {
 		return err
 	}
 	if a.IsNode {
-		NodeMain(a.W, a.Node, a.Addrs, a.Eps)
-		return fmt.Errorf("NodeMain returned")
+		NodeDeployment(a.D, a.Index)
+		return fmt.Errorf("NodeDeployment returned")
 	}
-	ready := func() { os.WriteFile(args[1]+".ready", nil, 0o644) }
-	fmt.Printf("%s: %v\n", a.W.Kind, MainReady(a.W, a.Eps, a.Addrs, ready))
+	w, _, _ := a.D.Workload(a.Index)
+	obs := Observer{Ready: func() { os.WriteFile(args[1]+".ready", nil, 0o644) }, History: dumpHistory}
+	fmt.Printf("%s: %v\n", w.Kind, MainDeployment(a.D, a.Index, obs))
 	return nil
 }
 
@@ -67,41 +78,6 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 	os.Exit(m.Run())
-}
-
-// TestVerbatim checks that the copies (storecopy, compactorcopy) are the drivers' files byte for
-// byte, so that the distributed workloads run the code k8s_safe is proved about.
-func TestVerbatim(t *testing.T) {
-	for _, c := range []struct{ dir, from string }{
-		{"storecopy", "../etcd3"}, {"compactorcopy", "../compactor"},
-	} {
-		srcs, _ := filepath.Glob(filepath.Join(c.from, "*.go"))
-		n := 0
-		for _, src := range srcs {
-			if strings.HasSuffix(src, "_test.go") {
-				continue
-			}
-			n++
-			want, err := os.ReadFile(src)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got, err := os.ReadFile(filepath.Join(c.dir, filepath.Base(src)))
-			if err != nil {
-				t.Fatalf("%s has no copy: %v", src, err)
-			}
-			if !bytes.Equal(got, want) {
-				t.Errorf("%s/%s differs from %s", c.dir, filepath.Base(src), src)
-			}
-		}
-		if n == 0 {
-			t.Errorf("no source in %s", c.from)
-		}
-		copies, _ := filepath.Glob(filepath.Join(c.dir, "*.go"))
-		if len(copies) != n+1 {
-			t.Errorf("%s: %d files, want the %d copies and export.go", c.dir, len(copies), n)
-		}
-	}
 }
 
 // TestStoreCodec checks the store workload's wire on random inputs and on outputs carrying each
@@ -149,6 +125,18 @@ func TestStoreCodec(t *testing.T) {
 			{Type: watch.Bookmark, Object: &k8s.Obj{ResourceVersion: 9, Annotated: true}},
 			{Type: watch.Error, Object: &metav1.Status{Status: metav1.StatusFailure, Message: "m", Code: 410}}}},
 		{Events: []watch.Event{}},
+		// (G5) every field of a Status, as StatusError and as an Error event's object
+		{Err: apierrors.NewInvalid(schema.GroupKind{Group: "g", Kind: "K"}, "n",
+			field.ErrorList{field.Invalid(field.NewPath("spec", "x"), "v", "bad"), field.Required(field.NewPath("y"), "")})},
+		{Err: apierrors.NewTooManyRequests("slow down", 7)},
+		{Err: &apierrors.StatusError{ErrStatus: metav1.Status{Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{}}}}},
+		{Events: []watch.Event{{Type: watch.Error, Object: &metav1.Status{
+			TypeMeta: metav1.TypeMeta{Kind: "Status", APIVersion: "v1"},
+			ListMeta: metav1.ListMeta{SelfLink: "s", ResourceVersion: "5", Continue: "c", RemainingItemCount: &rem,
+				ShardInfo: &metav1.ShardInfo{Selector: "sel"}},
+			Status: metav1.StatusFailure, Message: "m", Reason: metav1.StatusReasonExpired, Code: 410,
+			Details: &metav1.StatusDetails{Name: "n", Group: "g", Kind: "k", UID: "u", RetryAfterSeconds: 3,
+				Causes: []metav1.StatusCause{{Type: metav1.CauseTypeFieldValueInvalid, Message: "m", Field: "f"}}}}}}},
 	}
 	for _, r := range carried {
 		out := k8s.Output{Err: k8s.ENotFound, ErrKey: str(), ErrRV: 3, ErrMsg: str(), Name: str(), RV: 4,
@@ -223,12 +211,19 @@ func TestWellFormed(t *testing.T) {
 	a := func(i int) (string, string) {
 		return fmt.Sprintf("10.77.%d.1:2380", i+1), fmt.Sprintf("10.77.%d.1:2379", i+1)
 	}
+	nodes := func(w Workload) []string {
+		var as []string
+		for c := 0; c < AddrCount(w); c++ {
+			as = append(as, fmt.Sprintf("10.78.%d.%d:%d", int(w.Kind), c+1, etcddist.NodePort))
+		}
+		return as
+	}
 	for n := 0; n < 50; n++ {
-		if _, err := RandomDeployment("wf", 3, a, FullSizes); err != nil {
+		if _, err := RandomDeployment("wf", 3, a, FullSizes, nodes); err != nil {
 			t.Fatalf("a random deployment is not well formed: %v", err)
 		}
 	}
-	d, _ := RandomDeployment("wf", 3, a, FullSizes)
+	d, _ := RandomDeployment("wf", 3, a, FullSizes, nodes)
 	bad := d
 	bad.Cluster.Cfg.Retention = 10
 	bad.Cluster.Cfg.CompactorMode = "revision"
@@ -245,10 +240,33 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("no compactor round passed")
 	}
+	bad = d
+	bad.CompAddrs = append([]string{}, d.CompAddrs...)
+	bad.CompAddrs[1] = d.StoreAddrs[0]
+	if WellFormed(bad) == nil {
+		t.Error("a client machine address used twice passed")
+	}
+	bad.CompAddrs[1] = d.Cluster.Members[0].Client
+	if WellFormed(bad) == nil {
+		t.Error("a member's address as a client machine's passed")
+	}
+	bad.CompAddrs = d.CompAddrs[1:]
+	if WellFormed(bad) == nil {
+		t.Error("a missing client machine address passed")
+	}
+	for n := 0; n < NodeCount(d.StoreW)+NodeCount(d.CompW); n++ {
+		j, c, ok := d.Node(n)
+		if w, _, _ := d.Workload(j); !ok || c >= NodeCount(w) {
+			t.Errorf("Node(%d) = %d, %d, %v", n, j, c, ok)
+		}
+	}
+	if _, _, ok := d.Node(NodeCount(d.StoreW) + NodeCount(d.CompW)); ok {
+		t.Error("a client machine past the last")
+	}
 }
 
 // writeArgs writes a's JSON file for the process named name, and returns its path.
-func writeArgs(work, name string, a Args) (string, error) {
+func writeArgs(work, name string, a procArgs) (string, error) {
 	b, _ := json.Marshal(a)
 	p := filepath.Join(work, name+".json")
 	return p, os.WriteFile(p, b, 0o644)
@@ -288,7 +306,11 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k int, sz Si
 		}
 	}
 	tag := fmt.Sprintf("k%d-%d", os.Getpid(), round)
-	d, err := RandomDeployment(tag, k, etcddist.MemberAddrs(n, ms, base), sz)
+	cm := &clientMachines{n: n, localPort: 31000 + 20*rand.IntN(80)}
+	d, err := RandomDeployment(tag, k, etcddist.MemberAddrs(n, ms, base), sz, cm.addrs)
+	if cm.err != nil {
+		t.Fatal(cm.err)
+	}
 	if err != nil {
 		t.Fatalf("%v: %v", d, err)
 	}
@@ -306,7 +328,7 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k int, sz Si
 	var lines []string
 	c, err := etcddist.Start(d.Cluster, r, n, ms, nil)
 	if err == nil {
-		lines, err = runClients(r, n, d, ms)
+		lines, err = runClients(r, cm, d, ms)
 	}
 	if err == nil {
 		err = r.Err()
@@ -327,54 +349,79 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k int, sz Si
 	os.RemoveAll(work)
 }
 
-// runClients makes the workloads' machines and runs their processes in r (robust.Run.RunClients):
-// the client machines (the store's API servers, the compactor's writer and API servers), then the
-// orchestrators, every one against the one cluster, the network faults over every machine (the
-// members' and these). It returns the orchestrators' result lines (the store's, the compactor's).
-func runClients(r *robust.Run, n *robust.Network, d Deployment, members []*robust.Machine) ([]string, error) {
-	all := append([]*robust.Machine{}, members...)
-	localPort := 31000 + 20*rand.IntN(80)
-	eps := d.Cluster.Endpoints()
-	var nodes, orchs []robust.Client
-	for _, w := range []Workload{d.StoreW, d.CompW} {
-		om, err := n.AddMachine(fmt.Sprintf("orch-%s", w.Kind))
+// clientMachines makes the workloads' machines on n as RandomDeployment asks for their addresses
+// (addrs): per workload, its orchestrator's machine and its client machines, client c's address on
+// client machine c mod NodeCount (NodePort+c on network namespaces, a port of its own from
+// localPort on in the local mode).
+type clientMachines struct {
+	n         *robust.Network
+	localPort int
+	orch      []*robust.Machine
+	nodes     [][]*robust.Machine
+	err       error
+}
+
+func (cm *clientMachines) addrs(w Workload) []string {
+	if cm.err != nil {
+		return nil
+	}
+	om, err := cm.n.AddMachine(fmt.Sprintf("orch-%s", w.Kind))
+	if err != nil {
+		cm.err = err
+		return nil
+	}
+	var nms []*robust.Machine
+	for j := 0; j < NodeCount(w); j++ {
+		nm, err := cm.n.AddMachine(fmt.Sprintf("%s-node-%d", w.Kind, j))
 		if err != nil {
-			return nil, err
+			cm.err = err
+			return nil
 		}
-		all = append(all, om)
-		var nms []*robust.Machine
-		for j := 0; j < NodeCount(w); j++ {
-			nm, err := n.AddMachine(fmt.Sprintf("%s-node-%d", w.Kind, j))
-			if err != nil {
-				return nil, err
-			}
-			nms = append(nms, nm)
+		nms = append(nms, nm)
+	}
+	cm.orch = append(cm.orch, om)
+	cm.nodes = append(cm.nodes, nms)
+	var as []string
+	for c := 0; c < AddrCount(w); c++ {
+		nm := nms[c%len(nms)]
+		if cm.n.Namespaces() {
+			as = append(as, nm.IP+":"+strconv.Itoa(etcddist.NodePort+c))
+		} else {
+			as = append(as, fmt.Sprintf("%s:%d", nm.IP, cm.localPort))
+			cm.localPort++
+		}
+	}
+	return as
+}
+
+// runClients runs the processes of the workloads' machines (cm's) in r (robust.Run.RunClients):
+// the client machines (the store's API servers, the compactor's writer and API servers:
+// NodeDeployment), then the orchestrators (MainDeployment), every one against the one cluster, the
+// network faults over every machine (the members' and these). It returns the orchestrators' result
+// lines (the store's, the compactor's).
+func runClients(r *robust.Run, cm *clientMachines, d Deployment, members []*robust.Machine) ([]string, error) {
+	all := append([]*robust.Machine{}, members...)
+	var nodes, orchs []robust.Client
+	n := 0
+	for j := range cm.orch {
+		w, _, _ := d.Workload(j)
+		all = append(all, cm.orch[j])
+		for c, nm := range cm.nodes[j] {
 			all = append(all, nm)
-		}
-		var as []string
-		for c := 0; c < AddrCount(w); c++ {
-			nm := nms[c%len(nms)]
-			if n.Namespaces() {
-				as = append(as, nm.IP+":"+strconv.Itoa(etcddist.NodePort+c))
-			} else {
-				as = append(as, fmt.Sprintf("%s:%d", nm.IP, localPort))
-				localPort++
-			}
-		}
-		for j, nm := range nms {
-			name := fmt.Sprintf("%s-node-%d", w.Kind, j)
-			p, err := writeArgs(r.Work(), name, Args{W: w, Eps: eps, Addrs: as, IsNode: true, Node: j})
+			name := fmt.Sprintf("%s-node-%d", w.Kind, c)
+			p, err := writeArgs(r.Work(), name, procArgs{D: d, IsNode: true, Index: n})
 			if err != nil {
 				return nil, err
 			}
+			n++
 			nodes = append(nodes, robust.Client{Name: name, Machine: nm, Args: []string{roleK8s, p}})
 		}
 		name := fmt.Sprintf("orch-%s", w.Kind)
-		p, err := writeArgs(r.Work(), name, Args{W: w, Eps: eps, Addrs: as})
+		p, err := writeArgs(r.Work(), name, procArgs{D: d, Index: j})
 		if err != nil {
 			return nil, err
 		}
-		orchs = append(orchs, robust.Client{Name: name, Machine: om, Args: []string{roleK8s, p}, Ready: p + ".ready"})
+		orchs = append(orchs, robust.Client{Name: name, Machine: cm.orch[j], Args: []string{roleK8s, p}, Ready: p + ".ready"})
 	}
 	return r.RunClients(nodes, orchs, all), nil
 }

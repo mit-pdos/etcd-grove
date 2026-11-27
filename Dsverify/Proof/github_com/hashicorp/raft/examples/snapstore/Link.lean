@@ -31,7 +31,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.hashicorp.raft github_com.hashicorp.raft.examples.snapstore
 open github_com.hashicorp.raft.examples.snapstore
 
-namespace EtcdGrove.dsvhraft
+namespace EtcdGrove
 
 section link
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -40,50 +40,50 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.examples.snapstore.Assumptions]
 
-theorem github_com.hashicorp.raft.examples.snapstore.Store.wp_Create : github_com.hashicorp.raft.examples.snapstore.Store.Create.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Store.wp_Create : github_com.hashicorp.raft.examples.snapstore.Store.Create.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Store.Create.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock _root_.Perennial.strconv.wp_Itoa
 
-theorem github_com.hashicorp.raft.examples.snapstore.Store.wp_List : github_com.hashicorp.raft.examples.snapstore.Store.List.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Store.wp_List : github_com.hashicorp.raft.examples.snapstore.Store.List.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Store.List.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
 
-theorem github_com.hashicorp.raft.examples.snapstore.wp_copyBytes : github_com.hashicorp.raft.examples.snapstore.copyBytes.spec (GF := GF) (hG := hG) :=
+theorem snapstore.wp_copyBytes : github_com.hashicorp.raft.examples.snapstore.copyBytes.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.copyBytes.wp_proof
 
-theorem github_com.hashicorp.raft.examples.snapstore.Reader.wp_Read : github_com.hashicorp.raft.examples.snapstore.Reader.Read.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Reader.wp_Read : github_com.hashicorp.raft.examples.snapstore.Reader.Read.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Reader.Read.wp_proof
 
-theorem github_com.hashicorp.raft.examples.snapstore.Reader.wp_Close : github_com.hashicorp.raft.examples.snapstore.Reader.Close.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Reader.wp_Close : github_com.hashicorp.raft.examples.snapstore.Reader.Close.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Reader.Close.wp_proof
 
-theorem github_com.hashicorp.raft.examples.snapstore.wp_NewReader : github_com.hashicorp.raft.examples.snapstore.NewReader.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.examples.snapstore.NewReader.wp_proof github_com.hashicorp.raft.examples.snapstore.wp_copyBytes github_com.hashicorp.raft.examples.snapstore.Reader.wp_Read github_com.hashicorp.raft.examples.snapstore.Reader.wp_Close
+theorem snapstore.wp_NewReader : github_com.hashicorp.raft.examples.snapstore.NewReader.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.examples.snapstore.NewReader.wp_proof snapstore.wp_copyBytes snapstore.Reader.wp_Read snapstore.Reader.wp_Close
 
-theorem github_com.hashicorp.raft.examples.snapstore.Store.wp_Open : github_com.hashicorp.raft.examples.snapstore.Store.Open.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.examples.snapstore.Store.Open.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock github_com.hashicorp.raft.examples.snapstore.wp_NewReader
+theorem snapstore.Store.wp_Open : github_com.hashicorp.raft.examples.snapstore.Store.Open.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.examples.snapstore.Store.Open.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock snapstore.wp_NewReader
 
-theorem github_com.hashicorp.raft.examples.snapstore.Sink.wp_Write : github_com.hashicorp.raft.examples.snapstore.Sink.Write.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Sink.wp_Write : github_com.hashicorp.raft.examples.snapstore.Sink.Write.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Sink.Write.wp_proof
 
-theorem github_com.hashicorp.raft.examples.snapstore.Sink.wp_Close : github_com.hashicorp.raft.examples.snapstore.Sink.Close.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Sink.wp_Close : github_com.hashicorp.raft.examples.snapstore.Sink.Close.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Sink.Close.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
 
-theorem github_com.hashicorp.raft.examples.snapstore.Sink.wp_Cancel : github_com.hashicorp.raft.examples.snapstore.Sink.Cancel.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Sink.wp_Cancel : github_com.hashicorp.raft.examples.snapstore.Sink.Cancel.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Sink.Cancel.wp_proof
 
-theorem github_com.hashicorp.raft.examples.snapstore.Sink.wp_ID : github_com.hashicorp.raft.examples.snapstore.Sink.ID.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Sink.wp_ID : github_com.hashicorp.raft.examples.snapstore.Sink.ID.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Sink.ID.wp_proof
 
-theorem github_com.hashicorp.raft.examples.snapstore.wp_New : github_com.hashicorp.raft.examples.snapstore.New.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.examples.snapstore.New.wp_proof github_com.hashicorp.raft.examples.snapstore.Store.wp_Create github_com.hashicorp.raft.examples.snapstore.Store.wp_List github_com.hashicorp.raft.examples.snapstore.Store.wp_Open github_com.hashicorp.raft.examples.snapstore.Sink.wp_Write github_com.hashicorp.raft.examples.snapstore.Sink.wp_Close github_com.hashicorp.raft.examples.snapstore.Sink.wp_Cancel github_com.hashicorp.raft.examples.snapstore.Sink.wp_ID
+theorem snapstore.wp_New : github_com.hashicorp.raft.examples.snapstore.New.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.examples.snapstore.New.wp_proof snapstore.Store.wp_Create snapstore.Store.wp_List snapstore.Store.wp_Open snapstore.Sink.wp_Write snapstore.Sink.wp_Close snapstore.Sink.wp_Cancel snapstore.Sink.wp_ID
 
-theorem github_com.hashicorp.raft.examples.snapstore.wp_ReadAll : github_com.hashicorp.raft.examples.snapstore.ReadAll.spec (GF := GF) (hG := hG) :=
+theorem snapstore.wp_ReadAll : github_com.hashicorp.raft.examples.snapstore.ReadAll.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.ReadAll.wp_proof
 
-theorem github_com.hashicorp.raft.examples.snapstore.Store.wp_Latest : github_com.hashicorp.raft.examples.snapstore.Store.Latest.spec (GF := GF) (hG := hG) :=
+theorem snapstore.Store.wp_Latest : github_com.hashicorp.raft.examples.snapstore.Store.Latest.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.examples.snapstore.Store.Latest.wp_proof
 
 end link
 
-end EtcdGrove.dsvhraft
+end EtcdGrove
 
 end Perennial
