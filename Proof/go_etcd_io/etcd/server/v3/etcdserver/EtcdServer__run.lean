@@ -644,7 +644,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     icases HbootField with ⟨%p, Hpt, -⟩; iexists p; iexact Hpt
   have hS := hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x
     (ghostOf rp A) C.ms C.γs C.wt γnc w γn.id γn.key (1 : Qp).half γn rt (rnLogOf γn A').length sa
-    g r0 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia Hloop.1 hids hraft (by rw [Hkc.1, hc00])
+    g r0 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia hids hraft (by rw [Hkc.1, hc00])
     (by rw [hon]; exact hch) Hlog0 hγn hn (by rw [← hn]; have := ghostOf_length rp A; omega) (by rw [← hγn]; exact hns)
   rw [hon] at hS
   have hlenCursor : (rnLogOf γn A').length = A'.length := by simp [rnLogOf, hpre]

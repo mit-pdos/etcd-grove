@@ -68,7 +68,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    sa ag r0 hany hag hgi hi61 hboot hAL hcia hpd hids hraft hc0 hch hlog0 hγn hnI hbase hns
+    sa ag r0 hany hag hgi hi61 hboot hAL hcia hids hraft hc0 hch hlog0 hγn hnI hbase hns
   have hai : uint.Z ai < uint.Z sv.Metadata'.Index' := by omega
   cases hM : E.authMode with
   | any => exact absurd hM hany
@@ -198,7 +198,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     imod snap_csIdCount γr.raft sv hposS hi61 hsz20 $$ Hrli Hcert with %hcsz
     have hS := (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
         { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai hcsz d D lgh hkb
-        hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm hdd tI hmeta st b (by omega) hpd
+        hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm hdd tI hmeta st b (by omega)
         al ast lp cl x A r0 hRO A' u (by rw [Hoff]; exact HxA) (by rw [Hoff]; exact Hif.hst)
         (by rw [Hoff]; exact Hif.nolease) hbr hlp γp
         hrb stp γd γt
@@ -710,7 +710,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   imod snap_csIdCount γr.raft sv hposS hi61 hsz20 $$ Hrli Hcert with %hcsz
   have hS := hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai hcsz d D lgh hkb
-      hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm hdd tI hmeta st b (by omega) hpd
+      hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm hdd tI hmeta st b (by omega)
       al ast lp cl x A r0 hRO A' u (by rw [hon]; exact HxA) (by rw [hon]; exact Hif.hst)
       (by rw [hon]; exact Hif.nolease) hbr hlp γp hrb stp γd γt
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index' + 1) (Nat.le_refl _) Hif.halarm

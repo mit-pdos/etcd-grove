@@ -106,10 +106,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hdd : cfg.DataDir'.length < 2 ^ 60)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
-    -- (D6 T4 round 3, the fork guard, 2026-11-24) the consistent index strictly below the snapshot
-    -- (until then `≤`): the guard's `k ≤ ci` keeps the backend, `specKeep`; the apply thread between
-    -- two entries (`loopOk`'s `pending = false`), for the guard's read
-    (hle : uint.Z (ciEff γ st.k) < uint.Z sv.Metadata'.Index') (hpd : st.pending = false)
+    -- (T10s3b-13, 2026-11-27: the fork's keep guard reverted, boot fix (D); from 2026-11-24 to then
+    -- strict, with `st.pending = false`, for the guard's read)
+    (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     -- (R2d'a swap batch 2, 2026-11-06) the rest buckets' image `r0`: any, at `A`'s table
     -- (`srvRestRp`; until then the model of `A`, `srvRest E γr A`, its instance `srvRestRp_model`)
@@ -277,42 +276,12 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     {{ RET #(); srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
       notifyRcvN γnc 1 ∗ threadTok ∗ epReplayConfAddr ep ↦ (null : Loc) ∗ rnWalTokA γw (srvRAddr s) q }}
 
-/-- **`s.applySnapshot(ep, ap)` with a snapshot the backend already covers** (D6 T4 round 3, the
-fork guard `8aa40fd5c`, 2026-11-24): the snapshot `sv` past Go's applied index `ai` (Go panics
-otherwise) and at or below the consistent index (`ciEff γ st.k`: only inside a restart window, a
-crash having left the backend ahead of the WAL). The guard keeps the backend: after the first
-receive on `notifyc` (its payload `S1`), `ep`'s applied index and term, both snapshot indexes and
-the conf state move to the snapshot's (`csOptA`, as `srvSnapApplied`'s); the apply thread's state
-is only loaded (`stLoaded`, the consistent index read), the backend, the stores and `replayConf`
-are untouched. -/
-abbrev EtcdServer.applySnapshot.specKeep : Prop :=
-  ∀ (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (on : Bool) (ai at0 dsi msi : w64)
-    (nc cs0 : Loc) (st : ApplyState) (b : GoInterface) (γnc : NotifyNames) (S1 S2 : IProp GF),
-  uint.Z ai < uint.Z sv.Metadata'.Index' →
-  uint.Z sv.Metadata'.Index' ≤ uint.Z (ciEff γ st.k) → st.pending = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM on s γ ci TM E ρ γr ∗
-      taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
-      taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc S1 S2 ∗ notifyRcvN γnc 0 ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
-      epMemSnapAddr ep ↦ msi ∗ (∃ c : Loc, epConfStateAddr ep ↦ c) ∗
-      srvLgReader s ∗ applyThread γ st ∗ applyBackend γ ci b }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
-      (Val #ap))
-  {{ RET #(); ∃ cs : Loc, S1 ∗ notifyRcvN γnc 1 ∗
-      epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
-      epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
-      epConfStateAddr ep ↦ cs ∗ csOptA cs DFrac.discard sv.Metadata'.ConfState' ∗
-      srvLgReader s ∗ applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b }}
-
 /-- **`applySnapshot`'s spec** (J8b, 2026-11-01): the cases, the empty snapshot (`specEmpty`), a
-non-empty one in the server's auth mode (`specSnapM`; until 2026-11-03 the mode-off `specSnap`) and
-(D6 T4 round 3, 2026-11-24) one the backend already covers (`specKeep`), for the link. -/
+non-empty one in the server's auth mode (`specSnapM`; until 2026-11-03 the mode-off `specSnap`), for
+the link. (From 2026-11-24 to 2026-11-27 also `specKeep`, the fork's keep guard, since reverted.) -/
 abbrev EtcdServer.applySnapshot.spec : Prop :=
   EtcdServer.applySnapshot.specEmpty (GF := GF) (hG := hG) ∧
-    EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) ∧
-    EtcdServer.applySnapshot.specKeep (GF := GF) (hG := hG)
+    EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG)
 
 end spec
 
