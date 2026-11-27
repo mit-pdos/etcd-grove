@@ -9228,3 +9228,30 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (`SpecPlan/Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`); the
   post is unchanged. No top-level statement changes.
 - **Decision.** Upamanyu, through coordinator-E (#24 7225943254: a Go model overlay, not a TrustedCode model).
+## 2026-11-27: `io.Copy.spec`, `io.Copy_Discard.spec`: the reader not a `*LimitedReader`, its errors well-typed, the calls in resolved form (hraft-iocopy)
+
+- **Spec.** `io.Copy.spec`, `io.Copy_Discard.spec` and their vocabulary `io.streamReader`, `io.streamWriter`
+  (`Spec/io/Copy.lean`, the lab's `KitStd.Spec.io.Copy`, ported in hraft P3; callee hypotheses of
+  `Raft__installSnapshot`), assumed in the lab, to be proved over Perennial's translated `io.Copy`, `copyBuffer` and
+  `discard.ReadFrom`.
+- **Defect.** Not provable as stated (P4 group C, `notes/dsv-hraft.md`): (1) `io.Copy.spec` admits a reader whose
+  dynamic type is `*io.LimitedReader` (not an `io.WriterTo`), for which `copyBuffer` loads `l.N` to size its buffer,
+  memory `streamReader` does not own; (2) `copyBuffer` and `discard.ReadFrom` compare the reader's error with
+  `io.EOF` (`er != EOF`), which the model steps only for a pointer-typed error whose value is a location
+  (`io.ptrTyped`), which `streamReader` does not say; (3) `io.Copy_Discard.spec`'s `w` is any value `Discard`
+  holds, and Perennial's `io` fact said nothing of which (nor of `blackHolePool`, where `ReadFrom` takes its buffer).
+- **Evidence.** Go 1.27 `io.go` `copyBuffer` (`if l, ok := src.(*LimitedReader); ok && int64(size) > l.N`, `if er
+  != EOF`) and `discard.ReadFrom` (`blackHolePool.Get().(*[]byte)`, `if err == EOF`); Perennial's
+  `Perennial/Code/io.lean`. The only caller's readers: the RPC's stream and the install's `*countingReader`
+  (`streamReaderOk`: errors `nil` or `io.EOF`, an `*errors.errorString`), so both premises hold there.
+- **Change.** (1) `io.Copy.spec` takes `ts ≠ *io.LimitedReader` (exactly what makes `copyBuffer` keep the 32 KiB
+  buffer); (2) `io.streamReader`'s post adds `io.ptrTyped err` (Perennial's `io.readerOk` has it too); (3) Perennial
+  `io.isInit` gains `"#HDiscardV"` (`Discard` holds `discard{}`) and `"#HblackHolePool"` (a pool of 8192-byte
+  buffers), proved from the translated initializer (no axiom; Perennial branch `io-discard-init`); the spec's `w`
+  stays any value `Discard` holds. Also `streamReader`/`streamWriter` take the reader and writer as
+  `GoInterfaceOk`, state the call in its resolved form (`methods ty "Read" v`, as Perennial's `io.readerOk` and
+  this repository's `io.readerStream`), the form a proof reaches after the call's method resolution, and are WP
+  specs in `streamReaderOk`'s form (continuation not under a later: the readers and sinks that meet them are given by
+  such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
+  top-level statement changes.
+- **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).

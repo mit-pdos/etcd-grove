@@ -1,12 +1,11 @@
 package compactor
 
-// This directory is a copy of examples/k8s/compactor's package (compactor.go, byte for byte:
-// TestVerbatim in examples/k8s/dist checks it), so that examples/k8s/dist can run its API servers
-// and its writer on machines of their own: writer, apiserver, check and the constants are
-// unexported there, and the driver itself must stay as k8s_safe's proof has it. This file is the
-// only addition (notes/k8s-dist.md, "Copies"): check split in two, its sampling and reads on the
-// API server's machine (Sample) and its comparisons on the orchestrator (CheckLog), the same
-// comparisons on the same values.
+// The exported wrappers examples/k8s/dist needs to run the API servers and the writer on machines
+// of their own (writer, apiserver, check and the constants are unexported), and the new code it
+// runs there: WriterAt (writer with the key a parameter) and check split in two, its sampling and
+// reads on the API server's machine (Sample) and its comparisons on the orchestrator (CheckLog),
+// the same comparisons on the same values. No function of the driver changes, so that k8s_safe's
+// proof of them stands (notes/k8s-dist.md, "Exported wrappers").
 
 import (
 	"context"

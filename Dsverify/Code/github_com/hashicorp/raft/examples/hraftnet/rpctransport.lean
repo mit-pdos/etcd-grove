@@ -1003,6 +1003,9 @@ noncomputable def Conn.Call.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ch1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "d"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.PointerType _root_.Perennial.net.rpc.Call.ty) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (Let "done" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.rpc.Call.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.rpc.Call.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val CallOK)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1010,7 +1013,7 @@ noncomputable def Conn.Call.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.rpc.Call.ty go!"Error"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Call.ty)))) (Var "call")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.rpc.Call.ty go!"Error"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Call.ty)))) (Var "done")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val CallFailed)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1022,7 +1025,9 @@ noncomputable def Conn.Call.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty)))) (Var "c"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Conn.ty) go!"drop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Conn.ty)))) (Var "p"))) (Var "$a0")))))
   (App (Val doExecute)
-  (Val #())))))),
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.rpc.Call.ty)))) (Pair (Var "done") (Var "$r0"))))))))),
   (CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch1")) (Lam "$recvVal"
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val CallFailed)
@@ -1052,7 +1057,7 @@ noncomputable def Conn.Call.impl [GooseExts] [GoGlobalContext] : val :=
 /-- New is the transport of the server at raft address local, whose peers are at the network
     addresses peers[a] (a peer's raft address a), each RPC waiting at most timeout for its answer.
 
-    go: rpctransport.go:404:6 -/
+    go: rpctransport.go:405:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "local"
   (Lam "peers"
@@ -1098,7 +1103,7 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Receiver is the transport's net/rpc receiver, which its server registers (as "RaftRPC").
 
-    go: rpctransport.go:413:21 -/
+    go: rpctransport.go:414:21 -/
 noncomputable def Transport.Receiver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1117,7 +1122,7 @@ noncomputable def Transport.Receiver.impl [GooseExts] [GoGlobalContext] : val :=
 /-- send sends req to target's RaftRPC.method, its answer into reply; an error if target is not a
     peer or no answer came.
 
-    go: rpctransport.go:419:21 -/
+    go: rpctransport.go:420:21 -/
 noncomputable def Transport.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "target"
@@ -1178,7 +1183,7 @@ noncomputable def Transport.send.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Conn.ty)))) (Pair (Var "p") (Var "$r0"))))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))))
 
-/-- go: rpctransport.go:430:21 -/
+/-- go: rpctransport.go:431:21 -/
 noncomputable def Transport.Consumer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1193,7 +1198,7 @@ noncomputable def Transport.Consumer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.github_com.hashicorp.raft.RPC.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.github_com.hashicorp.raft.RPC.ty)))) (Var "$res0"))))))
 
-/-- go: rpctransport.go:434:21 -/
+/-- go: rpctransport.go:435:21 -/
 noncomputable def Transport.LocalAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1208,7 +1213,7 @@ noncomputable def Transport.LocalAddr.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.hashicorp.raft.ServerAddress.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.hashicorp.raft.ServerAddress.ty))) (Var "$res0"))))))
 
-/-- go: rpctransport.go:438:21 -/
+/-- go: rpctransport.go:439:21 -/
 noncomputable def Transport.EncodePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
@@ -1226,7 +1231,7 @@ noncomputable def Transport.EncodePeer.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))))
 
-/-- go: rpctransport.go:442:21 -/
+/-- go: rpctransport.go:443:21 -/
 noncomputable def Transport.DecodePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "buf"
@@ -1244,7 +1249,7 @@ noncomputable def Transport.DecodePeer.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- SetHeartbeatHandler sets the handler heartbeats go to (deliver).
 
-    go: rpctransport.go:447:21 -/
+    go: rpctransport.go:448:21 -/
 noncomputable def Transport.SetHeartbeatHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "cb"
@@ -1262,7 +1267,7 @@ noncomputable def Transport.SetHeartbeatHandler.impl [GooseExts] [GoGlobalContex
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #())))))))
   (Val #()))))
 
-/-- go: rpctransport.go:453:21 -/
+/-- go: rpctransport.go:454:21 -/
 noncomputable def Transport.AppendEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
@@ -1342,7 +1347,7 @@ noncomputable def Transport.AppendEntries.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType AppendReq.ty)))) (Pair (Var "w") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))))
 
-/-- go: rpctransport.go:469:21 -/
+/-- go: rpctransport.go:470:21 -/
 noncomputable def Transport.RequestVote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
@@ -1422,7 +1427,7 @@ noncomputable def Transport.RequestVote.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType VoteReq.ty)))) (Pair (Var "w") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))))
 
-/-- go: rpctransport.go:485:21 -/
+/-- go: rpctransport.go:486:21 -/
 noncomputable def Transport.RequestPreVote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
@@ -1504,7 +1509,7 @@ noncomputable def Transport.RequestPreVote.impl [GooseExts] [GoGlobalContext] : 
 
 /-- InstallSnapshot reads the snapshot from data in full and sends it in the request.
 
-    go: rpctransport.go:502:21 -/
+    go: rpctransport.go:503:21 -/
 noncomputable def Transport.InstallSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
@@ -1611,7 +1616,7 @@ noncomputable def Transport.InstallSnapshot.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))))
 
-/-- go: rpctransport.go:522:21 -/
+/-- go: rpctransport.go:523:21 -/
 noncomputable def Transport.TimeoutNow.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
@@ -1693,7 +1698,7 @@ noncomputable def Transport.TimeoutNow.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType TimeoutReq.ty)))) (Pair (Var "w") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))))
 
-/-- go: rpctransport.go:549:24 -/
+/-- go: rpctransport.go:550:24 -/
 noncomputable def appendFuture.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -1711,7 +1716,7 @@ noncomputable def appendFuture.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef appendFuture.ty go!"done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType appendFuture.ty)))) (Var "f"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: rpctransport.go:554:24 -/
+/-- go: rpctransport.go:555:24 -/
 noncomputable def appendFuture.Start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -1726,7 +1731,7 @@ noncomputable def appendFuture.Start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "$res0"))))))
 
-/-- go: rpctransport.go:558:24 -/
+/-- go: rpctransport.go:559:24 -/
 noncomputable def appendFuture.Request.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -1741,7 +1746,7 @@ noncomputable def appendFuture.Request.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.AppendEntriesRequest.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.AppendEntriesRequest.ty)))) (Var "$res0"))))))
 
-/-- go: rpctransport.go:562:24 -/
+/-- go: rpctransport.go:563:24 -/
 noncomputable def appendFuture.Response.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -1756,7 +1761,7 @@ noncomputable def appendFuture.Response.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.AppendEntriesResponse.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.AppendEntriesResponse.ty)))) (Var "$res0"))))))
 
-/-- go: rpctransport.go:581:21 -/
+/-- go: rpctransport.go:582:21 -/
 noncomputable def Transport.AppendEntriesPipeline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
@@ -1797,7 +1802,7 @@ noncomputable def Transport.AppendEntriesPipeline.impl [GooseExts] [GoGlobalCont
 /-- run sends the queued requests one after another; each answer (or failure) completes its future,
     in order. (The explicit conversion at the consumer's send: mit-pdos/perennial#713.)
 
-    go: rpctransport.go:590:20 -/
+    go: rpctransport.go:591:20 -/
 noncomputable def pipeline.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1843,7 +1848,7 @@ noncomputable def pipeline.run.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #()))))
 
-/-- go: rpctransport.go:608:20 -/
+/-- go: rpctransport.go:609:20 -/
 noncomputable def pipeline.AppendEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "args"
@@ -1917,7 +1922,7 @@ noncomputable def pipeline.AppendEntries.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef pipeline.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pipeline.ty)))) (Var "p")))) (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.hashicorp.raft.AppendFuture.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: rpctransport.go:624:20 -/
+/-- go: rpctransport.go:625:20 -/
 noncomputable def pipeline.Consumer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1932,7 +1937,7 @@ noncomputable def pipeline.Consumer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.github_com.hashicorp.raft.AppendFuture.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.github_com.hashicorp.raft.AppendFuture.ty)))) (Var "$res0"))))))
 
-/-- go: rpctransport.go:628:20 -/
+/-- go: rpctransport.go:629:20 -/
 noncomputable def pipeline.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1967,7 +1972,7 @@ noncomputable def pipeline.Close.impl [GooseExts] [GoGlobalContext] : val :=
 /-- isHeartbeat says whether a is a heartbeat (upstream NetworkTransport's test: a term and a
     leader, no previous entry, no entries, no commit index).
 
-    go: rpctransport.go:648:6 -/
+    go: rpctransport.go:649:6 -/
 noncomputable def isHeartbeat.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2003,7 +2008,7 @@ noncomputable def isHeartbeat.impl [GooseExts] [GoGlobalContext] : val :=
     same behavior: the fresh goroutine is what gives the handler a thread of its own in the proof,
     since net/rpc's method goroutine lends none.)
 
-    go: rpctransport.go:663:21 -/
+    go: rpctransport.go:664:21 -/
 noncomputable def Transport.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "cmd"
@@ -2071,7 +2076,7 @@ noncomputable def Transport.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.hashicorp.raft.RPCResponse.ty)))) (Pair (Var "respCh") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: rpctransport.go:684:19 -/
+/-- go: rpctransport.go:685:19 -/
 noncomputable def RaftRPC.AppendEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "args"
@@ -2166,7 +2171,7 @@ noncomputable def RaftRPC.AppendEntries.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.AppendEntriesRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: rpctransport.go:702:19 -/
+/-- go: rpctransport.go:703:19 -/
 noncomputable def RaftRPC.RequestVote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "args"
@@ -2255,7 +2260,7 @@ noncomputable def RaftRPC.RequestVote.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: rpctransport.go:719:19 -/
+/-- go: rpctransport.go:720:19 -/
 noncomputable def RaftRPC.RequestPreVote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "args"
@@ -2344,7 +2349,7 @@ noncomputable def RaftRPC.RequestPreVote.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: rpctransport.go:736:19 -/
+/-- go: rpctransport.go:737:19 -/
 noncomputable def RaftRPC.InstallSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "args"
@@ -2434,7 +2439,7 @@ noncomputable def RaftRPC.InstallSnapshot.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: rpctransport.go:753:19 -/
+/-- go: rpctransport.go:754:19 -/
 noncomputable def RaftRPC.TimeoutNow.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "args"
