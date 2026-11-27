@@ -112,7 +112,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     (hWA : mvcc.api.mvccW_alloc.law (GF := GF)) (hOpen : mvcc.api.etcdStorage_open.law (GF := GF))
     (hRest : mvcc.api.backendRest_open.law (GF := GF)) :
     EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi hcsz d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta st b hle hpd al ast lp cl x A r0 hRO A' u hxA hst hnl hbr hlp γp hrbw stp γd γt img nt hnt halarm halbi hmbP hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc γw q hns
+  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi hcsz d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta st b hle al ast lp cl x A r0 hRO A' u hxA hst hnl hbr hlp γp hrbw stp γd γt img nt hnt halarm halbi hmbP hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc γw q hns
     iintro %Φ Hpre HΦ
     icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, HwT, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, #HAlb, #Hlinv, #Hlpf, #Hlrev, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsws, #Hsdinv, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, Hboot, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hrcn, #HmetaB⟩
     -- (the lease-expiry plan's S2–S4, 2026-11-05) a cluster that grants leases restores the image's
@@ -269,7 +269,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
           iintro #H; iapply H
         iapply key; iexact HGall
       iapply wp_fupd
-      iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe Hp hsh hWA hOpen hRest s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta hSB st b hle hpd hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) (decide (E.lm = .mono)) recs U
+      iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe Hp hsh hWA hOpen hRest s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) (decide (E.lm = .mono)) recs U
         (tableReq (appliedTableM E.authOn γr A')) (srvIds E (appliedTableM E.authOn γr A').ids)
         (srvIds E (appliedTableM E.authOn γr A).ids) hbe hrmono hrUL (fun _ => hlgE) hreq hperm
         (fun h => by rw [hlgE] at h; cases h)
@@ -382,7 +382,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       rw [hids, apply.restLeasesWith_nil, hlease]
       exact snapRestImgM_bk E.authMode γr d.P D A' hany hA'.1 n hn
     iapply wp_fupd
-    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe Hp hsh hWA hOpen hRest s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta hSB st b hle hpd hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) false [] [] (fun _ => 0) [] []
+    iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe Hp hsh hWA hOpen hRest s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) false [] [] (fun _ => 0) [] []
       hbe0 (fun h => by cases h) (by simp) (fun h => by cases h) (by simp) List.Perm.nil
       (fun _ => ⟨rfl, rfl⟩) r0 u hxA hbr hGTP hSTP hCIg γp hrbw stp γd γt img nt hnt hNAB hAR halarm halbi hmbP hlp hNAuB A' hauthI hAA' hst hnlE hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc γw q hAG hTODO hns) $$ [Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR]
     · iframe #
@@ -406,150 +406,9 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     iapply (srvSnapAppliedM_of_G s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl hany)
     iexact Hpost
 
-set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
-/-- **`applySnapshot` with a snapshot the backend already covers** (`specKeep`; D6 T4 round 3, the
-fork guard, 2026-11-24): the walk to the guard as `applySnapshot_walk`'s, the guard taken (the
-consistent index at least the snapshot's), `ep` moved to the snapshot, the deferred log and gauge. -/
-theorem EtcdServer.applySnapshot.wp_proofKeep
-    (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
-    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
-    (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
-    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
-    (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
-    (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applySnapshot.specKeep (GF := GF) (hG := hG) := by
-  intro s ep ap sn sv γ ci TM E ρ γr on ai at0 dsi msi nc cs0 st b γnc S1 S2 hi hge hpd
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hmsi, ⟨%c0, Hcs0⟩, Hlr, Hst, Hab⟩
-  ihave #Hsrv' := Hsrv
-  iunfold isServerM at Hsrv'
-  icases Hsrv' with ⟨-, #HCI, ⟨%sfv, #Hfl⟩, -, -⟩
-  iunfold srvFieldsAtM at Hfl
-  icases Hfl with ⟨#Hlgf, #Hlgz, -⟩
-  iunfold isServerCI at HCI
-  icases HCI with ⟨#Hcif, #Hisci, #Hinv⟩
-  ihave Hinit : (srvInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, -, ⟨%gg, #Hgg, #Hggs⟩, -⟩
-  ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
-  · iPkgInit
-  ihave #Hpbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
-  · iPkgInit
-  ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
-  · iPkgInit
-  ihave #Hsnap' := Hsnap
-  iunfold ownSnapM at Hsnap'
-  icases Hsnap' with ⟨%sds, %smp, %suf, %Hsnn, #HsD, #Hsd, #HsM, #Hsm, #Hspb⟩
-  ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
-  · iPkgInit
-  wp_apply wp_with_defer as %defer defer
-  (try wp_auto)
-  wp_apply hIES sn DFrac.discard (some sv) $$ [$Hrpkg] as %bE ⟨%HbE, -⟩
-  · simp only [snapOpt]; iexact Hsnap
-  simp only [Option.elim] at HbE
-  subst HbE
-  have hne : sv.Metadata'.Index' ≠ W64 0 := by intro h; rw [h] at hi; word
-  simp only [hne, decide_false]
-  (try wp_auto)
-  iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at Hggs
-  icases Hggs with ⟨#HInc, #HDec, -⟩
-  wp_apply HInc
-  (try wp_auto)
-  wp_apply hLg s sfv.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr
-  (try wp_auto)
-  -- the "applying snapshot" log
-  wp_apply hU64 as %fl1 -
-  wp_apply hU64 as %fl2 -
-  wp_apply hGI $$ [Hsm] as -
-  · iframe #
-  wp_apply hU64 as %fl3 -
-  wp_apply hGT $$ [Hsm] as -
-  · iframe #
-  wp_apply hU64 as %fl4 -
-  wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [fl1, fl2, fl3, fl4]
-  isplitr
-  · ipureintro; rfl
-  iintro %fsl1 ⟨-, -⟩
-  (try wp_auto)
-  wp_apply hInfo $$ []
-  · iexact Hlgz
-  (try wp_auto)
-  -- `if GetIndex() <= ep.appliedi { Panic }`: not taken
-  wp_apply hGI $$ [Hsm] as -
-  · iframe #
-  (try wp_auto)
-  wp_if_destruct
-  · exfalso; word
-  (try wp_auto)
-  -- `<-toApply.notifyc`: raft persisted the snapshot
-  wp_apply wp_notify2_receive1 γnc nc S1 S2 $$ [Hrcv] as ⟨Hrcv, HS1⟩
-  · iframe #; iexact Hrcv
-  (try wp_auto)
-  -- the guard: `ci := s.consistIndex.ConsistentIndex()`, at least the snapshot's index: taken
-  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
-  · iframe #; iframe Hst Hab
-  (try wp_auto)
-  wp_apply hGI $$ [Hsm] as -
-  · iframe #
-  (try wp_auto)
-  wp_if_destruct
-  rotate_left
-  · exfalso; word
-  (try wp_auto)
-  ihave #Hsm0 := Hsm
-  iunfold smOpt at Hsm
-  icases Hsm with (%Hsmnil | Hsmp)
-  · exfalso; rw [Hsmnil.2] at hi; simp at hi
-  iunfold smPts at Hsmp
-  icases Hsmp with ⟨%spc, %spi, %spt, %suf2, %Hsmnn, #HsC, #Hsc, -⟩
-  -- the "keeping it" log
-  wp_apply hU64 as %fk1 -
-  wp_apply hGI $$ [Hsm0] as -
-  · iframe #
-  wp_apply hU64 as %fk2 -
-  wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [fk1, fk2]
-  isplitr
-  · ipureintro; rfl
-  iintro %fslk ⟨-, -⟩
-  (try wp_auto)
-  wp_apply hInfo $$ []
-  · iexact Hlgz
-  (try wp_auto)
-  -- `ep` at the snapshot: its term, index, both snapshot indexes, its conf state
-  wp_apply hGT $$ [Hsm0] as -
-  · iframe #
-  (try wp_auto)
-  wp_apply hGI $$ [Hsm0] as -
-  · iframe #
-  (try wp_auto)
-  -- the deferred "applied snapshot" log and the gauge's `Dec`
-  wp_apply hU64 as %fd1 -
-  wp_apply hU64 as %fd2 -
-  wp_apply hGI $$ [Hsm0] as -
-  · iframe #
-  wp_apply hU64 as %fd3 -
-  wp_apply hGT $$ [Hsm0] as -
-  · iframe #
-  wp_apply hU64 as %fd4 -
-  wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [fd1, fd2, fd3, fd4]
-  isplitr
-  · ipureintro; rfl
-  iintro %fsld ⟨-, -⟩
-  (try wp_auto)
-  wp_apply hInfo $$ []
-  · iexact Hlgz
-  (try wp_auto)
-  wp_apply HDec
-  (try wp_auto)
-  iapply HΦ
-  iexists spc
-  iframe
-  iframe #
-
 /-- **`applySnapshot.spec`** (J8b, 2026-11-01): `wp_proofEmpty`, `wp_proof_snapM` (since
-2026-11-03; until then the mode-off `wp_proof_snap`) and `wp_proofKeep` (2026-11-24). -/
+2026-11-03; until then the mode-off `wp_proof_snap`). (From 2026-11-24 to 2026-11-27 also
+`wp_proofKeep`, the fork's keep guard, since reverted.) -/
 theorem EtcdServer.applySnapshot.wp_proof
     (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -603,8 +462,7 @@ theorem EtcdServer.applySnapshot.wp_proof
     (hRest : mvcc.api.backendRest_open.law (GF := GF)) :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applySnapshot.wp_proofEmpty hIES,
-    EtcdServer.applySnapshot.wp_proof_snapM hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hGTP hSTP hCIg hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hRec hTODO Hp hsh hWA hOpen hRest,
-    EtcdServer.applySnapshot.wp_proofKeep hIES hLg hInfo hU64 hGI hGT hCIg⟩
+    EtcdServer.applySnapshot.wp_proof_snapM hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hGTP hSTP hCIg hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hRec hTODO Hp hsh hWA hOpen hRest⟩
 
 end proof
 

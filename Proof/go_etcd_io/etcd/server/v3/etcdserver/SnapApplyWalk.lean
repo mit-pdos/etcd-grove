@@ -76,7 +76,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (st : ApplyState) (b : GoInterface)
-    (hle : uint.Z (ciEff γ st.k) < uint.Z sv.Metadata'.Index') (hpd : st.pending = false)
+    (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (hLR : lease.lessor.Recover.spec (GF := GF) (hG := hG))
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
@@ -302,8 +302,6 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       iprop(True) $$ [Hrcv] as ⟨Hrcv, %iw, %mw, #Hwrec, %Hmw⟩
   · iframe #; iexact Hrcv
   (try wp_auto)
-  -- (D6 T4 round 3, the fork guard) `if ci := s.consistIndex.ConsistentIndex(); GetIndex() <= ci`:
-  -- not taken, the consistent index strictly below the snapshot (`hle`)
   ihave #HsrvCI := Hsrv
   iunfold isServerM at HsrvCI
   icases HsrvCI with ⟨-, #HCI, -⟩
@@ -311,16 +309,6 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases HCI with ⟨#Hcif, #Hisci, #Hinv⟩
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
-  (try wp_auto)
-  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
-  · iframe #; iframe Hst Hab
-  (try wp_auto)
-  wp_apply hGI $$ [Hsm] as -
-  · iframe #
-  (try wp_auto)
-  wp_if_destruct
-  · exfalso; word
-  (try wp_auto)
   -- `s.bemu.Lock()`: `bemu`'s whole lock invariant
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -406,9 +394,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iPkgInit
   let π' := futPhys π0 d'.γB
   let s' : ApplyState := ⟨W64 0, sv.Metadata'.Index', sv.Metadata'.Index', false⟩
-  wp_apply (wp_ci_swap hSB γ ci (stLoaded γ st) s' π' jf γcf b _ rfl rfl
-      ⟨by simp [s', ciEff, π', π0], by simp [s', ciEff, π', π0]⟩
-      (by rw [stLoaded_ciEff]; simpa [π', π0] using Int.le_of_lt hle))
+  wp_apply (wp_ci_swap hSB γ ci st s' π' jf γcf b _ rfl rfl
+      ⟨by simp [s', ciEff, π', π0], by simp [s', ciEff, π', π0]⟩ (by simpa [π', π0] using hle))
     $$ [Hst Hown Hmt0b Hwr0 Htcf] as ⟨Hst, #Hreg', Hfs, Hown⟩
   · iframe #; iframe Hst Hown Hmt0b Hwr0 Htcf
   -- the new backend's payment rights, back from the futures: its write-back tokens, its open

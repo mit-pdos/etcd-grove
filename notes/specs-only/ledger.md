@@ -8523,3 +8523,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §1 (B5 step 1: revertible) and §2.
 - **Proposed change.** Back to `isNotify2 γnc nc (…) iprop(True)` with no `S2` parameter, as at `0fd28cd373`.
 - **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27).
+
+## 2026-11-27: `EtcdServer.applySnapshot.specKeep` removed; `specSnapM`'s strict `hle` and `hpd`, `applyAll.specSnapM`'s `st.pending = false`, reverted (T10s3b-13)
+
+- **Spec.** `EtcdServer.applySnapshot.specKeep`, `.specSnapM`, `.spec`; `EtcdServer.applyAll.specSnapM`
+  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean`, `…__applyAll.lean`).
+- **Defect.** The fork's keep guard (`if ci := s.consistIndex.ConsistentIndex(); GetIndex() <= ci`, `8aa40fd5c`)
+  is gone from the Go (fork `01b0497d0`, retranslated in `30f0590b24`): `specKeep` specifies a branch that no
+  longer exists, and `specSnapM`'s strict `hle : ciEff < k` and `hpd : st.pending = false` (and `applyAll.specSnapM`'s
+  `st.pending = false`, passed through to it) existed only to read the consistent index and refute that branch
+  (D6 T4 round 3, `efabc21c3c`, `5b699416b3`).
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §1 (rows `specKeep`/`wp_proofKeep`: gone with the Go revert;
+  `specSnapM`'s strict `hle` and its `ConsistentIndex` callee in `applySnapshot_walk`: revert to the pre-guard
+  `specSnapM`).
+- **Proposed change.** Back to the pre-guard statements: `hle : uint.Z (ciEff γ st.k) ≤ uint.Z k`, no `hpd`;
+  `applyAll.specSnapM` without `st.pending = false`; `applySnapshot.spec := specEmpty ∧ specSnapM`. All weaker
+  premises (callers unaffected but for the dropped argument).
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27): done on `etcd-safe-t10s3b-a/2026-11-27`.

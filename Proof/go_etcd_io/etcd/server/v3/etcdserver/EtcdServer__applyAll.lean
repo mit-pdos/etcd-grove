@@ -767,7 +767,7 @@ theorem EtcdServer.applyAll.wp_proof
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hCM hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave
       hPut hUR hID hName hSafe,
-    EtcdServer.applyAll.wp_proofSnapM hASnap.2.1 hAE.2 hBk hLg hV hSINC.2 hGT (EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec hCM) hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
+    EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT (EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec hCM) hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
       hSafe⟩
 
 end proof

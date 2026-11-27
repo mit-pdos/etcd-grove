@@ -207,9 +207,6 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
   -- the applied log `A` through `ai`, the consistent index at most the applied one
   uint.Z g = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z g →
-  -- (D6 T4 round 3, 2026-11-24) the apply thread between two entries (`loopOk`'s), for
-  -- `applySnapshot`'s guard read
-  st.pending = false →
   -- (R2d'a task 4) the image's members have the model's ids (`restReplay_memKeys`)
   (∀ k, (r0.mem !! k).isSome =
     ((restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem !! k).isSome) →
