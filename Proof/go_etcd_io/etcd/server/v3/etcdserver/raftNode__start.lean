@@ -1669,8 +1669,8 @@ theorem raftNode.start.wp_proof
           rcases Hrt' with h | h
           · right; exact h
           · left; rw [h, HSeq]; rfl
-        ihave #HlawS : rnLeadLaw γ S' $$ []
-        · iexact Hlaw
+        ihave #HlawS := (show rnLeadLaw (GF := GF) γ (durOf (⟨S', p', none, srvLE γ.srv (L' ++ ce)⟩, none)) ⊢
+          rnLeadLaw γ S' from .rfl) $$ Hlaw
         ihave #Hjob := rnReplayJob_of_lead γ next S' rt' (rnLogOf γ (L' ++ ce)).length hb0 hrtE
           $$ Hhist Hrok HlawS
         ihave Hwv : rnWalView γ ⟨S', p', none, srvLE γ.srv (L' ++ ce)⟩ $$ [Hwv]
