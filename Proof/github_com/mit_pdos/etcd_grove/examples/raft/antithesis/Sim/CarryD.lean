@@ -367,6 +367,35 @@ theorem antSim_readD_in (msk : SimMask) (_hmsk : msk ≤ mskB2) :
   have hgo2 : GlobalOk R (givenS S1 n.val rs.RequestCtx') net G := hgo1
   exact ⟨_, Prefix.snoc hp hgc hstep (violated_nil hb.1.1 hl hgo2), hrel, hgo2⟩
 
+/-! ## `kill`, the end of a batch -/
+
+/-- **A kill** over `AntSimD`: nothing the relation reads moves (`alive` is the harness's). -/
+theorem antSim_kill_in : antSim_kill_in.stmt := by
+  intro _ _ R dec S V net xnet _ n _ _ hs _ _
+  obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs
+  refine ⟨hsh, hb, hn, hxn, fun j => ?_⟩
+  unfold setV
+  by_cases hj : j = n
+  · subst hj; simp only [↓reduceIte]; exact hno j
+  · simp only [hj, ↓reduceIte]; exact hno j
+
+/-- A node part with nothing pending keeps under a change of its drain's `by`. -/
+theorem nodeOkD_byE {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (b : Str) (hp : v.pend = []) (h : NodeOkD R dec S net n v) : NodeOkD R dec S net n { v with byE := b } := by
+  obtain ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, -, -, rest⟩ := h
+  exact ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, fun _ q hq => by simp [hp] at hq,
+    fun _ _ q hq => by simp [hp] at hq, rest⟩
+
+/-- **The end of a sync batch** over `AntSimD`: between inputs, the next drain is the write's. -/
+theorem antSim_batchEnd_in : antSim_batchEnd_in.stmt := by
+  intro _ _ R dec S V net xnet n _ hs _ hI
+  obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs
+  refine ⟨hsh, hb, hn, hxn, fun j => ?_⟩
+  unfold setV
+  by_cases hj : j = n
+  · subst hj; simp only [↓reduceIte]; exact nodeOkD_byE _ hI.2.1 (hno j)
+  · simp only [hj, ↓reduceIte]; exact hno j
+
 end carryd
 
 end AntSim
