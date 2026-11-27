@@ -2,8 +2,8 @@
 # (#48). The roots are the Links of the raft package and of snapstore
 # (Dsverify/Proof/github_com/hashicorp/raft/{,examples/snapstore/}Link.lean, etc/gen-link.py --hraft,
 # --hraft-snapstore: every proof applied to its callees' results); later the kit's (hraftnet) and its
-# closed theorem `hraft_nocrash_robust`. The proofs that need `io.Copy`'s specs (installSnapshot's cone)
-# are not linked yet (`PENDING` in etc/dsv/tools/hraft-link.py).
+# closed theorem `hraft_nocrash_robust`. All 188 proofs are linked (`io.Copy`'s two specs by
+# Proof/io/Copy.lean, over Perennial's sync.Pool).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-hraft.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-hraft.txt --check    against the lines below
