@@ -990,7 +990,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   obtain ⟨⟨rr, hγ⟩, hdir, hmd, hsl, ⟨c, hfs⟩, hdR, hrR, hrne, hunder, hsd, hfit⟩ := hk
   have hS : ext = Sf := has.sem_eq.symm.trans Hf.sem_eq
   subst hS
-  obtain ⟨Sc, okc, hasc, fac, fsac, nec⟩ := c
+  obtain ⟨Sc, okc, hasc, nec⟩ := c
   have hSc : Sc = ext := hasc.sem_eq.symm.trans Hf.sem_eq
   subst hSc
   haveI := inj
@@ -1025,8 +1025,8 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     hrR hrne.symm (by rw [hsd]; exact isUnder_joinPath _ _) hunder $$ Hperms with ⟨Hcs, Hcw⟩
   icases osCallPerm_halve (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) _ $$ Hcw with ⟨Hcw1, Hcw2⟩
   -- the snapshot directory's claims at the new generation (D-T7-4)
-  have hfs' := backend.theFs_eq GF (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (S := Sc) (ok := okc)
-    (has := hasc) (fa := fac) (fsa := fsac) (ne := nec)
+  have hfs' := backend.theFs_eq GF (S := Sc) (ok := okc)
+    (has := hasc) (ne := nec)
   imod snapDir_split (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) R (config.snapDirOf cfg.DataDir') J V' 1 1 ⊤ (by simp) hfit
     $$ Hosi Hsh1 Hp Hcs HJ with ⟨Hslots, Hdbn, %q', %qc', Hp', Hcs', Hex⟩
   rw [← Qp.half_add_half q', ← Qp.half_add_half qc']
@@ -1036,7 +1036,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   ihave Hown : snap.snapDirOwn (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (snap.snapDBPath (config.snapDirOf cfg.DataDir')) $$
     [Hpa Hca Hex]
   · iunfold snap.snapDirOwn
-    rw [backend.onFs_some (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) hfs']
+    rw [backend.onFs_some hfs']
     iexists config.snapDirOf cfg.DataDir', R, J, q'.half, qc'.half, _
     isplitr; · ipureintro; rfl
     isplitr; · iexact Hosi
@@ -1075,7 +1075,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     (fun j => monoNatLbOwn γm (uint.nat j + 1)) (fun j => monoNatLbOwn γm (uint.nat j + 1)) hfs hfs' hV2 hJ hD
   have hslot : ∀ i, snapCrash.snapSlot (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') J V' i =
       snapCrash.snapSlotF (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') J V' i :=
-    fun i => backend.onFs_some (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) hfs' _
+    fun i => backend.onFs_some hfs' _
   have hkept : snapCrash.snapDirKept (hG := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩) R V' (config.snapDirOf cfg.DataDir') =
       snapCrash.snapDirKeptF (hG := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩) R V' (config.snapDirOf cfg.DataDir') :=
     backend.onFs_some hfs _
