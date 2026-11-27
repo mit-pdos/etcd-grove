@@ -4,7 +4,8 @@
 
 `bootstrap.spec` (claim #34's, `bootstrap.lean` beside this file) at the shape `etcd_safe`'s members boot in
 (`examples/etcd/dist`, `examples/lib/etcdstart`), with the other members' peer URLs on other machines:
-* every initial-cluster entry has one peer URL (`http://addr`), at most 64 entries;
+* every initial-cluster entry has one peer URL (`http://addr`), at most `etcd_dist.typed.maxMembers` (1000)
+  entries (until 2026-11-27, 64: the bound is the deployment's `MaxMembers`, `notes/axiom-review/bootstrap-dist.md`);
 * this member's advertised peer URLs are its entry's (`advertiseMatchesCluster` compares equal strings and
   resolves nothing), and it has one client URL;
 * a new cluster with no discovery (`bootCfgFresh`, in the precondition: `InitialClusterState=new`), a fresh WAL
@@ -30,6 +31,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S5Interim
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MaxMembers
 
 @[expose] public section
 
@@ -49,13 +51,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
 /-- **`bootstrap.spec` at `etcd_safe`'s deployment shape** (see the file header): one peer URL per
-initial-cluster entry, at most 64 entries, this member's peer URLs its entry's, one client URL, and the
+initial-cluster entry, at most `etcd_dist.typed.maxMembers` entries, this member's peer URLs its entry's, one client URL, and the
 round-tripper contract `bootRTOk` for the other members' peer URLs; otherwise `bootstrap.spec`'s premises,
 precondition and post. -/
 abbrev bootstrap.specDist [π : Net.NetProtoGS] : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat),
   -- the restriction: `etcd_safe`'s shape
-  (∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length = 1) → GMap.size U.initMap ≤ 64 →
+  (∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length = 1) → GMap.size U.initMap ≤ etcd_dist.typed.maxMembers →
   U.peer = U.initURLs cfg.Name' → U.client.length = 1 →
   -- `bootstrap.spec`'s premises
   cfg.UnsafeNoFsync' = false → bootGo.idRaftOk cfg U → bootGo.urlsNe U →

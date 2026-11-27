@@ -96,6 +96,7 @@ theorem NodeMain.wp_proof
     have hgn : w.goNodeCount = w.clients := by simp [Workload.goNodeCount, hk0]
     wp_start_folded as ⟨%Hp, Hlt, #Heps, Hsh⟩
     obtain ⟨hpure, hlen, hpl, hV, htb, hAs⟩ := Hp
+    unfold typed.maxMembers at hlen
     have hb := hpure.2.1
     rw [hgn] at hb
     wp_apply (hKv w c addr eps epsL) $$ [Hlt Hsh]
@@ -115,6 +116,7 @@ theorem NodeMain.wp_proof
       rcases hk12 with h | h <;> simp [Workload.goNodeCount, h]
     wp_start_folded as ⟨%Hp, Hlt, #Heps, Hsh⟩
     obtain ⟨hpure, hlen, hpl, hV, htb, hAs⟩ := Hp
+    unfold typed.maxMembers at hlen
     have hb := hpure.2.1
     rw [hgn] at hb
     wp_apply (hW w c addr eps epsL) $$ [Hlt Hsh]
@@ -130,6 +132,7 @@ theorem NodeMain.wp_proof
     rw [wlNodeShare_auth hk5]
     wp_start_folded as ⟨%Hp, Hlt, #Heps, Hsh⟩
     obtain ⟨hpure, hlen, hpl, hV, htb, hAs⟩ := Hp
+    unfold typed.maxMembers at hlen
     wp_apply (hA w c addr eps epsL) $$ [Hlt Hsh]
     · iframe #
       isplitr [Hlt Hsh]

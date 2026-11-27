@@ -79,6 +79,9 @@ the response) matches the model in 22 cases × 3 members.
   the model grants at least whatever Go grants. `kvShapeAll` matters only for a refusal's content, and the dist
   error arm claims nothing. Nesting adds more permissions but changes nothing here, because `checkRequestOp`
   still rejects empty keys at every depth.
+  **Correction (2026-11-27, `txnshape-narrowing.md`):** wrong. `kvShapeAll` matters for the shared KV state, not only
+  for a refusal's content: outside the shape Go refuses (the entry commits as a no-op) while the model grants, and
+  `writeAuD`'s update applies the request to the ghost KV state. The axiom now takes the premise.
 
 No spec defect found. Not tried: compaction or a snapshot between the nested txn's proposal and its apply (as
 for flat txns, the read state is the apply-time state, the same in both).

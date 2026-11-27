@@ -4,14 +4,14 @@ endpoints `eps`.
 - `NodeMain.spec` (F8, `notes/etcd-dist-plan.md` §27.3): **every arm**, from the client machine's share
   `wlNodeShare w c addr eps` (`client/Shares.lean`; its kv and writer arms at `Rotate(eps, c)`, its auth arm
   `authNodePre` at `eps`: F7 S13), its level token, and the pure facts the dispatch and the boot give (`wlPure w`: the client
-  count's bound; at most 64 endpoints; the endpoints plain; `nodeMachinePure`). kv: `kvremote.Node`; watch,
+  count's bound; at most `typed.maxMembers` endpoints; the endpoints plain; `nodeMachinePure`). kv: `kvremote.Node`; watch,
   cache: the writer (`NodeMainWatch.spec`); auth: the principal machine (`NodeMainAuth.spec`); the other kinds
   have no client machine (it returns).
 - `NodeMain.specKv` (M1): **the kv arm only**: of a `kv` workload, when `c` is one of its
   client machines and `eps` is not empty, `kvremote.Node(c, addr, Rotate(eps, c))`; otherwise it returns.
 Proved for any precondition `NP` of `Node`. `Rotate`'s index
 arithmetic needs `c + len(eps)` within `int`, for a `c` that passes the guard (`0 ≤ c < clients`): the
-premise (a well-formed deployment's client count is below `2 ^ 31`, its members at most 64).
+premise (a well-formed deployment's client count is below `2 ^ 31`, its members at most `typed.maxMembers`).
 Lean-first (no Rocq counterpart); N7-kv, M1 (`notes/etcd-dist-n7kv.md`).
 -/
 module
@@ -75,7 +75,7 @@ abbrev NodeMain.spec : Prop :=
   ∀ [π : NetProtoGS] [ρ : RemoteGS] (w : Workload) (c : w64) (addr : GoString) (eps : GoSlice)
     (epsL : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
-      ⌜wlPure w ∧ epsL.length ≤ 64 ∧ plainEndpoints epsL ∧ nodeMachinePure (GF := GF)⌝ ∗
+      ⌜wlPure w ∧ epsL.length ≤ typed.maxMembers ∧ plainEndpoints epsL ∧ nodeMachinePure (GF := GF)⌝ ∗
       levelTok 0 ∗ eps ↦*□ epsL ∗
       wlNodeShare (Gg := hG.goose_globalGS) w c addr epsL }}
     (App (App (App (App (Val (@! client.NodeMain)) (Val #w.val)) (Val #c)) (Val #addr)) (Val #eps))

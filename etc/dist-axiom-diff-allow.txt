@@ -99,7 +99,7 @@ dev Txn_Commit_dist.wp_proof <<< ( |||  >>> the parenthesis of the error arm's g
 
 pair bootstrap.wp_proof_dist Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapDist.lean bootstrap.specDist Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean bootstrap.spec
 dev bootstrap.wp_proof_dist <<<  ||| [ π : Net.NetProtoGS ] >>> the net extension's protocol ghost state (`bootRTOk`'s `httpAddrAt`)
-dev bootstrap.wp_proof_dist <<<  ||| ( ∀ k , ( U.initMap.lookup k ) .isSome → ( U.initURLs k ) .length = 1 ) → GMap.size U.initMap ≤ 64 → U.peer = U.initURLs cfg.Name' → U.client.length = 1 → >>> `etcd_safe`'s shape: one URL per entry, at most 64 entries, the peer URLs the map's, one client URL (more premises: a weaker axiom; `bootstrap.specDist_of_spec` proves the axiom from `bootstrap.spec`)
+dev bootstrap.wp_proof_dist <<<  ||| ( ∀ k , ( U.initMap.lookup k ) .isSome → ( U.initURLs k ) .length = 1 ) → GMap.size U.initMap ≤ etcd_dist.typed.maxMembers → U.peer = U.initURLs cfg.Name' → U.client.length = 1 → >>> `etcd_safe`'s shape: one URL per entry, at most `typed.maxMembers` (1000) entries, the peer URLs the map's, one client URL (more premises: a weaker axiom; `bootstrap.specDist_of_spec` proves the axiom from `bootstrap.spec`)
 dev bootstrap.wp_proof_dist <<<  ||| etcd_dist.bootRTOk ( hG := hG ) γ ( bootGo.id cfg U ) ( bootGo.dir U cfg.InitialClusterToken' ) ∗ >>> the round-tripper contract: the other members' peer addresses (`bootRTOk`; more precondition: a weaker axiom; review notes/axiom-review/bootstrap-dist.md)
 
 nosource Serve_dist.wp_proof `etcdstart.Serve.spec` is its in-process analogue, not its source: it consumes `etcdstart.memberUp` and serves the view's table `etcdSvc Γ mid` at `etcdAddrAt` (N2 review, notes/axiom-review/n2-kv-dist.md); nothing to compare token by token
@@ -286,9 +286,10 @@ dev KV_DeleteOn_dist.wp_proof <<< conn [ addr ] ∗ isGrpcRpcMd addr go!"/etcdse
 dev KV_DeleteOn_dist.wp_proof <<< ci ||| ctx >>> the context (renamed)
 dev KV_DeleteOn_dist.wp_proof <<<  ||| srvReqLogLb γR L₀ ∗ >>> the requested prefix `L₀` the caller holds (`clientOpAuOn`'s `srvReqLogLb`, at the cluster)
 dev KV_DeleteOn_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context and its description (renamed)
+dev KV_DeleteOn_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context and its description (renamed)
 dev KV_DeleteOn_dist.wp_proof <<< sl ||| opts_sl opts ∗ ⌜ ¬ opDeletePanics key opts ∧ ( opDeleteModel key opts ) .t = W64 3 ∧ ( deleteWireOf ( opDeleteModel key opts ) ) .base.rangeEnd ≠ >>> the options (renamed; `optsAt sl []` at any `opts`, see the binder line); the pure facts `client_delete_on` proves of `[]` (no panic, `t = 3`) and `etcdDeleteSpecOn`'s `rangeEnd ≠ [0]`, as premises
 dev KV_DeleteOn_dist.wp_proof <<<  ||| W8 0 >>> (the same: `rangeEnd ≠ [W8 0]`)
-dev KV_DeleteOn_dist.wp_proof <<<  ||| ∧ auth.reqShape key ( deleteWireOf ( opDeleteModel key opts ) ) .base.rangeEnd ⌝ >>> `etcdDeleteSpecOn`'s `auth.reqShape` (KVServiceOn.lean:106; `hk` at `[]`), a premise since 2026-11-27 (notes/axiom-review/onpairs-deleteon.md)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ∧ auth.reqShape key ( deleteWireOf ( opDeleteModel key opts ) ) .base.rangeEnd ∧ kvShapeAll ( irrDeleteRange ( deleteWireOf ( opDeleteModel key opts ) ) ) ⌝ >>> `etcdDeleteSpecOn`'s `auth.reqShape` (KVServiceOn.lean:106; `hk` at `[]`) and the shape on the wire request `kvShapeAll (irrDeleteRange …)`: premises since 2026-11-27 (`notes/axiom-review/onpairs-deleteon.md`, `txnshape-narrowing.md`; both kept: neither implies the other over arbitrary option transformers)
 dev KV_DeleteOn_dist.wp_proof <<<  ||| writeAuD Γ.kv >>> `□ clientOpAuOn T E ρ conn om` replaced by `writeAuD Γ.kv (principalOf cfg)` (persistent; its grant `opGrantD` at the principal)
 dev KV_DeleteOn_dist.wp_proof <<< □ clientOpAuOn T E ρ conn om ||| principalOf cfg ) >>> (the same: `writeAuD`'s principal)
 dev KV_DeleteOn_dist.wp_proof <<< txn.deleteOpOf ||| deleteWireOf ( opDeleteModel >>> the request `deleteWireOf (opDeleteModel key opts)` (at `opts = []` it is `txn.deleteOpOf key [] false`, `deleteWire_nil`)
@@ -296,7 +297,9 @@ dev KV_DeleteOn_dist.wp_proof <<< [ ] false ||| opts >>> (the same: the request 
 dev KV_DeleteOn_dist.wp_proof <<<  ||| ) L₀ >>> `writeAuD`'s prefix `L₀`
 dev KV_DeleteOn_dist.wp_proof <<< ∨ ||| ∗ ⌜ opSizeOk >>> no `writeOnce` arm: the update is persistent (`writeAuD`), as a write is resent after a token refresh; the theorem's `hsz` as the pre's `⌜opSizeOk …⌝`
 dev KV_DeleteOn_dist.wp_proof <<< writeOnce api [ addr ] ∗ clientOpAuOn T E ρ conn om ( .deleteRange ( txn.deleteOpOf ||| opDeleteModel >>> (the same: the `writeOnce` arm dropped; `opSizeOk`'s argument)
+dev KV_DeleteOn_dist.wp_proof <<< [ ] false ||| opts >>> (the same: the request at `opts`)
 dev KV_DeleteOn_dist.wp_proof <<< ) Q ) ) ||| ⌝ >>> the end of the `writeOnce` arm and `opSizeOk`'s `⌝`
+dev KV_DeleteOn_dist.wp_proof <<< ci ||| ctx >>> the context (renamed)
 dev KV_DeleteOn_dist.wp_proof <<< #sl ||| #opts_sl >>> the options' slice (renamed)
 dev KV_DeleteOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
 dev KV_DeleteOn_dist.wp_proof <<<  ||| ) ( σ : KVState ) >>> the post's state `σ` (the state of the log the request met, `kvStateOf x.log lt`; at auth on `kvModelOn`'s: `kvInvOn`)
@@ -307,6 +310,8 @@ dev KV_DeleteOn_dist.wp_proof <<< false |||  >>> (the same)
 dev KV_DeleteOn_dist.wp_proof <<< Q cid mid m ||| ∧ m.hdr.revision = W64 ( ( kvOpStep ( .deleteRange ( deleteWireOf ( opDeleteModel key opts ) ) ) σ ) .rev : Int ) ∧ kvRevFits ( σ.rev + 1 ) ∧ kvLogOk σ ∧ kvLogOk ( kvOpStep ( .deleteRange ( deleteWireOf ( opDeleteModel key opts ) ) ) σ ) ⌝ >>> (the same: the revision `kvOpStep`'s, `kvRevFits`, `kvLogOk` before and after, from `deleteReplied`'s `srvLogCert`)
 dev KV_DeleteOn_dist.wp_proof <<< ∃ md , clientAttemptMd conn om md ∗ v3rpc.writeGrantOn T E ρ ||| writeCheckedD eps Γ γR >>> the delete's grant at some attempt's token (`v3rpc.writeGrantOn`) replaced by the member's check (`writeCheckedD`: the member and the apply-time grant)
 dev KV_DeleteOn_dist.wp_proof <<< auth.mdTokenOf md ||| principalOf cfg >>> the principal (`cfg`'s, `outTokOk`) in place of the attempt's token
+dev KV_DeleteOn_dist.wp_proof <<< txn.deleteOpOf ||| deleteWireOf ( opDeleteModel >>> the request `deleteWireOf (opDeleteModel key opts)` (at `opts = []` it is `txn.deleteOpOf key [] false`, `deleteWire_nil`)
+dev KV_DeleteOn_dist.wp_proof <<< [ ] false ||| opts >>> (the same: the request at `opts`)
 dev KV_DeleteOn_dist.wp_proof <<<  ||| L₀ ) >>> `writeCheckedD`'s prefix `L₀`
 dev KV_DeleteOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
 dev KV_DeleteOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
@@ -445,20 +450,22 @@ dev Txn_CommitOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoin
 dev Txn_CommitOn_dist.wp_proof <<<  ||| , >>> the abbrev's ∀'s end
 dev Txn_CommitOn_dist.wp_proof <<< F ||| ∀ a b >>> no floor binder `F`; (F7 review F1) premise: the members' auth names distinct
 dev Txn_CommitOn_dist.wp_proof <<< mvcc.Log ||| w64 , Γ.au a = Γ.au b → a = b >>> (the same premise)
-dev Txn_CommitOn_dist.wp_proof <<< ( hin : txn.txnReadonly ( txnWireOf b.model ) ||| → Γ.auth >>> the theorem's hypothesis `hin` becomes the pre's `⌜txnModelIn …⌝` (below, unconditional: stronger pre); premises: auth on, the raft names the view's
-dev Txn_CommitOn_dist.wp_proof <<< txnModelIn ||| γR.raft.log = Γ.kv.rlog → outTokOk >>> `outTokOk`: the caller adds no token of its own
-dev Txn_CommitOn_dist.wp_proof <<< txnWireOf b.model ||| principalOf cfg >>> `outTokOk`'s principal
-dev Txn_CommitOn_dist.wp_proof <<< ) ( hsz : txnSizeOk ( txnWireOf b.model ) ) ( hsh : txn.txnReadonly ( txnWireOf b.model ) = false ||| om >>> the theorem's `hsz` becomes the pre's `⌜txnSizeOk …⌝`; its `hsh` (`kvShapeAll`) is not a premise: safe for the success post, a refusal's content only (`notes/axiom-review/f7-txn-nested-review.md`, "Noted"); `outTokOk`'s metadata
-dev Txn_CommitOn_dist.wp_proof <<< ∀ tw : txn.TxnModelW , tw.toModel = txnWireOf b.model → kvShapeAll ( irrTxn tw ) ) : |||  >>> (`hsh` as above)
-dev Txn_CommitOn_dist.wp_proof <<<  ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗ >>> the view's client, the metadata and the requested prefix (`userClientAt`, `metadata.outMD`, `srvReqLogLb γR L₀`)
-dev Txn_CommitOn_dist.wp_proof <<< tp [ addr ] ci cd ||| txn_ptr eps ctx ctx_desc >>> `txnObjAt` at the endpoints and the context (renamed)
-dev Txn_CommitOn_dist.wp_proof <<< metadata.outMD ci om ∗ |||  >>> `metadata.outMD` moved up (layout)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| → Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk >>> premises: auth on, the raft names the view's, `outTokOk` (the caller adds no token of its own); (2026-11-27 the token alignment moved with `hsh` now in the pre, `notes/axiom-review/txnshape-narrowing.md`)
+dev Txn_CommitOn_dist.wp_proof <<< hin : ||| principalOf cfg ) om → { { isPkgInit ( PROP := IProp GF ) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗ txnObjAt txn_ptr eps ctx ctx_desc b ∗ txnKvIs txn_ptr api ∗ ⌜ txnModelIn ( txnWireOf b.model ) ⌝ ∗ ( ( ⌜ >>> the theorem's hypothesis `hin` becomes the pre's `⌜txnModelIn …⌝` (unconditional: stronger pre); `outTokOk`'s principal and metadata; the pre's head: the view's client, the metadata, the requested prefix (`userClientAt`, `metadata.outMD`, `srvReqLogLb γR L₀`), `txnObjAt` at the endpoints and the context, `txnKvIs`; the start of `txnUpdAtOn`'s arms written out
+dev Txn_CommitOn_dist.wp_proof <<< → txnModelIn ||| ∧ txn.txnSerializable >>> `txnUpdAtOn`'s read-only arm: linearizable only (`txnSerializable = false`)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| = false ⌝ ∗ □ AU < { ∃∃ ( σ : KVState >>> (the same) and its update the `□ AU` over the cluster's KV state
+dev Txn_CommitOn_dist.wp_proof <<<  ||| , etcdKV Γ.kv σ } > @ >>> (the same: the AU's state)
+dev Txn_CommitOn_dist.wp_proof <<< hsz : txnSizeOk ||| ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV Γ.kv σ ∗ ⌜ kvRoom σ ⌝ , COMM □ Q σ } > ) ∨ >>> (the same: the AU's masks and post); the theorem's `hsz` moves to the pre's `⌜txnSizeOk …⌝` (below)
+dev Txn_CommitOn_dist.wp_proof <<< txnWireOf b.model ) ) ( hsh : ||| ⌜ >>> `txnUpdAtOn`'s write arm opens (`⌜…⌝`); the theorem's `hsh` moves into it (next lines)
+dev Txn_CommitOn_dist.wp_proof <<< → ||| ∧ ( txn.txnPlain ( txnWireOf b.model ) ∨ ( Γ.kv.lm = .revocable ∧ txnPlainL ( txnWireOf b.model ) ) ) ∧ txnNoZeroEnd ( txnWireOf b.model ) ∧ txnNestOk ( txnWireOf b.model ) ∧ >>> the write arm's condition (`client.txnUpdAtOn`'s: plain or leased at the revocable mode, `txnNoZeroEnd`, `txnNestOk`, F7 S5/S11), then `hsh` (`kvShapeAll (irrTxn tw)`) as its last conjunct, verbatim (since 2026-11-27, `txnshape-narrowing.md`)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ⌝ ∗ writeAuD Γ.kv ( principalOf cfg >>> the write arm's update `writeAuD Γ.kv (principalOf cfg)` (persistent; its grant `opGrantD` at the principal)
+dev Txn_CommitOn_dist.wp_proof <<< : { { isPkgInit |||  >>> the in-process theorem's Hoare-triple opening, matched later (layout of the token alignment)
+dev Txn_CommitOn_dist.wp_proof <<< PROP := IProp GF ) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ txnObjAt tp [ addr ] ci cd b ∗ metadata.outMD ci om ∗ txnKvIs tp api ∗ kvObjAtC api conn [ addr ] ∗ isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" ( etcdTxnSpecOn T E ρ γr cid mid ) ∗ committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ( □ txnUpdAtOn T E ρ conn om γr ||| .txn >>> `kvObjAtC`, the registration, `committedAtLeast`, the floor, the auth lower bound and `txnUpdAtOn` replaced by the view's client (`userClientAt`), and the update arms written out: the in-process service vocabulary has no dist counterpart (as before 2026-11-27; realigned)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ) L₀ >>> `writeAuD`'s requested prefix `L₀`
+dev Txn_CommitOn_dist.wp_proof <<< ∨ ( txnWriteOnce tp [ addr ] ||| ) ) >>> no `txnWriteOnce` arm (the read-only update is `□ AU`, the writing `writeAuD`, both persistent)
+dev Txn_CommitOn_dist.wp_proof <<< txnUpdAtOn T E ρ conn om γr ||| ⌜ txnSizeOk >>> the theorem's `hsz` as the pre's `⌜txnSizeOk …⌝`
+dev Txn_CommitOn_dist.wp_proof <<< Q ) ) ||| ⌝ >>> (the same) the pre's end
 dev Txn_CommitOn_dist.wp_proof <<< tp ||| txn_ptr >>> the builder (renamed)
-dev Txn_CommitOn_dist.wp_proof <<< kvObjAtC api conn [ addr ] ∗ isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" ( etcdTxnSpecOn T E ρ γr cid mid ) ∗ committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ( □ txnUpdAtOn T E ρ conn om γr ||| ⌜ txnModelIn >>> `kvObjAtC`, the registration, `committedAtLeast`, the floor and `authPubLbM` replaced by the view's client; `□ txnUpdAtOn …` replaced by the read-only arm's `□ AU` and the writing arm's `writeAuD` (below); `hin` as `⌜txnModelIn⌝`
-dev Txn_CommitOn_dist.wp_proof <<< Q ∨ ||| ⌝ ∗ >>> `txnUpdAtOn`'s arms written out (`client.txnUpdAtOn`'s condition, `txnNestOk`, F7 S5/S11)
-dev Txn_CommitOn_dist.wp_proof <<< txnWriteOnce tp [ addr ] ∗ txnUpdAtOn T E ρ conn om γr ||| ( ⌜ txn.txnReadonly >>> no `txnWriteOnce` arm (the read-only update is `□ AU`, the writing `writeAuD`, both persistent); `txnUpdAtOn`'s read-only arm
-dev Txn_CommitOn_dist.wp_proof <<<  ||| = true ∧ txn.txnSerializable ( txnWireOf b.model ) = false ⌝ ∗ □ AU < { ∃∃ ( σ : KVState ) , etcdKV Γ.kv σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV Γ.kv σ ∗ ⌜ kvRoom σ ⌝ , COMM □ Q σ } > ) ∨ ( ⌜ txn.txnReadonly ( txnWireOf b.model ) = false ∧ ( txn.txnPlain ( txnWireOf b.model ) ∨ ( Γ.kv.lm = .revocable ∧ txnPlainL ( txnWireOf b.model ) ) ) ∧ txnNoZeroEnd ( txnWireOf b.model ) ∧ txnNestOk ( txnWireOf b.model ) ⌝ ∗ writeAuD Γ.kv ( principalOf cfg ) ( .txn ( txnWireOf b.model ) ) L₀ >>> `txnUpdAtOn` unfolded at the view: linearizable read-only `□ AU`, or a writing transaction's `writeAuD` at the principal (F7 S5 widening, S11 nesting; reviewed `f7-txn-review.md`, `f7-txn-nested-review.md`)
-dev Txn_CommitOn_dist.wp_proof <<<  ||| ∗ ⌜ txnSizeOk ( txnWireOf b.model ) ⌝ >>> the theorem's `hsz` as the pre's `⌜txnSizeOk …⌝`
 dev Txn_CommitOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
 dev Txn_CommitOn_dist.wp_proof <<<  ||| ) ( σ : KVState ) >>> the post's state `σ`: `txnReplied`'s (the log the transaction met, at auth on `kvModelOn`'s: `kvInvOn`)
 dev Txn_CommitOn_dist.wp_proof <<< txnReplied E ρ.rd γr c F ||| ( if txn.txnReadonly >>> `txnReplied E ρ.rd γr c F …` replaced by what it gives (`txnAns_st`'s argument, mode-agnostic): `Q σ` (`□` read-only), …

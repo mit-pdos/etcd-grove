@@ -3,14 +3,15 @@
 shape facts `Txn_CommitOn_dist`'s widened write arm asks of `Txn().Then(OpPut(k, "v", WithLease(L)))`
 (writing, fits a gRPC message, leased: `txnPlainL`, no zero range end), and `OpPut(k, "v", WithLease(L))`'s
 transaction operation. Ports of authlease `run.lean`'s `leaseTxn_ok`/`txnOpOf_leasePut` (a proof module) into a
-defs module, without the single-process contract's `kvShapeAll`/`txnNestOk`, which the dist contract does not
-ask. Lean-first (no Rocq counterpart).
+defs module; `leaseTxnD_shape` the `kvShapeAll` the write arm asks since 2026-11-27
+(`notes/axiom-review/txnshape-narrowing.md`). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRefusals
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
 
 @[expose] public section
 
@@ -46,6 +47,18 @@ theorem leaseTxnD_ok (k : GoString) (L : w64) (hkl : k.length ≤ 2 ^ 20) :
   · simp [txnPlainL, txn.txnLeased, leaseTxn, txnWireOf, opWire, txn.opsLeased, txn.opLeased]
   · refine ⟨by simp [leaseTxn, txnWireOf], ?_, by simp [leaseTxn, txnWireOf, txnOpsNoZeroEnd]⟩
     simp [leaseTxn, txnWireOf, opWire, txnOpsNoZeroEnd, txnOpNoZeroEnd]
+
+/-- **u's leased transaction's permissions have the shape the cache decides** (`Txn_CommitOn_dist`'s
+write arm): the one put's, on its non-empty key. -/
+theorem leaseTxnD_shape (k : GoString) (L : w64) (hk : k ≠ []) :
+    ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf (leaseTxn k L) → kvShapeAll (irrTxn tw) := by
+  intro tw htw
+  refine etcd_auth.kvShapeAll_irrTxn tw (by rw [htw]; simp [leaseTxn, txnWireOf]) ?_
+  rw [htw]
+  intro op hop
+  simp [leaseTxn, txnWireOf, opWire] at hop
+  subst hop
+  exact hk
 
 /-- `OpPut(k, "v", WithLease(L))`'s transaction operation. -/
 theorem txnOpOf_leasePutD (k : GoString) (L : w64) :
