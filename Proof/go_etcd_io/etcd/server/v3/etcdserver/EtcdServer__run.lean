@@ -527,7 +527,7 @@ ghost log (`hwin`). After, Go is past the window (`applyResR … A'`). -/
 theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
-    (γn : RNNames GF) (rt : w64) (K : AuthC) (hM : C.E.authMode = K.mode)
+    (γn : RNNames GF) (rt : w64) {S2 : IProp GF} (K : AuthC) (hM : C.E.authMode = K.mode)
     (ha00 : uint.nat C.ai₀ = 0) (hc0 : uint.Z C.c₀ ≤ uint.Z C.ai₀) (hpre : γn.pre = [])
     (hγn : γn.node = C.γr.raft.raft) (hρ : C.ρ.raft = C.γr.raft)
     (hpr : C.γr.raft.pre = γn.pre) (hγs : C.γs = γn.γs) (hγw : C.γw = C.ρ.wait)
@@ -546,7 +546,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
           snapshotCert γn.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
           nodeSnapLocal γn.node.cl γn.id sv.Metadata'.Index')) ∗
         taNotifycAddr apL ↦□ nc ∗
-        isNotify2 γnc nc iprop(∃ j m, walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
+        isNotify2 γnc nc iprop(∃ j m, walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) S2 ∗
         notifyRcvN γnc 0 ∗
         taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (letI := srvStor (GF := GF) γn.node
@@ -645,7 +645,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     icases HbootField with ⟨%p, Hpt, -⟩; iexists p; iexact Hpt
   have hS := hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x
     (ghostOf rp A) C.ms C.γs C.wt γnc w γn.id γn.key (1 : Qp).half γn rt (rnLogOf γn A').length sa
-    g r0 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia Hloop.1 hids hraft (by rw [Hkc.1, hc00])
+    g r0 S2 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia Hloop.1 hids hraft (by rw [Hkc.1, hc00])
     (by rw [hon]; exact hch) Hlog0 hγn hn (by rw [← hn]; have := ghostOf_length rp A; omega) (by rw [← hγn]; exact hns)
   rw [hon] at hS
   have hlenCursor : (rnLogOf γn A').length = A'.length := by simp [rnLogOf, hpre]

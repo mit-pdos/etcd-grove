@@ -8434,3 +8434,18 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   no axiom states either spec (`/shared/tmp/t10s3b-chk/AxCheck6.lean`); `RNNames`, `rnLoopTok`, `rnLoopTokP` and
   `rnWorkerStartTok` are reached by `NewServer_dist` (and `RNNames` by `NewPeerHandler_dist`, `Serve_dist`,
   `PeerServe_dist`): `notes/etcd-dist-d6.md`, "Option (a): axiom meaning changes".
+## 2026-11-27: `EtcdServer.applyAll.specSnapM`: `notifyc`'s second deposit generalized (T10s3b B5 step 1; draft under option (a))
+
+- **Spec.** `EtcdServer.applyAll.specSnapM` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`).
+- **Defect.** Its precondition fixes the snapshot payload's two-receive notify at `isNotify2 γnc nc (walSnapRec …)
+  True`: the second send deposits nothing. B5's keep case (a snapshot the backend already covers, `k ≤ ciEff`) needs
+  the payload's replay job at `applyAll`'s own receive (its merge's window branch, `mergedCreate_window_replay`), and
+  the job is made at raft's *enter*, after the `applyc` send: only a `notifyc` deposit can carry it, so `rnApSnap`'s
+  second deposit becomes `rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length`. With `True` fixed in
+  the spec, the run cannot hand `specSnapM` that payload's notify.
+- **Evidence.** `notes/etcd-dist-d6.md`, "T10 step 3 (B), session 8" (B5 step 1); T4 round 4's item 1.
+- **Proposed change.** The second deposit a parameter `S2 : IProp GF` of `specSnapM` (∀-bound; the proof never
+  uses it: `wp_notify2_receive2`'s deposit is dropped). A weaker premise, the post unchanged.
+- **Decision.** Under the user's B5 approval for this draft (option (a), 2026-11-27); no axiom states `specSnapM`
+  (`/shared/tmp/t10s3b-chk/AxCheck6.lean`); `rnApSnap` is reached by `NewServer_dist`: `notes/etcd-dist-d6.md`,
+  "Option (a): axiom meaning changes".

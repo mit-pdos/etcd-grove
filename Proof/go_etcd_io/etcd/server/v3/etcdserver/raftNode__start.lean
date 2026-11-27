@@ -487,12 +487,6 @@ theorem raftNode.start.wp_proof
         -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
         · ipureintro; decide
-        -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
-        -- snapshot's index, from its `SaveSnap` (`rnApSnap`'s)
-        imod start_notify2 (iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗
-            ⌜m.Index' = l.snap.Metadata'.Index'⌝)) iprop(True) nc γnc0
-          (by rw [Hncap]; rfl) $$ Hncch Hncown with
-          ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
         · ipureintro; decide
         -- its close carries the node's applied index at the snapshot's and the frozen dummy entry
@@ -535,6 +529,13 @@ theorem raftNode.start.wp_proof
         wp_apply rnReplayHist.appendEntriesP γ slice.nil rd.Entries' Sb _ esL es Horder
           (fun _ _ h => False.elim (Nat.not_lt_of_ge ha h)) wp_EntryIndex wp_EntryTerm
           $$ [$Hpkg $Hempty $Hes $Hesa] as %next #Hnext
+        -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
+        -- snapshot's index, from its `SaveSnap` (`rnApSnap`'s); (T10s3b B5) the second's, the payload's
+        -- replay job over the view `next` (made at the *enter*), so allocated once `next` is known
+        imod start_notify2 (iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗
+            ⌜m.Index' = l.snap.Metadata'.Index'⌝)) (rnReplayJob γ next rt' (rnLogOf γ A').length) nc γnc0
+          (by rw [Hncap]; rfl) $$ Hncch Hncown with
+          ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
         ihave %hce0 : ⌜ceL.length = 0⌝ $$ []
         · iunfold entriesAt at Hcea; icases Hcea with ⟨%h, -⟩; ipureintro; exact h
         ihave %hlen := ownSlice_len rd.CommittedEntries' _ ceL $$ Hce
@@ -794,7 +795,7 @@ theorem raftNode.start.wp_proof
             icases Hcl2 with ⟨#H, -⟩
             rw [← HEnR]; iexact H
           imod rnDurK_leadLaw γ E.γr.raft HEnR γ.walK γ.wal.h _ $$ [$Hdur $Hnc $Hlc3 $Hwv $Hrok $HisClS $HRL]
-            with ⟨Hnc, Hwv, -, %Hwf'⟩
+            with ⟨Hnc, Hwv, #Hlaw, %Hwf'⟩
           have hbS : ∀ first, es.head? = some first → uint.Z Sb.base.index' < uint.Z first.index := by
             intro first hf
             have hf' : (es.map EntryModel.toM)[0]? = some first.toM := by
@@ -811,6 +812,19 @@ theorem raftNode.start.wp_proof
           have hBatch := replayBatchP_next Sb S' p'.Term' p'.Vote' p'.Commit' es (rnLogOf γ A').length
             (by rw [HSeq, hSb]; rfl) (by rw [HSeq, hSb]; rfl) (Horder.imp fun h => h.2) hbS Hwf'
           ihave #Hhist := rnReplayHistP.elim γ next _ _ S' hBatch $$ Hnext
+          -- (T10s3b B5) the payload's replay job, for `notifyc`'s second send
+          have hb0 : uint.nat S'.base.index' ≤ (rnLogOf γ A').length := by
+            have hsb : S'.base = Sb.base := by rw [HSeq, hSb]; rfl
+            rw [hsb, hSb]
+            simp only [rnLogOf, List.length_map, hlenA]
+            word
+          have hrtE : S'.term = rt' ∨ uint.Z rt' = 0 := by
+            rcases Hrt' with h | h
+            · right; exact h
+            · left; rw [h, HSeq]; rfl
+          ihave #HlawS := (show rnLeadLaw (GF := GF) γ (durOf (_, none)) ⊢ rnLeadLaw γ S' from .rfl) $$ Hlaw
+          ihave #Hjob := rnReplayJob_of_lead γ next S' rt' (rnLogOf γ A').length hb0 hrtE
+            $$ Hhist Hrok HlawS
           ihave Hwv : rnWalView γ _ $$ [Hwv]
           · iunfold rnWalView; iexact Hwv
           imodintro
@@ -1003,7 +1017,7 @@ theorem raftNode.start.wp_proof
             imod rnRawMsgs_sent E γ qms r' $$ Henv Hraw Hsent with Hmsok
             wp_apply wp_processMessages E γ r _ (qms.map QMsg.loc) $$ [$Hpkg $Hr $Hmsl $Hmsok] as %out
               ⟨%outL, Hout, Houtok⟩
-            wp_apply wp_notify2_send2 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
+            wp_apply wp_notify2_send2 γnc nc _ _ $$ [$Hncb $Hnsnd $Hjob] as Hnsnd
             cases cc
             · wp_auto
               wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
@@ -1062,7 +1076,7 @@ theorem raftNode.start.wp_proof
             · exfalso; simp [ccIn] at Hcc
           · -- the leader: `notifyc <- struct{}{}`
             wp_auto
-            wp_apply wp_notify2_send2 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
+            wp_apply wp_notify2_send2 γnc nc _ _ $$ [$Hncb $Hnsnd $Hjob] as Hnsnd
             cases cc
             · wp_auto
               rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]

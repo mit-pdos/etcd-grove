@@ -3373,8 +3373,12 @@ did for the changes so far (the dist proofs build unchanged).
 | `NewServer_dist` (`… → rnLoopTok`, `rnLoopTokP`) | `rnLoopTok`, `rnLoopTokP` (B3 part 2, done) | the driver at some durable state `S` (`∃ S` inside `rnLoopTokP`) | `rnLoopTokP γ L p b S` takes `S`; `rnLoopTok` starts the driver at `γ.s0` | As the Go code: `bootstrap` reads the WAL, `RestartNode` restores raft's durable state from it (`RaftState.init` at `StartNode`), and the loop's first `Ready` comes from that state; `rnToks_of_start`/`_of_restart` prove it at both boots. |
 | `NewServer_dist` (`… → rnWorkerStartTok`) | `rnWorkerStartTok` (B3 part 2, done) | the seed `rnReplayState γ terms γ.snap0` (`replayPending`: the backend's last term) | `rnReplayHist γ terms γ.s0 γ.snap0` (`replayPending` and the runs describe `γ.s0` above `snap0`) | Stronger and true of the Go: `initialReplayTerms` is `replayTermsFromStorage` of the WAL's entries above its snapshot, which are `γ.s0`'s (`StorageHolds`), so every term `γ.s0` has there is in the runs (`replaySeed_history`; fresh: no entries, `replayHistoryMatches_init`). |
 
-No axiom reaches `EtcdServer.applyAll.spec*`, `taReplayField`, `taReplayBatch`, `raftNode.onStop.spec`, `rnReplayHist`
-or `rnLeadLaw` (condition (1) holds for the `Spec/` files B3 changed).
+| `NewServer_dist` (`… → rnWorkerStartTok → rnReplayHist`; found by session 8's rerun, `out6b.txt`) | `rnReplayHist` (B3 part 2) | not reached | reached through `rnWorkerStartTok`'s seed | the seed's row above: the runs describe `γ.s0` above `snap0`, true of `initialReplayTerms` (`replaySeed_history`) |
+| `NewServer_dist` (`… → rnApP → rnApSnap`) | `rnApSnap` (B5 step 1, session 8; built only up to `InvRaftLoop`) | `notifyc`'s second send deposits `True` | it deposits `rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length` | As the Go: raft.go sends `ap` on `applyc` before the WAL `Save`, and `notifyc` twice after it; `applyAll` reads `apply.replayTerms` only after its own `<-apply.notifyc` (the merge). The terms and raft term are fixed in `ap` at the send; only the evidence moves to the second send (the job is made at the *enter*, `rnReplayJob_of_lead`). Same channel, counts and first deposit. |
+
+No axiom reaches `EtcdServer.applyAll.spec*`, `taReplayField`, `taReplayBatch`, `raftNode.onStop.spec` or `rnLeadLaw`
+(condition (1) holds for the `Spec/` files B3 and B5 changed). (Until session 8 this line also named `rnReplayHist`:
+wrong since session 6, which put it in `rnWorkerStartTok`; the session-8 rerun found it, row above.)
 
 **Handoff T10s3b-5.** Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed), tree `/shared/etcd-grove-t10s3b` (switched to
 it), manifest and Perennial as Handoff T10s3b-1. Head built green (log `/shared/tmp/t10s3b-s5-b4.log`), so the next
@@ -3486,6 +3490,51 @@ Perennial as Handoff T10s3b-1. Next, in order: (1) rebuild `Proof.go_etcd_io.etc
 definition an axiom reaches changed this session (only `raftNode__start.lean`'s proof), so no new table row is
 expected; (3) B5, B6, B7 with their rows; B8 as in Handoff T10s3b-5. No axiom statement, `sorry`, premise, trusted
 text or `Spec/` file changed this session.
+
+### T10 step 3 (B), session 8 (2026-11-27, branch `etcd-safe-t10s3b-a/2026-11-27`; draft under option (a))
+
+**Step 1 done: `raftNode__start`, `NewServerCrash` and the server's `Link` green** (commit `156b46619f`, 10085 jobs,
+log `/shared/tmp/t10s3b-s8-b4.log`). `iexact` refused `durOf (v, none)` against `S'`; the fix is an entailment by
+`.rfl`: `ihave #HlawS := (show rnLeadLaw γ (durOf (⟨S', …⟩, none)) ⊢ rnLeadLaw γ S' from .rfl) $$ Hlaw`. The two other
+errors of the first build (`:1747`, `:1791`, the confChange scan) were error-recovery fallout of that one.
+
+**Step 2 (the unfolding check): partial.** The 54 modules' build was mis-invoked (target `Proof.`; the list is now
+`/shared/tmp/t10s3b-chk/mods.txt`), so `AxCheck6` ran on the oleans as they were (server green at `156b46619f`; the dist
+modules possibly older): `/shared/tmp/t10s3b-chk/out6b.txt` = `out6.txt` plus `NewServer_dist → rnReplayHist`
+(through `rnWorkerStartTok`'s seed, session 6's change: the table's closing sentence wrongly excluded it; row added).
+Rerun it properly after B5 step 1 builds.
+
+**B5 step 1 (the snapshot payload's replay job), written, not green.** Ledger entry 2026-11-27 "`applyAll.specSnapM`:
+`notifyc`'s second deposit generalized".
+* `rnApSnap` (`InvRaftNode.lean`): the second deposit `True` → `rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ
+  A').length` (table row above).
+* `raftNode__start.lean`, snapshot arm: `start_notify2` moved after `%next` (the view `nil.appendEntries(rd.Entries)`),
+  `S2 := rnReplayJob γ next rt' (rnLogOf γ A').length`; at the *enter* `rnDurK_leadLaw`'s law kept (`#Hlaw`), then
+  `hb0` (`S'.base = Sb.base`, the snapshot index `= (rnLogOf γ A').length`), `hrtE`, `HlawS` (the `.rfl` entailment),
+  `#Hjob := rnReplayJob_of_lead …`; both `wp_notify2_send2` take `$Hjob`.
+* `Spec/…/EtcdServer__applyAll.lean`, `specSnapM`: a new last quantifier `(S2 : IProp GF)`, the notify `isNotify2 … S2`
+  (was `True`); `ApplyAllSnap.lean`'s `intro` takes `S2`; `EtcdServer__run.lean`'s `run_job_snapC` an implicit
+  `{S2}` passed to `hAA`.
+* Build (`/shared/tmp/t10s3b-s8-b6.log`): first error `InvRaftLoop.lean:143` (`rnApplyTok_recv`'s snapshot case: its
+  statement spelled the old `True`). **Fixed after the build, not rebuilt**: `:122` now states the job. Nothing after
+  `InvRaftLoop` in that cone was compiled.
+
+**B5 step 2 (next after step 1 is green): `applyAll.specKeep`.** The keep case `ai < k ≤ ciEff γ st.k ≤ g` (Go's
+`applySnapshot` guard keeps the backend: `applySnapshot.specKeep`, proved); the tail is the batch's at `ms = []`
+(`Trigger(k)`, `<-notifyc` twice, `raftAdvancedC`, `snapshotIfNeeded…` `specNoop`, the `msgSnapC` merge through
+`mergedCreate_window_replay` with the job from the second receive: `wp_notify2_receive2`'s deposit, now the job). Then
+the run's keep arm (`EtcdServer__run.lean` ~`:1327`, `hwin`'s other case: inside the window the ghost log stays `A₀`,
+`ghostOf_in`) over it; then B6 (note: the snapshot arm's `rnReplayHist.empty` takes `ha : |a0| ≤ (rnLogOf γ A').length`
+from A8's bound `Hbwa`, which B6 drops: `.empty` needs another premise or the history a form without it), B7, B8.
+
+**Handoff T10s3b-8.** Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed), tree `/shared/etcd-grove-t10s3b`, manifest and
+Perennial as Handoff T10s3b-1. Next, in order: (1) rebuild `Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerCrash`
+and `…Link` (B5 step 1; first expected trouble after `InvRaftLoop`: the run's snapshot arm and `raftNode__start`'s
+snapshot arm, new code untested: `hb0`'s `simp only [rnLogOf, List.length_map, hlenA]; word`, `HlawS`'s `durOf (_,
+none)`); (2) build the 54 modules (`lake build --packages=… $(cat /shared/tmp/t10s3b-chk/mods.txt)`) and rerun
+`AxCheck6.lean` (expect `out6b.txt`'s hits); (3) B5 step 2 as above (a `Spec/` change: ledger first), then B6, B7, B8
+as in Handoff T10s3b-5. No axiom statement, `sorry`, premise or trusted text changed; `Spec/` changed: `specSnapM` (B5,
+ledger first).
 
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 

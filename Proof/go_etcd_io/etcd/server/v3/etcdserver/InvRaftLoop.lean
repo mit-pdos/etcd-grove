@@ -119,7 +119,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
         nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗
         □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc'
-          iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗ notifyRcvN γnc 0) ∗
+          iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝)
+          (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length) ∗ notifyRcvN γnc 0) ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
            iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗

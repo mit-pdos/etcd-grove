@@ -200,7 +200,9 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
     (sa : auth.AuthState)
     -- (R2d'a task 4; the swap, 2026-11-06) the ghost applied index `g` (Go's `ai` at most it) and the rest
     -- buckets' image `r0`
-    (g : w64) (r0 : apply.RestM),
+    (g : w64) (r0 : apply.RestM)
+    -- (T10s3b B5, 2026-11-27) `notifyc`'s second deposit (raft's: the payload's replay job), unused here
+    (S2 : IProp GF),
   -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`)
   E.authMode ≠ .any →
   -- the snapshot past the applied index, below `2^61`, at least the boot log
@@ -238,7 +240,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
       -- snapshot's index (`rnApSnap`'s)
       taNotifycAddr ap ↦□ nc ∗
-      isNotify2 γnc nc iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
+      isNotify2 γnc nc iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) S2 ∗
       notifyRcvN γnc 0 ∗
       taRaftAdvancedCAddr ap ↦□ rac ∗
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft

@@ -2545,7 +2545,9 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp G
     -- starting at or above the snapshot's index (what `applySnapshot`'s `Release` takes)
     (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc'
       iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝)
-      iprop(True) ∗ notifyRcvN γnc 0) ∗
+      -- (T10s3b B5) the second send deposits the payload's replay job (made at the *enter*, after the
+      -- `applyc` send: `rnReplayJob_of_lead`), taken by `applyAll`'s own receive (its merge)
+      (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length) ∗ notifyRcvN γnc 0) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
     rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)
