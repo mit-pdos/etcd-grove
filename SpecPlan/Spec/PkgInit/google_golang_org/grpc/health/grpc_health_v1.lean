@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Proof.context.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc
 
