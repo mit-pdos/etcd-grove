@@ -381,6 +381,12 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     iframe Hlt Hobj Htwo Hau
     iframe #
 
+/-- **The in-process client's laws, as a law** (`inProcEtcd_laws` over the linked specs; proved by
+`inProcEtcd_laws_law_holds`, `InProcLinked.lean`), for the drivers' proofs to take as a callee. -/
+abbrev inProcEtcd_laws.law : Prop :=
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (ms : List (client.SrvAt GF)) (V : client.WEnv GF), (inProcEtcd ms V).Laws
+
 /-- **The in-process client** from `New`'s client of the members (`isStore`'s former conjuncts). -/
 theorem k8sClient_inProc [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (hl : (inProcEtcd ms V).Laws) (cl : Loc) :

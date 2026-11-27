@@ -724,6 +724,8 @@ EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# K5: the in-process client's laws (`=k8s.inProcEtcd_laws_law_holds`, newStore)
+EXTRA_IMPORTS["--k8setcd3"] += ["Proof.k8s_io.apiserver.pkg.storage.etcd3.InProcLinked"]
 # (#26, 2026-11-24) `bytes.Buffer`'s `Write` and `Bytes` proved over Perennial's (`=_root_.Perennial.bytes.*`)
 EXTRA_IMPORTS["--k8setcd3"] += ["Perennial.Proof.bytes.Link"]
 EXTRA_IMPORTS["--server"] += ["Proof.bytes.BufferLinked"]
