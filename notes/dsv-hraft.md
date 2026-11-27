@@ -128,4 +128,11 @@ The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift 
     `err` needs it; (3) `io.Copy_Discard.spec`'s `w` is any value `Discard` holds: Perennial's `io` fact
     (`io.isInit`, `"#HDiscard"`) says only that `Discard` holds some fixed `Writer`, not `discard{}`, and
     says nothing of `blackHolePool`, which `discard.ReadFrom` takes its buffer from: proving it needs that
-    fact strengthened in Perennial (its initializer stores `discard{}`; mechanical). Left to the link (P5).
+    fact strengthened in Perennial (its initializer stores `discard{}`; mechanical). **Settled** (branch
+    `hraft-iocopy/2026-11-27`, ledger 2026-11-27): the spec takes (1) and (2) (`io.streamReader`'s post has
+    `io.ptrTyped err`; `InstallBase`'s `eof_ptrTyped` gives it for `streamReaderOk`'s `nil`/`io.EOF`), and
+    `streamReader`/`streamWriter` are in `streamReaderOk`'s WP form over the resolved call (`methods ty m v`);
+    for (3) Perennial `148615524` translates `discard.ReadFrom` and its `io.isInit` gains `"#HDiscardV"`
+    (`discard{}`) and `"#HblackHolePool"` (proved). Proved in `Proof/io/Copy.lean`: `io.Copy.wp_proof`, and
+    `io.Copy_Discard.wp_proof wp_Get wp_Put` (callees `sync.Pool.Get.spec`/`Put.spec`, Perennial's
+    `sync.Pool.wp_Get`/`wp_Put`): P5's `Link.lean` passes these, no axiom.
