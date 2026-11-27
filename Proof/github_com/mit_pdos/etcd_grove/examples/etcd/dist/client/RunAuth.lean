@@ -19,10 +19,10 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.newU
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.barriers
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUpDist
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CheckHistory
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.LastIn
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Permitted
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUpDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.CheckHistory
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.LastIn
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Permitted
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchOnDist
 public import Spec.go_etcd_io.etcd.client.v3.WithPrefix
@@ -36,8 +36,8 @@ public import Spec.context.ErrAny
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRunLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthRunDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.RootWatch
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.RootWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCalls
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
@@ -178,7 +178,7 @@ theorem RunAuth.wp_proof
   · iframe #
   (try wp_auto)
   -- `auth.SetUp(cli)` through `a0`, the set-up puts under the history invariant
-  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth $$ []
+  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork $$ []
   · iPkgInit
   ihave ⟨%api0, #Huc0⟩ := userClientAt_of_userCli cl a0 V cfg0 Γ $$ [Hu0 Hm0']
   · iframe #

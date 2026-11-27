@@ -15,7 +15,6 @@ axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom addrClaim
 axiom addrUnclaimed
 axiom backend.newBoltLoggerZap.wp_proof

@@ -1,5 +1,5 @@
 /-
-`newUserClient(addr, name, pw, lg)` (`examples/etcd/auth/authkv.go`; `notes/authkv-main-plan.md`, S3):
+`newUserClient(addr, name, pw, lg)` (`examples/lib/authwork/authkv.go`; `notes/authkv-main-plan.md`, S3):
 a client of the address `addr` (authkv's client address, or auth3's first member's: `Run`'s, since
 the auth3 Scope's Q6) that authenticates as `name` with the password `pw`. Lean-first (no Rocq counterpart).
 

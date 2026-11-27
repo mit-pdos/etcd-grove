@@ -9,7 +9,7 @@ operation with the caller's atomic update, as the closure in linkvtxn's `Check` 
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Apply
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Apply
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section

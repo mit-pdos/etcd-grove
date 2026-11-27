@@ -41,7 +41,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchDist
 public import Proof.go_etcd_io.etcd.client.v3.KMWatchDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWkKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WritesKM
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WritesF
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.CollectPlan

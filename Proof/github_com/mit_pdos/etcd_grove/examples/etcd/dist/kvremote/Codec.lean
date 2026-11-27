@@ -13,7 +13,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.En
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.DecInput
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.EncOutput
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.DecOutput
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.IsWrite
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.IsWrite
 
 @[expose] public section
 
@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 open github_com.mit_pdos.etcd_grove.examples.lib.remote
 open EtcdGrove EtcdGrove.etcd_txnlin
 open EtcdGrove EtcdGrove.etcd_txnlin
@@ -48,7 +48,7 @@ theorem Codec.wp_proof (wp_EncInput : EncInput.spec (GF := GF) (hG := hG))
     Codec.spec (GF := GF) (hG := hG) := by
   intro γk
   wp_start
-  ihave #Ptx : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin $$ []
+  ihave #Ptx : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork $$ []
   · iPkgInit
   wp_auto
   wp_func_lits
@@ -92,7 +92,7 @@ theorem Codec.wp_proof (wp_EncInput : EncInput.spec (GF := GF) (hG := hG))
     ihave %Hlen := ownSlice_len _ _ _ $$ Hb
     try wp_auto
     iapply HΦ'
-    rw [kvEncOut_boxOut (package_sem := package_sem.import_txnlin_Assumption),
+    rw [kvEncOut_boxOut (package_sem := package_sem.import_txnwork_Assumption),
       outEnc_eq _ (by obtain ⟨h1, h2⟩ := Hlen; word)]
     iexact Hb
   isplitr
@@ -103,7 +103,7 @@ theorem Codec.wp_proof (wp_EncInput : EncInput.spec (GF := GF) (hG := hG))
       · exact ⟨_, h⟩
       · exact ⟨_, h⟩
     iintro !> %Φ' Hb HΦ'
-    rw [kvEncOut_boxOut (package_sem := package_sem.import_txnlin_Assumption)]
+    rw [kvEncOut_boxOut (package_sem := package_sem.import_txnwork_Assumption)]
     wp_auto
     wp_apply wp_DecOutput b (outEnc y) dq $$ [Hb] as %y' %ok %Hok
     · iexact Hb

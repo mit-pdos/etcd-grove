@@ -1,7 +1,7 @@
 /-
 `metadata.NewOutgoingContext(ctx, md)` (grpc-go, assumed: `metadata/metadata.go`).
 
-Users: the client's `WithRequireLeader`, `withVersion` (W0, 1c), `examples/etcd/auth/authkv.go`.
+Users: the client's `WithRequireLeader`, `withVersion` (W0, 1c), `examples/lib/authwork/authkv.go`.
 
 Why true: it returns `context.WithValue(ctx, mdOutgoingKey{}, rawMD{md: md})`, keeping the map (not
 copied: the caller must not write it afterwards, hence the read-only `mdAt`).

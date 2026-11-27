@@ -9212,3 +9212,19 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   retryApplyOk`). No top-level statement changes.
 - **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
   independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
+## 2026-11-27: grpc health `HealthCheckResponse_ServingStatus.String.spec` takes its package's `isPkgInit` (prove-healthstr)
+
+- **Spec.** `grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec`
+  (`Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`), until now the
+  trust-boundary axiom `….String.wp_proof` with precondition `True`.
+- **Defect.** None of Go: the axiom is replaced by a proof over goose's translation of the grpc model's method
+  (`models/grpc/health/grpc_health_v1/health.pb.go`, a `MODEL:` switch in place of protoimpl's `EnumStringOf`;
+  etcd-grove#24 7225943254), whose decimal fallback `strconv.Itoa` needs `strconv`'s `isPkgInit`, which the
+  precondition `True` does not give.
+- **Evidence.** `EnumStringOf` calls `strconv.Itoa` (protobuf-go v1.36.12 `internal/impl/api_export.go:74-80`); the
+  model's package imports `strconv`. The only caller, `healthNotifier.startServe` (`v3rpc/health.go`), derives the
+  package's `isPkgInit` from v3rpc's (`iPkgInit`).
+- **Change.** The precondition becomes `isPkgInit pkg_id.google_golang_org.grpc.health.grpc_health_v1`, SpecPlan's
+  (`SpecPlan/Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`); the
+  post is unchanged. No top-level statement changes.
+- **Decision.** Upamanyu, through coordinator-E (#24 7225943254: a Go model overlay, not a TrustedCode model).

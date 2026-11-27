@@ -21,7 +21,7 @@ The key-value map's porcupine model, pure (notes/dsv-craq.md, P2).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Protocol
 
 @[expose] public section

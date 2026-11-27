@@ -20,7 +20,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLogOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ClientLaws
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Workload
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkload
 
 @[expose] public section
 

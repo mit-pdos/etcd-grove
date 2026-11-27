@@ -14,7 +14,7 @@ public import Spec.context.ErrAny
 public import Spec.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CallLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.CallLaws
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
 

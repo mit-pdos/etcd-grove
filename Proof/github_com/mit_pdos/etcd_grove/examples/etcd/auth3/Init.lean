@@ -13,6 +13,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init

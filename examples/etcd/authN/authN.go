@@ -1,11 +1,11 @@
 // Package authN is auth3 (examples/etcd/auth3) for any number k of members (notes/authN-plan.md):
 // the k members of a new cluster started in-process with auth on (etcdstart.StartMembersAuth: the
 // simple token provider, etcd's default token TTL), each serving its raft handler on its own peer
-// listener and its gRPC API on its client address. Through member 0, authkv's set-up (auth.SetUp:
+// listener and its gRPC API on its client address. Through member 0, authkv's set-up (authwork.SetUp:
 // the auth state set up and auth enabled); then a barrier at every member: root, through a client
 // of the member, makes a linearizable read, so that each member has applied past the set-up
 // (AuthEnable included) before any principal uses it (nonissues/etcd-watch-lagging-member-auth-off.md);
-// then the four principals' workloads (auth.Work), each through its own member, at once: the client
+// then the four principals' workloads (authwork.Work), each through its own member, at once: the client
 // with no token through member 0, u and the client with an invalid token through member 1 mod k, v
 // through member 2 mod k (at k = 3, auth3's assignment); then, through member 0, the history check
 // and, through u's member, u's watch check. Main panics if a member let a principal do what the auth
@@ -26,6 +26,7 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
+	"github.com/mit-pdos/etcd-grove/examples/lib/authwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -101,7 +102,7 @@ func run(srvs []*etcdserver.EtcdServer, ms []etcdstart.Member, lg *zap.Logger) i
 	if err != nil {
 		return auth.Failed
 	}
-	if !auth.SetUp(cli) {
+	if !authwork.SetUp(cli) {
 		return auth.Failed
 	}
 	for _, m := range ms {
@@ -128,7 +129,7 @@ func run(srvs []*etcdserver.EtcdServer, ms []etcdstart.Member, lg *zap.Logger) i
 	}
 
 	var wg sync.WaitGroup
-	for _, who := range auth.Principals() {
+	for _, who := range authwork.Principals() {
 		c := cli
 		if who == "u" {
 			c = ucli
@@ -139,7 +140,7 @@ func run(srvs []*etcdserver.EtcdServer, ms []etcdstart.Member, lg *zap.Logger) i
 		}
 		wg.Add(1)
 		go func() {
-			auth.Work(c, who)
+			authwork.Work(c, who)
 			wg.Done()
 		}()
 	}
@@ -158,17 +159,17 @@ func run(srvs []*etcdserver.EtcdServer, ms []etcdstart.Member, lg *zap.Logger) i
 	if !ok {
 		return auth.WatchEnded
 	}
-	auth.CheckHistory(evs, "z/end")
+	authwork.CheckHistory(evs, "z/end")
 
 	uctx, ucancel := context.WithCancel(context.Background())
 	uch := ucli.Watcher.Watch(uctx, "a", clientv3.WithRange("b"), clientv3.WithRev(1))
-	uevs, ok := etcdstart.Collect(uch, auth.LastIn(evs))
+	uevs, ok := etcdstart.Collect(uch, authwork.LastIn(evs))
 	ucancel()
 	if !ok {
 		return auth.WatchEnded
 	}
 	for _, e := range uevs {
-		if !auth.Permitted("u", e.Key) {
+		if !authwork.Permitted("u", e.Key) {
 			panic("authN: u's watch reported a key u may not read")
 		}
 	}

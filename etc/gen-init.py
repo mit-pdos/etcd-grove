@@ -108,10 +108,14 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.gokv.trusted_proph',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
+         # (2026-11-27) its workload and model, moved out of the driver
+         'github_com.mit_pdos.etcd_grove.examples.lib.txnwork',
          'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
          'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
+         # (2026-11-27) its set-up, workload and checks, moved out of the driver
+         'github_com.mit_pdos.etcd_grove.examples.lib.authwork',
          # the auth3 Scope's A1 (2026-11-14): authkv with three members
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
          # authN (2026-11-15, notes/authN-plan.md): auth3 with any number of members
@@ -654,11 +658,12 @@ SPECIAL['runtime'] = dict(
 which `Version` returns, holds some string, read-only for good. Its initializer runs the trusted
 model of `buildVersion`'s initialization (Perennial's `TrustedCode/runtime.lean`: it allocates the
 variable and stores an arbitrary string, the linker's; Perennial's `runtime.wp_buildVersion_init`,
-whose cell is made persistent here), initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return. (Until Perennial
-`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated.)
+whose cell is made persistent here), initializes its imports, and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return. Its other 94 initialized
+variables are skipped (goose `[[skip]]`, Perennial's `Code/runtime.toml`: the runtime's own tables and
+state, which no translated code reads), so its initializer does not run them. (Until Perennial
+`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated; until 2026-11-27 the
+94 were names-only, run as `X.init`s that the trust-boundary axiom `opaqueInitsOk` said return.)
 
 And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
