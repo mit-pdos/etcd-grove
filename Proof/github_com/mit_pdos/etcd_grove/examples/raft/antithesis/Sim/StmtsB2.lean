@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The refinement to Antithesis's binding: parity B2's statements (#33, durability)
 
-Restarts, `AsyncStorageWrites`, batching, `-parallel` and split writes (`mskB2`). Statements only
+Restarts, batching, `-parallel` and split writes (`mskB2`); `AsyncStorageWrites` with them (`mskB25`, B2.5). Statements only
 (round 1): the relation the B2 reports keep (`AntSimD`) and one `abbrev …_in.stmt` per report kind
 or reportless step, each over the runs and inputs a mask `msk ≤ mskB2` admits.
 
@@ -33,14 +33,18 @@ namespace AntSim
 
 open GMap go_etcd_io.raft.v3
 
-/-- **Parity B2's scope**: `mskB1` with async storage writes, batching, `-parallel`, split writes and
-restarts (the driver's `DrawMode`: async and batch independently; parallel and split only with
-neither; split only `splitTermEntriesCommit`). -/
+/-- **Parity B2's scope**: `mskB1` with batching, `-parallel`, split writes and restarts, storage
+synchronous (the driver's `DrawMode`: parallel and split only without batching; split only
+`splitTermEntriesCommit`). Async storage writes are B2.5's (`mskB25`). -/
 def mskB2 : SimMask :=
-  { md := { prevote := true, cq := true, reads := true, transfer := true, nonVoters := true,
-            async := true },
+  { md := { prevote := true, cq := true, reads := true, transfer := true, nonVoters := true },
     k := { prevote := true, cq := true, sdr := true }, campaign := true, unreachable := true,
     batch := true, parallel := true, split := true, restarts := true }
+
+/-- **Parity B2.5's scope**: `mskB2` with async storage writes (`AsyncStorageWrites`; drawn
+independently of batching). -/
+def mskB25 : SimMask :=
+  { mskB2 with md := { mskB2.md with async := true } }
 
 section b2
 variable [GooseExts]
@@ -343,7 +347,7 @@ abbrev antSim_bootR_in.stmt : Prop :=
 reported (`w` whether it writes, against the last `Ready`'s state); its immediate messages are
 pending, its write and applies queued. -/
 abbrev antSim_memA_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
     (rd : ReadyD) (w hasJob : Bool) (Adm : List EntryM → CCState → Prop),
@@ -360,7 +364,7 @@ abbrev antSim_memA_in.stmt : Prop :=
 /-- **An async `Ready` the harness does not report** (no write, the same role): its immediate
 messages pending, its waiting messages and applies queued. -/
 abbrev antSim_quietA_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (r₁ : RState) (rd : ReadyD) (hasJob : Bool)
     (Adm : List EntryM → CCState → Prop),
@@ -374,7 +378,7 @@ abbrev antSim_quietA_in.stmt : Prop :=
 /-- **`send`, async, at once** (B 510-593 with `cause`): the next immediate message of the node's
 async `Ready` is reported with the drain's cause, then it is on the network. -/
 abbrev antSim_sendC_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (q : Msg)
     (rest : List Msg),
@@ -387,7 +391,7 @@ abbrev antSim_sendC_in.stmt : Prop :=
 `mem`'s write is announced (async: the head job's, not yet run); the disk is its result, the disk
 before it the undo record. -/
 abbrev antSim_write_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (m : MemRec)
     (rest : List MemRec),
@@ -401,7 +405,7 @@ abbrev antSim_write_in.stmt : Prop :=
 /-- **A write job with nothing to write is run** (async, reportless: `runWrite` of a job holding only
 messages, or a batch job before its flushes). -/
 abbrev antSim_runW0_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (j : WJob) (js : List WJob),
     InMask msk R net xnet → AntSimD R dec S V net xnet → RaftLaws G → GlobalOk R S net G →
@@ -432,7 +436,7 @@ abbrev antSim_wrote_in.stmt : Prop :=
 /-- **`send` of a message that waited for its write** (`doneWrite`, B 510-593 with `cause`, or `b` in
 a batch): the run head job's next message, with its drain's cause and `by`. -/
 abbrev antSim_sendJ_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (j : WJob)
     (js : List WJob) (q : Msg) (rest : List Msg),
@@ -445,7 +449,7 @@ abbrev antSim_sendJ_in.stmt : Prop :=
 /-- **A write job done** (async, reportless: `doneWrite` after its messages; raft's step of the
 write's acknowledgement and its responses to the node itself is the next input, `storeAck`). -/
 abbrev antSim_doneW_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (j : WJob) (js : List WJob),
     InMask msk R net xnet → AntSimD R dec S V net xnet → RaftLaws G → GlobalOk R S net G →
@@ -455,7 +459,7 @@ abbrev antSim_doneW_in.stmt : Prop :=
 /-- **`apply` by the apply goroutine** (async, B 598-609 with `a`): the oldest queued committed
 entries are handed out. -/
 abbrev antSim_applyA_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (a : AJob)
     (aj : List AJob),
@@ -468,7 +472,7 @@ abbrev antSim_applyA_in.stmt : Prop :=
 /-- **An apply job done** (async, reportless: `doneApply`, or `runApply` of no entries; raft's step of
 the apply's acknowledgement is the next input). -/
 abbrev antSim_doneA_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (a : AJob) (aj : List AJob),
     InMask msk R net xnet → AntSimD R dec S V net xnet → RaftLaws G → GlobalOk R S net G →
@@ -478,7 +482,9 @@ abbrev antSim_doneA_in.stmt : Prop :=
 /-! ## `-parallel` (a sync leader's `Ready`: `mem`, the requests, `write`, `wrote`, the rest) -/
 
 /-- **`mem`, `-parallel`** (B 450-459): a leader's sync `Ready` that writes or changes the reported
-role is reported; its write is queued for `write`; its messages pending, the requests first. -/
+role is reported; its write is queued for `write`; its messages pending, the requests (appends and
+heartbeats) moved first, in their order, then the others in theirs (`parallel` sends the requests
+before the write and the rest after it). -/
 abbrev antSim_memP_in.stmt : Prop :=
   ∀ (msk : SimMask), msk ≤ mskB2 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
@@ -488,11 +494,11 @@ abbrev antSim_memP_in.stmt : Prop :=
     R.md.async = false → R.drv.batch = false → R.drv.parallel = true →
     ReachIn msk R dec Adm net xnet n (V n) r₁ → ReadyOutP R n (V n) r₁ rd → rd.role = .leader →
     rd.snap = none → Reported (V n) rd → (w = true ↔ Writes (V n) rd) →
-    rd.msgs = rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q) →
     Told (V n) → ReadyFacts G (nodeId n) r₁ → TermRoom (V n) →
     SimStepD R dec evs G
       (evMem (nodeId n) (V n).byE (roleStr rd.pre rd.role) rd.term rd.vote rd.commit rd.ents none w)
       (setV V n { ((V n).drainOf r₁ rd) with
+        pend := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q),
         mems := if w then (V n).mems ++ [rd.memRec (V n)] else (V n).mems }) net xnet
 
 /-! ## Split writes (sync, `splitTermEntriesCommit`) -/

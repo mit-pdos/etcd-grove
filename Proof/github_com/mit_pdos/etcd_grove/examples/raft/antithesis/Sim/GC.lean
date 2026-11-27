@@ -556,66 +556,70 @@ variable [GooseExts]
 theorem BindingOk.factsWf {dec : CCDec} {S : State} (hb : BindingOk R dec S) : FactsWf R S :=
   ⟨hb.2.2.2.2.2.2.2.2.1, hb.2.2.2.2.2.2.2.2.2.1⟩
 
+/-- `GC` keeps C3 (`BindingOk`). -/
+theorem gc_bindingOk {dec : CCDec} {S : State} {g : List Fact} {o : List VoteRec} (hc : S.cfg = R.cfg)
+    (hb : BindingOk R dec S) (hg : S.garbage = .ok g) (ho : S.oldVotes = .ok o) :
+    BindingOk R dec (gcRes S g o) := by
+  obtain ⟨hb1, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
+    hb19⟩ := hb
+  refine ⟨hb1, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_, hb19.1,
+    hb19.2.1, fun f hf hty => hb19.2.2 f (gcRes_msgs_sub hf) hty⟩
+  · intro n l hl
+    exact hb7 n l (gcRes_get_ok hl)
+  · intro n a ha
+    exact hb8 n a (gcRes_msgs_sub ha)
+  · intro p hp
+    obtain ⟨hp1, hp2⟩ := gcRes_ledLog_sub hp
+    obtain ⟨l, hl, hlt⟩ := hb9 p hp1
+    exact ⟨l, gcRes_leaders_keep hl (by rw [hlt]; exact hp2), hlt⟩
+  · intro n l hl
+    exact hb10 n l (gcRes_leaders_sub hl)
+  · intro f hf
+    exact hb11 f (gcRes_msgs_sub hf)
+  · intro v hv
+    exact hb12 v (gcRes_votes_sub hv)
+  · intro n hv
+    exact gcRes_votes_keep hc ho (hb13 n hv) n rfl (Int.le_refl _)
+  · intro n a ha
+    exact hb14 n a (gcRes_msgs_sub ha)
+  · intro j
+    obtain ⟨h1, h2⟩ := hb16 j
+    refine ⟨?_, h2⟩
+    rcases h1 with h | h | h
+    · exact .inl h
+    · cases hov : S.over (S.confirmed[j.val]!).term
+      · exact .inr (.inl ((gcRes_has (g := g) (o := o) hov).trans h))
+      · refine .inr (.inr fun i => ?_)
+        refine Int.lt_of_not_ge fun hle => ?_
+        rw [over_false (S := S) (t := (S.confirmed[j.val]!).term) hc i hle] at hov; cases hov
+    · exact .inr (.inr h)
+  · refine ⟨fun T hT => ?_, hb17.2⟩
+    rcases hb17.1 T hT with ⟨l, hl, hlt⟩ | h
+    · cases hov : S.over l.term
+      · exact .inl ⟨l, gcRes_leaders_keep hl hov, hlt⟩
+      · refine .inr fun i => ?_
+        refine Int.lt_of_not_ge fun hle => ?_
+        rw [over_false (S := S) (t := l.term) hc i (by rw [hlt]; exact hle)] at hov; cases hov
+    · exact .inr h
+  · intro T hT
+    change (S.ledLog.without S.staleLed).has T = true at hT
+    rw [has_without] at hT
+    cases hs : S.staleLed.contains T
+    · rw [hs] at hT
+      obtain ⟨l, a, cs, h1, h2, h3, h4, h5⟩ := hb18 T (by simpa using hT)
+      refine ⟨l, a, cs, ?_, ?_, h3, ?_, h5⟩
+      · show (S.ledLog.without S.staleLed).get T = _; rw [get_without, hs]; exact h1
+      · show (S.ledAt.without S.staleLed).get T = _; rw [get_without, hs]; exact h2
+      · show (S.ledConf.without S.staleLed).get T = _; rw [get_without, hs]; exact h4
+    · rw [hs] at hT; cases hT
+
 theorem gc_rel {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg} {xnet : List XMsg}
     {G : RaftFacts} {g : List Fact}
     {o : List VoteRec} (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G) (hg : S.garbage = .ok g)
     (ho : S.oldVotes = .ok o) : AntSim R dec (gcRes S g o) V net xnet ∧ GlobalOk R (gcRes S g o) net G := by
   obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs
   have hc : S.cfg = R.cfg := hsh.1
-  obtain ⟨hb1, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
-    hb19⟩ := hb
-  refine ⟨⟨hsh, ?_, ?_, hxn, ?_⟩, ?_⟩
-  · -- BindingOk
-    refine ⟨hb1, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_, hb19.1,
-      hb19.2.1, fun f hf hty => hb19.2.2 f (gcRes_msgs_sub hf) hty⟩
-    · intro n l hl
-      exact hb7 n l (gcRes_get_ok hl)
-    · intro n a ha
-      exact hb8 n a (gcRes_msgs_sub ha)
-    · intro p hp
-      obtain ⟨hp1, hp2⟩ := gcRes_ledLog_sub hp
-      obtain ⟨l, hl, hlt⟩ := hb9 p hp1
-      exact ⟨l, gcRes_leaders_keep hl (by rw [hlt]; exact hp2), hlt⟩
-    · intro n l hl
-      exact hb10 n l (gcRes_leaders_sub hl)
-    · intro f hf
-      exact hb11 f (gcRes_msgs_sub hf)
-    · intro v hv
-      exact hb12 v (gcRes_votes_sub hv)
-    · intro n hv
-      exact gcRes_votes_keep hc ho (hb13 n hv) n rfl (Int.le_refl _)
-    · intro n a ha
-      exact hb14 n a (gcRes_msgs_sub ha)
-    · intro j
-      obtain ⟨h1, h2⟩ := hb16 j
-      refine ⟨?_, h2⟩
-      rcases h1 with h | h | h
-      · exact .inl h
-      · cases hov : S.over (S.confirmed[j.val]!).term
-        · exact .inr (.inl ((gcRes_has (g := g) (o := o) hov).trans h))
-        · refine .inr (.inr fun i => ?_)
-          refine Int.lt_of_not_ge fun hle => ?_
-          rw [over_false (S := S) (t := (S.confirmed[j.val]!).term) hc i hle] at hov; cases hov
-      · exact .inr (.inr h)
-    · refine ⟨fun T hT => ?_, hb17.2⟩
-      rcases hb17.1 T hT with ⟨l, hl, hlt⟩ | h
-      · cases hov : S.over l.term
-        · exact .inl ⟨l, gcRes_leaders_keep hl hov, hlt⟩
-        · refine .inr fun i => ?_
-          refine Int.lt_of_not_ge fun hle => ?_
-          rw [over_false (S := S) (t := l.term) hc i (by rw [hlt]; exact hle)] at hov; cases hov
-      · exact .inr h
-    · intro T hT
-      change (S.ledLog.without S.staleLed).has T = true at hT
-      rw [has_without] at hT
-      cases hs : S.staleLed.contains T
-      · rw [hs] at hT
-        obtain ⟨l, a, cs, h1, h2, h3, h4, h5⟩ := hb18 T (by simpa using hT)
-        refine ⟨l, a, cs, ?_, ?_, h3, ?_, h5⟩
-        · show (S.ledLog.without S.staleLed).get T = _; rw [get_without, hs]; exact h1
-        · show (S.ledAt.without S.staleLed).get T = _; rw [get_without, hs]; exact h2
-        · show (S.ledConf.without S.staleLed).get T = _; rw [get_without, hs]; exact h4
-      · rw [hs] at hT; cases hT
+  refine ⟨⟨hsh, gc_bindingOk hc hb hg ho, ?_, hxn, ?_⟩, ?_⟩
   · -- NetOk
     refine ⟨fun m hm => ?_, hn.2.1, hn.2.2.1, hn.2.2.2.1, hn.2.2.2.2⟩
     obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm
