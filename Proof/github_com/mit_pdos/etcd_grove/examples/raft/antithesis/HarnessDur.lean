@@ -313,17 +313,19 @@ def applyJobOwn (id : w64) (l : Loc) (a : AJob) : IProp GF :=
 
 /-- **Node `j`'s B2 bookkeeping** (`nodeMemB1`'s fields at B2's values) against its view `v`, the
 `RawNode`'s durable state `dur` and raft's durable ghost at the disk `D`: the batch's `items`; `mhs`
-the in-memory hard state the last `mem` reported (batching), `rhs` the last `Ready`'s (async); the
+the in-memory hard state the last `mem` reported (batching), `rhs` the last `Ready`'s (async: `drainAsync`
+alone sets it); the
 write queue (`writes`, each job owned) and the job out of it (`inflight`: in `wip`, or held by `work`,
-`hole`; once run, `writeJobMade`), the enter promises chained from `D` to `dur` (`JobsChain`), the queue against the view (`QueueView`); the
+`hole`; once run, `writeJobMade`), the enter promises chained from `D` to `dur` (`JobsChain`; not on a
+dead node, whose `Ready` taken and not entered is dropped with it, `rawNode_vacate.law`), the queue against the view (`QueueView`); the
 apply queue and the job applying; B3's fields at their off values. In a run without batching or
 async storage both queues are empty and `items` is `0`. -/
 def nodeMemB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (x : CrashNames)
     (g : Nat) (phs : HardStateM) (dur D : RaftState) (dead : Bool) (hole : Option WorkHole) : IProp GF :=
   iprop(∃ (items : Nat) (mhs rhs wip aip : Loc) (wsl asl : GoSlice) (wls als : List Loc)
-      (jobs : List WJob) (ajobs : List AJob) (ow : Option WJob) (oa : Option AJob) (hm : HardStateM),
+      (jobs : List WJob) (ajobs : List AJob) (ow : Option WJob) (oa : Option AJob) (hm rh : HardStateM),
     n.[H.node, go!"items"] ↦ W64 items ∗ n.[H.node, go!"mhs"] ↦ mhs ∗ hsRO mhs hm ∗
-    n.[H.node, go!"rhs"] ↦ rhs ∗ hsRO rhs phs ∗
+    n.[H.node, go!"rhs"] ↦ rhs ∗ hsRO rhs rh ∗
     n.[H.node, go!"writes"] ↦ wsl ∗ wsl ↦* wls ∗ ownSliceCap Loc wsl (DFrac.own 1) ∗
     ([∗list] l;w ∈ wls;jobs, writeJobOwn γ j x g l w) ∗
     n.[H.node, go!"inflight"] ↦ ow.isSome ∗
@@ -342,11 +344,11 @@ def nodeMemB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
     n.[H.node, go!"restoring"] ↦ W64 0 ∗ n.[H.node, go!"confs"] ↦ slice.nil ∗
     n.[H.node, go!"confBase"] ↦ W64 0 ∗
     ⌜QueueView v ((if WorkHole.wFresh hole then ow.toList else []) ++ jobs) items ∧
-      JobsChain (match ow with | some w => w.post | none => D) jobs dur ∧
+      (dead = false → JobsChain (match ow with | some w => w.post | none => D) jobs dur) ∧
       (∀ l, hole = some (.runW l) ∨ hole = some (.doneW l) → wip = l ∧ ow.isSome) ∧
       (∀ l, hole = some (.runA l) ∨ hole = some (.doneA l) → aip = l ∧ oa.isSome) ∧
       (γ.mode.Batch' = true → hm = HardStateM.mk v.r.p.term v.r.p.vote v.r.p.commit) ∧
-      (γ.mode.Batch' = false → items = 0) ∧
+      (γ.mode.Batch' = false → items = 0) ∧ (γ.mode.Async' = true → rh = phs) ∧
       (γ.mode.Async' = false → jobs = [] ∧ ow = none ∧ ajobs = [] ∧ oa = none)⌝)
 
 /-- **What a node goroutine gives back at its end** (`nodesWg.Done()`), under B2: its share of the
@@ -393,10 +395,11 @@ its entries normal, its disk at `dk` related to the view (`DiskRel`); then by ph
   name), its bookkeeping (`nodeMemB2`), the cause cell; and either **dead** (`n.dead`: the view frozen,
   nothing more), or alive with B1's per-phase facts over `RsViewB2` (`idle`'s `PIdle` and empty queue
   only without batching and, for the queue, without async storage), the Go fields agreeing with the
-  view (`n.hs` the disk's hard state but while a write is in flight). -/
-def nodeOwnB2H (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (ph : Phase)
-    (hole : Option WorkHole) : IProp GF :=
-  iprop(∃ (d rn ms hsl cl csl : Loc) (role : GoString) (applied : w64) (dead : Bool) (fuse : w64)
+  view (with synchronous storage `n.hs` the view's disk's hard state at the drain's loop head and
+between inputs). The kill flag `n.dead` is the index `dead`. -/
+def nodeOwnB2HD (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (ph : Phase)
+    (hole : Option WorkHole) (dead : Bool) : IProp GF :=
+  iprop(∃ (d rn ms hsl cl csl : Loc) (role : GoString) (applied : w64) (fuse : w64)
       (dk : AntSim.DurW),
     n.[H.node, go!"disk"] ↦□ d ∗
     n.[H.node, go!"rn"] ↦ rn ∗ n.[H.node, go!"store"] ↦ ms ∗ n.[H.node, go!"role"] ↦ role ∗
@@ -431,16 +434,23 @@ def nodeOwnB2H (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSi
           | .down => iprop(False)
           | .idle => iprop(⌜v.Idle ∧ r = v.r ∧ cl = null ∧
               (γ.mode.Batch' = false → PIdle rs r.p) ∧
-              (γ.mode.Batch' = false ∧ γ.mode.Async' = false → qs = [] ∧ ip = v.r.p.log.length ∧
-                hn = HardStateM.mk dk.term dk.vote dk.commit)⌝)
+              (γ.mode.Batch' = false ∧ γ.mode.Async' = false → qs = [] ∧ ip = v.r.p.log.length) ∧
+              (γ.mode.Async' = false → hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit)⌝)
           | .loop net₀ xnet₀ r₁ xs₁ => iprop(⌜r = r₁ ∧
               AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧
-              (γ.mode.Async' = false → qs = [] ∧ ip = lcpLen v.r.p.log r₁.p.log) ∧ ByOkB2 v.byE⌝ ∗
+              (γ.mode.Async' = false → qs = [] ∧ ip = lcpLen v.r.p.log r₁.p.log ∧
+                hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∧ ByOkB2 v.byE⌝ ∗
               sentLb γ.toAntNames net₀ ∗ xsentLb γ.toAntNames xnet₀ ∗ causeOwn γ.toAntNames j v cl)
           | .drained => iprop(⌜v.Idle ∧ r = v.r ∧
               (γ.mode.Batch' = false → PIdle rs r.p) ∧
-              (γ.mode.Batch' = false ∧ γ.mode.Async' = false → qs = [] ∧ ip = v.r.p.log.length)⌝ ∗
+              (γ.mode.Batch' = false ∧ γ.mode.Async' = false → qs = [] ∧ ip = v.r.p.log.length) ∧
+              (γ.mode.Async' = false → hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit)⌝ ∗
               causeOwn γ.toAntNames j v cl))))
+
+/-- **Node `j`'s goroutine's state under B2**, its kill flag `n.dead` (`nodeOwnB2HD`) left open. -/
+def nodeOwnB2H (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (ph : Phase)
+    (hole : Option WorkHole) : IProp GF :=
+  iprop(∃ dead : Bool, nodeOwnB2HD c γ j n v ph hole dead)
 
 /-- **Node `j`'s goroutine's state under B2** between its storage steps (`nodeOwnB2H` with no job held
 by `work`). -/
