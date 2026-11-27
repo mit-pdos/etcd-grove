@@ -16,6 +16,7 @@ public import Spec.path.filepath.Clean
 public import Spec.path.filepath.Dir
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchLemmas
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteableLemmas
+public import GooseLang.Ext.Fs.TreeSharedCoh
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllLemmas
 
 @[expose] public section
@@ -34,6 +35,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 variable [os_sem : os.Assumptions]
+
+/-- An entry of a claim writing a name of `N` is an entry of its restriction to `N`. -/
+private theorem restrict_ents_of {h : NamesH} {j : Ino} {N : NameSet} {xe : Nat × LogEntry × Ents}
+    (hx : xe ∈ h.ents) {b : GoString} (hb : N.Mem b) (hw : xe.2.1.op.Writes j b) :
+    (xe.1, xe.2.1, restrictN N xe.2.2) ∈ (h.restrict j N).ents := by
+  classical
+  unfold NamesH.restrict
+  exact List.mem_map.2 ⟨xe, List.mem_filter.2 ⟨hx, decide_eq_true ⟨b, hb, hw⟩⟩, rfl⟩
+
+/-- An entry of a restriction is an entry of the claim, at the same index. -/
+private theorem ents_of_restrict {h : NamesH} {j : Ino} {N : NameSet} {xe : Nat × LogEntry × Ents}
+    (hx : xe ∈ (h.restrict j N).ents) : ∃ xe' ∈ h.ents, xe'.1 = xe.1 := by
+  unfold NamesH.restrict at hx
+  obtain ⟨xe', hxe, he⟩ := List.mem_map.1 hx
+  exact ⟨xe', (List.mem_filter.1 hxe).1, by rw [← he]⟩
 
 theorem fileutil.TouchDirAll.wp_proof
     (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
@@ -279,6 +295,8 @@ theorem fileutil.TouchDirAll.wp_proof
       icases (osPathS_frac R (joinPath (joinPath [] rcs) cs) ε a' jp).1 $$ Hp with ⟨Hpe, Hpa⟩
       icases (osNames_join jp (.only [name]) ε b' h1 hqq).2 $$ Hn1 with ⟨Hne, Hnb⟩
       ihave Hpc := osPathS_child R _ name (DFrac.own ε) jp J h1 hname hcur1 $$ Hpe Hne
+      imod osNames_histCoh R J (.except []) (DFrac.own 1) hJ CoPset.subseteq_top $$ Hsi HJ
+        with ⟨HJ, %hJcoh⟩
       imod osNames_split R J (.except []) [go!".touch"] hJ CoPset.subseteq_top $$ Hsi HJ with ⟨Ht, Hrest⟩
       rw [show (NameSet.except []).inter [go!".touch"] = .only [go!".touch"] by simp [NameSet.inter],
         show (NameSet.except []).diff [go!".touch"] = .except [go!".touch"] by simp [NameSet.diff]]
@@ -339,7 +357,20 @@ theorem fileutil.TouchDirAll.wp_proof
         rotate_left
         · iexact Hcm
         ipureintro
-        refine ⟨hcur1, Nat.le_refl _, ?_⟩
+        refine ⟨hcur1, Nat.le_refl _, ?_, ?_⟩
+        rotate_left
+        · -- (D6-T6) the new directory's entries on names other than `.touch` are `mkdir`'s claim's, below
+          -- its next index `x + 1`, which the parent's sync committed
+          intro xe hxe b hb hw
+          have hm := restrict_ents_of (N := .except [go!".touch"]) hxe
+            (b := b) (by simp [NameSet.Mem, hb]) hw
+          rw [hMf.2.1] at hm
+          obtain ⟨xe1, hxe1, he1⟩ := ents_of_restrict hm
+          obtain ⟨xe2, hxe2, he2⟩ := ents_of_restrict hxe1
+          have hlt := hJcoh.1 xe2 hxe2
+          rw [hJc.2] at hlt
+          have hn1 : h''.next = x + 1 := by subst hh1; simp [NamesH.next, NamesH.log]
+          rw [hn1]; simp only at he1; omega
         apply GMap.ext; intro c
         rw [hMc c]
         split
@@ -398,7 +429,7 @@ theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF
       apply List.eq_nil_iff_forall_not_mem.2
       intro b hb
       have := (hnm b (by simp [NameSet.Mem])).2 hb
-      rw [hf.2.2] at this; simp at this
+      rw [hf.2.2.1] at this; simp at this
     subst hnames
     obtain ⟨srt, hperm, -, hrs⟩ := hout
     have hsrt : srt = [] := (List.Perm.nil_eq hperm).symm
@@ -418,7 +449,7 @@ theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF
     iexists h'', hJ, J, n
     iframe
     isplitl []
-    · ipureintro; exact hf
+    · ipureintro; exact ⟨hf.1, hf.2.1, hf.2.2.1⟩
     iexact Hc
   · cases e with
     | nil => exact absurd rfl he
@@ -430,7 +461,7 @@ theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF
       isplitr
       · ipureintro; intro hc; cases hc
       iexists h''
-      iapply tmpDirH_dirE jp name h'' J hJ hf.1 hf.2.2 $$ [Hn HJ]
+      iapply tmpDirH_dirE jp name h'' J hJ hf.1 hf.2.2.1 $$ [Hn HJ]
       iframe
 
 end proof

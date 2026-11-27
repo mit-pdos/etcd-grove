@@ -3,7 +3,9 @@
 # `etcd/dist`: every machine's boot on a malformed deployment
 
 `etcdBootNCBad_holds`: `EtcdBootNCBad` (`BootSkel.lean`), each machine's boot program safe from
-`True` when `¬ d.WellFormed`. Every program initializes its package (`server` or `client`: the machine's
+`True` when `¬ d.WellFormed`; `etcdBootCBad_holds`: its crash form `EtcdBootCBad` (`BootSkel.lean`), each
+member's program safe in every generation from that generation's empty package state
+(`crashBootBad_of_wp`). Every program initializes its package (`server` or `client`: the machine's
 prometheus registration rights allocated here, from no package initialized), evaluates the deployment's
 literal (`wp_deploymentLit`), calls its entry point (`server.MainDeployment`, `client.Orchestrator`,
 `client.NodeDeployment`), which calls `deployment.WellFormed` first and returns at once on its non-nil
@@ -251,6 +253,54 @@ theorem etcdBootNCBad_holds :
   · exact serverBootBad d Hd Hfips k σ
   · exact clientBootBad d Hd Hfips j σ
   · exact nodeBootBad d Hd Hfips n σ
+
+/-! ## The crash form: `EtcdBootCBad` -/
+
+/-- A member's generations on a malformed deployment (`Net.CrashBootWpGT`): from the generation's empty
+package state (`emptyPkgs`), its program's WP (`H`, as `serverBadWp`), and after a crash the next
+generation's empty package state, which the crash gives. -/
+theorem crashBootBad_of_wp [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics] (e : Expr)
+    [G : GooseGlobalGS .hasLC etcdDistGF]
+    (H : ∀ L : GooseLocalGS etcdDistGF, L.goose_go_local_context = lctx →
+      letI : HeapGS .hasLC etcdDistGF := ⟨G, L⟩
+      (⊢ ownGoState (hG := L.goose_go_stateGS) ∅ -∗ threadTok ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }})) :
+    letI := etcdNetExtsCrashInterpD4b
+    Net.CrashBootWpGT etcdCQ (etcdIdCrashRest idIssue_crash_interp) etcdThreads 0 etcdSteps e
+      emptyPkgs := by
+  intro L hL hlo hrb hT
+  iintro Hgs Htok
+  iunfold emptyPkgs at Hgs
+  imod H L hL $$ Hgs Htok with Hwp
+  imodintro
+  isplitl [Hwp]
+  · iexact Hwp
+  · iintro %L' %V' - - - - Hgs' -
+    imodintro
+    iunfold emptyPkgs
+    iexact Hgs'
+
+/-- **`EtcdBootCBad`**: on a malformed deployment every member's program, in every generation, and every
+stable machine's program checks the deployment and returns (`serverBadWp`, `clientBadWp`, `nodeBadWp`;
+the stable machines by `etcdBootNCBad_holds`'s lemmas). -/
+theorem etcdBootCBad_holds :
+    EtcdBootCBad := by
+  intro _ lctx _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb
+  refine ⟨fun i m hm => ?_, fun j m hm => ?_⟩
+  · simp only [servers, List.getElem?_mapIdx] at hm
+    obtain ⟨σ, -, rfl⟩ := Option.map_eq_some_iff.mp hm
+    exact crashBootBad_of_wp _ (fun L hL => serverBadWp d Hd Hfips i L hL)
+  · have hm' : m ∈ clients d σc ++ nodeMachines d σn := List.mem_of_getElem? hm
+    simp only [clients, nodeMachines, List.mem_append, List.mem_mapIdx] at hm'
+    rcases hm' with ⟨j, hj, rfl⟩ | ⟨n, hn, rfl⟩
+    · exact clientBootBad d Hd Hfips j _
+    · exact nodeBootBad d Hd Hfips n _
+
+/-- **`etcd_safe` from the well-formed deployment's boot WPs alone**: the skeleton `etcd_safe_of_boot`
+with its malformed-deployment hypothesis discharged by `etcdBootCBad_holds`. Left: `EtcdBootC`. -/
+theorem etcd_safe_of_bootWF
+    (HS : EtcdBootC) : etcd_robust.spec :=
+  etcd_safe_of_boot HS etcdBootCBad_holds
 
 /-- **`etcd_safe_nocrash` from the well-formed deployment's boot WPs alone**: the skeleton
 `etcd_safe_nocrash_of_boot` with its malformed-deployment hypothesis discharged by

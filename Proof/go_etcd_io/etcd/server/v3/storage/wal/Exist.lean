@@ -79,7 +79,7 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
     $$ Hinv Hsi Hnc HA HN Hsf Hu with ⟨Hnc, HN, Hsf, %od, HL, Hcase⟩
   iframe Hnc
   imodintro
-  icases Hcase with (⟨%hc, Hu⟩ | ⟨%hc, %J, %X, %hj, %q1, %q2, %hn, %hp, Hn1, Hsp, #Hk, Hl, Htf, Ho, HJ⟩)
+  icases Hcase with (⟨%hc, Hu⟩ | ⟨%hc, %J, %X, %hj, %q1, %q2, %hn, %I, %hp, Hn1, Hsp, #Hk, Hl, Htf, Ho, HJ⟩)
   · obtain ⟨hod, hNnm, hnone, hnW⟩ := hc
     wp_apply wp_RDabs r nm _ [g] [go!".wal"] _ R jr _ 1 N _ h rfl hnmO hNnm hnone
       $$ [Hp Hperm HN Hosl] as %rs %err ⟨Hp, Hperm, HN, Hosl, %herr, %bn, #Herr, %hbn⟩
@@ -116,15 +116,15 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
   · obtain ⟨hJ, hX, b0, hb0w, hb0s⟩ := hp
     wp_apply wp_RDchild r nm _ [g] [go!".wal"] _ R jr _ (.only [nm]) _ hn J 1 (.except X) _ hj rfl hnmO
       (by simp [NameSet.Mem]) hJ
-      $$ [Hsp Hn1 Hperm HJ Hosl] as %rs %err ⟨-, -, Hperm, HJ, Hosl, Hout⟩
+      $$ [Hsp Hn1 Hperm HJ Hosl] as %rs %err ⟨-, Hn1, Hperm, HJ, Hosl, Hout⟩
     · iframe; iframe #
       iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
       simp only [List.getD_cons_zero]
       iexact Hg
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod walInv_existEnd C Mr R jr r (child r nm) J X hj hX
-      $$ Hinv Hsi Hnc Hk Hl Htf Ho HJ with ⟨Hnc, Hu⟩
+    imod walInv_existEnd C Mr R jr r (child r nm) J X hj nm q1 hn I hX
+      $$ Hinv Hsi Hnc Hk Hl Htf Hn1 Ho HJ with ⟨Hnc, Hu⟩
     iframe Hnc
     imodintro
     icases Hout with (⟨%names, %rs', %hout, Hrs⟩ | ⟨%herr, #Herr⟩)
@@ -177,11 +177,11 @@ theorem wal.Exist.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_RDabs : fileutil.ReadDir.specAbsentIs (GF := GF) (hG := hG))
     (wp_RDchild : fileutil.ReadDir.specChildIs (GF := GF) (hG := hG)) :
     wal.Exist.spec (GF := GF) C Mr := by
-  intro R jr r dir nm qp Q hin hnmO
+  intro R jr r dir nm qp Q ic hin hnmO
   iintro %Φ Hpre HΦ
   iapply (wal.Exist.wp_core C Mr wp_WithExt wp_RDabs wp_RDchild R jr r dir nm qp _
     (fun od => iprop(∃ o, Q o ∗ ⌜walOptLe o od⌝))
-    (fun s => walInvBody_existAU C Mr R jr r s dir Q) hin hnmO) $$ Hpre
+    (fun s => walInvBody_existAU C Mr R jr r s dir Q ic) hin hnmO) $$ Hpre
   inext
   iintro %b ⟨Hp, Hres, Hperm, Hu, %od, ⟨%o, HQ, %ho⟩, %hb, %hn⟩
   iapply HΦ

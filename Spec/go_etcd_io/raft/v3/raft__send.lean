@@ -140,7 +140,10 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     -- (2026-10-19, D21 M3) not in the no-snapshot mode
     s.gh.ns = false ∧
     -- (2026-10-29, stage U7) a term past `0` to stamp (`SentMsgShape`)
-    s.term ≠ W64 0)
+    s.term ≠ W64 0 ∧
+    -- (2026-11-24, the lifetime law) and past the attachment's term floor (`StorNames.t0`): a
+    -- leader's (`maybeSendAppend`'s caller), whose term is past it (`LifeOk`)
+    uint.Z s.gh.sn.t0 < uint.Z s.term)
    ∨
    -- (2026-10-29, stage U7: until then any type with `mtypeOf = none`) the two transfer messages,
    -- with no entries and no context, a `MsgTimeoutNow` at a term past `0` (`SentMsgShape`)
@@ -187,7 +190,7 @@ self-addressed response's clause, vacuous for a request, `To ≠ id`)
 (the last `done` fixes `out`); for a `MsgApp`, `right; left; exists mtype.App;
 split_and!; [by left | .. | done | <To ≠ id> | done]`; for `MsgAppResp`,
 `right; right; right; left; split_and!; [done | done | <self> | done]`; for `MsgSnap`,
-`right; right; left; left; split_and!; [done | done | <To ≠ id>]`. These are not lemmas
+`right; right; left; left; split_and!; [done | done | <To ≠ id> | ..]`. These are not lemmas
 here because a spec file states and does not prove (etc/check-module-discipline.py,
 F3).
 

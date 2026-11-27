@@ -125,6 +125,9 @@ abbrev NewRawNode.spec : Prop :=
   ConfStateOk csm →
   -- (step 5) in place of `TraceLoggerOk cv.TraceLogger'`: a traced node is fresh
   (γ.reTrace ≠ none → BootFresh σ hs csm) →
+  -- (2026-11-24, the lifetime law) the attachment's term floor (`StorNames.t0`) at most the loaded
+  -- term (`LifeOk`; `RestartNode`: the stored term, `StartNode`: `0`)
+  uint.Z sn.t0 ≤ uint.Z hs.Term' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
          {{ RET (PairV #(W64 (uint.nat σ.prev.index' + 1)) #interface.nil); R }}) ∗

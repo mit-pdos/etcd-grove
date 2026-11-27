@@ -40,7 +40,7 @@ theorem bootCrashRobust.premisesSat : premise_sat% bootCrashRobust.spec := by
     fsInit_fsOneRoot _ hr, ⟨0, List.mem_singleton.2 rfl⟩,
     fsOneRoot_lookup_append _ _ (by decide),
     (robustStart_one (σ := freshState (fsOneRoot (slashB :: go!"w"), ())) (g := ⟨((), ()), ∅⟩)
-      (fresh_freshState _) (by exts_init) (by exts_init)).2⟩
+      (fresh_freshState _) (by exts_init) (by exact ⟨fsInit_fsOneRoot _ hr, trivial⟩)).2⟩
 
 end osfs_bboltfs
 end EtcdGrove

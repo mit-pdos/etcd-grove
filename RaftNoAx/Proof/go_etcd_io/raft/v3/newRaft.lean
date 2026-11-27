@@ -754,7 +754,7 @@ theorem newRaft.wp_proof
     newRaft.spec (GF := GF) (hG := hG) := by
   have wp_bfU := raft.becomeFollower.untraced wp_raft_becomeFollower
   intro c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hmms Hidx Hpend
-    Hfr1 Hfr2 Hfl0 Hsg0 Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Hfresh
+    Hfr1 Hfr2 Hfl0 Hsg0 Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Hfresh Ht0
   rcases Option.eq_none_or_eq_some γ.reTrace with Htrm | ⟨γd, Htrm⟩
   · rw [Htrm]
     obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
@@ -1049,7 +1049,8 @@ theorem newRaft.wp_proof
       ⟨fun h => absurd h Bool.false_ne_true,
         SnpOk.of_none rfl rfl rfl rfl, rfl⟩
       (fun h => absurd rfl h) (PrvalsOk.not_leader (by simp only [s2]; decide)) (LogNsOk.off rfl)
-      (XfOk.nil (fun h => absurd h (by simp only [s2]; decide))) (LqOk.nil _ _)
+      (XfOk.nil (ht := fun h => absurd h (by simp only [s2]; decide)) (h0 := Ht0)
+        (h1 := fun h => absurd h (by simp only [s2]; decide))) (LqOk.nil _ _)
       $$ Hro Hlg0 Htrk HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 Hsc0
     try wp_auto
     -- `r.becomeFollower(r.Term, None)`
@@ -1490,7 +1491,8 @@ theorem newRaft.wp_proof
       ⟨fun h => absurd h Bool.false_ne_true,
         SnpOk.of_none rfl rfl rfl rfl, rfl⟩
       (fun h => absurd rfl h) (PrvalsOk.not_leader (by simp only [s2]; decide)) (LogNsOk.off rfl)
-      (XfOk.nil (fun h => absurd h (by simp only [s2]; decide))) (LqOk.nil _ _)
+      (XfOk.nil (ht := fun h => absurd h (by simp only [s2]; decide)) (h0 := Ht0)
+        (h1 := fun h => absurd h (by simp only [s2]; decide))) (LqOk.nil _ _)
       $$ Hro Hlg0 Htrk HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 Hsc0
     try wp_auto
     -- `r.becomeFollower(r.Term, None)`

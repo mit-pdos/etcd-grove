@@ -11,9 +11,11 @@ The database's location and the receipts' base are pinned by discarded ghost-map
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Txs
+public import Proof.go_etcd_io.bbolt.Inv.BFileCrash
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.go_etcd_io.bbolt.Logger
 public import Perennial.Proof.sync.PoolDefs
+public import Proof.go_etcd_io.bbolt.Inv.State
 
 @[expose] public section
 
@@ -100,11 +102,80 @@ def dbFixed (γ : GName) (N : Namespace) (db sp : Loc) : IProp GF :=
     sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null ∗
     (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ ⌜logPtrTyped lg⌝))
 
+/-- **The file's mode** (W1 of `plans/bbolt-crash-plan.md` §7; persistent): outside a crash
+invariant (`p.cs = none`), the sync options' values, of which, if the file system does not fail and
+the opened file's meta tails were zero (`metaTailsZero X0`, `Open`'s interim condition until the
+tails are known zero: the crash invariant's reference image needs them), one is on, the opened file's
+bytes `X0` being a database image (`fileOK`: what `TailsZeroOnOpen` speaks of); inside one
+(`p.cs = some c`), its names are bbolt's (closing token `gbq`, namespace `N .@ "crash"`), the file
+system does not fail, the crash invariant (`bCsInv`) and the sync options off (`bSyncs`). So crash
+mode is on iff `NoSync` and `NoGrowSync` are off and the file system does not fail (`Open` chooses it
+then). Either way the registry `gcn` (`B.cn`, `cnReg`) holds the crash invariant's client names
+(W3), `none` outside crash mode. -/
+def bMode (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) : IProp GF :=
+  match p.cs with
+  | none => iprop((∃ (ns ngs : Bool) (X0 : List w8), db.[DB, go!"NoSync"] ↦□ ns ∗
+      db.[DB, go!"NoGrowSync"] ↦□ ngs ∗
+      ⌜(FsNoErr → metaTailsZero X0 → ns = true ∨ ngs = true) ∧
+        ∃ D, fileOK X0 X0.length D ∧ X0.length < 2 ^ 62 ∧ X0.length % 4096 = 0⌝) ∗
+      dghostVar gcn DFrac.discard (none : Option CsG))
+  | some c => iprop(⌜c.gc = gbq ∧ c.N = N .@ "crash" ∧ FsNoErr⌝ ∗ bCsInv p ∗ bSyncs db p ∗
+      dghostVar gcn DFrac.discard (some c.cg))
+
+instance bMode_persistent (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) :
+    Persistent (bMode (GF := GF) gbq gcn N db p) := by
+  unfold bMode; cases p.cs <;> dsimp only <;> infer_instance
+
+/-- **The mode's registry** (W3): the crash invariant's client names, `none` outside crash mode. -/
+theorem bMode_cnReg (B : BNs) (N : Namespace) (db : Loc) (p : BFile) :
+    bMode (GF := GF) B.bq B.cn N db p ⊢ cnReg B (p.cs.map CsN.cg) := by
+  unfold bMode cnReg
+  cases p.cs with
+  | none => dsimp only [Option.map]; iintro ⟨-, #H⟩; iexact H
+  | some c => dsimp only [Option.map]; iintro ⟨-, -, -, #H⟩; iexact H
+
+/-- The mode outside crash mode: the registry is `none`. -/
+theorem bMode_none (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (hc : p.cs = none) :
+    bMode (GF := GF) B.bq B.cn N db p ⊢ cnReg B none := by
+  have h := bMode_cnReg (GF := GF) B N db p
+  rw [hc] at h; exact h
+
+/-- The mode in crash mode: bbolt's names, the file system does not fail, the registry. -/
+theorem bMode_some (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (c : CsN) (hc : p.cs = some c) :
+    bMode (GF := GF) B.bq B.cn N db p ⊢
+      ⌜c.gc = B.bq ∧ c.N = N .@ "crash" ∧ FsNoErr⌝ ∗ cnReg B (some c.cg) := by
+  unfold bMode cnReg
+  rw [hc]; dsimp only
+  iintro ⟨%h, -, -, #H⟩
+  iframe H; ipureintro; exact h
+
+/-- **The file out of its mode** (`Close`): the writer's share of the `OsMeta`, bbolt's share of
+every byte and the closing token (`ghostVar gbq 1 ()`, from the `boltState γ 1` that `DB.Close`
+consumes) give the file whole back; in crash mode by closing the crash invariant
+(`bfile_close`). -/
+theorem bfile_out (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (xs : List ByteG) (hl : xs.length = m.size) :
+    ⊢ bMode (GF := GF) gbq gcn N db p -∗ bMeta p C L m -∗ bBytes p 0 (DFrac.own 1) xs -∗
+      ghostVar gbq 1 () ={⊤}=∗ osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs := by
+  iintro #Hmd Hm Hb Hq
+  unfold bMode
+  cases hc : p.cs with
+  | none =>
+    rw [bMeta_none hc]
+    ihave Hb := (bBytes_none hc 0 (DFrac.own 1) xs).1 $$ Hb
+    imodintro; iframe
+  | some c =>
+    dsimp only
+    icases Hmd with ⟨%hcn, #Hci, -⟩
+    ihave Hd : csDone (GF := GF) c.gc $$ [Hq]
+    · unfold csDone; rw [hcn.1]; iexact Hq
+    iapply bfile_close p c hc C L m xs ⊤ CoPset.subseteq_top hl $$ Hci Hm Hb Hd
+
 /-- **The core of an open database** at `db` (design §3.8, round 2 F1), with its path `p`,
 statistics pointer `sp` and receipts' base `t0`; its namespace disjoint from OsFs's (batch 37:
 `Open`'s premise; `store_cells_agree` opens `pagesInv` around an OsFs step); the receipts' bound
 at most `2 ^ 62` (maintainer 12, item 1: `Open`'s `ReceiptBoundLe GF (2 ^ 62)`, recorded so that
-`Commit` bounds the next txid, `receipt_txid_lt`). -/
+`Commit` bounds the next txid, `receipt_txid_lt`); the file's mode (`bMode`, W1). -/
 def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) :
     IProp GF :=
   iprop(dblAt B db ∗ t0At B t0 p.ino ∗
@@ -113,7 +184,7 @@ def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 
     sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (Pm B db) ∗
     sync.isRWMutexGuard db.[DB, go!"statlock"] (Ps sp) ∗
-    inv (pagesN N) (pagesInv B p) ∗ inv (txsN N) (txsInv B p sp t0))
+    inv (pagesN N) (pagesInv B p) ∗ inv (txsN N) (txsInv B p sp t0) ∗ bMode B.bq B.cn N db p)
 
 /-- The core of an open database (what `beginTx`, `removeTx`, `freepages` and `loadFreelist`
 need). -/
@@ -160,6 +231,35 @@ theorem isBoltCoreP_txid_lt (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp
 instance isBoltCoreP_persistent (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) : Persistent (isBoltCoreP (GF := GF) B N db p sp t0) := by
   unfold isBoltCoreP dblAt t0At dbFixed dbLogger; infer_instance
+
+/-- The core's file mode. -/
+theorem isBoltCoreP_mode (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) :
+    isBoltCoreP (GF := GF) B N db p sp t0 ⊢ bMode B.bq B.cn N db p := by
+  unfold isBoltCoreP
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, #H⟩
+  iexact H
+
+/-- **The core's crash invariant**, if any, and its namespace outside OsFs's. -/
+theorem isBoltCoreP_bfile (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) :
+    isBoltCoreP (GF := GF) B N db p sp t0 ⊢ bCsInv p ∗ ⌜bNsOk p⌝ := by
+  unfold isBoltCoreP
+  iintro ⟨-, -, %H, -, -, -, -, -, -, -, -, #Hm⟩
+  have hN : (↑N : CoPset) ## ↑osN := H.2.2
+  unfold bMode
+  cases hc : p.cs with
+  | none =>
+    isplitl
+    · iapply bCsInv_none hc
+    · ipureintro; exact bNsOk_none hc
+  | some c =>
+    dsimp only
+    icases Hm with ⟨%hcn, #Hci, -⟩
+    iframe Hci
+    ipureintro
+    intro c' hc' x hx
+    rw [hc] at hc'; cases hc'
+    exact CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp =>
+      hN x ⟨nclose_subseteq N "crash" x (hcn.2.1 ▸ hp), hx⟩⟩
 
 instance isBoltCore_persistent (B : BNs) (N : Namespace) (db : Loc) :
     Persistent (isBoltCore (GF := GF) B N db) := by

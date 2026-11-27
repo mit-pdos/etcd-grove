@@ -5,6 +5,11 @@ The proofs of `Spec/os/CrashSt.lean`: the models' loops as in `Proof/os/OpenFile
 keeps what its attempts may have made of the state (`CsOpenInv`); a write's loop keeps a state it
 reached (`WReach`), with the bytes written so far (`fin_vals`); a truncate's a state not yet grown
 (its `OsMeta` as given or as an attempt announced it) or grown. Lean-first (no Rocq counterpart).
+
+But for the open, each loop is proved once (`<F>.wp_crashG`, of `<F>.tripleCrashG`) over any crash
+invariant `I` with an accessor (`CsAcc`, the caller's part `csOwnG Tok`), on the steps' generic forms
+(`wp_..._g`); `<F>.wp_proof_crashS` (`csInv`, `cs_acc`) and `<F>.wp_proof_crashI` (`csInvI`,
+`csI_acc`; `Spec/os/CrashStI.lean`) are its instances.
 -/
 module
 
@@ -12,6 +17,8 @@ public import Proof.os.ErrorOk
 public import Proof.os.IgnoringEINTR
 public import Proof.os.ForLoeb
 public import Spec.os.CrashSt
+public import Spec.os.CrashStI
+public import Proof.os.CrashStIOps
 public import Proof.golang_org.x.sys.unix.Munmap
 public import Perennial.Golang.Theory.Plain
 
@@ -31,13 +38,29 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-theorem syscall.Fdatasync.wp_proof_crashS [syscall.Assumptions] :
-    syscall.Fdatasync.specCrashS (GF := GF) (hG := hG) := by
-  intro fd dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
+variable [syscall.Assumptions] in
+/-- `syscall.Fdatasync.specCrashS` over any crash invariant with an accessor (`CsAcc`). -/
+abbrev syscall.Fdatasync.tripleCrashG : Prop :=
+  ∀ (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
+    (_hacc : CsAcc (GF := GF) N I Tok Ok d.ino) (m : OsMeta) (H F T : List ByteG)
+    (fa fb : Nat),
+  H.length = fa → fa + F.length = fb → (∀ y ∈ F, y = durB y.1) →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (csSynced m H F T fa fb) →
+  {{ osInv (GF := GF) ∗ I ∗ osFd (GF := GF) fd dq d ∗
+      csOwnG (GF := GF) Tok d.ino ⟨m, H ++ (F ++ T), fa, fb, .idle⟩ }}
+    (App (Val (@! syscall.Fdatasync)) (Val #fd))
+  {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
+      ((⌜e = 0⌝ ∗ csOwnG (GF := GF) Tok d.ino (csSynced m H F T fa fb)) ∨
+       (⌜e ≠ 0⌝ ∗
+         csOwnG (GF := GF) Tok d.ino ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)) }}
+
+theorem syscall.Fdatasync.wp_crashG [syscall.Assumptions] :
+    syscall.Fdatasync.tripleCrashG (GF := GF) (hG := hG) := by
+  intro fd dq d N I _ Tok Ok hacc m H F T fa fb hH hF hFd hN hok
   wp_start as ⟨#Hos, #Hinv, Hfd, Hown⟩
   try wp_auto
   wp_stub syscall.fsFsync.impl
-  wp_apply wp_osFsync_cs fd dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
+  wp_apply wp_osFsync_g fd dq d N I Tok Ok hacc m H F T fa fb hH hF hFd hN hok
     $$ Hos Hinv Hfd Hown
     as %e Hr Hfd
   try wp_auto
@@ -49,16 +72,51 @@ theorem syscall.Fdatasync.wp_proof_crashS [syscall.Assumptions] :
   · ileft; iframe; ipureintro; exact he
   · iright; iframe; ipureintro; exact he.1
 
-theorem golang_org.x.sys.unix.Mmap.wp_proof_crashS [golang_org.x.sys.unix.Assumptions] :
-    golang_org.x.sys.unix.Mmap.specCrashS (GF := GF) (hG := hG) := by
-  intro fd off len prot fl dq d N P R γ Good Ok m bs fa fb hrd hoff hlen hprot hfl hN hok
+theorem syscall.Fdatasync.wp_proof_crashS [syscall.Assumptions] :
+    syscall.Fdatasync.specCrashS (GF := GF) (hG := hG) := by
+  intro fd dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
+  exact syscall.Fdatasync.wp_crashG fd dq d N (csInv (GF := GF) N P R γ Good Ok)
+    (fun s => ghostVar γ (1 : Qp).half (some (d.ino, s) : CState))
+    (fun s => Ok (some (d.ino, s))) (cs_acc N P R γ Good Ok d.ino) m H F T fa fb hH hF hFd hN hok
+
+theorem syscall.Fdatasync.wp_proof_crashI [syscall.Assumptions] :
+    syscall.Fdatasync.specCrashI (GF := GF) (hG := hG) := by
+  intro A _ fd dq d N i γ γa γc Ok a m H F T fa fb hi hH hF hFd hN hok
+  subst hi
+  exact syscall.Fdatasync.wp_crashG fd dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a)
+    (csI_acc N d.ino γ γa γc Ok a) m H F T fa fb hH hF hFd hN hok
+
+variable [golang_org.x.sys.unix.Assumptions] in
+/-- `golang_org.x.sys.unix.Mmap.specCrashS` over any crash invariant with an accessor (`CsAcc`). -/
+abbrev golang_org.x.sys.unix.Mmap.tripleCrashG : Prop :=
+  ∀ (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
+    (_hacc : CsAcc (GF := GF) N I Tok Ok d.ino) (m : OsMeta)
+    (bs : List ByteG) (fa fb : Nat),
+  d.readable = true → off = 0 → 0 < len.toInt → prot.toNat = PROT_READ →
+  (fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
+  (∀ base : Loc,
+    Ok ⟨{ m with maps := <[base := len.toNat]> m.maps }, bs, fa, fb, .idle⟩) →
+  {{ osInv (GF := GF) ∗ I ∗ osFd (GF := GF) fd dq d ∗
+      csOwnG (GF := GF) Tok d.ino ⟨m, bs, fa, fb, .idle⟩ }}
+    (App (App (App (App (App (Val (@! golang_org.x.sys.unix.Mmap)) (Val #fd)) (Val #off))
+      (Val #len)) (Val #prot)) (Val #fl))
+  {{ (sl : GoSlice) (e : w64), RET (PairV #sl #(errnoErr e)); osFd fd dq d ∗
+      ((∃ base : Loc, ⌜e = 0 ∧ sl = ⟨base, len, len⟩⌝ ∗
+          csOwnG (GF := GF) Tok d.ino ⟨{ m with maps := <[base := len.toNat]> m.maps }, bs, fa, fb, .idle⟩ ∗
+          ∃ bs0 : List w8, ⌜bs0.length = m.size⌝ ∗
+            cellsR base 0 len.toNat (fun i => toCellVal bs0[i]?)) ∨
+       (⌜e ≠ 0 ∧ sl = slice.nil⌝ ∗ csOwnG (GF := GF) Tok d.ino ⟨m, bs, fa, fb, .idle⟩)) }}
+
+theorem golang_org.x.sys.unix.Mmap.wp_crashG [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Mmap.tripleCrashG (GF := GF) (hG := hG) := by
+  intro fd off len prot fl dq d N I _ Tok Ok hacc m bs fa fb hrd hoff hlen hprot hfl hN hok
   wp_start as ⟨#Hos, #Hinv, Hfd, Hown⟩
   have hl : ¬ (sint.Z len ≤ sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega
   rw [decide_eq_false hl]
   try wp_auto
   -- PORT: which stub? (Mmap)
-  wp_apply wp_osMmap_cs fd off len prot fl dq d N P R γ Good Ok m bs fa fb hN hrd hoff hlen hprot
+  wp_apply wp_osMmap_g fd off len prot fl dq d N I Tok Ok hacc m bs fa fb hN hrd hoff hlen hprot
     hfl hok
     $$ Hos Hinv Hfd Hown as %base %e Hr Hfd
   icases Hr with (⟨%he, Hown, Hc⟩ | ⟨%he, Hown⟩)
@@ -92,9 +150,40 @@ theorem golang_org.x.sys.unix.Mmap.wp_proof_crashS [golang_org.x.sys.unix.Assump
     iframe
     ipureintro; exact ⟨he, rfl⟩
 
-theorem golang_org.x.sys.unix.Munmap.wp_proof_crashS [golang_org.x.sys.unix.Assumptions] :
-    golang_org.x.sys.unix.Munmap.specCrashS (GF := GF) (hG := hG) := by
-  intro base len p N P R γ Good Ok m bs fa fb vf hpos hb hN hok
+theorem golang_org.x.sys.unix.Mmap.wp_proof_crashS [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Mmap.specCrashS (GF := GF) (hG := hG) := by
+  intro fd off len prot fl dq d N P R γ Good Ok m bs fa fb hrd hoff hlen hprot hfl hN hok
+  exact golang_org.x.sys.unix.Mmap.wp_crashG fd off len prot fl dq d N (csInv (GF := GF) N P R γ Good Ok)
+    (fun s => ghostVar γ (1 : Qp).half (some (d.ino, s) : CState))
+    (fun s => Ok (some (d.ino, s))) (cs_acc N P R γ Good Ok d.ino) m bs fa fb hrd hoff hlen hprot hfl hN hok
+
+theorem golang_org.x.sys.unix.Mmap.wp_proof_crashI [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Mmap.specCrashI (GF := GF) (hG := hG) := by
+  intro A _ fd off len prot fl dq d N i γ γa γc Ok a m bs fa fb hi hrd hoff hlen hprot hfl hN hok
+  subst hi
+  exact golang_org.x.sys.unix.Mmap.wp_crashG fd off len prot fl dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a)
+    (csI_acc N d.ino γ γa γc Ok a) m bs fa fb hrd hoff hlen hprot hfl hN hok
+
+variable [golang_org.x.sys.unix.Assumptions] in
+/-- `golang_org.x.sys.unix.Munmap.specCrashS` over any crash invariant with an accessor (`CsAcc`). -/
+abbrev golang_org.x.sys.unix.Munmap.tripleCrashG : Prop :=
+  ∀ (base : Loc) (len : w64) (i : Ino) (N : Namespace) (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
+    (_hacc : CsAcc (GF := GF) N I Tok Ok i) (m : OsMeta) (bs : List ByteG)
+    (fa fb : Nat) (vf : Nat → val),
+  0 < len.toInt → m.maps !! base = some len.toNat → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
+  Ok ⟨{ m with maps := GMap.delete base m.maps }, bs, fa, fb, .idle⟩ →
+  {{ osInv (GF := GF) ∗ I ∗
+      csOwnG (GF := GF) Tok i ⟨m, bs, fa, fb, .idle⟩ ∗ cellsR (GF := GF) base 0 len.toNat vf }}
+    (App (Val (@! golang_org.x.sys.unix.Munmap)) (Val #(⟨base, len, len⟩ : GoSlice)))
+  {{ (e : w64), RET #(errnoErr e);
+      (⌜e = 0⌝ ∗ csOwnG (GF := GF) Tok i ⟨{ m with maps := GMap.delete base m.maps }, bs, fa, fb, .idle⟩) ∨
+      (⌜e ≠ 0⌝ ∗
+        (csOwnG (GF := GF) Tok i ⟨{ m with maps := GMap.delete base m.maps }, bs, fa, fb, .idle⟩ ∨
+         (csOwnG (GF := GF) Tok i ⟨m, bs, fa, fb, .idle⟩ ∗ cellsR base 0 len.toNat vf))) }}
+
+theorem golang_org.x.sys.unix.Munmap.wp_crashG [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Munmap.tripleCrashG (GF := GF) (hG := hG) := by
+  intro base len p N I _ Tok Ok hacc m bs fa fb vf hpos hb hN hok
   wp_start as ⟨#Hos, #Hinv, Hown, Hc⟩
   by_cases hl0 : len = W64 0
   · rw [decide_eq_true hl0]
@@ -118,16 +207,46 @@ theorem golang_org.x.sys.unix.Munmap.wp_proof_crashS [golang_org.x.sys.unix.Assu
     rw [hb0]
     try wp_auto
     -- PORT: which stub? (Munmap)
-    wp_apply wp_osMunmap_cs base len len p N P R γ Good Ok m bs fa fb len.toNat vf hN hb rfl rfl hok
+    wp_apply wp_osMunmap_g base len len p N I Tok Ok hacc m bs fa fb len.toNat vf hN hb rfl rfl hok
       $$ Hos Hinv Hown Hc as %e Hr
     iapply wp_errno
     iapply HΦ
     iexact Hr
 
+theorem golang_org.x.sys.unix.Munmap.wp_proof_crashS [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Munmap.specCrashS (GF := GF) (hG := hG) := by
+  intro base len p N P R γ Good Ok m bs fa fb vf hpos hb hN hok
+  exact golang_org.x.sys.unix.Munmap.wp_crashG base len p N (csInv (GF := GF) N P R γ Good Ok)
+    (fun s => ghostVar γ (1 : Qp).half (some (p, s) : CState))
+    (fun s => Ok (some (p, s))) (cs_acc N P R γ Good Ok p) m bs fa fb vf hpos hb hN hok
+
+theorem golang_org.x.sys.unix.Munmap.wp_proof_crashI [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Munmap.specCrashI (GF := GF) (hG := hG) := by
+  intro A _ base len p N γ γa γc Ok a m bs fa fb vf hpos hb hN hok
+  exact golang_org.x.sys.unix.Munmap.wp_crashG base len p N (csInvI (GF := GF) N p γ γa γc Ok) (csTokI γ γa a) (Ok a)
+    (csI_acc N p γ γa γc Ok a) m bs fa fb vf hpos hb hN hok
+
 variable [os.Assumptions]
 
-theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG := hG) := by
-  intro f fd name dqf dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
+/-- `os.File.Sync.specCrashS` over any crash invariant with an accessor (`CsAcc`). -/
+abbrev os.File.Sync.tripleCrashG : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (N : Namespace)
+    (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
+    (_hacc : CsAcc (GF := GF) N I Tok Ok d.ino)
+    (m : OsMeta) (H F T : List ByteG) (fa fb : Nat),
+  H.length = fa → fa + F.length = fb → (∀ y ∈ F, y = durB y.1) →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (csSynced m H F T fa fb) →
+  {{ osInv (GF := GF) ∗ I ∗ os.ownFile (GF := GF) f fd name dqf ∗
+      osFd (GF := GF) fd dq d ∗
+      csOwnG (GF := GF) Tok d.ino ⟨m, H ++ (F ++ T), fa, fb, .idle⟩ }}
+    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
+  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+      ((⌜err = interface.nil⌝ ∗ csOwnG (GF := GF) Tok d.ino (csSynced m H F T fa fb)) ∨
+       (⌜err ≠ interface.nil⌝ ∗
+         csOwnG (GF := GF) Tok d.ino ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)) }}
+
+theorem os.File.Sync.wp_crashG : os.File.Sync.tripleCrashG (GF := GF) (hG := hG) := by
+  intro f fd name dqf dq d N I _ Tok Ok hacc m H F T fa fb hH hF hFd hN hok
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hown⟩
   ihave #Hf2 := Hf
@@ -139,7 +258,7 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
   try wp_auto
   wp_for
   wp_stub os.fsFsync.impl
-  wp_apply wp_osFsync_cs fd dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
+  wp_apply wp_osFsync_g fd dq d N I Tok Ok hacc m H F T fa fb hH hF hFd hN hok
     $$ Hos Hinv Hosfd Hown as %e Hr Hosfd
   by_cases he4 : e = W64 4
   · icases Hr with (⟨%he, -⟩ | ⟨%he, -⟩)
@@ -172,6 +291,18 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
     iright
     iframe
     ipureintro; intro h; cases h
+
+theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG := hG) := by
+  intro f fd name dqf dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
+  exact os.File.Sync.wp_crashG f fd name dqf dq d N (csInv (GF := GF) N P R γ Good Ok)
+    (fun s => ghostVar γ (1 : Qp).half (some (d.ino, s) : CState))
+    (fun s => Ok (some (d.ino, s))) (cs_acc N P R γ Good Ok d.ino) m H F T fa fb hH hF hFd hN hok
+
+theorem os.File.Sync.wp_proof_crashI : os.File.Sync.specCrashI (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf dq d N i γ γa γc Ok a m H F T fa fb hi hH hF hFd hN hok
+  subst hi
+  exact os.File.Sync.wp_crashG f fd name dqf dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a)
+    (csI_acc N d.ino γ γa γc Ok a) m H F T fa fb hH hF hFd hN hok
 
 theorem os.OpenFile.wp_proof_crashS :
     os.OpenFile.specCrashS (GF := GF) (hG := hG) := by
@@ -341,12 +472,41 @@ theorem os.OpenFile.wp_proof_crashS :
         simp only [← heq]
         iexact Hown
 
-theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl data dqs off dq d N P R γ Good Ok m bs fa fb hwr hoff hgap hbig hn hn2
-    hN hfz hW
+/-- `os.File.WriteAt.specCrashS` over any crash invariant with an accessor (`CsAcc`). -/
+abbrev os.File.WriteAt.tripleCrashG : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
+    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
+    (_hacc : CsAcc (GF := GF) N I Tok Ok d.ino) (m : OsMeta)
+    (bs : List ByteG) (fa fb : Nat),
+  d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
+  0 < data.length → data.length ≤ 0x40000000 →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → (off.toNat + data.length ≤ fa ∨ fb ≤ off.toNat) →
+  (∀ nn m' bs', WReach m bs off.toNat data nn m' bs' →
+    Ok ⟨m', bs', fa, fb, .idle⟩ ∧ (nn < data.length → ∀ t n,
+      PwFresh m' bs' (off.toNat + nn) (data.drop nn) n →
+      Ok ⟨m', bs', fa, fb, .write t (off.toNat + nn) (data.drop nn) n⟩)) →
+  {{ osInv (GF := GF) ∗ I ∗ os.ownFile (GF := GF) f fd name dqf ∗
+      sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗
+      csOwnG (GF := GF) Tok d.ino ⟨m, bs, fa, fb, .idle⟩ ∗
+      mcellsAny (GF := GF) m.maps off.toNat (off.toNat + data.length) }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
+      mcellsAny m.maps off.toNat (off.toNat + data.length) ∗
+      ∃ (nn : Nat) (m' : OsMeta) (bs' : List ByteG),
+        ⌜WReach m bs off.toNat data nn m' bs' ∧
+          ((n = W64 data.length ∧ err = interface.nil ∧ nn = data.length ∧
+              off.toNat + data.length ≤ m'.size ∧
+              ∀ i < data.length, (bs'[off.toNat + i]?).map Prod.fst = data[i]?) ∨
+           (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
+        csOwnG (GF := GF) Tok d.ino ⟨m', bs', fa, fb, .idle⟩ }}
+
+theorem os.File.WriteAt.wp_crashG : os.File.WriteAt.tripleCrashG (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl data dqs off dq d N I _ Tok Ok hacc m bs fa fb hwr hoff hgap hbig hn hn2 hN hfz hW
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hsl, Hosfd, Hown, Hc⟩
-  icases csOwnF_wf _ _ $$ Hown with %Hwf
+  icases csOwnG_wf _ _ _ $$ Hown with %Hwf
   have hlen : bs.length = m.size := Hwf.1
   ihave #Hf2 := Hf
   iStructNamed Hf2
@@ -377,8 +537,8 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   have hS : off.toNat + nnv.toNat ≤ m'.size := by subst hnnv hm'; exact hgap
   have hpre : ∀ i < nnv.toNat, (bs'[off.toNat + i]?).map Prod.fst = data[i]? := by
     subst hnnv; intro i hi; exact absurd hi (Nat.not_lt_zero _)
-  ihave Hown := (show csOwnF (GF := GF) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)) ⊢
-    csOwnF γ (some (d.ino, ⟨m', bs', fa, fb, .idle⟩)) by rw [hm', hbs']) $$ Hown
+  ihave Hown := (show csOwnG (GF := GF) Tok d.ino ⟨m, bs, fa, fb, .idle⟩ ⊢
+    csOwnG (GF := GF) Tok d.ino ⟨m', bs', fa, fb, .idle⟩ by rw [hm', hbs']) $$ Hown
   clear hm' hbs' hnnv
   wp_for_bind
   iloeb as IH generalizing %m' %bs' %nnv %hR %hnn %hS %hpre Hown Hosfd Hsl Hfd Hc HΦ
@@ -425,21 +585,20 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
       by rw [hcl, hend, hNar.maps]) $$ Hc2
   have hdne : data.drop nnv.toNat ≠ [] := by
     intro h; have := congrArg List.length h; rw [hdl] at this; simp at this; omega
-  have hW1 : ∀ t n, PwFresh m' bs' (off + nnv).toNat (data.drop nnv.toNat) n → Ok (some (d.ino,
-      ⟨m', bs', fa, fb, .write t (off + nnv).toNat (data.drop nnv.toNat) n⟩)) := by
+  have hW1 : ∀ t n, PwFresh m' bs' (off + nnv).toNat (data.drop nnv.toNat) n →
+      Ok ⟨m', bs', fa, fb, .write t (off + nnv).toNat (data.drop nnv.toNat) n⟩ := by
     intro t n hfr; rw [hoffv] at hfr ⊢; exact (hW _ _ _ hR).2 hnn t n hfr
   try wp_auto
   wp_stub os.fsPWrite.impl
-  wp_apply wp_osPWriteStart_cs fd (off + nnv) (data.drop nnv.toNat) dq d N P R γ Good Ok m' bs' fa fb
+  wp_apply wp_osPWriteStart_g fd (off + nnv) (data.drop nnv.toNat) dq d N I Tok Ok hacc m' bs' fa fb
     hN hwr hoffv' hgap' hdne hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t %nst %hfr Hosfd Hown
   have hW2 : ∀ k (zs : List Cands), k ≤ (data.drop nnv.toNat).length → (off + nnv).toNat ≤ m'.size →
       zs.length = pwSize m'.size (off + nnv).toNat k - m'.size → ZsOk m' zs →
-      Ok (some (d.ino,
-      ⟨pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst,
-        finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs, fa, fb, .idle⟩)) := by
+      Ok ⟨pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst,
+        finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs, fa, fb, .idle⟩ := by
     intro k zs hk _ hzl hz; rw [hoffv] at hzl ⊢
     exact (hW _ _ _ (hR.step k _ nst zs hnn (by rw [hdl] at hk; exact hk) (.inl rfl) hzl hz (by rw [hoffv] at hfr; exact hfr))).1
-  wp_apply wp_osPWriteFinish_cs t d.ino (off + nnv).toNat (data.drop nnv.toNat) nst N P R γ Good Ok m'
+  wp_apply wp_osPWriteFinish_g t d.ino (off + nnv).toNat (data.drop nnv.toNat) nst N I Tok Ok hacc m'
     bs' fa fb hN hW2 $$ Hos Hinv Hown as %k %e %zs %hke Hown Hc2
   obtain ⟨hk, hke, -, hzl, hzt⟩ := hke
   rw [hdl] at hk
@@ -533,8 +692,44 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
 
-theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF) (hG := hG) := by
-  intro f fd name dqf sz dq d N P R γ Good Ok m bs fa fb hfd0 hwr hsz hgrow hN hT
+theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl data dqs off dq d N P R γ Good Ok m bs fa fb hwr hoff hgap hbig hn hn2 hN hfz hW
+  exact os.File.WriteAt.wp_crashG f fd name dqf sl data dqs off dq d N (csInv (GF := GF) N P R γ Good Ok)
+    (fun s => ghostVar γ (1 : Qp).half (some (d.ino, s) : CState))
+    (fun s => Ok (some (d.ino, s))) (cs_acc N P R γ Good Ok d.ino) m bs fa fb hwr hoff hgap hbig hn hn2 hN hfz hW
+
+theorem os.File.WriteAt.wp_proof_crashI : os.File.WriteAt.specCrashI (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf sl data dqs off dq d N i γ γa γc Ok a m bs fa fb hi hwr hoff hgap hbig hn hn2 hN hfz hW
+  subst hi
+  exact os.File.WriteAt.wp_crashG f fd name dqf sl data dqs off dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a)
+    (csI_acc N d.ino γ γa γc Ok a) m bs fa fb hwr hoff hgap hbig hn hn2 hN hfz hW
+
+/-- `os.File.Truncate.specCrashS` over any crash invariant with an accessor (`CsAcc`). -/
+abbrev os.File.Truncate.tripleCrashG : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64) (dq : DFrac) (d : OsFd)
+    (N : Namespace) (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
+    (_hacc : CsAcc (GF := GF) N I Tok Ok d.ino) (m : OsMeta) (bs : List ByteG) (fa fb : Nat),
+  0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.size ≤ sz.toNat →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N →
+  (∀ m' bs', TReach m bs sz.toNat m' bs' →
+    Ok ⟨m', bs', fa, fb, .idle⟩ ∧
+      ∀ t n, Ok ⟨m', bs', fa, fb, .trunc t sz.toNat n⟩) →
+  {{ osInv (GF := GF) ∗ I ∗ os.ownFile (GF := GF) f fd name dqf ∗
+      osFd (GF := GF) fd dq d ∗ csOwnG (GF := GF) Tok d.ino ⟨m, bs, fa, fb, .idle⟩ ∗
+      mcellsAny (GF := GF) m.maps m.size (rsHi true m.size sz.toNat) }}
+    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
+  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
+          csGrownOwnG (GF := GF) Tok d.ino m0 bs fa fb sz.toNat n) ∨
+       (⌜err ≠ interface.nil⌝ ∗
+         ((∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
+          csGrownOwnG (GF := GF) Tok d.ino m0 bs fa fb sz.toNat n) ∨
+          (csOwnG (GF := GF) Tok d.ino ⟨m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
+              bs, fa, fb, .idle⟩ ∗
+            mcellsAny m.maps m.size (rsHi true m.size sz.toNat))))) }}
+
+theorem os.File.Truncate.wp_crashG : os.File.Truncate.tripleCrashG (GF := GF) (hG := hG) := by
+  intro f fd name dqf sz dq d N I _ Tok Ok hacc m bs fa fb hfd0 hwr hsz hgrow hN hT
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hown, Hc⟩
   ihave #Hf2 := Hf
@@ -551,9 +746,9 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
   have hmin : min m.size sz.toNat = m.size := Nat.min_eq_left hgrow
   -- the loop's states: not grown yet (`m`, or as an attempt announced it), or grown
   ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
-      csOwnF γ (some (d.ino, ⟨m0, bs, fa, fb, .idle⟩)) ∗ mcellsAny m.maps m.size (rsHi true m.size sz.toNat)) ∨
+      csOwnG (GF := GF) Tok d.ino ⟨m0, bs, fa, fb, .idle⟩ ∗ mcellsAny m.maps m.size (rsHi true m.size sz.toNat)) ∨
       (∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
-        csGrownOwn d.ino γ m0 bs fa fb sz.toNat n) $$ [Hown Hc]
+        csGrownOwnG (GF := GF) Tok d.ino m0 bs fa fb sz.toNat n) $$ [Hown Hc]
   · ileft; iexists m; iframe; ipureintro; exact .inl rfl
   wp_for_bind
   iloeb as IH generalizing HS Hosfd Hfd HΦ
@@ -567,7 +762,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
       mcellsAny m0.maps m0.size (rsHi true m0.size sz.toNat) by rw [hsz0, hmp0]) $$ Hc
     try wp_auto
     wp_stub os.fsFtruncate.impl
-    wp_apply wp_osFtruncateStart_cs fd sz dq d N P R γ Good Ok m0 bs fa fb hN hwr hsz
+    wp_apply wp_osFtruncateStart_g fd sz dq d N I Tok Ok hacc m0 bs fa fb hN hwr hsz
       (by rw [hsz0]; exact hgrow) (hT _ _ hR0).2 $$ Hos Hinv Hosfd Hown Hc as %t %n Hosfd Hown
     have hpost : rsPost true m0 sz.toNat sz.toNat = rsPost true m sz.toNat sz.toNat := by
       rcases hm0 with rfl | rfl
@@ -579,12 +774,12 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
       · rfl
       · exact os.announce_idem _ _ _ _
     have hokG : ∀ zs : List Cands, zs.length = sz.toNat - m0.size →
-        Ok (some (d.ino, ⟨rsPost true m0 sz.toNat sz.toNat,
-          bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩)) := by
+        Ok ⟨rsPost true m0 sz.toNat sz.toNat,
+          bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩ := by
       intro zs hz; rw [hpost]; rw [hsz0] at hz; exact (hT _ _ (.grown n zs hz)).1
-    have hokF : Ok (some (d.ino, ⟨m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat,
-        bs, fa, fb, .idle⟩)) := by rw [hann]; exact (hT _ _ .ann).1
-    wp_apply wp_osFtruncateFinish_cs t d.ino sz.toNat n N P R γ Good Ok m0 bs fa fb hN hokG hokF
+    have hokF : Ok ⟨m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat,
+        bs, fa, fb, .idle⟩ := by rw [hann]; exact (hT _ _ .ann).1
+    wp_apply wp_osFtruncateFinish_g t d.ino sz.toNat n N I Tok Ok hacc m0 bs fa fb hN hokG hokF
       $$ Hos Hinv Hown as %e Hr
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
@@ -640,7 +835,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
       rcases hm0 with rfl | rfl
       · rfl
       · exact os.rsPost_announce _ _ _ _
-    iunfold csGrownOwn at Hg
+    iunfold csGrownOwnG at Hg
     icases Hg with ⟨%zs, %hzs, Hown, Hcs⟩
     have hR0 : TReach m bs sz.toNat (rsPost true m0 sz.toNat sz.toNat)
         (bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)]))) := by
@@ -658,28 +853,28 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         (rsHi true (rsPost true m0 sz.toNat sz.toNat).size sz.toNat) by rw [hgsz, hgmaps, hRR]) $$ Hc0
     try wp_auto
     wp_stub os.fsFtruncate.impl
-    wp_apply wp_osFtruncateStart_cs fd sz dq d N P R γ Good Ok _ _ fa fb hN hwr hsz
+    wp_apply wp_osFtruncateStart_g fd sz dq d N I Tok Ok hacc _ _ fa fb hN hwr hsz
       (by rw [hgsz]; exact Nat.le_refl _) (hT _ _ hR0).2 $$ Hos Hinv Hosfd Hown Hc0 as %t %n Hosfd Hown
     have hokG : ∀ zs' : List Cands, zs'.length = sz.toNat - (rsPost true m0 sz.toNat sz.toNat).size →
-        Ok (some (d.ino, ⟨rsPost true (rsPost true m0 sz.toNat sz.toNat) sz.toNat sz.toNat,
+        Ok ⟨rsPost true (rsPost true m0 sz.toNat sz.toNat) sz.toNat sz.toNat,
           (bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)]))) ++
-            zs'.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩)) := by
+            zs'.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩ := by
       intro zs' hz
       rw [hgsz, Nat.sub_self] at hz
       rw [List.eq_nil_of_length_eq_zero hz, List.map_nil, List.append_nil, os.rsPost_rsPost]
       exact (hT _ _ hR0).1
-    have hokF : Ok (some (d.ino, ⟨(rsPost true m0 sz.toNat sz.toNat).announce
+    have hokF : Ok ⟨(rsPost true m0 sz.toNat sz.toNat).announce
         (min (rsPost true m0 sz.toNat sz.toNat).size sz.toNat)
         (rsHi true (rsPost true m0 sz.toNat sz.toNat).size sz.toNat)
-        sz.toNat, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) := by
+        sz.toNat, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩ := by
       rw [os.announce_rsPost]; exact (hT _ _ hR0).1
-    wp_apply wp_osFtruncateFinish_cs t d.ino sz.toNat n N P R γ Good Ok _ _ fa fb hN hokG hokF
+    wp_apply wp_osFtruncateFinish_g t d.ino sz.toNat n N I Tok Ok hacc _ _ fa fb hN hokG hokF
       $$ Hos Hinv Hown as %e Hr
     -- the state is the grown one again
-    ihave Hown : csOwnF (GF := GF) γ (some (d.ino, ⟨rsPost true m0 sz.toNat sz.toNat,
-        bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) ∗
+    ihave Hown : csOwnG (GF := GF) Tok d.ino ⟨rsPost true m0 sz.toNat sz.toNat,
+        bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩ ∗
         mcells m0.maps sz.toNat (rsHi true m0.size sz.toNat) (rsCell sz.toNat) $$ [Hr]
-    · unfold csGrownOwn
+    · unfold csGrownOwnG
       icases Hr with (⟨-, ⟨%zs', %hzs', Hown, Hc⟩⟩ | ⟨-, (⟨%zs', %hzs', Hown, Hc⟩ | ⟨Hown, Hc⟩)⟩)
       · rw [hgsz, Nat.sub_self] at hzs'
         rw [List.eq_nil_of_length_eq_zero hzs'.1, List.map_nil, List.append_nil, os.rsPost_rsPost] at *
@@ -693,11 +888,11 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
             (rsHi true sz.toNat sz.toNat) sz.toNat = rsPost true m0 sz.toNat sz.toNat :=
           os.announce_rsPost true m0 sz.toNat
         isplitl [Hown]
-        · iapply (show csOwnF (GF := GF) γ (some (d.ino, ⟨(rsPost true m0 sz.toNat sz.toNat).announce
+        · iapply (show csOwnG (GF := GF) Tok d.ino ⟨(rsPost true m0 sz.toNat sz.toNat).announce
               (min sz.toNat sz.toNat) (rsHi true sz.toNat sz.toNat) sz.toNat,
-              bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) ⊢
-            csOwnF γ (some (d.ino, ⟨rsPost true m0 sz.toNat sz.toNat,
-              bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) by rw [hA])
+              bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩ ⊢
+            csOwnG (GF := GF) Tok d.ino ⟨rsPost true m0 sz.toNat sz.toNat,
+              bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩ by rw [hA])
           iexact Hown
         · rw [← hRR, touch_maps]
           iapply (mcells_congr_iff (GF := GF) _ _ _ _ _ (fun i h1 _ => by
@@ -706,8 +901,8 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
     ihave Hcs := (mcells_split (GF := GF) m0.maps m0.size sz.toNat (rsHi true m0.size sz.toNat) _
       (by omega) (by omega)).2 $$ [Hc1 Hc2]
     · iframe
-    ihave Hg : csGrownOwn (GF := GF) d.ino γ m0 bs fa fb sz.toNat n0 $$ [Hown Hcs]
-    · unfold csGrownOwn; iexists zs; iframe; ipureintro; exact hzs
+    ihave Hg : csGrownOwnG (GF := GF) Tok d.ino m0 bs fa fb sz.toNat n0 $$ [Hown Hcs]
+    · unfold csGrownOwnG; iexists zs; iframe; ipureintro; exact hzs
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       try wp_auto
@@ -740,6 +935,18 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iright
         isplitr; · ipureintro; intro h; cases h
         ileft; iexists n0, m0; iframe; ipureintro; exact hm0
+
+theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF) (hG := hG) := by
+  intro f fd name dqf sz dq d N P R γ Good Ok m bs fa fb hfd0 hwr hsz hgrow hN hT
+  exact os.File.Truncate.wp_crashG f fd name dqf sz dq d N (csInv (GF := GF) N P R γ Good Ok)
+    (fun s => ghostVar γ (1 : Qp).half (some (d.ino, s) : CState))
+    (fun s => Ok (some (d.ino, s))) (cs_acc N P R γ Good Ok d.ino) m bs fa fb hfd0 hwr hsz hgrow hN hT
+
+theorem os.File.Truncate.wp_proof_crashI : os.File.Truncate.specCrashI (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf sz dq d N i γ γa γc Ok a m bs fa fb hi hfd0 hwr hsz hgrow hN hT
+  subst hi
+  exact os.File.Truncate.wp_crashG f fd name dqf sz dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a)
+    (csI_acc N d.ino γ γa γc Ok a) m bs fa fb hfd0 hwr hsz hgrow hN hT
 
 end proof
 

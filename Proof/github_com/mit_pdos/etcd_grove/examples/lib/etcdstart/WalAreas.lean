@@ -204,7 +204,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     iintro #Hos #Hsh #Hab Hall Hperms
     imod WalFs.walBoot0 hPre walCodec walCodec_ok walSrvMr hG.goose_localGS R j (walAreaOf d) V hV hR
       hrj Js hjJ hsl hrb walSrvMr_encState_lt ⊤ CoPset.subseteq_top $$ Hos Hsh Hab Hall
-      with ⟨%W, #Hok, Hres, Hu, -, #Hp, Hown, -, Hrest⟩
+      with ⟨%W, #Hok, Hres, Hu, -, #Hp, Hown, HIq, -, Hrest⟩
     imod Fs.osPathS_root (L := hG.goose_localGS) R (walAreaOf d) j (DFrac.own 1) hrj
       CoPset.subseteq_top $$ Hsh with Hsp
     icases (BigSepM.bigSepM_delete (M := GMap GoString)
@@ -228,7 +228,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     iapply BigSepL.bigSepL_cons.2
     iframe Hrest
     unfold memberAreasFresh
-    isplitl [Hres Hu Hsp Hpd Hown]
+    isplitl [Hres Hu Hsp Hpd Hown HIq]
     · unfold walAreaFresh
       iexists etcdWalArea W hsat hsatL R j (walAreaOf d) (srvWalDirOf d) (hF d List.mem_cons_self)
       isplitr
@@ -238,8 +238,8 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
       rw [Fs.callKey_eq hR hrj (.inl rfl)]
       iframe Hok Hdd Hsp Hres Hpd Hu
       unfold WalFs.walAbsent WalFs.walDirIs
-      iexists ∅
-      iframe Hown
+      iexists ∅, ∅
+      iframe Hown HIq
       ipureintro
       show walOptLe none ((∅ : GMap GoString WalDur) !! srvWalDirOf d)
       rw [GMap.lookup_empty]; trivial

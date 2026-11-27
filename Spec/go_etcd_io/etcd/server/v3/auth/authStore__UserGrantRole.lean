@@ -38,7 +38,7 @@ abbrev auth.authStore.UserGrantRole.spec : Prop :=
         u.length < 2 ^ 62⌝ ∗
       ⌜stepOk M hs (userGrantRoleR user role)⌝ ∗ capNextM M hs (userGrantRoleR user role) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserGrantRole")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗
       adminOut M hs (userGrantRoleR user role) noExtra err }}
 

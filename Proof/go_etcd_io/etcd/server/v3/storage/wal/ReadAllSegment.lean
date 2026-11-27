@@ -169,16 +169,36 @@ private theorem segment_count (M : WalMarshal) (md : List w8) (Ss : List WalHist
   | cons S Ss ih =>
     rw [segsDs, List.flatten_cons, List.countP_append, segment_seed_count, ih, List.length_cons, Nat.add_comm]
 
+/-- A CRC record in `X ++ Y` with no CRC record in `Y` is in `X`. -/
+theorem split_crc_pend {X Y A B : List (w64 × List w8)} {d : List w8}
+    (h : X ++ Y = A ++ (crcType, d) :: B) (hY : ∀ q ∈ Y, q.1 ≠ crcType) :
+    ∃ B', X = A ++ (crcType, d) :: B' := by
+  rcases List.append_eq_append_iff.1 h with ⟨a', hA, hY'⟩ | ⟨c', hX, hB⟩
+  · -- `X` a prefix of `A`: the CRC record in `Y`
+    exfalso
+    exact hY (crcType, d) (by rw [hY']; simp) rfl
+  · rcases c' with _ | ⟨q, c'⟩
+    · exfalso
+      simp only [List.nil_append] at hB
+      exact hY (crcType, d) (by rw [← hB]; simp) rfl
+    · simp only [List.cons_append, List.cons.injEq] at hB
+      obtain ⟨rfl, -⟩ := hB
+      exact ⟨c', hX⟩
+
 private theorem readAll_segment_records {C : WalCodec} (hC : C.Ok) {M : WalMarshal}
     {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C M d lay ents) (hex : TailExact lay)
     (hwr : lay.wr = (segStream C M d lay.cuts lay.cuts.length).length)
     (kk : Nat) (hkk : kk < lay.segs.length) :
     let Ss := segsOf (histM d) lay.cuts
     let p := lay.first + kk
+    ∃ es : List EntryM,
     ((walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs.map (fun record => (record.typ, record.data))) =
-      (segsDs M d.metadata (decide (p = 0)) (Ss.take p).flatten (Ss.drop p)).flatten := by
+      (segsDs M d.metadata (decide (p = 0)) (Ss.take p).flatten (Ss.drop p)).flatten ++ pendDs M es := by
   dsimp only
-  rw [walReadFiles_running hC hab hex hwr kk hkk]
+  obtain ⟨es, -, hrun⟩ := walReadFiles_running hC hab hex hwr kk hkk
+  refine ⟨es, ?_⟩
+  rw [hrun, List.map_append, chainRecs_map]
+  congr 1
   let Ss := segsOf (histM d) lay.cuts
   let p := lay.first + kk
   change ((recsOfSegs C M d.metadata Ss).drop (recsOfSegs C M d.metadata (Ss.take p)).length).map _ = _
@@ -207,8 +227,15 @@ theorem readAll_crc_count {C : WalCodec} (hC : C.Ok) {M : WalMarshal}
     (kk : Nat) (hkk : kk < lay.segs.length) :
     (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs.countP (fun r => decide (r.typ = crcType)) =
       (lay.segs.drop kk).length := by
-  have h := congrArg (List.countP (fun p : w64 × List w8 => decide (p.1 = crcType)))
-    (readAll_segment_records hC hab hex hwr kk hkk)
+  obtain ⟨es, hes⟩ := readAll_segment_records hC hab hex hwr kk hkk
+  have h := congrArg (List.countP (fun p : w64 × List w8 => decide (p.1 = crcType))) hes
+  have hp0 : (pendDs M es).countP (fun p : w64 × List w8 => decide (p.1 = crcType)) = 0 := by
+    rw [List.countP_eq_zero]
+    intro q hq
+    simp only [pendDs, List.mem_map] at hq
+    obtain ⟨e, -, rfl⟩ := hq
+    simpa using crcType_ne_entry.symm
+  rw [List.countP_append, hp0, Nat.add_zero] at h
   simp only [List.countP_map, Function.comp_def, segment_count, List.length_drop] at h
   have hfl := hab.cuts.2.2
   have hlen : (segsOf (histM d) lay.cuts).length = lay.cuts.length + 1 := by simp [segsOf]
@@ -237,11 +264,15 @@ theorem readAll_crc_lock {C : WalCodec} (hC : C.Ok) {M : WalMarshal} {U : WalUnm
   have hlen : Ss.length = lay.cuts.length + 1 := by simp [Ss, segsOf]
   have htake : (Ss.take p).length = p := by simp [List.length_take, Nat.min_eq_left (show p ≤ Ss.length by dsimp [p]; omega)]
   let ds := acc.map (fun record => (record.typ, record.data))
-  have he : (segsDs M d.metadata (decide (p = 0)) (Ss.take p).flatten (Ss.drop p)).flatten =
-      ds ++ (crcType, r.data) :: tail.map (fun record => (record.typ, record.data)) := by
-    have hm := (readAll_segment_records hC hab hex hwr kk hkk).symm
+  have he : ∃ tl, (segsDs M d.metadata (decide (p = 0)) (Ss.take p).flatten (Ss.drop p)).flatten =
+      ds ++ (crcType, r.data) :: tl := by
+    obtain ⟨es, hm⟩ := readAll_segment_records hC hab hex hwr kk hkk
     rw [hrec, List.map_append, List.map_cons, hcrc] at hm
-    exact hm
+    exact split_crc_pend hm.symm (fun q hq => by
+      simp only [pendDs, List.mem_map] at hq
+      obtain ⟨e, -, rfl⟩ := hq
+      exact crcType_ne_entry.symm)
+  obtain ⟨tl, he⟩ := he
   obtain ⟨before, S, after, hSs, ha, hn⟩ := readAll_crc_position M d.metadata _ _ _ _ _ _ he
   let n := before.length
   have hn' : acc.countP (fun record => decide (record.typ = crcType)) = n := by simpa [ds, List.countP_map, Function.comp_def] using hn
@@ -292,15 +323,16 @@ theorem readAll_crc_boundary {C : WalCodec} (hC : C.Ok) {M : WalMarshal} {U : Wa
     {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C M d lay ents) (hex : TailExact lay)
     (hwr : lay.wr = (segStream C M d lay.cuts lay.cuts.length).length)
     (kk : Nat) (hkk : kk < lay.segs.length) {fs fs' : List (List w8)} {off off' : Nat} {c c' : w32}
-    {acc : List WalRec} {r : WalRec} {s ix : w64 × w64} {st : RAState}
-    (hL : RdLoop C U s (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32) acc fs off c st ix)
+    {acc : List WalRec} {r : WalRec} {s ix : w64 × w64}
+    (hLr : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc ++ (rdRest C fs off c).recs)
+    (hLi : acc.foldl (raIdx U s) (W64 0, W64 0) = ix)
     (hd : goDecode C fs off c = .ok r fs' off' c') (hcrc : r.typ = crcType) :
     let n := acc.countP (fun record => decide (record.typ = crcType))
     n = (lay.segs.drop kk).length ∨
     ∃ g sq nameIdx, (lay.segs.drop kk)[n]? = some g ∧ g.name = walFileName sq nameIdx ∧
       nameIdx < 2 ^ 64 ∧ (ix.2 = W64 0 ∨ uint.nat ix.2 < nameIdx) := by
   dsimp only
-  have hr := hL.recs
+  have hr := hLr
   by_cases hb : crcRecBad c' r
   · left
     rw [(rdRest_crcRec hd ⟨hcrc, hb⟩).1, List.append_nil] at hr
@@ -309,6 +341,6 @@ theorem readAll_crc_boundary {C : WalCodec} (hC : C.Ok) {M : WalMarshal} {U : Wa
   · right
     rw [rdRest_ok hd (fun h => hb h.2)] at hr
     have h := readAll_crc_lock hC hU hab hex hwr kk hkk acc _ r s hr hcrc
-    simpa only [hL.idx] using h
+    simpa only [hLi] using h
 
 end Perennial.EtcdGrove.WalFs

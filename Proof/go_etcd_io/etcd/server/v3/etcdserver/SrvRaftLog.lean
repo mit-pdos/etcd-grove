@@ -99,7 +99,7 @@ structure SrvRaft [GooseExts] where
   model the node API's node predicates are stated at (`srvStor`) -/
   reg : GName
   /-- the members' snapshot directories' ghost names (raft's `reSnapLoc` until 2026-10-27; the
-  snapshot path's `snapDirInv`, unreachable since the server's clusters send no snapshot) -/
+  snapshot path's `snapDirInvH`, unreachable since the server's clusters send no snapshot) -/
   snapLoc : w64 → Option GName
   log : GName
   fresh : GName
@@ -482,7 +482,7 @@ def ccAddOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
     (membership.ccMemberOf m.context).isLearner = false
 
 /-- **A conf change the server's `applyConfChange` takes in the committed log** (route B,
-2026-11-25, `notes/etcd-dist-plan.md` §16.3): an `AddNode` of a member of raft's configuration
+2026-11-25, `notes/etcd-dist-plan.md` §17.3): an `AddNode` of a member of raft's configuration
 `cfg` whose context unmarshals to that member, either not a promotion and saving a voter (the
 boot entries', `ccAddOk`), or a promotion (`IsPromote`, what `EtcdServer.PromoteMember` proposes,
 also on a forged peer request to `/members/promote/<id>`). A promotion of a voter is rejected
@@ -965,7 +965,7 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     -- `stepIn_intro`'s received message) are checked against; until then (2026-11-09, interim)
     -- `maxData = none`
     ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ ∗
-    -- (route B, 2026-11-25, `notes/etcd-dist-plan.md` §16.3) the boot entries' changes are the
+    -- (route B, 2026-11-25, `notes/etcd-dist-plan.md` §17.3) the boot entries' changes are the
     -- boot policy's (`BootCore.cc`): the committed log's policy (`ccPolOk`) admits promotions,
     -- the boot log has none (a boot promotion would leave its member unsaved)
     ⌜∀ e ∈ γ.raft.boot, ccBootOk γ.raft.cfg e.Data'⌝)

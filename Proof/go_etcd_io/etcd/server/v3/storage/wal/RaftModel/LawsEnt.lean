@@ -80,7 +80,7 @@ theorem walRaftP_marshalEnt (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG :=
   wp_auto
   have wpM := wp_Marshal pbEntryC pbEntryC_reg l (walEntCanon e) trivial Hs
   simp only [pbEntryC_ty, pbEntryC_roC, pbEncC_pbEntryC] at wpM
-  wp_apply wpM $$ [] as %d ⟨Hd, Hcap⟩
+  wp_apply wpM $$ [] as %d ⟨Hd, Hcap, -⟩
   · iframe #
   (try wp_auto)
   ihave %Hlen := ownSlice_len _ _ _ $$ Hd

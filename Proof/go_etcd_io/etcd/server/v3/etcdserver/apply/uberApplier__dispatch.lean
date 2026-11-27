@@ -128,6 +128,91 @@ local macro "grant_same" : tactic => `(tactic| (
       | exact apply.grantOutOk_noV3 _ _ _ _
       | exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])))
 
+/-- `dispatchNoEff` at an unchanged log and rest state, for a kind that is no compaction, grant or
+revoke (the cluster setters, given that their effect is the identity). -/
+theorem apply.dispatchNoEff_rest (c : apply.Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log)
+    (crev : Int) (T : List w64) (rs : apply.RestM) (o : apply.Outcome)
+    (hl : o.logAfter log = log) (hrest : apply.restAfter rq v3 rs = rs)
+    (hc : dispatchKind rq ≠ .compaction) (hg : dispatchKind rq ≠ .leaseGrant)
+    (hr : dispatchKind rq ≠ .leaseRevoke) :
+    apply.dispatchNoEff c rq v3 log crev T rs o :=
+  ⟨hl, apply.dispatchCrev_nonCmp c rq v3 crev hc,
+    by rw [apply.grantIds_nonGrant _ _ _ _ hg, apply.revokeIds_nonRevoke _ _ _ _ hr],
+    fun t => by
+      rw [hrest, apply.grantRest_nonGrant _ _ _ _ _ hg, apply.revokeRest_nonRevoke _ _ _ _ _ hr]⟩
+
+/-- A request that is neither a cluster setter nor a compaction, grant or revoke leaves the rest state. -/
+theorem apply.restAfter_kind (rq : IRRModel) (v3 : Bool) (r : apply.RestM)
+    (h1 : dispatchKind rq ≠ .clusterVersionSet) (h2 : dispatchKind rq ≠ .clusterMemberAttrSet) :
+    apply.restAfter rq v3 r = r := by
+  have e1 : rq.clusterVersionSet = none := by
+    cases h : rq.clusterVersionSet with
+    | none => rfl
+    | some _ => exact absurd (by simp [dispatchKind, h]) h1
+  have e2 : rq.clusterMemberAttrSet = none := by
+    cases h : rq.clusterMemberAttrSet with
+    | none => rfl
+    | some _ => exact absurd (by simp [dispatchKind, e1, h]) h2
+  exact apply.restAfter_other rq v3 r e1 e2
+
+/-- (T10 step 2) `dispatchNoEff` of a request of a kind with no model effect but its log's, from
+the outcome's log fact. -/
+theorem apply.dispatchNoEff_plain (c : apply.Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log)
+    (crev : Int) (T : List w64) (rs : apply.RestM) (o : apply.Outcome)
+    (hl : o.logAfter log = log)
+    (h1 : dispatchKind rq ≠ .clusterVersionSet) (h2 : dispatchKind rq ≠ .clusterMemberAttrSet)
+    (hc : dispatchKind rq ≠ .compaction) (hg : dispatchKind rq ≠ .leaseGrant)
+    (hr : dispatchKind rq ≠ .leaseRevoke) :
+    apply.dispatchNoEff c rq v3 log crev T rs o :=
+  ⟨hl, apply.dispatchCrev_nonCmp c rq v3 crev hc,
+    by rw [apply.grantIds_nonGrant _ _ _ _ hg, apply.revokeIds_nonRevoke _ _ _ _ hr],
+    fun t => by
+      rw [apply.restAfter_kind rq v3 rs h1 h2, apply.grantRest_nonGrant _ _ _ _ _ hg,
+        apply.revokeRest_nonRevoke _ _ _ _ _ hr]⟩
+
+set_option hygiene false in
+/-- (T10 step 2) The no-lock outcome changed none of the server's models (`dispatchNoEff`): for a
+plain kind, from the outcome's log fact (`hN.1`, or `rfl` for the unchanged log). -/
+local macro "noeff" : tactic => `(tactic| (
+  first
+  | exact apply.dispatchNoEff_plain _ _ _ _ _ _ _ _ hN.1 (by simp [hk]) (by simp [hk])
+      (by simp [hk]) (by simp [hk]) (by simp [hk])
+  | exact apply.dispatchNoEff_plain _ _ _ _ _ _ _ _ rfl (by simp [hk]) (by simp [hk])
+      (by simp [hk]) (by simp [hk]) (by simp [hk])
+  | (obtain ⟨e, rfl⟩ := hN
+     exact ⟨rfl, apply.dispatchCrev_nonCmp _ _ _ _ (by simp [hk]),
+       by rw [apply.grantIds_rejected, apply.revokeIds_rejected],
+       fun t => by
+         rw [apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk]), apply.grantRest_rejected,
+           apply.revokeRest_rejected]⟩)
+  | exact ⟨apply.cmpOutcome_logAfter c log, by rw [hcr]; exact hN,
+      by rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk]), apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])],
+      fun t => by
+        rw [apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk]),
+          apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk]), apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]⟩))
+
+set_option hygiene false in
+/-- `cPost true` at `dispatchNoEff` from `HPP : Post ∨ (Pre ∗ ⌜φ⌝)`, or `HPP` already at it. -/
+local macro "cpost_fin" : tactic => `(tactic| (
+  first
+  | iexact HPP
+  | (simp only [apply.cPost, ↓reduceIte]
+     icases HPP with (HP | ⟨HP, %hN⟩)
+     · ileft; iexact HP
+     · iright; iframe HP; ipureintro; noeff)))
+
+set_option hygiene false in
+/-- `HPP : cPost v3 Pre Post φ` restated at `dispatchNoEff` (a request that leaves the KV as it is). -/
+local macro "cpost_gen " φ:term : tactic => `(tactic| (
+  ihave HPP : iprop(apply.cPost v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false))) $$ [HPP]
+  · iapply (apply.cPost_mono v3 Pre Post $φ
+      (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false))
+      (fun h => apply.dispatchNoEff_rest _ _ _ _ _ _ _ _ rfl
+        (by first | (simp only [apply.restAfter, hs]; exact h)
+                  | (simp only [apply.restAfter, zClusterVersionSet, hs]; exact h))
+        (by simp [hk]) (by simp [hk]) (by simp [hk])))
+    iexact HPP))
+
 set_option hygiene false in
 /-- The postcondition for a request that leaves the KV and the chain as they are. -/
 local macro "fin_same" : tactic => `(tactic| (
@@ -140,7 +225,7 @@ local macro "fin_same" : tactic => `(tactic| (
   iframe Ha Hs Hkv
   grant_same
   isplitl [HPP]
-  · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+  · cpost_fin
   isplitr
   · ipureintro; simp [apply.kvFloorOk, apply.isFloorKind, apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
   isplitl []
@@ -171,7 +256,7 @@ local macro "fin_kv" : tactic => `(tactic| (
   iframe Ha Hs Hkv
   grant_same
   isplitl [HPP]
-  · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+  · cpost_fin
   isplitr
   · ipureintro
     refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
@@ -329,6 +414,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+    cpost_gen ((apply.ClusterReq.ver x).eff v3 rs = rs)
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zClusterVersionSet : rq.clusterVersionSet = none := nCV.1 (by simpa using Hif)
@@ -360,6 +446,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+    cpost_gen ((apply.ClusterReq.attr x).eff v3 rs = rs)
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zClusterMemberAttrSet : rq.clusterMemberAttrSet = none := nCM.1 (by simpa using Hif)
@@ -388,8 +475,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     iapply HΦ
     iframe HFS
     ihave ⟨Hkv, Hrt, HPP⟩ := apply.kvOwnPre_kvOwn v3 E log Pre Q Post $$ Hkv
-    ihave HPP : iprop(cPost v3 Pre Post) $$ [HPP]
-    · iapply apply.cPost_of_pre; iexact HPP
+    ihave HPP : iprop(cPost v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false))) $$ [HPP]
+    · iapply (apply.cPost_of_pre v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false)) (by noeff)); iexact HPP
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zDowngradeVersionTest : rq.downgradeVersionTest = false := nDT.1 (by simpa using Hif)
@@ -453,7 +540,8 @@ theorem apply.uberApplier.dispatch.wp_proof
           apply.everOwn E (apply.grantIds rq true o U) ∗ apply.revokeOwn E rq ∗
           (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq true o
             (apply.grantRest t rq true o (apply.restAfter rq true rs)))) ∗
-          ⌜apply.grantOutOk c rq true T o⌝ ∗ apply.cPost true Pre Post ∗
+          ⌜apply.grantOutOk c rq true T o⌝ ∗
+          apply.cPost true Pre Post (apply.dispatchNoEff c rq true log crev T rs o) ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
@@ -479,8 +567,10 @@ theorem apply.uberApplier.dispatch.wp_proof
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, #Hcls⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
-    · iright; iexact HPre
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ True⌝)) $$ [HPre]
+    · iright; iframe HPre; ipureintro
+      refine ⟨apply.chainStep_logAfter_of rq log (fun o h => ?_) c oc Hst, trivial⟩
+      simp only [apply.backendStep, hk] at h; subst h; rfl
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zRange : rq.range = none := nRa.1 (by simpa using Hif)
@@ -588,7 +678,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe Ha Hs Hkv
     grant_same
     isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    · cpost_fin
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
@@ -667,7 +757,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       rw [hs] at hg; cases hg
       exact Hst.2.1.trans Hst.2.2
     isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    · cpost_fin
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
@@ -755,7 +845,17 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitr
     · ipureintro; exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])
     isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    · simp only [apply.cPost, ↓reduceIte]
+      icases HPP with (HP | ⟨HP, %hN⟩)
+      · ileft; iexact HP
+      · iright; iframe HP; ipureintro
+        refine ⟨hN.1, apply.dispatchCrev_nonCmp _ _ _ _ (by simp [hk]), ?_, fun t => ?_⟩
+        · rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]; exact hN.2.1
+        · have h2 := hN.2.2
+          rw [apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk])] at h2
+          rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk]),
+            apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk])]
+          exact h2
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, by simp [apply.kvFloorOk, apply.isFloorKind, hk], rfl, rfl⟩
@@ -844,8 +944,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     wp_apply HStatus $$ %log %info [Htt Hkv Hres] as %resp %err ⟨Htt, Hkv, Hres, #HeI⟩
     · iframe
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
-    · iright; iexact HPre
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜True⌝)) $$ [HPre]
+    · iright; iframe HPre
     fin_same
     itrivial
   have zAuthStatus : rq.authStatus = false := nAS.1 (by simpa using Hif)

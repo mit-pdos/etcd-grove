@@ -79,8 +79,8 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authEnableF en))⌝ ∗
           auth.capNextM M hs auth.authEnableOwnR }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ W ∗ applyErrIs err ∗
-          ∃ en : Bool, auth.enabledVerdict M en ∗
+      {{ (err : GoInterface), RET #err; W ∗ applyErrIs err ∗
+          ∃ en : Bool, (Post ∨ (Pre ∗ ⌜en = true⌝)) ∗ auth.enabledVerdict M en ∗
             auth.adminOutX M (ownX M X) hs (authEnableR M en) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userAddReqIs r name ∗ auth.userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
@@ -88,7 +88,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.stepOf (auth.userAddF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.userAddF name)) }}
         (App (Val #(methods ai.ty go!"UserAdd" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserAddResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
@@ -97,7 +97,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.stepOf (auth.roleAddF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.roleAddF name)) }}
         (App (Val #(methods ai.ty go!"RoleAdd" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleAddResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString),
@@ -108,7 +108,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.userGrantRoleR user role)⌝ ∗
           auth.capNextM M hs (auth.userGrantRoleR user role) }}
         (App (Val #(methods ai.ty go!"UserGrantRole" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.userGrantRoleR user role) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString)
@@ -118,7 +118,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ ∗
           auth.capNextM M hs (auth.roleGrantPermissionR name w) }}
         (App (Val #(methods ai.ty go!"RoleGrantPermission" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.roleGrantPermissionR name w) auth.noExtra err }}) ∗
     -- (C1's A2) `Authenticate`, which writes nothing: at the reader resource `RD` (`IsAuthEnabled`
@@ -175,7 +175,7 @@ theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
   · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hon, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
     iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
     · iframe
-    iintro !> %err ⟨HPP, HW, Hrest⟩
+    iintro !> %err ⟨HW, Hrest⟩
     iapply HΦ
     iframe
   isplitr
@@ -347,7 +347,7 @@ theorem isAuthStepsX_of_authInvT
     · iframe; iframe #
     iapply (hEnable st R M P f T Wb hs Pre Q Post b0 sc0) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
-    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
+    iintro !> %err ⟨%b, %sc, HA, HWR, %en, %Hen, HPP, #Hv, Hout⟩
     icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
@@ -357,8 +357,8 @@ theorem isAuthStepsX_of_authInvT
         subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
-    iframe HPP HW HA Ha
-    iexists en; iframe Hv; iexact Hout
+    iframe HW HA Ha
+    iexists en; iframe HPP Hv; iexact Hout
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
@@ -484,7 +484,7 @@ theorem isAuthStepsX_of_authInvTB
     · iunfold auth.authWRxB; iframe; iframe #
     iapply (hEnable st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
-    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
+    iintro !> %err ⟨%b, %sc, HA, HWR, %en, %Hen, HPP, #Hv, Hout⟩
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -495,10 +495,10 @@ theorem isAuthStepsX_of_authInvTB
         subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
-    iframe HPP HA Ha
+    iframe HA Ha
     isplitl [Hbe HT]
     · iexists be; iframe Hbe HT HΨ
-    iexists en; iframe Hv; iexact Hout
+    iexists en; iframe HPP Hv; iexact Hout
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
@@ -631,7 +631,7 @@ abbrev applierV3backend.UserAdd.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -652,7 +652,7 @@ abbrev applierV3backend.RoleAdd.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -675,7 +675,7 @@ abbrev applierV3backend.UserGrantRole.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserGrantRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.userGrantRoleR user role) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -696,7 +696,7 @@ abbrev applierV3backend.RoleGrantPermission.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleGrantPermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.roleGrantPermissionR name w) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -716,9 +716,9 @@ abbrev applierV3backend.AuthEnable.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthEnable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+      ∃ en : Bool, apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (en = true) ∗
+        auth.enabledVerdict E.authMode en ∗
         auth.adminOutX E.authMode (ownX E.authMode X) hs (authEnableR E.authMode en) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
@@ -737,7 +737,7 @@ abbrev applierV3backend.UserAdd.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -757,7 +757,7 @@ abbrev applierV3backend.RoleAdd.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -778,7 +778,7 @@ abbrev applierV3backend.UserGrantRole.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserGrantRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.userGrantRoleR user role) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -798,7 +798,7 @@ abbrev applierV3backend.RoleGrantPermission.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleGrantPermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.roleGrantPermissionR name w) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -817,9 +817,9 @@ abbrev applierV3backend.AuthEnable.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthEnable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+      ∃ en : Bool, apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (en = true) ∗
+        auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
           (authEnableR E.authMode en) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -895,7 +895,7 @@ theorem applierV3backend.UserAdd.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -905,7 +905,7 @@ theorem applierV3backend.UserAdd.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.RoleAdd.wp_stepX
@@ -937,7 +937,7 @@ theorem applierV3backend.RoleAdd.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -947,7 +947,7 @@ theorem applierV3backend.RoleAdd.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.UserGrantRole.wp_stepX
@@ -981,7 +981,7 @@ theorem applierV3backend.UserGrantRole.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -991,7 +991,7 @@ theorem applierV3backend.UserGrantRole.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.RoleGrantPermission.wp_stepX
@@ -1023,7 +1023,7 @@ theorem applierV3backend.RoleGrantPermission.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -1033,7 +1033,7 @@ theorem applierV3backend.RoleGrantPermission.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.AuthEnable.wp_stepX
@@ -1051,7 +1051,7 @@ theorem applierV3backend.AuthEnable.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as %err ⟨HPP, HW, #HeI, %en, #Hv, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as %err ⟨HW, #HeI, %en, HPP, #Hv, Hout⟩
   · iframe Hcap; isplitr
     · ipureintro; exact hon
     ipureintro; exact hok
@@ -1062,9 +1062,10 @@ theorem applierV3backend.AuthEnable.wp_stepX
     · ipureintro; intro h; cases h
     ihave Hkv := Hkv $$ Hsw
     iapply HΦ
-    iframe
-    iframe #
-    iapply apply.mPost_backend
+    iframe Htt HW HeI
+    iexists en
+    iframe Hv Hout Hrn
+    iapply apply.mPostF_backend
     iframe
   · -- enabled: a fresh response with the header
     wp_auto
@@ -1076,9 +1077,10 @@ theorem applierV3backend.AuthEnable.wp_stepX
     ihave Hrn : ⌜GoInterface.nil = GoInterface.nil → l ≠ null⌝ $$ []
     · ipureintro; intro _; exact Hlnn
     iapply HΦ
-    iframe
-    iframe #
-    iapply apply.mPost_backend
+    iframe Htt HW HeI
+    iexists en
+    iframe Hv Hout Hrn
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.UserAdd.wp_fuelX
@@ -1192,12 +1194,14 @@ theorem applierV3backend.AuthEnable.wp_fuelX
   have hon : E.authMode.isOn = true := by rw [hM]; rfl
   iapply (h E X W p log Pre Q Post info hs hon hok) $$ [Ho HX HW Hw1 Hw2 Hw3 Htt Hpre]
   · rw [hM]; iframe; iframe #
-  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
+  iintro !> %resp %err ⟨Htt, #He, HW, %en, Hpost, #Hv, Hout, Hrn⟩
   rw [hM]
   ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_authEnableR _ en) $$ [Hf Hout]
   · iframe
   iapply HΦ
-  iframe; iframe #
+  iframe Htt He HW
+  iexists en
+  iframe Hpost Hv Hout Hrn
 
 /-- **`Authenticate.specX`** (C1's A2): the context's two values from `context.WithValue`'s
 `Value` (the index at the inner one, the prefix at the outer one, whose key is of another type),

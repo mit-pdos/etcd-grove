@@ -251,36 +251,44 @@ theorem mem_mapIdx_snd {α β : Type _} {f : Nat → α → β} {g : β → α} 
   exact List.getElem_mem _
 
 /-- Every machine of the deployment, at these start states, is one of the two kinds. -/
-theorem machine_state [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (d : Deployment) {m : Expr × state}
+theorem machine_state [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (d : Deployment)
+    (hn : ∀ m ∈ d.members, typed.nameOk m.name = true) {m : Expr × state}
     (hm : m ∈ machines d (serverStates d) (clientStates d.workloads.length)
       (clientStates d.nodeList.length)) :
-    (∃ n, m.2 = memberState n) ∨ m.2 = witnessClientσ := by
+    (∃ n, typed.nameOk n = true ∧ m.2 = memberState n) ∨ m.2 = witnessClientσ := by
   simp only [machines, servers, clients, nodeMachines, List.mem_append] at hm
   rcases hm with (hm | hm) | hm
   · have := mem_mapIdx_snd (g := Prod.snd) (fun _ _ => rfl) hm
     simp only [serverStates, List.mem_map] at this
-    obtain ⟨mm, _, he⟩ := this
-    exact Or.inl ⟨mm.name, he.symm⟩
+    obtain ⟨mm, hmm, he⟩ := this
+    exact Or.inl ⟨mm.name, hn mm hmm, he.symm⟩
   · exact Or.inr (List.eq_of_mem_replicate (mem_mapIdx_snd (g := Prod.snd) (fun _ _ => rfl) hm))
   · exact Or.inr (List.eq_of_mem_replicate (mem_mapIdx_snd (g := Prod.snd) (fun _ _ => rfl) hm))
 
 theorem start_state [GoGlobalContext] [lctx : GoLocalContext] {σ : state}
-    (h : (∃ n, σ = memberState n) ∨ σ = witnessClientσ) : Fresh lctx σ ∧ extsInitLocal σ initGlobal := by
-  rcases h with ⟨n, rfl⟩ | rfl
-  · exact ⟨fresh_freshState _, by exts_init⟩
-  · exact ⟨fresh_freshState _, by simp only [witnessClientσ]; exts_init⟩
+    (h : (∃ n, typed.nameOk n = true ∧ σ = memberState n) ∨ σ = witnessClientσ) :
+    Fresh lctx σ ∧ extsInitLocal σ initGlobal := by
+  -- (etcd_safe crash line, D4a) `etcdFsSem`'s `initLocal` is `FsInit`: given explicitly, so a
+  -- member's start needs its name's `nameOk` (`memberRoots_init`)
+  rcases h with ⟨n, hn, rfl⟩ | rfl
+  · exact ⟨fresh_freshState _, trivial, memberRoots_init hn,
+      by first | trivial | rfl | (simp <;> trivial), trivial⟩
+  · exact ⟨fresh_freshState _, trivial, fsInit_fsOneRoot _ etcd_putget_dist.tmp_rootForm,
+      by first | trivial | rfl | (simp <;> trivial), trivial⟩
 
 theorem initGlobal_init : extsInitGlobal initGlobal := by exts_init
 
 /-- **`Robust`'s antecedents, no machine crashing** (`etcd_robust_nocrash`'s conclusion). -/
-theorem robustStart_nocrash [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (d : Deployment) :
+theorem robustStart_nocrash [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (d : Deployment)
+    (hn : ∀ m ∈ d.members, typed.nameOk m.name = true) :
     RobustStart [] (machines d (serverStates d) (clientStates d.workloads.length)
       (clientStates d.nodeList.length)) initGlobal :=
-  ⟨fun m hm => (start_state (machine_state d (by simpa using hm))).1, initGlobal_init,
-    fun m hm => (start_state (machine_state d (by simpa using hm))).2⟩
+  ⟨fun m hm => (start_state (machine_state d hn (by simpa using hm))).1, initGlobal_init,
+    fun m hm => (start_state (machine_state d hn (by simpa using hm))).2⟩
 
 /-- **`Robust`'s antecedents, the members crashing** (`etcd_robust`'s conclusion). -/
-theorem robustStart_crash [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (d : Deployment) :
+theorem robustStart_crash [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (d : Deployment)
+    (hn : ∀ m ∈ d.members, typed.nameOk m.name = true) :
     RobustStart (servers d (serverStates d))
       (clients d (clientStates d.workloads.length) ++ nodeMachines d (clientStates d.nodeList.length))
       initGlobal := by
@@ -289,8 +297,8 @@ theorem robustStart_crash [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctio
       m ∈ machines d (serverStates d) (clientStates d.workloads.length)
         (clientStates d.nodeList.length) := by
     intro m hm; simpa [machines, List.append_assoc] using hm
-  exact ⟨fun m h => (start_state (machine_state d (hm m h))).1, initGlobal_init,
-    fun m h => (start_state (machine_state d (hm m h))).2⟩
+  exact ⟨fun m h => (start_state (machine_state d hn (hm m h))).1, initGlobal_init,
+    fun m h => (start_state (machine_state d hn (hm m h))).2⟩
 
 /-! ## `EtcdEnv` -/
 

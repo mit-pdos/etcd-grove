@@ -171,7 +171,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
     have hP0 : P m0 := by
       rcases hm0 with rfl | ⟨tc0, rz0, -, rfl⟩
       · exact hP
-      · exact hPa _ (Nat.le_of_eq (os.announce_lo _ _ _ _ _ _)) (by rw [hsz0]; omega)
+      · exact hPa _ (Nat.le_of_eq (os.announce_lo _ _ _ _ _ _)) (.inl hsz0)
     ihave Hau := Hsup $$ %m0 %xs0 %hl %hP0 HK Hm Hb
     unfold os.truncAuW
     try wp_auto
@@ -270,7 +270,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         (DFrac.own (1 : Qp).half) [] $$ []
     · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
     ihave Hau := Hsup $$ %((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0) %([] : List ByteG)
-      %(by rw [hdsz]; simp) %(hPa _ (Nat.le_of_eq (os.rsPost_lo _ _ _ _ _ _)) (by rw [hdsz]; omega)) HK Hm Hb0
+      %(by rw [hdsz]; simp) %(hPa _ (Nat.le_of_eq (os.rsPost_lo _ _ _ _ _ _)) (.inr hdsz)) HK Hm Hb0
     unfold os.truncAuW
     try wp_auto
     wp_stub os.fsFtruncate.impl

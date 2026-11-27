@@ -11,6 +11,9 @@ public import Spec.fmt.Errorf
 public import Spec.os.Rename
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Spec.go_etcd_io.etcd.server.v3.storage.OpenBackend
+public import Spec.go_etcd_io.etcd.server.v3.storage.syncDir
+public import Spec.path.filepath.Dir
+public import GooseLang.Ext.Fs.NoErrSpecsOpenDir
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackendLemmas
 -- (wal-link L2, T1) the only opener of the sealed take token
 import all Proof.go_etcd_io.etcd.server.v3.storage.SnapHeld
@@ -50,6 +53,8 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_Errorf : EtcdGrove.fmt.Errorf.spec (GF := GF) (hG := hG))
     (wp_Rename : os.Rename.spec (GF := GF) (hG := hG))
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
+    (wp_Dir : filepath.Dir.spec (GF := GF) (hG := hG))
+    (wp_syncDir : storage.syncDir.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
   intro _ _ cfg ss sn mp hk dq dq' md P D W Pk K γo R' hdd
@@ -72,18 +77,54 @@ theorem storage.OpenSnapshotBackend.wp_proof
     wp_apply (wp_BackendPath _ _ _ hdd) $$ [$DataDir] as -
     -- (S5) the rename, with no error: the file at the backend path, the snapshot's name free
     have hpar := snap.snapDBPath_parent cfg.DataDir' md.Index'
-    wp_apply (wp_Rename _ _ _ _ hpar) $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -⟩
+    wp_apply (wp_Rename _ _ _ _ hpar) $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -, Hrn⟩
     subst Hr
     wp_auto
+    -- (pin e94f33b50) the snapshot directory synced after the rename, with no error (`theFs`'s
+    -- `FsNoErrAll`): the rename's entry committed
+    wp_apply (wp_BackendPath _ _ _ hdd) $$ [$DataDir] as -
+    wp_apply wp_Dir (config.backendPathOf cfg.DataDir')
+    iintro %dr %hdr
+    rw [config.dirModel_backendPathOf] at hdr
+    subst hdr
+    rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
+    · isimp only [backend.fileAt, onFs_none hfs] at Hf
+      iexfalso; iexact Hf
+    isimp only [backend.fileAt, onFs_some hfs, backend.fileAtF, backend.nameAtF] at Hf
+    isimp only [backend.renamed, onFs_some hfs] at Hrn
+    icases Hf with ⟨%i, ⟨%R, %d, %b, %dq0, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hn⟩, Hfh⟩
+    icases Hrn with ⟨%x, Hent, #Hlb⟩
+    obtain ⟨hpath, hb, hi, hfit⟩ := hp
+    have hd := snap.backendPath_dir hb hpath
+    subst hd
+    have hfd : Fs.PathFits (config.snapDirOf cfg.DataDir') :=
+      Fs.pathFits_of_child (by rw [← hpath]; exact hfit)
+    obtain ⟨Sio, hino, hpS, h1, h2⟩ := nex.ok
+    have hne : Fs.FsNoErrOn (· = config.snapDirOf cfg.DataDir') := ⟨Sio, hino, h1, h2, fun p _ => hpS p⟩
+    wp_apply (wp_syncDir (config.snapDirOf cfg.DataDir') R j dq0 qc (x + 1) hne hfd)
+      $$ [$Hpkg $Hinv $Hsh $Hp $Hcp $Hlb] as ⟨Hp, Hcp, #Hcm⟩
+    (try wp_auto)
+    ihave Hdur : backend.renamedDur (snap.snapDBPath (config.snapDirOf cfg.DataDir') md.Index')
+        (config.backendPathOf cfg.DataDir') $$ [Hent]
+    · simp only [backend.renamedDur, onFs_some hfs]
+      iexists x
+      iframe Hent Hcm
+    ihave Hf : backend.fileAt (config.backendPathOf cfg.DataDir') D $$ [Hp Hcp Hn Hfh]
+    · simp only [backend.fileAt, onFs_some hfs, backend.fileAtF, backend.nameAtF]
+      iexists i
+      iframe Hfh
+      iexists R, config.snapDirOf cfg.DataDir', b, dq0, j, qc, h
+      iframe Hinv Hsh Hp Hcp Hn
+      ipureintro; exact ⟨hpath, hb, hi, hfit⟩
     ihave Hf := backend.fileAt_fileHolds _ _ $$ Hf
-    wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf, Hpo⟩
+    wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf, Hpo, -⟩
     iapply HΦ
     iframe Hmdp Hsm
     ileft
     isplitr
     · ipureintro; rfl
     iexists b, γ
-    iframe Hnew Hhka Hpo Hbf HR'
+    iframe Hnew Hhka Hpo Hbf HR' Hdur
     ipureintro; rfl
   · obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
       cases err with

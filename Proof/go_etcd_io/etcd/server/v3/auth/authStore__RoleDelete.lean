@@ -160,7 +160,7 @@ theorem auth.authStore.RoleDelete.wp_tie
     iapply HΦ
     iexists true, sc0
     isplitl [Hcs]
-    · iapply csContract_noWrite $$ Hcs
+    · iapply csContract_noWriteF P f Pre Q Post (by nofun) $$ Hcs
     isplitl [Hbe HT Hen HenQ Hca]
     · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr

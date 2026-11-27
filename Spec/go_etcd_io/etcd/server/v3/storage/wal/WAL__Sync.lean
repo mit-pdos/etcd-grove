@@ -38,10 +38,10 @@ flush's write or the fdatasync failed; the handle is lost. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (n : Nat),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
-      WalFs.walLenLb w dir n }}
+      WalFs.walLenLb w dir γ.inc n }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n) ∨
+      (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir γ.inc n) ∨
       ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }}
 
 end spec

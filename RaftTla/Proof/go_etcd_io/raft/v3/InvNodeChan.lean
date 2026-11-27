@@ -852,7 +852,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (D22 S-d4 item 4) every pointer field set: what `MemoryStorage.ApplySnapshot` takes
     ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
     -- (2026-10-26, D22 J2, R-loc) the snapshot local to the node (`snapLocal`: for a server, its
-    -- index saved in the member's snapshot directory, which `snapDirInv` turns into its file)
+    -- index saved in the member's snapshot directory, which `snapDirInvH` turns into its file)
     (snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗ restoredSnapSource γ.raft γ.id (snapId l.snap)) ∗
     -- (2026-11-01, J8b) past the bootstrap log (`snapLocOk`: `restore` is above the commit index)
     ⌜(γ.raft.reBoot.length : Int) < uint.Z l.snap.Metadata'.Index'⌝ ∗
@@ -937,10 +937,12 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
 -- `node.Advance`'s spec states)
 
 /-- (2026-10-28, stage U3d) The driver's view of the configuration in its `Advance` payload: after a
-snapshot `Ready`, `cap`'s half at `x` (the rendezvous moves it, `capAns`); nothing otherwise. -/
+snapshot `Ready`, `cap`'s half at `x` (the rendezvous moves it, `capAns`); (2026-11-24, option D) also
+after one without in the dynamic mode (the view moves to the committed log handed out); nothing
+otherwise. -/
 def capPay (γ : NodeNames) (L : Option SnapLoan) (x : Nat × CCState) : IProp GF :=
   match L with
-  | none => iprop(True)
+  | none => if γ.mode.isDyn then dghostVar γ.cap (DFrac.own (1 : Qp).half) x else iprop(True)
   | some _ => dghostVar γ.cap (DFrac.own (1 : Qp).half) x
 
 /-- (2026-10-28, stage U3d) What the driver gets back of its view at the rendezvous: after a
@@ -959,8 +961,11 @@ abbrev AdvReq := Option (List EntryM) × Option (Nat × CCState)
 and the receipt of the append of the `Ready`'s entries. (D22 S-d4, 2026-10-21) For the `Ready`'s
 loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt for it
 (`advReceipt`). -/
-@[no_expose] def advanceP (γ : NodeNames) (L : Option SnapLoan) (x : Nat × CCState) : IProp GF :=
+@[no_expose] def advanceP (γ : NodeNames) (L : Option SnapLoan) (x : Nat × CCState) (n : Nat) :
+    IProp GF :=
   iprop(∃ (d ce es : List EntryM) (p' : HardStateM),
+    -- (2026-11-24, option D) `n` the length of the committed log handed out, where the view moves
+    ⌜(dlvAfter d ce L).length = n⌝ ∗
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (dlvAfter d ce L, p') ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor (dlvAfter d ce L).length es L ∗
     -- (2026-10-28, stage U3d) after a snapshot `Ready`, the driver's view of the configuration
@@ -977,9 +982,10 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
     -- (2026-10-28, the decision switch) or skipped (`undecFree`); (raft-final, 2026-10-29, the
-    -- design's A1) only after a `Ready` without a snapshot
-    ∃ ca : Nat, monoNatLbOwn γ.cam ca ∗
-      □ (⌜L = none⌝ -∗ undecFree γ.raft γ.mode (dlvAfter d ce L) ca (dlvAfter d ce L).length))
+    -- design's A1) only after a `Ready` without a snapshot; (2026-11-24, option D) the view's
+    -- configuration `x` kept up to the committed log handed out (`cfgKeepIn`), and the view moves there
+    -- (`capPay`, `loanReq`)
+    □ (⌜L = none⌝ -∗ cfgKeepIn γ.raft γ.mode (dlvAfter d ce L) x.1 n x.2))
 
 /-- (D22 S-d4) The driver's request at `advancec` (`NodeNames.req`): the floor at least the
 committed log it was handed (`some`), or after a snapshot `Ready` nothing (`none`): the storage was
@@ -1036,7 +1042,11 @@ apply a conf entry of it (the configuration index bounded by it, `rsDlv`). (2026
 (u)) The configuration index past the committed log handed out only with the driver's view at it
 (`ca = capplied`): a node `RestartNode` starts at its storage's `ConfState`'s point, above the
 applied index it hands the committed log out from, whose conf entries up to that point the view
-already reflects (until then `capplied ≤ (rsDlv rs).length` always). -/
+already reflects (until then `capplied ≤ (rsDlv rs).length` always). (2026-11-24, option D of
+`notes/raft-restart-confpoint.md`) The driver's view at or ahead of `run`'s configuration index
+(`capplied ≤ ca`; until then at or behind it, over skipped entries): `Advance` moves the view to the
+committed log handed out at the rendezvous, before `RawNode.Advance` moves `capplied` there; ahead
+only within the committed log handed out, over entries that keep the configuration (`cfgKeepIn`). -/
 @[no_expose] def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
   iprop(⌜rs.mode = γ.mode ∧
       -- (D19i part 1) the floor not raised past `applied` (`RNState.flw`): `run` raises it only
@@ -1051,9 +1061,10 @@ already reflects (until then `capplied ≤ (rsDlv rs).length` always). -/
     -- (U8 v2, 2026-10-29) raft's certified terms of it, for the driver's lower bounds (`dlvLb`)
     dlvKeys γ.sn (rsDlv rs) ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
-      monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ (ca < rs.capplied → rs.capplied ≤ (rsDlv rs).length)⌝ ∗
-      -- (2026-10-28, the decision switch) over skipped entries (until then none, `NoConfIn`)
-      undecFree γ.raft γ.mode (rsDlv rs) ca rs.capplied)
+      monoNatAuthOwn γ.cam 1 ca ∗ ⌜rs.capplied ≤ ca ∧ (rs.capplied < ca → ca ≤ (rsDlv rs).length)⌝ ∗
+      -- (2026-11-24, option D) over entries that keep the configuration (until then `undecFree`
+      -- from `ca` to `capplied`: skipped ones; until 2026-10-28 none, `NoConfIn`)
+      cfgKeepIn γ.raft γ.mode (rsDlv rs) rs.capplied ca rs.cfg)
 
 /-- (2026-10-28, stage U3d) `run`'s side of the configuration after the `advancec` rendezvous of a
 snapshot `Ready` in the dynamic mode (the loan `l`): the shared configuration already at the
@@ -1164,8 +1175,9 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
     durFrags γ.raft γ.id rs.bw ∗ slotFree γ.raft γ.id γ.gen ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ (rs.slent = none → rs.unpersisted = [])⌝ ∗
     -- (raft-final phase 2: the design's A1, only after a `Ready` without a snapshot, as `advanceP`'s;
-    -- until then unguarded)
-    □ (⌜rs.slent = none⌝ -∗ undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length))
+    -- until then unguarded; 2026-11-24, option D: the driver's view moved to the committed log handed
+    -- out, `runCfg` keeping the configuration up to it)
+    ⌜rs.slent = none → rs.mode.isDyn = true → rs.delivered.length ≤ ca_d⌝)
 
 /-- `run`'s node back from the rendezvous (`advRet0`), with (2026-11-12, trace-check implementation
 step 1) at a traced node its half of the escrow's pending deposit back. -/
@@ -1178,9 +1190,9 @@ step 1) at a traced node its half of the escrow's pending deposit back. -/
   iprop(∃ s, "Hch" ∷ ownChan γ.advancec Unit s ∗
     (match s with
      | .Idle => iprop(True)
-     | .SndPending _ => iprop((∃ (L : Option SnapLoan) (x : Nat × CCState), advanceP γ L x ∗
-         ∃ ds : List EntryM,
-         dghostVar γ.req (DFrac.own (1 : Qp).half) ((reqOf L ds, loanReq γ.mode L x) : AdvReq) ∗
+     | .SndPending _ => iprop((∃ (L : Option SnapLoan) (x : Nat × CCState) (n : Nat),
+         advanceP γ L x n ∗ ∃ ds : List EntryM,
+         dghostVar γ.req (DFrac.own (1 : Qp).half) ((reqOf L ds, loanReq γ.mode L x n) : AdvReq) ∗
          dlvLb γ ds) ∗
          -- (2026-11-12, trace-check implementation step 1) at a traced node, the escrow's request
          -- with the claimed key's allocation bound

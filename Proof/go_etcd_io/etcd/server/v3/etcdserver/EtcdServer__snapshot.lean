@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.verifyConsistentIndexIsLatest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
@@ -202,7 +203,7 @@ theorem EtcdServer.snapshot.wp_proof
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #()))
-      iapply (wp_ci_get hCI γ ci b st Hloop.1) $$ [Hst Hbe]
+      iapply (wp_ci_get (IR := fun _ _ => iprop(True)) hCI γ ci b st Hloop.1) $$ [Hst Hbe]
       · iframe #; iframe
       iintro ⟨Hst, Hbe⟩
       wp_apply hVer snap' (memSnapMade ai at' c []) (ciEff γ st.k) (by exact Hci) $$ []
@@ -338,7 +339,7 @@ theorem EtcdServer.snapshot.wp_proof
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #()))
-      iapply (wp_ci_get hCI γ ci b st Hloop.1) $$ [Hst Hbe]
+      iapply (wp_ci_get (IR := fun _ _ => iprop(True)) hCI γ ci b st Hloop.1) $$ [Hst Hbe]
       · iframe #; iframe
       iintro ⟨Hst, Hbe⟩
       wp_apply hVer snap' (memSnapMade ai at' c []) (ciEff γ st.k) (by exact Hci) $$ []
@@ -362,7 +363,7 @@ theorem EtcdServer.snapshot.wp_proof
       -- (2026-10-31) the WAL contract's `SaveSnap`, at the apply thread's share of the WAL (wal-link L3: the
       -- contract and the reader token in the share)
       iunfold rnWalTokA at Hwt
-      icases Hwt with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur, Hrdw, #Hsave⟩
+      icases Hwt with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur, Hrdw, #Hsave, %Hsd⟩
       icombine Hstf Hst0 gives %Hsteq
       have Hsteq' : st0 = interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.storage.ty) #stp := by
@@ -390,9 +391,9 @@ theorem EtcdServer.snapshot.wp_proof
         have h1 := Hfv.1
         have h2 := Hfv.2.2.2.2.1
         omega
-      ihave #HSaveSnap := walSaveSnapC_spec _ γn.wal.h γn.ss si Hsieq q snap' pm DFrac.discard
+      ihave #HSaveSnap := walSaveSnapCH_spec _ γn.wal.h γn.ss si Hsieq q snap' pm DFrac.discard
         (memSnapMade ai at' c []).Metadata' al ufm
-        iprop(token γn.wal.app ∗ walBaseLb γn.wal.h (uint.nat (memSnapMade ai at' c []).Metadata'.Index'))
+        (fun _ => iprop(token γn.wal.app))
         true HF2z HF2i (HF2e al) $$ Hsave
       have Hsieq0 := Hsieq
       simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
@@ -427,21 +428,25 @@ theorem EtcdServer.snapshot.wp_proof
       -- (R2d, Q14 (a)) the snapshot's certificate, for the WAL record's
       ihave #HsvW : snapshotValid γn.node.cl (SnapshotM.mk [] (memSnapMade ai at' c []).Metadata') $$ []
       · rw [Hγn]; iExactEq HsvS; rfl
-      ihave HAU := rnDur_ownSnap_au γn.node.cl γn.wal _ (memSnapMade ai at' c []).Metadata' lw e
-        (by simpa [memSnapMade] using hpos') (by simpa [memSnapMade] using He)
-        (by simpa [memSnapMade] using Het) $$ Hdur Hwap Hwlb HsvW
+      -- (P5) the snapshot directory's durability at the index (`WalNamesK.sd`; trivial until T6)
+      ihave #Hsdi : □ γn.walK.sd (memSnapMade ai at' c []).Metadata'.Index' $$ []
+      · rw [Hsd]; dsimp only; iintro !>; itrivial
+      ihave HAU := rnDurK_ownSnap_law_holds γn.node γn.id γn.walK γn.wal.h (memSnapMade ai at' c []).Metadata'
+        lw e al (by simpa [memSnapMade] using hpos') (by simpa [memSnapMade] using He)
+        (by simpa [memSnapMade] using Het) (by have h1 := Hfv.1; have h2 := Hfv.2.2.2.2.1; omega)
+        $$ Hdur Hwap Hwlb HsvW Hsdi
       wp_bind (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty)
         go!"SaveSnap" #stp)) (Val #snap'))
       iapply HSaveSnap $$ [Hwo Hrdw HAU]
       · iframe Hwo Hrdw HAU; iframe #
       inext
-      iintro %serr ⟨%Hserr, Hwo, Hrdw, -, ⟨Hwap, #Hwblb⟩, %iw, #Hwrec⟩
+      iintro %serr ⟨%Hserr, Hwo, Hrdw, -, %Hsw, Hwap, -, #Hwrec⟩
       subst Hserr
       (try wp_auto)
       -- (wal-link L3) `Release`, the WAL contract's law: the records read (`rnDur_read_au`)
-      ihave HRAU := rnDur_read_au γn.node.cl γn.wal γn.wal.h $$ Hdur Hwap
+      ihave HRAU := rnDurK_read_au γn.node γn.id γn.walK γn.wal.h $$ Hdur Hwap
       ihave #HRel := walRelease_spec _ γn.wal.h γn.ss _ Hsieq0 q snap' pm DFrac.discard DFrac.discard
-          (memSnapMade ai at' c []).Metadata' sd γd img Rm iw (memSnapMade ai at' c []).Metadata'
+          (memSnapMade ai at' c []).Metadata' sd γd img Rm Hsw.length (memSnapMade ai at' c []).Metadata'
           (token γn.wal.app) rfl $$ Hsave
       wp_apply HRel $$ [Hwo Hrdw HRAU] as %rerr ⟨Hwo, Hrdw, -, -, Hwap, %Hrerr⟩
       · iframe Hwo Hrdw HRAU Hm' Hssd Hdinv Hwrec; iframe #
@@ -458,7 +463,7 @@ theorem EtcdServer.snapshot.wp_proof
         · exact absurd (Hrel.1 γn.ss) h
       subst hrerr
       ihave Hwt : rnWalTokA γn (srvRAddr s) q $$ [Hwo Hwap Hrdw]
-      · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur Hrdw Hsave
+      · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur Hrdw Hsave; ipureintro; exact Hsd
       (try wp_auto)
       wp_apply hGI pm DFrac.discard (memSnapMade ai at' c []).Metadata' $$ [] as -
       · iframe #

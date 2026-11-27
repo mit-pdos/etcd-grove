@@ -81,12 +81,17 @@ variable [sem : go.Semantics]
 
 /-- `s.consistIndex` is the consistent index `ci`, with the protocol's invariant
 (persistent). -/
-def isServerCI (s : Loc) (γ : ApplyNames) (ci : Loc) : IProp GF :=
-  iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci ∗ inv applyN (consInv γ))
+def isServerCI (s : Loc) (γ : ApplyNames) (ci : Loc)
+    (IR : w64 → w64 → IProp GF := fun _ _ => iprop(True)) : IProp GF :=
+  iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci ∗ inv applyN (consInv γ IR))
 
-instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) :
-    Persistent (isServerCI (GF := GF) s γ ci) := by
+instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (IR : w64 → w64 → IProp GF) :
+    Persistent (isServerCI (GF := GF) s γ ci IR) := by
   unfold isServerCI; infer_instance
+
+/- (T10 session 10) The lemmas below are generic over the protocol's image row `IR` (`consInv γ IR`,
+`InvApply.lean`); a caller at the trivial row passes nothing. -/
+variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
 
 /-- The apply thread's backend: its half of `ci.be`, the backend `b`, whose read view is the
 protocol's. -/
@@ -146,7 +151,7 @@ outside an entry's flight): the update their specs take. It returns `ciEff γ st
 loads `ci` if it was 0. -/
 theorem ci_get_au (γ : ApplyNames) (ci : Loc) (b : GoInterface) (st : ApplyState)
     (hp : st.pending = false) (Φ : val → IProp GF) :
-    inv applyN (consInv γ) ⊢ applyThread γ st -∗
+    inv applyN (consInv γ IR) ⊢ applyThread γ st -∗
       (applyThread γ (stLoaded γ st) -∗ ciOwner ci b -∗ Φ #(ciEff γ st.k)) -∗
       |={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ.ci k ∗ (ciIdx γ.ci k ={∅, ⊤ \ ↑ciN}=∗
         if k = W64 0 then
@@ -182,7 +187,7 @@ theorem wp_ci_unsafeGet (hU : consistentIndex.UnsafeConsistentIndex.spec (GF := 
     (γ : ApplyNames) (ci : Loc) (b : GoInterface) (st : ApplyState) (hp : st.pending = false) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isCI ci γ.ci ∗ inv applyN (consInv γ) ∗ applyThread γ st ∗ applyBackend γ ci b) -∗
+      isCI ci γ.ci ∗ inv applyN (consInv γ IR) ∗ applyThread γ st ∗ applyBackend γ ci b) -∗
       (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b -∗ Φ #(ciEff γ st.k)) -∗
       WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeConsistentIndex"))
         (Val #())) {{ Φ }} := by
@@ -203,7 +208,7 @@ theorem wp_ci_get (hC : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := h
     (γ : ApplyNames) (ci : Loc) (b : GoInterface) (st : ApplyState) (hp : st.pending = false) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isCI ci γ.ci ∗ inv applyN (consInv γ) ∗ applyThread γ st ∗ applyBackend γ ci b) -∗
+      isCI ci γ.ci ∗ inv applyN (consInv γ IR) ∗ applyThread γ st ∗ applyBackend γ ci b) -∗
       (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b -∗ Φ #(ciEff γ st.k)) -∗
       WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #())) {{ Φ }} := by
@@ -226,7 +231,7 @@ theorem wp_ci_hookSet (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (
     (hi : i = st.p + 1) (hlt : uint.Z st.p < uint.Z i) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isCI ci γ.ci ∗ inv applyN (consInv γ) ∗ applyThread γ st ∗ token γ.pend) -∗
+      isCI ci γ.ci ∗ inv applyN (consInv γ IR) ∗ applyThread γ st ∗ token γ.pend) -∗
       (applyThread γ { st with k := i, pending := true } -∗ Φ #()) -∗
       WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetConsistentIndex"))
         (Val #i)) (Val #t)) {{ Φ }} := by
@@ -244,7 +249,7 @@ theorem wp_ci_advance (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (
     (hle : uint.Z i ≤ uint.Z st.p) (hlt : uint.Z (ciEff γ st.k) < uint.Z i) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isCI ci γ.ci ∗ inv applyN (consInv γ) ∗ applyThread γ st) -∗
+      isCI ci γ.ci ∗ inv applyN (consInv γ IR) ∗ applyThread γ st) -∗
       (applyThread γ { st with k := i } -∗ Φ #()) -∗
       WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetConsistentIndex"))
         (Val #i)) (Val #t)) {{ Φ }} := by

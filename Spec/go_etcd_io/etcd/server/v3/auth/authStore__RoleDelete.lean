@@ -40,7 +40,7 @@ abbrev auth.authStore.RoleDelete.spec : Prop :=
       ⌜∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
         n.length ≤ backend.maxKeySize⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleDelete")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthRoleDeleteResponse resp err ∗ ∃ en : Bool, enabledVerdict M en ∗
       adminOut M hs (stepOf (roleDeleteF en role)) noExtra err }}
 

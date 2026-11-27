@@ -68,17 +68,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- **The read's facts, by a look at the invariant** (see the file header): no step, the invariant
 closed at once; the resources `walInvBody_readState` takes come back. -/
 theorem walInv_readFiles (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) (gs : List SegG)
+    (dir : GoString) (i : Nat) (I : GMap GoString Nat) (hi : incOf I dir = i) (j : Ino) (X : List GoString)
+    (hj0 : NamesH) (gs : List SegG)
     (hnm : ∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino))
     (hdrop : ∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name))
     (hsz : ∀ g ∈ gs, g.om.size = g.bs.length) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
-      osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
+      walIncQ (W := W) I -∗ osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walIncQ (W := W) I ∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
       walTailsFrag (W := W) ∅ ∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
@@ -86,11 +87,11 @@ theorem walInv_readFiles (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       ∃ (d : WalDur) (lay : WalLay) (kk : Nat),
         ⌜lay.j = j ∧ WalAbsD C Mr d lay hj0.cur ∧ TailExact lay ∧
           lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ lay.segs.drop kk = gs⌝ := by
-  iintro #Hinv Hnc #Hk Hn Hf Hgs
+  iintro #Hinv Hnc #Hk HI Hn Hf Hgs
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_readState (L := hG.goose_localGS) C Mr R jr r s dir j X hj0 gs hnm hdrop hsz
-    $$ Hb Hk Hn Hf Hgs with ⟨%d, %lay, %kk, %hfacts, Hb, -, Hn, Hf, Hgs⟩
+  icases walInvBody_readState (L := hG.goose_localGS) C Mr R jr r s dir i I hi j X hj0 gs hnm hdrop hsz
+    $$ Hb Hk HI Hn Hf Hgs with ⟨%d, %lay, %kk, %hfacts, Hb, -, HI, Hn, Hf, Hgs⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
   imodintro

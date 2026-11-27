@@ -1834,6 +1834,14 @@ theorem csContract_noWrite (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) :
   iintro ⟨HPre, -, -⟩
   iright; iexact HPre
 
+/-- `csContract_noWrite` with the fact `φ` of the return that did not write (its `Pre` disjunct
+`Pre ∗ ⌜φ⌝`: the admin methods' returns before the batch lock, T10 step 2). -/
+theorem csContract_noWriteF (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) {φ : Prop} (h : φ) :
+    srvApi.csContractA P f Pre Q Post ⊢ Post ∨ (Pre ∗ ⌜φ⌝) := by
+  unfold srvApi.csContractA
+  iintro ⟨HPre, -, -⟩
+  iright; iframe HPre; ipureintro; exact h
+
 end wdefs
 
 section defs2

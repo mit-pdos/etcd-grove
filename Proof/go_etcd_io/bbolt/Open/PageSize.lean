@@ -7,6 +7,7 @@ an error (`fmt` formats it).
 module
 
 public import Proof.go_etcd_io.bbolt.Open.ReadHeld
+public import Spec.go_etcd_io.bbolt.DB__pageInBuffer
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGaps
 public import Proof.go_etcd_io.bbolt.Mmap.AllocPage
@@ -106,16 +107,6 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- `db.pageInBuffer(b, id)` with the page size owned (at any fraction: `Open`'s owned phase,
-before the page size is final). -/
-abbrev DB.pageInBuffer.spec_own : Prop :=
-  ∀ (db : Loc) (b : GoSlice) (id : w64) (dq : DFrac),
-  id.toNat * 4096 < b.len.toNat → b.len.toNat < 2 ^ 63 → 0 < b.ptr.addr →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ db.[DB, go!"pageSize"] ↦{dq} W64 4096 }}
-    (App (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"pageInBuffer")) (Val #b))
-      (Val #id))
-  {{ RET #(b.ptr +ₗ ((id.toNat * 4096 : Nat) : Int)); db.[DB, go!"pageSize"] ↦{dq} W64 4096 }}
 
 omit hos in
 /-- `File.Stat`'s error, a `*PathError` of an errno if non-nil (`os.errnoPathErr`), is a pointer error. -/

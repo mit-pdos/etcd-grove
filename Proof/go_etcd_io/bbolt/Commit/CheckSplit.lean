@@ -56,6 +56,8 @@ theorem rdTxK_halves (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (
     iintro ⟨⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex, Hw, Hpool⟩,
       ⟨%r2, %c2, %mv2, %k2, %Hc2, #Hreg2, -, -, Hv2, Hex2, Hw2, Hpool2⟩⟩
     iunfold reg at Hreg Hreg2
+    icases Hreg with ⟨#Hreg, #Hreg_x⟩
+    icases Hreg2 with ⟨#Hreg2, -⟩
     icombine Hreg Hreg2 gives %hr
     obtain ⟨-, rfl⟩ := hr
     icombine Hv Hv2 gives %hv
@@ -67,7 +69,7 @@ theorem rdTxK_halves (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (
     · ipureintro; exact Hc
     iframe Hpk Hcore
     isplitr
-    · iunfold reg; iexact Hreg
+    · iunfold reg; iframe #
 
     have hf := (rtxFrac_fractional (GF := GF) K.B tx r T v mv k).fractional q.half q.half
     rw [Qp.half_add_half] at hf

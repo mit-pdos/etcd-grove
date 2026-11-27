@@ -26,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`a.ClusterMemberAttrSet(r, shouldApplyV3)`** of a member of the rest state's `mem` (the cluster's `UpdateAttributes` panics on an id neither a member nor removed; the cluster-rows stage, 2026-11-02): the cluster's `UpdateAttributes` with the member's name and client URLs (a critical section, or none). -/
+/-- **`a.ClusterMemberAttrSet(r, shouldApplyV3)`** of a member of the rest state's `mem` (the cluster's `UpdateAttributes` panics on an id neither a member nor removed; the cluster-rows stage, 2026-11-02): the cluster's `UpdateAttributes` with the member's name and client URLs (a critical section, or none). (T10 step 2) Its no-lock
+outcome's fact: the rest state unchanged (`mPostV`'s `φ`). -/
 abbrev apply.applierV3backend.ClusterMemberAttrSet.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (mm : MemberAttrModel) (rs : apply.RestM)
@@ -36,7 +37,8 @@ abbrev apply.applierV3backend.ClusterMemberAttrSet.spec : Prop :=
       apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗
       E.RO rs }}
     (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"ClusterMemberAttrSet")) (Val #r)) (Val #v3))
-  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post ∗
+  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post
+      (apply.restUpdateAttrs v3 mm rs = rs) ∗
       E.RO (apply.restUpdateAttrs v3 mm rs) }}
 
 end spec

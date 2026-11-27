@@ -156,6 +156,19 @@ theorem pwPostE_step (m : OsMeta) (off A j E nn A' k : Nat) (hoff : off ≤ m.si
   · simp [pwPost, os.pwPostE]
   · exact pwCzE_step m off A j E nn A' k hoff hA0 hA hnA (by omega)
   · simp [pwPost, os.pwPostE]
+  · -- the crash sizes known: a write inside the file keeps them, either way
+    have hSu : pwSize m.size off j ≤ max m.size (off + j) := by unfold pwSize; split <;> omega
+    have hSl : m.size ≤ pwSize m.size off j := by unfold pwSize; split <;> omega
+    show (if off + nn + (A' - nn) ≤ pwSize m.size off j then
+        (if off + A ≤ m.size then m.xs else none) else none) =
+      (if off + A' ≤ m.size then m.xs else none)
+    by_cases hB : off + A' ≤ m.size
+    · rw [if_pos (by omega), if_pos (by omega), if_pos hB]
+    · rw [if_neg hB]
+      split
+      · rw [if_neg (by omega)]
+      · rfl
+
 
 theorem wl_getD_lt {α : Type} (l : List α) (i : Nat) (d : α) (h : i < l.length) :
     l.getD i d = l[i] := by

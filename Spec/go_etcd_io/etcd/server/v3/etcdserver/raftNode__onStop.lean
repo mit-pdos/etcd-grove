@@ -40,13 +40,14 @@ abbrev raftNode.onStop.spec : Prop :=
       -- durability invariant (`rnDur_take`): the stop's claim, the apply thread's token, the loop's
       -- view at no pending snapshot; and the metadata and the purge's right
       rnWalTok γ r 1 ∗ token γ.wal.stop ∗ token γ.wal.app ∗
-      -- (2026-11-03, R2b-3b) the node's durable state `S`, the loop's view at it (no pending
-      -- snapshot, the handed log `L`), and `applyc`'s producer token with `cum` at its count, for
+      -- (2026-11-03, R2b-3b) the loop's view at the node's durable state `S` (no pending snapshot, the
+      -- handed log `L`; P5, 2026-11-25: `S` itself, until then here, is the crash-aware durability's,
+      -- `rnDurK_take.law`), and `applyc`'s producer token with `cum` at its count, for
       -- the stop's escrow (`rnDoneEsc`); (S1, 2026-11-11) the restart point's backend log at or
       -- below the hard state's commit (`rnRestartOk_a0_le`, from the loop's fact) and the handed log
       -- committed, for the image's `a0` bound and its committed log (`rnStopImage`)
       (∃ (S : RaftState) (p : HardStateM) (L : List EntryModel) (sent : List toApply),
-        raftState γ.node.cl γ.id S ∗ rnWalView γ ⟨S, p, none, srvLE γ.srv L⟩ ∗
+        rnWalView γ ⟨S, p, none, srvLE γ.srv L⟩ ∗
         sspscProducer γ.ap sent ∗ monoListIdxOwn γ.cum sent.length L ∗
         ⌜γ.a0.length ≤ uint.nat p.Commit'⌝ ∗ isCommittedLogLb γ.node.cl (srvLE γ.srv L)) ∗
       (∃ (st : GoInterface) (cid : w64), rnStorageAddr r ↦□ st ∗

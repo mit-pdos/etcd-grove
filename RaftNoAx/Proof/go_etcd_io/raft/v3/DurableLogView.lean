@@ -18,8 +18,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics] [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem raftState_logView (γ : Cluster) (id : w64) (S : RaftState) (N : Namespace) :
-    isCluster (GF := GF) γ N ∗ raftState γ id S ⊢ |={⊤}=>
+/-- (P5 (b), 2026-11-26) `raftState_logView` at any mask holding the cluster's namespace (the server's
+crash law and *enter* run inside its own invariant). -/
+theorem raftState_logViewE (γ : Cluster) (id : w64) (S : RaftState) (N : Namespace) (Em : CoPset)
+    (hEm : ↑N ⊆ Em) :
+    isCluster (GF := GF) γ N ∗ raftState γ id S ⊢ |={Em}=>
       raftState γ id S ∗ ∃ fp : List EntryM,
         ⌜FullOk S.base fp ∧ PlogWf S.base S.ents ∧ uint.nat S.commit ≤ (fp ++ S.ents).length⌝ ∗
         ⌜(fp ++ S.ents).Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')⌝ ∗
@@ -42,7 +45,7 @@ theorem raftState_logView (γ : Cluster) (id : w64) (S : RaftState) (N : Namespa
   ihave %horder := logRecs_entryOrder (ApiImpl.Cluster.raft γ) _ hfw $$ Hlog
   have hc : (uint.Z S.commit).toNat = uint.nat S.commit := by word
   isimp only [hc] at Hcommit
-  imod ApiImpl.api_committed_lb γ N ⊤ CoPset.subseteq_top
+  imod ApiImpl.api_committed_lb γ N Em hEm
       ((fp ++ S.ents).take (uint.nat S.commit)) $$ Hci Hcommit with ⟨Hlb, -⟩
   imodintro
   isplitl [Hshares Hslot Hi1]
@@ -65,5 +68,13 @@ theorem raftState_logView (γ : Cluster) (id : w64) (S : RaftState) (N : Namespa
   simp only [List.length_append]
   have := uint_nat_eq S.commit
   omega
+theorem raftState_logView (γ : Cluster) (id : w64) (S : RaftState) (N : Namespace) :
+    isCluster (GF := GF) γ N ∗ raftState γ id S ⊢ |={⊤}=>
+      raftState γ id S ∗ ∃ fp : List EntryM,
+        ⌜FullOk S.base fp ∧ PlogWf S.base S.ents ∧ uint.nat S.commit ≤ (fp ++ S.ents).length⌝ ∗
+        ⌜(fp ++ S.ents).Pairwise (fun a b => uint.nat a.Term' ≤ uint.nat b.Term' ∧ uint.nat a.Index' < uint.nat b.Index')⌝ ∗
+        isCommittedLogLb γ (strip ((fp ++ S.ents).take (uint.nat S.commit))) :=
+  raftState_logViewE γ id S N ⊤ CoPset.subseteq_top
+
 end EtcdGrove
 end Perennial

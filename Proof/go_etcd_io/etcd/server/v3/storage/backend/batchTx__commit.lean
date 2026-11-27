@@ -133,6 +133,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
         (iprop(bbolt.boltState γ.db (1 : Qp).half S ∗
           dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ F ∗ cntLb γ (n + 1)))
       try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+      ihave Hau := bbolt.commitAU_of_unversioned γ.db D S _ $$ Hau
       wp_apply h' $$ [$Hl $Hau] as %err ⟨#Hdn, Hr⟩
       all_goals try (ipureintro; first | trivial | rfl)
       iapply HΦ; iframe Hdn
@@ -193,6 +194,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
           iframe Hw Hbs
       have h' := h tx γ.db (wView D S G) (iprop(bbolt.boltState γ.db 1 S ∗ bStopped γ))
       try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+      ihave Hau := bbolt.commitAU_of_unversioned γ.db D S _ $$ Hau
       wp_apply h' $$ [$Hl $Hau] as %err ⟨#Hdn, Hr⟩
       all_goals try (ipureintro; first | trivial | rfl)
       iapply HΦ; iframe Hdn

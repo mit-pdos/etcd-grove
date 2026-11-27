@@ -36,10 +36,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 trivial classes). -/
 theorem apply.kvPost_backend {E : apply.AEnv GF} {a : GoInterface}
     {info : go_etcd_io.etcd.server.v3.auth.AuthInfo} {rq : apply.IRRModel} {log : mvcc.Log}
-    {R : apply.Outcome → IProp GF} {Pre Post : IProp GF} :
+    {R : apply.Outcome → IProp GF} {Pre Post : IProp GF} {N : apply.Outcome → Prop} :
     (∃ oc : apply.Outcome, ⌜apply.chainStep apply.backendStep .backend rq log oc⌝ ∗ R oc ∗
-      apply.kvOwn E (oc.logAfter log) ∗ apply.chainRes .backend a info ∗ (Post ∨ Pre)) ⊢
-      apply.kvPost E .backend a info rq log R Pre Post := by
+      apply.kvOwn E (oc.logAfter log) ∗ apply.chainRes .backend a info ∗
+      (Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ N oc⌝))) ⊢
+      apply.kvPost E .backend a info rq log R Pre Post N := by
   iintro ⟨%oc, %H, HR, Hkv, Hres, HPP⟩
   unfold apply.kvPost
   iexists oc
@@ -216,7 +217,10 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       iframe
     isplitr
     · simp only [apply.chainRes]; itrivial
-    iright; iexact HPre
+    iright; iframe HPre; ipureintro
+    refine ⟨by first | rfl | exact hlog, ?_, ?_⟩
+    · rw [apply.revokeIds_applied rq id _ _ _ Hrq.2.1 Hrq.1, hflt]
+    · rw [apply.revokeRest_applied _ rq id _ _ rs Hrq.2.1 Hrq.1, if_neg Hnf]
   · -- live: the lease's keys deleted, the lease gone from both halves of the live set
     simp only [srvApi.stAt] at *
     imod apply.ltHalf_update E L L (L.filter (· != id)) $$ HltL HltT with ⟨HltL, HltT⟩

@@ -165,7 +165,7 @@ theorem Tx.close_w.wp_proof
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hkc
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, -, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, -, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
   ihave #Hrw : sync.isMutex K.db.[DB, go!"rwlock"] (rwR K.B K.db K.p K.sp K.t0) $$ []
   · unfold BC.full isBoltP; icases Hfull with ⟨-, $, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

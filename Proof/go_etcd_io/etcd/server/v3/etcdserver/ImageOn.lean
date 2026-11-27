@@ -156,5 +156,31 @@ theorem srvImageM_on (γ : SrvRaft) : srvImageM (GF := GF) true γ = srvImageOn 
 
 end defs
 
+section gen
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
+variable {GF : BundledGFunctors}
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The image certificate is the same at every generation** (D6-T7, 2026-11-25): its parts are
+global ghost state (the log's lower bound) and pure facts, and mvcc's `mvccImage`, by
+`mvcc.api.mvccImage_gen`. What the member's crash law (`memberGen_crash_law_holds`) gives T6's
+`snapDir_crash.law` as its `img → img'`. Both generations at the Go context `lctx` of the program's
+instances. -/
+theorem srvImageM_gen (G : GooseGlobalGS HasLC.hasLC GF) (L L' : GooseLocalGS GF) (on : Bool)
+    (γ : SrvRaft) (i : w64) (D : backend.Data) :
+    srvImageM (hG := ⟨G, { L with goose_go_local_context := lctx }⟩) on γ i D ⊢
+      srvImageM (hG := ⟨G, { L' with goose_go_local_context := lctx }⟩) on γ i D := by
+  cases on
+  · unfold srvImageM srvImage dbImage
+    exact exists_mono fun γk => sep_mono .rfl <| exists_mono fun A => exists_mono fun u =>
+      sep_mono .rfl <| sep_mono .rfl (mvcc.api.mvccImage_gen G L L' ..).1
+  · unfold srvImageM srvImageOn dbImageOn
+    exact exists_mono fun γk => sep_mono .rfl <| exists_mono fun A => exists_mono fun u =>
+      sep_mono .rfl <| sep_mono .rfl (mvcc.api.mvccImage_gen G L L' ..).1
+
+end gen
+
 end EtcdGrove
 end Perennial

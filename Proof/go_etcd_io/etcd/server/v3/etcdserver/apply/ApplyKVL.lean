@@ -73,7 +73,8 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ apply.revokeOwn E rq ∗
     ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
-      apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
+      apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗
+      apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
       apply.ltHalf E (apply.revokeIdsA rq v3 out T) ∗
       E.RO (apply.revokeRestA T rq v3 out (apply.restOut rq v3 out rs)) ∗ apply.revokeAnsRA E rq out ar ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧
@@ -149,7 +150,9 @@ theorem apply.uberApplier.Apply.wp_kvL
         apply.revokeAnsR E rq ar ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.ltHalf E (apply.revokeIds rq v3 o T) ∗
-        E.RO (apply.revokeRest T rq v3 o (apply.restAfter rq v3 rs)) ∗ apply.cPost v3 Pre Post ∗
+        E.RO (apply.revokeRest T rq v3 o (apply.restAfter rq v3 rs)) ∗
+        apply.cPost v3 Pre Post (o.logAfter x.log = x.log ∧ apply.revokeIds rq v3 o T = T ∧
+          apply.revokeRest T rq v3 o (apply.restAfter rq v3 rs) = rs) ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
           apply.kvFloorOk rq v3 F x.log o ∧ a' = GoInterface.ok ai ∧ c' = x.chain⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode (apply.principalOf rq) x.chain rq o) ∗
@@ -178,6 +181,15 @@ theorem apply.uberApplier.Apply.wp_kvL
     ⟨%Hna, ⟨Ha, Hkv, Htt, HFS, -, HRO, HLt, Hrv, HL⟩, Hrej⟩)
   · obtain ⟨-, -, -, ha, hc⟩ := id Hst
     subst ha hc
+    have hg : apply.dispatchKind rq ≠ .leaseGrant := fun h => by
+      simp [apply.authKVKind, apply.isKVKind, h] at Hkk
+    ihave HPP := apply.cPost_mono v3 Pre Post _
+      (apply.applyNoEff rq v3 x ⟨o.logAfter x.log, x.chain, x.crev⟩ T rs (.dispatched o skip))
+      (fun hN => ⟨hN.1, rfl,
+        by simp only [apply.revokeIdsA, apply.grantIdsA]; rw [apply.grantIds_nonGrant _ _ _ _ hg]; exact hN.2.1,
+        fun t => by
+          simp only [apply.revokeRestA, apply.grantRestA, apply.restOut]
+          rw [apply.grantRest_nonGrant _ _ _ _ _ hg]; exact hN.2.2⟩) $$ HPP
     imodintro
     iapply HΦ
     iframe Htt Hrt HFS Hrv
@@ -217,7 +229,7 @@ theorem apply.uberApplier.Apply.wp_kvL
     isplitl [Ha]
     · iunfold apply.uberOwn; iexists _; iframe Ha HsW Hsh; ipureintro; exact HcE
     isplitl [HPre]
-    · iapply apply.cPost_of_pre
+    · iapply (apply.cPost_of_pre _ _ _ _ (apply.applyNoEff_rejected (T := T) (rs := rs) ⟨Hna, rfl⟩))
       iexact HPre
     isplitl [HLt]
     · rw [show apply.revokeIdsA rq v3 .rejected T = T from rfl]; iexact HLt

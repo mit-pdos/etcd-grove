@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.DB__loadFreelistSpec
 public import Proof.go_etcd_io.bbolt.Open.InitImage
+public import Proof.go_etcd_io.bbolt.Inv.FileHolds
 
 @[expose] public section
 

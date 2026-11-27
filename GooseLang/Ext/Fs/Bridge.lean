@@ -67,7 +67,7 @@ sync, or the target of the change in flight. -/
 theorem crash_size {st : OsState} {i : Ino} {f f' : OsFile} (hc : CrashFile st i f f') :
     (f.sizeLo ≤ f'.size ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ f'.size) ∧
     (f'.size ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ f'.size ≤ c.target) := by
-  obtain ⟨sz, img, hsz, -, -, rfl⟩ := hc; exact hsz
+  obtain ⟨sz, img, hsz, -, -, rfl⟩ := hc; exact ⟨hsz.1, hsz.2.1⟩
 
 /-- **A crash leaves no file larger than `maxBytes`** (the model's bound, `Impl.lean`). -/
 theorem crash_size_max {st : OsState} {i : Ino} {f f' : OsFile} (hc : CrashFile st i f f') :

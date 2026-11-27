@@ -190,5 +190,130 @@ theorem replayRetain_coverage (rs : List replayTermRun) (k : Nat) (first : w64)
       · exact h
       · rw [hx] at hr; cases hr; have := hc.1; omega
 
+/-- (2026-11-24, D6 T4 option (a), item 3) **The history form through `appendEntries`**: runs that
+describe the durable state `S` above the cursor `n` (`replayHistoryMatches`), cut at the batch's first
+index and extended by the batch (`appendEntries`' output), describe the next durable state `S'`, when
+`S'` keeps `S`'s terms below the batch's first index (`below`) and has the batch's terms from it on
+(`here`). -/
+theorem replayHistoryMatches_append (rs : List replayTermRun) (S S' : RaftState) (n k : Nat)
+    (first : EntryModel) (rest : List EntryModel)
+    (idx : (first :: rest).Pairwise (fun a b => uint.nat a.index < uint.nat b.index))
+    (h : replayHistoryMatches rs S n) (hcut : replayCutIndex rs first.index k)
+    (below : ∀ ci t, n < uint.nat ci → uint.nat ci < uint.nat first.index →
+      plogTermAt S'.base S'.ents ci = some t → plogTermAt S.base S.ents ci = some t)
+    (here : ∀ ci t, n < uint.nat ci → uint.nat first.index ≤ uint.nat ci →
+      plogTermAt S'.base S'.ents ci = some t → ∃ e ∈ first :: rest, e.index = ci ∧ e.term = t) :
+    replayHistoryMatches ((first :: rest).foldl replayAddEntry (replayRetain rs k first.index)) S' n := by
+  obtain ⟨layout, bound, keep⟩ := replayRetain_coverage rs k first.index h.1 hcut
+  obtain ⟨done, prior, batch⟩ := replayFold_coverage _ (first :: rest) layout idx (by
+    intro r hr e he
+    have hb := bound r hr
+    rcases List.mem_cons.mp he with rfl | he
+    · exact hb
+    · exact Nat.lt_trans hb ((List.pairwise_cons.mp idx).1 e he))
+  refine ⟨done, fun ci t hn ht => ?_⟩
+  by_cases hlt : uint.nat ci < uint.nat first.index
+  · exact prior _ _ (keep _ _ hlt (h.2 ci t hn (below ci t hn hlt ht)))
+  · obtain ⟨e, he, hi, htm⟩ := here ci t hn (by omega) ht
+    subst hi; subst htm
+    exact batch e he
+
+/-- (2026-11-24, D6 T4 option (a), item 3) **The history form at an unchanged log**: runs describing
+`S` above `n` describe any `S'` with the same base and entries, above any `m ≥ n`. -/
+theorem replayHistoryMatches_same (rs : List replayTermRun) (S S' : RaftState) (n m : Nat)
+    (h : replayHistoryMatches rs S n) (hb : S'.base = S.base) (he : S'.ents = S.ents) (hm : n ≤ m) :
+    replayHistoryMatches rs S' m := by
+  refine ⟨h.1, fun ci t hn ht => ?_⟩
+  rw [hb, he] at ht
+  exact h.2 ci t (by omega) ht
+
+/-- (2026-11-24, D6 T4 option (a), item 3) **A batch above the base, on the durable log**: the next
+durable state (`RaftState.next`, no snapshot) keeps `S`'s terms below the batch's first index and has
+the batch's from it on, when its log is well formed (`PlogWf`: raft's `raftState_logView` at the
+entered state). `replayHistoryMatches_append`'s `below` and `here`. -/
+theorem plogTermAt_next_batch (S : RaftState) (term vote commit : w64) (first : EntryModel)
+    (rest : List EntryModel)
+    (idx : (first :: rest).Pairwise (fun a b => uint.nat a.index < uint.nat b.index))
+    (hb : uint.Z S.base.index' < uint.Z first.index)
+    (hwf : PlogWf (S.next term vote commit none ((first :: rest).map EntryModel.toM)).base
+      (S.next term vote commit none ((first :: rest).map EntryModel.toM)).ents) :
+    (∀ ci t, uint.nat ci < uint.nat first.index →
+      plogTermAt (S.next term vote commit none ((first :: rest).map EntryModel.toM)).base
+        (S.next term vote commit none ((first :: rest).map EntryModel.toM)).ents ci = some t →
+      plogTermAt S.base S.ents ci = some t) ∧
+    (∀ ci t, uint.nat first.index ≤ uint.nat ci →
+      plogTermAt (S.next term vote commit none ((first :: rest).map EntryModel.toM)).base
+        (S.next term vote commit none ((first :: rest).map EntryModel.toM)).ents ci = some t →
+      ∃ e ∈ first :: rest, e.index = ci ∧ e.term = t) := by
+  have hbase : (S.next term vote commit none ((first :: rest).map EntryModel.toM)).base = S.base := rfl
+  have hents : (S.next term vote commit none ((first :: rest).map EntryModel.toM)).ents =
+      S.ents.take (uint.Z first.index - uint.Z S.base.index' - 1).toNat ++
+        (first :: rest).map EntryModel.toM := by
+    have hd : (uint.Z S.base.index' + 1 - uint.Z first.index).toNat = 0 := by omega
+    show appendEnts S.base S.ents ((first :: rest).map EntryModel.toM) = _
+    simp only [List.map_cons, appendEnts, plogTruncateAppend, EntryModel.toM, hd, List.drop_zero]
+  generalize hS' : S.next term vote commit none ((first :: rest).map EntryModel.toM) = S' at hwf hbase hents ⊢
+  rw [hbase] at hwf
+  generalize hj : (uint.Z first.index - uint.Z S.base.index' - 1).toNat = j at hents
+  have hlen : (S.ents.take j).length ≤ j := by simp only [List.length_take]; exact Nat.min_le_left _ _
+  have hmem : ∀ (k : Nat) (e : EntryM), ((first :: rest).map EntryModel.toM)[k]? = some e →
+      ∃ m ∈ first :: rest, e = m.toM := by
+    intro k e h
+    cases hk : (first :: rest)[k]? with
+    | none => rw [List.getElem?_map, hk] at h; cases h
+    | some m =>
+      rw [List.getElem?_map, hk] at h
+      simp only [Option.map_some, Option.some.injEq] at h
+      exact ⟨m, List.mem_iff_getElem?.mpr ⟨k, hk⟩, h.symm⟩
+  have hge : ∀ m ∈ first :: rest, uint.nat first.index ≤ uint.nat m.index := by
+    intro m hm
+    rcases List.mem_cons.mp hm with rfl | hm
+    · exact Nat.le_refl _
+    · exact Nat.le_of_lt ((List.pairwise_cons.mp idx).1 m hm)
+  refine ⟨fun ci t hlt ht => ?_, fun ci t hge' ht => ?_⟩
+  · rw [hbase, hents] at ht
+    unfold plogTermAt at ht ⊢
+    by_cases h1 : uint.Z ci < uint.Z S.base.index'
+    · rw [if_pos h1] at ht; cases ht
+    by_cases h2 : uint.Z ci = uint.Z S.base.index'
+    · rw [if_neg h1, if_pos h2] at ht ⊢; exact ht
+    rw [if_neg h1, if_neg h2] at ht ⊢
+    generalize hp : (uint.Z ci - uint.Z S.base.index' - 1).toNat = p at ht ⊢
+    by_cases hpl : p < (S.ents.take j).length
+    · rw [List.getElem?_append_left hpl, List.getElem?_take_of_lt (by omega)] at ht
+      exact ht
+    · exfalso
+      have hpl' : (S.ents.take j).length ≤ p := by omega
+      rw [List.getElem?_append_right hpl'] at ht
+      cases he : ((first :: rest).map EntryModel.toM)[p - (S.ents.take j).length]? with
+      | none => rw [he] at ht; simp at ht
+      | some e =>
+        obtain ⟨m, hm, rfl⟩ := hmem _ e he
+        have hw := hwf p m.toM (by rw [hents, List.getElem?_append_right hpl', he])
+        have hg := hge m hm
+        simp only [EntryModel.toM] at hw
+        word
+  · rw [hbase, hents] at ht
+    unfold plogTermAt at ht
+    have h1 : ¬ uint.Z ci < uint.Z S.base.index' := by word
+    have h2 : ¬ uint.Z ci = uint.Z S.base.index' := by word
+    rw [if_neg h1, if_neg h2] at ht
+    generalize hp : (uint.Z ci - uint.Z S.base.index' - 1).toNat = p at ht
+    by_cases hpl : p < (S.ents.take j).length
+    · exfalso
+      word
+    · have hpl' : (S.ents.take j).length ≤ p := by omega
+      rw [List.getElem?_append_right hpl'] at ht
+      cases he : ((first :: rest).map EntryModel.toM)[p - (S.ents.take j).length]? with
+      | none => rw [he] at ht; simp at ht
+      | some e =>
+        rw [he] at ht
+        obtain ⟨m, hm, rfl⟩ := hmem _ e he
+        have hw := hwf p m.toM (by rw [hents, List.getElem?_append_right hpl', he])
+        simp only [EntryModel.toM] at hw
+        simp [EntryModel.toM] at ht
+        refine ⟨m, hm, ?_, ht⟩
+        word
+
 end EtcdGrove
 end Perennial

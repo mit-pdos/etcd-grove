@@ -1,0 +1,86 @@
+# snapdb-crash.sh on fk-lean2 (Linux 7.0.0-1017-aws, C), 2026-11-25
+## series 1: default commit interval (crashes 1-40, EXIT), then series 2: commit=1 (crashes 1-40, EXIT)
+check: /home/ubuntu/t10snapdb/w1/mnt is C (kernel 7.0.0-1017-aws, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+crash 1: ok last-link=31 present=[29 30 31] tmp=0 wal-max=30
+crash 2: ok last-link=37 present=[35 36 37] tmp=0 wal-max=36
+crash 3: ok last-link=29 present=[27 28] tmp=1 wal-max=28
+crash 4: ok last-link=23 present=[21 22] tmp=1 wal-max=22
+crash 5: ok last-link=18 present=[16 17] tmp=1 wal-max=17
+crash 6: ok last-link=6 present=[4 5 6] tmp=0 wal-max=5
+crash 7: ok last-link=18 present=[16 17] tmp=1 wal-max=17
+crash 8: ok last-link=33 present=[31 32] tmp=1 wal-max=32
+crash 9: ok last-link=35 present=[33 34] tmp=1 wal-max=34
+crash 10: ok last-link=20 present=[18 19] tmp=1 wal-max=19
+crash 11: ok last-link=28 present=[26 27] tmp=1 wal-max=27
+crash 12: ok last-link=6 present=[4 5] tmp=1 wal-max=5
+crash 13: ok last-link=6 present=[4 5] tmp=1 wal-max=5
+crash 14: ok last-link=46 present=[44 45 46] tmp=0 wal-max=46
+crash 15: ok last-link=49 present=[47 48 49] tmp=0 wal-max=49
+crash 16: ok last-link=37 present=[35 36 37] tmp=0 wal-max=36
+crash 17: ok last-link=33 present=[31 32] tmp=1 wal-max=32
+crash 18: ok last-link=13 present=[11 12 13] tmp=0 wal-max=13
+crash 19: ok last-link=33 present=[31 32 33] tmp=0 wal-max=33
+crash 20: ok last-link=46 present=[44 45 46] tmp=0 wal-max=46
+crash 21: ok last-link=30 present=[28 29] tmp=1 wal-max=29
+crash 22: ok last-link=34 present=[32 33 34] tmp=0 wal-max=34
+crash 23: ok last-link=10 present=[8 9 10] tmp=0 wal-max=10
+crash 24: ok last-link=13 present=[11 12 13] tmp=0 wal-max=12
+crash 25: ok last-link=80 present=[78 79] tmp=1 wal-max=79
+crash 26: ok last-link=27 present=[25 26 27] tmp=0 wal-max=26
+crash 27: ok last-link=63 present=[61 62] tmp=1 wal-max=62
+crash 28: ok last-link=46 present=[44 45 46] tmp=0 wal-max=45
+crash 29: ok last-link=63 present=[61 62 63] tmp=0 wal-max=63
+crash 30: ok last-link=25 present=[23 24 25] tmp=0 wal-max=24
+crash 31: ok last-link=44 present=[42 43] tmp=1 wal-max=43
+crash 32: ok last-link=16 present=[14 15 16] tmp=0 wal-max=16
+crash 33: ok last-link=58 present=[56 57 58] tmp=0 wal-max=58
+crash 34: ok last-link=11 present=[9 10 11] tmp=0 wal-max=11
+crash 35: ok last-link=29 present=[27 28 29] tmp=0 wal-max=28
+crash 36: ok last-link=43 present=[41 42 43] tmp=0 wal-max=43
+crash 37: ok last-link=18 present=[16 17 18] tmp=0 wal-max=18
+crash 38: ok last-link=8 present=[6 7] tmp=1 wal-max=7
+crash 39: ok last-link=19 present=[17 18 19] tmp=0 wal-max=19
+crash 40: ok last-link=20 present=[18 19 20] tmp=0 wal-max=20
+EXIT 0
+check: /home/ubuntu/t10snapdb/w2/mnt is C (kernel 7.0.0-1017-aws, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=1,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+crash 1: ok last-link=49 present=[47 48 49] tmp=0 wal-max=49
+crash 2: ok last-link=43 present=[41 42 43] tmp=0 wal-max=42
+crash 3: ok last-link=65 present=[63 64] tmp=1 wal-max=64
+crash 4: ok last-link=44 present=[42 43 44] tmp=0 wal-max=44
+crash 5: ok last-link=49 present=[47 48 49] tmp=0 wal-max=48
+crash 6: ok last-link=7 present=[5 6] tmp=1 wal-max=6
+crash 7: ok last-link=22 present=[20 21] tmp=1 wal-max=21
+crash 8: ok last-link=66 present=[64 65] tmp=1 wal-max=65
+crash 9: ok last-link=57 present=[55 56 57] tmp=0 wal-max=57
+crash 10: ok last-link=33 present=[31 32] tmp=1 wal-max=32
+crash 11: ok last-link=13 present=[11 12] tmp=1 wal-max=12
+crash 12: ok last-link=11 present=[9 10] tmp=1 wal-max=10
+crash 13: ok last-link=25 present=[23 24] tmp=1 wal-max=24
+crash 14: ok last-link=8 present=[6 7] tmp=1 wal-max=7
+crash 15: ok last-link=8 present=[6 7] tmp=1 wal-max=7
+crash 16: ok last-link=29 present=[27 28 29] tmp=0 wal-max=28
+crash 17: ok last-link=35 present=[33 34] tmp=1 wal-max=34
+crash 18: ok last-link=41 present=[39 40] tmp=1 wal-max=40
+crash 19: ok last-link=26 present=[24 25] tmp=1 wal-max=25
+crash 20: ok last-link=28 present=[26 27] tmp=1 wal-max=27
+crash 21: ok last-link=22 present=[20 21] tmp=1 wal-max=21
+crash 22: ok last-link=16 present=[14 15] tmp=1 wal-max=15
+crash 23: ok last-link=22 present=[20 21] tmp=1 wal-max=21
+crash 24: ok last-link=19 present=[17 18 19] tmp=0 wal-max=19
+crash 25: ok last-link=18 present=[16 17 18] tmp=0 wal-max=18
+crash 26: ok last-link=19 present=[17 18] tmp=1 wal-max=18
+crash 27: ok last-link=34 present=[32 33 34] tmp=0 wal-max=33
+crash 28: ok last-link=7 present=[5 6 7] tmp=0 wal-max=7
+crash 29: ok last-link=36 present=[34 35] tmp=1 wal-max=35
+crash 30: ok last-link=39 present=[37 38 39] tmp=0 wal-max=38
+crash 31: ok last-link=9 present=[7 8 9] tmp=0 wal-max=9
+crash 32: ok last-link=6 present=[4 5 6] tmp=0 wal-max=6
+crash 33: ok last-link=37 present=[35 36 37] tmp=0 wal-max=37
+crash 34: ok last-link=7 present=[5 6 7] tmp=0 wal-max=7
+crash 35: ok last-link=41 present=[39 40] tmp=1 wal-max=40
+crash 36: ok last-link=28 present=[26 27 28] tmp=0 wal-max=27
+crash 37: ok last-link=10 present=[8 9 10] tmp=0 wal-max=9
+crash 38: ok last-link=33 present=[31 32] tmp=1 wal-max=32
+crash 39: ok last-link=16 present=[14 15 16] tmp=0 wal-max=15
+crash 40: ok last-link=30 present=[28 29 30] tmp=0 wal-max=29
+EXIT 0

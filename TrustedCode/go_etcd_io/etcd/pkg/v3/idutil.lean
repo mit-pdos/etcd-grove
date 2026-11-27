@@ -24,8 +24,11 @@ generators of distinct members of the process differ in the prefix (the 16 low b
 process's every member distinct, a premise of the examples, `TestMemberIDs`: of the one cluster an
 example starts, and, for `examples/k8s/all`, which starts two, of both clusters' members, `k8s_safe`'s
 `Hlow`, and for `examples/etcd/all`, which starts eleven, of all their members, `etcd_safe`'s `Hlow`);
-a member's generators -- one per start of the member -- issue
-distinct ids if the wall clock does not step back across a restart and the earlier generator, started
+a member's generators -- one per start of the member, a graceful restart in one process or a start
+after a crash of its machine (the record keeps a crashed incarnation's ids, as the past's, etcd-dist D4b,
+2026-11-24) -- issue
+distinct ids if the wall clock does not step back across a restart (of the process or of the machine:
+its clock after a reboot, from the RTC and NTP) and the earlier generator, started
 at millisecond t0, issues in all (handlers of the stopped incarnation may still call it) at most
 256·(t1 − t0) ids, t1 the later one's start: the later one's first id is the earlier one's
 (256·(t1 − t0) + 1)-th. etcd assumes this and does not check it (Go's comment asks for a restart

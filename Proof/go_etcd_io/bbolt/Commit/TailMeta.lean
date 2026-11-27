@@ -31,9 +31,14 @@ def WDb.withC (w : WDb) (C : CommitSt) : WDb := { w with C := C }
 
 proj_simps WDb.withC
 
+
 /-- The committed state the commit publishes: the meta `mv` (summed) over the new tree's pages. -/
 abbrev pubC (C : CommitSt) (mv : Meta) (pages : Pages) : CommitSt :=
   C.publish (metaBuf mv) (metaSummed mv) pages
+
+/-- The published state's txid is the meta's (the projection, without unfolding the checksum). -/
+theorem WDb.withC_pubC_txid (w : WDb) (C : CommitSt) (mv : Meta) (pages : Pages) :
+    (w.withC (pubC C mv pages)).C.txid = (metaSummed mv).txid'.toNat := rfl
 
 /-- **`commitStep_commit`'s premises** for the committed state `C`, the writer's freelist `fl`,
 the mapping `(b, l)`, the meta `mv` and the new tree's `pages` (the data `Dn`), the new slots `S`
@@ -141,7 +146,7 @@ variable [sem : go.Semantics]
 theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (X : WX) (v : View) (w : WDb) (b : Loc) (l : Nat)
     (N' : Namespace) (S : List Nat) (bs : Nat → List w8) (pages : Pages) (Dn : Data) (Q A : IProp GF)
-    (hA : A ⊢ commitAU K N' (treeData w.C) Dn Q)
+    (hA : A ⊢ commitAU K N' (treeData w.C) Dn Q) (hN' : (↑(K.N .@ "crash") : CoPset) ⊆ ↑N')
     (Fb : GMap Nat (List w8)) (hms : w.ms = some (b, l)) (hmaps : w.m.maps = GMap.singleton b l)
     (hroot : uint.Z X.t.mv.root'.root' < uint.Z X.t.mv.pgid')
     (hflp : uint.Z X.t.mv.freelist' < uint.Z X.t.mv.pgid' ∨
@@ -151,9 +156,14 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     -- session S4: no synced freelist page published (`NoFreelistSync`), the old one freed, the new
     -- high-water mark's pages inside `maxMapSize` (`metaR`'s)
     (hC'fl : (pubC w.C X.t.mv pages).flpg = none) (hfreed : ∀ f, w.C.flpg = some f → f ∈ pendSlots w.fl)
-    (hhwmb : (pubC w.C X.t.mv pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF) :
+    (hhwmb : (pubC w.C X.t.mv pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF)
+    -- W1, crash mode: the new tree inside the file (`DB.grow`), the crash size bounds agreeing
+    -- (`Tx.write`'s sync)
+    (hin : K.p.cs ≠ none → (pubC w.C X.t.mv pages).hwm * 4096 ≤ w.m.size ∧
+      ∀ x ∈ S, 4096 * (x + 1) ≤ w.m.size)
+    (hlh : K.p.cs ≠ none → w.m.lo = w.m.hi) :
     {{ wtxW (GF := GF) K tx r false X ∗ wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) w ∗
-        ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+        ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
         slotsOwn (some (b, l) : MapSt) K.p S bs ∗ A ∗
         fbTok K.B w.C w.fl ((some v, some (w.C.txid + 1), false, true) : WSt) Fb }}
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
@@ -162,10 +172,10 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
         (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) ∗
         ((wdbLive K.B K.db K.p K.sp K.t0 tx ((some v, some (w.C.txid + 1), true, true) : WSt)
             ((w.reslot m' w.W w.wb).withC (pubC w.C X.t.mv pages)) ∗
-          ghostVar K.B.st (1 : Qp).half.half Dn ∗ Q) ∨
+          ghostVar K.B.st (1 : Qp).half.half (Dn, w.C.txid + 1) ∗ Q) ∨
          (⌜err ≠ interface.nil⌝ ∗
           wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) (w.reslot m' w.W w.wb) ∗
-          ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+          ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
           slotsOwn (some (b, l) : MapSt) K.p S bs ∗ A ∗
           fbTok K.B w.C w.fl ((some v, some (w.C.txid + 1), false, true) : WSt) Fb)) }} := by
   wp_start_folded as ⟨Hw, Hd, Hstq, HS, Hau, Hfb⟩
@@ -178,12 +188,14 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
       $$ [Hout Hcur Hfl Hmap Hwv Hopn Hmc Hmb Hstq]
   · unfold cpRes; rw [← hms]; iframe
   ihave Hcp := commitStep_commit K N' w.C w.fl b l v true S bs Fb X.t.mv pages Dn Q A hA htx hval hps
-    hDn htree hhwm hdrop hS hbytes hfl hnp hSb hC'fl hfreed hhwmb $$ [Hres HS Hfb Hau]
+    hDn htree hhwm hdrop hS hbytes hfl hnp hSb hC'fl hfreed hhwmb w.m hin hlh hN' $$ [Hres HS Hfb Hau]
   · iframe; iframe #
-  wp_apply wp_writeMeta K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.meta' X.t.mv w.f w.fd w.m b l
+  icases dbPathLk_syncs _ _ _ $$ Hpath with ⟨Hpath, #Hsy⟩
+  wp_apply wp_writeMeta K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.meta' X.t.mv w.f w.fd w.C
+    (pubC w.C X.t.mv pages) w.m b l
     (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) _ hroot hflp haddr hsz hmaps hl
-    $$ [Hst Hdb Hme Hmv Hfile Hwa Hfo Hfd Hom Hcp]
-    as %err ⟨Hst, Hdb, Hme, Hmv, Hfile, Hwa, Hfo, Hfd, ⟨%om', Hom, %Hom'⟩, %j, Hpost, %Hj, Herr⟩
+    $$ [Hst Hdb Hme Hmv Hfile Hwa Hfo Hfd Hom Hsy Hcp]
+    as %err ⟨Hst, Hdb, Hme, Hmv, Hfile, Hwa, Hfo, Hfd, %j, ⟨%om', Hom, %Hom'⟩, Hpost, %Hj, Herr⟩
   · iframe; iframe #
   have hX1 : flxS w.C w.fl w.wb = [] := by
     unfold flxS
@@ -201,11 +213,15 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
   unfold cpPost
   icases Hpost with (⟨%hj, Hres, Hrc1, HQ⟩ | ⟨%hj, Hres, HS, Hfb, Hau⟩)
   · ileft
+    rw [if_pos hj]
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
-    iframe Hstq HQ
     have hC'tx : (pubC w.C X.t.mv pages).txid = w.C.txid + 1 := by
-      simp only [pubC, CommitSt.publish, metaSummed_txid]; exact htx
+      rw [show (pubC w.C X.t.mv pages).txid = (metaSummed X.t.mv).txid'.toNat from rfl,
+        metaSummed_txid]; exact htx
+    ihave Hstq : ghostVar K.B.st (1 : Qp).half.half (Dn, w.C.txid + 1) $$ [Hstq]
+    · rw [← hC'tx]; iexact Hstq
+    iframe Hstq HQ
     ihave Hrc := receipt_succ_sub (GF := GF) w.C.txid K.t0 $$ [Hrc Hrc1]
     · iframe
     simp only [WDb.withC, WDb.reslot]
@@ -219,6 +235,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
       intro he
       have := (Hj.2 he)
       omega
+    rw [if_neg (by omega : j ≠ 4096)]
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
     iframe Hstq HS Hau Hfb

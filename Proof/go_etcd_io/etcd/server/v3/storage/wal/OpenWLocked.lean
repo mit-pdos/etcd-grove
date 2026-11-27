@@ -25,9 +25,9 @@ variable {GF : BundledGFunctors} [W : WalGS GF]
 /-- **The open handle holds the lock token.** -/
 theorem walOpenW_lockedTok (w : Loc) (dir : GoString) :
     walOpenW (W := W) w dir ⊢ walLockedTok (W := W) := by
-  unfold walOpenW
-  iintro ⟨-, Hl⟩
-  iexact Hl
+  unfold walOpenW walOpenWI walLockedTok
+  iintro ⟨%i, %I, -, Hl, -⟩
+  iexists I; iexact Hl
 
 end ghost
 

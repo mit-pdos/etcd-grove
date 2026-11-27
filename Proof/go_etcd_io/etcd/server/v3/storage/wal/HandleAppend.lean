@@ -35,29 +35,29 @@ variable [GooseExts]
 far are the same. -/
 theorem WalHS.encRecs_snoc (Mr : WalMarshal) (h : WalHS) (o : WalOpG WalEnt)
     (hc : ∀ b ∈ h.cuts, b ≤ h.H.length) :
-    WalHS.encRecs Mr { h with H := h.H ++ [o], rest := h.rest + (opDs Mr o.toM).length } =
+    WalHS.encRecs Mr { h with H := h.H ++ [o], rest := h.rest + (opDs Mr (wop h.H o)).length } =
       WalHS.encRecs Mr h := by
   unfold WalHS.encRecs
   simp only
   rw [tailRecs_snoc Mr h.H h.md h.cuts o hc, List.length_append, length_chainRecs]
-  rw [show (tailRecs Mr h.H h.md h.cuts).length + (opDs Mr o.toM).length -
-      (h.rest + (opDs Mr o.toM).length) = (tailRecs Mr h.H h.md h.cuts).length - h.rest by omega]
+  rw [show (tailRecs Mr h.H h.md h.cuts).length + (opDs Mr (wop h.H o)).length -
+      (h.rest + (opDs Mr (wop h.H o)).length) = (tailRecs Mr h.H h.md h.cuts).length - h.rest by omega]
   exact List.take_append_of_le_length (by omega)
 
 theorem WalHS.crc_snoc (Mr : WalMarshal) (h : WalHS) (o : WalOpG WalEnt)
     (hc : ∀ b ∈ h.cuts, b ≤ h.H.length) :
-    WalHS.crc Mr { h with H := h.H ++ [o], rest := h.rest + (opDs Mr o.toM).length } =
+    WalHS.crc Mr { h with H := h.H ++ [o], rest := h.rest + (opDs Mr (wop h.H o)).length } =
       WalHS.crc Mr h := by
   unfold WalHS.crc
   simp only
   rw [allRecs_snoc Mr h.H h.md h.cuts o hc, List.length_append, length_chainRecs]
-  rw [show (allRecs Mr h.H h.md h.cuts).length + (opDs Mr o.toM).length -
-      (h.rest + (opDs Mr o.toM).length) = (allRecs Mr h.H h.md h.cuts).length - h.rest by omega]
+  rw [show (allRecs Mr h.H h.md h.cuts).length + (opDs Mr (wop h.H o)).length -
+      (h.rest + (opDs Mr (wop h.H o)).length) = (allRecs Mr h.H h.md h.cuts).length - h.rest by omega]
   rw [List.take_append_of_le_length (by omega)]
 
 theorem WalHS.split_snoc (Mr : WalMarshal) (h : WalHS) (o : WalOpG WalEnt)
     (hc : ∀ b ∈ h.cuts, b ≤ h.H.length) (hs : WalHS.Split Mr h) :
-    WalHS.Split Mr { h with H := h.H ++ [o], rest := h.rest + (opDs Mr o.toM).length } := by
+    WalHS.Split Mr { h with H := h.H ++ [o], rest := h.rest + (opDs Mr (wop h.H o)).length } := by
   unfold WalHS.Split
   rw [WalHS.encRecs_snoc Mr h o hc]
   obtain ⟨h1, h2, h3⟩ := hs
@@ -152,22 +152,23 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (w : Loc) (dir : GoString) (h : WalHS) (o : WalOpG WalEnt) (sized : Bool) (Q : WalDur → IProp GF)
     (hr : h.rest = 0)
-    (hfit : ∀ c, RecsFit walCodec (chainRecs walCodec c (opDs Mr o.toM)))
+    (hfit : ∀ c, RecsFit walCodec (chainRecs walCodec c (opDs Mr (wop h.H o))))
     (hidx : walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi) →
       walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi →
-      ((opDs Mr o.toM).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
+      ((opDs Mr (wop h.H o)).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
         max (uint.nat h.enti) (uint.nat h.snapi)) ∧
       walMaxSnapIdx ((h.H ++ [o]).map WalOpG.toM) ≤ uint.nat h.snapi)
-    (hox : ¬ walHasMaxIdx [o.toM])
+    (hox : ¬ walHasMaxIdx [o.toM]) (i : Nat) (hi : h.inc = i)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
       walHandleIn (W := W) P Mr w dir h tm -∗
-      (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d }>) -∗ ⧖ (h.H.length + 1) -∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir i d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir i { d with H := d.H ++ [o] }, COMM Q d }>) -∗ ⧖ (h.H.length + 1) -∗
       |={⊤}=> notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
-        walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [o], rest := (opDs Mr o.toM).length } tm ∗
-        walLenLb (W := W) w dir (h.H.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) ∗
+        walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [o], rest := (opDs Mr (wop h.H o)).length } tm ∗
+        walLenLb (W := W) w dir i (h.H.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) ∗
         ⌜(∀ b ∈ h.cuts, walCutPos (h.H.map WalOpG.toM) b) ∧ h.cuts.Pairwise (· < ·)⌝ := by
+  subst hi
   letI := walAllG (W := W)
   iintro #Harea Hnc Hh Hau #Hst
   unfold walAreaOk
@@ -182,12 +183,12 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
         b ≤ ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1.length) →
       RecsFit walCodec (recsOfSegs walCodec Mr
         ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
-        (segsOf (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1.map WalOpG.toM)
+        (segsOf (histN (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1))
           ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) →
       RecsFit walCodec (recsOfSegs walCodec Mr
         ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
-        (segsOf ((((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++ [o]).map
-          WalOpG.toM) ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := by
+        (segsOf (histN (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++ [o]))
+          ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := by
     intro hc hold
     show RecsFit walCodec (allRecs Mr (h.H ++ [o]) h.md h.cuts)
     rw [allRecs_snoc Mr h.H h.md h.cuts o hc]
@@ -195,14 +196,14 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
     rcases List.mem_append.1 hx with hx | hx
     · exact hold x hx
     · exact hfit _ x hx
-  imod walTail_append walCodec Mr R jr r w dir h.γ
+  imod walTail_append walCodec Mr R jr r w dir h.inc h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) o sized Q hfit' hox
     $$ Hinv Hnc Hk [Hv] Hw Hau Hst with ⟨Hnc, Hk, Hv, Hw, Hlb, HQ, %hcp⟩
   · unfold tailVar; iexact Hv
   have hc : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
     simpa using walCutPos_le (hcp.1 b hb)
-  have eh : ({ h with H := h.H ++ [o], rest := (opDs Mr o.toM).length } : WalHS) =
-      { h with H := h.H ++ [o], rest := h.rest + (opDs Mr o.toM).length } := by
+  have eh : ({ h with H := h.H ++ [o], rest := (opDs Mr (wop h.H o)).length } : WalHS) =
+      { h with H := h.H ++ [o], rest := h.rest + (opDs Mr (wop h.H o)).length } := by
     rw [hr, Nat.zero_add]
   rw [eh]
   have ecrc := WalHS.crc_snoc Mr h o hc

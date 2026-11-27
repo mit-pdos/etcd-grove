@@ -60,7 +60,7 @@ theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Cha
   isplitl [Hinfo Hres]
   · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
-  · iright; iexact HPre
+  · iright; iframe HPre; ipureintro; simp
   isplitl []
   · iapply apply.chainClass_auth_rejected
   · iapply apply.chainLeaseClass_auth_rejected
@@ -99,13 +99,13 @@ theorem apply.auth_reject_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chai
     (inner : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
     (log : mvcc.Log) (R : apply.Outcome → IProp GF)
     (P Pre Q Post : IProp GF) (hk : apply.authChecks (dispatchKind rq) = true)
-    (hm : apply.authMayReject on rq) :
+    (hm : apply.authMayReject on rq) (N : apply.Outcome → Prop) (hN : N (.rejected .auth)) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       R (.rejected .auth) -∗ apply.kvOwn E log -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗
       apply.chainResAny c inner -∗ srvApi.csContractA P E.f Pre Q Post -∗
       apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
-        log R Pre Post := by
+        log R Pre Post N := by
   iintro #Happ HR Hkv Hinfo Hres Hcs
   ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
   iunfold apply.kvPost
@@ -118,7 +118,7 @@ theorem apply.auth_reject_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chai
   isplitl [Hinfo Hres]
   · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
-  · iright; iexact HPre
+  · iright; iframe HPre; ipureintro; exact ⟨by simp, hN⟩
   isplitl []
   · iapply apply.chainClass_auth_rejected
   · iapply apply.chainLeaseClass_auth_rejected
@@ -126,13 +126,14 @@ theorem apply.auth_reject_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chai
 /-- `auth_pass_kvPostF` without a floor (`LeaseRevoke`, the lease-revoke plan). -/
 theorem apply.auth_pass_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
     (inner : GoInterface) (info info' : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
-    (log : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF) :
+    (log : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF)
+    (N : apply.Outcome → Prop) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      apply.kvPost E c inner info' rq log R Pre Post -∗
+      apply.kvPost E c inner info' rq log R Pre Post N -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ apply.reqClass E.authMode info rq -∗
       apply.reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq -∗
       apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
-        log R Pre Post := by
+        log R Pre Post N := by
   iintro #Happ Hpost Hinfo #Hcls #Hlc
   iunfold apply.kvPost at Hpost
   iunfold apply.kvPost

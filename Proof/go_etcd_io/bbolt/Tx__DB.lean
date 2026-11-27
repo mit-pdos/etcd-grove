@@ -85,6 +85,8 @@ theorem Tx.DB.wp_proof : Tx.DB.spec (GF := GF) (hG := hG) := by
   icases Hd with ⟨%r', -, #Hr', %Hdb⟩
   icases boltTxDef_db_acc _ _ tx q T $$ Ht with ⟨%r, #Hr, Hf, Hcl⟩
   unfold reg
+  icases Hr with ⟨#Hr, -⟩
+  icases Hr' with ⟨#Hr', -⟩
   icombine Hr Hr' gives %hr
   obtain ⟨-, rfl⟩ := hr
   subst Hdb

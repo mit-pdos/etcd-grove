@@ -218,7 +218,7 @@ PROJECTS = [
         # helpers, whole-struct copies through a local; Perennial's
         # docs/design/unsafe-memory.md, section 6), the fix of etcd-io/bbolt#1311
         # (issues/bbolt-commit-meta-error-frees-reader-pages.md), a crash-safe `init`
-        # (nonissues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
+        # (issues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
         # label; then branch `goose-lean-v2` (b30879b2): `getPageSize` returns a meta read error
         # instead of probing further (D18), `splitTwo`'s float threshold factored out as
         # `splitThreshold`, trusted (D17) (b30879b2); then `Tx.WriteTo` writes the current meta at
@@ -244,7 +244,12 @@ PROJECTS = [
         # Then (real fmt stage 1, 2026-11-24, #9) 7d335aa3e (branch `goose-lean-fmt1`, on ca88bb6a8):
         # `Options.String` formats its bools with `%v` (as `%t`), the free-list type as a string, and
         # whether `OpenFile`/`Logger` are set in place of their addresses (`%p`).
-        rev="7d335aa3eb233822487e9dd7eb2c8f95d99ea2ad",
+        # Then (bbolt crash safety P13, 2026-11-25) ea5656d (branch `goose-lean-init-crashsafe`): a writable
+        # `Open` initializes again a file of at most four pages whose every byte is zero or `initImage`'s,
+        # unless it is that whole image (the etcd fork's 19e0771; issues/bbolt-init-not-crash-safe.md).
+        # Then (P13b) 2f6fcff (branch `goose-lean-open-sync-early`): `Open`'s `fdatasync` (c5a6065) runs before
+        # the file is mapped, right after `init` or `getPageSize`, so the file is whole and synced at one point.
+        rev="2f6fcfff7e4bdafc900114428d7657bacbfa41b4",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash/fnv=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -414,11 +419,36 @@ PROJECTS = [
         # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
         # `%p` of the client, which real `fmt` does not cover (the decision on #9,
         # issuecomment-7122889900: fork rewrites, no `%p` axiom).
-        # Then (F7 fork, 2026-11-26, SPECULATIVE, branch etcd-safe-f7-fork/2026-11-26 only)
+        # Then (etcd-dist D6 T4, 2026-11-24, the etcd_safe lead's decision) 8aa40fd5c (first on
+        # 6b942d23f, branch `goose-lean-slicessort-on-fmtattrs-snapguard`): `applySnapshot` keeps the
+        # backend when the snapshot's index is at or below its consistent index (possible after a
+        # crash left the backend ahead of the WAL) and only moves the applied state to the snapshot,
+        # so the backend never moves back (nonissues/etcd-crash-backend-ahead-snapshot-regress.md).
+        # To be combined with the WAL's torn-save fix (`goose-lean-fmtattrs-tornsave` @ 768ecf158,
+        # branch etcd-safe-walfix/2026-11-24).
+        # The two combined (etcd-safe-main, 2026-11-24): 47d6cdeeb, branch `goose-lean-fmt1c-snapguard`,
+        # 8aa40fd5c cherry-picked onto df6af0c36.
+        # Then (etcd-dist D6, integration round 2, 2026-11-25) e94f33b50, branch
+        # `goose-lean-fmt1c-crashfixes` (on 47d6cdeeb): the WAL's torn-Save fix (49bf5160f: a `Save` a
+        # crash interrupts reads back as no `Save`, its state record written last), the directory
+        # syncs after renaming a database onto the backend path (533e06e9c), the backend removed
+        # beside a WAL that holds no saved state (c4221eb9d, a10c86ad4), and bbolt replaced by
+        # upamanyus/bbolt v1.5.0-init-crashsafe @ 19e0771 in etcd's go.mod files (e94f33b50:
+        # issues/bbolt-init-not-crash-safe.md). The bbolt replace changes no translation here: bbolt
+        # is the bbolt project's translation (its own fork pin, below `rev` there), and this
+        # project only names it.
+        # Then (P6b, 2026-11-25, mit-pdos/etcd-grove#50) 251a430ce, branch
+        # `goose-lean-fmt1c-discardfix` (on e94f33b50): the WAL's `DiscardUnsaved` becomes
+        # `func Discard(lg, dirpath) error` (RemoveAll(dir.tmp), Rename(dir, dir.tmp), syncDir of
+        # the parent), without its own `Unsaved` check: `bootstrap` calls it only after its
+        # `Unsaved` returned (true, nil) and after `removeBackendDurably`.
+        # Then (F7 fork, 2026-11-26, SPECULATIVE)
         # d26dd5da6 (branch `goose-lean-ttlkeys`, on df6af0c36; pushed 2026-11-26): `LeaseTimeToLive`
         # checks read permission on the keys it returns (`checkLeaseTimeToLiveKeys`,
         # issues/etcd-lease-timetolive-keys-toctou.md).
-        rev="d26dd5da6f383bc9b06a957d685360dc12f8faf2",
+        # The two combined (etcd-safe-integ, 2026-11-26): 30df685e4, branch
+        # `goose-lean-discardfix-ttlkeys`, d26dd5da6 cherry-picked onto 251a430ce.
+        rev="30df685e43e2270c63b6cddc7aa183f905b07b0a",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)

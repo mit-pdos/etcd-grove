@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
+  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce, h.xs⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -59,7 +59,7 @@ theorem osWf_closeFd {st : OsState} (hwf : OsWf st) (fd : w64) (d : OsFd) : OsWf
 
 theorem MetaOk.closeFd {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (fd : w64) (d : OsFd)
     (h : MetaOk st p m f) : MetaOk (st.closeFd fd d) p m f :=
-  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
+  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce, h.xs⟩
 
 theorem osCoh_closeFd {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (fd : w64) (d : OsFd) :
     OsCoh (st.closeFd fd d) Γb Γm (GMap.delete fd st.proc.fds) Γt :=
@@ -528,7 +528,8 @@ def OsMeta.syncZ (m : OsMeta) : Nat := if pageEnd m.size ≤ m.cz then m.size el
 known zero to that end); no resize stamps known (every byte durable, no candidate stamped by one). -/
 def OsMeta.synced (m : OsMeta) : OsMeta :=
   { m with
-    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some m.syncZ, tc := ∅, rz := [] }
+    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some m.syncZ, tc := ∅, rz := [],
+    xs := some [m.size] }
 
 theorem OsMeta.size_le_syncZ (m : OsMeta) : m.size ≤ m.syncZ := by
   unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
@@ -642,7 +643,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
           fun b hb => by
             simp only [f', synced_size] at hb
             simp only [f', OsFile.synced, if_neg (hnoI b)]
-            exact diskByte_past hb⟩
+            exact diskByte_past hb, OsFile.xs_synced hmo.size⟩
         rotate_right
         · intro z hz b hb
           simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz
@@ -806,7 +807,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (x
 resources' candidates now relate to the state's through the cut `c` (`CandRel`), the candidates
 known past the size are forgotten, and zeros are known from the end of the size's last page on. -/
 def OsMeta.bsynced (m : OsMeta) (c : Nat) : OsMeta :=
-  { m with cut := some c, zf := some (pageEnd m.size), tc := ∅ }
+  { m with cut := some c, zf := some (pageEnd m.size), tc := ∅, xs := some [m.size] }
 
 /-- The resource's candidates' stamps are at most `S` if the state's are and the cut is. -/
 theorem CandRel.stamps_le {o : Option Nat} {cs sc : Cands} (h : CandRel o cs sc) {S : Nat}
@@ -894,7 +895,7 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
           fun b hb => by
             simp only [f', synced_size] at hb
             simp only [f', OsFile.synced, if_neg (hnoI b)]
-            exact diskByte_past hb⟩
+            exact diskByte_past hb, OsFile.xs_synced hmo.size⟩
         rotate_right
         · intro z hz b hb
           simp only [OsMeta.bsynced, Option.some.injEq] at hz; subst hz

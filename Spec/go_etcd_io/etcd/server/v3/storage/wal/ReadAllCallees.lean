@@ -87,6 +87,21 @@ abbrev WalPbIn.CloneHsLaw (P : WalPbIn GF) : Prop :=
       ⌜m = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #p'⌝ ∗
       P.hsIn p' h }}
 
+/-- **`proto.Clone(state).(*raftpb.HardState)`** (S/wal.go:747, the torn-`Save` fix's `w.state`) of a hard
+state `ReadAll` owns (`HsO`, canonical: a fresh zero one or `MustUnmarshalState` of a record's bytes):
+the source frozen as it is (`ReadAll` returns it), and a fresh non-nil clone holding the same, which
+marshals to the state's encoding (`walStMarsh`: `encodeState(w.state)` writes `Mr.encState`). A law of
+`P`, `Mr` and `HsO` (the clone of a canonical owned state is canonical); P6, `CloneStLaw` item of
+`notes/wal-p6-handoff.md`: `CloneHsLaw` gives only `P.hsIn`, which admits non-canonical contents. -/
+abbrev WalPbIn.CloneStLaw (P : WalPbIn GF) (Mr : WalMarshal) (HsO : Loc → HardStateM → IProp GF) : Prop :=
+  ∀ (p : Loc) (h : HardStateM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ HsO p h }}
+    (App (Val (@! google_golang_org.protobuf.proto.Clone))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #p)))
+  {{ (m : GoInterface), RET #m; ∃ p' : Loc,
+      ⌜m = interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #p' ∧ p' ≠ null⌝ ∗
+      P.hsIn p h ∗ P.hsIn p' h ∗ walStMarsh Mr p' h }}
+
 /-- **`U`'s snapshot decoder is coherent with protobuf-go** (a pure law of the client's `U`, as
 `WalUnmarshal.Ok` ties it to the marshaller; to discharge with the client's codec at C6, as
 `walSnapAt` ties `Mr.encSnap` to `snapEnc`): every `bs` it decodes as a snapshot of index and term

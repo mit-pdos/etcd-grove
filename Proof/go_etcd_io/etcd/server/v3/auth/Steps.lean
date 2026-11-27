@@ -533,6 +533,26 @@ def adminOut (M : AuthMode) (hs : List AuthState) (R : StepRel) (extra : AuthErr
 /-- No data-dependent refusal. -/
 def noExtra : AuthErr → Prop := fun _ => False
 
+/-- **An admin operation that returned without the batch lock kept the authority** (T10 step 2): an
+error (`.err` outcomes and data-dependent refusals keep it; `.same` and `.next` return `nil`), or a
+step whose every outcome is `.same` (`AuthEnable` already enabled, `AuthDisable` already disabled). -/
+theorem adminOut_keep (M : AuthMode) (hs : List AuthState) (R : StepRel) (extra : AuthErr → Prop)
+    (err : GoInterface) (h : err ≠ GoInterface.nil ∨ ∀ st o, R st o → o = .same) :
+    adminOut (GF := GF) M hs R extra err ⊢ authOwn M hs := by
+  iintro H
+  iunfold adminOut at H
+  icases H with (⟨%e, -, Ho, -⟩ | ⟨%st, %o, %hR, Ho⟩)
+  · iexact Ho
+  · cases o with
+    | err e => iunfold outRes at Ho; icases Ho with ⟨Ho, -⟩; iexact Ho
+    | same => iunfold outRes at Ho; icases Ho with ⟨Ho, -⟩; iexact Ho
+    | next st' =>
+      iunfold outRes at Ho; icases Ho with ⟨-, %he⟩
+      exfalso
+      rcases h with h | h
+      · exact h he
+      · exact absurd (h _ _ hR.2) (by simp)
+
 /-- **A step's premises** (see the file header): at the state the transaction finds, the
 revision fits a `uint64` after the bump, a `next` state's permissions fit the cache's trees, and
 (S0's F4, 2026-11-12) the users' roles are valid UTF-8 there and in a `next` state (what

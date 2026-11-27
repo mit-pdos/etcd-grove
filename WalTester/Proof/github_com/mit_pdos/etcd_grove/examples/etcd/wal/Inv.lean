@@ -149,20 +149,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
   [W : WalGS GF]
 
 instance walPast_timeless' (s : AbsDiskState) : Timeless (WalFs.walPast (W := W) s) := by
-  unfold WalFs.walPast absPastAt; infer_instance
+  unfold WalFs.walPast WalFs.walPastI; letI := WalFs.walAllG (W := W); infer_instance
 
-instance walSyncedLb_timeless' (dir : GoString) (n : Nat) : Timeless (WalFs.walSyncedLb (W := W) dir n) := by
+instance walSyncedLb_timeless' (dir : GoString) (i n : Nat) : Timeless (WalFs.walSyncedLb (W := W) dir i n) := by
   unfold WalFs.walSyncedLb; infer_instance
 
-instance walNamed_timeless' (dir : GoString) : Timeless (WalFs.walNamed (W := W) dir) := by
+instance walNamed_timeless' (dir : GoString) (i : Nat) : Timeless (WalFs.walNamed (W := W) dir i) := by
   unfold WalFs.walNamed; infer_instance
 
 instance walOwn_timeless' (M : GMap GoString WalDur) : Timeless (WalFs.walOwn (W := W) M) := by
   unfold WalFs.walOwn walOwnAt; infer_instance
 
-instance walDirIs_timeless' (dir : GoString) (o : Option WalDur) :
-    Timeless (WalFs.walDirIs (W := W) dir o) := by
-  unfold WalFs.walDirIs; infer_instance
+instance walDirIs_timeless' (dir : GoString) (i : Nat) (o : Option WalDur) :
+    Timeless (WalFs.walDirIsI (W := W) dir i o) := by
+  unfold WalFs.walDirIsI; infer_instance
 
 /-- **What the WAL side knows of the oracle `o`**, by its phase: after `Create` returned, some
 candidate accounts for the WAL (`tCandOk`), whose mark is synced and whose entry is durable, and the
@@ -171,7 +171,7 @@ oracle is well formed for `checkRestart` (`tCheckWf`: every stored oracle is a r
 def tRelI (area : GoString) (o : TOracle) (od : Option WalDur) : IProp GF :=
   if o.created then
     iprop(∃ (d : WalDur) (c : TCand), ⌜od = some d ∧ c ∈ o.cands ∧ tCandOk o c d ∧ tCheckWf o⌝ ∗
-      WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area))
+      WalFs.walSyncedLb (W := W) (tWalDir area) 0 (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area) 0)
   else iprop(⌜tPreOk o od⌝)
 
 instance tRelI_persistent (area : GoString) (o : TOracle) (od : Option WalDur) :
@@ -197,8 +197,8 @@ named (`tRelI`'s facts); before, the oracle fresh up to its opens (`Boot`'s rest
 before `created`). With `cd ∈ o.cands` and `tCandOk o cd d` it gives `tRelI` (`tRelI_of_relW`). -/
 def tRelW (area : GoString) (o : TOracle) (cd : TCand) : IProp GF :=
   if o.created then
-    iprop(⌜tCheckWf o⌝ ∗ WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o cd) ∗
-      WalFs.walNamed (W := W) (tWalDir area))
+    iprop(⌜tCheckWf o⌝ ∗ WalFs.walSyncedLb (W := W) (tWalDir area) 0 (tCandMark o cd) ∗
+      WalFs.walNamed (W := W) (tWalDir area) 0)
   else iprop(⌜tPre o⌝)
 
 instance tRelW_persistent (area : GoString) (o : TOracle) (cd : TCand) :
@@ -261,7 +261,7 @@ both oracles to the WAL. -/
 def TInvBody (e : TEnv) (γ : TGS) : IProp GF :=
   iprop(∃ (s : DurFs.DurSt) (o : TOracle) (oa : Option TOracle) (od : Option WalDur),
     DurFs.durSt γ.γd s ∗ ⌜tOracleFile s o oa⌝ ∗ ghostVar γ.γo (1 : Qp).half (o, oa) ∗
-    WalFs.walDirIs (W := W) (tWalDir e.area) od ∗ ghostVar γ.γw (1 : Qp).half od ∗
+    WalFs.walDirIsI (W := W) (tWalDir e.area) 0 od ∗ ghostVar γ.γw (1 : Qp).half od ∗
     tRelI (W := W) e.area o od ∗ tRelA (W := W) e.area oa od)
 
 instance TInvBody_timeless (e : TEnv) (γ : TGS) : Timeless (TInvBody (W := W) (GF := GF) e γ) := by

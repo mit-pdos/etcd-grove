@@ -108,25 +108,28 @@ theorem segResF_empty (g : SegG) : segResF (L := L) ∅ g ⊣⊢ segRes (L := L)
   rw [GMap.lookup_empty]
   exact .rfl
 
-/-- **The pinned WAL's key** (`walDirKey`): the generation's (`walDirKeysAuth_get`) if it has one, else
-made (`walDirKey_insert`, `dirKeysOk_key`); its claim the WAL directory's (`DirClaimsOk`, gap C). -/
+/-- **The pinned WAL's key** (`walDirKey`) at the current incarnation (the lock's quarter `I`): the
+generation's (`walDirKeysAuth_get`) if it has one, else made (`walDirKey_insert`, `dirKeysOk_key`); its
+claim the WAL directory's (`DirClaimsOk`, gap C). -/
 theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (K : GMap GoString (Ino × List GoString))
     (cp : Option GoString) (dir : GoString) (lay : WalLay) (X : List GoString) (hj : NamesH)
+    (I : GMap GoString Nat)
     (hK : DirKeysOk C Mr jr s Ls cl n K cp) (hl : Ls !! dir = some lay)
     (hX : ∀ b ∈ X, walNameP b = false) (hc : (lay.j, NameSet.except X, hj) ∈ cl) :
-    ⊢ walDirKeysAuth (W := W) K ==∗ ∃ K', walDirKeysAuth (W := W) K' ∗
-      ⌜DirKeysOk C Mr jr s Ls cl n K' cp⌝ ∗ walDirKey (W := W) dir lay.j X := by
-  iintro Ha
+    ⊢ walDirKeysAuth (W := W) K -∗ walIncQ (W := W) I ==∗ ∃ K', walDirKeysAuth (W := W) K' ∗
+      ⌜DirKeysOk C Mr jr s Ls cl n K' cp⌝ ∗ walDirKey (W := W) dir (incOf I dir) lay.j X ∗
+      walIncQ (W := W) I := by
+  iintro Ha HI
   cases e : K !! dir with
   | none =>
     obtain ⟨X2, hj2, hD, hx2⟩ := hK.2.2 dir lay hl
     obtain ⟨hXe, hje⟩ := hD.eq_of_mem hX hc
     subst hXe hje
-    imod walDirKey_insert (W := W) K dir lay.j X e hx2.1 $$ Ha with ⟨Ha, Hk⟩
+    imod walDirKey_insert (W := W) K dir lay.j X I e hx2.1 $$ Ha HI with ⟨Ha, Hk, HI⟩
     imodintro
     iexists _
-    iframe Ha Hk
+    iframe Ha Hk HI
     ipureintro; exact dirKeysOk_key hK hl hD
   | some x =>
     obtain ⟨j', X'⟩ := x
@@ -138,10 +141,10 @@ theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
     subst hXe
     obtain ⟨X2, hj2, hD2, hx2⟩ := hK.2.2 dir lay hl
     obtain ⟨hXe2, -⟩ := hD2.eq_of_mem hX hc
-    icases walDirKeysAuth_get (W := W) K dir lay.j X e (by rw [hXe2]; exact hx2.1) $$ Ha with ⟨Ha, Hk⟩
+    icases walDirKeysAuth_get (W := W) K dir lay.j X I e (by rw [hXe2]; exact hx2.1) $$ Ha HI with ⟨Ha, Hk, HI⟩
     imodintro
     iexists K
-    iframe Ha Hk
+    iframe Ha Hk HI
     ipureintro; exact hK
 
 /-- **`Open`'s pin** (see the file header): the WAL in `dir` present, its segments from position `k lay` (a function of the layout: `selectWALFiles`' `walSearch`)
@@ -151,17 +154,17 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) (k : WalLay → Nat)
     (write : Bool) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) ==∗
-      ∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
+      ∃ (lay : WalLay) (X : List GoString) (hj : NamesH) (I : GMap GoString Nat),
         ⌜InArea s.area dir lay.nm ∧ lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
           ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
-          (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
-        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+          (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir (incOf I dir) lay.j X ∗
+        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTokI (W := W) I ∗ walTailsFrag (W := W) ∅ ∗
         walNamesFrag (W := W) none ∗
         walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
           if write then [dir] else []⟩ ∗
         ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗
         osNames (L := L) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-        (if write then walTmpsRes (hG := ⟨G, L⟩) lay.j else emp) := by
+        (if write then walTmpsRes (hG := ⟨G, L⟩) lay.j ∗ walIncEAny (W := W) else emp) := by
   iintro Hb Hu
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
@@ -169,8 +172,13 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   obtain ⟨lay, nm, hj, hl, hA, hjr, hnm, hc, habs, hcr⟩ := HW.1 dir d hd
   obtain ⟨X, hX, hcX, hcoh⟩ := hc
   icases Hdk with ⟨%K, %cp, HKa, Hca, %HDK⟩
-  imod walDirKeys_pin C Mr jr s Ls cl n K cp dir lay X hj HDK hl hX hcX $$ HKa with ⟨%K', HKa, %HDK', #Hkey⟩
   imod walParked_lock (L := L) (W := W) Ls cl F $$ Hpk Hu with ⟨Hpk, Hl, Ho, Htf, Hnf, %hF⟩
+  iunfold walLockedTok at Hl
+  icases Hl with ⟨%I, Hl⟩
+  icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+  imod walDirKeys_pin C Mr jr s Ls cl n K cp dir lay X hj I HDK hl hX hcX $$ HKa HI with
+    ⟨%K', HKa, %HDK', #Hkey, HI⟩
+  ihave Hl := Hl $$ HI
   have hF0 : F = ∅ := (GMap.lookup_empty_iff F).1 hF
   subst hF0
   -- the segments from `k` on
@@ -204,7 +212,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   cases write with
   | false =>
     imodintro
-    iexists lay, X, hj
+    iexists lay, X, hj, I
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe HS Hnm Hl Htf Hnf Hkey
     isplitr
@@ -216,12 +224,12 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     · iapply walOutFrag_eq' (W := W) $$ Ho
       ipureintro; simp [WalOut.empty, WalOut.addClaim]
   | true =>
-    imod walParked_takeTmps (L := L) (W := W) Ls cl ∅ _ dir lay hl (by simp [WalOut.addClaim, WalOut.empty])
-      $$ Hpk Ho with ⟨Hpk, Ho, Ht⟩
+    imod walParked_takeTmps0 (L := L) (W := W) Ls cl ∅ _ dir lay hl (by simp [WalOut.addClaim, WalOut.empty])
+      $$ Hpk Ho with ⟨Hpk, Ho, Ht, Hr⟩
     imodintro
-    iexists lay, X, hj
+    iexists lay, X, hj, I
     simp only [↓reduceIte]
-    iframe HS Hnm Hl Htf Hnf Ht Hkey
+    iframe HS Hnm Hl Htf Hnf Ht Hr Hkey
     isplitr
     · ipureintro; exact hpure
     isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca Hnms]

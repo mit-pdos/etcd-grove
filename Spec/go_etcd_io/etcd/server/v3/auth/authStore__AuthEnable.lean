@@ -30,7 +30,9 @@ from the admin side's authority `hs`: having read the flag `en` (under `enabledM
 `authEnableF en` (already enabled, nothing; no root user or no root role, refused; else enabled,
 the flag set, the token provider enabled, the cache refreshed and the revision as stored). Three
 write-back tokens `Wb`: two spent by the batch transaction's `Unlock`, one by `ForceCommit`
-(auth-schema-fix F1). -/
+(auth-schema-fix F1). The
+caller's `Pre` comes back unwritten only from the return before the batch lock, already enabled
+(`en = true`). -/
 abbrev auth.authStore.AuthEnable.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF),
@@ -38,8 +40,8 @@ abbrev auth.authStore.AuthEnable.spec : Prop :=
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (authEnableF en))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
-  {{ (err : GoInterface), RET #err; tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
-      ∃ en : Bool, enabledVerdict M en ∗ adminOut M hs (stepOf (authEnableF en)) noExtra err }}
+  {{ (err : GoInterface), RET #err; tpAdmin st M ∗ authWR st M P f T Wb ∗
+      ∃ en : Bool, (Post ∨ (Pre ∗ ⌜en = true⌝)) ∗ enabledVerdict M en ∗ adminOut M hs (stepOf (authEnableF en)) noExtra err }}
 
 end spec
 

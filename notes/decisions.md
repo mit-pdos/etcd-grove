@@ -42588,7 +42588,7 @@ the statements lose the premise:
   change returns the `k`-th boot entry's bytes) → `proto.MarshalBootConfChange.wp_proof`
   (`Spec/google_golang_org/protobuf/proto/MarshalBootConfChange.lean`): `proto.Marshal` of the
   `*pb.ConfChange` `Bootstrap` builds (`bootConfChange`, `Type` `AddNode`) returns exactly
-  `ccBootWire m.nodeId m.context` (`Proof/google_golang_org/protobuf/proto/BootWire.lean`), with
+  `ccBootWire m.nodeId m.context` (`Proof/google_golang_org/protobuf/proto/BootWire.lean`; since integration round 3, 2026-11-25, `lean`'s same-named definition in `Proof/go_etcd_io/raft/v3/CCModel.lean`, over the checked encoder `cc1EncRaw`), with
   `isPkgInit proto`. `bootMarshal` stays raft's vocabulary (its `Bootstrap` spec takes it), and is
   now a theorem, `bootMarshal_of_spec` (`Proof/go_etcd_io/raft/v3/BootMarshal.lean`), from the axiom
   and a pure fact of the bootstrap log, `bootWire` (each entry's data is `ccBootWire` of its peer and

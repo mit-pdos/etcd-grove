@@ -1,0 +1,146 @@
+# rename-window.sh on fk-lean2 (Linux 7.0.0-1017-aws, C), 2026-11-25
+## series 1: new file opened right after the rename, default commit interval (crashes 1-40, EXIT), then series 1': commit=1 (crashes 1-40, EXIT)
+crash 1: ok phase=window(new open) db=new m=105 (NR 105 NA 106) snap.db there=false
+crash 2: ok phase=after-dirsync db=new m=85 (NR 84 NA 85) snap.db there=false
+crash 3: ok phase=after-dirsync db=new m=57 (NR 57 NA 58) snap.db there=false
+crash 4: ok phase=window(new open) db=new m=42 (NR 42 NA 43) snap.db there=false
+crash 5: ok phase=after-dirsync db=new m=105 (NR 104 NA 105) snap.db there=false
+crash 6: ok phase=window(new open) db=new m=14 (NR 14 NA 15) snap.db there=false
+crash 7: ok phase=after-dirsync db=new m=60 (NR 60 NA 61) snap.db there=false
+crash 8: ok phase=before-rename db=old n=10 (R 10 A 11) snap.db there=true
+crash 9: ok phase=window(new open) db=new m=92 (NR 92 NA 93) snap.db there=false
+crash 10: ok phase=after-dirsync db=new m=124 (NR 124 NA 125) snap.db there=false
+crash 11: ok phase=after-dirsync db=new m=89 (NR 89 NA 90) snap.db there=false
+crash 12: ok phase=after-dirsync db=new m=85 (NR 85 NA 86) snap.db there=false
+crash 13: ok phase=window(new open) db=new m=34 (NR 34 NA 35) snap.db there=false
+crash 14: ok phase=before-rename db=old n=23 (R 23 A 24) snap.db there=true
+crash 15: ok phase=after-dirsync db=new m=73 (NR 73 NA 74) snap.db there=false
+crash 16: ok phase=after-dirsync db=new m=64 (NR 64 NA 65) snap.db there=false
+crash 17: ok phase=window db=old n=45 (R 45 A 46) snap.db there=true
+crash 18: ok phase=window(new open) db=new m=68 (NR 67 NA 68) snap.db there=false
+crash 19: ok phase=window(new open) db=new m=73 (NR 73 NA 74) snap.db there=false
+crash 20: ok phase=window(new open) db=new m=7 (NR 7 NA 8) snap.db there=false
+crash 21: ok phase=before-rename db=old n=16 (R 16 A 17) snap.db there=true
+crash 22: ok phase=window(new open) db=new m=19 (NR 19 NA 20) snap.db there=false
+crash 23: ok phase=after-dirsync db=new m=102 (NR 102 NA 103) snap.db there=false
+crash 24: ok phase=after-dirsync db=new m=95 (NR 95 NA 96) snap.db there=false
+crash 25: ok phase=window(new open) db=new m=40 (NR 40 NA 41) snap.db there=false
+crash 26: ok phase=before-rename db=old n=46 (R 46 A 47) snap.db there=true
+crash 27: ok phase=window(new open) db=new m=28 (NR 28 NA 29) snap.db there=false
+crash 28: ok phase=window(new open) db=new m=30 (NR 29 NA 30) snap.db there=false
+crash 29: ok phase=window(new open) db=new m=64 (NR 64 NA 65) snap.db there=false
+crash 30: ok phase=window(new open) db=new m=53 (NR 53 NA 54) snap.db there=false
+crash 31: ok phase=window(new open) db=new m=95 (NR 95 NA 96) snap.db there=false
+crash 32: ok phase=window(new open) db=new m=129 (NR 129 NA 130) snap.db there=false
+crash 33: ok phase=window(new open) db=new m=29 (NR 29 NA 30) snap.db there=false
+crash 34: ok phase=after-dirsync db=new m=105 (NR 105 NA 106) snap.db there=false
+crash 35: ok phase=window(new open) db=new m=117 (NR 117 NA 118) snap.db there=false
+crash 36: ok phase=window(new open) db=new m=44 (NR 44 NA 45) snap.db there=false
+crash 37: ok phase=window(new open) db=new m=128 (NR 128 NA 129) snap.db there=false
+crash 38: ok phase=window(new open) db=new m=46 (NR 46 NA 47) snap.db there=false
+crash 39: ok phase=window(new open) db=new m=25 (NR 25 NA 26) snap.db there=false
+crash 40: ok phase=window(new open) db=new m=68 (NR 68 NA 69) snap.db there=false
+EXIT 0
+crash 1: ok phase=window(new open) db=new m=58 (NR 58 NA 59) snap.db there=false
+crash 2: ok phase=window(new open) db=new m=32 (NR 32 NA 33) snap.db there=false
+crash 3: ok phase=window(new open) db=new m=4 (NR 4 NA 5) snap.db there=false
+crash 4: ok phase=after-dirsync db=new m=88 (NR 88 NA 89) snap.db there=false
+crash 5: ok phase=window(new open) db=new m=6 (NR 6 NA 7) snap.db there=false
+crash 6: ok phase=after-dirsync db=new m=33 (NR 32 NA 33) snap.db there=false
+crash 7: ok phase=window(new open) db=new m=23 (NR 22 NA 23) snap.db there=false
+crash 8: ok phase=window(new open) db=new m=7 (NR 7 NA 8) snap.db there=false
+crash 9: ok phase=after-dirsync db=new m=63 (NR 63 NA 64) snap.db there=false
+crash 10: ok phase=window(new open) db=new m=57 (NR 57 NA 58) snap.db there=false
+crash 11: ok phase=after-dirsync db=new m=103 (NR 103 NA 104) snap.db there=false
+crash 12: ok phase=window(new open) db=new m=35 (NR 35 NA 36) snap.db there=false
+crash 13: ok phase=window(new open) db=new m=41 (NR 41 NA 42) snap.db there=false
+crash 14: ok phase=window(new open) db=new m=34 (NR 34 NA 35) snap.db there=false
+crash 15: ok phase=window(new open) db=new m=10 (NR 10 NA 11) snap.db there=false
+crash 16: ok phase=window(new open) db=new m=54 (NR 54 NA 55) snap.db there=false
+crash 17: ok phase=before-rename db=old n=12 (R 12 A 13) snap.db there=true
+crash 18: ok phase=window(new open) db=new m=103 (NR 103 NA 104) snap.db there=false
+crash 19: ok phase=window(new open) db=new m=20 (NR 20 NA 21) snap.db there=false
+crash 20: ok phase=after-dirsync db=new m=58 (NR 58 NA 59) snap.db there=false
+crash 21: ok phase=window(new open) db=new m=103 (NR 103 NA 104) snap.db there=false
+crash 22: ok phase=window(new open) db=new m=25 (NR 25 NA 26) snap.db there=false
+crash 23: ok phase=window(new open) db=new m=36 (NR 35 NA 36) snap.db there=false
+crash 24: ok phase=window(new open) db=new m=44 (NR 44 NA 45) snap.db there=false
+crash 25: ok phase=window(new open) db=new m=57 (NR 57 NA 58) snap.db there=false
+crash 26: ok phase=after-dirsync db=new m=97 (NR 97 NA 98) snap.db there=false
+crash 27: ok phase=after-dirsync db=new m=35 (NR 35 NA 36) snap.db there=false
+crash 28: ok phase=after-dirsync db=new m=92 (NR 92 NA 93) snap.db there=false
+crash 29: ok phase=window(new open) db=new m=46 (NR 46 NA 47) snap.db there=false
+crash 30: ok phase=window(new open) db=new m=42 (NR 42 NA 43) snap.db there=false
+crash 31: ok phase=after-dirsync db=new m=102 (NR 101 NA 102) snap.db there=false
+crash 32: ok phase=after-dirsync db=new m=105 (NR 105 NA 106) snap.db there=false
+crash 33: ok phase=window(new open) db=new m=21 (NR 21 NA 22) snap.db there=false
+crash 34: ok phase=window(new open) db=new m=62 (NR 61 NA 62) snap.db there=false
+crash 35: ok phase=window(new open) db=new m=96 (NR 95 NA 96) snap.db there=false
+crash 36: ok phase=window(new open) db=new m=48 (NR 48 NA 49) snap.db there=false
+crash 37: ok phase=window(new open) db=new m=53 (NR 53 NA 54) snap.db there=false
+crash 38: ok phase=window(new open) db=new m=22 (NR 22 NA 23) snap.db there=false
+crash 39: ok phase=window(new open) db=new m=106 (NR 106 NA 107) snap.db there=false
+crash 40: ok phase=after-dirsync db=new m=94 (NR 94 NA 95) snap.db there=false
+EXIT 0
+## series 2: RW_FORK=1 (rename, directory sync, then open), default commit interval
+crash 1: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 2: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 3: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 4: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 5: ok phase=after-dirsync db=new m=40 (NR 40 NA 41) snap.db there=false
+crash 6: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 7: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 8: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 9: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 10: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 11: ok phase=after-dirsync db=new m=39 (NR 39 NA 40) snap.db there=false
+crash 12: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 13: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 14: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 15: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 16: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 17: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 18: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 19: ok phase=before-rename db=old n=10 (R 10 A 11) snap.db there=true
+crash 20: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 21: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 22: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 23: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 24: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 25: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 26: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 27: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 28: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 29: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 30: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 31: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 32: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 33: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 34: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 35: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 36: ok phase=before-rename db=old n=10 (R 10 A 11) snap.db there=true
+crash 37: ok phase=after-dirsync db=new m=35 (NR 34 NA 35) snap.db there=false
+crash 38: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 39: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 40: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 41: ok phase=before-rename db=old n=40 (R 40 A 41) snap.db there=true
+crash 42: ok phase=after-dirsync db=new m=23 (NR 23 NA 24) snap.db there=false
+crash 43: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 44: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 45: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 46: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 47: ok phase=after-dirsync db=new m=45 (NR 45 NA 46) snap.db there=false
+crash 48: ok phase=before-rename db=old n=19 (R 19 A 20) snap.db there=true
+crash 49: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 50: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 51: ok phase=before-rename db=old n=33 (R 33 A 34) snap.db there=true
+crash 52: ok phase=window db=old n=33 (R 33 A 34) snap.db there=true
+crash 53: ok phase=before-rename db=old n=36 (R 36 A 37) snap.db there=true
+crash 54: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 55: ok phase=after-dirsync db=new m=3 (NR 3 NA 4) snap.db there=false
+crash 56: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 57: ok phase=before-rename db=old n=44 (R 44 A 45) snap.db there=true
+crash 58: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 59: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+crash 60: ok phase=window db=new m=0 (NR 0 NA 0) snap.db there=false
+EXIT 0

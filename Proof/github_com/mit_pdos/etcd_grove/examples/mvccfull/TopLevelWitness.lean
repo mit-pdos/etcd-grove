@@ -37,7 +37,7 @@ theorem mvccfull_robust.premisesSat : premise_sat% mvccfull_robust.spec without 
     ⟨((), (), ()), ∅⟩, fsInit_fsOneRoot _ hr, 0, List.mem_singleton.2 rfl,
     (robustStart_one (σ := freshState ((∅ : IdIssueState), fsOneRoot (slashB :: go!"w"), ()))
       (g := ⟨((), (), ()), ∅⟩) (fresh_freshState _) (by exts_init)
-      (by exts_init)).1⟩
+      (by exact ⟨trivial, fsInit_fsOneRoot _ hr, trivial⟩)).1⟩
 
 end EtcdGrove
 end Perennial

@@ -3,15 +3,17 @@
 # `ZeroToEnd` of the WAL's registered tail (I3b, `wal-tc19`)
 
 `ZeroToEnd.wp_specWalTail`: `ZeroToEnd.specWalTail` (`ReadAllTailCallees.lean`) over `ZeroToEnd.specAu`
-(`fileutil`'s split form). `ReadAll` registered the tail (`walTailP … true`, the pending token) with the
-length word at its write position `o0` zero in the handle's bytes (`readAll_tailZeroWord`).
+(`fileutil`'s split form). `ReadAll` registered the tail (`walTailP … true`, the pending token) at its write position `o0`, the
+stream's end (P6 item 2: no zero length word there assumed: a torn `Save` may have left a pending run of
+entry records).
 
-* *The first step* (`walInv_pendStop`, before any step of the call, `wp_notCrashed_acc`): the handle's
-  tail is exact (`TailMetaR`), so its bytes are the invariant's last segment's, whose bytes at and past the
-  write position are `old`'s (`TailLast`'s `ByteOk`, `ByteOk.val_unw`): `LenZ` of the layout
-  (`lenZ_of_tailLast`); with the registered tail's `TailZ0` (F-Z, or `wr = z0`), F-Z or `TailPend`, which
-  turns the pending token into the lent one (`walLentRes_pendStopZ`: `walLentRes_pendStop` with F-Z allowed
-  too). The lent `|old|` is the size (`walAbsD_old_exact`).
+* *The first step* (`walInv_pendStop`, before any step of the call, `wp_notCrashed_acc`): the registered
+  tail's F-Z or `RepOld` (`LentOk`) is F-Z or `TailPend` (the same, P6 item 2), which turns the pending token
+  into the lent one (`walLentRes_pendStopZ`). The handle's tail is exact (`TailMetaR`), so its bytes are the
+  invariant's last segment's, whose values at and past the write position are `old`'s (`TailLast`'s
+  `ByteOk`, `ByteOk.val_unw`): the reader stops on them at `wr` after a run of entry records
+  (`pendStop_of_tailLast`, from the layout's `tailStop`), which the error post keeps (`TailMetaE`,
+  `pendStop_of_vals`). The lent `|old|` is the size (`walAbsD_old_exact`).
 * *`ZeroToEnd.specAu`* with the tie `growTie` (the lent token, the record's half, idle) and its supplies:
   the truncate to `o0` (`walTail_truncSup`, kind `false`, told `LoWr`), the growth back to the size
   (`walTail_fallocSup`, `walTail_truncSupG`, told `lo ≤ o0` and the size bound).
@@ -39,24 +41,45 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
 section pure
 variable [GooseExts]
 
-/-- **The length word at the write position of an exact tail is its bytes'** (`TailLast`'s `ByteOk`:
-the bytes at and past `wr` are `old`'s, not written, not synced). -/
-theorem lenZ_of_tailLast {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
-    (hT : TailLast C Mr d lay g) (hz : ∀ j, j < 8 → (g.bs.getD (lay.wr + j) (0, [])).1 = 0) :
-    LenZ lay := by
+/-- **An exact tail's values from the write position on are `old`'s** (`TailLast`'s `ByteOk`: the bytes
+at and past `wr` are not written, not synced; `|bs| = |old|`). -/
+theorem drop_vals_of_tailLast {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
+    (hT : TailLast C Mr d lay g) : (g.bs.map (·.1)).drop lay.wr = lay.old.drop lay.wr := by
   obtain ⟨hso, -, hlen, -, hB, -⟩ := hT
-  intro j hj
-  by_cases hb : lay.wr + j < lay.old.length
-  · obtain ⟨x, hx⟩ : ∃ x, g.bs[lay.wr + j]? = some x :=
-      ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    have h := hB _ x hx
-    rw [decide_eq_false (show ¬ (lay.wr + j < lay.wr) by omega),
-      decide_eq_false (show ¬ (lay.wr + j < lay.so) by omega)] at h
-    have hv := h.val_unw
-    have h0 := hz j hj
-    rw [List.getD_eq_getElem?_getD, hx, Option.getD_some] at h0
-    rw [← hv]; exact h0
-  · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+  apply List.ext_getElem
+  · simp [hlen]
+  · intro i h1 h2
+    simp only [List.length_drop, List.length_map] at h1
+    simp only [List.getElem_drop, List.getElem_map]
+    have hx : g.bs[lay.wr + i]? = some (g.bs[lay.wr + i]'(by omega)) := List.getElem?_eq_getElem _
+    have h := hB _ _ hx
+    rw [decide_eq_false (show ¬ (lay.wr + i < lay.wr) by omega),
+      decide_eq_false (show ¬ (lay.wr + i < lay.so) by omega)] at h
+    rw [h.val_unw, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
+
+/-- **The reader stops on an exact tail's values at `wr` after a run of entry records** (P6 item 2): with
+`RepOld` the layout's `tailStop` (`z0 = wr = |S|`) on `old`, whose values from `wr` on the handle's are
+(`drop_vals_of_tailLast`); with F-Z the values from `wr ≥ z0` on are zero. -/
+theorem pendStop_of_tailLast {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {g : SegG} (habs : WalAbsD C Mr d lay ents) (hT : TailLast C Mr d lay g)
+    (hZ : TailZeros lay ∨ RepOld lay)
+    (hS : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
+    PendStop C Mr (g.bs.map (·.1)) lay.wr
+      (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) := by
+  have hdv := drop_vals_of_tailLast hT
+  obtain ⟨-, -, hlen, hwo, -, hz0, -⟩ := hT
+  rcases hZ with hZ | hR
+  · apply pendStop_zeroWord
+    intro j _
+    by_cases hb : lay.wr + j < lay.old.length
+    · have e := congrArg (fun l => l.getD j 0) hdv
+      simp only [List.getD_eq_getElem?_getD, List.getElem?_drop] at e
+      rw [List.getD_eq_getElem?_getD, e, ← List.getD_eq_getElem?_getD]
+      exact hZ _ (by omega) hb
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by simp; omega)]; rfl
+  · have hst := habs.tailStop (by rw [← hR.1, hS])
+    rw [← hR.1] at hst
+    exact pendStop_congr hdv hwo (by simp; omega) hst
 
 end pure
 
@@ -100,17 +123,19 @@ theorem walLentRes_pendStopZ (T : GMap GoString GName) (Ls : GMap GoString WalLa
   iframe Hm Hk
   ipureintro; exact hx.kindFalse
 
-/-- **The pending tail's first step** (see the file header): the handle's exact tail with the zero length
-word at its write position; the pending token becomes the lent one, of `|old|` the size. -/
+/-- **The pending tail's first step** (see the file header): the handle's exact tail at its write position
+(the stream's end); the pending token becomes the lent one, of `|old|` the size; the reader stops on the
+handle's values at `wr` after a run of entry records (`pendStop_of_tailLast`). -/
 theorem walInvBody_pendStop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (wr : Nat) (i : Ino) (m : OsMeta) (bs : List ByteG)
     (hlo : m.lo = m.size) (hhi : m.hi = m.size) (hbs : bs.length = m.size)
-    (hz : ∀ j, j < 8 → (bs.getD (wr + j) (0, [])).1 = 0) :
+    (hS : ∀ d : WalDur, d.H = H → d.metadata = md → wr = (segStream C Mr d cuts cuts.length).length) :
     ⊢ walInvBody (W := W) C Mr R jr r s -∗ walPendTok (W := W) dir γ k -∗
       tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) -∗
       osMeta i (DFrac.own (1 : Qp).half) m -∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ==∗
-      ⌜k = m.size⌝ ∗ walInvBody (W := W) C Mr R jr r s ∗ walLentTok (W := W) dir γ k ∗
+      ⌜k = m.size ∧ PendStop C Mr (bs.map (·.1)) wr
+        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr md (segsOf (histN H) cuts)))⌝ ∗ walInvBody (W := W) C Mr R jr r s ∗ walLentTok (W := W) dir γ k ∗
         tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) ∗ osMeta i (DFrac.own (1 : Qp).half) m ∗
         osBytes i 0 (DFrac.own (1 : Qp).half) bs := by
   letI := walAllG (W := W)
@@ -138,7 +163,7 @@ theorem walInvBody_pendStop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Htg
   have Htg' := Htg
   simp only [tailG, Prod.mk.injEq] at Htg'
-  obtain ⟨-, -, -, hwr, hino, hF⟩ := Htg'
+  obtain ⟨hH, hmd, hcuts, hwr, hino, hF⟩ := Htg'
   obtain ⟨hd, hl, hg, hZ, hB⟩ := hp
   subst hino
   have hg0m : g0 ∈ segsAll Ls := mem_segsAll hl (List.mem_of_getLast? hg)
@@ -160,20 +185,19 @@ theorem walInvBody_pendStop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   subst hbb
   have hex : SegExact g0 := ⟨by rw [hlo, hmet.1], by rw [hhi, hmet.1]⟩
   have hTL := (habs.last g0 hg).1 hex
-  have hLZ : LenZ lay := lenZ_of_tailLast hTL (by rw [← hwr]; exact hz)
-  have hZP : TailZeros lay ∨ TailPend lay := by
-    rcases hZ with h | h
-    · exact .inl h
-    · exact .inr ⟨h, hLZ⟩
-  have hold : lay.old.length = g0.om.size := walAbsD_old_exact habs hg hlo hhi
-  obtain ⟨-, la, hla, hlk, -⟩ := hlent k true rfl
+  obtain ⟨-, la, hla, hlk, hZR⟩ := hlent k true rfl
   rw [hl] at hla; cases hla
   simp only at hlk
+  have hZR : TailZeros lay ∨ RepOld lay := hZR rfl
+  have hZP : TailZeros lay ∨ TailPend lay := hZR
+  have hPS := pendStop_of_tailLast habs hTL hZR (by rw [← hwr, ← hcuts]; exact hS d hH.symm hmd.symm)
+  rw [← hwr, ← hcuts, ← hmd, show histM d = histN H by rw [histM, hH]] at hPS
+  have hold : lay.old.length = g0.om.size := walAbsD_old_exact habs hg hlo hhi
   imod walLentRes_pendStopZ T Ls dir γ k (fun la' hla' => by rw [hl] at hla'; cases hla'; exact hZP)
     $$ Hk HL with ⟨Hlt, HL⟩
   imodintro
   isplitr
-  · ipureintro; omega
+  · ipureintro; exact ⟨by omega, hPS⟩
   iframe Hlt Hv Hm Hbs
   iexists Ls, cl, n, F
   iframe Hg Hcl Hn HCR Hpk HDK Hnms
@@ -211,16 +235,17 @@ theorem walInv_pendStop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (wr : Nat) (i : Ino) (m : OsMeta) (bs : List ByteG)
     (hlo : m.lo = m.size) (hhi : m.hi = m.size) (hbs : bs.length = m.size)
-    (hz : ∀ j, j < 8 → (bs.getD (wr + j) (0, [])).1 = 0) :
+    (hS : ∀ d : WalDur, d.H = H → d.metadata = md → wr = (segStream C Mr d cuts cuts.length).length) :
     ⊢ walInv (W := W) C Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
       walPendTok (W := W) dir γ k -∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) -∗
       osMeta i (DFrac.own (1 : Qp).half) m -∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ={⊤}=∗
-      ⌜k = m.size⌝ ∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLentTok (W := W) dir γ k ∗
+      ⌜k = m.size ∧ PendStop C Mr (bs.map (·.1)) wr
+        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr md (segsOf (histN H) cuts)))⌝ ∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLentTok (W := W) dir γ k ∗
         tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) ∗ osMeta i (DFrac.own (1 : Qp).half) m ∗
         osBytes i 0 (DFrac.own (1 : Qp).half) bs := by
   iintro #Hinv Hnc Hk Hv Hm Hbs
   imod walInv_open C Mr R jr r ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_pendStop C Mr R jr r s dir γ k H md cuts wr i m bs hlo hhi hbs hz
+  imod walInvBody_pendStop C Mr R jr r s dir γ k H md cuts wr i m bs hlo hhi hbs hS
     $$ Hb Hk Hv Hm Hbs with ⟨%hk, Hb, Hlt, Hv, Hm, Hbs⟩
   imod Hcl $$ [Hb]
   · iexists s; iexact Hb
@@ -261,7 +286,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
   unfold walTailP
   rw [show ((o0 : Int) + (([] : List w8).length : Int)) = (o0 : Int) by simp]
   icases Hw with ⟨Hof, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-  obtain ⟨hmsz, ⟨⟨hlen, hmaps, hlo, hhi⟩, hz⟩, hsz62, hfd, hlw⟩ := hp
+  obtain ⟨hmsz, ⟨hlen, hmaps, hlo, hhi⟩, hsz62, hfd, hlw⟩ := hp
   simp only [List.length_nil, Nat.add_zero] at hlw
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
@@ -269,8 +294,10 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
   icases Harea with ⟨#Hinv, #Hos, -⟩
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_pendStop walCodec Mr R jr r dir γ k H md cuts o0 i m bs hlo hhi hlen hz
-    $$ Hinv Hnc Hk Hv Hm Hb with ⟨%hk, Hnc, Hk, Hv, Hm, Hb⟩
+  imod walInv_pendStop walCodec Mr R jr r dir γ k H md cuts o0 i m bs hlo hhi hlen
+      (fun d h1 h2 => by rw [hS, ← h1, ← h2]; rfl)
+    $$ Hinv Hnc Hk Hv Hm Hb with ⟨%hkP, Hnc, Hk, Hv, Hm, Hb⟩
+  obtain ⟨hk, hPS⟩ := hkP
   iframe Hnc
   imodintro
   iapply Fs.wp_osMeta_size _ _ rfl i _ m $$ Hm
@@ -364,10 +391,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
     · iapply osBytes_app0; iframe
     isplitr
     · ipureintro
-      refine ⟨hfd, ?_, hmp'.trans hmaps, hom, fun j hj => ?_⟩
-      · simp only [List.length_append, List.length_take]; omega
-      · rw [lenWord_app_take bs ys o0 (by omega) j]
-        exact lenWord_of_vals bs ys o0 hv hz j hj
+      refine ⟨hfd, ?_, hmp'.trans hmaps, hom, pendStop_of_vals bs ys o0 (by omega) hv hPS⟩
+      simp only [List.length_append, List.length_take]; omega
     unfold tailVar; iexact Hv
 
 end spec

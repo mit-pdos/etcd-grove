@@ -121,22 +121,23 @@ five that may append to the history `hs`, the cap's permission for their step (`
 `adminOutFu` at `Own = auth.authOwnFu`; E2v: an authority carrying a resource of its history,
 `auth.adminOutX`): the step on the latest recorded state (`Own` after it), or the model's
 refusal; (C1's A2) an `Authenticate`'s, at its response `resp`: the authority as it was and
-`authnOut`. -/
+`authnOut`. (T10 step 2) `k` is the no-lock fact of the admin triple's `mPostF`: with it, the step
+kept the authority (`AdminReq.result_keep`): an error, or `AuthEnable` already enabled. -/
 @[reducible] def AdminReq.result (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState) (resp : Loc)
-    (err : GoInterface) : AdminReq → IProp GF
+    (err : GoInterface) (k : Prop) : AdminReq → IProp GF
   | .userAdd n => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userAddF n)) auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .roleAdd n => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.roleAddF n)) auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .userGrantRole u ro => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.userGrantRoleR u ro) auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .roleGrantPermission n w =>
       iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.roleGrantPermissionR n w) auth.noExtra err ∗
-        ⌜err = GoInterface.nil → resp ≠ null⌝)
+        ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .authEnable => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
       auth.adminOutX (.on γa) (Own γa) hs (authEnableR M en) auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → en = true⌝)
   | .authenticate n _ => iprop(Own γa hs ∗ authnOut γa n resp err)
 
 /-- **The admin triples of the `applierV3` value `ai` of the chain `c`** in the mode `on γa`
@@ -153,13 +154,49 @@ def adminTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) (W : IProp GF)
         ar.extraPre E γa hs Pre }}
       (App (Val #(methods ai.ty ar.method ai.v)) (Val (ar.arg r)))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      apply.applyTok E ∗ mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗ W ∗
-      ar.result Own γa E.authMode hs resp err }})
+      apply.applyTok E ∗ applyErrIs err ∗ W ∗
+      ∃ k : Prop, mPostF E c (.ok ai) log Pre Post k ∗ ar.result Own γa E.authMode hs resp err k }})
 
 instance adminTriples_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) (W : IProp GF)
     (Own : auth.AuthNames → List auth.AuthState → IProp GF) :
     Persistent (adminTriples E c ai W Own) := by
   unfold adminTriples; infer_instance
+
+/-- **An admin triple's result with its no-lock fact `k` kept the authority** (T10 step 2): an
+error, `AuthEnable` already enabled (its every outcome `.same`), or an `Authenticate` (it writes
+nothing). -/
+theorem AdminReq.result_keep (Own : auth.AuthNames → List auth.AuthState → IProp GF)
+    (γa : auth.AuthNames) (hs : List auth.AuthState) (resp : Loc) (err : GoInterface) (k : Prop)
+    (hk : k) (ar : AdminReq) :
+    ar.result Own γa (.on γa) hs resp err k ⊢ Own γa hs := by
+  have keep : ∀ (R : auth.StepRel), (err ≠ GoInterface.nil ∨ ∀ st o, R st o → o = .same) →
+      auth.adminOutX (GF := GF) (.on γa) (Own γa) hs R auth.noExtra err ⊢ Own γa hs := by
+    intro R h
+    iintro H
+    iunfold auth.adminOutX at H
+    icases H with (⟨%e, -, Ho, -⟩ | ⟨%st, %o, %hR, Ho⟩)
+    · iexact Ho
+    · cases o with
+      | err e => iunfold auth.outResX at Ho; icases Ho with ⟨Ho, -⟩; iexact Ho
+      | same => iunfold auth.outResX at Ho; icases Ho with ⟨Ho, -⟩; iexact Ho
+      | next st' =>
+        iunfold auth.outResX at Ho; icases Ho with ⟨-, %he⟩
+        exfalso
+        rcases h with h | h
+        · exact h he
+        · exact absurd (h _ _ hR.2) (by simp)
+  cases ar with
+  | authEnable =>
+    simp only [AdminReq.result]
+    iintro ⟨%en, -, H, -, %hen⟩
+    iapply keep _ (Or.inr fun st o hR => ?_) $$ H
+    rw [hen hk] at hR
+    simpa [auth.stepOf, auth.authEnableF] using hR.2
+  | authenticate n pre => simp only [AdminReq.result]; iintro ⟨H, -⟩; iexact H
+  | _ =>
+    simp only [AdminReq.result]
+    iintro ⟨H, -, %he⟩
+    iapply keep _ (Or.inl (he hk)) $$ H
 
 /-- **The `applierV3` value `a` of the chain `c`'s admin triples** (see the file header). -/
 def applierAdmin (E : AEnv GF) (c : Chain) (a : GoInterface) (W : IProp GF)
@@ -209,12 +246,14 @@ theorem applierAdmin_quota (E : AEnv GF) (c : Chain) (p : Loc) (inner : GoInterf
       iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, #HeI, HW, %k, Hpost, HR⟩
     iapply HΦ
-    iunfold mPost at Hpost
-    iunfold mPost
+    iunfold mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe Htt HeI Hkv HPP HW HR
+    iframe Htt HeI HW
+    iexists k
+    iunfold mPostF
+    iframe Hkv HPP HR
     iapply chainResAny_quota_in c p (.ok bi) $$ Hf Hres
 
 /-- **The capped layer's admin triples**: the inner applier's (promoted). -/
@@ -246,12 +285,14 @@ theorem applierAdmin_capped (E : AEnv GF) (c : Chain) (p : Loc) (inner : GoInter
       iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, #HeI, HW, %k, Hpost, HR⟩
     iapply HΦ
-    iunfold mPost at Hpost
-    iunfold mPost
+    iunfold mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe Htt HeI Hkv HPP HW HR
+    iframe Htt HeI HW
+    iexists k
+    iunfold mPostF
+    iframe Hkv HPP HR
     iapply chainResAny_capped_in c p (.ok bi) $$ Hf Hres
 
 /-- **The corrupt layer's admin triples**: the inner applier's (promoted). -/
@@ -283,12 +324,14 @@ theorem applierAdmin_corrupt (E : AEnv GF) (c : Chain) (p : Loc) (inner : GoInte
       iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, #HeI, HW, %k, Hpost, HR⟩
     iapply HΦ
-    iunfold mPost at Hpost
-    iunfold mPost
+    iunfold mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe Htt HeI Hkv HPP HW HR
+    iframe Htt HeI HW
+    iexists k
+    iunfold mPostF
+    iframe Hkv HPP HR
     iapply chainResAny_corrupt_in c p (.ok bi) $$ Hf Hres
 
 /-- **The auth layer's admin triples**: the inner applier's (promoted; the admin check is its
@@ -324,12 +367,14 @@ theorem applierAdmin_auth (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc) (inner
       iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, #HeI, HW, %k, Hpost, HR⟩
     iapply HΦ
-    iunfold mPost at Hpost
-    iunfold mPost
+    iunfold mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe Htt HeI Hkv HPP HW HR
+    iframe Htt HeI HW
+    iexists k
+    iunfold mPostF
+    iframe Hkv HPP HR
     iapply chainResAny_auth_in c p (.ok bi) info $$ Hf Hi Hres
 
 /-- **The base chain's admin triples, from its backend's** (E2m, continued; generic in the
@@ -384,41 +429,78 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | roleAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hRA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | userGrantRole u ro =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn.1 hn.2) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn.1 hn.2) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | roleGrantPermission n w =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | authEnable =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨-, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hAE E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm] HΦ
-    iframe Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm
-    iframe #
+    iapply (hAE E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm]
+    · iframe Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, #HeI, HW, %en, Hpost, #Hv, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (en = true)
+    iframe Hpost
+    iexists en
+    iframe Hv Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | authenticate n pre =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result, AdminReq.extraPre]
     iintro !> %Φ ⟨⟨%am, #Hr, %Ham⟩, ⟨Ho, HX⟩, -, -, HW, Htt, Hm, ⟨%x, #HSp, Hfr⟩⟩ HΦ
@@ -431,7 +513,16 @@ theorem applierAdmin_backendX
     iintro %resp %err ⟨Htt, Hpost, #HeI, Ho, HX, HW, Hout⟩
     iapply HΦ
     rw [hM]
-    iframe Htt Hpost HeI HW Hout HX
+    iframe Htt HeI HW Hout HX
+    iexists True
+    iunfold mPost at Hpost
+    iunfold mPostF
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iframe Hkv Hres
+    isplitl [HPP]
+    · icases HPP with (HP | HP)
+      · ileft; iexact HP
+      · iright; iframe HP
     iunfold auth.authOwnFu; iframe Ho Hfu
 
 /-- **The base chain's admin triples carrying `X`** (the auth plan's E2v): as E2m's base chain's,

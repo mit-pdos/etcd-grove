@@ -52,11 +52,11 @@ theorem beginErr_fmtErrorOk (err : GoInterface) :
 
 /-- **The read update fired at the meta copy** (design §3.13, `Begin(false)`'s linearization
 point): with `metalock`'s quarter of the committed data `D`, the client's update commits at `D`. -/
-theorem au_read_fire (B : BNs) (N : Namespace) (D : Data) (Q : Data → IProp GF) :
-    ghostVar B.st (1 : Qp).half.half D ∗
+theorem au_read_fire (B : BNs) (N : Namespace) (D : Data) (ν : Nat) (Q : Data → IProp GF) :
+    ghostVar B.st (1 : Qp).half.half (D, ν) ∗
       AU <{ ∃∃ (q : Qp) (D' : Data), boltStateDef B q D' }> @ ⊤ \ ↑N, ∅
         <{ boltStateDef B q D', COMM Q D' }> ⊢
-    |={⊤}=> ghostVar B.st (1 : Qp).half.half D ∗ Q D := by
+    |={⊤}=> ghostVar B.st (1 : Qp).half.half (D, ν) ∗ Q D := by
   iintro ⟨Hst, Hau⟩
   ihave Hau := atomic_update_mask_weaken (Eo2 := ⊤) (fun _ _ => CoPset.mem_full) $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
@@ -64,7 +64,7 @@ theorem au_read_fire (B : BNs) (N : Namespace) (D : Data) (Q : Data → IProp GF
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%q, %D', Hx, Hucl⟩
-  ihave %Hd := boltStateDef_agree_lib B q D' D $$ [Hx Hst]
+  ihave %Hd := boltStateDef_agree_lib B q D' D ν $$ [Hx Hst]
   · iframe
   subst Hd
   icases Hucl with ⟨-, Hcommit⟩

@@ -68,6 +68,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `etcd_robust_nocrash.spec` unchanged.
 - **Decision.** Accepted: approved by lead 2026-11-26 (branch `etcd-safe-f7-rlog`).
 
+## 2026-11-26: `rnDurBodyK` and its step laws -- the body keeps the WAL's records as the eager fold (`walRecsH`) of the history, which a restart's history does not have (D6-T2 / P5 (b) steps 2-5, etcd-safe-p5)
 ## 2026-11-26: F7 auth-on dist drafts -- free auth names `A` let a caller refute every member-local success arm
 
 - **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean`: `New_user_dist.spec`,
@@ -183,6 +184,56 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Accepted (etcd-grove-03, under the lead's delegation of 2026-11-26T01:14:58Z). The slot and the
   law's proof are on `etcd-safe-f2`; P-L1 (the `NewLessor`/`NewServer` variants and the start's allocation) is
   F2's item 4.
+
+- **Spec.** `rnDurBodyK`/`HistOkK` (`etcdserver/InvWalCrash.lean`) and the laws over them: `rnDurK_alloc.law`,
+  `rnDurK_save.law`, `rnDurK_saveSnap.law`, `rnDurK_ownSnap.law`, `rnDurK_enter.law`, `rnDurK_crash.law`,
+  `rnRestartWal`/`rnRestartAllocK.law`; the pending batch's image condition `crashOk`.
+- **Defect.** The body holds `walRecsH h (recsOf vk.1 σ) Hs true`: the history's *eager* fold, and
+  `HistOkK` asks `walCommitLeFrom walFresh Hs`. A restarted WAL whose history holds a snapshot record the
+  reader dropped (`walKeep`) has no eager fold equal to what it read (ledger entry "`wal.restartOk` over the
+  reader's fold", defect 2), so `rnRestartAllocK.law` cannot allocate the body at a restart. And the pending
+  batch's images ask `ImgOk vk.1.S vk.1.l σ` at the `Save`, with the handed log `vk.1.l` raft gave at the
+  `Save`, which a crash image above the old commit need not agree with (session 5's finding: the agreement
+  lives in `run`'s state until *enter*).
+- **Evidence.** Step 1 (the entry below) put the contract's `Save`/`SaveSnap` over `walHistH`; the body is
+  the only remaining user of the eager fold besides the derived `walSaveSized_spec`/`walSaveSnapH_spec`.
+  `raftState_logViewE` (`raft/v3/DurableLogView.lean`) gives, at a mask containing raft's, a committed log
+  `L` the entered durable state agrees with up to its commit.
+- **Proposed change.** (2) the body's records `walHistH h Hs true ∗ ⌜walRead Hs = some σ⌝`, `recsOf` kept
+  only for a pending received snapshot (`walSnapCert` over `recsOf vk.1 σ`), `HistOkK` without
+  `walCommitLeFrom walFresh Hs`; (3) `crashOk`'s pending case, for `j > pos`: for every committed log `L`
+  that `vk.1.S` agrees with up to its commit (`DurAgrees`, `|L|` its commit) and that has the read's snapshot
+  term, `ImgOk vk.1.S L σ` (pure, quantified over `L`), discharged with `L` from `raftState_logViewE` at
+  *enter* (the view moves to `{v' with l := L}`) and in `rnDurK_crash.law` after the crash's enter; (4) the
+  step laws' updates over `walHistH` (`rnDurK_save.law`/`rnDurK_saveSnap.law`/`rnDurK_ownSnap.law` take the
+  contract's history update, no `WalSaveOk` premise), their proofs and `wal.restartOk`'s body
+  (`rnRestartWal` over `walHistH` and the read); (5) `walRecsH` deleted once unused. No top-level
+  statement, premise or axiom moves.
+- **Decision.** Accepted under the lead's approval of (b) and its server-side alternative (#50 2026-11-25
+  15:33Z, 2026-11-25T18:04:00Z); internal to the server. Applied step by step on `etcd-safe-p5`.
+- **Applied (2026-11-26, P5 session 9, `etcd-safe-p5r/2026-11-26`): (2), (4), (5); (3) not needed for
+  this scope.** The body's records row is `walHistH h Hs true` with the pure row `HistReadsK vk.1 σ Hs`:
+  at every commit `c` at or above the last saved one the history reads (`walReadAt`, the reader's fold at
+  `c`) as `recsAt vk.1 σ c` (`σ`, or the pending received snapshot applied once `c` covers it), along a fold
+  with `committed ≤ lastIndex` (`walCommitLeAt`); `walRead Hs = some σ` and `walCommitLe Hs` are its case
+  at the last commit (`histReadsK_read`). The pure crux is `histReads_save` (`InvWalCrashPure.lean`): a
+  `Save` at a commit at or above the last reads `recsOf vk.1 σ` before it (the pending snapshot is at the
+  saved records' base, at or below their commit) and `walSave …` after. `HistOkK` drops
+  `walCommitLeFrom walFresh Hs`; `rnDurK_save/saveSnap/ownSnap.law` take the contract's history update (no
+  `WalSaveOk`/base-term premise; the snapshot laws' unused `walBaseLb` dropped from their posts);
+  `rnDurK_crash.law`'s callback is over `walHistH` (no records); `rnRestartWal` is over `walHistH` and
+  `HistReads σ Hs` (derived from the slot's eager fold, `histReads_of_fold`); `walRecsH` and its lemmas are
+  deleted (`walOpenedH`, inside the boot slots and `wal.Create.specSrv`, is written as `walHistH h Hs s ∗
+  ⌜walFoldChkFrom walFresh Hs = some σ⌝`, the deleted `walRecsH`'s definition: the same predicate).
+  **Scope (what this does not cover):** `HistReadsK` says no snapshot record but the pending one is above
+  the last saved commit. A restarted history holding a dropped record (a crash between a received
+  snapshot's `SaveSnap` and its `Save`) does not meet it, and (3) would not suffice for it either: the
+  first `Save` committing past the dropped record re-bases the read there, and `StorageHolds` of that read
+  needs raft's durable log above the record to have been written after it (raft's log at the record's
+  index conflicts until rewritten), which nothing exported gives. Today the restart slot (`wal.restartOk`,
+  over the eager fold with `σ.b ≤ σ.commit`) excludes such histories, so `HistReads` follows; when the slot
+  moves to the reader's fold (the 2026-11-25 entry), its producer must give `HistReads` or the invariant
+  needs the general re-keep case.
 
 ## 2026-11-25: `statusErrOk` -- an error's value is of its dynamic type (`stTypedErr`) (#45)
 
@@ -318,49 +369,423 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 
 ## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
 
-- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
-  precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
-- **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
-  name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
-- **Evidence.** `dataAreaFresh`'s definition (`storage/WalAreaFresh.lean`): the whole names claim on `d`'s root, none
-  naming an entry, coherent with the tree through the shared mode's invariant.
-- **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
-- **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
+- **Spec.** `rnDurBodyK`/`HistOkK` (`etcdserver/InvWalCrash.lean`) and the laws over them: `rnDurK_alloc.law`,
+  `rnDurK_save.law`, `rnDurK_saveSnap.law`, `rnDurK_ownSnap.law`, `rnDurK_enter.law`, `rnDurK_crash.law`,
+  `rnRestartWal`/`rnRestartAllocK.law`; the pending batch's image condition `crashOk`.
+- **Defect.** The body holds `walRecsH h (recsOf vk.1 σ) Hs true`: the history's *eager* fold, and
+  `HistOkK` asks `walCommitLeFrom walFresh Hs`. A restarted WAL whose history holds a snapshot record the
+  reader dropped (`walKeep`) has no eager fold equal to what it read (ledger entry "`wal.restartOk` over the
+  reader's fold", defect 2), so `rnRestartAllocK.law` cannot allocate the body at a restart. And the pending
+  batch's images ask `ImgOk vk.1.S vk.1.l σ` at the `Save`, with the handed log `vk.1.l` raft gave at the
+  `Save`, which a crash image above the old commit need not agree with (session 5's finding: the agreement
+  lives in `run`'s state until *enter*).
+- **Evidence.** Step 1 (the entry below) put the contract's `Save`/`SaveSnap` over `walHistH`; the body is
+  the only remaining user of the eager fold besides the derived `walSaveSized_spec`/`walSaveSnapH_spec`.
+  `raftState_logViewE` (`raft/v3/DurableLogView.lean`) gives, at a mask containing raft's, a committed log
+  `L` the entered durable state agrees with up to its commit.
+- **Proposed change.** (2) the body's records `walHistH h Hs true ∗ ⌜walRead Hs = some σ⌝`, `recsOf` kept
+  only for a pending received snapshot (`walSnapCert` over `recsOf vk.1 σ`), `HistOkK` without
+  `walCommitLeFrom walFresh Hs`; (3) `crashOk`'s pending case, for `j > pos`: for every committed log `L`
+  that `vk.1.S` agrees with up to its commit (`DurAgrees`, `|L|` its commit) and that has the read's snapshot
+  term, `ImgOk vk.1.S L σ` (pure, quantified over `L`), discharged with `L` from `raftState_logViewE` at
+  *enter* (the view moves to `{v' with l := L}`) and in `rnDurK_crash.law` after the crash's enter; (4) the
+  step laws' updates over `walHistH` (`rnDurK_save.law`/`rnDurK_saveSnap.law`/`rnDurK_ownSnap.law` take the
+  contract's history update, no `WalSaveOk` premise), their proofs and `wal.restartOk`'s body
+  (`rnRestartWal` over `walHistH` and the read); (5) `walRecsH` deleted once unused. No top-level
+  statement, premise or axiom moves.
+- **Decision.** Accepted under the lead's approval of (b) and its server-side alternative (#50 2026-11-25
+  15:33Z, 2026-11-25T18:04:00Z); internal to the server. Applied step by step on `etcd-safe-p5`.
 
-## 2026-11-24: interim putget axioms over the S2 interface switch (A1 restated, A2 retired)
+## 2026-11-26: the WAL contract's `Save`/`SaveSnap` -- their atomic updates are over the eager fold (`walRecsH`), which no restarted WAL's history keeps (D6-T2 / P5 (b) step 1, etcd-safe-p5)
 
-- **Spec.** `etcd_dist.etcdAddrAt` (`Proof/.../examples/etcd/dist/S2Interim.lean`): was `□ etcdAddrRaw a γE mid`
-  (an axiomatized predicate, produced only by the axiom `etcdAddr_set`); now `∃ σ, grpcAddrAt a (etcdSvc γE mid)`
-  over the axiomatized heap-free table `etcd_dist.etcdSvc`; `etcdAddr_set` (statement unchanged) a theorem.
-- **Defect.** None in the old statement; the S2 interface switch (`6d5a98fb3d`) put `grpcAddrAt`/`grpc_addr_set`
-  on `lean`, so the interim trust can be stated in its vocabulary, one axiom fewer.
-- **Evidence.** `notes/putget-dist-plan.md` §12, "Over the S2 interface switch"; adversarial review of the four
-  remaining axioms (the `axiom` skill, 2026-11-24, `notes/audit.md`).
-- **Proposed change.** As above; A3-A5 (`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`) unchanged (their
-  narrowing needs S2's etcd side: O1, O2, a listen at a set address). Interim, retired by S2's `etcdSvc` and proofs.
-- **Decision.** Pending (the owner reviews the axioms' text before landing). Review 4 found A4/A5 false with
-  `bridge.New` in both forms (`notes/putget-dist-plan.md` §12, "Review 4"); proposed fix on `bridge.New`.
+- **Spec.** `isWalStorage`'s `Save` and `SaveSnap` (`etcdserver/WalApi.lean`; proved by `walSave_law`/
+  `walSaveSnap_law`, `RnNewStorage.lean`), the derived `walSaveSized_spec`/`walSaveSnapH_spec`, and P5's
+  `walSaveH.law`/`walSaveSnapH.law` (`InvWalCrash.lean`).
+- **Defect.** Too strong for the crash-aware invariant: the update's state is `walRecsH h σ Hs` with
+  `σ` the history's *eager* fold (`walFoldChkFrom walFresh Hs`) and `Save` asks `WalSaveOk σ es`; after a
+  restart whose history holds a snapshot record the reader drops, the next `Save` is no step of the eager
+  fold (the ledger entry "`wal.restartOk` over the reader's fold", defect 2), so the invariant cannot hand
+  the contract this state. Layer 1 needs neither the fold nor the premise.
+- **Evidence.** `walHistH_saveAU`/`walHistH_saveSnapAU` (`storage/WalRecsH.lean`) give layer 1's update
+  from one over `walHistH h Hs` (the history, no fold) with no premise.
+- **Proposed change.** The contract's two updates over the history: `AU <{ ∃∃ Hs, walHistH h Hs sized }>
+  @ WalFs.walAuMask, ∅ <{ walHistH h (Hs ++ [op]) sized, COMM Q Hs }>` (the refusal arm of `Save` returns
+  this update); `walSave_law`/`walSaveSnap_law` through `walHistH_saveAU`/`walHistH_saveSnapAU`; the direct
+  laws `walSaveHist_spec`/`walSaveSnapHist_spec`; `walSaveSized_spec`/`walSaveSnapH_spec` kept as derived laws
+  over `walRecsH` through `walRecsH_au_toHist` (the fold's step at commit), their refusal arm now handing
+  back the history's update (its only user, `walSaveRn_spec`, drops it); `walSaveH.law`/`walSaveSnapH.law`
+  restated over `walHistH` (the direct laws). Nothing else moves in this step.
+- **Decision.** Step 1 of P5 (b) as planned under the lead's approval of (b) (#50 2026-11-25 15:33Z) and
+  its server-side alternative (#50 2026-11-25T18:04:00Z); internal to the server (no top-level statement,
+  premise or axiom). Applied on `etcd-safe-p5` (P5 session 7).
 
-## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
+## 2026-11-26: `rnDurK_crash.law` -- the crash gives no certificate of the crashed WAL's history, so the restart cannot carry the snapshot records a later `Save` re-keeps (D6-T2 / P5 (a), etcd-safe-p5)
 
-- **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`
-  (`etcd_dist.Serve_dist.spec`), `ClientPutDist.lean` (`etcd_dist.Client_Put_dist.spec`), `ClientGetDist.lean`
-  (`etcd_dist.Client_Get_dist.spec`), over the axiomatized address fact `etcd_dist.etcdAddrRaw`/`etcdAddr_set`
-  (`Proof/.../etcd/dist/S2Interim.lean`); and the changed client-construction specs `clientv3.New.spec`,
-  `newClient.spec`, `Client.dialWithBalancer.spec`, `Client.dial.spec` (the configuration's dial options may be
-  `grpc.WithNoProxy()`'s, `noProxyOptsAt`; `New`/`newClient` give the client's `cfg` field), new
-  `grpc.WithNoProxy.spec` (proved), `etcdstart.NewClients.spec`/`NewClient.spec` (post: `clientNoProxy cl`).
-- **Defect.** `putget_safe` needs cross-machine gRPC (phase 7 S2, #24, unfinished): the in-process specs' `Invoke`
-  registration (`kvRegsAt`) is one heap's. And the review of the first design (`s2-interim/review.md`, F1) found
-  that without `WithNoProxy` a client's calls follow `HTTPS_PROXY`, so the cross-machine client axioms were false.
-- **Evidence.** `notes/putget-dist-plan.md` §12; `TestProxyRogue` / `TestWithNoProxyFix` (`review-go/proxyrogue/`).
-- **Proposed change.** The five interim axioms A1-A5 (`notes/putget-dist-plan.md` §12), A4/A5 restricted to clients
-  with no proxy dial path (`clientNoProxy`, from `etcdstart.NewClient`'s post), `etcdstart.NewClients` passing
-  `grpc.WithNoProxy()`. Retired by #24's switch (`etcdAddrAt` defined from `grpcAddrAt`) and S2's proofs (`Serve`,
-  the pub-form put `client_Put_pub`): the statements then become theorems unchanged.
-- **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
-  `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
-  `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
+- **Spec.** `rnDurK_crash.law` (`etcdserver/InvWalCrash.lean`, P5's; proved by `rnDurK_crash_law_holds`,
+  `InvWalCrashLaws.lean`); its user T7's `memberDur_crash` (`dist/crash/MemberCrash.lean`).
+- **Defect.** Too weak for T10's image route (#50 2026-11-25T16:06:56Z, items 1-3; `notes/etcd-dist-d6.md`, "T10
+  status and handoff, session 8", "What P5 must provide"): the law hands the WAL's crash `Φ` only the read
+  records `σ` and gives back only their snapshot certificate (`walSnapCert`, `walSnapDur`). A snapshot record
+  of the crashed prefix that the read drops (above the prefix's commit) is re-kept by every read once a later
+  `Save` commits past it (the ledger entry "`wal.restartOk` over the reader's fold", defect 1), so the crash
+  image's `srvFilesC` row must hold `walHistCerts γ.cl sd Hs` of the prefix's history `Hs`, and `walFilesC` must
+  name that `Hs`; the law names neither.
+- **Evidence.** The body holds `walHistCerts γn.cl νk.sd Hs` of the whole history (`rnDurBodyK`), and the
+  crash reads the complete prefix `Hs.take j`; the law's `Φ : StorContents → IProp GF` cannot see `j`, and
+  its post has no history.
+- **Proposed change.** `Φ : WalHist → StorContents → IProp GF`; the callback gives `Φ (Hs.take j) σ` for the
+  prefix's read `σ`; the post's left disjunct gains the crashed prefix's history `Hc` with `Φ Hc σ`,
+  `⌜walRead Hc = some σ⌝` and `walHistCerts γn.cl νk.sd Hc` (persistent; from the body's certificates of `Hs`,
+  `walHistCerts_take`). Nothing new is claimed: the certificates are the body's. Moves: `memberDur_crash`
+  passes `fun _ σ => walFilesC …` (unchanged otherwise; T10 then names the history in `walFilesC` and puts the
+  certificates in the image's row, on `etcd-safe-t10`).
+- **Decision.** Within the lead's approval of (a)'s image route (#50 2026-11-25T16:06:56Z: "supplied by T7
+  from `rnDurK_crash.law`, extended to return them"); a P5-internal statement (no axiom, no top-level
+  premise). Applied on `etcd-safe-p5` (P5 session 6).
+
+## 2026-11-25: raft's `readyRest` (the batch's facts) -- the batch's durable log is tied to the committed log only through the handed entries `ce`, so a WAL read re-based at a snapshot record above the handed log holds no provable state (D6-T2 / P5 (b), etcd-safe-p5)
+
+- **Spec.** Raft's node API: `readyRest`/`ReadyRestFacts` (`Proof/go_etcd_io/raft/v3/NodeApiVocab.lean`,
+  `InvNode.lean`'s `readyRest_ceInBatch`, `deliveredLogLb_committed`); on the server, `ViewOk`/`ImgOk`/
+  `crashOk` (`etcdserver/InvWal.lean`, `InvWalCrash.lean`), step 3 of P5 (b) ("a K form of `ViewOk`/`ImgOk`
+  whose base may exceed the handed log when a certified snapshot record gives a committed log of length
+  `m`", the entry below, Decision (b)).
+- **Defect.** (b)'s step 3 is not provable from the certificate alone. After a restart whose history holds a
+  snapshot record `snap m` above the restart's commit `c` (dropped by `walRead`), raft may commit past `m`
+  with a `Ready` whose committed entries stop below `m` (raft limits them, `maxApplyingEntsSize` =
+  `MaxCommittedSizePerReady`; etcd sets `MaxSizePerMsg`): `hs.Commit ≥ m > |v'.l|`. From that `Save` on,
+  every crash prefix reads records re-based at `m` (base `(m, m.Term')`, entries above `m`), and the crash
+  law must give `StorageHolds v'.S σ'` of them, whose second row is `plogTermAt v'.S.base v'.S.ents m = some
+  m.Term'`: raft's durable log has the committed term at `m`. The certificate (`snapshotValid`) gives a
+  committed log `L` of length `m` ending at term `m.Term'`, but nothing ties `v'.S` (the batch's
+  `readyDurable`) to a committed log beyond the handed `ce` (`ReadyRestFacts`' sixth row,
+  `readyRest_ceInBatch`), and `DurAgrees v'.S v'.l` covers only `v'.l`. So neither the base row
+  (`σ.b ≤ l.length`, which `L` would replace) nor the term row (which needs `DurAgrees v'.S L`) holds; it
+  is true of raft (log matching: a node's log up to its commit index is the committed log) but not exported.
+- **Evidence.** `StorageHolds` (`NodeApiVocab.lean`): `plogTermAt S.base S.ents σ.base.index' = some
+  σ.base.term'`; `walRead`'s filter (`storage/WalHist.lean`, `walKeep` by the last commit) and `walSaveSnap`
+  (`WalRecsCore.lean`, a record above the fold's commit starts the records at `m` with no entries); the
+  `ReadyRestFacts` `none` case (`NodeApiVocab.lean`): `(st.delivered ++ ce).length ≤ commit`, the entries of
+  `ce` above the base the batch's, nothing about indices in `(|st.delivered ++ ce|, commit]`. No Lean changed.
+- **Proposed change.** Raft exports, with the batch's facts, the committed log up to the batch's commit,
+  which the batch's durable log holds: in `readyRest` (or a law on it, `readyRest_commitLog`, beside
+  `readyRest_ceInBatch`), `∃ L, isCommittedLogLb γ L ∗ ⌜L.length = uint.nat (phsNext st.hardState h).Commit' ∧
+  st.delivered ++ ce <+: L ∧ ∀ i e, uint.nat d.base.index' ≤ i + 1 → L[i]? = some e → plogTermAt d.base d.ents
+  (W64 (i+1)) = some e.term⌝` with `d = readyDurable st.durable (phsNext st.hardState h) loan es` (and the
+  snapshot case alike). Proof: raft's log matching at its commit index (raft's own proof, its owner). Then
+  the server needs **no** K form of `ViewOk`/`ImgOk`: the loop's view hands `v'.l := L` (the committed log
+  up to the saved commit, of which the apply thread's log is a prefix), so a re-kept `snap m` has `m ≤
+  commit = |v'.l|` and its term is `v'.l`'s (`isCommittedLogLb_agree` with the certificate's log), and
+  `ViewOk`/`ImgOk` stay as they are. Moves: `raftNode__start`'s two `Save` sites (the view's `l`),
+  `walSaveStep_ready` (its `v'.l`), the steps of (b) otherwise as planned (the contract over `walHistH`, the
+  body over `walRead Hs`). Without it, (b) steps 1, 2 and 4 cannot be closed: the `Save` law's post
+  (`ViewOk v' (walRead (Hs ++ [save]))`) fails in the case above. A raft API change (its node API's batch
+  facts): the lead's, and raft's owner's.
+- **Decision.** Approved as an additive law by the lead, acting as raft's API owner (#50, 2026-11-25
+  16:11Z: one new law beside `readyRest_ceInBatch`, proved inside raft from its existing invariants; no
+  change to `ReadyRestFacts`, the `Ready`/`RawNode` specs or any existing law). **Not provable additively**
+  (P5 session 5, no Lean changed): what the server holds at a batch does not carry the fact.
+  - `readyRest` (`InvNode.lean`): in the `none` case only `ceFrozen` (the storage's `ce` frozen),
+    `appendRight`, `readyEnts` (`outEntR`: the handed-out set, sizes only) and `ReadyRestFacts`; no
+    committed log beyond `st.delivered ++ ce`, and nothing ties the batch's entries `es` to raft's log
+    records (`logRecs`).
+  - `nodeDriver` at `st.afterReady …` (`InvApi.lean`'s `nodeDriver`): `hsCommitted` gives a committed log
+    `L` of length `(phsNext st.hardState h).Commit'` (`committedAtTerm`), but not that the batch's
+    durable log `d` agrees with it: busy, the driver holds `dur`'s ghost at `d` (a `dghostVar`, no facts)
+    and `rof`'s half, whose other half `run` holds with raft's in-memory log (`InvNodeRun.lean`).
+  - `raftState γ id st.durable` (the old state, `raftState_logView`) gives the committed log only up to
+    the old commit; `d`'s log records (`durPers`'s `logRecs d.base d.ents`, `isCommitted … d.commit`)
+    exist only once the batch is entered (`raft_enter`, `readyEnter`).
+  So the law needs the node's run loop to hand the fact out with the batch: a new conjunct of `readyRest`
+  (the `Ready` spec's post) or of `nodeDriver`'s busy body (the receive's post), re-proved in `node__run`
+  from its in-memory invariant (log matching at its commit index). Both change an existing statement or
+  sealed body under the Antithesis lead's RawNode work: stopped, reported to the lead.
+  Alternative without a raft change (for the lead to weigh): the view takes `v'.l := L` at *enter*, not at
+  `Save`: after entering `d`, the existing `raftState_logView` gives exactly the committed log up to
+  `d.commit` held by `d`'s log (`isCommittedLogLb γ (strip ((fp ++ d.ents).take d.commit))`, `FullOk
+  d.base fp`); between `Save` and *enter* the saved record is the pending one (`rnPendRec`), and the crash
+  law enters it first (`readyEnterCrash`, when the read holds the save) and then reads `raftState_logView`.
+  That moves `ViewOk`'s obligation for the pending record from `Save` to *enter*/crash (a server-side
+  restatement of `rnDurK_save.law`/`rnDurK_enter.law`, P5's own statements).
+
+## 2026-11-25: `wal.restartOk` over the reader's fold -- not enough for P5-RESTART: the history's snapshot certificates must cross the restart, and the contract's `Save` is not a step of the reader's fold (D6-T2 / P5, etcd-safe-p5)
+
+- **Spec.** `wal.restartOk` (`etcdserver/WalApi.lean`, inside `bootOkR`/`bootstrapCrashContract`), the
+  restatement approved by coordinator-E on #50 (2026-11-25 15:22Z, item 1: over `walRead Hs`, with the
+  post-restart contract `isWalStorage`'s `WalSaveOk`/`ViewOk` against `walRead Hs`); `rnRestartAllocK.law`
+  (`etcdserver/InvWalCrash.lean`), whose proof holds the `sorry` P5-RESTART; `rnDurInvK`'s `walHistCerts`;
+  `walRecsH` (`storage/WalRecsH.lean`) and the contract's `walSaveH.law`.
+- **Defect.** Two, found while scoping the restatement (no Lean changed):
+  1. **Certificates.** P5-RESTART is `walHistCerts γn.cl sd Hs` at the restart: `snapshotValid` (with
+     `snapMade`, a registry entry: not derivable) of every snapshot record of the restart's history. The
+     reader's fold does not remove the need: a record `snap m` dropped at the restart (above the commit `c`,
+     the window of the 09:02Z report) is kept again by every later read once a `Save` commits at or above
+     `m` (`walRead` filters by the *last* commit), and that read's snapshot is then `snap m` (`walRead_snapSrc`),
+     whose certificate `rnDurK_crash.law` must give (`walSnapCert` of the image). So the certificate of
+     every snapshot record above the restart's commit must reach the new generation. Nothing carries it:
+     `wal.restartOk` names no cluster, `wal.stopImage`/the crash image hold only the read records'
+     certificate (`walSnapCert cl σ`), and `rnDurK_crash.law` gives only the image's.
+  2. **The contract's `Save` after such a restart.** `walRecsH h σ Hs` asserts the eager fold
+     (`walFoldChkFrom walFresh Hs = some σ`), and `walSaveH.law` moves `σ` to `walSave σ hs es`. Over the
+     reader's fold neither holds: `walRead (Hs ++ [save hs es])` is not `walSave (walRead Hs) hs es` once
+     `hs` commits at or above `m` (the fold then re-bases at `m`: base `m`, entries above `m` only), and
+     the eager fold `σe` (base `m`, no entries) refuses `WalSaveOk σe es` for the entries raft saves from
+     `c+1`. So "the contract over `walRead Hs`" is not `walSave` on a different record set: the contract's
+     post must name the new history's read (or only the history), `walRecsH` must drop or change its fold
+     row, and the invariant's `ViewOk`/`ImgOk` must accept a read whose base `m` lies above the handed
+     log (`σ.b ≤ v.l.length` fails when the `Ready` that commits `m` hands fewer entries; `snap m`'s
+     certificate gives a committed log of length `m` instead).
+- **Evidence.** `InvWalCrashSteps.lean`'s `rnRestartAllocK_law_holds` (the `sorry`: `walHistCerts γn.cl sd Hs`
+  with `sd` and the records' history arbitrary); `walRead`'s definition (`storage/WalHist.lean`:
+  `walKeep (walLastHS I).Commit'`); `walSaveSnap` (`WalRecsCore.lean`: a record above the commit empties the
+  entries); `readEnt` (an entry at or below the base resets the entries). In Go: `ValidSnapshotEntries` keeps a
+  snapshot record once the last hard state's commit reaches it, and `LoadNewestAvailable` then loads its
+  `.snap` file (written and synced before the record).
+- **Proposed change.** (a) Carry the certificates across the crash: `rnDurK_crash.law` also gives
+  `walHistCerts γn.cl νk.sd (Hs.take j)` (it holds them; persistent), and the restart slot carries them for
+  its history: either `wal.restartOk` gains the cluster and `sd` (`wal.restartOk cfg id cid w σ cl sd`,
+  holding `walHistCerts cl sd Hs`), or the image (`wal.stopImage`, `srvCrashImageAt`'s WAL row) holds
+  `∃ Hs, walHistOf … Hs ∗ walHistCerts cl sd Hs` tied to the slot's history. Either changes the restart hub
+  and T7's producer (the graceful stop's `rnDurK_take.law`/`raftNode.stop`'s post too, to give them). (b) The
+  contract over the history: `walRecsH h Hs` (no fold row; `walRead Hs` succeeding is the invariant's
+  `CrashReadsHold`), `walSaveH.law`'s AU over `Hs` with `WalSaveOk (walRead Hs) es`, and the invariant's
+  current records `walRead Hs`, with `ViewOk`/`ImgOk` taking the base's committed log from the snapshot's
+  certificate. (b) touches `storage/WalRecsH.lean`, `RnNewStorage`'s contract proofs and every step law of
+  `rnDurInvK`.
+- **Decision.** **(b) approved, (a) approved through the restart slot** (coordinator-E, #50 2026-11-25
+  15:33:36Z): (b) first, the WAL contract over the history (`walRecsH` without the fold row; `WalSaveOk
+  (walRead Hs) es`; `ViewOk`/`ImgOk` taking the base's committed log from the snapshot's certificate); then
+  (a), `wal.restartOk` gaining the cluster and `sd` and holding `walHistCerts cl sd Hs`, **not** through
+  the stop or crash images (`srvCrashImageAt` is being restated by T10; `raftNode.stop`'s post feeds T4).
+  Applied so far (session 3): (b)'s first piece, `walHistH` (`storage/WalRecsH.lean`: the history without
+  the fold, its `Save`/`SaveSnap` updates, crash and synced-mark lemmas, `walRecsH_iff_hist`), additive.
+  **(a) through the restart slot cannot be supplied** (session 3, found while scoping, no statement
+  changed): `wal.restartOk` is produced by no proof but by the interim axiom `bootstrapCrashContract.law`
+  (C-I2, `CrashInterim.lean`; and by `bootstrapRestartContract` on the graceful path), inside `bootOkR`,
+  from its pre `srvFilesC cfg.DataDir' id σ D`, whose `walFilesC` hides the files' history (`∃ i d`,
+  `walRead (walSrvHist d.H) = some σ`). T7's `memberGen_crash_law_holds` produces the image, not the
+  slot. Certificates put in `wal.restartOk` without a source in the contract's pre would be new trusted
+  text (`bootstrap` makes no `snapshotValid`). What it needs: (1) `walFilesC` (or a `walFilesCH a id cid σ
+  Hs`) naming the files' history `Hs = walSrvHist d.H`; (2) the crash image (`srvCrashImageAt`, its
+  `srvFilesC` row) holding `walHistCerts γ.cl sd Hs` for that history, with `sd` the snapshot directory's
+  durable indices (T6's), given by T7 from `rnDurK_crash.law` extended to give `walHistCerts γn.cl νk.sd
+  (Hs.take j)`; (3) both contracts' posts (`wal.restartOk … cl sd`) stating the opened WAL's history is the
+  files' `Hs` and returning the certificates; (4) on the graceful path, the stop image (`wal.stopImage`,
+  `raftNode.stop`'s post, `rnDurK_take.law`) the same, or `bootstrapRestartContract`'s restart slot
+  keeping the old certificate-free form. Waiting for the lead's choice (P5 stopped on (a)).
+## 2026-11-25: openAtIndex (read mode's post), WAL.Close (`.opening`'s pre) -- the read handle's key must name its incarnation
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lean` (post, both modes) and
+  `WAL__Close.lean` (the `.opening` arm's pre), through `walReadH`/`walReadTie` (`Proof/.../wal/ReadDefs.lean`).
+  Internal; no `SpecPlan/` counterpart.
+- **Defect.** Fix B (entries below): `walReadTie` holds the WAL's key, which is now `walDirKey dir i j X`; a
+  key with no incarnation tied to the holder's cannot be looked up. `walReadH write w dir s` names none, and
+  the read mode's post gives `walLockedTok` (its incarnations hidden), so `ReadAll`/`Close` over a read handle
+  cannot show the key current.
+- **Evidence.** `ReadDefs.lean:123` (P6b session 12 build); `walDirKey_lookup` needs `incOf I dir = i` of the
+  holder's share.
+- **Proposed change.** `walReadTie`/`walReadH` take the incarnation `i` (the key at `i`). `openAtIndex`'s post:
+  write mode `walOpening w dir s ic ∗ walReadH true w dir s ic`; read mode `(∃ I, walLockedTokI I ∗
+  ⌜incOf I dir = ic⌝) ∗ walReadH false w dir s ic` in place of `walLockedTok ∗ walReadH false w dir s`.
+  `WAL.Close`'s `.opening` arm: `∃ i, walOpening w dir s i ∗ walReadH true w dir s i`. The sealed
+  `walReadOnlyF w dir s := ∃ I, walLockedTokI I ∗ walReadH false w dir s (incOf I dir) ∗ …` and `walOpeningF`
+  (already at `i`) follow; no client-visible predicate changes.
+- **Decision.** Applied (P6b session 12, under the coordinator's rule for further internal spec changes);
+  approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: WAL.renameWAL (`RenameWALOk`'s spine law, `renameWALPost`'s committed arms) -- the spine law cannot give the pipeline its eighth of the incarnations and return the update's result unchanged
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`: `RenameWALOk`'s spine law
+  and `renameWALPost`'s arms 1 and 4 (committed); `Create`'s choices (`Proof/.../wal/CreateRename.lean`,
+  `createU`, `create_spine`). Internal; no `SpecPlan/` counterpart.
+- **Defect.** The entry below makes the spine law return `walPipeKey dir J` (the pipeline's eighth of `γI`)
+  while returning the update's result `U (some x)` unchanged. In `Create`, the eighth is the reserve the
+  commit took out with the pipeline names (`walParked_create`), so it is part of `U (some x)`
+  (`walCreateQ … (some _)`): the law cannot both hand it to the pipeline and return `U (some x)` whole.
+- **Evidence.** `CreateRename.lean` `create_spine` (P6b session 12): `walPipeKey (child r nm) J` needs
+  `walIncEAny`, held only by `walCreateQ … (some _)`; `WAL__renameWAL.lean:126` destructs the law's
+  output as persistent (it no longer is).
+- **Proposed change.** The law consumes `U (some x)` and returns `UH x` (the result once the pipeline has
+  its share); `renameWALPost`'s arms 1 and 4 hold `UH x` instead of `U (some x)`. `UH` is the parameter
+  the 2026-11-25 entry left unused (arm 2 dropped), so no caller's argument list changes. `Create` passes
+  `UH x := createUK … x` (`walCreateQK`: `walCreateQ … (some _)` but the reserve, which `walCreateQ … (some
+  _)` now holds as `walCreateQK ∗ walIncEAny`). No other caller (`renameWAL`'s only caller is `Create`).
+- **Decision.** Applied (P6b session 12, under the coordinator's rule "a further internal spec change gets a
+  ledger entry first; report it"); approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: filePipeline (newFilePipeline, Close, run, alloc), WAL.renameWAL, WAL.sync.specIdle(F) -- fix B's key lookup needs a share of the incarnations the pipeline and the idle syncs do not hold
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/{newFilePipeline,filePipeline__Close,filePipeline__run,
+  filePipeline__alloc,WAL__renameWAL,WAL__syncIdle,WAL__syncIdleF}.lean` and the predicates they name
+  (`Proof/.../wal/Pipe.lean`: `pipeRes`, `pipeLeft`, `isFilePipe`; `RenameWALOk`). Internal; no `SpecPlan/`
+  counterpart.
+- **Defect.** Fix B (the entry below: `walDirKey dir i j X`, keyed by `(dir, i)`) makes a key lookup
+  conditional on the incarnation being current, which the holder shows with a share of `WalGS.γI`. Two holders
+  have none (P6b session 11, fix B subagent): the pipeline's goroutine (`run`/`alloc` step on the pipeline
+  names through `walTmp_osAUnc`, concurrently with the handle, so it cannot borrow the lock's quarter), and
+  `WAL.sync.specIdle`/`specIdleF` (their callers hold the lock's quarter, the specs do not take it).
+- **Evidence.** `TmpAu.lean` `walInvBody_tmpAcc` (the lookup); `TailSyncIdle.lean`, `TailFsyncIdle.lean`.
+- **Proposed change (option (a) of the session-11 handoff).** (1) The pipeline family holds an eighth of `γI`:
+  `pipeRes R dir dq j` gains `walPipeKey dir j := ∃ I X, ghostVar γI ⅛ I ∗ walDirKey dir (incOf I dir) j X`
+  (so `pipeLeft` returns it at `filePipeline.Close`); `isFilePipe` and `newFilePipeline`'s pre keep the WAL
+  invariant but no longer a key (it is in `pipeRes`); `RenameWALOk`'s spine law returns `walPipeKey dir J` in
+  place of `walDirKey dir J X`. The texts of `filePipeline.Close`/`run`/`alloc` are unchanged; their meaning
+  changes through `pipeRes`/`pipeLeft`. Where the eighth comes from: `γI` is split `walGhostI` ¼, the keys'
+  authority ⅛, the parked pipeline reserve ⅛, the views' ¼ (`walIncQ`), the lock's ¼. The reserve is held with
+  the record of what is out (`walOutAuth o` holds it when `o.T = []`, no pipeline names out; else its holder
+  does, `walOutOut o`; amended in the same session: the parked names were the first plan) and goes out with
+  the pipeline names: a write-mode `Open`
+  (`walParked_takeTmps`) and `Create`'s commit (`WalOut.create`) take it with the directory's pipeline names,
+  `Close`'s put-back (`delTmp`) returns it, so it is in the invariant whenever the lock is free (`walUnlockedTok`
+  holds `walOutFrag WalOut.empty`) and the discard can gather all of `γI`. (2) `WAL.sync.specIdle`/`specIdleF`
+  take `walIncQ I ∗ ⌜incOf I dir = i⌝` in the pre and return it in the post. (3) As approved below: `walDirKey
+  dir i j X`; `renameWAL`, `newFilePipeline`, `syncIdle(F)` name the key at the incarnation.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 12 brief: option (a), the pipeline family's share
+  in `pipeRes`/`pipeLeft` returned at `filePipeline.Close`, and `specIdle`/`specIdleF` taking `walIncQ I ∗
+  ⌜incOf I dir = i⌝` in pre and post). The reserve's place (the parked pipeline names) is this session's
+  encoding of "a share of `γI`", recorded here for review. `walTmp_osAUnc` (the pipeline's steps on its
+  names) takes and returns `walPipeKey dir j` (its commit post `fun o => β ¼ o ∗ walPipeKey dir j`), as
+  `wp_createTmp`/`wp_removeTmp` do.
+  The amendment (the reserve in `walOutAuth`): approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: wal.DiscardUnsaved (new), WAL.renameWAL, newFilePipeline, WAL.syncIdle(F) -- one update cannot cover the discard; `walDirKey` without incarnation
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/DiscardUnsaved.lean` (`wal.DiscardUnsaved.spec`; none in
+  `SpecPlan/`); the internal specs naming `walDirKey` (`WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle`,
+  `WAL__syncIdleF`).
+- **Defect.** (1) The planned spec (P6b handoff, session 6: one update `<{∃∃ d, walDiskAtI dir ic d}>
+  <{walAbsentI dir (ic+1)}>` committed at the parent's fsync) is unprovable: between `os.Rename(dir, dir.tmp)` and
+  the fsync a crash may keep or lose `dir`, so the real WAL must be unnamed there and `walNamed dir ic` retired (an
+  incarnation bump), which needs the view's quarter of the incarnations and an unnamed view (`walMapLe`); the view
+  changes twice and an update commits once (its abort returns the same `α x`). (2) `walDirKey dir j X` is keyed by
+  `dir` alone, persistent: after the discard the key outlives the layout (`DirKeysOk` fails) and `bootstrap`'s
+  re-`Create` cannot insert its new directory's key.
+- **Evidence.** `Crash.lean` `walDiskAt_crash_keep`/`_any_keep` (a named view or a `walNamed` fact keeps the WAL
+  across a crash; false in the window); `Ghost.lean` `walLeI` (named kept at an unchanged incarnation); `CreateAu.lean:448`
+  and `OpenPinTake.lean:126` (`walDirKey_insert` needs `K !! dir = none`).
+- **Proposed change.** (1) Two updates: `AU₁ <{∃∃ o, walDirIsI dir ic o}> <{∃ d, ⌜o = some d ∧ walBlank (d.H.map
+  WalOpG.toM)⌝ ∗ walDiskAtI dir (ic+1) {d with named := false}, COMM Q₁ o}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir
+  (ic+1) d}> <{walAbsentI dir (ic+2), COMM Q₂}>` at the fsync; pre `Unsaved`'s plus `Create`'s `FsNoErrOn`/`PathFits`
+  premise on `dir`, `dir.tmp`, `r`; post `false, nil` with both updates back (nothing done), `true, nil` with
+  `Q₁ o ∗ Q₂` and the lock token and `walAreaRes` back, `false, err` (the fsync failed) with `Q₁ o ∗ AU₂` (lock token
+  and `walAreaRes` lost; the WAL unnamed at `dir.tmp`, as `Create`'s arm 3). Full text: `notes/wal-p6-handoff.md`,
+  P6b session 7. A client with an owned view instantiates both updates trivially. (2) `walDirKey dir i j X`, the
+  map keyed by `(dir, i)`; the four internal specs take the handle's incarnation (`h.inc`). Internal, no trusted text.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 8 brief; after the fact if proved and untrusted): the
+  plan as written (fix A, loans in γnm; fix B, `walDirKey` by `(dir, i)` with the four internal specs; state C; the
+  two-update spec, `true` ⇒ `walAbsentI dir (ic+2)`, the fsync failure losing the lock token and `walAreaRes`).
+  P5 (`bootstrap`'s owner) is asked whether the two-update shape fits its crash invariant; pending its answer.
+- **Loans carried in the handles (P6b session 10, covered by fix A's approval; the handle design approved by the
+  coordinator, session 10 brief).** A handle holds the lock holder's names record as `walHLoans dir nf qs`
+  (`Handle.lean`: `walNamesFragS ⟨nf, none, Lh⟩`, with no registration pending `Lh` the loans of the WAL's name `nm`,
+  `InArea r' dir nm`, one per fraction of `qs`; with one pending, `walNamesFrag (some _)`). `walDirH` takes the
+  pipeline's fraction `qp` (`WalHS.qp`, pinned in `walHandleIn`'s pipeline) and records `[q, qp]`; `Close` returns
+  both (`walInv_returnHLoans2`, `HandleLoans.lean`) before `walCloseLaw` (so `WalCloseLaw` is unchanged).
+  Internal spec changes: `WAL.sync.specC`'s error arm gives `∃ qs, walHLoans dir nf qs` for `walNamesFrag nf`
+  (the `unnamed` close reads `walNamesFrag (some dir)` back by `walHLoans_some`); `walLastOpen` (planned) carries its
+  loan. No trusted text. **Approved** (coordinator, P6b session 11 brief: `WalHS.qp` as a field of the handle
+  state, `InArea r' dir nm` in the loan record, `WAL.sync.specC`'s error arm giving `∃ qs, walHLoans dir nf qs`).
+
+## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), `CreateFresh.lean`,
+  `WAL__renameWAL.lean` (`renameWALPost`), and every WAL spec over `walNamed`/`walSyncedLb`/`walLenLb` and the
+  shared handle `walOpenWS` (`WalShN`); no `SpecPlan/` counterpart states these facts.
+- **Defect.** The persistent facts `walNamed dir`, `walSyncedLb dir n`, `walLenLb w dir n` say nothing of which
+  WAL at `dir` they are about, so after `DiscardUnsaved` (the fork `e94f33b50`, `unsaved.go`) and `bootstrap`'s
+  re-`Create` at the same `dir` they would read as facts of the new WAL (`notes/wal-p6-handoff.md`, "The relaxation
+  ... is not enough"). Separately, `renameWALPost`'s second arm (a WAL reopened by `renameWALUnlock`) is unreachable
+  (the proof never produces it: ledger 2026-11-21) but obliges `Create` to name its handle's incarnation.
+- **Evidence.** P6b design (`notes/wal-p6b-design.md`, v2/v2.1); `Proof/.../wal/HandleUnnamed.lean`
+  (`walOpenWFU_seal` needs the handle's incarnation to give `walNamed dir i`).
+- **Proposed change.** The facts take the incarnation `i` (`walNamed dir i`, `walSyncedLb dir i n`,
+  `walLenLb w dir i n`; a retired incarnation's fact constrains nothing). `Create.spec` takes `∀ i`, its atomic
+  update over `walDirIsI dir i`, its success post `walOpenWFI P Mr w dir i ∗ walNamed dir i ∗ walLenLb w dir i 0 ∗
+  walSyncedLb dir i 0`. `WalShN` gains `inc`, `Save`'s update is over `walDiskAtI dir γ.inc`, its post's facts at
+  `γ.inc`. `renameWALPost` loses its unreachable second arm (a stronger post; its proof unchanged but the arm
+  indices).
+- **Decision.** The facts, `∀ i` and `WalShN.inc`: accepted (coordinator, 2026-11-25, P6b v2.1); applied on branch
+  `etcd-safe-p6b-wip`. The dropped `renameWALPost` arm (a stronger post of an internal callee, no client sees it):
+  taken in P6b session 3; confirmed (coordinator, 2026-11-25, session 6 brief: approved as long as `renameWAL`'s spec is
+  proved from its Go body, which it is: `Proof/.../wal/WAL__renameWAL.lean`).
+- **Applied in session 4 (2026-11-25), the same principle carried through the cone** (no new decision, recorded for
+  review): every atomic update a client holds a view for is at the view's incarnation, so the client gets its
+  `walDirIsI`/`walDiskAtI` back. `ReadAll.spec`, `Create.specFresh`, and the read-only updates of `Open`,
+  `openAtIndex`, `openLast`, `OpenForRead`, `Exist`, `Repair`, `ValidSnapshotEntries`, `Unsaved` take `∀ i`/`∀ ic`;
+  `Sync`, `SaveSnapshot`, `ReleaseLockTo`, `Close` and the `storage__*` wrappers are at `γ.inc`. `ReadAll`'s success
+  post is `walOpenWFI … i` with its facts at `i`. The internal sync specs (`WAL.sync`, `syncC`, `syncNoErr`, `cut`,
+  `cutTail`) post `walSyncedLb dir h.inc …`; the tail's fdatasync lemmas take a persistent `walIncLb dir ic`
+  ("the incarnation has reached `ic`"), which every ghost handle carries (`walHandleDirI`), so a sync's synced fact
+  needs no share of the incarnation map.
+- **The read handle at its incarnation (session 5, proposed; decision needed).** `ReadAll`'s success post
+  `walOpenWFI … i` needs the opening handle's incarnation to be the update's `i`, but `walOpening`/`walOpeningF`
+  hid it. Change: `walOpening w dir s i` (`walHandlePI … i (.opening s)`), `walOpeningF w dir s i`; `Open`'s
+  success post is `walOpeningF w dir s ic` (the lock is taken in the same step as the update commits, so its
+  incarnation is the view's: `walPinOut … ic`, `walLockedTokI_incQ_agree`); `ReadAll` takes `walOpeningF w dir s i`
+  with its update at `i`; `Close`'s `opening s` arm takes `∃ i, walOpening w dir s i`. `walNamed` from
+  `walInvBody_namedBy` at `i` takes the handle's `walIncLb dir i` (as the syncs do).
+  **Decision**: approved (coordinator, 2026-11-25, session 6 brief), with the session-4 changes and `walIncLb`, as
+  long as each is proved and no trusted text changes.
+- **`Create`'s deferred cleanup at the handle's incarnation (session 6; approved by the coordinator, 2026-11-25).**
+  *Defect*: `Create`'s error exits after the commit register the WAL's name (`walInv_register`), which needs the WAL
+  still present at the incarnation the registration's past names; `WAL.cleanupWAL.spec` and `WAL.Close.spec`'s
+  `unnamed` arm return the lock token (`walLockedTok`, `walUnlockedTokX`) without its incarnation, so this cannot be
+  shown. *Change*: (a) `walInv_register` takes only the quarter `walIncQ I'` (it only agrees it with the ghost);
+  (b) `WalCloseSt.unnamed` gains the incarnation `i`, `Close.spec`'s `unnamed` arm takes `walOpenWFUI … i` and
+  returns the token at an `I` with `⌜incOf I dir = i⌝` in both outcomes (`walUnlockedTokXI I`, `walLockedTokI I`);
+  `WAL.sync.specC`'s error arm likewise (`incOf I dir = h.inc`); (c) `cleanupWAL.spec` takes `walOpenWFUI … i` and
+  returns the same. Internal specs only (no client sees them); posts only stronger.
+- **`walPurgeAcc` at an incarnation (session 6; internal, proved, under the brief's approval of proved internal
+  changes).** *Defect*: a purge round's repeatable commit `walPurgeAcc dir Pc` was over `walDiskAt dir d` (any
+  incarnation), so a client keeping `walDiskAtI dir i d` (the tester's invariant, at `0`) could not get it back after
+  the commit. *Change*: `walPurgeAcc dir inc Pc` over `walDiskAtI dir inc d`; `walPurge_osAUnc` takes `inc` (the
+  commit hands back the same `walIncQ`, so the incarnation is kept); the tester's `purgeRound.spec` passes its
+  handle's `i`. No trusted text.
+
+## 2026-11-24: node.ApplyConfChange, node.Advance -- `skippedIn` is false after a restart at `min |A₀| σ.commit` and after a kept snapshot in the replay window; D (`confAt`) instead of the plan's RestartNode (A)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`, `node.ApplyConfChange.spec` (premise
+  `skippedIn γ l v.applied k`), and `Spec/go_etcd_io/raft/v3/node__Advance.lean`, `node.Advance.spec`
+  (no-snapshot arm, `skippedIn γ st.delivered v.applied st.delivered.length`); the plan's
+  `SpecPlan/Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`/`node__Advance.lean` (`confSkipped`, the
+  same premise) and `SpecPlan/Spec/go_etcd_io/raft/v3/RestartNode.lean` (round 1: the configuration point
+  `a` unbounded by the stored commit). `RestartNode.spec` (`Spec/`) is unchanged.
+- **Defect.** Too strong (a premise etcd cannot meet). After a power loss the server restarts raft with
+  the backend's configuration at `|A₀|`, which may be past the WAL's commit; `RestartNode.spec` needs
+  `a ≤ σ.commit`, and lowering the point to `a' = min |A₀| σ.commit` makes the next conf entry
+  `k > |A₀|` need `skippedIn γ l a' k`, false: the replayed conf entries of `(a', |A₀|]` were decided
+  `.apply` before the crash, and etcd skips them on replay (no `ApplyConfChange`). The same for a kept
+  snapshot at `k ≤ ci` installed in the window (`node.Advance`'s snapshot arm puts the view at `k`).
+- **Evidence.** `notes/raft-restart-confpoint.md` (section "The problem, restated"); etcd
+  `server.go:2063-2065` (`ApplyConfChange` only when `shouldApplyV3`), `cluster.go:307-309`;
+  `notes/etcd-dist-d6.md`, T4 round 4, step 3.
+- **Proposed change.** (Option D of the note.) `node.ApplyConfChange.spec`: `skippedIn γ l v.applied k`
+  becomes `confAt γ k v.membership`. `node.Advance.spec`, no-snapshot arm: the premise becomes
+  `confAt γ (max v.applied st.delivered.length) v.membership`, and the post's view moves to
+  `⟨max v.applied st.delivered.length, v.membership⟩` (a view left below the delivered log would let a
+  later `ApplyConfChange` take raft's configuration below its applied index,
+  `issues/raft-advance-before-applyconfchange.md`). Both premises are weaker than the old ones
+  (`confAt_skipped` derives them), so every client changes by one lemma application per call (plus the
+  view index after `Advance`). Raft internally: `RInv_cidxJump`, `undecFree` replaced by the fold fact,
+  `runCfg` simplified. The server restarts at `a'` with `confAt γ a' m` from `srv_confAt_simple`; its
+  `srvCfgOk`/`srvCCPre` drop their `NoConfChangeIn` conjuncts.
+
+  **Divergence from the plan's `RestartNode` (option A), kept on purpose.** The plan lets `RestartNode`
+  take any committed point `a ≤ |l|` (its `confAt γ a m` alone). D keeps the real `RestartNode.spec` at
+  `a ≤ σ.commit` instead, because (1) the etcd proof's membership is static (`srv_confAt_simple`, the
+  server's D3), so the configuration at `a'` and at `|A₀|` is the same and D covers both instances;
+  (2) A's argument (a node restarted with a configuration past its log cannot win before holding the
+  committed log through the configuration's last conf entry: the term case `T ≤ t_w` of the note's
+  section 1, `lc_far_newer` with the candidate's log short of `n`) is unchecked, and the proof needs new
+  leader-completeness reasoning (a per-voter durable term lower bound from acknowledgements) over
+  `RInv`, `dynEnv`, the winners table, `Refinement.lean`: several thousand lines of affected proof.
+  (3) D's premises stay valid under A (they are weaker than the skips), so A can come later, when the
+  server's membership changes are verified, without undoing D. The plan's `node.ApplyConfChange`/
+  `node.Advance` should take the same `confAt` premises (and `Advance`'s moved view) whether or not A
+  lands; the plan's `RestartNode` keeps A as raft's open obligation (`req/go_etcd_io_raft_v3.md`, item 8).
+- **Decision.** Accepted for `Spec/` (option D, coordinator, 2026-11-24; branch
+  `raft-restart-confpoint/2026-11-24`). The plan's `node.*` premises: pending (to apply with the plan's
+  next raft round); the plan's `RestartNode` (A): unchanged, open.
 ## 2026-11-25: bootCfgOk -- `bootstrap`'s contracts covered `UnsafeNoFsync = true`, false of Go
 
 - **Spec.** `bootCfgOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), the configuration
@@ -550,6 +975,51 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   at an arbitrary `id` (it is false there anyway, plan §0).
 - **Decision.** Applied (branch `bootstrap-stage4/2026-11-25`).
 
+## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
+  precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
+- **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
+  name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
+- **Evidence.** `dataAreaFresh`'s definition (`storage/WalAreaFresh.lean`): the whole names claim on `d`'s root, none
+  naming an entry, coherent with the tree through the shared mode's invariant.
+- **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
+- **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
+
+## 2026-11-24: interim putget axioms over the S2 interface switch (A1 restated, A2 retired)
+
+- **Spec.** `etcd_dist.etcdAddrAt` (`Proof/.../examples/etcd/dist/S2Interim.lean`): was `□ etcdAddrRaw a γE mid`
+  (an axiomatized predicate, produced only by the axiom `etcdAddr_set`); now `∃ σ, grpcAddrAt a (etcdSvc γE mid)`
+  over the axiomatized heap-free table `etcd_dist.etcdSvc`; `etcdAddr_set` (statement unchanged) a theorem.
+- **Defect.** None in the old statement; the S2 interface switch (`6d5a98fb3d`) put `grpcAddrAt`/`grpc_addr_set`
+  on `lean`, so the interim trust can be stated in its vocabulary, one axiom fewer.
+- **Evidence.** `notes/putget-dist-plan.md` §12, "Over the S2 interface switch"; adversarial review of the four
+  remaining axioms (the `axiom` skill, 2026-11-24, `notes/audit.md`).
+- **Proposed change.** As above; A3-A5 (`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`) unchanged (their
+  narrowing needs S2's etcd side: O1, O2, a listen at a set address). Interim, retired by S2's `etcdSvc` and proofs.
+- **Decision.** Pending (the owner reviews the axioms' text before landing). Review 4 found A4/A5 false with
+  `bridge.New` in both forms (`notes/putget-dist-plan.md` §12, "Review 4"); proposed fix on `bridge.New`.
+
+## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
+
+- **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`
+  (`etcd_dist.Serve_dist.spec`), `ClientPutDist.lean` (`etcd_dist.Client_Put_dist.spec`), `ClientGetDist.lean`
+  (`etcd_dist.Client_Get_dist.spec`), over the axiomatized address fact `etcd_dist.etcdAddrRaw`/`etcdAddr_set`
+  (`Proof/.../etcd/dist/S2Interim.lean`); and the changed client-construction specs `clientv3.New.spec`,
+  `newClient.spec`, `Client.dialWithBalancer.spec`, `Client.dial.spec` (the configuration's dial options may be
+  `grpc.WithNoProxy()`'s, `noProxyOptsAt`; `New`/`newClient` give the client's `cfg` field), new
+  `grpc.WithNoProxy.spec` (proved), `etcdstart.NewClients.spec`/`NewClient.spec` (post: `clientNoProxy cl`).
+- **Defect.** `putget_safe` needs cross-machine gRPC (phase 7 S2, #24, unfinished): the in-process specs' `Invoke`
+  registration (`kvRegsAt`) is one heap's. And the review of the first design (`s2-interim/review.md`, F1) found
+  that without `WithNoProxy` a client's calls follow `HTTPS_PROXY`, so the cross-machine client axioms were false.
+- **Evidence.** `notes/putget-dist-plan.md` §12; `TestProxyRogue` / `TestWithNoProxyFix` (`review-go/proxyrogue/`).
+- **Proposed change.** The five interim axioms A1-A5 (`notes/putget-dist-plan.md` §12), A4/A5 restricted to clients
+  with no proxy dial path (`clientNoProxy`, from `etcdstart.NewClient`'s post), `etcdstart.NewClients` passing
+  `grpc.WithNoProxy()`. Retired by #24's switch (`etcdAddrAt` defined from `grpcAddrAt`) and S2's proofs (`Serve`,
+  the pub-form put `client_Put_pub`): the statements then become theorems unchanged.
+- **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
+  `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
+  `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
 ## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,
@@ -7229,6 +7699,37 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `net.http.wp_init_first_mux` (`Boot/Defs.lean`'s `wp_http_own`), so every caller discharges it. `dialEnv` keeps
   `httpEnv`. The top-level statement (`gryff_remote_robust`, its Spec file and `TopLevelDefs`) is unchanged.
 - **Decision.** Applied with the batch (consequence of the approved `httpSrvEnv` widening, #24 7153375148).
+## 2026-11-25: the WAL's boot slots and `wal.Create.specSrv` expose the records' history, D6-T2 / P5 (etcd-safe-p5)
+
+- **Spec.** `wal.Create.specSrv` (`Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateSrv.lean`) leaves
+  `walOpenedH h dir id cid walFresh [] true` (the records with their history, empty) where it left
+  `walOpened … walFresh true`; `wal.bootOk`'s body (`etcdserver/WalApi.lean`, inside `bootstrapContract`)
+  holds the same. `wal.restartOk`'s body holds `walOpenedH … σ Hs true` for some history `Hs`, with
+  `walSyncedLb h.dir |Hs|`, `walIdxLe (2^61-1) Hs` and `walCommitLeFrom walFresh Hs` (the commit bound
+  in its eager form, every prefix's fold; the approved `walCommitLe Hs`, the reader's, follows from it with
+  `walReadFacts`' base ≤ commit, `walCommitLe_of_fold`; the eager form is what the invariant keeps across
+  `Save`s, `histOk_save`). The contract's `Save`/`SaveSnap`
+  (`isWalStorage`) move the records with their history (`walRecsH`) and give the synced mark (`Save`:
+  under `walMustSync`; `SaveSnap`: always); the old forms are derived (`walSaveSnap_spec`, `walSaveRnR_spec`).
+- **Defect.** None in Go. The crash-aware durability invariant (`rnDurInvK`) is allocated at the WAL's
+  history: it needs a synced mark `n`, that every prefix from `n` on reads records holding the start state,
+  and `HistReadOk Hs n`. `walRecs h σ true` hides the history; an arbitrary history folding to `σ` breaks
+  all three, and only `walSyncedLb h.dir 0` is derivable.
+- **Evidence.** Layer 1's `Create` leaves `walDurFresh`, whose history is `[]`; `ReadAll` reads only a
+  synced history (P6's proved `ReadAll`), within raft's index room, with each saved commit at or below the
+  last index (raft's `loadState` panics otherwise). `storage.Save.spec`/`SaveSnap.spec` already give the
+  synced marks.
+- **Proposed change.** As above: the boundary specs that create the state are strengthened (no new law).
+  `bootstrapContract` will become a per-function interim axiom (`bootstrap.wp_proofOne`'s pattern) before the
+  etcd_safe packet; this strengthening lands in that axiom's text, to be reviewed with the axiom skill then.
+- **Decision.** Approved by coordinator-E on #50 (2026-11-25 07:04Z), for the etcd_safe branches, listed as
+  its own line in the final packet. (2026-11-25 15:22Z, #50 item 1: `wal.restartOk` and the post-restart
+  contract to be restated over the reader's fold `walRead Hs`, approved; not yet applied: see the entry
+  "`wal.restartOk` over the reader's fold -- not enough for P5-RESTART" above.) (2026-11-25 15:33Z, #50: that entry's
+  proposals (b), the contract over the history, and (a), the certificates through the restart slot,
+  approved; (a) found not suppliable through the slot alone: that entry's Decision.)
+## 2026-11-25: `fileutil.TouchDirAll.spec`'s post did not say the new directory's names are committed (P7, D6-T6)
+
 
 ## 2026-11-25: `sort.Slice.spec` has no length bound; mvccrand moves to `slices.Sort` (sortslice2)
 
@@ -7349,6 +7850,394 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
 
+## 2026-11-25: wal.Discard (new; replaces wal.DiscardUnsaved at the pin 251a430ce) -- the fork drops the internal `Unsaved` check
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`; none in `SpecPlan/`), in
+  place of the planned `wal.DiscardUnsaved.spec` (entry "wal.DiscardUnsaved" above, never written).
+- **Defect.** The approved two-update shape was for `DiscardUnsaved(lg, dir) (bool, error)`, which read the WAL
+  (`Unsaved`) before discarding it. The etcd pin `251a430ce` (`goose-lean-fmt1c-discardfix`, coordinator's decision)
+  replaces it by `Discard(lg, dir) error`: no `Unsaved` re-check (`bootstrap` calls it only after its own `Unsaved`
+  returned `(true, nil)` and after `removeBackendDurably`), and a log line after the fsync.
+- **Evidence.** `unsaved.go:93-116` and `bootstrap.go:91-101` at `251a430ce`.
+- **Proposed change.** The same two updates, without the `walBlank` clause (the function does not read the WAL; the
+  blankness is the caller's, from `Unsaved`'s post): `AU₁ <{∃∃ d, walDiskAtI dir ic d}> <{walDiskAtI dir (ic+1)
+  {d with named := false}, COMM Q₁ d}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir (ic+1) d}> <{walAbsentI dir
+  (ic+2), COMM Q₂}>` at the parent's fsync. Pre `Create`'s area resources (`zapLoggerOk lg`, `walAreaOk`,
+  `dirDurable r`, `osPathS R r qp jr`, `walAreaRes jr`, `osCallPerm 1`, `walUnlockedTok`) and premises (`InArea`,
+  `NameOk`, `dir.length < 2^59`, `cleanAbsPath r`, `FsNoErrOn`/`PathFits` on `dir`, `dir.tmp`, `r`). Post, always
+  `osPathS`, `osCallPerm 1` and `∃ d, Q₁ d` (the rename cannot fail), and: `nil` with `walAreaRes jr ∗
+  walUnlockedTok ∗ Q₂`; an error (the fsync failed) with `AU₂` back (token and `walAreaRes` lost). P5's three
+  conditions: (1) the window's crash lemma (an unnamed WAL view at `ic+1` crashes to the same WAL or to none) is a
+  WAL-level lemma beside `walDiskAt_crash_keep`, to be proved with state C; (2) on a failed fsync `AU₁`'s result is
+  whatever the client put in `Q₁` (a client keeping it in its crash invariant commits it there and takes `Q₁ := True`);
+  (3) `AU₁` commits inside `Discard`'s rename, after anything the caller did before calling it.
+- **Decision.** Approved as written (the coordinator, P6b session 15 brief, 2026-11-25). On P5's condition 2: handing
+  `Q₁` to the caller on a failed fsync meets it, because the client chooses `Q₁`: P5's client deposits `AU₁`'s result
+  in its crash invariant at the commit and takes `Q₁ := True`, so nothing the crash invariant needs is left with the
+  caller.
+
+## 2026-11-25: wal.Discard's post had no arm for a failed `RemoveAll(dir.tmp)` (P6b session 15)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`, approved above).
+- **Defect.** Its post hands back `∃ d, Q₁ d` in every arm, so it says the first step, `os.RemoveAll(dir.tmp)`,
+  cannot fail under the premise. `os.RemoveAll.specSubS` (the spec `Create` uses for the same call) does not say
+  that: under `FsNoErrAt` on `dir.tmp` and the area, `nil` means `dir.tmp` is gone, but an error is still allowed,
+  with nothing said of what was removed. `Discard` returns that error before the rename, so `AU₁` is never
+  committed and the post's `Q₁` cannot be produced: the spec is unprovable.
+- **Evidence.** `Spec/os/RemoveAll.lean:139-149` (`specSubS`'s post: `err = nil → FsNoErrAt … → … = none` only);
+  `Create`'s proof has an arm for this error (`Create.lean`, "`RemoveAll` failed: nothing done, `nm.tmp` merged back",
+  `create_abortTmp`); `unsaved.go:93-116` returns `RemoveAll`'s error at once.
+- **Proposed change.** A third arm, as `Create`'s: `err ≠ nil` with `walAreaRes jr ∗ walUnlockedTok ∗ AU₁ ∗ AU₂` back
+  (nothing the WAL invariant or the client's view sees has changed; `dir.tmp`'s subtree may be partly removed, which
+  `walAreaRes` allows). Post: `osPathS ∗ osCallPerm 1 ∗ ((⌜err ≠ nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ AU₁ ∗ AU₂) ∨ (∃ d,
+  Q₁ d) ∗ ((⌜err = nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ Q₂) ∨ (⌜err ≠ nil⌝ ∗ AU₂)))`. The docstring's "`RemoveAll` and
+  `Rename` cannot fail under the premise" becomes "`Rename` cannot fail under the premise". P5's conditions are
+  unchanged (the new arm commits neither update). A caller (`bootstrap`) that gets an error does not know which arm,
+  as with `Create`; it holds `AU₂` in both error arms.
+- **Decision.** Approved by the coordinator (P6b session 16 brief, 2026-11-25): `err ≠ nil` with `walAreaRes`,
+  `walUnlockedTok`, `AU₁` and `AU₂` all returned and nothing committed. Applied (WIP branch).
+
+## 2026-11-25: fix B's lemma-level signatures (P6b session 13)
+
+- **Spec.** Internal laws of the WAL proof (`Proof/go_etcd_io/etcd/server/v3/storage/wal/`), none exported:
+  `walInvRegisterPendLaw` (`ReadAllRegPend`), `repair_brokenOpen` (`RepairBrokenOpen`), `WalCloseLaw`/`walCloseLaw`/
+  `walCloseLawU` (`CloseHandle`, `CloseLaw`, `CloseLawU`), `walInv_dirKeyArea`/`walInv_returnHLoans{1,2}`
+  (`HandleLoans`), `walInv_lendOther`/`walInv_unlendOther` (`BrokenLend`), `walPurgeP`/`walPurgeOP` and their
+  updates (`PurgeAu`, `PurgeOther`), `walInv_walFiles` (`PurgeRoundLaws`), `walDirH_lend`/`walOpenWFI_lend`
+  (`PurgeLend`), `probeHandles`/`prefixScanState` and the probe laws (`ReadAllProbe`, `ReadAllPrefixAccess`),
+  `walFailCommon`/`walReadFailedF_{intro,elim,idleIntro,lentIntro}`/`readAll_fail*`/`walInv_failOpening`
+  (`ReadAllFail`, `ReadAllCommit`, `ReadAllExit`), and the tester's `pr_fileOf`/`pr_remove` (`purgeRound`).
+- **Defect.** Consequences of the approved fix B (directory keys at `(dir, incarnation)`): each looked up a
+  3-argument key, which no longer exists; a lookup now needs a share of the incarnations at the key's.
+- **Evidence.** The frontier of `lake build …wal.Link` (`/shared/tmp/p6b-build7.log`).
+- **Proposed change.** Each takes the key at its holder's incarnation and threads that holder's quarter `walIncQ I`
+  (in and out, `incOf I dir = i`); `walCloseLaw`s take `walPipeKey dir j` from `pipeLeft` (the reserve for
+  `walParked_putTmps0`); the lending laws take `walIncQ I` rather than the lock token (the purge round holds only
+  the handle's quarter); `walReadFailed_lockedTok` becomes `walReadFailed_lockedTokI` (at the incarnation);
+  `walOpenWF_lend` (no users) is removed. No exported spec changes beyond the approved entries.
+- **Decision.** Applied (consequence of the approved fix B; reported to the coordinator, session 13); approved
+  (coordinator, 2026-11-25, P6b session 14 brief).
+
+## 2026-11-25: T6's `snapDirKept` is unprovable as stated (T7, D6)
+
+- **Spec.** `snapCrash.snapDirKept`/`snapDirKeptF` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapDirCrash.lean`), a
+  premise of `snapDir_crash.law`, owed by T7.
+- **Defect.** It is a persistent plain wand `□ ∀ R0 dq j, osSharedInv R0 -∗ osPathS R0 sd dq j -∗ ⌜lookupH R V' sd =
+  some (.dir j)⌝` over the roots `R0` of any shared invariant. Without an update nothing relates `R0` to the law's `R`
+  (the roots live in the shared invariant; two of them agree only when opened), so for `R0 ≠ R` the spine is
+  unconstrained and the conclusion cannot be derived.
+- **Evidence.** T7 (`dist/crash/MemberCrash.lean`): with a durable spine (`osPathDur R sd J`, made from `TouchDirAll`'s
+  post) the fixed-root form `snapDirKeptR R V' sd := □ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`
+  is proved (`snapDirKeptR_of`), and `crashRest_roots` proves `R0 = R` for two shared invariants of the crashed
+  generation under an update, with `crashRest`.
+- **Proposed change.** `snapDirKeptF R V' sd := snapDirKeptR`'s body (no `R0`, no `osSharedInv`); `old_dir` (and its two
+  siblings) take `⌜R0 = R⌝`, which `snapDir_crash_law_holds` gets from `crashRest_roots` before each use (it holds the
+  law's `osSharedInv R` and `crashRest`). A weaker premise: the law gets stronger.
+- **Decision.** **Approved** (D-T7-1; coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z). Queued on `etcd-safe-t10` after T4's restatement (T10 handoff,
+  session 2); then T7's `snapDirKeptOf.law` hypothesis goes. **Applied** on `etcd-safe-t10` (2026-11-25, T10 session 3):
+  `snapDirKeptF R V' sd := □ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`; `old_dir` at `R`;
+  `step_file`/`step_free`/`step_index`/`loop` take the law's `osSharedInv R` and get `R0 = R` from
+  `crashRest_roots` (moved from `dist/crash/MemberCrash.lean` into `SnapDirCrash.lean`); T7's `snapDirKeptR` is now
+  an abbreviation of `snapDirKeptF` and `snapDirKeptOf.law` (hypothesis `hD1` of `memberGen_crash_law_holds`) is gone.
+## 2026-11-25: `srvCrashImageAt` misses three crash images and drops a crash token (T7, D6)
+
+- **Spec.** `srvCrashImageAt` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvCrashImage.lean`), the vocabulary of
+  `NewServer.specC` and `bootstrapCrashContract`, and of `memberGen`'s restart disjunct.
+- **Defect.** (1) Its snapshot directory row is the handle `snapDirInvH` only; the next generation's crash law needs
+  `snapDirKeep` (handle and token at the same `γk`), which the image cannot name, so a restarted generation cannot
+  crash again. (2) `σ.b ≤ i` is false in the received-snapshot window (Q3): the WAL's `SaveSnap` at `k` is synced
+  before the apply thread renames `<k>.snap.db` to `db`; a crash in between leaves `σ.b = k > i`, which Go handles
+  (`recoverSnapshot` opens the `.snap.db`). (3) `γ.cl.bootLen ≤ i` is false after the first `Save` and before the
+  backend's first commit (`i = 0`; C-I1 checkpoint item 7).
+- **Evidence.** Code reading at the pin `e94f33b50` (`raftNode.start`'s `SaveSnap` before the apply thread's
+  `applySnapshot`; `bootstrap`'s `recoverSnapshot`; the backend's batch commit on its timer); T7's plan
+  (`notes/etcd-dist-d6.md`, "T7", B2, B3, D-T7-2). No Go test written.
+- **Proposed change.** (1) The row holds `snapDirKeep`; `NewServer.specC`'s post returns the token (as raft's crash
+  token). (2) A disjunct of the backend row: the `.snap.db` of `σ.b` saved and durable in the snapshot directory, its
+  data the image at `σ.b`, the old backend at some `i < σ.b`. (3) `bootLen ≤ i ∨ i = 0` with the fresh backend's
+  image. Each is T4's to restate (with `bootstrapCrashContract`).
+- **Decision.** (1) is D-T7-2: **approved** (coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z): `srvCrashImageAt` holds `snapDirKeep`, `NewServer.specC`
+  returns the token; **applied** on `etcd-safe-t10` (2026-11-25, T10 session 3): `srvCrashImageAt`'s snapshot row holds
+  `snapDirKeep`; `NewServer.specC`'s post returns `srvSnapKeep γ id cfg.DataDir'` (new def, `InvCrashImage.lean`:
+  `∃ γd γm, ⌜γ.snapLoc id = some γd⌝ ∗ snapDirKeep …` at the image's `img`/`Rm`) beside raft's crash token, in both
+  outcomes; `srvCrashImageAt_disk`'s graceful case returns it (the graceful image keeps the handle); T7's
+  `crashImage_of`/`memberGen_crash_law_holds` pass the new generation's `snapDirKeep` whole. (2) and (3): **approved**
+  (coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 2) in T10's form: `snapRowB2` for (2), `bootLen ≤ i` dropped for (3) (no `∨ i = 0` needed:
+  `imageRestAt` already accepts absent meta keys at `i = 0`, `encMeta 0 = none`). Applied on `etcd-safe-t10`
+  (2026-11-25, T10 session 2): `etcdserver/InvCrashImage.lean` (`srvCrashImageAt`, `wal.crashImageR`, `snapRowB2`,
+  `bootstrapCrashContract`'s two cases).
+
+## 2026-11-25: `memberGen`'s restart case asks for the old incarnation's `idPfxInv` at the new generation (T7, D6)
+
+- **Spec.** `etcd_dist.memberRestart` (`Proof/.../examples/etcd/dist/crash/MemberGen.lean`): `memberRestartFacts γ' ρo id`
+  at the new generation, `ρo` the names of the incarnation that wrote the files (`etcdstart/Restart.lean`).
+- **Defect.** Every row of `memberRestartFacts` is ghost-only and carries over to a new generation (T7's
+  `memberRestartFacts_gen`), but `idPfxInv ρo.ids.gen ρo.ids.pfx` (`idutil/Defs.lean`) is heap-level: its invariant
+  `idPfxBody γip γgp` holds `structFieldRef Generator "prefix" g ↦□ k.1` on the old machine's heap and the authorities
+  `ghostMapAuth γip 1`/`γgp 1`, and the names `(γip, γgp)` are fixed by `ρo.ids.gen`'s persistent element. After a
+  crash no generation has those points-to facts, and the authorities stay in the old invariant (not cancellable), so
+  the new generation's `idPfxInv` at `ρo`'s names cannot be made: `memberRestart` is unprovable after any crash.
+- **Evidence.** T7's `memberRestartFacts_gen` (`dist/crash/MemberCrash.lean`): the generic `.rfl` fails exactly at
+  `idPfxInv` (diagnosed row by row, 2026-11-25); the lemma takes the new generation's `idPfxInv` as an input.
+- **Proposed change.** (a) `memberRestartFacts` drops `idPfxInv`, and `NewServer.specC` takes a fresh prefix
+  invariant from the new incarnation's names (`idIncarnation_alloc`, with the issued ids' facts ghost-only, so they
+  persist); or (b) `idPfxInv`'s invariant made crash-aware (contents or `crashed ∗` a token, as `walInv`), with a
+  ghost-only part that survives and a heap part re-made per generation. D7's / T8's to decide.
+- **Decision.** **(a) approved** (B6; coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z): the restart facts drop `idPfxInv`, `NewServer.specC` allocates a
+  fresh one under the new incarnation's names; then T7's `memberPfx.law` goes. Queued on `etcd-safe-t10` after T4's
+  restatement, not edited yet.
+- **(a) does not go through as stated** (T10 session 3, 2026-11-25; not applied, a decision needed). `idPfxInv gen p`
+  (`idutil/Defs.lean`) is `∃ γip γgp, p ↪[gen]□ (γip, γgp) ∗ inv idPfxN (idPfxBody γip γgp)`: the prefix's names are a
+  *persistent* element of the cluster's map `gen`, keyed by the prefix `p` alone, and `idPfxBody` holds their
+  authorities `ghostMapAuth γip 1`/`γgp 1`. A new incarnation keeps `ρ.ids.gen` (`restartReqNames`; `idClusterInv`'s
+  `idKeyGenFacts gen k e` fixes it cluster-wide) and `ρ.ids.pfx = idPfxOf id`, so `idPfxInv` at the new generation
+  must use the same `(γip, γgp)`, whose authorities stay in the old generation's invariant (its body holds the old
+  heap's `structFieldRef … ↦□`, which the new generation cannot give back). No fresh one can be allocated at those
+  names, and `idPfxTok` for them is gone. Options, each a restatement of idutil's shared definitions (and of
+  `NewGenerator.spec`/`Next`'s proofs), not of `NewServer.specC` alone: (a') key the prefix names by incarnation
+  (`gen` over `IdKey`), with the cross-incarnation freshness of ids (today `idPfxBody`'s `Ip` map with
+  `idIssueFragD`) moved to a ghost-only invariant per prefix that survives crashes; (b) the ledger's original
+  option: `idPfxInv`'s invariant made crash-aware (`idPfxBody ∨ crashed ∗ token`, as `walInv`), split into a
+  ghost-only part (`Ip`, the issue facts) kept across generations and a heap part (`Gp`, the generators' `prefix`
+  fields) re-made per generation, with a crash law that re-allocates the heap part at `L'`. Either way the
+  generators' map `Gp` (keyed by heap `Loc`s, which a new heap reuses) must be per generation. T7's `memberPfx.law`
+  stays a hypothesis until D7/T8 decide; `memberRestartFacts` and `NewServer.specC` unchanged.
+
+2026-11-25: T6's `snapDir_crash.law` keeps the image predicate `img` of the old generation (T7, D6)
+
+- **Spec.** `snapCrash.snapDir_crash.law` (`etcdserver/SnapDirCrash.lean`): `snapDirKeep (hG := atC L) sd γd img Rm`
+  in, `snapDirKeep (hG := atC L') sd γd img Rm'` out, with **one** `img : w64 → Data → IProp GF`; and
+  `srvCrashImageAt`'s snapshot row (`InvCrashImage.lean`), `snapDirInvH … (srvImageM γ.authOn γ) …` at the new generation.
+- **Defect.** The member keeps `img := srvImageM k.γ.authOn k.γ` elaborated at the old generation's `HeapGS`; the crash
+  image at `L'` wants `srvImageM` at `L'`'s. They are not definitionally equal: `srvImage` → `dbImage` →
+  `mvcc.api.mvccImage`, which is `@[no_expose]` (`Spec/.../mvcc/EtcdBackend.lean:94`) and takes the `HeapGS`; no
+  generation law exists for it. So T7's last step (the snapshot row of `srvCrashImageAt`) cannot be closed.
+- **Evidence.** T7 session 6 (`dist/crash/MemberCrash.lean`, the commented WIP proof of `memberGen_crash_law_holds`):
+  every step elaborates but this one; `show snapDirInvH (L') … (srvImageM (L0) …) … ⊢ snapDirInvH (L') … (srvImageM (L') …) …
+  from .rfl` fails, and `memberDurOut_gen`-style `.rfl` works for every other row (raft's state, the KV rows, the files).
+- **Proposed change.** (a) A generation law in mvcc's API, `mvccImage_gen : mvccImage (hG := ⟨G, L⟩) D M c u ⊣⊢
+  mvccImage (hG := ⟨G, L'⟩) D M c u` (proved inside the package if its body is ghost-only), then `srvImageM_gen`; and
+  T6's law takes `img img'` with `□ (∀ i D, img i D -∗ img' i D)` as it already does for `Rm → Rm'` (the body's image
+  facts are persistent); or (b) `snapDirKeep`'s `img` stated over `GooseGlobalGS` only. (a) is the smaller change.
+- **Decision.** (a), the coordinator's (2026-11-25). Checked first: `⧖ n` (`preceipt`) reads only `AllG` and
+  `ReceiptGS`, both fields of `GooseGlobalGS` (Perennial `GooseLang/Receipts.lean`, `Lifting.lean`: the receipts
+  are global, "the step bound counts the steps of all generations"), and the rest of `mvccImage` is pure, so the
+  law holds by `.rfl` inside the sealed module. Done (T7 session 7): `mvcc.api.mvccImage_gen` (`EtcdBackend.lean`,
+  `⊣⊢`, both generations at the program's Go context `lctx`: `go.Semantics` and mvcc's `Assumptions` take a
+  `GoLocalContext`, so the law fixes it as `{L with goose_go_local_context := lctx}`, T6's `atC`); `srvImageM_gen`
+  (`etcdserver/ImageOn.lean`, `⊢`, through `srvImage`/`dbImage` and `srvImageOn`/`dbImageOn`); T6's
+  `snapDir_crash.law` takes `img img'` and `□ (∀ j Dt, img j Dt -∗ img' j Dt)` after the `Rm → Rm'` wand, its
+  out `snapDirKeep … img' Rm'` (the proof weakens the kept files' image facts with `bigSepM_impl` before
+  allocating the new invariant). `mvccImage` stays `@[no_expose]`; no `etc/api/*.txt` change. The law's only
+  importer is `dist/crash/MemberCrash.lean` (`etc/importers.py --uses snapDir_crash`).
+
+## 2026-11-25: the backend's stored `confState` can be one conf change ahead of its stored index (T10, D6)
+
+- **Spec.** `srvCrashImageAt`'s (and `srvDiskImageAt`'s) row `⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝` with
+  `confAt γ.cl (uint.nat i) m` (`etcdserver/InvCrashImage.lean`), as the crash image of every backend commit.
+- **Defect.** `applyConfChange` calls `beHooks.SetConfState` before the change's `AddMember`/`RemoveMember` takes the
+  batch lock (`LockInsideApply` moves the stored index); a commit in between (the backend's timer) runs
+  `OnPreCommitUnsafe`, which writes the dirty `confState` with the old index. A crash then leaves `D` with the stored
+  index `k - 1` and the configuration of entry `k`. True only at quiescent points (the graceful stop).
+- **Evidence.** Code reading, `server/etcdserver/server.go:2036-2085` at the fork pin, and a Go test reaching the image
+  (`nonissues/etcd-confstate-ahead-of-consistent-index.md`, `TestConfChangeCommitBetweenSetConfStateAndLockInsideApply`:
+  index 1, `ConfState` voters `[1 2]`, members `[1]`). Not a Go bug: the restart reapplies entry `k` without error.
+- **Proposed change.** The row `confRowW γ.cl i D m`: the configuration at `i` or at `i + 1`
+  (`dist/crash/BackendImage.lean`), with T10's other restatements of `srvCrashImageAt` (B2 `snapRowB2`, B3 dropped):
+  `notes/etcd-dist-d6.md`, "T10 design".
+- **Decision.** **Approved** (coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 2: "approved as drafted", the conf-change window shown
+  reachable by the Go test). Applied on `etcd-safe-t10` (2026-11-25, T10 session 2): `confRowW` in
+  `etcdserver/InvCrashImage.lean`, `srvCrashImageAt`'s row; `bootstrapCrashContract` drops `bootLen ≤ i` and gains
+  the `.snap.db` recovery case (its first case keeps `σ.b ≤ i`: dropping it from a contract whose pre has only the
+  backend file would promise `bootOkR` at the old backend where Go opens the `.snap.db`; the second case is
+  `i < σ.b`). `srvCrashImageAt_disk` now returns the image with the reason when it is not a graceful one, and
+  `NewServer.wp_proofC`'s WIP branch (its one `sorry`, T4's) takes those cases too. The C-I2 law
+  (`bootstrapCrashContract.law`, not an axiom yet) needs an `axiom`-skill review of the new case before it becomes
+  one.
+
+## 2026-11-25: C-I1's crash record claims the database's name (T10, D6)
+
+- **Spec.** C-I1, `backend.dbCrashKeep γ path i0 Dl Dn pd` and its six axioms
+  (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`): the record held `bPath γ path`.
+- **Defect.** The snapshot install renames `<k>.snap.db` onto `db` while the old backend still commits (Go's
+  `applySnapshot` closes the old backend only after `kv.Restore`), so a record holding the name cannot exist through
+  the install; and the crash law never used the name (`dbCrash` takes `Named V'.now i0` and concludes about the inode).
+- **Evidence.** `notes/axiom-review/c-i1-nopath.md` (`axiom` skill: survives; rename window measured on configuration C,
+  0 bad of 140 crashes).
+- **Proposed change.** The record without `path`/`bPath`: **`dbCrashKeep_new` loses a premise** (`bPath γ path`) and
+  **`dbCrashKeep_close` returns less** (no `bPath γ path`); `_announce`, `_half`, `_clear`, `dbCrash` lose the argument.
+  Design correction (the review's): the fork syncs the directory before it opens the new backend, so the install window
+  has one record (the old backend's), not two.
+- **Decision.** **Approved** for the etcd_safe branches (coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 8): a reviewed interim axiom, to go in the one
+  etcd_safe trusted packet as its own item, listing both points above. Applied on `etcd-safe-t10` (2026-11-25, T10
+  session 2) with the review's docstring fixes (`CrashInterim.lean`'s header and laws, `memberDbNamed.law`'s).
+
+## 2026-11-25: the crash image's WAL row names its history and carries its certificates (T10 for P5, D6)
+
+- **Spec.** `walFilesC` (`storage/WalRecsCrash.lean`), `srvFilesC` (`etcdserver/InvRestart.lean`), `srvCrashImageAt`'s files row
+  (`etcdserver/InvCrashImage.lean`), `bootstrapCrashContract` (its `.law`, C-I2) and `rnDurK_crash.law` (`InvWalCrash.lean`, P5's).
+- **Defect.** P5's restart (`rnRestartAllocK.law`'s producer) needs the opened WAL's history `Hs` with every snapshot record
+  certified (`walHistCerts γ.cl sd Hs`); the crash image names only `σ` (`walRead (walSrvHist d.H) = some σ`) and carries no
+  certificate, so the restart cannot rebuild the invariant from it.
+- **Evidence.** P5 (a), `etcd-safe-p5` handoff ("(a) not suppliable through the restart slot alone").
+- **Proposed change.** (1) `walFilesC` names the history `Hs = walSrvHist d.H`, in place if every user follows (else a
+  separate predicate); (2) the crash image's `srvFilesC` row holds `walHistCerts γ.cl sd Hs`, produced by T7 from
+  `rnDurK_crash.law`, which must return them (P5's law; not extended on `etcd-safe-p5` as of 2026-11-25: until it is, a
+  hypothesis of T7's theorem); (3) `bootstrapCrashContract`'s post names the opened WAL's history as that `Hs` and returns
+  the certificates as a visible frame from the pre's image row, handed through unchanged, never created inside the
+  contract (in the `.snap.db` review's scope note); (4) `bootstrapRestartContract` and the graceful slot stay
+  certificate-free.
+- **Decision.** **Approved** (lead, #50 2026-11-25T16:06:56Z, P5's item (a); relayed by the coordinator). Not applied yet
+  (T10 session 3 handed it off: `notes/etcd-dist-d6.md`, "T10 status and handoff, session 3").
+
+## 2026-11-25: the backend's image row lives in the apply protocol's `consInv` (T10, D6; internal)
+
+- **Spec.** T10's image row (design: `notes/etcd-dist-d6.md`, "T10 design" and session 2's handoff): the design put it in
+  the server's batch-lock invariant `batchLockInv`.
+- **Change.** In `consInv` (`etcdserver/InvApply.lean`, `flightInv`'s `false` branch, kept through the `pending` one):
+  `∃ A, srvRLogLb A ∗ ⌜uint.Z s.p = ai0 + |A|⌝ ∗ ⌜∀ m, eff ≤ m ≤ p → models of A's prefix at m are A's⌝`, so that
+  `commit_save_au` hands the image index with its prefix to the commit. An internal choice of the apply protocol's
+  invariant (no exported statement changes; `consInv_open`/`_close` unchanged, accessor lemmas beside them).
+- **Decision.** **Approved** (coordinator, 2026-11-25, T10 session 3 order). First step applied 2026-11-26 (T10
+  session 8): `consInv γ IR` generic over the row (default `True`), the `R` step lemmas; the server's row and the
+  callers not yet (`notes/etcd-dist-d6.md`, "T10 status and handoff, session 8").
+
+## 2026-11-25: C-I1's record laws restated for bbolt's crash proof (bbolt-crash, D6)
+
+- **Spec.** C-I1 (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`): `dbCrashKeep γ i0 Dl Dn pd`,
+  `dbCrashKeep_announce`/`_half`/`_clear`, `dbCrash` (any mask); and `Tx.Commit.spec`'s update over `boltState`.
+- **Defect.**
+  - (1) `_half` lends `dbHalf` for one `={E}=∗` step `U`, but `Tx.Commit.spec`'s update is a standard Iris AU, whose
+    accessor gives `boltState γ 1 D'` away and takes `boltState γ 1 T.cur` back in two fancy updates, with bbolt's ghost
+    transition between them. So a backend holding the record cannot build Commit's update: `_half` is sound (inside `U` the
+    data cannot change) but unusable. With an arbitrary `U` it is also unprovable from a crash invariant (two commits inside
+    `U` would make the fallback wrong).
+  - (2) Proving `dbCrash` needs opening bbolt's crash invariant (the old generation's resources of `i0`), so it needs its
+    namespace in `E`.
+  - (3) The announcement `pd` is needed only if the commit point is the meta's landing. Under `FsNoErrAll`, bbolt's proof
+    can fire the update just before the meta's `pwrite` (under `metalock`), after which no new meta byte is a crash
+    candidate before the commit point.
+- **Evidence.** The plan `plans/bbolt-crash-plan.md` §0 (F1–F3, local); the AU shapes in `Spec/go_etcd_io/bbolt/Tx__Commit.lean`
+  and Iris's `atomic_acc`.
+- **Proposed change.**
+  - Versions: `boltState γ q D = ∃ ν, boltStateV γ q D ν` (`ν` the committed txid).
+  - `Tx.Commit.spec`'s update over `boltStateV`, giving the data back at `ν + 1` (`commitAU_of_unversioned` converts an old
+    update; `batchTx__commit` uses it).
+  - `_half` becomes `dbCrashKeep_take` (record ⊢ `∃ ν, dbHalfV γ Dn ν ∗ dbCrashHole γ i0 Dl Dn ν`), `_putSame` (same
+    version back) and `_putStep` (version `ν + 1` back: fallback `Dn`).
+  - `pd`, `_announce`, `_clear` dropped; `dbCrash` concludes `D' = Dl ∨ D' = Dn` and takes
+    `(hE : ↑(bbolt.crashN γ.ns) ⊆ E := by simp)`.
+  - `MemberCrash`'s call drops `pd`; its `MemberKN.pd` field is left unused for T10 to remove.
+- **Decision.** **Agreed** with T10 (etcd-grove-03, #50, 2026-11-25T17:29Z: "yes to all three") and approved by
+  coordinator-E. Applied on `bbolt-crash/2026-11-25` (based on `etcd-safe-t10`), with an `axiom`-skill review of the
+  restated laws before T10 merges it. The laws stay axioms until bbolt's crash proof retires them.
+
+## 2026-11-26: `idutil`'s prefix facts tagged with the incarnation (T10 B6, shared first step; internal)
+
+- **Spec.** `idPfxBody`/`idPfxInv`/`idPfxTok`, `idKeyGenFacts`, `idClusterOk` and `idGen`
+  (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), the vocabulary of `NewGenerator.spec` and `Generator.Next.spec`.
+- **Defect.** Across a restart the new heap reuses addresses, so `idClusterOk`'s clause 3 (distinct keys of one prefix have
+  distinct generators, by `Loc`) and the generators' map `Gp : Loc ↦ IdKey` (named in `gen`, persistent elements, heap
+  facts of the old generation) cannot be kept true; B6 (`notes/etcd-dist-d6.md`, session 4) needs them gone first.
+- **Evidence.** B6's analysis; clause 3's only use was `Next`'s "an id already issued by my generator is my key's".
+- **Proposed change.** (1) The ids' map `Ip : id ↦ (inc, g)`, `idKeyGenFacts`' elements `id ↪[γip]□ (k.2, g)`.
+  (2) Clause 3 restricted to keys of one incarnation is `k = (k.1, k.2)`: dropped. (3) `Gp` cannot go entirely (`Next`
+  must still tell, inside one heap, which incarnation a generator is, the issue record being keyed by `Loc`); it becomes
+  `Gp : Loc ↦ inc`, with heap fact `∃ v, prefix ↦□ v`, named per allocation of the invariant (`idPfxInv := ∃ γip γgp,
+  p ↪[gen]□ γip ∗ inv (idPfxBody γip γgp)`, `idPfxInv_alloc` allocates `γgp`), and `gen : w64 ↦ GName`. (4) `idGen` holds
+  the opened `idPfxInv` with `g ↪[γgp]□ γi.inc` (`NewGenerator` registers it), in place of `idPfxInv γi.gen γi.pfx`.
+  No spec statement's text changes; `idGen`'s first four components (read by `SrvRaftLog`) are unchanged.
+- **Decision.** Announced on #50 (2026-11-25T23:25Z, "unless you object"); applied on `etcd-safe-t10` (T10 session 5).
+  The lead's B6 choice ((a'), (b), (c)) builds on it; under (b) the re-allocation now needs a fresh `γgp` only.
+
+## 2026-11-26: B6 (b), the prefix's ids' invariant cancelled at a crash (T10 session 6; internal)
+
+- **Spec.** `idPfxBody` (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), the vocabulary of `NewGenerator.spec`,
+  `Generator.Next.spec`, `idPfxInv` and every spec naming them; T7's `memberPfx.law` and `memberGen_crash.law`
+  (`dist/crash/MemberCrash.lean`); the issue record's `Specs`/`Crash` (`GooseLang/Ext/IdIssue/`, untrusted: no
+  change to its `Impl`).
+- **Defect.** `idPfxInv` is heap-level (its `Gp` holds `prefix ↦□` facts, its `Ip` the record's `idIssueFragD` at the
+  generation `L`), so the old generation's cannot serve the new one, and a new one at the same names `γip` cannot be
+  allocated while the old invariant holds `γip`'s authority. `memberPfx.law` (an unproved hypothesis) asked for it.
+- **Evidence.** B6's analysis (`notes/etcd-dist-d6.md`, sessions 4-5). B6 decided (b) on #50 (2026-11-26T00:33Z,
+  etcd-grove-03; the lead away). A cancellable invariant (`cinv`, its token in the member's keep) does **not** work:
+  opening one takes a fraction of its token, and `Next` holds only the persistent `idGen` (a persistent fact cannot
+  be invalidated later, so the old generation's `Next` must be able to open the old invariant after a crash and be
+  refuted there). The one resource that refutes an old generation's step is the old record's authority, which the
+  crash's rest `idIssueCrashStart hL hL'` hands over and the step's own state interpretation (`idIssueCtx hL`) also
+  holds.
+- **Proposed change.** (1) `idPfxBody γip γgp := GpPart γgp ∗ (IpPart γip γgp ∨ idIssueDeadD)`: the generators' map
+  (fresh `γgp` per allocation, never cancelled; `NewGenerator` uses only it) and the ids' map, which a crash replaces by
+  the old record's authority `idIssueDeadD` (`∃ Mg, ghostMapAuth hL.idIssueName 1 Mg`, instance-free as
+  `idIssueFragD`). (2) Each `Ip` entry is `(idIssueFragD id g ∗ g ↪[γgp]□ inc) ∨ idIssuePastD id` (an earlier
+  incarnation's id, instance-free `idIssuePastAt`); `Next` refutes the second with `idIssueFragAt_past`. (3) A
+  variant `wp_IdIssue_live` of the record's step lets the step's update give up with `idIssueDeadAt` of its own
+  incarnation, which the step refutes with its state interpretation's authority; `Next` uses it when it opens a
+  cancelled body. (4) The crash law `idPfxInv_crash`: from the old generation's `idPfxInv` and `idIssueCrashStart`,
+  every `Ip` fact made past at `L'`, the old body cancelled (the old authority deposited), and a new invariant at the
+  same `γip` with a fresh, empty `γgp` (`idutil/PfxCrash.lean`). (5) `memberGen_crash.law` (`dist/crash/MemberGen.lean`)
+  takes the issue record's crash rest `idIssueCrashStart (gooseIdIssueGS L) (gooseIdIssueGS L')` beside the file
+  extension's (every extension's crash rest reaches the restart, `etcdstart/NetExtsCrash.lean`), and gains
+  `[HasExt idIssueExt]`; T7's `memberPfx.law` is deleted, `memberGen_crash_law_holds` loses `hB6` and applies
+  `idPfxInv_crash` to the old `idPfxInv` of `memberRestartFacts`. **No keep row** (the "cancel token" is the crash rest's authority, not a member's token). No change
+  to `NewGenerator.spec`'s or `Next.spec`'s text, no top-level change, no axiom.
+- **Decision.** (b) by etcd-grove-03 on #50; this form of it applied on `etcd-safe-t10` (T10 session 6).
+
+## 2026-11-26: the skip paths' model fact for the image row (T10 session 9; internal, proposed)
+
+- **Spec.** The apply protocol's `skip_doneR` (`etcdserver/InvApply.lean`) takes `□ IR eff p -∗ □ IR eff i`; at the
+  server's row `srvImgRow γr.raft (srvImgModel γr)` (`etcdserver/ImgRow.lean`) that is `srvImgRow_skip`, which needs
+  `srvRLogLb (A ++ [x])` with `i = ai0 + |A| + 1` and the pure `srvImgModel γr (A ++ [x]) = srvImgModel γr A` (the entry
+  `i` changes no model the image is of). Callers: `applyEntryNormal` (four sites: the no-data entry, and the applier's
+  outcome without the batch lock, `Hout`'s right disjunct, whose last conjunct the proofs drop) and `EtcdServer.apply`
+  (two sites: `applyConfChange`'s outcome without the batch lock).
+- **Defect.** The no-data sites have the fact (`entryStep`'s nil case, `srvRest_nodata`). The others do not: the
+  applier's (`apply.Apply.spec*`) and `applyConfChange`'s no-lock outcomes say the batch lock was not taken, not that
+  the entry's models are unchanged (`kvModel`, `crevOf`, `kvLeases`, `restModel` of the log with the entry). In the mode
+  `on` the image's KV model is `kvModelOn`'s, so the row's `M` must be the mode's (`srvImgModel` is the mode-off one).
+- **Evidence.** Code reading of the call sites (`EtcdServer__applyEntryNormal.lean` lines ~1002, ~1277: `icases Hout
+  with (… | ⟨Hst, Happ, Hbe, -⟩)`; `EtcdServer__apply.lean` ~788, ~1874).
+- **Proposed change.** The no-lock outcomes gain `⌜srvImgModel γr (A ++ [m]) = srvImgModel γr A⌝` (or the mode's model),
+  proved inside the applier/`applyConfChange` from the request's model step (`applyStep`'s outcomes that take no lock
+  leave the log, leases and rest buckets); or, if some no-lock outcome does change a model (a write outside the batch
+  lock), the row is weakened there and the finding recorded. To decide before the switch to the `R` lemmas.
+- **Decision.** Taken (coordinator, 2026-11-26, T10 session 10). The applier's (`apply.Apply.spec*`) and
+  `applyConfChange`'s outcomes without the batch lock gain the pure fact that the entry changes no image model, proved
+  inside them from the request's model step. The row's model depends on the mode (mode `on`: `kvModelOn`'s KV model),
+  and the row is passed where the mode is known (`isServerM`). If a no-lock outcome does change a model (a write
+  outside the batch lock), the row is not weakened silently: the session stops, records it here as a finding with the
+  Go path, and reports it (it might be a real bug).
+- **Applied** (T10 session 10, in progress). (1) `EtcdServer.applyConfChange.spec`: its no-lock outcome is the
+  failed validation (`server.go` `applyConfChange`: `ValidateConfigurationChange` errs, `cc.NodeID = raft.None`, then
+  `SetConsistentIndex` outside the batch lock); the caller's wand for that store, `Pre -∗ WP SetConsistentIndex
+  {Adv}`, now also takes `⌜membership.ccValidOn rs.bk m = false⌝` (the wand is where `EtcdServer.apply` runs
+  `skip_done`, before `Adv` exists), from which the caller gets `ccRest true m rs = rs`. (2) The applier's no-lock
+  outcome (`cPost`'s `Pre`): see the session's handoff.
+- **Applied, (2): `cPost` restated** (T10 step 2, branch `etcd-safe-t10b/2026-11-26`; draft
+  `/shared/tmp/coord-03/t10-step2-cpost-draft.md`, approved by the lead with conditions, #50, 2026-11-26 15:27Z).
+  `apply.cPost b Pre Post φ := if b then Post ∨ (Pre ∗ ⌜φ⌝) else Pre` (`Contracts.lean`), `φ` the no-lock fact;
+  `cPost_of_pre` takes `φ`'s proof, `cPost_mono` weakens it. Restated in place (no old two-argument `cPost`, no
+  wrappers, no parallel rows). The facts by level: `dispatchNoEff` (`InvUber.lean`: log, compaction revision, live
+  set, rest state unchanged) at `dispatch`; `applyNoEff` (`GrantRest.lean`) at `apply.Apply` (mode `on`: `∧ st' = st`);
+  `kvPost`/`kvPostF` gain `N : Outcome → Prop` (default `fun _ => True`, explicit only at the three `LeaseRevoke`
+  specs) and their `Pre` disjunct `⌜oc.logAfter log = log ∧ N oc⌝`; `cmpTriple`'s `Pre` the compaction revision
+  unchanged; `mPostV` and the cluster rows of `isCluster`/`isClusterRest` take the row's rest effect as the
+  identity (`True` for `SetDowngradeInfo`); the auth store's admin methods' `Pre` an unchanged authority (below).
+  34 `Spec/` files change in meaning, all specs of proved functions (none an axiom, none reachable from a
+  `TopLevelRobustness` statement).
+  * **Strengthens an unproved law: `bootClusterRows.spec`** (`Spec/.../etcdserver/bootClusterRows.lean`, a `?`
+    hypothesis of the server's `Link`, no axiom): it concludes `clusterApplyRest`, i.e. `isClusterRest`'s rows, whose
+    `Pre` disjunct now carries the rest effect's identity. Accepted as untrusted (the lead, condition (a)). Go:
+    `RaftCluster.UpdateAttributes` (`membership/cluster.go:473`) and `SetVersion` (`cluster.go:613`) write the
+    backend (`MustSave...ToBackend`, under the batch lock) whenever `shouldApplyV3`, and without it write nothing
+    to the backend; no row's rest effect happens outside the lock, so the stronger row is true of the code.
+  * **The auth store's pre-lock returns** (mode `on`'s `st' = st`): each method's `(Post ∨ Pre)` becomes
+    `Post ∨ (Pre ∗ ⌜φ⌝)`, `φ` the fact that its return before `tx.Lock()` has: `err ≠ nil` for the methods whose
+    pre-lock returns are errors (`ErrUserEmpty`, `ErrRoleEmpty`, ...); `en = true` for **`AuthEnable`** (its pre-lock
+    return, `store.go:273-276`, `if as.enabled { return nil }`, has `err = nil`: the draft's uniform `err ≠ nil`
+    would be false of it); `en = false` for **`AuthDisable`** (it has a pre-lock return, `store.go:308-310`, `if
+    !as.enabled { return }`, so its `Pre` disjunct is not `⌜False⌝`: the lead's condition (c)). Each gives an
+    unchanged authority through `auth.adminOut_keep` (`Steps.lean`).
 ## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
 
 - **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and

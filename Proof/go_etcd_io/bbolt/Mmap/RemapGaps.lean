@@ -77,7 +77,7 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
   have hrw : r.rw = true := Hp.2.1
   ihave #Hti : inv (txsN K.N) (txsInv (GF := GF) K.B K.p K.sp K.t0) $$ []
   · unfold BC.core isBoltCoreP
-    icases Hkc with ⟨-, -, -, -, -, -, -, -, -, -, #Hti⟩
+    icases Hkc with ⟨-, -, -, -, -, -, -, -, -, -, #Hti, -⟩
     iexact Hti
   imod txs_open K.B K.N K.p K.sp K.t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hti Hreg

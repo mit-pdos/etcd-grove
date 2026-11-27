@@ -30,12 +30,20 @@ claim on the name (`bPath γ.db`): the axiom creates nothing (`notes/bbolt-integ
 (#30, 2026-11-22, ledger 2026-11-22) Under `[ReceiptBoundLe GF (2 ^ 60)]`, `New`'s receipt bound
 (bbolt's `2 ^ 62` since S3e, the backend's buffers' `2 ^ 60` since #30's step 2): until then the axiom
 gave `New`'s post at any receipt bound, which `New`'s proof does not (false above that bound).
+(etcd-dist D6, C-I1, 2026-11-25) And, when `cfg.UnsafeNoFsync` is `false`, the crash laws' token
+`backend.dbOpts γ.db` (`DbOpts.lean`): the database was opened with `NoSync = false` and
+`NoGrowSync = false` (`server/storage/backend.go:38` copies `UnsafeNoFsync` into the backend's
+configuration, `backend/backend.go:230-231` into `bopts.NoSync`/`bopts.NoGrowSync`, which `bolt.Open`
+stores in the `DB`). The one thing the post holds that `New`'s proved post does not: `dbOpts`, bbolt's
+`boltSyncs γ.db` (the `DB`'s two fields persistently `false`), read by the C-I1 laws
+(`backend/CrashInterim.lean`; review `notes/axiom-review/openbackend-dbopts.md`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Perennial.ProgramLogic.Bounds
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
 
 @[expose] public section
 
@@ -67,7 +75,9 @@ abbrev storage.OpenBackend.spec : Prop :=
       -- backend path
       bFile γ (config.backendPathOf cfg.DataDir') ∗
       -- (S5, 2026-11-18) and the claim on its name, `backend.New`'s (`bPath`)
-      bPath γ.db (config.backendPathOf cfg.DataDir') }}
+      bPath γ.db (config.backendPathOf cfg.DataDir') ∗
+      -- (etcd-dist D6, C-I1, 2026-11-25) the database syncs unless `UnsafeNoFsync`
+      (⌜cfg.UnsafeNoFsync' = false⌝ -∗ backend.dbOpts γ.db) }}
 
 end spec
 

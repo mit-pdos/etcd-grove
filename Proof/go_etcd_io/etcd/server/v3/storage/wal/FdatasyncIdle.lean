@@ -35,32 +35,33 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- **`syscall.Fdatasync` of an idle tail** (see the file header). -/
 theorem syscall.Fdatasync.wp_idle (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (b : GoString) (m : OsMeta)
+    (dir : GoString) (i : Nat) (I : GMap GoString Nat) (hiI : incOf I dir = i)
+    (j : Ino) (X : List GoString) (hj : NamesH) (b : GoString) (m : OsMeta)
     (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd)
     (hb : (walNames hj.cur).getLast? = some b) (hi : hj.cur !! b = some (.file d.ino))
     (hlen : bs.length = m.size) :
-    {{ walAreaOk walCodec Mr R jr r ∗ osFd fd dq d ∗ walDirKey (W := W) dir j X ∗
+    {{ walAreaOk walCodec Mr R jr r ∗ osFd fd dq d ∗ walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
         osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walTailsFrag (W := W) ∅ ∗
         walCutFrag (W := W) none ∗
         osMeta d.ino (DFrac.own (1 : Qp).half) m ∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs }}
       (App (Val (@! syscall.Fdatasync)) (Val #fd))
-    {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗ walDirKey (W := W) dir j X ∗
+    {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗ walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
         osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walTailsFrag (W := W) ∅ ∗
         walCutFrag (W := W) none ∗
         ((⌜e = 0⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m.synced ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1))) ∨
          (⌜e ≠ 0⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) }} := by
-  wp_start as ⟨#Harea, Hfd, Hk, Hn, Hf, Hcf, Hm, Hb⟩
+  wp_start as ⟨#Harea, Hfd, Hk, HI, Hn, Hf, Hcf, Hm, Hb⟩
   try wp_auto
   wp_stub syscall.fsFsync.impl
-  wp_apply wp_idleFsync Mr R jr r dir j X hj b m bs fd dq d _ hb hi hlen
-    $$ Harea Hfd Hk Hn Hf Hcf Hm Hb as %e Hfd Hk Hn Hf Hcf Hr
+  wp_apply wp_idleFsync Mr R jr r dir i I hiI j X hj b m bs fd dq d _ hb hi hlen
+    $$ Harea Hfd Hk HI Hn Hf Hcf Hm Hb as %e Hfd Hk HI Hn Hf Hcf Hr
   try wp_auto
   wp_apply wp_errnoErr
   try wp_auto
   iapply HΦ
-  iframe Hfd Hk Hn Hf Hcf
+  iframe Hfd Hk HI Hn Hf Hcf
   icases Hr with (⟨%he, Hr⟩ | ⟨%he, Hr⟩)
   · ileft; iframe Hr; ipureintro; exact he
   · iright; iframe Hr; ipureintro; exact he.1
@@ -68,29 +69,30 @@ theorem syscall.Fdatasync.wp_idle (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : 
 /-- **`fileutil.Fdatasync` of an idle tail** (see the file header). -/
 theorem fileutil.Fdatasync.wp_idle (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64)
-    (name dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (b : GoString) (m : OsMeta)
+    (name dir : GoString) (i : Nat) (I : GMap GoString Nat) (hiI : incOf I dir = i)
+    (j : Ino) (X : List GoString) (hj : NamesH) (b : GoString) (m : OsMeta)
     (bs : List ByteG) (dqf dq : DFrac) (d : OsFd)
     (hb : (walNames hj.cur).getLast? = some b) (hi : hj.cur !! b = some (.file d.ino))
     (hlen : bs.length = m.size) :
     {{ walAreaOk walCodec Mr R jr r ∗ os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-        walDirKey (W := W) dir j X ∗
+        walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
         osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walTailsFrag (W := W) ∅ ∗
         walCutFrag (W := W) none ∗
         osMeta d.ino (DFrac.own (1 : Qp).half) m ∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
     {{ (e : w64), RET #(errnoErr e); os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-        walDirKey (W := W) dir j X ∗
+        walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
         osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walTailsFrag (W := W) ∅ ∗
         walCutFrag (W := W) none ∗
         ((⌜e = 0⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m.synced ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1))) ∨
          (⌜e ≠ 0⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) }} := by
-  wp_start as ⟨#Harea, Hf, Hfd, Hk, Hn, Htf, Hcf, Hm, Hb⟩
+  wp_start as ⟨#Harea, Hf, Hfd, Hk, HI, Hn, Htf, Hcf, Hm, Hb⟩
   wp_auto
   wp_apply wp_Fd f fd name dqf $$ Hf as Hf
-  wp_apply syscall.Fdatasync.wp_idle Mr R jr r dir j X hj b m bs fd dq d hb hi hlen
-    $$ [Harea Hfd Hk Hn Htf Hcf Hm Hb] as %e ⟨Hfd, Hk, Hn, Htf, Hcf, Hr⟩
+  wp_apply syscall.Fdatasync.wp_idle Mr R jr r dir i I hiI j X hj b m bs fd dq d hb hi hlen
+    $$ [Harea Hfd Hk HI Hn Htf Hcf Hm Hb] as %e ⟨Hfd, Hk, HI, Hn, Htf, Hcf, Hr⟩
   · iframe; iexact Harea
   iapply HΦ
   iframe

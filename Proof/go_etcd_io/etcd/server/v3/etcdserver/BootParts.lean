@@ -428,9 +428,10 @@ def bootBackendNew (N : Nat) (γA : ApplyNames) (d : mvcc.KBReal) (D : backend.D
 /-- **The rows of `bootOk` that `bootstrapBackend` makes, but `Hnew`** (`bootstrap.go:259-309`):
 `Hci HisCI Hcons Hbh Hthr Happ Hown Hmeta HmetaSnap Hbe HhkAt Hlate Hpath Hbfile`, verbatim. -/
 def bootBackendRows (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (bk : bootstrappedBackend)
-    (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal) : IProp GF :=
+    (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal)
+    (IR : w64 → w64 → IProp GF := fun _ _ => iprop(True)) : IProp GF :=
   iprop("%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
+    "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA IR) ∗
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗

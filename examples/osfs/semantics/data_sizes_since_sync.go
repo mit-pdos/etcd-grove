@@ -13,7 +13,11 @@ import (
 // last successful sync (sizeLo, sizeHi); a crash gives it any size in that
 // range, or between it and the target of a change in flight. The size is
 // chosen independently of the bytes (data_durable_zeros.go: no ordering of
-// sizes against data).
+// sizes against data). Within the range, a size an ftruncate set is exact:
+// the crash leaves it or a size another change gave, not one strictly between
+// an ftruncate's old size and its target (data_truncate_size_exact.go,
+// OsFile.szCrash, 2026-11-25). Below, 250 stays allowed: the WriteAt moved
+// the size through it.
 //
 // Lean: Impl.lean: OsFile.sizeLo, OsFile.sizeHi, OsFile.land (widens),
 // OsFile.synced (collapses), CrashFile (the `sz` bounds), OsChange.target.

@@ -1,7 +1,9 @@
 /-
 `DB.pageInBuffer` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
 cross-unit contract). Proved by U4; used by U10 (`writeMeta`). Proof:
-`Proof/go_etcd_io/bbolt/DB__pageInBuffer.lean` (a `sorry` until U4).
+`Proof/go_etcd_io/bbolt/DB__pageInBuffer.lean` (a `sorry` until U4). `spec_own`, with the page size
+at any fraction (`Open`'s owned phase: `getPageSize`, `initImage`), is proved in
+`Proof/go_etcd_io/bbolt/Open/PageSize.lean`.
 -/
 module
 
@@ -36,6 +38,16 @@ abbrev DB.pageInBuffer.spec : Prop :=
     (App (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"pageInBuffer")) (Val #b))
       (Val #id))
   {{ RET #(b.ptr +ₗ ((id.toNat * 4096 : Nat) : Int)); True }}
+
+/-- `db.pageInBuffer(b, id)` with the page size owned (at any fraction: `Open`'s owned phase,
+before the page size is final). -/
+abbrev DB.pageInBuffer.spec_own : Prop :=
+  ∀ (db : Loc) (b : GoSlice) (id : w64) (dq : DFrac),
+  id.toNat * 4096 < b.len.toNat → b.len.toNat < 2 ^ 63 → 0 < b.ptr.addr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ db.[DB, go!"pageSize"] ↦{dq} W64 4096 }}
+    (App (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"pageInBuffer")) (Val #b))
+      (Val #id))
+  {{ RET #(b.ptr +ₗ ((id.toNat * 4096 : Nat) : Int)); db.[DB, go!"pageSize"] ↦{dq} W64 4096 }}
 
 end spec
 

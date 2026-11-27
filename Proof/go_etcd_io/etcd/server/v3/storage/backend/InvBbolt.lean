@@ -268,6 +268,23 @@ def dbHalf (γ : DBNames) (D : Data) : IProp GF :=
 instance dbHalf_timeless (γ : DBNames) (D : Data) : Timeless (dbHalf (GF := GF) γ D) := by
   unfold dbHalf onFs; split <;> infer_instance
 
+/-- **The commit invariant's half at its version `ν`** (the committed txid, `bbolt.boltStateV`): what
+C-I1's `dbCrashKeep_take` lends for `Tx.Commit`'s update, whose commit gives the data back at `ν + 1`. -/
+def dbHalfV (γ : DBNames) (D : Data) (ν : Nat) : IProp GF :=
+  onFs iprop(bbolt.boltStateV γ (1 : Qp).half D ν)
+
+/-- The half at a version is the half. -/
+theorem dbHalfV_dbHalf (γ : DBNames) (D : Data) (ν : Nat) :
+    dbHalfV (GF := GF) γ D ν ⊢ dbHalf γ D := by
+  unfold dbHalfV dbHalf onFs
+  split
+  · rename_i c _
+    letI := c.S; letI := c.ok; letI := c.has
+    iintro H
+    iapply (bbolt.boltState_eq_V (GF := GF) γ (1 : Qp).half D).2
+    iexists ν; iexact H
+  · exact .rfl
+
 /-- **The claim on the name `path`, which names the inode `i`** (S5), at the instances: `path` is
 `d/b`, with the path of `d`, a share of the call permission, and the whole claim on `b`, whose
 current entry is the file `i` (`fileHoldsF` without the file's contents). -/
@@ -291,12 +308,34 @@ def fileFreeF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) : 
     osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
 
 /-- **The file at `path` holds `D`, and is a file** (S5; exclusive): what a received snapshot's file
-is (`snapDirInv`'s files), what `os.Rename` moves. -/
+is (`snapDirInvH`'s files), what `os.Rename` moves. -/
 def fileAt (path : GoString) (D : Data) : IProp GF := onFs (fileAtF path D)
 
 /-- **The name `path` is free** (S5; exclusive): the claim on a name no file has, what `SaveDBFrom`
 saves a snapshot's file under. -/
 def fileFree (path : GoString) : IProp GF := onFs (fileFreeF path)
+
+/-- **The log's entry `x` renamed the file at `src` onto `dst`** (pin e94f33b50, 2026-11-25), at the
+instances: the rename of a file (the inode `i`) from the name `bs` of the directory `j` onto the name
+`bt` of `j'`, `src` and `dst` being `d/bs` and `d/bt`. -/
+def renameEntF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (src dst : GoString) (x : Nat) :
+    IProp GF :=
+  iprop(∃ (d bs bt : GoString) (j j' i : Ino) (old : Option Node) (s : Nat),
+    ⌜src = child d bs ∧ dst = child d bt⌝ ∗
+    osLogEnt x (⟨.rename j bs j' bt (.file i) old, s⟩ : LogEntry))
+
+/-- **The file at `src` was renamed onto `dst`** (pin e94f33b50, 2026-11-25): the rename's
+entry is in the log (`osLogLb` past it). What `os.Rename` gives. -/
+def renamed (src dst : GoString) : IProp GF :=
+  onFs iprop(∃ x : Nat, renameEntF src dst x ∗ osLogLb (x + 1))
+
+/-- **The file at `src` was renamed onto `dst`, durably** (pin e94f33b50, 2026-11-25): the
+rename's entry is committed (`osCommitLb` past it: a sync of the directory after the rename), so a
+crash's durable tree has it. What `storage.OpenSnapshotBackend` gives, for the member's crash law
+(C-I1's `dbCrash` leaves the name's durability to its caller, T7). -/
+def renamedDur (src dst : GoString) : IProp GF :=
+  onFs iprop(∃ x : Nat, renameEntF src dst x ∗ osCommitLb (x + 1))
+
 
 /-- **The open database `γ`'s file is at `path`, the name the caller's** (S5, 2026-11-18;
 exclusive): the claim on `path`, which names `γ`'s inode. `New` gives it; the caller keeps it while

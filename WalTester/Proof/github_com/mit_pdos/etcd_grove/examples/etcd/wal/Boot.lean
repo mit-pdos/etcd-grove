@@ -121,7 +121,7 @@ theorem Boot.wp_proof
   try wp_auto
   rw [show (e.area ++ go!"/wal" : GoString) = tWalDir e.area from rfl]
   wp_apply (wp_exist W e.R e.jr e.area (tWalDir e.area) go!"wal" 1
-      (fun od' => iprop(⌜od' = od1⌝ ∗ tWalOwn γ od1)) hia hnm) $$ [Hpath Hres Hperm Htok Hwo]
+      (fun od' => iprop(⌜od' = od1⌝ ∗ tWalOwn γ od1)) 0 hia hnm) $$ [Hpath Hres Hperm Htok Hwo]
     as %b ⟨Hpath, Hres, Hperm, Htok, %od2, ⟨%hod, Hwo⟩, %hb, -⟩
   · iframe; iframe #
     iapply tInv_dirAu W e γ od1
@@ -154,7 +154,7 @@ theorem Boot.wp_proof
   have hmp : mp ≠ slice.nil := by
     intro h; subst h; have h1 := hmpl.1; exact absurd h1 (by rw [show sint.nat slice.nil.len = 0 from rfl]; decide)
   wp_apply (wp_create W lg e.R e.jr e.area (tWalDir e.area) go!"wal" mp go!"m" 1
-      (iprop(tOrOwn γ o none ∗ tWalOwn γ (some (walDurFresh go!"m")))) hia hnm hdl hca hmp (by decide)
+      (iprop(tOrOwn γ o none ∗ tWalOwn γ (some (walDurFresh go!"m")))) 0 hia hnm hdl hca hmp (by decide)
       (by decide) walRaftMr_createOk hfs) $$ [Hpath Hres Hperm Htok Ho Hwo]
     as %w %err ⟨Hpath, Hres, Hcr⟩
   · iframe; iframe #

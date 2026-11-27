@@ -276,7 +276,8 @@ entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvc
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
 def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) (id : w64)
-    (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) (b : Loc) : IProp GF :=
+    (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) (b : Loc)
+    (IR : w64 → w64 → IProp GF := fun _ _ => iprop(True)) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
@@ -413,7 +414,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (2026-11-01, the user's decision, "bootOk's boot metadata": until then also `γA.m0 = (0, 0)`,
     -- a literal; now the data's facts `Hm0` and `HmEmpty`)
     "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
+    "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA IR) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
     -- `SetConfState` `applyConfChange` calls, and (D22 J1a, 2026-10-26) which the snapshot path's

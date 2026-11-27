@@ -89,7 +89,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hep : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []
@@ -115,7 +115,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   wp_apply sync.RWMutex.wp_RLock $$ [$Hsync $Hmtok] as ⟨Hrl, HP⟩
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
   iunfold Pm at HP
   icases HP with ⟨%ms, Hmap', Hmf, Hmt, Hpf⟩
   cases cl
@@ -129,7 +129,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       $$ [Hpool Hloan Hmtok Hstok] with Htt
     · iframe #; iframe; iunfold rdPair; iframe
     imodintro
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hmlk Hfa Hro]
     · iunfold metaR
       iexists C, F, true, fli, wa
       iframe Hrcm
@@ -157,7 +157,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       $$ [Hpool Hloan Hmtok Hstok] with Htt
     · iframe #; iframe; iunfold rdPair; iframe
     imodintro
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hmlk Hfa Hro]
     · iunfold metaR
       iexists C, F, false, fli, wa
       iframe Hrcm
@@ -196,7 +196,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave Hmt := (ghostVar_split_half K.B.mtok sync.rfrac ()).2 $$ [Hmt Hmt2]
   · iframe
   -- the linearization point: the read update commits at the copied state's data
-  imod au_read_fire K.B K.N (treeData C) Q $$ [Hst' Hau] with ⟨Hst', HQ⟩
+  imod au_read_fire K.B K.N (treeData C) C.txid Q $$ [Hst' Hau] with ⟨Hst', HQ⟩
   · iframe
   -- the reader's key, its txid in `metaR`, its view in the store
   have hC63 : C.txid < 2 ^ 63 := htree.2.2.2.2.2
@@ -234,9 +234,11 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe Hv1 Hd1
       simp only [↓reduceIte]
       iframe
-    · iunfold readerHandles
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      iexists ∅; iexact Hrbk
+    · isplitl [Hrbk]
+      · iunfold readerHandles
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iexists ∅; iexact Hrbk
+      · iapply regX_ro; rfl
   simp only [initMeta, Bool.false_eq_true, ↓reduceIte]
   ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
@@ -274,7 +276,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
         Hvc Hmap' Hmf Hvw Hrcm Hpf Hrds2] with Hrd
     · iframe; iframe #
       simp only [↓reduceIte]; iexact Hpool
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, false, _, wa
       iframe Hrcm

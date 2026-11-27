@@ -59,7 +59,9 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     iframe Htt
     icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
     iapply apply.auth_reject_kvPost E E.authOn c p inner info rq log _ _ Pre Q Post hk
-      (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [Hrr] Hkv Hinfo Hres Hcs
+      (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h))
+      (apply.revokeNoEff rq T rs)
+      ⟨apply.revokeIds_rejected rq true _ T, apply.revokeRest_rejected T rq true _ rs⟩ $$ Happ [Hrr] Hkv Hinfo Hres Hcs
     simp only [apply.revokeOutcomeIs, apply.rejErrIs]
     iunfold apply.revokeRes at Hrr
     icases Hrr with ⟨Hrdat, Hrev, HltT, HRO, -⟩
@@ -102,7 +104,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     isplitr
     · ipureintro; exact Hk.1
     iapply Hlc; rfl
-  iapply apply.auth_pass_kvPost E E.authOn c p (.ok bi) info info' rq log _ Pre Post $$ Happ Hpost Hinfo Hrc Hrl
+  iapply apply.auth_pass_kvPost E E.authOn c p (.ok bi) info info' rq log _ Pre Post (apply.revokeNoEff rq T rs) $$ Happ Hpost Hinfo Hrc Hrl
 
 end proof
 

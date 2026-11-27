@@ -90,6 +90,13 @@ structure OsMeta where
   stamp; nothing else changes it. Ghost only: what a client (the WAL, at a crash) needs to tell a
   resize's zero candidates from a `pwrite`'s (W1, `notes/wal-fsext-plan.md` §2.5). -/
   rz : List Nat := []
+  /-- **The sizes a crash may leave the file at**, if known (`some l`): each of `OsFile.CrashSz`
+  (the size, the smallest and largest sizes since the last sync, `OsFile.szCrash`) is in `l` (`MetaOk.xs`), where
+  `lo` and `hi` only bound them. A sync, a boot or a crash makes it the size alone; a landed
+  `ftruncate` adds its size (`OsFile.land` adds only that one); a `pwrite` that may reach past
+  the size, or an `fallocate` that changes it, forgets them (`none`: `land` adds every size in
+  between); nothing else changes it. Ghost only: what a client learns at a crash (`crashSeen_xs`). -/
+  xs : Option (List Nat) := none
 
 /-- How the candidates `cs` of a byte resource relate to the state's `sc`, as `cut` says: the same
 (`none`); or (`some c`, after a sync without the bytes at change number `c`) the same candidates
@@ -205,6 +212,15 @@ def OsMeta.announce (m : OsMeta) (lo hi tg : Nat) : OsMeta :=
     (m.announce lo hi tg).cut = m.cut := by
   simp [OsMeta.announce]
 
+@[simp] theorem OsMeta.touch_xs (m : OsMeta) (lo hi : Nat) : (m.touch lo hi).xs = m.xs := by
+  unfold OsMeta.touch; split
+  · rfl
+  · split <;> rfl
+
+@[simp] theorem OsMeta.announce_xs (m : OsMeta) (lo hi tg : Nat) :
+    (m.announce lo hi tg).xs = m.xs := by
+  simp [OsMeta.announce]
+
 /-- The `OsMeta` a change holds. -/
 def TokInfo.meta (ti : TokInfo) : OsMeta := ti.m0.announce ti.lo ti.hi ti.target
 
@@ -216,12 +232,12 @@ def TokInfo.Is (ti : TokInfo) (c : OsChange) : Prop :=
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
     (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc, m.cut, m.cz,
-      m.rz))
+      m.rz, m.xs))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
-      subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
+      subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -285,6 +301,56 @@ structure OsWf : Prop where
   /-- Every candidate's stamp is at most the last change's number. -/
   stamps : ∀ i f b p, st.file i = some f → p ∈ f.cand b → p.2 ≤ st.fs.stamp
 
+/-- The sizes a crash may leave the file `f` at, apart from a change in flight (`CrashFile`): its
+size, its smallest and largest sizes since the last sync (the bounds of a change in flight's), and
+its crash sizes (`OsFile.szCrash`). -/
+def OsFile.CrashSz (f : OsFile) (s : Nat) : Prop :=
+  s = f.size ∨ s = f.sizeLo ∨ s = f.sizeHi ∨ f.szCrash s
+
+/-- After a sync, the size is the one crash size. -/
+theorem OsFile.crashSz_synced {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] {s : Nat}
+    (h : (f.synced busy).CrashSz s) : s = f.size := by
+  simp only [OsFile.CrashSz, OsFile.synced] at h; rcases h with h | h | h | h <;> exact h
+
+/-- A landing adds the sizes `OsFile.land` adds: its size for an `ftruncate`, every size between
+the old and the new one otherwise. -/
+theorem OsFile.crashSz_land {f : OsFile} {c : OsChange} {e sz s : Nat}
+    (h : (f.land c e sz).CrashSz s) :
+    f.CrashSz s ∨ (if c.kind.isTrunc then s = sz else min f.size sz ≤ s ∧ s ≤ max f.size sz) := by
+  simp only [OsFile.CrashSz, OsFile.land] at h ⊢
+  rcases h with h | h | h | h | h
+  · right; subst h; split <;> omega
+  · by_cases hl : f.sizeLo ≤ sz
+    · left; right; left; omega
+    · right; split <;> omega
+  · by_cases hl : sz ≤ f.sizeHi
+    · left; right; right; left; omega
+    · right; split <;> omega
+  · left; right; right; right; exact h
+  · right; exact h
+
+/-- A landing that leaves the size as it was adds no crash size. -/
+theorem OsFile.crashSz_land_same {f : OsFile} {c : OsChange} {e sz s : Nat}
+    (hsz : (f.land c e sz).size = f.size) (h : (f.land c e sz).CrashSz s) : f.CrashSz s := by
+  have hs : sz = f.size := hsz
+  rcases OsFile.crashSz_land h with h | h
+  · exact h
+  · left; split at h <;> omega
+
+/-- An `ftruncate`'s landing adds its size alone. -/
+theorem OsFile.crashSz_land_trunc {f : OsFile} {c : OsChange} {e sz s : Nat}
+    (hk : c.kind.isTrunc = true) (h : (f.land c e sz).CrashSz s) : f.CrashSz s ∨ s = sz := by
+  rcases OsFile.crashSz_land h with h | h
+  · exact .inl h
+  · rw [if_pos hk] at h; exact .inr h
+
+/-- What a synced `OsMeta` knows of the crash sizes (`some [size]`) holds of a synced file. -/
+theorem OsFile.xs_synced {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] {n : Nat}
+    (hn : n = f.size) : ∀ l, some [n] = some l → ∀ s, (f.synced busy).CrashSz s → s ∈ l := by
+  intro l hl s hs
+  cases hl
+  rw [OsFile.crashSz_synced hs, hn]; exact List.mem_singleton_self _
+
 /-- What the ghost `OsMeta` `m` of the file `f` of inode `i` says of it. -/
 structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   size : m.size = f.size
@@ -307,6 +373,8 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   reads zeros past it, `OsFile.ofDisk`; a resize lands zeros to the end of the page it announced;
   a sync zeroes it). With `cz`, what lets a resize's landing raise `cz` (`rsCz`). -/
   ce : ∀ b, pageEnd f.size ≤ b → f.cache b = 0
+  /-- The crash sizes `m` knows hold the file's (`OsMeta.xs`). -/
+  xs : ∀ l, m.xs = some l → ∀ s, f.CrashSz s → s ∈ l
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
@@ -940,7 +1008,7 @@ theorem tailMap_cand (f : OsFile) (b : Nat) (c : Cands) (h : tailMap f !! b = so
 /-- The ghost `OsMeta` of a file as on disk: all of it durable, zeros past its last page (durable
 zeros), and the candidates of the bytes past its size in its last page (`tailMap`). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageEnd f.size), tailMap f, none, 0, []⟩
+  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageEnd f.size), tailMap f, none, 0, [], some [f.size]⟩
 
 /-- The bytes of the files of `st`, each as the state has it. -/
 def bytesMapF (F : GMap Ino OsFile) : GMap (Ino × Nat) ByteG :=
@@ -1345,7 +1413,7 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
     MetaOk st i (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz) := by
   refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_,
     fun b c _ h => tailMap_cand _ b c h, fun b _ h => absurd h (by simp [initMeta]),
-    fun s h => by simp [initMeta] at h, ?_, fun b hb => diskByte_past hb⟩
+    fun s h => by simp [initMeta] at h, ?_, fun b hb => diskByte_past hb, ?_⟩
   · intro b len
     simp only [initMeta]
     constructor
@@ -1359,6 +1427,11 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
   · intro z hz b hb
     simp only [initMeta, Option.some.injEq] at hz; subst hz
     exact diskByte_past hb
+  · intro l hl x hx
+    simp only [initMeta, Option.some.injEq] at hl; subst hl
+    simp only [OsFile.CrashSz, OsFile.ofDisk] at hx
+    simp only [List.mem_singleton]
+    rcases hx with h | h | h | h <;> exact h
 
 theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by

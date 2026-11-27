@@ -67,8 +67,8 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
       iexists eC
       iframe HeC
       ipureintro; rfl
-    iright
-    iexact HPre
+    iright; iframe HPre; ipureintro
+    exact ⟨trivial, apply.revokeIds_rejected rq true _ T, apply.revokeRest_rejected T rq true _ rs⟩
 
 end proof
 

@@ -87,9 +87,10 @@ abbrev apply.Apply.specRec : Prop :=
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ E.FS ∗ apply.applyTok E ∗ apply.bkRTOf E ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+      apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
         apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
         (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out
@@ -165,7 +166,8 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
         (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev ∗
         apply.ltHalf E T ∗ apply.everOwn E U ∗ apply.revokeOwn E rq)
       (fun sk ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
-        apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
+        apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
         apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
         (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out
@@ -202,13 +204,11 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
   · ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
     iapply HΦ
     iframe HRD HFS Htt Hrt
-    isplitl [HPP]
-    · iapply cPost_if; iexact HPP
     iframe Hok Htr
     isplitr
     · ipureintro; rfl
     iexists x', out
-    iframe Hres HRO Hauth HLt HEv Hrv Hgr Hvr %Hgo
+    iframe Hres HRO Hauth HLt HEv Hrv Hgr Hvr %Hgo HPP
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
     isplitr
@@ -222,8 +222,6 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     icases apply.kvOwnPre_kvOwn v3 E x.log Pre Q Post $$ Hkp with ⟨Hkv, Hrt, HPre⟩
     iapply HΦ
     iframe HRD HFS Htt Hrt
-    isplitl [HPre]
-    · iapply cPost_if; iapply apply.cPost_of_pre; iexact HPre
     isplitr
     · iunfold apply.resultErrOk; ileft; ipureintro; rfl
     isplitr
@@ -236,6 +234,10 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     iframe HLt HEv Hrv
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
+    isplitl [HPre]
+    · iapply (apply.cPost_of_pre _ _ _ _
+        (apply.applyNoEff_skipped (T := T) (rs := rs) (by simp [apply.applyStep, hns])))
+      iexact HPre
     isplitl [HRO]
     · iexists (apply.grantTTLW rq)
       isplitr

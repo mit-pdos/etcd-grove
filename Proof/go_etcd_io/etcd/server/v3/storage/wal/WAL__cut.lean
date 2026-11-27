@@ -234,13 +234,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
       (cutSynced { h with sz := h.o0 + h.out.length }).enti = h.enti ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).snapi = h.snapi ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).pc = h.pc ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).inc = h.inc ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).pend = [] ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).stNil = h.stNil ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).qp = h.qp ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).sz =
         (cutSynced { h with sz := h.o0 + h.out.length }).o0 +
           (cutSynced { h with sz := h.o0 + h.out.length }).out.length :=
-    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
   generalize cutSynced { h with sz := h.o0 + h.out.length } = h1 at hh1e ⊢
-  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1pend, h1sz⟩ := hh1e
+  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1inc, h1pend, h1stNil, h1qp, h1sz⟩ := hh1e
   -- step 3: the name
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -256,6 +259,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
   try rw [h1snapi]
   try rw [h1pc]
   try rw [h1pend]
+  try rw [h1stNil]
+  try rw [h1qp]
   iunfold walDirH at Hdh
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, #HRdW, Hperm, Hdfd, #Hnamed, Hout, Htf, Hnf, %hdh⟩
   obtain ⟨hnm0w, hnm0c, ⟨pd, hname⟩, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
@@ -328,7 +333,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
   subst hfpath
   (try wp_auto)
   -- step 4: `w.fp.Open()`
-  ihave Hpipe : walPipeH fp dir j h.pc $$ [Hmain Hpc]
+  ihave Hpipe : walPipeH fp dir j h.pc (fun _ dq => True ∧ dq = DFrac.own h.qp) $$ [Hmain Hpc]
   · iunfold walPipeH
     iexists γp, Rp, dqp, szp, np
     iframe Hmain Hpc Hisfp
@@ -481,7 +486,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
         rw [hFr, if_neg hne]; simp only [stateFrame, List.length_append, List.length_nil]; omega))
     $$ [HwsP] [Hsp He Henc2 HW2] as %serr3 ⟨He, Hr3⟩
   · iexact HwsP
-  · iframe Henv Hsp He Henc2 HW2 Hst
+  · ihave #HstIn : P.hsIn sp h.st $$ [Hst]
+    · iunfold walStIn at Hst; icases Hst with ⟨#H, -, -⟩; iexact H
+    iframe Henv Hsp He Henc2 HW2 HstIn
   ihave Hu : (⌜serr3 = GoInterface.nil⌝ ∗ ∃ (pend3 ys3 : List w8),
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
       ownEncoder e2 (wal.fileWi f2) (crcAfter walCodec c0 (cutHdrDs Mr h.md h.st)) pend3 ∗
@@ -657,18 +664,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
   icases (osNames_frac j (.except X) qQuarter qQuarter hj).1 $$ Hcl' with ⟨Hcl1, Hcl2⟩
   icases (osNames_frac j (.only [pipeTmp np]) (1 : Qp).half qTmpI ht).1
     $$ Hn2 with ⟨Hn2b, Hn2a⟩
-  icases (walOpenW_cut w dir).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
+  rw [h1inc]
+  icases (walOpenWI_cut w dir h.inc).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
   ihave #Hinv : walInv (W := W) walCodec Mr R jr r $$ [Harea]
   · iunfold WalFs.walAreaOk at Harea; icases Harea with ⟨#H, -, -⟩; iexact H
   ihave Hau := walCut_osAUnc Mr R jr r dir j X hj (pipeTmp np) ht h1.γ h.H h.md h.cuts
-    (h1.o0 + h1.out.length) h1.ino m bs g ⟨[h1.ino], [(j, .except X)], [dir]⟩
+    (h1.o0 + h1.out.length) h1.ino m bs g ⟨[h1.ino], [(j, .except X)], [dir]⟩ w h.inc
     (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) nm0
     (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
     (max (uint.nat h.enti) (uint.nat h.snapi) + 1) (by simp)
     (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ ⟨sq, ix, hnm0, rfl⟩ hbtw hcurbt hbs0 hm0x hm0z
-    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne (pipeTmp_mem np) $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
+    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne (pipeTmp_mem np) $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS Hopen]
   · iunfold walCutP
-    iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed
+    iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed Hopen
     isplitl [Hv]
     · iunfold tailVar; iexact Hv
     rw [← hg]
@@ -708,7 +716,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
   generalize hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length = L
     at hoS1 hoS2 hgbs hgz hLpos hgmeta hL8 hlenL hszS ⊢
   iunfold walCutQ at HQ
-  icases HQ with ⟨Htm1, Hcw1, -, Htk, Hv, Hpk, Hout, Hcf, HmG, HbG⟩
+  icases HQ with ⟨Htm1, Hcw1, -, Htk, Hv, Hpk, Hout, Hcf, HmG, HbG, Hopen⟩
   iunfold renFileOut at Hro
   icases Hro with ⟨#Hlog, Htm2, Hcw2⟩
   iunfold logOut at Hlog
@@ -740,11 +748,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
   iapply wp_notCrashed_acc
   · rfl
   iintro Hnc
-  imod (walInv_cutSynced Mr R jr r dir j X hj x (renFileEnt j (pipeTmp np) j bt g.ino hj s0)
+  icases walOpenWCI_incQ (W := W) w dir h.inc $$ Hopen with ⟨%IQ, HIQ, %hIQ, Hopen⟩
+  imod (walInv_cutSynced Mr R jr r dir h.inc IQ hIQ j X hj x (renFileEnt j (pipeTmp np) j bt g.ino hj s0)
       (<[bt := .file g.ino]> hj.cur) bt g.ino (DFrac.own (1 : Qp).half) h1.γ
       ((h.H, h.md, h.cuts ++ [h.H.length], L, g.ino, none) : TailG) (x + 1) (by omega)
       ((renFileEnt_writes _ _ _ _ _ _ _ _).2 ⟨rfl, Or.inr rfl⟩) hbtw (GMap.lookup_insert _ _ _) rfl)
-    $$ Hinv Hnc Hdk Hcw Htk Hv Hcf Hcm with ⟨Hnc, Hcw, Htk, Hv, Hcf⟩
+    $$ Hinv Hnc Hdk HIQ Hcw Htk Hv Hcf Hcm with ⟨Hnc, HIQ, Hcw, Htk, Hv, Hcf⟩
+  ihave Hopen := Hopen $$ HIQ
   imodintro
   iframe Hnc
   -- the fsync's duration
@@ -885,7 +895,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
   rotate_left
   · isplitr
     · ipureintro
-      refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+      refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
       simp only [List.length_nil, Nat.add_zero]
       rw [← hL, hTS]
       exact cutHdrs_room Mr h.md _ _ (by rw [← hst]; exact hmdsz)
@@ -936,7 +946,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
   isplitr
   · ipureintro; simp
   isplitl [Hmain Htm1 Htm2]
-  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp.1 hfpn hnp.2
+  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp.1 hfpn hnp.2.1 ⟨trivial, hnp.2.2⟩
     iframe Hisfp Hmain
     iapply tmpClaim_absent j (pipeTmp np)
       (ht.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (GMap.delete (pipeTmp np) ht.cur))
@@ -944,7 +954,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
     iapply (osNames_frac j (.only [pipeTmp np]) (1 : Qp).half qTmpI _).2
     iframe
   isplitl [Hopen Hpk Hcf]
-  · iapply (walOpenW_cut w dir).2
+  · iapply (walOpenWI_cut w dir h.inc).2
     iframe
   ipureintro
   refine ⟨WalHS.split_fresh Mr _ rfl hL.symm rfl rfl, hfd3, hgbs.2, hgsz,

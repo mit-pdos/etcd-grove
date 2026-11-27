@@ -79,7 +79,7 @@ theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × TxView)) (p 
       obtain ⟨hT, hrdb, hrw⟩ := Hc
       ihave #Hinv1 : inv (txsN γ.ns) (txsInv (GF := GF) (bnsOf γ.gs) p1 sp t0) $$ []
       · unfold isBoltCoreP
-        icases Hcore1 with ⟨-, -, -, -, -, -, -, -, -, -, $⟩
+        icases Hcore1 with ⟨-, -, -, -, -, -, -, -, -, -, $, -⟩
       imod txExcl_take (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$ [Hex] with Hx
       · iframe Hinv1 Hreg Hex
       imodintro
@@ -129,7 +129,7 @@ theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × TxView)) (p 
     obtain ⟨hT, hrdb, hrw, hsrc⟩ := Hc
     ihave #Hinv1 : inv (txsN γ.ns) (txsInv (GF := GF) (bnsOf γ.gs) p1 sp t0) $$ []
     · unfold isBoltCoreP
-      icases Hcore1 with ⟨-, -, -, -, -, -, -, -, -, -, $⟩
+      icases Hcore1 with ⟨-, -, -, -, -, -, -, -, -, -, $, -⟩
     imod txExcl_take (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$ [Hex] with Hx
     · iframe Hinv1 Hreg Hex
     imodintro

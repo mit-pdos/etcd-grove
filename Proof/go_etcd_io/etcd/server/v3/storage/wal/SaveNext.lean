@@ -49,7 +49,7 @@ theorem chainRecs_getElem? (C : WalCodec) (c : w32) (F : List (w64 × List w8)) 
 /-- **Every record of the WAL: the earlier segments' records, then the tail's.** -/
 theorem allRecs_tail (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     ∃ X, allRecs Mr H md cuts = X ++ tailRecs Mr H md cuts := by
-  let Ds := segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts)
+  let Ds := segsDs Mr md true [] (segsOf (histN H) cuts)
   have hl : (chainSegs walCodec 0#32 Ds).length = cuts.length + 1 := by
     rw [length_chainSegs, length_segsDs]; simp [segsOf]
   refine ⟨((chainSegs walCodec 0#32 Ds).take cuts.length).flatten, ?_⟩
@@ -82,7 +82,7 @@ theorem WalHS.next_rec (Mr : WalMarshal) (h : WalHS) (hs : h.Split Mr) (hr : 0 <
     rw [hX, List.length_append, List.getElem?_append_right (by omega)]
     congr 1; omega
   -- the WAL's records are a chain
-  let F := (segsDs Mr h.md true [] (segsOf (h.H.map WalOpG.toM) h.cuts)).flatten
+  let F := (segsDs Mr h.md true [] (segsOf (histN h.H) h.cuts)).flatten
   have hAF : allRecs Mr h.H h.md h.cuts = chainRecs walCodec 0#32 F := rfl
   have hlen : (allRecs Mr h.H h.md h.cuts).length = F.length := by rw [hAF, length_chainRecs]
   have hjF : (allRecs Mr h.H h.md h.cuts).length - h.rest < F.length := by

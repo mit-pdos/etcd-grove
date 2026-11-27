@@ -38,7 +38,7 @@ theorem stats_open (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (E : CoPs
       (∀ s' : TxStats, tx.[Tx, go!"stats"] ↦ s' ={E \ ↑(txsN K.N), E}=∗ statsTok r m q) := by
   iintro ⟨#Hc, #Hreg, Ht⟩
   unfold BC.core isBoltCoreP
-  icases Hc with ⟨-, -, -, -, -, -, -, -, -, -, #Hinv⟩
+  icases Hc with ⟨-, -, -, -, -, -, -, -, -, -, #Hinv, -⟩
   unfold statsTok
   cases m
   · simp only [Bool.false_eq_true, ↓reduceIte]

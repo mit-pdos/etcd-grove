@@ -64,7 +64,7 @@ theorem bootstrapSnapshot.wp_proof
   · simp only [bootFs.dirFresh, backend.onFs_none hfs]
     wp_start as ⟨-, H⟩
     iexfalso; iexact H
-  simp only [bootFs.dirFresh, snapFreeAll, snapFree, backend.fileFree, snap.snapDirOwn,
+  simp only [bootFs.dirFresh, snapFreeAll, backend.fileFree, backend.fileFreeDur, snap.snapDirOwn,
     backend.onFs_some hfs]
   wp_start as ⟨#Hzlg, Hdf⟩
   icases Hdf with ⟨%R, %j, %h, ⟨%hclean, -, %hcur⟩, #Hinv, #Hsh, #Hab, Hp, Hc, Hn⟩
@@ -96,7 +96,7 @@ theorem bootstrapSnapshot.wp_proof
       hsd bootSnap.nameOk_snap Hslen (bootSnap.restrictN_none _ _ hcur _)) $$ [Hp Hc Hs]
     as %terr ⟨Hp, Hc, Hr⟩
   · iframe Hp Hc Hs; iframe #
-  icases Hr with (⟨%Hne, -⟩ | ⟨%Heq, %h', %hJ, %J, %n, ⟨%hJ1, -, %hJ3⟩, Hs, HJ, -⟩)
+  icases Hr with (⟨%Hne, -⟩ | ⟨%Heq, %h', %hJ, %J, %n, ⟨%hJ1, -, %hJ3, %hJ4⟩, Hs, HJ, #Hcm⟩)
   · obtain ⟨ti, rfl⟩ : ∃ ti, terr = GoInterface.ok ti := by
       cases terr with
       | nil => exact absurd rfl Hne
@@ -196,7 +196,7 @@ theorem bootstrapSnapshot.wp_proof
     wp_join_done
     try (ipureintro; trivial)
   -- the snapshot directory's claims
-  imod bootSnap.snapDir_carve R cfg.DataDir' J 1 1 hJ Hfits hJn $$ Hinv Hsh HpJ Hc HJ
+  imod bootSnap.snapDir_carve R cfg.DataDir' J 1 1 hJ n Hfits hJn hJ4 $$ Hinv Hsh Hcm HpJ Hc HJ
     with ⟨Hdb, ⟨%F, %hF, HF⟩, %q', %qc', %h', Hp', Hc', Hrest⟩
   -- `snap.New(cfg.Logger, cfg.SnapDir())`
   wp_apply (hSnapDir cfg_ptr DFrac.discard cfg.DataDir' Hlen) as #HDDn
@@ -211,7 +211,7 @@ theorem bootstrapSnapshot.wp_proof
   · iexists F
     iframe HF
     ipureintro
-    exact fun i _ => hF i
+    exact hF
   iexists config.snapDirOf cfg.DataDir', R, J, q', qc', h'
   iframe Hinv Hsh Hp' Hc' Hrest
   ipureintro; rfl

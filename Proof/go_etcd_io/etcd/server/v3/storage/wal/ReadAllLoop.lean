@@ -128,9 +128,17 @@ theorem readFiles_dec {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmar
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
     (hkk : kk < lay.segs.length) :
     ∀ r ∈ (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs, RecDec U r := by
-  rw [walReadFiles_running hC hab hex hwr kk hkk]
+  obtain ⟨es, -, hrun⟩ := walReadFiles_running hC hab hex hwr kk hkk
+  rw [hrun]
   intro r hr
-  exact recsOfSegs_dec hU _ _ r (List.mem_of_mem_drop hr)
+  rcases List.mem_append.1 hr with hr | hr
+  · exact recsOfSegs_dec hU _ _ r (List.mem_of_mem_drop hr)
+  · have h := mem_chainRecs hr
+    simp only [pendDs, List.mem_map, Prod.mk.injEq] at h
+    obtain ⟨e, -, h1, h2⟩ := h
+    refine ⟨fun _ => ⟨e, by rw [← h2, hU.entry]⟩, fun h => ?_, fun h => ?_⟩
+    · rw [h] at h1; simp [entryType, stateType] at h1
+    · rw [h] at h1; simp [entryType, snapshotType] at h1
 
 /-! ## The metadata records
 
@@ -202,9 +210,16 @@ theorem readFiles_md {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal}
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
     (hkk : kk < lay.segs.length) :
     ∀ r ∈ (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs, RecMd d.metadata r := by
-  rw [walReadFiles_running hC hab hex hwr kk hkk]
+  obtain ⟨es, -, hrun⟩ := walReadFiles_running hC hab hex hwr kk hkk
+  rw [hrun]
   intro r hr
-  exact recsOfSegs_md _ _ r (List.mem_of_mem_drop hr)
+  rcases List.mem_append.1 hr with hr | hr
+  · exact recsOfSegs_md _ _ r (List.mem_of_mem_drop hr)
+  · intro ht
+    have h := mem_chainRecs hr
+    simp only [pendDs, List.mem_map, Prod.mk.injEq] at h
+    obtain ⟨e, -, h1, -⟩ := h
+    rw [ht] at h1; simp [entryType, metadataType] at h1
 
 /-! ## The indices the loop writes -/
 

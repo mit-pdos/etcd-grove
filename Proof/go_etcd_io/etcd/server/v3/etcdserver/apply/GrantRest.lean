@@ -51,6 +51,33 @@ def revokeRestA (T : List w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (r :
   | .dispatched o _ => revokeRest T rq v3 o r
   | _ => r
 
+/-- **`apply.Apply` changed no model** (T10 step 2): `dispatchNoEff` over `ApplyOut`, the state `x` to
+`x'` (a skipped or rejected request has `x' = x` by `applyStep` and the `*A` functions the identity). -/
+def applyNoEff [GooseExts] (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) (T : List w64) (rs : RestM)
+    (out : ApplyOut) : Prop :=
+  x'.log = x.log ∧ x'.crev = x.crev ∧
+    revokeIdsA rq v3 out (grantIdsA rq v3 out T) = T ∧
+    ∀ t : w64, revokeRestA T rq v3 out (grantRestA t rq v3 out (restOut rq v3 out rs)) = rs
+
+theorem applyNoEff_skipped [GooseExts] {rq : IRRModel} {v3 : Bool} {x x' : ApplyKV} {T : List w64}
+    {rs : RestM} (h : applyStep rq v3 x x' .skipped) : applyNoEff rq v3 x x' T rs .skipped := by
+  obtain ⟨-, rfl⟩ := h
+  exact ⟨rfl, rfl, rfl, fun _ => rfl⟩
+
+theorem applyNoEff_rejected [GooseExts] {rq : IRRModel} {v3 : Bool} {x x' : ApplyKV} {T : List w64}
+    {rs : RestM} (h : applyStep rq v3 x x' .rejected) : applyNoEff rq v3 x x' T rs .rejected := by
+  obtain ⟨-, rfl⟩ := h
+  exact ⟨rfl, rfl, rfl, fun _ => rfl⟩
+
+theorem applyNoEff_of_dispatch [GooseExts] {rq : IRRModel} {v3 : Bool} {x x' : ApplyKV}
+    {T : List w64} {rs : RestM} {o : Outcome} {sk : Bool}
+    (h : applyStep rq v3 x x' (.dispatched o sk))
+    (hd : dispatchNoEff x.chain rq v3 x.log x.crev T rs o) :
+    applyNoEff rq v3 x x' T rs (.dispatched o sk) := by
+  obtain ⟨-, -, hl, -, hc⟩ := h
+  obtain ⟨hl', hc', hT, hr⟩ := hd
+  exact ⟨hl.trans hl', hc.trans hc', hT, hr⟩
+
 theorem revokeIdsA_nonRevoke (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
     (h : dispatchKind rq ≠ .leaseRevoke) : revokeIdsA rq v3 out L = L := by
   unfold revokeIdsA; split

@@ -44,7 +44,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specLentE (Mr : WalMarshal
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
       locks ↦* (ls ++ [lt]) ∗ fileutil.lockedFile lt f ∗ encEnv ∗
       walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗ walCutFrag (W := W) none ∗
-      walTailPE (W := W) f fd name dir γ i H md cuts o0 k }}
+      walTailPE (W := W) Mr f fd name dir γ i H md cuts o0 k }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
@@ -57,7 +57,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specLentE (Mr : WalMarshal
           (∃ d : OsFd, osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ ⌜d.ino = i⌝) ∗
           ∃ g : SegG, segRes g ∗ ⌜g.ino = i ∧ g.om.size = g.bs.length⌝) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗ walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
-          walTailPE (W := W) f fd name dir γ i H md cuts o0 k)) }}
+          walTailPE (W := W) Mr f fd name dir γ i H md cuts o0 k)) }}
 
 end spec
 

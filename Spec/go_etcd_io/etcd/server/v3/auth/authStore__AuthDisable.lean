@@ -28,7 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.AuthDisable()`** from the admin side's authority `hs`: having read the flag `en`
 (under `enabledMu`), the step `authDisableF en` (disabled and the revision bumped, or nothing).
 Three write-back tokens `Wb`: two spent by the batch transaction's `Unlock`, one by `ForceCommit`
-(auth-schema-fix F1). -/
+(auth-schema-fix F1). The
+caller's `Pre` comes back unwritten only from the return before the batch lock, already disabled
+(`en = false`). -/
 abbrev auth.authStore.AuthDisable.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF),
@@ -36,8 +38,8 @@ abbrev auth.authStore.AuthDisable.spec : Prop :=
       ⌜∀ en : Bool, stepOk M hs (stepOf (authDisableF en))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (authDisableF en))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthDisable")) (Val #()))
-  {{ RET #(); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
-      ∃ en : Bool, enabledVerdict M en ∗ adminOut M hs (stepOf (authDisableF en)) noExtra GoInterface.nil }}
+  {{ RET #(); tpAdmin st M ∗ authWR st M P f T Wb ∗
+      ∃ en : Bool, (Post ∨ (Pre ∗ ⌜en = false⌝)) ∗ enabledVerdict M en ∗ adminOut M hs (stepOf (authDisableF en)) noExtra GoInterface.nil }}
 
 end spec
 

@@ -619,6 +619,11 @@ theorem grantRest_noV3 (t : w64) (rq : IRRModel) (o : Outcome) (r : RestM) :
     grantRest t rq false o r = r := by
   unfold grantRest; rw [if_neg (fun h' => Bool.false_ne_true h'.2)]
 
+/-- **A revocation's no-lock fact** (T10 step 2, `LeaseRevoke`'s `kvPost` `N`): the outcome `o` left the
+live set `T` and the rest buckets `rs` as they were (the lease not live). -/
+def revokeNoEff (rq : IRRModel) (T : List w64) (rs : RestM) (o : Outcome) : Prop :=
+  revokeIds rq true o T = T ∧ revokeRest T rq true o rs = rs
+
 /-- An outcome that is not `.applied`: the identity. -/
 theorem grantIds_not_applied (rq : IRRModel) (v3 : Bool) (o : Outcome) (L : List w64)
     (h : ∀ log' ns, o ≠ .applied log' ns) : grantIds rq v3 o L = L := by
@@ -1790,6 +1795,13 @@ def mPost (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
   iprop(kvOwn E log ∗ chainResAny c a ∗ (Post ∨ Pre))
 
+/-- **`mPost` with the no-lock fact `φ`** (T10 step 2): the admin steps' (`AuthSteps`,
+`AuthStepsX`), whose `Pre` disjunct (returned without the batch lock) carries the store's fact
+(`err ≠ nil`, or the flag already as the step would set it), the authority's being unchanged. -/
+def mPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+    (Pre Post : IProp GF) (φ : Prop) : IProp GF :=
+  iprop(kvOwn E log ∗ chainResAny c a ∗ (Post ∨ (Pre ∗ ⌜φ⌝)))
+
 /-- **`mPre` with the backend's tokens** (strict M1, 2026-11-05, decided by the coordinator): for
 the methods whose components write the backend themselves (the lessor's grant and checkpoint, the
 alarm and auth stores), a write-back token and a reader token of the backend `B` (`bkWT`, `bkRT`,
@@ -1817,12 +1829,12 @@ def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
 
-/-- Its postcondition: `cPost v3` (`Post ∨ Pre` with `v3`, else `Pre`: no write), the reader token
-back. -/
+/-- Its postcondition: `cPost v3` (`Post ∨ (Pre ∗ ⌜φ⌝)` with `v3`, else `Pre`: no write; `φ` the
+no-lock outcome's model fact, T10 step 2), the reader token back. -/
 def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log)
-    (Pre Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post ∗ bkRTOf E)
+    (Pre Post : IProp GF) (φ : Prop) : IProp GF :=
+  iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post φ ∗ bkRTOf E)
 
 /-- **The apply thread's resources at `log` with the contract of a write with `v3`**
 (`uberApplier.Apply`'s and `dispatch`'s, strict M1, 2026-11-05: `kvOwn` with the contract at the
@@ -1834,11 +1846,16 @@ def kvOwnPre (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) 
 
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log
 it commits, and the request's class for the principal `info` (A3, `chainClass`) and its lease class
-at the owner's item map of the state before it (`chainLeaseClass`, the lease-keys plan). -/
+at the owner's item map of the state before it (`chainLeaseClass`, the lease-keys plan). The
+contract's `Pre` (no batch lock taken) comes with the no-lock outcome's model fact (T10 step 2): the
+outcome left the log, and `N oc` (the method's further fact: `LeaseRevoke`'s live set and rest
+state). `N` defaults to `fun _ => True`, which every user but the three `LeaseRevoke` specs keeps. -/
 def kvPost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (rq : IRRModel) (log : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
+    (rq : IRRModel) (log : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF)
+    (N : Outcome → Prop := fun _ => True) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗
+    (Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ N oc⌝)) ∗ chainClass E.authMode info c rq oc ∗
     chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- **A floor met** (the vertical slice's unit V2): an outcome where the backend ran (`applied`)
@@ -1849,12 +1866,14 @@ def floorOkO (F log : mvcc.Log) (oc : Outcome) : Prop :=
 
 /-- The postcondition of a KV method on `rq` with a floor `F` (unit V2): `kvPost`'s, the outcome
 meeting the floor; (auth-lease S3a, Draft rev 5 §3a, N1 (ii′)) the thread's resources at a live set
-`L` against which the outcome is lease-exact (`leaseExactL`, `kvOwnAt`). -/
+`L` against which the outcome is lease-exact (`leaseExactL`, `kvOwnAt`). The no-lock fact and its
+`N` (default `fun _ => True`) as in `kvPost`. -/
 def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
+    (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF)
+    (N : Outcome → Prop := fun _ => True) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
     (∃ L : List w64, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L) ∗
-    chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    chainRes c a info ∗ (Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ N oc⌝)) ∗ chainClass E.authMode info c rq oc ∗
     chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- `Put(r)`'s precondition: `r` is `rq`'s put `o`; (auth-lease S3a2, Draft §1) the certificate of the outcomes
@@ -1948,11 +1967,12 @@ theorem chainResAny_backend {a : GoInterface} : ⊢ chainResAny (GF := GF) .back
   iintro; iunfold chainResAny; iexists zeroValDef; simp only [chainRes]; itrivial
 
 theorem kvPostF_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
-    {rq : IRRModel} {log F : mvcc.Log} {R : Outcome → IProp GF} {Pre Post : IProp GF} :
+    {rq : IRRModel} {log F : mvcc.Log} {R : Outcome → IProp GF} {Pre Post : IProp GF}
+    {N : Outcome → Prop} :
     (∃ oc : Outcome, ⌜chainStep backendStep .backend rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
       (∃ L : List w64, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L) ∗
-      chainRes .backend a info ∗ (Post ∨ Pre)) ⊢
-      kvPostF E .backend a info rq log F R Pre Post := by
+      chainRes .backend a info ∗ (Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ N oc⌝))) ⊢
+      kvPostF E .backend a info rq log F R Pre Post N := by
   iintro ⟨%oc, %H, HR, Hkv, Hres, HPP⟩
   unfold kvPostF
   iexists oc
@@ -1980,6 +2000,13 @@ theorem mPost_backend {E : AEnv GF} {a : GoInterface} {log : mvcc.Log} {Pre Post
     kvOwn E log ∗ (Post ∨ Pre) ⊢ mPost E .backend a log Pre Post := by
   iintro ⟨Hkv, HPP⟩
   unfold mPost
+  iframe Hkv HPP
+  iapply chainResAny_backend
+
+theorem mPostF_backend {E : AEnv GF} {a : GoInterface} {log : mvcc.Log} {Pre Post : IProp GF}
+    {φ : Prop} : kvOwn E log ∗ (Post ∨ (Pre ∗ ⌜φ⌝)) ⊢ mPostF E .backend a log Pre Post φ := by
+  iintro ⟨Hkv, HPP⟩
+  unfold mPostF
   iframe Hkv HPP
   iapply chainResAny_backend
 
@@ -2121,8 +2148,9 @@ conjunct): `Compaction(cr)` for the request's `*pb.CompactionRequest` `cr` at th
 revision `rev` (`compactionIs`), admitted (`cmpAdmit`'s facts at `rev`), with the apply thread's KV
 at `log` and the critical-section contract (`mPre`: `store.Compact`'s `SetScheduledCompact` writes
 under the batch lock), and its compaction resources at `crev`: the KV and the chain's resources as
-they were, the contract's `Post` or `Pre`, the compaction resources at the revision after it
-(`cmpRevAfter crev rev` through a chain that reaches the backend), the answer (`cmpAnswerIs`).
+they were, the contract's `Post` or `Pre` (with no lock taken, the compaction revision unchanged: T10
+step 2), the compaction resources at the revision after it (`cmpRevAfter crev rev` through a chain
+that reaches the backend), the answer (`cmpAnswerIs`).
 Its proof for the backend rests on `store.Compact.spec` (F-1: no `ErrFutureRev` arm, which
 `cmpAnswerIs` has no case for). -/
 def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
@@ -2133,7 +2161,8 @@ def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
         (App (Val #(methods ai.ty go!"Compaction" ai.v)) (Val #cr))
       {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
           RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-          applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
+          applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗
+          (Post ∨ (Pre ∗ ⌜(if chainCompacts c then cmpRevAfter crev rev else crev) = crev⌝)) ∗
           cmpOwn E (if chainCompacts c then cmpRevAfter crev rev else crev) ∗
           cmpAnswerIs c crev rev resp ch trace err ∗
           (if chainCompacts c then cmpChan crev rev ch else iprop(True)) }}))
@@ -2206,11 +2235,12 @@ grant through and the lessor's condition holds at `T`; the half of the live set 
 resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's, at least the request's,
 `grantTTLOk`: the lease-expiry plan's S2–S4, Q-S6 (A-ii); review r1 F14), the ids the lessor
 ever had after it (`grantIds` of `U`: the grant's id added exactly when applied), the answer; (strict
-M1) the backend's reader token back (`mPostW`). -/
+M1) the backend's reader token back (`mPostW`), its `Pre` disjunct (no batch lock: T10 step 2) only
+at a rejection. -/
 def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : LeaseGrantModel)
     (log : mvcc.Log) (T : List w64) (rs : RestM) (U : List w64) (Pre Post : IProp GF) (resp : Loc)
     (err : GoInterface) (o : Outcome) : IProp GF :=
-  iprop(mPostW E c a log Pre Post ∗ applyErrIs err ∗
+  iprop(mPostW E c a log iprop(Pre ∗ ⌜∃ e, o = .rejected e⌝) Post ∗ applyErrIs err ∗
     -- (amendment (E), 2026-11-03) the backend's rejection is the lessor's error
     (⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs err) ∗
     ⌜chainStep backendStep c rq log o ∧ ((∃ l ns, o = .applied l ns) ↔ err = GoInterface.nil) ∧
@@ -2258,7 +2288,8 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvPost E c (.ok ai) info rq log
-            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post ∗
+            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post
+            (revokeNoEff rq T rs) ∗
             applyTok E }}) ∗
     -- (the lease-grant stage, 2.11) `LeaseGrant`
     □ (∀ (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64)
@@ -2293,7 +2324,8 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
       {{ clusterFacts E m cr r rs ∗ mPreV v3 E c (.ok ai) info log Pre Q Post ∗ E.FS ∗
           E.RO rs }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
-      {{ RET #(); mPostV v3 E c (.ok ai) info log Pre Post ∗ E.FS ∗ E.RO (cr.eff v3 rs) }}) ∗
+      {{ RET #(); mPostV v3 E c (.ok ai) info log Pre Post (cr.eff v3 rs = rs) ∗ E.FS ∗
+          E.RO (cr.eff v3 rs) }}) ∗
     -- `Apply`: the `applyFunc` under the chain's resources at the request's principal, or the
     -- auth layers' admin rejection
     □ (∀ (r : Loc) (rq : IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)

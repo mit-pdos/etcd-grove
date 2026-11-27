@@ -165,18 +165,18 @@ theorem grow_cells_in (C : CommitSt) (fl : FLPg) (b : Loc) (L lo k : Nat) (hlo :
 omit go_gctx in
 /-- A file's page-cache bytes, cut in two. -/
 theorem growBytes_app (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
-    osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊣⊢
-      osBytes (GF := GF) p.ino off dq xs ∗ osBytes (GF := GF) p.ino (off + xs.length) dq ys := by
-  unfold osBytes; exact bytesG_append _ _ _ _ _ _
+    bBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
+      bBytes (GF := GF) p off dq xs ∗ bBytes (GF := GF) p (off + xs.length) dq ys := by
+  exact bBytes_append _ _ _ _ _
 
 omit go_gctx in
 theorem growBytes_nil (p : BFile) (off : Nat) (dq : DFrac) :
-    ⊢ osBytes (GF := GF) p.ino off dq [] := by
-  unfold osBytes; exact (bytesG_nil _ _ _ _).2
+    ⊢ bBytes (GF := GF) p off dq [] := by
+  exact (bBytes_nil _ _ _).2
 
 /-- Bytes of the file `p` from `off` whose values are `n` zeros (their crash candidates any). -/
 def zBytes (p : BFile) (off n : Nat) : IProp GF :=
-  iprop(∃ xs : List ByteG, osBytes p.ino off (DFrac.own 1) xs ∗
+  iprop(∃ xs : List ByteG, bBytes p off (DFrac.own 1) xs ∗
     ⌜xs.map Prod.fst = List.replicate n (0 : w8)⌝)
 
 omit go_gctx in
@@ -246,10 +246,10 @@ theorem wBytes_grow (p : BFile) (W : List Nat) (wb : Nat → List w8) (size S : 
   refine (sep_mono .rfl (hz.trans (hsub.trans hite))).trans ?_
   unfold wBytes
   refine (BigSepL.bigSepL_sep_eqv_symm (Φ := fun _ s => iprop(if 4096 * (s + 1) ≤ size then
-      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, bBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, bBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp)))
     (Ψ := fun _ s => iprop(if q s then zSlot (GF := GF) p size s else iprop(emp)))).1.trans ?_

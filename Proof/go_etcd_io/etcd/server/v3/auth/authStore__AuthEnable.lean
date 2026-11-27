@@ -91,13 +91,13 @@ theorem auth.authStore.AuthEnable.wp_tieB
     isplitl [HA]
 
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
-    isplitl [Hcs]
-    · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hen HenQ Hca]
     · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iframe Hbe Hbeok
     iexists true
     isplitr
     · ipureintro; rfl
+    isplitl [Hcs]
+    · iapply csContract_noWriteF P f Pre Q Post (show true = true from rfl) $$ Hcs
     iframe Hev
     iunfold adminOutP
     iright
@@ -158,13 +158,13 @@ theorem auth.authStore.AuthEnable.wp_tieB
     isplitl [HA]
 
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
-    isplitl [HPost]
-    · ileft; iexact HPost
     isplitl [Hbe HT Hen HenQ Hca]
     · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iframe Hbe Hbeok
     iexists false
     isplitr
     · ipureintro; rfl
+    isplitl [HPost]
+    · ileft; iexact HPost
     iframe Hev
     iunfold adminOutP
     iright
@@ -207,13 +207,13 @@ theorem auth.authStore.AuthEnable.wp_tieB
     isplitl [HA]
 
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
-    isplitl [HPost]
-    · ileft; iexact HPost
     isplitl [Hbe HT Hen HenQ Hca]
     · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iframe Hbe Hbeok
     iexists false
     isplitr
     · ipureintro; rfl
+    isplitl [HPost]
+    · ileft; iexact HPost
     iframe Hev
     iunfold adminOutP
     iright
@@ -333,13 +333,13 @@ theorem auth.authStore.AuthEnable.wp_tieB
   isplitl [HA]
 
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
-  isplitl [HPost]
-  · ileft; iexact HPost
   isplitl [Hbe HT Hen HenQ Hca]
   · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hsnap; iframe Hbe Hbeok
   iexists false
   isplitr
   · ipureintro; rfl
+  isplitl [HPost]
+  · ileft; iexact HPost
   iframe Hev
   iunfold adminOutP
   iright

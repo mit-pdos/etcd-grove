@@ -34,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- The relation the synced oracle stores: its candidate accounts for the WAL. -/
 theorem tRelI_synced (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (d : WalDur)
     (h : tMemOk o c d) (hl : o.since.length < 2 ^ 64) (hw : tCheckWf o) :
-    WalFs.walSyncedLb (W := W) (tWalDir area) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir area) ⊢
+    WalFs.walSyncedLb (W := W) (tWalDir area) 0 d.H.length ∗ WalFs.walNamed (W := W) (tWalDir area) 0 ⊢
       tRelI (W := W) (GF := GF) area (tSynced o) (some d) := by
   iintro ⟨#Hs, #Hn⟩
   unfold tRelI

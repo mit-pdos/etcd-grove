@@ -542,6 +542,47 @@ theorem skipped_range_decLb (γ : Cluster) (l : List LogEntry) (a b : Nat) :
   intro j e h1 h2 he hc
   exact P j e (List.mem_range'_1.2 ⟨h1, by omega⟩) he hc
 
+/-- (2026-11-24, option D of `notes/raft-restart-confpoint.md`) **One membership at two points** keeps
+the configuration between them, as the node's decoder folds the committed log `ds` it handed out
+(`CfgKeep`), over some decisions recorded: what `node.ApplyConfChange`'s and `node.Advance`'s
+`confAt` premises give raft (until then the skips of `skippedIn`, `skipped_range_decLb`). -/
+theorem confAt_keep_impl (γ : Cluster) (c0 : Membership) (g : GName) (hm : ModeDec γ c0 g)
+    (ds : List EntryM) (a b : Nat) (m : Membership) (hab : a ≤ b) (hb : b ≤ ds.length) :
+    isCommittedLogLb (GF := GF) γ (strip ds) ∗ confAtU γ a m ∗ confAtU γ b m ⊢
+      ∃ M : DecMap, decLb γ.raft M ∗ ⌜CfgKeep (effDec noDec M) ds a b (stOf m)⌝ := by
+  unfold confAtU
+  iintro ⟨#Hl, ⟨%l1, %M1, #H1, #D1, %P1⟩, ⟨%l2, %M2, #H2, #D2, %P2⟩⟩
+  icases isCommittedLogLb_agree_impl γ (strip ds) l1 $$ [Hl H1] with %Hc1
+  · iframe Hl H1
+  icases isCommittedLogLb_agree_impl γ (strip ds) l2 $$ [Hl H2] with %Hc2
+  · iframe Hl H2
+  icases decLb_compat γ.raft M1 M2 $$ [D1 D2] with %Hcp
+  · iframe D1 D2
+  ihave #HU := decLb_union γ.raft M1 M2 $$ [D1 D2]
+  · iframe D1 D2
+  iexists M1 ∪ M2
+  iframe HU
+  ipureintro
+  obtain ⟨hk1, c1, g1, hm1, hf1⟩ := P1
+  obtain ⟨hk2, c2, g2, hm2, hf2⟩ := P2
+  obtain ⟨e1, -⟩ := hm1.uniq hm
+  obtain ⟨e2, -⟩ := hm2.uniq hm
+  rw [e1] at hf1
+  rw [e2] at hf2
+  have hsl : (strip ds).length = ds.length := strip_length ds
+  have hfold : ∀ (k : Nat) (l : List LogEntry) (M : DecMap), M ⊆ M1 ∪ M2 →
+      (strip ds <+: l ∨ l <+: strip ds) → k ≤ ds.length → k ≤ l.length →
+      decFold M c0 (l.take k) = some m →
+      cfgFold (effDec noDec (M1 ∪ M2)) (stOf c0) (ds.take k) = some (stOf m) := by
+    intro k l M hM hc hk hkl hf
+    rw [cfgFold_decs (M1 ∪ M2) c0 hm.valid]
+    have e : strip (ds.take k) = (strip ds).take k := by unfold strip; rw [List.map_take]
+    rw [e, take_eq_of_cmp (strip ds) l k hc (by omega) hkl, decFold_mono hM _ _ _ hf]
+    rfl
+  exact CfgKeep.of_folds hab
+    (hfold a l1 M1 (DecCompat.sub_left M1 M2) Hc1 (by omega) hk1 hf1)
+    (hfold b l2 M2 (DecCompat.sub_right Hcp) Hc2 hb hk2 hf2)
+
 /-! ## Snapshots -/
 
 theorem snapMade_elem_impl (γ : Cluster) (S : List SnapRec) (s : SnapRec) :

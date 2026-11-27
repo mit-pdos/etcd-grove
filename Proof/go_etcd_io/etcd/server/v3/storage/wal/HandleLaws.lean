@@ -38,33 +38,38 @@ theorem walOpenWF_iff (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStri
         ⧗ h.pc :=
   .rfl
 
-/-- **A length lower bound is at most the handle's history** (at an update; see the file header). -/
+/-- **A length lower bound of the handle's incarnation is at most the handle's history** (at an
+update; see the file header). -/
 theorem walHandleIn_lenLb (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (P : WalPbIn GF) (E : CoPset) (hE : ↑walN ⊆ E) (w : Loc) (dir : GoString) (h : WalHS) (n : Nat)
+    (i : Nat) (hi : h.inc = i)
     (tm : OsMeta → List ByteG → Prop := TailMeta) :
     ⊢ walAreaOk C Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      walHandleIn (W := W) P Mr w dir h tm -∗ walLenLb (W := W) w dir n -∗
+      walHandleIn (W := W) P Mr w dir h tm -∗ walLenLb (W := W) w dir i n -∗
       |={E}=> notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walHandleIn (W := W) P Mr w dir h tm ∗
         ⌜n ≤ h.H.length⌝ := by
+  subst hi
   letI := walAllG (W := W)
   iintro #Harea Hnc Hh #Hn
   unfold walAreaOk
   icases Harea with ⟨#Hinv, -⟩
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
-    %rc, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, Ht, Hrest⟩
+    %rc, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, Ht,
+    R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, Hw, Rp⟩
   unfold walTailW
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   imod walLenLb_tail_le C Mr R jr r E hE w dir h.γ
-    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) n $$ Hinv Hnc Hk [Hv] Hn
-    with ⟨Hnc, Hk, Hv, %hn⟩
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) n h.inc $$ Hinv Hnc Hk [Hv] Hw Hn
+    with ⟨Hnc, Hk, Hv, Hw, %hn⟩
   · unfold tailVar; iexact Hv
   unfold tailVar
   imodintro
   iframe Hnc
   isplitl
   · iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
-    iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 Hrest
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10
+      R11 R12 Hw Rp
     iframe Hf Hfd Hoff Hk
     iexists m, bs
     iframe Hm Hb Hv

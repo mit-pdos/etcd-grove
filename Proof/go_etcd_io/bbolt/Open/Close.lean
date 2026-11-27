@@ -61,8 +61,8 @@ theorem DB.munmap.wp_proof_none : DB.munmap.spec_none (GF := GF) (hG := hG) := b
 /-- What `close` unmaps: nothing, or a mapping of the file at `p` with its cells. -/
 def closeMapRes (p : BFile) : MapSt → IProp GF
   | none => iprop(emp)
-  | some (b, l) => iprop(∃ (m : OsMeta) (vf : Nat → val), ⌜0 < l ∧ m.maps !! b = some l⌝ ∗
-      osMeta p.ino (DFrac.own 1) m ∗ cellsR b 0 l vf)
+  | some (b, l) => iprop(∃ (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) (vf : Nat → val),
+      ⌜0 < l ∧ m.maps !! b = some l ∧ bNsOk p⌝ ∗ bCsInv p ∗ bMeta p C L m ∗ cellsR b 0 l vf)
 
 /-- `db.munmap()` of what `close` unmaps: the fields cleared, the error formattable. -/
 theorem DB.munmap.wp_closeRes (hMunmap : DB.munmap.spec (GF := GF) (hG := hG))
@@ -84,8 +84,9 @@ theorem DB.munmap.wp_closeRes (hMunmap : DB.munmap.spec (GF := GF) (hG := hG))
     unfold fmtErrorOkOrNil
     itrivial
   · simp only [closeMapRes, mapLen]
-    icases Hmr with ⟨%m, %vf, %hm, Hosm, Hc⟩
-    wp_apply hMunmap db b l lg p m vf hdb hm.1 hm.2 $$ [Hmf Hdsz Hosm Hc] as %err ⟨Hmf, Hdsz, Hr⟩
+    icases Hmr with ⟨%C, %L, %m, %vf, %hm, #Hinv, Hosm, Hc⟩
+    wp_apply hMunmap db b l lg p C L m vf hdb hm.1 hm.2.1 hm.2.2 $$ [Hmf Hdsz Hosm Hc]
+      as %err ⟨Hmf, Hdsz, Hr⟩
     · iframe; iframe #
     iapply HΦ
     iframe

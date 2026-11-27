@@ -40,15 +40,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- The ghost handle's mode set to `failed`, on the invariant's contents. -/
 theorem walInvBody_failOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (w : Loc) (dir : GoString) (sn : w64 × w64) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walOpening (W := W) w dir sn ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walReadFailed (W := W) w dir := by
+    (s : AbsDiskState) (w : Loc) (dir : GoString) (sn : w64 × w64) (ic : Nat) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walOpening (W := W) w dir sn ic ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walHandlePI (W := W) w dir ic .failed := by
   iintro Hb Ho
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
   icases (walGhost_handleAuth (W := W) s).1 $$ Hg with ⟨Ha, Hg⟩
-  unfold walOpening walReadFailed
-  imod walHandleP_set (W := W) w dir (.opening sn) .failed $$ Ha Ho with ⟨Ha, Ho⟩
+  unfold walOpening
+  imod walHandlePI_set (W := W) w dir ic (.opening sn) .failed $$ Ha Ho with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
   imodintro
   iframe Ho
@@ -57,22 +57,23 @@ theorem walInvBody_failOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr 
 
 /-- **`ReadAll` failed: the ghost handle `failed`** (see the file header). -/
 theorem walInv_failOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) (sn : w64 × w64) :
+    (w : Loc) (dir : GoString) (sn : w64 × w64) (ic : Nat) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walOpening (W := W) w dir sn ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗ walReadFailed (W := W) w dir := by
+      walOpening (W := W) w dir sn ic ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗
+        walHandlePI (W := W) w dir ic .failed := by
   iintro #Hinv Hnc Ho
-  iapply walInv_step C Mr R jr r (walOpening (W := W) w dir sn) (walReadFailed (W := W) w dir) ⊤
+  iapply walInv_step C Mr R jr r (walOpening (W := W) w dir sn ic) (walHandlePI (W := W) w dir ic .failed) ⊤
     CoPset.subseteq_top (fun s => by
       iintro Hb Ho
-      imod walInvBody_failOpening C Mr R jr r s w dir sn $$ Hb Ho with ⟨Hb, Ho⟩
+      imod walInvBody_failOpening C Mr R jr r s w dir sn ic $$ Hb Ho with ⟨Hb, Ho⟩
       imodintro
       iframe)
     $$ Hinv Hnc Ho
 
 /-- **The client's update committed with nothing changed** (see the file header). -/
-theorem walAu_same (dir : GoString) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) :
-    ⊢ (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir d, COMM Q d }>) ={⊤}=∗ ∃ d, Q d ∗ ⌜Pre d⌝ := by
+theorem walAu_same (dir : GoString) (ic : Nat) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) :
+    ⊢ (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir ic d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir ic d, COMM Q d }>) ={⊤}=∗ ∃ d, Q d ∗ ⌜Pre d⌝ := by
   iintro Hau
   ihave Hau := atomic_update_mask_weaken walAuMask_sub_top' $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
@@ -101,17 +102,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- **An error exit of `ReadAll`** (see the file header): before the code `e` that returns the
 error, the update committed unchanged and the ghost handle `failed`. -/
 theorem readAll_failWp (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) (sn : w64 × w64) (Pre : WalDur → Prop) (Q : WalDur → IProp GF)
+    (w : Loc) (dir : GoString) (sn : w64 × w64) {ic : Nat} (Pre : WalDur → Prop) (Q : WalDur → IProp GF)
     (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) :
-    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn -∗
-      (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir d, COMM Q d }>) -∗
-      (∀ d, Q d -∗ walReadFailed (W := W) w dir -∗ WP e {{ Φ }}) -∗ WP e {{ Φ }} := by
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn ic -∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir ic d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir ic d, COMM Q d }>) -∗
+      (∀ d, Q d -∗ walHandlePI (W := W) w dir ic .failed -∗ WP e {{ Φ }}) -∗ WP e {{ Φ }} := by
   iintro #Hinv Ho Hau Hk
   iapply wp_notCrashed_acc _ _ h
   iintro Hnc
-  imod walInv_failOpening (L := hG.goose_localGS) C Mr R jr r w dir sn $$ Hinv Hnc Ho with ⟨Hnc, Hf⟩
-  imod walAu_same dir Pre Q $$ Hau with ⟨%d, HQ, -⟩
+  imod walInv_failOpening (L := hG.goose_localGS) C Mr R jr r w dir sn ic $$ Hinv Hnc Ho with ⟨Hnc, Hf⟩
+  imod walAu_same dir ic Pre Q $$ Hau with ⟨%d, HQ, -⟩
   imodintro
   iframe Hnc
   iapply Hk $$ HQ Hf

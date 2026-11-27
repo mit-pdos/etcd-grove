@@ -18,6 +18,7 @@ public import Perennial.GooseLang.Receipts
 public import Proof.os.Base
 public import Perennial.Ghost.DGhostVar
 public import GooseLang.Ext.Fs.FsNoErr
+public import Proof.go_etcd_io.bbolt.Inv.BFile
 
 @[expose] public section
 
@@ -101,18 +102,12 @@ def metaCellsQ (q : Qp) (ms : MapSt) (C : CommitSt) : IProp GF :=
       bytesPointsto (base +ₗ (4096 : Int)) (DFrac.own q) C.m1)
   | none => iprop(emp)
 
-/-- **The database's file** (the port onto the per-byte extension, 2026-11-12): its path (`db.path`,
-the `*os.File`'s name, `fileOwn`) and its inode (every file resource: `osMeta`, `osBytes`, `osFd`).
-One record, so that the invariants keep one file parameter. -/
-structure BFile where
-  path : GoString
-  ino : Ino
-deriving Inhabited
+-- `BFile` (the database's file): `Inv/BFile.lean` (W1: with its crash names).
 
 /-- A share of the meta slots' page-cache bytes, holding `C`'s metas (their crash candidates
 any). -/
 def metaOsBytes (p : BFile) (dq : DFrac) (C : CommitSt) : IProp GF :=
-  iprop(∃ xs : List ByteG, osBytes p.ino 0 dq xs ∗ ⌜xs.map Prod.fst = C.m0 ++ C.m1⌝)
+  iprop(∃ xs : List ByteG, bBytes p 0 dq xs ∗ ⌜xs.map Prod.fst = C.m0 ++ C.m1⌝)
 
 /-- The `*os.File` `f` is open on `fd`, named `name` (`os.ownFile`'s body, `fileOwn_eq`). -/
 def fileOwn (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
@@ -130,11 +125,60 @@ theorem fileOwn_eq [os.Assumptions] (f : Loc) (fd : w64) (name : GoString) (dq :
 file-lock semantics of 2026-11-15): readable, writable, no OFD lock, `flock`'s exclusive lock. -/
 abbrev dbFd (i : Ino) : OsFd := ⟨i, true, true, none, some true⟩
 
+/-- **The sync options crash mode rests on** (W1): in a crash invariant (`p.cs = some _`), `NoSync`
+and `NoGrowSync` are off (`Open` chooses crash mode only then), so every commit and `grow` syncs. -/
+def bSyncs (db : Loc) (p : BFile) : IProp GF :=
+  match p.cs with
+  | none => iprop(True)
+  | some _ => iprop(db.[DB, go!"NoSync"] ↦□ false ∗ db.[DB, go!"NoGrowSync"] ↦□ false)
+
+omit go_gctx hos sem in
+instance bSyncs_persistent (db : Loc) (p : BFile) : Persistent (bSyncs (GF := GF) db p) := by
+  unfold bSyncs; cases p.cs <;> dsimp only <;> infer_instance
+
+theorem bSyncs_none {p : BFile} (h : p.cs = none) (db : Loc) : ⊢ bSyncs (GF := GF) db p := by
+  unfold bSyncs; rw [h]; exact true_intro
+
+theorem bSyncs_some (db : Loc) {p : BFile} {c : CsN} (h : p.cs = some c) :
+    bSyncs (GF := GF) db p ⊢
+      db.[DB, go!"NoSync"] ↦□ false ∗ db.[DB, go!"NoGrowSync"] ↦□ false := by
+  unfold bSyncs; rw [h]
+
+/-- **In crash mode `NoGrowSync` is off**: what holds given `NoGrowSync ↦□ false` holds. -/
+theorem bSyncs_ng (db : Loc) (p : BFile) (P : Prop) :
+    bSyncs (GF := GF) db p ⊢ (db.[DB, go!"NoGrowSync"] ↦□ false -∗ ⌜P⌝) -∗ ⌜p.cs ≠ none → P⌝ := by
+  iintro #Hs H
+  cases hc : p.cs with
+  | none => ipureintro; exact fun h => absurd rfl h
+  | some c =>
+    icases bSyncs_some db hc $$ Hs with ⟨-, #Hng⟩
+    ihave %hP := H $$ Hng
+    ipureintro; exact fun _ => hP
+
+/-- **In crash mode `NoSync` is off.** -/
+theorem bSyncs_ns (db : Loc) (p : BFile) (b : Bool) :
+    bSyncs (GF := GF) db p ⊢ db.[DB, go!"NoSync"] ↦□ b -∗ ⌜p.cs ≠ none → b = false⌝ := by
+  iintro #Hs #Hb
+  cases hc : p.cs with
+  | none => ipureintro; exact fun h => absurd rfl h
+  | some c =>
+    icases bSyncs_some db hc $$ Hs with ⟨#Hns, -⟩
+    ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hb
+    ipureintro; exact fun _ => Heq.symm
+
 /-- The `path` field, with the token of the exclusive `flock` lock the database's descriptor `fd`
 holds (`Open`'s `flock`), which `close` gives back to `funlock` and `File.Close` (`lockToks`). The
-token rides with the field, which only `Open`, `close` and the remaps touch. -/
+token rides with the field, which only `Open`, `close` and the remaps touch; so do the sync options
+of crash mode (`bSyncs`, W1), for the writer side's commits and `grow`. -/
 def dbPathLk (db : Loc) (p : BFile) (fd : w64) : IProp GF :=
-  iprop(db.[DB, go!"path"] ↦ p.path ∗ osLock .flock p.ino fd)
+  iprop(db.[DB, go!"path"] ↦ p.path ∗ osLock .flock p.ino fd ∗ bSyncs db p)
+
+/-- The sync options, from the writer side's `path` field. -/
+theorem dbPathLk_syncs (db : Loc) (p : BFile) (fd : w64) :
+    dbPathLk (GF := GF) db p fd ⊢ dbPathLk db p fd ∗ bSyncs db p := by
+  unfold dbPathLk
+  iintro ⟨Hp, Ht, #Hs⟩
+  iframe; iframe #
 
 /-- The tokens of `dbFd`'s locks are the `flock` token. -/
 theorem dbFd_lockToks (i : Ino) (fd : w64) :
@@ -192,8 +236,9 @@ def fltxAuth (B : BNs) (F : GMap Nat w64) : IProp GF :=
 def spareTok (B : BNs) : IProp GF := iprop(ghostVar B.spr (1 : Qp).half (none : Option Nat))
 
 /-- **`metalock`'s resource**: half of the committed state and a quarter of the data, the
-closed flag, halves of `opened`/`freelist`/`ops.writeAt`, half of the meta slots' page-cache
-bytes (while open), the meta-borrow token `mlk`, the readers' txids `F` with the freelist's
+closed flag, halves of `opened`/`freelist`/`ops.writeAt`, the meta-borrow token `mlk` (W1: the
+meta slots' page-cache bytes are the writer side's whole, `wdbCoreG`: only writer-side code writes
+or syncs them; readers copy the metas from the mapped cells, `meta_take`), the readers' txids `F` with the freelist's
 reader part, the persistent time receipt of the committed txid (session bbolt-inv: at least that
 many counted steps were taken, so the txid is below `receiptBound GF ≤ 2 ^ 62`, what `fileHolds`
 and `boltImage` ask of a file's txid when `Close` and `Tx.WriteTo` give one out; `Commit`'s meta
@@ -202,12 +247,11 @@ high-water mark's pages inside `maxMapSize`, what a reader's `Tx.WriteTo` image 
 (U3 finding 6: `ReleasePendingPages` computes `t - 1` of each, which wraps at 0). -/
 def metaR (B : BNs) (db : Loc) (p : BFile) : IProp GF :=
   iprop(∃ (C : CommitSt) (F : GMap Nat w64) (cl : Bool) (fli : GoInterface) (wa : GoFunc),
-    ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
+    ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C, C.txid) ∗
     ghostVar B.cls (1 : Qp).half.half cl ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} (!cl) ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
-    (if cl then iprop(emp) else metaOsBytes p (DFrac.own (1 : Qp).half) C) ∗
     ghostVar B.mlk 1 () ∗ fltxAuth B F ∗ flRoOpt fli F ∗ ⧖ C.txid ∗
     ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid ∧ C.hwm * 4096 ≤ 0xFFFFFFFFFFFF⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid⌝)
 
@@ -287,10 +331,10 @@ def wCells (ms : MapSt) (W : List Nat) : IProp GF :=
 last slot's too (batch 9: a file truncated to `growSize + AllocSize` need not end on a page). -/
 def wBytes (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IProp GF :=
   iprop([∗list] s ∈ W, if 4096 * (s + 1) ≤ size then
-    iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp))
 
@@ -298,7 +342,7 @@ def wBytes (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IPro
 freelist page's, which the store holds the other half of while the page is the committed state's
 and not freed, `flxS`). -/
 def osSlotH (p : BFile) (s : Nat) (bs : List w8) : IProp GF :=
-  iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
+  iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
     ⌜xs.map Prod.fst = bs⌝)
 
 /-- The `W` slots `W` but `X` (as `wBytes`), and half of the slots `X`' bytes (session S4: `X` the
@@ -376,9 +420,9 @@ def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w
     dbPathLk db p w.fd ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
     mapFields db (DFrac.own mq) w.ms ∗
-    osMeta p.ino (DFrac.own 1) w.m ∗ fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
+    bMeta p w.C [] w.m ∗ fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
     osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) ∗
-    metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
+    metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own 1) w.C ∗
     wCells w.ms w.W ∗ wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size ∗
     (match w.junk with
      | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true ∗
@@ -393,7 +437,7 @@ def wdbCore (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
 freelist object but its reader part, the spare reader-token pair, and the receipts
 `⧗ (C.txid - t0)`. -/
 def wdbOwn (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (w : WDb) : IProp GF :=
-  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
     flPgOwn w.fli w.fl ∗ sparePair B db sp ∗ receipt (w.C.txid - t0))
 
 /-- **A live writer's database side** (in its exclusive part, `txExcl`): `db.rwtx` is the
@@ -406,7 +450,7 @@ def wdbLive (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (w
 /-- **`Open`'s writer side before `loadFreelist`** (design §3.11, core phase): `wdbCore` and the
 data's quarter, with no freelist (`fl = ∅`, `db.freelist` nil). -/
 def wdbOpen (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
-  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
     ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
 
 /-- **A closed database's writer side**: the other halves of the ghost state and of the fields
@@ -415,7 +459,7 @@ and deposits it here, so that its holder knows the database open). -/
 def closedR (B : BNs) (db : Loc) : IProp GF :=
   iprop(ghostVar B.cls (1 : Qp).half true ∗
     ghostVar B.clo 1 () ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
-    ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
+    ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C, C.txid) ∗
     ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
     mapFields db (DFrac.own (1 : Qp).half) ms ∗
     ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half wIdle ∗

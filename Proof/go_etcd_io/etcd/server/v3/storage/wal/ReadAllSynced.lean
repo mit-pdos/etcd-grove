@@ -28,44 +28,58 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics] [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-/-- A past state is below the invariant's. -/
-theorem walInvBody_pastLe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s p : AbsDiskState) :
-    ⊢ walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s -∗ walPast (W := W) p -∗
-      walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ∗ ⌜absLe p s⌝ := by
-  iintro Hb #Hp
+/-- A past state at the opening handle's incarnation is below the invariant's at `dir`
+(`walOpening_pastCur`). -/
+theorem walInvBody_pastCur (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s p : AbsDiskState) (I0 : GMap GoString Nat) (w : Loc) (dir : GoString) (sn : w64 × w64) (ic : Nat)
+    (hI0 : incOf I0 dir = ic) :
+    ⊢ walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s -∗ walOpening (W := W) w dir sn ic -∗
+      walPastI (W := W) (p, I0) -∗
+      walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ∗ walOpening (W := W) w dir sn ic ∗
+      ⌜∀ d, p.wal !! dir = some d → ∃ d', s.wal !! dir = some d' ∧ d.m ≤ d'.m ∧
+        d.H.length ≤ d'.H.length ∧ (d.named = true → d'.named = true)⌝ := by
+  iintro Hb Ho #Hp
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
-  icases walPast_ghost_le s p $$ Hg Hp with %Hle
+  iunfold walGhost at Hg
+  icases Hg with ⟨%Ig, Hg⟩
+  icases walOpening_pastCur s Ig w dir sn ic p I0 hI0 $$ Hg Ho Hp with ⟨Hg, Ho, %hc⟩
+  ihave Hg := walGhostI_ghost s Ig $$ Hg
+  iframe Ho
   isplitl
   · iexists Ls, cl, n, F; iframe
-  · ipureintro; exact Hle
+  · ipureintro; exact hc
 
 /-- The synced mark is monotone in its bound. -/
-theorem walSyncedLb_le (dir : GoString) {n n' : Nat} (h : n' ≤ n) :
-    walSyncedLb (W := W) dir n ⊢ walSyncedLb (W := W) dir n' := by
+theorem walSyncedLb_le (dir : GoString) {i n n' : Nat} (h : n' ≤ n) :
+    walSyncedLb (W := W) dir i n ⊢ walSyncedLb (W := W) dir i n' := by
   unfold walSyncedLb
-  iintro ⟨%s, %d, #Hp, %hd⟩
-  iexists s, d
+  iintro ⟨%s, %I, #Hp, %hd⟩
+  iexists s, I
   iframe Hp
-  ipureintro; exact ⟨hd.1, Nat.le_trans h hd.2⟩
+  ipureintro
+  rcases hd with ⟨hi, d, hd1, hd2⟩ | hlt
+  · exact Or.inl ⟨hi, d, hd1, Nat.le_trans h hd2⟩
+  · exact Or.inr hlt
 
 /-- **The tail record's history is the WAL's** (see the file header): every past state's history of
 the WAL is at most as long. -/
 theorem walInv_tailH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) (i : Ino) (H : List (WalOpG WalEnt))
     (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8)
-    (tm : Fs.OsMeta → List Fs.ByteG → Prop) (s1 : AbsDiskState) :
+    (tm : Fs.OsMeta → List Fs.ByteG → Prop) (s1 : AbsDiskState) (w : Loc) (sn : w64 × w64) (ic : Nat)
+    (I1 : GMap GoString Nat) (hI1 : incOf I1 dir = ic) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walPast (W := W) s1 -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walPastI (W := W) (s1, I1) -∗
+      walOpening (W := W) w dir sn ic -∗
       walTailW (W := W) f fd name dir γ i H md cuts o0 sz out tm ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walOpening (W := W) w dir sn ic ∗
       walTailW (W := W) f fd name dir γ i H md cuts o0 sz out tm ∗
       ⌜∀ d1, s1.wal !! dir = some d1 → d1.H.length ≤ H.length⌝ := by
-  iintro #Hinv Hnc #Hp Htw
+  iintro #Hinv Hnc #Hp Ho Htw
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_pastLe C Mr R jr r s s1 $$ Hb Hp with ⟨Hb, %Hle⟩
+  icases walInvBody_pastCur C Mr R jr r s s1 I1 w dir sn ic hI1 $$ Hb Ho Hp with ⟨Hb, Ho, %Hle⟩
   unfold walTailW
   icases Htw with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hby, %hp, Hv⟩
   ihave Hk : walTailKeyL (W := W) dir γ none $$ [Hk]
@@ -85,7 +99,7 @@ theorem walInv_tailH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
   imodintro
-  iframe Hnc
+  iframe Hnc Ho
   ihave Hk : walTailKey (W := W) dir γ $$ [Hk]
   · rw [← walTailKeyL_none]; iexact Hk
   isplitl
@@ -99,7 +113,7 @@ theorem walInv_tailH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
     unfold tailVar; iexact Hv
   · ipureintro
     intro d1 hd1
-    obtain ⟨d', hd', -, hlen, -⟩ := Hle.2.2 dir d1 hd1
+    obtain ⟨d', hd', -, hlen, -⟩ := Hle d1 hd1
     rw [hd] at hd'
     cases hd'
     have hH : d.H = H := by

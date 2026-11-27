@@ -43,7 +43,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (P : WalPbIn GF)
   {{ (err : GoInterface), RET #err;
       ⌜err = GoInterface.nil⌝ ∗ walHandleIn P Mr w dir
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) } ∗
-          WalFs.walSyncedLb dir h.H.length }}
+          WalFs.walSyncedLb dir h.inc h.H.length }}
 
 /-- **`w.sync()` after `Close` closed the pipeline, with no I/O error** (`sync.specC`'s success arm,
 always; see the file header). -/
@@ -58,7 +58,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCNoErr (P : WalPbIn GF
       ⌜err = GoInterface.nil⌝ ∗ walHandleC P Mr w dir j
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
           TailMetaS nmd nf ∗
-          WalFs.walSyncedLb dir h.H.length }}
+          WalFs.walSyncedLb dir h.inc h.H.length }}
 
 end spec
 

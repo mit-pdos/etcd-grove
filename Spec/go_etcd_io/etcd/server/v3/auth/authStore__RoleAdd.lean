@@ -33,7 +33,7 @@ abbrev auth.authStore.RoleAdd.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (roleAddF name))⌝ ∗ capNextM M hs (stepOf (roleAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleAdd")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthRoleAddResponse resp err ∗ adminOut M hs (stepOf (roleAddF name)) noExtra err }}
 
 end spec

@@ -198,7 +198,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
           kvPostFL E c (.ok ai) info rq log []
             (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post
             (authOutLL E.authMode hs (auth.authInfoM info) ci rq log []
-              (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) }}))
+              (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) (revokeNoEff rq T rs) }}))
 
 instance applierKVL_persistent (E : AEnv GF) (c ci : Chain) (a : GoInterface)
     (L : List auth.AuthState → IProp GF) : Persistent (applierKVL E c ci a L) := by
@@ -248,7 +248,9 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter log) ∗
         apply.ltHalf E (apply.revokeIds rq v3 o T) ∗
-        E.RO (apply.revokeRest T rq v3 o (apply.restAfter rq v3 rs)) ∗ apply.cPost v3 Pre Post ∗
+        E.RO (apply.revokeRest T rq v3 o (apply.restAfter rq v3 rs)) ∗
+        apply.cPost v3 Pre Post (o.logAfter log = log ∧ apply.revokeIds rq v3 o T = T ∧
+          apply.revokeRest T rq v3 o (apply.restAfter rq v3 rs) = rs) ∗
         ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧
           apply.kvFloorOk rq v3 F log o ∧ a' = a ∧ c' = c⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode info c rq o) ∗
@@ -468,7 +470,13 @@ local macro "fin_kvL" : tactic => `(tactic| (
   isplitl [HRO]
   · rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]; iexact HRO
   isplitl [HPP]
-  · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+  · simp only [apply.cPost, ↓reduceIte]
+    icases HPP with (HP | ⟨HP, %hN⟩)
+    · ileft; iexact HP
+    · iright; iframe HP; ipureintro
+      refine ⟨hN.1, apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk]), ?_⟩
+      rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]
+      exact apply.restAfter_other _ _ _ (by first | assumption | simp_all) (by first | assumption | simp_all)
   isplitr
   · ipureintro
     refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
@@ -696,7 +704,9 @@ theorem apply.uberApplier.dispatch.wp_kvL
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗
           apply.ltHalf E (apply.revokeIds rq true o T) ∗
-          E.RO (apply.revokeRest T rq true o (apply.restAfter rq true rs)) ∗ apply.cPost true Pre Post ∗
+          E.RO (apply.revokeRest T rq true o (apply.restAfter rq true rs)) ∗
+          apply.cPost true Pre Post (o.logAfter log = log ∧ apply.revokeIds rq true o T = T ∧
+            apply.revokeRest T rq true o (apply.restAfter rq true rs) = rs) ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
@@ -732,8 +742,10 @@ theorem apply.uberApplier.dispatch.wp_kvL
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
-    · iright; iexact HPre
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ True⌝)) $$ [HPre]
+    · iright; iframe HPre; ipureintro
+      refine ⟨apply.chainStep_logAfter_of rq log (fun o h => ?_) c oc Hst, trivial⟩
+      simp only [apply.backendStep, hk] at h; subst h; rfl
     fin_kvL
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zRange : rq.range = none := nRa.1 (by simpa using Hif)
@@ -936,7 +948,14 @@ theorem apply.uberApplier.dispatch.wp_kvL
     iexists (GoInterface.ok ai), c, oc
     iframe Ha Hs Hkv HLt HRO
     isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    · simp only [apply.cPost, ↓reduceIte]
+      icases HPP with (HP | ⟨HP, %hN⟩)
+      · ileft; iexact HP
+      · iright; iframe HP; ipureintro
+        have hra := apply.restAfter_other rq true rs (by first | assumption | simp_all) (by first | assumption | simp_all)
+        obtain ⟨h1, h2, h3⟩ := hN
+        rw [hra] at h3 ⊢
+        exact ⟨h1, h2, h3⟩
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, by simp [apply.kvFloorOk, apply.isFloorKind, hk], rfl, rfl⟩

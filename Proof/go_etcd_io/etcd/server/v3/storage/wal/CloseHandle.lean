@@ -57,7 +57,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 (`emp` for `Create`'s cleanup, `WAL.Close.spec` (state `unnamed`)). -/
 def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta)
-    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir)
+    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir h.inc)
     (nf : Option GoString := none) :
     IProp GF :=
   letI := walAllG (W := W)
@@ -70,7 +70,7 @@ def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j 
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ mds ∗
     recBytes mds (some h.md) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
-    P.hsIn sp h.st ∗
+    walStIn P Mr sp h.st h.stNil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦ GoInterface.nil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗
@@ -81,14 +81,14 @@ def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j 
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc lfs.dropLast h.cuts (nmd f) nf ∗
+    walDirH (W := W) dir h.inc j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp (nmd f) nf ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" w ↦□ (null : Loc) ∗
     fileutil.lockedFile lt f ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
     encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    walOpenW (W := W) w dir ∗
+    walOpenWI (W := W) w dir h.inc ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
       ((h.rest = 0 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi)) ∧
         walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi) ∧
@@ -105,7 +105,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- **`Close`'s put-back** (see the file header), at a program step (`notCrashed`): the WAL in `dir`
 with its tail `ino` (record `γ`, every record written, `wr` the tail stream's end, no write in flight;
 the program's halves of its `OsMeta` and bytes, synced: `TailMetaS`), the directory's claim's half and
-key, the pipeline names' claims (`b`, `b'`: the pipeline's leftover name and the one the handle kept,
+key (at the handle's incarnation `i`), the pipeline's key (`walPipeKey`, from `pipeLeft`: the pipeline reserve
+goes back with the names), the pipeline names' claims (`b`, `b'`: the pipeline's leftover name and the one the handle kept,
 both of `walTmps`), the record of what is out, the lock holder's halves (the tails' authority with
 this tail, no registration pending), the ghost handle with the lock token (`walOpenW`), the purge right
 and the history synced; the client's update. Gives the update's `Q d` (committed unchanged), the
@@ -116,20 +117,21 @@ written) and `TailMetaS m bs` (synced: `lo = size = hi`, every byte durable) giv
 def WalCloseLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
   ∀ (w : Loc) (dir : GoString) (γ γt : GName) (ino j : Ino) (X : List GoString) (hj : NamesH)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (m : OsMeta)
-    (bs : List ByteG) (b b' : GoString) (Q : WalDur → IProp GF),
+    (bs : List ByteG) (b b' : GoString) (Q : WalDur → IProp GF) (i : Nat),
   TailMetaS m bs → wr = (tailStream Mr H md cuts).length → b ∈ walTmps → b' ∈ walTmps →
   ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
     walTailKey (W := W) dir γ -∗ tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
     osMeta (L := L) ino (DFrac.own (1 : Qp).half) m -∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs -∗
-    walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
+    walDirKey (W := W) dir i j X -∗ walPipeKey (W := W) dir j -∗
+    osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
     tmpClaim (hG := ⟨G, L⟩) j b -∗ tmpClaim (hG := ⟨G, L⟩) j b' -∗
     walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
     walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗ walNamesFrag (W := W) none -∗
-    walOpenW (W := W) w dir -∗ walPurgeW (W := W) w dir -∗ walSyncedLb (W := W) dir H.length -∗
-    (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d }> @ walAuMask, ∅
-      <{ walDiskAt (W := W) dir d, COMM Q d }>) ={⊤}=∗
+    walOpenWI (W := W) w dir i -∗ walPurgeW (W := W) w dir -∗ walSyncedLb (W := W) dir i H.length -∗
+    (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir i d }> @ walAuMask, ∅
+      <{ walDiskAtI (W := W) dir i d, COMM Q d }>) ={⊤}=∗
     notCrashed (hC := L.goose_crashGS) ∗
-      ∃ d, Q d ∗ walSyncedLb (W := W) dir d.H.length ∗ walUnlockedTok (W := W)
+      ∃ d, Q d ∗ walSyncedLb (W := W) dir i d.H.length ∗ walUnlockedTok (W := W)
 
 end law
 

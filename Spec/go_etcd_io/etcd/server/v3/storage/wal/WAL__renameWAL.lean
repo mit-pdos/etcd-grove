@@ -6,7 +6,7 @@ SegmentSizeBytes)` and `w.dirFile, err = fileutil.OpenDir(w.dir)`. A failed rena
 `renameWALUnlock` (`os.Rename`'s errors are all `*os.LinkError`); the premise that the file system does not
 fail on the WAL's name and that both names fit (`FsNoErrOn (· = child r nm) ∧ PathFits …`, with
 `os.Rename.specDirSnc`'s error witness) makes that branch unreachable (ledger 2026-11-21: `renameWALUnlock.spec`
-was false as stated). Arm 2 of the post (the retry's reopened WAL) is therefore never taken.
+was false as stated). The post has no arm for the retry's reopened WAL.
 
 Generic in the update, as `os.Rename.specDirSnc` is: `Create` builds it (`walCreate_osAUnc`, result
 `walCreateQ`); the spec needs of it only that an aborted update's result `U none` rebuilds it (for
@@ -34,29 +34,18 @@ failed so the locks stayed open, or `OpenDir` failed after a committed rename) o
 `Close` (`walLockLeft`: then a second close, `os.File.Close.specClosed`).
 
 *Post* (`renameWALPost`): the spine to the area back, and
-1. *committed, `w` returned*: the update's result, `SpR`, `w`'s fields, the lock file and the encoder,
+1. *committed, `w` returned*: the update's result once the pipeline has its share (`UH`), `SpR`, `w`'s fields, the lock file and the encoder,
    the pipeline in `w.fp` (non-nil; `isFilePipe`, `pipeMain γ 0`, the handle's `1.tmp` claim), the directory
    open in `w.dirFile` (`osDirFdS … .idle`), a spine to `dir`, three quarters of the call permission
    (the pipeline holds the other: a quarter goes to the handle, the half to the client, ledger
    2026-11-14);
-2. *committed, a reopened WAL returned* (`renameWALUnlock`'s retry, then `Open`/`ReadAll`): the
-   reopened WAL as the handle before naming (`walOpenWFU`, `Handle.lean`: what `Create` builds from
-   arm 1 too, so that the two arms converge before the parent's fsync; its name not registered and its two
-   paths to `dir`, the handle's and the pipeline's, pinned at the spine law's roots and fraction `dq`:
-   design P, `notes/wal-units/create.md`; its tail file `tf` the reopened one), the caller's segment file
-   `f` as the retry's `w.Close()` left it (`walLockLeft`: closed, or open when its sync failed; `Create`'s
-   deferred `f.Close()` runs on it after a cleanup), its purge right, the half of
-   the call permission the handle and its pipeline do not hold, and the
-   caller's residue `UH x` (the update's result and `SpR` less what the reopened handle holds; a
-   parameter, `Create`'s `createUH`). Restated 2026-11-14 (ledger, twenty-second W4 session): the
-   arm returned `U (some x) ∗ SpR x ∗ walOpenWF … ∗ walNamed dir`, contradictory for `Create` (the
-   result and the handle both hold the lock token) and unprovable (`walNamed` needs the parent's
-   fsync). `renameWALUnlock`'s proof will need a `RenameWALOk` law from `U (some x) ∗ SpR x` to
-   `UH x` and the reopen's resources (to design with its `Open`/`ReadAll` variants);
+2. (*committed, a reopened WAL returned*, `renameWALUnlock`'s retry: **dropped** 2026-11-25, P6b, ledger
+   "wal.Create, WAL.renameWAL, the WAL's facts": unreachable under the premise above, and it would oblige
+   `Create` to name the reopened handle's incarnation);
 3. *not committed, an error*: everything back but `w`'s fields (perhaps not), the lock file open or
    closed;
 4. *committed, an error* (`OpenDir` failed, the rename failed after taking effect, or the retry's
-   `Open`/`ReadAll` failed): the result, `SpR`, half the call permission, the lock file open or closed.
+   `Open`/`ReadAll` failed): `UH`, `SpR`, half the call permission, the lock file open or closed.
 
 The two spines to `dir` are not returned (one stays with the pipeline, which `renameWAL` starts and an
 error leaves running): their fractions of the area's spine are the invariant's lend
@@ -91,19 +80,22 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 `2^59`: `newFilePipeline`'s paths); `nm.tmp`
 (`tmp`) holding `J` and `nm` absent in the creating claim `(jr, N, h)`, both names of it; the spine
 law (`Sp` and the program's half of the claim after the rename give two spines to `dir` and `SpR`, and
-the WAL invariant with the new WAL's key, which the pipeline keeps: `newFilePipeline`); an
+the WAL invariant and the new WAL's key with the pipeline's eighth of the incarnations (`walPipeKey`), which
+the pipeline keeps: `newFilePipeline`; the update's result `U (some x)` is consumed and `UH x` returned, the
+result once the pipeline has its share: ledger 2026-11-25, "the spine law cannot give the pipeline its
+eighth"); an
 aborted update's result rebuilds the update. -/
 def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH)
     (lb : Nat) (dq : DFrac) (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
-    (SpR : Nat × Nat → IProp GF) : Prop :=
+    (SpR UH : Nat × Nat → IProp GF) : Prop :=
   InArea r dir nm ∧ dir.length < 2 ^ 59 ∧ NameOk nm ∧ NameOk tmp ∧ tmp ≠ nm ∧ N.Mem nm ∧ N.Mem tmp ∧
   h.cur !! tmp = some (.dir J) ∧ h.cur !! nm = none ∧
   (⊢ ∀ x : Nat × Nat, Sp -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ U (some x) -∗
       renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ U (some x) ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ UH x ∗
       osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x ∗
-      (∃ (C : WalCodec) (Mr : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
-        walInv (W := W) C Mr R jr' r' ∗ walDirKey (W := W) dir J X)) ∧
+      (∃ (C : WalCodec) (Mr : WalMarshal) (jr' : Ino) (r' : GoString),
+        walInv (W := W) C Mr R jr' r') ∗ walPipeKey (W := W) dir J) ∧
   (⊢ U none -∗ osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
       (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb) U)
 
@@ -128,20 +120,17 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
   iprop(osPathS R r (DFrac.own qp) jr ∗
     ((⌜err = interface.nil ∧ w' = w⌝ ∗
         ∃ (x : Nat × Nat) (fp : Loc) (γ : PipeNames) (sz : w64) (df : Loc) (dfd : w64),
-        ⌜fp ≠ null⌝ ∗ U (some x) ∗ SpR x ∗ walPreIn w lg dir mds md e lt f snapi enti ∗
+        ⌜fp ≠ null⌝ ∗ UH x ∗ SpR x ∗ walPreIn w lg dir mds md e lt f snapi enti ∗
         walLockIn e f fd fname d c off ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗
         isFilePipe fp γ R dir dq J sz ∗ pipeMain γ 0 ∗ tmpClaim J (pipeTmp 1) ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
         os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd J .idle ∗ osPathS R dir dq J ∗
         osCallPerm (callKey R r) (1 : Qp).half.half ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
-     (⌜err = interface.nil⌝ ∗ ∃ (x : Nat × Nat) (qd : Qp) (tf : Loc), ⌜dq = DFrac.own qd⌝ ∗ UH x ∗
-        walOpenWFU P Mr w' dir R qd tf ∗ walLockLeft f fd fname d ∗
-        WalFs.walPurgeW w' dir ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
      (⌜err ≠ interface.nil⌝ ∗ U none ∗ osNames jr N (DFrac.own (1 : Qp).half) h ∗ osCallPerm (callKey R r) 1 ∗
         Sp ∗ walTmpsRes J ∗ (walPreIn w lg dir mds md e lt f snapi enti ∨ emp) ∗
         walLockLeft f fd fname d) ∨
-     (⌜err ≠ interface.nil⌝ ∗ ∃ x : Nat × Nat, U (some x) ∗ SpR x ∗ osCallPerm (callKey R r) (1 : Qp).half ∗
+     (⌜err ≠ interface.nil⌝ ∗ ∃ x : Nat × Nat, UH x ∗ SpR x ∗ osCallPerm (callKey R r) (1 : Qp).half ∗
         walLockLeft f fd fname d)))
 
 end defs
@@ -161,7 +150,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (P : WalPbIn GF)
     (qp : Qp) (dq : DFrac) (w lg : Loc) (mds : GoSlice) (md : List w8) (e lt f : Loc)
     (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
     (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR UH : Nat × Nat → IProp GF),
-  RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
+  RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR UH →
   FsNoErrOn (· = child r nm) ∧ PathFits (child r tmp) ∧ PathFits (child r nm) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
       osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗ osLogLb lb ∗

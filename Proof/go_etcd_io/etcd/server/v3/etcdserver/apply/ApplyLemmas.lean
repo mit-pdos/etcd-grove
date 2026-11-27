@@ -32,9 +32,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- `if v3 then Post ∨ Pre else Pre` is `cPost v3 Pre Post`. -/
-theorem cPost_if (v3 : Bool) (Pre Post : IProp GF) :
-    apply.cPost v3 Pre Post ⊢ (if v3 then iprop(Post ∨ Pre) else Pre) := by
+/-- `cPost v3 Pre Post φ` is `if v3 then Post ∨ (Pre ∗ ⌜φ⌝) else Pre`. -/
+theorem cPost_if (v3 : Bool) (Pre Post : IProp GF) (φ : Prop) :
+    apply.cPost v3 Pre Post φ ⊢ (if v3 then iprop(Post ∨ (Pre ∗ ⌜φ⌝)) else Pre) := by
   cases v3 <;> simp only [apply.cPost, Bool.false_eq_true, ↓reduceIte] <;> iintro H <;> iexact H
 
 end proof

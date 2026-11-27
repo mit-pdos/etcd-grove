@@ -261,9 +261,9 @@ theorem mPreV_split (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 /-- **`mPostV`** from the split's pieces, the writer's outcome and the reader token back. -/
 theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Post : IProp GF)
-    (B : mvcc.KBReal) (cr : Int) :
+    (B : mvcc.KBReal) (cr : Int) (φ : Prop) :
     srvApi.wStQ E.γs E.stq log cr ∗ E.BkTie B ∗ kvRest E log B ∗ chainRes c a info ∗
-      cPost v3 Pre Post ∗ bkRT B ⊢ mPostV v3 E c a info log Pre Post := by
+      cPost v3 Pre Post φ ∗ bkRT B ⊢ mPostV v3 E c a info log Pre Post φ := by
   iintro ⟨Hw, Htie, Hr, Hres, HPP, Hrt⟩
   icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
   iunfold mPostV

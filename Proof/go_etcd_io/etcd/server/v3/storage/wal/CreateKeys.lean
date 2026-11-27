@@ -519,21 +519,24 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
     (hnew : CreatingNew jr cl CR dir N J) (hlj : lay.j = J) (hLd : Ls !! dir = none)
     (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hpg : lay.pg = [])
     (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino)
-    (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
+    (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) (hT0 : o.T = []) :
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o -∗
       walTmpsHalf (hG := ⟨G, L⟩) J ==∗
       walParked (L := L) (W := W) (<[dir := lay]> Ls)
         (replClaim (jr, N, h) (jr, N, h') cl ++ [(J, NameSet.except X, hJ)]) (GMap.delete g.ino F) ∗
-      walOutFrag (W := W) (o.create g.ino J X dir) := by
+      walOutFrag (W := W) (o.create g.ino J X dir) ∗ walIncEAny (W := W) := by
   classical
   have ⟨_, _, _, b0, hb0, hNb0⟩ := hnew
   unfold walParked
   iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho Hth
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
-  imod walOut_set (W := W) o' o' (o'.create g.ino J X dir) $$ Hoa Ho with ⟨Hoa, Ho⟩
+  ihave Hr : walOutOut (W := W) o' $$ []
+  · iapply (walOutOut_nil (W := W) o' hT0).2; iempintro
+  imod walOut_setR (W := W) o' o' (o'.create g.ino J X dir) $$ Hoa Hr Ho with ⟨Hoa, Hr, Ho⟩
+  ihave Hr := (walOutOut_cons (W := W) (o'.create g.ino J X dir) (by simp [WalOut.create])).1 $$ Hr
   imodintro
-  iframe Ho
+  iframe Ho Hr
   iexists b, o'.create g.ino J X dir
   dsimp only [WalOut.create]
   iframe Ha Hoa

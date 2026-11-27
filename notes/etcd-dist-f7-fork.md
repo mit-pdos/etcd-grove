@@ -440,3 +440,115 @@ no `sorry` and no new axiom. No `Spec/`, axiom or `Spec/.../TopLevelRobustness` 
     `KV_{Put,Get,...}_dist` pair entries for these (lines ~103-111). The F7 axioms need the same kind of pair
     entries, which are trust-review entries for the lead. Not added.
 - **Next:** the lead classifies the three trust-review gates (mode-allow, errdesc REVIEWED, model-param-allow pairs).
+
+### Handoff INTEG-F9-1 (2026-11-27; integration on F9, build NOT yet green; context limit)
+
+Branch `etcd-safe-integ-f9/2026-11-27` (pushed), built on fk-lean1 in `~/eg/wt/etcd-safe-t10b`
+(script `~/eg/scratch/integf9-build.sh`: Perennial `~/eg/perennial-da0a82c26` through
+`.lake/package-overrides.json`, etcd fork pin 30df685e4 from the local mirror `~/eg/scratch/etcd-integ-pins`,
+gen-init and every gen-link mode, `lake build` under flock + MemoryMax=55G, then gates and tcb; logs
+`~/eg/logs/integf9/`). Base `etcd-safe-full-f9/2026-11-26` @ `7936f73336` (Perennial pin `da0a82c26`, the
+same as the fork's). Commits after the base:
+
+1. `d569a1b90f` merge `etcd-safe-t10b/2026-11-26` @ `9f2a8ff9ea`. Every conflicted file except the two
+   STATUS files is one F9 did not change since the fork `37fd5d261b`, so each takes etcd-safe-integ's
+   `1b0ff6698e` resolution verbatim (WAL/os proofs: the fork pin's tactics with t10b's lemma calls; etcd fork
+   pin 30df685e4 in `etc/goose.py` and the go.mod/go.sum files; the PkgTables). STATUS/status-history by
+   `etc/merge-status.py` (run as merge drivers with `git -c`); the "Last updated" line cut to ten by hand (F9
+   AuthC, T10 step 2, T10b session 3, K-8, K-7, K-5, K-3, the F7 fork Go fix, S14, S13), the other ten appended
+   to status-history (append-only: both parents' lines all kept).
+2. `f4cc2e7399` merge `etcd-safe-crash-b4move/2026-11-26` @ `16fdd8add3`: MemberCrash as `449ff48895`;
+   `notes/axiom-review/README.md` keeps both sides' rows (F9's two, b4move's `gracefulstop-dist`) — the only
+   resolution that differs from the earlier integ (F9 added rows there).
+3. `dbfdd1d0d4` `fa6fc1dc72` re-applied unchanged (the incoming FieldAssumptions binders dropped; PkgTables,
+   etcdserver Link). gen-init and all gen-link modes: no further change at `da0a82c26`.
+4. `f6c5a61fbb` the port of t10b's crash proofs to `da0a82c26`. The earlier integ never built: its build
+   failed on the same eight modules (`~/eg/logs/integ/build.log`). Ported as the fork ported their siblings,
+   no statement changed: CrashStILSpec/CrashStILLong (three-way merged with CrashStSpec's port of the G proofs
+   they copy: `wp_stub` before each fs call, `wp_for_bind`/`wp_for_step`/`wp_for_post` around retry loops,
+   `ownFile`'s `nonblock`/`appendMode`, `wp_errnoErr`; CrashStILLong's chunk `if` now joins at `max_ptr`;
+   imports ForLoeb, IgnoringEINTR, ErrorOk), CrashStILASpec, NsSNE (as NsChildS), syncDir and BootSkel (one
+   `_` fewer to intro), SnapDirCrash's `snapDir_crash.law` and OpenSnapshotBackend (`FsCtx`/`theFs` take no
+   `hG` and have no `fa`/`fsa` fields now; the law's text drops only those `(hG := …)` arguments). Each file
+   checked with `etc/lean-check.py -a`.
+
+Build 2 (at `f6c5a61fbb`): EXIT 1, two modules left (the rest built):
+- `dist/crash/MemberCrash.lean:1028`: `backend.theFs_eq GF (hG := …) (S := Sc) (ok := okc) (has := hasc)
+  (fa := fac) (fsa := fsac) (ne := nec)`: drop `(hG := …)`, `(fa := fac)`, `(fsa := fsac)` (and the `fac`/`fsac`
+  binders where `Sc … nec` are obtained); the `968:82 unsolved goals` is probably downstream of it.
+- `dist/BootBad.lean:288` `etcdBootCBad_holds`: `intro _ lctx _ _ _ _ _ _ _ _ _ d …` has one `_` too many
+  (the dropped FieldAssumptions binder, as BootSkel's `etcd_safe_of_boot`).
+Gates and tcb not yet run (the script runs them only after a green build).
+
+Next: fix those two (`etc/lean-check.py -a`), commit, rerun `~/eg/scratch/integf9-build.sh` (rebuild, then
+`etc/gates.sh` with `GATES_FAILFAST=0`, then `tcb-report.py --check`); report any gate failure. No top-level
+statement, premise or axiom changed so far.
+
+### Handoff INTEG-F9-2 (2026-11-27; build green, gates: one trust-review failure left)
+
+Branch `etcd-safe-integ-f9/2026-11-27` (pushed), fk-lean1 `~/eg/wt/etcd-safe-t10b`, same script and logs as INTEG-F9-1.
+Commits after `39f11c5e8b`:
+
+1. `ee5aa3428f` MemberCrash and BootBad ported to `da0a82c26`: `FsCtx` destructured as `⟨Sc, okc, hasc, nec⟩` (no
+   `fa`/`fsa` fields), `theFs_eq`/`onFs_some` without `(hG := …)`, `(fa := …)`, `(fsa := …)`; `etcdBootCBad_holds`
+   intros ten binders before `d`, as BootSkel. No statement changed.
+2. `53319ac46a` `etc/featuregate-allow.txt`: the three inert etcd `pkg/v3` featuregate entries moved from the old
+   pin's pseudo-version (`d26dd5da6f38`) to the merged pin's (`30df685e43e2`); `featuregate-check.py` ok.
+
+Build 3 (at `ee5aa3428f`): `lake build` exit 0. tcb `--check`: ok (385 axioms, 0 sorries, 91 opaques).
+Gates (`GATES_FAILFAST=0`, 641s): every gate ok except `featuregate` (fixed by 2, rechecked alone) and `mode`:
+
+- `mode`: 466 findings against the baseline's 457, all nine from t10b's crash constructor specs at auth off
+  (not from the port; t10b's own allow file never classified them): `lit-mode` `kvInvM`/`srvErM`/`srvInvAt false`
+  in `NewServer.specC` (`Spec/.../etcdserver/NewServerCrash.lean:112,137,151`), `NewServer.specC_dist`
+  (`Spec/.../examples/etcd/dist/NewServerCDist.lean:116,147,161`) and `NewServer.specRAt`
+  (`Proof/.../etcdserver/NewServerRAt.lean:260,279,293`). Rows: etcdserver 276 -> 282, dist 0 -> 3. A trust-review
+  classification for the lead (K-8's precedent), not added. The natural one is `unmoved`, as `NewServer.specR`'s
+  (`etc/mode-allow.txt` line 94: the restart constructor spec scoped to auth off), with the two baseline rows raised.
+
+Next: the lead's decision on the `mode` classification; then rerun the script (`nogen` skips the regeneration).
+
+### Handoff PIN-1 (2026-11-27; the integration line on lean `cfb65e054f`, Perennial `01f1c6ee1`: built, gates run)
+
+Branch `etcd-safe-integ-pin/2026-11-27` (local worktree `/shared/etcd-grove-integpin`, 32-core host; pushed).
+Perennial: separate checkout `/shared/perennial-01f1c6ee1` (built), manifest copy `/shared/tmp/integpin-manifest.json`
+(perennial as a path entry); the worktree's `.lake/packages/perennial` symlink points at that checkout.
+
+- **Merges, in order** (each `--no-ff`): lean `d3ca204a06` onto integ-f9 `dbfdd1d0d4` (`cc9754f26f`); integ-f9
+  `f6c5a61fbb` (`d06deb1961`), `39f11c5e8b` (`2298623294`), `8fd5e8cb0b` (`8b770c8335`, with `ee5aa3428f`'s
+  MemberCrash/BootBad ports and `53319ac46a`'s featuregate entries: kept as they are, the merged tree's etcd pin is
+  `30df685e43e2`, lean's `df6af0c36a6b` is superseded by ours in `etc/goose.py` and `examples/go.mod`); lean
+  `cfb65e054f` (`b4beca23c4`).
+- **Resolutions (reusable by the lead's F9 line).**
+  - lean `d3ca204a06`: conflicts only in the seven generated PkgTables (`examples/etcd/{all,leaseexpiryN,dist/{client,
+    putget,putgetk,server}}`, `examples/k8s/all`): `git checkout --ours` then `PERENNIAL_DIR=/shared/perennial-01f1c6ee1
+    etc/gen-init.py` (adds `grpc.mem`, `grpc.internal.mem`). STATUS/status-history by the merge drivers (one copy of each
+    entry; history only appended). `etc/tcb-baseline.txt` auto-merged (477 - lean's 6 grpc/health axioms = 471 lines).
+  - lean `cfb65e054f`: `etc/model-param-allow.txt`, both sides appended after the `Txn_Commit_dist` entries: kept both,
+    ours (F9 packet's client-axiom pairs) then lean's S3.4 `streamIcOk/{Req,Rep}` block. STATUS by the drivers.
+  - `etc/tcb-collections/etcd-dist-lease.txt` (ours only): `--check --update`: `-axiom Client.streamClientInterceptor.wp_proof`,
+    `-axiom streamIcMdIs`, `+opaque streamReqModelOf`, `+opaque streamRepModelOf` (the delta lean's S3.4 made to its
+    other collections).
+- **Regeneration.** After each lean merge every generator check is clean: gen-init (292), every gen-link mode, btree
+  link, gen-raft-tla, copy-part, gen-driver-boottable, kitgen, gen-specs-pkginit, gen-k8s-deep, gen-pbschema, gomodels,
+  pb-init, `goose.py --check` (73 projects). The fork pin `30df685e4` is not on github: run goose.py with
+  `ETCD_SRC=<a clone at 30df685e4>` (here `/shared/tmp/integpin-etcd`, cloned from `/shared/etcd-fork-integ`), and give
+  reader-slot/auth-mediation a `.lake/goose/etcd` checkout at that commit (they fail with "cannot fetch" otherwise).
+- **Build.** At `8b770c8335` and at `b4beca23c4`: green (29753 jobs). The first build at `d06deb1961` failed only
+  in MemberCrash/BootBad, as expected (fixed by `ee5aa3428f`).
+- **Gates** (`GATES_FAILFAST=0`, at `b4beca23c4`): build ok; tcb ok (375 axioms, 0 sorries, 91 opaques = lean's 351 + the
+  line's 24; integ-f9 had 385, -10 from lean's grpc-health/mem/S3.4/t18); collections 69 match (after the update above);
+  reader-slot and auth-mediation ok once the etcd source is there; links, copy-part, goose, gomodels, errorf-wrap, api,
+  tier, bounds 389, exit-check, featuregate, dist-axiom-diff, premise-witness, models, remote, issues: ok. FAILED:
+  - `mode`: 466 against the baseline's 457: t10b's 9 literal falses (`NewServer.specC`/`specC_dist`/`specRAt`), the lead's.
+  - `axiom-tok` (rule 2,7, 24 axioms: `KV_Compact_dist`, `RequestProgress_dist`, `Watch_dist`, the `authd.*_dist`,
+    `view.*_dist` ones) and its selftest (`real-pass EtcdServer.leaseTimeToLive` taints `metadata.builtRawMDRaw`/
+    `transportMDRaw`: the same cascade as the allow file's line ~197 note). Cause: lean's S3.4 put the stream
+    interceptor contract (`etcdConnStream` > `etcdStreamIcOk` > `streamIcOk`) into every `isEtcdConn`; lean added
+    entries for its four `KV_Put/Get/Delete/Txn_Commit_dist`, the line's other 24 client axioms need the same.
+  - `model-param` (36): 28 rule-2 findings (the 24 above plus `KV_Put/Get/Delete/Txn_Commit_dist`, reached on this line
+    through `isNewClient` > `clientKVAt`/`kvObjAt`/`etcdWatchConn` > `isEtcdConn` > `etcdConnStream`), and lean's 8
+    S3.4 `streamIcOk/{Req,Rep}` pairs stale ("accepts nothing": the line's binder path differs from lean's).
+  None added: these are trust-review entries for the lead (as K-8's model-param pairs).
+- **Next:** the lead writes the S3.4 axiom-tok entries and model-param pairs for the line's client axioms (and
+  rewrites lean's 8 pairs to the line's path), and classifies mode's 9; then rerun gates.

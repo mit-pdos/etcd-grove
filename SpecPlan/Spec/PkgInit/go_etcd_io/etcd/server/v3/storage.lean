@@ -5,7 +5,9 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.os
+public import SpecPlan.Spec.PkgInit.path.filepath
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.backend

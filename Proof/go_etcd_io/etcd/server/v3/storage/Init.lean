@@ -19,6 +19,7 @@ public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.Init
@@ -29,6 +30,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.os.Init
+public import Proof.path.filepath.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes

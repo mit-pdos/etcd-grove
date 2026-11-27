@@ -58,6 +58,45 @@ instance BC.core_persistent (K : BC) : Persistent (K.core (GF := GF)) := by
 instance BC.full_persistent (K : BC) : Persistent (K.full (GF := GF)) := by
   unfold BC.full isBoltP; infer_instance
 
+/-- **The database's file's crash invariant**, if any, and its namespace's disjointness from OsFs's
+(what the file operations' specs over `bMeta` take, `Inv/BFileOps.lean`). -/
+theorem BC.core_bfile (K : BC) : K.core (GF := GF) ⊢ bCsInv K.p ∗ ⌜bNsOk K.p⌝ :=
+  isBoltCoreP_bfile K.B K.N K.db K.p K.sp K.t0
+
+/-- **The database's file's mode** (`bMode`, W1). -/
+theorem BC.core_mode (K : BC) : K.core (GF := GF) ⊢ bMode K.B.bq K.B.cn K.N K.db K.p :=
+  isBoltCoreP_mode K.B K.N K.db K.p K.sp K.t0
+
+/-- **Crash mode's facts** from the core: the file system does not fail, the crash invariant's
+namespace is outside `pagesInv`'s, and the sync options are off. -/
+theorem BC.core_crash (K : BC) : K.core (GF := GF) ⊢
+    ⌜K.p.cs ≠ none → FsNoErr⌝ ∗
+    ⌜∀ c, K.p.cs = some c → (↑c.N : CoPset) ⊆ ⊤ \ ↑(pagesN K.N)⌝ ∗ bSyncs K.db K.p := by
+  iintro #Hc
+  ihave #Hm := BC.core_mode K $$ Hc
+  unfold bMode
+  cases hc : K.p.cs with
+  | none =>
+    isplitl
+    · ipureintro; exact fun h => absurd rfl h
+    isplitl
+    · ipureintro; intro c h; cases h
+    iapply bSyncs_none hc
+  | some c =>
+    dsimp only
+    icases Hm with ⟨%hcn, -, #Hs, -⟩
+    isplitl
+    · ipureintro; exact fun _ => hcn.2.2
+    isplitl
+    · ipureintro
+      intro c' h
+      cases h
+      rw [hcn.2.1]
+      intro x hx
+      exact CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp =>
+        ndot_ne_disjoint K.N (show "crash" ≠ "pages" by decide) x ⟨hx, hp⟩⟩
+    iexact Hs
+
 /-- **A live transaction's token for its statistics** (`txsInv` holds them; `TxStats`'s atomic
 methods need it): with `m = true` a share `q` of its `ex` token (a holder of a fraction of
 `boltTx`); with `m = false` its exclusive part's `done` half (the holder of `txExcl`, inside
@@ -157,7 +196,7 @@ def wtxEnd (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) : IProp
     wdbLive K.B K.db K.p K.sp K.t0 tx ws w ∗ sync.ownMutex K.db.[DB, go!"rwlock"] ∗
     ghostVar K.B.cls (1 : Qp).half false ∗
     (∃ c : TxViewC, ghostVar r.n.v 1 (c, TxX.wr X)) ∗
-    ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+    ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
     ⌜wdbOK w ∧ X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome⌝)
 
 /-- **A reader with its view `v`** (`rdTx` with its parameters fixed: the database `K`, the view
@@ -434,7 +473,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
         ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗ wtxW K tx r true X ∗
-        ghostVar B.st (1 : Qp).half.half T.base ∗
+        ghostVar B.st (1 : Qp).half.half (T.base, X.v.txid) ∗
         ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X ∧
           wrCurFacts T X⌝ := by
   unfold boltTxDef
@@ -499,7 +538,7 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
         ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v q.half (c, TxX.wr X) ∗ wtxWQ K tx r true q X ∗
-        ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
+        ghostVar B.st (QpMul q (1 : Qp).half.half) (T.base, X.v.txid) ∗
         ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X ∧
           wrCurFacts T X⌝ := by
   unfold boltTxDef

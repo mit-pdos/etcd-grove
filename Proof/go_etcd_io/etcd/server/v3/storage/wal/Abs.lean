@@ -31,6 +31,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.W1
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncSuffix
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalNormDisk
 public import GooseLang.Ext.Fs.NamesGhost
 public import GooseLang.Ext.Fs.CrashFiles
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Hex16
@@ -90,8 +91,9 @@ structure WalLay where
   (`segsAll` lists them). -/
   pg : List SegG := []
 
-/-- The history as the encoding layer has it. -/
-def histM (d : WalDur) : WalHist := d.H.map WalOpG.toM
+/-- The history as the encoding layer has it: as written (`histN`, `WalNorm.lean`: a `Save` of
+entries with an empty state carries the state it writes, the torn-`Save` fix). -/
+def histM (d : WalDur) : WalHist := histN d.H
 
 /-- The records of each segment, the CRC chained across them. -/
 def segRecs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) : List (List WalRec) :=
@@ -327,13 +329,57 @@ def TailWin (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : Se
 def TailZeros (lay : WalLay) : Prop :=
   ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0
 
+/-- **From `off`, at chain value `c`, the reader accepts a run of entry records, then nothing** (the
+torn-`Save` fix, P6): the frames of `chainRecs C c (pendDs Mr es)` are at `off`, and the reader accepts
+nothing after them. A crash inside a `Save` leaves such a run after the history's records (its state
+record lost); `ReadAll` drops it (`readAllFoldP_append`) and, in write mode, zeroes from `off`.
+`es = []`: the reader accepts nothing at `off` (`pendStop_nil`). -/
+def PendStop (C : WalCodec) (Mr : WalMarshal) (img : List w8) (off : Nat) (c : w32) : Prop :=
+  ∃ es : List EntryM, RecsFit C (chainRecs C c (pendDs Mr es)) ∧
+    recFrames C (chainRecs C c (pendDs Mr es)) <+: img.drop off ∧
+    ∀ r len c', decStep C true img (off + (recFrames C (chainRecs C c (pendDs Mr es))).length)
+      (crcAfter C c (pendDs Mr es)) ≠ .accept r len c'
+
+theorem pendStop_nil {C : WalCodec} {Mr : WalMarshal} {img : List w8} {off : Nat} {c : w32}
+    (h : ∀ r len c', decStep C true img off c ≠ .accept r len c') : PendStop C Mr img off c :=
+  ⟨[], fun _ h => by simp [pendDs, chainRecs] at h, by simp [pendDs, chainRecs, recFrames_nil],
+    by simpa [pendDs, chainRecs, recFrames_nil, crcAfter] using h⟩
+
+/-- **`PendStop` depends on the image from `off` on only** (`decStep` at `p ≥ off` reads `bs.drop p` and
+`bs.length`). -/
+theorem pendStop_congr {C : WalCodec} {Mr : WalMarshal} {img img' : List w8} {off : Nat} {c : w32}
+    (hd : img'.drop off = img.drop off) (hl : off ≤ img.length) (hl' : off ≤ img'.length)
+    (h : PendStop C Mr img off c) : PendStop C Mr img' off c := by
+  obtain ⟨es, hfit, hpre, hst⟩ := h
+  have hlen : img'.length = img.length := by
+    have h1 := congrArg List.length hd
+    simp only [List.length_drop] at h1; omega
+  refine ⟨es, hfit, by rw [hd]; exact hpre, fun r len c' => ?_⟩
+  have hq : ∀ q, off ≤ q → img'.drop q = img.drop q := fun q hq => by
+    have e1 : img'.drop q = (img'.drop off).drop (q - off) := by
+      rw [List.drop_drop]; congr 1; omega
+    have e2 : img.drop q = (img.drop off).drop (q - off) := by
+      rw [List.drop_drop]; congr 1; omega
+    rw [e1, e2, hd]
+  have e : decStep C true img' (off + (recFrames C (chainRecs C c (pendDs Mr es))).length)
+      (crcAfter C c (pendDs Mr es)) = decStep C true img (off + (recFrames C (chainRecs C c
+        (pendDs Mr es))).length) (crcAfter C c (pendDs Mr es)) := by
+    unfold decStep; rw [hq _ (Nat.le_add_right _ _), hlen]
+  rw [e]; exact hst r len c'
+
 /-- **The length word at the write position is zero** (`old`'s 8 bytes from `wr`; zero past `old`;
 `TailCrashPend.lean`, `wal-tc16`). -/
 def LenZ (lay : WalLay) : Prop := ∀ j, j < 8 → lay.old.getD (lay.wr + j) 0 = 0
 
-/-- **A tail registered, not yet zeroed, whose reader stopped at `wr` with `io.EOF`**: nothing written
-past the start's frames (`wr = z0`), the length word there zero (`LenZ`). -/
-def TailPend (lay : WalLay) : Prop := lay.wr = lay.z0 ∧ LenZ lay
+/-- **A pending tail lent to `ZeroToEnd`** (`ReadAll`'s, its reader stopped at `wr` with `io.EOF`, after a
+run of entry records or none: P6 item 2, `notes/wal-p6-handoff.md`): nothing written past the start's
+frames (`wr = z0`), and from `wr` on each byte the segment may leave lies within `old` and reads `old`'s
+byte as of the last sync (a crash image's reader then accepts a prefix of `old`'s pending run and stops,
+`crashTo_tailR`). This is `RepOld` (`Inv.lean`); until P6 it was `wr = z0 ∧ LenZ` (the length word at `wr`
+zero), which a pending run does not have. -/
+def TailPend (lay : WalLay) : Prop :=
+  lay.wr = lay.z0 ∧ ∀ g, lay.segs.getLast? = some g → ∀ b, lay.wr ≤ b → b < (segBytesX g).length →
+    b < lay.old.length ∧ valAt ((segBytesX g).getD b (0, [])).2 0 = lay.old.getD b 0
 
 /-- **The last segment's bytes past the write position are zero-valued** (in a resize window, I3b:
 finding 2, W6 log, sixteenth session; nineteenth session): `cut`'s truncate leaves none past `wr`, a write
@@ -348,10 +394,13 @@ resize window, I3b; W6 log, twentieth and twenty-first sessions; in place of `lo
 past the size from an exact tail falsifies: it keeps `lo` at the size it found, above the write position
 until it completes): each byte of `segBytesX g` from `wr` on is at or past the least size a crash may
 leave (`lo`), or has a zero candidate (an exact tail's `(old b, 0)` with `old b = 0` by F-Z, a truncate's
-announced zero, the zeros past `zf`; candidates are only appended, so every step keeps it). -/
+announced zero, the zeros past `zf`; candidates are only appended, so every step keeps it), or has a
+stamp-0 candidate (P6: `Repair`'s truncate past `wr`, to the end of a pending run, keeps the durable bytes
+between, below the new `lo`; the image as of the last sync is then a candidate, `valAt_mem0`). -/
 def WinHead (lay : WalLay) (g : SegG) : Prop :=
   ∀ b, lay.wr ≤ b → b < (segBytesX g).length →
-    g.om.lo ≤ b ∨ ∃ s, ((0 : w8), s) ∈ ((segBytesX g).getD b (0, [])).2
+    g.om.lo ≤ b ∨ (∃ s, ((0 : w8), s) ∈ ((segBytesX g).getD b (0, [])).2) ∨
+      ∃ q ∈ ((segBytesX g).getD b (0, [])).2, q.2 = 0
 
 /-- `lo ≤ wr` (a window opened by a truncate to `wr`) gives `WinHead`. -/
 theorem WinHead.of_lo {lay : WalLay} {g : SegG} (h : g.om.lo ≤ lay.wr) : WinHead lay g :=
@@ -503,11 +552,12 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   lastSynced : segStart lay.cuts lay.cuts.length ≤ d.m
   /-- Every record fits a frame. -/
   fit : RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))
-  /-- Nothing appended this generation: the reader of the last file stops after its frames (at the
-  chain's CRC after all the WAL's records). -/
-  tailStop : lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length → ∀ r len c',
-    decStep C true lay.old lay.z0
-      (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) ≠ .accept r len c'
+  /-- Nothing appended this generation: the reader of the last file, after its frames (at the
+  chain's CRC after all the WAL's records), accepts at most a run of entry records (a torn `Save`'s,
+  `PendStop`), then nothing. -/
+  tailStop : lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length →
+    PendStop C Mr lay.old lay.z0
+      (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
   /-- There is a segment (`Create` makes the first; a purge keeps the last). -/
   nonempty : lay.segs ≠ []
   /-- Every cut past the history's start (`walCutPos` allows 0): a cut follows a `Save` that wrote a
@@ -558,10 +608,10 @@ theorem WalAbsD.cuts_le {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     rcases h.cuts.1 b hb with h0 | ⟨hh, es, hb', -⟩ | ⟨m, al, hb'⟩
     · omega
     · rcases Nat.lt_or_ge (b - 1) (histM d).length with h1 | h1
-      · simp only [histM, List.length_map] at h1; omega
+      · simp only [histM, histN_length] at h1; omega
       · rw [List.getElem?_eq_none h1] at hb'; cases hb'
     · rcases Nat.lt_or_ge (b - 1) (histM d).length with h1 | h1
-      · simp only [histM, List.length_map] at h1; omega
+      · simp only [histM, histN_length] at h1; omega
       · rw [List.getElem?_eq_none h1] at hb'; cases hb')
   omega
 
@@ -906,15 +956,14 @@ def CrashTo (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (m' : T
   ∃ (q : Nat) (I : List (WalOpG WalEnt)),
     m'.entry lay.jr lay.nm = some (.dir lay.j) ∧ q < lay.segs.length ∧
     walInos (entsOf m' lay.j) = (lay.segs.drop q).map (·.ino) ∧
-    walImg d.H d.m I ∧ segStart lay.cuts lay.cuts.length ≤ I.length ∧
+    walImgS d.H d.m I ∧ segStart lay.cuts lay.cuts.length ≤ I.length ∧
     segStart lay.cuts (lay.first + q) ≤ min d.pur I.length ∧
     (∀ k (g : SegG), (lay.segs.drop q)[k]? = some g → lay.first + q + k < lay.cuts.length →
       imgOf (fo g.ino) = segStream C Mr { d with H := I } lay.cuts (lay.first + q + k)) ∧
     (∀ g, lay.segs.getLast? = some g →
       let S := segStream C Mr { d with H := I } lay.cuts lay.cuts.length
-      S <+: imgOf (fo g.ino) ∧ ∀ r len c', decStep C true (imgOf (fo g.ino)) S.length
-        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM { d with H := I }) lay.cuts)))
-          ≠ .accept r len c')
+      S <+: imgOf (fo g.ino) ∧ PendStop C Mr (imgOf (fo g.ino)) S.length
+        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM { d with H := I }) lay.cuts))))
 
 /-- **The crash condition** (plan §2.2): for every crashed tree the WAL's claims allow
 (`RegionCrashed` of the claims `cl` with the commit bound `n`) and every image of each segment its

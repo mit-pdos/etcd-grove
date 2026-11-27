@@ -310,6 +310,7 @@ theorem apply.newApplierV3Backend.wp_proof
         iframe #
       inext
       iintro Hpost
+      simp only [apply.ClusterReq.eff, eq_self_iff_true]
       iapply HΦ'
       iframe
   isplitr

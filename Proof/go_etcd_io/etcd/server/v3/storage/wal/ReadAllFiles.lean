@@ -65,9 +65,13 @@ theorem walReadFiles_running {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : W
     {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
     (hkk : kk < lay.segs.length) :
-    (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs =
-      (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)).drop
-        (recsOfSegs C Mr d.metadata ((segsOf (histM d) lay.cuts).take (lay.first + kk))).length := by
+    ∃ es : List EntryM,
+      (es ≠ [] → lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length) ∧
+      (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs =
+        (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)).drop
+          (recsOfSegs C Mr d.metadata ((segsOf (histM d) lay.cuts).take (lay.first + kk))).length ++
+        chainRecs C (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
+          (pendDs Mr es) := by
   have hne : lay.segs ≠ [] := hab.nonempty
   obtain ⟨-, -, hfl⟩ := hab.cuts
   -- The history's segments.
@@ -120,16 +124,23 @@ theorem walReadFiles_running {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : W
       have e : (Prod.fst ∘ durB) = (id : w8 → w8) := rfl
       rw [e, List.map_id, hstream (lay.first + (kk + j)) (by omega)]
       congr 2; omega
-  rw [hfiles, hsplit, List.take_append_of_le_length (by omega)]
-  apply walDecodeFiles_running hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL)
-  · rw [← hsplit, ← hSs]; exact hab.fit
-  · rw [himg, ← hstreamL]; exact List.prefix_append _ _
-  · intro r len c'
-    rw [← hstreamL, ← hsplit, ← hSs]
-    obtain ⟨-, -, h3, h4, -, h6, h7, h8⟩ := hTL
-    generalize hS : segStream C Mr d lay.cuts lay.cuts.length = S at *
-    by_cases hz : lay.z0 < S.length
-    · apply decStep_zeros_any C true (z := lay.old.length - S.length)
+  rw [hfiles]
+  have hfit : RecsFit C (recsOfSegs C Mr d.metadata (A ++ [Sl])) := by
+    rw [← hsplit, ← hSs]; exact hab.fit
+  have hpendS := hab.tailStop
+  rw [hSs, hsplit] at hpendS
+  rw [hsplit, List.take_append_of_le_length (by omega)]
+  obtain ⟨-, -, h3, h4, -, h6, h7, h8⟩ := hTL
+  generalize hS : segStream C Mr d lay.cuts lay.cuts.length = S at *
+  by_cases hz : lay.z0 < S.length
+  · refine ⟨[], fun h => absurd rfl h, ?_⟩
+    simp only [pendDs, List.map_nil, chainRecs]
+    apply walDecodeFiles_running hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL) []
+      hfit (fun _ h => by cases h) trivial
+    · rw [List.append_nil, himg, ← hstreamL]; exact List.prefix_append _ _
+    · intro r len c'
+      rw [List.append_nil, ← hstreamL]
+      apply decStep_zeros_any C true (z := lay.old.length - S.length)
       rw [himg, List.drop_left]
       apply List.ext_getElem
       · simp
@@ -137,14 +148,24 @@ theorem walReadFiles_running {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : W
         simp only [List.getElem_drop, List.getElem_replicate]
         have := h8 hz (S.length + b) (by omega) (by simp at hb1; omega)
         rwa [getD_of_lt _ _ _ (by simp at hb1; omega)] at this
-    · have hz0 : lay.z0 = S.length := by omega
-      have hold : segImg gL = lay.old := by
-        rw [himg]
-        have : S = lay.old.take S.length := by rw [← hz0, ← h7, hz0, List.take_length]
-        conv => lhs; arg 1; rw [this]
-        exact List.take_append_drop _ _
-      rw [hold, ← hz0]
-      exact hab.tailStop (by rw [hS]; exact hz0) r len c'
+  · have hz0 : lay.z0 = S.length := by omega
+    have hold : segImg gL = lay.old := by
+      rw [himg]
+      have : S = lay.old.take S.length := by rw [← hz0, ← h7, hz0, List.take_length]
+      conv => lhs; arg 1; rw [this]
+      exact List.take_append_drop _ _
+    obtain ⟨es, hfE, hpE, hrE⟩ := hpendS hz0
+    refine ⟨es, fun _ => hz0, ?_⟩
+    have hSo : S = lay.old.take lay.z0 := by rw [hz0, ← hold, himg, List.take_left' rfl]
+    apply walDecodeFiles_running hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL) _
+      hfit hfE (chainOk_chainRecs hC _ _ (by intro q hq h; simp [pendDs] at hq; obtain ⟨e, -, rfl⟩ := hq; cases h))
+    · rw [hold, recFrames_append, ← hstreamL]
+      obtain ⟨t, ht⟩ := hpE
+      refine ⟨t, ?_⟩
+      rw [List.append_assoc, ht, hSo, List.take_append_drop]
+    · intro r len c'
+      rw [hold, recFrames_append, List.length_append, ← hstreamL, chainEnd_chainRecs, ← hz0]
+      exact hrE r len c'
 
 end files
 

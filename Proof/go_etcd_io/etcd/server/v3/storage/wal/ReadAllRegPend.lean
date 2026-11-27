@@ -36,17 +36,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- **The look at the invariant before `ReadAll`'s loop, registering the tail, not yet zeroed** (see
 the file header). -/
 def walInvRegisterPendLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
-  ∀ (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) (gs : List SegG) (gl : SegG),
+  ∀ (dir : GoString) (i : Nat) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj0 : NamesH)
+    (gs : List SegG) (gl : SegG), incOf I dir = i →
     (∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino)) →
     (∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name)) →
     (∀ g ∈ gs, g.om.size = g.bs.length) → gs.getLast? = some gl →
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
-      osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
+      walIncQ (W := W) I -∗ osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walIncQ (W := W) I ∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ∗
