@@ -13,9 +13,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.B
 public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry

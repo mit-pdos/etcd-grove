@@ -26,7 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.absen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.foreign
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.WithLease

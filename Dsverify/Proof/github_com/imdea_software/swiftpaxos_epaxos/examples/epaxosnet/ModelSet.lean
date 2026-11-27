@@ -20,7 +20,7 @@ The key-value store with scans and pending writes, porcupine's model (`model.go`
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.KitVals
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 
 @[expose] public section
 

@@ -2,7 +2,7 @@
 // start for any number k of members (notes/auth-lease-s4-draft.md): the k members of a new
 // cluster started in-process with auth on (etcdstart.StartMembersAuth: the simple token provider,
 // etcd's default token TTL), each serving its raft handler on its own peer listener and its gRPC
-// API on its client address. Through member 0, authkv's set-up (auth.SetUp: a root user, a role r
+// API on its client address. Through member 0, authkv's set-up (authwork.SetUp: a root user, a role r
 // with READWRITE on [a, b), a user u with r, a user v without it, auth enabled); a barrier at every
 // member (root's linearizable read: the member has applied the set-up); then the leases: root,
 // through member 0, grants Lz and puts z/lease with it; u, through its member (1 mod k), grants Lu,
@@ -46,6 +46,7 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
+	"github.com/mit-pdos/etcd-grove/examples/lib/authwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -237,7 +238,7 @@ func run(srvs []*etcdserver.EtcdServer, ms []etcdstart.Member, lg *zap.Logger) i
 	if err != nil {
 		return auth.Failed
 	}
-	if !auth.SetUp(cli) {
+	if !authwork.SetUp(cli) {
 		return auth.Failed
 	}
 	if !barriers(ms, lg) {

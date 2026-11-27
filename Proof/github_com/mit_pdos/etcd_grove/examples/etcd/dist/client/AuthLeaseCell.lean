@@ -14,9 +14,9 @@ reuses it (names and namespace `etcd_authlease` unchanged).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseCellModel
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkEnv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkAuth
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseReqOn
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat

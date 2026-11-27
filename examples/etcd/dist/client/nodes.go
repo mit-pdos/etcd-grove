@@ -5,10 +5,10 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/enc"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote"
+	"github.com/mit-pdos/etcd-grove/examples/lib/authwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 )
@@ -18,7 +18,7 @@ import (
 // and one client machine per client (NodeMain), which serves the orchestrator's calls with a
 // clientv3 client of its own and never returns:
 //
-//   - kv: client machine c is kvremote.Node (each call one of txnlin's operations, txnlin.Call);
+//   - kv: client machine c is kvremote.Node (each call one of txnwork's operations, txnwork.Call);
 //     the orchestrator is kvremote.Orch (remote.Run: generation, call and return stamps, the
 //     history, porcupine);
 //   - watch, cache: client machine c is writer c (one call: its Puts, given by the orchestrator,
@@ -27,7 +27,7 @@ import (
 //     check. A writer that does not answer (its call failed, or timed out) is taken to have tried
 //     all of its Puts and had none succeed: every event of its Puts is then attempted, none is
 //     required;
-//   - auth: client machine c is principal auth.Principals()[c] (one call: auth.Work through a client
+//   - auth: client machine c is principal authwork.Principals()[c] (one call: authwork.Work through a client
 //     of its own, made for the call, which checks its own refusals and replies, a panic on that
 //     machine if one fails); the orchestrator does the set-up, the barriers, root's last Put and
 //     the history checks. A principal that does not answer changes nothing in the checks, which
@@ -37,7 +37,7 @@ import (
 // clients are sequential steps of one orchestration) have no client machine.
 
 // How long a call from the orchestrator to a client machine may take: a writer's whole loop (each
-// Put within the request timeout), a principal's whole auth.Work (a dozen requests and a refused
+// Put within the request timeout), a principal's whole authwork.Work (a dozen requests and a refused
 // watch's wait). A call that takes longer is a call without an answer (see above).
 func writerAttempt(nops int) time.Duration {
 	return time.Duration(nops)*etcdstart.RequestTimeout + 30*time.Second
@@ -123,7 +123,7 @@ func remoteWriters(nodes []string, tried []etcdstart.KV, nops int) []etcdstart.P
 	return all
 }
 
-// principalCodec is a principal's call: its name in, whether auth.Work ran out (false: its client
+// principalCodec is a principal's call: its name in, whether authwork.Work ran out (false: its client
 // failed to connect).
 func principalCodec() remote.Codec {
 	return remote.Codec{
@@ -166,7 +166,7 @@ func principalClient(eps []string, who string) (*clientv3.Client, error) {
 	return newClient([]string{eps[0]})
 }
 
-// principalOp is a principal machine's call for principal who: auth.Work through a client of its
+// principalOp is a principal machine's call for principal who: authwork.Work through a client of its
 // own (sys is the endpoints), made for the call and closed after it.
 func principalOp(sys any, in any) any {
 	who := in.(string)
@@ -175,14 +175,14 @@ func principalOp(sys any, in any) any {
 		return false
 	}
 	defer cli.Close()
-	auth.Work(cli, who)
+	authwork.Work(cli, who)
 	return true
 }
 
-// remotePrincipals runs every principal's auth.Work at its client machine (nodes[c] is principal
-// auth.Principals()[c]'s), all at once, and reports how many answered that it ran.
+// remotePrincipals runs every principal's authwork.Work at its client machine (nodes[c] is principal
+// authwork.Principals()[c]'s), all at once, and reports how many answered that it ran.
 func remotePrincipals(nodes []string) int {
-	ps := auth.Principals()
+	ps := authwork.Principals()
 	ins := make([]any, len(ps))
 	for c := range ps {
 		ins[c] = ps[c]

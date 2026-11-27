@@ -14,9 +14,9 @@ frozen state (`authFloorD_frozen`, `watchCheckedD_c_refuted`).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthWatchRefusal
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchClientDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.RootWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.RootWatch
 
 @[expose] public section
 

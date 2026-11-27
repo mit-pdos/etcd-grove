@@ -58,7 +58,7 @@ type Workload struct {
 // MaxDurable bounds the durable workload's Puts (restartN's keys: one byte after the prefix).
 const MaxDurable = 256
 
-// AuthPrincipals is the auth workload's client machines: one per principal, len(auth.Principals())
+// AuthPrincipals is the auth workload's client machines: one per principal, len(authwork.Principals())
 // (examples/etcd/auth; checked by examples/etcd/dist's TestNodeCount).
 const AuthPrincipals = 4
 

@@ -1,5 +1,5 @@
 /-
-The KV-workload linearizability instance's results (`examples/etcd/txnlin/etcd_txnlin.go`; linkv-txn
+The KV-workload linearizability instance's results (`examples/lib/txnwork/etcd_txnlin.go`; linkv-txn
 stage G), restated, with the trust base of each printed in the build log (`#print axioms`).
 Lean-first (no Rocq counterpart).
 
