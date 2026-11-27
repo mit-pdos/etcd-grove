@@ -153,6 +153,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
 # and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
+# (#33 S4) the Antithesis harness (examples/raft/antithesis) and its checker (`check`), for the
+# closed theorem: no package variables, their facts `True` (`Base.lean`, `check/Base.lean`), so no
+# `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is for the adequacy proof
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.raft.antithesis')
 # (fmt1-errno, 2026-11-24, #9 decision (B) 7127751995) the osfs examples (crashlog, walfs, bboltfs),
 # whose closed theorems took their initializer as a hypothesis (`Hinit_wp`; bboltfs: its spec with
 # `pkgFacts` as its post): now `os`'s path specs take `isPkgInit os`, and their `wp_initialize'` is
@@ -4869,6 +4873,26 @@ their translated initializers: `UnstructuredJSONScheme`, an empty struct literal
                 '⟨(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans '
                 '(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Serializer.ty))⟩'],
             '$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']})
+# (prove-metav1, 2026-11-27) metav1's `init.1` translated (`localSchemeBuilder.Register(RegisterConversions)`,
+# until then `initFuncsOk`) with the two variables it reads, and `ParameterCodec` skipped (its goose config;
+# until then `opaqueInitsOk`)
+SPECIAL['k8s_io.apimachinery.pkg.apis.«meta».v1'] = dict(doc='''Its fact is `True`. Its initializer allocates
+`schemeBuilder` (no initializer: nil) and `localSchemeBuilder`, initializes its imports, runs
+`localSchemeBuilder`'s translated initializer (`&schemeBuilder`), its untranslated `init.0`
+(`register.go`: types registered into `scheme` through `reflect`), which the trust-boundary axiom
+`initFuncsOk` says returns, and its translated `init.1` (`zz_generated.conversion.go`;
+prove-metav1, 2026-11-27, until then `initFuncsOk`), which appends `RegisterConversions` to
+`schemeBuilder` (`runtime.SchemeBuilder.Register.wp_proof`). (`ParameterCodec`, until then
+`opaqueInitsOk`, is skipped: its goose config.)''',
+    alloc_types={'localSchemeBuilder': 'Loc', 'schemeBuilder': 'GoSlice'},
+    imports=['Proof.k8s_io.apimachinery.pkg.runtime.SchemeBuilder__Register'],
+    after={'init.«1»': ['wp_apply wp_slice_literal (V := GoFunc)', 'isplitr', '· ipureintro; rfl',
+                        'iintro %sl ⟨Hsl, -⟩', 'try wp_auto',
+                        'ihave Hn := ownSlice_nil (V := GoFunc) (DFrac.own 1)',
+                        'ihave Hnc := ownSliceCap_nil (V := GoFunc)',
+                        'wp_apply (EtcdGrove.runtime.SchemeBuilder.Register.wp_proof (hG := hG) _ slice.nil [] _ _ _)'
+                        ' $$ [HschemeBuilder Hn Hnc Hsl] as -',
+                        '· iframe', '  isplitl [] <;> iassumption', 'try wp_auto']})
 # (prove-k8s3, 2026-11-21) grpclog's `internal`, imported (types only) so that grpclog's `LoggerV2`
 # is its interface: its variables' initializers, translated.
 SPECIAL['google_golang_org.grpc.grpclog.internal'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
@@ -5987,6 +6011,9 @@ for _c in ['server', 'client']:
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
+# (#33 S4) the Antithesis harness, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.raft.antithesis'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/PkgTable.lean'
 
 # (fmt1-errno, 2026-11-24) the osfs examples' boot programs, for their closed (crash) theorems
 for _ex in ['crashlog', 'walfs', 'bboltfs']:

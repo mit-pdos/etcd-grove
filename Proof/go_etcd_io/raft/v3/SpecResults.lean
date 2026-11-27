@@ -67,13 +67,15 @@ exactly when the campaign's conditions fail (until then `s' = s ∨ …`, which 
 campaign from nothing done at `s' = s`: a traced `MsgHup`'s close, `notes/decisions.md`, "Q8 stage 1
 (slice 19a)"); `promotable`'s and `hasUnappliedConfChanges`' specs state their results exactly. And a
 pre-campaign only with pre-vote on (`hup`'s premise on a pre-election), so that the close tells an
-election from a pre-election too. -/
-def HupGuard (c : CfgM) (id : w64) (s s' : NState) : Prop :=
+election from a pre-election too. (#33 parity B1, 2026-11-26) **At the campaign type `t`** `hup` was
+called with: a pre-campaign exactly for `campaignPreElection`, the requests' `Context` `transferCtx t`
+(the leader-transfer marker for `campaignTransfer`, `[]` otherwise); until then both existential. -/
+def HupGuard (c : CfgM) (id : w64) (t : CampaignType) (s s' : NState) : Prop :=
   (¬ HupCampaigns c id s ∧ s' = s) ∨
-  (HupCampaigns c id s ∧
-   ∃ (pre : Bool) (peers : List w64) (pvs : GMap w64 Progress) (cl : List w8),
-     (pre = true → s.prevote = true) ∧ peers ≡ₚ elements (c.voters \ {[id]}) ∧
-     s' = { campaignState id s pre peers cl with prvals := pvs })
+  (HupCampaigns c id s ∧ (t = campaignPreElection → s.prevote = true) ∧
+   ∃ (peers : List w64) (pvs : GMap w64 Progress), peers ≡ₚ elements (c.voters \ {[id]}) ∧
+     s' = { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t) with
+            prvals := pvs })
 
 /-- What `hup` leaves (its postcondition's pure part, 2026-10-13, for `stepFollower`'s
 `MsgTimeoutNow`), at a joint configuration (2026-10-13, reconfiguration stage A2): `r.step` agrees
@@ -82,21 +84,35 @@ one (a step at every bound `B`: it creates no entry), `r.preVote` and the ghost 
 node that is not a voter of either half does nothing (it is not `promotable`). (2026-10-14,
 stage B7) And what `hup` checked (`HupGuard`). (Until 2026-10-21 also `HupOk`, at a simple
 configuration and the old `Step` model.) -/
-def HupOkC (c : CfgM) (id : w64) (s s' : NState) : Prop :=
+def HupOkC (c : CfgM) (id : w64) (t : CampaignType) (s s' : NState) : Prop :=
   NStateWf s' ∧ (∀ B, StepC c id B (toPState s) [] (toPState s')) ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
    uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh) ∧
-  (id ∉ c.voters → s' = s) ∧ HupGuard c id s s'
+  (id ∉ c.voters → s' = s) ∧ HupGuard c id t s s'
 
 /-- (2026-10-17) After `hup`, a pre-candidate is at the term it was at (a pre-campaign keeps the
 term; an election raises it, but makes a candidate). -/
-theorem HupGuard.precand {c : CfgM} {id : w64} {s s' : NState} (h : HupGuard c id s s')
-    (hp : s'.role = .preCandidate) : s'.term = s.term := by
-  rcases h with ⟨-, rfl⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
+theorem HupGuard.precand {c : CfgM} {id : w64} {t : CampaignType} {s s' : NState}
+    (h : HupGuard c id t s s') (hp : s'.role = .preCandidate) : s'.term = s.term := by
+  rcases h with ⟨-, rfl⟩ | ⟨-, -, peers, pvs, -, rfl⟩
   · rfl
-  · cases pre
+  · generalize decide (t = campaignPreElection) = pre at hp ⊢
+    cases pre
     · simp [campaignState, sendMsgs, becomeCandidate] at hp
     · simp [campaignState, sendMsgs, becomePrecandidate]
+
+/-- (#33 parity B1, 2026-11-26) `HupGuard` with the campaign's kind and context forgotten (its shape
+until they were pinned): for the users that read neither. -/
+theorem HupGuard.exists_pre_ctx {c : CfgM} {id : w64} {t : CampaignType} {s s' : NState}
+    (h : HupGuard c id t s s') :
+    (¬ HupCampaigns c id s ∧ s' = s) ∨
+    (HupCampaigns c id s ∧
+     ∃ (pre : Bool) (peers : List w64) (pvs : GMap w64 Progress) (cl : List w8),
+       (pre = true → s.prevote = true) ∧ peers ≡ₚ elements (c.voters \ {[id]}) ∧
+       s' = { campaignState id s pre peers cl with prvals := pvs }) := by
+  rcases h with h | ⟨hc, hpv, peers, pvs, hp, rfl⟩
+  · exact .inl h
+  · exact .inr ⟨hc, _, peers, pvs, _, fun h => hpv (of_decide_eq_true h), hp, rfl⟩
 
 end hup_results
 

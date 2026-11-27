@@ -261,7 +261,7 @@ theorem cluster_alloc_ns (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     iexists γ
     rw [if_pos rfl]
     iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
-    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hd
+    obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := Hd
     isplitr
     · ipureintro
       refine ⟨h1, h2, h3, h5, ?_⟩
@@ -479,7 +479,7 @@ theorem cluster_alloc_nb (N : Namespace) (vs : List w64) (dup : Bool) (sl : w64 
   imodintro
   iexists γ
   iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hd
+  obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := Hd
   isplitr
   · ipureintro; exact ⟨h1, h2, h3, h5⟩
   isplitr

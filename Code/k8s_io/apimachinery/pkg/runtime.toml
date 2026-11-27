@@ -10,6 +10,9 @@
 # rather than on axioms of these two. And (k8s 7f-5a-P) `Decode`, the etcd3 watcher's `decodeObj`
 # (`d.Decode(data, nil, nil)`), so that the watch path's contract is the codec's `Decode` method.
 translate = ["!*", "Encode", "SetZeroValue", "Decode",
+  # (prove-metav1, 2026-11-27) the append metav1's translated `init.1` calls
+  # (`localSchemeBuilder.Register(RegisterConversions)`)
+  "SchemeBuilder.Register",
   # BEGIN etc/gen-k8s-deep.py: the deep copies the proofs need (generated; do not edit)
   "RawExtension.DeepCopyInto",
   # END etc/gen-k8s-deep.py

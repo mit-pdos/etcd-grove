@@ -38,7 +38,9 @@ gate (`raft.maybeSendAppend.spec`): the `MsgApp`'s hook gate from the caller's `
 `TrNoSnap`. Until slice 6 the premise `s.gh.tr = none` (stage 0), now `raft.sendAppend.untraced`'s
 (`TracedUntracedSend.lean`). -/
 abbrev raft.sendAppend.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (G : List Msg → IProp GF),
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag (`NoSnapG`, `IdxFreeN`; `false` for a caller
+  -- whose `IdxFree` premise fixes it): at `true` the log not compacted, whatever the trace mode
+  ∀ {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (G : List Msg → IProp GF),
   to ≠ id →
   to ∈ domSet s.progress →
   -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
@@ -46,7 +48,7 @@ abbrev raft.sendAppend.spec : Prop :=
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
   -- (2026-11-10, slice 14) the caller's resource indexed by the outbox (`maybeSendAppend`'s)
-  IdxFree s.gh.tr G →
+  IdxFreeN nc s.gh.tr G →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`)
@@ -56,7 +58,7 @@ abbrev raft.sendAppend.spec : Prop :=
           mm.dst = to ∧ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "HG" ∷ G s.outbox ∗
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗

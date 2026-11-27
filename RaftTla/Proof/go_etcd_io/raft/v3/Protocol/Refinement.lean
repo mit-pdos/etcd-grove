@@ -455,6 +455,31 @@ private theorem isMessage_snap_inv (γ : RaftNames) (m : Msg) :
   iintro ⟨H1, H2, H3, H4, -⟩
   iframe H1 H2 H3 H4
 
+/-- (2026-11-26, #33 parity B1) **A snapshot at or below the bootstrap log's end is of a boot
+entry**: the leader's full log has the snapshot's term at its index (`isMessage_snap_inv`), and
+below the bootstrap log's end its entries are the boot entries (`logRecs_boot_termAt`). What puts a
+restored snapshot past the bootstrap log (`snapLocOk`) when the commit index need not be. -/
+theorem isMessage_snap_bootTerm (γ : RaftNames) (m : Msg) :
+    m.ty = .snap →
+    ⊢ isMessage (GF := GF) γ m -∗
+      ⌜uint.Z m.index ≤ γ.reBoot.length → plogTermAt base0 γ.reBoot m.index = some m.logterm⌝ := by
+  intro Hty
+  iintro #Hm
+  icases isMessage_snap_inv γ m Hty $$ Hm with
+    ⟨-, -, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', -, -⟩, -⟩
+  ihave #HLf := leadFull_intro $$ Hp' Hpf'
+  icases leadFull_wf γ m.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
+  icases lpfull_fp $$ Hpf' with ⟨-, %HfL⟩
+  icases logRecs_boot_termAt γ (fpL ++ l') HwLf.1 $$ HrLf with %HbtL
+  have HbL := (plogTermAt_some_range _ _ _ _ Hidx').1
+  have HLidx : plogTermAt base0 (fpL ++ l') m.index = some m.logterm := by
+    rw [full_term_at bL fpL l' m.index HfL.1 HbL]; exact Hidx'
+  ipureintro
+  intro Hle
+  have HmL := (plogTermAt_some_range _ _ _ _ HLidx).2
+  unfold plogLastIndexZ at HmL; rw [base0_index] at HmL
+  rw [HbtL m.index Hle (by omega)]; exact HLidx
+
 /-- What the leader-adopting rules share: the sender is the leader of the term. -/
 private theorem isMessage_leader (γ : RaftNames) (m : Msg) :
     m.ty = .app ∨ m.ty = .heartbeat ∨ m.ty = .snap →
@@ -1396,7 +1421,10 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
     · ipureintro; intro _; rfl
   ihave #Hrecs2' : logRecs γ s2.base s2.log $$ []
   · rw [Hs2base]; iexact Hrecs2
-  have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z s2.commit := by rw [Hs2commit]; exact Hboot
+  have Hboot' : γ.reBoot <+: fp ++ s2.log ∧
+      (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z s2.commit) := by
+    rw [Hs2log, Hs2commit, ← List.append_assoc]
+    exact ⟨Hboot.1.trans (List.prefix_append _ _), Hboot.2⟩
   ihave #Hwfrags' : ([∗map] t ↦ q ∈ <[s.term := granted s.votes]> wins,
       t ↪[γw]□ q ∗ campKey γ id t) $$ []
   · iapply (BigSepM.bigSepM_insert (Φ := fun t (q : GSet w64) => iprop(t ↪[γw]□ q ∗ campKey γ id t))
@@ -2021,8 +2049,8 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
 variable [CrashGS GF] in
 variable [CrashGS GF] in
 /-- (2026-10-19, D21 M3) A follower's rejection of a leader's append, in a cluster with a non-empty
-bootstrap log, is of an index past the bootstrap log (both logs hold it, and the follower's commit
-index is at least its length), with a hint at least `1` (the walk stops at the bootstrap log's
+bootstrap log, is of an index past the bootstrap log (both logs hold it, the follower's full log
+starting with it), with a hint at least `1` (the walk stops at the bootstrap log's
 first entry, of term `1`, at most the leader's term at the index) and at most the index. -/
 theorem ownLogGhost_reject_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps)
     (m : Msg) (hint : w64) (Hty : m.ty = .app)
@@ -2071,10 +2099,14 @@ theorem ownLogGhost_reject_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       have := List.length_pos_iff.mpr Hne; omega
     have Hlok2 := Hlog_ok.2.1
     have Hlok3 := Hlog_ok.2.2
-    -- past the bootstrap log: at its last index both logs hold the boot entry
+    -- (2026-11-26, #33 parity B1) the full log starts with the bootstrap log
+    have HbLen : (γ.reBoot.length : Int) ≤ ((fp ++ s.log).length : Int) := by
+      have := Hboot.1.length_le; omega
+    have HlastF : plogLastIndexZ s.base s.log = ((fp ++ s.log).length : Int) := by
+      rw [← HlenF]; unfold plogLastIndexZ; rw [base0_index]; omega
+    -- past the bootstrap log: at or below its last index both logs hold the boot entry
     have Hpast : (γ.reBoot.length : Int) < uint.Z m.index := by
       refine Int.lt_of_not_ge fun Hge => Hnm ?_
-      have Hidx : uint.Z m.index = (γ.reBoot.length : Int) := by omega
       unfold PlogMatches
       simp only
       have Hfi : uint.Z s.base.index' ≤ uint.Z m.index := by omega
@@ -2082,9 +2114,7 @@ theorem ownLogGhost_reject_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       have HrgL2 := HrgL.2
       rw [← HlenL] at HrgL2
       unfold plogLastIndexZ at HrgL2; rw [base0_index] at HrgL2
-      have HlF : uint.Z m.index ≤ ((fp ++ s.log).length : Int) := by
-        have h2 := Hlok3
-        rw [← HlenF] at h2; unfold plogLastIndexZ at h2; rw [base0_index] at h2; omega
+      have HlF : uint.Z m.index ≤ ((fp ++ s.log).length : Int) := by omega
       have HlL : uint.Z m.index ≤ ((fpL ++ l).length : Int) := by omega
       rw [← HtF m.index (by omega) HlF, HtL m.index (by omega) HlL]
       exact HfullL
@@ -2834,10 +2864,38 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
     ihave %HmL := full_match γ (fpL ++ l') (fp ++ es') lastnewi HwLf.1 HwF' Hsli Hli'.symm $$ HrLf HrF'
     have HlastF' : plogLastIndexZ base0 (fp ++ es') = plogLastIndexZ s.base es' :=
       full_last_index _ _ _ Hf
+    -- (2026-11-26, #33 parity B1) the new full log still reaches the bootstrap log's end: a cut
+    -- below it would be at a boot entry, which the leader's log has too (`logRecs_boot_termAt`)
+    icases logRecs_boot_termAt γ (fp ++ s.log) HwF $$ HrF with %HbtF
+    icases logRecs_boot_termAt γ (fp ++ es') HwF' $$ HrF' with %HbtF'
+    have Hblen : γ.reBoot <+: fp ++ s.log → γ.reBoot.length ≤ (fp ++ es').length := by
+      intro Hbp
+      have HbF := Hbp.length_le
+      rcases Hcase with ⟨rfl, -⟩ | ⟨d, e, Hd, Hnm, Hbefore, Hei, Hend, Hes'⟩
+      · exact HbF
+      dsimp only at Hei
+      have Hdlen : d < m.entries.length := (List.getElem?_eq_some_iff.mp Hd).1
+      by_cases Hne : es' = s.log
+      · rw [Hne]; exact HbF
+      have HlenF' : ((fp ++ es').length : Int) = uint.Z lastnewi := by
+        have := Hlast''.2 Hne
+        rw [← HlastF'] at this
+        unfold plogLastIndexZ at this; rw [base0_index] at this; omega
+      apply Nat.le_of_not_lt
+      intro Hlt
+      have HeT : plogTermAt s.base es' e.Index' = some e.Term' := by
+        rw [Hbatch e.Index' (by omega) (by omega)]
+        exact plogTermAt_lookup _ _ _ d e Hd (by simp only; omega)
+      apply Hnm
+      show plogTermAt s.base s.log e.Index' = some e.Term'
+      rw [← full_term_at s.base fp s.log e.Index' Hf (by omega),
+        ← HbtF e.Index' (by omega) (by omega), HbtF' e.Index' (by omega) (by omega),
+        full_term_at s.base fp es' e.Index' Hf (by omega)]
+      exact HeT
     iexists fp
     isplitr
     · ipureintro
-      refine ⟨⟨Hf, Hwl', ?_⟩, fun Hr => absurd rfl Hr⟩
+      refine ⟨⟨Hf, Hwl', ?_⟩, fun Hr => absurd rfl Hr, Hblen⟩
       intro j x Hx
       refine ⟨?_, fun h => by cases h⟩
       show uint.Z x ≤ uint.Z s.term
@@ -3441,7 +3499,10 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       unfold plogLastIndexZ at Hcl
       rw [List.length_append]; push_cast; omega)]
     iexact Hcmt
-  have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z (pappend s nw).commit := Hboot
+  have Hboot' : γ.reBoot <+: fp ++ (pappend s nw).log ∧
+      (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z (pappend s nw).commit) := by
+    rw [show (pappend s nw).log = s.log ++ nw from rfl, ← List.append_assoc]
+    exact ⟨Hboot.1.trans (List.prefix_append _ _), Hboot.2⟩
   ihave Hlg : ownLogGhost γ id (pappend s nw) kl (virt V πc) $$ [Hterms Htlog' Hwins]
   · unfold ownLogGhost
     iexists γm, terms, fp, γw, wins
@@ -3771,10 +3832,30 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   · unfold baseOk; iright; iexact Hmeta
   · iintro %fp %Hf3 #Hfr #Hc -
     obtain ⟨Hf, Hw, Htle⟩ := Hf3
+    -- (2026-11-26, #33 parity B1) the snapshot is past the bootstrap log: below its end the log
+    -- has the leader's entry (both boot entries, `logRecs_boot_termAt`), which the rule excludes
+    ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfr Hrecs
+    icases logRecs_boot_termAt γ (fp ++ s.log) (full_wf _ _ _ Hf Hw) $$ HrF with %HbtF
+    icases logRecs_boot_termAt γ (fpL ++ l') HwLf.1 $$ HrLf with %HbtL
+    have Hblen : γ.reBoot <+: fp ++ s.log →
+        γ.reBoot.length ≤ ((fpL ++ l').take (uint.Z m.index).toNat ++ []).length := by
+      intro Hbp
+      have HbF := Hbp.length_le
+      have HlenT : (((fpL ++ l').take (uint.Z m.index).toNat ++ []).length : Int) = uint.Z m.index := by
+        have := Hfp'last; unfold plogLastIndexZ at this; rw [base0_index] at this; omega
+      have HmL := (plogTermAt_some_range _ _ _ _ HLidx).2
+      unfold plogLastIndexZ at HmL; rw [base0_index] at HmL
+      apply Nat.le_of_not_lt
+      intro Hlt'
+      apply Hnm
+      show plogTermAt s.base s.log m.index = some m.logterm
+      rw [← full_term_at s.base fp s.log m.index Hf Hbase_le,
+        ← HbtF m.index (by omega) (by omega), HbtL m.index (by omega) (by omega)]
+      exact HLidx
     iexists (fpL ++ l').take (uint.Z m.index).toNat
     isplitr
     · ipureintro
-      refine ⟨⟨Hfp', fun k e Hk => by simp at Hk, ?_⟩, fun Hr => absurd rfl Hr⟩
+      refine ⟨⟨Hfp', fun k e Hk => by simp at Hk, ?_⟩, fun Hr => absurd rfl Hr, Hblen⟩
       intro j x Hx
       refine ⟨?_, fun h => by cases h⟩
       have Hjr := (plogTermAt_some_range _ _ _ _ Hx).2

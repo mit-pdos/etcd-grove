@@ -49,8 +49,8 @@ variable [GooseExts]
 -- (2026-11-12, trace-check implementation step 1) `TrNetTy`, `TrNetTy.ne` and `trnet_ne` moved to
 -- `TracedRecvTok.lean` (below `InvNodeChan`, the design's Probe B, P3).
 
-theorem TrNetTy.stepEndTy {t : w32} (h : TrNetTy t) : StepEndTy t := by
-  unfold StepEndTy
+theorem TrNetTy.stepEndTy {t : w32} (h : TrNetTy t) : TrStepTy t := by
+  unfold TrStepTy
   rcases h with h | h | h | h | h | h <;> simp [h]
 
 end pure
@@ -280,7 +280,8 @@ theorem RawNode.Step.traced
       have e2 := Hcc (fun h => absurd h (by trnet_ne Hnt)); subst c'
       obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
         Hfr (by trnet_ne Hnt) (by trnet_ne Hnt) (by trnet_ne Hnt) (fun h => absurd h (by trnet_ne Hnt))
-      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw } :=
+          (fun _ _ => Hpure.1.1)
+      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } :=
         ⟨⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩, by rw [a8]⟩
       obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx⟩ := HfrX
       simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'
@@ -316,7 +317,7 @@ theorem RawNode.Step.traced
       ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
         Hpv.symm Hsg.symm $$ Hnosnap
       imod trNoSnap_prev0 s'.gh.tr s'.logst (by rw [Htr']; simp) $$ Hnosnap' with %Hprev'
-      have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+      have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
       icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
       ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
       · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
@@ -463,7 +464,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
   imod hb γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s m ents sn ctx rsp γd
       (fun _ => True) bt ⟨⟨Hty, Hne, Hnorm, Hboot⟩, Hsno.1, Hsno.2, fun h => absurd h (by prop_ne)⟩
       Htr Hscope.1 Hcqe.symm
-      (by unfold StepEndTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => absurd h (by prop_ne))
+      (by unfold TrStepTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => absurd h (by prop_ne))
       (fun ty h1 h2 => by rw [Hpu ty h1] at h2; cases h2)
       (by omega) (by rw [Hterm]; unfold traceNumBound; decide)
       (fun ty h => MsgTrOk.of_untraced γ (by
@@ -568,7 +569,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
   ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
     Hfr'.2.2.2.2.1.symm Hfr'.2.2.2.2.2.2.1.symm $$ Hnosnap
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hfr'.2.2.2.2.1]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 (Htm (by prop_ne)).2.2.2.2.2.2.2.hup Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 (Htm (by prop_ne)).2.2.2.2.2.2.2.hup Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2

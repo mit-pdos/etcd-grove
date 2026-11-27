@@ -184,10 +184,10 @@ theorem TrRcv.ne {t : w32} (h : TrRcv t) {u : w32}
   · exact TrNetTy.ne h hu
   · rw [h]; exact hu'
 
-theorem TrRcv.stepEndTy {t : w32} (h : TrRcv t) : StepEndTy t := by
+theorem TrRcv.stepEndTy {t : w32} (h : TrRcv t) : TrStepTy t := by
   rcases h with h | h
   · exact h.stepEndTy
-  · unfold StepEndTy; simp [h, MsgUnreachable]
+  · unfold TrStepTy; simp [h, MsgUnreachable]
 
 /-- `TrRcv.ne` at a constant. -/
 local macro "trrcv_ne" h:term:max : tactic =>
@@ -376,7 +376,8 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   have e2 := Hcc (fun h => absurd h (by trrcv_ne Hnt)); subst c'
   obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
     Hfr (by trrcv_ne Hnt) (by trrcv_ne Hnt) (by trrcv_ne Hnt) (fun h => absurd h (by trrcv_ne Hnt))
-  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw } :=
+      (fun _ _ => Hpure.1.1)
+  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } :=
     ⟨⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩, by rw [a8]⟩
   obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx⟩ := HfrX
   simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'
@@ -412,7 +413,7 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
     Hpv.symm Hsg.symm $$ Hnosnap
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
@@ -516,7 +517,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   imod hb0 γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s
       ({ (zero_val MessageM) with Type' := W32 0 } : MessageM) [] none [] [] γd
       (fun _ => True) bt Htr Hscope.1 Hcqe.symm
-      (.inl (by unfold StepEndTy; simp [MsgHup])) Hwf (fun _ => rfl) (fun h => absurd h (by hup_ne))
+      (.inl (by unfold TrStepTy; simp [MsgHup])) Hwf (fun _ => rfl) (fun h => absurd h (by hup_ne))
       (fun ty h => by rw [Hmt] at h; cases h)
       (by rw [← Htrm]; omega) (by show uint.Z (W64 0) < traceNumBound; unfold traceNumBound; decide)
       (fun ty h => by rw [Hmt] at h; cases h)
@@ -569,7 +570,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   have Hc := Href.commit_mono
   have e1 := Href.keep (by hup_ne) (by hup_ne) (fun h => absurd h (by hup_ne)); subst e1
   have e2 := Hcc (by hup_ne); subst c'
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by hup_ne) (by hup_ne) (by hup_ne) (fun h => absurd h (by hup_ne))
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by hup_ne) (by hup_ne) (by hup_ne) (fun h => absurd h (by hup_ne)) (fun h => absurd h (by hup_ne))
   obtain ⟨Ht1, Ht2, -, Hip4, -, Hpcs⟩ := Htm (by hup_ne)
   have Ht2' := Ht2 rfl
   icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
@@ -581,7 +582,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   icases ownStepGhost_bootCommit γ _ cf id s' $$ Hghost with ⟨%Hbc', Hghost⟩
   icases ownStepGhost_bootPrefix γ _ cf id s' $$ Hghost with ⟨%Hbp', Hghost⟩
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
@@ -867,7 +868,8 @@ theorem wp_applyConf_dyn_g
         have hγ : γ.reTrace ≠ none := Hgtr ▸ hs
         obtain ⟨Htcb, -, -⟩ := Htr hγ
         obtain ⟨n1, n2, n3⟩ := Hnums hγ
-        refine ⟨Hfol hs, by rw [Hkeep hγ, ← Hcfg]; rfl, Hbc0, n1, ?_, n2, n3⟩
+        refine ⟨Hfol hs, by rw [Hkeep hγ, ← Hcfg]; rfl,
+          Hbc0 (by rw [Hgtr]; exact Option.isSome_iff_ne_none.mpr hγ), n1, ?_, n2, n3⟩
         have h5 : uint.Z s.term ≤ uint.Z rs.tc := by rw [Hpvoff.2.1]; exact Hpvoff.2.2.1
         have hb : traceNumBound = 2 ^ 61 := rfl
         rw [hb] at Htcb ⊢
@@ -935,6 +937,7 @@ theorem wp_applyConf_dyn_g
     · iapply leadW_applyCC' γ Hok $$ Hlw
     · iunfold xfW at Hxw
       iunfold xfW
+      unfold xtW
       rw [Hok.gh]; iexact Hxw
   ihave Hghost : ownStepGhost γ (({ rs with cfg := cs', capplied := k + 1 } : RNState).mode.toG
       ⟨({ rs with cfg := cs', capplied := k + 1 } : RNState).capplied,

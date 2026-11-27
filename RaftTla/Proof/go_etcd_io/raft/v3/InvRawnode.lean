@@ -3478,12 +3478,15 @@ theorem ownStepGhost_bootPrefix (γ : RaftNames) (md : GMode) (c : CfgM) (id : w
   simpa [toPState] using hpre
 
 /-- (2026-11-01, J8b) **The commit index is past the bootstrap log** (`ownLogGhost`'s `%Hboot`):
-what makes a restored snapshot's index past it (`snapLocOk`). -/
+what makes a restored snapshot's index past it (`snapLocOk`). 2026-11-26 (#33 parity B1): at a
+traced node only (its trace field the cluster's, `NsLink`). -/
 theorem ownStepGhost_bootCommit (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ md c id s ⊢
-      ⌜(γ.reBoot.length : Int) ≤ uint.Z s.logst.committed⌝ ∗ ownStepGhost γ md c id s := by
+      ⌜s.gh.tr.isSome → (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed⌝ ∗
+        ownStepGhost γ md c id s := by
   apply persistent_entails_right
   iintro H
+  icases ownStepGhost_nsLink γ md c id s $$ H with ⟨%Hnl, H⟩
   iunfold ownStepGhost at H
   icases H with ⟨Hg, -⟩
   iunfold ownRaftGhost at Hg
@@ -3491,7 +3494,42 @@ theorem ownStepGhost_bootCommit (γ : RaftNames) (md : GMode) (c : CfgM) (id : w
   iNamed H
   icases ownLogGhost_boot γ id (toPState s) kl $$ Hlg with ⟨%Hx, -⟩
   ipureintro
-  exact Hx.1
+  intro h
+  exact Hx.1 (by rw [← Hnl.2.1]; exact Option.isSome_iff_ne_none.mp h)
+
+/-- (2026-11-26, #33 parity B1) **Past the commit index and up to the bootstrap log's end, the log
+has the boot entries' terms** (`ownLogGhost`'s `%Hboot`: the full log starts with the bootstrap
+log; the commit index is past the log's boundary). With `isMessage_snap_bootTerm`, what puts a
+restored snapshot (past the commit index, of an entry the log does not have) past the bootstrap
+log (`snapLocOk`) in an untraced cluster, where the commit index need not be. -/
+theorem ownStepGhost_bootTerms (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ⌜∀ i : w64, uint.Z s.logst.committed < uint.Z i → uint.Z i ≤ γ.reBoot.length →
+        plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) i =
+          plogTermAt base0 γ.reBoot i⌝ ∗
+        ownStepGhost γ md c id s := by
+  apply persistent_entails_right
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, -⟩
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  iunfold ownLogGhost at Hlg
+  icases Hlg with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
+  iNamed H
+  ipureintro
+  intro i Hci Hib
+  have Hbl : uint.Z (toPState s).base.index' ≤ uint.Z (toPState s).commit := Hlog_ok.2.1
+  obtain ⟨t, Ht⟩ := Hboot.1
+  have Hfull' := full_term_at (toPState s).base fp (toPState s).log i Hfull.1
+    (by show uint.Z s.logst.prev.index' ≤ uint.Z i
+        have : uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed := Hbl
+        omega)
+  show plogTermAt (toPState s).base (toPState s).log i = _
+  rw [← Hfull', ← Ht]
+  apply plogTermAt_app_l
+  unfold plogLastIndexZ; rw [base0_index]; omega
 
 /-- (2026-10-17) In a cluster started from a bootstrap log (`StartNode`: `γ.reBoot ≠ []`) every
 node is past term `0` (`ownLogGhost_boot`): a pre-vote request rejected at a node's own term
@@ -3549,9 +3587,10 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
 
 /-- (2026-10-20, D22 S-c) A node with nothing committed is of a cluster with no bootstrap log
 (`ownLogGhost_boot`), so not in the no-transfer mode (`RaftNames.reNoXfer_ok`): what
-`RestartNode`'s fresh node is. -/
+`RestartNode`'s fresh node is. 2026-11-26 (#33 parity B1): in a traced cluster (a
+bootstrapped node may start at commit `0`). -/
 theorem ownRaftGhost_noXfer_of_commit (γ : RaftNames) (id : w64) (ps : PState) {md : Bool}
-    (Hc : uint.Z ps.commit = 0) :
+    (Hc : uint.Z ps.commit = 0) (Htr : γ.reTrace ≠ none) :
     ownRaftGhost (GF := GF) γ id ps md ⊢ ⌜γ.reNoXfer = false⌝ ∗ ownRaftGhost γ id ps md := by
   apply persistent_entails_right
   iintro H
@@ -3565,13 +3604,14 @@ theorem ownRaftGhost_noXfer_of_commit (γ : RaftNames) (id : w64) (ps : PState) 
   · exfalso
     have Hne := RaftNames.noXfer_boot h
     have := List.length_pos_iff.mpr Hne
-    have := Hx.1
+    have := Hx.1 Htr
     omega
 
 /-- (2026-10-19, D21 M3) A node with nothing committed is of a cluster with no bootstrap log
-(`ownLogGhost_boot`), so not in the no-snapshot mode: what `RestartNode`'s fresh node is. -/
+(`ownLogGhost_boot`), so not in the no-snapshot mode: what `RestartNode`'s fresh node is. 2026-11-26 (#33 parity B1): in a traced cluster (a
+bootstrapped node may start at commit `0`). -/
 theorem ownRaftGhost_noSnap_of_commit (γ : RaftNames) (id : w64) (ps : PState) {md : Bool}
-    (Hc : uint.Z ps.commit = 0) :
+    (Hc : uint.Z ps.commit = 0) (Htr : γ.reTrace ≠ none) :
     ownRaftGhost (GF := GF) γ id ps md ⊢ ⌜γ.reNoSnap = false⌝ ∗ ownRaftGhost γ id ps md := by
   apply persistent_entails_right
   iintro H
@@ -3585,7 +3625,7 @@ theorem ownRaftGhost_noSnap_of_commit (γ : RaftNames) (id : w64) (ps : PState) 
   · exfalso
     have Hne := RaftNames.noSnap_boot h
     have := List.length_pos_iff.mpr Hne
-    have := Hx.1
+    have := Hx.1 Htr
     omega
 
 /-- (2026-10-17) The term ceiling raised on the static-mode physical state (to close a node opened

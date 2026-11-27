@@ -54,7 +54,7 @@ if the candidate's log is up to date, else rejected at `r.Term`; nothing is reco
 either way. Both are free messages: `StepC.sendFree`. The rejection's `Term` is the
 node's own, which `send` needs non-zero: at term `0` the candidate is up to date (the
 premise `Hutd0`). -/
-theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgPreVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
@@ -77,10 +77,12 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (stage R4) the message, as `Step` received it
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1 (ii)) the end state (`StepEnd`'s `prevote`)
+        "%Hpv" ∷ ⌜PreVoteStepAll id m ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
@@ -169,10 +171,12 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       rw [← Hutd] at this
       exact Bool.false_ne_true this
     try wp_auto
-    prevote_resp_tail false
+    prevote_resp_tail false (Perennial.EtcdGrove.PreVoteEnd.reject' Hty (fun h =>
+      absurd h.2 (by first | (rw [← Hutd]; decide) | (rw [Hutd]; decide) | simp_all)))
   -- up to date: grant at `m.Term`, recording nothing
   try wp_auto
-  prevote_resp_tail true
+  prevote_resp_tail true (Perennial.EtcdGrove.PreVoteEnd.grant' Hty
+    ⟨.inr (.inr ⟨Hty, Hgt0⟩), by first | exact Hutd.symm | exact Hutd | simp_all⟩)
 
 end StepProof
 

@@ -1303,11 +1303,20 @@ noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 /-- foreign (authlease's checks 3-5, adapted): who is refused the revocation of id, a lease of
-    another principal (Lz or Lu, never who's own); its TimeToLive with keys, if it succeeds, returns no
-    key forbidden, the key of id who may not read; and who lists the leases, the result ignored:
-    Leases' replies carry lease IDs only, no key, so nothing of them is checked.
+    another principal (Lz or Lu, never who's own), and no reply discloses a key who cannot read: its
+    TimeToLive with keys is refused or returns no key forbidden (the key of id who may not read), and
+    its Leases returns lease IDs only (the result ignored: it carries no key).
 
-    go: authlease.go:102:6 -/
+    Refusal of TimeToLive with keys and of Leases is not demanded, as the single-process authlease's
+    foreign does: there it tests etcd's all-or-nothing policy (checkLeaseTimeToLive and
+    checkLeaseLeases refuse when the lease holds any key the user may not read), which etcd does not
+    keep while a member applies a snapshot. applySnapshot calls lessor.Recover, which reloads every
+    lease with no key attached, before kv.Restore re-attaches the keys (etcd's
+    server/etcdserver/server.go applySnapshot, server/lease/lessor.go initAndRecover); both checks
+    read the member's lessor and pass in between. A Go test at etcd's main fails on it:
+    issues/etcd-lease-auth-snapshot-restore-keyless.md.
+
+    go: authlease.go:111:6 -/
 noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -1438,7 +1447,7 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
 /-- absent (authlease's, copied) reports whether root's Get of k succeeded and found no key; it
     panics if the Get succeeded and found one.
 
-    go: authlease.go:124:6 -/
+    go: authlease.go:133:6 -/
 noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "root"
   (Lam "k"
@@ -1519,7 +1528,7 @@ noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
     "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
     lessor; the checks are refusals, made by the receiving member before it forwards.
 
-    go: authlease.go:147:6 -/
+    go: authlease.go:156:6 -/
 noncomputable def RunAuthLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "ready"

@@ -21,7 +21,7 @@ only), `ClientViewDist.lean` (`view.leaseClientAt` unchanged; the F2 lease draft
 |---|---|
 | `New_user_dist` | unchanged |
 | `KV_PutOn_dist` | unchanged (`writeAuD`, `writeCheckedD`, `opGrantD` unchanged) |
-| `KV_DeleteOn_dist` | unchanged |
+| `KV_DeleteOn_dist` | unchanged until 2026-11-27; then the premise `auth.reqShape` added (a weakening, `onpairs-deleteon.md`) |
 | `Txn_CommitOn_dist` | unchanged (`txnReadCheckedD`, `authFloorD`, `writeCheckedD` unchanged) |
 | **`KV_GetOn_dist`** | **changed**: its success arm's `readCheckedD` and `readAuthedD` (re-review A's N1, applied after `6d9d9fd662` and before `5b15e37521`; never reviewed) |
 | `Auth_UserAdd_dist` | unchanged |

@@ -816,15 +816,15 @@ theorem rOf_nonleader (s s' : NState) (g : RGh) (ha : s'.logst.applied = s.logst
 /-- `hup`'s step as a `StepCD` one: nothing, a pre-election (a frame step: `abandon` and free
 sends), or an election, which is `StepR.campaign` with the guard `hup` checked
 (`HupGuard`). The log facts are `ownRaftLog`'s. -/
-theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
-    (Hok : HupOkC c id s s') (Hnw : uint.Z s.term + 1 < 2 ^ 64)
+theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {t : CampaignType} {s s' : NState}
+    (Hok : HupOkC c id t s s') (Hnw : uint.Z s.term + 1 < 2 ^ 64)
     (Hlog : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
       uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :
     StepCD c id B m s [] s' := by
   refine ⟨Hok.2.1 B, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
   change StepR Adm dec id B (rOf s g) [] (rOf s' g)
   obtain ⟨-, -, ⟨Hl, -⟩, -, Hg⟩ := Hok
-  rcases Hg with ⟨-, rfl⟩ | ⟨⟨Hnl, Hin, Hsn, Hno⟩, pre, peers, pvs, cl, -, Hperm, rfl⟩
+  rcases Hg.exists_pre_ctx with ⟨-, rfl⟩ | ⟨⟨Hnl, Hin, Hsn, Hno⟩, pre, peers, pvs, cl, -, Hperm, rfl⟩
   · exact .refl _
   have Hrole : (campaignState id s pre peers cl).role ≠ .leader := by
     cases pre <;> simp [campaignState, sendMsgs, becomePrecandidate, becomeCandidate]

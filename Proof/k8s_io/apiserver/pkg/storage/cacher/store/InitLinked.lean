@@ -13,7 +13,7 @@ public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
-public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
+public import Proof.k8s_io.apimachinery.pkg.api.errors.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.fields.Init
 public import Proof.k8s_io.apimachinery.pkg.labels.Init
 public import Proof.k8s_io.apimachinery.pkg.runtime.Init

@@ -52,7 +52,8 @@ the premise `s.gh.tr = none` (stage 0), now `raft.hup.untraced`'s (`TracedUntrac
 (2026-11-10, slice 19a) `campaign`'s first gate (`"Hgbc"`) given the campaign's conditions
 (`HupCampaigns`), so that a caller's resource after it can record them: with `HupGuard` exclusive, a
 traced caller's close tells the campaign from nothing done at `s' = s` (`notes/decisions.md`, "Q8 stage 1
-(slice 19a)"). -/
+(slice 19a)"). (#33 parity B1, 2026-11-26) `HupOkC` at `t`: `HupGuard` pins a campaign's kind
+(a pre-campaign exactly at `campaignPreElection`) and its requests' context (`transferCtx t`). -/
 abbrev raft.hup.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType) (G0 : IProp GF)
     (G : List Msg → IProp GF),
@@ -88,7 +89,7 @@ abbrev raft.hup.spec : Prop :=
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗
       -- (Q8 stage 1, slice 7) no campaign, nothing traced: `G0`, at `s`; a campaign: `G`
-      ((⌜s' = s⌝ ∗ G0) ∨ G s'.outbox) ∗ ⌜HupOkC c id s s'⌝ ∗
+      ((⌜s' = s⌝ ∗ G0) ∨ G s'.outbox) ∗ ⌜HupOkC c id t s s'⌝ ∗
       -- (2026-10-17) only a pre-election makes a pre-candidate
       ⌜s'.role = .preCandidate → s'.role = s.role ∨ t = campaignPreElection⌝ }}
 

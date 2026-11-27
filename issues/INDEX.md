@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (80)
+## Not reported (81)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -15,6 +15,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [auth: adding a user or role with a name longer than 32768 bytes makes every member exit](etcd-auth-useradd-long-name-fatal.md) | yes | etcd-io/etcd#10907 pr merged |
 | [etcdserver: a restarted member panics on a leader transfer to it while it applies the entries replayed from its WAL](etcd-compact-past-raft-applied.md) | yes | etcd-io/etcd#9079 issue closed; etcd-io/etcd#12134 pr merged; etcd-io/etcd#7470 issue closed; etcd-io/etcd#18825 pr merged; etcd-io/etcd#17098 issue closed |
 | [etcdserver: two membership changes while the leader's apply loop lags can lose an acknowledged write](etcd-leader-advance-before-applyconfchange.md) | yes | etcd-io/raft#80 issue open; etcd-io/raft#354 issue open |
+| [etcdserver: while a member restores a snapshot, `LeaseLeases` and `LeaseTimeToLive` with keys skip the lease-key permission check](etcd-lease-auth-snapshot-restore-keyless.md) | yes | etcd-io/etcd#15656 pr merged |
 | [etcdserver: a leader that steps down while saving a Ready can send a follower a snapshot of a term above the follower's term](etcd-merged-snapshot-stale-term.md) | yes | etcd-io/etcd#7470 issue closed; etcd-io/etcd#7513 pr merged; etcd-io/raft#47 pr open; etcd-io/raft#108 issue open |
 | [etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota](etcd-quota-stale-backend-after-snapshot.md) | yes | etcd-io/etcd#20553 pr merged |
 | [rafthttp: a raft message the member rejects makes the peer handler panic and answer 500 instead of 403](etcd-rafthttp-pipeline-process-error-panic.md) | yes | etcd-io/etcd#10569 issue closed; etcd-io/etcd#17078 pr merged; etcd-io/etcd#3579 pr merged |
