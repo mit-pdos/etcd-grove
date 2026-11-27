@@ -309,3 +309,18 @@ each package's `Assumptions` gains the new functions' and types' fields).
   `Deployment.Node`, `dist.WellFormed`, `dist.MainDeployment`, `dist.Orchestrator`, `dist.NodeDeployment`,
   `dist.Observer{Ready, History}` (`MainReady`/`RunStore` take it), `dist.StoreWorkload`/`CompactorWorkload`,
   `dist.encStatus`/`decStatus`/`encOptI64`/`decOptI64`; `etcd3.EncodeWEvents` (test helper).
+
+## Handoff KGO-2 (2026-11-27, branch `k8s-dist-go/2026-11-27`)
+
+**Done.** `TestDist -short` re-run after G1: passes (one deployment, three members; store checked, model
+only, 3 compacted errors accepted; compactor 10 of 10 logs; 1 kill, 1 partition). lean merged
+(`692db2737e`, Perennial `02e741641`); `etc/goose.py --check` passes at that pin. etcd3's `export.go`
+adds a package variable (`crossCheck`, a test hook's `bool`) and imports `sort`: `etc/gen-init.py`
+allocates it (`alloc_types` `Bool`; the fact `drvInit` unchanged), and `k8s/etcd3/{Init,InitLinked}` and
+`k8s/all/PkgTable` are regenerated; SpecPlan's `PkgInit` for etcd3 regenerated and for dist added. No proof
+needed a fix: the grown `Assumptions` classes and etcd3's chunked generated proof built as they were.
+Gates (`etc/gates.sh`, fk-lean2): all pass; trust base matches the baseline (368 axioms, 0 `sorry`s).
+`GeneratedProof/.../k8s/dist.lean` has no `sorry` and the translation no axiom.
+
+**Left.** `examples/k8s/dist` is not a `gen-init` root: no proof reaches it yet; K5's (its `Base.lean`, fact
+`True`: the package has no variable or `init`). Ready to queue (K1-K3).
