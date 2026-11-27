@@ -26,6 +26,7 @@ server).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.MemberGen
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvKeep
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapDirCrash
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.PfxCrash
@@ -61,19 +62,6 @@ variable [go_gctx : GoGlobalContext]
 variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
-/-- **The components `cs` lead durably from the directory `j` to `J`** (persistent): each component's claim
-at a discarded fraction, naming the next directory, with the crash promise that every crash leaves the
-name naming it. -/
-def osSpineDur : Ino → List GoString → Ino → IProp GF
-  | j, [], j' => iprop(⌜j = j'⌝)
-  | j, c :: cs, j' => iprop(∃ (h : NamesH) (J : Ino), osNames j (.only [c]) DFrac.discard h ∗
-      ⌜h.cur !! c = some (.dir J)⌝ ∗ nameCrash h j c (· = some (.dir J)) ∗ osSpineDur J cs j')
-
-/-- **The path `p` names the directory `J` durably** (persistent; `osPathS` with a durable spine). -/
-def osPathDur (R : Roots) (p : GoString) (J : Ino) : IProp GF :=
-  iprop(∃ (r : GoString) (j0 : Ino) (cs : List GoString),
-    ⌜RootsOk R ∧ (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs⌝ ∗ osSpineDur j0 cs J)
-
 /-- **The crash kept the directory of `sd`** at the roots `R` (persistent): T6's `snapDirKeptF`
 (`SnapDirCrash.lean`), since D-T7-1's restatement (2026-11-25) at the law's own roots: the same body. -/
 def snapDirKeptR (R : Roots) (V' : Hist) (sd : GoString) : IProp GF :=
@@ -82,34 +70,6 @@ def snapDirKeptR (R : Roots) (V' : Hist) (sd : GoString) : IProp GF :=
 instance snapDirKeptR_persistent (R : Roots) (V' : Hist) (sd : GoString) :
     Persistent (snapDirKeptR (GF := GF) R V' sd) := by
   unfold snapDirKeptR; infer_instance
-
-theorem osSpineDur_nil (j j' : Ino) : osSpineDur (GF := GF) j [] j' = iprop(⌜j = j'⌝) := by
-  simp only [osSpineDur]
-
-theorem osSpineDur_cons (j : Ino) (c : GoString) (cs : List GoString) (j' : Ino) :
-    osSpineDur (GF := GF) j (c :: cs) j' = iprop(∃ (h : NamesH) (J : Ino),
-      osNames j (.only [c]) DFrac.discard h ∗ ⌜h.cur !! c = some (.dir J)⌝ ∗
-      nameCrash h j c (· = some (.dir J)) ∗ osSpineDur J cs j') := by
-  simp only [osSpineDur]
-
-instance osNames_discard_persistent (j : Ino) (N : NameSet) (h : NamesH) :
-    Persistent (osNames (GF := GF) j N DFrac.discard h) := by
-  unfold osNames; split
-  · infer_instance
-  · unfold gElem; letI := (gooseOsGS (GF := GF)).osAllG; infer_instance
-
-instance osSpineDur_persistent (j : Ino) (cs : List GoString) (j' : Ino) :
-    Persistent (osSpineDur (GF := GF) j cs j') := by
-  induction cs generalizing j with
-  | nil => rw [osSpineDur_nil]; infer_instance
-  | cons c cs ih =>
-    rw [osSpineDur_cons]
-    haveI : ∀ J, Persistent (osSpineDur (GF := GF) J cs j') := ih
-    infer_instance
-
-instance osPathDur_persistent (R : Roots) (p : GoString) (J : Ino) :
-    Persistent (osPathDur (GF := GF) R p J) := by
-  unfold osPathDur; infer_instance
 
 end defs
 
@@ -321,7 +281,7 @@ end stop
 
 /-! ## Raft's durable state and the WAL's files across the crash (T2 + T5)
 
-The resources of each generation are named by definitions over one `HeapGS` (`memberDurKeep`,
+The resources of each generation are named by definitions over one `HeapGS` (`srvDurKeep`,
 `memberWalCrash`, `memberDurOut`): a statement over two generations `L`, `L'` has both, and the
 global ghost state `G`, as local instances, and the instances Lean finds for a predicate written in it
 directly (`nodeCrashTok`'s `InvGS`, through `L'`) are not those of the law it is passed to. -/
@@ -334,21 +294,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-
-/-- **What the member keeps of its raft durability across a crash** (D-T7-3): T2's crash-aware
-invariant, its crash tokens (the invariant's and the node's arm's), and the graceful stop's token,
-which the member never spends (it never stops its server), so T2's stop case is refuted. -/
-def memberDurKeep (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) : IProp GF :=
-  letI := srvStor (GF := GF) γn
-  iprop(rnDurInvK γn id νk h ∗ token νk.tk ∗ nodeCrashTok γn.cl id νk.x ∗ token νk.ν.stop)
-
-/-- **What the member keeps of its WAL area across a crash**: the area's invariant at the WAL names
-`h.W` (`walInv`, at the server's codec and marshaller) with its crash token, and the shared mode's
-invariant at the roots `h.R` (over `h`'s file system instances). -/
-def memberWalKeep (h : WalH GF) : IProp GF :=
-  letI := h.ext; letI := h.semOk; letI := h.has
-  iprop(WalFs.walInv (W := h.W) walCodec walSrvMr h.R h.jr h.r ∗ WalFs.walCrashTok (W := h.W) ∗
-    Fs.osSharedInv h.R)
 
 /-- **The WAL's crash view** (`walInv_crash`'s outputs T5's `walHistH_crash` takes, but the call
 permission): the crash view from the WAL names `h.W` to `W'`, `W'`'s lock token. -/
@@ -392,7 +337,7 @@ theorem memberDurOut_gen (L L' : GooseLocalGS GF) (γn : SrvRaft) (id : w64) (ν
       memberDurOut (hG := ⟨G, etcd_dist.atCtx L'⟩) γn id νk S σ l := .rfl
 
 /-- **The member's durable raft state and its WAL's files after a crash** (the T2 and T5 part of the
-assembly): from the old generation `L`'s `memberDurKeep`, the cluster, a later credit, `crashed`, and
+assembly): from the old generation `L`'s `srvDurKeep`, the cluster, a later credit, `crashed`, and
 the WAL's crash at the new generation `L'` (`memberWalCrash`, from `walInv_crash`; both at the
 statement's Go context, `atCtx`): raft's durable state `memberDurOut` and the new generation's WAL files
 holding its records (`walFilesC`). T2's callback runs T5's `walHistH_crash` at the new generation
@@ -400,7 +345,7 @@ holding its records (`walFilesC`). T2's callback runs T5's `walHistH_crash` at t
 theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) (νk : WalNamesK GF)
     (h : WalH GF) (W' : WalFs.WalGS GF) (hmd : h.md = walMetaEnc id cid) (E : CoPset)
     (hE : ↑rnDurKN ⊆ E) (hE' : ↑srvClusterN ⊆ E \ ↑rnDurKN) :
-    ⊢ memberDurKeep (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h -∗
+    ⊢ srvDurKeep (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h -∗
       isCluster γn.cl srvClusterN -∗ £ 1 -∗
       crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗
       memberWalCrash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' ={E}=∗
@@ -408,7 +353,7 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
         walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true ∗
         memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk S σ l := by
   iintro Hk #Hcl Hlc1 Hcr Hw
-  iunfold memberDurKeep at Hk
+  iunfold srvDurKeep at Hk
   icases Hk with ⟨#Hinv, Htk, Hx, Hst⟩
   imod rnDurK_crash_law_holds (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E
     (fun _ σ => walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true) hE hE' $$
@@ -441,7 +386,7 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     exact hF.elim
 
 /-- **The WAL area's crash** (`walInv_crash` at the member's WAL; the files `D` taken before it, none in
-the area's directories): from `memberWalKeep` at the old generation `L`, its `crashed` and the crash rest
+the area's directories): from `srvWalKeep` at the old generation `L`, its `crashed` and the crash rest
 (whose premise `Q` gives W1, `hQ`), a new generation `W'` of the WAL's names with the crash view and
 its lock token (`memberWalCrashW`, at `L'`), the crashed tree well formed, and the crash rest with the
 area's files taken. (The new generation's area resources, `walStart` and its boot files, are dropped:
@@ -452,7 +397,7 @@ theorem memberWal_crash (L L' : GooseLocalGS GF) (h : WalH GF) (Q : Fs.OsState �
     (hD : ∀ i ∈ D, ¬ WalFs.InAreaDir V'.now h.jr i) (E : CoPset)
     (hE : ↑WalFs.walN ⊆ E) (hE' : ↑Fs.osShN ⊆ E) :
     letI := h.ext; letI := h.semOk; letI := h.has;
-    ⊢ memberWalKeep (hG := ⟨G, etcd_dist.atCtx L⟩) h -∗
+    ⊢ srvWalKeep (hG := ⟨G, etcd_dist.atCtx L⟩) h -∗
       crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗
       Fs.crashRest Q (Fs.gooseOsGS (L := etcd_dist.atCtx L)) (Fs.gooseOsGS (L := etcd_dist.atCtx L'))
         D false V' ={E}=∗
@@ -463,7 +408,7 @@ theorem memberWal_crash (L L' : GooseLocalGS GF) (h : WalH GF) (Q : Fs.OsState �
           (D' ++ D) false V' := by
   letI := h.ext; letI := h.semOk; letI := h.has
   iintro Hk Hcr Hrest
-  iunfold memberWalKeep at Hk
+  iunfold srvWalKeep at Hk
   icases Hk with ⟨Hinv, Hct, #Hsh⟩
   imod WalFs.walInv_crash walCodec walCodec_ok walSrvMr Q hQ ⟨G.gooseAllG⟩ (etcd_dist.atCtx L)
     (etcd_dist.atCtx L') h.W h.R h.jr h.r V' D hD E hE hE' $$
@@ -765,33 +710,10 @@ end newClaims
 /-! ## The member's keep and the named hypotheses (T7, session 4)
 
 `memberKeep`: what a run keeps for its crash. Its restart case (`memberKeepR`) is over the run's names
-(`MemberKN`); the parts no task delivers yet are the abstract pieces `KeepF` (B4: the first generation's
+(`SrvKN`); the parts no task delivers yet are the abstract pieces `KeepF` (B4: the first generation's
 boot phases) and `KeepB` (B1: the backend's image facts, the snapshot directory's counter authority).
 The second later credit is `snapDir_crash.law`'s (T8 deposits it). Each blocker enters the law as one
 named hypothesis below (`abbrev <name>.law : Prop`), its docstring naming it. -/
-
-section kn
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-
-open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver in
-/-- **The names a member's run keeps for its crash** (the restart case's witnesses). -/
-structure MemberKN (GF : BundledGFunctors) where
-  γ : SrvRaft
-  ρo : ReqNames
-  h : WalH GF
-  νk : WalNamesK GF
-  cid : w64
-  γb : backend.DBNames
-  i0 : Ino
-  Dl : backend.Data
-  Dn : backend.Data
-  J : Ino
-  γd : GName
-  γm : GName
-  /-- the data directory's root inode (the snapshot directory's spine starts there) -/
-  jd : Ino
-
-end kn
 
 section keepDefs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -803,14 +725,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
-/-- The snapshot directory's invariant's parameters in the member's image (`srvCrashImageAt`'s row). -/
-abbrev memberSnapKeep (k : MemberKN GF) (dd : GoString) : IProp GF :=
-  snapDirKeep (config.snapDirOf dd) k.γd (srvImageM k.γ.authOn k.γ)
-    (fun j => monoNatLbOwn k.γm (uint.nat j + 1))
-
 /-- **What a restartable run of member `id` keeps for a crash** (the restart case of `memberKeep`): the
-restart's facts at the run's names, raft's durability (`memberDurKeep`, with the stop's token: D-T7-3),
-the WAL area (`memberWalKeep`), the backend file's crash record (`dbCrashKeep`, A1), the snapshot
+restart's facts at the run's names, raft's durability (`srvDurKeep`, with the stop's token: D-T7-3),
+the WAL area (`srvWalKeep`), the backend file's crash record (`dbCrashKeep`, A1), the snapshot
 directory's invariant with its token (`snapDirKeep`), the snapshot directory's durable spine
 `member/snap` from the data directory's root `jd` (`osSpineDur`, D-T7-4: T8's boot makes it after the two
 `TouchDirAll`s, as `osPathDur_child` does; session 5: the spine and not `osPathDur`, so that the crash law
@@ -820,23 +737,18 @@ the data directory `dd` is a root at `jd`, the WAL area `h.r` a root at `h.jr`, 
 directory below it, `snapDirOf dd` the path `dd/member/snap`, and its index files' paths fit
 (`snapDir_split`'s premise). -/
 def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepB : MemberKN GF → IProp GF) : IProp GF :=
-  iprop(∃ k : MemberKN GF,
-    ⌜(∃ r : GName, k.γ = { C.γ with reg := r }) ∧ k.h.dir = srvWalDirOf cfg.DataDir' ∧
-      k.h.md = walMetaEnc id k.cid ∧ k.γ.snapLoc id = some k.γd ∧ (∃ c, theFs GF = some c) ∧
-      (cfg.DataDir', k.jd) ∈ k.h.R ∧ (k.h.r, k.h.jr) ∈ k.h.R ∧ k.h.r ≠ cfg.DataDir' ∧
-      IsUnder k.h.r k.h.dir ∧
-      config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"] ∧
-      ∀ i, PathFits (snap.snapDBPath (config.snapDirOf cfg.DataDir') i)⌝ ∗
-    etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
+    (KeepB : SrvKN GF → IProp GF) : IProp GF :=
+  iprop(∃ k : SrvKN GF,
+    ⌜srvKNOk C.γ id cfg.DataDir' k⌝ ∗
+    etcdstart.memberRestartFacts k.γ k.ρo id ∗ srvDurKeep k.γ id k.νk k.h ∗ srvWalKeep k.h ∗
     backend.dbCrashKeep k.γb k.i0 k.Dl k.Dn ∗
-    memberSnapKeep k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepB k)
+    srvSnapKeepK k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepB k)
 
 /-- **The image rows the backend owes** (B1's output; `srvCrashImageAt`'s backend rows at the run's names):
 a committed prefix `A` reaching the backend's index `i`, the backend's data `D` its image (`imageRestAt`,
 `imageStOk`, `mvccImage`), the membership `m` at `i`, the backend file holding `D` under its name, and the
 snapshot directory's counter's authority at most `i + 1`. -/
-def memberImageRows (k : MemberKN GF) (dd : GoString) (i : w64) (A : List EntryModel) (D : backend.Data)
+def memberImageRows (k : SrvKN GF) (dd : GoString) (i : w64) (A : List EntryModel) (D : backend.Data)
     (m : Membership) : IProp GF :=
   iprop(srvRLogLb k.ρo.rd.raft A ∗
     ⌜uint.Z i = uint.Z k.ρo.rd.raft.ai0 + A.length ∧
@@ -873,7 +785,7 @@ open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 facts, a second later credit (`snapDir_crash.law`'s; T8's obligation), and the first generation's keep
 `KeepF L` (B4) or a restartable run's (`memberKeepR`). -/
 def memberKeep (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepF : GooseLocalGS GF → IProp GF) (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF)
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB : GooseLocalGS GF → SrvKN GF → IProp GF)
     (L : GooseLocalGS GF) : IProp GF :=
   letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩
   iprop(memberClusterFacts C ∗ £ 1 ∗ (KeepF L ∨ memberKeepR C cfg id (KeepB L)))
@@ -897,8 +809,8 @@ crash left of the backend file (`dbCrash`'s `fileHoldsM i0 D'`, `D'` one of the 
 path and call permission, give the image rows (`memberImageRows`) at some index `i` (raft's state back), with B2's and B3's
 bounds (`memberImageB`, `memberImageBoot`: false in some runs as stated, see each). -/
 abbrev memberImage.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
-  ∀ (L L' : GooseLocalGS GF) (V' : Hist) (k : MemberKN GF) (S : RaftState) (σ : StorContents)
+    (KeepB : GooseLocalGS GF → SrvKN GF → IProp GF) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (V' : Hist) (k : SrvKN GF) (S : RaftState) (σ : StorContents)
     (l : List LogEntry) (D' : backend.Data) (q qc : Qp),
     (D' = k.Dl ∨ D' = k.Dn) →
     ⊢ KeepB L k -∗ memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) k.γ id k.νk S σ l -∗
@@ -919,8 +831,8 @@ snapshot directory's crash). The backend's record `dbCrashKeep` claims no name (
 `notes/axiom-review/c-i1-nopath.md`), so the name's crash promise (a `nameCrash`) can be kept beside it; the
 name's commits are the backend's run's (bbolt's `Open`, the
 snapshot's rename `OpenSnapshotBackend` with `renamedDur`), which T10's invariant tracks. -/
-abbrev memberDbNamed.law (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
-  ∀ (L L' : GooseLocalGS GF) (k : MemberKN GF) (Q : OsState → OsState → Prop) (D : List Ino)
+abbrev memberDbNamed.law (KeepB : GooseLocalGS GF → SrvKN GF → IProp GF) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (k : SrvKN GF) (Q : OsState → OsState → Prop) (D : List Ino)
     (tt : Bool) (V' : Hist),
     ⊢ KeepB L k -∗
       crashRest Q (gooseOsGS (L := etcd_dist.atCtx L)) (gooseOsGS (L := etcd_dist.atCtx L')) D tt V' ={⊤}=∗
@@ -971,7 +883,7 @@ theorem memberRestartFacts_reg (γ : SrvRaft) (ρ : ReqNames) (id : w64) (r : GN
 /-- **The crash image** (`srvCrashImageAt`) at the fresh registry `r'`, from raft's durable state (T2), the
 backend's rows (B1, with B2's and B3's bounds), the WAL's files (T5), the snapshot directory's invariant
 with its crash token (T6; D-T7-2) and the fresh registry's authority. -/
-theorem crashImage_of (k : MemberKN GF) (id : w64) (dd : GoString) (r' : GName) (S : RaftState)
+theorem crashImage_of (k : SrvKN GF) (id : w64) (dd : GoString) (r' : GName) (S : RaftState)
     (σ : StorContents) (l : List LogEntry) (i : w64) (A : List EntryModel) (D : backend.Data)
     (m : Membership) (W' : WalFs.WalGS GF)
     (hρ : k.ρo.rd.raft = ⟨k.γ, [], W64 0⟩) (hc0 : k.ρo.rd.kv.c0 = W64 0)
@@ -1047,7 +959,7 @@ the tasks still open: the crash premise `Q`'s W1 (`hQ`) and bbolt's (`hA1`, unti
 (2026-11-26: the issue record's crash rest cancels the old prefix ids' invariant, `idPfxInv_crash`). -/
 theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepF : GooseLocalGS GF → IProp GF) (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF)
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB : GooseLocalGS GF → SrvKN GF → IProp GF)
     (Q : OsState → OsState → Prop)
     (hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st')
     (hA1 : ∀ i0 st st', Q st st' → backend.BoltCrashWhole (· = i0) st st')
@@ -1083,7 +995,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   subst hSc
   haveI := inj
   -- the old generation's tree: the roots, the crashed tree well formed, the snapshot directory's spine
-  iunfold memberWalKeep at Hwal
+  iunfold srvWalKeep at Hwal
   icases Hwal with ⟨Hwi, Hwt, #Hsh⟩
   imod osSharedInv_rootsOk (L := ⟨fl, lc', nh, gs, th, cr⟩) R (E := ⊤) (by simp) $$ Hsh with %hRok
   imod crashRest_treeWf' Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ [] false V' R ⊤ (by simp) $$ Hsh Hrest with ⟨%hwf, Hrest⟩
@@ -1102,7 +1014,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     exact notInArea hwf h1 h2 hrR hdb
   imod memberWal_crash ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩ Q hQ V' [i0] hDw ⊤ (by simp) (by simp) $$ [Hwi Hwt] Hcr Hrest
     with ⟨%W', %Dw, HwC, %hwp, Hrest⟩
-  · iunfold memberWalKeep; iframe Hwi Hwt Hsh
+  · iunfold srvWalKeep; iframe Hwi Hwt Hsh
   -- the new generation's tree
   imod crashRest_treeS' Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ (Dw ++ [i0]) V' R ⊤ (by simp) $$ Hsh Hrest with ⟨%hV2, Hsh', Hrest⟩
   iunfold osShared at Hsh'
@@ -1220,15 +1132,15 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   iapply crashImage_of (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ id cfg.DataDir' r' S σ l i A D m W' hρ.1 hρ.2 hdir hsl hbnd
   isplitl [Hdo]
   · iapply (show memberDurOut (hG := ⟨G, etcd_dist.atCtx ⟨fl, lc', nh, gs, th, cr⟩⟩) γ id νk S σ l ⊢
-      memberDurOut (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γ id (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).νk S σ l from .rfl)
+      memberDurOut (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : SrvKN GF).γ id (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : SrvKN GF).νk S σ l from .rfl)
     iexact Hdo
   isplitl [Himg]; · iexact Himg
   isplitl [Hwf]; · iexact Hwf
   isplitl [Hsnap']
   · iapply (show snapDirKeep (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') γd
         (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ.authOn γ) (fun j => monoNatLbOwn γm (uint.nat j + 1)) ⊢
-      snapDirKeep (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γd (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γ.authOn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γ)
-        (fun j => monoNatLbOwn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γm (uint.nat j + 1)) from .rfl)
+      snapDirKeep (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : SrvKN GF).γd (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : SrvKN GF).γ.authOn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : SrvKN GF).γ)
+        (fun j => monoNatLbOwn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : SrvKN GF).γm (uint.nat j + 1)) from .rfl)
     iexact Hsnap'
   iexact Hreg
 
