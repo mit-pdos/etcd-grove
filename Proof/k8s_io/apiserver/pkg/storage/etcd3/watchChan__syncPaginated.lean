@@ -81,7 +81,7 @@ theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
     (hser : (rangeWireOf (opGetModel pk gs)).base.serializable = false)
     (hss : (opGetModel pk gs).base.sortSet = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        c.K.kvAt api ∗
+        □ c.K.kvAt api ∗
         ctxOk ctx cdw ∗ ctxErrClient ctx cdw ∗ optsAt osl gs ∗ readAus c γk Qr }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ctx))) (Val #pk)) (Val #osl))
