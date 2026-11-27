@@ -7664,3 +7664,44 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   retryApplyOk`). No top-level statement changes.
 - **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
   independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
+
+## 2026-11-27: Q2 widening stopped: the model's verdict on an empty or inverted range is not Go's (q2)
+
+- **Spec.** The auth-on request-shape premises the Q2 widening was to remove: `auth.reqShape` (`auth/Model.lean`;
+  in `granted`, `refusedV`, hence `auth.permitted`) and `kvShapeAll`/`kvDet` (`KVAuthModel.lean`), through the
+  member specs `etcdDeleteSpecV_M`/`etcdTxnSpecOn` and `client_delete_on`/`client_txn_on`. And the vocabulary they
+  guard: `kvGranted` (in `grantedAt`, so in `writeGrantG`, `opGrantD`/`writeAuD` and `writeCheckedD`: the posts
+  and premises of `KV_PutOn_dist`, `KV_DeleteOn_dist`, `Txn_CommitOn_dist`), and `auth.permitted`/`refusedV`
+  (`readAuthedD` in `KV_GetOn_dist`; `Spec/.../examples/etcd/auth/Main.lean`).
+- **Defect.** For a range whose end is non-empty, not `"\x00"` and at or below its key (`[a,a)`, `[e,b)`),
+  `auth.covers` is `coversRange`, vacuous: the model grants it to any existing user. Go's `checkKeyInterval` asks
+  `IntervalTree.Contains`, which refuses it in general, and for an inverted query answers by the tree's shape
+  (the order the permissions were inserted), not by the set of intervals. So (1) for a writing transaction with
+  such a compare (or nested get/delete) range and a covered put, the model applies the put and Go refuses the
+  whole transaction: `kvShapeAll` cannot be dropped from `client_txn_on`/`etcdTxnSpecOn` over the current
+  `kvGranted`, and no `Contains` spec over the interval set can state the inverted answer. (2) Restating
+  `granted`/`refusedV` without `reqShape →` (the plan's step 3) changes `auth.permitted`/`refusedV`, trusted
+  vocabulary (`KV_GetOn_dist`'s `readAuthedD`, the auth example's `Main`), and `refusedV` would become false
+  (a Go refusal of `[e,b)` with `covers` true). (3) `Txn_CommitOn_dist` (and `KV_DeleteOn_dist`) take no shape
+  premise, so they cover requests whose in-process counterpart needs `kvShapeAll`/`reqShape`: proving
+  `Txn_CommitOn_dist` (its retirement by #24) needs `kvGranted` changed. Not shown exploitable: the error arm claims
+  nothing, and no axiom tells a program that a refused entry is in a committed prefix it learns; but the model's
+  KV state `kvStateOf (kvModelOn L)` after such an entry is not Go's (the put applied, the revision bumped).
+  For a delete the outcome agrees (an empty range deletes nothing: `kvOpStep` is the identity,
+  `KVState.commit_nil`), so `KV_DeleteOn_dist` is consistent with Go, and a delete outside `reqShape` is provable
+  without trusted change, but by a different route than planned: the apply thread taking an inexact verdict for
+  a no-op request (Go grant implies model grant; a Go refusal of a model-granted no-op keeps the state), not by
+  widening `Contains`/`Visit` (the inverted answer is shape-dependent; the specs' "some boolean" is all there is).
+  The empty key is as analysed (the gRPC layer refuses it before auth, `ErrGRPCEmptyKey`).
+- **Evidence.** Go tests `notes/axiom-review/q2-shape-gotest/` (etcd `8c28a4296`, go1.27.3): the three
+  transactions and the delete refused with `permission denied`, `p` absent and the revision unchanged; `Contains`
+  `false` on `[a,a)`/`[e,b)` over `{p}`, and `false`/`true` on `[e,b)` over `{[c,d),[d,z)}` by insertion order.
+  The model's grant by unfolding `kvGranted`, `auth.covers`, `inRange` (`Model.lean:147-166`).
+- **Proposed change.** Needs a decision (trusted text either way): (a) a scope premise on `Txn_CommitOn_dist`'s
+  write arm, `∀ tw, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)`, as `client_txn_on` has (a
+  weakening of the axiom: the user's sign-off); or (b) keep the axiom and record that its retirement needs a
+  model verdict for these ranges, which is Go's only if it follows the cache tree's shape (the red-black tree
+  built from the user's permissions in `getMergedPerms`' order), not the permission set. Recommendation: (a).
+  For the member specs: keep `kvShapeAll` on transactions; the delete can drop `reqShape` by the inexact-verdict
+  route above (untrusted, a few days), if wanted.
+- **Decision.** Open: stopped and reported to the dsverify-net lead (2026-11-27); no spec or proof changed.
