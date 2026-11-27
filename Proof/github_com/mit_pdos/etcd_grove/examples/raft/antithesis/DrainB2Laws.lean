@@ -2,7 +2,7 @@
 Lean-first (no Rocq counterpart). #33 parity B2, driver group E: **the Sim steps of a `-parallel`
 leader's `Ready` that `StmtsB2` does not state** (round 6), as pure laws the harness proofs take
 (as B1's `node.drain` took `antSim_readyA.law`); the Link passes the Sim's theorems once proved:
-- `antSim_sendD_in.law`: `antSim_send`'s step (sync) over `AntSimD`, at a mask `msk ≤ mskB2` (the
+- `antSim_sendD_in.law`: `antSim_send`'s step (sync) over `AntSimD`, at a mask `msk ≤ mskB2`, unbatched (the
   requests `parallel` sends before its write, and every message of a sync `Ready` after it);
 - `reach_fpD.law`, `dst_reachD.law`: `Sim/MsgShape`'s `reach_fp` and `dst_reach` over `NodeOkD`
   (`NetOkD`), unbatched, for the masks below `mskB2` (no snapshot is received; the outbox is empty
@@ -40,7 +40,7 @@ abbrev antSim_sendD_in.law : Prop :=
     (net : List Msg) (xnet : List XMsg) (evs : List AntCheck.Event) (G : AntSim.RaftFacts)
     (n : Fin R.N) (q : Msg) (rest : List Msg),
     AntSim.InMask msk R net xnet → AntSim.SimPreD R dec S V net xnet evs G → R.md.async = false →
-    (V n).pend = q :: rest → AntSim.Told (V n) → AntSim.MsgFacts G q →
+    R.drv.batch = false → (V n).pend = q :: rest → AntSim.Told (V n) → AntSim.MsgFacts G q →
     AntSim.SimStepD R dec evs G (AntSim.evSend (AntSim.nodeId n) (V n).byE q)
       (AntSim.setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet
 
