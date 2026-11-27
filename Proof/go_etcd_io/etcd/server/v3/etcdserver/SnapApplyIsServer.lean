@@ -37,7 +37,7 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
     (d' : mvcc.KBReal) (g : GoFunc) (al ast lp cl : Loc) (hP : d'.P = P) (hgnn : g ≠ func.nil)
     (hcK : ciKeys d'.P) (hhP : storage.hooksParams d'.P) (hk : Loc) :
     isServerM on s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
-      isServerCI s (snapγ γ π0 d'.γB) ci ∗ hookSpec (snapγ γ π0 d'.γB) ci (metaTM d'.γB P) #g ∗
+      isServerCI s (snapγ γ π0 d'.γB) ci γr.raft.raft.cl ∗ hookSpec (snapγ γ π0 d'.γB) ci (metaTM d'.γB P) #g ∗
       -- (2026-11-02, branch `snap-window`) the new backend's hooks, the server's `s.beHooks`
       backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
       backend.isBackend d'.γB d'.P (mvcc.api.mvccW d'.gx)

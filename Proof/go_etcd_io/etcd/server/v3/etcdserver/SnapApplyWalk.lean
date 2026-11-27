@@ -742,11 +742,11 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   simp only [mvcc.api.etcdStorage_hook, srvApi.stAt_log, srvApi.stAt_crev, hpi]
   (try wp_auto)
   -- the post-lock hook of the new names, installed on the new backend
-  ihave #HCI' : isServerCI (GF := GF) s (γ.withPh π') ci $$ []
+  ihave #HCI' : isServerCI (GF := GF) s (γ.withPh π') ci γr.raft.raft.cl $$ []
   · iunfold isServerCI; iframe Hcif Hisci
     rw [show consInv (GF := GF) (γ.withPh π') = consInv γ from rfl]
     iexact Hinv
-  wp_apply hGTP s (γ.withPh π') ci (metaTM d'.γB d.P) $$ [$HCI'] as %g ⟨%Hgnn, #HhkS⟩
+  wp_apply hGTP s (γ.withPh π') ci γr.raft.raft.cl (metaTM d'.γB d.P) $$ [$HCI'] as %g ⟨%Hgnn, #HhkS⟩
   wp_apply hSTP d'.γB d.P (mvcc.api.mvccW d'.gx) (batchLockInv (γ.withPh π') (metaTM d'.γB d.P)) d'.be
       (1 : Qp).half func.nil g $$ [HnOh HnH Hwb1] as ⟨HnOh, HnH⟩
   · iframe #; iframe HnOh HnH
@@ -758,7 +758,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #d'.be) $$ [Hown]
   · iunfold applyBackend; iframe Hown HmB'
-  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg (γ.withPh π') ci _ s' rfl) $$ [Hst Hab'] as ⟨Hst, Hab'⟩
+  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg _ (γ.withPh π') ci _ s' rfl) $$ [Hst Hab'] as ⟨Hst, Hab'⟩
   · iframe #; iframe Hst Hab'
     rw [show consInv (GF := GF) (γ.withPh π') = consInv γ from rfl]
     iexact Hinv

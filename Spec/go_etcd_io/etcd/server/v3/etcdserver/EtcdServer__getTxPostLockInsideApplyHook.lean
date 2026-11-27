@@ -28,9 +28,9 @@ ci.UnsafeConsistentIndex() { ci.SetConsistentIndex(applyingIdx, applyingTerm) } 
 meets the protocol's `hookSpec` (for any batch transaction meta-keys resource `TM`): under the
 batch lock, it sets the consistent index to the entry being applied. -/
 abbrev EtcdServer.getTxPostLockInsideApplyHook.spec : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF),
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerCI s γ ci }}
+      isServerCI s γ ci cl }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getTxPostLockInsideApplyHook"))
       (Val #()))
   {{ (g : GoFunc), RET #g; ⌜g ≠ func.nil⌝ ∗ hookSpec γ ci TM #g }}

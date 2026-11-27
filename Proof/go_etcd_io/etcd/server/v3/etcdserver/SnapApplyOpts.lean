@@ -92,7 +92,7 @@ theorem snap_backendOptsOk
       opts'.SnapshotServer' = interface.mkOk EtcdServer.ty.PointerType #s) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ∗
-      isServerCI s (snapγ γ π0 γB) ci ∗
+      isServerCI s (snapγ γ π0 γB) ci γr.raft.raft.cl ∗
       backend.isBackend d'.γB d'.P W (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) d'.be ∗
       backend.plHookRO γB g ∗
       □ mvcc.api.isMvcc E.kv E.γ ∗ apply.envAus E ∗
@@ -137,7 +137,7 @@ theorem snap_backendOptsOk
   · iapply snap_isRaftStatus hMID hLead hTerm E.authOn s γ ci TM E ρ γr $$ [$Hpkg $HS]
   isplitr
   · iapply snap_isSnapshotServer hFS E.authOn s γ ci TM E ρ γr $$ [$Hpkg $HS]
-  · iapply snap_isConsistentIndexer hCIg s _ ci $$ [$Hpkg $HCI]
+  · iapply snap_isConsistentIndexer hCIg s _ ci _ $$ [$Hpkg $HCI]
 
 end proof
 end EtcdGrove

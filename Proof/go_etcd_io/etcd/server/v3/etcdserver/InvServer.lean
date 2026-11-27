@@ -86,8 +86,8 @@ def isServerCI (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster)
     (Rw : TRow GF := TRow.triv) : IProp GF :=
   iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci (srvCIPair cl) ∗ inv applyN (consInv γ Rw))
 
-instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (Rw : TRow GF) :
-    Persistent (isServerCI (GF := GF) s γ ci Rw) := by
+instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (Rw : TRow GF) :
+    Persistent (isServerCI (GF := GF) s γ ci cl Rw) := by
   unfold isServerCI; infer_instance
 
 /- (T10 session 10) The lemmas below are generic over the protocol's image row `Rw` (`consInv γ Rw`,
@@ -147,6 +147,25 @@ theorem stLoaded_idem (γ : ApplyNames) (st : ApplyState) :
   · rw [if_pos h]; split <;> rfl
   · rw [if_neg h, if_neg h]
 
+/-- (keepfix-d, route (i)) A loaded state (`srvCiC`'s condition) at index 0 is one whose backend's
+index is 0: the get-supply of `ci_get_au` holds purely. -/
+theorem stLoaded_self_k0 (γ : ApplyNames) (st : ApplyState) (h : stLoaded γ st = st) :
+    st.k = W64 0 → γ.m0.1 = W64 0 := by
+  intro hk
+  unfold stLoaded at h
+  rw [if_pos hk] at h
+  have h' := congrArg ApplyState.k h
+  simp only at h'
+  rw [h', hk]
+
+/-- (keepfix-d, route (i)) The pure invariant `st.k = 0 → γ.m0.1 = 0` is `stLoaded γ st = st`. -/
+theorem stLoaded_self_of_k0 (γ : ApplyNames) (st : ApplyState) (h : st.k = W64 0 → γ.m0.1 = W64 0) :
+    stLoaded γ st = st := by
+  unfold stLoaded
+  by_cases hk : st.k = W64 0
+  · rw [if_pos hk, h hk, ← hk]
+  · rw [if_neg hk]
+
 /-- Reading `ci` through `ConsistentIndex`/`UnsafeConsistentIndex` (by the apply thread,
 outside an entry's flight): the update their specs take. It returns `ciEff γ st.k`, and
 loads `ci` if it was 0. -/
@@ -154,8 +173,8 @@ theorem ci_get_au (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b
     (st : ApplyState) (hp : st.pending = false) (Φ : val → IProp GF) :
     inv applyN (consInv γ Rw) ⊢
       -- (keepfix-d) the pair predicate of the meta keys the backend was opened with, which the load
-      -- stores
-      (⌜γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2) -∗ applyThread γ st -∗
+      -- stores; or (route (i)) no load of a non-zero index: a state at 0 is one whose backend's index is 0
+      (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2) -∗ applyThread γ st -∗
       (applyThread γ (stLoaded γ st) -∗ ciOwner ci b -∗ Φ #(ciEff γ st.k)) -∗
       |={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ.ci k ∗ (ciIdx γ.ci k ={∅, ⊤ \ ↑ciN}=∗
         if k = W64 0 then
@@ -175,7 +194,10 @@ theorem ci_get_au (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b
     · unfold loadedMeta
       by_cases h0 : γ.m0.1 = W64 0
       · simp only [h0, ↓reduceIte]; ileft; ipureintro; simp
-      · simp only [h0, ↓reduceIte]; iexact HP0
+      · simp only [h0, ↓reduceIte]
+        icases HP0 with (%h | #HP0)
+        · exact absurd (h hk) h0
+        · iexact HP0
     iapply ci_load_store_au γ st hk hp $$ Hinv Hst
     iintro Hst
     iapply HΦ $$ Hst
@@ -199,7 +221,7 @@ theorem wp_ci_unsafeGet (hU : consistentIndex.UnsafeConsistentIndex.spec (GF := 
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       isCI ci γ.ci P ∗ inv applyN (consInv γ Rw) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      (⌜γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2)) -∗
+      (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2)) -∗
       (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b -∗ Φ #(ciEff γ st.k)) -∗
       WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeConsistentIndex"))
         (Val #())) {{ Φ }} := by
@@ -222,7 +244,7 @@ theorem wp_ci_get (hC : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := h
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       isCI ci γ.ci P ∗ inv applyN (consInv γ Rw) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      (⌜γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2)) -∗
+      (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2)) -∗
       (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b -∗ Φ #(ciEff γ st.k)) -∗
       WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #())) {{ Φ }} := by

@@ -53,7 +53,10 @@ directory's length bound is `cfg.BackendPath()`'s spec's (`bootstrap` derives it
 `Fs.DirFits cfg.DataDir'`). -/
 abbrev bootstrapBackend.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (N : Nat),
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (N : Nat)
+    -- (keepfix-d) the consistent index's pair predicate (`isCI cil γA.ci CP`; a fresh backend's pair is
+    -- `(0, 0)`, so any)
+    (CP : w64 → w64 → IProp GF),
   cfg.DataDir'.length < 2 ^ 60 →
   bootCfgOk cfg → N + 7 + bootWB ≤ backend.wbInit → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -65,7 +68,7 @@ abbrev bootstrapBackend.spec : Prop :=
       ⌜err = GoInterface.nil⌝ ∗
       ∃ (bk : bootstrappedBackend) (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal) (D : backend.Data),
         bkl ↦ bk ∗ ⌜bk.snapshot' = null ∧ bootBackendData γA d D⌝ ∗
-        bootBackendRows cfg bk γA cil d ∗ bootBackendNew N γA d D ∗ backend.wbTok d.γB }}
+        bootBackendRows cfg bk γA cil d CP ∗ bootBackendNew N γA d D ∗ backend.wbTok d.γB }}
 
 end spec
 

@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CIPairLog
 
 @[expose] public section
 
@@ -262,7 +263,7 @@ theorem srvFieldsAtM_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
 fields with the wait in the mode (`srvFieldsAtM`) and the atomics in the mode (`srvAtomicsM`). -/
 def isServerM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
-  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAtM on s γ ci TM E ρ v) ∗
+  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci γr.raft.raft.cl ∗ (∃ v : SrvFields, srvFieldsAtM on s γ ci TM E ρ v) ∗
     srvAtomicsM on s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
     -- (the backend-auth-split stage, 2026-11-02) `isServer`'s thread bound
     ⌜threadBound GF ≤ backend.rdPoolN⌝)
@@ -275,6 +276,36 @@ instance isServerM_persistent (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
 theorem isServerM_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
     isServerM (GF := GF) false s γ ci TM E ρ γr = isServer s γ ci TM E ρ γr := rfl
+
+/-- **A committed entry's pair, at the server's view** (keepfix-d, row 7h): the entry closing a committed
+prefix `L ++ [m]` of the server's log gives the consistent index's pair predicate of `(m.index, m.term)`
+(`srvRLogLb_ciPair`, the start index from the KV invariants' `srvRaftLogInv`). -/
+theorem isServerM_ciPair (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (L : List EntryModel) (m : EntryModel) :
+    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ srvRLogLb γr.raft (L ++ [m]) -∗
+      srvCIPair γr.raft.raft.cl m.index m.term := by
+  iintro #Hsrv #HL
+  iunfold isServerM at Hsrv
+  icases Hsrv with ⟨-, -, -, #Hat, -⟩
+  iunfold srvAtomicsM at Hat
+  icases Hat with ⟨-, -, #Hkvi⟩
+  ihave #Hrl : srvRaftLogInv γr.raft $$ []
+  · cases on
+    · rw [srvKVInvsM_false] at *; iunfold srvKVInvs at Hkvi
+      icases Hkvi with ⟨-, -, #H, -⟩; iexact H
+    · ihave #Hkvi' : srvKVInvsOn E γr srvAuthSt0 $$ []
+      · iapply srvKVInvsM_true; iexact Hkvi
+      iunfold srvKVInvsOn at Hkvi'
+      icases Hkvi' with ⟨-, -, #H, -⟩; iexact H
+  ihave %hai := srvRaftLogInv_facts γr.raft $$ Hrl
+  iapply srvRLogLb_ciPair γr.raft L m hai $$ HL
+
+/-- `isServerM_ciPair` at `isServer` (the mode `false`). -/
+theorem isServer_ciPair (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (L : List EntryModel) (m : EntryModel) :
+    isServer (GF := GF) s γ ci TM E ρ γr ⊢ srvRLogLb γr.raft (L ++ [m]) -∗
+      srvCIPair γr.raft.raft.cl m.index m.term := by
+  rw [← isServerM_false]; exact isServerM_ciPair false s γ ci TM E ρ γr L m
 
 /-- **The server's atomics in the mode `on` from `start`'s construction premise** (E3k): the
 applied index's invariant over the mode's model is allocated at the boot (`srvIndices_allocM`), so

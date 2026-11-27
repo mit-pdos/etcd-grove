@@ -323,8 +323,9 @@ set_option hygiene false in
 /-- The deferred update after an entry processed with no writes (state `{st with p := i}`):
 `ci` is below `i`, so it is advanced to `i`; then the postcondition. -/
 local macro "tail_skip" : tactic => `(tactic| (
-  wp_apply_core (wp_ci_get (Rw := TRow.triv) hC γ ci b { st with p := m.index } Hp) $$ [Hst Hbe] [-]
+  wp_apply_core (wp_ci_get (Rw := TRow.triv) hC _ γ ci b { st with p := m.index } Hp) $$ [Hst Hbe] [-]
   · iframe Pci Hci Hinv Hst Hbe
+    ileft; ipureintro; exact stLoaded_self_k0 γ st hld
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
   wp_apply hGI e m
@@ -338,10 +339,11 @@ local macro "tail_skip" : tactic => `(tactic| (
   · iexact He
   (try wp_auto)
   obtain ⟨hlp, hle, hlpend⟩ := stLoaded_fields γ { st with p := m.index }
-  wp_apply_core (wp_ci_advance (Rw := TRow.triv) hS γ ci (stLoaded γ { st with p := m.index }) m.index m.term
+  wp_apply_core (wp_ci_advance (Rw := TRow.triv) hS _ γ ci (stLoaded γ { st with p := m.index }) m.index m.term
       (by rw [hlpend]; exact Hp) (by rw [hlp]; exact Int.le_refl _)
       (by rw [ciEff_stLoaded]; exact hce)) $$ [Hst] [-]
   · iframe Pci Hci Hinv Hst
+    iright; iexact HcpM
   iintro Hst
   (try wp_auto)
   iapply HΦ
@@ -360,8 +362,9 @@ set_option hygiene false in
 /-- The deferred update after an entry whose writes went through the hook (state
 `⟨i, i, i, false⟩`): `ci` is `i`, nothing to do; then the postcondition. -/
 local macro "tail_done" : tactic => `(tactic| (
-  wp_apply_core (wp_ci_get (Rw := TRow.triv) hC γ ci b ⟨m.index, m.index, m.index, false⟩ rfl) $$ [Hst Hbe] [-]
+  wp_apply_core (wp_ci_get (Rw := TRow.triv) hC _ γ ci b ⟨m.index, m.index, m.index, false⟩ rfl) $$ [Hst Hbe] [-]
   · iframe Pci Hci Hinv Hst Hbe
+    ileft; ipureintro; intro h; exact absurd h hi0
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
   wp_apply hGI e m
@@ -693,6 +696,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   obtain ⟨Hp, Hok, Htyp⟩ := Hpo
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv0 := Hsrv
+  -- (keepfix-d) the entry's pair, for the consistent index's `SetConsistentIndex`
+  ihave #HcpM := isServer_ciPair _ _ _ _ _ _ _ A m $$ Hsrv HAm
   iunfold isServer at Hsrv
   icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, #Hgen, -⟩
   ihave #Hat' := Hat
@@ -1788,6 +1793,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   obtain ⟨Hp, Hok, Htyp, Hrb⟩ := Hpo
   have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
   wp_apply wp_with_defer as %defer defer
+  -- (keepfix-d) the entry's pair, for the consistent index's `SetConsistentIndex`
+  ihave #HcpM := isServerM_ciPair _ _ _ _ _ _ _ _ A m $$ Hsrv HAm
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, #Hgen, -⟩
   ihave #Hat' := Hat

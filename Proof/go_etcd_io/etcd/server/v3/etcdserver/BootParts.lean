@@ -428,10 +428,10 @@ def bootBackendNew (N : Nat) (γA : ApplyNames) (d : mvcc.KBReal) (D : backend.D
 /-- **The rows of `bootOk` that `bootstrapBackend` makes, but `Hnew`** (`bootstrap.go:259-309`):
 `Hci HisCI Hcons Hbh Hthr Happ Hown Hmeta HmetaSnap Hbe HhkAt Hlate Hpath Hbfile`, verbatim. -/
 def bootBackendRows (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (bk : bootstrappedBackend)
-    (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal)
+    (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal) (CP : w64 → w64 → IProp GF)
     (Rw : TRow GF := TRow.triv) : IProp GF :=
   iprop("%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
+    "#HisCI" ∷ isCI cil γA.ci CP ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
@@ -587,7 +587,7 @@ theorem bootOk_of_parts (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U
       snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
       snapFreeAll (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
       bootRaftBuilt cfg U bv ∗ bootClusterDone U cfg bc.cl' d.be ∗
-      bootBackendRows cfg bk γA cil d ∗ bootBackendNew N γA d (bootGo.withMemBkts D) ⊢
+      bootBackendRows cfg bk γA cil d (srvCIPair γ.cl) ∗ bootBackendNew N γA d (bootGo.withMemBkts D) ⊢
     bootOk cfg γ (bootGo.id cfg U) (bootGo.ctxs U cfg.InitialClusterToken') N
       (bootGo.dir U cfg.InitialClusterToken') b := by
   obtain ⟨hm0, hkv, hdr, hme⟩ := bootBackendData_withMemBkts γA d D hD

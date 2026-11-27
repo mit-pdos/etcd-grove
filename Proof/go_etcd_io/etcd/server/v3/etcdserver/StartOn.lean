@@ -70,7 +70,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     IProp GF :=
-  iprop("#Hci" ∷ isServerCI s γ ci ∗
+  iprop("#Hci" ∷ isServerCI s γ ci γr.raft.raft.cl ∗
     "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E v) ∗
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuiltM true s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗

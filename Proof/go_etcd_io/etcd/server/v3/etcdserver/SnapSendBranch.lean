@@ -53,6 +53,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /- (T10 session 10) Generic over the apply protocol's image row `Rw` where the row plays no part. -/
 variable {Rw : TRow GF}
+-- (keepfix-d) the consistent index's pair predicate (`isCI ci γ CP`)
+variable {CP : w64 → w64 → IProp GF}
 
 -- (the mvcc merge, 2026-11-06) `lean`'s `backend.Snapshot.spec_of_specF2` and
 -- `srvBeSnapOk_of_backend` (F2's route over `backend.Snapshot`'s view) are dropped: the window's
@@ -120,7 +122,7 @@ theorem commitReq_freeze
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ⊢
+      isCI ci γA.ci CP ∗ inv applyN (consInv γA Rw) ⊢
       backend.commitReq γ P (batchLockInv γA (metaTM γ P)) b (applyThread γA s)
         (freezeY γA s) := by
   iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hb, #Hci, #Hinv⟩

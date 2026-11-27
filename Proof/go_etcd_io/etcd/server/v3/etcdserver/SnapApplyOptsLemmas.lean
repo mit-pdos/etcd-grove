@@ -356,9 +356,9 @@ admitted unloaded states until then, over which the contract is false once `γ.m
 snapshot). -/
 theorem snap_isConsistentIndexer
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : ApplyNames) (ci : Loc) :
+    (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerCI s γ ci ⊢
+      isServerCI s γ ci cl ⊢
     apply.isConsistentIndexer (ciIface ci) (srvCiC γ ci) := by
   iintro ⟨#Hpkg, #HCI⟩
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex
@@ -381,8 +381,9 @@ theorem snap_isConsistentIndexer
   · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
     iframe HΦ'
     icases Hpre with ⟨Hcst, Hcb⟩
-    iapply (wp_ci_get (Rw := TRow.triv) hCIg γ ci cb cst hcp) $$ [Hcst Hcb]
+    iapply (wp_ci_get (Rw := TRow.triv) hCIg (srvCIPair cl) γ ci cb cst hcp) $$ [Hcst Hcb]
     · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
+      ileft; ipureintro; exact stLoaded_self_k0 γ cst hld
     iintro ⟨Hcst, Hcb⟩
     rw [hld]
     iframe Hcst Hcb

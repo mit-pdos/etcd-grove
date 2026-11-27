@@ -57,7 +57,6 @@ theorem NewConsistentIndex.wp_proof :
   iunfold ciOwner
   iframe Hinv Hmu Hpmu Hg1 Hbe2
   iframe
-  ipureintro; rfl
 
 end proof
 

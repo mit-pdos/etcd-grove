@@ -208,7 +208,7 @@ theorem bootstrap.wp_proof
   wp_apply (hExist cfg) $$ [Hwa] as Hwp
   · iframe #; iunfold bootFs.walPart; iframe Hwa; ipureintro; exact Hwd
   -- `bootstrapBackend(cfg, false)`
-  wp_apply (hBack cfg N Hlen Hcok Hwb Hdb) $$ [Hfg Hvoff Hff] as %bkl %berr
+  wp_apply (hBack cfg N (srvCIPair γ.cl) Hlen Hcok Hwb Hdb) $$ [Hfg Hvoff Hff] as %bkl %berr
     ⟨%Hberr, %bk, %γA, %cil, %d, %D, Hbk, %Hbk0, Hrows, Hnew, Hwbt⟩
   · iframe Hfg Hvoff Hff; iframe #
   subst Hberr

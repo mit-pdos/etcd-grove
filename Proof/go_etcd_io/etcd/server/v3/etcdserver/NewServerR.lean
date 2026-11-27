@@ -1085,11 +1085,11 @@ theorem NewServer.wp_proofRG
   obtain rfl := Hfe false rfl
   (try wp_auto)
   -- the post-lock hook: `srv.be.SetTxPostLockInsideApplyHook(srv.getTxPostLockInsideApplyHook())`
-  ihave #HsCI : isServerCI s γA cil $$ []
+  ihave #HsCI : isServerCI s γA cil γ.cl $$ []
   · iunfold isServerCI
     rw [← Hci]
     iframe consistIndex Hcons HisCI
-  wp_apply (h34 s γA cil (metaTM d.γB d.P)) as %hook ⟨%Hhknn, #Hhks⟩
+  wp_apply (h34 s γA cil γ.cl (metaTM d.γB d.P)) as %hook ⟨%Hhknn, #Hhks⟩
   · iframe HsCI
   (try wp_auto)
   wp_apply (h35 d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be (srvOpenQ M) func.nil hook)
@@ -2409,8 +2409,9 @@ theorem NewServer.wp_proofRG
           · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
             iframe HΦ'
             icases Hpre with ⟨Hcst, Hcb⟩
-            iapply (wp_ci_get (Rw := TRow.triv) h83 γA cil cb cst hcp) $$ [Hcst Hcb]
+            iapply (wp_ci_get (Rw := TRow.triv) h83 _ γA cil cb cst hcp) $$ [Hcst Hcb]
             · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
+              ileft; ipureintro; exact stLoaded_self_k0 γA cst hld
             iintro ⟨Hcst, Hcb⟩
             rw [hld]
             iframe Hcst Hcb

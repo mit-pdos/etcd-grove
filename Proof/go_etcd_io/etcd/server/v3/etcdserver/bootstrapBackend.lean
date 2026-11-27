@@ -179,7 +179,7 @@ theorem bootstrapBackend.wp_proof
     (hWA : mvcc.api.mvccW_alloc.law (GF := GF))
     (hMS : bootstrapBackend.metaSnap.law (GF := GF)) :
     bootstrapBackend.spec (GF := GF) (hG := hG) := by
-  intro _ _ cfg N hdd hcfg hN hdbo
+  intro _ _ cfg N CP hdd hcfg hN hdbo
   wp_start as ⟨#Hzlg, Hfg, #Hvoff, Hfree⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -197,7 +197,7 @@ theorem bootstrapBackend.wp_proof
   -- `cindex.NewConsistentIndex(nil)`
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
-  wp_apply (hNCI GoInterface.nil) $$ [$Hcipkg] as %cil %γci ⟨#HisCI, Hidx, Happ, Hown⟩
+  wp_apply (hNCI GoInterface.nil CP) $$ [$Hcipkg] as %cil %γci ⟨#HisCI, Hidx, Happ, Hown⟩
   -- `storage.NewBackendHooks(cfg.Logger, ci)`
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
@@ -224,7 +224,7 @@ theorem bootstrapBackend.wp_proof
   have hm0 : metaIs (∅ : backend.Data) π0.m0 := ⟨rfl, rfl⟩
   ihave Hcreate := snap_create (Rw := TRow.triv) γ0 π0 (bootP (storage.openLimit cfg)) ∅ (mvcc.api.mvccW gx) hm0
     hciK $$ HmS Hinv Hpd0 Hmt0a HlateW
-  ihave #HisCI0 : isCI cil γ0.ci $$ []
+  ihave #HisCI0 : isCI cil γ0.ci CP $$ []
   · rw [hγci]; iexact HisCI
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
@@ -289,10 +289,13 @@ theorem bootstrapBackend.wp_proof
   ihave Hab : applyBackend (GF := GF) (γ0.withPh π') cil (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) $$ [Hown]
   · iunfold applyBackend; iframe Hown HmB
-  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg (γ0.withPh π') cil _ ⟨W64 0, W64 0, W64 0, false⟩ rfl)
+  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg CP (γ0.withPh π') cil _ ⟨W64 0, W64 0, W64 0, false⟩ rfl)
     $$ [Hst Hab] as ⟨Hst, Hab⟩
   · iframe Hst Hab; isplitr; · iexact HisCI0
-    rw [show consInv (GF := GF) (γ0.withPh π') = consInv γ0 from rfl]; iexact Hinv
+    isplitr
+    · rw [show consInv (GF := GF) (γ0.withPh π') = consInv γ0 from rfl]; iexact Hinv
+    -- (keepfix-d) the fresh backend's index is 0
+    ileft; ipureintro; intro _; simp [π', π0]
   ihave #Hzpkg : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_apply hU64 as %f0 -

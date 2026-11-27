@@ -35,6 +35,8 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /- (T10 session 10) Generic over the apply protocol's image row `Rw` (`consInv γA Rw`). -/
 variable {Rw : TRow GF}
+-- (keepfix-d) the consistent index's pair predicate (`isCI ci γ CP`)
+variable {CP : w64 → w64 → IProp GF}
 
 /-- **What `applySnapshot` keeps of a backend it opens** (D22 receiver epochs, S8d): the
 announcement of the fresh physical names `futPhys π0 γB` in the protocol's futures (its claim
@@ -182,7 +184,7 @@ theorem wp_ci_swapR (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG)
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        isCI ci γ.ci ∗ inv applyN (consInv γ Rw) ∗ □ Rw.IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗
+        isCI ci γ.ci CP ∗ inv applyN (consInv γ Rw) ∗ □ Rw.IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗
         ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
         monoListIdxOwn γ.fut j (π', γc)) -∗
       (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be -∗
@@ -190,7 +192,7 @@ theorem wp_ci_swapR (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG)
       WP (App (Val (ci @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"SetBackend"))
         (Val #be)) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, #Hci, #Hinv, #Hir, Hst, Hown, Hmt, Hwr, Htc, #Hidx⟩ HΦ
-  iapply (hSB ci γ.ci b be) $$ [Hown] [HΦ Hst Hmt Hwr Htc]
+  iapply (hSB ci γ.ci CP b be) $$ [Hown] [HΦ Hst Hmt Hwr Htc]
   · iframe Hpkg Hci Hown
   iapply ci_swap_auR γ s s' π' j γc (iprop(ciOwner ci be -∗ Φ #())) hk' hps' hok hle
     $$ Hinv Hir Hst Hmt Hwr Htc Hidx
@@ -206,7 +208,7 @@ theorem wp_ci_swap (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        isCI ci γ.ci ∗ inv applyN (consInv γ) ∗ applyThread γ s ∗ ciOwner ci b ∗
+        isCI ci γ.ci CP ∗ inv applyN (consInv γ) ∗ applyThread γ s ∗ ciOwner ci b ∗
         ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
         monoListIdxOwn γ.fut j (π', γc)) -∗
       (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be -∗

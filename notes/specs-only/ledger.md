@@ -8556,3 +8556,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `applyAll.specSnapM` without `st.pending = false`; `applySnapshot.spec := specEmpty ∧ specSnapM`. All weaker
   premises (callers unaffected but for the dropped argument).
 - **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27): done on `etcd-safe-t10s3b-a/2026-11-27`.
+
+## 2026-11-27: the cindex pair predicate's untrusted callers: `bootstrapBackend.spec`, `getTxPostLockInsideApplyHook.spec`, the ci helpers (keepfix-d row 7h)
+
+- **Spec.** `bootstrapBackend.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapBackend.lean`),
+  `EtcdServer.getTxPostLockInsideApplyHook.spec` (`…/EtcdServer__getTxPostLockInsideApplyHook.lean`); the
+  derived helpers `ci_get_au`, `wp_ci_get`, `wp_ci_unsafeGet` (`Proof/…/etcdserver/InvServer.lean`).
+- **Defect.** After the approved row 7 (`isCI ci γ P`, `isServerCI s γ ci cl`) these name `isCI`/`isServerCI`
+  without the pair predicate or cluster; the helpers' get-supply `⌜γ.m0.1 = 0⌝ ∨ □ P γ.m0.1 γ.m0.2` cannot be met
+  on the apply path, which holds no predicate of the backend's opening pair.
+- **Evidence.** The keepfix-d callers build (`etcd-safe-keepfix/2026-11-27`); route (i) of
+  `~/coordinator-notes/plans/keepfix-d-callers-brief.md` (decided by the etcd_safe lead).
+- **Proposed change.** `bootstrapBackend.spec` quantifies the pair predicate `CP` (a fresh backend's pair is
+  `(0, 0)`), its post `bootBackendRows … CP`; `getTxPostLockInsideApplyHook.spec` quantifies the cluster `cl`
+  (`isServerCI s γ ci cl`); the helpers' get-supply becomes `⌜st.k = 0 → γ.m0.1 = 0⌝ ∨ □ P γ.m0.1 γ.m0.2`
+  (route (i): the pure disjunct is `stLoaded γ st = st`, `srvCiC`'s condition), weaker.
+- **Decision.** Route (i) decided by the etcd_safe lead (2026-11-27). The hook's own contract `hookSpec` (in
+  `srvBuiltG`, trusted) is NOT changed here: see the callers brief's progress log.

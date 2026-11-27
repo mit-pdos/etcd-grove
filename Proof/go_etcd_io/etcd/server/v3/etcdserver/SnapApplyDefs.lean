@@ -245,7 +245,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
       (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 d'.γB))) ∗
-    isServerCI s (γ.withPh (futPhys π0 d'.γB)) ci ∗
+    isServerCI s (γ.withPh (futPhys π0 d'.γB)) ci γr.raft.raft.cl ∗
     hookSpec (γ.withPh (futPhys π0 d'.γB)) ci (metaTM d'.γB d.P) #g ∗
     monoListIdxOwn γ.fut jf (futPhys π0 d'.γB, γcf) ∗ applyRegd (γ.withPh (futPhys π0 d'.γB)) ∗
     srvBeRO d' ∗

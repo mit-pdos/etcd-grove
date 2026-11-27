@@ -71,6 +71,17 @@ def metaIs (S : Data) (m : MetaCI) : Prop :=
   dget S schema.metaName schema.ciKeyBytes = encMeta m.1 ∧
     dget S schema.metaName schema.termKeyBytes = encMeta m.2
 
+/-- (keepfix-d) The stored term of data holding the meta keys `m` is `m.2`. -/
+theorem metaTermOf_of_metaIs {S : Data} {m : MetaCI} (h : metaIs S m) : metaTermOf S = m.2 := by
+  unfold metaTermOf
+  rw [h.2]
+  unfold encMeta
+  by_cases h0 : m.2 = W64 0
+  · rw [if_pos h0, h0]
+  · rw [if_neg h0]
+    simp only
+    rw [List.take_of_length_le (by rw [u64Be_length]), beToU64_u64Be]
+
 /-- The backend's parameters make the consistent index's two keys in `Meta` the hook's own
 (`Meta` in the table, a hook's bucket, both keys `HK`), with room for the hook's two puts, and
 (D22, 2026-10-23) `Meta` not a tracked bucket (`RB`). -/
