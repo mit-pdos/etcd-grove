@@ -1,7 +1,7 @@
 /-
 **The interim bootstrap axiom at `etcd_safe`'s deployment shape** (2026-11-25; `notes/etcd-dist-plan.md` §16.3):
-`bootstrap(cfg)`'s spec at a first start of a member whose initial cluster has up to 64 entries of one peer URL
-each, the other members' peer URLs on other machines (`Spec/.../etcdserver/bootstrapDist.lean`). It replaces the
+`bootstrap(cfg)`'s spec at a first start of a member whose initial cluster has up to `etcd_dist.typed.maxMembers` (1000)
+entries of one peer URL each, the other members' peer URLs on other machines (`Spec/.../etcdserver/bootstrapDist.lean`). It replaces the
 Iris premise `bootstrapContract` (inside `etcdstart.bootPremise`) on `etcd_safe`'s line: the member boots derive
 the contract from it (`etcd_dist.bootPremiseDist_of_specDist`, `dist/BootDist.lean`). **Interim: retired when #34
 proves `bootstrap` at these clusters** (its restated spec, with the round tripper's contract), as
@@ -43,8 +43,12 @@ variable [MemStorReg GF]
 
 /-- **Interim trust boundary: `bootstrap(cfg)` at a first start of a member of `etcd_safe`'s deployment**
 (`bootstrap.specDist`; interim, retired when #34 proves `bootstrap` at these clusters). It is `bootstrap.spec`
-(#34's, reviewed with `bootOk`) at the clusters of up to 64 members of one peer URL each, with the round
-tripper's contract `etcd_dist.bootRTOk` for the requests to the other members.
+(#34's, reviewed with `bootOk`) at the clusters of up to `etcd_dist.typed.maxMembers` (1000) members of one peer URL
+each, with the round tripper's contract `etcd_dist.bootRTOk` for the requests to the other members.
+**The size bound** (raised from 64 to `etcd_dist.typed.maxMembers` = 1000 on 2026-11-27, Upamanyu's approval, rule 41;
+delta review pending in `notes/axiom-review/bootstrap-dist.md`): `bootstrap.spec` itself allows up to `2 ^ 58` entries
+(`bootGo.initMapOk`, `BootValues.lean`), and `etcd_dist.bootstrap.specDist_of_spec` (`dist/BootDist.lean`) derives
+this statement from it without using the bound; the Go argument below names no bound on the cluster's size.
 
 Why it is true of Go (`server/etcdserver/bootstrap.go:53-160` at the etcd pin `e94f33b50`): at a first start
 (`wal.Exist` false in the fresh WAL area) `bootstrap` touches the data and member directories, makes the snapshot

@@ -56,14 +56,14 @@ theorem forall₂_mem_right {α β : Type} {R : α → β → Prop} :
 /-- **A well-formed `kv`-only deployment's sizes**: at most `maxMembers` members, and every workload's
 client count below `2 ^ 31` (its `BoundsOk`): what `NodeMain`'s `Rotate` needs. -/
 theorem kvOnly_bounds {d : Deployment} (hw : d.WellFormed) (hkv : KvOnly d) :
-    d.members.length ≤ 64 ∧ ∀ w ∈ d.workloads, 0 ≤ sint.Z w.clients ∧ sint.Z w.clients < 2 ^ 31 := by
+    d.members.length ≤ typed.maxMembers ∧ ∀ w ∈ d.workloads, 0 ≤ sint.Z w.clients ∧ sint.Z w.clients < 2 ^ 31 := by
   obtain ⟨t, he, hwf⟩ := hw
   obtain ⟨hm, -, -, hws, -⟩ := he
   -- `WellFormed`'s conjuncts by their statements, not their positions (a new conjunct must not shift them)
   have hb : ∀ tw ∈ t.workloads, tw.BoundsOk := by grind [typed.Deployment.WellFormed]
   have hmax : t.members.length ≤ typed.maxMembers := by grind [typed.Deployment.WellFormed]
   refine ⟨?_, ?_⟩
-  · rw [← hm]; simpa [typed.maxMembers] using hmax
+  · rw [← hm]; simpa using hmax
   · intro w hw
     obtain ⟨tw, htw, henc⟩ := forall₂_mem_right hws w hw
     have hk := hkv w hw

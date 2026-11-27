@@ -25,6 +25,23 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: `bootstrap.specDist` and the dist member specs -- the 64-member cap is below the single-process theorems' 1000
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapDist.lean` (`bootstrap.specDist`, the interim axiom
+  `bootstrap.wp_proof_dist`'s statement); `Spec/.../examples/etcd/dist/server/ConfigOf.lean` (`ConfigOf.spec`),
+  `Spec/.../examples/etcd/dist/client/NodeMain.lean` (`NodeMain.spec`); the deployment bound `typed.maxMembers`
+  (now in `Proof/.../examples/etcd/dist/MaxMembers.lean`) and Go's `deployment.MaxMembers`. No SpecPlan counterpart.
+- **Defect.** Too weak for rule 41 (the multi-machine `etcd_safe_nocrash` subsumes the single-process theorems, which
+  reach 1000 members): the axiom's premise `GMap.size U.initMap ≤ 64` capped every deployment at 64 members.
+- **Evidence.** `bootstrap.spec` (#34) allows `2 ^ 58` entries (`bootGo.initMapOk`), and
+  `etcd_dist.bootstrap.specDist_of_spec` derives `specDist` without the cap; every other bound is arithmetic at 1000
+  (`initMapOk`'s joined-URL total 1000 * 300 < 2 ^ 61, `peersMax = 2 ^ 20`, `clusterAllocN`'s receipts, `ConfigOf`'s
+  `append`); Go: `TestWellFormedMaxMembers` (`examples/etcd/dist/dist_test.go`).
+- **Proposed change.** The premise becomes `GMap.size U.initMap ≤ etcd_dist.typed.maxMembers`, `typed.maxMembers = 1000`
+  (= `deployment.MaxMembers`); `ConfigOf.spec`'s and `NodeMain.spec`'s literal 64 become `typed.maxMembers`.
+- **Decision.** Accepted (Upamanyu, 2026-11-27, rule 41 item 2, via the etcd_safe lead); applied on
+  `etcd-safe-rule41/2026-11-27`; the axiom's delta review (`notes/axiom-review/bootstrap-dist.md`) is the lead's.
+
 ## 2026-11-26: `EtcdServer.leaseTimeToLive`'s contract owns no reply keys (F7 fork, SPECULATIVE)
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__leaseTimeToLive.lean`

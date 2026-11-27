@@ -3,7 +3,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/MainDepl
 Lean-first (no Rocq counterpart).
 
 `MainDeploymentLogger(d, i, lg)`: `deployment.WellFormed(d)` first (`WellFormed.spec`: `nil` only for a well-formed
-deployment); on its error, or `i` out of range, it returns. Else the deployment is well formed (at most 64 members,
+deployment); on its error, or `i` out of range, it returns. Else the deployment is well formed (at most `typed.maxMembers` members,
 so `i` fits), member `i`'s share applies, and it runs `MainLogger(ConfigOf(d, i), lg)`.
 -/
 module
@@ -63,7 +63,8 @@ theorem MainDeploymentLogger.wp_proof
   have Hd : d.WellFormed := Herr rfl
   obtain ⟨-, -, -, hlen, -⟩ := Hd.members
   have hi : i < d.members.length := (List.getElem?_eq_some_iff.1 Hm).1
-  have hlen64 : d.members.length ≤ 64 := by unfold typed.maxMembers at hlen; exact hlen
+  have hlen64 : d.members.length ≤ typed.maxMembers := hlen
+  have hlen1000 : d.members.length ≤ 1000 := by unfold typed.maxMembers at hlen; exact hlen
   iunfold deploymentRepr at Hrepr
   icases Hrepr with ⟨#Hmem, %Htok', %Hcfg, #Hwl, %ss, #Hnd, #Hns⟩
   ihave %Hsl := ownSlice_len $$ Hmem
@@ -72,7 +73,7 @@ theorem MainDeploymentLogger.wp_proof
   repeat' (first
     | wp_if_destruct
     | wp_auto)
-  -- `i < 0` and `i >= len(d.Members)` are false: `i` is a member's index, below 64
+  -- `i < 0` and `i >= len(d.Members)` are false: `i` is a member's index, below `typed.maxMembers`
   · exfalso; word
   · exfalso; word
   -- `MainLogger(ConfigOf(d, i), lg)`
