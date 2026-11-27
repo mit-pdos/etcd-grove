@@ -54,7 +54,11 @@ translate = ["*", "!Object",
   # names only: the handler's name for logs and metrics (`runtime.FuncForPC` of the function's
   # pointer, `event_handler_name.go`), so that the package does not import `runtime`, which has no
   # `wp_initialize'` at the pinned Perennial
-  "!nameForFunction"]
+  "!nameForFunction",
+  # names only (prove-metav1, 2026-11-27): the list-watch built from a REST client, the one reader
+  # in translated code of `metav1.ParameterCodec`, which is skipped (`apis/meta/v1.toml`: its
+  # initializer untranslated was the trust-boundary axiom `opaqueInitsOk`); no proof calls it
+  "!NewFilteredListWatchFromClient"]
 imports = ["*", "!runtime"]
 # Not `translate_types`: `Object` (an interface embedding `comparable`, gap C6) stays axiomatized,
 # so the types are translated by `translate`'s "*" and `Object` excluded.
