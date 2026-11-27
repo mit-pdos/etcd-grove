@@ -86,8 +86,8 @@ def isServerCI (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster)
     (Rw : TRow GF := TRow.triv) : IProp GF :=
   iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci (srvCIPair cl) ∗ inv applyN (consInv γ Rw))
 
-instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (Rw : TRow GF) :
-    Persistent (isServerCI (GF := GF) s γ ci Rw) := by
+instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (Rw : TRow GF) :
+    Persistent (isServerCI (GF := GF) s γ ci cl Rw) := by
   unfold isServerCI; infer_instance
 
 /- (T10 session 10) The lemmas below are generic over the protocol's image row `Rw` (`consInv γ Rw`,
