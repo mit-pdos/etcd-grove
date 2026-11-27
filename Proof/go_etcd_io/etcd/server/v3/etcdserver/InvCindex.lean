@@ -105,8 +105,12 @@ abbrev ciAppTermAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"appl
 abbrev ciBeAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"be" ci
 abbrev ciMutexAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"mutex" ci
 abbrev ciPairMuAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"pairMu" ci
+abbrev ciRaftTermAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"raftTerm" ci
 
 end addrs
+
+/-- (keepfix (c)) The raft term after `SetRaftTerm(r)` on `rt`: the larger (`if r > rt { rt = r }`). -/
+def rtMax (rt r : w64) : w64 := if uint.Z rt < uint.Z r then r else rt
 
 /-- The consistent index's invariant's namespace. -/
 abbrev ciN : Namespace := nroot.@"cindex"
@@ -117,6 +121,8 @@ structure CINames where
   idx : GName
   /-- (keepfix-d) `ghostVar w64`: the index again (half in `ciInv`, half in `ciPairInv`) -/
   pk : GName
+  /-- (keepfix (c)) `ghostVar w64`: the raft term (half in `ciPairInv`, half the apply thread's `ciRaftTerm`) -/
+  rt : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -129,6 +135,12 @@ def ciIdx (γ : CINames) (k : w64) : IProp GF := ghostVar γ.idx (1 : Qp).half k
 
 instance ciIdx_timeless (γ : CINames) (k : w64) : Timeless (ciIdx (GF := GF) γ k) := by
   unfold ciIdx; infer_instance
+
+/-- (keepfix (c)) The apply thread's view of the raft term field. -/
+def ciRaftTerm (γ : CINames) (rt : w64) : IProp GF := ghostVar γ.rt (1 : Qp).half rt
+
+instance ciRaftTerm_timeless (γ : CINames) (rt : w64) : Timeless (ciRaftTerm (GF := GF) γ rt) := by
+  unfold ciRaftTerm; infer_instance
 
 /-- The client's view agrees with the invariant's half. -/
 theorem ciIdx_agree (γ : CINames) (k k0 : w64) :
@@ -144,20 +156,22 @@ def ciInv (ci : Loc) (γ : CINames) : IProp GF :=
   iprop(∃ k : w64, ciIdxAddr ci ↦ k ∗ ghostVar γ.idx (1 : Qp).half k ∗ ghostVar γ.pk (1 : Qp).half k)
 
 /-- (keepfix-d) **The pair mutex's invariant**: the term field, the other half of the index's
-second mirror, and the client's pair predicate `P` of the stored pair when its index is not 0. -/
-def ciPairInv (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) : IProp GF :=
-  iprop(∃ k t : w64, ghostVar γ.pk (1 : Qp).half k ∗ ciTermAddr ci ↦ t ∗ (⌜k = W64 0⌝ ∨ □ P k t))
+second mirror, and the client's pair predicate `P` of the stored pair when its index is not 0.
+(keepfix (c)) Also the raft term field with its mirror's other half; the predicate is of the triple. -/
+def ciPairInv (ci : Loc) (γ : CINames) (P : w64 → w64 → w64 → IProp GF) : IProp GF :=
+  iprop(∃ k t rt : w64, ghostVar γ.pk (1 : Qp).half k ∗ ciTermAddr ci ↦ t ∗
+    ciRaftTermAddr ci ↦ rt ∗ ghostVar γ.rt (1 : Qp).half rt ∗ (⌜k = W64 0⌝ ∨ □ P k t rt))
 
 /-- The mutex's half of the backend field. -/
 def ciLockInv (ci : Loc) : IProp GF :=
   iprop(∃ b : GoInterface, typedPointsto (ciBeAddr ci) b (DFrac.own (1 : Qp).half))
 
 /-- `ci` is a consistent index with ghost names `γ` (persistent). -/
-def isCI (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) : IProp GF :=
+def isCI (ci : Loc) (γ : CINames) (P : w64 → w64 → w64 → IProp GF) : IProp GF :=
   iprop(inv ciN (ciInv ci γ) ∗ sync.isMutex (ciMutexAddr ci) (ciLockInv ci) ∗
     sync.isMutex (ciPairMuAddr ci) (ciPairInv ci γ P))
 
-instance isCI_persistent (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) :
+instance isCI_persistent (ci : Loc) (γ : CINames) (P : w64 → w64 → w64 → IProp GF) :
     Persistent (isCI (GF := GF) ci γ P) := by
   unfold isCI; infer_instance
 
@@ -261,6 +275,27 @@ def metaWriter (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp 
 instance metaWriter_persistent (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF) :
     Persistent (metaWriter tx TM PTi PTt) := by
   unfold metaWriter; infer_instance
+
+/-- (keepfix (c)) The raft-term key's state after `UnsafeUpdateConsistentIndexRaftTerm(tx, k, rt)` on `r`:
+nothing if `k` or `rt` is 0, else `(k, rt)`. -/
+def rtAfterSave (r : Option (w64 × w64)) (k rt : w64) : Option (w64 × w64) :=
+  if k = W64 0 ∨ rt = W64 0 then r else some (k, rt)
+
+/-- (keepfix (c)) **The raft-term key's put** of the batch transaction `tx`, whose meta keys and raft-term key are
+`TMx m r` (the index and term keys `m`, the raft-term key's decoded value `r`): `UnsafePut(Meta,
+consistentIndexRaftTerm, val)` of the 16 bytes `u64Be k ++ u64Be rt` (neither 0) makes the key `(k, rt)`; a put
+token `PTr`. -/
+def metaRtWriter (tx : GoInterfaceOk) (TMx : MetaCI → Option (w64 × w64) → IProp GF) (PTr : IProp GF) :
+    IProp GF :=
+  iprop(□ ∀ (b : GoInterface) (key val : GoSlice) (m : MetaCI) (r : Option (w64 × w64)) (k rt : w64),
+    {{ globalAddr schema.Meta ↦□ b ∗ key ↦*□ schema.raftTermKeyBytes ∗ val ↦* (u64Be k ++ u64Be rt) ∗
+        TMx m r ∗ PTr ∗ ⌜k ≠ W64 0 ∧ rt ≠ W64 0⌝ }}
+      (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #b)) (Val #key)) (Val #val))
+    {{ RET #(); TMx m (some (k, rt)) }})
+
+instance metaRtWriter_persistent (tx : GoInterfaceOk) (TMx : MetaCI → Option (w64 × w64) → IProp GF)
+    (PTr : IProp GF) : Persistent (metaRtWriter tx TMx PTr) := by
+  unfold metaRtWriter; infer_instance
 
 /-- The two reads of `schema.UnsafeReadConsistentIndex` (the index; then, if it is not 0, the
 term), continuing with `Ψ` of the pair it returns. -/

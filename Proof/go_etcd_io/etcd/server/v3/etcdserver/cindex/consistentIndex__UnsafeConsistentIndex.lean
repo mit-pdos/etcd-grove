@@ -30,8 +30,8 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
     (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG))
     (hR : schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG)) :
     consistentIndex.UnsafeConsistentIndex.spec (GF := GF) (hG := hG) := by
-  intro ci γ P b E View
-  wp_start as ⟨#Hci, Hown, #Hbe⟩
+  intro ci γ P b rtm E View
+  wp_start as ⟨#Hci, Hown, Hrtm, #Hbe⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
@@ -40,7 +40,7 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   icases Hci with ⟨#Hinv, #Hmu, #Hpmu⟩
   (try wp_auto)
   -- the fast read: the first linearization point
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown ci «$res0»]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown Hrtm ci «$res0»]
   · iPkgInit
   iinv Hinv with Hi Hclose
   imod HΦ with ⟨%k, Hk, HΦ⟩
@@ -63,7 +63,7 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
     have hk : k ≠ W64 0 := by intro h; subst h; simp at Hif
     simp only [hk, ↓reduceIte]
     (try wp_auto)
-    iapply HΦ $$ Hown
+    iapply HΦ $$ Hown Hrtm
   -- k = 0: load the index from the backend, reading `be` with the owner's half
   have hk : k = W64 0 := by word
   subst hk
@@ -78,7 +78,7 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   iunfold metaReadTx at Hrt
   icases Hrt with ⟨-, -, #Hrd⟩
   (try wp_auto)
-  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ Hown ci «$res0»]
+  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ Hown Hrtm ci «$res0»]
   · iframe Hsch Hrd
   iapply readCIAU_A
   iapply readCIAU_wand $$ HΦ
@@ -86,8 +86,8 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   icases Hm with ⟨#HPm, Hm⟩
   (try wp_auto)
   -- the store: the second linearization point
-  wp_apply_core (hS ci γ P m.1 m.2) $$ [] [Hm Hown v «$res0»]
-  · iframe Hpkg; iunfold isCI; iframe Hinv Hmu Hpmu HPm
+  wp_apply_core (hS ci γ P m.1 m.2 rtm) $$ [Hrtm] [Hm Hown v «$res0»]
+  · iframe Hpkg Hrtm; iunfold isCI; iframe Hinv Hmu Hpmu HPm
   imod Hm with ⟨%k', Hk', Hm⟩
   imodintro
   iexists k'
@@ -95,8 +95,9 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   iintro Hk'
   imod Hm $$ Hk' with Hm
   imodintro
+  iintro Hrtm
   (try wp_auto)
-  iapply Hm
+  iapply Hm $$ [Hown] Hrtm
   iunfold ciOwner
   iexact Hown
 

@@ -320,7 +320,7 @@ theorem committedAtTerm_committed_impl (γ : Cluster) (N : Namespace) (t c : w64
     committedAtTerm (GF := GF) γ N t c ⊢
       ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝ := by
   unfold committedAtTerm
-  iintro ⟨-, H⟩; iexact H
+  iintro ⟨-, -, H⟩; iexact H
 
 /-- (2026-10-29, S1) In a `dup` cluster a proposal's tickets are persistent. -/
 theorem entTks_persist_impl (γ : RaftNames) (h : γ.dup = true) :

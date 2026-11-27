@@ -52,17 +52,18 @@ def bootBT : GMap GoString w64 :=
 
 /-- **The boot backend's instance** (`OpenBackend`'s names `γB`, its `*backend`, the store's
 registration name `gx`), at the configuration's batch limit `lim`: the server's table, room for the
-hook's three puts (the consistent index's two and the `confState`), not compacting. -/
+hook's four puts (the consistent index's three, keepfix (c), and the `confState`), not compacting. -/
 abbrev bootKB (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64) : mvcc.KBReal :=
-  ⟨γB, bootBT, 3, lim, be, gx, false⟩
+  ⟨γB, bootBT, 4, lim, be, gx, false⟩
 
 /-- **The boot backend's parameters** (`bootKB`'s, whatever its names). -/
 def bootP (lim : w64) : backend.BParams :=
   { BT := bootBT, HB := fun n => decide (n ≠ mvcc.keyName), SB := fun n => decide (n = mvcc.keyName),
     HK := fun n k => decide (n = go_etcd_io.etcd.server.v3.storage.schema.metaName ∧
       (k = go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes ∨
-        k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes)),
-    RB := fun n => decide (n ∈ mvcc.restBuckets), hookMax := 3, limit := lim,
+        k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes ∨
+        k = go_etcd_io.etcd.server.v3.storage.schema.raftTermKeyBytes)),
+    RB := fun n => decide (n ∈ mvcc.restBuckets), hookMax := 4, limit := lim,
     FV := mvcc.metaRevVal }
 
 theorem bootKB_P_eq (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64) :
@@ -100,7 +101,7 @@ theorem bootKB_P (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64)
       (bootKB γB be gx lim).P.has mvcc.membersRemovedBI ∧
       (bootKB γB be gx lim).P.has mvcc.clusterBI := by
   refine ⟨⟨by kbdec, by kbdec, fun _ => rfl, fun _ => rfl, by kbdec, by kbdec⟩,
-    ⟨by kbdec, by kbdec, by kbdec, by kbdec, by kbdec, by kbdec⟩,
+    ⟨by kbdec, by kbdec, by kbdec, by kbdec, by kbdec, by kbdec, by kbdec⟩,
     ⟨by kbdec, by kbdec, by kbdec, by kbdec, by kbdec⟩, ⟨?_, h0, h1, by kbdec, ?_⟩, rfl,
     ⟨by kbdec, by kbdec, fun k => ?_⟩, by kbdec, by kbdec, by kbdec, by kbdec, by kbdec,
     by kbdec, by kbdec⟩

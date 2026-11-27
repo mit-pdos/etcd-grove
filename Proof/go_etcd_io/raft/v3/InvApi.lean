@@ -1159,9 +1159,11 @@ theorem commitWit_len (γr : RaftNames) (t c : w64) :
 
 /-- (2026-10-27) **The log through index `c` was committed at term `t`** (the draft's
 `committedAtTerm`): raft's commit witness, and a committed log as long as its index, as the client
-knows it. -/
+knows it; (keepfix (c), 2026-11-28) and the term budget covers `t` (`termLB`): `t` is a term some node
+reached. -/
 def committedAtTerm (γ : Cluster) (_N : Namespace) (t c : w64) : IProp GF :=
-  iprop(commitWit γ.raft t c ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝)
+  iprop(commitWit γ.raft t c ∗ termLB γ.bud t ∗
+    ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝)
 
 instance committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) :
     Persistent (committedAtTerm (GF := GF) γ N t c) := by
@@ -1169,13 +1171,14 @@ instance committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) :
 
 theorem committedAtTerm_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
     (t c : w64) :
-    ⊢ clusterInv (GF := GF) γ N -∗ commitWit γ.raft t c ={E}=∗ committedAtTerm γ N t c := by
-  iintro #Hci #Hw
+    ⊢ clusterInv (GF := GF) γ N -∗ commitWit γ.raft t c -∗ termLB γ.bud t ={E}=∗
+      committedAtTerm γ N t c := by
+  iintro #Hci #Hw #Htlb
   icases commitWit_len γ.raft t c $$ Hw with ⟨%L, #HL, %Hlen⟩
   imod api_committed_lb γ N E HE L $$ Hci HL with ⟨#Hlb, -⟩
   imodintro
   unfold committedAtTerm
-  iframe Hw
+  iframe Hw Htlb
   iexists strip L
   iframe Hlb
   ipureintro; rw [strip_length]; exact Hlen
@@ -1193,13 +1196,14 @@ instance hsCommitted_persistent (γ : Cluster) (N : Namespace) (h : HardStateM) 
 
 theorem hsCommitted_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
     (h : HardStateM) (n : Nat) :
-    ⊢ clusterInv (GF := GF) γ N -∗ hsWit γ.raft h n ={E}=∗ hsCommitted γ N h n := by
-  iintro #Hci #Hw
+    ⊢ clusterInv (GF := GF) γ N -∗ hsWit γ.raft h n -∗ termLB γ.bud h.Term' ={E}=∗
+      hsCommitted γ N h n := by
+  iintro #Hci #Hw #Htlb
   iunfold hsWit at Hw
   unfold hsCommitted
   icases Hw with (%H | ⟨#Hw, %Hn⟩)
   · imodintro; ileft; ipureintro; exact H
-  imod committedAtTerm_of_raft γ N E HE _ _ $$ Hci Hw with #Hc
+  imod committedAtTerm_of_raft γ N E HE _ _ $$ Hci Hw Htlb with #Hc
   imodintro
   iright
   iframe Hc
@@ -4061,8 +4065,11 @@ theorem readyRecv_open (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id
     imod api_leaderMsgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms
       (roleAfter st.role ss = StateLeader) $$ Hci Hpool Hlead Htl with #Hlm
     -- (2026-10-31) the witness of the hard state handed out, bounding the log delivered
-    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' (ds ++ ce).length $$ Hci [Hhw] with #Hhc
+    -- (keepfix (c)) the budget covers its term: the entered term's (`readyCut`'s)
+    have HtP : S'.term = p'.Term' := by rw [HS']; simp [readyDurable, RaftState.next]
+    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' (ds ++ ce).length $$ Hci [Hhw] [] with #Hhc
     · rw [← Hγr]; iexact Hhw
+    · rw [← Hγb, ← HtP]; iexact HtS'
     iunfold readyIdx at Hidx
     icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
     imod lastRec_receipt γn.raft Lx $$ Hlr with #Hrcp
@@ -4191,8 +4198,11 @@ theorem readyRecv_open (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id
     imod api_leaderMsgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb HU ms
       (roleAfter st.role ss = StateLeader) $$ Hci Hpool Hlead Htl with #Hlm
     -- (2026-10-31) the witness of the hard state handed out, bounding the log up to the snapshot
-    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' l.dlv.length $$ Hci [Hhw] with #Hhc
+    -- (keepfix (c)) the budget covers its term: the entered term's (`readyCut`'s)
+    have HtP : S'.term = p'.Term' := by rw [HS']; simp [readyDurable, RaftState.next]
+    imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top p' l.dlv.length $$ Hci [Hhw] [] with #Hhc
     · rw [← Hγr]; iexact Hhw
+    · rw [← Hγb, ← HtP]; iexact HtS'
     imod snapshotCert_of_raft γ N ⊤ CoPset.subseteq_top _ $$ Hci [HD] with #Hcert
     · rw [← Hγr]; iexact HD
     iunfold readyIdx at Hidx

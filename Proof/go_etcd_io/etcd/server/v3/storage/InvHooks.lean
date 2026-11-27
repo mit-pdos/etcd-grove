@@ -46,10 +46,10 @@ namespace storage
 
 /-- The backend's parameters let the hook save the `confState`: `Meta` in the table and a
 hook's bucket, its `confState` key not a hook's own key, room for one put after the indexer's
-two, and (D22, 2026-10-23) `Meta` not a tracked bucket (`RB`). -/
+three (keepfix (c): the raft-term key's), and (D22, 2026-10-23) `Meta` not a tracked bucket (`RB`). -/
 def hooksParams (P : BParams) : Prop :=
   P.has mvcc.metaBI ∧ P.HB mvcc.metaBI.name = true ∧
-    P.HK mvcc.metaBI.name schema.confStateKeyBytes = false ∧ 3 ≤ P.hookMax ∧
+    P.HK mvcc.metaBI.name schema.confStateKeyBytes = false ∧ 4 ≤ P.hookMax ∧
     P.RB mvcc.metaBI.name = false
 
 /-- **What the indexer's save leaves** of the hook's run from `st`: a hook step with one

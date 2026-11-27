@@ -220,7 +220,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply wp_string_to_bytes go!"storageVersion" as %_ ⟨-, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"consistentIndexRaftTerm" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"consistentIndexRaftTerm" as %srtk ⟨Hsrtk, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"" as %_ ⟨-, -⟩
   try wp_auto
@@ -326,6 +326,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HCluster
   ipersist Hsalarm
   ipersist HAlarm
+  ipersist Hsrtk
+  ipersist HMetaConsistentIndexRaftTermName
   iframe Hown
   imodintro
   isplitr
@@ -333,7 +335,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName
+  unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes raftTermKeyBytes keyName authName authUsersName authRolesName leaseName
   iframe #
   repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))
 

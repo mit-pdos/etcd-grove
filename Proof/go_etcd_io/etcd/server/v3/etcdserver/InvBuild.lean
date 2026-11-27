@@ -255,11 +255,11 @@ instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) :
 
 /-- `srvFieldsBuilt` (D22 receiver epochs, S7a, 2026-10-23: the same; until then `srvFieldsBuilt`
 had the uber-applier, `srvUberApplyAddr`, `applierFor`, a KV row of `srvBuildGap`). -/
-def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
-      hookSpec γ ci TM v.hook ∗
+      hookSpec γ ci cl TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
@@ -267,7 +267,7 @@ def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci cl E)
 
 instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (v : SrvFields) :

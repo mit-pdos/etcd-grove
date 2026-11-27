@@ -109,7 +109,9 @@ def entriesFrom [GooseExts] (f0 : w64) (ms : List EntryModel) : Prop :=
 when the server starts (the applied index is the snapshot's, at most the stored consistent
 index, through which the backend holds everything) and `applyEntries` keeps it. -/
 def loopOk (γ : ApplyNames) (st : ApplyState) (a : w64) : Prop :=
-  st.pending = false ∧ uint.Z st.p = max (uint.Z (ciEff γ st.k)) (uint.Z a)
+  st.pending = false ∧ uint.Z st.p = max (uint.Z (ciEff γ st.k)) (uint.Z a) ∧
+    -- (keepfix) the consistent index loaded: 0 only if the backend's stored index is 0
+    stLoaded γ st = st
 
 /-! ## What a batch of entries does to the KV (pure) -/
 
@@ -687,19 +689,19 @@ snapshot's window needs to freeze the stored index (`commitReq_freeze`; strict M
 the epoch's batch-lock invariant `E.Pk B` that one, which the window's commit request and snapshot
 observation name). Made where the backend is:
 `NewServer` (`bootOk`'s), `applySnapshot` (`OpenSnapshotBackend`'s). -/
-def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IProp GF :=
+def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (B : mvcc.KBReal) (bh lgh : Loc) (gx : GName),
     ⌜E.BkTie = srvBkTie B ∧ ciKeys B.P ∧ storage.hooksParams B.P ∧
-      E.Pk B = batchLockInv γ (metaTM B.γB B.P)⌝ ∗
+      E.Pk B = batchLockInv γ (metaTMR cl γ.ph B.γB B.P)⌝ ∗
     structFieldRef EtcdServer go!"beHooks" s ↦□ bh ∗
     storage.isBackendHooks bh
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
       lgh ∗
     backend.hooksAt B.be (storage.hooksIface bh) ∗
-    backend.isBackend B.γB B.P (mvccW gx) (batchLockInv γ (metaTM B.γB B.P)) B.be)
+    backend.isBackend B.γB B.P (mvccW gx) (batchLockInv γ (metaTMR cl γ.ph B.γB B.P)) B.be)
 
-instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) :
-    Persistent (srvBeHooked (GF := GF) s γ ci E) := by
+instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (E : apply.AEnv GF) :
+    Persistent (srvBeHooked (GF := GF) s γ ci cl E) := by
   unfold srvBeHooked; infer_instance
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
@@ -708,12 +710,12 @@ rest buckets' resource is the backend's tracked buckets and `s.cluster`'s in-mem
 (`srvRestOwn`, D22, 2026-10-23). (D22 receiver epochs, S7a, 2026-10-23: `s.uberApply`, which
 `applySnapshot` rebuilds, is no longer here, read-only for good: it is the apply thread's,
 `srvApplyKV`.) -/
-def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
-      hookSpec γ ci TM v.hook ∗
+      hookSpec γ ci cl TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
@@ -721,7 +723,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci cl E)
 
 instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :

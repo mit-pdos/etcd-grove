@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 theorem consistentIndex.SetConsistentIndex.wp_proof :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) := by
-  intro ci γ P v term
-  wp_start as ⟨#Hci, #HP⟩
+  intro ci γ P v term rt
+  wp_start as ⟨#Hci, Hrt, #HP⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
@@ -38,10 +38,14 @@ theorem consistentIndex.SetConsistentIndex.wp_proof :
   -- (keepfix-d) the pair mutex: the term field and the index's second mirror
   wp_apply sync.Mutex.wp_Lock $$ [$Hpmu] as ⟨Hlocked, HL⟩
   iunfold ciPairInv at HL
-  icases HL with ⟨%kl, %tl, Hpk, Hterm, -⟩
+  icases HL with ⟨%kl, %tl, %rtl, Hpk, Hterm, Hrtf, Hrtg, -⟩
+  -- (keepfix (c)) the raft term field is the caller's mirror's
+  iunfold ciRaftTerm at Hrt
+  icombine Hrt Hrtg gives %Heqr
+  obtain ⟨_, rfl⟩ := Heqr
   (try wp_auto)
   -- the index: the linearization point
-  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ Hpk Hterm Hlocked defer ci term]
+  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ Hpk Hterm Hrt Hrtf Hrtg Hlocked defer ci term]
   · iPkgInit
   iinv Hinv with Hi Hclose
   imod HΦ with ⟨%k, Hk, HΦ⟩
@@ -61,7 +65,7 @@ theorem consistentIndex.SetConsistentIndex.wp_proof :
   imodintro
   (try wp_auto)
   -- the term: owned under the pair mutex
-  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ Hpk Hterm Hlocked defer]
+  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ Hpk Hterm Hrt Hrtf Hrtg Hlocked defer]
   · iPkgInit
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -72,9 +76,11 @@ theorem consistentIndex.SetConsistentIndex.wp_proof :
   imod Hmask with -
   imodintro
   (try wp_auto)
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hpmu $Hlocked Hpk Hterm]
-  · inext; iunfold ciPairInv; iexists v, term; iframe Hpk Hterm HP
-  iexact HΦ
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hpmu $Hlocked Hpk Hterm Hrtf Hrtg]
+  · inext; iunfold ciPairInv; iexists v, term, rt; iframe Hpk Hterm Hrtf Hrtg HP
+  iapply HΦ
+  iunfold ciRaftTerm
+  iexact Hrt
 
 end proof
 

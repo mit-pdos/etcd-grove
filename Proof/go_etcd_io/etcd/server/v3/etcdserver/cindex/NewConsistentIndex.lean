@@ -37,25 +37,29 @@ theorem NewConsistentIndex.wp_proof :
   imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γk, Hk⟩
   icases ghostVar_split γk (W64 0) (1 : Qp).half (1 : Qp).half $$ [Hk] with ⟨Hk1, Hk2⟩
   · rw [Qp.half_add_half]; iexact Hk
-  imod inv_alloc ciN ⊤ (ciInv (hG := hG) ci ⟨γi, γk⟩) $$ [consistentIndex Hg2 Hk1] with #Hinv
+  imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γr, Hr⟩
+  icases ghostVar_split γr (W64 0) (1 : Qp).half (1 : Qp).half $$ [Hr] with ⟨Hr1, Hr2⟩
+  · rw [Qp.half_add_half]; iexact Hr
+  imod inv_alloc ciN ⊤ (ciInv (hG := hG) ci ⟨γi, γk, γr⟩) $$ [consistentIndex Hg2 Hk1] with #Hinv
   · inext
     iunfold ciInv
     iexists (W64 0)
     iframe
-  imod sync.init_Mutex (ciPairInv (hG := hG) ci ⟨γi, γk⟩ P) ⊤ (ciPairMuAddr ci) $$ pairMu [term Hk2]
-    with #Hpmu
-  · inext; iunfold ciPairInv; iexists (W64 0), (W64 0); iframe
+  imod sync.init_Mutex (ciPairInv (hG := hG) ci ⟨γi, γk, γr⟩ P) ⊤ (ciPairMuAddr ci) $$ pairMu
+    [term raftTerm Hk2 Hr2] with #Hpmu
+  · inext; iunfold ciPairInv; iexists (W64 0), (W64 0), (W64 0); iframe
     ileft; ipureintro; rfl
   ihave ⟨Hbe1, Hbe2⟩ := (ciBe_halves ci be).2 $$ be
   imod sync.init_Mutex (ciLockInv (hG := hG) ci) ⊤ (ciMutexAddr ci) $$ mutex [Hbe1] with #Hmu
   · inext; iunfold ciLockInv; iexists be; iexact Hbe1
   wp_auto
-  iapply HΦ $$ %ci %(⟨γi, γk⟩ : CINames)
+  iapply HΦ $$ %ci %(⟨γi, γk, γr⟩ : CINames)
   iunfold isCI
   iunfold ciIdx
   iunfold ciApplying
   iunfold ciOwner
-  iframe Hinv Hmu Hpmu Hg1 Hbe2
+  iunfold ciRaftTerm
+  iframe Hinv Hmu Hpmu Hg1 Hbe2 Hr1
   iframe
 
 end proof

@@ -68,6 +68,9 @@ def ciKeyBytes : GoString := go!"consistent_index"
 /-- The bytes of the key under which its term is stored. -/
 def termKeyBytes : GoString := go!"term"
 
+/-- `schema.MetaConsistentIndexRaftTermName` (fork b1512efdd, `schema/bucket.go:94-96`). -/
+def raftTermKeyBytes : GoString := go!"consistentIndexRaftTerm"
+
 /-- The name of the `Key` bucket (`keyBucketName`). -/
 def keyName : GoString := go!"key"
 
@@ -105,7 +108,7 @@ bucket's two key names and `auth.go`'s `authEnabled`/`authDisabled` values (`[]b
 (leases T3, 2026-10-25) the lessor's `Lease` bucket (id 3, not safe-range); (prove-ps2-members,
 2026-11-22) the membership's `Members`, `MembersRemoved` and `Cluster` buckets (ids 10, 11, 5, not
 safe-range), the last two last; (prove-ps2-v3alarm, 2026-11-24) the alarm store's `Alarm` bucket (id 4, not
-safe-range), last. -/
+safe-range); (keepfix (c), 2026-11-28) the raft-term key's name (`cindex.go`), last. -/
 abbrev schemaInit : IProp GF :=
   iprop((∃ b : GoInterface, globalAddr Meta ↦□ b ∗ bucketIs b (W64 2) metaName false) ∗
     (∃ s : GoSlice, globalAddr MetaConsistentIndexKeyName ↦□ s ∗ s ↦*□ ciKeyBytes) ∗
@@ -126,7 +129,8 @@ abbrev schemaInit : IProp GF :=
     (∃ s : GoSlice, globalAddr MetaConfStateName ↦□ s ∗ s ↦*□ (go!"confState" : GoString)) ∗
     (∃ b : GoInterface, globalAddr MembersRemoved ↦□ b ∗ bucketIs b (W64 11) go!"members_removed" false) ∗
     (∃ b : GoInterface, globalAddr Cluster ↦□ b ∗ bucketIs b (W64 5) go!"cluster" false) ∗
-    (∃ b : GoInterface, globalAddr Alarm ↦□ b ∗ bucketIs b (W64 4) go!"alarm" false))
+    (∃ b : GoInterface, globalAddr Alarm ↦□ b ∗ bucketIs b (W64 4) go!"alarm" false) ∗
+    (∃ s : GoSlice, globalAddr MetaConsistentIndexRaftTermName ↦□ s ∗ s ↦*□ raftTermKeyBytes))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit

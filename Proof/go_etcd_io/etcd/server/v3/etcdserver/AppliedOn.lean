@@ -235,12 +235,12 @@ theorem srvAtomicsM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 
 /-- **The server's fields in the mode `on`** (`srvFieldsAt` at `false`): the wait in the mode
 (`waitInvM`, E3b: its results carry the auth layer's verdict). -/
-def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       srvWAddr s ↦□ v.w ∗ waitInvM on v.w ρ E ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
-      hookSpec γ ci TM v.hook ∗
+      hookSpec γ ci cl TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
@@ -248,7 +248,7 @@ def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci cl E)
 
 instance srvFieldsAtM_persistent (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :

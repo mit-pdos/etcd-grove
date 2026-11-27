@@ -23,13 +23,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 /-- `NewConsistentIndex(be)`: a consistent index with index 0 (not loaded yet), applying
 index 0, and backend `be`, as a `ConsistentIndexer`; (keepfix-d, 2026-11-27) its pair predicate the
-caller's `P`. -/
+caller's `P`; (keepfix (c)) the raft term 0 (`ciRaftTerm`). -/
 abbrev NewConsistentIndex.spec : Prop :=
-  ∀ (be : GoInterface) (P : w64 → w64 → IProp GF),
+  ∀ (be : GoInterface) (P : w64 → w64 → w64 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex }}
     (App (Val (@! NewConsistentIndex)) (Val #be))
   {{ (ci : Loc) (γ : CINames), RET #(interface.mkOk (go.GoType.PointerType consistentIndex.ty) #ci);
-      isCI ci γ P ∗ ciIdx γ (W64 0) ∗ ciApplying ci (W64 0) (W64 0) ∗ ciOwner ci be }}
+      isCI ci γ P ∗ ciIdx γ (W64 0) ∗ ciApplying ci (W64 0) (W64 0) ∗ ciOwner ci be ∗
+      ciRaftTerm γ (W64 0) }}
 
 end spec
 

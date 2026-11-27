@@ -111,10 +111,12 @@ structure ApplyPhys where
   bwb : GName
   /-- (S8b) the backend's open token's name (`γB.opn`), likewise -/
   bopn : GName
+  /-- (keepfix (c)) the raft-term key the backend was opened with (`metaRaftTermOf` of its data) -/
+  rk0 : Option (w64 × w64)
 
 instance ApplyPhys.countable : Pos.Countable ApplyPhys :=
-  .ofInjective (fun π => Pos.Countable.encode (π.mt, π.wr, π.pend, π.m0, π.bwb, π.bopn))
-    (by rintro ⟨a, b, c, d, e, f⟩ ⟨a', b', c', d', e', f'⟩ h; have h := Pos.encode_inj h; simp_all)
+  .ofInjective (fun π => Pos.Countable.encode (π.mt, π.wr, π.pend, π.m0, π.bwb, π.bopn, π.rk0))
+    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 /-- The ghost names of the protocol: the logical ones (`ci`, `st`, `fz`, `cur`, `reg`), fixed for
 the server's life, and the current backend's physical ones (`ph`; D22 receiver epochs, S7f,
@@ -151,6 +153,7 @@ abbrev ApplyNames.wr (γ : ApplyNames) : GName := γ.ph.wr
 abbrev ApplyNames.pend (γ : ApplyNames) : GName := γ.ph.pend
 /-- The meta keys the names' backend was opened with. -/
 abbrev ApplyNames.m0 (γ : ApplyNames) : MetaCI := γ.ph.m0
+abbrev ApplyNames.rk0 (γ : ApplyNames) : Option (w64 × w64) := γ.ph.rk0
 
 /-- **The names `γ` at the physical names `π`** (S7f): `γ`'s logical names. -/
 abbrev ApplyNames.withPh (γ : ApplyNames) (π : ApplyPhys) : ApplyNames :=
@@ -1594,9 +1597,10 @@ the backend does): over a consistent index holding 0 (`NewConsistentIndex`'s), f
 at the meta keys `m0`, fresh names with the registry holding them alone; the apply thread at
 `ci = 0`, processed through the stored index; the batch lock's half of the mirror, its token and
 its registration. -/
-theorem consInv_allocR (γci : CINames) (m0 : MetaCI) (bwb bopn : GName) (Ms : CoPset) :
+theorem consInv_allocR (γci : CINames) (m0 : MetaCI) (bwb bopn : GName) (Ms : CoPset)
+    (rk0 : Option (w64 × w64) := none) :
     ⊢ □ Rw.IR (W64 0) m0.1 -∗ ciIdx (GF := GF) γci (W64 0) -∗ |={Ms}=> ∃ γ : ApplyNames,
-      ⌜γ.ci = γci ∧ γ.m0 = m0⌝ ∗
+      ⌜γ.ci = γci ∧ γ.m0 = m0 ∧ γ.rk0 = rk0⌝ ∗
       inv applyN (consInv γ Rw) ∗ applyThread γ ⟨W64 0, m0.1, W64 0, false⟩ ∗
       ghostVar γ.mt (1 : Qp).half m0.1 ∗ token γ.pend ∗ applyRegd γ := by
   iintro #Hir Hk
@@ -1605,24 +1609,24 @@ theorem consInv_allocR (γci : CINames) (m0 : MetaCI) (bwb bopn : GName) (Ms : C
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γwr, Hwr⟩
   imod token_alloc with ⟨%γpend, Hpend⟩
   imod token_alloc with ⟨%γfz, Hfz⟩
-  imod (ghostVar_alloc (GF := GF) (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys)) with ⟨%γcur, Hcur⟩
-  imod (mono_list_own_alloc (GF := GF) [(⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys)])
+  imod (ghostVar_alloc (GF := GF) (⟨γmt, γwr, γpend, m0, bwb, bopn, rk0⟩ : ApplyPhys)) with ⟨%γcur, Hcur⟩
+  imod (mono_list_own_alloc (GF := GF) [(⟨γmt, γwr, γpend, m0, bwb, bopn, rk0⟩ : ApplyPhys)])
     with ⟨%γreg, Ha, #Hlb⟩
   imod (mono_list_own_alloc (GF := GF) ([] : List (ApplyPhys × GName))) with ⟨%γfut, Haf, -⟩
-  ihave #Hidx := monoListIdxOwn_get (γ := γreg) 0 (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys) rfl $$ Hlb
+  ihave #Hidx := monoListIdxOwn_get (γ := γreg) 0 (⟨γmt, γwr, γpend, m0, bwb, bopn, rk0⟩ : ApplyPhys) rfl $$ Hlb
   icases (ghostVar_split_half γst 1 (⟨W64 0, m0.1, W64 0, false⟩ : ApplyState)).1 $$ Hst
     with ⟨Hst1, Hst2⟩
   icases (ghostVar_split_half γmt 1 m0.1).1 $$ Hmt with ⟨Hmt1, Hmt2⟩
-  icases (ghostVar_split_half γcur 1 (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys)).1 $$ Hcur
+  icases (ghostVar_split_half γcur 1 (⟨γmt, γwr, γpend, m0, bwb, bopn, rk0⟩ : ApplyPhys)).1 $$ Hcur
     with ⟨Hcur1, Hcur2⟩
-  iexists (⟨γci, γst, γfz, γcur, γreg, γfut, ⟨γmt, γwr, γpend, m0, bwb, bopn⟩⟩ : ApplyNames)
+  iexists (⟨γci, γst, γfz, γcur, γreg, γfut, ⟨γmt, γwr, γpend, m0, bwb, bopn, rk0⟩⟩ : ApplyNames)
   isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
   isplitl [Hk Hst1 Hmt1 Hwr Hfz Hcur1 Ha Haf]
   · iapply inv_alloc applyN Ms
     inext
     iunfold consInv
-    iexists (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys), ([] : List ApplyPhys),
+    iexists (⟨γmt, γwr, γpend, m0, bwb, bopn, rk0⟩ : ApplyPhys), ([] : List ApplyPhys),
       (⟨W64 0, m0.1, W64 0, false⟩ : ApplyState), m0.1, false
     iframe Hcur1 Hir
     isplitl [Hk Hst1 Hmt1 Hwr Hfz]
@@ -1671,14 +1675,15 @@ theorem ci_swap_au (γ : ApplyNames) (s s' : ApplyState) (π' : ApplyPhys) (j : 
   iapply ci_swap_auR (Rw := TRow.triv) γ s s' π' j γc Φ hk' hps' hok hle $$ Hinv Ht
 
 /-- `consInv_allocR` at the trivial image row. -/
-theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (bwb bopn : GName) (Ms : CoPset) :
-    ciIdx (GF := GF) γci (W64 0) ⊢ |={Ms}=> ∃ γ : ApplyNames, ⌜γ.ci = γci ∧ γ.m0 = m0⌝ ∗
+theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (bwb bopn : GName) (Ms : CoPset)
+    (rk0 : Option (w64 × w64) := none) :
+    ciIdx (GF := GF) γci (W64 0) ⊢ |={Ms}=> ∃ γ : ApplyNames, ⌜γ.ci = γci ∧ γ.m0 = m0 ∧ γ.rk0 = rk0⌝ ∗
       inv applyN (consInv γ) ∗ applyThread γ ⟨W64 0, m0.1, W64 0, false⟩ ∗
       ghostVar γ.mt (1 : Qp).half m0.1 ∗ token γ.pend ∗ applyRegd γ := by
   iintro Hk
   ihave #Ht : iprop(□ (True : IProp GF)) $$ []
   · imodintro; itrivial
-  iapply consInv_allocR (Rw := TRow.triv) γci m0 bwb bopn Ms $$ Ht Hk
+  iapply consInv_allocR (Rw := TRow.triv) γci m0 bwb bopn Ms rk0 $$ Ht Hk
 
 end defs
 

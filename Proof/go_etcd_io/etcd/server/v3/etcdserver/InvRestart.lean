@@ -593,7 +593,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "Hmem" ∷ membership.clusterMem bc.cl' (restModel (W64 0) γ.boot L).mem ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    "#HisCI" ∷ isCI cil γA.ci (srvCIPair γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
+    -- (keepfix (c), 2026-11-28, row 7c/7e, approved) the triple predicate
+    "#HisCI" ∷ isCI cil γA.ci (srvCITriple γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
     -- `SetConfState` `applyConfChange` calls, and (D22 J1a) which the snapshot path's
@@ -610,6 +611,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (R2c review, F1: the applying index and term are the apply loop's own fields, which
     -- `NewConsistentIndex` leaves at 0 and `SetBackend` does not set: as on a first start)
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
+    -- (keepfix (c), 2026-11-28, R3/7e, approved) the apply thread's mirror of the raft term field: the seed
+    -- `bootstrap.go:726`, the post-catch-up hard state's term
+    "Hrt" ∷ ciRaftTerm γA.ci σ.hs.Term' ∗
     -- the boot backend's meta reads: `#HmetaSnap`'s output at the boot open (`boot_create`,
     -- `SnapApplyOpen.lean`: from the fresh keys and payment rights inside `OpenBackend`'s `openPre`,
     -- with `Hm0`), which `bootstrap`, names-only, does not let `NewServer` derive
@@ -619,11 +623,13 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- names `π`, over an image whose meta keys are `π.m0`, at its fresh keys and payment rights
     -- (they come back): what `applySnapshot.specSnapM` takes
     "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        -- (keepfix (c), R1f) and the raft-term key the one it was opened with
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
         backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
         □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+          -- (keepfix (c), R1e) the server's meta-keys resource with the raft-term key
+          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTMR γ.cl π γB P)) b -∗
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γA.withPh π))) ∗
@@ -661,13 +667,15 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (`bootLeft`, A), the batch lock's resource, the first start's `mvccW` (T1-B); and what `bootstrap` adds: the
     -- store's registration right
     "Hnew" ∷ backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
-      (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
+      (fun γB => batchLockInv γA (metaTMR γ.cl γA.ph γB d.P)) (bootLeft N) d.be D ∗
     -- [R2c] the file is the image (`srvDiskImage`), at the consistent index `i`
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
     -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
     -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
     -- `D` holds the last commit's)
-    "%Hm0" ∷ ⌜metaIs D γA.m0 ∧ γA.m0.1 = i⌝ ∗
+    "%Hm0" ∷ ⌜metaIs D γA.m0 ∧ γA.m0.1 = i ∧
+      -- (keepfix (c), R1f) the raft-term key the protocol's opened one
+      metaRaftTermOf D = γA.rk0⌝ ∗
     -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
     -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
     -- (restart S6 B2, 2026-11-14) in `bootOk`'s form, the sealed `mvccWReg` (by definition `lateReg`)

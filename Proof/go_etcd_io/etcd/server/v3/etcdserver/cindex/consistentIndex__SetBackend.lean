@@ -29,7 +29,8 @@ theorem consistentIndex.SetBackend.wp_proof
     (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG)) :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) := by
   intro ci γ P b0 be
-  wp_start as ⟨#Hci, Hown⟩
+  intro rt
+  wp_start as ⟨#Hci, Hown, Hrt⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
@@ -45,8 +46,8 @@ theorem consistentIndex.SetBackend.wp_proof
   · iframe
   wp_auto
   ihave ⟨Hb, Hb'⟩ := (ciBe_halves ci be).2 $$ Hb
-  wp_apply_core (hS ci γ P (W64 0) (W64 0)) $$ [] [HΦ Hb Hb' Hlocked defer]
-  · iframe Hpkg; unfold isCI; iframe Hinv Hmu Hpmu; ileft; ipureintro; rfl
+  wp_apply_core (hS ci γ P (W64 0) (W64 0) rt) $$ [Hrt] [HΦ Hb Hb' Hlocked defer]
+  · iframe Hpkg Hrt; unfold isCI; iframe Hinv Hmu Hpmu; ileft; ipureintro; rfl
   imod HΦ with ⟨%k, Hk, HΦ⟩
   imodintro
   iexists k
@@ -54,10 +55,11 @@ theorem consistentIndex.SetBackend.wp_proof
   iintro Hk
   imod HΦ $$ Hk with HΦ
   imodintro
+  iintro Hrt
   wp_auto
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hb']
   · inext; iunfold ciLockInv; iexists be; iexact Hb'
-  iapply HΦ
+  iapply HΦ $$ [Hb] Hrt
   iunfold ciOwner
   iexact Hb
 

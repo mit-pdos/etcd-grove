@@ -953,7 +953,9 @@ private theorem wp_RestartNode_impl
   ihave #Hphw2 : phsWit (GF := GF) γ.raft σ.hs $$ []
   · rw [← Hhp]; iexact Hphw
   ihave #Hhw := hsWit_of_phsWit γ.raft σ.hs _ Hlen' $$ Hphw2
-  imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top σ.hs _ $$ Hci Hhw with HhsC
+  -- (keepfix (c)) the budget covers the stored term (`raftStateU`'s, at the restarted state)
+  imod hsCommitted_of_raft γ N ⊤ CoPset.subseteq_top σ.hs _ $$ Hci Hhw [] with HhsC
+  · rw [← HsT]; iexact HtS
   have HdynOk : ∀ γn : NodeNames, NodeOk γ γn → γn.mode.isDyn = true := fun γn h => by
     rw [h.2.2, Hmd]; rfl
   wp_auto
