@@ -687,7 +687,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   imod (letI : StorageModel GF := srvStor C.γr.raft.raft;
     raftState_logView C.γr.raft.raft.cl C.rn.id S srvClusterN) $$ [Hrst] with ⟨Hrst, %fp, %Hlv, -, -⟩
   · iframe Hrst Hiscl
-  imod raftState_lastFits C.γr.raft.raft.cl srvClusterN C.rn.id S $$ [Hrst] with ⟨Hrst, %Hlast⟩
+  imod raftState_lastFits C.γr.raft.raft.cl srvClusterN C.rn.id S ⊤ $$ [Hrst] with ⟨Hrst, %Hlast⟩
   · iframe Hrst Hrfit
   have hwrf : walReadFacts σ := walReadFacts_of_stop S σ fp hσ.1 Hshape Hlv.1.1 Hlv.2.2 Hlast
   ihave Hrst : raftState C.rn.node.cl C.rn.id S $$ [Hrst]
