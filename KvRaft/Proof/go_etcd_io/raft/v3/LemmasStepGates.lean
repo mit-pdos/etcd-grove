@@ -86,6 +86,17 @@ def vrespMsgOf (id : w64) (s1 : NState) (m : MessageM) (rej : Bool) : Msg :=
 def hupType (s : NState) : CampaignType :=
   if s.prevote = true then campaignPreElection else campaignElection
 
+/-- (#33 parity B1) A `MsgHup`'s campaign is a pre-election exactly with pre-vote on. -/
+theorem hupType_pre_iff (s : NState) : decide (hupType s = campaignPreElection) = s.prevote := by
+  unfold hupType
+  cases s.prevote <;> simp (config := {decide := true}) [campaignElection, campaignPreElection]
+
+/-- (#33 parity B1) A `MsgHup`'s campaign requests carry no context (no transfer). -/
+theorem hupType_ctx (s : NState) : transferCtx (hupType s) = [] := by
+  unfold hupType
+  cases s.prevote <;>
+    simp (config := {decide := true}) [transferCtx, campaignElection, campaignPreElection, campaignTransfer]
+
 /-- (2026-11-10, slice 12) **The local message a tick steps** (`tickElection`'s `MsgHup`,
 `tickHeartbeat`'s `MsgCheckQuorum` and `MsgBeat`): `&pb.Message{From: new(r.id), Type: ty.Enum()}`,
 every other field unset. The tick specs name it for `Step`'s gates. -/
@@ -107,10 +118,32 @@ Each is what the callee's spec gives (`FollowerStepResultC`, `CandidateStepResul
 /-- The message types `StepEnd` describes: the six traced types and the four local ones a traced
 node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s `MsgProp`, and
 (2026-11-11, slice 27n, Q27 (a)) `ReportUnreachable`'s `MsgUnreachable`, whose end state is `s` but
-for `Progress` values of the same `Match`: `LeaderNonpropResultC`'s report case queues nothing). -/
+for `Progress` values of the same `Match`: `LeaderNonpropResultC`'s report case queues nothing).
+(#33 parity B1, 2026-11-26) And the types an untraced node of the Antithesis scope steps besides: the
+read-index pair, `MsgTimeoutNow`, the quorum check and the pre-vote response, each its step function's
+result. The traced statements' types are `TrStepTy` (the ten above). Not `MsgTransferLeader`: `Step`
+runs its step function at the state with the transfer's ghost record (`gh.xw`, `gh.xs`), not at `s`
+(`StepEnd`'s `xfer`); nor `MsgPreVote`, which `Step` answers itself (`StepEnd`'s `prevote`). -/
 def StepEndTy (ty : w32) : Prop :=
   ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
+    ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp ∨ ty = MsgUnreachable ∨
+    ty = MsgPreVoteResp ∨ ty = MsgReadIndex ∨ ty = MsgReadIndexResp ∨ ty = MsgTimeoutNow ∨
+    ty = MsgCheckQuorum
+
+/-- (#33 parity B1, 2026-11-26) **The message types a traced node steps** (`StepEndTy` until then): the
+six traced types and the four local ones. -/
+def TrStepTy (ty : w32) : Prop :=
+  ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
     ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp ∨ ty = MsgUnreachable
+
+theorem TrStepTy.stepEndTy {ty : w32} (h : TrStepTy ty) : StepEndTy ty := by
+  unfold TrStepTy at h; unfold StepEndTy
+  rcases h with h | h | h | h | h | h | h | h | h | h <;> simp [h]
+
+/-- (#33 parity B1) A traced type is a type `StepEnd` describes, as a coercion: a traced proof
+passes its `TrStepTy` premise to a `StepEnd` hypothesis as it passed its `StepEndTy` premise
+before the split (no proof change in the traced files beyond the rename). -/
+instance TrStepTy.coeStepEndTy {ty : w32} : Coe (TrStepTy ty) (StepEndTy ty) := ⟨TrStepTy.stepEndTy⟩
 
 /-- (2026-11-11, slice 24b) **A candidate's vote response that decides its election**: a `MsgVoteResp`
 of the candidate's term whose recorded tally is won (`JQuorum`) or lost (`JLost`) at `c`, so that
@@ -161,16 +194,136 @@ def VoteEnd (id : w64) (s1 : NState) (m : MessageM) (s' : NState) : Prop :=
   (VoteGrant s1 m ∧ s' = { sendMsgs s1 [vrespMsgOf id s1 m false] with vote := m.From' }) ∨
   (¬ VoteGrant s1 m ∧ s' = sendMsgs s1 [vrespMsgOf id s1 m true])
 
-/-- **`Step`'s end state** `s'` from `s` on `m` (see above); nothing on the other types. -/
-def StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8) (s s' : NState) :
-    Prop :=
-  StepEndTy m.Type' →
+/-- **`Step`'s end state on the types `StepEndTy` lists**, its four arms: a stale message, `MsgHup`,
+`MsgVote` and the step function. (#33 parity B1 (ii)) `MsgVote`'s ignored arm carries `Step`'s lease
+check (`inLease := r.checkQuorum && r.lead != None && r.electionElapsed < r.electionTimeout`, `force` the
+transfer marker): check-quorum on, a leader known, a request of a higher term, not forced. The timer
+`electionElapsed` is outside the model, so the arm stays a disjunction. -/
+abbrev StepEndBody (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (s s' : NState) : Prop :=
   (StaleMsg s m → s' = s ∨ ∃ (ty : w32) (mm : Msg), LowSend id s m ty mm ∧ s' = sendMsgs s [mm]) ∧
-  (¬ StaleMsg s m → m.Type' = MsgHup → HupOkC c id s s') ∧
+  (¬ StaleMsg s m → m.Type' = MsgHup → HupOkC c id (hupType s) s s') ∧
   (¬ StaleMsg s m → m.Type' = MsgVote →
-    (s.cq = true ∧ s' = s) ∨ ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') ∧
+    (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
+      ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') ∧
   (¬ StaleMsg s m → m.Type' ≠ MsgHup → m.Type' ≠ MsgVote →
     ∃ pvs : GMap w64 Progress, StepFnEnd c id (preState s m pvs) m ents ctx s')
+
+/-- (#33 parity B1 (ii)) The types a branch of `Step` gives `StepEndBody` for: `StepEndTy`'s, and
+`MsgTransferLeader` at the state its step function runs from (the transfer's ghost record, `StepEnd`'s
+`xfer`). -/
+def StepEndTyB (ty : w32) : Prop := StepEndTy ty ∨ ty = MsgTransferLeader
+
+/-- A `StepEndTy` type is a branch type (`StepEndTyB`), as a coercion: a branch's `StepEndG` applies to a
+`StepEndTy` premise. -/
+instance StepEndTy.coeB {ty : w32} : Coe (StepEndTy ty) (StepEndTyB ty) := ⟨Or.inl⟩
+
+/-- **A branch's end state**: `StepEndBody` on the types `StepEndTyB` lists (`StepEnd` until #33 parity
+B1 (ii)); `raft.Step.wp_proof`'s close sites make a `StepEnd` of it. -/
+abbrev StepEndG (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (s s' : NState) : Prop :=
+  StepEndTyB m.Type' → StepEndBody c id m ents ctx s s'
+
+/-- (#33 parity B1 (ii)) A `MsgPreVote`'s answer at `s` (no step-down for a pre-vote request): granted,
+the answer queued at the request's term; declined, the rejection at the node's. No vote recorded. -/
+def PreVoteEnd (id : w64) (s : NState) (m : MessageM) (s' : NState) : Prop :=
+  (VoteGrant s m ∧ s' = sendMsgs s [vrespMsgOf id s m false]) ∨
+  (¬ VoteGrant s m ∧ s' = sendMsgs s [vrespMsgOf id s m true])
+
+/-- (#33 parity B1 (ii)) **A `MsgPreVote`'s end state** (not stale): ignored within the lease, as a
+`MsgVote` is (`Step`'s `inLease` check, the timer outside the model), or answered. -/
+abbrev PreVoteStepEnd (id : w64) (m : MessageM) (ctx : List w8) (s s' : NState) : Prop :=
+  (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
+    PreVoteEnd id s m s'
+
+/-- (antithesis parity B1, 2026-11-26, the lead's decision 4) **A `MsgPreVote`'s end state, stale or
+not**: a stale one (`Step`'s `m.Term < r.Term` arm) rejected at the node's term, nothing else changed
+(`StaleEnd`'s third arm); else `PreVoteStepEnd`. -/
+abbrev PreVoteStepAll (id : w64) (m : MessageM) (ctx : List w8) (s s' : NState) : Prop :=
+  (StaleMsg s m → s' = sendMsgs s [Msg.plain .preVoteResp id m.From' s.term true]) ∧
+  (¬ StaleMsg s m → PreVoteStepEnd id m ctx s s')
+
+theorem PreVoteStepAll.of_fresh {id : w64} {m : MessageM} {ctx : List w8} {s s' : NState}
+    (hns : ¬ StaleMsg s m) (h : PreVoteStepEnd id m ctx s s') : PreVoteStepAll id m ctx s s' :=
+  ⟨fun h' => absurd h' hns, fun _ => h⟩
+
+/-- (antithesis parity B1, 2026-11-26, option (b)) **An append response `Step` may record before it**:
+a `MsgAppResp` from another node while the node has a transferee, at an untraced node (a traced one
+has none then, `raft.Step.spec`'s premise): `Step` records the transferee's acknowledgement in
+`NGhost.xt` first (`"%Hxwframe"`'s case), so its step function runs at the state with the record
+(`StepEnd`'s `xtr`). -/
+def XtRec (id : w64) (m : MessageM) (s : NState) : Prop :=
+  m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0 ∧ s.gh.tr = none
+
+theorem XtRec.of_ne {id : w64} {m : MessageM} {s : NState} (h : m.Type' ≠ MsgAppResp) :
+    ¬ XtRec id m s := fun h' => h h'.1
+
+theorem XtRec.of_tr {id : w64} {m : MessageM} {s : NState} (h : s.gh.tr ≠ none) :
+    ¬ XtRec id m s := fun h' => h h'.2.2.2
+
+theorem XtRec.of_lt {id : w64} {m : MessageM} {s : NState} (h : s.lt = W64 0) :
+    ¬ XtRec id m s := fun h' => h'.2.2.1 h
+
+/-- (option (b)) `StepEnd`'s `gated` premise (`¬ XtRec`), at a reader's site: a hypothesis, or by the
+message type facts in the context (any type but `MsgAppResp`, its constants decided), or a traced
+node (`s.gh.tr ≠ none`), or no transferee (`s.lt = 0`): a reader writes `h hty (by xtrec_tac)`. -/
+syntax "xtrec_tac" : tactic
+macro_rules
+  | `(tactic| xtrec_tac) => `(tactic| first
+    | assumption
+    | (intro hxr
+       have hxa := hxr.1
+       simp_all only [Perennial.W32, BitVec.ofInt_ofNat, BitVec.reduceEq,
+        Perennial.EtcdGrove.MsgBeat, Perennial.EtcdGrove.MsgHup,
+        Perennial.EtcdGrove.MsgProp, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgAppResp,
+        Perennial.EtcdGrove.MsgVote, Perennial.EtcdGrove.MsgVoteResp, Perennial.EtcdGrove.MsgSnap,
+        Perennial.EtcdGrove.MsgHeartbeat, Perennial.EtcdGrove.MsgHeartbeatResp,
+        Perennial.EtcdGrove.MsgPreVote, Perennial.EtcdGrove.MsgPreVoteResp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgReadIndexResp,
+        Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
+        Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
+        Perennial.EtcdGrove.MsgTimeoutNow, Perennial.EtcdGrove.MsgCheckQuorum,
+        Perennial.EtcdGrove.MsgStorageAppendResp, Perennial.EtcdGrove.MsgStorageApplyResp]
+       done)
+    | (intro hxr; exact hxr.2.2.1 (by assumption))
+    | (intro hxr; exact absurd hxr.2.2.2 (by simp_all))
+    | (intro hxr; simp_all))
+
+/-- **`Step`'s end state** `s'` from `s` on `m`: on the types `StepEndTy` lists (`gated`, applied as a
+function through the coercion below, so its readers write `h hty hx`), and (#33 parity B1 (ii)) on a
+`MsgPreVote` (`prevote`: stale, rejected; else ignored within the lease as a `MsgVote` is, or answered) and a
+`MsgTransferLeader` (`xfer`: the step function's result at the transfer's ghost record, `gh.xw`,
+(option (b)) `gh.xt` and `gh.xs`, which `Step` writes before it). (antithesis parity B1, option (b))
+`gated` but on an append response `Step` may record (`XtRec`), which `xtr` describes at the state with
+the record (`gh.xt`). (antithesis parity B1, phase 2) A stale `MsgTransferLeader` (`xstale`): ignored, but
+for the transfer's ghost record `Step` writes before it. Nothing on the other types. -/
+structure StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (s s' : NState) : Prop where
+  gated : StepEndTy m.Type' → ¬ XtRec id m s → StepEndBody c id m ents ctx s s'
+  prevote : m.Type' = MsgPreVote → PreVoteStepAll id m ctx s s'
+  xfer : ¬ StaleMsg s m → m.Type' = MsgTransferLeader →
+    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool) (Z : GMap w64 Unit) (pvs : GMap w64 Progress),
+      StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } m pvs) m ents ctx s'
+  xtr : XtRec id m s →
+    ∃ Y : GMap (w64 × w64) Unit, StepEndBody c id m ents ctx { s with gh := { s.gh with xt := Y } } s'
+  xstale : StaleMsg s m → m.Type' = MsgTransferLeader →
+    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool) (Z : GMap w64 Unit),
+      s' = { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } }
+
+instance StepEnd.coeFun {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} :
+    CoeFun (StepEnd c id m ents ctx s s')
+      (fun _ => StepEndTy m.Type' → ¬ XtRec id m s → StepEndBody c id m ents ctx s s') :=
+  ⟨StepEnd.gated⟩
+
+/-- (option (b)) `StepEnd`'s body on an append response: at `s`, or at the state with the
+transferee's acknowledgement recorded (`xtr`); either way at `s` but for `gh.xt`. -/
+theorem StepEnd.body_xt {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (h : StepEnd c id m ents ctx s s') (hT : StepEndTy m.Type') :
+    ∃ Y : GMap (w64 × w64) Unit, StepEndBody c id m ents ctx { s with gh := { s.gh with xt := Y } } s' := by
+  by_cases hx : XtRec id m s
+  · exact h.xtr hx
+  · exact ⟨s.gh.xt, h.gated hT hx⟩
 
 /-- (2026-11-11, slice 30c; slice 28n's design) **The storage acknowledgements**, which `Advance` steps. -/
 def AckTy (t : w32) : Prop := t = MsgStorageAppendResp ∨ t = MsgStorageApplyResp
@@ -179,40 +332,51 @@ def AckTy (t : w32) : Prop := t = MsgStorageAppendResp ∨ t = MsgStorageApplyRe
 protocol reading unchanged (`stableTo`, `appliedTo`; no snapshot, no automatic leave at a traced node),
 the outbox with it. `StepEnd` says nothing of these types; the closing wand learns this instead.
 (2026-11-12, trace-check implementation step 2) And the leader transfer and the read state unchanged,
-which `toPState` does not read: the traced scope's (`TrScope`) through an acknowledgement. -/
+which `toPState` does not read: the traced scope's (`TrScope`) through an acknowledgement.
+(#33 parity B1 stage 3b) And the pending configuration index (`pendingConfIndex`), which only an
+automatic leave moves (`AckScope`, or traced): `Advance`'s end over `RState` (`AdvanceEndR`).
+(#33 parity B1, step C3) And the known leader and the tally, which `toPState` does not read at a
+pre-candidate: `RnScope`'s pre-candidate facts through `Advance`'s acknowledgements. -/
 def AckEnd (m : MessageM) (s s' : NState) : Prop :=
-  AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd
+  AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+    s'.lead = s.lead ∧ s'.votes = s.votes
+
+/-- (#33 S3c design §2.4) **The untraced scope in which a storage acknowledgement leaves the protocol
+reading unchanged**: no automatic leave of a joint configuration. -/
+def AckScope (c : CfgM) : Prop := c.autoLeave = false
 
 theorem AckEnd.of_ty {m : MessageM} {s s' : NState} (h : ¬ AckTy m.Type') : AckEnd m s s' :=
   fun h' => absurd h' h
 
-theorem StepEnd.of_ty {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
-    {s s' : NState} (h : ¬ StepEndTy m.Type') : StepEnd c id m ents ctx s s' :=
-  fun h' => absurd h' h
+theorem StepEndG.of_ty {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (h : ¬ StepEndTy m.Type') (hx : m.Type' ≠ MsgTransferLeader) :
+    StepEndG c id m ents ctx s s' :=
+  fun h' => h'.elim (fun h' => absurd h' h) (fun h' => absurd h' hx)
 
-theorem StepEnd.stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hst : StaleMsg s m)
     (h : s' = s ∨ ∃ (ty : w32) (mm : Msg), LowSend id s m ty mm ∧ s' = sendMsgs s [mm]) :
-    StepEnd c id m ents ctx s s' :=
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun _ => h, fun h' => absurd hst h', fun h' => absurd hst h', fun h' => absurd hst h'⟩
 
-theorem StepEnd.hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
-    {s s' : NState} (hty : m.Type' = MsgHup) (hns : ¬ StaleMsg s m) (h : HupOkC c id s s') :
-    StepEnd c id m ents ctx s s' :=
+theorem StepEndG.hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hty : m.Type' = MsgHup) (hns : ¬ StaleMsg s m) (h : HupOkC c id (hupType s) s s') :
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun h' => absurd h' hns, fun _ _ => h,
     fun _ h' => absurd (hty.symm.trans h') (by simp only [MsgHup, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word), fun _ h' => absurd hty h'⟩
 
-theorem StepEnd.vote {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.vote {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hty : m.Type' = MsgVote) (hns : ¬ StaleMsg s m)
-    (h : (s.cq = true ∧ s' = s) ∨ ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') :
-    StepEnd c id m ents ctx s s' :=
+    (h : (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
+      ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') :
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun h' => absurd h' hns, fun _ h' => absurd (hty.symm.trans h') (by simp only [MsgHup, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word),
     fun _ _ => h, fun _ _ h' => absurd hty h'⟩
 
-theorem StepEnd.fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hns : ¬ StaleMsg s m) (hh : m.Type' ≠ MsgHup) (hv : m.Type' ≠ MsgVote)
     (pvs : GMap w64 Progress) (h : StepFnEnd c id (preState s m pvs) m ents ctx s') :
-    StepEnd c id m ents ctx s s' :=
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun h' => absurd h' hns, fun _ h' => absurd h' hh, fun _ h' => absurd h' hv,
     fun _ _ _ => ⟨pvs, h⟩⟩
 
@@ -244,12 +408,12 @@ theorem StepFnEnd.leader {c : CfgM} {id : w64} {s1 : NState} {m : MessageM} {ent
 /-- (2026-11-11, slice 27n, Q27 (a)) **`StepEnd` of a local report** (`MsgForgetLeader`,
 `MsgUnreachable`, `MsgSnapStatus`, term zero, no preamble): the step function's result at `s` for
 `MsgUnreachable`, the one of the three `StepEnd` describes. -/
-theorem StepEnd.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState}
     (hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)
     (hT0 : m.Term' = W64 0) (hnbf : ¬ PreBF m s)
     (h : m.Type' = MsgUnreachable → StepFnEnd c id s m ents ctx s') :
-    StepEnd c id m ents ctx s s' := by
+    StepEndG c id m ents ctx s s' := by
   by_cases hu : m.Type' = MsgUnreachable
   · have hpre : preState s m s.prvals = s := by simp [preState, hnbf]
     have hh : m.Type' ≠ MsgHup := fun e => absurd (hu.symm.trans e)
@@ -258,14 +422,15 @@ theorem StepEnd.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
       (by simp only [MsgUnreachable, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word)
     have hns : ¬ StaleMsg s m := fun h' => h'.1 hT0
     have hfn : StepFnEnd c id (preState s m s.prvals) m ents ctx s' := by rw [hpre]; exact h hu
-    exact StepEnd.fn hns hh hv s.prvals hfn
-  · apply StepEnd.of_ty
-    have hnf : ¬ StepEndTy MsgForgetLeader := by unfold StepEndTy; decide
+    exact StepEndG.fn hns hh hv s.prvals hfn
+  · have hnf : ¬ StepEndTy MsgForgetLeader := by unfold StepEndTy; decide
     have hns : ¬ StepEndTy MsgSnapStatus := by unfold StepEndTy; decide
     rcases hty with h' | h' | h'
-    · rw [h']; exact hnf
+    · exact StepEndG.of_ty (by rw [h']; exact hnf) (fun e => absurd (h'.symm.trans e)
+        (by simp only [MsgForgetLeader, MsgTransferLeader, ne_eq]; first | exact of_decide_eq_true rfl | word))
     · exact absurd h' hu
-    · rw [h']; exact hns
+    · exact StepEndG.of_ty (by rw [h']; exact hns) (fun e => absurd (h'.symm.trans e)
+        (by simp only [MsgSnapStatus, MsgTransferLeader, ne_eq]; first | exact of_decide_eq_true rfl | word))
 
 end pure
 
@@ -322,8 +487,27 @@ def stepOutG (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) (o : List Msg
 `maybeSendAppend` ignore the outbox (`IdxFree`: its snapshot fallback queues through no gate); after a
 campaign, the order (`PermInv`: `campaign`'s result orders its messages its own way). An untraced
 caller's constant families have both (`StepGOk.const`). -/
-def StepGOk (tr : Option GName) (R : StepG GF) : Prop :=
-  PermInv R.GE ∧ IdxFree tr R.G1 ∧ IdxFree tr R.GE ∧ IdxFree tr R.Gp2 ∧ ∀ b N, IdxFree tr (R.Gc b N)
+def StepGOkU (nc : Bool) (tr : Option GName) (R : StepG GF) : Prop :=
+  PermInv R.GE ∧ IdxFreeN nc tr R.G1 ∧ IdxFreeN nc tr R.GE ∧ IdxFreeN nc tr R.Gp2 ∧
+    ∀ b N, IdxFreeN nc tr (R.Gc b N)
+
+/-- `StepGOkU` at `nc = false` (2026-11-24, #33 S4 P-raft-1b: the flag). -/
+abbrev StepGOk (tr : Option GName) (R : StepG GF) : Prop := StepGOkU false tr R
+
+/-- (2026-11-24, #33 S4 P-raft-1b) **`stepGates`' demand at the flag `nc`**: `StepGOk` at `false`; at
+`true` the families' `IdxFreeN true` and no automatic leave at the configuration `c` (`appliedTo`'s
+leave proposal, untraced, queues through no gate; outside the harness's scope, a static non-joint
+configuration). Defined by the flag so that at a literal `false` it is `StepGOk`. -/
+def StepGOkN : Bool → CfgM → Option GName → StepG GF → Prop
+  | false, _, tr, R => StepGOk tr R
+  | true, c, tr, R => StepGOkU true tr R ∧ c.autoLeave = false
+
+/-- Its parts at any flag. -/
+theorem StepGOkN.split {nc : Bool} {c : CfgM} {tr : Option GName} {R : StepG GF}
+    (h : StepGOkN nc c tr R) : StepGOkU nc tr R ∧ (nc = true → c.autoLeave = false) := by
+  cases nc
+  · exact ⟨h, fun h' => absurd h' (by decide)⟩
+  · exact ⟨h.1, fun _ => h.2⟩
 
 /-- `raft.hup.spec`'s gates (its `"Hgbc"`, `"#Hgsend"`), at `G0` and `G`; `"Hgbc"` given the
 campaign's conditions (2026-11-10, slice 19a). -/
@@ -359,7 +543,8 @@ def followerGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (e
       -- a forward to the leader: the send's gate, at no event (none of the three types is traced),
       -- whatever untraced messages it queues
       "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
-        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false⌝ -∗ G s.outbox -∗
+        -- (2026-11-24, #33 S4 P-raft-1b) and no snapshot
+        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false ∧ x.ty ≠ .snap⌝ -∗ G s.outbox -∗
         HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
       -- a `MsgTimeoutNow`: `hup(campaignTransfer)`'s gates (the `BecomeCandidate` line, then each
       -- vote message, at the candidate's state)
@@ -378,7 +563,8 @@ def followerGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (e
 /-- `stepCandidate.spec`'s gates, at `G`, `G'`, `Gf`, `G1`, `G2` (2026-11-10, slice 14: `G`, `G'` indexed
 by the outbox). -/
 def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (Tw : IProp GF) : IProp GF :=
+    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (Tw : IProp GF)
+    (nc : Bool := false) : IProp GF :=
   iprop(
       "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term m.From') c) Gf) ∗
@@ -412,7 +598,7 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
         G' o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
           (G' (o ++ [mm]))) ∗
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst ∗
       "Hgcamp" ∷ (⌜m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) (G' s.outbox)) ∗
@@ -435,7 +621,7 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
 by the outbox). -/
 def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (Tp : IProp GF) (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
-    (Gc : Bool → w64 → List Msg → IProp GF) : IProp GF :=
+    (Gc : Bool → w64 → List Msg → IProp GF) (nc : Bool := false) : IProp GF :=
   iprop(
       "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜uint.Z cm = min (uint.Z s.logst.committed)
@@ -459,7 +645,7 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
           ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From' ∧
             uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst ∗
       "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) (G' s.outbox)) ∗
       -- (2026-11-11, slice 23a) with what `Step` lends it (`Tp`: `StepG.Tp`)
@@ -520,18 +706,19 @@ def preGate (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (G0 G1 :
 
 /-- The role's step function's gates, at the state after the preamble (its `Progress` map `pvs`). -/
 def stepFnGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (ctx : List w8) (R : StepG GF) : IProp GF :=
+    (ctx : List w8) (R : StepG GF) (nc : Bool := false) : IProp GF :=
   iprop(∀ pvs : GMap w64 Progress,
     (⌜(preState s m pvs).role = .follower⌝ -∗
       followerGates c r id (preState s m pvs) m ents ctx R.G1 R.GE) ∧
     (⌜(preState s m pvs).role = .candidate ∨ (preState s m pvs).role = .preCandidate⌝ -∗
-      candidateGates c r id (preState s m pvs) m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw) ∧
+      candidateGates c r id (preState s m pvs) m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw nc) ∧
     (⌜(preState s m pvs).role = .leader⌝ -∗
-      leaderGates c r id (preState s m pvs) m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc))
+      leaderGates c r id (preState s m pvs) m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc nc))
 
 /-- **`raft.Step`'s gates** (see the header), at the caller's resources `R`. -/
 def stepGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) : IProp GF :=
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) (nc : Bool := false) :
+    IProp GF :=
   iprop(
       -- the receive hook, at `s`: the receipt's event (`recvGate`; none for a type not traced)
       "Hgrecv" ∷ (R.G -∗ HookGateOpt s.gh.tr r (recvGate id s c ⟨m, ents, sn, ctx, rs⟩) (R.G0 s.outbox)) ∗
@@ -550,9 +737,10 @@ def stepGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents 
       -- a `MsgHup`'s campaign (`hup`'s gates, at `s`)
       "Hghup" ∷ (⌜m.Type' = MsgHup⌝ -∗ hupGates c r id s (hupType s) (R.G1 s.outbox) R.GE) ∗
       -- the role's step function's gates, at the state after the preamble
-      "Hgstep" ∷ stepFnGates c r id s m ents ctx R ∗
+      "Hgstep" ∷ stepFnGates c r id s m ents ctx R nc ∗
       -- (2026-11-10, slice 14) what the callees ask of the indexed resources
-      "%Hgok" ∷ ⌜StepGOk s.gh.tr R⌝)
+      -- (2026-11-24, #33 S4 P-raft-1b) at the flag `nc`
+      "%Hgok" ∷ ⌜StepGOkN nc c s.gh.tr R⌝)
 
 end gates
 
@@ -713,8 +901,8 @@ by the type (`CloseMid.ty`). -/
 def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
-    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
-    ⌜s.gh.tr.isSome → AckEnd m s s'⌝ -∗
+    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜StepEnd c id m ents ctx s s'⌝ -∗
+    ⌜s.gh.tr.isSome ∨ AckScope c → AckEnd m s s'⌝ -∗
     stepOutG c m s R s'.outbox -∗
     |={⊤}=> ((⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost γ md c id s) ∨
         ∃ s1, ⌜CloseMid id m ents s s1 s'⌝ ∗ ownStepGhost γ md c id s1) ∗
@@ -725,8 +913,8 @@ def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
 def stepCloseAt (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
-    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
-    ⌜s.gh.tr.isSome → AckEnd m s s'⌝ -∗
+    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜StepEnd c id m ents ctx s s'⌝ -∗
+    ⌜s.gh.tr.isSome ∨ AckScope c → AckEnd m s s'⌝ -∗
     stepOut R s'.outbox -∗
     |={⊤}=> ownStepGhost γ md c id s ∗ Gout s' ∗ ⌜OutTrStep s s'⌝)
 

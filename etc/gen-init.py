@@ -153,6 +153,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
 # and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
+# (#33 S4) the Antithesis harness (examples/raft/antithesis) and its checker (`check`), for the
+# closed theorem: no package variables, their facts `True` (`Base.lean`, `check/Base.lean`), so no
+# `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is for the adequacy proof
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.raft.antithesis')
 # (fmt1-errno, 2026-11-24, #9 decision (B) 7127751995) the osfs examples (crashlog, walfs, bboltfs),
 # whose closed theorems took their initializer as a hypothesis (`Hinit_wp`; bboltfs: its spec with
 # `pkgFacts` as its post): now `os`'s path specs take `isPkgInit os`, and their `wp_initialize'` is
@@ -6007,6 +6011,9 @@ for _c in ['server', 'client']:
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
+# (#33 S4) the Antithesis harness, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.raft.antithesis'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/PkgTable.lean'
 
 # (fmt1-errno, 2026-11-24) the osfs examples' boot programs, for their closed (crash) theorems
 for _ex in ['crashlog', 'walfs', 'bboltfs']:

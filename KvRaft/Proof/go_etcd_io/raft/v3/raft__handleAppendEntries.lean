@@ -230,13 +230,13 @@ theorem raft.handleAppendEntries.wp_proof
         (P := HandleAppResult id s m ents) $$ [$Hphys $Hr $HG $Hgate] as ⟨Hphys, HG'⟩
       · ipureintro
         exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
-          ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, Hmagh.2.2.2, rfl⟩)
+          ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, ⟨Hmagh.2.2.2.1, Hmagh.2.2.2.2 rfl⟩, rfl⟩)
       iapply HΦ
       iframe Hphys
       isplitr
       · ipureintro
         exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
-          ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, Hmagh.2.2.2, rfl⟩)
+          ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, ⟨Hmagh.2.2.2.1, Hmagh.2.2.2.2 rfl⟩, rfl⟩)
       iidx HG'
     | none =>
       -- rejected: `a.prev` does not match

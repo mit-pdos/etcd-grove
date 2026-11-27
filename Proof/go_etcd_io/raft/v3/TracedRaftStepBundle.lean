@@ -6,7 +6,7 @@ Q8 stage 1 slice 30c, `notes/decisions.md`, "Q8 stage 1 (slice 30c)"). Raft-inte
 - **`stepBundle_traced_storAck`**: the storage acknowledgements (`Advance`'s `MsgStorageAppendResp`,
   `MsgStorageApplyResp`; slice 28n's design): no line, the end state's protocol reading the node's
   (`AckEnd`, which the closing wand learns since slice 30c), so the close at `s`. Over
-  `stepBundle_traced.onA`: `stepBundle_traced.on` asks `StepEndTy`, which these types are not.
+  `stepBundle_traced.onA`: `stepBundle_traced.on` asks `TrStepTy`, which these types are not.
 - **`stepBundle_traced`**: `stepBundle_traced.statement` (`TracedRaftStep.lean`), every path of a traced
   node's `Step`, from the per-path lemmas (`stepBundle_traced.on`/`.onC`/`.onG` of the path files; the
   coverage is slice 27d's table with 27b's won vote, 27n's `MsgUnreachable`, 29c/30c's `LeadAcc` and the
@@ -73,27 +73,27 @@ theorem ackTy_ne {t : w32} (h : AckTy t) :
       MsgPreVoteResp, MsgVote, MsgPreVote, MsgHup, MsgSnap]
 
 /-- No storage acknowledgement is one of the types `StepEnd` describes. -/
-theorem ackTy_not_stepEndTy {t : w32} (h : AckTy t) : ¬ StepEndTy t := by
+theorem ackTy_not_stepEndTy {t : w32} (h : AckTy t) : ¬ TrStepTy t := by
   intro h'
-  unfold StepEndTy at h'
+  unfold TrStepTy at h'
   rcases h with rfl | rfl <;>
     rcases h' with h' | h' | h' | h' | h' | h' | h' | h' | h' | h' <;> revert h' <;> decide
 
-/-- The types the traced statement admits (`StepEndTy`, `AckTy`) are none of the four that
+/-- The types the traced statement admits (`TrStepTy`, `AckTy`) are none of the four that
 `raft.Step.spec`'s untraced-only premises name but the acknowledgements. -/
-theorem stepTrTy_ne {t : w32} (h : StepEndTy t ∨ AckTy t) :
+theorem stepTrTy_ne {t : w32} (h : TrStepTy t ∨ AckTy t) :
     t ≠ MsgSnap := by
   rcases h with h | h
-  · unfold StepEndTy at h
+  · unfold TrStepTy at h
     rcases h with h | h | h | h | h | h | h | h | h | h <;> subst h <;> decide
   · exact (ackTy_ne h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
 
 /-- (2026-11-12, trace-check implementation step 3) Nor a transfer request (`raft.Step.spec`'s premise
 that a traced node steps none). -/
-theorem stepTrTy_ne_xfer {t : w32} (h : StepEndTy t ∨ AckTy t) :
+theorem stepTrTy_ne_xfer {t : w32} (h : TrStepTy t ∨ AckTy t) :
     t ≠ MsgTransferLeader := by
   rcases h with h | h
-  · unfold StepEndTy at h
+  · unfold TrStepTy at h
     rcases h with h | h | h | h | h | h | h | h | h | h <;> subst h <;> decide
   · exact (ackTy_ne h).2.2.2.2.1
 
@@ -118,7 +118,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`stepBundle_traced.on` for the storage acknowledgements**: its premises verbatim but `AckTy` in
-place of `StepEndTy` (the acknowledgements are not among the types `StepEnd` describes). -/
+place of `TrStepTy` (the acknowledgements are not among the types `StepEnd` describes). -/
 abbrev stepBundle_traced.onA (Path : NState → MessageM → Prop) : Prop :=
   ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
@@ -209,7 +209,7 @@ theorem stepBundle_traced_storAck : stepBundle_traced.onA (GF := GF) (hG := hG) 
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne hnP)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %_ %hack Hout
-    obtain ⟨hps, hlt, hrd⟩ := hack (by rw [htr]; rfl) hp.1
+    obtain ⟨hps, hlt, hrd, -⟩ := hack (Or.inl (by rw [htr]; rfl)) hp.1
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := simIdleS_congr hps
     have ho : s'.outbox = s.outbox := congrArg PState.outbox hps
     have hty' : OutTyStep s s' :=
@@ -294,7 +294,7 @@ theorem stepBundle_traced : stepBundle_traced.statement (GF := GF) (hG := hG) :=
     · exact .inr (.inl h)
     · exact .inr (.inr (.inl h))
   have hty0 := hty
-  unfold StepEndTy at hty0
+  unfold TrStepTy at hty0
   rcases hty0 with h | h | h | h | h | h | h | h | h | h
   rotate_right 4
   · -- `MsgHup`, at any role (slice 26n): `stepBundle_hup_R`
@@ -542,7 +542,7 @@ abbrev raft.Step.tracedTriple : Prop :=
   (m.Type' = MsgSnap → s.gh.ns = false) →
   -- the traced bundle's premises (`stepBundle_traced.statement`'s but `NStateWf s`, above)
   s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → (StepEndTy m.Type' ∨ AckTy m.Type') →
+  s.prevote = false → s.cq = false → (TrStepTy m.Type' ∨ AckTy m.Type') →
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgUnreachable ∨
     m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
   (m.Type' = MsgStorageAppendResp → uint.Z m.Term' ≤ uint.Z s.term) →
@@ -615,9 +615,12 @@ abbrev raft.Step.tracedTriple : Prop :=
                       (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
                         ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp, g.decs⟩))⌝ ∗
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
-      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+                   (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
+      "%Hxwframe" ∷ ⌜(m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)) ∧
+                   (∀ f, f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (m.Type' = MsgTransferLeader ∧ f = m.From'))⌝ ∗
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧

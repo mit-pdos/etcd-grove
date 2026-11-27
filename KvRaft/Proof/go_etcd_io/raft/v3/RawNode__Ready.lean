@@ -16,14 +16,16 @@ composes their specs.
 
 Raft v3.7 (2026-10-16, stage R5): the same composition; the messages handed out at
 `readyDq` (D8) and the hard state (`hsOpt`) pass through.
+
+(#33 S4, P-raft-3) The proof is the strengthened triple's, `RawNode.Ready.wp_absProof`
+(`RawNode__ReadyAbs.lean`, where this file's composition moved, over `ownRawNodeAt`); the old spec is
+its corollary (`RawNode.Ready.spec_of_abs`, `RawNodeSpecOfAbs.lean`). One proof.
 -/
 module
 
 public import KvRaft.Spec.go_etcd_io.raft.v3.RawNode__Ready
-public import KvRaft.Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
-public import KvRaft.Spec.go_etcd_io.raft.v3.RawNode__acceptReady
--- (2026-11-01, durability stage II (k)) *enter* (`raft_enter`)
-import KvRaft.Proof.go_etcd_io.raft.v3.Protocol.Enter
+public import KvRaft.Proof.go_etcd_io.raft.v3.RawNode__ReadyAbs
+public import KvRaft.Proof.go_etcd_io.raft.v3.RawNodeSpecOfAbs
 
 @[expose] public section
 
@@ -32,8 +34,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-open RawNodeOwnAccess
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -45,52 +46,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem RawNode.Ready.wp_proof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
-    RawNode.Ready.spec (GF := GF) (hG := hG) := by
-  intro γ rn id x rs q g Hsteps0 Hunp0 HtrG
-  wp_start as H
-  iNamed H
-  wp_auto
-  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
-    as %rd %ce %es %ms %sts %h %L H
-  iNamed H
-  -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`
-  ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
-  iapply (wp_ncfupd _ _ rfl)
-  unfold ncfupd
-  iintro Hnc
-  imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L x q g h CoPset.subseteq_top CoPset.subseteq_top
-    $$ HhardO Hnc Hlive Hfree Hrn
-    with ⟨Hnc, %W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
-  imodintro
-  iframe Hnc
-  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L (fun h => absurd HtrG h) $$ [$Hrn $HhardO]
-    as %steps %ss H
-  iNamed H
-  -- the soft state the node records is the cut's
-  ihave %Hsseq := softStateIs_agree rd.SoftState' ss0 ss Hssn0 Hssn $$ [Hss0 Hss]
-  · iframe Hss0 Hss
-  subst Hsseq
-  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss0 %W
-  iframe Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hcr Happ Hrs Hrs_ok Hhard Hhsw
-    Hsnapz Hfrz Hdk Hlive
-  isplitl [Hrn]
-  · iExactEq Hrn; rfl
-  isplitl [Hpb]
-  · iintro %E %q' %HE Hnc ⟨Hd, Hl⟩
-    imod raft_enter E γ id rs.dur x q' g (readyDurable rs.dur (phsNext rs.phs h) L es) W HE
-      (RaftState.next_wcommit _ _ _ _ _ _) $$ Hnc Hd Hl Hpb
-      with ⟨Hnc, Hd, Hl, Hf, #Hfr⟩
-    imodintro
-    iframe Hnc Hd Hl Hf Hfr
-    iapply bigSepL_wand_pers (durFrags (GF := GF) γ id W) (fun q : QMsg => isRaftMsg γ id q.st) ms
-      $$ Hmw Hfr
-  isplitr
-  · iexact Hml
-  isplitr
-  · iexact Hmss
-  isplitr
-  · iexact Hsrcs
-  ipureintro; exact ⟨Hmsgs_term, Hpsn⟩
+    RawNode.Ready.spec (GF := GF) (hG := hG) :=
+  RawNode.Ready.spec_of_abs (RawNode.Ready.wp_absProof wp_RawNode_readyWithoutAccept
+    wp_RawNode_acceptReady)
 
 end proof
 

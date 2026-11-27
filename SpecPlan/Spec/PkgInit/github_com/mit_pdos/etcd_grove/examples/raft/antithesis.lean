@@ -6,11 +6,12 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
-public import Perennial.Proof.github_com.goose_lang.primitive.Base
-public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3
 public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check
+public import Perennial.Proof.github_com.goose_lang.primitive.Base
+public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3
+public import Perennial.Proof.sync.atomic.Base
 
 @[expose] public section
 noncomputable section

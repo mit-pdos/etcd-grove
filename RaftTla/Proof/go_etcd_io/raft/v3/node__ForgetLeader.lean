@@ -95,7 +95,7 @@ private theorem node.ForgetLeader.wp_raw
   · iframe Hnode Hctx
     unfold stepP
     ileft
-    iapply netP_local γ id _ _ (.inr (.inl rfl)) rfl rfl rfl rfl (.inl Htr)
+    iapply netP_local γ id _ _ (.inr (.inl rfl)) rfl rfl rfl rfl (by intro h; first | exact ⟨rfl, rfl, rfl, rfl⟩ | simp [MsgTransferLeader] at h) (.inl Htr)
         $$ Hmsg Hlb Hcr Htc
   iintro %err #Herr
   wp_auto

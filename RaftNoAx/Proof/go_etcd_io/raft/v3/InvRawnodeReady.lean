@@ -852,6 +852,8 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
     (Hsh : SentMsgShape q.st) (Hfr : replicationFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
+    -- (antithesis parity B1, option (b)) a `MsgTimeoutNow` recorded in `NGhost.xt` (`XQOk`)
+    (Hxt : q.st.msg.Type' = MsgTimeoutNow → (s.gh.xt !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
     (Htr : ∀ x ∈ o, MsgTrOk γ x)
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
@@ -918,13 +920,25 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
   rotate_left
   · isplitr
     · ipureintro; exact Hsn
+    isplitr
     · ipureintro; exact Hnsnap
+    -- (antithesis parity B1, option (b)) the timeout request's witness, out of `xfW`'s `xtW`
+    imodintro
+    iintro %Ht
+    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxt Ht)
+    unfold xfW xtW
+    icases Hxf with ⟨-, #Hxt'⟩
+    ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ =>
+        iprop(∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ p.1 p.2 i))
+      (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxt'
+    iexact Hl
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
   unfold xfW
+  icases Hxf with ⟨#Hxw', -⟩
   ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ => isLeader (GF := GF) γ p.1 p.2)
-    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxf
+    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxw'
   iexact Hl
 
 /-- (2026-11-01, durability stage II (k), fix C) `outboxRelP_isRaftMsg` from any persistent fact `R`
@@ -941,6 +955,8 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
     (Hsh : SentMsgShape q.st) (Hfr : replicationFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
+    -- (antithesis parity B1, option (b)) a `MsgTimeoutNow` recorded in `NGhost.xt` (`XQOk`)
+    (Hxt : q.st.msg.Type' = MsgTimeoutNow → (s.gh.xt !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
     (Htr : ∀ x ∈ o, MsgTrOk γ x)
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
@@ -1009,13 +1025,25 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
   rotate_left
   · isplitr
     · ipureintro; exact Hsn
+    isplitr
     · ipureintro; exact Hnsnap
+    -- (antithesis parity B1, option (b)) the timeout request's witness, out of `xfW`'s `xtW`
+    imodintro
+    iintro %Ht
+    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxt Ht)
+    unfold xfW xtW
+    icases Hxf with ⟨-, #Hxt'⟩
+    ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ =>
+        iprop(∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ p.1 p.2 i))
+      (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxt'
+    iexact Hl
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
   unfold xfW
+  icases Hxf with ⟨#Hxw', -⟩
   ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ => isLeader (GF := GF) γ p.1 p.2)
-    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxf
+    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxw'
   iexact Hl
 
 /-- The abstraction of a message `isRaftMsg` covers, for a type the model describes but a
@@ -1434,11 +1462,12 @@ holds at most as many `MsgReadIndex`s as it has requests (`Hrdc`). (2026-10-16, 
 read-only hard state (`Hrdhard`: `hardState()`'s fresh one, which `acceptReady` stores in
 `prevHardSt`); `rd.Snapshot` `nil`; the read states `readStatesPts`; the entries `entsRO`
 (`Hce`, `Hents`), the committed entries' capacity a `[]*pb.Entry`'s; `prevHardSt` read-only
-(`Hhard`); the queue `[]*pb.Message`.) -/
-def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List EntryM) (ms : List QMsg) (h : Bool := false) (L : Option SnapLoan := none) :
+(`Hhard`); the queue `[]*pb.Message`.) (#33 S4, 2026-11-24) The body at a named state `s`
+(`ownRawNodeReadyS`), so that the hand-out can be stated at it (`ownRawNodeReady_handout_at`). -/
+abbrev ownRawNodeReadyS (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
+    (ce es : List EntryM) (ms : List QMsg) (h : Bool) (L : Option SnapLoan) (s : NState) :
     IProp GF :=
-  iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (ds : DecMap) (rnv : RawNode) (sv : SoftState)
+  iprop(∃ (cf : CfgM) (fp : List EntryM) (ds : DecMap) (rnv : RawNode) (sv : SoftState)
       (hprev : HardStateM),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h L.isSome
@@ -1541,6 +1570,12 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- (2026-11-11, Q8 stage 1 slice 25n) as `ownRawNode`'s: the trace capability, idle at the state
   -- whose outbox the `Ready` hands out (its `Ready` line, in `acceptReady`, not yet logged)
   "Hrntr" ∷ rnTrace γ rnv.raft' id cf rs.delivered s)
+
+/-- The node between `readyWithoutAccept` and `acceptReady`: `ownRawNodeReadyS` at some state. -/
+def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
+    (ce es : List EntryM) (ms : List QMsg) (h : Bool := false) (L : Option SnapLoan := none) :
+    IProp GF :=
+  iprop(∃ (s : NState), ownRawNodeReadyS γ rn id rs rd ce es ms h L s)
 
 /-- (D22 S-d3a) `loanCom` with no loan. -/
 theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
@@ -2232,14 +2267,14 @@ outbox (`Step.drain`, `ownRaftGhost_drain`), handing out with each message its r
 it and its free queue), the batch is queued, entering the recorded durable state with the batch
 applied (`readyDurable`), and the messages' facts are behind its maps' fragments (`W`, recorded
 in `RNState.bw` for the self-addressed responses `acceptReady` queues), at role leader at once. -/
-theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+theorem ownRawNodeReady_handout_at (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) (x : CrashNames)
     (qf : Qp) (g : Nat)
-    (hrd : HardStateM) (HE : ↑(slotN γ id) ⊆ E) (HC : ↑(crashNs γ id) ⊆ E) :
+    (hrd : HardStateM) (s : NState) (HE : ↑(slotN γ id) ⊆ E) (HC : ↑(crashNs γ id) ⊆ E) :
     ⊢ hsOpt rd.HardState' hrd -∗ notCrashed -∗ genView γ id x qf g -∗ slotFree γ id g -∗
-      ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L ={E}=∗
+      ownRawNodeReadyS (GF := GF) γ rn id rs rd ce es ms false L s ={E}=∗
       notCrashed ∗ ∃ (W : DurMaps) (ss : Option (w64 × StateType)),
-      ownRawNodeReady γ rn id { rs with bw := W } rd ce es ms true L ∗
+      ownRawNodeReadyS γ rn id { rs with bw := W } rd ce es ms true L s ∗
       readyOut rs.storage rs.sn es L ∗
       -- (U8 v2) the committed entries below the batch, frozen; raft's certified terms of the
       -- committed log handed out
@@ -2270,10 +2305,11 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   · cases L with
     | none => ipureintro; intro l h; cases h
     | some l0 =>
+      ihave H : ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false (some l0) $$ [H]
+      · iunfold ownRawNodeReady; iexists s; iexact H
       icases ownRawNodeReady_loanLast γ rn id rs rd ce es ms false l0 $$ H with ⟨%Hx, -⟩
       ipureintro; intro l h; cases h; exact Hx
-  iunfold ownRawNodeReady at H
-  icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
+  icases H with ⟨%c, %fp, %ds, %rnv, %sv, %hprev, H⟩
   iNamed H
   iclear Hout
   iunfold ownRaftPhysReady at Hphys
@@ -2709,8 +2745,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   iframe Hnc
   iexists W, ss
   isplitr [Hout Hcr Htk Hlive Hpb]
-  · iunfold ownRawNodeReady
-    iexists s, c, fp, ds, rnv, sv, hprev
+  · iexists c, fp, ds, rnv, sv, hprev
     simp only [named, ↓reduceIte]
     iframe Hrn Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hrdsoft
       Hrdrs Hce Hce_cap Hents Hsloc Hhist Hledger Hmsgl Hsrcs Hmsnap Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
@@ -2751,6 +2786,52 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   isplitr
   · ipureintro; exact Hssl.1
   ipureintro; exact Hfacts
+
+/-- `ownRawNodeReady_handout_at` at the node's state, whatever it is. -/
+theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) (x : CrashNames)
+    (qf : Qp) (g : Nat)
+    (hrd : HardStateM) (HE : ↑(slotN γ id) ⊆ E) (HC : ↑(crashNs γ id) ⊆ E) :
+    ⊢ hsOpt rd.HardState' hrd -∗ notCrashed -∗ genView γ id x qf g -∗ slotFree γ id g -∗
+      ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L ={E}=∗
+      notCrashed ∗ ∃ (W : DurMaps) (ss : Option (w64 × StateType)),
+      ownRawNodeReady γ rn id { rs with bw := W } rd ce es ms true L ∗
+      readyOut rs.storage rs.sn es L ∗
+      -- (U8 v2) the committed entries below the batch, frozen; raft's certified terms of the
+      -- committed log handed out
+      (⌜L ≠ none⌝ ∨ ceFrozen rs.storage rs.delivered.length ce es) ∗
+      dlvKeysAt rs.sn rs.delivered.length ((dlvAfter rs.delivered ce L).drop rs.delivered.length) ∗
+      ([∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+      -- (2026-10-19, D21 M6) and each proposal's tickets
+      ([∗list] q ∈ ms, stTks γ q.st) ∗
+      -- (2026-10-18, D19b stage 5) the indices handed out are within the log
+      readyIdx γ rs.delivered ce es ∗
+      -- (2026-11-01, durability stage II (k), fix C) the cut: the batch queued in generation `g`,
+      -- entering the recorded durable state with the batch applied, its maps `W`; the messages'
+      -- facts behind `W`'s fragments, and at role leader (after the `Ready`'s soft state `ss`) at
+      -- once (R9)
+      genView γ id x qf g ∗ pendBatch γ id g (readyDurable rs.dur (phsNext rs.phs hrd) L es) W ∗
+      softStateIs rd.SoftState' ss ∗ ⌜rd.SoftState' = null → ss = none⌝ ∗
+      ([∗list] q ∈ ms, □ (durFrags γ id W -∗ isRaftMsg γ id q.st)) ∗
+      □ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (restart S7.3, 2026-11-14) the messages' `MsgSnap` facts, at once (not behind `W`'s
+      -- fragments: they read only the committed log and the sender's configuration at its step)
+      ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
+      readyMsgOrigins γ id rs.sn ms ∗ handoutOrigins γ id rs.sn (phsNext rs.phs hrd).Term' ms (dlvAfter rs.delivered ce L).length (L.map (fun l => l.snap.Metadata'.Index')) ∗
+      -- (2026-11-01, durability stage II (m)) what the `Ready` is past, and within (`ReadyFacts`)
+      ⌜ReadyFacts rs.dur rs.phs (phsNext rs.phs hrd) rs.delivered ce es L⌝ := by
+  iintro #Hh Hnc Hlive Hfree H
+  iunfold ownRawNodeReady at H
+  icases H with ⟨%s, H⟩
+  imod ownRawNodeReady_handout_at E γ rn id rs rd ce es ms L x qf g hrd s HE HC
+    $$ Hh Hnc Hlive Hfree H with ⟨Hnc, %W, %ss, H, Hrest⟩
+  imodintro
+  iframe Hnc
+  iexists W, ss
+  iframe Hrest
+  iunfold ownRawNodeReady
+  iexists s
+  iexact H
 
 /-! ## A node with nothing new to hand out (2026-10-10)
 

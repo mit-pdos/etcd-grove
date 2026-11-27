@@ -16,6 +16,7 @@ public import RaftNoAx.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.StartNode
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.TracedApiDraft
 import all RaftNoAx.Proof.go_etcd_io.raft.v3.TracedApiDraft
+import all RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeStartSpec
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.setupNode
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__run
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeRun
