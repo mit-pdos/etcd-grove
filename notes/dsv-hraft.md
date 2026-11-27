@@ -145,7 +145,10 @@ The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift 
   whose operation tries the servers in turn (`Tries`), a write or a log read through `Apply`, the other
   reads through `Read`; a call sent but unanswered ends the operation unknown, a dial failure or a no-effect
   answer moves to the next server. `Orch()`: picks `n0` (3 or 5), configures, starts `admin`, then
-  `remote.Check` (porcupine; `Model()`: the register with pending writes, `Equal` always false as craq's).
+  `remote.Check` of `chooseOps()` operations per client, drawn from 1 to `MaxOps` (`2^20`) as `n0` is
+  (porcupine, run to completion; `Model()`: the register with pending writes, `Equal` always false as
+  craq's). No workload cap for the checker's speed (Upamanyu, #48 7227997822): the tests pin a small
+  number (`kit_test.go`'s `testOps`, HRAFTNET_OPS; `WarmOrch`'s `ops` in the fault runs).
   `admin`: forever, a random request of the six kinds about a random server, at a random server or (one
   time in two) the leader a random server names; hr3's guard of three voters is dropped (no steering:
   one voter is now reachable, the path of fix `0c7aa12`).
@@ -228,6 +231,14 @@ on the fork; `39e0c82`'s is upstream's hashicorp/raft#733, reproduced there).
 | `0c7aa12` | with a quorum of one, `VerifyLeader` answers once the FSM has applied every committed entry | `ea6e596`'s wait on the one-voter path | `issues/hraft-verifyleader-single-voter-fsm-lag` |
 | `cc3148d` | `installSnapshot`, keeping the log, takes the latest configuration from the entries after the snapshot | state-machine safety | `issues/hraft-installsnapshot-drops-newer-configuration` |
 | `02f88d5` | `runCandidate` counts the election's votes against the latest configuration's quorum, after the pre-vote | election safety | `issues/hraft-candidate-stale-quorum` |
+
+In-tree after S1 (branch `hraft-fmtsites/2026-11-27`, P4; coordinator-E #48 7227641440, Upamanyu's
+standing decision of 2026-11-24): two `fmt.Errorf` call sites rewritten to format explicitly, since
+Perennial's `fmt` model does not format `%v` of a struct or a pointer (`printValue` needs reflection):
+`checkConfiguration`'s message on a configuration (its servers' suffrage, ID and address written
+field by field) and `leaderLoop`'s on a `*ServerID` (dereferenced, `%s`, nil guarded). Error text
+differs; proof-driven; no behavior change beyond the message; each with a test that the message still
+names the same values.
 
 In-tree since (S0): inproc's `Reader`, `NewReader`, `ReadAll`, `copyBytes` moved into
 `examples/snapstore/reader.go`; the conversions' comments cite mit-pdos/perennial#713.

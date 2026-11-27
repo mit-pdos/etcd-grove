@@ -70,8 +70,8 @@ attribute [irreducible] rpcNotModelled.ty
 @[reducible] noncomputable def NS [GooseExts] [GoGlobalContext] : val :=
   #(W64 6)
 
-@[reducible] noncomputable def K [GooseExts] [GoGlobalContext] : val :=
-  #(W64 8)
+@[reducible] noncomputable def MaxOps [GooseExts] [GoGlobalContext] : val :=
+  #(W64 1048576)
 
 @[reducible] noncomputable def Tries [GooseExts] [GoGlobalContext] : val :=
   #(W64 30)
@@ -150,6 +150,9 @@ noncomputable def attempt [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def Orch [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/hashicorp/raft/examples/hraftnet.Orch"
+
+noncomputable def chooseOps [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/hashicorp/raft/examples/hraftnet.chooseOps"
 
 noncomputable def remoteCheck [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/hashicorp/raft/examples/hraftnet.remoteCheck"
@@ -1583,8 +1586,8 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")))))
 
 /-- Orch is the orchestrator machine's program: it picks n0 and sends it, starts the admin, then
-    checks NC clients' operations, a random 1 to K each (remote.Check panics if porcupine rejects
-    the history).
+    checks NC clients' operations, a random 1 to MaxOps each (remote.Check panics if porcupine
+    rejects the history).
 
     go: kit.go:296:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1595,7 +1598,8 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$go" (App (Val (GoInstruction (FuncResolve admin []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve remoteCheck []))) (Val #())) (Val #())))))
+  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve chooseOps []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve remoteCheck []))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #()))))))))
@@ -1606,27 +1610,44 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve configure []))) (Val #())) (Var "$a0"))))))
   (Val #())))
 
-/-- remoteCheck checks NC clients' operations, a random 1 to K each: remote.Check panics if
-    porcupine rejects the history.
+/-- chooseOps is the number of operations each client makes: 1 to MaxOps, at random (as n0 and
+    raft's options are: the theorem covers every number drawn).
 
     go: kit.go:305:6 -/
-noncomputable def remoteCheck.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def chooseOps.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (Let "$a0" (Val MaxOps)
+  (App (App (Val (GoInstruction (FuncResolve rnd []))) (Val #())) (Var "$a0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
+
+/-- remoteCheck checks NC clients' operations, ops each: remote.Check panics if porcupine rejects
+    the history (it runs to completion, with no timeout).
+
+    go: kit.go:311:6 -/
+noncomputable def remoteCheck.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ops"
+  (Seq (App (Val exceptionDo)
+  (Let "ops" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "ops"))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (FuncResolve Model []))) (Val #())) (Val #()))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve ClientAddrs []))) (Val #())) (Val #()))
   (Let "$a2" (App (App (Val (GoInstruction (FuncResolve Codec []))) (Val #())) (Val #()))
   (Let "$a3" (App (Val (GoInstruction (FuncResolve Gen []))) (Val #()))
-  (Let "$a4" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (Let "$a0" (Val K)
-  (App (App (Val (GoInstruction (FuncResolve rnd []))) (Val #())) (Var "$a0"))))))
+  (Let "$a4" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ops")))
   (Let "$a5" (App (App (Val (GoInstruction (FuncResolve attempt []))) (Val #())) (Val #()))
-  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))))
+  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")))))))))))
   (Val #())))
 
 /-- The admin's requests (API methods), by kind.
 
-    go: kit.go:310:6 -/
+    go: kit.go:316:6 -/
 noncomputable def adminMethods.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -1653,7 +1674,7 @@ noncomputable def adminMethods.impl [GooseExts] [GoGlobalContext] : val :=
     removed server keeps running and may be added again. Every request waits for its answer
     (APITimeoutMs at most); its outcome does not matter.
 
-    go: kit.go:322:6 -/
+    go: kit.go:328:6 -/
 noncomputable def admin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -1725,7 +1746,7 @@ noncomputable def admin.impl [GooseExts] [GoGlobalContext] : val :=
 /-- adminTarget is the server the admin asks: a random server j, or, one time in two, the leader j
     names (its Status), if it names one of the servers.
 
-    go: kit.go:340:6 -/
+    go: kit.go:346:6 -/
 noncomputable def adminTarget.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "conns"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -1810,7 +1831,7 @@ noncomputable def adminTarget.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- serverConns is a connection to every server's API (index id-1).
 
-    go: kit.go:363:6 -/
+    go: kit.go:369:6 -/
 noncomputable def serverConns.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.rpctransport.Conn.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.rpctransport.Conn.ty))))) (Val #())))
@@ -1845,7 +1866,7 @@ noncomputable def serverConns.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- apiTimeout is how long a call to a server's API waits for its answer.
 
-    go: kit.go:372:6 -/
+    go: kit.go:378:6 -/
 noncomputable def apiTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -1860,7 +1881,7 @@ noncomputable def apiTimeout.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- opID is the 8-byte id of client c's operation seq: c in the top byte, seq below.
 
-    go: kit.go:386:6 -/
+    go: kit.go:392:6 -/
 noncomputable def opID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "seq"
@@ -1903,7 +1924,7 @@ noncomputable def opID.impl [GooseExts] [GoGlobalContext] : val :=
 /-- command is the log command of client c's operation seq on input x (package service's format):
     a put with its value, or a get.
 
-    go: kit.go:397:6 -/
+    go: kit.go:403:6 -/
 noncomputable def command.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "seq"
@@ -1948,7 +1969,7 @@ noncomputable def command.impl [GooseExts] [GoGlobalContext] : val :=
     is an Apply: final when done (the FSM's answer) or unknown; a read outside the log is final
     when answered; a call that was sent but got no answer is final and unknown.
 
-    go: kit.go:408:15 -/
+    go: kit.go:414:15 -/
 noncomputable def Sys.«try».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "j"
@@ -2139,7 +2160,7 @@ noncomputable def Sys.«try».impl [GooseExts] [GoGlobalContext] : val :=
 /-- op is the client's operation x: tried at the servers in turn, starting at the one that took the
     last operation, at most Tries times, RetryMs apart; unknown if no server took it.
 
-    go: kit.go:445:15 -/
+    go: kit.go:451:15 -/
 noncomputable def Sys.op.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "x"
@@ -2214,7 +2235,7 @@ noncomputable def Sys.op.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client is client machine c's program: remote.ServeClient whose client is a fresh Sys (its first
     server at random) and whose operation is op. It never returns.
 
-    go: kit.go:461:6 -/
+    go: kit.go:467:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -13734,6 +13755,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Gen_unfold : FuncUnfold Gen [] Gen.impl
   attempt_unfold : FuncUnfold attempt [] attempt.impl
   Orch_unfold : FuncUnfold Orch [] Orch.impl
+  chooseOps_unfold : FuncUnfold chooseOps [] chooseOps.impl
   remoteCheck_unfold : FuncUnfold remoteCheck [] remoteCheck.impl
   adminMethods_unfold : FuncUnfold adminMethods [] adminMethods.impl
   admin_unfold : FuncUnfold admin [] admin.impl
@@ -13908,6 +13930,7 @@ attribute [instance] Assumptions.In_instance
   Assumptions.Gen_unfold
   Assumptions.attempt_unfold
   Assumptions.Orch_unfold
+  Assumptions.chooseOps_unfold
   Assumptions.remoteCheck_unfold
   Assumptions.adminMethods_unfold
   Assumptions.admin_unfold

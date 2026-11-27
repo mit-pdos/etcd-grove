@@ -5,7 +5,8 @@
 // <server1..6|client0..4|orch>` runs that machine's program (hraftnet.Server, Client, Orch, as its
 // command of ../cmd does). Built with -cover -covermode=atomic and run with GOCOVERDIR set, it
 // writes its coverage counters there every 200 ms and on SIGTERM (a machine is killed, never
-// ends). With HRAFTNET_WARM=MS, the orchestrator is hraftnet.WarmOrch(MS).
+// ends). With HRAFTNET_WARM=MS, the orchestrator is hraftnet.WarmOrch(MS, OPS), OPS from
+// HRAFTNET_OPS (default 8: the tests' small workload).
 package main
 
 import (
@@ -32,7 +33,11 @@ func main() {
 	switch {
 	case w == "orch":
 		if ms, err := strconv.ParseUint(os.Getenv("HRAFTNET_WARM"), 10, 64); err == nil && ms > 0 {
-			hraftnet.WarmOrch(ms)
+			ops, err := strconv.ParseUint(os.Getenv("HRAFTNET_OPS"), 10, 64)
+			if err != nil || ops == 0 {
+				ops = 8
+			}
+			hraftnet.WarmOrch(ms, ops)
 		} else {
 			hraftnet.Orch()
 		}

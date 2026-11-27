@@ -10,8 +10,9 @@
 //
 // It is the coverage run of the kit (notes/dsv-hraft.md, "Coverage"): with HRAFTROBUST_COVER=DIR,
 // the binary is built with -cover over the raft package and every machine writes its counters into
-// DIR (go tool covdata); HRAFTNET_WARM=MS (passed to the machines) makes the orchestrator
-// hraftnet.WarmOrch(MS), the admin alone for MS first. Rounds: HRAFTROBUST_ROUNDS (default 2).
+// DIR (go tool covdata). The orchestrator is hraftnet.WarmOrch(HRAFTNET_WARM, HRAFTNET_OPS): the
+// admin alone for HRAFTNET_WARM ms first (default 1), HRAFTNET_OPS operations per client (default
+// 8; Orch itself draws 1 to MaxOps). Rounds: HRAFTROBUST_ROUNDS (default 2).
 package hraftrobust
 
 import (
@@ -89,9 +90,14 @@ func round(t *testing.T, i int, bin string, cover string) {
 	if cover != "" {
 		env = append(env, "GOCOVERDIR="+cover)
 	}
-	if w := os.Getenv("HRAFTNET_WARM"); w != "" {
-		env = append(env, "HRAFTNET_WARM="+w)
+	// the orchestrator is always hraftnet.WarmOrch: Orch draws up to MaxOps operations per client,
+	// and a run pins a small number (HRAFTNET_OPS, default 8) and the admin's head start
+	// (HRAFTNET_WARM, default 1 ms)
+	w := os.Getenv("HRAFTNET_WARM")
+	if w == "" {
+		w = "1"
 	}
+	env = append(env, "HRAFTNET_WARM="+w, "HRAFTNET_OPS="+os.Getenv("HRAFTNET_OPS"))
 	cfg := robust.Config{Crash: robust.CrashKill, Netns: true, Deadline: 10 * time.Minute, FaultsAtStart: true,
 		NetPause: envMs("HRAFTROBUST_PAUSE_MS", 300), NetHold: envMs("HRAFTROBUST_HOLD_MS", 1000)}
 	r, err := robust.NewRun(cfg, robust.Command{Path: bin, Env: env}, n, work)
@@ -121,7 +127,7 @@ func TestRobust(t *testing.T) {
 	}
 	if robust.RerunTest(t, "TestRobust", "120m", testing.Short(), []string{"HRAFTROBUST_RUN=1",
 		"HRAFTROBUST_ROUNDS=" + os.Getenv("HRAFTROBUST_ROUNDS"), "HRAFTROBUST_COVER=" + os.Getenv("HRAFTROBUST_COVER"),
-		"HRAFTNET_WARM=" + os.Getenv("HRAFTNET_WARM"), "HRAFTROBUST_PAUSE_MS=" + os.Getenv("HRAFTROBUST_PAUSE_MS"),
+		"HRAFTNET_WARM=" + os.Getenv("HRAFTNET_WARM"), "HRAFTNET_OPS=" + os.Getenv("HRAFTNET_OPS"), "HRAFTROBUST_PAUSE_MS=" + os.Getenv("HRAFTROBUST_PAUSE_MS"),
 		"HRAFTROBUST_HOLD_MS=" + os.Getenv("HRAFTROBUST_HOLD_MS")}) {
 		return
 	}

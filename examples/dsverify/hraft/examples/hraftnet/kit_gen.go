@@ -6,8 +6,8 @@ const (
 	NC           uint64 = 5
 	// servers (the first configuration holds 3 or 5 of them, as voters)
 	NS           uint64 = 6
-	// the most operations a client makes
-	K            uint64 = 8
+	// the most operations a client makes (Orch draws 1 to MaxOps)
+	MaxOps       uint64 = 1 << 20
 	// the most servers an operation is tried at
 	Tries        uint64 = 30
 	// the wait before an operation is tried at the next server, or a Listen again

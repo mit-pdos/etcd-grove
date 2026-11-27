@@ -215,7 +215,7 @@ KITGEN = dict(
         consts=[
             ('NC', 'uint64', '5', 'clients'),
             ('NS', 'uint64', '6', 'servers (the first configuration holds 3 or 5 of them, as voters)'),
-            ('K', 'uint64', '8', 'the most operations a client makes'),
+            ('MaxOps', 'uint64', '1 << 20', 'the most operations a client makes (Orch draws 1 to MaxOps)'),
             ('Tries', 'uint64', '30', 'the most servers an operation is tried at'),
             ('RetryMs', 'uint64', '10', 'the wait before an operation is tried at the next server, or a Listen again'),
             ('RPCTimeoutMs', 'uint64', '500', "a raft RPC's wait for its answer (upstream InmemTransport's)"),

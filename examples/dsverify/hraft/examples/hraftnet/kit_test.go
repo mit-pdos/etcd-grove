@@ -32,7 +32,12 @@ const (
 	runsVar  = "HRAFTNET_RUNS"  // how many runs TestDeployment makes (default 4)
 	parVar   = "HRAFTNET_PAR"   // how many runs at once (default 4)
 	warmVar  = "HRAFTNET_WARM"  // how long (ms) a run's admin runs before the clients (default 3000)
+	opsVar   = "HRAFTNET_OPS"   // the operations per client (default testOps)
 )
+
+// testOps is the tests' operations per client: one of the numbers Orch draws (1..MaxOps), small
+// so that porcupine's check of the history, run to completion, ends quickly.
+const testOps = 8
 
 // machineIPs is every machine's address: servers 1..6, clients 0..4, the orchestrator.
 func machineIPs() []string {
@@ -148,7 +153,8 @@ func kind(x In) string {
 // TestDeploymentRun is one run of the deployment, in this process (in a child of TestDeployment):
 // the six servers and five client machines (Server, Client, as their commands run them, but with
 // a client's operations counted by kind), then the orchestrator's steps (Orch's, with the admin's
-// successes counted and remote.Run in place of remote.Check, at the most operations Orch draws, K,
+// successes counted and remote.Run in place of remote.Check, at HRAFTNET_OPS operations per client
+// (default testOps: a small number Orch can draw),
 // after the admin has run alone for HRAFTNET_WARM ms).
 func TestDeploymentRun(t *testing.T) {
 	if os.Getenv(childVar) == "" || !inNamespace() {
@@ -208,7 +214,7 @@ func TestDeploymentRun(t *testing.T) {
 	}()
 	// the admin alone for a while first (the test's schedule: in the theorem, any)
 	time.Sleep(time.Duration(envInt(warmVar, 3000)) * time.Millisecond)
-	r := remote.Run(Model(), ClientAddrs(), Codec(), Gen, int(K), attempt(), 0)
+	r := remote.Run(Model(), ClientAddrs(), Codec(), Gen, envInt(opsVar, testOps), attempt(), 0)
 	close(stop)
 	if r != porcupine.Ok {
 		t.Fatalf("porcupine: %v (n0 = %d)", r, n0)

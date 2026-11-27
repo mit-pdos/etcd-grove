@@ -291,19 +291,25 @@ func attempt() time.Duration {
 // --- the orchestrator
 
 // Orch is the orchestrator machine's program: it picks n0 and sends it, starts the admin, then
-// checks NC clients' operations, a random 1 to K each (remote.Check panics if porcupine rejects
-// the history).
+// checks NC clients' operations, a random 1 to MaxOps each (remote.Check panics if porcupine
+// rejects the history).
 func Orch() {
 	configure(chooseN0())
 	Register()
 	go admin()
-	remoteCheck()
+	remoteCheck(chooseOps())
 }
 
-// remoteCheck checks NC clients' operations, a random 1 to K each: remote.Check panics if
-// porcupine rejects the history.
-func remoteCheck() {
-	remote.Check(Model(), ClientAddrs(), Codec(), Gen, int(1+rnd(K)), attempt())
+// chooseOps is the number of operations each client makes: 1 to MaxOps, at random (as n0 and
+// raft's options are: the theorem covers every number drawn).
+func chooseOps() uint64 {
+	return 1 + rnd(MaxOps)
+}
+
+// remoteCheck checks NC clients' operations, ops each: remote.Check panics if porcupine rejects
+// the history (it runs to completion, with no timeout).
+func remoteCheck(ops uint64) {
+	remote.Check(Model(), ClientAddrs(), Codec(), Gen, int(ops), attempt())
 }
 
 // The admin's requests (API methods), by kind.

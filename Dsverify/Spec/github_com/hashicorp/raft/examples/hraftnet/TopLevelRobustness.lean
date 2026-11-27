@@ -7,8 +7,8 @@ notes/dsv-hraft.md): twelve machines, none of which crashes, deployed at `hraftK
   the servers; runs an admin goroutine that forever asks a random server for a random membership
   change of a random server (AddVoter, AddNonvoter, DemoteVoter, RemoveServer), a leadership
   transfer (to any server, or to the one raft picks) or a snapshot; then `remote.Check` of five
-  clients' operations against the register with pending writes (porcupine over `kit.go`'s
-  `Model()`);
+  clients' operations, a number drawn at random from 1 to `MaxOps` (`2 ^ 20`) each, against the
+  register with pending writes (porcupine over `kit.go`'s `Model()`, run to completion);
 * five client machines, each `remote.ServeClient`: an operation is a write through the log
   (`Raft.Apply`) or a read through the log, after a `Barrier`, or with `VerifyLeader` after a
   barrier of the server's term, each tried at the servers in turn;
