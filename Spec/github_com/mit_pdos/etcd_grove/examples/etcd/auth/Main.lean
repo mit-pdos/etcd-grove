@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main()` (`examples/etcd/auth/authkv.go`; the auth plan's E2b, D-AU5): one etcd member started in
+`Main()` (`examples/lib/authwork/authkv.go`; the auth plan's E2b, D-AU5): one etcd member started in
 process with the simple token provider (on `authkv`'s ports), a client with no user name that
 sets up the auth state and enables auth (`SetUp`: root with the root role, role `r` granted
 `READWRITE` on `[a, b)`, users `u` with `r` and `v` with no role), clients that authenticate as
@@ -30,9 +30,10 @@ The premises are watchkv's for the server's start, stated before the proof, whic
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientAuth
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section

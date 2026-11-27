@@ -34,7 +34,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 open EtcdGrove EtcdGrove.etcd_txnlin EtcdGrove.etcd_dist
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 section proof
@@ -71,7 +71,7 @@ theorem Node.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Ptl : isPkgInit (PROP := IProp GF)
-      pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin $$ []
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

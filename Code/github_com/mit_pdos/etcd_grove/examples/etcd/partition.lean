@@ -9,10 +9,10 @@ public import Perennial.Code.github_com.goose_lang.primitive
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.lintest
+public import Code.github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 public import Code.github_com.mit_pdos.etcd_grove.third_party.bridge
 public import Perennial.Golang.Defn
 
@@ -99,7 +99,7 @@ noncomputable def writer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MainWatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.MainWatch"
 
-/-- Apply runs one operation through a client of clis picked at random (txnlin.Apply).
+/-- Apply runs one operation through a client of clis picked at random (txnwork.Apply).
 
     go: linkv3p.go:75:6 -/
 noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
@@ -115,7 +115,7 @@ noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Var "clis")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "input"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Apply []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Apply []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -156,9 +156,9 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model []))) (Val #())) (Val #()))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Model []))) (Val #())) (Val #()))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
-  (Let "$a2" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen []))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen []))) (Val #()))
   (Let "$a3" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock []))) (Val #())) (Val #()))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
@@ -778,7 +778,7 @@ noncomputable def MainWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -813,13 +813,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))))
 
@@ -839,10 +839,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_txnlin_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions
   import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
+  import_txnwork_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions
   import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
 
 attribute [instance] Assumptions.Apply_unfold
@@ -860,10 +860,10 @@ attribute [instance] Assumptions.Apply_unfold
   Assumptions.import_zap_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_etcdserver_Assumption
-  Assumptions.import_txnlin_Assumption
   Assumptions.import_cluster3_Assumption
   Assumptions.import_etcdstart_Assumption
   Assumptions.import_lintest_Assumption
+  Assumptions.import_txnwork_Assumption
   Assumptions.import_bridge_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.partition

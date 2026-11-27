@@ -20,7 +20,7 @@ logs, so the set-up's facts at member 1's names hold at every member's (`*_same`
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkEnv
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthTie

@@ -17,7 +17,7 @@ standing for those reachable from them (`cfgSet`), as `pSeq casB`'s step (`stepG
 module
 
 public import Dsverify.Code.gryff.examples.gryffnet
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 
 @[expose] public section
 

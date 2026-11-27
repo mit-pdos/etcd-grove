@@ -3,7 +3,7 @@
 
 Users: `client/v3/concurrency` (`Session`'s keys are written in transactions; `election.go` `Proclaim`
 via `Txn`), `experimental/recipes` (`double_barrier.go:53` `Put` of the barrier key, `queue.go`,
-`key.go:91` `putNewKV` via `Txn`), the examples (`examples/etcd/txnlin/linkvtxn.go:874` `callPut`,
+`key.go:91` `putNewKV` via `Txn`), the examples (`examples/lib/txnwork/linkvtxn.go:874` `callPut`,
 `putget`, `putget3`, `compacted`, `compactwatch/compactkv.go`), Kubernetes' compactor
 (`k8s.io/apiserver/pkg/storage/etcd3/compact.go`, through `Txn`). Snippets:
 `clientv3kv/put_get.go` (`ReqPutThenGet`, `ReqPutRevision`), `clientv3kv/errors.go` (`ReqPutErrors`).
