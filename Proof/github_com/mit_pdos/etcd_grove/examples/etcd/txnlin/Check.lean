@@ -11,9 +11,9 @@ model's `pInit TS`.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Check
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Apply
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
@@ -75,6 +75,9 @@ theorem Check.wp_proof
   ipersist cli
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
+  -- the workload library's (`Apply` is `txnwork`'s since 2026-11-27)
+  ihave #Ptxw : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork $$ []
+  · iPkgInit
   -- the client's one member (`Apply` takes a client of several, D27)
   ihave #Hregs : ([∗list] sv ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)], client.kvRegsAt sv) $$ []
   · iapply BigSepL.bigSepL_singleton.2
@@ -86,7 +89,7 @@ theorem Check.wp_proof
     iexact Hinv
   have HA0 := wp_Apply γ cl [⟨ep, E, γr, cid, mid⟩] V hAs (List.cons_ne_nil _ _)
   simp only [List.map_cons, List.map_nil] at HA0
-  ihave #HA := HA0 $$ Hpkg Pcli Hcl Hone Hregs Hinvs
+  ihave #HA := HA0 $$ Ptxw Pcli Hcl Hone Hregs Hinvs
   wp_apply wp_Model as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   ihave #Hm := isModel_of_step linkvtxnS m $$ [Hinit Hstep Heh]
   · iframe Hinit Hstep Heh

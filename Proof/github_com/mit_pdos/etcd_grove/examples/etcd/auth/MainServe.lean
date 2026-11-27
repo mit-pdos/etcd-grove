@@ -19,8 +19,8 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__BcryptCost
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkEnv
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUp
 public import Proof.go_etcd_io.etcd.client.v3.WatchLawsHist
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 

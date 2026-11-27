@@ -605,7 +605,7 @@ clusters naming different users would break `ctxStreamKey_prin`). -/
 opaque ctxPrin [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (dflt : Principal) (ctx : GoInterface) (p : Principal) : IProp GF := iprop(True)
 
 /-- **Slot (2a)**: `ctx` carries the outgoing metadata `token: tok` (grpc's `metadata`: the gRPC
-proxy's and the in-process client's forwarded tokens, `examples/etcd/auth`'s contexts). -/
+proxy's and the in-process client's forwarded tokens, `examples/lib/authwork`'s contexts). -/
 opaque ctxTokenMd [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (ctx : GoInterface) (tok : GoString) : IProp GF := iprop(True)
 
 /-- **An error of a call that settles nothing**: a gRPC error of an indefinite kind (a context's

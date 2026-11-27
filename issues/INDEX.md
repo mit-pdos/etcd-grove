@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (82)
+## Not reported (86)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -27,6 +27,10 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [wal: Sync races with ReleaseLockTo on a follower that receives a snapshot while it takes its own](etcd-wal-sync-releaselockto-race.md) | yes |  |
 | [watch: a progress notification requested before a watch is created can reach that watch before its events](etcd-watch-progress-before-created.md) | yes | etcd-io/etcd#15220 issue closed; etcd-io/etcd#15237 pr merged; etcd-io/etcd#20229 pr merged |
 | [clientv3: after a reconnect, a watch from a future revision can deliver events below its start revision](etcd-watch-resume-below-start-revision.md) | yes | etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20263 pr closed; etcd-io/etcd#15248 pr merged |
+| [raft: a candidate counts its votes against the quorum of the configuration it had before its pre-vote, and two leaders win one term](hraft-candidate-stale-quorum.md) | yes | hashicorp/raft#727 issue open |
+| [raft: `InstallSnapshot` that keeps the log forgets a newer configuration entry in it, and two leaders commit different entries at one index](hraft-installsnapshot-drops-newer-configuration.md) | yes | hashicorp/raft#721 issue open; hashicorp/raft#728 issue open |
+| [raft: `VerifyLeader` counts the leader's own vote after it removed or demoted itself, so its consistent read is stale](hraft-verifyleader-removed-leader-self-vote.md) | yes | hashicorp/raft#725 issue open; hashicorp/raft#740 pr open |
+| [raft: a read after `Barrier` and `VerifyLeader` (Consul's consistent read) can miss a write another server already returned](hraft-verifyleader-single-voter-fsm-lag.md) | yes | hashicorp/raft#603 issue closed |
 | [apiserver etcd3: GuaranteedUpdate from a cached object that changes nothing ignores a failed resource version precondition](k8s-etcd3-cached-noop-skips-preconditions.md) | yes | kubernetes/kubernetes#82303 pr closed; kubernetes/kubernetes#89828 pr closed |
 | [clientv3/leasing: a range delete through the leasing KV ignores `WithPrevKV`](leasing-delete-range-drops-prevkv.md) | yes | etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a transaction answered from the cache takes the wrong branch when it compares a missing key or a lease](leasing-evalcmp-missing-key.md) | yes | etcd-io/etcd#20704 issue closed |
@@ -118,6 +122,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [server: a request arriving as the member's own removal is applied can crash the member](etcd-unary-interceptor-learner-removed.md) | yes | etcd-io/etcd#21966 issue open; etcd-io/etcd#22188 pr open; etcd-io/etcd#22205 pr open; etcd-io/etcd#21967 pr closed; etcd-io/etcd#18606 pr merged |
 | [clientv3: a progress notification right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-progress-closed-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open; etcd-io/etcd#21981 pr closed |
 | [clientv3: a reconnect right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-resume-closing-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open |
+| [raft: `VerifyLeader` counts a non-voter's heartbeat response as a vote, so a deposed leader's consistent read is stale](hraft-verifyleader-nonvoter-vote.md) | yes | hashicorp/raft#725 issue open; hashicorp/raft#740 pr open |
 | [clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted](leasing-evictrange-key.md) | yes | etcd-io/etcd#21869 pr closed; etcd-io/etcd#21589 pr closed; etcd-io/etcd#20704 issue closed |
 | [raft: TLA+ trace validation rejects a correct run with a stale leader (`LeaderCompletenessInv` is false)](raft-tla-leader-completeness-stale-leader.md) | yes | etcd-io/raft#549 issue open |
 | [raft: TLA+ trace validation rejects a correct run with small `MaxSizePerMsg` (`MoreUpToDateCorrectInv` is false)](raft-tla-more-up-to-date-cut-batches.md) | yes | etcd-io/raft#515 issue open; etcd-io/raft#549 issue open |

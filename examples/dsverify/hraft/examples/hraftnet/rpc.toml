@@ -1,0 +1,7 @@
+# The receivers the hraft kit registers with net/rpc (server.go: Server): a server's raft RPCs
+# (package rpctransport's RaftRPC) and its API service (package service's API). The codec (rpc_*gen.go) is
+# generated from this by models/net/rpc/rpcgen.py (etc/dsv/kitgen.py runs it):
+#   models/net/rpc/rpcgen.py examples/dsverify/hraft/examples/hraftnet/rpc.toml examples/dsverify/hraft/examples/hraftnet --pkg hraftnet
+[rpc]
+imports = { rpctransport = "github.com/hashicorp/raft/examples/hraftnet/rpctransport", service = "github.com/hashicorp/raft/examples/hraftnet/service" }
+receivers = ["*rpctransport.RaftRPC", "*service.API"]

@@ -24,47 +24,47 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.E
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.DecOutput
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Codec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.IsWrite
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.addConfig
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.closure
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpCmp
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpConfig
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpInput
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpInt
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpStore
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpStr
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpTOp
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpVR
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpsOf
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.configEqual
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.delKey
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.genFrom
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.holds
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.inputEqual
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.kvsOf
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.lookup
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.mstep
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.outEqual
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.pick
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.put
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.removeAt
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.resEqual
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.resOf
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.runOps
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.setKey
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.step
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.storeEqual
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.vrEqual
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withKVs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withRes
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.workloadKeys
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.IsWrite
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.addConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.closure
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpCmp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpInput
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpInt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpStore
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpStr
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpTOp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpVR
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpsOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.configEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.delKey
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.genFrom
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.holds
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.inputEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.kvsOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.lookup
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.mstep
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.outEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.pick
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.put
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.removeAt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.resEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.resOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.runOps
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.setKey
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.step
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.storeEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.vrEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.withKVs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.withRes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.workloadKeys
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Orch
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.isWrite
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.thenOf
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.elseOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.isWrite
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.thenOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.elseOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Node
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.CallDistLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -226,7 +226,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
-variable [txnlin_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
+variable [txnlin_sem : github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions]
 variable [etcdstart_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]

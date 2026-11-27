@@ -1322,6 +1322,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlin")],
     ),
     Project(
+        name="txnwork",
+        # linkvtxn's workload and porcupine model as a library (moved verbatim out of
+        # examples/etcd/txnlin on 2026-11-27, so that the multi-machine example imports no
+        # single-process driver): Gen, Call, Apply, Model and their helpers. A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd, lintest and porcupine
+        # projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "txnwork"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "txnwork")],
+    ),
+    Project(
         name="linkv3p",
         # linkvtxn's workload under network partitions (notes/partition-plan.md): three members
         # started in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
@@ -1389,6 +1405,21 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth")],
+    ),
+    Project(
+        name="authwork",
+        # authkv's set-up, workload and checks as a library (moved verbatim out of
+        # examples/etcd/auth on 2026-11-27, so that the multi-machine example imports no
+        # single-process driver): SetUp, Work, Principals, CheckHistory, LastIn, Permitted and their
+        # helpers. A package of the examples' Go module (examples/go.mod); its imports are the etcd
+        # project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "authwork"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "authwork")],
     ),
     Project(
         name="auth3",
