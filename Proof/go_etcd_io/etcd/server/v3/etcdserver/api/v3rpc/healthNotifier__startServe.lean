@@ -46,6 +46,8 @@ theorem v3rpc.healthNotifier.startServe.wp_proof
   simp only [v3rpc.allGRPCServices]
   wp_apply (hStr _ _) as %f1 -
   (try wp_auto)
+  ihave #Phv1 : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 $$ []
+  · iPkgInit
   wp_apply (hSS _) as %st -
   wp_apply (hStr _ _) as %f2 -
   (try wp_auto)

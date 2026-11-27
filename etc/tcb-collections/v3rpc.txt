@@ -32,7 +32,6 @@ axiom context.madeCancelCtx_of_isCancelCtx
 axiom go_humanize.Bytes.wp_proof
 axiom grpcProtoCodec
 axiom grpcStatsHandlerOk
-axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
 axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof

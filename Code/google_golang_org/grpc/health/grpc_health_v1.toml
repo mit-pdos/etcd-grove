@@ -8,7 +8,10 @@
 # (until then skipped), the package's fact.
 translate = ["!*", "HealthCheckResponse_SERVING", "RegisterHealthServer",
   "UnimplementedHealthServer.testEmbeddedByValue", "Health_ServiceDesc"]
-imports = ["!*", "context", "google.golang.org/grpc"]
+# (prove-healthstr, 2026-11-27) and protoimpl (`health.pb.go` imports it): `String`'s trusted model
+# calls `strconv.Itoa`, which protobuf's `internal/impl` imports, so the package's import closure
+# initializes it, as Go's does (as etcdserverpb's `AlarmType.String`, etcd-grove#39)
+imports = ["!*", "context", "google.golang.org/grpc", "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -16,7 +19,11 @@ translate_types = true
 # (phase7-inits, 2026-11-25) its `init` (the file descriptor's registration) trusted: a model that
 # does nothing (TrustedCode/google_golang_org/grpc/health/grpc_health_v1.lean; until then names-only,
 # the axiom `initFuncsOk`), as etcdserverpb's (etcd-grove#32)
-trusted = ["init.0"]
+# (prove-healthstr, 2026-11-27, etcd-grove#24 7225066078) `HealthCheckResponse_ServingStatus.String`
+# trusted: its model returns the enum's four value names for 0-3, else `strconv.Itoa`, as
+# protobuf-go's `EnumStringOf` (the model's docstring says why that is Go's); until then names-only,
+# the trust-boundary axiom `grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof`
+trusted = ["init.0", "HealthCheckResponse_ServingStatus.String"]
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
 # Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22

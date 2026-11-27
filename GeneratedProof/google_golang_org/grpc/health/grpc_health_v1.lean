@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import ManualProof.google_golang_org.grpc.health.grpc_health_v1
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.google_golang_org.grpc
+public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.health.grpc_health_v1
 

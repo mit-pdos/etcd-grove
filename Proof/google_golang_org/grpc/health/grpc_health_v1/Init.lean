@@ -14,6 +14,7 @@ module
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.Base
 public import Perennial.Proof.context.Link
 public import Proof.google_golang_org.grpc.Init
+public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 
 @[expose] public section
 
