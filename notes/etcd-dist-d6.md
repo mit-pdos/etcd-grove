@@ -3873,3 +3873,30 @@ boot contracts, the crash image's guarded term row (§3 item 3) and cindex's pai
 * **Left** (the helper's, impact note §3-4): the boot contracts, the crash image's guarded term row, cindex's pair,
   `batchLockInv`'s term conjunct over it (interface above), B8 (iii)/(iv). No axiom, `sorry`, premise or trusted
   text changed this session.
+
+### T10 step 3 (B), session 13 (T10s3b-13, 2026-11-27): the keep guard's reverts in applySnapshot; blocked on cindex's callers
+
+* **Merge**: `etcd-safe-keepfix/2026-11-27` at `784f52f273` (Go at fork `01b0497d0`, the keep guard gone; cindex's
+  pair `b92ab3201b`) fast-forwarded into this branch (it had already merged ours).
+* **§2 reverts done** (commit after `784f52f273`; ledger entry "`EtcdServer.applySnapshot.specKeep` removed; …
+  (T10s3b-13)" first): `applySnapshot.specKeep` and `wp_proofKeep` removed, `applySnapshot.spec := specEmpty ∧
+  specSnapM`; `specSnapM`'s `hle` back to `≤`, no `hpd`; `applyAll.specSnapM` without `st.pending = false`;
+  `applySnapshot_walk` without the guard's `ConsistentIndex` read (and `wp_ci_swap` at `st`, not `stLoaded γ st`);
+  callers (`ApplyAllSnap`, `applyAll`'s `hASnap.2`, `run_job_snapC`) adjusted. The Link's callee list is
+  unchanged (`hCIg` is still used by the walk's post-`SetBackend` read). B7 was never done; nothing left of it.
+* **Build**: `InvServer` does not build at `b92ab3201b` (its `wp_ci_unsafeGet`/`wp_ci_get`/`wp_ci_hookSet`/
+  `wp_ci_advance` against the new cindex specs: the lead's list, "not yet updated"). With those four proofs stubbed
+  locally (never committed: `/shared/tmp/t10s3b13-InvServer-stub.lean`), `EtcdServer__applySnapshot`,
+  `ApplyAllSnap`, `EtcdServer__applyAll`, `EtcdServer__run` build green (4565 jobs, `/shared/tmp/t10s3b13-b2.log`).
+  `NewServerCrash`/`Link` then stop at `bootstrapBackend.lean:214` (`NewConsistentIndex`'s `P`, also the lead's
+  list; `/shared/tmp/t10s3b13-b3.log`). The 54 axiom modules and `AxCheck6` not rerun: the cone does not build.
+* **Task 2 (`bkTermRow` ← `srvCIPair`) not started**: `srvCIPair` and `metaTermOf` are defined nowhere (the lead's
+  pushed branches `etcd-safe-keepfix/2026-11-27` @ `784f52f273` and `-wip` @ `b74162026e`; the wip names
+  `srvCIPair` only in a comment, `CINames.P`/`isCI ci γ P` its option A), and no restart contract has the premise
+  `⌜i = 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)`. Per the brief: stopped, reported.
+
+**Handoff T10s3b-13.** Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed), tree `/shared/etcd-grove-t10s3b`, manifest and
+Perennial as Handoff T10s3b-1. Next, once the lead lands `srvCIPair` and the cindex callers (`InvServer`'s four
+lemmas, `bootstrapBackend`'s `NewConsistentIndex`): merge it, build `NewServerCrash`, the `Link`, the 54 modules of
+`notes/t10s3b-chk/mods.txt`, rerun `AxCheck6`; then task 2 (`batchLockInv`'s term conjunct from `UnsafeSave`'s pair
+predicate, session 12's interface note). No axiom statement, `sorry`, premise or trusted text changed.
