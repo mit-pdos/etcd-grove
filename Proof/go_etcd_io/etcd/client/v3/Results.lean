@@ -2476,13 +2476,14 @@ theorem etcd_kvRunOksV (p q s : Loc)
     exact etcdRangeSpecV_M E.authOn (srvTLSId s) E γr cid mid γk hk hrb
   have hD : ∀ md o Φ Ψe, etcdDeleteSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdDeleteSpecM E.authOn (srvTLSId s) E ρ cid mid md o Φ Ψe := by
-    rw [hon]; exact etcdDeleteSpecV_M (srvTLSId s) E ρ cid mid γk hk' hrb
+    exact etcdDeleteSpecV_M E.authOn (srvTLSId s) E ρ cid mid γk hk' hrb
+      (fun _ h => by rw [hon] at h; cases h)
   have hT : ∀ md t Φ Ψe, etcdTxnSpecV (GF := GF) γk md t Φ Ψe ⊢
       |==> etcdTxnSpecM E.authOn (srvTLSId s) E ρ γr cid mid md t Φ Ψe := by
     rw [hon]; exact etcdTxnSpecV_M (srvTLSId s) E ρ γr cid mid γk hρ hk hrb
   have hC : ∀ md o Φ Ψe, etcdCompactSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> GrpcSpec.md (etcdCompactSpecM E.authOn E ρ cid mid) md o Φ Ψe := by
-    rw [hon]; exact etcdCompactSpecV_M E ρ cid mid γk hk'
+    exact etcdCompactSpecV_M E.authOn E ρ cid mid γk hk' hon
   iintro H
   ihave #Hall := etcd_kvRunOksM p q s E ρ γr cid mid n il im iu (fun _ => hρ) HL $$ H
   icases Hall with ⟨#H1, #H2, #H3, #H4, #H5⟩

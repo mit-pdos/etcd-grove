@@ -52,12 +52,11 @@ theorem isKv_of_newClient (cl : Loc) (ms : List (SrvAt GF)) (eps : List GoString
   icases Hwo with %Hwo
   iunfold isNewClient at Hnc
   icases Hnc with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hs
   imodintro
   iexists api
   isplitr
   · iExactEq Hkvf; rfl
-  iapply (isKv_intro api γk false ms hst
+  iapply (isKv_of_members api γk false ms hst
     (fun _ x hx => Hwo x.addr (List.mem_map_of_mem hx)) hrb)
   iframe #
   unfold kvRegs

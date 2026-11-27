@@ -4,9 +4,10 @@
 `Proof` files as `*.wp_members`, linked in `LinkMembers.lean`): over a `*kv` of the members `ms`
 (`isKV`: each member's etcd KV specs registered at its address), the caller's side at each
 member (its floor, committed index and update: `floorsAt`, `knownAt`, `putUpd`, ...), the reply
-some member's (`putAns`, ...: `putReplied`, ... at that member). The functions' specs (`kv.Put.spec`,
-...: one KV, `isKv`) are proved from these; the results about the server's own model use them
-(`ServerKV*.lean`: a member's reply's certificates and tokens). Lean-first (no Rocq counterpart).
+some member's (`putAns`, ...: `putReplied`, ... at that member). The results about the server's own
+model use them (`ServerKV*.lean`: a member's reply's certificates and tokens); the functions' specs
+(`kv.Put.spec`, ...: one KV, `isKv`, in registry form) are proved from the generic statements
+(`*.specG`) at the view specs instead (stage A, 2026-11-27). Lean-first (no Rocq counterpart).
 -/
 module
 

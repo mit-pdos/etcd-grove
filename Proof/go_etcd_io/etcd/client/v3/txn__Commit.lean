@@ -133,45 +133,37 @@ theorem txn.Commit.wp_members (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
       (attemptPre_md conn om (kvTxnSpec ms) _ _)))
   iframe Hk Hu
 
-/-- `t.Commit()` on a builder over a `*kv` of etcd's KV `γ` (D44): `txn.Commit.wp_members` at its
-hidden members (the builder's connection the `*kv`'s, `txnObjAt_conn`), from the floor `[]` and
-the committed index `0` (`isKv`'s `srvStart`) and the caller's update at each member's names
-(`txnUpd_of`); the reply's fields as the state's (`txnAns_st`). -/
+/-- `t.Commit()` on a builder over a `*kv` of etcd's KV `γ` (D44; stage A, 2026-11-27):
+`txn.Commit.wp_generic` at the view spec the `*kv`'s endpoints register (`isKv`,
+`kvRegsV_rpcTxn`; the builder's connection the `*kv`'s, `txnObjAt_conn`), met by the caller's update
+at `γ` (`txnPre_V`); the reply facts are the spec's (`txnStOk`). -/
 theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.spec (GF := GF) (hG := hG) := by
   intro tp addr api γ dup ci cd b Q
   iintro %Φ ⟨#Pc, Hlt, Hobj, #Hkt, #Hkv, %Hp, Hu, %Hsz⟩ HΦ
   ihave Hu := txnAu_upd dup γ (txnWireOf b.model) Q $$ Hu
-  ihave ⟨%Hz, Hu⟩ := writeUpd_txn_nz (!dup) γ (txnWireOf b.model) Q $$ Hu
   iunfold isKv at Hkv
-  icases Hkv with ⟨%ms, #Hkv⟩
-  iunfold isKvOf at Hkv
-  icases Hkv with ⟨#Hko, #Hregs, #Hst, %Hm⟩
-  obtain ⟨Hns, Hr, Hrb⟩ := Hm
-  have Hn : ∀ x ∈ ms, x.γr.kv.st = γ.st := fun x hx => (Hns x hx).1
-  ihave Hobj := txnObjAt_conn tp api addr (ms.map SrvAt.addr) ci cd b $$ [Hobj]
+  icases Hkv with ⟨%addrs, #Hko, #Hregs, %Hnr⟩
+  ihave Hobj := txnObjAt_conn tp api addr addrs ci cd b $$ [Hobj]
   · iframe Hobj; iframe #
-  ihave #HK := srvStart_both ms $$ Hst
-  iapply (txn.Commit.wp_members wp_retry_Txn wp_ContextError tp ms ci cd b (W64 0) [] Q)
-    $$ [Hlt Hobj Hu]
-  · iframe Hlt Hobj
-    iframe #
+  icases txnObjAt_kv tp addrs ci cd b $$ Hobj with ⟨%api', %conn, #Hkv', #Hkc, Hobj⟩
+  icases txnObjAt_outMD tp addrs ci cd b $$ Hobj with ⟨Hobj, %om, #Hom⟩
+  iapply (txn.Commit.wp_generic wp_retry_Txn wp_ContextError tp api' conn addrs ci om cd b
+    (etcdTxnSpecV γ) (txnStOk γ (txnWireOf b.model) Q)) $$ [Hlt Hobj Hu]
+  · iframe #
+    iframe Hlt Hobj
     isplitl []
-    · ipureintro; exact Hp
-    isplitl []
-    · iunfold knownAt; iexact HK
+    · iapply (kvRegsV_rpcTxn addrs γ) $$ Hregs
     isplitl [Hu]; rotate_left
     · ipureintro; exact Hsz
-    iapply (txnReqPre_of_upd tp ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
-      (txnUpd_of ms γ Hn (txnWireOf b.model) Q)) $$ Hu
+    iapply (txnReqPre_of_upd tp addrs (!dup) (noRefusal_of_dup addrs dup Hnr) _ _
+      (txnPre_V conn om γ (txnWireOf b.model) Q (txnWireOf_plain _ Hp.1) Hp.2)) $$ Hu
   inext
   iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
   iframe Hlt
-  iapply (txnCallOut_st γ)
-  iapply (txnCallOut_mono _ _ resp err
-    (fun m => txnAns_st Hrb ms γ Hns (W64 0) [] (txnWireOf b.model) Q m Hz)) $$ Hout
+  iapply (txnCallOut_st γ) $$ Hout
 
 end proof
 

@@ -515,13 +515,6 @@ instance kmTxnUncoveredTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ
     Persistent (kmTxnUncoveredTodo (GF := GF) api γ) := by
   unfold kmTxnUncoveredTodo; infer_instance
 
-theorem isKv_kvObjAt (api : Loc) (γ : KVNames) (dup : Bool) :
-    isKv (GF := GF) api γ dup ⊢ ∃ addr : List GoString, kvObjAt api addr := by
-  unfold isKv isKvOf
-  iintro ⟨%ms, #Ho, -⟩
-  iexists _
-  iexact Ho
-
 /-- **A client of etcd's KV meets the recipes' transaction contract** (`isEtcdTxnKVTodo`) at the
 adapter's model (see the file header). Premises: that `errors.As` can take
 `*rpctypes.EtcdError` (`hAs`), that the client's errors are client errors as `errors.Is` sees
