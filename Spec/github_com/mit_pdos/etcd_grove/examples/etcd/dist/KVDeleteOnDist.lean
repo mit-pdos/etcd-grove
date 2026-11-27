@@ -37,11 +37,14 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVDeleteOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`) until 2026-11-27.
 
-**2026-11-27: the premise `auth.reqShape key rangeEnd` added** (a weakening; `notes/axiom-review/onpairs-deleteon.md`).
-The auth-on contract requires it of its caller: `etcdDeleteSpecOnW`/`etcdDeleteSpecMW`
-(`Proof/go_etcd_io/etcd/client/v3/KVServiceOn.lean:106`/`:527`), used by the handler's proof
-(`Results.lean:1372`), and `client.client_delete_on` takes `key ≠ []`. Without it the axiom claimed a
-success for requests no proof covers. Callers lose nothing real: etcd refuses an empty key before auth
+**2026-11-27: the request's shape** (weakenings, `notes/axiom-review/onpairs-deleteon.md`, `txnshape-narrowing.md`):
+`auth.reqShape` of the caller's key and the range end, and `kvShapeAll (irrDeleteRange …)`, the shape the
+permission cache decides on the wire request. Both are kept: over arbitrary option transformers the wire key
+need not be `key`, so neither implies the other from the pure premises. The auth-on contract requires it of its
+caller: `etcdDeleteSpecOnW`/`etcdDeleteSpecMW` (`Proof/go_etcd_io/etcd/client/v3/KVServiceOn.lean:106`/`:527`),
+used by the handler's proof (`Results.lean:1372`), and `client.client_delete_on` takes `key ≠ []`. Without it
+the axiom claimed a success for requests no proof covers, and its update applied a delete Go refuses with auth
+on (empty or inverted ranges). Callers lose nothing real: etcd refuses an empty key before auth
 (`ErrGRPCEmptyKey`), and an inverted range deletes nothing. -/
 abbrev KV_DeleteOn_dist.spec : Prop :=
   ∀ [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
@@ -54,7 +57,8 @@ abbrev KV_DeleteOn_dist.spec : Prop :=
       ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜¬ opDeletePanics key opts ∧ (opDeleteModel key opts).t = W64 3 ∧
         (deleteWireOf (opDeleteModel key opts)).base.rangeEnd ≠ [W8 0] ∧
-        auth.reqShape key (deleteWireOf (opDeleteModel key opts)).base.rangeEnd⌝ ∗
+        auth.reqShape key (deleteWireOf (opDeleteModel key opts)).base.rangeEnd ∧
+        kvShapeAll (irrDeleteRange (deleteWireOf (opDeleteModel key opts)))⌝ ∗
       writeAuD Γ.kv (principalOf cfg) (.deleteRange (deleteWireOf (opDeleteModel key opts))) L₀ Q ∗
       ⌜opSizeOk (opDeleteModel key opts)⌝ }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
