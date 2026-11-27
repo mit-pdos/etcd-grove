@@ -31,8 +31,6 @@ public import GooseLang.Ext.Fs.Adequacy
 public import GooseLang.Ext.Fs.NoIoErr
 public import GooseLang.Ext.Fs.NoMapLockErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.W1
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Codec
 
 @[expose] public section
 
@@ -59,19 +57,9 @@ fail" premise), which bbolt's error-free `Open` and `Close` need (the backend's 
 `FsNoErrAll`). -/
 abbrev etcdSQ : Fs.StepPrem := Fs.StepPrem.and (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
 
-/-- **A crash leaves no torn WAL frame that the reader accepts** (etcd-dist D6 Q2, 2026-11-24, pending
-the owner's review): the WAL's `W1` (`wal/W1.lean`) at etcd's codec, the premise on crashes of the etcd
-examples' theorems. Every frame a fresh WAL reader accepts in a `.wal` file of the crashed tree has its
-core as of one change (no CRC-32C collision on a torn frame; the WAL tester's crash premise `tQ`). Only
-theorems with crashing machines see it (`etcd_safe`'s members): a theorem whose machines never crash
-(`Robust []`, the single-process theorems) has no crash step. Satisfiable: `WalFs.W1Sat` (a crash
-keeping every byte as of the last sync). Semantics example: `examples/osfs/semantics/premise_w1.go`. -/
-abbrev etcdCQ : Fs.OsState → Fs.OsState → Prop := fun st st' => WalFs.W1 walCodec st st'
-
-/-- The file extension's semantics here: its steps restricted by `etcdSQ`, its crashes by `etcdCQ` (the
-WAL's `W1`; until D6 Q2, 2026-11-24, unrestricted). Until S3e the extension's own (`Fs.fs_semantics`, no
-premise). -/
-@[reducible] def etcdFsSem : ExtSemantics Fs.fsExt := Fs.fsSemWithS etcdSQ etcdCQ
+/-- The file extension's semantics here: its steps restricted by `etcdSQ`, its crashes not (the
+programs do not crash). Until S3e the extension's own (`Fs.fs_semantics`, no premise). -/
+@[reducible] def etcdFsSem : ExtSemantics Fs.fsExt := Fs.fsSemWithS etcdSQ (fun _ _ => True)
 
 /-- Their semantics: the request ids' issue record's, and the file extension's under `etcdSQ`
 (`etcdFsSem`; until S3e `Fs.fs_semantics`, every step of the model, with no premise on the
@@ -80,12 +68,12 @@ environment). -/
 
 /-- The model's facts hold of the restricted semantics (`etcdSQ` keeps steps). -/
 theorem etcdFsSemOk : letI := etcdFsSem; Fs.FsSemOk :=
-  Fs.fsSemWithS_ok etcdSQ etcdCQ (Fs.noIoErr_noMapLockErr_keeps allIo allIo)
+  Fs.fsSemWithS_ok etcdSQ (fun _ _ => True) (Fs.noIoErr_noMapLockErr_keeps allIo allIo)
 
 /-- The restricted semantics' file system does not fail (`backend.FsNoErrAll`, at `allIo`). -/
 theorem etcdFsNoErr : letI := etcdFsSem; backend.FsNoErrAll := by
   letI := etcdFsSem
-  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ etcdCQ
+  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
   exact ⟨⟨allIo, fun _ _ => trivial, fun _ => trivial,
     Fs.fsStepSat_and_left (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo),
     Fs.fsStepSat_and_right (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)⟩⟩
@@ -112,14 +100,14 @@ theorem etcdFsExts_hasFs : letI := etcdFsSem; HasExt Fs.fsExt where
 no-error specs use). -/
 theorem etcdFsExts_sat : Fs.FsStepSat (Fs.NoIoErr allIo) (S := etcdFsSem) :=
   letI := etcdFsSem
-  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ etcdCQ
+  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
   Fs.fsStepSat_and_left (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
 
 /-- Every step of the restricted semantics has no lock or mapping error (`etcdSQ`'s second half: what the
 WAL's area carries for `cut`'s lock, `WalA.satL`; wal-fsfix2). -/
 theorem etcdFsExts_satL : Fs.FsStepSat (Fs.NoMapLockErr allIo) (S := etcdFsSem) :=
   letI := etcdFsSem
-  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ etcdCQ
+  haveI : Fs.FsStepSat etcdSQ := Fs.fsSemWithS_sat etcdSQ (fun _ _ => True)
   Fs.fsStepSat_and_right (Fs.NoIoErr allIo) (Fs.NoMapLockErr allIo)
 
 attribute [local instance] etcdFsExts_hasFs etcdFsSemOk

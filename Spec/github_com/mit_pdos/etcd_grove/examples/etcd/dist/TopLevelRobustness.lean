@@ -54,8 +54,7 @@ theorem.
 **What the semantics assumes** (not premises: part of the semantics it is stated over):
 - the file extension at `etcdFsSem` (`examples/lib/etcdstart/FsExts.lean`): no file operation fails with
   an I/O error and no `flock`/`mmap` error, on every member's machine; a crash is a power loss, or a kill
-  followed by a sync, restricted only by the WAL's `W1` (`etcdCQ`: every WAL frame a fresh reader accepts
-  after the crash is as of one change, i.e. no CRC-32C collision on a torn frame; pending review, D6 Q2);
+  followed by a sync, unrestricted;
 - the request ids' issue record survives a machine's crash and must tell a restarted member's generator
   from the one before the crash: today it keys generators by heap address and has no crash
   interpretation, so the crash statement is **not provable over today's extension** (stage D4b keys it
