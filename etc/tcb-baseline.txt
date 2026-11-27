@@ -1,6 +1,5 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
@@ -326,7 +325,6 @@ axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof

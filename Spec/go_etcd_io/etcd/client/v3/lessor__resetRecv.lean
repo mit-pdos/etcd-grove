@@ -37,7 +37,8 @@ abbrev lessor.resetRecv.spec : Prop :=
         cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Md Dn cd clientRes ∗
         kaUpZero Up ∗
         cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨
-      (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
+      -- (phase7-s3-interceptor, 2026-11-26) an opening error (`cliOpenErr`, the stub's)
+      (⌜st = GoInterface.nil⌝ ∗ cliOpenErr err)) }}
 
 end spec
 

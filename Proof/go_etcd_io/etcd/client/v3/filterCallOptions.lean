@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem filterCallOptions.wp_proof :
     filterCallOptions.spec (GF := GF) (hG := hG) := by
-  intro sl vs
+  intro sl vs A hA
   wp_start as ⟨#Hsl, #Hvs⟩
   ihave %Hsll := ownSlice_len $$ Hsl
   wp_auto
@@ -37,7 +37,7 @@ theorem filterCallOptions.wp_proof :
       "Hrc" ∷ ownSliceCap go_etcd_io.etcd.client.v3.retryOption rsl (DFrac.own 1) ∗
       "%Hgs" ∷ ⌜∀ v ∈ gs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧
         t ∈ grpcScalarOptTys⌝ ∗
-      "#Hros" ∷ ([∗list] ro ∈ ros, retryApplyOk ro.applyFunc') ∗
+      "#Hros" ∷ ([∗list] ro ∈ ros, A ro.applyFunc') ∗
       "%Hnone" ∷ ⌜(∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧
         t ∈ grpcScalarOptTys) → ros = []⌝ ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (vs.length : Int)⌝) $$ [i opt grpcOptions retryOptions]
@@ -59,7 +59,6 @@ theorem filterCallOptions.wp_proof :
     isplitl
     · first | itrivial | (ipureintro; simp)
     ipureintro; constructor <;> word
-  iunfold callOptsOk at Hvs
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat n < vs.length := by word
@@ -67,10 +66,10 @@ theorem filterCallOptions.wp_proof :
     have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len := ⟨Hn.1, by word⟩
     rw [ite_eq_left Hbnd]
     icases ownSlice_elem_acc (sint.Z n) v sl DFrac.discard vs Hn.1 Hv $$ Hsl with ⟨#Hve, -⟩
-    ihave #Hco := BigSepL.bigSepL_lookup (Φ := fun _ (w : GoInterface) => callOptOk (GF := GF) w)
+    ihave #Hco := BigSepL.bigSepL_lookup (Φ := fun _ (w : GoInterface) => callOptOkA (GF := GF) A w)
       Hv $$ Hvs
     wp_auto
-    iunfold callOptOk at Hco
+    iunfold callOptOkA at Hco
     icases Hco with (%Hsc | ⟨%ro, %Hvro, #Hap⟩)
     · obtain ⟨t, x, rfl, Ht⟩ := Hsc
       have Htne : t ≠ go_etcd_io.etcd.client.v3.retryOption.ty := by

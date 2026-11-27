@@ -735,7 +735,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             (try wp_auto)
             iapply HΦ; iframe Hlt; try itrivial
   · ihave #Herr' := Herr
-    iunfold cliStreamErr at Herr'
+    iunfold cliOpenErr at Herr'
     icases Herr' with ⟨%Hne, #Hse, -⟩
     subst Hst
     cases err with

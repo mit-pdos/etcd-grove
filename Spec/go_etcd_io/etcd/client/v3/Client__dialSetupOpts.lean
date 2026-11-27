@@ -36,7 +36,8 @@ abbrev Client.dialSetupOpts.spec : Prop :=
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dialSetupOpts")) (Val #cr)) (Val #sl))
   {{ (osl : GoSlice), RET #osl; ∃ (si ic : GoFunc),
       dialOptsAt osl (kaOpts cfg ++ ds ++ [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) ∗
-      ownSliceCap GoInterface osl (DFrac.own 1) ∗ ⌜etcdStreamInterceptor si⌝ ∗
+      ownSliceCap GoInterface osl (DFrac.own 1) ∗ -- (phase7-s3-interceptor, 2026-11-26) etcd's stream interceptor's contract, gated likewise
+      etcdStreamIcOkG c si ∗
       -- (the auth plan's C1, 2026-10-28) gated on the client's readiness (D29: both modes)
       etcdInterceptorOkG c ic }}
 
