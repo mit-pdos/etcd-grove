@@ -50,7 +50,7 @@ in either mode. They need `kvRevLb` only to pass on the one the auth-off answer 
 |---|---|---|---|
 | `KV_PutOn_dist` | `client_put_on` / `etcdPutSpecMW true` | `kvRevLb Γ.kv m.hdr.revision` (`m.hdr.revision = σ.rev+1`, `kvRevFits`, `kvLogOk σ` are `putAns_st`'s, from `putReplied`) | **dropped** |
 | `Txn_CommitOn_dist` | `client_txn_on` / `etcdTxnSpecMW true` | `client.txnRevLb` (verdict, responses, revision, `kvRevFits`, both `kvLogOk`s are `txnAns_st`'s) | **dropped** |
-| `KV_DeleteOn_dist` | `client_delete_on` | none (revision `(kvOpStep … σ).rev`, `kvRevFits`, both `kvLogOk`s: `delAns_st`, from `deleteReplied`; `rangeEnd ≠ [0]` is a premise) | kept |
+| `KV_DeleteOn_dist` | `client_delete_on` | none (revision `(kvOpStep … σ).rev`, `kvRevFits`, both `kvLogOk`s: `delAns_st`, from `deleteReplied`; `rangeEnd ≠ [0]` is a premise) | kept(2026-11-27: the pairing later found a missing `reqShape` premise, not a revision fact: `onpairs-deleteon.md`) |
 | `KV_GetOn_dist` | `client_range_on` | none (`m.hdr.revision = σ.rev`, `kvRevFits`, `kvLogOk`, selection: `rangeAns_st`; `serializable = false` is a premise) | kept |
 | `WatchOn_dist` | no auth-on in-process contract (`watcher.Watch.spec` + `v3rpc.watchSpec`) | `cmpOkOf Γ.kv` is `kvRevLbZ`-based (`kvCmpPermit`, `InvRequest.lean:1519`), but at auth on the server never compacts: `srvKVInvsOn` has `E.Cp = kvCpOk γr.kv` and `γr.kv.cmp = false` (`KVApplyOn.lean:399-401`), so `kvCpOk` forces `-1` and a response's compact revision is `0`, `cmpOkOf`'s first disjunct. Its events are reads of the AU's σ (`kvModelOn`). | kept (backed by that argument; no theorem) |
 | `Lease_GrantOn_dist`, `Lease_RevokeOn_dist` | `client_lease_grant_on`, `client_lease_revoke_on` | none: no revision fact claimed (the theorems' `etcdReached … m.hdr.revision` is not copied) | kept |
@@ -74,13 +74,14 @@ unlisted difference. The new pairing also surfaced `client_txn_on`'s `hsh` (`kvS
 axiom does not take. `f7-txn-nested-review.md` ("Noted") already argued that this matters only for a refusal's
 content, and the `dev` line cites it.
 
-**Not done (next):** the other auth-on axioms are still paired with auth-off specs. Repoint them the same way:
-- `KV_DeleteOn_dist` to `client_delete_on`;
-- `KV_GetOn_dist` to `client_range_on`;
-- `Lease_GrantOn_dist` and `Lease_RevokeOn_dist` to `client_lease_grant_on` and `client_lease_revoke_on`.
-
-Each needs about 45 `dev` lines (`--show` prints them).
-
-`Lease_TimeToLiveOn_dist`, `Lease_LeasesOn_dist` and `WatchOn_dist` have no auth-on theorem. They need one
-(the `lessor` specs at `etcdLease*SpecOn`, and an auth-on watch contract), or a gate extension that pairs
-with a `def` contract instantiated at `on = true`.
+**Not done (next), updated 2026-11-27** (`onpairs-deleteon.md`, branch `etcd-safe-onpairs/2026-11-27`):
+- Done there. `KV_DeleteOn_dist`, `KV_GetOn_dist`, `Lease_GrantOn_dist` and `Lease_RevokeOn_dist` are paired
+  with `client_delete_on`, `client_range_on`, `client_lease_grant_on` and `client_lease_revoke_on`.
+- The delete pairing found an over-claim: no `auth.reqShape` premise. The premise is now added to the axiom.
+- Left:
+  - generalize `client_delete_on` to any `opts` (untrusted; overlaps dsverify-net's Q2);
+  - `client_lease_ttl_on` and `client_lease_leases_on`, then their pairs;
+  - an auth-on watch contract for `WatchOn_dist`.
+  `Lease_TimeToLiveOn_dist`, `Lease_LeasesOn_dist` and `WatchOn_dist` stay paired with the generic client
+  specs. A `def`-instantiating gate extension was not built, because a service spec's text does not line up
+  with a client triple.

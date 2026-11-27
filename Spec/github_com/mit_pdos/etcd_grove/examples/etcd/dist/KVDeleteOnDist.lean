@@ -35,7 +35,14 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 (`writeAuD`), the principal of `cfg`, a success's grant `writeCheckedD`; the error arm claims nothing).
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
-`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVDeleteOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`). -/
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVDeleteOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`) until 2026-11-27.
+
+**2026-11-27: the premise `auth.reqShape key rangeEnd` added** (a weakening; `notes/axiom-review/onpairs-deleteon.md`).
+The auth-on contract requires it of its caller: `etcdDeleteSpecOnW`/`etcdDeleteSpecMW`
+(`Proof/go_etcd_io/etcd/client/v3/KVServiceOn.lean:106`/`:527`), used by the handler's proof
+(`Results.lean:1372`), and `client.client_delete_on` takes `key ≠ []`. Without it the axiom claimed a
+success for requests no proof covers. Callers lose nothing real: etcd refuses an empty key before auth
+(`ErrGRPCEmptyKey`), and an inverted range deletes nothing. -/
 abbrev KV_DeleteOn_dist.spec : Prop :=
   ∀ [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames) (L₀ : List EntryModel)
@@ -46,7 +53,8 @@ abbrev KV_DeleteOn_dist.spec : Prop :=
       userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗
       ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜¬ opDeletePanics key opts ∧ (opDeleteModel key opts).t = W64 3 ∧
-        (deleteWireOf (opDeleteModel key opts)).base.rangeEnd ≠ [W8 0]⌝ ∗
+        (deleteWireOf (opDeleteModel key opts)).base.rangeEnd ≠ [W8 0] ∧
+        auth.reqShape key (deleteWireOf (opDeleteModel key opts)).base.rangeEnd⌝ ∗
       writeAuD Γ.kv (principalOf cfg) (.deleteRange (deleteWireOf (opDeleteModel key opts))) L₀ Q ∗
       ⌜opSizeOk (opDeleteModel key opts)⌝ }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!

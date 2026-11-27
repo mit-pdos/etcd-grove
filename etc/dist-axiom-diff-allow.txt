@@ -258,46 +258,106 @@ dev Auth_UserGrantRole_dist.wp_proof <<< authCallOut ||| ( ⌜ err = GoInterface
 dev Auth_UserGrantRole_dist.wp_proof <<<  ||| ) ∨ ⌜ err ≠ GoInterface.nil ∧ >>> `authCallOut` unfolded: the success arm's end and the error arm (`err ≠ nil`), as `authCallOut`'s
 dev Auth_UserGrantRole_dist.wp_proof <<< err ||| = null ⌝ >>> the error arm: `err ≠ nil ∧ resp = null`, nothing more (`authCallOut`'s `clientErr`/`statusErrOk`/`errCellOk` dropped; a weaker post)
 
-pair KV_DeleteOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVDeleteOnDist.lean KV_DeleteOn_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Delete.lean kv.Delete.spec
-dev KV_DeleteOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
-dev KV_DeleteOn_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`userClientAt`) in place of the `*kv` `kv`
-dev KV_DeleteOn_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (the view's, `Γ.kv`)
-dev KV_DeleteOn_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
-dev KV_DeleteOn_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`; no `dup` (the update is persistent, `writeAuD`/`□`)
-dev KV_DeleteOn_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `V`'s type, the view `Γ`, the configuration `cfg` (its principal in place of the token's binding), the member's raft names `γR` and the requested prefix `L₀`
-dev KV_DeleteOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoing metadata `om` (`outTokOk`'s)
-dev KV_DeleteOn_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
-dev KV_DeleteOn_dist.wp_proof <<< ( isKv kv γ dup ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ` (`kvClientAt` and `cfg`), with the metadata `om` and the requested prefix `L₀` (`client_*_on`'s floor, at the cluster's requested log); the in-process group's parenthesis dropped (layout)
-dev KV_DeleteOn_dist.wp_proof <<< □?dup ||| writeAuD Γ.kv >>> the update persistent (`writeAuD`: a write is resent after `ErrInvalidAuthToken`'s token refresh), with the grant obligation `opGrantD` at `cfg`'s principal
-dev KV_DeleteOn_dist.wp_proof <<< AU < { ∃∃ ( σ : KVState ||| principalOf cfg >>> `writeAuD`'s arguments: the principal (the AU is `writeAuD`'s `kvAu1G`, unfolded in the source)
-dev KV_DeleteOn_dist.wp_proof <<< , etcdKV γ σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV γ ( kvOpStep |||  >>> the AU's text, inside `writeAuD` (`kvAu1G`: the same AU, with `kvRoom` and the grant)
-dev KV_DeleteOn_dist.wp_proof <<< σ ) ∗ ⌜ kvRoom σ ⌝ , COMM ||| L₀ >>> the AU's text inside `writeAuD` (`kvRoom` kept there); its prefix `L₀`
-dev KV_DeleteOn_dist.wp_proof <<< σ } > ) |||  >>> the AU's end, inside `writeAuD`
-dev KV_DeleteOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
-dev KV_DeleteOn_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
-dev KV_DeleteOn_dist.wp_proof <<<  ||| ∗ writeCheckedD eps Γ γR ( principalOf cfg ) ( irrDeleteRange ( deleteWireOf ( opDeleteModel key opts ) ) ) L₀ >>> a success's check: the member and its grant (`writeCheckedD`, `client_delete_on`'s `writeGrantOn` at the cluster)
+# (2026-11-27, notes/axiom-review/onpairs-deleteon.md) paired with its in-process AUTH-ON contract, the proved
+# theorem `client.client_delete_on` (`ResultsOn.lean`), not the auth-off spec (onrevlb-weakening.md's blind spot).
+# The pairing surfaced the dropped `reqShape` premise (key ≠ [] and a well-formed range), added to the axiom 2026-11-27.
+pair KV_DeleteOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVDeleteOnDist.lean KV_DeleteOn_dist.spec Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean client_delete_on
+dev KV_DeleteOn_dist.wp_proof <<<  ||| : Prop := ∀ [ NetProtoGS ] >>> the abbrev's head: the theorem's binders as the ∀'s; the net extension's protocol ghost state (the address facts are over it)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| cl >>> binders: the client `cl` (its `KV` field's `*kv` is `api`, `userClientAt`)
+dev KV_DeleteOn_dist.wp_proof <<< conn |||  >>> binders: no connection `conn`: the call goes through `userClientAt`'s client, not a registered connection
+dev KV_DeleteOn_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` in place of the one registered address `addr`
+dev KV_DeleteOn_dist.wp_proof <<<  ||| List >>> binders: the endpoints' type (a list)
+dev KV_DeleteOn_dist.wp_proof <<< T ||| V >>> binders: the client's environment `V` in place of the server's TLS identity `T`
+dev KV_DeleteOn_dist.wp_proof <<< IProp GF ) [ Persistent T ] ( E : apply.AEnv ||| WEnv >>> binders: `V`'s type; no `[Persistent T]`, no apply environment `E` (the member's, hidden behind the view)
+dev KV_DeleteOn_dist.wp_proof <<< ρ ||| Γ >>> binders: the cluster's view `Γ` in place of the request names `ρ` (`ρ.kv` is `Γ.kv`)
+dev KV_DeleteOn_dist.wp_proof <<< ReqNames ||| DistView >>> binders: `Γ`'s type
+dev KV_DeleteOn_dist.wp_proof <<< cid mid ||| cfg >>> binders: the configuration `cfg` (its principal in place of the token's binding) in place of the member's ids `cid mid`
+dev KV_DeleteOn_dist.wp_proof <<< w64 ||| go_etcd_io.etcd.client.v3.Config >>> binders: `cfg`'s type
+dev KV_DeleteOn_dist.wp_proof <<< ci ||| γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( ctx >>> binders: the member's raft names `γR` and the requested prefix `L₀` (`clientOpAuOn`'s lower bound, at the cluster); the context is `ctx`
+dev KV_DeleteOn_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context's description `ctx_desc` (renamed); `om` moves (next)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: the outgoing metadata `om` (`outTokOk`'s)
+dev KV_DeleteOn_dist.wp_proof <<< sl ||| opts_sl >>> binders: the options' slice `opts_sl` (renamed)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ) ( opts : List ( OpFull → OpFull ) >>> binders: any options `opts`, where `client_delete_on` fixes them to `[]`: NOT backed by the theorem (it is by its `etcdDeleteSpecOn`, which takes any request `o`); generalizing `client_delete_on` to any `opts` is the recorded follow-up (notes/axiom-review/onpairs-deleteon.md)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| , Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk >>> premises: auth on, the raft names the view's, and `outTokOk` (the caller adds no token of its own): more premises, a weaker axiom
+dev KV_DeleteOn_dist.wp_proof <<< F : mvcc.Log ||| principalOf cfg >>> no floor binder `F` (the member's `srvApi.kvLogLb`, hidden); `outTokOk`'s principal
+dev KV_DeleteOn_dist.wp_proof <<< ( hk : key ≠ [ ] ) ( hsz : opSizeOk ( opDeleteModel key [ ] ) ) : ||| om → >>> the theorem's hypotheses: `hk` is the pre's `auth.reqShape` (its first conjunct, 2026-11-27), `hsz` the pre's `⌜opSizeOk …⌝` (below); `outTokOk`'s metadata
+dev KV_DeleteOn_dist.wp_proof <<< kvObjAtC ||| userClientAt cl >>> `kvObjAtC api conn [addr]` replaced by `userClientAt cl api eps V Γ cfg`
+dev KV_DeleteOn_dist.wp_proof <<< conn [ addr ] ∗ isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" ( etcdDeleteSpecOn T E ρ cid mid ) ∗ srvApi.kvLogLb E.γs F ||| eps V Γ cfg >>> the registration `isGrpcRpcMd addr … etcdDeleteSpecOn` and the floor `srvApi.kvLogLb E.γs F` replaced by the view's client (the members' address facts, `Serve_dist`'s auth-on premise)
+dev KV_DeleteOn_dist.wp_proof <<< ci ||| ctx >>> the context (renamed)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| srvReqLogLb γR L₀ ∗ >>> the requested prefix `L₀` the caller holds (`clientOpAuOn`'s `srvReqLogLb`, at the cluster)
+dev KV_DeleteOn_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context and its description (renamed)
+dev KV_DeleteOn_dist.wp_proof <<< sl ||| opts_sl opts ∗ ⌜ ¬ opDeletePanics key opts ∧ ( opDeleteModel key opts ) .t = W64 3 ∧ ( deleteWireOf ( opDeleteModel key opts ) ) .base.rangeEnd ≠ >>> the options (renamed; `optsAt sl []` at any `opts`, see the binder line); the pure facts `client_delete_on` proves of `[]` (no panic, `t = 3`) and `etcdDeleteSpecOn`'s `rangeEnd ≠ [0]`, as premises
+dev KV_DeleteOn_dist.wp_proof <<<  ||| W8 0 >>> (the same: `rangeEnd ≠ [W8 0]`)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ∧ auth.reqShape key ( deleteWireOf ( opDeleteModel key opts ) ) .base.rangeEnd ⌝ >>> `etcdDeleteSpecOn`'s `auth.reqShape` (KVServiceOn.lean:106; `hk` at `[]`), a premise since 2026-11-27 (notes/axiom-review/onpairs-deleteon.md)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| writeAuD Γ.kv >>> `□ clientOpAuOn T E ρ conn om` replaced by `writeAuD Γ.kv (principalOf cfg)` (persistent; its grant `opGrantD` at the principal)
+dev KV_DeleteOn_dist.wp_proof <<< □ clientOpAuOn T E ρ conn om ||| principalOf cfg ) >>> (the same: `writeAuD`'s principal)
+dev KV_DeleteOn_dist.wp_proof <<< txn.deleteOpOf ||| deleteWireOf ( opDeleteModel >>> the request `deleteWireOf (opDeleteModel key opts)` (at `opts = []` it is `txn.deleteOpOf key [] false`, `deleteWire_nil`)
+dev KV_DeleteOn_dist.wp_proof <<< [ ] false ||| opts >>> (the same: the request at `opts`)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ) L₀ >>> `writeAuD`'s prefix `L₀`
+dev KV_DeleteOn_dist.wp_proof <<< ∨ ||| ∗ ⌜ opSizeOk >>> no `writeOnce` arm: the update is persistent (`writeAuD`), as a write is resent after a token refresh; the theorem's `hsz` as the pre's `⌜opSizeOk …⌝`
+dev KV_DeleteOn_dist.wp_proof <<< writeOnce api [ addr ] ∗ clientOpAuOn T E ρ conn om ( .deleteRange ( txn.deleteOpOf ||| opDeleteModel >>> (the same: the `writeOnce` arm dropped; `opSizeOk`'s argument)
+dev KV_DeleteOn_dist.wp_proof <<< ) Q ) ) ||| ⌝ >>> the end of the `writeOnce` arm and `opSizeOk`'s `⌝`
+dev KV_DeleteOn_dist.wp_proof <<< #sl ||| #opts_sl >>> the options' slice (renamed)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ) ( σ : KVState ) >>> the post's state `σ` (the state of the log the request met, `kvStateOf x.log lt`; at auth on `kvModelOn`'s: `kvInvOn`)
+dev KV_DeleteOn_dist.wp_proof <<< deleteReplied E ρ.rd F ||| Q σ ∗ ⌜ m.deleted = W64 >>> `deleteReplied E ρ.rd F …` replaced by what it gives (`delAns_st`, mode-agnostic, with the premise `rangeEnd ≠ [0]`): `Q σ`, the count, the previous pairs, the revision, `kvRevFits`, both `kvLogOk`s; no revision lower bound
+dev KV_DeleteOn_dist.wp_proof <<< txn.deleteOpOf ||| ( rangeIn σ.kvs ( deleteWireOf ( opDeleteModel >>> (the same: the count `rangeIn σ.kvs …`)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| opts ) ) ) .length : Int ) ∧ m.prevs = ( if ( deleteWireOf ( opDeleteModel key opts ) ) .base.prevKV then rangeIn σ.kvs ( deleteWireOf ( opDeleteModel key opts ) ) else >>> (the same: the count and the previous pairs)
+dev KV_DeleteOn_dist.wp_proof <<< false |||  >>> (the same)
+dev KV_DeleteOn_dist.wp_proof <<< Q cid mid m ||| ∧ m.hdr.revision = W64 ( ( kvOpStep ( .deleteRange ( deleteWireOf ( opDeleteModel key opts ) ) ) σ ) .rev : Int ) ∧ kvRevFits ( σ.rev + 1 ) ∧ kvLogOk σ ∧ kvLogOk ( kvOpStep ( .deleteRange ( deleteWireOf ( opDeleteModel key opts ) ) ) σ ) ⌝ >>> (the same: the revision `kvOpStep`'s, `kvRevFits`, `kvLogOk` before and after, from `deleteReplied`'s `srvLogCert`)
+dev KV_DeleteOn_dist.wp_proof <<< ∃ md , clientAttemptMd conn om md ∗ v3rpc.writeGrantOn T E ρ ||| writeCheckedD eps Γ γR >>> the delete's grant at some attempt's token (`v3rpc.writeGrantOn`) replaced by the member's check (`writeCheckedD`: the member and the apply-time grant)
+dev KV_DeleteOn_dist.wp_proof <<< auth.mdTokenOf md ||| principalOf cfg >>> the principal (`cfg`'s, `outTokOk`) in place of the attempt's token
+dev KV_DeleteOn_dist.wp_proof <<<  ||| L₀ ) >>> `writeCheckedD`'s prefix `L₀`
 dev KV_DeleteOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
 dev KV_DeleteOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
 
-pair KV_GetOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetOnDist.lean KV_GetOn_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Get.lean kv.Get.spec
-dev KV_GetOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
-dev KV_GetOn_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`userClientAt`) in place of the `*kv` `kv`
-dev KV_GetOn_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (the view's, `Γ.kv`)
-dev KV_GetOn_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
-dev KV_GetOn_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`; no `dup` (the update is persistent, `writeAuD`/`□`)
-dev KV_GetOn_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `V`'s type, the view `Γ`, the configuration `cfg` (its principal in place of the token's binding), the member's raft names `γR` and the requested prefix `L₀`
-dev KV_GetOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoing metadata `om` (`outTokOk`'s)
-dev KV_GetOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> (F7 review F1) the members' auth names distinct (`Γ.au`); a weaker axiom: one more premise; auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
-dev KV_GetOn_dist.wp_proof <<< ( isKv kv γ dup ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ` (`kvClientAt` and `cfg`), with the metadata `om` and the requested prefix `L₀` (`client_*_on`'s floor, at the cluster's requested log); the in-process group's parenthesis dropped (layout)
-dev KV_GetOn_dist.wp_proof <<<  ||| ∧ ( rangeWireOf ( opGetModel key opts ) ) .base.serializable = false >>> linearizable reads only: `serializable = false` a premise for every `Q` (no workload sends a serializable read with auth on; a weaker axiom)
-dev KV_GetOn_dist.wp_proof <<< ( ⌜ ( rangeWireOf ( opGetModel key opts ) ) .base.serializable = false ⌝ ∗ |||  >>> the AU arm's `serializable = false`, now the premise above (layout)
-dev KV_GetOn_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv`
-dev KV_GetOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
-dev KV_GetOn_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
-dev KV_GetOn_dist.wp_proof <<< ( if ( rangeWireOf ( opGetModel key opts ) ) .base.serializable then iprop ( True ) else iprop ( |||  >>> `serializable = false`: the post's `if` is its `else` arm `□ Q σ`
-dev KV_GetOn_dist.wp_proof <<< ) ) |||  >>> the end of that `if` (layout)
-dev KV_GetOn_dist.wp_proof <<< m.count = txn.srvCount ( rangeWireOf ( opGetModel key opts ) ) ( σ.at ( σ.readRev ( rangeWireOf ( opGetModel key opts ) ) .base.rev ) ) .kvs true ∧ |||  >>> the reply's `count` not claimed (a weaker post)
-dev KV_GetOn_dist.wp_proof <<<  ||| ∗ readCheckedD eps Γ γR ( principalOf cfg ) L₀ ( rangeWireOf ( opGetModel key opts ) ) >>> a success's check: the member that served it and its verdict (`readCheckedD`: at its published auth index above the floor `authFloorD`, and the cluster-level `readAuthedD`); strengthened before approval (F7 S5, N1), re-reviewed `f7-getOn-n1.md` and `f7-s5-review.md`
+# (2026-11-27, notes/axiom-review/onpairs-deleteon.md) paired with its in-process AUTH-ON contract, the proved
+# theorem `client.client_range_on` (`ResultsOn.lean`), not the auth-off spec (onrevlb-weakening.md's blind spot).
+pair KV_GetOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetOnDist.lean KV_GetOn_dist.spec Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean client_range_on
+dev KV_GetOn_dist.wp_proof <<<  ||| : Prop := ∀ [ NetProtoGS ] >>> the abbrev's head: the theorem's binders as the ∀'s; the net extension's protocol ghost state (the address facts are over it)
+dev KV_GetOn_dist.wp_proof <<<  ||| cl >>> binders: the client `cl` (its `KV` field's `*kv` is `api`, `userClientAt`)
+dev KV_GetOn_dist.wp_proof <<< conn |||  >>> binders: no connection `conn`: the call goes through `userClientAt`'s client, not a registered connection
+dev KV_GetOn_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` in place of the one registered address `addr`
+dev KV_GetOn_dist.wp_proof <<<  ||| List >>> binders: the endpoints' type (a list)
+dev KV_GetOn_dist.wp_proof <<< T ||| V >>> binders: the client's environment `V` in place of the server's TLS identity `T`
+dev KV_GetOn_dist.wp_proof <<< IProp GF ) [ Persistent T ] ( E : apply.AEnv ||| WEnv >>> binders: `V`'s type; no `[Persistent T]`, no apply environment `E` (the member's, hidden behind the view)
+dev KV_GetOn_dist.wp_proof <<< γr ||| Γ >>> binders: the cluster's view `Γ` in place of the read names `γr` (`γr.kv` is `Γ.kv`)
+dev KV_GetOn_dist.wp_proof <<< ReadNames ||| DistView >>> binders: `Γ`'s type
+dev KV_GetOn_dist.wp_proof <<< cid mid c ||| cfg >>> binders: the configuration `cfg` (its principal) in place of the member's ids `cid mid` and the committed index `c` (the member's, hidden)
+dev KV_GetOn_dist.wp_proof <<< w64 ||| go_etcd_io.etcd.client.v3.Config >>> binders: `cfg`'s type
+dev KV_GetOn_dist.wp_proof <<< n ||| γR >>> binders: the raft names `γR` in place of the auth index lower bound `n` (the member's, hidden; `readCheckedD`'s `authFloorD` relates it to `L₀`)
+dev KV_GetOn_dist.wp_proof <<< Nat ||| ServerRaftNames >>> binders: `γR`'s type
+dev KV_GetOn_dist.wp_proof <<< ci ||| L₀ : List EntryModel ) ( ctx >>> binders: the requested prefix `L₀`; the context is `ctx`
+dev KV_GetOn_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context's description `ctx_desc` (renamed); `om` moves (next)
+dev KV_GetOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: the outgoing metadata `om` (`outTokOk`'s)
+dev KV_GetOn_dist.wp_proof <<< sl ||| opts_sl >>> binders: the options' slice `opts_sl` (renamed)
+dev KV_GetOn_dist.wp_proof <<< gs ||| opts >>> the options `opts` (renamed)
+dev KV_GetOn_dist.wp_proof <<<  ||| , >>> premises: their start
+dev KV_GetOn_dist.wp_proof <<< F ||| ∀ a b >>> no floor binder `F` (the member's `srvApi.kvLogLb`, hidden); premise: the members' auth names distinct (more premises, a weaker axiom)
+dev KV_GetOn_dist.wp_proof <<< mvcc.Log ||| w64 , Γ.au a = Γ.au b → a = b >>> (the same premise)
+dev KV_GetOn_dist.wp_proof <<<  ||| → Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk >>> premises: auth on, the raft names the view's, and `outTokOk`: more premises, a weaker axiom
+dev KV_GetOn_dist.wp_proof <<< hsz : opSizeOk ( opGetModel key gs ||| principalOf cfg >>> the theorem's `hsz` as the pre's `⌜opSizeOk …⌝` (below); `outTokOk`'s principal
+dev KV_GetOn_dist.wp_proof <<< ) : ||| om → >>> `outTokOk`'s metadata
+dev KV_GetOn_dist.wp_proof <<< kvObjAtC ||| userClientAt cl >>> `kvObjAtC api conn [addr]` replaced by `userClientAt cl api eps V Γ cfg`
+dev KV_GetOn_dist.wp_proof <<< conn [ addr ] ∗ isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" ( etcdRangeSpecOn T E γr cid mid ) ∗ committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ||| eps V Γ cfg >>> the registration `isGrpcRpcMd addr … etcdRangeSpecOn`, the member's `committedAtLeast`, floor and published-auth lower bound replaced by the view's client (the members' address facts, `Serve_dist`'s auth-on premise; at `c = 0`, `n = 0` they are free)
+dev KV_GetOn_dist.wp_proof <<< ci ||| ctx >>> the context (renamed)
+dev KV_GetOn_dist.wp_proof <<<  ||| srvReqLogLb γR L₀ ∗ >>> the requested prefix `L₀` the caller holds (`clientOpAuOn`'s `srvReqLogLb`, at the cluster)
+dev KV_GetOn_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context and its description (renamed)
+dev KV_GetOn_dist.wp_proof <<< sl gs ||| opts_sl opts >>> the options (renamed)
+dev KV_GetOn_dist.wp_proof <<<  ||| ∧ ( rangeWireOf ( opGetModel key opts ) ) .base.serializable = false >>> linearizable only: the theorem's `serializable = false` disjunct's fact as an unconditional premise (a stronger premise, a weaker axiom)
+dev KV_GetOn_dist.wp_proof <<<  ||| AU < { ∃∃ >>> `kvReadAu γr.kv Q` unfolded (`kvAu Γ.kv id Q`: the same AU, at `Γ.kv`)
+dev KV_GetOn_dist.wp_proof <<<  ||| σ : KVState ) , etcdKV Γ.kv σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV Γ.kv σ ∗ >>> (the same: `kvAu`'s text)
+dev KV_GetOn_dist.wp_proof <<< ( rangeWireOf ||| kvRoom σ ⌝ , COMM □ Q σ } > ) ∗ ⌜ opSizeOk >>> (the same: `kvAu`'s text); the theorem's `hsz` as the pre's `⌜opSizeOk …⌝`
+dev KV_GetOn_dist.wp_proof <<< ) .base.serializable = false |||  >>> the `serializable = false` fact moved to the premises (above)
+dev KV_GetOn_dist.wp_proof <<< ∗ kvReadAu γr.kv Q ) ) |||  >>> (the same: `kvReadAu`, unfolded above)
+dev KV_GetOn_dist.wp_proof <<< #sl ||| #opts_sl >>> the options' slice (renamed)
+dev KV_GetOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
+dev KV_GetOn_dist.wp_proof <<<  ||| ) ( σ : KVState ) >>> the post's state `σ` (the state of the log the request met, `kvStateOf x.log lt`; at auth on `kvModelOn`'s: `kvInvOn`)
+dev KV_GetOn_dist.wp_proof <<< rangeReplyOk E γr c F ||| □ Q σ ∗ ⌜ sint.Z >>> `rangeReplyOk E γr c F …` replaced by what it gives (`rangeAns_st`'s `rangeStOk`, mode-agnostic): `□ Q σ` (serializable is false), the read revision, the selection, the reply's revision `σ.rev`, `kvRevFits`, `kvLogOk σ`; not `m.count` (a weaker post)
+dev KV_GetOn_dist.wp_proof <<< cid mid Q m ∗ ∃ md , clientAttemptMd conn om md ∗ v3rpc.rangeAuthed T E γr c n ||| .base.rev ≤ >>> (the same); the read's check at some attempt's token (`v3rpc.rangeAuthed`) replaced by `readCheckedD` (below)
+dev KV_GetOn_dist.wp_proof <<< auth.mdTokenOf md ||| σ.rev : Int >>> (the same: the read revision at most `σ.rev`)
+dev KV_GetOn_dist.wp_proof <<<  ||| ∧ txn.srvRangeOk >>> (the same: the selection)
+dev KV_GetOn_dist.wp_proof <<< gs ||| opts ) ) ( σ.at ( σ.readRev ( rangeWireOf ( opGetModel key opts ) ) .base.rev ) ) .kvs m.kvs m.more ∧ m.hdr.revision = W64 ( σ.rev : Int ) ∧ kvRevFits σ.rev ∧ kvLogOk σ ⌝ ∗ readCheckedD eps Γ γR ( principalOf cfg ) L₀ ( rangeWireOf ( opGetModel key opts >>> (the same: `rangeStOk`'s facts); `rangeAuthed` at the cluster: `readCheckedD` (the member that served it, at its published auth index above the floor `authFloorD`, and `readAuthedD`), F7 S5/N1, re-reviewed `f7-getOn-n1.md` and `f7-s5-review.md`
 dev KV_GetOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
 dev KV_GetOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
 
@@ -476,31 +536,46 @@ dev Lease_GrantLive_dist.wp_proof <<< Q m ||| ⌜ m.id ≠ W64 0 ⌝ ∗ ∃ ( i
 dev Lease_GrantLive_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
 dev Lease_GrantLive_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
 
-pair Lease_GrantOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseGrantOnDist.lean Lease_GrantOn_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Grant.lean lessor.Grant.spec
-dev Lease_GrantOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
-dev Lease_GrantOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
-dev Lease_GrantOn_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
-dev Lease_GrantOn_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
-dev Lease_GrantOn_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
-dev Lease_GrantOn_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
-dev Lease_GrantOn_dist.wp_proof <<< pbLeaseGrantRequest pbLeaseGrantResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
-dev Lease_GrantOn_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
-dev Lease_GrantOn_dist.wp_proof <<< LeaseGrantRespM → IProp GF ||| w64 ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( n₀ : Nat >>> binders: `mid`'s type; the configuration `cfg` (its principal), the member's raft names `γR`, the requested prefix `L₀` and the caller's auth index `n₀` (`client_lease_grant_on`'s)
-dev Lease_GrantOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` moved (below)
-dev Lease_GrantOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: `om`, moved
-dev Lease_GrantOn_dist.wp_proof <<<  ||| ( Q : w64 → KVState → IProp GF ) >>> binders: the caller's update result `Q` (per lease id, `writeAuD`'s)
-dev Lease_GrantOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, revocable lease mode, `outTokOk` (no token of the caller's own), the members' auth names (`Γ.au`, F7 F1) and lessor names (`Γ.ls`, F2) distinct; more premises: a weaker axiom; `γR` the view's raft
-dev Lease_GrantOn_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ||| leaseUserAt cl lp ep V Γ mid cfg >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseUserAt`: `leaseClientAt` and the configuration `cfg`)
-dev Lease_GrantOn_dist.wp_proof <<< ∗ □ ▷ attemptPre conn om Spec ( ttl , W64 0 ) Q |||  >>> the registration's `attemptPre` (replaced, with the service spec, by the update below)
-dev Lease_GrantOn_dist.wp_proof <<<  ||| ∗ srvReqLogLb γR L₀ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n₀ ∗ □ ( ∀ id : w64 , writeAuD Γ.kv ( principalOf cfg ) ( .leaseGrant id ttl ) L₀ ( Q id ) >>> `client_lease_grant_on`'s premises at `γl := Γ.ls mid`: the requested prefix, the member's published auth index, and the grant's update persistent at every id (`writeAuD`: resent after a token refresh)
+# (2026-11-27, notes/axiom-review/onpairs-deleteon.md) paired with its in-process AUTH-ON contract, the proved
+# theorem `client.client_lease_grant_on` (`ResultsOn.lean`), not the auth-off spec (onrevlb-weakening.md's blind spot).
+pair Lease_GrantOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseGrantOnDist.lean Lease_GrantOn_dist.spec Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean client_lease_grant_on
+dev Lease_GrantOn_dist.wp_proof <<<  ||| : Prop := ∀ [ π : NetProtoGS ] >>> the abbrev's head: the theorem's binders as the ∀'s; the net extension's protocol ghost state (the address facts are over it)
+dev Lease_GrantOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `*lessor` `lp` (`leaseUserAt`) in place of the lessor `l` over `conn`
+dev Lease_GrantOn_dist.wp_proof <<< addr ||| ep >>> binders: the member's endpoint `ep` in place of the registered address `addr`
+dev Lease_GrantOn_dist.wp_proof <<< T ||| V >>> binders: the client's environment `V` in place of the server's TLS identity `T`
+dev Lease_GrantOn_dist.wp_proof <<< IProp GF ) [ Persistent T ] ( E : apply.AEnv ||| WEnv >>> binders: `V`'s type; no `[Persistent T]`, no apply environment `E` (the member's, hidden behind the view)
+dev Lease_GrantOn_dist.wp_proof <<< ρ ||| Γ >>> binders: the cluster's view `Γ` in place of the request names `ρ` (`ρ.kv` is `Γ.kv`)
+dev Lease_GrantOn_dist.wp_proof <<< ReqNames ||| DistView >>> binders: `Γ`'s type
+dev Lease_GrantOn_dist.wp_proof <<< γl ||| mid >>> binders: the member `mid` in place of its lessor names `γl` (`Γ.ls mid`)
+dev Lease_GrantOn_dist.wp_proof <<< GName ||| w64 >>> binders: `mid`'s type
+dev Lease_GrantOn_dist.wp_proof <<< ci ||| cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( n₀ : Nat ) ( ctx >>> binders: the configuration `cfg` (its principal), the raft names `γR`, the requested prefix `L₀`, the auth index lower bound `n₀` (the theorem's `n`); the context is `ctx`
+dev Lease_GrantOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` and `n` reordered (`n` is `n₀`, above)
+dev Lease_GrantOn_dist.wp_proof <<< n ||| om >>> (the same)
+dev Lease_GrantOn_dist.wp_proof <<< Nat ||| GrpcMd >>> (the same)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| , ( ∀ a b >>> premises: the members' auth names distinct (more premises, a weaker axiom)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| w64 , Γ.au a = Γ.au b → a = b ) → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> premises: auth and lease names distinct, auth on, revocable leases, the raft names the view's, `outTokOk`: more premises, a weaker axiom
+dev Lease_GrantOn_dist.wp_proof <<< lessorRemoteAtC l conn [ addr ] ∗ auth.authPubLbM E.authMode n ∗ isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" ( etcdLeaseGrantSpecOn T E ρ γl ) ||| leaseUserAt cl lp ep V Γ mid cfg >>> `lessorRemoteAtC` and the registration `isGrpcRpcMd addr … etcdLeaseGrantSpecOn` replaced by `leaseUserAt` (member `mid`'s address facts, `Serve_dist`'s auth-on premise); `authPubLbM` moved (below)
+dev Lease_GrantOn_dist.wp_proof <<< ci ||| ctx >>> the context (renamed)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| ∗ srvReqLogLb γR L₀ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n₀ >>> the requested prefix `L₀` (`clientOpAuOn`'s `srvReqLogLb`, at the cluster), and the theorem's `authPubLbM E.authMode n` at member `mid`'s auth names
+dev Lease_GrantOn_dist.wp_proof <<< clientOpAuOn T E ρ conn om ||| writeAuD Γ.kv ( principalOf cfg ) >>> `clientOpAuOn T E ρ conn om` replaced by `writeAuD Γ.kv (principalOf cfg)` (its grant `opGrantD` at the principal)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| L₀ >>> `writeAuD`'s prefix `L₀`
 dev Lease_GrantOn_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
 dev Lease_GrantOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
-dev Lease_GrantOn_dist.wp_proof <<< ) ( h : Loc ) |||  >>> binders: the header's `h` (its fact dropped, below)
-dev Lease_GrantOn_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
-dev Lease_GrantOn_dist.wp_proof <<<  ||| ⌜ m.id ≠ W64 0 ⌝ ∗ ( ∃ ( i : Nat ) ( l : Loc ) , lease.leaseLiveFrom ( Γ.ls mid ) i m.id l ∗ lease.leaseReqIs ( Γ.ls mid ) m.id ttl ) ∗ ( ∃ σ : KVState , >>> `Lease_GrantLive_dist`'s reply (`etcdLeaseGrantSpecLiveW` at `Γ.ls mid`), and the update's result
-dev Lease_GrantOn_dist.wp_proof <<< m ||| m.id σ ) ∗ ∃ n : Nat , ⌜ n₀ ≤ n ⌝ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n ∗ leaseCheckD ( Γ.au mid ) ( principalOf cfg ) n ( fun _ => iprop ( True ) ) >>> `Q m.id σ`, and member `mid`'s own check (`requireAuthInfo`'s, `leaseCheckD … True`, binding `P = some info.Username'`) at its published index `n ≥ n₀`
-dev Lease_GrantOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
-dev Lease_GrantOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+dev Lease_GrantOn_dist.wp_proof <<< ) ( h : Loc ) |||  >>> no header location `h` (a weaker post)
+dev Lease_GrantOn_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> no header facts (a weaker post)
+dev Lease_GrantOn_dist.wp_proof <<< etcdReached ( EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn ) m.hdr.revision ∗ |||  >>> no `etcdReached` of the reply's revision (a weaker post; no revision fact claimed)
+dev Lease_GrantOn_dist.wp_proof <<< lo ||| l >>> the lease's location (renamed)
+dev Lease_GrantOn_dist.wp_proof <<< γl ||| ( Γ.ls mid ) >>> the lessor names `γl` are member `mid`'s, `Γ.ls mid`
+dev Lease_GrantOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
+dev Lease_GrantOn_dist.wp_proof <<< md ||| σ : KVState >>> `leaseGrantResT` (at `E.authOn = true`) gives `Q m.id` at the `kvModelOn` state after its `L`: here `∃ σ, Q m.id σ` (its `hdrBoundT`, `pubAfterM` dropped: a weaker post)
+dev Lease_GrantOn_dist.wp_proof <<< clientAttemptMd conn om md ||| Q m.id σ ) >>> (the same)
+dev Lease_GrantOn_dist.wp_proof <<< v3rpc.leaseGrantResT E.authOn T E ρ ||| ∃ n : Nat , ⌜ n₀ ≤ n ⌝ ∗ auth.authPubLbM >>> (the same); `leaseCheckFrom … n` at some `n ≥ n₀` with its `authPubLbM` (at `n = n₀`, the pre's)
+dev Lease_GrantOn_dist.wp_proof <<< auth.mdTokenOf md ||| .on ( Γ.au mid >>> (the same: member `mid`'s auth names)
+dev Lease_GrantOn_dist.wp_proof <<< ttl m.id Q ||| ) n >>> (the same)
+dev Lease_GrantOn_dist.wp_proof <<< leaseCheckFrom T E ||| leaseCheckD >>> `leaseCheckFrom` at the cluster: `leaseCheckD` (the token's binding `principalBound` replaced by the principal `cfg`'s, via `outTokOk`; F7/F9, `f9-auth-combined-review.md`)
+dev Lease_GrantOn_dist.wp_proof <<< auth.mdTokenOf md ||| Γ.au mid ) ( principalOf cfg >>> (the same: `leaseCheckD`'s auth names and principal in place of the attempt's token)
+dev Lease_GrantOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr` (a weaker post)
+dev Lease_GrantOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `statusErrOk` (nothing claimed of a remote call's error; a weaker post)
 
 pair Lease_Grant_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseGrantDist.lean Lease_Grant_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Grant.lean lessor.Grant.spec
 dev Lease_Grant_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
@@ -605,30 +680,40 @@ dev Lease_LeasesOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-
 dev Lease_LeasesOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
 dev Lease_LeasesOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
 
-pair Lease_RevokeOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseRevokeOnDist.lean Lease_RevokeOn_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Revoke.lean lessor.Revoke.spec
-dev Lease_RevokeOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
-dev Lease_RevokeOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
-dev Lease_RevokeOn_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
-dev Lease_RevokeOn_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
-dev Lease_RevokeOn_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
-dev Lease_RevokeOn_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
-dev Lease_RevokeOn_dist.wp_proof <<< pbLeaseRevokeRequest pbLeaseRevokeResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
-dev Lease_RevokeOn_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
-dev Lease_RevokeOn_dist.wp_proof <<< LeaseRevokeRespM → IProp GF ||| w64 ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( n₀ : Nat >>> binders: `mid`'s type; the configuration `cfg` (its principal), the member's raft names `γR`, the requested prefix `L₀` and the caller's auth index `n₀` (`client_lease_revoke_on`'s)
-dev Lease_RevokeOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` moved (below)
-dev Lease_RevokeOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: `om`, moved
-dev Lease_RevokeOn_dist.wp_proof <<<  ||| ( Q : KVState → IProp GF ) >>> binders: the caller's update result `Q` (`writeAuD`'s)
-dev Lease_RevokeOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, revocable lease mode, `γR` the view's raft, `outTokOk` (no token of the caller's own), the members' auth names distinct (`Γ.au`, F7 F1); more premises: a weaker axiom
-dev Lease_RevokeOn_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ||| leaseUserAt cl lp ep V Γ mid cfg >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseUserAt`: `leaseClientAt` and the configuration `cfg`)
-dev Lease_RevokeOn_dist.wp_proof <<< ∗ □ ▷ attemptPre conn om Spec id Q |||  >>> the registration's `attemptPre` (replaced, with the service spec, by the update below)
-dev Lease_RevokeOn_dist.wp_proof <<<  ||| ∗ srvReqLogLb γR L₀ ∗ auth.authPubLbM ( .on ( Γ.au mid >>> `client_lease_revoke_on`'s premises: the requested prefix and member `mid`'s published auth index
-dev Lease_RevokeOn_dist.wp_proof <<<  ||| ) n₀ ∗ writeAuD Γ.kv ( principalOf cfg ) ( .leaseRevoke id ) L₀ Q >>> the revoke's update, persistent (`writeAuD`: a write through raft, resent after a token refresh)
+# (2026-11-27, notes/axiom-review/onpairs-deleteon.md) paired with its in-process AUTH-ON contract, the proved
+# theorem `client.client_lease_revoke_on` (`ResultsOn.lean`), not the auth-off spec (onrevlb-weakening.md's blind spot).
+pair Lease_RevokeOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseRevokeOnDist.lean Lease_RevokeOn_dist.spec Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean client_lease_revoke_on
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| : Prop := ∀ [ π : NetProtoGS ] >>> the abbrev's head: the theorem's binders as the ∀'s; the net extension's protocol ghost state (the address facts are over it)
+dev Lease_RevokeOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `*lessor` `lp` (`leaseUserAt`) in place of the lessor `l` over `conn`
+dev Lease_RevokeOn_dist.wp_proof <<< addr ||| ep >>> binders: the member's endpoint `ep` in place of the registered address `addr`
+dev Lease_RevokeOn_dist.wp_proof <<< T ||| V >>> binders: the client's environment `V` in place of the server's TLS identity `T`
+dev Lease_RevokeOn_dist.wp_proof <<< IProp GF ) [ Persistent T ] ( E : apply.AEnv ||| WEnv >>> binders: `V`'s type; no `[Persistent T]`, no apply environment `E` (the member's, hidden behind the view)
+dev Lease_RevokeOn_dist.wp_proof <<< ρ ||| Γ >>> binders: the cluster's view `Γ` in place of the request names `ρ` (`ρ.kv` is `Γ.kv`)
+dev Lease_RevokeOn_dist.wp_proof <<< ReqNames ||| DistView >>> binders: `Γ`'s type
+dev Lease_RevokeOn_dist.wp_proof <<< ci ||| mid : w64 ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( n₀ : Nat ) ( ctx >>> binders: the member `mid`, the configuration `cfg` (its principal), the raft names `γR`, the requested prefix `L₀`, the auth index lower bound `n₀` (the theorem's `n`); the context is `ctx`
+dev Lease_RevokeOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` and `n` reordered (`n` is `n₀`, above)
+dev Lease_RevokeOn_dist.wp_proof <<< n ||| om >>> (the same)
+dev Lease_RevokeOn_dist.wp_proof <<< Nat ||| GrpcMd >>> (the same)
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| , ( ∀ a b >>> premises: the members' auth names distinct (more premises, a weaker axiom)
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> premises: auth names distinct, auth on, revocable leases, the raft names the view's, `outTokOk`: more premises, a weaker axiom
+dev Lease_RevokeOn_dist.wp_proof <<< lessorRemoteAtC l conn [ addr ] ∗ auth.authPubLbM E.authMode n ∗ isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" ( etcdLeaseRevokeSpecOn T E ρ ) ||| leaseUserAt cl lp ep V Γ mid cfg >>> `lessorRemoteAtC` and the registration `isGrpcRpcMd addr … etcdLeaseRevokeSpecOn` replaced by `leaseUserAt` (member `mid`'s address facts, `Serve_dist`'s auth-on premise); `authPubLbM` moved (next)
+dev Lease_RevokeOn_dist.wp_proof <<< ci ||| ctx >>> the context (renamed)
+dev Lease_RevokeOn_dist.wp_proof <<< □ clientOpAuOn T E ρ conn om ||| srvReqLogLb γR L₀ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n₀ ∗ writeAuD Γ.kv ( principalOf cfg ) >>> the requested prefix `L₀` (at the cluster) and the theorem's `authPubLbM` at member `mid`'s auth names; `□ clientOpAuOn T E ρ conn om` replaced by `writeAuD Γ.kv (principalOf cfg)` (persistent, its grant `opGrantD` at the principal)
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| L₀ >>> `writeAuD`'s prefix `L₀`
 dev Lease_RevokeOn_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
-dev Lease_RevokeOn_dist.wp_proof <<<  ||| ( ∃ σ : KVState , >>> the update's result `Q σ`
-dev Lease_RevokeOn_dist.wp_proof <<< m ||| σ ) ∗ writeCheckedD [ ep ] Γ γR ( principalOf cfg ) ( irrLeaseRevoke id ) L₀ ∗ ∃ n : Nat , ⌜ n₀ ≤ n ⌝ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n ∗ leaseCheckD ( Γ.au mid ) ( principalOf cfg ) n ( fun _ => iprop ( True ) ) >>> `Q σ` in place of `Q m`; the grant of `irrLeaseRevoke id` (`writeCheckedD`: the apply-time `checkLeasePuts`) and member `mid`'s `requireAuthInfo` (`leaseCheckD … True`, binding `P = some info.Username'`) at its published index `n ≥ n₀`
+dev Lease_RevokeOn_dist.wp_proof <<< etcdReached |||  >>> no `etcdReached` of the reply's revision (a weaker post; no revision fact claimed)
+dev Lease_RevokeOn_dist.wp_proof <<< EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn ||| ∃ σ : KVState , Q σ >>> (the same); `leaseRevokeResT` (at `E.authOn = true`) gives `Q` at the `kvModelOn` state after its `L`: here `∃ σ, Q σ`
+dev Lease_RevokeOn_dist.wp_proof <<< m.hdr.revision ||| ∗ writeCheckedD [ ep ] Γ γR ( principalOf cfg ) ( irrLeaseRevoke id ) L₀ >>> `leaseRevokeResT`'s grant (`grantedAt`, `hdrBoundT`, `pubAfterM`: `writeGrantOn`'s three, at `irrLeaseRevoke id`) at the cluster: `writeCheckedD`, as `KV_PutOn_dist`'s `writeGrantOn` → `writeCheckedD`
+dev Lease_RevokeOn_dist.wp_proof <<< md ||| n : Nat >>> `leaseCheckFrom … n` at some `n ≥ n₀` with its `authPubLbM` (at `n = n₀`, the pre's)
+dev Lease_RevokeOn_dist.wp_proof <<< clientAttemptMd conn om md ||| ⌜ n₀ ≤ n ⌝ >>> (the same; no attempt's metadata: the principal is `cfg`'s)
+dev Lease_RevokeOn_dist.wp_proof <<< v3rpc.leaseRevokeResT E.authOn T E ρ ||| auth.authPubLbM >>> (the same: `leaseRevokeResT` given above)
+dev Lease_RevokeOn_dist.wp_proof <<< auth.mdTokenOf md ||| .on ( Γ.au mid >>> (the same: member `mid`'s auth names)
+dev Lease_RevokeOn_dist.wp_proof <<< id Q ||| ) n >>> (the same)
+dev Lease_RevokeOn_dist.wp_proof <<< leaseCheckFrom T E ||| leaseCheckD >>> `leaseCheckFrom` at the cluster: `leaseCheckD` (the token's binding `principalBound` replaced by the principal `cfg`'s, via `outTokOk`; F7/F9, `f9-auth-combined-review.md`)
+dev Lease_RevokeOn_dist.wp_proof <<< auth.mdTokenOf md ||| Γ.au mid ) ( principalOf cfg >>> (the same: `leaseCheckD`'s auth names and principal in place of the attempt's token)
 dev Lease_RevokeOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
-dev Lease_RevokeOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
-dev Lease_RevokeOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+dev Lease_RevokeOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr` (a weaker post)
+dev Lease_RevokeOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `statusErrOk` (nothing claimed of a remote call's error; a weaker post)
 
 pair Lease_TimeToLiveOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseTimeToLiveOnDist.lean Lease_TimeToLiveOn_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__TimeToLive.lean lessor.TimeToLive.spec
 dev Lease_TimeToLiveOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
