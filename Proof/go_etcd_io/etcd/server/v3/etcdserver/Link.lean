@@ -2177,7 +2177,7 @@ theorem lease.lessor.wp_Stop :
     lease.lessor.Stop.spec (GF := GF) (hG := hG) :=
   lease.lessor.Stop.wp_proof
 
-theorem EtcdServer.wp_Cleanup [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_Cleanup :
     EtcdServer.Cleanup.spec (GF := GF) (hG := hG) :=
   EtcdServer.Cleanup.wp_proof lease.lessor.wp_Stop mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_shapes_law backend.backend.wp_Close
 
@@ -2245,7 +2245,7 @@ theorem EtcdServer.wp_processInternalRaftRequestOnce :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) :=
   EtcdServer.processInternalRaftRequestOnce.wp_proof EtcdServer.wp_getAppliedIndex EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext EtcdServer.wp_parseProposeCtxErr context.wp_ErrDone strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
 
-theorem EtcdServer.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_Compact :
     EtcdServer.Compact.spec (GF := GF) (hG := hG) :=
   EtcdServer.Compact.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Bool «attribute».wp_Int64 CompactionRequest.wp_GetPhysical CompactionRequest.wp_GetRevision EtcdServer.wp_Logger traceutil.wp_EnsureTrace EtcdServer.wp_processInternalRaftRequestOnce traceutil.Trace.wp_GetStartTime traceutil.Trace.wp_SetStartTime traceutil.Trace.wp_InsertStep traceutil.Trace.wp_LogIfLong mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_shapes_law traceutil.Trace.wp_AddField
 
@@ -2353,11 +2353,11 @@ theorem EtcdServer.wp_Term :
     EtcdServer.Term.spec (GF := GF) (hG := hG) :=
   EtcdServer.Term.wp_proof EtcdServer.wp_getTerm
 
-theorem EtcdServer.wp_newHeader [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_shapes_law EtcdServer.wp_Term EtcdServer.wp_Leader
 
-theorem EtcdServer.wp_LeaseLeases [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_LeaseLeases :
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaseLeases.wp_proof lease.lessor.wp_Leases EtcdServer.wp_checkLeaseLeases EtcdServer.wp_newHeader
 
@@ -2457,7 +2457,7 @@ theorem EtcdServer.wp_MendPeer :
     EtcdServer.MendPeer.spec (GF := GF) (hG := hG) :=
   EtcdServer.MendPeer.wp_proof rafthttp.Transport.wp_MendPeer
 
-theorem EtcdServer.wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_NewUberApplier :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) :=
   EtcdServer.NewUberApplier.wp_proof EtcdServer.wp_KV apply.wp_NewUberApplier
 
@@ -2725,7 +2725,7 @@ theorem EtcdServer.wp_doSerialize :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) :=
   EtcdServer.doSerialize.wp_proof traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx traceutil.Trace.wp_Step
 
-theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_Range :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
 
@@ -3049,7 +3049,7 @@ theorem lease.lessor.wp_Checkpoint :
     lease.lessor.Checkpoint.spec (GF := GF) (hG := hG) :=
   lease.lessor.Checkpoint.wp_proof lease.lessor.wp_shouldPersistCheckpoints lease.Lease.wp_persistTo lease.lessor.wp_isPrimary lease.lessor.wp_scheduleCheckpointIfNeeded
 
-theorem lease.lessor.wp_Revoke [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem lease.lessor.wp_Revoke :
     lease.lessor.Revoke.spec (GF := GF) (hG := hG) :=
   lease.lessor.Revoke.wp_proof lease.Lease.wp_Keys sort.StringSlice.wp_Sort schema.wp_UnsafeDeleteLease backend.backend.wp_BatchTx mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccBackend_isBackend_law_holds mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
 
@@ -3057,7 +3057,7 @@ theorem auth.authStore.wp_Recover :
     auth.authStore.Recover.spec (GF := GF) (hG := hG) :=
   auth.authStore.Recover.wp_proof auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision
 
-theorem EtcdServer.wp_applySnapshot [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_applySnapshot :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
   EtcdServer.applySnapshot.wp_proof wp_IsEmptySnap EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_Uint64 raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm storage.wp_OpenSnapshotBackend storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket consistentIndex.wp_SetBackend lease.lessor.wp_Recover EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook consistentIndex.wp_ConsistentIndex schema.wp_NewAlarmBackend v3alarm.AlarmStore.wp_Recover schema.wp_NewAuthBackend schema.wp_NewMembershipBackend membership.RaftCluster.wp_SetBackend backend.backend.wp_Close membership.RaftCluster.wp_Recover rafthttp.Transport.wp_RemoveAllPeers rafthttp.Transport.wp_AddPeer EtcdServer.wp_MemberID EtcdServer.wp_NewUberApplier lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot v3alarm.AlarmStore.wp_Get auth.authStore.wp_Recover traceutil.wp_TODO mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccW_alloc_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds
 
@@ -3065,7 +3065,7 @@ theorem notify.Notifier.wp_Notify :
     notify.Notifier.Notify.spec (GF := GF) (hG := hG) :=
   notify.Notifier.Notify.wp_proof
 
-theorem EtcdServer.wp_applyEntryNormal [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_applyEntryNormal :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply apply.uberApplier.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach EtcdServer.wp_MemberID mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
@@ -3109,11 +3109,11 @@ theorem EtcdServer.wp_applyConfChange :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyConfChange.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID membership.RaftCluster.wp_ValidateConfigurationChange membership.RaftCluster.wp_AddMember membership.RaftCluster.wp_PromoteMember membership.RaftCluster.wp_RemoveMember schema.membershipBackend.wp_MustSaveMemberToBackend schema.membershipBackend.wp_MustDeleteMemberFromBackend schema.membershipBackend.wp_MustReadMembersFromBackend storage.BackendHooks.wp_SetConfState consistentIndex.wp_ConsistentApplyingIndex rafthttp.Transport.wp_RemovePeer raftpb.ConfChange.wp_GetType raftpb.ConfChange.wp_GetNodeId encoding.json.wp_Unmarshal zap.Logger.wp_Error zap.wp_Bool zap.wp_Error
 
-theorem EtcdServer.wp_apply [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_apply :
     EtcdServer.apply.spec (GF := GF) (hG := hG) :=
   EtcdServer.apply.wp_proof zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetType EtcdServer.wp_applyEntryNormal EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId membership.RaftCluster.wp_Members mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
-theorem EtcdServer.wp_applyEntries [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_applyEntries :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply
 
@@ -3129,7 +3129,7 @@ theorem wp_verifyConsistentIndexIsLatest :
     verifyConsistentIndexIsLatest.spec (GF := GF) (hG := hG) :=
   verifyConsistentIndexIsLatest.wp_proof verify.wp_Verify raftpb.SnapshotMetadata.wp_GetIndex
 
-theorem EtcdServer.wp_snapshot [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_snapshot :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) :=
   EtcdServer.snapshot.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String EtcdServer.wp_KV mvcc.api.mvccApi_shapes_law MemoryStorage.wp_CreateSnapshot errors.wp_Is consistentIndex.wp_ConsistentIndex wp_verifyConsistentIndexIsLatest raftpb.SnapshotMetadata.wp_GetIndex zap.Logger.wp_Info zap.wp_Uint64 zap.wp_String zap.wp_Bool
 
@@ -3137,7 +3137,7 @@ theorem EtcdServer.wp_compactRaftLog :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) :=
   EtcdServer.compactRaftLog.wp_proof EtcdServer.wp_Logger MemoryStorage.wp_Compact errors.wp_Is zap.Logger.wp_Info zap.wp_Uint64 zap.Logger.wp_Debug
 
-theorem EtcdServer.wp_snapshotIfNeededAndCompactRaftLog [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_snapshotIfNeededAndCompactRaftLog :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) :=
   EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof EtcdServer.wp_shouldSnapshotToDisk EtcdServer.wp_shouldSnapshotToMemory EtcdServer.wp_snapshot EtcdServer.wp_compactRaftLog
 
@@ -3169,7 +3169,7 @@ theorem EtcdServer.wp_sendMergedSnap :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=
   EtcdServer.sendMergedSnap.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID types.ID.wp_String zap.wp_String snap.Message.wp_GetTo zap.wp_Int64 go_humanize.wp_Bytes zap.Logger.wp_Info EtcdServer.wp_GoAttach snap.Message.wp_CloseNotify zap.wp_Duration zap.Logger.wp_Warn
 
-theorem EtcdServer.wp_applyAll [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_applyAll :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog raftpb.Message.wp_GetTerm EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap raftpb.Message.wp_GetTo EtcdServer.wp_ReportSnapshot mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend.backend.wp_Snapshot storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
 
@@ -3217,7 +3217,7 @@ theorem raftNode.wp_apply :
     raftNode.apply.spec (GF := GF) (hG := hG) :=
   raftNode.apply.wp_proof
 
-theorem EtcdServer.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_run :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
   EtcdServer.run.wp_proof schedule.Scheduler.wp_Stop raftNode.wp_stop EtcdServer.wp_Cleanup storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccImage_stop_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
@@ -3233,7 +3233,7 @@ theorem raftNode.wp_ReadIndex :
     raftNode.ReadIndex.spec (GF := GF) (hG := hG) :=
   raftNode.ReadIndex.wp_proof
 
-theorem EtcdServer.wp_start [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_start :
     EtcdServer.start.spec (GF := GF) (hG := hG) :=
   EtcdServer.start.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64 wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With EtcdServer.wp_run EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex raftNode.wp_ReadState raftNode.wp_ReadIndex srvApi_wp_Status
 
@@ -3277,7 +3277,7 @@ theorem EtcdServer.wp_monitorDowngrade :
     EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG) :=
   EtcdServer.monitorDowngrade.wp_proof
 
-theorem EtcdServer.wp_Start [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_Start :
     EtcdServer.Start.spec (GF := GF) (hG := hG) :=
   EtcdServer.Start.wp_proof EtcdServer.wp_start EtcdServer.wp_GoAttach EtcdServer.wp_Logger EtcdServer.wp_adjustTicks EtcdServer.wp_publishV3 config.ServerConfig.wp_ReqTimeout EtcdServer.wp_purgeFile wp_monitorFileDescriptor EtcdServer.wp_monitorClusterVersions EtcdServer.wp_monitorStorageVersion read.Read.wp_LinearizableReadLoop EtcdServer.wp_monitorKVHash EtcdServer.wp_monitorCompactHash EtcdServer.wp_monitorDowngrade
 
@@ -3301,7 +3301,7 @@ theorem wp_firstOpLease :
     firstOpLease.spec (GF := GF) (hG := hG) :=
   firstOpLease.wp_proof RequestOp.wp_GetRequest PutRequest.wp_GetLease
 
-theorem EtcdServer.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem EtcdServer.wp_Txn :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) :=
   EtcdServer.Txn.wp_proof txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_IsTxnSerializable traceutil.Trace.wp_Step apply.wp_CheckTxnAuth txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer.wp_doSerialize context.wp_WithValue EtcdServer.wp_raftRequest proto.wp_Size apply.CheckTxnAuth.wp_lbW_linked
 
@@ -3753,11 +3753,11 @@ theorem lease.lessor.wp_ExpiredLeasesC :
     lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG) :=
   lease.lessor.ExpiredLeasesC.wp_proof
 
-theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_NewServer :
     NewServer.spec (GF := GF) (hG := hG) :=
   NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance srvApi_wp_Stop srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessorAt auth.wp_NewTokenProvider mvcc.api.mvccApi_New_wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccImage_fresh_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccStorageFor_rest_law_holds wp_newCorruptionChecker mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID membership.RaftCluster.wp_Version rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer rafthttp.peer.wp_stop rafthttp.remote.wp_stop mvcc.api.mvccApi_watchableStore_Close_wp_api schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket srvApi_wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_MemInitialState srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm srvApi_wp_MemEntries srvApi_wp_Step srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot backend.batchTxBuffered.wp_UnsafeDelete backend.backend.wp_LockForSafeRangeDelete backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut EtcdServer.wp_Compact lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get bootstrappedServer.wp_Close raftNode_of_StartNode_law_holds
 
-theorem wp_NewServerAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_NewServerAt :
     NewServer.specAt (GF := GF) (hG := hG) :=
   NewServer.wp_proofAt zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance srvApi_wp_Stop srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessorAt auth.wp_NewTokenProvider mvcc.api.mvccApi_New_wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccImage_fresh_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccStorageFor_rest_law_holds wp_newCorruptionChecker mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID membership.RaftCluster.wp_Version rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer rafthttp.peer.wp_stop rafthttp.remote.wp_stop mvcc.api.mvccApi_watchableStore_Close_wp_api schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket srvApi_wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_MemInitialState srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm srvApi_wp_MemEntries srvApi_wp_Step srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot backend.batchTxBuffered.wp_UnsafeDelete backend.backend.wp_LockForSafeRangeDelete backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut EtcdServer.wp_Compact lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get bootstrappedServer.wp_Close raftNode_of_StartNode_law_holds
 
@@ -3769,7 +3769,7 @@ theorem lease.wp_NewLessor :
     lease.NewLessor.spec (GF := GF) (hG := hG) :=
   lease.NewLessor.wp_proof lease.wp_newLessor
 
-theorem wp_NewServerR [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_NewServerR :
     NewServer.specR (GF := GF) (hG := hG) :=
   NewServer.wp_proofR zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance srvApi_wp_Stop srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.api.mvccApi_New_wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccImage_fresh_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccStorageFor_rest_law_holds wp_newCorruptionChecker mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID membership.RaftCluster.wp_Version rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer rafthttp.peer.wp_stop rafthttp.remote.wp_stop mvcc.api.mvccApi_watchableStore_Close_wp_api schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket srvApi_wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_MemInitialState srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm srvApi_wp_MemEntries srvApi_wp_Step srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot backend.batchTxBuffered.wp_UnsafeDelete lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get bootstrappedServer.wp_Close
 
@@ -3872,7 +3872,7 @@ theorem config.ServerConfig.wp_VerifyBootstrap :
     config.ServerConfig.VerifyBootstrap.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.VerifyBootstrap.wp_proof config.ServerConfig.wp_hasLocalMember h_config_ServerConfig__advertiseMatchesCluster config.wp_CheckDuplicateURL types.URLsMap.wp_String config.ServerConfig.wp_ShouldDiscover fmt.wp_Errorf
 
-theorem wp_bootstrapBackend [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_bootstrapBackend :
     bootstrapBackend.spec (GF := GF) (hG := hG) :=
   bootstrapBackend.wp_proof config.ServerConfig.wp_BackendPath h_etcdserver_bootstrapBackendExistFree wp_NewConsistentIndex storage.wp_NewBackendHooks storage.wp_OpenBackend consistentIndex.wp_SetBackend backend.backend.wp_BatchTx schema.wp_CreateMetaBucket consistentIndex.wp_ConsistentIndex zap.Logger.wp_Info zap.wp_Uint64 storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket mvcc.api.mvccApi_mvccW_alloc_law_holds h_etcdserver_bootstrapBackendMetaSnap
 
@@ -3884,7 +3884,7 @@ theorem wp_bootstrapCluster :
     bootstrapCluster.spec (GF := GF) (hG := hG) :=
   bootstrapCluster.wp_proof (wp_bootstrapNewClusterNoWAL h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
-theorem wp_bootstrap [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] :
+theorem wp_bootstrap [MemStorReg GF] :
     bootstrap.spec (GF := GF) (hG := hG) :=
   bootstrap.wp_proof h_etcdserver_bootstrapSnapshot (wp_bootstrapBackend h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapCluster h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapStorage h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (bootstrappedCluster.wp_Finalize h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapRaft h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) bootstrappedBackend.wp_Close h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist config.ServerConfig.wp_MemberDir config.ServerConfig.wp_WALDir config.ServerConfig.wp_PeerDialTimeout rafthttp.wp_NewRoundTripper go_humanize.wp_Bytes zap.Logger.wp_Warn zap.Logger.wp_Info zap.wp_Uint zap.wp_String zap.wp_Int' fmt.wp_ErrorfWrap
 

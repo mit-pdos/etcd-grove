@@ -37,7 +37,7 @@ variable [go_gctx : GoGlobalContext]
 /-- `etcd_restart_robust_single_process.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`). -/
 theorem etcd_restart_robust_single_process : etcd_restart_robust_single_process.spec := by
-  intro lctx sem package_sem cache_sem _ k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hbg₅ HbgR Hlow
+  intro lctx sem package_sem _ k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hbg₅ HbgR Hlow
     Haf Hbuq Hdbo HAs HDs HEnv Hfips Hprem₅ σ g Hfs HWal
   exact
     robust_of_single_below_init fun hf hg _ n κs t2 σ2 hn Hsteps =>

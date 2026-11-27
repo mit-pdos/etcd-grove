@@ -33,7 +33,7 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 /-- See the file header. -/
 abbrev compactor.runWatchLoop.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (c cl : Loc) (eps : List GoString) (V : client.WEnv GF) (γk : KVNames)
     (recorded : w64 → IProp GF) (γc : CompactorNames) (sc : GoChan) (γs : ChanNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (compactorCore c cl γk recorded γc ∗ compactorChanOk c sc γs ∗

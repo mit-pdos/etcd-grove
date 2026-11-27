@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev CompactRev.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (Ok : RespOk GF) (wch : Loc) (γ : EtcdWatchNames)
+  ∀ (Ok : RespOk GF) (wch : Loc) (γ : EtcdWatchNames)
     (c0 : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       isRespChan wch γ Ok ∗ etcdWatchConsumer γ 0 c0 }}

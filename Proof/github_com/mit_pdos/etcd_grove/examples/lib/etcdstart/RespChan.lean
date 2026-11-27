@@ -98,7 +98,7 @@ theorem respChan_recv_au (ch : Loc) (γ : EtcdWatchNames) (Ok : RespOk GF) (n : 
     ipureintro; simp [Hlen]
 
 /-- **Receiving from a watch channel** (`respChan_recv_au` as a triple). -/
-theorem wp_respChan_receive [go_etcd_io.etcd.cache.v3.Assumptions] (ch : Loc) (γ : EtcdWatchNames) (Ok : RespOk GF) (n : Nat)
+theorem wp_respChan_receive (ch : Loc) (γ : EtcdWatchNames) (Ok : RespOk GF) (n : Nat)
     (cursor : w64) :
     {{ isRespChan ch γ Ok ∗ etcdWatchConsumer γ n cursor }}
       (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch))
@@ -119,7 +119,7 @@ theorem wp_respChan_receive [go_etcd_io.etcd.cache.v3.Assumptions] (ch : Loc) (�
   iapply HΦ $$ %v %ok H
 
 /-- The clients' model's watch channel is one (its element `etcdWatchElem`). -/
-theorem isRespChan_of_etcdWatchChan [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
+theorem isRespChan_of_etcdWatchChan [EM : EtcdModel GF]
     (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) :
     isEtcdWatchChan (GF := GF) ch γ pfx ⊢ isRespChan ch γ (watchRespOk pfx) := by
   unfold isEtcdWatchChan isRespChan
