@@ -15,6 +15,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.Plog
+public import Proof.go_etcd_io.raft.v3.MaybeAppendIp
 
 @[expose] public section
 
@@ -112,7 +113,9 @@ abbrev raftLog.maybeAppend.spec : Prop :=
         -- (D22 S-d3a) and the ghost fields `SnpOk` reads
         SnpKeep ls ls' ∧
         -- (D22 S-d3b) `offsetInProgress` moved back only by a truncation (`TruncAt`)
-        (uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress)⌝ }}
+        -- (#33 S4) and, accepted, exactly where (`maybeAppendIp`)
+        ((uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress) ∧
+         (ok = true → ls'.inprogress = maybeAppendIp ls ents))⌝ }}
 
 end spec
 

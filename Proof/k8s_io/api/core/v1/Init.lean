@@ -1,6 +1,8 @@
 /-
 Package initialization of `k8s_io.api.core.v1`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact is `True`. Its initializer initializes its imports and runs the untranslated
 initializers of its variables (`X.init`, axioms of the translation), which the
@@ -14,7 +16,6 @@ public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
 public import Proof.k8s_io.apimachinery.pkg.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.types.Init
 public import Proof.k8s_io.apimachinery.pkg.util.intstr.Init
-public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -49,48 +50,5 @@ axiom opaqueInitsOk :
 
 end k8s_io.api.core.v1
 end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
-
-namespace k8s_io.api.core.v1
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.k8s_io.api.core.v1 get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.k8s_io.api.core.v1 }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.types.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.api.resource.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk SchemeGroupVersion.init (by mem_tac))
-  iframe Hown
-  is_pkg_init_finish
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.k8s_io.api.core.v1 get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.k8s_io.api.core.v1 }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end k8s_io.api.core.v1
-
-end init
 
 end Perennial

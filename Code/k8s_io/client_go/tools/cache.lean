@@ -215,7 +215,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ToListerWatcherWithContext_unfold : FuncUnfold ToListerWatcherWithContext [] ToListerWatcherWithContext.impl
   ToListWatcherWithWatchListSemantics_unfold : FuncUnfold ToListWatcherWithWatchListSemantics [] ToListWatcherWithWatchListSemantics.impl
   NewListWatchFromClient_unfold : FuncUnfold NewListWatchFromClient [] NewListWatchFromClient.impl
-  NewFilteredListWatchFromClient_unfold : FuncUnfold NewFilteredListWatchFromClient [] NewFilteredListWatchFromClient.impl
   NewShardedListWatch_unfold : FuncUnfold NewShardedListWatch [] NewShardedListWatch.impl
   NewIntegerResourceVersionMutationCacheWithOptions_unfold : FuncUnfold NewIntegerResourceVersionMutationCacheWithOptions [] NewIntegerResourceVersionMutationCacheWithOptions.impl
   NewIntegerResourceVersionMutationCache_unfold : FuncUnfold NewIntegerResourceVersionMutationCache [] NewIntegerResourceVersionMutationCache.impl
@@ -510,7 +509,6 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.ToListerWatcherWithContext_unfold
   Assumptions.ToListWatcherWithWatchListSemantics_unfold
   Assumptions.NewListWatchFromClient_unfold
-  Assumptions.NewFilteredListWatchFromClient_unfold
   Assumptions.NewShardedListWatch_unfold
   Assumptions.NewIntegerResourceVersionMutationCacheWithOptions_unfold
   Assumptions.NewIntegerResourceVersionMutationCache_unfold

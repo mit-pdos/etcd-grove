@@ -192,7 +192,8 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
          isCommitted γ (cprefix fp s) -∗
          ∃ fp', ⌜(FullOk s'.base fp' ∧ PlogWf s'.base s'.log ∧
                    TermsLe s' (fp' ++ s'.log)) ∧
-                  (s'.role ≠ .follower → fp' ++ s'.log = fp ++ s.log)⌝ ∗
+                  (s'.role ≠ .follower → fp' ++ s'.log = fp ++ s.log) ∧
+                  (γ.reBoot <+: fp ++ s.log → γ.reBoot.length ≤ (fp' ++ s'.log).length)⌝ ∗
            logRecs γ base0 fp' ∗
            commitIn γ (fp' ++ s'.log) s'.commit s'.term ∗
            isCommitted γ (cprefix fp' s') ∗
@@ -206,7 +207,7 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
   icases H with ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
   icases Hnew $$ %fp %Hfull Hfrecs Hcommit Hcmt with ⟨%fp', %Hfp', #Hfr', #Hc', #Hcmt', #Hh⟩
-  obtain ⟨Hfull', Hfeq⟩ := Hfp'
+  obtain ⟨Hfull', Hfeq, Hblen⟩ := Hfp'
   have Hevs' : EvsOk s'.term W := EvsOk_mono _ _ _ Hle Hevs
   ihave #Hacks' := acksOk_upd γ s s' W.acks Hle Hdown Hcm Hacks_term $$ Hkeep Hacks_ok
   ihave #Hkl' := klOk_step γ id s s' kl kl' Hkl $$ Hkl
@@ -279,7 +280,13 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
     imodintro
     iintro %k %u %Hk #Hk
     iapply Hh $$ %k.1 %k.2 %(Hacks_term k (by rw [show W.acks !! k = some u from Hk]; rfl)) Hk
-  have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z s'.commit := by omega
+  ihave #HrF' := logRecs_full γ s'.base fp' s'.log Hfull'.1 $$ Hfr' Hr'
+  icases logRecs_boot_prefix γ (fp' ++ s'.log) (full_wf _ _ _ Hfull'.1 Hfull'.2.1) $$ HrF'
+    with %Hbp'
+  have Hboot' : γ.reBoot <+: fp' ++ s'.log ∧
+      (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z s'.commit) :=
+    ⟨Hbp' (Hblen Hboot.1), fun h => by have := Hboot.2 h; omega⟩
+  iclear HrF'
   iexists γm, terms, fp', γw, wins
   iframe # ∗ <;> iframe %
 
@@ -458,7 +465,7 @@ theorem ownLogGhost_mono' (γ : RaftNames) (id : w64) (s s' : PState)
     isplitr
     · ipureintro
       rw [Hlog, Hbase]
-      refine ⟨⟨Hf, Hw, ?_⟩, fun _ => rfl⟩
+      refine ⟨⟨Hf, Hw, ?_⟩, fun _ => rfl, fun h => h.length_le⟩
       intro j x Hx
       obtain ⟨H1, H2⟩ := Ht j x Hx
       refine ⟨by omega, fun Hc => ?_⟩
@@ -804,7 +811,9 @@ theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : O
     (Or.inl ⟨rfl, Hte, fun h => by rw [← Hv]; exact h, fun h => absurd h Hnl⟩) $$ Hkl
   ihave #Hcmt' : isCommitted (GF := GF) γ (cprefix fp s') $$ []
   · unfold cprefix; rw [Hlg, Hc]; iexact Hcmt
-  have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z s'.commit := by rw [Hc]; exact Hboot
+  have Hboot' : γ.reBoot <+: fp ++ s'.log ∧
+      (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z s'.commit) := by
+    rw [Hlg, Hc]; exact Hboot
   iexists γm, terms, fp, γw, wins
   iframe # ∗ <;> iframe %
 
@@ -833,12 +842,13 @@ theorem boot_term_le (γ : RaftNames) (F : List EntryM) (T : w64) :
   omega
 
 variable [CrashGS GF] in
-/-- The bootstrap log in a node's full log (2026-10-16, stage R8b, D12): the commit index is
-past it (`ownLogGhost`'s conjunct), so, with the records, it is a prefix of the full log, and a
-non-empty one puts the term at `≥ 1` (`TermsLe`). -/
+/-- The bootstrap log in a node's full log (2026-10-16, stage R8b, D12): a prefix of the full log
+(`ownLogGhost`'s conjunct), and a non-empty one puts the term at `≥ 1` (`TermsLe`); in a traced
+cluster the commit index is past it (2026-11-26, #33 parity B1: only there). -/
 theorem ownLogGhost_boot (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : DurMaps) :
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗
-      ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit ∧ (γ.reBoot ≠ [] → 1 ≤ uint.Z s.term)⌝ ∗
+      ⌜(γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z s.commit) ∧
+        (γ.reBoot ≠ [] → 1 ≤ uint.Z s.term)⌝ ∗
       ∃ fp, ⌜FullOk s.base fp ∧ γ.reBoot <+: fp ++ s.log⌝ ∗ logRecs γ base0 fp := by
   unfold ownLogGhost
   iintro ⟨%γm, %terms, %fp, %γw, %wins, H⟩
@@ -846,17 +856,10 @@ theorem ownLogGhost_boot (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   have ⟨Hf, Hw, Htle⟩ := Hfull
   have HwF : PlogWf base0 (fp ++ s.log) := full_wf _ _ _ Hf Hw
   ihave #HrF0 := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
-  icases logRecs_boot_prefix γ (fp ++ s.log) HwF $$ HrF0 with %Hbp
-  have HLF := full_last_index _ _ s.log Hf
-  have Hbpre : γ.reBoot <+: fp ++ s.log := by
-    apply Hbp
-    have := Hlog_ok.2.2
-    rw [← HLF] at this
-    unfold plogLastIndexZ at this; rw [base0_index] at this
-    omega
+  have Hbpre : γ.reBoot <+: fp ++ s.log := Hboot.1
   icases boot_term_le γ (fp ++ s.log) s.term HwF Hbpre (fun j x Hx => (Htle j x Hx).1)
     $$ HrF0 with %Hbt
-  isplitr; · ipureintro; exact ⟨Hboot, Hbt⟩
+  isplitr; · ipureintro; exact ⟨Hboot.2, Hbt⟩
   iexists fp
   isplitr; · ipureintro; exact ⟨Hf, Hbpre⟩
   iexact Hfrecs
@@ -899,14 +902,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     | none => rfl
     | some _ => have := Hcamps_ok _ (by rw [h]; rfl); omega
   ihave #HrF0 := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
-  icases logRecs_boot_prefix γ (fp ++ s.log) HwF $$ HrF0 with %Hbp
-  have HLF := full_last_index _ _ s.log Hf
-  have Hbpre : γ.reBoot <+: fp ++ s.log := by
-    apply Hbp
-    have := Hlog_ok.2.2
-    rw [← HLF] at this
-    unfold plogLastIndexZ at this; rw [base0_index] at this
-    omega
+  have Hbpre : γ.reBoot <+: fp ++ s.log := Hboot.1
   icases boot_term_le γ (fp ++ s.log) s.term HwF Hbpre (fun j x Hx => (Htle j x Hx).1)
     $$ HrF0 with %Hbt
   have Hbterm : γ.reBoot ≠ [] → 2 ≤ uint.Z (s.term + W64 1) := fun Hne => by

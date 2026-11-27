@@ -34,6 +34,7 @@ public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 public import Proof.go_etcd_io.raft.v3.TracedNodeRun
+public import Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 
 @[expose] public section
 
@@ -167,9 +168,14 @@ theorem node.run.gated_of
       wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs $$ [$Hrn] as %b Hb
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
       · wp_auto
-        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp $$ [$Hrn]
+        -- (#33 S4) the node at its protocol state, outside the scope (`ownRawNode_at`)
+        icases ownRawNode_at γ.raft nv.rn' id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
+        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs ps qs ip none (fun _ h => by cases h) Hsteps Hunp $$ [$Hrn]
           as %rd' %ce %es %ms %sts %hrd %L H
         iNamed H
+        icases Hrn with ⟨%s, Hrn, -, -, -⟩
+        ihave Hrn : ownRawNodeReady γ.raft nv.rn' id rs rd' ce es ms false L $$ [Hrn]
+        · iunfold ownRawNodeReady; iexists s; iexact Hrn
         -- (D22 S-d4) with its snapshot, if any (`rdSnapOut`, the loan `L`)
         wp_join_done
         iexists nv.readyc', rd'
@@ -1121,8 +1127,14 @@ theorem node.run.gated_of
     iintro -
     wp_auto
     imod termLB_rb γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Hlb' with %Hrbr
-    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L
-      (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $HhhO] as %steps %ss2 ⟨#Hss2, %Hssn2, Hrn, Htoks⟩
+    -- (#33 S4) at the node's state, outside the scope
+    iunfold ownRawNodeReady at Hrn
+    icases Hrn with ⟨%s0, Hrn⟩
+    ihave Hsc0 := rnScopeAt_none (GF := GF) (γ := γ.raft) (id := id) { rs with bw := W } s0
+    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L s0 none (fun _ h => by cases h)
+      (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $Hsc0 $HhhO]
+      as %steps %ss2 %qs' %ip' ⟨#Hss2, %Hssn2, ⟨%fp0, Hrn⟩, Htoks, -⟩
+    ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
     -- (step 4) the deposit: the `Ready`'s tokens into the escrow, `run`'s half back at `none`
     imod rtk_depositG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk Htoks with Hrtk
     ihave %Hsse := softStateIs_agree rdv'.SoftState' ss ss2 Hssn1 Hssn2 $$ [$Hss1 $Hss2]

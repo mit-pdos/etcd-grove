@@ -646,7 +646,7 @@ theorem Work.wp_proof_dist
   wp_apply wp_keyOf go!"a" who go!"d"
   (try wp_auto)
   have hkd : keyOfK go!"a" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"a" who go!"d")
+  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"a" who go!"d") hkd
       (fun h => by
         obtain ⟨rfl, hr⟩ := akOpGranted_delete who _ hkd h
         exact opHistOk_delete_point _
@@ -687,7 +687,7 @@ theorem Work.wp_proof_dist
   wp_apply wp_keyOf go!"c" who go!"d"
   (try wp_auto)
   have hkc : keyOfK go!"c" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"c" who go!"d")
+  wp_apply (work_deleteD wp_Delete cl api a V Γ cfg γR who γz hs Lset r ci cd (keyOfK go!"c" who go!"d") hkc
       
       (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _))
       (akDelete_sizeOkD hwho (by decide) (by decide)))

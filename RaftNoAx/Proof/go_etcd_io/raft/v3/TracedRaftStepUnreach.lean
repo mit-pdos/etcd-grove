@@ -85,7 +85,7 @@ theorem unreach_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {c
   have hnv : m.Type' ≠ MsgVote := fun h => by unr_absurd
   have hnp : m.Type' ≠ MsgProp := fun h => by unr_absurd
   have hself : s = { sendMsgs s [] with prvals := s.prvals } := by cases s; simp [sendMsgs]
-  obtain ⟨pvs0, hfn⟩ := (h hety).2.2.2 (fun h' => h'.1 hT0) hnh hnv
+  obtain ⟨pvs0, hfn⟩ := (h hety (by xtrec_tac)).2.2.2 (fun h' => h'.1 hT0) hnh hnv
   rw [hpre pvs0] at hfn
   obtain ⟨hf, hc, hl⟩ := hfn
   cases hr : s.role with
@@ -245,7 +245,7 @@ theorem stepBundle_traced_unreach : stepBundle_traced.on (GF := GF) (hG := hG) U
       (fun _ => CloseAt.of_ne (fun h => False.elim (by unr_absurd)))
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
-    obtain ⟨pvs, hpm, he⟩ := unreach_end hu hT0 (hend (by rw [htr]; rfl))
+    obtain ⟨pvs, hpm, he⟩ := unreach_end hu hT0 hend
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := unreach_simIdleS hpm he
     have hout : OutTrStep s s' :=
       OutTrStep.of_sub (fun x hx => by rw [he] at hx; simpa [sendMsgs] using hx)

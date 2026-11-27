@@ -240,7 +240,7 @@ set_option maxHeartbeats 800000 in
 theorem work_deleteD (wp_Delete : KV_DeleteOn_dist.spec (GF := GF) (hG := hG)) [NetProtoGS]
     (cl api : Loc) (a : GoString) (V : WEnv GF) (Γ : DistView) (cfg : go_etcd_io.etcd.client.v3.Config)
     (γR : ServerRaftNames) (who : GoString) (γz : GName) (hs : List auth.AuthState) (Lset : List EntryModel)
-    (r : Nat) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString)
+    (r : Nat) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString) (hk : k ≠ [])
     (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) →
       opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
     (hsz : opSizeOk (opDeleteModel k [])) :
@@ -274,9 +274,10 @@ theorem work_deleteD (wp_Delete : KV_DeleteOn_dist.spec (GF := GF) (hG := hG)) [
     iframe #
     isplitl []
     · ipureintro
-      refine ⟨?_, rfl, ?_⟩
+      refine ⟨?_, rfl, ?_, ?_⟩
       · simp [op_simps, opDeletePanics, opGetPanics, OpFull.deletePanics]
       · simp [op_simps, deleteWireOf, txn.deleteOpOf]
+      · rw [deleteWire_nil]; exact ⟨hk, Or.inl rfl⟩
     isplitl []
     · rw [deleteWire_nil]
       iexact Hw

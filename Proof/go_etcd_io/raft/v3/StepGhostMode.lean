@@ -747,9 +747,21 @@ instance certLink_persistent (γ : RaftNames) (sn : StorNames) :
 /-- (raft-final, 2026-10-29, U7: the design's §2.2) **The stamped transfer requests' witnesses**
 (persistent): every `(To, Term)` the node recorded in `NGhost.xw` (the stamped `MsgTransferLeader`s
 it queued, `XfOk`) has its destination leading at that term. What a `Ready` gives each such
-message (`isRaftMsg`'s transfer clause). -/
+message (`isRaftMsg`'s transfer clause). (antithesis parity B1, option (b)) And the timeout requests'
+witnesses (`xtW`). -/
+def xtW (γ : RaftNames) (s : NState) : IProp GF :=
+  iprop([∗map] p ↦ _u ∈ s.gh.xt, ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ p.1 p.2 i)
+
+/-- (antithesis parity B1, option (b)) **The timeout requests' witnesses** (persistent): every
+`(To, Term)` the node recorded in `NGhost.xt` (the `MsgTimeoutNow`s it queued, `XQOk`) has its
+destination's acknowledgement of an index past `0` at that term (durable, `isAcked`). What a `Ready`
+gives each such message (`isRaftMsg`'s timeout clause). -/
 def xfW (γ : RaftNames) (s : NState) : IProp GF :=
-  iprop([∗map] p ↦ _u ∈ s.gh.xw, isLeader γ p.1 p.2)
+  iprop(([∗map] p ↦ _u ∈ s.gh.xw, isLeader γ p.1 p.2) ∗ xtW γ s)
+
+variable [CrashGS GF] in
+instance xtW_persistent (γ : RaftNames) (s : NState) : Persistent (xtW (GF := GF) γ s) := by
+  unfold xtW; infer_instance
 
 variable [CrashGS GF] in
 instance xfW_persistent (γ : RaftNames) (s : NState) : Persistent (xfW (GF := GF) γ s) := by
@@ -980,6 +992,21 @@ theorem ownStepGhost_xferRefute (γ : RaftNames) (md : GMode) (c : CfgM) (id : w
     iexact H
 
 variable [CrashGS GF] in
+/-- (antithesis parity B1, option (b)) A big separating conjunction over a set of pairs, one more
+pair inserted. -/
+private theorem bigSepM_set_insert (Φ : w64 × w64 → Unit → IProp GF) (X : GSet (w64 × w64))
+    (p : w64 × w64) :
+    Φ p () ∗ ([∗map] q ↦ u ∈ X, Φ q u) ⊢ [∗map] q ↦ u ∈ (insert p X : GSet (w64 × w64)), Φ q u := by
+  by_cases hin : p ∈ X
+  · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 hin
+    have hid : (insert p X : GSet (w64 × w64)) = X :=
+      GMap.insert_id _ _ () (by cases u; exact hu)
+    rw [hid]
+    exact sep_elim_right
+  · exact (BigSepM.bigSepM_insert (PROP := IProp GF) (Φ := Φ) (m := X)
+      (i := p) (x := ()) (Option.not_isSome_iff_eq_none.1 hin)).2
+
+variable [CrashGS GF] in
 /-- Recording a witnessed pair in `NGhost.xw`. -/
 private theorem xfW_insert (γ : RaftNames) (s : NState) (p : w64 × w64) :
     isLeader (GF := GF) γ p.1 p.2 ∗ xfW γ s ⊢
@@ -987,16 +1014,63 @@ private theorem xfW_insert (γ : RaftNames) (s : NState) (p : w64 × w64) :
   unfold xfW
   have e : ({ s with gh := { s.gh with xw := insert p s.gh.xw } } : NState).gh.xw =
       (insert p s.gh.xw : GSet (w64 × w64)) := rfl
-  rw [e]
-  by_cases hin : p ∈ s.gh.xw
-  · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 hin
-    have hid : (insert p s.gh.xw : GSet (w64 × w64)) = s.gh.xw :=
-      GMap.insert_id _ _ () (by cases u; exact hu)
-    rw [hid]
-    exact sep_elim_right
-  · exact (BigSepM.bigSepM_insert (PROP := IProp GF)
-      (Φ := fun (q : w64 × w64) (_ : Unit) => isLeader (GF := GF) γ q.1 q.2) (m := s.gh.xw)
-      (i := p) (x := ()) (Option.not_isSome_iff_eq_none.1 hin)).2
+  have ex : xtW (GF := GF) γ ({ s with gh := { s.gh with xw := insert p s.gh.xw } } : NState) =
+      xtW γ s := rfl
+  rw [e, ex]
+  iintro ⟨#Hl, #Hw, #Ht⟩
+  isplitl []
+  · iapply bigSepM_set_insert (fun (q : w64 × w64) (_ : Unit) => isLeader (GF := GF) γ q.1 q.2)
+    isplitl []
+    · iexact Hl
+    · iexact Hw
+  · iexact Ht
+
+variable [CrashGS GF] in
+/-- (antithesis parity B1, option (b)) Recording a witnessed pair in `NGhost.xt`. -/
+private theorem xtW_insert (γ : RaftNames) (s : NState) (p : w64 × w64) :
+    (∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ p.1 p.2 i) ∗ xfW γ s ⊢
+      xfW γ { s with gh := { s.gh with xt := insert p s.gh.xt } } := by
+  unfold xfW xtW
+  have e : ({ s with gh := { s.gh with xt := insert p s.gh.xt } } : NState).gh.xt =
+      (insert p s.gh.xt : GSet (w64 × w64)) := rfl
+  have ew : ({ s with gh := { s.gh with xt := insert p s.gh.xt } } : NState).gh.xw = s.gh.xw := rfl
+  rw [e, ew]
+  iintro ⟨#Ha, #Hw, #Ht⟩
+  isplitl []
+  · iexact Hw
+  · iapply bigSepM_set_insert
+      (fun (q : w64 × w64) (_ : Unit) => iprop(∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ q.1 q.2 i))
+    isplitl []
+    · iexact Ha
+    · iexact Ht
+
+variable [CrashGS GF] in
+/-- (antithesis parity B1, option (b)) **Recording a timeout request**: a destination and term with
+its acknowledgement of an index past `0` (from the leader's `matchedOk` or an append response's
+`isMessage`), into `NGhost.xt`. What `raft.Step` does before a step that may send a `MsgTimeoutNow`
+(`send`'s clause (c)). -/
+theorem ownStepGhost_xt_record (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (p : w64 × w64) :
+    (∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ p.1 p.2 i) -∗ ownStepGhost (GF := GF) γ md c id s -∗
+      ownStepGhost γ md c id { s with gh := { s.gh with xt := insert p s.gh.xt } } := by
+  iintro #Ha H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hrest⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hn, Hm, #Hcl, #Hw, #Hx⟩
+  have hp : toPState { s with gh := { s.gh with xt := insert p s.gh.xt } } = toPState s := rfl
+  have hm : ghostRestM (GF := GF) γ md c id { s with gh := { s.gh with xt := insert p s.gh.xt } } =
+      ghostRestM γ md c id s := by cases md <;> rfl
+  iunfold ownStepGhost
+  rw [hp]
+  iframe Hg
+  iunfold ghostRest
+  rw [hm, hp]
+  isplitr
+  · ipureintro; exact Hn
+  iframe Hm Hcl Hw
+  iapply xtW_insert γ s p
+  iframe Ha Hx
 
 variable [CrashGS GF] in
 variable [CrashGS GF] in
@@ -1031,6 +1105,57 @@ theorem ownStepGhost_xw_record (γ : RaftNames) (md : GMode) (c : CfgM) (id : w6
   iframe Hm Hcl Hw
   iapply xfW_insert γ s (s.lead, s.term)
   iframe Hl2 Hx
+
+variable [CrashGS GF] in
+/-- (2026-11-24, #33 S4) **A transfer request recorded as stepped** (`NGhost.xs`): the step's ghost
+state reads nothing of it. What `raft.Step`'s transfer arm does before the step. -/
+theorem ownStepGhost_set_xs (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (b : Bool) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ownStepGhost γ md c id { s with gh := { s.gh with xs := b } } := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hrest⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hn, Hm, #Hcl, #Hw, #Hx⟩
+  have hp : toPState { s with gh := { s.gh with xs := b } } = toPState s := rfl
+  have hm : ghostRestM (GF := GF) γ md c id { s with gh := { s.gh with xs := b } } =
+      ghostRestM γ md c id s := by cases md <;> rfl
+  iunfold ownStepGhost
+  rw [hp]
+  iframe Hg
+  iunfold ghostRest
+  rw [hm, hp]
+  isplitr
+  · ipureintro; exact Hn
+  have hx : xfW (GF := GF) γ { s with gh := { s.gh with xs := b } } = xfW γ s := rfl
+  rw [hx]
+  iframe Hm Hcl Hw Hx
+
+variable [CrashGS GF] in
+/-- (antithesis parity B1, transfer source) **The forwarded requests' senders set** (`NGhost.xsrc`): the
+step's ghost state reads nothing of it. What `raft.Step`'s transfer arm does before the step. -/
+theorem ownStepGhost_set_xsrc (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (Z : GSet w64) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ownStepGhost γ md c id { s with gh := { s.gh with xsrc := Z } } := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hrest⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hn, Hm, #Hcl, #Hw, #Hx⟩
+  have hp : toPState { s with gh := { s.gh with xsrc := Z } } = toPState s := rfl
+  have hm : ghostRestM (GF := GF) γ md c id { s with gh := { s.gh with xsrc := Z } } =
+      ghostRestM γ md c id s := by cases md <;> rfl
+  iunfold ownStepGhost
+  rw [hp]
+  iframe Hg
+  iunfold ghostRest
+  rw [hm, hp]
+  isplitr
+  · ipureintro; exact Hn
+  have hx : xfW (GF := GF) γ { s with gh := { s.gh with xsrc := Z } } = xfW γ s := rfl
+  rw [hx]
+  iframe Hm Hcl Hw Hx
 
 variable [CrashGS GF] in
 /-- (D22 S-b′4) The mode is `γ`'s (`ownRaftGhost_mode`), read out. -/
@@ -1226,7 +1351,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   · ipureintro
     exact Hnl.step Hng.1 Hot
   rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
-    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW xtW; rw [Hng.1]]
   iframe Hcl Hx
 
 variable [CrashGS GF] in
@@ -1244,13 +1369,14 @@ theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {
     (hg : s'.gh.ns = s.gh.ns := by rfl) (hxw : s'.gh.xw = s.gh.xw := by rfl)
     (hld : s'.lead = s.lead := by rfl)
     (hst : s'.gh.sn = s.gh.sn := by rfl)
-    (htr : s'.gh.tr = s.gh.tr := by rfl) :
+    (htr : s'.gh.tr = s.gh.tr := by rfl)
+    (hxt : s'.gh.xt = s.gh.xt := by first | rfl | assumption) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
   have hn : NsLink γ s' = NsLink γ s := by
     have ho : s'.outbox = s.outbox := by
       have := congrArg PState.outbox hp; simpa only [toPState] using this
     unfold NsLink OutTr; rw [hg, htr, ho]
-  have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW; rw [hxw]
+  have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW xtW; rw [hxw, hxt]
   cases md with
   | static =>
     simp only [ownStepGhost, ghostRest, ghostRestM]; rw [hp, hn, hst, hx]
@@ -1274,11 +1400,12 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hst : s'.gh.sn = s.gh.sn := by rfl)
     -- (Q8 stage 1 slice 10) the trace mode kept, the outbox only drained (`NsLink`'s `OutTr`)
     (htr : s'.gh.tr = s.gh.tr := by rfl)
-    (hout : ∀ m ∈ s'.outbox, m ∈ s.outbox := by intro _ hm; first | exact hm | simp at hm) :
+    (hout : ∀ m ∈ s'.outbox, m ∈ s.outbox := by intro _ hm; first | exact hm | simp at hm)
+    (hxt : s'.gh.xt = s.gh.xt := by first | rfl | assumption) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
   have hn : NsLink γ s → NsLink γ s' := fun H =>
     ⟨by rw [hg]; exact H.1, by rw [htr]; exact H.2.1, fun m hm => H.2.2 m (hout m hm)⟩
-  have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW; rw [hxw]
+  have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW xtW; rw [hxw, hxt]
   have hlw : leadW (GF := GF) γ id (toPState s') = leadW γ id (toPState s) := by
     have hl' : (toPState s').lead = (toPState s).lead := by
       show (if s'.role = .preCandidate then W64 0 else s'.lead) =
@@ -1559,7 +1686,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
   · ipureintro
     exact Hnl.step Hng.1 Hot
   rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
-    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW xtW; rw [Hng.1]]
   iframe Hcl Hx
 
 end ghost

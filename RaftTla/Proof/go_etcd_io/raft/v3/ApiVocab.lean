@@ -29,6 +29,7 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
 public import RaftTla.Proof.go_etcd_io.raft.v3.InvStorage
 public import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 public import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.Protocol.RnMode
 public import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.Refinement
 public import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 public import RaftTla.Spec.google_golang_org.protobuf.proto.MarshalConfChange
@@ -124,7 +125,11 @@ here yet: `stepIn_intro` keeps it as a premise; `notes/raft-unified-plan.md`, "S
 track A (third)".) -/
 def SentMsgShape (st : MsgSt) : Prop :=
   st.msg.Type' ∈ sentShapeTypes ∧ st.msg.From' ≠ W64 0 ∧
-  (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+  -- (antithesis parity B1, paired with the unstamped types' term clause: positions kept) a transfer
+  -- message's other numbers zero and no rejection (raft builds both with only type, ends and term; a
+  -- forward keeps the received ones, `NetMsgOk`'s)
+  ((st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+    (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧ st.msg.Commit' = W64 0 ∧ st.msg.Reject' = false)) ∧
   (¬ (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgTransferLeader) →
      st.msg.Term' ≠ W64 0) ∧
   (st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgVoteResp → st.msg.Type' ≠ MsgPreVoteResp →
@@ -142,7 +147,7 @@ theorem SentMsgShape.ok {st : MsgSt} (H : SentMsgShape st) (hd : mtypeOf st.msg.
   obtain ⟨Hty, Hf, H0, H1, Hft, Hsh, -, Hrs⟩ := H
   have Hnt : st.msg.Type' ≠ MsgTimeoutNow := fun h => hd (by rw [h]; rfl)
   have Hnl : st.msg.Type' ≠ MsgTransferLeader := fun h => hd (by rw [h]; rfl)
-  refine ⟨?_, Hf, H0, fun h => H1 (fun h' => h (h'.imp_right (·.resolve_right Hnl))),
+  refine ⟨?_, Hf, H0.1, fun h => H1 (fun h' => h (h'.imp_right (·.resolve_right Hnl))),
     fun a b c d => Hft a b c Hnl d, Hsh, Hrs⟩
   simp only [sentShapeTypes, List.mem_append, List.mem_cons, List.not_mem_nil, _root_.or_false]
     at Hty
@@ -280,6 +285,11 @@ structure RNState [GooseExts] where
   tc : w64 := W64 0
   /-- The ghost state's mode (2026-10-14, reconfiguration stage B7 part 2), constant. -/
   mode : RNMode := .static
+  /-- (antithesis parity B1, 2026-11-25) The node's `Config` flags the end relations read (`NodeK`:
+  `PreVote`, `CheckQuorum`, `StepDownOnRemoval`), constant: `newRaft` copies them and nothing writes
+  them. Only the RawNode scope reads it (`rnScopeAt` ties it to the raft state's flags); the start
+  spec takes it from the `Config`. -/
+  k : NodeK := {}
   /-- In the dynamic mode, the configuration in use (with the learner flags; `confchange`'s
   state) and its *configuration index*: the configuration is that of the committed log's
   first `capplied` entries -- every conf entry below has been applied with `ApplyConfChange`.
@@ -438,7 +448,12 @@ def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
     ⌜SnapNotSelf id st⌝ ∗
     -- (auth-lease S4, 2026-11-16) none in the cluster's no-snapshot mode (`RaftNames.reNoSnap`;
     -- the sender's outbox holds none there, `LogNsOk`, `NsLink`)
-    ⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝)
+    ⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
+    -- (antithesis parity B1, 2026-11-26, option (b)) a `MsgTimeoutNow`'s destination acknowledged an
+    -- index past `0` at its term (durable, `isAcked`; from the sender's `xtW`): the receiver reads the
+    -- message's term as at most its own durable term (the Antithesis harness's `isAcked_term_le`)
+    □ (⌜st.msg.Type' = MsgTimeoutNow⌝ -∗
+      ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ st.msg.To' st.msg.Term' i))
 
 instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ id st) := by

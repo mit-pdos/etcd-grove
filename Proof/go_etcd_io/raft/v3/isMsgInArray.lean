@@ -33,9 +33,12 @@ theorem isMsgInArray.wp_proof : isMsgInArray.spec (GF := GF) (hG := hG) := by
     wp_apply wp_load_slice_index arr (sint.Z t) l DFrac.discard x Ht $$ [Harr] as -
     · iframe Harr; ipureintro; exact Hx
     iapply HΦ
-    itrivial
-  · iapply HΦ
-    itrivial
+    ipureintro; rw [Hx]; rfl
+  · ihave %Hlen := ownSlice_len $$ Harr
+    iapply HΦ
+    ipureintro
+    rw [List.getElem?_eq_none (by word)]
+    rfl
 
 end proof
 
