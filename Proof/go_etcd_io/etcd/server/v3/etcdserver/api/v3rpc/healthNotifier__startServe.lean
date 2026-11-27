@@ -57,6 +57,8 @@ theorem v3rpc.healthNotifier.startServe.wp_proof
   wp_apply (hInfo lg _ _)
   · iframe #
   (try wp_auto)
+  ihave #Phealth : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health $$ []
+  · iPkgInit
   wp_apply (hSet hs _ _)
   · iframe #
   iapply HΦ

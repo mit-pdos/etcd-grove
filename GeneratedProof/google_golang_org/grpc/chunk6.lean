@@ -8,6 +8,7 @@ public import GeneratedProof.google_golang_org.grpc.grpclog
 public import GeneratedProof.google_golang_org.grpc.internal
 public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
 public import GeneratedProof.google_golang_org.grpc.keepalive
+public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
@@ -20,6 +21,7 @@ public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.chunk1
 public import GeneratedProof.google_golang_org.grpc.chunk4
+public import GeneratedProof.google_golang_org.grpc.chunk5
 
 @[expose] public section
 

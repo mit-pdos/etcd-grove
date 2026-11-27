@@ -612,8 +612,6 @@ opaque lazyExtensionValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ExtensionField.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque errInvalidUTF8.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque mapInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque coderMessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -3587,22 +3585,33 @@ attribute [instance] ExtensionField.TypeAssumptions.type_repr
   ExtensionField.TypeAssumptions.method_set
   ExtensionField.TypeAssumptions.ptr_method_set
 
-opaque errInvalidUTF8.nonempty_type : NonemptyType.{0}
-def errInvalidUTF8 : Type := errInvalidUTF8.nonempty_type.type
-instance errInvalidUTF8.nonempty : Nonempty errInvalidUTF8 := errInvalidUTF8.nonempty_type.property
-opaque errInvalidUTF8.zero_val : ZeroVal errInvalidUTF8 := ⟨Classical.ofNonempty⟩
-attribute [instance] errInvalidUTF8.zero_val
+structure errInvalidUTF8 [GooseExts] where
+  mk ::
+
+noncomputable instance errInvalidUTF8.zero_val [GooseExts] : ZeroVal errInvalidUTF8 :=
+  ⟨errInvalidUTF8.mk⟩
+
+@[reducible] noncomputable def errInvalidUTF8.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  []
+
+@[irreducible] noncomputable def errInvalidUTF8.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  errInvalidUTF8.fieldsUnsealed
+
+noncomputable instance equals_unfold_errInvalidUTF8 [GooseExts] [GoGlobalContext] :
+    EqualsUnfold errInvalidUTF8.fields errInvalidUTF8.fieldsUnsealed :=
+  ⟨by unfold errInvalidUTF8.fields; rfl⟩
+
+@[reducible] noncomputable def errInvalidUTF8.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType errInvalidUTF8.fields)
 
 class errInvalidUTF8.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errInvalidUTF8.underlying errInvalidUTF8
   underlying : go.UnderlyingDirectedEq errInvalidUTF8.ty errInvalidUTF8.underlying
-  isUnderlying : go.IsUnderlying errInvalidUTF8.underlying errInvalidUTF8.underlying
   method_set : go.MethodSetIs errInvalidUTF8.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"InvalidUTF8", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType errInvalidUTF8.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"InvalidUTF8", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] errInvalidUTF8.TypeAssumptions.type_repr
   errInvalidUTF8.TypeAssumptions.underlying
-  errInvalidUTF8.TypeAssumptions.isUnderlying
   errInvalidUTF8.TypeAssumptions.method_set
   errInvalidUTF8.TypeAssumptions.ptr_method_set
 

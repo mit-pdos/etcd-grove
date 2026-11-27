@@ -1,0 +1,11 @@
+# (grpc-mem, 2026-11-26) What `mem`'s initializer runs, with the bodies:
+# `NewBinaryTieredBufferPool` and `newBinaryTiered` (with the model's `compactExponents`, `MODEL:`,
+# for `slices.Compact`), the sized pools they build (`newSizedBufferPool`); this package's own
+# initializer: `init` (the hook `internal.SetBufferPoolingThresholdForTesting`) and the variables
+# `BufferPoolingThreshold` and `uintSize`. The rest: types and names only.
+translate = ["!*", "init.0", "BufferPoolingThreshold", "uintSize", "NewBinaryTieredBufferPool",
+  "newBinaryTiered", "compactExponents", "newSizedBufferPool"]
+imports = ["!*", "fmt", "math/bits", "slices", "sync", "google.golang.org/grpc/internal"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
