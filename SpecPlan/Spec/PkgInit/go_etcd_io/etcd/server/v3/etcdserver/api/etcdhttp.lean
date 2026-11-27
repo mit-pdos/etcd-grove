@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 
 @[expose] public section
 noncomputable section
