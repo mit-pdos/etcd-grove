@@ -67,7 +67,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.
 the slot): the fields (`n.hs` at `hsl`, the caller's: `drain` compares it with the `Ready`'s hard
 state), the kill fields alive, the view fragment, the disk at `dk` against the view and against `D`
 (`StorageHolds`), the storage, the term bounds, the bookkeeping (`nodeMemB2` at `rs`'s hard state and
-durable state), `n.hs` the view's disk's (synchronous storage), the role, `applied`, the
+durable state), `n.hs` the view's disk's and the disk the view's (synchronous storage), the role, `applied`, the
 configuration, the reads, the sent lists' lower bounds, the cause cell. -/
 def loopRestB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (net₀ : List Msg)
     (xnet₀ : List XMsg) (rs : RNState) (x : CrashNames) (g : Nat) (D : RaftState) (hsl : Loc) :
@@ -86,7 +86,7 @@ def loopRestB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView
     nodeMemB2 γ j n v x g rs.phs rs.dur D false none ∗
     hsRO hsl hn ∗
     ⌜v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length ∧ rs.k = γ.R.k j ∧
-      (γ.mode.Async' = false → hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit)⌝ ∗
+      (γ.mode.Async' = false → hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit ∧ dk = v.dur)⌝ ∗
     csPts csl DFrac.discard (ConfStateM.mk (votersW γ.toAntNames) [] [] [] false) false ∗
     readsOwn γ.toAntNames v ∗ ⌜v.conf = γ.R.c0⌝ ∗
     sentLb γ.toAntNames net₀ ∗ xsentLb γ.toAntNames xnet₀ ∗ causeOwn γ.toAntNames j v cl)
