@@ -38,7 +38,10 @@ Batch 2: the pure layer (`copyBytes`, `toHeader`/`fromHeader`, the 16 conversion
 bounds), over `Proof/.../hraftnet/rpctransport/Wire.lean`. Batch 3: `Conn` (`NewConn`, `get`, `drop`, `Call`
 over Net's `DialTimeout`, `rpc_register`, `NewClient`, `Client.Go`, `Close`, `time.After`;
 `rpctransport/Conn.lean`), with kit change 3. Left: the codec laws (the generated codec's encodings and
-decodings of the wire structs), the transport's methods and `New`, the receiver
+decodings of the wire structs: stated as `CodecLaws` in `rpctransport/CodecLaws.lean`, round trips over
+the pure encodings of `WireEnc.lean`, to prove of the generated codec), the transport's methods and `New`
+(over the service spec `raftSvc` of `rpctransport/Facts.lean`: the lab's message facts over wire values),
+the receiver
 (`RaftRPC`, `deliver`), the pipeline, and the link.
 
 ## Provenance
