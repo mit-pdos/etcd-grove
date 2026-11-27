@@ -29,13 +29,13 @@ then the term `t` stored with it, and writes them: the meta keys become `metaAft
 and the pair has the client's predicate (`γ.P k t`, for a non-zero `k`); until then the post was
 for any `t`. -/
 abbrev consistentIndex.UnsafeSave.spec : Prop :=
-  ∀ (ci : Loc) (γ : CINames) (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF)
+  ∀ (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF)
     (m : MetaCI),
   ⊢ ∀ Φ : val → IProp GF,
-    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt) -∗
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ P ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt) -∗
     (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ k ={∅, ⊤ \ ↑ciN}=∗
       ⌜k ≠ W64 0 → uint.Z m.1 ≤ uint.Z k⌝ ∗
-        ∀ t : w64, ⌜k ≠ W64 0 → γ.P k t⌝ -∗ TM (metaAfterSave m k t) -∗ Φ #())) -∗
+        ∀ t : w64, (⌜k = W64 0⌝ ∨ □ P k t) -∗ TM (metaAfterSave m k t) -∗ Φ #())) -∗
     WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave")) (Val #(GoInterface.ok tx))) {{ Φ }}
 
 end spec
