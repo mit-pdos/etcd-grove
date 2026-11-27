@@ -6,8 +6,8 @@ package initializer the dist package's.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.GetCheck
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheBase
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheGetCheck
 
 @[expose] public section
 

@@ -13,7 +13,8 @@ over the keys of every lease of a listing at an index from `m` on (`Leases`). `f
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Env
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseEnv
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
 
 @[expose] public section
 

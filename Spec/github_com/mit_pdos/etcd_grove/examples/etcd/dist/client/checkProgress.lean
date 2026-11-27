@@ -6,7 +6,7 @@ dist package's.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheBase
 
 @[expose] public section
 

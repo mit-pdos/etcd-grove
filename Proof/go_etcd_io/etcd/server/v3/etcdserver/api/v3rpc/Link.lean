@@ -182,6 +182,7 @@ public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.strconv.Itoa
 public import Proof.strings.HasSuffix
 public import Proof.strings.ToLower
 public import Proof.time.Duration__Seconds
@@ -348,6 +349,10 @@ theorem zap.wp_String :
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
+
+theorem strconv.wp_Itoa :
+    EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.Itoa.wp_proof
 
 theorem «attribute».wp_Bool :
     EtcdGrove.«attribute».Bool.spec (GF := GF) (hG := hG) :=
@@ -806,7 +811,7 @@ theorem health.Server.wp_SetServingStatus :
 
 theorem grpc_health_v1.HealthCheckResponse_ServingStatus.wp_String :
     EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
+  EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof strconv.wp_Itoa
 
 theorem healthNotifier.wp_startServe :
     EtcdGrove.v3rpc.healthNotifier.startServe.spec (GF := GF) (hG := hG) :=

@@ -1012,3 +1012,25 @@ func TestPerRPCCredsAudience(t *testing.T) {
 		}
 	}
 }
+
+// TestServingStatusString: the health status's String (the model's switch in place of protoimpl's
+// EnumStringOf, models/grpc/health/grpc_health_v1/health.pb.go): the four names, else the number in
+// decimal, by value and through a pointer.
+func TestServingStatusString(t *testing.T) {
+	for _, tc := range []struct {
+		v    int32
+		want string
+	}{
+		{0, "UNKNOWN"}, {1, "SERVING"}, {2, "NOT_SERVING"}, {3, "SERVICE_UNKNOWN"}, {4, "4"},
+		{-1, "-1"}, {1 << 30, "1073741824"}, {2147483647, "2147483647"}, {-2147483648, "-2147483648"},
+	} {
+		x := healthpb.HealthCheckResponse_ServingStatus(tc.v)
+		r := &healthpb.HealthCheckResponse{Status: x}
+		if got := x.String(); got != tc.want {
+			t.Errorf("ServingStatus(%d).String() = %q, want %q", tc.v, got, tc.want)
+		}
+		if got := (&r.Status).String(); got != tc.want {
+			t.Errorf("(&ServingStatus(%d)).String() = %q, want %q", tc.v, got, tc.want)
+		}
+	}
+}
