@@ -88,17 +88,20 @@ theorem xReadyOk_of {γ : RaftNames} {md : RnMode} {id : w64} {s : NState} {st :
       (s.gh.xw !! (st.msg.To', st.msg.Term')).isSome)
     (hxw : ∀ p : w64 × w64, (s.gh.xw !! p).isSome →
       (md.nonVoters = false → p.1 ∈ γ.reCfg) ∧ p.2 ≠ W64 0)
+    (hxs : ∀ f : w64, (s.gh.xsrc !! f).isSome → (γ.reAcks !! f).isSome)
     (hx : xmsgOf st = some x) : XReadyOk γ md id (toPState s) x := by
   unfold xmsgOf at hx
   split at hx
   · rename_i e
     cases hx
-    exact ⟨fun _ => hq.1 e, hq.2.1 (.inl e), (fun h => by cases h), fun _ h => by cases h⟩
+    exact ⟨fun _ => hq.1 e, hq.2.1 (.inl e), (fun h => by cases h), (fun _ h => by cases h),
+      (fun h => by cases h)⟩
   · split at hx
     · rename_i e
       cases hx
       have ht : st.msg.Term' ≠ W64 0 := (hxw _ (hw e)).2
-      exact ⟨(fun h => by cases h), hq.2.1 (.inr ⟨e, ht⟩), (fun _ => ht), fun hnv _ => (hxw _ (hw e)).1 hnv⟩
+      exact ⟨(fun h => by cases h), hq.2.1 (.inr ⟨e, ht⟩), (fun _ => ht), fun hnv _ => (hxw _ (hw e)).1 hnv,
+        fun _ => (hq.2.2.2 e).imp (fun h => h) (hxs _)⟩
     · cases hx
 
 end pure
@@ -188,7 +191,7 @@ theorem RawNode.Ready.wp_absProof
     obtain ⟨h1, -, h3, h4, -⟩ := Hxq q hq
     cases ht : md.transfer
     · exact absurd (mtypeOf_none_of_xmsgOf hx) (h4 ((Hscope1 md h).1.2.2.2.2.2.1 ht))
-    · exact xReadyOk_of h1 h3 ((Hscope1 md h).2.2.2 ht).2.1 hx
+    · exact xReadyOk_of h1 h3 ((Hscope1 md h).2.2.2 ht).2.1 ((Hscope1 md h).2.2.2 ht).2.2.2 hx
   obtain ⟨Hps, Hip, Hmsperm, Hto, Hsts, Hpc, Hscf⟩ := Hrw
   ihave %Hssn1 := softStateIs_null rd.SoftState' ss1 $$ Hss1
   -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`, at `s`

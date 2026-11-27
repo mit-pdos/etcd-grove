@@ -302,12 +302,13 @@ structure StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx
   gated : StepEndTy m.Type' → ¬ XtRec id m s → StepEndBody c id m ents ctx s s'
   prevote : m.Type' = MsgPreVote → PreVoteStepAll id m ctx s s'
   xfer : ¬ StaleMsg s m → m.Type' = MsgTransferLeader →
-    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool) (pvs : GMap w64 Progress),
-      StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xt := Y, xs := b } } m pvs) m ents ctx s'
+    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool) (Z : GMap w64 Unit) (pvs : GMap w64 Progress),
+      StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } m pvs) m ents ctx s'
   xtr : XtRec id m s →
     ∃ Y : GMap (w64 × w64) Unit, StepEndBody c id m ents ctx { s with gh := { s.gh with xt := Y } } s'
   xstale : StaleMsg s m → m.Type' = MsgTransferLeader →
-    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool), s' = { s with gh := { s.gh with xw := X, xt := Y, xs := b } }
+    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool) (Z : GMap w64 Unit),
+      s' = { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } }
 
 instance StepEnd.coeFun {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} :

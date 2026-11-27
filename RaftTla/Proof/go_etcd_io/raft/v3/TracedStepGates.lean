@@ -52,15 +52,15 @@ theorem preState_nobf {s : NState} {m : MessageM} (h : ¬ PreBF m s) (pvs : GMap
 /-- The preamble's result at a state whose ghost fields differ only in `xw` and `xs` (2026-11-24, #33
 S4): the same, with those fields. -/
 theorem preState_xw_xs (s : NState) (m : MessageM) (pvs : GMap w64 Progress) (X Y : GSet (w64 × w64))
-    (b : Bool) :
-    preState ({ s with gh := { s.gh with xw := X, xt := Y, xs := b } } : NState) m pvs =
-      { preState s m pvs with gh := { (preState s m pvs).gh with xw := X, xt := Y, xs := b } } := by
+    (b : Bool) (Z : GSet w64) :
+    preState ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) m pvs =
+      { preState s m pvs with gh := { (preState s m pvs).gh with xw := X, xt := Y, xs := b, xsrc := Z } } := by
   rw [preState_gh]
   by_cases h : PreBF m s
-  · have h' : PreBF m ({ s with gh := { s.gh with xw := X, xt := Y, xs := b } } : NState) := h
+  · have h' : PreBF m ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) := h
     rw [preState_bf h, preState_bf h']
     rfl
-  · have h' : ¬ PreBF m ({ s with gh := { s.gh with xw := X, xt := Y, xs := b } } : NState) := h
+  · have h' : ¬ PreBF m ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) := h
     rw [preState_nobf h, preState_nobf h']
 
 /-- The preamble leaves the role, or makes a follower. -/
@@ -568,10 +568,10 @@ local macro "tl_ne" : tactic => `(tactic| (
 /-- A follower's gates for a leader-transfer request, at the state with other `xw`/`xs` (only the
 forward's gate is not refuted by the type, and it reads neither). -/
 theorem followerGates_xw_xs (c : CfgM) (r : Loc) (id : w64) (t : NState) (m : MessageM)
-    (ents : List EntryM) (cl : List w8) (G G' : List Msg → IProp GF) (X Y : GSet (w64 × w64)) (b : Bool)
+    (ents : List EntryM) (cl : List w8) (G G' : List Msg → IProp GF) (X Y : GSet (w64 × w64)) (b : Bool) (Z : GSet w64)
     (hty : m.Type' = MsgTransferLeader) :
     followerGates c r id t m ents cl G G' ⊢
-      followerGates c r id { t with gh := { t.gh with xw := X, xt := Y, xs := b } } m ents cl G G' := by
+      followerGates c r id { t with gh := { t.gh with xw := X, xt := Y, xs := b, xsrc := Z } } m ents cl G G' := by
   iintro Hf
   unfold followerGates
   icases Hf with ⟨-, -, Hgfwd, -, -⟩
@@ -590,11 +590,11 @@ transfer's two gates and `NoSnapG` read neither; the others are refuted by the t
 theorem leaderGates_xw_xs {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (t : NState) (m : MessageM)
     (ents : List EntryM) (Tp : IProp GF) (G G' : List Msg → IProp GF) (Gp1 : IProp GF)
     (Gp2 : List Msg → IProp GF) (Gc : Bool → w64 → List Msg → IProp GF) (X Y : GSet (w64 × w64))
-    (b : Bool) (hty : m.Type' = MsgTransferLeader) :
+    (b : Bool) (Z : GSet w64) (hty : m.Type' = MsgTransferLeader) :
     leaderGates c r id t m ents Tp G G' Gp1 Gp2 Gc nc ⊢
-      leaderGates c r id { t with gh := { t.gh with xw := X, xt := Y, xs := b } } m ents Tp G G' Gp1 Gp2 Gc nc := by
-  have e1 : toPState ({ t with gh := { t.gh with xw := X, xt := Y, xs := b } } : NState) = toPState t := rfl
-  have e2 : ∀ mm, sendOutGate id ({ ({ t with gh := { t.gh with xw := X, xt := Y, xs := b } } : NState) with
+      leaderGates c r id { t with gh := { t.gh with xw := X, xt := Y, xs := b, xsrc := Z } } m ents Tp G G' Gp1 Gp2 Gc nc := by
+  have e1 : toPState ({ t with gh := { t.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) = toPState t := rfl
+  have e2 : ∀ mm, sendOutGate id ({ ({ t with gh := { t.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) with
       lt := m.From' } : NState) c MsgApp [mm] = sendOutGate id { t with lt := m.From' } c MsgApp [mm] :=
     fun _ => rfl
   iintro Hl
@@ -641,16 +641,16 @@ neither; the others are refuted by the type or the role. (2026-11-24, #33 S4: `x
 the preamble may make a leader a follower, so each branch takes the role from its hypothesis.) -/
 theorem stepGates_xw {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) (X Y : GSet (w64 × w64))
-    (b : Bool) (hty : m.Type' = MsgTransferLeader) (hrole : s.role = .follower ∨ s.role = .leader) :
+    (b : Bool) (Z : GSet w64) (hty : m.Type' = MsgTransferLeader) (hrole : s.role = .follower ∨ s.role = .leader) :
     stepGates c r id s m ents sn ctx rs R nc ⊢
-      stepGates c r id { s with gh := { s.gh with xw := X, xt := Y, xs := b } } m ents sn ctx rs R nc := by
-  have e1 : recvGate id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b } } : NState) c ⟨m, ents, sn, ctx, rs⟩ =
+      stepGates c r id { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } m ents sn ctx rs R nc := by
+  have e1 : recvGate id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) c ⟨m, ents, sn, ctx, rs⟩ =
       recvGate id s c ⟨m, ents, sn, ctx, rs⟩ := rfl
-  have e2 : preGate (GF := GF) c r id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b } } : NState) m R.G0 R.G1 =
+  have e2 : preGate (GF := GF) c r id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) m R.G0 R.G1 =
       preGate c r id s m R.G0 R.G1 := rfl
-  have e3 : ∀ ty mm, LowSend id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b } } : NState) m ty mm =
+  have e3 : ∀ ty mm, LowSend id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) m ty mm =
       LowSend id s m ty mm := fun _ _ => rfl
-  have e4 : ∀ ty mm, sendOutGate id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b } } : NState) c ty [mm] =
+  have e4 : ∀ ty mm, sendOutGate id ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState) c ty [mm] =
       sendOutGate id s c ty [mm] := fun _ _ => rfl
   iintro H
   unfold stepGates
@@ -671,7 +671,7 @@ theorem stepGates_xw {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m
   unfold stepFnGates
   iintro %pvs
   ispecialize Hgstep $$ %pvs
-  rw [preState_xw_xs s m pvs X Y b]
+  rw [preState_xw_xs s m pvs X Y b Z]
   have hrl : (preState s m pvs).role = .follower ∨ (preState s m pvs).role = .leader := by
     rcases preState_role_cases s m pvs with h | h
     · exact .inl h
@@ -680,7 +680,7 @@ theorem stepGates_xw {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m
   · icases Hgstep with ⟨Hf, -⟩
     iintro %hf
     ihave Hf := Hf $$ %hf
-    iapply followerGates_xw_xs c r id _ m ents ctx _ _ X Y b hty $$ Hf
+    iapply followerGates_xw_xs c r id _ m ents ctx _ _ X Y b Z hty $$ Hf
   isplit
   · iintro %h; exfalso
     have h2 : (preState s m pvs).role = .candidate ∨ (preState s m pvs).role = .preCandidate := h
@@ -688,7 +688,7 @@ theorem stepGates_xw {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (m
   · icases Hgstep with ⟨-, -, Hl⟩
     iintro %hl
     ihave Hl := Hl $$ %hl
-    iapply leaderGates_xw_xs c r id _ m ents _ _ _ _ _ _ X Y b hty $$ Hl
+    iapply leaderGates_xw_xs c r id _ m ents _ _ _ _ _ _ X Y b Z hty $$ Hl
 
 /-! ### An append response's gates at the state with the transferee's acknowledgement recorded
 (`NGhost.xt`; antithesis parity B1, option (b)) -/

@@ -672,8 +672,9 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       · obtain ⟨hpd, hp⟩ := Hsc1.1.2.2.2.1 hr
         have H := HP.2.1 hpd ((roEmpty_iff s1).1 hp)
         exact ⟨H.1, fun _ => H.2⟩
-      · obtain ⟨hl0, hw0, -⟩ := Hsc1.2 ht
-        refine ⟨fun hnv => ?_, fun p hp => hw0 p (by rw [Hsg2.2.2] at hp; exact hp), Hlt2⟩
+      · obtain ⟨hl0, hw0, -, hs0⟩ := Hsc1.2 ht
+        refine ⟨fun hnv => ?_, fun p hp => hw0 p (by rw [Hsg2.2.2] at hp; exact hp), Hlt2,
+          fun f hf => hs0 f (by rw [Hsg2.2.2] at hf; exact hf)⟩
         rcases HP.2.2.2 with e | e | ⟨e, hr⟩
         · rw [e]; exact hl0 hnv
         · exact .inl e

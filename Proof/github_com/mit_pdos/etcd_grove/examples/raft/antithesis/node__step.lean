@@ -67,7 +67,7 @@ theorem node.step.wp_proof
   ihave #Hc' := Hc
   iunfold antCluster at Hc'
   icases Hc' with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, %Hmode, #Hr, #Hrec, #Hro, #Hnodes, #Hstop, #Hbc,
-    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm, #Hrdm, -⟩
+    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm, #Hrdm, #Hasi, %Hnames⟩
   iunfold clusterRO at Hro
   icases Hro with ⟨%nsl, %ivl, #Hns, #Hnsl, %HN, #Hmd, #Hiv, #Hivs⟩
   ihave Hmd' := Hmd
@@ -131,7 +131,8 @@ theorem node.step.wp_proof
         { rs with tc := tb } v.r [] v.r.p.log.length ml st hnok
         (fun md' hmd => by
           subst hmd
-          refine ⟨netTypes_sub_stepTypes Hnf.2.1, fun hr h => Hnf.2.2.1 hr (.inr h), fun hnv => ?_⟩
+          refine ⟨netTypes_sub_stepTypes Hnf.2.1, fun hr h => Hnf.2.2.1 hr (.inr h), fun hnv => ?_,
+            fun h => (netFacts_ne_transfer Hnf hs hfw h).elim⟩
           obtain ⟨i, hi⟩ := Hnf.2.2.2.2.2.2.1
           rw [Hst.2.1, ← hsrc, hi]
           exact nodeId_mem_voters0 Hmode.1 Hmode.2 hnv i)
@@ -255,9 +256,12 @@ theorem node.step.wp_proof
         { rs with tc := tb } v.r [] v.r.p.log.length ml st hnok
         (fun md' hmd => by
           subst hmd
-          refine ⟨hstt, fun _ h => absurd h hnhb, fun hnv => ?_⟩
-          rw [Hst.2.1, ← hsrc, his]
-          exact nodeId_mem_voters0 Hmode.1 Hmode.2 hnv is)
+          refine ⟨hstt, fun _ h => absurd h hnhb, fun hnv => ?_, fun _ => ?_⟩
+          · rw [Hst.2.1, ← hsrc, his]
+            exact nodeId_mem_voters0 Hmode.1 Hmode.2 hnv is
+          · -- (antithesis parity B1, transfer source) the sender a server, which raft's names acknowledge
+            rw [← hsrc, his]
+            exact Hnames.2.2 is)
         hle2 htn' hrv.2.2.2.2.2.1 Hst.1
         $$ [$Hrpkg $Hraw $Hm' $Hxfer $Hmsg Hcr] as %err %t %r' %ip' ⟨Hraw, %Ht, %Hend⟩
     · isplitr

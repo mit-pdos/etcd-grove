@@ -682,8 +682,9 @@ abbrev raft.Step.untracedNsTriple : Prop :=
                    (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
       -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows
       "%Hxwframe" ∷ ⌜(m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
-                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0))⌝ ∗
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)) ∧
+                   (∀ f, f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (m.Type' = MsgTransferLeader ∧ f = m.From'))⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
@@ -726,8 +727,9 @@ theorem logKeep_of_frames {id : w64} {m : MessageM} {ents : List EntryM} {sn : O
       (m.Type' = MsgStorageAppendResp → sn = none) →
                    (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s')
     (Hxw : (m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
-      s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
-      (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)))
+      s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+      (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)) ∧
+                   (∀ f, f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (m.Type' = MsgTransferLeader ∧ f = m.From')))
     (hs : m.Type' ≠ MsgSnap) (ha : m.Type' = MsgStorageAppendResp → sn = none) :
     s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧ s'.logst.storage = s.logst.storage := by
   by_cases h1 : m.Type' = MsgStorageApplyResp

@@ -66,16 +66,6 @@ theorem softStateIs_cases (p : Loc) (ss : Option (w64 × StateType)) :
     icases H with ⟨%Hn, -, #Hst⟩
     iexists ld, st; iframe Hst; ipureintro; exact ⟨rfl, Hn⟩
 
-/-- (open: its source is still being designed, likely a raft-side invariant on a queued
-`MsgTransferLeader`'s `From`) **A forwarded `MsgTransferLeader` that a `Ready` hands out has a server
-as its source**: for any message raft certifies at node `j` (`isRaftMsg`, what `RawNode.Ready`'s
-`Henter` gives for each of its messages), a transfer reading of type `transferLeader` comes from one
-of the run's nodes. -/
-def readyXferSrc.law : Prop :=
-  ∀ (γ : AntNames) (j : Fin γ.R.N) (st : MsgSt),
-    isRaftMsg (GF := GF) γ.raft.raftNames (AntSim.nodeId j) st ⊢
-      ⌜∀ x, xmsgOf st = some x → x.ty = .transferLeader → ∃ i : Fin γ.R.N, x.src = AntSim.nodeId i⌝
-
 instance hsOptRO_persistent (hp : Loc) (oh : Option HardStateM) :
     Persistent (hsOptRO (GF := GF) hp oh) := by
   unfold hsOptRO; infer_instance
@@ -188,7 +178,6 @@ theorem node.drain.wp_proof
     (wp_saveDisk : node.saveDisk.spec (GF := GF) (hG := hG))
     (wp_storeSave : node.storeSave.spec (GF := GF) (hG := hG))
     (h_send : drainSendB1.stmt (GF := GF) (hG := hG))
-    (h_xsrc : readyXferSrc.law (GF := GF))
     (h_rsidx : readyReadIdx.law)
     (h_adv : drainAdvanceB1.stmt (GF := GF) (hG := hG)) :
     node.drain.spec (GF := GF) (hG := hG) := by
@@ -429,7 +418,7 @@ theorem node.drain.wp_proof
     let I : DrainIterB1 := ⟨rn, rs, v₀, r, rd, ce, es, rms, sts, h, steps, ss, W, qs', ip'⟩
     obtain ⟨S₀, net₀', xnet₀', hn0, hx0, hin0, hnet0, hok0⟩ := Hpk
     ihave %Hxp := xPend_of_msgs (R := γ.R) γ.raft.raftNames γ.R.md (AntSim.nodeId j) r.p rms hxok
-      Hnames.1 Hnames.2 $$ Hmok
+      Hnames.1 Hnames.2.1 $$ Hmok
     have hRO := readyOutP_b1 hin0 hnet0 hok0 (reachIn_b1 hcc hbyok hR hn0 hx0) hrv hip hro hfirst hqs'
       (fun h' => hk ▸ hpk h') Hxp hsts ⟨Hns.1, Hns.2.2⟩ Hwf.1 Hvidx Hag.1
     obtain ⟨rdD, hrdD⟩ : ∃ x, x = readyDOf r (roleAfter rs.role ss) es ce rms qs' sts := ⟨_, rfl⟩
@@ -880,9 +869,6 @@ theorem node.drain.wp_proof
     have hmd : γ.raft.raftNames.maxData.isSome = false := by rw [Hγ.2.2.1]; rfl
     ihave Hmsgs_own := entails_of_eq (Q := iprop([∗list] q ∈ rms, msgOwnZ (GF := GF) false q.loc
       (readyDq q.st) q.st)) (by rw [hmd]) $$ Hmsgs_own
-    ihave %Hxs := ((BigSepL.bigSepL_mono (l := rms) (Φ := fun _ (q : QMsg) => isRaftMsg (GF := GF) γ.raft.raftNames
-      (AntSim.nodeId j) q.st) (Ψ := fun _ (q : QMsg) => iprop(⌜∀ x, xmsgOf q.st = some x →
-        x.ty = .transferLeader → ∃ i : Fin γ.R.N, x.src = AntSim.nodeId i⌝)) fun _ => h_xsrc γ j _).trans BigSepL.bigSepL_pure_intro) $$ Hmok
     ihave Hmsgs : drainMsgsB1 (GF := GF) γ j I $$ [Hmsgs Hmsgs_cap Hmsgs_own]
     · iunfold drainMsgsB1
       iframe Hmsgs Hmsgs_cap Hmsgs_own Hmok
@@ -893,8 +879,10 @@ theorem node.drain.wp_proof
           (causeNums_reach hnet0 hok0 hN) (AntSim.readNums_reach mskB1_le hin0 hnet0 hok0 hri0 Hsn.1)
         refine hall m (List.mem_append_left _ ?_)
         rw [hrdD]; exact List.mem_filterMap.2 ⟨q, hq, hm⟩
-      · obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 hq
-        exact Hxs k q hk x hx ht
+      · obtain ⟨-, -, -, -, hsrc⟩ := hxok q hq x hx
+        rcases hsrc ht with h | h
+        · exact ⟨j, h⟩
+        · exact Hnames.1 _ h
     ihave Hmid : drainMidB1 n_ptr by_ptr rd_ptr n γ j I v₁ net₁ xnet₁ $$ [Hnp Hbp rd Hrn Hraw Hmem Hms
         Hrole Hhs Hcause Hapl Hconf Hv Hl Hdisk Hstor Hco Hlive Hfree Hdur Htlb Hbud Hdf]
     · iunfold drainMidB1

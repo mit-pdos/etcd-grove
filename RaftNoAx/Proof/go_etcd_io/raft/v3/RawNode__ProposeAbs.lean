@@ -153,7 +153,8 @@ local macro "prop_tail" : tactic => `(tactic| (
           (fun h1 h2 => absurd (Hrole'.trans h1) h2) Hdom Hdom1)
       Hfr.2.2.2.2.2.2.1 (hfl := ⟨Hfr.2.2.2.2.2.2.2.1, Hcq', Hsdr'⟩)
       (hx := fun md h _ HX0 => XScopeOk.keep HX0
-        ⟨proposeEnd_lead (Hlifted md h).1, by rw [Hfr.2.2.2.2.2.2.2.2.1], Hfr.1⟩) $$ Hsc
+        ⟨proposeEnd_lead (Hlifted md h).1, by rw [Hfr.2.2.2.2.2.2.2.2.1], Hfr.1⟩
+        (by rw [Hfr.2.2.2.2.2.2.2.2.1])) $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
       (by rw [LocalFrame.ns Hfr]; exact Hgtr.trans HtrG)
     iapply HΦ $$ %err %(toRState rs fp s') %(uint.nat s'.logst.inprogress - 1)

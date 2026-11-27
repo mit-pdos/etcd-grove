@@ -207,7 +207,7 @@ theorem RawNode.ReportUnreachable.wp_absProof
   -- the scope and the reading kept
   ihave Hsc := rnScopeAt_keepAll (some md) rs rs s s' (fun _ h => by rw [Hse]; exact h.with_prvals pvs Hpm)
     (by rw [Hse]) (hfl := by rw [Hse]; exact ⟨rfl, rfl, rfl⟩)
-    (hx := by rw [Hse]; exact ⟨rfl, rfl, rfl⟩) $$ Hsc
+    (hx := by rw [Hse]; exact ⟨rfl, rfl, rfl⟩) (hxs := by rw [Hse]) $$ Hsc
   ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
     (by rw [Hgh]; exact Hgtr.trans HtrG)
   have Hps' : toRState rs fp s' = ps := by rw [Hse, toRState_prvals_eq rs fp s pvs Hpm]; exact Hps

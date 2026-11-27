@@ -356,7 +356,8 @@ abbrev stepFollower.untracedTriple : Prop :=
         ents = [] ∧ cl = [] ∧
         -- (antithesis parity B1) its other numbers zero, no rejection (`send`'s transfer case)
         (m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false) ∧
-        (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome)) ∧
+        (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome) ∧
+        (s.lead ≠ W64 0 → (s.gh.xsrc !! m.From').isSome)) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
        uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →
   (m.Type' = MsgSnap →

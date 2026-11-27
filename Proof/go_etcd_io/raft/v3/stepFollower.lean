@@ -542,7 +542,7 @@ theorem stepFollower.wp_proof
   · -- `MsgTransferLeader` (2026-10-13): forwarded to the leader, if any; it is outside
     -- the model (`mtypeOf` is `none`), so nothing is queued abstractly
     obtain ⟨Htl, -⟩ := Hrest (Or.inl Hty)
-    obtain ⟨Hterm0, Hents0, Hctx0, Hzf, Hxo⟩ := Htl Hty
+    obtain ⟨Hterm0, Hents0, Hctx0, Hzf, Hxo, Hxso⟩ := Htl Hty
     subst Hents0 Hctx0
     simp only [Hty, MsgTransferLeader]
     wp_auto
@@ -591,7 +591,8 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
             rfl, rfl, Hterm0', Hzf, fun h => Hlid h, rfl, fun _ => Hxo Hlead,
-            fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]), Hxs Hty Hlead⟩))))
+            fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]), Hxs Hty Hlead,
+            fun _ => Hxso Hlead⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty)))

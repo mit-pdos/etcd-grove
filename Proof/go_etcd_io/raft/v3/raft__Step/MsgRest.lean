@@ -319,7 +319,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
   gates_fol
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
-      (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hzf, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
+      (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hzf, Hxo Hrole, Hxso Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
     (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
@@ -506,6 +506,9 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     -- leader transfer on, `s.gh.xf = false`, D21 M2r.)
     -- (raft-final phase 2) at a follower only: a pre-candidate's leader is hidden (`toPState`)
     (s.role = .follower → s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome) →
+    -- (antithesis parity B1, transfer source) and the request's sender (`ownRaftPhysC_xsrc_record`,
+    -- before this arm; `stepFollower`'s premise)
+    (s.role = .follower → s.lead ≠ W64 0 → (s.gh.xsrc !! m.From').isSome) →
     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0) →
     (s.role = .follower → s.lead ≠ id) →
     NStateWf s →
@@ -531,7 +534,7 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
-  intro Hty Hent Hctx0 Hzf Hxo Htr Hlok Hwf Hnors HLT
+  intro Hty Hent Hctx0 Hzf Hxo Hxso Htr Hlok Hwf Hnors HLT
   have hnh : m.Type' ≠ MsgHup := by rw [Hty]; w32_ne
   have hnv : m.Type' ≠ MsgVote := by rw [Hty]; w32_ne
   have hlead : preLead m = W64 0 := by
@@ -610,7 +613,7 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
         (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
-        (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, Hzf, fun h => absurd rfl h⟩,
+        (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, Hzf, fun h => absurd rfl h, fun h => absurd rfl h⟩,
           fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
         (by ty_other)
       (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩

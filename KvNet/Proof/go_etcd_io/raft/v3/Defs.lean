@@ -1200,6 +1200,13 @@ structure NGhost [GooseExts] where
   (`sendTimeoutNow`'s premise, `SendOk`'s transfer clause). The Antithesis harness never steps one
   (`RnScope`), so a `Ready`'s messages are typed there. -/
   xs : Bool := false
+  /-- (antithesis parity B1, 2026-11-27, transfer source) **The transfer requests forwarded**: the
+  sender `From` of every `MsgTransferLeader` the node queued (`XfOk`'s last clause; `send`'s
+  transfer clause). The only one raft queues is `stepFollower`'s forward, which keeps the request's
+  `From`: `raft.Step`'s transfer arm records `m.From` first, with `xw`'s record (`"%Hxwframe"`).
+  Pure (no witness); only grows. The Antithesis scope bounds it by the cluster's ids
+  (`XScopeOk`'s last clause), which a `Ready` reads for a forward's sender (`XReadyOk`). -/
+  xsrc : GMap w64 Unit := ∅
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)

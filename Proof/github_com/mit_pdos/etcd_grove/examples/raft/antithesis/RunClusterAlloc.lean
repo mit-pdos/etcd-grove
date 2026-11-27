@@ -284,7 +284,9 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
         (↑(raftN γr.raftNames) : CoPset) ⊆ ⊤ \ ↑antN ∧
         -- (antithesis parity B1, group E) an acknowledging node, and a winning one, is a server
         (∀ a : w64, (γr.raftNames.reAcks !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j) ∧
-        (∀ a : w64, (γr.raftNames.reWins !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j)⌝ ∗
+        (∀ a : w64, (γr.raftNames.reWins !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j) ∧
+        -- (antithesis parity B1, transfer source) and every server acknowledges (named in `reAcks`)
+        (∀ j : Fin R.N, (γr.raftNames.reAcks !! AntSim.nodeId j).isSome)⌝ ∗
       isCluster (GF := GF) γr antRaftN ∗ readyFits γr antRaftN ∗ opsInv γr ∗ ownReadCtxs γr ∅ ∗
       confAt γr 0 (Membership.simple R.voters0) ∗ raftFactsOwn γr.raftNames (bootFacts0 R) ∗
       [∗list] j ∈ List.finRange R.N,
@@ -308,7 +310,8 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
   iexists γr
   isplitr
   · ipureintro
-    refine ⟨Hdup, Hns, Htr, Hmd, Hbl', HreTr, Hcfg, HreMd, Hboot, ?_, fun a ha => ?_, fun a ha => ?_⟩
+    refine ⟨Hdup, Hns, Htr, Hmd, Hbl', HreTr, Hcfg, HreMd, Hboot, ?_, fun a ha => ?_, fun a ha => ?_,
+      fun j => ?_⟩
     · unfold raftN; rw [HreNs]; exact antRaftNs_mask
     · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 ha
       have h1 := GMap.elem_of_dom_2 _ a u hu
@@ -320,6 +323,11 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
       rw [Hwins] at h1
       obtain ⟨j, -, hj⟩ := List.mem_map.1 ((GMap.elem_of_list_to_set _ _).1 h1)
       exact ⟨j, hj.symm⟩
+    · have h1 : AntSim.nodeId j ∈ domSet γr.raftNames.reAcks := by
+        rw [Hacks]
+        exact (GMap.elem_of_list_to_set _ _).2 (List.mem_map.2 ⟨j, List.mem_finRange j, rfl⟩)
+      obtain ⟨u, hu⟩ := (GMap.elem_of_dom _ _).1 h1
+      rw [hu]; rfl
   rw [show R.voters0 = GMap.listToSet (votersL R) from rfl]
   iframe Hcl Hrfit Hopsi HU Hca
   isplitr
