@@ -429,7 +429,15 @@ PROJECTS = [
         # `func Discard(lg, dirpath) error` (RemoveAll(dir.tmp), Rename(dir, dir.tmp), syncDir of
         # the parent), without its own `Unsaved` check: `bootstrap` calls it only after its
         # `Unsaved` returned (true, nil) and after `removeBackendDurably`.
-        rev="251a430ce042bb53d06705fd28e182709ad3a32d",
+        # Then (the keep guard's replacement, 2026-11-27, mit-pdos/etcd-grove#50; Upamanyu's decision:
+        # a boot-only fix) 01b0497d0, branch `keepfix-d-crashpin/2026-11-27` (on 251a430ce): 47d6cdeeb
+        # reverted; cindex saves the consistent index with its own term (one mutex for the pair:
+        # nonissues/etcd-cindex-torn-index-term.md); at restart, when the backend's consistent index
+        # ci is above the WAL's commit, `bootstrap` brings the WAL to ci (the hard state's commit
+        # raised to ci, or a snapshot record at ci and then that hard state), so raft starts with its
+        # commit at ci and refuses every snapshot at or below it
+        # (~/coordinator-notes/plans/keepfix-d-design.md).
+        rev="01b0497d062852fda05b31b3a78b613470b6e197",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
