@@ -311,7 +311,7 @@ theorem Main.wp_proof
       wops (W64 0) rfl rfl rfl rfl rfl hAs hse (by omega)
       (by intro y hy; simp only [storeCfgD, List.mem_cons, List.not_mem_nil, _root_.or_false] at hy
           subst hy; exact Hnr)
-      (by simp [storeCfgD, inProcEtcd]) (by omega) H0 Hw0 H31 Hops Hwops Hmul
+      (by simp [storeCfgD, k8s.inProcEtcd]) (by omega) H0 Hw0 H31 Hops Hwops Hmul
       (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp)
       (by simp [g0s, st3]) runOk_g0s)
     $$ [Hks Hst0 Hhs] as %r %hr

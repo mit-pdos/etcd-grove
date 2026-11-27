@@ -144,7 +144,7 @@ theorem MainPartition.wp_proof
     iexact Hsr
   ihave #Hinvs := kInvs_of_same γ (storeCfgD kc cl ms V mt lt γh) g0s γk
     ((storeCfgD kc cl ms V mt lt γh).K.kvs) (fun y hy => by
-      simp only [storeCfgD, inProcEtcd, List.mem_map] at hy
+      simp only [storeCfgD, k8s.inProcEtcd, List.mem_map] at hy
       obtain ⟨z, hz, rfl⟩ := hy; exact hsame z hz) $$ Hinv
   -- (stage E) the client's watcher over the cluster's KV, so the store's watch fields
   ihave #Hone1 := one_read_au γ (storeCfgD kc cl ms V mt lt γh) g0s γk $$ Hinv
@@ -180,7 +180,7 @@ theorem MainPartition.wp_proof
   wp_apply (wp_Check γ sp (storeCfgD kc cl ms V mt lt γh) g0s γk st0 h0 hs clients ops watchers wops
       (W64 0) rfl rfl rfl rfl rfl hAs hse (by omega)
       (by intro y hy; apply hnr; rw [← Hsva]; exact List.mem_map_of_mem hy)
-      (by simpa [storeCfgD, inProcEtcd] using hmsne) (by omega) H0 Hw0 H31 Hops Hwops Hmul
+      (by simpa [storeCfgD, k8s.inProcEtcd] using hmsne) (by omega) H0 Hw0 H31 Hops Hwops Hmul
       (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp)
       (by simp [g0s, st3]) runOk_g0s)
     $$ [Hks Hst0 Hhs] as %r %hr

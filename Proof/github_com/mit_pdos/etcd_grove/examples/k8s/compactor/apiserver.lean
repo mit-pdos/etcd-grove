@@ -53,6 +53,11 @@ theorem apiserver.wp_proof
     simp only [inProcEtcd, List.mem_map] at hg
     obtain ⟨x, hx, rfl⟩ := hg; exact hsame x hx
   ihave #HK := k8s.k8sClient_inProc ms V (h_inproc ms V) cl $$ [Hcl Hone Hregs]
+  · isplitl [Hcl]
+    · iexact Hcl
+    isplitl [Hone]
+    · iexact Hone
+    iexact Hregs
   ihave #Hcas := casOk_of_cinv (inProcEtcd ms V).kvs γk hsameK γ $$ Hinv
   ihave #HepsK : [∗list] ep ∈ (inProcEtcd ms V).eps, epOf ep γk (fun _ => iprop(True)) $$ [Heps]
   · rw [show (inProcEtcd ms V).eps = ms.map client.SrvAt.addr from rfl]; iexact Heps
