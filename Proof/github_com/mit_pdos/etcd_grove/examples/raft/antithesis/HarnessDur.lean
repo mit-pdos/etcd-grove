@@ -340,7 +340,7 @@ the in-memory hard state the last `mem` reported (batching), `rhs` the last `Rea
 alone sets it); the
 write queue (`writes`, each job owned) and the job out of it (`inflight`: in `wip`, or held by `work`,
 `hole`; once run, `writeJobMade`), the enter promises chained from `D` to `dur` (`JobsChain`; not on a
-dead node, whose `Ready` taken and not entered is dropped with it, `rawNode_vacate.law`), the queue against the view (`QueueView`); the
+dead node, whose `Ready` taken and not entered is dropped with it, `rawNode_vacate.law`), the queue against the view (`QueueView`; not on a dead node either, whose view may hold a `-parallel` `mem` its write never popped); the
 apply queue and the job applying; B3's fields at their off values. In a run without batching or
 async storage both queues are empty and `items` is `0`. -/
 def nodeMemB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (x : CrashNames)
@@ -366,7 +366,7 @@ def nodeMemB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
      | some a => applyJobOwn (AntSim.nodeId j) aip a) ∗
     n.[H.node, go!"restoring"] ↦ W64 0 ∗ n.[H.node, go!"confs"] ↦ slice.nil ∗
     n.[H.node, go!"confBase"] ↦ W64 0 ∗
-    ⌜QueueView v ((if WorkHole.wFresh hole then ow.toList else []) ++ jobs) items ∧
+    ⌜(dead = false → QueueView v ((if WorkHole.wFresh hole then ow.toList else []) ++ jobs) items) ∧
       (dead = false → JobsChain (match ow with | some w => w.post | none => D) jobs dur) ∧
       (∀ l, hole = some (.runW l) ∨ hole = some (.doneW l) → wip = l ∧ ow.isSome) ∧
       (∀ l, hole = some (.runA l) ∨ hole = some (.doneA l) → aip = l ∧ oa.isSome) ∧

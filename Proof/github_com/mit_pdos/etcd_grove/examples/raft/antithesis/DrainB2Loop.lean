@@ -143,7 +143,7 @@ theorem writeJobMade_kill (γ : AntNamesB2) (j : Fin γ.R.N) (l : Loc) (w : WJob
   · exact absurd H.1 Bool.false_ne_true
 
 /-- **The bookkeeping of a node killed** (`nodeMemB2`'s kill index set): the enter promises' chain is
-no longer kept, a run write job's promise may be unfired. -/
+no longer kept, nor the queue against the view, a run write job's promise may be unfired. -/
 theorem nodeMemB2_kill (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
     (x : CrashNames) (g : Nat) (phs : HardStateM) (dur D : RaftState) (hole : Option WorkHole) :
     nodeMemB2 (GF := GF) γ j n v x g phs dur D false hole ⊢ nodeMemB2 γ j n v x g phs dur D true hole := by
@@ -163,7 +163,7 @@ theorem nodeMemB2_kill (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.
         iapply writeJobMade_kill; iexact Hm
   · ipureintro
     obtain ⟨h1, -, h3⟩ := Hp
-    exact ⟨h1, fun h => absurd h (by decide), h3⟩
+    exact ⟨fun _ => h1 rfl, fun h => absurd h (by decide), h3⟩
 
 /-- **A dead node drained** (`nodeOwnB2HD … .drained none true` from its pieces): its fields, the kill
 flag set, the view frozen at `v` (normal, the disk against it), its storage, its `RawNode` at any
