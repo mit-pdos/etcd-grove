@@ -124,7 +124,11 @@ here yet: `stepIn_intro` keeps it as a premise; `notes/raft-unified-plan.md`, "S
 track A (third)".) -/
 def SentMsgShape (st : MsgSt) : Prop :=
   st.msg.Type' ∈ sentShapeTypes ∧ st.msg.From' ≠ W64 0 ∧
-  (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+  -- (antithesis parity B1, paired with the unstamped types' term clause: positions kept) a transfer
+  -- message's other numbers zero and no rejection (raft builds both with only type, ends and term; a
+  -- forward keeps the received ones, `NetMsgOk`'s)
+  ((st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
+    (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧ st.msg.Commit' = W64 0 ∧ st.msg.Reject' = false)) ∧
   (¬ (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgTransferLeader) →
      st.msg.Term' ≠ W64 0) ∧
   (st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgVoteResp → st.msg.Type' ≠ MsgPreVoteResp →
@@ -142,7 +146,7 @@ theorem SentMsgShape.ok {st : MsgSt} (H : SentMsgShape st) (hd : mtypeOf st.msg.
   obtain ⟨Hty, Hf, H0, H1, Hft, Hsh, -, Hrs⟩ := H
   have Hnt : st.msg.Type' ≠ MsgTimeoutNow := fun h => hd (by rw [h]; rfl)
   have Hnl : st.msg.Type' ≠ MsgTransferLeader := fun h => hd (by rw [h]; rfl)
-  refine ⟨?_, Hf, H0, fun h => H1 (fun h' => h (h'.imp_right (·.resolve_right Hnl))),
+  refine ⟨?_, Hf, H0.1, fun h => H1 (fun h' => h (h'.imp_right (·.resolve_right Hnl))),
     fun a b c d => Hft a b c Hnl d, Hsh, Hrs⟩
   simp only [sentShapeTypes, List.mem_append, List.mem_cons, List.not_mem_nil, _root_.or_false]
     at Hty

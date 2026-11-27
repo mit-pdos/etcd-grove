@@ -319,7 +319,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
   gates_fol
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
-      (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
+      (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hzf, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
     (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
@@ -498,6 +498,8 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     m.Type' = MsgTransferLeader →
     ents = [] →
     ctx = [] →
+    -- (antithesis parity B1) its other numbers zero, no rejection (`RestMsgOk`'s; `stepFollower`'s)
+    (m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false) →
     -- (raft-final, 2026-10-29, U7: the design's §2.3) the node's leader and term recorded for the
     -- forward (`ownRaftPhysC_xw_record`, before this arm; `stepFollower`'s premise); the stamped
     -- request's refutation from its witness (`ownStepGhost_xferRefute`, in `raft.Step`). (Until then
@@ -529,7 +531,7 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
-  intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT
+  intro Hty Hent Hctx0 Hzf Hxo Htr Hlok Hwf Hnors HLT
   have hnh : m.Type' ≠ MsgHup := by rw [Hty]; w32_ne
   have hnv : m.Type' ≠ MsgVote := by rw [Hty]; w32_ne
   have hlead : preLead m = W64 0 := by
@@ -608,7 +610,7 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
         (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
-        (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, fun h => absurd rfl h⟩,
+        (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, Hzf, fun h => absurd rfl h⟩,
           fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
         (by ty_other)
       (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩

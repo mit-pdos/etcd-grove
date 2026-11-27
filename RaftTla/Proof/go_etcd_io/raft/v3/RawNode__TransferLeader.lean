@@ -69,7 +69,7 @@ theorem RawNode.TransferLeader.wp_proof
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (⟨fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne), fun _ => ⟨rfl, rfl⟩⟩ : RestMsgOk s _ [] []) Hwf
+    (⟨fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne), fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩⟩ : RestMsgOk s _ [] []) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
     (by tr_none) $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot

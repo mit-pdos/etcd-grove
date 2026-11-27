@@ -66,6 +66,20 @@ theorem mtypeOf_none_of_xmsgOf {st : MsgSt} {x : XMsg} (hx : xmsgOf st = some x)
     · rename_i e; rw [e]; rfl
     · cases hx
 
+/-- (antithesis parity B1) A transfer message of raft's shape has its other numbers zero and no
+rejection (`SentMsgShape`'s transfer clause). -/
+theorem xmsgOf_zero {st : MsgSt} {x : XMsg} (H : SentMsgShape st) (hx : xmsgOf st = some x) :
+    st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧ st.msg.Commit' = W64 0 ∧
+      st.msg.Reject' = false := by
+  have hty : st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader := by
+    unfold xmsgOf at hx
+    split at hx
+    · rename_i e; exact .inl e
+    · split at hx
+      · rename_i e; exact .inr e
+      · cases hx
+  exact H.2.2.1.2 hty
+
 /-- (step C4) **A handed-out transfer message against the node** (`XReadyOk`): the queued message's
 facts (`XQOk`; a stamped transfer request's `NGhost.xw` record) and the scope's (`XScopeOk`: the records
 past term `0`, and with non-voters off their destinations members of the names' voters). -/
@@ -240,7 +254,7 @@ theorem RawNode.Ready.wp_absProof
     fun h => toPState_lead_of_stateW64 s (Hrole1 ▸ h)⟩, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
     Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew,
-    Hty1, Hxr', (Hscf md hmd).2.2, fun h => ?_, by rw [Hsts, toRState_p, toPState_rd_states]⟩
+    Hty1, Hxr', (Hscf md hmd).2.2, fun q hq x hx => xmsgOf_zero (Hxq q hq).2.1 hx, fun h => ?_, by rw [Hsts, toRState_p, toPState_rd_states]⟩
   -- (antithesis parity B1, group E's S4) the node constant's pre-vote flag the raft state's (`KTie`)
   have hk : NodeK.mk s.prevote s.cq s.sdr = rs.k := (Hscope1 md hmd).2.2.1
   rw [← hk]

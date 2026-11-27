@@ -1492,7 +1492,7 @@ theorem raft.Step.wp_proof
   -- `stepPost`: a follower with a leader records it and its term in `NGhost.xw` (the forward's
   -- witness, `ownStepGhost_xw_record`), which `NetFrame` does not allow (`"%Hxwframe"`).
   by_cases HtyX : m.Type' = MsgTransferLeader
-  · obtain ⟨Hent, Hctx0⟩ := Hrest.2.2 HtyX
+  · obtain ⟨Hent, Hctx0, Hzf⟩ := Hrest.2.2 HtyX
     have Hdh1 : ∀ (X Y : GSet (w64 × w64)) (b : Bool) s',
         DynHypFor md m { s with gh := { s.gh with xw := X, xt := Y, xs := b } } s' :=
       fun X Y b _ _ _ _ _ hmd _ HI =>
@@ -1696,7 +1696,7 @@ theorem raft.Step.wp_proof
     ihave Hmi := msgInC_moves (by rw [HtyX]; decide) _ _ _ $$ Hmi
     wp_apply (wp_Step_MsgTransferLeader (B := plogLastIndexZ (toPState s).base (toPState s).log) P PB c r id
       { s with gh := { s.gh with xw := X, xt := Y, xs := b } } ml m ents sn ctx rs (ghostIn γ md c id s R) Hxtr Hxsb
-      (fun hl _ hne hmt => HYx hl hne hmt) HtyX Hent Hctx0 Hxo Htr
+      (fun hl _ hne hmt => HYx hl hne hmt) HtyX Hent Hctx0 Hzf Hxo Htr
       Hlok Hwf (Hnors (.inr (.inr HtyX))) HLT) $$ [$Hphys $Hmi $HG $Hgates]
       as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst

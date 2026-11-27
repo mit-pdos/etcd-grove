@@ -6918,3 +6918,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Open (for the drain's `read` report).** `ReadIndex`'s `∃ Lc, ⌜G.committed <+: Lc⌝ ∗ readReq γ ctx Lc` is dropped:
   nothing in `nodeOwn`/the invariant keeps it for the view's read `(ctx, G.committed.length)`.
 - **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: transfer messages' zero numbers through raft (#33)
+- **Spec (lead-approved; coordinator OK for the shared lines).** ApiVocab `SentMsgShape`: its third clause (the unstamped
+  types' term) becomes a pair, `((Type' = MsgProp ∨ Type' = MsgReadIndex → Term' = 0) ∧ (Type' = MsgTimeoutNow ∨
+  Type' = MsgTransferLeader → st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧ st.msg.Commit' = W64 0 ∧
+  st.msg.Reject' = false))`: positions kept, and no etcdserver file reads that clause (they read the 4th, 6th-8th),
+  so no etcdserver change (also RaftNoAx's own ApiVocab). NetMsgOk's transfer clause and raft.Step's `RestMsgOk` += the
+  same four facts of a `MsgTransferLeader`. stepFollower.spec's transfer premise (and TracedUntracedStep's restatement)
+  += them; raft.send.spec's transfer case += them of `m`. RawNodeAbsSpecs `RawNode.Ready.form`'s `%Hout` += `∀ q ∈ ms,
+  ∀ x, xmsgOf q.st = some x → q.st.msg.Index' = W64 0 ∧ q.st.msg.LogTerm' = W64 0 ∧ q.st.msg.Commit' = W64 0 ∧
+  q.st.msg.Reject' = false`. InvNodeChan `netP_local` takes them of a local `MsgTransferLeader` (its four callers: literals or by type).
+- **Defect.** The Go report of a transfer message carries Index/LogTerm/Commit/Reject and the Antithesis binding expects
+  zeros; raft did not say so. Real traffic has them: raft builds `MsgTimeoutNow` and the local `MsgTransferLeader` with
+  only type, ends (and term), and every `MsgTransferLeader` on the wire is a forward of a local one (a follower changes
+  only `To`, `send` stamps `Term`). So the forward needs it of the stepped message: Step's premise (`NetMsgOk`/
+  `RestMsgOk`), which the node API gets from the sender's `SentMsgShape` (`NetMsgOk.of_shape`) and RawNode callers
+  from their transport (the antithesis harness: `XNetFacts`).
+- **Proof.** ApiVocab (`SentMsgShape.ok`), NetMsgOk.of_shape, raft__send (transfer case `Hzf`; `sent_tac`'s new arm), sendTimeoutNow (literals), stepFollower
+  (the forward passes `Hzf`), raft__Step / MsgRest (`wp_Step_MsgTransferLeader` takes them, passes them to
+  stepFollower), RawNode__TransferLeader(Abs) (literals), RawNode__ReadyAbs (`xmsgOf_zero`), InvNodeChan and node__
+  ReportUnreachable/TransferLeadership/ForgetLeader/ReportSnapshot; harness DrainB1Send (`xnetFacts_of_ready`'s
+  NetMsgOk transfer arm from its `XZero`; `hz.1`). Part copies.
+- **Trust.** No axiom statement or TopLevel file names SentMsgShape or its direct users (lead's check): an untrusted
+  vocabulary strengthening. No axiom, no top-level premise.

@@ -148,6 +148,8 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
    ((m.Type' = MsgTimeoutNow ∨ m.Type' = MsgTransferLeader) ∧
     (m.Type' = MsgTimeoutNow → s.term ≠ W64 0) ∧ ents = [] ∧ ctx = [] ∧
     m.Term' = W64 0 ∧
+    -- (antithesis parity B1) the other numbers zero, no rejection (`SentMsgShape`'s)
+    (m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false) ∧
     m.To' ≠ id ∧
     out = [] ∧
     -- (raft-final, 2026-10-29, U7: the design's §2.3) a forwarded `MsgTransferLeader`, stamped with

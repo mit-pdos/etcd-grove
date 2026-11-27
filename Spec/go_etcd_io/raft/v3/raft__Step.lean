@@ -101,7 +101,7 @@ def RestMsgOk [GooseExts] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
   -- (D19i part 1) and with the floor at most `applied` (`hup`'s)
   (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64 ∧
      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) ∧
-  (m.Type' = MsgTransferLeader → ents = [] ∧ ctx = [])
+  (m.Type' = MsgTransferLeader → ents = [] ∧ ctx = [] ∧ m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false)
 
 /-- `RestMsgOk` of a message of none of those types. -/
 theorem RestMsgOk.of_ne [GooseExts] {s : NState} {m : MessageM} {ents : List EntryM}

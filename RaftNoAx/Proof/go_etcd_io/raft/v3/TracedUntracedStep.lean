@@ -354,6 +354,8 @@ abbrev stepFollower.untracedTriple : Prop :=
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
         ents = [] ∧ cl = [] ∧
+        -- (antithesis parity B1) its other numbers zero, no rejection (`send`'s transfer case)
+        (m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false) ∧
         (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome)) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
        uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →

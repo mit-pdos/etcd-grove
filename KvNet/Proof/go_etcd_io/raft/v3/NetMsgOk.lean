@@ -61,7 +61,9 @@ def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
      st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
   (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+  -- (antithesis parity B1) and its other numbers zero, no rejection (`RawNode.TransferLeader` builds it
+  -- with only type and sender; a forward keeps them)
+  (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = [] ∧ st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧ st.msg.Commit' = W64 0 ∧ st.msg.Reject' = false) ∧
   -- (2026-10-17) a pre-vote request from another node
   (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧
   -- (2026-10-22, D38a) no responses (what raft forwards must have none, `raft.Step`'s `Hnors`)
@@ -92,17 +94,17 @@ a forwarded proposal (`fwdP`). (Until then `NetMsgOk.of_sent`, from the no-trans
 `SentMsgOk`, D21g (A).) -/
 theorem NetMsgOk.of_shape {dst : w64} {st : MsgSt} (H : SentMsgShape st) (Hto : st.msg.To' = dst)
     (Hnp : st.msg.Type' ≠ MsgProp) : NetMsgOk dst st := by
-  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft, -, Hxe, Hrs⟩ := H
+  obtain ⟨Hty, Hf0, ⟨Ht0, Hz⟩, Ht1, Hft, -, Hxe, Hrs⟩ := H
   subst Hto
   unfold NetMsgOk UnstampedType
   simp only [sentShapeTypes, sentTypes, List.mem_append, List.mem_cons, List.not_mem_nil,
     _root_.or_false] at Hty
   rcases Hty with (h | h | h | h | h | h | h | h | h | h | h | h) | h | h <;>
-    rw [h] at Ht0 Ht1 Hft Hnp Hxe ⊢ <;>
+    rw [h] at Ht0 Ht1 Hft Hnp Hxe Hz ⊢ <;>
     simp only [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
       MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
       MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgSnap]
-      at Ht0 Ht1 Hft Hnp Hxe ⊢ <;>
+      at Ht0 Ht1 Hft Hnp Hxe Hz ⊢ <;>
     simp_all
 
 end

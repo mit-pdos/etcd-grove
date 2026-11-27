@@ -512,6 +512,11 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → RState 
         (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x → XReadyOk γ md id r.p x) ∧
         -- (antithesis parity B1, the drain's send side) at transfer off, every one a protocol message
         (md.transfer = false → ∀ q ∈ ms, (absMsgOf q.st).isSome) ∧
+        -- (antithesis parity B1, the drain's send side) a transfer message's other numbers zero, no
+        -- rejection (`SentMsgShape`'s)
+        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x →
+          q.st.msg.Index' = W64 0 ∧ q.st.msg.LogTerm' = W64 0 ∧ q.st.msg.Commit' = W64 0 ∧
+            q.st.msg.Reject' = false) ∧
         -- (antithesis parity B1, group E's S4) the role reported a pre-candidate only with the node
         -- constant's pre-vote on, and the read states handed out the node's
         (roleAfter rs.role ss = StatePreCandidate → rs.k.prevote = true) ∧ sts = r.p.rd.states⌝ }}

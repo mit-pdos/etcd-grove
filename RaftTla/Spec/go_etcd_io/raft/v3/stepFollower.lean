@@ -217,6 +217,8 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
         ents = [] ∧ cl = [] ∧
+        -- (antithesis parity B1) its other numbers zero, no rejection (`send`'s transfer case)
+        (m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false) ∧
         -- (raft-final, 2026-10-29, U7: the design's A8) a forward to the leader recorded with its
         -- witness (`NGhost.xw`: `raft.Step`'s transfer arm, `send`'s clause (c)); until then only
         -- with leader transfer on (`NGhost.xf = false`, D21 M2r)

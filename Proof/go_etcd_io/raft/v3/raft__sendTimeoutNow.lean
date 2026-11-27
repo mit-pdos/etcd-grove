@@ -45,7 +45,7 @@ theorem raft.sendTimeoutNow.wp_proof
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     msg_nulls
   have Hok : SendOk id s ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ [] [] [] :=
-    Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inl rfl, fun _ => Htz, rfl, rfl, rfl, Hto, rfl,
+    Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inl rfl, fun _ => Htz, rfl, rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, Hto, rfl,
       fun h => absurd h (by simp [MsgTransferLeader]), fun _ => Hxt, Hxs⟩)))
   -- (Q8 stage 1, slice 5) `send` at the caller's gate: `MsgTimeoutNow` is not traced
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none [] [] [] Q (Or.inl rfl) Hok

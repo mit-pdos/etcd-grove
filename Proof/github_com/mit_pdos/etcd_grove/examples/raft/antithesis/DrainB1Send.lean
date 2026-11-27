@@ -153,7 +153,7 @@ theorem netFacts_of_ready {R : AntSim.RunCfg} {st : MsgSt} {q : Msg}
       rw [ht] at hz hnz hft ⊢ <;>
       exact ⟨by mdec,
         fun hu => ⟨rfl, hnz (fun h => hu (by revert h; mdec)), hf0⟩,
-        fun hu hn => hz (by revert hu hn; mdec),
+        fun hu hn => hz.1 (by revert hu hn; mdec),
         fun _ => .inr rfl,
         fun h => by
           first
@@ -251,7 +251,9 @@ theorem xnetFacts_of_ready {R : AntSim.RunCfg} {γr : RaftNames} {md : RnMode} {
         (hxe (.inr (.inl h2))).1, hR⟩
       refine ⟨by rw [h2]; mdec, fun hn => absurd (Or.inr (Or.inl h2)) hn,
         fun _ h => absurd h2 h, fun _ => .inr rfl, fun h => ?_, fun h _ => ?_,
-        fun _ => hxe (.inr (.inl h2)), fun h => ?_, hres⟩ <;> rw [h2] at h <;> exfalso <;>
+        fun _ => ⟨(hxe (.inr (.inl h2))).1,
+          (by have h' := hxe (.inr (.inl h2)); first | exact h'.2.1 | exact h'.2), hI, hL, hC, hR⟩, fun h => ?_, hres⟩ <;>
+        rw [h2] at h <;> exfalso <;>
         revert h <;> mdec
     · rw [if_neg h2] at hx; cases hx
 
