@@ -3,16 +3,13 @@ module
 
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 public import SpecPlan.Spec.PkgInit.Base
-public import Perennial.Proof.context.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.anishathalye.porcupine
-public import Perennial.Proof.github_com.goose_lang.primitive.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
-public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.etcdserverpb
-public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.mvccpb
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.lintest
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 
 @[expose] public section
 noncomputable section

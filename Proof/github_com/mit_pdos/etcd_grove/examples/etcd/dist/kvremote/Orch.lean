@@ -11,8 +11,8 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Orch
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Codec
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Model
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Run
 public import Perennial.Proof.context.Base
 
@@ -99,10 +99,10 @@ theorem Orch.wp_proof
     ipureintro; exact Hsc
   wp_apply (wp_Codec γk) as %cd #Hcd
   ihave #Hgen : lintest.genSpec (GF := GF)
-      (functions github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen [])
+      (functions github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen [])
       (fun x => iprop(∃ i, ⌜x = (kvR (GF := GF) γk).iv i⌝)) $$ []
   · ihave #Hg := (show ⊢ lintest.genSpec (GF := GF)
-        (functions github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen []) linkvInOk from wp_Gen)
+        (functions github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen []) linkvInOk from wp_Gen)
     iunfold lintest.genSpec at Hg
     iunfold lintest.genSpec
     iintro %id

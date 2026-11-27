@@ -1,5 +1,5 @@
 /-
-`startServer(lg)` (`examples/etcd/auth/etcd_auth.go`; the auth plan's E3zb, 2026-10-28): the one member
+`startServer(lg)` (`examples/lib/authwork/etcd_auth.go`; the auth plan's E3zb, 2026-10-28): the one member
 of a new cluster started with auth on -- its peer URL slice, its configuration (`etcdstart.newServer`'s,
 on authkv's ports, with the simple token provider and etcd's default token TTL, `300`),
 `etcdserver.NewServer`, `s.Start()`. Lean-first (no Rocq counterpart).

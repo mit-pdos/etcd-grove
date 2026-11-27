@@ -19,7 +19,7 @@ notes/dsv-swiftpaxos.md, "The kit over remote"; as dsv-paxos's and dsv-rabia's `
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 public import Perennial.Std.ByteString
 public import Batteries.Data.List.Perm
 

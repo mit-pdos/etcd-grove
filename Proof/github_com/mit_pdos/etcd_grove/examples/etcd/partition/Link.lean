@@ -24,10 +24,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.write
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked
 public import Proof.context.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
@@ -38,7 +38,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_partition
 
-open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.etcd.partition github_com.mit_pdos.etcd_grove.examples.etcd.txnlin github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine
+open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.etcd.partition github_com.mit_pdos.etcd_grove.examples.lib.txnwork github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]

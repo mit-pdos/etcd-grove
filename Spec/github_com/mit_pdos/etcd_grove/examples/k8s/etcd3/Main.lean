@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `Main(clients, ops, watchers, wops)` (`examples/k8s/etcd3/k8s_etcd3.go`; stage 6g of `notes/k8s-etcd3-plan.md`):
-one etcd member started in process (as `examples/etcd/txnlin`'s `Main`, on `k8setcd3`'s ports), a
+one etcd member started in process (as `examples/lib/txnwork`'s `Main`, on `k8setcd3`'s ports), a
 kubernetes client configured for one attempt per call (`MaxUnaryRetries: 1`), the seed keys
 written in the older encoding (`seed`), the Kubernetes etcd3 store over the client (`etcd3.New`,
 the driver's codec, versioner, transformer and decoder), and `Check(s, st0, h0, clients, ops, watchers, wops, 0)`,

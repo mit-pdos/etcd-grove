@@ -1,21 +1,21 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lib/authwork/Link.lean`
 # (all Lean-first; the auth plan's E2b), read by `etc/gen-link.py --authkv`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `authkv`.
 #
 # the program's verdict, the model's at the set-up's state (Model.lean)
-auth_InRange:
-auth_Permitted: auth_InRange
+authwork_InRange:
+authwork_Permitted: authwork_InRange
 # the checks' helpers (the auth plan's E2f)
-auth_keyOf:
-auth_refused:
-auth_Principals:
-auth_Writer: auth_Principals
-auth_LastIn: auth_InRange
-auth_SetupWrite: auth_Principals auth_keyOf
-auth_CheckHistory: auth_SetupWrite auth_Writer auth_Permitted
-auth_checkKVs: auth_Permitted
-auth_checkTxnReads: auth_checkKVs
+authwork_keyOf:
+authwork_refused:
+authwork_Principals:
+authwork_Writer: authwork_Principals
+authwork_LastIn: authwork_InRange
+authwork_SetupWrite: authwork_Principals authwork_keyOf
+authwork_CheckHistory: authwork_SetupWrite authwork_Writer authwork_Permitted
+authwork_checkKVs: authwork_Permitted
+authwork_checkTxnReads: authwork_checkKVs
 # the request contexts: the timeout context, and the bad principal's token appended (C3, grpc's
 # `metadata` a trust boundary)
 context_WithTimeoutBackground:
@@ -23,7 +23,7 @@ context_WithTimeoutBackground:
 context_WithTimeoutBackgroundMd:
 context_ErrAny: @
 metadata_AppendToOutgoingContext:
-auth_reqCtx: context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext
+authwork_reqCtx: context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext
 # (the auth plan's E2h) `SetUp`: the puts with a persistent update (`client_Put_any`), the
 # admin calls through the client's Auth API (client/v3's, linked in its `Link.lean`) at etcd's
 # Auth specs (`setupAuthServed`), in a context with no outgoing metadata (5b)
@@ -33,10 +33,7 @@ v3_authClient__RoleAdd: @
 v3_authClient__RoleGrantPermission: @
 v3_authClient__AuthEnable: @
 # (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
-auth_SetUp: context_WithTimeoutBackgroundMd context_ErrAny auth_Principals auth_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable =client_Put_on_law_holds
-# the skeleton's stubs (notes/authkv-main-plan.md, 2026-10-29: S3, S2; `sorry`s)
-client_v3_New: @
-auth_newUserClient: client_v3_New
+authwork_SetUp: context_WithTimeoutBackgroundMd context_ErrAny authwork_Principals authwork_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable =client_Put_on_law_holds
 # Work's builders (client/v3's, re-linked as linkvtxn's and leasing's) and the watch (the auth-on
 # `Watch`, client/v3's `Link.lean`)
 NewOp:
@@ -65,16 +62,4 @@ etcdstart_Collect: @
 txn__If: @
 txn__Then: @
 txn__Else: @
-auth_Work: auth_keyOf auth_reqCtx auth_refused auth_checkKVs auth_checkTxnReads auth_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev v3_watcher__Watch =client_Txn_on_law_holds txn__If txn__Then txn__Else =work_put_law_holds =work_delete_law_holds =work_get_law_holds =work_commit_law_holds =then_commit_nested_refused_law_holds
-# `Main`'s start (2026-10-30): the logger, the member with auth on (`startServer`, pending here:
-# its proof takes the named premise `authSchemaSrv` (until auth-schema-fix S1 also the false `auth.ValidSpec`), `Results.lean`'s
-# `auth_startServer`), `Serve` (its one spec, at the server's mode since the auth component's stage 5), the
-# client, and the auth store's `BcryptCost` (the server's `Link.lean`)
-zap_NewNop:
-auth_startServer: ?
-etcdstart_Serve: @
-etcdstart_NewClient: @
-# `Run` (the auth3 Scope's Q6, 2026-11-14): `Main` after the member's start, shared with auth3
-auth_Run: etcdstart_Serve etcdstart_NewClient =auth.authStore.wp_BcryptCost context_ErrAny auth_SetUp auth_newUserClient auth_Work auth_Principals auth_CheckHistory auth_LastIn context_WithTimeoutBackground etcdstart_Collect v3_watcher__Watch WithPrefix WithRev WithRange auth_Permitted =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds
-# `Main`: the start, then `Run`
-auth_Main: zap_NewNop auth_startServer auth_Run =mvcc.api.mvccApi_names_nonempty_law_holds =_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
+authwork_Work: authwork_keyOf authwork_reqCtx authwork_refused authwork_checkKVs authwork_checkTxnReads authwork_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev v3_watcher__Watch =client_Txn_on_law_holds txn__If txn__Then txn__Else =work_put_law_holds =work_delete_law_holds =work_get_law_holds =work_commit_law_holds =then_commit_nested_refused_law_holds

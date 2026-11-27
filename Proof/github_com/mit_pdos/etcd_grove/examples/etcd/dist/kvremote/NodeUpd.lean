@@ -19,8 +19,8 @@ wire input `x` (`slotUpd (kvR γk) x Φ`, remote's) is turned into the update `C
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Store
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Inv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Inv
 
 @[expose] public section
 
@@ -33,7 +33,7 @@ namespace Perennial
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 open EtcdGrove EtcdGrove.etcd_txnlin
 open go_etcd_io.etcd.server.v3.etcdserver mvcc
 open github_com.mit_pdos.etcd_grove.examples.lib.remote Net

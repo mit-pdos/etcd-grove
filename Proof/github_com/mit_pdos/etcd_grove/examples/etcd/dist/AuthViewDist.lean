@@ -215,7 +215,7 @@ against: the cross-machine form of the single-process `akAuthFixed`.
 Under a fancy update at a mask holding `authTieReadMask` (F7 S5 review, `notes/axiom-review/f7-s5-review.md`
 §2.2, 2026-11-26: until then a plain persistent wand, false in the logic: the log fragment `srvReqLogLb γR L'`
 of a state recorded after the floor exists only inside the tie's invariant `authTieN`, so it is obtained by
-opening it, as `akAuthFixed` states, `examples/etcd/auth/WorkEnv.lean`). -/
+opening it, as `akAuthFixed` states, `examples/lib/authwork/WorkEnv.lean`). -/
 def authFloorD (Γ : DistView) (γR : ServerRaftNames) (mid : w64)
     (L₀ : List EntryModel) (m : Nat) : IProp GF :=
   iprop(auth.authPubLbM (.on (Γ.au mid)) m ∗ ∃ (L : List EntryModel) (i : Nat), ⌜L₀ <+: L ∧ i ≤ m⌝ ∗

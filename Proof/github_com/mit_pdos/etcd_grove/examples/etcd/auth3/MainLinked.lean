@@ -15,12 +15,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.barrier
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.newUserClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.startMember
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn
 public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 
 @[expose] public section

@@ -10,8 +10,8 @@ import (
 	"github.com/anishathalye/porcupine"
 	"go.uber.org/zap"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/txnwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
@@ -19,30 +19,30 @@ func randStr() string {
 	return []string{"", "a", "k0", "a longer value", "\x00\xff"}[rand.IntN(5)]
 }
 
-func randVR() txnlin.VR {
-	return txnlin.VR{Val: randStr(), Mod: rand.Int64() - rand.Int64(), Ver: rand.Int64N(10)}
+func randVR() txnwork.VR {
+	return txnwork.VR{Val: randStr(), Mod: rand.Int64() - rand.Int64(), Ver: rand.Int64N(10)}
 }
 
-func randTRes() txnlin.TRes {
-	return txnlin.TRes{Kind: rand.IntN(3), Found: rand.IntN(2) == 0, R: randVR(), N: rand.Int64N(4) - 1}
+func randTRes() txnwork.TRes {
+	return txnwork.TRes{Kind: rand.IntN(3), Found: rand.IntN(2) == 0, R: randVR(), N: rand.Int64N(4) - 1}
 }
 
-func randOutput() txnlin.Output {
-	return txnlin.Output{Err: rand.IntN(2) == 0, Rev: rand.Int64(), Found: rand.IntN(2) == 0, R: randVR(),
+func randOutput() txnwork.Output {
+	return txnwork.Output{Err: rand.IntN(2) == 0, Rev: rand.Int64(), Found: rand.IntN(2) == 0, R: randVR(),
 		N: rand.Int64N(3), Ok: rand.IntN(2) == 0, NRes: rand.IntN(5) - 1, Res0: randTRes(), Res1: randTRes(),
-		Res2: randTRes(), NKVs: rand.IntN(5), KV0: txnlin.KV{Key: randStr(), R: randVR()},
-		KV1: txnlin.KV{Key: randStr(), R: randVR()}, KV2: txnlin.KV{Key: randStr(), R: randVR()}}
+		Res2: randTRes(), NKVs: rand.IntN(5), KV0: txnwork.KV{Key: randStr(), R: randVR()},
+		KV1: txnwork.KV{Key: randStr(), R: randVR()}, KV2: txnwork.KV{Key: randStr(), R: randVR()}}
 }
 
-// TestCodec: every input txnlin.Gen makes, and random outputs, decode to themselves; a truncated or
+// TestCodec: every input txnwork.Gen makes, and random outputs, decode to themselves; a truncated or
 // extended encoding, and a bad bool byte, are refused.
 func TestCodec(t *testing.T) {
 	c := Codec()
 	for n := 0; n < 20000; n++ {
-		in := txnlin.Gen(0).(txnlin.Input)
+		in := txnwork.Gen(0).(txnwork.Input)
 		b := c.EncIn(in)
 		got, ok := c.DecIn(b)
-		if !ok || got.(txnlin.Input) != in {
+		if !ok || got.(txnwork.Input) != in {
 			t.Fatalf("input %+v: decoded %+v, %v", in, got, ok)
 		}
 		if _, ok := c.DecIn(b[:rand.IntN(len(b))]); ok {
@@ -54,7 +54,7 @@ func TestCodec(t *testing.T) {
 		o := randOutput()
 		ob := c.EncOut(o)
 		got, ok = c.DecOut(ob)
-		if !ok || got.(txnlin.Output) != o {
+		if !ok || got.(txnwork.Output) != o {
 			t.Fatalf("output %+v: decoded %+v, %v", o, got, ok)
 		}
 		if _, ok := c.DecOut(ob[:rand.IntN(len(ob))]); ok {
