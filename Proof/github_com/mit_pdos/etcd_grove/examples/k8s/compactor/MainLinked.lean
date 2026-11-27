@@ -11,6 +11,7 @@ them.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready
@@ -77,33 +78,32 @@ include h_After in
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/Main.lean`), under the semantic premises
 of its callees' linked results (as `compactwatch`'s) and the named hypothesis of
 `clock.RealClock.After` (`time.After(d)`: a channel some time is sent on). -/
-theorem k8s_compactor.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem k8s_compactor.wp_Main :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer
     etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny
     k8s_compactor.wp_ready k8s_compactor.wp_writer (k8s_compactor.wp_apiserver h_After) mvcc.api.mvccApi_names_nonempty_law_holds
     mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
-    mvcc.api.mvccApi_mvccReaders_split_law_holds
+    mvcc.api.mvccApi_mvccReaders_split_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 /-- `startCluster`'s callees linked (the k8s etcd3 driver's `wp_startCluster`, without its
 kubernetes client). -/
-theorem k8s_compactor.wp_startCluster [_root_.Perennial.net.FieldAssumptions] :
+theorem k8s_compactor.wp_startCluster :
     k8s_compactor.startCluster.spec (GF := GF) (hG := hG) :=
   k8s_compactor.startCluster.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcdstart.wp_Serve cluster3.wp_StartBridge
     (k8s_compactor.bridgeAddr.wp_proof etcdstart.strconv.wp_FormatUint)
     k8s_compactor.holdToken.wp_proof mvcc.api.mvccApi_names_nonempty_law_holds
     mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 include h_After in
 /-- **The compactor example's `MainPartition` does not panic** (K6;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the `k`-member cluster's) and the named
 hypothesis of `clock.RealClock.After`. -/
-theorem k8s_compactor.wp_MainPartition [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem k8s_compactor.wp_MainPartition
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.MainPartition.wp_proof zap.NewNop.wp_proof k8s_compactor.wp_startCluster
     etcdstart.wp_NewClients cluster3.wp_Partitioner context.wp_ErrAny

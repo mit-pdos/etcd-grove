@@ -457,10 +457,10 @@ theorem joinAuth_join (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
   unfold isCluster joinAuth raftState nodeVacant
   exact ApiImpl.joinAuth_join_impl γ N U id hU hz
 
-/-- (2026-11-22, kvnet decision B) **A new cluster of the voters `vs` without a bootstrap log, at a
+/-- (2026-11-22, kvraft decision B) **A new cluster of the voters `vs` without a bootstrap log, at a
 global ghost state**: `cluster_alloc`'s post at `boot = []`, stated over `[AllG] [ReceiptGS] [InvGS]`
 only (no heap, no Go semantics: `cluster_alloc`'s premise `bootMarshal` is a WP, so its statement
-needs them), for an allocation before any machine runs (kvnet's adequacy `Hstart`). -/
+needs them), for an allocation before any machine runs (kvraft's adequacy `Hstart`). -/
 theorem cluster_alloc_nb (N : Namespace) (vs : List w64) (dup : Bool) (sl : w64 → Option GName)
     (md : Option Nat) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →

@@ -1,0 +1,46 @@
+/-
+The proof of `KvRaft/Spec/.../kvraft/DialTCP.lean`: `net.DialTimeout`'s spec at `"tcp"`.
+-/
+module
+
+public import KvRaft.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvraft.DialTCP
+public import KvRaft.Spec.net.DialTimeout
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace kvraft
+
+open Iris Iris.BI Iris.ProofMode Net
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
+variable [package_sem' : net.Assumptions]
+
+theorem DialTCP.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG := hG)) :
+    DialTCP.spec (GF := GF) (hG := hG) := by
+  intro a dur et ed Qfail Qok
+  wp_start as ⟨%Ha, #Het, #Hed, Hupd⟩
+  wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
+  wp_apply wp_DialTimeout go!"tcp" (Or.inl rfl) a dur et ed Qfail Qok $$ [Hupd] as %c %err Hpost
+  · (try iframe HnetPk)
+    iframe Het Hed Hupd
+    ipureintro; exact Ha
+  try wp_auto
+  iapply HΦ
+  iexact Hpost
+
+end proof
+
+end kvraft
+end EtcdGrove
+end Perennial

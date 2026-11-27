@@ -1,15 +1,12 @@
 /-
-(Specs and the connection lemma; `ConnReadFull.lean` holds the two proofs.)
+(Specs and the connection lemma; `ConnReadFull.lean` holds the proof.)
 `io.ReadFull` over a reader whose contract asks a condition only of reads that `ReadAtLeast` makes
 (`ys.length < xs.length`: it reads only while it has fewer bytes than asked), such as a
-connection's (`net.conn_readerOk`: a non-empty buffer). Perennial's `io.ReadAtLeast.spec` asks the
-condition at every `ys.length ≤ xs.length`, the full buffer included, which a connection's
-contract does not meet (the gap dsv-bufio records as review C1; Perennial branch
-`readatleast-prefix` changes the premise). Until it lands: `io.ReadAtLeast.wp_proofLt`, a copy of
-Perennial's proof (`Perennial/Proof/io/ReadAtLeast.lean`, Perennial `9c3b81f3`) with the weaker
-premise (one line changed), and `io.ReadFull.wp_proofLt` over it; then `wp_connReadFull`, a
-connection end's `io.ReadFull` (the kit's `sendConf` and `awaitConf` read a connection with
-`io.ReadFull` directly).
+connection's (`net.conn_readerOk`: a non-empty buffer): `io.ReadFull.specLt`, Perennial's
+`io.ReadFull.spec` since the pin bump to Perennial `580868e54` (2026-11-24, which has branch
+`readatleast-prefix`; until then a local copy of that branch's spec, with a copy of its proof); then
+`wp_connReadFull`, a connection end's `io.ReadFull` (the kit's `sendConf` and `awaitConf` read a
+connection with `io.ReadFull` directly).
 -/
 module
 
@@ -34,36 +31,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `io.ReadAtLeast.spec` with the condition asked only below the buffer's length. -/
-abbrev io.ReadAtLeast.specLt : Prop :=
-  ∀ (ri : GoInterfaceOk) (Pre : List w8 → Nat → Prop) (S : List w8 → IProp GF)
-    (E : List w8 → GoInterface → IProp GF) (r0 : List w8) (p : GoSlice) (xs : List w8)
-    (min : w64) (eof ueof sb : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ _root_.Perennial.io.readerOk ri Pre S E ∗
-      globalAddr _root_.Perennial.io.EOF ↦□ eof ∗ globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ∗
-      globalAddr _root_.Perennial.io.ErrShortBuffer ↦□ sb ∗
-      ⌜∀ ys : List w8, ys.length < xs.length → Pre (r0 ++ ys) (xs.length - ys.length)⌝ ∗
-      S r0 ∗ p ↦* xs }}
-    (App (App (App (Val (@! _root_.Perennial.io.ReadAtLeast)) (Val #(interface.ok ri))) (Val #p)) (Val #min))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length⌝ ∗
-        p ↦* (ys ++ xs.drop ys.length) ∗ S (r0 ++ ys) ∗
-        _root_.Perennial.io.readAtLeastRes E eof ueof sb r0 ys xs.length (sint.Z min) err }}
-
-/-- `io.ReadFull.spec` with the condition asked only below the buffer's length. -/
-abbrev io.ReadFull.specLt : Prop :=
-  ∀ (ri : GoInterfaceOk) (Pre : List w8 → Nat → Prop) (S : List w8 → IProp GF)
-    (E : List w8 → GoInterface → IProp GF) (r0 : List w8) (p : GoSlice) (xs : List w8)
-    (eof ueof : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ _root_.Perennial.io.readerOk ri Pre S E ∗
-      globalAddr _root_.Perennial.io.EOF ↦□ eof ∗ globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ∗
-      ⌜∀ ys : List w8, ys.length < xs.length → Pre (r0 ++ ys) (xs.length - ys.length)⌝ ∗
-      S r0 ∗ p ↦* xs }}
-    (App (App (Val (@! _root_.Perennial.io.ReadFull)) (Val #(interface.ok ri))) (Val #p))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length⌝ ∗
-        p ↦* (ys ++ xs.drop ys.length) ∗ S (r0 ++ ys) ∗
-        _root_.Perennial.io.readFullRes E eof ueof r0 ys xs.length err }}
+/-- `io.ReadFull.spec` with the condition asked only below the buffer's length: Perennial's own
+since the pin bump to Perennial `580868e54` (2026-11-24, branch `readatleast-prefix` landed). -/
+abbrev io.ReadFull.specLt : Prop := _root_.Perennial.io.ReadFull.spec (GF := GF) (hG := hG)
 
 end spec
 
@@ -72,7 +42,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [π : NetProtoGS]
 
 /-- `io.ReadFull(c, p)` of the end `s` of the connection `cn` (its `*TCPConn` `t`): what it read
 extends the reader's token; no error only if it filled `p`. -/

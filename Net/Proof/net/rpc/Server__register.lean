@@ -29,7 +29,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [errors.Assumptions] [go.token.Assumptions]
 
 theorem keys_fresh {K : Type} (keys : List K) (i : Nat) (key : K) (hnd : keys.Nodup)
@@ -178,10 +178,11 @@ theorem Server.register.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG 
     imod ownMap_persist mp2 (DFrac.own 1) M2 $$ HM2 with #HM2
     ihave #HMT := HMT
     iunfold isServer at Hs
+    iunfold isServerO at Hs
     icases Hs with ⟨#Hsync, #Hmu, -, -⟩
     wp_apply wp_Lock _ _ $$ [$Hsync $Hmu] as ⟨Hown, Hinv⟩
-    iunfold svcMapInv at Hinv
-    icases Hinv with ⟨%smp, %M3, Hsm, HM3, Hγ⟩
+    iunfold svcMapInvO at Hinv
+    icases Hinv with ⟨%smp, %M3, Hsm, HM3, Hγ, -⟩
     wp_auto
     wp_apply (wp_map_lookup2 go.string (go.GoType.PointerType net.rpc.service.ty) smp M3 sn (DFrac.own 1)) $$ HM3 as HM3
     cases hl : M3 !! sn with
@@ -190,10 +191,12 @@ theorem Server.register.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG 
       wp_auto
       wp_apply (wp_mapInsert go.string smp M3 sn «$r0_ptr») $$ HM3 as HM3
       imod ghost_map_insert_persist sn «$r0_ptr» (by rw [← gmap_get?_eq]; exact hl) $$ Hγ with ⟨Hγ, #Hel⟩
-      wp_apply wp_Unlock _ (svcMapInv γ s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ]
-      · iunfold svcMapInv
+      wp_apply wp_Unlock _ (svcMapInvO γ none s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ]
+      · iunfold svcMapInvO
         iexists smp, _
         iframe Hsm HM3 Hγ
+        simp only [svcOwnIn]
+        itrivial
       (try wp_auto)
       iapply HΦ
       ileft
@@ -208,10 +211,12 @@ theorem Server.register.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG 
     | some sv0 =>
       simp only [Option.isSome_some, _root_.decide_true]
       wp_auto
-      wp_apply wp_Unlock _ (svcMapInv γ s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ]
-      · iunfold svcMapInv
+      wp_apply wp_Unlock _ (svcMapInvO γ none s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ]
+      · iunfold svcMapInvO
         iexists smp, M3
         iframe Hsm HM3 Hγ
+        simp only [svcOwnIn]
+        itrivial
       (try wp_auto)
       wp_apply wp_errors_New' as %x #-
       iapply HΦ

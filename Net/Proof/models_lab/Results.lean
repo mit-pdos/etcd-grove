@@ -2,8 +2,12 @@
 The results of `models.lab`'s codec helpers (`models/`, project models; phase 5 item 1 of
 notes/dsverify-net-port-plan.md), restated, with `#print axioms` of each (none beyond Lean's):
 
-* `jsoncodec`: `IsSpace`, `AppendRaw`, `AppendBool`, `(*Error).Error`, and its package
-  initialization; `Error_errAny` (a kept `*jsoncodec.Error` is some error);
+* `jsoncodec`: `IsSpace`, `AppendRaw`, `AppendBool`, `AppendString` (with `appendEscapedASCII`,
+  `htmlByte`, `seqLen`, `seqLenOf`), `AppendUint`, `(*Error).Error`, and its package
+  initialization; `Error_errAny` (a kept `*jsoncodec.Error` is some error); dsverify-lab's scanner
+  `SkipSpace`, `Scan` (`JsonScan.scanF`) and `scanOk_scanF`, `Valid`, the decoding helpers `ValueEnd`,
+  `At`, `Next`, `Empty`, `Str`, `Member`, `Digits`, `Uint`, `QuotedUint`, `String`, `Bool` (ours) (at valid input),
+  `AppendQuotedUint`, `Nesting` and `AppendCompact` (linked in `jsoncodec/Linked.lean`);
 * `pbcodec`: `(*Error).Error`, its package initialization, and `Error_errAny`.
 
 The codec obligations (`pbcodec.PbCodec`, `marshalOk`, `unmarshalOk`; `jsoncodec.JsonCodec`,
@@ -15,10 +19,9 @@ module
 public import Net.Proof.models_lab.pbcodec.Codec
 public import Net.Proof.models_lab.pbcodec.Init
 public import Net.Proof.models_lab.jsoncodec.Codec
-public import Net.Proof.models_lab.jsoncodec.Init
+public import Proof.models_lab.jsoncodec.Init
+public import Net.Proof.models_lab.jsoncodec.Linked
 public import Net.Proof.models_lab.jsoncodec.IsSpace
-public import Net.Proof.models_lab.jsoncodec.AppendRaw
-public import Net.Proof.models_lab.jsoncodec.AppendBool
 public import Net.Proof.models_lab.jsoncodec.Error__Error
 public import Net.Proof.models_lab.pbcodec.Error__Error
 
@@ -43,14 +46,6 @@ variable [sem : go.Semantics]
 theorem jsoncodec.IsSpace.wp [jsoncodec.Assumptions] :
     jsoncodec.IsSpace.spec (GF := GF) (hG := hG) :=
   jsoncodec.IsSpace.wp_proof
-
-theorem jsoncodec.AppendRaw.wp [jsoncodec.Assumptions] :
-    jsoncodec.AppendRaw.spec (GF := GF) (hG := hG) :=
-  jsoncodec.AppendRaw.wp_proof
-
-theorem jsoncodec.AppendBool.wp [jsoncodec.Assumptions] :
-    jsoncodec.AppendBool.spec (GF := GF) (hG := hG) :=
-  jsoncodec.AppendBool.wp_proof
 
 theorem jsoncodec.Error.Error.wp [jsoncodec.Assumptions] :
     jsoncodec.Error.Error.spec (GF := GF) (hG := hG) :=
@@ -79,10 +74,49 @@ end Perennial
 
 #print axioms Perennial.models_lab.jsoncodec.IsSpace.wp
 #print axioms Perennial.models_lab.jsoncodec.AppendRaw.wp
+#print axioms Perennial.models_lab.jsoncodec.htmlByte.wp
+#print axioms Perennial.models_lab.jsoncodec.appendEscapedASCII.wp
+#print axioms Perennial.models_lab.jsoncodec.seqLenOf.wp
+#print axioms Perennial.models_lab.jsoncodec.seqLen.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendString.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendUint.wp
 #print axioms Perennial.models_lab.jsoncodec.AppendBool.wp
+#print axioms Perennial.models_lab.jsoncodec.SkipSpace.wp
+#print axioms Perennial.models_lab.jsoncodec.Scan.wp
+#print axioms Perennial.models_lab.jsoncodec.scanOk_scanF
+#print axioms Perennial.models_lab.jsoncodec.Valid.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendQuotedUint.wp
+#print axioms Perennial.models_lab.jsoncodec.ValueEnd.wp
+#print axioms Perennial.models_lab.jsoncodec.At.wp
+#print axioms Perennial.models_lab.jsoncodec.Next.wp
+#print axioms Perennial.models_lab.jsoncodec.Empty.wp
+#print axioms Perennial.models_lab.jsoncodec.Str.wp
+#print axioms Perennial.models_lab.jsoncodec.Member.wp
+#print axioms Perennial.models_lab.jsoncodec.Digits.wp
+#print axioms Perennial.models_lab.jsoncodec.Uint.wp
+#print axioms Perennial.models_lab.jsoncodec.QuotedUint.wp
+#print axioms Perennial.models_lab.jsoncodec.String.wp
+#print axioms Perennial.models_lab.jsoncodec.Bool.wp
 #print axioms Perennial.models_lab.jsoncodec.Error.Error.wp
 #print axioms Perennial.models_lab.jsoncodec.Error_errAny'
 #print axioms Perennial.models_lab.jsoncodec.wp_initialize'
 #print axioms Perennial.models_lab.pbcodec.Error.Error.wp
 #print axioms Perennial.models_lab.pbcodec.Error_errAny'
 #print axioms Perennial.models_lab.pbcodec.wp_initialize'
+#print axioms Perennial.models_lab.jsoncodec.SkipSpace.wp
+#print axioms Perennial.models_lab.jsoncodec.Scan.wp
+#print axioms Perennial.models_lab.jsoncodec.ValueEnd.wp
+#print axioms Perennial.models_lab.jsoncodec.At.wp
+#print axioms Perennial.models_lab.jsoncodec.Next.wp
+#print axioms Perennial.models_lab.jsoncodec.Empty.wp
+#print axioms Perennial.models_lab.jsoncodec.Str.wp
+#print axioms Perennial.models_lab.jsoncodec.Member.wp
+#print axioms Perennial.models_lab.jsoncodec.Digits.wp
+#print axioms Perennial.models_lab.jsoncodec.Uint.wp
+#print axioms Perennial.models_lab.jsoncodec.QuotedUint.wp
+#print axioms Perennial.models_lab.jsoncodec.String.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendQuotedUint.wp
+#print axioms Perennial.models_lab.jsoncodec.Valid.wp
+#print axioms Perennial.models_lab.jsoncodec.scanOk_scanF
+#print axioms Perennial.models_lab.jsoncodec.Nesting.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendCompact.wp

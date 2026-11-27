@@ -51,10 +51,10 @@ theorem backend.rtRange_rest (rv : RView) (bi : BucketInfo) (kb eb : GoString) (
 
 theorem backend.baseReadTx.UnsafeRange.wp_proof
     (hRange : backend.txReadBuffer.Range.spec (GF := GF) (hG := hG))
-    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
-    (hCursor : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG))
+    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
+    (hCursor : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG))
     (hur : backend.unsafeRange.spec (GF := GF) (hG := hG)) :
     backend.baseReadTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
   replace hBucket := bbolt.kvGlue_Tx__Bucket_kvr hBucket

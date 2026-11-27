@@ -48,7 +48,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     lessor.recvKeepAliveLoop.spec (GF := GF) (hG := hG) := by
   intro l addr dc0 γd0
-  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
+  wp_start as ⟨Hlt, #Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
@@ -70,10 +70,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_for
-  wp_apply wp_resetRecv l addr $$ [] as %st %err Hres
+  wp_apply wp_resetRecv l addr $$ [Hlt] as %st %err ⟨Hlt, Hres⟩
   · iframe #
+    iframe Hlt
   (try wp_auto)
-  icases Hres with (⟨%Herr, %γ, %Up, %Dn, %cd', #Hcs, #Hz, HRt⟩ | ⟨%Hst, #Herr⟩)
+  icases Hres with (⟨%Herr, %γ, %Up, %Md, %Dn, %cd', #Hcs, #Hz, HRt⟩ | ⟨%Hst, #Herr⟩)
   · subst Herr
     (try wp_auto)
     ihave #Hcs' := Hcs
@@ -84,15 +85,15 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         "HRt" ∷ cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ L) $$ [HRt]
     · iexists []; iframe
     wp_for IH
-    ihave #HR := HRecv $$ %L %iprop(True)
-    wp_apply HR $$ [HRt] as %resp %rerr ⟨-, Hres⟩
+    ihave #HR := HRecv $$ %L %(levelTok 0)
+    wp_apply HR $$ [HRt Hlt] as %resp %rerr ⟨Hlt, Hres⟩
     · isplitr
-      · ipureintro; trivial
-      isplitr
-      · itrivial
+      · ipureintro; rfl
+      isplitl [Hlt]
+      · iexact Hlt
       iframe
     (try wp_auto)
-    icases Hres with (⟨%Herr, %m, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
+    icases Hres with (⟨%Herr, %a, %md, %m, -, -, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
     · subst Herr
       (try wp_auto)
       wp_apply wp_recvKeepAlive l addr resp m $$ []
@@ -118,6 +119,10 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
           · iPkgInit
           ihave ⟨%xnl, #Hnl⟩ := errNoLeader_of_init $$ Hrp
+          -- (#45) the target's description, which `errors.Is` takes
+          ihave #Htdxnl : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF)
+              (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #xnl) m') $$ []
+          · iexists _; iapply go_etcd_io.etcd.cache.v3.descIs_etcdError
           (try wp_auto)
           wp_apply (wp_Is err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
           · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
@@ -228,7 +233,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
           · (try wp_auto)
@@ -340,7 +345,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
         · (try wp_auto)
@@ -412,7 +417,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iapply BigSepM.bigSepM_empty.2
               itrivial
             (try wp_auto)
-            iapply HΦ; itrivial
+            iapply HΦ; iframe Hlt; try itrivial
     · iunfold cliStreamErr at Hse0
       icases Hse0 with ⟨%Hce, #Hse, -⟩
       cases rerr with
@@ -430,6 +435,10 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
           · iPkgInit
           ihave ⟨%xnl, #Hnl⟩ := errNoLeader_of_init $$ Hrp
+          -- (#45) the target's description, which `errors.Is` takes
+          ihave #Htdxnl : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF)
+              (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #xnl) m') $$ []
+          · iexists _; iapply go_etcd_io.etcd.cache.v3.descIs_etcdError
           (try wp_auto)
           wp_apply (wp_Is err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
           · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
@@ -540,7 +549,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
           · (try wp_auto)
@@ -652,7 +661,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
         · (try wp_auto)
@@ -724,9 +733,9 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iapply BigSepM.bigSepM_empty.2
               itrivial
             (try wp_auto)
-            iapply HΦ; itrivial
+            iapply HΦ; iframe Hlt; try itrivial
   · ihave #Herr' := Herr
-    iunfold cliStreamErr at Herr'
+    iunfold cliOpenErr at Herr'
     icases Herr' with ⟨%Hne, #Hse, -⟩
     subst Hst
     cases err with
@@ -851,7 +860,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iapply BigSepM.bigSepM_empty.2
               itrivial
             (try wp_auto)
-            iapply HΦ; itrivial
+            iapply HΦ; iframe Hlt; try itrivial
         iapply BigAndL.bigAndL_nil.2
         itrivial
       · (try wp_auto)
@@ -922,7 +931,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iapply BigSepM.bigSepM_empty.2
             itrivial
           (try wp_auto)
-          iapply HΦ; itrivial
+          iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 

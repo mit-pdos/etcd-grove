@@ -53,7 +53,7 @@ variable [errs_sem : _root_.Perennial.errors.Assumptions]
 
 /-- See the spec file's header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinned
-    [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+ [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr) (hUs : U.SnapCoh)
     (HsO : Loc → HardStateM → IProp GF) (hHs : WalHsOwn P U HsO)
     (hEnv : WalDecEnvSupply (GF := GF))
@@ -75,6 +75,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
     (wp_FName : os.fileStat.Name.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.specPinned (W := W) Mr := by
   intro lg R jr r dir qd d lay X hj hpin hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hpd, Hperm, HS, Hj⟩
   obtain ⟨hljr, hX, hcoh, habs, hid, hnd, hsn⟩ := hpin
   ihave #Hok' := Hok
@@ -116,10 +117,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
     have h1 := hsz0 g hg; rw [hS g hg] at h1; omega
   (try wp_auto)
   have hopen := walOpenNames_ok 0 hX hsn hnmf hout hws
+  have hcbs : ∀ g ∈ lay.segs, os.closeErrMax (child dir g.name) ≤ wal.closeMsgMax := fun g hg => by
+    obtain ⟨sq, ix, hn⟩ := hnmf g hg
+    exact wal.closeBound_of hdl' (by rw [hn, walFileName_length]; decide)
   have h0 : sint.nat (W64 0) = 0 := rfl
   wp_apply wp_openFiles lg dir rn ws (DFrac.own 1) (W64 0) false (lay.segs.map (·.ino))
       R lay.j (DFrac.own qd) 1 (.except X) (DFrac.own (1 : Qp).half) hj (by decide) (by rw [h0]; omega)
-      (by rw [h0]; simp [hwl]) (by omega) (by rw [h0]; exact hopen)
+      (by rw [h0]; simp [hwl]) hdl (by rw [h0]; exact hopen)
     $$ [Hpd Hperm Hj Hws] as %rsl %lsl %clo %err2 ⟨Hpd, Hperm, Hj, Hws, Hopen⟩
   · iframe; iframe #
   icases Hopen with (⟨%frs, %lfs, ⟨%herr2, %hfl, %hll⟩, Hrsl, Hrc, Hlsl, Hlc, Hfiles, Hcl⟩ |
@@ -241,7 +245,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
     ihave ⟨Hall, #Hcase⟩ := vse_exit_streams walCodec_ok dec rcp IoE eof ueof fs fsD kD off c
       (GoInterface.ok ei) _ acc hL hFAi hLOi hkD (by simp) $$ [Hpb Hleft]
     · iframe
-    ihave ⟨HS, Hclo⟩ := vse_close dir lay.segs fs fls lfs htie $$ [Hall]
+    ihave ⟨HS, Hclo⟩ := vse_close dir lay.segs fs fls lfs htie hcbs $$ [Hall]
     · iframe Hall; iexact Hfrf
     iunfold decAns at Hans
     icases Hans with (%hn0 | #Hans)
@@ -639,7 +643,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
           (try wp_auto)
           ihave Hall := vse_streams dec IoE eof fs fsD kD k off' c' true hkD $$ [Hleft Hk Hdec]
           · iframe
-          ihave ⟨HS, Hclo⟩ := vse_close dir lay.segs fs fls lfs htie $$ [Hall]
+          ihave ⟨HS, Hclo⟩ := vse_close dir lay.segs fs fls lfs htie hcbs $$ [Hall]
           · iframe Hall; iexact Hfrf
           wp_for_post
           (try wp_auto)

@@ -3,7 +3,9 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.context.Base
 public import Perennial.Proof.strings.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal
 
 @[expose] public section
 noncomputable section
@@ -19,7 +21,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
+instance pkgInit_google_golang_org_grpc_metadata : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.google_golang_org.grpc.metadata)
 end
 

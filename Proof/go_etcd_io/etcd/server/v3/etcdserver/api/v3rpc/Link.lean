@@ -97,6 +97,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeReq
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeStreamRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestOp
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
+public import Proof.google_golang_org.grpc.codes.Code__String
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestBytesWithOverhead
 public import Proof.context.TODO
 public import Proof.errors.Is
@@ -117,15 +118,24 @@ public import Proof.google_golang_org.grpc.MaxRecvMsgSize
 public import Proof.google_golang_org.grpc.MaxSendMsgSize
 public import Proof.google_golang_org.grpc.NewServer
 public import Proof.google_golang_org.grpc.Server__RegisterService
+public import Proof.google_golang_org.grpc.Server__printf
+public import Proof.google_golang_org.grpc.Server__register
+public import Proof.google_golang_org.grpc.Server__wrapUnaryHandler
 public import Proof.google_golang_org.grpc.StatsHandler
+public import Proof.google_golang_org.grpc.chainStreamInterceptors
+public import Proof.google_golang_org.grpc.chainStreamServerInterceptors
+public import Proof.google_golang_org.grpc.chainUnaryInterceptors
+public import Proof.google_golang_org.grpc.chainUnaryServerInterceptors
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus__String
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.RegisterHealthServer
+public import Proof.google_golang_org.grpc.internal.grpcsync.NewEvent
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream__Send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fillWithoutRevision
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.healthNotifier__startServe
 public import Proof.google_golang_org.grpc.health.NewServer
 public import Proof.google_golang_org.grpc.health.Server__SetServingStatus
+public import Proof.google_golang_org.grpc.health.Server__setServingStatusLocked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isRPCSupportedForLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Compact
@@ -147,6 +157,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryIn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInterceptor
 public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.NewServerHandler
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.NewServerMetrics
 public import Proof.github_com.prometheus.client_golang.prometheus.Register
@@ -154,16 +165,19 @@ public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prome
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics__StreamServerInterceptor
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics__UnaryServerInterceptor
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.WithServerHandlingTimeHistogram
+public import Proof.google_golang_org.protobuf.proto.EqualStatus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer__LeaseGrant
 public import Proof.math.rand.Int63n
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__isWatchPermitted
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__newResponseHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__recvLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__sendLoop
+public import Proof.google_golang_org.grpc.internal.stats.NewCombinedHandler
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.google_golang_org.grpc.status.FromError
@@ -192,6 +206,7 @@ public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -222,9 +237,17 @@ theorem errors.wp_IsDeadlineExceeded :
     EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsDeadlineExceeded.wp_proof _root_.Perennial.errors.wp_Is
 
+theorem codes.Code.wp_String :
+    EtcdGrove.codes.Code.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.codes.Code.String.wp_proof _root_.Perennial.strconv.wp_FormatInt
+
+theorem proto.wp_EqualStatus :
+    EtcdGrove.proto.EqualStatus.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.EqualStatus.wp_proof
+
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
+  EtcdGrove.status.Error.wp_proof _root_.Perennial.fmt.wp_Sprintf codes.Code.wp_String proto.wp_EqualStatus
 
 theorem wp_togRPCError :
     EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
@@ -242,17 +265,25 @@ theorem header.wp_fill :
     EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
 
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
+
 theorem status.wp_FromError :
     EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.FromError.wp_proof
+  EtcdGrove.status.FromError.wp_proof rpctypes.EtcdError.wp_Error
 
 theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -348,7 +379,7 @@ theorem wp_checkRangeRequest :
 
 theorem status.wp_Errorf :
     EtcdGrove.status.Errorf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Errorf.wp_proof
+  EtcdGrove.status.Errorf.wp_proof _root_.Perennial.fmt.wp_Sprintf status.wp_Error
 
 theorem wp_checkRangeStreamRequest :
     EtcdGrove.v3rpc.checkRangeStreamRequest.spec (GF := GF) (hG := hG) :=
@@ -597,9 +628,21 @@ theorem wp_NewWatchServer :
     EtcdGrove.v3rpc.NewWatchServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.NewWatchServer.wp_proof zap.wp_NewNop zap.Logger.wp_Warn zap.wp_Duration config.ServerConfig.wp_MaxRequestBytesWithOverhead EtcdServer.wp_Watchable wp_SetProgressReportInterval
 
+theorem grpc.Server.wp_printf :
+    EtcdGrove.grpc.Server.printf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.Server.printf.wp_proof
+
+theorem grpc.Server.wp_wrapUnaryHandler :
+    EtcdGrove.grpc.Server.wrapUnaryHandler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.Server.wrapUnaryHandler.wp_proof
+
+theorem grpc.Server.wp_register :
+    EtcdGrove.grpc.Server.register.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.Server.register.wp_proof grpc.Server.wp_printf grpc.Server.wp_wrapUnaryHandler
+
 theorem grpc.Server.wp_RegisterService :
     EtcdGrove.grpc.Server.RegisterService.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.RegisterService.wp_proof
+  EtcdGrove.grpc.Server.RegisterService.wp_proof grpc.Server.wp_register
 
 theorem etcdserverpb.wp_RegisterAuthServer :
     EtcdGrove.etcdserverpb.RegisterAuthServer.spec (GF := GF) (hG := hG) :=
@@ -657,9 +700,33 @@ theorem grpc.wp_MaxConcurrentStreams :
     EtcdGrove.grpc.MaxConcurrentStreams.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.MaxConcurrentStreams.wp_proof
 
+theorem istats.wp_NewCombinedHandler :
+    EtcdGrove.istats.NewCombinedHandler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.istats.NewCombinedHandler.wp_proof
+
+theorem grpcsync.wp_NewEvent :
+    EtcdGrove.grpcsync.NewEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpcsync.NewEvent.wp_proof
+
+theorem grpc.wp_chainUnaryInterceptors :
+    EtcdGrove.grpc.chainUnaryInterceptors.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.chainUnaryInterceptors.wp_proof
+
+theorem grpc.wp_chainUnaryServerInterceptors :
+    EtcdGrove.grpc.chainUnaryServerInterceptors.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.chainUnaryServerInterceptors.wp_proof grpc.wp_chainUnaryInterceptors
+
+theorem grpc.wp_chainStreamInterceptors :
+    EtcdGrove.grpc.chainStreamInterceptors.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.chainStreamInterceptors.wp_proof
+
+theorem grpc.wp_chainStreamServerInterceptors :
+    EtcdGrove.grpc.chainStreamServerInterceptors.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.chainStreamServerInterceptors.wp_proof grpc.wp_chainStreamInterceptors
+
 theorem grpc.wp_NewServer :
     EtcdGrove.grpc.NewServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.NewServer.wp_proof
+  EtcdGrove.grpc.NewServer.wp_proof istats.wp_NewCombinedHandler grpcsync.wp_NewEvent grpc.wp_chainUnaryServerInterceptors grpc.wp_chainStreamServerInterceptors
 
 theorem grpc_prometheus.wp_NewServerMetrics :
     EtcdGrove.grpc_prometheus.NewServerMetrics.spec (GF := GF) (hG := hG) :=
@@ -671,7 +738,7 @@ theorem grpc_prometheus.wp_WithServerHandlingTimeHistogram :
 
 theorem prometheus.wp_Register :
     EtcdGrove.prometheus.Register.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.prometheus.Register.wp_proof
+  EtcdGrove.prometheus.Register.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof
 
 theorem wp_getServerMetrics :
     EtcdGrove.v3rpc.getServerMetrics.spec (GF := GF) (hG := hG) :=
@@ -729,9 +796,13 @@ theorem health.wp_NewServer :
     EtcdGrove.health.NewServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.health.NewServer.wp_proof
 
+theorem health.Server.wp_setServingStatusLocked :
+    EtcdGrove.health.Server.setServingStatusLocked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.health.Server.setServingStatusLocked.wp_proof
+
 theorem health.Server.wp_SetServingStatus :
     EtcdGrove.health.Server.SetServingStatus.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.health.Server.SetServingStatus.wp_proof
+  EtcdGrove.health.Server.SetServingStatus.wp_proof health.Server.wp_setServingStatusLocked
 
 theorem grpc_health_v1.HealthCheckResponse_ServingStatus.wp_String :
     EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec (GF := GF) (hG := hG) :=
@@ -747,7 +818,7 @@ theorem wp_newHealthNotifier :
 
 theorem grpc_health_v1.wp_RegisterHealthServer :
     EtcdGrove.grpc_health_v1.RegisterHealthServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc_health_v1.RegisterHealthServer.wp_proof
+  EtcdGrove.grpc_health_v1.RegisterHealthServer.wp_proof grpc.Server.wp_RegisterService
 
 theorem grpc_prometheus.ServerMetrics.wp_InitializeMetrics :
     EtcdGrove.grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG) :=
@@ -879,7 +950,7 @@ theorem errors.wp_IsCtxErr :
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsStatusErr.wp_proof
+  EtcdGrove.errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem wp_filterNoDelete :
     EtcdGrove.v3rpc.filterNoDelete.spec (GF := GF) (hG := hG) :=

@@ -1,7 +1,8 @@
 /-
 Package initialization instances for the packages `v3rpc.Server` (`grpc.go`) brings into `v3rpc`'s
-imports (item 4, the server start): grpc's health service and its protobuf package, grpc's
-reflection interface, grpc-prometheus's provider. All are translated names-only (or types-only:
+imports (item 4, the server start): grpc's health service, grpc's reflection interface,
+grpc-prometheus's provider (grpc's health protobuf package `grpc_health_v1` has its own, with its
+descriptor fact, since 2026-11-26: `Proof/google_golang_org/grpc/health/grpc_health_v1/Base.lean`). All are translated names-only (or types-only:
 `Code/google_golang_org/grpc/{health,reflection}.toml`,
 `Code/github_com/grpc_ecosystem/go_grpc_middleware/providers/prometheus.toml`) and their package
 facts are `True`, as the other names-only packages' (`cache/v3/Base.lean`): an assumption about
@@ -12,7 +13,7 @@ module
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 public import GeneratedProof.google_golang_org.grpc.health
-public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
+public import Proof.google_golang_org.grpc.health.grpc_health_v1.Base
 public import GeneratedProof.google_golang_org.grpc.reflection
 public import GeneratedProof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 
@@ -33,11 +34,16 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance grpc_health_v1_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 :=
+-- (grpc-health, 2026-11-26) `grpc_health_v1`'s instance is its own, with its descriptor fact
+-- (`Proof/google_golang_org/grpc/health/grpc_health_v1/Base.lean`)
+
+-- (phase7-inits batch 2) grpc's `balancer` (types and names only but its `logger` and `init`): `SubConn`,
+-- the type `health`'s `registerClientSideHealthCheckListener` names; before `health`, which imports it
+instance grpc_balancer_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
   define_is_pkg_init iprop(True)
-instance grpc_health_v1_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 :=
+instance grpc_balancer_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
   build_get_is_pkg_init_wf
 
 instance grpc_health_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.health :=
@@ -56,7 +62,7 @@ instance grpc_reflection_get_is_pkg_init_wf_inst :
 instance grpc_prometheus_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus :=
   define_is_pkg_init iprop(True)
-instance grpc_prometheus_get_is_pkg_init_wf_inst :
+instance grpc_prometheus_get_is_pkg_init_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF)
       pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus :=
   build_get_is_pkg_init_wf

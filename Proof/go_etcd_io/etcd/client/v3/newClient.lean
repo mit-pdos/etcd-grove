@@ -66,11 +66,11 @@ theorem newClient.wp_proof
     (wp_NewBundle : credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
   intro _ p cfg eps V P
-  wp_start as ⟨#Hp, #Hcfg, #Hauth⟩
+  wp_start as ⟨Hlt, #Hp, #Hcfg, #Hauth⟩
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
-  icases Hcfg with ⟨#Heps, #Hdo, %Hc, #Hzlg⟩
+  icases Hcfg with ⟨#Heps, ⟨%nd, #Hdo⟩, %Hc, #Hzlg⟩
   obtain ⟨Hplain, Htls, Htok, Hctx, Hms, Hmr, Hrej, Has⟩ := Hc
   ihave %Hlg := zapLoggerOk_ne_null _ $$ Hzlg
   ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
@@ -206,9 +206,9 @@ theorem newClient.wp_proof
   ipersist callOpts
   -- (sweep repairs 1, B5) the endpoints mutex is not nil (`clientCheckFields`)
   icases typedPointsto_not_null_dup _ _ _ $$ «$v5» with ⟨«$v5», %Hv5nn⟩
-  imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
+  imod (sync.init_RWMutex_threadPoolL (fun _ => iprop(True)) (E := ⊤) clientEpN 0 «$v5_ptr»
+    (ThreadBoundLe.threadBound_le (GF := GF))) $$ [] «$v5» with ⟨%γe, #Hguard, #Hpool⟩
   · inext; itrivial
-  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
   wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil eps cfg.Endpoints' eps
     $$ [$epMu $Hguard $endpoints $resolver $Hro $Heps] as ⟨endpoints, Hro⟩
   ipersist endpoints
@@ -219,12 +219,16 @@ theorem newClient.wp_proof
     iframe HcLg'
     iexists [], atb
     iframe Token authTokenBundle
-    ipureintro; intro h; exact absurd rfl h
+    isplitr
+    · ipureintro; intro h; exact absurd rfl h
+    iunfold clientEpPool
+    iexists «$v5_ptr», γe, cfg.Endpoints', eps
+    iframe epMu endpoints Heps Hguard Hpool
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
-  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb P
-    $$ [$Hrc $cfg $Hdo $authTokenBundle $Htb $creds $endpoints $Heps $resolver $Hro]
-    as %conn %derr Hres
+  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb P nd
+    $$ [$Hlt $Hrc $cfg $Hdo $authTokenBundle $Htb $creds $endpoints $Heps $resolver $Hro]
+    as %conn %derr ⟨Hlt, Hres⟩
   · ipureintro; exact Hplain
   icases Hres with (⟨%Hderr, #HconnG, #Hctok⟩ | %Hderr)
   · subst Hderr
@@ -232,7 +236,7 @@ theorem newClient.wp_proof
     ipersist conn
     ihave #HconnG' := HconnG
     iunfold isEtcdConnG at HconnG'
-    icases HconnG' with ⟨%ic, #Hgc, -⟩
+    icases HconnG' with ⟨%ic, #Hgc, -, -⟩
     ihave #Hcore : clientCoreAt (GF := GF) «$r0_ptr» $$ []
     · iunfold clientCoreAt
       iframe HcLg'
@@ -255,7 +259,7 @@ theorem newClient.wp_proof
     wp_apply wp_NewLease «$r0_ptr» conn $$ [$Hcore $HkvS] as %vl ⟨%lp, %Hvl, #HlpS⟩
     iunfold callOptsAt at Hdslok
     icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok, -⟩
-    wp_apply wp_NewWatcher { V with conn := conn, ics := [ic] } «$r0_ptr» dsl cvs
+    wp_apply wp_NewWatcher { V.atEps eps with conn := conn, ics := [ic] } «$r0_ptr» dsl cvs
       $$ [$Hpkg2 $conn $callOpts $Hcvs $Hcvok $HcLg'] as %wi ⟨%w, %wc, %wlg, %Hwi, #Hcw⟩
     · ipureintro; exact Hcnn
     wp_apply wp_NewAuth «$r0_ptr» conn $$ [$HkvS] as %va ⟨%ap, %Hva, #HapS⟩
@@ -268,11 +272,8 @@ theorem newClient.wp_proof
     ipersist Lease
     ipersist Auth
     -- (C1) the client is ready: its `Auth` set, and what the token fetch needs
-    ihave #Hready : clientReady (GF := GF) «$r0_ptr» conn eps $$ []
-    · unfold clientReady
-      iexists ap, P
-      iframe Auth HapS
-      unfold clientAuthAt
+    ihave #Hca : clientAuthAt (GF := GF) «$r0_ptr» eps P $$ []
+    · unfold clientAuthAt
       iexists un, pw, _, atb
       iframe Username Password Token authTokenBundle Htb
       isplitr
@@ -289,6 +290,14 @@ theorem newClient.wp_proof
           · ipureintro; exact Hsz
           iapply tokenBundleInv_nn
           iexact Hb
+    -- (phase7-s3-interceptor) the client's readiness, by Löb induction (its stream interceptor's
+    -- contract is gated on it)
+    ihave #Hready : clientReady (GF := GF) «$r0_ptr» conn eps $$ []
+    · iapply clientReady_loeb
+      iframe Auth HapS Hca HconnG
+    ihave #Hcs := Hready
+    iunfold clientReady at Hcs
+    icases Hcs with ⟨%_, %_, -, -, -, #Hcs⟩
     ihave #Hconn : isEtcdConn (GF := GF) conn eps $$ []
     · iapply isEtcdConnG_ready
       iframe HconnG Hready
@@ -324,7 +333,7 @@ theorem newClient.wp_proof
       iintro !> %Φ' HΦ'
       wp_auto
       iexact HΦ'
-    wp_apply wp_getToken «$r0_ptr» conn eps cx cd $$ [$Hrc $Hready] as %terr ⟨-, -⟩
+    wp_apply wp_getToken «$r0_ptr» conn eps cx cd $$ [$Hlt $Hrc $Hready] as %terr ⟨Hlt, -, -⟩
     · isplitr
       · inext; iexact Hconn
       iapply ctxOk_of_isContext; iframe Hcx HcxO
@@ -338,6 +347,7 @@ theorem newClient.wp_proof
       inext
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
@@ -353,9 +363,12 @@ theorem newClient.wp_proof
       · ipureintro; exact Has
       itrivial
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
+    -- (2026-11-24) its configuration, read-only (`clientNoProxy`)
+    iframe cfg
     isplitl []
     · iunfold isNewClient
       iframe Hkv Hrc
@@ -365,7 +378,9 @@ theorem newClient.wp_proof
       isplitl []
       · iexists w, conn, wc, wlg, [ic]
         subst Hwi
-        iframe Watcher Hgc Hcw
+        iframe Watcher Hcw
+        unfold etcdWatchConn
+        iframe Hgc Hcs
       isplitl []
       · iexists lp
         iframe Lease Hlp
@@ -431,6 +446,7 @@ theorem newClient.wp_proof
       wp_auto
       wp_apply wp_rClose r $$ [$Hcloser]
       iapply HΦ
+      iframe Hlt
       iright
       try (ipureintro; exact ⟨Hderr, rfl⟩)
 

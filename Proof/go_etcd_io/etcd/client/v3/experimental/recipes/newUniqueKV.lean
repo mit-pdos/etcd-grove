@@ -7,6 +7,8 @@ module
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueKV
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.putNewKV
 public import Perennial.Proof.time
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -29,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     newUniqueKV.spec (GF := GF) (hG := hG) := by
   intro kv pfx kp val lo
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   ihave Hri : (recipesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨⟨%eK, #HeK, %HeKl⟩, -, -, -⟩
@@ -50,14 +52,18 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   try (isplitr; (ipureintro; rfl))
   iintro %sla ⟨Hargs, -⟩
   (try wp_auto)
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
-  case wf =>
-    exact .cons_string _ _ (.cons_int _ _ _ (.int64 x) .nil)
-  rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
-  simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
-  have Hkey' := _root_.Perennial.fmt.SprintfOut.str_slash_v_int64 kp x key Hkey
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s/%v"
+    [.dir none _root_.Perennial.fmt.verb_s, .lit go!"/", .dir none _root_.Perennial.fmt.verb_v] _ _ _ _ (by fmt_encode) ?fits ?pa
+    $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
+  case pa =>
+    rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+    simp only [List.set_cons_succ, List.set_cons_zero]
+    exact .str _ _ _ (.int _ _ _ _ (.int64 x) .nil)
+  case fits => fmt_fits
+  have Hkey' : key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z x) := by
+    simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hkey, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
   have Hpk : pfx <+: key := Hk.1.trans (by rw [Hkey', List.append_assoc]; exact List.prefix_append _ _)
-  wp_apply hPNK kv pfx key val (W64 0) lo $$ [$Hpkg $Hkv $Hlo] as %rev %err Hres
+  wp_apply hPNK kv pfx key val (W64 0) lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rev %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨Hpk, uniqueKey_length_le x Hk.2.1 Hkey', Hk.2.2⟩
   icases Hres with (⟨%Heq, #Hr, #Hc, -, %Hrr⟩ | ⟨#HerrK, %Hrev, -⟩ | ⟨⟨%Hne, %Hrev⟩, #Hce⟩)
   · -- created
@@ -67,6 +73,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     generalize «$r0_ptr» = rk at *
     wp_for_post
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -102,6 +109,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     · wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact ⟨Hne, rfl⟩
     · wp_auto

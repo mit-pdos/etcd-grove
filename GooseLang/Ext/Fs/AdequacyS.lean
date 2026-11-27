@@ -8,6 +8,7 @@ module
 
 public import GooseLang.Ext.Fs.Adequacy
 public import GooseLang.Ext.Fs.FilteredSem
+public import Perennial.GooseLang.AdequacyAlong
 
 @[expose] public section
 
@@ -48,7 +49,7 @@ theorem fs_startS (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepK
     ∀ (σ : state) (_ : FsInit (extLocal fsExt σ.world)), (⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
       osInv (L := hG.goose_localGS) ∗
       ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files, osFileStart (L := hG.goose_localGS) i f) ∗
-      osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+      osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
         ((extLocal fsExt σ.world).fs.treeDur, [])) := by
   letI := fsExtsSemanticsWithS SQ Q; letI := fsSemWithS SQ Q; letI := fsExtsWithS_hasFs SQ Q
   haveI : FsSemOk := fsSemWithS_ok SQ Q hk
@@ -66,12 +67,11 @@ theorem fs_startS (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepK
   ihave Hfs := start_files (gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imod osSwitchKit_open (L := hG.goose_localGS) _ _ ⊤ $$ Hd with Hsh
   imodintro
-  iframe Hinv
-  isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
-      (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
-  · unfold osTree; iexact Hd
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
 
 
 /-- **Crash adequacy for a program with Linux files, under a premise `SQ` on steps and `Q` on
@@ -95,7 +95,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
       ⊢ osInv (L := hG.goose_localGS) -∗
         ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files,
           osFileStart (L := hG.goose_localGS) i f) -∗
-        osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal fsExt σ.world).fs.roots
+        osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
           ((extLocal fsExt σ.world).fs.treeDur, []) -∗
         ownGoState σ.goState.packageState ={⊤}=∗ P hG.goose_localGS)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
@@ -107,7 +107,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
         ∀ (L' : GooseLocalGS GF) (V' : Hist), crashed (hC := hG.goose_localGS.goose_crashGS) -∗
           osInv (L := L') -∗
           crashRest Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] false V' -∗
-          ownGoState (hG := L'.goose_go_stateGS) ∅ ={⊤}=∗ P L')
+          ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L')
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
     (Hsteps : @RealCrashNsteps fsExts (fsExtsSemanticsWithS SQ Q) _ e n
       ([e], ((σ, g) : CfgState)) κs (t2, σ2) b)
@@ -132,7 +132,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
     imod Hwp HN HT Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
     imodintro
     iframe Hwp
-    iintro %L' Hcr Hcs Hgs _
+    iintro %L' Hcr Hcs Hgs Hlc
     have Hc : @extsCrashStart fsExts (fsExtsSemanticsWithS SQ Q) fsExtsInterp
         (fsExtsCrashInterpWithS SQ Q) GF hG.goose_localGS L' ⊢
         osCrashStart Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) := by
@@ -141,7 +141,72 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
     unfold osCrashStart
     icases Hcs with ⟨Hv, %V', Hr⟩
     imod osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
-    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs
+    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs Hlc
+
+
+/-- `fsSQ_crash_adequacy` with the thread bound on the execution (Perennial's
+`goose_crash_adequacy_below`): about every execution with crashes along which fewer than `T`
+threads are live (`RealCrashNstepsBelow`), so the step count is not bounded by `T`. -/
+theorem fsSQ_crash_adequacy_below (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepKeeps SQ)
+    [hPre : GooseGpreS GF] :
+    letI := fsExtsSemanticsWithS SQ Q; letI := fsSemWithS SQ Q
+    letI := fsExtsWithS_hasFs SQ Q
+    ∀ (N T : Nat) (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop)
+    (hφ : ∀ p, ¬ φ (PanicV p))
+    (Hinit : FsInit (extLocal fsExt σ.world))
+    (P : ∀ [GooseGlobalGS .hasLC GF], GooseLocalGS GF → IProp GF)
+    (Hstart : ∀ [hG : HeapGS .hasLC GF],
+      receiptBound GF = N →
+      threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ osInv (L := hG.goose_localGS) -∗
+        ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files,
+          osFileStart (L := hG.goose_localGS) i f) -∗
+        osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
+          ((extLocal fsExt σ.world).fs.treeDur, []) -∗
+        ownGoState σ.goState.packageState ={⊤}=∗ P hG.goose_localGS)
+    (Hwp : ∀ [hG : HeapGS .hasLC GF],
+      receiptBound GF = N →
+      threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ P hG.goose_localGS -∗ threadTok ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }} ∗
+        ∀ (L' : GooseLocalGS GF) (V' : Hist), crashed (hC := hG.goose_localGS.goose_crashGS) -∗
+          osInv (L := L') -∗
+          crashRest Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] false V' -∗
+          ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L')
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
+    (Hsteps : @RealCrashNstepsBelow fsExts (fsExtsSemanticsWithS SQ Q) _ e T n
+      ([e], ((σ, g) : CfgState)) κs (t2, σ2) b)
+    (Hbound : n < N) (Hthreads : σ.threads = 1),
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧
+      (∀ e2, e2 ∈ t2 → @RealNotStuck fsExts (fsExtsSemanticsWithS SQ Q) _ e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
+  letI := fsExtsSemanticsWithS SQ Q; letI := fsSemWithS SQ Q; letI := fsExtsWithS_hasFs SQ Q
+  haveI : FsSemOk := fsSemWithS_ok SQ Q hk
+  intro N T e σ g φ hφ Hinit P Hstart Hwp n κs t2 σ2 b Hsteps Hbound Hthreads
+  refine @goose_crash_adequacy_below fsExts fsExtsInterp (fsExtsSemanticsWithS SQ Q) _
+    (fsExtsCrashInterpWithS SQ Q) GF hPre N T e σ g φ hφ ⟨trivial, trivial⟩ ⟨Hinit, trivial⟩ P
+    ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads
+  · intro hG HN HT Hlctx
+    iintro _ Hs Hgs
+    imod fs_startS SQ Q hk σ Hinit $$ Hs with ⟨#Hinv, Hfs, Hd⟩
+    iapply Hstart HN HT Hlctx $$ Hinv Hfs Hd Hgs
+  · intro hG HN HT Hlctx
+    iintro HP Htok
+    imod Hwp HN HT Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
+    imodintro
+    iframe Hwp
+    iintro %L' Hcr Hcs Hgs Hlc
+    have Hc : @extsCrashStart fsExts (fsExtsSemanticsWithS SQ Q) fsExtsInterp
+        (fsExtsCrashInterpWithS SQ Q) GF hG.goose_localGS L' ⊢
+        osCrashStart Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) := by
+      unfold extsCrashStart Exts.crashStart; exact sep_elim_left
+    icases Hc $$ Hcs with Hcs
+    unfold osCrashStart
+    icases Hcs with ⟨Hv, %V', Hr⟩
+    imod osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
+    iapply Hcrash $$ %L' %V' Hcr Hinv Hr Hgs Hlc
 
 end adequacySQ
 

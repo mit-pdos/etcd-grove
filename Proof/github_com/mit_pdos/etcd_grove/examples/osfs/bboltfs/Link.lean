@@ -41,7 +41,6 @@ public import Proof.os.File__Stat
 public import Proof.os.File__Sync
 public import Proof.os.File__Truncate
 public import Proof.os.File__WriteAt
-public import Proof.os.OpenFile
 public import Proof.os.fileStat__Size
 public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
@@ -50,6 +49,7 @@ public import Proof.golang_org.x.sys.unix.Mmap
 public import Proof.golang_org.x.sys.unix.Munmap
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.sync.atomic.Link
+public import Proof.os.OpenFileS
 
 @[expose] public section
 
@@ -69,7 +69,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
-variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 
 theorem golang_org.x.sys.unix.wp_Munmap :
     EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG) :=
@@ -195,10 +194,6 @@ theorem DB.wp_readPageSize :
     EtcdGrove.osfs_bboltfs.DB.readPageSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.osfs_bboltfs.DB.readPageSize.wp_proof wp_pageAt Page.wp_meta Meta.wp_validate os.File.wp_ReadAt
 
-theorem os.wp_OpenFile :
-    EtcdGrove.os.OpenFile.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.os.OpenFile.wp_proof
-
 theorem os.File.wp_Name :
     EtcdGrove.os.File.Name.spec (GF := GF) (hG := hG) :=
   EtcdGrove.os.File.Name.wp_proof
@@ -217,7 +212,7 @@ theorem os.fileStat.wp_Size :
 
 theorem wp_Open :
     EtcdGrove.osfs_bboltfs.Open.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.osfs_bboltfs.Open.wp_proof os.wp_OpenFile _root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreate os.File.wp_Name wp_flock os.File.wp_Stat os.fileStat.wp_Size os.File.wp_Close DB.wp_close DB.wp_readPageSize DB.wp_init DB.wp_mmap
+  EtcdGrove.osfs_bboltfs.Open.wp_proof _root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreateS os.File.wp_Name wp_flock os.File.wp_Stat os.fileStat.wp_Size os.File.wp_Close DB.wp_close DB.wp_readPageSize DB.wp_init DB.wp_mmap
 
 theorem wp_envFailure :
     EtcdGrove.osfs_bboltfs.envFailure.spec (GF := GF) (hG := hG) :=

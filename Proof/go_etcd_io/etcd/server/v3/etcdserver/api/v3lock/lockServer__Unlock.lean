@@ -27,7 +27,7 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.ap
 
 theorem lockServer.Unlock.wp_proof : lockServer.Unlock.spec (GF := GF) (hG := hG) := by
   intro ls c req ksl key ctx cs
-  wp_start as ⟨#Hls, #Hok, #Hkf, #Hks, #Hctx⟩
+  wp_start as ⟨Hlt, #Hls, #Hok, #Hkf, #Hks, #Hctx⟩
   iunfold isLockServer at Hls
   iunfold unlockKVOk at Hok
   icases Hok with ⟨%kv, #Hkv, #HDel⟩
@@ -36,13 +36,14 @@ theorem lockServer.Unlock.wp_proof : lockServer.Unlock.spec (GF := GF) (hG := hG
   (try wp_auto)
   rw [MethodUnfold.method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty)]
   (try wp_auto)
-  wp_apply HDel $$ %ctx %cs %key [$Hctx] as %resp %err Hres
+  wp_apply HDel $$ %ctx %cs %key [$Hlt $Hctx] as %resp %err ⟨Hlt, Hres⟩
   icases Hres with (%Herr | ⟨%Herr, %hdr, #Hhdr, #Hdr⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro
       exact ⟨rfl, Herr⟩
@@ -52,6 +53,7 @@ theorem lockServer.Unlock.wp_proof : lockServer.Unlock.spec (GF := GF) (hG := hG
     generalize «$r0_ptr» = r at *
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

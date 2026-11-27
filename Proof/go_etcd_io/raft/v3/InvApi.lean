@@ -104,7 +104,7 @@ end pure
 
 /-! ## The cluster's ghost names -/
 
-/-- (2026-11-22, kvnet decision B: `notes/raft-cluster-global.md`) **A node handle**: the node
+/-- (2026-11-22, kvraft decision B: `notes/raft-cluster-global.md`) **A node handle**: the node
 struct's location and its ghost names. The node-level predicates are over it; `StartNode`/
 `RestartNode` return it. Until then a node table in `isCluster` mapped each node location to its
 names, which tied the cluster to one heap. -/
@@ -1796,7 +1796,7 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
     γn.cx.toList)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent).
-(2026-11-22, kvnet decision B) The handle's own names: the node table, which held the entry, is
+(2026-11-22, kvraft decision B) The handle's own names: the node table, which held the entry, is
 gone (`NodeH`). -/
 def nodeTabOk (_γ : Cluster) (n : NodeH) (γn : NodeNames) : IProp GF :=
   iprop(⌜γn = n.names⌝)

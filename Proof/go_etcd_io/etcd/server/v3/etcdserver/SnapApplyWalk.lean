@@ -172,7 +172,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
-       envVerifyOff ∗
+       ⌜EtcdVerifyOff⌝ ∗
        storage.isBackendHooks hk
          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
        applyThread γ st ∗ applyBackend γ ci b ∗
@@ -410,7 +410,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases (rdStock_split2 (backend.bOpen (GF := GF) d'.γB backend.rdOpen)).1 $$ HnOs
     with ⟨HnOs, HnOa, HnOm⟩
   -- the write-back tokens: two for the lessor's `Recover`, one for the hook's install, two for the
-  -- alarm store's and the cluster's `Recover`, two for the store; the rest the new backend's stock
+  -- alarm store's and the cluster's `Recover` and (prove-ps2-v3alarm, 2026-11-24: `restore`'s
+  -- `ForceCommit`) one more for the alarm store's, two for the store; the rest the new backend's stock
   ihave Hnwb : ownToks d'.γB.wb ((backend.wbInit - 2) + 2) $$ [Hnwb]
   · rw [show (backend.wbInit - 2) + 2 = backend.wbInit by unfold backend.wbInit; omega]
     iexact Hnwb
@@ -419,7 +420,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases toks_take d'.γB.wb _ 2 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb2'⟩
   icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws1⟩
   icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws2⟩
-  imod srvWTStock_alloc γp.cnt d' (backend.wbInit - 2 - 1 - 2 - 1 - 1) (by unfold backend.wbInit; omega) ⊤ $$ [Hnwb] with #HnS
+  icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwa2⟩
+  imod srvWTStock_alloc γp.cnt d' (backend.wbInit - 2 - 1 - 2 - 1 - 1 - 1) (by unfold backend.wbInit; omega) ⊤ $$ [Hnwb] with #HnS
   · iexact Hnwb
   ihave #HnSup := wbSupply_of_stock E γp d' $$ [$HWP $HnS]
   -- (strict M1) the store's resources over the new backend (`etcdStorage_open.law`), at the
@@ -820,23 +822,32 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   wp_apply hInfo $$ []
   · iexact Hlgz
   (try wp_auto)
-  wp_apply hNAB as %ab ⟨%abl, %Habl, #Hablg, #Hablb⟩
+  wp_apply hNAB as %ab ⟨%abl, %Habl, #Hablg, #Hablb, %Hablnn⟩
   subst Habl
   ihave #Halpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
   icases toks_take d'.γB.wb 2 1 (by omega) $$ Hwb2' with ⟨Hwb2', Hwba⟩
   ihave HnRB := backend.rbOwnIn_part (GF := GF) _ (fun _ => True) _ $$ HnRB
+  -- (prove-ps2-v3alarm, 2026-11-24) the alarm bucket's claim token, apart from the auth buckets'
+  ihave HnTok := backend.rbClaimToks_sub d'.γB d.P (fun _ => True)
+    (fun n => n = go!"alarm" ∨ authBkts n) (fun _ _ => trivial) $$ HnTok
+  icases (backend.rbClaimToks_split d'.γB d.P (· = go!"alarm") authBkts (fun n h1 h2 => by
+      subst h1; simp [authBkts, auth.authBkts] at h2)).1 $$ HnTok with ⟨HnTokA, HnTok⟩
   wp_apply hAR al d.be abl sfv.lg d'.be d'.γB d.P (mvcc.api.mvccW d'.gx)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) (1 : Qp).half
       (fun _ => True) ((backend.rbData d.P D).insert go!"lease" lb) trivial
       (by simp [mvcc.KBReal.P, mvcc.restBuckets]) halbi.1
-    $$ [HoAl HnOh Hwba HnRB HnPl HthT]
-    as %aerr ⟨%Haerr, HnAl, HnOh, HnPl, HthT, HnRB⟩
-  · iframe #; iframe HoAl HnOh HnRB HnPl HthT
+    $$ [HoAl HnOh Hwba Hwa2 HnRB HnPl HthT HnTokA]
+    as %aerr ⟨%Haerr, HnAl, HnOh, HnPl, HthT, HnRB, -⟩
+  · iframe #; iframe HoAl HnOh HnRB HnPl HthT HnTokA
     isplitr
     · ipureintro; exact Hlgnn
+    isplitr
+    · ipureintro; exact Hablnn
     isplitl [Hwba]
     · iunfold backend.wbTok; iexact Hwba
+    isplitl [Hwa2]
+    · iunfold backend.wbTok; iexact Hwa2
     ipureintro
     rw [GMap.lookup_insert_ne _ _ (by decide)]
     exact halarm
@@ -871,7 +882,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · rw [hP']; iframe #; iframe HauR HoAu Hauar HnOh HnPl HthT HnRB HoOh
     iunfold authRdSlots; rw [hP']
     iframe HnRA
-    iapply backend.rbClaimToks_sub d'.γB d.P (fun _ => True) authBkts (fun _ _ => trivial) $$ HnTok
+    iexact HnTok
   ihave HnPl : backend.bkRPool (GF := GF) d'.γB d.P d'.be $$ [HnPl]
   · rw [← hP']; iexact HnPl
   (try wp_auto)

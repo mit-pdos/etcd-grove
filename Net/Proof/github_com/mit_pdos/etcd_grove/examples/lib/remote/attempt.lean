@@ -36,7 +36,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
@@ -55,17 +54,21 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
   ihave %Hok := addrTok_ok a $$ [Ha]
   · unfold svcAddr; iapply addrProto_tok $$ Ha
   wp_auto_lc 2
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqP S a) (repP S) [] [] ∗
-        connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
-    as %c %err (⟨%Herr, %cn, #Hc, ⟨Hend, Hfresh⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-  · iframe Het Hed
+        connFresh (Gg := hG.goose_globalGS) cn false ∗
+        rdlTok (Gg := hG.goose_globalGS) cn false false)) $$ []
+    as %c %err (⟨%Herr, %cn, #Hc, ⟨Hend, Hfresh, Hrdl⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
+  · (try iframe HnetPk)
+    iframe Het Hed
     isplitr
     · ipureintro; exact Hok
     isplit
     · itrivial
     · unfold svcAddr
-      iapply dial_au a (reqP S a) (repP S) $$ Ha
+      iapply dial_rdl_au a (reqP S a) (repP S) $$ Ha
   · subst Herr
     unfold net.isConn
     icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
@@ -79,9 +82,9 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     icases Hend with ⟨Hsend, Hrecv⟩
     ihave #Hconn := sendTok_connIs cn false (reqP S a) [] $$ Hsend
     wp_apply wp_deadline as %tm -
-    wp_apply wp_SetDeadline t cn false a la ra tm (fun _ => iprop(True)) $$ [] as %err' -
+    wp_apply wp_SetDeadline t cn false a la ra tm (fun _ => iprop(True)) $$ [Hrdl] as %err' -
     · iframe Hca
-      imod deadline_au cn false (W64 0) _ $$ Hconn with ⟨%st, Hst, Hcl⟩
+      imod deadline_au cn false (W64 0) _ false $$ Hrdl with ⟨%st, Hst, Hcl⟩
       imodintro
       iexists st
       iframe Hst
@@ -144,19 +147,22 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     imod (lc_fupd_elim_later (GF := GF) (E := ⊤) (P := recvTok (Gg := hG.goose_globalGS) cn false (repP S) ([] ++ frame bd))) $$ Hlc1 HrL with HrT
     icases recvTok_proto cn false (repP S) _ $$ HrT with ⟨-, #Hpp⟩
     rw [List.nil_append]
-    icases rep_read S cn γ i bd (by simp only [maxLen] at Hbl; omega) $$ Hso Hpp with ⟨%v, %Hv, Hvk⟩
-    subst Hv
-    ihave HΦv : iprop(|={⊤}=> ((∃ o, ⌜v = S.ov o⌝ ∗ Φo o) ∨ ⌜S.unkAns i v⌝)) $$ [Hvk Htk Hlc2]
-    · icases Hvk with (%Hu | ⟨%o, %Ho, #Hlb⟩)
-      · imodintro
+    ihave Hvk := rep_read S cn γ i bd (by simp only [maxLen] at Hbl; omega) $$ Hso Hpp
+    ihave HΦv : iprop(|={⊤}=> ((∃ o, b ↦* S.encOut o ∗ Φo o) ∨
+        ∃ v, b ↦* S.encUnk v ∗ ⌜S.unkAns i v⌝)) $$ [Hvk Htk Hlc2 Hb]
+    · icases Hvk with (⟨%v, %Hv⟩ | ⟨%o, %Ho, #Hlb⟩)
+      · obtain ⟨Hu, rfl⟩ := Hv
+        imodintro
         iright
+        iexists v
+        iframe Hb
         ipureintro; exact Hu
-      · imod slot_take S ⊤ (fun _ _ => CoPset.mem_full) a γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
+      · subst Ho
+        imod slot_take S ⊤ (fun _ _ => CoPset.mem_full) a γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
         imodintro
         ileft
         iexists o
-        iframe HΦo
-        ipureintro; exact Ho
+        iframe HΦo Hb
     imod HΦv
     imodintro
     wp_apply wp_Close t cn false a la ra (fun _ => iprop(True)) $$ [] as %err'' -
@@ -172,8 +178,7 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     iapply HΦ
     iframe Hreq
     iright
-    iexists v
-    iframe Hb HΦv
+    iframe HΦv
     ipureintro; rfl
   · icases net.opErr_netErr _ _ _ _ _ $$ Herr with %Hne
     obtain ⟨pe, rfl⟩ := Hne

@@ -2,7 +2,8 @@
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/RaftCluster__ValidateConfigurationChange.lean`.
 Lean-first (no Rocq counterpart); D43 M4 (2026-10-26): the backend's read by the caller's triple,
 the removed id's check, then by the change's type: an `AddNode`'s context by `json.Unmarshal`'s
-spec, the members' peer URLs gathered (a range over the members map, each member's URLs into a set)
+spec; (route B, 2026-11-25) a promotion's member looked up and its learner flag read; otherwise the
+members' peer URLs gathered (a range over the members map, each member's URLs into a set)
 and the new member's checked against them; a `RemoveNode`'s member looked up.
 -/
 module
@@ -121,20 +122,92 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
   rcases Hty with h0 | h1
   · rw [h0]
     (try wp_auto)
-    obtain ⟨i, Hci⟩ := Hctx h0
+    obtain ⟨i, b, Hci⟩ := Hctx h0
     icases ownConfChange_context_acc cc dq m $$ Hcc with ⟨%cs, HC, #Hcs, Hcc⟩
     (try wp_auto)
-    -- `json.Unmarshal(cc.Context, confChangeContext)`: the context's member, not a promotion
+    -- `json.Unmarshal(cc.Context, confChangeContext)`: the context's member, a promotion or not
     irename «$r0» => Hcv
-    wp_apply wp_Unmarshal cs m.context DFrac.discard _ _ i false Hci $$ [$Hjson $Hcs $Hcv]
+    wp_apply wp_Unmarshal cs m.context DFrac.discard _ _ i b Hci $$ [$Hjson $Hcs $Hcv]
       as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, -, %Hv'⟩
-    · -- a fresh `ConfigChangeContext`: its URL slices are `nil`
-      ipureintro; exact ⟨rfl, rfl⟩
+    · -- a fresh `ConfigChangeContext`: zero
+      ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
     subst Herr
     obtain ⟨Hvid, Hvprom, Hpus, Hvlrn, -⟩ := Hv'
     ihave Hcc := Hcc $$ HC
     (try wp_auto)
     rw [Hvprom]
+    cases b
+    case true =>
+      -- (route B, 2026-11-25) a promotion: `if membersMap[id] == nil { return ErrIDNotFound }`,
+      -- then `if !membersMap[id].IsLearner { return ErrMemberNotLearner }`, else `nil`
+      have hp : membership.ccIsPromote m.context = true := membership.ccIsPromote_of _ _ _ Hci
+      (try wp_auto)
+      iunfold membership.membersRead at Hmr
+      icases Hmr with ⟨%ml, Hml, %Hdom, Hmls⟩
+      wp_apply wp_map_lookup1 _ _ mp ml m.nodeId (DFrac.own 1) $$ [$Hml] as Hml
+      cases hmn : ml !! m.nodeId with
+      | none =>
+        simp only [Option.getD_none, show (zero_val Loc) = null from rfl, _root_.decide_true]
+        icases membership.errVar_cell (GF := GF) _ _ (by simp [go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs]
+          : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound, go!"membership: ID not found") ∈ _) $$ Hpkg
+          with ⟨%x, #Hx⟩
+        (try wp_auto)
+        iapply HΦ
+        iframe Hbe
+        iframe Hcc HPr
+        ipureintro
+        constructor
+        · intro h; cases h
+        · intro h
+          have h2 := h.2
+          rw [h0, ite_eq_left rfl] at h2
+          simp only [hp, ↓reduceIte] at h2
+          obtain ⟨pus, h2⟩ := h2
+          have := Hdom m.nodeId
+          rw [hmn, h2] at this
+          cases this
+      | some l =>
+        icases (BigSepM.bigSepM_lookup_acc (Φ := fun k l => iprop(∃ (pus : List GoString) (il : Bool),
+            ⌜mems !! k = some (pus, il)⌝ ∗ membership.memberReadAt (GF := GF) l pus il)) hmn).1 $$ Hmls
+          with ⟨⟨%pus0, %il0, %Hk0, Hl⟩, -⟩
+        iunfold membership.memberReadAt at Hl
+        icases Hl with ⟨%pu0, %Hlnn, -, -, Hil⟩
+        simp only [Option.getD_some, decide_eq_false Hlnn]
+        (try wp_auto)
+        wp_apply wp_map_lookup1 _ _ mp ml m.nodeId (DFrac.own 1) $$ [$Hml] as Hml
+        rw [hmn]
+        simp only [Option.getD_some]
+        (try wp_auto)
+        cases il0
+        · -- a voter: `ErrMemberNotLearner`
+          icases membership.errVar_cell (GF := GF) _ _ (by simp [go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs]
+            : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrMemberNotLearner, go!"membership: can only promote a learner member") ∈ _) $$ Hpkg
+            with ⟨%x, #Hx⟩
+          (try wp_auto)
+          iapply HΦ
+          iframe Hbe
+          iframe Hcc HPr
+          ipureintro
+          constructor
+          · intro h; cases h
+          · intro h
+            have h2 := h.2
+            rw [h0, ite_eq_left rfl] at h2
+            simp only [hp, ↓reduceIte] at h2
+            obtain ⟨pus, h2⟩ := h2
+            rw [Hk0] at h2
+            cases h2
+        · -- a learner: `nil`
+          (try wp_auto)
+          iapply HΦ
+          iframe Hbe
+          iframe Hcc HPr
+          ipureintro
+          refine ⟨fun _ => ⟨hr, ?_⟩, fun _ => rfl⟩
+          rw [h0, ite_eq_left rfl]
+          simp only [hp, ↓reduceIte]
+          exact ⟨pus0, Hk0⟩
+    have hnp : membership.ccIsPromote m.context = false := membership.ccIsPromote_of _ _ _ Hci
     (try wp_auto)
     -- `if membersMap[id] != nil { return ErrIDExists }`
     iunfold membership.membersRead at Hmr
@@ -144,10 +217,10 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
     | some l =>
       -- a member already: `ErrIDExists`
       have hmems : (mems !! m.nodeId).isSome = true := by rw [← Hdom, hmn]; rfl
-      icases (BigSepM.bigSepM_lookup_acc (Φ := fun k l => iprop(∃ pus : List GoString,
-          ⌜mems !! k = some pus⌝ ∗ membership.memberURLsAt (GF := GF) l pus)) hmn).1 $$ Hmls
-        with ⟨⟨%pus0, -, Hl⟩, -⟩
-      iunfold membership.memberURLsAt at Hl
+      icases (BigSepM.bigSepM_lookup_acc (Φ := fun k l => iprop(∃ (pus : List GoString) (il : Bool),
+          ⌜mems !! k = some (pus, il)⌝ ∗ membership.memberReadAt (GF := GF) l pus il)) hmn).1 $$ Hmls
+        with ⟨⟨%pus0, %il0, -, Hl⟩, -⟩
+      iunfold membership.memberReadAt at Hl
       icases Hl with ⟨%pu0, %Hlnn, -⟩
       simp only [Option.getD_some, decide_eq_false Hlnn, Bool.not_false]
       icases membership.errVar_cell (GF := GF) _ _ (by simp [go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs]
@@ -164,6 +237,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
       · intro h
         have h2 := h.2
         rw [h0, ite_eq_left rfl] at h2
+        simp only [hnp, Bool.false_eq_true, ↓reduceIte] at h2
         rw [h2.1] at hmems
         cases hmems
     | none =>
@@ -182,12 +256,12 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
       iapply wp_map_for_range (K := w64) (V := Loc) (fun (keys : List w64) (i : Int) => iprop(
           ∃ (sl : GoSlice) (ls : List Loc) (x : Loc) (U : GMap GoString Bool),
           "%Hi" ∷ ⌜0 ≤ i ∧ ∀ u, (U !! u).getD false = true ↔
-            ∃ k, k ∈ keys.take i.toNat ∧ ∃ pus, mems !! k = some pus ∧ u ∈ pus⌝ ∗
+            ∃ k, k ∈ keys.take i.toNat ∧ ∃ x, mems !! k = some x ∧ u ∈ x.1⌝ ∗
           "members" ∷ members_ptr ↦ sl ∗ "Hsl" ∷ sl ↦* ls ∗
           "Hcap" ∷ ownSliceCap Loc sl (DFrac.own 1) ∗
           "m" ∷ m_ptr ↦ x ∗ "urls" ∷ urls_ptr ↦ um ∗ "Hum" ∷ um ↦$ U ∗
-          "Hmls" ∷ ([∗map] k ↦ l ∈ ml, ∃ pus : List GoString, ⌜mems !! k = some pus⌝ ∗
-            membership.memberURLsAt (GF := GF) l pus))) $$ Hml
+          "Hmls" ∷ ([∗map] k ↦ l ∈ ml, ∃ (pus : List GoString) (il : Bool),
+            ⌜mems !! k = some (pus, il)⌝ ∗ membership.memberReadAt (GF := GF) l pus il))) $$ Hml
       iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
       isplitl [members m urls Hum Hmls]
       · iexists slice.nil, [], null, ∅
@@ -212,11 +286,11 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
         wp_apply wp_slice_append (V := Loc) _ _ _ _ _ $$ [$Hsl $Hcap $Hsl2] as %sl3 ⟨Hsl, Hcap, -⟩
         (try wp_auto)
         -- the member's peer URLs
-        icases (BigSepM.bigSepM_lookup_acc (Φ := fun k l => iprop(∃ pus : List GoString,
-            ⌜mems !! k = some pus⌝ ∗ membership.memberURLsAt (GF := GF) l pus)) Hl).1 $$ Hmls
-          with ⟨⟨%pus, %Hpk, Hlu⟩, Hmcl⟩
-        iunfold membership.memberURLsAt at Hlu
-        icases Hlu with ⟨%pu, %Hlnn, Hpu, Hpus⟩
+        icases (BigSepM.bigSepM_lookup_acc (Φ := fun k l => iprop(∃ (pus : List GoString) (il : Bool),
+            ⌜mems !! k = some (pus, il)⌝ ∗ membership.memberReadAt (GF := GF) l pus il)) Hl).1 $$ Hmls
+          with ⟨⟨%pus, %il, %Hpk, Hlu⟩, Hmcl⟩
+        iunfold membership.memberReadAt at Hlu
+        icases Hlu with ⟨%pu, %Hlnn, Hpu, Hpus, Hil⟩
         (try wp_auto)
         ihave %Hpl := ownSlice_len _ _ _ $$ Hpus
         ihave IH : iprop(∃ (n : w64) (U' : GMap GoString Bool) (uv : GoString),
@@ -265,19 +339,19 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
           isplitr
           · ipureintro; rfl
           have Hpure : 0 ≤ i + 1 ∧ ∀ u, (U' !! u).getD false = true ↔
-              ∃ k, k ∈ keys.take (i + 1).toNat ∧ ∃ pus, mems !! k = some pus ∧ u ∈ pus := by
+              ∃ k, k ∈ keys.take (i + 1).toNat ∧ ∃ x, mems !! k = some x ∧ u ∈ x.1 := by
             obtain ⟨Hi0, Hiu⟩ := Hi
             refine ⟨by omega, fun u => ?_⟩
             have htk : keys.take (i + 1).toNat = keys.take i.toNat ++ [key] := by
               rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, Hkey]; rfl
             rw [htk, Hn.2 u, hall, Hiu u]
             constructor
-            · rintro (⟨k, hk, pus', hp, hu⟩ | hu)
-              · exact ⟨k, List.mem_append_left _ hk, pus', hp, hu⟩
-              · exact ⟨key, List.mem_append_right _ (List.mem_singleton_self _), pus, Hpk, hu⟩
-            · rintro ⟨k, hk, pus', hp, hu⟩
+            · rintro (⟨k, hk, x', hp, hu⟩ | hu)
+              · exact ⟨k, List.mem_append_left _ hk, x', hp, hu⟩
+              · exact ⟨key, List.mem_append_right _ (List.mem_singleton_self _), (pus, il), Hpk, hu⟩
+            · rintro ⟨k, hk, x', hp, hu⟩
               rcases List.mem_append.1 hk with hk | hk
-              · exact .inl ⟨k, hk, pus', hp, hu⟩
+              · exact .inl ⟨k, hk, x', hp, hu⟩
               · rw [List.mem_singleton] at hk
                 subst hk
                 rw [Hpk] at hp
@@ -289,10 +363,10 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
           isplitr
           · ipureintro; exact Hpure
           iapply Hmcl
-          iexists pus
+          iexists pus, il
           isplitr
           · ipureintro; exact Hpk
-          iunfold membership.memberURLsAt
+          iunfold membership.memberReadAt
           iexists pu
           iframe
           ipureintro; exact Hlnn
@@ -304,9 +378,9 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
         rw [Hi.2 u, show ((GMap.size ml : Nat) : Int).toNat = keys.length by omega,
           List.take_of_length_le (Nat.le_refl _)]
         constructor
-        · rintro ⟨k, -, pus, hp, hu⟩; exact ⟨k, pus, hp, hu⟩
-        · rintro ⟨k, pus, hp, hu⟩
-          refine ⟨k, (Hkset k).2 ?_, pus, hp, hu⟩
+        · rintro ⟨k, -, x, hp, hu⟩; exact ⟨k, x, hp, hu⟩
+        · rintro ⟨k, x, hp, hu⟩
+          refine ⟨k, (Hkset k).2 ?_, x, hp, hu⟩
           rw [Hdom k, hp]; rfl
       (try wp_auto)
       -- the new member's peer URLs, each checked against `urls`
@@ -368,6 +442,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
           · intro h
             have h2 := h.2
             rw [h0, ite_eq_left rfl] at h2
+            simp only [hnp, Bool.false_eq_true, ↓reduceIte] at h2
             have hmem : e ∈ (membership.ccMemberOf m.context).peerURLs := by
               rw [← Hpus]; exact List.mem_of_getElem? He
             exact (h2.2 e hmem ((HU e).1 hU)).elim
@@ -388,6 +463,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
           ipureintro
           refine ⟨fun _ => ⟨hr, ?_⟩, fun _ => rfl⟩
           rw [h0, ite_eq_left rfl]
+          simp only [hnp, Bool.false_eq_true, ↓reduceIte]
           exact ⟨hmemN, fun u hu => Hfree u (by rw [Hpus]; exact hu)⟩
         · (try wp_auto)
           wp_apply wp_GetType.1 cc dq m $$ [$Hraftpb $Hcc] as Hcc
@@ -399,6 +475,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
           ipureintro
           refine ⟨fun _ => ⟨hr, ?_⟩, fun _ => rfl⟩
           rw [h0, ite_eq_left rfl]
+          simp only [hnp, Bool.false_eq_true, ↓reduceIte]
           exact ⟨hmemN, fun u hu => Hfree u (by rw [Hpus]; exact hu)⟩
   · rw [h1]
     (try wp_auto)
@@ -408,10 +485,10 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
     wp_apply wp_map_lookup1 _ _ mp ml m.nodeId (DFrac.own 1) $$ [$Hml] as Hml
     cases hmn : ml !! m.nodeId with
     | some l =>
-      icases (BigSepM.bigSepM_lookup_acc (Φ := fun k l => iprop(∃ pus : List GoString,
-          ⌜mems !! k = some pus⌝ ∗ membership.memberURLsAt (GF := GF) l pus)) hmn).1 $$ Hmls
-        with ⟨⟨%pus0, -, Hl⟩, -⟩
-      iunfold membership.memberURLsAt at Hl
+      icases (BigSepM.bigSepM_lookup_acc (Φ := fun k l => iprop(∃ (pus : List GoString) (il : Bool),
+          ⌜mems !! k = some (pus, il)⌝ ∗ membership.memberReadAt (GF := GF) l pus il)) hmn).1 $$ Hmls
+        with ⟨⟨%pus0, %il0, -, Hl⟩, -⟩
+      iunfold membership.memberReadAt at Hl
       icases Hl with ⟨%pu0, %Hlnn, -⟩
       simp only [Option.getD_some, decide_eq_false Hlnn]
       (try wp_auto)

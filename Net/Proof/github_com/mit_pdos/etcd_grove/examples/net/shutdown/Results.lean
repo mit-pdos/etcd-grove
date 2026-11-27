@@ -123,7 +123,7 @@ than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 `goose_dist_crash_adequacy` for the system, whose plan is well formed (D20, `PlanWellFormed pl`,
 checked by `decide`; the proof does not need it). -/
 theorem shutdown_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : cmd.node.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [package_sem : cmd.node.Assumptions] [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σ0 : state) (g : GlobalState)
     (H0 : NodeStart lctx σ0)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -226,7 +226,7 @@ the checks panics, however the connection fails and however often the node crash
 thread bound `n + 2`, which an execution of `n` steps from a single thread respects,
 `DistCrashThreadsBelow.of_single`.) -/
 theorem shutdown_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : cmd.node.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [package_sem : cmd.node.Assumptions] [go.BasicIntoValInj]
     (σ0 : state) (g : GlobalState)
     (H0 : NodeStart lctx σ0)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

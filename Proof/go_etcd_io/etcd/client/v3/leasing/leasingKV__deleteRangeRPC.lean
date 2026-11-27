@@ -58,7 +58,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
     (hGRD : EtcdGrove.ResponseOp.GetResponseDeleteRange.spec (GF := GF) (hG := hG)) :
     leasingKV.deleteRangeRPC.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs maxLeaseRev key e lo
-  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hlo, %Hke⟩
+  wp_start as ⟨Hlt, #Hlkv, #Hctx, #HctxC, #Hlo, %Hke⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, #Hkv, #Hp, -, -, -, -, -,
@@ -183,14 +183,14 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (TxnBuild.mk (drpcTxn pfx key e maxLeaseRev) true true false) (by rfl) $$ HB
-  wp_apply_raw HCommit $$ %_ %lo [$HB $Hlo]
+  wp_apply_raw HCommit $$ %_ %lo [$Hlt $HB $Hlo]
   · ipureintro
     refine ⟨TxnModel.under_nil _, ?_⟩
     simp [txnSizeOk, txnWireLen, drpcTxn, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, compareM,
       cmpKeyM, cmpWithRangeM, rangeDeleteOp, op_simps]
     word
   inext
-  iintro %resp %err Hres
+  iintro %resp %err ⟨Hlt, Hres⟩
   iunfold txnCommitResultO at Hres
   icases Hres with (⟨%Hne, -⟩ | ⟨%Heq, Hok⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, err = GoInterface.ok g := by
@@ -206,6 +206,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
       imodintro; iframe
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft; ipureintro; rfl
   subst Heq
   iunfold txnCommitOk at Hok
@@ -226,6 +227,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
     simp only [hrun]
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft; ipureintro; rfl
   · have hrun : runTxn r s (drpcTxn pfx key e maxLeaseRev) =
         (true, s.filter (fun v => !inRange (rangeDeleteOp key e).key (rangeDeleteOp key e).base.rangeEnd v.key),
@@ -304,6 +306,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
     · ipureintro; exact Hp1
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl

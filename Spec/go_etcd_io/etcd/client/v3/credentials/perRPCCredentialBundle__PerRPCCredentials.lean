@@ -25,7 +25,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 /-- `b.PerRPCCredentials()` on a token bundle's `b` (its `rc`, read-only; since the auth plan's C1
 with `rc`'s token invariant at `P`, `credTokInv`): grpc per-RPC credentials whose metadata meets
-`tokMdOk P` (`perRPCCredsOk`: none, or `token` with one `P`-token). -/
+`tokMdOk P` (`perRPCCredsOk`: none, or `token` with one `P`-token), called with the client
+connection's resource, a level-0 thread token (`clientRes`; prove-ps2-clientrdlock, 2026-11-24,
+decision 1b: until then any resource, `clientRes`, over the trust-boundary `GetRequestMetadata`). -/
 abbrev credentials.perRPCCredentialBundle.PerRPCCredentials.spec : Prop :=
   ∀ (b rc : Loc) (P : GoString → IProp GF),
   {{ structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" b ↦□ rc ∗
@@ -33,7 +35,7 @@ abbrev credentials.perRPCCredentialBundle.PerRPCCredentials.spec : Prop :=
     (App (Val (b @!! go.GoType.PointerType
       go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle.ty @!! go!"PerRPCCredentials"))
       (Val #()))
-  {{ (pc : GoInterface), RET #pc; perRPCCredsOk pc anyRes (tokMdOk P) }}
+  {{ (pc : GoInterface), RET #pc; perRPCCredsOk pc clientRes (tokMdOk P) }}
 
 end spec
 

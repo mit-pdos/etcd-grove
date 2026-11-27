@@ -1,9 +1,7 @@
 # The gRPC KV service (key.go), with bodies: NewKVServer, the handlers, the request checks
 # (checkRangeRequest, ..., checkIntervals, checkRequestOp) and the stream wrapper's Send;
-# header.go (the response header's fill) and util.go's togRPCError, with bodies. The error
-# map toGRPCErrorMap (a map literal over sixty error variables of seven packages) and the
-# rest of the package (the other services, the interceptors) are names
-# only.
+# header.go (the response header's fill) and util.go's togRPCError, with bodies. The rest of
+# the package (the other services, the interceptors) is names only.
 translate = ["!*",
   # (metric-inits, 2026-11-19) metrics.go: metrics of an options literal, over prometheus's constructor specs
   "watchSendLoopWatchStreamDuration", "watchSendLoopWatchStreamDurationPerEvent", "watchSendLoopControlStreamDuration", "watchSendLoopProgressDuration",
@@ -27,6 +25,9 @@ translate = ["!*",
   "header", "newHeader", "header.fill", "header.fillWithoutRevision",
   # util.go
   "togRPCError", "isRPCSupportedForLearner",
+  # (grpcerrmap, 2026-11-25) the error map toGRPCErrorMap (a map literal over sixty error variables
+  # of seven packages), until then the trust-boundary axiom `toGRPCErrorMap_init`
+  "toGRPCErrorMap",
   # (prove-grpcext, 2026-11-20) isClientCtxErr, over status.FromError and strings.HasPrefix/HasSuffix
   "isClientCtxErr",
   # unit P3b: quota.go's KV wrapper (the quota check, the NOSPACE alarm) and interceptor.go's
@@ -117,7 +118,9 @@ imports = ["!*", "context", "errors", "strings", "time", "unicode/utf8", "go.ube
   "go.etcd.io/etcd/server/v3/etcdserver/version", "go.etcd.io/etcd/server/v3/storage/backend",
   "go.etcd.io/etcd/server/v3/config",
   # member.go (auth-mediation M2)
-  "go.etcd.io/etcd/server/v3/etcdserver/api/membership"]
+  "go.etcd.io/etcd/server/v3/etcdserver/api/membership",
+  # (grpcerrmap, 2026-11-26) util.go's error map: the server's errors
+  "go.etcd.io/etcd/server/v3/etcdserver/errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -33,7 +33,7 @@ namespace cnode
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
   [net.http.Assumptions] [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -103,7 +103,9 @@ theorem Sys.changeLeaders.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (wp_at 
       rw [hra]
       ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => rpcHttp (GF := netDistGF) γ.W a)
         hidx $$ Hrpc
-      wp_apply DialHTTP_tcp γ.W _ $$ [$Hra] as %cli %err Hd
+      ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+      · solve_pkg_init
+      wp_apply DialHTTP_tcp γ.W _ $$ [$HnetPk $Hra] as %cli %err Hd
       icases Hd with (⟨%Herr, #Hcl⟩ | ⟨%Herr, -⟩)
       rotate_left
       · cases err with

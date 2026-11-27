@@ -9,14 +9,11 @@ module
 
 public import Dsverify.Proof.raxos.examples.quepaxanet.cmd.server3.Base
 public import Dsverify.Proof.raxos.examples.quepaxanet.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.gopkg_in.yaml_v2.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.io.ioutil.Init
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.google_golang_org.grpc.Init
-public import Dsverify.Proof.google_golang_org.grpc.codes.Init
-public import Dsverify.Proof.math.rand.Init
 
 @[expose] public section
 
@@ -39,13 +36,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
-variable [_root_.Perennial.google_golang_org.grpc.codes.InitHyp GF]
 variable [_root_.Perennial.google_golang_org.grpc.InitHyp GF]
-variable [_root_.Perennial.encoding.gob.InitHyp GF]
-variable [_root_.Perennial.io.ioutil.InitHyp GF]
 variable [_root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF]
-variable [_root_.Perennial.gopkg_in.yaml_v2.InitHyp GF]
 variable [package_sem : _root_.Perennial.raxos.examples.quepaxanet.cmd.server3.Assumptions]
 
 namespace raxos.examples.quepaxanet.cmd.server3

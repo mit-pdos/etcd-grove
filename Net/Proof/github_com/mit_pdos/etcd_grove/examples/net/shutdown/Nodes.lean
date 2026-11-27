@@ -58,7 +58,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : shutdown.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : shutdown.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `lisInv_alloc`, its update under a node's invariants. -/
@@ -242,9 +242,12 @@ theorem wp_Run
     {{ RET #(); True }} := by
   wp_start as ⟨#Ha, #Hdown, %Hpl, #Heof, #Hed⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp addr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · iframe %Hpl
+  · (try iframe HnetPk)
+    iframe %Hpl
     iapply wire.listen_au addrN addr _ $$ Ha
   · -- listening
     subst Herr
@@ -262,10 +265,13 @@ theorem wp_Run
         ipureintro; rfl
       itrivial
     (try wp_auto)
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply wp_Dial go!"tcp" net.tcpNet_tcp addr iprop(True)
         (fun cn => iprop(netFresh G cn false ∗ downReg G γm cn)) $$ []
       as %c %err (⟨%Herr, %cn, #Hc, ⟨Hd, #Hreg⟩⟩ | ⟨-, %x', -, #Herr⟩)
-    · iframe %Hpl
+    · (try iframe HnetPk)
+      iframe %Hpl
       isplit
       · itrivial
       · iapply wire.dial_au addrN addr (connProto γm) (downReg G γm) $$ Ha

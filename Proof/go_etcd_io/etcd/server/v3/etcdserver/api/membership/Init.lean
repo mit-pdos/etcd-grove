@@ -19,9 +19,14 @@ trust-boundary axiom `ClusterVersionMetrics_init`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.PkgInit
+public import Perennial.Proof.crypto.sha1.Link
+public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sort.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
+public import Perennial.Proof.time.Link
 public import Proof.encoding.json.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
@@ -30,6 +35,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.models_lab.jsoncodec.Init
 public import Proof.path.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
@@ -61,15 +67,16 @@ def regNames : List GoString :=
    EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"known_peers",
    EtcdGrove.prometheus.fqName go!"etcd" go!"server" go!"is_learner"]
 
-/-- The packages of this package's import closure (itself included) whose initializers
-register metrics, with their names: their registration rights are its initializer's
-resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
-def regQs : List (GoString × List GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames)]
+/-- The IDs besides its names' this package's initializer takes the rights to (prom-registry:
+a later registration's, `REG_KEYS`). -/
+def regKeys : List w64 := []
 
-/-- The metric names its initializer registers, with those of its import closure: its
-`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
-def initNames : List GoString := regQs.flatMap (·.2)
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names and other IDs: their registration rights (keyed by ID,
+`EtcdGrove.prometheus.regRes`) are its initializer's resources (`ownInitResL`,
+`Proof/runtime/PkgInitRes.lean`; its `wp_initialize'`'s precondition: `regsFree regQs`). -/
+def regQs : List (GoString × List GoString × List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys)]
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership
 

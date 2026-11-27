@@ -53,6 +53,18 @@ structure UserAddW where
   name : GoString
   pw : GoString
 
+instance UserAddW.msgCountable : Pos.Countable UserAddW :=
+  .ofInjective (fun r => Pos.Countable.encode (r.name, r.pw))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance auth.PermW.msgCountable : Pos.Countable auth.PermW :=
+  .ofInjective (fun r => Pos.Countable.encode (r.ty, r.key, r.rangeEnd))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
 end model
 
 section defs
@@ -71,10 +83,59 @@ def userOptsFalse (o : Loc) : IProp GF := auth.userOptsAt o false
 instance userOptsFalse_persistent (o : Loc) : Persistent (userOptsFalse (GF := GF) o) := by
   unfold userOptsFalse auth.userOptsAt; infer_instance
 
+/-! ### The messages' stored forms (moved here from the `PerType*` files at phase 7 S2's
+interface, 2026-11-24: a `ProtoMsg` holds its `tree`) -/
+
+/-- **The store of a user addition's `Options`**: a fresh empty `UserAddOptions` (`NoPassword`
+false, as etcd's client sends it; see the file header). -/
+def userOptsTree : VTree :=
+  .ptr authpb.UserAddOptions.ty (.strct authpb.UserAddOptions.ty [] [])
+
+/-- **The store of a user addition**: its name and password (`HashedPassword` empty, as the
+client sends it), its `Options`. -/
+def userAddReqTree (m : UserAddW) : VTree :=
+  .strct etcdserverpb.AuthUserAddRequest.ty
+    [(go!"Name", go.string), (go!"Password", go.string),
+     (go!"Options", go.GoType.PointerType authpb.UserAddOptions.ty)]
+    [.leaf #m.name, .leaf #m.pw, userOptsTree]
+
+/-- **The store of a role grant to a user**: the user and the role. -/
+def userGrantRoleReqTree (m : GoString × GoString) : VTree :=
+  .strct etcdserverpb.AuthUserGrantRoleRequest.ty
+    [(go!"User", go.string), (go!"Role", go.string)] [.leaf #m.1, .leaf #m.2]
+
+/-- **The store of a role addition**: the role's name. -/
+def roleAddReqTree (m : GoString) : VTree :=
+  .strct etcdserverpb.AuthRoleAddRequest.ty [(go!"Name", go.string)] [.leaf #m]
+
+/-- **The store of a wire permission**: a fresh `Permission` holding its type, its key and range
+end (`nil` if empty). -/
+def permWTree (w : auth.PermW) : VTree :=
+  .ptr authpb.Permission.ty (.strct authpb.Permission.ty
+    [(go!"PermType", authpb.Permission_Type.ty), (go!"Key", go.GoType.SliceType go.byte),
+     (go!"RangeEnd", go.GoType.SliceType go.byte)]
+    [.leaf #w.ty, bytesTree go.byte w.key, bytesTree go.byte w.rangeEnd])
+
+/-- **The store of a permission grant to a role**: the role's name and the permission (always
+present: the sender's is not nil). -/
+def roleGrantPermissionReqTree (m : GoString × auth.PermW) : VTree :=
+  .strct etcdserverpb.AuthRoleGrantPermissionRequest.ty
+    [(go!"Name", go.string), (go!"Perm", go.GoType.PointerType authpb.Permission.ty)]
+    [.leaf #m.1, permWTree m.2]
+
+/-- **The store of an auth enable request**: nothing. -/
+def authEnableReqTree (_ : Unit) : VTree :=
+  .strct etcdserverpb.AuthEnableRequest.ty [] []
+
+/-- **The store of a reply the client does not read**: nothing (its `Header` left `nil`: the model
+does not hold it; see the file header). -/
+def emptyRepTree (ty : go.GoType) (_ : Unit) : VTree := .strct ty [] []
+
 /-- **A `*pb.AuthUserAddRequest`** on the wire (see the file header). -/
 def pbAuthUserAddRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthUserAddRequest.ty
   M := UserAddW
+  tree := userAddReqTree
   send inp m := iprop(∃ req : etcdserverpb.AuthUserAddRequest, inp ↦ req ∗
     ⌜req.Name' = m.name ∧ req.Password' = m.pw ∧ req.HashedPassword' = [] ∧
       req.unknownFields' = slice.nil⌝ ∗
@@ -93,6 +154,7 @@ def pbAuthUserAddRequest : ProtoMsg GF where
 def pbAuthUserGrantRoleRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthUserGrantRoleRequest.ty
   M := GoString × GoString
+  tree := userGrantRoleReqTree
   send inp m := iprop(∃ req : etcdserverpb.AuthUserGrantRoleRequest, inp ↦ req ∗
     ⌜req.User' = m.1 ∧ req.Role' = m.2 ∧ req.unknownFields' = slice.nil⌝)
   wireLen m := m.1.length + m.2.length + wireSlack
@@ -106,6 +168,7 @@ def pbAuthUserGrantRoleRequest : ProtoMsg GF where
 def pbAuthRoleAddRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleAddRequest.ty
   M := GoString
+  tree := roleAddReqTree
   send inp m := iprop(∃ req : etcdserverpb.AuthRoleAddRequest, inp ↦ req ∗
     ⌜req.Name' = m ∧ req.unknownFields' = slice.nil⌝)
   wireLen m := m.length + wireSlack
@@ -120,6 +183,7 @@ def pbAuthRoleAddRequest : ProtoMsg GF where
 def pbAuthRoleGrantPermissionRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleGrantPermissionRequest.ty
   M := GoString × auth.PermW
+  tree := roleGrantPermissionReqTree
   send inp m := iprop(∃ req : etcdserverpb.AuthRoleGrantPermissionRequest, inp ↦ req ∗
     ⌜req.Name' = m.1 ∧ req.unknownFields' = slice.nil⌝ ∗ auth.ownPermW req.Perm' m.2)
   wireLen m := m.1.length + m.2.key.length + m.2.rangeEnd.length + wireSlack
@@ -133,6 +197,7 @@ def pbAuthRoleGrantPermissionRequest : ProtoMsg GF where
 def pbAuthEnableRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthEnableRequest.ty
   M := Unit
+  tree := authEnableReqTree
   send inp _ := iprop(∃ req : etcdserverpb.AuthEnableRequest, inp ↦ req ∗
     ⌜req.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
@@ -148,6 +213,7 @@ etcd's handlers return a fresh response). -/
 def pbAuthUserAddResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthUserAddResponse.ty
   M := Unit
+  tree := emptyRepTree etcdserverpb.AuthUserAddResponse.ty
   send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
@@ -159,6 +225,7 @@ def pbAuthUserAddResponse : ProtoMsg GF where
 def pbAuthUserGrantRoleResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthUserGrantRoleResponse.ty
   M := Unit
+  tree := emptyRepTree etcdserverpb.AuthUserGrantRoleResponse.ty
   send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
@@ -170,6 +237,7 @@ def pbAuthUserGrantRoleResponse : ProtoMsg GF where
 def pbAuthRoleAddResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleAddResponse.ty
   M := Unit
+  tree := emptyRepTree etcdserverpb.AuthRoleAddResponse.ty
   send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
@@ -181,6 +249,7 @@ def pbAuthRoleAddResponse : ProtoMsg GF where
 def pbAuthRoleGrantPermissionResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleGrantPermissionResponse.ty
   M := Unit
+  tree := emptyRepTree etcdserverpb.AuthRoleGrantPermissionResponse.ty
   send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
@@ -192,6 +261,7 @@ def pbAuthRoleGrantPermissionResponse : ProtoMsg GF where
 def pbAuthEnableResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthEnableResponse.ty
   M := Unit
+  tree := emptyRepTree etcdserverpb.AuthEnableResponse.ty
   send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance

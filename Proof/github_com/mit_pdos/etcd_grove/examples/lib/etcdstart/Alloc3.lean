@@ -105,10 +105,11 @@ cluster's names `γ` with the member's own storage registry `reg` (2026-10-27, t
 server's `SrvRaft` names one registry, and each member's `bootstrap` joins its own; the cluster's
 invariants do not read it, so they hold at `{γ with reg}` as at `γ`). -/
 theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (reg : GName)
-    (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
     (Hx : x = γs.slog)
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
+    (Hgen : γk.ids.gen = gen)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
     (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp)
@@ -122,7 +123,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode
     (Hns : ¬ clusterNoSnap γ.cl) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
-      idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
+      idClusterInv issued cnt wn fs gen srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInv ⟨γ, [], W64 0⟩ γk -∗
       ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
@@ -133,29 +134,34 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) -∗
       ghostMapAuth reg 1 (∅ : GMap Loc MemStorNamesRec) -∗
       srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
-      ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
+      ghostMapAuth rev 1 (∅ : GMap w64 Unit) -∗
+      -- (etcd-dist D7) its prefix's generators' facts, on its machine
+      idPfxInv gen (idPfxOf (W16 (uint.Z id))) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
+        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk ∧ kvCongr ρ.rd.kv γk⌝ ∗
         memberBoot { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs id cmp
           lm := by
   subst Hx
-  iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev
+  iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev #Hpi
   ihave #Hkv' := kvInv_reg γ reg γk $$ Hkv
   imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
     (fun h => hpfx (Hklg.symm.trans h)) hpo) $$ Hkv' Hp
     [Hwt0] with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc'⟩ := Hρ
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc',
+    hgen', hcg⟩ := Hρ
+  ihave #Hpi' : idPfxInv ρ.ids.gen ρ.ids.pfx $$ []
+  · rw [hgen', Hgen, hpfx]; iexact Hpi
   ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key γs.slog $$ []
   · simp only [IdNames.key]; rw [hpfx, hinc', hfs', Hfs]; iexact Hkf
   imodintro
   iexists ρ
   isplitr
-  · ipureintro; exact ⟨hst, hc0', hch', hlog', hst, hc0', hch', hlog', hrl', hkc', hcr'⟩
+  · ipureintro; exact ⟨hst, hc0', hch', hlog', ⟨hst, hc0', hch', hlog', hrl', hkc', hcr'⟩, hcg⟩
   iunfold memberBoot
   simp only [env₀]
-  ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts $$ []
-  · rw [hiss', hcnt, hwn', hfs', Hiss, Hwn, Hfs]; iexact Hcl
+  ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts $$ []
+  · rw [hiss', hcnt, hwn', hfs', hgen', Hiss, Hwn, Hfs, Hgen]; iexact Hcl
   rw [hiss', hcnt, hraft, Hiss]
   rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', Hiss])]
   ihave #Hsrl' := srvRaftLogInv_reg γ reg $$ Hsrl
@@ -165,7 +171,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       nodeVacant γ.cl id $$ [Hnb]
   · rw [Hvs]; iexact Hnb
   rw [hcok]
-  iframe Hnb' Hsrl' Hcl' Hkf' Hpm' Hrc' Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
+  iframe Hnb' Hsrl' Hcl' Hpi' Hkf' Hpm' Hrc' Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
   isplitr
   · ipureintro
     refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog],
@@ -198,7 +204,9 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
     (cmp : Bool := false) (cret : Nat := 0) :
     -- (2026-10-24, rafthttp stage 6d) the program start's HTTP rights of the peer addresses
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      httpProtoFree (GF := GF) a₁ -∗ httpProtoFree (GF := GF) a₂ -∗ httpProtoFree (GF := GF) a₃ ={⊤}=∗
+      (netAddrFree (GF := GF) a₁ ∗ httpProtoFree (GF := GF) a₁) -∗
+      (netAddrFree (GF := GF) a₂ ∗ httpProtoFree (GF := GF) a₂) -∗
+      (netAddrFree (GF := GF) a₃ ∗ httpProtoFree (GF := GF) a₃) ={⊤}=∗
       ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
@@ -210,11 +218,11 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
         kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧
         ρ₁.rd.kv.cmp = cmp ∧ ρ₁.rd.kv.cret = cret⌝ ∗
       memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ cmp lm ∗
-      (netHttpOk γn id₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn))) ∗
+      (netHttpOk γn id₁ ∗ (http.httpAddrFree a₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn)))) ∗
       memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ cmp lm ∗
-      (netHttpOk γn id₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
+      (netHttpOk γn id₂ ∗ (http.httpAddrFree a₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn)))) ∗
       memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ cmp lm ∗
-      (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
+      (netHttpOk γn id₃ ∗ (http.httpAddrFree a₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn)))) ∗
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   have Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup :=
@@ -260,9 +268,11 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
       (fun h => Hnz _ (hperm.subset h) rfl) cmp cret lm (idPfxOf (W16 (uint.Z id₁)))
       (idPfxsOf [id₁, id₂, id₃]) (gpsOk_of_apart lm _ id₁ (by simp) hap)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
-      Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc,
+      Hms, Hwns, Hpis⟩
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+  ihave Hpis' := (BigSepL.bigSepL_perm hperm).1 $$ Hpis
+  icases Hpis' with ⟨#Hpi₁, #Hpi₂, #Hpi₃, -⟩
   have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
   -- (lease-mono3 step 2) the cluster's names meet the grant prefixes' condition, each member's
   -- prefix one of them
@@ -275,35 +285,35 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
   ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
   icases Hms' with ⟨Hm₁, Hm₂, Hm₃, -⟩
   icases Hwns' with ⟨Hw₁, Hw₂, Hw₃, -⟩
-  imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs γk Φs id₁ γm idx₁ cok₁ rev₁
-      (xs (idPfxOf (W16 (uint.Z id₁)))) Hx₁ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hklg (hmem id₁ (by simp)) hpo HΦ₁ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
+  imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs gen γk Φs id₁ γm idx₁ cok₁ rev₁
+      (xs (idPfxOf (W16 (uint.Z id₁)))) Hx₁ hiss hwn hfs hgen hc0 hch hlog
+      hvs cmp hkc lm hrun hklg (hmem id₁ (by simp)) hpo HΦ₁ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁ Hpi₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
-  imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ γm idx₂ cok₂ rev₂
-      (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hklg (hmem id₂ (by simp)) hpo HΦ₂ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
+  imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs gen γk Φs id₂ γm idx₂ cok₂ rev₂
+      (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hgen hc0 hch hlog
+      hvs cmp hkc lm hrun hklg (hmem id₂ (by simp)) hpo HΦ₂ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂ Hpi₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
-  imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ γm idx₃ cok₃ rev₃
-      (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc lm hrun hklg (hmem id₃ (by simp)) hpo HΦ₃ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
+  imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs gen γk Φs id₃ γm idx₃ cok₃ rev₃
+      (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hgen hc0 hch hlog
+      hvs cmp hkc lm hrun hklg (hmem id₃ (by simp)) hpo HΦ₃ HnoSnap) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃ Hpi₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network (rafthttp stage 6d; until then a slot per member): each peer address
   -- reserved for the raft protocol, so every member's transport may post to the others'
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
   imod (netHttp_reserve3 γn a₁ a₂ a₃ Hd0' (fun i h hm => Hhost i h (by rw [← Hγn.2]; exact hm)))
-    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, Ho₁, Ho₂, Ho₃⟩
+    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, ⟨Hq₁, Ho₁⟩, ⟨Hq₂, Ho₂⟩, ⟨Hq₃, Ho₃⟩⟩
   ihave #Hs₁ := Hnet $$ %id₁
   ihave #Hs₂ := Hnet $$ %id₂
   ihave #Hs₃ := Hnet $$ %id₃
-  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hs₁⟩ := Hρ₁
-  obtain ⟨hst₂, hc0₂, hch₂, hlog₂, hs₂⟩ := Hρ₂
-  obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hs₃⟩ := Hρ₃
+  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hs₁, -⟩ := Hρ₁
+  obtain ⟨hst₂, hc0₂, hch₂, hlog₂, hs₂, -⟩ := Hρ₂
+  obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hs₃, -⟩ := Hρ₃
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃,
     env₀ γm idx₁ rev₁ (srvApi.kvNx ρ₁.rd false) cmp, env₀ γm idx₂ rev₂ (srvApi.kvNx ρ₂.rd false) cmp,
     env₀ γm idx₃ rev₃ (srvApi.kvNx ρ₃.rd false) cmp, Φs, γn
-  iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Ho₁ Ho₂ Ho₃
+  iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Hq₁ Ho₁ Hq₂ Ho₂ Hq₃ Ho₃
   isplitr
   · ipureintro
     refine ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hlog₁, hlog],
@@ -357,11 +367,11 @@ theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
-  iintro #Hmarsh ⟨#Hv₁, Hw₁, WaHw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, WaHw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, WaHw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
+  iintro #Hmarsh ⟨#Hv₁, WaHw₁, Hf₁, Hc₁⟩ ⟨#Hv₂, WaHw₂, Hf₂, Hc₂⟩ ⟨#Hv₃, WaHw₃, Hf₃, Hc₃⟩
   imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb
       Hrb2 lm hrun hap cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
-    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
-      Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd⟩
+    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ha₁, Ho₁⟩,
+      Hb₂, ⟨Hn₂, Ha₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ha₃, Ho₃⟩, Hetcd⟩
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃, E₁, E₂, E₃, Φs, γn
   iframe; iframe #

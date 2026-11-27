@@ -13,7 +13,7 @@ public import SpecPlan.Spec.PkgInit.k8s_io.client_go.kubernetes
 public import SpecPlan.Spec.PkgInit.k8s_io.client_go.kubernetes.typed.apps.v1
 public import SpecPlan.Spec.PkgInit.k8s_io.client_go.kubernetes.typed.core.v1
 public import Perennial.Proof.errors.Base
-public import SpecPlan.Spec.PkgInit.math.rand
+public import Perennial.Proof.math.rand.Base
 public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.api.errors

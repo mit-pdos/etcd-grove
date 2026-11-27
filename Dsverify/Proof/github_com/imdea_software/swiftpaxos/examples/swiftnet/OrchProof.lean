@@ -11,6 +11,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swift
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ModelLemmas
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Perennial.Proof.time
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -55,7 +56,7 @@ theorem lintestN_sw : (↑EtcdGrove.lintest.lintestN : CoPset) ⊆ ⊤ \ (swEop 
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
   [net.http.Assumptions] [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 variable [ρ : RemoteGS]
@@ -92,13 +93,18 @@ theorem Orch.wp_proof
   wp_apply time.wp_Sleep
   wp_apply wp_Model as %m #Hm
   wp_apply (wp_Codec (sysK γk) swEop) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp netDistGF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 8) (by decide)
+    as %x %Hx
   wp_apply wp_callTime as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 6 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
-  wp_apply wp_Check (swRK γk) swS γp m addrs clientAddrs cd _ _ d pendN_sw lintestN_sw
+  wp_apply wp_Check (swRK γk) swS γp m addrs clientAddrs cd _ (W64 1 + x) d pendN_sw lintestN_sw
     (swS_pendDec _ _) (swR_encOut_inj _ _) (fun st => sysK_timeless γk st) hrb
-    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) 24 (by decide) $$ [Hlib Hbud]
+    (by rw [hlen']; decide) (by word) (by rw [hlen']; word) 24 (by simp only [readTries]; word)
+    $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := netDistGF)

@@ -23,7 +23,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os_sem : os.Assumptions] [go.BasicIntoValInj]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proof :
     go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec (GF := GF) (hG := hG) := by
@@ -31,7 +31,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proof :
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
   wp_auto
   wp_apply os.Open.wp_dirSOk p R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   iapply HΦ
   iexact Hr
 
@@ -42,8 +42,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proofAboveRoot :
   wp_auto
   wp_apply os.Open.wp_aboveS p R (os.aboveRoot_rootsAbove hp) $$ []
     as %f %err Hr
-  · isplitl [] <;> try isplitl []
-    all_goals iassumption
+  · (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   iapply HΦ
   iexact Hr
 

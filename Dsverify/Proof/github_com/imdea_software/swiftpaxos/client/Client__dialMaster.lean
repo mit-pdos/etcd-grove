@@ -12,6 +12,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Connect
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Perennial.Proof.errors.NewVar
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -28,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [dlog.Assumptions] [fmt.Assumptions] [errors.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link
@@ -51,8 +53,10 @@ theorem client.Client.dialMaster.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
-    (IntArgValue.int v.masterPort') ArgsWf.nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
+  wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+      [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _
+      (.int v.masterPort') .nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
   have Hs := master.sprintf_str_d _ _ str Hs
   have hport := client.cn.masterAddr_port Hv.2
   rw [master.decimal_addrPort _ _ (by rw [hport]; decide), Hv.2] at Hs
@@ -63,7 +67,9 @@ theorem client.Client.dialMaster.wp_proof
   · iexists _; iframe; ipureintro; word
   wp_for HI
   wp_if_destruct
-  · wp_apply DialHTTP_tcp W masterAddr $$ [$Ha] as %mc %err Hd
+  · ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+    · solve_pkg_init
+    wp_apply DialHTTP_tcp W masterAddr $$ [$HnetPk $Ha] as %mc %err Hd
     icases Hd with (⟨%Herr, #Hmc⟩ | ⟨%Herr, -⟩)
     · subst Herr
       wp_auto

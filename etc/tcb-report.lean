@@ -1,14 +1,16 @@
 /-
 Trust base of this repository's proofs.  Not part of the lakefile; run with
 
-    lake env lean --run etc/tcb-report.lean [--part=ROOT]... MODULE...  > tcb.json
+    lake env lean --run etc/tcb-report.lean [--part=ROOT]... [--local=ROOT]... MODULE...  > tcb.json
 
 (normally via `etc/tcb-report.py` and `etc/verified-code.py`, through
 `etc/proof_roots.py`, which choose the modules: every `Link` and `Results` module, in
 groups that can be imported together).  The roots are the theorems declared in the
 given modules.  This repository's own declarations are those of the modules `Spec.*`,
 `Proof.*` and, for each `--part=ROOT` (a module root of a project's part, as
-`etc/goose.py` configures), `ROOT.Spec.*` and `ROOT.Proof.*`.
+`etc/goose.py` configures), `ROOT.Spec.*` and `ROOT.Proof.*`.  The modules of this repository
+are those whose root is a `--local=ROOT` (the module roots of its Lake libraries); its Goose
+translations, `Code.*`, `GeneratedProof.*` and a part root's `ROOT.Code.*`, `ROOT.GeneratedProof.*`.
 
 For each root it computes what `#print axioms` computes -- the axioms its proof transitively depends on -- and, in addition, which
 declarations along the way contain a `sorry` themselves (`#print axioms` only says
@@ -20,16 +22,20 @@ declarations along the way contain a `sorry` themselves (`#print axioms` only sa
                       containing a `sorry` that it depends on), uses (the other
                       roots its proof uses: a linked result uses its callees'),
                       defs (this repository's definitions its *statement* is
-                      written in terms of, transitively through their bodies);
-                      axioms and defs as indices (`i`) of the axiom and def lines
-                      below (written by name, each root repeated some 900 axioms:
-                      560 MB, a minute to write and two to parse, 2026-11-18);
-                      `etc/proof_roots.py`'s `load` gives them back as names
+                      written in terms of, transitively through their bodies),
+                      opaques (the trusted `opaque` constants its statement and
+                      the axioms it depends on reach: see `opaqueClosure`);
+                      axioms, defs and opaques as indices (`i`) of the axiom, def
+                      and opaque lines below (written by name, each root repeated
+                      some 900 axioms: 560 MB, a minute to write and two to parse,
+                      2026-11-18); `etc/proof_roots.py`'s `load` gives them back as
+                      names
   {"t":"axiom", ...}  every axiom some root depends on: i, name, module, line, doc
   {"t":"sorry", ...}  every declaration containing a `sorry` some root depends on:
                       name, module, line, synthetic (an elaboration error)
   {"t":"def", ...}    every definition in some root's `defs`: i, name, module, line,
                       endLine, kind
+  {"t":"opaque", ...} every `opaque` in some root's `opaques`: i, name, module, line, doc
   {"t":"errorf", ...} every constant some root depends on that steps into Perennial's
                       model of `fmt.Errorf` itself (see `isErrorfStep`): name, user (the
                       declaration it belongs to), module, line; a root's `errorf` lists
@@ -72,18 +78,20 @@ def hasSyntheticSorry (e : Expr) : Bool :=
 
 /-- What a constant's trust base is made of: the axioms it depends on, the constants
 containing a `sorry` it depends on, and the constants stepping into Perennial's `fmt.Errorf`
-model it depends on (`isErrorfStep`; not trust base, but a model step to review). -/
+model it depends on (`isErrorfStep`; not trust base, but a model step to review); and, in
+`opaqueClosure`'s sets only, the trusted `opaque` constants its meaning reaches. -/
 inductive Item where
   | ax (n : Name)
   | sorry (n : Name)
   | errorf (n : Name)
+  | opq (n : Name)
   deriving Inhabited, BEq, Hashable
 
 def Item.tag : Item → Nat
-  | .ax _ => 0 | .sorry _ => 1 | .errorf _ => 2
+  | .ax _ => 0 | .sorry _ => 1 | .errorf _ => 2 | .opq _ => 3
 
 def Item.name : Item → Name
-  | .ax n | .sorry n | .errorf n => n
+  | .ax n | .sorry n | .errorf n | .opq n => n
 
 /-- An `Item`'s order, for the sorted arrays that represent sets of them. -/
 def Item.lt (a b : Item) : Bool :=
@@ -149,9 +157,11 @@ def errorfAtoms : NameSet := ({} : NameSet)
 def errorfSanctioned : NameSet := ({} : NameSet)
   |>.insert `Perennial.fmt.Errorf.wp_proof
 
-/-- The field's index among the class's fields (for a raw `Expr.proj`). -/
+/-- The field's index among the class's fields (for a raw `Expr.proj`; none without the class:
+`etc/tcb-report.py --selftest`'s environment). -/
 def errorfFieldIdx (env : Environment) : Option Nat :=
-  (getStructureFields env errorfCls).idxOf? `Errorf_unfold
+  if isStructure env errorfCls then (getStructureFields env errorfCls).idxOf? `Errorf_unfold
+  else none
 
 def errorfRawProj (idx : Option Nat) (ci : ConstantInfo) : Bool :=
   match idx with
@@ -380,14 +390,124 @@ def statementClosures (parts : List Name) (mn : Array Name) (env : Environment) 
       ri := ri + 1
   return out
 
+/-! **Trusted `opaque` constants.** An `opaque` is not an axiom (`#print axioms` does not list
+it), but a statement written in terms of one, or an axiom about one, is only as meaningful as what
+the reader takes the constant to be: it is trusted as a definition is. `opaqueClosure` finds, for
+the roots' statements and the axioms, the `opaque` constants (the kernel's: `opaque` and
+`partial def`) their meaning reaches: through the types of the constants, the bodies of
+definitions (not of theorems, nor an `opaque`'s value, which the kernel does not unfold) and an
+inductive type's constructors, entering only this repository's modules (`--local=ROOT`: Lean,
+Std, Mathlib, Iris and Perennial are trusted as a whole, as their axioms are), the Goose
+translations included (they reach the trusted models). Counted: the `opaque`s declared in this
+repository's modules except its Goose translations (`isTranslation`), whatever their namespace
+(`TrustedCode/`'s are in `Perennial.<pkg>`): the translations' (an untranslated type's
+`T.underlying`, `T.zero_val`, an untranslated constant) are Goose's output, trusted with the
+translator as Perennial's own generated declarations are. -/
+
+/-- Whether module `m` is one of this repository's (its root a `--local=ROOT`). -/
+def isLocalMod (locals : List Name) (m : Name) : Bool :=
+  !m.isAnonymous && locals.contains m.getRoot
+
+/-- Whether module `m` is a Goose translation of this repository: `Code.*`,
+`GeneratedProof.*`, or a part root's `ROOT.Code.*`, `ROOT.GeneratedProof.*`. -/
+def isTranslation (parts : List Name) (m : Name) : Bool :=
+  let gen (p : Name) := (p ++ `Code).isPrefixOf m || (p ++ `GeneratedProof).isPrefixOf m
+  gen .anonymous || parts.any gen
+
+/-- The constants a constant's meaning is made of, for `opaqueClosure`: its type; a
+definition's body; an `opaque`'s type only; a theorem's nothing (not entered); an inductive
+type's constructors' types, with the other types of its mutual block's (theirs, without the
+block's own names: no cycle through a block). -/
+def opaqueDeps (env : Environment) (ci : ConstantInfo) : Array Name :=
+  match ci with
+  | .thmInfo _ => #[]
+  | .opaqueInfo _ => ci.type.getUsedConstants
+  | .inductInfo d =>
+    let add (s : NameSet) (e : Expr) := e.getUsedConstants.foldl (·.insert ·) s
+    let s := d.all.foldl (init := ({} : NameSet)) fun s j =>
+      match env.find? j with
+      | some (.inductInfo dj) =>
+        dj.ctors.foldl (init := add s dj.type) fun s c =>
+          match env.find? c with | some cc => add s cc.type | none => s
+      | _ => s
+    (d.all.foldl (·.erase ·) s).toList.toArray
+  | _ => (meaningDeps ci).toList.toArray
+
+/-- The trusted `opaque` constants (see above) the meaning of each constant reachable from
+`starts` reaches, as ids of interned sets of `.opq` items (memoized, iterative DFS as in
+`closure`; a constant on a cycle sees the partial result). The constants' `opaqueDeps` are
+computed first, level by level, in parallel tasks, as in `usedConstants`. -/
+partial def opaqueClosure (locals parts : List Name) (mn : Array Name) (env : Environment)
+    (starts : Array Name) : IO (Interned × Std.HashMap Name Nat) := do
+  let isLocal (n : Name) := isLocalMod locals (modOf mn env n)
+  let mut deps : Std.HashMap Name (Array Name) := {}
+  let mut seen : NameSet := starts.foldl (·.insert ·) {}
+  let mut frontier : Array Name := starts
+  while frontier.size > 0 do
+    let chunk := max 64 (frontier.size / 256)
+    let mut tasks : Array (Task (Array (Name × Array Name))) := #[]
+    let mut i := 0
+    while i < frontier.size do
+      let part := frontier.extract i (i + chunk)
+      tasks := tasks.push <| Task.spawn fun _ => part.map fun n =>
+        (n, if !isLocal n then #[] else match env.find? n with
+          | some ci => opaqueDeps env ci
+          | none => #[])
+      i := i + chunk
+    let mut next : Array Name := #[]
+    for t in tasks do
+      for (n, ds) in t.get do
+        deps := deps.insert n ds
+        for d in ds do
+          if !seen.contains d then
+            seen := seen.insert d
+            next := next.push d
+    frontier := next
+  let mut memo : Std.HashMap Name Nat := {}
+  let mut onStack : NameSet := {}
+  let mut t : Interned := {}
+  for r in starts do
+    if memo.contains r then continue
+    let mut stack : Array (Name × Bool) := #[(r, false)]
+    while stack.size > 0 do
+      let (n, expanded) := stack.back!
+      if memo.contains n then
+        stack := stack.pop; continue
+      let ds := deps.getD n #[]
+      if !expanded then
+        stack := stack.set! (stack.size - 1) (n, true)
+        onStack := onStack.insert n
+        for d in ds do
+          if !memo.contains d && !onStack.contains d then
+            stack := stack.push (d, false)
+      else
+        let m := modOf mn env n
+        let own : Array Item := match env.find? n with
+          | some (.opaqueInfo _) =>
+            if isLocalMod locals m && !isTranslation parts m then #[.opq n] else #[]
+          | _ => #[]
+        let (t', i0) := t.intern own
+        t := t'
+        let mut acc := i0
+        for d in ds do
+          let (t', u) := t.union acc (memo.getD d 0)
+          t := t'
+          acc := u
+        memo := memo.insert n acc
+        onStack := onStack.erase n
+        stack := stack.pop
+  return (t, memo)
+
 def main (args : List String) : IO UInt32 := do
   initSearchPath (← findSysroot)
   let parts : List Name := args.filterMap fun a =>
     (a.dropPrefix? "--part=").map (·.toString.toName)
+  let locals : List Name := args.filterMap fun a =>
+    (a.dropPrefix? "--local=").map (·.toString.toName)
   let mods : Array Name :=
     (args.filter (!·.startsWith "--")).toArray.map String.toName
   if mods.isEmpty then
-    IO.eprintln "usage: etc/tcb-report.lean [--part=ROOT]... MODULE..."
+    IO.eprintln "usage: etc/tcb-report.lean [--part=ROOT]... [--local=ROOT]... MODULE..."
     return 2
   let env ← importModules (mods.map fun m => { module := m }) {}
   -- the given modules' own theorems, from their module data (walking every constant of the
@@ -408,6 +528,16 @@ def main (args : List String) : IO UInt32 := do
   let t1 ← IO.monoMsNow
   let memo ← closure env roots
   IO.eprintln s!"tcb: closure in {(← IO.monoMsNow) - t1} ms"
+  -- the trusted `opaque`s of the roots' statements and of the axioms they depend on
+  let t3 ← IO.monoMsNow
+  let mut starts : Array Name := #[]
+  let mut startSeen : NameSet := {}
+  for r in roots do
+    let st := match env.find? r with | some ci => ci.type.getUsedConstants | none => #[]
+    for n in st ++ ((memo.getD r #[]).filterMap fun | .ax a => some a | _ => none) do
+      if !startSeen.contains n then startSeen := startSeen.insert n; starts := starts.push n
+  let (opqT, opqMemo) ← opaqueClosure locals parts mn env starts
+  IO.eprintln s!"tcb: opaques of {starts.size} statement constants and axioms in {(← IO.monoMsNow) - t3} ms"
   let t2 ← IO.monoMsNow
   let out ← IO.getStdout
   out.putStrLn "{\"t\":\"group\"}"
@@ -416,6 +546,9 @@ def main (args : List String) : IO UInt32 := do
   let mut axList : Array Name := #[]
   let mut defIdx : Std.HashMap Name Nat := {}
   let mut defList : Array Name := #[]
+  let mut opqIdx : Std.HashMap Name Nat := {}
+  let mut opqList : Array Name := #[]
+  let mut opqT := opqT
   let mut sorries : Std.HashMap Name (Name × Nat × Bool) := {}
   let mut errorfs : NameSet := {}
   -- the statements' definitions (`statementDefs`' result for every root), each constant's
@@ -430,9 +563,17 @@ def main (args : List String) : IO UInt32 := do
     let mut axs : Array String := #[]
     let mut srs : Array String := #[]
     let mut efs : Array String := #[]
+    -- its statement's and its axioms' trusted `opaque`s
+    let mut oid : Nat := 0
+    let stc := match env.find? r with | some ci => ci.type.getUsedConstants | none => #[]
+    for n in stc do
+      let (t', u) := opqT.union oid (opqMemo.getD n 0)
+      opqT := t'; oid := u
     for it in items do
       match it with
       | .ax a =>
+        let (t', u) := opqT.union oid (opqMemo.getD a 0)
+        opqT := t'; oid := u
         let k ← match axIdx.get? a with
           | some k => pure k
           | none =>
@@ -451,6 +592,15 @@ def main (args : List String) : IO UInt32 := do
         let prev := (sorries.get? u).map (·.2.2) |>.getD false
         sorries := sorries.insert u (modOf mn env s, line, prev || synth)
         if !srs.contains u.toString then srs := srs.push u.toString
+      | .opq _ => pure ()
+    let mut oks : Array String := #[]
+    for it in opqT.sets[oid]! do
+      let o := it.name
+      let k ← match opqIdx.get? o with
+        | some k => pure k
+        | none =>
+          opqIdx := opqIdx.insert o opqList.size; opqList := opqList.push o; pure (opqList.size - 1)
+      oks := oks.push (toString k)
     let line := match declRangeExt.find? env r with | some d => d.range.pos.line | none => 0
     let some rci := env.find? r | continue
     let uses := ((rci.value? (allowOpaque := true)).map (·.getUsedConstants) |>.getD #[]).filter
@@ -464,7 +614,7 @@ def main (args : List String) : IO UInt32 := do
           defIdx := defIdx.insert d defList.size; defList := defList.push d; pure (defList.size - 1)
       dks := dks.push (toString k)
     let jl (a : Array Name) := ",".intercalate (a.toList.map (jstr ·.toString))
-    out.putStrLn s!"\{\"t\":\"root\",\"name\":{jstr r.toString},\"module\":{jstr (modOf mn env r).toString},\"line\":{line},\"axioms\":[{",".intercalate axs.toList}],\"sorries\":[{",".intercalate (srs.toList.map jstr)}],\"uses\":[{jl uses}],\"defs\":[{",".intercalate dks.toList}],\"errorf\":[{",".intercalate (efs.toList.map jstr)}]}"
+    out.putStrLn s!"\{\"t\":\"root\",\"name\":{jstr r.toString},\"module\":{jstr (modOf mn env r).toString},\"line\":{line},\"axioms\":[{",".intercalate axs.toList}],\"sorries\":[{",".intercalate (srs.toList.map jstr)}],\"uses\":[{jl uses}],\"defs\":[{",".intercalate dks.toList}],\"errorf\":[{",".intercalate (efs.toList.map jstr)}],\"opaques\":[{",".intercalate oks.toList}]}"
   -- (in the order of the names, as before the numbering: `etc/axiom-tok-check.py` walks them so)
   let axSorted := axList.qsort Name.quickLt
   let defSorted := defList.qsort Name.quickLt
@@ -473,6 +623,11 @@ def main (args : List String) : IO UInt32 := do
       | some d => d.range.pos.line | none => 0
     let doc := (← findDocString? env a).getD ""
     out.putStrLn s!"\{\"t\":\"axiom\",\"i\":{axIdx.getD a 0},\"name\":{jstr a.toString},\"module\":{jstr (modOf mn env a).toString},\"line\":{line},\"doc\":{jstr doc}}"
+  for o in opqList.qsort Name.quickLt do
+    let line := match declRangeExt.find? env o (level := .private) with
+      | some d => d.range.pos.line | none => 0
+    let doc := (← findDocString? env o).getD ""
+    out.putStrLn s!"\{\"t\":\"opaque\",\"i\":{opqIdx.getD o 0},\"name\":{jstr o.toString},\"module\":{jstr (modOf mn env o).toString},\"line\":{line},\"doc\":{jstr doc}}"
   for (s, (m, line, synth)) in sorries.toList do
     out.putStrLn s!"\{\"t\":\"sorry\",\"name\":{jstr s.toString},\"module\":{jstr m.toString},\"line\":{line},\"synthetic\":{synth}}"
   for c in errorfs.toList do

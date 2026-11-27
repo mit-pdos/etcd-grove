@@ -54,6 +54,8 @@ abbrev startMember.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   rafthttp.bootCfg dir ps →
   urlsOk peerAddr client ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  etcdstart.addrFits peerAddr → etcdstart.addrFits client →
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
   -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
   -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
@@ -63,7 +65,7 @@ abbrev startMember.spec : Prop :=
       zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir name peerAddr client id ∗ etcdstart.commonPremises ∗
+      bootPremise N ps bootLog ctxs dir name peerAddr client id ∗
       context.isClosedchanInit ∗
       etcdstart.memberBootOn γ ctxs ρ E₀ Φs id ∗
       netHttpOk γn id ∗

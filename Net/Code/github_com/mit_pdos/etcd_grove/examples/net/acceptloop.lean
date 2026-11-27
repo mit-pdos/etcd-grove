@@ -26,6 +26,9 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.acceptloop
 @[reducible] noncomputable def SrvAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:7103")
 
+@[reducible] noncomputable def maxCallers [GooseExts] [GoGlobalContext] : val :=
+  #(8 : Int)
+
 noncomputable def handle [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/acceptloop.handle"
 
@@ -40,7 +43,7 @@ noncomputable def Call [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- handle echoes one 1-byte request of the connection c, then closes it.
 
-    go: acceptloop.go:29:6 -/
+    go: acceptloop.go:33:6 -/
 noncomputable def handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -66,7 +69,7 @@ noncomputable def handle.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve listens at SrvAddr, then accepts connections and serves each in a
     goroutine of its own. It returns only if it cannot listen.
 
-    go: acceptloop.go:39:6 -/
+    go: acceptloop.go:43:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -122,7 +125,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- CallOne sends id on a new connection and checks that the reply is id.
 
-    go: acceptloop.go:54:6 -/
+    go: acceptloop.go:58:6 -/
 noncomputable def CallOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)
@@ -197,45 +200,54 @@ noncomputable def CallOne.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0"))))))))))))))
   (Val #())))
 
-/-- Call starts two concurrent calls, with the ids 1 and 2.
+/-- Call starts 1 to maxCallers concurrent calls, their number drawn at random,
+    with the distinct ids 1, 2, ..., and waits for them.
 
-    go: acceptloop.go:73:6 -/
+    go: acceptloop.go:78:6 -/
 noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (Let "$a0" (Val #(W64 7))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomInt []))) (Val #())) (Var "$a0")))))
+  (Let "m" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$go" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W8 1))
-  (App (App (Val (GoInstruction (FuncResolve CallOne []))) (Val #())) (Var "$a0"))))))
-  (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$go" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W8 2))
-  (App (App (Val (GoInstruction (FuncResolve CallOne []))) (Val #())) (Var "$a0"))))))
-  (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "m")))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.byte))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "id"))
+  (App (App (Val (GoInstruction (FuncResolve CallOne []))) (Val #())) (Var "$a0"))))))
+  (Val #())))
   (App (Val doExecute)
   (Fork
-  (App (Var "$go") (Val #()))))))))
+  (App (Var "$go") (Val #())))))))
   (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Val #()))))))))
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "id") (Var "$r0")))))))))
+  (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (Val #(W64 2))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0")))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "m") (Var "$r0"))))))))
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop where

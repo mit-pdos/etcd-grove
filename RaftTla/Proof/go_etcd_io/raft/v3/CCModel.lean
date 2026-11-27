@@ -3,7 +3,7 @@
 The pure vocabulary of conf-change messages (moved here from `InvConfChangeMsg.lean` on
 2026-10-13, reconfiguration stage D, so that the protocol's ghost state can name it
 without importing `Base`; see `InvConfChangeMsg.lean` for what each means):
-`ConfChangeM`, `ConfChangeV2M`, the decoders `ccDecodeV1` (opaque) and `ccDecodeV2` (since
+`ConfChangeM`, `ConfChangeV2M`, the decoders `ccDecodeV1` (since 2026-11-24 `cc1DecodeRaw`) and `ccDecodeV2` (since
 2026-11-23 protobuf stage S1's `cc2DecodeRaw`), `ConfChangeIM`; and (new)
 `IsConfEnt` (an entry of type `EntryConfChange` or `EntryConfChangeV2`), `CCDecodes` (a
 conf-change entry's bytes decode), `ccWantsLeave` (an empty `ConfChangeV2`: leave the joint
@@ -44,15 +44,17 @@ structure ConfChangeV2M [GooseExts] where
 
 /-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChange` (raft v3.7; until the
 retarget, gogoproto's generated `(*ConfChange).Unmarshal`): the decoded content (the getters'
-values), or `none` where it returns an error. Opaque: the trust-boundary specs of
-`proto.Marshal`/`proto.Unmarshal` (`Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`)
-are what is known of it. -/
-opaque ccDecodeV1 [GooseExts] : List w8 → Option ConfChangeM
+values), or `none` where it returns an error. `cc1DecodeRaw` (`PbWireRaft.lean`; 2026-11-24, the
+trace check's bootstrap log: until then opaque, known only through the trust-boundary specs of
+`proto.Marshal`/`proto.Unmarshal`, `Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`),
+checked against protobuf-go by `ConfChangeWireVectors.lean`. -/
+def ccDecodeV1 [GooseExts] (bs : List w8) : Option ConfChangeM :=
+  (cc1DecodeRaw bs).map fun x => ⟨x.2.1, x.2.2.1, x.2.2.2, x.1⟩
 
 /-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
 retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
 `cc2DecodeRaw` (`PbWireRaft.lean`, protobuf stage S1: until 2026-11-23 opaque, as `ccDecodeV1`
-still is), checked against protobuf-go by `EntryWireVectors.lean`. -/
+was until 2026-11-24), checked against protobuf-go by `EntryWireVectors.lean`. -/
 def ccDecodeV2 [GooseExts] (bs : List w8) : Option ConfChangeV2M :=
   (cc2DecodeRaw bs).map fun x => ⟨x.1, x.2.1.map fun c => ⟨c.1, c.2⟩, x.2.2⟩
 
@@ -256,6 +258,49 @@ def MarshalsConfChange : Option ConfChangeIM → List w8 → Prop
   | none, bs => bs = []
   | some (.v1 m), bs => ccDecodeV1 bs = some m
   | some (.v2 m), bs => ccDecodeV2 bs = some m
+
+/-- **`ccDecodeV1` reads back `proto.Marshal`'s bytes** (2026-11-24): the encoding of a `ConfChange`
+(its populated fields in field-number order, then unknown fields as the decoder leaves them,
+`cc1EncRaw`) decodes to its getters' values. So `proto.MarshalConfChange.spec`'s round trip holds of
+the bytes protobuf-go writes, for every content. -/
+theorem ccDecodeV1_enc (id : Option w64) (type : Option w32) (nodeId : Option w64)
+    (ctx : Option (List w8)) (uf : List w8) (hu : ufWire ccSchema uf)
+    (hc : ∀ c, ctx = some c → c.length < 2 ^ 64) :
+    ccDecodeV1 (cc1EncRaw id type nodeId ctx uf) =
+      some ⟨type.getD 0, nodeId.getD 0, ctx.getD [], id.getD 0⟩ := by
+  simp only [ccDecodeV1, cc1DecodeRaw_enc id type nodeId ctx uf hu hc, Option.map_some]
+
+/-- **The bytes of a bootstrap conf change** (2026-11-24): `proto.Marshal` of the `*pb.ConfChange` raft's
+`Bootstrap` builds for a peer (`bootConfChange`): `Type = AddNode` and `NodeId = id` set, `Id` unset,
+`Context = ctx`, absent when empty (its slice `nil`, as `Peer{ID: id}` carries), no unknown fields. The
+encoder `cc1EncRaw` is checked against protobuf-go at these conf changes for ids 1..5 and extreme ones
+(`ConfChangeWireVectors.lean`). -/
+def ccBootWire (id : w64) (ctx : List w8) : List w8 :=
+  cc1EncRaw none (some (W32 0)) (some id) (if ctx = [] then none else some ctx) []
+
+theorem ccDecodeV1_bootWire (id : w64) (ctx : List w8) (hc : ctx.length < 2 ^ 64) :
+    ccDecodeV1 (ccBootWire id ctx) = some ⟨W32 0, id, ctx, W64 0⟩ := by
+  unfold ccBootWire
+  rw [ccDecodeV1_enc _ _ _ _ _ (ufWire_nil _) (by intro c h; split at h <;> simp_all)]
+  by_cases h : ctx = [] <;> simp [h]
+
+open Wire in
+/-- **`ccBootWire`'s bytes, written out**: `type` (`0x10 0x00`), `node_id` (`0x18` and its varint)
+and, for a non-empty context, `context` (`0x22`, its length, its bytes), the formula
+`proto.MarshalBootConfChange.spec`'s docstring states and `examples/premisefix/confchange`'s
+`TestBootWireVectors` checks against protobuf-go. (Until the merge of 2026-11-25 this was the
+definition, in `Proof/google_golang_org/protobuf/proto/BootWire.lean`.) -/
+theorem ccBootWire_bytes (id : w64) (ctx : List w8) :
+    ccBootWire id ctx = [W8 0x10, W8 0x00, W8 0x18] ++ varintEnc (uint.nat id) ++
+      (if ctx = [] then [] else [W8 0x22] ++ varintEnc ctx.length ++ ctx) := by
+  have h16 : varintEnc (2 * 8 + 0) = [W8 0x10] := varintEnc_lt128 (by decide)
+  have h24 : varintEnc (3 * 8 + 0) = [W8 0x18] := varintEnc_lt128 (by decide)
+  have h34 : varintEnc (4 * 8 + 2) = [W8 0x22] := varintEnc_lt128 (by decide)
+  have h0 : varintEnc (enumVarint (W32 0)) = [W8 0x00] := varintEnc_lt128 (by decide)
+  by_cases hc : ctx = [] <;>
+    simp only [ccBootWire, cc1EncRaw, cc1Recs, encode, optF, encFields, record, tag, FVal.wt,
+      FVal.payload, hc, ↓reduceIte, h16, h24, h34, h0, uint.nat, List.append_nil, List.nil_append,
+      List.cons_append, List.append_assoc]
 
 end codec
 

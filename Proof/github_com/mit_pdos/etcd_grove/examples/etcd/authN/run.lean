@@ -102,14 +102,14 @@ and drops it; authlease's `serve_member_lease` serves it from this. -/
 def leaseReady (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (m : lease.Mode) :
     IProp GF :=
   iprop(∃ (A : v3rpc.KVAns GF) (il im iu : GoFunc) (regs : List (GoString × GoFunc × GoInterface))
-      (γ : GName),
+      (sms : List (GrpcStreamMethod GF)),
     ⌜A.revR = mvcc.api.mvccReaders E.γ 1⌝ ∗
     isServerReqM true s E ρ ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗ srvLeaseRd s E m ∗
     grpcLeaseUp s A regs ∗
     srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
     srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-    grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
+    grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
 
 instance leaseReady_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (m : lease.Mode) : Persistent (leaseReady addr s E ρ m) := by
@@ -225,29 +225,38 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgr,
-      Hlis, #Hlu⟩
+      Hlis, Hleft, #Hlu⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     imod (etcdstart.kvServeStocks_pools s E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
     rw [HCA]
+    -- (R9) the watch path's server facts, with auth on
+    ihave %hkv := etcdstart.kv_wsIface_of_cfg s E cfg C $$ [Hsf Hgc]
+    · iframe #
+    haveI := v3rpc.srvWOk_persistent hP (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN
+    ihave #HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN $$ []
+    · rw [hRw, hRE]
+      iapply (etcdstart.srvWOk_of_readOn hP hR s E ρ.rd C.wsl hkv (by omega))
+      rw [← hon]; iexact Hrd0
+    -- (phase 7's switch, SW1) the `Watch` stream's run contract, which the start registers
+    ihave #Hwr := v3rpc.etcd_watch_served_chain pw R (etcdstart.srvWOf R.E ρ.rd true) ims is ρ.rd rfl
+      (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv Hms.watch_impl $$ []
+    · rw [hRs, hRE]
+      iframe #
     imod (ak_served_kv addr gs q p pa s lis E { ρ with wait := γw } cid mid C.n
-        il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
+        il im iu ims is svcs regs sregs [v3rpc.watchMethod pw R (etcdstart.srvWOf R.E ρ.rd true)]
+        γa HEo Hregs1 HregsA
+        (by intro m hm; simp only [List.mem_singleton] at hm; subst hm; exact Hregs2) (by simp)
+        wp_BcryptCost Hrf Hnd HLv)
+      $$ [Hgsn Hlis Hleft] with ⟨Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
-    ihave %hkv := etcdstart.kv_wsIface_of_cfg s E cfg C $$ [Hsf Hgc]
-    · iframe #
-    ihave HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN $$ []
-    · rw [hRw, hRE]
-      iapply (etcdstart.srvWOk_of_readOn hP hR s E ρ.rd C.wsl hkv (by omega))
-      rw [← hon]; iexact Hrd0
-    imod (ak_served_watch hP (akV addr ρ R) addr pw s E ρ.rd ims is sregs γ rfl hRE hRs rfl
-        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl rfl rfl
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [HWok] with ⟨#HWF, #Htag⟩
+    imod (ak_served_watch hP (akV addr ρ R) addr pw s E ρ.rd rfl hRE hRs
+        (by simp) (kvSame_refl _) hlog (by omega) rfl rfl rfl rfl)
+      $$ [] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     -- what serving the Lease service in lease mode `m` takes (`leaseReady`)
     ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
@@ -258,7 +267,7 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     · rw [← hon]; iexact Hrd0
     ihave #HLS : leaseReady addr s E { ρ with wait := γw } m $$ []
     · iunfold leaseReady
-      iexists C.A, il, im, iu, regs, γ
+      iexists C.A, il, im, iu, regs, _
       isplitl []
       · ipureintro; rw [HCA]; rfl
       rw [HCA]
@@ -266,7 +275,7 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     imodintro
     iframe HKV HSA HAu HWF Htag Hgr HLS
     isplitl [Hserv]
-    · iexists γ; iexact Hserv
+    · iexists _; iexact Hserv
     ipureintro; exact ⟨hRE, hRs⟩
   iapply HΦ
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag, Hgr, #HLS⟩⟩)
@@ -318,7 +327,7 @@ theorem run.wp_proof
     (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC srvsl msl lg ss xs x0 γn hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
+  intro CS ES FS RS srvsl msl lg ss xs x0 γn hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
     hlog hsc
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   have hk1 : 1 ≤ xs.length := by
@@ -499,9 +508,10 @@ theorem run.wp_proof
   iunfold srvdAt at H0
   icases H0 with ⟨%HR₁, #Hrd₁, #Htls₁, #HKV₁, #HSA₁, #HAu₁, #HWF₁, #Htag₁⟩
   -- `NewClient(a1, lg)`: the client with no user name, at member 0
-  wp_apply (wp_NewClient x0.1.Client' lg (akV x0.1.Client' x0.2.ρ w0.R) (Hpe x0 hx0m) Htb31) as %cl %cerr Hcl
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
+  wp_apply (wp_NewClient x0.1.Client' lg (akV x0.1.Client' x0.2.ρ w0.R) (Hpe x0 hx0m) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -524,7 +534,7 @@ theorem run.wp_proof
     iexact H
   wp_apply (wp_SetUp cl x0.1.Client' (akV x0.1.Client' x0.2.ρ w0.R) s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid w0.γa HR₁.1
       (by show uint.Z x0.2.ρ.rd.kv.c0 ≤ uint.Z x0.2.ρ.rd.raft.ai0; rw [hc0]; word) hAs)
-    $$ [Hview] as %ok Hok
+    $$ [$Hlt Hview] as %ok ⟨Hlt, Hok⟩
   · iframe; iframe #
   cases ok
   · wp_auto
@@ -579,7 +589,7 @@ theorem run.wp_proof
       $$ Hllb
     ihave #HLcj := srvRLogLb_same { x0.2.ρ with wait := w0.γw } { xj.2.ρ with wait := wj.γw } hsj Lc $$ HLc
     wp_apply (wp_barrier xj.1.Client' lg (akV xj.1.Client' xj.2.ρ wj.R) sj wj.E { xj.2.ρ with wait := wj.γw }
-        wj.cid wj.mid wj.γa γz hs Lset Lc rset (Hpe xj hxj) (by omega) HRj.1 hAs) as %okj Hbj
+        wj.cid wj.mid wj.γa γz hs Lset Lc rset (Hpe xj hxj) (by omega) HRj.1 hAs) $$ [$Hlt] as %okj ⟨Hlt, Hbj⟩
     · iframe #; ipureintro; exact ⟨Hadmj, HLcstj⟩
     icases Hbj with (%Hb | ⟨%Hb, %ij, #Hfixj⟩) <;> subst Hb
     · (try wp_auto)
@@ -654,7 +664,7 @@ theorem run.wp_proof
     iexact Hw
   wp_apply (wp_newUserClient x0.1.Client' go!"root" go!"root-pw" lg (akV x0.1.Client' x0.2.ρ w0.R)
       (fun t => auth.tokIssued w0.γa t go!"root") (Hpe x0 hx0m) (by omega) (by unfold strsSizeOk; decide))
-    as %rcl %rerr Hrc
+    $$ [$Hlt] as %rcl %rerr ⟨Hlt, Hrc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ w0.γa)
     iexact HAu₁
@@ -670,7 +680,7 @@ theorem run.wp_proof
   wp_auto
   wp_apply (wp_newUserClient xu.1.Client' go!"u" go!"u-pw" lg (akV xu.1.Client' xu.2.ρ wu.R)
       (fun t => auth.tokIssued wu.γa t go!"u") (Hpe xu hxum) (by omega) (by unfold strsSizeOk; decide))
-    as %ucl %uerr Huc
+    $$ [$Hlt] as %ucl %uerr ⟨Hlt, Huc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ wu.γa)
     iexact HAu₂
@@ -686,7 +696,7 @@ theorem run.wp_proof
   wp_auto
   wp_apply (wp_newUserClient xv.1.Client' go!"v" go!"v-pw" lg (akV xv.1.Client' xv.2.ρ wv.R)
       (fun t => auth.tokIssued wv.γa t go!"v") (Hpe xv hxvm) (by omega) (by unfold strsSizeOk; decide))
-    as %vcl %verr Hvc
+    $$ [$Hlt] as %vcl %verr ⟨Hlt, Hvc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ wv.γa)
     iexact HAu₃
@@ -700,9 +710,9 @@ theorem run.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Hverr
   wp_auto
-  wp_apply (wp_NewClient xu.1.Client' lg (akV xu.1.Client' xu.2.ρ wu.R) (Hpe xu hxum) Htb31) as %bcl %berr Hbc
+  wp_apply (wp_NewClient xu.1.Client' lg (akV xu.1.Client' xu.2.ρ wu.R) (Hpe xu hxum) (by omega)) $$ [$Hlt] as %bcl %berr ⟨Hlt, Hbc⟩
   · iframe #
-  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk⟩ | %Hbfail)
+  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk, -⟩ | %Hbfail)
   rotate_left
   · obtain ⟨Hberr, -⟩ := Hbfail
     cases berr with
@@ -757,45 +767,46 @@ theorem run.wp_proof
       wp_apply (sync.join.WaitGroup.wp_Add_of sync.WaitGroup.wp_Add iprop(True) wg_ptr iprop(True)
           na) $$ [Hwg] as ⟨Hwg, Hdone⟩
       · iframe; ipureintro; word
-      wp_apply wp_fork $$ [Hdone who c]
-      · (try wp_auto)
+      wp_apply wp_fork_level0 $$ [Hdone who c]
+      · iintro Hlt
+        (try wp_auto)
         first
         | (wp_apply (wp_Work _ _ xu.1.Client' (akV xu.1.Client' xu.2.ρ wu.R) su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid wu.γa
-              Lset i₂ hwho HR₂.1 ⟨rfl, rfl, rfl, rfl, HR₂.2.2, HR₂.2.1, rfl⟩ hAs)
+              Lset i₂ hwho HR₂.1 ⟨rfl, rfl, rfl, rfl, HR₂.2.2, HR₂.2.1, rfl⟩ hAs) $$ [$Hlt] as ⟨Hlt, -⟩
            · iframe #
              rw [akTokP, ite_eq_left (Or.inl rfl)]; iexact Hutk
            (try wp_auto)
            wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
              $$ [Hdone]
            · iframe
-           itrivial)
+           iframe Hlt; try itrivial)
         | (wp_apply (wp_Work _ _ xv.1.Client' (akV xv.1.Client' xv.2.ρ wv.R) sv wv.E { xv.2.ρ with wait := wv.γw } wv.cid wv.mid wv.γa
-              Lset i₃ hwho HR₃.1 ⟨rfl, rfl, rfl, rfl, HR₃.2.2, HR₃.2.1, rfl⟩ hAs)
+              Lset i₃ hwho HR₃.1 ⟨rfl, rfl, rfl, rfl, HR₃.2.2, HR₃.2.1, rfl⟩ hAs) $$ [$Hlt] as ⟨Hlt, -⟩
            · iframe #
              rw [akTokP, ite_eq_left (Or.inr rfl)]; iexact Hvtk
            (try wp_auto)
            wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
              $$ [Hdone]
            · iframe
-           itrivial)
+           iframe Hlt; try itrivial)
         | (wp_apply (wp_Work _ _ xu.1.Client' (akV xu.1.Client' xu.2.ρ wu.R) su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid wu.γa
-              Lset i₂ hwho HR₂.1 ⟨rfl, rfl, rfl, rfl, HR₂.2.2, HR₂.2.1, rfl⟩ hAs)
+              Lset i₂ hwho HR₂.1 ⟨rfl, rfl, rfl, rfl, HR₂.2.2, HR₂.2.1, rfl⟩ hAs) $$ [$Hlt] as ⟨Hlt, -⟩
            · iframe #
              rw [akTokP, ite_eq_right (fun h => h.elim ‹_› ‹_›)]; iexact Hbtk
            (try wp_auto)
            wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
              $$ [Hdone]
            · iframe
-           itrivial)
+           iframe Hlt; try itrivial)
         | (wp_apply (wp_Work _ _ x0.1.Client' (akV x0.1.Client' x0.2.ρ w0.R) s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid w0.γa
-              Lset i₁ hwho HR₁.1 ⟨rfl, rfl, rfl, rfl, HR₁.2.2, HR₁.2.1, rfl⟩ hAs)
+              Lset i₁ hwho HR₁.1 ⟨rfl, rfl, rfl, rfl, HR₁.2.2, HR₁.2.1, rfl⟩ hAs) $$ [$Hlt] as ⟨Hlt, -⟩
            · iframe #
              rw [akTokP, ite_eq_right (fun h => h.elim ‹_› ‹_›)]; iexact Hctk
            (try wp_auto)
            wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
              $$ [Hdone]
            · iframe
-           itrivial)
+           iframe Hlt; try itrivial)
       wp_for_post
       iframe
       iexists (k + W64 1), (na + W32 1)
@@ -826,7 +837,7 @@ theorem run.wp_proof
   wp_apply (client_Put_on rcl rapi rconn x0.1.Client' s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid
       ectx eom ecd endKey go!"end" slice.nil (fun _ => iprop(True)) []
       (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _) (by decide)
-        (by decide) (by decide))) $$ [] as %eresp %eerr Hend'
+        (by decide) (by decide))) $$ [$Hlt] as %eresp %eerr ⟨Hlt, Hend'⟩
   · iframe #
   (try wp_auto)
   wp_apply Hecancel

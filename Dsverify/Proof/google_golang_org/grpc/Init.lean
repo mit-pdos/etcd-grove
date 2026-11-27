@@ -6,11 +6,20 @@ the spec is the class `InitHyp` (a `Prop`), which every theorem whose proof init
 as an instance argument (`etc/gen-init.py`'s `dsv_inits` adds the section variable, `dsv_hyp_fix`),
 up to the kit's closed statement. Replace by a proved `wp_initialize'` when the package's
 translation or model lands.
+
+**Kept a premise** (dsv-fix3, 2026-11-25): unlike the nine other names-only initializers, which
+became per-package trust-boundary axioms (#8 2026-11-25T02:20:53Z), this one stays the statement's
+premise: its `axiom`-skill review refuted it as an axiom
+(`notes/axiom-review/dsv-inits/google-golang-org-grpc.md`): a program that registers
+`grpc/binlog/v1/binarylog.proto` before grpc's initializer runs panics in it ("already registered"),
+which nothing in the model excludes. QuePaxa's own programs do not. The fix (a `GodebugFips140Off`
+premise for its `crypto/tls`, a ghost state of protobuf-go's registry, or a gate running the kit's
+initializers) is Upamanyu's decision.
 -/
 module
 
 public import Dsverify.Proof.google_golang_org.grpc.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

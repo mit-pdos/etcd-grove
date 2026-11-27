@@ -70,21 +70,26 @@ theorem Main.wp_proof
     (wp_writer : writer.spec (GF := GF) (hG := hG))
     (wp_apiserver : apiserver.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
-    (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem, Hreg⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with #Hboot
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs
       (etcdstart.dir1 peerAddr id) memberName memberName
       (etcdstart.urls1 memberName peerAddr clientAddr) id (etcdstart.cfgOk memberName memberName)
       (etcdstart.urls1 memberName peerAddr clientAddr) (fun _ h => h) (fun _ h => h) $$ Hboot
-  ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iframe #
   -- `io.EOF` (the server's and the watch client's)
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
   · iapply v3rpc.eofVar_of_init
@@ -129,7 +134,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartCompactingServer N memberName peerAddr clientAddr (W64 0) lg
       (LogEntry.toEntries boot 0) ctxs (etcdstart.dir1 peerAddr id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN
       HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide)
+      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) (by decide)
       (by rw [hkr]; decide) Haf Hbuq Hdbo)
       $$ [Htok Hmb Hfresh]
     as %srv %err Hr
@@ -162,7 +167,7 @@ theorem Main.wp_proof
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv clientAddr E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt clientAddr⌝ ∗
+      (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt clientAddr⌝ ∗ srvGoRes srv ∗
         client.kvRegsAt (⟨clientAddr, E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
         watchAddrFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv))))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
@@ -174,7 +179,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hleft, -, #Hics⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     subst hRE
     -- (per-type stage B3) the gRPC run pools, from the serving stocks
@@ -196,24 +201,31 @@ theorem Main.wp_proof
       iapply oneChangeAu $$ Hinv
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
-    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal clientAddr gs q p srv lis R.E
-        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
-      [Hgsn Hlis]
-    · iframe Hgsn Hlis; iframe #
+    -- (phase 7's switch, SW1) the server bound to its listener by the members' certificate
+    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvAtLis gs lis clientAddr [il, im, iu] [ims, is] svcs regs sregs ∗
+        ⌜noRefusalAt clientAddr⌝) $$ [Hgsn]
+    · icases Hgsn with (⟨Hgsn, Hlis⟩ | Hb)
+      · iapply (EtcdGrove.etcd_noRefusal clientAddr gs q p srv lis R.E
+        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo)
+        iframe Hgsn Hlis; iframe #
+      · iexact Hb
+    ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis clientAddr) ∨
+        grpcSrvAtLis gs lis clientAddr [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+    · iright; iexact Hgsn
     imod (etcd_watch.wk_served_nd hP (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv) clientAddr
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis HWok] with ⟨Hserv, #HKV, #HWF⟩
+      $$ [Hgsn Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
     imodintro
-    iframe Hserv HKV HWF
+    iframe Hserv HKV HWF Hgo
     ipureintro; exact ⟨rfl, Hnr⟩
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #Hreg1, #HWF⟩⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, Hgo, #Hreg1, #HWF⟩⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -230,11 +242,12 @@ theorem Main.wp_proof
   have hrb : receiptBound GF ≤ 2 ^ 62 := by omega
   have hsame : ∀ y ∈ [x], kvSame y.γr.kv ρ.rd.kv := fun y hy => by
     simp only [List.mem_singleton] at hy; subst hy; exact kvSame_refl _
-  have htb : threadBound GF ≤ 2 ^ 31 := by omega
+  have htb : threadBound GF ≤ 2 ^ 30 := by omega
   let V : client.WEnv GF := EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv
   -- `wcli, err := NewClient(clientAddr, lg)`
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient clientAddr lg V (by unfold plainEndpoint; decide) htb)
-    as %wcl %werr Hwc
+    $$ [$Hlt] as %wcl %werr ⟨Hlt, Hwc⟩
   · iframe #
   icases Hwc with (⟨%Hwerr, #Hwnc, -⟩ | %Hwfail)
   rotate_left
@@ -247,7 +260,7 @@ theorem Main.wp_proof
   subst Hwerr
   wp_auto
   -- `ready(wcli)`
-  wp_apply (wp_ready wcl [x] V) $$ [] as %b -
+  wp_apply (wp_ready wcl [x] V) $$ [$Hlt] as %b ⟨Hlt, -⟩
   · iframe #
     iExactEq Hwnc; rfl
   cases b
@@ -269,12 +282,13 @@ theorem Main.wp_proof
   ihave #Hwko : k8s.clientKvOk (GF := GF) wcl ρ.rd.kv $$ []
   · iunfold k8s.clientKvOk; iexists wapi, false; iframe #
   -- `go writer(wcli)`
-  wp_apply wp_fork $$ []
-  · (try wp_auto)
-    wp_apply (wp_writer wcl ρ.rd.kv γc) $$ []
+  wp_apply wp_fork_level0 $$ []
+  · iintro Hlt
+    (try wp_auto)
+    wp_apply (wp_writer wcl ρ.rd.kv γc) $$ [$Hlt] as ⟨Hlt, -⟩
     · iframe #
     (try wp_auto)
-    (try itrivial)
+    iframe Hlt; try itrivial
   (try wp_auto)
   -- the wait group, in the join idiom
   imod (sync.init_WaitGroup (sync.join.wgjN.@"wg") wg_ptr) $$ wg with ⟨%γwg, #Hwg, Hctr, Hwaiters⟩
@@ -287,15 +301,15 @@ theorem Main.wp_proof
     $$ []
   · iapply BigSepL.bigSepL_singleton.2; iexact Hep
   ihave IH : (∃ (n : w64) (k : w32), "i" ∷ i_ptr ↦ n ∗
-      "Hadd" ∷ sync.join.ownAdder wg_ptr k iprop(True) ∗
+      "Hadd" ∷ sync.join.ownAdder wg_ptr k iprop(True) ∗ "Hlt" ∷ levelTok 0 ∗
       "%Hk" ∷ ⌜sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 5 ∧ 0 ≤ sint.Z k⌝ : IProp GF)
-    $$ [i Hadd]
+    $$ [i Hadd Hlt]
   · iexists _, (W32 0); iframe; ipureintro; decide
   wp_for IH
   wp_if_destruct
   · -- `cli, err := NewClient(clientAddr, lg)`
     wp_apply (wp_NewClient clientAddr lg V (by unfold plainEndpoint; decide) htb)
-      as %cl %cerr Hc
+      $$ [$Hlt] as %cl %cerr ⟨Hlt, Hc⟩
     · iframe #
     icases Hc with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
     rotate_left
@@ -336,9 +350,10 @@ theorem Main.wp_proof
     · iintro _; itrivial
     (try wp_auto)
     -- `go func() { apiserver(cli, shared); wg.Done() }()`
-    wp_apply wp_fork $$ [Hdone cli shared]
-    · (try wp_auto)
-      wp_apply (wp_apiserver cl [x] V ρ.rd.raft ρ.rd.kv γc _ hsame hkc hkr) $$ []
+    wp_apply wp_fork_level0 $$ [Hdone cli shared]
+    · iintro Hlt
+      (try wp_auto)
+      wp_apply (wp_apiserver cl [x] V ρ.rd.raft ρ.rd.kv γc _ hsame hkc hkr) $$ [$Hlt] as ⟨Hlt, -⟩
       · iframe #
         rw [show List.map client.SrvAt.addr [x] = [clientAddr] from rfl]
         iframe #
@@ -346,7 +361,7 @@ theorem Main.wp_proof
       wp_apply sync.join.WaitGroup.wp_Done iprop(True) _ $$ [Hdone]
       · iframe #; iframe
       (try wp_auto)
-      (try itrivial)
+      iframe Hlt; try itrivial
     (try wp_auto)
     wp_for_post
     iframe

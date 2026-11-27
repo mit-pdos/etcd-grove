@@ -21,13 +21,13 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev Dial.spec : Prop :=
   ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a : GoString),
-  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ rpcAddr (Gg := hG.goose_globalGS) W a }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ rpcAddr (Gg := hG.goose_globalGS) W a }}
     (App (App (Val (@! net.rpc.Dial)) (Val #nw)) (Val #a))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
       (⌜err = interface.nil⌝ ∗ isClient c W a) ∨

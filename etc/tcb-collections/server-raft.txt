@@ -10,5 +10,9 @@
 roots raftNode\.wp_
 roots \bwp_updateCommittedIndex$
 axiom proto.CloneSnapshot.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof
+opaque apply.irrDecodeRest
+opaque apply.memberEnc
+opaque apply.semverNorm
+opaque membership.membersOf
+opaque prometheus.vecLabels
+opaque snap.dirReadOk

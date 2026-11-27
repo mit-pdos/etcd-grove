@@ -118,6 +118,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorRecover
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorSlot
 
 @[expose] public section
 
@@ -225,6 +226,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2) the member's peer and client URLs within
+  -- etcd's URL bounds (`etcdURLsFit`: at most `etcdURLCountMax` URLs of at most `etcdURLLenMax`
+  -- bytes, each `http://host`), for the `strings.Join`s of their strings (`publishV3`'s log lines,
+  -- the transport's `X-PeerURLs`)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
   -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
   -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
@@ -269,7 +275,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
       -- (sweep repairs 1, R1-4b, B4) `ETCD_VERIFY` off for the run, from program start (what
       -- `bootstrap`'s contract and the snapshot path's `OpenSnapshotBackend` take)
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
@@ -287,7 +293,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
       "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
@@ -312,9 +319,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
       -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
       -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`). This is the ghost map's
-      -- authority only; the directory itself (no `.snap.db` file yet, no writer but the server's
-      -- snapshotters) is `bootOk`'s `Hsdo` (`snap.snapDirOwn`, restart S6a M1), which names this map
-      -- in the directory's invariant (`snapDir_init`); `snapDir_alloc` is deleted.
+      -- authority only; the directory itself is `bootOk`'s `Hsfree` (its snapshot names, free) and
+      -- `Hsdo` (`snap.snapDirOwn`, restart S6a M1; claim #34, 2026-11-23: the claim on its other names),
+      -- which the directory's invariant keeps with this map (`snapDir_init`); `snapDir_alloc` is deleted.
       "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the auth store's record
       -- bound (until 2026-11-12 also the lessor's checkpointer's effects, through `lease.bootCfg`)
@@ -331,8 +338,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Hns" ∷ rnNewStorageOk ∗
+      -- (wal-nostorageok, 2026-11-21: `rnNewStorageOk` gone, proved: `rnNewStorageOk.law`)
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
@@ -365,7 +372,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- `monitorDowngrade`'s `lgMu` reader slot
           srvMonitorCfg srv cfg ∗
           -- (2026-10-23) the right to close `readych`, for `publishV3`
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler` takes, to serve the member's raft handler;
           -- (2026-10-24, rafthttp stage 6d) a reader's token of the transport (`CutPeer`,
@@ -394,9 +401,219 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- needs of the construction
           srvStop.keep srv cfg E γrn γk }}
 
+/-- **`NewServer(cfg)` with the lessor at the caller's name `γl`** (F7 step 2, 2026-11-26; F2's P-L1 carried into
+the in-process spec): `NewServer.specG` (its comments there) with the binder `γl`, the premise `"Hlslot"` (half of
+`γl`'s lessor map authority at `∅` and the start's slot `lease.lessorSlot γl`, what `lease.NewLessor.specAt`
+takes), first in the precondition, and in the post `mvcc.api.mvccLeases E.γ = γl`. `NewServer.wp_proofGAt`
+proves it; `NewServer.wp_proofG` derives `specG` from it by allocating the slot (`lease.lessorSlot_alloc`). -/
+abbrev NewServer.specGAt (on cmp : Bool) : Prop :=
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
+    (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (γn : NetNames GF) (dir : w64 → List GoString)
+    (γd : GName)
+    (m : lease.Mode)
+    -- (F7 step 2) the member's lessor name, the caller's
+    (γl : GName),
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  γ.rule = srvRule (W64 0) γ.boot →
+  (clusterNoSnap γ.cl → 2 ^ 48 ≤ uint.Z cfg.SnapshotCatchUpEntries') →
+  ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
+  ρ.rd.kv.log0 = [[], []] →
+  ρ.rd.kv.cmp = cmp →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
+  v3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' cmp ρ.rd.kv.cret →
+  (cmp = true → on = false) →
+  E₀.cmp = cmp →
+  E₀.Nx = srvApi.kvNx ρ.rd on →
+  threadBound GF ≤ backend.rdPoolN →
+  receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  γ.boot.length ≤ 2 ^ 60 →
+  ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) → Φs ρ.ids.pfx = srvFloorFact E₀ →
+  (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
+    (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
+  netDirOk dir →
+  peerURLsDir dir id U.peer →
+  etcdURLsFit U.peer → etcdURLsFit U.client →
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
+  (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
+    uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  {{ -- (F7 step 2) half of `γl`'s ghost map authority at `∅` and the slot holding the other half
+      "Hlslot" ∷ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
+      "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      "Htok" ∷ threadTok ∗
+      "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
+      "#Hlcp" ∷ featureIs cfg.ServerFeatureGate' go!"LeaseCheckpoint" false ∗
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
+      "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
+      "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      "Hwdf" ∷ wal.bootRes cfg ∗
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
+      "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+      "Hids" ∷ idShare ρ.ids ∗
+      "Hwtok" ∷ idWaitTok ρ.ids ∗
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
+      "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
+      "#Hkvinv" ∷ kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
+      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ ∧ γn.dir = dir⌝ ∗
+      "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
+      "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
+      "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
+      "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
+      "#Hcci" ∷ context.isClosedchanInit }}
+    (App (Val (@! NewServer)) (Val #cfg))
+  {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
+        ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+          (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
+          ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa) ∧
+            mvcc.api.mvccLeases E.γ = γl⌝ ∗
+          srvServeStock srv E ∗
+          srvWatchBuilt srv E ∗
+          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk))
+            γrn b (W64 0)
+            (W64 0) (bootKVOf on) N ∗
+          srvBuildGap srv γrn ρ.rd.cursor (W64 0) (W64 0) ∗
+          srvServeBuilt srv E cfg ∗
+          srvSVRes srv E ∗
+          srvMonitorCfg srv cfg ∗
+          srvReadyCloser srv E ∗
+          srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
+          ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+          lease.srvInv on srv E m ∗
+          leaseTTLRowR srv γ.vs ∗
+          srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
+          srvStop.keep srv cfg E γrn γk }}
+
+/-- **`NewServer(cfg)` with the lessor and the auth names at the caller's** (#50 F7 S2, P-A1, 2026-11-26; as F2's P-L1
+for the lessor): `NewServer.specGAt` with the binder `γa`, the premise `"Hγa"` (with auth on, `srvAuthNamesFresh γa`:
+the auth names' fresh authorities, which `NewServer` allocated until then: the token provider's, the auth store's
+boot ones and the readiness cell), first in the precondition, and in the post the mode `.on γa` in place of
+`∃ γa`. The in-process form of `etcd_dist.NewServer.specG_dist` (whose `authNamesFreshD γa` is
+`srvAuthNamesFresh γa`, `etcd_dist.authNamesFreshD_iff_srv`). `NewServer.wp_proofGAtA` proves it;
+`NewServer.wp_proofGAt` derives `specGAt` from it (`srvAuthNamesFresh_alloc`). -/
+abbrev NewServer.specGAtA (on cmp : Bool) : Prop :=
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
+    (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (γn : NetNames GF) (dir : w64 → List GoString)
+    (γd : GName)
+    (m : lease.Mode)
+    -- (F7 step 2) the member's lessor name, the caller's
+    (γl : GName)
+    -- (#50 F7 S2, P-A1) the member's auth names, the caller's
+    (γa : auth.AuthNames),
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  γ.rule = srvRule (W64 0) γ.boot →
+  (clusterNoSnap γ.cl → 2 ^ 48 ≤ uint.Z cfg.SnapshotCatchUpEntries') →
+  ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
+  ρ.rd.kv.log0 = [[], []] →
+  ρ.rd.kv.cmp = cmp →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
+  v3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' cmp ρ.rd.kv.cret →
+  (cmp = true → on = false) →
+  E₀.cmp = cmp →
+  E₀.Nx = srvApi.kvNx ρ.rd on →
+  threadBound GF ≤ backend.rdPoolN →
+  receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  γ.boot.length ≤ 2 ^ 60 →
+  ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) → Φs ρ.ids.pfx = srvFloorFact E₀ →
+  (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
+    (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
+  netDirOk dir →
+  peerURLsDir dir id U.peer →
+  etcdURLsFit U.peer → etcdURLsFit U.client →
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
+  (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
+    uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  {{ -- (#50 F7 S2, P-A1) with auth on, `γa`'s fresh authorities (`srvAuthNamesFresh`)
+      "Hγa" ∷ (if on then srvAuthNamesFresh γa else iprop(True)) ∗
+      -- (F7 step 2) half of `γl`'s ghost map authority at `∅` and the slot holding the other half
+      "Hlslot" ∷ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
+      "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      "Htok" ∷ threadTok ∗
+      "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
+      "#Hlcp" ∷ featureIs cfg.ServerFeatureGate' go!"LeaseCheckpoint" false ∗
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
+      "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
+      "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      "Hwdf" ∷ wal.bootRes cfg ∗
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
+      "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+      "Hids" ∷ idShare ρ.ids ∗
+      "Hwtok" ∷ idWaitTok ρ.ids ∗
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
+      "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
+      "#Hkvinv" ∷ kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
+      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ ∧ γn.dir = dir⌝ ∗
+      "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
+      "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
+      "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
+      "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
+      "#Hcci" ∷ context.isClosedchanInit }}
+    (App (Val (@! NewServer)) (Val #cfg))
+  {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
+        ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+          (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
+          ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → E.authMode = .on γa) ∧
+            mvcc.api.mvccLeases E.γ = γl⌝ ∗
+          srvServeStock srv E ∗
+          srvWatchBuilt srv E ∗
+          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk))
+            γrn b (W64 0)
+            (W64 0) (bootKVOf on) N ∗
+          srvBuildGap srv γrn ρ.rd.cursor (W64 0) (W64 0) ∗
+          srvServeBuilt srv E cfg ∗
+          srvSVRes srv E ∗
+          srvMonitorCfg srv cfg ∗
+          srvReadyCloser srv E ∗
+          srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
+          ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+          lease.srvInv on srv E m ∗
+          leaseTTLRowR srv γ.vs ∗
+          srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
+          srvStop.keep srv cfg E γrn γk }}
+
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/
 abbrev NewServer.spec : Prop := ∀ cmp : Bool, NewServer.specG (GF := GF) (hG := hG) false cmp
+
+/-- **`NewServer` with auth off and the lessor at the caller's name** (F7 step 2): `NewServer.specGAt` at
+`on = false`, in either compaction mode (`NewServer.wp_proofAt`; `etcdstart.newServerMode.specAt`'s callee). -/
+abbrev NewServer.specAt : Prop := ∀ cmp : Bool, NewServer.specGAt (GF := GF) (hG := hG) false cmp
 
 /-- **`NewServer(cfg)` in the auth mode `on`, the compactor off**: `NewServer.specG` at
 `cmp = false` (`NewServer.wp_proofM`; the auth plan's E2i). -/

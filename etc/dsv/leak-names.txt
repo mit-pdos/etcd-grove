@@ -1,0 +1,24 @@
+# The names kitgen's leak check (`etc/dsv/kitgen.py --leak-check`) refuses in an exported challenge,
+# and the allow-list. The export leaves this file out (it names the people), as it leaves out
+# etc/sessions.txt, whose handles and GitHub accounts the check reads too. Fields are tab-separated.
+#
+#   person  REGEX           a person's name, any case, wherever it occurs (`upamanyus's`, `Kaashoek`):
+#                           refused
+#   handle  REGEX           a session's handle, as a word of its own (case as written): reported, not
+#                           refused (older handles name who decided what in comments all over the
+#                           tree, proofs included; rewording them all would rebuild most of it)
+#   allow   PATH-RE  RE  WHY  a name inside a match of RE, on a line of a file whose path matches PATH-RE
+person	kaashoek
+person	upamanyus?
+person	zeldovich
+person	j?tassarotti
+person	nickolai
+person	(?<![\w-])frans(?![\w-])
+handle	etcd-grove-f?\d+
+handle	coordinator-[A-Z]
+allow		github[._]com[/.]upamanyus[/.]	the public forks' Go module paths (go.mod, go.sum, imports, Goose's package names, URLs)
+allow		(?<![\w-])upamanyus/(etcd-raft|etcd|bbolt|marshal|kubernetes)(?![\w-])	a public fork named as the source of code
+allow		people\.csail\.mit\.edu/upamanyu/	a paper's URL (README.md)
+allow	\.patch$	^From: .*	a patch's author line (etc/tla-fixes/patches)
+allow	^examples/dsverify/rabia/README\.md$	Joseph Tassarotti	the Rabia paper's author list
+allow	^TrustedCode/github_com/prometheus/client_golang/prometheus\.lean$	Upamanyu's decision	a comment in a module some 8500 modules import (rewording it rebuilds them): reword it at its next change

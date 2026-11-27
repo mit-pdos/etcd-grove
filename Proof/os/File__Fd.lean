@@ -25,16 +25,19 @@ variable [os.Assumptions]
 theorem os.File.Fd.wp_proof : os.File.Fd.spec (GF := GF) (hG := hG) := by
   intro f fd name dq
   unfold os.ownFile
-  wp_start as ⟨%inner, #Hf, Hfd, #Hn⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
+  wp_start as ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
+  wp_method_call
+  try wp_auto
+  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try rw [decide_eq_false hnn]
+  try wp_auto
   iapply HΦ
   iexists inner
   iframe
-  isplitl [] <;> iassumption
+  (repeat' isplitl []) <;> iassumption
 
 end proof
 

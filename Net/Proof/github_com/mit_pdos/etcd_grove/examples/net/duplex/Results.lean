@@ -25,8 +25,8 @@ every generation's proof guarantees the next one's precondition. (The client's e
 
 The conclusion, `duplex_crash_safety`, mentions no ghost state and no bounds: in every execution of
 the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so the
-client's check (the bytes 1, 2, 3, 4 its reader reads come back in order) never fails, however its
-writer and reader interleave, however much each read returns, however the connections fail or
+client's check (the bytes 1..n, n from 1 to 64 drawn at random, its reader reads come back in
+order) never fails, however its writer and reader interleave, however much each read returns, however the connections fail or
 the nodes crash, and however a failed dial leaves its connection (abandoned, D16: the server may
 accept it and read EOF). The theorems assume the deployment of `Impl.lean` D13 (a closed world, the
 target configuration) and take its well-formed plan (D20: addresses that do not alias, ports
@@ -39,6 +39,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.cmd.s
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.cmd.client.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.cmd.client.PkgTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomLinked
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
@@ -121,7 +122,7 @@ fewer than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 the `example` after the theorems). -/
 theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -212,7 +213,7 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       · unfold boot_client
         iapply wp_boot _ _ _ _ _
           (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf)
-          (cmd.client.wp_main net.Dial.wp_proof
+          (cmd.client.wp_main wire.wp_RandomInt net.Dial.wp_proof
             (wire.ReadFull.wp_proof net.Conn.Read.wp_proof) net.Conn.Write.wp_proof
             net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
@@ -239,7 +240,7 @@ package initialized and their main threads only, where the server's host is `h`,
 `SrvAddr` at `h`, the plan is well formed (D20, checked by `decide`: the `example` below) and
 the network has no connection yet, every program returns `#()` if it
 returns, no thread of any node is stuck and none has an unrecovered panic: the bytes the
-client's reader reads are 1, 2, 3, 4 in order (or it gives up), however its writer and reader
+client's reader reads are 1, 2, ..., n in order (or it gives up), however its writer and reader
 interleave, however the connections fail (bytes lost, a FIN or a reset at any read or write), and
 however often either node crashes, whatever the failures' error kinds (closed, timeout, sys:
 none ends a node's loop badly) and however a failed dial leaves its connection (abandoned, D16).
@@ -248,7 +249,7 @@ and the thread bound `n + 2`, which an execution of `n` steps from single thread
 `DistCrashThreadsBelow.of_single`.) -/
 theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

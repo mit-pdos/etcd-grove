@@ -63,7 +63,7 @@ theorem store.Get.wp_proof
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k n Q hQ
-  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, Hau⟩
+  wp_start as ⟨Hlt, #Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, Hau⟩
   obtain ⟨hk, hkl, hrv⟩ := Hpre
   ihave #Hst0 := Hst
   iunfold isStore at Hst
@@ -124,9 +124,10 @@ theorem store.Get.wp_proof
   (try wp_auto)
   wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hau]
-    as %resp %gerr Hget
+      c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hlt Hau]
+    as %resp %gerr ⟨Hlt, Hget⟩
   · iframe #
+    iframe Hlt
     iexact Hau
   (try wp_auto)
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
@@ -163,6 +164,7 @@ theorem store.Get.wp_proof
         ipureintro; exact Hspn
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       iexists σ
       iframe HQ
@@ -205,6 +207,7 @@ theorem store.Get.wp_proof
             ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
+          iframe Hlt
           iright
           iexists σ
           iframe HQ
@@ -232,6 +235,7 @@ theorem store.Get.wp_proof
             ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
+          iframe Hlt
           iright
           iexists σ
           iframe HQ
@@ -287,6 +291,7 @@ theorem store.Get.wp_proof
         ipureintro; exact Hspn
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       iexists σ
       iframe HQ
@@ -323,6 +328,7 @@ theorem store.Get.wp_proof
         ipureintro; exact Hspn
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft
       isplitl []
       · iapply (unkErr_client c _ (by nofun) Hgce) $$ Hgcl

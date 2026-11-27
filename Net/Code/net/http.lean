@@ -5,6 +5,7 @@ public import Net.Code.net.http.chunk0
 public import Net.Code.net.http.chunk1
 public import Net.Code.net.http.chunk2
 public import Net.Code.net.http.chunk3
+public import Net.Code.net.http.chunk4
 
 @[expose] public section
 
@@ -162,7 +163,35 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   tlsHandshakeTimeoutError_instance : tlsHandshakeTimeoutError.TypeAssumptions
   fakeLocker_instance : fakeLocker.TypeAssumptions
   connLRU_instance : connLRU.TypeAssumptions
+  hasToken_unfold : FuncUnfold hasToken [] hasToken.impl
+  isToken_unfold : FuncUnfold isToken [] isToken.impl
+  parsePattern_unfold : FuncUnfold parsePattern [] parsePattern.impl
+  pathUnescape_unfold : FuncUnfold pathUnescape [] pathUnescape.impl
+  compareSegments_unfold : FuncUnfold compareSegments [] compareSegments.impl
+  combineRelationships_unfold : FuncUnfold combineRelationships [] combineRelationships.impl
+  inverseRelationship_unfold : FuncUnfold inverseRelationship [] inverseRelationship.impl
+  badStringError_unfold : FuncUnfold badStringError [] badStringError.impl
+  ParseHTTPVersion_unfold : FuncUnfold ParseHTTPVersion [] ParseHTTPVersion.impl
+  validMethod_unfold : FuncUnfold validMethod [] validMethod.impl
+  parseRequestLine_unfold : FuncUnfold parseRequestLine [] parseRequestLine.impl
+  readRequest_unfold : FuncUnfold readRequest [] readRequest.impl
+  readRequestLimit_unfold : FuncUnfold readRequestLimit [] readRequestLimit.impl
   ReadResponse_unfold : FuncUnfold ReadResponse [] ReadResponse.impl
+  fixPragmaCacheControl_unfold : FuncUnfold fixPragmaCacheControl [] fixPragmaCacheControl.impl
+  firstSegment_unfold : FuncUnfold firstSegment [] firstSegment.impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
+  appendSorted_unfold : FuncUnfold appendSorted [] appendSorted.impl
+  bufioWriterPool_unfold : FuncUnfold bufioWriterPool [] bufioWriterPool.impl
+  newBufioReader_unfold : FuncUnfold newBufioReader [] newBufioReader.impl
+  putBufioReader_unfold : FuncUnfold putBufioReader [] putBufioReader.impl
+  newBufioWriterSize_unfold : FuncUnfold newBufioWriterSize [] newBufioWriterSize.impl
+  putBufioWriter_unfold : FuncUnfold putBufioWriter [] putBufioWriter.impl
+  http1ServerSupportsRequest_unfold : FuncUnfold http1ServerSupportsRequest [] http1ServerSupportsRequest.impl
+  badRequestError_unfold : FuncUnfold badRequestError [] badRequestError.impl
+  isCommonNetReadError_unfold : FuncUnfold isCommonNetReadError [] isCommonNetReadError.impl
+  NewServeMux_unfold : FuncUnfold NewServeMux [] NewServeMux.impl
+  urlFromEscaped_unfold : FuncUnfold urlFromEscaped [] urlFromEscaped.impl
+  exactMatch_unfold : FuncUnfold exactMatch [] exactMatch.impl
   Handle_unfold : FuncUnfold Handle [] Handle.impl
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   ListenAndServe_unfold : FuncUnfold ListenAndServe [] ListenAndServe.impl
@@ -170,21 +199,43 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   trimLine_unfold : FuncUnfold trimLine [] trimLine.impl
   modelReadMIMEHeader_unfold : FuncUnfold modelReadMIMEHeader [] modelReadMIMEHeader.impl
   modelChunked_unfold : FuncUnfold modelChunked [] modelChunked.impl
+  modelParseRequestURI_unfold : FuncUnfold modelParseRequestURI [] modelParseRequestURI.impl
+  modelPathBytes_unfold : FuncUnfold modelPathBytes [] modelPathBytes.impl
+  modelPathByte_unfold : FuncUnfold modelPathByte [] modelPathByte.impl
+  modelHeaderValuesContainsToken_unfold : FuncUnfold modelHeaderValuesContainsToken [] modelHeaderValuesContainsToken.impl
+  modelHeaderValueContainsToken_unfold : FuncUnfold modelHeaderValueContainsToken [] modelHeaderValueContainsToken.impl
+  modelIndexByte_unfold : FuncUnfold modelIndexByte [] modelIndexByte.impl
+  modelTrimOWS_unfold : FuncUnfold modelTrimOWS [] modelTrimOWS.impl
+  modelLowerASCII_unfold : FuncUnfold modelLowerASCII [] modelLowerASCII.impl
+  modelTokenEqual_unfold : FuncUnfold modelTokenEqual [] modelTokenEqual.impl
+  noResponseBodyExpected_unfold : FuncUnfold noResponseBodyExpected [] noResponseBodyExpected.impl
+  bodyAllowedForStatus_unfold : FuncUnfold bodyAllowedForStatus [] bodyAllowedForStatus.impl
+  readTransfer_unfold : FuncUnfold readTransfer [] readTransfer.impl
+  isUnsupportedTEError_unfold : FuncUnfold isUnsupportedTEError [] isUnsupportedTEError.impl
+  fixLength_unfold : FuncUnfold fixLength [] fixLength.impl
+  shouldClose_unfold : FuncUnfold shouldClose [] shouldClose.impl
+  fixTrailer_unfold : FuncUnfold fixTrailer [] fixTrailer.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_log_Assumption : _root_.Perennial.log.Assumptions
+  import_ascii_Assumption : _root_.Perennial.net.http.internal.ascii.Assumptions
   import_url_Assumption : _root_.Perennial.net.url.Assumptions
+  import_slices_Assumption : _root_.Perennial.slices.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_httpguts_Assumption : _root_.Perennial.vendor.golang_org.x.net.http.httpguts.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
+  import_multipart_Assumption : _root_.Perennial.mime.multipart.Assumptions
   import_textproto_Assumption : _root_.Perennial.net.textproto.Assumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  import_math_Assumption : _root_.Perennial.math.Assumptions
   import_path_Assumption : _root_.Perennial.path.Assumptions
+  import_sort_Assumption : _root_.Perennial.sort.Assumptions
   import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
   import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
 
@@ -330,7 +381,35 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.tlsHandshakeTimeoutError_instance
   Assumptions.fakeLocker_instance
   Assumptions.connLRU_instance
+  Assumptions.hasToken_unfold
+  Assumptions.isToken_unfold
+  Assumptions.parsePattern_unfold
+  Assumptions.pathUnescape_unfold
+  Assumptions.compareSegments_unfold
+  Assumptions.combineRelationships_unfold
+  Assumptions.inverseRelationship_unfold
+  Assumptions.badStringError_unfold
+  Assumptions.ParseHTTPVersion_unfold
+  Assumptions.validMethod_unfold
+  Assumptions.parseRequestLine_unfold
+  Assumptions.readRequest_unfold
+  Assumptions.readRequestLimit_unfold
   Assumptions.ReadResponse_unfold
+  Assumptions.fixPragmaCacheControl_unfold
+  Assumptions.firstSegment_unfold
+  Assumptions.«init.1_unfold»
+  Assumptions.appendSorted_unfold
+  Assumptions.bufioWriterPool_unfold
+  Assumptions.newBufioReader_unfold
+  Assumptions.putBufioReader_unfold
+  Assumptions.newBufioWriterSize_unfold
+  Assumptions.putBufioWriter_unfold
+  Assumptions.http1ServerSupportsRequest_unfold
+  Assumptions.badRequestError_unfold
+  Assumptions.isCommonNetReadError_unfold
+  Assumptions.NewServeMux_unfold
+  Assumptions.urlFromEscaped_unfold
+  Assumptions.exactMatch_unfold
   Assumptions.Handle_unfold
   Assumptions.Serve_unfold
   Assumptions.ListenAndServe_unfold
@@ -338,21 +417,43 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.trimLine_unfold
   Assumptions.modelReadMIMEHeader_unfold
   Assumptions.modelChunked_unfold
+  Assumptions.modelParseRequestURI_unfold
+  Assumptions.modelPathBytes_unfold
+  Assumptions.modelPathByte_unfold
+  Assumptions.modelHeaderValuesContainsToken_unfold
+  Assumptions.modelHeaderValueContainsToken_unfold
+  Assumptions.modelIndexByte_unfold
+  Assumptions.modelTrimOWS_unfold
+  Assumptions.modelLowerASCII_unfold
+  Assumptions.modelTokenEqual_unfold
+  Assumptions.noResponseBodyExpected_unfold
+  Assumptions.bodyAllowedForStatus_unfold
+  Assumptions.readTransfer_unfold
+  Assumptions.isUnsupportedTEError_unfold
+  Assumptions.fixLength_unfold
+  Assumptions.shouldClose_unfold
+  Assumptions.fixTrailer_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_tls_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_io_Assumption
+  Assumptions.import_log_Assumption
+  Assumptions.import_ascii_Assumption
   Assumptions.import_url_Assumption
+  Assumptions.import_slices_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_httpguts_Assumption
   Assumptions.import_net_Assumption
+  Assumptions.import_multipart_Assumption
   Assumptions.import_textproto_Assumption
   Assumptions.import_strconv_Assumption
+  Assumptions.import_math_Assumption
   Assumptions.import_path_Assumption
+  Assumptions.import_sort_Assumption
   Assumptions.import_bufio_Assumption
   Assumptions.import_runtime_Assumption
 

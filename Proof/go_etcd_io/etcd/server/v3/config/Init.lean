@@ -10,6 +10,7 @@ variable).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.bbolt.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.Init
@@ -19,6 +20,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.Init
 public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.path.filepath.Init
 
 @[expose] public section
 

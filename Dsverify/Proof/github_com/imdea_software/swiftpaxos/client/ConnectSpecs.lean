@@ -82,7 +82,7 @@ instance client.cn.rpcAddr_persistent [GooseExts] [GooseSemantics] [GooseInterp]
 section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link
@@ -101,7 +101,8 @@ abbrev client.Client.dialMaster.specI : Prop :=
       (⌜err = interface.nil⌝ ∗ cl ↦ { v with master' := m } ∗ net.rpc.isClient m W masterAddr) ∨
       (⌜err ≠ interface.nil⌝ ∗ cl ↦ v) }}
 
-/-- `c.call(r, sm, args, reply)`: `Call`'s precondition; its result, or an error (then the
+/-- `c.call(r, sm, args, reply)`: `Call`'s precondition (with the request's bound: it fits the
+frames the net/rpc model's server reads, `maxFrameN`); its result, or an error (then the
 goroutine keeps what it was given). -/
 abbrev client.Client.call.specI : Prop :=
   ∀ (cl : Loc) (v : client.Client) (r : Loc) (W : net.rpc.RpcWorld netDistGF)
@@ -113,7 +114,8 @@ abbrev client.Client.call.specI : Prop :=
       net.rpc.codecSet (GF := netDistGF) net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       net.rpc.isClient r W a ∗
       ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
-      net.rpc.RpcCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
+      ⌜sm.length + 16 ≤ net.rpc.maxFrameN⌝ ∗
+      net.rpc.RpcCodec.enc args (fun bs => iprop(⌜bs.length ≤ net.rpc.maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, Φ rep [] -∗ net.rpc.RpcCodec.dec rep reply (Θ rep)) }}
     (App (App (App (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"call"))
       (Val #r)) (Val #sm)) (Val #args)) (Val #reply))

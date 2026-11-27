@@ -4,6 +4,7 @@ module
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.github_com.anishathalye.porcupine
+public import Perennial.Code.github_com.goose_lang.primitive
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import Perennial.Golang.Defn
 
@@ -29,6 +30,12 @@ noncomputable def Counter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Counter.ty
 
+@[reducible] noncomputable def MaxClients [GooseExts] [GoGlobalContext] : val :=
+  #(8 : Int)
+
+@[reducible] noncomputable def MaxOps [GooseExts] [GoGlobalContext] : val :=
+  #(32 : Int)
+
 noncomputable def Model [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest/counter.Model"
 
@@ -44,7 +51,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- Model is the counter's sequential specification: the state is an int64; the input true
     increments it and outputs the new value, false outputs it.
 
-    go: counter.go:17:6 -/
+    go: counter.go:18:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -119,7 +126,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "$res0")))))
 
-/-- go: counter.go:37:6 -/
+/-- go: counter.go:38:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Counter.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Counter.ty)))) (Val #())))
@@ -135,7 +142,7 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Apply runs one operation: the input true increments the counter and returns the new value,
     false returns it.
 
-    go: counter.go:43:19 -/
+    go: counter.go:44:19 -/
 noncomputable def Counter.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "input"
@@ -169,9 +176,8 @@ noncomputable def Counter.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Counter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Counter.ty)))) (Var "c")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
 
-/-- Check runs clients clients of a fresh counter, each running ops operations (client i
-    increments if i is even and reads otherwise), traced with the given clock, and checks the
-    trace with porcupine.
+/-- Check runs clients clients of a fresh counter, each running ops operations, each an increment
+    or a read at random, traced with the given clock, and checks the trace with porcupine.
 
     go: counter.go:56:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
@@ -192,7 +198,7 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.bool go.any))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "id")) (Val #(W64 2)))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.bool go.any))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (Val #(W64 2)))) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -220,17 +226,23 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Counter.ty)))) (Pair (Var "c") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0"))))))))
 
-/-- Main runs 4 clients of 10 operations each of a counter under a mutex, traced with a
-    counter clock, checks the trace with porcupine (no timeout), and panics unless porcupine
-    answers Ok.
+/-- Main runs a random number of clients (at most MaxClients), each running a random number of
+    random operations (at most MaxOps) against a counter under a mutex, traced with a counter
+    clock, checks the trace with porcupine (no timeout), and panics unless porcupine answers Ok.
 
-    go: counter.go:65:6 -/
+    go: counter.go:73:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val MaxClients)))))))
+  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val MaxOps)))))))
+  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock []))) (Val #())) (Val #()))
-  (Let "$a1" (Val #(W64 4))
-  (Let "$a2" (Val #(W64 10))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
   (Let "$a3" (Val #(W64 0))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
@@ -242,16 +254,21 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "ops") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "clients") (Var "$r0"))))))))
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -261,6 +278,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.anishathalye.porcupine.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.initialize') (Val #()))))))))
 
@@ -316,6 +335,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
 
 attribute [instance] Assumptions.Counter_instance
@@ -326,6 +346,7 @@ attribute [instance] Assumptions.Counter_instance
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption
+  Assumptions.import_primitive_Assumption
   Assumptions.import_lintest_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter

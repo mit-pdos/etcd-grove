@@ -48,12 +48,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [lintest_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions]
 variable [perclient_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions]
 variable [NaInvG GF]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 theorem wp_hang : hang.spec (GF := GF) (hG := hG) := hang.wp_proof
 

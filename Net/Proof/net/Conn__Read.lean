@@ -6,7 +6,7 @@ The proof of `Net/Spec/net/Conn__Read.lean`: the interface call resolves to `con
 module
 
 public import Net.Spec.net.Conn__Read
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -24,101 +24,100 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 variable [go.BasicIntoValInj]
 
-theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
+theorem Conn.Read.wp_proofLc : Conn.Read.specLc (GF := GF) (hG := hG) := by
   intro t cn s a la ra b bs0 eof ed Q
-  unfold connAt
-  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩, Hsl, #Heof, #Hed, HAU⟩
-  wp_method_call
-  (try unfold conn.Read.impl)
-  (try unfold model.connId)
-  (try unfold model.connErr)
-  (try rw [conn_ty_eq'])
+  unfold connAt connFd
+  wp_start as ⟨⟨%nw, %Hnw, ⟨%fd, #Ht, #Hfd⟩, #Hla, #Hra, #Hat⟩, Hsl, #Heof, #Hed, HAU⟩
+  ihave #HE := _root_.Perennial.io.eof_of_init $$ Hpkg
+  unfold _root_.Perennial.errors.newVar
+  icases HE with ⟨%xe, #Hxe, -⟩
+  icombine Heof Hxe gives %heof
+  ihave ⟨%xd, #Hxd⟩ := _root_.Perennial.internal.poll.errDeadlineExceeded_of_pkgInit $$ Hpkg2
+  icombine Hed Hxd gives %hed
+  subst heof hed
+  ihave ⟨%v, %hv, #Hv⟩ := fdAt_elim _ _ _ _ _ $$ Hfd
+  obtain ⟨-, rfl, rfl, rfl⟩ := hv
+  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
+  iStructNamed Hv
+  (try wp_method_call)
+  wp_auto
+  wp_apply wp_conn_ok _ fd Hfdn $$ conn
   iStructNamed conn
-  ihave %Hne := netConnAt_endId_ne _ cn a s $$ Hat
-  (try wp_auto)
-  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Read cn s a b.len $$ Hat
-  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
-  imodintro
-  iexists st, d
-  iframe Hend Hdir
-  iintro %r %d' %Hr Hend Hdir
-  imod Hk $$ %r %d' %Hr Hend Hdir with HQ
-  imodintro
+  wp_auto
+  wp_apply wp_fd_Read fd cn s a _ _ _ b bs0 _ _ Q $$ Hfd Hat Hsl Heof Hed HAU
+    as %r %bs' %k %e HQ Hsl %Hout #He Hlc1 Hlc2
   cases r with
   | bytes bs =>
-    simp only [ReadRes.toVal]
-    unfold readRes
+    unfold fdReadErr; icases He with %he; subst he
     wp_auto
-    wp_apply wp_string_to_bytes bs as %sl ⟨Hsl2, -⟩
-    wp_apply wp_slice_copy b bs0 sl bs (DFrac.own 1) $$ [Hsl Hsl2] as %n ⟨%Hn, Hsl, -⟩
-    · iframe
     iapply HΦ
-    iexists .bytes bs, _
-    iframe HQ Hsl
-    isplitr; · ipureintro; exact ⟨Hn, rfl⟩
-    unfold ReadErr
-    ipureintro; rfl
+    iexists .bytes bs, bs'
+    iframe HQ Hsl Hlc1 Hlc2
+    isplitr; · ipureintro; exact Hout
+    unfold ReadErr; ipureintro; rfl
   | eof =>
-    simp only [ReadRes.toVal]
-    unfold readRes
+    unfold fdReadErr; icases He with %he; subst he
     wp_auto
     iapply HΦ
-    iexists .eof, bs0
-    iframe HQ Hsl
-    isplitr; · ipureintro; exact ⟨rfl, rfl⟩
-    unfold ReadErr
-    ipureintro; rfl
+    iexists .eof, bs'
+    iframe HQ Hsl Hlc1 Hlc2
+    isplitr; · ipureintro; exact Hout
+    unfold ReadErr; ipureintro; rfl
   | err k =>
-    simp only [ReadRes.toVal]
-    unfold readRes
-    cases k
-    · wp_auto
-      wp_apply wp_kindErr (c := NetErr.closed.code) .closed (some ed) go!"read" (· = go!"read") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      (try unfold model.connNet)
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      iapply HΦ
-      iexists .err .closed, bs0
-      iframe HQ Hsl
-      isplitr; · ipureintro; exact ⟨rfl, rfl⟩
-      unfold ReadErr resErr
-      iexists e
-      iframe Herr He
-    · wp_auto
-      wp_apply wp_kindErr (c := NetErr.timeout.code) .timeout (some ed) go!"read" (· = go!"read") rfl rfl $$ [Hed] as %e #He
-      · iexact Hed
-      (try wp_auto)
-      (try unfold model.connNet)
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      iapply HΦ
-      iexists .err .timeout, bs0
-      iframe HQ Hsl
-      isplitr; · ipureintro; exact ⟨rfl, rfl⟩
-      unfold ReadErr resErr
-      iexists e
-      iframe Herr He
-    · wp_auto
-      wp_apply wp_kindErr (c := NetErr.sys.code) .sys (some ed) go!"read" (· = go!"read") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      (try unfold model.connNet)
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      iapply HΦ
-      iexists .err .sys, bs0
-      iframe HQ Hsl
-      isplitr; · ipureintro; exact ⟨rfl, rfl⟩
-      unfold ReadErr resErr
-      iexists e
-      iframe Herr He
+    unfold fdReadErr; dsimp only
+    ihave %hne := kindErr_ne_nil k _ _ e (fun _ h => by cases h; unfold interface.mkOk; exact fun h' => by cases h') $$ He
+    obtain ⟨ie, rfl⟩ : ∃ ie, e = GoInterface.ok ie := by
+      cases e with | ok ie => exact ⟨ie, rfl⟩ | nil => exact absurd rfl hne
+    ihave %hty : ⌜ie.ty ≠ go.GoType.PointerType _root_.Perennial.errors.errorString.ty⌝ $$ [He]
+    · cases k
+      · unfold kindErr; dsimp only; icases He with %h; ipureintro
+        unfold closedErr interface.mkOk at h; cases h
+        exact fun h => by simp only [goose_wp_simp_extra] at h
+      · unfold kindErr; dsimp only; icases He with %h; ipureintro
+        unfold interface.mkOk at h; cases h
+        exact fun h => by simp only [goose_wp_simp_extra] at h
+      · unfold kindErr sysErr; dsimp only
+        icases He with ⟨%p, %name, %n, %h, -⟩; ipureintro
+        unfold interface.mkOk at h; cases h.1
+        exact fun h => by simp only [goose_wp_simp_extra] at h
+    wp_auto
+    rw [ite_cond_eq_false _ _ (eq_false hty)]
+    wp_auto
+    wp_alloc pe as Hpe
+    ipersist Hpe
+    wp_auto
+    iapply HΦ
+    iexists .err k, bs'
+    iframe HQ Hsl Hlc1 Hlc2
+    isplitr; · ipureintro; exact Hout
+    unfold ReadErr; dsimp only
+    iapply resErr_intro Hnw
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
+
+/-- `Conn.Read.spec`, from `Conn.Read.specLc`: the count as `ReadOut`'s, the credits dropped. -/
+theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
+  intro t cn s a la ra b bs0 eof ed Q
+  iintro %Φ H HΦ
+  iapply Conn.Read.wp_proofLc t cn s a la ra b bs0 eof ed Q $$ H
+  inext
+  iintro %k %err ⟨%r, %bs', HQ, Hsl, %Hout, He, -, -⟩
+  iapply HΦ
+  iexists r, bs'
+  iframe HQ Hsl He
+  ipureintro
+  cases r with
+  | bytes bs =>
+    obtain ⟨h1, h2⟩ := Hout
+    refine ⟨?_, h2⟩
+    simp only [sint.nat, h1]; omega
+  | eof => exact Hout
+  | err k => exact Hout
 
 end proof
 

@@ -53,7 +53,8 @@ theorem regs_lookup (svs : List (EtcdGrove.client.SrvAt GF)) (ws : List (Loc × 
     ([∗list] sv; w ∈ svs; ws, etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗
       isServerRead w.1 sv.E sv.γr) ⊢
       etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗ isServerRead w.1 sv.E sv.γr :=
-  BigSepL2.bigSepL2_lookup (Φ := fun _ sv w => iprop(etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗
+  BigSepL2.bigSepL2_lookup (Φ := fun (_ : Nat) (sv : EtcdGrove.client.SrvAt GF)
+      (w : Loc × v3rpc.WSrv GF) => iprop(etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗
       isServerRead w.1 sv.E sv.γr)) h1 h2
 
 /-- **A member's watch facts** (`cluster3.memberWatch`, at the read names `γrc`): from its
@@ -145,7 +146,6 @@ theorem streams_of_regs : ∀ (svs : List (EtcdGrove.client.SrvAt GF)) (ws : Lis
 /-- **The client's watcher over the cluster's KV** (see the file header). -/
 theorem clientWatchOk_of_regs [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (cl : Loc) (V : EtcdGrove.client.WEnv GF) (svs : List (EtcdGrove.client.SrvAt GF))
@@ -202,7 +202,9 @@ theorem clientWatchOk_of_regs [_root_.Perennial.errors.Assumptions] [_root_.Pere
     hne' (by rw [haddr]; exact hnd) $$ [P1 P2 P3 Heo Hs Hm]
   · iframe #
   rw [haddr] at *
-  ihave ⟨%w, %conn, %wc, %lg, %ics, #HWf, #Hcw⟩ := isNewClient_watcher_of cl _ _ $$ [Hnc Hconn]
+  ihave ⟨%w, %conn, %wc, %lg, %ics, #HWf, #Hcw⟩ := isNewClient_watcher_of cl (svs.map EtcdGrove.client.SrvAt.addr)
+    (etcdstart.watchEnvL m0 (wmemsOf svs ws) γrc wpfx)
+    (by rw [etcdstart.watchEnvL_addrs]; exact wmemsOf_addrs svs ws hlen) $$ [Hnc Hconn]
   · iframe #
   iunfold k8s.clientWatchOk
   iexists w, _

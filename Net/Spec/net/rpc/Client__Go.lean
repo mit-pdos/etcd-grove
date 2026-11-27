@@ -24,7 +24,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
@@ -35,15 +35,31 @@ abbrev Client.Go.spec : Prop :=
     (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF),
   {{ isClientN c W a γ ∗
       ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
-      ⌜done ≠ null ∧ 0 < sint.Z γf.chanName.chanCap⌝ ∗
-      codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
+      ⌜done ≠ null ∧ 0 < sint.Z γf.chanName.chanCap⌝ ∗ ⌜sm.length + 16 ≤ maxFrameN⌝ ∗
+      codecSet C ∗ C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) ∗
       ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
       callDone γ.conn γt sm args reply done γf K Φ Θ D }}
     (App (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Go"))
       (Val #sm)) (Val #args)) (Val #reply)) (Val #done))
   {{ (pc : Loc), RET #pc; callFields pc sm args reply done ∗ ∃ o, ticket γt o ∗
-      sendRes γ.conn o Rargs (C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs))) }}
+      sendRes γ.conn o Rargs (C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs))) }}
+
+/-- `c.Go(sm, args, reply, done)` on a client closing for good (`cliClosed c`), with a buffered
+`done`: whatever the call, `send` refuses it (`Client.send.spec_closed`): its outcome
+(`ErrShutdown`, `callPost` at no number) goes to `done`, its ticket is `none`. Proved in
+`Net/Proof/net/rpc/Client__GoClosed.lean`. -/
+abbrev Client.Go.spec_closed : Prop :=
+  ∀ (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames) (sm : GoString)
+    (args reply : GoInterface) (done : Loc) (γt : GName) (γf : FutureNames)
+    (K : Loc → IProp GF) (Φ : List w8 → GoString → IProp GF) (D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF),
+  {{ isClientN c W a γ ∗ cliClosed c ∗ ⌜done ≠ null ∧ 0 < sint.Z γf.chanName.chanCap⌝ ∗ D ∗
+      ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
+      callDone γ.conn γt sm args reply done γf K Φ Θ D }}
+    (App (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Go"))
+      (Val #sm)) (Val #args)) (Val #reply)) (Val #done))
+  {{ (pc : Loc), RET #pc; callFields pc sm args reply done ∗ ticket γt none }}
 
 end spec
 

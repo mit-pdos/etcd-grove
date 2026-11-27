@@ -22,10 +22,11 @@ module
 
 public import Net.Proof.net.rpc.Codec
 public import Net.Proof.net.Base
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.errors.Base
 public import GooseLang.Ext.Net.Specs
+public import Net.Proof.models_lab.ErrFmt
 
 @[expose] public section
 
@@ -43,7 +44,7 @@ section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [net.Assumptions]
 
 theorem errorString_ptr_isError :
@@ -155,12 +156,16 @@ theorem errNE_newVar (X msg : GoString) (e : GoInterface) (hm : msg ≠ []) :
   subst Heq
   iapply errNE_errorString x msg hm $$ HE
 
-/-- A new `*OpError` is `errNE`: its `Error()` is of Go's form, not empty. -/
+/-- A new `*OpError` whose `Err` has an `Error()` and whose addresses net made (what
+`resErr (some k)` gives) is `errNE`: its `Error()` is of Go's form, not empty. -/
 theorem errNE_opErr (op : GoString) (src addr e err : GoInterface) :
-    net.opErr (GF := GF) op src addr e err ⊢ errNE err := by
+    syscall.errnoOk (GF := GF) ∗ net.opErr op src addr e err ∗ net.errStr e ∗ net.addrOrNil src ∗
+      net.addrOrNil addr ⊢ errNE err := by
   unfold net.opErr
-  iintro ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩
+  iintro ⟨#Hsys, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, #Hes, #Hs, #Ha⟩
   subst Herr
+  ihave #Hok : net.opErrMsgOk (GF := GF) (net.OpError.mk op nw src addr e) $$ []
+  · unfold net.opErrMsgOk; iframe Hes Hs Ha
   unfold errNE
   iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
   isplitr
@@ -169,33 +174,57 @@ theorem errNE_opErr (op : GoString) (src addr e err : GoInterface) :
   · ipureintro; exact opError_ptr_isError
   imodintro
   iintro %Φ HΦ
-  iapply net.wp_OpError_Error $$ Hpe
+  iapply net.wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg %hmsg
   iapply HΦ; ipureintro; exact net.opErrMsg_ne _ _ hmsg
 
 /-- A new `*OpError` is `errAny`: its `Error()` is an arbitrary string. -/
 theorem errAny_opErr (op : GoString) (src addr e err : GoInterface) :
-    net.opErr (GF := GF) op src addr e err ⊢ models_lab.errAny err := by
+    syscall.errnoOk (GF := GF) ∗ net.opErr op src addr e err ∗ net.errStr e ∗ net.addrOrNil src ∗
+      net.addrOrNil addr ⊢ models_lab.errAny err := by
   iintro H
   iapply errNE_errAny
   iapply errNE_opErr $$ H
 
+/-- Any `*OpError` (its fields persistent) whose `Err` has an `Error()` and whose addresses are
+`nil` or net's (`opErrMsgOk`) is `errAny`: its `Error()` returns a message of Go's form
+(`DialHTTPPath`'s `"dial-http"` error, whose `Net` is not a TCP network's name). -/
+theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
+    (syscall.errnoOk ∗ pe ↦□ v ∗ net.opErrMsgOk v : IProp GF) ⊢
+      models_lab.errAny (GF := GF) (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
+  iintro ⟨#Hsys, #Hpe, #Hok⟩
+  unfold models_lab.errAny
+  iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; exact opError_ptr_isError
+  imodintro
+  iintro %Φ HΦ
+  iapply net.wp_OpError_Error $$ Hpe Hok Hsys
+  inext
+  iintro %msg -
+  iapply HΦ
+
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errNE`. -/
 theorem errNE_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ errNE err := by
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) op src addr ed nm err -∗ errNE err := by
   unfold net.resErr
-  iintro ⟨%e, Hop, -⟩
-  iapply errNE_opErr $$ Hop
+  iintro #Hsys ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
+  iapply errNE_opErr
+  iframe Hsys Hop Hes Hs Ha
 
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errAny`. -/
 theorem errAny_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ models_lab.errAny err := by
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) op src addr ed nm err -∗
+      models_lab.errAny err := by
   unfold net.resErr
-  iintro ⟨%e, Hop, -⟩
-  iapply errAny_opErr $$ Hop
+  iintro #Hsys ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
+  iapply errAny_opErr
+  iframe Hsys Hop Hes Hs Ha
 
 /-- A failure's error is not a `ServerError`. -/
 theorem notServerErr_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
@@ -296,10 +325,12 @@ theorem errSrv_newVar (X msg : GoString) (e : GoInterface) (hm : srvErrMsg msg) 
 /-- A read's failure (`resErr (some k)` of the operation `"read"`, an `*OpError`) is `errSrv`. -/
 theorem errSrv_resErr_read (k : NetErr) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) go!"read" src addr ed nm err ⊢ errSrv err := by
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) go!"read" src addr ed nm err -∗ errSrv err := by
   unfold net.resErr net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
+  iintro #Hsys ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -, #Hes, #Hs, #Ha⟩
   subst Herr
+  ihave #Hok : net.opErrMsgOk (GF := GF) (net.OpError.mk go!"read" nw src addr e) $$ []
+  · unfold net.opErrMsgOk; iframe Hes Hs Ha
   unfold errSrv
   iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
   isplitr
@@ -308,7 +339,7 @@ theorem errSrv_resErr_read (k : NetErr) (src addr : GoInterface)
   · ipureintro; exact opError_ptr_isError
   imodintro
   iintro %Φ HΦ
-  iapply net.wp_OpError_Error $$ Hpe
+  iapply net.wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg %hmsg
   iapply HΦ; ipureintro
@@ -316,18 +347,198 @@ theorem errSrv_resErr_read (k : NetErr) (src addr : GoInterface)
 
 end lemmas
 
+/-! ### `errPlain`: the errors `fmt` formats calling only their `Error()` (`models_lab/ErrFmt.lean`) -/
+
+section plain
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.rpc.Assumptions]
+variable [net.Assumptions] [errors.Assumptions] [fmt.Assumptions]
+
+/-- An `errors.New` error `*errorString` `x`, its field `s` and its `Error()`, is `errPlain`. -/
+theorem errPlain_errorString (x : Loc) (msg : GoString) :
+    x.[errors.errorString, go!"s"] ↦□ msg ∗
+      (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+        WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
+          (Val #())) {{ Φ }}) ⊢
+      models_lab.errPlain (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x) := by
+  iintro ⟨#Hs, #H⟩
+  ihave #Ha := errAny_errorString x msg $$ H
+  unfold models_lab.errPlain
+  iframe Ha
+  iexists ⟨go.GoType.PointerType errors.errorString.ty, #x⟩
+  isplitr
+  · ipureintro; rfl
+  unfold models_lab.errFmt
+  isplitr
+  · ipureintro; exact models_lab.noFmt_errorString
+  iright; ileft
+  iexists x, msg
+  iframe Hs
+  ipureintro; rfl
+
+/-- An `errors.New` variable's value is `errPlain`. -/
+theorem errPlain_newVar (X msg : GoString) (e : GoInterface) :
+    errors.newVar (GF := GF) X msg ⊢ globalAddr X ↦□ e -∗ models_lab.errPlain e := by
+  unfold errors.newVar
+  iintro ⟨%x, #Hx, #Hs, #HE⟩ #He
+  icombine He Hx gives %Heq
+  subst Heq
+  iapply errPlain_errorString x msg $$ [$Hs $HE]
+
+/-- `Err` of an `*OpError` the client sees is `errLeaf` or the value of `poll.ErrDeadlineExceeded`
+(see `models_lab.errFmt`). -/
+def errLeafOrEd (e : GoInterface) : IProp GF :=
+  iprop(⌜models_lab.errLeaf e⌝ ∨ globalAddr internal.poll.ErrDeadlineExceeded ↦□ e)
+
+instance errLeafOrEd_persistent (e : GoInterface) : Persistent (errLeafOrEd (GF := GF) e) := by
+  unfold errLeafOrEd; infer_instance
+
+/-- A `nil`-or-`netAddr` address (`net.addrOrNil`) is `errLeaf`. -/
+theorem errLeaf_addrOrNil (x : GoInterface) :
+    net.addrOrNil (GF := GF) x ⊢ ⌜models_lab.errLeaf x⌝ := by
+  unfold net.addrOrNil net.netAddr
+  iintro (%Hx | ⟨%p, %v, %Hx, -⟩)
+  · subst Hx; ipureintro; exact models_lab.errLeaf_nil
+  · subst Hx; ipureintro; exact models_lab.errLeaf_ptr _ _ models_lab.noFmt_TCPAddr
+
+/-- A new `*OpError` whose `Err` has an `Error()` and is `errLeafOrEd`, and whose addresses net
+made (so `errLeaf`), is `errPlain`. Go-model net (go-models main line): Go's translated
+`OpError.Error` calls the fields' methods, so this takes what `errAny_opErr` takes
+(`syscall.errnoOk`, `net.errStr e`, `net.addrOrNil` of both addresses) where dsv-fix6's took
+`errLeaf` of the addresses as pure premises (implied by `addrOrNil`). -/
+theorem errPlain_opErr (op : GoString) (src addr e err : GoInterface) :
+    syscall.errnoOk (GF := GF) ∗ net.opErr op src addr e err ∗ net.errStr e ∗ net.addrOrNil src ∗
+      net.addrOrNil addr ∗ errLeafOrEd e ⊢ models_lab.errPlain err := by
+  iintro ⟨#Hsys, #Hop, #Hes, #Hs, #Ha, #Hl⟩
+  ihave #HA := errAny_opErr op src addr e err $$ [$Hsys $Hop $Hes $Hs $Ha]
+  ihave %hs := errLeaf_addrOrNil src $$ Hs
+  ihave %ha := errLeaf_addrOrNil addr $$ Ha
+  unfold net.opErr
+  icases Hop with ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩
+  subst Herr
+  unfold models_lab.errPlain
+  iframe HA
+  iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
+  isplitr
+  · ipureintro; rfl
+  unfold models_lab.errFmt
+  isplitr
+  · ipureintro; exact models_lab.noFmt_opError
+  iright; iright; iright; iright
+  iexists pe, net.OpError.mk op nw src addr e
+  iframe Hpe
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; exact ⟨hs, ha⟩
+  iunfold errLeafOrEd at Hl
+  iexact Hl
+
+/-- Any `*OpError` whose fields are persistent, whose `Err` has an `Error()` and whose addresses net
+made (`net.opErrMsgOk`), its `Source`, `Addr` and `Err` `errLeaf`, is `errPlain` (`DialHTTPPath`'s
+`"dial-http"` error). Go-model net: also takes `syscall.errnoOk` and `net.opErrMsgOk v` (what Go's
+translated `OpError.Error` needs, `errAny_opErrPtr`), after dsv-fix6's points-to. -/
+theorem errPlain_opErrPtr (pe : Loc) (v : net.OpError)
+    (h : models_lab.errLeaf v.Source' ∧ models_lab.errLeaf v.Addr' ∧ models_lab.errLeaf v.Err') :
+    (pe ↦□ v : IProp GF) ⊢ syscall.errnoOk -∗ net.opErrMsgOk v -∗
+      models_lab.errPlain (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
+  iintro #Hpe #Hsys #Hok
+  ihave #Ha := errAny_opErrPtr pe v $$ [$Hsys $Hpe $Hok]
+  unfold models_lab.errPlain
+  iframe Ha
+  iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
+  isplitr
+  · ipureintro; rfl
+  unfold models_lab.errFmt
+  isplitr
+  · ipureintro; exact models_lab.noFmt_opError
+  iright; iright; iright; iright
+  iexists pe, v
+  iframe Hpe
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; exact ⟨h.1, h.2.1⟩
+  ileft; ipureintro; exact h.2.2
+
+/-- A failure's `Err` (`kindErr`) is `errLeafOrEd`, given that `ed` is `poll.ErrDeadlineExceeded`'s
+value. -/
+theorem kindErr_leaf [os.Assumptions] [internal.poll.Assumptions] (k : NetErr)
+    (ed : Option GoInterface) (nm : GoString → Prop) (e : GoInterface) :
+    net.kindErr (GF := GF) k ed nm e ∗
+      (∀ ed', ⌜ed = some ed'⌝ -∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed') ⊢
+      errLeafOrEd e := by
+  iintro ⟨#Hk, Hed⟩
+  unfold errLeafOrEd
+  cases k with
+  | closed =>
+    unfold net.kindErr
+    icases Hk with %He
+    subst He
+    ileft; ipureintro
+    exact Or.inr ⟨⟨internal.poll.errNetClosing.ty, _⟩, rfl, models_lab.noFmt_errNetClosing,
+      Or.inr (Or.inl rfl)⟩
+  | timeout =>
+    cases ed with
+    | none =>
+      unfold net.kindErr
+      icases Hk with %Hf
+      exact Hf.elim
+    | some ed =>
+      unfold net.kindErr
+      icases Hk with %He
+      subst He
+      iright
+      iapply Hed
+      ipureintro; rfl
+  | sys =>
+    unfold net.kindErr net.sysErr
+    icases Hk with ⟨%p, %name, %n, ⟨%He, -⟩, -⟩
+    subst He
+    ileft; ipureintro
+    exact models_lab.errLeaf_ptr _ _ models_lab.noFmt_syscallError
+
+/-- A failure's error (`resErr (some k)`) is `errPlain`, given that `ed` is
+`poll.ErrDeadlineExceeded`'s value. Go-model net: takes `syscall.errnoOk` (Go's translated
+`OpError.Error` reads `syscall`'s error table through the `Err`'s `Error()`); dsv-fix6's `errLeaf`
+premises on the addresses are dropped (`resErr`'s `addrOrNil` gives them). -/
+theorem errPlain_resErr [os.Assumptions] [internal.poll.Assumptions] (k : NetErr) (op : GoString)
+    (src addr : GoInterface) (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
+    syscall.errnoOk (GF := GF) ∗ net.resErr (some k) op src addr ed nm err ∗
+      (∀ ed', ⌜ed = some ed'⌝ -∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed') ⊢
+      models_lab.errPlain err := by
+  iintro ⟨#Hsys, #HE, Hed⟩
+  unfold net.resErr
+  icases HE with ⟨%e, #Hop, #Hk, #Hes, #Hs, #Ha⟩
+  ihave #Hl := kindErr_leaf k ed nm e $$ [$Hk $Hed]
+  iapply errPlain_opErr op src addr e err $$ [$Hsys $Hop $Hes $Hs $Ha $Hl]
+
+/-- A `netAddr` (a `*TCPAddr`) is `errLeaf`. -/
+theorem errLeaf_netAddr (x : GoInterface) : net.netAddr (GF := GF) x ⊢ ⌜models_lab.errLeaf x⌝ := by
+  unfold net.netAddr
+  iintro ⟨%p, %v, %Hx, -⟩
+  subst Hx
+  ipureintro
+  exact models_lab.errLeaf_ptr _ _ models_lab.noFmt_TCPAddr
+
+end plain
+
 section errorsNew
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics] [errors.Assumptions]
 
 /-- `errors.New(msg)`, its result's type made explicit (`errors.New.spec` says only that it is a
-pointer; `errAny` needs its type to implement `error`): proved from its body, as
+pointer; `errAny` needs its type to implement `error`) and its field `s` (what `fmt`'s `%#v` reads:
+`models_lab.errFmt`): proved from its body, as
 `errors.New.wp_proof`. -/
 theorem wp_errors_New' (msg : GoString) :
     {{ (True : IProp GF) }}
       (App (Val (@! errors.New)) (Val #msg))
     {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x);
+        x.[errors.errorString, go!"s"] ↦□ msg ∗
         □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
           WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
             (Val #())) {{ Φ }} }} := by
@@ -338,6 +549,7 @@ theorem wp_errors_New' (msg : GoString) :
   ipersist s
   wp_auto
   iapply HΦ
+  iframe s
   imodintro
   iintro %Φ HΦ
   rw [method_unfold]

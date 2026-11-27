@@ -187,14 +187,14 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hMetrics C.mt C.lg0) as %pm #Hpm
   · iframe #
   (try wp_auto)
-  wp_apply (hLogIc s C.lg C.wd) as %il #Hil
+  wp_apply (hLogIc s C.lg C.wd) as %il ⟨#Hil, #Hilid⟩
   · iframe #
   (try wp_auto)
-  wp_apply (hPromU pm) as %im #Him
+  wp_apply (hPromU pm) as %im ⟨#Him, %Himid⟩
   · iframe #
   (try wp_auto)
   haveI : ThreadBoundLe GF (2 ^ 30) := ⟨Htb30⟩
-  wp_apply (hUIc s C.c C.mid) as %iu #Hiu
+  wp_apply (hUIc s C.c C.mid) as %iu ⟨#Hiu, #Hiuid⟩
   · iframe #
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoFunc) (l := [il, im, iu])
@@ -325,6 +325,8 @@ theorem v3rpc.Server.wp_proof
   · iframe; iframe #
   (try wp_auto)
   ihave #Hgn' := v3rpc.srvOpts_neutral gvs $$ Hgn
+  ihave #Pgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
+  · iPkgInit
   wp_apply (hNewSrv _ _ ((((((ks2 ++ [SrvOptKind.chainUnary [il, im, iu]]) ++
       [SrvOptKind.chainStream [ims, is]]) ++ [SrvOptKind.neutral]) ++ [SrvOptKind.neutral]) ++
       [SrvOptKind.neutral]) ++ gvs.map (fun _ => SrvOptKind.neutral))) as %gs Hgs
@@ -411,6 +413,8 @@ theorem v3rpc.Server.wp_proof
       rw [List.map_eq_nil_iff.mp HaD.2] at hsd
       cases hsd
   (try wp_auto)
+  ihave #Phv1 : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 $$ []
+  · iPkgInit
   wp_apply hHealth as %hs ⟨%Hhs, #Hhsrv⟩
   (try wp_auto)
   wp_apply (hNotif hs s C.lg C.fg) $$ [Hlr] as %hn Hlr
@@ -434,6 +438,9 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hInit pm gs) $$ [Hgs] as Hgs
   · iframe; iframe #
   (try wp_auto)
+  -- (2026-11-24) the chain is etcd's, by identity (what the members' axiom reads)
+  ihave #Hics := v3rpc.etcdUnaryIcs_intro s il im iu Himid $$ [Hilid Hiuid]
+  · iframe #
   iapply HΦ
   iexists q, p, pw, pa, ql, lp, pc, pmt, il, im, iu, ims, is, _, _, _, cid, mid', lcid, lmid,
     ⟨s, C.E, C.wsl, C.tag, cidw, midw, lgw, C.m + W64 (512 * 1024)⟩

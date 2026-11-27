@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter, the bounds, auth-mode and client-port mediation checks, the packages' imports, the import tiers and the interfaces. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds, auth-mode and client-port mediation checks, the packages' imports and the import tiers. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -100,7 +100,7 @@ if python3 etc/gen-raft-tla.py --check > "$tmp/tla.log" 2>&1; then
 else
   echo "gen-raft-tla: FAILED"; tail -10 "$tmp/tla.log"; fail=1
 fi
-# (the parts RaftNoAx/ and KvNet/: one summary line each)
+# (the parts RaftNoAx/ and KvRaft/: one summary line each)
 if python3 etc/copy-part.py --check > "$tmp/cp.log" 2>&1; then
   grep '^copy-part: [A-Za-z]*: ' "$tmp/cp.log"
 else
@@ -135,6 +135,8 @@ if python3 etc/tcb-report.py --check > "$tmp/tcb.log" 2>&1; then
 else
   echo "tcb: FAILED"; grep -v "root theorems\|distinct trust bases" "$tmp/tcb.log" | tail -20; fail=1
 fi
+# its selftest: which `opaque`s etc/tcb-report.lean counts, on an environment of its own (seconds)
+python3 etc/tcb-report.py --selftest > "$tmp/tcbs.log" 2>&1 || { echo "tcb selftest: FAILED"; tail -10 "$tmp/tcbs.log"; fail=1; }
 # the collections, in one run (the JSON loaded once; each collection checked as on its own: 68
 # runs of 5.6s each, nearly all of it parsing the JSON, took six minutes), beside the axiom-tok gate
 # below: both only read the .lake/tcb.json the check above wrote
@@ -191,10 +193,38 @@ if python3 etc/goose.py --check > "$tmp/goose.log" 2>&1; then
 else
   echo "goose: FAILED"; grep "^goose.py:" "$tmp/goose.log" | grep -v "up to date" | head -20; fail=1
 fi
+# 4a. every internal/gomodel.toml says what the pinned Perennial's does (its Go files are the pin's,
+# materialized by goose.py: etc/gomodels.py)
+if python3 etc/gomodels.py check > "$tmp/gomodels.log" 2>&1; then
+  echo "gomodels: ok"
+else
+  echo "gomodels: FAILED"; tail -10 "$tmp/gomodels.log"; fail=1
+fi
 if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
   echo "gen-init: $(tail -1 "$tmp/init.log" | sed 's/^gen-init: //')"
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
+fi
+# QuePaxa's protobuf axioms' condition (notes/axiom-review/dsv-fix6/quepaxa-pb-2.md, finding 1): no
+# hand-written package-level initializer in the packages declaring its message types
+if python3 etc/pb-init-check.py > "$tmp/pbinit.log" 2>&1; then
+  echo "pb-init: ok"
+else
+  echo "pb-init: FAILED"; head -10 "$tmp/pbinit.log"; fail=1
+fi
+# the library drivers' boot tables (etc/gen-driver-boottable.py, from each server command's PkgTable)
+if python3 etc/gen-driver-boottable.py --check > "$tmp/driverboot.log" 2>&1; then
+  echo "$(tail -1 "$tmp/driverboot.log")"
+else
+  echo "gen-driver-boottable: FAILED"; tail -3 "$tmp/driverboot.log"; fail=1
+fi
+# the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
+# commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
+# the kits' codecs through their generators): after gen-init, whose PkgTables the boot tables read
+if python3 etc/dsv/kitgen.py --check > "$tmp/kitgen.log" 2>&1; then
+  echo "$(tail -1 "$tmp/kitgen.log")"
+else
+  echo "kitgen: FAILED"; tail -10 "$tmp/kitgen.log"; fail=1
 fi
 # SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
 # stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
@@ -220,6 +250,11 @@ fi
 # every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources,
 # and the Go sources in .lake/goose that goose.py above clones: so after it, in this section)
 python3 etc/reader-slot-check.py || fail=1
+# the lease axioms' ordering gate (#50 F2/F7, notes/axiom-review/f7-combined.md section 3): the six
+# lease axioms reading `Γ.ls mid` are linked only once every serve axiom of etcd's table ties the
+# member's lessor to `Γ.ls mid` (source only; with its self-test)
+python3 etc/lease-order-check.py --selftest > /dev/null || { echo "lease-order selftest: FAILED"; fail=1; }
+python3 etc/lease-order-check.py || fail=1
 # every registration on etcd's client port has a row in etc/auth-table.txt with the specs that carry
 # its access check, none weaker than etc/auth-mediation-baseline.txt (notes/auth-mediation-scope.md,
 # M0; reads the Go sources in .lake/goose that goose.py above clones, and the specs: so after it)
@@ -249,11 +284,19 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# the net extension's sticky read errors (D1 v3.5, notes/net-sticky-read.md): the loopback tests
+# of examples/net/semantics/sticky_test.go, the evidence of ReadAvail's `sys` clause, measured on
+# the gates' Linux (the network-namespace test, sticky_netns_test.go, needs root: it skips here)
+if (cd examples && GOWORK=off gotest -count=1 -run '^TestSticky' ./net/semantics/ > "$tmp/sticky.log" 2>&1); then
+  echo "net-sticky: ok"
+else
+  echo "net-sticky: FAILED"; tail -10 "$tmp/sticky.log"; fail=1
+fi
 # protobuf stages S1/S2 (#37): the wire codecs' vectors modules EntryWireVectors.lean,
-# MessageWireVectors.lean, RecordWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
-# codecs) are what examples/pbschema/wirevectors{,_s2}_test.go generate from protobuf-go
+# MessageWireVectors.lean, RecordWireVectors.lean, ConfChangeWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
+# codecs) are what examples/pbschema/wirevectors{,_s2,_cc1}_test.go generate from protobuf-go
 # (examples/go.mod's pin); TestMessageDepthLimit checks the decoder's recursion limit in Go
-if (cd examples && GOWORK=off gotest -run '^(TestWireVectors|TestMessageWireVectors|TestRecordWireVectors|TestIrrWireVectors|TestMessageDepthLimit)$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
+if (cd examples && GOWORK=off gotest -run '^(TestWireVectors|TestMessageWireVectors|TestRecordWireVectors|TestConfChangeWireVectors|TestIrrWireVectors|TestMessageDepthLimit)$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
   echo "wirevectors: ok"
 else
   echo "wirevectors: FAILED"; tail -10 "$tmp/wirevec.log"; fail=1
@@ -263,7 +306,8 @@ fi
 # descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers
 # against protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
 # encoding/json, pbgen's and jsongen's random differential tests and refusals
-# (models/internal/{pbgenrand,jsongenrand}), and pbgen's codec of etcd's messages (examples/models)
+# (models/internal/{pbgenrand,jsongenrand}), and pbgen's and jsongen's codecs of etcd's types
+# (examples/models/{pbetcd,jsonetcd})
 nm=0
 : > "$tmp/nm.log"
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
@@ -278,11 +322,26 @@ done
 # jsongen: every toml with a [json] table (but in old/) is checked (the dump by reflection included);
 # jsongen's random-type differential test and refusals run in models' go test (internal/jsongenrand)
 jsoninputs="models/internal/jsondifftest/json.toml:models/internal/jsondifftest/codec:codec
-models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec"
+models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec
+examples/models/jsonetcd/json.toml:examples/models/jsonetcd:jsonetcd
+models/internal/jsonpkgtest/json.toml:models/internal/jsonpkgtest:jsonpkgtest
+examples/dsverify/vr/examples/vsrnet/json.toml:examples/dsverify/vr/examples/vsrnet:vsrnet"
 for x in $jsoninputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/json/jsongen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
 done
+# (#24 J3) jsongen's same-package methods (JSONModel*, which the encoding/json model's dispatch calls
+# by a value's method set) are reserved: no Go code but the generated json_model_gen*.go files and
+# the model's dispatch (models/encoding/json) names them; the generated methods against the real
+# encoding/json (the netmodel build's test of internal/jsonpkgtest), and in the forks' packages of
+# etc/goose.py's jsonmodel_roots (examples/models/jsonetcd/jsonmodel_forks.py, which also checks the
+# names in the forks at the pins)
+if git grep -nE '\bJSONModel[A-Za-z]*' -- '*.go' ':!old/' ':!**/json_model_gen.go' ':!**/json_model_gen_test.go' \
+     ':!models/encoding/json/' >> "$tmp/nm.log" 2>&1; then
+  echo "models: Go code other than the generated methods names JSONModel* (above)" >> "$tmp/nm.log"; nm=1
+fi
+(cd models && GOWORK=off gotest -tags netmodel -run '^TestJSON' ./internal/jsonpkgtest/) >> "$tmp/nm.log" 2>&1 || nm=1
+python3 examples/models/jsonetcd/jsonmodel_forks.py >> "$tmp/nm.log" 2>&1 || nm=1
 for t in $(git grep -l '^\[json\]' -- '*.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$jsoninputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
 done
@@ -335,6 +394,13 @@ fi
 # the notes' merge drivers (etc/merge-status.py; .gitattributes): replays this week's real merges of
 # notes/STATUS.md and notes/status-history.md, and synthetic cases (reads git only; ~15s)
 python3 etc/merge-status.py --selftest || fail=1
+# the GitHub coordination tool reads the convention as notes/coordination.md says (etc/gh-inbox.py;
+# recorded JSON, no network; under a second)
+if python3 -m unittest discover -s etc/gh-inbox-test > "$tmp/ghinbox.log" 2>&1; then
+  echo "gh-inbox: ok"
+else
+  echo "gh-inbox: FAILED"; tail -20 "$tmp/ghinbox.log"; fail=1
+fi
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
@@ -348,6 +414,10 @@ python3 etc/k8s-correctness-check.py || fail=1
 # feature-gate mutator in the programs' compiled closures has its verdict in
 # etc/featuregate-allow.txt (needs go and the module cache; seconds)
 python3 etc/featuregate-check.py || fail=1
+# no robustness theorem's program reports a violation by exiting: under `Robust` an exit is a safe run
+# (Perennial's AngelicExit), so a check must panic; every exit in the programs' own code (under
+# examples/) has its reason in etc/exit-allow.txt (notes/robustness.md; needs go; seconds once cached)
+python3 etc/exit-check.py || fail=1
 return $fail
 }
 
@@ -360,6 +430,8 @@ if python3 etc/bounds-check.py --check > "$tmp/bounds.log" 2>&1; then
 else
   echo "bounds: FAILED"; grep -v "^bounds: ok" "$tmp/bounds.log" | head -20; fail=1
 fi
+# its selftest: the allow forms on a synthetic tree (a `decl=` entry hides its declaration's matches only)
+python3 etc/bounds-check.py --selftest > "$tmp/boundss.log" 2>&1 || { echo "bounds selftest: FAILED"; grep "FAIL" "$tmp/boundss.log" | head -10; fail=1; }
 return $fail
 }
 
@@ -373,6 +445,22 @@ if python3 etc/mode-check.py --check > "$tmp/mode.log" 2>&1; then
 else
   echo "mode: FAILED"; grep -v "^mode: ok" "$tmp/mode.log" | head -20; fail=1
 fi
+# 7c. no top-level statement takes a new Iris premise without a satisfiability witness
+# (etc/iris-premise-baseline.txt; reads the sources only; notes/axiom-review/ctx-readerrs-vacuity.md)
+if python3 etc/iris-premise-check.py --check > "$tmp/irisprem.log" 2>&1; then
+  echo "$(tail -1 "$tmp/irisprem.log")"
+else
+  echo "iris-premise: FAILED"; head -20 "$tmp/irisprem.log"; fail=1
+fi
+# 7d. every distributed interim axiom (`*_dist`) differs from the in-process spec it copies only as
+# etc/dist-axiom-diff-allow.txt lists (notes/axiom-review/dist-axiom-diff.md: a copy that missed its
+# source's later premise); and the gate's selftest. Reads the sources only; under a second.
+if python3 etc/dist-axiom-diff.py --check > "$tmp/dad.log" 2>&1; then
+  echo "$(tail -1 "$tmp/dad.log")"
+else
+  echo "dist-axiom-diff: FAILED"; grep -v "^  [A-Za-z_.]*: [0-9]* difference\|no in-process source" "$tmp/dad.log" | head -20; fail=1
+fi
+python3 etc/dist-axiom-diff.py --selftest > "$tmp/dads.log" 2>&1 || { echo "dist-axiom-diff selftest: FAILED"; grep "FAIL" "$tmp/dads.log" | head -10; fail=1; }
 return $fail
 }
 
@@ -383,7 +471,6 @@ fail=0
 # backend-auth-split stage's Q6, 2026-11-02); both read the sources only
 api=ok
 for c in etc/api/*.txt; do
-  case "$c" in *-layout.txt) continue ;; esac
   if ! python3 etc/api-check.py "$c" --check > "$tmp/api.log" 2>&1; then
     echo "api $c: FAILED"; grep -v "^warning" "$tmp/api.log" | tail -10; api=FAILED
   fi
@@ -401,34 +488,14 @@ if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
 else
   echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
 fi
-return $fail
-}
-
-sec_iface() {
-fail=0
-# 8b. the checked-in interfaces (`interface/`) are what the build exports, with no new layout
-# violation: CI's "Check the packages' interfaces" loop, verbatim (reads the build; `$LAKE_OPTS`
-# carries `--packages`). Added 2026-11-13: CI failed on it since a1e57a9676 while land.sh passed.
-# The packages at once (each about 30s, mostly its own parallel pretty-printing; one after another
-# they were 200s of the gate, 2026-11-18).
-iface=ok
-pids=()
-for c in etc/api/*.txt; do
-  case "$c" in *-layout.txt) continue ;; esac
-  b=$(basename "$c" .txt)
-  ( python3 etc/gen-interface.py "$c" --check --layout > "$tmp/iface.$b.log" 2>&1
-    echo $? > "$tmp/iface.$b.status" ) &
-  pids+=($!)
-done
-wait "${pids[@]}"
-for c in etc/api/*.txt; do
-  case "$c" in *-layout.txt) continue ;; esac
-  b=$(basename "$c" .txt)
-  if [ "$(cat "$tmp/iface.$b.status" 2>/dev/null)" != 0 ]; then
-    echo "interface $c: FAILED"; tail -20 "$tmp/iface.$b.log"; iface=FAILED
-  fi
-done
-echo "interfaces: $iface"; [ "$iface" = ok ] || fail=1
+# every top-level statement has a satisfiability witness of its premises, or a baseline line
+# (etc/premise-witness-baseline.txt; Robustness/PremiseSat.lean; reads the sources only: the build
+# checks the witnesses' proofs)
+if python3 etc/premise-witness.py --check > "$tmp/pw.log" 2>&1; then
+  echo "$(tail -1 "$tmp/pw.log")"
+else
+  echo "premise-witness: FAILED"; head -20 "$tmp/pw.log"; fail=1
+fi
 return $fail
 }
 
@@ -470,10 +537,15 @@ fail=0
 # A run whose in-process cluster fails to start ("StartCluster failed": a port taken by another
 # gate run's cluster under the parallel load, 2026-11-12, three times) is retried, up to 3 attempts;
 # any other failure fails at once.
+# The cluster's ports are fixed, so concurrent gate runs on one machine (the land queue's four runners,
+# vm-build requests) took each other's: the test runs under a machine-wide lock outside /tmp (a gate
+# run's /tmp may be private), held for this test only (2026-11-24). GATES_K8S_LOCK overrides the file.
+k8slock=${GATES_K8S_LOCK:-/shared/tmp/gates-k8s-cluster.lock}
+mkdir -p "$(dirname "$k8slock")" 2>/dev/null || true
 cet_try=0; cet_ok=0; cet_miss=
 while [ $cet_try -lt 3 ]; do
   cet_try=$((cet_try + 1))
-  if (cd examples/k8s/etcd3 && GOWORK=off gotest -timeout 30m \
+  if (exec 5>>"$k8slock"; flock 5; cd examples/k8s/etcd3 && GOWORK=off gotest -timeout 30m \
       -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
     cet_ok=1; break
   fi
@@ -535,9 +607,9 @@ fi
 return $fail
 }
 
-secs=(links tcb goose models issues bounds mode api iface premisefix k8s7e)
+secs=(links tcb goose models issues bounds mode api premisefix k8s7e)
 # sections that read the build: tcb (Lean runs, tcb.json), models (model-param's and pbschema's Lean
-# runs), iface (gen-interface reads the .oleans); the others read only the sources and the Go code.
+# runs); the others read only the sources and the Go code.
 # With PERENNIAL_CHECKOUT, the translations need .lake/packages/perennial linked, which the build
 # must not see: then every section waits for the build, as before.
 early=(links goose issues bounds mode api premisefix k8s7e)

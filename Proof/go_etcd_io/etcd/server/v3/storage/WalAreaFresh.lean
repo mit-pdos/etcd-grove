@@ -13,7 +13,8 @@ directory's length, `dir.length < 2 ^ 59`, which holds of every path Linux accep
 `bootstrap` checks, or fails, itself). (wal-fsfix2, 2026-11-20) The area `a` also carries the no-lock-error
 instance (`a.satL`, `NoMapLockErr a.Sio`) and `Fs.DirFits dir` (`a.fits`; from the member's name of at most 200
 bytes at the allocation, `dirFits_srvWalDirOf_memberDataDir`), and every path below its directory in `a.Sio` by path
-(`a.covP`; the closed theorems' `allIo` covers every path). So a faithful `bootstrap`, given it, can call `Create` and build
+(`a.covP`; the closed theorems' `allIo` covers every path), and (2026-11-23, claim #34) the WAL directory itself in `a.Sio`
+by path (what `wal.Exist`'s `ReadDir` opens). So a faithful `bootstrap`, given it, can call `Create` and build
 the open WAL `wal.bootOk` gives. The closed
 theorems allocate it once per member, at adequacy (`lib/etcdstart/WalAreas.lean`), from the per-member
 `fsExt` root (`walAreaOf`) their premise `etcdWalAreasInit` says is present and holds no WAL name.
@@ -23,7 +24,11 @@ the member's data directory `d`, a root of its own (absolute, `memberDataDir`), 
 the tree's shared mode: its spine, the whole call permission of its root, and the whole claim on its names,
 none of which names an entry. What a faithful `bootstrap` makes the backend's and the snapshots' files of
 (`bootOk`'s `Hpath`, `Hsfree`: their claims are in this root's tree, `config.backendPathOf d`). Allocated with
-the WAL area (`etcdWalAreasInit`).
+the WAL area (`etcdWalAreasInit`). (2026-11-23, claim #34, approved by the owner via the coordinator) Also the
+dispenser of the call permission above the roots (`Fs.osAboveInv`, persistent, the mode switch's): `bootstrap`'s
+`TouchDirAll(DataDir)` syncs the root's parent, above the roots (`TouchDirAll.specExisting`); and `d` shorter
+than `PATH_MAX` (4096 bytes: `IsDirWriteable`'s `filepath.Join` bound; the members' `memberDataDir`s are, by
+their WAL directories' `Fs.DirFits`).
 -/
 module
 
@@ -46,7 +51,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **A fresh WAL area whose WAL directory is `dir`** (see the file header). -/
 def walAreaFresh (dir : GoString) : IProp GF :=
-  iprop(∃ a : WalA GF, ⌜a.dir = dir ∧ WalFs.InArea a.r a.dir go!"wal" ∧ cleanAbsPath a.r⌝ ∗
+  iprop(∃ a : WalA GF, ⌜a.dir = dir ∧ WalFs.InArea a.r a.dir go!"wal" ∧ cleanAbsPath a.r ∧ a.Sio.path a.dir⌝ ∗
     (letI := a.ext; letI := a.semOk; letI := a.has; letI := a.W
      iprop(WalFs.walAreaOk walCodec walSrvMr a.R a.jr a.r ∗ WalFs.dirDurable a.r ∗
       Fs.osPathS a.R a.r (DFrac.own 1) a.jr ∗ WalFs.walAreaRes a.jr ∗
@@ -57,9 +62,9 @@ file-extension instances (the program's, `extsLocalStart`'s). -/
 def dataAreaFresh (d : GoString) : IProp GF :=
   iprop(∃ (S : ExtSemantics Fs.fsExt) (ok : Fs.FsSemOk (S := S)) (has : HasExt Fs.fsExt) (R : Fs.Roots)
       (j : Fs.Ino) (h : Fs.NamesH),
-    ⌜cleanAbsPath d ∧ ∀ b, h.cur !! b = none⌝ ∗
+    ⌜cleanAbsPath d ∧ d.length < 4096 ∧ ∀ b, h.cur !! b = none⌝ ∗
     (letI := S; letI := ok; letI := has
-     iprop(Fs.osInv ∗ Fs.osSharedInv R ∗ Fs.osPathS R d (DFrac.own 1) j ∗
+     iprop(Fs.osInv ∗ Fs.osSharedInv R ∗ Fs.osAboveInv ∗ Fs.osPathS R d (DFrac.own 1) j ∗
       Fs.osCallPerm (Fs.callKey R d) 1 ∗ Fs.osNames j (.except []) (DFrac.own 1) h)))
 
 /-- **A member's fresh areas** (2026-11-19): its WAL area, whose WAL directory is `srvWalDirOf d`, and its

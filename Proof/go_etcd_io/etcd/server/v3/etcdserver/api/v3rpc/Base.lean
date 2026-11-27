@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseWatch
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ErrMapKey
 public import Proof.math.rand.Base
 public import Proof.unicode.utf8.Base
 
@@ -150,10 +151,13 @@ descriptions (k8s etcd3 7c), and every value one grpc's `status.FromError` accep
 k8s etcd3 7c, HS-6: `ErrTooManyRequests` and `ErrMemberNotEnoughStarted` are `EtcdError`s, leaves
 with only `Code` and `Error`; `notes/axiom-review/hs6.md`). Which other keys it has is left open:
 `togRPCError` returns the mapped error for a key, or `status.Error(codes.Unknown, err.Error())`; the
-value of each variable of `grpcErrKeyGlobals` is a key (S2, k8s etcd3 7c-2 part 2). -/
+value of each variable of `grpcErrKeyGlobals` is a key (S2, k8s etcd3 7c-2 part 2). The map is owned at
+`v3rpc.errKeys` (grpcerrmap, 2026-11-26): its keys are `errKeyOk` errors, `context.DeadlineExceeded`'s
+`deadlineExceededError{}` among them; until then at Perennial's interface keys (`nil` and pointers),
+which made the fact unsatisfiable (`notes/axiom-review/togrpcerrormap-keys.md`). -/
 def grpcErrMap : IProp GF :=
   iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
-    globalAddr toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
+    globalAddr toGRPCErrorMap ↦□ mp ∗ (letI := EtcdGrove.v3rpc.errKeys; (mp ↦$□ M : IProp GF)) ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
     □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗
@@ -315,7 +319,7 @@ abbrev v3rpcInit : IProp GF :=
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
   define_is_pkg_init v3rpcInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
   build_get_is_pkg_init_wf
 
@@ -344,7 +348,7 @@ theorem interceptorErrsNotRead :
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
   icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%e8, #H8, -, #D8, -⟩, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    ⟨%e40, #H40, #D40⟩, -, -, ⟨%e43, #H43, #D43⟩, ⟨%e44, #H44, #D44⟩⟩
+    ⟨%e40, #H40, #D40⟩, -, -, ⟨%e43, #H43, #D43⟩, ⟨%e44, #H44, #D44⟩, -⟩
   isplitl []
   · iexists e44; iframe H44
     unfold notReadDesc go_etcd_io.etcd.cache.v3.notDescIn

@@ -9,7 +9,7 @@ public import Dsverify.Proof.raxos.Proxy.NetSpecs
 public import Dsverify.Proof.raxos.Proposer.Strings
 public import Perennial.Proof.errors.NewVar
 public import GooseLang.Ext.Net.Decide
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -113,12 +113,14 @@ omit π qv in
 `errAny` (`net.rpc.errAny_resErr`). -/
 theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : GoString)
     (src addr : GoInterface) (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) op src addr ed nm err -∗
       ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
         models_lab.errAny err := by
   unfold net.resErr net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
+  iintro #Hsys ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -, #Hes, #Hs, #Ha⟩
   subst Herr
+  ihave #Hok : net.opErrMsgOk (GF := GF) (net.OpError.mk op nw src addr e) $$ []
+  · unfold net.opErrMsgOk; iframe Hes Hs Ha
   isplitr
   · ipureintro; intro ii hii; cases hii; exact opError_ptr_notFormatter
   unfold models_lab.errAny
@@ -129,7 +131,7 @@ theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : Go
   · ipureintro; exact opError_ptr_isError'
   imodintro
   iintro %Φ HΦ
-  iapply net.wp_OpError_Error $$ Hpe
+  iapply net.wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg -
   iapply HΦ
@@ -166,12 +168,12 @@ theorem readFull_errAny [net.Assumptions] [errors.Assumptions] [_root_.Perennial
     [fmt.Assumptions]
     (eof ueof la ra ed : GoInterface) (r ys : List w8) (m : Nat) (err : GoInterface)
     (hne : err ≠ interface.nil) :
-    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr io.EOF ↦□ eof ∗
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ syscall.errnoOk ∗ globalAddr io.EOF ↦□ eof ∗
       globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
       _root_.Perennial.io.readFullRes (net.connReadE eof la ra ed) eof ueof r ys m err ⊢
       ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
         models_lab.errAny err := by
-  iintro ⟨#Hio, #Heof, #Hueof, #Hres⟩
+  iintro ⟨#Hio, #Hsys, #Heof, #Hueof, #Hres⟩
   ihave #Hi := _root_.Perennial.io.isInit_access $$ Hio
   icases Hi with ⟨-, -, -, -, #HEOF, #HUEOF, -⟩
   iunfold _root_.Perennial.io.readFullRes at Hres
@@ -184,7 +186,7 @@ theorem readFull_errAny [net.Assumptions] [errors.Assumptions] [_root_.Perennial
     iunfold net.connReadE at HE
     icases HE with (%Hee | ⟨%k, #Hk⟩)
     · subst Hee; iapply errAny_newVar' $$ HEOF Heof
-    · iapply errAny_resErr' $$ Hk
+    · iapply errAny_resErr' $$ Hsys Hk
 
 end lemmas
 

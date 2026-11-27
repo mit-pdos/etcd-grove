@@ -28,6 +28,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interfa
 public import Net.Spec.net.Listen
 public import Perennial.Proof.sync
 public import Perennial.Proof.fmt.Results
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -84,28 +85,17 @@ theorem rpcAddrOf_fmt (k : Nat) :
 theorem sprintf_str_colon_int [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
     [go.IntoValInj GoString] [go.IntoValInj w64] [go.string ↓u go.string]
     (x : GoString) (n : w64) (out : GoString)
-    (h : fmt.SprintfOut go!"%s:%d" [interface.mkOk go.string #x, interface.mkOk go.int #n] out) :
+    (h : out = _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      [.str x, .int (sint.Z n)]) :
     out = x ++ go!":" ++ fmt.decimal (sint.Z n) := by
-  have hfmt : go!"%s:%d" = W8 37 :: W8 115 :: W8 58 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := fmt.SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := []) (by decide)
-    (fmt.IntArgValue.int n) (fmt.IntArgValue.uniq_int n) h2
-  rw [fmt.SprintfOut.done_inv h3, fmt.decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 theorem sprintf_colon_int [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
     [go.IntoValInj w64] [go.string ↓u go.string] (n : w64) (out : GoString)
-    (h : fmt.SprintfOut go!":%d" [interface.mkOk go.int #n] out) :
+    (h : out = _root_.Perennial.fmt.render [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      [.int (sint.Z n)]) :
     out = go!":" ++ fmt.decimal (sint.Z n) := by
-  have hfmt : go!":%d" = W8 58 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := fmt.SprintfOut.byte_inv (by decide) h
-  obtain ⟨o2, rfl, h2⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := []) (by decide)
-    (fmt.IntArgValue.int n) (fmt.IntArgValue.uniq_int n) h1
-  rw [fmt.SprintfOut.done_inv h2, fmt.decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 /-! ## The master's predicates -/
 
@@ -122,7 +112,7 @@ section master
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions]
 
 /-- The master as `master.New(5, 7501, cfg, logger)` builds it (exclusive): its fields (`N` 5,
@@ -275,7 +265,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [examples.epaxosnet.Assumptions]
 
 /-- `master.New(5, 7501, cfg, logger)` (as `serve(1, ...)` calls it), with a configuration with
@@ -340,7 +330,7 @@ abbrev Master.Run.specM (γ : EpNames) (W : net.rpc.RpcWorld GF) : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
       masterFresh m cfg logger ∗ listUnset γ ∗ ⌜W.SS = rpcSS γ⌝ ∗
       RpcHttpAddr.rpcLisP W go!":7501" (connectReq defaultRPCPath) connectAns ∗
-      replicaRpcs W ∗ RpcHttpHyp.muxOwner [] ∗ (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+      replicaRpcs W ∗ muxOwner [] ∗ defaultSrvFresh ∗ threadTok ∗
       rpcReady ∗ net.rpc.srvEnv ∗ dialEnv ∗
       ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))

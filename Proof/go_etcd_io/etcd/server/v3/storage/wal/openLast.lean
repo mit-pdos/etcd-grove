@@ -45,7 +45,7 @@ theorem names_last {ws : List GoString} {segs : List SegG} {gL : SegG}
   simp
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (Mr : WalMarshal)
     (wp_names : go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec (GF := GF) (hG := hG))
     (wp_namesAbs : go_etcd_io.etcd.server.v3.storage.wal.readWALNames.specAbsent (GF := GF) (hG := hG))
@@ -53,6 +53,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     (wp_Lock : go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.openLast.spec (W := W) Mr := by
   intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
@@ -158,7 +159,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     iintro %jsl ⟨Hjsl, -⟩
     try wp_auto
     obtain ⟨sq, ix, hgn⟩ := hnmf gL hgLm
-    have hjl : ([dir, gL.name].map List.length).sum + 2 < 2 ^ 62 := by
+    have hjl : ([dir, gL.name].map List.length).sum + 2 ≤ _root_.Perennial.strings.joinMax := by
+      unfold _root_.Perennial.strings.joinMax
       simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hgn, walFileName_length]
       omega
     wp_apply wp_Join _ _ _ hjl $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
@@ -172,7 +174,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
           hj 1 (W64 2) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide)
           hbok hbN hbi) (by decide)
       $$ [Hpd Hj Hperm] as %lf %err Hpost
-    · iframe; iframe #
+    · iframe; iframe #; iPkgInit
     ihave Hpost := fileutil.lockPost_of_W _ _ _ _ _ _ _ $$ Hpost
     iunfold fileutil.lockPost at Hpost
     icases Hpost with ⟨%u, Hpost⟩

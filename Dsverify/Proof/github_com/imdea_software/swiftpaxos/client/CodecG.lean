@@ -32,7 +32,7 @@ namespace client
 section failed
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions]
 variable [C : net.rpc.RpcCodec netDistGF]
 
 /-- `client.failed` (Spec/client/Defs.lean) over the codec `C`. -/
@@ -58,7 +58,7 @@ end failed
 /-- At the kit's codec, `failedG` is the frozen `failed`. -/
 theorem failed_of_G [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF]
     [sem : go.Semantics] [SwiftNetPkgState netDistGF] [net.Assumptions]
-    [net.FieldAssumptions] [net.rpc.Assumptions]
+    [net.rpc.Assumptions]
     (b : Loc) : failedG b ⊣⊢ client.failed b := by
   exact (failedG_unfold b).trans (failed_unfold b).symm
 
@@ -67,7 +67,7 @@ end client
 section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF]
@@ -92,7 +92,7 @@ end spec
 section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 
@@ -117,7 +117,7 @@ end frozen
 section disconnect
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions]
 variable [client.Assumptions]
 variable [C : net.rpc.RpcCodec netDistGF]
 
@@ -135,7 +135,7 @@ end disconnect
 section disconnectFrozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions]
 variable [client.Assumptions]
 
 /-- The frozen `Disconnect` statement from its form at `kitCodec`. -/

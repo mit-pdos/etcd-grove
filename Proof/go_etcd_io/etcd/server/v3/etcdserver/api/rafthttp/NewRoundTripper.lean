@@ -26,16 +26,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 theorem rafthttp.NewRoundTripper.wp_proof
     (hNTT : transport.NewTimeoutTransport.spec (GF := GF) (hG := hG)) :
     rafthttp.NewRoundTripper.spec (GF := GF) (hG := hG) := by
-  intro H tls dt
+  intro H tls dt Htls
   wp_start
   ihave #Htp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport $$ []
   · iPkgInit
   wp_auto
-  wp_apply hNTT H tls dt (W64 0) (W64 0) as %tr %err Hres
+  wp_apply hNTT H tls dt (W64 0) (W64 0) Htls as %tr %err Hres
   iapply HΦ
   icases Hres with (%Hne | ⟨%He, #Hrt⟩)
   · ileft; ipureintro; exact Hne
-  · iright; iframe #; ipureintro; exact He
+  · iright; iframe #; isplitl
+    · ipureintro; exact He
+    · ipureintro; exact ⟨tr, rfl⟩
 
 end proof
 

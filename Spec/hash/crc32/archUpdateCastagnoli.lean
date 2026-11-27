@@ -1,5 +1,5 @@
 /-
-`crc32.archUpdateCastagnoli(crc, p)` (`crc32_amd64.go`; trusted model, `TrustedCode/hash/crc32.lean`):
+`crc32.archUpdateCastagnoli(crc, p)` (`crc32_amd64.go`; the Go model `models/hash/crc32/model.go`, until 2026-11-24 the trusted `TrustedCode/hash/crc32.lean`):
 the CRC-32C of `p` from `crc`, reading `p`. Lean-first (crc32-hooks2, 2026-11-22).
 -/
 module

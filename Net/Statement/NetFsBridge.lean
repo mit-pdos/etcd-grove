@@ -3,27 +3,27 @@
 network and Linux files** (etcd-dist stage D3, `notes/dist-crash-bridge.md`): the bridge from
 Perennial's `goose_dist_mixed_crash_adequacy` (`DistAdequacy.lean`: machines with boot programs, which
 crash and restart, and machines without, which never crash) to `Robust crashing stable g threads
-bound` (`Robustness/Statement.lean`), for machines over `[netExt, fsExt]` (`kvnetExts`,
+bound` (`Robustness/Statement.lean`), for machines over `[netExt, fsExt]` (`kvraftExts`,
 `GooseLang/Ext/NetFs/Adequacy.lean`), under `NetFsDeploy` (`NetFsDeploy.lean`). It is to crashes
 what `robust_of_distBootRB` (`DistBridge.lean`) is to deployments whose machines never crash.
 
 What a machine's proof is given:
 - every machine, at its first start: the file extension's start resources of its files (`fsStartRes`:
-  the invariant of the mapped cells, every file whole and durable, the tree with nothing logged), its
+  the invariant of the mapped cells, every file whole and durable, the tree's shared view with nothing
+  logged, `osShared`), its
   empty package state and its main thread's token; its net resources are the global ones, which the
   start obligation `Hstart` gets for the deployment's addresses (each unset, `addrUnset`);
 - a crashing machine, after each crash (`CrashBootWp`'s frame): a fresh local ghost state `L'` (a
   new generation: no heap, no thread, no listener), its empty package state, the cells' invariant
-  `osInv` of `L'` and the file system's crash rest (`crashRest`, the restart's files and tree for
-  some new history `V'`, related to what the crashed generation knew), from which it re-establishes
-  its own precondition for `L'`. The network is global state: its ghost state survives the crash, so
+  `osInv` of `L'`, the file system's crash rest (`crashRest`, the restart's files and tree for
+  some new history `V'`, related to what the crashed generation knew) and a later credit, from which it
+  re-establishes its own precondition for `L'` (the next generation's `osShared` from `crashRest_treeS'`
+  and the crashed generation's persistent `osSharedInv`). The network is global state: its ghost state survives the crash, so
   the protocols and invariants of `Hstart` hold in every generation.
 
-The file system is in its legacy mode (`osTree`, `fs_crash_adequacy`'s resources). The shared mode
-(`fsSQ_crash_adequacyShared`, branch `wal-safe`), whose switch needs the extension's local
-interpretation at a generation's start, needs the same from the distributed theorem, which
-Perennial's does not give (`notes/perennial-changes.md`, "Extension state access at generation start,
-distributed"; `notes/dist-crash-bridge.md`).
+The file system's resources are its one shared view (`osShared`, `fs_crash_adequacy`'s resources,
+`notes/fs-interp-state-determined.md`): they need no access to the extension's local interpretation,
+so Perennial's distributed theorem gives them as it is.
 
 The step and thread bounds: as `robust_of_distBootRB`, the adequacy theorem is used at the step
 bound `n + 1` and thread bound `n + 2` of an execution of `n < bound` steps, so the WPs get
@@ -50,19 +50,20 @@ namespace Net
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Robustness NetFs
 
-attribute [local instance] kvnetExts kvnetExtsSemantics kvnetExtsInterp kvnetExtsCrashInterp
-  kvnetExts_hasNet kvnetExts_hasFs GooseGlobalGS.gooseInvGS
+attribute [local instance] kvraftExts kvraftExtsSemantics kvraftExtsInterp kvraftExtsCrashInterp
+  kvraftExts_hasNet kvraftExts_hasFs GooseGlobalGS.gooseInvGS
 
 section bridge
 variable [GoGlobalContext] {GF : BundledGFunctors} [hPre : GooseGpreS GF]
 
 /-- The file extension's resources of a generation that starts from the file system `st` with
 every file as on disk (a machine's first start), under the local ghost state `L`: the invariant of
-the mapped cells, every file whole (each byte durable) and the tree, with nothing logged. -/
+the mapped cells, every file whole (each byte durable) and the tree's shared view (`osShared`), with
+nothing logged. -/
 def fsStartRes [G : GooseGlobalGS .hasLC GF] (L : GooseLocalGS GF) (st : Fs.OsState) : IProp GF :=
   iprop(Fs.osInv (L := L) ∗
     ([∗map] i ↦ f ∈ st.fs.files, Fs.osFileStart (L := L) i f) ∗
-    Fs.osTree (L := L) (DFrac.own 1) st.fs.roots (st.fs.treeDur, []))
+    Fs.osShared (L := L) st.fs.roots (st.fs.treeDur, []))
 
 /-- The file extension's start resources of `[netExt, fsExt]` give `fsStartRes`
 (`Fs.fs_start` for `[fsExt]`). -/
@@ -73,19 +74,18 @@ theorem fsStartRes_of_localStart [G : GooseGlobalGS .hasLC GF] (L : GooseLocalGS
       ∃ img sz, f = Fs.OsFile.ofDisk img sz := fun i f hf =>
     let ⟨img, sz, _, e⟩ := (h.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, e⟩
   iintro Hs
-  icases kvnet_fs_localStart (L := L) w $$ Hs with Hs
+  icases kvraft_fs_localStart (L := L) w $$ Hs with Hs
   unfold Fs.osStart Fs.osStartF Fs.treeStart Fs.bytesMap Fs.metaMap
   icases Hs with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
   ihave Hfs := Fs.start_files (Fs.gooseOsGS (L := L)) hdisk $$ [Hb Hm]
   · iframe
   imod Fs.osInv_alloc (L := L) ⊤ $$ Hv with #Hinv
+  imod Fs.osSwitchKit_open (L := L) _ _ ⊤ $$ Hd with Hsh
   imodintro
   unfold fsStartRes
-  iframe Hinv
-  isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
-      (Fs.fileStart_eq (L := L) i f).1) $$ Hfs
-  · unfold Fs.osTree; iexact Hd
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (Fs.fileStart_eq (L := L) i f).1) $$ Hfs
 
 /-- **A stable machine's boot program `e`, from the local state `σ`, is safe from `P`**: under every
 local ghost state `L` whose Go context is `lctx` (the statement's, `Robust`'s `Fresh`), from `P`, its
@@ -103,8 +103,8 @@ def StableBootWp [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (e : Expr
 local ghost state `L` whose Go context is `lctx`, from `P L` and its main thread's token, it returns
 `#()` and is not stuck, and after a crash of its machine `P` holds again of the next generation `L'`,
 from `L`'s `crashed`, `L'`'s invariant of the mapped cells, the file system's crash rest (the
-restart's files and tree, `Fs.crashRest`, for some new history `V'`) and `L'`'s empty package state.
--/
+restart's files and tree, `Fs.crashRest`, for some new history `V'`), `L'`'s empty package state and a
+later credit. -/
 def CrashBootWp [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (e : Expr)
     (P : GooseLocalGS GF → IProp GF) : Prop :=
   ∀ L : GooseLocalGS GF, L.goose_go_local_context = lctx →
@@ -114,7 +114,7 @@ def CrashBootWp [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (e : Expr)
         Fs.osInv (L := L') -∗
         Fs.crashRest (fun _ _ => True) (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) [] false
           V' -∗
-        ownGoState (hG := L'.goose_go_stateGS) ∅ ={⊤}=∗ P L'
+        ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L'
 
 /-- The precondition, in `goose_dist_mixed_crash_adequacy`, of crashing machine `i` in the generation
 `L`: some predicate `Q` for which its boot program is safe in every generation (`CrashBootWp`), and
@@ -200,7 +200,7 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
   · -- the global setup, every crashing machine's first generation, every stable machine's WP
     intro G HN
     iintro Hg
-    ihave Hnet := kvnet_net_globalStart g.globalWorld $$ Hg
+    ihave Hnet := kvraft_net_globalStart g.globalWorld $$ Hg
     ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
     imod Hstart (by omega) $$ Hs with ⟨%Pc, %Ps, %HPc, %HPs, Hc, Hst⟩
     imodintro
@@ -223,12 +223,12 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
     imod HQ (e', σ') Hes L hL $$ HQL Htok with ⟨Hwp, Hcr⟩
     imodintro
     iframe Hwp
-    iintro %L' Hcrd Hcs Hgs _
-    icases kvnet_fs_crashStart L L' $$ Hcs with Hcs
+    iintro %L' Hcrd Hcs Hgs Hlc
+    icases kvraft_fs_crashStart L L' $$ Hcs with Hcs
     unfold Fs.osCrashStart
     icases Hcs with ⟨Hv, %V', Hr⟩
     imod Fs.osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
-    imod Hcr $$ %L' %V' Hcrd Hinv Hr Hgs with HQL'
+    imod Hcr $$ %L' %V' Hcrd Hinv Hr Hgs Hlc with HQL'
     imodintro
     iexists Q
     iframe HQL'

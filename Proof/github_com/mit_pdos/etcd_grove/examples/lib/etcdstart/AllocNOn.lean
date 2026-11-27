@@ -47,10 +47,11 @@ theorem sameCluster_of_gOkOn (γ : SrvRaft) (γk : KVNames) (g g' : MemberG GF)
 /-- **Every member's `memberBootOn`, from the cluster's allocation with auth on**: `memberBoots_of`
 with `memberBootOn_ofM`, at the lease mode `lm` (auth-lease S4, 2026-11-16). -/
 theorem memberBootsOn_ofM (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
-    (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (γm : mvcc.api.MvccName) (idx : w64 → srvApi.KVSNames) (cok rev reg : w64 → GName)
     (xs : w64 → GName)
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
+    (Hgen : γk.ids.gen = gen)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[], []])
     (Hvs : γ.vs = ps) (Hkc : γk.cmp = false)
@@ -60,7 +61,7 @@ theorem memberBootsOn_ofM (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
     (HΦ : ∀ id ∈ L, Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) (idx id).slog)
     (Hx : ∀ id ∈ L, xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
-      idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
+      idClusterInv issued cnt wn fs gen srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
       ([∗list] id ∈ L, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
@@ -72,33 +73,36 @@ theorem memberBootsOn_ofM (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
       ([∗list] id ∈ L, srvApi.newServerStoreFreshA (GF := GF) (idx id) ∗
         ghostMapAuth (cok id) 1 (∅ : GMap w64 mvcc.Log) ∗
         ghostMapAuth (rev id) 1 (∅ : GMap w64 Unit) ∗
-        ghostMapAuth (reg id) 1 (∅ : GMap Loc MemStorNamesRec)) ==∗
+        ghostMapAuth (reg id) 1 (∅ : GMap Loc MemStorNamesRec)) -∗
+      ([∗list] id ∈ L, idPfxInv gen (idPfxOf (W16 (uint.Z id)))) ==∗
       ∃ gs : List (MemberG GF), ⌜gs.map (·.id) = L ∧ ∀ g ∈ gs, memberGOkOn γ γk g⌝ ∗
         [∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm := by
   induction L with
   | nil =>
-    iintro #_ #_ #_ #_ #_ #_ _ _ _
+    iintro #_ #_ #_ #_ #_ #_ _ _ _ _
     imodintro
     iexists []
     isplitr
     · ipureintro; exact ⟨rfl, fun g h => by simp at h⟩
     iempintro
   | cons q L ih =>
-    iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv Hms Hws Hns
+    iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv Hms Hws Hns Hpis
+    ihave Hpis := BigSepL.bigSepL_cons.1 $$ Hpis
+    icases Hpis with ⟨#Hpi, Hpis⟩
     ihave Hms := BigSepL.bigSepL_cons.1 $$ Hms
     ihave Hws := BigSepL.bigSepL_cons.1 $$ Hws
     ihave Hns := BigSepL.bigSepL_cons.1 $$ Hns
     icases Hms with ⟨Hm, Hms⟩
     icases Hws with ⟨Hw, Hws⟩
     icases Hns with ⟨⟨Hi, Hc, Hr, Hg⟩, Hns⟩
-    imod (memberBootOn_ofM γ ps ctxs (reg q) issued cnt wn fs γk Φs q γm (idx q) (cok q) (rev q)
-        (xs (idPfxOf (W16 (uint.Z q)))) (Hx q (by simp)) Hiss Hwn Hfs Hc0 Hch Hlog Hvs Hkc
+    imod (memberBootOn_ofM γ ps ctxs (reg q) issued cnt wn fs gen γk Φs q γm (idx q) (cok q) (rev q)
+        (xs (idPfxOf (W16 (uint.Z q)))) (Hx q (by simp)) Hiss Hwn Hfs Hgen Hc0 Hch Hlog Hvs Hkc
         lm hrun hne Hklm (hpfx q (by simp)) hpo (HΦ q (by simp)))
-      $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm Hw Hg Hi Hc Hr with ⟨%ρ, %Hρ, Hb⟩
+      $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm Hw Hg Hi Hc Hr Hpi with ⟨%ρ, %Hρ, Hb⟩
     imod (ih (fun id h => hpfx id (List.mem_cons_of_mem _ h))
         (fun id h => HΦ id (List.mem_cons_of_mem _ h))
         (fun id h => Hx id (List.mem_cons_of_mem _ h)))
-      $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hws Hns with ⟨%gs, %Hgs, Hbs⟩
+      $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hws Hns Hpis with ⟨%gs, %Hgs, Hbs⟩
     imodintro
     iexists ⟨q, { γ with reg := reg q }, ρ, env₀ γm (idx q) (rev q) (srvApi.kvNx ρ.rd true)⟩ :: gs
     isplitr
@@ -160,20 +164,21 @@ theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm
   imod (srvClusterBootOn_alloc (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
       Hpsne Hnz lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
       (gpsOk_of_apart lm ids id0 hid0 hap) ns) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %Hns, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
-      Hms, Hwns⟩
-  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklm, hgp, hgps⟩ := Hγ
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %Hns, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm,
+      #Hrc, Hms, Hwns, Hpis⟩
+  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hklm, hgp, hgps, -⟩ := Hγ
+  ihave Hpis := (BigSepL.bigSepL_perm hperm).1 $$ Hpis
   have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklm ▸ h))
   ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
-  imod (memberBootsOn_ofM γ ps ctxs issued cnt wn fs γk (ΦsOf ids idx) γm idx cok rev reg (xsOf ids idx)
-      hiss hwn hfs hc0 hch hlog hvs hkc lm hrun hnx hklm hpo ids
+  imod (memberBootsOn_ofM γ ps ctxs issued cnt wn fs gen γk (ΦsOf ids idx) γm idx cok rev reg (xsOf ids idx)
+      hiss hwn hfs hgen hc0 hch hlog hvs hkc lm hrun hnx hklm hpo ids
       (fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid)
       (fun id hid => ΦsOf_at ids idx Hipnd id hid) (fun id hid => xsOf_at ids idx Hipnd id hid))
-    $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hwns Hns with ⟨%gs, %Hgs, Hbs⟩
+    $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hwns Hns Hpis with ⟨%gs, %Hgs, Hbs⟩
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
-  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), httpProtoFree (GF := GF) a $$ [Hfs]
+  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), netAddrFree (GF := GF) a ∗ httpProtoFree (GF := GF) a $$ [Hfs]
   · rw [BigSepL.bigSepL_map]; iexact Hfs
   imod (netHttp_reserveL γn (ms.map (·.2.1)) Hd0' (fun i h hm => Hhost i h (by rw [← Hγn.2]; exact hm)))
     $$ Hreg Hfs with ⟨#Hnet, Hos⟩

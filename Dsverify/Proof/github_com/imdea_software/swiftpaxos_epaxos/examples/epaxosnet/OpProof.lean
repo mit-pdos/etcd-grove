@@ -38,7 +38,7 @@ namespace examples.epaxosnet
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics] [π : NetProtoGS]
-variable [examples.epaxosnet.Assumptions] [field_sem : net.FieldAssumptions]
+variable [examples.epaxosnet.Assumptions]
 
 /-- `Close()` of a connection whose outcome nobody keeps (`net.Conn.Close.spec` by `close_au`;
 `replica/ClientListener.lean`'s `wp_connClose`). -/
@@ -106,11 +106,14 @@ theorem Op.wp_proof
   ihave #Hpoll : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
   · iPkgInit
   ihave ⟨%ed, #Hed⟩ := github_com.mit_pdos.etcd_grove.examples.net.wire.ed_of_poll $$ Hpoll
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp (opAddr c) _ _ ed iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (repDialP γ (opAddr c))
         (repAccP γ (opAddr c)) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %cv %err (⟨%Herr, %cid, #Hcv, ⟨Hend, Hfr⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-  · iframe Het Hed
+  · (try iframe HnetPk)
+    iframe Het Hed
     isplitr
     · ipureintro; exact Hok
     isplit

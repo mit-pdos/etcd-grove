@@ -14,6 +14,7 @@ public import Dsverify.Proof.raxos.examples.quepaxanet.KitAwait
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitCodecFn
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Perennial.Spec.time.Sleep
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -38,7 +39,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : raxos.examples.quepaxanet.Assumptions]
 variable [π : NetProtoGS] [qv : hyp.QpVocab GF]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 variable [_root_.Perennial.io.Assumptions]
 
 attribute [local instance] HeapGS.goose_globalGS
@@ -101,11 +102,14 @@ theorem wp_sendConf_of
   icases HEOFv with ⟨%xe, #Heof, -⟩
   icases HUEOFv with ⟨%xu, #Hueof, -⟩
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp a iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (confInProto γ) ackProto [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %cv %err (⟨%Herr, %cn, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Hok
     isplit
     · itrivial
@@ -342,7 +346,8 @@ variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
 variable [package_sem : raxos.examples.quepaxanet.Assumptions]
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `qR γ`. -/
-theorem qS_pendDec (γ : QNames) : PendDec (qR (Gg := hG.goose_globalGS) γ) (qS (GF := GF)) where
+theorem qS_pendDec (γ : QNames) : PendDec (qR (Gg := hG.goose_globalGS) γ) (qS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := by
     have h' : qOutOk ⟨(Out.mk false o.1.found o.1.v).Found', (Out.mk false o.1.found o.1.v).V'⟩ :=
@@ -357,7 +362,7 @@ theorem qS_pendDec (γ : QNames) : PendDec (qR (Gg := hG.goose_globalGS) γ) (qS
       (qDecQ_box (In.mk i.1.put i.1.k i.1.v) (Out.mk true false []) i.2 h')
   ioOk_ok i o := BI.pure_intro ⟨⟨_, rfl, i.2⟩, _, rfl, o.2⟩
   ioOk_err i := BI.pure_intro ⟨⟨_, rfl, i.2⟩, _, rfl, by unfold qOutOk; simp⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem pendCtx_qS (γ : QNames) (γp : PendNames) :
     pendCtx (Gg := hG.goose_globalGS) (qR γ) (qS0 (GF := GF)) γp =
@@ -377,7 +382,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : raxos.examples.quepaxanet.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS] [qv : hyp.QpVocab GF]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 variable [_root_.Perennial.io.Assumptions] [log.Assumptions]
 
 local notation "kpkg" => pkg_id.raxos.examples.quepaxanet
@@ -415,6 +420,9 @@ theorem Orch.wp_proof [hr : hyp.RandHyp GF]
     iPkgInit
   wp_apply wp_Model as %m #Hm
   wp_apply (codec_proof γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 20) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 6 := by
@@ -422,9 +430,10 @@ theorem Orch.wp_proof [hr : hyp.RandHyp GF]
     have : clientAddrs.length = 6 := rfl
     have h3 : ((sint.nat addrs.len : Nat) : Int) = sint.Z addrs.len := Int.toNat_of_nonneg h2
     omega
-  wp_apply wp_Check (qR γ) qS γp m addrs clientAddrs cd gen _ d pendN_raxos lintestN_raxos
-    (qS_pendDec γ) (qR_encOut_inj γ) (fun st => qR_timeless γ st) hrb (by rw [hlen']; decide)
-    (by decide) (by rw [hlen']; decide) 60 (by decide) $$ [Hlib Hbud]
+  wp_apply wp_Check (qR γ) qS γp m addrs clientAddrs cd gen (W64 1 + x) d pendN_raxos
+    lintestN_raxos (qS_pendDec γ) (qR_encOut_inj γ) (fun st => qR_timeless γ st) hrb
+    (by rw [hlen']; decide) (by word) (by rw [hlen']; word) 60 (by simp only [readTries]; word)
+    $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     simp only [qR]; iexact Hgen

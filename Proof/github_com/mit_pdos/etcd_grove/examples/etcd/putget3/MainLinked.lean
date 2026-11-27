@@ -6,6 +6,7 @@
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -38,12 +39,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Ass
 /-- **putget3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Main.lean`), under the semantic premises of
 its callees' linked results (putget's). -/
-theorem etcd_putget3.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    :
+theorem etcd_putget3.wp_Main :
     etcd_putget3.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget3.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartMember etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds
+    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

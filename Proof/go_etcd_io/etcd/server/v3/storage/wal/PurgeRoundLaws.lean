@@ -104,7 +104,7 @@ section triple
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [sem : go.Semantics] [os_sem : os.Assumptions]
 
 /-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the claim's
 resources lent and given back, the inode `i` (`walOpen_triple`'s statement). -/
@@ -114,15 +114,16 @@ theorem purge_openTriple (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
     fileutil.OpenTriple (X := Unit)
-      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
+      (iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (child d b) flag (W32 384)
       (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (fun _ i' => i' = i) := by
   unfold fileutil.OpenTriple
-  iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
+  iintro %Φ ⟨#Hospkg, #Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
   wp_apply os.OpenFile.wp_fileS d b flag (W32 384) R j i N dq dqn h qc hfl htr hb hN hi
     $$ [Hp Hn Hperm] as %f %err ⟨Hp, Hn, Hperm, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iunfold fileutil.openPost
   iexists ()

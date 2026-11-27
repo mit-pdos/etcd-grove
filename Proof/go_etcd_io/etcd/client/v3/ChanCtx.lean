@@ -149,7 +149,7 @@ theorem canceledOk_of_init
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := client.clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
     ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat
-    EtcdGrove.errorString_errorSig $$ Hm
+    EtcdGrove.errorString_errorSig (go_etcd_io.etcd.cache.v3.stTypedErr_ptr _ hl.1) $$ Hm
   isplitr
   · ipureintro; exact ⟨nofun, Hc⟩
   iframe Hs
@@ -165,7 +165,7 @@ theorem canceledOk_of_init
 /-- **A `channelContext` over a broadcast channel is a context the client takes** (see the file
 header): `ctxOk` (its third case, `ctxErrs`: since premise fixes 5 also `Done()`, which returns
 `sc`, whose done flag is `chanCd γi`'s closed flag) and `ctxErrClient`, at `chanCd γi`. -/
-theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+theorem chanCtx_ok
     [wait_sem : k8s_io.apimachinery.pkg.util.wait.Assumptions]
     (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))

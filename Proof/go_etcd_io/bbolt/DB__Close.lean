@@ -221,7 +221,7 @@ theorem DB.Close.wp_proof
   iunfold dbPathLk at Hpath
   icases Hpath with ⟨Hpath, Htok⟩
   iunfold fileOwn at Hfo
-  icases Hfo with ⟨%inner, #Hfi, Hfdf, #Hfnm⟩
+  icases Hfo with ⟨%inner, #Hfi, Hfdf, #Hfnm, #Hfnmb, #Hapf, #Hsysf⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hfi with ⟨-, %hfnn⟩
   ihave Hfo : fileOwn (GF := GF) w.f w.fd p.path (DFrac.own 1) $$ [Hfdf]
   · iunfold fileOwn; iexists inner; iframe; iframe #

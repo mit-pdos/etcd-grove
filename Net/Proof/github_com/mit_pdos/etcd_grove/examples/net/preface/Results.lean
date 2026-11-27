@@ -45,6 +45,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk.PkgTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomLinked
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
@@ -128,7 +129,7 @@ than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 proof does not need it. -/
 theorem preface_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_s : cmd.server.Assumptions] [package_c : cmd.client.Assumptions]
-    [package_j : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [package_j : cmd.junk.Assumptions] [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -241,11 +242,11 @@ theorem preface_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
             γm) $$ [] Hgs
         iframe Hinvs Hplan
       · iapply wp_bootOf _ _ _ _ _ (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf)
-          (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.client.wp_main wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
       · iapply wp_bootOf _ _ _ _ _ (cmd.junk.wp_initialize' _ cmd.junk.getIsPkgInit_wf)
-          (cmd.junk.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.junk.wp_main wire.wp_RandomInt wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent
@@ -278,7 +279,7 @@ thread bound `n + 2`, which an execution of `n` steps from single threads respec
 checked by `decide` on a concrete plan, as below). -/
 theorem preface_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_s : cmd.server.Assumptions] [package_c : cmd.client.Assumptions]
-    [package_j : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [package_j : cmd.junk.Assumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

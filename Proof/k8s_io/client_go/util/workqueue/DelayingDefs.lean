@@ -308,7 +308,7 @@ theorem Time.wp_ptr_After_dq (l : Loc) (t u : time.Time) (dq : DFrac) :
     {{ (b : Bool), RET #b; l ↦{dq} t }} := by
   wp_start as Hl
   wp_auto
-  wp_apply time.Time.wp_After as %b -
+  wp_apply time.Time.wp_After
   iapply HΦ $$ Hl
 
 /-- `(*Time).Before` on `*l`: some `bool`. -/
@@ -318,7 +318,7 @@ theorem Time.wp_ptr_Before_dq' (l : Loc) (t u : time.Time) (dq : DFrac) :
     {{ (b : Bool), RET #b; l ↦{dq} t }} := by
   wp_start as Hl
   wp_auto
-  wp_apply time.Time.wp_Before as %b -
+  wp_apply time.Time.wp_Before
   iapply HΦ $$ Hl
 
 /-- `(*Time).Sub` on `*l`: some duration. -/

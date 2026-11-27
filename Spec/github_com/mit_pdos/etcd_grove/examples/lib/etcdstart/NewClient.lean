@@ -5,8 +5,8 @@ examples' client configuration, etcdctl's timeouts and keepalive, the default re
 `clientv3.New(Config{Endpoints: {addr}, Logger: lg})` inline). Lean-first (no Rocq counterpart).
 
 **The triple:** `NewClients.spec` at the one-element slice (`plainEndpoints` of it from the plain
-endpoint): a new client of `[addr]` at the watch environment `V`, the caller's choice, or an error
-and `nil`.
+endpoint): a new client of `[addr]` at the watch environment `V`, the caller's choice, that dials
+with no proxy (`clientNoProxy`, since 2026-11-24), or an error and `nil`.
 -/
 module
 
@@ -32,16 +32,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 /-- See the file header. -/
 abbrev NewClient.spec : Prop :=
   ∀ (addr : GoString) (lg : Loc) (V : client.WEnv GF),
-  plainEndpoint addr → threadBound GF ≤ 2 ^ 31 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
-      zapLoggerOk lg }}
+  plainEndpoint addr → threadBound GF ≤ 2 ^ 30 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗ levelTok 0 ∗ (-- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient))
       (Val #addr)) (Val #lg))
-  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗
-        clientTokAt cl [addr] (fun _ => iprop(False))) ∨
-      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
+  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗
+        clientTokAt cl [addr] (fun _ => iprop(False)) ∗ clientNoProxy cl) ∨
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 end spec
 

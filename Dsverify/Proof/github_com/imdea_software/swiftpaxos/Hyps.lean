@@ -2,7 +2,8 @@
 **The library hypotheses** (notes/dsv-swiftpaxos.md, "Hypotheses"): the specs of the libraries the
 swiftpaxos proof uses that have no proof here, one field each of `SwiftHyps`, named after the lab's
 theorem it stands for; and, below, the lab's theorem names restated from the fields (as `X.wp_hyp` where the lab had `X.wp_proof`, so that this stays a defs module for the import tiers), so that the
-ported proof reads as the lab's (`bufio.wp_ReadFull`, `treemap.Map.wp_Put`, …). A proof that uses one
+ported proof reads as the lab's (`bufio.wp_ReadFull`, …; gods' treemap is verified, its lab names
+in `state/Results.lean`). A proof that uses one
 has `[SwiftHyps netDistGF]` among its variables; `swiftpaxos_remote_robust` takes `SwiftHyps` at
 every heap.
 
@@ -10,6 +11,9 @@ every heap.
 states (`SwiftNetPkgState`, which holds the libraries' representation predicates, `SwiftLibs`);
 each field quantifies over the packages' `Assumptions` it needs. The gob specs are over the real
 `encoding/gob`'s format, `sp.GobFmt` (a parent of `SwiftLibs`).
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `SwiftHyps` and `SwiftOsRandom` are proved (`HypsHoldLinked.lean`) from trust-boundary axioms over the fixed vocabulary `encoding.gob.swiftLibsOf` (`Dsverify/Proof/encoding/gob/`, `Dsverify/Proof/github_com/google/uuid/{New,UUID__ID}.lean`).
 -/
 module
 
@@ -40,16 +44,6 @@ namespace github_com.imdea_software.swiftpaxos
 /-- The library hypotheses: see the file header. -/
 class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
     [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  /-- lab `Proof/treemap/NewWith.lean` `treemap.NewWith.wp_proof`: the shared spec
-  (Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean) over the kit's `isTreeMap` -/
-  treemap_NewWith : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF) isTreeMap
-  /-- lab `treemap.Map.Put.wp_proof` -/
-  treemap_Put : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.Map.Put.spec (GF := GF) isTreeMap
-  /-- lab `treemap.Map.Get.wp_proof` -/
-  treemap_Get : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF) isTreeMap
   /-- lab `Spec/gob/NewEncoder.lean` `encoding.gob.NewEncoder.wp_proof`, over the real gob
   (`sp.GobFmt`; Spec/encoding/gob/Defs.lean) -/
   gob_NewEncoder : ∀ [examples.swiftnet.Assumptions], encoding.gob.NewEncoder.spec (GF := GF)
@@ -67,10 +61,12 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
 `crypto/rand.Reader` does not fail, so `uuid.New()` (`Must(NewRandom())`, which panics when it
 fails) returns (`lib/LibSpecs.lean`, `github_com.google.uuid.New.spec`, lab `uuid.wp_New`). A
 premise of `swiftpaxos_remote_robust` beside the library hypotheses and `os.signal.NoSignals
-usr1Sigs`, kept apart from them. -/
+usr1Sigs`, kept apart from them, until dsv-fix4; proved since dsv-retire-2 (#49 step 2) from uuid's
+translation (its model `models/uuid`, whose premise is that `crypto/rand.Reader` is never reassigned
+and not boringcrypto's: `Dsverify/Proof/github_com/google/uuid/New.lean`). -/
 class SwiftOsRandom [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
     [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  uuid_New : github_com.google.uuid.New.spec (GF := GF)
+  uuid_New : ∀ [github_com.google.uuid.Assumptions], github_com.google.uuid.New.spec (GF := GF)
 
 end github_com.imdea_software.swiftpaxos
 
@@ -100,16 +96,6 @@ theorem wp_ReadByte_wf : Reader.ReadByte_wf.labSpec (GF := GF) := Reader.ReadByt
 
 end bufio
 
-namespace github_com.emirpasic.gods.maps.treemap
-variable [treemap.Assumptions]
-theorem wp_NewWith : NewWith.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
-  h.treemap_NewWith
-theorem Map.wp_Put : Map.Put.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
-  h.treemap_Put
-theorem Map.wp_Get : Map.Get.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
-  h.treemap_Get
-end github_com.emirpasic.gods.maps.treemap
-
 namespace encoding.gob
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
 theorem NewEncoder.wp_hyp : NewEncoder.spec (GF := GF) := h.gob_NewEncoder
@@ -119,7 +105,8 @@ theorem Decoder.Decode.wp_hyp : Decoder.Decode.spec (GF := GF) := h.gob_Decode
 end encoding.gob
 
 namespace github_com.google.uuid
-theorem wp_New [hr : github_com.imdea_software.swiftpaxos.SwiftOsRandom GF] : New.spec (GF := GF) :=
+theorem wp_New [hr : github_com.imdea_software.swiftpaxos.SwiftOsRandom GF] [github_com.google.uuid.Assumptions] :
+    New.spec (GF := GF) :=
   hr.uuid_New
 theorem wp_ID [github_com.google.uuid.Assumptions] : UUID.ID.spec (GF := GF) := h.uuid_ID
 end github_com.google.uuid

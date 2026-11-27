@@ -11,6 +11,7 @@ transport's directory bound for up to `1000` members by `rafthttp.bootCfg_of_le`
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run
@@ -54,18 +55,18 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
 
 /-- **authlease's `newUserClient`** (authN's copy), over `clientv3.New`. -/
-theorem etcd_authlease.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authlease.wp_newUserClient :
     etcd_authlease.newUserClient.spec (GF := GF) (hG := hG) :=
   etcd_authlease.newUserClient.wp_proof client.v3.clientv3.wp_New
 
 /-- **authlease's `barrier`**: root's linearizable read at a member. -/
-theorem etcd_authlease.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authlease.wp_barrier :
     etcd_authlease.barrier.spec (GF := GF) (hG := hG) :=
   etcd_authlease.barrier.wp_proof etcd_authlease.wp_newUserClient context.wp_ErrAny
     etcd_auth.context.wp_WithTimeoutBackground
 
 /-- **authlease's `barriers`**: the barrier at every member. -/
-theorem etcd_authlease.wp_barriers [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authlease.wp_barriers :
     etcd_authlease.barriers.spec (GF := GF) (hG := hG) :=
   etcd_authlease.barriers.wp_proof etcd_authlease.wp_barrier
 
@@ -102,8 +103,7 @@ theorem etcd_authlease.wp_foreign [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 /-- **authlease's `run`** (`run.lean`), over authkv's linked `SetUp` (`auth/Link.lean`) and the per-member
 lessor law. -/
-theorem etcd_authlease.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authlease.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_authlease.run.spec (GF := GF) (hG := hG) :=
   etcd_authlease.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_authlease.wp_newUserClient etcd_authlease.wp_barriers
@@ -114,15 +114,15 @@ theorem etcd_authlease.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_i
 
 /-- **authlease's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/Main.lean`). -/
-theorem etcd_authlease.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authlease.wp_Main :
     etcd_authlease.Main.spec (GF := GF) (hG := hG) :=
   etcd_authlease.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     (etcdstart.StartMembersAuth.wp_proof (etcdstart.StartMemberAuth.wp_proof
-      etcdstart.features.wp_NewDefaultServerFeatureGate server_new_auth_on etcdstart.net.wp_Listen
+      etcdstart.features.wp_NewDefaultServerFeatureGate server_new_auth_on etcdstart.net.wp_ListenHttp
       EtcdServer.wp_RaftHandler server_Start)) etcd_authlease.wp_run
     (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
     mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

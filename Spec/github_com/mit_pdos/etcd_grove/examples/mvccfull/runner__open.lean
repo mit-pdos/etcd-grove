@@ -47,14 +47,14 @@ abbrev runner.open.spec : Prop :=
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   let σ := σOf ks ops n
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗
-      envVerifyOff ∗ threadTok ∗ histRd h γh ∗ monoListLbOwn γh.l (histAt ks ops n) ∗
+      ⌜EtcdVerifyOff⌝ ∗ threadTok ∗ histRd h γh ∗ monoListLbOwn γh.l (histAt ks ops n) ∗
       mF go!"id" mp ↦□ (W64 (i : Int)) ∗ mF go!"hook" mp ↦□ f ∗ hookOk mp f ∗
       mF go!"path" mp ↦ path ∗ mF go!"be" mp ↦ obe ∗ mF go!"le" mp ↦ ole ∗ mF go!"kv" mp ↦ okv ∗
       mF go!"rev" mp ↦ (W64 (revAfter ks ops n : Int)) ∗ mF go!"cmp" mp ↦ (W64 (cmpAfter ks ops n)) ∗
       (∃ sl : GoSlice, mF go!"leases" mp ↦ sl ∗ sl ↦* leasesAfter ks ops n ∗
         ownSliceCap w64 sl (DFrac.own 1)) ∗
       backend.fileHolds path D ∗ mvccImage D σ.log σ.crev u ∗
-      ⌜leaseRecsOk (backend.rbData (mvccrand.rcP (limOf cfg)) D) (leasesAfter ks ops n)⌝ ∗
+      ⌜leaseRecsOk (backend.rbData (mvccfull.rcP (limOf cfg)) D) (leasesAfter ks ops n)⌝ ∗
       memberCarry ks γh mp m σ b Hl ∗ ghostVar m.σ (1 : Qp).half σ ∗ ghostVar m.bnd (1 : Qp).half b }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"open") (Val #mp))
   {{ RET #(); threadTok ∗ histRd h γh ∗

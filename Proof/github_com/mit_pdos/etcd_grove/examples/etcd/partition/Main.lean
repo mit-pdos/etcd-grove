@@ -9,7 +9,7 @@ clients at a watch environment `Main` never uses); the partitioner forked on the
 member's `srvNetMember`, every bridge owned and not blackholed); the instance's invariant at the
 cluster's start store (linkvtxn's `linkvInv_alloc_boot`, at the first member's names, the others'
 by `linkvInv_congr`), so each client has linkvtxn's `Apply.spec`'s premises (`clientOk`: the three
-members at their bridges' addresses, each member's registrations through `cluster3.isGrpcRpc_forwards`);
+members at their bridges' addresses, each member's registrations at its bridge's address, `cluster3.memberRegs`);
 `Check(clis, clients, ops, 0)`, which returns `Ok` (`timeout = 0`), so the panic on `Illegal` is
 not taken. A failed start ends `Main` with `Unknown`.
 -/
@@ -37,7 +37,7 @@ namespace EtcdGrove
 namespace etcd_partition
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcd_putget3 (httpURL commonPremises)
+open etcd_putget3 (httpURL)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -54,7 +54,7 @@ theorem Main.wp_proof
     (wp_partitioner : cluster3.Partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
+  intro CS N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
     Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -88,9 +88,22 @@ theorem Main.wp_proof
     %Hal⟩
   obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -, -⟩
+  icases Hm₁ with ⟨#Hmb₁, %Hb₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hmb₂, %Hb₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hmb₃, %Hb₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -, -⟩
+  -- (phase 7's switch, SW1) each member's registrations at its bridge's address
+  iunfold cluster3.memberRegs at Hmb₁
+  icases Hmb₁ with ⟨#Hsb₁, #Hwb₁⟩
+  isimp only [cluster3.servedRegs, etcdstart.etcdKVAt_eq] at Hsb₁
+  icases Hsb₁ with ⟨#BPut₁, #BRange₁, #BDel₁, #BTxn₁, #BCmp₁⟩
+  iunfold cluster3.memberRegs at Hmb₂
+  icases Hmb₂ with ⟨#Hsb₂, #Hwb₂⟩
+  isimp only [cluster3.servedRegs, etcdstart.etcdKVAt_eq] at Hsb₂
+  icases Hsb₂ with ⟨#BPut₂, #BRange₂, #BDel₂, #BTxn₂, #BCmp₂⟩
+  iunfold cluster3.memberRegs at Hmb₃
+  icases Hmb₃ with ⟨#Hsb₃, #Hwb₃⟩
+  isimp only [cluster3.servedRegs, etcdstart.etcdKVAt_eq] at Hsb₃
+  icases Hsb₃ with ⟨#BPut₃, #BRange₃, #BDel₃, #BTxn₃, #BCmp₃⟩
   obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- `go cluster3.Partitioner(srvs, brs, sched)`: every member's place in the network
   ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, etcdstart.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
@@ -149,38 +162,38 @@ theorem Main.wp_proof
     isplitr
     · iunfold EtcdGrove.client.kvRegsAt
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
+      · iexact BPut₁
       isplitr
-      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₁ HRange₁]; iframe #
+      · iexact BRange₁
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
+      · iexact BDel₁
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
-      iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HCmp₁]; iframe #
+      · iexact BTxn₁
+      iexact BCmp₁
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iunfold EtcdGrove.client.kvRegsAt
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
+      · iexact BPut₂
       isplitr
-      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₂ HRange₂]; iframe #
+      · iexact BRange₂
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
+      · iexact BDel₂
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
-      iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HCmp₂]; iframe #
+      · iexact BTxn₂
+      iexact BCmp₂
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iunfold EtcdGrove.client.kvRegsAt
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
+      · iexact BPut₃
       isplitr
-      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₃ HRange₃]; iframe #
+      · iexact BRange₃
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
+      · iexact BDel₃
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
-      iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HCmp₃]; iframe #
+      · iexact BTxn₃
+      iexact BCmp₃
     iapply BigSepL.bigSepL_nil.2
     itrivial
   ihave #Hinvs : ([∗list] sv ∈ ms, etcd_txnlin.linkvInv γl sv.γr.kv) $$ []
@@ -194,12 +207,6 @@ theorem Main.wp_proof
     itrivial
   -- (D29) the bridges' addresses are refusal-free, as their members' are: every client's writes
   -- are sent at most once, whatever its retry bound
-  ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
-  ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
-  ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha

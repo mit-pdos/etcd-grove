@@ -6023,6 +6023,9 @@ apply→request handoff is a transfer (the apply thread never touches `ar.Trace`
 `Trigger`).
 
 `LogWithStepThreshold` stays at the trust boundary (`fmt` of `any`/`Duration`, `rand`, zap).
+(*Superseded* 2026-11-23, traceutil-log: proved over Perennial's `fmt`, `strings`, `time` and a
+`rand.Int31` trust-boundary spec; its subtrace merge's aliasing is handled by owning regions,
+`traceutil/LogLemmas.lean`.)
 `InsertStep` (an overlapping `append`) was too until unit P4, which proved it over a lemma of this
 repository, `wp_slice_append_shift` (`traceutil/SliceShift.lean`: `append(s[:a+1], s[a:]...)`
 from Perennial's `wp_slice_copy_within` and `wp_slice_copy`; no Perennial change).
@@ -14699,6 +14702,8 @@ one index") is gone with the single deposit.
 
 ## D26: the bridge is part of the network: trust-boundary specs, its code not verified (2026-10-21 · decided by the user; `notes/client-cut-plan.md` K1)
 
+*Superseded in part* (2026-11-24): `bridge.New`'s spec also consumes `netAddrLeft a` ("`bridge.New` consumes what sets the bridged address's protocols", below).
+
 **Problem.** linkv3p's clients reach their members through a copy of etcd's test bridge
 (`third_party/bridge`): a TCP proxy that accepts at a bridge address `a`, dials the member's client
 address `b` once per accepted connection, and copies bytes both ways, or drops them (`Blackhole`),
@@ -14936,6 +14941,10 @@ wrapper over its KV service, and the gRPC server `gs` with the KV registrations 
 at `addr`, the facts `etcd_kv_started` takes. `errDesc`, `refusalDescs` and `noRefusal` are in
 `Proof/go_etcd_io/etcd/cache/v3/Base.lean`, beside `statusErrOk`, and `noRefusalAt` is in
 `InvGrpc.lean`.
+
+*Superseded in part (2026-11-24): the premises `gs` and the listener did not tie `addr` to the server;
+the axiom now takes the server listening at `addr` (`grpcAddrIs`, `grpcSrvCfg`), see "`etcd_noRefusal`
+over the server listening at the address".*
 
 **What it buys.** The client proves (R4): `isSafeRetry`, `isSafeRetryMutableRPC` and
 `shouldRefreshToken` return `true` for a `nonRepeatable` call only on a refusal. So on a
@@ -38525,6 +38534,8 @@ removes one of clause (3)'s writers; no file R1-4a edits is re-translated.
 
 ## Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off (`verifyEnvOff`, `envVerifyOff`) (2026-11-08 · sweep repairs 1, R1-4b: W5 + B4; the Scope (revision 3) approved by etcd-grove-81/82, narrowing (b) approved by the user via etcd-grove-82 · branch `sweep-repairs-1`)
 
+*Superseded in part (its B4 half: `verifyEnvOff`, `envVerifyOffTok`, `envVerifyOff`, `goose_adequacy_start`'s `hEnv`) by "`ETCD_VERIFY` as an environment premise over its value" (2026-11-25).*
+
 **W5, the defect.** `goose_adequacy_start` handed out `netAddrFree a`/`httpProtoFree a` per string,
 and `addrsUnclaimed` was per string, while Go binds and dials sockets: `localhost:p` resolves (to
 `127.0.0.1` or `[::1]`), a dial of it can reach a listener bound at `[::1]:p`, and a wildcard bind
@@ -41118,7 +41129,7 @@ echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
   plan).
 - **The kit deployment premise** `KitDeploy` (`Net/Statement/KitDeploy.lean`, trusted, a neutral
   module for the export) is data about `g` and the machines' initial local states, in the style of
-  kvnet's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
+  kvraft's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
   connection, machine `i` on `hosts[i]` (its net-extension local state), no listener. Generic over
   the extensions (`[HasExt netExt]`), so a kit with files states the same premise. `Robust`'s own
   premise (`Fresh`: the Go context, no package initialized, one thread) is not repeated. No
@@ -41321,6 +41332,8 @@ name's validity.
 
 ## `ETCD_VERIFY` read through `os.Getenv`'s spec, not assumed per check (2026-11-20 · the coordinator's group `etcdstorage` · branch `prove-etcdstorage/2026-11-20`)
 
+*Superseded in part (`os.Getenv`'s post and the token `envVerifyOff`) by "`ETCD_VERIFY` as an environment premise over its value" (2026-11-25).*
+
 Sweep repairs 1 (B4) gave each of etcd's `ETCD_VERIFY` checks (`backend.ValidateCalled{Inside,OutSide}Apply`,
 `ValidateCalledInsideUnittest`, `VerifyBackendConsistency`) an axiom taking the token `envVerifyOff`;
 `verify.Verify` was an axiom too.
@@ -41338,7 +41351,7 @@ and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is 
 
 ## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
 
-**Context.** kvnet's top-level theorem (`notes/kvnet-robust-goal.md`, branch
+**Context.** kvraft's top-level theorem (`notes/kvraft-robust-goal.md`, branch
 `worktree-kvnet-toplevel-statement`) is `Robust` over the fixed extensions `[Net.netExt, Fs.fsExt]`
 and mentions no plan, no hosts and no network premises but that the replicas' addresses are valid
 (`Net.addrOk`) and distinct. v3.3's network carried the deployment's plan (address -> host) and
@@ -41488,11 +41501,11 @@ for `Listen`, and the recovery wand made at boot needs it too; Perennial-Lean ha
 Pending connections are keyed by address, not by listener or incarnation (`wire.addrInv`,
 `Proto.addrInvP`), so a restarted node's `Accept` takes the deposits made for a crashed one (D7).
 
-**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvnetExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
+**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvraftExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
 semantics, interpretation and crash interpretation are Perennial's `ExtTuple` of each extension's
-own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projections of the start and
-crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
-(`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
+own. It also has: both `HasExt` instances, `kvraftGF`/`kvraftGpreS`, the projections of the start and
+crash resources onto each extension's, and `kvraft_dist_crash_adequacy`
+(`goose_dist_crash_adequacy` at `kvraftGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
 ## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
 
@@ -41711,7 +41724,7 @@ uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progres
 
 ## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
 
-`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvraft-proof-plan.md`
 decision A. A replica killed at any instruction must leave its id restartable.
 
 **Ghost state.**
@@ -41762,7 +41775,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## Raft's cluster vocabulary independent of machine and generation (2026-11-21 · the coordinating session · branch `raft-cluster-global`)
 
-**Decision.** kvnet's decision B, option 3 of `notes/raft-cluster-global.md`:
+**Decision.** kvraft's decision B, option 3 of `notes/raft-cluster-global.md`:
 - The node-level predicates take an opaque node handle `nh : NodeH` (location and names), which
   `StartNode`/`RestartNode` return.
 - The node table (`nodeTabInv`: a ghost map from node locations to names, with `n ↦□` for each)
@@ -41784,7 +41797,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 **Why.**
 - `isCluster` must be allocated in `goose_dist_mixed_crash_adequacy`'s `Hstart` and held by
-  kvnet's checking client on another machine.
+  kvraft's checking client on another machine.
 - A global node table cannot keep the heap facts its freshness needs: they are each generation's.
   Keyed by address, it also breaks when a restarted heap reuses one.
 
@@ -41833,7 +41846,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## A crash may enter a pending batch: `readyEnter` as live ∧ crash (2026-11-22 · branch `raft-crash-enter`)
 
-**Need.** kvnet's write has two durability points, so after a crash in its window the restarted node may find
+**Need.** kvraft's write has two durability points, so after a crash in its window the restarted node may find
 the batch's state on disk. Raft must then let the crash enter the batch as well as discard it (`nodeCrash`).
 
 **Choice.** `readyEnter := readyEnterLive ∧ readyEnterCrash`, an additive conjunction over the hand-out's
@@ -41897,10 +41910,10 @@ Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge
 - The obligations quantify over the local ghost state `L` (the WP at `⟨G, L⟩`), not over a `HeapGS` with an
   equation on its global part as `KitBootWp` does; a proof substitutes `lctx` by `L`'s context and never
   destructures `GooseLocalGS` positionally (Perennial's `local-names` adds a field).
-- The file system in its legacy mode at the plain semantics (`kvnetExts`): the shared mode needs each
+- The file system in its legacy mode at the plain semantics (`kvraftExts`): the shared mode needs each
   generation's start to reach the extension's local interpretation, which Perennial's distributed theorem
   does not give (`notes/perennial-changes.md`, 2026-11-22). Recorded, not worked around: D4's call.
-- The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
+- The minimal instance is echo (server crashing, client stable, over `kvraftExts`), since echo's proofs are
   over any extensions with the net extension: only the boot programs (a program's syntax is over its
   extension list) and `wp_boot` are restated.
 
@@ -41915,6 +41928,126 @@ Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge
 `robust_of_distBoot`/`robust_of_distProto` (`…RB`), and echo's instance `echo_kit_robust` →
 `echo_dist_robust`. Statements, definitions and axioms unchanged. Older entries keep the old names;
 prose about the lab's own kits (its examples, "phase 6's kits") keeps the word.
+
+## prometheus's default registry as a Go model on the heap; `collectorName` over an opaque `collectorDescs`; `PromRegGS` per run (2026-11-22 · branch `prom-registry`; the user's decision on mit-pdos/etcd-grove#15)
+
+**Decided by the user:** replace the registration axioms (`nameFree`, `MustRegister`, `Register`, the
+start rights' names, D16/D19d) by a trusted model of client_golang's default registry on the Go heap,
+so that a crash resets it through the crash adequacy, with no new axiom. **The agent's choices within
+it** (`notes/prom-registry.md` is the full design and plan):
+
+- **The model is Go, translated and verified** (`examples/lib/promreg`, goose project `promreg`), and
+  only a thin glue is trusted (`TrustedCode/github_com/prometheus/client_golang/prometheus.lean`:
+  `Register`, `MustRegister`, `defaultRegistry`'s initializer, `init.0`). Alternatives: (1) a GooseLang
+  model written by hand in `TrustedCode` with a trusted struct layout (as `os`'s `file`): all of
+  `Register`'s logic trusted, and a layout class to state by hand; (2) a model in `models/` (module
+  `models.lab`): its Lean is the part `Net/`, which the main tree does not import. A package of the
+  examples' module, as `examples/lib/durable`, keeps the model in the main tree, testable against
+  the real client_golang in the same module (`model_test.go`).
+- **`collectorName` stays, as a definition over an opaque operation.** The collectors are made by
+  names-only constructors (axioms, which stay), and `Desc`, `Registry` and the collector types are
+  opaque in the translation, so no model can read a descriptor's ID from the heap: something must say
+  what a constructed collector describes, and the constructors' specs already do (`collectorName c n`).
+  The glue's `collectorDescs` (an `opaque val`) is the model's reading of `c.Describe`, and
+  `collectorName c n` becomes the pure statement that, in every instance of the logic, it returns `n`'s
+  one descriptor. Rejected: a trust-boundary spec of `Describe` (a new axiom, which the decision
+  excludes); translating `Desc` and the collectors (their fields name `client_model`'s types: the
+  constructors' axioms would then have to describe heap layouts).
+- **The ghost name is a typeclass instance of the run** (`PromRegGS`, as `WalGS`), allocated by the
+  closed theorem's proof in the universal camera (`AllG`): `nameFree n` cannot name a ghost name
+  stored with the registry (Perennial has no location metadata, `meta`), and a name allocated by the
+  initializer could not be the one the earlier-allocated rights (`ownInitResL`'s list) refer to.
+  The tokens are a ghost map's exclusive elements of the IDs (finite: only the program's names and the
+  builtins are allocated), so `descIdsDistinct` is what splitting them needs, as today.
+- **Why the per-run ghost name is sound across crashes** (the coordinator's request, 2026-11-22):
+  1. *Fresh in every run, by a proof step, not an axiom.* Each run's WP proof (the closed theorem's
+     `Hwp`, under `goose_adequacy*` or a crash adequacy's per-generation WP) allocates a new ghost map
+     in the universal camera (`own_alloc`, `promReg_alloc`) and makes it that run's `PromRegGS`
+     instance. No axiom produces a `PromRegGS`, a token or a `nameFree`: every `nameFree n` of a run is
+     an element of that run's map.
+  2. *Where the rights are before initialization.* The allocation gives, for the run's map `γ`, the
+     exclusive elements of the builtin IDs (`builtinToks`) and of the program's names' IDs
+     (`namesFree Ns`). The init chain carries them (`ownInitResL`): prometheus's entry `builtinToks`,
+     each registering package's `namesFree regNames`. The authority of `γ` and the builtin elements
+     go into the registry invariant when prometheus's initializer runs: `defaultRegistry.init`
+     allocates the heap registry (a fresh `promreg.Registry` at a location of this run's heap) and
+     `init.«0»`'s seeding puts the builtin elements under its mutex. A package's registration moves
+     its element into the invariant.
+  3. *The invariant ties this run's `γ` to this run's heap registry*: `isPkgInit prometheus` is
+     `∃ l, globalAddr defaultRegistry ↦□ l ∗ promreg.isRegistry l γ`, with `γ` the instance's; the
+     mutex invariant owns the maps of `l` and the elements of every ID registered in them.
+     `MustRegister`'s proof combines a `nameFree n` of `γ` with that invariant: the element held twice
+     would be invalid, so `descId n` is not registered in `l`.
+  4. *So a `nameFree` from a crashed run is useless in the next one.* Carried through a crash frame,
+     it is an element of the old run's map `γ₀`; the new run's specs ask for an element of its own
+     `γ₁` (its instance), and nothing converts one into the other. Its registry is a new heap (the
+     crash adequacy's next generation starts from `ownGoState ∅` and an empty heap) built by the new
+     run's initializer, whose invariant names `γ₁`. Double registration across runs is impossible in
+     Go anyway (the registry is process memory), and the logic now says the same without an axiom.
+
+## prometheus's registry: the closed theorems take `promreg.Assumptions`; the rights read the run's name themselves (2026-11-22 · branch `prom-registry`; the user's decision on the blocker, option 1)
+
+**Supersedes in part** the entry above: its third bullet (`PromRegGS`, a typeclass instance of the run) and
+the `builtinToks` of its second point.
+
+**Decided by the user** (kaashoek, 2026-11-22, `notes/prom-registry.md` "Stage 4 started", option 1): the
+glue resolves the model's functions by name (`FuncResolve promreg.NewRegistry`, `MethodResolve
+*promreg.Registry "Register"`), which only `promreg.Assumptions` unfolds, and client_golang does not import
+the model, so `prometheus.Assumptions` does not give it. **Every closed theorem that reaches prometheus
+gains one instance argument, `[promreg_sem : promreg.Assumptions]`**, as they already take `mvcc_sem`,
+`srv_sem`, `cache_sem` for packages their `main` does not import; so do the generated `Init`/`InitLinked`/
+`PkgTable` (`etc/gen-init.py`: `PROMREG_VAR` in every file whose closure has the model), the `Link`s
+(`etc/gen-link.py`) and the generic start theorems between. It is satisfiable (the names are the model's own
+package path, which no other code declares) and is what the trusted model means: the semantics' function
+table holds the model's code. Rejected: (2) client_golang's own names as the model's trusted bodies (the
+verified model would become trusted Lean); (3) a translator option adding an import edge (a Perennial
+change, not available now).
+
+**The agent's choices within it:**
+- **No per-run instance: a right reads the run's ghost name itself.** With Perennial's per-generation name
+  supply (`localName`, perennial#681, manifest `local-names-c14`), `promreg.idTok k` is `⌜k ∉ builtinKeys⌝ ∗
+  ∃ γ, localName regKey γ ∗ k ↪[γ] ()`: two rights to `k` agree on `γ` (`localName_agree`), so they are
+  exclusive (`idTok_excl`) with no `γ` anywhere in a statement; `isRegistry f r` and `regInv` take no `γ`
+  either. `PromRegGS` is gone.
+- **The builtins take no rights.** The registry's invariant holds, for each registered ID, `regTok k :=
+  ⌜k ∈ builtinKeys⌝ ∨ idTok k`; `SeedBuiltins` registers the builtins with the left disjunct, and a right is
+  never a builtin's (its pure part), which is what the builtin tokens excluded. So **prometheus's initializer
+  needs no resource**: it stays an `_lb` form, its fact is `promInit := ∃ l, globalAddr defaultRegistry ↦□ l ∗
+  isRegistry descId l`, and the init chain's resource lists (`ownInitResL`) are unchanged but for what
+  `namesFree` now is (`regFree` of each name). Rejected: prometheus as a resource package (`builtinToks` in
+  `ownInitResL`'s list): every importer of prometheus (52 packages, `lb` forms among them) would change form.
+- **prometheus's dependencies are hand-written** (`PkgInit.lean`, `IsPkgInit`/`GetIsPkgInitWf` with `time`
+  and `promreg`): the glue's `defaultRegistry.init` initializes the model's package, which the translation's
+  `pkgImportedPkgs` does not list. `etc/gen-init.py`'s `EXTRA_DEPS` adds it to the inventory and the package
+  tables, `INST_HAND` names the hand-written instance.
+- **A run's rights** (`promReg_alloc`): from the generation's `ownLocalNames m` with `regKey` unset, a fresh
+  ghost map recorded under `regKey` and `idToks ks` for distinct non-builtin `ks`. The closed theorems get
+  `ownLocalNames ∅` from `goose_adequacy_start`'s WP premise (stage 5, the start model's change).
+
+## prometheus's registry: rights to IDs with a keys component; `Register` proved; the start model's names gone (2026-11-22 · branch `prom-registry`; the coordinator's decisions on #15)
+
+**Decided by the coordinator** (2026-11-22): the rights are to descriptor IDs and collector IDs, not names,
+so the registration rights get a keys component; no pseudo-names (a name standing for an ID would blur what
+a right means). `prometheus.Register` is proved over the model, retiring its axiom. The start model's
+change (no names; `ownLocalNames ∅` in the WP premise) is required.
+
+**The agent's choices within it:**
+- **`regResL` over `(q, names, keys)`**, entry resource `namesFree names ∗ idToks keys`; a package's
+  `regKeys` is `[]` but for `v3rpc`'s (`grpcKeys`, `etc/gen-init.py`'s `REG_KEYS`). The `wp_initialize'`
+  precondition is `regsFree regQs`, one resource per package, rather than two lists (`initNames`,
+  `initKeys`), so the closed proofs decide one fact (`regQsOk regQs`).
+- **`Register.spec` is generic** (any collector with `collectorDescsAre c ds` and `descsOk descId ds`,
+  the rights `idToks (descKeys ds)`, returns `nil`), not about grpc-prometheus's metrics; the server
+  metrics' descriptors are `NewServerMetrics`' clause (`srvDescs`, `grpc_prometheus` `Defs`).
+- **`getServerMetrics`' rights in its lock** (`metricsP`'s `nil` case holds `idToks grpcKeys`, the IDs of
+  both choices of the histogram option, decided at run time); the `metrics` case now records `m ≠ null`
+  so that the `nil` branch's two cases are exclusive.
+- **The generic start theorems take `ownLocalNames ∅` as the initializer's resource** (`progOk`'s `R`),
+  and each closed proof makes the rights with `wp_init_of_localNames _ regQs (by decide +kernel)`: the
+  kernel decision moves from a premise default (`hNsIds`) into the proof, and the generic theorems take no
+  list at all.
+- **`promreg_sem` follows `Register`'s proof** through v3rpc's `Link` to every linking module above it
+  (`etc/gen-link.py`'s `PROMREG_VAR`, the hand-written linking modules), as option 1 said it would.
 
 ## The bootstrap contracts give the membership buckets in the table (2026-11-22 · proving session 2, #18 · branch `prove-ps2-members/2026-11-22`)
 
@@ -42033,6 +42166,55 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
 *Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
 `ccDecodeV1` (still opaque: nothing needed it).
 
+## jsongen's subset extended to embedded structs, pointers and a type's own JSON methods (2026-11-23 · proving session 2, #18, item 1 of #24's split · branch `ps2-jsongen/2026-11-23`, not landed: for Upamanyu's review)
+
+**Context.** jsongen (`models/json/`, "The encoding/json model is of Go 1.27.3's default build; jsongen
+as a trusted generator", above) refused every etcd type the membership axioms need: `membership.Member`
+and `ConfigChangeContext` embed structs, `raftpb.ConfState` has `AutoLeave *bool`, `cluster_util` decodes
+`[]*membership.Member`; and go-vsr's `log.Logs` has its own `MarshalJSON`/`UnmarshalJSON`, so the vr kit had
+no codec (kaashoek's requirement on #24). The design note, `notes/jsongen-extension.md`, was posted on #24
+before the code; upamanyus-agent approved the design, asking for dominance collisions at equal depth in
+the random harness and for the method calls themselves (not only the bytes) to be compared.
+
+**Decision.** The trusted core reproduces encoding/json/v2's own field walk (`makeStructFields`, whose
+errors v1's options ignore) rather than v1's `typeFields`: breadth-first with the `visitChildren =
+!seen[tf]` rule, exact dominance (a name with no dominant field is dropped, silently, as Go), depth-first
+output, case-insensitive matching in breadth-first precedence; this also replaces two old refusals (equal
+and case-equal names in one struct). Pointers `*T` to every accepted non-pointer, non-interface type.
+A type's own `MarshalJSON`/`UnmarshalJSON` are called where Go's `CallMethodsWithLegacySemantics` calls
+them: a pointer receiver only on an addressable value, so the codec gets a second encoder `jencA_<T>(b, p,
+d)` for the types whose encoding depends on it; outputs go through `jencValue` (validated,
+nesting-checked, compacted, as a RawMessage); `UnmarshalJSON` gets `b[j:k:k]` and its error is recorded
+while decoding continues. The default structure of a type with methods is checked only in the direction
+it is used; text methods are accepted only where a JSON method shadows them. jsondesc (trusted with the
+core) now dumps which hook interfaces a type or its pointer implements (reflect's `Implements`) and its
+pointer's exported method names (for the promoted-selector check). Still refused, among others:
+unexported embedded pointers on a used path, embedded types with methods, `**T`, named pointers,
+`,string` on pointers or method types, `MarshalJSONTo`/`UnmarshalJSONFrom`, maps (so map keys and values
+never reach a method). k8s's unexported `storage.continueToken`, `etcd3.etcdHealth` and `controller`'s
+patch structs stay out structurally: a codec in another package cannot name them.
+
+**Evidence.** `models/internal/jsongenrand`: random embedded (exported, unexported, by pointer, repeated,
+self-embedded through a pointer, colliding Go and JSON names at equal and different depths, tagged and
+not), pointer and method types (value and pointer receivers; outputs with whitespace, fixed, invalid,
+nil, empty, failing, nested to the limit; decoders merging, recording their bytes, failing), reached in
+every context, a wrapper `{V M; P *M; S []M; A any}` per method type; the generated test compares bytes,
+values, errors-or-not and the logged method calls in order (`jtCallLog`). Nine mutants of the core (no
+dominance, no addressability, no allocation of embedded pointers, fold order reversed, the seen rule
+dropped, a pointer's null ignored, an `any`'s value addressable, the method's bytes with whitespace, a
+method's nil output taken as null) are each caught by a 12-module run (a tenth, a method's error made a
+NotModelled panic, survives by design: such panics are the model's allowed outcome). `TestRefusals` (one per refusal),
+`TestAccepted` (the formerly refused constructs). Regression codecs: `examples/models/jsonetcd` (Member,
+RaftAttributes, Attributes, ConfigChangeContext, `[]*Member`, DowngradeInfo, Versions, ConfState,
+HashKVRequest/Response) and `models/internal/jsonvsr` (go-vsr's current `log.go`, Logs' methods); the
+dsv-vr kit's own `json.toml` generates (checked in a scratch copy), and so do k8s's `v1.AvoidPods` and
+`metav1.OwnerReference` (`metav1.Time`: both methods, opaque). Goose translates the generated codecs
+(tried on jsonvsr and jsonetcd). The independent review (`notes/axiom-review/jsongen.md`) found three
+divergences: an `UnmarshalJSON` on a slice element ran on a temporary (fixed: decoded in place, the
+slice grown as `reflect.Value.Grow(1)` grows it), pointer cycles (fixed: `NotModelled` from depth 1000,
+where the real encoder's cycle detection starts), and a method's `*jsontext.SyntacticError` stopping the
+real decoding (a stated precondition: only jsontext/v2, outside the model, make one).
+
 ## The protobuf boundary's stage S2: `msgEncC`, `msgDecode`, `recDecode` concrete, `irrDecode`'s `AuthUserGrantRole` concrete; `msgEncC_ok`, `recEncC_ok`, `apply.irrDecode_utf8` theorems (2026-11-23 · #37 · branch `proto-s2`)
 
 **2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37; stacked on stage S1)**
@@ -42128,6 +42310,30 @@ refuses a snapshot at index `0` (`ApplySnapshot`, `CreateSnapshot`: `ErrSnapOutO
 `InitialState` returns the bootstrap `ConfState`, proved in `kvreconf/KvrStorageApi.lean` as `restartStorage`
 under its own `StorageModel` instance).
 
+## encoding/json per-type dispatch (J3) and the model's bodies (J2) (2026-11-23 · proving session 2, #24 · branch `prove-ps2-jsonj2/2026-11-23`)
+
+**Context.** The model's `Marshal`/`Unmarshal` were `getCodec().X(v)`: with bodies, every call needs a
+registered codec covering its type, a resource (`codecSetWith`) to thread through every spec from
+membership up to `etcdstart`, and a codec package cannot name k8s's unexported `storage.continueToken`
+(the design note on #24, issuecomment-7103223894).
+
+**Decision** (Upamanyu: J3 = (b); the exact statements, issuecomment-7113354607, approved by his
+coordinator). Per-type dispatch, the JSON twin of #37's D1: jsongen's same-package mode emits
+`JSONModelMarshal` (on `T`), `JSONModelMarshalPtr`, `JSONModelUnmarshal` (on `*T`) into each root's own
+package, under `goose || netmodel`, through goose's `-overlay`; the model calls them by the value's
+method set (`marshalAny`), the registered codec otherwise (nil, unnamed types: vr's frames). Each body
+accepts exactly `T`/`*T` and is not modelled otherwise (a type embedding `T` has the methods by
+promotion). In Lean the contract a call meets is an explicit `J : JsonCodec GF`, chosen per route:
+`typeCodecOk J F T` is a theorem of `T`'s package, the codec route `codecSetWith fm fu ∗ codecOkWith F
+fm fu`; `marshalVia`/`unmarshalVia` say which by `typeSetContains` of the dynamic type, a pure fact of
+the caller's `Assumptions`. `codecSetWith` gains `codecMu`'s mutex (`getCodec` locks it) and the
+registry follows net/rpc's (`codecInv`, `codecUnset` from a deployment's boot). Recursion (vr's `Logs`)
+needs no new form: every codec fact is persistent and used under a `WP`, so Löb cuts it. One overlay
+per project (`etc/goose.py`'s `model_overlay`, generators merged), shared with #37's pbmodel files.
+
+**Why not** a stronger `MarshalMember`: Upamanyu's decision (#24): `bootstrap`'s `ctxs = json.Marshal`
+of each member comes from `Marshal`'s proof at membership's own contract.
+
 ## Two protobuf enums' `String` trusted over their name tables; etcdserver's `expvar` inits trusted no-ops (2026-11-23 · claim #39 · branch `etcd-small-3`)
 
 **Decision.** `etcdserverpb.AlarmType.String` and `mvccpb.Event_EventType.String` follow raftpb's
@@ -42150,3 +42356,435 @@ name; the closures run only when `expvar`'s registry is served, which no transla
 (`notes/perennial-changes.md`, 2026-11-23), so `initFuncsOk` stays, narrowed to `init.«0»`. The plan for it
 (etcdserver into `PRE_RES`, its 19 names added to the closed theorems' `namesUnclaimed` lists) was approved
 by the coordinator under the user's delegation; review requested (#39).
+
+## The net laws' read-deadline token and dead witness: variants, not new statements (2026-11-23 · #24 · branch `net-sticky-read`)
+
+Supersedes nothing. `notes/net-sticky-read.md`'s plan had the read-deadline token `rdlTok` "given at
+dial and accept". Adding it to `dial_au`'s and the `accept_*au` laws' results would change the
+statement every kit restates as its `Dial`/`Accept` post (twenty-odd files); instead the laws gain
+variants (`dial_rdl_au`, `accept_rdl_au`, `accept_shared_rdl_au`) whose results add the token, and
+the old laws are derived from them by dropping it, so only the proofs that set a read deadline (or,
+later, need no timeout) use the variants. `deadline_au` takes the token (anyone holding the
+connection could otherwise change the deadline the token records); a write deadline does not touch
+it, so `deadline_w_au` needs only `connIs`. `readDead` also covers a closed end (a counter per end,
+`c s`): a reader whose end may be closed by another thread has no exclusive knowledge that it is
+not, and `closed` is as sticky as EOF, so the witness says "reads nothing more" for either reason.
+
+## `bridge.New` consumes what sets the bridged address's protocols (2026-11-24 · the coordinator, trust-shrinking, the owner informed · branch `bridge-new-addrleft/2026-11-24`)
+
+**Problem.** D26's `bridge.New` took only the listener (`netListenerAt l a`). Since phase 7 S2's interface,
+`net.Listen` also returns `netAddrLeft a`, from which a program sets `a`'s protocols itself (`addr_set_proto_tok`;
+`grpc.start'` sets a grpc table that way). So a program could listen at `a`, give `a` a grpc table of its choosing,
+and bridge `a` to a server that meets none of its specs; a client axiom over the table then proves a false result.
+Found against etcd-dist's interim `Client_Get_dist` (review 4 of `notes/putget-dist-plan.md` §12; Go: a `Get` through
+the bridge returns a value the real store lacks, and the program's check panics, 5/5 runs).
+
+**Choice.** `New` also consumes `netAddrLeft a`: a bridged address's protocols are its target's, so the program that
+bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondition of an axiom); its one caller,
+`cluster3.StartBridge`, passes `Listen`'s `netAddrLeft`, its own spec unchanged. A second review found the hole on
+`lean` itself, with no interim axiom: the table set to etcd's own KV entries at fabricated read names, and the proved
+`client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
+with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
+
+## `http.register` consumes what sets the address's net protocols (2026-11-24 · the coordinator, trust-shrinking · branch `http-register-addrleft/2026-11-24`)
+
+*Superseded in part* (the same day) by "`http.reserve` fixes the address's net protocols" below: `reserve` takes the
+address's net protocols as net/http's, `register` no longer takes `netAddrLeft a` (nothing gives it for a reserved
+address). The alternative this entry set aside was the right place: the hole was also open without any `register`.
+
+**Problem.** `http.register` (D38c) took only the listener `netListenerAt l a` (and the reserved protocol). Since phase 7
+S2's interface `net.Listen` also returns `netAddrLeft a`, from which a program gives `a` net protocols of its own and writes
+raw bytes to it; `Serve_ok` still promised each handler a request of `a`'s http protocol. Go: a raw `GET` reaches a handler
+promised only `POST`s and its check panics (`notes/axiom-review/http-register-addrleft.md`, `examples/axiomcx/httpaddrleft/`).
+The same class as `bridge.New` before its fix (above).
+
+**Choice.** `register` also consumes `netAddrLeft a`: an address served by net/http speaks HTTP, so the program that
+registers it keeps nothing to set its net protocols with. Trust-shrinking (a stronger premise of an axiom); its five
+callers pass `net.Listen`'s, their specs unchanged. Alternative: `reserve` consuming it (the reservation happens before
+the listener exists, from the start's `httpProtoFree`; `register` is where the listener and `netAddrLeft` meet).
+
+## `http.reserve` fixes the address's net protocols (2026-11-24 · the coordinator, trust-shrinking · branch `http-reserve-addrproto/2026-11-24`)
+
+**Problem.** `http.reserve` turned `httpProtoFree a` into `httpProtoAt a P ∗ httpProtoOwn a P`, and `RoundTrip` (through
+`NewTimeoutTransport`'s `roundTripperOk`) promises a client of `a` `P.resp` of whatever status it reads, from the
+reservation on. Nothing tied `a`'s net protocols to HTTP: a program that reserved `a` and never registered it listened at
+`a` (`net.Listen`, `netAddrFree a`), set `a`'s net protocols to trivial ones from `netAddrLeft a` (or kept `netPend a ∅`),
+accepted the client's connection and wrote `HTTP/1.1 200 OK`, a status `P` excluded. Go: `examples/axiomcx/httpreserve/`
+panics (`notes/axiom-review/http-reserve-addrproto.md`). The same class as `bridge.New`'s and `register`'s holes (above),
+and the previous entry's fix (`register` consuming `netAddrLeft a`) does not reach it: the program never registers.
+
+**Choice.** `reserve` also takes `httpAddrNet a` (persistent, `Proof/net/http/AddrNet.lean`): `a`'s net protocols are the
+opaque `httpNetCliP`/`httpNetSrvP` (trusted text with no law, as grpc's `grpcCliPI`/`grpcSrvPI`), so no program but
+raw net code writes at `a` (it may still listen, accept and read), and `a`'s pending set is spent (no
+`netAddrLeft a`: no protocols of the program's own). It is set by a theorem over the net extension (`httpAddrFree_set`: `netProto_alloc`,
+`addr_set_proto`) from `netAddrFree a`, which leaves `httpAddrFree a := addrClaim a ∗ httpAddrNet a`, the right to listen
+at `a` reserved for HTTP; `reserveAddr` packages the two. The member's peer listener is made from it by a second spec of
+`net.Listen`, `net.Listen.specHttp` (a theorem from Net's `Listen` spec with `listen_au`, linked as `net_Listen+Http`),
+which leaves no `netAddrLeft`, so `register` takes the listener and `httpProtoOwn a P` alone (`httpProtoOwn` comes only from
+`reserve`, so its address already speaks HTTP). The start bundles' peer part is `httpAddrFree p ∗ httpProtoOwn p P`
+(`memberFreshRes`, `memberRestartRes`, sealed), set at the clusters' allocations (`netHttp_reserve3`, `netHttp_reserveL`,
+which now take each address's `netAddrFree` with its `httpProtoFree`); the restart examples' `newMember.spec` say so. No
+top-level statement changes (they name program start's `addrClaim`/`httpProtoFree`, unchanged). Trust: `reserve`'s
+premise is stronger; `register`'s is weaker than the previous entry's but sound by the reservation; the two opaques
+are new trusted text without laws (definitions, not axioms). The drafts of `ListenerClose.lean` follow: the close gives
+back `httpAddrFree a`, never a fresh `netAddrFree a`.
+
+Alternatives. `reserve` consuming `netAddrFree a` whole and handing the listen right back opaque (an axiom for the
+listener: trust grows). Setting the protocols at `register` (too late: `RoundTrip`'s promise holds from the
+reservation). `httpProtoAt` carrying the net fact for `RoundTrip` to take (the same premise in a less direct place).
+
+**Addendum (the same day, the listener's tie).** An independent review of the fix found `netListenerOpen l a` did not tie
+the Go listener `l` to the extension's listener open at `a` (pre-existing): a raw listener at an unreserved `b` could be
+registered as `a`'s (`examples/axiomcx/httpregfwd/`, `notes/axiom-review/http-reserve-addrproto.md`, "The listener's
+tie"). `netListenerOpen` now carries Net's `lisAt t lv x` (as `isListener`), which `net.Listen`'s proofs keep; its
+consumers are axioms (`register`, `grpc.start`, `bridge.New`), whose premise is stronger. Alternative: an axiom-side
+check (each axiom taking `isListener`): the same fact in three places instead of the one definition.
+
+## Go's process exit stays angelic, and checkers panic (2026-11-24 · branch `angelic-exit-doc/2026-11-24`)
+
+**The user's approval** (2026-11-24): Go's process exit (`os.Exit` → `syscall.Exit`, so `log.Fatal` and
+zap's and klog's `Fatal`) stays modelled as `AngelicExit` (Perennial `ca6df841b`:
+`Exit.impl := λ: "code", AngelicExit #()`, Perennial's `TrustedCode/syscall.lean` and this
+repository's), on the condition that the consequence is documented.
+
+**The consequence.** `AngelicExit` steps to itself forever: the exiting goroutine is neither stuck nor
+panicking, and the machine's other goroutines keep running (Go ends the process). So under `Robust`
+(`Robustness/Statement.lean`) an exit of any status is a safe run, not "the program ends with a
+failure": a program that checks a property and reports a violation with `os.Exit(1)` or `log.Fatal`
+proves nothing about the property. A check must panic. Go's run of a machine that exits is, up to the
+exit, an execution of the model, and after it is like a machine the scheduler stops picking; the
+model's extra executions (the other goroutines running on) only add to what the proof must show safe.
+
+**Documented** in `Robust`'s docstring and the header of `Robustness/Statement.lean`,
+`notes/robustness.md` ("An exit is a safe run, so a checker panics"), CLAUDE.md's `Robustness/` bullet,
+and Perennial's `docs/KNOWN_LIMITATIONS.md` (branch `angelic-exit-doc`).
+
+**Enforced** by a gate, `etc/exit-check.py` (in `etc/gates.sh` and CI), untrusted tooling: for every
+program a `TopLevelDefs.lean` boots (`<X>.initialize'`, resolved to its Go package through the
+translations' `go!"..."` package names), `etc/exitcheck` type-checks the program's own packages (its
+`go list -deps` closure under `examples/`; dependencies such as raft and etcd are not checked) and
+lists every use of an exit (`os.Exit`, `syscall.Exit`, `runtime.Goexit`, `log.Fatal*`, zap's, klog's,
+glog's, logrus's and zerolog's `Fatal`, `testing`'s `Fatal`/`FailNow`/`Skip*`), calls and function
+values, and of every wrapper of its own that forwards a parameter to one (callers decide what it
+reports). Each needs an entry in `etc/exit-allow.txt` with its reason; a stale entry fails.
+
+**What it found at landing** (36 `TopLevelDefs.lean`, 108 program packages, 206 own packages): no
+exit in any check written in this repository. Thirty exits, all in the Dsverify kits' forked protocols
+(`examples/dsverify/{epaxos,swiftpaxos,quepaxa}`), none reporting a check's failure: SwiftPaxos's
+`dlog.Logger.Fatal` (exits only for a nil or verbose logger, and every deployment's logger is the kits'
+`&dlog.Logger{}`, so the protocol's `r.Fatal(...)` self-checks return, in Go as in the model), and
+QuePaxa's exits on a failed `grpc.Dial` or debug-dump file (environment failures). Two
+`TopLevelDefs.lean` name no program (`etcd/dist`'s draft, `etcdstart`'s shared definitions).
+
+Not done: a whole-program analysis (an exit in a dependency, or a wrapper that decides by itself whose
+callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
+is where a vacuous check would be written.
+
+## One `PkgInitExt` for every tree; a part imports the main tree's `Init.lean` when it is the same (2026-11-24 · L1 · branch `lib-pkginit`)
+
+**Problem.** `ExternalInit` (the premise of `initLb_of_spec`, which the generated initializers use for every package
+whose `wp_initialize'` is not generated here) was a closed inductive listing the main tree's packages, raft's,
+protobuf `proto`'s and the B-tree's among them, so `Proof/runtime/PkgInitExt.lean` imported raft's translation. A
+part that does not import raft (`Net/`) needed a copy without them, `Dsverify/` a guard-free variant
+(`PkgInitDsv`) for packages the copy did not list, and every package initializer that imported it was copied into
+the part, differing only in that import (11 in `Net/`, 9 more in `Dsverify/`); the parts likewise declared again
+the `True` facts of packages whose main-tree fact sat in an etcd module (`container/heap` in lease's `Base`,
+protobuf's in raft's and cache's).
+
+**Choice.** `ExternalInit` is an open registration: a fieldless `structure` in `Prop`, each external initializer a
+theorem `ExternalInit.<pkg> : ExternalInit pkg_id.<pkg> <pkg>.initialize' := ⟨⟩`. The shared module registers
+Perennial's packages (all trees'); a tree registers the others in a module of its own importing it (the main tree's
+`PkgInitExtRaft`, copied over their raft by the raft parts; `Dsverify/`'s `PkgInitDsv`), and a generated file
+imports that module only when it names one. The guard was already unused by the proof; it stays as documentation, and
+`initLb_of_spec`'s statement text is unchanged (rejected: dropping the premise, which changes every call site and
+loses the record of what is taken from elsewhere). `etc/gen-init.py`'s `shared_inits` then drops a part's generated
+`Init.lean` when, its imports resolved, it is the main tree's text at the same path: one file per Go package, found
+mechanically rather than listed. A `True` fact two trees need moves to `Proof/<pkg>/PkgInit.lean` (as `hash`'s,
+`os`'s), out of the etcd modules that declared it.
+
+## `etcd_noRefusal` over the server listening at the address (2026-11-24 · trust-shrinking, from an axiom sweep · branch `norefusal-link/2026-11-24`)
+
+*Supersedes D29's sentence on the members' axiom's premises ("the gRPC server `gs` with the KV
+registrations and the listener at `addr`, the facts `etcd_kv_started` takes") and the same premises of
+`etcd_noOtherRefusal` (F-S2 part 1).*
+
+**Problem.** `etcd_noRefusal` took etcd's gRPC server being built (`grpcSrvNew gs …` with `kvRegs q`
+among its registrations) and a listener at `addr` (`netListenerAt lis addr`), and gave both back with
+the pure, global `noRefusalAt addr`, which the attempt contract (`grpcInvokerOk`) reads for every KV
+call at `addr`. Nothing tied `addr` to `gs`: a program built `gs`, never served it, and served `addr`
+with another server whose `Put` returns the learner refusal (through `grpc.start'` on the same listener);
+a `Put` at `addr` then had a proof that it is not refused, and Go refuses it
+(`examples/axiomcx/norefusal/`, `TestMainPanics`; `notes/axiom-review/norefusal-link.md`).
+`etcd_noOtherRefusal` had the same shape (latent: no result uses it).
+
+**Choice.** Both axioms take the server listening at `addr` after its start: `grpcAddrIs addr γ ∗
+grpcSrvCfg γ c` with `kvRegs q` among `c.regs`, beside `isServerReq` and `quotaKVServerAt q … s`, and
+conclude the pure fact only (nothing to give back: the premises are persistent). `grpcAddrIs` is made
+only by `grpc.start` (consuming the server and the listener) and `bridge.New`, one per address
+(`grpcAddrIs_agree`); `grpcSrvCfg` is that server's configuration (`grpcSrvCfg_agree`). Bundled as
+`etcdKVSrvAt addr s` (`NoRefusal.lean`), made from `grpc.start'`'s `grpcServerAt` by
+`etcdKVSrvAt_of_serverAt`; `etcd_noRefusal_at` applies the axiom to it.
+
+Rejected: (i) keep the pre-start position and return a binding token: any token the axiom returns
+beside a plain `netListenerAt` can be dropped and the listener used by another server, and a sealed
+wrapper is not a soundness argument; (ii) a variant of `grpc.start'` that also concludes `noRefusalAt`
+(formally a weakening of the old axiom with the start): sound for this route, but it duplicates
+`grpc.start'`'s statement in a trusted axiom and the call sites start the server inside proved theorems
+(`client.etcd_kv_started_with`) that would have to call it, which is the same cascade as returning
+`etcdKVSrvAt`; (iii) applying the axiom inside the started theorems: every result over them (putget's,
+lease's, ...) would then rest on it, a per-result growth of trust.
+
+**Trust.** Weaker, per execution: every instance is the old axiom's at the moment of the start (or the
+old axiom's at a bridge's target with the bridge's carry), and the instances where `addr` is served by
+another server are gone. The statement is not a syntactic strengthening of the premises (pre-start
+resources became post-start facts). Axiom count unchanged; no top-level statement changed; per-result
+axiom sets unchanged (the started theorems return `etcdKVSrvAt` without using the axiom, and only the
+old call sites apply it).
+
+**Cascade.** `client.etcd_kv_started_with`, `etcd_kv_started`, `kv_lease_served_core`,
+`etcdstart.kvWatch_served`, `etcd_watch.wk_served_nd` return `etcdKVSrvAt addr s`; `etcdstart.kv_served_at`
+is new (`kv_served`, unchanged, is its weakening); `etcdstart.grpcUp_noRefusal` is removed. The call
+sites (cache, watch, compactwatch, k8s compactor's and etcd3's `Main`s and `startCluster`s, txnlin,
+txnlinfaultsN, `cluster3.StartMember`, `kv_lease_served_watch`) apply `etcd_noRefusal_at` after the start.
+
+**The chain by identity (same day, after an independent review: the first fix, `665f2f1efa`, left the
+unary chain unread).** A server registering etcd's KV service over the member behind a refusing
+interceptor of the program's met the first fix's premises, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainInterceptorPanics`, 5/5 on the review): interceptor contracts
+(`srvInterceptorOk`) allow any non-handler error. Both axioms now also take `v3rpc.etcdUnaryIcs s c.ics`
+(`v3rpc/UnaryChain.lean`): the chain is exactly `[il, im, iu]`, `il`/`iu` the closures
+`newLogUnaryInterceptor(s)`/`newUnaryInterceptor(s)` return (their translated code over a variable
+holding `s`, `v3rpc.icClosureOf`, read off the code; their proved specs return it), `im` one of
+grpc-prometheus's (`promUnaryIc`, opaque). `v3rpc.Server`'s spec returns it, `grpcUp` carries it,
+`etcdKVSrvAt addr s ics` records `c.ics = ics`, and `etcdKVSrv addr s` adds the identity.
+
+Rejected: (b) interceptor contracts bounding their own errors' descriptions, proved for etcd's and
+assumed for grpc-prometheus's, with the voter fact moved onto `IsLearner`: a smaller axiom, but it
+redesigns the learner spec and the interceptor contract; not needed to close the hole.
+
+**Trust.** The axioms only lose instances again (their chain must be etcd's; the old axiom read no
+chain). One trusted spec restated: `grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof`
+also returns `⌜promUnaryIc ic⌝` (opaque, a `Prop`: no axiom), naming the value Go returns (the closure
+`interceptors.UnaryServerInterceptor(reporter)`), read only by the members' axioms; nothing else grows.
+
+**Docstrings corrected** (the review's): `grpcAddrIs_agree` and `InvNet.lean`'s header said an address
+is listened on once per run, false (`listen_au` lends the listening token again once the address's
+protocols are set); what holds is that `addrClaim`, which `grpc.start` and `bridge.New` consume for
+good, is given once per address.
+
+**`kvMethod` exact (same day, a second independent review of `152b805937`).** The attempt contract
+read `noRefusalAt` for `kvMethod method`, then the prefix `/etcdserverpb.KV/`: a program registering a
+service named `etcdserverpb.KV/Evil` on etcd's own server got the promise for `/etcdserverpb.KV/Evil/Put`,
+which grpc-go dispatches (at the last `/`) to that service, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainSlashPanics`). `kvMethod` is now membership in the five exact
+full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange`/`_txn`/`_range`.
+Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
+members' axioms are unchanged in statement and now speak of fewer calls.
+
+
+## `putget_safe` at `Robust`'s thread bound: `putgetThreads` and `2 ^ 48` steps (2026-11-24 · the owner's rule for top-level statements · branch `dist-putget-interim/2026-11-24`)
+
+**Rule** (the owner): a top-level statement uses `Robust`'s separate thread bound, the thread count a named constant,
+the step bound as high as the proof allows (dsverify's `Robust [] (system σ) g threads (2 ^ 63)`).
+
+**Decision.** `putget_safe.spec` is `Robust [] (system …) g (threads := putgetThreads) (bound := 2 ^ 48)`,
+`putgetThreads := 2 ^ 28` (`TopLevelDefs.lean`), through a new proved bridge `Net.robust_of_distBootIT`
+(`DistBridgeExts.lean`, over `goose_dist_adequacy_below`: `n + 1` receipts, `threads` threads, obligation
+`DistBootWpST bound T`). Why `2 ^ 48` and not `2 ^ 63`: the receipts grow with the steps, and the member's start
+(`etcdstart.wp_StartServer1`) takes at most `2 ^ 48` receipts (the server's request ids), as the single-process
+`etcd_all`. Raised with it, each only to what the single-process proofs support: `Member.spec`'s receipt class and
+budget (`N = 2 ^ 48 - 1`), `Hprem` to `n + 1 ≤ 2 ^ 48` (`etcd_all`'s), the interim axiom `Serve_dist`'s
+`ReceiptBoundLe` to `2 ^ 48` (`etcdstart.Serve.spec` has none). Details: `notes/putget-dist-plan.md` §12, "The bounds".
+
+**Alternatives.** Keeping the receipt floor (`DistBootWpSL`'s `lo`): unneeded once `threadBound = threads ≥ srvLevelK`.
+Raising the member's receipt ceiling past `2 ^ 48`: a change to the server's request-id proofs, not this statement's.
+
+**Then (same day, the robustness review):** the step bound named `putgetSteps`; `DistDeploy` out of the statement
+(its `init` conjuncts are `Robust`'s, the bridge takes the addresses' `Nodup`/`addrOk` of the list it starts);
+the programs check their addresses in Go (`AddrOk`, distinctness) so their validity left the statement, leaving
+only their lengths as Go strings'; `ETCD_VERIFY` stays a premise (`HEnv`, `HEnvTok`): a Go check at start does not
+constrain later `os.Getenv` reads without a model of the process environment, a trusted change for the owner
+(`notes/putget-dist-plan.md` §12, "The robustness review's items").
+
+
+## Three function-contract premises become trust-boundary axioms (2026-11-24 · the coordinator, the owner's rule "axioms over premises" · branch `hprem-axioms/2026-11-24`)
+
+The closed theorems that start etcd members took three Iris premises that are Hoare triples of Go
+functions (`~/coordinator-notes/plans/premises-to-axioms.md` §2.1, items B, C and D). Each is now an
+`axiom <fn>.wp_proof : <fn>.spec` at its function, taken as a callee by the proof that calls it, and
+the statements lose the premise:
+
+- `bootMarshal ps ctxs bootLog` (raft's `ApiVocab.lean`: `proto.Marshal` of the `k`-th boot conf
+  change returns the `k`-th boot entry's bytes) → `proto.MarshalBootConfChange.wp_proof`
+  (`Spec/google_golang_org/protobuf/proto/MarshalBootConfChange.lean`): `proto.Marshal` of the
+  `*pb.ConfChange` `Bootstrap` builds (`bootConfChange`, `Type` `AddNode`) returns exactly
+  `ccBootWire m.nodeId m.context` (`Proof/google_golang_org/protobuf/proto/BootWire.lean`), with
+  `isPkgInit proto`. `bootMarshal` stays raft's vocabulary (its `Bootstrap` spec takes it), and is
+  now a theorem, `bootMarshal_of_spec` (`Proof/go_etcd_io/raft/v3/BootMarshal.lean`), from the axiom
+  and a pure fact of the bootstrap log, `bootWire` (each entry's data is `ccBootWire` of its peer and
+  context). Since `ccDecodeV1` is opaque, nothing gives `bootWire` from `BootLog`: it is a new field
+  `wire` of `BootCore` (so of every example's `BootFacts`), and for the trace check a new pure
+  hypothesis `tracecheck.BootWireFacts boot`. That is the one statement change beyond dropping a
+  premise: a pure, Go-checkable fact replaces an Iris one (the coordinator's brief allowed adapting
+  `BootFacts`). The bytes: `examples/premisefix/confchange`, `TestBootWireVectors`, against
+  protobuf-go v1.36.12 (the examples module's pin).
+- `rnLoggerZapOk` → `NewRaftLoggerZap.wp_proof` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewRaftLoggerZap.lean`),
+  the premise's triple unchanged (`lg ≠ nil`; interim until zap's `WithOptions`/`Sugar` specs).
+- `rnTimeoutDetectorOk` → `contention.NewTimeoutDetector.wp_proof`
+  (`Spec/go_etcd_io/etcd/pkg/v3/contention/NewTimeoutDetector.lean`), the premise's triple unchanged
+  (the detector meets `isRNTimeoutDetector`; interim until the package is translated with bodies).
+
+`newRaftNode.wp_proof` takes the two latter as callees (the server's `Link`, entries `NewRaftLoggerZap`,
+`contention_NewTimeoutDetector`), so `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`,
+`NewServer.spec`/`specR`, `NodeStartSpec` and the etcdstart/cluster3/example start specs no longer
+take them; `etcdstart.commonPremises` and `etcd_putget3.commonPremises`, empty, are gone. The example
+`Main`/`Run`/`startCluster` proofs that held `bootMarshal` in their premises take
+`proto.MarshalBootConfChange.spec` as their last callee (passed by the generated `Link`s, `=` terms,
+and by hand in the `MainLinked`s) and derive `bootMarshal` from `Hbf.wire`.
+
+Not done here: `bootstrapContract` (plan item A). Claim #34 already states `bootstrap.spec` and proves
+`bootstrap.wp_proof` over its callees (`Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean`), and
+`etcdstart/BootBridge.lean` derives `bootPremise` from it, but only under pure facts the examples do not
+have (`bootGo.ps U token = ps`, `bootGo.ctxs … = ctxs`, `bootGo.dir … = dir`, the member's id, `memBoot
+bootLog = bootGo.memMap …`, the last through the opaque `membership.ccMemberOf`). Using it would add
+those premises (or needs #34's computation of them), so a competing axiom was not written.
+
+Also not done here (the coordinator's scope extension of the same day): `Hctx`/`Hcec` (`ContextReadErrs`,
+`ContextErrsClient`) stay premises: they are entailments from `isPkgInit context`, which is not sealed,
+so as axioms they could be used to prove `False` (`read/Init.lean`'s docstring); plan item F proves them
+(claim #26). `log.NewModel` and `DialWithBalancerBody` stay instance binders: they are facts about the
+semantics instance the statements quantify over (`FuncUnfold`/`MethodUnfold`), so a Lean axiom stating
+them for every instance would be false; their home is the TrustedCode layout (goose `trusted`, the
+generated `Assumptions`), a translator-configuration change on branches of their own (the client project's goose toml for
+`dialWithBalancer`; Perennial's `log` configuration for `log.New`).
+`bootstrapContract` (item A): #34's `bootstrap.wp_proof` is not linked yet (`bootstrapCluster`,
+`bootstrapStorage`, `bootstrapRaft`, `bootstrappedCluster.Finalize` unproved, `bootFs.touchMember.law`
+open), so it stays a premise until #34 links it; then `etcdstart/BootBridge.lean` discharges it with
+pure facts of `bootstrap`'s computed results (`bootGo.*`), folded into `BootFacts`.
+
+## The interim bootstrap axiom at one member (2026-11-24 · the coordinator's task, the owner's bar "no Hoare triple in the top-level statement" · branch `dist-putget-interim/2026-11-24`)
+
+**Decision.** `bootstrap`'s contract leaves `putget_safe`'s statement: its named Iris premise `Hprem`
+(`etcdstart.premises`, `bootstrapContract` at every configuration and URLs of the one member) is replaced by
+one interim axiom, `bootstrap.wp_proofOne : bootstrap.specOne` (`Spec/` and `Proof/go_etcd_io/etcd/server/
+v3/etcdserver/bootstrapOne.lean`), and two pure premises: `etcdstart.BootGo1 name peer client id ctxs boot`
+(the member id, the peers' contexts, the directory and the bootstrap log are Go's at `urls1`: what #34's
+`BootBridge.lean` asks of an example) and `crypto.fips140.GodebugFips140Off` (an environment premise of
+`bootstrap.spec`). `etcdstart.cfgOk` says `UnsafeNoFsync` is false (`newServer`'s literal leaves it zero), which
+`bootstrap.spec` needs. `bootstrap.specOne` is `bootstrap.spec` (#34's) word for word under two more premises
+(one initial-cluster entry, `cfg.Name`, of one peer URL); `bootstrap.specOne_of_spec` (`BootOneDefs.lean`)
+shows it no stronger, so when #34 proves `bootstrap` the axiom becomes that theorem of the linked result.
+The bridge is `etcdstart.premises_of_specOne` (`BootOne.lean`, a defs module), linked in `BootOneLinked.lean`
+(`premises_holds`), which `member_boot` (`AdequacyMember.lean`) applies where it took `Hprem`.
+
+**Why not one interim axiom per open hypothesis of #34's linked `bootstrap`** (the task's first choice: the
+server Link's `wp_bootstrap` has fifteen hypotheses after the merge, the `?` entries reachable from
+`etcdserver_bootstrap`). Two of them are false of Go as stated, so as axioms they would be unsound:
+`advertiseMatchesCluster.spec` (the member's own initial-cluster URL slice is sorted in place,
+`config.go:251`, while the spec keeps it `↦*□`) and `isMemberBootstrapped.spec` (with another member it sends
+`GET /members` through the round tripper without the peer's protocol, `cluster_util.go:80-82`); both are in the
+ledger (2026-11-24), pending for #34. `bootstrap.wp_proof`'s proof needs them in their general form, so no
+restricted axiom can stand in for them without changing #34's proofs. The same two facts make the unrestricted
+`bootstrap.spec` false of Go at a member of two or more URLs or a cluster of two or more members, so the task's
+fallback, one axiom at `bootstrap.spec`, would be unsound too; restricted to one member of one URL neither
+happens, and that is every configuration `etcdstart.premises` names (`urls1`). Three of the fifteen are proved
+but not linkable in the server Link (`bootstrapSnapshot`, `bootFs.touchData`, `bootFs.walExist`: the WAL
+Link's results take a `WalFs.WalGS` instance; an all-zero record of ghost names, with `AllG` from
+`HeapGS`, might supply it, since their statements do not mention it: an untried route for #34's final link).
+
+**Scope.** Only the one-member statements lose `Hprem`: `putget_safe`. `etcd_all`, `leaseexpiryN` and
+`k8s_all` keep theirs: their clusters but three are multi-member (`bootPremise` at `urls3`/`urlsN`), which
+`bootstrap.specOne` does not cover; `etcd_all`'s three one-member premises (`HpremCW`, `HpremC`, `HpremK`)
+could go the same way, not done here. `bootPremise`'s `cfgOk` is stronger by the `UnsafeNoFsync` conjunct,
+so the multi-member premises are weaker (they ask the contract at fewer configurations).
+
+**The pure premises' truth.** At `urls1` every `bootGo` value is a function of `name` and `peer` (the map's one
+key, its one URL `http://peer`), so `BootGo1` is satisfiable exactly at Go's id, contexts and log, which
+`BootFacts` also describes; one conjunct, `memBoot (toEntries boot 0) = bootGo.memMap U name`, is about the
+opaque `membership.ccMemberOf` (the conf-change context's JSON decoding), so it cannot be checked by
+evaluation: it holds iff that opaque decoder inverts `memberJSON` on the member (#34's stop S2).
+## `ETCD_VERIFY` as an environment premise over its value (2026-11-25 · the owner's decision · branch `etcd-verify-env/2026-11-25`)
+
+Supersedes in part the B4 half of "Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off" (2026-11-08)
+and `os.Getenv`'s post of "`ETCD_VERIFY` read through `os.Getenv`'s spec" (2026-11-20).
+
+**What was wrong.** `verifyEnvOff e` was an `axiom … : Prop` (a premise `HEnv : verifyEnvOff prog` of
+each closed theorem that starts a server, per machine in the distributed drafts): no witness can
+satisfy an axiom constant, so `etc/premise-witness.py` could only list it as `opaque`, and its meaning
+lived in two more axioms, the token `envVerifyOffTok` (`envVerifyOff := □ envVerifyOffTok`) and
+`goose_adequacy_start`, which handed the token out under it. The distributed `putget_safe` needed a
+second premise, `HEnvTok : ⊢ envVerifyOff`, since no distributed start hands the token out.
+
+**Decision.** An environment premise as Perennial's `crypto.fips140.GodebugFips140Off`
+(`TrustedCode/crypto/fips140.lean`: `opaque godebugFips140 : GoString`, `def GodebugFips140Off :=
+godebugFips140 = "" ∨ … = "off"`), over a concrete reading of the environment
+(`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`):
+- `opaque etcdVerifyEnv : GoString`: the value `os.Getenv("ETCD_VERIFY")` returns in the run (`""` when
+  unset). The model has no process environment: one value for every read, and for every machine of a
+  deployment, as `GODEBUG`; a process environment in `os`'s semantics is deferred.
+- `def EtcdVerifyOff : Prop := etcdVerifyOffValue etcdVerifyEnv`; `etcdVerifyOffValue_unset`: the
+  unset value satisfies it (the premise is satisfiable).
+- `os.Getenv`'s post: `⌜key = "ETCD_VERIFY" → EtcdVerifyOff → etcdVerifyOffValue v⌝` (no token; offness only:
+  a first draft `v = etcdVerifyEnv` was refuted across processes, `notes/axiom-review/getenv-etcd-verify.md`,
+  since one opaque value let a proof equate two machines' reads). The draft was sound only if every read of
+  the variable in a run returns the same value: no code of the run sets it; no verified code can
+  (`os.Setenv`/`Unsetenv`/`Clearenv` have no spec), stated in the spec's docstring
+  (`Spec/os/Getenv.lean`). Stronger than the old post in naming the value (it was "given the token,
+  some value that enables no check"); the satisfiability argument is unchanged (a model of the
+  names-only `Getenv` returning `etcdVerifyEnv` for that key).
+- The checks are proved under the pure premise: `IsVerificationEnabled`'s post is
+  `⌜EtcdVerifyOff → t = "assert" ∨ t = "lock" → b = false⌝`; `Verify`'s second disjunct, the three lock
+  checks', `VerifyBackendConsistency`'s and every carrier's precondition (`isBackend`, `NewServer`,
+  `bootstrap`, the `etcdstart` bundles, the examples' `Main`/`Run` specs) is `⌜EtcdVerifyOff⌝` where it
+  was `envVerifyOff`. Kept in the Iris assertions rather than made a Lean hypothesis of each spec, so
+  that `isBackend` still carries it to `batchTx.Lock` and no signature between changes.
+- Every closed statement's `HEnv` is `(HEnv : EtcdVerifyOff)`: `etcd_robust_single_process`,
+  `etcd_leaseexpiryN_robust_single_process`, `k8s_robust_single_process`, `mvccfull_robust`,
+  `mvccrand_robust` (and their `*_adequate`, `etcdstart`'s `etcd_adequate_*`); `putget_safe` loses both
+  `HEnv : ∀ m ∈ system …, verifyEnvOff m.1` and `HEnvTok`; the `etcd_robust` draft's per-machine
+  conjunction becomes the one premise.
+- `goose_adequacy_start` loses `hEnv : verifyEnvOff e` and `startRights`' `envVerifyOff`: it is the old
+  axiom with both read as `True` (the reading its satisfiability argument took), the rest unchanged, so it
+  claims nothing about the environment. The adequacy proofs introduce `⌜EtcdVerifyOff⌝` from `HEnv`.
+
+**Trust.** Axioms out: `verifyEnvOff`, `envVerifyOffTok`. Restated: `goose_adequacy_start` (an
+environment part fewer), `os.Getenv.wp_proof` (names the value). New: the `opaque` constant `etcdVerifyEnv` and
+the definition `EtcdVerifyOff` (`etcdVerifyOffValue` unchanged), which `#print axioms` does not list. The premise stays `opaque` in `etc/premise-witness-baseline.txt` (an opaque constant: no
+Lean proof establishes it), with `etcdVerifyOffValue_unset` as the compiled evidence that the
+environment can make it true.
+
+**Rejected.** A Lean hypothesis `EtcdVerifyOff →` on each check's spec, as `GodebugFips140Off` on
+`bootstrap`'s: it would thread through `batchTx.Lock` and every caller of the backend; the pure
+assertion inside `isBackend` carries it with no signature change.
+
+## `ContextReadErrs` was unsatisfiable: a local `MapKeys` for `togRPCError`, the classes theorems, a gate on Iris premises (2026-11-25 · soundness fix · branch `hctx-vacuity/2026-11-25`)
+
+**What.** The top-level premise `Hctx : ∀ hG, ContextReadErrs` stated of `context.DeadlineExceeded`'s
+value both "not a pointer" and `SafeMapKey go.error` at Perennial's interface keys, which since P8c
+(`mapKeys_interface`) are `nil` or pointers: `ContextReadErrs → isPkgInit context ⊢ False`, checked in
+Lean. Every statement taking it was vacuous for a month (`notes/axiom-review/ctx-readerrs-vacuity.md`,
+with the list). The Go fact is true; the Lean statement was wrong.
+
+**Choices.**
+- The conjunct was used only by `togRPCError`'s map lookup. Restated as `errKeyOk` (the keys Go's `==`
+  compares as Lean's equality: `nil`, pointers, `deadlineExceededError{}`, bcrypt's `InvalidCostError`)
+  with a local `MapKeys` instance `v3rpc.errKeys`, as Perennial's `MapKeys` doc invites (and as
+  `v3rpc.streamKeys` already did), not a change to Perennial's instance: no trust added, the
+  `SafeMapKey` of each key proved from `==`'s reduction.
+- The classes `ContextReadErrs` and `ContextErrsClient` became theorems from `isPkgInit context`
+  (Perennial's `context.isInit` names both errors' values since the context-errors change): no
+  premise is left to be false, and nothing to witness.
+- `client.ctxErrTargets` and `errors.IsStatusErr.spec`'s dead comparable-target case are restated for
+  `deadlineExceededError{}` (a trust-boundary spec covering one more target, true of Go; the ledger
+  entry of 2026-11-25), and `ctxErrTargets_of` proves the former.
+- **Prevention, kept small**: the pure-premise witness gate leaves out every binder over `HeapGS`, so a
+  second gate, `etc/iris-premise-check.py` (sources only; `etc/gates.sh`, CI), lists the Iris binders
+  of every top-level statement and refuses one not in `etc/iris-premise-baseline.txt`, either
+  `witness:<theorem>` (declared in the tree; the build checks it) or `unwitnessed` (the 19 present at
+  its introduction; the list only shrinks). It flags `Hctx`/`Hcec` on the tree before the fix. Not
+  done: a Lean-level check that a named witness really proves the premise at an initialized world (the
+  name is a pointer for review, not a proof obligation the script verifies).
+
+## kvraft's UDP version is a program of package kvraft, not a package (2026-11-25 · the coordinator and Upamanyu · branch `kvraft-rename/2026-11-25`)
+
+The UDP version (`cmd/kvraft-udp`, `kvraft_udp_robust`) is a program variant of package kvraft (`examples/raft/kvraft`, renamed from kvnet with its part `KvRaft/`), not a package of its own, because its UDP transport shares package kvraft's replica, storage and client code and their proofs (a separate package would need kvraft's internals exported).

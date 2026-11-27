@@ -31,7 +31,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem Client.wp_proof
@@ -68,7 +67,7 @@ theorem Client.wp_proof
     wp_apply wp_Do (cR γs) sa i Φ iprop(True) cd' d' $$ [HL] as %v Hv
     · iframe #
       isplitr [HL]
-      · cases hw : (cR (GF := GF) γs).B.isWrite i
+      · cases hw : (cR (GF := GF) γs).B.isWrite ((cR (GF := GF) γs).mi i)
         · simp only [Bool.false_eq_true, ↓reduceIte]
           imodintro
           iapply Hrd
@@ -82,7 +81,7 @@ theorem Client.wp_proof
           isplitr
           · itrivial
           · ihave HL : lin (Gg := hG.goose_globalGS) (cR γs) i Φ $$ [HL]
-            · cases hw : (cR (GF := GF) γs).B.isWrite i
+            · cases hw : (cR (GF := GF) γs).B.isWrite ((cR (GF := GF) γs).mi i)
               · rw [slotUpd_read _ hw]
                 icases HL with #HL
                 iexact HL

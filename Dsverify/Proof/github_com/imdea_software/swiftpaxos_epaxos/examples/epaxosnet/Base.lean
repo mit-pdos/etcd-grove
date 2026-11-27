@@ -8,18 +8,19 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Perennial.Proof.math.rand.Base
+public import Proof.bufio.Init
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
-public import Net.Proof.net.Init
-public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.net.Init
+public import Net.Proof.net.http.PkgInit
+public import Net.Proof.net.rpc.PkgInit
 
 @[expose] public section
 
@@ -34,9 +35,10 @@ open Iris Iris.BI
 namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet :=

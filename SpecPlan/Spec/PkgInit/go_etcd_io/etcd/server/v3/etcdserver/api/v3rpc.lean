@@ -36,13 +36,14 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.backend
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Perennial.Proof.strings.Base
-public import SpecPlan.Spec.PkgInit.math.rand
+public import Perennial.Proof.math.rand.Base
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.«attribute»
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.trace
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.mvccpb

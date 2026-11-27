@@ -24,13 +24,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ (R : RBase GF St I O) (S : ModelSpec GF (EtcdGrove.linkv.PSet St I)) (γ : PendNames)
+  ∀ {J : Type} [DecidableEq J] [Pos.Countable J] (R : RBase GF St J I O) (S : ModelSpec GF (EtcdGrove.linkv.PSet St J)) (γ : PendNames)
     (m : Model) (addrs : GoSlice) (addrL : List GoString) (cd : remote.Codec) (gen : GoFunc)
     (ops d : w64),
   (↑pendN : CoPset) ⊆ ⊤ \ R.Eop → (↑lintestN : CoPset) ⊆ ⊤ \ (R.Eop ∪ ↑pendN) →

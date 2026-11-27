@@ -61,12 +61,26 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-! ## `Authenticate`'s messages -/
 
+/-! ### The messages' stored forms (moved here from the `PerType*` files at phase 7 S2's
+interface, 2026-11-24: a `ProtoMsg` holds its `tree`) -/
+
+/-- **The store of an authentication request**: the user's name and password. -/
+def authenticateReqTree (m : GoString × GoString) : VTree :=
+  .strct etcdserverpb.AuthenticateRequest.ty
+    [(go!"Name", go.string), (go!"Password", go.string)] [.leaf #m.1, .leaf #m.2]
+
+/-- **The store of an authentication reply**: its token (its `Header` left `nil`: the model does
+not hold it). -/
+def authenticateRepTree (t : GoString) : VTree :=
+  .strct etcdserverpb.AuthenticateResponse.ty [(go!"Token", go.string)] [.leaf #t]
+
 /-- **A `*pb.AuthenticateRequest`** on the wire: the user's name and password; a decoded copy's
 `Password` the handler's own (`EtcdServer.Authenticate` clears it when it returns, the fix of
 CVE-2021-28235; C1's review, F1). -/
 def pbAuthenticateRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateRequest.ty
   M := GoString × GoString
+  tree := authenticateReqTree
   send inp m := iprop(∃ req : etcdserverpb.AuthenticateRequest, inp ↦ req ∗
     ⌜req.Name' = m.1 ∧ req.Password' = m.2 ∧ req.unknownFields' = slice.nil⌝)
   wireLen m := m.1.length + m.2.length + wireSlack
@@ -83,6 +97,7 @@ def pbAuthenticateRequest : ProtoMsg GF where
 def pbAuthenticateResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateResponse.ty
   M := GoString
+  tree := authenticateRepTree
   send r t := iprop(∃ v : etcdserverpb.AuthenticateResponse, r ↦ v ∗
     ⌜v.Token' = t ∧ v.unknownFields' = slice.nil⌝)
   recv r t := iprop(⌜r ≠ null⌝ ∗
@@ -276,7 +291,9 @@ def clientReady (c conn : Loc) (eps : List GoString) : IProp GF :=
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" c ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #api :
         GoInterface) ∗
-    authObjS api conn ∗ clientAuthAt c eps P)
+    authObjS api conn ∗ clientAuthAt c eps P ∗
+    -- (grpc-trusted-T, T7, 2026-11-24) its connection dialed with etcd's stream interceptor
+    etcdConnStream conn)
 
 instance clientReady_persistent (c conn : Loc) (eps : List GoString) :
     Persistent (clientReady (GF := GF) c conn eps) := by
@@ -289,37 +306,107 @@ header): on a connection `conn` to `eps` whose one interceptor `ic` is, with `cl
 eps`, the contract in both modes. -/
 def etcdInterceptorOkG (c : Loc) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (eps : List GoString),
-    clientReady c conn eps -∗ grpcConn conn eps [ic] [] anyRes -∗
+    clientReady c conn eps -∗ grpcConn conn eps [ic] [] clientRes -∗
       etcdInterceptorOk ic ∗ etcdInterceptorOkW ic)
 
 instance etcdInterceptorOkG_persistent (c : Loc) (ic : GoFunc) :
     Persistent (etcdInterceptorOkG (GF := GF) c ic) := by
   unfold etcdInterceptorOkG; infer_instance
 
+/-- **etcd's stream interceptor `si` of the client `c`, once `c` is ready** (persistent;
+phase7-s3-interceptor, 2026-11-26): its contract (`etcdStreamIcOk`), given, a step later, that the
+client is ready on a connection `conn` to `eps` (`clientReady`) whose one unary interceptor `ic` is
+the client's (`etcdInterceptorOkG`): the interceptor's `getToken` makes a unary call on it. The laters
+let the client's readiness, which holds the contract (`etcdConnStream`), be built by Löb induction
+(`clientReady_loeb`). What `Client.streamClientInterceptor` returns. -/
+def etcdStreamIcOkG (c : Loc) (si : GoFunc) : IProp GF :=
+  iprop(□ ∀ (conn : Loc) (eps : List GoString) (ic : GoFunc),
+    ▷ clientReady c conn eps -∗ ▷ grpcConn conn eps [ic] [] clientRes -∗ ▷ etcdInterceptorOkG c ic -∗
+      etcdStreamIcOk si)
+
+instance etcdStreamIcOkG_persistent (c : Loc) (si : GoFunc) :
+    Persistent (etcdStreamIcOkG (GF := GF) c si) := by
+  unfold etcdStreamIcOkG; infer_instance
+
+/-- **The connection `conn` of the client `c` was dialed with its stream interceptor** (persistent;
+phase7-s3-interceptor): `etcdConnStream`, the contract gated on the client's readiness. -/
+def etcdConnStreamG (c conn : Loc) : IProp GF :=
+  iprop(∃ (d : GrpcConnOpts) (si : GoFunc), grpcConnOpts conn d ∗ ⌜d.streamIc = some si⌝ ∗
+    etcdStreamIcOkG c si)
+
+instance etcdConnStreamG_persistent (c conn : Loc) : Persistent (etcdConnStreamG (GF := GF) c conn) := by
+  unfold etcdConnStreamG; infer_instance
+
 /-- **The dial's connection of the client `c`** (persistent; see the file header): `isEtcdConn`,
-its interceptor's contract gated on `clientReady`. -/
+its interceptors' contracts gated on `clientReady`. -/
 def isEtcdConnG (c conn : Loc) (eps : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] anyRes ∗ etcdInterceptorOkG c ic)
+  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] clientRes ∗ etcdInterceptorOkG c ic ∗
+    -- (grpc-trusted-T, T7, 2026-11-24) dialed with etcd's stream interceptor (gated since
+    -- phase7-s3-interceptor)
+    etcdConnStreamG c conn)
 
 instance isEtcdConnG_persistent (c conn : Loc) (eps : List GoString) :
     Persistent (isEtcdConnG (GF := GF) c conn eps) := by
   unfold isEtcdConnG; infer_instance
 
-theorem isEtcdConnG_ready (c conn : Loc) (eps : List GoString) :
-    isEtcdConnG (GF := GF) c conn eps ∗ clientReady c conn eps ⊢ isEtcdConn conn eps := by
-  unfold isEtcdConnG etcdInterceptorOkG
-  iintro ⟨⟨%ic, #Hg, #Hok⟩, #Hr⟩
+/-- The connection, from its unary interceptor's gate and the client's readiness (which holds the
+stream interceptor's contract, `etcdConnStream`). -/
+theorem isEtcdConn_of_ready (c conn : Loc) (eps : List GoString) (ic : GoFunc) :
+    grpcConn (GF := GF) conn eps [ic] [] clientRes ∗ etcdInterceptorOkG c ic ∗ clientReady c conn eps ⊢
+      isEtcdConn conn eps := by
+  iintro ⟨#Hg, #Hok, #Hr⟩
+  ihave #Hr' := Hr
+  unfold etcdInterceptorOkG
   ihave ⟨#H1, #H2⟩ := Hok $$ %conn %eps Hr Hg
+  iunfold clientReady at Hr'
+  icases Hr' with ⟨%_, %_, -, -, -, #Hcs⟩
   unfold isEtcdConn
   iexists ic
   iframe #
+
+theorem isEtcdConnG_ready (c conn : Loc) (eps : List GoString) :
+    isEtcdConnG (GF := GF) c conn eps ∗ clientReady c conn eps ⊢ isEtcdConn conn eps := by
+  unfold isEtcdConnG
+  iintro ⟨⟨%ic, #Hg, #Hok, -⟩, #Hr⟩
+  iapply isEtcdConn_of_ready c conn eps ic
+  iframe #
+
+/-- **The client is ready, by Löb induction** (phase7-s3-interceptor): its `Auth`, the token fetch's
+facts and the dial's connection give `clientReady`, whose stream interceptor's contract the gate
+(`etcdStreamIcOkG`) gives from the client's readiness a step later. -/
+theorem clientReady_loeb (c conn : Loc) (eps : List GoString) (api : Loc) (P : GoString → IProp GF) :
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" c ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #api :
+          GoInterface) ∗
+      authObjS (GF := GF) api conn ∗ clientAuthAt c eps P ∗ isEtcdConnG c conn eps ⊢
+      clientReady c conn eps := by
+  iintro ⟨#HA, #Ho, #Hca, #Hg⟩
+  iloeb as IH
+  iunfold isEtcdConnG at Hg
+  icases Hg with ⟨%ic, #Hgc, #Hok, #Hcs⟩
+  iunfold etcdConnStreamG at Hcs
+  icases Hcs with ⟨%d, %si, #Hco, %Hsi, #Hgate⟩
+  iunfold etcdStreamIcOkG at Hgate
+  ihave #Hgc' : iprop(▷ grpcConn (GF := GF) conn eps [ic] [] clientRes) $$ []
+  · inext; iexact Hgc
+  ihave #Hok' : iprop(▷ etcdInterceptorOkG (GF := GF) c ic) $$ []
+  · inext; iexact Hok
+  ihave #Hs := Hgate $$ %conn %eps %ic IH Hgc' Hok'
+  iclear IH
+  unfold clientReady
+  iexists api, P
+  iframe HA Ho Hca
+  unfold etcdConnStream
+  iexists d, si
+  iframe Hco Hs
+  ipureintro; exact Hsi
 
 /-! ## The connection's tokens -/
 
 /-- **What the per-RPC credentials of the connection `conn` returned to its attempts is none, or
 the one key `token` with a token meeting `P`** (persistent; see the file header). -/
 def connTokOk (conn : Loc) (P : GoString → IProp GF) : IProp GF :=
-  iprop(□ ∀ cm, ⌜credsYield conn cm⌝ -∗ tokMdOk P cm)
+  iprop(□ ∀ cm, credsYield conn cm -∗ tokMdOk P cm)
 
 instance connTokOk_persistent (conn : Loc) (P : GoString → IProp GF) :
     Persistent (connTokOk conn P) := by
@@ -328,10 +415,11 @@ instance connTokOk_persistent (conn : Loc) (P : GoString → IProp GF) :
 theorem connTokOk_none (conn : Loc) (Q : GrpcMd → IProp GF) (P : GoString → IProp GF) :
     connCredsOk conn [] Q ⊢ connTokOk conn P := by
   unfold connCredsOk connTokOk tokMdOk
-  iintro %h
-  iintro !> %cm %hy
-  have := h cm hy
-  subst this
+  iintro #H
+  iintro !> %cm #hy
+  ihave Hc := H $$ %cm hy
+  icases Hc with %hc
+  subst hc
   isplitl []
   · ipureintro; intro k _; rfl
   · ileft; ipureintro; rfl
@@ -340,8 +428,8 @@ theorem connTokOk_one (conn : Loc) (pc : GoInterface) (P : GoString → IProp GF
     connCredsOk conn [pc] (tokMdOk P) ⊢ connTokOk conn P := by
   unfold connCredsOk connTokOk
   iintro #H
-  iintro !> %cm %hy
-  ihave #Hq := H $$ %cm %hy
+  iintro !> %cm #hy
+  ihave #Hq := H $$ %cm hy
   iexact Hq
 
 /-! ## The token of an attempt -/
@@ -404,7 +492,7 @@ the `m` of `metadata.outMD ctx m`) sees a token meeting `P` (trimmed of `"Bearer
 `auth.mdTokenOf`), or the token of the outgoing metadata as grpc delivers it
 (`metadata.mdNorm`). -/
 def attemptTokOk (conn : Loc) (P : GoString → IProp GF) : IProp GF :=
-  iprop(□ ∀ (m md : GrpcMd), ⌜clientAttemptMdOf conn m md⌝ -∗
+  iprop(□ ∀ (m md : GrpcMd), clientAttemptMd conn m md -∗
     (∃ t, ⌜auth.mdTokenOf md = some (strings.trimPrefix t go!"Bearer ")⌝ ∗ □ P t) ∨
     ⌜auth.mdTokenOf md = auth.mdTokenOf (metadata.mdNorm m)⌝)
 
@@ -417,8 +505,14 @@ theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
     connTokOk conn P ⊢ attemptTokOk conn P := by
   unfold connTokOk attemptTokOk
   iintro #H
-  iintro !> %m %md %h
-  obtain ⟨v, cm, hy, hvals, hne⟩ := h
+  iintro !> %m %md #h
+  iunfold clientAttemptMd at h
+  iunfold streamAttemptMd at h
+  icases h with ⟨%om', %hF, #h⟩
+  obtain ⟨v, rfl⟩ := hF
+  iunfold grpcAttemptMd at h
+  icases h with ⟨%cm, #hy, %hp⟩
+  obtain ⟨hvals, hne⟩ := hp
   have hot : ∀ k, k ≠ go!"client-api-version" →
       metadata.mdVals (metadata.mdSet m go!"client-api-version" [v]) k = metadata.mdVals m k := by
     intro k hk
@@ -428,7 +522,7 @@ theorem attemptTokOk_of (conn : Loc) (P : GoString → IProp GF) :
   have hauth := hvals _ grpcReservedKey_authorization
   rw [hot _ (by decide)] at htok
   rw [hot _ (by decide)] at hauth
-  ihave #Hq := H $$ %cm %hy
+  ihave #Hq := H $$ %cm hy
   unfold tokMdOk
   icases Hq with ⟨%hoth, (%hnone | ⟨%t, %ht, #Hp⟩)⟩
   · iright

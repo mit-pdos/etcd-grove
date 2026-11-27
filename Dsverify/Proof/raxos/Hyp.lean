@@ -24,9 +24,9 @@ premises, to be discharged when each piece comes as one shared change:
   server runs a handler only on a whole request frame); here `dec` hands it over, as grpc-go runs a
   handler on the request's headers (review #24). `grpcAddr W a` is `Net/`'s `addrProto a (reqProto W a) (respProto W a)` with the
   world's registry: the recorders' addresses get those protocols in the deployment.
-* **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.{Seed,Intn}.spec` (the
-  package-level generator, safe for concurrent use; `Intn` for `0 < n` only, Go panics otherwise),
-  the class `RandHyp`.
+* **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.Seed.spec` (names only at
+  Perennial 47ec64a9d), the class `RandHyp`. (Until 2026-11-24, math-rand-isinit, also the
+  package-level `Intn`: Perennial proves it now, `Dsverify/Proof/math/rand/IntnPos.lean`.)
 * **`strconv.Atoi`** is no longer a hypothesis: its value spec and the class `AtoiSpec` are in
   `AtoiSpec.lean` (imported here, so the proofs see them), proved in `AtoiProof.lean` over
   Perennial's translation.
@@ -34,6 +34,9 @@ premises, to be discharged when each piece comes as one shared change:
   `own m M` and the memory's points-to `tp` (`MapVocab`, abstract) and the class `MapHyp` of its
   laws (`ivt`: `tp` is the memory's, `own_timeless`, `own_zero` from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
   string keys.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4; `PbHyp` since dsv-fix6, after its review in fix 4 refuted it and `Msg.lean`'s representation was narrowed: an owned message's `state` unset or its type's own `MessageInfo`, `stateOk`; a shared message's runtime fields in a sealed invariant) no longer a statement premise: `PbHyp`, `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/google_golang_org/protobuf/proto/{Marshal,Unmarshal}.lean`, `math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
 -/
 module
 
@@ -63,7 +66,7 @@ open models_lab.pbcodec (PbCodec)
 /-! ## protobuf -/
 
 section pb
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
@@ -80,7 +83,18 @@ read with `dq = 1` owns both (the whole struct, existentially); one read with an
 them in an invariant (`msg.pbRtN`), so the stores of concurrent marshals of a shared message are
 justified (review #24, finding 2). gRPC's codec (`encoding/proto/proto.go:51-64`: `proto.Size`,
 then `Marshal` with `UseCachedSize`) writes the same fields: `PbCodec.marshal` is this
-precondition. -/
+precondition. The representation admits only the runtime-field values protobuf itself leaves
+(dsv-fix6, after review `notes/axiom-review/dsv-fix4/quepaxa-pb.md`): an owned message's `state` is
+unset or its type's own `MessageInfo` (`msg.stateOk`; the generated `ProtoReflect` uses the one in
+`state`, so another type's would marshal that type's layout), and a shared message's runtime fields
+sit in an invariant whose content (`msg.rt*`) is sealed, so only protobuf's own stores reach them;
+`sizeCache` is free in both, since `Marshal` sizes (storing every `sizeCache`) before it marshals
+with the cached sizes. Each kind of `msg.marshalPre`/`msg.unmarshalPre` asks `isPkgInit` of the
+message's declaring package (dsv-fix6, review `notes/axiom-review/dsv-fix6/quepaxa-pb.md`,
+counterexample C: before that package's generated `init` its `file_*_msgTypes` is unfilled, and
+`ProtoReflect` panics); that premise excludes such calls from other packages, and inside the two
+declaring packages the condition is that they have no hand-written package-level initializer
+(review `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md`, finding 1; `etc/pb-init-check.py`). -/
 abbrev proto.Marshal.spec : Prop :=
   ∀ (m : GoInterface) (Ψ : Option (List w8) → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msg.marshalPre m Ψ }}
@@ -103,7 +117,7 @@ abbrev proto.Unmarshal.spec : Prop :=
         (if ok then iprop(True) else errAny err) }}
 
 /-- The protobuf hypotheses, together. -/
-class PbHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+class PbHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   marshal : proto.Marshal.spec (GF := GF) (hG := hG)
   unmarshal : proto.Unmarshal.spec (GF := GF) (hG := hG)
@@ -124,22 +138,14 @@ abbrev math.rand.Seed.spec : Prop :=
       (App (Val (@! Perennial.math.rand.Seed)) (Val #seed))
     {{ RET #(); True }}
 
-/-- **Hypothesis** the package-level `Intn(n)` for `n > 0`: some `x` with `0 ≤ x < n`, no
-resource (Go's top-level generator is safe for concurrent use). -/
-abbrev math.rand.Intn.spec : Prop :=
-  ∀ (n : w64), 0 < sint.Z n →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
-      (App (Val (@! Perennial.math.rand.Intn)) (Val #n))
-    {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
-
-/-- The `math/rand` hypotheses (the lab's model's specs; Perennial proves none of these), together.
+/-- The `math/rand` hypotheses (the lab's model's specs; Perennial proves `Intn`, no longer here,
+and leaves `Seed` names only).
 Only the package-level functions: QuePaxa's `rand.New(rand.NewSource(..))`/`(*Rand).Intn` run only
 in asynchronous mode (`isAsynchronous`), which the deployment never sets (`Proposer/Slots.lean`), so
 no spec of them is assumed. -/
 class RandHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   Seed : math.rand.Seed.spec (GF := GF) (hG := hG)
-  Intn : math.rand.Intn.spec (GF := GF) (hG := hG)
 
 end rand
 
@@ -152,9 +158,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Hypothesis** `t.UTC()`: some `Time` (the lab's `Time.wp_UTC`; Perennial leaves `Time.UTC`
-untranslated, `Perennial/Code/time.toml`). Discharge: Perennial translating `UTC` (its body is
-`t.setLoc(&utcLoc)`; `setLoc` is not translated either) and the lab's proof. -/
+/-- `t.UTC()`: some `Time` (the lab's `Time.wp_UTC`). Discharged by Perennial's `time.Time.wp_UTC`
+(`Dsverify/Proof/time/Time__UTC.lean`). -/
 abbrev Time.UTC.spec : Prop :=
   ∀ (t : Perennial.time.Time),
     {{ (True : IProp GF) }}
@@ -179,11 +184,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Hypothesis** `sort.Ints(x)`: the slice's elements permuted into ascending signed order (the
-lab's `wp_Ints`, proved there over its own translation of `sort.Ints`, `func Ints(x []int) {
-slices.Sort(x) }`, from Perennial's `slices.wp_Sort`; Perennial leaves `sort.Ints` untranslated).
-Discharge: Perennial translates `sort.Ints`; the lab's proof (`Harness/Proof/sort/Ints.lean`) then
-applies. -/
+/-- `sort.Ints(x)`: the slice's elements permuted into ascending signed order (the lab's
+`wp_Ints`). Discharged by Perennial's `sort.wp_Ints` (`Dsverify/Proof/sort/Ints.lean`). -/
 abbrev Ints.spec : Prop :=
   ∀ (data : GoSlice) (xs : List w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗

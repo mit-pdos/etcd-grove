@@ -10,7 +10,11 @@ import (
 // is valid (out-of-range values are clamped, normalize), and the tester's checks hold for every
 // one: what a Config changes is how large the executions are and which are likely (or, with a
 // weight of 0, possible), never what a check says. Engineered Configs (mvccfull_test.go) make the executions behind a class of
-// bugs likely; Main's reaches past mvcc's internal thresholds.
+// bugs likely; Main's reaches past mvcc's internal thresholds. The proved theorem is about MainAt,
+// which draws its Config (drawConfig) and runs it when it is in the range the proof covers
+// (inScope), so about every Config in that range: no hash reads (Mix.Read's last weight positive,
+// or all six zero) until hashing is verified (stage F2, notes/mvccfull-proof-plan.md), and the
+// sizes inScope bounds.
 //
 //   - Prefix: the files are Prefix-0.db and Prefix-1.db (the members') and Prefix-b<n>.db (the
 //     n-th snapshot's), FilePaths(cfg), absent at the start.
@@ -45,8 +49,9 @@ type Config struct {
 // alternative listed with the field (an entry that is missing, zero or negative counts as 0). An
 // alternative of positive weight can always be chosen; one of weight 0 is never chosen unless
 // every weight of the field is 0, in which case the choice is uniform. So a Mix can rule an
-// alternative out, but the theorem for every Config covers each one (the all-zero Mix chooses
-// every alternative), and a Mix changes which checks run, never what a check says. Several alternatives
+// alternative out, but a theorem for every Config would cover each one (the all-zero Mix chooses
+// every alternative), and a Mix changes which checks run, never what a check says. MainConfig's
+// Mix rules out one alternative that no other covers, the hashes (Read's last). Several alternatives
 // pick from a subset of another's values (a revision equal to the compaction revision is also
 // "any revision"): they exist only to be weighed.
 //
@@ -158,4 +163,79 @@ func hashing(w []int) bool {
 		}
 	}
 	return !any || (len(w) > 5 && w[5] > 0)
+}
+
+// anyInt returns any int. Its draw shifts a random 64-bit value right by a random amount, so every
+// int can be drawn (shift 0) and short values are as likely as long ones: a Config drawn field by
+// field (drawConfig) is then in the proved range (inScope) often enough to be run.
+func anyInt() int {
+	return int(primitive.RandomUint64() >> (primitive.RandomUint64() % 64))
+}
+
+// anyInts returns a slice of n ints, each any int (anyInt).
+func anyInts(n int) []int {
+	w := make([]int, n)
+	for i := 0; i < n; i++ {
+		w[i] = anyInt()
+	}
+	return w
+}
+
+// drawConfig returns any Config with the files' prefix prefix: every size, limit, pause and weight
+// any int, and each of Mix's weight slices as long as its field's list of alternatives (a missing
+// weight counts as 0, so no Config is left out).
+func drawConfig(prefix string) Config {
+	return Config{Prefix: prefix, Ops: anyInt(), Depth: anyInt(), MaxVal: anyInt(),
+		Readers: anyInt(), Reads: anyInt(), Streams: anyInt(), Watchers: anyInt(),
+		BatchLimit: anyInt(), BatchInterval: time.Duration(anyInt()),
+		CompactionBatchLimit: anyInt(), CompactionSleep: time.Duration(anyInt()),
+		Mix: Mix{
+			Step: anyInts(6), Op: anyInts(9), CompactAt: anyInts(3), RangeRev: anyInts(4),
+			Read: anyInts(6), Act: anyInts(6), Start: anyInts(3),
+			Pause: time.Duration(anyInt()), RecvPause: time.Duration(anyInt()),
+			ReadPause: time.Duration(anyInt()),
+		}}
+}
+
+// weightsFit reports whether the positive weights among w's first six add up to less than 2^63.
+func weightsFit(w []int) bool {
+	total := 0
+	for i := 0; i < 6 && i < len(w); i++ {
+		if w[i] > 0 {
+			if w[i] > 1<<63-1-total {
+				return false
+			}
+			total += w[i]
+		}
+	}
+	return true
+}
+
+// inScope reports whether cfg is in the range the proof covers (Run's): at most 2^38 - 1 operations
+// (one file name per snapshot), 2·Readers + 4·Streams + 3 ≤ 2^28 (a negative count is 0: the
+// backend's reader slots), the backend's batch limit at most 2^57 and the store's compaction batch
+// limit at most 2^56, keys of length at most 37 (fewer than 2^60 of them), values' padding at most
+// 2^20 bytes, and readers that never pick the hashes (hashing) with weights that fit (weightsFit).
+func inScope(cfg Config) bool {
+	if cfg.Ops < 0 || cfg.Ops >= 1<<38 {
+		return false
+	}
+	rd := 0
+	if cfg.Readers > 0 {
+		rd = cfg.Readers
+	}
+	st := 0
+	if cfg.Streams > 0 {
+		st = cfg.Streams
+	}
+	if rd >= 1<<28 || st >= 1<<28 || 2*rd+4*st+3 > 1<<28 {
+		return false
+	}
+	if cfg.BatchLimit > 1<<57 || cfg.CompactionBatchLimit > 1<<56 {
+		return false
+	}
+	if cfg.Depth > 37 || cfg.MaxVal > 1<<20 {
+		return false
+	}
+	return !hashing(cfg.Mix.Read) && weightsFit(cfg.Mix.Read)
 }

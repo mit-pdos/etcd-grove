@@ -35,7 +35,7 @@ namespace EtcdGrove
 namespace cluster3
 
 open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcdstart (httpURL commonPremises memberBoot)
+open etcdstart (httpURL memberBoot)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -68,6 +68,8 @@ abbrev StartMember.spec : Prop :=
   -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
   -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
   name.length ≤ 200 →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  etcdstart.addrFits peerAddr → etcdstart.addrFits client →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   -- (lease-mono3) the lease reads' deployment premise, in a mode that grants leases
@@ -81,7 +83,7 @@ abbrev StartMember.spec : Prop :=
         (GMap.insert cfg.Name1' sl₁ ∅)) ∗
       sl₁ ↦*□ initURLs3 cfg cfg.Name1' ∗ sl₂ ↦*□ initURLs3 cfg cfg.Name2' ∗
       sl₃ ↦*□ initURLs3 cfg cfg.Name3' ∗
-      bootPremise cfg N ps bootLog ctxs dir name peerAddr client id ∗ commonPremises ∗
+      bootPremise cfg N ps bootLog ctxs dir name peerAddr client id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP

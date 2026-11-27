@@ -10,6 +10,12 @@ statement's per-heap hypotheses made instances on that machine's heap.
 -/
 module
 
+public import Dsverify.Proof.google_golang_org.protobuf.proto.Marshal
+public import Dsverify.Proof.google_golang_org.protobuf.proto.Unmarshal
+public import Dsverify.Proof.math.rand.Seed
+public import Dsverify.Proof.time.Time__UTC
+public import Dsverify.Proof.sort.Ints
+public import Dsverify.Proof.fmt.Println
 public import Dsverify.Spec.raxos.examples.quepaxanet.TopLevelRobustness
 public import Dsverify.Proof.raxos.examples.quepaxanet.Linked
 public import Dsverify.Proof.raxos.examples.quepaxanet.Mains
@@ -94,8 +100,8 @@ end boot
 
 /-- **The QuePaxa kit, closed** (see the statement's file). -/
 theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hyi hri hii hgi hgri hgci hmi qv hpb hrand hutc hsort hpr hgrpc hworld hmap σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 bvi
+    hri hgri qv hgrpc hworld hmap σ g threads
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRB
     (GF := remoteGF) quepaxaKitAddrs kitLis (system σ) g threads
     (2 ^ 63) kitLis_pairwise kitLis_disj ?_
@@ -149,18 +155,13 @@ theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    haveI : gopkg_in.yaml_v2.InitHyp remoteGF := hyi G' hG.goose_localGS
     haveI : github_com.go_redis.redis.v8.InitHyp remoteGF := hri G' hG.goose_localGS
-    haveI : io.ioutil.InitHyp remoteGF := hii G' hG.goose_localGS
-    haveI : encoding.gob.InitHyp remoteGF := hgi G' hG.goose_localGS
     haveI : google_golang_org.grpc.InitHyp remoteGF := hgri G' hG.goose_localGS
-    haveI : google_golang_org.grpc.codes.InitHyp remoteGF := hgci G' hG.goose_localGS
-    haveI : math.rand.InitHyp remoteGF := hmi G' hG.goose_localGS
-    haveI : hyp.PbHyp remoteGF := hpb G' hG.goose_localGS
-    haveI : hyp.RandHyp remoteGF := hrand G' hG.goose_localGS
-    haveI : hyp.UtcHyp remoteGF := hutc G' hG.goose_localGS
-    haveI : hyp.SortHyp remoteGF := hsort G' hG.goose_localGS
-    haveI : hyp.PrintlnHyp remoteGF := hpr G' hG.goose_localGS
+    haveI : hyp.PbHyp remoteGF := ⟨hyp.proto.Marshal.wp_proof, hyp.proto.Unmarshal.wp_proof⟩
+    haveI : hyp.RandHyp remoteGF := ⟨math.rand.Seed.wp_proof⟩
+    haveI : hyp.UtcHyp remoteGF := ⟨hyp.time.Time.UTC.wp_proof⟩
+    haveI : hyp.SortHyp remoteGF := ⟨hyp.sort.Ints.wp_proof⟩
+    haveI : hyp.PrintlnHyp remoteGF := ⟨hyp.fmt.Println.wp_proof⟩
     haveI : hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.grpc := hgrpc G' hG.goose_localGS π
     haveI : hyp.sync.MapHyp qv.map := hmap G' hG.goose_localGS
     match i, hm with

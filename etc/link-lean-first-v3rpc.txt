@@ -7,10 +7,14 @@
 # struct, which Perennial's `errors.wp_Is` does not take). `errors.Is` is otherwise Perennial's
 # (proved, the server's spec file). The error map, the checks' rpctypes errors, the sort-name maps
 # and `context.Canceled`'s pointer error are the package's facts (Base.lean), not axioms.
-status_Error:
-status_Errorf:
+# (prove-statuserror, 2026-11-26) `status.Error` over grpc's bodies: `fmt.Sprintf`, `codes.Code.String`
+# (over `strconv.FormatInt`) and the trust boundary `proto.Equal` of two `*spb.Status`
+codes_Code__String: =_root_.Perennial.strconv.wp_FormatInt
+proto_EqualStatus:
+status_Error: =_root_.Perennial.fmt.wp_Sprintf codes_Code__String proto_EqualStatus
+status_Errorf: =_root_.Perennial.fmt.wp_Sprintf status_Error
 errors_Is:
-errors_IsStatusErr:
+errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
 errors_IsDeadlineExceeded: =_root_.Perennial.errors.wp_Is
 # The functions of other packages the checks call (`@`: linked in their Link.lean): the txn
 # package's stream-check predicates, the interval tree's intervals.
@@ -144,7 +148,7 @@ attribute_Bool:
 zap_Error:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
@@ -155,7 +159,8 @@ time_Duration__Seconds_ptr:
 verify_Assert:
 rand_Int63n:
 isClientCtxErr: status_FromError strings_HasSuffix
-status_FromError:
+rpctypes_EtcdError__Error:
+status_FromError: rpctypes_EtcdError__Error
 strings_HasSuffix:
 IsCreateEvent:
 context_TODO:
@@ -206,18 +211,30 @@ grpc_ChainStreamInterceptor:
 grpc_MaxRecvMsgSize:
 grpc_MaxSendMsgSize:
 grpc_MaxConcurrentStreams:
-grpc_NewServer:
-grpc_Server__RegisterService:
+# (W1, 2026-11-26) `NewServer` and `RegisterService` proved over the model's bodies, with their
+# callees (grpc's internal stats and event, the chain builders, `register` and its helpers)
+stats_NewCombinedHandler:
+grpcsync_NewEvent:
+grpc_chainUnaryInterceptors:
+grpc_chainStreamInterceptors:
+grpc_chainUnaryServerInterceptors: grpc_chainUnaryInterceptors
+grpc_chainStreamServerInterceptors: grpc_chainStreamInterceptors
+grpc_NewServer: stats_NewCombinedHandler grpcsync_NewEvent grpc_chainUnaryServerInterceptors grpc_chainStreamServerInterceptors
+grpc_Server__printf:
+grpc_Server__wrapUnaryHandler:
+grpc_Server__register: grpc_Server__printf grpc_Server__wrapUnaryHandler
+grpc_Server__RegisterService: grpc_Server__register
 health_NewServer:
-health_Server__SetServingStatus:
+health_Server__setServingStatusLocked:
+health_Server__SetServingStatus: health_Server__setServingStatusLocked
 grpc_health_v1_HealthCheckResponse_ServingStatus__String:
-grpc_health_v1_RegisterHealthServer:
+grpc_health_v1_RegisterHealthServer: grpc_Server__RegisterService
 prometheus_NewServerMetrics:
 prometheus_WithServerHandlingTimeHistogram:
 prometheus_ServerMetrics__UnaryServerInterceptor:
 prometheus_ServerMetrics__StreamServerInterceptor:
 prometheus_ServerMetrics__InitializeMetrics:
-prometheus_Register:
+prometheus_Register: =EtcdGrove.prometheus.Registry.Register.wp_proof
 zap_String:
 zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 RegisterKVServer: grpc_Server__RegisterService
@@ -300,3 +317,6 @@ healthNotifier__startServe: zap_String zap_Logger__Info health_Server__SetServin
 newHealthNotifier: healthNotifier__startServe EtcdServer__Logger EtcdServer__FeatureEnabled
 getServerMetrics: prometheus_NewServerMetrics prometheus_WithServerHandlingTimeHistogram prometheus_Register zap_Logger__Warn zap_Error
 Server: grpc_CustomCodec grpc_StatsHandler otelgrpc_NewServerHandler grpc_ChainUnaryInterceptor grpc_ChainStreamInterceptor grpc_MaxRecvMsgSize grpc_MaxSendMsgSize grpc_MaxConcurrentStreams grpc_NewServer getServerMetrics newLogUnaryInterceptor prometheus_ServerMetrics__UnaryServerInterceptor newUnaryInterceptor prometheus_ServerMetrics__StreamServerInterceptor newStreamInterceptor config_ServerConfig__MaxRequestBytesWithOverhead NewQuotaKVServer RegisterKVServer NewWatchServer RegisterWatchServer NewQuotaLeaseServer RegisterLeaseServer NewClusterServer RegisterClusterServer NewAuthServer RegisterAuthServer health_NewServer newHealthNotifier grpc_health_v1_RegisterHealthServer NewMaintenanceServer RegisterMaintenanceServer prometheus_ServerMetrics__InitializeMetrics
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

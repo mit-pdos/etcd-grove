@@ -61,9 +61,6 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 1
 spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap 1
-spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kv 3
-spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvdurable 3
-spec-receipt github_com/mit_pdos/etcd_grove/examples/raft/kvreconf 4
 spec-receipt go_etcd_io/etcd/server/v3/etcdserver 15
 spec-receipt go_etcd_io/etcd/server/v3/lease 2
 spec-readers go_etcd_io/etcd/cache/v3 6
@@ -84,7 +81,6 @@ spec-cfg go_etcd_io/etcd/server/v3/etcdserver/api/v3lock 1
 spec-cfg go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 2
 spec-rev github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 1
 stock github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 6
-stock github_com/mit_pdos/etcd_grove/examples/mvccrand 1
 stock go_etcd_io/etcd/cache/v3 10
 stock go_etcd_io/etcd/pkg/v3/notify 1
 stock go_etcd_io/etcd/server/v3/auth 7

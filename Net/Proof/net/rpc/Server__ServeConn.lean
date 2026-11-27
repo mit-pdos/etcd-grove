@@ -24,7 +24,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 theorem Server.ServeConn.wp_proof (wp_newServerCodec : newServerCodec.spec (GF := GF) (hG := hG))
@@ -33,16 +33,16 @@ theorem Server.ServeConn.wp_proof (wp_newServerCodec : newServerCodec.spec (GF :
   intro s γs C W a t cn la ra
   wp_start as ⟨%Hb, #Hsrv, #Hserves, #Henv, #Hset, #Hconn, Hacc, Htok⟩
   wp_auto
-  wp_apply wp_newServerCodec as %sc ⟨Hrwc, Hwerr, Hrerr, Hclosed⟩
+  wp_apply wp_newServerCodec as %sc ⟨Hrwc, Hwerr, Hclosed⟩
   ipersist Hrwc
-  wp_apply wp_ServeCodec s γs C W a sc t cn la ra $$ [$Hsrv $Hserves $Henv $Hset Hwerr Hrerr Hclosed
+  wp_apply wp_ServeCodec s γs C W a sc t cn la ra $$ [$Hsrv $Hserves $Henv $Hset Hwerr Hclosed
       Hacc Htok] as Htok
   · isplitr
     · ipureintro; exact Hb
     isplitr
     · iunfold srvCodecAt; iframe Hrwc Hconn
     isplitr [Htok]
-    · iunfold srvCodecOwn; iframe Hwerr Hrerr Hclosed Hacc
+    · iunfold srvCodecOwn; iframe Hwerr Hclosed Hacc
     iexact Htok
   iapply HΦ
   iexact Htok

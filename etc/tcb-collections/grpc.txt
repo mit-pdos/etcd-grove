@@ -1,0 +1,180 @@
+# Phase 7's family (notes/phase7-endstate.md): what gRPC, its transport (net/http) and their leaves
+# contribute to the top-level theorems. "gRPC is done" is this baseline empty: no axiom and no `sorry`
+# of the family under any top-level result (the grpc-specific premises of the top-level statements,
+# which a trust-base report does not see, are listed in notes/phase7-endstate.md's section 5). What
+# stays trusted then is only the `models/grpc` Go model and the net extension's semantics.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/grpc.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/grpc.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/grpc.txt --check --update
+#
+# `roots PATTERN`: every etcd and Kubernetes example's result (the single-process theorems, the
+# drivers' linked `Main`s, putget's distributed `putget_safe_of_*`) and every top-level robustness
+# theorem of every tree (mvccfull among them).
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/(etcd|k8s)/
+roots TopLevelRobustness\.lean$
+# `axioms PATTERN`: the family, by declaring module or name (etc/tcb-report.py --help): grpc and its
+# subpackages (status, metadata, peer, credentials, codes, health, grpclog), the interceptors
+# (go-grpc-prometheus/providers, otelgrpc and otel's attribute init), net and net/http with their etcd
+# leaves (rafthttp's, probing, transport, httputil, types.NewURLs, leasehttp), the bridge, the start's
+# address rights, etcd's grpc-facing client and server leaves, and the per-type registrations. Not
+# in it: the protobuf, prometheus-metric, zap, context and reflect specs (their own tracks), and
+# raft's and rafthttp's message registrations (`pbEntryC_reg`, `pbMessageC_reg`). The family's
+# hand-written opaques (`grpcCliPI`, `protoEncodes`, `grpcRepliesFit`, net/http's `Boundary.lean`, ...)
+# are trusted definitions, not axioms: this report does not see them.
+axioms ^(Spec|Proof)/google_golang_org/grpc/
+axioms ^Proof/go_opentelemetry_io/(otel/attribute|contrib/instrumentation/google_golang_org/grpc)/
+axioms ^Proof/github_com/grpc_ecosystem/
+axioms ^Proof/net/
+axioms ^Proof/github_com/xiang90/probing/
+axioms ^Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/
+axioms ^addrUnclaimed$
+axioms (^|\.)pb\w+T_reg$
+axioms (^|\.)(toGRPCErrorMap_init|client\.v3\.initFuncsOk)$
+axioms ^(etcdStreamInterceptor|etcdResolver_grpc|etcd_noRefusal|etcd_noOtherRefusal|v3rpc\.codec_proto)$
+axioms ^(Client\.(Close|Endpoints|streamClientInterceptor)|WithRequireLeader|withVersion|streamKeyFromCtx)\.wp_proof$
+axioms ^(credentials\.perRPCCredential\.GetRequestMetadata|endpoint\.RequiresCredentials|errors\.IsStatusErr|v3rpc\.logUnaryRequestStats)\.wp_proof$
+axioms ^(transport\.NewTimeoutTransport|httputil\.GracefulClose|types\.NewURLs|leasehttp\.RenewHTTP|rafthttp\.addPeerToProber)\.wp_proof$
+axioms ^rafthttp\.netErrNotRemoved_ok$
+axiom Client.Close.wp_proof
+axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
+axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
+axiom Perennial.net.http.initFuncsOk
+axiom WithRequireLeader.wp_proof
+axiom addrClaim
+axiom addrUnclaimed
+axiom bridge.New.wp_proof
+axiom bridge.bridge.Blackhole.wp_proof
+axiom bridge.bridge.DropConnections.wp_proof
+axiom bridge.bridge.Unblackhole.wp_proof
+axiom bridge.bridgeAt
+axiom endpoint.RequiresCredentials.wp_proof
+axiom etcdResolver_grpc
+axiom etcd_noRefusal
+axiom grpc.ClientConn.Close.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
+axiom grpc.ClientConn.Target.wp_proof
+axiom grpc.NewClient.wp_proof
+axiom grpc.Server.Serve.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcProtoCodec
+axiom grpcResolverAt
+axiom grpcSrvAtLis
+axiom grpcStatsHandlerOk
+axiom grpcWrotePeer
+axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
+axiom grpc_prometheus.NewServerMetrics.wp_proof
+axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
+axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
+axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
+axiom grpclog.SetLoggerV2.wp_proof
+axiom http.CloseIdleConnections_ok
+axiom http.Error_ok
+axiom http.Flush_ok
+axiom http.Handle_ok
+axiom http.NewRequest_ok
+axiom http.NewServeMux_ok
+axiom http.ReadAll_any_ok
+axiom http.ReadAll_ok
+axiom http.ReadAll_resp_ok
+axiom http.ReadFull_resp_ok
+axiom http.RespCloseAny_ok
+axiom http.RespClose_ok
+axiom http.RespHeader_ok
+axiom http.Serve_ok
+axiom http.URLStringAny_ok
+axiom http.URLString_ok
+axiom http.WithContext_ok
+axiom http.bodyRead_ok
+axiom http.bodyStreamRead_ok
+axiom http.mux_handlerOk_ok
+axiom http.register
+axiom http.reqURL_ok
+axiom http.reserve
+axiom http.respReadAny_of_ok
+axiom http.respWriteHeader_ok
+axiom http.respWrite_ok
+axiom httpProtoFree
+axiom httputil.GracefulClose.wp_proof
+axiom metadata.AppendToOutgoingContext.wp_proof
+axiom metadata.FromIncomingContext.wp_proof
+axiom otelgrpc.NewServerHandler.wp_proof
+axiom pbAuthEnableRequestT_reg
+axiom pbAuthEnableResponseT_reg
+axiom pbAuthRoleAddRequestT_reg
+axiom pbAuthRoleAddResponseT_reg
+axiom pbAuthRoleGrantPermissionRequestT_reg
+axiom pbAuthRoleGrantPermissionResponseT_reg
+axiom pbAuthUserAddRequestT_reg
+axiom pbAuthUserAddResponseT_reg
+axiom pbAuthUserGrantRoleRequestT_reg
+axiom pbAuthUserGrantRoleResponseT_reg
+axiom pbAuthenticateRequestT_reg
+axiom pbAuthenticateResponseT_reg
+axiom pbCompactionRequestT_reg
+axiom pbCompactionResponseT_reg
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
+axiom pbLeaseGrantRequestT_reg
+axiom pbLeaseGrantResponseT_reg
+axiom pbLeaseLeasesRequestT_reg
+axiom pbLeaseLeasesResponseT_reg
+axiom pbLeaseRevokeRequestT_reg
+axiom pbLeaseRevokeResponseT_reg
+axiom pbLeaseTimeToLiveRequestT_reg
+axiom pbLeaseTimeToLiveResponseT_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
+axiom pbTxnRequestT_reg
+axiom pbTxnResponseT_reg
+axiom peer.Peer.String.wp_proof
+axiom probing.NewHandler.wp_proof
+axiom probing.NewProber.wp_proof
+axiom promSrvMetrics
+axiom promSrvMetrics_persistent
+axiom rafthttp.addPeerToProber.wp_proof
+axiom rafthttp.netErrNotRemoved_ok
+axiom streamKeyFromCtx.wp_proof
+axiom transport.NewTimeoutTransport.wp_proof
+axiom types.NewURLs.wp_proof
+axiom v3rpc.codec_proto
+axiom v3rpc.logUnaryRequestStats.wp_proof
+axiom v3rpc.pbWatchRequestT_reg
+axiom v3rpc.pbWatchResponseT_reg
+axiom withVersion.wp_proof
+opaque credsYieldRaw
+opaque grpcCliPI
+opaque grpcConnClosedRaw
+opaque grpcConnOptsRaw
+opaque grpcRepModelOf
+opaque grpcRepliesFit
+opaque grpcReqModelOf
+opaque grpcSrvPI
+opaque http.bodyReader
+opaque http.bodyStreamRaw
+opaque http.httpListenerAt
+opaque http.httpNetCliP
+opaque http.httpNetSrvP
+opaque http.httpProtoAtRaw
+opaque http.httpProtoOwn
+opaque http.muxOwn
+opaque http.netErrRaw
+opaque http.reqCtxRaw
+opaque http.reqRestRaw
+opaque http.reqStreamRaw
+opaque http.respCloserRaw
+opaque http.respHdrs
+opaque http.respReadAnyRaw
+opaque http.respReader
+opaque http.respWriter
+opaque http.urlHostOk
+opaque http.urlOf
+opaque noRefusalAt
+opaque promUnaryIc
+opaque streamRepModelOf
+opaque streamReqModelOf

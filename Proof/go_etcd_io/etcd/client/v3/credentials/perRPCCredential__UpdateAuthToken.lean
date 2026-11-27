@@ -31,7 +31,7 @@ theorem credentials.perRPCCredential.UpdateAuthToken.wp_proof :
   intro rc P t
   wp_start as ⟨#Hinv, #Ht⟩
   iunfold credTokInv at Hinv
-  icases Hinv with ⟨%Htb, #Hsync, #Hg, %γp, #Hpool⟩
+  icases Hinv with ⟨%Htb, #Hsync, #Hrpct, #Hg, %γp, #Hpool⟩
   wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hl, HR⟩
   iunfold credTokR at HR

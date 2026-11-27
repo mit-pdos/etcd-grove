@@ -78,7 +78,8 @@ theorem wp_convertToDecideResponseClientBatchMessages (re : Loc) (msl : GoSlice)
     · iframe #; ipureintro; exact Hq_lookup
     irename «$sl0» => Hnq
     generalize «$sl0_ptr» = nq at *
-    imod ptDRSingle_share ⊤ _ _ $$ Hnq with #Hnq
+    imod ptDRSingle_share ⊤ _ _ ?st $$ Hnq with #Hnq
+    case st => exact stateOk_zero _
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType
       (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty))))) (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := Loc)
@@ -114,7 +115,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       (App (Val (re @!! go.GoType.PointerType Recorder.ty @!! go!"HandleFetch")) (Val #req))
     {{ (resp : Loc), RET #resp; ∃ (x : DecideResponse) (qs : List Loc) (bs : List Batch),
         resp ↦ x ∗ x.ClientBatches' ↦* qs ∗ repList repDRBatch qs .discard bs ∗
-        ⌜(∀ b ∈ bs, batchFit b) ∧ x.unknownFields'.len = W64 0⌝ ∗
+        ⌜(∀ b ∈ bs, batchFit b) ∧ x.unknownFields'.len = W64 0 ∧ stateOk (replicaMI 3) x.state'⌝ ∗
         [∗list] b ∈ bs, batchReg γ b.id b }} := by
   wp_start as ⟨#Hre, #Hreq⟩
   ihave #Hre' := Hre
@@ -131,7 +132,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       "Hsl" ∷ xr.ClientBatches' ↦* qs ∗ "Hcap" ∷ ownSliceCap Loc xr.ClientBatches' (DFrac.own 1) ∗
       "#Hbs" ∷ repList repDRBatch qs .discard bs ∗ "%Hbok" ∷ ⌜∀ b ∈ bs, batchFit b⌝ ∗
       "#Hreg" ∷ ([∗list] b ∈ bs, batchReg γ b.id b) ∗ "%Hi" ∷ ⌜0 ≤ sint.Z i⌝ ∗
-      "%Hxru" ∷ ⌜xr.unknownFields'.len = W64 0⌝ : IProp GF)
+      "%Hxru" ∷ ⌜xr.unknownFields'.len = W64 0 ∧ stateOk (replicaMI 3) xr.state'⌝ : IProp GF)
       $$ [i response Hsl Hcap]
   · rw [show List.replicate 0 (zero_val Loc) = ([] : List Loc) from rfl]
     iexists _, _, [], []
@@ -142,7 +143,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
     · ipureintro; simp
     isplitl []
     · iapply BigSepL.bigSepL_nil.2; iempintro
-    · ipureintro; exact ⟨by word, rfl⟩
+    · ipureintro; exact ⟨by word, rfl, stateOk_zero _⟩
   wp_for HI
   wp_if_destruct
   · have Hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z x.Ids'.len := ⟨Hi, by simpa [goose_wp_simp_extra] using Hif⟩
@@ -158,7 +159,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       iexists _, _, _, bs
       iframe
       iframe #
-      ipureintro; refine ⟨Hbok, by word⟩
+      ipureintro; exact ⟨Hbok, by word, Hxru⟩
     · icases Hok with ⟨%b, ⟨%Hbid, %Hbok'⟩, #Hcb, #Hbr, -⟩
       iunfold repCBVal at Hcb
       icases Hcb with ⟨%mps, %Hvf, #Hmps, #Hmreps⟩
@@ -167,7 +168,8 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       ipersist Hrt
       irename «$sl0» => Hnq
       generalize «$sl0_ptr» = nq at *
-      imod ptDRBatch_share ⊤ _ _ $$ Hnq with #Hnq
+      imod ptDRBatch_share ⊤ _ _ ?st $$ Hnq with #Hnq
+      case st => exact stateOk_zero _
       wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType
         (go.GoType.PointerType DecideResponse_ClientBatch.ty))))) (Val (LiteralValueV _)))
       iapply wp_slice_literal (V := Loc) (t := go.GoType.PointerType DecideResponse_ClientBatch.ty) [nq]
@@ -194,7 +196,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       isplitl []
       · iapply (BigSepL.bigSepL_snoc (Φ := fun _ b => batchReg γ b.id b)).2
         iframe #; rw [Hbid]; iexact Hbr
-      · ipureintro; word
+      · ipureintro; exact ⟨by word, Hxru⟩
   · iapply HΦ
     iexists _, qs, bs
     iframe; iframe #; ipureintro; exact ⟨Hbok, Hxru⟩
@@ -212,7 +214,7 @@ theorem wp_GRPCConnection_FetchBatches (γ : QNames) (k : Nat) (gc re lin : Loc)
   wp_auto
   wp_apply +noauto wp_HandleFetch γ k re lin ids $$ [$Hre $Hreq]
     as %resp ⟨%x, %qs, %bs, Hx, Hqs, #Hbs, %Hbok, #Hreg⟩
-  imod ptDResp_share ⊤ _ _ $$ Hx with #Hx
+  imod ptDResp_share ⊤ _ _ Hbok.2.2 $$ Hx with #Hx
   ipersist Hqs
   wp_auto
   iapply HΦ
@@ -221,7 +223,7 @@ theorem wp_GRPCConnection_FetchBatches (γ : QNames) (k : Nat) (gc re lin : Loc)
   iexists bs
   iframe #
   isplitl []
-  · unfold repDResp; iexists x, qs; iframe #; ipureintro; exact Hbok.2
+  · unfold repDResp; iexists x, qs; iframe #; ipureintro; exact Hbok.2.1
   · ipureintro; exact Hbok.1
 
 theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
@@ -250,6 +252,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     iexists lin
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hin
     unfold decInto
     isplit
@@ -295,6 +298,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iexists resp, DFrac.discard, bs'
   isplitr
   · ipureintro; rfl
+  iPkgInit
   iframe #
   iintro -
   isplit
@@ -428,7 +432,8 @@ theorem wp_GRPCConnection_InformDecision (γ : QNames) (k : Nat) (gc re lin : Lo
   wp_auto
   irename «$r0» => He
   generalize «$r0_ptr» = le at *
-  imod ptEmpty_share ⊤ _ _ $$ He with #He
+  imod ptEmpty_share ⊤ _ _ ?st $$ He with #He
+  case st => exact stateOk_zero _
   wp_apply wp_HandleDecisions γ k re lin ds $$ [$Hre $Hreq $Hdec]
   · ipureintro; exact Hok
   iapply HΦ
@@ -462,6 +467,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     iexists lin
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hin
     unfold decInto
     isplit
@@ -508,6 +514,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iexists resp, DFrac.discard
   isplitr
   · ipureintro; rfl
+  iPkgInit
   iframe #
   iintro - %bs'' %Hbs''
   cases Hbs''

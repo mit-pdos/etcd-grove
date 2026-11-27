@@ -91,7 +91,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [sync.atomic.Assumptions] [state.Assumptions] [log.Assumptions]
   [slices.Assumptions] [time.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-  [github_com.emirpasic.gods.maps.treemap.Assumptions] [net.FieldAssumptions]
+  [github_com.emirpasic.gods.maps.treemap.Assumptions]
 
 /-- **`handleSync`, linked** at the run loop's names `x` (round 16; round 23: generic in the
 epoch's states, instantiated with the descriptors' state in SyncDLinked.lean): the running epoch

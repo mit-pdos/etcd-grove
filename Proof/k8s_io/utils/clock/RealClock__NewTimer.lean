@@ -29,9 +29,11 @@ variable [package_sem : k8s_io.utils.clock.Assumptions]
 theorem clock.RealClock.NewTimer.wp_proof : clock.RealClock.NewTimer.spec (GF := GF) (hG := hG) := by
   intro c d
   wp_start
+  ihave #Hti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
+  · iPkgInit
   wp_alloc res as Hres
   wp_auto
-  wp_apply time.NewTimer.wp_proof as %t %ch %γ #Ht
+  wp_apply time.wp_NewTimer $$ [Hti] as %t %ch %γ #Ht
   wp_alloc p as Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
   simp only [TypedPointsto.typedPointstoDef]

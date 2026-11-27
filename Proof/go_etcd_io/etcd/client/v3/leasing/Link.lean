@@ -74,6 +74,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.go_etcd_io.etcd.client.v3.leasing.closeAll
+public import Proof.google_golang_org.grpc.codes.Code__String
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyGetResponseMetadataOnly
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyHeader
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyKeyValue
@@ -131,6 +132,8 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.compareInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.google_golang_org.protobuf.proto.EqualStatus
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.leasing.txnLeasing__Commit
@@ -423,6 +426,10 @@ theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
 
+theorem codes.Code.wp_String :
+    EtcdGrove.codes.Code.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.codes.Code.String.wp_proof _root_.Perennial.strconv.wp_FormatInt
+
 theorem v3.wp_mustInt64 :
     EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mustInt64.wp_proof
@@ -439,13 +446,21 @@ theorem v3.wp_WithLease :
     EtcdGrove.WithLease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLease.wp_proof
 
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
+
 theorem status.wp_FromError :
     EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.FromError.wp_proof
+  EtcdGrove.status.FromError.wp_proof rpctypes.EtcdError.wp_Error
+
+theorem proto.wp_EqualStatus :
+    EtcdGrove.proto.EqualStatus.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.EqualStatus.wp_proof
 
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
+  EtcdGrove.status.Error.wp_proof _root_.Perennial.fmt.wp_Sprintf codes.Code.wp_String proto.wp_EqualStatus
 
 end links
 

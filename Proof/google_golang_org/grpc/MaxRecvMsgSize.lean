@@ -48,7 +48,7 @@ theorem grpc.MaxRecvMsgSize.wp_proof : grpc.MaxRecvMsgSize.spec (GF := GF) (hG :
   wp_auto
   iapply HΨ $$ Hp
   ipureintro
-  exact ⟨rfl, rfl, rfl⟩
+  exact ⟨(by unfold srvOptsSameBut; rfl), (by unfold srvCodecOk; exact Or.inl rfl), rfl, rfl, rfl⟩
 
 end proof
 

@@ -7,12 +7,14 @@ The proofs of `examples/net/echo`'s functions, over the specs of `net` and `wire
   `server_write_acc`, over the server's half of the connection's `γ.srv`), and the close
   (`wire.close_drop_au`).
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`: each accepted connection's protocol).
-* `Call`: the dial (`echo_dial_au`: `wire.dial_both_au` with the deposits `echo_deposit` and, for an
-  abandoned connection, `echo_deposit_ab`), the write of `"hello"` (`wire.writeP`/`wire.write_acc`
-  on the up-direction: success means all of it written), the full read of the reply
-  (`wire.read_acc` on the down-direction), and the check: the reply is a prefix of `"hello"`
-  (`client_check`) of its length, so `"hello"`.
-* `SendJunk`: as `Call`, without the check.
+* `Call`: the request `rq`, 5 random bytes (`wire.RandomBytes`), the dial (`echo_dial_au`:
+  `wire.dial_both_au` with the deposits `echo_deposit` and, for an abandoned connection,
+  `echo_deposit_ab`), the write of `rq` (`wire.writeP`/`wire.write_acc` on the up-direction:
+  success means all of it written), the full read of the reply (`wire.read_acc` on the
+  down-direction), and the check: the reply is a prefix of `rq` (`client_check`) of its length, so
+  `rq`.
+* `SendJunk`: as `Call` with 5 to 16 random bytes (`wire.RandomInt`, `wire.RandomBytes`), without
+  the check.
 * `eof_init`: `io.EOF`'s value, from the package's initialization (the bodies take it, and
   `poll.ErrDeadlineExceeded`'s, `wire.ed_init`). A failure's error, of any kind, is a non-nil
   `*OpError` (`net.resErr_netErr`): every `err != nil` check takes the failure branch.
@@ -23,6 +25,8 @@ module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.echo.Defs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomBytes
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomInt
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
@@ -52,7 +56,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : echo.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : echo.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost
@@ -150,9 +154,12 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hpl, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · iframe %Hpl
+  · (try iframe HnetPk)
+    iframe %Hpl
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
@@ -209,6 +216,7 @@ theorem echo_dial_au (γm : GName) :
     iapply echo_deposit_ab γm cn $$ HechoInv Hat He Hd Ha
 
 theorem wp_Call
+    (wp_RandomBytes : wire.RandomBytes.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -221,9 +229,15 @@ theorem wp_Call
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
+  wp_apply wp_RandomBytes (W64 5) as %req ⟨%rq, Hreq, %Hrq⟩
+  · ipureintro; decide
+  (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply echo_dial_au γm $$ HaddrInv HechoInv
@@ -236,12 +250,10 @@ theorem wp_Call
     ihave #HdU := echo_dirInv_up γm cn γ $$ HechoInv Hname
     ihave #HdD := echo_dirInv_down γm cn γ $$ HechoInv Hname
     wp_auto
-    wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
-    (try wp_auto)
-    wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
-        (wire.writeP γ.up cn false NetEnd.fresh []) $$ [Hsl Hend Hw]
+    wp_apply wp_Write t cn false srvAddr la ra req rq (DFrac.own 1) ed
+        (wire.writeP γ.up cn false NetEnd.fresh []) $$ [Hreq Hend Hw]
       as %n %err ⟨%w, %res, HP, Hsl, %Hwp, #Herr⟩
-    · iframe Hca Hsl Hed
+    · iframe Hca Hreq Hed
       isplitl [Hend Hw]
       · iapply wire.writeP_init
         iframe Hend Hw
@@ -264,7 +276,8 @@ theorem wp_Call
     subst hres
     obtain rfl := Hne.1 rfl
     obtain ⟨-, -, Hall, -⟩ := Hwp
-    obtain rfl := Hall rfl
+    have hw := Hall rfl
+    subst w
     wp_auto
     wp_apply (wp_slice_make2 (V := w8) (W64 5)) as %buf ⟨Hbuf, -⟩
     · ipureintro; decide
@@ -297,15 +310,17 @@ theorem wp_Call
       (try wp_auto)
       iapply HΦ
       itrivial
-    · -- the reply is a prefix of `"hello"` of its length
+    · -- the reply is a prefix of the request `rq` of its length
       obtain rfl := Hok rfl
       imod client_check' γm cn γ _ ([] ++ got) $$ HechoInv Hname Hw Hlb with ⟨%Hpre, -⟩
-      have hs : got = go!"hello" := by
+      have hs : got = rq := by
         simp only [List.nil_append] at Hpre
-        exact Hpre.eq_of_length (by simpa using Hlen)
+        exact Hpre.eq_of_length (by rw [Hrq, show sint.nat (W64 5) = 5 from rfl]; simpa using Hlen)
       subst hs
       wp_auto
-      wp_apply wp_bytes_to_string buf (go!"hello") (DFrac.own 1) $$ Hbuf as Hbuf
+      wp_apply wp_bytes_to_string buf got (DFrac.own 1) $$ Hbuf as Hbuf
+      (try wp_auto)
+      wp_apply wp_bytes_to_string req got (DFrac.own 1) $$ Hsl as Hsl
       (try wp_auto)
       wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
         as %err' ⟨%res', -, -⟩
@@ -322,6 +337,8 @@ theorem wp_Call
 
 
 theorem wp_SendJunk
+    (wp_RandomInt : wire.RandomInt.spec (GF := GF) (hG := hG))
+    (wp_RandomBytes : wire.RandomBytes.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -334,9 +351,20 @@ theorem wp_SendJunk
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
+  wp_apply wp_RandomInt (W64 11) as %k %Hk
+  · ipureintro; decide
+  (try wp_auto)
+  wp_apply wp_RandomBytes _ as %junk ⟨%js, Hjunk, -⟩
+  · ipureintro
+    have h11 : sint.Z (W64 11) = 11 := rfl
+    word
+  (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply echo_dial_au γm $$ HaddrInv HechoInv
@@ -349,12 +377,10 @@ theorem wp_SendJunk
     ihave #HdU := echo_dirInv_up γm cn γ $$ HechoInv Hname
     ihave #HdD := echo_dirInv_down γm cn γ $$ HechoInv Hname
     wp_auto
-    wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
-    (try wp_auto)
-    wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
-        (wire.writeP γ.up cn false NetEnd.fresh []) $$ [Hsl Hend Hw]
+    wp_apply wp_Write t cn false srvAddr la ra junk js (DFrac.own 1) ed
+        (wire.writeP γ.up cn false NetEnd.fresh []) $$ [Hjunk Hend Hw]
       as %n %err ⟨%w, %res, HP, Hsl, -, -⟩
-    · iframe Hca Hsl Hed
+    · iframe Hca Hjunk Hed
       isplitl [Hend Hw]
       · iapply wire.writeP_init
         iframe Hend Hw

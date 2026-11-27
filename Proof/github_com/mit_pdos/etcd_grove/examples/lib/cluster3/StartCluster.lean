@@ -9,7 +9,7 @@ the peers in `bootstrap`'s order, a permutation of the ids, the client's `etcdKV
 member's names), each member's pure boot facts kept (`memberBoot`'s: its names, what `memberAt`
 records); `StartMember` for each member, the thread token passed along (`memberServed`'s
 `srvGoRes`), its watch server kept; the servers' slice; `StartBridge` for each member's client
-address (the bridge owned, its address serving the member's, `forwards`) and the bridges' slice;
+address (the bridge owned, its address serving what the member serves at its table, `memberRegs`; phase 7's switch, SW1) and the bridges' slice;
 `clusterUp`. Every step's error ends with `ok = false`.
 
 (lease-mono3's pass 2(a), 2026-11-06, `notes/lease-mono3-plan.md`; step 2, 2026-11-14: every mode,
@@ -41,7 +41,7 @@ namespace EtcdGrove
 namespace cluster3
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcdstart (httpURL commonPremises memberBoot)
+open etcdstart (httpURL memberBoot)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -55,7 +55,9 @@ set_option maxRecDepth 8192 in
 theorem StartCluster.wp_proof
     (wp_StartMember : StartMember.spec (GF := GF) (hG := hG))
     (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf
     Hdbo Hms Hrun Hap HlP
@@ -65,7 +67,12 @@ theorem StartCluster.wp_proof
   -- the members' start bundles (to `alloc3`) and the bridges' listen rights (to `StartBridge`)
   icases startRes_members cfg $$ Hstart with ⟨⟨Hs₁, Hs₂, Hs₃⟩, Hba₁, Hba₂, Hba₃⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
+  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃⟩
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- `context`'s `closedchan`, from its package's facts
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -146,7 +153,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len1 Haf Hbuq Hrf Hdbo Hms HlP) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len1 Hcfg.fp1 Hcfg.fc1 Haf Hbuq Hrf Hdbo Hms HlP) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -158,7 +165,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₁
   icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁, Hctl₁, #Hsr₁,
-    ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hwl₁, #Hstr₁⟩, %Hnr₁⟩
+    ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hwl₁, #Hstr₁, #Htb₁⟩, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
@@ -171,7 +178,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len2 Haf Hbuq Hrf Hdbo Hms HlP)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len2 Hcfg.fp2 Hcfg.fc2 Haf Hbuq Hrf Hdbo Hms HlP)
     $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -184,7 +191,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₂
   icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂, Hctl₂, #Hsr₂,
-    ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hwl₂, #Hstr₂⟩, %Hnr₂⟩
+    ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hwl₂, #Hstr₂, #Htb₂⟩, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
@@ -197,7 +204,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len3 Haf Hbuq Hrf Hdbo Hms HlP)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len3 Hcfg.fp3 Hcfg.fc3 Haf Hbuq Hrf Hdbo Hms HlP)
     $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -210,10 +217,10 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₃
   icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃, Hctl₃, #Hsr₃,
-    ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hwl₃, #Hstr₃⟩, %Hnr₃⟩
+    ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hwl₃, #Hstr₃, #Htb₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
-  iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
+  iclear Hb₁ Hb₂ Hb₃ Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
   -- `srvs := []*etcdserver.EtcdServer{s1, s2, s3}`
   wp_apply wp_slice_literal (V := Loc) (l := [s₁, s₂, s₃])
   try (isplitr; (ipureintro; rfl))
@@ -222,9 +229,11 @@ theorem StartCluster.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hsrvs with #Hsrvs
   -- the three bridges, each to its member's client address
-  wp_apply (wp_StartBridge cfg.Bridge1' cfg.Client1') $$ [Hba₁] as %br₁ %berr₁ Hbr₁
-  · iframe
-  icases Hbr₁ with (⟨%Hberr, Hob₁, #Hfw₁⟩ | %Hberr)
+  wp_apply (wp_StartBridge cfg.Bridge1' cfg.Client1'
+      (fun a => memberRegs lm a s₁ E₁' ρ₁ cid₁ mid₁ R₁)) $$ [Hba₁]
+    as %br₁ %berr₁ Hbr₁
+  · iframe; iframe #
+  icases Hbr₁ with (⟨%Hberr, Hob₁, #Hbr₁, %Hfw₁⟩ | %Hberr)
   rotate_left
   · cases berr₁ with
     | nil => exact absurd rfl Hberr
@@ -233,9 +242,11 @@ theorem StartCluster.wp_proof
     iapply HΦ; ileft; ipureintro; rfl
   subst Hberr
   wp_auto
-  wp_apply (wp_StartBridge cfg.Bridge2' cfg.Client2') $$ [Hba₂] as %br₂ %berr₂ Hbr₂
-  · iframe
-  icases Hbr₂ with (⟨%Hberr, Hob₂, #Hfw₂⟩ | %Hberr)
+  wp_apply (wp_StartBridge cfg.Bridge2' cfg.Client2'
+      (fun a => memberRegs lm a s₂ E₂' ρ₂ cid₂ mid₂ R₂)) $$ [Hba₂]
+    as %br₂ %berr₂ Hbr₂
+  · iframe; iframe #
+  icases Hbr₂ with (⟨%Hberr, Hob₂, #Hbr₂, %Hfw₂⟩ | %Hberr)
   rotate_left
   · cases berr₂ with
     | nil => exact absurd rfl Hberr
@@ -244,9 +255,11 @@ theorem StartCluster.wp_proof
     iapply HΦ; ileft; ipureintro; rfl
   subst Hberr
   wp_auto
-  wp_apply (wp_StartBridge cfg.Bridge3' cfg.Client3') $$ [Hba₃] as %br₃ %berr₃ Hbr₃
-  · iframe
-  icases Hbr₃ with (⟨%Hberr, Hob₃, #Hfw₃⟩ | %Hberr)
+  wp_apply (wp_StartBridge cfg.Bridge3' cfg.Client3'
+      (fun a => memberRegs lm a s₃ E₃' ρ₃ cid₃ mid₃ R₃)) $$ [Hba₃]
+    as %br₃ %berr₃ Hbr₃
+  · iframe; iframe #
+  icases Hbr₃ with (⟨%Hberr, Hob₃, #Hbr₃, %Hfw₃⟩ | %Hberr)
   rotate_left
   · cases berr₃ with
     | nil => exact absurd rfl Hberr
@@ -285,6 +298,8 @@ theorem StartCluster.wp_proof
   · iunfold memberAt
     iframe #
     isplitr
+    · ipureintro; exact Hfw₁ Hnr₁
+    isplitr
     · ipureintro; exact Hnr₁
     isplitr
     · ipureintro; exact HR₁
@@ -293,6 +308,8 @@ theorem StartCluster.wp_proof
   · iunfold memberAt
     iframe #
     isplitr
+    · ipureintro; exact Hfw₂ Hnr₂
+    isplitr
     · ipureintro; exact Hnr₂
     isplitr
     · ipureintro; exact HR₂
@@ -300,6 +317,8 @@ theorem StartCluster.wp_proof
   isplitr
   · iunfold memberAt
     iframe #
+    isplitr
+    · ipureintro; exact Hfw₃ Hnr₃
     isplitr
     · ipureintro; exact Hnr₃
     isplitr

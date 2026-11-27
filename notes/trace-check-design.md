@@ -36,6 +36,80 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 
 ---
 
+## Non-vacuity (2026-11-24): the premise bundle was false, from the harness on
+
+**Where.** `tracecheck.premises` (`RaftTla/Proof/.../examples/raft/tracecheck/Defs.lean`), the Iris
+premise of `raft_tracecheck_safe` and `raft_tracecheck_robust`, is `bootMarshal [W64 1, W64 2, W64 3]
+[[], [], []] (LogEntry.toEntries boot 0)`. `bootMarshal` (`Proof/go_etcd_io/raft/v3/ApiVocab.lean`,
+copied into `RaftTla/`) began with `⌜∀ c ∈ ctxs, c ≠ []⌝`, so at `[[], [], []]` the premise was
+`⌜False⌝ ∗ …`, and both closed theorems held vacuously. Found by the coordinator, 2026-11-24.
+
+**Since when.** The conjunct came with premise fixes 1 (`00e0cbcf74`, 2026-11-10): `bootMarshal`
+became a statement over the conf change `Bootstrap` builds (`bootConfChange`), and an empty context's
+bytes depend on whether its slice is `nil` (`Context` is a proto2 `bytes` field: a `nil` slice is
+absent, an empty non-`nil` one is marshalled as `0x22 0x00`), so empty contexts were excluded. The
+trace check's premise was written two days later (`bcfa65fe6d`, 2026-11-12) with the contexts the
+harness really has: `examples/raft/tracecheck` bootstraps with `raft.Peer{ID: uint64(i)}`
+(`sim.go:163`, `concurrent.go:155`), whose `Context` is `nil`. Every other caller of `Bootstrap`
+(the etcd examples) passes `json.Marshal` of a member, never empty, so only the trace check was hit.
+
+**Two claims, kept apart.**
+
+* *The statement was vacuous* (a fact, checked in Lean): on `lean` at `94767c2a2f` (this branch's
+  base), the lemma below, in a scratch module importing `RaftTla`'s `tracecheck.Defs` with `Defs`'s
+  section variables (any `HeapGS .hasLC GF`, any `boot`), compiles; `#print axioms` gives
+  `[propext, Classical.choice, Quot.sound]` (VM build, 2026-11-24). It is not kept in the tree: after
+  the fix it no longer holds, and `premises_of_marshal` is the guard in its place.
+
+  ```lean
+  theorem premises_vacuous_old (boot : List LogEntry)
+      (Hprem : ⊢ premises (GF := GF) boot) : False := by
+    apply pure_soundness (PROP := IProp GF) (φ := False)
+    refine Hprem.trans ?_
+    unfold premises bootMarshal
+    iintro ⟨%Hc, -⟩
+    exact absurd (Hc [] (by simp)) (by simp)
+  ```
+* *The proof did not rely on `False`* (the finding, with evidence): at `94767c2a2f` the only proof that
+  opens `bootMarshal` is raft's `RawNode.Bootstrap` (`Proof/go_etcd_io/raft/v3/RawNode__Bootstrap.lean:298-299`,
+  and its copies in `RaftTla/`, `RaftNoAx/`, `KvRaft/`, `RaftWitness/`): `iunfold bootMarshal at Hmarshal;
+  icases Hmarshal with ⟨-, #Hmarshal'⟩`, which discards `⌜∀ c ∈ ctxs, c ≠ []⌝` and uses only the `□`
+  marshal contract, at each peer's conf change (`wp_apply Hmk`). Elsewhere `bootMarshal` is only unfolded
+  for its `Persistent` instance, or passed whole (`InvApiBoot`, `InvNodeRule`, the etcd server's
+  allocation lemmas); no file names `c ≠ []` of the contexts; the trace check's proofs never open
+  `tracecheck.premises` (they pass it to raft's linked `StartNode`). After the fix, the proof steps that
+  changed are: `Bootstrap`'s lookup in `peersCtx` (it now also yields the `nil` fact, passed to
+  `bootConfChange_of_struct`'s new `Hc`), the `icases` above (no pure part left to drop), and
+  `tcPeers_ctx` (proves the `nil` facts of `Peer{ID: i}`). No step of the trace check's own proofs
+  (`Main`, `Adequacy`, `TopLevelRobustness`, the harness) changed. So the theorems' proofs are the
+  intended ones; only their statement was vacuous.
+
+**Why it went unnoticed.** Nothing checks that a premise is satisfiable: the proofs only consume
+`bootMarshal` (raft's `Bootstrap` proof drops its pure part, `⟨-, …⟩`), the TCB report counts axioms
+and `sorry`s, not premises, and the premise attack of premise fixes 1 (`examples/premisefix/`) ran on
+the etcd examples, which predate the trace check. `BootLogFacts` was not the problem (it is stated
+over the opaque `ccDecodeV1`, consistent but not provable in Lean).
+
+**The fix** (branch `tracecheck-nonvacuous/2026-11-24`; no axiom, no premise, no new predicate). An
+empty context now stands for the absent field, and the vocabulary says so where the slice is known:
+`peersCtx pv ctxs` gains, per peer, `⌜ctx = [] → p.Context' = slice.nil⌝`, and `bootConfChange p dq m`
+gains `⌜m.context = [] → cs = slice.nil⌝`, so `bootMarshal`'s ∀ ranges only over messages whose bytes
+are determined and its `⌜∀ c ∈ ctxs, c ≠ []⌝` is gone. Raft's `Bootstrap` proof takes the `nil` fact
+from `peersCtx` (`bootConfChange_of_struct`'s new `Hc`); the trace check proves it of `Peer{ID: i}`
+(`tcPeers_ctx`). Trust: for the etcd examples, whose contexts are non-empty, the old premise bundle
+implies the new one (`bootMarshal`'s non-emptiness makes the new `nil` conditions in `bootConfChange`
+and in `bootstrapContract`'s `bootOk` hold trivially), so the change only weakens what they assume;
+for the trace check the premise is now `proto.Marshal`'s Go contract at `ConfChange{Type: AddNode,
+NodeId: i}` (no context), which protobuf-go meets. RaftNoAx's own `ApiVocab.lean` got the same edit
+(KvRaft copies it); RaftWitness's `InvBoot.lean` keeps the conjunct: no result of that part
+instantiates `bootMarshal` (kvwitness does not bootstrap through `StartNode`), so nothing is vacuous
+there; it should follow when that part next touches its boot vocabulary.
+
+**Guard.** `tracecheck.premises_of_marshal`: the premise follows from the marshal contract alone,
+written out in full; a change that puts a pure side condition back into `bootMarshal` breaks it.
+
+---
+
 ## Step 5 (2026-11-12): the constructors' statements
 
 Branch `trace-check-s5`, from `trace-check` at `d7943a4cc3` (§9's step 5, phase 1: statements and design,

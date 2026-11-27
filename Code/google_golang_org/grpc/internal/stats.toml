@@ -1,0 +1,8 @@
+# (W1, 2026-11-26) Types and names only but `NewCombinedHandler`, with its body (no handler: `nil`; one:
+# it; more: a `*combinedHandler` holding them): what `grpc.NewServer` calls for the server's stats
+# handler. `combinedHandler`'s methods (called by the server's `Serve`) are names only.
+translate = ["!*", "NewCombinedHandler"]
+imports = ["!*", "context", "google.golang.org/grpc/stats"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -6,6 +6,8 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue__Enqueue
 public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.newSequentialKV
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -28,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (hG := hG)) :
     PriorityQueue.Enqueue.spec (GF := GF) (hG := hG) := by
   intro q client key val pr lo
-  wp_start as ⟨#Hq, #Hlo, %Hv⟩
+  wp_start as ⟨Hlt, #Hq, #Hlo, %Hv⟩
   iunfold isPriorityQueue at Hq
   icases Hq with ⟨#Hqc, -, #Hqk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
@@ -39,17 +41,20 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
   (try wp_auto)
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %pfx ⟨Hargs, %Hpfx⟩
-  case wf =>
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s%05d"
+    [.dir none _root_.Perennial.fmt.verb_s, .dir (some 5) _root_.Perennial.fmt.verb_d] _ _ _ _ (by fmt_encode) ?fits ?pa
+    $$ [$Hfmt $Hargs] as %pfx ⟨Hargs, %Hpfx⟩
+  case pa =>
     rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
     simp only [List.set_cons_succ, List.set_cons_zero]
-    exact .cons_string _ _ (.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint16 pr) .nil)
-  rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hpfx
-  simp only [List.set_cons_succ, List.set_cons_zero] at Hpfx
-  have Hpfx' := _root_.Perennial.fmt.SprintfOut.str_05d_uint16 (key ++ go!"/") pr pfx Hpfx
+    exact .str _ _ _ (.int _ _ _ _ (.uint16 pr) .nil)
+  case fits => fmt_fits
+  have Hpfx' : pfx = (key ++ go!"/") ++ _root_.Perennial.fmt.padZeros 5 (_root_.Perennial.fmt.decimal (uint.Z pr)) := by
+    rw [Hpfx]
+    simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_of_nonneg 5 (show 0 ≤ uint.Z pr by word)]
   subst Hpfx'
   (try wp_auto)
-  wp_apply hNSK kv [] _ val lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
+  wp_apply hNSK kv [] _ val lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rk %err ⟨Hlt, Hres⟩
   · ipureintro
     refine ⟨List.nil_prefix, List.nil_prefix, ?_, Hv⟩
     have h0 : 0 ≤ uint.Z pr ∧ uint.Z pr < 2 ^ 16 := by word
@@ -63,6 +68,7 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
   · subst Heq
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -71,6 +77,7 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
     ipureintro; exact ⟨Hrr.1, Hrr.2.1, Hrr.2.2.1⟩
   · (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hne.1
 

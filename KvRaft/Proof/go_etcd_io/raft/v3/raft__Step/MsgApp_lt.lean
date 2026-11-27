@@ -1,0 +1,165 @@
+-- The copy for the part `KvRaft/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/raft__Step/MsgApp_lt.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Port of election_proof/proof_raft__Step_helpers/proof_raft__Step_MsgApp_lt.v.
+
+One term case of `Step`'s `MsgApp` branch (the incoming term is stale: logged and
+dropped), in its own file so that it checks in parallel with the others;
+`proof_raft__Step_MsgApp.v` combines them. Proof structure, not specification: no
+`Module Type`, no `Parameter`; only files in this directory may `Require` it.
+
+Lean notes:
+* The branch lemma takes the callee specs (Rocq's functor argument
+  `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
+  section variable `c` as its second.
+* Rocq's `Local Ltac`s `recv_elem` (closing `∀ m' ∈ recv, m' = …` goals: `elem_of_app`,
+  `list_elem_of_singleton`, `elem_of_nil`, `naive_solver`) and `wp_load_step` (the load
+  of `r.step` in `r.step(r, m)`, bound by hand with `raft.wp_load_stepC`, as `wp_apply`
+  does not find a load in function position) are not ported.
+-/
+module
+
+public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.repl_lemmas
+public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section branches
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+namespace StepProof
+
+set_option maxHeartbeats 1000000 in
+theorem wp_Step_MsgApp_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (R : StepG GF) :
+    m.Type' = MsgApp →
+    m.To' = id →
+    m.Term' ≠ W64 0 →
+    m.From' ≠ W64 0 →
+    m.From' ≠ id →
+    NStateWf s →
+    -- protocol facts the dispatch derives from the ghost state (`app_recv_wf`,
+    -- `app_no_conflict_below_commit`)
+    PlogWf (entryID.mk m.LogTerm' m.Index') ents →
+    uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
+    -- (no conflict premise: a stale message never reaches `maybeAppend`)
+    -- this file: the incoming term is stale: logged and dropped
+    uint.Z m.Term' < uint.Z s.term →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+    {{ (err : GoInterface) (s' : NState), RET #err;
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
+        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
+            StepCD c id B m s recv s'⌝ ∗
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
+        "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hlt
+  wp_start as H
+  iNamed H
+  -- (out_size C3) a stale message is only read
+  ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
+  icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_recv_gate_ns
+  try wp_auto
+  wp_get _Q
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_drive _Q
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
+  wp_auto
+  wp_drive _Q
+  rw [decide_eq_true Hlt]
+  wp_auto
+  -- `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)` (2026-10-17: `checkQuorum` may be on)
+  wp_drive _Q
+  cases Hcq : s.cq
+  -- `checkQuorum` off: the pre-vote flag is read; the goals are then pre-vote off, pre-vote
+  -- on, and `checkQuorum` on, the last two answered alike
+  all_goals try (
+    have _ : s.cq = false := Hcq
+    wp_auto
+    wp_drive _Q
+    cases Hpv : s.prevote)
+  · -- not MsgPreVote, not MsgStorageAppendResp: only the log line
+    wp_auto
+    wp_drive _Q
+    wp_raft_logC
+    ihave HG := stepOut_G0 R $$ HG
+    try phys_out
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys HG
+    ipureintro
+    exact ⟨StepEndG.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
+      and_assoc.mp ⟨keep_frame rfl rfl rfl rfl rfl, AppTrunc.of_ip rfl⟩⟩
+  all_goals -- with pre-vote or `checkQuorum` on, a stale leader message is answered with a
+    -- bare `MsgAppResp` at the node's term (2026-10-04, 2026-10-17)
+    wp_auto
+    wp_drive _Q
+    icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, Hmback⟩
+    wp_auto
+    haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+    wp_apply _Q.Enum (W32 4)
+    iintro %pty Hpty
+    imod cellRO_alloc $$ Hpty with #cTy
+    wp_auto
+    iclear Hmback HFr
+    let ack : MessageM := ⟨W32 4, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩
+    imod msgOwn_of_scalars _ «$a0_ptr» _ ack ⊤ $$ [«$a0»] with Hack
+    · iframe «$a0» cTy cFr
+      isplitr; · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+      repeat (isplitr; · iapply cellRO_null)
+      iapply cellRO_null
+    have Hok : SendOk id s ack [] [] [absMsgFrom .appResp ack id s.term []] :=
+      Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, (by intro h; rw [h] at Hlt; word), fun h => absurd h Hfid, rfl⟩)))
+    ihave Hgl := Hglow $$ %(And.intro Hterm Hlt) %MsgAppResp %(absMsgFrom .appResp ack id s.term [])
+      %(.inl ⟨rfl, by first | exact .inl Hcq | exact .inr Hpv, .inr Hty, rfl⟩) HG
+    wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (R.GE (s.outbox ++ [absMsgFrom .appResp ack id s.term []])) (Or.inl rfl) Hok
+      (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
+      rfl (fun _ => ⟨_, rfl, by decide⟩) $$ [$Hphys $Hack Hgl] as ⟨Hphys, HG⟩
+    · isplitr
+      · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
+      · rw [show ack.Type' = MsgAppResp from rfl]; iexact Hgl
+    ihave HG := stepOut_GE R $$ HG
+    try phys_out
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys HG
+    ipureintro
+    refine ⟨StepEndG.stale ⟨Hterm, Hlt⟩ (.inr ⟨MsgAppResp, absMsgFrom .appResp ack id s.term [],
+      .inl ⟨rfl, by first | exact .inl Hcq | exact .inr Hpv, .inr Hty, rfl⟩, rfl⟩),
+      nstateWf_sendMsgs _ _ Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, ?_⟩, rfl,
+      and_assoc.mp ⟨keep_frame rfl rfl rfl rfl rfl, AppTrunc.of_ip rfl⟩⟩
+    refine StepCD.frame ?_ (by rframe)
+    exact .zeroAck _ _
+
+end StepProof
+
+end branches
+
+end EtcdGrove
+end Perennial

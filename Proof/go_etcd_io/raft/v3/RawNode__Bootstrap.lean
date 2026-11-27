@@ -274,8 +274,10 @@ theorem RawNode.Bootstrap.wp_proof
     -- Context: peer.Context}`, owned (`ownConfChange`)
     obtain ⟨ctx, Hcn⟩ : ∃ ctx, ctxs[sint.nat n]? = some ctx :=
       ⟨_, List.getElem?_eq_getElem (by rw [← Hctxlen]; exact Hlt)⟩
-    ihave #Hpctx := BigSepL2.bigSepL2_lookup (Φ := fun _ (p : Peer) ctx => (p.Context' ↦*□ ctx : IProp GF))
+    ihave #Hpctx := BigSepL2.bigSepL2_lookup
+      (Φ := fun _ (p : Peer) ctx => iprop(p.Context' ↦*□ ctx ∗ ⌜ctx = [] → p.Context' = slice.nil⌝))
       Hpn Hcn $$ Hctx
+    icases Hpctx with ⟨#Hpctx, %Hpnil⟩
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_ConfChangeType_Enum (W32 0) as %pty Hpty
     imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hpty with #cTy
@@ -283,7 +285,7 @@ theorem RawNode.Bootstrap.wp_proof
     -- the conf change as built (`bootConfChange`: `Type` and `NodeId` set, `Id` unset, no
     -- unknown fields), which `bootMarshal` is stated over (premise fixes 1)
     imod bootConfChange_of_struct «$r0_ptr» (⟨zero_val _, pty, «$v1_ptr», p.Context', null, slice.nil, 0⟩ : raftpb.ConfChange)
-        ⟨W32 0, p.ID', ctx, W64 0⟩ ⊤ rfl rfl $$ [«$r0»] with Hcc
+        ⟨W32 0, p.ID', ctx, W64 0⟩ ⊤ rfl rfl Hpnil $$ [«$r0»] with Hcc
     · iframe «$r0» cTy cN Hpctx
     -- `proto.Marshal(cc)`: the boot entry's bytes (`bootMarshal`)
     obtain ⟨e, Hen⟩ : ∃ e, bootLog[sint.nat n]? = some e :=
@@ -296,7 +298,7 @@ theorem RawNode.Bootstrap.wp_proof
         bootLog[sint.nat n]? = some e ∧ (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).type = W32 0 ∧
         (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).id = W64 0 := ⟨Hpsn, Hcn, Hen, rfl, rfl⟩
     iunfold bootMarshal at Hmarshal
-    icases Hmarshal with ⟨-, #Hmarshal'⟩
+    ihave #Hmarshal' := Hmarshal
     ihave #Hmk := Hmarshal' $$ %(sint.nat n) %«$r0_ptr» %(DFrac.own 1) %(⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM)
       %e %Hpure
     wp_apply Hmk $$ [$Hcc] as %d Hcc Hd

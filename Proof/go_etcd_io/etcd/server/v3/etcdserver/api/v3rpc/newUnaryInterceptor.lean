@@ -109,6 +109,13 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   ipersist Hs
   wp_auto
   iapply HΦ
+  isplitr
+  rotate_left
+  · -- (2026-11-24) the closure is the function's code over `s_ptr`, which holds `s` for good
+    unfold v3rpc.isUnaryIc
+    iexists s_ptr
+    iframe Hs
+    ipureintro; rfl
   unfold srvInterceptorOk
   iintro !> %ci %cd %req %info %h %Ψ HR #Hctx #Hrc #Hinfo #HQ Hk
   iunfold srvInterceptorCall
@@ -191,7 +198,10 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   wp_join (iprop(∃ ver : GoString, ver_ptr ↦ ver ∗
       [∗map] _k ↦ sl ∈ m, ∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝)) with [ver Hsls]
     as ⟨%ver, ver, Hsls⟩
-  · rcases Hvs with rfl | ⟨k', hk'⟩
+  · rcases (show vsl = slice.nil ∨ ∃ k', m !! k' = some vsl from by
+        obtain ⟨r, -, h | h⟩ := Hvs
+        · exact Or.inl h.1
+        · exact Or.inr ⟨r, h⟩) with rfl | ⟨k', hk'⟩
     · exfalso; revert Hif; simp [slice.nil]
     ihave ⟨⟨%vss, Hvss, %Hne⟩, Hback⟩ :=
       (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : GoString) (sl : GoSlice) =>

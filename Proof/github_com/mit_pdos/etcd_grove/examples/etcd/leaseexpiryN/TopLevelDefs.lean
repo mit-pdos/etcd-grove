@@ -57,14 +57,11 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- The program: `leaseexpiryN`'s initialization, then `Main(k)`. -/
-def leaseexpiryNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
+/-- The program: `leaseexpiryN`'s initialization, then `Main(k)` (`k` a `uint64`, as Go's `Main` takes it;
+until 2026-11-24 a `Nat` cast to it, the statement then taking `1 ≤ k ≤ 1000`, which `Main` now checks). -/
+def leaseexpiryNProgram [GoSemanticsFunctions] (k : w64) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #(W64 (k : Int))
-
-/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
-mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
-def leaseexpiryNNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initNames
+  (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #k
 
 end adequacy
 end EtcdGrove

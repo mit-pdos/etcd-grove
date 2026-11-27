@@ -22,12 +22,15 @@
 # translated), `defaultCallOpts` (their slice literal) and `defaultBackoffJitterFraction` (a float
 # constant); until then `opaqueInitsOk` and the axioms `defaultCallOpts_init` and
 # `defaultBackoffJitterFraction_init`.
+# (real fmt stage 1, 2026-11-24, #9) `clientTargetSeq`, the counter `Client.dial` numbers its targets
+# with (the fork's 6b1ff3860, in place of `%p` of the client).
 translate = [
   "!*",
   "ErrNoAvailableEndpoints", "ErrOldCluster", "ErrMutuallyExclusiveCfg", "defaultWaitForReady",
   "defaultMaxCallSendMsgSize", "defaultMaxCallRecvMsgSize", "defaultCallOpts",
   "defaultBackoffJitterFraction",
   "defaultUnaryMaxRetries", "defaultStreamMaxRetries", "defaultBackoffWaitBetween", "LeaseResponseChSize",
+  "clientTargetSeq",
   "WatchResponse.IsProgressNotify",
   "EventTypeDelete",
   "EventTypePut",
@@ -160,14 +163,16 @@ translate = [
   # `filterCallOptions`, `withMax`, `withBackoff`); `retry.go`'s `isSafeRetryImmutableRPC`,
   # `isSafeRetryMutableRPC`, `retryPolicy.String`; (2026-11-22, prove-ps2-wrb) `waitRetryBackoff`
   # (the backoff's timer and `select`) and `contextErrToGRPCErr`. Names only (axioms):
-  # `withVersion` (grpc's metadata), `getToken` (the auth client), `Endpoints` (a read under the
-  # client's `RWMutex`, whose reader slots a persistent interceptor cannot hold).
+  # `withVersion` (grpc's metadata), `getToken` (the auth client). (prove-ps2-clientrdlock,
+  # 2026-11-24) `Endpoints` with its body (a read under the client's `RWMutex`: a reader slot of
+  # `retryClientOk`'s level-0 pool, borrowed with the caller's `levelTok 0`).
   # The interceptor allocates a grpc `peer.Peer`: hence the import of grpc's `peer`.
   "Client.unaryClientInterceptor",
   "isContextError",
   "Client.shouldRefreshToken",
   "Client.refreshToken",
   "isSafeRetry",
+  "Client.Endpoints",
   "isSafeRetryImmutableRPC",
   "isSafeRetryMutableRPC",
   "retryPolicy.String",
@@ -255,12 +260,10 @@ translate = [
   "New",
   "newClient",
   "Client.SetEndpoints",
-  # (not `Client.dialWithBalancer`, names only: its `grpc.WithResolvers(c.resolver)` converts to
-  # grpc's `resolver.Builder`, which no file of the package imports, and the pinned translator
-  # then names the type after the imported package of the same name, the client's
-  # `internal/resolver` (`pkgRef`'s fallback): an unknown `internal.resolver.Builder.ty`. Its body
-  # is the translation with that type corrected, a trusted unfolding:
-  # `Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`.)
+  # (G-dial, 2026-11-26) `Client.dialWithBalancer`: its `grpc.WithResolvers(c.resolver)` converts to
+  # grpc's `resolver.Builder`, a package no file of `clientv3` imports, which goose names by its own
+  # path since Perennial e5e31069a; until then a trusted unfolding (the class `DialWithBalancerBody`)
+  "Client.dialWithBalancer",
   "Client.credentialsForEndpoint",
   "Client.dial",
   "Client.dialSetupOpts",
@@ -319,6 +322,12 @@ translate = [
   # `rand.Float64.wp_proof`): until then the trust-boundary axioms
   # `Client.roundRobinQuorumBackoff.wp_proof` and `defaultOptions_init`
   "Client.roundRobinQuorumBackoff", "backoffLinearWithJitter", "jitterUp", "defaultOptions",
+  # (phase7-s3-interceptor, S3.4, 2026-11-26) retry_interceptor.go's `streamClientInterceptor` with its
+  # body (the stream path: `withVersion`, `getToken`, the call options, the streamer at `max = 0`,
+  # `Unimplemented` for a client stream otherwise; its `serverStreamingRetryingStream` branch, a
+  # server stream with `max > 0`, is translated but never reached by the contract's callers): until
+  # then the trust-boundary axiom `Client.streamClientInterceptor.wp_proof`
+  "Client.streamClientInterceptor",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata", "math/rand"]
 

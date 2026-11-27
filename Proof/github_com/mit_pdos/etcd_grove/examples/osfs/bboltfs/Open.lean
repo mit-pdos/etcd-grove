@@ -11,8 +11,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__clos
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__readPageSize
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__init
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmap
-public import Spec.os.OpenFile
-public import Proof.os.OpenFile
+public import Spec.os.OpenFileS
+public import Proof.os.WriteFileLemmas
 public import Spec.os.File__Name
 public import Spec.os.File__Close
 public import Spec.os.File__Stat
@@ -40,87 +40,122 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
-/-- After a create of `b` in the directory `j` that `d` names, `d` still names `j` (the part of
-`Proof/os/OpenFile.lean`'s `lookupH_create` that is not exported, `hd'`). -/
-theorem lookupH_create_dir {R : Roots} {V : Hist} {d b : GoString} {j i : Ino} (s : Nat)
-    (hr : RootsOk R) (hd : lookupH R V d = some (.dir j)) (hb : NameOk b)
-    (hn : lookupH R V (child d b) = none) :
-    lookupH R (V.push ⟨.create j b i, s⟩) d = some (.dir j) := by
-  have ht : (Hist.st R (V.push ⟨.create j b i, s⟩)).tree =
-      (Hist.st R V).tree.upd j (fun dd => <[b := Node.file i]> dd) := by
-    show (V.push _).now = _
-    rw [Hist.push_now]; rfl
-  have hen : (Hist.st R V).tree.entry j b = none := by
-    rw [← lookup_child (st := Hist.st R V) hr hd hb]; exact hn
-  obtain ⟨r, j0, cs, hrj, hcs, hp, hw⟩ := lookup_some (st := Hist.st R V) hd
-  unfold lookupH
-  rw [hp, lookup_joinPath (st := Hist.st R (V.push _)) hr hrj hcs, ht]
-  exact walk_upd_insert hen cs _ _ hw
+theorem minibolt_openFlag :
+    OpenFlagsOk (W64 0x42 ||| W64 0x80000).toNat ∧ (W64 0x42 ||| W64 0x80000).toNat / O_CREAT % 2 = 1 ∧
+      (W64 0x42 ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 := by
+  unfold OpenFlagsOk O_CREAT O_TRUNC O_CLOEXEC
+  decide
 
-/-- `os.OpenFile(path, O_RDWR|O_CREATE, 0666)` of the database file: creating it if there is none
-(`specCreate`, with the whole history), or opening the file there (`spec`). -/
-theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
-    (wp_Create : os.OpenFile.specCreate (GF := GF) (hG := hG))
-    (d b : GoString) (R : Roots) (V : Hist) (j : Ino) (t : Nat) (vo : Option w64) (n : Nat)
-    (hr : RootsOk R) (hb : NameOk b) (hd : lookupH R V d = some (.dir j)) :
-    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own 1) R V ∗
-        (⌜lookupH R V (child d b) = none ∧ t = 1 ∧ vo = none ∧ n = 4⌝ ∨
-          ∃ (i : Ino) (m : OsMeta), ⌜lookupH R V (child d b) = some (.file i)⌝ ∗
+theorem minibolt_openFd (i : Ino) :
+    openFd i (W64 0x42 ||| W64 0x80000) = ⟨i, true, true, none, none⟩ := by
+  rw [show (W64 0x42 ||| W64 0x80000) = W64 0x80042 from by decide]; exact openFd_rw i
+
+/-- What the open is given at the name: no file, or a file; never a directory. -/
+theorem openPre_notDir (h : NamesH) (b : GoString) (t : Nat) (vo : Option w64) (n : Nat) :
+    (⌜h.cur !! b = none ∧ t = 1 ∧ vo = none ∧ n = 4⌝ ∨
+      ∃ (i : Ino) (m : OsMeta), ⌜h.cur !! b = some (.file i)⌝ ∗
+        osMeta (GF := GF) i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) ⊢
+    ⌜∀ J, h.cur !! b ≠ some (.dir J)⌝ ∗
+    (⌜h.cur !! b = none ∧ t = 1 ∧ vo = none ∧ n = 4⌝ ∨
+      ∃ (i : Ino) (m : OsMeta), ⌜h.cur !! b = some (.file i)⌝ ∗
+        osMeta (GF := GF) i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) := by
+  iintro (%Ha | ⟨%i, %m, %hl, Hm, Hst⟩)
+  · isplitr
+    · ipureintro; intro J hJ; rw [Ha.1] at hJ; cases hJ
+    ileft; ipureintro; exact Ha
+  · isplitr
+    · ipureintro; intro J hJ; rw [hl] at hJ; cases hJ
+    iright; iexists i, m; iframe; ipureintro; exact hl
+
+/-- `os.OpenFile(path, O_RDWR|O_CREATE, 0666)` of the database file (`specCreateS`, with the whole
+claim on its name and the trivial update): creating it if there is none, or opening the file
+there. -/
+theorem wp_OpenFile_db (wp_Create : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (d b : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (h : NamesH) (t : Nat)
+    (vo : Option w64) (n : Nat) (hb : NameOk b) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
+        osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗
+        (⌜h.cur !! b = none ∧ t = 1 ∧ vo = none ∧ n = 4⌝ ∨
+          ∃ (i : Ino) (m : OsMeta), ⌜h.cur !! b = some (.file i)⌝ ∗
             osMeta (GF := GF) i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #(W32 438)))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); ∃ V' : Hist,
-        osTree (DFrac.own 1) R V' ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
+        osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ ∃ h' : NamesH,
+        osNames j (.only [b]) (DFrac.own 1) h' ∗
         ((∃ (fd : w64) (i : Ino) (m : OsMeta),
-            ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ lookupH R V' (child d b) = some (.file i) ∧
-              lookupH R V' d = some (.dir j)⌝ ∗
+            ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ h'.cur !! b = some (.file i)⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
             osMeta i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) ∨
-         (⌜err ≠ interface.nil ∧ f = null⌝ ∗ openFail (GF := GF) R V' (child d b))) }} := by
-  iintro %Φ ⟨#Hos, Ht, Hf⟩ HΦ
-  icases Hf with (%Ha | ⟨%i, %m, %hl, Hm, Hst⟩)
-  · obtain ⟨hn, rfl, rfl, rfl⟩ := Ha
-    wp_apply wp_Create d b (W32 438) R V j hb hd hn $$ [Ht]
-      as %f %err ⟨(⟨%fd, %i, %h, Ht, Hm, Hf, Hfd⟩ | ⟨%h, (Ht | ⟨%i, Ht, Hm⟩)⟩), -⟩
-    · iframe; iframe #
-    · iapply HΦ
-      iexists _; iframe Ht
-      ileft
-      iexists fd, i, newMeta
-      iframe Hf Hfd Hm
+         (⌜err ≠ interface.nil ∧ f = null⌝ ∗ openFail (GF := GF) h' b)) }} := by
+  iintro %Φ ⟨#Hospkg, #Hos, #Hsi, Hp, Hperm, Hn, Hf⟩ HΦ
+  obtain ⟨hfl, hcr, htr⟩ := minibolt_openFlag
+  icases openPre_notDir h b t vo n $$ Hf with ⟨%hnd, Hf⟩
+  icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
+  ihave Hau := os.osAU_triv (A := Option (Nat × Nat × Ino))
+    (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
+    (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
+  wp_apply wp_Create d b (W64 0x42) (W32 438) R j dq h (1 : Qp).half (1 : Qp).half qc
+    (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd (Qp.half_add_half 1)
+    $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+    as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, Hm, Hr⟩
+  ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
+  iapply HΦ
+  iframe Hp Hperm
+  rcases oc with _ | ⟨x, s0, i⟩
+  · -- no effect: the claim as it was
+    unfold crOut
+    iexists h
+    iframe Ho
+    icases Hr with (⟨%fd, %i, %hres, Hf', -, Hfd⟩ | ⟨%herr, -⟩)
+    · obtain ⟨rfl, hfd, hi⟩ := hres
+      simp only [crIno] at hi
+      icases Hf with (%Ha | ⟨%i0, %m, %hl, Hm0, Hst⟩)
+      · rw [Ha.1] at hi; cases hi
+      · have hii : i = i0 := by rw [hl] at hi; cases hi; rfl
+        subst hii
+        ileft
+        iexists fd, i, m
+        iframe Hf' Hm0 Hst
+        rw [minibolt_openFd]
+        iframe Hfd
+        ipureintro; exact ⟨rfl, hfd, hl⟩
+    · iright
       isplitr
-      · ipureintro; exact ⟨h.1, h.2, lookupH_create _ hr hd hb hn, lookupH_create_dir _ hr hd hb hn⟩
-      iapply openSt_new
-    · iapply HΦ
-      iexists V; iframe Ht
-      iright
-      isplitr; · ipureintro; exact h
-      unfold openFail; iright; ipureintro; exact hn
-    · iapply HΦ
-      iexists _; iframe Ht
-      iright
-      isplitr; · ipureintro; exact h
-      unfold openFail; ileft
-      iexists i, newMeta; iframe Hm
-      ipureintro; exact lookupH_create _ hr hd hb hn
-  · wp_apply wp_OpenFile (child d b) (W32 438) 1 R V i hl $$ [Ht]
-      as %f %err ⟨Ht, (⟨%fd, %h, Hf, Hfd⟩ | %h), -⟩
-    · iframe; iframe #
-    · iapply HΦ
-      iexists V; iframe Ht
+      · ipureintro; exact ⟨herr.1, herr.2.1⟩
+      unfold openFail
+      icases Hf with (%Ha | ⟨%i0, %m, %hl, Hm0, -⟩)
+      · iright; ipureintro; exact Ha.1
+      · ileft; iexists i0, m; iframe Hm0; ipureintro; exact hl
+  · -- the file created
+    unfold crOut crMeta
+    icases Ho with ⟨%hcr0, -, Ho⟩
+    have hcur : (h.log x (crEnt j b i s0) (<[b := .file i]> h.cur)).cur !! b = some (.file i) :=
+      GMap.lookup_insert _ _ _
+    iexists _
+    iframe Ho
+    icases Hf with (%Ha | ⟨%i0, %m, %hl, -, -⟩)
+    rotate_left
+    · rw [hcr0.1] at hl; cases hl
+    obtain ⟨-, rfl, rfl, rfl⟩ := Ha
+    icases Hr with (⟨%fd, %i', %hres, Hf', -, Hfd⟩ | ⟨%herr, -⟩)
+    · obtain ⟨rfl, hfd, hi⟩ := hres
+      simp only [crIno] at hi
+      subst hi
       ileft
-      iexists fd, i, m
-      iframe
-      ipureintro; exact ⟨h.1, h.2, hl, hd⟩
-    · iapply HΦ
-      iexists V; iframe Ht
-      iright
-      isplitr; · ipureintro; exact h
-      unfold openFail; ileft
-      iexists i, m; iframe Hm
-      ipureintro; exact hl
+      iexists fd, i', newMeta
+      iframe Hf' Hm
+      rw [minibolt_openFd]
+      iframe Hfd
+      isplitr
+      · ipureintro; exact ⟨rfl, hfd, hcur⟩
+      iapply openSt_new
+    · iright
+      isplitr
+      · ipureintro; exact ⟨herr.1, herr.2.1⟩
+      unfold openFail
+      ileft; iexists i, newMeta; iframe Hm; ipureintro; exact hcur
 
-theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
-    (wp_Create : os.OpenFile.specCreate (GF := GF) (hG := hG))
+theorem Open.wp_proof (wp_Create : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (wp_Name : os.File.Name.spec (GF := GF) (hG := hG))
     (wp_flock : flock.spec (GF := GF) (hG := hG))
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
@@ -131,17 +166,18 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     (wp_init : DB.init.spec (GF := GF) (hG := hG))
     (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG)) :
     Open.spec (GF := GF) (hG := hG) := by
-  intro _ d nm R V j t vo n vp hr hb hd hvp
-  wp_start as ⟨#Hpkg, #Hos, Ht, Hfile⟩
-  imod dbFile_norm R V (child d nm) t vo n $$ Hfile with Hfile
+  intro _ d nm R j dq qc h t vo n vp hb hvp
+  wp_start as ⟨#Hpkg, #Hos, #Hsi, Hp, Hperm, Ht, Hfile⟩
+  imod dbFile_norm h nm t vo n $$ Hfile with Hfile
   ihave ⟨%e2, #He2, %He2⟩ := pkgFacts_errPageSize $$ Hpkg
+  ihave #Hospkg := pkgFacts_os $$ Hpkg
   (try wp_auto)
   irename «$r0» => Hdb
   generalize «$r0_ptr» = db at *
   iStructNamed Hdb
   rw [show (W64 2 ||| W64 64 : w64) = W64 0x42 from rfl]
-  wp_apply wp_OpenFile_db wp_OpenFile wp_Create d nm R V j t vo n hr hb hd $$ [Ht Hfile]
-    as %f %err ⟨%V', Ht, (⟨%fd, %i, %m, %Hfd, Hf, Hfdo, Hm, Hst⟩ | ⟨%Herr, Hfail⟩)⟩
+  wp_apply wp_OpenFile_db wp_Create d nm R j dq qc h t vo n hb $$ [Hp Hperm Ht Hfile]
+    as %f %err ⟨Hp, Hperm, %h', Ht, (⟨%fd, %i, %m, %Hfd, Hf, Hfdo, Hm, Hst⟩ | ⟨%Herr, Hfail⟩)⟩
   · iframe; iframe #
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -150,12 +186,12 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     | ok ie =>
     (try wp_auto)
     iapply HΦ
-    iexists V'; iframe Ht
+    iframe Hp Hperm; iexists h'; iframe Ht
     iright
     isplitr
     · ipureintro; exact ⟨by simp, rfl⟩
     · iexact Hfail
-  obtain ⟨rfl, Hfd, hl, hdl⟩ := Hfd
+  obtain ⟨rfl, Hfd, hl⟩ := Hfd
   (try wp_auto)
   wp_apply wp_Name f fd (child d nm) (DFrac.own 1) $$ [Hf] as Hf
   · iexact Hf
@@ -171,7 +207,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     · iframe; iframe #; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
-    iexists V'; iframe Ht
+    iframe Hp Hperm; iexists h'; iframe Ht
     iright
     isplitr
     · ipureintro; exact ⟨by simp, rfl⟩
@@ -203,7 +239,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try wp_auto)
     iapply HΦ
-    iexists V'; iframe Ht
+    iframe Hp Hperm; iexists h'; iframe Ht
     iright
     isplitr
     · ipureintro; exact ⟨by simp, rfl⟩
@@ -314,7 +350,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   · obtain ⟨rfl, He⟩ := Hv
     (try wp_auto)
     iapply HΦ
-    iexists V'; iframe Ht
+    iframe Hp Hperm; iexists h'; iframe Ht
     iright
     isplitr
     · ipureintro; exact ⟨He, rfl⟩
@@ -382,7 +418,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   · obtain ⟨rfl, He⟩ := Hv
     (try wp_auto)
     iapply HΦ
-    iexists V'; iframe Ht
+    iframe Hp Hperm; iexists h'; iframe Ht
     iright
     isplitr
     · ipureintro; exact ⟨He, rfl⟩
@@ -447,13 +483,13 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         (sync.threadBound_le_actualMaxReaders (ThreadBoundLe.le (GF := GF) (2 ^ 30))) $$ Hrds with ⟨%γp, #Hpool⟩
     (try wp_auto)
     iapply HΦ
-    iexists V'; iframe Ht
+    iframe Hp Hperm; iexists h'; iframe Ht
     ileft
     isplitr
     · ipureintro; rfl
     iexists γ
     isplitr
-    · ipureintro; exact ⟨Hγvp, hl, hdl⟩
+    · ipureintro; exact ⟨Hγvp, hl⟩
     iframe Hown Hlast Htx
     isplitr
     · unfold isDB; isplitr
@@ -483,7 +519,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try wp_auto)
     iapply HΦ
-    iexists V'; iframe Ht
+    iframe Hp Hperm; iexists h'; iframe Ht
     iright
     isplitr
     · ipureintro; exact ⟨by simp, rfl⟩

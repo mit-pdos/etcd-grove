@@ -865,9 +865,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`. -/
+/-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`, and an
+empty context the `nil` slice. (2026-11-24, tracecheck non-vacuity: `Context` is a proto2 `bytes`
+field, present iff the slice is not `nil`, so an empty context's bytes in `proto.Marshal`'s output
+depend on which slice it is; `ctxs[k] = []` stands for the absent field, which is what a
+`Peer{ID: id}` carries. Until then empty contexts were excluded instead, by `bootMarshal`'s
+`⌜∀ c ∈ ctxs, c ≠ []⌝`, which made the trace check's premise, at `[[], [], []]`, false.) -/
 def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=
-  iprop([∗list] p;ctx ∈ pv;ctxs, p.Context' ↦*□ ctx)
+  iprop([∗list] p;ctx ∈ pv;ctxs, p.Context' ↦*□ ctx ∗ ⌜ctx = [] → p.Context' = slice.nil⌝)
 
 
 
@@ -912,11 +917,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **The `k`-th peer's conf change as raft's `Bootstrap` builds it** (premise fixes 1, 2026-11-10):
 `&pb.ConfChange{Type: AddNode.Enum(), NodeId: new(id), Context: ctx}` at `p`, at `dq`: its `Type`
 and `NodeId` cells set (non-`nil`) to `m.type` and `m.nodeId`, its `Id` unset (`nil`), its
-`Context` holding `m.context`, no unknown fields. Unlike `ownConfChange`, which forgets which
-fields are set and the unknown fields, it fixes everything `proto.Marshal`'s bytes depend on. -/
+`Context` holding `m.context`, `nil` (absent) when `m.context` is empty, no unknown fields. Unlike
+`ownConfChange`, which forgets which fields are set and the unknown fields, it fixes everything
+`proto.Marshal`'s bytes depend on. (2026-11-24) The `nil` for an empty context: `Context` is a
+proto2 `bytes` field, so an empty non-`nil` slice is marshalled as present (`0x22 0x00`) and a
+`nil` one not at all (see `peersCtx`). -/
 def bootConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
   iprop(∃ (pt pn : Loc) (cs : GoSlice),
-    ⌜p ≠ null ∧ pt ≠ null ∧ pn ≠ null⌝ ∗
+    ⌜p ≠ null ∧ pt ≠ null ∧ pn ≠ null ∧ (m.context = [] → cs = slice.nil)⌝ ∗
     p.[raftpb.ConfChange, go!"Type"] ↦{dq} pt ∗ pt ↦□ m.type ∗
     p.[raftpb.ConfChange, go!"NodeId"] ↦{dq} pn ∗ pn ↦□ m.nodeId ∗
     p.[raftpb.ConfChange, go!"Id"] ↦{dq} (null : Loc) ∗
@@ -945,14 +953,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (see the file header): for the `*pb.ConfChange` raft's `Bootstrap` builds at `p` (`bootConfChange`:
 `Type = AddNode` and `NodeId = ps[k]` set, `Id` unset, `Context = ctxs[k]`, no unknown fields), the
 call returns a fresh slice holding `e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the
-message back; and the peers' contexts are not empty (an empty one's bytes depend on whether the
-slice is `nil`, proto2 presence). Persistent (one call per peer). (Premise fixes 1, 2026-11-10:
+message back. An empty context is the absent field (`bootConfChange`: its slice `nil`). Persistent (one call per peer). (Premise fixes 1, 2026-11-10:
 until then stated over every `ownConfChange p dq m` with these fields, which also covers `Id`
 set to `0`, `Type` unset and unknown fields, which Go marshals to other bytes: the premise attack,
 `examples/premisefix/confchange`, `TestBootBytesDependOnPresence`; so no faithful `proto.Marshal`
-met it and every closed theorem assuming it held vacuously.) -/
+met it and every closed theorem assuming it held vacuously.) (2026-11-24, tracecheck non-vacuity:
+until then also `⌜∀ c ∈ ctxs, c ≠ []⌝`, since an empty context's bytes depend on whether its slice is
+`nil`; the trace check's peers have no context, so its premise `bootMarshal _ [[], [], []] _` was
+false and `raft_tracecheck_safe`/`_robust` held vacuously. Now `bootConfChange` and `peersCtx` fix
+an empty context's slice to `nil`, the bytes Go computes for a `Peer{ID: id}`.) -/
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(⌜∀ c ∈ ctxs, c ≠ []⌝ ∗ □ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
+  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
     (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
       m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
     bootConfChange p dq m -∗
@@ -1001,9 +1012,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A freshly allocated `*pb.ConfChange` (hidden fields zero, `Id` unset) with its `Type` and
-`NodeId` cells set: the conf change `Bootstrap` marshals (`bootConfChange`). -/
+`NodeId` cells set, an empty context `nil`: the conf change `Bootstrap` marshals
+(`bootConfChange`). -/
 theorem bootConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChangeM) (E : CoPset)
-    (Hu : v.unknownFields' = slice.nil) (Hi : v.Id' = null) :
+    (Hu : v.unknownFields' = slice.nil) (Hi : v.Id' = null)
+    (Hc : m.context = [] → v.Context' = slice.nil) :
     (p ↦ v ∗ v.Type' ↦□ m.type ∗ v.NodeId' ↦□ m.nodeId ∗ v.Context' ↦*□ m.context : IProp GF) ⊢
       |={E}=> bootConfChange p (DFrac.own 1) m := by
   iintro ⟨Hp, #cT, #cN, #Hcs⟩
@@ -1023,7 +1036,7 @@ theorem bootConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChan
   iunfold bootConfChange
   iexists v.Type', v.NodeId', v.Context'
   isplitr
-  · ipureintro; exact ⟨Hnn, HnT, HnN⟩
+  · ipureintro; exact ⟨Hnn, HnT, HnN, Hc⟩
   iframe
   iframe cT cN Hcs Hpb
 

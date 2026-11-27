@@ -21,7 +21,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `f.Seek(off, io.SeekEnd)`, `0 ≤ off`, the size and `off` at most ext4's maximum (`seekMax`):
 the offset becomes `size + off` if that is at most the maximum; else (or on an `fstat` error) an
@@ -39,25 +39,29 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
             os.ownOff f (W64 m.size + off)) ∨
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
   icombine Hf Hf' gives %hin
   cases hin
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   have hfd' : ¬ sint.Z fd < sint.Z (W64 0) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
   rw [decide_eq_false hfd']
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
+  wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  try wp_auto
+  try rw [show decide ((W64 0 : w64) = W64 0) = true from decide_eq_true rfl]
+  try simp only [Bool.not_true]
+  try wp_auto
+  wp_stub os.fsFstat.impl
   wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
   rcases hr with ⟨rfl, rfl⟩ | ⟨he, rfl⟩
   · rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]
-    wp_auto
-    rw [show os.model.offMax = W64 0x4000000000000000 from rfl,
-      show os.model.seekMax = W64 0xffffffff000 from rfl]
+    try wp_auto
     have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
     have hs : sint.Z (W64 (m.size : Int)) = m.size := by
       show BitVec.toInt _ = _
@@ -70,7 +74,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     have hS : sint.Z (W64 0xffffffff000) = 0xffffffff000 := rfl
     rw [decide_eq_false (show ¬ sint.Z (W64 (m.size : Int) + off) < sint.Z (W64 0) by
       rw [hn, hz]; omega)]
-    wp_auto
+    try wp_auto
     try rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (W64 (m.size : Int) + off) by
       rw [hm, hn]; omega)]
     try wp_auto
@@ -83,23 +87,26 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     by_cases hbig : 0xffffffff000 < m.size + off.toInt
     · rw [decide_eq_true (show sint.Z (W64 0xffffffff000) < sint.Z (W64 (m.size : Int) + off) by
         rw [hS, hn]; omega)]
-      wp_auto
+      try wp_auto
+      wp_stub os.fsFdKind.impl
+      wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+      try wp_auto
       wp_apply os.wp_wrapErrno _ inner name (W64 22) $$ Hn as %pe
       iapply HΦ
       iframe Hosfd Hm
       isplitl [Hfd]
-      · iexists inner; iframe; isplitl [] <;> iassumption
+      · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
       · iright
         isplitr
         · ipureintro; intro h; cases h
         iexists inner; iframe; iassumption
     · rw [decide_eq_false (show ¬ sint.Z (W64 0xffffffff000) < sint.Z (W64 (m.size : Int) + off) by
         rw [hS, hn]; omega)]
-      wp_auto
+      try wp_auto
       iapply HΦ
       iframe Hosfd Hm
       isplitl [Hfd]
-      · iexists inner; iframe; isplitl [] <;> iassumption
+      · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
       · ileft
         isplitr
         · ipureintro
@@ -110,12 +117,12 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
         iexists inner; iframe; iassumption
   · have he' : ¬ e = W64 0 := he
     simp only [decide_eq_false he', Bool.not_false]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
     iframe Hosfd Hm
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     · iright
       isplitr
       · ipureintro; intro h; cases h

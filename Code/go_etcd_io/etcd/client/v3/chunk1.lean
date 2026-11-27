@@ -479,6 +479,7 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" Client.Ctx.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
+  ptr_Endpoints_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Endpoints" Client.Endpoints.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Get"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
   ptr_GetLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" Client.GetLogger.impl
@@ -493,10 +494,12 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_credentialsForEndpoint_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" Client.credentialsForEndpoint.impl
   ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" Client.dial.impl
   ptr_dialSetupOpts_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialSetupOpts" Client.dialSetupOpts.impl
+  ptr_dialWithBalancer_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancer" Client.dialWithBalancer.impl
   ptr_getToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"getToken" Client.getToken.impl
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" Client.refreshToken.impl
   ptr_roundRobinQuorumBackoff_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"roundRobinQuorumBackoff" Client.roundRobinQuorumBackoff.impl
   ptr_shouldRefreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" Client.shouldRefreshToken.impl
+  ptr_streamClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"streamClientInterceptor" Client.streamClientInterceptor.impl
   ptr_unaryClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" Client.unaryClientInterceptor.impl
 
 attribute [instance] Client.TypeAssumptions.type_repr
@@ -552,6 +555,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_Compact_unfold
   Client.TypeAssumptions.ptr_Ctx_unfold
   Client.TypeAssumptions.ptr_Delete_unfold
+  Client.TypeAssumptions.ptr_Endpoints_unfold
   Client.TypeAssumptions.ptr_Get_unfold
   Client.TypeAssumptions.ptr_GetLogger_unfold
   Client.TypeAssumptions.ptr_Put_unfold
@@ -562,10 +566,12 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_credentialsForEndpoint_unfold
   Client.TypeAssumptions.ptr_dial_unfold
   Client.TypeAssumptions.ptr_dialSetupOpts_unfold
+  Client.TypeAssumptions.ptr_dialWithBalancer_unfold
   Client.TypeAssumptions.ptr_getToken_unfold
   Client.TypeAssumptions.ptr_refreshToken_unfold
   Client.TypeAssumptions.ptr_roundRobinQuorumBackoff_unfold
   Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
+  Client.TypeAssumptions.ptr_streamClientInterceptor_unfold
   Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold
 
 class Option.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1219,39 +1225,6 @@ attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.ptr_recvKeepAliveLoop_unfold
   lessor.TypeAssumptions.ptr_resetRecv_unfold
   lessor.TypeAssumptions.ptr_sendKeepAliveLoop_unfold
-
-class keepAlive.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying keepAlive.underlying keepAlive
-  underlying : go.UnderlyingDirectedEq keepAlive.ty keepAlive.underlying
-  get_chs : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"chs") #x (Val #(x.chs'))
-  set_chs : ∀ (x : keepAlive) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"chs") (PairV #x #y) (Val #(({ x with chs' := y } : keepAlive)))
-  get_ctxs : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"ctxs") #x (Val #(x.ctxs'))
-  set_ctxs : ∀ (x : keepAlive) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"ctxs") (PairV #x #y) (Val #(({ x with ctxs' := y } : keepAlive)))
-  get_deadline : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"deadline") #x (Val #(x.deadline'))
-  set_deadline : ∀ (x : keepAlive) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"deadline") (PairV #x #y) (Val #(({ x with deadline' := y } : keepAlive)))
-  get_nextKeepAlive : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"nextKeepAlive") #x (Val #(x.nextKeepAlive'))
-  set_nextKeepAlive : ∀ (x : keepAlive) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"nextKeepAlive") (PairV #x #y) (Val #(({ x with nextKeepAlive' := y } : keepAlive)))
-  get_donec : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"donec") #x (Val #(x.donec'))
-  set_donec : ∀ (x : keepAlive) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : keepAlive)))
-  method_set : go.MethodSetIs keepAlive.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepAlive.ty) [(go!"go.etcd.io/etcd/client/v3.close", (some (go.signature.Signature [] false [])))]
-  ptr_close_unfold : MethodUnfold (go.GoType.PointerType keepAlive.ty) go!"close" keepAlive.close.impl
-
-attribute [instance] keepAlive.TypeAssumptions.type_repr
-  keepAlive.TypeAssumptions.underlying
-  keepAlive.TypeAssumptions.get_chs
-  keepAlive.TypeAssumptions.set_chs
-  keepAlive.TypeAssumptions.get_ctxs
-  keepAlive.TypeAssumptions.set_ctxs
-  keepAlive.TypeAssumptions.get_deadline
-  keepAlive.TypeAssumptions.set_deadline
-  keepAlive.TypeAssumptions.get_nextKeepAlive
-  keepAlive.TypeAssumptions.set_nextKeepAlive
-  keepAlive.TypeAssumptions.get_donec
-  keepAlive.TypeAssumptions.set_donec
-  keepAlive.TypeAssumptions.method_set
-  keepAlive.TypeAssumptions.ptr_method_set
-  keepAlive.TypeAssumptions.ptr_close_unfold
 
 end go_etcd_io.etcd.client.v3
 

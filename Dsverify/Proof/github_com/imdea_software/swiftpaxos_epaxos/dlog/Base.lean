@@ -5,7 +5,7 @@ module
 
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos_epaxos.dlog
 public import Perennial.Proof.log.Link
-public import Net.Proof.os.Init
+public import Proof.os.Init
 
 @[expose] public section
 

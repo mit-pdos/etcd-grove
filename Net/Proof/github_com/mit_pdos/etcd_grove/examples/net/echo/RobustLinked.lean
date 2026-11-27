@@ -47,7 +47,7 @@ set_option linter.unusedVariables false in
 is stuck and none has an unrecovered panic. -/
 theorem echo_dist_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [junk_sem : cmd.junk.Assumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState) (threads bound : Nat) :
     DistDeploy echoAddrs (system σs σc σj) g → Robust [] (system σs σc σj) g threads bound := by
   refine robust_of_distBoot _ _ g threads bound ?_
@@ -86,7 +86,7 @@ theorem echo_dist_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sem
       rw [show boot_client = boot cmd.client.initialize' cmd.client.main from rfl]
       iapply wp_boot cmd.client.initialize' cmd.client.main _ cmd.client.getIsPkgInit
           (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf) _
-          (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.client.wp_main wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
       iframe Hinvs Hplan
     | 2, hm =>
@@ -96,7 +96,7 @@ theorem echo_dist_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sem
       rw [show boot_junk = boot cmd.junk.initialize' cmd.junk.main from rfl]
       iapply wp_boot cmd.junk.initialize' cmd.junk.main _ cmd.junk.getIsPkgInit
           (cmd.junk.wp_initialize' _ cmd.junk.getIsPkgInit_wf) _
-          (cmd.junk.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.junk.wp_main wire.wp_RandomInt wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
       iframe Hinvs Hplan
   · dsimp only

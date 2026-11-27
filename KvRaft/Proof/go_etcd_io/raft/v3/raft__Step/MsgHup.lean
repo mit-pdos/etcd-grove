@@ -1,0 +1,158 @@
+-- The copy for the part `KvRaft/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/raft__Step/MsgHup.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Port of election_proof/proof_raft__Step_helpers/proof_raft__Step_MsgHup.v.
+
+One branch of `Step`'s proof, in its own file so that the branches check in parallel
+-- each is a few minutes of `wp_auto` over the same 100k-node body, and in one file they
+ran back to back.
+
+This is **proof structure, not specification**: `Step` has exactly one spec, in
+`Spec/raft__Step.lean`, and this module has no `Module Type` and no `Parameter`.
+Only `Proof/raft__Step.lean`, or another module of `Proof/raft__Step/`, may import
+this module; see `notes/decisions.md` (2026-09-17, and 2026-09-18 for why the helpers
+moved out of the top-level directory).
+
+Lean notes: the branch lemma takes the callee specs (Rocq's functor argument
+`P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
+section variable `c` as its second.
+-/
+module
+
+public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section branches
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+namespace StepProof
+
+/-- `MsgHup` is a local message (`m.Term = 0`), so `Step`'s term preamble is skipped
+entirely and it goes straight to `hup`.
+
+Like the other branch lemmas this is ghost-free: it establishes the `Step` witness as a
+pure fact, and `raft.Step.wp_proof` turns them into the single `ownRaftGhost_step` of
+the whole development. -/
+theorem wp_Step_MsgHup {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+    (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    m.Type' = MsgHup →
+    m.Term' = W64 0 →
+    -- an election increments the term; `send` panics if that wraps to zero
+    uint.Z s.term + 1 < 2 ^ 64 →
+    -- (2026-10-17) a pre-election's next term within the ceiling
+    (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
+    -- `r.step` matches the role
+    NStateWf s →
+    -- (D19i part 1) the floor at most `applied` (`hup`'s)
+    uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+    {{ (err : GoInterface) (s' : NState), RET #err;
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
+        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
+  intro Hty Hterm Hnowrap Htc Hwf Hfla
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
+  icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_recv_gate_ns
+  try wp_auto
+  wp_apply PB.GetTerm.1 $$ [$Hm] as Hm
+  -- `m.Term = 0` (a local message), so the term preamble is skipped
+  rw [decide_eq_true Hterm]
+  wp_auto
+  -- the type switch selects the `MsgHup` case
+  wp_apply PB.GetType.1 $$ [$Hm] as Hm
+  rw [Hty]
+  wp_auto
+  -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;
+  -- `hup`'s spec covers both
+  -- a local message: the preamble skipped
+  have hnbf : ¬ PreBF m s := PreBF.of_zero Hterm
+  imod preGate_nobf c r id s m _ _ (.inl Hterm) hnbf $$ Hgpre HG with HG
+  ihave Hhg := Hghup $$ %(by first | exact Hty | rfl)
+  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
+  -- (2026-10-14, stage B7) the log facts the campaign guard reads on the full log
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
+  icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
+  icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hlnw, Hlog⟩
+  ihave Hphys := Hback $$ Hlog
+  have Hlogf : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
+      uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64 :=
+    ⟨Hcm.2, Hcm.1.2.1, by have := Hcm.1.2.2; omega⟩
+  -- `hup(campaignPreElection)` exactly when `r.preVote`
+  cases Hpv : s.prevote
+  all_goals
+    wp_auto
+    first
+    | ihave Hhg := hupGates_type c r id s _ _ _ (hupType_pre Hpv) $$ Hhg
+    | ihave Hhg := hupGates_type c r id s _ _ _ (hupType_el Hpv) $$ Hhg
+    iunfold hupGates at Hhg
+    wp_apply _P.hup c r id s _ (R.G1 s.outbox) R.GE Hnowrap ?Hpvt Hwf Hfla Hgok.1 $$ [$Hphys $HG Hhg]
+      as %s' ⟨Hphys, HGo, %Hok, -⟩
+    case Hpvt =>
+      first
+        | exact fun _ => ⟨Hpv, Htc Hpv⟩
+        | exact fun h => by
+            have := congrArg List.length h
+            simp [campaignPreElection] at this
+    · iexact Hhg
+    ihave HG := stepOut_hup R $$ HGo
+    have Hok0 := Hok
+    have HCD := stepCD_hup (B := B) (m := m) Hok Hnowrap Hlogf
+    have Hpc := fun h => HupGuard.precand Hok.2.2.2.2 h
+    have Hhg := Hok.2.2.2.2
+    obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
+    -- (2026-10-25, T-M M2b) a pre-candidate afterwards: one before, unchanged, or made one by
+    -- the pre-campaign, with `hup`'s check (`HupFact`)
+    -- (2026-10-28, stage U0) and a node no follower afterwards with a snapshot pending was
+    -- one before: a campaign checked that none is pending (`promotable`)
+    have Hsrb : SnapRoleBack s s' := fun h1 h2 => by
+      rcases Hhg with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, -⟩, -⟩
+      · exact ⟨h1, h2⟩
+      · exact absurd (by rw [Hl]; exact Hsn) h2
+    have Hpcs : PreCandStep m s s' := ⟨fun h => ⟨Hpc h, by
+      rcases Hhg with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, Hno⟩, -⟩
+      · exact .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
+      · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩, Hsrb,
+      -- (2026-11-12, implementation step 3) a follower leaves the role only by the campaign
+      Hhg.roleUp Hl rfl (.inl rfl) (.inl Hty) Hlogf⟩
+    try phys_out
+    iapply HΦ $$ %interface.nil %s'
+    iframe Hphys HG
+    ipureintro
+    exact ⟨StepEndG.hup Hty (notStale_of_zero Hterm)
+      (by first | (rw [hupType_pre Hpv]; exact Hok0) | (rw [hupType_el Hpv]; exact Hok0)), Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
+      fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
+      fun h => absurd (Hty.symm.trans h) (by w32_ne), Hpcs⟩
+
+end StepProof
+
+end branches
+
+end EtcdGrove
+end Perennial

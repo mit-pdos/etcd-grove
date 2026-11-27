@@ -78,9 +78,10 @@ theorem consistencyStore.Clear.wp_proof :
     wp_auto
     wp_func_call
     wp_call
-    by_cases hl : uid.length < 2 ^ 63
+    by_cases hl : ((uid).length : Int) ≤ maxAddr
     case neg => rw [if_neg hl]; wp_apply wp_AngelicExit
     rw [if_pos hl]
+    have hl_lt : (uid).length < 2 ^ 63 := by unfold maxAddr at hl; omega
     wp_auto
     have hlen : (W64 (uid.length : Int) = W64 0) ↔ uid = [] := by
       constructor

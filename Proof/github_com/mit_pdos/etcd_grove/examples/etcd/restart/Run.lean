@@ -152,6 +152,7 @@ def stopCand (N : Nat) (m s : Loc) (γn : NetNames GF) (γ : SrvRaft) (ρ₁ : R
       (E : apply.AEnv GF) (dd : GoString) (γS : SwNames),
     ⌜go!"http://" ++ peerAddr ∈ dir3 id₁ id₂ id₃ id ∧
       urlsOk peerAddr client ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, initURLs3⟩ ∧
+      etcdstart.addrFits peerAddr ∧ etcdstart.addrFits client ∧
       ρ.rd.kv.st = ρ₁.rd.kv.st ∧ srvStop.scope E⌝ ∗
     memberRec m γS γn name peerAddr client ∗ srvAppliedInv s E ρ.rd ∗
     srvDataDir s (memberDataDir name) ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
@@ -170,14 +171,21 @@ theorem Run.wp_proof
     (wp_stop : stop.spec (GF := GF) (hG := hG))
     (wp_restartMember : restartMember.spec (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
+    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
   intro CS lg N id₁ id₂ id₃ ps ctxs boot ThB RcB RcN Hbf HLv HwbN Haf Hbuq Hdbo
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   wp_start as ⟨#Hzlg, Hs₁, Hs₂, Hs₃, Htok, #Hprem⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃, #Hmarsh, #Hcom⟩
+  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #HbR₂, #HbR₃⟩
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -304,7 +312,7 @@ theorem Run.wp_proof
       (urlsOk peerAddr₁ clientAddr₁) ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁
       { γ with reg := reg₁ } ρ₁ E₁ Φs γn HwbN hvs hrule hboot hblen hγn1 hγn2
       (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁ (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      (hUok _ _) hU8 (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb₁ Hfr₁] as %s₁ %err Hr
+      (hUok _ _) (by decide) (by decide) hU8 (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb₁ Hfr₁] as %s₁ %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Htok, Hmb₁, #Hdd₁⟩)
   · cases err with
@@ -318,7 +326,7 @@ theorem Run.wp_proof
       (urlsOk peerAddr₂ clientAddr₂) ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₂
       { γ with reg := reg₂ } ρ₂ E₂ Φs γn HwbN hvs hrule hboot hblen hγn1 hγn2
       (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂ (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      (hUok _ _) hU8 (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb₂ Hfr₂] as %s₂ %err Hr
+      (hUok _ _) (by decide) (by decide) hU8 (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb₂ Hfr₂] as %s₂ %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Htok, Hmb₂, #Hdd₂⟩)
   · cases err with
@@ -332,7 +340,7 @@ theorem Run.wp_proof
       (urlsOk peerAddr₃ clientAddr₃) ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₃
       { γ with reg := reg₃ } ρ₃ E₃ Φs γn HwbN hvs hrule hboot hblen hγn1 hγn2
       (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃ (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf)
-      (hUok _ _) hU8 (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb₃ Hfr₃] as %s₃ %err Hr
+      (hUok _ _) (by decide) (by decide) hU8 (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb₃ Hfr₃] as %s₃ %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Htok, Hmb₃, #Hdd₃⟩)
   · cases err with
@@ -446,7 +454,7 @@ theorem Run.wp_proof
       iframe Hnet₂
       iframe #
       ipureintro
-      exact ⟨hd₂, hUok _ _, hst₂, HE₂.2, by rw [HE₂.1.2.2.2, hc₂]⟩
+      exact ⟨hd₂, hUok _ _, by decide, by decide, hst₂, HE₂.2, by rw [HE₂.1.2.2.2, hc₂]⟩
     · -- member 3 is stopped
       isplitr; · itrivial
       iexists m₃, s₃
@@ -457,12 +465,12 @@ theorem Run.wp_proof
       iframe Hnet₃
       iframe #
       ipureintro
-      exact ⟨hd₃, hUok _ _, hst₃, HE₃.2, by rw [HE₃.1.2.2.2, hc₃]⟩
+      exact ⟨hd₃, hUok _ _, by decide, by decide, hst₃, HE₃.2, by rw [HE₃.1.2.2.2, hc₃]⟩
   iintro %v ⟨%Hv, %mm, %ss, Hm, Hs, Hc⟩
   subst Hv
   wp_auto
   iunfold stopCand at Hc
-  icases Hc with ⟨%name, %peerAddr, %client, %id, %reg, %ρ, %E, %dd, %γS, ⟨%hd, %hU, %hst, %hsc⟩,
+  icases Hc with ⟨%name, %peerAddr, %client, %id, %reg, %ρ, %E, %dd, %γS, ⟨%hd, %hU, %hpf, %hcf, %hst, %hsc⟩,
     Hrec, #Hai, #Hdd, Hsr, Hrds, #Hnet, #HbR, #Hrfs⟩
   -- `stop(s)`
   ihave %Hρr : ⌜ρ.rd.raft.raft = { γ with reg := reg }⌝ $$ []
@@ -516,7 +524,7 @@ theorem Run.wp_proof
   wp_apply (wp_restartMember N mm γS name peerAddr client pm lg M initURLs3 (urlsOk peerAddr client) ps
       (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id { γ with reg := reg } ρ γn HwbN hvs hrule
       hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd
-      (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) hU Haf Hbuq Hdbo) $$ [Htok Hrec Hrr] as %sR %err Hr
+      (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) hU hpf hcf Haf Hbuq Hdbo) $$ [Htok Hrec Hrr] as %sR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ', %E₀', %Hρ', HupR⟩)
   · cases err with

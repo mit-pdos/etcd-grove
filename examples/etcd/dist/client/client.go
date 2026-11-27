@@ -39,44 +39,9 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
-
-// Kind is a workload's kind (Lean: Workload's constructors, in this order).
-type Kind int
-
-const (
-	KV           Kind = iota // txnlinfaultsN's workload: concurrent clients, porcupine (txnlin's model)
-	Watch                    // partition.MainWatch's: a watch from revision 1 and writers (etcdstart.Check)
-	Cache                    // cache's: etcd's watch cache over the client (cachekv's checks)
-	Compact                  // compactwatch's rounds: Put, explicit Compact, latest and old Gets; watches
-	PutGet                   // compacted's Put then Get, in rounds
-	Auth                     // authN's set-up, barriers, four principals and checks
-	AuthLease                // authlease's lease rows of auth
-	LeaseRead                // leaseN's Leases/TimeToLive reads at every member
-	LeaseCatchup             // leasecatchup's grant, fillers and listing (no cut: the network's)
-	LeaseExpiry              // leaseexpiryN's shortest leases, polled until gone, listed once more
-	Durable                  // restartN's check over gRPC: acknowledged Puts present, at version 1
-)
-
-var kindNames = []string{"kv", "watch", "cache", "compact", "putget", "auth", "authLease",
-	"leaseRead", "leaseCatchup", "leaseExpiry", "durable"}
-
-// String is the kind's name (the Lean constructor's).
-func (k Kind) String() string {
-	if k < 0 || int(k) >= len(kindNames) {
-		return "unknown"
-	}
-	return kindNames[k]
-}
-
-// Workload is one client machine's workload and its parameters (Lean: Workload).
-type Workload struct {
-	Kind    Kind
-	Clients int // KV: concurrent clients; Watch, Cache: writers; Durable: Puts (at most MaxDurable)
-	Ops     int // KV: operations per client; Watch, Cache: Puts per writer
-}
 
 // Result is how a workload ended without a panic: Checked if its checks ran (and passed: a failed
 // check is a panic), otherwise Why names the step that ended it (an error, a stream that ended, a
@@ -111,7 +76,8 @@ func newClient(eps []string) (*clientv3.Client, error) {
 	return etcdstart.NewClients(eps, zap.NewNop())
 }
 
-// How many times, and how far apart, AwaitCluster tries its read.
+// How many times, and how far apart, AwaitCluster tries its read (k8s/dist's wait; etcd_safe's
+// programs do not retry: see MainReady).
 const (
 	readyTries = 60
 	readyPause = 500 * time.Millisecond
@@ -140,77 +106,98 @@ func AwaitCluster(eps []string) bool {
 }
 
 // Main runs w with no observer of its set-up (MainReady).
-func Main(w Workload, eps []string, nodes []string) Result {
+func Main(w deployment.Workload, eps []string, nodes []string) Result {
 	return MainReady(w, eps, nodes, func() {})
 }
 
 // hasSetUp says whether a workload of kind k has a set-up: steps before its checks whose unknown
 // outcome cannot be redone (auth's users and AuthEnable, authLease's leases, leaseCatchup's first
-// lease) or that must precede the writes (the watch and the cache opened before any write), or that
-// wait for its client machines (kv, watch, cache, auth).
-func hasSetUp(k Kind) bool {
-	return k == KV || k == Watch || k == Cache || k == Auth || k == AuthLease || k == LeaseCatchup
+// lease) or that must precede the writes (the watch and the cache opened before any write).
+func hasSetUp(k deployment.Kind) bool {
+	return k == deployment.Watch || k == deployment.Cache || k == deployment.Auth ||
+		k == deployment.AuthLease || k == deployment.LeaseCatchup
 }
 
 // MainReady runs w against the members' client endpoints eps (in the members' order: the workloads
-// that pick a member use eps[i mod len(eps)]), with its client machines nodes (NodeCount(w) of
-// them: nodes.go), after clearing the proxy variables as the server
-// does (review F8). A failed check is a panic inside the workload.
+// that pick a member use eps[i mod len(eps)]), with its client machines nodes (deployment.NodeCount(w) of
+// them: nodes.go). A failed check is a panic inside the workload.
 //
-// ready is called once the workload's set-up is done (at once, after the cluster's first read, for
-// a workload with none), or not at all if the workload ends before: the test may hold its faults
-// until then (examples/etcd/dist (its test)). It is an observer only: nothing the workload does
-// depends on it.
-func MainReady(w Workload, eps []string, nodes []string, ready func()) Result {
-	env.ClearProxy()
+// ready is called once the workload's set-up is done (at once for a workload with none), or not at
+// all if the workload ends before: the test may hold its faults until then (examples/etcd/dist (its
+// test)). It is an observer only: nothing the workload does depends on it.
+//
+// No step is retried for liveness: the first failure of a step the workload needs ends it (a
+// Result that is not Checked). Waiting until the members serve clients and the client machines
+// listen is the harness's (examples/etcd/dist's Cluster.Run, before it starts the orchestrators),
+// not the program's.
+func MainReady(w deployment.Workload, eps []string, nodes []string, ready func()) Result {
 	if len(eps) == 0 {
 		return ended("no endpoint")
 	}
-	if len(nodes) != NodeCount(w) {
+	if len(nodes) != deployment.NodeCount(w) {
 		return ended("not one client machine per client")
-	}
-	if !AwaitCluster(eps) {
-		return ended("the cluster never answered a read")
 	}
 	if !hasSetUp(w.Kind) {
 		ready()
 	}
 	switch w.Kind {
-	case KV:
+	case deployment.KV:
 		return RunKV(nodes, w.Ops, ready)
-	case Watch:
+	case deployment.Watch:
 		return RunWatch(eps, nodes, w.Ops, ready)
-	case Cache:
+	case deployment.Cache:
 		return RunCache(eps, nodes, w.Ops, ready)
-	case Compact:
+	case deployment.Compact:
 		return RunCompact(eps)
-	case PutGet:
+	case deployment.PutGet:
 		return RunPutGet(eps)
-	case Auth:
+	case deployment.Auth:
 		return RunAuth(eps, nodes, ready)
-	case AuthLease:
+	case deployment.AuthLease:
 		return RunAuthLease(eps, ready)
-	case LeaseRead:
+	case deployment.LeaseRead:
 		return RunLeaseRead(eps)
-	case LeaseCatchup:
+	case deployment.LeaseCatchup:
 		return RunLeaseCatchup(eps, ready)
-	case LeaseExpiry:
+	case deployment.LeaseExpiry:
 		return RunLeaseExpiry(eps)
-	case Durable:
+	case deployment.Durable:
 		return RunDurable(eps, w.Clients)
 	}
 	return ended("unknown workload")
 }
 
-// Args is a client machine's configuration, as cmd/client reads it: its workload, the members'
-// client endpoints, in the members' order, and the workload's client machines' addresses
-// (NodeCount(W) of them, client c's at Nodes[c]). On the workload's orchestrator machine
-// (MainReady) IsNode is false; on its client machine c (NodeMain, at Nodes[c]) IsNode is true and
-// Node is c.
-type Args struct {
-	W      Workload
-	Eps    []string
-	Nodes  []string
-	IsNode bool
-	Node   int
+// MainDeployment is workload j's orchestrator machine of the deployment d (Lean: clientProg d j):
+// if d is well formed (deployment.WellFormed) and has a workload j, MainReady of that workload, the
+// members' client endpoints and the workload's client machines; otherwise it returns at once.
+func MainDeployment(d deployment.Deployment, j int, ready func()) Result {
+	if deployment.WellFormed(d) != nil {
+		return ended("the deployment is not well formed")
+	}
+	if j < 0 || j >= len(d.Workloads) {
+		return ended("no such workload")
+	}
+	return MainReady(d.Workloads[j], d.Endpoints(), d.Nodes[j], ready)
+}
+
+// Orchestrator is workload j's orchestrator machine of the deployment d, as etcd_safe states it (Lean:
+// clientProg d j): MainDeployment with no set-up signal (the binary's signal, a line on its output,
+// is the harness's), its result discarded (a failed check panics).
+func Orchestrator(d deployment.Deployment, j int) {
+	MainDeployment(d, j, func() {})
+}
+
+// NodeDeployment is the n-th client machine of the deployment d (Lean: nodeProg d n; in the
+// workloads' order, then by index within the workload: Deployment.Node): if d is well formed and
+// has an n-th client machine, NodeMain, client machine c of workload j at its address
+// d.Nodes[j][c]; otherwise it returns at once.
+func NodeDeployment(d deployment.Deployment, n int) {
+	if deployment.WellFormed(d) != nil {
+		return
+	}
+	j, c, ok := d.Node(n)
+	if !ok {
+		return
+	}
+	NodeMain(d.Workloads[j], c, d.Nodes[j][c], d.Endpoints())
 }

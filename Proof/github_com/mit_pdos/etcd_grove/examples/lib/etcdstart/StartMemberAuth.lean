@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMe
 public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Spec.net.Listen
+public import Spec.net.ListenHttp
 public import Proof.net.http.Axioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
@@ -38,22 +39,20 @@ theorem StartMemberAuth.wp_proof
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
     (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.specM (GF := GF) (hG := hG) true)
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_ListenHttp : net.Listen.specHttp (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMemberAuth.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn m Htb Hrb48
-    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 HnL Haf Hbuq Hdbo Hcu
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo Hcu
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
   -- `http.Serve`); the rest to `NewServer`
   icases memberFreshRes_peer _ _ _ _ rfl $$ Hfresh with ⟨⟨Haddr, Hpown⟩, Hfresh⟩
   iunfold bootPremiseOn at Hboot
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
-  iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
   iunfold memberBootOn at Hmb
-  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
+  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, hlgf⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
@@ -84,6 +83,7 @@ theorem StartMemberAuth.wp_proof
       (fun h => absurd h (by decide)) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      (etcdURLsFit_httpURL peerAddr Hpf) (etcdURLsFit_httpURL client Hcf)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
@@ -93,7 +93,7 @@ theorem StartMemberAuth.wp_proof
       (lease.bootCfg_of_run hslg (fun _ => hlgf))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (bootCfgOk_of _ rfl rfl rfl rfl)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl)
       ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩
       HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
@@ -132,7 +132,9 @@ theorem StartMemberAuth.wp_proof
   subst Herr
   wp_auto
   -- `net.Listen("tcp", peerAddr)` (`NewMember`'s)
-  wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
+  ihave #Pnet : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · iPkgInit
+  wp_apply (wp_ListenHttp go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
   icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
   rotate_left

@@ -1,0 +1,65 @@
+# grpc's importable modules (phase7-seal, decision A of `notes/phase7-endstate.md`, 2026-11-26): what
+# proofs outside grpc's tree may import (`etc/api-check.py etc/api/grpc.txt --check`). Every other module
+# of the tree is internal. The address vocabulary is sealed (`@[no_expose]`): `grpcAddrAt`, `grpcSvcAt`,
+# `grpcStreamSvcAt` (`InvGrpcWire`), `isGrpcRpcMd` (`InvGrpc`), `isGrpcStreamMd` (`InvGrpcStream`); a
+# client uses their laws (`grpc_addr_set`, `grpc_addr_set_tok`, `grpcAddrAt_regCtx`, `grpcAddrAt_slots`,
+# `grpc_listen_au`, `grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`, `isGrpcRpcMd_*`, `isGrpcStreamMd_*`).
+# The connection protocols `grpcCliP`/`grpcSrvP` and the call protocol (`InvGrpcCallLib`) are sealed and
+# not importable: rule 1 forbids `import all` of a module of the tree outside it.
+#
+# Started 2026-11-26 from what clients imported then and its public-import closure. Adding a module
+# here is an API change.
+
+inside Proof/google_golang_org/grpc/
+inside Spec/google_golang_org/grpc/
+exempt (^|/)(Link|MainLinked|Results|Adequacy\w*)\.lean$
+root google_golang_org.grpc
+
+## The root package: the per-function specs, and the vocabulary they are written in
+importable Spec.google_golang_org.grpc.*
+importable Proof.google_golang_org.grpc.InvGrpcBase
+importable Proof.google_golang_org.grpc.InvGrpcCall
+# the service table, the address facts (sealed) and their laws
+importable Proof.google_golang_org.grpc.InvGrpcWire
+# the unary registration (sealed `isGrpcRpcMd`) and its laws
+importable Proof.google_golang_org.grpc.InvGrpc
+importable Proof.google_golang_org.grpc.InvDial
+# NewStream's interceptor-generic vocabulary (`grpcStreamerOk`, `streamIcOk`, `cliOpenErr`; S3.4, 2026-11-26)
+importable Proof.google_golang_org.grpc.InvGrpcStreamer
+# NewStream's old form at no stream interceptor (`NewStreamNoIc_of`, for the grpc driver's stubs)
+importable Proof.google_golang_org.grpc.NewStreamNoIc
+# the streams, and the stream registration (sealed `isGrpcStreamMd`) and its laws
+importable Proof.google_golang_org.grpc.InvGrpcStream
+importable Proof.google_golang_org.grpc.InvGrpcServer
+# the single-process start and `grpc.serve` (`grpcServerAt`)
+importable Proof.google_golang_org.grpc.InvGrpcRun
+importable Proof.google_golang_org.grpc.InvGrpcStats
+importable Proof.google_golang_org.grpc.InvGrpcHealth
+importable Proof.google_golang_org.grpc.InvGrpcProm
+# the header block's vocabulary (`HeaderFields`, `InvHeader`: the specs of the header helpers and of
+# `createHeaderFields` are written in it;
+# W1, 2026-11-26)
+importable Proof.google_golang_org.grpc.HeaderFields
+importable Proof.google_golang_org.grpc.InvHeader
+# the package's initialization
+importable Proof.google_golang_org.grpc.Init
+importable Proof.google_golang_org.grpc.InitLinked
+
+## grpc's subpackages (their own Go packages; nothing sealed)
+importable Proof.google_golang_org.grpc.attributes.*
+importable Proof.google_golang_org.grpc.balancer.*
+importable Proof.google_golang_org.grpc.codes.*
+importable Proof.google_golang_org.grpc.connectivity.*
+importable Proof.google_golang_org.grpc.credentials.*
+importable Proof.google_golang_org.grpc.grpclog.*
+importable Proof.google_golang_org.grpc.health.*
+importable Proof.google_golang_org.grpc.internal.*
+importable Proof.google_golang_org.grpc.keepalive.*
+importable Proof.google_golang_org.grpc.mem.*
+importable Proof.google_golang_org.grpc.metadata.*
+importable Proof.google_golang_org.grpc.peer.*
+importable Proof.google_golang_org.grpc.reflection.*
+importable Proof.google_golang_org.grpc.resolver.*
+importable Proof.google_golang_org.grpc.serviceconfig.*
+importable Proof.google_golang_org.grpc.stats.*
+importable Proof.google_golang_org.grpc.status.*

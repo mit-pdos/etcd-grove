@@ -10,8 +10,12 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.absent
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.anyInt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.anyInts
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.buildPath
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.check
@@ -20,6 +24,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.checkRangeA
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.choose
 public import Proof.context.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.copyState
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.dirFits
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.drawConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.hashing
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
@@ -33,6 +39,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.history__ch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.history__snapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.inBounds
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.inRange
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.inScope
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.itoa
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Len
@@ -85,6 +92,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.pending__de
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.pending__put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.pick
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.pickW
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__begin
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__checkAll
@@ -139,6 +147,7 @@ public import Proof.time.Time__IsZero
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.walkKeys
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.watcher__matches
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.weightsFit
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
@@ -150,6 +159,7 @@ public import Perennial.Proof.sort.Link
 public import Perennial.Proof.time.Link
 public import Proof.sort.SortAnyLessLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults
+public import Proof.errors.IsPathErrnoNotExist
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 @[expose] public section
@@ -431,9 +441,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -474,6 +488,26 @@ theorem history.wp_addComp :
 theorem wp_hashing :
     EtcdGrove.mvccfull.hashing.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccfull.hashing.wp_proof
+
+theorem wp_dirFits :
+    EtcdGrove.mvccfull.dirFits.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.dirFits.wp_proof
+
+theorem wp_absent :
+    EtcdGrove.mvccfull.absent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.absent.wp_proof _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
+
+theorem wp_anyInt :
+    EtcdGrove.mvccfull.anyInt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.anyInt.wp_proof
+
+theorem wp_anyInts :
+    EtcdGrove.mvccfull.anyInts.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.anyInts.wp_proof wp_anyInt
+
+theorem wp_weightsFit :
+    EtcdGrove.mvccfull.weightsFit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.weightsFit.wp_proof
 
 end links
 
@@ -731,6 +765,18 @@ theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccfull.Main.wp_proof wp_MainConfig wp_Run
+
+theorem wp_drawConfig :
+    EtcdGrove.mvccfull.drawConfig.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.drawConfig.wp_proof wp_anyInt wp_anyInts
+
+theorem wp_inScope :
+    EtcdGrove.mvccfull.inScope.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.inScope.wp_proof wp_hashing wp_weightsFit
+
+theorem wp_MainAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccfull.MainAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.MainAt.wp_proof wp_dirFits wp_absent wp_drawConfig wp_inScope wp_FilePaths wp_Run
 
 end links_hasLC
 

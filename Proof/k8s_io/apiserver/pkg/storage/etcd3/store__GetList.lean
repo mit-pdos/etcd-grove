@@ -34,6 +34,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ListPages
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.fmt.Link
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -153,16 +154,9 @@ theorem store.GetList.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, -⟩
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) (by
-    refine _root_.Perennial.fmt.ArgsWf.cons_other go.bool #opts.Recursive' _ ?_ ?_ ?_ .nil
-    · simp [go.bool, go.string]
-    · have hb : ¬ _root_.Perennial.fmt.IsIntType go.bool := by
-        simp [_root_.Perennial.fmt.IsIntType, go.bool, go.int, go.int64, go.int32, go.int16,
-          go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8]
-      rintro (hi | ⟨hi, -⟩)
-      · exact hb hi
-      · rw [go.is_underlying] at hi; exact hb hi
-    · exact Or.inr (Or.inl rfl)))
+  wp_apply (fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"List(recursive=%v) etcd3"
+    [.lit go!"List(recursive=", .dir none _root_.Perennial.fmt.verb_v, .lit go!") etcd3"]
+    _ _ _ _ (by fmt_encode) (by fmt_fits) (.bool _ _ _ .nil))
     $$ [$Hfsl] as %fname -
   (try wp_auto)
   ihave #Hk8a := Hk8

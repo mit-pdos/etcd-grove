@@ -7,9 +7,10 @@ example measured on Linux in `examples/net/semantics/` (its `doc.go` indexes the
 `D1`...), and an `example` of `GooseLang/Ext/Net/Tests.lean` (outside the trust base) that the
 relations allow or exclude what the Go example shows; `notes/net-tcp.md` gives the reasons
 (`notes/net-tcp-v3-plan.md` for v3, D14-D21; `notes/dsverify-net-port-plan.md`, phase 2, for v3.3,
-D23-D25; `notes/net-tcp.md`, v3.4, for the network without a plan).
+D23-D25; `notes/net-tcp.md`, v3.4, for the network without a plan; `notes/net-sticky-read.md`
+for v3.5).
 
-**Version v3.4** (2026-11-20). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
+**Version v3.5** (2026-11-23). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
 v2 (observable state only: the unread bytes and a status), v2.1 (a failing `Write` may write
 nothing; id 0 names nothing; the deployment, D13), v3 (Go's error values and D14-D21), v3.1 (a
 `Write` is Go's loop of steps, D2/D15: v3's one-step `Write` could time out only with a deadline set
@@ -18,7 +19,10 @@ stutter, which is how waiting is modeled, and an invalid use panics: D22, the co
 Perennial's Grove extension), v3.3 (the network `"tcp4"`, D23; socket options, D24; Go's write
 lock, D25: before it two `Write`s of one end could interleave their steps, which Go excludes),
 v3.4 (no plan and no hosts: any machine may listen at any valid address, D6, D13, D20, D21; it only
-adds behaviours, each starting from a step that was a panic: `notes/net-tcp.md`, v3.4).
+adds behaviours, each starting from a step that was a panic: `notes/net-tcp.md`, v3.4), v3.5 (a
+`sys` read error only once nothing is unread, D1: before it a read could fail `ECONNRESET` and a
+later read return bytes, which Linux never does; it only removes behaviours, those in which a `sys`
+read error came with a byte unread: `notes/net-sticky-read.md`).
 
 **State: only what a program can observe.** The global state (`NetGlobal`) is the connections.
 A connection (`NetConn`) has the address it was dialed to, whether it has been accepted, two ends
@@ -65,12 +69,17 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
 * D1 `"Read"` of `n` bytes at an end, from the direction towards it (`ReadOutcome`): on a closed
   end, `closed`. Otherwise: `n = 0` returns nothing at once; else the first `k` unread bytes,
   `1 ≤ k ≤ n` (as many as arrived: any number); EOF once nothing is unread and the writer is done
-  (`fin` or `cut`); after a cut, also a `sys` error; with a read deadline set, a `timeout` that
-  changes nothing (`ReadAvail`); until one of these, it waits (a stutter, D22). And at any read,
+  (`fin` or `cut`); after a cut, once nothing is unread, also a `sys` error (v3.5: Linux returns
+  an error from `read(2)` only when it copied nothing, and the error ends the socket's receiving,
+  so no byte follows it: the sticky tests); with a read deadline set, a `timeout` that changes
+  nothing (`ReadAvail`; not sticky: bytes may follow once the deadline is cleared, as in Linux); until one of these, it waits (a stutter, D22). And at any read,
   the connection may break: the direction becomes `cut`, keeping a prefix of its unread bytes,
   and the read answers as on the broken direction (bytes, EOF or an error). EOF does not say the
   writer finished cleanly: a cut that kept every byte reads as EOF, and that is what the death of
   the writer's process looks like (its kernel's FIN, or a reset whose error another call took).
+  So after a `Read` returns EOF or `sys`, its direction is empty and not open, which no step
+  undoes: every later non-empty `Read` of that end returns no byte (EOF, `sys`, a `timeout` with a
+  deadline set, or `closed` once the end is closed).
   A read blocked when another goroutine closes the end returns `closed`: the read stutters, the
   close steps, the read then steps on a closed end.
 * D2 `"Write"`: one step of a `Write` (`WriteOutcome`). Go's `(*poll.FD).Write`
@@ -437,15 +446,17 @@ def ReadAvail (st : NetEnd) (d : NetDir) (n : Nat) (r : ReadRes) (d' : NetDir) :
     d' = { d with bytes := d.bytes.drop k }) ∨
   -- EOF: nothing unread, and the writer is done
   (d.bytes = [] ∧ d.status ≠ .open ∧ r = .eof ∧ d' = d) ∨
-  -- an error, once the connection broke
-  (d.status = .cut ∧ r = .err .sys ∧ d' = d) ∨
+  -- an error, once the connection broke and nothing is unread (v3.5: no byte follows it)
+  (d.status = .cut ∧ d.bytes = [] ∧ r = .err .sys ∧ d' = d) ∨
   -- a timeout
   (st.rdl = true ∧ r = .err .timeout ∧ d' = d)
 
 /-- D1. A read of `n` bytes at an end in state `st`, from the direction `d` towards it: its result
 `r` and the direction after, `d'`. The connection may break at the read (a prefix of the unread
 bytes survives, and the read answers as a read of the broken direction does: bytes, EOF or an
-error), which is also how the death of the writer's process or machine shows. -/
+error), which is also how the death of the writer's process or machine shows. A `sys` error needs
+nothing unread (`ReadAvail`), so a read that breaks the connection and fails keeps the empty prefix
+(the unread bytes are lost, as a reset that arrives before them loses them). -/
 def ReadOutcome (st : NetEnd) (d : NetDir) (n : Nat) (r : ReadRes) (d' : NetDir) : Prop :=
   if st.closed then r = .err .closed ∧ d' = d
   else if n = 0 then r = .bytes [] ∧ d' = d

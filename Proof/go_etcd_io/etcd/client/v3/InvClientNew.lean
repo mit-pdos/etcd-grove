@@ -12,7 +12,9 @@ it to grpc as per-RPC credentials, and the token is fetched once the connection 
 the client closed if that fails, `Client.Close`), no
 context of the caller's (`Context` nil: the client's context is `context.TODO()`'s child), a
 logger of the caller's (`Logger` non-nil: no default logger is built, `logutil`), the default call
-options (`MaxCallSendMsgSize`, `MaxCallRecvMsgSize` not positive), no dial options of the caller's (`DialOptions` empty:
+options (`MaxCallSendMsgSize`, `MaxCallRecvMsgSize` not positive), no dial options of the caller's but
+`grpc.WithNoProxy()`'s (`DialOptions` empty or only those, `noProxyOptsAt`, since 2026-11-24,
+`notes/putget-dist-plan.md` §12: they set no interceptor, resolver or credentials;
 `nonissues/etcd-client-dialoptions-unary-interceptor.md`, a `WithUnaryInterceptor` there would
 replace the retry interceptor), no version check (`RejectOldCluster` false: `checkVersion`'s
 `Status` calls) and no auto-sync (`AutoSyncInterval` zero: the `autoSync` goroutine returns at
@@ -248,7 +250,7 @@ theorem dialOk_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List GrpcDi
 of one plain endpoint `ep`. (Sweep repairs 1, R1-2: its logger a zap logger, `zapLoggerOk`; until
 then `cfg.Logger' ≠ null`, which a zero `&zap.Logger{}` meets.) -/
 def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) : IProp GF :=
-  iprop(cfg.Endpoints' ↦*□ eps ∗ cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
+  iprop(cfg.Endpoints' ↦*□ eps ∗ (∃ n : Nat, noProxyOptsAt cfg.DialOptions' n) ∗
     ⌜plainEndpoints eps ∧ cfg.TLS' = null ∧
       cfg.Token' = [] ∧ cfg.Context' = GoInterface.nil ∧
       sint.Z cfg.MaxCallSendMsgSize' ≤ 0 ∧ sint.Z cfg.MaxCallRecvMsgSize' ≤ 0 ∧
@@ -259,6 +261,20 @@ def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :
 instance clientCfgOk_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :
     Persistent (clientCfgOk (GF := GF) cfg eps) := by
   unfold clientCfgOk; infer_instance
+
+/-- **The client `cl` dials with no proxy** (persistent; 2026-11-24, `notes/putget-dist-plan.md` §12,
+finding F1): its configuration (the `cfg` field, read-only: `New`'s argument) carries one
+`grpc.WithNoProxy()` option or more and no other dial option, which `dial` appends to the client's
+dial (`dialWithBalancer`, the one dial `New` makes). So the client's connection dials its endpoints
+themselves: grpc-go never sends its calls through an HTTP `CONNECT` proxy that the process
+environment names (`HTTPS_PROXY`). What the cross-machine axioms of `examples/etcd/dist` take of a
+client. -/
+def clientNoProxy (cl : Loc) : IProp GF :=
+  iprop(∃ (cfg : go_etcd_io.etcd.client.v3.Config) (n : Nat), ⌜0 < n⌝ ∗
+    clientF cl go!"cfg" ↦□ cfg ∗ noProxyOptsAt cfg.DialOptions' n)
+
+instance clientNoProxy_persistent (cl : Loc) : Persistent (clientNoProxy (GF := GF) cl) := by
+  unfold clientNoProxy; infer_instance
 
 end defs
 

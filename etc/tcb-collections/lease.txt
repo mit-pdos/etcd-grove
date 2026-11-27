@@ -13,14 +13,10 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots \bclient\.(client_lessor_isEtcdLease|client_new_isEtcdLeaseClient)$
 axiom context.WithValue.wp_proof
-axiom envVerifyOffTok
-axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom pbLeaseGrantRequestT_reg
@@ -29,5 +25,20 @@ axiom pbLeaseKeepAliveRequestT_reg
 axiom pbLeaseKeepAliveResponseT_reg
 axiom pbLeaseRevokeRequestT_reg
 axiom pbLeaseRevokeResponseT_reg
-axiom status.FromError.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof
+opaque apply.irrDecodeRest
+opaque apply.semverAtMostServer
+opaque apply.semverValid
+opaque credsYieldRaw
+opaque etcdVerifyEnv
+opaque grpcCliPI
+opaque grpcConnClosedRaw
+opaque grpcConnOptsRaw
+opaque grpcRepModelOf
+opaque grpcReqModelOf
+opaque grpcSrvPI
+opaque metadata.transportMDRaw
+opaque mvcc.kvEncode
+opaque mvcc.viewFk
+opaque noRefusalAt
+opaque streamRepModelOf
+opaque streamReqModelOf

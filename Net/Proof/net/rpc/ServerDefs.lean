@@ -85,7 +85,7 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -166,6 +166,17 @@ instance rcvrIs_persistent (C : CodecSpec GF) (rcvr : GoInterface) (S : MethodSp
     (nm : GoString) (np : Bool) (rp : Loc) : Persistent (rcvrIs (GF := GF) C rcvr S nm np rp) := by
   unfold rcvrIs; infer_instance
 
+/-- The `*Receiver` `rp` of a receiver with no method net/rpc can serve (persistent): its type's
+name `nm`, not a nil pointer, and no methods (`register` refuses it: "has no exported methods of
+suitable type"). -/
+def rcvrNone (nm : GoString) (rp : Loc) : IProp GF :=
+  iprop(∃ v : net.rpc.Receiver, rp ↦□ v ∗ ⌜v.Name' = nm ∧ v.NilPtr' = false⌝ ∗
+    v.Methods' ↦$□ (∅ : GMap GoString Loc))
+
+instance rcvrNone_persistent (nm : GoString) (rp : Loc) :
+    Persistent (rcvrNone (GF := GF) nm rp) := by
+  unfold rcvrNone; infer_instance
+
 /-! ## Services and the server -/
 
 /-- The `*methodType` `mt` `register` made for a method of `rcvr` meeting `Sm` (persistent). -/
@@ -199,10 +210,25 @@ def respChain : List Loc → Loc → IProp GF
   | [], p => iprop(⌜p = null⌝)
   | r :: rs, p => iprop(⌜p = r⌝ ∗ ∃ v : net.rpc.Response, r ↦ v ∗ respChain rs v.next')
 
-/-- `mapLock`'s invariant: the services map, and the ghost map `γ` equal to it. -/
-def svcMapInv (γ : GName) (s : Loc) : IProp GF :=
+/-- The registry's owner's share of the services map `M` in mode `o`: none (`none`, no owner), or,
+for an owner `γf` (`some γf`), the element of `γf` of every name taken, whose authority (`svcOwn`)
+the owner keeps: so the owner knows which names are free. -/
+def svcOwnIn (o : Option GName) (M : GMap GoString Loc) : IProp GF :=
+  match o with
+  | none => iprop(True)
+  | some γf => iprop([∗map] nm ↦ _sv ∈ M,
+      ghostMapElem (K := GoString) (V := Unit) γf nm (DFrac.own 1) ())
+
+/-- `mapLock`'s invariant in the registry mode `o`: the services map, the ghost map `γ` equal to
+it, and the owner's share of it (`svcOwnIn`). -/
+def svcMapInvO (γ : GName) (o : Option GName) (s : Loc) : IProp GF :=
   iprop(∃ (smp : Loc) (M : GMap GoString Loc), structFieldRef net.rpc.Server go!"serviceMap" s ↦ smp ∗
-    smp ↦$ M ∗ ghostMapAuth γ 1 M)
+    smp ↦$ M ∗ ghostMapAuth γ 1 M ∗ svcOwnIn o M)
+
+/-- The owner `γf`'s knowledge of the names taken in the registry (exclusive): the authority
+whose elements `mapLock`'s invariant holds, one per name taken (`svcOwnIn`). -/
+def svcOwn (γf : GName) (R : GMap GoString Unit) : IProp GF :=
+  iprop(ghostMapAuth γf 1 R)
 
 /-- `reqLock`'s invariant. -/
 def reqFreeInv (s : Loc) : IProp GF :=
@@ -214,15 +240,88 @@ def respFreeInv (s : Loc) : IProp GF :=
   iprop(∃ (fr : Loc) (rs : List Loc), structFieldRef net.rpc.Server go!"freeResp" s ↦ fr ∗
     respChain rs fr)
 
-/-- `s` is a server with the registry `γ` (persistent; see the file header). -/
-def isServer (s : Loc) (γ : GName) : IProp GF :=
+/-- `s` is a server with the registry `γ` in the mode `o` (persistent; see the file header): no
+owner (`none`), or an owner `γf` (`some γf`, `svcOwn γf`), who knows which names are free. -/
+def isServerO (s : Loc) (γ : GName) (o : Option GName) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗
-    sync.isMutex (structFieldRef net.rpc.Server go!"mapLock" s) (svcMapInv γ s) ∗
+    sync.isMutex (structFieldRef net.rpc.Server go!"mapLock" s) (svcMapInvO γ o s) ∗
     sync.isMutex (structFieldRef net.rpc.Server go!"reqLock" s) (reqFreeInv s) ∗
     sync.isMutex (structFieldRef net.rpc.Server go!"respLock" s) (respFreeInv s))
 
+instance isServerO_persistent (s : Loc) (γ : GName) (o : Option GName) :
+    Persistent (isServerO (GF := GF) s γ o) := by
+  unfold isServerO; infer_instance
+
+/-- `s` is a server with the registry `γ`, no owner (persistent; see the file header). -/
+def isServer (s : Loc) (γ : GName) : IProp GF := isServerO s γ none
+
 instance isServer_persistent (s : Loc) (γ : GName) : Persistent (isServer (GF := GF) s γ) := by
   unfold isServer; infer_instance
+
+/-- `s` is a server with the registry `γ`, in some mode (persistent): what serving needs. -/
+def isServerAny (s : Loc) (γ : GName) : IProp GF :=
+  iprop(∃ o : Option GName, isServerO s γ o)
+
+instance isServerAny_persistent (s : Loc) (γ : GName) : Persistent (isServerAny (GF := GF) s γ) := by
+  unfold isServerAny; infer_instance
+
+theorem isServerAny_sync (s : Loc) (γ : GName) :
+    isServerAny (GF := GF) s γ ⊢ isPkgInit (PROP := IProp GF) pkg_id.sync := by
+  unfold isServerAny isServerO
+  iintro ⟨%o, #Hsync, -⟩
+  iexact Hsync
+
+theorem isServer_any (s : Loc) (γ : GName) : isServer (GF := GF) s γ ⊢ isServerAny s γ := by
+  unfold isServer isServerAny
+  iintro #H
+  iexists none
+  iexact H
+
+theorem isServerO_any (s : Loc) (γ : GName) (o : Option GName) :
+    isServerO (GF := GF) s γ o ⊢ isServerAny s γ := by
+  unfold isServerAny
+  iintro #H
+  iexists o
+  iexact H
+
+/-- The package's `DefaultServer` holds, for good, a server with the registry `γ` (persistent):
+what the package-level `Register`, `RegisterName` (and `ServeConn`, `HandleHTTP`, ...) run on. -/
+def defaultServer (γ : GName) : IProp GF :=
+  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ isServer s γ)
+
+instance defaultServer_persistent (γ : GName) : Persistent (defaultServer (GF := GF) γ) := by
+  unfold defaultServer; infer_instance
+
+/-- The package's `DefaultServer` holds, for good, a server with the registry `γ` owned by `γf`
+(persistent): the owner of `svcOwn γf` registers fresh names on it (`Register.spec_fresh`). -/
+def defaultServerO (γ γf : GName) : IProp GF :=
+  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ isServerO s γ (some γf))
+
+instance defaultServerO_persistent (γ γf : GName) :
+    Persistent (defaultServerO (GF := GF) γ γf) := by
+  unfold defaultServerO; infer_instance
+
+/-- The package's `DefaultServer` holds, for good, a server with the registry `γ`, in some mode
+(persistent): what serving on it needs. -/
+def defaultServerAny (γ : GName) : IProp GF :=
+  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ isServerAny s γ)
+
+instance defaultServerAny_persistent (γ : GName) : Persistent (defaultServerAny (GF := GF) γ) := by
+  unfold defaultServerAny; infer_instance
+
+theorem defaultServer_any (γ : GName) : defaultServer (GF := GF) γ ⊢ defaultServerAny γ := by
+  unfold defaultServer defaultServerAny
+  iintro ⟨%s, #Hs, #H⟩
+  iexists s
+  iframe Hs
+  iapply isServer_any $$ H
+
+theorem defaultServerO_any (γ γf : GName) : defaultServerO (GF := GF) γ γf ⊢ defaultServerAny γ := by
+  unfold defaultServerO defaultServerAny
+  iintro ⟨%s, #Hs, #H⟩
+  iexists s
+  iframe Hs
+  iapply isServerO_any $$ H
 
 /-- The service `name` of the registry `γ` is a `*service` whose methods meet `S`, for good
 (persistent). -/
@@ -260,41 +359,54 @@ def ansRec (W : RpcWorld GF) (a : GoString) (cn : Nat) (Rs : List Ans) : IProp G
     [∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)))
 
 /-- The invariant of `sending` over the server codec `sc` on the acceptor's end of `cn`, to the
-address `a` of world `W`: what was written is a prefix of the wire of the answers `Rs` recorded,
-all of it while no write failed. -/
+address `a` of world `W`: what was written is a prefix of the handshake's answer and the wire of
+the answers `Rs` recorded, all of it while no write failed, or, before the first answer, a prefix of
+the handshake's answer (its write may have failed: `ServeHTTP` ignores the error; the first answer
+is written only after a request was read, which the dialer wrote only after the whole answer had
+been written, `ansPend`'s `sentLb`). -/
 def srvSendInv (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
   iprop(∃ (w0 : GoInterface) (Wd : List w8) (Rs : List Ans),
     structFieldRef net.rpc.serverCodec go!"werr" sc ↦ w0 ∗
     sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) Wd ∗ ansRec W a cn Rs ∗
-    ⌜(∀ x ∈ Rs, ansOk x) ∧ Wd <+: respsWire Rs ∧ (w0 = interface.nil → Wd = respsWire Rs)⌝)
+    sentLb (Gg := hG.goose_globalGS) cn false (W.hs a) ∗
+    ⌜(∀ x ∈ Rs, ansOk x) ∧ Wd <+: W.hsAns a ++ respsWire Rs ∧
+      (w0 = interface.nil → Wd = W.hsAns a ++ respsWire Rs ∨ (Rs = [] ∧ Wd <+: W.hsAns a))⌝)
 
 /-- The right to answer request `k` of connection `cn` (`"Service.Method"` `sm`), once, with its
-saved continuation `Φ`: its `ans` element, still `none`. -/
+saved continuation `Φ`: its `ans` element, still `none`; and the handshake's answer was written
+whole (the dialer wrote the request after it: `reqProto`). -/
 def ansPend (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString)
     (Φ : List w8 → GoString → IProp GF) : IProp GF :=
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq) (r : RpcReq),
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
     ⌜L[k]? = some r ∧ r.sm = sm ∧ k < 2 ^ 64⌝ ∗
     ghostMapElem γ.ans k (DFrac.own 1) (none : Option (GoString × List w8)) ∗
-    savedPredOwn r.post .discard (fun p : List w8 × GoString => Φ p.1 p.2))
+    savedPredOwn r.post .discard (fun p : List w8 × GoString => Φ p.1 p.2) ∗
+    sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a))
 
-/-- The reader of `cn` has read the frames of the payloads `ps` (each fitting a frame) and taken
-`k` requests of the connection: none at first, with the acceptor's fresh token; then the reader's
-half of `ctr`, at `k`. -/
+/-- The reader of `cn` has read the handshake and the frames of the payloads `ps` (each fitting
+a frame) and taken `k` requests of the connection: none at first, with the acceptor's fresh token;
+then the reader's half of `ctr`, at `k`. -/
 def readerSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)) (k : Nat) :
     IProp GF :=
-  iprop(recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (framesOf ps) ∗
+  iprop(recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (W.hs a ++ framesOf ps) ∗
     ⌜∀ q ∈ ps, q.length < 2 ^ 63⌝ ∗
     ((⌜k = 0⌝ ∗ connFresh (Gg := hG.goose_globalGS) cn true) ∨
       ∃ γ : RpcConnNames, isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
         ghostVar γ.ctr (1 : Qp).half k))
 
-/-- A connection just accepted at `a` (`Accept`'s): the acceptor's end of `cn`, its tokens
-(nothing written or read yet) and its fresh token, and the world's registry. -/
+/-- A connection accepted at `a`, its handshake done (`Accept`'s, with none; `ServeHTTP`'s): the
+acceptor's end of `cn`, its tokens (the handshake read, nothing else, and a prefix of its answer
+written: all of it, unless the write failed, which `ServeHTTP` does not look at), its fresh
+token, and its read deadline not set (`rdlTok cn true false`: no read of the server times out, so
+a read that fails leaves the end's reading dead, `read_dead_au`), or its reading already dead
+(`readDead`: over HTTP, the hijack's clearing of the deadlines failed on a closed end). -/
 def rpcAccepted (W : RpcWorld GF) (a : GoString) (cn : Nat) : IProp GF :=
-  iprop(sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) [] ∗
-    recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) [] ∗
-    connFresh (Gg := hG.goose_globalGS) cn true)
+  iprop(∃ w : List w8, ⌜w <+: W.hsAns a⌝ ∗
+    sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) w ∗
+    recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (W.hs a) ∗
+    connFresh (Gg := hG.goose_globalGS) cn true ∗
+    (rdlTok (Gg := hG.goose_globalGS) cn true false ∨ readDead (Gg := hG.goose_globalGS) cn true))
 
 /-! ## The request loop's pieces -/
 
@@ -319,7 +431,7 @@ deposit spent by the service's `errOk`). -/
 def errCont (Φ : List w8 → GoString → IProp GF) : IProp GF :=
   iprop(∀ msg : GoString, ⌜srvErrMsg msg⌝ ={⊤}=∗ Φ [] msg)
 
-/-- A sticky read error of the server codec (persistent): an error with a read error's message
+/-- A read error of the server codec (persistent): an error with a read error's message
 (`errSrv`, `rdErrMsg`), and a pointer (which `==` compares). -/
 def rdErr (e : GoInterface) : IProp GF :=
   iprop(errSrv e ∗ ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝)
@@ -327,22 +439,25 @@ def rdErr (e : GoInterface) : IProp GF :=
 instance rdErr_persistent (e : GoInterface) : Persistent (rdErr (GF := GF) e) := by
   unfold rdErr; infer_instance
 
-/-- The reader's resources at the top of the loop, on the codec `sc` (its `rerr`): no read failed,
-and it has read the frames of the first `k` requests (`readerSt`); or a read failed, `rerr` holding
-its error, and the reader reads no more. -/
-def rdrOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
-  iprop(∃ r0 : GoInterface, structFieldRef net.rpc.serverCodec go!"rerr" sc ↦ r0 ∗
-    ((⌜r0 = interface.nil⌝ ∗ ∃ (ps : List (List w8)) (k : Nat), readerSt W a cn ps k ∗
-        ⌜ps.length = 2 * k⌝) ∨
-      (⌜r0 ≠ interface.nil⌝ ∗ rdErr r0 ∗ ∃ R : List w8,
-        recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) R)))
+/-- The reader's resources at the top of the loop: no read failed, the reader having read the
+frames of the first `k` requests (`readerSt`), and the end's read deadline not set (`rdlTok`); or
+the end's reading is dead (`readDead`, the net extension's sticky read errors, D1 v3.5: a read
+failed), so that every later read returns no byte (`read_after_dead_au`) and the loop ends at the
+next header. -/
+def rdrOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) : IProp GF :=
+  iprop((rdlTok (Gg := hG.goose_globalGS) cn true false ∗
+      ∃ (ps : List (List w8)) (k : Nat), readerSt W a cn ps k ∗ ⌜ps.length = 2 * k⌝) ∨
+    (∃ R : List w8, recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) R ∗
+      readDead (Gg := hG.goose_globalGS) cn true))
 
 /-- The reader mid-request: it has read the frames `ps` of the first `k` requests and the header of
-request `k` (`r`, the `k`-th of the connection's lower bound `L`), and taken it. -/
+request `k` (`r`, the `k`-th of the connection's lower bound `L`), and taken it; the end's read
+deadline not set. -/
 def rdrMid (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (r : RpcReq) : IProp GF :=
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq) (ps : List (List w8)),
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a)
-      (framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
+      (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
+    rdlTok (Gg := hG.goose_globalGS) cn true false ∗
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
     ghostVar γ.ctr (1 : Qp).half (k + 1) ∗
     ⌜L[k]? = some r ∧ ps.length = 2 * k ∧ (∀ q ∈ ps, q.length < 2 ^ 63) ∧ reqOk r⌝)
@@ -363,7 +478,6 @@ def callReady (C : CodecSpec GF) (svc mt : Loc) (argv replyv : GoInterface)
 /-- The codec's state a served connection starts with, and the acceptor's tokens. -/
 def srvCodecOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
   iprop(structFieldRef net.rpc.serverCodec go!"werr" sc ↦ interface.nil ∗
-    structFieldRef net.rpc.serverCodec go!"rerr" sc ↦ interface.nil ∗
     structFieldRef net.rpc.serverCodec go!"closed" sc ↦ false ∗ rpcAccepted W a cn)
 
 end defs

@@ -1,6 +1,6 @@
-# Raft's cluster vocabulary, independent of machine and generation (kvnet decision B, 2026-11-21)
+# Raft's cluster vocabulary, independent of machine and generation (kvraft decision B, 2026-11-21)
 
-The goal is decision B of `notes/kvnet-proof-plan.md`. kvnet must (i) allocate raft's cluster in
+The goal is decision B of `notes/kvraft-proof-plan.md`. kvraft must (i) allocate raft's cluster in
 `goose_dist_mixed_crash_adequacy(_init)`'s `Hstart`, which has only `[GooseGlobalGS]`, and (ii) let the
 checking client's machine hold `isCluster`. This note is the design section. Branch
 `raft-cluster-global` (off `lean` `52c16abb4b`). Nothing is implemented yet: (b) below is a design gap
@@ -128,7 +128,7 @@ protocol layer does, not `[G : GooseGlobalGS]` with `gooseInvGS` as a local inst
 latter, a lemma whose conclusion is a fancy update, used under `HeapGS`, could not be eliminated:
 `imod` reported "not a modality" (`RestartNode.lean:770`), because the update's instance came from
 `G.gooseInvGS` while the caller's comes from `goose_irisGS`. With `[InvGS GF]` as a parameter, a
-caller under `HeapGS` synthesizes its own instance, and kvnet's `Hstart` (only `GooseGlobalGS`)
+caller under `HeapGS` synthesizes its own instance, and kvraft's `Hstart` (only `GooseGlobalGS`)
 supplies `G.gooseAllG`/`G.goose_receiptGS`/`G.gooseInvGS`. At that boundary the two instance paths
 are equal by unfolding.
 
@@ -172,7 +172,7 @@ and `binderfix.py` handle `NodeH` vs `Loc`, and `fixloop.sh` runs them.
   `ownSnapsMade`, `snapMade`, `joinAuth`, `joinAuth_join`, `nodeVacant_arm(D)`, `nodeCrash`, and
   their laws. `nodeVacantA`/`nodeCrashTok` take `[CrashGS GF]` per declaration. Still heap: the
   node-level predicates, `nodeBoot` (its `bootMarshal` is a WP), hence `cluster_alloc(_ns,_traced)`;
-  new `cluster_alloc_nb` is the global allocation without a bootstrap log (kvnet's `Hstart`).
+  new `cluster_alloc_nb` is the global allocation without a bootstrap log (kvraft's `Hstart`).
 - `NodeInstalls.lean` (importable): `NodeH.installs` (a `GName`) and `nodeInstalledIndex_installs`.
   The etcd server pinned its node's location in a `dghostVar` before `StartNode` returns; `NodeH`
   holds functions (not `Pos.Countable`), so the server pins `n.installs` instead.
@@ -180,14 +180,14 @@ and `binderfix.py` handle `NodeH` vs `Loc`, and `fixloop.sh` runs them.
   node gets `NodeH` in its declaration's binder (order kept), `#n`/`n @!!` get `.loc`; client
   definitions whose binder changed become node-level predicates at that position (per package),
   to a fixpoint. The server's `RNNames.nl : NodeH` (`#γ.nl.loc` in code).
-- The client sections' stray `[AllG GF]` variables (kvreconf, kvdurable, RaftNoAx/KvNet own files)
+- The client sections' stray `[AllG GF]` variables (kvreconf, kvdurable, RaftNoAx/KvRaft own files)
   are removed (`notes/decisions.md`, "One `AllG`"): with the raft vocabulary taking `[AllG GF]` as an
   instance argument, the second instance made a client's hypotheses and raft's laws different terms.
   Specs that relied on `AllG` to fix `GF` get `(GF := GF)` on their first predicate.
 - `kvdurable/Store.lean`: `KdNames`, the namespaces, `kdMask`, `rkvVal`, `opAu`, `opSlot`, `kvCore`,
   `readSlot`, `readReg`, `rkvInvBody`, `rkvInv`, `waitP`, `kvLb`, `readAns`, `kdSnapRecOk`,
   `kdSnapInv`, moved out of `Defs.lean` (statements unchanged) into a global section; `Defs` imports
-  it. RaftNoAx's copy (`kvdurablenoax/Store.lean`) is what kvnet imports.
+  it. RaftNoAx's copy (`kvdurablenoax/Store.lean`) is what kvraft imports.
 - The server: `RNNames.nl : NodeH`, the apply thread's view option `dv : Option NodeH` (`rnDv`),
   `newRaftNode.spec`'s `nl : NodeH`; the pin holds `n.installs` (`InvRaftNode`, `InvApplyAll`,
   `NodeStartLinked`).
@@ -200,6 +200,6 @@ and `binderfix.py` handle `NodeH` vs `Loc`, and `fixloop.sh` runs them.
 - The full `lake build` is green; Links, `gen-raft-tla`, `copy-part`, `gen-init` up to date;
   interfaces regenerated (raft, etcdstart); `tier-check` and the raft API's layout check pass.
 
-**Left:** kvnet itself should use `cluster_alloc_nb` and `kvdurablenoax/Store.lean` (the copy KvNet
+**Left:** kvraft itself should use `cluster_alloc_nb` and `kvdurablenoax/Store.lean` (the copy KvRaft
 imports) in its `Hstart`. The sweep's scripts are in `.lake/tmp/rcg/` of this worktree (not
 committed).

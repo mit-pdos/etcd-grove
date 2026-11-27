@@ -1,7 +1,6 @@
 # mvcc's importable modules (stage 1 of the API proof, 2026-11-03): what proofs outside mvcc's
 # tree may import (`etc/api-check.py etc/api/mvcc.txt --check`). Every other module of the tree is
-# internal. What each importable module exposes is `etc/gen-interface.py`'s output under
-# `interface/`.
+# internal.
 #
 # Started from what clients imported on 2026-11-03 and its public-import closure. The API is the
 # first group (`notes/mvcc-api-candidate.md`; frozen with its clients' specs,
@@ -10,7 +9,7 @@
 # moved into a vocabulary module the internals import (raft's `NodeApiVocab` pattern), so that the
 # API seals the rest. The last group is debt: internals today's clients import, to be taken out of
 # the list when the clients move onto the API (migration M1, all at once). Adding a module here is
-# an API change: review its interface.
+# an API change.
 
 inside Proof/go_etcd_io/etcd/server/v3/storage/mvcc/
 inside Spec/go_etcd_io/etcd/server/v3/storage/mvcc/
@@ -31,6 +30,10 @@ vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
 # (mvccfull's Prove, 2026-11-10) `Compact`'s channel made: `compactChan.law` (no function's spec)
 importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
 vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
+# (#49, mvccrand's retirement, 2026-11-25) the `Pos.Countable` instances of `Change` and `MvccState`
+# that clients' ghost state is built on (mvccfull, k8s/etcd3; until then mvccrand's `MvccCountable`)
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCountable
+vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCountable
 
 ## The API's vocabulary, still in the internals (to move to a vocabulary module)
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Model

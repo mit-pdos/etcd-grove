@@ -1,0 +1,8 @@
+# (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) With their bodies, what the client
+# attempt's `createHeaderFields` calls on a per-RPC credentials' metadata: `ValidatePair` and its
+# helpers `ValidateKey` and `hasNotPrintable`. Nothing else of the package.
+translate = ["!*", "ValidatePair", "ValidateKey", "hasNotPrintable"]
+imports = ["!*", "fmt", "strings", "google.golang.org/grpc/metadata"]
+
+# translate the definitions of all type declarations goose supports (`mdKeyType`, `mdValue`)
+translate_types = true

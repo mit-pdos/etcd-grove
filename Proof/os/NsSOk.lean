@@ -6,6 +6,7 @@ as `wp_fileS`'s error arm has it: for callers wrapping the error with `%w` (`wal
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.os.NsS
 
 @[expose] public section
@@ -23,80 +24,48 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 theorem os.OpenFile.wp_dirSOk (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
     (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
-  wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
-  imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp HΦ
-  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
-  iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq]
-  rw [show (W64 0 ||| W64 524288) = flRO from by decide]
-  (try wp_auto)
-  wp_apply wp_osOpenDirS R p j dq t s0 qc CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hos Hsi Hp Hk as %fd %e %hres Hperm Hp Hfd
-  by_cases he0 : e = W64 0
-  · subst he0
-    ihave Hfd := Hfd $$ %rfl
-    rw [decide_eq_true rfl]
-    wp_auto
-    iStructNamed inner
-    iapply wp_fupd
-    wp_auto
-    ipersist name
-    ipersist f
-    imodintro
-    iapply HΦ
-    iframe
-    ileft
-    iexists fd
-    iframe
+  wp_start_folded as ⟨#Hos, #Hsi, Hp, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
+  wp_apply os.OpenFile.wp_dirErrS p perm R j dq qc $$ [Hos Hsi Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
+  · iframe; (repeat' isplitl []) <;> iassumption
+  iapply HΦ
+  iframe Hp Hperm
+  icases Hr with (⟨%fd, %hfd, Hf, -, Hd⟩ | ⟨%e, %he, #Herr⟩)
+  · ileft; iexists fd; iframe Hf Hd; ipureintro; exact hfd
+  · iright
+    ihave %hne := (os.errnoPathErr_ne err e) $$ Herr
     isplitr
-    · ipureintro; rfl
-    unfold os.ownFile
-    iexists inner_ptr
-    iframe
-    isplitl [] <;> iassumption
-  · iclear Hfd
-    rw [decide_eq_false he0]
-    wp_auto
-    by_cases he4 : e = W64 4
-    · rw [decide_eq_true he4]
-      wp_auto
-      try rw [os.file_ty_eq]
-      try rw [os.File_ty_eq]
-      iapply IH $$ Hperm Hp HΦ
-    · rw [decide_eq_false he4]
-      wp_auto
-      wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
-      iapply HΦ
-      iframe
-      iright
-      isplitr
-      · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
-      iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+    · ipureintro; exact ⟨hne, he.2⟩
+    · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he.1) $$ Hsys Herr
 
 /-- `os.Open(p)` of the directory `j`: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_dirSOk (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Open)) (Val #p))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
+
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
-  wp_auto
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
+  try wp_auto
   wp_apply os.OpenFile.wp_dirSOk p (W32 0) R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 

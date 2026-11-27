@@ -6,9 +6,10 @@ the kit applied to its callees' results. The master package's (`master/Link.lean
 calls from Net's `Client.Call` and the codec's laws, the receivers from the server codec's laws),
 the wire's (`wire/Link.lean`), dlog's, Net's (`Listen`, `DialTimeout`, `Conn.*`, net/rpc's
 `SetCodec`, `Client.Call`, `Client.Close`), bufio's, `time.Sleep`, primitive's `RandomUint64`, and
-remote's `ServeClient`/`Check`; then the kit's `Server`, `Client`, `Orch`. What is not proved stays
-an instance argument: net/rpc over HTTP (`RpcHttpAddr`, `RpcHttpHyp`, `Interface/RpcHttpHyps.lean`)
-and gods' treemap (`StateTreemap`, `Interface/Treemap.lean`), which the statement takes.
+remote's `ServeClient`/`Check`; then the kit's `Server`, `Client`, `Orch`. net/rpc over HTTP is
+`Net/`'s specs (`netRpcHttpHyp`, bundled as `RpcHttpHyp`, `Interface/RpcHttpHyps.lean`); the
+addresses' protocols (`RpcHttpAddr`) and gods' treemap (`StateTreemap`, `Interface/Treemap.lean`)
+stay instance arguments, which the top-level proof gives.
 -/
 module
 
@@ -30,6 +31,11 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.NetRpc.
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Misc.Dlog
 public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.rpc.HandleHTTP
+public import Net.Proof.net.rpc.Server__HandleHTTP
+public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.Results
+public import Net.Proof.net.http.Serve
 public import Net.Proof.net.Listen
 public import Net.Proof.net.DialTimeout
 public import Net.Proof.net.Conn__Read
@@ -37,6 +43,7 @@ public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
 public import Proof.bufio.NewWriter
 public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewWriterSizeRep
 public import Proof.bufio.NewReaderOk
 public import Proof.bufio.NewReaderSize
 public import Proof.bufio.Writer__WriteByte
@@ -64,7 +71,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : examples.epaxosnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [epaxos.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [io.Assumptions] [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
 variable [replica.Assumptions] [replica.defs.Assumptions] [bufio.Assumptions]
@@ -94,6 +101,15 @@ theorem wp_replicaRcv (γ : EpNames) (i : Nat) : replicaRcv.spec (isReplica (GF 
   replicaRcv_holds epSrvCodecLaws (isReplica γ i)
     (replicaBtl_holds dlog.Logger.Println.spec_holds γ i) (replicaPing_holds γ i)
 
+/-- `RpcHttpHyp` holds: `Net/`'s specs of the net/rpc-over-HTTP calls, from `Net/`'s proofs
+(`HandleHTTP` over net/http's `Handle`, and net/http's `Serve`: `Handle.wp` and `Serve.wp_rpc`,
+proved; `Serve` over the interim context axioms). -/
+theorem netRpcHttpHyp : RpcHttpHyp GF :=
+  ⟨net.rpc.DialHTTP.wp,
+    net.rpc.HandleHTTP.wp_proof
+      (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp),
+    net.rpc.Register.wp_fresh, net.http.Serve.wp_rpc⟩
+
 section rpcHttp
 variable [RpcHttpAddr GF] [RpcHttpHyp GF]
 
@@ -116,7 +132,8 @@ theorem wp_Op : examples.epaxosnet.Op.spec (GF := GF) (hG := hG) :=
   Op.wp_proof state.NIL.wp_proof replica.defs.Propose.Marshal.wp_proof
     replica.defs.ProposeReplyTS.Unmarshal.wp_proof net.DialTimeout.wp_proof net.Conn.Read.wp_proof
     net.Conn.Write.wp_proof net.Conn.Close.wp_proof
-    (EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof)
+    (EtcdGrove.bufio.NewWriter.wp_proof
+      (EtcdGrove.bufio.NewWriterSize.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep))
     (EtcdGrove.bufio.NewReader.wp_proofOk
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
     (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)

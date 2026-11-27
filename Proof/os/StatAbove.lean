@@ -1,11 +1,11 @@
 /-
-The proof of `Spec/os/StatAbove.lean` (`os.Stat.specAboveRoot`): `model.stat` at a strict
+The proof of `Spec/os/StatAbove.lean` (`os.Stat.specAboveRoot`): `modelStat` at a strict
 ancestor of a root answers with no extension step but the query `PathKind`
-(`os.model.wp_stat_aboveS`).
+(`os.model.wp_stat_aboveS`, `Proof/os/StatAboveS.lean`).
 -/
 module
 
-public import Proof.os.NsAbove
+public import Proof.os.StatAboveS
 
 @[expose] public section
 
@@ -22,15 +22,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
   [go.BasicIntoValInj]
 
 theorem os.Stat.wp_proofAboveRoot : os.Stat.specAboveRoot (GF := GF) (hG := hG) := by
   intro p R hp
-  wp_start as ⟨#Hos, #Hsi⟩
-  wp_apply os.model.wp_stat_aboveS _ p R (os.aboveRoot_rootsAbove hp) $$ [Hos Hsi]
-    as %fi %err -
-  · isplitl [] <;> iassumption
+  iintro %Φ Hpre HΦ
+  wp_apply os.Stat.wp_aboveS p R (os.aboveRoot_rootsAbove hp) $$ Hpre as %fi %err -
   iapply HΦ
   itrivial
 

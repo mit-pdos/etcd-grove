@@ -49,7 +49,7 @@ theorem newRetryMetrics.wp_proof
   wp_auto
   wp_func_call
   wp_call
-  by_cases hl : name.length < 2 ^ 63
+  by_cases hl : ((name).length : Int) ≤ maxAddr
   · rw [if_pos hl]
     wp_auto
     wp_if_destruct

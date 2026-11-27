@@ -13,9 +13,10 @@ The proofs of `examples/net/acceptloop`'s functions, over the specs of `net` and
   `[id]` (`wire.writeP`/`wire.write_acc` on the up direction: on success all of it written), the
   full read of the reply (`wire.read_acc` on the down direction), and the check: the reply is a
   prefix of `[id]` (`client_check`) of length 1, so `resp[0] = id`.
-* `Call`: two forked `CallOne`s, each with copies of the persistent protocol and plan only (each
-  owns the connection it dials, so nothing is shared between them), joined by a wait group:
-  Perennial's join idiom (`sync.join`), its `Add(2)` by `wp_Add_many` (`Join.lean`), each
+* `Call`: `N` forked `CallOne`s (`N`, from 1 to 8, drawn by `wire.RandomInt`; the ids `1..N`), each
+  with copies of the persistent protocol and plan only (each owns the connection it dials, so
+  nothing is shared between them), joined by a wait group: Perennial's join idiom (`sync.join`),
+  its `Add(N)` by `wp_Add_many` (`Join.lean`), a loop forking one goroutine per `Done` right, each
   goroutine's `Done` with `True`, the `Wait` with nothing to collect. The `sync` specs are
   hypotheses, as `net`'s.
 * `eof_init`: `io.EOF`'s value, from the package's initialization (the commands' `main`s,
@@ -30,6 +31,7 @@ module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Defs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomInt
 public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
 public import Net.Spec.net.Conn__Close
@@ -63,7 +65,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : acceptloop.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : acceptloop.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost
@@ -163,8 +165,11 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hla0, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
-  · iframe %Hla0
+  · (try iframe HnetPk)
+    iframe %Hla0
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
@@ -220,9 +225,12 @@ theorem wp_CallOne
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #HE⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply wire.dial_both_au addrN srvAddr (connProto γm) (dialerOwn γm) $$ HaddrInv
@@ -350,6 +358,7 @@ theorem wp_CallOne
 
 
 theorem wp_Call
+    (wp_RandomInt : wire.RandomInt.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -364,38 +373,67 @@ theorem wp_Call
     {{ RET #(); True }} := by
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   (try wp_auto)
-  -- the wait group, and its two goroutines added at once
+  wp_apply wp_RandomInt (W64 7) as %k %Hk
+  · ipureintro; decide
+  (try wp_auto)
+  -- the number of calls, `N = 1 + k`, from 1 to 8
+  have h7 : sint.Z (W64 7) = 7 := rfl
+  have hN : sint.Z (W64 1 + k) = 1 + sint.Z k := by word
+  generalize hNdef : sint.nat (W64 1 + k) = N
+  have hN8 : 1 ≤ N ∧ N ≤ 8 := by
+    rw [← hNdef]; show 1 ≤ (sint.Z (W64 1 + k)).toNat ∧ (sint.Z (W64 1 + k)).toNat ≤ 8; omega
+  -- the wait group, and its `N` goroutines added at once
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") wg_ptr $$ wg with ⟨%γwg, Hwg⟩
   imod sync.join.init wg_ptr γwg $$ Hwg with Hwg
-  wp_apply (wp_Add_many wp_Add wg_ptr iprop(True) [iprop(True), iprop(True)] (by simp))
-    $$ [Hwg] as ⟨Hwg, Hdones⟩
-  · iframe Hwg
-  icases BigSepL.bigSepL_cons.1 $$ Hdones with ⟨Hd1, Hdones⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hdones with ⟨Hd2, -⟩
-  (try wp_auto)
-  wp_apply wp_fork $$ [Hd1]
-  · (try wp_auto)
-    wp_apply wp_CallOne wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed (W8 1) $$ []
-    · iframe Hinvs Hplan Heof Hed
-    (try wp_auto)
-    wp_apply (sync.join.WaitGroup.wp_Done_of wp_Done iprop(True) wg_ptr) $$ [Hd1]
-    · iframe Hd1
-    itrivial
-  (try wp_auto)
-  wp_apply wp_fork $$ [Hd2]
-  · (try wp_auto)
-    wp_apply wp_CallOne wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed (W8 2) $$ []
-    · iframe Hinvs Hplan Heof Hed
-    (try wp_auto)
-    wp_apply (sync.join.WaitGroup.wp_Done_of wp_Done iprop(True) wg_ptr) $$ [Hd2]
-    · iframe Hd2
-    itrivial
-  (try wp_auto)
-  wp_apply (sync.join.WaitGroup.wp_Wait_of wp_Wait _ _ wg_ptr) $$ [Hwg] as -
+  rw [show (W64 1 + k : w64) = W64 ((List.replicate N (iprop(True) : IProp GF)).length : Int) by
+    rw [List.length_replicate, ← hNdef]
+    show W64 1 + k = W64 ((sint.Z (W64 1 + k)).toNat : Int)
+    rw [Int.toNat_of_nonneg (by omega)]; word]
+  wp_apply (wp_Add_many wp_Add wg_ptr iprop(True) (List.replicate N iprop(True))
+      (by rw [List.length_replicate]; omega)) $$ [Hwg] as ⟨Hwg, Hdones⟩
   · iframe Hwg
   (try wp_auto)
-  iapply HΦ
-  itrivial
+  ihave HI : (∃ j : Nat, "i" ∷ i_ptr ↦ W64 (j + 1) ∗
+      "Hd" ∷ ([∗list] Q ∈ List.replicate (N - j) (iprop(True) : IProp GF), sync.join.ownDone wg_ptr Q) ∗
+      "%Hj" ∷ ⌜j ≤ N⌝ : IProp GF) $$ [i Hdones]
+  · iexists 0
+    rw [show W64 (((0 : Nat) : Int) + 1) = W64 1 from rfl, Nat.sub_zero]
+    iframe i Hdones
+    ipureintro; omega
+  wp_for HI
+  wp_if_destruct
+  · -- the body: the call with id `j + 1`, in a goroutine of its own
+    have hjN : j < N := by
+      have : sint.Z (W64 (↑j + 1)) = (j : Int) + 1 := by word
+      have : sint.Z (W64 ((List.replicate N (iprop(True) : IProp GF)).length : Int)) = (N : Int) := by
+        rw [List.length_replicate]; word
+      omega
+    rw [show N - j = (N - (j + 1)) + 1 by omega, List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ Hd with ⟨Hd1, Hd⟩
+    (try wp_auto)
+    wp_apply wp_fork $$ [Hd1 id]
+    · (try wp_auto)
+      wp_apply wp_CallOne wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed _ $$ []
+      · iframe Hinvs Hplan Heof Hed
+      (try wp_auto)
+      wp_apply (sync.join.WaitGroup.wp_Done_of wp_Done iprop(True) wg_ptr) $$ [Hd1]
+      · iframe Hd1
+      itrivial
+    (try wp_auto)
+    wp_for_post
+    (try wp_auto)
+    iframe HΦ m Hwg
+    iexists j + 1
+    rw [show W64 (↑j + 1) + W64 1 = W64 (↑(j + 1) + 1) by word]
+    iframe i Hd
+    ipureintro; omega
+  · -- the loop ends: every call started; wait for them
+    (try wp_auto)
+    wp_apply (sync.join.WaitGroup.wp_Wait_of wp_Wait _ _ wg_ptr) $$ [Hwg] as -
+    · iframe Hwg
+    (try wp_auto)
+    iapply HΦ
+    itrivial
 
 
 /-- `io.EOF`'s value, from the package's initialization. -/

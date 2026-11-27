@@ -3,6 +3,7 @@ storage/schema when decoding the membership of a backend snapshot. -/
 module
 public import Proof.net.url.PkgInit
 public import Proof.encoding.json.Base
+public import Net.Proof.models_lab.jsoncodec.Base
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Proof.go_etcd_io.raft.v3.Base
@@ -12,6 +13,13 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 public import Proof.errors.NewVar
 public import Perennial.Proof.internal.bytealg.Base
+public import Proof.path.PkgInit
+-- (claim #34 stage 2, 2026-11-25) the imports of membership's and `types`' newly translated functions
+public import Perennial.Proof.crypto.sha1.Base
+public import Perennial.Proof.encoding.binary.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.time.Base
 
 @[expose] public section
 
@@ -26,8 +34,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Se
 -- `etcdserver/version` (types only: `DowngradeInfo`)
 namespace go_etcd_io.etcd.server.v3.etcdserver.version
 
+/-- (grpcerrmap, 2026-11-26) The package's error variables and their messages (`errors.go`: each an
+`errors.New(msg)`), which `v3rpc`'s error map `toGRPCErrorMap` takes as keys. -/
+def versionErrMsgs : List (GoString × GoString) :=
+  [(ErrInvalidDowngradeTargetVersion, go!"etcdserver: invalid downgrade target version"),
+    (ErrDowngradeInProcess, go!"etcdserver: cluster has a downgrade job in progress"),
+    (ErrNoInflightDowngrade, go!"etcdserver: no inflight downgrade job")]
+
+/-- `etcdserver/version`'s package facts: (grpcerrmap, 2026-11-26) every error variable its
+`errors.New` error (`errorsNewVars versionErrMsgs`); `True` until then. -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init (EtcdGrove.errorsNewVars versionErrMsgs)
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version :=
   build_get_is_pkg_init_wf
 
@@ -62,15 +79,7 @@ end go_etcd_io.etcd.pkg.v3.notify
 -- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
 -- `*GaugeVec`, with its label name `cluster_version`: D19l (iii), 2026-10-18)
 -- (prove-errinits, 2026-11-19: membership imports `path` for its store paths; until then in
--- the server's `BaseApply.lean`)
-namespace path
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
-  build_get_is_pkg_init_wf
-
-end path
+-- the server's `BaseApply.lean`; since L1, 2026-11-24, in `Proof/path/PkgInit.lean`)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
@@ -101,7 +110,7 @@ abbrev membershipInit : IProp GF :=
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   define_is_pkg_init membershipInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership

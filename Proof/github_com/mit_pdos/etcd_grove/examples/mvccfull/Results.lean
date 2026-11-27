@@ -42,7 +42,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
-variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Every check of mvcc's full tester passes** (`Link.lean`'s `mvccfull.wp_Main`; see the file
@@ -62,18 +61,13 @@ variable [go_gctx : GoGlobalContext]
 header and `Adequacy.lean`). -/
 theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
-    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
-    (HEnv : verifyEnvOff (mvccfullProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
-    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
-    (Hrfit : Fs.DirFits r)
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -81,7 +75,7 @@ theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  mvccfull_adequate r HNs HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads n κs t2 σ2 Hsteps Hn
+  mvccfull_adequate r HEnv σ g Hlctx Hinit Hfs j0 Hr Hthreads n κs t2 σ2 Hsteps Hn
 
 end adequacy
 

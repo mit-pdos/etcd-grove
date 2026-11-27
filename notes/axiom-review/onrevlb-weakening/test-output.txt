@@ -1,0 +1,12 @@
+=== RUN   TestDeniedPutRevision
+    revlb_test.go:62: start revision r0=1 (x absent: true)
+    revlb_test.go:66: A put x: err=etcdserver: permission denied
+    revlb_test.go:75: B txn 0: succeeded=true rev=2
+    revlb_test.go:75: B txn 1: succeeded=true rev=3
+    revlb_test.go:75: B txn 2: succeeded=true rev=4
+    revlb_test.go:79: B put z: rev=5
+    revlb_test.go:82: x present after: false; final rev 5
+    revlb_test.go:87: VIOLATION: reply rev 5 >= kvModel length 4 (kvRevLb needs rev < length)
+--- PASS: TestDeniedPutRevision (1.30s)
+PASS
+ok  	revlbtest	1.308s

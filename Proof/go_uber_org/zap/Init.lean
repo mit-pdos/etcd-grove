@@ -34,6 +34,7 @@ public import Proof.go_uber_org.zap.internal.stacktrace.Init
 public import Proof.go_uber_org.zap.zapcore.Init
 public import Proof.net.url.Init
 public import Proof.os.Init
+public import Proof.fmt.SprintfPure
 public import Perennial.Proof.errors.NewVar
 public import Spec.strings.ToLower
 public import Spec.go_uber_org.zap.Defs
@@ -87,10 +88,8 @@ theorem EtcdGrove.zap_wp_NewNop_init :
   · iapply isPkgInit_access $$ Hpkg
   iNamed IO
   icases HDiscard with ⟨%wd, #HDiscard⟩
-  ihave #ZC : (iprop(∃ c : _root_.Perennial.go_uber_org.zap.zapcore.systemClock, typedPointsto (globalAddr
-      _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg2
-  icases ZC with ⟨%dc, #HDC⟩
+  ihave #ZC := _root_.Perennial.go_uber_org.zap.zapcore.isInit_access $$ Hpkg2
+  icases ZC with ⟨⟨%dc, #HDC⟩, -⟩
   wp_auto
   wp_func_call
   wp_call
@@ -101,7 +100,7 @@ theorem EtcdGrove.zap_wp_NewNop_init :
   iexists _
   iframe
   ipureintro
-  exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl, rfl, dc, rfl⟩
 
 /-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/
 theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :

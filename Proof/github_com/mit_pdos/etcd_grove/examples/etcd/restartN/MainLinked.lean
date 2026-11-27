@@ -10,6 +10,7 @@ putgetN). Lean-first (no Rocq counterpart); restart3's `MainLinked.lean` with pu
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.startMembers
@@ -50,13 +51,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.As
 
 /-- **restartN's `Main(k)` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/Main.lean`),
 over its callees' linked results. -/
-theorem etcd_restartN.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_restartN.wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_restartN.Main.spec (GF := GF) (hG := hG) :=
   etcd_restartN.Main.wp_proof zap.NewNop.wp_proof
     (etcd_restartN.Run.wp_proof etcdstart.wp_Members
       (etcd_restartN.startMembers.wp_proof
         (etcd_restartN.build.wp_proof etcdstart.wp_BuildServer)
-        (etcd_restartN.newMember.wp_proof etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler
+        (etcd_restartN.newMember.wp_proof etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler
           EtcdServer.wp_Start
           (etcd_restartN.raftSwap.ServeHTTP.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock)))
       (etcd_restartN.put.wp_proof EtcdServer.wp_Put context.wp_Background
@@ -71,7 +72,7 @@ theorem etcd_restartN.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_i
       (etcd_restartN.check.wp_proof EtcdServer.wp_Range EtcdServer.wp_Leader context.wp_Background
         context.WithTimeoutBackground.wp_proof)
       mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds
-      (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)))
+      (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof)
 
 end results
 

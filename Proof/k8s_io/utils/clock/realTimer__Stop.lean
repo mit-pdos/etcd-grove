@@ -7,6 +7,7 @@ module
 
 public import Spec.k8s_io.utils.clock.realTimer__Stop
 public import Perennial.Proof.time
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -32,7 +33,7 @@ theorem clock.realTimer.Stop.wp_proof : clock.realTimer.Stop.spec (GF := GF) (hG
   unfold clock.realTimerOk
   icases Hok with ⟨%t, %ch, %γ, #Hf, #Ht⟩
   wp_auto
-  wp_apply time.Timer.Stop.wp_proof $$ [Ht] as %b -
+  wp_apply time.Timer.wp_Stop $$ [Ht] as %b -
   · ileft; iexists ch, γ; iexact Ht
   iapply HΦ; itrivial
 

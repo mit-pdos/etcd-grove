@@ -64,6 +64,26 @@
 //	                                  every Write fails (EPIPE: RST in CLOSE_WAIT); the Read is EOF
 //	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET                 measured   WriteOutcome (open: steps, then sys, cut)
 //
+// Sticky read errors (sticky_test.go, sticky_netns_test.go; notes/net-sticky-read.md; D1 v3.5,
+// Impl.lean's ReadAvail: a sys read error only once nothing is unread, so that no byte follows a
+// read error but a deadline's timeout):
+//
+//	TestStickyEOF                D1   FIN: the bytes, EOF, EOF ...; a later RST (peer's Close with      measured   ReadAvail (EOF; sticky
+//	                                  unread input) changes nothing, EOF (SOCK_DONE before sk_err);                 already)
+//	                                  a Write after EOF succeeds, after the RST EPIPE
+//	TestStickyReset              D1,D14 a RST with bytes received: the bytes, then ECONNRESET with 0     measured   ReadAvail (sys: v3.5,
+//	                                  unread (SIOCINQ), then EOF on every Read; an expired deadline:                d.bytes = [])
+//	                                  timeout; an empty Read (0, nil); Writes EPIPE
+//	TestStickyResetBlockedRead   D1,D14 a RST while a Read waits: ECONNRESET, then EOF                   measured   ReadOutcome (break)
+//	TestStickyKilledPeer         D1,D10,D11 a killed or exited peer with unread input: the bytes,        measured   ReadOutcome (break)
+//	                                  ECONNRESET with 0 unread, then EOF; Write EPIPE
+//	TestStickyOwnClose           D1,D3 own Close with bytes unread: ErrClosed on every Read and Write   measured   NetEnd.closed
+//	TestStickyNotTimeout         D1,D5 the exception: after a read deadline's timeout (blocked, or       measured   ReadAvail (timeout: d' = d)
+//	                                  expired with bytes unread) the bytes follow once it is cleared
+//	TestStickyTimedOut           D1,D14 (network namespaces) the kernel gives up with bytes received:    measured   ReadAvail (sys: v3.5,
+//	                                  the bytes, then ETIMEDOUT (a partition) or EHOSTUNREACH (an ICMP              d.bytes = [])
+//	                                  host-unreachable: sk_err_soft) with 0 unread, then EOF; Write EPIPE
+//
 // Writes (write_test.go, v3_test.go):
 //
 //	TestEmptyWrite               D2   an empty Write (one step): (0, nil) live; (0, timeout) with an      measured   WriteOutcome
@@ -231,8 +251,82 @@
 //	                                  EOF, EPIPE
 //	TestPartitionHealed          D1,D2 a 2 s partition shorter than every timeout, healed: every byte     measured   ReadOutcome, WriteOutcome (no break)
 //	                                  both ways once, in order, no error (Writes block up to 2.9 s)
+//	TestStickyTimedOut           D1,D14 (sticky_netns_test.go) the kernel gives up on a connection    measured   ReadAvail (sys)
+//	                                  with bytes received: the bytes, then ETIMEDOUT or EHOSTUNREACH, then
+//	                                  EOF (above, "Sticky read errors")
 //	TestAcceptOrder              D7   8 pending: back-to-back Dials accepted in Dial order (0/50 out of    measured   AcceptStep (any pending connection)
 //	                                  order); concurrent ones 47-50/50 out of Dial-return order
+//
+// UDP (udp_*_test.go; the UDP extension, GooseLang/Ext/Udp/Impl.lean, version u1, decisions
+// U1-U13; notes/net-udp.md). Go 1.27.3, Linux 7.0.0-1014-aws (2026-11-24): the plain tests
+// over 127.0.0.1 with explicit ports of 20000-29999 (outside the ephemeral range, as addrOk
+// requires), go test -count=3; the UDPNetns tests (udp_netns_test.go) in the client, router
+// and server namespaces above (veth pairs, MTU 1500), NET_NETNS=1 -run UDPNetns, re-run as root:
+//
+//	TestUDPListenForms           U1   ListenUDP("udp4") at a.b.c.d:p: the 4-byte IP, the 16-byte      measured   udpAddrOf, ipv4Of, ValidDest,
+//	                                  IPv4-mapped one and a junk Zone all bind the same a.b.c.d:p                    ListenStep
+//	                                  (ipToSockaddrInet4: ip.To4(), the Zone ignored)
+//	TestUDPListenTwice           U1   a second bind of an open socket's address: EADDRINUSE as          measured   ListenStep (sys; success also
+//	                                  *OpError{listen, udp4, Source nil, Addr the laddr} >                           allowed: more than Linux)
+//	                                  *os.SyscallError{bind} > Errno 98; SO_REUSEADDR 0, SO_REUSEPORT
+//	                                  0 (SO_BROADCAST 1); after Close it binds
+//	TestUDPListenNotLocal        U1   a non-local IP (192.0.2.1): EADDRNOTAVAIL, the same shape         measured   ListenStep (sys)
+//	TestUDPAndTCPSamePort        U1   a TCP listener and a UDP socket at one ip:port coexist, both work  measured   udpExt apart from netExt
+//	TestUDPSendDelivered         U2,U3 WriteToUDP (len, nil); received byte for byte (1, 100, 524,     measured   SendStep, Intact, RecvStep
+//	                                  1472 bytes), the source the sender's address
+//	TestUDPSendToUnbound         U2   10 sends to an unbound port: (len, nil) each; the unconnected     measured   SendStep (success)
+//	                                  sender's reads never ECONNREFUSED (__udp4_lib_err: no IP_RECVERR);
+//	                                  control: a DialUDP socket gets ECONNREFUSED (not modeled)
+//	TestUDPSendSizeLimit         U2,U3 loopback: 65507 bytes delivered whole; 65508: (0, *OpError       measured   SendStep (sys), Intact
+//	                                  {write, udp4, Source laddr, Addr dest} > *os.SyscallError{sendto}
+//	                                  > EMSGSIZE), nothing arrives
+//	TestUDPZeroLength            U2,U4 an empty datagram: WriteToUDP (0, nil), ReadFromUDP (0, sender,   measured   SendStep, RecvStep
+//	                                  nil), not EOF (ZeroReadIsEOF false for SOCK_DGRAM)
+//	TestUDPRecvTruncates         U4   a 100-byte datagram into 10 bytes: (10, its first 10, sender,     measured   RecvStep (d.take n)
+//	                                  nil); the rest discarded, the next read the next datagram
+//	TestUDPRecvEmptyBuffer       U4   a 0-byte buffer: no shortcut (poll.FD.ReadFromInet4); blocks      measured   RecvStep (n = 0; the model does
+//	                                  with nothing queued; (0, sender, nil) with one, consumed                       not consume: allows more)
+//	TestUDPZeroValue             U9   zero UDPConn: ReadFromUDP (0, nil, EINVAL), WriteToUDP (0, EINVAL), measured   Go's c.ok() (translated)
+//	                                  the bare Errno (c.ok())
+//	TestUDPKilledProcess         U5,U7 a SIGKILLed child's socket with 3 datagrams queued: gone, the   measured   udp_semantics.crash, UdpLocal.init;
+//	                                  address binds again, none of the 3 is received (the model                      RecvStep (over-approximates)
+//	                                  allows it), a later one is
+//	TestUDPNetnsFragmentation    U2,U3 MTU 1500 (veth ends, router ports, a bridge with a veth port; lo measured   Intact (above intactMax: any
+//	                                  65536), no ICMP: 1472 bytes one packet (Ip.FragCreates +0), intact;            bytes), SendStep
+//	                                  1473 (1473, nil), fragmented (FragOKs +1, FragCreates +2), not
+//	                                  EMSGSIZE (IP_MTU_DISCOVER WANT, ip_no_pmtu_disc 0)
+//	TestUDPNetnsPmtuFloor        U3   the path MTU decides, and any ICMP "fragmentation needed" lowers   measured   intactMax = 524, Intact
+//	                                  it (forged from the peer's namespace, raw socket), never below
+//	                                  net.ipv4.route.min_pmtu = 552 (measured): a forged MTU 68 gives
+//	                                  "mtu lock 552", 524 bytes one packet (FragCreates +0), 525
+//	                                  fragmented (+2); from a flushed route, a forged MTU 552 fragments
+//	                                  1472 bytes (+3): refutes the earlier intactMax = 1472
+//	TestUDPNetnsFaults           U3,U5 netem loss 20%, duplicate 20%, delay 5ms 5ms, reorder 25%: of    measured   UdpGlobal.sent, RecvStep, Intact
+//	                                  2000 datagrams (48-1472 bytes) some lost, some received twice,
+//	                                  some out of order, every one received identical to one sent
+//	                                  (the model: intact up to 524 bytes, any bytes above)
+//	TestUDPNetnsSentBeforeBind   U5   a datagram sent before the bind is dropped (Udp.NoPorts +1) and   measured   UdpGlobal.sent, RecvStep
+//	                                  never received after it (the model allows it: over-approximation)
+//	(the interfaces' MTU)        U3   examples/lib/robust sets no MTU: its veth pairs and bridge br0    documented (target configuration; not what
+//	                                  have the default 1500 (as measured above), its local mode uses                 intactMax rests on since the
+//	                                  127.x (lo, 65536); every interface's MTU is at least 552                       path-MTU review)
+//	(the path MTU's floor)       U3   min_pmtu is a sysctl: the target configuration keeps its default  assumed    intactMax (prose: the deployment,
+//	                                  552 (measured above); a lower setting would let an ICMP message               net.ipv4.route.min_pmtu = 552)
+//	                                  fragment a datagram of at most 524 bytes
+//	(no corruption)              U3   the target links (veth, loopback, bridge) copy memory, and no      assumed    Intact (prose: the deployment)
+//	                                  netem corrupt is used (robust's LinkFaults has none); a real
+//	                                  link's corruption would also have to pass the UDP checksum
+//	(the closed world)           U5   no process but the deployment's nodes sends a datagram to an      assumed    (prose: Impl.lean, the deployment)
+//	                                  address a node's socket is bound to
+//	(the initial network)        U8   no datagram before the deployment's processes start              assumed    UdpGlobal.init
+//	(the stutter convention)     U13  every operation may stutter (a blocked ReadFromUDP or            documented UdpStep, IsUdpStep, OrInvalid
+//	                                  WriteToUDP); an invalid argument panics
+//	(not modeled)                U12  Close and every other method promoted from conn that reaches     not modeled (Go's code reaches a
+//	                                  the socket (deadlines, SetReadBuffer, ...), DialUDP and connected    netFD model stuck on SOCK_DGRAM;
+//	                                  Read/Write, ListenPacket, the networks "udp" and "udp6", wildcard     the rest is not translated)
+//	                                  and IPv6 addresses, broadcast, multicast, ReadMsgUDP/WriteMsgUDP;
+//	                                  the tests' own Close and deadlines are the harness's;
+//	                                  LocalAddr/RemoteAddr are Go's (an arbitrary *UDPAddr, nil)
 //
 // The refutation, and the fix (2026-11-14). The first draft of D1 broke a
 // direction only in a Read that returned an error. After a crash (D10) the dead
@@ -323,6 +417,16 @@
 // (lisAccepts). It only adds behaviors, each from a step that was a panic: a
 // Listen the kernel refuses (EADDRNOTAVAIL, TestListenNotLocal; EADDRINUSE)
 // is a sys failure, and which machine listens where is the proofs' business.
+//
+// v3.5 (2026-11-23, notes/net-sticky-read.md): a sys read error only once
+// nothing is unread (D1, ReadAvail's sys clause gains d.bytes = []). Before,
+// a Read could fail ECONNRESET with bytes unread and a later Read return
+// them; Linux never does (the sticky tests above: an error from read(2)
+// only when it copied nothing, and every sys source ends the socket's
+// receiving). It only removes behaviors. So after a Read returns EOF or a
+// sys error, its direction is dead (empty, not open), which no step undoes,
+// and every later non-empty Read of that end returns no byte; a read
+// deadline's timeout stays non-sticky (TestStickyNotTimeout).
 //
 // Not measured here: D12 (ENOMEM, ENOBUFS), unreachable addresses. What a
 // peer sees of a machine that dies silently (nothing, then its kernel's

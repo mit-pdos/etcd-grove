@@ -3,22 +3,26 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/Member.l
 `notes/putget-dist-plan.md` section 10). Lean-first (no Rocq counterpart).
 
 The in-process putget's `Main` up to `Serve` (`Proof/.../examples/etcd/putget/Main.lean`), on a machine of its
-own: `env.ClearProxy()` (its spec gives `ETCD_VERIFY` off, which the start bundle holds); `zap.NewNop()`; the
-member's start bundle from `ETCD_VERIFY` off and the fresh data directory and WAL area
-(`etcdstart.memberStartRes_one`); `etcdstart.StartServer` from the named premises (`etcdstart.wp_StartServer1`,
-shared with the in-process `Main`: `alloc1` inside); the client's putget invariant allocated from the
-bootstrap log's KV state (`client.putGetInv_alloc_log`, as the in-process `Main`); `etcdstart.Serve` in S2's
-form (`S2Draft.Serve_s2`, PLACEHOLDER), publishing the member's view with `Pub` (from the invariant by
-`memberPubOk`); `holdForever()`, which does not return. Every step's error ends `Member` (`return`).
+own, after its addresses' check (`AddrOk` twice and their comparison; an invalid or repeated address returns, and
+the wand of the precondition is then never opened): `zap.NewNop()`; the
+member's start bundle from `ETCD_VERIFY` off (the precondition's `EtcdVerifyOff`) and the fresh data directory and WAL area
+(`etcdstart.memberStartRes_one`); `etcdstart.StartServer` from the named premises and the member's slice of the
+deployment's start (`etcd_dist.wp_StartServer1_slice`: its `memberBoot` from the slice, O1 option B,
+`notes/etcd-dist-plan.md` §18.3), whose request names' KV names are `kvCongr` to the cluster's view's;
+`etcdstart.Serve` on a member machine at the view (`etcd_dist.Serve_dist`, a trust-boundary axiom until #24's S2,
+`notes/putget-dist-plan.md` §12); `holdForever()`, which does not return. Every step's error ends `Member` (`return`).
+(Until 2026-11-25 the member allocated its names itself, `wp_StartServer1`, and published its view with the client's
+invariant, `env_publish`.)
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.holdForever
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env.ClearProxy
 public import Spec.go_uber_org.zap.NewNop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartOne
-public import Proof.go_etcd_io.etcd.client.v3.PutGetInvAlloc
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.StartOneSlice
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AddrOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 
 @[expose] public section
 
@@ -43,24 +47,58 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 
 set_option maxHeartbeats 800000 in
 theorem Member.wp_proof
-    (wp_ClearProxy : dist_env.ClearProxy.spec (GF := GF) (hG := hG))
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (wp_StartServer : etcdstart.StartServer.spec (GF := GF) (hG := hG))
+    (wp_StartServer : etcdstart.StartServer.specAt (GF := GF) (hG := hG))
     (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (wp_Serve_dist : etcd_dist.Serve_dist.spec (GF := GF) (hG := hG))
+    (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB S peer client id ctxs boot γE Pub Hbf hpl HLv Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB peer client id ctxs boot c Hbf hlp hlc HLv Haf Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
-  have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
-  have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
-  have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
-  wp_start as ⟨Htok, #Hprem, Hdd, Hwa, Hshare, #Hpub⟩
+  have Hrb48 : receiptBound GF ≤ 2 ^ 48 := RB.receiptBound_le
+  have HrbN : receiptBound GF ≤ 2 ^ 48 - 1 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
+  have HwbN : 2 ^ 48 - 1 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
+  wp_start as ⟨Htok, Hw⟩
+  (try wp_auto)
+  -- the addresses' check: `!AddrOk(peer) || !AddrOk(client) || peer == client` returns
+  wp_apply wp_AddrOk _ hlp
+  cases hp : Net.addrOk peer
+  · simp only [Bool.not_false]
+    try wp_auto
+    iapply HΦ; itrivial
+  simp only [Bool.not_true]
+  try wp_auto
+  wp_apply wp_AddrOk _ hlc
+  cases hc : Net.addrOk client
+  · simp only [Bool.not_false]
+    try wp_auto
+    iapply HΦ; itrivial
+  simp only [Bool.not_true]
+  try wp_auto
+  by_cases hpc : peer = client
+  · simp only [hpc, decide_true]
+    try wp_auto
+    iapply HΦ; itrivial
+  simp only [hpc, decide_false]
+  try wp_auto
+  have hpl := etcd_dist.addrOk_plainPeerURL hp
+  have Hpf := etcd_dist.addrOk_addrFits hp
+  have Hcf := etcd_dist.addrOk_addrFits hc
+  ispecialize Hw $$ %(by simp [hp, hc, hpc])
+  icases Hw with ⟨#Hprem, #Hvoff, Hwa, Hshare⟩
   iunfold memberShare at Hshare
-  icases Hshare with ⟨#Haddr, Hhalf, #Hinv⟩
+  icases Hshare with ⟨%Hcok, #Hcf, Hsl, #Haddr, Hnames⟩
+  -- the cluster's lease mode is `.none` (`ClusterOk`'s): `Serve_dist` takes the member at the view's mode
+  -- `c.view.kv.lm`, the slice's `.none`
+  have Hlm : c.view.kv.lm = .none := by
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hlm, -⟩ := Hcok
+    exact hlm
+  iunfold etcd_dist.memberNamesShare at Hnames
+  icases Hnames with ⟨Hlh, Hlslot, -⟩
   -- the imports' package facts
-  ihave #Penv : isPkgInit (PROP := IProp GF)
-      pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env $$ []
-  · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Pes : isPkgInit (PROP := IProp GF)
@@ -70,19 +108,21 @@ theorem Member.wp_proof
   · iapply context.isClosedchanInit_of_init
     iPkgInit
   (try wp_auto)
-  -- `env.ClearProxy()`
-  wp_apply wp_ClearProxy as #Hvoff
-  (try wp_auto)
   -- `zap.NewNop()`
   wp_apply wp_NewNop as %lg #Hlgz
   (try wp_auto)
   -- `StartServer(Name, peer, client, lg)`
-  ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hdd Hwa]
+  ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hwa]
   · iframe; iframe #
-  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 28) name peer client lg id ctxs boot Hbf hpl
-      (by decide) (by decide) Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
-  · iframe; iframe #
-  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)
+  wp_apply (etcd_dist.wp_StartServer1_slice wp_StartServer wp_MarshalBoot hne (2 ^ 48 - 1) name peer client lg id
+      ctxs boot Hbf hpl (by decide) (by decide) Hpf Hcf Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo c Hcok (c.ls id))
+    $$ [Hlh Hlslot Htok Hstart Hsl] as %srv %err Hr
+  · isplitl [Hlh Hlslot]
+    · isplitl [Hlh]
+      · iexact Hlh
+      iexact Hlslot
+    iframe; iframe #
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, %Hcg⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
@@ -90,28 +130,20 @@ theorem Member.wp_proof
     iapply HΦ; itrivial
   subst Herr
   wp_auto
-  -- the client's invariant, at the bootstrap log's KV state
-  imod (EtcdGrove.client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
-      go!"k" go!"v" ⊤) $$ Hetcd with ⟨%γf, #Hpg⟩
-  -- `Serve(s, client)`, in S2's form: the member's view published at `γE`, with `Pub`
-  wp_apply (S.Serve_s2 hG rfl srv client ρ E₀ lg γn id γE Pub) $$ [Hup Hhalf] as %serr Hs
+  -- `Serve(s, client)` on a member machine, at the cluster's view (`Serve_dist`)
+  wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id c.view (fun h => absurd h Bool.false_ne_true)) $$ [Hup] as %serr -
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨Hms, Hbuq, Hrf, Htb, HLv, Hrb48⟩
-    iintro %ν %Hν
-    imodintro
-    iunfold memberPubOk at Hpub
-    imodintro
-    iapply Hpub
-    rw [Hν]
-    iexact Hpg
-  icases Hs with (%Hserr | ⟨%Hserr, -⟩)
-  · cases serr with
-    | nil => exact absurd rfl Hserr
-    | ok ei => ?_
+    · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, Or.inl rfl⟩
+    -- the auth-off branch, at the view's lessor `c.ls id` and mode (`Hlm`)
+    rw [Hlm]
+    simp only [etcd_dist.ClusterNames.view, Bool.false_eq_true, ↓reduceIte]
+    iexact Hup
+  cases serr with
+  | ok ei =>
     wp_auto
     iapply HΦ; itrivial
-  subst Hserr
+  | nil =>
   wp_auto
   -- `holdForever()`: it does not return
   wp_apply wp_holdForever as HF

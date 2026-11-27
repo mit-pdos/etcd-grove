@@ -2,13 +2,32 @@
 
 # `net/echo`: the top-level robustness result, stated
 
-`echo_crash_robust`: the example's closed theorem as an instance of the generic robustness statement
-(`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
-machines that may crash and restart and of those that never crash, each a fresh Go process, of
-fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
-no thread is stuck and none has an unrecovered panic). This file only
-states it (to audit); the proof is in
+`echo_crash_robust`: the three nodes, `cmd/server`, `cmd/client` and `cmd/junk`, at `127.0.0.1:7101`
+(`examples/net/echo/`), each a machine that may crash and restart, satisfy the generic robustness
+statement (`Robustness/Statement.lean`, `Robust`): in every execution of fewer than `bound` steps,
+no thread of any machine is stuck and none has an unrecovered panic, so the client's check
+(`echo.Call`: the reply it read in full is its request) never fails. The client's request and the
+junk node's bytes are drawn at random (`wire.RandomBytes`, `wire.RandomInt`);
+`examples/net/echo/control_test.go` shows the check fires against a server that corrupts its reply.
+This file only states it (to audit); the proof is in
 `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/TopLevelRobustness.lean`.
+
+What it assumes:
+* **The extension**: `netExts = [netExt]` (`GooseLang/Ext/Net/Adequacy.lean`), GooseLang with the
+  trusted semantics of TCP of `GooseLang/Ext/Net/Impl.lean`; `Robust` starts every machine with no
+  listener and the network with no connection (its `initLocal`/`initGlobal`, D26).
+* **The deployment** (`Impl.lean`, D13): a closed world, stated in prose only (no process outside the
+  deployment accepts a connection a node dials, or dials one a node's listener can accept); the
+  target configuration, Linux 7.0 with its default sysctls and Go 1.27.3 (measured in
+  `examples/net/semantics/`); valid addresses (D20, `addrOk`, which the proof checks by `decide`).
+* **One host**: the address is a loopback address, which reaches only its own host. The model has no
+  hosts (any machine may dial any valid address), so the theorem's machines are processes of one
+  host, as `examples/net/echo/process_test.go` runs them.
+* **Trusted**: the models of the `net` functions and types the program calls
+  (Go's `net` over its Go model `models/net`, whose primitive stubs `Net/TrustedCode/net.lean` models over `netExt`),
+  `Impl.lean`'s semantics, Perennial's Goose translation and Go semantics (`go.Semantics`; Goose's
+  model of `primitive.RandomUint64`, any `uint64`; the commands' `Assumptions` are the generated
+  unfoldings of the translated bodies), and `Robust`. Tracked by `etc/tcb-collections/net.txt`.
 -/
 module
 
@@ -26,25 +45,20 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.echo
 
-attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
-  netExtsCrashInterp
-
-attribute [local instance] GooseGlobalGS.gooseInvGS
+attribute [local instance] netExts netExtsSemantics
 
 section adequacy
 
-variable [GoGlobalContext] {GF : BundledGFunctors}
+variable [GoGlobalContext]
 
 /-- **`echo_crash_safety` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the system's machines, each of which may crash at any step and
-restart, each a fresh Go process (`Robust`'s premise), under `echo_crash_safety`'s other
-hypotheses: in every execution, of any length, no thread of any machine is stuck and none has an
-unrecovered panic. -/
+restart, each a fresh Go process (`Robust`'s premise): in every execution, of any length, no
+thread of any machine is stuck and none has an unrecovered panic. -/
 def echo_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [srv_sem : cmd.server.Assumptions]
     [cli_sem : cmd.client.Assumptions] [junk_sem : cmd.junk.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σs σc σj : state) (g : GlobalState)
-    (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
+    (σs σc σj : state) (g : GlobalState) (bound : Nat),
     Robustness.Robust (system σs σc σj) [] g (threads := bound + 1) (bound := bound)
 
 end adequacy

@@ -30,7 +30,7 @@ section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -56,17 +56,18 @@ theorem req_append (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnName
     (L : List RpcReq) (i : Nat) (hi : L.length = i) (sm svc M : GoString) (S : MethodSpec GF) (eb : List w8)
     (Φ : List w8 → GoString → IProp GF) (post col ap : GName)
     (hL : ∀ r ∈ L, reqOk r) (hlen : L.length + 1 ≤ 2 ^ 64)
-    (hsm : sm.length + 16 < 2 ^ 63) (heb : eb.length < 2 ^ 63)
+    (hsm : sm.length + 16 ≤ maxFrameN) (heb : eb.length ≤ maxFrameN)
     (hsv : splitSM sm = some (svc, M) ∧ W.SS a svc = some S) :
-    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ £ 1 ∗
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
+      sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) ∗ £ 1 ∗
       monoListAuthOwn γ.reqs (1 : Qp).half L ∗
       ghostMapElem γ.nm i .discard (post, col, ap) ∗ token ap ∗
       savedPredOwn post .discard (fun p : List w8 × GoString => Φ p.1 p.2) ∗ S M eb Φ ⊢
     |={⊤}=> monoListAuthOwn γ.reqs (1 : Qp).half (L ++ [(sm, eb, post, col)]) ∗
       □ reqProto (Gg := hG.goose_globalGS) W a cn
-        (reqsWire L ++ reqWire (W64 i) sm eb) := by
+        (W.hs a ++ reqsWire L ++ reqWire (W64 i) sm eb) := by
   subst hi
-  iintro ⟨#Hrpc, Hlc, Hhalf, #Hnm, Hap, #Hpost, HS⟩
+  iintro ⟨#Hrpc, #Hsl, Hlc, Hhalf, #Hnm, Hap, #Hpost, HS⟩
   ihave #Hrpc' := Hrpc
   iunfold isRpcConn at Hrpc'
   icases Hrpc' with ⟨#Hre, #Hinv⟩
@@ -111,13 +112,15 @@ theorem req_append (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnName
   iunfold reqProto
   iexists γ, L ++ [(sm, eb, post, col)]
   iframe Hrpc Hlb
-  ipureintro
-  refine ⟨?_, by simp; omega, ?_⟩
-  · intro r hr
-    rcases List.mem_append.1 hr with hr | hr
-    · exact hL r hr
-    · simp at hr; subst hr; exact ⟨hsm, heb⟩
-  · rw [reqsWire_append]; exact List.prefix_refl _
+  isplitr
+  · ipureintro
+    refine ⟨?_, by simp; omega, ?_⟩
+    · intro r hr
+      rcases List.mem_append.1 hr with hr | hr
+      · exact hL r hr
+      · simp at hr; subst hr; exact ⟨hsm, heb⟩
+    · rw [reqsWire_append, List.append_assoc]; exact List.prefix_refl _
+  iright; iexact Hsl
 
 /-- `rpc.ServerError` implements `error`. -/
 theorem serverErr_isError :

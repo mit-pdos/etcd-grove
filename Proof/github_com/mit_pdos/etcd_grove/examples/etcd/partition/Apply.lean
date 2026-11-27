@@ -35,11 +35,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 theorem Apply.wp_proof (wp_Apply : etcd_txnlin.Apply.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC γ cls clis hAs hne
+  intro _ γ cls clis hAs hne
   iintro #Hpkg #Plkv #Pcli #Hcls #Hok
   iintro %i
   imodintro
-  iintro %Φ Hin HAU
+  iintro %Φ ⟨Hin, Hlt⟩ HAU
   ihave %Hl := ownSlice_len $$ Hcls
   have hlen : clis.length ≠ 0 := fun h => hne (List.eq_nil_of_length_eq_zero h)
   wp_func_call
@@ -87,7 +87,8 @@ theorem Apply.wp_proof (wp_Apply : etcd_txnlin.Apply.spec (GF := GF) (hG := hG))
   ihave #HA := wp_Apply γ cl ms V hAs hms $$ Plkv Pcli Hncl Hone Hregs Hinvs
   -- `etcd_txnlin.Apply(cl, input)`, with the caller's update
   wp_bind (App (App (Val _) (Val _)) (Val _))
-  iapply HA $$ %i Hin
+  iapply HA $$ %i [Hin Hlt]
+  · iframe
   inext
   imod HAU with ⟨%S, Hs, Hc⟩
   imodintro

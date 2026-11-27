@@ -51,7 +51,7 @@ class QpBufioDeps (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics]
 
 /-- net's specs the proxy and replica proofs call (the file header). -/
 class QpNetDeps (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics] [HasExt netExt]
-    [net.Assumptions] [net.FieldAssumptions] : Prop where
+    [net.Assumptions] : Prop where
   connWrite : net.Conn.Write.spec (GF := GF) (hG := hG)
   connClose : net.Conn.Close.spec (GF := GF) (hG := hG)
   dial : net.Dial.spec (GF := GF) (hG := hG)

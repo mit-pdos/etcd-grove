@@ -29,14 +29,14 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev Server.ServeCodec.spec : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (sc t : Loc)
     (cn : Nat) (la ra : GoInterface),
-  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
+  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServerAny s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
       srvCodecAt sc t cn a la ra ∗ srvCodecOwn W a cn sc ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"ServeCodec"))
       (Val #(interface.mkOk (go.GoType.PointerType net.rpc.serverCodec.ty) #sc)))

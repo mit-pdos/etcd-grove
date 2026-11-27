@@ -33,8 +33,10 @@ without them merges the two files as git always does.
 
 Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
 landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
-landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
-session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). A session that
+posts on GitHub has a row in `etc/sessions.txt` and posts by `notes/coordination.md` (`to:`/`from:`
+lines, asks and their open/acked/closed state; `etc/gh-inbox.py watch`/`open`); record a worktree's
+stage in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
 
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
@@ -148,23 +150,25 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `RaftTla/` alone has the hooks' helpers and the trace check's specs and proofs (its `Init` and
   `PkgTable` from `etc/gen-init.py`). Nothing outside it imports it; trust base:
   `etc/tcb-collections/tracecheck.txt` (`notes/decisions.md`, "One raft proof for both builds").
-- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), for a closed
-  kvdurable theorem whose trust base has no axiom of this repository: raft of project `raft-noax` and
-  kvdurable of project `kvdurable-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`, `KVDURABLE_NOAX_*`; with
-  kvreconf and walpb translated into it as parts of their projects), and copies of every main-tree
-  module of kvdurable's `Results` closure that reaches them, written by `etc/copy-part.py` (a first
-  line naming it; `--check` in CI; a file without that line is the part's own); its initializers
-  from `etc/gen-init.py`'s `PARTS`, its Links from `etc/gen-link.py --raft-noax`/`--kvdurable-noax`.
-  Nothing outside it imports it; trust base: `etc/tcb-collections/raft-noax.txt`.
+- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), the raft of
+  `KvRaft/`'s closed theorem, whose trust base has no axiom of this repository: raft of project
+  `raft-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`; with walpb translated into it as a part of its project),
+  and copies of every main-tree module of raft's closure (its `Link` and the modules `etc/api/raft.txt`
+  lists as importable) that reaches them, written by `etc/copy-part.py` (a first line naming it;
+  `--check` in CI; a file without that line is the part's own); its initializers from
+  `etc/gen-init.py`'s `PARTS`, its Link from `etc/gen-link.py --raft-noax`. Nothing outside it imports
+  it; trust base: `etc/tcb-collections/raft-noax.txt`. (Until 2026-11-24 it also held kvdurable's closed
+  theorem, project `kvdurable-noax`: retired with kv, kvreconf and kvdurable's, which `kvraft_robust`
+  and kvraft-udp subsume.)
 - `Net/` is another: the net extension's `net` and the programs over it (`examples/net`, `examples/lib/remote`,
   the models' codecs and `net/{http,rpc}`). Since the net swap (etcd-dist D2, 2026-11-22) its `net` is also the
   main tree's (`net=Net` in every project; `Proof/net/InvNet.lean` defines the address predicates over it):
   the main tree imports `Net/`'s `net` modules, never the part's other modules.
-- `KvNet/` is another: kvnet's proof (`notes/kvnet-part.md`), over raft-noax's raft, `Net/`'s `net` and
-  `WalTester/`'s bodied `durable` in one closure: project `kvnet` and parts of projects raft-noax, net,
+- `KvRaft/` is another: kvraft's proof (`notes/kvraft-part.md`), over raft-noax's raft, `Net/`'s `net` and
+  `WalTester/`'s bodied `durable` in one closure: project `kvraft` and parts of projects raft-noax, net,
   durable and etcd translated into it, copies of those parts' (and the main tree's) modules its own
-  modules reach written by `etc/copy-part.py --part KvNet` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
-  main), its initializers by `etc/gen-init.py` (`KVNET_INITS`). Nothing outside it imports it.
+  modules reach written by `etc/copy-part.py --part KvRaft` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
+  main), its initializers by `etc/gen-init.py` (`KVRAFT_INITS`). Nothing outside it imports it.
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
@@ -172,10 +176,10 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
 - `WalTester/` is another: etcd's WAL tester (`examples/etcd/wal`, project `etcd-wal`) and the library it
   keeps its oracle with, `examples/lib/durable` translated **with its bodies** (project `durable`'s part)
   and proved over the per-byte file extension `fsExt`, where the main tree keeps `durable` trusted over
-  `durableExt` for kvdurable, kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
+  `durableExt` for kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
   two translations", decided 2026-11-15). Its modules declare the main `durable`'s names, so nothing outside it imports it;
-  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once kvdurable is
-  ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
+  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once `durableExt`'s
+  users are ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
   etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
   over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one
@@ -188,7 +192,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
   (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
-  is checked by a program of the deployment that panics, never stated over traces in Lean), and
+  is checked by a program of the deployment that panics, never stated over traces in Lean; an exit
+  (`os.Exit`, `log.Fatal`: Perennial's `AngelicExit`) counts as a safe run, so checkers panic,
+  `etc/exit-check.py`), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
   result is an instance, in two files named `TopLevelRobustness.lean`:
@@ -196,8 +202,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   file to audit) and `Proof/<example>/TopLevelRobustness.lean` proves it (`theorem <name> :
   <name>.spec`, from the example's closed theorem); the program and the other definitions the
   statement names are in `Proof/<example>/TopLevelDefs.lean` (a defs module, so the Spec file
-  imports no proof); a new example gets all three. (kvnet's statement,
-  not proved yet: `Proof/.../examples/raft/kvnet/Robust.lean`.)
+  imports no proof); a new example gets all three. (kvraft's statement,
+  not proved yet: `Proof/.../examples/raft/kvraft/Robust.lean`.)
 - `models/`: our trusted models of real libraries (executable stand-ins: verified where they are code,
   trusted only in their claim to behave like the library), the Go module `models.lab` (a path naming no
   project, as the part `Net/` is exported to dsverify-lab), each with its evidence (`models/README.md`):
@@ -224,7 +230,7 @@ the same pattern; Perennial's are modules too.
 ## Package APIs
 
 Lean's visibility is per module (a declaration is `private`, or public to every importer) and
-`import all` is unrestricted, so a package cannot hide the definitions its own files share. Three
+`import all` is unrestricted, so a package cannot hide the definitions its own files share. Two
 pieces make a package's boundary checkable instead (`notes/decisions.md`, "Package APIs: an
 importable list and a generated interface"):
 
@@ -233,18 +239,6 @@ importable list and a generated interface"):
   modules (never with `import all`), and a listed module publicly imports only listed modules of
   the package (linking files, `Link`/`Results`/`Adequacy*`, are exempt; a non-linking module that
   imports one is a warning). Adding a module to the list is an API change.
-- **The generated interface**, `interface/<module path>.txt` (`etc/gen-interface.py
-  etc/api/<pkg>.txt`; `--check` in place of regenerating): what a client sees of each listed
-  module, as Lean's module system exports it -- every declaration's kind and signature, the body
-  only of a definition whose body is exported -- and of every function's proof file (its
-  `<F>.wp_proof`, or the axiom in its place, with `<F>.spec` unfolded: the Hoare triple, and the
-  callees' specs it takes). Committed: a change to a package's API or to a function's spec is a diff
-  to review (no bogus definitions, no lemma exposing internals). `--layout` checks the layout on
-  every module of the package (a spec file exposes only its `<F>.spec`, its proof file only
-  `<F>.wp_proof`), against the known violations in `etc/api/<pkg>-layout.txt`. CI regenerates the
-  interfaces after the build and fails if they differ from the committed ones (as for the Goose
-  translations): when a change moves a package's API, regenerate (`etc/gen-interface.py
-  etc/api/<pkg>.txt`, after `lake build`) and commit the result with it.
 - **Sealing**: an API module imports the package's internals non-publicly and marks what clients
   must not see inside `@[no_expose]`; the package's own proofs `import all` it. When a proof
   outside the package needs a fact of a sealed predicate, add a law to the API module; do not
@@ -339,23 +333,37 @@ records a decrease. An owner's own matches are listed in `etc/bounds-allow.txt`.
 ## Trust base
 
 `etc/tcb-report.py` reports what the proof rests on (needs an up-to-date `lake
-build`): the `sorry`s and axioms the results depend on, the exported results (linked
+build`): the `sorry`s and axioms the results depend on, the trusted `opaque`s, the exported results (linked
 results no other proof uses), and the definitions their statements are written in
 terms of. Run it when you need the report; don't commit its output (`-o` writes a
 file), which goes stale as the proof changes. It never builds, nor does
 `etc/verified-code.py`: both exit, asking for `lake build`, when `lake build
 --no-build` finds the root modules out of date. `etc/tcb-report.py --check` exits 1 if
-this repository's axioms or `sorry`s differ from `etc/tcb-baseline.txt`; when you add or remove one on
-purpose, rerun with `--check --update`.
+this repository's axioms, `sorry`s or trusted `opaque`s differ from `etc/tcb-baseline.txt` (`axiom X`,
+`sorry X`, `opaque X` lines); when you add or remove one on purpose, rerun with `--check --update`.
+
+A trusted `opaque` is not an axiom, but a statement or an axiom about one means only what its
+reader takes it to be, so it is trust as a definition is (until its stage defines it or proves the
+code it stands for). Counted (by declaring module, not namespace): the kernel's `opaque` constants
+(`opaque`, `partial def`) declared in this repository's modules (its Lake libraries' roots) and
+reached from an exported result's statement or from an axiom's type, through types, definitions'
+bodies and constructors (not proofs). Not counted: Lean's, Std's, Mathlib's, Iris's and Perennial's
+(trusted as a whole, as their axioms are), and those of this repository's Goose translations
+(`Code/`, `GeneratedProof/`, a part's `<root>/Code/`, `<root>/GeneratedProof/`: `T.underlying`,
+`T.zero_val`, an untranslated constant), trusted with the translator. A trusted model's opaque in
+a translated package's namespace (`TrustedCode/net/http.lean`'s `Perennial.net.http.godebugHttpmuxgo121`)
+counts. `etc/tcb-report.py --selftest` checks the rule on a small environment of its own.
 
 For some of the results only: `--roots PATTERN...` (regular expressions searched in a
 root's name, its module's file and its spec's file: `'raft__Step'`,
 `'^Spec/go_etcd_io/raft/'`) prints the axioms and `sorry`s those roots rest on and
 which roots reach a `sorry` (`--per-root`: every root). A collection
 (`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
-(`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
+(`axiom`/`sorry`/`opaque` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
 `--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
-by adding a collection for it.
+by adding a collection for it. Its `axioms PATTERN` lines, if any, restrict the report and the
+baseline to the axioms, `sorry`s and opaques whose name or module file matches one: what one family of
+declarations contributes to the roots (`etc/tcb-collections/grpc.txt`).
 
 ## How much is verified
 
@@ -467,6 +475,12 @@ generated: never edit the `.lean` files by hand.
   are `Proof/go_etcd_io/etcd/server/v3/storage/wal/` (`Link.lean`: `etc/gen-link.py --walfs`; trust
   base `etc/tcb-collections/wal-fsext.txt`). Until 2026-11-15 in the part `LinuxFs/`, with the main
   tree's names-only WAL beside it (`notes/wal-lean-integration.md`).
+- A dependency of a project translated from a fork of its own (`etc/goose.py`'s `module_forks`: a
+  `replace` in the translation's temporary workspace only, the fork's and the examples' Go builds keep
+  the module itself), for a behaviour-preserving rewrite goose needs: otel v1.47.0 from
+  `zeldovich-agent/opentelemetry-go`, branch `goose-lean-encoderid` (`8717f503c`, on the tag v1.47.0;
+  project `etcd`), where `attribute`'s `defaultEncoderID = NewEncoderID()` (refused by goose's
+  modelcheck R4) is set by an `init` through a local variable.
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,
@@ -477,10 +491,17 @@ A proof that needs a prophecy the Go code does not have gets it from a **prophec
 `etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the source before
 translating (and `etc/verified-code.py` reads): it may only add `primitive.NewProph()`, its
 `ResolveBool`/`ResolveU64` calls (which do nothing in Go) on read-only expressions, and `if`s on
-read-only conditions holding only such statements; `etc/prophcheck` checks it on syntax trees (the
-patched file with those statements erased must be the original). A read-only expression may fail,
-which only adds failing behaviors the proof rules out. Never put anything else in such a patch; a
-code change goes to the fork (`notes/decisions.md`, "Prophecies as patches of the Go code").
+read-only conditions holding only such statements. The rule widens (Upamanyu, #24):
+- a patch may add prophecy-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
+- it may add calls to them at statement level or inside `if`s on read-only conditions;
+- `etc/prophcheck` checks that erasing every added declaration and call gives back the original files, and refuses an added field in a struct the program compares with `==`, uses as a map key, or reflects on.
+- `Resolve(any)` calls are admitted too (Upamanyu, #24), their argument built from read-only values: a struct literal or conversion to `any`, with no allocation, `append` or `make`.
+- The prophecy package is Perennial's `github.com/mit-pdos/perennial/proph` (`NewProph`, `ProphId`, `ResolveBool`, `ResolveU64`, `Resolve(any)`; Lean namespace `github_com.mit_pdos.perennial.proph`) or goose's `github.com/goose-lang/primitive` (the same without `Resolve`); new patches use `proph`.
+
+A read-only expression may fail, which only adds failing behaviors the proof rules out. The exact
+checks: `notes/proph-patch-rule.md` and `etc/prophcheck/main.go`'s doc comment. Never put anything
+else in such a patch; a code change goes to the fork (`notes/decisions.md`, "Prophecies as patches
+of the Go code").
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the
@@ -494,8 +515,10 @@ produces, or if the examples' Go modules (`examples/go.mod`, one for every examp
 pins (bump both together), and CI runs that check before the build. `--src NAME=DIR` (or
 `$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the project instead
 of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,
-and `--check` then requires the checkout to be at the pinned revision. It runs `go` with
-`GOTOOLCHAIN` set to its pinned `GO_TOOLCHAIN` (Go fetches it if absent): the standard-library
+and `--check` then requires the checkout to be at the pinned revision. It runs `go` on its
+pinned `GO_TOOLCHAIN` (Go fetches it if absent), from a copy of it outside the Go module cache,
+`.lake/goose/goroot-go1.27.3` (Go refuses an overlay that replaces a file beneath GOMODCACHE,
+as the Go models of standard-library packages do): the standard-library
 packages are translated from the toolchain's source, which differs between patch releases
 (go1.27.1's `net/http` broke `--check` against go1.27.3's). To try a translator change before it is in Perennial,
 `etc/goose.py --perennial ../perennial` regenerates with that checkout's translator, and

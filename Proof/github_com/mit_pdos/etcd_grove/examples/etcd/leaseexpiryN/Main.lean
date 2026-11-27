@@ -2,6 +2,10 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Main.lean` (`notes/leaseN-plan.md`,
 2026-11-16). Lean-first (no Rocq counterpart).
 
+First `Main`'s range check (2026-11-24, P6): a `k` outside `[1, 1000]` returns at once, with no start
+bundles (`cluster k = []`); otherwise `cluster k = members k`, and the steps below run at `k` as a
+`Nat`.
+
 The steps (txnlinfaultsN's `startCluster`'s start, at the lease mode `revocable` and the examples'
 no-snapshot settings): the logger; the pure facts of the members and their ids (putgetN's); the
 ghost state of the cluster and its members (`etcdstart.allocN`, every member's start bundle with
@@ -155,13 +159,37 @@ theorem Main.wp_proof
     (hrev : srvRevokeOpen (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law)
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
-      ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
+      ps.length ≤ 1000 → rafthttp.bootCfg dir ps)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC k N ids ps ctxs boot hk1 hk Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
+  intro CS kw N ids ps ctxs boot Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
     Hlp Hms hAs
   wp_start as ⟨Hss, Htok, #Hprem⟩
+  -- the range check: `if k < 1 || k > 1000 { return }`
+  wp_auto
+  wp_if_destruct
+  · (try wp_auto)
+    iapply HΦ; itrivial
+  (try wp_auto)
+  wp_if_destruct
+  · (try wp_auto)
+    iapply HΦ; itrivial
+  have hk1 : 1 ≤ uint.nat kw := by word
+  have hk : uint.nat kw ≤ 1000 := by word
+  have hcl : cluster kw = members (uint.nat kw) := by
+    simp [cluster, hk1, hk]
+  rw [hcl]
+  have hkw : kw = W64 ((uint.nat kw : Nat) : Int) := by word
+  generalize uint.nat kw = k at *
+  subst hkw
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #Hmarsh, #Hcom⟩
+  icases Hprem with #Hbps
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- the pure facts of the members and their ids (putgetN's)
   obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbf.lowNodup Hbf.lowNz
   have Hpsnd : ps.Nodup := by
@@ -219,6 +247,9 @@ theorem Main.wp_proof
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
   have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
     fun x hx => members_names_len k _ (List.of_mem_zip hx).1
+  -- (fmt stage 1, 2026-11-24) the members' addresses within etcd's URL bounds
+  have haf : ∀ x ∈ (members k).zip gs, etcdstart.addrFits x.1.Peer' ∧ etcdstart.addrFits x.1.Client' :=
+    fun x hx => etcdstart.membersOf_addrFits _ _ _ _ x.1 (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -253,7 +284,7 @@ theorem Main.wp_proof
       (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (members k) ids) Φs γn .revocable false Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
+      hγn2 Hdok Hbc hnd hutf hnlen haf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %ss, Hss, Hups⟩)⟩

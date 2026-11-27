@@ -238,12 +238,14 @@ instance txnReqWire_persistent (rt : Loc) (ts es : List ReqOp) :
 /-! ## The errors -/
 
 /-- **An error `togRPCError` can take** (persistent): not nil, in an error tree for every
-target (`applyErrIs`: what `errors.Is` needs), a safe key of the error map (comparing it with
-itself does not panic: `SafeMapKey`; a pointer error is one, `safeMapKey_ptrErr`; `applyErrIs` gives all of it,
+target (`applyErrIs`: what `errors.Is` needs), a key of the error map (`errKeyOk`: a pointer
+error, `errKeyOk_ptr`, `deadlineExceededError{}` or an `InvalidCostError`, whose `==` with the
+map's keys is equality, `v3rpc.wp_errMap_lookup2_at`; until ctx-leaf-fix, 2026-11-25, a
+`SafeMapKey` at Perennial's interface keys; `applyErrIs` gives all of it,
 `srvErrIs_of_applyErrIs`), and its
 `Error()` returns (the message of `status.Error(codes.Unknown, err.Error())`). -/
 def srvErrIs (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ ⌜SafeMapKey (GF := GF) go.error err⌝ ∗
+  iprop(⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ ⌜errKeyOk err⌝ ∗
     ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
       {{ True }} (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
       {{ (msg : GoString), RET #msg; True }})
@@ -330,7 +332,8 @@ which grpc's server converts; why, `ctxPassed`: k8s etcd3 7c-2 part 2, G1-a′),
 stage 2b, 2026-11-21: some description `m`, `descIs e m`, until then the pure `errDesc e`). -/
 def grpcErrOut (P : GoString → Prop) (err e : GoInterface) : IProp GF :=
   iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
-    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap ↦□ mp ∗
+    (letI := EtcdGrove.v3rpc.errKeys; (mp ↦$□ M : IProp GF)) ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk M kf kc ∗

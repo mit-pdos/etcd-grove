@@ -37,16 +37,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Ass
 abbrev NewClient.spec : Prop :=
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (lg : Loc)
     (V : client.WEnv GF),
-  cfgOk cfg → threadBound GF ≤ 2 ^ 31 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
-      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
-      zapLoggerOk lg }}
+  cfgOk cfg → threadBound GF ≤ 2 ^ 30 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗ levelTok 0 ∗ (-- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.cluster3.NewClient)) (Val #cfg))
       (Val #lg))
-  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl (bridges cfg) V ∗
+  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl (bridges cfg) V ∗
         clientTokAt cl (bridges cfg) (fun _ => iprop(False))) ∨
-      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 end spec
 

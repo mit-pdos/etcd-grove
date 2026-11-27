@@ -1,0 +1,132 @@
+// Scratch tests for the wenv/isNewClient axiom review (Watch_dist, RequestProgress_dist under the
+// new isNewClient): the case where the logic can hold both the in-process Watch registration
+// (watchSrvFacts, from grpc.start on the program's own listener) and membersAt (the address's
+// table set from netAddrLeft). In Go that program has a listener open at the address and a gRPC
+// server with a Watch handler registered on it, but never calls Serve (grpcServes of the opaque
+// table is unprovable with a stream registered), and etcdstart.Serve's own net.Listen at the
+// address fails. Not part of the repository.
+package wenvreview
+
+import (
+	"context"
+	"errors"
+	"net"
+	"testing"
+	"time"
+
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+)
+
+// answering is a Watch handler that answers every create at once (so that a served server
+// would produce a response).
+type answering struct{ pb.UnimplementedWatchServer }
+
+func (answering) Watch(srv pb.Watch_WatchServer) error {
+	for {
+		req, err := srv.Recv()
+		if err != nil {
+			return err
+		}
+		if c := req.GetCreateRequest(); c != nil {
+			if err := srv.Send(&pb.WatchResponse{Header: &pb.ResponseHeader{Revision: 5}, WatchId: 0, Created: true}); err != nil {
+				return err
+			}
+			if err := srv.Send(&pb.WatchResponse{Header: &pb.ResponseHeader{Revision: 5}, WatchId: -1}); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func newClient(t *testing.T, addr string) *clientv3.Client {
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints:   []string{addr},
+		DialTimeout: time.Second,
+		Logger:      zap.NewNop(),
+		DialOptions: []grpc.DialOption{grpc.WithNoProxy()},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cli
+}
+
+// registered: a gRPC server with a Watch handler registered, on an open listener, never served.
+func registered(t *testing.T) (string, net.Listener) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gs := grpc.NewServer()
+	pb.RegisterWatchServer(gs, answering{})
+	_ = gs // never gs.Serve(lis)
+	return lis.Addr().String(), lis
+}
+
+// W1: the second Listen (etcdstart.Serve's) at the address fails.
+func TestW1SecondListenFails(t *testing.T) {
+	addr, lis := registered(t)
+	defer lis.Close()
+	_, err := net.Listen("tcp", addr)
+	t.Logf("W1: second net.Listen(%s): err=%v", addr, err)
+	if err == nil {
+		t.Fatal("second Listen succeeded")
+	}
+}
+
+// W2: Watch on a client of the registered-but-unserved address: no response, the channel closes
+// when the watch's context ends; RequestProgress returns; Close returns. No panic.
+func TestW2Unserved(t *testing.T) {
+	addr, lis := registered(t)
+	defer lis.Close()
+	cli := newClient(t, addr)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	start := time.Now()
+	ch := cli.Watch(ctx, "k", clientv3.WithRev(1))
+	t.Logf("W2: Watch returned after %v", time.Since(start))
+	n := 0
+	for r := range ch {
+		n++
+		t.Logf("W2: response %d: err=%v created=%v progress=%v", n, r.Err(), r.Created, r.IsProgressNotify())
+	}
+	t.Logf("W2: channel closed after %v, %d responses", time.Since(start), n)
+	pctx, pcancel := context.WithTimeout(context.Background(), time.Second)
+	defer pcancel()
+	perr := cli.RequestProgress(pctx)
+	t.Logf("W2: RequestProgress: err=%v (deadline: %v)", perr, errors.Is(perr, context.DeadlineExceeded))
+	cerr := cli.Close()
+	t.Logf("W2: Close: err=%v", cerr)
+	if n != 0 {
+		t.Fatalf("unexpected responses: %d", n)
+	}
+}
+
+// W3 (control): the same registration, served, answers.
+func TestW3ServedControl(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gs := grpc.NewServer()
+	pb.RegisterWatchServer(gs, answering{})
+	go gs.Serve(lis)
+	defer gs.Stop()
+	cli := newClient(t, lis.Addr().String())
+	defer cli.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	ch := cli.Watch(ctx, "k", clientv3.WithRev(1), clientv3.WithProgressNotify())
+	select {
+	case r, ok := <-ch:
+		t.Logf("W3: first response: ok=%v err=%v progress=%v rev=%d", ok, r.Err(), r.IsProgressNotify(), r.Header.Revision)
+		if !ok {
+			t.Fatal("served control: channel closed")
+		}
+	case <-ctx.Done():
+		t.Fatal("served control: no response")
+	}
+}

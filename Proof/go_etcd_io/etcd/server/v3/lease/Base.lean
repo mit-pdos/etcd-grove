@@ -42,6 +42,7 @@ public import GeneratedProof.container.heap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.github_com.Masterminds.semver.v3.PkgInit
 public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
+public import Proof.container.heap.PkgInit
 
 @[expose] public section
 
@@ -66,15 +67,7 @@ variable [sem : go.Semantics]
 
 -- `server/v3/lease/leasepb`'s instances are in the server's `Base.lean` (schema imports it, 2026-11-19).
 
--- `container/heap` (names only)
-namespace container.heap
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.container.heap :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.container.heap :=
-  build_get_is_pkg_init_wf
-
-end container.heap
+-- `container/heap`'s instance (names only): `Proof/container/heap/PkgInit.lean` (L1, 2026-11-24)
 
 namespace go_etcd_io.etcd.server.v3.lease
 
@@ -135,7 +128,7 @@ abbrev leaseInit : IProp GF :=
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   define_is_pkg_init leaseInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.lease

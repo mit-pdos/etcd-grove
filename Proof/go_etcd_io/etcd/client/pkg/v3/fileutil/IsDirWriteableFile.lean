@@ -24,7 +24,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proofFile
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
@@ -41,7 +41,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proofFile
   · ipureintro; rfl
   iintro %jsl ⟨Hjsl, -⟩
   (try wp_auto)
-  wp_apply wp_Join _ [dir, go!".touch"] _ (by simp; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+  wp_apply wp_Join _ [dir, go!".touch"] _ (by simp [_root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
   rw [join_child hclean touch_nameOk] at hpth
   subst hpth
   (try wp_auto)
@@ -71,8 +71,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proofFile
     wp_apply wp_Remove dir go!".touch" J i R dq hJ (1 : Qp).half (1 : Qp).half qc
         (rmFileOut J go!".touch" i hJ (DFrac.own (1 : Qp).half)) touch_nameOk hfile
         (Qp.half_add_half 1) $$ [Hp Hperm Hq Hau]
-      as %e ⟨Hp, Hperm, %o', %hok', HQ, Hout⟩
-    · iframe; isplitl [] <;> iassumption
+      as %e ⟨-, Hp, Hperm, %o', %hok', HQ, Hout⟩
+    · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
     icases os.rmFileOut_join J _ i hJ o' $$ [HQ Hout] with ⟨%h', Hn, %hc⟩
     · iframe
     (try wp_auto)

@@ -25,7 +25,13 @@ proof holds a descriptor of is one of these:
   resolver; at run time each attempt's outgoing metadata gains what the credentials'
   `GetRequestMetadata` returns (etcd's: its token, if any), and an error of theirs fails the
   attempt, which the attempt contract (`grpcInvokerOk`) already allows; what the credentials
-  return to the attempts is `connCredsOk` (`NewClient`'s post, since the auth plan's C1).
+  return to the attempts is `connCredsOk` (`NewClient`'s post, since the auth plan's C1);
+* `.noProxy` (`WithNoProxy()`: sets `dopts.useProxy` to `false`, since 2026-11-24,
+  `notes/putget-dist-plan.md` §12, finding F1; etcdstart's `NewClients` passes it): it sets no
+  interceptor, no resolver and no credentials; at run time the connection dials each resolved
+  address itself, never through an HTTP `CONNECT` proxy named by the process environment
+  (`HTTPS_PROXY` or `https_proxy`), which grpc-go's delegating resolver reads otherwise. The model (`models/grpc`) reads no
+  proxy variable, so `NewClient`'s axiom says the same of a dial with or without it.
 An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefaultCallOptions`,
 ...) has no descriptor: a dial that holds one is not covered
 (`clientv3.New`'s premises exclude `Config.DialOptions`,
@@ -36,18 +42,21 @@ An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefa
 the chain is the last `.unaryInterceptor`'s, or empty. No descriptor sets default call options
 (`WithDefaultCallOptions`): they are `[]`.
 
-**The stream interceptor** (`etcdStreamInterceptor si`, an axiomatized property): grpc's
-`ClientConn.NewStream` axiom (`Spec/google_golang_org/grpc/ClientConn__NewStream.lean`) assumes the
-connection's stream interceptor is etcd's (`streamClientInterceptor`, `retry_interceptor.go`), so
-`NewClient` gives `grpcConn` only for a dial whose stream interceptors are etcd's; the property is
-introduced only by the client's `streamClientInterceptor` axiom
-(`Spec/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean`).
+**The stream interceptor** (phase7-s3-interceptor, 2026-11-26): `NewClient` gives the connection's
+options (`grpcConnOpts conn (connOptsOf ds)`), whose stream interceptor (`streamIcOf ds`) grpc's
+`ClientConn.NewStream` calls with grpc's streamer (`grpcStreamerOk`, `InvGrpcStreamer.lean`); what
+the interceptor does is its own contract (etcd's: `streamIcOk … etcdVersionMd`, proved). Until then
+the axiomatized property `streamIcMdIs si F` (grpc-trusted-T, T7) and `streamMdOk`; until T7
+`NewClient` required the dial's stream interceptor to be etcd's (`etcdStreamInterceptor`).
+
+**The passthrough resolver** (`dialPassthrough`, T7): a dial to `passthrough:///a` with no resolver
+option reaches the one address `a`.
 
 **The resolver** (`grpcResolverAt rb scheme addrs`, exclusive, axiomatized): the resolver builder
 `rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the addresses `addrs`, for good
 (a list since 2026-10-21, `notes/decisions.md` D27; one address until then):
 the resolver's state is grpc's once it is dialed with (`NewClient` takes it), and its service
-config sets no retry policy (k8s 7e-1, 2026-11-10, decided by etcd-grove-81: a `retryPolicy` that
+config sets no method config: no retry policy, no `timeout`, no `waitForReady` (k8s 7e-1, 2026-11-10, decided by etcd-grove-81: a `retryPolicy` that
 exhausts its attempts makes grpc-go v1.84 return a `*fmt.wrapError`, `stream.go:867`, which
 `grpcInvokerOk`/`cliStreamErr` exclude through `clientErr`; no dial option of `GrpcDialOpt` sets a
 default service config). etcd's `EtcdManualResolver` gives it for plain endpoints
@@ -79,6 +88,7 @@ inductive GrpcDialOpt where
   | resolvers (rbs : List GoInterface)
   | keepalive
   | perRPCCreds (pc : GoInterface)
+  | noProxy
 
 /-- The per-RPC credentials a descriptor adds, if it adds some. -/
 def GrpcDialOpt.credsOf : GrpcDialOpt → Option GoInterface
@@ -117,6 +127,22 @@ theorem unaryIcsOf_keepalive (ds : List GrpcDialOpt) :
   unfold unaryIcsOf
   simp [List.filterMap_cons, GrpcDialOpt.unaryOf]
 
+/-- No-proxy options set no unary interceptor. -/
+theorem unaryIcsOf_noProxy (ds : List GrpcDialOpt) (n : Nat) :
+    unaryIcsOf (ds ++ List.replicate n .noProxy) = unaryIcsOf ds := by
+  unfold unaryIcsOf
+  have h : (List.replicate n GrpcDialOpt.noProxy).filterMap GrpcDialOpt.unaryOf = [] := by
+    induction n with
+    | zero => rfl
+    | succ n ih => simp [List.replicate_succ, List.filterMap_cons, GrpcDialOpt.unaryOf, ih]
+  simp [List.filterMap_append, h]
+
+/-- No-proxy options add no per-RPC credentials. -/
+theorem credsOfDial_noProxy (n : Nat) : credsOfDial (List.replicate n .noProxy) = [] := by
+  induction n with
+  | zero => rfl
+  | succ n ih => simp [List.replicate_succ, GrpcDialOpt.credsOf, ih]
+
 /-- Per-RPC credentials set no unary interceptor. -/
 theorem unaryIcsOf_perRPCCreds (ds : List GrpcDialOpt) (pc : GoInterface) :
     unaryIcsOf (ds ++ [.perRPCCreds pc]) = unaryIcsOf ds := by
@@ -124,11 +150,6 @@ theorem unaryIcsOf_perRPCCreds (ds : List GrpcDialOpt) (pc : GoInterface) :
   simp [List.filterMap_append, GrpcDialOpt.unaryOf]
 
 end defs
-
-/-- **`si` is etcd's client stream interceptor** (an axiomatized property: introduced only by the
-client's `streamClientInterceptor` axiom; what grpc's `ClientConn.NewStream` axiom assumes of a
-connection's stream interceptor). -/
-axiom etcdStreamInterceptor [GooseExts] (si : GoFunc) : Prop
 
 /-- **The resolver builder `rb` resolves the scheme `scheme` to the addresses `addrs`** (exclusive; an
 axiomatized predicate; see the file header). -/
@@ -151,11 +172,13 @@ def dialOptsKeep (d : GrpcDialOpt) (o o' : google_golang_org.grpc.dialOptions) :
     | .perRPCCreds _ => True
     | _ => o'.copts'.PerRPCCredentials' = o.copts'.PerRPCCredentials')
 
-/-- What an interceptor option sets (`unaryInt`, `streamInt`); nothing for the other descriptors. -/
+/-- What an interceptor option sets (`unaryInt`, `streamInt`), and what `WithNoProxy` sets
+(`useProxy` false); nothing for the other descriptors. -/
 def dialOptSets (d : GrpcDialOpt) (o' : google_golang_org.grpc.dialOptions) : Prop :=
   match d with
   | .unaryInterceptor ic => o'.unaryInt' = ic
   | .streamInterceptor ic => o'.streamInt' = ic
+  | .noProxy => o'.useProxy' = false
   | _ => True
 
 /-- **What the closure `f` of a dial option `d` does to `*dialOptions`** (persistent; phase 7 S1,
@@ -211,35 +234,136 @@ instance dialOptsAt_persistent (sl : GoSlice) (ds : List GrpcDialOpt) :
     Persistent (dialOptsAt (GF := GF) sl ds) := by
   unfold dialOptsAt; infer_instance
 
-/-- **A dial `NewClient` connects with** (pure): its stream interceptors are etcd's, and there is
-one (G2, 2026-10-30: `NewStream`'s post states the metadata etcd's interceptor's `withVersion`
-adds, false on a connection with no stream interceptor), and its one resolver is `rb` (every
-`WithResolvers` of the dial gives `rb` alone, and one does). -/
+/-- **A dial whose one resolver is `rb`** (pure): every `WithResolvers` of the dial gives `rb` alone,
+and one does. (grpc-trusted-T, T7, 2026-11-24) Until then it also required the dial's stream
+interceptors to be etcd's, and one (G2: `NewStream`'s post stated the metadata etcd's `withVersion`
+adds); `NewStream` now states the attempt's metadata from the connection's options
+(`grpcConnOpts`; since phase7-s3-interceptor, the interceptor over grpc's streamer), so `NewClient` dials with any interceptors. -/
 def dialOk (ds : List GrpcDialOpt) (rb : GoInterface) : Prop :=
-  (∀ si, GrpcDialOpt.streamInterceptor si ∈ ds → etcdStreamInterceptor si) ∧
-    (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds ∧
-    ∃ si, GrpcDialOpt.streamInterceptor si ∈ ds
+  (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds
+
+/-- **A byte grpc's `passthrough` target keeps as it is** (pure): an ASCII letter or digit, or one of
+`.`, `-`, `_`, `:`, `[`, `]`. `url.Parse` leaves a path of these bytes unchanged (no `%` escape, no
+`?` query, no `#` fragment, no control byte, no `/`), so the passthrough resolver's
+`Target.Endpoint()` (the path less its leading `/`) is the address itself. -/
+def passthroughByteOk (b : w8) : Prop :=
+  (48 ≤ b.toNat ∧ b.toNat ≤ 58) ∨ (65 ≤ b.toNat ∧ b.toNat ≤ 91) ∨ b.toNat = 93 ∨
+    (97 ≤ b.toNat ∧ b.toNat ≤ 122) ∨ b.toNat = 45 ∨ b.toNat = 46 ∨ b.toNat = 95
+
+/-- **A dial to the address `a` through grpc's `passthrough` resolver** (pure; grpc-trusted-T, T7,
+2026-11-24): the target is `passthrough:///a`, `a` a non-empty address of `passthroughByteOk` bytes,
+and the dial sets no resolver (`WithResolvers` would be looked up first): grpc resolves the target to
+the one address `a` (`addrs = [a]`) with no service config, so no retry policy. True of grpc-go v1.84
+and the model (`models/grpc`, `clientconn.go` `parseTargetAndFindResolver`: the target parses, its
+scheme `passthrough` is the global registry's, which `internal/resolver/passthrough` registers at
+init and no verified program re-registers, `resolver.Register` having no spec here;
+`passthrough.go`'s resolver sends `[{Addr: target.Endpoint()}]` once and nothing else). -/
+def dialPassthrough (ds : List GrpcDialOpt) (target : GoString) (addrs : List GoString) : Prop :=
+  (∀ rbs, GrpcDialOpt.resolvers rbs ∉ ds) ∧
+    ∃ a : GoString, a ≠ [] ∧ (∀ b ∈ a, passthroughByteOk b) ∧
+      target = go!"passthrough:///" ++ a ∧ addrs = [a]
+
+/-- **The connection's options a call's behavior depends on** (grpc-trusted-T, T7, 2026-11-24):
+its unary interceptor chain, its stream interceptor (the last `WithStreamInterceptor`'s, or none),
+its per-RPC credentials. -/
+structure GrpcConnOpts where
+  unaryIcs : List GoFunc
+  streamIc : Option GoFunc
+  creds : List GoInterface
+
+/-- The stream interceptor a descriptor sets, if it sets one. -/
+def GrpcDialOpt.streamOf : GrpcDialOpt → Option GoFunc
+  | .streamInterceptor ic => some ic
+  | _ => none
+
+/-- **The stream interceptor of a dial with the options `ds`**: the last `WithStreamInterceptor`'s
+(grpc's `dopts.streamInt`; no descriptor sets a chained one), or none. -/
+def streamIcOf (ds : List GrpcDialOpt) : Option GoFunc :=
+  (ds.filterMap GrpcDialOpt.streamOf).getLast?
+
+/-- **The options of a connection dialed with `ds`**. -/
+def connOptsOf (ds : List GrpcDialOpt) : GrpcConnOpts :=
+  ⟨unaryIcsOf ds, streamIcOf ds, credsOfDial ds⟩
 
 
-/-- Keepalive sets no stream interceptor and no resolver: a dial with it is `NewClient`'s if the
-dial without it is. -/
+
+/-- Keepalive sets no resolver: a dial with it is `NewClient`'s if the dial without it is. -/
 theorem dialOk_keepalive (ds : List GrpcDialOpt) (rb : GoInterface) :
     dialOk ds rb → dialOk (.keepalive :: ds) rb := by
-  intro ⟨h1, h2, h3, si, h4⟩
-  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3,
-    si, List.mem_cons_of_mem _ h4⟩
-  · simpa using h
-  · simpa using h
+  intro ⟨h2, h3⟩
+  refine ⟨fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3⟩
+  simpa using h
 
-/-- Per-RPC credentials set no stream interceptor and no resolver: a dial with them is
-`NewClient`'s if the dial without them is. -/
+/-- Per-RPC credentials set no resolver: a dial with them is `NewClient`'s if the dial without them
+is. -/
 theorem dialOk_perRPCCreds (ds : List GrpcDialOpt) (rb : GoInterface) (pc : GoInterface) :
     dialOk ds rb → dialOk (ds ++ [.perRPCCreds pc]) rb := by
-  intro ⟨h1, h2, h3, si, h4⟩
-  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_append_left _ h3,
-    si, List.mem_append_left _ h4⟩
-  · simpa using h
-  · simpa using h
+  intro ⟨h2, h3⟩
+  refine ⟨fun rbs h => h2 rbs ?_, List.mem_append_left _ h3⟩
+  simpa using h
+
+/-- **How `NewClient` finds the target's addresses** (persistent; grpc-trusted-T, T7, 2026-11-24): the
+dial's one resolver `rb` (`dialOk`), which resolves the target's scheme `scheme` to `addrs`
+(`grpcResolverAt`, taken), or grpc's `passthrough` resolver (`dialPassthrough`). -/
+def dialTargetOk (ds : List GrpcDialOpt) (target : GoString) (rb : GoInterface) (scheme : GoString)
+    (addrs : List GoString) : IProp GF :=
+  iprop((⌜dialOk ds rb ∧ (scheme ++ go!"://") <+: target⌝ ∗ grpcResolverAt rb scheme addrs) ∨
+    ⌜dialPassthrough ds target addrs⌝)
+
+include hG in
+/-- The raw fact behind `grpcConnOpts` (opaque, interim: made only by `grpc.NewClient`'s axiom; S2d's
+proof of `NewClient` over the model defines it from the connection's `dopts`). Its signature carries
+the heap's instance, which that definition will need. -/
+opaque grpcConnOptsRaw (conn : Loc) (d : GrpcConnOpts) : IProp GF := iprop(True)
+
+/-- **The connection `conn` was dialed with the options `d`** (persistent; grpc-trusted-T, T7,
+2026-11-24; `grpc.NewClient`'s post, `connOptsOf ds`, beside `grpcConn conn addrs (unaryIcsOf ds) …`):
+its unary interceptors, its stream interceptor and its per-RPC credentials are `d`'s. Only
+`NewClient` makes it, once per connection, so every such fact of `conn` names the options it was
+dialed with. What `ClientConn.NewStream` states the attempt's metadata and errors from. -/
+def grpcConnOpts (conn : Loc) (d : GrpcConnOpts) : IProp GF := iprop(□ grpcConnOptsRaw conn d)
+
+instance grpcConnOpts_persistent (conn : Loc) (d : GrpcConnOpts) :
+    Persistent (grpcConnOpts (GF := GF) conn d) := by
+  unfold grpcConnOpts; infer_instance
+
+/-- No-proxy options set no resolver: a dial with them is `NewClient`'s if the dial without them is. -/
+theorem dialOk_noProxy (ds : List GrpcDialOpt) (rb : GoInterface) (n : Nat) :
+    dialOk ds rb → dialOk (ds ++ List.replicate n .noProxy) rb := by
+  intro ⟨h2, h3⟩
+  refine ⟨fun rbs h => h2 rbs ?_, List.mem_append_left _ h3⟩
+  rcases List.mem_append.1 h with h | h
+  · exact h
+  · exact absurd (List.eq_of_mem_replicate h) (by simp)
+
+/-- No-proxy options set no stream interceptor. -/
+theorem streamIcOf_noProxy (ds : List GrpcDialOpt) (n : Nat) :
+    streamIcOf (ds ++ List.replicate n .noProxy) = streamIcOf ds := by
+  unfold streamIcOf
+  have h : (List.replicate n GrpcDialOpt.noProxy).filterMap GrpcDialOpt.streamOf = [] := by
+    induction n with
+    | zero => rfl
+    | succ n ih => simp [List.replicate_succ, List.filterMap_cons, GrpcDialOpt.streamOf, ih]
+  simp [List.filterMap_append, h]
+
+/-- **The slice `sl` of `WithNoProxy()`'s options, read-only** (persistent; none or more): the
+dial options a configuration of `clientv3.New` may carry (`clientCfgOk`). -/
+def noProxyOptsAt (sl : GoSlice) (n : Nat) : IProp GF :=
+  dialOptsAt sl (List.replicate n .noProxy)
+
+instance noProxyOptsAt_persistent (sl : GoSlice) (n : Nat) :
+    Persistent (noProxyOptsAt (GF := GF) sl n) := by
+  unfold noProxyOptsAt; infer_instance
+
+/-- The nil slice holds no option. -/
+theorem noProxyOptsAt_nil : ⊢ noProxyOptsAt (GF := GF) slice.nil 0 := by
+  unfold noProxyOptsAt dialOptsAt
+  iexists ([] : List GoInterface)
+  isplitl
+  · iapply ownSlice_nil
+  · simp only [List.replicate_zero]
+    iapply BigSepL2.bigSepL2_nil.2
+    itrivial
 
 end defs2
 

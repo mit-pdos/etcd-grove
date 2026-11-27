@@ -9,8 +9,9 @@ module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.Base
 public import Perennial.Proof.io.Link
-public import Net.Proof.net.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Init
+public import Proof.net.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -48,6 +49,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩

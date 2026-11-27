@@ -32,14 +32,13 @@ one; the client's is, `newClient` makes it with `WithCancel`): `nil` with an err
 abbrev NewSession.spec : Prop :=
   ∀ (client : Loc) (cctx : GoInterface) (sl : GoSlice) (gs : List (SessionOpts → SessionOpts))
     (pctx : GoInterfaceOk) (pcs : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdSessionClient client cctx ∗ sessOptsAt sl gs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isEtcdSessionClient client cctx ∗ sessOptsAt sl gs ∗
       ⌜(sessOptsFold gs (SessionOpts.init cctx)).ctx = GoInterface.ok pctx⌝ ∗
-      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs ∗ metadata.outgoingCtxOkC pctx }}
+      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs ∗ metadata.outgoingCtxOkC pctx) }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewSession)) (Val #client)) (Val #sl))
-  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      ⌜s = null ∧ err ≠ GoInterface.nil⌝ ∨
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err); levelTok 0 ∗ (⌜s = null ∧ err ≠ GoInterface.nil⌝ ∨
       (⌜err = GoInterface.nil ∧ s ≠ null⌝ ∗ ∃ (γ : SessionNames) (id : w64),
-        isSession s γ client id ∗ ⌜sessionLeaseOk (sessOptsFold gs (SessionOpts.init cctx)) id⌝) }}
+        isSession s γ client id ∗ ⌜sessionLeaseOk (sessOptsFold gs (SessionOpts.init cctx)) id⌝)) }}
 
 end spec
 

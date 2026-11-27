@@ -1,0 +1,58 @@
+# etcd-dist-lease (examples/etcd/dist, #50 F2/F7, notes/etcd-dist-f7.md): the three lease workloads' runs
+# (`RunLeaseRead`, `RunLeaseCatchup`, `RunLeaseExpiry`) with their callees linked, at the six interim lease
+# axioms of the distributed proof (`Lease_Grant_dist`, `Lease_GrantLive_dist`, `Lease_LeasesGranted_dist`,
+# `Lease_LeasesLive_dist`, `Client_LeaseLeases_dist`, `Client_LeaseTimeToLive_dist`), in
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/Results.lean. No top-level statement (the lead,
+# #50 03:48Z): the full `etcd_robust_nocrash.spec` is F8's. The baseline is written by `--check --update`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist-lease.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist-lease.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist-lease.txt --check --update
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/Results\.lean$
+axiom Client.Close.wp_proof
+axiom WithRequireLeader.wp_proof
+axiom endpoint.RequiresCredentials.wp_proof
+axiom etcdResolver_grpc
+axiom etcd_dist.etcdSvc
+axiom etcd_dist.view.Client_LeaseLeases_dist.wp_proof
+axiom etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
+axiom etcd_dist.view.Lease_GrantLive_dist.wp_proof
+axiom etcd_dist.view.Lease_Grant_dist.wp_proof
+axiom etcd_dist.view.Lease_LeasesGranted_dist.wp_proof
+axiom etcd_dist.view.Lease_LeasesLive_dist.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.Target.wp_proof
+axiom grpc.NewClient.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcResolverAt
+axiom grpcWrotePeer
+axiom pbAuthenticateRequestT_reg
+axiom pbAuthenticateResponseT_reg
+axiom peer.Peer.String.wp_proof
+axiom promSrvMetrics
+axiom proto.EqualStatus.wp_proof
+axiom rand.Float64.wp_proof
+axiom strings.SplitN.wp_proof
+axiom withVersion.wp_proof
+opaque apply.irrDecodeRest
+opaque apply.semverAtMostServer
+opaque apply.semverValid
+opaque credsYieldRaw
+opaque etcdVerifyEnv
+opaque grpcCliPI
+opaque grpcConnClosedRaw
+opaque grpcConnOptsRaw
+opaque grpcRepModelOf
+opaque grpcReqModelOf
+opaque grpcSrvPI
+opaque metadata.transportMDRaw
+opaque mvcc.kvEncode
+opaque mvcc.viewFk
+opaque noRefusalAt
+opaque peer.transportPeer
+opaque prometheus.vecLabels
+opaque streamRepModelOf
+opaque streamReqModelOf
+opaque trace.otelSpan

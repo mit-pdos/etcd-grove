@@ -27,7 +27,7 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- `rpc.Register`'s obligation on the codec's `Receiver` for the master `m` (not nil), once the
@@ -64,8 +64,9 @@ abbrev master.Master.Run.specFull : Prop :=
       master.createdFull m γc γm N (W64 7001) ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
-      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ H.muxOwner [] ∗
-      (∃ γs, H.defaultServer γs) ∗ RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
+      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ muxOwner [] ∗
+      (∃ γs γf, net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅) ∗ dialEnv ∗ threadTok ∗
+      RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
@@ -77,7 +78,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -87,7 +88,7 @@ section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 

@@ -250,6 +250,9 @@ class mapping.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_m : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (mapping.underlying K V) go!"m") (PairV #x #y) (Val #(({ x with m' := y } : (mapping K' V'))))
   method_set : ∀ (K V : go.GoType), go.MethodSetIs (mapping.ty K V) []
   ptr_method_set : ∀ (K V : go.GoType), go.MethodSetIs (go.GoType.PointerType (mapping.ty K V)) [(go!"net/http.add", (some (go.signature.Signature [K, V] false []))), (go!"net/http.eachPair", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))] false []))), (go!"net/http.find", (some (go.signature.Signature [K] false [V, go.bool])))]
+  ptr_add_unfold : ∀ (K V : go.GoType), MethodUnfold (go.GoType.PointerType (mapping.ty K V)) go!"add" (mapping.add.impl K V)
+  ptr_eachPair_unfold : ∀ (K V : go.GoType), MethodUnfold (go.GoType.PointerType (mapping.ty K V)) go!"eachPair" (mapping.eachPair.impl K V)
+  ptr_find_unfold : ∀ (K V : go.GoType), MethodUnfold (go.GoType.PointerType (mapping.ty K V)) go!"find" (mapping.find.impl K V)
 
 attribute [instance] mapping.TypeAssumptions.type_repr
   mapping.TypeAssumptions.underlying
@@ -259,6 +262,9 @@ attribute [instance] mapping.TypeAssumptions.type_repr
   mapping.TypeAssumptions.set_m
   mapping.TypeAssumptions.method_set
   mapping.TypeAssumptions.ptr_method_set
+  mapping.TypeAssumptions.ptr_add_unfold
+  mapping.TypeAssumptions.ptr_eachPair_unfold
+  mapping.TypeAssumptions.ptr_find_unfold
 
 class routingNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingNode.underlying routingNode
@@ -275,6 +281,16 @@ class routingNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_emptyChild : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"emptyChild") (PairV #x #y) (Val #(({ x with emptyChild' := y } : routingNode)))
   method_set : go.MethodSetIs routingNode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingNode.ty) [(go!"net/http.addChild", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType routingNode.ty)]))), (go!"net/http.addPattern", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), Handler.ty] false []))), (go!"net/http.addSegments", (some (go.signature.Signature [(go.GoType.SliceType segment.ty), (go.GoType.PointerType pattern.ty), Handler.ty] false []))), (go!"net/http.findChild", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType routingNode.ty)]))), (go!"net/http.match", (some (go.signature.Signature [go.string, go.string, go.string] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchMethodAndPath", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchPath", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchingMethods", (some (go.signature.Signature [go.string, go.string, (go.GoType.MapType go.string go.bool)] false []))), (go!"net/http.matchingMethodsPath", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.bool)] false []))), (go!"net/http.set", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), Handler.ty] false [])))]
+  ptr_addChild_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"addChild" routingNode.addChild.impl
+  ptr_addPattern_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"addPattern" routingNode.addPattern.impl
+  ptr_addSegments_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"addSegments" routingNode.addSegments.impl
+  ptr_findChild_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"findChild" routingNode.findChild.impl
+  ptr_match_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"match" routingNode.«match».impl
+  ptr_matchMethodAndPath_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchMethodAndPath" routingNode.matchMethodAndPath.impl
+  ptr_matchPath_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchPath" routingNode.matchPath.impl
+  ptr_matchingMethods_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchingMethods" routingNode.matchingMethods.impl
+  ptr_matchingMethodsPath_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchingMethodsPath" routingNode.matchingMethodsPath.impl
+  ptr_set_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"set" routingNode.set.impl
 
 attribute [instance] routingNode.TypeAssumptions.type_repr
   routingNode.TypeAssumptions.underlying
@@ -290,6 +306,16 @@ attribute [instance] routingNode.TypeAssumptions.type_repr
   routingNode.TypeAssumptions.set_emptyChild
   routingNode.TypeAssumptions.method_set
   routingNode.TypeAssumptions.ptr_method_set
+  routingNode.TypeAssumptions.ptr_addChild_unfold
+  routingNode.TypeAssumptions.ptr_addPattern_unfold
+  routingNode.TypeAssumptions.ptr_addSegments_unfold
+  routingNode.TypeAssumptions.ptr_findChild_unfold
+  routingNode.TypeAssumptions.ptr_match_unfold
+  routingNode.TypeAssumptions.ptr_matchMethodAndPath_unfold
+  routingNode.TypeAssumptions.ptr_matchPath_unfold
+  routingNode.TypeAssumptions.ptr_matchingMethods_unfold
+  routingNode.TypeAssumptions.ptr_matchingMethodsPath_unfold
+  routingNode.TypeAssumptions.ptr_set_unfold
 
 class routingIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingIndex.underlying routingIndex
@@ -300,6 +326,8 @@ class routingIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_multis : ∀ (x : routingIndex) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet routingIndex.underlying go!"multis") (PairV #x #y) (Val #(({ x with multis' := y } : routingIndex)))
   method_set : go.MethodSetIs routingIndex.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingIndex.ty) [(go!"net/http.addPattern", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false []))), (go!"net/http.possiblyConflictingPatterns", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.error]))] false [go.error])))]
+  ptr_addPattern_unfold : MethodUnfold (go.GoType.PointerType routingIndex.ty) go!"addPattern" routingIndex.addPattern.impl
+  ptr_possiblyConflictingPatterns_unfold : MethodUnfold (go.GoType.PointerType routingIndex.ty) go!"possiblyConflictingPatterns" routingIndex.possiblyConflictingPatterns.impl
 
 attribute [instance] routingIndex.TypeAssumptions.type_repr
   routingIndex.TypeAssumptions.underlying
@@ -309,6 +337,8 @@ attribute [instance] routingIndex.TypeAssumptions.type_repr
   routingIndex.TypeAssumptions.set_multis
   routingIndex.TypeAssumptions.method_set
   routingIndex.TypeAssumptions.ptr_method_set
+  routingIndex.TypeAssumptions.ptr_addPattern_unfold
+  routingIndex.TypeAssumptions.ptr_possiblyConflictingPatterns_unfold
 
 class serveMux121.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serveMux121.underlying serveMux121
@@ -323,6 +353,13 @@ class serveMux121.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_hosts : ∀ (x : serveMux121) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serveMux121.underlying go!"hosts") (PairV #x #y) (Val #(({ x with hosts' := y } : serveMux121)))
   method_set : go.MethodSetIs serveMux121.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serveMux121.ty) [(go!"net/http.findHandler", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [Handler.ty, go.string]))), (go!"net/http.handle", (some (go.signature.Signature [go.string, Handler.ty] false []))), (go!"net/http.handleFunc", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))] false []))), (go!"net/http.handler", (some (go.signature.Signature [go.string, go.string] false [Handler.ty, go.string]))), (go!"net/http.match", (some (go.signature.Signature [go.string] false [Handler.ty, go.string]))), (go!"net/http.redirectToPathSlash", (some (go.signature.Signature [go.string, go.string, (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty), go.bool]))), (go!"net/http.shouldRedirectRLocked", (some (go.signature.Signature [go.string, go.string] false [go.bool])))]
+  ptr_findHandler_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"findHandler" serveMux121.findHandler.impl
+  ptr_handle_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"handle" serveMux121.handle.impl
+  ptr_handleFunc_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"handleFunc" serveMux121.handleFunc.impl
+  ptr_handler_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"handler" serveMux121.handler.impl
+  ptr_match_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"match" serveMux121.«match».impl
+  ptr_redirectToPathSlash_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"redirectToPathSlash" serveMux121.redirectToPathSlash.impl
+  ptr_shouldRedirectRLocked_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"shouldRedirectRLocked" serveMux121.shouldRedirectRLocked.impl
 
 attribute [instance] serveMux121.TypeAssumptions.type_repr
   serveMux121.TypeAssumptions.underlying
@@ -336,6 +373,13 @@ attribute [instance] serveMux121.TypeAssumptions.type_repr
   serveMux121.TypeAssumptions.set_hosts
   serveMux121.TypeAssumptions.method_set
   serveMux121.TypeAssumptions.ptr_method_set
+  serveMux121.TypeAssumptions.ptr_findHandler_unfold
+  serveMux121.TypeAssumptions.ptr_handle_unfold
+  serveMux121.TypeAssumptions.ptr_handleFunc_unfold
+  serveMux121.TypeAssumptions.ptr_handler_unfold
+  serveMux121.TypeAssumptions.ptr_match_unfold
+  serveMux121.TypeAssumptions.ptr_redirectToPathSlash_unfold
+  serveMux121.TypeAssumptions.ptr_shouldRedirectRLocked_unfold
 
 class ServeMux.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServeMux.underlying ServeMux
@@ -351,6 +395,7 @@ class ServeMux.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   method_set : go.MethodSetIs ServeMux.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServeMux.ty) [(go!"Handle", (some (go.signature.Signature [go.string, Handler.ty] false []))), (go!"HandleFunc", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))] false []))), (go!"Handler", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [Handler.ty, go.string]))), (go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))), (go!"net/http.findHandler", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [Handler.ty, go.string, (go.GoType.PointerType pattern.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchOrRedirect", (some (go.signature.Signature [go.string, go.string, go.string, (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string), (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)]))), (go!"net/http.matchingMethods", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string)]))), (go!"net/http.register", (some (go.signature.Signature [go.string, Handler.ty] false []))), (go!"net/http.registerErr", (some (go.signature.Signature [go.string, Handler.ty] false [go.error])))]
   ptr_Handle_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"Handle" ServeMux.Handle.impl
+  ptr_HandleFunc_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"HandleFunc" ServeMux.HandleFunc.impl
   ptr_Handler_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"Handler" ServeMux.Handler.impl
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"ServeHTTP" ServeMux.ServeHTTP.impl
   ptr_findHandler_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"findHandler" ServeMux.findHandler.impl
@@ -371,6 +416,7 @@ attribute [instance] ServeMux.TypeAssumptions.type_repr
   ServeMux.TypeAssumptions.method_set
   ServeMux.TypeAssumptions.ptr_method_set
   ServeMux.TypeAssumptions.ptr_Handle_unfold
+  ServeMux.TypeAssumptions.ptr_HandleFunc_unfold
   ServeMux.TypeAssumptions.ptr_Handler_unfold
   ServeMux.TypeAssumptions.ptr_ServeHTTP_unfold
   ServeMux.TypeAssumptions.ptr_findHandler_unfold
@@ -614,10 +660,30 @@ class Header.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq Header.ty Header.underlying
   method_set : go.MethodSetIs Header.ty [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Header.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"WriteSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"net/http.get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"net/http.has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"net/http.sortedKeyValues", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [(go.GoType.SliceType keyValues.ty), (go.GoType.PointerType headerSorter.ty)]))), (go!"net/http.write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error]))), (go!"net/http.writeSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Header.ty) [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Header.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"WriteSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"net/http.get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"net/http.has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"net/http.sortedKeyValues", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [(go.GoType.SliceType keyValues.ty), (go.GoType.PointerType headerSorter.ty)]))), (go!"net/http.write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error]))), (go!"net/http.writeSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error])))]
+  Del_unfold : MethodUnfold Header.ty go!"Del" Header.Del.impl
+  Get_unfold : MethodUnfold Header.ty go!"Get" Header.Get.impl
+  Set_unfold : MethodUnfold Header.ty go!"Set" Header.Set.impl
+  get_unfold : MethodUnfold Header.ty go!"get" Header.get.impl
+  ptr_Del_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Del" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Header.ty go!"Del"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
+  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Header.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
+  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Set" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Header.ty go!"Set"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
+  ptr_get_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Header.ty go!"get"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
 
 attribute [instance] Header.TypeAssumptions.underlying
   Header.TypeAssumptions.method_set
   Header.TypeAssumptions.ptr_method_set
+  Header.TypeAssumptions.Del_unfold
+  Header.TypeAssumptions.Get_unfold
+  Header.TypeAssumptions.Set_unfold
+  Header.TypeAssumptions.get_unfold
+  Header.TypeAssumptions.ptr_Del_unfold
+  Header.TypeAssumptions.ptr_Get_unfold
+  Header.TypeAssumptions.ptr_Set_unfold
+  Header.TypeAssumptions.ptr_get_unfold
 
 class stringWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stringWriter.underlying stringWriter
@@ -675,6 +741,29 @@ class Protocols.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_bits : ∀ (x : Protocols) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet Protocols.underlying go!"bits") (PairV #x #y) (Val #(({ x with bits' := y } : Protocols)))
   method_set : go.MethodSetIs Protocols.ty [(go!"HTTP1", (some (go.signature.Signature [] false [go.bool]))), (go!"HTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnencryptedHTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.empty", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http3", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Protocols.ty) [(go!"HTTP1", (some (go.signature.Signature [] false [go.bool]))), (go!"HTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"SetHTTP1", (some (go.signature.Signature [go.bool] false []))), (go!"SetHTTP2", (some (go.signature.Signature [go.bool] false []))), (go!"SetUnencryptedHTTP2", (some (go.signature.Signature [go.bool] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnencryptedHTTP2", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.empty", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http3", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.setBit", (some (go.signature.Signature [go.uint8, go.bool] false []))), (go!"net/http.setHTTP3", (some (go.signature.Signature [go.bool] false [])))]
+  HTTP1_unfold : MethodUnfold Protocols.ty go!"HTTP1" Protocols.HTTP1.impl
+  HTTP2_unfold : MethodUnfold Protocols.ty go!"HTTP2" Protocols.HTTP2.impl
+  String_unfold : MethodUnfold Protocols.ty go!"String" Protocols.String.impl
+  UnencryptedHTTP2_unfold : MethodUnfold Protocols.ty go!"UnencryptedHTTP2" Protocols.UnencryptedHTTP2.impl
+  empty_unfold : MethodUnfold Protocols.ty go!"empty" Protocols.empty.impl
+  http3_unfold : MethodUnfold Protocols.ty go!"http3" Protocols.http3.impl
+  ptr_HTTP1_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"HTTP1" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Protocols.ty go!"HTTP1"))) (App (Val (GoInstruction (GoLoad Protocols.ty))) (Var "$r"))))
+  ptr_HTTP2_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"HTTP2" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Protocols.ty go!"HTTP2"))) (App (Val (GoInstruction (GoLoad Protocols.ty))) (Var "$r"))))
+  ptr_SetHTTP1_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"SetHTTP1" Protocols.SetHTTP1.impl
+  ptr_SetHTTP2_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"SetHTTP2" Protocols.SetHTTP2.impl
+  ptr_SetUnencryptedHTTP2_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"SetUnencryptedHTTP2" Protocols.SetUnencryptedHTTP2.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Protocols.ty go!"String"))) (App (Val (GoInstruction (GoLoad Protocols.ty))) (Var "$r"))))
+  ptr_UnencryptedHTTP2_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"UnencryptedHTTP2" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Protocols.ty go!"UnencryptedHTTP2"))) (App (Val (GoInstruction (GoLoad Protocols.ty))) (Var "$r"))))
+  ptr_empty_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"empty" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Protocols.ty go!"empty"))) (App (Val (GoInstruction (GoLoad Protocols.ty))) (Var "$r"))))
+  ptr_http3_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"http3" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Protocols.ty go!"http3"))) (App (Val (GoInstruction (GoLoad Protocols.ty))) (Var "$r"))))
+  ptr_setBit_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"setBit" Protocols.setBit.impl
+  ptr_setHTTP3_unfold : MethodUnfold (go.GoType.PointerType Protocols.ty) go!"setHTTP3" Protocols.setHTTP3.impl
 
 attribute [instance] Protocols.TypeAssumptions.type_repr
   Protocols.TypeAssumptions.underlying
@@ -682,6 +771,23 @@ attribute [instance] Protocols.TypeAssumptions.type_repr
   Protocols.TypeAssumptions.set_bits
   Protocols.TypeAssumptions.method_set
   Protocols.TypeAssumptions.ptr_method_set
+  Protocols.TypeAssumptions.HTTP1_unfold
+  Protocols.TypeAssumptions.HTTP2_unfold
+  Protocols.TypeAssumptions.String_unfold
+  Protocols.TypeAssumptions.UnencryptedHTTP2_unfold
+  Protocols.TypeAssumptions.empty_unfold
+  Protocols.TypeAssumptions.http3_unfold
+  Protocols.TypeAssumptions.ptr_HTTP1_unfold
+  Protocols.TypeAssumptions.ptr_HTTP2_unfold
+  Protocols.TypeAssumptions.ptr_SetHTTP1_unfold
+  Protocols.TypeAssumptions.ptr_SetHTTP2_unfold
+  Protocols.TypeAssumptions.ptr_SetUnencryptedHTTP2_unfold
+  Protocols.TypeAssumptions.ptr_String_unfold
+  Protocols.TypeAssumptions.ptr_UnencryptedHTTP2_unfold
+  Protocols.TypeAssumptions.ptr_empty_unfold
+  Protocols.TypeAssumptions.ptr_http3_unfold
+  Protocols.TypeAssumptions.ptr_setBit_unfold
+  Protocols.TypeAssumptions.ptr_setHTTP3_unfold
 
 class incomparable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq incomparable.ty incomparable.underlying
@@ -838,8 +944,8 @@ class http2ServerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   underlying : go.UnderlyingDirectedEq http2ServerConfig.ty http2ServerConfig.underlying
   get_s : ∀ (x : http2ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet http2ServerConfig.underlying go!"s") #x (Val #(x.s'))
   set_s : ∀ (x : http2ServerConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet http2ServerConfig.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : http2ServerConfig)))
-  method_set : go.MethodSetIs http2ServerConfig.ty [(go!"ConnState", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty, (go.GoType.Named go!"net/http/internal/http2.ConnState" [])] false []))), (go!"DisableClientPriority", (some (go.signature.Signature [] false [go.bool]))), (go!"DoKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ErrorLog", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"log.Logger" []))]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxHeaderBytes", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeaderValueCount", (some (go.signature.Signature [] false [go.int]))), (go!"ReadTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"SendPingTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"WriteTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType http2ServerConfig.ty) [(go!"ConnState", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty, (go.GoType.Named go!"net/http/internal/http2.ConnState" [])] false []))), (go!"DisableClientPriority", (some (go.signature.Signature [] false [go.bool]))), (go!"DoKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ErrorLog", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"log.Logger" []))]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxHeaderBytes", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeaderValueCount", (some (go.signature.Signature [] false [go.int]))), (go!"ReadTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"SendPingTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"WriteTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
+  method_set : go.MethodSetIs http2ServerConfig.ty [(go!"ConnState", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty, (go.GoType.Named go!"net/http/internal/http2.ConnState" [])] false []))), (go!"DisableClientPriority", (some (go.signature.Signature [] false [go.bool]))), (go!"DoKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ErrorLog", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.log.Logger.ty)]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxHeaderBytes", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeaderValueCount", (some (go.signature.Signature [] false [go.int]))), (go!"ReadTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"SendPingTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"WriteTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType http2ServerConfig.ty) [(go!"ConnState", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty, (go.GoType.Named go!"net/http/internal/http2.ConnState" [])] false []))), (go!"DisableClientPriority", (some (go.signature.Signature [] false [go.bool]))), (go!"DoKeepAlives", (some (go.signature.Signature [] false [go.bool]))), (go!"ErrorLog", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.log.Logger.ty)]))), (go!"HTTP2Config", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/http/internal/http2.Config" [])]))), (go!"IdleTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxHeaderBytes", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeaderValueCount", (some (go.signature.Signature [] false [go.int]))), (go!"ReadTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"SendPingTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"WriteTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
 
 attribute [instance] http2ServerConfig.TypeAssumptions.type_repr
   http2ServerConfig.TypeAssumptions.underlying
@@ -965,6 +1071,12 @@ class pattern.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_loc : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"loc") (PairV #x #y) (Val #(({ x with loc' := y } : pattern)))
   method_set : go.MethodSetIs pattern.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType pattern.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net/http.compareMethods", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.comparePaths", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.comparePathsAndMethods", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.conflictsWith", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.bool]))), (go!"net/http.lastSegment", (some (go.signature.Signature [] false [segment.ty])))]
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"String" pattern.String.impl
+  ptr_compareMethods_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"compareMethods" pattern.compareMethods.impl
+  ptr_comparePaths_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"comparePaths" pattern.comparePaths.impl
+  ptr_comparePathsAndMethods_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"comparePathsAndMethods" pattern.comparePathsAndMethods.impl
+  ptr_conflictsWith_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"conflictsWith" pattern.conflictsWith.impl
+  ptr_lastSegment_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"lastSegment" pattern.lastSegment.impl
 
 attribute [instance] pattern.TypeAssumptions.type_repr
   pattern.TypeAssumptions.underlying
@@ -980,6 +1092,12 @@ attribute [instance] pattern.TypeAssumptions.type_repr
   pattern.TypeAssumptions.set_loc
   pattern.TypeAssumptions.method_set
   pattern.TypeAssumptions.ptr_method_set
+  pattern.TypeAssumptions.ptr_String_unfold
+  pattern.TypeAssumptions.ptr_compareMethods_unfold
+  pattern.TypeAssumptions.ptr_comparePaths_unfold
+  pattern.TypeAssumptions.ptr_comparePathsAndMethods_unfold
+  pattern.TypeAssumptions.ptr_conflictsWith_unfold
+  pattern.TypeAssumptions.ptr_lastSegment_unfold
 
 class segment.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying segment.underlying segment
@@ -1031,195 +1149,127 @@ attribute [instance] ProtocolError.TypeAssumptions.type_repr
 class Request.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Request.underlying Request
   underlying : go.UnderlyingDirectedEq Request.ty Request.underlying
-  isUnderlying : go.IsUnderlying Request.underlying Request.underlying
+  get_Method : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Method") #x (Val #(x.Method'))
+  set_Method : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : Request)))
+  get_URL : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"URL") #x (Val #(x.URL'))
+  set_URL : ∀ (x : Request) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"URL") (PairV #x #y) (Val #(({ x with URL' := y } : Request)))
+  get_Proto : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Proto") #x (Val #(x.Proto'))
+  set_Proto : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Proto") (PairV #x #y) (Val #(({ x with Proto' := y } : Request)))
+  get_ProtoMajor : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"ProtoMajor") #x (Val #(x.ProtoMajor'))
+  set_ProtoMajor : ∀ (x : Request) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"ProtoMajor") (PairV #x #y) (Val #(({ x with ProtoMajor' := y } : Request)))
+  get_ProtoMinor : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"ProtoMinor") #x (Val #(x.ProtoMinor'))
+  set_ProtoMinor : ∀ (x : Request) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"ProtoMinor") (PairV #x #y) (Val #(({ x with ProtoMinor' := y } : Request)))
+  get_Header : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : Request) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : Request)))
+  get_Body : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Body") #x (Val #(x.Body'))
+  set_Body : ∀ (x : Request) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Body") (PairV #x #y) (Val #(({ x with Body' := y } : Request)))
+  get_GetBody : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"GetBody") #x (Val #(x.GetBody'))
+  set_GetBody : ∀ (x : Request) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"GetBody") (PairV #x #y) (Val #(({ x with GetBody' := y } : Request)))
+  get_ContentLength : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"ContentLength") #x (Val #(x.ContentLength'))
+  set_ContentLength : ∀ (x : Request) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"ContentLength") (PairV #x #y) (Val #(({ x with ContentLength' := y } : Request)))
+  get_TransferEncoding : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"TransferEncoding") #x (Val #(x.TransferEncoding'))
+  set_TransferEncoding : ∀ (x : Request) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"TransferEncoding") (PairV #x #y) (Val #(({ x with TransferEncoding' := y } : Request)))
+  get_Close : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Close") #x (Val #(x.Close'))
+  set_Close : ∀ (x : Request) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Close") (PairV #x #y) (Val #(({ x with Close' := y } : Request)))
+  get_Host : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Host") #x (Val #(x.Host'))
+  set_Host : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Host") (PairV #x #y) (Val #(({ x with Host' := y } : Request)))
+  get_Form : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Form") #x (Val #(x.Form'))
+  set_Form : ∀ (x : Request) (y : _root_.Perennial.net.url.Values), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Form") (PairV #x #y) (Val #(({ x with Form' := y } : Request)))
+  get_PostForm : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"PostForm") #x (Val #(x.PostForm'))
+  set_PostForm : ∀ (x : Request) (y : _root_.Perennial.net.url.Values), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"PostForm") (PairV #x #y) (Val #(({ x with PostForm' := y } : Request)))
+  get_MultipartForm : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"MultipartForm") #x (Val #(x.MultipartForm'))
+  set_MultipartForm : ∀ (x : Request) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"MultipartForm") (PairV #x #y) (Val #(({ x with MultipartForm' := y } : Request)))
+  get_Trailer : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Trailer") #x (Val #(x.Trailer'))
+  set_Trailer : ∀ (x : Request) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Trailer") (PairV #x #y) (Val #(({ x with Trailer' := y } : Request)))
+  get_RemoteAddr : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"RemoteAddr") #x (Val #(x.RemoteAddr'))
+  set_RemoteAddr : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"RemoteAddr") (PairV #x #y) (Val #(({ x with RemoteAddr' := y } : Request)))
+  get_RequestURI : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"RequestURI") #x (Val #(x.RequestURI'))
+  set_RequestURI : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"RequestURI") (PairV #x #y) (Val #(({ x with RequestURI' := y } : Request)))
+  get_TLS : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"TLS") #x (Val #(x.TLS'))
+  set_TLS : ∀ (x : Request) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"TLS") (PairV #x #y) (Val #(({ x with TLS' := y } : Request)))
+  get_Cancel : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Cancel") #x (Val #(x.Cancel'))
+  set_Cancel : ∀ (x : Request) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Cancel") (PairV #x #y) (Val #(({ x with Cancel' := y } : Request)))
+  get_Response : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Response") #x (Val #(x.Response'))
+  set_Response : ∀ (x : Request) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Response") (PairV #x #y) (Val #(({ x with Response' := y } : Request)))
+  get_Pattern : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"Pattern") #x (Val #(x.Pattern'))
+  set_Pattern : ∀ (x : Request) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"Pattern") (PairV #x #y) (Val #(({ x with Pattern' := y } : Request)))
+  get_ctx : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"ctx") #x (Val #(x.ctx'))
+  set_ctx : ∀ (x : Request) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Request)))
+  get_pat : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"pat") #x (Val #(x.pat'))
+  set_pat : ∀ (x : Request) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"pat") (PairV #x #y) (Val #(({ x with pat' := y } : Request)))
+  get_matches : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"matches") #x (Val #(x.matches'))
+  set_matches : ∀ (x : Request) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"matches") (PairV #x #y) (Val #(({ x with matches' := y } : Request)))
+  get_otherValues : ∀ (x : Request), go.IsGoStepPureDetTagged under (StructFieldGet Request.underlying go!"otherValues") #x (Val #(x.otherValues'))
+  set_otherValues : ∀ (x : Request) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Request.underlying go!"otherValues") (PairV #x #y) (Val #(({ x with otherValues' := y } : Request)))
   method_set : go.MethodSetIs Request.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Request.ty) [(go!"AddCookie", (some (go.signature.Signature [(go.GoType.PointerType Cookie.ty)] false []))), (go!"BasicAuth", (some (go.signature.Signature [] false [go.string, go.string, go.bool]))), (go!"Clone", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType Request.ty)]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Cookie", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Cookie.ty), go.error]))), (go!"Cookies", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Cookie.ty))]))), (go!"CookiesNamed", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType (go.GoType.PointerType Cookie.ty))]))), (go!"FormFile", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"mime/multipart.File" []), (go.GoType.PointerType (go.GoType.Named go!"mime/multipart.FileHeader" [])), go.error]))), (go!"FormValue", (some (go.signature.Signature [go.string] false [go.string]))), (go!"MultipartReader", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"mime/multipart.Reader" [])), go.error]))), (go!"ParseForm", (some (go.signature.Signature [] false [go.error]))), (go!"ParseMultipartForm", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"PathValue", (some (go.signature.Signature [go.string] false [go.string]))), (go!"PostFormValue", (some (go.signature.Signature [go.string] false [go.string]))), (go!"ProtoAtLeast", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Referer", (some (go.signature.Signature [] false [go.string]))), (go!"SetBasicAuth", (some (go.signature.Signature [go.string, go.string] false []))), (go!"SetPathValue", (some (go.signature.Signature [go.string, go.string] false []))), (go!"UserAgent", (some (go.signature.Signature [] false [go.string]))), (go!"WithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType Request.ty)]))), (go!"Write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"WriteProxy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"net/http.closeBody", (some (go.signature.Signature [] false [go.error]))), (go!"net/http.expectsContinue", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.isH2Upgrade", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.isReplayable", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.multipartReader", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType (go.GoType.Named go!"mime/multipart.Reader" [])), go.error]))), (go!"net/http.outgoingLength", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.patIndex", (some (go.signature.Signature [go.string] false [go.int]))), (go!"net/http.requiresHTTP1", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.wantsClose", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.wantsHttp10KeepAlive", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, go.bool, Header.ty, (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Request.ty) [(go!"AddCookie", (some (go.signature.Signature [(go.GoType.PointerType Cookie.ty)] false []))), (go!"BasicAuth", (some (go.signature.Signature [] false [go.string, go.string, go.bool]))), (go!"Clone", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType Request.ty)]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Cookie", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Cookie.ty), go.error]))), (go!"Cookies", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Cookie.ty))]))), (go!"CookiesNamed", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType (go.GoType.PointerType Cookie.ty))]))), (go!"FormFile", (some (go.signature.Signature [go.string] false [_root_.Perennial.mime.multipart.File.ty, (go.GoType.PointerType _root_.Perennial.mime.multipart.FileHeader.ty), go.error]))), (go!"FormValue", (some (go.signature.Signature [go.string] false [go.string]))), (go!"MultipartReader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.mime.multipart.Reader.ty), go.error]))), (go!"ParseForm", (some (go.signature.Signature [] false [go.error]))), (go!"ParseMultipartForm", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"PathValue", (some (go.signature.Signature [go.string] false [go.string]))), (go!"PostFormValue", (some (go.signature.Signature [go.string] false [go.string]))), (go!"ProtoAtLeast", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Referer", (some (go.signature.Signature [] false [go.string]))), (go!"SetBasicAuth", (some (go.signature.Signature [go.string, go.string] false []))), (go!"SetPathValue", (some (go.signature.Signature [go.string, go.string] false []))), (go!"UserAgent", (some (go.signature.Signature [] false [go.string]))), (go!"WithContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType Request.ty)]))), (go!"Write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"WriteProxy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"net/http.closeBody", (some (go.signature.Signature [] false [go.error]))), (go!"net/http.expectsContinue", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.isH2Upgrade", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.isReplayable", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.multipartReader", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType _root_.Perennial.mime.multipart.Reader.ty), go.error]))), (go!"net/http.outgoingLength", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.patIndex", (some (go.signature.Signature [go.string] false [go.int]))), (go!"net/http.requiresHTTP1", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.wantsClose", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.wantsHttp10KeepAlive", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, go.bool, Header.ty, (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))] false [go.error])))]
+  ptr_ProtoAtLeast_unfold : MethodUnfold (go.GoType.PointerType Request.ty) go!"ProtoAtLeast" Request.ProtoAtLeast.impl
+  ptr_expectsContinue_unfold : MethodUnfold (go.GoType.PointerType Request.ty) go!"expectsContinue" Request.expectsContinue.impl
+  ptr_isH2Upgrade_unfold : MethodUnfold (go.GoType.PointerType Request.ty) go!"isH2Upgrade" Request.isH2Upgrade.impl
+  ptr_wantsClose_unfold : MethodUnfold (go.GoType.PointerType Request.ty) go!"wantsClose" Request.wantsClose.impl
+  ptr_wantsHttp10KeepAlive_unfold : MethodUnfold (go.GoType.PointerType Request.ty) go!"wantsHttp10KeepAlive" Request.wantsHttp10KeepAlive.impl
 
 attribute [instance] Request.TypeAssumptions.type_repr
   Request.TypeAssumptions.underlying
-  Request.TypeAssumptions.isUnderlying
+  Request.TypeAssumptions.get_Method
+  Request.TypeAssumptions.set_Method
+  Request.TypeAssumptions.get_URL
+  Request.TypeAssumptions.set_URL
+  Request.TypeAssumptions.get_Proto
+  Request.TypeAssumptions.set_Proto
+  Request.TypeAssumptions.get_ProtoMajor
+  Request.TypeAssumptions.set_ProtoMajor
+  Request.TypeAssumptions.get_ProtoMinor
+  Request.TypeAssumptions.set_ProtoMinor
+  Request.TypeAssumptions.get_Header
+  Request.TypeAssumptions.set_Header
+  Request.TypeAssumptions.get_Body
+  Request.TypeAssumptions.set_Body
+  Request.TypeAssumptions.get_GetBody
+  Request.TypeAssumptions.set_GetBody
+  Request.TypeAssumptions.get_ContentLength
+  Request.TypeAssumptions.set_ContentLength
+  Request.TypeAssumptions.get_TransferEncoding
+  Request.TypeAssumptions.set_TransferEncoding
+  Request.TypeAssumptions.get_Close
+  Request.TypeAssumptions.set_Close
+  Request.TypeAssumptions.get_Host
+  Request.TypeAssumptions.set_Host
+  Request.TypeAssumptions.get_Form
+  Request.TypeAssumptions.set_Form
+  Request.TypeAssumptions.get_PostForm
+  Request.TypeAssumptions.set_PostForm
+  Request.TypeAssumptions.get_MultipartForm
+  Request.TypeAssumptions.set_MultipartForm
+  Request.TypeAssumptions.get_Trailer
+  Request.TypeAssumptions.set_Trailer
+  Request.TypeAssumptions.get_RemoteAddr
+  Request.TypeAssumptions.set_RemoteAddr
+  Request.TypeAssumptions.get_RequestURI
+  Request.TypeAssumptions.set_RequestURI
+  Request.TypeAssumptions.get_TLS
+  Request.TypeAssumptions.set_TLS
+  Request.TypeAssumptions.get_Cancel
+  Request.TypeAssumptions.set_Cancel
+  Request.TypeAssumptions.get_Response
+  Request.TypeAssumptions.set_Response
+  Request.TypeAssumptions.get_Pattern
+  Request.TypeAssumptions.set_Pattern
+  Request.TypeAssumptions.get_ctx
+  Request.TypeAssumptions.set_ctx
+  Request.TypeAssumptions.get_pat
+  Request.TypeAssumptions.set_pat
+  Request.TypeAssumptions.get_matches
+  Request.TypeAssumptions.set_matches
+  Request.TypeAssumptions.get_otherValues
+  Request.TypeAssumptions.set_otherValues
   Request.TypeAssumptions.method_set
   Request.TypeAssumptions.ptr_method_set
-
-class requestBodyReadError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying requestBodyReadError.underlying requestBodyReadError
-  underlying : go.UnderlyingDirectedEq requestBodyReadError.ty requestBodyReadError.underlying
-  get_error : ∀ (x : requestBodyReadError), go.IsGoStepPureDetTagged under (StructFieldGet requestBodyReadError.underlying go!"error") #x (Val #(x.error'))
-  set_error : ∀ (x : requestBodyReadError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet requestBodyReadError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : requestBodyReadError)))
-  method_set : go.MethodSetIs requestBodyReadError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestBodyReadError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-
-attribute [instance] requestBodyReadError.TypeAssumptions.type_repr
-  requestBodyReadError.TypeAssumptions.underlying
-  requestBodyReadError.TypeAssumptions.get_error
-  requestBodyReadError.TypeAssumptions.set_error
-  requestBodyReadError.TypeAssumptions.method_set
-  requestBodyReadError.TypeAssumptions.ptr_method_set
-
-class MaxBytesError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying MaxBytesError.underlying MaxBytesError
-  underlying : go.UnderlyingDirectedEq MaxBytesError.ty MaxBytesError.underlying
-  get_Limit : ∀ (x : MaxBytesError), go.IsGoStepPureDetTagged under (StructFieldGet MaxBytesError.underlying go!"Limit") #x (Val #(x.Limit'))
-  set_Limit : ∀ (x : MaxBytesError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxBytesError.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : MaxBytesError)))
-  method_set : go.MethodSetIs MaxBytesError.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxBytesError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
-
-attribute [instance] MaxBytesError.TypeAssumptions.type_repr
-  MaxBytesError.TypeAssumptions.underlying
-  MaxBytesError.TypeAssumptions.get_Limit
-  MaxBytesError.TypeAssumptions.set_Limit
-  MaxBytesError.TypeAssumptions.method_set
-  MaxBytesError.TypeAssumptions.ptr_method_set
-
-class ResponseWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ResponseWriter.ty ResponseWriter.underlying
-  method_set : go.MethodSetIs ResponseWriter.ty [(go!"Header", (some (go.signature.Signature [] false [Header.ty]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteHeader", (some (go.signature.Signature [go.int] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseWriter.ty) []
-
-attribute [instance] ResponseWriter.TypeAssumptions.underlying
-  ResponseWriter.TypeAssumptions.method_set
-  ResponseWriter.TypeAssumptions.ptr_method_set
-
-class maxBytesReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying maxBytesReader.underlying maxBytesReader
-  underlying : go.UnderlyingDirectedEq maxBytesReader.ty maxBytesReader.underlying
-  get_w : ∀ (x : maxBytesReader), go.IsGoStepPureDetTagged under (StructFieldGet maxBytesReader.underlying go!"w") #x (Val #(x.w'))
-  set_w : ∀ (x : maxBytesReader) (y : ResponseWriter), go.IsGoStepPureDetTagged under (StructFieldSet maxBytesReader.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : maxBytesReader)))
-  get_r : ∀ (x : maxBytesReader), go.IsGoStepPureDetTagged under (StructFieldGet maxBytesReader.underlying go!"r") #x (Val #(x.r'))
-  set_r : ∀ (x : maxBytesReader) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet maxBytesReader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : maxBytesReader)))
-  get_i : ∀ (x : maxBytesReader), go.IsGoStepPureDetTagged under (StructFieldGet maxBytesReader.underlying go!"i") #x (Val #(x.i'))
-  set_i : ∀ (x : maxBytesReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet maxBytesReader.underlying go!"i") (PairV #x #y) (Val #(({ x with i' := y } : maxBytesReader)))
-  get_n : ∀ (x : maxBytesReader), go.IsGoStepPureDetTagged under (StructFieldGet maxBytesReader.underlying go!"n") #x (Val #(x.n'))
-  set_n : ∀ (x : maxBytesReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet maxBytesReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : maxBytesReader)))
-  get_err : ∀ (x : maxBytesReader), go.IsGoStepPureDetTagged under (StructFieldGet maxBytesReader.underlying go!"err") #x (Val #(x.err'))
-  set_err : ∀ (x : maxBytesReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet maxBytesReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : maxBytesReader)))
-  method_set : go.MethodSetIs maxBytesReader.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType maxBytesReader.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-
-attribute [instance] maxBytesReader.TypeAssumptions.type_repr
-  maxBytesReader.TypeAssumptions.underlying
-  maxBytesReader.TypeAssumptions.get_w
-  maxBytesReader.TypeAssumptions.set_w
-  maxBytesReader.TypeAssumptions.get_r
-  maxBytesReader.TypeAssumptions.set_r
-  maxBytesReader.TypeAssumptions.get_i
-  maxBytesReader.TypeAssumptions.set_i
-  maxBytesReader.TypeAssumptions.get_n
-  maxBytesReader.TypeAssumptions.set_n
-  maxBytesReader.TypeAssumptions.get_err
-  maxBytesReader.TypeAssumptions.set_err
-  maxBytesReader.TypeAssumptions.method_set
-  maxBytesReader.TypeAssumptions.ptr_method_set
-
-class Response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Response.underlying Response
-  underlying : go.UnderlyingDirectedEq Response.ty Response.underlying
-  get_Status : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : Response) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : Response)))
-  get_StatusCode : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"StatusCode") #x (Val #(x.StatusCode'))
-  set_StatusCode : ∀ (x : Response) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"StatusCode") (PairV #x #y) (Val #(({ x with StatusCode' := y } : Response)))
-  get_Proto : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Proto") #x (Val #(x.Proto'))
-  set_Proto : ∀ (x : Response) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Proto") (PairV #x #y) (Val #(({ x with Proto' := y } : Response)))
-  get_ProtoMajor : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"ProtoMajor") #x (Val #(x.ProtoMajor'))
-  set_ProtoMajor : ∀ (x : Response) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"ProtoMajor") (PairV #x #y) (Val #(({ x with ProtoMajor' := y } : Response)))
-  get_ProtoMinor : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"ProtoMinor") #x (Val #(x.ProtoMinor'))
-  set_ProtoMinor : ∀ (x : Response) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"ProtoMinor") (PairV #x #y) (Val #(({ x with ProtoMinor' := y } : Response)))
-  get_Header : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : Response) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : Response)))
-  get_Body : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Body") #x (Val #(x.Body'))
-  set_Body : ∀ (x : Response) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Body") (PairV #x #y) (Val #(({ x with Body' := y } : Response)))
-  get_ContentLength : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"ContentLength") #x (Val #(x.ContentLength'))
-  set_ContentLength : ∀ (x : Response) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"ContentLength") (PairV #x #y) (Val #(({ x with ContentLength' := y } : Response)))
-  get_TransferEncoding : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"TransferEncoding") #x (Val #(x.TransferEncoding'))
-  set_TransferEncoding : ∀ (x : Response) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"TransferEncoding") (PairV #x #y) (Val #(({ x with TransferEncoding' := y } : Response)))
-  get_Close : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Close") #x (Val #(x.Close'))
-  set_Close : ∀ (x : Response) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Close") (PairV #x #y) (Val #(({ x with Close' := y } : Response)))
-  get_Uncompressed : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Uncompressed") #x (Val #(x.Uncompressed'))
-  set_Uncompressed : ∀ (x : Response) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Uncompressed") (PairV #x #y) (Val #(({ x with Uncompressed' := y } : Response)))
-  get_Trailer : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Trailer") #x (Val #(x.Trailer'))
-  set_Trailer : ∀ (x : Response) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Trailer") (PairV #x #y) (Val #(({ x with Trailer' := y } : Response)))
-  get_Request : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"Request") #x (Val #(x.Request'))
-  set_Request : ∀ (x : Response) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"Request") (PairV #x #y) (Val #(({ x with Request' := y } : Response)))
-  get_TLS : ∀ (x : Response), go.IsGoStepPureDetTagged under (StructFieldGet Response.underlying go!"TLS") #x (Val #(x.TLS'))
-  set_TLS : ∀ (x : Response) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Response.underlying go!"TLS") (PairV #x #y) (Val #(({ x with TLS' := y } : Response)))
-  method_set : go.MethodSetIs Response.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Response.ty) [(go!"Cookies", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Cookie.ty))]))), (go!"Location", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty), go.error]))), (go!"ProtoAtLeast", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"net/http.bodyIsWritable", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.closeBody", (some (go.signature.Signature [] false []))), (go!"net/http.isProtocolSwitch", (some (go.signature.Signature [] false [go.bool])))]
-
-attribute [instance] Response.TypeAssumptions.type_repr
-  Response.TypeAssumptions.underlying
-  Response.TypeAssumptions.get_Status
-  Response.TypeAssumptions.set_Status
-  Response.TypeAssumptions.get_StatusCode
-  Response.TypeAssumptions.set_StatusCode
-  Response.TypeAssumptions.get_Proto
-  Response.TypeAssumptions.set_Proto
-  Response.TypeAssumptions.get_ProtoMajor
-  Response.TypeAssumptions.set_ProtoMajor
-  Response.TypeAssumptions.get_ProtoMinor
-  Response.TypeAssumptions.set_ProtoMinor
-  Response.TypeAssumptions.get_Header
-  Response.TypeAssumptions.set_Header
-  Response.TypeAssumptions.get_Body
-  Response.TypeAssumptions.set_Body
-  Response.TypeAssumptions.get_ContentLength
-  Response.TypeAssumptions.set_ContentLength
-  Response.TypeAssumptions.get_TransferEncoding
-  Response.TypeAssumptions.set_TransferEncoding
-  Response.TypeAssumptions.get_Close
-  Response.TypeAssumptions.set_Close
-  Response.TypeAssumptions.get_Uncompressed
-  Response.TypeAssumptions.set_Uncompressed
-  Response.TypeAssumptions.get_Trailer
-  Response.TypeAssumptions.set_Trailer
-  Response.TypeAssumptions.get_Request
-  Response.TypeAssumptions.set_Request
-  Response.TypeAssumptions.get_TLS
-  Response.TypeAssumptions.set_TLS
-  Response.TypeAssumptions.method_set
-  Response.TypeAssumptions.ptr_method_set
-
-class ResponseController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ResponseController.underlying ResponseController
-  underlying : go.UnderlyingDirectedEq ResponseController.ty ResponseController.underlying
-  get_rw : ∀ (x : ResponseController), go.IsGoStepPureDetTagged under (StructFieldGet ResponseController.underlying go!"rw") #x (Val #(x.rw'))
-  set_rw : ∀ (x : ResponseController) (y : ResponseWriter), go.IsGoStepPureDetTagged under (StructFieldSet ResponseController.underlying go!"rw") (PairV #x #y) (Val #(({ x with rw' := y } : ResponseController)))
-  method_set : go.MethodSetIs ResponseController.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseController.ty) [(go!"EnableFullDuplex", (some (go.signature.Signature [] false [go.error]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Hijack", (some (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, (go.GoType.PointerType _root_.Perennial.bufio.ReadWriter.ty), go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error])))]
-
-attribute [instance] ResponseController.TypeAssumptions.type_repr
-  ResponseController.TypeAssumptions.underlying
-  ResponseController.TypeAssumptions.get_rw
-  ResponseController.TypeAssumptions.set_rw
-  ResponseController.TypeAssumptions.method_set
-  ResponseController.TypeAssumptions.ptr_method_set
-
-class rwUnwrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq rwUnwrapper.ty rwUnwrapper.underlying
-  method_set : go.MethodSetIs rwUnwrapper.ty [(go!"Unwrap", (some (go.signature.Signature [] false [ResponseWriter.ty])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rwUnwrapper.ty) []
-
-attribute [instance] rwUnwrapper.TypeAssumptions.underlying
-  rwUnwrapper.TypeAssumptions.method_set
-  rwUnwrapper.TypeAssumptions.ptr_method_set
-
-class routingIndexKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying routingIndexKey.underlying routingIndexKey
-  underlying : go.UnderlyingDirectedEq routingIndexKey.ty routingIndexKey.underlying
-  get_pos : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"pos") #x (Val #(x.pos'))
-  set_pos : ∀ (x : routingIndexKey) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet routingIndexKey.underlying go!"pos") (PairV #x #y) (Val #(({ x with pos' := y } : routingIndexKey)))
-  get_s : ∀ (x : routingIndexKey), go.IsGoStepPureDetTagged under (StructFieldGet routingIndexKey.underlying go!"s") #x (Val #(x.s'))
-  set_s : ∀ (x : routingIndexKey) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet routingIndexKey.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : routingIndexKey)))
-  method_set : go.MethodSetIs routingIndexKey.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingIndexKey.ty) []
-
-attribute [instance] routingIndexKey.TypeAssumptions.type_repr
-  routingIndexKey.TypeAssumptions.underlying
-  routingIndexKey.TypeAssumptions.get_pos
-  routingIndexKey.TypeAssumptions.set_pos
-  routingIndexKey.TypeAssumptions.get_s
-  routingIndexKey.TypeAssumptions.set_s
-  routingIndexKey.TypeAssumptions.method_set
-  routingIndexKey.TypeAssumptions.ptr_method_set
+  Request.TypeAssumptions.ptr_ProtoAtLeast_unfold
+  Request.TypeAssumptions.ptr_expectsContinue_unfold
+  Request.TypeAssumptions.ptr_isH2Upgrade_unfold
+  Request.TypeAssumptions.ptr_wantsClose_unfold
+  Request.TypeAssumptions.ptr_wantsHttp10KeepAlive_unfold
 
 end net.http
 

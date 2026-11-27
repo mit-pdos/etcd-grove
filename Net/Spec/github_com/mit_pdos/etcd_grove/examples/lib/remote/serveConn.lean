@@ -26,7 +26,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
@@ -36,7 +35,7 @@ abbrev serveConn.spec : Prop :=
     (op : GoFunc) (cd : remote.Codec) (d : w64) (tok : GoInterface → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ net.isConn (GF := GF) c cn true a ∗
       connEnd (Gg := hG.goose_globalGS) cn true (repP (Gg := hG.goose_globalGS) S) (reqP (Gg := hG.goose_globalGS) S a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true ∗
-      wireOk S cd ∗ svcOp S a tok op ∗ tok sys }}
+      rdlTok (Gg := hG.goose_globalGS) cn true false ∗ wireOk S cd ∗ svcOp S a tok op ∗ tok sys }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.serveConn)) (Val #c)) (Val #sys)) (Val #op)) (Val #cd))
       (Val #d))
   {{ RET #(); tok sys }}

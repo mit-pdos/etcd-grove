@@ -36,6 +36,12 @@ theorem watcher.Close.wp_proof
     watcher.Close.spec (GF := GF) (hG := hG) := by
   intro V w
   wp_start as ⟨⟨%ce, #Hce, %Hcep⟩, #Hw⟩
+  -- (#45) the target's description, which `errors.Is` takes
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  ihave #HtdC : (∃ m', descIs (GF := GF) (GoInterface.ok ce) m') $$ []
+  · iapply isCtxErr_descIs
+    iapply _root_.Perennial.context.isCtxErr_of_Canceled $$ Pctx Hce
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
   icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
@@ -73,7 +79,8 @@ theorem watcher.Close.wp_proof
     · imodintro
       iintro %i %key %v ⟨%Hki, %Hmv⟩ ⟨%v0, %e, Hws, err, #Hse⟩
       wp_auto
-      ihave ⟨%G, %HG, #HG⟩ := BigSepM.bigSepM_lookup Hmv $$ HMs
+      ihave ⟨%G, %HG, #HGg⟩ := BigSepM.bigSepM_lookup Hmv $$ HMs
+      ihave #HGw := wgsGuard_elim V G callSl $$ [$Hf $HGg]
       rw [← HG.1]
       wp_apply wp_close V G callSl $$ [] as %werr #Hwe
       · iframe #

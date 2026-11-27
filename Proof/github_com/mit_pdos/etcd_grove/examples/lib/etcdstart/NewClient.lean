@@ -34,7 +34,7 @@ theorem NewClient.wp_proof
     (wp_NewClients : NewClients.spec (GF := GF) (hG := hG)) :
     NewClient.spec (GF := GF) (hG := hG) := by
   intro addr lg V Hpl Htb
-  wp_start as #Hzlg
+  wp_start as ⟨Hlt, #Hzlg⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   (try wp_auto)
   wp_apply wp_slice_literal
@@ -43,12 +43,15 @@ theorem NewClient.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_NewClients _ [addr] lg V Htb (plainEndpoints_singleton _ Hpl)) $$ []
-    as %cl %cerr Hcl
+  wp_apply (wp_NewClients _ [addr] lg V Htb (plainEndpoints_singleton _ Hpl)) $$ [$Hlt]
+    as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   (try wp_auto)
   iapply HΦ
-  iexact Hcl
+  iframe Hlt
+  icases Hcl with (⟨%Hcerr, #Hnc, #Htok, #Hnp, -⟩ | %Hcfail)
+  · ileft; iframe #; ipureintro; exact Hcerr
+  · iright; ipureintro; exact Hcfail
 
 end proof
 

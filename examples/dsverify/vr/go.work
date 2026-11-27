@@ -1,0 +1,6 @@
+go 1.27
+
+// For etc/goose.py: a project with model files (jsonmodel_roots: models.lab joins) is translated
+// through a workspace (its GOWORK copy gets the `use`); its -modfile route fails under goose's
+// go/packages (as examples/dsverify/quepaxa/go.work; notes/dsv-vr.md).
+use .

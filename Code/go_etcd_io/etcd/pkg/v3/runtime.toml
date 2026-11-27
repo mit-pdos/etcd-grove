@@ -1,0 +1,12 @@
+# etcd's `pkg/runtime` (`fds_linux.go`): `FDUsage` and `FDLimit` trusted, models returning an
+# arbitrary count or the errors Go's can return (TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean;
+# prove-ps2-srvgoroutines, 2026-11-24, the decision (b) on etcd-grove#42): `FDUsage` reads
+# procfs, which the file extension does not model, and `FDLimit` reaches `prlimit` through
+# `RawSyscall6`. `countFiles` is not translated (only `FDUsage` calls it). The models build `os`'s
+# `*PathError` and `syscall.Errno` errors (`os.model.pathError`, `syscall.model.errno`).
+translate = ["!*"]
+imports = ["!*", "os", "syscall"]
+trusted = ["FDUsage", "FDLimit"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

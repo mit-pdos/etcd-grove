@@ -6,7 +6,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.all.Lease
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.all.spawn
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.RunChecksJoin
+public import Proof.sync.WaitGroupAddMany
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -31,7 +31,7 @@ theorem Lease.wp_proof
     (wp_leaseN : etcd_leaseN.Main.spec (GF := GF) (hG := hG))
     (wp_catchup : etcd_leasecatchup.Main.spec (GF := GF) (hG := hG)) :
     Lease.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N k₄ ids₄ ps₄ ctxs₄ boot₄ lid₁ lid₂ lid₃ psL ctxsL bootL TB RB48 RBN HLv
+  intro CS N k₄ ids₄ ps₄ ctxs₄ boot₄ lid₁ lid₂ lid₃ psL ctxsL bootL TB RB48 RBN HLv
     hk₄1 hk₄ hlen₄ Hbf₄ HbfL Hwb Haf Hbuq Hrf Hdbo Hlp Hlne Hms Hat
   wp_start as ⟨Hms₄, HresL, Htok, Hp₄, HpL⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -49,7 +49,7 @@ theorem Lease.wp_proof
   imod (sync.join.init _ γwg) $$ [Hctr Hwaiters] with Hadd
   · iframe #; iframe
   -- `wg.Add(1)`
-  wp_apply (mvccrand.wp_Add_many sync.WaitGroup.wp_Add wg_ptr iprop(True) [iprop(True)] (by simp))
+  wp_apply (waitGroup.wp_Add_many sync.WaitGroup.wp_Add wg_ptr iprop(True) [iprop(True)] (by simp))
     $$ [Hadd] as ⟨Hadd, Hd1, -⟩
   · iframe #; iframe
   (try wp_auto)

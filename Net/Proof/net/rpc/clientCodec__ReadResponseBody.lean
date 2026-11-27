@@ -4,6 +4,7 @@ The proof of `clientCodec.ReadResponseBody` (`Net/Spec/net/rpc/clientCodec__Read
 -/
 module
 
+public import Net.Proof.net.rpc.ReadAcc
 public import Net.Spec.net.rpc.clientCodec__ReadResponseBody
 public import Net.Spec.net.rpc.getCodec
 
@@ -23,7 +24,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 
 theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG)) :
@@ -31,10 +32,11 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
   intro c t cn s a la ra body C D G Θ P eof ueof ed ef
   wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hguard, #Hacc⟩
   wp_auto
-  wp_apply wp_readFrame t cn s a la ra P eof ueof ed ef
-      $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc]
+  ihave #Hacc' := readAcc_true cn s P $$ Hacc
+  wp_apply wp_readFrame t cn s a la ra P iprop(True) eof ueof ed ef
+      $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc']
     as %p %err ⟨%got, HP, Hres⟩
-  icases Hres with (⟨%pl, ⟨%Hnil, %Hgot, %Hpl⟩, Hp, Hpcap⟩ | ⟨%Hne, #HE⟩)
+  icases Hres with (⟨%pl, ⟨%Hnil, %Hgot, %Hpl⟩, Hp, Hpcap⟩ | ⟨%Hne, HE⟩)
   rotate_left
   · cases err with
     | nil => exact absurd rfl Hne
@@ -47,7 +49,9 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
       iframe HD
       isplitr
       · ipureintro; exact Hne
-      iexact HE
+      icases HE with (%HE | ⟨#HE, -⟩)
+      · ileft; ipureintro; exact HE.1
+      · iright; iexact HE
   subst Hnil
   wp_auto
   cases body with

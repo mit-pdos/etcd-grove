@@ -66,13 +66,16 @@ theorem walOpenedRc_file (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInt
     iexact Hl
 
 theorem walOpenedRc_rcFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceOk) (lf : Loc)
-    (rc : GoInterface) :
+    (rc : GoInterface) (hb : os.closeErrMax (child dir b) ≤ wal.closeMsgMax) :
     walOpenedRc (GF := GF) write dir b i fr lf rc ⊢ wal.rcFile rc := by
   unfold walOpenedRc wal.rcFile
   iintro ⟨%f, %fd, %rl, %lo, %lk, Hf, Hfd, Hlks, -, -, -, -, Hw⟩
   ihave Hlks := fdLocksW_locks _ _ $$ Hlks
   iexists f, fd, child dir b, _
   iframe
+  isplitl
+  rotate_left
+  · ipureintro; exact hb
   cases write
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hw with %hw
@@ -157,11 +160,25 @@ theorem rcFiles_take (is : List Ino) :
 
 theorem walOpenedRcs_close (write : Bool) (dir : GoString) (ns : List GoString) (is : List Ino)
     (j : Nat) (frs : List GoInterfaceOk) (lfs : List Loc) (rcs : List GoInterface)
-    (hl : rcs.length = j) (hj : j ≤ is.length) :
+    (hl : rcs.length = j) (hj : j ≤ is.length)
+    (hns : ∀ m, os.closeErrMax (child dir (ns.getD m [])) ≤ wal.closeMsgMax) :
     walOpenedRcs (GF := GF) write dir ns is j frs lfs rcs ⊢ [∗list] rc ∈ rcs, wal.rcFile rc := by
   unfold walOpenedRcs
-  refine (BigSepL.bigSepL_mono (fun {m x} _ => walOpenedRc_rcFile (GF := GF) write dir _ x _ _ _)).trans ?_
+  refine (BigSepL.bigSepL_mono (fun {m x} _ =>
+    walOpenedRc_rcFile (GF := GF) write dir _ x _ _ _ (hns m))).trans ?_
   exact rcFiles_take is j rcs hl hj
+
+/-- `closeAll`'s message bound on the paths `openWALFiles` opens: a directory shorter than 4096 bytes
+(`PathFits`) and names of at most 255 bytes (WAL segment names have 37). -/
+theorem walOpen_closeBound {d : GoString} {ns : List GoString} (hd : d.length < 4096)
+    (hns : ∀ (m : Nat) (b : GoString), ns[m]? = some b → b.length ≤ 255) :
+    ∀ m, os.closeErrMax (child d (ns.getD m [])) ≤ wal.closeMsgMax := by
+  intro m
+  refine wal.closeBound_of hd ?_
+  rw [List.getD_eq_getElem?_getD]
+  cases h : ns[m]? with
+  | none => simp
+  | some b => simpa using hns m b h
 
 /-- What the closer keeps of a file `openWALFiles` opened (persistent): the reader's `*fileReader` over
 the `*os.File` `f`, and the `io.ReadCloser` collected (`rc`): the lock (write mode) or the file. -/
@@ -218,7 +235,7 @@ theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : Go
   iunfold walRcLink at Hl
   iunfold wal.walClosable at Hc
   icases Hl with ⟨%f, %rl, %hfr, #Hrl, #Hw⟩
-  icases Hc with ⟨%f', %rl', %fd, %nm, %fl, %hfr', #Hrl', Hf, Hfd, Hlks, -⟩
+  icases Hc with ⟨%f', %rl', %fd, %nm, %fl, %hfr', #Hrl', Hf, Hfd, Hlks, -, %hnm⟩
   have hrl : rl' = rl := by
     have h1 := hfr'.symm.trans hfr
     unfold interface.mkOk at h1
@@ -234,6 +251,9 @@ theorem walRcLink_rcFile (write : Bool) (fr : GoInterfaceOk) (lf : Loc) (rc : Go
   iunfold wal.rcFile
   iexists f', fd, nm, fl
   iframe Hf Hfd Hlks
+  isplitl
+  rotate_left
+  · ipureintro; exact hnm
   cases write
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hw with %hw
@@ -320,21 +340,22 @@ theorem walOpen_errOk (e : GoInterfaceOk) :
 
 /-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the
 claim's resources lent and given back, the inode `i`. -/
-theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
+theorem walOpen_triple [os.Assumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
     (N : NameSet) (dqn : DFrac) (h : NamesH) (qc : Qp) (flag : w64)
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
     fileutil.OpenTriple (X := Unit)
-      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
+      (iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (child d b) flag (W32 384)
       (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (fun _ i' => i' = i) := by
   unfold fileutil.OpenTriple
-  iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
+  iintro %Φ ⟨#Hospkg, #Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
   wp_apply os.OpenFile.wp_fileS d b flag (W32 384) R j i N dq dqn h qc hfl htr hb hN hi
     $$ [Hp Hn Hperm] as %f %err ⟨Hp, Hn, Hperm, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iunfold fileutil.openPost
   iexists ()
@@ -353,22 +374,23 @@ theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (
 
 /-- `walOpen_triple`, a failed open witnessed (wal-fsfix2): the file system can fail on `d/b`, or the
 path does not fit (`os.OpenFile.wp_fileS`'s error arm). -/
-theorem walOpen_tripleW [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
+theorem walOpen_tripleW [os.Assumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
     (N : NameSet) (dqn : DFrac) (h : NamesH) (qc : Qp) (flag : w64)
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
     fileutil.OpenTriple (X := Unit)
-      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
+      (iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (child d b) flag (W32 384)
       (fun _ ok => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         ⌜ok = false → ¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝))
       (fun _ i' => i' = i) := by
   unfold fileutil.OpenTriple
-  iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
+  iintro %Φ ⟨#Hospkg, #Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
   wp_apply os.OpenFile.wp_fileS d b flag (W32 384) R j i N dq dqn h qc hfl htr hb hN hi
     $$ [Hp Hn Hperm] as %f %err ⟨Hp, Hn, Hperm, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iunfold fileutil.openPost
   iexists ()

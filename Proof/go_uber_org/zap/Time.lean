@@ -42,7 +42,8 @@ theorem zap.Time.wp_proof : zap.Time.spec (GF := GF) (hG := hG) := by
     wp_method_call
     wp_call
     (try wp_auto)
-    wp_apply _root_.Perennial.time.Time.wp_After as %b2 -
+    wp_apply _root_.Perennial.time.Time.wp_After
+    generalize (_root_.Perennial.time.Time.after _ _) = b2
     (try wp_auto)
     cases b2
     · wp_auto

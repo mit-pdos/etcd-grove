@@ -144,9 +144,9 @@ theorem serve_member_lease [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumpt
     #HKV, #HSA, #HAu, #HWF, #Htag, #HLR⟩)
   · imodintro; iapply HΦ; ileft; ipureintro; exact Herr
   iunfold leaseReady at HLR
-  icases HLR with ⟨%A, %il, %im, %iu, %regs, %γ, %HA, #Hreq, #Hrd', #Hlb, #Hlr, #Hlu, #Hil, #Him,
+  icases HLR with ⟨%A, %il, %im, %iu, %regs, %sms, %HA, #Hreq, #Hrd', #Hlb, #Hlr, #Hlu, #Hil, #Him,
     #Hiu, #Hat, #Hb, #Hrp⟩
-  imod (etcdstart.lease_served_on addr s E { ρ with wait := γw } A il im iu regs γ γa HR.1 hlm HA
+  imod (etcdstart.lease_served_on addr s E { ρ with wait := γw } A il im iu regs sms γa HR.1 hlm HA
       (by omega) (by omega) hLp HLv) $$ [] with #HLS
   · iframe #
     iintro !>
@@ -341,7 +341,7 @@ theorem run.wp_proof
     (hR : mvcc.api.mvccState_reachable.law (GF := GF))
     (hlaw : lessor_keys_of_read_stmt (GF := GF)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC srvsl msl lg ss xs x0 γn σ0 hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
+  intro CS ES FS RS srvsl msl lg ss xs x0 γn σ0 hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
     hlog hlm hLp hns hsc hx
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   have hk1 : 1 ≤ xs.length := by
@@ -527,9 +527,10 @@ theorem run.wp_proof
   iunfold srvdAt at H0
   icases H0 with ⟨⟨%HR₁, #Hrd₁, #Htls₁, #HKV₁, #HSA₁, #HAu₁, #HWF₁, #Htag₁⟩, #HLS₁⟩
   -- `NewClient(a1, lg)`: the client with no user name, at member 0
-  wp_apply (wp_NewClient x0.1.Client' lg (akV x0.1.Client' x0.2.ρ w0.R) (Hpe x0 hx0m) Htb31) as %cl %cerr Hcl
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
+  wp_apply (wp_NewClient x0.1.Client' lg (akV x0.1.Client' x0.2.ρ w0.R) (Hpe x0 hx0m) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -552,7 +553,7 @@ theorem run.wp_proof
     iexact H
   wp_apply (wp_SetUp cl x0.1.Client' (akV x0.1.Client' x0.2.ρ w0.R) s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid w0.γa HR₁.1
       (by show uint.Z x0.2.ρ.rd.kv.c0 ≤ uint.Z x0.2.ρ.rd.raft.ai0; rw [hc0]; word) hAs)
-    $$ [Hview] as %ok Hok
+    $$ [$Hlt Hview] as %ok ⟨Hlt, Hok⟩
   · iframe; iframe #
   cases ok
   · wp_auto
@@ -583,7 +584,7 @@ theorem run.wp_proof
     iframe #
     iintro !> %ρ' %_
     ileft; ipureintro; rfl
-  wp_apply (wp_barriers msl lg (xs.map (·.1)) _ (hmsb _) (by omega) hAs) as %okb Hb1
+  wp_apply (wp_barriers msl lg (xs.map (·.1)) _ (hmsb _) (by omega) hAs) $$ [$Hlt] as %okb ⟨Hlt, Hb1⟩
   · iframe #
   icases Hb1 with (%Hb | ⟨%Hb, #Hbq1⟩) <;> subst Hb
   · wp_auto
@@ -630,7 +631,7 @@ theorem run.wp_proof
     iexact Hw
   wp_apply (wp_newUserClient x0.1.Client' go!"root" go!"root-pw" lg (akV x0.1.Client' x0.2.ρ w0.R)
       (fun t => auth.tokIssued w0.γa t go!"root") (Hpe x0 hx0m) (by omega) (by unfold strsSizeOk; decide))
-    as %rcl %rerr Hrc
+    $$ [$Hlt] as %rcl %rerr ⟨Hlt, Hrc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ w0.γa)
     iexact HAu₁
@@ -646,7 +647,7 @@ theorem run.wp_proof
   wp_auto
   wp_apply (wp_newUserClient xu.1.Client' go!"u" go!"u-pw" lg (akV xu.1.Client' xu.2.ρ wu.R)
       (akTokP wu.γa go!"u") (Hpe xu hxum) (by omega) (by unfold strsSizeOk; decide))
-    as %ucl %uerr Huc
+    $$ [$Hlt] as %ucl %uerr ⟨Hlt, Huc⟩
   · iframe #
     have hP : akTokP (GF := GF) wu.γa go!"u" = fun t => auth.tokIssued wu.γa t go!"u" := by
       unfold akTokP; rw [if_pos (by decide)]
@@ -665,7 +666,7 @@ theorem run.wp_proof
   wp_auto
   wp_apply (wp_newUserClient xv.1.Client' go!"v" go!"v-pw" lg (akV xv.1.Client' xv.2.ρ wv.R)
       (akTokP wv.γa go!"v") (Hpe xv hxvm) (by omega) (by unfold strsSizeOk; decide))
-    as %vcl %verr Hvc
+    $$ [$Hlt] as %vcl %verr ⟨Hlt, Hvc⟩
   · iframe #
     have hP : akTokP (GF := GF) wv.γa go!"v" = fun t => auth.tokIssued wv.γa t go!"v" := by
       unfold akTokP; rw [if_pos (by decide)]
@@ -682,9 +683,9 @@ theorem run.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hverr
   wp_auto
-  wp_apply (wp_NewClient xu.1.Client' lg (akV xu.1.Client' xu.2.ρ wu.R) (Hpe xu hxum) Htb31) as %bcl %berr Hbc
+  wp_apply (wp_NewClient xu.1.Client' lg (akV xu.1.Client' xu.2.ρ wu.R) (Hpe xu hxum) (by omega)) $$ [$Hlt] as %bcl %berr ⟨Hlt, Hbc⟩
   · iframe #
-  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk⟩ | %Hbfail)
+  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk, -⟩ | %Hbfail)
   rotate_left
   · obtain ⟨Hberr, -⟩ := Hbfail
     cases berr with
@@ -723,7 +724,7 @@ theorem run.wp_proof
       (monoListAuthOwn γc.ids (1 : Qp).half ([] : List w64))
       (fun id => iprop(monoListAuthOwn γc.ids (1 : Qp).half [id] ∗ monoListLbOwn γc.ids [id] ∗
         ⌜id ≠ W64 0⌝))
-      hon₁ (hlm x0 hx0m) (fun id => hszL zK id (by decide)) hAs) $$ [Hids] as %lz %okz Hz
+      hon₁ (hlm x0 hx0m) (fun id => hszL zK id (by decide)) hAs) $$ [$Hlt Hids] as %lz %okz ⟨Hlt, Hz⟩
   · iframe Hids; iframe #
     isplitl []
     · iintro !> %conn %ctx %id
@@ -788,7 +789,7 @@ theorem run.wp_proof
       (monoListAuthOwn γc.ids (1 : Qp).half [lz])
       (fun id => iprop(monoListAuthOwn γc.ids (1 : Qp).half [lz, id] ∗ monoListLbOwn γc.ids [lz, id] ∗
         ⌜id ≠ W64 0⌝))
-      hon₂ (hlm xu hxum) (fun id => hszL aK id (by decide)) hAs) $$ [HidsZ] as %lu %oku Hu
+      hon₂ (hlm xu hxum) (fun id => hszL aK id (by decide)) hAs) $$ [$Hlt HidsZ] as %lu %oku ⟨Hlt, Hu⟩
   · iframe HidsZ; iframe #
     isplitl []
     · iintro !> %conn %ctx %id
@@ -824,9 +825,8 @@ theorem run.wp_proof
       by_cases hil : id = lz
       · subst hil
         iunfold client.clientGrant at HG
-        icases HG with ⟨%md, %Hmd, HG⟩
-        ihave #Hs := akTokSeen_attempt wu.γa go!"u" conn md
-          (by unfold clientAttemptMd at Hmd; rw [hout, ← hau] at Hmd; exact Hmd) $$ Htk
+        icases HG with ⟨%md, #Hmd, HG⟩
+        ihave #Hs := akTokSeen_md wu.γa go!"u" conn ctx md (hout.trans hau.symm) $$ Hmd Htk
         iunfold v3rpc.opGrantT at HG
         imod (grantG_refuted su wu.E wu.γa { xu.2.ρ with wait := wu.γw } Lset i₂ go!"u" _
             (irrPut (leasePutOp aK id)) σ' zK id HR₂.1 hz hlz0
@@ -900,7 +900,7 @@ theorem run.wp_proof
   (try wp_auto)
   wp_apply (client.client_txn_on tp uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
       wu.cid wu.mid (W64 0) i₂ tctx none tcd ⟨leaseTxn tK lu, false, true, false⟩ (psAtLeast γc 3) F₂
-      (fun h => by simp [hro] at h) htsz (fun _ => htsh)) $$ [Hobj] as %tresp %terr Ht
+      (fun h => by simp [hro] at h) htsz (fun _ => htsh)) $$ [$Hlt Hobj] as %tresp %terr ⟨Hlt, Ht⟩
   · iframe Hobj; iframe #
     ileft
     imodintro
@@ -946,7 +946,7 @@ theorem run.wp_proof
     ihave #Hinv' := cellInv_same x0.2.ρ.rd.kv ρ'.rd.kv γc hρ'.1 $$ Hinv
     iapply (cell_readAu ρ'.rd.kv γc ps3 0)
     iframe #
-  wp_apply (wp_barriers msl lg (xs.map (·.1)) _ (hmsb _) (by omega) hAs) as %okb2 Hb2
+  wp_apply (wp_barriers msl lg (xs.map (·.1)) _ (hmsb _) (by omega) hAs) $$ [$Hlt] as %okb2 ⟨Hlt, Hb2⟩
   · iframe #
   icases Hb2 with (%Hb | ⟨%Hb, #Hbq2⟩) <;> subst Hb
   · wp_auto
@@ -996,7 +996,7 @@ theorem run.wp_proof
     hps3 hlu0 HR₁.1 (Or.inl rfl) $$ [Hinv HlbU Hps3 Hfix₁ Htls₁]
   · iframe #
   wp_apply (wp_noAuth cl go!"anon" x0.1.Client' lu s0 w0.E { x0.2.ρ with wait := w0.γw } w0.γa i₁ m0
-      (fun id => gsHas γc id) (revoked γc) (Or.inl rfl) hAs)
+      (fun id => gsHas γc id) (revoked γc) (Or.inl rfl) hAs) $$ [$Hlt] as ⟨Hlt, -⟩
   · rw [hpa]; iframe #
     iintro !> %conn %ctx %id
     iunfold client.clientOpAuOn
@@ -1016,7 +1016,7 @@ theorem run.wp_proof
     hps3 hlu0 HR₂.1 (Or.inr (Or.inl rfl)) $$ [Hinvu HlbU Hps3 Hfix₂ Htls₂]
   · iframe #
   wp_apply (wp_noAuth bcl go!"bad" xu.1.Client' lu su wu.E { xu.2.ρ with wait := wu.γw } wu.γa i₂ mz
-      (fun id => gsHas γc id) (revoked γc) (Or.inr rfl) hAs)
+      (fun id => gsHas γc id) (revoked γc) (Or.inr rfl) hAs) $$ [$Hlt] as ⟨Hlt, -⟩
   · rw [hpb]; iframe #
     iintro !> %conn %ctx %id
     iunfold client.clientOpAuOn
@@ -1063,7 +1063,7 @@ theorem run.wp_proof
       rfl⟩
   wp_apply (client.client_put_on uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid
       pctx none pcd xK go!"v" _ [withLeaseM lz] (fun _ => iprop(False)) F₂
-      (hszL xK lz (by decide)) hokx.1 hokx.2 (Or.inr (hlm xu hxum))) as %presp %perr Hp
+      (hszL xK lz (by decide)) hokx.1 hokx.2 (Or.inr (hlm xu hxum))) $$ [$Hlt] as %presp %perr ⟨Hlt, Hp⟩
   · iframe #
     ileft
     imodintro
@@ -1132,7 +1132,7 @@ theorem run.wp_proof
   (try wp_auto)
   wp_apply (client.client_txn_on tp3 uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
       wu.cid wu.mid (W64 0) i₂ xctx none xcd ⟨leaseTxn xK lz, false, true, false⟩ (fun _ => iprop(False)) F₂
-      (fun h => by simp [hro'] at h) htsz' (fun _ => htsh')) $$ [Hobj3] as %xresp %xerr Hx
+      (fun h => by simp [hro'] at h) htsz' (fun _ => htsh')) $$ [$Hlt Hobj3] as %xresp %xerr ⟨Hlt, Hx⟩
   · iframe Hobj3; iframe #
     ileft
     imodintro
@@ -1167,7 +1167,7 @@ theorem run.wp_proof
     opSizeOk_opGetModel (K := 2 ^ 28) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by omega) (by decide)
   wp_apply (wp_absent rcl xK _ x0.1.Client' s0 w0.E x0.2.ρ.rd w0.cid w0.mid (W64 0) i₁ F0₂
       (fun t => auth.tokIssued w0.γa t go!"root") (cellSeen γc ps3 0) (hszG xK (by decide)) hAs)
-    as %okx -
+    $$ [$Hlt] as %okx ⟨Hlt, -⟩
   · iframe #
     isplitl []
     · iintro !>
@@ -1197,7 +1197,7 @@ theorem run.wp_proof
       $$ [Hfix₂ Htls₂ Hhz]
   · iframe #
   wp_apply (wp_foreign ucl go!"u" xu.1.Client' lz su wu.E { xu.2.ρ with wait := wu.γw } wu.γa i₂ mz
-      (fun _ => iprop(False)) (monoNatAuthOwn γc.a (1 : Qp).half 0) (Or.inl rfl) hon₂ hAs) $$ [Ha] as Ha
+      (fun _ => iprop(False)) (monoNatAuthOwn γc.a (1 : Qp).half 0) (Or.inl rfl) hon₂ hAs) $$ [$Hlt Ha] as ⟨Hlt, Ha⟩
   · iframe Ha; iframe #
     iintro !> %σ Hf _
     iexfalso; iexact Hf
@@ -1221,7 +1221,7 @@ theorem run.wp_proof
       (mvcc.api.mvccLeases wv.E.γ) mu lu aK HR₃.1 (by decide) (Or.inr rfl) $$ [Hfix₃ Htls₃ Hhu]
   · iframe #
   wp_apply (wp_foreign vcl go!"v" xv.1.Client' lu sv wv.E { xv.2.ρ with wait := wv.γw } wv.γa i₃ mu
-      (revoked γc) (monoNatAuthOwn γc.a (1 : Qp).half 0) (Or.inr rfl) hon₃ hAs) $$ [Ha] as Ha
+      (revoked γc) (monoNatAuthOwn γc.a (1 : Qp).half 0) (Or.inr rfl) hon₃ hAs) $$ [$Hlt Ha] as ⟨Hlt, Ha⟩
   · iframe Ha; iframe #
     iintro !> %σ #Hr Ha
     iapply (cell_not_revoked xv.2.ρ.rd.kv γc σ ⊤ (by simp))
@@ -1239,8 +1239,8 @@ theorem run.wp_proof
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave Hres := optsAt_res slice.nil [] iprop(True) $$ Hnil
   wp_apply (etcd_auth.client_Get_on rcl rapi rconn x0.1.Client' s0 w0.E x0.2.ρ.rd w0.cid w0.mid (W64 0) i₁
-      gctx none gcd zK slice.nil [] iprop(True) (cellSeen γc ps1 0) F0₂ (hszG zK (by decide))) $$ [Hres]
-    as %gresp %gerr Hgout
+      gctx none gcd zK slice.nil [] iprop(True) (cellSeen γc ps1 0) F0₂ (hszG zK (by decide))) $$ [$Hlt Hres]
+    as %gresp %gerr ⟨Hlt, Hgout⟩
   · iframe #
     rw [show (opGetModel zK []).base.sortSet = false from rfl]
     isplitl []
@@ -1306,7 +1306,7 @@ theorem run.wp_proof
     as %rctx %rcd %rcancel ⟨#Hrcancel, #Hrctx, #Hrce, -, #Hrout, -⟩
   (try wp_auto)
   wp_apply (client.client_lease_revoke_on ulp uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } rctx none rcd
-      i₂ lu (revoked γc)) as %rresp %rerr Hrv
+      i₂ lu (revoked γc)) $$ [$Hlt] as %rresp %rerr ⟨Hlt, Hrv⟩
   · iframe #
     iintro !>
     iunfold client.clientOpAuOn
@@ -1336,7 +1336,7 @@ theorem run.wp_proof
   -- `absent(root, aKey, ...)`, `absent(root, txnKey, ...)` (the read update `cellSeen … 1`: `seen_gone`)
   wp_apply (wp_absent rcl aK _ x0.1.Client' s0 w0.E x0.2.ρ.rd w0.cid w0.mid (W64 0) i₁ F0₂
       (fun t => auth.tokIssued w0.γa t go!"root") (cellSeen γc ps3 1) (hszG aK (by decide)) hAs)
-    as %oka -
+    $$ [$Hlt] as %oka ⟨Hlt, -⟩
   · iframe #
     isplitl []
     · iintro !>
@@ -1355,7 +1355,7 @@ theorem run.wp_proof
   (try wp_auto)
   wp_apply (wp_absent rcl tK _ x0.1.Client' s0 w0.E x0.2.ρ.rd w0.cid w0.mid (W64 0) i₁ F0₂
       (fun t => auth.tokIssued w0.γa t go!"root") (cellSeen γc ps3 1) (hszG tK (by decide)) hAs)
-    as %okt -
+    $$ [$Hlt] as %okt ⟨Hlt, -⟩
   · iframe #
     isplitl []
     · iintro !>

@@ -39,6 +39,875 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   unchanged but for their headers. No SpecPlan counterpart.
 - **Decision.** Applied (the S4 lead's brief: spec changes that only drop what the removed knobs needed).
 
+## 2026-11-26: `EtcdServer.leaseTimeToLive`'s contract owns no reply keys (F7 fork, SPECULATIVE)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__leaseTimeToLive.lean`
+  (`EtcdServer.leaseTimeToLive.spec`, the trust-base contract `axiom EtcdServer.leaseTimeToLive.wp_proof`);
+  no SpecPlan counterpart (the plan's `LeaseTimeToLive` is the entry point's). Branch
+  `etcd-safe-f7-fork/2026-11-26` only.
+- **Defect.** Too weak for its caller at the fork `d26dd5da6` (`notes/etcd-dist-f7-fork.md`): the success arm owns
+  `resp ↦ w` and the header but nothing of `w.Keys'`, and `LeaseTimeToLive` now passes `resp.Keys` to
+  `checkLeaseTimeToLiveKeys`, which hands each key to `IsRangePermitted` (pre `key ↦*{dk} k ∗ ⌜sint.Z key.len
+  < 2 ^ 63 - 1⌝`). No proved callee gives the bytes: `leaseTimeToLive` and `leasehttp.TimeToLiveHTTP` (the
+  follower's decode) are names-only, and no other fact in scope mentions `w.Keys'`.
+- **Evidence.** The fork's body (`v3_server.go:719-725, 733-757`); `EtcdServer.LeaseTimeToLive.wp_proof` cannot
+  take the keys' ownership at the call. Go: the leader's reply builds `kbs := make([][]byte, len(ks))`,
+  `kbs[i] = []byte(ks[i])` (fresh); a follower's is decoded by protobuf-go v1.36.12's `consumeBytesSlice`
+  (`internal/impl/codec_gen.go:5568-5580`, `append(emptyBuf[:], v...)`: a copy, no `AliasBuffer` case), checked
+  by `notes/etcd-dist-f7-fork/unmarshal_alias_test.go` (PASS at the fork).
+- **Proposed change.** The success arm gains one conjunct, ownership only (nothing about which keys):
+  `(∃ kbs : List GoSlice, w.Keys' ↦* kbs ∗ [∗list] kb ∈ kbs, ∃ k : List w8, kb ↦* k ∗ ⌜sint.Z kb.len < 2 ^ 63 - 1⌝)`.
+  `EtcdServer.LeaseTimeToLive.spec` (proved) then gains, with `v.Keys'`, the keys' ownership and a second
+  `leaseCheckFrom` over the returned keys; its callers keep their proofs (a stronger post).
+- **Decision.** Approved speculatively by the lead and the coordinator (2026-11-26) for this branch only, with
+  a delta review (`notes/axiom-review/f7fork-leasettl-keys-contract.md`); pending Upamanyu's decision on F7.
+
+## 2026-11-26: F7 dist client dispatch (`NodeMain`, `MainReady`, `MainDeployment`, `Orchestrator`) -- W-6's contract gaps (rotation, instances)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/NodeMain.lean` (`NodeMain.spec`),
+  `.../client/MainReady.lean` (`MainReady.spec`), `.../client/MainDeployment.lean` (`MainDeployment.spec`),
+  `.../client/Orchestrator.lean` (`Orchestrator.spec`). No `SpecPlan/` counterpart (Lean-first dist harness).
+- **Defect.** (Gap 2, rotation) `NodeMain.spec` gave the client machine's share at the endpoints rotated by `c`
+  (`wlNodeShare w c addr (rotateL epsL c)`, `plainEndpoints (rotateL epsL c)`), but `NodeMain`'s auth arm hands
+  `principalOp` the endpoints unrotated, so the auth arm's share (`authNodePre addr eps`) could not be stated at the
+  endpoints it is used at. (Gap 3, instances) `MainReady.spec`, `MainDeployment.spec`, `Orchestrator.spec` did not
+  bind the `errors`/`fmt`/`rpctypes` `Assumptions` instances that the auth arm's callees (`MainReadyAuth.spec`,
+  `RunAuth.spec`) bind, so the auth arm could not be linked under them.
+- **Evidence.** `notes/etcd-dist-f7.md`, "Handoff W-6" (the three contract gaps) and "Handoff RL-1".
+- **Proposed change.** (Gap 2) `NodeMain.spec`'s share is `wlNodeShare w c addr epsL` and its pure premise
+  `plainEndpoints epsL` (endpoints unrotated); `wlNodeShare` rotates by `c` in its kv and writer arms and its kind-5
+  arm is `authNodePre addr eps` (`NodeMain.wp_proof` takes `NodeMainAuth.spec`, linked in `DispatchLinked` by
+  `wp_NodeMainAuth`). (Gap 3) the three specs bind `[errors.Assumptions] [fmt.Assumptions] [rpctypes.Assumptions]`
+  after `[ρ]`; `AdequacyClient.orchBoot` binds them, discharged from `EtcdBootNCAt`'s. `etcd_safe_nocrash` and
+  `etcd_robust_nocrash.spec` unchanged.
+- **Decision.** Accepted: approved by lead 2026-11-26 (branch `etcd-safe-f7-rlog`).
+
+## 2026-11-26: F7 auth-on dist drafts -- free auth names `A` let a caller refute every member-local success arm
+
+- **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean`: `New_user_dist.spec`,
+  `KV_GetOn_dist.spec`, `Txn_CommitOn_dist.spec` (read-only branch), `Lease_{GrantOn,RevokeOn,TimeToLiveKeysOn,
+  LeasesOn}_dist.spec` (drafts, `.spec` only, no axiom); `AuthServeProposed.lean`, `Serve_dist_proposed.spec`.
+  No `SpecPlan/` counterpart.
+- **Defect.** Unsound (reviews A and C). Each draft quantified `A : w64 → auth.AuthNames` with only
+  `∀ a b, A a = A b → a = b`, and its success arm stated facts at `A mid` (`passwordChecked`, `enabledVerdict`,
+  `authFloorD`, `rangeClassFrom`, `txnClassFrom`, `leaseCheckD`). Injectivity is over the whole record, so a
+  caller can share one `hist` name it owns across all members and refute every success arm.
+- **Evidence.** `notes/axiom-review/f7-a.md` (a `New` with a real user and password that panics on success;
+  the same for `Get` and a read-only `Txn`), `notes/axiom-review/f7-c.md` F1 (the lease reads).
+- **Proposed change.** `DistView` gains `au : w64 → auth.AuthNames` (`S2Interim.lean`; `ofKV` sets a constant
+  until P-A1's start). The binder `A` is dropped and every `A mid` becomes `Γ.au mid`; the distinct-names
+  premises are kept, now over `Γ.au`. `Serve_dist_proposed` takes no `A` and requires, with auth on,
+  `etcdstart.memberUpOnL … (Γ.au mid) …` (`memberUpOn`'s body, `E.authMode = .on (Γ.au mid)`), so the
+  member's exclusive resources tie `Γ.au mid` to the real member. `etcdAddr_set` mints address facts for any
+  `Γ`, so Serve's premise is the only possible tie.
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`. Re-review with the S2 batch.
+
+## 2026-11-26: F7 proposed `Serve_dist` -- `Γ.ls mid` not tied to the serving member's lessor
+
+- **Spec.** `AuthServeProposed.lean`, `Serve_dist_proposed.spec`; `AuthViewDist.lean`,
+  `Lease_TimeToLiveKeysOn_dist.spec`.
+- **Defect.** Unsound (review C, F2). A start could publish a `Γ` whose `ls` names it owns. The proposed Serve's
+  `memberUpOn` used lease mode `.none` and said nothing of `Γ.ls`. The TTL draft also had no `Γ.kv.lm` premise.
+- **Evidence.** `notes/axiom-review/f7-c.md`, F2: Grant, Put with that lease, and `TimeToLive(WithAttachedKeys)`
+  as root, then a panic on success, with every disjunct of the success arm refuted.
+- **Proposed change.** `Serve_dist_proposed` requires `etcdstart.memberUpOnL … (Γ.au mid) Γ.kv.lm (Γ.ls mid)` with
+  auth on, and F2's `etcdstart.memberUpL … Γ.kv.lm (Γ.ls mid)` with auth off. Both say `mvccLeases E.γ = Γ.ls mid`
+  at the lease mode `Γ.kv.lm`. `MemberLessor.lean` is copied verbatim from `etcd-safe-f2`. F2 owns P-L1, and its
+  `Serve_dist.spec_proposed` has the same lessor part, so the two are reviewed together.
+  `Lease_TimeToLiveKeysOn_dist` gains `Γ.kv.lm = .revocable`, as `Lease_LeasesOn_dist` has.
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`.
+
+## 2026-11-26: F7 `Auth_UserAdd_dist` -- the server's name bound dropped
+
+- **Spec.** `AuthViewDist.lean`, `Auth_UserAdd_dist.spec`; it mirrors `etcdUserAddSpecW`
+  (`v3rpc/AuthService.lean:121`).
+- **Defect.** The precondition is too weak. It omitted `name.length ≤ backend.maxKeySize`, which the mirror and
+  the three sibling drafts ask for. With a longer name every member that applies the entry calls `lg.Fatal`
+  (bbolt's `ErrKeyTooLarge`, `batch_tx.go:183`), yet the history model counts the entry as an applied `UserAdd`.
+  The update was `∀ um, ⌜…⌝ -∗ …` where the mirror has `□ (∀ um, ⌜…⌝ → …)`. The two are equivalent, so this is
+  only style.
+- **Evidence.** `notes/axiom-review/f7-b.md`; `issues/etcd-auth-useradd-long-name-fatal.md`.
+- **Proposed change.** The pure precondition is now `⌜strsSizeOk [name, pw] ∧ name.length ≤ backend.maxKeySize⌝`,
+  and the update is `□ (∀ um, ⌜um.name = name ∧ um.noPassword = false⌝ → histAu …)`. The driver meets the bound
+  ("root", "u", "v").
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`.
+## 2026-11-26: the four lessor axioms (`Lease_Grant_dist`, `Lease_GrantLive_dist`, `Lease_LeasesGranted_dist`, `Lease_LeasesLive_dist`) -- names shared across members
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/{LeaseGrantDist,LeaseGrantLiveDist,
+  LeaseLeasesGrantedDist,LeaseLeasesLiveDist}.lean` (interim trust-boundary axioms, not linked). No `SpecPlan/` counterpart.
+- **Defect.** The statements quantify over every view `Γ`; the start's view `DistView.ofKV` has `ls := fun _ => 0`, so
+  every member has the same lessor name, and a grant's fact at member A (`leaseGrantedAt (Γ.ls A) i id`) meets
+  `Lease_LeasesGranted_dist`'s premise at member B. Go's `LeaseLeases` reads B's own lessor with no read index: a
+  lagging B does not list it. `Lease_LeasesGranted_dist` is unsound with `Lease_Grant_dist`; the revocable pair the same
+  once a slot is held.
+- **Evidence.** `notes/axiom-review/f2-lease-axioms.md` (the independent `axiom` review, 2026-11-26; the program there).
+- **Proposed change (applied, F2).** A premise `(∀ a b : w64, Γ.ls a = Γ.ls b → a = b)` on all four (the view has no
+  member set: over every id); `ofKV` fails it. Carried by the wrappers (`leaseGrant`, `leaseList`, `gone`) and the Run
+  specs. P-L1 must discharge it: the start allocates a distinct lessor name per member (and an injective `ls`), and
+  `NewServer` makes that member's lessor at exactly that name. The docstrings also say monotone mode needs
+  `lease.leasesNoExpiry` from the member's start.
+- **Decision.** Accepted (the coordinator, 2026-11-26); a fresh review follows.
+- **Follow-up (the auth-lease review's F2, 2026-11-26):** distinct names are not enough: a start could serve a `Γ`
+  whose lessor names it allocated and owns (`etcdAddr_set` takes any `Γ`). Proposed (for review with F7's P-A1):
+  `Serve_dist.spec_proposed` requires the serving member's lessor at `Γ.ls mid` and its lease mode `Γ.kv.lm`
+  (`etcdstart.memberUpL`); `NewServer.specG_dist_proposed` gives `mvccLeases E.γ = γl`. The distinct-names premise is
+  then redundant; kept.
+
+## 2026-11-26: `lessorAbsentStays_dist.law` (N9b's draft law) -- a premise no client can hold; proved over a heap-free lessor slot
+
+- **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/LeaseDefs.lean`,
+  `lessorAbsentStays_dist.law` (a callee hypothesis of `RunLeaseExpiry.wp_proof` on `etcd-safe-n9b`), and its
+  single-process form `lease.lessorAt_absent_stays` (`Proof/go_etcd_io/etcd/server/v3/lease/LessorHist.lean`).
+  No `SpecPlan/` counterpart (the dist workloads are not in the spec plan). Not a trust-boundary spec: untrusted
+  proof design (the lead, #50 2026-11-26T01:14:58Z: "decide it yourselves ... record it in the ledger").
+- **Defect.** The draft law took only the address fact `etcdAddrAt a Γ mid` and three `lessorAt (Γ.ls mid)`
+  snapshots. The address fact is over the opaque table `etcdSvc` (no law), so nothing could prove the law from
+  it: it would have had to become an axiom. Its single-process form takes `lessorRdInv γl`, which is over the
+  member's heap (`lessorRdBody`'s `lsF … ↦□`, `ttlTie`), so it cannot appear in a statement about another
+  machine's client.
+- **Evidence.** `notes/etcd-dist-n9b.md` §10 ("What the lead's drafts lack", item 1); leaseexpiryN's `run.lean:452`.
+- **Proposed change (applied, F2).** A heap-free history slot, allocated by the start for each member's lessor
+  name `Γ.ls mid` (P-L1), `lease.lessorSlot γl := inv lessorSlotN (ghostMapAuth γl ½ ∅ ∨ lessorHistOk γl)`
+  (`Proof/go_etcd_io/etcd/server/v3/lease/LessorSlot.lean`), where `lessorHistOk γl` is the law itself over
+  `lessorAt` alone (`□ ∀ i k j σ ρ τ id, ⌜…⌝ -∗ lessorAt … -∗ … ={⊤ ∖ lessorSlotN}=∗ ⌜τ.1.lookup id = none⌝`):
+  persistent and heap-free, so any machine can hold it. (A first try put `∃ L : GooseLocalGS GF,
+  lessorRdInv (hG := ⟨Gg, L⟩) γl` there; it does not elaborate, `lessorRdInv`'s `go.Semantics` instance is at
+  the member's local context.) Until the member's `NewLessor` runs, the slot holds half of `γl`'s ghost-map
+  authority at `∅`; the member holds the other half. P-L1's `NewLessor` variant (`newLessor_alloc` at a given
+  `γl`) opens the slot in its one allocation step. The right disjunct is excluded there, because the member's
+  half at `∅` contradicts the pin it holds (`lessorAt_not_empty`). The variant joins the halves, inserts the
+  lessor's two keys (`lessorGhost`), allocates `lessorRdInv` as today, proves `lessorHistOk γl` from it
+  (`lessorAt_absent_stays` at `⊤ ∖ lessorSlotN`) and closes the slot with it. A client holding the slot and
+  any `lessorAt γl i σ` (which holds a pin of `γl`) is in the second case. So the law, restated with
+  `lessorSlot (Γ.ls mid)` in place of the address fact, is a theorem (`lessorAbsentStays_dist.law_holds`, via
+  `lease.lessorSlot_absent_stays`).
+  The clients' `leaseMember`/`memberCli` carry the slot of the member's lessor name; the orchestrator's share at
+  the start carries it for every member.
+  - *Moves:* the start allocates, for each member `mid`, `γl := Γ.ls mid` as a ghost map
+    `GMap Bool LessorGV` at `∅` (two halves) and the slot (`ClusterNames.ls`, replacing `DistView.ofKV`'s
+    constant). The member's boot passes its half to `NewServer.specG` (P-L1), down to `NewLessor`'s variant.
+    No interim axiom's text changes: the lease drafts already read `Γ.ls mid`, and `etcdAddrAt`/`etcdSvc` are
+    untouched.
+  - *Not taken:* (b) the law as an interim axiom (trust where a proof exists); (c) a stronger
+    `Lease_LeasesLive_dist` post (an axiom's text change); a real split of `lessorRdBody` with a fraction of
+    the history's authority in a heap-free invariant (every append in the lessor package, Grant, Revoke,
+    Recover, Attach and Detach, would have to open it; the slot needs only the allocation step).
+  - *Crash (D6, not this line):* a restarted member's lessor would need a slot that survives the restart. The
+    one-shot slot is for `etcd_safe_nocrash`.
+- **Decision.** Accepted (etcd-grove-03, under the lead's delegation of 2026-11-26T01:14:58Z). The slot and the
+  law's proof are on `etcd-safe-f2`; P-L1 (the `NewLessor`/`NewServer` variants and the start's allocation) is
+  F2's item 4.
+
+## 2026-11-25: `statusErrOk` -- an error's value is of its dynamic type (`stTypedErr`) (#45)
+
+- **Spec.** `statusErrOk` (`Proof/go_etcd_io/etcd/cache/v3/Base.lean`), the predicate of the errors
+  grpc's `status` accepts. It is posted by the axiom `status.Error.wp_proof` and by grpc's client
+  contracts (`InvGrpc`, `InvGrpcStream`, `InvKVConn`), and proved by the other producers. No
+  spec-plan counterpart.
+- **Defect.** Too weak for `errors.IsStatusErr`'s proof. Perennial's `errors.Is` compares the target
+  with the tree's errors of its type (`errors.ComparableErr`), and that needs those errors to hold
+  values of the target's Lean type. The model does not type interface values, so an error of
+  dynamic type `EtcdError`, `deadlineExceededError` or a pointer type may hold any value.
+- **Evidence.** `statusErr_comparableTarget` (`Proof/errors/IsStatusErr.lean`), for its three
+  target kinds: `etcdError_comparable`, `comparableErr_pointer` (`TreeTyped`) and
+  `deadlineExceededError_comparable`.
+- **Proposed change.** The non-nil conjunct gains `⌜stTypedErr e⌝`: of type `EtcdError` the error
+  holds an `EtcdError`, of type `deadlineExceededError` it holds `deadlineExceededError{}`, and of a
+  pointer type it holds a `Loc`. Go guarantees this by typing, since an interface value holds a
+  value of its dynamic type. The proved producers discharge it: `stTypedErr_ptr`,
+  `stTypedErr_etcdError`, `stTypedErr_deadline`, and `stTypedErr_of_valKey` for `togRPCError`'s
+  non-pointer keys. The leaf lemmas `clientErr_statusErrOk_of_leaf` and `statusErrOk_of_leafMsg`
+  take it as a hypothesis, which their callers give. Where `statusErrOk` is in an axiom's or a
+  contract's post, the trusted statement asserts more:
+  - `status.Error`'s, a `*status.Error`, a pointer;
+  - the grpc client contracts', the errors grpc returns.
+- **Decision.** Accepted by coordinator-E, 2026-11-25 (#45 7179030298: Go's own typing, which the
+  model makes true), as one change to `statusErrOk` with `status-bodies`' `grpcStatusIs` (the entry
+  below with "`GRPCStatus` case"); the two branches merged on `prove-isstatuserr/2026-11-25`, one
+  fresh review of the combined posts: `notes/axiom-review/statuserr-combined.md` (survives).
+
+## 2026-11-25: `errors.IsStatusErr.spec` takes the target's description (#45)
+
+- **Spec.** `errors.IsStatusErr.spec` (`Spec/errors/IsStatusErr.lean`); no spec-plan counterpart.
+- **Defect.** Unprovable once it stops being an axiom. When `err` has an `Is(error) bool` method
+  (grpc's `*status.Error`), Go's `errors.Is` calls `err.Is(target)`. The only spec of that call is
+  `grpcErrMethodsOk`'s `Is` clause, which takes `descIs target m'`. With `dm = none` the precondition
+  gives no description of a pointer target, so the walk cannot make the call.
+- **Evidence.** The proof over Perennial's `errors.wp_Is` builds the leaf's `errorWalkNode`, whose
+  `Is` branch needs that clause's `descIs (GoInterface.ok e) m -∗ descIs target m' -∗ ...`.
+- **Proposed change.** The precondition gains `∃ m', descIs target m'`. Every caller meets it with
+  existing lemmas: `descIs_etcdError` for an `EtcdError` target; `errorMsgIs_errorString` or
+  `errorMsgIs_deadline` with `descIs_of_msg`, or `ctxErr_descIs`, for the context errors. The
+  `dm = some` callers already hold it. The callers whose proofs change: `EtcdServer.LeaseRenew`,
+  `EtcdServer.PromoteMember`, `watchServer.Watch`, `canceledByCaller`, `watcher.Close`,
+  `lessor.recvKeepAliveLoop`, `watchGRPCStream.run`, `Client.getToken`. No statement other than
+  this spec's changes. The rejected alternative was to weaken `grpcErrMethodsOk`'s `Is` clause to
+  any target, which changes a trust-boundary contract and `status.Error`'s axiom.
+- **Decision.** Accepted by coordinator-E, 2026-11-25 (#45): the spec becomes a theorem, so the
+  narrower precondition adds no trust.
+
+## 2026-11-24: the watch and lease clients' stream specs fix the stream's member and metadata at open (SW1's users, R2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/watchClient__Watch.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__{openWatchClient,newWatchClient,serveWatchClient}.lean`
+  (the watch client), `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/leaseClient__LeaseKeepAlive.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/{retryLeaseClient__LeaseKeepAlive,lessor__resetRecv,lessor__sendKeepAliveLoop}.lean`
+  (the lease client). SpecPlan: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__*.lean`,
+  `.../etcdserverpb/watchClient__Watch.lean` (same shape as the old real specs).
+- **Defect.** Too strong, inherited from `NewStream`'s (the entry below): each fixes, when the stream is
+  returned, its address (the member `i`, the content `watchUp (V.mem i).2`) and its metadata `md`
+  (`clientAttemptMd`, the token `auth.mdTokenOf md`, which `run`'s epoch recorded, `EpInfo`).
+- **Evidence.** SW1's `NewStream` (`phase7-switch`, commit 5): one content `Up` for every address, the
+  dispatch learned with each response (`streamDispIs γ a md`, `Md a md`, `Dn a md`).
+- **Proposed change (applied on `phase7-switch-ab`).** The watch client: the requests' content is one for
+  every member (`client.watchUpW V`: a create's bound published at every member's auth store, which
+  `wsBdOk` already holds; `watchConnFacts`' per-member registration gives it, `isGrpcStreamMd_mono`,
+  `watchConnFacts_regW`); the specs return `cliWatchStreamIs … (watchUpW V) (watchMdW V om) Dn` and
+  `□ ∀ a md, watchMdW V om a md -∗ watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md)`;
+  `EpInfo` drops the member and the token; `respcE` carries each response's dispatch; `run`'s epoch
+  (`epochAt`) learns its member and token with its first response (until then no substream's state reads
+  them: `wsElem_atIdx_nil`). The callers' guarantees (`watcher.Watch.spec`, `watchCheckOk`'s statement
+  but its `clientAttemptMd` conjunct, now SW1's `IProp` `clientAttemptMdI`) are unchanged. The lease
+  client: an existential dispatch family `Md` and a dispatch-indexed `Dn` (it never reads the content).
+- **Decision.** Applied with SW1 (branch `phase7-switch-ab`), pending the user's review of SW1.
+## 2026-11-25: dist `Watch`/`RequestProgress` (N3) -- SW1's `.stream` entry cannot carry etcd's watch contract across machines yet; per-function interim contracts instead
+
+- **Spec.** The cross-machine contract of `(*clientv3.watcher).Watch`/`RequestProgress`. Drafts:
+  `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean` (`Watch_dist.spec`,
+  `RequestProgress_dist.spec`, `watchClientAt`), which mirror `Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean`
+  and `watcher__RequestProgress.lean` at the cluster view's KV names `Γ.kv`, without the auth row. The axiom
+  texts are in `Proof/.../etcd/dist/WatchDist.lean` (not declared). The alternative is a `Watch` stream entry in
+  the dist table `etcd_dist.etcdSvc Γ mid` (A1, `Proof/.../etcd/dist/S2Interim.lean`), over SW1's `GrpcSvcEntry.stream`
+  (on `lean` since `5c036beb77`). Design: `notes/etcd-dist-plan.md` §22, §22.6.
+- **Defect.** Route (a), the watch over SW1's `.stream` entries, cannot be stated now, even in the no-crash
+  theorems where no member restarts. The proved stream contract `v3rpc.watchMethod pw R W` (up `watchUp R`,
+  dn `watchDn γs R W tok`, spec `watchStreamSpec γs R W tok`) names member values that no start can fix:
+  - `R : v3rpc.WSrv` holds the member's server `s`, the watch server's lock `wsl` and logger `lg`: heap
+    locations its machine allocates at run time (`NewServer`, `v3rpc.Server`). It also holds the whole apply
+    environment `E : apply.AEnv`, which is `NewServer.specG`'s existential.
+  - `W : v3rpc.SrvW` holds the store handle (heap), the mvcc name `γm = E.γ`, and `histLb`/`crevOk`.
+  - `watchUp R` reads `R.E.authMode`, and `watchDn` fixes its run's `r.srv = R ∧ r.W = W`.
+  - The client watcher fixes its environment `V` at `New` (`WEnv.mem`/`memW` list each member's `WSrv`/`SrvW`;
+    the lock invariant's `isWGS` keeps `watchSrvFacts V`). The workloads call `New` before any RPC, so a client
+    cannot learn the values before it must name them, not even through a publication (option A, rejected by O1).
+
+  The transport is not the gap. `grpc.ClientConn.NewStream.wp_proof` with `Server.Serve`'s model reads the
+  stream's registration off the dialed address's table (`isGrpcStreamMd_of_addr`), as `grpcdriver_robust` does
+  across machines. The gap is a table entry that both machines can state: heap-free and a function of `(Γ, mid)`.
+- **Evidence.** `v3rpc/InvWatch.lean` (`WSrv`, `watchUp`, `watchDn`, `watchStreamSpec`; section over
+  `hG : HeapGS`), `v3rpc/Results.lean` (`watchMethod`), `v3rpc/WatchApi.lean` (`SrvW`), `client/v3/InvWatch.lean`
+  (`WEnv`, `isWGS`, `watcherMu`), `client/v3/InvClientNewResult.lean` (`isNewClient`, `isNewClient_watcher_of`),
+  `etcdstart/ServedLeaseLinked.lean` (the in-process start's `∃ Svc, grpcServeTok …` with the `Watch` entry at
+  `watchMethod pw R W`). On `lean`, 47 files (about 28k lines) mention `WSrv`/`SrvW`/`watchDn`/`watchStreamSpec`,
+  and 147 mention `WEnv`.
+- **Proposed change.**
+  - **Now (b):** two per-function interim axioms at clientv3's interface, `Watch_dist.wp_proof` and
+    `RequestProgress_dist.wp_proof` (the drafts above: posts at `Γ.kv` only; reconnection and resumption at
+    another member are inside `Watch_dist`, as in the proved single-process spec). Trust: +2 axioms, each with a
+    fresh `axiom`-skill review. No existing trusted statement changes, so M1's line is untouched.
+  - **Later (a), the retirement path, after M1 lands:** a restated A1, with `etcdSvc`'s `Watch` entry defined
+    at `Γ` and its unary part opaque. A full definition would need the unary entries as heap-free wire specs
+    (S2's etcd side). A partial definition (`Watch` only) would refute the KV contracts, since a registration
+    with no entry is unconstrained by `grpcServes`. The restatement needs:
+    - etcd's watch contract restated heap-free and `Γ`-indexed: either `Γ` gains start-allocated watch-server
+      ghost names (a P-L1-like change to `NewServer`/`v3rpc.Server`), with the heap locations existential, or a
+      client-level entry at `Γ.kv` with an agreement mechanism `streamAuxIs` does not give;
+    - the client's `WEnv` no longer listing members' `WSrv`/`SrvW`;
+    - `Serve_dist`'s `grpcServes` obligation for the entry (from `etcd_watch_served_chain`).
+
+    Its trusted cost: A1 restated, and `Serve_dist` and the five `KV_*_dist` re-reviewed (their "who answers"
+    argument rests on the opaque, lawless table). All of these are on M1's line. Its size is several thousand
+    lines over 2-3 weeks: most of S2's etcd-side stream work. When it is done, it retires (b)'s two axioms.
+  - **Restart (the crash theorem):**
+    - (b)'s statements read only `Γ.kv` (`kvCongr` keeps it), so they are restart-stable. Retiring them for
+      every `V` needs the client watcher's environment refactor (`watchSrvFacts` out of `isWGS`, taken per
+      stream from the table), and `etcd_safe` needs that refactor anyway: a `V` fixed at `New` lists member
+      values that a restart changes.
+    - Under (a) with start-allocated ghost names, a restarted member's `E` and mvcc names are new, so it needs a
+      D6-style continuation, as P-L1 does for the lessor.
+    - Under (a) with a client-level entry, the entry is restart-stable but needs the same `WEnv` refactor.
+- **Decision.** (b) now; (a) over SW1's `.stream` entries is the retirement path, after M1 lands (the
+  etcd_safe coordinator, 2026-11-25). The two axioms still need their `axiom`-skill reviews and the user's
+  approval in the etcd_safe packet before they are declared (trust-boundary specs).
+
+## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
+  precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
+- **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
+  name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
+- **Evidence.** `dataAreaFresh`'s definition (`storage/WalAreaFresh.lean`): the whole names claim on `d`'s root, none
+  naming an entry, coherent with the tree through the shared mode's invariant.
+- **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
+- **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
+
+## 2026-11-24: interim putget axioms over the S2 interface switch (A1 restated, A2 retired)
+
+- **Spec.** `etcd_dist.etcdAddrAt` (`Proof/.../examples/etcd/dist/S2Interim.lean`): was `□ etcdAddrRaw a γE mid`
+  (an axiomatized predicate, produced only by the axiom `etcdAddr_set`); now `∃ σ, grpcAddrAt a (etcdSvc γE mid)`
+  over the axiomatized heap-free table `etcd_dist.etcdSvc`; `etcdAddr_set` (statement unchanged) a theorem.
+- **Defect.** None in the old statement; the S2 interface switch (`6d5a98fb3d`) put `grpcAddrAt`/`grpc_addr_set`
+  on `lean`, so the interim trust can be stated in its vocabulary, one axiom fewer.
+- **Evidence.** `notes/putget-dist-plan.md` §12, "Over the S2 interface switch"; adversarial review of the four
+  remaining axioms (the `axiom` skill, 2026-11-24, `notes/audit.md`).
+- **Proposed change.** As above; A3-A5 (`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`) unchanged (their
+  narrowing needs S2's etcd side: O1, O2, a listen at a set address). Interim, retired by S2's `etcdSvc` and proofs.
+- **Decision.** Pending (the owner reviews the axioms' text before landing). Review 4 found A4/A5 false with
+  `bridge.New` in both forms (`notes/putget-dist-plan.md` §12, "Review 4"); proposed fix on `bridge.New`.
+
+## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
+
+- **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`
+  (`etcd_dist.Serve_dist.spec`), `ClientPutDist.lean` (`etcd_dist.Client_Put_dist.spec`), `ClientGetDist.lean`
+  (`etcd_dist.Client_Get_dist.spec`), over the axiomatized address fact `etcd_dist.etcdAddrRaw`/`etcdAddr_set`
+  (`Proof/.../etcd/dist/S2Interim.lean`); and the changed client-construction specs `clientv3.New.spec`,
+  `newClient.spec`, `Client.dialWithBalancer.spec`, `Client.dial.spec` (the configuration's dial options may be
+  `grpc.WithNoProxy()`'s, `noProxyOptsAt`; `New`/`newClient` give the client's `cfg` field), new
+  `grpc.WithNoProxy.spec` (proved), `etcdstart.NewClients.spec`/`NewClient.spec` (post: `clientNoProxy cl`).
+- **Defect.** `putget_safe` needs cross-machine gRPC (phase 7 S2, #24, unfinished): the in-process specs' `Invoke`
+  registration (`kvRegsAt`) is one heap's. And the review of the first design (`s2-interim/review.md`, F1) found
+  that without `WithNoProxy` a client's calls follow `HTTPS_PROXY`, so the cross-machine client axioms were false.
+- **Evidence.** `notes/putget-dist-plan.md` §12; `TestProxyRogue` / `TestWithNoProxyFix` (`review-go/proxyrogue/`).
+- **Proposed change.** The five interim axioms A1-A5 (`notes/putget-dist-plan.md` §12), A4/A5 restricted to clients
+  with no proxy dial path (`clientNoProxy`, from `etcdstart.NewClient`'s post), `etcdstart.NewClients` passing
+  `grpc.WithNoProxy()`. Retired by #24's switch (`etcdAddrAt` defined from `grpcAddrAt`) and S2's proofs (`Serve`,
+  the pub-form put `client_Put_pub`): the statements then become theorems unchanged.
+- **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
+  `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
+  `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
+## 2026-11-25: bootCfgOk -- `bootstrap`'s contracts covered `UnsafeNoFsync = true`, false of Go
+
+- **Spec.** `bootCfgOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), the configuration
+  condition of the trusted `bootstrapContract` (inside the examples' `bootPremise`) and
+  `bootstrapRestartContract` (`InvRestart.lean`), and a premise of `NewServer.spec`, `NewServerR.spec`,
+  `bootstrap.spec`, `bootstrapBackend.spec`, `bootstrapRaft.spec`, `bootstrapRaftFromCluster.spec`. No
+  SpecPlan counterpart changes (the SpecPlan's `bootstrap.lean` names `bootCfgOk` only).
+- **Defect.** The trusted contract promised `bootOk` (an open WAL whose `Sync`s fsync, `wal.bootOk`) at every
+  configuration, including `UnsafeNoFsync = true`, where `bootstrapNewWAL` calls `SetUnsafeNoFsync` (the entry
+  "bootstrapStorage -- without `cfg.UnsafeNoFsync = false`" below; `notes/STATUS.md`, stage 4's section). No
+  theorem was known wrong: every example sets it `false`.
+- **Proposed change.** A sixth conjunct `cfg.UnsafeNoFsync' = false` of `bootCfgOk` (narrows both trusted
+  contracts to where they are true); `etcdstart.bootCfgOk_of` takes `hnf : cfg.UnsafeNoFsync' = false`, and its
+  five call sites (`newServerMode` twice, `StartMemberAuth`, `auth/startServer`, `auth3/startMember`) pass `rfl`
+  (the configuration literal's zero value). `etcdstart.bootstrapContract_of_spec` reads `bootstrap.spec`'s
+  premise `cfg.UnsafeNoFsync' = false` off the contract's precondition, so `bootPremise_of_spec` loses its
+  hypothesis `hnf`. No top-level statement's text changes; its premise `bootPremise` asks less.
+- **Decision.** Accepted (coordinator-E on #34, 7144914007, 2026-11-25); applied on
+  `bootstrap-final/2026-11-25` (claim #34's final stage).
+
+## 2026-11-24: `net.UDPConn.ReadFromUDP`'s result nested the wrong way (kvraft-udp, `udpNet.receive`)
+## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
+
+- **Spec.** `Spec/errors/IsStatusErr.lean`, `errors.IsStatusErr.spec` (the axiom `errors.IsStatusErr.wp_proof`).
+- **Defect.** Its third target case, "a non-nil `SafeMapKey go.error target`", added for
+  `canceledByCaller`'s comparison with `context.DeadlineExceeded`, has since Perennial's P8c admitted
+  only pointers (already the second case), so the one caller that needed it took the unsatisfiable
+  `client.ctxErrTargets` (`notes/axiom-review/ctx-readerrs-vacuity.md`).
+- **Evidence.** Perennial `Golang/Theory/Map.lean` (`mapKeys_interface`, `SafeMapKey.key_ok`);
+  go1.27.3 `src/errors/wrap.go:44-70` (`Is` compares `err == target`, which for different dynamic
+  types is `false` and for `deadlineExceededError`, an empty struct, does not panic).
+- **Proposed change.** The case becomes `target = deadlineExceededError{}`; `ctxErrTargets` states
+  that value (proved from `context.isInit`, `ctxErrTargets_of`).
+- **Decision.** Applied (branch `hctx-vacuity/2026-11-25`): a trust-boundary spec covering one more
+  target, true of Go; for the coordinator's review before landing.
+
+## 2026-11-25: bcrypt.GenerateFromPassword -- the non-pointer error branch is `False` (a `SafeMapKey` no non-pointer is)
+
+- **Spec.** `Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`, `bcrypt.GenerateFromPassword.spec`
+  (the axiom `bcrypt.GenerateFromPassword.wp_proof`); the plan's `SpecPlan/Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`
+  does not state the error's shape.
+- **Defect.** False of the Go code: the post's non-pointer branch asks `SafeMapKey go.error err`, which
+  since Perennial's P8c (`293bcbdd8`) no non-pointer, non-nil interface meets, so the axiom says bcrypt
+  never returns a non-pointer error; v0.57.0 returns `InvalidCostError(cost)` (an `int`) for
+  `cost > MaxCost`. (`notes/bcrypt-invalidcost-false.md`.)
+- **Evidence.** `bcrypt.go:95-102, 139-150, 299-303`; Perennial `Golang/Theory/Map.lean`
+  (`mapKeys_interface`, `SafeMapKey.key_ok`); the review's Lean check (`ctxDeadline_pure_false`, the
+  same contradiction).
+- **Proposed change.** The branch becomes `ei.ty = bcrypt.InvalidCostError.ty ∧ ∃ c : w64, ei.v = #c`
+  (Go's typing of the value bcrypt returns; it implies the old branch's non-pointer and
+  not-`deadlineExceededError` conjuncts). The caller `EtcdServer.UserAdd`'s proof derives what it used
+  (`errKeyOk_invalidCost`); the gRPC layer looks the error up under its own map keys (`errKeyOk`,
+  `v3rpc.errKeys`) instead of `SafeMapKey`. No other caller.
+- **Decision.** Applied (ctx-leaf-fix, 2026-11-25, branch `hctx-vacuity/2026-11-25`): a trust-boundary
+  axiom restated more weakly than its false form, for the coordinator's review before landing.
+
+## 2026-11-24: `net.UDPConn.ReadFromUDP`'s result nested the wrong way (kvudp, `udpNet.receive`)
+
+- **Spec.** `Net/Spec/net/UDPConn__ReadFromUDP.lean`, `UDPConn.ReadFromUDP.spec` (its part copy
+  `KvRaft/Spec/net/UDPConn__ReadFromUDP.lean`, `etc/copy-part.py`). A trust-boundary spec, with no SpecPlan
+  counterpart.
+- **Defect.** Unprovable, and it leaves every caller stuck: the post said `RET (PairV #n (PairV #addr #err))`,
+  but goose's 3-tuples are left-nested (`Perennial/GooseLang/Notation.lean`, `leftNest`). The model
+  `UDPConn.ReadFromUDP.impl` (`Net/TrustedCode/net.lean`) returns `((n, addr), err)`, and the caller's
+  translation reads `Fst (Fst __p)`, `Snd (Fst __p)`, `Snd __p`.
+- **Evidence.** `udpNet.receive`'s proof (`KvRaft/Proof/.../kvraft/udpNet__receive.lean`): after `wp_apply` of
+  the spec, the code was stuck at `(#k).Fst`. Branch `udp-net/2026-11-24` (`7399eb8204`) had found and fixed it
+  already, and it proves the corrected spec (`Net/Proof/net/UDPConn__ReadFromUDP.lean`). No proof of the
+  mis-nested statement existed.
+- **Proposed change.** `RET (PairV (PairV #n #addr) #err)`. The failure case also gets `addr = null`, as in
+  `7399eb8204`'s statement (the model returns `#(null : Loc)`), which is a stronger post. The file is taken whole
+  from `7399eb8204`, so the two branches' versions are the same.
+- **Decision.** Accepted (the kvraft-udp coordinator, 2026-11-24); applied on `kvudp/2026-11-24`.
+## 2026-11-25: computeMemberID, URLsMap.String -- Perennial's real `strings.Join` needs the joined string shorter than `2^61` bytes
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/computeMemberID.lean`
+  (`membership.computeMemberID.spec`), `.../membership/NewMember.lean` (`membership.NewMember.spec`),
+  `.../membership/NewClusterFromURLsMap.lean` (`membership.NewClusterFromURLsMap.spec`),
+  `Spec/go_etcd_io/etcd/client/pkg/v3/types/URLsMap__String.lean` (`types.URLsMap.String.spec`),
+  `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__VerifyBootstrap.lean` (`config.ServerConfig.VerifyBootstrap.spec`),
+  and the configuration fact `bootGo.initMapOk` (`Proof/.../etcdserver/BootValues.lean`) that
+  `bootstrapNewClusterNoWAL.spec`, `bootstrapCluster.spec`, `bootstrap.spec` and `Finalize.spec` take (claim #34,
+  stage 2's internal specs). No `SpecPlan/` counterpart states the bound; no top-level statement, no `bootPremise`.
+- **Defect.** Unprovable after lean `622264bf5e` (Perennial `d9c8c1d97`): Perennial `8e9f1ee59` replaced the
+  trusted `strings.Join` by the real one, whose spec takes `⌜(sep.intercalate xs).length < 2^61⌝` (Go panics when
+  the result's length overflows). `computeMemberID` joins the peer URLs' strings, `URLsMap.String` joins the
+  entries' `name=url` strings; nothing bounded their bytes. `URLsMap.String`'s URL strings came from
+  `http.URLStringAny_spec` without its plain-URL clause (any string), so no bound was derivable there at all.
+- **Evidence.** VM build of `bootstrap-stage2/2026-11-25` after merging lean (`49010f75d7`): `computeMemberID.lean`
+  (~line 71, the `strings.Join` precondition) and `URLsMap__String.lean` (the same precondition; also
+  `fmt.Sprintf.argsWf`, removed by lean's fmt rework).
+- **Proposed change.** (Decided by the stage's lead, 2026-11-24.) `computeMemberID.spec` and `NewMember.spec` take
+  `((us.map urlStrOf).map List.length).sum < 2^61`; `NewClusterFromURLsMap.spec` takes it for each entry.
+  `URLsMap.String.spec` switches to plain URLs (`∀ k u, http.urlRootPlain u`, so `URL.String()` is exactly
+  `http://host`) and takes `types.urlsMapStrLen m urls < 2^61` (each entry `k` and URL `u` count
+  `|k| + |http://host| + 2`: the piece `k=url` and its `,`), formats with `fmt.wp_Sprintf_pure` (exact output);
+  `VerifyBootstrap.spec` takes the same two premises and passes them down. `bootGo.initMapOk` gains the conjunct
+  `Σ_k Σ_{u ∈ initURLs k} (|k| + |urlStr u| + 2) < 2^61`, which gives both (`bootstrapNewClusterNoWAL`'s proof
+  derives each entry's bound); it is decidable and settled per example by evaluation, like its other conjuncts.
+  Alternatives considered: (a) per-URL `< 2^56` with a count bound: `initMapOk`'s `≤ 2^62` URLs is far too loose
+  for a product bound, and a tighter count is a second new conjunct for no gain; the one total sum bounds both
+  joins directly. (b) `URLsMap.String` as a pending hypothesis (`?`): rejected by the lead (it only feeds
+  `VerifyBootstrap`'s error text and its `== ""` test, but a hypothesis would stay in the trust report).
+  (c) A Perennial `strings.Join` spec without the bound: false of Go.
+- **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`); internal specs only, no axiom,
+  no top-level statement or `bootPremise` changed.
+
+## 2026-11-25: bootstrappedCluster.Finalize -- the lock invariant's bound on the members needs the initial cluster's size
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrappedCluster__Finalize.lean`,
+  `bootstrappedCluster.Finalize.spec` (claim #34's stage-3 spec, stage 2 proves it); and the law
+  `Spec/.../etcdserver/bootClusterRows.lean` (`bootClusterRows.spec`, new this stage, a hypothesis of the proof).
+- **Defect.** Unprovable as stated: `Finalize` makes the cluster's lock (`membership.isRaftCluster`, the
+  post's `Hrc`), whose invariant `rcLockInv` carries `GMap.size ms ≤ 2^62`; nothing in the premises bounds
+  the initial cluster's members (`bootGo.membersOk` says they are distinct, not how many).
+- **Evidence.** `Proof/.../etcdserver/bootstrappedCluster__Finalize.lean`, the `rcLockInv_boot` step
+  (`membership.rcLockInv_boot`'s `hsz`).
+- **Proposed change.** `Finalize.spec` takes `bootGo.initMapOk U cfg.InitialClusterToken'` (at most `2^58`
+  entries, the premise `bootstrapCluster.spec` already takes since this stage); `bootstrap.wp_proof` passes
+  it. `bootClusterRows.spec` loses its `c ≠ null` premise (the proof has no fact giving it; the law is open,
+  not trust, and `clusterApplyRest` it gives states it).
+- **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`).
+
+## 2026-11-25: bootstrapCluster, bootstrap -- two premises the new cluster's construction needs
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapCluster.lean`, `bootstrapCluster.spec`, and
+  `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean`, `bootstrap.spec` (claim #34's stage-3 specs, which
+  stage 2 proves the first of). No `SpecPlan/` counterpart states the ids.
+- **Defect.** Too strong (false of Go at some configurations the premises admit): (1) `NewMember`'s
+  `computeMemberID` and `genID` call `crypto/sha1.Sum`, which panics when the run's `fips140` GODEBUG setting is
+  `only` (`fips140only.Enforced()`); (2) `NewClusterFromURLsMap` answers two entries of one id with
+  `fmt.Errorf("member exists with identical ID %v", m)`, formatting a `*Member` by reflection (`printValue`),
+  which Perennial's `fmt` model does not cover (the error itself is fine Go; the model is stuck there); and
+  `genID`'s `make([]byte, 8*len(ids))` and `sort.Sort` need a bound on the entries.
+- **Evidence.** `Perennial/Spec/crypto/sha1/Sum.lean` (its premise `crypto.fips140.GodebugFips140Off`);
+  `cluster.go:81-95` (the `%v` of `m`); `Perennial/Proof/fmt/Args.lean`'s `argOk` (no reflection).
+- **Proposed change.** Both specs take `crypto.fips140.GodebugFips140Off` (the owner's decision on SHA-1, plan
+  §7.7: an environment premise visible in the top-level statements) and `bootGo.initMapOk U token` (new,
+  `BootValues.lean`: the entries' `memberOf` ids distinct and not `0` (Go errors on `0`; excluded so that the
+  construction's loop has no return path), at most `2^58` entries and `2^62` URLs in all (`sort.Strings`' bound); a fact of the configuration,
+  decided by evaluation). `bootstrap.wp_proof` passes them on. The final stage's `bootPremise` bridge takes the
+  two facts per example.
+- **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`; the owner's SHA-1 decision
+  covers (1); (2) is a fact of each example's configuration, no trust).
+## 2026-11-25: bootstrapStorage -- without `cfg.UnsafeNoFsync = false`, false of Go
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapStorage.lean`, `bootstrapStorage.spec` (claim #34
+  stage 3), and `bootstrap.spec` through it; no SpecPlan counterpart.
+- **Defect.** Unprovable at `cfg.UnsafeNoFsync = true`: `bootstrapNewWAL` then calls `w.SetUnsafeNoFsync()`
+  (`bootstrap.go:728-730` at the pin), which sets the WAL's `unsafeNoSync`, and the post's open WAL (`wal.bootOk`:
+  `walOpened`, whose shared handle holds `unsafeNoSync ↦ false`, so that `Sync` fsyncs) is not the WAL Go has.
+- **Evidence.** `bootstrapNewWAL.wp_proof` (claim #34 stage 4): the branch `if cfg.UnsafeNoFsync` has no spec to
+  call that keeps `walOpened`; `Handle.lean`'s `walHandleIn` pins `unsafeNoSync ↦ false`.
+- **Proposed change.** The premise `cfg.UnsafeNoFsync' = false` on `bootstrapStorage.spec`, `bootstrapNewWAL.spec`
+  and `bootstrap.spec`. `bootstrapContract` (trusted, `InvBoot.lean`) has the same defect (its docstring says
+  `UnsafeNoFsync` makes `bootstrap` do what `bootOk` says): recorded in `notes/STATUS.md`, its fix (a conjunct
+  of `bootCfgOk`, which the examples' `bootCfgOk_of` proves by `rfl`) is the final stage's, with the owner.
+- **Decision.** Applied to the three specs (branch `bootstrap-stage4/2026-11-25`); the contract's fix pending the
+  owner.
+
+## 2026-11-25: bootstrapRaftFromCluster -- a member with no peer URL
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapRaftFromCluster.lean` (new, claim #34 stage 4),
+  `bootstrapRaft.spec`, `bootstrap.spec`; no SpecPlan counterpart.
+- **Defect.** Not provable over the cluster's specs when an initial-cluster entry has no peer URL: the
+  peers' contexts `bootGo.ctxs` (`bootGo.memberJSON`) write the member's `peerURLs` as an array, which Go
+  writes only when the member's peer-URL slice is not nil, and `membership.memberAt` (the cluster's model)
+  keeps no slice's nil-ness (a non-empty slice is not nil).
+- **Evidence.** `bootstrapRaftFromCluster.wp_proof`'s loop: `bootGo.memberJSON_eq` needs
+  `PeerURLs ≠ nil`, from the clone's `PeerURLs ↦* mm.peerURLs` with `mm.peerURLs ≠ []`.
+- **Proposed change.** The pure premise `bootGo.urlsNe U` (every entry has a peer URL; Go's
+  `types.NewURLsMap` makes no empty entry) on the three specs, proved per example by evaluation.
+- **Decision.** Applied (branch `bootstrap-stage4/2026-11-25`).
+
+## 2026-11-25: bootstrapRaft -- an id raft refuses: `membersOk` excludes only `0`
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapRaft.lean`, `bootstrapRaft.spec`, and
+  `bootstrap.spec`; no SpecPlan counterpart.
+- **Defect.** Unprovable when this member's id (`bootGo.id`, a SHA-1 of its peer URLs and the token) is
+  `math.MaxUint64` or `math.MaxUint64 - 1`: the post's `bootRaftBuilt` holds `rnStartCfg`, whose `ConfigValid`
+  excludes both (raft v3.7's `Config.validate` refuses an id `IsLocalMsgTarget` names, and `StartNode` panics), but
+  `bootGo.membersOk` excludes only `0` (`NewClusterFromURLsMap`'s check), and `bootstrap` checks neither.
+- **Evidence.** `rnStartCfg.valid` (`InvNodeStart.lean`), `ConfigValid` (`ApiVocab.lean`).
+- **Proposed change.** The pure premise `bootGo.idRaftOk cfg U` (`BootValues.lean`: the id is neither) on
+  `bootstrapRaft.spec`, `bootstrapRaftFromCluster.spec` and `bootstrap.spec`; the final stage proves it of each
+  example's URLs by evaluation, as it does `bootGo.membersOk`'s. `bootstrapContract`'s `bootOk` has the same gap
+  at an arbitrary `id` (it is false there anyway, plan §0).
+- **Decision.** Applied (branch `bootstrap-stage4/2026-11-25`).
+
+## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,
+  `rafthttp.NewRoundTripper.spec` (plan: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`).
+- **Defect.** Too weak for a user: on success the post gives only `http.roundTripperOk H rt`, not the
+  round tripper's dynamic type, so `bootstrap`'s proof cannot establish `bootOk`'s
+  `"%Hprt" ∷ ⌜∃ t : Loc, bs.prt' = GoInterface.ok ⟨PointerType http.Transport.ty, #t⟩⌝`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), which `NewServer`/`LeaseRenew` use.
+- **Evidence.** `server/etcdserver/api/rafthttp/util.go:47-51` (pin `edc800c6f`):
+  `func NewRoundTripper(...) (http.RoundTripper, error) { return transport.NewTimeoutTransport(tlsInfo, dialTimeout, 0, 0) }`;
+  `client/pkg/transport/timeout_transport.go:27`: `func NewTimeoutTransport(...) (*http.Transport, error)`.
+  `bootstrap.go:72` sets `prt` from it. `transport.NewTimeoutTransport.spec` already returns `tr : Loc`
+  with `roundTripperOk H (interface.mkOk (PointerType http.Transport.ty) #tr)`, so no callee spec moves.
+- **Proposed change.** The success disjunct becomes `⌜err = GoInterface.nil⌝ ∗ http.roundTripperOk H rt ∗
+  ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType http.Transport.ty, #t⟩⌝` (everything it gave
+  kept). Re-proved in `Proof/.../rafthttp/NewRoundTripper.lean` over `NewTimeoutTransport`'s unchanged
+  spec (no new axiom, no trusted file). Consumer updated: `Proof/.../rafthttp/TransportStart.lean`
+  (drops the new conjunct); `TransportState`, `TransportSpecs`, `Transport__Start`, `Link` pass the spec
+  through unchanged.
+- **Decision.** Approved for claim #34 by the coordinator (2026-11-23); applied on branch
+  `bootstrap-proof/2026-11-23`.
+## 2026-11-24: `NewStream` fixes the stream's metadata when it returns; a transparent retry recomputes it (phase 7 S3, R2)
+
+- **Spec.** `Spec/google_golang_org/grpc/ClientConn__NewStream.lean`, `grpc.ClientConn.NewStream.spec` (the
+  axiom `grpc.ClientConn.NewStream.wp_proof`): its post's `md` with `⌜clientAttemptMd conn om md⌝` and
+  `Spec a md γ Dn`. SpecPlan: `SpecPlan/Spec/google_golang_org/grpc/Api.lean`, `streamerOk_call.spec`
+  (`:657-667`: `md` fixed in the post, and `cliSend`/`cliRecv` indexed by it).
+- **Defect.** Too strong (false of grpc-go v1.84 and of the model): the metadata the handler sees is the
+  dispatched attempt's, which is not known when `NewStream` returns. The client holds `Spec md γ Dn` while
+  the server may run at another attempt's `md'` with the same `Dn`; for the watch's token-indexed spec that
+  equates `watchDn tok` and `watchDn tok'`.
+- **Evidence.** A transparent retry of an unprocessed first attempt recomputes the head
+  (`createHeaderFields` per attempt, the per-RPC credentials called again: `models/grpc/model_transport.go:239-245`,
+  from `stream.go:482-505`, kept verbatim from grpc-go v1.84); etcd's token can be refreshed between the
+  attempts. The spec's docstring rests on "grpc sends the headers once", true of one attempt only.
+- **Proposed change.** `notes/phase7-endstate.md` §1.2 and §2: the post gives no `md`;
+  `cliStreamIs` takes the attempts' metadata family `Md` (`clientAttemptMdI conn om`) and an `md`-indexed
+  `Dn`; the post gives `□ ∀ md, clientAttemptMdI conn om md -∗ Spec a md γ (Dn md)`; each received message
+  gives `Md md ∗ streamMdIs γ md` with `Dn md j m` (`streamMdIs_agree`: one `md` per stream). SpecPlan:
+  `streamerOk_call` returns no `md`, `cliSend`/`cliRecv` lose the index, and `cliRecv_recv`'s message arm
+  gives the dispatched `md` (`mdIs g md ∗ ⌜mdSeen (mdc ++ md0) md⌝`) beside `S.dn g md n c`. Users: the
+  two generated stubs (`watchClient__Watch`, `leaseClient__LeaseKeepAlive`, mechanical), the lease client
+  (drops it), the watch client (its epoch's token learned from the first response: `watchGRPCStream__run`,
+  `WatchRun`, `serveWatchClient`, `WatchEpoch`; not mechanical). Branch `phase7-switch` (SW1).
+- **Decision.** Pending (a trust-boundary spec: the user's review; taken overnight as
+  `notes/phase7-endstate.md` §3, decision C).
+
+## 2026-11-24: a client stream's clean end (`io.EOF`) need not follow a handler run (phase 7 S3, R1)
+
+- **Spec.** `Proof/google_golang_org/grpc/InvGrpcStream.lean`, `cliStreamIs`'s `RecvMsg` (`:638-639`) and
+  `cliBidiStreamIs`'s `Recv` (`:679-680`), as `grpc.ClientConn.NewStream.spec`'s post gives them (the axiom
+  `grpc.ClientConn.NewStream.wp_proof`). SpecPlan: `SpecPlan/Spec/google_golang_org/grpc/Api.lean`,
+  `cliRecv_recv.spec` (`:691-699`: `io.EOF` with `S.fin g md n none`).
+- **Defect.** Too strong (false of grpc-go v1.84 and of the model): at `io.EOF` the spec gives
+  `downClosed γ L` (the handler returned after `L`), but `io.EOF` also comes, before any message, after a
+  transparent retry whose replay failed, with no handler run.
+- **Evidence.** `nonissues/grpc-transparent-retry-spurious-eof.md` (found by `models/internal/grpcdifftest`'s
+  `TestAtMostOnce` with random choices; grpc/grpc-go#9443, #9447): `retryLocked` returns the replay's bare
+  `io.EOF` through `shouldRetry`. A retry happens only before the stream is committed, and receiving a
+  message commits it.
+- **Proposed change.** The `io.EOF` arms give `downClosed γ L ∨ ⌜L = []⌝`; SpecPlan's,
+  `S.fin g md n none ∨ ⌜n = 0⌝`. No user changes: `serveWatchClient` and `recvKeepAliveLoop` drop
+  `downClosed`. Branch `phase7-switch` (SW1).
+- **Decision.** Pending (a trust-boundary spec: the user's review).
+
+## 2026-11-24: `etcd_wal_crash_safety_bounded` -- its program `bootWal` ran raft's initializer, not the tester's; `Hinit_wp` unprovable
+
+- **Spec.** `WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Adequacy.lean`: `bootWal` (the
+  program the theorem is about) and the hypothesis `Hinit_wp` of `etcd_wal_crash_safety_bounded`.
+- **Defect.** `bootWal` was `initialize' #() ;; Main(area, orDir)` with a bare `initialize'`, which, under the
+  file's `open go_etcd_io.raft.v3`, is raft's package initializer: the program never initialized the tester's
+  package. `Hinit_wp` asked raft's initializer for the tester's `isPkgInit`, which nothing can prove (it is the
+  ghost fact of another package), so the theorem was a statement about the wrong program under a hypothesis no
+  proof could discharge.
+- **Evidence.** Discharging `Hinit_wp` (branch `wal-open`): `wp_apply` of the tester's generated
+  `wp_initialize'` failed on the goal `Seq (initialize' #()) ...`, whose `initialize'` is
+  `go_etcd_io.raft.v3.initialize'`.
+- **Proposed change.** `bootWal` calls `github_com.mit_pdos.etcd_grove.examples.etcd.wal.initialize'` (the
+  tester's, which initializes raft among its imports); `Hinit_wp` removed (proved: per-generation registration
+  rights, `tRegQsOk`, and the generated `wp_initialize'`); the theorem gains the instance premise
+  `[log.NewModel]` (raft's `log.New`, a semantics assumption the etcd examples' closed theorems take too).
+- **Decision.** Applied on branch `wal-open` (not landed), for the coordinator's (#15) and the user's review:
+  it changes the program of the statement (a fix) and adds the `log.NewModel` premise.
+## 2026-11-23: zap's `nopLogger` holds its `name` and `clock`, `zapEntry` owns its slices; zap's `pool.New` returns its pool (zap Z2, #40)
+
+- **Spec.** `Spec/go_uber_org/zap/Defs.lean`: `zap.nopLogger` (what `zapLoggerOk` holds), `zapcore.zapEntry` and
+  `zap.nopLoggerVal`; `Spec/go_uber_org/zap/internal/pool/New.lean`, `zap.internal.pool.New.spec`. No
+  SpecPlan counterpart (zap's internals are below the plan).
+- **Defect.** Too weak for the proofs of `Logger.Panic` and `Logger.Fatal` over zap's code: at
+  `PanicLevel`/`FatalLevel`, `check` skips the level test and builds the entry, reading `log.name` and
+  `log.clock` (`log.clock.Now()`), which `nopLogger` did not own; and `pool.New`'s post (`True`) gave no
+  handle on the pool, so `getCheckedEntry`/`putCheckedEntry` (`_cePool.Get`/`Put`) had nothing to stand on.
+- **Evidence.** `zap/logger.go:337-343` (`check`'s entry), `zapcore/entry.go:42-53` (the pool);
+  `zap.NewNop` sets `clock: zapcore.DefaultClock` (a `systemClock`) and leaves `name` empty.
+- **Proposed change.** `nopLogger l` adds `∃ n, l.name ↦□ n` and `∃ c : systemClock, l.clock ↦□
+  interface.mkOk systemClock.ty #c` (and `nopLoggerVal` the clock), which `NewNop` gives (its proof persists
+  the two fields); no caller's statement changes. `pool.New[T](fn)` (now also `[go.NotInterface T]`)
+  returns `ownPool T p fn` (`Spec/go_uber_org/zap/internal/pool/Defs.lean`: the pool's `sync.Pool`, not
+  used yet, whose `New` meets `sync.newSpec` for any `Q` that `fn`'s results satisfy), which
+  `ownPool_init` turns into `isPool T p Q`; `Pool.Get`/`Pool.Put` get specs over it. zapcore's package fact
+  gains `_cePool` as an `isPool` of owned entries (`zapcore.pooledEntry`: the entry with its `before` and
+  `cores` slices owned). `zapcore.zapEntry` (no producer: `check` returns `nil` below `DPanicLevel`) owns its
+  two slices, empty (`↦* []`), where it said their lengths were 0: `Write` returns the entry to `_cePool`,
+  whose elements `reset` (in `getCheckedEntry`) writes through. `pool.Pool[T].Get`/`Put` are specified for
+  `T = *E` (each of zap's pools holds pointers; the conversion of a generic `T` to `any` steps only once its
+  underlying type is known).
+- **Decision.** Applied (branch `zap-z2`), within #40's Z2 (the coordinator's go-ahead, 2026-11-23).
+## 2026-11-24: `bootMarshal`/`peersCtx` (raft's `Bootstrap` vocabulary) -- empty contexts excluded, which made the trace check's premise false
+
+- **Spec.** `Proof/go_etcd_io/raft/v3/ApiVocab.lean` (`bootMarshal`, `bootConfChange`, `peersCtx`), the
+  vocabulary of `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` (`Spec/go_etcd_io/raft/v3/`)
+  and of the closed theorems' premise `bootMarshal`; no counterpart in `SpecPlan/`.
+- **Defect.** Vacuous at a real caller: `bootMarshal` required `⌜∀ c ∈ ctxs, c ≠ []⌝`, and the trace
+  check's peers have no context (`Peer{ID: i}`), so its premise `bootMarshal _ [[], [], []] _` was false and
+  `raft_tracecheck_safe`/`_robust` held vacuously (since `bcfa65fe6d`, 2026-11-12).
+- **Evidence.** `examples/raft/tracecheck/sim.go:163`, `concurrent.go:155`; `tracecheck.premises`
+  (`RaftTla/Proof/.../tracecheck/Defs.lean:52`). The conjunct's reason (`00e0cbcf74`): `Context` is a proto2
+  `bytes` field, so an empty context's bytes depend on whether the slice is `nil`.
+- **Proposed change.** State presence instead of excluding it: `peersCtx` says an empty context's slice is
+  `nil`, `bootConfChange` likewise, `bootMarshal` loses the conjunct. Callers: `Bootstrap`'s proof (the `nil`
+  fact from `peersCtx`), the trace check (`tcPeers_ctx`); the etcd side's `peersCtx` (in `bootOk`) only
+  passes through. Weaker premises for every etcd example (non-empty contexts), a true one for the trace check.
+- **Decision.** Applied (branch `tracecheck-nonvacuous/2026-11-24`, `notes/trace-check-design.md`,
+  "Non-vacuity").
+
+## 2026-11-24: `roundTripperOk` (`SpecPlan/Spec/net/http/Api.lean`) -- a length-framed body's completion fact comes too late
+
+- **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (the body premise
+  `□ (∀ B, Φb B -∗ P.body R τ B)`) and `reqOwn r R bd`; the main tree's `Proof/net/http/Boundary.lean`
+  does not have the defect (its fixed body's bytes are `HReq.body`).
+- **Defect.** Unprovable over Go's Transport for a body of declared length. `NewRequest` of a
+  `*bytes.Buffer`/`*bytes.Reader`/`*strings.Reader` sets `ContentLength = n`, and the Transport writes
+  `Content-Length: n`, then copies `n` bytes of the body, and only then reads on to `EOF`
+  (`transferWriter.writeBody`: `io.LimitReader(body, n)`, then the extra-byte check). The server's body
+  reader returns `EOF` after `n` bytes, and `readerAt_read.spec` makes it give `□ P.body R τ B`. But
+  the client has `Φb B` only after its reader's `EOF`, when the last byte is already on the wire. So the
+  byte protocol cannot carry `P.body` with the request's last byte.
+- **Evidence.** Design of S5's byte protocol (`notes/phase7-plan.md`, "S5 draft signatures", §5 C2);
+  Go 1.27.3 `net/http/transfer.go`, `writeBody`.
+- **Proposed change.** `reqOwn r R bd cl` records the declared length (`cl : Option Nat`, which
+  `NewRequest` sets), and for `cl = some n`, `roundTripperOk` asks
+  `□ ∀ B, Preb B -∗ ⌜B.length = n⌝ -∗ P.body R τ B` in place of the `Φb` clause. `NewBuffer_reader.spec`'s
+  `Pre B := ⌜B <+: ys⌝` gives it at `n = ys.length`. A streamed body (`cl = none`, sent chunked) keeps
+  the `Φb` clause: the terminator is written after the reader's `EOF`.
+- **Decision.** Pending (posted on #24 with the S5 draft; the client boundary's statement, so it needs
+  coordinator-E's and the user's agreement).
+
+## 2026-11-23: the model's `strings` stand-ins and read-error wrappers removed (`modelCutByte`/`modelTrimLeftByte`, `connectReader`, `connReader.failed`); `parseRequestLine.spec`, `connReader.Read.spec`, the server reader's deadline specs, `Conn.Read.specLc` (net/http and net/rpc models)
+
+- **Spec.** Removed: `Net/Spec/net/http/modelCutByte.lean`, `modelTrimLeftByte.lean`,
+  `Net/Spec/net/rpc/connectReader__Read.lean`. New: `Spec/strings/Cut.lean`, `Spec/strings/TrimLeft.lean` (Go's pure
+  result, `Proof/strings/CutDefs.lean`; `isPkgInit strings`; `TrimLeft` for an ASCII cutset only), no proof file
+  (pending: Perennial's `strings-cut-lastindex`, `8ff6a1c79a`); `net.Conn.Read.specLc` (`Conn.Read.spec` with two
+  later credits and the exact count `ReadOutZ`, proved). Changed: `parseRequestLine.spec` (pre `isPkgInit strings`,
+  was `True`); `ReadResponse.wp_proof`/`parseRequestLine.wp_proof` take `strings.Cut.spec`/`TrimLeft.spec`;
+  `DialHTTPPath.wp_proof` takes `Conn.Read.specLc` for `connectReader.Read.spec`; `connReader.Read.spec` (`crHead`
+  gains the once-cell `γe`, the reader's token at the delivered bytes and `rdlTok cn true false`; errors
+  `crHeadErr γe`, final: `crHeadErr_final`); `connReader.startBackgroundRead.spec`, `abortPendingRead.spec`,
+  `conn.hijackLocked.spec` take the end's `rdlTok cn true b` for `connIs` and give back `∃ b', rdlTok`; `hjPre` and
+  `hjDone` carry it; `crBg`/`crOwn`/`crLeft` lose `failed`; `errAny_opErrPtr` takes the `*OpError`'s fields (`pe ↦□
+  v`). Top-level statements unchanged.
+- **Defect.** (1) The stand-ins were MODEL code Go does not have, where Go calls `strings.Cut`/`TrimLeft`. (2) The
+  wrappers re-imposed Linux's no-byte-after-error above `Read`, narrowing the models' claims (no read deadlines on
+  served connections). (3) On `lean` the net semantics gained sticky read errors and `deadline_au` takes `rdlTok`
+  (branch `net-sticky-read`), so the server reader's deadline calls need the token.
+- **Evidence.** The user's decisions of 2026-11-23 (#24); `notes/net-sticky-read.md`; Go 1.27.3's `response.go:172-179`,
+  `request.go:1038-1039`, `server.go:703-870`, `net/rpc/client.go:247-269` (the model is now that code verbatim
+  there); difftests (`models/internal/rpcdifftest/run.sh`, both packages) pass.
+- **Proposed change.** As in "Spec".
+- **Decision.** Applied on branch `models-rpc-http` (2026-11-23). `strings.Cut.spec`/`TrimLeft.spec` stay pending
+  (`links_pending` in `Net/Proof/net/http/Results.lean` and `Net/Proof/net/rpc/Results.lean`) until Perennial proves
+  them.
+
+## 2026-11-23: net/http's head readers widened for Go's 400 answer and net/rpc's `CONNECT` request: header blocks, header maps, version prefixes; `readRequestLimit.spec`; the model's `modelHeaderValuesContainsToken` (net/http model)
+
+- **Spec.** `Net/Proof/net/rpc/Proto.lean` (`respProto`, new `badReqAns`, `hsErr`), `HttpDefs.lean`
+  (`crSt`, `resp_before_req`), `ClientRead.lean` (`resp_of_read`); `Net/Spec/net/http/`: `ReadResponse`,
+  `modelReadMIMEHeader`, `shouldClose`, `fixPragmaCacheControl`, `transferReader.parseTransferEncoding`,
+  `fixLength`, `fixTrailer`, `readTransfer`, `ParseHTTPVersion`, `badStringError`; new
+  `readRequestLimit`, `Server.maxHeaderValueCount`, the model's `modelHeaderValuesContainsToken` and its
+  helpers, httpguts' `ValidHeaderFieldValue`; `Net/Proof/net/http/Defs.lean` (`httpEnv`, the header
+  vocabulary `HdrLine`/`hdrBlockOk`/`hdrWire`/`hdrOwn`/`hdrVals`/`mimeErr`, `badHdr`), `RequestDefs.lean`
+  (`connectReqVal`, `connectReqv`, `errMsgOk`).
+- **Defect.** (1) The 400 change decided in the entry below (applying it): `ReadResponse` must read Go's
+  `400` head, whose header block has two lines, and its `readTransfer`/`shouldClose` meet a non-empty
+  header with `Connection: close`; the head readers' specs were stated for an empty header only. (2)
+  `readRequestLimit` (net/rpc's `CONNECT path HTTP/1.0` request, phase 5.2's next step) needs
+  `readTransfer` for a `*Request` (stated for a `*Response` only), `ParseHTTPVersion` on a version cut by
+  an error (stated for the two whole versions), `badStringError`'s error comparable with `io.EOF` (the
+  deferred rewrite), and `Error()` on the header reader's errors. (3) `shouldClose` calls httpguts'
+  `HeaderValuesContainsToken`, whose `headerValueContainsToken` calls `strings.IndexByte`, which
+  Perennial translates as a name only: no proof of `Connection: close` over Go's code.
+- **Evidence.** (1) Go's `conn.serve` (`fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request\r\n…")`);
+  `internal/httpdifftest`'s `TestReadResponse` (the exact answer added to its heads: status
+  `400 Bad Request`, `close=true`, the body read to the end). (2) `request.go` `readRequestLimit` (the
+  `defer` comparing `err == io.EOF`; `err.Error() == "message too large"`). (3)
+  `Perennial/Code/strings.lean` (`IndexByte` a name).
+- **Change.** (1) `respProto W a cn bs` also holds of every prefix of `hsErr (W.hsAns a)` (Go's 400 answer
+  over HTTP, nothing for raw net/rpc), at any time (Go answers before the handshake is whole); the
+  dialer's readers exclude it once past the handshake's answer (`hsErr_excl`); `crSt` keeps the dialer's
+  bytes a prefix of `connectAns` or `badReqAns`; `ReadResponse.spec`'s law the same, its post unchanged
+  (the 400 answer's status is not `connectedStatus`: `DialHTTPPath` returns its error).
+  `modelReadMIMEHeader.spec` over a header block `hb` (`hdrBlockOk`: distinct canonical names, printable
+  values without space at their ends) of at most `maxHeaders` lines, the stream's bytes past the reader a
+  prefix of `hdrWire hb eol ++ rest`, finality; post `hdrOwn m hb` or an error (`mimeErr`: the stream's
+  or a `ProtocolError`); the empty block is the old instance. `shouldClose`, `fixPragmaCacheControl`,
+  `parseTransferEncoding`, `fixLength`, `fixTrailer`, `readTransfer` over a header map `ms` without the
+  names they test (`"Connection"`'s values owned, `hdrVals`); `shouldClose` may delete `"Connection"`.
+  (2) `readTransfer.spec` is a conjunction, the response case and the request case (`reqNoBody`:
+  `NoBody`, `ContentLength` 0, `Trailer` nil); `fixLength.spec` for `isResp` either way;
+  `ParseHTTPVersion.spec` on a prefix of either version (`ok` iff whole); `badStringError.spec`'s error
+  `io.ptrTyped`; `httpEnv` also holds httpguts' `tokenTable` (moved here), `strings`' initialization and
+  `errTooLarge`'s value (premises, as before, until net/http's initialization is proved). New
+  `readRequestLimit.spec` (the stream a prefix of `connectReq path`, finality, `errMsgOk` of its errors;
+  post an error, or `connectReqv req path` and the reader past the request) and
+  `Server.maxHeaderValueCount.spec`. (3) MODEL change (for the user's review): `shouldClose` calls the
+  model's `modelHeaderValuesContainsToken` (`textproto_model.go`: httpguts' code with `strings.IndexByte`
+  as `modelIndexByte`, `tokenEqual`'s range over runes as one over bytes, the same result);
+  `TestReadResponse` gained Connection-token heads (case, whitespace, commas, a non-ASCII token, several
+  lines); `run.sh` passes. httpguts' `HeaderValuesContainsToken` is no longer called by the model.
+- **Decision.** (1) accepted by the user (the entry below); applied with (2) on branch `models-rpc-http`
+  (2026-11-23): no trust added, every result still proved. (3) pending the user's review (a
+  trusted-model change).
+
+## 2026-11-23: `hijackOk` gives the server back a resource; `respProto` does not allow Go's 400 answer to a cut handshake (net/http's server up to the hijack)
+
+- **Spec.** `Net/Proof/net/http/ServerDefs.lean` (`hijackOk`), `Net/Spec/net/rpc/Server__ServeHTTP.lean`
+  (`Server.ServeHTTP.spec`); `Net/Proof/net/rpc/Proto.lean` (`respProto`); new
+  `Net/Spec/net/http/response__Hijack.lean` (`hijackOk` made from `hjPre`).
+- **Defects.** (1) `conn.serve` calls the handler and then `c.hijacked()`: if the connection was not
+  hijacked it goes on to `finishRequest`, the keep-alive loop and the next request; to stop there its proof
+  must learn from the handler that `Hijack` ran, and `hijackOk`'s continuation gave the handler nothing to
+  return. (2) A dialer's handshake cut (the net model's D1: a read may find the direction cut, keeping a
+  strict prefix of its bytes, then EOF, while the dialer has written it whole) makes Go's `readRequest` fail
+  with `io.ErrUnexpectedEOF` or a parse error (a cut request line, `"malformed HTTP request"`/`"malformed
+  HTTP version"`; a whole line, then EOF in the header block), and `conn.serve` answers with one
+  `fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection:
+  close\r\n\r\n400 Bad Request")` (only EOF and `*OpError{Op: "read"}` are "common" read errors answered with
+  nothing). `respProto` lets the acceptor write only prefixes of `connectAns ++ respsWire Rs`, after the whole
+  handshake: Go's server cannot meet it, and the dialer (who may have written the whole handshake) may read
+  that 400 answer, which `DialHTTPPath`'s proof (over `ReadResponse.spec`, answers that are prefixes of
+  `connectAns`) excludes.
+- **Evidence.** (1) the model's `server.go` `conn.serve` (`if c.hijacked() { c.r.releaseConn(); return }`).
+  (2) `GooseLang/Ext/Net/Impl.lean` D1 ("at any read, the connection may break: the direction becomes `cut`,
+  keeping a prefix of its unread bytes"); `request.go` `readRequestLimit` (the deferred `io.EOF` to
+  `io.ErrUnexpectedEOF`), `server.go` `isCommonNetReadError` and the `default:` answer.
+- **Change.** (1) Applied: `hijackOk rp cn a P Q hs D`, the continuation also given `D`;
+  `Server.ServeHTTP.spec` for every `D`, its post `threadTok ∗ D` (proof: `D` framed through the answer's
+  `Write` and `ServeConn`). `response.Hijack.spec`: `hjPre N P Q hs Z ⊢ hijackOk N.w N.cn N.a P Q hs (hjDone N hs)`,
+  `hjDone` the hijacked flag's ghost half (`connMuInv`), the reader's fields, the state word. (2) Proposed,
+  not applied: `respProto W a cn bs` also holds of every prefix of the 400 answer (`badReqAns`), and the
+  client side follows: `ReadResponse.spec` over answers that are prefixes of `connectAns` or of `badReqAns`
+  (the latter's status line `"HTTP/1.1 400 Bad Request"`, two header lines through the model's
+  `modelReadMIMEHeader` and `readTransfer`'s `Connection: close`, `httpguts.HeaderValuesContainsToken` with
+  its body), and `DialHTTPPath` returns its `*OpError` on it (it does already: the status is not
+  `connected`). `conn.serve`'s spec states the premise (the acceptor's protocol allows the 400 answer) until
+  then.
+- **Decision.** (1) applied (branch `models-rpc-http`, 2026-11-23). (2) accepted by the user (2026-11-23: `respProto`
+  also allows prefixes of Go's 400 answer, `ReadResponse` accepts that head, `DialHTTPPath` errors on it); applied
+  2026-11-23 (branch `models-rpc-http`; the entry above).
+
+## 2026-11-23: `http.ReadResponse.spec` over a reader that makes progress; `httpEnv` widened; `connectReader.Read.spec` makes progress; `ReadByte.specNE`; the model's `modelCutByte`/`modelTrimLeftByte` and `connReader.failed` (net/http model, `ReadResponse`'s proof)
+
+- **Spec.** Changed: `Net/Spec/net/http/ReadResponse.lean` (`io.readerStreamNE` for `io.readerStream`; the
+  `net.http.Assumptions` instance), `httpEnv` (moved to `Net/Proof/net/http/Defs.lean`; adds `fmt`'s and
+  `strconv`'s initialization and `NoBody`'s value), `Net/Spec/net/rpc/connectReader__Read.lean` (post: a byte or an
+  error when `p` is not empty). New: `io.readerStreamNE` (`Proof/io/ReaderStreamNE.lean`), `bufio.ownReaderBuf`
+  (`Proof/bufio/Buf.lean`), `bufio.Reader.fill.spec`, `bufio.Reader.ReadByte.specNE` (beside dsv-bufio's
+  `ReadByte.spec`), `bufio.Reader.Peek.spec` (`n = 1`), and net/http's `modelReadLine`, `modelReadMIMEHeader` (a
+  head without header lines), `modelCutByte`, `modelTrimLeftByte`, `ParseHTTPVersion` (`"HTTP/1.0"`, `"HTTP/1.1"`),
+  `badStringError`, `readTransfer` and its helpers (an empty header), textproto's `CanonicalMIMEHeaderKey` (a key its
+  quick check accepts) and `MIMEHeader.Del`, httpguts' `HeaderValuesContainsToken` (no values).
+- **Defect.** (1) Over a reader that may return `(0, nil)`, bufio gives up with `io.ErrNoProgress` and the stream
+  goes on: a status line cut that way and a later `"\n"` parse as a whole answer with its last byte unread, so the
+  stated post (`connected` only with `connectAns` delivered) is false for a generic `io.readerStream`. (2) `Atoi`'s
+  spec does not fix the number, so `readTransfer` may see any status, including those with `NoBody`. (3) Perennial
+  translates `strings.Cut` and `strings.TrimLeft` as names only (`ReadResponse` and `parseRequestLine` call them).
+  (4) net/http's server reads a request's head through `connReader`, which keeps no read error: the same question as
+  the client's answer (ledger entry below), for item 3's head read.
+- **Evidence.** (1) Go's `bufio.Reader.fill` (`maxConsecutiveEmptyReads`); a TCP connection's `Read` of a non-empty
+  buffer never returns `(0, nil)` (the net extension's D1), nor does `connectReader`'s (proved). (2)
+  `Perennial/Spec/strconv/Atoi.lean`. (3) `Perennial/Code/strings.toml`. (4) `models/net/http/server.go`
+  (`connReader.Read`, `backgroundRead`); `examples/net/semantics`' `TestReadEOFAfterFin`, `TestResetInNetwork`,
+  `TestKilledWithUnreadInput`, `TestTimeoutOnBreak` (Linux: no byte after an error but a read deadline's timeout).
+- **Proposed change.** (1) The NE contract, met by `connectReader`; `ReadByte.specNE` proved over `fill.spec`
+  (dsv-bufio's `ReadByte.spec`, over `io.readerOk`, allows `ErrNoProgress` and cannot give it: merging the two, one
+  proof with this an instance, is left). (2) `httpEnv` holds `NoBody`. (3) MODEL: `modelCutByte`/`modelTrimLeftByte`
+  (`textproto_model.go`), Go's `Cut`/`trimLeftByte` for a one-byte separator; `notes/perennial-changes.md`. (4) MODEL:
+  `connReader.failed` (`server.go`): after a read error, no byte; the model's claim excludes programs whose served
+  connections have read deadlines (`ReadTimeout`, `ReadHeaderTimeout`, `IdleTimeout`, a handler's
+  `SetReadDeadline`). Difftests (`models/internal/rpcdifftest/run.sh`, both packages) pass.
+- **Decision.** (1)-(2) applied on branch `models-rpc-http` (2026-11-23). (3) and (4) are trusted-model changes:
+  pending the user's review.
+
+## 2026-11-23: `DialHTTPPath.spec`, `DialHTTP.spec`, `http.ReadResponse.spec` stated; `respProto` waits for the dialer's handshake; the model's `connectReader` (net/rpc model, HTTP path)
+
+- **Spec.** New: `Net/Spec/net/rpc/DialHTTPPath.lean`, `DialHTTP.lean`, `connectReader__Read.lean`,
+  `Net/Spec/net/http/ReadResponse.lean` (vocabulary `Net/Proof/net/rpc/HttpDefs.lean`: `crAt`, `crSt`, `crErr`).
+  Changed: `respProto` (`Proto.lean`), `srvSendInv` (`ServerDefs.lean`).
+- **Defect.** (1) Without a condition on the acceptor, a dialer that read the whole answer could not know its own
+  handshake was written whole (`DialHTTPPath` ignores its write's error), so `rpcDialed` (`sendTok … (W.hs a)`) was
+  unprovable. (2) The net extension's semantics allows bytes after a read error (a broken direction's surviving
+  bytes), with which Go's `ReadResponse` (textproto returns a line cut by an error without the error, bufio keeps
+  none) accepts the status line cut by an error and a later `"\n"` as the whole answer, the answer's last byte left
+  to the client's codec: `isClient` unprovable in the model, though Go over Linux never does it.
+- **Evidence.** (1) `models/net/rpc/client.go`, `DialHTTPPath` (`conn.Write`'s result dropped). (2)
+  `nonissues/go-netrpc-dialhttp-reads-answer-after-read-error.md`; `examples/net/semantics`' `TestReadEOFAfterFin`,
+  `TestResetCloseUnreadInput` (Linux: no byte after an error).
+- **Proposed change.** (1) `respProto` beyond `[]` holds `sentLb cn false (W.hs a)` (an acceptor answers a whole
+  handshake: `ServeHTTP` writes after `readRequest` read the head), kept by the server in `srvSendInv`. (2) The model
+  reads the answer through `connectReader` (MODEL, `client.go`): after an error, a read returns no byte (it reads
+  the connection into a buffer of its own, so `p` beyond what it returns is untouched, as `io.readerStream` asks);
+  an empty read returns at once. Go's behavior over Linux (`DialHTTPPath` sets no deadline). Also MODEL:
+  `io.WriteString(conn, s)` as `conn.Write([]byte(s))` in `DialHTTPPath` and `ServeHTTP` (what io does for a writer
+  without `WriteString`; Perennial does not translate `io.WriteString`). `DialHTTPPath.spec`: `receiptBound`,
+  `cliEnv`, `httpEnv` (bufio's and io's initialization; net/http's own variables to be added by `ReadResponse`'s
+  proof), net/rpc's `connected` variable, and `rpcAddrP W a (connectReq path) connectAns`; post `isClient` or
+  `errAny`, as `Dial.spec`. `http.ReadResponse.spec` is stated for a CONNECT answer only (a stream reader whose bytes
+  are a prefix of `connectAns`, final after an error): an error, a status other than `connected`, or `connected` with
+  the reader having delivered exactly `connectAns`.
+- **Decision.** Accepted (applied on branch `models-rpc-http`, 2026-11-23); `ReadResponse`'s proof may refine
+  `httpEnv` (pending).
+
+## 2026-11-23: net/rpc's protocols get a per-address handshake (`rpcAddrP`); `rpcDialed`, `rpcAccepted` and `clientAt` are after it (net/rpc model, HTTP path)
+
+- **Spec.** `Net/Proof/net/rpc/Proto.lean`: `RpcWorld` (new fields `hs`, `hsAns`, default `[]`), `reqProto`,
+  `respProto`, `rpcAddr`; `ClientDefs.lean`: `sendInv`, `readerOwn`, `clientAt`, `rpcDialed`; `ServerDefs.lean`:
+  `srvSendInv`, `readerSt`, `rdrMid`, `rpcAccepted`. No spec of the plan corresponds (net/rpc is the kits').
+- **Defect.** The protocols were raw net/rpc's only: a connection's bytes were the frames from the first byte.
+  Over HTTP (`DialHTTPPath`, `Server.ServeHTTP`, what craq, epaxos and gryff use) the dialer first writes its
+  `CONNECT` request and the server its `200` answer, so no statement covered those connections.
+- **Evidence.** `models/net/rpc/client.go` (`DialHTTPPath`), `server.go` (`ServeHTTP`); the kits' servers
+  (`rpc.HandleHTTP` + `http.ListenAndServe`) and clients (`rpc.DialHTTP`).
+- **Proposed change.** The world fixes per address a handshake `W.hs a` (the dialer's) and `W.hsAns a` (the
+  acceptor's): `reqProto` is a prefix of `W.hs a ++ reqsWire L`, and beyond `W.hs a` only with `sentLb cn true
+  (W.hsAns a)` (a dialer writes no request before it has read the answer: Go's `DialHTTPPath` waits, and
+  net/http's server reads ahead with a buffered reader whose bytes `ServeHTTP` drops); `respProto` a prefix of
+  `W.hsAns a ++ respsWire Rs`; `rpcAddrP W a hs hsAns` is the old `rpcAddr` with `⌜W.hs a = hs ∧ W.hsAns a =
+  hsAns⌝`, and `rpcAddr W a := rpcAddrP W a [] []` (raw net/rpc: `Dial`, `Server.Accept`). The client and the
+  server start after the handshake: `rpcDialed` holds `sendTok … (W.hs a)` and `recvTok … (W.hsAns a)`,
+  `rpcAccepted` the converse, and `clientAt` the persistent `sentLb cn true (W.hsAns a)` (what `send` needs to
+  write a request). Every existing spec statement (`Dial`, `NewClient`, `NewClientWithCodec`, `ServeConn`,
+  `ServeCodec`, `Accept`, ...) unchanged in text; `Dial` and `Accept` use `rpcAddr`'s `[] []`.
+- **Decision.** Accepted (the shapes posted to the kits, 2026-11-23); applied on branch `models-rpc-http`.
 ## 2026-11-23: `maps.Keys.spec_objMap` -- `slices.Sorted` needs the map below `2^62` keys (maps-keys, #36)
 
 - **Spec.** `Spec/maps/Keys.lean` (`maps.Keys.spec_objMap`, the axiom `maps.Keys.wp_proof_objMap`), and the
@@ -76,7 +945,51 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   a per-prefix heap-level `idPfxInv` holding them (both arguments that use them are per prefix, and a prefix is one
   machine's); `IdNames.gen`; `NewGenerator.spec`'s pre gains `idPfxInv γi.gen γi.pfx`; `NewServer.spec`/`NewServerR.spec`
   gain it; `idGen`'s body. No top-level theorem's statement changes (checked; the plan lists the files).
-- **Decision.** Pending (the coordinator posts it on #28 before implementation; idutil's specs are shared).
+- **Decision.** Accepted (no objection on #28 within the hour; the coordinator, 2026-11-23); implemented on branch
+  `d7-idsplit`. Refined in the implementation: each prefix's two names (its ids' map `γip`, its generators' map
+  `γgp`) are allocated by `idCluster_alloc` and recorded in the new global map `IdNames.gen` (`p ↪[gen]□ (γip, γgp)`,
+  persistent, so no authority stays in an invariant); `idClusterInv` therefore gains the parameter `gen` (its type
+  changes by one `GName`); a key's generator facts in the global invariant are heap-free (`idKeyGenFactsG`: the
+  prefix's names, `g ↪[γgp]□ k`, `id ↪[γip]□ g` per issued id), their heap halves (`idIssueFragD`, the `prefix`
+  points-to) in `idPfxInv gen p`; `idClusterOk`'s generator-distinctness clause is restricted to keys of one prefix.
+  **Top-level vocabulary (the #8 rule, 2026-11-23):** `IdNames` gains `gen`, and `IdNames` is a field of `KVNames`,
+  which `etcd_safe_single_process`'s statement names through its restart premise (`etcdstart.premises` →
+  `bootPremiseR` → `bootstrapRestartContract`: `∃ γk : KVNames, …` reading `c0`/`ch0`/`log0`/`lm`/`gps`, never
+  `ids`): the statement's term changes, its meaning does not (an existential over a type with one more unread
+  field). No other top-level statement names `IdNames` (`etc/theorem-loc.py --list-tcb`: `k8s_safe_single_process`,
+  `etcd_leaseexpiryN_safe_single_process` only as axiom vocabulary; `mvccfull`, `mvccrand`, `k8s_authz` not at
+  all). Option (a), this branch: accept it; option (b): `gen` an explicit parameter, `IdNames` unchanged. **(a)
+  accepted** (Upamanyu's coordinator on #28, 2026-11-23: a vocabulary change with unchanged meaning is not covered
+  by #8).
+## 2026-11-23: `metadata.builtRawMDRaw` -- a trusted opaque with no law, now defined by the `rawMD`'s contents (phase 7 S2 core, part 7)
+
+- **Spec.** `Proof/context/LibKeys.lean`: `metadata.builtRawMDRaw v f` (inside `metadata.outgoingHeld`, hence
+  `metadata.outMD`, `outgoingCtxOk`, `outgoingCtxOkC`, `context.libCtxOk(C)`). SpecPlan's `outMD` is unchanged.
+- **Defect.** Opaque and lawless: nothing related a context's outgoing metadata `md` (`outMD ctx md`) to what
+  grpc's transport reads of the context (`grpcHdr.outRawIs`, `createHeaderFields`' premise), so the client
+  attempt's proof could not connect the head it writes to `grpcAttemptMd`'s `om`.
+- **Evidence.** `notes/phase7-plan.md` §0a, "Built in the session's sixth part", the open gap.
+- **Proposed change.** A definition: `∃ M rows, metadata.rawMDAt v M rows ∗ ⌜f = metadata.rawView M rows⌝`,
+  `rawMDAt` the `rawMD`'s read-only contents (map values `M`, rows `rows`) with `rawOk M rows` (map and row keys
+  lower case, `strings.lowerWord`; rows of even length), `rawView` `FromOutgoingContext`'s merge. Proved from it:
+  `outRawIs_of_outMD` (`InvHeader.lean`). No statement's text changes; what changes is the meaning of the
+  trust-boundary axioms that produce `builtRawMDRaw` (directly or through `outMD`/`outgoingCtxOk(C)`/`libCtxOk`):
+  `metadata.AppendToOutgoingContext`, `withVersion`, `WithRequireLeader`, `context.WithCancelValCtx` (which only
+  carries its parent's), and the grpc model's server contexts (`srvRawStreamIs`'s `libCtxOkC`, which carry no
+  `rawMD`). Each now claims the contents. Checked against grpc v1.84 `metadata/metadata.go` and etcd's
+  `client/v3`: every `MD` they store is built by `Pairs`/`MD.Set`/`FromOutgoingContext`/`AppendToOutgoingContext`,
+  all lower-casing their keys (ASCII under these callers' keys: the API version key, `hasleader`, and
+  `AppendToOutgoingContext`'s `lowerKey` premise), fresh, and never written after; the `added` rows are fresh
+  copies or the parent's (read-only by the parent's `rawMDAt`). **Narrowed:** the opaque allowed a map with
+  upper-case keys that do not collide up to case (a literal `MD` given to `NewOutgoingContext`); the definition
+  does not. No verified program builds one (`NewOutgoingContext` is reached only through `withVersion` and
+  `WithRequireLeader`). Not retired: these axioms. Proving `AppendToOutgoingContext`/`withVersion` from their
+  bodies needs `context.WithValue` at grpc's key `mdOutgoingKey{}` and the `*valueCtx` it returns (the chain form):
+  this repository's `context.WithValue.spec` (a trust-boundary axiom; Perennial does not translate its body) lists
+  the key types it accepts, and extending it is a change to a trusted statement, left for the user with the
+  pending `requestInfoKey` case (§0a, fifth part).
+- **Decision.** Applied (branch `phase7-s2-core`, 2026-11-23); for the user's review as a change to what the
+  listed axioms claim.
 
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
@@ -342,10 +1255,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Applied (prove-ps2-succ, 2026-11-22): `Succ` translated and proved over Perennial's `math.Sqrt`
   (mit-pdos/perennial#675, in review: `sqrt`, compiled to the square-root instruction, trusted as an arbitrary
   float), the axiom retired once the pin includes #675.
-## 2026-11-22: kvnet's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
+## 2026-11-22: kvraft's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
 
-- **Spec.** `KvNet/Spec/.../kvnet/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
-  `RunNode.lean` (the same `S`); kvnet's `Defs.lean` (`kdFileInvK γ id n γd`, `kdWriter` over `γ.wr id`).
+- **Spec.** `KvRaft/Spec/.../kvraft/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
+  `RunNode.lean` (the same `S`); kvraft's `Defs.lean` (`kdFileInvK γ id n γd`, `kdWriter` over `γ.wr id`).
 - **Defect.** (1) Not provable: `StartNode`'s start resource is one proposition for every `cfg`, but
   what the start needs names the configuration: the file of `cfg.Dir`/`cfg.ID`, raft's vacancy of
   `cfg.ID`, the bootstrap voters `1..cfg.Opts.Voters` (`kdCluster γ vs`), every other address's protocol
@@ -355,7 +1268,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   generation's start, carrying a crashed side the crash obligation can take (`inv (… ∨ crashed ∗ tok)`),
   so it cannot name the node; the writer's ghost variable `γ.wr id` is the store's, so the dead
   generation's `dmu` and the next generation's writer would share it.
-- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame"; Perennial's crash adequacy
+- **Evidence.** `notes/kvraft-part.md`, "`StartNode` and the crash frame"; Perennial's crash adequacy
   (`DistAdequacy.lean:555`: the obligation `crashed -∗ extsCrashStart L L' ={⊤}=∗ P i L'` is fixed at the
   generation's start).
 - **Proposed change.** (1) `S : w64 → GoString → Options → GMap w64 GoString → IProp GF` (id, dir, options,
@@ -366,16 +1279,16 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   ((raftState S ∗ kdFileState γ id ph.x S s pb) ∨ crashed ∗ token ph.tk)`, the pending batch's record
   holding its node existentially (`∃ n, nodeArm n γ x ∗ readyEnter n … ∗ nodeRunning n q ∗ …`), the share
   `q` coming back to the writer through a saved proposition (`pb` gains its name); `kdWriter ph …`.
-  Internal to kvnet's part (no client outside it); the top level allocates the file invariant at each
+  Internal to kvraft's part (no client outside it); the top level allocates the file invariant at each
   generation's boot.
-- **Decision.** Accepted (the kvnet-proof session, 2026-11-22; kvnet's own seam, decision C's plan).
+- **Decision.** Accepted (the kvnet-proof session, 2026-11-22; kvraft's own seam, decision C's plan).
 
 ## 2026-11-22: raft's `RestartNode` -- its client update cannot open a crash invariant (no crash token), so a client cannot keep `raftState` where a crash obligation can take it
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/RestartNode.lean`, `RestartNode.spec`: the update
   `AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ ∖ ↑N, ∅ <{ raftState γ cv.ID' S, COMM Q S }>`
-  (and the RaftNoAx/KvNet copies).
-- **Defect.** Too weak for a client whose process really crashes (kvnet, decision C). Perennial's crash
+  (and the RaftNoAx/KvRaft copies).
+- **Defect.** Too weak for a client whose process really crashes (kvraft, decision C). Perennial's crash
   adequacy takes each generation's crash obligation at the generation's start
   (`∀ L', crashed -∗ extsCrashStart … ={⊤}=∗ P i L'`), so the next generation's exclusive start resources
   must sit, from that start on, in invariants the obligation can empty: `inv (body ∨ crashed ∗ tok)`. Raft's
@@ -385,14 +1298,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   update fired inside `RestartNode`: the client has no token there, and on the crashed side it would have to
   produce `raftState` (taken) and `StorageHolds S σ` of its own `σ`. Borrowing `raftState` out of the
   invariant before the call loses it to a crash during `RestartNode`.
-- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame (2026-11-22)". The same problem was
-  met and solved for durable's sync update (`durWriteSync`, `notes/kvnet-part.md`, "`persist`", item 1).
+- **Evidence.** `notes/kvraft-part.md`, "`StartNode` and the crash frame (2026-11-22)". The same problem was
+  met and solved for durable's sync update (`durWriteSync`, `notes/kvraft-part.md`, "`persist`", item 1).
 - **Proposed change.** `RestartNode`'s update given and returning the token, as `durWriteSync`:
   `notCrashed -∗ AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ ∖ ↑N, ∅
   <{ raftState γ cv.ID' S, COMM notCrashed ∗ Q S }>` (under `[CrashGS GF]`, as `nodeCrash`). Raft's proof fires
   it before any step of `RestartNode`, where `wp_ncfupd` gives the token. Existing clients (kvdurable,
   kvreconf, the server's start paths) pass a plain update through a lemma like `durWriteSync_of_au` (the token
-  unused). Raft's change, not kvnet's.
+  unused). Raft's change, not kvraft's.
 - **Decision.** Accepted as proposed (the kvnet-proof session, 2026-11-22, on the coordinator's brief), after
   checking the shape:
   - *Sound, nothing trusted moves.* The token is the state interpretation's (`HeapGS`'s
@@ -406,9 +1319,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
     client nothing more and needs an atomic-update rule Perennial lacks.
   - *Clients.* `restartAu_nc` (`InvNodeRule.lean`) makes a plain update one; kv, kvreconf (two), kvdurable
     (and its RaftNoAx copy) and the server's `newRaftNode` wrap theirs before the call. RaftWitness keeps its
-    own (older) spec, untouched; RaftTla/RaftNoAx/KvNet copies regenerated.
+    own (older) spec, untouched; RaftTla/RaftNoAx/KvRaft copies regenerated.
   - SpecPlan's `RestartNode` (and its `newRaft`/`NewRawNode` updates) not changed: its crash story is the
-    vacancy's `raftState_crash` law, to be reconciled when kvnet's form is ported back (open).
+    vacancy's `raftState_crash` law, to be reconciled when kvraft's form is ported back (open).
 
 ## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
 
@@ -420,7 +1333,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `n ↦□` for every node, so it can be neither allocated in a distributed adequacy theorem's `Hstart`
   (only `[GooseGlobalGS]`) nor held by another machine. Keyed by `Loc`, the table also breaks across
   generations: a new heap can reuse a dead node's address.
-- **Evidence.** `notes/kvnet-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
+- **Evidence.** `notes/kvraft-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
   (b).
 - **Proposed change.** An opaque node handle `nh : NodeH` (location and names; `nh.loc` for code
   values):
@@ -449,18 +1362,18 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 ## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
 
 - **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/getEntry.lean`, `getEntry.spec`
-  (and its copies, RaftNoAx's kvdurablenoax and KvNet's kvnet, `etc/copy-part.py`). No SpecPlan counterpart.
+  (and its copies, RaftNoAx's kvdurablenoax and KvRaft's kvraft, `etc/copy-part.py`). No SpecPlan counterpart.
 - **Defect.** Too strong a premise: the bytes must be persistent (`b ↦*□ (encEntry e ++ r)`, the rest given
-  back persistent). kvnet's `getMsg` (KvNet, issue #22) decodes the entries of a message and then its snapshot
+  back persistent). kvraft's `getMsg` (KvRaft, issue #22) decodes the entries of a message and then its snapshot
   from the same owned bytes, and `getSnapshot` needs the snapshot's bytes owned; with `getEntry` persisting them,
   a message with both entries and a snapshot could not be decoded (`getMsg` took the premise
   `st.ents = [] ∨ st.snap = none`).
-- **Evidence.** `KvNet/Proof/.../kvnet/getMsg.lean` (fork C's report, 2026-11-21). The Go only reads `b`
+- **Evidence.** `KvRaft/Proof/.../kvraft/getMsg.lean` (fork C's report, 2026-11-21). The Go only reads `b`
   (`getUint64`, `getBytes`: subslices), so any fraction suffices; the entry's data, a subslice of `b`, must be
   read-only for `entOwn`, which the proof gets by persisting that subslice alone.
 - **Proposed change.** `∀ b (dq : DFrac) e r, EntWf e → {{ … b ↦*{dq} (encEntry e ++ r) }} getEntry b
   {{ l rest; entOwn l e ∗ rest ↦*{dq} r }}` (the data slice persisted inside the proof). The one main-tree caller,
-  `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvnet's `getMsg` passes its own fraction
+  `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvraft's `getMsg` passes its own fraction
   and drops its premise.
 - **Decision.** Accepted (the coordinator, issue #22, 2026-11-21).
 ## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
@@ -469,9 +1382,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `RawNode__Ready.lean` (the enter wand); `InvNode.lean`'s `readyEnter` and the new laws
   `nodeVacant_arm`, `nodeCrash`. SpecPlan's raft node specs, likewise.
 - **Defect.** Too weak for a crashing client: a process killed at any instruction loses its threads'
-  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvnet's crash obligation
+  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvraft's crash obligation
   (`goose_dist_crash_adequacy`'s wand, given the dead generation's `crashed`) cannot be met.
-- **Evidence.** `notes/kvnet-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
+- **Evidence.** `notes/kvraft-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
 - **Proposed change.**
   - `nodeVacant_arm : nodeVacant ={E}=∗ ∃ x, nodeVacantA ∗ nodeCrashTok` and
     `nodeCrash : crashed -∗ nodeCrashTok ={E}=∗ nodeVacant`.
@@ -479,7 +1392,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   - `readyEnter` and `Ready`'s enter wand become crash-token updates (`ncfupd E`: the client applies them
     at a step, by `wp_ncfupd`).
   - Clients: kvdurable keeps its `node.Stop` path and drops its `nodeCrashTok`; the etcd server likewise;
-    kvnet's boot obligation arms.
+    kvraft's boot obligation arms.
 - **Decision.** Accepted (the coordinating session, 2026-11-21, design route 1, sections (b1), (f),
   (i)); applied on branch `worktree-agent-aa878c2e224f33d0c`.
 - **As applied** (2026-11-21, the implementing session):
@@ -4813,30 +5726,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   one level deeper, so the authorizers' decisions (`caaOk`) carry the tighter one.
 - **Decision.** Applied (fix-slices-concat/2026-11-22). `k8s_authz_robust`'s statement unchanged; no axiom added or
   removed.
-## 2026-11-22: kvnet's answers' length bound weakened to what the reply frame needs (KvNet)
+## 2026-11-22: kvraft's answers' length bound weakened to what the reply frame needs (KvRaft)
 
-- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvNet, Lean-first; no SpecPlan
+- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvRaft, Lean-first; no SpecPlan
   counterpart): post `len(v) < 2^61` to `(len(v) : Int) + 9 < 2^63`. `Replica.install.spec`: new premises
   `MapFits K'`, `MapFits A'`.
 - **Defect.** The `2^61` bound was not derivable (the store's `waitP`/`readAns` say nothing of lengths): the
   proofs took it as two seams (`ansLen.law`, `waitLen.law`). The only consumer (`serveClient`, its `writeFrame`)
   needs `len(v) + 9 < 2^63`.
-- **Evidence.** `notes/kvnet-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
+- **Evidence.** `notes/kvraft-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
 - **Proposed change.** Weaken the posts; carry the bound in the replica's maps (`MapFits`, `Defs.lean`) and
   waiters; drop the seams.
 - **Decision.** Applied (the coordinator's item 1: weaken locally before strengthening the store).
 
-## 2026-11-22: `durable.Write`'s sync update may use the crash token (WalTester, copied into KvNet)
+## 2026-11-22: `durable.Write`'s sync update may use the crash token (WalTester, copied into KvRaft)
 
 - **Spec.** `github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec` (WalTester, Lean-first; no SpecPlan
   counterpart): the second update `durWriteSync γ Ψ` is now `notCrashed -∗ AU <{∃∃ s, durSt γ s}> <{ durSt γ
   ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>`. This is weaker as the client's obligation: a plain update is one
   (`durWriteSync_of_au`).
 - **Defect.** A client could not fire raft's *enter* (`readyEnter`, which takes `notCrashed`) at the sync, where
-  decision C (`notes/kvnet-proof-plan.md`) places it. Yet the proof holds the token there (`durInv_commit`).
-- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
+  decision C (`notes/kvraft-proof-plan.md`) places it. Yet the proof holds the token there (`durInv_commit`).
+- **Evidence.** `notes/kvraft-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
 - **Proposed change.** As above. `durInv_commit` passes the token; the tester's `storeOracle` gives a plain update.
-- **Decision.** Applied (needed for kvnet's `persist`, item 2 of the coordinator's 2026-11-22 decisions).
+- **Decision.** Applied (needed for kvraft's `persist`, item 2 of the coordinator's 2026-11-22 decisions).
 
 ## 2026-11-22: raft's node API -- a crash could only discard a batch cut and not entered; `statusOwn` gave no read access
 
@@ -4847,33 +5760,33 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   then directory sync). After a crash between them the new file may survive. Then the restarted node's storage
   holds the batch's state, while raft's durable state (`raftState`) is the old one, because `nodeCrash` discards
   the batch. `RestartNode` cannot get `StorageHolds S σ`. (2) `statusOwn` gave heap ownership but no law to read
-  it, so kvnet's `Node.status` could not call `GetTerm`/`GetCommit` on `st.HardState`.
-- **Evidence.** kvnet's `persist`, `notes/kvnet-part.md` (branch `worktree-agent-a9b8a3f3fbe5852a9`),
+  it, so kvraft's `Node.status` could not call `GetTerm`/`GetCommit` on `st.HardState`.
+- **Evidence.** kvraft's `persist`, `notes/kvraft-part.md` (branch `worktree-agent-a9b8a3f3fbe5852a9`),
   "persist" item 3 and "`Node.status` (open)".
 - **Proposed change.** (1) `readyEnter := readyEnterLive ∧ readyEnterCrash`. The live half is the old wand.
   The crash half gives the law `readyCrashEnter`: `crashed -∗ nodeCrashTok γ id x -∗ nodeArm n γ x -∗
   nodeRunning n γ N q -∗ readyEnter … -∗ raftState γ id st.durable ={E}=∗ raftState γ id st'.durable ∗
-  nodeVacant γ id`. This is kvnet's requested statement with `nodeRunning` and `nodeArm` added and `isCluster`
+  nodeVacant γ id`. This is kvraft's requested statement with `nodeRunning` and `nodeArm` added and `isCluster`
   dropped. Without the two additions the law is false: after a `node.Stop` the batch is of a dead generation
   (`notes/raft-crash-law-design.md` (k)). Live clients take the conjunction's left half. (2)
   `statusOwn_hardState : statusOwn st ⊢ statusOwn st ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs`, read access
   only.
 - **Decision.** Applied (branch `raft-crash-enter`; the coordinator's 2026-11-22 decision for (1), "raft adds a
-  variant of `nodeCrash`"). kvnet must adapt its `readyCrashEnter.law` hypothesis to the two added premises.
+  variant of `nodeCrash`"). kvraft must adapt its `readyCrashEnter.law` hypothesis to the two added premises.
 ## 2026-11-22: `durable.Write`/`tryWrite` and `os.File.ReadAt`: no 1 GiB bound (WalTester, main tree's `os`)
 
 - **Spec.** New `os.File.ReadAt.specLong` (`Spec/os/File__ReadAt.lean`): `spec` without `len(b) <= 2^30`, proved
   (`wp_proof_long`; `wp_proof` is its instance, statement unchanged). WalTester's `durable.Write.spec` and
   `tryWrite.spec`: `len(data) <= 2^30` to `len(data) < 2^63`; `DCand.Ok` and `durFound` likewise.
 - **Defect.** The bound came from using one `WriteAt`/`ReadAt` of at most `maxRW`. The model (and Go) loop in
-  chunks, and kvnet's image has no size bound.
-- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 2. `tryWrite` now uses `WriteAt.specLong` (new lemmas
+  chunks, and kvraft's image has no size bound.
+- **Evidence.** `notes/kvraft-part.md`, "`persist`" item 2. `tryWrite` now uses `WriteAt.specLong` (new lemmas
   `TrOk.pwA` and `pw_wholeA`), and `tryRead` uses `ReadAt.specLong`.
 - **Proposed change.** As above. The tester's `storeOracle` keeps its own 1 GiB invariant (`tOrSmall`), which
   implies the new premise.
 - **Decision.** Applied (the coordinator's item 2, 2026-11-22).
 
-## 2026-11-22: kvnet's `writeFrame` refuses an oversized body; the answers' length bounds dropped (KvNet)
+## 2026-11-22: kvraft's `writeFrame` refuses an oversized body; the answers' length bounds dropped (KvRaft)
 
 - **Spec.** `writeFrame.spec`: no premise on the body's length; new post conjunct `2^26 < len(xs) → w = []`.
   `Replica.read.spec`, `Replica.propose.spec`: the post's `len(v) + 9 < 2^63` dropped. `Node.handle.spec`: post
@@ -4883,7 +5796,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Defect.** `serveClient` needed `len(v) + 9 < 2^63` for `writeFrame`'s `make([]byte, 0, 8+len(body))`, and no
   invariant bounds a status encoding: `PutStatus` could not promise a bound.
 - **Evidence.** Go change `ab79c782b8` (option (a)): `writeFrame` returns `false` and writes nothing past
-  `maxFrame`, which `readFrame` refuses anyway; `notes/kvnet-part.md`, "`Replica.contents`, `PutStatus`,
+  `maxFrame`, which `readFrame` refuses anyway; `notes/kvraft-part.md`, "`Replica.contents`, `PutStatus`,
   `Node.status`".
 - **Proposed change.** As above. `serveClient` takes `len(v) < 2^63` (for `kvQ`) from the answer's slice.
   `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
@@ -4959,9 +5872,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the answered reply's bytes; a read commits lintest's update at the first firing whose output encodes to them.
   Applied on `etcd-dist` (`Defs.slotUpd`, `Do.spec`'s choice over the bytes, `pend_choice`'s read commit
   invariant; `Run.spec`/`Check.spec` gain the premise that distinct outputs have distinct bytes).
-## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
+## 2026-11-22: kvraft's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvRaft)
 
-- **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
+- **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvRaft): the start resource `S : IProp` becomes
   `S : w64 → GoString → Options → GMap w64 GoString → IProp` (id, directory, options, address map); `StartNode`
   takes `cfg.Addrs ↦$□ M ∗ S cfg.ID cfg.Dir cfg.Opts M`; `RunNode` gives `S id dir opts M` at every `M` with
   `addrMapOk (splitAddrs addrs) M`. `newReplica.spec`: the file's names are one record `fl : KdFileNames`
@@ -4973,25 +5886,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   invariant, allocated after `RestartNode` in the old design, cannot be emptied by the generation's crash
   obligation, which Perennial's crash adequacy takes at the generation's start (ledger 2026-11-22, raft's
   `RestartNode`).
-- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame" and "The file invariant from the
+- **Evidence.** `notes/kvraft-part.md`, "`StartNode` and the crash frame" and "The file invariant from the
   generation's boot". The pending batch's record names its node existentially (a `NodeH` is in `Type 1`, so it
   cannot be in the writer's ghost variable), recognized by the writer through a saved proposition; `persist`'s
   write lemma takes two later credits.
 - **Proposed change.** As above.
-- **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).
+- **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvRaft`).
 
-## 2026-11-22: kvnet's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvNet, Go and Lean)
+## 2026-11-22: kvraft's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvRaft, Go and Lean)
 
-- **Spec.** `ValidCluster.spec` (KvNet) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
-  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvnet/addrs.go`) the same.
-- **Defect.** Raft's `RestartNode` (and kvnet's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
+- **Spec.** `ValidCluster.spec` (KvRaft) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
+  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvraft/addrs.go`) the same.
+- **Defect.** Raft's `RestartNode` (and kvraft's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
   `ValidCluster` allowed up to `2^63`, so `RunNode`'s premise did not give what `StartNode` needs.
-- **Evidence.** `notes/kvnet-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
+- **Evidence.** `notes/kvraft-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
 - **Proposed change.** Tighten the Go check (the design: validity is a Lean premise, mirrored by Go panicking on
   an invalid configuration), retranslate, and the statement draft's `ClusterConfig.Ok` the same.
 - **Decision.** Applied (the coordinator's decision, 2026-11-22).
 
-## 2026-11-22: kvnet's transport takes no frame-length bound with a message; `newReplica` names its node (KvNet)
+## 2026-11-22: kvraft's transport takes no frame-length bound with a message; `newReplica` names its node (KvRaft)
 
 - **Spec.** `Transport.Send.spec`'s `sendElem F m` and the queue's `qElem F pid m` (`TransportDefs.lean`, so
   `Transport.enqueue.spec`, `isPeer`) lose the conjunct `(encMsg st).length + 8 < 2^63`. `newReplica.spec`'s
@@ -5006,7 +5919,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above.
 - **Decision.** Applied (weaker premises; a stronger post).
 
-## 2026-11-22: kvnet's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvNet, Go and Lean)
+## 2026-11-22: kvraft's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvRaft, Go and Lean)
 
 - **Spec.** `MsgWf` (`Wire.lean`, so `getMsg.spec`'s premise and `kvFacts`' `msgOkK`): a message's entries need
   only `MsgEntWf` (data of a Go slice's length), no longer `EntWf` (also a type `≤ 2`). New `getMsgEntry.spec`
@@ -5017,7 +5930,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   entries), so the type bound was not derivable. The Go decoder refused other types (`getEntry`'s `typ > 2`,
   right for the storage file, not needed on the wire: an `EntryType` is an `int32`, written sign-extended,
   truncated back).
-- **Evidence.** `examples/raft/kvnet/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
+- **Evidence.** `examples/raft/kvraft/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
   of `getMsgEntry` and `getMsg`.
 - **Proposed change.** `getMsg` decodes entries with `getMsgEntry` (no type check); `MsgWf` as above.
   (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
@@ -5086,7 +5999,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `preLtb`) is the same shape; its `preLtb` could now be defined as `CompareModel`'s `cmpPre … = -1`.
 - **Decision.** Applied (the approved ownership-premise rule; the cluster contract's strengthening recorded
   here and in the report to #18).
-## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
+## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvRaft)
 
 - **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
   `⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝`.
@@ -5131,7 +6044,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above (a premise every caller discharges). `SpecPlan`'s
   `Options.String.spec` should take it too (not edited here).
 - **Decision.** Applied.
-## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
+## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvRaft, Go and Lean)
 
 - **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and
   `issued` go; the lock's invariant `checkerInv c γ` holds, with the two counters `a`, `b`, a counter
@@ -5151,11 +6064,11 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   replica's read answer names the context's committed log existentially (`ansReadK`), so the client needs
   the log it minted the context after to be that one: agreement on raft's `ctxs` map (`readCtxAfter`,
   sealed).
-- **Evidence.** `notes/kvnet-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
+- **Evidence.** `notes/kvraft-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
   kvdurable's `Cluster__do.lean`/`Cluster__Read.lean`.
 - **Proposed change.** As above. Go: `checker.read` creates `primitive.NewProph()` and resolves it with the
   answer (`trusted_proph.ResolveBytes(p, v)`, gokv's, as kvdurable's `Cluster.Read`; no effect in Go),
-  `examples/raft/kvnet/go.mod` requires gokv, project kvnet maps gokv to the main tree. Minting under the
+  `examples/raft/kvraft/go.mod` requires gokv, project kvraft maps gokv to the main tree. Minting under the
   lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
   at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
 - **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
@@ -5185,28 +6098,28 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   spec take `[ReceiptBoundLe GF (2 ^ 60)]`; `srvSnapRO`'s receipt conjunct and `applySnapshot`'s
   `hrbw` become `receiptBound GF ≤ 2 ^ 60` (implying the `wbInit - 6` they stated), which the walk
   passes as the instance.
-## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
+## 2026-11-22: kvraft's top-level statement takes `os`'s two field-assumption instances (KvRaft)
 
-- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
-  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
+- **Spec.** `kvraft_robust.spec` and `kvraft_robust_example.spec`
+  (`KvRaft/Spec/.../kvraft/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
   `[os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]`; the header's list
   of trusted instances names them.
 - **Defect.** `durable`'s proofs (`tryRead`, `tryWrite`, `WriteOpen`, through `StartNode` and `persist`) read
   files through `os`'s models, which take these trusted struct-field facts (`TrustedCode/os.lean`, of the kind
   of `net.FieldAssumptions`); `kvcheck.Assumptions` does not include them, so the agreed statement could not be
-  proved without them (found linking kvnet, 2026-11-22: `kvnet/Link.lean`'s section variables).
-- **Evidence.** `KvNet/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvnet/Link.lean:196-197`;
+  proved without them (found linking kvraft, 2026-11-22: `kvraft/Link.lean`'s section variables).
+- **Evidence.** `KvRaft/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvraft/Link.lean:196-197`;
   reported on mit-pdos/etcd-grove#22 (gap 3).
 - **Proposed change.** As above.
 - **Decision.** Applied: approved by the coordinator (zeldovich-agent's session, relaying the decision on
   #22), 2026-11-22.
-## 2026-11-22: kvnet's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvNet)
+## 2026-11-22: kvraft's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvRaft)
 
-- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
-  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
+- **Spec.** `kvraft_robust.spec` and `kvraft_robust_example.spec`
+  (`KvRaft/Spec/.../kvraft/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
   `os` ones (both statements); a premise `dir.length < 2 ^ 39` after `replicas.length < 2 ^ 32` (the main
-  statement; the example's `/var/lib/kvnet` meets it by computation). The header lists both.
-- **Defect.** (1) `kvnet.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
+  statement; the example's `/var/lib/kvraft` meets it by computation). The header lists both.
+- **Defect.** (1) `kvraft.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
   `discardLogger`), which Perennial translates names-only: raft's `wp_initialize'` takes the trusted class
   `log.NewModel` (`Proof/log/NewModel.lean`), as kvdurable(-noax)'s closed theorem does. (2) Each replica's file
   is `durable`'s `DFile ⟨dir, J, "replica-<id>"⟩`, and `StartNode`'s start resource needs `DFile.Ok`, which has
@@ -7048,3 +7961,1224 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   two full logs agree on their first `rs.delivered.length` entries. No hypothesis added. No other consumer used the
   post's conjunct (it was not yet applied).
 - **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+## 2026-11-23: rpc protocols of a listener's addresses (`rpcLisP`); `Server.Accept.spec` on a wildcard listener; `rpcAccepted` with a cut handshake answer; `ansPend` knows the answer was written (net/rpc model, server over HTTP)
+
+- **Specs.** `Net/Proof/net/rpc/Proto.lean` (`rpcLisP`), `Net/Spec/net/rpc/Server__Accept.lean`,
+  `Net/Proof/net/rpc/ServerDefs.lean` (`rpcAccepted`, `srvSendInv`, `ansPend`), new
+  `Net/Spec/net/rpc/Server__ServeHTTP.lean` over `Net/Proof/net/http/ServerDefs.lean` (`reqHead`, `hijackOk`).
+- **Defects.** (1) The rpc protocols are per address (`reqProto W a`), and `lis_set_proto` sets one pair for
+  every address a wildcard listener takes, so `rpcAddr` of those addresses could not be made (kaashoek's
+  `RpcHttpHyps.lean`, dsv-swiftpaxos, "Design findings"); `Server.Accept.spec` took a listener at a valid
+  address only (`netLisAt`), while craq, epaxos and gryff listen at `":7001"`. (2) `rpcAccepted` asked for the
+  handshake's answer written whole, but `Server.ServeHTTP` writes it with one `Conn.Write` whose error it does
+  not look at: a write cut by a failure leaves a strict prefix, and `ServeHTTP`'s spec was unprovable.
+- **Evidence.** (1) by construction (`lisProto la P Q`'s one `P`). (2) the net model's D2 (a write's steps, a
+  `sys` failure after some of them); Go's `server.go` ignores the error the same way.
+- **Change.** (1) `lisProtoD la P Q` (`GooseLang/Ext/Net/Proto.lean`: per-address protocols, `lis_set_protoD`,
+  `lisProtoD_addr`, `listen_lisD_au`; `accept_addrs_shared_au`, the shared listener's `Accept` updates from each
+  address's `addrProto`); `rpcLisP W la hs hsAns := lisProtoD la (reqProto W) (respProto W) ∗ inv regN' (regInv W)
+  ∗ ⌜every valid address la takes has the handshake hs/hsAns⌝`, laws `rpcLisP_addr` (each such address's
+  `rpcAddrP`), `rpcLisP_addrOk`, `rpcLisP_lis` (the right to listen: `Listen.spec`'s update, in place of
+  kaashoek's `∃ P Q, lisProto la P Q`, which per-address protocols do not give), `rpcLisP_ok`, `rpcLisP_set`
+  (premises: `listenOk la` and the world's handshake at those addresses; kaashoek's has none, which with the
+  handshake in the world is false). `Server.Accept.spec` over `netLisOn l la` and `□ ∀ a, ⌜addrOk a ∧ lisAccepts
+  la a⌝ → rpcAddr W a ∗ srvServes γs C W a` (a connection served at the address it was dialed to: `isRpcConn W a`,
+  not one protocol for the listener); the exact-address shape is `Server.Accept.specAddr`, derived
+  (`AcceptAddr.lean`, `Server.Accept.wp_addr`). (2) `rpcAccepted`: `∃ w, ⌜w <+: W.hsAns a⌝ ∗ sendTok … w ∗ …`;
+  `srvSendInv` allows, before the first answer, any prefix of the handshake's answer; `ansPend` holds `sentLb cn
+  true (W.hsAns a)` (`hsAns_of_read`: a reader past the dialer's handshake knows the whole answer was written,
+  `reqProto`), so `sendResponse` writes the first answer after the whole handshake answer
+  (`sendTok_sentLb_prefix`). Every earlier result unchanged in statement but `Accept`'s; all proved.
+- **Decision.** Applied (branch `models-rpc-http`). `Server.ServeHTTP.spec`: on a `CONNECT` request whose head is
+  `W.hs a` (not empty), with `hijackOk` of the response (the right to `Hijack()`, stated as its weakest
+  precondition: the acceptor's end, the head read exactly, nothing written, its fresh token; what net/http's
+  `conn.serve` will give a handler), it writes `connectAns` and serves the connection; proved and linked. The 405
+  path is outside the spec (net/http's server gives the handler only rpc dialers' `CONNECT`s).
+
+## 2026-11-24: `mvcc.hashStorageOk` carries `hashMu`'s guard over the stored hashes (sortslice, claim #18)
+
+- **Spec.** `mvcc.hashStorageOk h` (`Proof/.../storage/mvcc/HashDefs.lean`), the persistent premise of
+  `hashStorage.Store.spec` and post of `NewHashStorage.spec`: besides the logger, now
+  `sync.isRWMutexGuard h.hashMu (mvcc.hashesR h)`, where `hashesR h q` is the `hashes` field at `q`, the
+  slice's elements and capacity at `q`, and at most `hashStorageMaxSize` (10) elements.
+- **Defect.** `Store`'s spec (an axiom until now) stated no ownership of `hashes`: it could not be proved
+  (it appends and sorts in place under `hashMu`), only assumed.
+- **Evidence.** `NewHashStorage` (the one producer; `NewStore` passes its result on, `InvStore` keeps it
+  persistently, `CommitApi` uses it abstractly) is re-proved: it allocates the struct, makes the lock over
+  the empty slice (`sync.init_RWMutex`, the reader slots dropped: nothing verified reads `hashes` under the
+  read lock), and returns the guard. `Store` is proved over it (fork `a336e97f9`'s `slices.SortFunc`).
+  No caller re-proved: the predicate is used only through its name.
+- **Proposed change.** As above (the approved exception: a persistent ownership premise every caller
+  discharges). `Hashes`/`HashByRev`, when verified, will need the reader slots `NewHashStorage` drops
+  (`SpecPlan`'s `hashStorageFresh`).
+- **Decision.** Applied (branch `prove-ps2-sortslice/2026-11-23`).
+## 2026-11-24: phase 7 S2's interface switch (branch `s2-switch`; option (A); seven entries)
+
+The switch the user asked for ("do S2's interface switch now, with the unproved parts as axioms, so
+etcd-dist can proceed without waiting for the S2 proofs"), as designed and adversarially reviewed
+(`notes/axiom-review/s2-interface.md`). Statements of every closed theorem unchanged (`git diff
+origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'` empty).
+
+### 1. `isGrpcRpcMd` redefined over `grpcSvcAt` and `grpcReach` (a definition that stays)
+
+- **Spec.** `isGrpcRpcMd addr name Spec := ∃ a₀ (_ : HasExt netExt) π σ, grpcReach addr a₀ ∗ grpcSvcAt a₀
+  name Req.wire Rep.wire Spec` (`Proof/google_golang_org/grpc/InvGrpc.lean`), with `grpcReach a a₀ := ⌜a = a₀⌝ ∨
+  □ ∀ γ, grpcAddrIs a₀ γ -∗ grpcAddrIs a γ`; until then `∃ γ, grpcAddrIs addr γ ∗ isGrpcRpcAt γ name Spec`
+  (`isGrpcRpcAt`: a WP of the server's handler at the holder's heap, deleted). `isGrpcRpc`, `isGrpcRpcs`,
+  `isGrpcRpcsMd` keep their text; `isGrpcRpcMd_mono`/`_mono_upd` (through `grpcSvcAt_mono_upd`),
+  `isGrpcRpc_mono_with` (`InvLeaseGrant.lean`) and `isGrpcRpcMd_forwards` (`cluster3/Defs.lean`, by
+  composing the bridge's wand with `grpcReach`) reproved, statements unchanged. `InvGrpc.lean` is split:
+  `InvGrpcBase.lean` (everything up to the run contracts, the metadata keys) below `InvGrpcWire.lean`, the
+  registrations and the client attempt above it.
+- **Defect.** A registration named the server's heap, so a service table shared by two machines could not
+  hold it (#24, O2).
+- **Evidence.** The full build (VM); `etc/heapfree-check.py` roots `grpcSvcAt`, `grpcAddrAt`, `grpcCliPI`,
+  `grpcSrvPI`, `ProtoMsg.wire`.
+- **Decision.** Applied (the user's request, 2026-11-24).
+
+### 2. `ProtoMsg` gains `tree`; `ProtoWire := ⟨ty, M, tree⟩`; `protoEncodes` (kept)
+
+- **Spec.** `ProtoMsg.tree : M → VTree` (moved from `ProtoMsgT`, which adds no field and stays for the
+  registries and `ReqSat`/`RepSat`; the thirty instances' trees moved into the base modules, `InvKVConn`,
+  `InvLease`, `InvLeaseRead`, `InvAuthConn`, `InvClientAuth`, so `pbXT := { pbX with }` and
+  `pbXT.toProtoMsg = pbX` stays `rfl`); `ProtoWire := ⟨ty, M, tree⟩` (it had `enc : M → List w8`);
+  `ProtoMsg.wire T := ⟨T.ty, T.M, T.tree⟩`; the opaque `protoEncodes ty t bs` (`Store.lean`, no law) in
+  place of `enc` in the defined protocols (O3, O7).
+- **Defect.** `enc` would have needed some thirty hand-written, trusted encoders; the tree is the store's,
+  already reviewed.
+- **Decision.** Applied.
+
+### 3. `grpcAddrAt`'s protocols are the opaque `grpcCliPI`/`grpcSrvPI` (S2 interface, retired as S2 proves it)
+
+- **Spec.** Already on `lean` from `s2-vocab` (2026-11-23); now the protocols every registration rests on.
+- **Defect.** With the defined `grpcCliP`/`grpcSrvP`, `Serve`'s and `Invoke`'s axioms are unsound (C1, C2,
+  C2' of the review).
+- **Proposed change at S2.** `grpcCliP`/`grpcSrvP` take their place once S2 proves `Invoke` and `Serve` over
+  the model, with the dec-shaped run contract (the deposit claimed through grpc's `dec`, §0a correction 1)
+  and a stated world premise (F2: no code but grpc's and the trusted bridges touches a grpc address's
+  connections).
+- **Decision.** Applied.
+
+### 4. `Server.Serve.spec`/axiom over `grpcServeTok gs lis a Svc` and `grpcServes` (S2 interface, retired as S2 proves it)
+
+- **Spec.** `grpc.Server.Serve.spec : ∀ gs lis a Svc, {{ grpcServeTok gs lis a Svc }} gs.Serve(lis) {{ err,
+  True }}` and `axiom grpc.Server.Serve.wp_proof`; `grpcServeTok gs lis a Svc` (`InvGrpcRun.lean`): Go's
+  configuration started (`grpcSrvLink`, `grpcAddrIs a γ`, `grpcSrvCfg γ c`) or being built (`grpcSrvNew`,
+  `netListenerOpen lis a`), distinct names, `grpcRepliesFit`, `grpcAddrAt a Svc`, `grpcServes Svc c.ics
+  c.regs c.sregs` (each entry names no stream, C3, and is met by Go's registered handler's run contract at
+  the registered models). Until then a theorem over the model `Serve` and `grpcServeTok gs lis γ`.
+- **Defect.** None of meaning for the single-process results; the statement is what a member of a
+  distributed deployment, whose table was set by the deployment's start, can meet.
+- **Evidence.** The review's attacks (`notes/axiom-review/s2-interface.md`).
+- **Decision.** Applied.
+
+### 5. `ClientConn.Invoke.wp_proof` re-reviewed under its new meaning (S2 interface, retired as S2 proves it)
+
+- **Spec.** Text unchanged (`Spec/google_golang_org/grpc/ClientConn__Invoke.lean`, `grpcInvokerOk`); its
+  `isGrpcRpcsMd` premise now means the heap-free registration of entry 1; docstring restated.
+- **Decision.** Applied; ok with the opaque protocols (the review).
+
+### 6. The single-process chain over Go's table (kept)
+
+- **Spec.** `grpcGoSvc ics regs tys` (`InvGrpc.lean`: Go's configuration as a table, an entry per registered
+  unary method `tys` gives registered models), `grpcServes_go`, `grpc.start'` (takes `netAddrLeft addr`,
+  `tys` and its registry facts; sets the table in the ghost step that allocates the registry and the slot
+  map), `grpcServerAt addr ics regs tys γ` (adds the address's table), `grpc.serve` (adds `tys m.name = some
+  (m.Req, m.Rep)`); etcd's table `etcdTys` (`client/v3/GrpcTys.lean`, fifteen methods, `etcdTys_reg`), the
+  served lemmas with methods `ms` taking `etcdTys m.name = …` for them. `netAddrFree a := addrClaim a ∗
+  addrUnset a` (it had the listening token and validity only), `net.Listen`'s post gains `netAddrLeft addr`
+  (the pending set, the validity, the listening token in an invariant: the net extension's `Listen` takes the
+  token at its step and gives it back), `netListenerAt l a := addrClaim a ∗ netListenerOpen l a`;
+  `grpcUp`/`grpcUpM`/`grpcUpOn` carry `netAddrLeft`; `etcdstart.Serve.spec`'s caller step returns `∃ Svc,
+  grpcServeTok gs lis addr Svc`; `client.WEnv.none` (`client/v3/WEnvNone.lean`), the placeholder watch
+  environment for a client with no member's heap.
+- **Defect.** A table is fixed when its address is set, before the served lemmas choose their specs: hence
+  Go's table, whose entries quantify over the specs a handler's run contract meets.
+- **Decision.** Applied.
+
+### 7. Retired: the model `Serve`'s leaves
+
+- **Spec.** `grpc.model.acceptRun`, `acceptRunConns`, `respond`, `finishStream` (specs and axioms),
+  `grpc.model.Serve` (its theorem), `grpcAccepted`, `grpcReplyTo`, `grpcConnsLink` deleted;
+  `TrustedCode/google_golang_org/grpc.lean` keeps the model's code (no proof uses it).
+- **Decision.** Applied.
+## 2026-11-24: `monitorFileDescriptor.spec` takes `done`'s stop channel (#42)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/monitorFileDescriptor.lean`: the premise gains
+  `stopChan done`. Until now the spec was a names-only trust-boundary axiom whose only premises were the package
+  and `zapLoggerOk lg`.
+- **Defect.** The axiom said nothing about `done`. Proving the body needs it: the loop's `select` receives on
+  `done`, and a receive needs the channel's protocol. This is no defect of the Go code: `Start` passes
+  `s.stopping`, which the server's read view already holds as a `stopChan`.
+- **Evidence.** The proof `monitorFileDescriptor.wp_proof` (`Proof/.../etcdserver/monitorFileDescriptor.lean`)
+  over the body. The spec's one caller, `EtcdServer.Start.wp_proof`, discharges the premise from
+  `isServerReadM`'s `srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping`. No other caller; no top-level
+  statement changed.
+- **Proposed change.** As above. `SpecPlan`'s statement already takes the channel's predicate (`stoppingCh`).
+- **Decision.** Applied (branch `prove-ps2-srvgoroutines/2026-11-24`, Upamanyu's decision (b) on etcd-grove#42
+  for the leaves).
+
+## 2026-11-24: `publishV3`'s resources: `srvReadyCloser s E`, the read view, the request names' credential (#42)
+
+- **Spec.** `EtcdServer.publishV3.spec`: the premise takes `⌜E.authOn = on⌝`, `isServerReadM on s E γr`
+  and `□ (|==> idCred ρ.ids 1)`, and `srvReadyCloser s E` (the predicate gains `E`: the channel, now
+  `srvReadyCh s`, the server's attributes read-only, `srvAttrsRO s`, and one `srvLeadTimeReader s ∗ E.RD`).
+  `NewServer.spec`/`NewServerR.spec`'s posts and `Start.spec`'s premise name `srvReadyCloser srv E`;
+  `NewServer`/`NewServerR` carve the extra slots from the stocks they dropped after the revocation's pool.
+  `srvLeadCheckOk`'s `s.ctx` part gains `ctxValueFrom backgroundCtxVal ctx` (from
+  `traceutil.wp_WithCancelBackground_noTrace`, whose post gains it).
+- **Defect.** The axiom said nothing of what `raftRequest` needs (its reader slots, the context's facts, the
+  request's model), nor of `s.attributes`. No defect of the Go code.
+- **Evidence.** `EtcdServer.publishV3.wp_proof` over the body (the fork's bc2b5f4d0, `%+v` of the attributes
+  formatted field by field). Every caller discharges the new premises: `Start` from `start`'s read view and
+  `srvStarted`'s credential, and `NewServer`'s post; the examples pass `srvReadyCloser` through
+  (`etcdstart`'s `memberBuilt`, `Restart`). No top-level statement changed.
+- **Proposed change.** As above.
+- **Decision.** Applied (branch `prove-ps2-publishv3/2026-11-24`, #42 items 2 and 3, approved there).
+## 2026-11-23: `json.Marshal` of a membership record names its bytes (#24 J2, batch 2)
+
+- **Spec.** `encoding.json.MarshalMember.spec` and `MarshalConfigChangeContext.spec`
+  (`Spec/encoding/json/`): the post was `∃ b, sl ↦* b` (some fresh bytes, the smallest form, an axiom);
+  now `sl ↦* membership.memberJson m ps cs` (resp. `membership.ccJson c ps cs`,
+  `Proof/.../membership/Json.lean`), and both are theorems.
+- **Defect.** None. The post is stronger (the callers, `EtcdServer.AddMember`/`UpdateMember`/`promoteMember`,
+  only drop the binder `b`). #34's bootstrap needs `ctxs = json.Marshal` of each member.
+- **Evidence.** Proved over the encoding/json model's `Marshal` (per-type dispatch, `marshalVia`) and
+  membership's generated `JSONModelMarshal`/`jenc_*` over jsoncodec's proved encoders. Over the model as it
+  was, the old axiom was **not provable**: `jsoncodec.AppendString` panicked on any string outside
+  0x20..0x7e minus `" \ < > &`, and a member's name or URL may hold such bytes (the model was less defined
+  than Go there, so no premise a caller could discharge would do). The model's `AppendString` now writes
+  every string as Go 1.27.3's encoding/json does (approved on #24 by coordinator-E,
+  issuecomment-7118306081; tested exhaustively on short strings, `TestAppendString`).
+- **Proposed change.** As above.
+- **Decision.** Applied (branch `prove-ps2-jsonj4/2026-11-23`).
+## 2026-11-24: v3alarm.AlarmStore.restore: two write-back tokens, the alarm bucket's claim token, a non-nil schema backend (prove-ps2-v3alarm, #43)
+
+- **Spec.** `v3alarm.AlarmStore.restore.spec` and `AlarmStore.Recover.spec` (`Spec/.../etcdserver/api/v3alarm/`), which
+  were proved over `restore`'s trust-boundary axiom; and `schema.NewAlarmBackend.spec`'s post.
+- **Defect.** Three resources the body needs that the statements did not hand in, found by proving `restore` over
+  its body: (1) one write-back token (`backend.wbTok`), where `CreateAlarmBucket`'s deferred `Unlock` and
+  `ForceCommit`'s commit each spend one; (2) no claim token of the alarm bucket, without which the idle part
+  (`rbOwnIn`) says nothing of what `GetAllAlarms`' read transaction sees (a claimed bucket's readers' contents may
+  lag the writer's: the claim invariant links them only for an unclaimed one); (3) nothing saying the schema
+  backend's pointer `abl` is not nil, which `ForceCommit`, a value method called through the pointer, dereferences
+  (Go panics on a nil `*alarmBackend`). Not a bug in Go: `NewAlarmBackend` allocates.
+- **Evidence.** The proof (`Proof/.../v3alarm/AlarmStore__restore.lean`, over `schema.alarmBackend`'s
+  `CreateAlarmBucket`, `GetAllAlarms`, `unsafeGetAllAlarms`, `ForceCommit` and the new backend law
+  `backend.rtHeld_rbOwnIn_idle`, `Proof/.../backend/IdleRead.lean`).
+- **Proposed change.** `restore.spec`/`Recover.spec` take a second `wbTok γB`, `rbClaimToks γB P (· = "alarm")`
+  (handed back in the post) and `⌜abl ≠ null⌝`; `NewAlarmBackend.spec`'s post adds `⌜l ≠ null⌝` (a fresh
+  allocation). The one caller of `Recover`, `SnapApplyWalk` (`applySnapshot`), takes the extra token from the new
+  backend's stock (one fewer for `srvWTStock`), the claim token from the new backend's tokens (split from the auth
+  buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
+  No top-level statement changes (the tokens come from the backend's constructor inside the proof).
+- **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+## 2026-11-24: every client operation takes `levelTok 0` (decision 1b; prove-ps2-clientrdlock, #18)
+
+- **Spec.** The etcd client connection's resource family (`grpcConn … Ok`, `perRPCCredsOk pc Ok`,
+  `grpcInvokerOk … Ok`, `cliBidiStreamIs … Ok`), `anyRes` until now, becomes `clientRes`
+  (`R = levelTok 0`, `Proof/google_golang_org/grpc/InvGrpcBase.lean`); and every spec of a client operation
+  that makes a call on the connection synchronously (the generated stubs `kVClient.*`, `authClient.*`,
+  `leaseClient.*`, `watchClient.Watch`; the `retry*Client`s; `kv.*`, `txn.Commit`, `lessor.Grant`/`Revoke`/
+  `TimeToLive`/`Leases` and their `specM`/`specG`/`specP` forms; the client's `authClient.*`; `etcdConn.Invoke*`;
+  the retry interceptor's contract `etcdInterceptorOk(M)`; `isSafeRetry`, `waitRetryBackoff`, `getToken`,
+  `refreshToken`; the dial, `newClient`, `New`; the keep-alive and watch stream goroutines' bodies) takes a
+  level-0 thread token in its pre and gives it back in every outcome. `Client.Endpoints` and
+  `perRPCCredential.GetRequestMetadata` take it too. `backoffOk` becomes `backoffOkT` in the options
+  (`optionsOk`, `withBackoff`, `roundRobinQuorumBackoff`): the backoff is lent the token.
+- **Defect.** The two read-locking methods were trust-boundary axioms: their `RWMutex.RLock` needs a reader
+  slot, which no caller held (the retry interceptor's and grpc's per-attempt calls were persistent contracts
+  with no resource). Their docstrings hedged on "at most 2^30 - 1 concurrent readers".
+- **Evidence.** Both proved over their bodies (`Client__Endpoints.lean`, `perRPCCredential__GetRequestMetadata.lean`):
+  `newClient` builds a level-0 pool of `epMu`'s reader slots (`clientEpPool`, in `retryClientOk`, with the
+  read-only endpoints), `NewPerRPCCredentialBundle` one of `authTokenMu`'s (`credTokInv`, now a level-0 pool);
+  each call borrows with its caller's `levelTok 0` and gives it back. grpc lends the token to the
+  credentials (`perRPCCredsOk pc clientRes`, #24's S2 resource parameter).
+- **Proposed change.** As above, approved by the user as decision 1b (2026-11-23). The callers of the client
+  hold a thread token (a live thread has one token per level): a thread's proof splits `levelTok 0` off
+  (`threadTok_level0`), a goroutine's fork gives it (`wp_fork_level0`). The token is the conjunct right
+  after a spec's leading `isPkgInit` facts (so that `wp_start` and `wp_apply` still take those facts off
+  first). `newClient`, `New` and `kubernetes.New` take `[ThreadBoundLe GF (2 ^ 30)]` (was `2 ^ 31`): the
+  `epMu` pool needs `threadBound GF ≤ 2 ^ 30` (`sync.init_RWMutex_threadPoolL`); their callers have `2 ^ 28`.
+  The client's exported results (`client/v3/Results.lean`: `client_put_any` ... `client_get_after_put`)
+  state the token in their pre and post. (`kv.Txn` and `Client.dial` make no call that needs the token;
+  their specs keep it, passed through, for uniformity.)
+  The clients' lease contract `isEtcdLease` (`cache/v3/InvEtcdTxn.lean`) gives its `Grant` and `Revoke`
+  the token too (`KeepAlive` forks: unchanged), so that `lessor`'s proofs meet it (`LeaseClient.lean`).
+  The other client contracts likewise, on the methods that call the connection (`Get`, `Put`, `Delete`,
+  a builder's `Commit`, `Do`): `isEtcdKV`, `isEtcdKVE`, `isEtcdDeleteKV`, `txnBuilderSpec(X|O)`,
+  `readTxnBuilderSpec`, the `*Todo` contracts, `txnCommitErrTodo`, `isEtcdDoKV` (cache/v3), the
+  client's `kvLeasedPutTodo`, `kvLeasedCommitTodo`, `kmPutRestTodo`, `kmTxnUncoveredTodo`, the laws of
+  `ClientCallLaws.lean`, and v3lock's `unlockKVOk`; `If`/`Then`/`Else`, `Txn` (building) and watches
+  do not (`kv.Txn` makes no call: its addtok edit reverted). Their users' specs take the token too:
+  the cache's `Cache.get`, `serverRevision`, `Get` (its watch loop splits the token off the loop's
+  `threadTok`, `cacheWgLoopRunning`, so `getWatch`'s spec is unchanged), `concurrency.NewSession`,
+  `Session.Close`, and the concurrency, recipes and leasing functions that call a contract (2026-11-24,
+  in progress).
+- **Decision.** Applied (branch `prove-ps2-clientrdlock/2026-11-24`); the two axioms retired.
+- **Beyond the token (second pass, 2026-11-24).**
+  - *STM*: the STM's method contract `stmMethods` gives `Get`, `Rev` and `commit` the token, and the
+    user's closure contract `applySpec` is lent it (pre and post); `runSTM` and `NewSTM*` keep their
+    specs (`runSTM`'s goroutine gets the token from its fresh thread token, `wp_fork_level0`).
+    `Election.Observe` keeps its spec (its fork of `observe` likewise).
+  - *Leasing*: the KV's reader-slot pool moves from a whole-token pool (`isThreadPool`) to a level-1
+    pool (`isThreadPoolL leasingPoolN 1`; local `threadPool.loansL_lt`, `init_namedL` in
+    `PoolLoans.lean`, Perennial changes like `loans_lt`), so that `lkv_borrow` leaves the borrower its
+    `levelTok 0` (and `threadTokFrom 2`, which `lkv_giveBack` takes back). `Get`, `get`, `Do`, `Put`,
+    `Delete` and `txnLeasing.Commit` keep their specs exactly (`threadTok`, no extra token; the first
+    pass had given `get`/`Commit` `levelTok 0` on top of `threadTok`, which no single thread holds:
+    reverted). `get`'s lease monitor is forked with `wp_fork_tok`: the monitor takes the fresh token's
+    levels 0 and 2.., the caller its level 1.
+  - *Statements carrying the token*: `recipes.queue_vertical`'s `Enqueue`/`Dequeue` triples,
+    `kubernetes.Client.Get.latest`, k8s etcd3's local lemmas `cas_commit`, `client_Get_nil`,
+    `wp_syncGet`.
+  - *Open (conflicts, not resolved)*: (1) k8s etcd3's compactor `onClose` closure (`closeOk`), built by
+    `StartCompactorPerEndpoint`, calls `cl.Endpoints()` (token); `compactor.Stop` calls it inside
+    `sync.Once.Do`, whose spec (`{{ P }} f {{ Q }}`, persistent) lends the closure no resource of the
+    caller, so the closure cannot get a level-0 token. (2) The etcd examples' `Main`s give the main
+    thread's whole `threadTok` to the server (`StartServer`'s `srvGoRes s`, used by `GoAttach` and
+    `Serve`), so the main thread has no `levelTok 0` left for its client calls (`NewClient`, `Put`,
+    `Get`).
+- **Beyond the token (third pass, 2026-11-24).**
+  - *The two open conflicts, resolved.* (1) k8s' `closeOk` (a compactor's `onClose`) is lent the caller's
+    `levelTok 0`, and `compactor.Stop` takes it (pre and post); `Stop` lends it to the closure through
+    `sync.Once.Do` by `wp_Once_Do_lend` (`Proof/sync/OnceLend.lean`, a variant of Perennial's `Once.Do` spec where
+    the caller lends the closure a resource, proved over `Once`'s code; `notes/perennial-changes.md`). (2) No
+    server spec changes: the server's `GoAttach` uses the levels from 1 of the token in `srvGoRes` (`GoAttachTok`),
+    but the apply thread's `srvGoRes` (its own token, from `run`'s `threadTok`) lends level 0 to `lessor.Promote`
+    (`lessorLvl = 0`, `applyEntryNormal`), so `srvGoRes` keeps the whole token. The example `Main`s instead take
+    their `srvGoRes` back through `Serve`'s caller-chosen post, as `kv_lease_served_go` already did (new
+    `kv_served_go`; `watch`/`compactwatch` keep `grpcUp`'s `srvGoRes`), and lend its level 0 (`srvGoRes_level0`,
+    `etcdstart/Defs.lean`) to their client calls.
+  - *Closures lent the token*: k8s' `getStateOk` (`getCurrentState`'s closure, which calls `Get`) and
+    `watcher.getStartWatchResourceVersion`'s `getCurrentStorageRV` wand; txnlin's `linU`/`contAt` (the
+    continuation's premise gains the token, which `Apply`'s post gives back; `Apply.spec`'s pre and post take it;
+    `Check`'s `lintest` closure splits it off the worker's `threadTok`).
+  - *Bounds*: `etcdstart.NewClient(s)`, `cluster3.NewClient` and `leaseN.check` take `threadBound GF ≤ 2 ^ 30`
+    (was `2 ^ 31`), `New`'s (callers have `2 ^ 28`).
+  - *Thread-token holders that split it* (spec unchanged): k8s `store.getList` (reverted the first pass's extra
+    `levelTok 0` beside its `threadTok`), `pagedChunks`, `watchChan.startWatching`, the cache example's
+    second read, leaseN/leasecatchup/leaseexpiryN's `run` loops.
+## 2026-11-24: json.Unmarshal into a *ConfigChangeContext: a zero target, ccContextOf/ccMemberOf defined (prove-ps2-jsonj5, #24 J2 batch 2b)
+
+- **Spec.** `EtcdGrove.encoding.json.Unmarshal.spec` (`Spec/encoding/json/Unmarshal.lean`), a trust-boundary axiom
+  (D43 M4), and its vocabulary `membership.ccContextOf`/`membership.ccMemberOf` (opaque, `SrvRaftLog.lean`).
+- **Defect.** (1) The premise asked only that `*p`'s URL slices be nil, but the post's id, `IsPromote`, learner flag
+  and name are the bytes' only if the object names them: encoding/json (and the model) leave a field the JSON omits
+  as it was, and the JSON etcd writes into a context (bootstrap's `json.Marshal(*Member)`) has no `isPromote`, and
+  omits `isLearner` when false and `name` when empty. With `ccContextOf` `some` on such bytes (what any useful
+  definition must be), the statement is false for a non-zero `*p`; with it opaque, nothing could use it. (2) `ccContextOf`/`ccMemberOf` were opaque: no caller could discharge `ccContextOf ctx = some _`.
+- **Evidence.** The proof over the model (`Proof/encoding/json/Unmarshal.lean`, membership's generated
+  `JSONModelUnmarshal`/`jdec_ConfigChangeContext`/`jdecMember_ConfigChangeContext`/`jdec_S_string`), which needs
+  the zero start for the omitted fields. Both callers (`ValidateConfigurationChange`, `applyConfChange`) decode into
+  `new(ConfigChangeContext)`.
+- **Proposed change.** The premise: `*p` is the zero `ConfigChangeContext` (all six fields). `ccContextOf`/
+  `ccMemberOf` are definitions over `membership.ccDecode` (`api/membership/JsonDec.lean`): `some` on the subset whose
+  decoding is proved (a compact object of distinct exact keys, values of their fields' kinds, plain strings, the
+  scanner's one value), `none` elsewhere. The callers discharge the zero premise by `rfl`; no other statement changes.
+- **Decision.** Applied (branch `prove-ps2-jsonj5/2026-11-24`); the axiom retired.
+## 2026-11-24: fmt.Sprintf over the real `fmt` (stage 1): `fmt.Sprintf.spec`, `fmt.SprintfArgs.spec`, `traceutil.fieldsWf` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** This repository's `fmt.Sprintf.spec` (`Spec/fmt/Sprintf.lean`, raft's callee; its copies in
+  `RaftWitness/`, `RaftTla/`, `RaftNoAx/`), `fmt.SprintfArgs.spec` (`Spec/fmt/SprintfArgs.lean`), and
+  `traceutil.fieldsWf` (`Proof/go_etcd_io/etcd/pkg/v3/traceutil/Defs.lean`, the premise of
+  `Field.format`, `writeFields`, `Trace.AddField` and the trace's ownership).
+- **Defect.** All three were stated over Perennial's trusted model of `Sprintf`, which perennial#671 (real `fmt`
+  stage 1, Perennial `50596346c`) replaced by the translated `fmt`, proved for a verified subset only: literal
+  text, `%%`, `%d %v %x %0Nd %0Nx` of a predeclared integer, `%v` of a bool or nil, `%s %v %x` of a string or of a
+  value with `Error()`/`String()`, `%s %v %d %x` of a `[]byte`. Any format with arguments `fmt.ArgsWf`
+  (`fmt.Sprintf.spec`) or `fmt.argsOk` (`SprintfArgs`) is no longer provable: `ArgsWf` admits floats and
+  method-less named types, which Go formats by reflection (`printValue`, not verified), and other verbs (`%q`,
+  `%t`, `%p`, `%X`, precisions) are outside the subset.
+- **Evidence.** `Perennial/Spec/fmt/Sprintf.lean` at `50596346c`; `fmt.wp_Sprintf_argsWf` is gone.
+- **Proposed change.** `fmt.Sprintf.spec`: the format `fmt.encode ps` with `fmt.Fits ps args`, arguments
+  `fmt.PureArgs xs args` (nil, bool, predeclared integer, string), output `fmt.render ps args` (stronger output
+  than `SprintfOut`; premise narrower: every caller, `newRaft` and `stepLeader`, passes `uint64`s).
+  `fmt.SprintfArgs.spec` := Perennial's `fmt.Sprintf.spec` (callers `peerStatus.deactivate`,
+  `snapshotHandler.ServeHTTP` give their `types.ID`/error arguments as `fmt.isArg … (.method _)`, from the method-set
+  facts they already had: `fmt.isArg_stringer`, `fmt.isArg_error`). `traceutil.fieldsWf` := `fmt.PureArgsWf` of the
+  values (no floats, no named types); every producer passes `int`/`int64`/`uint64`/`string`/`bool` values and
+  discharges it unchanged (`fieldsWf_cons_*`). No top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`), for the Perennial pin bump to real `fmt`.
+## 2026-11-24: apierrors.NewConflict's error premise: `fmtErrorOkOrNil` for `fmt.argOk` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** `apierrors.NewConflict.spec` (`Spec/k8s_io/apimachinery/pkg/api/errors/NewConflict.lean`).
+- **Defect.** Its premise `fmt.argOk err` admitted values of predeclared basic types and method-less named
+  types, which the real `fmt.Sprintf` (stage 1/1.5) formats under `%v` only for predeclared ones and by
+  reflection (not verified) for named ones; the message's `%v` of `err` is no longer provable from it.
+- **Evidence.** Perennial `612f4641b`'s `fmt.Sprintf.spec` (`isArg`: `nil`, or a value whose `Error()` it calls,
+  `fmt.MethodArg`).
+- **Proposed change.** `fmtErrorOkOrNil err` (`nil`, or no `Format`, `Error() string`, `stringMethodSpec`).
+  Its callers (daemonset `apimodel.Server.{update,remove}`, five sites) pass an `errors.New` error and
+  discharge it (`errorString_fmtErrorOkOrNil`, replacing `errorString_argOk`). No top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
+## 2026-11-24: raft's `strings.Join` spec takes per-element bounds and a fully owned slice (prove-ps2-fmtstage1, #9)
+
+- **Spec.** `strings.Join.spec` of raft (`Spec/strings/Join.lean`, and `RaftWitness/`'s copy; `RaftTla/`'s is generated).
+- **Defect.** It had no premise, and Perennial `8e9f1ee59` proves the real `Join` only for an output shorter than
+  `2^61` bytes (Go's `Join` panics when the length overflows an `int`, reachable with aliased elements), so it is
+  no longer provable.
+- **Evidence.** Perennial `strings.Join.spec` at `612f4641b` and later.
+- **Proposed change.** The slice fully owned (`elems ↦* xs`, every caller's is) and every element at most `B` bytes,
+  with `maxAddr * (B + |sep|) ≤ strings.joinMax`; proved from Perennial's `strings.Join_owned_bounded_of` (a
+  fully owned slice has fewer than `maxAddr` elements, `ownSlice_string_length_lt_maxAddr`). Callers: `newRaft`
+  (hex node IDs, `B = 17`), the witness raft's `ReplicationSet.String` (`FormatUint` digits, `B = 65`). Internal
+  callee spec; no top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
+## 2026-11-24: `filepath.join`/`Join`'s length premise at `joinMax`; the WAL's directory bounds `2^61` → `2^60` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** `filepath.join.spec`, `filepath.Join.spec` (`Spec/path/filepath/`); `wal.newFilePipeline.spec`,
+  `wal.openWALFiles.spec`, `wal.segmentContainsSnapshot.spec`, and the WAL's `isFilePipe`/read state (`Pipe.lean`,
+  `ReadDefs.lean`, `ReadAllProbe.lean`).
+- **Defect.** `join` calls the real `strings.Join`, whose spec (Perennial `8e9f1ee59`) needs the output below
+  `2^61` bytes; `join.spec` had no premise and `Join.spec`'s `sum + count < 2^62` does not give it.
+- **Evidence.** Perennial `strings.Join.spec` at `612f4641b` and later.
+- **Proposed change.** Both: `(es.map List.length).sum + es.length ≤ strings.joinMax` (proved: the joined suffix
+  is shorter, `filepath.length_intercalate_sublist_lt`). The WAL's callers join a directory and a name each below
+  `2^60`, which fits; the directory bounds that were `2^61` become `2^60` (every producer already has `2^60` from
+  `datadir`'s premises). No top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
+## 2026-11-24: etcd's URL bounds for the joins of a member's URLs: `etcdURLsFit`, `plainURLsFit`, `addrFits` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** `NewServer.spec`, `NewServer.specR` (new premises `etcdURLsFit U.peer`, `etcdURLsFit U.client`);
+  `rafthttp.setPeerURLsHeader.spec`, `rafthttp.createPostRequest.spec` (new premise `plainURLsFit uvs`); the
+  vocabulary `srvAttrsRO` (the attributes' client URL strings bounded), `trURLsOk` (each `http://host` at most
+  `etcdURLLenMax`); `types.URLs.StringSlice.spec` (post strengthened: a plain URL's string is `http://host`);
+  etcdstart's construction specs (`newServerMode`, `newServer`, `BuildServer`, `StartServer`,
+  `StartCompactingServer`, `StartPeriodicServer`, `StartMember`, `StartMemberAuth`, `NewMember`,
+  `StartMembers`, `StartMembersAuth`, `wp_StartServer1`), cluster3's `StartMember` and `cfgOk`, restart's and
+  restartN's `build`/`restartMember`/`startMembers`, auth3's `startMember`, and `etcd_putget_dist.Member.spec`: new premises `addrFits`
+  of the member's peer and client addresses.
+- **Defect.** `publishV3` joins `s.attributes.ClientURLs` (three log lines) and `setPeerURLsHeader` the transport's
+  peer URL strings with the real `strings.Join`, whose spec (Perennial `8e9f1ee59`) needs the output below
+  `2^61` bytes. The attributes' slice is read-only (`↦*□`), so neither its count nor its elements are bounded by
+  ownership; `URL.String()` of an arbitrary URL is any string.
+- **Evidence.** Perennial `strings.Join.spec` at `612f4641b` and later; #9 decision 7126397740 (2): `U ≤ 64` URLs,
+  each `L ≤ 1024` bytes, as named constants (`etcdURLCountMax`, `etcdURLLenMax`, `etcdserver/URLBounds.lean`,
+  coordinator-E's module, identical copy).
+- **Proposed change.** `etcdURLsFit uvs`: at most `etcdURLCountMax` URLs, each of only the scheme `http` and a
+  plain host with `http://host` at most `etcdURLLenMax` bytes (`plainURLsFit`). `NewServer` keeps the client
+  strings' bound in `srvAttrsRO` (from `StringSlice`'s strengthened post) and the peer strings' in `trURLsOk`;
+  `publishV3` joins with `strings.Join_bounded_of` (`64 * 1025 < 2^61`), `setPeerURLsHeader` with
+  `Join_owned_bounded_of`. Case (a): the single-process examples discharge `addrFits` (`http://addr` a plain peer
+  URL of at most `etcdURLLenMax` bytes, decidable) of their literal addresses by `decide`, the N-member ones by
+  `etcdstart.membersOf_addrFits` (`127.0.0.1:<decimal>`); `putget_safe` from its statement's `Net.addrOk`
+  (`etcd_dist.addrOk_length_le`: a valid address has at most 21 bytes). Case (b) (`etcd_safe`) is
+  coordinator-E's `Deployment.WellFormed.urlBounds`. No top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
+
+## 2026-11-24: `Errno.Error` translated; `os.ownFile` carries `syscall.errnoOk`; `isPkgInit` on `os`'s path specs (prove-ps2-fmt1-errno, #9 decision (b) 7126816034)
+
+- **Spec.** `os.ownFile` (vocabulary: a fourth conjunct `syscall.errnoOk`, `errorsOk ∗ isPkgInit internal/strconv`,
+  persistent and timeless); bbolt's `fileOwn` likewise; new premise `isPkgInit os` on `os.OpenFile.{specCreateS,
+  Snc, TruncS, TruncSnc, TruncSncN, specCrash, specCrashS}`, `os.RemoveAll.{specAbsentS, specDirS, specSubS}`,
+  `os.Rename.specDirAnySnc`, `os.WriteFile.{specEmptyS, specTruncS}` (and the WAL's `specAbsentN`, `os.rmSubSpec`);
+  `isPkgInit fileutil` on `fileutil.OpenDir.{spec, specAboveRoot, specOk}`, `fileutil.syncDir.{spec,
+  specAboveRoot}`; `isPkgInit wal` on `wal.syncDir.spec`; `isPkgInit runtime` on `runtime.FDLimit`/`FDUsage`.
+  The helper triples of `Proof/os`, the WAL (`walOpen_triple(W)`, `repBroken_triple{New,Old}`, `repair_brokenOpen`,
+  `CreateSeg`'s open), bbolt's `openFileDb_shared`, `durable`'s `durTmpOpen`, walfs and bboltfs take it too.
+- **Defect.** `syscall.Errno.Error` was trusted as returning an arbitrary string (`TrustedCode/syscall.lean`), so no
+  error message of a file operation had a length bound (`wal.closeAll`'s `strings.Join` needs one). Translated with
+  its body it reads the package's `errors` table, so its spec needs `syscall`'s initialization.
+- **Evidence.** `syscall/syscall_unix.go` (`Errno.Error`: `errors[e]` or `"errno " + itoa.Itoa(int(e))`); the error
+  table's entries are at most 64 bytes (`syscall.errnoMsgMax`, proved at init: `Proof/syscall/PkgInit.lean`).
+- **Proposed change.** As above: the fact goes in `ownFile` (file methods' specs and their 33+ callers unchanged) and
+  the path specs that create an `ownFile` or promise a `fmtErrorOk` take `isPkgInit os`; every caller discharges it
+  from its own package's `isPkgInit`. One trusted model fewer.
+- **Decision.** Applied (coordinator-E, #9 7126816034; branch `prove-ps2-fmt1-errno-wip/2026-11-24`).
+
+## 2026-11-24: the osfs examples' initializers proved; `Hinit_wp` dropped (prove-ps2-fmt1-errno, #9 decision (B) 7127751995)
+
+- **Spec.** `osfs_crashlog.crash_robust.spec`, the three `osfs_walfs.*_robust.spec`, `osfs_bboltfs.bootCrashRobust.spec`
+  (and the `crash_safety`/`dirswap_`/`seglog_crash_safety`/`bootCrashSafety` theorems): the hypothesis `Hinit_wp`
+  (that the initializer runs; for bboltfs its spec with `pkgFacts` as its post) removed. bboltfs's `pkgFacts`
+  gains `isPkgInit os` and is proved from the package's `isPkgInit` (`pkgFacts_of_isPkgInit`).
+- **Defect.** With `os`'s path specs taking `isPkgInit os`, `Hinit_wp`'s post `True` gave the programs too little;
+  the hypothesis was assumed only because `os`'s initializer was not generated (it is since 2026-11-07).
+- **Evidence.** The generated `Init.lean`/`PkgTable.lean` of the three packages (`etc/gen-init.py`), over `os`'s,
+  `syscall`'s and `unix`'s `wp_initialize'`.
+- **Proposed change.** Facts in `PkgInit.lean` (crashlog, walfs: `True`; bboltfs: `bboltfsInit`, its three error
+  variables non-nil); each generation runs the generated `wp_initialize'` from its fresh package state. The
+  statements only lose a premise.
+- **Decision.** Applied (coordinator-E 7127751995; statement diff posted on #9 7128419763).
+
+## 2026-11-24: `os.File.Close.specLe`; `wal.rcFile`/`wal.walClosable` carry `closeAll`'s message bound (prove-ps2-fmt1-errno, #9)
+
+- **Spec.** New `os.File.Close.specLe` (`Spec/os/File__CloseLe.lean`: `Close`'s error message at most
+  `os.closeErrMax name = |name| + 8 + errnoMsgMax` bytes); `wal.closeAll.spec` takes it (`File__Close`'s other
+  callers unchanged); the vocabulary `wal.rcFile`, `wal.walClosable` (`CloseDefs.lean`): a pure
+  `os.closeErrMax name ≤ wal.closeMsgMax` (`2^14 - 2`).
+- **Defect.** `closeAll` joins the messages of its `Close` errors with `strings.Join`, whose spec needs the output
+  below `2^61` bytes: the messages were unbounded (`Errno.Error` trusted as any string).
+- **Evidence.** S/wal.go:1187-1199; `strings.Join_owned_bounded_of` (the slice is fully owned: count `< maxAddr`,
+  so `maxAddr * (B + 2) ≤ 2^61` needs `B ≤ 2^14 - 2`).
+- **Proposed change.** As above; the producers of `rcFile`/`walClosable` (`openWALFiles`, the read path's
+  `walTie_closable`) prove the bound (`wal.closeBound_of`: `|d| < 4096`, `|b| ≤ 255`) from the directory's
+  `PathFits` and the segment names' length (37 bytes). So `openWALFiles`' premises `d.length < 2^60` → `PathFits d`
+  and, on each name, `b.length < 2^60` → `≤ 255` (no objection, #9 7128911028); `dir.length < 2^59` → `PathFits dir`
+  on `openAtIndex`, `Open`, `OpenForRead`, `openLast(.specHeld)`, `Repair(.specHeld)`, `ValidSnapshotEntries`,
+  `validSnapshotEntries.specPinned`; `segmentContainsSnapshot`'s `dir.length < 2^60` → `PathFits dir` and
+  `g.name.length < 2^60` → `≤ 255`; the read-mode fallback state (`walReadFallback`) keeps `PathFits dir`. Not
+  `DirFits` (`< 3800`), as first planned: the WAL tester's top theorem (`etcd_wal_crash_safety_bounded`) has only
+  `PathFits (tWalDir area)` (its `hfit`), so `DirFits` would add a premise to it. The tester's `restartRead`,
+  `member.restart`, `member.step` specs take `PathFits (tWalDir e.area)`, discharged in `Boot` from `tWalFsOk`
+  (`Main.spec`'s premise); no top-level statement changes.
+- **Decision.** Applied (branch `prove-ps2-fmt1-errno-wip/2026-11-24`).
+## 2026-11-24: k8s conditional authorization's joins: `Dec.size`, `decNames`, `Dec.foldFits` (prove-ps2-fmtstage1, #9)
+
+- **Spec.** `authorizer.collectReasonsAndErrors.spec` (premise `pre.length + m.depth < 2^63` replaced by the prefix's
+  names at most `N` bytes, `decNames N d m`, and `(pre.length + m.depth) * (N + 2) < strings.joinMax`; post: at most
+  `m.size` reasons, each at most `(pre.length + m.depth) * (N + 2) + maxAddr + 4` bytes);
+  `ConditionsAwareDecisionUnion.ToDecision.spec` (new premise `Dec.foldFits N (.union ks)`; post
+  `isWFDecisionBnd (depthL ks + 1) (sizeL ks + 1) N`, stronger than the `isWFDecisionLe` it replaces);
+  `ConditionsAwareDecisionUnion.Add.spec` (new premises `decNames N d m`, `name.length ≤ N`); `ownBuilder p ks N`
+  (the children's names at most `N` bytes); `PartiallyEvaluateConditionsAwareDecision.spec` (new premises
+  `decNames N d m`, `Dec.foldFits N m`; post `isWFDecisionBnd m.depth m.size N`); the authorizer contract `caaOk`
+  (post `isWFDecisionBnd authzDepthMax authzSizeMax authzNameMax`, was `isWFDecisionLe (2^63 - 2)`) and `ecOk`
+  (premise `isWFDecisionFit authzNameMax d`, was `isWFDecision d`: more for an authorizer to rely on);
+  `union.isUnionAuthz`/`union.New.spec` (the chain at most `authzChainMax` long, its names at most `authzNameMax`
+  bytes); `union.unionAuthzHandler.ConditionsAwareAuthorize.spec` (post `isWFDecisionBnd (authzDepthMax + 1)
+  (authzChainMax * authzSizeMax + 1) authzNameMax`, stronger), `.EvaluateConditions.spec` (new premises
+  `Dec.foldFits authzNameMax m`, `decNames authzNameMax d m`), `.evaluateConditions.spec` (premise
+  `isWFDecisionFit`). The authz example: `arbName` (post: at most `authzNameMax` bytes), `arbDecision` (premise
+  `depth ≤ authzDepthMax`, `4 ^ depth ≤ authzSizeMax`, was `depth < 2^63`; post `isWFDecisionBnd depth (4 ^ depth)
+  authzNameMax`), `arbAuthorizer.ConditionsAwareAuthorize` (the same premise; post `caaOk`'s),
+  `arbAuthorizer.EvaluateConditions` and `twoPhase` (premises as `ecOk`'s and the union's post).
+- **Defect.** `collectReasonsAndErrors` joins the path of names (`strings.Join(prefix, ": ")`), `ToDecision` the
+  collected reasons (`", "`) and the union authorizer's `EvaluateConditions` its children's reasons (`"\n"`) with
+  the real `strings.Join`, whose spec (Perennial `8e9f1ee59`) needs the output below `2^61` bytes. Nothing bounded
+  the names (any string an authorizer or a caller of `Add` gives) or the number of strings (a decision tree of any
+  size); `ToDecision`'s reasons compound (an unconditional decision's reason is itself a join).
+- **Evidence.** Go at the pinned fork (`upamanyus/kubernetes` `goose-lean-fmt1`, base `878cfa6c4c`):
+  `authorizer/conditionsunion.go` (`ToDecision`, `collectReasonsAndErrors`), `union/union.go`
+  (`EvaluateConditions`); #9 decision 7126397740 (3): a size measure on `Dec`, outputs bounded by size × (depth + 1),
+  discharged by computation in the authz example. Each reason is read by `len` before it is joined
+  (`len(reason) != 0`), so it is at most `maxAddr` bytes (Perennial `310c8d956`, `wp_string_len_maxAddr`): no
+  bound on reasons is needed, so `%q`-formatted reasons (condition IDs, unbounded in Perennial's `%q` model) need
+  none either.
+- **Proposed change.** Separate from `isDecision` (its 48 users untouched): `Dec.size` (nodes), the persistent
+  `decNames N d m` (every union child's name in the tree at most `N` bytes), `Dec.foldBound S D N = S * ((D + 1) *
+  (N + 2) + maxAddr + 6)` and `Dec.foldFits N m := foldBound m.size m.depth N < joinMax`; named constants
+  `authzNameMax = 64`, `authzDepthMax = 16`, `authzSizeMax = 512`, `authzChainMax = 16` (checked by `simp`:
+  `authz_foldBound_lt`). The example discharges them from its literals: names at most 14 bytes, depth 2, at most 3
+  children per union (`4 ^ 2 ≤ 512`), a chain of 3. Real webhook authorizers are in no statement. No top-level
+  statement changes (`Main.spec`, `TopLevelRobustness`).
+- **Decision.** Applied (branch `prove-ps2-fmtstage1/2026-11-24`).
+
+## 2026-11-24: net/rpc model's `rerr` removed, a request frame over `maxFrame` the stuck point; `Client.Call.spec`'s request bound, the frame reads' `F`, the server codec's read specs, `hijackOk`'s read-deadline token (net-rpc part 2, `notes/net-sticky-read.md`)
+
+- **Spec.** Changed: `Client.Call.spec`, `Client.Go.spec`, `Client.send.spec` (premise `⌜sm.length + 16 ≤ maxFrameN⌝`,
+  and the arguments' encoding continuation `⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs`, returned as it was on an
+  unsent call); `clientCodec.WriteRequest.spec` (the same premise on `rv.ServiceMethod'`, the encoding's continuation
+  `⌜eb.length ≤ maxFrameN⌝ ∗ Ψ0 eb`; `reqUpd`'s pure premise `≤ maxFrameN` for `< 2 ^ 63`); `reqOk` (`Proto.lean`: a
+  request's payloads at most `maxFrameN`); `readFull.spec`, `readFrame.spec` (a parameter `F`: the accessor returns
+  `P (got ++ r.got) ∗ (⌜∀ bs, r ≠ .bytes bs⌝ -∗ F)` and a `readErr` comes with `F`; `readFrame`'s `errFrame` after a
+  length beyond `maxFrame` gives those 8 bytes); `serverCodec.ReadRequestHeader.spec`, `ReadRequestBody.spec` (no `rerr`
+  resource, the `r0 ≠ nil` case gone, `F` as `readFrame`'s; the body's `errFrame` with its 8 bytes);
+  `newServerCodec.spec` (no `rerr`); `Server.readRequestHeader.spec` (no `rerr` in its post); the server's vocabulary
+  (`ServerDefs.lean`: `rdrOwn W a cn`, no codec argument, the live reader with `rdlTok cn true false` or a dead one with
+  `readDead cn true`; `rdrMid` with `rdlTok`; `rpcAccepted` with `rdlTok cn true false ∨ readDead cn true`;
+  `srvCodecOwn` without `rerr`); `net.http.hijackOk` (the continuation also gets `∃ b, rdlTok cn true b ∗ (⌜b = false⌝ ∨
+  readDead cn true)`), `hjDone` (without the token), `conn.hijackLocked.spec` (its post's token likewise). New:
+  `deadline_dead_au` (`GooseLang/Ext/Net/Proto.lean`: `deadline_au`, and `readDead` when the setting fails on a closed
+  end), `readAcc_true` (`Net/Proof/net/rpc/ReadAcc.lean`), `rd_acc_dead`, `rd_acc_after`, `req_len_fit`,
+  `framesOf_next_len`, `reqPlsFrom_fit`, `rdErr_readF`, `rdErr_readE` (`ServerGhost.lean`); `rd_acc_srv` removed.
+  Kits: swiftpaxos's `client.Client.call.specI` gains `Call`'s two bounds (its callers prove them of their concrete
+  arguments: `Client__callMaster.lean`, `examples/swiftnet/Register.lean`'s `reg_args_fit`, `master/RunLoop.lean`);
+  epaxos's `wp_Call_simple` likewise (`NetRpc/Calls.lean`, `regArgs_fit`). No top-level statement changes.
+- **Defect.** The model's `serverCodec.rerr` made every frame read error sticky, timeouts included, where Go reads on:
+  the model was narrower than Go for a server with a read deadline (its claim excluded those programs). Removing it
+  (the net extension's semantics now makes non-timeout read errors sticky, D1 v3.5) exposed two things the proofs need:
+  (1) the failed read's `readDead` through the frame readers (the old specs forgot the read's result); (2) Go's gob
+  reads on after a too-long message (`errBadCount`) and `ServeCodec` reads on after a body's error, parsing a payload as
+  frames, so a frame over `maxFrame` must not reach the server. Over HTTP, (3) the hijacked connection's read deadline
+  was unknown (`∃ b`), so no read could be shown not to time out.
+- **Evidence.** `models/net/rpc/codec.go` (Go 1.27.3 `net/rpc/server.go` `ServeCodec`/`readRequest`,
+  `encoding/gob/decoder.go` `recvMessage`, `encoder.go` `writeMessage`'s `tooBig`); the model's `hijackLocked`
+  clears both deadlines (`SetDeadline(time.Time{})`), which fails only on a closed end (`DeadlineOutcome`).
+- **Proposed change.** As above. A frame over `maxFrame` in `clientCodec.WriteRequest` calls the model's stuck point
+  `stuck` (trusted: `Net/TrustedCode/net/rpc.lean`, Perennial's `internal.gomodel.Stuck.impl`), not a silent refusal
+  (gob leaves the header buffered for the next flush, which a refusal would not model): so the bound is `Call`'s
+  caller's, proved from its own encoding (the user's choice, option (B) on #24; the bound on `Call`, coordinator,
+  2026-11-24).
+- **Decision.** Applied (branch `net-rpc-rerr`).
+
+## 2026-11-24: `isPkgInit os` on `os.Mkdir`/`MkdirAll`/`Remove`'s specs whose errors now carry `fmtErrorOk` (prove-ps2-fmt1-errno merging `lean` `5961fd625f`, #9 7129495598)
+
+- **Spec.** New premise `isPkgInit os` on `os.Mkdir.{specS, specSnc}`, `os.MkdirAll.{specS, specDirS}` and
+  `os.Remove.{specFileS, specFileSnc}`. The helper triples `os.Mkdir.wp_takenS`, `os.model.wp_mkdirAllAbove` and
+  `os.MkdirAll.wp_spineS` (`Proof/os/MkdirAllParts.lean`) take `syscall.errnoOk`, and the WAL's `wp_removeTmp`
+  (`PipeLemmas.lean`) takes `isPkgInit os`. Callers discharge it from their own package's `isPkgInit`:
+  `fileutil.IsDirWriteable(.specFile)`, `TouchDirAll(.specExisting)` from `isPkgInit fileutil`, and
+  `filePipeline.run` from `isFilePipe`'s `isPkgInit wal`. `os.Remove.specFileSncN` (no `fmtErrorOk`) is unchanged.
+- **Defect.** None in Go. `lean`'s `5961fd625f` (claim #34) gave these specs' error posts `fmtErrorOkOrNil`, proved by
+  `errnoPathErr_fmtErrorOk` with no premise, because `Errno.Error` was trusted. On this branch `Errno.Error` is
+  translated (entry "`Errno.Error` translated" above), so the lemma needs `syscall.errnoOk`, which only `syscall`'s
+  initialization gives.
+- **Evidence.** As in that entry (`syscall/syscall_unix.go`, `Proof/syscall/PkgInit.lean`).
+- **Proposed change.** As above, the same rule as that entry: a path spec that promises `fmtErrorOk` takes
+  `isPkgInit os`. No top-level statement changes. Every caller already has its package's `isPkgInit`.
+- **Decision.** Applied (zeldovich-coordinator, #9 7129495598).
+
+## 2026-11-24: net/url's length premises dropped (`escape`, `unescape`, `PathUnescape`, `URL.EscapedPath`), phase 7 S5 batch 7 (prove-ps2-s5srv)
+
+- **Spec.** `Spec/net/url/{escape,unescape,PathUnescape,URL__EscapedPath}.lean`: `escape`'s `3 * len(s) < 2^63`,
+  `unescape`'s and `PathUnescape`'s `len(s) + 1 < 2^63`, `EscapedPath`'s both (on `Path` and `RawPath`).
+- **Defect.** None in Go. The premises were there because Perennial's `len` spec gave only `len(s) < 2^63`.
+- **Evidence.** Perennial `52d62e83c` (pin bump `af4fd74b00`): `wp_string_len_maxAddr`, a string is no longer than
+  the address space (`maxAddr = 2^47`). The proofs take that bound at their first `len(s)`.
+- **Proposed change.** Drop the premises. This only strengthens the specs. Their only callers are the Links
+  (`Net/Proof/net/http/Results.lean`) and `PathUnescape`/`EscapedPath`'s proofs.
+- **Decision.** Applied (zeldovich proving session 2, s5).
+
+## 2026-11-24: `readRequestLimit`'s error post names its errors (`reqErr`); `crHeadErr` names the error (`crErrId`), phase 7 S5 batch 8 (prove-ps2-s5srv)
+
+- **Spec.** `Net/Spec/net/http/readRequestLimit.lean`: the error disjunct `⌜err ≠ nil⌝` becomes
+  `⌜err ≠ nil⌝ ∗ reqErr E err` (`RequestDefs.lean`: the header reader's `mimeErr E err`, `io.ErrUnexpectedEOF`'s
+  global, or an `*errors.errorString` whose message starts with `"malformed HTTP "`); its premise
+  `□ ∀ r e, E r e -∗ errMsgOk e` keeps its text, but `errMsgOk e` now says `Error()` returns a message other than
+  `"message too large"`. `crHeadErr γe r e` (`ConnReaderHead.lean`) adds `crErrId e` (`io.EOF`'s `*errorString`, or an
+  `*OpError` of a read). `mimeErr`'s `ProtocolError` disjunct adds `"malformed MIME header" <+: msg`;
+  `badStringError.spec`'s post adds the `*errorString` with `what` a prefix of its message.
+- **Defect.** None in Go. `conn.serve` answers `errTooLarge` with `431`, an `*unsupportedTEError` with `501` and a
+  `statusError` with its code, none of which net/rpc's `respProto` allows. With only `err ≠ nil`, `conn.readRequest`'s
+  proof could not exclude them. `readRequestLimit` returns `errTooLarge` exactly when the header reader's error's
+  `Error()` is `"message too large"`, so excluding it needs that message excluded from the stream's errors (the new
+  `errMsgOk`) and from the `ProtocolError`s (all of the model's start with `"malformed MIME header"`). Our draft
+  (#24 7127923593) missed the `badStringError` returns: a request line cut by the stream's error is returned whole
+  with a `nil` error (bufio's `ReadLine` at `io.EOF`), and its parse or its version fails.
+- **Evidence.** `models/net/http/request.go` `readRequestLimit` and `badStringError`; `textproto_model.go`
+  `modelReadMIMEHeader` (its three `ProtocolError`s, `errMessageTooLarge` only past `maxHeaders`);
+  `server.go` `conn.serve`'s error switch; Go's `bufio.Reader.ReadLine`.
+- **Proposed change.** As above. The posts only get stronger. `errMsgOk` is stronger as a premise, but
+  `readRequestLimit.spec` has no caller yet besides its Link (`conn.readRequest` is next), and `crHeadErr` gives it
+  (`crHeadErr_msg`). dsverify-net agreed to the change in their files (#24 7137212490, coordinator-E 7137201940).
+- **Decision.** Applied (zeldovich proving session 2, s5).
+## 2026-11-24: `fmt.SprintfSlice`/`fmt.ErrorfSlice` deleted; three k8s authorizer proofs take `fmt.Sprintf.spec`/`fmt.ErrorfLeaf.spec` instead (prove-ps2-sprintfslice, #9 7135546785)
+
+- **Spec.** Deleted: `fmt.SprintfSlice.spec`, `fmt.ErrorfSlice.spec` (both axioms) and the slice vocabulary
+  `fmt.sliceArgOk`/`fmt.argOkAtSl`/`fmt.argsOkAtSl`/`fmt.argsOkSl` (`Spec/fmt/Errorf.lean`), along with
+  `authorizer.Decision.sliceArgOkAt`. Callee hypotheses changed:
+  - `ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof` takes `_root_.Perennial.fmt.Sprintf.spec`
+    in place of `SprintfSlice`;
+  - `unionAuthzHandler.EvaluateConditions.wp_proof` takes `fmt.ErrorfLeaf.spec` in place of `ErrorfSlice`;
+  - `ConditionsAwareDecisionUnion.Add.wp_proof` drops `ErrorfSlice`, since it already takes `ErrorfLeaf`.
+
+  The three functions' own specs are unchanged.
+- **Defect.** The two axioms were false of the semantics: a `%v` of a slice reaches the real `fmt`'s
+  `printValue`, which is stuck in the translation (`notes/axiom-review/fmt-slice.md`).
+- **Evidence.** The real `fmt`'s translation (Perennial `52d62e83c`), `printArg` → `printValue`.
+- **Proposed change.** Rewrite the three call sites in the k8s-authz fork (`upamanyus/kubernetes`
+  `goose-lean-authz-fmt2`, luxas `c67a81026c8b` plus one commit). Each spells out what `%v` prints of the
+  slice with a loop and `+=`, then formats it under `[%s]`. The output is byte-identical (Go tests in the
+  fork). Then prove the three sites over the specs above.
+- **Decision.** Applied (coordinator-E, #9 7135546785; the fork commit was described on #9 7136404436).
+
+## 2026-11-24: `modelReadMIMEHeader`'s and `readRequestLimit`'s error posts give the buffered reader back, phase 7 S5 batch 9 (prove-ps2-s5srv-b9)
+
+- **Spec.** `Net/Spec/net/http/modelReadMIMEHeader.lean` and `Net/Spec/net/http/readRequestLimit.lean`: the error
+  disjunct also returns `∃ rr, bufio.ownReader b ri S E rr`, the reader at what it read (before: the reader was
+  lost on an error).
+- **Defect.** None in Go. `conn.serve` answers a read error with Go's `400` written to the connection, and
+  `sendTok` (the right to write) lives in the reader's stream state (`crHead`); without the reader back the
+  proof of `conn.serve` cannot write the answer, nor put the reader back in its pool.
+- **Evidence.** `models/net/http/server.go` `conn.serve` (the error switch after `c.readRequest`,
+  `putBufioReader`), `conn.readRequest` (returns `err` from `readRequestLimit` as it is).
+- **Proposed change.** As above; the posts only get stronger. Both are re-proved; `ReadResponse` (the other
+  caller of `modelReadMIMEHeader`) drops the reader in its error case as before. dsverify-net told on #24
+  (7138521711).
+- **Decision.** Applied (zeldovich proving session 2, s5).
+
+## 2026-11-24: `conn.serve`'s premises `ctxKeys` and `c ≠ null`; `readEnv` names `io.ErrUnexpectedEOF`, phase 7 S5 batch 12 (prove-ps2-s5srv-b12)
+
+- **Spec.** `Net/Spec/net/http/conn__serve.lean` (no callers yet: `Server.Serve`, next, discharges both) takes
+  `c ≠ null` and `ctxKeys` (`ServerContextKey`, `LocalAddrContextKey` hold pointers: their initializers are not
+  translated, so a premise like `httpEnv`, discharged where the package initializer is).
+  `net.http.readEnv` (`Net/Proof/net/http/ConnReader.lean`) gains `errors.newVar io.ErrUnexpectedEOF
+  "unexpected EOF"`; `readEnv` is only a premise so far (of `connReader.Read`, `backgroundRead`,
+  `startBackgroundRead`, `readRequest`, `serve`), to be established with `io`'s initializer.
+- **Defect.** None in Go. `conn.serve` builds the reader's ghost state at `c` (`crConnOk c` needs `c ≠ null`,
+  which no points-to of a field of `c` gives); `err == errTooLarge` must be false for every error `readRequest`
+  returns, and one of them is `io.ErrUnexpectedEOF`, whose message (`"unexpected EOF"`, Go's `io.go`) tells it
+  from `errTooLarge`'s.
+- **Evidence.** `models/net/http/server.go` `conn.serve` (the error switch), Go's `io.ErrUnexpectedEOF =
+  errors.New("unexpected EOF")`.
+- **Proposed change.** As above; the two premises have no caller to weaken.
+- **Decision.** Applied (zeldovich proving session 2, s5; `ctxKeys` agreed with the coordinator, session 10).
+
+## 2026-11-24: `advertiseMatchesCluster.spec` (and so `bootstrap.spec`) -- the member's own initial-cluster URL slice is sorted in place, against its read-only claim (dist-putget-interim)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__advertiseMatchesCluster.lean`,
+  `config.ServerConfig.advertiseMatchesCluster.spec` (claim #34, stage 2; a `?` hypothesis of the server's
+  Link), and through `VerifyBootstrap` the hypotheses of `bootstrapNewClusterNoWAL`, `bootstrapCluster` and
+  `bootstrap.spec` (`bootCfgRO cfg U` in the precondition: `sl ↦*□ U.initURLs k` for each entry, persistent).
+- **Defect.** False of Go when this member's entry of `InitialPeerURLsMap` holds two or more URLs out of
+  order (and, for 13 or more, possibly even in order: `pdqsort` swaps its pivot): the precondition gives the
+  slice's elements read-only and persistent, so the caller keeps `sl ↦*□ urls` after the call, but Go writes
+  the slice.
+- **Evidence.** `server/config/config.go:250-251`: `urls, apurls := c.InitialPeerURLsMap[c.Name], ...;
+  urls.Sort()`, and `client/pkg/types/urls.go:72-74`: `func (us *URLs) Sort() { sort.Sort(us) }`, which swaps
+  the elements of the map's own slice (`URLs.Swap`, `:77`). A caller reading `cfg.InitialPeerURLsMap[name][0]`
+  after `NewServer(cfg)` sees the sorted order.
+- **Proposed change.** Either the precondition takes this entry's slice owned (`sl ↦* urls name`) and the post
+  gives it back sorted (`↦* sortURLs (urls name)`), with `bootCfgRO` splitting that entry out; or a premise that
+  the entry is sorted with fewer than 13 URLs (no swap) -- weaker, and the examples' entries are one URL. Until
+  then the closed theorems use `bootstrap.specOne` (one member, one URL: `Sort` of one element writes nothing),
+  the interim axiom `bootstrap.wp_proofOne`.
+- **Decision.** Pending (claim #34's spec; found by the dist-putget-interim session while choosing the interim
+  axiom, not raised with #34 directly).
+
+## 2026-11-24: `isMemberBootstrapped.spec` (and so `bootstrap.spec`) -- requests sent to the other members with no protocol's consent (dist-putget-interim)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/isMemberBootstrapped.lean`, `isMemberBootstrapped.spec`
+  (claim #34, stage 2; a `?` hypothesis of the server's Link), for any network `H` and round tripper
+  `http.roundTripperOk H prt`, and through `bootstrapNewClusterNoWAL` the hypotheses of `bootstrap.spec`.
+- **Defect.** Too strong for a cluster with another member: Go sends `GET <peer URL>/members` through `prt` for
+  every other member's peer URL, and `roundTripperOk`'s `RoundTrip` needs the host's protocol registration
+  (`httpProtoAt`) and its request predicate (`□ (H.proto host).req R γk`), which the spec does not take; a peer's
+  handler proved under its registered protocol may rely on that predicate excluding the request.
+- **Evidence.** `server/etcdserver/cluster_util.go:41-42` (`getClusterFromRemotePeers(lg,
+  getRemotePeerURLs(cl, member), ...)`), `:80-82` (`cc.Get(u + "/members")` per URL), `:131-141` (every member
+  but `member`, its peer URLs); `Proof/net/http/Boundary.lean`, `roundTripperOk`. With one member
+  `getRemotePeerURLs` is empty and nothing is sent.
+- **Proposed change.** A premise that `cl`'s members other than `name` have no peer URL (one-member clusters), or
+  the per-URL registration and request predicate for `GET /members` in the precondition (the multi-member
+  clusters' start). Until then the closed theorems use `bootstrap.specOne` (one member), the interim axiom
+  `bootstrap.wp_proofOne`.
+- **Decision.** Pending (claim #34's spec; as above).
+## 2026-11-24: `MustSaveMemberToBackend.spec`'s post does not see the peer-URL slice's nil-ness (prove-ps2-jsonj6, #24 J2)
+
+- **Spec.** `schema.membershipBackend.MustSaveMemberToBackend.spec`
+  (`Spec/go_etcd_io/etcd/server/v3/storage/schema/membershipBackend__MustSaveMemberToBackend.lean`), a
+  trust-boundary axiom: its post puts `apply.memberEnc mm` (opaque, `apply/RestModel.lean`) for any record `m` with
+  `membership.memberAt m 1 mm`.
+- **Defect.** False of Go when `mm.peerURLs = []`. `memberAt` hides whether the `PeerURLs` slice is nil, and
+  `json.Marshal(m)` writes `"peerURLs":null` for a nil slice and `"peerURLs":[]` for an empty non-nil one (`[]string`
+  has no `omitempty` in `RaftAttributes`). So one `mm` has two encodings, but the post names one. Both kinds of
+  member reach the call. `applyConfChange` decodes the context with `json.Unmarshal`, which leaves the slice nil for
+  `"peerURLs":null` or an omitted key, and makes it empty non-nil for `"peerURLs":[]` (the model's generated
+  `jdec_S_string`, as Go's decoder does). Both give `ccMemberOf … .peerURLs = []`, and `ccApplyOk` admits both.
+  Nothing derives `False` from this, because `memberEnc` is opaque, but no definition of `memberEnc` can make the
+  axiom provable. Found while planning its proof over `json.Marshal`'s proved spec (`MarshalMember.spec`:
+  `memberJson v ps cs`, which reads the nil-ness off the value).
+- **Evidence.** Code reading: `api/membership/member.go` (`RaftAttributes.PeerURLs []string` with tag
+  `json:"peerURLs"`), go1.27.3 `encoding/json` (a nil slice encodes as `null`), the model's generated
+  `jenc_S_string`/`jdec_S_string` (`membership.jsonStrSlice`), and `membership.memberJson`'s
+  `decide (PeerURLs' = slice.nil)`.
+- **Proposed change.** Pending a decision (coordinator, #24/#18). The candidates:
+  (a) The premise `mm.peerURLs ≠ []` (then the slice is not nil), with `memberEnc mm := bootGo.memberJSON`'s formula
+  (the non-nil rendering, any strings). `applyConfChange` discharges it by adding
+  `(ccMemberOf m.context).peerURLs ≠ []` to `ccApplyOk`. Etcd's only conf changes after boot are bootstrap's (D3,
+  static membership), whose members all have peer URLs (`bootGo.urlsNe`), and Go's `MemberAdd` API rejects empty
+  peer URLs (`types.NewURLs`). `UpdateAttributes`' save (`restAfter`) needs the same fact of the cluster's members.
+  (b) `memberAt` records the nil-ness (a flag in the record or the predicate), and `memberEnc` takes it. This is
+  more faithful but touches every user of `memberAt`.
+  Until this is decided the axiom stays, and it is the obstacle to proving it.
+- **Decision.** Open.
+
+## 2026-11-25: `transport.NewTimeoutTransport.spec` covered every `TLSInfo` (transport-emptycn)
+
+- **Spec.** `transport.NewTimeoutTransport.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/transport/NewTimeoutTransport.lean`,
+  a trust-boundary axiom), and through it `rafthttp.NewRoundTripper.spec`, `newStreamRoundTripper.spec`,
+  `rafthttp.Transport.Start.spec`; in `SpecPlan/`, `Transport.TLSInfo.ClientConfig.spec` and the two round
+  trippers' specs, which take any `TLSInfo` the same way.
+- **Defect.** False of Go for a `TLSInfo` with a certificate: with `EmptyCN`, `ClientConfig` re-reads the
+  certificate and dereferences `pem.Decode`'s block unchecked (a file rewritten between the reads panics); with
+  `AllowedCN`, `baseConfig` logs through `info.Logger` (a zero `&zap.Logger{}` panics).
+- **Evidence.** `issues/etcd-transport-emptycn-cert-reread-panic/` (5/5), the review's FIFO and rename tests, a
+  logger probe (1/1); `notes/axiom-review/transport-emptycn.md`.
+- **Proposed change.** The premise `transport.tlsEmpty info` (`info.Empty()`: no certificate, no key file),
+  carried by `bootCfgOk` (`cfg.PeerTLSInfo`) and `Transport.Start.spec` (`tv.TLSInfo'`). `SpecPlan/`'s three specs
+  should take the same premise (or, for `ClientConfig`, a certificate path stated with `EmptyCN` off and a zap
+  logger); not edited here.
+- **Decision.** `Spec/` restated (2026-11-25, branch `transport-emptycn/2026-11-25`); `SpecPlan/` open.
+
+## 2026-11-25: `encoding.json.Encoder.Encode_conn.spec` could not be proved (dsv-vr)
+
+- **Spec.** `encoding.json.Encoder.Encode_conn.spec` (`Spec/encoding/json/Codec/Encoder__Encode_conn.lean`), a
+  statement only (vr's premise until now).
+- **Defect.** Not provable of the model's `Encode` (translated with its body): its `w.Write` on a connection is
+  `net.Conn.Write.spec`, which takes `internal/poll.ErrDeadlineExceeded`'s value (a write error may be it), which
+  only `net`'s initialization gives; the precondition had `encoding/json`'s, which does not import `net`.
+- **Evidence.** The proof attempt (`Proof/encoding/json/Codec/Encoder__Encode_conn.lean`, branch `dsv-vr`).
+- **Proposed change.** Add `isPkgInit pkg_id.net` to the precondition (as vr's `events.newDecoder.spec` has);
+  vr's caller (`events.Event.ToWriter`) gets it from `events.wstream`, which now holds it. No `SpecPlan/` counterpart.
+- **Decision.** `Spec/` restated (2026-11-25, branch `dsv-vr`).
+## 2026-11-25: `net.http.Handle.spec` admitted a `HandlerFunc` holding a non-function (s5)
+
+- **Spec.** `net.http.Handle.spec` (`Net/Spec/net/http/Handle.lean`), the interim trust-boundary axiom
+  `net.http.Handle.wp_proof` (`Net/Proof/net/http/Handle.lean`).
+- **Defect.** False over the model. The premise `h ≠ interface.mkOk HandlerFunc.ty #func.nil` excludes only the nil
+  function. For `h = mkOk HandlerFunc.ty v` with `v` not a function value, `registerErr`'s `if f, ok :=
+  handler.(HandlerFunc); ok && f == nil` evaluates `f == nil` (`GoOp GoEquals` at a function type), which is stuck
+  on a non-function value. So the axiom asserted a WP of a stuck program: instantiated there, adequacy gives
+  `False`, which makes every theorem over the axiom (`rpcdriver_robust`, the dsverify kits) vacuous. (Go's types
+  make such an interface impossible; the model does not.)
+- **Evidence.** Found proving `wp_register_lit` (`Net/Proof/net/http/Mux22.lean`, which needs exactly the premise
+  below); coordinator-E's assessment, #24 7152572897.
+- **Proposed change.** The premise `∀ v, h = mkOk HandlerFunc.ty v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil`.
+  Stronger than the old one (it implies it), so the axiom only narrows. The one caller, `Server.HandleHTTP`,
+  passes pointer-typed handlers (`*Server`, `debugHTTP`), for which it is vacuous.
+- **Decision.** Pre-approved by coordinator-E (#24 7152572897); restated 2026-11-25, branch
+  `fix-http-handle-premise/2026-11-25`.
+
+## 2026-11-25: `net.http.httpSrvEnv` widened (s5)
+
+- **Spec.** `net.http.Serve.spec_rpc` (`Net/Spec/net/http/Serve.lean`), through its premise `httpSrvEnv`
+  (`Net/Proof/net/http/MuxDefs.lean`); rpcdriver's `Server.spec` takes it too.
+- **Defect.** `httpSrvEnv` was `httpEnv`, which does not hold what net/http's server reads of its package
+  variables (`Serve.specHandler`'s `readEnv`, `serveEnv`, `ctxKeys`, `aLongTimeAgo`, `wPools`, `rPool`), so
+  `Serve.spec_rpc` could not be proved over the real code.
+- **Evidence.** The proof attempt (S5 item 3): nothing produced those facts.
+- **Proposed change.** `httpSrvEnv := httpEnv ∗ readEnv ∗ serveEnv ∗ ctxKeys ∗ (∃ tm, aLongTimeAgo ↦□ tm) ∗
+  wPools ∗ rPool`, produced at the boot by `wp_init_first_mux` from the restated `wp_init_first`
+  (`notes/axiom-review/net-http-interim.md`); rpcdriver's boot passes it in `bootRes`.
+- **Decision.** Approved by coordinator-E (#24 7153375148, "widening `httpSrvEnv` to match is fine").
+
+## 2026-11-25: gryff's net/http premises widened to `httpSrvEnv` (s5)
+
+- **Spec.** dsv-gryff's internal specs over net/http's server: `httpInitRes` (`Dsverify/Proof/gryff/Rpc/RpcHttp.lean`,
+  part of `serverBoot`), `masterOkDef` (`Server/MasterDefs.lean`), `wp_NewMaster'` (`Server/MasterNew.lean`),
+  `NewMaster.wp_req`, `Serve.wp_req` (`Server/SpecsReq.lean`), `wp_Serve'` (`Server/ServeProof.lean`).
+- **Defect.** They carried `net.http.httpEnv` to `http.Serve`'s `Serve.spec_rpc`, whose premise is `httpSrvEnv`
+  (widened the same day, entry above), so they no longer prove once `Serve.spec_rpc` is proved over the real code.
+- **Evidence.** The build of the batch that proves `Serve.spec_rpc` (`Net/Proof/net/http/Serve.lean`).
+- **Proposed change.** `httpEnv` → `httpSrvEnv` in each (it holds `httpEnv`); `serverBoot`'s comes from the boot's
+  `net.http.wp_init_first_mux` (`Boot/Defs.lean`'s `wp_http_own`), so every caller discharges it. `dialEnv` keeps
+  `httpEnv`. The top-level statement (`gryff_remote_robust`, its Spec file and `TopLevelDefs`) is unchanged.
+- **Decision.** Applied with the batch (consequence of the approved `httpSrvEnv` widening, #24 7153375148).
+
+## 2026-11-25: `sort.Slice.spec` has no length bound; mvccrand moves to `slices.Sort` (sortslice2)
+
+- **Spec.** `sort.Slice.spec` (`Spec/sort/Slice.lean`), a hypothesis (no proof, no axiom) of mvccrand's linked
+  results and of its top-level statement `mvccrand_robust` (`Hsort`); `writer.genLease.spec`, its one user.
+- **Defect.** Probably unprovable, and likely false, over the model: it takes any `s ↦* xs`, of any length, and a
+  `less` specified only on in-range indices. Past `2^62` elements, `pdqsort_func`'s heapsort fallback
+  (`siftDown_func`: `child := 2*root + 1` with `root < hi`) overflows `int`, so pdqsort can call `less` (and the
+  swapper) on a negative index, where a `less` like `genLease`'s (`ids[i] < ids[j]`) panics. A `less` answering
+  anything (the spec allows it) can drive pdqsort into that fallback. Every Perennial sort spec needs
+  `len ≤ 2^62` for this reason (`sort.Sort.spec`, `slices.Sort.spec`, `slices.SortFunc.spec`,
+  `sort.Sort.anyLessSpec`). Not proved false. If it is false, `mvccrand_robust` is vacuous: `Hsort` must hold at
+  every ghost-state instance. mvccfull's theorems do not take it.
+- **Evidence.** `zsortfunc.go` (go1.26.11) and Perennial's `sort.Sort.spec` docstring ("past that, the heapsort
+  fallback's `2*root+1` overflows `int`"). Real Go never reaches it, since such a slice cannot be allocated.
+- **Proposed change.** Do not fix the spec; drop it. `genLease` (our own tester, `examples/mvccrand/mvccrand.go`)
+  sorts with `slices.Sort(ids)` instead of `sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })`,
+  which is the same order, Go's recommended form, and needs no reflection. It is proved over Perennial's
+  `slices.wp_Sort` and a local `cmp.Less` at `int64`. Its `2^62` bound comes from a new premise on
+  `genLease`, `put`, `writeOp`, `txn` and `revoke`: every live lease id lies in `(0, 2^62]`. `run` discharges it
+  from `writerLe` (live ids in `(0, nextID]`), with its own premise strengthened from
+  `nid + ops < 2^63` to `nid + ops ≤ 2^62`, which `runChecks` meets (`nid = 0`, `Ops < 2^38`).
+  `Spec/sort/Slice.lean` is deleted, and `Hsort` leaves `mvccrand_robust` (a strengthening).
+- **Decision.** coordinator-E, 2026-11-25 (option 1, within Upamanyu's direction on #18 7119112205: rewrite
+  `sort.Slice` call sites to `slices.Sort`/`SortFunc` rather than add a reflection primitive).
+
+## 2026-11-25: `mvccfull_robust.spec` -- `HEnv : EtcdVerifyOff` is a premise the program could check (mvcc-retire, #49)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean`,
+  `mvccfull_robust.spec`'s `(HEnv : EtcdVerifyOff)`; `MainAt.spec` (`Spec/.../mvccfull/MainAt.lean`),
+  `Run.spec`'s `⌜EtcdVerifyOff⌝`.
+- **Defect.** Not wrong: an environment premise with a witness (`etcdVerifyOffValue_unset`). But the
+  program can read the variable itself (`os.Getenv`'s spec, an existing axiom, returns
+  `etcdVerifyEnv`), so the theorem need not assume it (#49's etcd report, item 8, and cross-cutting 2).
+- **Evidence.** `Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean` (`EtcdVerifyOff` is
+  `etcdVerifyOffValue etcdVerifyEnv`); `Spec/os/Getenv.lean`.
+- **Proposed change.** `MainAt` (`examples/mvccfull/start.go`) returns at once when
+  `verifyOn(os.Getenv("ETCD_VERIFY"))`, a local function that lower-cases the value
+  (`strings.ToLower`) and compares it with `all`, `assert`, `lock` (as `verify.getEnvVerify` does);
+  else as now. `MainAt.spec` drops `⌜EtcdVerifyOff⌝` (its proof gets it from the check's `else`
+  branch through `os.Getenv`'s spec and `strings.lowersTo`); `mvccfull_robust.spec` drops `HEnv`
+  (a strengthening; no new axiom: `os.Getenv.wp_proof` is already in mvccfull's collection,
+  `etc/tcb-collections/mvccfull.txt`). A Go test: `MainAt` with
+  `ETCD_VERIFY=all` returns without creating a file, unset runs (`start_test.go`).
+  `etc/premise-witness-baseline.txt` loses mvccfull's `HEnv` line.
+- **Decision.** Approved (coordinator-E for Upamanyu, #49 7179589277, 2026-11-26) -- but **not done:
+  the proposed change cannot be proved over the trusted `os.Getenv` spec as it stands** (branch
+  `mvcc-followup`, 2026-11-26). Since its review the same day ("only offness, never the value",
+  `notes/axiom-review/getenv-etcd-verify.md`), `os.Getenv.spec`'s post for `ETCD_VERIFY` is
+  `EtcdVerifyOff → etcdVerifyOffValue v`, not `v = etcdVerifyEnv`: a read the program finds off does
+  not give `EtcdVerifyOff`, and without it nothing links that read to the later reads inside `Run`
+  (`verify.IsVerificationEnabled`, the backend's lock checks), each of which may then return an "on"
+  value in the model. So `MainAt`'s check cannot discharge `Run.spec`'s `⌜EtcdVerifyOff⌝`. What would:
+  a per-process environment in `os`'s semantics (the deferred Perennial change named in `Getenv.lean`'s
+  header: every read of a process returns that process's one value), after which `os.Getenv` returns the
+  process's value and a first read that is off makes every later one off. Strengthening the axiom
+  instead (`etcdVerifyOffValue v ↔ EtcdVerifyOff`) is unsound across processes (two machines with
+  different values: a program comparing their offness panics, the axiom proves it does not), and adds
+  trust, outside this approval. `HEnv` stays; the entry stays open until that Perennial change.
+
+## 2026-11-25: `mvccfull_robust.spec` -- one configuration, `MainConfig`, while the package doc spoke of every `Config` (mvcc-retire, #49)
+
+- **Spec.** `mvccfull_robust.spec` (`Spec/.../mvccfull/TopLevelRobustness.lean`), over
+  `mvccfullProgram r` (`TopLevelDefs.lean`: `MainAt(r)`, so `Run(MainConfig(r/mvccfull))`).
+- **Defect.** The package doc (`examples/mvccfull/mvccfull.go`, "Coverage") described a theorem for
+  every `Config`; the statement covers `MainConfig` only, whose `Mix.Read` gives the
+  corruption checker's hashes weight 0 (#49's etcd report, item 8). Fixed as documentation on
+  `mvcc-retire`: the statement's docstring and the Go docs (`mvccfull.go`, `config.go`) now say exactly
+  what is covered (MainConfig's sizes; of its four zero weights, three exclude nothing, the hashes are
+  excluded).
+- **Evidence.** `examples/mvccfull/config.go` (`MainConfig`, `Read: {1, 1, 2, 1, 1, 0}`); `Run.spec`'s
+  `runCfgOk` requires `readMixOk` (no hash read: `HashByRev`, `Hashes` have no spec until F2).
+- **Proposed change** (beyond the docs). `MainAt` draws the configuration: each size and each weight from
+  `primitive.RandomUint64` within `runCfgOk`'s bounds (`Ops < 2^38`, `2·Readers + 4·Streams + 3 ≤ 2^28`,
+  batch limits, `MaxVal ≤ 2^20`, `Depth` with `keysOf` below `2^60`), returning when a drawn value is out
+  of range, with `Read`'s hash weight forced to 0 until F2 proves the hashes; then checks the drawn
+  configuration's `FilePaths` absent and runs `Run(cfg)`. The statement's text is unchanged, its program
+  covers every configuration `Run.spec` admits (a strengthening). `MainAt.spec`'s proof over a drawn
+  `cfg` (`Run.spec` already holds for every `cfg` with `runCfgOk`); a Go non-vacuity test (many seeds:
+  the validation passes, `Run`'s checks are reached). The hashes remain outside until F2.
+- **Decision.** Approved (coordinator-E for Upamanyu, #49 7179589277, 2026-11-26). Done on branch
+  `mvcc-followup`: `MainAt` draws every field with `anyInt` (a random 64-bit value shifted right by a
+  random amount below 64: every int, short ones often) and runs the configuration when `inScope` (exactly
+  `runCfgOk`, `ScopeLemmas.lean`'s `runCfgOk_of`) admits it; Read's hash weight is drawn like the others
+  and `inScope` rejects it through `hashing`. The statement's text is unchanged but its docstring; its
+  program covers every configuration `Run.spec` admits. Go tests: `TestDrawConfig` (drawn configurations
+  pass `inScope`; its bounds are the stated ones), `TestMainAt`.
+## 2026-11-25: `sort.Slice.wp_proofInt32Lt` has no length bound; gryff's `ShortCircuit` moves to `slices.Sort` under a guard (dsv-fix4)
+
+- **Spec.** `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`), the trust-boundary axiom dsv-fix4 made
+  of gryff's premise `SortSliceHyp` (`Dsverify/Proof/gryff/Lib/SortHyps.lean`); its one user,
+  `gryffcommon.ShortCircuit`'s `sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })`.
+- **Defect.** As the entry above: no bound on the slice's length, and past `2^62` elements pdqsort's heapsort
+  fallback overflows `2*root+1`, so the triple may be false in the model (an axiom, here: it would make
+  `gryff_remote_robust` rest on a false statement).
+- **Evidence.** The entry above (`zsortfunc.go`, Perennial's sort specs' `2^62` premise; zeldovich, #18).
+- **Proposed change.** `ShortCircuit` (the kit's gryff fork, `examples/dsverify/gryff/src/gryffcommon/coordinator.go`)
+  sorts with `slices.Sort(keys)` and runs the sort and the reads short-circuit loop only while
+  `len(keys) <= maxShortReads` (`1 << 20`); the writes part stays unguarded. Skipping is safe: a read in
+  `ShortReads` has already sent its `Read1`s and stays in `OngoingReqs` and `rops`, so it completes by its own
+  replies, as any read the loop finds already completed. The model's `shortCircuit` takes the guard
+  (`shortReadsLen`, `maxShortReads`; past it nothing changes), and the proof applies Perennial's
+  `slices.wp_Sort` with `cmp.Less` at `int32` (`Spec/cmp/Less.lean`'s `specInt32`), the guard giving its
+  length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
+  no longer a premise since dsv-fix4).
+- **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).
+- **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
+- **Defect.** Too weak for its consumer: `bootstrapSnapshot` carves the fresh `member/snap`'s names into the snapshot
+  directory's free names, which must be durable (`backend.fileFreeDur`, so that the crash law `snapDir_crash.law`
+  can keep them across a crash), and that needs every history entry writing a name of the new directory (other than
+  the `.touch` probe, which `IsDirWriteable` writes and removes) to be below a commit index the caller holds.
+  The post said only `h'.next ≤ n`.
+- **Evidence.** The proof of `bootSnap.snapDir_carve` (`BootSnapCarve.lean`); Go: `TouchDirAll` ends with
+  `IsDirWriteable`'s fsync of the directory (fileutil.go), committing the journal (ext4, configuration C).
+- **Proposed change.** The post's pure part gains `∀ xe ∈ hJ.ents, ∀ b, b ≠ ".touch" → xe.2.1.op.Writes J b →
+  xe.1 < n`, proved from `osNames_histCoh` (a strengthening: no caller loses anything). `SpecPlan/` has no such
+  vocabulary; nothing to change there.
+- **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
+  branch `etcd-safe-p7`.
+
+## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
+
+- **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and
+  `remote.Check.spec` (`Net/Spec/.../lib/remote/{Run,Check}.lean`): `genSpec gen (∃ i, x = R.iv i)`, `PendDec R S`,
+  `hinj`; `RBase`'s one input type shared by the wire and the model.
+- **Defect.** Too narrow for the kv workload (`kvremote.Orch` = `remote.Run` of `txnlin.Model()`): with `S =
+  linkvtxnS` the model input is `MI`, and (1) `Gen`'s inputs are not a function of their `MI` (`genFrom` sets fields
+  `decTOp`/`decCmp` ignore); (2) `ioOk_*`/`err` over every `MI` fail for inputs `decIn` cannot produce or `ValidIn`
+  excludes; (3) `ok` over every output fails, since `decOut` reads an output by the input's kind; (4) `hinj` fails
+  for `O = MO` (`outOf` collides across kinds), and `O = Output` breaks (3)'s equality at revisions past `2 ^ 64`.
+- **Evidence.** `notes/etcd-dist-p9.md` (each with file and line); the Pend proof uses `ok` only at the invariant's
+  configuration (Pend.lean:352).
+- **Proposed change.** `RBase` with a wire input `I` and a model input `J` (`mi : I → J`), a state guard `good`
+  with `sysState st ⊢ ⌜good st⌝`, and `PendDec`'s `ok`/`err` in the "at a configuration" form (`∃ s'`, holding the
+  stepped configuration, closed), with `PendDec.ofTotal` from today's form so other instances change by a line;
+  top-level statements unchanged. `notes/etcd-dist-p9.md`, "Proposal".
+- **Decision.** Approved as proposed (the coordinator, `remote`'s owner, #28; 2026-11-25): `RBase GF St J I O`
+  (wire input `I`, model input `J`, `mi : I → J`), `good` with `sysState_good`, `PendDec` at a configuration,
+  `PendDec.ofTotal` for the existing instances; condition: no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text
+  changes. Applied on `etcd-safe-p9`.
+
+## 2026-11-25: `remote.lin` cannot abort, so a far side whose system takes an atomic update cannot use it (P9)
+
+- **Spec.** `remote.lin` (`Net/Proof/.../lib/remote/Defs.lean`), the linearization point a slot hands the far
+  side (`slotUpd`, `opMaybe`): a one-shot fancy update `|={⊤ \ Eop, ∅}=> ∃ st, sysState st ∗ (sysState st' ={∅, ⊤ \
+  Eop}=∗ Φ o)`, with no way back without stepping.
+- **Defect.** The kv workload's far side (`kvremote.Node`, `txnlin.Call.spec`) hands the update to etcd as an Iris
+  atomic update (`callUpd`: a write's `kvOpAu1 γk`, `AU <{ ∃∃ σ, etcdKV γk σ }> @ ⊤ \ kvEop, ∅ <{ … }>`), whose
+  accessor must be abortable (`atomic_acc`'s abort: `etcdKV γk σ ={∅, ⊤ \ kvEop}=∗ AU`). `etcdKV γk σ` comes only
+  from `lin`'s `sysState`, and `lin` once opened can only be closed by stepping, so a write's `kvOpAu1` cannot be
+  built from `lin` (a read's can: `□ lin` closes at the same state, `reads_stay`). The dsverify kits never needed
+  the abort (their servers fire `lin` directly; gryff's `opAU` note: "which cannot abort").
+- **Evidence.** `atomic_acc` (`Iris/BI/Lib/Atomic.lean:26`); `kvAu1` (`InvRequest.lean:1024`); the producer
+  (`Pend.lean`, `pend_choice`'s write case) can abort: it opens only `pendCtx` before handing `sysState` over, and
+  lintest's update (`pend_commit_core`) can run in the commit branch instead, at the same mask.
+- **Proposed change.** `lin` becomes the atomic update `AU <{ ∃∃ st, sysState st }> @ ⊤ \ Eop, ∅ <{ sysState
+  (step st).1, COMM Φ (step st).2 }>` (stronger for the far side: `lin_linF` gives back the old form, renamed
+  `linF`, for the far sides that fire it directly; `linF_read_lin` builds a read's `lin` from `□ linF`). The
+  producer's write cases (`pend_choice`, `pend_fire`) abort by closing `pendCtx` unchanged; the instances' far
+  sides change by a `lin_linF` each; no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text changes.
+- **Decision.** Applied on `etcd-safe-p9` (P9, 2026-11-25), pending the coordinator's (`remote`'s owner) review
+  before landing.
+- **Review** (P9, 2026-11-25, an independent `spec-reviewer`): sound, no must-fix. The new `lin` is stronger for
+  the far side only for writes (for a read `□ lin ⊣⊢ □ linF`, `lin_linF` and `linF_read_lin`); every producer
+  (`pend_fire`, `pend_choice`, `readNoop`, the counter client's forwarding) proves it; no `TopLevel*` text
+  mentions `lin`. Applied: the elimination law `lin_acc` (the state with the abort and the commit, telescopes
+  simplified; `lin_linF` now uses it), docstrings (`linF` "one-shot form", `lin`'s inner mask `∅`, "a write's
+  `lin`, committed at most once" for "one-shot `lin`" in `Defs`/`Do`, `Pend`'s abort, the five dsverify kits'
+  `opAU` notes now naming `linF`). Left (should-fix): an introduction law in the same plain form, so that
+  `pend_fire`/`pend_choice` and `kvremote/NodeUpd` stop unfolding telescopes; `lin_mono` (counter `Shared`)
+  and the two copies of `slotUpd_lin` (swiftnet `ClientOp`, epaxosnet `ClientProof`) moved into `Defs`.
+
+## 2026-11-26: F2's and F7's proposed `NewServer.specG_dist` combined (re-review C's N1)
+
+- **Spec.** `NewServer.specG_dist_proposed` (PROPOSED, not an axiom), written twice: F7's (P-A1,
+  `Proof/.../dist/AuthServeProposed.lean`) and F2's (P-L1, `Spec/.../dist/NewServerDist.lean` on `etcd-safe-f2` @
+  `54fa3c9780`), both in namespace `EtcdGrove`, so the merged branch could not even import both.
+- **Defect.** F7's text had no lessor binder: its post's `E` fixes `mvccLeases E.γ` inside `NewServer` (`envAgree`
+  does not fix `E.γ`), and the view is fixed before any machine runs, so no start could meet `memberUpL` or
+  `memberUpOnL` at `Γ.ls mid`, and the proposed Serve was unusable in both auth modes. F2's text lacked F7's auth names.
+- **Evidence.** `/shared/tmp/coord-03/rerev-f7c-report.md`, §2 N1 (`envAgree`, `InvBuild.lean:67`).
+- **Proposed change.** One text, in `AuthServeProposed.lean`: F7's `γa`, `"Hγa"` (`authNamesFreshD γa` with auth on)
+  and `on = true → E.authMode = .on γa`, plus F2's `γl`, `"Hlslot"` (half of `γl`'s ghost map authority at `∅` and
+  `lease.lessorSlot γl`) and `mvcc.api.mvccLeases E.γ = γl`. F2's copy is deleted (`NewServerDist.lean` back to the
+  current axiom's text only, its `LessorSlot` import dropped). The current `NewServer.specG_dist` is unchanged.
+- **Decision.** Applied on `etcd-safe-f7` (the F2/F7 merge, 2026-11-26), as the coordinator directed; one fresh
+  re-review of the merged text before it replaces the axiom (`notes/etcd-dist-f7-reviews.md`, row 20).
+
+## 2026-11-26: one proposed `Serve_dist` (F7's), its distinct-names premise guarded (re-review C's N2)
+
+- **Spec.** `Serve_dist_proposed.spec` (F7, `AuthServeProposed.lean`) and F2's `Serve_dist.spec_proposed`
+  (`Spec/.../dist/ServeDist.lean` on `etcd-safe-f2`), both PROPOSED.
+- **Defect.** Two texts for one axiom: F2's is the auth-off half of F7's (`memberUpL … Γ.kv.lm (Γ.ls mid)`, `Γ.auth =
+  false`). F7's took `∀ a b, Γ.au a = Γ.au b → a = b` also for auth-off views, where `au` is never read (an auth-off
+  start would have to pad it). Its docstring did not say that the tie must hold of every route serving an auth-on
+  `Γ` (condition C), nor that a restarted member cannot re-serve at the same names.
+- **Evidence.** `/shared/tmp/coord-03/rerev-f7c-report.md` (N2, "Limit"); `rerev-f7a-report.md` ("Condition C").
+- **Proposed change.** Keep F7's text (`memberUpOnL … (Γ.au mid)` with auth on, `memberUpL` with auth off); guard the
+  premise as `Γ.auth = true → ∀ a b, Γ.au a = Γ.au b → a = b`; its docstring states condition C and the restart limit
+  (`lease.lessorSlot` closes once at the first `NewLessor`; `authNamesFreshD` needs the history at `[bootState]`;
+  outside the no-crash line). F2's text is deleted (`ServeDist.lean` back to the current axiom only, its
+  `MemberLessor` import dropped). The current `Serve_dist.spec` is unchanged.
+- **Decision.** Applied on `etcd-safe-f7` (2026-11-26), as the coordinator directed; re-review with row 20.
+
+## 2026-11-26: `readCheckedD`'s cluster-level log a committed lower bound (re-review A's N1)
+
+- **Spec.** `readCheckedD`/`readAuthedD` (`Proof/.../dist/AuthViewDist.lean`), the success arm of the draft
+  `KV_GetOn_dist`.
+- **Defect.** `readAuthedD`'s prefix `L` was only `L₀ <+: L`, existential inside a pure proposition, with no
+  `srvReqLogLb γR L`: the claim admitted any extension of `L₀`, uncommitted ones included. Sound (Go's success meets
+  it at the member's applied prefix) but nearly empty.
+- **Evidence.** `/shared/tmp/coord-03/rerev-f7a-report.md`, §2 N1.
+- **Proposed change.** `readAuthedD` takes `L` as a parameter; `readCheckedD` binds it and adds `srvReqLogLb γR L`
+  (as `authFloorD` and `writeCheckedD` have). `txnReadCheckedD` does not use `readAuthedD` and is unchanged.
+- **Decision.** Applied on `etcd-safe-f7` (2026-11-26), as the coordinator directed.
+
+### 2026-11-26: the main-program specs' auth premise (F7 S2, Handoff S2-5's option (a))
+- **Spec.** `Spec/.../dist/server/{MainLogger,MainDeploymentLogger,MainDeployment}.lean` (and `member_boot_dist`'s `Hauth`,
+  `AdequacyMember.lean`, a proof file).
+- **Defect.** The premise `d.cfg.auth = false` keeps auth-on deployments out of the member's proof. Removing it outright
+  leaves auth on with the revocable lease mode unprovable: `NewServer_dist` takes `lease.bootCfg lm m on`, whose auth row
+  is `on = true → m = .revocable → lease.leasesNoExpiry` (`LeaseApi.lean:70`), and the specs give only `lease.runCfg lm lm`.
+- **Evidence.** `notes/etcd-dist-f7.md`, Handoff S2-5, "Finding".
+- **Proposed change.** Replace `d.cfg.auth = false →` by `(d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry) →`
+  in the three specs, and `member_boot_dist`'s `Hauth` likewise. It is weaker than the old premise, so every caller
+  (kvremote's M1 included) still discharges it.
+- **Decision.** Option (a), the coordinator's (2026-11-26). **Applied** (2026-11-26, F7 S2, with `MainLogger`'s auth-on
+  branch, one commit): the three specs take the new premise; `member_boot_dist`'s `Hauth` is the same, bound after `lm`;
+  kvremote passes `fun _ h => nomatch h` at `lm = .none`, its statement unchanged. The full theorem (the lead's F8) must discharge `leasesNoExpiry` for authLease, as the single-process
+  theorem does from its lease premises (`Spec/.../etcd/all/TopLevelRobustness.lean`, around lines 38-40 and 69-70).
+## 2026-11-25: grpc `status` over its bodies: a `GRPCStatus` error is a structural `*status.Error`; `Errorf` stated for etcd's calls (status-bodies)
+
+- **Spec.** The vocabulary in `Proof/go_etcd_io/etcd/cache/v3/Base.lean` that `status.FromError`/`Code`/`Error`'s
+  specs are written in (`grpcErrMethodsOk`'s `GRPCStatus` clause, `descIs`'s and `statusCodeIs`'s third
+  disjunct); `status.statusAtRaw` (`Proof/google_golang_org/grpc/status/StatusRO.lean`); `status.Errorf.spec`.
+- **Defect.** (1) Unprovable over the bodies: for an error with `GRPCStatus()`, `descIs err m` and
+  `statusCodeIs err c` each named a status by its own persistent WP of `GRPCStatus()`, and `FromError` calls it
+  once; Iris cannot merge two WPs of one call, so no proof gives the returned status both `c` and `m` (the
+  axioms claimed it, by Go's determinism). (2) `statusAtRaw` was a trusted opaque. (3) `Errorf.spec` took any
+  `format` and an unowned `args`, which `fmt.Sprintf` reads (unprovable), and posted only `err ≠ nil`.
+- **Evidence.** The proof attempts on `status-bodies/2026-11-25` (`FromError`, `Code`); grpc v1.84.0
+  `status/status.go:96-146`, `internal/status/status.go:76-230`; `models/grpc`: `*internal/status.Error` is the
+  only type with `GRPCStatus() *Status` (in the model, etcd's translated tree and the k8s code translated here).
+- **Proposed change.** (1) The `GRPCStatus` case is `status.grpcStatusIs e s c m`: `e` is a `*status.Error`
+  whose field `s` holds `s` read-only, and `statusAt s c m`; two agree (`grpcStatusIs_agree`), and the WP form
+  follows (`status.grpcStatusIs_wp`). A strengthening of every trusted post that gives these (`status.Error`'s
+  axiom, grpc's `InvGrpc*` errors), true of the model. (2) `statusAtRaw` is a definition: `s.[Status,"s"] ↦□ p`,
+  `p ≠ null`, `p.[spb.Status,"Code"] ↦□ c`, `p.[spb.Status,"Message"] ↦□ m` (the read-only claim checked
+  against `RawStatusProto`'s two callers in the model, which only read `GetDetails()` and `proto.Marshal`).
+  (3) `Errorf.spec` is SpecPlan's: `args = nil` and `W8 37 ∉ format` (a premise its one caller,
+  `checkRangeStreamRequest`, meets), and `status.Error`'s post with the format as the message (a strengthening).
+  `FromError.specNE`/`Code.specNE` (an error that is no `EtcdError` value) for gRPC's robustness driver, whose
+  programs have no `rpctypes` (no fact of `EtcdError.Error()`); its three proofs take them, discharging the
+  premise from `statusCodeIs` (`statusCodeIs_notEtcd`).
+- **Decision.** (1) #24 7175612915 (asked), (2) and the do-nothing genproto/anypb `init`s: coordinator-E,
+  #24 7175520513; (3) within the user's rule (a trust-boundary spec may change when every caller still proves).
+## 2026-11-25: `uuid.New.spec` takes `uuid.Assumptions`, `UUID.ID.spec` takes `isPkgInit uuid` (dsv-retire-2)
+
+- **Spec.** `github_com.google.uuid.New.spec` and `github_com.google.uuid.UUID.ID.spec`
+  (`Dsverify/Proof/github_com/imdea_software/swiftpaxos/lib/LibSpecs.lean`), the trust-boundary axioms
+  `New.wp_proof`, `UUID.ID.wp_proof` of dsv-fix4 (`Dsverify/Proof/github_com/google/uuid/`).
+- **Defect.** Neither is provable from uuid's translation (from its model `models/uuid`, dsv-retire-2): `New.spec`
+  takes no `[github_com.google.uuid.Assumptions]`, so `New` (a `functions` value) cannot be unfolded to its
+  body; `UUID.ID.spec`'s precondition is `True`, while `ID`'s body calls `(*bigEndian).Uint32` on
+  `&binary.BigEndian`, which loads that global: its initialized value comes only from `isPkgInit
+  encoding/binary`, reachable from `isPkgInit uuid`.
+- **Evidence.** `notes/axiom-review/dsv-fix4/google-uuid.md`, last section; the translated bodies
+  (`Dsverify/Code/github_com/google/uuid.lean`).
+- **Proposed change.** `New.spec` gains the instance argument `[github_com.google.uuid.Assumptions]` (as
+  `UUID.ID.spec` has), and `UUID.ID.spec`'s precondition becomes `isPkgInit uuid`. Their one caller,
+  `client.NewClientLog.wp_proof`, has both; no top-level statement changes. Then both are proved from the
+  translation and the two axioms deleted.
+- **Decision.** Approved by the coordinator, 2026-11-25 (#49 step 2).
+## 2026-11-26: `status.statusAtRaw` gains the read-only rest of the `*spb.Status`; `proto.Equal` (Status) (prove-statuserror)
+
+- **Spec.** The trusted vocabulary `status.statusAtRaw` (`Proof/google_golang_org/grpc/status/StatusRO.lean`),
+  through which every trusted post giving `statusAt`, `grpcStatusIs`, `descIs`, `statusCodeIs` or `statusErrOk`
+  claims a read-only status; the new trust-boundary spec `proto.EqualStatus.spec`
+  (`Spec/google_golang_org/protobuf/proto/EqualStatus.lean`).
+- **Defect.** `status.Error.wp_proof` could not be proved over grpc's body: `grpcErrMethodsOk`'s `Is` clause needs
+  `(*internal/status.Error).Is`'s `proto.Equal(e.s.s, tse.s.s)` (`internal/status/status.go:222-228`), which has
+  no spec, and an honest spec of `Equal` reads every populated field (protobuf-go v1.36.12 `proto/equal.go:39-64`,
+  `internal/impl/equal.go:22-133`: `Code`, `Message`, `Details` and each `*anypb.Any`'s `TypeUrl`, `Value`,
+  unknown fields, then `unknownFields`), while `statusAtRaw` held `↦□` only of `Code` and `Message`: nothing
+  could discharge a read permission on the rest of the target's status, and a spec without one would hide a race
+  with a writer of `Details`.
+- **Evidence.** The translated `Error.Is` (`Code/google_golang_org/grpc/internal/status.lean`); protobuf-go's
+  `Equal`; `notes/axiom-review/proto-equal-status.md`.
+- **Proposed change.** `statusAtRaw s c m` is `s.[Status,"s"] ↦□ p ∗ status.pbStatusRO p c m`: `p ≠ null`,
+  `Code`/`Message` `↦□` as before, and `status.pbStatusRestRO p`, `↦□` of `unknownFields` and its bytes,
+  `Details` and its elements, and each non-nil element's `TypeUrl`, `Value` (and bytes) and `unknownFields`
+  (and bytes) (`status.pbAnyRO`; `anypb.Any`'s struct translated for it). Not `sizeCache` (`proto.Marshal`
+  writes it) nor `state` (only atomic accesses). `proto.EqualStatus.spec`: for non-nil `p, q` with
+  `pbStatusRO p c m ∗ pbStatusRO q c' m'`, `Equal` returns some `b` with `b = true → c = c' ∧ m = m'`, nothing
+  about `false` or `Details`. Then `status.Error.wp_proof` is proved over grpc's body (with `codes.Code.String`
+  proved over `code_string.go` and `fmt.Sprintf`), net −`status.Error.wp_proof` +`proto.EqualStatus.wp_proof`.
+- **Decision.** Approved by coordinator-E, 2026-11-26 (#37 7180330705: the narrow `Equal` spec, conditions 1-5;
+  7183375670: `pbStatusRestRO` in `statusAtRaw`, conditions 1-4), subject to the fresh review. The review
+  (`notes/axiom-review/proto-equal-status.md`) found `Equal` panics on invalid unknown-field bytes of equal length:
+  both unknown-field lists (the status's, each `Any`'s) are now `ufWire` of their schema, as the decoder leaves them.
+## 2026-11-26: `grpcErrMap`'s and `grpcErrOut`'s map at `v3rpc.errKeys`; `toGRPCErrorMap_init` was false (grpcerrmap)
+
+- **Spec.** `v3rpc.grpcErrMap` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Base.lean`, in the package
+  fact `v3rpcInit`), `v3rpc.grpcErrOut` (`InvKV.lean`), and the trust-boundary axiom `toGRPCErrorMap_init`
+  (`v3rpc/Init.lean`) that gave the former.
+- **Defect.** The map points-to `mp ↦$□ M` was at Perennial's interface keys (`nil` or pointers), while the
+  same fact says `context.DeadlineExceeded`'s value, the struct `deadlineExceededError{}`, is a key: the post
+  was unsatisfiable, and the axiom false.
+- **Evidence.** `notes/axiom-review/togrpcerrormap-keys.md`; `util.go:91` (the struct key is real).
+- **Proposed change.** Own the map at `v3rpc.errKeys` (the `errKeyOk` keys) in both; `togRPCError`'s lookup
+  through `wp_errMap_lookup2_at`. Translate the initializer and prove it (the axiom deleted). To give the
+  initializer its keys' and values' facts: `rpctypesInit` gains a last conjunct `rpctypesMapVals` (the map's
+  51 values, each `statusErrOk` with its description; proved by `rpctypes`' initializer), `etcdserver/version`'s
+  fact (`True`) becomes `errorsNewVars versionErrMsgs`, and `v3rpc.toml` imports `etcdserver/errors` (which
+  `util.go` imports; its initializer ran only through `etcdserver`'s). Strengthenings, but the key class,
+  which replaces a false statement; no top-level statement changes.
+- **Decision.** Within the brief's rule for false axioms (fix the spec, record it, say so).
+## 2026-11-26: `leasehttp.RenewHTTP.spec`'s post claimed `applyErrIs` of the libraries' errors (mapkeys)
+
+- **Spec.** `leasehttp.RenewHTTP.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/leasehttp/RenewHTTP.lean`), the
+  trust-boundary axiom `leasehttp.RenewHTTP.wp_proof`.
+- **Defect.** The post's error arm, `err ≠ nil ∗ applyErrIs err`, was claimed of every error. `RenewHTTP` passes
+  some library errors on unwrapped: `proto.Marshal`'s (`*prefixError`), `http.NewRequest`'s and `Client.Do`'s
+  (`*url.Error`), `io.ReadAll`'s on the body (`tls.RecordHeaderError`, a struct value, `*net.OpError`, ...),
+  and the decode's behind `%w`. These are neither keys of `togRPCError`'s map (`errKeyOk`) nor leaves
+  (`srvErrOk`). The map-key audit flagged this as its F2; the leaf part was found while fixing it.
+- **Evidence.** `notes/axiom-review/errkeys-proto-renewhttp.md`; `server/lease/leasehttp/http.go`
+  (`RenewHTTP`, `readResponse`).
+- **Proposed change.** Add a third post arm, `err ≠ nil ∗ leasehttp.notLeaseNotFound err`
+  (`Proof/.../lease/leasehttp/RenewErr.lean`): an error tree in which no error is or `Is`
+  `lease.ErrLeaseNotFound`. This weakens the post (the old one implied it). The one consumer,
+  `EtcdServer.LeaseRenew`, gets `errors.Is(err, ErrLeaseNotFound) = false` there and tries the next URL;
+  every caller proves, and no top-level statement changes.
+- **Decision.** Within the pre-approved class (a correction weakening a trusted post to what Go does;
+  coordinator, #18, 2026-11-26).
+## 2026-11-26: `proto.MarshalIRR.spec`'s error arm is false of Go (open; mapkeys)
+
+- **Spec.** `proto.MarshalIRR.spec` (`Spec/google_golang_org/protobuf/proto/MarshalIRR.lean`), the axiom
+  `proto.MarshalIRR.wp_proof`.
+- **Defect.** On an invalid-UTF-8 proto3 string, the only failure, `Marshal` returns `impl.errInvalidUTF8{}`
+  (the fast path) or a `*prefixError` (the reflective path), unwrapped. The post claims `applyErrIs` of it.
+  The struct is no `errKeyOk` key (the map-key audit's F1), and neither error is a leaf (`srvErrOk`): both
+  have `Unwrap() error`.
+- **Evidence.** `notes/axiom-review/errkeys-proto-renewhttp.md`; protobuf-go v1.36.12
+  `internal/impl/codec_gen.go:5041-5049`, `codec_field.go:17-21`, `internal/errors/errors.go`,
+  `proto/encode.go:105-116, 198-204`.
+- **Proposed change.** Either a UTF-8 premise (as `MarshalUser.spec`'s), carried by `apply.internalRaftRequestIs`
+  from the decoded gRPC requests and the auth store's names; or `srvErrOk` widened to non-leaf errors (grpc's
+  `status.FromError` spec walking `Unwrap`), with `errInvalidUTF8` translated as its struct and added to
+  `errKeyOk`. Widening `errKeyOk` alone, the audit's preferred fix, leaves the post false. Until one of these
+  lands, only the docstring is corrected: it said every protobuf error is a pointer.
+- **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction.
+
+## 2026-11-26: `Txn_CommitOn_dist`'s write arm refuses nested transactions (F7 S11)
+
+- **Spec.** `Txn_CommitOn_dist.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean`),
+  the interim axiom `etcd_dist.authd.Txn_CommitOn_dist.wp_proof`.
+- **Defect.** The pre takes `TxnModel.plain b.model` (no nested `OpTxn`) for both arms. `examples/etcd/auth`'s T4
+  (`t.Then(OpTxn(nil, [OpPut(c/who/t3, "vt")], nil)).Commit()`, `t4M`) is a writing transaction with a nested
+  `OpTxn`, so `Work.wp_proof_dist` cannot call `Commit` through the contract and took
+  `then_commit_nested_refusedD.law` as a hypothesis (`notes/etcd-dist-f7.md`, "Handoff W-3").
+- **Evidence.** The in-process contract it mirrors, `client.client_txn_on` (`Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean`),
+  has no plainness premise: its write arm (`client.txnUpdAtOn`, `KVServiceOn.lean`) takes
+  `txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)`, `txnNoZeroEnd t` and `txnNestOk t`, with nested
+  transactions (`notes/txn-nested.md`); the in-process T4 (`then_commit_nested_refused`) is proved through it. etcd's
+  server checks a nested transaction's operations (`checkTxnReqsPermission`), and `writeCheckedD`/`irrTxn` already
+  cover nested operations.
+- **Proposed change.** Drop `TxnModel.plain b.model` from the shared pure premise (a read-only transaction is flat
+  anyway, `txnReadonly_plain`) and add `txnNestOk (txnWireOf b.model)` to the write arm: the write arm's condition
+  becomes `client.txnUpdAtOn`'s. Everything else unchanged. Callers that passed `TxnModel.plain` get `txnNestOk`
+  from `txnNestOk_of_plain`.
+- **Decision.** Pending review: reviewed SOUND (`notes/axiom-review/f7-txn-nested-review.md`, Go tests in
+  `notes/axiom-review/f7-txn-nested-gotest/`, 22 cases on 3 members); the lead's approval open.
+## 2026-11-26: grpc's health specs take their package's `isPkgInit` (grpc-health)
+
+- **Spec.** `health.Server.SetServingStatus.spec` (`Spec/google_golang_org/grpc/health/`) and
+  `grpc_health_v1.RegisterHealthServer.spec` (`Spec/google_golang_org/grpc/health/grpc_health_v1/`),
+  until today the axioms of their `wp_proof`s (`health.NewServer.spec` is unchanged).
+- **Defect.** Neither premised its package's `isPkgInit`, which the proofs over the real code need:
+  `SetServingStatus` takes the server's lock (Perennial's `RWMutex.wp_Lock_guard` takes `sync`'s), and
+  `RegisterHealthServer` reads `Health_ServiceDesc`, which the package's fact (`healthDescs`) describes.
+- **Evidence.** The proofs (`Proof/google_golang_org/grpc/health/`); `health/server.go`,
+  `health/grpc_health_v1/health_grpc.pb.go` (grpc v1.84, `models/grpc`).
+- **Proposed change.** Premise `isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health`
+  (`SetServingStatus`) and `pkg_id.google_golang_org.grpc.health.grpc_health_v1`
+  (`RegisterHealthServer`). The posts are unchanged. Every caller discharges it with `iPkgInit` from
+  `v3rpc`'s `isPkgInit`: `v3rpc.Server` and `v3rpc.healthNotifier.startServe`. No top-level statement
+  changes.
+- **Decision.** Within the approved class (a premise every caller discharges; the user, 2026-11-21).
+- **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction. Fixed 2026-11-26 by nonleaf-status-errs (next entry).
+## 2026-11-26: `proto.MarshalIRR.spec`'s error arm made true (nonleaf-status-errs)
+
+- **Spec.** `applyErrIs` (`Proof/.../etcdserver/apply/Base.lean`), and with it the error arm of `proto.MarshalIRR.spec`;
+  `errKeyOk`.
+- **Defect.** The entry above: Go's invalid-UTF-8 errors are neither leaves (`srvErrOk`) nor, for
+  `errInvalidUTF8{}`, keys (`errKeyOk`).
+- **Evidence.** `notes/axiom-review/nonleaf-status-errs.md` (protobuf-go v1.36.12 file:line; etcd `util.go:98-108`).
+- **Change.** `applyErrIs`'s third conjunct `srvErrOk` → `srvErrOk ∨ notCtxTree` (no context error, the shape of
+  `leasehttp.notLeaseNotFound`, shared as `errors.noMatchTree`): `togRPCError` passes on only context errors, so a
+  `notCtxTree` error never reaches grpc's server as it is. `errInvalidUTF8` translated as its struct
+  (`impl.toml`), and `errKeyOk` gains `errInvalidUTF8{}`. Posts that give `applyErrIs` weaken; the axioms whose
+  preconditions hold contracts posting it are checked against Go one by one in the review note. `statusErrOk`,
+  `srvErrOk` and their receivers are unchanged; no UTF-8 premise.
+- **Decision.** Design (2) approved by the dsverify-net lead and coordinator-E (2026-11-26, in place of widening
+  `statusErrOk`); independent axiom review pending before landing.
+## 2026-11-26: the stream stubs' `NewStream` error arm without `streamErr`; `NewStream` interceptor-generic (phase7-s3-interceptor)
+
+- **Spec.** `watchClient.Watch.spec`, `leaseClient.LeaseKeepAlive.spec` (`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`)
+  and the two that pass the lease stub's error on, `retryLeaseClient.LeaseKeepAlive.spec`, `lessor.resetRecv.spec`
+  (`Spec/go_etcd_io/etcd/client/v3/`): the `nil`-stream arm's `cliStreamErr err`. And the trust-boundary
+  `grpc.ClientConn.NewStream.spec` with the axiomatized `streamIcMdIs`/`streamMdOk` (`InvDial.lean`).
+- **Defect.** (1) `cliStreamErr` holds `streamErr err` (an error tree for every `errors.Is` target). etcd's stream
+  interceptor (`retry_interceptor.go:117-157`) returns two errors of its own: `getToken`'s (its post `clientErrOk`:
+  `clientErr`, `statusErrOk`, `errCellOk`; so are `authClient.Authenticate`'s and `etcdInterceptorOk`'s) and
+  `status.Errorf(codes.Unimplemented, …)` (`max > 0` on a client stream; reachable: a call's `withMax(n)`). A
+  `*status.Error` has an `Is` method, whose spec `statusErrOk`'s `grpcErrMethodsOk` gives only at a target with a
+  `descIs`, so no fact gives `streamErr` of either at every target: the axiom asserted it, and no proof of the
+  interceptor can supply it. (2) `withVersion`'s axiom gives the API version as `∃ v`, so an interceptor over a
+  streamer that states the stream specification only at the actual attempt's metadata cannot give the stubs' post
+  (the specification at every metadata `clientAttemptMd` admits, every `v`).
+- **Evidence.** The only consumers of the arm: `watchGRPCStream__openWatchClient.lean:160` (keeps `statusErrOk`,
+  uses `cliStreamErr_closeErrOk`: `errCellOk`, `statusErrOk`) and `lessor__resetRecv.lean:174` →
+  `lessor__recvKeepAliveLoop.lean:738` (`⟨%Hne, #Hse, -⟩`): neither reads `streamErr`. For (2): the registration
+  (`grpcStreamSvcAt`, `InvGrpcWire.lean:505`) holds `□ ∀ md γ, spec₀ md γ (dn₀ md γ)`, and the stream's content is
+  the table's `dn₀ md γ`, so the specification holds at every metadata.
+- **Change.** (1) The arm becomes `cliOpenErr err` (`InvGrpcStreamer.lean`: `cliStreamErr` without `streamErr`; the
+  stream's own operations keep `cliStreamErr`). (2) `NewStream`'s axiom restated interceptor-generic (WP form, as
+  `Invoke`'s and SpecPlan's): the connection's stream interceptor over grpc's streamer, whose contract
+  `grpcStreamerOk` (trusted text) is the old post at no interceptor with the stream specification at every address
+  and metadata; `streamIcMdIs` (axiom) and `streamMdOk` deleted; the old form at no interceptor is the theorem
+  `NewStreamNoIc_of`, at etcd's interceptor `etcdNewStream_of` (over the proved `Client.streamClientInterceptor`).
+  `filterCallOptions.spec` generalized (a retry option's closure meets any persistent `A`; `callOptsOk` is `A :=
+  retryApplyOk`). No top-level statement changes.
+- **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
+  independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).

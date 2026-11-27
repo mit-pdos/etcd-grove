@@ -11,7 +11,7 @@ loop, over the members in order: after `j` members, the bridges' slice holds the
 bridge addresses' slice their addresses; each of them is served (`etcdstart.Serve`, with the thread
 token of the `holdToken` goroutine forked before it, which the member's `memberUp` takes: etcd's KV
 calls registered at its client address, the address refusal-free) behind its bridge
-(`cluster3.StartBridge`: the bridge's address forwards to the member's), so that the clients reach it
+(`cluster3.StartBridge`: the bridge's address serves what the member serves at its table), so that the clients reach it
 as `client.SrvAt` at the bridge's address; the members still to serve keep their `memberUp` (the
 token lent out) and their client and bridge addresses' listen rights. Then the second loop: `k`
 clients of every bridge (`etcdstart.NewClients`).
@@ -107,24 +107,6 @@ theorem memberPres_of (N : Nat) (tok : GoString) (ms0 : List GMember) (ps : List
         iapply Hnet
       iapply (ih gs (gs.map (·.id)) rfl (by simpa using hlen)) $$ Hbp Hnet Hb Hf
 
-/-- **etcd's KV calls at a bridge's address** (D27): a member's registrations at its client address
-`c`, forwarded to the bridge's address `b` (`cluster3.isGrpcRpc_forwards`). -/
-theorem kvRegs_forwards (b c : GoString) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
-    cluster3.forwards (GF := GF) b c ∗ client.kvRegsAt (⟨c, E, γr, cid, mid⟩ : client.SrvAt GF) ⊢
-      client.kvRegsAt (⟨b, E, γr, cid, mid⟩ : client.SrvAt GF) := by
-  iintro ⟨#Hfw, #Hr⟩
-  unfold client.kvRegsAt
-  icases Hr with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
-  isplitr
-  · iapply cluster3.isGrpcRpc_forwards $$ [Hfw HPut]; iframe #
-  isplitr
-  · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw HRange]; iframe #
-  isplitr
-  · iapply cluster3.isGrpcRpc_forwards $$ [Hfw HDel]; iframe #
-  isplitr
-  · iapply cluster3.isGrpcRpc_forwards $$ [Hfw HTxn]; iframe #
-  iapply cluster3.isGrpcRpc_forwards $$ [Hfw HCmp]; iframe #
-
 end lemmas
 
 section proof
@@ -145,12 +127,19 @@ theorem startCluster.wp_proof
     (wp_holdToken : holdToken.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law)
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
-      ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
+      ps.length ≤ 1000 → rafthttp.bootCfg dir ps)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS k N ids ps ctxs boot lg hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨#Hlgz, Hss, Hbfree, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #Hmarsh, #Hcom⟩
+  icases Hprem with #Hbps
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- the pure facts of the members and their ids (putgetN's)
   obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbf.lowNodup Hbf.lowNz
   have Hpsnd : ps.Nodup := by
@@ -205,6 +194,9 @@ theorem startCluster.wp_proof
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
   have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
     fun x hx => members_names_len k _ (List.of_mem_zip hx).1
+  -- (fmt stage 1, 2026-11-24) the members' addresses within etcd's URL bounds
+  have haf : ∀ x ∈ (members k).zip gs, etcdstart.addrFits x.1.Peer' ∧ etcdstart.addrFits x.1.Client' :=
+    fun x hx => etcdstart.membersOf_addrFits _ _ _ _ x.1 (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -239,7 +231,7 @@ theorem startCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (members k) ids) Φs γn .none false Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
+      hγn2 Hdok Hbc hnd hutf hnlen haf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %ss, Hss, Hups⟩)⟩
@@ -357,8 +349,9 @@ theorem startCluster.wp_proof
     ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
     · rw [HElg]; iexact Hlgz
     wp_apply (wp_Serve sj xj.1.Client' E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg
-        (fun cid mid R => iprop(etcdstart.etcdKVAt xj.1.Client' E { xj.2.ρ with wait := γw } xj.2.ρ.rd
-          cid mid ∗ ⌜noRefusalAt xj.1.Client'⌝ ∗ ⌜Nonempty (client.WEnv GF)⌝)))
+        (fun cid mid R => iprop(etcdstart.tableAt xj.1.Client' (fun a =>
+          etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid) ∗
+          ⌜noRefusalAt xj.1.Client'⌝ ∗ ⌜Nonempty (client.WEnv GF)⌝)))
       $$ [Hcj Hlg3 Hbemu Hgo Hstk] as %serr Hsv
     · iframe; iframe #
       isplitr
@@ -369,7 +362,7 @@ theorem startCluster.wp_proof
       ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs'
         lis xj.1.Client' cid mid R HEo $$ [Hg]
       · iframe; iframe #
-      imod (etcdstart.kv_served sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs' lis xj.1.Client' cid mid R
+      imod (etcdstart.kv_served_tbl sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs' lis xj.1.Client' cid mid R
         Hrb48 Hrf rfl HLv) $$ [Hg Hstk] with ⟨Htk, #Hkv⟩
       · iframe; iframe #
       imodintro
@@ -378,7 +371,7 @@ theorem startCluster.wp_proof
       ipureintro
       exact ⟨Hnr, ⟨EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E xj.2.ρ.rd false) xj.2.ρ.rd
         xj.1.Client' [] null null [] null default⟩⟩
-    icases Hsv with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, %Hnr, %HVne⟩)
+    icases Hsv with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Htbl, %Hnr, %HVne⟩)
     · cases serr with
       | nil => exact absurd rfl Hserr
       | ok ei => ?_
@@ -399,9 +392,11 @@ theorem startCluster.wp_proof
     icases Hbfree with ⟨Hbj, Hbfree⟩
     simp only [Hbm, _root_.and_self, ↓reduceIte]
     (try wp_auto)
-    wp_apply (wp_StartBridge (bridgeAt j) xj.1.Client') $$ [Hbj] as %br %berr Hbr
-    · iframe
-    icases Hbr with (⟨%Hberr, Hob, #Hfw⟩ | %Hberr)
+    wp_apply (wp_StartBridge (bridgeAt j) xj.1.Client' (fun a =>
+        etcdstart.etcdKVAt a E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid)) $$ [Hbj]
+      as %br %berr Hbr
+    · iframe; iframe #
+    icases Hbr with (⟨%Hberr, Hob, #Hkv, %Hfw⟩ | %Hberr)
     rotate_left
     · cases berr with
       | nil => exact absurd rfl Hberr
@@ -434,12 +429,10 @@ theorem startCluster.wp_proof
     (try wp_auto)
     -- the member as the clients reach it: at its bridge's address
     ihave #Hrg : client.kvRegsAt (⟨bridgeAt j, E, xj.2.ρ.rd, cid, mid⟩ : client.SrvAt GF) $$ []
-    · iapply kvRegs_forwards
-      iframe #
-      iapply etcdstart.etcdKVAt_regs xj.1.Client' E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid rfl
+    · iapply etcdstart.etcdKVAt_regs (bridgeAt j) E { xj.2.ρ with wait := γw } xj.2.ρ.rd cid mid rfl
       iexact Hkv
     ihave %Hnrb : ⌜noRefusalAt (bridgeAt j)⌝ $$ []
-    · iunfold cluster3.forwards at Hfw; icases Hfw with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr
+    · ipureintro; exact Hfw Hnr
     ihave Hobs : [∗list] br' ∈ bs ++ [br], ∃ addr : GoString, bridge.ownBridge br' addr false
       $$ [Hobs Hob]
     · iapply BigSepL.bigSepL_snoc.2
@@ -511,11 +504,12 @@ theorem startCluster.wp_proof
     wp_apply (wp_slice_make2 (V := Loc) (W64 k)) as %clsl ⟨Hclsl, -⟩
     · ipureintro; word
     (try wp_auto)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok1⟩
     ihave HJ : (∃ (j' : w64) (cs : List Loc),
-        "j" ∷ j_ptr ↦ j' ∗
+        "j" ∷ j_ptr ↦ j' ∗ "Hlt" ∷ levelTok 0 ∗
         "Hclsl" ∷ clsl ↦* (cs ++ List.replicate (k - cs.length) (zero_val Loc)) ∗
         "Hnc" ∷ ([∗list] cl ∈ cs, ∃ V : client.WEnv GF, isNewClient cl (bridges k) V) ∗
-        "%Hj'" ∷ ⌜uint.nat j' ≤ k ∧ cs.length = uint.nat j'⌝ : IProp GF) $$ [j Hclsl]
+        "%Hj'" ∷ ⌜uint.nat j' ≤ k ∧ cs.length = uint.nat j'⌝ : IProp GF) $$ [j Hclsl Hlt]
     · iexists W64 0, []
       iframe
       isplitl
@@ -527,7 +521,7 @@ theorem startCluster.wp_proof
     wp_for HJ
     wp_if_destruct
     · have hj : uint.nat j' < k := by rw [← hkn]; word
-      wp_apply (wp_NewClients basl (bridges k) lg (Classical.choice hVne) Htb31 Hpl) as %cl %cerr Hcl
+      wp_apply (wp_NewClients basl (bridges k) lg (Classical.choice hVne) (by omega) Hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
       · iframe; iframe #
       icases Hcl with (⟨%Hcerr, #Hnc1, -⟩ | %Hcfail)
       rotate_left
@@ -575,6 +569,8 @@ theorem startCluster.wp_proof
       have hck : cs.length = k := by rw [Hj'.2, hjk']
       ihave Hclsl : clsl ↦* cs $$ [Hclsl]
       · iExactEq Hclsl; rw [hck, Nat.sub_self, List.replicate_zero, List.append_nil]
+      ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok1]
+      · iframe
       iapply HΦ
       iright
       iframe

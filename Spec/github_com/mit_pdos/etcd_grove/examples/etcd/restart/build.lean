@@ -48,6 +48,8 @@ abbrev build.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   rafthttp.bootCfg dir ps →
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  etcdstart.addrFits peerAddr → etcdstart.addrFits client →
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
   -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
   -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
@@ -56,7 +58,7 @@ abbrev build.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       zapLoggerOk lg ∗ threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      etcdstart.bootPremise N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
+      etcdstart.bootPremise N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗ etcdstart.memberBoot γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
       etcdstart.memberFreshRes name {} γn }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.build))
@@ -79,13 +81,15 @@ abbrev build.specRestart : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   rafthttp.bootCfg dir ps →
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  etcdstart.addrFits peerAddr → etcdstart.addrFits client →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       zapLoggerOk lg ∗ threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
+      etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗ etcdstart.memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      etcdstart.memberRestartFacts γ ρ id ∗ envVerifyOff }}
+      etcdstart.memberRestartFacts γ ρ id ∗ ⌜EtcdVerifyOff⌝ }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.build))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);

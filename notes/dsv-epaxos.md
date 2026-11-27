@@ -109,6 +109,81 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 `GOROOT=DIR GOTOOLCHAIN=local PATH=DIR/bin:$PATH go test -tags netmodel ./examples/...`. Both pass
 (2026-11-23).
 
+## Non-vacuity
+
+`RpcHttpAddr` is no premise of `epaxos_remote_robust`: the statement instantiates it with `netRpcHttpAddr`
+(`Interface/RpcHttpAddrNet.lean`, a defs module), Net's proved `rpcAddrP`/`rpcLisP` and their laws, with `httpW W` the
+world `W` with HTTP's handshake (`connectReq defaultRPCPath`/`connectAns`) at every address, as
+dsv-gryff's `netRpcHttpAddr`. Its `#print axioms`: Lean's three. The proofs stay generic in
+`[RpcHttpAddr GF]`. The other premises (`RpcHttpHyp`, the boot and initializer hypotheses) have
+no instance here.
+
+## net/rpc over HTTP from Net (2026-11-25, dsv-fix2b; supersedes "Hypotheses" below)
+
+`epaxos_remote_robust` has no net/rpc or net/http premise and no `RpcBoot`: `RpcHttpHyp`
+(`Interface/RpcHttpHyps.lean`) bundles Net's specs (`DialHTTP.spec`, `HandleHTTP.spec`,
+`Register.spec_fresh`, `http.Serve.spec_rpc`), given by `Link.lean`'s `netRpcHttpHyp`; the six server
+commands' first-run boots are proved (kitgen `boot=`, `etc/dsv/epaxos.py`: `BootTable.lean`,
+`BootCmdsLinked.lean`; `BootLinked.lean`'s `boot_master` and `boot_epaxosnet`, through
+`RpcBoot.lean`'s `wp_rpc_first` over Net's `net.rpc.wp_init_first_http`: `master`'s initializer runs
+net/rpc's, the machine's first run of net/rpc and net/http). The master and the replicas register on
+`DefaultServer`'s owned, empty registry (`defaultSrvFresh`, `Register.spec_fresh`) and run `http.Serve`
+with the main thread's token (`robust_of_distProtoLisRBTT`, `wp_bootRT`). The thread bound is `2^30`
+(net/http's first initialization; Upamanyu approved `2^31 → 2^30` on #8, 2026-11-25). `#print axioms`:
+Net's interim `net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'` and the
+interim context axioms `context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`, besides
+Lean's three (`Handle` and `Serve` on an rpc listener proved by S5, lean `676aede0a1`; `Serve` takes
+net/http's server variables `httpSrvEnv`, which `dialEnv` now holds).
+
+## Step bound 2^63 (2026-11-24, dsv-steps63)
+
+Perennial's pin 580868e54 (lean 5f5f28beeb, perennial#690) has `goose_dist_adequacy_below`
+(`Perennial/GooseLang/DistAdequacy.lean`): its executions are `DistCrashNstepsBelow [] T n`, the
+thread bound `T` along the execution at hand (exactly what `Robust`'s `threads` gives), where
+`goose_dist_adequacy` wanted `DistThreadsBelow T n`, the bound over every execution of `n` steps,
+which the bridges could only get as `T = n + 2` (`DistThreadsBelow.of_single`). Each machine's
+obligation still gets `threadBound GF = T` (`nodeWpBody`), and the receipt bound `N` is
+independent of `T`.
+
+**The bound.** Net's net/rpc server needs `threadBound GF ≤ 2^31` (its `sync.WaitGroup` counter is
+an `int32`), so `T`, and so `Robust`'s `threads`, can be at most `2^31`: every machine has fewer
+than `2^31` (at most `2^31 - 1`) live threads along the run, the int32 counter's range. The step
+bound is then only the receipts': remote's clock needs `receiptBound ≤ 2^63`, so `2^63` steps.
+`threads` can no longer be universally quantified (an arbitrary `threads` gives no
+`threadBound ≤ 2^31`), so the statements fix it at `2^31`:
+`DistDeploy … → Robust [] (system σ) g (2 ^ 31) (2 ^ 63)` (no `threads` binder). This is stronger
+than the old `∀ threads, Robust … threads (2 ^ 31 - 1)`: an execution of fewer than `2^31 - 1` steps
+from fresh machines has at most `2^31 - 1` threads per machine, so it is covered by the new one.
+
+**Kits changed (landed):**
+- epaxos: `examples/epaxosnet/Bridge.lean`: `robust_of_distBootLisRB(T)` use
+  `goose_dist_adequacy_below` (T = `threads`); the `T` variants' obligation is
+  `DistBootWpGT threads` (was `bound + 1`); `robust_of_distBootLisRB`/`robust_of_distProtoLisRB`
+  (quepaxa's) keep their signatures. `epaxos_remote_robust.spec`: `Robust … (2 ^ 31) (2 ^ 63)`.
+- swiftpaxos: `examples/swiftnet/Bridge.lean`'s `robust_of_distBootLisRBT_sha` the same;
+  `swiftpaxos_remote_robust.spec`: `Robust … (2 ^ 31) (2 ^ 63)`. kitgen does not generate
+  swiftpaxos's statement (its `KITGEN` has no `statement`; only the boot tables), so nothing to
+  regenerate; `kitgen --check` passes.
+- quepaxa, paxos, rabia: unchanged (already `2 ^ 63` with any `threads`; quepaxa uses
+  `robust_of_distProtoLisRB`, whose signature is unchanged).
+
+**Checked** (fk-lean1, ccfbb8c201, with a scratch module dropped after): `lake build` green (4980
+jobs) of the six closed theorems' modules (epaxos, swiftpaxos, quepaxa, paxos, rabia, Net's remote
+counter); `#print axioms` of each: `propext`, `Classical.choice`, `Quot.sound`. tier-check
+--check, gen-init --check, goose --check, kitgen --check, copy-part --check pass; `proof_roots`'
+namespace `Perennial.EtcdGrove.`; dups: the four lean has (doc-comment false positives).
+
+**Unlanded kits (not edited here):** gryff (`dsv-gryff`) and craq (`dsv-craq`) call
+`epaxosnet.robust_of_distProtoLisRBT … g threads (2 ^ 31 - 1)`. After they merge lean with this
+change, that call no longer proves their goal (the obligation's `threadBound ≤ threads` gives no
+`threadBound ≤ 2^31` for an arbitrary `threads`). Each must: in its `Spec/…/TopLevelRobustness.lean`
+drop `(threads : Nat)` from the final `∀` and state `Robustness.Robust [] (system σ) g (2 ^ 31)
+(2 ^ 63)`, and update the header's step-bound paragraph; in the proof drop `threads` from the
+`intro` and call `robust_of_distProtoLisRBT … g (2 ^ 31) (2 ^ 63) …`. The machine obligations'
+`omega`s (`threadBound ≤ 2 ^ 31`, `receiptBound ≤ 2 ^ 63`/`2 ^ 64`) then follow from `hT :
+threadBound ≤ 2 ^ 31` and `hrb : receiptBound ≤ 2 ^ 63` as before. Report the statement diff
+(kaashoek approves).
+
 ## Proof port: progress
 
 1. **Initializers: done** (`01ac72f60b`, `c7617216ca`). Notes: `gen-init`'s closure stopped at a
@@ -544,7 +619,8 @@ files; the 34 old `defs->proof` ones (`replica/*`, `wire/*`) remain (restructure
 empty baseline (`tcb-report --check` not run: it needs a full build).
 
 **Findings / open points (for the report and the next agent):**
-1. **Step bound `2^31 - 1`, not `2^63`**: Net's net/rpc server (`ServeCodec`/`ServeConn`/`Accept`,
+1. **(Resolved 2026-11-24, dsv-steps63: 2^63 steps, 2^31 threads; "Step bound 2^63" below.)**
+   **Step bound `2^31 - 1`, not `2^63`**: Net's net/rpc server (`ServeCodec`/`ServeConn`/`Accept`,
    hence `HandleHTTP_spec`/`Serve_spec`) needs `threadBound GF ≤ 2^31`, and the bridge's thread
    bound is the step count + 2 (`Bridge.lean`'s `robust_of_distProtoLisRBT` keeps that fact).
    Getting `2^63` back needs a dist adequacy whose thread bound is the run's `threads`: one that
@@ -758,3 +834,14 @@ TCB baseline `etc/tcb-collections/dsv-epaxos.txt` (still the roots and an empty 
 Edit loop: `export PATH=$HOME/.elan/bin:$PATH` (lake is not on the default PATH here), then
 `etc/lean-check.py -a -q FILE`; `etc/gen-init.py --check` needs
 `PERENNIAL_DIR=/shared/perennial-7b2259a12` (the worktree has no `.lake/packages`).
+
+## dsv-fix2 (2026-11-25): net/rpc's and net/http's package facts from `Net/`
+
+The kit's net/rpc and net/http are `Net/`'s packages for their initializations too: their facts
+(`Net/Proof/net/{rpc,http}/PkgInit.lean`) and `wp_initialize'` (`Net/`'s interim axioms, by
+`etc/gen-init.py`'s `NET_AXIOM_INITS`), so the statement's `net.rpc.InitHyp`/`net.http.InitHyp`
+premises are gone (`Dsverify/Proof/net/{rpc,http}/Init.lean` deleted). The other net/rpc premises
+stay: the command's initializer runs net/rpc's before anything runs net/http's, so net/http's first
+run is inside net/rpc's, which `Net/`'s first-run axioms do not cover (notes/dsv-gryff.md,
+"dsv-fix2"). Next: net/rpc's first run proved from its translated initializer (dsv-fix2b), then the
+kit's net/rpc premises discharged from `Net/`'s specs.

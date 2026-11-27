@@ -1,7 +1,8 @@
 /-
 The proof of `Server.readRequestHeader` (`Net/Spec/net/rpc/Server__readRequestHeader.lean`): a
 free `*Request` (`getRequest`), the codec's `ReadRequestHeader` through the reader's `recvTokL`
-(`rd_acc_srv`). A failure (or an earlier one, `rerr`): `keepReading` stays `false` (the
+and the end's `rdlTok` (`rd_acc_dead`), or, once the end's reading is dead, its `readDead`
+(`rd_acc_after`: nothing is read). A failure: `keepReading` stays `false` (the
 comparisons with `io.EOF` and `io.ErrUnexpectedEOF` compare pointers; a new `errors.New` error
 otherwise). A header: the request it is, taken (`req_hdr`: three later credits, the protocol
 fact's and `req_hdr`'s two), its deposit and `srvServes`'s registration of its service; the loop
@@ -47,7 +48,7 @@ local macro "rrh_new" : tactic =>
     inext
     iintro %msg %-
     (try wp_auto)
-    wp_apply wp_errors_New' as %x #HN
+    wp_apply wp_errors_New' as %x ⟨-, #HN⟩
     rrh_fin))
 
 set_option hygiene false in
@@ -87,7 +88,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions] [errors.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -109,6 +110,7 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
   icases HefV' with ⟨%xf, #Hef, -⟩
   iunfold srvCodecAt at Hsc
   icases Hsc with ⟨#Hrwc, #Hconn⟩
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hconn
   ihave #HEOF := io.eof_of_init $$ Hio
   iunfold errors.newVar at HEOF
   icases HEOF with ⟨%x0, #Hx0, -⟩
@@ -123,26 +125,26 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
   wp_auto
   wp_apply wp_getRequest s γs $$ Hsrv as %req Hreq
   iunfold rdrOwn at Hrd
-  icases Hrd with ⟨%r0, Hrerr, Hst⟩
-  icases Hst with (⟨%Hr0, %ps, %k, Hrs, %Hps⟩ | ⟨%Hr0, #Hre, %R, Hrecv⟩)
+  icases Hrd with (⟨Hrdl, %ps, %k, Hrs, %Hps⟩ | ⟨%R, Hrecv, #Hdead⟩)
   · -- no read failed yet
-    subst Hr0
     iunfold readerSt at Hrs
     icases Hrs with ⟨Hrecv, %Hb, Hrole⟩
-    ihave HrL : recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-        (framesOf ps ++ []) $$ [Hrecv]
-    · rw [List.append_nil]; iapply recvTok_L $$ Hrecv
-    ihave #Hacc := rd_acc_srv W a cn (framesOf ps)
-    wp_apply wp_ReadRequestHeader sc t cn true a la ra req _ interface.nil
-        (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-          (reqProto (Gg := hG.goose_globalGS) W a) (framesOf ps ++ got))
-        _ _ ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hreq $HrL $Hrerr $Hacc]
-      as %err (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
-    · exact absurd rfl Hc
-    icases Hres with (⟨%seq, %sm, ⟨%Hnil, %Hgot, %Hlen⟩, Hr, Hrerr⟩ |
-      ⟨%Hne, Hr, #HE, %r1, Hrerr, %Hr1⟩)
+    ihave HrL : (recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
+        (W.hs a ++ framesOf ps ++ []) ∗ rdlTok (Gg := hG.goose_globalGS) cn true false : IProp GF)
+        $$ [Hrecv Hrdl]
+    · rw [List.append_nil]; iframe Hrdl; iapply recvTok_L $$ Hrecv
+    ihave #Hacc := rd_acc_dead W a cn (W.hs a ++ framesOf ps)
+    wp_apply wp_ReadRequestHeader sc t cn true a la ra req _
+        (fun got => iprop(recvTokL (Gg := hG.goose_globalGS) cn true
+          (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf ps ++ got) ∗
+          rdlTok (Gg := hG.goose_globalGS) cn true false))
+        (readDead (Gg := hG.goose_globalGS) cn true)
+        _ _ ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hreq $HrL $Hacc]
+      as %err ⟨%got, ⟨HP, Hrdl⟩, Hres⟩
+    icases Hres with (⟨%seq, %sm, ⟨%Hnil, %Hgot, %Hlen⟩, Hr⟩ | ⟨%Hne, Hr, HE⟩)
     rotate_left
-    · ihave #Hre := rdErr_read la ra _ _ ed _ true got err $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
+    · ihave #Hre := rdErr_readF la ra _ _ ed _ true got err (readDead (Gg := hG.goose_globalGS) cn true)
+        $$ [$HefV $Hef $Hio $Hsys $Heof $Hueof $HE]
       ihave #Hre' := Hre
       iunfold rdErr at Hre'
       icases Hre' with ⟨-, %Hp⟩
@@ -157,13 +159,14 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
     iapply fupd_wp
     imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
-    have hfr : framesOf ps ++ frameOf (reqHdr seq sm) = framesOf (ps ++ [reqHdr seq sm]) := by
-      rw [framesOf_append, framesOf_cons, framesOf_nil, List.append_nil]
+    have hfr : W.hs a ++ framesOf ps ++ frameOf (reqHdr seq sm) =
+        W.hs a ++ framesOf (ps ++ [reqHdr seq sm]) := by
+      rw [framesOf_append, framesOf_cons, framesOf_nil, List.append_nil, List.append_assoc]
     rw [hfr]
     icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrT with ⟨HrT, #Hpp⟩
     imod req_hdr W a cn ps k (reqHdr seq sm) Hps Hb (by omega) $$ [$Hlc2 $Hlc3 $Hpp $Hrole]
       with ⟨%γ, %L, %r, #Hrpc, #Hlb, ⟨%Hr, %Hh, %Hk, %Hrok⟩, Hctr, Hdep, Hans⟩
-    obtain ⟨hseq, hsm⟩ := reqHdr_inj (by rw [reqHdr_length] at hlen; omega) (by unfold reqOk at Hrok; omega) Hh
+    obtain ⟨hseq, hsm⟩ := reqHdr_inj (by rw [reqHdr_length] at hlen; omega) (by unfold reqOk maxFrameN at Hrok; omega) Hh
     subst hseq hsm
     imodintro
     iunfold reqDeposit at Hdep
@@ -174,15 +177,18 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     icases Hsv with ⟨#Hreg, #HerrOk⟩
     iunfold svcReg at Hreg
     icases Hreg with ⟨%sv, #Hel, #Hsvc⟩
+    ihave #HhsA := hsAns_of_read W a cn (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]))
+      (fun h => framesOf_snoc_ne ps (reqHdr (W64 k) r.sm) (List.eq_nil_of_length_eq_zero (by
+        have := h.length_le; simp only [List.length_append] at this; omega))) $$ Hpp
     ihave Hpend : ansPend W a cn k r.sm Φc $$ [Hans]
     · iunfold ansPend
       iexists γ, L, r
-      iframe Hrpc Hlb Hans Hpost
+      iframe Hrpc Hlb Hans Hpost HhsA
       ipureintro; exact ⟨Hr, rfl, Hk⟩
-    ihave Hmid : rdrMid W a cn k r $$ [HrT Hctr]
+    ihave Hmid : rdrMid W a cn k r $$ [HrT Hctr Hrdl]
     · iunfold rdrMid
       iexists γ, L, ps
-      iframe HrT Hrpc Hlb Hctr
+      iframe HrT Hrdl Hrpc Hlb Hctr
       ipureintro; exact ⟨Hr, Hps, Hb, Hrok⟩
     -- the loop's dot: request `k`'s last dot (the deposit's `splitSM`)
     obtain ⟨j, hj, hsvc, hm⟩ : ∃ j, lastDotIdx r.sm = some j ∧ r.sm.take j = svc ∧
@@ -211,8 +217,8 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     · -- no dot at all: the deposit's last dot excludes it
       exfalso
       exact Hiv3 j (by omega) hjl hjd
-    rw [decide_eq_true (by simpa using hi0)]
-    simp only [↓reduceIte]
+    rw [decide_eq_true (show sint.Z (W64 0) ≤ sint.Z iv by simpa using hi0)]
+    simp only [eq_self, _root_.decide_true, ↓reduceIte]
     wp_auto
     have hiv : sint.nat iv < r.sm.length := by
       have : sint.nat iv = (sint.Z iv).toNat := rfl
@@ -273,21 +279,23 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     rw [hiv1n, hlenn, List.take_of_length_le (by simp), hm]
     wp_auto
     ihave #Hs2 := Hsrv
-    iunfold isServer at Hs2
+    iunfold isServerAny at Hs2
+    icases Hs2 with ⟨%o, #Hs2⟩
+    iunfold isServerO at Hs2
     icases Hs2 with ⟨-, #Hmu, -, -⟩
     wp_apply wp_Lock _ _ $$ [$Hsync $Hmu] as ⟨Hown, Hinv⟩
-    iunfold svcMapInv at Hinv
-    icases Hinv with ⟨%smp, %M3, Hsm, HM3, Hγ⟩
+    iunfold svcMapInvO at Hinv
+    icases Hinv with ⟨%smp, %M3, Hsm, HM3, Hγ, Ho⟩
     wp_auto
     wp_apply (wp_map_lookup2 go.string (go.GoType.PointerType net.rpc.service.ty) smp M3 svc
       (DFrac.own 1)) $$ HM3 as HM3
     ihave %Hlk := ghost_map_lookup $$ Hγ Hel
     rw [show M3 !! svc = some sv from Hlk]
     simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
-    wp_apply wp_Unlock _ (svcMapInv γs s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ]
-    · iunfold svcMapInv
+    wp_apply wp_Unlock _ (svcMapInvO γs o s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ Ho]
+    · iunfold svcMapInvO
       iexists smp, _
-      iframe Hsm HM3 Hγ
+      iframe Hsm HM3 Hγ Ho
     iunfold svcIs at Hsvc
     icases Hsvc with ⟨%rcvr, %mp, %MT, #Hrcvr, #Hmeth, #Hmp, #HMT⟩
     wp_auto
@@ -301,13 +309,13 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     · -- not registered: an error, and the deposit spent on the error answers
       subst hnull
       wp_auto
-      wp_apply wp_errors_New' as %x #HN
+      wp_apply wp_errors_New' as %x ⟨-, #HN⟩
       iapply HΦ
       iright
       isplitr
       · ipureintro; rfl
       iexists k, r, Φc
-      iframe Hr Hrerr Hmid Hpend
+      iframe Hr Hmid Hpend
       iright
       isplitr
       · ipureintro; simp [interface.mkOk]
@@ -330,30 +338,39 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
       isplitr
       · ipureintro; rfl
       iexists k, r, Φc
-      iframe Hr Hrerr Hmid Hpend
+      iframe Hr Hmid Hpend
       ileft
       isplitr
       · ipureintro; rfl
       iexists S, m, rcvr
       iframe HS HerrOk Hrcvr Hmt
-  · -- a read failed: `rerr` holds its error
-    ihave HrL : recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-        (R ++ []) $$ [Hrecv]
-    · rw [List.append_nil]; iapply recvTok_L $$ Hrecv
-    ihave #Hacc := rd_acc_srv W a cn R
-    wp_apply wp_ReadRequestHeader sc t cn true a la ra req _ r0
-        (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-          (reqProto (Gg := hG.goose_globalGS) W a) (R ++ got))
-        _ _ ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hreq $HrL $Hrerr $Hacc]
-      as %err (⟨⟨-, %He⟩, -⟩ | ⟨%Hc, -⟩)
-    · subst He
-      ihave #Hre' := Hre
-      iunfold rdErr at Hre'
-      icases Hre' with ⟨-, %Hp⟩
-      obtain ⟨T, l, rfl⟩ := Hp
-      wp_auto
-      rrh_err
-    · exact absurd Hc Hr0
+  · -- the end's reading is dead: nothing is read, and the read fails
+    ihave HrL : (recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a) R ∗
+        ⌜([] : List w8) = []⌝ : IProp GF) $$ [Hrecv]
+    · isplitl [Hrecv]
+      · iapply recvTok_L $$ Hrecv
+      · ipureintro; rfl
+    ihave #Hacc := rd_acc_after W a cn R $$ Hdead
+    wp_apply wp_ReadRequestHeader sc t cn true a la ra req _
+        (fun got => iprop(recvTokL (Gg := hG.goose_globalGS) cn true
+          (reqProto (Gg := hG.goose_globalGS) W a) R ∗ ⌜got = []⌝))
+        (readDead (Gg := hG.goose_globalGS) cn true)
+        _ _ ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hreq $HrL $Hacc]
+      as %err ⟨%got, ⟨-, %Hg⟩, Hres⟩
+    icases Hres with (⟨%seq, %sm, ⟨-, %Hgot, -⟩, -⟩ | ⟨%Hne, -, HE⟩)
+    · exfalso
+      rw [Hg] at Hgot
+      have := congrArg List.length Hgot
+      simp [frameOf_length] at this
+      omega
+    ihave #Hre := rdErr_readF la ra _ _ ed _ true got err (readDead (Gg := hG.goose_globalGS) cn true)
+      $$ [$HefV $Hef $Hio $Hsys $Heof $Hueof $HE]
+    ihave #Hre' := Hre
+    iunfold rdErr at Hre'
+    icases Hre' with ⟨-, %Hp⟩
+    obtain ⟨T, l, rfl⟩ := Hp
+    wp_auto
+    rrh_err
 
 end proof
 

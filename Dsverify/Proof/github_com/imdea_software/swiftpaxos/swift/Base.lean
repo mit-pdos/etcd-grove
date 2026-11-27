@@ -24,7 +24,7 @@ public import Perennial.Proof.slices.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Init
@@ -35,9 +35,9 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Init
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Base
 public import Proof.encoding.json.Base
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.rpc.PkgInit
 public import Dsverify.Proof.os.signal.Init
-public import Dsverify.Proof.math.rand.Init
+public import Perennial.Proof.math.rand.Link
 public import Dsverify.Proof.github_com.google.uuid.Init
 
 @[expose] public section
@@ -76,9 +76,10 @@ end github_com.imdea_software.swiftpaxos
 namespace github_com.imdea_software.swiftpaxos.swift
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.swift :=

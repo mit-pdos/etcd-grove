@@ -1,0 +1,296 @@
+# dsv-kitgen: generating a dsverify kit's plumbing (`etc/dsv/kitgen.py`)
+
+Branch `dsv-kitgen` (off `lean`). The user moved kit generation from the dsverify-lab repository
+into etcd-grove; the lab's `harness/kitgen/kitgen.py` (and its frozen copy under `old/dsverify/`)
+targets the old harness (`driver.Run`, the rig) and is kept for history only. This generator
+targets etcd-grove's kits on `examples/lib/remote` (paxos, rabia, epaxos, quepaxa, swiftpaxos).
+
+## What a kit is made of, and what repeats
+
+A landed kit has, per machine (the driver, which runs `remote.Check` against the driver's model; `nC` client machines, the servers):
+- a Go command `examples/<kitpkg>/cmd/<n>/main.go` calling the kit package's `Orch()`,
+  `Client(c)` or `Server(id)`;
+- a Lean `wp_main` in `Mains.lean` (the command's `main` from the kit function's spec);
+- a binder `[<n>_sem : cmd.<n>.Assumptions]` in the statement, an entry of `system`, an import
+  of its `Base`, `PkgTable` and `Init`, a share in the top-level proof's `iexists`, a `match`
+  case booting it (`wp_boot` + its `wp_main`), and a step of the final big-separating split.
+
+The kit's own content is small by comparison: the addresses, the statement's premises, the
+start (the ghost allocation, `mapCtx_alloc`'s budget, the address protocols), each role's share
+and the arguments its `wp_main` gets. `kitgen.py` writes the repetition from that content.
+
+## Inputs: the `KITGEN` section of `etc/dsv/<kit>.py`
+
+The kit file (etc/dsv/README.md) gets one more optional name, `KITGEN` (a dict; the name `KIT` is
+taken: `goose.dsv_kits()` sets `m.KIT` to the kit's name; and `goose.dsv_kits()` skips
+`kitgen.py` itself, the one change to `etc/goose.py`). Every part is optional: a kit adopts
+the generator file by file. The values are Python, so a template is a format string over a
+machine's fields (`{n}` its command, `{id}` its Go id, `{i}` its index in `system`, `{k}` its
+index in its role, `{pkg}` the kit's Lean package), or a function of the machine for what varies
+by more than a substitution (paxos's servers 1..3 are acceptors, 4..5 learners).
+
+| key | meaning |
+|---|---|
+| `name`, `title` | the kit's name and the name its prose uses (`paxos`, `EPaxos`) |
+| `go_module_dir`, `go_pkg_dir`, `go_import`, `go_pkg` | the kit's Go module (`examples/dsverify/paxos`), its kit package directory in it, import path and package name |
+| `lean_pkg` | the kit package's Lean namespace (`github_com.xiang90.paxos.examples.paxosnet`) |
+| `roles` | the machines, in `system` order: per role its command name (`orch`, `client{id}`), ids, Go call (`Client({id})`), Go doc, and the Lean templates below |
+| `go_consts` | optional `kit_gen.go`: constants (name, type, value, doc) and address functions (`ClientAddrs()`: a scheme host + base port + count, or a list). Not used by the landed kits (their addresses are in `kit.go`, translated; moving them would change the translation) |
+| `codecs` | the codec generators to call: `('rpc'|'json'|'pb', toml, outdir, pkg, extra flags)`; `models/net/rpc/rpcgen.py`, `models/json/jsongen.py`, `models/protobuf/pbgen.py`, never re-implemented |
+| `statement` | the top-level statement: theorem name, doc, extra imports and opens, the premises (a class name gives `(∀ G L, letI := heapAt G L; <class> remoteGF) →`; a raw string is copied), the addresses (`DistDeploy`'s list), the step bound (`2 ^ 63`), and where `heapAt` is defined |
+| `defs` | `TopLevelDefs.lean`: doc, extra imports, `system`'s doc and layout, the addresses' definition |
+| `proof` | `TopLevelRobustness.lean` (the proof): doc, imports, opens, the boot lemma's variant (`plain`: paxos's `wp_boot`; `gostate`: rabia's, handing `main` the package state), the theorem's head and tail, the bridge (`robust_of_distProtoRB` ...), the start (a call of a hand-written `kit_start` lemma, or, for the retrofits, the kit's lines verbatim), and per role: its share, intro pattern, `wp_main` term, framed hypotheses, the final split's hypotheses and extra steps |
+| `mains` | `Mains.lean`: doc, imports, opens, the section's variables, per role its `wp_main` text |
+| `boot` | the first-run boot tables (`BootTable.lean`, `BootCmdsLinked.lean`), generalizing `_swiftpaxos_boot.py` and dsv-vr's `_vr_boot.py`: the table's source command, the owned packages, the resource `Q` the boot returns, the variables, opens and docs |
+| `proof_roots` | the kit's own Lean trees, `Dsverify/{Proof,Spec}/<root>/` (default: the kit package), which `--export-challenge` never exports but the statement's closure |
+| `prompt` | the opening prompt's sentences about the system (`system`: a phrase; `check`: what its driver checks, a relative clause), filled into `etc/dsv/challenge-prompt.txt` by `--export-challenge` as `DIR.lab/prompt.txt` |
+| (premise classes) | read from `statement.premises`: the scaffold's non-vacuity stubs and `--audit`'s list |
+
+K (the remote calls' budget units per client address, `mapCtx_alloc ... K`) and `readTries` are
+the kit's numbers (`budget = dict(K=..., read_tries=...)`); a generated `kit_start` call passes
+them, and the generated proof checks nothing about them (the kit lemma does).
+
+## Outputs
+
+Generated (header `-- Generated by etc/dsv/kitgen.py from etc/dsv/<kit>.py; do not edit.`, a Lean
+file's first line; `// Code generated by etc/dsv/kitgen.py from etc/dsv/<kit>.py; DO NOT EDIT.`, a Go
+file's LAST line: goose's translation records Go source positions (`/-- go: main.go:6:6 -/`), so a
+first line changed the translation of every retrofitted command (found by `goose.py --check`);
+committed, `--check`ed by the gates):
+- Go: `cmd/<n>/main.go` for every machine; `kit_gen.go` (constants, addresses) if `go_consts`;
+  the codecs, by calling their generators (`--check` passes `--check` through).
+- Lean, under `Dsverify/{Spec,Proof}/<lean_pkg path>/`:
+  - `Spec/.../TopLevelRobustness.lean`: the statement (`def <thm>.spec : Prop`);
+  - `TopLevelDefs.lean`: `boot`, `system`, the addresses, `heapAt`;
+  - `TopLevelRobustness.lean` (proof): imports, `wp_boot`, the theorem: intro, bridge, the
+    start, the shares, one `match` case per machine, the final split, `#print axioms`;
+  - `Mains.lean`: one `wp_main` per command;
+  - `BootTable.lean`, `BootCmdsLinked.lean` (kits whose boot is a first run, `boot`).
+
+Scaffolds (`--scaffold`: written once if absent, never overwritten or checked; they are the
+hand-written files' starting points): `Start.lean` with a `kit_start` stub whose conclusion is the
+shares the generated proof destructs, and `NonVacuityLinked.lean` with one `example`-style stub
+per premise class (`theorem <class>_inst : <premise> := by sorry`), to be filled with instances
+built from proved specs or the interim axioms (NON-VACUITY rule: a kit's statement is closed only
+when each premise class has a built instance in this test-only module, which the gates build).
+
+## What stays hand-written
+
+The kit's Go (`kit.go`: the model, codec, `Orch`/`Client`/`Server`), its proofs (`Kit.lean`,
+`KitProof.lean`, `Linked.lean`, the protocol's proofs, `kit_start`), the premise classes' content
+(`Init.lean`'s `InitHyp`, the `Hyps` classes), and the non-vacuity instances' proofs.
+
+## Trust
+
+The generator is untrusted. What it writes is committed, and the reader audits the committed
+files, not the generator: `Spec/.../TopLevelRobustness.lean` is a file read and reviewed like
+any other (its header says it is generated, and from what). The generated proofs are checked by
+Lean like any proof. `kitgen.py --check` (in `etc/gates.sh`, beside `gen-init --check`) keeps the
+files equal to the generator's output, so the configuration stays the source.
+
+`--audit [kit]` prints what a reader must check: the statement file, and each premise class it
+names, with the file, the line and the class's line count, and the totals.
+
+## Migration of the existing kits
+
+Each landed kit adopts `KITGEN` part by part, with no statement text changed (rule: a retrofit
+reports any difference instead of making it):
+1. paxos (this branch): the cmd mains, the statement, `TopLevelDefs`, the proof, `Mains`.
+2. swiftpaxos: its boot tables (`boot`), replacing `etc/dsv/_swiftpaxos_boot.py` (same output).
+3. rabia, quepaxa, epaxos: the same parts as paxos; their premises as `statement.premises`.
+4. dsv-vr (not landed): its `_vr_boot.py` becomes a `boot` section when it lands.
+New kits start from `KITGEN` with a `kit_start` lemma and `kit_gen.go`.
+
+## The challenge export (`--export-challenge DIR KIT`; user decisions, 2026-11-24)
+
+For the dsverify-lab harness's automatic-proving runs, whose containers cannot see etcd-grove. First
+version: an import-closure tree with a `Goal.lean` (commit 31c211dca1). Revised to the interface
+notes/dsv-skill.md (branch dsv-skill 1437eb7705, merged here) defines, copied below: the agent runs
+goose, gen-init, kitgen and tier-check in the challenge, so the challenge is the tracked tree with
+exclusions, not a closure. etc/dsv/README.md, "Exporting a proving challenge", lists what it holds.
+
+### The interface (notes/dsv-skill.md, "Interface with kitgen's export", copied)
+
+1. **Skill**: `--export-challenge KIT DIR` copies `.claude/skills/dsverify/` whole to
+   `DIR/.claude/skills/dsverify/`; `--no-skill` leaves it out (the control arm). Nothing else of
+   `.claude/` is copied.
+2. **CLAUDE.md**: the export fills `etc/dsv/challenge-CLAUDE.md`'s `{{...}}` fields and writes
+   `DIR/CLAUDE.md`, with the header comment removed, identical with and without the skill. It does not
+   copy etcd-grove's own `CLAUDE.md` or `notes/`.
+3. **Provenance**: `DIR/CHALLENGE.txt` with `source: <etcd-grove commit>` (refusing a dirty tree or
+   noting it), `kit: <kit>`, `skill: <tree hash of .claude/skills/dsverify at that commit, or none>`,
+   `claude-md: <hash of the filled CLAUDE.md>`; hashes only. Optionally `--skill-from REV`.
+4. **What not to export**: the kit's proofs, other kits' `Dsverify/` proofs and notes,
+   `old/dsverify/`, `issues/` and `nonissues/` entries of dsverify kits, `notes/dsv-*.md`, and the
+   `etc/tcb-collections/dsv-*.txt` baselines of other kits.
+5. **Offline**: the Go toolchain `etc/goose.py` pins, the kit's Go module cache (`examples/dsverify/<kit>`
+   and `models/`), the Lake packages built, and `prophcheck`'s module.
+6. **Checks**: `{{CHECKS}}` defaults: goose `--check --project dsv-<kit>`, `proph_patch`, gen-init
+   `--check`, kitgen `--check <kit>`, tier-check `--check`; the export keeps the ones its tree supports.
+7. **Non-vacuity**: the challenge ships the kit's `NonVacuityLinked.lean` as a fixed file; the
+   template names it.
+8. Left to the coordinator: `{{CODE_CHANGES}}`, and whether the statement ships with the generated
+   proof skeleton and `Start.lean` scaffold.
+
+### How kitgen implements it
+
+1. Done; `--skill-from REV` extracts `REV:.claude/skills/dsverify` (`git archive`), and CHALLENGE.txt
+   names that tree.
+2. Done. Fields: `TITLE` (KITGEN `title`, else the kit's name), `FIXED_FILES` = the statement,
+   `TopLevelDefs.lean`, each premise class's file (`--audit`'s lookup) and the non-vacuity module;
+   `CODE_CHANGES` from `--code-changes` (default `allowed`, the skill's default); `SOURCE` the commit.
+3. Done: dirty refused unless `--allow-dirty` (then `source: <commit> (dirty)`); `claude-md: sha256 ...`;
+   plus `omitted:` lines (kitgen's generated files the challenge leaves out; `kitgen --check` reads them).
+4. Done, plus: other kits' Lean is kept only where this kit's landed proof uses it or gen-init's
+   generated files import it (gen-init `--check` compares every kit's generated files); a module
+   importing a left-out one is left out (iterated; for paxos 29 modules, swiftpaxos's gob and
+   concurrent-map specs among them); `Dsverify/Scratch/`. "Other kits" are every kit file's
+   `KITGEN.proof_roots`, else its goose project's first owned directory.
+5. Written, not provided: `DIR.lab/OFFLINE.txt` lists the Lean toolchain, the Perennial pin (built),
+   goose's Go toolchain (`GO_TOOLCHAIN`, go1.27.3) and the gates' (go1.27.1), and every Go module of the
+   tree whose dependencies GOMODCACHE needs (prophcheck's among them). The lab's image provides them
+   (copying gigabytes of toolchains and builds into each export would not serve a reused image).
+6. Done: the checks are those five, `proph_patch` only when `etc/proph-patches/dsv-<kit>/` exists;
+   kitgen's with `--no-codecs` (codec generation runs `go` against module caches). All pass in paxos's
+   export (below).
+7. Done when the module exists (`allow` reason `non-vacuity (fixed)`); paxos has none (no premises),
+   so its CLAUDE.md says "none (the statement has no premises)".
+8. The goal's file ships as a stub (`theorem <thm> : <thm>.spec := by sorry`); the generated proof
+   skeleton and the `Start.lean` scaffold are not shipped (the skeleton imports the kit's `Linked`,
+   so it cannot build without the kit's proofs).
+
+The comparator's files and the manifests go to `DIR.lab/`, outside the agent's tree:
+`comparator/challenge.conf` (`theorem=Perennial.<pkg>.<thm>`, `solution=` the proof module,
+`layout=Dsverify`, `gomodule=`, `test=`, `perennial=`, and new `tree=etcd-grove <commit>`,
+`statement=<module>`) and `Challenge.lean` (the stub's text). **Gap (lab side, not changed here):**
+comparator-check.sh builds its challenge by regenerating Goose's output into `DsvLab` with a KitStd;
+an etcd-grove statement depends on the exported tree (Net, the main tree, the translations), so the
+lab needs a `tree=` mode in which the challenge workspace is a fresh copy of the exported tree.
+
+### The challenge's split (user decision, 2026-11-24; as in the lab)
+
+The challenge GIVES the driver and the theorem; the agent invents the logically atomic client spec
+and proves it. So `--export-challenge` ships:
+- the system's Go and the kit's Go glue (the commands' mains, the remote adapter);
+- `examples/lib/remote` and porcupine WITH their proofs, Net, the models, Perennial (shared);
+- the fixed `TopLevelRobustness` statement;
+- the generated deployment plumbing that only says what runs where: the addresses, `system`, `boot`,
+  the budgets and the `DistDeploy` wiring;
+- the kit's library-premise classes, fixed as in the landed kit for now.
+
+It STRIPS, as answers: the kit's client spec (the `svcOp`/`opMaybe` logatomic contract's
+instantiation: `Kit.lean` and the like); all of the kit's protocol, server and client specs and
+proofs; the start lemma's kit-specific ghost allocation; any kit-specific part of the top-level
+proof beyond generated plumbing (no kit-specific proof skeleton ships: the goal's file is a stub).
+
+How: each kit's KITGEN lists what a challenge gives of its Lean, `challenge_allow` (patterns; never
+inferred); the export stops if the statement's closure needs a kit module off the list, if the list
+names a proof module, or if gen-init's generated files of the kit are off it; the leak check refuses
+every other module of the kit's trees. For paxos the landed statement's closure held the kit's specs
+and the protocol's vocabulary (`Kit`, `Deploy`, `Inv`, `Agents`, `Net`, `Wire`) only because
+`TopLevelDefs` took the two address lists from `Deploy.lean` (`addrs`) and `Kit.lean`
+(`clientAddrs`); they moved, names, namespaces and bodies unchanged, into the generated
+`examples/paxosnet/Addrs.lean` (KITGEN `addrs_module`), which `Deploy.lean` imports (and `Kit.lean`
+through it), and `TopLevelDefs` imports only it. paxos's allow-list: the statement, `TopLevelDefs`,
+`Addrs`, the package facts (`Base` of `paxos`, `paxosnet`, each command) and gen-init's `Init`/
+`PkgTable`: 37 modules; the statement's closure is 101 modules (was 112). The challenge's fixed files
+(CLAUDE.md's "Do not edit") are every kit module of the statement's closure.
+
+Terminology (user): the machine running `remote.Check` is the DRIVER, its model the driver's model;
+landed identifiers (`cmd/orch`, `Orch.spec`) stay.
+
+### The leak check (`--leak-check DIR KIT`; run after every export)
+
+On the tree as written: (1) of the kit's Lean only the allow-list and the goal's stub; (2) of other
+kits' only the plan's; (3) no `notes/`, `old/dsverify/`, `.claude` but the skill, other kits'
+baselines; (4) every import of a module of this repository present (a failure for the kit's and
+other kits' modules, a warning elsewhere); (5) no `sorry` in the statement's closure but Goose's
+`sorry -- axiomatized type` instances (in the landed trust base; counted). Negative tests (first
+version, same checks): a planted `KitProof.lean` fails (1) and (4); a `sorry` added to
+`Net/Statement/DistDeploy.lean` fails (5).
+
+## Findings
+
+- **paxos's statement closure carried the kit's proof design** (`Kit`, `Inv`, `Agents`, `Net`, `Wire`
+  through `TopLevelDefs`'s imports of `Kit.lean` and `Deploy.lean`, for the two address lists).
+  Resolved by the generated `Addrs.lean` ("The challenge's split"); no statement text changed.
+  rabia, quepaxa, epaxos, swiftpaxos have no `challenge_allow` yet: exporting them stops with that
+  message until each gets its list (and, likely, the same address move).
+- **epaxos's codec cannot be regenerated as its module stands**: `rpcgen.py --check` on
+  `examples/dsverify/epaxos/examples/epaxosnet/rpc.toml` fails (`module models.lab provides package
+  models.lab/rpcdesc and is replaced but not required`): its `go.mod` lacks the `models.lab`
+  requirement swiftpaxos's has. So epaxos's KITGEN cannot list its codec yet; the gates have never
+  checked it (their codec loops list pbgen's and jsongen's inputs only).
+- The generic boot section reproduces dsv-vr's `_vr_boot.py` output byte for byte as well (tested in
+  a scratch root against `origin/dsv-vr` 7d6581b114's `BootTable.lean` and `BootCmdsLinked.lean`,
+  header aside); the VR section to adopt is in "Migration" below.
+
+## Progress
+
+- `etc/dsv/kitgen.py`: `--check`, `--audit`, `--scaffold`, `--list`, `--export-challenge`,
+  `--leak-check`; wired into `etc/gates.sh` (section `sec_goose`, after gen-init: the boot tables
+  read gen-init's PkgTables).
+- paxos retrofit: KITGEN in `etc/dsv/paxos.py`; the 10 commands' mains, the statement,
+  `TopLevelDefs`, the proof, `Mains` regenerated: **byte-identical but for the one header line each**
+  (14 files; `paxos_remote_robust.spec`'s text unchanged).
+- swiftpaxos: the boot tables from the generic `boot` section (same output as `_swiftpaxos_boot.py`
+  but the header line, which moved from the doc comment to the first line; the script retired), and
+  its net/rpc codec checked through `rpcgen.py --check`.
+- rabia retrofit: KITGEN in `etc/dsv/rabia.py` (built from the landed files by a one-off extraction
+  script, then checked by `kitgen --check`): the 12 commands' mains, the statement with its ten heap
+  premises and `heapAt`, `TopLevelDefs`, the proof (`boot='gostate'`, `rabia_remote_robust_of` as
+  `head`, the closing theorem as `tail`, the `haveI` lines derived from the premises), `Mains`:
+  **byte-identical but the header line** (16 files; `rabia_remote_robust.spec`'s text unchanged).
+  `--audit rabia`: 99 + 53 lines and the ten classes (234 lines in all).
+- Export (the interface and the split): paxos exported with and without the skill from one commit:
+  37 kit modules (the allow-list), 235 of other kits', 2543 tracked files left out (29 of them
+  because they import a left-out module), 2 generated files omitted (`Mains`, the proof); 23,753 Lean
+  modules; leak check ok (the statement's closure 101 modules, sorry-free but Goose's 174
+  axiomatized-type instances); the arms differ only in `.claude/skills/dsverify/` and CHALLENGE.txt's
+  `skill:` line, CLAUDE.md byte-identical; `--skill-from origin/dsv-skill` gives that revision's
+  tree. Negative test: a planted `Kit.lean` fails the leak check. In the export: `kitgen --check
+  --no-codecs paxos`, `tier-check --check` (227 known violations), `gen-init --check` (273 files) and
+  `goose --check --project dsv-paxos` pass.
+
+### Migration, next
+
+- rabia, quepaxa, epaxos: the paxos parts (statement premises as `statement.premises`: rabia's are all
+  heap premises; quepaxa's include raw ones; epaxos's `heapAt` is in `TopLevelDefs`, `defs.heap_at`
+  is not implemented yet), Mains and the proof's `have` lines (`proof.have`).
+- dsv-vr, when it lands: replace `_vr_boot.py` by this `boot` section (tested):
+  `table='server1'`, `owned=[vsrnet, pkg.replica, pkg.network, 'encoding.json']`,
+  `opens` its three lines, `variables` (generic `GF`), `q='encoding.json.codecFresh (GF := GF)'`,
+  `q_sep='\n    '`, `post` its two lines, `returns` its sentence, the two docs.
+
+### Builds and axioms
+
+- fk-lean1, head 489560bccf (paxos retrofit, before the address move): the five kits' statements
+  through a scratch module: each `*_remote_robust` depends on `propext`, `Classical.choice`,
+  `Quot.sound` only.
+- This host (the user's decision: kitgen work builds here), the final head's Lean (c1c8b0cbb4; the
+  scratch module dropped): `lake build` of the five `TopLevelRobustness` proofs, 4,783 jobs, rc 0;
+  `#print axioms` of paxos, rabia, swiftpaxos and epaxos (in their files) and of quepaxa (`lake env
+  lean` on a file outside the repo): Lean's three axioms each. `build-slot.sh` cannot start in this
+  session (`systemd-run` needs polkit rights it lacks, as `etc/gates.sh` notes), so the build took the
+  three slot locks with `flock` itself and ran with `LEAN_NUM_THREADS=16`, the artifact cache on,
+  `.lake/package-overrides.json` at `/shared/perennial-47ec64a9d` (built here).
+- The exported paxos challenge (with the skill, the split; exported from the docs commit after
+  f7559c131f, its Lean identical to the head's), built here in its own directory (one slot lock, the artifact
+  cache, the same Perennial): `lake build` of the goal's module
+  `Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.TopLevelRobustness`, 2,477 jobs, rc 0,
+  no error; the only `sorry` is the goal stub's (`declaration uses sorry` at its line 14). So the
+  statement and everything it needs elaborate without the kit's specs and proofs.
+- fk-lean1: my worktree `dsv-kitgen` and the branches `kitgen-export-*` removed there.
+
+## What remains
+
+- rabia, quepaxa, epaxos, swiftpaxos: `challenge_allow` (and likely each kit's address move, as
+  paxos's), then their exports; quepaxa and epaxos KITGEN retrofits (statement premises of raw form,
+  `heapAt` in `TopLevelDefs`: `defs.heap_at` not implemented).
+- epaxos's `go.mod` lacks the `models.lab` requirement, so its codec can't be checked by rpcgen.
+- The lab side (not touched): comparator-check.sh's `tree=` mode; sandbox.sh `--challenge DIR`.
+- The non-vacuity scaffold is untested against Lean (no kit with premises has a NonVacuityLinked yet).
+- `go_consts` (`kit_gen.go`) is unexercised by any kit (the landed kits keep their addresses in
+  `kit.go`; moving them changes the translation).
+- `build-slot.sh` fails in sessions without polkit rights (`systemd-run`); builds here took the slot
+  locks with `flock` directly.

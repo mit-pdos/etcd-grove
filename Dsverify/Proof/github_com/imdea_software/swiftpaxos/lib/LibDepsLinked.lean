@@ -8,6 +8,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 public import Proof.bufio.NewWriter
 public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewWriterSizeRep
 public import Proof.bufio.Writer__Flush
 public import Proof.bufio.Writer__WriteByte
 public import Proof.bufio.Writer__Write
@@ -23,6 +24,7 @@ public import Net.Proof.net.Dial
 public import Net.Proof.net.DialTimeout
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
+public import Proof.bufio.NewWriterSizeRep
 
 @[expose] public section
 
@@ -37,7 +39,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics]
 
 theorem swiftBufioDeps_holds : SwiftBufioDeps GF where
-  newWriter := EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof
+  newWriter := EtcdGrove.bufio.NewWriter.wp_proof
+      (EtcdGrove.bufio.NewWriterSize.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep)
   flush := EtcdGrove.bufio.Writer.Flush.wp_proof
   writeByte := EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
   write := EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof

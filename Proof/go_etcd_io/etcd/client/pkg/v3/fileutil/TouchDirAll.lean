@@ -33,7 +33,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 theorem fileutil.TouchDirAll.wp_proof
     (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
@@ -165,8 +165,8 @@ theorem fileutil.TouchDirAll.wp_proof
     (mkOut jp name h (DFrac.own (1 : Qp).half)) $$ Hr
   wp_apply wp_MkdirAll (joinPath (joinPath [] rcs) cs) name (W32 448) R jp qp h (1 : Qp).half (1 : Qp).half
       (mkOut jp name h (DFrac.own (1 : Qp).half)) hname hnone (Qp.half_add_half 1)
-      $$ [Hp Hperm Hq Hau] as %err ⟨Hp, Hperm, %o, %hok, HQ, Hout, Hnew⟩
-  · rw [← callKey_joinPath hR hm cs]; iframe; isplitl [] <;> iassumption
+      $$ [Hp Hperm Hq Hau] as %err ⟨#Hfe, Hp, Hperm, %o, %hok, HQ, Hout, Hnew⟩
+  · rw [← callKey_joinPath hR hm cs]; iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   rw [callKey_joinPath hR hm cs]
   ihave Hout := mkOut_join jp name h o $$ [HQ Hout]
   · iframe
@@ -178,6 +178,8 @@ theorem fileutil.TouchDirAll.wp_proof
     ileft
     isplitr
     · ipureintro; intro hc; cases hc
+    isplitr
+    · iapply fmtErrorOkOrNil_ne _ (by intro hc; cases hc) $$ Hfe
     rcases o with _ | ⟨x, s, J⟩
     · dsimp only [mkOut]
       iexists h
@@ -232,7 +234,7 @@ theorem fileutil.TouchDirAll.wp_proof
       rw [show full.take (j + sint.nat i - 1) = (rcs ++ cs).take (j + sint.nat i - 1) by
         rw [hfull, List.take_append_of_le_length hk']]
       wp_apply wp_syncDirAnc hSync hSyncAbove R rcs cs j0 jp (DFrac.own qp) 1 h1.next (j + sint.nat i - 1)
-        hR hm hrcs hcs hk' $$ [Hs Hperm] as %e ⟨Hs, Hperm, Hr⟩
+        hR hm hrcs hcs hk' $$ [Hs Hperm] as %e ⟨#Hfe, Hs, Hperm, Hr⟩
       · iframe; iframe #
       cases e with
       | ok e =>
@@ -244,6 +246,8 @@ theorem fileutil.TouchDirAll.wp_proof
         ileft
         isplitr
         · ipureintro; intro hc; cases hc
+        isplitr
+        · iapply fmtErrorOkOrNil_ne _ (by intro hc; cases hc) $$ Hfe
         iexists h1
         iapply tmpDirH_dirE jp name h1 J hJ hcur1 hJc.1 $$ [Hn1 HJ]
         iframe
@@ -286,7 +290,7 @@ theorem fileutil.TouchDirAll.wp_proof
         $$ [Hpc Hperm Ht]
       · rw [hkn]; iframe; isplitl [] <;> iassumption
       rw [hkn]
-      iintro %err ⟨Hpc, Hperm, %hT, HT, Hd, %hTn⟩
+      iintro %err ⟨#Hfe, Hpc, Hperm, %hT, HT, Hd, %hTn⟩
       icases touchOut_tmpEnt _ $$ Hd with ⟨%hTd, Hd⟩
       icases os.osPathS_unchild R _ name jp J ε a' hname $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
       · iframe
@@ -317,6 +321,8 @@ theorem fileutil.TouchDirAll.wp_proof
         ileft
         isplitr
         · ipureintro; intro hc; cases hc
+        isplitr
+        · iapply fmtErrorOkOrNil_ne _ (by intro hc; cases hc) $$ Hfe
         iexists h''
         iapply tmpDirH_dir jp name h'' J hM hcur1 hnoM $$ [Hn1 HM Hd]
         iframe Hn1 HM
@@ -348,7 +354,7 @@ theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF
   wp_auto
   wp_apply hT lg R jp d parent name qp h hd hname hlen hnone $$ [Hp Hperm Hn] as %err ⟨Hp, Hperm, Hr⟩
   · iframe; iframe #
-  icases Hr with (⟨%herr, %h', Hsub⟩ | ⟨%herr, %h', %hJ, %J, %n, %hf, Hn, HJ, #Hc⟩)
+  icases Hr with (⟨%herr, -, %h', Hsub⟩ | ⟨%herr, %h', %hJ, %J, %n, %hf, Hn, HJ, #Hc⟩)
   · cases err with
     | nil => exact absurd rfl herr
     | ok e =>

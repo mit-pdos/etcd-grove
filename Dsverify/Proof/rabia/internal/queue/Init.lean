@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.rabia.internal.queue.Base
 public import Dsverify.Proof.rabia.internal.message.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 
@@ -34,8 +34,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
-variable [_root_.Perennial.github_com.gogo.protobuf.proto.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.internal.queue.Assumptions]
 variable [_root_.Perennial.github_com.gogo.protobuf.proto.Hyps GF]
 

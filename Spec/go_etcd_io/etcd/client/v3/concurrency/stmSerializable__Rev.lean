@@ -28,11 +28,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 client error aborts it (`stmRet`). -/
 abbrev stmSerializable.Rev.spec : Prop :=
   ∀ (lvl : w64) (p : Loc) (pfx : GoString) (st : STMSt) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmState lvl pfx p st ∗ ⌜isoSer lvl = true ∧ pfx <+: k⌝ ∗
-      ⌜STMCallOk st [k] []⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (stmState lvl pfx p st ∗ ⌜isoSer lvl = true ∧ pfx <+: k⌝ ∗
+      ⌜STMCallOk st [k] []⌝) }}
     (App (Val (p @!! go.GoType.PointerType stmSerializable.ty @!! go!"Rev")) (Val #k))
-  {{ (r : val), RET r; stmRet r fun rev : w64 => iprop(
-      ∃ st' : STMSt, stmState lvl pfx p st' ∗ ⌜RevPost k st rev st'⌝) }}
+  {{ (r : val), RET r; levelTok 0 ∗ (stmRet r fun rev : w64 => iprop(
+      ∃ st' : STMSt, stmState lvl pfx p st' ∗ ⌜RevPost k st rev st'⌝)) }}
 
 end spec
 

@@ -128,7 +128,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : paxos.Assumptions]
 variable [π : NetProtoGS]
 
 set_option goose.wp.extras true
@@ -223,7 +223,7 @@ theorem wp_writeFrame (wp_SetWriteDeadline : net.Conn.SetWriteDeadline.spec (GF 
   wp_apply time.Time.wp_Add as %tm' -
   wp_apply wp_SetWriteDeadline t cn false a la ra tm' (fun _ => iprop(True)) $$ [] as %err1 -
   · iframe Hca
-    imod deadline_au cn false (W64 2) _ $$ Hconn with ⟨%st, Hst, Hcl⟩
+    imod deadline_w_au cn false _ $$ Hconn with ⟨%st, Hst, Hcl⟩
     imodintro
     iexists st
     iframe Hst
@@ -586,18 +586,22 @@ theorem wp_readLoop (wp_SetReadDeadline : net.Conn.SetReadDeadline.spec (GF := G
     (nd : Loc) (Ψ : message → IProp GF) (amap : GMap w64 GoString)
     (ids : List w64) (c : GoInterface) (cn : Nat) (a : GoString) :
   {{ isPkgInit (PROP := IProp GF) pkg ∗ is_node nd Ψ amap ids ∗ net.isConn c cn true a ∗
-      recvTok (Gg := hG.goose_globalGS) cn true (wireProto Ψ) [] }}
+      recvTok (Gg := hG.goose_globalGS) cn true (wireProto Ψ) [] ∗
+      rdlTok (Gg := hG.goose_globalGS) cn true false }}
     (App (Val (nd @!! go.GoType.PointerType tcpNode.ty @!! go!"readLoop")) (Val #c))
   {{ RET #(); True }} := by
-  wp_start as ⟨#Hnd, #Hc, Hr⟩
+  wp_start as ⟨#Hnd, #Hc, Hr, Hrdl⟩
   ihave #Hconn := recvTok_connIs cn true (wireProto Ψ) [] $$ Hr
   wp_auto
   ihave HI : (∃ done : List message,
       "Hr" ∷ recvTok (Gg := hG.goose_globalGS) cn true (wireProto Ψ) (frames done) ∗
-      "%Hd" ∷ ⌜∀ m ∈ done, msgWf m⌝ : IProp GF) $$ [Hr]
+      "Hrdl" ∷ (∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b) ∗
+      "%Hd" ∷ ⌜∀ m ∈ done, msgWf m⌝ : IProp GF) $$ [Hr Hrdl]
   · iexists []
     rw [show frames ([] : List message) = [] from rfl]
     iframe Hr
+    isplitl [Hrdl]
+    · iexists false; iexact Hrdl
     ipureintro; simp
   wp_for HI
   ihave #Hc' := Hc
@@ -606,16 +610,20 @@ theorem wp_readLoop (wp_SetReadDeadline : net.Conn.SetReadDeadline.spec (GF := G
   subst Hct
   wp_apply time.wp_Now as %tm -
   wp_apply time.Time.wp_Add as %tm' -
-  wp_apply wp_SetReadDeadline t cn true a la ra tm' (fun _ => iprop(True)) $$ [] as %err1 -
+  icases Hrdl with ⟨%b0, Hrdl⟩
+  wp_apply wp_SetReadDeadline t cn true a la ra tm'
+      (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [Hrdl]
+    as %err1 ⟨%res1, Hrdl, -⟩
   · iframe Hca
-    imod deadline_au cn true (W64 1) _ $$ Hconn with ⟨%st, Hst, Hcl⟩
+    imod deadline_au cn true (W64 1) _ b0 $$ Hrdl with ⟨%st, Hst, Hcl⟩
     imodintro
     iexists st
     iframe Hst
     iintro %res %st' %Hd Hst
-    imod Hcl $$ %res %st' %Hd Hst with -
+    imod Hcl $$ %res %st' %Hd Hst with ⟨-, Hrdl⟩
     imodintro
-    itrivial
+    iexists st'.rdl
+    iexact Hrdl
   wp_apply wp_readFrame wp_Read _ cn a Ψ done Hd $$ [$Hc $Hr] as %b %ok Hb
   cases ok
   · wp_auto
@@ -640,7 +648,7 @@ theorem wp_readLoop (wp_SetReadDeadline : net.Conn.SetReadDeadline.spec (GF := G
   wp_for_post
   iframe
   iexists (done ++ [m])
-  iframe Hr
+  first | iframe Hr Hrdl | iframe Hr
   ipureintro
   intro x hx
   simp only [List.mem_append, List.mem_singleton] at hx
@@ -675,17 +683,18 @@ theorem wp_acceptLoop (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
         connEnd (Gg := hG.goose_globalGS) cn true noProto (wireProto Ψ) [] [] ∗
-        connFresh (Gg := hG.goose_globalGS) cn true))
+        connFresh (Gg := hG.goose_globalGS) cn true ∗
+        rdlTok (Gg := hG.goose_globalGS) cn true false))
       $$ [Hlis]
-    as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hend, -⟩ | ⟨%k, Hlis, #Herr⟩)
+    as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hend, -, Hrdl⟩ | ⟨%k, Hlis, #Herr⟩)
   · iframe Hlt Hla
-    iapply accept_au a (wireProto Ψ) noProto _ l true $$ Hp Hlis
+    iapply accept_rdl_au a (wireProto Ψ) noProto _ l true $$ Hp Hlis
   · subst Herr
     unfold connEnd
     icases Hend with ⟨-, Hr⟩
     wp_auto
-    wp_apply wp_fork $$ [Hr]
-    · wp_apply wp_readLoop wp_SetReadDeadline wp_Read wp_Close nd Ψ amap ids c cn a $$ [$Hnd $Hc $Hr]
+    wp_apply wp_fork $$ [Hr Hrdl]
+    · wp_apply wp_readLoop wp_SetReadDeadline wp_Read wp_Close nd Ψ amap ids c cn a $$ [$Hnd $Hc $Hr $Hrdl]
       itrivial
     wp_for_post
     iframe
@@ -757,7 +766,7 @@ section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : paxos.Assumptions]
 variable [π : NetProtoGS]
 
 set_option goose.wp.extras true
@@ -779,6 +788,8 @@ theorem tcpNode.serve.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG
   · iexists _; iexact i
   wp_for HI
   wp_if_destruct
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   · wp_apply wp_Listen go!"tcp" net.tcpNet_tcp a as %lv %err Hres
     · iframe %Hok
       iapply listen_au $$ Hp
@@ -800,7 +811,8 @@ theorem tcpNode.serve.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG
       iframe
       iexists _
       iexact i
-  · wp_end
+  · (try iframe HnetPk)
+    wp_end
 
 theorem tcpNetwork.send.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG := hG))
     (wp_SetWriteDeadline : net.Conn.SetWriteDeadline.spec (GF := GF) (hG := hG))
@@ -861,11 +873,14 @@ theorem tcpNetwork.send.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := G
         ihave #Hpa := BigSepM.bigSepM_lookup ha $$ Hprotos
         ihave %Hok2 := addrTok_ok a2 $$ [Hpa]
         · iapply addrProto_tok $$ Hpa
+        ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+        · solve_pkg_init
         wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a2 _ et ed iprop(True)
             (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (wireProto Ψ) noProto [] [] ∗
               connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
           as %c2 %err (⟨%Herr, %cn2, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-        · iframe Het Hed
+        · (try iframe HnetPk)
+          iframe Het Hed
           isplitr
           · ipureintro; exact Hok2
           isplit
@@ -947,11 +962,14 @@ theorem tcpNetwork.send.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := G
       ihave #Hpa := BigSepM.bigSepM_lookup ha $$ Hprotos
       ihave %Hok2 := addrTok_ok a2 $$ [Hpa]
       · iapply addrProto_tok $$ Hpa
+      ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+      · solve_pkg_init
       wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a2 _ et ed iprop(True)
           (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (wireProto Ψ) noProto [] [] ∗
             connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
         as %c2 %err (⟨%Herr, %cn2, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-      · iframe Het Hed
+      · (try iframe HnetPk)
+        iframe Het Hed
         isplitr
         · ipureintro; exact Hok2
         isplit

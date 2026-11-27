@@ -35,15 +35,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 * `("", err)` with an error (the get's, a claim's, the wait's: a canceled or closed watch). -/
 abbrev PriorityQueue.Dequeue.spec : Prop :=
   ∀ (q client : Loc) (key : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      context.isClosedchanInit ∗ isPriorityQueue q client key ∗ etcdReached lo ∗
-      ⌜0 ≤ sint.Z lo⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (context.isClosedchanInit ∗ isPriorityQueue q client key ∗ etcdReached lo ∗
+      ⌜0 ≤ sint.Z lo⌝) }}
     (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Dequeue")) (Val #()))
-  {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64), etcdReached r ∗
+  {{ (v : GoString) (err : GoInterface), RET (PairV #v #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64), etcdReached r ∗
         dequeuedAt [] (key ++ go!"/") it r ∗ dequeueOrder [] (key ++ go!"/") keyLe it r ∗
         ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

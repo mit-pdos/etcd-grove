@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
 public import Proof.go_etcd_io.etcd.client.v3.LeaseSpecs
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
+public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
 
 @[expose] public section
 
@@ -760,7 +761,7 @@ The auth-off `etcd_leaseReadMethodsOk`'s specs (`etcdLeaseTTLSpec`, `etcdLeaseLe
 proved on their own. -/
 theorem etcd_lease_read_served (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAns GF)
     (lcid lmid : w64) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (il im iu : GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface)) (γ : GName)
+    (regs : List (GoString × GoFunc × GoInterface)) (sms : List (GrpcStreamMethod GF))
     (hA : A.revR = mvcc.api.mvccReaders E.γ 1)
     (hregs : ∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -771,7 +772,7 @@ theorem etcd_lease_read_served (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAn
       v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ levelTok 0) (mvcc.api.mvccReaders E.γ 1) ∗
       srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
       srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-      grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+      grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
     |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s γl) E γl) ∗
       isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecMd (srvTLSId s) E γl) := by
   iintro ⟨#Pv, -, #Hq, #Hat, #HL0, #Hil, #Him, #Hiu, #Hsa, #Hb, #Hrpl⟩
@@ -788,12 +789,16 @@ theorem etcd_lease_read_served (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAn
   ihave #Hks := srvRunOks_of_slot s E γr [il, im, iu] (etcdGrpcSlot s E γr)
       iprop(True) h1 h2 HL (etcdLeaseReadMethodsMd ql s E γl) $$ []
   · iframe #
-  imod (grpc.serve addr [il, im, iu] regs (etcdLeaseReadMethodsMd ql s E γl) γ
+  imod (grpc.serve addr [il, im, iu] regs etcdTys sms (etcdLeaseReadMethodsMd ql s E γl)
     (by
       intro x hx
       apply hregs
       simp only [etcdLeaseReadMethodsMd, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl <;> simp [v3rpc.leaseRegs])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl <;> simp [v3rpc.leaseRegs])
+    (by
+      intro x hx
+      simp only [etcdLeaseReadMethodsMd, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+      rcases hx with rfl | rfl <;> simp)) $$ [] with Hrpcs
   · iframe #
   simp only [etcdLeaseReadMethodsMd, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT,
     pbLeaseLeasesRequestT, pbLeaseLeasesResponseT]

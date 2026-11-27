@@ -10,6 +10,8 @@ back and `nextLeader` stays `-1`), the first ping round under the lock (with bot
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.Defs
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -27,7 +29,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [examples.epaxosnet.Assumptions] [epaxos.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF] [RH : RpcHttpHyp GF]
 
@@ -203,10 +205,11 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
       isplitl []
       · ipureintro; rfl
       iintro %fa ⟨Hfa, -⟩
-      have hwf : fmt.ArgsWf [interface.mkOk go.string #(replicaIp k),
-          interface.mkOk go.int #(portOf k + W64 1000)] :=
-        fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int _) fmt.ArgsWf.nil)
-      wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ hwf $$ [$Hfmt $Hfa] as %out ⟨-, %Hout⟩
+      wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+          [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+          _ [interface.mkOk go.string #(replicaIp k), interface.mkOk go.int #(portOf k + W64 1000)] _ _
+          (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _ (.int _) .nil))
+          $$ [$Hfmt $Hfa] as %out ⟨-, %Hout⟩
       have hout := sprintf_str_colon_int _ _ _ Hout
       have hk6 : k ≤ 6 := by
         simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hkr; omega
@@ -223,7 +226,9 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
           RpcHttpAddr.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns) hkr)
         iexact Hrpcs
       wp_auto
-      wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W (rpcAddrOf k)) $$ [$Hcenv $Hhe $Hcon $Hra] as %cl %err Hd
+      ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+      · solve_pkg_init
+      wp_apply (DialHTTP_kit W (rpcAddrOf k)) $$ [$HnetPk $Hcenv $Hhe $Hcon $Hra] as %cl %err Hd
       · ipureintro; exact HW.2
       wp_apply wp_store_slice_index nds (sint.Z iw) ns cl $$ [$Hnds] as Hnds
       · ipureintro; constructor <;> word

@@ -46,7 +46,7 @@ theorem Client.shouldRefreshToken.wp_proof
   icases options_fields_ro o ov $$ Hov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
   generalize ov.retryAuth' = ra
   iunfold retryClientOk at Hc
-  icases Hc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb⟩
+  icases Hc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb, -⟩
   wp_auto
   wp_if_destruct
   rotate_left
@@ -54,7 +54,10 @@ theorem Client.shouldRefreshToken.wp_proof
   wp_apply wp_rpctypes_Error err m $$ [$Hse $Hm] as %e1 ⟨%Hne1, #Hse1, -, #Hd1, -⟩
   · ipureintro; exact Hne
   wp_apply (wp_Is e1 _ (some (m, xUE.desc')) (Or.inl ⟨xUE, rfl⟩)) $$ [$Herrs $Hse1] as %b1 %Hb1
-  · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd1 DUE
+  · -- (#45) and the target's description
+    isplitr
+    · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd1 DUE
+    · iexists _; iexact DUE
   cases b1
   · wp_auto
     wp_if_destruct
@@ -62,13 +65,19 @@ theorem Client.shouldRefreshToken.wp_proof
     · wp_apply wp_rpctypes_Error err m $$ [$Hse $Hm] as %e2 ⟨%Hne2, #Hse2, -, #Hd2, -⟩
       · ipureintro; exact Hne
       wp_apply (wp_Is e2 _ (some (m, xIA.desc')) (Or.inl ⟨xIA, rfl⟩)) $$ [$Herrs $Hse2] as %b2 %Hb2
-      · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd2 DIA
+      · -- (#45) and the target's description
+        isplitr
+        · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd2 DIA
+        · iexists _; iexact DIA
       cases b2
       · wp_auto
         wp_apply wp_rpctypes_Error err m $$ [$Hse $Hm] as %e3 ⟨%Hne3, #Hse3, -, #Hd3, -⟩
         · ipureintro; exact Hne
         wp_apply (wp_Is e3 _ (some (m, xAO.desc')) (Or.inl ⟨xAO, rfl⟩)) $$ [$Herrs $Hse3] as %b3 %Hb3
-        · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd3 DAO
+        · -- (#45) and the target's description
+          isplitr
+          · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd3 DAO
+          · iexists _; iexact DAO
         iapply HΦ
         by_cases hb : b3 = true
         · ihave %Hm3 := go_etcd_io.etcd.cache.v3.descIs_is_etcdError e3 xAO m ((Hb3 hb).1 _ _ rfl) $$ Hd3

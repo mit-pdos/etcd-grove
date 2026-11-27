@@ -1,5 +1,6 @@
 /-
-`status.Code(err)` (grpc, names only; unit P3a): the retry interceptor's `isContextError`.
+`status.Code(err)` (grpc, names only; unit P3a): the retry interceptor's `isContextError`, the gRPC
+driver's ctx-canceled and close sections.
 -/
 module
 
@@ -21,12 +22,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `status.Code(err)` of an error grpc's `status` accepts (`statusErrOk`: it calls
-`errors.As` and the error's `GRPCStatus()`) returns some code. -/
-abbrev status.Code.spec : Prop :=
-  ∀ (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err }}
+`errors.As` and the error's `GRPCStatus()`) returns the error's code `c` (`statusCodeIs err c`).
+(grpc-trusted-T, T2, 2026-11-24; interim, retired by the `status-bodies` stage) It returned some code.
+`c` is fixed before the call, in the precondition, as `status.FromError`'s (`FromError.lean`, the
+fromerror-wand reading): `statusCodeIs` reads `GRPCStatus()` through a partial-correctness WP, so a
+post that related the result to every `c'` with `statusCodeIs err c'` would let a `GRPCStatus()` that
+diverges after the call give any code. True of grpc v1.84.0 (`status/status.go:139-146`, as in `models/grpc`): `nil` gives `OK`;
+otherwise `Convert(err).Code()`, `FromError`'s status: the error's own stably returned, read-only one
+(`statusAt s c m`) when it has `GRPCStatus() *Status`, else `New(Unknown, err.Error())`. A caller with
+only `statusErrOk err` gets its `c` from `statusErrOk_code`. -/
+abbrev status.Code.triple (err : GoInterface) (c : w32) : Prop :=
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
+      statusCodeIs err c }}
     (App (Val (@! google_golang_org.grpc.status.Code)) (Val #err))
-  {{ (c : w32), RET #c; True }}
+  {{ RET #c; True }}
+
+/-- The spec: `triple` of every error. -/
+abbrev status.Code.spec : Prop :=
+  ∀ (err : GoInterface) (c : w32), status.Code.triple (GF := GF) err c
+
+/-- (status-bodies, 2026-11-25) The spec of an error that is no `rpctypes.EtcdError` value
+(`FromError.specNE`'s). -/
+abbrev status.Code.specNE : Prop :=
+  ∀ (err : GoInterface) (c : w32),
+    (∀ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      err ≠ interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) →
+    status.Code.triple (GF := GF) err c
 
 end spec
 

@@ -69,7 +69,7 @@ theorem Check.wp_proof
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC γ cl ep V E γr cid mid clients ops dur hAs Hrb H0 H31 Hops Hmul
+  intro _ γ cl ep V E γr cid mid clients ops dur hAs Hrb H0 H31 Hops Hmul
   wp_start as ⟨#Hcc, #Hcl, #Hone, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp, #Hinv, Hst⟩
   wp_auto
   ipersist cli
@@ -102,9 +102,11 @@ theorem Check.wp_proof
       iintro %i
       imodintro
       iintro %Φ' ⟨Hin, Htt⟩ HAU
+      icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
       wp_auto
       wp_bind (App (App (Val _) (Val _)) (Val _))
-      iapply HA $$ %i Hin
+      iapply HA $$ %i [Hin Hlt]
+      · iframe
       inext
       imod HAU with ⟨%S, Hs, Hc⟩
       imodintro
@@ -113,7 +115,9 @@ theorem Check.wp_proof
       iintro %S' %o Hb
       imod Hc $$ Hb with HQ
       imodintro
-      iintro Hio
+      iintro ⟨Hio, Hlt⟩
+      ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+      · iframe
       ihave HQ := HQ $$ %o [Hio Htt]
       · iframe
         ipureintro

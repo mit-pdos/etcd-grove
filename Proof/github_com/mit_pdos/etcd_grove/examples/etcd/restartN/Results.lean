@@ -34,7 +34,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions]
 
 /-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_restartN.wp_Main`), for every `k ≤ 1000`. -/
-theorem restartN_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem restartN_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_restartN.Main.spec (GF := GF) (hG := hG) :=
   etcd_restartN.wp_Main
 

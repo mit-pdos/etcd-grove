@@ -24,41 +24,29 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 
 theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG)) :
     serverCodec.ReadRequestBody.spec (GF := GF) (hG := hG) := by
-  intro c t cn s a la ra body r0 C D G Θ P eof ueof ed ef
-  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hguard, Hrerr,
+  intro c t cn s a la ra body C D G Θ P F eof ueof ed ef
+  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hguard,
     #Hacc⟩
   wp_auto
-  cases r0 with
-  | ok e0 =>
-    wp_auto
-    iapply HΦ
-    ileft
-    iframe HP HD Hrerr
-    ipureintro; exact ⟨by simp, rfl⟩
-  | nil =>
-  wp_auto
-  wp_apply wp_readFrame t cn s a la ra P eof ueof ed ef
+  wp_apply wp_readFrame t cn s a la ra P F eof ueof ed ef
       $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc]
     as %p %err ⟨%got, HP, Hres⟩
-  icases Hres with (⟨%pl, ⟨%Hnil, %Hgot, %Hpl⟩, Hp, Hpcap⟩ | ⟨%Hne, #HE⟩)
+  icases Hres with (⟨%pl, ⟨%Hnil, %Hgot, %Hpl⟩, Hp, Hpcap⟩ | ⟨%Hne, HE⟩)
   rotate_left
   · cases err with
     | nil => exact absurd rfl Hne
     | ok e =>
       wp_auto
       iapply HΦ
-      iright
-      isplitr
-      · ipureintro; first | rfl | trivial
       iexists got
       iframe HP
       iright
-      iframe HD Hrerr
+      iframe HD
       isplitr
       · ipureintro; exact Hne
       iexact HE
@@ -68,15 +56,12 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
   | nil =>
     wp_auto
     iapply HΦ
-    iright
-    isplitr
-    · ipureintro; first | rfl | trivial
     iexists got
     iframe HP
     ileft
     iexists pl
     simp only [bodyRes]
-    iframe HD Hrerr
+    iframe HD
     ipureintro; exact ⟨Hgot, Hpl⟩
   | ok b =>
     unfold bodyDecG
@@ -98,14 +83,10 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
     iintro %err %ok Hp %Hiff HΘ Herr
     wp_auto
     iapply HΦ
-    iright
-    isplitr
-    · ipureintro; first | rfl | trivial
     iexists (frameOf pl)
     iframe HP
     ileft
     iexists pl
-    iframe Hrerr
     isplitr
     · ipureintro; exact ⟨rfl, Hpl⟩
     unfold bodyRes

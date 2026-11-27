@@ -13,6 +13,8 @@ public import Spec.context.TODO
 public import Spec.fmt.Sscanf
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesLemmas
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -63,7 +65,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     newSequentialKV.spec (GF := GF) (hG := hG) := by
   intro kv pfx kp val lo
   iloeb as IH
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   ihave #Hkv' := Hkv
   iunfold isRecipesKV at Hkv'
   icases Hkv' with ⟨#HGet, #HTxn, -, -⟩
@@ -79,9 +81,10 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   wp_apply hWLK $$ [$Hcv] as %gsl ⟨#Hgsl, -⟩
   ihave #Hgres := optsAt_res gsl (withTopM (W64 0) (W64 2)) (iprop(True) : IProp GF) $$ Hgsl
   iunfold isEtcdKVTodo at HGet
-  wp_apply HGet $$ %kp %gsl %(withTopM (W64 0) (W64 2)) %(iprop(True) : IProp GF) %lo [$Hgres $Hlo]
-    as %gresp %gerr ⟨-, #Hgr, -⟩
-  · ipureintro
+  wp_apply HGet $$ %kp %gsl %(withTopM (W64 0) (W64 2)) %(iprop(True) : IProp GF) %lo [$Hlt $Hgres $Hlo]
+    as %gresp %gerr ⟨Hlt, -, #Hgr, -⟩
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
       lastKeyOp_size (by word)⟩
@@ -93,6 +96,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨Hgne, rfl⟩
   subst Hgnil
@@ -213,6 +217,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   · subst Hv
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨by simp, rfl⟩
   subst Hv
@@ -221,12 +226,16 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   try (isplitr; (ipureintro; rfl))
   iintro %sla ⟨Hargs, -⟩
   (try wp_auto)
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
-  case wf =>
-    exact .cons_string _ _ (.cons_int _ _ _ (.int n) .nil)
-  rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
-  simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
-  have Hkey' := sprintf_slash_016d kp n key Hkey
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s/%016d"
+    [.dir none _root_.Perennial.fmt.verb_s, .lit go!"/", .dir (some 16) _root_.Perennial.fmt.verb_d] _ _ _ _ (by fmt_encode) ?fits ?pa
+    $$ [$Hfmt $Hargs] as %key ⟨-, %Hkey⟩
+  case pa =>
+    rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+    simp only [List.set_cons_succ, List.set_cons_zero]
+    exact .str _ _ _ (.int _ _ _ _ (.int n) .nil)
+  case fits => fmt_fits
+  have Hkey' : key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimalPad 16 (sint.Z n) := by
+    simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hkey, _root_.Perennial.fmt.render]
   have Hkpk : (kp ++ go!"/") <+: key := by rw [Hkey']; exact List.prefix_append _ _
   have HkeyL : key.length ≤ 2 ^ 28 := seqKey_length_le n Hk.2.2.1 Hkey'
   have Hpk : pfx <+: key := Hk.1.trans ((List.prefix_append _ _).trans Hkpk)
@@ -306,8 +315,9 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (seqBuild kp key val g) (by rfl) $$ HB
-  wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨Hres, -⟩
-  · ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2.1 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
+  wp_apply HCommit $$ %(seqBuild kp key val g) %g [$Hlt $HB $Hg] as %tresp %terr ⟨Hlt, Hres, -⟩
+  · (try iframe Hlt)
+    ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2.1 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
         (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, op_simps]),
         seqTxn_size g Hk.2.2.1 HkeyL Hk.2.2.2⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
@@ -319,6 +329,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨Hne, rfl⟩
   subst Heq
@@ -331,10 +342,11 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     obtain ⟨h1, h2⟩ := seqTxn_else kp key val g r s0 hok
     (try rw [hok])
     wp_auto
-    wp_apply IH $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
+    wp_apply IH $$ [$Hlt $Hpkg $Hkv $Hlo] as %rk %err ⟨Hlt, Hres⟩
     · ipureintro; exact Hk
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iexact Hres
   · -- committed
     obtain ⟨hmod, h1, h2⟩ := seqTxn_then kp key val g r s0 Hgle.2 hok
@@ -344,6 +356,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     irename «$r0» => Hrk
     generalize «$r0_ptr» = rk at *
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

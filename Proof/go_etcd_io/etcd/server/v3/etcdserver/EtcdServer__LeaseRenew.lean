@@ -30,6 +30,7 @@ public import Spec.go_opentelemetry_io.otel.attribute.Int64
 public import Spec.errors.Is
 public import Spec.errors.IsCtxErr
 public import Spec.errors.IsStatusErr
+public import Proof.errors.CtxErr
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
@@ -133,7 +134,7 @@ set_option hygiene false in
 logging. -/
 local macro "renew_switch_weak" : tactic => `(tactic| (
   -- `case errorspkg.Is(err, context.DeadlineExceeded): return -1, errors.ErrTimeout`
-  wp_apply (hIsS cerr (GoInterface.ok eD) none (Or.inr (Or.inr ⟨eD, rfl, HlD.2.2.2.1⟩))) $$ [] as %b1 -
+  wp_apply (hIsS cerr (GoInterface.ok eD) none (Or.inr (Or.inr HvD))) $$ [] as %b1 -
   · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
   (try wp_auto)
   cases b1 with
@@ -208,6 +209,17 @@ local macro "renew_forward" : tactic => `(tactic| (
     iunfold errVarLeaf at HCan
     icases HCan with ⟨%eC, #HeC, %HlC, -⟩
     icases HDE with ⟨%eD, #HeD, %HlD, -⟩
+    ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+    · iPkgInit
+    ihave %HvD := deadlineExceeded_value _ $$ Pctx HeD
+    -- (#45) the two targets' descriptions, which `errors.Is` takes
+    ihave #HtdC : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF) (GoInterface.ok eC) m') $$ []
+    · iapply go_etcd_io.etcd.cache.v3.isCtxErr_descIs
+      iapply _root_.Perennial.context.isCtxErr_of_Canceled $$ Pctx HeC
+    ihave #HtdD : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF) (GoInterface.ok eD) m') $$ []
+    · rw [HvD]
+      iexists _
+      iapply go_etcd_io.etcd.cache.v3.descIs_deadlineZero
     icases HsEV with ⟨-, -, -, #HECan, #HETo, -⟩
     ihave ⟨%eCan, #HeCan, #HeCanE⟩ := errVarLeaf_get _ $$ HECan
     ihave ⟨%eTo, #HeTo, #HeToE⟩ := errVarLeaf_get _ $$ HETo
@@ -308,7 +320,7 @@ local macro "renew_forward" : tactic => `(tactic| (
       ipureintro; exact Hrt
     (try wp_auto)
     -- `if err == nil || errorspkg.Is(err, lease.ErrLeaseNotFound) { return ttl, err }`
-    icases Hh with (%Hhn | ⟨%Hhn, #Hhe⟩)
+    icases Hh with (%Hhn | ⟨%Hhn, #Hhe⟩ | ⟨%Hhn, #Hhx⟩)
     · subst Hhn
       (try wp_auto)
       wp_for_post
@@ -323,6 +335,35 @@ local macro "renew_forward" : tactic => `(tactic| (
       isplitr
       · ipureintro; rfl
       iexact Hchk1
+    rotate_left
+    · -- (mapkeys, 2026-11-26) a library's error, not `ErrLeaseNotFound`: `errors.Is` is `false`
+      rcases herr with hei | _
+      rotate_left
+      · exact absurd rfl Hhn
+      (try wp_auto)
+      iunfold leasehttp.notLeaseNotFound at Hhx
+      ihave #Hnm := Hhx $$ %eNF HNF
+      iunfold errors.noMatchTree at Hnm
+      icases Hnm with ⟨%S, %M, #Htree, %HS, -⟩
+      have hpt : ptrTarget (GoInterface.ok eNF) := fun tii h => by cases h; exact HNFl.1
+      wp_apply hIs S M _ (GoInterface.ok eNF) hpt HS.2.1 $$ [] as %b ⟨-, -, %Hb⟩
+      · iframe #; ipureintro; exact HS.1
+      have hb : b = false := by
+        cases b
+        · rfl
+        · exfalso
+          obtain ⟨ii, hS, hii⟩ := Hb eNF rfl HNFl.1 Hhn rfl
+          obtain ⟨hne, hM⟩ := HS.2.2 ii hS
+          rcases hii with h | h
+          · exact hne h
+          · exact hM h
+      subst hb
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists j + W64 1, u
+      iframe
+      ipureintro; constructor <;> word
     rcases herr with hei | _
     rotate_left
     · exact absurd rfl Hhn

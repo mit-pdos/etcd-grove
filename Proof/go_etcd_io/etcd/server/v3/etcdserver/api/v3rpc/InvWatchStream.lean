@@ -274,6 +274,84 @@ def watchReqWireLen : WatchReqM → Nat
   | .create c => c.key.length + c.rangeEnd.length + 10 * c.filters.length + wireSlack
   | _ => wireSlack
 
+/-! ### The messages' stored forms (moved here from `PerTypeWatch.lean`, phase 7, SW1: `StreamMsg.tree`) -/
+
+/-- **The store of a create request** (`nil` key, range end and filters if empty). -/
+def createReqTree (c : CreateReqM) : VTree :=
+  .ptr etcdserverpb.WatchCreateRequest.ty (.strct etcdserverpb.WatchCreateRequest.ty
+    [(go!"Key", go.GoType.SliceType go.byte), (go!"RangeEnd", go.GoType.SliceType go.byte),
+     (go!"StartRevision", go.int64), (go!"ProgressNotify", go.bool),
+     (go!"Filters", go.GoType.SliceType etcdserverpb.WatchCreateRequest_FilterType.ty),
+     (go!"PrevKv", go.bool), (go!"WatchId", go.int64), (go!"Fragment", go.bool)]
+    [bytesTree go.byte c.key, bytesTree go.byte c.rangeEnd, .leaf #c.startRev,
+     .leaf #c.progressNotify, bytesTree etcdserverpb.WatchCreateRequest_FilterType.ty c.filters,
+     .leaf #c.prevKv, .leaf #c.watchId, .leaf #c.fragment])
+
+/-- **A oneof's wrapper** `wty` holding, in its field `fname`, a fresh inner message. -/
+def oneofTree (wty : go.GoType) (fname : GoString) (ity : go.GoType) (inner : VTree) : VTree :=
+  .ptr wty (.strct wty [(fname, go.GoType.PointerType ity)] [inner])
+
+/-- **The store of a cancel request.** -/
+def cancelReqTree (id : w64) : VTree :=
+  .ptr etcdserverpb.WatchCancelRequest.ty (.strct etcdserverpb.WatchCancelRequest.ty
+    [(go!"WatchId", go.int64)] [.leaf #id])
+
+/-- **The store of a progress request** (no field). -/
+def progressReqTree : VTree :=
+  .ptr etcdserverpb.WatchProgressRequest.ty (.strct etcdserverpb.WatchProgressRequest.ty [] [])
+
+/-- **The store of a watch request**: its oneof's wrapper and inner request (always allocated,
+as protobuf-go decodes a present oneof field), or no oneof. -/
+def watchReqTree : WatchReqM → VTree
+  | .create c => .strct etcdserverpb.WatchRequest.ty
+      [(go!"RequestUnion", go.GoType.PointerType etcdserverpb.WatchRequest_CreateRequest.ty)]
+      [oneofTree etcdserverpb.WatchRequest_CreateRequest.ty go!"CreateRequest"
+        etcdserverpb.WatchCreateRequest.ty (createReqTree c)]
+  | .cancel id => .strct etcdserverpb.WatchRequest.ty
+      [(go!"RequestUnion", go.GoType.PointerType etcdserverpb.WatchRequest_CancelRequest.ty)]
+      [oneofTree etcdserverpb.WatchRequest_CancelRequest.ty go!"CancelRequest"
+        etcdserverpb.WatchCancelRequest.ty (cancelReqTree id)]
+  | .progress => .strct etcdserverpb.WatchRequest.ty
+      [(go!"RequestUnion", go.GoType.PointerType etcdserverpb.WatchRequest_ProgressRequest.ty)]
+      [oneofTree etcdserverpb.WatchRequest_ProgressRequest.ty go!"ProgressRequest"
+        etcdserverpb.WatchProgressRequest.ty progressReqTree]
+  | .other => .strct etcdserverpb.WatchRequest.ty [] []
+
+/-- **The store of a response header** (always present). -/
+def hdrTreeW (h : HdrM) : VTree :=
+  .ptr etcdserverpb.ResponseHeader.ty (.strct etcdserverpb.ResponseHeader.ty
+    [(go!"ClusterId", go.uint64), (go!"MemberId", go.uint64), (go!"Revision", go.int64),
+     (go!"RaftTerm", go.uint64), (go!"LeaderId", go.uint64)]
+    [.leaf #h.clusterId, .leaf #h.memberId, .leaf #h.revision, .leaf #h.raftTerm, .leaf #h.leaderId])
+
+/-- **The store of a key-value** (`nil` key and value if empty). -/
+def kvTreeW (v : EtcdKv) : VTree :=
+  .ptr mvccpb.KeyValue.ty (.strct mvccpb.KeyValue.ty
+    [(go!"Key", go.GoType.SliceType go.byte), (go!"CreateRevision", go.int64),
+     (go!"ModRevision", go.int64), (go!"Version", go.int64),
+     (go!"Value", go.GoType.SliceType go.byte), (go!"Lease", go.int64)]
+    [bytesTree go.byte v.key, .leaf #v.createRev, .leaf #v.modRev, .leaf #v.version,
+     bytesTree go.byte v.value, .leaf #v.lease])
+
+/-- **The store of an event**: its type, its key-value, its previous key-value or `nil`. -/
+def evTree (ev : mvcc.EvM) : VTree :=
+  .ptr mvccpb.Event.ty (.strct mvccpb.Event.ty
+    [(go!"Type", mvccpb.Event_EventType.ty), (go!"Kv", go.GoType.PointerType mvccpb.KeyValue.ty),
+     (go!"PrevKv", go.GoType.PointerType mvccpb.KeyValue.ty)]
+    [.leaf #(mvcc.evType ev), kvTreeW ev.kv,
+     match ev.prevKv with | none => .leaf #(null : Loc) | some pk => kvTreeW pk])
+
+/-- **The store of a watch response.** -/
+def watchRespTree (m : WatchRespM) : VTree :=
+  .strct etcdserverpb.WatchResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty), (go!"WatchId", go.int64),
+     (go!"Created", go.bool), (go!"Canceled", go.bool), (go!"CompactRevision", go.int64),
+     (go!"CancelReason", go.string), (go!"Fragment", go.bool),
+     (go!"Events", go.GoType.SliceType (go.GoType.PointerType mvccpb.Event.ty))]
+    [hdrTreeW m.hdr, .leaf #m.watchId, .leaf #m.created, .leaf #m.canceled, .leaf #m.compactRev,
+     .leaf #m.cancelReason, .leaf #m.fragment,
+     sliceTree (go.GoType.PointerType mvccpb.Event.ty) (m.evs.map evTree)]
+
 /-- **The watch requests on the wire** (a trusted wire model, as the unary ones): the client's
 message `watchReqSend`, the server's decoded copy `watchReqRecv` (owned), a message the receiver
 owns at any content (`own`: a fresh `new(WatchRequest)` is one). -/
@@ -281,6 +359,7 @@ abbrev pbWatchRequest : StreamMsg GF where
   ty := etcdserverpb.WatchRequest.ty
   M := WatchReqM
   cnt := inferInstance
+  tree := watchReqTree
   send := watchReqSend
   wireLen := watchReqWireLen
   recv := watchReqRecv
@@ -294,6 +373,7 @@ abbrev pbWatchResponse : StreamMsg GF where
   ty := etcdserverpb.WatchResponse.ty
   M := WatchRespM
   cnt := inferInstance
+  tree := watchRespTree
   send := watchRespMsg
   recv := watchRespRecv
   own l := iprop(∃ v : etcdserverpb.WatchResponse, l ↦ v)
@@ -403,10 +483,12 @@ instance watchDescOk_persistent : Persistent (watchDescOk (GF := GF)) := by
 /-- **The client end of a watch stream** (persistent; what `watchClient.Watch` returns, the
 `Watch_WatchClient` the client's `watch.go` uses): `cliBidiStreamIs` at the watch messages.
 `Send(req)` of a request `watchReqSend req m` with the client's content `Up i m`;
-`Recv()` returns a fresh response `watchRespMsg resp m` with the server's content `Dn j m`. -/
+`Recv()` returns a fresh response `watchRespMsg resp m` with the server's content `Dn a md j m` at
+the stream's dispatch (`streamDispIs γ a md`, with `Md a md`; phase 7's switch, SW1, R2). -/
 abbrev cliWatchStreamIs (cs : GoInterface) (γ : StreamNames) (Up : Nat → WatchReqM → IProp GF)
-    (Dn : Nat → WatchRespM → IProp GF) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Dn cd anyRes
+    (Md : GoString → GrpcMd → IProp GF) (Dn : GoString → GrpcMd → Nat → WatchRespM → IProp GF)
+    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Md Dn cd clientRes
 
 end defs
 

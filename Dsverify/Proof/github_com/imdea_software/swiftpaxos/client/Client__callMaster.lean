@@ -67,7 +67,7 @@ end client.cn
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [errors.Assumptions] [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link
@@ -110,12 +110,18 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
       · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
+      isplitr
+      · ipureintro; simp [net.rpc.maxFrameN] <;> omega
       isplitl [«$r0»]
       · iapply enc_sw C
         iapply (swiftCliCodecLaws (GF := netDistGF)).enc_GetReplicaListArgs
         isplitl [«$r0»]
         · iexact «$r0»
         iintro -
+        isplitr
+        · ipureintro
+          simp [netrpcw.encGetReplicaListArgs, netrpcw.tagged, netrpcw.encStr, netrpcw.strct,
+            netrpcw.tGetReplicaListArgs, u64Le_length, net.rpc.maxFrameN] <;> omega
         isplitl
         rotate_left
         · itrivial
@@ -219,12 +225,18 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
       · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
+      isplitr
+      · ipureintro; simp [net.rpc.maxFrameN] <;> omega
       isplitl [«$r0»]
       · iapply enc_sw C
         iapply (swiftCliCodecLaws (GF := netDistGF)).enc_GetLeaderArgs
         isplitl [«$r0»]
         · iexact «$r0»
         iintro -
+        isplitr
+        · ipureintro
+          simp [netrpcw.encGetLeaderArgs, netrpcw.tagged, netrpcw.encStr, netrpcw.strct,
+            netrpcw.tGetLeaderArgs, u64Le_length, net.rpc.maxFrameN] <;> omega
         isplitl
         rotate_left
         · itrivial

@@ -26,12 +26,14 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- The junk node: given preface's protocol and the plan's entry for `SrvAddr` (at any host `h`),
-it writes half a preface and waits for a reply (`wp_SendJunk`). -/
+it writes fewer random bytes than a preface and waits for a reply (`wp_SendJunk`). -/
 theorem wp_main
+    (wp_RandomInt : wire.RandomInt.spec (GF := GF) (hG := hG))
+    (wp_RandomBytes : wire.RandomBytes.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -51,7 +53,7 @@ theorem wp_main
   · iPkgInit
   icases wire.ed_init $$ Hwire with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply preface.wp_SendJunk wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed $$ []
+  wp_apply preface.wp_SendJunk wp_RandomInt wp_RandomBytes wp_Dial wp_ReadFull wp_Write wp_Close γm eof ed $$ []
   · iframe Hinvs Hplan Heof Hed
   (try wp_auto)
   iapply HΦ

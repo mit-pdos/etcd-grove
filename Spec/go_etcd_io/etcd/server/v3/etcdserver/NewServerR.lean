@@ -86,6 +86,8 @@ abbrev NewServer.specR : Prop :=
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   netDirOk dir →
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24) the URLs within etcd's URL bounds (`NewServer.spec`'s)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m false →
   -- what the restart contract covers: no forced new cluster, the WAL in the data directory's
@@ -100,12 +102,13 @@ abbrev NewServer.specR : Prop :=
       -- `bootstrap`'s contract on the stopped member's data directory
       "#HbootR" ∷ bootstrapRestartContract cfg U γ id N dir ∗
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       "#Hcfgro" ∷ bootCfgRO cfg U ∗
       -- the stopped member's image, in the configuration's data directory
       "Himg" ∷ srvDiskImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
       "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       "Hids" ∷ idShare ρ.ids ∗
@@ -122,8 +125,7 @@ abbrev NewServer.specR : Prop :=
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Hns" ∷ rnNewStorageOk ∗
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
@@ -142,7 +144,7 @@ abbrev NewServer.specR : Prop :=
           srvServeBuilt srv E cfg ∗
           srvSVRes srv E ∗
           srvMonitorCfg srv cfg ∗
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- the lease subsystem's part, its lessor's history from the snapshot `NewLessor` recovers

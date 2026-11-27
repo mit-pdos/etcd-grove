@@ -28,7 +28,9 @@ names `γi` are the caller's (2026-10-16, D13a: the server chooses them before `
 the raft contract's environment over them): since D21e (A) (stage M4, 2026-10-19) the cluster's
 claims (`idClusterInv`, with the claimers' facts `Φs` per prefix, the cluster's choice; unit V2)
 and the member's share at its prefix (`idShare`: its prefix's entry, its slots), both from the
-cluster's allocation (`idCluster_alloc`); the generator's facts are its prefix's, `Φs γi.pfx`.
+cluster's allocation (`idCluster_alloc`); the generator's facts are its prefix's, `Φs γi.pfx`. (etcd-dist D7,
+2026-11-23) And its prefix's generators' facts (`idPfxInv`, on the member's machine; until then in the
+cluster's claims).
 (Until M4 it took fresh names, `idNamesFresh`, and gave the reserved id `0`, `idNoZero`, which
 the cluster's allocation now gives.) -/
 abbrev idutil.NewGenerator.spec : Prop :=
@@ -36,7 +38,8 @@ abbrev idutil.NewGenerator.spec : Prop :=
     (Φs : X → w64 → List w8 → GName → IProp GF) (x : X),
   γi.pfx = idPfxOf memberID →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil ∗ idShare γi ∗
-      idKeyFactAt γi.fs γi.key x ∗ idClusterInv γi.issued γi.cnt γi.wn γi.fs Φs }}
+      idKeyFactAt γi.fs γi.key x ∗ idClusterInv γi.issued γi.cnt γi.wn γi.fs γi.gen Φs ∗
+      idPfxInv γi.gen γi.pfx }}
     (App (App (Val (@! idutil.NewGenerator)) (Val #memberID)) (Val #now))
   {{ (g : Loc), RET #g; idGen γi g (Φs x) }}
 

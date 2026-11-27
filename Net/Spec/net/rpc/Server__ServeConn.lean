@@ -21,14 +21,14 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev Server.ServeConn.spec : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (t : Loc)
     (cn : Nat) (la ra : GoInterface),
-  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
+  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServerAny s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
       net.connAt (GF := GF) t cn true a la ra ∗ rpcAccepted W a cn ∗ threadTok }}
     (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"ServeConn"))
       (Val #(interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t)))

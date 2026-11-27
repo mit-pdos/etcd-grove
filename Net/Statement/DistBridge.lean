@@ -8,7 +8,7 @@ file proves it from one WP per machine.
   executions (`distNsteps_of_crash_nil`: `DistCrashNsteps []` has no crash step), so Perennial's
   adequacy theorem without crashes (`goose_dist_adequacy`, instantiated with the ghost state `netGF`
   and the extensions `netExts`, `GooseLang/Ext/Net/Adequacy.lean`) proves it. This covers the case
-  where **every** machine is stable; a deployment with crashing and stable machines both (kvnet's)
+  where **every** machine is stable; a deployment with crashing and stable machines both (kvraft's)
   needs an adequacy theorem with boot programs for some nodes only (`notes/robustness.md`, "Next").
 - `robust_of_distBoot`: an update from the extension's start resources for the deployment's
   addresses (each address unset, `addrUnset`, the net protocol library `GooseLang/Ext/Net/Proto.lean`) to a

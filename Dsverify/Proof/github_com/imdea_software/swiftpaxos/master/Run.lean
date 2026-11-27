@@ -5,7 +5,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/master/Run.lean (lab ma
 `m.Run()` (the spec `Spec/master/Master__Run.lean`), proved from the master's full creation
 (`master.createdFull`), the specs of `run` and of the receiver (`master.rcvr.spec`: what
 `rpc.Register` asks of the codec's `Receiver` for `*Master`), over net/rpc's HTTP path
-(`RpcHttpHyp`: `Register_spec`, `HandleHTTP_spec`, `Serve_spec`) and `Net/`'s wildcard `Listen`
+(`RpcHttpHyp`, `Net/`'s specs: `Register.spec_fresh`, `HandleHTTP.spec`, `http.Serve.spec_rpc`) and `Net/`'s wildcard `Listen`
 (`net.Listen.labProofU` over the update that `rpcLisP_lis` gives).
 -/
 module
@@ -18,6 +18,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.master.Master__Run
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunVocab
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -35,7 +37,7 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 end spec
@@ -44,7 +46,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -54,7 +56,7 @@ theorem master.Master.Run.wp_proof_full
     (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
     (wp_run : master.Master.run.spec) (rcvr_ok : master.rcvr.spec) :
     master.Master.Run.specFull := fun m γc γm N W => by
-  wp_start as ⟨Hcr, #Hrpc, #Hhttp, %Hthr, #Henv, Hmo, #Hds0, #Hlp, Haddrs, %HSS, #Hcs⟩
+  wp_start as ⟨Hcr, #Hrpc, #Hhttp, %Hthr, #Henv, Hmo, Hds0, #Hde, Htok, #Hlp, Haddrs, %HSS, #Hcs⟩
   unfold master.createdFull master.createdBody
   icases Hcr with ⟨%v, %c, %fr, Hm, #Hq, #Hc, Hauth, Hnl, Hal, Hpl, Hcnl, Hcal, Hcpl, Hnodes,
     Hleaders, Halives, Hlats, #Hplain, Hlk, #Hcd, %Hp⟩
@@ -116,50 +118,41 @@ theorem master.Master.Run.wp_proof_full
   wp_apply master.wp_Printf wp_Printf $$ [$Logger $Hq]
   ipersist master
   -- rpc.Register(master), on DefaultServer
-  icases Hds0 with ⟨%γs, #Hds⟩
+  icases Hds0 with ⟨%γs, %γf, #Hds, Hsown⟩
   ihave Hrc := rcvr_ok m γc γm N $$ [$Hcs $HisM]
   · ipureintro; exact Hmnn
-  wp_apply H.Register_spec γs net.rpc.RpcCodec.spec
+  wp_apply (H.Register_spec γs γf ∅ net.rpc.RpcCodec.spec
     (interface.mkOk (go.GoType.PointerType master.Master.ty) #m) (withErr (sp.masterSpec γc γm))
-    go!"Master" (W8 77) go!"aster" rfl ⟨by decide, by decide⟩ $$ [$Hrpc $Hds $Hcs $Hrc]
-    as %rerr Hreg
-  icases Hreg with (⟨%Hrerr, #Hreg⟩ | %Hrerr)
-  rotate_left
-  · -- the registration failed (not in Go; the spec allows it): the fork's workaround blocks
-    rcases rerr with ei | _
-    · try wp_auto
-      wp_apply wp_slice_literal (V := GoInterface)
-        [interface.mkOk go.string #(go!"master register error:"), interface.ok ei]
-      isplitr
-      · ipureintro; rfl
-      iintro %s6 ⟨-, -⟩
-      wp_auto
-      wp_apply master.wp_Fatal wp_Fatal $$ [$Logger $Hq]
-      wp_for
-      wp_apply time.wp_Sleep
-      wp_for_post
-      iframe
-    · exact absurd rfl Hrerr
+    go!"Master" (W8 77) go!"aster" rfl ⟨by decide, by decide⟩) $$ [$Hds $Hsown $Hcs $Hrc]
+    as %rerr ⟨%Hrerr, #Hreg, -⟩
+  · ipureintro; simp [GMap.mem_iff]
   subst Hrerr
   try wp_auto
-  -- rpc.HandleHTTP(): every address the wildcard takes serves the master's service
-  ihave #Hsrv : □ ∀ a, ⌜lisAccepts go!":7001" a⌝ →
-      net.rpc.srvServes γs net.rpc.RpcCodec.spec W a $$ []
+  -- rpc.HandleHTTP(): every valid address the wildcard takes serves the master's service
+  ihave #Hsrv : □ ∀ a, ⌜addrOk a = true ∧ lisAccepts go!":7001" a⌝ →
+      net.rpc.srvServes γs net.rpc.RpcCodec.spec W a ∗
+        ⌜W.hs a ≠ [] ∧ W.hsAns a = net.rpc.connectAns⌝ $$ []
   · iintro !> %a %Ha
-    unfold net.rpc.srvServes
-    iintro !> %svc %S %HS
-    rw [HSS.1 a svc Ha] at HS
-    by_cases hsvc : svc = go!"Master"
-    · subst hsvc
-      rw [if_pos rfl] at HS
-      cases HS
-      iframe Hreg
-      iapply withErr_errOk
-    · rw [if_neg hsvc] at HS
-      cases HS
-  wp_apply H.HandleHTTP_spec γs net.rpc.RpcCodec.spec W (lisAccepts go!":7001") []
-    $$ [$Hrpc $Hds $Hsrv $Henv $Hcs $Hmo] as ⟨-, #Hmux⟩
-  · iframe; ipureintro; exact ⟨Hthr, by simp, by simp⟩
+    isplitr
+    · unfold net.rpc.srvServes
+      iintro !> %svc %S %HS
+      rw [HSS.1 a svc Ha.2] at HS
+      by_cases hsvc : svc = go!"Master"
+      · subst hsvc
+        rw [if_pos rfl] at HS
+        cases HS
+        iframe Hreg
+        iapply withErr_errOk
+      · rw [if_neg hsvc] at HS
+        cases HS
+    · iapply rpcLisP_hs W go!":7001" a Ha $$ Hlp
+  ihave #Hdsa := net.rpc.defaultServerO_any γs γf $$ Hds
+  iunfold dialEnv at Hde
+  icases Hde with ⟨#Hhe, #Hcon⟩
+  wp_apply (H.HandleHTTP_spec γs net.rpc.RpcCodec.spec W
+    (fun a => addrOk a = true ∧ lisAccepts go!":7001" a) [] (by simp) (by simp))
+    $$ [$Hhttp $Hmo $Hdsa $Hsrv $Henv $Hcs $Hcon] as ⟨-, #Hmux⟩
+  · ipureintro; exact Hthr
   have hdec : decimal 7001 = go!"7001" := by simp [decimal, decimalNat_eq, digitByte]
   have hport : go!":" ++ decimal (sint.Z (W64 7001)) = go!":7001" := by
     rw [show sint.Z (W64 7001) = (7001 : Int) from rfl, hdec]; rfl
@@ -169,8 +162,10 @@ theorem master.Master.Run.wp_proof_full
   · ipureintro; rfl
   iintro %s3 ⟨Hs3, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001)) ArgsWf.nil)
-    $$ [$Hs3] as %str ⟨-, %Hstr⟩
+  wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+      [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int (W64 7001)) .nil)
+      $$ [$Hs3] as %str ⟨-, %Hstr⟩
   rw [master.sprintf_colon_d _ _ Hstr, hport]
   wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv %lerr Hl
   · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp
@@ -200,7 +195,9 @@ theorem master.Master.Run.wp_proof_full
         iintro %Hf; exact Hf.elim
       iunfold net.ownListener at Hl
       icases Hl with ⟨%x, #Hat, #Hon, #Hinv⟩
-      wp_apply H.Serve_spec W go!":7001" defaultRPCPath _ lid $$ [$Hhttp $Hlp $Hmux $Hon $Hinv]
+      ihave #Hlpn := RpcHttpAddr.rpcLisP_net W go!":7001" _ _ $$ Hlp
+      wp_apply (H.Serve_spec W go!":7001" net.rpc.defaultRPCPath _ lid
+          net.rpc.litPattern_rpc net.rpc.defaultRPCPath_short) $$ [$Hhttp $Hhe $Hlpn $Hmux $Hon $Hinv $Htok]
       · isplitr
         · ipureintro; exact Hthr
         unfold net.isListener
@@ -229,8 +226,10 @@ theorem master.Master.Run.wp_proof_full
       · ipureintro; rfl
       iintro %s5 ⟨Hs5, -⟩
       wp_auto
-      wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001))
-        ArgsWf.nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
+      wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+          [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+          _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int (W64 7001))
+          .nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
       rw [master.sprintf_colon_d _ _ Hstr', hport]
       wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv2 %lerr2 Hl
       · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp
@@ -246,7 +245,7 @@ section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 

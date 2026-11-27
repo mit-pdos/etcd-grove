@@ -2,8 +2,23 @@
 # (`NewServer`, `Server.SetServingStatus`). Its types are translated (importing their field types'
 # packages), so that an implementation can allocate a `Server` (etcd-refimpl's reference
 # implementation).
-translate = ["!*"]
-imports = ["!*", "sync", "google.golang.org/grpc/health/grpc_health_v1"]
+# (phase7-inits, 2026-11-25) `logger` (`grpclog.Component("health_service")`, `logging.go:23`) with its
+# initializer (until then `opaqueInitsOk`), and its two `init`s with their bodies (until then
+# `initFuncsOk`): `client.go`'s (`internal.HealthCheckFunc = clientHealthCheck`) and `producer.go`'s
+# (`producerBuilderSingleton = &producerBuilder{}`, `internal.RegisterClientHealthCheckListener =
+# registerClientSideHealthCheckListener`); hence the imports of `grpclog`, grpc's `internal` and of
+# `context` and `connectivity` (`clientHealthCheck`'s type).
+# (grpc-health, 2026-11-26) with their bodies: `NewServer`, `Server.SetServingStatus` and
+# `Server.setServingStatusLocked` (`server.go`; until then the trust-boundary axioms
+# `health.NewServer.wp_proof` and `health.Server.SetServingStatus.wp_proof`), and the method
+# `*Server` promotes from its embedded `UnimplementedHealthServer`, `testEmbeddedByValue`, which
+# `grpc_health_v1.RegisterHealthServer` calls.
+translate = ["!*", "logger", "init.0", "init.1", "producerBuilderSingleton", "NewServer",
+  "Server.SetServingStatus", "Server.setServingStatusLocked", "Server.testEmbeddedByValue"]
+imports = ["!*", "sync", "google.golang.org/grpc/health/grpc_health_v1", "google.golang.org/grpc/grpclog",
+  "google.golang.org/grpc/internal", "context", "google.golang.org/grpc/connectivity",
+  # `registerClientSideHealthCheckListener`'s type names `balancer.SubConn` and `SubConnState`
+  "google.golang.org/grpc/balancer"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

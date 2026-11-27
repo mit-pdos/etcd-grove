@@ -27,7 +27,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`clientv3.New(cfg)`** of a configuration of plain endpoints `eps` (at least one; one until
 2026-10-21, `notes/decisions.md` D27) with no TLS, no
-token, no dial options, keepalive, auto-sync or version check of the caller's, a logger
+token, no dial options (but `grpc.WithNoProxy()`'s, `noProxyOptsAt`), keepalive, auto-sync or version check of the caller's, a logger
 of the caller's (`clientCfgOk`), given the package's variables (`clientNewVars`, from its facts):
 the client (`isNewClient`: connected to `eps` with the retry interceptor installed, `clientKVAt`;
 its `KV` a `kvObjAt`, what `client_*_end_to_end` take; its `Watcher` a watcher over the
@@ -36,19 +36,18 @@ one meeting `P` (`clientTokAt`; the auth plan's C1, 2026-10-28: with a user name
 `Authenticate`'s reply to them meets `P`, `clientAuthPre`), or an error (the dial's) and `nil`. No fact
 about the watch server (D19f): constructing the watcher only allocates it, so a client that never
 watches needs none; `isNewClient_watcher` adds `watchAddrFacts V` (with `eps = [V.addr]`: a watch is
-a stream, to one address) before the first `Watch`. -/
+a stream, to one address) before the first `Watch`. The client's `cfg` field holds `cfg`, read-only
+(2026-11-24: what `clientNoProxy` reads, `notes/putget-dist-plan.md` §12). -/
 abbrev clientv3.New.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 31)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
     (P : GoString → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      clientCfgOk cfg eps ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (clientCfgOk cfg eps ∗
       -- (the auth plan's C1, 2026-10-28) its credentials' tokens
-      clientAuthPre cfg eps P }}
+      clientAuthPre cfg eps P) }}
     (App (Val (@! go_etcd_io.etcd.client.v3.New)) (Val #cfg))
-  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
-      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
+  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientTokAt cl eps P ∗
+        clientF cl go!"cfg" ↦□ cfg) ∨
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 end spec
 

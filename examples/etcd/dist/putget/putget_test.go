@@ -36,6 +36,12 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, "usage: member PEER CLIENT | client CLIENT")
 		os.Exit(2)
 	}
+	// The machines inherit this process's environment: give them the one the theorems' premises
+	// describe (verifyEnvOff: ETCD_VERIFY off; no proxy variable set, so that no non-loopback
+	// dial or request goes through a proxy: examples/premisefix/proxyenv).
+	for _, k := range []string{"ETCD_VERIFY", "HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "NO_PROXY", "no_proxy"} {
+		os.Unsetenv(k)
+	}
 	os.Exit(m.Run())
 }
 
@@ -164,4 +170,26 @@ func TestPutGet(t *testing.T) {
 		}
 	}
 	t.Logf("faulty rounds: %d of %d checked", checked, rounds)
+}
+
+// TestAddrOk: the addresses TestPutGet deploys at pass Member's and Client's check (so its
+// fault-free round reaches the real path), and malformed ones do not (Member and Client then
+// return at once).
+func TestAddrOk(t *testing.T) {
+	for _, a := range []string{"10.0.0.1:2380", "10.0.0.1:2379", "127.0.0.1:21000", "127.0.0.1:28999"} {
+		if !AddrOk(a) {
+			t.Errorf("AddrOk(%q) = false", a)
+		}
+	}
+	for _, a := range []string{"", "localhost:2379", "0.1.2.3:80", "224.0.0.1:80", "1.2.3.4:0",
+		"1.2.3.4:40000", "01.2.3.4:80", "1.2.3:80", "1.2.3.4.5:80", "1.2.3.4", "256.1.1.1:80"} {
+		if AddrOk(a) {
+			t.Errorf("AddrOk(%q) = true", a)
+		}
+	}
+	Member("bad", "10.0.0.1:2379")           // returns at once
+	Member("10.0.0.1:2379", "10.0.0.1:2379") // the same address twice: returns at once
+	if Client("bad") {
+		t.Error("Client(\"bad\") ran its check")
+	}
 }

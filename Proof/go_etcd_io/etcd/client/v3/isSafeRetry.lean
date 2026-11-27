@@ -43,7 +43,7 @@ theorem isSafeRetry.wp_proof
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     isSafeRetry.spec (GF := GF) (hG := hG) := by
   intro c err o pol m
-  wp_start as ⟨#Hc, #Ho, %Herr, #Hse, #Hpol, #Hm, #Hnl⟩
+  wp_start as ⟨Htok, #Hc, #Ho, %Herr, #Hse, #Hpol, #Hm, #Hnl⟩
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -73,16 +73,19 @@ theorem isSafeRetry.wp_proof
   cases b1
   rotate_left
   · wp_auto
-    iapply HΦ; ipureintro; intro h; cases h
+    iapply HΦ; iframe Htok; ipureintro; intro h; cases h
   wp_auto
   wp_apply (wp_Is err (GoInterface.ok eL) (some (m, _)) (Or.inr (Or.inl ⟨eL, rfl, HeLp⟩))) $$ [$Herrs $Hse] as %b2 %Hb2
-  · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hm HdL
+  · -- (#45) and the target's description
+    isplitr
+    · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hm HdL
+    · iexists _; iexact HdL
   cases b2
   rotate_left
   · wp_auto
-    wp_apply wp_Endpoints c $$ [$Hc] as %sl -
+    wp_apply wp_Endpoints c $$ [$Hc $Htok] as %sl ⟨Htok, -⟩
     wp_if_destruct
-    · iapply HΦ; ipureintro; intro _; left
+    · iapply HΦ; iframe Htok; ipureintro; intro _; left
       rcases (Hb2 rfl).1 _ _ rfl with h | h
       · exact absurd h HnL
       · rw [h]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
@@ -90,10 +93,10 @@ theorem isSafeRetry.wp_proof
     wp_if_destruct
     · wp_apply wp_Imm err $$ [] as %b -
       · iframe #; ipureintro; exact Herr
-      iapply HΦ; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
+      iapply HΦ; iframe Htok; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
     wp_if_destruct
     · wp_apply wp_Mut err m $$ [$Hse $Hm] as %b %Hb
-      iapply HΦ; ipureintro; intro h; left; exact Hb h
+      iapply HΦ; iframe Htok; ipureintro; intro h; left; exact Hb h
     wp_method_call
     wp_auto
     wp_apply wp_String ov.retryPolicy' as %str -
@@ -106,15 +109,15 @@ theorem isSafeRetry.wp_proof
     wp_apply wp_GetLogger c $$ [$Hlg] as %lg #Hlgn
     wp_apply wp_Warn lg _ _ $$ []
     · iframe #
-    iapply HΦ; ipureintro; intro h; cases h
+    iapply HΦ; iframe Htok; ipureintro; intro h; cases h
   · wp_auto
     wp_if_destruct
     · wp_apply wp_Imm err $$ [] as %b -
       · iframe #; ipureintro; exact Herr
-      iapply HΦ; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
+      iapply HΦ; iframe Htok; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
     wp_if_destruct
     · wp_apply wp_Mut err m $$ [$Hse $Hm] as %b %Hb
-      iapply HΦ; ipureintro; intro h; left; exact Hb h
+      iapply HΦ; iframe Htok; ipureintro; intro h; left; exact Hb h
     wp_method_call
     wp_auto
     wp_apply wp_String ov.retryPolicy' as %str -
@@ -127,7 +130,7 @@ theorem isSafeRetry.wp_proof
     wp_apply wp_GetLogger c $$ [$Hlg] as %lg #Hlgn
     wp_apply wp_Warn lg _ _ $$ []
     · iframe #
-    iapply HΦ; ipureintro; intro h; cases h
+    iapply HΦ; iframe Htok; ipureintro; intro h; cases h
 
 end proof
 

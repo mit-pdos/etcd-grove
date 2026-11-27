@@ -16,8 +16,9 @@ configuration with those fields and URLs `U` meeting `Uok` (one member's `urls1`
 cluster's `urls3`: the member's peer and client URLs, the initial cluster's map of the shape the
 caller builds, the initial URLs by name), at the bound `N` and the directory `dir`.
 
-**The premises the members share** (`commonPremises`): the raft wrapper's trust-boundary contracts,
-`Stop` of a started node (until 2026-11-13 also the deployment's `runsNoRequireLeader`).
+(Until 2026-11-24 **the premises the members share**, `commonPremises`: the raft wrapper's trust-boundary
+contracts `rnLoggerZapOk`, `rnTimeoutDetectorOk`; now axioms `newRaftNode`'s proof takes, and the
+definition is gone.)
 
 **A member built and started** (`memberBuilt`: `newServer`'s success, what `Start` takes;
 `memberUp`: `Start`'s, what serving it needs) and **what `NewServer` takes of the ghost state**
@@ -30,9 +31,11 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.UnaryChain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.net.InvNet
+public import Proof.google_golang_org.grpc.InvGrpcRun
 public import Spec.google_golang_org.grpc.Server__Serve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
@@ -82,6 +85,27 @@ theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoS
   have he : stringToGoString "" = [] := by simp [stringToGoString]
   exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, hm⟩
 
+/-- **An address within etcd's URL bounds** (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2):
+`http://addr` a plain peer URL (`http://host:port`, `types.plainPeerURL`) of at most
+`etcdURLLenMax` bytes, so that a member's URL list `[http://addr]` is within `NewServer`'s
+`etcdURLsFit` (`etcdURLsFit_httpURL`). Decidable: the examples' literal addresses discharge it by
+`decide`. -/
+def addrFits (a : GoString) : Prop :=
+  types.plainPeerURL (go!"http://" ++ a) ∧ (go!"http://" ++ a).length ≤ etcdURLLenMax
+
+instance (a : GoString) : Decidable (addrFits a) := by unfold addrFits; infer_instance
+
+/-- **`[http://addr]` is within etcd's URL bounds**, of an address that fits (`NewServer`'s
+`etcdURLsFit` premise). -/
+theorem etcdURLsFit_httpURL (a : GoString) (h : addrFits a) : etcdURLsFit [httpURL a] := by
+  refine ⟨by simp [etcdURLCountMax], fun u hu => ?_⟩
+  rw [List.mem_singleton.1 hu]
+  have hpl := h.1.2
+  rw [List.drop_left' (by rfl)] at hpl
+  obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape a hpl
+  have he : stringToGoString "" = [] := by simp [stringToGoString]
+  exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, h.2⟩
+
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
 the member's initial URLs its peer URLs. -/
@@ -116,16 +140,20 @@ theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice
 
 /-- **`bootstrap`'s configuration conditions at either start** (`bootCfgOk`; 2026-11-03, the
 whole-`bootOk` review, C) from the fields a configuration literal sets: the default quota,
-batch limit and bootstrap defragmentation (zero), raft's `10` ticks (2026-11-03, the boot premises:
+batch limit and bootstrap defragmentation (zero), raft's `10` ticks, peer TLS with no certificate
+(the literal leaves `PeerTLSInfo` zero; 2026-11-25) (2026-11-03, the boot premises:
 the clock no longer `bootCfgOk`'s; `raftNode.bootCfg_of` takes it; sweep repairs 1, R1-2: the logger
-no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract). -/
+no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract; claim #34's final stage, 2026-11-25:
+the WAL's fsync on, `UnsafeNoFsync` false, the literal's zero value). -/
 theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (hq : cfg.QuotaBackendBytes' = W64 0)
     (hbl : cfg.BackendBatchLimit' = W64 0)
     (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0)
-    (het : cfg.ElectionTicks' = W64 10) : bootCfgOk cfg := by
+    (het : cfg.ElectionTicks' = W64 10)
+    (htls : transport.tlsEmpty cfg.PeerTLSInfo')
+    (hnf : cfg.UnsafeNoFsync' = false) : bootCfgOk cfg := by
   have hl : storage.openLimit cfg = W64 10000 := by unfold storage.openLimit; rw [if_pos hbl]
-  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_⟩
+  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_, htls, hnf⟩
   · rw [hl]; decide
   · rw [hl]; decide
   · rw [het]; decide
@@ -148,11 +176,12 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- **The configuration `newServer` passes to `NewServer`**, by its scalar fields (its pointers --
 the logger, the feature gate, the URLs, read through `bootCfgRO` -- are the caller's allocations):
 member `name` of a new cluster with token `token`, data directory `name.etcd`, raft's clock `100`
-ms and `10` ticks. -/
+ms and `10` ticks, and (2026-11-24, the interim bootstrap axiom: `bootstrap.spec`'s premise) fsync on
+(`UnsafeNoFsync` false: `newServer`'s literal leaves it zero). -/
 def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   cfg.Name' = name ∧ cfg.DataDir' = memberDataDir name ∧
     cfg.InitialClusterToken' = token ∧ cfg.NewCluster' = true ∧
-    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
+    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10 ∧ cfg.UnsafeNoFsync' = false
 
 /-- **`bootstrap`'s contract for member `name`** (id `id`) of the cluster `ps` with token `token`,
 at every server raft names of the cluster (its peers `ps`, static, its bootstrap log `bootLog`; at
@@ -194,13 +223,6 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
   iapply H
   ipureintro
   exact ⟨Hc cfg hc, Hu U hu, h1, h2, h3⟩
-
-/-- **The premises shared by the members** (see the file header). -/
-def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
-
-instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
-  unfold commonPremises; infer_instance
 
 /-- **The stand-in apply environment** (`NewServer.spec`'s `E₀`): the server's names of the store's
 state `γs`, the revisions' map `rev`, the store's witness `Nx` and (M2, the storage side, review
@@ -245,7 +267,9 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    -- (etcd-dist D7) the prefix's generators' facts, on the member's machine
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
@@ -379,7 +403,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
-    srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     memberPeerServeRes γn τ served ∗
     srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
@@ -497,7 +521,10 @@ being built with etcd's interceptor chains and services (`v3rpc.Server.spec`'s p
 the configuration `C` `grpcCfgOk_of_started` gives: the KV answers of the server's views at
 `E`, `ρ`, `γr`; the watch server's state `R` at `E`; per-type stage B3: no reader stock of the
 watchable store any more, the watch runs borrow from the run pools), the
-server's resources back, and the listener `lis` at `addr`. -/
+server's resources back, and the listener `lis` at `addr`, or the server and the listener bound by
+the members' no-refusal certificate, with the certificate (`grpcSrvAtLis`, `noRefusalAt`:
+`etcd_noRefusal` takes the former and gives the latter, `grpcUp_noRefusal`); the unary chain etcd's
+by identity (`v3rpc.etcdUnaryIcs`, what `etcd_noRefusal` reads). -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -507,7 +534,8 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
       R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧
       ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
     v3rpc.grpcCfgOk s C ∗
-    grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
+    ((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+      (grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ∗
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     v3rpc.kvServerIs p s C.A cid mid C.n ∗
@@ -517,7 +545,19 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netAddrLeft addr ∗ grpcLeaseUp s C.A regs ∗ v3rpc.etcdUnaryIcs s [il, im, iu])
+
+/-- **`grpcUp`'s server at its listener, the certificate dropped**: what the
+single-process start takes (`client.grpcStartAtLis`). -/
+theorem grpcSrvUp_lis (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
+    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
+    ((grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
+        (grpcSrvAtLis gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ⊢
+      (grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
+        grpcSrvAtLis gs lis addr ics sics svcs regs sregs := by
+  iintro (H | ⟨H, -⟩)
+  · ileft; iexact H
+  · iright; iexact H
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -544,7 +584,9 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       (m = .revocable → lease.leasesNoExpiry)⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    -- (etcd-dist D7) the prefix's generators' facts, on the member's machine
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
@@ -621,7 +663,7 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
 
 
 /-- **What `v3rpc.Server` and `Listen` return, in the auth mode `on`** (the auth component's stage 5;
@@ -648,7 +690,8 @@ def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs ∗
+    v3rpc.etcdUnaryIcs s [il, im, iu])
 
 open Iris.ProofMode in
 /-- **`grpcUpM` with auth off is `grpcUp`** (a bridge): the configuration, the `*kvServer` and the
@@ -660,8 +703,12 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, #Hlu⟩
+    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu, #Hics⟩
   obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
+  ihave Hn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+      (grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝))
+    $$ [Hn Hlis]
+  · ileft; iframe Hn Hlis
   have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by
     rw [hA]; exact v3rpc.raftKV_srvKVAnsM_false s E ρ γr (W64 0) [] .none
   have hR : C.A.revR = (v3rpc.srvKVAns (GF := GF) s E ρ γr (W64 0) [] .none).revR := by
@@ -692,7 +739,7 @@ theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, #Hlu⟩
+    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu, -⟩
   obtain ⟨hA, hE, hkv, hau, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢
       v3rpc.raftKV s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) := by
@@ -733,6 +780,95 @@ theorem serveViews_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
   rw [hon, isServerReqM_false, isServerReadM_false]
   iframe #
   ipureintro; exact ⟨rfl, by rw [hM]; simp⟩
+
+/-! ### A served address's table, for its bridges (phase 7's switch, SW1, 2026-11-24)
+
+Since the switch a bridge's address serves its target's service table (`bridge.New`), and a
+registration is read off the dialed address's own table: there is no law transporting a registration
+from one address to another (the protocols are opaque, `notes/phase7-endstate.md` §1.5 item 5). So
+what a member serves is given relative to its table: `tableAt c P` is the single-process start's
+table term at `c` (`grpcServerAt`) with `P` at every address serving that term, and a bridge set to
+the term (`grpcServerAt_bridge`) serves `P`. -/
+
+/-- **`P` at every address serving the table `c` serves** (persistent; see above). -/
+def tableAt (c : GoString) (P : GoString → IProp GF) : IProp GF :=
+  iprop(∃ (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface))
+      (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (sms : List (GrpcStreamMethod GF)),
+    grpcServerAt c ics regs tys sms ∗ □ ∀ a, grpcServerAt a ics regs tys sms ={⊤}=∗ P a)
+
+instance tableAt_persistent (c : GoString) (P : GoString → IProp GF) :
+    Persistent (tableAt (GF := GF) c P) := by
+  unfold tableAt; infer_instance
+
+open Iris.ProofMode in
+/-- `P` at the table's own address. -/
+theorem tableAt_self (c : GoString) (P : GoString → IProp GF) :
+    tableAt (GF := GF) c P ⊢ |={⊤}=> P c := by
+  iintro #H
+  iunfold tableAt at H
+  icases H with ⟨%ics, %regs, %tys, %sms, #Hc, #Hw⟩
+  iapply Hw $$ %c Hc
+
+open Iris.ProofMode in
+/-- A table's `P` gives a weaker `Q`. -/
+theorem tableAt_mono (c : GoString) (P Q : GoString → IProp GF) :
+    tableAt (GF := GF) c P ∗ □ (∀ a, P a ={⊤}=∗ Q a) ⊢ tableAt c Q := by
+  iintro ⟨#H, #Hpq⟩
+  iunfold tableAt at H
+  icases H with ⟨%ics, %regs, %tys, %sms, #Hc, #Hw⟩
+  iunfold tableAt
+  iexists ics, regs, tys, sms
+  iframe Hc
+  iintro !> %a #Ha
+  try dsimp only
+  imod Hw $$ %a Ha with HP
+  iapply Hpq $$ %a HP
+
+open Iris.ProofMode Net in
+/-- **A bridge's address set to its target's table** (phase 7's switch, SW1): what `Listen` left at
+`b` (`netAddrLeft`) sets `b`'s protocols to those of the table term `c` serves, at `c`'s net names
+(`grpc_addr_set_tok`, the registry and slot map from `c`'s, `grpcAddrAt_regCtx`, `grpcAddrAt_slots`): `b` serves the term
+(`grpcServerAt`), and both addresses serve one table, what `bridge.New` takes. -/
+theorem grpcServerAt_bridge (b c : GoString) (ics : List GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface))
+    (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (sms : List (GrpcStreamMethod GF)) :
+    netAddrLeft b ∗ grpcServerAt (GF := GF) c ics regs tys sms ⊢
+      |={⊤}=> grpcServerAt b ics regs tys sms ∗
+        ∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
+          grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) b (grpcStartSvc ics regs tys sms) ∗
+          grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) c (grpcStartSvc ics regs tys sms) := by
+  iintro ⟨Hleft, #Hc⟩
+  iunfold grpcServerAt at Hc
+  icases Hc with ⟨%hX, %π, %σ, #Ha⟩
+  iunfold netAddrLeft at Hleft
+  icases Hleft with ⟨%hX', Hp, #Hv, #Hti⟩
+  have h : hX' = hX := proof_irrel _ _
+  subst h
+  ihave #Hreg := grpcAddrAt_regCtx (Gg := hG.goose_globalGS) c _ $$ Ha
+  ihave #Hsl := grpcAddrAt_slots (Gg := hG.goose_globalGS) c _ $$ Ha
+  imod grpc_addr_set_tok (Gg := hG.goose_globalGS) (π := π) (σ := σ) ⊤ b
+    (grpcStartSvc ics regs tys sms) $$ Hreg Hsl Hp Hv Hti with #Hb
+  imodintro
+  isplitl []
+  · unfold grpcServerAt; iexists _, π, σ; iexact Hb
+  iexists _, π, σ
+  iframe Hb Ha
+
+/-- **The level-0 token of a member's `GoAttach` resources, lent out** (decision 1b, 2026-11-24): the
+thread holding `srvGoRes` (its own thread token, given to `Start`) borrows its level 0 for its client
+calls; `GoAttach` uses only the levels from 1 (`GoAttachTok.lean`). -/
+theorem srvGoRes_level0 (s : Loc) :
+    srvGoRes (GF := GF) s ⊢ levelTok 0 ∗ (levelTok 0 -∗ srvGoRes s) := by
+  iintro H
+  iunfold srvGoRes at H
+  icases H with ⟨Hwg, Htok⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
+  iframe H0
+  iintro H0
+  iunfold srvGoRes
+  iframe Hwg
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe
 
 end defs
 

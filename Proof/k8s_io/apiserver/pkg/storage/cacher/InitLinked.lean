@@ -19,8 +19,8 @@ public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Proof.go_opentelemetry_io.otel.attribute.Init
-public import Proof.google_golang_org.grpc.metadata.Init
+public import Proof.go_opentelemetry_io.otel.attribute.InitLinked
+public import Proof.google_golang_org.grpc.metadata.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
@@ -37,7 +37,7 @@ public import Proof.k8s_io.apiserver.pkg.audit.Init
 public import Proof.k8s_io.apiserver.pkg.endpoints.request.InitLinked
 public import Proof.k8s_io.apiserver.pkg.features.Init
 public import Proof.k8s_io.apiserver.pkg.storage.InitLinked
-public import Proof.k8s_io.apiserver.pkg.storage.cacher.consistency.Init
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.consistency.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.delegator.Init
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.key.Init
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.InitLinked
@@ -45,10 +45,10 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.feature.InitLinked
 public import Proof.k8s_io.apiserver.pkg.util.feature.Init
 public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.InitLinked
-public import Proof.k8s_io.client_go.tools.cache.Init
+public import Proof.k8s_io.client_go.tools.cache.InitLinked
 public import Proof.k8s_io.client_go.util.consistencydetector.Init
 public import Proof.k8s_io.client_go.util.watchlist.Init
-public import Proof.k8s_io.component_base.tracing.Init
+public import Proof.k8s_io.component_base.tracing.InitLinked
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.k8s_io.utils.clock.Init
 public import Proof.net.http.Init

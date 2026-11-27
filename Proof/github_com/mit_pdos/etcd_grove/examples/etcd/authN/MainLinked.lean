@@ -10,6 +10,7 @@ the transport's directory bound for up to `1000` members by `rafthttp.bootCfg_of
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run
@@ -49,23 +50,23 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assum
 /-- **A member started with auth on, at any token and snapshot settings** (`StartMemberAuth.lean`):
 `NewServer.specM true` (`server_new_auth_on`), the raft handler served,
 `Start.spec`. -/
-theorem etcd_authN.wp_StartMemberAuth [_root_.Perennial.net.FieldAssumptions] :
+theorem etcd_authN.wp_StartMemberAuth :
     etcdstart.StartMemberAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMemberAuth.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
+    server_new_auth_on etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler server_Start
 
 /-- **The `k` members started with auth on** (`StartMembersAuth.lean`). -/
-theorem etcd_authN.wp_StartMembersAuth [_root_.Perennial.net.FieldAssumptions] :
+theorem etcd_authN.wp_StartMembersAuth :
     etcdstart.StartMembersAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMembersAuth.wp_proof etcd_authN.wp_StartMemberAuth
 
 /-- **authN's `newUserClient`** (auth3's copy), over `clientv3.New`. -/
-theorem etcd_authN.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_newUserClient :
     etcd_authN.newUserClient.spec (GF := GF) (hG := hG) :=
   etcd_authN.newUserClient.wp_proof client.v3.clientv3.wp_New
 
 /-- **authN's `barrier`**: root's linearizable read at a member (`barrier.lean`). -/
-theorem etcd_authN.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_barrier :
     etcd_authN.barrier.spec (GF := GF) (hG := hG) :=
   etcd_authN.barrier.wp_proof etcd_authN.wp_newUserClient context.wp_ErrAny
     etcd_auth.context.wp_WithTimeoutBackground etcd_auth.client_Get_on_law_holds
@@ -73,8 +74,7 @@ theorem etcd_authN.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 
 /-- **authN's `run`**: authkv's run across the `k` members (`run.lean`), over authkv's linked
 `SetUp`, `Work` and checks (`auth/Link.lean`). -/
-theorem etcd_authN.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_authN.run.spec (GF := GF) (hG := hG) :=
   etcd_authN.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_authN.wp_newUserClient etcd_authN.wp_barrier
@@ -86,12 +86,12 @@ theorem etcd_authN.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.et
 
 /-- **authN's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Main.lean`). -/
-theorem etcd_authN.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_Main :
     etcd_authN.Main.spec (GF := GF) (hG := hG) :=
   etcd_authN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     etcd_authN.wp_StartMembersAuth etcd_authN.wp_run
     mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

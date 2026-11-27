@@ -56,10 +56,6 @@ stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/InvWatchBuilt\.lean$
 # at `Restore` and at the close (`RestoreApi`, `ClosedLaw`).
 stock ^Spec/go_etcd_io/etcd/server/v3/storage/mvcc/(Api|EtcdBackend)\.lean$
 stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|NewStoreApiLemmas|RestoreApi|ClosedLaw|ImageBridge)\.lean$
-# The randomized mvcc test's history lock, by its owner, the test (`examples/mvccrand`, 2026-11-07):
-# `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
-# the lock's slots), `runChecks` hands one to each reader goroutine it forks.
-stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|runChecks)\.lean$
 # The full tester's epoch tokens, by their owner, the tester (`examples/mvccfull`, 2026-11-10): the
 # writer lends its incarnation's per-stream parts (`epochTok`: a history reader slot and the
 # registrar's and receiver's `epRd`), one per stream, counted by `cfg.Streams` (bounded by `Run`'s
@@ -103,6 +99,10 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Run|RunLemmas)\.l
 # length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length); only the
 # registered instances' files in their owner packages.
 wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcdserver/api/v3rpc)/PerType[A-Za-z]*\.lean$
+# (grpc-driver-lean, 2026-11-25) The same for protobuf's `StringValue`, registered for gRPC's robustness
+# driver in its owner package: `PerTypeStringValue` owns `stringValueWireLen` and proves rule 7's witness and
+# the send bound from it, and gives its clients `pbStringValueS_wireLen_lt` (the driver's proofs unfold nothing).
+wire-unfold ^Proof/google_golang_org/protobuf/types/known/wrapperspb/PerTypeStringValue\.lean$
 
 # k8s 7e (decided by etcd-grove-81, 2026-11-10; follow-up: thread `threadTok` through the owner instead,
 # `notes/k8s-7e-1-handoff.md`, "Follow-ups"). The etcd3 store's list path (7e-2): `New` builds
@@ -133,6 +133,12 @@ spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(newCancellable
 # of its own thread token to the renewals (`levelTok v3rpc.ctxErrLvl`, `threadTok_lend4`), as `sendLoop`'s.
 spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseKeepAlive\.lean$
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/(lib/etcdstart/Serve|etcd/restart/serveClient)\.lean$
+# (grpc-driver-lean, 2026-11-25) gRPC's robustness driver's `Client()`: the owner of its workers' wait group
+# (`var wg sync.WaitGroup`, made by `sync.tokJoin.init`, whose premise is `threadBound GF ≤ 2 ^ 31`), as
+# `newLessor` makes `le.mu` and takes its lock's bound (above); its only caller is the command's `main`
+# (`cmd/client/Main.lean`, a proof), which takes it from the adequacy theorem's constants. (net/rpc's driver's
+# `callOn`, the same owner pattern, sits in `Net/`, which this check does not scan.)
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/Client\.lean$
 
 # The auth realization's reader pools (auth-schema-srv A6, 2026-11-18; ported 2026-11-19): their owner,
 # `authReal`, builds its ticket and reserved pools from the backend's auth reader slots (`authRdN`) and
@@ -143,3 +149,80 @@ stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthReal(Pool|Life|Srv)\.lean$
 # `tickMu`'s pools of reader slots (srvloops2, 2026-11-21, bounds B2 for `tickMu`), made by the lock's
 # owner, the raft wrapper's install (`isRaftNode_of_rnParts`), from the fresh lock's slots, half per level.
 stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NodeStart\.lean$
+
+# (etcd-dist, 2026-11-25) The multi-machine variants of `NewServer`'s spec and the dist example's member
+# specs (`NewServerDist`, `PeerServeDist`, `StartMemberDist`): each restates `NewServer`'s pre and post
+# (the configuration's `etcdMaxRequestBytesOk`/`maxTxnOpsOk`, the thread and receipt bounds, the HTTP
+# server's `httpProcSlots` stock) and mirrors NewServer's baselined match (`etc/bounds-baseline.txt`);
+# they move with it when `NewServer`'s bounds move to their owners (notes/bounds-plan.md).
+spec-cfg ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
+spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
+stock ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
+# (N5, 2026-11-25) The member machine's split of `memberBuilt` (`memberBuilt_split`): it hands the HTTP server's
+# `httpProcSlots` stock of `NewServer_dist`'s post (`memberPeerServeRes`) to `PeerServe_dist`, served after `Start`.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/MemberSplit\.lean$
+# (M1, 2026-11-26) kvremote's machine preconditions: the orchestrator's share (`kvOrchPre`: the receipt bound, from
+# the start's `receiptBound ≤ etcdSteps`) and a client machine's local part (`kvNodePreL`: the thread bound, from
+# the machine's boot at `etcdThreads`): the adequacy theorem's constants, handed over by the machines' boots
+# (`kvremote/TopLevelRobustness.lean`'s `etcdKvBootNC_holds`, `kvremote/AdequacyClient.lean`'s `kvNodeBoot`).
+spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Orch\.lean$
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Node\.lean$
+# (N9a, 2026-11-26; F5 compact, 2026-11-26) dist/client's orchestrator workloads (putget, durable, compact) and their `newClient`: the logic's thread
+# bound (`threadBound GF ≤ 2 ^ 30`, `NewClients`' premise) is a pure premise of the machine's program, discharged
+# from `etcdThreads` by the orchestrator machine's boot (as `kvremote/Node`'s), not a top-level premise.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunPutGet|RunDurable|RunCompact|RunCache)\.lean$
+
+# (N10a, 2026-11-26) the watch workload's machine programs over the logic's thread bound
+# (`threadBound GF ≤ 2 ^ 30`): `newClient` (NewClients', the line above), `RunWatch` (the orchestrator), `remoteWriters`,
+# `reportAll` and `CallAll` (one goroutine per writer: `sync.tokJoinL`'s wait group counter). Discharged
+# from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunWatch|remoteWriters|reportAll|CallAll)\.lean$
+# (F7 S7, 2026-11-26) the auth workload's principal service, the writers' pattern: `remotePrincipals` (the
+# orchestrator's `reportAll` at the principals: `CallAll`'s goroutine per principal) and `principalOp` (the
+# principal machine's op, over `newClient`'s premise) take the logic's thread bound (`threadBound GF ≤ 2 ^ 30`),
+# discharged from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(remotePrincipals|principalOp)\.lean$
+# (F7 S12, 2026-11-26) `principalClient`, `principalOp`'s client: its callees `newClient` and `newUserClient` take
+# `threadBound GF ≤ 2 ^ 30`, so it carries the premise `principalOp` already has (same discharge, the machine's boot).
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/principalClient\.lean$ decl=^principalClient\.spec$
+# (F7 S8, 2026-11-26) `RunAuth`, the auth workload's orchestrator (as `RunWatch`, above): its
+# `threadBound GF ≤ 2 ^ 30` (`newClient`'s and `remotePrincipals`' premise) is the orchestrator machine's,
+# discharged from `etcdThreads` by its boot, not a top-level premise.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/RunAuth\.lean$ decl=^RunAuth\.
+# (N10a2 §24.7, 2026-11-26) the writers' Puts counted by receipts: `GenAll_receipts` (`GenAllR`: the Puts fewer
+# than `receiptBound`, one receipt per iteration) and `RunWatch`'s and `RunCache`'s `receiptBound GF ≤ 2 ^ 56`. Discharged at the
+# machine's boot from the start's `receiptBound ≤ etcdSteps`, not a top-level premise (as kvremote's `Orch`).
+spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(GenAllR|RunWatch|RunCache)\.lean$
+
+# (F8, 2026-11-26) the full dispatch's machine-level pure facts (`orchMachinePure`, `nodeMachinePure`): the logic's
+# thread bound (`newClient`'s, the `Run*` arms') and the receipt bound (`RunWatch`/`RunCache`'s `GenAll` receipts),
+# pure premises of the machine's program, discharged from `etcdThreads`/`etcdSteps` by the machines' boots
+# (`dist/AdequacyClient.lean`'s `orchBoot`, `nodeBoot`), not top-level premises.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(MainReady|NodeMain)\.lean$
+spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/MainReady\.lean$
+# (F7, 2026-11-26) The member-at-a-name variants that F7 adds beside a baselined spec (`decl=`: the variant only,
+# so the original's matches stay counted): `NewServer.specGAt`/`specGAtA` (the lessor at `γl`; auth on at `γa`),
+# `lease.NewLessor.specAt`, `etcdstart.{StartServer,newServer,newServerMode}.specAt`. Each restates its original's
+# premises (the configuration's `etcdMaxRequestBytesOk`/`maxTxnOpsOk`, the thread and receipt bounds, the reader
+# and `httpProcSlots` stocks) and mirrors its baselined match, as `NewServerDist`'s entries above; in the dist
+# deployment they are discharged by the member machine's boot (`etcdThreads`, `etcdSteps`: `TopLevelDefs.lean`),
+# and they move with the original when its bounds move to their owners (notes/bounds-plan.md).
+spec-cfg ^Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer\.lean$ decl=^NewServer\.specGAtA?$
+spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer\.lean$ decl=^NewServer\.specGAtA?$
+spec-receipt ^Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer\.lean$ decl=^NewServer\.specGAtA?$
+stock ^Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer\.lean$ decl=^NewServer\.specGAtA?$
+spec-readers ^Spec/go_etcd_io/etcd/server/v3/lease/NewLessor\.lean$ decl=^lease\.NewLessor\.specAt$
+stock ^Spec/go_etcd_io/etcd/server/v3/lease/NewLessor\.lean$ decl=^lease\.NewLessor\.specAt$
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/(StartServer|newServer|newServerMode)\.lean$ decl=^(StartServer|newServer|newServerMode)\.specAt$
+spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/(StartServer|newServer|newServerMode)\.lean$ decl=^(StartServer|newServer|newServerMode)\.specAt$
+# (F7) The members' read-loop slots (`memberReadN` readers, `etcdstart.Defs`' split of `start`'s stock) in the
+# auth-on member with the lessor at `γl` (`memberUpOnL_intro`) and the dist member's lessor bridge
+# (`MemberLessor.lean`): the same stock `memberUpOn_intro`/`Served.lean` hand over, passed along, not counted again.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Start\.lean$ decl=^memberUpOnL_intro$
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/MemberLessor\.lean$
+# (F7) The dist lease/auth workloads' client-machine helpers (`examples/etcd/dist/client`: `newClient`,
+# `newUserClient`, `barrier(s)`, `leaseReadCheck`, `RunLease{Read,Expiry,Catchup}`, `RunAuthLease`): their
+# `threadBound GF ≤ 2 ^ 30` is the client machine's, discharged by its boot at `etcdThreads` (`2 ^ 28`), as
+# kvremote's `Node` (above).
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|newUserClient|barrier|barriers|leaseReadCheck|RunLeaseRead|RunLeaseExpiry|RunLeaseCatchup|RunAuthLease)\.lean$

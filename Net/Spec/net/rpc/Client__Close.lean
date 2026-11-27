@@ -22,7 +22,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
@@ -31,6 +31,14 @@ abbrev Client.Close.spec : Prop :=
   {{ isClient c W a }}
     (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∨ models_lab.errAny err }}
+
+/-- `Client.Close.spec`, which also says the client is closing for good afterwards (`cliClosed`:
+whichever branch ran, `closing` is set). Proved in `Net/Proof/net/rpc/Client__CloseClosed.lean`. -/
+abbrev Client.Close.spec_closed : Prop :=
+  ∀ (c : Loc) (W : RpcWorld GF) (a : GoString),
+  {{ isClient c W a }}
+    (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Close")) (Val #()))
+  {{ (err : GoInterface), RET #err; (⌜err = interface.nil⌝ ∨ models_lab.errAny err) ∗ cliClosed c }}
 
 end spec
 

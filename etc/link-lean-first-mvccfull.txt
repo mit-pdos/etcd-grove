@@ -5,7 +5,7 @@
 # every proof but the glue (`notes/mvccfull-proof-plan.md`, "Draft: the glue list") is `sorry`.
 #
 # mvcc, through its API: the API's laws and specs, given as terms (`=`), from mvcc's
-# `ApiResults.lean` (an extra import of the mode), as mvccrand's.
+# `ApiResults.lean` (an extra import of the mode).
 #
 # (mvccfull's Freeze, 2026-11-10: the side-by-side candidates `api.New.specR` and
 # `lease.NewLessor.specR`, hypotheses here until then, are now `New.spec` and `NewLessor.spec`.)
@@ -30,7 +30,7 @@ heap_Pop: heap_down
 lease_lessor__checkpointScheduledLeases: lease_lessor__isPrimary lease_lessor__findDueScheduledCheckpoints
 lease_lessor__findDueScheduledCheckpoints:
 #
-# The trust boundary and the callees linked elsewhere (as mvccrand's): zap's `NewNop` (an axiom),
+# The trust boundary and the callees linked elsewhere: zap's `NewNop` (an axiom),
 # `context.TODO`, traceutil's `TODO`, the backend's (`@`, the backend's `Link.lean`), Perennial's
 # `time.Sleep` and `sort.Strings` (`=`).
 zap_NewNop:
@@ -86,7 +86,7 @@ lease_lessor__isPrimary:
 # zap's Debug (over the trust boundary's `Logger.check` and `CheckedEntry.Write`), Int64, Duration,
 # and `time.Duration.Seconds`, as the server's `Link.lean` links them
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Int64:
 zap_Duration:
@@ -106,6 +106,19 @@ lease_lessor__Recover: lease_lessor__initAndRecover
 # is, `Run`'s test that skips them)
 FilePaths: memberPath buildPath
 Main: MainConfig Run
+# (P3 of the pure-premise plan, 2026-11-24) `MainAt(r)`: the run in the directory `r`, after its own
+# checks of `r` (`dirFits`) and of each of its file names (`absent`: `os.Lstat`, then `errors.Is` of
+# its error against `os.ErrNotExist`, `errors.IsPathErrnoNotExist.spec`, proved in `Proof/errors/`)
+dirFits:
+absent: =_root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
+# (mvcc-followup, 2026-11-26) `MainAt` draws its configuration (`drawConfig`: `anyInt`, `anyInts`) and
+# runs it when it is in `Run`'s scope (`inScope`: its checks, `hashing` and `weightsFit` of the read weights)
+MainAt: dirFits absent drawConfig inScope FilePaths Run
+anyInt:
+anyInts: anyInt
+drawConfig: anyInt anyInts
+inScope: hashing weightsFit
+weightsFit:
 MainConfig: 
 Run: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds normalize walkKeys zap_NewNop memberPath runner__newMember runner__startEpoch runner__startReaders runner__write runner__stopReaders hashing runner__endEpoch runner__shut runner__open runner__checkAll
 buildPath: itoa
@@ -171,3 +184,6 @@ stream__recvOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_h
 stream__watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds runner__genKey runner__genEnd choose pick context_TODO check
 walkKeys: 
 watcher__matches: inRange
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

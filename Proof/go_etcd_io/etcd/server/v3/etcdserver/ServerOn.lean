@@ -626,6 +626,16 @@ theorem kvCertInvM_alloc (on : Bool) (γs : ServerRaftNames) (γk : KVNames) (st
   · exact kvCertInv_alloc γs γk E h2
   · exact kvCertInvOn_alloc γs γk st₀ E h2
 
+end lemmas
+
+section lemmasHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- A ghost variable's whole as its two halves. -/
 private theorem onGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
     ghostVar (GF := GF) γ 1 a ⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
@@ -755,7 +765,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
   iframe Hinv Hhv
   iunfold etcdKV; iexact Hv2
 
-end lemmas
+end lemmasHF
 
 end EtcdGrove
 end Perennial

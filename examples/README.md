@@ -14,9 +14,9 @@ names).
 
 | dir | was | what it is | headline result |
 |---|---|---|---|
-| `raft/kv` | `kv` | a minimal replicated key-value store (Put, Get, Append through the log), checked by porcupine | `raft_kv_porcupine_safe` |
-| `raft/kvreconf` | `kvreconf` | the store with snapshots, configuration changes, a lossy network, leadership disruptions, reads by read index | `raft_kvreconf_porcupine_safe` |
-| `raft/kvdurable` | `kvdurable` | `kvreconf` made durable: replicas crash and restart from their files | `raft_kvdurable_porcupine_safe` |
+| `raft/kv` | `kv` | a minimal replicated key-value store (Put, Get, Append through the log), checked by porcupine | – (retired 2026-11-24: `kvraft_robust` and kvraft-udp subsume it; the directory with it, at `33f981390b`) |
+| `raft/kvreconf` | `kvreconf` | the store with snapshots, configuration changes, a lossy network, leadership disruptions, reads by read index | – (retired 2026-11-24: `kvraft_robust` and kvraft-udp subsume it; the package stays, translated into `KvRaft/`, whose store proofs stand on its) |
+| `raft/kvdurable` | `kvdurable` | `kvreconf` made durable: replicas crash and restart from their files | – (retired 2026-11-24: `kvraft_robust` and kvraft-udp subsume it; the directory with it, and `raft/kvdurablenoax`, its axiom-free twin in `RaftNoAx/`, at `33f981390b`) |
 | `raft/kvfile` | `durablekv` | `kv` made durable in one file per replica (translated, not yet proved) | – |
 | `raft/kvwitness` | `kvwitness` | `kv` with a witness replica (raft with witness support; the part `RaftWitness/`) | `raft_kvwitness_porcupine_safe` |
 
@@ -47,7 +47,7 @@ names).
 |---|---|---|---|
 | `k8s/etcd3` | `k8setcd3` | porcupine over Kubernetes' etcd3 storage backend, on `k` members under partitions (`MainPartition`, run by `k8s/all`) | – (its closed theorems retired 2026-11-20: `k8s_safe`) |
 | `k8s/daemonset` | `k8sdaemonset` | a DaemonSet controller over an API-server model | – |
-| `k8s/authz` | – | Kubernetes' conditional authorization (KEP-5681, the fork github.com/luxas/kubernetes `c67a81026c8b`) as kube-apiserver runs it: phase 1 (`ConditionsAwareAuthorize`) and phase 2 (`EvaluateConditions`) of a union of leaf authorizers that behave arbitrarily, including lying in phase 2; `Main` panics if phase 2 returns an unknown decision or one phase 1 excluded (projects `k8s-authz`, `k8s-authz-driver`) | `k8s_authz_safe` (`k8s_authz_robust`) |
+| `k8s/authz` | – | Kubernetes' conditional authorization (KEP-5681, the fork github.com/luxas/kubernetes `c67a81026c8b`, with three `%v` of a slice spelled out byte-identically: github.com/upamanyus/kubernetes `goose-lean-authz-fmt2`) as kube-apiserver runs it: phase 1 (`ConditionsAwareAuthorize`) and phase 2 (`EvaluateConditions`) of a union of leaf authorizers that behave arbitrarily, including lying in phase 2; `Main` panics if phase 2 returns an unknown decision or one phase 1 excluded (projects `k8s-authz`, `k8s-authz-driver`) | `k8s_authz_safe` (`k8s_authz_robust`) |
 | `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: five API servers (three compactors of their own, two sharing one) and a writer on one member compacting only at its clients' requests (K3, K4 of `notes/k8s-compactor-plan.md`), and on three members under network partitions, any schedule (`MainPartition`, K6; run by `k8s/all`) | – (its closed theorems retired 2026-11-20: `k8s_safe`) |
 | `k8s/all` | – | the two at once in one process: `k8s/etcd3`'s `MainPartition` on `k` members and `k8s/compactor`'s on three more, under two partition schedules (`notes/k8s-unified-scope.md`) | `k8s_safe_single_process` (`k8s_robust_single_process`; retired 2026-11-22 at the net swap, tag `single-process-final`, restored 2026-11-23 over the net extension, `notes/single-process-restore.md`) |
 

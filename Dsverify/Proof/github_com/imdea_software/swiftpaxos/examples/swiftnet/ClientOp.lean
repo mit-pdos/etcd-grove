@@ -35,7 +35,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [ρ : RemoteGS]
 
 /-- A slot's update gives its `lin` (a read's persistently). -/
-theorem slotUpd_lin {St I O : Type} (R : RBase netDistGF St I O) (i : I) (Φ : O → IProp netDistGF) :
+theorem slotUpd_lin {St J I O : Type} (R : RBase netDistGF St J I O) (i : I) (Φ : O → IProp netDistGF) :
     slotUpd (Gg := hG.goose_globalGS) R i Φ ⊢ lin (Gg := hG.goose_globalGS) R i Φ := by
   unfold slotUpd
   split
@@ -89,7 +89,7 @@ end calls
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
   [net.http.Assumptions] [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 variable [ρ : RemoteGS]

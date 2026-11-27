@@ -23,7 +23,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Dir
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
@@ -98,26 +97,23 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- **The program**: `etcdall`'s initialization, then `Main(k1, clients, ops, sched1, nw, nops, sched2,
+/-- **The program**: `etcdall`'s initialization, then `MainChecked(k1, clients, ops, n1, nw, nops, n2,
 cnw, cnops, k2, k3, k4, k5)`: the member counts `k₁` (txnlinfaultsN), `k₂` (authN), `k₃` (authlease),
-`k₄` (leaseN) and `k₅` (restartN), txnlinfaultsN's workload (`clients`, `ops`) and schedule `steps₁`,
-partition's watch workload (`nw`, `nops`) and schedule `steps₂`, cache's workload (`cnw`, `cnops`); the
-two schedules built as slice literals (`schedLit`). -/
-def etcdProgram [GoSemanticsFunctions] (k₁ : Nat) (clients ops : w64)
-    (steps₁ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (nw nops : w64)
-    (steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (cnw cnops : w64)
-    (k₂ k₃ k₄ k₅ : Nat) : Expr :=
+`k₄` (leaseN) and `k₅` (restartN), txnlinfaultsN's workload (`clients`, `ops`) and the length `n₁` of
+its schedule, partition's watch workload (`nw`, `nops`) and the length `n₂` of its schedule, cache's
+workload (`cnw`, `cnops`). `MainChecked` returns at once unless the counts and workloads are in the
+ranges `Main`'s proof covers (`ParamsOk`), and draws the two schedules itself
+(`cluster3.RandomSchedule`; until the pure-premises plan's P4, 2026-11-24, the program was `Main` with
+the counts' and workloads' ranges premises of the statement and the schedules slice literals of given
+lists, `schedLit`). -/
+def etcdProgram [GoSemanticsFunctions] (k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅ : w64) :
+    Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.all.initialize' #() ;;
   App (App (App (App (App (App (App (App (App (App (App (App (App
-    (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.all.Main))
-    (Val #(W64 (k₁ : Int)))) (Val #clients)) (Val #ops)) (schedLit steps₁))
-    (Val #nw)) (Val #nops)) (schedLit steps₂)) (Val #cnw)) (Val #cnops))
-    (Val #(W64 (k₂ : Int)))) (Val #(W64 (k₃ : Int)))) (Val #(W64 (k₄ : Int))))
-    (Val #(W64 (k₅ : Int)))
-
-/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16):
-its `initNames`. -/
-def etcdNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.all.initNames
+    (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.all.MainChecked))
+    (Val #k₁)) (Val #clients)) (Val #ops)) (Val #n₁))
+    (Val #nw)) (Val #nops)) (Val #n₂)) (Val #cnw)) (Val #cnops))
+    (Val #k₂)) (Val #k₃)) (Val #k₄)) (Val #k₅)
 
 /-- The program's addresses: the three members' peer addresses, their client addresses, and the
 bridges' addresses (2026-10-21, `notes/client-cut-plan.md`; partition's, moved here unchanged when its closed theorems
@@ -165,6 +161,31 @@ def etcdDirs (k₁ k₂ k₃ k₄ k₅ : Nat) : List GoString :=
       go!"/tmp/etcd-grove-data/cachekv.etcd"] ++
     etcd_authN.authNDirs k₂ ++ etcd_authlease.authleaseDirs k₃ ++ etcd_leaseN.leaseNDirs k₄ ++
     leasecatchupDataDirs ++ etcd_restartN.restartNDirs k₅ ++ [go!"/tmp/etcd-grove-data/restart1.etcd"]
+
+/-- **The member counts `MainChecked` starts clusters at** (the counts' part of `ParamsOk`, 2026-11-24,
+the pure-premises plan's P4): `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂, k₃, k₄ ≤ 300`, `3 ≤ k₅ ≤ 300`. -/
+def etcdCountsOk (k₁ k₂ k₃ k₄ k₅ : w64) : Prop :=
+  1 ≤ uint.nat k₁ ∧ uint.nat k₁ ≤ 1000 ∧ 1 ≤ uint.nat k₂ ∧ uint.nat k₂ ≤ 300 ∧
+  1 ≤ uint.nat k₃ ∧ uint.nat k₃ ≤ 300 ∧ 1 ≤ uint.nat k₄ ∧ uint.nat k₄ ≤ 300 ∧
+  3 ≤ uint.nat k₅ ∧ uint.nat k₅ ≤ 300
+
+instance (k₁ k₂ k₃ k₄ k₅ : w64) : Decidable (etcdCountsOk k₁ k₂ k₃ k₄ k₅) := by
+  unfold etcdCountsOk; infer_instance
+
+/-- **The addresses `etcdProgram` may listen on** (P4, as leaseexpiryN's `cluster k`, P6):
+`etcdAddrs` at the member counts when they are in range, none otherwise (`MainChecked` then returns
+without starting a member). -/
+def etcdProgAddrs (k₁ k₂ k₃ k₄ k₅ : w64) : List GoString :=
+  if etcdCountsOk k₁ k₂ k₃ k₄ k₅ then
+    etcdAddrs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)
+  else []
+
+/-- **The data directories `etcdProgram` may use**: `etcdDirs` at the member counts when they are in
+range, none otherwise (as `etcdProgAddrs`). -/
+def etcdProgDirs (k₁ k₂ k₃ k₄ k₅ : w64) : List GoString :=
+  if etcdCountsOk k₁ k₂ k₃ k₄ k₅ then
+    etcdDirs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)
+  else []
 
 end adequacy
 end EtcdGrove

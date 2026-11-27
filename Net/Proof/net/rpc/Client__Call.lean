@@ -3,7 +3,8 @@ The proof of `Client.Call` (`Net/Spec/net/rpc/Client__Call.lean`): a buffered ch
 made a future (Perennial's future idiom) with one promise, whose contract is the call's outcome
 (`callPost`) on its ticket; `Go`; the receive gets the outcome. `send`'s result and the outcome
 together give dsverify's postcondition: an answer (`reqSent`) never comes for a request kept unsent
-(`unsent_reqSent`).
+(`unsent_reqSent`). Proved as `Client.Call.spec_plain` (`callPost`'s errors are `errPlain`), and
+`Client.Call.spec` from it.
 -/
 module
 
@@ -27,7 +28,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- Two `isChan` of one channel agree on its capacity. (A general fact of Perennial's channels,
@@ -40,10 +41,10 @@ theorem isChan_cap_agree (ch : Loc) (γ1 γ2 : ChanNames) :
   icombine Hc1 Hc2 gives %H
   ipureintro; exact H
 
-theorem Client.Call.wp_proof (wp_Go : Client.Go.spec (GF := GF) (hG := hG)) :
-    Client.Call.spec (GF := GF) (hG := hG) := by
+theorem Client.Call.wp_proof_plain (wp_Go : Client.Go.spec (GF := GF) (hG := hG)) :
+    Client.Call.spec_plain (GF := GF) (hG := hG) := by
   intro c W a sm svc M S args reply Φm Rargs D Θ C
-  wp_start as ⟨#Hcl, %Hsv, #Hset, Henc, HD, #Hdec⟩
+  wp_start as ⟨#Hcl, %Hsv, %Hsm, #Hset, Henc, HD, #Hdec⟩
   iunfold isClient at Hcl
   icases Hcl with ⟨%γ, #Hcl⟩
   ihave #Hcl' := Hcl
@@ -69,6 +70,8 @@ theorem Client.Call.wp_proof (wp_Go : Client.Go.spec (GF := GF) (hG := hG)) :
     · ipureintro; exact Hsv
     isplitr
     · ipureintro; exact ⟨Hchn, by rw [hcap]; decide⟩
+    isplitr
+    · ipureintro; exact Hsm
     iunfold callDone
     iframe Hfut Hful
     iintro %pc %o %err Hf Ht He Hp
@@ -144,6 +147,23 @@ theorem Client.Call.wp_proof (wp_Go : Client.Go.spec (GF := GF) (hG := hG)) :
         · iapply unsent_reqSent W a cn γ.conn o $$ [$Hrpc $Hlc1 $Hun $Hsent]
         imod Hf with %Hf
         exact Hf.elim
+
+/-- `Client.Call.spec`, from `Client.Call.spec_plain` (`errPlain` gives `errAny`). -/
+theorem Client.Call.wp_proof (wp_Go : Client.Go.spec (GF := GF) (hG := hG)) :
+    Client.Call.spec (GF := GF) (hG := hG) := by
+  intro c W a sm svc M S args reply Φm Rargs D Θ C
+  wp_start_folded as Hpre
+  wp_apply Client.Call.wp_proof_plain wp_Go c W a sm svc M S args reply Φm Rargs D Θ C $$ Hpre
+    as %err Hpost
+  iapply HΦ
+  icases Hpost with (H1 | H2 | ⟨%Hne, #Hp, Hrest⟩)
+  · ileft; iexact H1
+  · iright; ileft; iexact H2
+  · iright; iright
+    iframe Hrest
+    isplitr
+    · ipureintro; exact Hne
+    iapply models_lab.errPlain_errAny $$ Hp
 
 end proof
 

@@ -14,6 +14,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.checkCompactRev
@@ -49,23 +50,23 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compactwatc
 
 /-- `checkCompactRev` (C3's watch side, 2026-11-02), over the client's `Watch`, `etcdstart.CompactRev`
 and the context's functions. -/
-theorem etcd_compactwatch.wp_checkCompactRev [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_compactwatch.wp_checkCompactRev :
     etcd_compactwatch.checkCompactRev.spec (GF := GF) (hG := hG) :=
   etcd_compactwatch.checkCompactRev.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_CompactRev
     etcd_compactwatch.client_Get_rev_law_holds
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
-`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Main.lean`), under the semantic premise of
-its callees' linked results: the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
-theorem etcd_compactwatch.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Main.lean`), over
+its callees' linked results. -/
+theorem etcd_compactwatch.wp_Main :
     etcd_compactwatch.Main.spec (GF := GF) (hG := hG) :=
   etcd_compactwatch.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_Collect
     etcd_compactwatch.wp_checkCompactRev mvcc.api.mvccApi_names_nonempty_law_holds
     mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
-    mvcc.api.mvccApi_mvccReaders_split_law_holds
+    mvcc.api.mvccApi_mvccReaders_split_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

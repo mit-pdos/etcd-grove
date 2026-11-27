@@ -47,7 +47,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assumptions]
 
 /-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_leaseN.wp_Main`). -/
-theorem leaseN_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem leaseN_Main :
     etcd_leaseN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseN.wp_Main
 

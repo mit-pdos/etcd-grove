@@ -3,17 +3,24 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.crypto.sha1.Base
+public import Perennial.Proof.encoding.binary.Base
 public import SpecPlan.Spec.PkgInit.encoding.json
+public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.sort.Base
+public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base
+public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
 public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.notify
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
+public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3
 public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
 public import Perennial.Proof.errors.Base
+public import SpecPlan.Spec.PkgInit.models_lab.jsoncodec
 public import SpecPlan.Spec.PkgInit.path
 
 @[expose] public section

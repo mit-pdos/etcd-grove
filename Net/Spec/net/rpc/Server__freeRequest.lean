@@ -20,13 +20,13 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev Server.freeRequest.spec : Prop :=
   ∀ (s : Loc) (γ : GName) (req : Loc) (v : net.rpc.Request),
-  {{ isServer (GF := GF) s γ ∗ req ↦ v }}
+  {{ isServerAny (GF := GF) s γ ∗ req ↦ v }}
     (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"freeRequest")) (Val #req))
   {{ RET #(); True }}
 

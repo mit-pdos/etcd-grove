@@ -42,6 +42,7 @@ public import Net.Spec.net.rpc.clientCodec__WriteRequest
 public import Perennial.Golang.Theory.Chan.Idioms.Future
 public import Perennial.GooseLang.Receipts
 public import Perennial.Proof.sync.Base
+public import Net.Proof.models_lab.ErrFmt
 
 @[expose] public section
 
@@ -71,7 +72,7 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -87,6 +88,36 @@ def errMsg (err : GoInterface) (msg : GoString) : IProp GF :=
 instance errMsg_persistent (err : GoInterface) (msg : GoString) :
     Persistent (errMsg (GF := GF) err msg) := by
   unfold errMsg; infer_instance
+
+/-- A `ServerError` with its `Error()` is `errPlain`: `fmt` prints a string type as a string. -/
+theorem errPlain_serverErr [fmt.Assumptions] (err : GoInterface) (msg : GoString) :
+    errMsg (GF := GF) err msg ∗ ⌜err = serverErr msg⌝ ⊢ models_lab.errPlain err := by
+  iintro ⟨#H, %He⟩
+  unfold errMsg
+  icases H with ⟨%e, %He', %Ht, #HW⟩
+  unfold models_lab.errPlain
+  isplitl []
+  · unfold models_lab.errAny
+    iexists e
+    iframe %He' %Ht
+    imodintro
+    iintro %Φ HΦ
+    iapply HW
+    inext
+    iapply HΦ
+  iexists e
+  isplitr
+  · ipureintro; exact He'
+  unfold models_lab.errFmt
+  have hty : e.ty = net.rpc.ServerError.ty := by
+    subst He
+    unfold serverErr at He'
+    cases He'
+    rfl
+  isplitr
+  · ipureintro; rw [hty]; exact models_lab.noFmt_serverError
+  ileft
+  ipureintro; exact hty
 
 /-- The package's variables the client reads, as the package initialization leaves them: `io`'s
 errors, `poll.ErrDeadlineExceeded`, `errFrame` and `ErrShutdown` (`errors.New`'s), and `debugLog`
@@ -144,7 +175,7 @@ def callPost (γ : RpcConnNames) (o : Option Nat) (Φ : List w8 → GoString →
     (Θ : List w8 → Bool → IProp GF) (D : IProp GF) (err : GoInterface) : IProp GF :=
   iprop((⌜err = interface.nil⌝ ∗ reqSent γ o ∗ ∃ rep, Θ rep true) ∨
     (∃ msg : GoString, ⌜msg ≠ [] ∧ err = serverErr msg⌝ ∗ reqSent γ o ∗ (∃ rep, Φ rep msg) ∗ D) ∨
-    (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errAny err ∗
+    (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errPlain err ∗
       (D ∨ reqSent γ o ∗ ∃ rep, Θ rep false)))
 
 /-- What `send` returns (see the file header): the encoding's `Rargs`, or the encoding premise
@@ -176,13 +207,30 @@ def callRes (γ : RpcConnNames) (s : w64) (pc : Loc) : IProp GF :=
 
 /-! ## The client's invariants -/
 
+/-- The fraction `mutex`'s invariant holds of `closing` when it is `b`: all of it while the client
+is not closing, a persistent part once it is (`Close` sets it for good; `cliClosed`). -/
+def clsFrac : Bool → DFrac
+  | true => DFrac.discard
+  | false => DFrac.own 1
+
+theorem clsFrac_true : clsFrac true = DFrac.discard := rfl
+theorem clsFrac_false : clsFrac false = DFrac.own 1 := rfl
+
+/-- The client `c` is closing, for good (persistent): `Close` set its `closing` flag, which nothing
+clears (`mutex`'s invariant then holds a persistent points-to of it, `clsFrac`). -/
+def cliClosed (c : Loc) : IProp GF :=
+  iprop(structFieldRef net.rpc.Client go!"closing" c ↦□ true)
+
+instance cliClosed_persistent (c : Loc) : Persistent (cliClosed (GF := GF) c) := by
+  unfold cliClosed; infer_instance
+
 /-- The invariant of `mutex` (see the file header). -/
 def muInv (γ : ClientNames) (c : Loc) : IProp GF :=
   iprop(∃ (sq : w64) (n : Nat) (mp : Loc) (m : GMap w64 Loc) (sd cls : Bool)
       (NM : GMap Nat (GName × GName × GName)),
     structFieldRef net.rpc.Client go!"seq" c ↦ sq ∗ structFieldRef net.rpc.Client go!"pending" c ↦ mp ∗
     mp ↦$ m ∗ structFieldRef net.rpc.Client go!"shutdown" c ↦ sd ∗
-    structFieldRef net.rpc.Client go!"closing" c ↦ cls ∗
+    structFieldRef net.rpc.Client go!"closing" c ↦{clsFrac cls} cls ∗
     ghostVar γ.sq (1 : Qp).half n ∗ ⧗ n ∗ ⌜sq = W64 n ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
     ghostVar γ.down (1 : Qp).half sd ∗
     ghostMapAuth γ.conn.nm 1 NM ∗ ⌜∀ i, (NM.lookup i).isSome → i < n⌝ ∗
@@ -198,9 +246,9 @@ def sendInv (γ : ClientNames) (c cc : Loc) (cn : Nat) (W : RpcWorld GF) (a : Go
     sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) Wd ∗
     monoListAuthOwn γ.conn.reqs (1 : Qp).half L ∗ ghostVar γ.sq (1 : Qp).half n ∗
     (∃ sd : Bool, ghostVar γ.down (1 : Qp).half.half sd) ∗
-    (⌜w0 = interface.nil⌝ ∨ ⌜notServerErr w0⌝ ∗ models_lab.errAny w0) ∗
-    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ n ∧ Wd <+: reqsWire L ∧
-      (w0 = interface.nil → Wd = reqsWire L ∧ L.length = n)⌝)
+    (⌜w0 = interface.nil⌝ ∨ ⌜notServerErr w0⌝ ∗ models_lab.errPlain w0) ∗
+    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ n ∧ Wd <+: W.hs a ++ reqsWire L ∧
+      (w0 = interface.nil → Wd = W.hs a ++ reqsWire L ∧ L.length = n)⌝)
 
 /-- `c` is an rpc client of address `a` in world `W`, with names `γ`, over the model's codec `cc`
 on the dialer's end of `cn` (the `*TCPConn` `t`) (persistent). -/
@@ -211,7 +259,8 @@ def clientAt (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames) (cc t
     structFieldRef net.rpc.clientCodec go!"rwc" cc ↦□
       interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
     net.connAt (GF := GF) t cn false a la ra ∗ connIs (Gg := hG.goose_globalGS) cn ∗
-    isRpcConn (Gg := hG.goose_globalGS) W a cn γ.conn ∗ cliEnv ∗
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ.conn ∗
+    sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) ∗ cliEnv ∗
     sync.isMutex (structFieldRef net.rpc.Client go!"reqMutex" c) (sendInv γ c cc cn W a) ∗
     sync.isMutex (structFieldRef net.rpc.Client go!"mutex" c) (muInv γ c))
 
@@ -227,7 +276,8 @@ def isClient (c : Loc) (W : RpcWorld GF) (a : GoString) : IProp GF :=
 the client is not shut down. -/
 def readerOwn (γ : ClientNames) (cn : Nat) (W : RpcWorld GF) (a : GoString) : IProp GF :=
   iprop(∃ C : List Ans,
-    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) (framesOf (C.flatMap ansPls)) ∗
+    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a)
+      (W.hsAns a ++ framesOf (C.flatMap ansPls)) ∗
     ghostVar γ.down (1 : Qp).half.half false ∗ ⌜∀ x ∈ C, ansOk x⌝)
 
 instance clientAt_persistent (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames)
@@ -242,14 +292,15 @@ instance isClient_persistent (c : Loc) (W : RpcWorld GF) (a : GoString) :
     Persistent (isClient c W a) := by
   unfold isClient; infer_instance
 
-/-- A connection just dialed to `a` and registered in `W` (`dialRpc`, `Dial`'s): the dialer's
-end, its tokens (nothing written or read yet), the request list's half and the names' authority. -/
+/-- A connection dialed to `a` and registered in `W`, its handshake done (`Dial`'s, with none;
+`DialHTTPPath`'s): the dialer's end, its tokens (the handshake written and its answer read, nothing
+else), the request list's half and the names' authority. -/
 def rpcDialed (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) : IProp GF :=
   iprop(isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
     monoListAuthOwn γ.reqs (1 : Qp).half ([] : List RpcReq) ∗
     ghostMapAuth γ.nm 1 (∅ : GMap Nat (GName × GName × GName)) ∗
-    sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) [] ∗
-    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) [])
+    sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) (W.hs a) ∗
+    recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) (W.hsAns a))
 
 end defs
 

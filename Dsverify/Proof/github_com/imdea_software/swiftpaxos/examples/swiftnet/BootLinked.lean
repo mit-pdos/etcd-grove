@@ -28,7 +28,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.hook.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Init
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.bytes.Link
@@ -79,11 +79,8 @@ theorem ownInitializing_of_empty [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.
 section boot
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [examples.swiftnet.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 /-- A machine's boot resources: the node's fresh ghost, the mutable globals at their initial

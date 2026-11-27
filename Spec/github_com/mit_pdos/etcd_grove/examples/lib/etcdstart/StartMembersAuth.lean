@@ -46,6 +46,8 @@ abbrev StartMembersAuth.spec : Prop :=
   -- (wal-fsfix, 2026-11-20, the user's decision) the members' names at most 200 bytes, so that their
   -- data directories fit (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
   (∀ x ∈ xs, x.1.Name'.length ≤ 200) →
+  -- (fmt stage 1, 2026-11-24) the members' addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  (∀ x ∈ xs, addrFits x.1.Peer' ∧ addrFits x.1.Client') →
   -- each member's names the cluster's, its peer URL its directory entry
   (∀ x ∈ xs, x.2.γ.vs = ps ∧ x.2.γ.rule = srvRule (W64 0) bootLog ∧ x.2.γ.boot = bootLog ∧
     γn.N = srvNet x.2.γ ∧ go!"http://" ++ x.1.Peer' ∈ dir x.2.id) →
@@ -54,7 +56,7 @@ abbrev StartMembersAuth.spec : Prop :=
   -- (`StartMemberAuth.spec`'s)
   (∀ x ∈ xs, clusterNoSnap x.2.γ.cl → 2 ^ 48 ≤ uint.Z catchUp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗ commonPremises ∗
+      zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗
       context.isClosedchanInit ∗
       [∗list] x ∈ xs, memberPreOn N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn x m }}
     (App (App (App (App (App

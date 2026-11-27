@@ -73,7 +73,7 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- A cluster's ghost names (opaque to clients). -/
 @[no_expose] def Cluster : Type 1 := ApiImpl.Cluster
 
-/-- (2026-11-22, kvnet decision B: `notes/raft-cluster-global.md`) **A node handle** (opaque to
+/-- (2026-11-22, kvraft decision B: `notes/raft-cluster-global.md`) **A node handle** (opaque to
 clients): what `StartNode`/`RestartNode` return and the node-level predicates are over. -/
 @[no_expose] def NodeH : Type 1 := ApiImpl.NodeH
 
@@ -358,7 +358,7 @@ them. -/
 @[no_expose] def statusOwn (st : Status) : IProp GF :=
   statusOwnRaw st
 
-/-- (2026-11-22, for kvnet's `Node.status`) **A `Status`'s hard state can be read**: its
+/-- (2026-11-22, for kvraft's `Node.status`) **A `Status`'s hard state can be read**: its
 `*pb.HardState` is `nil` (a stopped node's `Status{}`) or a read-only hard state (`hsOpt`), which the
 getters (`HardState.GetTerm`, `GetCommit`, `GetVote`) read. Read access only: nothing ties the values
 to the cluster. -/

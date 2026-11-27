@@ -16,6 +16,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 
 @[expose] public section
 
@@ -53,12 +54,14 @@ abbrev StartServer.spec : Prop :=
   -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
   -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
   name.length ≤ 200 →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
       threadTok ∗
-      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
+      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
@@ -73,6 +76,40 @@ abbrev StartServer.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ memberUp s ρ E₀ lg γn id lm ∗ leaseTTLRowR s [id]) }}
+
+/-- **`specAt`** (F7 step 2): `spec` with the member's lessor at the caller's name `γl` (`newServer.specAt`'s): half
+of `γl`'s ghost map authority at `∅` and its slot in the pre, the member started with its lessor at `γl`
+(`memberUpL`) in the post. -/
+abbrev StartServer.specAt : Prop :=
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString) (lg : Loc)
+    (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
+    (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode) (γl : GName),
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  N + 7 + bootWB ≤ backend.wbInit →
+  γ.vs = [id] → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  rafthttp.bootCfg dir [id] →
+  utf8Valid name →
+  name.length ≤ 200 →
+  addrFits peerAddr → addrFits client →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  {{ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
+      isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      zapLoggerOk lg ∗
+      threadTok ∗
+      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗
+      context.isClosedchanInit ∗
+      memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
+      netHttpOk γn id ∗
+      memberFreshRes name {} γn }}
+    (App (App (App (App
+      (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer))
+      (Val #name)) (Val #peerAddr)) (Val #client)) (Val #lg))
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ memberUpL s ρ E₀ lg γn id lm γl ∗ leaseTTLRowR s [id]) }}
+
 
 end spec
 

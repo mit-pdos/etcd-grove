@@ -39,8 +39,8 @@ theorem StartMembers.wp_proof (wp_NewMember : NewMember.spec (GF := GF) (hG := h
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMembers.spec (GF := GF) (hG := hG) := by
   intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn lm cmp Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
-    Hnd Hutf HnL Hx Haf Hbuq Hdbo
-  wp_start as ⟨#Hlg, Htok, #Hms, #Hcom, #Hcc, Hpre⟩
+    Hnd Hutf HnL HaF Hx Haf Hbuq Hdbo
+  wp_start as ⟨#Hlg, Htok, #Hms, #Hcc, Hpre⟩
   ihave %Hmsl := ownSlice_len $$ Hms
   (try wp_auto)
   wp_apply wp_map_make1 (K := GoString) (V := go_etcd_io.etcd.client.pkg.v3.types.URLs) as %pm Hpm
@@ -178,7 +178,7 @@ theorem StartMembers.wp_proof (wp_NewMember : NewMember.spec (GF := GF) (hG := h
       wp_apply (wp_NewMember N xj.1.Name' xj.1.Peer' xj.1.Client' token snapCount catchUp sl pm lg M
           (iuOf (xs.map (·.1))) (urlsN (xs.map (·.1)) xj.1) ps bootLog ctxs dir xj.2.id xj.2.γ
           xj.2.ρ xj.2.E Φs γn cmp lm Htb Hrb48 HrbN HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
-          ⟨rfl, rfl, Hdom, rfl⟩ hutf (HnL xj hxj) Haf Hbuq Hdbo) $$ [Htok Hmb Hfr] as %s %err Hr
+          ⟨rfl, rfl, Hdom, rfl⟩ (HaF xj hxj).1 (HaF xj hxj).2 hutf (HnL xj hxj) Haf Hbuq Hdbo) $$ [Htok Hmb Hfr] as %s %err Hr
       · iframe; iframe #
       icases Hr with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
       · cases err with

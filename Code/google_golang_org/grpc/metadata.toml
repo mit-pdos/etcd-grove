@@ -3,8 +3,12 @@
 # axiom, `Spec/google_golang_org/grpc/metadata/FromIncomingContext.lean`; unit P2). `MD.Get` has
 # its body (its `wp_proof` a theorem over `strings.ToLower`'s spec, 2026-11-18). (prove-grpcext, 2026-11-20)
 # `loggableMetadataKeys`, a map literal: its initializer translated (`etc/gen-init.py` proves it).
-translate = ["!*", "MD.Get", "loggableMetadataKeys"]
-imports = ["!*", "strings"]
+# (phase7-inits, 2026-11-25; first phase 7 S2 core, 2026-11-23) its `init` (`internal.FromOutgoingContextRaw
+# = fromOutgoingContextRaw`) with its body (until then `initFuncsOk`); hence the imports of grpc's `internal` and of `context`
+# (`fromOutgoingContextRaw`'s type). (phase 7 S2 core; W1, 2026-11-26) `fromOutgoingContextRaw` with
+# its body: the client attempt's `createHeaderFields` calls it.
+translate = ["!*", "MD.Get", "loggableMetadataKeys", "init.0", "fromOutgoingContextRaw"]
+imports = ["!*", "strings", "context", "google.golang.org/grpc/internal"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

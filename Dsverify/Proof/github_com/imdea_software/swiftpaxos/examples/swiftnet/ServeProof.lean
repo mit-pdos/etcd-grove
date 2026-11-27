@@ -64,7 +64,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
   [net.http.Assumptions] [io.Assumptions] [client.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -202,7 +202,7 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
   iunfold serverShare at Hsh
   icases Hsh with ⟨-, Hrole, #Hcom⟩
   iunfold srvBoot at Hboot
-  icases Hboot with ⟨Hcfr, #Hcb, %Hthr, #Hsrv, Hmux, #Hds0, Hrep⟩
+  icases Hboot with ⟨Hcfr, #Hcb, %Hthr, #Hsrv, Hmux, Hds0, Htok, Hrep⟩
   ihave #Henv := common_confEnv γ $$ Hcom
   iunfold confEnv at Henv
   icases Henv with ⟨#HconfP, -, -⟩
@@ -300,9 +300,14 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
     · iPkgInit
     ihave #Hhttp : isPkgInit (PROP := IProp netDistGF) pkg_id.net.http $$ []
     · iPkgInit
+    ihave #Hde : dialEnv (GF := netDistGF) $$ []
+    · ihave #Hcb2 := Hcb
+      iunfold cnode.cliBoot at Hcb2
+      icases Hcb2 with ⟨-, -, #Hd⟩
+      iexact Hd
     wp_apply hMRun m γ.conf γ.mem (uint.nat (W64 (c.n : Int))) γ.W
-      $$ [$Hm $Hmux]
-    · iframe Hsrv Hds0 Hm7 Hrh Hcs
+      $$ [$Hm $Hmux Hds0 Htok]
+    · iframe Hsrv Hds0 Htok Hde Hm7 Hrh Hcs
       isplitr
       · ipureintro; exact Hthr
       ipureintro; exact worldOk_of γ γ.W HSS
@@ -413,64 +418,70 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
           ipureintro
           obtain ⟨-, -, -, h⟩ := Hcv; have := hcl.2.2.2; word
         unfold encoding.gob.codecSet; itrivial
-      icases Hds0 with ⟨%γs, #Hds⟩
-      wp_apply (H.Register_spec γs net.rpc.RpcCodec.spec
+      icases Hds0 with ⟨%γs, %γf, #Hds, Hsown⟩
+      wp_apply (H.Register_spec γs γf ∅ net.rpc.RpcCodec.spec
           (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #rep)
           (withErr (sp.replicaRpcSpec γ.conf γ.mem)) go!"Replica" (W8 82) go!"eplica" rfl
-          ⟨by decide, by decide⟩) $$ [$Hds $Hcs Hrok] as %err Hreg
-      · simp only [net.rpc.RpcCodec.spec] at *
+          ⟨by decide, by decide⟩) $$ [$Hds $Hsown $Hcs Hrok] as %err ⟨%He, #Hsr, -⟩
+      · isplitr
+        · ipureintro; simp [GMap.mem_iff]
+        simp only [net.rpc.RpcCodec.spec] at *
         iexact Hrok
-      icases Hreg with (⟨%He, #Hsr⟩ | %He)
-      rotate_left
-      · rcases err with ei | _
-        · wp_auto
-          wp_for
-          try rw [if_pos (decide_eq_true rfl)]
-          wp_apply time.wp_Sleep
-          wp_for_post
-          iframe
-        · exact absurd rfl He
       subst He
       wp_auto
       have hrpc := atStr_rpc k (by omega)
       have hra' : atStr (8 + k) (W64 1000) ∈ replicaRpcAddrs := List.mem_of_getElem? hrpc
       have hrok : addrOk (atStr (8 + k) (W64 1000)) = true :=
         cnode.replicaRpcAddrs_ok _ hra'
-      ihave #Hss : (□ ∀ a, ⌜lisAccepts (atStr (8 + k) (W64 1000)) a⌝ →
-          net.rpc.srvServes γs net.rpc.RpcCodec.spec γ.W a : IProp netDistGF) $$ []
+      ihave #Hrl := BigSepL.bigSepL_lookup
+        (Φ := fun _ la => RpcHttpAddr.rpcLisP γ.W la (connectReq defaultRPCPath) connectAns)
+        hrpc $$ Hrr
+      ihave #Hss : (□ ∀ a, ⌜addrOk a = true ∧ lisAccepts (atStr (8 + k) (W64 1000)) a⌝ →
+          net.rpc.srvServes γs net.rpc.RpcCodec.spec γ.W a ∗
+            ⌜γ.W.hs a ≠ [] ∧ γ.W.hsAns a = net.rpc.connectAns⌝ : IProp netDistGF) $$ []
       · iintro !> %a %ha
-        have ha' := (lisAccepts_addrOk hrok).1 ha
-        subst ha'
-        unfold net.rpc.srvServes
-        iintro !> %svc %S %hS
-        rw [HSS] at hS
-        have hb : lisAcceptsB go!":7001" (atStr (8 + k) (W64 1000)) = false := by
-          simp only [replicaRpcAddrs, List.mem_cons, List.not_mem_nil, _root_.or_false] at hra'
-          rcases hra' with h | h | h | h | h <;> rw [h] <;> decide
-        unfold services at hS
-        rw [if_neg (fun h => by have h1 := h.1; rw [hb] at h1; exact absurd h1 (by decide))] at hS
-        by_cases hsv : svc = go!"Replica"
-        · rw [if_pos ⟨hra', hsv⟩] at hS
-          cases hS
-          subst hsv
-          iframe Hsr
-          iapply withErr_errOk
-        · rw [if_neg (fun h => hsv h.2)] at hS
-          cases hS
+        isplitr
+        · have ha' := (lisAccepts_addrOk hrok).1 ha.2
+          subst ha'
+          unfold net.rpc.srvServes
+          iintro !> %svc %S %hS
+          rw [HSS] at hS
+          have hb : lisAcceptsB go!":7001" (atStr (8 + k) (W64 1000)) = false := by
+            simp only [replicaRpcAddrs, List.mem_cons, List.not_mem_nil, _root_.or_false] at hra'
+            rcases hra' with h | h | h | h | h <;> rw [h] <;> decide
+          unfold services at hS
+          rw [if_neg (fun h => by have h1 := h.1; rw [hb] at h1; exact absurd h1 (by decide))] at hS
+          by_cases hsv : svc = go!"Replica"
+          · rw [if_pos ⟨hra', hsv⟩] at hS
+            cases hS
+            subst hsv
+            iframe Hsr
+            iapply withErr_errOk
+          · rw [if_neg (fun h => hsv h.2)] at hS
+            cases hS
+        · iapply rpcLisP_hs γ.W _ a ha $$ Hrl
+      ihave #Hdsa := net.rpc.defaultServerO_any γs γf $$ Hds
+      ihave #Hcb2 := Hcb
+      iunfold cnode.cliBoot at Hcb2
+      icases Hcb2 with ⟨-, -, #Hde⟩
+      iunfold dialEnv at Hde
+      icases Hde with ⟨#Hhe, #Hcon⟩
+      ihave #Hhttp : isPkgInit (PROP := IProp netDistGF) pkg_id.net.http $$ []
+      · iPkgInit
       wp_apply (H.HandleHTTP_spec γs net.rpc.RpcCodec.spec γ.W
-          (lisAccepts (atStr (8 + k) (W64 1000))) []) $$ [$Hmux $Hds $Hss $Hsrv $Hcs]
-        as ⟨-, #Hmh'⟩
-      · ipureintro; exact ⟨Hthr, by simp, by simp⟩
+          (fun a => addrOk a = true ∧ lisAccepts (atStr (8 + k) (W64 1000)) a) [] (by simp) (by simp))
+        $$ [$Hhttp $Hmux $Hdsa $Hss $Hsrv $Hcs $Hcon] as ⟨-, #Hmh'⟩
+      · ipureintro; exact Hthr
       rw [e7]
       wp_apply wp_at sl (DFrac.own 1) (W64 ((7 + (k + 1) : Nat) : Int)) (W64 1000) (by word)
         $$ [$Hsl] as Hsl
       rw [hu, show 7 + (k + 1) = 8 + k from by omega]
-      ihave #Hrl := BigSepL.bigSepL_lookup
-        (Φ := fun _ la => RpcHttpAddr.rpcLisP γ.W la (connectReq defaultRPCPath) connectAns)
-        hrpc $$ Hrr
       ihave %Hlok := RpcHttpAddr.rpcLisP_ok γ.W _ _ _ $$ Hrl
+      ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+      · solve_pkg_init
       wp_apply (D.listen go!"tcp" net.tcpNet_tcp (atStr (8 + k) (W64 1000))) as %lv %lerr Hl
-      · isplitr
+      · (try iframe HnetPk)
+        isplitr
         · ipureintro; exact Hlok
         iapply RpcHttpAddr.rpcLisP_lis
         iexact Hrl
@@ -491,8 +502,10 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
       iapply fupd_wp
       imod (lisInv_alloc ⊤ _ l (atStr (8 + k) (W64 1000)) true) $$ Hnl with #Hli2
       imodintro
-      wp_apply (H.Serve_spec γ.W (atStr (8 + k) (W64 1000)) defaultRPCPath lv l)
-        $$ [$Hrl $Hmh' $Hli $Hon $Hli2] as %e2 -
+      ihave #Hrln := RpcHttpAddr.rpcLisP_net γ.W _ _ _ $$ Hrl
+      wp_apply (H.Serve_spec γ.W (atStr (8 + k) (W64 1000)) net.rpc.defaultRPCPath lv l
+          net.rpc.litPattern_rpc net.rpc.defaultRPCPath_short)
+        $$ [$Hhttp $Hhe $Hrln $Hmh' $Hli $Hon $Hli2 $Htok] as %e2 -
       · ipureintro; exact Hthr
       try wp_auto
       wp_for

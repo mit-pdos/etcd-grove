@@ -53,6 +53,11 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swift
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ModelProof
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecProof
 public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.rpc.HandleHTTP
+public import Net.Proof.net.rpc.Server__HandleHTTP
+public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.Results
+public import Net.Proof.net.http.Serve
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listener__Accept
@@ -97,7 +102,7 @@ section srv
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
   [SwiftHyps netDistGF] [math.rand.Hyps netDistGF] [os.signal.NoSignals usr1Sigs netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [examples.swiftnet.Assumptions]
 
 /-- The package states' facts `swift.New` uses, from `pkgStates`. -/
 theorem srv_pkg_facts :
@@ -311,7 +316,7 @@ section machines
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
   [SwiftHyps netDistGF] [math.rand.Hyps netDistGF] [os.signal.NoSignals usr1Sigs netDistGF] [SwiftOsRandom netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [examples.swiftnet.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- The client node's package facts (`ClientPkgFacts`), from `swift.pkgSt` and `defs.pkgSt`. -/
@@ -375,6 +380,24 @@ theorem wp_Server : Server.spec (hG := hG) :=
       setMaxDesc.wp_proof wp_swiftNew)
     cnode.Addrs_proof
 
+
 end machines
+
+
+section rpchttp
+variable [go_gctx : GoGlobalContext]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [examples.swiftnet.Assumptions]
+
+/-- `RpcHttpHyp` holds: `Net/`'s specs of the net/rpc-over-HTTP calls, from `Net/`'s proofs
+(`HandleHTTP` over net/http's `Handle`, and net/http's `Serve`: `Handle.wp` and `Serve.wp_rpc`,
+proved; `Serve` over the interim context axioms). -/
+theorem netRpcHttpHyp : RpcHttpHyp netDistGF :=
+  ⟨net.rpc.DialHTTP.wp,
+    net.rpc.HandleHTTP.wp_proof
+      (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp),
+    net.rpc.Register.wp_fresh, net.http.Serve.wp_rpc⟩
+
+end rpchttp
 
 end Perennial.EtcdGrove.dsvswiftpaxos

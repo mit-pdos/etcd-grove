@@ -16,24 +16,98 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "GenericClientStream.Send", "GenericClientStream.Recv", "GenericServerStream.Send",
   "GenericServerStream.Recv", "GenericClientStream.CloseSend", "GenericClientStream.Context",
   "GenericServerStream.Context",
+  # (grpcdriver, 2026-11-24) the client-streaming wrappers gRPC's robustness driver calls, with their
+  # bodies (`GenericClientStream.CloseAndRecv`: `CloseSend`, then `RecvMsg` into a new reply;
+  # `GenericServerStream.SendAndClose`: `SendMsg`)
+  "GenericClientStream.CloseAndRecv", "GenericServerStream.SendAndClose",
   # (phase 7 S1, 2026-11-21, notes/phase7-plan.md; grpc is the model's since S0) the server
   # option constructors that only store a closure, with their bodies, and the closures' holder (the
   # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
   "newFuncServerOption", "funcServerOption.apply", "KeepaliveEnforcementPolicy", "MaxRecvMsgSize",
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor",
+  # (grpc-statshandler, 2026-11-26) `StatsHandler`, with its body: its closure appends a non-nil
+  # handler to `statsHandlers` (a nil one is logged through `logger` and ignored)
+  "StatsHandler",
   # (phase 7 S1, dial side, 2026-11-22) the dial options etcd's client sets, and their holder
   "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
-  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers"]
+  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers",
+  # (putget-dist interim, 2026-11-24, notes/putget-dist-plan.md section 12, F1) `WithNoProxy`, which
+  # etcdstart's `NewClients` passes: its closure sets `useProxy` false
+  "WithNoProxy",
+  # (phase7-inits, 2026-11-25, notes/phase7-endstate.md §4) its `init`s with their bodies (until then
+  # `initFuncsOk`): `dialoptions.go`'s, `rpc_util.go`'s and `server.go`'s, which store function values
+  # in `internal`'s hook variables; and the variables their closures append to (no initializers)
+  "init.0", "init.1", "init.2", "globalDialOptions", "globalPerTargetDialOptions",
+  "globalServerOptions",
+  # (phase7-inits, batch 2) `logger` (`grpclog.Component("core")`, `server.go:101`) with its
+  # initializer (until then `opaqueInitsOk`)
+  "logger",
+  # (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a; W1, 2026-11-26) the client attempt's
+  # wire, bottom-up:
+  # the model's frame writers (`model_wire.go`) and the header list's limit (F1)
+  "headerListTooLarge", "appendHeaderBlock", "appendOversizedBlock", "appendData", "appendReset",
+  "maxHeaderBlock", "frameHead", "frameData", "frameClose", "frameCancel", "frameHeader",
+  "frameTrailer", "frameReset", "frameSettings", "clientPreface", "errCodeRefusedStream",
+  # (phase 7 S2 core, 2026-11-23) the package variables the client attempt's code reads, with their
+  # initializers (until then `[[skip]]`): `errors.New` of constants, `status.Error` of a constant
+  # code and message, slice literals of the codes
+  "errMalformedFrame", "errStreamDone", "errHeaderListTooLarge", "ErrClientConnClosing",
+  "transportFailureCodes", "http2ErrConvTab",
+  # (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw`, the type assertion of
+  # `internal.FromOutgoingContextRaw`, which `metadata`'s translated `init` sets (`metadata`'s fact)
+  "metadataFromOutgoingContextRaw",
+  # (phase 7 S2 core, 2026-11-23) `createHeaderFields`' helpers of the model's `model_http_util.go`
+  # (grpc-go's `http_util.go`): `isReservedHeader`, `encodeMetadataHeader` (`-bin` values in base64)
+  "isReservedHeader", "encodeMetadataHeader", "encodeBinHeader", "binHdrSuffix",
+  # (phase 7 S2 core, 2026-11-23) the head's fields (`model_transport.go`, grpc-go's
+  # `http2Client.createHeaderFields`)
+  "createHeaderFields",
+  # (W1, 2026-11-26; phase7-s2a's step 3) the server's construction and registration, with their
+  # bodies: `NewServer` and the chain builders it calls, `defaultServerOptions` (a struct literal of
+  # constants, until then a goose `[[skip]]`: `NewServer` copies it), `RegisterService`, `register` and
+  # the helpers it calls (`printf`, `wrapUnaryHandler`), and `CustomCodec` with the codec bridge it
+  # stores, so that `NewServer`'s, `RegisterService`'s and `CustomCodec`'s specs are theorems and
+  # `grpcSrvNew` a definition
+  "NewServer", "defaultServerOptions", "chainUnaryServerInterceptors", "chainUnaryInterceptors",
+  "chainStreamServerInterceptors", "chainStreamInterceptors", "Server.RegisterService",
+  "Server.register", "Server.printf", "Server.wrapUnaryHandler", "CustomCodec", "newCodecV0Bridge",
+  # (W1, 2026-11-26) the constants `defaultServerOptions`' literal names (until then opaque, so its
+  # translated initializer did not step)
+  "defaultServerMaxReceiveMessageSize", "defaultServerMaxSendMessageSize", "defaultWriteBufSize",
+  "defaultReadBufSize"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
   "time", "io", "net", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
-  "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver"]
+  "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver",
+  # (phase7-inits) the hook variables its `init`s set
+  "google.golang.org/grpc/internal",
+  # (phase7-inits, batch 2) `logger`'s `grpclog.Component`
+  "google.golang.org/grpc/grpclog",
+  # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) the types of `Server`'s fields (`mu`,
+  # `cv`, `serveWG`, `quit`), so that it is a translated struct
+  "sync", "google.golang.org/grpc/internal/grpcsync",
+  # (phase 7 S2 core, 2026-11-23; W1, 2026-11-26) the frame writers' `binary.BigEndian.AppendUint32`
+  "encoding/binary",
+  # (phase 7 S2 core; W1) the translated initializers' `status.Error` and codes
+  "google.golang.org/grpc/codes", "google.golang.org/grpc/status",
+  # (phase 7 S2 core; W1) what `createHeaderFields` and its helpers call: `strings`, `strconv`,
+  # `encoding/base64` (`RawStdEncoding`), grpc's `internal/grpcutil` and `internal/metadata`
+  "strings", "strconv", "encoding/base64", "google.golang.org/grpc/internal/grpcutil",
+  "google.golang.org/grpc/internal/metadata",
+  # (W1, 2026-11-26) `NewServer`'s `istats.NewCombinedHandler` and `defaultServerOptions`' `math.MaxUint32`
+  "google.golang.org/grpc/internal/stats", "math",
+  # (grpc-mem, 2026-11-26) `mem.BufferSlice`, which `baseCodec`'s methods name, so that `baseCodec` is a
+  # translated interface (no longer axiomatized: `CustomCodec`'s conversion to it steps)
+  "google.golang.org/grpc/mem"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
 
-trusted = ["Server.Serve"]
+# (phase7-inits, 2026-11-25) no trusted declaration: `Server.Serve`'s trusted model (per-type stage
+# B, B1b, 2026-11-11: `trusted = ["Server.Serve"]`, `TrustedCode/google_golang_org/grpc.lean`) is
+# deleted; no proof unfolds `Serve` since S2's interface (`Server.Serve.wp_proof` is the axiom), so it
+# is names only again
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
 # Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
@@ -43,8 +117,7 @@ trusted = ["Server.Serve"]
 [[skip]]
 names = ["DefaultBackoffConfig", "unaryStreamDesc", "invalidDefaultServiceConfigErrPrefix",
   "PickFirstBalancerName", "grpcStatusDetailsBinHeader", "errTransportClosing",
-  "transportFailureCodes", "http2ErrCodeNames", "http2ErrConvTab", "defaultServerOptions",
-  "emptyMethodConfig"]
+  "http2ErrCodeNames", "emptyMethodConfig"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.
@@ -52,15 +125,7 @@ Each terminates, cannot panic (its sizes, indices and keys are constants the com
 has no effect beyond its variable."""
 
 [[skip]]
-names = ["metadataFromOutgoingContextRaw"]
-reason = """
-`internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type
-assertion of a function value that `metadata`'s `init` (run before this package's, which imports it)
-has set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect
-beyond the variable."""
-
-[[skip]]
-names = ["ErrClientConnClosing", "errIllegalHeaderWrite", "statusOK"]
+names = ["errIllegalHeaderWrite", "statusOK"]
 reason = """
 Their initializers call, besides literals of constants and other variables' values:
 `status.New`/`status.Error` of a constant code and message allocate a status (and its error). So
@@ -69,7 +134,7 @@ each terminates, cannot panic and has no effect beyond its variable."""
 [[skip]]
 names = ["errConnDrain", "errConnClosing", "errConnIdling", "errNoTransportSecurity",
   "errTransportCredsAndBundle", "errNoTransportCredsInBundle", "errTransportCredentialsMissing",
-  "ErrClientConnTimeout", "errStreamDone", "errMalformedFrame", "ErrServerStopped"]
+  "ErrClientConnTimeout", "ErrServerStopped"]
 reason = """
 Their initializers call, besides literals of constants and other variables' values: `errors.New` of
 a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
@@ -105,7 +170,7 @@ reason = """
 An interface check: `codecV1Bridge{}` converted to `encoding.CodecV2`. No call, no panic, no effect."""
 
 [[skip]]
-names = ["_@server.go:1014"]
+names = ["_@server.go:1016"]
 reason = """
 An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect."""
 

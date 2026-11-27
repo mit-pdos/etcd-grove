@@ -24,7 +24,8 @@ every generation's proof guarantees the next one's precondition.
 The conclusion, `framed_crash_safety`, mentions no ghost state and no bounds: in every execution of
 the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so the
 client's check (each reply it read in full, header then payload, is the request it sent, over
-three exchanges on one connection) never fails, whatever the junk sender sends (a truncated frame),
+1 to 4 exchanges of random messages on one connection) never fails, whatever the junk sender sends
+(random bytes, a truncated frame most likely),
 however the bytes are split among reads, however the connections fail (with any error kind: a
 `Write` is Go's loop of steps and may fail after its earlier steps wrote some of its bytes, D2/D15)
 or the nodes crash, and whether or not a failed dial leaves its connection for the server to accept
@@ -42,6 +43,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.c
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.junk.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.framed.cmd.junk.PkgTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomLinked
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
@@ -120,7 +122,7 @@ than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 `goose_dist_crash_adequacy` for the system. -/
 theorem framed_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [junk_sem : cmd.junk.Assumptions] [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -231,11 +233,11 @@ theorem framed_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
             net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
       · iapply wp_boot _ _ _ _ _ (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf)
-          (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.client.wp_main wire.wp_RandomInt wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
       · iapply wp_boot _ _ _ _ _ (cmd.junk.wp_initialize' _ cmd.junk.getIsPkgInit_wf)
-          (cmd.junk.wp_main net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
+          (cmd.junk.wp_main wire.wp_RandomInt wire.wp_RandomBytes net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
             γm) $$ [] Hgs
         iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent
@@ -268,7 +270,7 @@ thread bound `n + 2`, which an execution of `n` steps from single threads respec
 `DistCrashThreadsBelow.of_single`.) -/
 theorem framed_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [junk_sem : cmd.junk.Assumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.run
@@ -38,24 +39,24 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assumptions]
 
 /-- **leaseN's `check` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/check.lean`). -/
-theorem etcd_leaseN.wp_check [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_leaseN.wp_check :
     etcd_leaseN.check.spec (GF := GF) (hG := hG) :=
   etcd_leaseN.check.wp_proof etcdstart.wp_NewClient context.wp_Background
     context.WithTimeoutBackground.wp_proof context.wp_ErrAny client.v3.lessor.wp_TimeToLive
     client.v3.lessor.wp_Leases
 
 /-- **leaseN's `run` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/run.lean`). -/
-theorem etcd_leaseN.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_leaseN.wp_run :
     etcd_leaseN.run.spec (GF := GF) (hG := hG) :=
   etcd_leaseN.run.wp_proof etcdstart.wp_Serve etcd_leaseN.wp_check
 
 /-- **leaseN's `Main(k)` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/Main.lean`),
 under the semantic premises of its callees' linked results (putgetN's). -/
-theorem etcd_leaseN.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_leaseN.wp_Main :
     etcd_leaseN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcd_leaseN.wp_run mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

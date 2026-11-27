@@ -25,14 +25,15 @@ generation's proof guarantees the next one's precondition.
 
 The conclusion, `halfclose_crash_safety`, mentions no ghost state and no bounds: in every execution
 of the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so
-the client's check (a response read until EOF is a prefix of `"hello"`, the request it sent
-before shutting its write side) never fails, however reads are split, however the connections
+the client's check (a response read until EOF is a prefix of the request it sent, 0 to 255 random
+bytes, before shutting its write side) never fails, however reads are split, however the connections
 fail or break (EOF included: a killed server's kernel sends a FIN), whatever error each failure
 carries (D14), whichever dials are abandoned (D16) and however the nodes crash.
 -/
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.server.Main
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomLinked
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.server.PkgTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client.PkgTable
@@ -143,7 +144,7 @@ than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 use it (it restricts the theorem to the deployment D13 describes). -/
 theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -238,7 +239,7 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
           net.Listener.Accept.wp_proof net.Conn.Read.wp_proof net.Conn.Write.wp_proof
           net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
-      · iapply wp_boot_client _ (cmd.client.wp_main net.Dial.wp_proof net.Conn.Read.wp_proof
+      · iapply wp_boot_client _ (cmd.client.wp_main wire.wp_RandomInt wire.wp_RandomBytes net.Dial.wp_proof net.Conn.Read.wp_proof
           net.Conn.Write.wp_proof net.TCPConn.CloseWrite.wp_proof net.Conn.Close.wp_proof
           γm) $$ [] Hgs
         iframe Hinvs Hplan
@@ -271,7 +272,7 @@ thread bound `n + 2`, which an execution of `n` steps from single threads respec
 `DistCrashThreadsBelow.of_single`.) -/
 theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

@@ -7,10 +7,11 @@ linked in `Results.lean`) and the protocol of `Defs.lean`:
   through `srv_write_acc`: the server's bytes stay those it read), until a failure or EOF; then
   the close (`wire.close_drop_au` on the down-direction). The server thread owns its end.
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`).
-* `writeAll`: the writer goroutine, the bytes 1..4 one `Write` at a time, each of its steps through
+* `writeAll`: the writer goroutine, the bytes 1..n one `Write` at a time, each of its steps through
   `cli_write_acc`.
-* `Call`: the dial (`wire.dial_both_au`, the deposit `dup_deposit`), the client's end put in its invariant
-  (`cliInv_alloc`), `writeAll` forked, then four `wire.ReadFull`s of one byte through the reader's
+* `Call`: `n`, from 1 to 64, drawn by `wire.RandomInt`, the dial (`wire.dial_both_au`, the deposit
+  `dup_deposit`), the client's end put in its invariant (`cliInv_alloc`, for `dseq n`), `writeAll`
+  forked, then `n` `wire.ReadFull`s of one byte through the reader's
   accessor (`cli_read_acc`), each checked (`client_check`: the byte at position `i - 1` is `i`),
   and the close (`cli_close_au`).
 
@@ -26,6 +27,7 @@ module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.Defs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomInt
 public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
 public import Net.Spec.net.Conn__Close
@@ -55,7 +57,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : duplex.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : duplex.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `buf` rejoined from its two parts at `k`. -/
@@ -70,17 +72,18 @@ theorem buf_rejoin (buf : GoSlice) (k : w64) (xs ys : List w8) (hx : xs.length =
 
 /-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost
 state's, the same up to unfolding). -/
-theorem client_check' (γm : GName) (cn : Nat) (γ : DupNames) (γw : GName) (resp : List w8) :
+theorem client_check' (n : Nat) (γm : GName) (cn : Nat) (γ : DupNames) (γw : GName)
+    (resp : List w8) :
     ⊢ inv srvN (srvState (Gg := hG.goose_globalGS) γm) -∗ srvName γm cn γ -∗
-      inv cliN (cliInv cn γ γw) -∗ sentLb (Gg := hG.goose_globalGS) γ.down resp ={⊤}=∗
-      ⌜resp <+: dseq⌝ :=
-  client_check γm cn γ γw resp
+      inv cliN (cliInv n cn γ γw) -∗ sentLb (Gg := hG.goose_globalGS) γ.down resp ={⊤}=∗
+      ⌜resp <+: dseq n⌝ :=
+  client_check n γm cn γ γw resp
 
 /-- `cliInv_alloc`, its update under a node's invariants. -/
-theorem cliInv_alloc' (cn : Nat) (γ : DupNames) :
+theorem cliInv_alloc' (n : Nat) (cn : Nat) (γ : DupNames) :
     netEnd (G (GF := GF)) cn false NetEnd.fresh -∗ sentAll (Gg := hG.goose_globalGS) γ.up [] ={⊤}=∗
-      ∃ γw, inv cliN (cliInv cn γ γw) ∗ half G γw (0 : Nat) :=
-  cliInv_alloc cn γ
+      ∃ γw, inv cliN (cliInv n cn γ γw) ∗ half G γw (0 : Nat) :=
+  cliInv_alloc n cn γ
 
 /-- `wire.read_au` for the acceptor's end (the direction towards it, the dialer's), its update
 under a node's invariants. -/
@@ -288,9 +291,12 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hplan, #Heof, #Hed⟩
   icases dupInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HsrvInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · iframe %Hplan
+  · (try iframe HnetPk)
+    iframe %Hplan
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
@@ -331,18 +337,19 @@ theorem wp_Serve
 
 theorem wp_writeAll
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (c : GoInterface) (cn : Nat) (γ : DupNames) (γw : GName) (ed : GoInterface) :
+    (c : GoInterface) (cn : Nat) (γ : DupNames) (γw : GName) (ed : GoInterface) (n : Nat)
+    (hn : n ≤ 64) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ net.isConn c cn false srvAddr ∗
-        inv cliN (cliInv (Gg := hG.goose_globalGS) cn γ γw) ∗
+        inv cliN (cliInv (Gg := hG.goose_globalGS) n cn γ γw) ∗
         inv srvN (dirInv (Gg := hG.goose_globalGS) cn false γ.up) ∗ half G γw (0 : Nat) ∗
         globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
-      (App (Val (@! writeAll)) (Val #c))
+      (App (App (Val (@! writeAll)) (Val #c)) (Val #(W64 n)))
     {{ RET #(); True }} := by
   unfold net.isConn
   wp_start as ⟨⟨%t, %la, %ra, %Hct, #Hc⟩, #Hinv, #Hdir, Hw, #Hed⟩
   subst Hct
   wp_auto
-  ihave HI : (∃ j : Nat, "i" ∷ i_ptr ↦ W64 (j + 1) ∗ "Hw" ∷ half G γw j ∗ "%Hj" ∷ ⌜j ≤ 4⌝ :
+  ihave HI : (∃ j : Nat, "i" ∷ i_ptr ↦ W64 (j + 1) ∗ "Hw" ∷ half G γw j ∗ "%Hj" ∷ ⌜j ≤ n⌝ :
       IProp GF) $$ [i Hw]
   · iexists 0
     rw [show W64 (((0 : Nat) : Int) + 1) = W64 1 from rfl]
@@ -351,9 +358,9 @@ theorem wp_writeAll
   wp_for HI
   wp_if_destruct
   · -- the body: write the byte `j + 1`
-    have hj4 : j < 4 := by
+    have hj4 : j < n := by
       have : sint.Z (W64 (↑j + 1)) = (j : Int) + 1 := by word
-      have h4 : sint.Z (W64 4) = 4 := rfl
+      have h4 : sint.Z (W64 n) = n := by word
       omega
     wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %b ⟨Hb, -⟩
     · ipureintro; decide
@@ -372,7 +379,7 @@ theorem wp_writeAll
         [W8 (↑j + 1)] := by
       rw [show sint.Z (W64 (↑j + 1)) = ↑j + 1 by word]; rfl
     isimp only [Hset] at Hb
-    ihave #Hacc := cli_write_acc cn γ γw j hj4 $$ Hinv Hdir
+    ihave #Hacc := cli_write_acc n cn γ γw j hj4 $$ Hinv Hdir
     wp_apply wp_Write t cn false srvAddr la ra b [W8 (↑j + 1)] (DFrac.own 1) ed
         (cliWP γw j) $$ [Hb Hw]
       as %n %err ⟨%w, %resw, Hw, Hb, %Hpost, #Herr⟩
@@ -396,7 +403,7 @@ theorem wp_writeAll
     wp_auto
     wp_for_post
     (try wp_auto)
-    iframe HΦ c
+    iframe HΦ c n
     iexists j + 1
     rw [show W64 (↑j + 1) + W64 1 = W64 (↑(j + 1) + 1) by word]
     iframe i Hw
@@ -407,6 +414,7 @@ theorem wp_writeAll
     itrivial
 
 theorem wp_Call
+    (wp_RandomInt : wire.RandomInt.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -419,9 +427,22 @@ theorem wp_Call
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases dupInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HsrvInv⟩
   (try wp_auto)
+  wp_apply wp_RandomInt (W64 63) as %k %Hk
+  · ipureintro; decide
+  (try wp_auto)
+  -- the number of bytes, `n = 1 + k`, from 1 to 64
+  have h63 : sint.Z (W64 63) = 63 := rfl
+  obtain ⟨n, hn, hn1, hn64⟩ : ∃ n : Nat, W64 1 + k = W64 (n : Int) ∧ 1 ≤ n ∧ n ≤ 64 :=
+    ⟨(sint.Z (W64 1 + k)).toNat, by
+      rw [Int.toNat_of_nonneg (by word)]; word, by word, by word⟩
+  rw [hn]
+  (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply wire.dial_both_au addrN srvAddr (connProto γm) (dialerOwn γm) $$ HaddrInv [] []
@@ -435,12 +456,12 @@ theorem wp_Call
     subst Hct
     unfold dialerOwn
     icases Hown with ⟨%γ, #Hname, Hend, Hwu, Hrd, #Hlbd⟩
-    imod cliInv_alloc' cn γ $$ Hend Hwu with ⟨%γw, #Hcli, Hw⟩
+    imod cliInv_alloc' n cn γ $$ Hend Hwu with ⟨%γw, #Hcli, Hw⟩
     ihave #HdU := dup_dirInv_up γm cn γ $$ HsrvInv Hname
     ihave #HdD := dup_dirInv_down γm cn γ $$ HsrvInv Hname
     wp_auto
     wp_apply wp_fork $$ [Hw]
-    · wp_apply wp_writeAll wp_Write _ cn γ γw ed $$ [Hw]
+    · wp_apply wp_writeAll wp_Write _ cn γ γw ed n hn64 $$ [Hw]
       · iframe Hcli HdU Hw Hed
         unfold net.isConn
         iexists t, la, ra
@@ -451,7 +472,7 @@ theorem wp_Call
     ihave HI : (∃ (j : Nat) (R : List w8), "i" ∷ i_ptr ↦ W64 (j + 1) ∗
         "Hr" ∷ rcvdAll (Gg := hG.goose_globalGS) γ.down R ∗
         "#Hlb" ∷ sentLb (Gg := hG.goose_globalGS) γ.down R ∗
-        "%Hj" ∷ ⌜R.length = j ∧ j ≤ 4⌝ : IProp GF) $$ [i Hrd]
+        "%Hj" ∷ ⌜R.length = j ∧ j ≤ n⌝ : IProp GF) $$ [i Hrd]
     · iexists 0, []
       rw [show W64 (((0 : Nat) : Int) + 1) = W64 1 from rfl]
       iframe i Hrd Hlbd
@@ -460,14 +481,14 @@ theorem wp_Call
     wp_if_destruct
     · -- the body: read the byte `j + 1`
       obtain ⟨HRj, Hj4⟩ := Hj
-      have hj4 : j < 4 := by
+      have hj4 : j < n := by
         have : sint.Z (W64 (↑j + 1)) = (j : Int) + 1 := by word
-        have h4 : sint.Z (W64 4) = 4 := rfl
+        have h4 : sint.Z (W64 n) = n := by word
         omega
       wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %b ⟨Hb, -⟩
       · ipureintro; decide
       (try wp_auto)
-      ihave #Hacc := cli_read_acc cn γ γw R $$ Hcli HdD
+      ihave #Hacc := cli_read_acc n cn γ γw R $$ Hcli HdD
       wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false
           srvAddr b _ (cliP γ R) eof ed $$ [Hb Hr]
         as %ok ⟨%got, %bs', HP, Hb, %Hres⟩
@@ -488,16 +509,16 @@ theorem wp_Call
         wp_for_post
         wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [] as %err' ⟨%res', -, -⟩
         · iframe Hca
-          iapply cli_close_au cn γ γw $$ Hcli HdU
+          iapply cli_close_au n cn γ γw $$ Hcli HdU
         (try wp_auto)
         iapply HΦ
         itrivial
       · obtain rfl := Hok rfl
         unfold cliP
         icases HP with ⟨Hr, #Hsent⟩
-        imod client_check' γm cn γ γw (R ++ got) $$ HsrvInv Hname Hcli Hsent with %Hpre
+        imod client_check' n γm cn γ γw (R ++ got) $$ HsrvInv Hname Hcli Hsent with %Hpre
         simp only [List.length_replicate] at Hlen
-        have hb : got = [W8 (↑j + 1)] := dseq_last R got j hj4 HRj Hlen Hpre
+        have hb : got = [W8 (↑j + 1)] := dseq_last n R got j hj4 HRj Hlen Hpre
         subst hb
         wp_auto
         ihave %Hbl := ownSlice_len $$ Hb
@@ -516,7 +537,7 @@ theorem wp_Call
         wp_auto
         wp_for_post
         (try wp_auto)
-        iframe HΦ c
+        iframe HΦ c n
         iexists j + 1, R ++ [W8 (↑j + 1)]
         rw [show W64 (↑j + 1) + W64 1 = W64 (↑(j + 1) + 1) by word]
         iframe i Hr Hsent
@@ -525,7 +546,7 @@ theorem wp_Call
       (try wp_auto)
       wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [] as %err' ⟨%res', -, -⟩
       · iframe Hca
-        iapply cli_close_au cn γ γw $$ Hcli HdU
+        iapply cli_close_au n cn γ γw $$ Hcli HdU
       (try wp_auto)
       iapply HΦ
       itrivial

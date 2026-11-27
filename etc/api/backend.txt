@@ -35,13 +35,16 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+# (prove-ps2-v3alarm, 2026-11-24) the idle-read law: a reader of an idle unclaimed tracked bucket sees the writer's contents
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.IdleRead
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 # (mvcc-api, 2026-11-07) the constructor's spec, for a client that calls `backend.New` itself
-# (`examples/mvccrand`'s `runChecks`; the server opens its backend through `storage.OpenBackend`)
+# (`examples/mvccfull`'s `runner.openBackend`, and until 2026-11-25 `examples/mvccrand`'s; the server
+# opens its backend through `storage.OpenBackend`)
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close

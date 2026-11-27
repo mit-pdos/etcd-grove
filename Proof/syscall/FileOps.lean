@@ -10,6 +10,7 @@ module
 
 public import GeneratedProof.syscall
 public import Proof.syscall.Base
+public import Perennial.Proof.internal.gomodel.Link
 public import GooseLang.Ext.Fs.Falloc
 public import GooseLang.Ext.Fs.Locks
 public import GooseLang.Ext.Fs.NoMapLockErrSpecs
@@ -51,11 +52,15 @@ theorem syscall.Fallocate.wp_grow [go.BasicIntoValInj] (fd off len : w64) (dq : 
              rsDone false d.ino (max m.size (off.toNat + len.toNat)) w m n))) ∗
         ⌜e ≠ 0 → ¬ FsNoErrIno ∨ maxBytes < max m.size (off.toNat + len.toNat)⌝ }} := by
   wp_start as ⟨#Hinv, Hfd, Hm, Hc⟩
+  try wp_auto
+  wp_stub syscall.fsFalloc.impl
   wp_apply wp_osFallocStart fd off len dq d m CoPset.subseteq_top hwr hoff hlen
     $$ Hinv Hfd Hm Hc as %t %n %_ Hfd Ht
   wp_apply wp_osFallocFinishW t d.ino _ m n (Nat.le_max_left _ _) CoPset.subseteq_top
     $$ Hinv Ht as %e Hr %hw
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe Hfd
   iexists n
@@ -70,13 +75,14 @@ theorem syscall.Fallocate.wp_keep (fd off len : w64) (dq : DFrac) (d : OsFd)
         (Val #off)) (Val #len))
     {{ (e : w64), RET #(errnoErr e); osFd fd dq d }} := by
   wp_start as ⟨#Hinv, Hfd⟩
+  try wp_auto
+  wp_stub syscall.fsFallocKeep.impl
   wp_apply wp_osFallocKeep fd off len dq d CoPset.subseteq_top hwr hoff hlen $$ Hinv Hfd as %e Hfd
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe
-
-theorem flock_ty_eq : syscall.model.Flock_t = syscall.Flock_t.ty := by
-  unfold syscall.Flock_t.ty; rfl
 
 /-- `syscall.FcntlFlock(fd, cmd, lk)` for `F_OFD_SETLK` (37) or `F_OFD_SETLKW` (38) with a whole-file
 description `*lk` (`Whence`, `Start`, `Len`, `Pid` all 0) of type `F_RDLCK`, `F_WRLCK` or `F_UNLCK`
@@ -98,15 +104,17 @@ theorem syscall.FcntlFlock.wp_lock (fd cmd : w64) (lk : Loc) (v : syscall.Flock_
     split at h <;> (try cases h) <;> bv_omega
   have hreq' : ∀ t : w64, t.toNat = v.Type'.toNat → ofdReq t.toNat = some req := fun t ht => by
     rw [ht]; exact hreq
-  rw [flock_ty_eq]
   rcases hcmd with rfl | rfl <;>
-  · wp_auto
+  · try wp_auto
     rw [hwh, hst, hln, hpid]
-    wp_auto
-    rcases hty with h0 | h0 | h0 <;> rw [h0] <;> wp_auto <;>
-    · wp_apply wp_osOfdLockW fd _ _ d req CoPset.subseteq_top (by decide) (hreq' _ (by rw [h0]; rfl))
+    try wp_auto
+    rcases hty with h0 | h0 | h0 <;> rw [h0] <;> (try wp_auto) <;>
+    · wp_stub syscall.fsOfdLock.impl
+      wp_apply wp_osOfdLockW fd _ _ d req CoPset.subseteq_top (by decide) (hreq' _ (by rw [h0]; rfl))
         hw hr hfree $$ Hinv Hfd Ht as %e %hW Hout
-      iapply wp_errno
+      try wp_auto
+      wp_apply wp_errnoErr
+      try wp_auto
       iapply HΦ
       iframe
       ipureintro; exact hW
@@ -121,21 +129,21 @@ theorem syscall.FcntlFlock.wp_getlk (fd : w64) (lk : Loc) (v : syscall.Flock_t) 
     {{ (e : w64), RET #(errnoErr e); ∃ v' : syscall.Flock_t, lk ↦ v' ∗
         ⌜v'.Pad_cgo_0' = v.Pad_cgo_0' ∧ v'.Pad_cgo_1' = v.Pad_cgo_1' ∧ (e ≠ 0 → v' = v)⌝ }} := by
   wp_start as Hlk
-  rw [flock_ty_eq]
-  wp_auto
-  wp_apply wp_ArbitraryInt as %e _
+  try wp_auto
+  wp_apply internal.gomodel.wp_ChooseUint64 as %e -
+  try wp_auto
   by_cases he : e = 0
   · subst he
-    wp_auto
-    wp_apply wp_ArbitraryInt as %a1 _
     try wp_auto
-    wp_apply wp_ArbitraryInt as %a2 _
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a1 -
     try wp_auto
-    wp_apply wp_ArbitraryInt as %a3 _
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a2 -
     try wp_auto
-    wp_apply wp_ArbitraryInt as %a4 _
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a3 -
     try wp_auto
-    wp_apply wp_ArbitraryInt as %a5 _
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a4 -
+    try wp_auto
+    wp_apply internal.gomodel.wp_ChooseUint64 as %a5 -
     try wp_auto
     have h0 : errnoErr (W64 0) = interface.nil := by unfold errnoErr; simp
     rw [← h0]
@@ -145,8 +153,9 @@ theorem syscall.FcntlFlock.wp_getlk (fd : w64) (lk : Loc) (v : syscall.Flock_t) 
     ipureintro
     exact ⟨rfl, rfl, fun h => absurd rfl h⟩
   · rw [decide_eq_false (show e ≠ W64 0 from he)]
-    wp_auto
-    iapply wp_errno
+    try wp_auto
+    wp_apply wp_errnoErr
+    try wp_auto
     iapply HΦ
     iexists v
     iframe

@@ -42,7 +42,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_leasegrant.wp_Main`). -/
-theorem leasegrant_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem leasegrant_Main :
     etcd_leasegrant.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasegrant.wp_Main
 

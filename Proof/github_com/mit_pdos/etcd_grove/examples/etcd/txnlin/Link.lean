@@ -87,6 +87,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.workloadKeys
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
 public import Proof.context.Link
@@ -432,9 +433,9 @@ theorem wp_Check :
     EtcdGrove.etcd_txnlin.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_txnlin.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_Gen wp_Apply
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [_root_.Perennial.net.FieldAssumptions] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcd_txnlin.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient wp_Check mvcc.api.mvccApi_names_nonempty_law_holds
+  EtcdGrove.etcd_txnlin.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient wp_Check mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end links_hasLC
 

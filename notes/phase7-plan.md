@@ -1,5 +1,10 @@
 # Phase 7: etcd's gRPC, net and net/http axioms as theorems over the models (plan, Draft)
 
+**Superseded where they differ by `notes/phase7-endstate.md`** (2026-11-24): the end state (one call
+protocol for unary calls and streams, heap-free stream entries, `grpcServeTok` in one form, bridges
+serving their target's table), the interim switch, the overnight decisions and the work plan. This note
+keeps the history and the S2 and S5 drafts.
+
 2026-11-21, claim #24. Phase 7 of `notes/dsverify-net-port-plan.md`, planned on its own as that section
 says. Coordination: #10's `grpc3` (grpc's resolver, `resolver/manual`, `attributes`, `serviceconfig`,
 etcd's `client/v3/internal/resolver`) and `http3` (`Proof/net/http/{Axioms,Boundary}.lean`,
@@ -224,6 +229,304 @@ There is also one scope cut: **streams stay on the old pair in S2** (§2.6). The
 registration (`isGrpcStreamAt`, a WP of the handler) still depends on the server's heap, so it is
 used only within one machine until S3.
 
+### 0a. Amendment (2026-11-23, S2 core, branch `phase7-s2-core`): three corrections
+
+This supersedes the parts of §1.1, §1.2 (`headReady`, `grpcAttemptSlot`, `grpcCliP`, the
+"How a unary call travels" steps 2-3, "At most once" (a)) and §4 (O1, O2) that it names.
+
+1. **The unary deposit travels with the message, to the server's `dec`, not with the head.**
+   - grpc-go v1.84 runs the unary handler as soon as the stream's headers arrive (`server.go:1446-1450`),
+     and its `dec` is `stream.RecvMsg`. The client queues HEADERS in `newClientStream`
+     (`call.go:70`, `http2_client.go:915`) and only then marshals the request, in
+     `SendMsg`/`prepareMsg` (`stream.go:1072`), which can fail.
+   - The model does the same (checked): `invoke` (`models/grpc/call.go`) runs `newClientStream`,
+     whose `newClientTransportStream` (`model_transport.go`) writes the head frame in one write,
+     before `SendMsg` runs `prepareMsg` and `csAttempt.sendMsg` writes the data frame and the close
+     frame together (`Write(hdr, payld, Last: true)`, one write). On the server, `HandleStreams`
+     reads the head, `operateHeaders` refuses (`REFUSED_STREAM`, `drainReads` after it) or
+     dispatches, and `handle(s)` starts the handler before any data frame is read; the unary
+     handler is `wrapUnaryHandler`'s, whose `df` is `stream.RecvMsg`.
+   - So the deposit cannot be in the head's protocol fact: a marshal failure would leave it there
+     after a head the server dispatched. The client **registers the slot just before it writes
+     the data frame** (the marshal has succeeded, the bytes `bs` are known), and the data frame's
+     protocol fact is the slot. The server **claims when its `dec` has read a whole data frame**:
+     the handler gets the caller's `spec md m Φ Ψe` only from a `dec` that returned nil (the shape
+     of dsverify's quepaxa kit: `dec` returning nil gives `∃ m Φ, spec … ∗ Got Φ ∗ <decoded>`;
+     the handler is proved for any receipt `Got`). `headReady fs` becomes
+     `msgReady fs bs W := clientPrefaceBytes ++ headFrame fs ++ dataFrame bs <+: W`.
+   - **Refusal is per connection, not per slot.** The model refuses after the head, before reading
+     any data, possibly before the client registered its slot (the client writes its data without
+     waiting). So the server cannot give a deposit back from a slot it may not see. Instead it
+     spends its `connFresh cn true` into the slot map's invariant (`conn_refuse`, giving the
+     persistent `connRefused cn`), and the `REFUSED_STREAM` reset carries `connRefused cn`. A
+     claim needs that same `connFresh cn true`, so a refused connection's slot is never claimed,
+     and the client takes its deposit back with `connRefused cn` and its token
+     (`depSlot_takeRefused`), before the transparent retry's buffered `sendMsg` re-deposits it on
+     the new attempt's connection. `SlotOut.refused` goes: the slot's outcome type is the user's
+     (grpc: `.ok bs`, `.err d`).
+   - **Withdraw** stays as the draft has it (the dialer's `sendTok` frozen at a `W` with
+     `¬ ready W`), and the claimed states keep the claim's `sentLb cn false W'` with `ready W'`,
+     which is what refutes a withdraw after a claim. The model never needs it (a head write that
+     fails registered no slot; a data write that fails allows no retry: `shouldRetry` retries only
+     an unprocessed stream), but the library has it for other users.
+   - `depSlotInv` loses its `P` parameter (the frozen `sendTok` is at an existential protocol), so
+     `grpcCliP` and the slot are not mutually defined.
+2. **O1, decided** (kaashoek's answer on #24): `envAt γE ν` over a countable view `ν` = (`γs`,
+   `γrev`, `authOn`, the read names, `cid`); `etcdEnvOf ν` sets
+   `Nx := srvApi.kvNx (viewRd ν) false` and `Cp := kvCpOk (viewRd ν).kv`.
+3. **O2, decided**: the service table's specs are re-sectioned over
+   `[GooseGlobalGS]`/`[GoLocalContext]` (no heap). That restatement (about 30 defs modules) and the
+   etcd-side users are proving session 2's part, on its own branch; S2's core builds on its
+   interface when it lands (#24), and touches none of those modules.
+
+**Built so far** (`phase7-s2-core`): `GooseLang/Ext/Net/Slot.lean` (the slot library, §1.1 as
+amended; laws proved) and `Proof/google_golang_org/grpc/InvGrpcWire.lean` (the model's bytes, the
+two protocols, `grpcAddrAt`, `grpcSvcAt`, `grpc_addr_set`, and the parse laws that make the protocols
+usable: `cli_read_slot`, `srv_data_answered`, `srv_trailer_answered`). Changes to §1.2 made there:
+- `ProtoWire` has the message's bytes `enc : M → List w8`, not a tree (`pbEncodeTree` does not
+  exist; O7 decides how `enc` relates to the store, and O3 becomes `ProtoMsg` gaining `enc`).
+- The deposit is at every metadata the server may make of the head (`grpcFieldsMd fs md`, stated on
+  the keys grpc does not set, as `grpcAttemptMd` is; a `-bin` key through the base64 encoder
+  `b64Raw`), not at a function `mdOfFields`.
+- The trailer's fact is over its `grpc-message` field percent-decoded (`grpcMsgDecode`, Go's
+  `decodeGrpcMessage`), not over a `statusOf`.
+- `grpcSlotCont`'s error arm is `⌜d ∈ handlerDescs⌝ -∗ Ψe d` (the server can answer any error).
+- Data and trailer frames say nothing when the connection's head is a well-formed head of no unary
+  method of `Svc` (`streamConn`: streams, unknown methods), which a unary attempt's client refutes
+  from its own head (`streamConn_unary`).
+
+**F1 (finding, the grpc model): a header block of 4 GiB or more is misframed.** `appendHeaderBlock`
+(`models/grpc/model_wire.go`) writes the block's length and each field's length as `uint32`s,
+truncating them. A head whose fields total 4 GiB (a context's outgoing metadata, which nothing
+bounds) is then read by the server as other fields, possibly another method's head, while grpc-go's
+HTTP/2 server rejects any header list over its 16 MiB default (`MaxHeaderListSize`; the model's own
+reader, `readHeaderBlock`, refuses a block over `maxHeaderBlock`, but only after the truncation). The
+protocol requires every head well formed (`headOk` in `grpcCliP`), so the client attempt's proof
+needs either the model to refuse such a head before writing it (proposed: `newClientTransportStream`
+fails the attempt when `len(b) > maxHeaderBlock + 5`, without a transparent retry, as grpc-go's
+server would answer it with a connection error), or a premise bounding the metadata. The same holds
+for the server's header and trailer blocks (a handler's `SetHeader`/`SetTrailer` metadata).
+
+**F1, fixed in the model (2026-11-23, `phase7-s2-core`; a trusted-model change for the user's review).**
+Measured against grpc-go v1.84.0 (`models/internal/grpcdifftest/headerlimit_test.go`): grpc-go's
+server does **not** advertise `SETTINGS_MAX_HEADER_LIST_SIZE` unless `grpc.MaxHeaderListSize` is set
+(`http2_server.go:205`), so its client's `checkForHeaderListSize` passes and the *receiver's* framer
+refuses a list over 16 MiB (x/net's count, name + value + 32 per field). The outcomes: client
+metadata just over the limit, Internal "stream terminated by RST_STREAM with error code:
+FRAME_SIZE_ERROR"; a value over it, Unavailable "error reading from server: EOF" (connection
+error); a server header or trailer over it, Unavailable "error reading from server: connection error:
+COMPRESSION_ERROR" after the handler ran; the handler of a refused head never runs, and a stream
+with such metadata is created (`NewStream` succeeds, `Recv` fails). The model (`MODEL:` notes on
+`headerListTooLarge`, `model_wire.go`) now checks the list before writing: the client's
+`newClientTransportStream` ends the stream unsent with one of the first two outcomes (`modelChoose`,
+no transparent retry); the server's `writeHeaderBlock` writes the marker `appendOversizedBlock` (a
+block length over the limit, no fields), which the client's reader refuses with one of grpc-go's three
+outcomes (`headerListTooLarge`, `modelChooseN(3)`). In Lean: `headerListOk`, `headOk_of_listOk`,
+`SrvFrame.oversized` (`srvFrameOk` says nothing). Left as before (a gap of the claim, now stated in
+`models/README.md`): the `MaxHeaderListSize` options are ignored, so a program that sets a limit is
+outside the claim.
+
+**Built in the session's second part** (`phase7-s2-core`): `Code/google_golang_org/grpc.toml` translates
+the frame writers with bodies (`headerListTooLarge`, `appendHeaderBlock`, `appendOversizedBlock`,
+`appendData`, `appendReset`, the frame-kind constants, `maxHeaderBlock`, `clientPreface`) and imports
+`encoding/binary` (its package fact imported in `cache/v3/Base`); `errHeaderListTooLarge` is
+skipped. Proved, no axiom: `binary.bigEndian.AppendUint32` (`Spec/encoding/binary/`, from Perennial's
+translated body; a candidate for Perennial) and `grpc.headerListTooLarge` (`false` iff
+`headerListOk (hfPairs hs)`; the model's sum now adds one length at a time, so it cannot overflow in
+GooseLang, where only `len` bounds a string below `2 ^ 63`). Not linked yet (no grpc Link holds them).
+Next, in order: `appendData` and `appendHeaderBlock` (bytes `dataFrame`, `headerBlock kind (hfPairs
+hs)` under `headerListOk`); then `newClientTransportStream`'s callees, which need the skipped error
+variables' initializers translated (`errMalformedFrame`, `transportFailureCodes`, `http2ErrConvTab`,
+`errStreamDone`, `metadataFromOutgoingContextRaw`, `ErrClientConnClosing`; goose refuses a
+reference to a skipped variable) and specs of `credentials`, `grpcutil`, `strings`, `strconv`,
+`time.Until` for `createHeaderFields`.
+
+**Built in the session's third part** (`phase7-s2-core`, 2026-11-23; no axiom, no `sorry`):
+- **The frame writers, proved**: `appendData` (`b ++ frameData :: hdr ++ payload`, `appendData_dataFrame`
+  makes it `dataFrame bs`), `appendHeaderBlock` (`b ++ headerBlock kind (hfPairs hs)` under `headerListOk
+  (hfPairs hs)`: the length sum `hbLenPre` and the bytes `hbBytesPre` are its loops' invariants,
+  `listOk_length`/`listOk_field` bound each `uint32`), `appendOversizedBlock` (`srvFrameBytes
+  (.oversized kind)`), `appendReset` (`srvFrameBytes (.reset code)`); `u32Le_reverse`:
+  `AppendUint32`'s bytes are `be32`. Specs `Spec/google_golang_org/grpc/append*.lean`; the pure laws in
+  `InvGrpcWire`. Not linked yet (no grpc `Link`).
+- **Six skipped variables translated with their initializers** (`grpc.toml`): `errMalformedFrame`,
+  `errStreamDone`, `errHeaderListTooLarge` (`errors.New`), `ErrClientConnClosing` (`status.Error`),
+  `transportFailureCodes`, `http2ErrConvTab` (slice literals of codes); grpc now imports `codes` and
+  `status`. `etc/gen-init.py`'s grpc entry proves them (Perennial's `errors.wp_New_errorString`, the
+  existing `status.Error.wp_proof`, `wp_slice_literal`): no new `opaqueInitsOk`; grpc's `Init` is now
+  split (`InitLinked`, since `status.Error.wp_proof` is a proof module), and so are its importers'
+  (`etcdserverpb`, `v3lockpb`, `v3electionpb`, `health`, `reflection`, the prometheus middleware). The
+  translation's `clientTransportStream` is now a translated struct (two `axiomatized type` instances
+  fewer). `cache/v3/Base`: the `codes`/`status` instances moved above grpc's. The fact `grpcInit` says
+  nothing of the new variables yet (adding to it rebuilds about 7700 modules: do it once, with what the
+  client attempt's proof needs: `errStreamDone` a non-nil error, `transportFailureCodes`' contents).
+- **Left skipped**: `metadataFromOutgoingContextRaw`. Its initializer asserts the type of
+  `internal.FromOutgoingContextRaw`, which `metadata`'s `init` sets; grpc's `internal` package is not
+  translated at all. Needed: translate `google.golang.org/grpc/internal` (names-only, its variable
+  `FromOutgoingContextRaw`), `metadata`'s `init` and `fromOutgoingContextRaw`, and a `metadata` fact
+  (`internal.FromOutgoingContextRaw ↦□ the function value`) for the assertion and the call. A `SPECIAL`
+  entry for `metadata` in `gen-init`.
+- **`createHeaderFields`' callees**: `time.Until` proved (`Spec/time/Until.lean`, as Perennial's
+  `Since`; a Perennial candidate). Still to do: `strings.LastIndex` (names-only in Perennial:
+  `notes/perennial-changes.md`), `grpcutil.{RegisteredCompressors, ContentType,
+  IsCompressorNameRegistered, EncodeDuration}`, `credentials.NewContextWithRequestInfo`,
+  `istatus.IsRestrictedControlPlaneCode`, `imetadata.ValidatePair` (all in `models/grpc/internal/...` and
+  `models/grpc/credentials`: translatable with their bodies), the model's `encodeMetadataHeader` and
+  `isReservedHeader`, `strconv.Itoa` (Perennial's), `strings.{TrimSuffix, ToLower}` (Perennial's and the
+  repository's).
+
+**Built in the session's fourth part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **`metadataFromOutgoingContextRaw`, translated and proved.** grpc's `internal` is translated names-only
+  but `FromOutgoingContextRaw` (`Code/google_golang_org/grpc/internal.toml`: its other initialized
+  variables `[[skip]]`s, literals; `translate_types`: two `axiomatized type` instances, `HealthChecker`,
+  which names the untranslated `connectivity`); `metadata`'s `init` and `fromOutgoingContextRaw` with
+  their bodies. The cell is another package's (allocated by `internal`, written by `metadata`'s `init`,
+  read by grpc's initializer) and a package fact is persistent, so it lives in `internal`'s fact
+  `internalInit` (`cache/v3/Base.lean`), an invariant with two states: *held* (the cell, a counter
+  `γS` past `0` only with `fromOutRawAny` in it, the whole ghost variable `γI`) and *lent* (a package
+  state `ownGoState σ`, exclusive, and half of `γI` at `σ`). A package initializer takes the cell out by
+  lending its package state, does its plain (non-atomic) load or store, and puts it back
+  (`Proof/google_golang_org/grpc/internal/FromOutRaw.lean`: `fromOutRaw_alloc`, `fromOutRaw_acc`,
+  `wp_store_fromOutRaw`, `wp_load_fromOutRaw`). `metadata`'s fact `metadataInit` (until then `True`) is
+  the invariant with the counter's lower bound `1`. `etc/gen-init.py`: `SPECIAL` entries for `internal`
+  (the invariant's allocation), `metadata` (the translated `init`'s store) and grpc's
+  `metadataFromOutgoingContextRaw` (the load, then the type assertion and the store into a `GoFunc`
+  cell). The trust-boundary axiom `metadata.initFuncsOk` is gone (`etc/tcb-baseline.txt`,
+  `tcb-collections/mvccfull.txt` edited by hand: no full build was run). grpc's `wp_initialize'_lb`
+  reaches, as before, grpc's own `initFuncsOk`/`opaqueInitsOk`, `status.Error.wp_proof`,
+  `codes.initFuncsOk`, `credentials.opaqueInitsOk`. `grpcInit` still says nothing of the new variables.
+- **A grpc-model rewrite (trusted, for review):** `createHeaderFields`' audience takes the method's last
+  `/` with a backwards byte loop (`MODEL:`) in place of `strings.LastIndex` (names-only in Perennial), as
+  `net/rpc/server.go` does; `internal/grpcdifftest`'s `TestPerRPCCredsAudience` (new: with and without a
+  `:443` suffix, against grpc-go and the model); `run.sh` green; `models/README.md`.
+- **`createHeaderFields`' callees translated with their bodies:** `internal/grpcutil` (new;
+  `RegisteredCompressorNames`, whose fact `grpcutilInit` is the nil slice for good, `IsCompressorNameRegistered`,
+  `RegisteredCompressors`, `ContentType`, `EncodeDuration`, `div`), `internal/metadata` (new;
+  `ValidatePair`, `ValidateKey`, `hasNotPrintable`), `internal/status.IsRestrictedControlPlaneCode`,
+  `credentials.NewContextWithRequestInfo`, and the model's `isReservedHeader`, `encodeMetadataHeader`,
+  `encodeBinHeader`; grpc imports `strings`, `strconv`, `encoding/base64` (so `cache/v3/Base` imports
+  base64's fact), `grpcutil`, `internal/metadata`. Their vocabulary: `HeaderFields.lean` (`reservedHdr`,
+  `contentTypeOf`, `keyOk`/`pairOk`, `restrictedCodes`).
+- **Proved** (Lean's three axioms; not linked: no grpc `Link` yet): `grpc.isReservedHeader`,
+  `grpcutil.ContentType`, `grpcutil.IsCompressorNameRegistered` (`false`), `grpcutil.RegisteredCompressors`
+  (`""`, over Perennial's `strings.Join.spec`), `istatus.IsRestrictedControlPlaneCode` (over
+  `status.Status.Code.spec`, the existing trust boundary).
+- **Left, with what each needs:** `ValidatePair` (Perennial's `fmt.Errorf` spec covers its `%q`:
+  `wp_Errorf_argsWf`); `EncodeDuration` (Perennial's `strconv.FormatInt`); `encodeMetadataHeader`
+  (`base64.RawStdEncoding.EncodeToString`: base64's fact `base64Init` has `StdEncoding` and
+  `RawURLEncoding` only, so it gains a `rawStdEncInit` part, proved in base64's generated `Init` as
+  `rawUrlEncInit` is: a change to base64's fact); `NewContextWithRequestInfo` (`context.WithValue`'s
+  spec, `Spec/context/WithValue.lean`, lists the key types it accepts; `requestInfoKey` is not one:
+  extending it changes that trusted statement, left for review).
+- **Found (for the head's spec, not a bug):** per-RPC credentials may return a pseudo-header key
+  (`ValidateKey` skips keys starting with `:`), which `createHeaderFields` appends after the real
+  `:path`. grpc-go's HTTP/2 server refuses a pseudo-header after a regular one (a stream error); the
+  model's server takes the last `:path` (`pathOf`), an over-approximation the claim allows. The client
+  attempt's spec therefore needs the credentials' keys not to be pseudo-headers (etcd's token
+  credentials return `token` only): a premise from the credentials' contract (`connCredsOk`).
+
+**Built in the session's fifth part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **Proved** (Lean's three axioms; not linked): `imetadata.hasNotPrintable` (`decide (¬ ∀ b ∈ msg,
+  printable b)`), `imetadata.ValidateKey` (`nil` iff `keyOk`, otherwise an error `fmtErrorOk`: the
+  repository's `fmt.Errorf.spec`, a callee), `imetadata.ValidatePair` (`nil` iff `pairOk`, the values'
+  slice back; over `ValidateKey`, `hasNotPrintable` and Perennial's `strings.HasSuffix.spec`),
+  `grpcutil.div` (`durDiv`: `sdiv`, plus one on a positive `srem`), `grpcutil.EncodeDuration`
+  (`encodeDurationOf`: the units in Go's order, over Perennial's `strconv.FormatInt.spec`), the model's
+  `encodeBinHeader` (`b64Raw` of the bytes) and `encodeMetadataHeader` (`encMdHdr k v`). Pure laws in
+  `HeaderFields`: `keyByteOk_iff`, `printable_iff`. No Perennial gap met (Perennial's `fmt.Errorf`,
+  `strconv.FormatInt`, `strings.HasSuffix` specs sufficed).
+- **base64's fact gains `rawStdEncInit`** (`RawStdEncoding`'s `EncodeToString` returns `rawStdEnc`, the
+  standard alphabet without padding): `base64Init` is now four parts; `rawStdEncInit_intro`
+  (`InitFacts`), proved in the generated `InitLinked` from `StdEncoding.WithPadding(NoPadding)`
+  (`etc/gen-init.py`'s `SPECIAL['encoding.base64']`); `rawStdEncInit_access`. A change to base64's fact:
+  its ~7700 importers rebuild (only the targets this work needs were built here; CI builds the rest).
+  `InvGrpcWire`'s `b64Raw` is now an abbreviation of base64's `rawStdEnc` (its copy of the encoder,
+  `b64Char`/`b64Alphabet`, removed), so the protocol and the code use one encoder.
+- **`credentials.NewContextWithRequestInfo.spec`** (`Spec/google_golang_org/grpc/credentials/`), stated, no
+  proof file: the new context's `Value(requestInfoKey{})` is `ri`, every other key the parent's (in
+  `context.WithValue.spec`'s form), and a description of the parent describes the child with the key
+  added (`credentials.withRequestInfo`). To be taken as a callee-spec hypothesis by
+  `createHeaderFields`' proof until the user decides on `context.WithValue`
+  (`Proof/context/WithValue.lean` untouched).
+
+Next: `createHeaderFields`. Its spec is not yet written; what it needs: the head's fields as a function
+of the call header, the connection's user agent, the deadline (`encodeDurationOf (time.Until dl)`), the
+credentials' metadata (a premise from `connCredsOk`/`perRPCCredsOk`: `pairOk` keys, none `:`-prefixed,
+above) and the outgoing metadata (`metadata.Outgoing`'s raw form, `encMdHdr`, reserved keys skipped:
+`grpcHdr.reservedHdr`), stated so that `grpcFieldsMd`/`headOk` follow; the map ranges' order is
+arbitrary, so the post is over a permutation within each map's block. Its error arms: the credentials'
+errors (`status.FromError`, `IsRestrictedControlPlaneCode`, `status.Errorf`), `ValidatePair`'s
+(`status.Error(Internal, err.Error())`), the deadline's. Then `newClientTransportStream`, the stream's
+`Write`/`reader`; `grpcInit` gains, once, what the client proof needs (`metadataFromOutgoingContextRaw`
+holding `fromOutgoingContextRaw`, `errStreamDone` non-nil, `transportFailureCodes`' contents).
+
+**Built in the session's sixth part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **`createHeaderFields` translated with its body and proved** (`Spec/google_golang_org/grpc/createHeaderFields.lean`,
+  `Proof/google_golang_org/grpc/createHeaderFields.lean`, vocabulary `Proof/google_golang_org/grpc/InvHeader.lean`). The
+  post: on `nil`, `hfPairs hs = callHdrFields ch acc ua ++ tfs ++ afs ++ ofs` with `timeoutFieldsOk tfs` (`grpc-timeout` at
+  `encodeDurationOf d` for some positive `d`, or nothing), `credsFieldsOk cms afs` (the maps `cms` the per-RPC credentials
+  returned, one per credential, each `□ Q cm`, merged with a later map's value winning, `credsLookup`, in some order of the
+  keys, `enumKeys`) and `outFieldsOk o ofs` (none without a `rawMD`; else the map's keys in some order, each key's values
+  unless reserved, then the `added` rows' pairs, `rowFields`); on an error, only `err ≠ nil` (the credentials' own error, a
+  status error made of it, `ValidatePair`'s refusal as `Internal`, `DeadlineExceeded`). Premises: `ch.Creds' = nil` (the
+  model sets call credentials only from a `PerRPCCredsCallOption`, which `grpcOptOk` excludes), the credentials' contract
+  `hdrCredsOk pc Ok Q` (non-nil; `GetRequestMetadata` with the resource `R` returns a `status`-accepted error or a map with
+  `credKeysOk`: lower-case keys, no `:` prefix, §0a's pseudo-header finding), `ctxDeadline ctx`, and `outRawIs ctx o` (the
+  `rawMD` the context holds at `mdOutgoingKey{}`, read-only, rows' keys lower case). Taken as hypotheses: the callees' specs,
+  `credentials.NewContextWithRequestInfo.spec` (unchanged, pending the `context.WithValue` decision) and
+  `grpc.outRawFn.law` (`isPkgInit grpc ⊢ metadataFromOutgoingContextRaw ↦□ fromOutgoingContextRaw`, a defs-module law; it
+  becomes provable when `grpcInit` gains that cell, the batched `grpcInit` change). The proof needs
+  `[context.Assumptions]` (`deadlineExceededError.Error`'s unfolding).
+- **`metadata.fromOutgoingContextRaw` proved** over a named `rawMD` (`ro : Option rawMD`: GooseLang's interface values do not say
+  that a value of dynamic type `rawMD` is one, and struct values have no `IntoValInj`).
+- **`istatus.IsRestrictedControlPlaneCode`'s spec restated** over a `Code()` WP (what `status.FromError`'s post gives) in place of
+  `statusAt` (which it does not); its proof no longer needs `Status.Code.spec`.
+- **Open, for the user (not a bug):** the head's metadata is stated over what the transport reads (`outRawIs`, the `rawMD`'s heap
+  contents), not over `metadata.outMD ctx om`: `outMD`'s `builtRawMDRaw` is a trusted opaque with no law, so nothing relates the
+  two; likewise `grpcAttemptMd`'s `credsYield` is opaque. The client attempt's proof needs a law (or a definition) for each:
+  `builtRawMDRaw v f ⊢ ∃ r ms rsl, v = mkOk rawMD #r ∗ …` with `f` the merged view, and `credsYield` replaced by the maps the
+  credentials returned (`hdrCredsOk`'s `Q`).
+
+Next: `newClientTransportStream` (`headerListTooLarge`, `appendHeaderBlock` under `headerListOk`, the head's write), the stream's
+`Write` and `reader`; then the batched `grpcInit` change (`metadataFromOutgoingContextRaw`, `errStreamDone`,
+`transportFailureCodes`), which proves `grpc.outRawFn.law`.
+
+**Built in the session's seventh part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **The metadata gap, `outMD` side, closed by a definition.** `metadata.builtRawMDRaw v f` (`Proof/context/LibKeys.lean`),
+  a trusted opaque with no law since errdesc stage 1, is now `∃ M rows, metadata.rawMDAt v M rows ∗ ⌜f = rawView M rows⌝`:
+  the `rawMD`'s read-only contents (the map's values `M`, the `added` rows), map and row keys lower case, rows of even
+  length (`rawOk`), and `f` `FromOutgoingContext`'s merge (`rawView`: a key's map values, then its rows' values in
+  order). `metadata.outMD`'s text is unchanged. Proved: `outRawIs_of_outMD` (`InvHeader.lean`): a context with
+  `outMD ctx md` has the raw contents `o` the transport reads (`outRawIs`, `createHeaderFields`' premise) with
+  `md = outViewOf o`. Ledger 2026-11-23 (`builtRawMDRaw`): the producing axioms (`AppendToOutgoingContext`,
+  `withVersion`, `WithRequireLeader`, `WithCancelValCtx`, the model's server contexts) now claim the contents; checked
+  against grpc v1.84 and etcd; narrowed to lower-case map keys (the opaque allowed non-colliding upper-case keys of a
+  literal `MD`, which no verified program builds). For the user's review.
+- **Not retired:** the axioms `metadata.AppendToOutgoingContext`, `withVersion`, `WithRequireLeader`. Their bodies need
+  `context.WithValue` at `mdOutgoingKey{}` returning a `*valueCtx` (the chain form `outMD` is in): this repository's
+  `context.WithValue.spec` is a trust-boundary axiom (Perennial translates `context` without `WithValue`'s body) whose key
+  list excludes grpc's key, and extending it changes a trusted statement (the same decision as `requestInfoKey`, fifth
+  part). Proposed: Perennial translates `WithValue` with its body (a `valueCtx` allocation; `ctxValue_valueCtx` already
+  exists), after which these three and `NewContextWithRequestInfo` are provable here.
+- **`credsYield`, not done: the design.** `credsYield conn cm` (opaque) is the only link from a connection to what its
+  credentials returned. Replacing it needs the credentials' predicate at the attempt: `grpcConn` (an axiomatized
+  predicate) gains `CQ : GrpcMd → IProp GF` (NewClient's post: `credsQOf (credsOfDial ds) Q`, `[] ↦ ⌜cm = none⌝`,
+  `[_] ↦ □ Q cm`, more ↦ `True`; `connCredsOk` goes), `grpcInvokerOk conn addrs Ok CQ inv` asks
+  `▷ ∀ md cm, CQ cm -∗ ⌜grpcAttemptMd cm om md⌝ -∗ Spec md m Φ Ψe` with `grpcAttemptMd` pure over the merged
+  credentials' metadata `cm` (`credsLookup` of `createHeaderFields`' `cms`, `credsMapIs` per map), and the etcd client's
+  `isEtcdConnG`/`connTokOk` carry `CQ` (`connTokOk conn P` becomes `□ ∀ cm, CQ cm -∗ tokMdOk P cm`, no consumer today).
+  36 uses of `grpcConn`, 67 of `grpcInvokerOk` (15 files, three trusted statements: `NewClient`, `ClientConn.Invoke`,
+  `ClientConn.NewStream`): a spec change at the client boundary, to do with `ClientConn.Invoke`'s proof over the model
+  (where `grpcConn` becomes a definition and `CQ` its dial's), not before it.
+
+- **The user's rule (2026-11-23): no hand-written stand-ins for real library functions in the models.** Go's real
+  function is translated and proved (in Perennial), or becomes a Go model under perennial#692's overlay; until then the
+  call stays as Go writes it and proofs through it wait. The fourth part's `LastIndex` byte loop in
+  `createHeaderFields` stays for now (a separate branch reverts it to `strings.LastIndex` once Perennial has it); no
+  further proof here depends on the loop specifically (the client attempt's proof takes `createHeaderFields.spec`, whose
+  statement names no audience). The user approves any change that adds no Lean axiom and no premise of a top-level
+  theorem.
+
 ### 1. The vocabulary
 
 #### 1.1 Deposit slots (net library, neutral: `GooseLang/Ext/Net/Slot.lean`)
@@ -231,6 +534,27 @@ used only within one machine until S3.
 This generalizes `remote`'s slot (`Net/Proof/.../examples/lib/remote/Defs.lean`: `slotOf`,
 `slotInv`, `slot_register`, `slot_claim`, `slot_done`, `slot_take`) so that grpc and remote share
 it. remote can move onto it later; that is not part of S2.
+
+**On `lean` ahead of S2's core** (2026-11-23, branch `s2-vocab`, for etcd-dist's interim axioms over
+`grpcSvcAt`/`grpcAddrAt`): this file and `Proof/google_golang_org/grpc/InvGrpcWire.lean` (§1.2) as
+built on `phase7-s2-core`, with base64's `rawStdEnc` (pure); definitions and proved laws, no axiom.
+One change from that branch: `grpcAddrAt` sets the address's protocols to the opaques
+`grpcCliPI`/`grpcSrvPI` (trusted text with no law, `notes/audit.md`; intended reading
+`grpcCliP`/`grpcSrvP`), since over the defined protocols raw Go code dialing or listening on a grpc
+address could write or read the model's frames and make an axiom over `grpcAddrAt` unsound; the
+defined protocols and their parse laws stay as a library until S2's proofs of `Invoke` and `Serve`
+put them in place. **The interface switch is done** (2026-11-24, branch `s2-switch`, option (A), the
+user's request: "with the unproved parts as axioms, so etcd-dist can proceed"): `ProtoWire :=
+⟨ty, M, tree⟩` (`ProtoMsg` gains `tree`; `protoEncodes`, opaque, in place of `enc`); `isGrpcRpcMd`
+redefined over `grpcSvcAt` and `grpcReach`; `Server.Serve` an axiom over `grpcServeTok gs lis a Svc` and
+`grpcServes` (with the stream-name clause, C3); the model `Serve`'s leaves retired; the single-process
+start over Go's table (`grpcGoSvc`, `etcdTys`, `netAddrLeft`). Review: `notes/axiom-review/s2-interface.md`;
+ledger: `notes/specs-only/ledger.md`, 2026-11-24. S2's proofs then retire `Serve`'s axiom and the
+opaque protocols, which needs the dec-shaped run contract and F2's world premise (the review).
+How they amend §1.1 and §1.2 (the deposit with the data frame, per-connection refusal, `msgReady`,
+`ProtoWire.enc`, `grpcFieldsMd`) is §0a on `phase7-s2-core`, which lands with the rest of S2's
+core. `headerListOk` and `SrvFrame.oversized` are F1's (§0a), whose model fix is on that branch too:
+until it lands, `lean`'s model does not yet check `headerListOk` before writing a block.
 
 There is one slot per connection, keyed by what the dialer's bytes say. grpc's transparent retries
 need two laws that remote does not use:
@@ -882,6 +1206,278 @@ translate. S1 avoided that, and S2 should too.
 - **O9. One machine in the interim.** Until S4, S2's theorems can serve the single-process examples
   only by adding the net extension to them (coupling 2). Whether kaashoek's `NetStart`/`ServerStart`
   lands first decides whether S2 states anything for `etcd_safe`, or only for putget-dist.
+
+## S5 draft signatures (2026-11-24)
+
+Proving session 2 (claim #18), on #24: both halves of S5 over the net/http model (`models/net/http`,
+translated into `Net/`, project `models-net`), after `models-rpc-http` (`af1e3f4675`). Written before
+any proof; nothing below is built. Branch `prove-ps2-s5srv/2026-11-24`. The Lean text is the intended
+statement; `...` marks a body sketched in prose.
+
+### 0. Decisions this draft takes as given
+
+- **No new trusted text.** The client half un-deletes upstream code: `Transport.roundTrip` (deleted to a
+  `notModelled` panic, `models/net/http/transport.go:614`) and the chunked reader (`modelChunked`,
+  `textproto_model.go:169`, back to `internal.NewChunkedReader`). Both shrink the model's diff. Goose
+  takes `net/http/internal` (`chunked.go`, `sniff.go`) from the toolchain, translated with its bodies.
+- **Sticky read errors** are the net extension's (D1 v3.5, landed with `models-rpc-http`). No
+  `connReader*` file and nothing of `GooseLang/Ext/Net` is edited.
+- **`notModelled`.** No spec relies on reaching one (`internal/gomodel.Stuck()`, perennial#694, once
+  pinned). The protocol below makes the model's `notModelled` head-parser branches unreachable: every
+  head a program's client writes is one the model parses (`hdrBlockOk`).
+- **Threads.** `Server.Serve` forks one goroutine per connection (`conn.serve`), and `connReader`
+  forks the background read per request. Perennial's fork rule (`wp_fork_tok`) gives each forked
+  thread a `threadTok`, returned at its exit. So the handler borrows **its connection goroutine's own
+  token**: no `handlerPool`, unlike `SpecPlan`'s `Serve.spec` (§5, C1). The background read runs on its own.
+- **One generation.** Net's protocols are fixed per run; `SpecPlan`'s `protoFam` (one protocol per
+  crash generation) waits for S4's crash story. Here `protoAt` is the run's.
+
+### 1. The HTTP vocabulary: `SpecPlan`'s, defined
+
+The client-facing vocabulary is `SpecPlan/Spec/net/http/Api.lean`'s, with its opaques defined over the
+model and the net extension. So the main tree's `Proof/net/http/{Boundary,Axioms}.lean` can move onto
+it at S4 (§4).
+
+```lean
+-- SpecPlan's, unchanged: HReq (meth, host, path, hdr), Proto (hreq, bodyPre, body, resp), onceOnly,
+-- hdrView, srvKeys, pathUnder, readerAt's Pre/Φ over IProp.
+structure Proto (GF) where
+  hreq    : HReq → GName → IProp GF
+  bodyPre : HReq → GName → List w8 → IProp GF
+  body    : HReq → GName → List w8 → IProp GF
+  resp    : HReq → GName → w64 → List (GoString × GoString) → List w8 → IProp GF
+
+/-- What `reserve` asks of a protocol: the server's own answers (`srvStatuses`, with Go's fixed
+bodies and the two `srvKeys` headers) are in `resp`, and `resp` is prefix-closed in `w`. -/
+def Proto.ok (P : Proto GF) : Prop := ...
+```
+
+**The requests a program's client writes** (`hreqOk R`, pure): `GET` or `POST`; `R.path` a
+`reqPath` (`RequestDefs.lean`: `/` and the bytes `url` leaves alone, which rafthttp's paths are); `R.host`
+an ASCII `host:port` that is not IPv6 (so the Transport dials exactly `R.host`: `canonicalAddr`); the
+headers `hdrBlockOk` after canonicalization, with none of the keys the Transport writes itself (`Host`,
+`Content-Length`, `Transfer-Encoding`, `Connection`, `User-Agent`, `Accept-Encoding`) and **no
+`Expect`** (§5, C3). rafthttp's requests are all of this kind.
+
+**Framing** (pure, `Net/Proof/net/http/Wire.lean`):
+
+```lean
+inductive Frame | none | len (n : Nat) | chunked
+/-- A chunked body's wire: each chunk (non-empty) `hex(len) ++ "\r\n" ++ c ++ "\r\n"`, then, if
+`fin`, `"0\r\n\r\n"`. -/
+def chunkedWire (cs : List (List w8)) (fin : Bool) : List w8
+/-- A request's head as `Request.write` writes it: the line, `Host`, `User-Agent`, the framing's
+header, `R.hdr`'s lines sorted by key, `Accept-Encoding: gzip`, the empty line. -/
+def reqHeadWire (R : HReq) (f : Frame) : List w8
+/-- A response's head as `chunkWriter.writeHeader` writes it: the status line, then a header block
+`hc` with `srvView hs hc` (the handler's committed `hs`, plus some values at `srvKeys`: `Date`,
+`Content-Type` (sniffed), `Content-Length` or `Transfer-Encoding: chunked`, `Connection`). -/
+def respHeadOk (st : w64) (hs hc : List (GoString × GoString)) (f : Frame) : Prop
+```
+
+**A connection's ghost state** (`HttpConnNames`, `httpConnInv`, shaped like net/rpc's `connInv`,
+`Net/Proof/net/rpc/Proto.lean`):
+- the requests in the order written, a mono-list of `(R, τ, f)`;
+- the server's count `k` of request heads taken, half with the serving thread. Taking request `k`
+  moves its ticket out, so a ticket goes to at most one handler run;
+- each `onceOnly` request's `reqTicket τ`, deposited by the client's write loop with the request's
+  **first byte on the wire**. A request of which nothing was written keeps its ticket, which is what
+  makes Go's `nothingWrittenError` retry of a `POST` sound (`shouldRetryRequest`).
+
+**The byte protocols** of an HTTP address (`Net.Proto := Nat → List w8 → IProp`):
+
+```lean
+/-- What a dialer of `a` writes: a prefix of its requests' wires, in order; each request
+`hreqOk`, with `□ P.hreq R τ`, and its body bytes (after the head) a stream with `□ P.bodyPre R τ B`
+of each prefix `B` sent, and `□ P.body R τ B` once complete (the length reached, or the chunked
+terminator). -/
+def httpReqP (P : Proto GF) (a : GoString) : Net.Proto GF := fun cn bs => ...
+/-- What an acceptor at `a` writes: a prefix of responses, the `i`-th one answering the `i`-th
+request (`R, τ`, from the mono-list's lower bound): a head `respHeadOk st hs hc f` and a body framed
+by `f` (length, chunked, or none), whose bytes `w` meet `□ ∃ w', w <+: w' ∗ P.resp R τ st hs w'`;
+or a server answer (`srvStatuses`) that ends the connection. -/
+def httpRespP (P : Proto GF) (a : GoString) : Net.Proto GF := fun cn bs => ...
+
+/-- `SpecPlan`'s `protoAt`: the address `a` serves HTTP with `P` (persistent). -/
+def protoAt (a : GoString) (P : Proto GF) : IProp GF :=
+  iprop(addrProto a (httpReqP P a) (httpRespP P a) ∗ inv httpRegN httpRegInv ∗ ⌜P.ok⌝)
+```
+
+The `SpecPlan` laws then become theorems: `reserve` from `addr_set_proto` (`addrFree a := addrUnset a`;
+a wildcard listener through `lis_set_proto`), `addrFree_protoAt_excl`, `reqTicket_alloc`/`_excl`. The
+main tree's axioms `reserve` and `register` go with S4's swap.
+
+### 2. The server half (`models/net/http/server.go`, `transfer.go`'s `body`)
+
+**Server-side predicates** (definitions sketched):
+- `srvReq r R rd`: `SpecPlan`'s `srvReq_fields` (`Method`, `URL.Path`, `Header` as `hdrRO` of the
+  request's headers without `Host`, `Body` `rd` never `nil`, `RemoteAddr`).
+- `readerAt rd Pre Φ r` for a request body: `rd` is `NoBody` (`r = []`, `Φ []`), or a `*body` over
+  `io.LimitReader(bufr, n)` (length-framed) or over the chunked reader (§4), on the serving thread's
+  `bufio.ownReader` of the connection's `recvTok` (`crStream`, `ConnReaderStream.lean`, in its body
+  phase). The bytes read so far are the request's body prefix, so `□ P.bodyPre R τ r`. `EOF` comes only
+  from the length reached or the chunked terminator, so `□ P.body R τ r`. Exclusive, and given to the handler.
+- `respW w R τ P c hs bs`: `w` is the `*response` `rp`. If `c = none`, its `handlerHeader` map is
+  `hdrMap` of `hs`, the commit's input. `rp.w` (a 2048-byte `bufio.Writer`) over `rp.cw` (the
+  `chunkWriter`) over the connection's 4096-byte `bufw` over `checkConnErrorWriter` over the
+  connection's `sendTok cn true (httpRespP P a) W`. The bytes on the wire, plus the two buffers,
+  are the response head (once `cw.wroteHeader`) and the framed prefix of `bs`. Or the connection has
+  failed (`conn.werr` set, the socket closed: every later write fails, and the client sees a cut
+  response, which its reader reports as an error, never `EOF`).
+
+**Specs** (statements as in `SpecPlan`, proved over the model):
+
+| `SpecPlan` statement | the model's code it is proved over |
+|---|---|
+| `Serve.spec` (below) | `Serve`/`Server.Serve` (accept loop, `newConn`, `go c.serve`), `conn.serve`'s loop, `readRequest` (general heads, bodies), `serverHandler.ServeHTTP`, `finishRequest`, `shouldReuseConnection`, the answers `400`/`431`/`501`/`505`, the deferred `recover` |
+| `respW_header.spec` | `response.Header` |
+| `respW_writeHeader.spec` | `response.WriteHeader` (`checkWriteHeaderCode`) |
+| `respW_write.spec` | `response.Write`/`write`, `bufio.Writer.Write`, `chunkWriter.Write`, `chunkWriter.writeHeader` (Content-Length when the handler ends within the buffer, otherwise chunked; `Date` from `appendTime`, `Content-Type` from `DetectContentType`; the remaining request body drained, at most `maxPostHandlerReadBytes`) |
+| `respW_flush.spec`, `respW_flusher.spec` | `response.Flush`/`FlushError`, `chunkWriter.flush` |
+| `readerAt_read.spec`, `readerAt_close.spec` (request bodies) | `body.Read`/`readLocked`, `body.Close` (the drain, early close), `registerOnHitEOF` with `startBackgroundRead` |
+| `mux_handlerOk.spec`, `NewServeMux`, `Handle`, `muxOwn_freeze` | `ServeMux` (Go 1.22 patterns, literal path patterns only) |
+
+```lean
+/-- `http.Serve(l, h)` / `(&Server{Handler: h}).Serve(l)`: `l` the listener at `a`, `a` serving `P`,
+`h` a handler of `P` (for every path, `pfx = "/"`). It returns only an error (the listener closed
+or failed); each connection is served on its own goroutine. -/
+abbrev Serve.spec : Prop :=
+  ∀ (l h : GoInterface) (a : GoString) (P : Proto GF),
+  {{ httpSrvEnv ∗ listenerAt l a ∗ protoAt a P ∗ handlerOk h P "/" }}
+    (App (App (Val (@! net.http.Serve)) (Val #l)) (Val #h))
+  {{ (err : GoInterface), RET #err; errOk err }}
+```
+
+- `listenerAt l a` := `isListener l` of a listener whose every accepted connection was dialed to an
+  address serving the HTTP protocols (`lisProto la (httpReqP P a) (httpRespP P a)`) and its token `lisInv`.
+- `handlerOk`/`servePre`/`serveDone`: `SpecPlan`'s. The `threadTok` in `servePre` is the connection
+  goroutine's own (§0).
+- `httpSrvEnv` (persistent): `httpEnv` plus what the server path reads that net/http's init does not
+  yet prove (the bufio pools `wPool 2048`, `wPool 4096`, `rPool`, as `ServerConn.lean`; `time`, `log`,
+  `context`). It is the premise until net/http's initialization is proved (phase 5 item 2).
+- The CONNECT/hijack path stays as it is (`hijackOk`, `response.Hijack.spec`, net/rpc's
+  `Server.ServeHTTP.spec`). `conn.serve`'s proof covers both kinds of address: a request on an HTTP
+  address reaches `servePre`, and a `CONNECT` on an rpc address reaches `hjPre`. Question Q4 asks
+  whether `Serve.spec_rpc` (dsverify's `RpcHttpServe`) should come out of the same proof.
+
+**`expectContinueReader`.** Unreachable under the protocol: requests carry no `Expect`, and
+`conn.serve` wraps the body only for `Expect: 100-continue`. Its proof would be the `canWriteContinue`
+race with `writeContinueMu`. Skipped unless a client needs `Expect` (C3).
+
+### 3. The chunked writer (`net/http/internal`, the client's request bodies)
+
+The server's responses do not use it: `chunkWriter.Write` frames chunks itself. The Transport's
+`transferWriter.writeBody` does, for a body of unknown length, which is rafthttp's snapshot.
+
+```lean
+/-- `cw` frames into the writer `wi` (an `io.Writer` contract over `Wr`, as `Spec/bufio/`'s
+`bufio.Writer` specs take: `EtcdGrove.io.writerStream wi Wr`), having written the chunks `cs`
+(non-empty) and not closed. -/
+def chunkedW (cw : GoInterface) (wi : GoInterfaceOk) (Wr : List w8 → IProp GF)
+    (cs : List (List w8)) : IProp GF := ...
+
+abbrev NewChunkedWriter.spec : Prop := ∀ wi Wr,
+  {{ writerStream wi Wr }} internal.NewChunkedWriter #(interface.ok wi)
+  {{ (cw : GoInterface), RET #cw; chunkedW cw wi Wr [] }}
+/-- `Write(p)`: one chunk of `p` (none if `p` is empty), its whole wire written through `wi`,
+or an error with a prefix of the wire written. -/
+abbrev chunkedWriter.Write.spec : Prop := ...
+/-- `Close()`: the terminator `"0\r\n"` (the trailer and the final `"\r\n"` are the Transport's). -/
+abbrev chunkedWriter.Close.spec : Prop := ...
+```
+
+Also `FlushAfterChunkWriter` (the Transport wraps the `bufio.Writer` when the body is chunked). Its
+`Write` flushes after each chunk, which the snapshot's latency relies on, not the proof.
+
+### 4. The client half (`transport.go`, `client.go`, `internal.ChunkedReader`)
+
+**The Transport** (`transportOk t D`, persistent): a `*Transport` as etcd's `NewTimeoutTransport`
+builds it. `Proxy` is `nil` or `ProxyFromEnvironment`, the scheme is `http` (TLS not used),
+`DisableKeepAlives`/`MaxIdleConnsPerHost` are any. `DialContext` or `Dial` is a dialer `D` that
+returns, for an address `a`, a `net.Conn` that is the net extension's (`isConn c cn false a`) or a
+wrapper keeping its contract (etcd's `timeoutConn`). Its locks' invariants are `idleMu` (the idle
+pool: each idle `persistConn` with its dialer-end tokens, between requests), `connsPerHostMu` and
+`reqMu`.
+
+```lean
+/-- SpecPlan's `roundTripperOk` of the Transport: RoundTrip of a request built for `R` (`hreqOk R`)
+to `R.host` serving `P`, with `□ P.hreq R τ`, its body contract, the ticket if `onceOnly`: an error
+(`errOk`), or the response of one handler run: status, committed headers (`hdrView`), a body reader
+of prefixes of what that handler wrote. -/
+theorem Transport.roundTripperOk : transportOk t D ⊢ roundTripperOk (interface.mkOk (ptrT Transport) #t)
+```
+
+The proof is over upstream's `roundTrip`, `getConn` (the idle pool, `queueForIdleConn`,
+`queueForDial`, `dialConnFor`, `wantConn`), `dialConn`, `persistConn.roundTrip`, `readLoop` and
+`writeLoop` (both forked per connection, each with its own `threadTok`), `Request.write`,
+`transferWriter`, `ReadResponse` (general heads, not only CONNECT's), `bodyEOFSignal`, and the retry
+(`shouldRetryRequest`, `rewindBody`). HTTP/2, proxies and TLS stay `notModelled`. The protocol and the
+premises below make them unreachable.
+
+- **Response bodies:** `readerAt_read`/`readerAt_close`/`readerCloser` of `bodyEOFSignal` (its `Close`
+  from another goroutine: the stream reader's `stop`). `Transport.CloseIdleConnections`.
+- **`internal.NewChunkedReader`, `chunkedReader.Read`:** over a `bufio.ownReader` of a stream whose
+  bytes are a prefix of `chunkedWire cs fin ++ trailer`. It yields a prefix of `cs.flatten`, and `EOF`
+  only after the terminator. It is used on both sides: the server's request bodies (§2) and the
+  client's chunked responses (rafthttp's stream reader).
+- **`Client.Do`/`Client.Get`:** needed only by `xiang90/probing` (`rafthttp-gaps`, kaashoek's). A
+  `Client{Transport: t}` with no redirects followed for a `GET` answered `2xx`/`4xx`: `roundTripperOk`
+  plus `send`'s deadline plumbing. Q5 asks whether it is still needed.
+- **The proxy environment (needs the user's sign-off, rule #8).** `ProxyFromEnvironment` calls
+  `envProxyFunc()`, which calls `httpproxy.FromEnvironment()` once (`sync.Once`); that reads `os.Getenv`
+  of `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, their lower-case forms and `REQUEST_METHOD`. With the four
+  proxy variables (`HTTP_PROXY`, `http_proxy`, `HTTPS_PROXY`, `https_proxy`) empty, `proxyForURL` returns
+  `nil` for every URL, whatever `NO_PROXY` and `REQUEST_METHOD` are (`httpproxy/proxy.go:127-145`), so
+  the Transport dials `R.host` directly. That is
+  coordinator-E's planned `proxyEnvOff` (#24, the grpc model's proxy finding). The proposal follows
+  `envVerifyOff`'s pattern (`Spec/os/Getenv.lean`): a persistent token `envProxyOff`, given at program
+  start under a per-machine pure premise `proxyEnvOff`, and a clause in `os.Getenv.spec`'s post:
+  `envProxyOff -∗ ⌜key ∈ proxyEnvKeys → v = ""⌝` (`proxyEnvKeys` those four). The clause strengthens a trust-boundary axiom,
+  by the same argument as `ETCD_VERIFY`'s: Go's `os.Getenv` reads the process's start environment, and
+  nothing in the run sets these. `golang.org/x/net/http/httpproxy` is translated with its bodies
+  (vendored in the toolchain).
+
+### 5. Where this departs from `SpecPlan` (ledger entries before any edit)
+
+- **C1 (simplification).** `Serve.spec` takes no `handlerPool`. The handler's `threadTok` is its
+  connection goroutine's own, from Perennial's fork rule. `handlerPool_alloc.spec` becomes unused.
+- **C2 (defect, `roundTripperOk`).** For a body of declared length (`NewRequest` of a
+  `*bytes.Buffer`/`*bytes.Reader`/`*strings.Reader`: `ContentLength = n`), the Transport writes
+  `Content-Length: n` before reading the body. The server's body reader returns `EOF` after `n` bytes
+  and must then give `□ P.body R τ B`. But the client gets `Φb B` only from a later `Read` that returns
+  `EOF`, after the last byte is already on the wire. So `roundTripperOk`'s body premise
+  `□ ∀ B, Φb B -∗ P.body R τ B` cannot be used where it is needed. **Proposed:** `reqOwn r R bd` also
+  records the declared length `cl : Option Nat` (`NewRequest` sets it), and for `cl = some n`
+  `RoundTrip` asks `□ ∀ B, Preb B -∗ ⌜B.length = n⌝ -∗ P.body R τ B`. `NewBuffer_reader.spec`'s
+  `Pre B := B <+: ys` gives it at `n = ys.length`. The main tree's `Boundary.lean` does not have this
+  problem: its fixed body's bytes are `HReq.body`.
+- **C3 (premise, `roundTripperOk`).** `hreqOk R`: `GET`/`POST`, a `reqPath`, a `host:port` host, header
+  values the server's parser takes, and none of the Transport's own keys or `Expect`. rafthttp meets all
+  of it. `Expect: 100-continue` would need `expectContinueReader` and the Transport's
+  `ExpectContinueTimeout` path; nobody here sends it.
+- **C4 (scope).** `protoAt` is the run's, not a generation's (`protoFam`, §0).
+- **C5 (shape).** `readerAt`'s count is `uint.nat n` in `SpecPlan`. The model's readers return
+  `0 ≤ n ≤ len(p)`, so the statement is unchanged; `sint` is not needed.
+
+### 6. Questions (on #24)
+
+- **Q1 (coordinator-E, dsverify-net):** take `SpecPlan`'s vocabulary for S5, as above, rather than
+  `Boundary.lean`'s (`req`/`rhdr`/`streamed`/`sreq`, fixed bodies in `HReq`)? At S4, rafthttp's proofs
+  would move from one to the other. Or keep `Boundary.lean`'s statements and define them over this?
+- **Q2 (the user, via coordinator-E):** the `envProxyOff` token and the `os.Getenv` clause (§4).
+- **Q3:** C2's change to `roundTripperOk`/`reqOwn`, and C3's `hreqOk` premise.
+- **Q4 (dsverify-net):** should `conn.serve`'s proof also give net/rpc's `RpcHttpServe` instance (HTTP
+  `Serve` on an rpc address, the handler `Server.ServeHTTP` through `muxHas`)? The loop is the same
+  proof.
+- **Q5 (kaashoek):** does `rafthttp-gaps`' prober still need `http.Client.Do`/`Get` over the Transport?
+- **Q6 (S4):** what dialer contract does etcd's `rwTimeoutDialer.Dial`/`timeoutConn` need of `D`? The
+  draft asks only that `D` return a connection with the net extension's `Read`/`Write`/`Close`/deadline
+  specs.
+
+**Order.** The vocabulary first (`Wire.lean`, the byte protocols, `protoAt`, `reserve`). Then the
+server: `readRequest` on general heads, the body reader, the response writer, `conn.serve`, `Serve`.
+Then the chunked writer and reader, then the Transport. Landed in batches, each on Lean's three
+axioms, and no axiom added.
 
 ## For the user
 

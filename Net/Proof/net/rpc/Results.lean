@@ -2,8 +2,10 @@
 The results of the net/rpc model (`models/net/rpc`, project models-net; phase 5.2 of
 `notes/dsverify-net-port-plan.md`, the Lean half): each proved spec with its callees' proofs
 plugged in (the net extension's `Conn.Read` for the reads, Perennial's `sync.Mutex`), restated, with
-`#print axioms` of each (none beyond Lean's; the translation's trusted `go/token.IsExported` is not
-reached by these).
+`#print axioms` of each (none beyond Lean's; `go/token.IsExported` is a Go model,
+`models/go/token/model.go`, since 2026-11-24, translated and proved like the rest; the model's
+stuck point `stuck`, trusted code in `Net/TrustedCode/net/rpc.lean`, is not an axiom: the proofs
+show `stuck` is never reached).
 
 * the wire's helpers: `putU64`, `getU64`, `putString`, `putFrame`, `getString`;
 * the reads: `readFull` (gob's `recvMessage` errors: `io.EOF` between frames,
@@ -11,7 +13,8 @@ reached by these).
   codec's `ReadResponseHeader` (a frame of `respHdr seq sm e`, or `errFrame`, or a read error) and
   `ReadResponseBody` (a frame, decoded into the body unless it is `nil`);
 * the client codec's `WriteRequest` (the sticky error, or `reqWire` written through the library's
-  `sendTok`) and `Close`;
+  `sendTok`; a frame longer than `maxFrame`, the model's stuck point, excluded by the caller's
+  bound) and `Close`;
 * the codec registry: `SetCodec`, `getCodec` (`Codec.lean`: `CodecSpec`, `codecIs`, `codecSet`).
 
 * the client (`ClientDefs.lean`, over the protocol `Proto.lean`): `newClientCodec`, `Call.done`,
@@ -21,14 +24,21 @@ reached by these).
 * the server (`ServerDefs.lean`): the server codec's `ReadRequestHeader`, `ReadRequestBody`,
   `WriteResponse` (`respWire`, an error response's body not encoded) and `Close` (the `closed`
   flag), `newServerCodec`; `NewServer`, the free lists, `register` (the codec's `Receiver`, `rcvOk`)
-  with `Register`, `RegisterName`, and `go/token.IsExported` on an ASCII upper-case first byte.
+  with `Register`, `RegisterName`, the package-level `Register` and `RegisterName` (on
+  `DefaultServer`, `defaultServer`), and `go/token.IsExported` on an ASCII upper-case first byte.
 
 * the request loop (`ServerGhost.lean`: a request read is a client's, taken once; an answer
   recorded at its response's write): `sendResponse`, `service.call`, `readRequestHeader`,
   `readRequest`, `ServeCodec` (Perennial's thread-token join for its runs), `ServeConn`, `Accept`
-  (`log.Println`'s spec, `Net/Spec/log/Println.lean`).
+  (`log.Println`'s spec, `Net/Spec/log/Println.lean`; on a listener at a valid address or a
+  wildcard, at the address each connection was dialed to; `Accept.wp_addr` at a valid address);
+* the server's handler over HTTP, `ServeHTTP` (on a `CONNECT`, over the response's `hijackOk`,
+  `Net/Proof/net/http/ServerDefs.lean`).
 
-Not yet proved (the plan note, phase 5.2, lists what remains): the HTTP path.
+The HTTP client (`section http`): `DialHTTPPath`, `DialHTTP`, over net/http's `ReadResponse`
+(`Net/Proof/net/http/Results.lean`) and the net extension's `Conn.Read` (`specLc`).
+Not yet proved (the plan note, phase 5.2, lists what remains): `HandleHTTP` and net/http's server
+up to the hijack (which gives `ServeHTTP` its `hijackOk`).
 -/
 module
 
@@ -51,6 +61,10 @@ public import Net.Proof.net.rpc.Client__Close
 public import Net.Proof.net.rpc.Client__send
 public import Net.Proof.net.rpc.Client__Go
 public import Net.Proof.net.rpc.Client__Call
+public import Net.Proof.net.rpc.Client__CloseClosed
+public import Net.Proof.net.rpc.Client__sendClosed
+public import Net.Proof.net.rpc.Client__GoClosed
+public import Net.Proof.net.rpc.Client__CallClosed
 public import Net.Proof.net.rpc.newClientCodec
 public import Net.Proof.net.rpc.Client__input
 public import Net.Proof.net.rpc.NewClientWithCodec
@@ -58,6 +72,12 @@ public import Net.Proof.net.rpc.NewClient
 public import Net.Proof.net.rpc.Dial
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.rpc.DialHTTPPath
+public import Net.Proof.net.rpc.DialHTTP
+public import Proof.bufio.NewReader
+public import Proof.bufio.NewReaderSize
+public import Proof.bufio.NewReaderOk
+public import Net.Proof.net.http.Results
 public import Net.Proof.net.Conn__Read
 public import Perennial.Proof.sync.Link
 public import Net.Proof.net.rpc.serverCodec__ReadRequestHeader
@@ -73,6 +93,17 @@ public import Net.Proof.net.rpc.Server__freeResponse
 public import Net.Proof.net.rpc.Server__register
 public import Net.Proof.net.rpc.Server__Register
 public import Net.Proof.net.rpc.Server__RegisterName
+public import Net.Proof.net.rpc.Register
+public import Net.Proof.net.rpc.RegisterName
+public import Net.Proof.net.rpc.NewServerOwned
+public import Net.Proof.net.rpc.Server__registerFresh
+public import Net.Proof.net.rpc.Server__RegisterFresh
+public import Net.Proof.net.rpc.Server__RegisterNameFresh
+public import Net.Proof.net.rpc.RegisterFresh
+public import Net.Proof.net.rpc.RegisterNameFresh
+public import Net.Proof.net.rpc.Server__registerNone
+public import Net.Proof.net.rpc.Server__RegisterNone
+public import Net.Proof.net.rpc.RegisterNone
 public import Net.Proof.go.token.IsExported
 public import Net.Proof.net.rpc.Server__sendResponse
 public import Net.Proof.net.rpc.service__call
@@ -80,6 +111,8 @@ public import Net.Proof.net.rpc.Server__readRequestHeader
 public import Net.Proof.net.rpc.Server__readRequest
 public import Net.Proof.net.rpc.Server__ServeCodec
 public import Net.Proof.net.rpc.Server__ServeConn
+public import Net.Proof.net.rpc.Server__ServeHTTP
+public import Net.Proof.net.rpc.AcceptAddr
 public import Net.Proof.net.rpc.Server__Accept
 public import Net.Proof.net.Listener__Accept
 public import Net.Proof.log.Println
@@ -118,7 +151,7 @@ theorem getCodec.wp [sync.Assumptions] : getCodec.spec (GF := GF) (hG := hG) :=
 theorem SetCodec.wp [sync.Assumptions] : SetCodec.spec (GF := GF) (hG := hG) :=
   SetCodec.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock
 
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 
 theorem readFull.wp : readFull.spec (GF := GF) (hG := hG) :=
   readFull.wp_proof net.Conn.Read.wp_proof
@@ -150,7 +183,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 theorem Call.done.wp : Call.done.spec (GF := GF) (hG := hG) := Call.done.wp_proof
@@ -165,6 +198,21 @@ theorem Client.send.wp : Client.send.spec (GF := GF) (hG := hG) :=
 theorem Client.Go.wp : Client.Go.spec (GF := GF) (hG := hG) := Client.Go.wp_proof Client.send.wp
 
 theorem Client.Call.wp : Client.Call.spec (GF := GF) (hG := hG) := Client.Call.wp_proof Client.Go.wp
+
+theorem Client.Call.wp_plain : Client.Call.spec_plain (GF := GF) (hG := hG) :=
+  Client.Call.wp_proof_plain Client.Go.wp
+
+theorem Client.Close.wp_closed : Client.Close.spec_closed (GF := GF) (hG := hG) :=
+  Client.Close.wp_proof_closed sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.Close.wp
+
+theorem Client.send.wp_closed : Client.send.spec_closed (GF := GF) (hG := hG) :=
+  Client.send.wp_proof_closed sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Call.done.wp
+
+theorem Client.Go.wp_closed : Client.Go.spec_closed (GF := GF) (hG := hG) :=
+  Client.Go.wp_proof_closed Client.send.wp_closed
+
+theorem Client.Call.wp_closed : Client.Call.spec_closed (GF := GF) (hG := hG) :=
+  Client.Call.wp_proof_closed Client.Go.wp_closed
 
 theorem Client.input.wp [errors.Assumptions] : Client.input.spec (GF := GF) (hG := hG) :=
   Client.input.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.ReadResponseHeader.wp
@@ -187,7 +235,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 theorem serverCodec.ReadRequestHeader.wp :
@@ -233,6 +281,34 @@ theorem Server.Register.wp [errors.Assumptions] [go.token.Assumptions] :
 theorem Server.RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
     Server.RegisterName.spec (GF := GF) (hG := hG) := Server.RegisterName.wp_proof Server.register.wp
 
+theorem Register.wp [errors.Assumptions] [go.token.Assumptions] :
+    Register.spec (GF := GF) (hG := hG) := Register.wp_proof Server.Register.wp
+
+theorem RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
+    RegisterName.spec (GF := GF) (hG := hG) := RegisterName.wp_proof Server.RegisterName.wp
+
+theorem NewServer.wp_owned : NewServer.spec_owned (GF := GF) (hG := hG) := NewServer.wp_proof_owned
+
+theorem Server.register.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Server.register.spec_fresh (GF := GF) (hG := hG) :=
+  Server.register.wp_proof_fresh sync.Mutex.wp_Lock sync.Mutex.wp_Unlock getCodec.wp
+    go.token.IsExported.wp
+
+theorem Server.Register.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Server.Register.spec_fresh (GF := GF) (hG := hG) :=
+  Server.Register.wp_proof_fresh Server.register.wp_fresh
+
+theorem Server.RegisterName.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Server.RegisterName.spec_fresh (GF := GF) (hG := hG) :=
+  Server.RegisterName.wp_proof_fresh Server.register.wp_fresh
+
+theorem Register.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Register.spec_fresh (GF := GF) (hG := hG) := Register.wp_proof_fresh Server.Register.wp_fresh
+
+theorem RegisterName.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    RegisterName.spec_fresh (GF := GF) (hG := hG) :=
+  RegisterName.wp_proof_fresh Server.RegisterName.wp_fresh
+
 theorem Server.sendResponse.wp : Server.sendResponse.spec (GF := GF) (hG := hG) :=
   Server.sendResponse.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.getResponse.wp
     Server.freeResponse.wp serverCodec.WriteResponse.wp
@@ -259,11 +335,67 @@ theorem Server.ServeConn.wp [errors.Assumptions] : Server.ServeConn.spec (GF := 
 theorem log.Println.wp [log.Assumptions] : _root_.Perennial.log.Println.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.log.Println.wp_proof
 
+theorem Server.register.wp_none [errors.Assumptions] [go.token.Assumptions] [log.Assumptions] :
+    Server.register.spec_none (GF := GF) (hG := hG) :=
+  Server.register.wp_proof_none getCodec.wp go.token.IsExported.wp log.Println.wp
+
+theorem Server.Register.wp_none [errors.Assumptions] [go.token.Assumptions] [log.Assumptions] :
+    Server.Register.spec_none (GF := GF) (hG := hG) :=
+  Server.Register.wp_proof_none Server.register.wp_none
+
+theorem Register.wp_none [errors.Assumptions] [go.token.Assumptions] [log.Assumptions] :
+    Register.spec_none (GF := GF) (hG := hG) := Register.wp_proof_none Server.Register.wp_none
+
 theorem Server.Accept.wp [errors.Assumptions] [log.Assumptions] :
     Server.Accept.spec (GF := GF) (hG := hG) :=
   Server.Accept.wp_proof net.Listener.Accept.wp_proof log.Println.wp Server.ServeConn.wp
 
+/-- `Server.Accept` at a valid address (`AcceptAddr.lean`), an instance of `Server.Accept.wp`. -/
+theorem Server.Accept.wp_addr [errors.Assumptions] [log.Assumptions] :
+    Server.Accept.specAddr (GF := GF) (hG := hG) :=
+  Server.Accept.spec_addr Server.Accept.wp
+
+theorem Server.ServeHTTP.wp [errors.Assumptions] [net.http.Assumptions] :
+    Server.ServeHTTP.spec (GF := GF) (hG := hG) :=
+  Server.ServeHTTP.wp_proof net.Conn.Write.wp_proof Server.ServeConn.wp
+
 end server
+
+section http
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [net.rpc.Assumptions]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
+variable [sync.Assumptions] [NetProtoGS]
+
+/-! The HTTP path (`DialHTTPPath`, `DialHTTP`), over net/http's `ReadResponse`
+(`Net/Proof/net/http/Results.lean`). -/
+
+theorem DialHTTPPath.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
+    DialHTTPPath.spec (GF := GF) (hG := hG) :=
+  DialHTTPPath.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
+    (EtcdGrove.bufio.NewReader.wp_proof
+      (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
+    net.Conn.Read.wp_proofLc net.http.ReadResponse.wp_errs NewClient.wp
+
+theorem DialHTTP.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
+    DialHTTP.spec (GF := GF) (hG := hG) :=
+  DialHTTP.wp_proof DialHTTPPath.wp
+
+theorem DialHTTPPath.wp_plain [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
+    DialHTTPPath.spec_plain (GF := GF) (hG := hG) :=
+  DialHTTPPath.wp_proof_plain net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
+    (EtcdGrove.bufio.NewReader.wp_proof
+      (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
+    net.Conn.Read.wp_proofLc net.http.ReadResponse.wp_errs NewClient.wp
+
+theorem DialHTTP.wp_plain [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
+    DialHTTP.spec_plain (GF := GF) (hG := hG) :=
+  DialHTTP.wp_proof_plain DialHTTPPath.wp_plain
+
+end http
+
 
 section results'
 
@@ -291,6 +423,11 @@ end Perennial
 #print axioms Perennial.net.rpc.Client.send.wp
 #print axioms Perennial.net.rpc.Client.Go.wp
 #print axioms Perennial.net.rpc.Client.Call.wp
+#print axioms Perennial.net.rpc.Client.Call.wp_plain
+#print axioms Perennial.net.rpc.Client.Close.wp_closed
+#print axioms Perennial.net.rpc.Client.send.wp_closed
+#print axioms Perennial.net.rpc.Client.Go.wp_closed
+#print axioms Perennial.net.rpc.Client.Call.wp_closed
 #print axioms Perennial.net.rpc.Client.input.wp
 #print axioms Perennial.net.rpc.NewClientWithCodec.wp
 #print axioms Perennial.net.rpc.NewClient.wp
@@ -309,6 +446,17 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.register.wp
 #print axioms Perennial.net.rpc.Server.Register.wp
 #print axioms Perennial.net.rpc.Server.RegisterName.wp
+#print axioms Perennial.net.rpc.Register.wp
+#print axioms Perennial.net.rpc.RegisterName.wp
+#print axioms Perennial.net.rpc.NewServer.wp_owned
+#print axioms Perennial.net.rpc.Server.register.wp_fresh
+#print axioms Perennial.net.rpc.Server.Register.wp_fresh
+#print axioms Perennial.net.rpc.Server.RegisterName.wp_fresh
+#print axioms Perennial.net.rpc.Register.wp_fresh
+#print axioms Perennial.net.rpc.RegisterName.wp_fresh
+#print axioms Perennial.net.rpc.Server.register.wp_none
+#print axioms Perennial.net.rpc.Server.Register.wp_none
+#print axioms Perennial.net.rpc.Register.wp_none
 #print axioms Perennial.net.rpc.Server.sendResponse.wp
 #print axioms Perennial.net.rpc.service.call.wp
 #print axioms Perennial.net.rpc.Server.readRequestHeader.wp
@@ -316,3 +464,9 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.ServeCodec.wp
 #print axioms Perennial.net.rpc.Server.ServeConn.wp
 #print axioms Perennial.net.rpc.Server.Accept.wp
+#print axioms Perennial.net.rpc.Server.Accept.wp_addr
+#print axioms Perennial.net.rpc.Server.ServeHTTP.wp
+#print axioms Perennial.net.rpc.DialHTTPPath.wp
+#print axioms Perennial.net.rpc.DialHTTP.wp
+#print axioms Perennial.net.rpc.DialHTTPPath.wp_plain
+#print axioms Perennial.net.rpc.DialHTTP.wp_plain

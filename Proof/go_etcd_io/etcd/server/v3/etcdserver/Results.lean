@@ -312,7 +312,8 @@ address `NewServer` copies the struct to, from the new cluster's ghost allocatio
 registered `MemoryStorage`, the server's own invariants and the trust-boundary premises
 (`NodeStart.lean`'s header classifies them). `PreVote` and `CheckQuorum` either way (etcd's
 default configuration) since 2026-10-17. -/
-theorem server_raft_node_start : NodeStartSpec (GF := GF) :=
+theorem server_raft_node_start :
+    NodeStartSpec (GF := GF) :=
   raftNode_of_StartNode bootstrappedRaft.wp_newRaftNode srvApi_wp_MemInitialState
     srvApi_wp_MemSnapshot srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm
     srvApi_wp_MemEntries srvApi_wp_Ready srvApi_wp_Advance srvApi_wp_Tick srvApi_wp_Stop
@@ -331,10 +332,11 @@ theorem wait_time (tl : Loc) (P : w64 → IProp GF) :
 /-- **`NewStorage`'s contract over the real WAL** (wal-item3, 2026-11-21; `RnNewStorageLinked.lean`): given the
 storage package's initialization, `rnNewStorageOk`, from `NewStorage`'s proof and the storage methods' proofs over
 the WAL's linked results at the server's message model (whose hard-state marshal law rests on the registered
-`raftpb.HardState`, `hsEncC_ok`/`pbHsC_reg`). Under `os`'s field assumptions (the WAL's), so not yet passed to
-`bootstrappedRaft.newRaftNode`, whose spec keeps the premise `rnNewStorageOk`. -/
-theorem new_storage_contract [os.fileStat.FieldAssumptions]
-    [os.file.FieldAssumptions] : rnNewStorageOk.law (GF := GF) (hG := hG) :=
+`raftpb.HardState`, `hsEncC_ok`/`pbHsC_reg`). Under `os`'s field assumptions (the WAL's). Since wal-nostorageok
+(2026-11-21) the server's `Link` passes it to `bootstrappedRaft.newRaftNode` (until then its spec's premise
+`rnNewStorageOk`), and the results reaching it take those two classes. -/
+theorem new_storage_contract
+     : rnNewStorageOk.law (GF := GF) (hG := hG) :=
   rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex
 
 end triples
@@ -2116,7 +2118,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's token provider and auth store with auth on** (the auth plan's E2i;
-`authSrvTP_on`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`): `NewTokenProvider`
+`authSrvTPAt_on`, at the caller's auth names since #50 F7 S2, `Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`): `NewTokenProvider`
 with the simple provider gives the auth names allocated over the boot state and `NewAuthStore`'s
 construction in the mode `on γa` (`authStoreKit`): the store from its proofs, not
 `NewAuthStore`'s axiom, its request side and apply contract of its invariant (its admin clauses
@@ -2126,8 +2128,8 @@ vacuous: `apply.adminAdmitted`), its backend's contracts `authSchemaSrv`'s, prov
 caller's, once the server has started (`auth.tpShot`; auth-schema-fix S1 option A, 2026-11-12: no
 longer `isValidSimpleToken`'s spec for any context, `auth.ValidSpec`, which was false). What `NewServer`'s proof takes with auth on (`notes/decisions.md`, "E2i
 of the auth plan"). -/
-theorem srv_auth_tp_on : authSrvTP (GF := GF) (hG := hG) true :=
-  authSrvTP_on auth.wp_NewTokenProvider zap.Logger.wp_Debug zap.String.wp_proof
+theorem srv_auth_tp_on : authSrvTPAt (GF := GF) (hG := hG) true :=
+  authSrvTPAt_on auth.wp_NewTokenProviderAt zap.Logger.wp_Debug zap.String.wp_proof
     auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
     auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
@@ -2175,8 +2177,8 @@ theorem srv_auth_tp_on : authSrvTP (GF := GF) (hG := hG) true :=
 
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
-theorem srv_auth_tp_off : authSrvTP (GF := GF) (hG := hG) false :=
-  authSrvTP_off auth.wp_NewTokenProvider auth.wp_NewAuthStore
+theorem srv_auth_tp_off : authSrvTPAt (GF := GF) (hG := hG) false :=
+  authSrvTPAt_of_TP false rfl (authSrvTP_off auth.wp_NewTokenProvider auth.wp_NewAuthStore)
 
 /-- **`NewServer` with auth on** (the auth plan's E2k): `NewServer.specM true`, the server started with
 the simple token provider and the auth store of `srv_auth_tp_on` (its proofs, not `NewAuthStore`'s
@@ -2188,7 +2190,8 @@ invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap
 (`kvInvOn_alloc_boot`), and its post the mode-indexed built part (`srvBuiltG true`): until then it
 took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
 (`kvInv_ch0_on_false`, E2p). -/
-theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
+    :
     NewServer.specM (GF := GF) (hG := hG) true :=
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
     v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats
@@ -2197,7 +2200,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics
     prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier
     EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled
-    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor srv_auth_tp_on
+    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessorAt srv_auth_tp_on
     ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
     apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_lease_revoke_latest,
     apply_UserAdd_fuelX,
@@ -2271,11 +2274,13 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
     -- (auth-lease S4, D-k) raft's no-snapshot mode, the caller's choice (`cluster_alloc_ns`'s)
     (ns : Bool := false) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
-      ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
+      ∃ (γ : SrvRaft) (issued cnt wn fs gen : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
-          γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
-          γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
+          γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧ γk.ids.gen = gen ∧
+          γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps ∧
+          -- (F7 S13) the KV names' raft log is raft's
+          γk.rlog = γ.log⌝ ∗
         -- (auth-lease S4, D-k) in raft's no-snapshot mode exactly when `ns` (`cluster_alloc_ns`'s)
         ⌜clusterNoSnap γ.cl ↔ ns = true⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
@@ -2283,7 +2288,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
         -- (5b) the client's view of the auth history, at the start
         authHistView γk [srvAuthSt0] ∗
-        idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
+        idClusterInv issued cnt wn fs gen srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
           idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
@@ -2294,7 +2299,8 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           -- (2026-10-26, D22 J2) and its snapshot directory, empty (`SrvRaft.snapLoc`)
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
-        [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
+        ([∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)) ∗
+        [∗list] id ∈ ps, idPfxInv gen (idPfxOf (W16 (uint.Z id))) :=
   srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz lm gp gps hgps ns
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
@@ -2311,7 +2317,9 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
           ρ.rd.kv.lm = γk.lm ∧
-          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
+          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0 ∧ ρ.ids.gen = γk.ids.gen ∧
+          -- (F7 S2, 2026-11-26) the read names' KV names `kvCongr` to the cluster's (`srvMemberBoot_alloc`'s)
+          kvCongr ρ.rd.kv γk⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
   srvMemberBootOn_alloc γ cnt γk id cok hpfx hpo

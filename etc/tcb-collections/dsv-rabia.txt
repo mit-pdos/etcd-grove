@@ -2,9 +2,10 @@
 # extension and examples/lib/remote, in the part Dsverify/: the server's links
 # (roles/server/Link.lean), the kit's (examples/rabianet/Linked.lean) and its closed theorem
 # `rabia_remote_robust` (examples/rabianet/TopLevelRobustness.lean: twelve machines, Robust [] under
-# DistDeploy, the library hypotheses and the environment assumption `os.signal.NoSignals` premises of
-# the statement). Its `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only. The baseline
-# below is empty: written by hand (2026-11-23) from that `#print axioms`.
+# DistDeploy, over the premise go-redis's `InitHyp`). Its axioms: the baseline below.
+# dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): the library functions are per-function trust-boundary
+# axioms (Dsverify/Proof/<pkg>/<fn>.lean, reviews notes/axiom-review/dsv-fix4/), listed below;
+# dsv-fix6: zerolog's too, `New` narrowed to `New(nil)` (review notes/axiom-review/dsv-fix6/zerolog.md).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt --check    against the lines below
@@ -13,3 +14,16 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline.
 roots ^Dsverify/Proof/rabia/
+axiom Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
+axiom Perennial.github_com.gogo.protobuf.proto.RegisterEnum.wp_proofMsgType
+axiom Perennial.github_com.gogo.protobuf.proto.RegisterFile.wp_proof
+axiom Perennial.github_com.gogo.protobuf.proto.RegisterType.wp_proof
+axiom Perennial.github_com.gogo.protobuf.proto.wp_initialize'
+axiom Perennial.github_com.rs.zerolog.Event.Bool.wp_proof
+axiom Perennial.github_com.rs.zerolog.Event.Float64.wp_proof
+axiom Perennial.github_com.rs.zerolog.Event.Int.wp_proof
+axiom Perennial.github_com.rs.zerolog.Event.Msg.wp_proof
+axiom Perennial.github_com.rs.zerolog.Event.Uint32.wp_proof
+axiom Perennial.os.signal.Notify.wp_proofQuietSigs
+axiom Perennial.runtime.initFuncsOk
+axiom Perennial.runtime.opaqueInitsOk

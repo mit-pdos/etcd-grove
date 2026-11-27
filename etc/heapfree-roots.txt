@@ -17,6 +17,7 @@ module Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 module Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAlloc
 module Proof.go_etcd_io.etcd.pkg.v3.idutil.Defs
 module Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Stream
+module Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
 Perennial.EtcdGrove.client.etcdPutSpecW
 Perennial.EtcdGrove.client.etcdRangeSpecW
 Perennial.EtcdGrove.client.etcdRangeSpecEW
@@ -63,8 +64,9 @@ neg Perennial.EtcdGrove.srvTLSId
 neg Perennial.EtcdGrove.leaseTTLRow
 neg Perennial.EtcdGrove.client.etcdPutSpecOn
 # etcd-dist D7 (d), 2026-11-23: the cluster's ghost state the distributed start allocates
-# (`notes/etcd-dist-plan.md`, "D7"); `idClusterInv` is not heap-free (its generators' points-to):
-# a negative test until the idutil split
+# (`notes/etcd-dist-plan.md`, "D7"); since the idutil split (`d7-idsplit`) the claims too, and
+# etcdstart's `clusterAllocN` (the distributed start's cluster allocation); a prefix's heap facts
+# (`idPfxInv`) a negative test
 Perennial.EtcdGrove.srvRaftLogInv
 Perennial.EtcdGrove.srvRdCtxInv
 Perennial.EtcdGrove.srvRdCtxInv_alloc
@@ -82,11 +84,33 @@ Perennial.EtcdGrove.idNoZero
 Perennial.EtcdGrove.netSlot
 Perennial.EtcdGrove.netNames_alloc
 Perennial.EtcdGrove.streamRegInv
-neg Perennial.EtcdGrove.idClusterInv
+Perennial.EtcdGrove.idClusterInv
+Perennial.EtcdGrove.idCluster_alloc
+Perennial.EtcdGrove.idPfxTok
+Perennial.EtcdGrove.srvClusterBoot_allocG
+Perennial.EtcdGrove.etcdstart.clusterFacts
+Perennial.EtcdGrove.etcdstart.memberSlice
+Perennial.EtcdGrove.etcdstart.clusterAllocN
+neg Perennial.EtcdGrove.idPfxInv
 # etcd-dist D7 (c), 2026-11-23: raft's cluster with a bootstrap log over the global ghost state;
 # `nodeBoot` (it holds `bootMarshal`, a WP) a negative test
 module Proof.go_etcd_io.raft.v3.InvNodeRule
+module Proof.google_golang_org.grpc.InvGrpcWire
 Perennial.EtcdGrove.nodeBootG
 Perennial.EtcdGrove.cluster_alloc_bootG
 Perennial.EtcdGrove.ApiImpl.cluster_alloc_boot_implG_tr
 neg Perennial.EtcdGrove.nodeBoot
+# (phase 7 S2's interface, 2026-11-24) the service table's vocabulary: an address's table, its protocols
+# (opaque during the interface) and a message type's wire part
+Perennial.EtcdGrove.grpcSvcAt
+Perennial.EtcdGrove.grpcAddrAt
+Perennial.EtcdGrove.grpcCliPI
+Perennial.EtcdGrove.grpcSrvPI
+Perennial.EtcdGrove.ProtoMsg.wire
+# (etcd-dist, putget_safe's interim axioms, 2026-11-24) the table every machine holds (axiomatized until
+# S2 defines etcdSvc) and the address facts over it, at the cluster's view (O1 option B, 2026-11-25: until
+# then also the publication vocabulary, envAt/envPubInv)
+module Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S2Interim
+Perennial.EtcdGrove.etcd_dist.etcdSvc
+Perennial.EtcdGrove.etcd_dist.etcdAddrAt
+Perennial.EtcdGrove.etcd_dist.membersAt

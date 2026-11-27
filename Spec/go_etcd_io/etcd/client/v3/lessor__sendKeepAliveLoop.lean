@@ -27,14 +27,14 @@ send fails or the stream's context, `donec` or the stop context is done; it retu
 forever). -/
 abbrev lessor.sendKeepAliveLoop.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (st : GoInterface) (γ : StreamNames)
-    (Up : Nat → KaReqM → IProp GF) (Dn : Nat → (w64 × w64) → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) (L : List KaReqM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
+    (Up : Nat → KaReqM → IProp GF) (Md : GoString → GrpcMd → IProp GF)
+    (Dn : GoString → GrpcMd → Nat → (w64 × w64) → IProp GF) (cd : context.ContextDesc (IProp GF)) (L : List KaReqM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorAt l [addr] ∗
       cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse
-        Up Dn cd anyRes ∗ kaUpZero Up ∗
-      cliSendTok (Req := pbLeaseKeepAliveRequest) γ L }}
+        Up Md Dn cd clientRes ∗ kaUpZero Up ∗
+      cliSendTok (Req := pbLeaseKeepAliveRequest) γ L) }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"sendKeepAliveLoop")) (Val #st))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

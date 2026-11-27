@@ -5,15 +5,19 @@ usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
                          [--check [--update]]
        etc/tcb-report.py (--roots PATTERN... | --collection FILE...) [--per-root]
                          [--check [--update]] [-o OUT] [--json TCB.json] [--reuse]
+       etc/tcb-report.py --selftest
 
   -o       where to write the Markdown report (default: stdout)
   --defs   also list every definition the results' statements rest on
   --json   where to keep the raw output of etc/tcb-report.lean (default
            .lake/tcb.json); --reuse skips re-running Lean if it is of the current
            root modules (etc/proof_roots.py)
-  --check  compare the project's axioms and sorries with etc/tcb-baseline.txt and
-           exit 1 if they differ (`--check --update` rewrites the baseline): a gate
-           for CI, where the report is a viewer
+  --check  compare the project's axioms, sorries and trusted opaques with
+           etc/tcb-baseline.txt and exit 1 if they differ (`--check --update` rewrites
+           the baseline): a gate for CI, where the report is a viewer
+  --selftest  run etc/tcb-report.lean on a small environment of its own (Lean's core
+           only, compiled into `.lake/`) and check which `opaque`s it counts, and
+           check `--check`'s handling of `opaque` lines; exit 1 on a failure
 
   --roots  only the roots matching one of the regular expressions, searched in the
            root's name (`T.wp_M`, without the namespace of the `Link.lean` files), its
@@ -22,11 +26,15 @@ usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
            axioms and the `sorry`s they rest on, how many of them reach each, and the
            roots that reach a `sorry` (--per-root: every root)
   --collection  the same for the `roots PATTERN` lines of FILE (one per line, as
-           `etc/tcb-collections/*.txt`), whose `axiom X`/`sorry X` lines are its
-           baseline: with --check, compared (exit 1 if they differ); with
+           `etc/tcb-collections/*.txt`), whose `axiom X`/`sorry X`/`opaque X` lines are
+           its baseline: with --check, compared (exit 1 if they differ); with
            --check --update, rewritten (the other lines kept). With --check, several
            FILEs are checked in one run, each as on its own (exit 1 if any differs;
-           `tcb: collection FILE: FAILED` names it), the JSON loaded once
+           `tcb: collection FILE: FAILED` names it), the JSON loaded once.
+           A collection's `axioms PATTERN` lines (regular expressions) restrict its
+           report and baseline to the axioms, `sorry`s and opaques whose name (without
+           the namespace) or declaring module's file matches one of them: what one
+           family of declarations contributes to the roots, instead of all they rest on
 
 The Lean runs (one per group of root modules) run in two lanes, natively
 (etc/proof_roots.py: `run_groups`, `lean_script`); with `$TCB_CACHE` a directory, each
@@ -43,6 +51,23 @@ nothing is a lower bound:
 
   * assumed -- the axioms the results' proofs depend on and the declarations
     containing a `sorry` (what `#print axioms` shows, with the `sorry`s located);
+  * opaques -- the trusted `opaque` constants the results' statements and those axioms
+    are written in terms of (`opaque NAME` lines, checked as the `axiom` lines are). An
+    `opaque` is not an axiom, but a statement or an axiom about one means only what the
+    reader takes the constant to be. Counted: the kernel's `opaque` constants (`opaque`,
+    `partial def`) declared in this repository's modules (the roots of its Lake
+    libraries: etc/proof_roots.py's `local_roots`), reached from a root's statement or
+    from the type of an axiom it depends on through types, definitions' bodies (not
+    proofs, nor an opaque's value) and constructors, walking only this repository's
+    modules. Not counted: Lean's, Std's, Mathlib's, Iris's and Perennial's (trusted as a
+    whole, as their axioms are), and those of this repository's Goose translations
+    (`Code/`, `GeneratedProof/`, a part's `<root>/Code/`, `<root>/GeneratedProof/`: an
+    untranslated type's `T.underlying`, `T.zero_val`, an untranslated constant), which
+    are Goose's output, trusted with the translator as Perennial's are. So of the names
+    under `Perennial.<pkg>`, a translated package's namespace, a trusted model's
+    (`TrustedCode/`, `<root>/TrustedCode/`) count and Goose's do not: the rule is by
+    declaring module, not namespace. The trust base's are those of the exported results
+    (below) and of every axiom; a collection's those of its roots;
   * results -- the statements of what the proof exports: the linked result of a Go
     function that no other proof uses (every theorem of a package's
     `Proof/<pkg>/Link.lean` is one function's spec instantiated with its callees'
@@ -178,6 +203,45 @@ def scan_sources():
     return hits
 
 
+def go_models():
+    """The Go model overlays (perennial#692): every `[model]` table of a goose config of this
+    repository (`Code/**.toml` and the parts' `<root>/Code/**.toml`), as (config, dir, replaces,
+    added_methods, the model files' Go lines, the primitive stubs: the config's `trusted` names that
+    the model files declare). A model's replaced declarations are trusted Go (each with its `MODEL:`
+    comment); its additions are translated and verified like any code."""
+    try:
+        import tomllib
+    except ImportError:
+        import tomli as tomllib
+    out = []
+    for d in ["Code"] + [os.path.join(r, "Code") for r in proof_roots.PART_ROOTS]:
+        for dp, _, fs in sorted(os.walk(os.path.join(ROOT, d))):
+            for f in sorted(fs):
+                if not f.endswith(".toml"):
+                    continue
+                path = os.path.join(dp, f)
+                try:
+                    cfg = tomllib.loads(read(path))
+                except Exception:
+                    continue
+                m = cfg.get("model")
+                if not m:
+                    continue
+                mdir = os.path.join(ROOT, m.get("dir", ""))
+                lines, names = 0, set()
+                if os.path.isdir(mdir):
+                    for g in sorted(os.listdir(mdir)):
+                        if g.endswith(".go") and not g.endswith("_test.go"):
+                            t = read(os.path.join(mdir, g))
+                            lines += len(t.splitlines())
+                            for mm in re.finditer(r"^func (?:\((?:\w+ )?\*?(\w+)(?:\[[^]]*\])?\) )?(\w+)", t, re.M):
+                                names.add((mm.group(1) + "." if mm.group(1) else "") + mm.group(2))
+                stubs = [n for n in cfg.get("trusted", []) if n in names]
+                out.append((os.path.relpath(path, ROOT), m.get("dir", ""), m.get("replaces", []),
+                            m.get("added_methods", []), lines, stubs))
+    return out
+
+
 def matches(r, pat, defs, at_):
     """Whether root `r` is selected by the regular expression `pat`: searched in its
     name (`T.wp_M`), its module's file and, for a linked result, its spec's file
@@ -188,8 +252,11 @@ def matches(r, pat, defs, at_):
     return any(re.search(pat, k) for k in keys)
 
 
+ENTRY_KINDS = ("axiom ", "sorry ", "opaque ")
+
+
 def check(path, current, kept, srs, sorries, update):
-    """Compare the `axiom X`/`sorry X` entries `current` with those of the file `path`
+    """Compare the `axiom X`/`sorry X`/`opaque X` entries `current` with those of the file `path`
     (exit status 1 if they differ, or if a `sorry` of `srs` is an elaboration error);
     `update` rewrites its entries, keeping the lines `kept` (comments, `roots` lines)."""
     rel = proof_roots.shown(path)
@@ -198,7 +265,7 @@ def check(path, current, kept, srs, sorries, update):
             f.write("".join(x + "\n" for x in kept + current))
         print(f"tcb: wrote {rel} ({len(current)} entries)")
         return 0
-    base = [x.strip() for x in read(path).splitlines() if x.startswith(("axiom ", "sorry "))]
+    base = [x.strip() for x in read(path).splitlines() if x.startswith(ENTRY_KINDS)]
     added = sorted(set(current) - set(base))
     removed = sorted(set(base) - set(current))
     synth = [n for n in srs if any(o["synthetic"] for o in sorries[n])]
@@ -210,25 +277,38 @@ def check(path, current, kept, srs, sorries, update):
         print(f"tcb: elaboration error (synthetic sorry) in {short(x)}")
     if added or removed or synth:
         return 1
-    n_ax = sum(1 for x in current if x.startswith("axiom "))
-    print(f"tcb: trust base matches {rel} ({n_ax} axioms, {len(current) - n_ax} sorries)")
+    n = {k: sum(1 for x in current if x.startswith(k)) for k in ENTRY_KINDS}
+    print(f"tcb: trust base matches {rel} ({n['axiom ']} axioms, {n['sorry ']} sorries, "
+          f"{n['opaque ']} opaques)")
     return 0
 
 
 def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users, fw_ax,
-                     defs, at_, per_root):
-    """What the roots `sel` rest on, in plain text."""
+                     defs, at_, per_root, ax_pats=None, sel_op=(), opaques=None, op_users=None):
+    """What the roots `sel` rest on, in plain text (with `ax_pats`, of the axioms,
+    `sorry`s and opaques `sel_ax`/`sel_sr`/`sel_op` were restricted to, only those)."""
     names = {(r["module"], r["name"]) for r in sel}
     # a declaration's location(s): one per module declaring it
     locs = lambda recs: ", ".join(loc(o).strip("`") for o in recs)
     out = []
     w = out.append
     w(f"{len(sel)} of {n_roots} roots match {' '.join(repr(p) for p in pats)}.")
-    clean = [r for r in sel if not r["sorries"]]
+    if ax_pats:
+        w(f"Only the axioms, `sorry`s and opaques matching {' '.join(repr(p) for p in ax_pats)}.")
+    in_sr = lambda r: [x for x in r["sorries"] if x in sel_sr]
+    clean = [r for r in sel if not in_sr(r)]
     w(f"{len(clean)} of them reach no `sorry`.")
     w("")
     w(f"This repository's axioms they rest on: {len(sel_ax)}")
     rows = [(short(n), locs(axioms[n]), len(names & set(users[n]))) for n in sel_ax]
+    rows += [] if rows else [("(none)", "", 0)]
+    wa = max(len(x[0]) for x in rows)
+    wb = max(len(x[1]) for x in rows)
+    for a, l, k in rows:
+        w(f"  {a.ljust(wa)}  {l.ljust(wb)}  {f'reached by {k}' if l else ''}".rstrip())
+    w("")
+    w(f"Trusted `opaque`s their statements and those axioms reach: {len(sel_op)}")
+    rows = [(short(n), locs(opaques[n]), len(names & set(op_users[n]))) for n in sel_op]
     rows += [] if rows else [("(none)", "", 0)]
     wa = max(len(x[0]) for x in rows)
     wb = max(len(x[1]) for x in rows)
@@ -248,18 +328,166 @@ def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users,
     n_fw = len({a for r in sel for a in r["axioms"] if a in fw_ax})
     w(f"Perennial's axioms (its hand-written ones: Goose's untranslated declarations are `opaque`): {n_fw}.")
     w("")
-    listed = sel if per_root else [r for r in sel if r["sorries"]]
+    listed = sel if per_root else [r for r in sel if in_sr(r)]
     if listed:
         w(("Every root" if per_root else "The roots that reach a `sorry` (--per-root: every root)")
           + ":")
         wa = max([len(short(r["name"])) for r in listed] + [4])
-        w(f"  {'root'.ljust(wa)}  sorry  axioms  statement")
+        w(f"  {'root'.ljust(wa)}  sorry  axioms  opaques  statement")
+        op_set = set(sel_op)
         for r in listed:
             pa = sum(1 for a in r["axioms"] if a in sel_ax)
+            po = sum(1 for o in r["opaques"] if o in op_set)
             where = spec_file(r, defs, at_) if r["module"] in LINKS else mod_path(r["module"])
-            w(f"  {short(r['name']).ljust(wa)}  {len(r['sorries']):5}  {pa:6}  {where}")
+            w(f"  {short(r['name']).ljust(wa)}  {len(in_sr(r)):5}  {pa:6}  {po:7}  {where}")
         w("")
     return "\n".join(out)
+
+
+# `--selftest`'s environment: module -> source. `Dep` stands for a dependency (not `--local`),
+# `Code`/`Prt.Code` for Goose translations, `TrustedCode` for a trusted model, `Proof`/`Prt.Proof`
+# for this repository's specs and proofs; `SELFTEST_WANT`, the opaques each root must count.
+SELFTEST_MODS = {
+    "Dep.Lib": """
+opaque depOpq : Nat
+def depDef : Nat := depOpq
+""",
+    "TrustedCode.Pkg": """
+namespace Perennial.pkg
+/-- a trusted model's (namespace `Perennial.pkg`): counted -/
+opaque trustedOpq : Nat
+opaque trustedUnused : Nat
+end Perennial.pkg
+""",
+    "Code.Pkg": """
+import Dep.Lib
+import TrustedCode.Pkg
+namespace Perennial.pkg
+/-- Goose's untranslated declaration: not counted -/
+opaque T.underlying : Nat
+def F.impl : Nat := T.underlying + trustedOpq + depDef
+end Perennial.pkg
+""",
+    "Prt.Code.Q": """
+namespace Perennial.q
+opaque partGenOpq : Nat
+end Perennial.q
+""",
+    "Prt.Proof.R": """
+import Prt.Code.Q
+namespace Perennial.EtcdGrove
+opaque partOpq : Nat → Prop
+theorem rPart : partOpq Perennial.q.partGenOpq → True := fun _ => trivial
+end Perennial.EtcdGrove
+""",
+    "Proof.Defs": """
+import Code.Pkg
+namespace Perennial.EtcdGrove
+opaque stmtOpq : Nat → Prop
+def stmtDef (n : Nat) : Prop := stmtOpq n
+opaque axOpq : Nat → Prop
+axiom ax1 : axOpq Perennial.pkg.F.impl
+opaque proofOpq : Nat
+theorem helper : proofOpq = proofOpq := rfl
+opaque ctorOpq : Type
+inductive Ind where
+  | mk (x : ctorOpq → Nat)
+opaque mutOpq : Type
+mutual
+  inductive MA where
+    | a (b : MB)
+    | stop
+  inductive MB where
+    | b (m : mutOpq → MA)
+end
+end Perennial.EtcdGrove
+""",
+    "Proof.Link": """
+import Proof.Defs
+namespace Perennial.EtcdGrove
+theorem rStmt : stmtDef 0 ∨ True := Or.inr trivial
+theorem rAx : axOpq Perennial.pkg.F.impl := ax1
+theorem rProof : True := (fun _ => trivial) helper
+theorem rInd : Nonempty Ind → True := fun _ => trivial
+theorem rMut : Nonempty MA → True := fun _ => trivial
+theorem rDep : depDef = depDef := rfl
+end Perennial.EtcdGrove
+""",
+}
+SELFTEST_WANT = {
+    "rStmt": {"stmtOpq"},                                    # through a definition
+    "rAx": {"axOpq", "Perennial.pkg.trustedOpq"},            # an axiom's, through translated code
+    "rProof": set(),                                         # a proof's: not trusted
+    "rInd": {"ctorOpq"},                                     # a constructor's
+    "rMut": {"mutOpq"},                                      # a mutual block's other type's
+    "rDep": set(),                                           # a dependency's
+    "rPart": {"partOpq"},                                    # a part's, not its translation's
+}
+
+
+def selftest():
+    import shutil
+    import tempfile
+    fails = []
+    env = dict(os.environ, PATH=os.path.expanduser("~/.elan/bin") + os.pathsep
+               + os.environ.get("PATH", ""))
+    os.makedirs(os.path.join(ROOT, ".lake"), exist_ok=True)
+    tmp = tempfile.mkdtemp(dir=os.path.join(ROOT, ".lake"), prefix="tcb-selftest-")
+    try:
+        build = os.path.join(tmp, "build")
+        env["LEAN_PATH"] = build
+        for m, src in SELFTEST_MODS.items():  # in import order
+            f = os.path.join(tmp, "src", mod_path(m))
+            os.makedirs(os.path.dirname(f), exist_ok=True)
+            with open(f, "w") as g:
+                g.write(src)
+            o = os.path.join(build, m.replace(".", "/") + ".olean")
+            os.makedirs(os.path.dirname(o), exist_ok=True)
+            r = subprocess.run(["lean", "-o", o, f], cwd=ROOT, env=env, capture_output=True,
+                               text=True)
+            if r.returncode:
+                sys.exit(f"tcb selftest: lean {m}: {r.stdout}{r.stderr}")
+        r = subprocess.run(["lean", "--run", os.path.join(ROOT, "etc", "tcb-report.lean"),
+                            "--part=Prt", *(f"--local={x}" for x in
+                                            ("Code", "TrustedCode", "Proof", "Prt")),
+                            "Proof.Link", "Prt.Proof.R"],
+                           cwd=ROOT, env=env, capture_output=True, text=True)
+        if r.returncode:
+            sys.exit(f"tcb selftest: etc/tcb-report.lean: {r.stderr}")
+        objs = proof_roots._names([json.loads(x) for x in r.stdout.splitlines()
+                                   if x.startswith("{")])  # not Lean's messages
+        got = {short(o["name"]): {short(x) for x in o["opaques"]}
+               for o in objs if o["t"] == "root"}
+        for root, want in SELFTEST_WANT.items():
+            if got.get(root) != want:
+                fails.append(f"{root}: opaques {sorted(got.get(root, []))}, want {sorted(want)}")
+        # `--check`'s `opaque` lines: a new one and a gone one fail, `--update` writes them
+        coll = os.path.join(tmp, "coll.txt")
+        kept = ["# comment", "roots x"]
+        current = ["axiom a", "opaque p", "opaque q"]
+        with open(coll, "w") as f:
+            f.write("\n".join(kept + ["axiom a", "opaque p", "opaque stale"]) + "\n")
+        import contextlib
+        import io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            st = check(coll, current, kept, [], {}, False)
+        text = out.getvalue()
+        if st != 1 or "NEW in the trust base: opaque q" not in text \
+                or "opaque stale" not in text or "gone" not in text:
+            fails.append(f"--check on changed opaque lines: exit {st}, {text!r}")
+        with contextlib.redirect_stdout(io.StringIO()):
+            check(coll, current, kept, [], {}, True)
+            st = check(coll, current, kept, [], {}, False)
+        if st != 0 or read(coll).splitlines() != kept + current:
+            fails.append(f"--check --update: exit {st} after, file {read(coll)!r}")
+    finally:
+        shutil.rmtree(tmp)
+    for x in fails:
+        print(f"tcb selftest: FAIL {x}")
+    print(f"tcb selftest: {'FAILED' if fails else 'ok'} ({len(SELFTEST_WANT)} roots, "
+          "--check's opaque lines)")
+    return 1 if fails else 0
 
 
 def main():
@@ -273,7 +501,10 @@ def main():
     ap.add_argument("--roots", nargs="+", metavar="PATTERN")
     ap.add_argument("--collection", metavar="FILE", nargs="+")
     ap.add_argument("--per-root", action="store_true")
+    ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
+    if args.selftest:
+        return selftest()
 
     # Roots are keyed by (module, name): the same name is linked in several module roots
     # (the raft proof's `Link`, `EtcdDeps`'s and `Raft37`'s all stated
@@ -283,7 +514,7 @@ def main():
     # per module, and `at_(...)` picks the one of a root's own module, else of its part
     # (a part's root, the plain `Proof.*`), never across parts. The baseline's
     # `axiom X` lines are by (short) name, so such an axiom is one line.
-    roots, axioms, sorries, defs = {}, {}, {}, {}
+    roots, axioms, sorries, defs, opaques = {}, {}, {}, {}, {}
     for o in proof_roots.load(args.json, "tcb", args.reuse):
         if o["t"] == "root":
             roots[(o["module"], o["name"])] = o
@@ -292,7 +523,8 @@ def main():
         else:
             # one record per declaring module (a module Lean ran in several groups
             # reports its declarations once per group)
-            recs = {"axiom": axioms, "sorry": sorries, "def": defs}[o["t"]].setdefault(
+            recs = {"axiom": axioms, "sorry": sorries, "def": defs,
+                    "opaque": opaques}[o["t"]].setdefault(
                 o["name"], []
             )
             if all(x["module"] != o["module"] for x in recs):
@@ -355,17 +587,24 @@ def main():
     )
 
     users = collections.defaultdict(list)  # axiom/sorry -> the (module, name) of its roots
+    op_users = collections.defaultdict(list)  # opaque -> the (module, name) of its roots
     for k, r in roots.items():
         for a in r["axioms"]:
             users[a].append(k)
         for s in r["sorries"]:
             users[s].append(k)
+        for o in r["opaques"]:
+            op_users[o].append(k)
+    # the trust base's opaques: the exported results' (their statements' and their axioms':
+    # an internal result's statement is checked by the proof using it)
+    proj_op = sorted({o for r in exported for o in r["opaques"]})
 
-    def entries(axs, srs):
-        return sorted([f"axiom {short(n)}" for n in axs] + [f"sorry {short(n)}" for n in srs])
+    def entries(axs, srs, ops=()):
+        return sorted([f"axiom {short(n)}" for n in axs] + [f"sorry {short(n)}" for n in srs]
+                      + [f"opaque {short(n)}" for n in ops])
 
     # --roots/--collection: what a collection of roots rests on
-    def selection(pats, coll_file, coll):
+    def selection(pats, coll_file, coll, ax_pats=None):
         sel = []
         for p in pats:
             hit = [r for r in roots.values() if matches(r, p, defs, at_)]
@@ -375,12 +614,21 @@ def main():
         sel.sort(key=lambda r: short(r["name"]))
         sel_ax = sorted({a for r in sel for a in r["axioms"] if is_project(a)})
         sel_sr = sorted({x for r in sel for x in r["sorries"]})
-        current = entries(sel_ax, sel_sr)
+        sel_op = sorted({o for r in sel for o in r["opaques"]})
+        if ax_pats:  # the collection's `axioms PATTERN` lines: only the matching declarations
+            def wanted(n, table):
+                keys = [short(n)] + [mod_path(o["module"]) for o in table.get(n, [])]
+                return any(re.search(p, k) for p in ax_pats for k in keys)
+            sel_ax = [n for n in sel_ax if wanted(n, axioms)]
+            sel_sr = [n for n in sel_sr if wanted(n, sorries)]
+            sel_op = [n for n in sel_op if wanted(n, opaques)]
+        current = entries(sel_ax, sel_sr, sel_op)
         if args.check:
-            kept = [x for x in coll if not x.startswith(("axiom ", "sorry "))]
+            kept = [x for x in coll if not x.startswith(ENTRY_KINDS)]
             return check(coll_file, current, kept, sel_sr, sorries, args.update)
         text = selection_report(sel, pats, len(roots), sel_ax, sel_sr, axioms, sorries,
-                                users, fw_ax, defs, at_, args.per_root)
+                                users, fw_ax, defs, at_, args.per_root, ax_pats,
+                                sel_op, opaques, op_users)
         if args.out:
             with open(args.out, "w") as f:
                 f.write(text)
@@ -402,8 +650,9 @@ def main():
             pats = [x.split(None, 1)[1].strip() for x in coll if x.startswith("roots ")]
             if not pats:
                 sys.exit(f"tcb: {cf} has no `roots PATTERN` line")
+            ax_pats = [x.split(None, 1)[1].strip() for x in coll if x.startswith("axioms ")]
             try:
-                st = selection(pats, cf, coll)
+                st = selection(pats, cf, coll, ax_pats)
             except SystemExit as e:  # a pattern no root matches: this collection fails
                 print(e.code)
                 st = 1
@@ -418,7 +667,7 @@ def main():
     if args.check:
         kept = ["# This repository's part of the proofs' trust base "
                 "(etc/tcb-report.py --check --update)."]
-        return check(BASELINE, entries(proj_ax, sorries), kept, sorries, sorries,
+        return check(BASELINE, entries(proj_ax, sorries, proj_op), kept, sorries, sorries,
                      args.update)
 
     out = []
@@ -452,6 +701,8 @@ def main():
         f"{len(roots)} roots."
     )
     w(f"- This repository's axioms (trust boundary): **{len(proj_ax)}**.")
+    w(f"- This repository's trusted `opaque`s (in the results' statements and the axioms): "
+      f"**{len(proj_op)}**.")
     w(f"- Perennial's axioms (its hand-written ones: Goose's untranslated declarations are `opaque`): {len(fw_ax)}.")
     w(f"- Lean's axioms: {', '.join(f'`{a}`' for a in lean_ax)}.")
     w(
@@ -548,6 +799,22 @@ def main():
         w(f"| `{short(n)}` | {', '.join(loc(o) for o in os_)} | {len(users[n])} | {doc} |")
     w("")
 
+    w("## This repository's trusted opaques\n")
+    w(
+        "The `opaque` constants (outside the Goose translations) the exported statements and "
+        "the axioms are written in terms of: not axioms, but what the reader must take each to "
+        "be is trusted as a definition is. Each must be justified by its doc comment.\n"
+    )
+    w("| opaque | where | used by | why (doc comment) |")
+    w("|---|---|---:|---|")
+    for n in proj_op:
+        os_ = opaques[n]
+        doc = first_para(os_[0]["doc"]).replace("|", "\\|") or "(no doc comment)"
+        if len(doc) > 300:
+            doc = doc[:297] + "…"
+        w(f"| `{short(n)}` | {', '.join(loc(o) for o in os_)} | {len(op_users[n])} | {doc} |")
+    w("")
+
     w("## Perennial's axioms\n")
     w(
         "Goose declares, without translating them, the Go types its translation mentions "
@@ -580,6 +847,25 @@ def main():
         "hand-written models of Go code goose does not translate, are trusted to mean what "
         "that code means (each docstring says why)."
     )
+    gm = go_models()
+    if gm:
+        w(
+            "- **The Go models** (Go model overlays, perennial#692: a goose config's `[model]` "
+            "table, whose files goose splices into the real package before translating it): each "
+            "replaced declaration is trusted to have at least the behaviours of the real one "
+            "(its `MODEL:` doc comment says why; `gomodel.Choose`/`Stuck` are its choice and "
+            "stuck points); additions are translated and verified, but a primitive stub (an "
+            "addition the config trusts, with a `TrustedCode` model). `dir` `.lake/gomodel/...` is "
+            "Perennial's `internal/gomodel` at the pin (`etc/gomodels.py`)."
+        )
+        w("")
+        w("  | config | dir | replaces | added methods | Go lines | primitive stubs |")
+        w("  |---|---|---|---|---:|---|")
+        for cfgp, mdir, reps, added, lines, stubs in gm:
+            rs = "every file" if reps == ["*"] else (", ".join(f"`{r}`" for r in reps) or "(additions only)")
+            w(f"  | `{cfgp}` | `{mdir}` | {rs} | {', '.join(f'`{a}`' for a in added) or '-'} | "
+              f"{lines} | {', '.join(f'`{x}`' for x in stubs) or '-'} |")
+        w("")
     w(
         "- **The library models' generators** (`models/`, `models/README.md`): a program whose "
         "statement runs over a generated codec in place of a real library trusts the generator, "

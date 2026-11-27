@@ -22,21 +22,18 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 variable [go.BasicIntoValInj]
 
 theorem TCPListener.Addr.wp_proof : TCPListener.Addr.spec (GF := GF) (hG := hG) := by
   intro t l x
-  unfold lisAt
-  wp_start as ⟨%nw, %Hnw, #Ht, #Hx, %hl0⟩
+  unfold lisAt lisFd fdAt
+  wp_start as ⟨%nw, %Hnw, ⟨%fd, %lc, %ra, #Ht, %v, %hv, #Hv, -⟩, #Hx, %hl⟩
+  obtain ⟨-, -, rfl, -⟩ := hv
+  iStructNamed Ht
+  iStructNamed Hv
   (try wp_method_call)
-  (try unfold TCPListener.Addr.impl)
-  (try rw [TCPListener_ty_eq])
-  ihave #Ht2 := Ht
-  iStructNamed Ht2
-  (try iStructNamed conn)
   wp_auto
-  (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
   iapply HΦ
   itrivial
 

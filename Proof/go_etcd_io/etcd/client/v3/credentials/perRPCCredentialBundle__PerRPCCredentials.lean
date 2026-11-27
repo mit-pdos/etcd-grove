@@ -36,9 +36,10 @@ theorem credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
   iapply HΦ
   unfold perRPCCredsOk
   isplit
-  · iintro !> %ctx %sl %R %Ψ !> ⟨-, HR⟩ HΨ
+  · iintro !> %ctx %sl %R %Ψ !> ⟨%HR, HR⟩ HΨ
+    subst HR
     wp_auto
-    wp_apply wp_GetRequestMetadata rc P ctx sl $$ [$Hinv] as %mp %err ⟨%Herr, %cm, Hm, #Hq⟩
+    wp_apply wp_GetRequestMetadata rc P ctx sl $$ [$Hinv $HR] as %mp %err ⟨HR, %Herr, %cm, Hm, #Hq⟩
     iapply HΨ
     iframe HR
     isplitr
@@ -46,6 +47,15 @@ theorem credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
     iintro -
     iexists cm
     iframe Hm
+    isplitr
+    · -- `credKeysOk`: the one key a token bundle's credentials may set is `token`.
+      iunfold tokMdOk at Hq
+      icases Hq with ⟨%hoth, -⟩
+      ipureintro
+      intro k vs hk
+      by_cases hkt : k = go!"token"
+      · subst hkt; decide
+      · rw [hoth k hkt] at hk; cases hk
     imodintro
     iexact Hq
   · iintro !> !> %Ψ - HΨ

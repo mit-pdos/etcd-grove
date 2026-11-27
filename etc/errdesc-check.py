@@ -29,7 +29,8 @@ REVIEWED = {
         'the description and code from a stable Error()/GRPCStatus() (the premise statusErrOk)',
     'Spec/google_golang_org/grpc/status/Error.lean':
         '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal; '
-        'no Format method (statusErrOk since premise-fixes-4; examples/premisefix/fmtarg)',
+        'no Format method (statusErrOk since premise-fixes-4; examples/premisefix/fmtarg); a pointer '
+        'value of its pointer type (statusErrOk\'s stTypedErr since #45, Go\'s typing)',
     'Spec/google_golang_org/grpc/status/Code.lean': 'statusErrOk a premise only',
     'Spec/google_golang_org/grpc/status/Status__Code.lean':
         'status.statusAt a premise only: the read-only status the producer built (its code returned)',
@@ -39,22 +40,17 @@ REVIEWED = {
         'statusErrOk a premise only (no description or code in its post; as RecordEtcdRequest, whose '
         'errorReason Record shares): the caller proves it, store.Get from Client.Get\'s post '
         '(statusErrOk_split); prove-metrics 2026-11-21, examples/premisefix/latencytracker',
-    'Spec/errors/IsStatusErr.lean':
-        'a leaf: == compares values, Is answers true only for an equal description (grpcErrMethodsOk)',
     'Spec/fmt/ErrorfWrap.lean':
         "the model's errorString cell and Go's wrapError msg are written once; the errDesc prefix "
         "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
-    'Spec/google_golang_org/grpc/model/respond.lean':
-        'srvErrOk err a premise of the pre (stable Error()/GRPCStatus(): status.FromError, server.go:1461): '
-        'the carrier (Proof/google_golang_org/grpc/model/Serve.lean:71-72) gets it from the deposited run '
-        'contract grpcRunOkMd (InvGrpc.lean, its post; HS-6); the handler outcome handlerErrOut gives a description m with descIs err m '
-        '(errdesc stage 2b: what FromError reads of the stable error, the message grpc sends) and gates Psi_e m, '
-        'the handler\'s own description, which Invoke returns for a handlerDescs description only',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
-    'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Init.lean:toGRPCErrorMap_init':
-        "its values are rpctypes' ErrGRPC* (status.Error) values, without a Format method "
-        '(examples/premisefix/fmtarg)',
+    'Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetDist.lean':
+        "KV_Get_dist's error arm: statusErrOk err, the in-process kv.Get.spec's kvErr part; real grpc-go "
+        "across a network meets it (notes/axiom-review/kv-get-dist-statuserr.md: 44 cases, 0 violations; "
+        "a coordinator-approved strengthening, 2026-11-26)",
+    'Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean':
+        'RequestProgress_dist only (Watch_dist names none): nil, errors.New\'s "no stream found", ctx.Err() (isContext) or run\'s closeErr, a raw Recv status/io.EOF or v3rpc.Error of NewStream\'s/getToken\'s error, all built in the caller by grpc-go (cliStreamErr, peer-independent) or clientv3, the member choosing only code, message, details; real 3-member cluster, 13 failure kinds, 0 violations (notes/axiom-review/requestprogress-dist-statuserr.md)',
     # rpctypes' initializers (etc/gen-init.py): status.Error values and EtcdError values
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean:*':
         'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc); neither type '

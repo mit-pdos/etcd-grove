@@ -1,9 +1,8 @@
 /-
 **grpc's server, built and started** (item 4 of the client→server path, 2026-10-17; Lean-first,
 no Rocq counterpart; restated in per-type stage B, B1b): what produces Go's configuration of a
-server (`grpcSrvCfg γ c`, `InvGrpc.lean`), from which `grpc.start'` makes the facts
-`grpcServerAt addr ics regs γ` and `grpcStreamServerAt addr sics sregs γ` that `grpc.serve` and
-`grpc.serveStream` (theorems) use. The Go-level specs of grpc's `NewServer`, its options,
+server, which `grpc.start'` (`InvGrpcRun.lean`) turns into the address's service table and the facts
+`grpcServerAt` and `isGrpcStreamMd`. The Go-level specs of grpc's `NewServer`, its options,
 `Server.RegisterService` and `Server.Serve`, and of `net.Listen`, are trust-boundary axioms
 (`Spec/google_golang_org/grpc/`, `Spec/net/Listen.lean`); this file is their vocabulary.
 
@@ -15,15 +14,27 @@ it, `k`:
   the server's chain in order (grpc's `chainUnaryServerInterceptors`; no `UnaryInterceptor`
   option is specified, so the chain is these lists, concatenated);
 * `.chainStream ics` (`ChainStreamInterceptor(ics...)`): likewise for streams;
-* `.stats h` (`StatsHandler(h)`, of a handler with `grpcStatsHandlerOk`: otelgrpc's): `h` added to
-  the server's stats handlers; it adds no value under etcd's context keys (`grpcRunCtx`);
+* `.stats h` (`StatsHandler(h)`, of a handler with `grpcStatsHandlerOk`: otelgrpc's, which the kind
+  carries): `h` added to the server's stats handlers; it adds no value under etcd's context keys
+  (`grpcRunCtx`);
 * `.neutral`: an option that does not change which handler runs for a method, nor what a run is
-  given (the run's context, `grpcRunCtx`; the decoded request, `grpcDecOk`): message size limits
-  (a call over the limit fails before its handler runs, or its response is not delivered: an error
-  for the client), `MaxConcurrentStreams` (calls wait), a protobuf codec (`CustomCodec` of a codec with `grpcProtoCodec`: the wire models `ProtoMsg` are protobuf's),
-  the keepalive enforcement policy.
+  given (the run's context, `grpcRunCtx`; the decoded request, `grpcDecOk`), nor how requests are
+  decoded: it changes only the fields of a whitelist (`srvOptsSameBut`: message size limits, a call
+  over the limit failing before its handler runs or its response not delivered, an error for the
+  client; `MaxConcurrentStreams`, calls wait; flow-control windows, buffers, header limits,
+  keepalive parameters and enforcement policy, the connection timeout, server workers, waiting for
+  handlers), and the codec only to a protobuf codec's (`srvCodecOk`: `CustomCodec` of a codec with
+  `grpcProtoCodec`, so the wire models `ProtoMsg` are protobuf's). Every other field stays: an
+  option setting `UnaryInterceptor`/`StreamInterceptor`, credentials, a compressor, an unknown-service
+  handler, a stream wrapper or a non-protobuf codec is of no kind (2026-11-26,
+  `notes/axiom-review/grpc-neutral-narrow.md`: until then only the chains and the stats handlers
+  were fixed, so a closure setting any other field was `.neutral`, e.g. `Creds(tlsCreds)`'s once its
+  body is translated, while the model's `NewServer` panics on non-insecure credentials; no
+  translated closure sets such a field today, so the hole was latent). The other kinds fix the
+  same fields.
 
-**The server being built** (`grpcSrvNew gs ics sics svcs regs sregs`, exclusive, axiomatized):
+**The server being built** (`grpcSrvNew gs ics sics svcs regs sregs`, exclusive; W1, 2026-11-26, a
+definition over the model's `Server` struct, until then axiomatized):
 `NewServer`'s `*grpc.Server` `gs`, not serving yet, with the unary and stream chains `ics`,
 `sics`, the services `svcs` registered (their names), and their unary methods `regs` and streams
 `sregs` (full method name `/<service>/<method>`, `MethodDesc.Handler`/`StreamDesc.Handler`,
@@ -34,38 +45,36 @@ setting `ClientStreams` or `ServerStreams`: premises stronger than grpc checks, 
 method and stream names, the unary one winning (test T9b), and runs an unflagged stream's handler
 without the stream interceptor, `server.go:1446-1450` (test T10b)).
 
-**The start** (`grpc.start`, an axiom): the server being built, whose full method and stream names
-are jointly distinct, and a listener bound at `addr` (`netListenerAt`, `Proof/net/InvNet.lean`)
-become a server `γ` listening at `addr` (`grpcAddrIs addr γ`), with Go's configuration
-(`grpcSrvCfg γ c`: the chains and registrations, fixed from now on), and the right to accept its
-calls on the listener (`grpcSrvLink gs lis γ`); `grpc.start'` packages them as `grpcServerAt`,
-`grpcStreamServerAt` and `grpcServeTok gs lis γ` (what `gs.Serve(lis)` takes). A ghost step, before
-the `go gs.Serve(lis)`: the server's methods are served at `addr` once `Serve` runs (a call before
-`Serve` accepts waits, or fails: an error for the client). After it the server can no longer
+**The start** (`grpc.start'`, a theorem in `InvGrpcRun.lean`): the server being built, whose
+full method and stream names are jointly distinct, and a listener bound at `addr` (`netListenerAt`,
+`Proof/net/InvNet.lean`) with what `Listen` left, set `addr`'s service table to Go's configuration, and
+give the right to serve it (`grpcServeTok gs lis addr Svc`, what `gs.Serve(lis)` takes). A ghost step,
+before the `go gs.Serve(lis)`: the server's methods are served at `addr` once `Serve` runs (a call
+before `Serve` accepts waits, or fails: an error for the client). After it the server can no longer
 register a service (grpc's `RegisterService` after `Serve` is fatal).
 
-**The replies' size** (`grpcRepliesFit`, a premise of `grpc.start`, 2026-10-31,
+**The replies' size** (`grpcRepliesFit`, a premise of `grpc.start'`, 2026-10-31,
 `notes/reply-size.md`): grpc marshals a reply before any size check, and the codec's `make` panics
 above Go's `maxAlloc` (`grpcReplyMax`). The start takes the named workload premise that no reply of
 the run (the replies to the program's own clients' calls) exceeds it; the facts it makes exist only
 in such a run, so the trusted `Serve` model's leaves (`respond`'s size claim), reached through
 `grpcServeTok`, are true under it, and so is every result built on them (the served results
 `etcd_kv_served`, `ServedOn`, `AuthnServedOn`, v3rpc's, whose statements do not show it). The token
-yields `grpcRepliesFit` (it is a conjunct of `grpcServeTok`), which holds wherever the token is made:
-it is `grpc.start`'s premise.
+yields `grpcRepliesFit` or, since T9, `grpcRepliesBounded` (a disjunct of `grpcServeTok`), which holds wherever the token is made:
+it is `grpc.start'`'s premise.
 
-**The health service** (`grpcHealthSrv hs`, persistent, axiomatized): grpc's `*health.Server`
-`hs` (`health.NewServer()`), whose `SetServingStatus` is safe from any goroutine.
-
-**grpc-prometheus's server metrics** (`promSrvMetrics m`, persistent, axiomatized): a
-`*ServerMetrics` `m` made by `NewServerMetrics` (its counters and histograms, safe from any
-goroutine), whose interceptors are transparent. (Its options, `promSrvMetricsOpt`, are defined in
-`Proof/github_com/grpc_ecosystem/go_grpc_middleware/providers/prometheus/Defs.lean`.)
+The health server (`grpcHealthSrv`), grpc-prometheus's server metrics (`promSrvMetrics`) and the
+stats handlers' property (`grpcStatsHandlerOk`) are in `InvGrpcHealth.lean`, `InvGrpcProm.lean` and
+`InvGrpcStats.lean`.
 -/
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcStream
+public import Proof.google_golang_org.grpc.InvGrpcStats
 public import Proof.net.InvNet
+public import Perennial.Proof.sync.CondDefs
+public import GeneratedProof.google_golang_org.grpc.internal.stats
+public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
 
 @[expose] public section
 
@@ -107,38 +116,18 @@ codec's; what the wire models (`ProtoMsg`) presume. etcd's `v3rpc.codec` is one
 (`v3rpc.codec_proto`). -/
 axiom grpcProtoCodec [GooseExts] (c : GoInterface) : Prop
 
-/-- **The `stats.Handler` `h` adds no value under etcd's context keys and lets every call run**
-(an axiomatized property, introduced by `otelgrpc.NewServerHandler`'s spec): what `grpcRunCtx`
-presumes of the stats handlers in front of a method's handler. Since 2026-11-06 (`grpcRunCtx`'s
-`trace.spanCtxOk`), also: the span it stores under otel's span key, if any, is a span (otelgrpc's:
-its tracer's, `End`, `AddEvent`, `RecordError` returning). -/
-axiom grpcStatsHandlerOk [GooseExts] (h : GoInterface) : Prop
-
-/-- **The server being built** (exclusive; see the file header). A handler in `regs`/`sregs` is
-Go's `MethodDesc.Handler`/`StreamDesc.Handler`, a `GoFunc`. **Invariant every producer upholds**
-(per-type stage B, B1b): every `sregs` entry comes from a stream descriptor setting `ClientStreams`
-or `ServerStreams` (`RegisterService`'s premise; `RegisterHealthServer`'s one stream, health's
-`Watch`, is `ServerStreams`), since grpc runs an unflagged stream descriptor's handler directly,
-without the stream interceptor (`server.go:1446-1450`, test T10b), which the `Serve` model does not
-represent. -/
-axiom grpcSrvNew {GF : BundledGFunctors} [GooseExts] (gs : Loc) (ics sics : List GoFunc)
-  (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF
-
-/-- **grpc's health server `hs`** (persistent; see the file header). -/
-axiom grpcHealthSrv {GF : BundledGFunctors} [GooseExts] (hs : Loc) : IProp GF
-
-axiom grpcHealthSrv_persistent {GF : BundledGFunctors} [GooseExts] (hs : Loc) :
-  Persistent (grpcHealthSrv (GF := GF) hs)
-
-attribute [instance] grpcHealthSrv_persistent
-
-/-- **grpc-prometheus's server metrics `m`** (persistent; see the file header). -/
-axiom promSrvMetrics {GF : BundledGFunctors} [GooseExts] (m : Loc) : IProp GF
-
-axiom promSrvMetrics_persistent {GF : BundledGFunctors} [GooseExts] (m : Loc) :
-  Persistent (promSrvMetrics (GF := GF) m)
-
-attribute [instance] promSrvMetrics_persistent
+/-- **The server being built, bound to the listener `lis` at `addr`** (exclusive), as certified by
+`etcd_noRefusal`/`etcd_noOtherRefusal`; intended reading `grpcSrvNew gs … ∗ netListenerAt lis addr`;
+consumed only by `grpc.startBound`, inside `grpcServeTok`. It covers only the server certified at the
+listener it was certified with, the FIRST server at `addr`: the certificate `noRefusalAt addr` is a
+fact about the address string and outlives that listener. Once the listener is closed (a synchronous
+`Serve` returning on an `Accept` failure, a crash) or on another node, a new listener at `addr`
+(`listen_au` from `grpcAddrAt`) can host a server that refuses while `noRefusalAt addr` still holds
+(`notes/axiom-review/phase7-switch.md`, finding 1). Interim: retired by decision E (no-refusal a
+property of the table's entries). -/
+axiom grpcSrvAtLis {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (addr : GoString)
+  (ics sics : List GoFunc) (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
+  IProp GF
 
 section pure
 variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
@@ -261,6 +250,25 @@ embed the `Unsafe*Server` interfaces, not `Unimplemented*Server` by value): the 
 def grpcNoTestEmbedded (ss : GoInterface) : Prop :=
   ∃ si : GoInterfaceOk, ss = GoInterface.ok si ∧ go.typeSetContains si.ty testEmbeddedIface = false
 
+/-- **A registered service** (one `RegisterService`): its descriptor `sd` (`grpcDescIs`), service name
+`sn`, handler type `ht`, methods `mds`, streams `sds`, and service value `ss`. -/
+structure GrpcSrvReg where
+  sd : Loc
+  sn : GoString
+  ht : GoInterface
+  mds : List google_golang_org.grpc.MethodDesc
+  sds : List google_golang_org.grpc.StreamDesc
+  ss : GoInterface
+
+/-- **The `streams` map `register` builds for the descriptor with method and stream slices `msl`,
+`ssl`**: each stream's name to its descriptor in `ssl` (`&sd.Streams[i]`), then each method's name to
+the fresh descriptor `mls[j]` (`register`'s order; the names are distinct, `RegisterService`'s
+premise). -/
+def srvStreamsL (r : GrpcSrvReg) (ssl : GoSlice) (mls : List Loc) : List (GoString × Loc) :=
+  (r.sds.zipIdx.map fun (d, i) =>
+      (d.StreamName', sliceIndexRef google_golang_org.grpc.StreamDesc (i : Int) ssl)) ++
+    (r.mds.zip mls).map fun (d, l) => (d.MethodName', l)
+
 end pure
 
 section defs
@@ -269,31 +277,72 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **`so'` is `so` but for the fields no handler, run context or decoding depends on**, and for
+the codec, the two interceptor chains and the stats handlers, which each option kind's clause of
+`srvOptFnOk` states (2026-11-26, `notes/axiom-review/grpc-neutral-narrow.md`). The whitelist, of
+grpc-go v1.84's `serverOptions` (`models/grpc/server.go`): the stream limit, the message size limits,
+the keepalive parameters and enforcement policy, the flow-control windows (`initialWindowSize`,
+`initialConnWindowSize`, `staticWindowSize`), the transport's buffers (`writeBufferSize`,
+`readBufferSize`, `sharedWriteBuffer`), the connection timeout, the header limits
+(`maxHeaderListSize`, `headerTableSize`), the server workers (`numServerWorkers`, which run the same
+`handleStream`; the model has none) and `waitForHandlers` (read by `Stop` only). Every other field
+(`creds`, `cp`, `dc`, `unaryInt`, `streamInt`, `unknownStreamDesc`, `streamWrapper`, and any field
+grpc adds) is `so`'s. -/
+def srvOptsSameBut (so so' : google_golang_org.grpc.serverOptions) : Prop :=
+  so' = { so with
+    codec' := so'.codec', chainUnaryInts' := so'.chainUnaryInts',
+    chainStreamInts' := so'.chainStreamInts', statsHandlers' := so'.statsHandlers',
+    maxConcurrentStreams' := so'.maxConcurrentStreams',
+    maxReceiveMessageSize' := so'.maxReceiveMessageSize',
+    maxSendMessageSize' := so'.maxSendMessageSize',
+    keepaliveParams' := so'.keepaliveParams', keepalivePolicy' := so'.keepalivePolicy',
+    initialWindowSize' := so'.initialWindowSize',
+    initialConnWindowSize' := so'.initialConnWindowSize',
+    writeBufferSize' := so'.writeBufferSize', readBufferSize' := so'.readBufferSize',
+    sharedWriteBuffer' := so'.sharedWriteBuffer', connectionTimeout' := so'.connectionTimeout',
+    maxHeaderListSize' := so'.maxHeaderListSize', headerTableSize' := so'.headerTableSize',
+    numServerWorkers' := so'.numServerWorkers', waitForHandlers' := so'.waitForHandlers',
+    staticWindowSize' := so'.staticWindowSize' }
+
+/-- **The codec of `so'` is `so`'s, or a protobuf codec's**: `CustomCodec(c)` of a codec with
+`grpcProtoCodec c` stores `newCodecV0Bridge(c)`, the value `codecV0Bridge{codec: c}` (as `any`),
+whose `Marshal`/`Unmarshal` are `c`'s (`models/grpc/codec.go`). -/
+def srvCodecOk (so so' : google_golang_org.grpc.serverOptions) : Prop :=
+  so'.codec' = so.codec' ∨ ∃ c : GoInterface, grpcProtoCodec c ∧
+    so'.codec' = interface.mkOk google_golang_org.grpc.codecV0Bridge.ty
+      #(google_golang_org.grpc.codecV0Bridge.mk c)
+
 /-- **What the closure `f` of a server option of the kind `k` does to `*serverOptions`**
 (persistent; phase 7 S1, `notes/phase7-plan.md`: grpc is the model's, `models/grpc`): applied to a
-`p ↦ so`, it returns with `p ↦ so'`, where
-* `.neutral`: the unary and stream chains and the stats handlers are `so`'s (any other field may
-  change: a size limit, the stream limit, the codec, the keepalive policy);
+`p ↦ so`, it returns with `p ↦ so'`, where `so'` is `so` but for the whitelisted fields
+(`srvOptsSameBut`) and
+* `.neutral`: the unary and stream chains and the stats handlers are `so`'s, the codec is `so`'s or a
+  protobuf codec's (`srvCodecOk`);
 * `.chainUnary ics` (`.chainStream ics`): the chain, whose elements `us` and capacity it is given,
-  is `us ++ ics` (`append(o.chainUnaryInts, interceptors...)`), the other chain and the stats
-  handlers are `so`'s;
-* `.stats h`: the stats handlers, whose elements `hs` and capacity it is given, are `hs ++ [h]` if
-  `h` is not nil, `hs` if it is (grpc logs and ignores a nil handler), the chains are `so`'s.
+  is `us ++ ics` (`append(o.chainUnaryInts, interceptors...)`), the other chain, the stats
+  handlers and the codec are `so`'s;
+* `.stats h`: `h` has `grpcStatsHandlerOk` (the server calls its `TagConn` on every connection and
+  its `TagRPC` on every call, so the kind is only of a handler that lets them run, not of every
+  closure that appends to `statsHandlers`), and the stats handlers, whose elements `hs` and capacity
+  it is given, are `hs ++ [h]` if `h` is not nil, `hs` if it is (grpc logs and ignores a nil
+  handler), the chains and the codec are `so`'s.
 The ownership each kind is given is what its closure reads and writes, so that `NewServer`, which
 applies the options in order to one `serverOptions`, can hold it. -/
 def srvOptFnOk (f : GoFunc) : SrvOptKind → IProp GF
   | .neutral => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
       (Φ : val → IProp GF),
       p ↦ so -∗ ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
-        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.chainStreamInts' = so.chainStreamInts' ∧
-          so'.statsHandlers' = so.statsHandlers'⌝ -∗ Φ #()) -∗
+        ⌜srvOptsSameBut so so' ∧ srvCodecOk so so' ∧ so'.chainUnaryInts' = so.chainUnaryInts' ∧
+          so'.chainStreamInts' = so.chainStreamInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
   | .chainUnary ics => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
       (us : List GoFunc) (Φ : val → IProp GF),
       p ↦ so -∗ so.chainUnaryInts' ↦* us -∗ ownSliceCap GoFunc so.chainUnaryInts' (DFrac.own 1) -∗
       ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
         so'.chainUnaryInts' ↦* (us ++ ics) -∗ ownSliceCap GoFunc so'.chainUnaryInts' (DFrac.own 1) -∗
-        ⌜so'.chainStreamInts' = so.chainStreamInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        ⌜srvOptsSameBut so so' ∧ so'.codec' = so.codec' ∧ so'.chainStreamInts' = so.chainStreamInts' ∧
+          so'.statsHandlers' = so.statsHandlers'⌝ -∗
         Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
   | .chainStream ics => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
@@ -301,16 +350,18 @@ def srvOptFnOk (f : GoFunc) : SrvOptKind → IProp GF
       p ↦ so -∗ so.chainStreamInts' ↦* us -∗ ownSliceCap GoFunc so.chainStreamInts' (DFrac.own 1) -∗
       ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
         so'.chainStreamInts' ↦* (us ++ ics) -∗ ownSliceCap GoFunc so'.chainStreamInts' (DFrac.own 1) -∗
-        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        ⌜srvOptsSameBut so so' ∧ so'.codec' = so.codec' ∧ so'.chainUnaryInts' = so.chainUnaryInts' ∧
+          so'.statsHandlers' = so.statsHandlers'⌝ -∗
         Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
-  | .stats h => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
+  | .stats h => iprop(⌜grpcStatsHandlerOk h⌝ ∗ □ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
       (hs : List GoInterface) (Φ : val → IProp GF),
       p ↦ so -∗ so.statsHandlers' ↦* hs -∗ ownSliceCap GoInterface so.statsHandlers' (DFrac.own 1) -∗
       ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
         so'.statsHandlers' ↦* (hs ++ (if h = interface.nil then [] else [h])) -∗
         ownSliceCap GoInterface so'.statsHandlers' (DFrac.own 1) -∗
-        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.chainStreamInts' = so.chainStreamInts'⌝ -∗
+        ⌜srvOptsSameBut so so' ∧ so'.codec' = so.codec' ∧ so'.chainUnaryInts' = so.chainUnaryInts' ∧
+          so'.chainStreamInts' = so.chainStreamInts'⌝ -∗
         Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
 
@@ -339,12 +390,160 @@ def grpcDescIs (sd : Loc) (sn : GoString) (ht : GoInterface)
     structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" sd ↦□ sn ∗
     structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" sd ↦□ ht ∗
     structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" sd ↦□ msl ∗ msl ↦*□ mds ∗
-    structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" sd ↦□ ssl ∗ ssl ↦*□ sds)
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" sd ↦□ ssl ∗ ssl ↦*□ sds ∗
+    ∃ md : GoInterface, structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" sd ↦□ md)
 
 instance grpcDescIs_persistent (sd : Loc) (sn : GoString) (ht : GoInterface)
     (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc) :
     Persistent (grpcDescIs (GF := GF) sd sn ht mds sds) := by
   unfold grpcDescIs; infer_instance
+
+/-! ### The server being built (W1, 2026-11-26: a definition, until then the axiom `grpcSrvNew`;
+`notes/axiom-review/phase7-w1.md` §3) -/
+
+/-- **The closure `wrapUnaryHandler(md)` returns** (`server.go:1165`), over the cells `sl` (its
+receiver `s`) and `mdl` (its `md`): the generated body's function literal, its two captured
+variables substituted, exactly the value Go builds (the lead's option (a), W1 §3.1). -/
+noncomputable def wrapUnaryLam : Expr :=
+  match google_golang_org.grpc.Server.wrapUnaryHandler.impl with
+  | .RecV _ _ (.Rec _ _ (.App (.Rec _ _ (.App (.Rec _ _ _) (.App _ (.App (.Rec _ _
+      (.App (.Rec _ _ (.App (.Rec _ _ _) lam)) _)) _)))) _)) => lam
+  | _ => .Val (.LitV .LitPoison)
+
+noncomputable def wrapUnaryClosure (sl mdl : Loc) : GoFunc :=
+  match subst "md" #mdl (subst "s" #sl wrapUnaryLam) with
+  | .Rec f x e => func.mk f x e
+  | _ => func.nil
+
+/-- The function literal `chainUnaryInterceptors(interceptors)` returns (`server.go:1112`). -/
+noncomputable def chainUnaryLam : Expr :=
+  match google_golang_org.grpc.chainUnaryInterceptors.impl with
+  | .RecV _ _ (.App (.Rec _ _ (.App (.Rec _ _ _) (.App _ (.App (.Rec _ _
+      (.App (.Rec _ _ _) lam)) _)))) _) => lam
+  | _ => .Val (.LitV .LitPoison)
+
+/-- **The chained unary interceptor over the cell `il`** (holding the chain's slice). -/
+noncomputable def chainUnaryClosure (il : Loc) : GoFunc :=
+  match subst "interceptors" #il chainUnaryLam with
+  | .Rec f x e => func.mk f x e
+  | _ => func.nil
+
+/-- The function literal `chainStreamInterceptors(interceptors)` returns. -/
+noncomputable def chainStreamLam : Expr :=
+  match google_golang_org.grpc.chainStreamInterceptors.impl with
+  | .RecV _ _ (.App (.Rec _ _ (.App (.Rec _ _ _) (.App _ (.App (.Rec _ _
+      (.App (.Rec _ _ _) lam)) _)))) _) => lam
+  | _ => .Val (.LitV .LitPoison)
+
+/-- **The chained stream interceptor over the cell `il`.** -/
+noncomputable def chainStreamClosure (il : Loc) : GoFunc :=
+  match subst "interceptors" #il chainStreamLam with
+  | .Rec f x e => func.mk f x e
+  | _ => func.nil
+
+/-- **`v` is the interceptor `chain{Unary,Stream}ServerInterceptors` stores for the chain `ics`**
+held read-only at `sl` (no single `UnaryInterceptor`/`StreamInterceptor` option is of any kind, so
+none is prepended): `nil` for none, the one for one, else the chaining closure (`mk`) over a
+read-only cell holding `sl`. -/
+def srvChainIs (mk : Loc → GoFunc) (v : GoFunc) (sl : GoSlice) (ics : List GoFunc) : IProp GF :=
+  iprop(sl ↦*□ ics ∗
+    (⌜ics = [] ∧ v = zero_val GoFunc⌝ ∨ (∃ i, ⌜ics = [i] ∧ v = i⌝) ∨
+      ∃ il : Loc, ⌜2 ≤ ics.length ∧ v = mk il⌝ ∗ il ↦□ sl))
+
+/-- **`v` is the stats handler `istats.NewCombinedHandler(hs...)` returns** for the handlers `hs` held
+read-only at `sl`, each with `grpcStatsHandlerOk` (`StatsHandler`'s premise, carried by `.stats`): `nil`
+for none, the one for one, else a `*combinedHandler` holding `sl`. -/
+def srvStatsIs (v : GoInterface) (sl : GoSlice) (hs : List GoInterface) : IProp GF :=
+  iprop(sl ↦*□ hs ∗ ⌜∀ h ∈ hs, grpcStatsHandlerOk h⌝ ∗
+    (⌜hs = [] ∧ v = GoInterface.nil⌝ ∨ (∃ h, ⌜hs = [h] ∧ v = h⌝) ∨
+      ∃ l : Loc, ⌜2 ≤ hs.length ∧ v = interface.mkOk
+          (go.GoType.PointerType google_golang_org.grpc.internal.stats.combinedHandler.ty) #l⌝ ∗
+        l ↦□ google_golang_org.grpc.internal.stats.combinedHandler.mk sl))
+
+/-- **The registered service `r` at the `*serviceInfo` `il` of the server `gs`** (`register`,
+`server.go:759-788`): its descriptor; `il` holds `r.ss`, a `streams` map with `srvStreamsL`'s
+entries and the descriptor's `Metadata`; each method's descriptor `mls[j]`, read-only, is
+`&StreamDesc{name, wrapUnaryHandler(&sd.Methods[j]), false, false}`: the closure over a read-only
+cell holding `gs` and one holding `&sd.Methods[j]`. -/
+def srvRegIs (gs : Loc) (r : GrpcSrvReg) (il : Loc) : IProp GF :=
+  iprop(grpcDescIs r.sd r.sn r.ht r.mds r.sds ∗
+    ∃ (msl ssl : GoSlice) (stm : Loc) (mdv : GoInterface) (mls : List Loc) (M2 : GMap GoString Loc),
+      structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" r.sd ↦□ msl ∗
+      structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" r.sd ↦□ ssl ∗
+      il ↦ google_golang_org.grpc.serviceInfo.mk r.ss stm mdv ∗
+      ownMap stm (DFrac.own 1) M2 ∗
+      ⌜mls.length = r.mds.length ∧ ∀ n : GoString, M2 !! n = map.lookupL n (srvStreamsL r ssl mls)⌝ ∗
+      [∗list] j ↦ ml ∈ mls, ∃ (d : google_golang_org.grpc.MethodDesc) (cs cm : Loc),
+        ⌜r.mds[j]? = some d⌝ ∗ cs ↦□ gs ∗
+        cm ↦□ sliceIndexRef google_golang_org.grpc.MethodDesc (j : Int) msl ∗
+        ml ↦□ google_golang_org.grpc.StreamDesc.mk d.MethodName' (wrapUnaryClosure cs cm) false false)
+
+/-- **The `serverOptions` of a server built with the chains `ics`, `sics`** (`NewServer`, after
+`chainUnaryServerInterceptors`/`chainStreamServerInterceptors`): the chains read-only, the stored
+interceptors theirs (`srvChainIs`), the stats handlers `hs` (`srvStatsIs`, with the server's
+`statsHandler` `sh`), no credentials, compressor, decompressor, unknown-stream handler or stream
+wrapper, and the codec nil or a protobuf codec's (`srvCodecOk`'s form). -/
+def srvOptsIs (so : google_golang_org.grpc.serverOptions) (sh : GoInterface) (ics sics : List GoFunc) :
+    IProp GF :=
+  iprop(srvChainIs chainUnaryClosure so.unaryInt' so.chainUnaryInts' ics ∗
+    srvChainIs chainStreamClosure so.streamInt' so.chainStreamInts' sics ∗
+    (∃ hs : List GoInterface, srvStatsIs sh so.statsHandlers' hs) ∗
+    ⌜so.creds' = GoInterface.nil ∧ so.cp' = GoInterface.nil ∧ so.dc' = GoInterface.nil ∧
+      so.unknownStreamDesc' = null ∧ so.streamWrapper' = zero_val GoFunc ∧
+      (so.codec' = GoInterface.nil ∨ ∃ c : GoInterface, grpcProtoCodec c ∧
+        so.codec' = interface.mkOk google_golang_org.grpc.codecV0Bridge.ty
+          #(google_golang_org.grpc.codecV0Bridge.mk c))⌝)
+
+/-- **A fresh `grpcsync.Event` at `q`** (`NewEvent`: `&Event{c: make(chan struct{})}`): not fired, its
+channel unbuffered, open, idle, owned. -/
+def srvEventIs (q : Loc) : IProp GF :=
+  iprop(∃ (ch : Loc) (γ : ChanNames),
+    q ↦ google_golang_org.grpc.internal.grpcsync.Event.mk (zero_val _) ch ∗
+    isChan ch γ Unit ∗ ⌜γ.chanCap = W64 0⌝ ∗ ownChan γ Unit ChanState.Idle)
+
+/-- **The server being built** (exclusive; see the file header; W1, 2026-11-26, a definition over the
+model's `Server` struct, until then an axiom): `NewServer`'s `*grpc.Server` `gs` with the unary and
+stream chains `ics`, `sics` (`srvOptsIs`), not serving (`serve`, `drain` false; no listener, no
+connection), no event log, its `mu` a mutex (lock invariant `True`: the fields are this predicate's)
+with `cv` a condition variable on it, fresh `quit`/`done` events and zero wait groups, and the
+services `rs` registered in order: `svcs` their names, `regs`/`sregs` their methods' and streams'
+full names with their handlers and service values (`descRegs`, `descSRegs`), `services` mapping each
+name to its `*serviceInfo` (`srvRegIs`). **Invariant every producer upholds** (per-type stage B,
+B1b): every `sregs` entry comes from a stream descriptor setting `ClientStreams` or `ServerStreams`
+(`RegisterService`'s premise; `RegisterHealthServer`'s one stream, health's `Watch`, is
+`ServerStreams`), since grpc runs an unflagged stream descriptor's handler directly, without the
+stream interceptor (`server.go:1446-1450`, test T10b), which the `Serve` model does not represent. -/
+def grpcSrvNew (gs : Loc) (ics sics : List GoFunc) (svcs : List GoString)
+    (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF :=
+  iprop(∃ (so : google_golang_org.grpc.serverOptions) (sh : GoInterface) (lis conns svm cv q d : Loc)
+      (rs : List GrpcSrvReg) (ils : List Loc) (M : GMap GoString Loc),
+    structFieldRef google_golang_org.grpc.Server go!"opts" gs ↦ so ∗ srvOptsIs so sh ics sics ∗
+    structFieldRef google_golang_org.grpc.Server go!"statsHandler" gs ↦ sh ∗
+    sync.isMutex (structFieldRef google_golang_org.grpc.Server go!"mu" gs) (BI.pure True : IProp GF) ∗
+    structFieldRef google_golang_org.grpc.Server go!"lis" gs ↦ lis ∗
+    ownMap lis (DFrac.own 1) (∅ : GMap GoInterface Bool) ∗
+    structFieldRef google_golang_org.grpc.Server go!"conns" gs ↦ conns ∗
+    ownMap conns (DFrac.own 1) (∅ : GMap GoString Loc) ∗
+    structFieldRef google_golang_org.grpc.Server go!"serve" gs ↦ false ∗
+    structFieldRef google_golang_org.grpc.Server go!"drain" gs ↦ false ∗
+    structFieldRef google_golang_org.grpc.Server go!"cv" gs ↦ cv ∗
+    sync.isCond cv (interface.mk (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)
+      #(structFieldRef google_golang_org.grpc.Server go!"mu" gs)) ∗
+    structFieldRef google_golang_org.grpc.Server go!"services" gs ↦ svm ∗
+    ownMap svm (DFrac.own 1) M ∗
+    structFieldRef google_golang_org.grpc.Server go!"events" gs ↦ GoInterface.nil ∗
+    structFieldRef google_golang_org.grpc.Server go!"quit" gs ↦ q ∗
+    srvEventIs q ∗
+    structFieldRef google_golang_org.grpc.Server go!"done" gs ↦ d ∗
+    srvEventIs d ∗
+    structFieldRef google_golang_org.grpc.Server go!"serveWG" gs ↦ (zero_val _root_.Perennial.sync.WaitGroup) ∗
+    structFieldRef google_golang_org.grpc.Server go!"handlersWG" gs ↦ (zero_val _root_.Perennial.sync.WaitGroup) ∗
+    ⌜svcs = rs.map (·.sn) ∧ svcs.Nodup ∧ ils.length = rs.length ∧
+      (∀ n : GoString, M !! n = map.lookupL n (svcs.zip ils)) ∧
+      regs = rs.flatMap (fun r => descRegs r.sn r.mds r.ss) ∧
+      sregs = rs.flatMap (fun r => descSRegs r.sn r.sds r.ss) ∧
+      ∀ r ∈ rs, ∀ sd ∈ r.sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝ ∗
+    [∗list] r; il ∈ rs; ils, srvRegIs gs r il)
 
 /-- **Go's `maxAlloc` on linux/amd64** (`runtime/malloc.go:213,220`): grpc's codecs `make` a
 reply's encoded length before any size check (protobuf-go `proto/encode.go:184-194`; grpc's default
@@ -403,24 +602,6 @@ returns a reply sharing a submessage or byte slice many times. A theorem taking 
 nothing about such runs. The client's send side has its own checked premise (`grpcInvokerOk`'s
 `Req.wireLen m < grpcMsgMax`). -/
 opaque grpcRepliesFit : Prop
-
-/-- **The start** (an axiom; see the file header; restated in per-type stage B, B1b): the server
-being built, with jointly distinct full names, and a listener bound at `addr` become a server `γ`
-listening at `addr`, with Go's configuration, and the right to accept its calls on the listener.
-True of grpc: `Serve(lis)` serves every call accepted on `lis` with the server's chains and its
-registered methods (`handleStream`: the method of the call's path `/<service>/<method>` in
-`services[service]`, its methods before its streams), and no registration is made after it; the
-joint distinctness makes the one entry named by a path the handler grpc's split lookup finds (test
-T9b). One server per address: `netListenerAt` is consumed (`grpcAddrIs_agree`). Under the named
-workload premise `grpcRepliesFit` (2026-10-31, `notes/reply-size.md`), which `grpcServeTok`
-carries. -/
-axiom grpc.start (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
-    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
-  grpcRepliesFit → ((regs ++ sregs).map Prod.fst).Nodup →
-  grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-    |={⊤}=> ∃ γ : GName, grpcAddrIs addr γ ∗
-      grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF) ∗
-      grpcSrvLink gs lis γ
 
 end defs
 

@@ -64,7 +64,7 @@ private theorem probe_error_streams (d rp : Loc) (IoE : GoInterface → Prop)
   · iapply vse_streams d IoE eof fs fsD kD k off' c' false hkD; iframe
 
 theorem wal.segmentContainsSnapshot.wp_proof
-    [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+ [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (U : WalUnmarshal) (hUs : U.SnapCoh)
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
@@ -82,6 +82,7 @@ theorem wal.segmentContainsSnapshot.wp_proof
     (wp_Unmarshal : proto.UnmarshalPb.spec (GF := GF) (hG := hG)) :
     wal.segmentContainsSnapshot.spec (GF := GF) U := by
   intro lg R dir j dq qc N dqn hj g index hdir hN hok hname hcur hsize hbelow
+  have hdir' : dir.length < 4096 := hdir.1
   wp_start as ⟨#Hzap, #HosI, #Hsi, Hown⟩
   iunfold wal.probeOwn at Hown
   icases Hown with ⟨Hpd, Hperm, Hj, Hg⟩
@@ -174,7 +175,8 @@ theorem wal.segmentContainsSnapshot.wp_proof
     icases Hpost with ⟨Hpb, #Hans, -⟩
     ihave Hall := probe_error_streams dec rcp IoE eof ueof fs fsD kD off c (.ok ei) hkD (by simp) $$ [Hpb Hleft]
     · iframe
-    ihave ⟨HS, Hclo⟩ := vse_close dir [g] fs fls lfs htie $$ [Hall]
+    ihave ⟨HS, Hclo⟩ := vse_close dir [g] fs fls lfs htie
+      (fun g' hg' => by rw [List.mem_singleton] at hg'; subst hg'; exact wal.closeBound_of hdir' hname) $$ [Hall]
     · iframe Hall; iexact Hfrf
     iunfold decAns at Hans
     icases Hans with (%h | #Hea)

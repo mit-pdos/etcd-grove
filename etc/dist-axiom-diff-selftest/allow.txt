@@ -1,0 +1,16 @@
+# `etc/dist-axiom-diff.py --selftest`'s allow file (over Src.lean and Dist.lean beside it)
+pair st_dist etc/dist-axiom-diff-selftest/Dist.lean st_dist.spec etc/dist-axiom-diff-selftest/Src.lean st.spec
+dev st_dist <<< ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state
+dev st_dist <<< ( γn : NetNames GF ) ||| >>> the network's names move to the post
+dev st_dist <<< etcdURLsFit cfg.peer → ||| >>> the dropped premise (the selftest removes this line: then refused)
+dev st_dist <<< netHttpOk γn ∗ ⌜ γn.N = srvNet ⌝ ||| peersAt cfg >>> the network fact replaced
+dev st_dist <<< ||| ∃ γn , ⌜ γn.N = srvNet ⌝ ∗ >>> the network's names in the post
+nosource st_nosrc_dist the selftest's axiom with no source
+pair st_on_dist etc/dist-axiom-diff-selftest/Dist.lean st_on_dist.spec etc/dist-axiom-diff-selftest/SrcOn.lean st_on
+dev st_on_dist <<< ||| [ π : NetProtoGS ] : Prop := ∀ >>> the abbrev's head; the theorem's binders become the ∀'s
+dev st_on_dist <<< hk ||| Γ >>> binders: the view `Γ`; the hypothesis `hk` becomes a premise
+dev st_on_dist <<< ||| DistView ) , >>> binders: the view's type
+dev st_on_dist <<< ) : ||| → >>> the theorem's hypothesis as the premise `k ≠ [] →`
+dev st_on_dist <<< isGrpcRpcMd addr ( putSpecOn E ) ||| userClientAt api Γ >>> the registration replaced by the view's client
+dev st_on_dist <<< clientOpAuOn E ||| writeAuD Γ.kv >>> the update at the view
+dev st_on_dist <<< writeGrantOn E ||| writeCheckedD Γ >>> the grant at the view

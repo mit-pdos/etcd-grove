@@ -4,6 +4,9 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 -/
 module
 
+public import Perennial.Proof.internal.gomodel.Link
+public import Proof.os.ModelMode
+public import Proof.os.ForLoeb
 public import Proof.os.ErrorOk
 public import Proof.os.PathParent
 public import Spec.os.File__Stat
@@ -24,7 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `os.File.Stat.spec` as it was without the error witness (session S6: a helper of the proof below). -/
 private abbrev os.File.Stat.tripleOld : Prop :=
@@ -56,46 +59,51 @@ private abbrev os.File.Stat.tripleNE : Prop :=
 private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := hG) := by
   intro f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
-  unfold os.model.inner os.model.arbitraryMode
-  rw [os.file_ty_eq, os.File_ty_eq, os.fileStat_ty_eq]
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hm⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hosfd Hm Hfd HΦ
+  wp_for_step
+  try wp_auto
+  wp_stub os.fsFstat.impl
   wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
+    try wp_auto
     try rw [os.fileStat_ty_eq]
-    iapply IH $$ Hosfd Hm Hfd HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hosfd Hm Hfd HΦ [$] [$] [$] [$]
   · rw [decide_eq_false he4]
-    wp_auto
+    try wp_auto
     rcases hr with ⟨rfl, rfl⟩ | ⟨he0, rfl⟩
     · rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
       simp only [Bool.not_true]
       iapply wp_fupd
-      wp_auto
-      iStructNamed fs
       try wp_auto
-      wp_apply os.model.wp_base as %nm _
+      iStructNamed «$r0»
       try wp_auto
-      wp_apply wp_ArbitraryInt as %x _
+      wp_apply filepathlite.Base.wp_lex as %nm _
+      try wp_auto
+      wp_apply os.wp_modelMode as %x
       ipersist name
       ipersist size
       ipersist mode
       imodintro
       ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+      wp_for_post
       iapply HΦ
       iframe Hokn
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · (repeat' isplitl []) <;> iassumption
       isplitr
       rotate_left
       · ileft; ipureintro; rfl
       ileft
-      iexists fs_ptr
+      iexists «$r0_ptr»
       unfold os.ownFileStat
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
@@ -107,16 +115,17 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       iassumption
     · have he0' : ¬ e = W64 0 := he0
       rw [decide_eq_false he0']
-      wp_auto
+      try wp_auto
       wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
-      ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hep
+      ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hsys Hep
       ihave %Hne := os.errnoPathErr_ne perr e $$ Hep
       ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+      wp_for_post
       iapply HΦ
       iframe Hokn
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · (repeat' isplitl []) <;> iassumption
       isplitr
       rotate_left
       · iright; iexists e; iframe Hep; ipureintro; exact he0'
@@ -126,28 +135,37 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
 private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
-  unfold os.model.inner os.model.arbitraryMode
-  rw [os.file_ty_eq, os.File_ty_eq, os.fileStat_ty_eq]
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hm⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
+  wp_for_bind
+  iloeb as IH generalizing Hosfd Hm Hfd HΦ
+  wp_for_step
+  try wp_auto
+  wp_stub os.fsFstat.impl
   wp_apply wp_osFstatNE hS fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as Hosfd Hm
+  try wp_auto
+  try rw [show decide ((0 : w64) = W64 4) = false from decide_eq_false (by decide)]
+  try wp_auto
+  try rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
+  try simp only [Bool.not_true]
   iapply wp_fupd
-  iStructNamed fs
+  iStructNamed «$r0»
   try wp_auto
-  wp_apply os.model.wp_base as %nm _
+  wp_apply filepathlite.Base.wp_lex as %nm _
   try wp_auto
-  wp_apply wp_ArbitraryInt as %x _
+  wp_apply os.wp_modelMode as %x
   ipersist name
   ipersist size
   ipersist mode
   imodintro
+  wp_for_post
   iapply HΦ
   iframe
   isplitl []
-  · isplitl [] <;> iassumption
-  iexists fs_ptr
+  · (repeat' isplitl []) <;> iassumption
+  iexists «$r0_ptr»
   unfold os.ownFileStat
   isplitr
   · ipureintro; rfl

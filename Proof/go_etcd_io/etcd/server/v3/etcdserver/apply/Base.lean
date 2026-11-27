@@ -28,6 +28,8 @@ mvcc's.
 -/
 module
 
+-- (claim #34 stage 2) `config` imports `fmt` (`VerifyBootstrap`)
+public import Perennial.Proof.fmt.Base
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.encoding.json
@@ -39,6 +41,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.errors.CtxErr
+-- (nonleaf-status-errs, 2026-11-26) `errKeyOk`'s `errInvalidUTF8{}` (a translated field-less struct)
+public import GeneratedProof.google_golang_org.protobuf.internal.impl
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
@@ -59,6 +63,7 @@ public import Proof.net.url.PkgInit
 -- (bkarea, 2026-11-22) `config` imports `storage/datadir` (`ServerConfig.BackendPath`)
 public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.PkgInit
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.PkgInit
+public import Proof.crypto.tls.PkgInit
 
 @[expose] public section
 
@@ -90,13 +95,57 @@ def errLeaf (e : GoInterfaceOk) : Prop :=
     (methodSet e.ty !! go!"Format" = none ∧
       methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
 
-/-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
-`EtcdGrove.ContextReadErrs` states of `context.Canceled` (`errVarLeafW`), unchanged; the `Format`
+/-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what
+`EtcdGrove.ContextReadErrs.errs` proves of `context.Canceled` (`errVarLeafW`; a premise until ctx-leaf-fix, 2026-11-25); the `Format`
 fact follows from Perennial's `context.isInit` (`ContextReadErrs.errs_strong`). -/
 def errLeafW (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
     methodSet e.ty !! go!"GRPCStatus" = none
+
+/-- **An error `togRPCError` can look up in its `map[error]error`** (ctx-leaf-fix, 2026-11-25; until
+then `SafeMapKey` at Perennial's interface keys, which since P8c are `nil` or pointers only, so
+false of the two non-pointer errors below: `notes/axiom-review/ctx-readerrs-vacuity.md`): `nil`, a
+pointer error, `context.DeadlineExceeded`'s `deadlineExceededError{}` or a bcrypt
+`InvalidCostError` (an `int`), or (nonleaf-status-errs, 2026-11-26) protobuf's `errInvalidUTF8{}`, the
+field-less struct `proto.Marshal`'s fast path returns for invalid UTF-8 (protobuf-go v1.36.12
+`internal/impl/codec_field.go:17`, `codec_gen.go:5041-5049`; `proto.MarshalIRR.spec`), translated as
+its struct so that its `==` has semantics. Go's `==` on two of these is Lean's equality
+(`v3rpc.errKeys`, `Proof/.../api/v3rpc/ErrMapKey.lean`: the map's keys, `wp_errMap_lookup2`): a
+field-less struct type is comparable and has one value. -/
+def errKeyOk (k : GoInterface) : Prop :=
+  k = GoInterface.nil ∨ (∃ (t : go.GoType) (l : Loc), k = interface.mkOk (go.PointerType t) #l) ∨
+    k = interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
+      #(zero_val _root_.Perennial.context.deadlineExceededError) ∨
+    (∃ c : w64, k = interface.mkOk _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty #c) ∨
+    k = interface.mkOk google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+      #(zero_val google_golang_org.protobuf.internal.impl.errInvalidUTF8)
+
+/-- A pointer error is an `errKeyOk` key. -/
+theorem errKeyOk_ptr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError e) :
+    errKeyOk (GoInterface.ok e) := by
+  obtain ⟨T, l, hT, hv⟩ := h
+  obtain ⟨ty, v⟩ := e
+  simp only at hT hv
+  subst hT hv
+  exact Or.inr (Or.inl ⟨T, l, rfl⟩)
+
+/-- A bcrypt `InvalidCostError` holding an `int` (`bcrypt.GenerateFromPassword`'s non-pointer
+error) is not a pointer, is an `errKeyOk` key, and is not a `deadlineExceededError`. -/
+theorem errKeyOk_invalidCost (e : GoInterfaceOk)
+    (hic : e.ty = _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty)
+    (hc : ∃ c : w64, e.v = #c) :
+    (∀ T, e.ty ≠ go.GoType.PointerType T) ∧ errKeyOk (GoInterface.ok e) ∧
+      e.ty ≠ _root_.Perennial.context.deadlineExceededError.ty := by
+  obtain ⟨c, hc⟩ := hc
+  obtain ⟨ty, v⟩ := e
+  simp only at hic hc
+  subst hic hc
+  refine ⟨fun T h => ?_, Or.inr (Or.inr (Or.inr (Or.inl ⟨c, rfl⟩))), fun h => ?_⟩
+  · unfold _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty at h; cases h
+  · unfold _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
+      _root_.Perennial.context.deadlineExceededError.ty at h
+    cases h
 
 end errIs
 
@@ -158,12 +207,13 @@ theorem errMsgOk_msgIs (ei : GoInterfaceOk) :
   iunfold go_etcd_io.etcd.cache.v3.errorMsgIs
   iexact H
 
-/-- **What the gRPC layer needs of an error besides its tree** (persistent): `nil`, or a safe key
-of `togRPCError`'s error map (`SafeMapKey`: comparing it with itself does not panic; a pointer
-error is one, `safeMapKey_ptrErr`) whose `Error()` returns (`errMsgOk`). -/
+/-- **What the gRPC layer needs of an error besides its tree** (persistent): `nil`, or a key
+`togRPCError` can look up in its error map (`errKeyOk`; a pointer error is one, `errKeyOk_ptr`;
+until ctx-leaf-fix, 2026-11-25, a `SafeMapKey` at Perennial's interface keys) whose `Error()`
+returns (`errMsgOk`). -/
 def errKeyMsg (err : GoInterface) : IProp GF :=
   iprop(⌜err = GoInterface.nil⌝ ∨
-    (⌜SafeMapKey (GF := GF) go.error err⌝ ∗ ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
+    (⌜errKeyOk err⌝ ∗ ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
       errMsgOk ei))
 
 instance errKeyMsg_persistent (err : GoInterface) : Persistent (errKeyMsg (GF := GF) err) := by
@@ -195,6 +245,59 @@ def errIsTrue (err target : GoInterface) : IProp GF :=
 or a pointer error. -/
 def ptrTarget [GooseExts] [GoGlobalContext] (target : GoInterface) : Prop :=
   ∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii
+
+/-- **A node of `notCtxTree`'s trees** (persistent): no `As`, `GRPCStatus` or `Format` method
+(`errors.plainErrNode`), and an `Error()` that stably returns one string (`errMsgOk`). -/
+def ctxFreeNode (ii : GoInterfaceOk) : IProp GF :=
+  iprop(⌜errors.plainErrNode ii⌝ ∗ errMsgOk ii)
+
+instance ctxFreeNode_persistent (ii : GoInterfaceOk) : Persistent (ctxFreeNode (GF := GF) ii) := by
+  unfold ctxFreeNode; infer_instance
+
+/-- **An error that is not a context error, as `errors.Is` sees it** (persistent; nonleaf-status-errs,
+2026-11-26): `errors.Is(err, context.Canceled)` and `errors.Is(err, context.DeadlineExceeded)` answer
+`false` (`errors.noMatchTree` at each variable's value, with the typing each `Is` spec asks:
+`TreeTyped` at `Canceled`'s pointer, `deTyped` at `DeadlineExceeded`'s `deadlineExceededError{}`), and its
+tree's errors have no `As`, `GRPCStatus` or `Format` method (`errors.plainErrNode`) and an `Error()` that stably
+returns one string (`errMsgOk`: so no error of the tree is a `nil` pointer whose `Error()` dereferences it), so that
+`errors.As`, grpc's `status` functions and `fmt` use only its type, `Unwrap` and `Error()`, and a library that
+calls a method of a node `errors.As` matched gets a non-`nil` node (nonleaf review, 2026-11-26: `etcdhttp`'s
+`writeError` and rafthttp call `WriteTo` on the node they match).
+`applyErrIs`'s alternative to `srvErrOk`: `togRPCError` passes a context error on as it is, and
+converts every other error into a status error or its map's value, so such an error never reaches
+grpc's server as it is and need not be one grpc's `status` accepts. What `proto.Marshal`'s invalid
+UTF-8 errors are (`proto.MarshalIRR.spec`: `impl.errInvalidUTF8{}` and `*prefixError`, both
+non-leaves, both unwrapping to protobuf's `errors.Error`). -/
+def notCtxTree (err : GoInterface) : IProp GF :=
+  iprop((□ ∀ c : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ c -∗
+      errors.noMatchTree (GF := GF) (fun S => _root_.Perennial.errors.TreeTyped S c) ctxFreeNode err c) ∗
+    (□ ∀ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d -∗
+      errors.noMatchTree (GF := GF) deTyped ctxFreeNode err d))
+
+instance notCtxTree_persistent (err : GoInterface) : Persistent (notCtxTree (GF := GF) err) := by
+  unfold notCtxTree; infer_instance
+
+/-- **A context error is no `notCtxTree`**: it is the value of `Canceled` or `DeadlineExceeded`, which
+the tree at that value holds. -/
+theorem notCtxTree_isCtxErr (err : GoInterface) :
+    notCtxTree (GF := GF) err ⊢ context.isCtxErr err -∗ False := by
+  iintro #Hn0 #He
+  iunfold notCtxTree at Hn0
+  icases Hn0 with ⟨#Hc, #Hd⟩
+  unfold context.isCtxErr
+  icases He with (⟨#Hv, %x, %hx, -⟩ | ⟨#Hv, %hx⟩)
+  · ihave #Hn := Hc $$ %err Hv
+    iunfold errors.noMatchTree at Hn
+    icases Hn with ⟨%S, %M, -, %HS, -⟩
+    subst hx
+    exfalso
+    exact (HS.2.2 _ HS.1).1 rfl
+  · ihave #Hn := Hd $$ %err Hv
+    iunfold errors.noMatchTree at Hn
+    icases Hn with ⟨%S, %M, -, %HS, -⟩
+    subst hx
+    exfalso
+    exact (HS.2.2 _ HS.1).1 rfl
 
 /-- **An error the applier returns, as `errors.Is` and the gRPC layer see it** (persistent): for
 any target, the error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and
@@ -229,14 +332,20 @@ read's) a context error wrapped by `fmt.Errorf`'s `%w` (`ctxWrapErr`, `applyErrI
 (errors-is-deadline, 2026-11-23) The tree's errors of type `deadlineExceededError` hold
 `deadlineExceededError{}` (`deTyped`, Go's typing). `togRPCError`'s
 `errors.Is(err, context.DeadlineExceeded)` needs this (`errors.IsDeadlineExceeded`, through
-`applyErrIs_treeDE`). -/
+`applyErrIs_treeDE`).
+
+(nonleaf-status-errs, 2026-11-26) `srvErrOk err`, or an error that is no context error
+(`notCtxTree`), which `togRPCError` never passes on as it is: `proto.Marshal`'s invalid UTF-8 errors
+(`proto.MarshalIRR.spec`), which are no leaves and so not `srvErrOk`
+(`notes/axiom-review/nonleaf-status-errs.md`). Until then `srvErrOk err` alone, which made that
+axiom's post false. -/
 def applyErrIs (err : GoInterface) : IProp GF :=
   iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
       (U : GoInterfaceOk → List GoInterface → Prop),
     _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
     ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U ∧
       deTyped S⌝) ∗
-    errKeyMsg err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err)
+    errKeyMsg err ∗ (go_etcd_io.etcd.cache.v3.srvErrOk err ∨ notCtxTree err))
 
 instance applyErrIs_persistent (err : GoInterface) :
     Persistent (applyErrIs (GF := GF) err) := by
@@ -259,12 +368,24 @@ theorem applyErrIs_walk (err : GoInterface) :
   iframe Ht
   ipureintro; exact ⟨HS.1, HS.2.1, HS.2.2.1⟩
 
-/-- An `applyErrIs` error is one grpc's server and the prometheus interceptor take (`srvErrOk`). -/
-theorem applyErrIs_srvErrOk (err : GoInterface) :
-    applyErrIs (GF := GF) err ⊢ go_etcd_io.etcd.cache.v3.srvErrOk err := by
+/-- An `applyErrIs` error is one grpc's server and the prometheus interceptor take (`srvErrOk`), or
+no context error (`notCtxTree`). -/
+theorem applyErrIs_srv (err : GoInterface) :
+    applyErrIs (GF := GF) err ⊢ go_etcd_io.etcd.cache.v3.srvErrOk err ∨ notCtxTree err := by
   iunfold applyErrIs
   iintro ⟨-, -, #H⟩
   iexact H
+
+/-- An `applyErrIs` context error is one grpc's server and the prometheus interceptor take
+(`srvErrOk`): it is no `notCtxTree`. -/
+theorem applyErrIs_srvErrOk_ctx (err : GoInterface) :
+    applyErrIs (GF := GF) err ⊢ context.isCtxErr err -∗ go_etcd_io.etcd.cache.v3.srvErrOk err := by
+  iintro #H #Hc
+  ihave #Hs := applyErrIs_srv err $$ H
+  icases Hs with (#Hs | #Hn)
+  · iexact Hs
+  · iexfalso
+    iapply notCtxTree_isCtxErr err $$ Hn Hc
 
 /-- **A leaf error without `Is` or `GRPCStatus`, whose `Error()` returns, is one grpc's `status`
 accepts** (k8s etcd3 7c, HS-6). -/
@@ -272,7 +393,8 @@ theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hG : methodSet e.ty !! go!"GRPCStatus" = none)
     (hF : methodSet e.ty !! go!"Format" = none ∧
-      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
+    (hst : go_etcd_io.etcd.cache.v3.stTypedErr e) :
     errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
@@ -284,7 +406,7 @@ theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors
   · ipureintro; exact hl
   isplitr
   rotate_left
-  · ipureintro; exact hF
+  · ipureintro; exact ⟨hF, hst⟩
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -323,16 +445,6 @@ theorem applyErrIs_treeDE [_root_.Perennial.errors.Assumptions] (err : GoInterfa
   · iapply _root_.Perennial.errors.errorIsTree_of_walk S I U target $$ Ht
   ipureintro; exact ⟨HS.1, HS.2.2.2⟩
 
-/-- A pointer error is a safe map key at `error`: Go's `==` on two pointer errors of one type
-compares the pointers. -/
-theorem safeMapKey_ptrErr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError e) :
-    SafeMapKey (GF := GF) go.error (GoInterface.ok e) := by
-  obtain ⟨T, l, hT, hv⟩ := h
-  obtain ⟨ty, v⟩ := e
-  simp only at hT hv
-  subst hT hv
-  exact safeMapKey_interface_pointer go.error T l
-
 /-- `nil` is in the empty tree. -/
 theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   iunfold applyErrIs
@@ -340,7 +452,7 @@ theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   rotate_left
   · isplitl
     · iunfold errKeyMsg; ileft; ipureintro; rfl
-    · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
+    · ileft; iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
   iintro !> %target
   iexists (· = GoInterface.nil), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -361,10 +473,12 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   · isplitl
     · iunfold errKeyMsg; iright
       isplitr
-      · ipureintro; exact safeMapKey_ptrErr e h.1
+      · ipureintro; exact errKeyOk_ptr e h.1
       iexists e; iframe Hm; ipureintro; rfl
-    · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
-      iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2 $$ Hm
+    · ileft
+      iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
+      iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2
+        (go_etcd_io.etcd.cache.v3.stTypedErr_ptr e h.1) $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -373,16 +487,45 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1, exactRels_leaf,
     deTyped_single e (deTypedErr_ptr e h.1)⟩
 
+/-- A key of `togRPCError`'s map that is not a pointer (`deadlineExceededError{}` or an
+`InvalidCostError`) is `stTypedErr` (#45): it is no `EtcdError`, and of type `deadlineExceededError`
+it holds `deadlineExceededError{}` (`deTypedErr`). -/
+theorem stTypedErr_of_valKey (e : GoInterfaceOk) (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
+    (hkey : errKeyOk (GoInterface.ok e)) (hde : deTypedErr e) :
+    go_etcd_io.etcd.cache.v3.stTypedErr e := by
+  refine ⟨fun h => ?_, hde, fun T h => absurd h (hty T)⟩
+  exfalso
+  rcases hkey with hn | ⟨t, l, hk⟩ | hk | ⟨c, hk⟩ | hk
+  · cases hn
+  · simp only [interface.mkOk] at hk; injection hk with hk; subst hk; exact hty t rfl
+  · simp only [interface.mkOk] at hk; injection hk with hk; subst hk
+    simp only at h
+    unfold _root_.Perennial.context.deadlineExceededError.ty
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h
+    simp at h
+  · simp only [interface.mkOk] at hk; injection hk with hk; subst hk
+    simp only at h
+    unfold _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h
+    simp at h
+  · simp only [interface.mkOk] at hk; injection hk with hk; subst hk
+    simp only at h
+    unfold google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h
+    simp at h
+
 /-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
 `deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
-type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a safe
-key of a map (its `==` with itself does not panic), without a `GRPCStatus` method (k8s etcd3 7c,
+type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a
+key of `togRPCError`'s map (`errKeyOk`), without a `GRPCStatus` method (k8s etcd3 7c,
 HS-6), whose `Error()` returns. If it is of type `deadlineExceededError`, it holds
-`deadlineExceededError{}` (`hde`, Go's typing; errors-is-deadline, 2026-11-23). -/
+`deadlineExceededError{}` (`hde`, Go's typing; errors-is-deadline, 2026-11-23). (ctx-leaf-fix, 2026-11-25) A key of the
+map: `errKeyOk` (`deadlineExceededError{}` or an `InvalidCostError`; until then a `SafeMapKey` at
+Perennial's interface keys, false of a non-pointer). -/
 theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (hleaf : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
-    (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
+    (hkey : errKeyOk (GoInterface.ok e))
     (hG : methodSet e.ty !! go!"GRPCStatus" = none)
     (hF : methodSet e.ty !! go!"Format" = none ∧
       methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
@@ -397,8 +540,9 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
       isplitr
       · ipureintro; exact hkey
       iexists e; iframe Hm; ipureintro; rfl
-    · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
-      iapply statusErrOk_of_leafMsg e hleaf hIs hG hF $$ Hm
+    · ileft
+      iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
+      iapply statusErrOk_of_leafMsg e hleaf hIs hG hF (stTypedErr_of_valKey e hty hkey hde) $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -590,7 +734,7 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
         icases Hm with ⟨%x, %Hx, %s0, -, #Hs⟩
         subst Hx
         isplitr
-        · ipureintro; exact safeMapKey_ptrErr _ ⟨_, x, rfl, rfl⟩
+        · ipureintro; exact errKeyOk_ptr _ ⟨_, x, rfl, rfl⟩
         iexists _
         isplitr
         · ipureintro; rfl
@@ -600,14 +744,15 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
       · iunfold EtcdGrove.fmt.wrapErrIs at Hw2
         icases Hw2 with ⟨%Hm, ⟨%s, #Hs⟩, -⟩
         isplitr
-        · ipureintro; exact safeMapKey_ptrErr ii Hm.1
+        · ipureintro; exact errKeyOk_ptr ii Hm.1
         iexists ii
         isplitr
         · ipureintro; rfl
         iunfold errMsgOk
         iexists _
         iexact Hs
-  · unfold go_etcd_io.etcd.cache.v3.srvErrOk
+  · ileft
+    unfold go_etcd_io.etcd.cache.v3.srvErrOk
     iright
     iexact Hw
 
@@ -620,8 +765,8 @@ def errVarLeaf (g : GoString) : IProp GF :=
 instance errVarLeaf_persistent (g : GoString) : Persistent (errVarLeaf (GF := GF) g) := by
   unfold errVarLeaf; infer_instance
 
-/-- `errVarLeaf` over `errLeafW` (premise-fixes-4): what the premise `EtcdGrove.ContextReadErrs`
-states, unchanged. -/
+/-- `errVarLeaf` over `errLeafW` (premise-fixes-4): what `EtcdGrove.ContextReadErrs.errs`
+proves (a premise until ctx-leaf-fix, 2026-11-25). -/
 def errVarLeafW (g : GoString) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜errLeafW e⌝ ∗ errMsgOk e)
 
@@ -726,7 +871,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
@@ -739,7 +884,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.api
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
   define_is_pkg_init capInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api
@@ -777,15 +922,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
 
 end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
--- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17)
-namespace crypto.tls
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
-  build_get_is_pkg_init_wf
-
-end crypto.tls
+-- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17): its
+-- instance is in `Proof/crypto/tls/PkgInit.lean` (L1, 2026-11-24)
 
 namespace go_etcd_io.etcd.client.pkg.v3.transport
 
@@ -821,7 +959,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
@@ -832,7 +970,7 @@ namespace go_etcd_io.etcd.server.v3.storage
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.storage
@@ -897,7 +1035,7 @@ abbrev applyInit : IProp GF :=
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply :=
   define_is_pkg_init applyInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply :=
   build_get_is_pkg_init_wf
 

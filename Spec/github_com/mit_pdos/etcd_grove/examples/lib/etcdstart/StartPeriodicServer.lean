@@ -51,6 +51,8 @@ abbrev StartPeriodicServer.spec : Prop :=
   -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
   -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
   name.length ≤ 200 →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
   10 ≤ sint.Z period → ρ.rd.kv.cret = 0 →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
@@ -59,7 +61,7 @@ abbrev StartPeriodicServer.spec : Prop :=
       threadTok ∗
       -- (M2's item 15, stage B3) at `N` write tokens (`N + N` from M2 until then: `N` more, the
       -- compaction's write-back stock)
-      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
+      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗
       context.isClosedchanInit ∗
       -- (M2, the storage side, N1) the member's boot bundle in compaction mode
       memberBoot γ ctxs ρ E₀ Φs id true lm ∗

@@ -26,6 +26,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.InvClient
+public import Perennial.Proof.sync.RWMutexThreads
 
 @[expose] public section
 
@@ -63,12 +64,15 @@ theorem clientErrOk_nil : ⊢ clientErrOk (GF := GF) GoInterface.nil := by
     · iapply statusErrOk_nil
     · iapply errCellOk_nil
 
-/-- **The interceptor's options value** `ov`: its backoff function returns. -/
-def optionsOk (ov : go_etcd_io.etcd.client.v3.options) : IProp GF := backoffOk ov.backoffFunc'
-
-instance optionsOk_persistent (ov : go_etcd_io.etcd.client.v3.options) :
-    Persistent (optionsOk (GF := GF) ov) := by
-  unfold optionsOk; infer_instance
+theorem backoffOkT_of (bf : GoFunc) : backoffOk (GF := GF) bf ⊢ backoffOkT bf := by
+  iintro #H
+  unfold backoffOkT
+  iintro !> %a %Φ Htok HΦ
+  iunfold backoffOk at H
+  iapply H
+  inext
+  iintro %d
+  iapply HΦ $$ Htok
 
 /-- **The `*options` `o`, read-only** (persistent), with `optionsOk`. -/
 def retryOptsAt (o : Loc) : IProp GF :=
@@ -76,17 +80,6 @@ def retryOptsAt (o : Loc) : IProp GF :=
 
 instance retryOptsAt_persistent (o : Loc) : Persistent (retryOptsAt (GF := GF) o) := by
   unfold retryOptsAt; infer_instance
-
-/-- **A `retryOption`'s closure `f` building options** (persistent): it writes the options it is
-given, keeping `optionsOk` (the dial's `withMax`, `withBackoff`; a call's `retryApplyOk`). -/
-def optApplyOk (f : GoFunc) : IProp GF :=
-  iprop(□ ∀ (o : Loc) (ov : go_etcd_io.etcd.client.v3.options),
-    {{ o ↦ ov ∗ optionsOk ov }}
-      (App (Val #f) (Val #o))
-    {{ RET #(); ∃ ov' : go_etcd_io.etcd.client.v3.options, o ↦ ov' ∗ optionsOk ov' }})
-
-instance optApplyOk_persistent (f : GoFunc) : Persistent (optApplyOk (GF := GF) f) := by
-  unfold optApplyOk; infer_instance
 
 /-- **A `retryOption`'s closure `f`, keeping the retry policy** (persistent; 2026-10-21, D29): as
 `optApplyOk`, and with `kp`, the retry policy kept (the dial's `withMax`, `withBackoff`; not a
@@ -189,25 +182,90 @@ theorem optApplyKeep_of_retryApplyOks (ros : List go_etcd_io.etcd.client.v3.retr
     · iapply optApplyKeep_of_retryApplyOk $$ H1
     · iapply ih $$ H2
 
-/-- **A call option the client passes to a stream** (persistent; item 1, the client lease,
-2026-10-18): one it passes to a unary call (`callOptOk`), or a `retryOption` whose closure builds
-the interceptor's options (`optApplyOk`: the lessor's `withMax(0)`). The stream interceptor applies
-the retry options to a copy of its own options and, for a client stream, either retries nothing
-(`max` stays `0`) or fails with `Unimplemented` (`retry_interceptor.go`, `NewStream`'s axiom). -/
-def streamCallOptOk (v : GoInterface) : IProp GF :=
-  iprop(callOptOk v ∨ ∃ ro : go_etcd_io.etcd.client.v3.retryOption,
-    ⌜v = interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro⌝ ∗ optApplyOk ro.applyFunc')
+/-- Options built (`optApplyOk`) are built keeping nothing (`optApplyKeep · false`). -/
+theorem optApplyKeep_of_ok (f : GoFunc) : optApplyOk (GF := GF) f ⊢ optApplyKeep f false := by
+  iintro #Hf
+  unfold optApplyKeep
+  iintro !> %o %ov %Φ !> Hpre HΦ
+  unfold optApplyOk
+  wp_apply Hf $$ Hpre as Hres
+  icases Hres with ⟨%ov', Ho, #Hok⟩
+  iapply HΦ
+  iexists ov'
+  iframe Ho Hok
+  ipureintro; intro h; cases h
 
-instance streamCallOptOk_persistent (v : GoInterface) :
-    Persistent (streamCallOptOk (GF := GF) v) := by
-  unfold streamCallOptOk; infer_instance
+theorem optApplyKeeps_of_ok (ros : List go_etcd_io.etcd.client.v3.retryOption) :
+    ([∗list] ro ∈ ros, optApplyOk (GF := GF) ro.applyFunc') ⊢
+      [∗list] ro ∈ ros, optApplyKeep ro.applyFunc' false := by
+  induction ros with
+  | nil =>
+    iintro -
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ (ro : go_etcd_io.etcd.client.v3.retryOption) =>
+      optApplyKeep (GF := GF) ro.applyFunc' false)).2
+    iempintro
+  | cons ro ros ih =>
+    iintro H
+    icases (BigSepL.bigSepL_cons (Φ := fun _ (ro : go_etcd_io.etcd.client.v3.retryOption) =>
+      optApplyOk (GF := GF) ro.applyFunc')).1 $$ H with ⟨#H1, H2⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ (ro : go_etcd_io.etcd.client.v3.retryOption) =>
+      optApplyKeep (GF := GF) ro.applyFunc' false)).2
+    isplitl []
+    · iapply optApplyKeep_of_ok $$ H1
+    · iapply ih $$ H2
 
-/-- Every call option of `vs` is one the client passes to a stream. -/
-def streamCallOptsOk (vs : List GoInterface) : IProp GF := iprop([∗list] v ∈ vs, streamCallOptOk v)
+/-- **A stream's call options, for `filterCallOptions`** (phase7-s3-interceptor): scalars, or retry
+options building options. -/
+theorem streamCallOptsOk_A (vs : List GoInterface) :
+    streamCallOptsOk (GF := GF) vs ⊢
+      [∗list] v ∈ vs, callOptOkA (fun f => optApplyKeep f false) v := by
+  induction vs with
+  | nil =>
+    iintro -
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ (v : GoInterface) =>
+      callOptOkA (GF := GF) (fun f => optApplyKeep f false) v)).2
+    iempintro
+  | cons v vs ih =>
+    iintro H
+    unfold streamCallOptsOk
+    icases (BigSepL.bigSepL_cons (Φ := fun _ (v : GoInterface) =>
+      streamCallOptOk (GF := GF) v)).1 $$ H with ⟨#H1, H2⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ (v : GoInterface) =>
+      callOptOkA (GF := GF) (fun f => optApplyKeep f false) v)).2
+    isplitl []
+    · unfold streamCallOptOk callOptOk callOptOkA
+      icases H1 with ((%Hs | ⟨%ro, %Hro, #Ha⟩) | ⟨%ro, %Hro, #Ha⟩)
+      · ileft; ipureintro; exact Hs
+      · iright; iexists ro
+        isplitr
+        · ipureintro; exact Hro
+        iapply optApplyKeep_of_retryApplyOk $$ Ha
+      · iright; iexists ro
+        isplitr
+        · ipureintro; exact Hro
+        iapply optApplyKeep_of_ok $$ Ha
+    · iapply ih
+      unfold streamCallOptsOk
+      iexact H2
 
-instance streamCallOptsOk_persistent (vs : List GoInterface) :
-    Persistent (streamCallOptsOk (GF := GF) vs) := by
-  unfold streamCallOptsOk; infer_instance
+/-- Call options holding only scalars are a stream's. -/
+theorem streamCallOptsOk_scalar (gs : List GoInterface)
+    (h : ∀ v ∈ gs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ grpcScalarOptTys) :
+    ⊢ streamCallOptsOk (GF := GF) gs := by
+  induction gs with
+  | nil =>
+    unfold streamCallOptsOk
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ (v : GoInterface) => streamCallOptOk (GF := GF) v)).2
+    iempintro
+  | cons v gs ih =>
+    unfold streamCallOptsOk
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ (v : GoInterface) => streamCallOptOk (GF := GF) v)).2
+    isplitl []
+    · unfold streamCallOptOk callOptOk
+      ileft; ileft; ipureintro; exact h v (List.mem_cons_self ..)
+    · have := ih (fun w hw => h w (List.mem_cons_of_mem _ hw))
+      unfold streamCallOptsOk at this
+      iapply this
 
 /-- A unary call's options are a stream's. -/
 theorem streamCallOptsOk_of (vs : List GoInterface) :
@@ -245,14 +303,35 @@ theorem streamCallOptsOk_singleton (v : GoInterface) :
   iapply BigSepL.bigSepL_singleton.2
   iexact H
 
+/-- The namespace of the pool of `Client.epMu`'s reader slots. -/
+def clientEpN : Namespace := nroot.@"etcd_client_epmu"
+
+/-- **The client `c`'s endpoints and their lock** (persistent; prove-ps2-clientrdlock, 2026-11-24,
+decision 1b): its `endpoints` field, read-only once `newClient` has set it (`SetEndpoints`), a slice
+of `eps`, read-only; its `epMu`, a non-nil `*RWMutex` whose guard protects nothing (the endpoints
+are read-only: `SetEndpoints` runs before the client is shared), with every reader slot in a
+level-0 pool (`threadPool.isThreadPoolL`): `Endpoints()` borrows one with its caller's `levelTok 0`
+and gives it back after `RUnlock`. -/
+def clientEpPool (c : Loc) : IProp GF :=
+  iprop(∃ (mu : Loc) (γe : GName) (esl : GoSlice) (eps : List GoString),
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"epMu" c ↦□ mu ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"endpoints" c ↦□ esl ∗ esl ↦*□ eps ∗
+    sync.isRWMutexGuard mu (fun _ => iprop(True)) ∗
+    threadPool.isThreadPoolL clientEpN 0 γe (sync.ownRWMutex mu (fun _ => iprop(True))))
+
+instance clientEpPool_persistent (c : Loc) : Persistent (clientEpPool (GF := GF) c) := by
+  unfold clientEpPool; infer_instance
+
 /-- **What the retry interceptor reads of the `*Client` `c`** (persistent; see the file header):
-non-nil, its logger, its `Token` and `authTokenBundle` (read-only; a bundle whenever a token). -/
+non-nil, its logger, its `Token` and `authTokenBundle` (read-only; a bundle whenever a token), and
+(prove-ps2-clientrdlock, 2026-11-24) its endpoints and their lock's reader pool (`clientEpPool`:
+`Endpoints()`, which the retry path calls, `isSafeRetry` and the backoff). -/
 def retryClientOk (c : Loc) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗ isClientLogger c ∗
     ∃ (tok : GoString) (atb : GoInterface),
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"Token" c ↦□ tok ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"authTokenBundle" c ↦□ atb ∗
-      ⌜tok ≠ go!"" → atb ≠ GoInterface.nil⌝)
+      ⌜tok ≠ go!"" → atb ≠ GoInterface.nil⌝ ∗ clientEpPool c)
 
 instance retryClientOk_persistent (c : Loc) : Persistent (retryClientOk (GF := GF) c) := by
   unfold retryClientOk; infer_instance

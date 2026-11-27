@@ -24,7 +24,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions]
 
 theorem Server.freeResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
@@ -32,8 +32,8 @@ theorem Server.freeResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
     Server.freeResponse.spec (GF := GF) (hG := hG) := by
   intro s γ req v
   wp_start as ⟨#Hs, Hv⟩
-  unfold isServer
-  icases Hs with ⟨#Hsync, #Hmu, #Hrq, #Hrs⟩
+  unfold isServerAny isServerO
+  icases Hs with ⟨%o, #Hsync, #Hmu, #Hrq, #Hrs⟩
   wp_auto
   wp_apply wp_Lock _ _ $$ [$Hsync $Hrs] as ⟨Hown, Hinv⟩
   iunfold respFreeInv at Hinv

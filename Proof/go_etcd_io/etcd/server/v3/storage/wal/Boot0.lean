@@ -2,7 +2,7 @@
 
 # The WAL's first boot (`notes/wal-fsext-w4c-plan.md`, §3, "W4c U3 log")
 
-`walBoot0`: from what the shared mode's switch gives the program (`wp_osShare`: the shared invariant,
+`walBoot0`: from the tree's shared view at the first start (`osShared`, `fs_start`: the shared invariant,
 a whole claim on all names of every directory of the boot tree `V.now`, nothing logged), what a WAL
 client needs to call `Create`, `Open`, ...: the area's `walAreaOk` (the WAL invariant, allocated by
 `walInv_alloc` over `walStart_boot0`), the program's `walAreaRes`, the lock and crash tokens, the
@@ -11,11 +11,11 @@ WAL's past (`walPast`, for `dirDurable r`) and the program's (empty) WAL map (`w
 (the area's names holding an entry, and every other directory's claim).
 
 Its premises, each a world premise of a closed theorem's first boot:
-* `hV`: nothing logged (`wp_osShare` at the program's first step);
+* `hV`: nothing logged (`fs_start`'s `osShared`);
 * `hR`, `hr`: the roots well formed (`FsInit`) and **the area `r` one of them** (its directory `jr`):
   the area must be durable for `Create` (`dirDurable r`), and no `fsExt` step makes a directory durable
   (`BootPure`);
-* `Js`, `hjr`: the directories whose whole claims the caller holds (the boot tree's, from `wp_osShare`, or
+* `Js`, `hjr`: the directories whose whole claims the caller holds (the boot tree's, from `osShared`, or
   what an earlier area's boot left: `walBoot0s`), the area's among them;
 * `hslots`: **no entry of the area at a name a WAL function may change** (`AreaSlot`: a WAL name `nm`,
   no `.` or `/`, or `nm.<sfx>`: every name not starting with `.`), so no WAL is found (as

@@ -5,6 +5,7 @@ The proof of `clientCodec.ReadResponseHeader` (`Net/Spec/net/rpc/clientCodec__Re
 -/
 module
 
+public import Net.Proof.net.rpc.ReadAcc
 public import Net.Spec.net.rpc.clientCodec__ReadResponseHeader
 public import Net.Spec.net.rpc.getU64
 public import Net.Spec.net.rpc.getString
@@ -25,7 +26,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 
 theorem clientCodec.ReadResponseHeader.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getU64 : getU64.spec (GF := GF) (hG := hG))
@@ -34,14 +35,15 @@ theorem clientCodec.ReadResponseHeader.wp_proof (wp_readFrame : readFrame.spec (
   intro c t cn s a la ra r rv P eof ueof ed ef
   wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, Hr, HP, #Hacc⟩
   wp_auto
-  wp_apply wp_readFrame t cn s a la ra P eof ueof ed ef
-      $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc]
+  ihave #Hacc' := readAcc_true cn s P $$ Hacc
+  wp_apply wp_readFrame t cn s a la ra P iprop(True) eof ueof ed ef
+      $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc']
     as %p %err ⟨%got, HP, Hres⟩
   unfold errors.newVar
   icases HefV with ⟨%xf, #Hxf, -⟩
   icombine Hef Hxf gives %Hf
   subst Hf
-  icases Hres with (⟨%pl, ⟨%Hnil, %Hgot, %Hpl⟩, Hp, Hpcap⟩ | ⟨%Hne, #HE⟩)
+  icases Hres with (⟨%pl, ⟨%Hnil, %Hgot, %Hpl⟩, Hp, Hpcap⟩ | ⟨%Hne, HE⟩)
   rotate_left
   · cases err with
     | nil => exact absurd rfl Hne
@@ -54,7 +56,9 @@ theorem clientCodec.ReadResponseHeader.wp_proof (wp_readFrame : readFrame.spec (
       iframe Hr
       isplitr
       · ipureintro; exact Hne
-      iexact HE
+      icases HE with (%HE | ⟨#HE, -⟩)
+      · ileft; ipureintro; exact HE.1
+      · iright; iexact HE
   subst Hnil
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hp

@@ -8,12 +8,14 @@ returns only on a listener error), and in another goroutine waits for the replic
 first leader and pings them, making another one `BeTheLeader` when the leader's ping fails.
 
 Changed against the lab (notes/dsv-swiftpaxos.md, "The HTTP path"): the lab's `addrTok`/`nodeIp`
-of its wildcard listen, `net.http.muxOwner`, `rpcAddr`s and `kitNameOk` are gone. The master's
+of its wildcard listen, `rpcAddr`s and `kitNameOk` are gone. The master's
 port is the listener address's rpc protocols (`RpcHttpAddr.rpcLisP W ":7001"`, which gives the
 right to listen there), the master's service is `withErr masterSpec` at every address the wildcard
 takes (net/rpc's server may answer an error), and the replicas' rpc ports are dialed over HTTP
 (`rpcHttp`). net/rpc's and net/http's packages, the server's bounds and package variables
-(`threadBound`, `srvEnv`) and the registered codec are the server's.
+(`threadBound`, `srvEnv`, `dialEnv`), the right to register on `DefaultServeMux` (`muxOwner []`),
+`DefaultServer`'s owned, empty registry, the registered codec and the main thread's token
+(`http.Serve` runs on it) are the server's.
 -/
 module
 
@@ -37,7 +39,7 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- The master's world: every address the wildcard `":7001"` takes offers the master's service
@@ -54,8 +56,9 @@ abbrev master.Master.Run.spec : Prop :=
       master.created m γc γm N (W64 7001) ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
-      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ H.muxOwner [] ∗
-      (∃ γs, H.defaultServer γs) ∗ RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
+      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ muxOwner [] ∗
+      (∃ γs γf, net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅) ∗ dialEnv ∗ threadTok ∗
+      RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))

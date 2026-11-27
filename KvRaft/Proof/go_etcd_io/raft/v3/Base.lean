@@ -1,0 +1,335 @@
+-- The copy for the part `KvRaft/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/Base.lean` (etc/copy-part.py; rerun it, do not edit).
+/-
+Port of etcd-grove's `new/proof/go_etcd_io/raft/v3_proof/base.v`: package
+initialization instances for `go.etcd.io/raft/v3` and the packages it imports.
+
+This replaces Perennial's `Perennial.Proof.go_etcd_io.raft.v3_proof.base` (the port of
+upstream's `base.v`), which must not be imported alongside it: `IsPkgInit` has one
+instance per package, and etcd-grove's raft instance is stronger.
+The `wp_initialize'` of each of these packages, which establishes these predicates from
+its initializer, is in `Init.lean` (2026-10-12; `raftpb`'s, `proto`'s, `os`'s, `strconv`'s
+from the trust-boundary axioms on their untranslated initializers, since 2026-10-18).
+
+Lean notes: see Perennial's `base.lean` for the instances that live in other Perennial
+files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
+-/
+module
+
+public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.reflect.Base
+public import KvRaft.Code.go_etcd_io.raft.v3
+public import KvRaft.GeneratedProof.go_etcd_io.raft.v3
+public import KvRaft.GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvPbCore
+-- (raft-noax) raft no longer imports `proto`; kvdurable does (`proto.Equal`), and the proto specs
+-- name its package
+public import GeneratedProof.google_golang_org.protobuf.proto
+public import Perennial.Code.reflect
+public import Perennial.Proof.ProofPrelude
+public import Perennial.Proof.context
+public import Perennial.Proof.sync
+public import Perennial.Proof.fmt
+public import Perennial.Proof.slices
+public import Perennial.Proof.cmp
+public import Proof.errors.NewVar
+public import Perennial.Proof.encoding.binary
+public import Perennial.Proof.strings
+public import Perennial.Proof.math
+public import Perennial.Proof.math.bits
+public import Perennial.Proof.crypto.rand
+public import Perennial.Proof.bytes
+public import Perennial.Proof.log
+public import Perennial.Proof.io
+public import Perennial.Proof.errors
+public import Proof.os.PkgInit
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+namespace go_etcd_io.raft.v3
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+-- (`reflect`'s instance: `Proof/reflect/PkgInit.lean`, shared)
+
+/-- protobuf-go's packages, names-only (raft v3.7's `raftpb` is protobuf-go v2: its messages
+hold `protoimpl`'s state, `raft` and `raftpb` call `proto.Clone`/`Marshal`/`Unmarshal`/
+`Size`/`Equal`), as the etcd project's `cache/v3/Base.lean` declares them. -/
+instance protobuf_pragma_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
+  define_is_pkg_init iprop(True)
+instance protobuf_pragma_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.internal.pragma :=
+  build_get_is_pkg_init_wf
+instance protobuf_impl_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.internal.impl :=
+  define_is_pkg_init iprop(True)
+instance protobuf_impl_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.internal.impl :=
+  build_get_is_pkg_init_wf
+instance protoimpl_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
+  define_is_pkg_init iprop(True)
+instance protoimpl_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.runtime.protoimpl :=
+  build_get_is_pkg_init_wf
+instance protoreflect_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  define_is_pkg_init iprop(True)
+instance protoreflect_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  build_get_is_pkg_init_wf
+instance proto_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
+  define_is_pkg_init iprop(True)
+instance proto_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
+  build_get_is_pkg_init_wf
+
+-- `strconv` (imported by `raftpb`'s `confchange.go` in raft v3.7): Perennial's own instance
+-- (`Perennial.Proof.strconv.Base`, since Perennial translates `strconv`, 24bef275e)
+
+/-- `MessageType_name` (`raft.pb.go`, protoc-gen-go): the names of the message types, the map
+literal of the initializer, with its keys inserted in the literal's order (0 first: the order the
+initializer's proof inserts them). Q9 of `notes/trace-validation-plan.md` (2026-11-09):
+`MessageType.String`'s trusted model reads it. -/
+def raftpb.msgTypeNames : GMap w32 GoString :=
+  <[W32 23 := go!"MsgForgetLeader"]> (
+  <[W32 22 := go!"MsgStorageApplyResp"]> (
+  <[W32 21 := go!"MsgStorageApply"]> (
+  <[W32 20 := go!"MsgStorageAppendResp"]> (
+  <[W32 19 := go!"MsgStorageAppend"]> (
+  <[W32 18 := go!"MsgPreVoteResp"]> (
+  <[W32 17 := go!"MsgPreVote"]> (
+  <[W32 16 := go!"MsgReadIndexResp"]> (
+  <[W32 15 := go!"MsgReadIndex"]> (
+  <[W32 14 := go!"MsgTimeoutNow"]> (
+  <[W32 13 := go!"MsgTransferLeader"]> (
+  <[W32 12 := go!"MsgCheckQuorum"]> (
+  <[W32 11 := go!"MsgSnapStatus"]> (
+  <[W32 10 := go!"MsgUnreachable"]> (
+  <[W32 9 := go!"MsgHeartbeatResp"]> (
+  <[W32 8 := go!"MsgHeartbeat"]> (
+  <[W32 7 := go!"MsgSnap"]> (
+  <[W32 6 := go!"MsgVoteResp"]> (
+  <[W32 5 := go!"MsgVote"]> (
+  <[W32 4 := go!"MsgAppResp"]> (
+  <[W32 3 := go!"MsgApp"]> (
+  <[W32 2 := go!"MsgProp"]> (
+  <[W32 1 := go!"MsgBeat"]> (
+  <[W32 0 := go!"MsgHup"]> ∅)))))))))))))))))))))))
+
+/-- `raftpb`'s package fact (Q9, 2026-11-09; `True` until then): `MessageType_name` holds a map
+with `raftpb.msgTypeNames`, both read-only (nothing but the initializer writes the table). (raft-noax)
+And `errDecodeConfChange` (`noax.go`, `errors.New`'s) holds a non-`nil` error, read-only: the conf
+change decoders' error. -/
+instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
+  define_is_pkg_init iprop((∃ m : Loc,
+    (globalAddr go_etcd_io.raft.v3.raftpb.MessageType_name ↦□ m : IProp GF) ∗
+    m ↦$□ raftpb.msgTypeNames) ∗
+    ∃ e : GoInterface, (globalAddr go_etcd_io.raft.v3.raftpb.errDecodeConfChange ↦□ e : IProp GF) ∗
+      ⌜e ≠ interface.nil⌝)
+instance raftpb_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
+  build_get_is_pkg_init_wf
+
+instance quorum_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.quorum :=
+  define_is_pkg_init iprop(True)
+instance quorum_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.quorum :=
+  build_get_is_pkg_init_wf
+
+instance tracker_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.tracker :=
+  define_is_pkg_init iprop(True)
+instance tracker_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.tracker :=
+  build_get_is_pkg_init_wf
+
+instance confchange_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.confchange :=
+  define_is_pkg_init iprop(True)
+instance confchange_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.confchange :=
+  build_get_is_pkg_init_wf
+
+-- (`os`'s instance: `Proof/os/PkgInit.lean`, shared with bbolt)
+
+/-- `globalRand` is the package-level `*lockedRand` behind
+`raft.resetRandomizedElectionTimeout`. Its one field, `mu`, is a `sync.Mutex` that
+guards nothing the proof can see (`Intn` holds it across a `crypto/rand` call, whose
+only state is the kernel's), so the lock invariant is `True`. The package initializer
+installs `&lockedRand{}` (a zero `Mutex`), which is exactly what `init_Mutex` turns
+into `isMutex … True`. -/
+def isLockedRand (lr : Loc) : IProp GF :=
+  iprop("#Hmu" ∷ sync.isMutex (lr.[lockedRand, go!"mu"]) iprop(True))
+
+instance isLockedRand_persistent (lr : Loc) : Persistent (isLockedRand (GF := GF) lr) := by
+  unfold isLockedRand; infer_instance
+
+/-- An `error` value shaped the way `errors.New` builds one: an interface holding a
+**pointer**.
+
+Go's interface equality is not decidable on its own: `go_eq_interface` reduces
+`i1 == i2` for two non-`nil` values to a comparison at the dynamic type after a
+`CheckComparable`, which has a reduction only for the types Goose knows to be
+comparable. For an *unknown* dynamic type there is none, so a proof that reaches
+`err == ErrX` with `err` non-`nil` is **stuck**. That is exactly what
+`raft.maybeSendSnapshot` does with `ErrSnapshotTemporarilyUnavailable`.
+
+The claim is true of the value the package initializer installs: `errors.New` returns a
+pointer converted to `error`. The type is left existential rather than pinned to
+`errors.errorString`, because all the comparison needs is that it is *a* pointer type. -/
+def IsNewError (e : GoInterface) : Prop :=
+  ∃ (t : go.GoType) (p : Loc), e = interface.mkOk (go.GoType.PointerType t) #p
+
+/-- `stmap` (`raft.go`), the names `StateType.String` returns: the initializer's literal, which
+nothing writes after it (Q8 stage 1, slice 2, 2026-11-09: the traced `traceEvent` reads the role's
+name, `r.state.String()`). -/
+def stmapV : GoArray GoString 4 :=
+  array.mk 4 [go!"StateFollower", go!"StateCandidate", go!"StateLeader", go!"StatePreCandidate"]
+
+/-- The message types `IsLocalMsg` reports local (`util.go`'s `isLocalMsg` table): `MsgHup` (0),
+`MsgBeat` (1), `MsgUnreachable` (10), `MsgSnapStatus` (11), `MsgCheckQuorum` (12), `MsgStorageAppend`
+(19), `MsgStorageAppendResp` (20), `MsgStorageApply` (21), `MsgStorageApplyResp` (22). -/
+def localMsgTypes : List w32 :=
+  [W32 0, W32 1, W32 10, W32 11, W32 12, W32 19, W32 20, W32 21, W32 22]
+
+/-- `isLocalMsg` (`util.go`), the initializer's literal, which nothing writes after it: `true` at
+the indices of `localMsgTypes` (`localMsgsV_get`). -/
+def localMsgsV : GoArray Bool 23 :=
+  array.mk 23 [true, true, false, false, false, false, false, false, false, false, true, true, true,
+    false, false, false, false, false, false, true, true, true, true]
+
+/-- etcd-grove's `isInitialized`: the package-level `error` variables the election
+path compares against (each a non-nil interface value installed by the package
+initializer; a proof that reads one needs the points-to, the load being through
+`GlobalVarAddr`, and the disequality, to decide `err == ErrX` when `err` is `nil`), the
+global RNG, `emptyState`, the role names `stmap`, and the logger's mutex. -/
+def isInitialized : IProp GF :=
+  iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail errPropDropped : GoInterface)
+      (globalRand' : Loc) (localMsgs responseMsgs : GoArray Bool 23)
+      (errStepLocal errStepPeer : GoInterface),
+    "ErrStopped" ∷ (globalAddr ErrStopped ↦□ errStopped : IProp GF) ∗
+    "%HErrStopped" ∷ ⌜errStopped ≠ interface.nil⌝ ∗
+    -- `maybeSendSnapshot` compares `Storage.Snapshot`'s error against this one; it is
+    -- the only non-fatal error that method may return
+    "ErrSnapUnavail" ∷ (globalAddr ErrSnapshotTemporarilyUnavailable ↦□ errSnapUnavail : IProp GF) ∗
+    "%HErrSnapUnavail" ∷ ⌜errSnapUnavail ≠ interface.nil⌝ ∗
+    -- and, unlike the others, it *compares* a non-`nil` error against it, which needs
+    -- the dynamic type to be comparable (`IsNewError`)
+    "%HErrSnapUnavail_new" ∷ ⌜IsNewError errSnapUnavail⌝ ∗
+    "ErrCompacted" ∷ (globalAddr ErrCompacted ↦□ errCompacted : IProp GF) ∗
+    "%HErrCompacted" ∷ ⌜errCompacted ≠ interface.nil⌝ ∗
+    "ErrUnavailable" ∷ (globalAddr ErrUnavailable ↦□ errUnavailable : IProp GF) ∗
+    "%HErrUnavailable" ∷ ⌜errUnavailable ≠ interface.nil⌝ ∗
+    -- `raftLog.zeroTermOnOutOfBounds` compares a non-`nil` error (what `raftLog.term`
+    -- returned) against both, which needs their dynamic types to be comparable --
+    -- `IsNewError` above. Both are `errors.New(...)` in `storage.go`. Added 2026-10-01
+    -- for `handleAppendEntries`'s reject path.
+    "%HErrCompacted_new" ∷ ⌜IsNewError errCompacted⌝ ∗
+    "%HErrUnavailable_new" ∷ ⌜IsNewError errUnavailable⌝ ∗
+    -- `ErrProposalDropped = errors.New("raft proposal dropped")` (`raft.go`), which
+    -- `stepFollower`/`stepCandidate` return for a proposal they cannot forward. Only
+    -- loaded and returned, never compared, so no `IsNewError`. Added 2026-10-01.
+    "ErrPropDropped" ∷ (globalAddr ErrProposalDropped ↦□ errPropDropped : IProp GF) ∗
+    "%HErrPropDropped" ∷ ⌜errPropDropped ≠ interface.nil⌝ ∗
+    -- the global RNG: the pointer, and the mutex behind it
+    "#globalRand" ∷ (globalAddr globalRand ↦□ globalRand' : IProp GF) ∗
+    "#HglobalRand" ∷ isLockedRand globalRand' ∗
+    -- `emptyState = &pb.HardState{}` (`node.go`; raft v3.7: a pointer, to a message whose
+    -- fields are all nil), which `IsEmptyHardState` compares against and `bootstrap`
+    -- installs as `prevHardSt`; nothing writes it or through it (stage R0: read-only, the
+    -- representation the redesign settles, `notes/raft-retarget-plan.md`).
+    -- (Stage R4 phase 3) As the read-only hard state `hsRO es ⟨0, 0, 0⟩` of `InvPb.lean`,
+    -- unfolded (this file is below `InvPb`): non-`nil`, its three cells `nil` (frozen), its
+    -- hidden fields frozen (`pbMsg raftpb.HardState es []`; raft-noax stage 3a: in the main tree
+    -- the `protobuf` invariant, spelled out here since `pbMsg` was below `InvPb`), as
+    -- `isHardStateEqual`'s getters need; `emptyState_hsRO` (`LemmasMiscR.lean`) folds it.
+    -- (Until phase 3: `es ↦□ zero_val raftpb.HardState`, which no proof used and which the
+    -- invariant's owned hidden fields exclude.)
+    "#emptyState" ∷ (∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ ⌜es ≠ null⌝ ∗
+      (es.[raftpb.HardState, go!"Term"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Vote"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Commit"] ↦□ null : IProp GF) ∗
+      EtcdGrove.pbMsg raftpb.HardState es []) ∗
+    -- the tables behind `IsLocalMsg` and `IsResponseMsg` (`util.go`), read by
+    -- `RawNode.Step`; nothing but the initializer writes them, and their contents do
+    -- not matter to the specs (2026-10-09)
+    "#isLocalMsg" ∷ (globalAddr isLocalMsg ↦□ localMsgs : IProp GF) ∗
+    -- (2026-11-24, #33 S4) `isLocalMsg`'s contents, the literal (`localMsgsV`): `IsLocalMsg`'s exact
+    -- result
+    "%HlocalMsgs" ∷ ⌜localMsgs = localMsgsV⌝ ∗
+    "#isResponseMsg" ∷ (globalAddr isResponseMsg ↦□ responseMsgs : IProp GF) ∗
+    -- the errors `RawNode.Step` returns for a message it does not step
+    "#ErrStepLocalMsg" ∷ (globalAddr ErrStepLocalMsg ↦□ errStepLocal : IProp GF) ∗
+    "#ErrStepPeerNotFound" ∷ (globalAddr ErrStepPeerNotFound ↦□ errStepPeer : IProp GF) ∗
+    -- (2026-10-13) `errBreak = errors.New("break")`, the sentinel `hasUnappliedConfChanges`'
+    -- callback stops `scan` with and then compares against (so `IsNewError`)
+    "#ErrBreak" ∷ (∃ eb : GoInterface, (globalAddr errBreak ↦□ eb : IProp GF) ∗
+      ⌜eb ≠ interface.nil ∧ IsNewError eb⌝) ∗
+    -- (item 8, 2026-10-17) `ErrStopped` and `ErrProposalDropped` as the `errors.New` errors they
+    -- are (`node.go`, `raft.go`), which the server's and the read loop's facts take from here
+    "#ErrStoppedNew" ∷ EtcdGrove.errorsNewVar ErrStopped go!"raft: stopped" ∗
+    "#ErrPropDroppedNew" ∷ EtcdGrove.errorsNewVar ErrProposalDropped go!"raft proposal dropped" ∗
+    -- (2026-10-26) `ErrCompacted` (`storage.go`), as the `errors.New` error it is, for the
+    -- server's `compactRaftLog`'s `errors.Is(err, raft.ErrCompacted)` (a leaf error)
+    "#ErrCompactedNew" ∷ EtcdGrove.errorsNewVar ErrCompacted
+      go!"requested index is unavailable due to compaction" ∗
+    -- (D22 S-r, 2026-10-21) `ErrSnapOutOfDate`, the error `MemoryStorage.ApplySnapshot` and
+    -- `CreateSnapshot` return for a snapshot not newer than the storage's (their specs take its
+    -- value), which an application that takes snapshots reads from here
+    "#ErrSnapOOD" ∷ (∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF)) ∗
+    -- (D22 J4b, 2026-10-27) and as the `errors.New` error it is, for the server's `snapshot`'s
+    -- `errors.Is(err, raft.ErrSnapOutOfDate)` (a leaf error)
+    "#ErrSnapOODNew" ∷ EtcdGrove.errorsNewVar ErrSnapOutOfDate
+      go!"requested index is older than the existing snapshot" ∗
+    -- (Q8 stage 1, slice 2, 2026-11-09) `stmap`, the role names `StateType.String` returns
+    -- (`r.state.String()`, every traced event's `role`); nothing but the initializer writes it
+    "#stmap" ∷ (globalAddr stmap ↦□ stmapV : IProp GF) ∗
+    -- (premise-fixes-4, 2026-11-10) `raftLoggerMu` (`logger.go`), a mutex owning `raftLogger`,
+    -- which `SetLogger` writes and `getLogger` reads under it (until then the initializer dropped
+    -- both, and the server took `SetLogger`'s triple as a premise, `rnSetLoggerOk`, false in the
+    -- model: nothing owned the globals)
+    "#HloggerMu" ∷ sync.isMutex (globalAddr raftLoggerMu)
+      iprop(∃ l : GoInterface, (globalAddr raftLogger ↦ l : IProp GF)))
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
+  define_is_pkg_init isInitialized
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
+  build_get_is_pkg_init_wf
+
+theorem isInitialized_access :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ⊢ isInitialized :=
+  isPkgInit_access (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3
+
+/-- `isLocalMsg[:]`, `isResponseMsg[:]`: the whole of a `[23]bool` as a slice, at any
+fraction (Perennial's `slice_array` is for an owned array). -/
+theorem array_slice_bool (l : Loc) (a : GoArray Bool 23) (dq : DFrac) :
+    (typedPointsto l a dq : IProp GF) ⊢ slice.mk l (W64 23) (W64 23) ↦*{dq} a.arr := by
+  obtain ⟨arr⟩ := a
+  iintro H
+  icases array_len _ _ _ _ $$ H with %Hn
+  rw [ownSlice_unseal]; unfold ownSliceDef
+  iright
+  simp only
+  rw [show sint.Z (W64 23) = (23 : Int) from rfl]
+  iframe H
+  ipureintro; omega
+
+end init
+
+end go_etcd_io.raft.v3
+
+end Perennial

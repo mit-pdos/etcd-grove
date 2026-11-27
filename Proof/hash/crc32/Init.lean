@@ -21,10 +21,11 @@ the Castagnoli state and once.)
 module
 
 public import Proof.hash.crc32.PkgInit
+public import Perennial.Proof.hash.Link
+public import Perennial.Proof.internal.byteorder.Link
+public import Perennial.Proof.internal.gomodel.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
-public import Proof.hash.Init
-public import Proof.internal.byteorder.Init
 
 @[expose] public section
 

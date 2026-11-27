@@ -37,7 +37,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -51,14 +51,14 @@ theorem Server.ServeCodec.wp_proof
     Server.ServeCodec.spec (GF := GF) (hG := hG) := by
   intro s γs C W a sc t cn la ra
   wp_start as ⟨%Hb, #Hsrv, #Hserves, #Henv, #Hset, #Hsc, Hown, Htok⟩
-  ihave #Hsrv' := Hsrv
-  iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨#Hsync, -⟩
+  ihave #Hsync := isServerAny_sync s γs $$ Hsrv
   iunfold srvCodecOwn at Hown
-  icases Hown with ⟨Hwerr, Hrerr, Hclosed, Hacc⟩
+  icases Hown with ⟨Hwerr, Hclosed, Hacc⟩
   iunfold rpcAccepted at Hacc
-  icases Hacc with ⟨Hsend, Hrecv, Hfresh⟩
+  icases Hacc with ⟨%w, %Hw, Hsend, Hrecv, Hfresh, Hrdl⟩
   ihave #Hci := sendTok_connIs $$ Hsend
+  icases recvTok_keep_sentLb (Gg := hG.goose_globalGS) cn true false rfl _ _ $$ Hrecv
+    with ⟨Hrecv, #Hsl⟩
   ihave #Henv0 := Henv
   iunfold srvEnv at Henv0
   icases Henv0 with ⟨#Hcli, #Hir⟩
@@ -75,38 +75,39 @@ theorem Server.ServeCodec.wp_proof
   imod sync.init_Mutex (srvSendInv W a cn sc) ⊤ _ $$ Hmu0 [Hwerr Hsend] with #Hmu
   · inext
     iunfold srvSendInv
-    iexists interface.nil, [], []
-    iframe Hwerr Hsend
+    iexists interface.nil, w, []
+    iframe Hwerr Hsend Hsl
     isplitr
     · iunfold ansRec; ileft; ipureintro; rfl
     ipureintro
-    exact ⟨by simp, List.nil_prefix, fun _ => by simp [respsWire, framesOf]⟩
+    exact ⟨by simp, by simpa [respsWire, framesOf] using Hw, fun _ => Or.inr ⟨rfl, Hw⟩⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hwg0 with ⟨Hwg0, %Hwgnn⟩
   imod sync.init_WaitGroup (srvWgN.@"wg") wgl $$ Hwg0 with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
   ihave #Hlaw := sync.tokJoin.lendLaw_false (GF := GF) srvWgN
   imod sync.tokJoin.init srvWgN iprop(False) wgl γwg ⊤ Hb $$ [$Hiswg $Hctr $Hwait $Hlaw] with Hadd
-  ihave HI : (∃ (n : Nat) (Pw : IProp GF), "Hrd" ∷ rdrOwn W a cn sc ∗
+  ihave HI : (∃ (n : Nat) (Pw : IProp GF), "Hrd" ∷ rdrOwn W a cn ∗
       "Hadd" ∷ sync.tokJoin.ownAdder srvWgN iprop(False) wgl n Pw ∗
-      "Htok" ∷ threadTok : IProp GF) $$ [Hrerr Hrecv Hfresh Hadd Htok]
+      "Htok" ∷ threadTok : IProp GF) $$ [Hrdl Hrecv Hfresh Hadd Htok]
   · iexists 0, iprop(True)
     iframe Hadd Htok
     iunfold rdrOwn
-    iexists _
-    iframe Hrerr
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexists [], 0
-    isplitl
-    · iunfold readerSt
-      rw [framesOf_nil]
-      iframe Hrecv
-      isplitr
-      · ipureintro; simp
-      ileft
-      iframe Hfresh
+    icases Hrdl with (Hrdl | #Hdead)
+    · ileft
+      iframe Hrdl
+      iexists [], 0
+      isplitl
+      · iunfold readerSt
+        rw [framesOf_nil, List.append_nil]
+        iframe Hrecv
+        isplitr
+        · ipureintro; simp
+        ileft
+        iframe Hfresh
+        ipureintro; rfl
       ipureintro; rfl
-    ipureintro; rfl
+    · iright
+      iexists _
+      iframe Hrecv Hdead
   wp_for HI
   wp_apply wp_readRequest s γs C W a sc t cn la ra $$ [$Hsrv $Hserves $Henv $Hsc $Hrd]
     as %svc %mt %req %argv %replyv %keep %err Hres

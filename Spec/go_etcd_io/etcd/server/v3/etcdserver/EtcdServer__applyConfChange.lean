@@ -49,7 +49,9 @@ membership is the voters' at every committed index, `srv_confAt_simple`), or, if
 fails, as before.
 
 **Scope** (`ccApplyOkM`): an `AddNode` of a member of raft's configuration whose context
-unmarshals to it, not a promotion (`ccApplyOk`, the boot entries'), and, in raft's dynamic mode
+unmarshals to it, not a promotion (the boot entries', `ccAddOk`) or (route B, 2026-11-25) a
+promotion (`ccApplyOk`'s second disjunct: with `v3` refused, the premise that it does not validate;
+without, `PromoteMember(id, false)`, a log line under the cluster's lock, and no `AddPeer`), and, in raft's dynamic mode
 (D43 M5d, the user's decision), a `RemoveNode` of a member of the configuration other than the
 local one (`lid`; the stopping server is M6's), so it returns `removed = false`. An `AddNode`'s
 node is the local member or one of the transport's peers (`prs`: `AddPeer` of a known peer
@@ -91,7 +93,12 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (m' : Membership) (e : LogEntry)
     (lg bh : Loc) (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc)
     (cid : w64),
-  ccApplyOkM γs m → E.RO = srvRestOwnH E.authMode γB cl (srvObjsOn al st lp cl d.be) →
+  ccApplyOkM γs m →
+  -- (route B, 2026-11-25) with `v3`, a promotion does not validate on the tracked buckets (its
+  -- caller's rest model holds voters only, `ccValidOn_restModel_promote`), so the validated branch
+  -- never reaches `PromoteMember(id, true)`
+  (v3 = true → membership.ccIsPromote m.context = true → membership.ccValidOn rs.bk m = false) →
+  E.RO = srvRestOwnH E.authMode γB cl (srvObjsOn al st lp cl d.be) →
   (m.type = W32 0 → m.nodeId ≠ lid → m.nodeId ∈ prs) →
   (m.type = W32 1 → m.nodeId ≠ lid) →
   (m.type = W32 0 →
