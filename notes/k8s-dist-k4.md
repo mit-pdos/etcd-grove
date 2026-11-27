@@ -145,3 +145,56 @@ K9's (equal to `Model`'s step).
 4. The theorem: a linearization in the semantic model gives a run of the search, step by step.
 The imports are `KWatch.lean`'s cone (pure defs, but it imports the Goose translation's types: build on
 fk-lean1).
+
+## Handoff K4-2 (2026-11-27, branch `k8s-dist-k4/2026-11-27`)
+
+K4-2 started §6 in Lean: the model and the search as definitions, the statement, the first layer of the
+renaming. **Not proved yet: the invariance of `mstepL`/`mlistL`/`watchOkL` and the theorem.**
+
+**In Lean** (`Proof/.../examples/k8s/dist/`, pure, over `KSteps.lean`'s cone; no axiom, no `sorry`):
+
+- `SharedSem.lean`: `foreignL` (a foreign revision), `SSilent`/`SReach` (`kSpec`'s `PSilent` or a
+  foreign step), `SRun h0 c ops c'` (a run of the semantic model: per operation, silent steps then
+  `kSpec`'s `PStep` with `ansOf y`). Every step is taken from a configuration with `rv + 1 < 2^64`
+  (`NoWrap`): the model's revisions are words, and K8 must show the cluster's never wrap.
+- `SharedSearch.lean`: `skipToL` (foreign steps), `targetL` (Go's `target` with G7, as in
+  `k8s-dist-go/2026-11-27` `152e1a4634`), `SettleL A` (settle's configurations, landings
+  `landingsFull A [] [] rv`: a subset of the Go landings, so the Go search's configurations include
+  these), `SearchStep`, `SearchRun`; `OpAnchors`/`AnchorsOk` (the revisions an operation names, as
+  `HistoryRevs` collects them, plus `0 ∈ A`, which adds no landing); and **`FullComplete : Prop`**, the
+  theorem's statement (seeded `h0` with `hist.length = rv` and every revision up to the seeds' an anchor;
+  `AnchorsOk A ops`; `SRun h0 ⟨h0, []⟩ ops c'` → `SearchRun A ⟨h0, []⟩ ops`). `skipToL_le`,
+  `skipToL_items`, `skipToL_rv`.
+- `SharedRename.lean`: `renObj ρ`, `renItem ρ`; `lookupL_ren`, `delItemL_ren`, `setItemL_ren`
+  (store helpers commute with the renaming), `selOkL_ren`, `sameObjL_ren`, `updatedL_ren`, `preOkL_ren`
+  (preconditions invariant when `ρ` maps the object's revision to the precondition's iff it is it),
+  `preMsgL_ren_uid`, `changeAtL_self`.
+
+**A correction to §3's (R1).** `ρ` cannot be a total map on `[0, s.rv]`: from `s.rv = 5` with
+`ρ(5) = 9` (no anchor in `(5, 9]`), a write the cluster put at the anchor `R = 10` lands at `canonL = 10`,
+and the search's skipped revisions `6..9` have no image in `(9, 10)`. The revisions in between are
+foreign on both sides, and nothing reads them by name, so the relation should rename only the **write
+revisions**. Proposed relation (search `s`, cluster `c`), to replace (R1)-(R3) in the Lean proof:
+
+- the stores' versions: `vs s`/`vs c` (the item lists after each write, in order) are related pointwise
+  by `map (renItem ρ)`, and `cnt s r`/`cnt c r` (the number of writes at or before `r`) satisfy
+  `cnt s v = cnt c v` for every anchor `v` and one after an anchor, and `cnt c r ≤ cnt s r` for `r ≤ s.rv`
+  (the search's writes land no later);
+- `ρ` on the search's write revisions: strictly increasing, `w ≤ ρ w`, and `v ≤ w ↔ v ≤ ρ w` for `v` an
+  anchor or one after (`canonL_cut`); identity on revisions up to the seeds'; injective on every
+  revision an object of a stored version carries (for `changeAtL`'s `p = q` test);
+- `s.rv ≤ c.rv`; pending lists equal up to order.
+
+`initialPrefixOkL`'s `r ∈ [max(req,1), c.rv]` then maps to a search revision in `[max(req,1), s.rv]` by
+a discrete intermediate-value step on `cnt s` (it moves by at most one per revision), which needs
+`s.rv ≥ req`: G7's target.
+
+**Left (K4-3 on):** (1) `mstepL`'s invariance (`mcreateL`/`mdeleteL`/`mupdateL`/`mgetL`, over the
+helpers above; the new object's revision `L` against `ρ L = R`); (2) the history relation above, its
+preservation by a landed write, a foreign step and `skipToL`; (3) `mlistL` (past reads at an anchor:
+`histN` at a cut revision); (4) `watchOkL`: `changeAtL` of renamed stores, `evAtL`/`eventsInL` over a
+range with cut bounds, `reliableOkL`, `initialPrefixOkL`, `bookmarksOkL` (unchanged: the answer's own
+events); (5) settle: the cluster's pending writes before an operation, in order, as `SettleL` steps at
+`canonAll`'s landings; (6) `FullComplete`'s proof by induction on `SRun`. Open check: `OpAnchors`
+anchors a successful write's `RV` only with a name (Go's `HistoryRevs`), but `targetL` uses `RV - 1` for
+every successful write; if a nameless successful write answer can occur, (1) needs a case.
