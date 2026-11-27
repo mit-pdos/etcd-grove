@@ -100,7 +100,7 @@ theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
   iapply HΦ
   iframe Hlt
   icases Hout with (Hok | ⟨%Herr, #Hke⟩)
-  · ileft; iexact Hok
+  · ileft; iExactEq Hok; rfl
   · iright
     isplitr
     · ipureintro; exact Herr

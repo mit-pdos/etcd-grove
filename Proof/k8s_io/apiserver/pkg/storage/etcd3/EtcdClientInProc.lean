@@ -321,8 +321,10 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     intro cl api ci cd
     simp only [inProcEtcd]
     iintro %Φ ⟨#Pc, ⟨#Hnc, #Hone, #Hregs⟩, #Hkvf, ⟨#Hkv, -⟩, #Hctx, #Hce⟩ HΦ
-    ihave #Hwo := client.clientWriteOnce_api cl api _ $$ [Hkvf Hone]
-    · iframe #
+    ihave #Hwo : client.writeOnce (GF := GF) api (ms.map client.SrvAt.addr) $$ [Hone]
+    · iunfold client.clientWriteOnce at Hone
+      iunfold client.writeOnce
+      iexact Hone
     wp_apply (wp_Txn api (ms.map client.SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, -⟩
     · iframe #
     iapply HΦ
