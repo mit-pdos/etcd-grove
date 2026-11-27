@@ -6,7 +6,7 @@
 # evaluate yet), pending (to witness), draft (not instantiable yet). Only shrinks:
 # `etc/premise-witness.py --check --update` drops the lines nothing needs any more.
 Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust * pending its data binder `qv : QpVocab` has no value without Perennial's sorry'd sync.Map TypedPointsto (MapVocab.tp); the witness needs one (dsv-fix4)
-Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process * pending-b BootFacts (member ids, boot log over ccDecodeV1) not computable in Lean; plus opaque environment premises; Fs start state (HWal)
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_restart_robust_single_process * pending-b BootFacts (member ids, boot log over ccDecodeV1) not computable in Lean; plus opaque environment premises; Fs start state (HWal)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust Henv opaque EtcdEnv: at a deployment with no AuthLease/LeaseCatchup workload exactly the opaque authRecordsFit, apply.backendUnderQuota, grpcRepliesFit, storage.diskOk, leasePeersOk (etcdEnv_iff)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust HEnv opaque EtcdVerifyOff (over the opaque etcdVerifyEnv; holds when unset, etcdVerifyOff_unset)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust Hfips opaque GodebugFips140Off (over the opaque godebugFips140; holds when unset, godebugFips140Off_unset)

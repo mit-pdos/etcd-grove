@@ -23,7 +23,7 @@ import (
 // maxMembers is the driver's own bound on the k-member part's member count (k5).
 const maxMembers = 1000
 
-// idBound is etcd_robust_single_process's bound on the k-member part's member count (ParamsOk's 300,
+// idBound is etcd_restart_robust_single_process's bound on the k-member part's member count (ParamsOk's 300,
 // notes/etcd-unified-scope.md §2.2 B, decision N2): the member count up to which the 16 low bits of
 // the ids of the process's every member are distinct (TestMemberIDs).
 func idBound(pfx string) int {

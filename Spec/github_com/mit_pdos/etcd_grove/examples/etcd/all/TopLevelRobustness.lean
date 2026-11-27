@@ -2,7 +2,7 @@
 
 # `etcd/all`: the single-process closed etcd theorem, stated
 
-`etcd_robust_single_process`: the closed theorem of `examples/etcd/all` (`notes/etcd-unified-scope.md`, the user's
+`etcd_restart_robust_single_process`: the closed theorem of `examples/etcd/all` (`notes/etcd-unified-scope.md`, the user's
 decisions D1-D6 and N1-N7 of 2026-11-21) as an instance of the generic robustness statement
 (`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the machines
 that may crash and restart and of those that never crash, each a fresh Go process, of fewer than `bound`
@@ -52,15 +52,24 @@ This file only states it (to audit); the proof is to be in
 
 **The premises** are the union of the two drivers' theorems': each cluster's member ids and bootstrap
 log (`BootFacts`), the server's opaque workload and environment premises once (`Haf`, `Hbuq`, `Hdbo`),
-the program's addresses and data directories (both clusters', concatenated), `ETCD_VERIFY` off, each
-cluster's named premises (`Hprem…`, at every step bound `n` with `n + 1 ≤ 2 ^ 48`, the bound the proof
-uses), the file system's initial state and the members' WAL areas (`HWal`, both clusters'); and one
+the program's addresses and data directories (both clusters', concatenated), `ETCD_VERIFY` off, the
+file system's initial state and the members' WAL areas (`HWal`, both clusters'); and one
 premise of the composition, `Hlow`: the 16 low bits of the ids of the process's every member (both
 clusters') are distinct, the precondition of the trusted model of etcd's request-id generator
 (`TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: no two generators of the process issue one id),
 checked at the bound by `examples/etcd/all`'s `TestMemberIDs`. The proof does not use it: it states the
 condition under which that trusted model is faithful (each cluster's own `BootFacts` states it for that
 cluster, `BootCore.lowNodup`).
+**`bootstrap`'s contracts** (premises to axioms, 2026-11-27; until then the Iris premises `Hprem₅` and
+`HpremR`, each cluster's named premises): restart1's first start and both clusters' restarts are
+`bootstrap`'s interim axioms' (`bootstrap.wp_proofOne`, `bootstrap.wp_proofRestart`, at Go's values), so the
+statement takes the pure facts that the ids, peers, contexts and directories it names are what `bootstrap`
+computes (`Hbg₅`, `HbgR`: putget's `BootGo1` per member) and `GODEBUG` `fips140` off (`Hfips`, `crypto/sha1`'s
+setting, as the distributed statements). One Iris premise is left, `Hprem₅`: restartN's members' first-start
+contracts (`etcd_restartN.bootPremises`, `bootstrapContract` at each), at every step bound `n` with
+`n + 1 ≤ 2 ^ 48`. No spec of `bootstrap` covers a first start of several members in one process yet: there
+`isMemberBootstrapped` sends `GET /members` to the members already serving, whose answer no protocol of the
+in-process HTTP model constrains (`notes/specs-only/ledger.md`, 2026-11-24, `isMemberBootstrapped.spec`).
 The count is the program's `uint64` argument, any value: the premises indexed by it (`Hlen₅`, `Hbf₅`,
 `Hprem₅`, `Hlow`) are stated at `uint.nat k₅`, and the addresses and data directories (`HAs`, `HDs`,
 `HWal`) are `etcdProgAddrs`/`etcdProgDirs` (`TopLevelDefs.lean`): the clusters' at a count in range,
@@ -72,8 +81,8 @@ the cache driver's package); with that driver gone it is stated on its own, as l
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.TopLevelDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Boot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
@@ -103,12 +112,12 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 
 variable [go_gctx : GoGlobalContext]
 
-/-- **`etcd_safe_single_process` as a robustness statement** (`Robustness.Robust`, `Robustness/Statement.lean`; see
+/-- **`etcd_restart_safe_single_process` as a robustness statement** (`Robustness.Robust`, `Robustness/Statement.lean`; see
 the file header): the program alone on one machine that never crashes, a fresh Go process (`Robust`'s
-premise), under `etcd_safe_single_process`'s other hypotheses: in every execution of fewer than `2 ^ 48` steps
+premise), under `etcd_restart_safe_single_process`'s other hypotheses: in every execution of fewer than `2 ^ 48` steps
 along which fewer than `2 ^ 28` threads are live, no thread is stuck and none has an unrecovered
 panic. -/
-def etcd_robust_single_process.spec : Prop :=
+def etcd_restart_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
@@ -119,6 +128,10 @@ def etcd_robust_single_process.spec : Prop :=
     (Hbf₅ : etcd_restartN.BootFacts ids₅ ps₅ ctxs₅ boot₅)
     (rId : w64) (ctxsR : List (List w8)) (bootR : List LogEntry)
     (HbfR : etcd_restart1.BootFacts rId ctxsR bootR)
+    -- (premises to axioms, 2026-11-27) `bootstrap`'s values are Go's: restartN's members' and restart1's
+    -- member's ids, peers, contexts and directories, as `bootstrap` computes them from each configuration
+    (Hbg₅ : etcd_restartN.BootGoN (uint.nat k₅) ids₅ ps₅ ctxs₅)
+    (HbgR : etcd_restart1.BootGo rId ctxsR bootR)
     -- the process's every member: their ids' 16 low bits distinct (idutil's trusted model)
     (Hlow : ((ids₅ ++ [rId]).map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     -- the server's workload and environment
@@ -127,12 +140,13 @@ def etcd_robust_single_process.spec : Prop :=
     (HAs : addrsUnclaimed (etcdProgram k₅) (etcdProgAddrs k₅))
     (HDs : dataDirsAbsent (etcdProgram k₅) (etcdProgDirs k₅))
     (HEnv : EtcdVerifyOff)
-    -- each cluster's named premises
+    -- `GODEBUG` `fips140` off (`crypto/sha1`, with which `bootstrap` computes the member ids)
+    (Hfips : crypto.fips140.GodebugFips140Off)
+    -- restartN's members' first-start contracts (`bootstrap` at a first start of `k₅` members in one
+    -- process: no spec of `bootstrap` covers it yet, see the header)
     (Hprem₅ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅
+      ⊢ etcd_restartN.bootPremises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅
           ps₅ ctxs₅ boot₅)
-    (HpremR : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdProgDirs k₅)),

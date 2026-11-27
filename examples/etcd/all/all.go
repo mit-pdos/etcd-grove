@@ -1,4 +1,4 @@
-// Package etcdall is the program of the single-process etcd theorem, etcd_robust_single_process
+// Package etcdall is the program of the single-process etcd theorem, etcd_restart_robust_single_process
 // (notes/etcd-unified-scope.md, after notes/k8s-unified-scope.md): the restart part, two etcd examples,
 // each on a cluster of its own, at once, in one process -- restartN on k5 members (a follower stopped
 // and restarted, no acknowledged write lost) and restart1 on one (the one member stopped and

@@ -3,7 +3,7 @@
 # `etcd/all`: the single-process closed etcd theorem over the operational semantics, from `Main`'s triple
 
 `etcd_adequate_of` (`notes/etcd-unified-scope.md` §3.2; `Results.lean` applies it to
-`etcd_all.wp_MainChecked` as `etcd_safe_single_process`; over the net extension since 2026-11-23,
+`etcd_all.wp_MainChecked` as `etcd_restart_safe_single_process`; over the net extension since 2026-11-23,
 `notes/single-process-restore.md`): every real execution of
 `etcdProgram k₅` (`TopLevelDefs.lean`: the package's initialization, then `MainChecked` with restartN's
 member count) from a fresh state with one thread and a network with no connection, of `n` steps
@@ -19,7 +19,7 @@ starting any. The proof of the body: `etcdall`'s `wp_initialize'` and `MainCheck
 hypothesis (`hMain`), so that this module does not import the drivers' linked results (split from
 `AdequacyLinked.lean`).
 
-Its premises are `etcd_robust_single_process.spec`'s (`Spec/.../examples/etcd/all/TopLevelRobustness.lean`) at one `n`;
+Its premises are `etcd_restart_robust_single_process.spec`'s (`Spec/.../examples/etcd/all/TopLevelRobustness.lean`) at one `n`;
 `Hlow` (the condition of idutil's trusted model) is not used by the proof and is stated in
 `Results.lean`.
 -/
@@ -34,6 +34,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.TopLevelDef
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapOne
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapRestart
 
 @[expose] public section
 
@@ -119,18 +121,19 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbf₅ : etcd_restartN.BootFacts ids₅ ps₅ ctxs₅ boot₅)
     (rId : w64) (ctxsR : List (List w8)) (bootR : List LogEntry)
     (HbfR : etcd_restart1.BootFacts rId ctxsR bootR)
+    -- `bootstrap`'s values Go's
+    (Hbg₅ : etcd_restartN.BootGoN (uint.nat k₅) ids₅ ps₅ ctxs₅)
+    (HbgR : etcd_restart1.BootGo rId ctxsR bootR)
     -- the server's workload and environment
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
     -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₅) (etcdProgAddrs k₅))
     (HDs : dataDirsAbsent (etcdProgram k₅) (etcdProgDirs k₅))
-    (HEnv : EtcdVerifyOff)
+    (HEnv : EtcdVerifyOff) (Hfips : crypto.fips140.GodebugFips140Off)
     (n : Nat)
     (Hprem₅ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅ ps₅
+      ⊢ etcd_restartN.bootPremises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅ ps₅
           ctxs₅ boot₅)
-    (HpremR : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdProgDirs k₅))
@@ -168,17 +171,27 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     unfold progOk
     refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf, ?_⟩
-    ihave #Hp5 := Hprem₅ hG
-    ihave #HpR := HpremR hG
+    haveI : ThreadBoundLe etcdGF (2 ^ 28) := ⟨by rw [HT]; word⟩
+    haveI : ThreadBoundLe etcdGF (2 ^ 29) := ⟨by rw [HT]; word⟩
+    haveI : ReceiptBoundLe etcdGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
+    haveI : ReceiptBoundLe etcdGF (2 ^ 60) := ⟨by rw [HN]; omega⟩
+    haveI : ReceiptBoundLe etcdGF (n + 1) := ⟨by rw [HN]; omega⟩
+    ihave #Hbp5 := Hprem₅ hG
     iintro #Hinit Htok ⟨Hms, -⟩
+    -- (premises to axioms, 2026-11-27) the restart contracts and restart1's first-start contract from the
+    -- interim bootstrap axioms (until then in the premises `Hprem₅`, `HpremR`)
+    ihave #Hsrvpkg : isPkgInit (PROP := IProp etcdGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+    · iPkgInit
+    ihave #Hp5 := etcd_restartN.premises_of_specRestart (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
+      (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
+      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg Hbp5
+    ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
     unfold etcd_all.etcdStarts
     icases Hms with ⟨Hms5, HmsR⟩
     icases BigSepL.bigSepL_cons.1 $$ HmsR with ⟨HresR, -⟩
     unfold etcd_restartN.startAddrs
     simp only [BigSepL.bigSepL_map]
-    haveI : ThreadBoundLe etcdGF (2 ^ 28) := ⟨by rw [HT]; word⟩
-    haveI : ReceiptBoundLe etcdGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
-    haveI : ReceiptBoundLe etcdGF (n + 1) := ⟨by rw [HN]; omega⟩
     have hM := hMain hG n k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR (srvLevels_of_max HT)
       Hlen₅ Hbf₅ HbfR (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hdbo
     wp_apply hM $$ [Hms5 HresR Htok]
@@ -205,12 +218,22 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     unfold progOk
     refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf, ?_⟩
-    ihave #Hp5 := Hprem₅ hG
-    ihave #HpR := HpremR hG
-    iintro #Hinit Htok -
     haveI : ThreadBoundLe etcdGF (2 ^ 28) := ⟨by rw [HT]; word⟩
+    haveI : ThreadBoundLe etcdGF (2 ^ 29) := ⟨by rw [HT]; word⟩
     haveI : ReceiptBoundLe etcdGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
+    haveI : ReceiptBoundLe etcdGF (2 ^ 60) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe etcdGF (n + 1) := ⟨by rw [HN]; omega⟩
+    ihave #Hbp5 := Hprem₅ hG
+    iintro #Hinit Htok -
+    -- (premises to axioms, 2026-11-27) the restart contracts and restart1's first-start contract from the
+    -- interim bootstrap axioms (until then in the premises `Hprem₅`, `HpremR`)
+    ihave #Hsrvpkg : isPkgInit (PROP := IProp etcdGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+    · iPkgInit
+    ihave #Hp5 := etcd_restartN.premises_of_specRestart (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
+      (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
+      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg Hbp5
+    ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
     have hM := hMain hG n k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR (srvLevels_of_max HT)
       Hlen₅ Hbf₅ HbfR (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hdbo
     wp_apply hM $$ [Htok]

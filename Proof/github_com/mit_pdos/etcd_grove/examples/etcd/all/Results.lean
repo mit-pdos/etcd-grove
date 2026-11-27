@@ -1,21 +1,21 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/all`: the single-process closed etcd theorem, `etcd_safe_single_process`
+# `etcd/all`: the single-process closed etcd theorem, `etcd_restart_safe_single_process`
 
 The program of `examples/etcd/all` runs the restart part in one process (the statement's header,
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`): restartN on `k₅`
 members and restart1 on one, at once, each on a cluster of its own. Each driver panics if its check
 fails. (Until 2026-11-27 the program also ran the KV, Auth and Lease parts, nine more drivers.)
 
-`etcd_safe_single_process` (`etcd_safe` until the net swap, 2026-11-22, whose name the distributed theorem
+`etcd_restart_safe_single_process` (`etcd_safe` until the net swap, 2026-11-22, whose name the distributed theorem
 took; restored 2026-11-23 over the net extension, `notes/single-process-restore.md`) is `etcd_adequate_of` (`Adequacy.lean`) applied to `MainChecked`'s linked triple
 (`MainLinked.lean`'s `etcd_all.wp_MainChecked`, over `Main`'s, itself over the two drivers' linked
 `Main` results): in every real
 execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, from a
 fresh state with one thread, no thread is stuck, none has ended in a panic, and the main thread's
-result, if any, is `#()`. Its premises are `etcd_robust_single_process.spec`'s, at one `n`; `Hlow` (`_Hlow`: the 16
+result, if any, is `#()`. Its premises are `etcd_restart_robust_single_process.spec`'s, at one `n`; `Hlow` (`_Hlow`: the 16
 low bits of the ids of all the process's members distinct, the condition of idutil's trusted model) is
-stated, not used. `TopLevelRobustness.lean` restates it as `etcd_robust_single_process`.
+stated, not used. `TopLevelRobustness.lean` restates it as `etcd_restart_robust_single_process`.
 -/
 module
 
@@ -69,7 +69,7 @@ process, for every member count (`MainChecked` runs it when `3 ≤ k₅ ≤ 300`
 every real execution of `n` steps (`n + 1 ≤ 2 ^ 48`) from a fresh state with one thread and a network
 with no connection, along which fewer than `2 ^ 28` threads are live, no thread is stuck, none has ended
 in a panic, and the main thread's result, if any, is `#()`. -/
-theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
+theorem etcd_restart_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
@@ -79,6 +79,9 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbf₅ : etcd_restartN.BootFacts ids₅ ps₅ ctxs₅ boot₅)
     (rId : w64) (ctxsR : List (List w8)) (bootR : List LogEntry)
     (HbfR : etcd_restart1.BootFacts rId ctxsR bootR)
+    -- `bootstrap`'s values Go's
+    (Hbg₅ : etcd_restartN.BootGoN (uint.nat k₅) ids₅ ps₅ ctxs₅)
+    (HbgR : etcd_restart1.BootGo rId ctxsR bootR)
     -- the process's every member: their ids' 16 low bits distinct (idutil's trusted model)
     (_Hlow : ((ids₅ ++ [rId]).map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     -- the server's workload and environment
@@ -86,13 +89,11 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₅) (etcdProgAddrs k₅))
     (HDs : dataDirsAbsent (etcdProgram k₅) (etcdProgDirs k₅))
-    (HEnv : EtcdVerifyOff)
+    (HEnv : EtcdVerifyOff) (Hfips : crypto.fips140.GodebugFips140Off)
     (n : Nat)
     (Hprem₅ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅ ps₅
+      ⊢ etcd_restartN.bootPremises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅ ps₅
           ctxs₅ boot₅)
-    (HpremR : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdProgDirs k₅))
@@ -104,15 +105,15 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate_of (fun hG => etcd_all.wp_MainChecked (GF := etcdGF) (hG := etcdHeapAt hG lctx))
-    k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Haf Hbuq Hdbo HAs HDs HEnv
-    n Hprem₅ HpremR σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hbg₅ HbgR Haf Hbuq Hdbo HAs HDs HEnv Hfips
+    n Hprem₅ σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 
 #print axioms etcd_all_Main
 #print axioms etcd_all_MainChecked
 #print axioms etcd_adequate_of
-#print axioms etcd_safe_single_process
+#print axioms etcd_restart_safe_single_process
 
 end EtcdGrove
 end Perennial

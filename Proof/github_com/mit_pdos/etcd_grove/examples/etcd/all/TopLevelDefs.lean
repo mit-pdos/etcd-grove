@@ -2,7 +2,7 @@
 
 # `etcd/all`: the definitions its top-level statement is written in
 
-The program the single-process closed etcd theorem (`etcd_safe_single_process`, `notes/etcd-unified-scope.md`;
+The program the single-process closed etcd theorem (`etcd_restart_safe_single_process`, `notes/etcd-unified-scope.md`;
 retired at the net swap as `etcd_safe`, restored 2026-11-23 over the net extension, `notes/single-process-restore.md`)
 is about, and the
 other definitions its statement names: the ghost-state bundle (partition's `linkvGF`, renamed: the

@@ -1,7 +1,7 @@
 /-
 `ParamsOk(k5)` (`examples/etcd/all/checked.go`; the pure-premises plan's P4, 2026-11-24): whether
 `Main`'s parameter is in the range its proof covers, `paramsOk`. Until then that range was a premise of
-the closed theorem (`etcd_robust_single_process.spec`'s `hk₅`); `MainChecked` now checks it and returns
+the closed theorem (`etcd_restart_robust_single_process.spec`'s `hk₅`); `MainChecked` now checks it and returns
 when it fails. Lean-first (no Rocq counterpart).
 -/
 module

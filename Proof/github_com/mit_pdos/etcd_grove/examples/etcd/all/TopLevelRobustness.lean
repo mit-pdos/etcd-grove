@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-The proof of `etcd_robust_single_process.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`):
-`etcd_safe_single_process` (`Results.lean`) for every execution of fewer than `2 ^ 48` steps, by
+The proof of `etcd_restart_robust_single_process.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`):
+`etcd_restart_safe_single_process` (`Results.lean`) for every execution of fewer than `2 ^ 48` steps, by
 `robust_of_single_below_init` (`Robustness.Robust.of_single_below` with the extensions' initial states).
 -/
 module
@@ -34,16 +34,16 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 
 variable [go_gctx : GoGlobalContext]
 
-/-- `etcd_robust_single_process.spec`
+/-- `etcd_restart_robust_single_process.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`). -/
-theorem etcd_robust_single_process : etcd_robust_single_process.spec := by
-  intro lctx sem package_sem cache_sem _ k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hlow Haf Hbuq
-    Hdbo HAs HDs HEnv Hprem₅ HpremR σ g Hfs HWal
+theorem etcd_restart_robust_single_process : etcd_restart_robust_single_process.spec := by
+  intro lctx sem package_sem cache_sem _ k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hbg₅ HbgR Hlow
+    Haf Hbuq Hdbo HAs HDs HEnv Hfips Hprem₅ σ g Hfs HWal
   exact
     robust_of_single_below_init fun hf hg _ n κs t2 σ2 hn Hsteps =>
-      (etcd_safe_single_process
-        k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hlow Haf Hbuq Hdbo HAs HDs HEnv n
-        (Hprem₅ n (by omega)) (HpremR n (by omega)) σ g hg Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2
+      (etcd_restart_safe_single_process
+        k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hbg₅ HbgR Hlow Haf Hbuq Hdbo HAs HDs HEnv
+        Hfips n (Hprem₅ n (by omega)) σ g hg Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2
         Hsteps (by omega)).2
 
 end adequacy
