@@ -22,13 +22,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 /-- `NewConsistentIndex(be)`: a consistent index with index 0 (not loaded yet), applying
-index 0, and backend `be`, as a `ConsistentIndexer`. -/
+index 0, and backend `be`, as a `ConsistentIndexer`; (keepfix-d, 2026-11-27) its pair predicate the
+caller's `P`. -/
 abbrev NewConsistentIndex.spec : Prop :=
-  ∀ (be : GoInterface),
+  ∀ (be : GoInterface) (P : w64 → w64 → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex }}
     (App (Val (@! NewConsistentIndex)) (Val #be))
   {{ (ci : Loc) (γ : CINames), RET #(interface.mkOk (go.GoType.PointerType consistentIndex.ty) #ci);
-      isCI ci γ ∗ ciIdx γ (W64 0) ∗ ciApplying ci (W64 0) (W64 0) ∗ ciOwner ci be }}
+      ⌜γ.P = P⌝ ∗ isCI ci γ ∗ ciIdx γ (W64 0) ∗ ciApplying ci (W64 0) (W64 0) ∗ ciOwner ci be }}
 
 end spec
 

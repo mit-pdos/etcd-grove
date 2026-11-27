@@ -15,10 +15,16 @@ variable mirroring the index; the client holds the other half (`ciIdx γ k`), wh
 keeps in its own invariant. The specs of the operations that read or write the index are
 logically atomic, in Perennial's style for `sync/atomic`: the caller passes a fancy update
 that, at the moment the index is read or stored, hands over `ciIdx γ k` and gets it back
-(updated). The term is not mirrored: it is whatever was last stored, and only the
-backend's copy of it is ever read back. `SetConsistentIndex` stores the index, *then* the
-term: two atomic steps, so a concurrent `UnsafeSave` can save a new index with the old term
-(see notes/decisions.md); the specs say nothing about the term for that reason.
+(updated). The term is not mirrored: only the backend's copy of it is ever read back.
+(keepfix-d, 2026-11-27: until then `SetConsistentIndex` stored the index, *then* the term, in two
+atomic steps, so a concurrent `UnsafeSave` could save a new index with the old term,
+`nonissues/etcd-cindex-torn-index-term.md`, and the specs said nothing about the term.) The fork
+makes the pair one: `SetConsistentIndex` and `UnsafeSave` both hold `pairMu`, and the index is
+stored only under it. The pair's invariant (`ciPairInv`, the mutex's) holds the term and a second
+mirror of the index (`γ.pk`, its other half in `ciInv`), so that the holder of `pairMu` knows the
+index, and keeps the client's **pair predicate** `γ.P k t` for a non-zero index `k`: the server's
+is "`t` is the committed term of `k`" (the boot step's snapshot label). `UnsafeSave` gives the
+predicate of the pair it saves.
 
 **The applying index** (`applyingIndex`/`applyingTerm`) is only ever accessed by the apply
 thread, which owns the two fields outright (`ciApplying`).
@@ -98,6 +104,7 @@ abbrev ciAppIdxAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"apply
 abbrev ciAppTermAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"applyingTerm" ci
 abbrev ciBeAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"be" ci
 abbrev ciMutexAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"mutex" ci
+abbrev ciPairMuAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"pairMu" ci
 
 end addrs
 
@@ -108,6 +115,11 @@ abbrev ciN : Namespace := nroot.@"cindex"
 structure CINames where
   /-- `ghostVar w64`: the index (half in `ciInv`, half the client's `ciIdx`) -/
   idx : GName
+  /-- (keepfix-d) `ghostVar w64`: the index again (half in `ciInv`, half in `ciPairInv`) -/
+  pk : GName
+  /-- (keepfix-d) the client's pair predicate: every stored non-zero index `k` with term `t` has
+  `P k t` -/
+  P : w64 → w64 → Prop
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -129,9 +141,15 @@ theorem ciIdx_agree (γ : CINames) (k k0 : w64) :
   icombine H1 H2 gives %Heq
   ipureintro; exact Heq.2
 
-/-- The index and term fields, with the invariant's half of the index's mirror. -/
+/-- The index field, with the invariant's halves of the index's two mirrors. (keepfix-d: the term
+field moved to `ciPairInv`.) -/
 def ciInv (ci : Loc) (γ : CINames) : IProp GF :=
-  iprop(∃ (k t : w64), ciIdxAddr ci ↦ k ∗ ghostVar γ.idx (1 : Qp).half k ∗ ciTermAddr ci ↦ t)
+  iprop(∃ k : w64, ciIdxAddr ci ↦ k ∗ ghostVar γ.idx (1 : Qp).half k ∗ ghostVar γ.pk (1 : Qp).half k)
+
+/-- (keepfix-d) **The pair mutex's invariant**: the term field, the other half of the index's
+second mirror, and the pair predicate of the stored pair. -/
+def ciPairInv (ci : Loc) (γ : CINames) : IProp GF :=
+  iprop(∃ k t : w64, ghostVar γ.pk (1 : Qp).half k ∗ ciTermAddr ci ↦ t ∗ ⌜k ≠ W64 0 → γ.P k t⌝)
 
 /-- The mutex's half of the backend field. -/
 def ciLockInv (ci : Loc) : IProp GF :=
@@ -139,7 +157,8 @@ def ciLockInv (ci : Loc) : IProp GF :=
 
 /-- `ci` is a consistent index with ghost names `γ` (persistent). -/
 def isCI (ci : Loc) (γ : CINames) : IProp GF :=
-  iprop(inv ciN (ciInv ci γ) ∗ sync.isMutex (ciMutexAddr ci) (ciLockInv ci))
+  iprop(inv ciN (ciInv ci γ) ∗ sync.isMutex (ciMutexAddr ci) (ciLockInv ci) ∗
+    sync.isMutex (ciPairMuAddr ci) (ciPairInv ci γ))
 
 instance isCI_persistent (ci : Loc) (γ : CINames) : Persistent (isCI (GF := GF) ci γ) := by
   unfold isCI; infer_instance

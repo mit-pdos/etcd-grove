@@ -45,17 +45,30 @@ variable [sem : go.Semantics]
 
 open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
+/-- **The backend's stored term is the term of the committed entry at its stored index** (T10s3b-12,
+`notes/keepguard-optD/t10-t4-impact.md` §3 item 6): of the last entry of the committed prefix `A` the image
+is of (`A`'s indices run `ai0 + 1 … i`, so its last entry is the one at `i`). Vacuous for `A = []` (`i = ai0`:
+the data this incarnation booted from, whose term row is the crash image's, §3 item 3). Supplied at each
+commit by the cindex pair's predicate (§3 item 5: the stored `(k, t)` with `t` the term of committed entry
+`k`) and Log Matching between the two committed prefixes. Entry terms are at least 1, so `encMeta` is the
+written key. -/
+def bkTermRow (A : List EntryModel) (D : Data) : Prop :=
+  ∀ e, A.getLast? = some e → dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
+    go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta e.term
+
 /-- **The image facts of the backend data `D` at index `i`** (T10): a committed prefix `A` of the
 server's log reaching `i`, `D`'s rest buckets and stored index (`imageRestAt`), its `Key` bucket mvcc's
 image of the KV model of `A` (`mvccImage`), the image's state reachable (`imageStOk`), the membership at
 `i` (`confAt`) and the stored `confState` (`confRowW`). `srvCrashImageAt`'s backend rows, without the
-file and the snapshot counter. -/
+file and the snapshot counter. (T10s3b-12, the boot fix (D), `notes/keepguard-optD/t10-t4-impact.md` §3 item 6:
+and the stored term is the term of `A`'s last entry, the committed entry at `i`, `bkTermRow`: the supply of the
+crash image's guarded term row, which the boot step's term check reads.) -/
 def bkImg (γ : SrvRaft) (ρ : ReqNames) (i : w64) (A : List EntryModel) (D : Data) (m : Membership) :
     IProp GF :=
   iprop(srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
       imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
-      imageStOk (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A)⌝ ∗
+      imageStOk (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) ∧ bkTermRow A D⌝ ∗
     (∃ u : Bool, mvcc.api.mvccImage D (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) u) ∗
     confAt γ.cl (uint.nat i) m ∗ confRowW γ.cl i D m)
 

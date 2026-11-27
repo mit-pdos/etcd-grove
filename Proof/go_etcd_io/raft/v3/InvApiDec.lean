@@ -218,6 +218,15 @@ theorem confAt_agree_impl (γ : Cluster) (k : Nat) (m1 m2 : Membership) :
   obtain ⟨hk2, c2, g2, hm2, hf2⟩ := P2
   exact fold_agree hm1 hm2 Hc Hl hk1 hk2 hf1 hf2
 
+/-- The configuration at `k` is recorded over a committed log at least `k` long. -/
+theorem confAt_committed_impl (γ : Cluster) (k : Nat) (m : Membership) :
+    confAtU (GF := GF) γ k m ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜k ≤ l.length⌝ := by
+  unfold confAtU
+  iintro ⟨%l, %M, #H, -, %P⟩
+  iexists l
+  iframe H
+  ipureintro; exact P.1
+
 /-- (2026-10-29, stage U5) **Every committed conf entry decodes** (`committed_confDecodes`). -/
 theorem committed_confDecodes_impl (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     isClusterU (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢

@@ -51,8 +51,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-/- (T10 session 10) Generic over the apply protocol's image row `IR` where the row plays no part. -/
-variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
+/- (T10 session 10) Generic over the apply protocol's image row `Rw` where the row plays no part. -/
+variable {Rw : TRow GF}
 
 -- (the mvcc merge, 2026-11-06) `lean`'s `backend.Snapshot.spec_of_specF2` and
 -- `srvBeSnapOk_of_backend` (F2's route over `backend.Snapshot`'s view) are dropped: the window's
@@ -120,7 +120,7 @@ theorem commitReq_freeze
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA IR) ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ⊢
       backend.commitReq γ P (batchLockInv γA (metaTM γ P)) b (applyThread γA s)
         (freezeY γA s) := by
   iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hb, #Hci, #Hinv⟩
@@ -132,7 +132,7 @@ theorem commitReq_freeze
   iframe Ht Hhk
   iapply hooksReq_backendHooks hOn γ P W _ b t bh _ lgh hH
   iframe Hspkg Hbpkg Hsch Hh Hb Ht
-  iapply ci_saveFreeze (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH s hps
+  iapply ci_saveFreeze (Rw := Rw) hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH s hps
   iframe #
 
 
@@ -590,7 +590,7 @@ theorem mergedCreate_window_replay
     (batchLockInv γ (metaTM B'.γB B'.P)) B'.be (storage.hooksIface bh) $$ [HB HhkAt]
   · iframe #
   -- the commit's request: the window opened (`commitReq_freeze`)
-  ihave #Hreq := commitReq_freeze (IR := fun _ _ => iprop(True)) hOn hSave hPut hUR hID hName hSafe γ ci B'.γB B'.P
+  ihave #Hreq := commitReq_freeze (Rw := TRow.triv) hOn hSave hPut hUR hID hName hSafe γ ci B'.γB B'.P
     (mvcc.api.mvccW gx) B'.be bh lgh hcK hhP st hok.1
     $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
   · iframe #

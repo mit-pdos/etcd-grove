@@ -37,6 +37,7 @@ noncomputable instance consistentIndex_typed_pointsto :
     "applyingTerm" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"applyingTerm" l) v.applyingTerm' dq ∗
     "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"be" l) v.be' dq ∗
     "mutex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"mutex" l) v.mutex' dq ∗
+    "pairMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"pairMu" l) v.pairMu' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -139,6 +140,22 @@ noncomputable instance consistentIndex_access_store_mutex (l : Loc) (v : go_etcd
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"mutex" l) v.mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"mutex" l) mutex' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mutex' := mutex' } : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance consistentIndex_access_load_pairMu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"pairMu" l) v.pairMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"pairMu" l) v.pairMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance consistentIndex_access_store_pairMu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (pairMu' : _root_.Perennial.sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"pairMu" l) v.pairMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"pairMu" l) pairMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pairMu' := pairMu' } : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

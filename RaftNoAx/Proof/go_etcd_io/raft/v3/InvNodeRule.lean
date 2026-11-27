@@ -556,6 +556,12 @@ theorem confAt_valid (γ : Cluster) (k : Nat) (m : Membership) :
     confAt (GF := GF) γ k m ⊢ ⌜m.Valid⌝ := by
   unfold confAt; exact ApiImpl.confAt_valid_impl γ k m
 
+/-- **A configuration is recorded only over the committed log** (T10 step 3 (B), B8): the
+membership at `k` is at most the committed log's length. -/
+theorem confAt_committed (γ : Cluster) (k : Nat) (m : Membership) :
+    confAt (GF := GF) γ k m ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜k ≤ l.length⌝ := by
+  unfold confAt isCommittedLogLb; exact ApiImpl.confAt_committed_impl γ k m
+
 /-- **Every committed conf entry decodes** (2026-10-29, stage U5): the leader decodes every conf
 entry it appends (`raft.go:1320`, raft's own automatic leave by `ccDecodeV2_nil`), so an application
 that decodes a committed one never fails. -/

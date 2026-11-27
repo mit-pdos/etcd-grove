@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 theorem NewConsistentIndex.wp_proof :
     NewConsistentIndex.spec (GF := GF) (hG := hG) := by
-  intro be
+  intro be P
   wp_start
   wp_auto
   wp_alloc ci as Hci
@@ -34,22 +34,30 @@ theorem NewConsistentIndex.wp_proof :
   imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γi, Hg⟩
   icases ghostVar_split γi (W64 0) (1 : Qp).half (1 : Qp).half $$ [Hg] with ⟨Hg1, Hg2⟩
   · rw [Qp.half_add_half]; iexact Hg
-  imod inv_alloc ciN ⊤ (ciInv (hG := hG) ci ⟨γi⟩) $$ [consistentIndex term Hg2] with #Hinv
+  imod ghostVar_alloc (GF := GF) (W64 0) with ⟨%γk, Hk⟩
+  icases ghostVar_split γk (W64 0) (1 : Qp).half (1 : Qp).half $$ [Hk] with ⟨Hk1, Hk2⟩
+  · rw [Qp.half_add_half]; iexact Hk
+  imod inv_alloc ciN ⊤ (ciInv (hG := hG) ci ⟨γi, γk, P⟩) $$ [consistentIndex Hg2 Hk1] with #Hinv
   · inext
     iunfold ciInv
-    iexists (W64 0), (W64 0)
+    iexists (W64 0)
     iframe
+  imod sync.init_Mutex (ciPairInv (hG := hG) ci ⟨γi, γk, P⟩) ⊤ (ciPairMuAddr ci) $$ pairMu [term Hk2]
+    with #Hpmu
+  · inext; iunfold ciPairInv; iexists (W64 0), (W64 0); iframe
+    ipureintro; intro h; exact absurd rfl h
   ihave ⟨Hbe1, Hbe2⟩ := (ciBe_halves ci be).2 $$ be
   imod sync.init_Mutex (ciLockInv (hG := hG) ci) ⊤ (ciMutexAddr ci) $$ mutex [Hbe1] with #Hmu
   · inext; iunfold ciLockInv; iexists be; iexact Hbe1
   wp_auto
-  iapply HΦ $$ %ci %(⟨γi⟩ : CINames)
+  iapply HΦ $$ %ci %(⟨γi, γk, P⟩ : CINames)
   iunfold isCI
   iunfold ciIdx
   iunfold ciApplying
   iunfold ciOwner
-  iframe Hinv Hmu Hg1 Hbe2
+  iframe Hinv Hmu Hpmu Hg1 Hbe2
   iframe
+  ipureintro; rfl
 
 end proof
 

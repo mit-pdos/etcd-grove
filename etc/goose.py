@@ -448,7 +448,18 @@ PROJECTS = [
         # issues/etcd-lease-timetolive-keys-toctou.md).
         # The two combined (etcd-safe-integ, 2026-11-26): 30df685e4, branch
         # `goose-lean-discardfix-ttlkeys`, d26dd5da6 cherry-picked onto 251a430ce.
-        rev="30df685e43e2270c63b6cddc7aa183f905b07b0a",
+        # Then (the keep guard's replacement, 2026-11-27, mit-pdos/etcd-grove#50; Upamanyu's decision:
+        # a boot-only fix) branch `keepfix-d-term/2026-11-27` (b1512efdd, on 251a430ce): 47d6cdeeb
+        # reverted; cindex saves the consistent index with its own term (one mutex for the pair:
+        # nonissues/etcd-cindex-torn-index-term.md); at restart, when the backend's consistent index
+        # ci is above the WAL's commit, `bootstrap` brings the WAL to ci (the hard state's commit
+        # raised to ci, or a snapshot record at ci and then that hard state), so raft starts with its
+        # commit at ci and refuses every snapshot at or below it; the member's raft term saved with
+        # the consistent index (~/coordinator-notes/plans/keepfix-d-design.md).
+        # The three combined (etcd-safe-crashsync, 2026-11-27): 780d689f6, branch
+        # `goose-lean-crashsync/2026-11-27`: d26dd5da6 with the crash line's commits (df6af0c36..251a430ce)
+        # and keepfix's (251a430ce..b1512efdd) cherry-picked onto it.
+        rev="780d689f60d89277042528a835e0e916650af800",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)

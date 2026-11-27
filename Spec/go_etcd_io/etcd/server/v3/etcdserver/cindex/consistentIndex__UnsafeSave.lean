@@ -24,14 +24,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 /-- `ci.UnsafeSave(tx)` (by the holder of the batch transaction's lock, whose meta keys are
 `TM m`) reads the index (the linearization point: the caller learns it is `k` and must know
 that a non-zero `k` is not below the stored index, which etcd checks under `ETCD_VERIFY`),
-then some term `t`, and writes them: the meta keys become `metaAfterSave m k t`. -/
+then the term `t` stored with it, and writes them: the meta keys become `metaAfterSave m k t`.
+(keepfix-d, 2026-11-27) Both reads are under the pair mutex, so `t` is the term stored with `k`,
+and the pair has the client's predicate (`γ.P k t`, for a non-zero `k`); until then the post was
+for any `t`. -/
 abbrev consistentIndex.UnsafeSave.spec : Prop :=
   ∀ (ci : Loc) (γ : CINames) (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF)
     (m : MetaCI),
   ⊢ ∀ Φ : val → IProp GF,
     (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt) -∗
     (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ k ={∅, ⊤ \ ↑ciN}=∗
-      ⌜k ≠ W64 0 → uint.Z m.1 ≤ uint.Z k⌝ ∗ ∀ t : w64, TM (metaAfterSave m k t) -∗ Φ #())) -∗
+      ⌜k ≠ W64 0 → uint.Z m.1 ≤ uint.Z k⌝ ∗
+        ∀ t : w64, ⌜k ≠ W64 0 → γ.P k t⌝ -∗ TM (metaAfterSave m k t) -∗ Φ #())) -∗
     WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave")) (Val #(GoInterface.ok tx))) {{ Φ }}
 
 end spec

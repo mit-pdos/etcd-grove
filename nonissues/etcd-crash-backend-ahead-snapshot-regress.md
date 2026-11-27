@@ -17,8 +17,8 @@ the backend back from `i` to `k` until the entries after `k` are applied again.
 
 **Why not an issue:** no client sees the backward move: the member serves clients only after it
 has applied its own publish entry, which is above `i`. The first half (backend ahead of the WAL
-after a kill -9) is shown by a test; the snapshot at `k < i` is found by code reading and needs a
-correlated crash of the leader too.
+after a kill -9) is shown by a test; the snapshot at `k < i` is found by code reading and needs only
+a live leader whose apply loop lags its commit index.
 
 ## Evidence (etcd fork pin `6b942d23f4`, raft v3.7.0)
 
@@ -51,15 +51,19 @@ correlated crash of the leader too.
    (`raft/v3@v3.7.0/raft.go:1861-1862`, `:1911-1918`). `applySnapshot` panics only on
    `Index <= ep.appliedi` (`server.go:1049`). After that check it opens the snapshot's backend and restores lease, mvcc,
    alarm, auth and membership from it (`:1060-1180`), whatever the old backend's consistent index.
-3. **Reachability of `k < i`: needs the leader to crash too (inference, not tested).** With the
-   fork's sender repair, the merged snapshot's index is `max(applied, backend consistent index)` of
-   the leader (`snapshot_merge.go:38-40`). So `k < i` needs a leader whose applied state is below
-   the follower's backend. A live leader applied `i` before the follower learned it was committed.
-   So the leader must be a member restarted with its durable commit below `i` and its backend not
-   yet past it. That happens if it lost power after sending commit `i` (a leader sends before `Save`,
-   `raft.go:259-263`; a commit-only `HardState` is not fsynced, raft#300) and before its backend
-   commit. Every member durably holding commit `i` must stay down. Its disk snapshot must also lie
-   above the follower's WAL, so that it sends a snapshot.
+3. **Reachability of `k < i`: a live leader whose apply loop lags (inference; the lag observed).**
+   With the fork's sender repair, the merged snapshot's index is `max(applied, backend consistent
+   index)` of the leader (`snapshot_merge.go:38-40`). So `k < i` needs a leader whose applied state is
+   below the follower's backend, and a live leader suffices: its raft loop hands a `Ready` to the apply
+   loop (`raft.go:251-253`) and sends its messages, which carry the commit index, right after
+   (`:259-263`), without waiting for the apply. The follower can so learn of commit `i` and apply it
+   while the leader's apply loop is still below `i`; etcd lets the applied index lag the commit index
+   by up to 5000 entries (`maxGapBetweenApplyAndCommitIndex`, `v3_server.go:51`) before refusing
+   proposals. coordinator-E (T10s3b, 2026-11-27) observed a live leader at applied 11 while a follower
+   had applied 31. If the follower then crashes and restarts while the leader still lags, and the
+   leader's raft log is compacted above the follower's WAL, the leader sends a snapshot at its applied
+   index `k < i`. (An earlier version of this note said `k < i` needs the leader to crash too, with its
+   durable commit below `i`; that is one way, not the only one.)
 4. **Not client-visible.** Client listeners serve only after `ReadyNotify`
    (`server/embed/serve.go:133-136`). `readych` closes when `publishV3`'s request returns
    (`server.go:1854-1856`), that is, after this member has applied the publish entry. That entry is
@@ -80,6 +84,14 @@ the backend never moves back. `TestApplySnapshotBelowBackend` (`server/etcdserve
 snapshot_below_backend_test.go`) calls `applySnapshot` with snapshots at 5 and 7 below or at a backend
 at 7: the backend is kept and the applied state moves; without the guard it panics opening the
 snapshot's database. Upstream-ready as a hardening (the regression is not client-visible, above).
+
+The keep branch first left the cluster configuration and the transport's peers as the restart replay
+set them: that replay (entries at or below the consistent index) sets member attributes, peer URLs, the
+cluster version, the downgrade info and the transport's peers in memory only, from entries older than
+the backend, and the entries that would set them back are covered by the snapshot. The fork's
+`goose-lean-discardfix-ttlkeys-keepfix` (a453b08a1, on 30df685e4) also recovers the cluster from the
+kept backend (`s.cluster.Recover`), rebuilds the transport's peers from it and releases the older
+WAL and snapshot files, as the replacing path does (`TestApplySnapshotBelowBackendRecoversCluster`).
 
 ## Proof
 

@@ -203,7 +203,7 @@ theorem EtcdServer.snapshot.wp_proof
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #()))
-      iapply (wp_ci_get (IR := fun _ _ => iprop(True)) hCI γ ci b st Hloop.1) $$ [Hst Hbe]
+      iapply (wp_ci_get (Rw := TRow.triv) hCI γ ci b st Hloop.1) $$ [Hst Hbe]
       · iframe #; iframe
       iintro ⟨Hst, Hbe⟩
       wp_apply hVer snap' (memSnapMade ai at' c []) (ciEff γ st.k) (by exact Hci) $$ []
@@ -339,7 +339,7 @@ theorem EtcdServer.snapshot.wp_proof
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #()))
-      iapply (wp_ci_get (IR := fun _ _ => iprop(True)) hCI γ ci b st Hloop.1) $$ [Hst Hbe]
+      iapply (wp_ci_get (Rw := TRow.triv) hCI γ ci b st Hloop.1) $$ [Hst Hbe]
       · iframe #; iframe
       iintro ⟨Hst, Hbe⟩
       wp_apply hVer snap' (memSnapMade ai at' c []) (ciEff γ st.k) (by exact Hci) $$ []

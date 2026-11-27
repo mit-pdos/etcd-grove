@@ -97,6 +97,32 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   after `[ρ]`; `AdequacyClient.orchBoot` binds them, discharged from `EtcdBootNCAt`'s. `etcd_safe_nocrash` and
   `etcd_robust_nocrash.spec` unchanged.
 - **Decision.** Accepted: approved by lead 2026-11-26 (branch `etcd-safe-f7-rlog`).
+## 2026-11-27: the cindex specs -- the saved term is unconstrained; the Go race that kept it so is fixed (keepfix-d, fork 01b0497d0)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/cindex/`: `NewConsistentIndex.spec`,
+  `consistentIndex.{SetConsistentIndex,UnsafeSave,ConsistentIndex,UnsafeConsistentIndex}.spec`; the vocabulary
+  `isCI`/`ciInv`/`CINames` (`Proof/.../etcdserver/InvCindex.lean`). No `SpecPlan/` counterpart.
+- **Defect.** Too weak for the keep guard's replacement: `UnsafeSave`'s post gives `TM (metaAfterSave m k t)` for any
+  `t` (`∀ t`), because `SetConsistentIndex` stored the index and the term in two atomic steps, and a concurrent
+  `UnsafeSave` could save a new index with the old term (the file header, "the specs say nothing about the term for
+  that reason"). The boot step (`catchUpWithBackend`) labels raft's start snapshot with the stored term, so the crash
+  image needs "the stored term is the committed term of the stored index" (T10's row, keepfix-d row 4), which
+  starts here.
+- **Evidence.** `nonissues/etcd-cindex-torn-index-term.md`: the torn pair at upstream 4e090c033 and at the pin
+  251a430ce (`TestEmptyEntrySavesConsistentIndexWithItsTerm`). The fork fix (`pairMu`, one mutex for the pair in
+  `SetConsistentIndex` and `UnsafeSave`) breaks the two proofs (VM build of `etcd-safe-keepfix/2026-11-27`,
+  `consistentIndex__SetConsistentIndex.lean:34`, `consistentIndex__UnsafeSave.lean:41`).
+- **Proposed change.** A pair predicate `P : w64 → w64 → Prop`, the client's (`CINames.P`, chosen at
+  `NewConsistentIndex`), kept by the pair mutex's invariant for every non-zero stored index:
+  - `SetConsistentIndex.spec`: a new premise `⌜v ≠ 0 → γ.P v term⌝` (stronger premise);
+  - `UnsafeSave.spec`: the post's term `t` comes with `⌜k ≠ 0 → γ.P k t⌝` (stronger post);
+  - `ConsistentIndex.spec`/`UnsafeConsistentIndex.spec`: the slow path stores the pair it read from the backend, so
+    the read's continuation owes `⌜m.1 ≠ 0 → γ.P m.1 m.2⌝` (stronger premise);
+  - `NewConsistentIndex.spec`: `∀ P`, the post's `γ.P = P`.
+  Callers (all in `etcdserver`) supply `P`: the server's instance is "the committed term of the index" (T10); until
+  T10 lands, `fun _ _ => True` keeps every caller's obligation trivial.
+- **Decision.** Accepted (the etcd_safe lead, 2026-11-27, keepfix-d row 7; untrusted: specs of proved functions, no
+  axiom states them).
 
 ## 2026-11-26: `rnDurBodyK` and its step laws -- the body keeps the WAL's records as the eager fold (`walRecsH`) of the history, which a restart's history does not have (D6-T2 / P5 (b) steps 2-5, etcd-safe-p5)
 ## 2026-11-26: F7 auth-on dist drafts -- free auth names `A` let a caller refute every member-local success arm
@@ -10122,3 +10148,118 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (`SpecPlan/Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`); the
   post is unchanged. No top-level statement changes.
 - **Decision.** Upamanyu, through coordinator-E (#24 7225943254: a Go model overlay, not a TrustedCode model).
+## 2026-11-27: `EtcdServer.applyAll.specBatch`: the replay job comes through `notifyc`'s first send (T10s3b B3; draft under option (a))
+
+- **Spec.** `EtcdServer.applyAll.specBatch` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`).
+- **Defect.** Its precondition takes the batch's replay job (`taReplayBatch ap γn rt n`, `rnReplayJob`) with the
+  payload. In the crash window (`|a0| > commit0`, B6) raft can build that job only from the history form (the
+  replayed runs describe the durable state `S` the batch enters, `rnReplayHist`) and L2's law at `S`
+  (`rnLeadLaw`, raft's `raftState_leadAgree`), and the law exists only after raft's *enter*, which follows
+  `r.applyc <- ap` and the WAL `Save` (raft.go). So no payload field can carry it.
+- **Evidence.** `notes/etcd-dist-d6.md`, "T10 step 3 (B), session 4" (B3's direction), and the option-(a) entry of
+  2026-11-24 (items 3-4).
+- **Proposed change.** `notifyc` becomes a deposit-first notify (`isNotifyD γnc nc Q R`, `NotifyCD.lean`): raft's
+  first send (after the *enter*) deposits `Q := taReplayBatch ap γn rt n`, the apply thread's receive takes it
+  (and deposits the view `R`, as before). The precondition's `taReplayBatch ap γn rt n` becomes `taReplayField ap`
+  (the field only), and `isNotify γnc nc R` becomes `isNotifyD γnc nc (taReplayBatch ap γn rt n) R`. The job is
+  used only after the receive (`applyAll`'s merge, after `<-apply.notifyc`), so the proof is unchanged in kind.
+- **Decision.** B3 approved by the lead (#50, 2026-11-26, conditions 1-4); condition 3 (axioms unfolding to changed
+  definitions) taken as option (a) for this draft (user, 2026-11-27, lead away): the changes in the axioms'
+  meaning are listed in `notes/etcd-dist-d6.md`, "Option (a): axiom meaning changes".
+## 2026-11-27: `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`: the restart point's durable state as a label (T10s3b B3 part 2; draft under option (a))
+
+- **Spec.** `newRaftNode.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/newRaftNode.lean`) and
+  `bootstrappedRaft.newRaftNode.spec` (`.../bootstrappedRaft__newRaftNode.lean`).
+- **Defect.** The raft loop's replay view must describe the node's durable state `S` (`rnReplayHist γ view S n`)
+  for B3's job (`rnReplayJob_of_lead`). The view's seed (in `rnWorkerStartTok`, from the boot's WAL read) and the
+  loop's starting durable state (in `rnLoopTok`, the driver's) are made from the same `S` at the boot, but the
+  two tokens share only `γ`, and `γ` names no durable state: the seed's `S` and the loop's cannot be tied.
+- **Evidence.** `notes/etcd-dist-d6.md`, "T10 step 3 (B), session 6" (B3 part 2).
+- **Proposed change.** A label `s0 : RaftState` in `RNNames` (beside `a0`, `t0`, `commit0`, `snap0`, the other
+  restart-point labels): `newRaftNode.spec` takes it as a parameter and its post says `γ.s0 = s0` (claims nothing
+  else of it, as of the other labels); `bootstrappedRaft.newRaftNode.spec`'s post adds `γw.s0 = (bt.view γr).S`
+  (the boot's durable state: `RaftState.init` fresh, `RestartNode`'s `S` at a restart). Then `rnLoopTok` starts
+  the loop at `γ.s0` and `rnWorkerStartTok`'s seed is `rnReplayHist γ terms γ.s0 γ.snap0`.
+- **Decision.** Under the lead's B3 approval (#50, 2026-11-26) and option (a) for this draft (user, 2026-11-27);
+  no axiom states either spec (`/shared/tmp/t10s3b-chk/AxCheck6.lean`); `RNNames`, `rnLoopTok`, `rnLoopTokP` and
+  `rnWorkerStartTok` are reached by `NewServer_dist` (and `RNNames` by `NewPeerHandler_dist`, `Serve_dist`,
+  `PeerServe_dist`): `notes/etcd-dist-d6.md`, "Option (a): axiom meaning changes".
+## 2026-11-27: `EtcdServer.applyAll.specSnapM`: `notifyc`'s second deposit generalized (T10s3b B5 step 1; draft under option (a))
+
+- **Spec.** `EtcdServer.applyAll.specSnapM` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`).
+- **Defect.** Its precondition fixes the snapshot payload's two-receive notify at `isNotify2 γnc nc (walSnapRec …)
+  True`: the second send deposits nothing. B5's keep case (a snapshot the backend already covers, `k ≤ ciEff`) needs
+  the payload's replay job at `applyAll`'s own receive (its merge's window branch, `mergedCreate_window_replay`), and
+  the job is made at raft's *enter*, after the `applyc` send: only a `notifyc` deposit can carry it, so `rnApSnap`'s
+  second deposit becomes `rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length`. With `True` fixed in
+  the spec, the run cannot hand `specSnapM` that payload's notify.
+- **Evidence.** `notes/etcd-dist-d6.md`, "T10 step 3 (B), session 8" (B5 step 1); T4 round 4's item 1.
+- **Proposed change.** The second deposit a parameter `S2 : IProp GF` of `specSnapM` (∀-bound; the proof never
+  uses it: `wp_notify2_receive2`'s deposit is dropped). A weaker premise, the post unchanged.
+- **Decision.** Under the user's B5 approval for this draft (option (a), 2026-11-27); no axiom states `specSnapM`
+  (`/shared/tmp/t10s3b-chk/AxCheck6.lean`); `rnApSnap` is reached by `NewServer_dist`: `notes/etcd-dist-d6.md`,
+  "Option (a): axiom meaning changes".
+
+## 2026-11-27: `EtcdServer.applySnapshot.specSnapM`: `notifyc`'s second deposit generalized (T10s3b B5 step 1, its callee; draft under option (a))
+
+- **Spec.** `EtcdServer.applySnapshot.specSnapM` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean`).
+- **Defect.** Its precondition fixes the payload's two-receive notify at `isNotify2 γnc nc (walSnapRec …) True`, so
+  `applyAll.specSnapM`, whose notify's second deposit is now a parameter `S2` (the entry above: the payload's replay
+  job), cannot call it: `isNotify2`'s deposits are an invariant's, not weakenable by the receiver.
+- **Evidence.** The build of B5 step 1 (`/shared/tmp/t10s3b-s9-b1.log`: `ApplyAllSnap.lean:216`, `wp_apply hS`
+  unsolved at `isNotify2 … iprop(True)`).
+- **Proposed change.** A parameter `S2 : IProp GF` after `γnc`, the notify `isNotify2 γnc nc (…) S2`, as
+  `applySnapshot.specKeep` already has. `applySnapshot` receives only once (the first deposit); the proof never
+  touches `S2`. A weaker premise, the post unchanged.
+- **Decision.** Under the user's B5 approval for this draft (option (a), 2026-11-27); no axiom states
+  `applySnapshot.specSnapM` (`/shared/tmp/t10s3b-chk/AxCheck6.lean`).
+
+## 2026-11-27: `EtcdServer.applyAll.specBatch`: B3's `notifyc` deposit-first change reverted (T10s3b-12)
+
+- **Spec.** `EtcdServer.applyAll.specBatch` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`).
+- **Defect.** None in the (A) statement: **reverted: superseded by the boot fix (D)**. The entry "the replay job comes
+  through `notifyc`'s first send (T10s3b B3)" above was made for the crash window `|a0| > commit0`; with the fork's
+  keep guard replaced by the boot fix (D) (bootstrap raises the WAL's commit to the backend's `ci`), every restart
+  has `|a0| ≤ commit0` and the payload carries the job as at a graceful restart.
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §2 (B3 part 1: revertible, packet row 1 disappears).
+- **Proposed change.** Back to the statement at `0fd28cd373`: `taReplayBatch ap γn rt n` in the precondition,
+  `isNotify γnc nc R` (no `isNotifyD`, `NotifyCD.lean` deleted).
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27): reverted on `etcd-safe-t10s3b-a/2026-11-27`.
+
+## 2026-11-27: `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`: the label `s0` reverted (T10s3b-12)
+
+- **Spec.** `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`).
+- **Defect.** None in the (A) statement: **reverted: superseded by the boot fix (D)**. `s0` (B3 part 2) tied the
+  replay view's seed to the loop's durable state for B3's lead-law job, which (D) makes unnecessary.
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §2 (B2 / B3 part 2: revertible; packet rows 3 and 4
+  disappear, row 4 being `NewServer_dist`'s only stronger row).
+- **Proposed change.** Back to the statements at `0fd28cd373` (no `s0` parameter, no `γ.s0 = s0`/`γw.s0 = …`).
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27).
+
+## 2026-11-27: `EtcdServer.applyAll.specSnapM`, `EtcdServer.applySnapshot.specSnapM`: `S2` reverted (T10s3b-12)
+
+- **Spec.** `EtcdServer.applyAll.specSnapM`, `EtcdServer.applySnapshot.specSnapM`
+  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`, `…__applySnapshot.lean`).
+- **Defect.** None in the (A) statements: **reverted: superseded by the boot fix (D)**. The second deposit `S2`
+  (B5 step 1) carried a kept snapshot's replay job; without the keep guard raft hands out only snapshots `k > |a0|`
+  and the pre-B5 evidence (`taReplayField`, `rnReplayState.empty`) suffices.
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §1 (B5 step 1: revertible) and §2.
+- **Proposed change.** Back to `isNotify2 γnc nc (…) iprop(True)` with no `S2` parameter, as at `0fd28cd373`.
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27).
+
+## 2026-11-27: `EtcdServer.applySnapshot.specKeep` removed; `specSnapM`'s strict `hle` and `hpd`, `applyAll.specSnapM`'s `st.pending = false`, reverted (T10s3b-13)
+
+- **Spec.** `EtcdServer.applySnapshot.specKeep`, `.specSnapM`, `.spec`; `EtcdServer.applyAll.specSnapM`
+  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean`, `…__applyAll.lean`).
+- **Defect.** The fork's keep guard (`if ci := s.consistIndex.ConsistentIndex(); GetIndex() <= ci`, `8aa40fd5c`)
+  is gone from the Go (fork `01b0497d0`, retranslated in `30f0590b24`): `specKeep` specifies a branch that no
+  longer exists, and `specSnapM`'s strict `hle : ciEff < k` and `hpd : st.pending = false` (and `applyAll.specSnapM`'s
+  `st.pending = false`, passed through to it) existed only to read the consistent index and refute that branch
+  (D6 T4 round 3, `efabc21c3c`, `5b699416b3`).
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §1 (rows `specKeep`/`wp_proofKeep`: gone with the Go revert;
+  `specSnapM`'s strict `hle` and its `ConsistentIndex` callee in `applySnapshot_walk`: revert to the pre-guard
+  `specSnapM`).
+- **Proposed change.** Back to the pre-guard statements: `hle : uint.Z (ciEff γ st.k) ≤ uint.Z k`, no `hpd`;
+  `applyAll.specSnapM` without `st.pending = false`; `applySnapshot.spec := specEmpty ∧ specSnapM`. All weaker
+  premises (callers unaffected but for the dropped argument).
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27): done on `etcd-safe-t10s3b-a/2026-11-27`.

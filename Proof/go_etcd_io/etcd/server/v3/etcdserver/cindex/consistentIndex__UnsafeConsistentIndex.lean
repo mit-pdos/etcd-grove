@@ -37,7 +37,7 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
   iunfold isCI at Hci
-  icases Hci with ⟨#Hinv, #Hmu⟩
+  icases Hci with ⟨#Hinv, #Hmu, #Hpmu⟩
   (try wp_auto)
   -- the fast read: the first linearization point
   wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown ci «$res0»]
@@ -47,15 +47,15 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   imodintro
   inext
   iunfold ciInv at Hi
-  icases Hi with ⟨%k0, %t0, Hidx, Hg, Hterm⟩
+  icases Hi with ⟨%k0, Hidx, Hg, Hpk⟩
   iexists k0
   iframe Hidx
   iintro Hidx
   ihave %Heq := ciIdx_agree $$ Hk Hg
   subst Heq
   imod HΦ $$ Hk with HΦ
-  imod Hclose $$ [Hidx Hg Hterm] with -
-  · inext; iunfold ciInv; iexists k, t0; iframe
+  imod Hclose $$ [Hidx Hg Hpk] with -
+  · inext; iunfold ciInv; iexists k; iframe
   imodintro
   (try wp_auto)
   wp_if_destruct
@@ -83,10 +83,11 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   iapply readCIAU_A
   iapply readCIAU_wand $$ HΦ
   iintro %m Hm
+  icases Hm with ⟨%HPm, Hm⟩
   (try wp_auto)
   -- the store: the second linearization point
   wp_apply_core (hS ci γ m.1 m.2) $$ [] [Hm Hown v «$res0»]
-  · iframe Hpkg; iunfold isCI; iframe Hinv Hmu
+  · iframe Hpkg; iunfold isCI; iframe Hinv Hmu Hpmu; ipureintro; exact HPm
   imod Hm with ⟨%k', Hk', Hm⟩
   imodintro
   iexists k'
