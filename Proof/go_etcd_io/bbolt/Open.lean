@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.bbolt.Open.PoolNew
 public import Proof.ReceiptTactics
 public import Proof.go_etcd_io.bbolt.Open.Congr
 public import Proof.go_etcd_io.bbolt.Open.Mode
+public import Proof.go_etcd_io.bbolt.Open.Commit
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -1118,6 +1119,625 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     · iframe; iframe #
     open_ok
 
+/-! ## The crash-mode `Open` (W6, `Open.specC`): the existing-file path, its commit point right after
+`OpenFile` (`Open/Commit.open_commit`) -/
+
+/-- **The open of an existing database file of inode `i`** (`Open.specC`'s; `openFileDb.spec` with the
+inode known and no contents: the file is the atomic update's, `open_commit`). -/
+private abbrev openFileDbC.spec [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (Ek : Prop)
+    (Pre Back : IProp GF) (path : GoString) (perm : w32) (i : Ino) : Prop :=
+  {{ osInv (GF := GF) ∗ Pre }}
+    (App (App (App (Val (@! os.OpenFile)) (Val #path)) (Val #(W64 0x42))) (Val #perm))
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); Back ∗
+      ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗
+          os.ownFile f fd path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
+       ⌜err ≠ interface.nil ∧ f = null ∧ Ek⌝) ∗
+      fmtErrorOkOrNil err }}
+
+/-- `openOK` reads the `OsMeta`'s size only. -/
+private theorem openOK_congr [ExtSemantics fsExt] [FsSemOk] {C : CommitSt} {D : Data} {m m' : OsMeta}
+    {xs : List ByteG} (h : openOK C D m xs) (hs : m'.size = m.size) : openOK C D m' xs := by
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8⟩ := h
+  exact ⟨a1, a2, a3, a4, by rw [hs]; exact a5, a6, a7, a8⟩
+
+/-- The sync options of crash mode (`bSyncs`), from the fields. -/
+private theorem bSyncs_of_some [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) {p : BFile}
+    {c : CsN} (h : p.cs = some c) :
+    (db.[DB, go!"NoSync"] ↦□ false ∗ db.[DB, go!"NoGrowSync"] ↦□ false : IProp GF) ⊢
+      bSyncs db p := by
+  unfold bSyncs; rw [h]
+
+/-- **The crash mode `open_commit` chose** (`bMode`'s crash branch). -/
+private theorem bMode_of_some [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace)
+    (db : Loc) {p : BFile} {c : CsN} (h : p.cs = some c) (hgc : c.gc = B.bq) (hN : c.N = crashN N)
+    (hfs : FsNoErr) :
+    bCsInv (GF := GF) p ∗ bSyncs db p ∗ cnReg B (some c.cg) ⊢ bMode B.bq B.cn N db p := by
+  unfold bMode cnReg
+  rw [h]
+  dsimp only
+  iintro ⟨#H1, #H2, #H3⟩
+  iframe H1 H2 H3
+  ipureintro; exact ⟨hgc, hN, hfs⟩
+
+/-- The crash invariant's namespace `crashN N` is disjoint from OsFs's. -/
+private theorem bNsOk_crash {p : BFile} {c : CsN} {N : Namespace} (h : p.cs = some c)
+    (hN : c.N = crashN N) (hd : (↑N : CoPset) ## ↑osN) : bNsOk p := by
+  have hN' : c.N = N .@ "crash" := hN
+  intro c' hc' x hx
+  rw [h] at hc'; cases hc'
+  exact CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp =>
+    hd x ⟨nclose_subseteq N "crash" x (hN' ▸ hp), hx⟩⟩
+
+set_option maxHeartbeats 4000000 in
+/-- **`Open` of an existing file in crash mode, generic in how the file is opened**
+(`Open.wp_proofG`'s shape): right after `OpenFile` the atomic update commits (`open_commit`), so
+the file is in its crash invariant from then on and every later error is refuted (crash mode records
+`FsNoErr`); the reads (`Stat`, `needsInit`, `getPageSize`) take fractions of bbolt's shares,
+`needsInit`'s re-initialization is refuted by the opened file's valid meta over its pages
+(`openOK_metaOverPages`), the sync is `fdatasync.specR`'s, the mapping `mmapUnlocked.spec_ownB`'s,
+and the core phase starts from the names the commit allocated. -/
+private theorem Open.wp_proofGC [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+    [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
+    (hName : os.File.Name.spec (GF := GF) (hG := hG))
+    (hFlock : flock.spec (GF := GF) (hG := hG))
+    (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
+    (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
+    (hNI : DB.needsInit.spec (GF := GF) (hG := hG))
+    (hGPS : DB.getPageSize.spec_own (GF := GF) (hG := hG))
+    (hMmapB : DB.mmapUnlocked.spec_ownB (GF := GF) (hG := hG))
+    (hLoad : DB.loadFreelist.spec_open (GF := GF) (hG := hG))
+    (hFdsR : fdatasync.specR (GF := GF) (hG := hG))
+    (hclose : DB.close.spec_owned (GF := GF) (hG := hG))
+    (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
+    (hOptStr : Options.String.spec (GF := GF) (hG := hG))
+    (hModeStr : fs.FileMode.String.spec (GF := GF) (hG := hG))
+    (Pre Back : IProp GF)
+    (N : Namespace) (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (D : Data)
+    (i : Ino) (Q : BoltName → IProp GF) (Ek : Prop) (W : IProp GF) (hfs : FsNoErr)
+    (hWto : ∀ dqx (x : time.Duration),
+      W ∗ opts.[Options, go!"Timeout"] ↦{dqx} x ⊢ ⌜False ∨ x = W64 0⌝)
+    (hWnf : ∀ dqx (x : Bool),
+      W ∗ opts.[Options, go!"NoFreelistSync"] ↦{dqx} x ⊢ ⌜x = true⌝)
+    (hWms : ∀ dqx (x : w64),
+      W ∗ opts.[Options, go!"InitialMmapSize"] ↦{dqx} x ⊢ ⌜False ∨ sint.Z x ≤ 0xFFFFFFFFFFFF⌝)
+    (hWns : ∀ dqx (x : Bool), W ∗ opts.[Options, go!"NoSync"] ↦{dqx} x ⊢ ⌜x = false⌝)
+    (hWngs : ∀ dqx (x : Bool), W ∗ opts.[Options, go!"NoGrowSync"] ↦{dqx} x ⊢ ⌜x = false⌝)
+    (hOF : openFileDbC.spec (GF := GF) (hG := hG) Ek Pre Back path mode i) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗ Pre ∗
+        optsAt opts dq o ∗ W ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) ∗
+        AU <{ fileHoldsMDurC (GF := GF) i D }> @ ⊤ \ ↑N, ∅
+          <{ ∀∀ (γ : BoltName), ⌜γ.ns = N⌝ ∗ boltCrashRec γ i D D, COMM Q γ }> }}
+      (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
+    {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗ W ∗ Back ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ γ : BoltName, ⌜γ.ns = N⌝ ∗ isBolt db γ ∗ boltIno γ i ∗
+            boltState γ (1 : Qp).half D ∗ boltCloser γ ∗ Q γ) ∨
+         ⌜err ≠ GoInterface.nil ∧ Ek⌝) }} := by
+  wp_start as ⟨#Hos, %HN, Hph, Hopts, HW, %Hok, Hlgr, Hau⟩
+  ihave %Hoptnn := optsAt_nonnull _ _ _ $$ Hopts
+  wp_auto
+  wp_bind (App (Val wrapDefer) _)
+  wp_apply wp_with_defer as %defer Hdefer
+  try wp_auto
+  icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hdbnn⟩
+  irename path => Hpathv
+  irename mode => Hmodev
+  irename options => Hoptsv
+  iStructNamed «$r0»
+  generalize «$r0_ptr» = dbl at *
+  ipersist Hoptsv
+  ipersist Hmodev
+  ipersist Hpathv
+  rw [decide_eq_false Hoptnn]
+  try wp_auto
+  icases (optsAt_bool_rd opts dq o go!"NoSync" (by decide)) $$ Hopts with
+    ⟨%dqx, %nos, Hx, Hback⟩
+  icases persistent_entails_left (hWns dqx nos) $$ [HW Hx] with ⟨⟨HW, Hx⟩, %hnos⟩
+  · iframe
+  subst hnos
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  icases (optsAt_bool_rd opts dq o go!"NoGrowSync" (by decide)) $$ Hopts with
+    ⟨%dqx, %ngs, Hx, Hback⟩
+  icases persistent_entails_left (hWngs dqx ngs) $$ [HW Hx] with ⟨⟨HW, Hx⟩, %hngs⟩
+  · iframe
+  subst hngs
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  opt_rdt (optsAt_mmapFlags_rd opts dq o)
+  icases (optsAt_bool_rd opts dq o go!"NoFreelistSync" (by decide)) $$ Hopts with
+    ⟨%dqx, %nfs, Hx, Hback⟩
+  icases persistent_entails_left (hWnf dqx nfs) $$ [HW Hx] with ⟨⟨HW, Hx⟩, %hnfs⟩
+  · iframe
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  opt_rd (optsAt_bool_rd opts dq o go!"PreLoadFreelist" (by decide))
+  opt_rd (optsAt_freelist_rd opts dq o)
+  opt_rdt (optsAt_mlock_rd opts dq o)
+  opt_rd (optsAt_int_rd opts dq o go!"MaxSize" (by decide))
+  try simp only [internal.common.DefaultMaxBatchSize, internal.common.DefaultMaxBatchDelay,
+    internal.common.DefaultAllocSize]
+  try wp_auto
+  -- the statistics
+  icases (optsAt_bool_rd opts dq o go!"NoStatistics" (by decide)) $$ Hopts with
+    ⟨%dqx, %nst, Hx, Hback⟩
+  wp_join iprop((∃ sp : Loc, dbl.[DB, go!"stats"] ↦ sp ∗ Ps sp 1) ∗
+      opts.[Options, go!"NoStatistics"] ↦{dqx} nst ∗ db_ptr ↦ dbl) at next with [stats Hx db]
+      as ⟨⟨%sp, stats, Hps⟩, Hx, db⟩
+  · cases nst
+    · wp_auto
+      icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hspnn⟩
+      isplitr
+      · ipureintro; rfl
+      iframe Hx db
+      iexists «$r0_ptr»
+      iframe stats
+      unfold Ps; rw [if_neg Hspnn]; iexists _; iexact «$r0»
+    · wp_auto
+      isplitr
+      · ipureintro; rfl
+      iframe Hx db
+      iexists null
+      iframe stats
+      unfold Ps; simp only [↓reduceIte]; iempintro
+  ihave Hopts := Hback $$ Hx
+  -- the logger
+  icases (optsAt_logger_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
+  wp_join iprop((∃ lg : GoInterface, dbl.[DB, go!"logger"] ↦ lg ∗ boltLogger lg ∗
+      ⌜logPtrTyped lg⌝) ∗ opts.[Options, go!"Logger"] ↦{dqx} (o.logger : Logger) ∗ db_ptr ↦ dbl)
+      at next with [logger Hx Hlgr db] as ⟨⟨%lg, logger, #Hlgok, %Hlgty⟩, Hx, db⟩
+  · have hpt := OptsM.ok_logPtrTyped o Hok
+    rcases hlo : o.logger with li | _
+    · simp only [hlo] at hpt ⊢
+      icases Hlgr with (%h | #Hb)
+      · cases h
+      wp_auto
+      isplitr
+      · ipureintro; rfl
+      iframe Hx db
+      iexists _
+      iframe logger
+      iframe Hb
+      ipureintro; exact hpt
+    · simp only [hlo] at hpt ⊢
+      wp_auto
+      wp_apply getDiscardLogger.wp_spec as %lg ⟨#Hd, #Hb, %Ht⟩
+      isplitr
+      · ipureintro; rfl
+      iframe Hx db
+      iexists lg
+      iframe logger Hb
+      ipureintro; exact Ht
+  ihave Hopts := Hback $$ Hx
+  ipersist logger
+  wp_apply hLogger dbl lg Hdbnn $$ []
+  · iframe #
+  try wp_auto
+  rcases lg with li | _
+  rotate_left
+  · unfold boltLogger; iexfalso; iexact Hlgok
+  ipersist lg
+  -- `lg != discardLogger`: the deferred log call, as a deferred function `dv` that logs the result
+  wp_apply wp_logger_ne_discard_open (.ok li) Hlgty $$ [] as %b -
+  · iframe #
+  wp_join iprop((∃ dv : GoFunc, defer ↦ dv ∗ □ (∀ (e : GoInterface) (Ψ : val → IProp GF),
+      err_ptr ↦ e -∗ fmtErrorOkOrNil e -∗ (err_ptr ↦ e -∗ Ψ #()) -∗
+      WP (App (Val #dv) (Val #())) {{ Ψ }})) ∗ optsAt opts dq o)
+      at next with [Hdefer Hopts] as ⟨⟨%dv, Hdefer, #Hdef⟩, Hopts⟩
+  · cases b
+    · wp_auto
+      isplitr
+      · ipureintro; rfl
+      iframe Hopts
+      iexists _; iframe Hdefer
+      imodintro; iintro %e %Ψ Herr #Hek HΨ; wp_auto; iapply HΨ $$ Herr
+    · wp_auto
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl,
+        show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl, List.set]
+      try wp_auto
+      wp_apply wp_boltLog li _ _ [W8 115, W8 115, W8 115] _
+        [interface.mkOk go.string #path, interface.mkOk os.FileMode.ty #mode,
+          interface.mkOk (go.GoType.PointerType Options.ty) #opts] _ (optsAt opts dq o) _
+        infof_mem fmtVerbs_opening rfl $$ Hlgok [Hsl] [] [Hopts] as Hsl Hopts
+      · iexact Hsl
+      · simp only [List.zip_cons_cons, List.zip_nil_left]
+        isplitr
+        · iapply logArgOk_of_argWf
+          apply fmt.argWf_of_argsWf
+          exact .cons_string _ _ .nil
+        isplitr
+        · iapply fileMode_logArgOk hModeStr _ _ (by simp [methodVerbs])
+        isplitr
+        · iapply (options_logArgOk hOptStr opts dq o Hok.2.2.2.2.2) $$ Hpkg
+        iempintro
+      · iexact Hopts
+      isplitr
+      · ipureintro; rfl
+      iframe Hopts
+      iexists _; iframe Hdefer
+      imodintro
+      iintro %e %Ψ Herr #Hek HΨ
+      wp_auto
+      cases e with
+      | ok ei =>
+        ihave #Hek' := fmtErrorOkOrNil_ne (GF := GF) (.ok ei) (by simp) $$ Hek
+        wp_auto
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %sl ⟨Hsl, -⟩
+        simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, List.set]
+        try wp_auto
+        wp_apply wp_boltLog li _ _ [W8 115, W8 118] _
+          [interface.mkOk go.string #path, GoInterface.ok ei] _ iprop(True) _
+          errorf_mem' fmtVerbs_failed rfl $$ Hlgok [Hsl] [] [] as Hsl -
+        · iexact Hsl
+        · log_args_ok
+        iapply HΨ $$ Herr
+      | nil =>
+        wp_auto
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %sl ⟨Hsl, -⟩
+        try wp_auto
+        wp_apply wp_boltLog li _ _ [W8 115] _
+          [interface.mkOk go.string #path] _ iprop(True) _
+          infof_mem fmtVerbs_success rfl $$ Hlgok [Hsl] [] [] as Hsl -
+        · iexact Hsl
+        · log_args_ok
+        iapply HΨ $$ Herr
+  -- the file
+  obtain ⟨hro, hps0, hof, hml0, hmf0, hlp⟩ := Hok
+  icases (optsAt_readOnly_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
+  simp only [hro, _root_.Perennial.os.O_RDWR, _root_.Perennial.os.O_RDONLY,
+    _root_.Perennial.os.O_CREATE]
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  icases (optsAt_openFile_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
+  simp only [hof]
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  rw [show (W64 2 ||| W64 64 : w64) = W64 0x42 from rfl]
+  iStructNamed ops
+  ihave Hmf : mapFields (GF := GF) dbl (DFrac.own 1) none $$ [dataref data meta0 meta1]
+  · simp only [mapFields]; iframe
+  wp_apply hOF $$ [Hph] as %f %err ⟨Ht, (⟨%fd, %Hfd, Hf, Hfdo⟩ | %Herr), #Herrok⟩
+  · iframe; iframe #
+  rotate_left
+  · -- the file did not open (the update not fired)
+    obtain ⟨Herr, rfl, hk⟩ := Herr
+    cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei =>
+    ihave #Hek := fmtErrorOkOrNil_ne (GF := GF) (.ok ei) (by simp) $$ Herrok
+    try wp_auto
+    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none { path := path, ino := 0 } null Hdbnn $$
+      [readOnly opened freelist writeAt path Hmf datasz file] as %cerr ⟨readOnly, -⟩
+    · iframe; iframe #
+      isplitr
+      · unfold closeMapRes; iempintro
+      ileft; ipureintro; rfl
+    try wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl,
+      show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl, List.set]
+    try wp_auto
+    wp_apply wp_boltLog li _ _ _ _ [interface.mkOk go.string #path, GoInterface.ok ei] _ iprop(True) _
+      errorf_mem' fmtVerbs_openErr rfl $$ Hlgok [Hsl] [] [] as Hsl -
+    · iexact Hsl
+    · open_args
+    try wp_auto
+    wp_bind (App (Val #dv) (Val #()))
+    iapply Hdef $$ [err]
+    · iexact err
+    · iexact Herrok
+    iintro err
+    try wp_auto
+    iapply HΦ
+    iframe Hopts HW Ht
+    iright; ipureintro; exact ⟨(fun h => by cases h), hk⟩
+  -- the file opened: **the commit point** (`open_commit`): the update fires, the file goes into its
+  -- crash invariant, the database's names are allocated
+  obtain ⟨rfl, hfd0⟩ := Hfd
+  imod open_commit (GF := GF) N path i D Q hfs $$ Hau with
+    ⟨%B, %c, %C, %m, %xs, %Hcm, #Hci, #Hreg, Hm, Hb, #HrcC, Hnames, Hcst, HQ⟩
+  obtain ⟨hcgc, hcN, hok, hmaps, hxl, h8, hlt, hal, hmx⟩ := Hcm
+  generalize hp : ({ path := path, ino := i, cs := some c } : BFile) = p
+  obtain ⟨hpp, hpi, hpc⟩ : p.path = path ∧ p.ino = i ∧ p.cs = some c := by
+    subst hp; exact ⟨rfl, rfl, rfl⟩
+  subst hpp hpi
+  clear hp
+  have hns : bNsOk p := bNsOk_crash hpc hcN HN
+  have hCD : treeData C = D := hok.2.2.2.2.2.2.2
+  ipersist NoSync
+  ipersist NoGrowSync
+  ihave #Hsy : bSyncs (GF := GF) dbl p $$ []
+  · iapply bSyncs_of_some dbl hpc; iframe #
+  try wp_auto
+  wp_apply +noauto hName f fd p.path (DFrac.own 1) $$ [Hf] as Hf
+  · iexact Hf
+  icases (optsAt_timeout_rd opts dq o) $$ Hopts with ⟨%dqx, %tmo, Hx, Hback⟩
+  icases persistent_entails_left (hWto dqx tmo) $$ [HW Hx] with ⟨⟨HW, Hx⟩, %htmo⟩
+  · iframe
+  have htmo0 : tmo = W64 0 := htmo.resolve_left id
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  rw [← fileOwn_eq] at *
+  wp_apply hFlock dbl f fd p ⟨p.ino, true, true, none, none⟩ (DFrac.own 1) true tmo rfl $$
+    [file Hf Hfdo] as %ferr ⟨file, Hf, #Hfe, Hlk⟩
+  · iframe; iframe #
+  cases ferr with
+  | ok ei =>
+    icases Hlk with (⟨%hn, -⟩ | ⟨%hfl, -⟩)
+    · exact absurd hn (by simp)
+    exfalso
+    rcases hfl.2 with h | h
+    · exact h hfs
+    · exact h htmo0
+  | nil =>
+  icases Hlk with (⟨-, Hfdo, Htok⟩ | ⟨%hn, -⟩)
+  rotate_left
+  · exact absurd rfl hn.1
+  have hsl : (⟨p.ino, true, true, none, none⟩ : OsFd).setLk .flock (some true) = dbFd p.ino := rfl
+  ihave Hfdo : osFd fd (DFrac.own 1) (dbFd p.ino) $$ [Hfdo]
+  · rw [← hsl]; iexact Hfdo
+  ihave Htok : lockTok .flock fd (dbFd p.ino) $$ [Htok]
+  · rw [← hsl]; iexact Htok
+  ihave Htok : osLock .flock p.ino fd $$ [Htok]
+  · iapply (lockTok_some .flock fd (dbFd p.ino) rfl).1 $$ Htok
+  ihave path : dbPathLk dbl p fd $$ [path Htok]
+  · unfold dbPathLk; iframe; iframe #
+  try wp_auto
+  -- the page size
+  icases (optsAt_pageSize_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
+  simp only [hps0]
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
+  · iPkgInit
+  ihave #Hdps : globalAddr internal.common.DefaultPageSize ↦□ (W64 4096) $$ [Hcom]
+  · ihave #H := isPkgInit_access (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ Hcom
+    iexact H
+  try wp_auto
+  -- the file's size (a fraction of bbolt's share of the `OsMeta`)
+  icases bMeta_osMeta p C [] m $$ Hm with ⟨%qm, Hfm, Hmback⟩
+  wp_apply hStat f fd p.path (DFrac.own 1) (DFrac.own 1) (DFrac.own qm) (dbFd p.ino) m $$
+    [Hf Hfdo Hfm] as %fi %serr ⟨Hf, Hfdo, Hfm, Hfi, #Hse, -⟩
+  · rw [← fileOwn_eq]; iframe; iframe #
+  rw [← fileOwn_eq]
+  ihave Hm := Hmback $$ Hfm
+  icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
+  rotate_left
+  · exact absurd hfs Hfi.2.2
+  obtain ⟨rfl, rfl⟩ := Hfi
+  try wp_auto
+  wp_apply hSize fs (W64 m.size) $$ [Hfs] as Hfs
+  · iexact Hfs
+  try wp_auto
+  rw [← hxl]
+  -- `needsInit` (bbolt's share of the bytes): not to be initialized, its valid meta over its pages
+  icases (bBytes_os p 0 (DFrac.own 1) xs).1 $$ Hb with ⟨Hxs, Hgh⟩
+  wp_apply hNI dbl f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (p.dq (DFrac.own 1))
+    (dbFd p.ino) false xs rfl rfl (by omega) $$ [file pageSize readOnly Hf Hfdo Hxs]
+    as %z %zerr ⟨file, pageSize, readOnly, Hf, Hfdo, Hxs, Hz⟩
+  · iframe; iframe #
+  icases Hz with (%Hz | ⟨%Hzerr, #Hze⟩)
+  rotate_left
+  · exact absurd hfs Hzerr.2
+  obtain ⟨rfl, -, -, hzm⟩ := Hz
+  cases z
+  rotate_left
+  · exact absurd (openOK_metaOverPages C D m xs hok hxl)
+      (hzm rfl _ (Nat.mod_lt _ (by decide)))
+  try wp_auto
+  -- an existing file: its page size
+  icases bMeta_osMeta p C [] m $$ Hm with ⟨%qm, Hfm, Hmback⟩
+  wp_apply hGPS dbl f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own qm)
+    (p.dq (DFrac.own 1)) (dbFd p.ino) m xs C rfl rfl hxl (by omega) (by omega) hok.2.1 hok.1.1
+    hok.1.2.1 $$ [file pageSize Hf Hfdo Hfm Hxs] as %gsz %gerr ⟨file, pageSize, Hf, Hfdo, Hfm, Hxs, Hg⟩
+  · iframe; iframe #
+  ihave Hm := Hmback $$ Hfm
+  ihave Hb := (bBytes_os p 0 (DFrac.own 1) xs).2 $$ [Hxs Hgh]
+  · iframe
+  icases Hg with (%Hg | ⟨%Hge, #Hek⟩)
+  rotate_left
+  · exact absurd hfs Hge.2
+  obtain ⟨rfl, rfl⟩ := Hg
+  try wp_auto
+  ipersist pageSize
+  try wp_auto
+  -- `fdatasync` (`NoSync` off): nothing written since the last sync (`L = []`), no slot
+  wp_apply hFdsR dbl f fd p C [] m [] (fun _ => []) (DFrac.own 1) (DFrac.own 1) hns
+      (fun _ => ⟨List.nodup_nil, (fun s hs => by cases hs), (fun r hr => by cases hr)⟩)
+    $$ [file Hf Hfdo Hm] as %serr ⟨file, Hf, Hfdo, -, Hsr⟩
+  · iframe; iframe #
+    try (iapply BigSepL.bigSepL_nil.2; iempintro)
+  icases Hsr with (⟨%Hse, %m2, Hm, %Hm2⟩ | ⟨%Hse, -, -⟩)
+  rotate_left
+  · exact absurd hfs Hse.2
+  subst Hse
+  obtain ⟨hsz2, hmp2, -⟩ := Hm2
+  have hxl2 : xs.length = m2.size := hxl.trans hsz2.symm
+  have hmaps2 : m2.maps = ∅ := hmp2.trans hmaps
+  try wp_auto
+  rw [recv_eq_func_mk BAnon BAnon]
+  try wp_auto
+  -- the mapping (crash mode: `bMeta`, bbolt's share of the bytes)
+  icases (optsAt_int_rd opts dq o go!"InitialMmapSize" (by decide)) $$ Hopts with
+    ⟨%dqx, %minsz, Hx, Hback⟩
+  icases persistent_entails_left (hWms dqx minsz) $$ [HW Hx] with ⟨⟨HW, Hx⟩, %hms⟩
+  · iframe
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  simp only [hml0]
+  ipersist Mlock
+  ipersist MmapFlags
+  have hmf' : o.mmapFlags = W64 0 ∨ o.mmapFlags = W64 0x8000 := by
+    unfold mapPopulate at hmf0
+    rcases hmf0 with h | h
+    · left; apply BitVec.eq_of_toNat_eq; simpa using h
+    · right; apply BitVec.eq_of_toNat_eq; simpa using h
+  wp_apply hMmapB dbl f fd p (.ok li) o.mmapFlags _ (DFrac.own 1) C m2 xs minsz Hdbnn hmaps2 hxl2
+    (by omega) hns hmf' (fun _ => openOK_meta C D m xs hok) $$
+    [MaxSize rwtx file Hf Hfdo Hm Hb Hmf datasz] as %merr ⟨Hfix, file, Hf, Hfdo, Hb, Hmr⟩
+  · unfold mmapOwnFix; iframe; iframe #
+  unfold mmapOwnFix
+  icases Hfix with ⟨-, -, -, MaxSize, -, -, rwtx⟩
+  icases Hmr with (⟨%Hme, %base, %L, %HL, Hmf, datasz, Hm, Hbp, %vf, Hcells⟩ |
+    ⟨%Hme, -, -⟩)
+  rotate_left
+  · exfalso
+    rcases Hme.2 with h | h | h
+    · exact h hfs
+    · omega
+    · rcases hms with h2 | h2
+      · exact h2.elim
+      have h3 := mmapSizeOf_none_gt _ h
+      have e2 : sint.nat minsz = (sint.Z minsz).toNat := rfl
+      omega
+  subst Hme
+  try wp_auto
+  -- the database's fixed fields
+  ipersist stats
+  ipersist readOnly
+  ipersist StrictMode
+  ipersist NoFreelistSync
+  ipersist PreLoadFreelist
+  ipersist FreelistType
+  ipersist MaxBatchSize
+  ipersist MaxBatchDelay
+  ipersist AllocSize
+  ipersist MaxSize
+  ipersist openFile
+  ipersist batch
+  imod sync.init_Mutex iprop(True) ⊤ _ $$ batchMu [] with #HbatchMu
+  · inext; itrivial
+  -- the page pool (as `Open.wp_proofG`'s, the client's token share `½`: the record holds the other)
+  imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γs, Hs⟩
+  icases (ghostVar_split_half γs 1 (0 : Nat)).1 $$ Hs with ⟨Hs, Hs'⟩
+  icases (typedPointsto_half_split db_ptr dbl 1).1 $$ db with ⟨db, Hdp⟩
+  imod dp_init ⊤ N γs B.bq (1 : Qp).half db_ptr dbl $$ [Hs' Hdp] with #Hdpi
+  · iframe
+  imod init_Pool_all _ _ (poolR B.bq N) pageBuf ⊤ $$ [pagePool] with #Hp
+  · iframe pagePool
+    isplitl
+    · iintro !> %P
+      unfold sync.newSpec
+      iright
+      wp_start as HR
+      wp_auto
+      unfold poolR
+      icases HR with ⟨HP, #Href⟩
+      imod dp_borrow N γs B.bq (1 : Qp).half db_ptr dbl P $$ [HP] with
+        (⟨#Hdp, HP⟩ | ⟨%q, Hdp, Hloan⟩)
+      · iframe; iframe #
+      · wp_auto
+        wp_apply wp_slice_make2 (V := w8) $$ [] as %sl ⟨Hsl, -⟩
+        · ipureintro; decide
+        try wp_auto
+        iapply HΦ
+        iframe HP; iframe #
+        unfold pageBuf
+        iexists sl
+        rw [show (zero_val w8 : w8) = W8 0 from rfl] at *
+        iframe Hsl
+        ipureintro; rfl
+      · wp_apply (wp_load_loan N γs B.bq (1 : Qp).half db_ptr dbl P q) $$ [Hdp Hloan] as HP
+        · iframe
+        wp_apply wp_slice_make2 (V := w8) $$ [] as %sl ⟨Hsl, -⟩
+        · ipureintro; decide
+        try wp_auto
+        iapply HΦ
+        iframe HP; iframe #
+        unfold pageBuf
+        iexists sl
+        rw [show (zero_val w8 : w8) = W8 0 from rfl] at *
+        iframe Hsl
+        ipureintro; rfl
+    · ipureintro; rfl
+  ihave #Hpool : (∃ pf : GoFunc,
+      (∀ P : IProp GF, sync.isPool dbl.[DB, go!"pagePool"] pf (poolR B.bq N P) pageBuf) ∗
+      ⌜pf ≠ func.nil⌝) $$ []
+  · iexists _
+    iframe Hp
+    ipureintro; intro h; injection h with _ _ h3; cases h3
+  ihave #HNFS : dbl.[DB, go!"NoFreelistSync"] ↦□ true $$ []
+  · rw [← hnfs]; iexact NoFreelistSync
+  ihave #Hfix : dbFixed (GF := GF) B.bq N dbl sp $$ []
+  · unfold dbFixed dbLogger
+    iframe #
+    isplitr
+    · ipureintro; exact hmf'
+    ipureintro; exact Hlgty
+  iclear HNFS
+  -- the file's mode: crash mode, chosen at the commit point
+  ihave #Hmode : bMode (GF := GF) B.bq B.cn N dbl p $$ []
+  · iapply bMode_of_some B N dbl hpc hcgc hcN hfs; iframe #
+  -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
+  wp_apply hLoad B N dbl sp f fd p C base L { m2 with maps := GMap.singleton base L } xs
+    (openOK_lfOK N dbl C D m2 xs base L (openOK_congr hok hsz2) hxl2
+      ⟨by omega, by rw [hsz2]; exact hal⟩ HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 $$
+    [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hm Hf Hfdo Hps
+      Hb Hbp Hcells freelistLoad Hnames HrcC Hmode] as Hlf
+  · unfold lfPre
+    rw [← hxl2]
+    iframe; iframe #
+    done
+  iunfold lfPost at Hlf
+  icases Hlf with ⟨%fl, %fli, #Hcore, #Hpl, Hw, Hst, Hflo, Hsp, Hcls, Hopn, Hclo, %Hwok⟩
+  have hWC : (lfW C base L { m2 with maps := GMap.singleton base L } xs f fd fl fli).C = C := rfl
+  have hWfl : (lfW C base L { m2 with maps := GMap.singleton base L } xs f fd fl fli).fl = fl := rfl
+  have hWfli : (lfW C base L { m2 with maps := GMap.singleton base L } xs f fd fl fli).fli = fli :=
+    rfl
+  generalize lfW C base L { m2 with maps := GMap.singleton base L } xs f fd fl fli = W
+    at Hwok hWC hWfl hWfli ⊢
+  try wp_auto
+  cases nfs
+  · exact absurd hnfs (by decide)
+  -- `NoFreelistSync` (the options'): done, no `hasSyncedFreelist()` call
+  have hOW := open_writer (GF := GF) ⊤ B N dbl p sp _ Hwok
+  rw [hWC, hWfl, hWfli] at hOW
+  imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
+  · iframe; iframe #
+  -- success: `db` written under the page pool's protocol, the client's half of the committed data
+  ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ (1 : Qp).half D $$ [Hcst]
+  · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hcst
+  ihave ⟨Hstq, Hlk⟩ := open_lock B N γs (1 : Qp).half _ db_ptr dbl $$ [Hdpi Hs Hst']
+  · iframe; iframe #
+  open_step
+  try wp_auto
+  wp_bind (App (Val #dv) (Val #()))
+  iapply Hdef $$ [err]
+  · iexact err
+  · iexact Herrok
+  iintro err
+  imod open_unlock B N γs (1 : Qp).half _ db_ptr dbl $$ [Hdpi Hs db Hstq] with ⟨#db, Hst'⟩
+  · iframe; iframe #
+  try wp_auto
+  iapply HΦ
+  iframe Hopts HW Ht
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iexists ⟨mkGs B, N⟩
+  isplitr
+  · ipureintro; rfl
+  iframe Hst' HQ
+  unfold isBolt boltIno boltCloser
+  rw [bnsOf_mkGs]
+  iframe Hclo
+  isplitr
+  · iexact Hbolt
+  iexists _
+  iapply isBoltCoreP_t0At $$ Hcore
+
 /-! ## The shared mode's open, and `Open.spec` (session S3f: the one spec of `Open`) -/
 
 section canon
@@ -1351,6 +1971,155 @@ theorem Open.wp_proof [sync.Assumptions]
   iframe Ho Hr
 
 end canon
+
+/-! ## The shared mode's open of an existing file, and `Open.specC` (W6) -/
+
+section canonC
+variable [go.BasicIntoValInj] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+
+/-- **The shared mode's open of the existing database file `i`** as `openFileDbC.spec`, the file
+system not failing, at `Ek := ¬ PathFits (child d b)`: `os.OpenFile.specCreateS` as in
+`openFileDb_shared`; the name holds the file `i`, so the open creates nothing (the outcome is `none`,
+the claim back unchanged) and opens `i`. -/
+private theorem openFileDbC_shared
+    (hCS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (perm : w32)
+    (i : Ino) (hb : NameOk b) (hi : h.cur !! b = some (.file i)) (hfs : FsNoErr) :
+    openFileDbC.spec (GF := GF) (hG := hG) (¬ PathFits (child d b))
+      iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osSharedInv R ∗ osPathS R d dq j ∗
+        osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
+      iprop(osPathS (GF := GF) R d dq j ∗ osCallPerm (callKey R d) qc ∗
+        osNames j (.only [b]) (DFrac.own 1) h)
+      (child d b) perm i := by
+  iintro %Φ ⟨#Hos, #Hospkg, #Hsi, Hp, Hperm, Hn⟩ HΦ
+  obtain ⟨hfl, hcr, htr⟩ := boltOpenFlag_create
+  have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := by
+    intro J hJ; rw [hi] at hJ; cases hJ
+  icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
+  ihave Hau := os.osAU_triv (A := Option (Nat × Nat × Ino))
+    (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
+    (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
+  wp_apply hCS d b (W64 0x42) perm R j dq h (1 : Qp).half (1 : Qp).half qc
+    (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd (Qp.half_add_half 1)
+    $$ [$Hospkg $Hos $Hsi $Hp $Hperm $Hn $Hau]
+    as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, -, Hr⟩
+  ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
+  cases oc with
+  | some xsi =>
+    obtain ⟨x, s, i1⟩ := xsi
+    dsimp only [crOut]
+    icases Ho with ⟨%hh, -⟩
+    rw [hi] at hh
+    exact absurd hh.1 (by simp)
+  | none =>
+  dsimp only [crOut]
+  iapply HΦ
+  iframe Hp Hperm Ho
+  icases Hr with (⟨%fd, %i', %hres, Hf, -, Hfd⟩ | ⟨%herr, #Hok⟩)
+  · obtain ⟨rfl, hfd, hi'⟩ := hres
+    dsimp only [crIno] at hi'
+    have hii : i' = i := by
+      rw [hi] at hi'
+      injection hi' with h1
+      injection h1 with h2
+      exact h2.symm
+    subst hii
+    isplitl [Hf Hfd]
+    · ileft
+      iexists fd
+      iframe Hf
+      isplitr
+      · ipureintro; exact ⟨rfl, hfd⟩
+      rw [boltOpenFd] at *
+      iexact Hfd
+    · iapply fmtErrorOkOrNil_nil
+  · iframe Hok
+    iright; ipureintro
+    exact ⟨herr.1, herr.2.1, herr.2.2.resolve_left (fun h => h hfs)⟩
+
+/-- The witness half of the options agrees with the fields `Open.specC` needs off: `NoSync`. -/
+private theorem optsW_ns (opts : Loc) (dq : DFrac) (v : go_etcd_io.bbolt.Options)
+    (hv : optsSyncs v) (dqx : DFrac) (x : Bool) :
+    (opts ↦{dq} v : IProp GF) ∗ opts.[Options, go!"NoSync"] ↦{dqx} x ⊢ ⌜x = false⌝ := by
+  iintro ⟨Hv, Hx⟩
+  icases (optsPt_eq opts v dq).1 $$ Hv with ⟨⟨-, -, -, -, -, -, -, -, -, -, H11, -⟩, -⟩
+  ihave %h := typedPointsto_agree_wand _ _ _ _ _ $$ H11 Hx
+  ipureintro; rw [← h]; exact hv.2.1
+
+/-- The witness half of the options agrees with the fields `Open.specC` needs off: `NoGrowSync`. -/
+private theorem optsW_ngs (opts : Loc) (dq : DFrac) (v : go_etcd_io.bbolt.Options)
+    (hv : optsSyncs v) (dqx : DFrac) (x : Bool) :
+    (opts ↦{dq} v : IProp GF) ∗ opts.[Options, go!"NoGrowSync"] ↦{dqx} x ⊢ ⌜x = false⌝ := by
+  iintro ⟨Hv, Hx⟩
+  icases (optsPt_eq opts v dq).1 $$ Hv with ⟨⟨-, H2, -⟩, -⟩
+  ihave %h := typedPointsto_agree_wand _ _ _ _ _ $$ H2 Hx
+  ipureintro; rw [← h]; exact hv.2.2
+
+private theorem optsAtSyncs_intro' (l : Loc) (dq : DFrac) (o : OptsM) (v : go_etcd_io.bbolt.Options)
+    (h : optsVal v o ∧ optsSyncs v) : (l ↦{dq} v : IProp GF) ⊢ optsAtSyncs l dq o := by
+  unfold optsAtSyncs; iintro H; iexists v; iframe H; ipureintro; exact h
+
+private theorem optsAtSyncs_elim' (l : Loc) (dq : DFrac) (o : OptsM) :
+    optsAtSyncs (GF := GF) l dq o ⊢
+      ∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o ∧ optsSyncs v⌝ := by
+  unfold optsAtSyncs; exact .rfl
+
+omit [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] in
+set_option maxHeartbeats 4000000 in
+/-- **`Open.specC`**: `Open.wp_proofGC` with the shared mode's open of the existing file
+(`openFileDbC_shared`), the options' witness half of `optsAtSyncs`'s points-to (its `optsNoErr`
+fields, and `NoSync`/`NoGrowSync` off). -/
+theorem Open.wp_proofC [sync.Assumptions]
+    (hCS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
+      os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (hName : os.File.Name.spec (GF := GF) (hG := hG))
+    (hFlock : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], flock.spec (GF := GF) (hG := hG))
+    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.spec (GF := GF) (hG := hG))
+    (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
+    (hNI : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.needsInit.spec (GF := GF) (hG := hG))
+    (hGPS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.getPageSize.spec_own (GF := GF) (hG := hG))
+    (hMmapB : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
+      DB.mmapUnlocked.spec_ownB (GF := GF) (hG := hG))
+    (hLoad : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
+    (hFdsR : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.specR (GF := GF) (hG := hG))
+    (hclose : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG))
+    (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
+    (hOptStr : Options.String.spec (GF := GF) (hG := hG))
+    (hModeStr : fs.FileMode.String.spec (GF := GF) (hG := hG)) :
+    Open.specC (GF := GF) (hG := hG) := by
+  intro _ _ _ _ _ N R d b dq j qc h i mode opts dqo o D Q hb hi hfs
+  iintro %Φ ⟨#Hpkg, #Hos, %HN, #Hsi, Hp, Hperm, Hn, Hopts, %Hok, Hlgr, Hau⟩ HΦ
+  icases optsAtSyncs_elim' opts dqo o $$ Hopts with ⟨%v, Hv, %hv⟩
+  icases pt_split_half opts v dqo $$ Hv with ⟨Hv1, Hv2⟩
+  iapply Open.wp_proofGC hName hFlock hStat hSize hNI hGPS hMmapB hLoad hFdsR hclose hLogger hOptStr
+    hModeStr _ _ N (child d b) mode opts (dfHalf dqo) o D i Q (¬ PathFits (child d b))
+    (opts ↦{dfHalf dqo} v) hfs
+    (optsW_timeout False opts (dfHalf dqo) v hv.2.1)
+    (optsW_nfs False opts (dfHalf dqo) v hv.2.1)
+    (optsW_mmap False opts (dfHalf dqo) v hv.2.1)
+    (optsW_ns opts (dfHalf dqo) v hv.2)
+    (optsW_ngs opts (dfHalf dqo) v hv.2)
+    (openFileDbC_shared hCS R d b dq j qc h mode i hb hi hfs) $$ [Hp Hperm Hn Hv1 Hv2 Hlgr Hau]
+  · iframe; iframe #
+    isplitr
+    · ipureintro; exact HN
+    isplitr
+    · iPkgInit
+    isplitl [Hv1]
+    · iapply optsAt_intro' opts (dfHalf dqo) o v hv.1 $$ Hv1
+    ipureintro; exact Hok
+  inext
+  iintro %db %err ⟨Hopts, Hv2, ⟨Hp, Hperm, Hn⟩, Hr⟩
+  icases optsAt_elim' opts (dfHalf dqo) o $$ Hopts with ⟨%v', Hv1⟩
+  ihave %hvv := typedPointsto_agree_wand _ _ _ _ _ $$ Hv1 Hv2
+  subst hvv
+  iapply HΦ
+  iframe Hp Hperm Hn Hr
+  iapply optsAtSyncs_intro' opts dqo o v' hv
+  iapply pt_join_half opts v' dqo $$ [Hv1 Hv2]
+  iframe
+
+end canonC
 
 end proof
 
