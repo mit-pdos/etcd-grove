@@ -14,6 +14,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.URLBounds
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MaxMembers
 
 @[expose] public section
 
@@ -199,9 +200,6 @@ def Deployment.ids (d : Deployment) : List w64 :=
 client machine's (the orchestrators listen nowhere). -/
 def Deployment.addrs (d : Deployment) : List GoString :=
   d.members.flatMap (fun m => [m.peer, m.client]) ++ d.nodes.flatten
-
-/-- The cluster's size bound (Go's `deployment.MaxMembers`). -/
-def maxMembers : Nat := 64
 
 /-- The length bound, in bytes, of every member name, every address and the token (Go's
 `deployment.MaxLen`): with `maxMembers`, what keeps the strings etcd joins from them (a member's

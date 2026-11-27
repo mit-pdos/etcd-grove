@@ -10,7 +10,7 @@ there as at the statement's `distURLs d`, and
 
 * the peers are a permutation of the members' ids (`bootGo.memberID` of one URL is `memberId`), and the
   directory is `dirD d`;
-* the URLs are plain (`addrOk` addresses), the names plain (`nameOk`), one URL per entry, at most 64 entries,
+* the URLs are plain (`addrOk` addresses), the names plain (`nameOk`), one URL per entry, at most `typed.maxMembers` entries,
   and `initMapOk` (the ids distinct and nonzero by their 16 low bits, the sizes from `maxMembers`,
   `maxNameLen` and `addrOk`'s length);
 * no member id is one of raft's local message targets (`Deployment.WellFormed.idsRaft`, Go's `RaftIdOk`).
@@ -333,14 +333,15 @@ theorem urlsOne (k : GoString) (hk : (U.initMap.lookup k).isSome) : (U.initURLs 
   obtain ⟨mm, hmm, rfl⟩ := key_member Hd hU k hk
   rw [initURLs_member Hd hU mm hmm]; rfl
 
-theorem size_le : GMap.size U.initMap ≤ 64 := by
+theorem size_le : GMap.size U.initMap ≤ typed.maxMembers := by
   rw [GMap.size_eq_dom_list_length, (dom_perm Hd hU).length_eq, List.length_map]
   exact Hd.members.2.2.2.1
 
 theorem initMapOk : bootGo.initMapOk U d.token := by
   have hp := entryIds_perm Hd hU
   have hsz := size_le Hd hU
-  have hlen : U.initMap.domList.length ≤ 64 := by rwa [GMap.size_eq_dom_list_length] at hsz
+  unfold typed.maxMembers at hsz
+  have hlen : U.initMap.domList.length ≤ 1000 := by rwa [GMap.size_eq_dom_list_length] at hsz
   refine ⟨entryIds_nodup Hd hU, fun h0 => Hd.idsNodup.2 (hp.subset h0), by omega, ?_, ?_⟩
   · have := sum_map_le U.initMap.domList (fun k => (U.initURLs k).length) 1 (fun k hk =>
       Nat.le_of_eq (urlsOne Hd hU k ((GMap.mem_dom_list _ k).1 hk)))

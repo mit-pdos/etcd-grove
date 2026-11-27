@@ -133,3 +133,46 @@ different cluster view (clones of non-nil entries, compared by id: `false` or th
 error); malformed headers or bodies (`continue`), `//members` (excluded by `bootURLsPlain`), HTTP/2 (no TLS);
 CGI mode and lowercase-only proxy variables (with all four `""`, no proxy); connection reuse (a pooled
 connection goes back only to the same address and protocol). No further required change.
+
+
+## Delta review (2026-11-27): the size bound 64 → `etcd_dist.typed.maxMembers` (1000): survives
+
+Reviewer: the etcd_safe lead (not the change's author; the `axiom` skill's procedure, scope the bound change only).
+Revision: `etcd-safe-rule41/2026-11-27` @`283810f2f8` (on `25e1f08e93`). Approved by Upamanyu (rule 41) subject to
+this review surviving.
+
+**The change.** `bootstrap.specDist`'s premise `GMap.size U.initMap ≤ 64` becomes
+`GMap.size U.initMap ≤ etcd_dist.typed.maxMembers`, with `typed.maxMembers := 1000`
+(`Proof/.../examples/etcd/dist/MaxMembers.lean`, a concrete `def`, no imports). Nothing else in the statement
+changes (the diff of `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapDist.lean`: the premise, the import,
+docstrings). The axiom gets stronger: it now covers clusters of 65 to 1000 members.
+
+**Attacks tried (each about the size only; A1–A8 above are unaffected by it):**
+- **S1. The Lean statement.** `bootstrap.specDist_of_spec` (`dist/BootDist.lean:76-83`) derives `specDist` from
+  `bootstrap.spec` with the size premise discarded (`intro _ _ cfg U γ N _ _ _ _ …`: the size hypothesis is one of
+  the `_`) and `bootRTOk` dropped. `bootstrap.spec`'s own bound is `GMap.size U.initMap ≤ 2 ^ 58` (`bootGo.initMapOk`,
+  `BootValues.lean:168-170`), carried in `specDist`'s premises unchanged. So at any bound up to 2^58 the statement
+  is `bootstrap.spec`'s, restricted, plus `bootRTOk`'s network right; the bound adds no claim of its own. The
+  derivation still compiles at 1000 (the helper's VM build of the dist leaves, which import `BootDist`) [checked:
+  source; build reported by the author].
+- **S2. `isMemberBootstrapped`'s GETs at 999 peers** (`cluster_util.go:69-121`, the only Go `specDist` adds over
+  `bootstrap.spec`). The loop is sequential over `getRemotePeerURLs`; each GET is bounded by the bootstrap timeout.
+  More peers means more time, not a new path: a hang is non-termination (no counterexample, as A5). Each answer is
+  still `peerMembersHandler`'s (A1's argument is per address, not per count).
+- **S3. Goroutines and connections.** One idle connection per peer host (`MaxIdleConnsPerHost = 1024` ≥ 999), two
+  transport goroutines per connection: about 2000 goroutines. As before (Not tried), library goroutines are not
+  counted against `ThreadBoundLe`; in any case 2000 ≪ the `ThreadBoundLe GF (2^29)` the statement carries. No panic.
+- **S4. Sizes and ids.** 1000 entries of ≤ 300 bytes (`initMapOk`) is ≤ 300 KB of URL text, far below every string
+  and allocation bound (`maxAddr`); ids distinct and nonzero are `initMapOk`'s premise, unchanged. raft's bootstrap
+  log of 1000 `ConfChangeAddNode` entries is `bootstrap.spec`'s `BootLog`, at any size ≤ 2^58.
+- **S5. Go evidence at the new size.** The deployment test `TestWellFormedMaxMembers` (examples/etcd/dist) builds a
+  1000-member deployment with chosen peer ports (ids are derived from peer URLs and the token) that passes
+  `WellFormed`'s 16- and 15-low-bit id rules, then runs `server.ConfigOf` for every member, round-trips the
+  initial cluster through `types.URLsMap`'s string (27457 bytes) and builds etcd's cluster from it
+  (`membership.NewClusterFromURLsMap`, 1000 distinct ids) [checked: pass, go1.27.3, with the rest of
+  `go test ./etcd/dist/...`]. Not run: an actual 1000-process boot
+  (`TestBootThreeMembers` covers the path at 3; S2–S4 argue the count does not matter).
+
+**Verdict: survives.** The raised bound adds no claim beyond `bootstrap.spec`'s (S1), and the Go that `specDist`
+adds is per peer (S2–S4). Retirement unchanged: when #34 proves `bootstrap` at these clusters, `specDist_of_spec`
+makes the swap.
