@@ -1,11 +1,11 @@
 /-
-Proof of the spec of the same name (the auth plan's S4d, 2026-10-24). Lean-first (no Rocq
-counterpart). The role's message is the caller's (`roleOutX`, the write side's read): the search
-for the first permission whose key is not below the new one's (`sort.Search`, at any index:
-`auth.wp_Search_any`, nothing records that the permissions are sorted) finds an entry of the
-same key and range end, whose type is overwritten in place, or the new permission is appended and
-the permissions sorted by key (`sort.Sort(permSlice(...))`, `auth.permSlice_isSorter`); either way
-the model's step (`roleGrantPermissionR`, `GrantPermLemmas.lean`).
+Proof of the spec of the same name (the auth plan's S4d, 2026-10-24; nomode X-a1, 2026-11-27).
+Lean-first (no Rocq counterpart). The role's message is the caller's (`roleOutX`, the write side's
+read: the record's model role is the state's, sorted by (key, range end)): the fork's code keeps
+the permissions off the new one's range, appends the new one and sorts by (key, range end)
+(`sort.Sort(permSlice(...))`, `auth.permSlice_isSorter`); the ranges being distinct, the sorted
+record's model role is the model's step, in order (`roleGrantPermissionR`, `grant_kept_eq`,
+`GrantPermLemmas.lean`).
 -/
 module
 
@@ -55,7 +55,8 @@ theorem auth.roleOutX_null (st : AuthState) (name : GoString) :
 
 theorem auth.roleOutX_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r ≠ null) :
     roleOutX (GF := GF) r st name ⊢ ∃ (ps : Role) (rr : RoleRec),
-      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRoleX r rr := by
+      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole = ps ∧ ps.Pairwise permLt⌝ ∗
+        ownRoleX r rr := by
   unfold roleOutX
   cases h : st.roles !! name with
   | none => iintro %Hn; exact absurd Hn hnn
@@ -63,7 +64,7 @@ theorem auth.roleOutX_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r
     iintro ⟨%rr, %Hrr, Hr⟩
     iexists ps, rr
     iframe Hr
-    ipureintro; exact ⟨rfl, Hrr.1, Hrr.2⟩
+    ipureintro; exact ⟨rfl, Hrr⟩
 
 /-- The `Key` of an owned permission message. -/
 theorem auth.wp_permX_key (p : Loc) (w : PermW) :
@@ -321,7 +322,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       iexists eRNF; iframe HeRNF; ipureintro; rfl
     ihave Hrl' := auth.roleOutX_some rl st0 name Hif $$ Hrl
     icases Hrl' with ⟨%ps, %rr, %Hrr, Hrm⟩
-    obtain ⟨Hlook, Hrrn, Hrrp⟩ := Hrr
+    obtain ⟨Hlook, Hrrn, Hrrp, Hsrt0⟩ := Hrr
     iunfold ownRoleX at Hrm
     icases Hrm with ⟨%rst, %rnm, %kp, %locs, %rsc, Hrp, #Hrnm, Hkp, Hkpc, %Hlocs, Hperms⟩
     ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hrp
@@ -485,8 +486,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       ihave #Hsrt := auth.permSlice_isSorter s2 $$ Hpkg
       have hfst : (kl ++ [(«$r0_ptr», w)]).map Prod.fst = kl.map Prod.fst ++ [«$r0_ptr»] := by
         simp
-      wp_apply +noauto (_root_.Perennial.sort.wp_Sort (interface.mk permSlice.ty #s2) (auth.permsOwn s2) keyLt
-          StrictWeakOrder_keyLt (kl ++ [(«$r0_ptr», w)])) $$ [Hs2]
+      wp_apply +noauto (_root_.Perennial.sort.wp_Sort (interface.mk permSlice.ty #s2) (auth.permsOwn s2) permWLt
+          StrictWeakOrder_permWLt (kl ++ [(«$r0_ptr», w)])) $$ [Hs2]
         as %xs' ⟨Hxs, %Hperm, %Hsorted⟩
       · iframe Hsrt
         isplitl [Hs2]
@@ -533,14 +534,14 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
         simp [roleGrantPermissionR, hvalid, Hlook]
       have hkeys : M.isOn = true → M ≠ .any → ∀ p ∈ grantPerms ps w, p.key ≠ [] := fun h1 h2 =>
         auth.grant_keys ps w hvalid.1 (fun p hp => Hpk st0 Hl0 h1 h2 name ps Hlook p hp)
-      have hgp := auth.grant_kept_perm rr ps w kl xs' «$r0_ptr» Hrrp hkept Hperm
+      have hgp := auth.grant_kept_eq rr ps w kl xs' «$r0_ptr» Hrrp Hsrt0 hkept Hperm Hsorted
       have hrn : ({ rr with perms := xs'.map Prod.snd } : RoleRec).name = name := Hrrn
       generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hgp hrn ⊢
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #rl))
       iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) %AuthSess.init [HL Hrc Hsw Hrm]
       · iframe HL Hrc Hsw Hrm; ipureintro; rw [hrn]
         exact ⟨by decide, List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 name (by rw [Hlook]; rfl)),
-          Hnamelen, hgp⟩
+          Hnamelen, hgp, auth.grantPerms_sorted ps w Hsrt0⟩
       inext
       iintro ⟨HL, Hsw, Hrr⟩
       (try wp_auto)

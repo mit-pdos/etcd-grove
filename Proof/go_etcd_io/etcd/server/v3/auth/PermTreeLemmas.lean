@@ -59,7 +59,7 @@ theorem perm_insert_snoc {L : List adt.Entry} {xs : List adt.IvlS} (h : (L.map P
 /-- The permissions seen so far, and one more, are among the user's. -/
 theorem prefix_length_lt (st : AuthState) (roles : List GoString) (n m : Nat) (rn : GoString)
     (h1 : roles[n]? = some rn) (ps : List Perm) (h2 : st.roles !! rn = some ps) (rr : RoleRec)
-    (h3 : rr.toRole.Perm ps) (w : PermW) (hm : rr.perms[m]? = some w) (p : Perm)
+    (h3 : rr.toRole = ps) (w : PermW) (hm : rr.perms[m]? = some w) (p : Perm)
     (hw : permOfWire w = some p) :
     (userPerms st (roles.take n) ++ (rr.perms.take m).filterMap permOfWire).length + 1 ≤
       (userPerms st roles).length := by
@@ -71,7 +71,7 @@ theorem prefix_length_lt (st : AuthState) (roles : List GoString) (n m : Nat) (r
     rw [← List.filterMap_append, List.take_append_drop]; rfl
   rw [filterMap_take_succ permOfWire rr.perms m w hm, hw] at hperms
   have hlen : ((rr.perms.take m).filterMap permOfWire).length + 1 ≤ ps.length := by
-    rw [← h3.length_eq, ← hperms]; simp
+    rw [← h3, ← hperms]; simp
   calc (userPerms st (roles.take n) ++ (rr.perms.take m).filterMap permOfWire).length + 1
       = (userPerms st (roles.take n)).length + (((rr.perms.take m).filterMap permOfWire).length + 1) := by
         rw [List.length_append]; omega
@@ -86,7 +86,7 @@ theorem prefix_length_lt (st : AuthState) (roles : List GoString) (n m : Nat) (r
 /-- `Insert`'s count bound for the tree of a type, from the user's permissions fitting. -/
 theorem insert_count_ok (st : AuthState) (roles : List GoString) (n m : Nat) (rn : GoString)
     (hfit : (userPerms st roles).length < 2 ^ 63) (h1 : roles[n]? = some rn) (ps : List Perm)
-    (h2 : st.roles !! rn = some ps) (rr : RoleRec) (h3 : rr.toRole.Perm ps) (w : PermW)
+    (h2 : st.roles !! rn = some ps) (rr : RoleRec) (h3 : rr.toRole = ps) (w : PermW)
     (hm : rr.perms[m]? = some w) (p : Perm) (hw : permOfWire w = some p) (op : PermType)
     {L : List adt.Entry}
     (hL : (L.map Prod.fst).Perm

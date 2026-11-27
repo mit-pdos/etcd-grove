@@ -452,10 +452,9 @@ theorem stepSmall_roleGrantPermission (role : GoString) (w : Option PermW) :
         cases hR
         refine ⟨by simp [bump, putRole],
           authSmall_bump_putRole st role _ ?_ (h.nonempty.2 role (by rw [hps]; rfl)) h⟩
-        rw [hps]; simp only [Option.getD_some, grantPerms, List.length_append]
+        rw [hps]; simp only [Option.getD_some]
         have := List.length_filter_le (fun p => decide ¬ permAt w.key w.rangeEnd p) ps
-        cases permOfWire w <;> simp only [Option.toList_none, Option.toList_some, List.length_nil,
-          List.length_singleton] <;> omega
+        cases hw : permOfWire w <;> simp only [grantPerms, hw, permInsert_length] <;> omega
 
 /-! ## The fuel -/
 

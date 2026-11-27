@@ -8,6 +8,27 @@ plan stays the target the real proofs converge toward: no silent edits.
 One entry per defect, newest first, in this format:
 
 ```
+## 2026-11-27: the auth model's roles -- a role's record matches the state only up to order (nomode X-a1)
+
+- **Spec.** `auth.grantPerms` (`Proof/.../auth/Steps.lean`, in `roleGrantPermissionR`: the step of
+  `authStore.RoleGrantPermission.spec`), `auth.roleOut`/`roleOutX` (`Buckets.lean`: the reads of
+  `Spec/.../storage/schema/{unsafeGetRole,authBackend__GetRole,authReadTx__UnsafeGetRole,authBatchTx__UnsafeGetRole}.lean`),
+  `auth.roleGetOut` (`Reads.lean`: `authStore.RoleGet.spec`), the batch contract's `UnsafePutRole` (`authBatchTxLk`,
+  `InvAuth.lean`), and the backend's `schema.rolesAt`/`authBucketsAre` (`InvAuthBackend.lean`).
+- **Defect.** `permSlice.Less` compared keys only, so a role's record kept same-key permissions in grant-history
+  order; the model appended (`grantPerms`) and every read promised the state's permissions up to order
+  (`rr.toRole.Perm ps`). The permission cache's interval tree is built from the record in record order, so
+  with the record's order unknown the cache's shape (and the verdict on an inverted range, which depends on it:
+  `issues/etcd-auth-perm-order-go-version.md`) is not a function of the state.
+- **Evidence.** The D2 tests (`d2_shape_test.go`): two grant orders of one permission set give two records and
+  two verdicts on `[d, c)`.
+- **Proposed change.** The fork sorts by (key, range end) (`goose-lean-permsort`, local, unpushed). `grantPerms`
+  inserts at the sorted place (`permInsert`, order `permLt`); `roleOut`/`roleOutX`/`rolesAt`/`authBucketsAre`/
+  `UnsafePutRole`'s premise say the record's model role **is** the state's (`rr.toRole = ps`) and is strictly sorted
+  (`ps.Pairwise permLt`: distinct ranges), as the users' records already are (`roles.Pairwise GoStringLt`);
+  `roleGetOut` gives the state's permissions in order. Strengthening only; no axiom or top-level premise moves.
+- **Decision.** Accepted (coordinator, design X, 2026-11-27: "roleOut uses equality instead of permutation").
+
 ## <date>: <spec> -- <one-line defect>
 
 - **Spec.** The file and the declaration (`SpecPlan/Spec/<pkg>/<fn>.lean`, `<fn>.spec`; or a law,

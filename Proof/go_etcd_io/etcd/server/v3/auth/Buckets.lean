@@ -393,12 +393,14 @@ def userOut (u : Loc) (st : AuthState) (name : GoString) : IProp GF :=
       ⌜ur.name = name ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt⌝ ∗ ownUser u ur)
 
 /-- What `UnsafeGetRole(name)` returns of the state `st`: nil if `st` has no such role, else a
-message holding a record of that name whose permissions of a known type are the state's, up to
-order (`List.Perm`: the record is sorted by key, unstably; the auth plan's E3z). -/
+message holding a record of that name whose permissions of a known type are the state's, which are
+sorted by (key, range end) (`permLt`, strictly: distinct ranges; `RoleGrantPermission` sorts by
+`permSlice.Less`, nomode X-a1). -/
 def roleOut (r : Loc) (st : AuthState) (name : GoString) : IProp GF :=
   match st.roles.lookup name with
   | none => iprop(⌜r = null⌝)
-  | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRole r rr)
+  | some ps => iprop(∃ rr : RoleRec,
+      ⌜rr.name = name ∧ rr.toRole = ps ∧ ps.Pairwise permLt⌝ ∗ ownRole r rr)
 
 /-- `userOut` with the message as `proto.Unmarshal` returns it (`ownUserX`): what a batch
 transaction's `UnsafeGetUser` returns (the auth plan's S4c). -/
@@ -412,7 +414,8 @@ def userOutX (u : Loc) (st : AuthState) (name : GoString) : IProp GF :=
 def roleOutX (r : Loc) (st : AuthState) (name : GoString) : IProp GF :=
   match st.roles.lookup name with
   | none => iprop(⌜r = null⌝)
-  | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRoleX r rr)
+  | some ps => iprop(∃ rr : RoleRec,
+      ⌜rr.name = name ∧ rr.toRole = ps ∧ ps.Pairwise permLt⌝ ∗ ownRoleX r rr)
 
 theorem userOutX_persist (u : Loc) (st : AuthState) (name : GoString) :
     userOutX (GF := GF) u st name ⊢ |==> userOut u st name := by

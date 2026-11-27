@@ -1536,7 +1536,7 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
       {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
-            rr.toRole.Perm ps⌝ }}
+            rr.toRole = ps ∧ ps.Pairwise permLt⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
@@ -1598,7 +1598,7 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
       {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
-            rr.toRole.Perm ps⌝ }}
+            rr.toRole = ps ∧ ps.Pairwise permLt⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
@@ -2629,7 +2629,8 @@ theorem roleOut_null (st : AuthState) (name : GoString) :
 /-- `UnsafeGetRole(name)` returned a message: the state's role. -/
 theorem roleOut_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r ≠ null) :
     roleOut (GF := GF) r st name ⊢ ∃ (ps : Role) (rr : RoleRec),
-      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRole r rr := by
+      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole = ps ∧ ps.Pairwise permLt⌝ ∗
+        ownRole r rr := by
   unfold roleOut
   cases h : st.roles !! name with
   | none => iintro %Hn; exact absurd Hn hnn
@@ -2637,7 +2638,7 @@ theorem roleOut_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r ≠ n
     iintro ⟨%rr, %Hrr, Hr⟩
     iexists ps, rr
     iframe Hr
-    ipureintro; exact ⟨rfl, Hrr.1, Hrr.2⟩
+    ipureintro; exact ⟨rfl, Hrr⟩
 
 /-- **A state of the latest one's revision appended** (`AuthEnable`: the flag set, the revision
 as stored): the atomic is unchanged, so the store's revision invariant is reopened only to move

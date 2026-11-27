@@ -7,10 +7,10 @@
 between the state the operation found and its outcome (`Outcome`): refused with one of the
 package's errors (`AuthErr`, the state unchanged), nothing to do (`same`: `nil`, the state
 unchanged), or the next state (`next`: the records written and the revision bumped,
-`commitRevision`). Most steps are functions (`userAddF`, ...); the two whose result the Go code
-leaves to a sort (`UserGrantRole` sorts the user's roles, `RoleGrantPermission` the role's
-permissions by key, unstably) or to a wire detail the model does not keep (a permission of an
-unknown type, which `RoleRec.toRole` drops) are relations.
+`commitRevision`). Most steps are functions (`userAddF`, ...); those whose result the Go code
+leaves to a sort (`UserGrantRole` sorts the user's roles) or to a wire detail the model does not
+keep (a permission of an unknown type, which `RoleRec.toRole` drops: `RoleRevokePermission`) are
+relations.
 
 **The reads of `as.enabled` outside `enabledMu`** (`UserDelete`, `UserRevokeRole`, `RoleDelete`
 refuse to touch `root` when auth is enabled; `AuthEnable`/`AuthDisable` read it under the lock
@@ -217,10 +217,30 @@ def roleRevokePermissionR (role key rangeEnd : GoString) : StepRel := fun st o =
     (o = .err .permissionNotGranted ∧ ∀ p ∈ ps, ¬ permAt key rangeEnd p) ∨
     o = .next (bump (putRole st role (ps.filter fun p => ¬ permAt key rangeEnd p)))
 
-/-- **The role's permissions after granting `w`**: those not on `w`'s range, and `w`'s if of a known
-type (a permission of an unknown type, `permOfWire w = none`, is not the model's). -/
+/-- `p` inserted into `ps` before the first permission it is below (`permLt`): into a role sorted by
+`permLt`, at its sorted place. -/
+def permInsert (p : Perm) : Role → Role
+  | [] => [p]
+  | q :: qs => if permLt p q then p :: q :: qs else q :: permInsert p qs
+
+/-- **The role's permissions after granting `w`**: those not on `w`'s range, with `w`'s inserted at
+its place in the order `permSlice.Less` sorts by (`permInsert`), if of a known type (a permission
+of an unknown type, `permOfWire w = none`, is not the model's). -/
 def grantPerms (ps : Role) (w : PermW) : Role :=
-  ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ (permOfWire w).toList
+  match permOfWire w with
+  | none => ps.filter (fun p => ¬ permAt w.key w.rangeEnd p)
+  | some p => permInsert p (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p))
+
+theorem permInsert_perm (p : Perm) : ∀ l : Role, (permInsert p l).Perm (p :: l)
+  | [] => List.Perm.refl _
+  | q :: qs => by
+    simp only [permInsert]
+    split
+    · exact List.Perm.refl _
+    · exact ((permInsert_perm p qs).cons q).trans (List.Perm.swap p q qs)
+
+theorem permInsert_length (p : Perm) (l : Role) : (permInsert p l).length = l.length + 1 :=
+  (permInsert_perm p l).length_eq
 
 open Classical in
 /-- `RoleGrantPermission(role, w)` for the wire permission `w` (`Buckets.lean`): no permission
@@ -228,10 +248,9 @@ given (`ErrPermissionNotGiven`, `w = none`); an invalid range (`ErrInvalidAuthMg
 `isValidPermissionRange`); no such role (`ErrRoleNotFound`); else the role's permissions on `w`'s
 range replaced by `w` (`grantPerms`). The fork's code (`acafa0317`, the auth plan's E3z,
 2026-10-27; `issues/etcd-auth-grant-permission-same-key.md`) drops every permission on the range,
-appends `w` and sorts the record by key (`sort.Sort`, unstable): the record's order is not the
-model's, which a role's record matches up to order (`roleOut`). A function of the state: until
-E3z the code updated the first permission of `w`'s key in place, appending beside it otherwise,
-and the step was a relation (any permutation, or the entry replaced), not determinate. -/
+appends `w` and sorts the record by (key, range end) (`sort.Sort`, `permSlice.Less`: the fork's
+`goose-lean-permsort`, nomode X-a1): a role's ranges being distinct, the sorted record is the
+model's role, in order (`roleOut`). -/
 def roleGrantPermissionR (role : GoString) (w : Option PermW) : StepRel := fun st o =>
   match w with
   | none => o = .err .permissionNotGiven

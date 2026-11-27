@@ -109,6 +109,21 @@ structure Perm where
 /-- A role: its key permissions (`authpb.Role.KeyPermission`). -/
 abbrev Role := List Perm
 
+/-- The order `permSlice.Less` sorts a role's permissions by (`RoleGrantPermission`): the keys
+(`bytes.Compare`), then the range ends. -/
+def rangeLt (k e k' e' : GoString) : Prop :=
+  go.GoStringLt k k' ∨ (k = k' ∧ go.GoStringLt e e')
+
+instance rangeLt_decidable (k e k' e' : GoString) : Decidable (rangeLt k e k' e') :=
+  inferInstanceAs (Decidable (go.GoStringLt k k' ∨ (k = k' ∧ go.GoStringLt e e')))
+
+/-- `rangeLt` on permissions. A role's permissions are strictly sorted by it (distinct ranges):
+`roleOut`. -/
+def permLt (p q : Perm) : Prop := rangeLt p.key p.rangeEnd q.key q.rangeEnd
+
+instance permLt_decidable (p q : Perm) : Decidable (permLt p q) :=
+  inferInstanceAs (Decidable (rangeLt p.key p.rangeEnd q.key q.rangeEnd))
+
 /-- A user: the names of its roles (`authpb.User.Roles`). -/
 abbrev User := List GoString
 

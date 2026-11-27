@@ -1,10 +1,11 @@
 /-
-**`permSlice` is a sorter** (the auth plan's S4d, 2026-10-24). Lean-first (no Rocq counterpart).
-`RoleGrantPermission` sorts a role's permissions by key: `sort.Sort(permSlice(role.KeyPermission))`,
-`permSlice.Less` comparing the keys with `bytes.Compare`. Over the pairs (message, wire
-permission) the slice holds (`permsOwn`: the slice of the messages, each message read-only with its
-wire permission, `ownPermS`), the three methods meet Perennial's `isSorter` for the keys' order
-(`keyLt`, `GrantPermLemmas.lean`).
+**`permSlice` is a sorter** (the auth plan's S4d, 2026-10-24; nomode X-a1, 2026-11-27). Lean-first
+(no Rocq counterpart). `RoleGrantPermission` sorts a role's permissions:
+`sort.Sort(permSlice(role.KeyPermission))`, `permSlice.Less` comparing the keys with
+`bytes.Compare`, then, on equal keys, the range ends (the fork's `goose-lean-permsort`). Over the
+pairs (message, wire permission) the slice holds (`permsOwn`: the slice of the messages, each
+message read-only with its wire permission, `ownPermS`), the three methods meet Perennial's
+`isSorter` for that order (`permWLt`, `GrantPermLemmas.lean`).
 -/
 module
 
@@ -35,10 +36,10 @@ message read-only, holding its wire permission. -/
 def auth.permsOwn (s : GoSlice) (l : List (Loc × PermW)) : IProp GF :=
   iprop(s ↦* l.map Prod.fst ∗ □ (∀ x : Loc × PermW, ⌜x ∈ l⌝ → ownPermS x.1 x.2))
 
-/-- **`permSlice(s)` is a sorter** of `permsOwn s` by the keys (`keyLt`). -/
+/-- **`permSlice(s)` is a sorter** of `permsOwn s` by (key, range end) (`permWLt`). -/
 theorem auth.permSlice_isSorter (s : GoSlice) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ⊢
-      sort.isSorter (interface.mk permSlice.ty #s) (auth.permsOwn s) keyLt := by
+      sort.isSorter (interface.mk permSlice.ty #s) (auth.permsOwn s) permWLt := by
   iintro #Hpkg
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.bytes $$ []
   · iPkgInit
@@ -78,8 +79,8 @@ theorem auth.permSlice_isSorter (s : GoSlice) :
     ihave #Hb' := Hb $$ [] ; · ipureintro; exact List.mem_of_getElem? Hb
     iclear Ha Hb
     iunfold ownPermS at Ha' Hb'
-    icases Ha' with ⟨%Hann, %ak, %are, -, #HaKey, -, -, -, #Hak, -⟩
-    icases Hb' with ⟨%Hbnn, %bk, %bre, -, #HbKey, -, -, -, #Hbk, -⟩
+    icases Ha' with ⟨%Hann, %ak, %are, -, #HaKey, #HaRe, -, -, #Hak, #Hare⟩
+    icases Hb' with ⟨%Hbnn, %bk, %bre, -, #HbKey, #HbRe, -, -, #Hbk, #Hbre⟩
     rw [method_unfold (t := permSlice.ty)]
     wp_auto
     simp only [hib, _root_.and_self, ↓reduceIte]
@@ -93,16 +94,63 @@ theorem auth.permSlice_isSorter (s : GoSlice) :
     wp_apply (_root_.Perennial.bytes.wp_Compare ak bk DFrac.discard DFrac.discard a.2.key b.2.key)
       $$ [$Hak $Hbk] as ⟨-, -⟩
     (try wp_auto)
-    iapply HΦ
-    iunfold auth.permsOwn
-    iframe Hs Hm
-    ipureintro
-    unfold keyLt bytes.compareResult
-    by_cases h1 : go.GoStringLt a.2.key b.2.key
-    · simp only [h1, ↓reduceIte, iff_true]; decide
-    · by_cases h2 : a.2.key = b.2.key
-      · rw [if_neg h1, if_pos h2]; simp only [h1, iff_false]; decide
-      · rw [if_neg h1, if_neg h2]; simp only [h1, iff_false]; decide
+    by_cases hk : a.2.key = b.2.key
+    · have h0 : bytes.compareResult a.2.key b.2.key = W64 0 := by
+        unfold bytes.compareResult; rw [hk, if_neg (go.goStringLt_irrefl _), if_pos rfl]
+      simp only [h0]
+      (try wp_auto)
+      (try simp only [hib, _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index s (sint.Z i) (l.map Prod.fst) (DFrac.own 1) a.1 Hi0 $$ [$Hs] as Hs
+      · ipureintro; exact hia
+      (try wp_auto)
+      (try simp only [hjb', _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index s (sint.Z j) (l.map Prod.fst) (DFrac.own 1) b.1 Hj0 $$ [$Hs] as Hs
+      · ipureintro; exact hjb
+      (try wp_auto)
+      wp_apply (_root_.Perennial.bytes.wp_Compare are bre DFrac.discard DFrac.discard a.2.rangeEnd
+        b.2.rangeEnd) $$ [$Hare $Hbre] as ⟨-, -⟩
+      (try wp_auto)
+      iapply HΦ
+      iunfold auth.permsOwn
+      iframe Hs Hm
+      ipureintro
+      unfold permWLt rangeLt bytes.compareResult
+      have hnk : ¬ go.GoStringLt a.2.key b.2.key := by rw [hk]; exact go.goStringLt_irrefl _
+      by_cases h1 : go.GoStringLt a.2.rangeEnd b.2.rangeEnd
+      · rw [if_pos h1]
+        exact ⟨fun _ => Or.inr ⟨hk, h1⟩, fun _ => by decide⟩
+      · rw [if_neg h1]
+        constructor
+        · intro h
+          exfalso
+          by_cases h2 : a.2.rangeEnd = b.2.rangeEnd
+          · rw [if_pos h2] at h; exact absurd h (by decide)
+          · rw [if_neg h2] at h; exact absurd h (by decide)
+        · rintro (h | ⟨-, h⟩)
+          · exact absurd h hnk
+          · exact absurd h h1
+    · have h0 : bytes.compareResult a.2.key b.2.key ≠ W64 0 := by
+        unfold bytes.compareResult
+        by_cases h1 : go.GoStringLt a.2.key b.2.key
+        · rw [if_pos h1]; decide
+        · rw [if_neg h1, if_neg hk]; decide
+      simp only [h0, not_false_eq_true, _root_.decide_true, decide_false, Bool.not_false,
+        Bool.not_true, ↓reduceIte]
+      (try wp_auto)
+      iapply HΦ
+      iunfold auth.permsOwn
+      iframe Hs Hm
+      ipureintro
+      unfold permWLt rangeLt bytes.compareResult
+      by_cases h1 : go.GoStringLt a.2.key b.2.key
+      · rw [if_pos h1]
+        exact ⟨fun _ => Or.inl h1, fun _ => by decide⟩
+      · rw [if_neg h1, if_neg hk]
+        constructor
+        · intro h; exact absurd h (by decide)
+        · rintro (h | ⟨h, -⟩)
+          · exact absurd h h1
+          · exact absurd h hk
   · iintro !> %l %i %j %a %b %Hij %Φ !> Hown HΦ
     iunfold auth.permsOwn at Hown
     icases Hown with ⟨Hs, #Hm⟩

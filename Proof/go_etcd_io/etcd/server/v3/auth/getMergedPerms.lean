@@ -159,7 +159,7 @@ theorem auth.getMergedPerms.wp_proof
             icases Hrole with ⟨%rr, %Hrr, Hr⟩
             iunfold ownRole at Hr
             icases Hr with ⟨%ms', %nm', %kp, %pps, %sc', Hr, -, #Hkp, %Hplen, #Hperms⟩
-            obtain ⟨-, Hrrps⟩ := Hrr
+            obtain ⟨-, Hrrps, -⟩ := Hrr
             ihave %Hkl := ownSlice_len _ _ _ $$ Hkp
             -- the outer counter, renamed before the inner loop's shadows it
             obtain ⟨io, hio⟩ : ∃ io, io = i_ptr := ⟨_, rfl⟩
@@ -426,7 +426,7 @@ theorem auth.getMergedPerms.wp_proof
               have hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by
                 have := Hrl.1; have := Hrl.2; word
               have hall : ((rr.perms.take (sint.nat m)).filterMap permOfWire).Perm ps := by
-                rw [hmlen, Hplen, List.take_length]; exact Hrrps
+                rw [hmlen, Hplen, List.take_length, ← Hrrps]; exact List.Perm.refl _
               have hiv : ∀ op, (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++
                   (rr.perms.take (sint.nat m)).filterMap permOfWire)).Perm
                   (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++ ps)) := fun op =>

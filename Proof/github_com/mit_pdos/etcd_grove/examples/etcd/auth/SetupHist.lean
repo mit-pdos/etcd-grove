@@ -297,7 +297,8 @@ theorem setupEff_putRole (st : AuthState) (x : auth.Role) (i : Nat)
 
 theorem grantPerms_permRW (ps : auth.Role) (h : ps = [] ∨ ps = [permR]) :
     grantPerms ps permRW = [permR] := by
-  rcases h with rfl | rfl <;> simp only [grantPerms, permOfWire_permRW] <;> simp [permAt, permR, permRW]
+  rcases h with rfl | rfl <;> simp only [grantPerms, permOfWire_permRW] <;>
+    simp [permAt, permR, permRW, permInsert]
 
 /-- A user's roles granted one more, at the set-up's stage before it. -/
 theorem setup_ugr_roles (u u' : User) (role : GoString) (h : u = [] ∨ u = [role])

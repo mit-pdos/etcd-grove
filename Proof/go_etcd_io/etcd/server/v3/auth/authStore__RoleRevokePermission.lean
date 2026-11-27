@@ -200,7 +200,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     iexists eRNF; iframe HeRNF; ipureintro; rfl
   ihave Hrole' := roleOut_some _ st0 role Hif $$ Hrole
   icases Hrole' with ⟨%ps, %rr, %Hrr, Hrole⟩
-  obtain ⟨Hlook, Hrrn, Hrrps⟩ := Hrr
+  obtain ⟨Hlook, Hrrn, Hrrps, Hsrt0⟩ := Hrr
   iunfold ownRole at Hrole
   icases Hrole with ⟨%rms, %rnm, %rkp, %pps, %rsc, Hrp, #Hrnm, #Hrkp, %Hplen, #Hperms⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hrp
@@ -368,7 +368,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
       exact List.length_filter_eq_length_iff.mp hl2
     have hnone : ∀ p ∈ ps, ¬ permAt key rangeEnd p := by
       intro p hp
-      exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk p (Hrrps.symm.subset hp)
+      exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk p (by show p ∈ rr.toRole; rw [Hrrps]; exact hp)
     wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
@@ -397,9 +397,9 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     iexists ePNG; iframe HePNG; ipureintro; rfl
   -- some permission revoked: the role put
   let rr' : RoleRec := { name := rr.name, perms := kept.map Prod.snd }
-  have hps' : rr'.toRole.Perm (ps.filter (fun p => ¬ permAt key rangeEnd p)) := by
-    show ((kept.map Prod.snd).filterMap permOfWire).Perm _
-    rw [hsnd, auth.filterMap_filter_keepW]; exact Hrrps.filter _
+  have hps' : rr'.toRole = ps.filter (fun p => ¬ permAt key rangeEnd p) := by
+    show (kept.map Prod.snd).filterMap permOfWire = _
+    rw [hsnd, auth.filterMap_filter_keepW]; unfold RoleRec.toRole at Hrrps; rw [Hrrps]
   imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #uu))
   iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) %AuthSess.init [HL Hrc Hsw Huu]
@@ -417,7 +417,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     ipureintro
     exact ⟨by decide, show 0 < rr.name.length by
         rw [Hrrn]; exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 role (by rw [Hlook]; rfl)),
-      show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps'⟩
+      show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps', Hsrt0.filter _⟩
   inext
   iintro ⟨HL, Hsw, Huu⟩
   (try wp_auto)

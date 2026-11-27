@@ -418,7 +418,11 @@ PROJECTS = [
         # d26dd5da6 (branch `goose-lean-ttlkeys`, on df6af0c36; pushed 2026-11-26): `LeaseTimeToLive`
         # checks read permission on the keys it returns (`checkLeaseTimeToLiveKeys`,
         # issues/etcd-lease-timetolive-keys-toctou.md).
-        rev="d26dd5da6f383bc9b06a957d685360dc12f8faf2",
+        # Then (nomode X-a1, 2026-11-27) 18ab647b0 (branch `goose-lean-permsort`, on d26dd5da6;
+        # LOCAL, not yet pushed: --check fails until it is): `permSlice.Less` orders a role's
+        # permissions by (key, range end), so the stored record is the canonical sorted one
+        # whatever the grant history (notes/nomode-x.md; issues/etcd-auth-perm-order-go-version.md).
+        rev="18ab647b02772b34e5fd61b3f3c9417bfffab059",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
