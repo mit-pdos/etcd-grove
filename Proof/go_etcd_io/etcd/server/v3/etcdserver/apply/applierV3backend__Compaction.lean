@@ -204,7 +204,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
       iframe Hw Htie
       iunfold apply.kvRest; iframe Hbk Hll Hrd Hhk
     isplitl [HPre]
-    · iright; iexact HPre
+    · iright; iframe HPre; ipureintro; exact hra
     isplitl [Hopen Hcro]
     · iunfold apply.cmpOwn; iframe
     isplitr

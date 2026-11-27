@@ -74,12 +74,12 @@ abbrev apply.Apply.adminSpec : Prop :=
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗
-      RD ∗ (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+      RD ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
-      ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
+      ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (k : Prop), apply.applyKV E ua x' ∗ apply.cPost v3 Pre Post k ∗
         ⌜apply.applyStep rq v3 x x' out⌝ ∗
         apply.applyResultIs rq v3 x.log ar out ∗ apply.applyAuthRes E.authMode x.chain rq v3 out ∗
-        (⌜out.waived = false⌝ ∨ G ot id) ∗ W ∗ apply.adminOut Own γa E.authMode hs rq v3 ar out }}
+        (⌜out.waived = false⌝ ∨ G ot id) ∗ W ∗ apply.adminOut Own γa E.authMode hs rq v3 ar k out }}
 
 end defs
 
@@ -120,7 +120,7 @@ set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` through its admin triple and the postcondition. -/
 local macro "call_tail_admin" : tactic => `(tactic| (
   wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post W γa hs Own)
-      $$ [Hown Hkv Htt Ho Hrc Hwb HW Hx] as %ar ⟨Htt, Hrt, %x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres, #Hauth, HW, Hdone⟩
+      $$ [Hown Hkv Htt Ho Hrc Hwb HW Hx] as %ar ⟨Htt, Hrt, %x', %out, %k, Hown, Hkv, HPP, %Hst, Htr, Hres, #Hauth, HW, Hdone⟩
   · iframe # Hown Hkv Htt Ho Hrc Hwb HW Hx
     isplitr
     · ipureintro; exact ⟨Hmode, Hadm, Hdk, Hrb⟩
@@ -134,13 +134,11 @@ local macro "call_tail_admin" : tactic => `(tactic| (
   ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
   iapply HΦ
   iframe Htt Hrt HRD
-  isplitl [HPP]
-  · iapply cPost_if; iexact HPP
   iframe Hok Htr
   isplitr
   · ipureintro; rfl
-  iexists x', out
-  iframe Hres Hauth HW Hdone
+  iexists x', out, k
+  iframe Hres Hauth HW Hdone HPP
   isplitl [Hown Hkv Hco]
   · iunfold apply.applyKV; iexists p
     rw [apply.applyStep_crev_nonCmp rq v3 x x' out (fun h => by simp [apply.adminKindOk, h] at Hadm) Hst.1]
@@ -262,19 +260,19 @@ theorem apply.Apply.wp_admin
       ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn v3 E x.log Pre Q Post $$ Hkv
       iapply HΦ
       iframe Htt Hrt HRD
-      isplitl [HPre]
-      · iapply cPost_if; iapply apply.cPost_of_pre; iexact HPre
       isplitr
       · iunfold apply.resultErrOk; ileft; ipureintro; rfl
       isplitr
       · iapply apply.resTrace_null
       isplitr
       · ipureintro; rfl
-      iexists x, .skipped
+      iexists x, .skipped, True
       simp only [apply.applyResultIs, apply.adminOut, apply.applyAuthRes]
       iframe HW Ho Hrc
       isplitl [Hown Hkv Hco]
       · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
+      isplitl [HPre]
+      · iapply (apply.cPost_of_pre _ _ _ True trivial); iexact HPre
       isplitr
       · ipureintro; simp [apply.applyStep, hns]
       iright; iexact HG

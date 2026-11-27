@@ -381,7 +381,7 @@ theorem snap_isConsistentIndexer
   · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
     iframe HΦ'
     icases Hpre with ⟨Hcst, Hcb⟩
-    iapply (wp_ci_get hCIg γ ci cb cst hcp) $$ [Hcst Hcb]
+    iapply (wp_ci_get (IR := fun _ _ => iprop(True)) hCIg γ ci cb cst hcp) $$ [Hcst Hcb]
     · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
     iintro ⟨Hcst, Hcb⟩
     rw [hld]

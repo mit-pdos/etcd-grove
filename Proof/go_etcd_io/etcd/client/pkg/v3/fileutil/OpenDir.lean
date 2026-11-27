@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
 public import Proof.os.NsAbove
 public import Proof.os.NsSOk
+public import Proof.os.NsSNE
 
 @[expose] public section
 
@@ -31,6 +32,16 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proof :
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
   wp_auto
   wp_apply os.Open.wp_dirSOk p R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
+  · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
+  iapply HΦ
+  iexact Hr
+
+theorem go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proofNE :
+    go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specNE (GF := GF) (hG := hG) := by
+  intro p R j dq qc hne hfit
+  wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
+  wp_auto
+  wp_apply os.Open.wp_dirSNE p R j dq qc hne hfit $$ [Hinv Hsi Hp Hperm] as %f %err Hr
   · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   iapply HΦ
   iexact Hr

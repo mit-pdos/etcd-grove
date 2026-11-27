@@ -73,7 +73,7 @@ theorem Tx.WriteTo.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF)
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
   ihave #Hfix' := Hfix
   iunfold dbFixed at Hfix'
   icases Hfix' with ⟨#Hps, -⟩

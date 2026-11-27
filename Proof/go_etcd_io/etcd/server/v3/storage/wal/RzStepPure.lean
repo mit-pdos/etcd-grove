@@ -136,10 +136,10 @@ The target at most `hi` (a truncate to `wr`, a growth back to the size) and `seg
 as `segBytesX_rzSeg`/`segBytesX_rzGrow` give it (`hX`): the window's candidates (`WinCands`) gain the
 step's zero. The new window's `WinZero` given F-Z is the old tail's (`WalAbsD.zeroPast`; `wal-tc17`,
 finding A: no `WinZero` premise, a pending tail's truncate keeps `old`'s torn values past `wr`). -/
-theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+theorem walAbsD_rzStartH {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {tr : Bool} {tg n : Nat}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
-    (hwr : lay.wr ≤ tg) (hlo : min g0.om.lo tg ≤ lay.wr) (htg : tg ≤ g0.om.hi)
+    (hwr : lay.wr ≤ tg) (hHd : WinHead lay (rzSeg g0 tr tg n)) (htg : tg ≤ g0.om.hi)
     (hX : (segBytesX (rzSeg g0 tr tg n)).length = (segBytesX g0).length ∧
       ∀ b, b < (segBytesX g0).length → RzCands (rzSeg g0 tr tg n).om.rz
         ((segBytesX g0).getD b (0, [])).2 ((segBytesX (rzSeg g0 tr tg n)).getD b (0, [])).2) :
@@ -168,7 +168,7 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     exact ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
       fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩,
-      WinHead.of_lo (by simp only [tailLay, rzSeg, rzMeta_lo]; omega),
+      fun b hb1 hb2 => hHd b hb1 hb2,
       fun hZ b x hb hx => ?_, ?_, ?_, fun b x hb hlb hbw => ?_⟩
     · simp only [tailLay, rzSeg, rzMeta_lo] at hbw
       rw [rzSeg_getElem?_lt hl (by omega)] at hb
@@ -189,6 +189,17 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
       have := habs.winLo_any g0 hg0
       unfold WinLo at this
       exact habs.lowW g0 hg0 b x hb hbw (by omega) (fun s hs => by simp [rzSeg, rzMeta, hs])
+
+/-- `walAbsD_rzStartH` with the window opened at or below `wr` (`WinHead.of_lo`). -/
+theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {pre : List SegG} {g0 : SegG} {tr : Bool} {tg n : Nat}
+    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
+    (hwr : lay.wr ≤ tg) (hlo : min g0.om.lo tg ≤ lay.wr) (htg : tg ≤ g0.om.hi)
+    (hX : (segBytesX (rzSeg g0 tr tg n)).length = (segBytesX g0).length ∧
+      ∀ b, b < (segBytesX g0).length → RzCands (rzSeg g0 tr tg n).om.rz
+        ((segBytesX g0).getD b (0, [])).2 ((segBytesX (rzSeg g0 tr tg n)).getD b (0, [])).2) :
+    WalAbsD C Mr d (tailLay lay pre (rzSeg g0 tr tg n) lay.wr) ents :=
+  walAbsD_rzStartH habs hs hwr (WinHead.of_lo (by simp only [rzSeg, rzMeta_lo]; omega)) htg hX
 
 end pure
 

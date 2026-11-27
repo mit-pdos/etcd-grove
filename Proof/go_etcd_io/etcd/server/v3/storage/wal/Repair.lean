@@ -6,12 +6,13 @@ committed unchanged and the last segment pinned, law L1); the decoder over `file
 back unchanged (`walInv_unpinLast`); on `io.ErrUnexpectedEOF` the `.broken` file (law L3: `walInv_keyExcl`,
 then `walBroken_osAUnc` or `walInv_lendOther`, `RepairBroken.lean`), `f.Seek(0, io.SeekStart)`, `io.Copy`
 (`io.CopyFiles.spec`, a hypothesis), the file given back (`walInv_unlendOther`), the tail registered pending
-(`walInvRegisterPendLaw_holds`, its write position the decoder's `LastOffset()`: `repairFile_unique`), the
-truncate (`os.File.Truncate.specRepTail`) and the fsync (`fileutil.Fsync.specRepTail`), the put-back
-(`walInv_repairPut`, L5), `walFsyncSec.Observe`; the deferred closes. Lean-first.
+(`walInvRegisterPendLaw_holds`, at the stream's end `wr`: `repairFile_unique`), the truncate at the decoder's
+`LastOffset()` (`wr`, or past it the end of a pending run, P6: `os.File.Truncate.specRepTail`) and the
+fsync (`fileutil.Fsync.specRepTail`), the put-back by the pending token (`walInv_repairPut`, L5), `walFsyncSec.Observe`; the deferred closes. Lean-first.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Repair
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.openLast
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.RepairCallees
@@ -39,7 +40,7 @@ public import Perennial.Spec.time.Since
 public import Proof.os.Off
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairBroken
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairLoop
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairPut
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.UnregLent
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllRegCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
@@ -170,7 +171,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
     wal.Repair.spec (W := W) Mr := by
-  intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩
   ihave #Hok' := Hok
@@ -186,7 +187,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   try wp_auto
   rw [decide_eq_false hlgn]
   try wp_auto
-  wp_apply wp_openLast lg R jr r dir nm qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
+  wp_apply wp_openLast lg R jr r dir nm qp Q ic hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %lf %err ⟨Hp, Hres, Hperm, %o, HQ, Hcase⟩
   · (try rw [hkd]); iframe; iframe #
   (try rw [← hkd])
@@ -202,7 +203,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     iexists o; iexact HQ
   subst herr
   iunfold walLastOpen at Hlo
-  icases Hlo with ⟨%d, %lay, %X, %hj, %gL, %f, %fd, %qd, %lo, %lk, %hfacts, #Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj,
+  icases Hlo with ⟨%d, %lay, %X, %hj, %gL, %f, %fd, %qd, %lo, %lk, %I, %hfacts, #Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj,
     Hpd, #Hlf, Hf, Hoff, Hfd, Hlks⟩
   obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd, hgLok⟩ := hfacts
   try wp_auto
@@ -276,7 +277,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   subst hdI
   try wp_auto
   -- the loop (law L2): the decoder at the end of a prefix of the segment's records
-  obtain ⟨rs, hRF, hrsw⟩ := walRepairFile walCodec_ok habs hidle.1 hidle.2.1 gL hgL
+  obtain ⟨rs, -, hRF, -⟩ := walRepairFile walCodec_ok habs hidle.1 hidle.2.1 gL hgL
   have hFbs : F.bs = segImg gL := by rw [← hF]; rfl
   ihave Hra : ownRecAny «$r0_ptr» $$ [«$r0»]
   · unfold ownRecAny; iexists _; iexact «$r0»
@@ -398,7 +399,11 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     iintro Hnc
     ihave HS : segRes gL $$ [Hm Hb]
     · unfold segRes; iframe
-    imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj Hkey
+    icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+    imod walInv_returnHLoans1 walCodec Mr R jr r dir _ lay.j lay.j X qd I rfl $$ Hinv Hnc Hkey HI Hnf Hpd
+      with ⟨Hnc, HI, Hnf⟩
+    ihave Hl := Hl $$ HI
+    imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz I $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj Hkey
       with ⟨Hnc, Hu⟩
     · iframe
     imodintro
@@ -459,19 +464,19 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       -- the ghost steps: the `.broken` name not left out of the key's claim; the tail registered pending
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod walInv_keyExcl walCodec Mr R jr r ⊤ CoPset.subseteq_top dir lay.j X $$ Hinv Hnc Hkey
+      imod walInv_keyExcl walCodec Mr R jr r ⊤ CoPset.subseteq_top dir _ lay.j X $$ Hinv Hnc Hkey
         with ⟨Hnc, %hXb⟩
-      imod repair_register Mr R jr r dir d lay X hj gL rs habs hnd hsn hgL hSz hRF $$ Hinv Hnc Hkey Hj Htf Hm Hb
-        with ⟨Hnc, Hj, Hm, Hb, %γ, %H, %md, %cuts, %k, Htf, Hpt, Hv, ⟨%hwrS, %hTM⟩⟩
+      imod repair_register Mr R jr r dir I d lay X hj gL rs habs hnd hsn hgL hSz hRF
+        $$ Hinv Hnc Hkey Hl Hj Htf Hm Hb with ⟨Hnc, Hl, Hj, Hm, Hb, %γ, %H, %md, %cuts, %k, %wr, Htf, Hpt, Hv, ⟨%hwrS, %hwt, %hTM⟩⟩
       imodintro
       iframe Hnc
       rw [child_repBroken]
       -- `createNewWALFile[*os.File](brokenName, true)`
       have hbt : go!".wal.broken" <:+ repBroken gL.name := repBroken_suffix_of (hsn.1 gL hgLm).1
-      wp_apply (repair_brokenOpen wp_cNWF wp_OpenN walCodec Mr R jr r dir (DFrac.own qd) lay.j X hj
+      wp_apply (repair_brokenOpen wp_cNWF wp_OpenN walCodec Mr R jr r dir I (DFrac.own qd) lay.j X hj
           ⟨[gL.ino], [(lay.j, .except X)], []⟩ (repBroken gL.name) (repBroken_nameOk hgLok) hbt hXb
           (by simp) (by simp [lendKey]))
-        $$ [Hpd Hperm Hj Ho] as %bf %bferr ⟨Hpd, Hperm, Hbo⟩
+        $$ [Hpd Hperm Hj Ho Hl] as %bf %bferr ⟨Hpd, Hperm, Hl, Hbo⟩
       · iframe; iframe #
       icases Hbo with (⟨%hbe, Hbo⟩ | %hbe)
       rotate_left
@@ -541,10 +546,12 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       iintro Hnc
       have hD : lendKey lay.j (repBroken gL.name) ∉
           (⟨[gL.ino], [(lay.j, .except X)], []⟩ : WalOut).D := by simp [lendKey]
-      imod walInv_unlendOther walCodec Mr R jr r ⊤ CoPset.subseteq_top dir lay.j X hj' (DFrac.own (1 : Qp).half)
+      icases walLockedTokI_incQ I $$ Hl with ⟨HIq, HlB⟩
+      imod walInv_unlendOther walCodec Mr R jr r ⊤ CoPset.subseteq_top dir I lay.j X hj' (DFrac.own (1 : Qp).half)
           _ (repBroken gL.name) (.file bi) (walNameP_broken hbt) (by simp [WalOut.addClaim]) hbi
-        $$ Hinv Hnc Hkey Hj Ho [Hcd] with ⟨Hnc, Hj, Ho⟩
+        $$ Hinv Hnc Hkey HIq Hj Ho [Hcd] with ⟨Hnc, Hj, HIq, Ho⟩
       · simp only [tmpEnt]; iapply io.copyDst_trFile $$ Hcd
+      ihave Hl := HlB $$ HIq
       rw [WalOut.delClaim_addClaim _ _ hD]
       imodintro
       iframe Hnc
@@ -553,7 +560,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       have hle : (recFrames walCodec rs).length ≤ gL.om.size := by
         have := hRF.pre.length_le; simp only [segImg, List.length_map] at this; omega
       wp_apply (wp_lockedTrunc lf f _ _ _
-          (wp_Trunc R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ gL.om.size k os' hle hwrS))
+          (wp_Trunc R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts wr _ gL.om.size k os' hwt hle hwrS))
         $$ [Hf Hfd Hlks Hoff Hpt Hm Hb Hv] as %terr Htr
       · iframe Hok Hlf
         iunfold walTailPO
@@ -563,7 +570,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         iexists gL.om, gL.bs
         iframe Hm Hb
         isplitr
-        · ipureintro; exact ⟨rfl, hTM, by omega, hfd, hTM.loWr _⟩
+        · ipureintro; exact ⟨rfl, hTM, by omega, hfd⟩
         iunfold tailVar at Hv; iexact Hv
       icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, %lo, %lk, Hfd, Hlks⟩, Hoff⟩)
       rotate_left
@@ -592,12 +599,12 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       -- `fileutil.Fsync(f.File)`
       wp_apply wp_Now as %t0 -
       try wp_auto
-      iunfold walLockedTok at Hl
-      icases Hl with ⟨Htk, Hpk, Hcf⟩
-      wp_apply (wp_Fsync R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts _ k os' hwrS)
+      iunfold walLockedTokI at Hl
+      icases Hl with ⟨Htk, Hpk, Hcf, HIl⟩
+      wp_apply (wp_Fsync R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts wr _ k os' hwrS)
         $$ [Htw Hcf] as %ferr ⟨Hcf, Hf, ⟨%rd, %lo, %lk, Hfd, Hlks⟩, Hoff, Hfr⟩
       · iframe Htw Hcf Hok
-      icases Hfr with (⟨%hfe, Hkt, %m2, %bs2, Hm2, Hb2, %hTM2, Hv⟩ | %hfe)
+      icases Hfr with (⟨%hfe, ⟨%k2, Hkt⟩, %m2, %bs2, Hm2, Hb2, %hTM2, Hv⟩ | %hfe)
       rotate_left
       · -- the fsync failed: `false`
         rcases ferr with ei' | _
@@ -654,12 +661,15 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       -- the put-back (L5's changed case), then the deferred closes
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      ihave Hv' : tailVar (W := W) γ ((H, md, cuts, (recFrames walCodec rs).length, gL.ino, none) : TailG)
+      ihave Hv' : tailVar (W := W) γ ((H, md, cuts, wr, gL.ino, none) : TailG)
         $$ [Hv]
       · iunfold tailVar; iexact Hv
-      imod walInv_repairPut Mr R jr r dir γ γ H md cuts _ m2 bs2 lay.j X hj' gL hTM2.2 hwrS
-        $$ Hinv Hnc Htf Hkt Hv' Hm2 Hb2 [Htk Hpk Hcf] Hnf Ho Hj Hkey with ⟨Hnc, Hu⟩
-      · iunfold walLockedTok; iframe
+      imod walInv_returnHLoans1 walCodec Mr R jr r dir _ lay.j lay.j X qd I rfl $$ Hinv Hnc Hkey HIl Hnf Hpd
+        with ⟨Hnc, HIl, Hnf⟩
+      ihave Hl : walLockedTokI (W := W) I $$ [Htk Hpk Hcf HIl]
+      · unfold walLockedTokI; iframe
+      imod walInv_repairPut Mr R jr r dir γ k2 H md cuts _ m2 bs2 lay.j X hj' gL I hTM2.2 hwrS
+        $$ Hinv Hnc Htf Hkt Hv' Hm2 Hb2 Hl Hnf Ho Hj Hkey with ⟨Hnc, Hu⟩
       imodintro
       iframe Hnc
       wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd Hblt] as %cerr2 -

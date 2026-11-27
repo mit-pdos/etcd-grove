@@ -1202,12 +1202,12 @@ theorem node.run.gated_of
     icases Hret with ⟨Hret, Hrtk⟩
     iunfold advRet0 at Hret
     icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, Hdur, Hbw, #Hfr,
-      Hfree, %Hr1, #HA⟩
+      Hfree, %Hr1, %HA⟩
     obtain ⟨Hstor1, Hunst1, Hunp1⟩ := Hr1
     wp_auto
     -- (2026-10-15, stage N) A1, from the driver's; (2026-10-28, stage U3d) dynamically after a
     -- snapshot `Ready`, its `ConfState` no auto-leave one (the driver's, `advanceP`)
-    icases runCfgR_a1 γ rs1 ca_d $$ Hcfg Hcamlb HA with ⟨#HA1, Hcfg⟩
+    icases runCfgR_a1 γ rs1 ca_d HA $$ Hcfg Hcamlb with ⟨#HA1, Hcfg⟩
     -- (2026-11-01, durability stage II (k)/(n)) the fragments *enter* minted, for `Advance`
     ihave #Hfr' : durFrags γ.raft id rs1.bw $$ []
     · rw [← Hgid]; iexact Hfr
@@ -1216,8 +1216,8 @@ theorem node.run.gated_of
     imod ownRawNode_trNoLoanG γ.raft nv.rn' id rs1 $$ Hrn with ⟨%Hnla, Hrn⟩
     wp_apply hAdv γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1
       (fun h => ⟨tc_bound Hrba (Hrb h), Hfit h, (Hnla h).1⟩)
-      $$ [$Hrn $Hlr $HA1 $Hfr'] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca, -⟩
-    ihave Hcfg := runCfg_advance γ rs1 t ca Hca $$ HA1 Hcfg
+      $$ [$Hrn $Hlr $HA1 $Hfr'] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca, %Hcm⟩
+    ihave Hcfg := runCfg_advance γ rs1 t ca Hca Hcm ca_d HA $$ Hcamlb Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the
     -- committed log handed out the driver's
     have Hadv : (advRS rs1 t ca).steps = [] ∧ (advRS rs1 t ca).unpersisted = [] ∧

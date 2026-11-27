@@ -35,7 +35,7 @@ abbrev auth.authStore.UserDelete.spec : Prop :=
       ⌜∀ en : Bool, stepOk M hs (stepOf (userDeleteF en name))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (userDeleteF en name))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserDelete")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); tpAdmin st M ∗ (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthUserDeleteResponse resp err ∗ ∃ en : Bool, enabledVerdict M en ∗ adminOut M hs (stepOf (userDeleteF en name)) noExtra err }}
 
 end spec

@@ -53,7 +53,7 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
   wp_auto
   wp_apply hA ci i t $$ [$Happ] as Happ
   (try wp_auto)
-  wp_apply_core (wp_ci_unsafeGet hU γ ci b st hp) $$ [Hst Hbe] [HΦ HL Happ applyingIdx applyingTerm]
+  wp_apply_core (wp_ci_unsafeGet (IR := fun _ _ => iprop(True)) hU γ ci b st hp) $$ [Hst Hbe] [HΦ HL Happ applyingIdx applyingTerm]
   · iframe Hcipkg Hci Hinv Hst Hbe
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
@@ -63,7 +63,7 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
     icases HL with ⟨%mm, Hmt, HTM, Htok, #Hreg⟩
     have hlst : (stLoaded γ st).pending = false ∧ i = (stLoaded γ st).p + 1 := by
       unfold stLoaded; split <;> exact ⟨hp, hi⟩
-    wp_apply_core (wp_ci_hookSet hS γ ci (stLoaded γ st) i t hlst.1 hlst.2 (by
+    wp_apply_core (wp_ci_hookSet (IR := fun _ _ => iprop(True)) hS γ ci (stLoaded γ st) i t hlst.1 hlst.2 (by
         unfold stLoaded; split <;> exact hlt)) $$ [Hst Htok] [HΦ Hmt HTM Happ Hbe]
     · iframe Hcipkg Hci Hinv Hst Htok
     iintro Hst

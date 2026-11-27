@@ -173,7 +173,7 @@ the KV's rows in the mode (`isServerM`/`srvApplyKVM`/
 `kvAppliedM` at `E.authOn`, on at the applied log's auth state `sa`), the start's chain the mode's;
 the store's snapshot clause, `srvAuthSnapOk`, is `srvSnapRO`'s gated row; after, at the image's auth
 state. Read under `srvSnapRO`'s image certificate in the mode (review round 1's F5:
-`srvSnapOwn`'s `srvSnapRO` holds `snapDirInv … (srvImage γr.raft.raft)`, the mode-off certificate,
+`srvSnapOwn`'s `srvSnapRO` holds `snapDirInvH … (srvImage γr.raft.raft)`, the mode-off certificate,
 false of an auth-on cluster's images; in the merge `srvImageM` at the cluster's mode, `srvImageOn` in the
 mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), and under
 `authApplyResB`'s redefinition as `specSnapM` is.
@@ -207,6 +207,9 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
   -- the applied log `A` through `ai`, the consistent index at most the applied one
   uint.Z g = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z g →
+  -- (D6 T4 round 3, 2026-11-24) the apply thread between two entries (`loopOk`'s), for
+  -- `applySnapshot`'s guard read
+  st.pending = false →
   -- (R2d'a task 4) the image's members have the model's ids (`restReplay_memKeys`)
   (∀ k, (r0.mem !! k).isSome =
     ((restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem !! k).isSome) →

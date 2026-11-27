@@ -52,7 +52,7 @@ theorem apply.applierV3Capped.LeaseGrant.wp_proof :
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
     iframe Hkv Hres
     iright
-    iexact HPre
+    iframe HPre; ipureintro; exact ⟨_, rfl⟩
   isplitr
   · iintro %h; cases h
   isplitr

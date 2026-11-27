@@ -184,7 +184,8 @@ local macro "fail_tail" : tactic => `(tactic| (
   · iframe #; iframe
   ihave Hpre := Hpre' $$ Hap
   wsteps
-  ihave Hwp := Hsci $$ Hpre
+  have hvf : membership.ccValidOn rs.bk m = false := Bool.eq_false_iff.mpr hv
+  ihave Hwp := Hsci $$ Hpre %hvf
   rw [method_unfold (t := go.GoType.PointerType consistentIndex.ty) (m := go!"SetConsistentIndex")]
   wp_apply_core wp_wand $$ Hwp
   iintro %_v ⟨%Hv, Hadv⟩

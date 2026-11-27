@@ -58,19 +58,19 @@ theorem walTailsRes_idle (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
   iframe Ha Hm HL
   ipureintro; exact ⟨Ho, Hi⟩
 
-/-- A WAL's key names its layout's directory (`DirKeysOk`). -/
+/-- A WAL's key, current by a quarter of the incarnations, names its layout's directory (`DirKeysOk`). -/
 theorem walDirKeys_lay (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
-    (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (dir : GoString) (j : Ino)
-    (X : List GoString) :
+    (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (dir : GoString) (I : GMap GoString Nat)
+    (j : Ino) (X : List GoString) :
     ⊢ (∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝) -∗
-      walDirKey (W := W) dir j X -∗
+      walDirKey (W := W) dir (incOf I dir) j X -∗ walIncQ (W := W) I -∗
       ⌜∃ lay, Ls !! dir = some lay ∧ lay.j = j⌝ ∗
         (∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝) ∗
-        walDirKey (W := W) dir j X := by
-  iintro ⟨%K, %c, HKa, Hca, %HDK⟩ Hk
-  icases walDirKey_lookup K dir j X $$ HKa Hk with %hK
+        walDirKey (W := W) dir (incOf I dir) j X ∗ walIncQ (W := W) I := by
+  iintro ⟨%K, %c, HKa, Hca, %HDK⟩ Hk HI
+  icases walDirKey_lookupI K dir j X I $$ HKa Hk HI with %hK
   obtain ⟨lay, -, hl, hlj, -⟩ := HDK.1 dir j X hK
-  iframe Hk
+  iframe Hk HI
   isplitr
   · ipureintro; exact ⟨lay, hl, hlj⟩
   iexists K, c
@@ -81,18 +81,18 @@ theorem walDirKeys_lay (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
 of `WalReadState`): at a step, the WAL's key and the empty program half of the tails' authority give the
 invariant's `d`, layout and names with `WalAbsD`, and the tail idle (`walTailsRes`'s `WalTailIdle`). -/
 theorem walInvBody_readIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
-      walTailsFrag (W := W) ∅ -∗
+    (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗ walTailsFrag (W := W) ∅ -∗
       ∃ (d : WalDur) (lay : WalLay) (hj : NamesH),
         ⌜s.wal !! dir = some d ∧ lay.j = j ∧ WalAbsD C Mr d lay hj.cur ∧ TailIdle C Mr d lay⌝ ∗
-        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir j X ∗
-        walTailsFrag (W := W) ∅ := by
-  iintro Hb Hk Hf
+        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir (incOf I dir) j X ∗
+        walIncQ (W := W) I ∗ walTailsFrag (W := W) ∅ := by
+  iintro Hb Hk HI Hf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     HK, %HAt, Hnms, %Hbd⟩
-  icases walDirKeys_lay C Mr jr s Ls cl n dir j X $$ HK Hk with ⟨%hlay, HK, Hk⟩
+  icases walDirKeys_lay C Mr jr s Ls cl n dir I j X $$ HK Hk HI with ⟨%hlay, HK, Hk, HI⟩
   icases walTailsRes_idle C Mr s Ls F $$ Htl Hf with ⟨%hidle, Htl, Hf⟩
   obtain ⟨lay, hl, hlj⟩ := hlay
   have HW0 := HW
@@ -106,7 +106,7 @@ theorem walInvBody_readIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iexists d, lay, hj
   isplitr
   · ipureintro; exact ⟨hd, hlj, habs, hidle dir d lay hd hl⟩
-  iframe Hk Hf
+  iframe Hk HI Hf
   iexists Ls, cl, n, F
   iframe
   ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HAt, Hbd⟩

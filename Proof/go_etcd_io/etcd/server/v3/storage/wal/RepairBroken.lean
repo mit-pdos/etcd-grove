@@ -43,14 +43,14 @@ theorem qQuarter_three : qQuarter + ((1 : Qp).half + qQuarter) = 1 := by
   grind
 
 /-- What the absent case's open gives (see the file header). -/
-def repBrokenNewA (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH)
+def repBrokenNewA (R : Roots) (dir : GoString) (I : GMap GoString Nat) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH)
     (o : WalOut) (bt : GoString) (qc : Qp) : Option (Nat × Nat × Ino) → Bool → IProp GF :=
-  fun x ok => iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ walBrokenQ (W := W) dir j X hj o bt x ∗
+  fun x ok => iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ walBrokenQ (W := W) dir I j X hj o bt x ∗
     crOutN j (.except X) bt hj (DFrac.own qQuarter) x ∗ crTr (ok = true) x)
 
 /-- **The absent case's open spec** (see the file header). -/
 theorem repBroken_tripleNew (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := GF) (hG := hG))
-    (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut)
+    (R : Roots) (dir : GoString) (I : GMap GoString Nat) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut)
     (bt : GoString) (qc : Qp) (hb : NameOk bt) (hN : (NameSet.except X).Mem bt)
     (hcur : hj.cur !! bt = none) :
     fileutil.OpenTriple
@@ -58,14 +58,14 @@ theorem repBroken_tripleNew (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := G
         osNames j (.except X) (DFrac.own qQuarter) hj ∗
         osAUnc (osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
           (crOutN j (.except X) bt hj (DFrac.own ((1 : Qp).half + qQuarter)))
-          (walBrokenQ (W := W) dir j X hj o bt))
-      (child dir bt) (wal.walOpenFlag true) (W32 384) (repBrokenNewA (W := W) R dir dq j X hj o bt qc)
+          (walBrokenQ (W := W) dir I j X hj o bt))
+      (child dir bt) (wal.walOpenFlag true) (W32 384) (repBrokenNewA (W := W) R dir I dq j X hj o bt qc)
       (crIno bt hj) := by
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_ok
   unfold fileutil.OpenTriple
   iintro %Ψ ⟨#Hospkg, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΨ
   iapply wp_OpenN dir bt (wal.walOpenFlag true) (W32 384) R j (.except X) dq hj qQuarter
-    ((1 : Qp).half + qQuarter) qc (walBrokenQ (W := W) dir j X hj o bt) hfl hcr htr hb hN hcur
+    ((1 : Qp).half + qQuarter) qc (walBrokenQ (W := W) dir I j X hj o bt) hfl hcr htr hb hN hcur
     qQuarter_three $$ [$Hospkg $Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
   iintro %f %err ⟨Hp, Hperm, %x, HQ, Ho, Htr, Hr⟩

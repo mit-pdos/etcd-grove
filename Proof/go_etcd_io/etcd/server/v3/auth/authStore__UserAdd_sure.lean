@@ -85,7 +85,7 @@ theorem auth.authStore.UserAdd.wp_sure
     (try wp_auto)
     iapply HΦ
     isplitl [Hcs]
-    · iapply csContract_noWrite $$ Hcs
+    · iapply csContract_noWriteF P f Pre Q Post (by nofun) $$ Hcs
     isplitl [Hbe HT Hen Hca]
     · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr

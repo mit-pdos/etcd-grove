@@ -176,7 +176,7 @@ theorem gap_acc (b : Loc) (p : BFile) (U : List Nat) (sz off : Nat) (hnd : U.Nod
     ([∗list] s ∈ U, slotAnyZ (GF := GF) b p sz s) ⊢
       cAny b (min off sz) (off - min off sz) ∗
       ∀ (sz3 : Nat) (ys : List ByteG), ⌜sz ≤ sz3 ∧ ys.length = min off sz3 - min off sz⌝ -∗
-        osBytes p.ino (min off sz) (DFrac.own 1) ys -∗ cAny b (min off sz) (off - min off sz) -∗
+        bBytes p (min off sz) (DFrac.own 1) ys -∗ cAny b (min off sz) (off - min off sz) -∗
         [∗list] s ∈ U, slotAnyZ b p (max sz (min off sz3)) s := by
   by_cases hle : off ≤ sz
   · rw [show min off sz = off by omega, Nat.sub_self]
@@ -290,10 +290,10 @@ theorem Z_toWrSlotsSz (b : Loc) (p : BFile) (S : List Nat) (sz : Nat) (hnd : S.N
       ∃ f : Nat → List w8, ⌜∀ s ∈ S, (f s).length = 4096⌝ ∗ wrSlotsSz b p S f sz := by
   let Ψ : Nat → List w8 → IProp GF := fun s a => iprop(⌜a.length = 4096⌝ ∗
     ((if 4096 * (s + 1) ≤ sz then
-      iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = a⌝)
     else if 4096 * s < sz then
-      iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = a.take (sz - 4096 * s)⌝)
     else iprop(emp)) ∗ ∃ vf, cellsR b (4096 * s) 4096 vf))
   have e1 : ([∗list] s ∈ S, slotAnyZ (GF := GF) b p sz s) ⊢ [∗list] s ∈ S, ∃ a, Ψ s a := by
@@ -398,7 +398,7 @@ theorem pgDone_Z (b : Loc) (p : BFile) (sz : Nat) (e : w64 × Loc × List w8)
 theorem cur_anyZ (b : Loc) (p : BFile) (sz k c' w cs r : Nat) (ysd : List ByteG)
     (P : List w8) (hysd : ysd.length = w) (hP : P.length = w) (hw : 4096 * k + w ≤ sz ∨ w = 0)
     (htot : w + cs + r = 4096 * c') :
-    osBytes (GF := GF) p.ino (4096 * k) (DFrac.own 1) ysd ∗
+    bBytes (GF := GF) p (4096 * k) (DFrac.own 1) ysd ∗
       bytesPointsto (b +ₗ ((4096 * k : Nat) : Int)) (DFrac.own (1 : Qp).half) P ∗
       oAnyZ p sz (4096 * k + w) cs ∗ cAny b (4096 * k + w) cs ∗
       oAnyZ p sz (4096 * k + w + cs) r ∗ cAny b (4096 * k + w + cs) r ⊢

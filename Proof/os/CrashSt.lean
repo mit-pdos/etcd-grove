@@ -152,6 +152,39 @@ def toks (p : Ino) (s : CSt) : List (Nat × TokInfo) :=
 theorem vmeta_cut (s : CSt) : s.vmeta.cut = s.m.cut := by
   unfold CSt.vmeta; split <;> simp [cfMeta, OsMeta.announce]
 
+/-- What a crash sees of a state's `OsMeta` knows its crash sizes. -/
+theorem vmeta_xs (s : CSt) : s.vmeta.xs = s.m.xs := by
+  unfold CSt.vmeta; split <;> simp [cfMeta]
+
+/-- **A size a crash may leave the file in the state `s` at**, as the ghost state knows it: one of
+the crash sizes `s.m` knows (`OsMeta.xs`), if it knows them, or, with an `ftruncate` in flight,
+its target, or, with a `pwrite` in flight, one between the smallest of them (or the write's target,
+`max size (off + len)`) and the largest (or the target). -/
+def CrashSize (s : CSt) (n : Nat) : Prop :=
+  ∀ l, s.m.xs = some l → n ∈ l ∨ match s.busy with
+    | .idle => False
+    | .write _ off data _ =>
+        ((∃ a ∈ l, a ≤ n) ∨ max s.m.size (off + data.length) ≤ n) ∧
+        ((∃ b ∈ l, n ≤ b) ∨ n ≤ max s.m.size (off + data.length))
+    | .trunc _ sz _ => n = sz
+
+/-- **A crash during a write inside the file leaves its size**, when the sizes known are all the
+size. -/
+theorem crashSize_write_in {s : CSt} {n t off nn : Nat} {data : List w8} {l : List Nat}
+    (hb : s.busy = .write t off data nn) (hin : off + data.length ≤ s.m.size)
+    (hl : s.m.xs = some l) (hall : ∀ a ∈ l, a = s.m.size) (h : s.CrashSize n) : n = s.m.size := by
+  rcases h l hl with h | h
+  · exact hall n h
+  · rw [hb] at h
+    obtain ⟨h1, h2⟩ := h
+    have hmx : max s.m.size (off + data.length) = s.m.size := by omega
+    rw [hmx] at h1 h2
+    rcases h1 with ⟨a, ha, h1⟩ | h1 <;> rcases h2 with ⟨b, hb', h2⟩ | h2
+    · have := hall a ha; have := hall b hb'; omega
+    · have := hall a ha; omega
+    · have := hall b hb'; omega
+    · omega
+
 /-- What the specs keep of a state: all the bytes, the frozen ones inside, a write in flight
 misses them (and so does what it appends, which starts at the size), a truncate grows. -/
 def Wf (s : CSt) : Prop :=
@@ -194,6 +227,23 @@ def FileOkS (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) (
     Prop :=
   s.m.cut = none → ∀ f, FileCrashedR s.vmeta s.vruns (some f) → CrashSeenR Q i s.vmeta s.vruns (s.toks i) (some f) →
     Good (some f)
+
+/-- **The size a crash leaves is a `CrashSize` of the state** (`crashSeen_xs`). -/
+theorem crashSeen_crashSize {Q : OsState → OsState → Prop} {i : Ino} {s : CSt}
+    {fo : Option OsFile} (h : CrashSeenR Q i s.vmeta s.vruns (s.toks i) fo) :
+    ∀ f, fo = some f → s.CrashSize f.size := by
+  intro f hf l hl
+  rcases crashSeen_xs h f hf l (by rw [CSt.vmeta_xs]; exact hl) with h | ⟨x, hx, hxt⟩
+  · exact .inl h
+  · right
+    rcases hb : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩
+    · simp [CSt.toks, hb] at hx
+    · simp only [CSt.toks, hb, List.mem_singleton] at hx
+      subst hx
+      exact ⟨hxt.2.1, hxt.2.2⟩
+    · simp only [CSt.toks, hb, List.mem_singleton] at hx
+      subst hx
+      exact hxt.1 (by simp [rsKind, OsChangeKind.isTrunc])
 
 /-! ## What a crash sees does not depend on fractions -/
 
@@ -501,6 +551,13 @@ def CsWf : CState → Prop
 /-- The caller's part of the file in the state `s`, without the tree. -/
 def csOwnF (γ : GName) (s : CState) : IProp GF :=
   iprop(ghostVar γ (1 : Qp).half s ∗ thrResS (L := L) s ∗ ⌜CsWf s⌝)
+
+/-- The caller's part of the state `s` of the file `i`, with the token `Tok s` that ties it to its
+crash invariant (`csOwnF`'s half of the ghost variable, or `csOwnI`'s): the caller's resources of the
+state (`thrResS`) and what the specs keep of it (`CSt.Wf`). The operations of `CrashStOps.lean` are
+proved over it, for any invariant with an accessor (`CsAcc`). -/
+def csOwnG (Tok : CSt → IProp GF) (i : Ino) (s : CSt) : IProp GF :=
+  iprop(Tok s ∗ thrResS (L := L) (some (i, s)) ∗ ⌜s.Wf⌝)
 
 /-- The caller's part of the file at `p` in the state `s`: and the other half of the claim. -/
 def csOwn (p : GoString) (R : Roots) (γ : GName) (s : CState) : IProp GF :=

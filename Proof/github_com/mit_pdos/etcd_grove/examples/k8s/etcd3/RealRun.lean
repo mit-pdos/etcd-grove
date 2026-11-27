@@ -254,9 +254,9 @@ theorem histGood_snoc (hs : List GSt) (st st' : GSt) (n : GoString) (hg : HistGo
     (hone : ∀ k, k ≠ n → fI st'.items k = fI st.items k)
     (hnew : ∀ it, fI st'.items n = some it → it.obj'.ResourceVersion' = st'.rv) :
     HistGood (hs ++ [st']) := by
-  have hN : histN hs hs.length = st := histN_last hs st hlast
-  have hN' : histN (hs ++ [st']) (hs.length + 1) = st' := by
-    unfold histN; rw [List.take_of_length_le (by simp)]; simp
+  have hN : k8s_etcd3.histN hs hs.length = st := histN_last hs st hlast
+  have hN' : k8s_etcd3.histN (hs ++ [st']) (hs.length + 1) = st' := by
+    unfold k8s_etcd3.histN; rw [List.take_of_length_le (by simp)]; simp
   have hold : ∀ it ∈ st.items, 1 ≤ uint.nat it.obj'.ResourceVersion' ∧
       uint.nat it.obj'.ResourceVersion' ≤ hs.length ∧ it.obj'.Annotated' = false := by
     intro it hit; exact hg.1 hs.length it (Nat.le_refl _) (hN ▸ hit)
@@ -316,15 +316,15 @@ theorem histWf_of_histGood (x : Input) (hs : List GSt) (hg : HistGood hs) (hlen 
   unfold evAtL at he
   split at he
   · rename_i h2
-    cases hch : changeAtL (histN hs (r - 1)).items (histN hs r).items r with
+    cases hch : changeAtL (k8s_etcd3.histN hs (r - 1)).items (k8s_etcd3.histN hs r).items r with
     | none => rw [hch] at he; cases he
     | some ch =>
       rw [hch] at he
       simp only [Option.bind_some] at he
       have hr : r ≤ hs.length := by
         refine Classical.byContradiction fun hgt => ?_
-        have e1 : histN hs (r - 1) = histN hs r := by
-          unfold histN; rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
+        have e1 : k8s_etcd3.histN hs (r - 1) = k8s_etcd3.histN hs r := by
+          unfold k8s_etcd3.histN; rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
         rw [e1, changeAtL_self] at hch; cases hch
       obtain ⟨hcur, hprev⟩ := hg.2 r ch h2 hr hch
       split at he
@@ -382,11 +382,11 @@ theorem kstepL_runOk (x : Input) (h : HSt) (hrun : RunOk h) (hr : uint.nat h.st.
     · rw [hat q hq (by omega)]; exact ⟨hg'.1, hg'.2.1⟩
   · simp only [List.length_append, List.length_singleton] at hr'
     by_cases hle : r ≤ h.hist.length
-    · have e : histN (h.hist ++ [st']) r = histN h.hist r := by
-        unfold histN; rw [List.take_append_of_le_length hle]
+    · have e : k8s_etcd3.histN (h.hist ++ [st']) r = k8s_etcd3.histN h.hist r := by
+        unfold k8s_etcd3.histN; rw [List.take_append_of_le_length hle]
       rw [e]; exact hsort r hle
-    · have e : histN (h.hist ++ [st']) r = st' := by
-        unfold histN; rw [List.take_of_length_le (by simp; omega)]; simp
+    · have e : k8s_etcd3.histN (h.hist ++ [st']) r = st' := by
+        unfold k8s_etcd3.histN; rw [List.take_of_length_le (by simp; omega)]; simp
       rw [e]; exact hg'.1.1
   · rcases hone with e | ⟨n, hn1, hn2⟩
     · exact absurd (congrArg GSt.rv e) hne

@@ -1159,6 +1159,25 @@ theorem readySnapSources_installed (γ : Cluster) (n : NodeH) (id term i : w64) 
   iexists gn; iframe Htab
   iapply Hseen $$ %i %rfl
 
+/-- (2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) **A `Ready`'s `MsgSnap`s are
+past the node's start term** (`nodeStartTerm`, `RestartNode`'s): each was sent in this run of the
+node, by it as the leader of a term it won after the restart (raft's `LifeOk`: the term never goes
+below the stored one, a campaign moves past it, only a leader queues a `MsgSnap`, at its term). So a
+client tells this run's `MsgSnap`s from an earlier run's, whose `sentMsg` facts persist. -/
+theorem readySnapSources_startTerm (γ : Cluster) (n : NodeH) (id term : w64) (ms : List QMsg)
+    (bound : Nat) (installed : Option w64) (T0 : w64) :
+    readySnapSources (GF := GF) γ n id term ms bound installed ∗ nodeStartTerm n T0 ⊢
+      ⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z T0 < uint.Z q.st.msg.Term'⌝ := by
+  unfold readySnapSources ApiImpl.snapSources ApiImpl.nodeTabOk nodeStartTerm
+  iintro ⟨⟨%gn, %Htab, -, Hobs⟩, %Ht0⟩
+  iunfold handoutOrigins at Hobs
+  icases Hobs with ⟨%ks, -, -, -, -, -, -, -, %Hlife⟩
+  ipureintro
+  intro q hq ht
+  subst Htab
+  rw [← Ht0]
+  exact Hlife q hq ht
+
 /-- A snapshot read back from storage can use the restore certificate issued
 when the driver installed it. The outbox's original send term suffices even
 when storage and apply are processing different Ready batches. -/
@@ -1173,7 +1192,7 @@ theorem readySnapSources_installed_le (γ : Cluster) (n : NodeH) (id handoutTerm
   unfold readySnapSources ApiImpl.snapSources snapshotLeader nodeInstalledIndex
   iintro ⟨%gn, #Htab, -, #Hs⟩ ⟨%go_, #Htabo, -, #Ho⟩ #Hlead ⟨%gi, #Htabi, #Hi⟩
   iunfold handoutOrigins at Hs Ho
-  icases Hs with ⟨%ks, -, -, -, #Hqueued, -, -, #Hknown⟩
+  icases Hs with ⟨%ks, -, -, -, #Hqueued, -, -, #Hknown, -⟩
   icases Ho with ⟨%obs, %hbound, #Hmark, -⟩
   ihave %Hei := ApiImpl.nodeTabOk_agree γ n gn gi $$ Htab Htabi
   have iki : gn.sn.installs = gi.sn.installs :=

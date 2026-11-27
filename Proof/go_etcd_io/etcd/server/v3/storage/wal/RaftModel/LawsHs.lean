@@ -52,11 +52,9 @@ theorem walHsIn_null (h : HardStateM) : walHsIn (GF := GF) null h ⊢ ⌜h = hsZ
   · ipureintro; exact H.2
   · exact absurd rfl Hn
 
-/-- **`ZeroLaw`.** -/
-theorem walRaftP_zero : WalPbIn.ZeroLaw (walRaftP (GF := GF)) := by
-  refine ⟨fun h => walHsIn_null h, ?_⟩
-  intro p E
-  simp only [walRaftP]
+/-- **A fresh zero hard state is the canonical empty content**, read-only (`ZeroLaw`, `ZeroStLaw`). -/
+theorem walRaftP_zeroC (p : Loc) (E : CoPset) :
+    p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ |={E}=> hsRoC (GF := GF) p walHsC0 ∗ ⌜p ≠ null⌝ := by
   iintro Hp
   ihave %Hnn := typedPointsto_not_null $$ Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
@@ -71,9 +69,6 @@ theorem walRaftP_zero : WalPbIn.ZeroLaw (walRaftP (GF := GF)) := by
   imod (pbMsg_alloc raftpb.HardState p _ _ _ [] E (ufWire_nil _)) $$ [Hst Hsc Huf Hnil] with #Hpb
   · iframe
   imodintro
-  unfold walHsIn
-  iright
-  iexists walHsC0
   unfold hsRoC hsCells
   simp only [walHsC0]
   iframe Hpb
@@ -83,8 +78,22 @@ theorem walRaftP_zero : WalPbIn.ZeroLaw (walRaftP (GF := GF)) := by
     unfold optCell
     ipureintro
     exact ⟨Hnn, rfl, rfl, rfl⟩
-  · ipureintro
-    exact ⟨rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩
+  · ipureintro; exact Hnn
+
+/-- **`ZeroLaw`.** -/
+theorem walRaftP_zero : WalPbIn.ZeroLaw (walRaftP (GF := GF)) := by
+  refine ⟨fun h => walHsIn_null h, ?_⟩
+  intro p E
+  simp only [walRaftP]
+  iintro Hp
+  imod walRaftP_zeroC p E $$ Hp with ⟨#Hc, -⟩
+  imodintro
+  unfold walHsIn
+  iright
+  iexists walHsC0
+  iframe Hc
+  ipureintro
+  exact ⟨rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩
 
 /-- **`isHardStateEqual(a, b)`** (`node.go:117`): the three getters agree. (wal-link, 2026-11-19:
 renamed from `wp_isHardStateEqual`, which raft's `Link` declares in the same namespace; the server's

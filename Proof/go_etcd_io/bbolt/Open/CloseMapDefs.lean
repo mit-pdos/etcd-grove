@@ -29,21 +29,23 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- What `close` unmaps, the file's `OsMeta` `m` named (`closeMapRes`, whose `m` is hidden). -/
-def closeMapResM (p : BFile) (m : OsMeta) : MapSt → IProp GF
+/-- What `close` unmaps, the writer's share of the file's `OsMeta` `m` named (`bMeta`, at `C`/`L`;
+`closeMapRes`, whose `m` is hidden), with the file's crash invariant (`munmapM.spec`'s). -/
+def closeMapResM (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : MapSt → IProp GF
   | none => iprop(emp)
-  | some (b, l) => iprop(⌜0 < l ∧ m.maps !! b = some l⌝ ∗ osMeta p.ino (DFrac.own 1) m ∗
+  | some (b, l) => iprop(⌜0 < l ∧ m.maps !! b = some l ∧ bNsOk p⌝ ∗ bCsInv p ∗ bMeta p C L m ∗
       ∃ vf, cellsR b 0 l vf)
 
-/-- The file's `OsMeta` the closer keeps when nothing is mapped (`close` takes it otherwise). -/
-def closeKeep (p : BFile) (m : OsMeta) : MapSt → IProp GF
-  | none => iprop(osMeta p.ino (DFrac.own 1) m)
+/-- The share of the file's `OsMeta` the closer keeps when nothing is mapped (`close` takes it
+otherwise). -/
+def closeKeep (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : MapSt → IProp GF
+  | none => iprop(bMeta p C L m)
   | some _ => iprop(emp)
 
-/-- What `close`'s unmapping gives back: the `OsMeta` with the mapping removed. -/
-def closeMapBack (p : BFile) (m : OsMeta) : MapSt → IProp GF
+/-- What `close`'s unmapping gives back: the share of the `OsMeta` with the mapping removed. -/
+def closeMapBack (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : MapSt → IProp GF
   | none => iprop(emp)
-  | some (b, _) => iprop(osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete b m.maps })
+  | some (b, _) => iprop(bMeta p C L { m with maps := GMap.delete b m.maps })
 
 end closeM
 

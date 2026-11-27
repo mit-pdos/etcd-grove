@@ -95,14 +95,15 @@ theorem apply.adminExtra_of_none (E : apply.AEnv GF) (γa : auth.AuthNames) (rq 
 /-- **The admin outcome of `dispatch`'s result `ar`** (the auth plan's E2n): with `v3`, the
 request's result (`AdminReq.result` at the result's response and error: the step on the latest
 recorded state, the authority with its fuel after it, or the model's refusal; C1's A2: an
-`Authenticate`'s token); without, the authority as it was. -/
+`Authenticate`'s token); without, the authority as it was. (T10 step 2) `k` is the admin triple's
+no-lock fact, carried to `AdminReq.result`. -/
 def apply.adminDone (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames) (M : auth.AuthMode)
     (hs : List auth.AuthState)
-    (rq : apply.IRRModel) (v3 : Bool) (ar : Loc) : IProp GF :=
+    (rq : apply.IRRModel) (v3 : Bool) (ar : Loc) (k : Prop) : IProp GF :=
   if v3 then iprop(∃ (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (ad : apply.AdminReq)
       (resp : Loc), ⌜apply.adminReqOf rq = some ad ∧
         v.Resp' = interface.mkOk (go.GoType.PointerType ad.respTy) #resp⌝ ∗
-    ar ↦□ v ∗ ad.result Own γa M hs resp v.Err')
+    ar ↦□ v ∗ ad.result Own γa M hs resp v.Err' k)
   else Own γa hs
 
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
@@ -132,9 +133,9 @@ abbrev apply.uberApplier.dispatch.adminSpec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗
       apply.chainResAny c a ∗ structFieldRef uberApplier go!"applyV3" p ↦ a ∗
-      ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post ∗
+      ∃ (o : apply.Outcome) (k : Prop), apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post k ∗
         ⌜apply.dispatchStep c rq v3 log o⌝ ∗ apply.resTrace ar ∗
-        apply.dispatchResult rq v3 log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar }}
+        apply.dispatchResult rq v3 log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar k }}
 
 end defs
 
@@ -413,7 +414,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     icases apply.kvOwnPre_kvOwn false E log Pre Q Post $$ Hkv with ⟨Hkv, Hrt, Hc⟩
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
     iframe Htt Hrt Hres Ha HW
-    iexists (Outcome.applied log false)
+    iexists (Outcome.applied log false), True
     simp only [apply.Outcome.logAfter]
     iframe Hkv
     isplitl [Hc]
@@ -440,10 +441,10 @@ theorem apply.uberApplier.dispatch.wp_admin
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
       (apply.applyTok E ∗ apply.bkRTOf E ∗
         apply.chainResAny c (GoInterface.ok ai) ∗ structFieldRef uberApplier go!"applyV3" p ↦ GoInterface.ok ai ∗
-        ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
+        ∃ (o : apply.Outcome) (k : Prop), apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post k ∗
           ⌜apply.dispatchStep c rq true log o⌝ ∗ apply.resTrace «$r0_ptr» ∗
           apply.dispatchResult rq true log skip «$r0_ptr» o ∗ W ∗
-          apply.adminDone Own γa E.authMode hh rq true «$r0_ptr»))
+          apply.adminDone Own γa E.authMode hh rq true «$r0_ptr» k))
     with [a r ar op «$r0» Hm Hrt Htt Ha Hown Hrc Hwb HW Hx]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
@@ -527,18 +528,18 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.authenticate x.name x.simpleToken) %lAu %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.authenticate x.name x.simpleToken) %lAu %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, #HeI, HW, %k, Hpost, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
       iexists x
       iframe HR
       ipureintro; exact ⟨rfl, rfl⟩
-    iunfold apply.mPost at Hpost
+    iunfold apply.mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     join_ar
     iframe Hres Ha HW
-    iexists (Outcome.applied log false)
+    iexists (Outcome.applied log false), k
     simp only [apply.Outcome.logAfter]
     iframe Hkv
     isplitl [HPP]
@@ -577,7 +578,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %apply.AdminReq.authEnable %(null : Loc) %γa %hh %log %Pre %Q %Post %info [] [Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %apply.AdminReq.authEnable %(null : Loc) %γa %hh %log %Pre %Q %Post %info [] [Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, #HeI, HW, %k, Hpost, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -585,13 +586,13 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try iunfold auth.roleAddReqIs)
       (try iexact HR)
       (try itrivial)
-    iunfold apply.mPost at Hpost
+    iunfold apply.mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     iunfold apply.AdminReq.result at Hdone
-    icases Hdone with ⟨%en, Hv, Hdone, %Hrn⟩
+    icases Hdone with ⟨%en, Hv, Hdone, %Hrn, %Hk⟩
     join_ar
     iframe Hres Ha HW
-    iexists (Outcome.applied log false)
+    iexists (Outcome.applied log false), k
     simp only [apply.Outcome.logAfter]
     iframe Hkv
     isplitl [HPP]
@@ -620,7 +621,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     iframe Hv
     isplitl [Hdone]
     · iexact Hdone
-    ipureintro; exact Hrn
+    ipureintro; exact ⟨Hrn, Hk⟩
   have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthDisable (D22, 2026-10-23: not admitted, `rqOk`)
@@ -658,7 +659,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.userAdd x.name) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.userAdd x.name) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, #HeI, HW, %k, Hpost, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -667,13 +668,13 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try iunfold auth.roleAddReqIs)
       (try iexact HR)
       (try itrivial)
-    iunfold apply.mPost at Hpost
+    iunfold apply.mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     iunfold apply.AdminReq.result at Hdone
-    icases Hdone with ⟨Hdone, %Hrn⟩
+    icases Hdone with ⟨Hdone, %Hrn, %Hk⟩
     join_ar
     iframe Hres Ha HW
-    iexists (Outcome.applied log false)
+    iexists (Outcome.applied log false), k
     simp only [apply.Outcome.logAfter]
     iframe Hkv
     isplitl [HPP]
@@ -700,7 +701,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     iunfold apply.AdminReq.result
     isplitl [Hdone]
     · iexact Hdone
-    ipureintro; exact Hrn
+    ipureintro; exact ⟨Hrn, Hk⟩
   have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserDelete (D22, 2026-10-23: not admitted, `rqOk`)
@@ -737,7 +738,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.userGrantRole x.1 x.2) %lUGR %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.userGrantRole x.1 x.2) %lUGR %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, #HeI, HW, %k, Hpost, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -745,13 +746,13 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try iunfold auth.roleAddReqIs)
       (try iexact HR)
       (try itrivial)
-    iunfold apply.mPost at Hpost
+    iunfold apply.mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     iunfold apply.AdminReq.result at Hdone
-    icases Hdone with ⟨Hdone, %Hrn⟩
+    icases Hdone with ⟨Hdone, %Hrn, %Hk⟩
     join_ar
     iframe Hres Ha HW
-    iexists (Outcome.applied log false)
+    iexists (Outcome.applied log false), k
     simp only [apply.Outcome.logAfter]
     iframe Hkv
     isplitl [HPP]
@@ -778,7 +779,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     iunfold apply.AdminReq.result
     isplitl [Hdone]
     · iexact Hdone
-    ipureintro; exact Hrn
+    ipureintro; exact ⟨Hrn, Hk⟩
   have zAuthUserGrantRole : rq.authUserGrantRole = none := nUGR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGet (D22, 2026-10-23: not admitted, `rqOk`)
@@ -812,7 +813,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.roleAdd x) %lRA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.roleAdd x) %lRA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, #HeI, HW, %k, Hpost, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -820,13 +821,13 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try iunfold auth.roleAddReqIs)
       (try iexact HR)
       (try itrivial)
-    iunfold apply.mPost at Hpost
+    iunfold apply.mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     iunfold apply.AdminReq.result at Hdone
-    icases Hdone with ⟨Hdone, %Hrn⟩
+    icases Hdone with ⟨Hdone, %Hrn, %Hk⟩
     join_ar
     iframe Hres Ha HW
-    iexists (Outcome.applied log false)
+    iexists (Outcome.applied log false), k
     simp only [apply.Outcome.logAfter]
     iframe Hkv
     isplitl [HPP]
@@ -853,7 +854,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     iunfold apply.AdminReq.result
     isplitl [Hdone]
     · iexact Hdone
-    ipureintro; exact Hrn
+    ipureintro; exact ⟨Hrn, Hk⟩
   have zAuthRoleAdd : rq.authRoleAdd = none := nRA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGrantPermission (the auth plan's E2n: admitted in the mode `on`)
@@ -869,7 +870,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.roleGrantPermission x.1 x.2) %lRGP %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.roleGrantPermission x.1 x.2) %lRGP %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, #HeI, HW, %k, Hpost, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -877,13 +878,13 @@ theorem apply.uberApplier.dispatch.wp_admin
       (try iunfold auth.roleAddReqIs)
       (try iexact HR)
       (try itrivial)
-    iunfold apply.mPost at Hpost
+    iunfold apply.mPostF at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     iunfold apply.AdminReq.result at Hdone
-    icases Hdone with ⟨Hdone, %Hrn⟩
+    icases Hdone with ⟨Hdone, %Hrn, %Hk⟩
     join_ar
     iframe Hres Ha HW
-    iexists (Outcome.applied log false)
+    iexists (Outcome.applied log false), k
     simp only [apply.Outcome.logAfter]
     iframe Hkv
     isplitl [HPP]
@@ -910,7 +911,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     iunfold apply.AdminReq.result
     isplitl [Hdone]
     · iexact Hdone
-    ipureintro; exact Hrn
+    ipureintro; exact ⟨Hrn, Hk⟩
   have zAuthRoleGrantPermission : rq.authRoleGrantPermission = none := nRGP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGet (D22, 2026-10-23: not admitted, `rqOk`)

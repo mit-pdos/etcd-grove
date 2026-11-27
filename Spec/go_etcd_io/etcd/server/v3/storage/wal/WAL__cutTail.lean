@@ -71,7 +71,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (P : WalPbIn GF) (
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗
           walHandleIn P Mr w dir (cutSynced h) ∗
-          WalFs.walSyncedLb dir h.H.length) ∨
+          WalFs.walSyncedLb dir h.inc h.H.length) ∨
       ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }}
 
 end spec

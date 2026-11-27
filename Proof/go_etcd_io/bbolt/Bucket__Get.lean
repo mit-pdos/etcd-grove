@@ -65,6 +65,8 @@ theorem Bucket.Get.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (hagr
   ihave #Hpkg := (rdTxK_pkgInit _ tx .loan q T v) $$ Hk
   icases rdTxK_cur_acc _ tx .loan q T v $$ Hk with ⟨%r, #Hcore, #Hreg, #Hvo, %Hro, Hst, Hkb⟩
   iunfold reg at Hreg Hreg'
+  icases Hreg with ⟨#Hreg, #Hreg_x⟩
+  icases Hreg' with ⟨#Hreg', -⟩
   icombine Hreg Hreg' gives %hr
   obtain ⟨-, rfl⟩ := hr
   simp only [Hro, Bool.false_eq_true, ite_false]

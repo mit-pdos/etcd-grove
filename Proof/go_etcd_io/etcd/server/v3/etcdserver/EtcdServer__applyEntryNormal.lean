@@ -323,7 +323,7 @@ set_option hygiene false in
 /-- The deferred update after an entry processed with no writes (state `{st with p := i}`):
 `ci` is below `i`, so it is advanced to `i`; then the postcondition. -/
 local macro "tail_skip" : tactic => `(tactic| (
-  wp_apply_core (wp_ci_get hC γ ci b { st with p := m.index } Hp) $$ [Hst Hbe] [-]
+  wp_apply_core (wp_ci_get (IR := fun _ _ => iprop(True)) hC γ ci b { st with p := m.index } Hp) $$ [Hst Hbe] [-]
   · iframe Pci Hci Hinv Hst Hbe
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
@@ -338,7 +338,7 @@ local macro "tail_skip" : tactic => `(tactic| (
   · iexact He
   (try wp_auto)
   obtain ⟨hlp, hle, hlpend⟩ := stLoaded_fields γ { st with p := m.index }
-  wp_apply_core (wp_ci_advance hS γ ci (stLoaded γ { st with p := m.index }) m.index m.term
+  wp_apply_core (wp_ci_advance (IR := fun _ _ => iprop(True)) hS γ ci (stLoaded γ { st with p := m.index }) m.index m.term
       (by rw [hlpend]; exact Hp) (by rw [hlp]; exact Int.le_refl _)
       (by rw [ciEff_stLoaded]; exact hce)) $$ [Hst] [-]
   · iframe Pci Hci Hinv Hst
@@ -360,7 +360,7 @@ set_option hygiene false in
 /-- The deferred update after an entry whose writes went through the hook (state
 `⟨i, i, i, false⟩`): `ci` is `i`, nothing to do; then the postcondition. -/
 local macro "tail_done" : tactic => `(tactic| (
-  wp_apply_core (wp_ci_get hC γ ci b ⟨m.index, m.index, m.index, false⟩ rfl) $$ [Hst Hbe] [-]
+  wp_apply_core (wp_ci_get (IR := fun _ _ => iprop(True)) hC γ ci b ⟨m.index, m.index, m.index, false⟩ rfl) $$ [Hst Hbe] [-]
   · iframe Pci Hci Hinv Hst Hbe
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
@@ -433,6 +433,14 @@ local macro "tail_any" : tactic => `(tactic| (
   · tail_done
   · tail_skip))
 
+/-- (T10 step 2) The `v3` post without its no-lock fact (step 3 reads it). -/
+theorem cPost_true_orPre (Pre Post : IProp GF) (φ : Prop) :
+    apply.cPost true Pre Post φ ⊢ Post ∨ Pre := by
+  simp only [apply.cPost, ↓reduceIte]
+  iintro (H | ⟨H, -⟩)
+  · ileft; iexact H
+  · iright; iexact H
+
 /-- `apply.Apply.specRec` at the apply thread's lessor window `wn` (auth-lease S4 item 7b, 2026-11-17): the triple at
 `{ E with win := wn }`, with the resources that do not read the window at `E` (definitionally the same). -/
 theorem Apply_specRec_win (h : apply.Apply.specRec (GF := GF) (hG := hG)) :
@@ -455,9 +463,10 @@ theorem Apply_specRec_win (h : apply.Apply.specRec (GF := GF) (hG := hG)) :
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ E.FS ∗ apply.applyTok E ∗ apply.bkRTOf E ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+      apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV { E with win := wn } ua x' ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
         apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
         (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out
@@ -619,7 +628,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       wp_apply Apply_specRec_win hA fv.lg e m ua fv.w false E wn iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) none x.log
         _ _ U $$ [HKV Htk Htt HRD HFSE HSpF HRS HLt HEv Hrv]
-        as %ar %id ⟨HRD, HFS, Htt, Hrt, -, #Har, -, %Hid, %x', %out, HKV, HLt, HEv, Hrv, HRS, %Hgo,
+        as %ar %id ⟨HRD, HFS, Htt, Hrt, #Har, -, %Hid, %x', %out, HKV, -, HLt, HEv, Hrv, HRS, %Hgo,
           -, -, %Hstep0, -, -, -⟩
       · iframe Happl Hwok' HRD He HKV Htk Htt Hcp HFSE HSpF HRS HLt HEv HGf Hrv Hgpq
         isplitr
@@ -969,7 +978,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
           applyBackend γ ci b) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
         _ _ U $$ [Hst Happ Hbe HKV Htk Htt HRD HFSE HSpT HRS HLt HEv Hrv] as %ar %id
-          ⟨HRD, HFS, Htt, Hrt, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HEv, Hrv, HRS, %Hgo, HGr, HVr, %Hstep0, HRes, -, #Hdel⟩
+          ⟨HRD, HFS, Htt, Hrt, #Har, HTr, %Hid, %x', %out, HKV, Hout, HLt, HEv, Hrv, HRS, %Hgo, HGr, HVr, %Hstep0, HRes, -, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Htk Htt Hcp HFSE HSpT HRS HLt HEv HGf Hrv Hgpq
         isplitr
         · iunfold entryRegd at Hreg
@@ -997,7 +1006,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st1 = ⟨m.index, m.index, m.index, false⟩ ∨ st1 = { st with p := m.index }⌝) $$ [Hout]
-      · icases Hout with (⟨Hst, Happ, Hbe⟩ | ⟨Hst, Happ, Hbe, -⟩)
+      · ihave Hout := cPost_true_orPre _ _ _ $$ Hout
+        icases Hout with (⟨Hst, Happ, Hbe⟩ | ⟨Hst, Happ, Hbe, -⟩)
         · imodintro; iexists _; iframe Hst Happ Hbe; ipureintro; left; rfl
         · imod skip_done γ st m.index Hp hi hlt $$ Hinv Hst with Hst
           imodintro; iexists _; iframe Hst Happ Hbe; ipureintro; right; rfl
@@ -1272,7 +1282,8 @@ local macro "tail_on" sa':term:max lt':term:max : tactic => `(tactic| (
   ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
       ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
       ⌜st1 = ⟨m.index, m.index, m.index, false⟩ ∨ st1 = { st with p := m.index }⌝) $$ [Hout]
-  · icases Hout with (⟨Hst, Happ, Hbe⟩ | ⟨Hst, Happ, Hbe, -⟩)
+  · ihave Hout := cPost_true_orPre _ _ _ $$ Hout
+    icases Hout with (⟨Hst, Happ, Hbe⟩ | ⟨Hst, Happ, Hbe, -⟩)
     · imodintro; iexists _; iframe Hst Happ Hbe; ipureintro; left; rfl
     · imod skip_done γ st m.index Hp hi hlt $$ Hinv Hst with Hst
       imodintro; iexists _; iframe Hst Happ Hbe; ipureintro; right; rfl
@@ -1466,9 +1477,10 @@ theorem Apply_kvSpecL_win (h : apply.Apply.kvSpecL (GF := GF) (hG := hG)) :
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗
       RD ∗ E.FS ∗ apply.revokeOwn E rq ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+      apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV { E with win := wn } ua x' ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out T) ∗
         E.RO (apply.revokeRestA T rq v3 out (apply.restOut rq v3 out rs)) ∗ apply.revokeAnsRA E rq out ar ∗
         ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
@@ -1506,7 +1518,6 @@ theorem adminEntryOn_win (h : adminEntryOn.spec (GF := GF) (hG := hG)) :
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
         (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
     {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ apply.applyTok E ∗ apply.bkRTOf E ∗
-        (if v3 then iprop(Post ∨ Pre) else Pre) ∗
         apply.resultErrOk ar ∗ apply.resTrace ar ∗ ⌜id' = id⌝ ∗
         ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV { E with win := wn } ua x' ∗
           ⌜apply.applyStep rq v3 x x' out ∧ x'.log = x.log ∧ x'.chain = x.chain⌝ ∗
@@ -1520,6 +1531,7 @@ theorem adminEntryOn_win (h : adminEntryOn.spec (GF := GF) (hG := hG)) :
           ∃ (hs' : List auth.AuthState) (st' : auth.AuthState),
             auth.authOwnFu γa hs' ∗ auth.tieRes stl (.on γa) hs' ∗
             ⌜hs'.getLast? = some st' ∧ (if v3 then adminStateR rq st st' else st' = st)⌝ ∗
+            apply.cPost v3 Pre Post (st' = st) ∗
             (if v3 then adminTieAr ar rq st st' out else iprop(True)) ∗
           (if v3 then adminAuthnAr γa ar rq out else iprop(True)) }} :=
   fun lg e m ua w v3 E wn Pre Q Post x rq id RD K G ot γa stl bel T Pk Wb st rs hs hM hn hPk =>
@@ -1687,7 +1699,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         wp_apply Apply_specRec_win hA fv.lg e m ua fv.w false E wn iprop(True) iprop(True) iprop(True) x rq id0 RD
           (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) none x.log
           _ _ U $$ [HKV Htk Htt HRD HFSE HSpF HRS HLt HEv Hrv]
-          as %ar %id ⟨HRD, HFS, Htt, Hrt, -, #Har, -, %Hid, %x', %out, HKV, HLt, HEv, Hrv, HRS, %Hgo,
+          as %ar %id ⟨HRD, HFS, Htt, Hrt, #Har, -, %Hid, %x', %out, HKV, -, HLt, HEv, Hrv, HRS, %Hgo,
             -, -, %Hstep0, -, -, -⟩
         · iframe Happl Hwok' HRD He HKV Htk Htt Hcp HFSE HSpF HRS HLt HEv HGf Hrv Hgpq
           isplitr
@@ -1731,8 +1743,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         wp_apply adminEntryOn_win hAd fv.lg e m ua fv.w false E wn iprop(True) iprop(True) iprop(True) x rq id0 RD
           (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) none γa stl
           bel T Pk Wb sa _ hs hM hns HPk $$ [HKV Htk Htt HRD Hfu Htie HT Htp HRS Hlc Hawt]
-          as %ar %id ⟨HRD, Htt, Hrt, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, -, -, -, HRS, HT,
-            Htp, %hs', %sa', Hfu, Htie, %Hsa', -, -⟩
+          as %ar %id ⟨HRD, Htt, Hrt, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, -, -, -, HRS, HT,
+            Htp, %hs', %sa', Hfu, Htie, %Hsa', -, -, -⟩
         · simp only [↓reduceIte, Bool.false_eq_true]
           iframe HUA Hwok' HRD He HKV Htk Htt HT Htp Hwba Hlend HRS Hlc Hawt
           isplitr
@@ -2043,7 +2055,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
             _ _ U $$ [Hst Happ Hbe HKV Htt HRD HFSE HSpT HRS HLt Hhk HEv Hrv] as %ar %id
-              ⟨HRD, HFS, Htt, Hrt, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HEv, -, HRS, %Hgo, HGr, HVr,
+              ⟨HRD, HFS, Htt, Hrt, #Har, HTr, %Hid, %x', %out, HKV, Hout, HLt, HEv, -, HRS, %Hgo, HGr, HVr,
                 %Hstep0, HRes, -, #Hdel⟩
         · simp only [↓reduceIte]
           iframe Happl Hwok' HRD He HKV Htt Hcp HFSE HSpT HRS Hhk HLt HEv HGf Hrv Hgpq
@@ -2190,7 +2202,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
             _ (.quota .backend) (auth.latestResC stl (.on γa) T) hs _
             $$ [HKV Htt HRD HFSE HSpT HRS HLt Hrv HL] as %ar %id
-              ⟨Htt, Hrt, HRD, HFS, Hrv, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HRS, HVr, %Hstep0,
+              ⟨Htt, Hrt, HRD, HFS, Hrv, #Har, HTr, %Hid, %x', %out, HKV, Hout, HLt, HRS, HVr, %Hstep0,
                 HRes, -, HL, %HXo, -, #Hdel⟩
         · simp only [↓reduceIte]
           iframe HUK Hwok' HRD He HKV Htt HcpW HFSE HSpT HRS HLt Hrv HL
@@ -2356,7 +2368,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
             _ (.quota .backend) (auth.latestResC stl (.on γa) T) hs _
             $$ [HKV Htt HRD HFSE HSpT HRS HLt Hrv HL] as %ar %id
-              ⟨Htt, Hrt, HRD, HFS, -, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HRS, -, %Hstep0,
+              ⟨Htt, Hrt, HRD, HFS, -, #Har, HTr, %Hid, %x', %out, HKV, Hout, HLt, HRS, -, %Hstep0,
                 HRes, -, HL, %HXo, %HXe, #Hdel⟩
           · simp only [↓reduceIte]
             iframe HUK Hwok' HRD He HKV Htt HcpW HFSE HSpT HRS HLt Hrv HL
@@ -2456,7 +2468,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
             _ _ U $$ [Hst Happ Hbe HKV Htt HRD HFSE HSpT HRS HLt Hhk HEv Hrv] as %ar %id
-              ⟨HRD, HFS, Htt, Hrt, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HEv, -, HRS, %Hgo, HGr, HVr, %Hstep0, HRes, -, #Hdel⟩
+              ⟨HRD, HFS, Htt, Hrt, #Har, HTr, %Hid, %x', %out, HKV, Hout, HLt, HEv, -, HRS, %Hgo, HGr, HVr, %Hstep0, HRes, -, #Hdel⟩
           · simp only [↓reduceIte]
             iframe Happl Hwok' HRD He HKV Htt Hcp HFSE HSpT HRS Hhk HLt HEv HGf Hrv Hgpq
             isplitr
@@ -2542,8 +2554,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
                 applyBackend γ ci b) x rq id0 RD
               (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
               bel T Pk Wb sa _ hs hM hns HPk $$ [Hst Happ Hbe HKV Htt HRD Hfu Htie HT Htp HRS Hlc Hawt Hhk Hx]
-              as %ar %id ⟨HRD, Htt, Hrt, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
-                HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0, HAu0⟩
+              as %ar %id ⟨HRD, Htt, Hrt, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
+                HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', Hout, #HtA0, HAu0⟩
           · simp only [↓reduceIte]
             iframe HUA Hwok' HRD He HKV Htt HT Htp Hwba Hlend HRS Hlc Hawt Hhk
             isplitr
@@ -2623,8 +2635,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
             bel T Pk Wb sa _ hs hM hns HPk $$ [Hst Happ Hbe HKV Htt HRD Hfu Htie HT Htp HRS Hlc Hawt Hhk Hx]
-            as %ar %id ⟨HRD, Htt, Hrt, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
-              HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0, -⟩
+            as %ar %id ⟨HRD, Htt, Hrt, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
+              HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', Hout, #HtA0, -⟩
         · simp only [↓reduceIte]
           iframe HUA Hwok' HRD He HKV Htt HT Htp Hwba Hlend HRS Hlc Hawt Hhk
           isplitr

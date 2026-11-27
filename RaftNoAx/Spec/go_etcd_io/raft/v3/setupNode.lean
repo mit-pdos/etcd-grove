@@ -80,6 +80,9 @@ abbrev setupNode.spec : Prop :=
   BootLogOk ps bootLog →
   -- (step 5) in place of `TraceLoggerOk cv.TraceLogger'` (now in `trCapStart`) and `γ.reTrace = none`
   (γ.reTrace ≠ none → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧ ps.length < 2 ^ 40) →
+  -- (2026-11-24, the lifetime law) the attachment's term floor (`StorNames.t0`) at most the loaded
+  -- term (`LifeOk`; `RestartNode`: the stored term, `StartNode`: `0`)
+  uint.Z sn.t0 ≤ uint.Z hs.Term' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
          {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗

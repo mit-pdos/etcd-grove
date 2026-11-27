@@ -465,7 +465,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
         unfold vseOut at hres
         rw [hS, hH] at hres
         have hfin : K.map Prod.snd = walValidSnaps (d.H.map WalOpG.toM) d.cut := by
-          rw [hKf, vseKeep_snd _ ps S hlenS]; exact hres
+          rw [hKf, vseKeep_snd _ ps S hlenS, ← walValidSnaps_normH]; exact hres
         iapply HΦ
         iframe Hpd Hperm HS Hj
         iright

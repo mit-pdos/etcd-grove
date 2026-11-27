@@ -133,7 +133,7 @@ def trState (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
     sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"])
       (trLockP (netRh γn) t c.lid c.γd c.R c.γs c.γr) ∗
     ∃ (ss : Loc) (sd : GoString) (Rm : w64 → IProp GF), t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗
-      snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd c.γd γn.N.img Rm))
+      snap.isSnapshotter ss sd ∗ snapDirInvH sd c.γd γn.N.img Rm)
 
 instance trState_persistent (γn : NetNames GF) (t : Loc) (c : TrN GF) :
     Persistent (trState γn t c) := by
@@ -221,7 +221,7 @@ theorem rafthttp.Transport.Start_full
         trURLsOk (netRh γn) tv.ID' uvs ∧ transport.tlsEmpty tv.TLSInfo'⌝ ∗
         tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
         snap.isSnapshotter tv.Snapshotter' sd ∗
-        inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
+        snapDirInvH sd γd γn.N.img Rm ∗ netHttpOk γn tv.ID' ∗
         v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
         v2stats.isServerStats tv.ServerStats' ∗
         raftPool R }}

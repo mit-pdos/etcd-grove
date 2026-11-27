@@ -5,7 +5,9 @@ unless `NoSync`. The commit point is the caller's: right after the `WriteAt`, st
 `metalock`, its view shift `Hcp` gets `metalock`'s resource, hands over the slot's page-cache
 bytes and the client halves of its mapped cells, and gets them back as the write left them, which
 for one aligned OS page is all of `metaBuf mv` or nothing (`j = 4096` or `j = 0`), whatever
-`WriteAt` returned: `WriteAt.spec`'s page cut (`PwCut`, `notes/bbolt-port-plan.md` §2.4).
+`WriteAt` returned: `WriteAt.spec`'s page cut (`PwCut`, `notes/bbolt-port-plan.md` §2.4); all of it
+when the file system does not fail (`FsNoErr`: the write ends below `maxBytes`), which lets
+`Commit` fire its update in the step's first half, before the `pwrite` (`Commit/Step.lean`).
 
 The spec is over local resources (the writer side's fields and file, which `Commit` takes from
 `wdbLive`): `db.ops.writeAt` holds `db.file.WriteAt`'s method value, which `wdbCoreG` does not
@@ -22,6 +24,8 @@ public import Proof.go_etcd_io.bbolt.Commit.MetaPage
 public import Proof.go_etcd_io.bbolt.Commit.PwMeta
 public import Spec.go_etcd_io.bbolt.DB__pageInBuffer
 public import Spec.go_etcd_io.bbolt.fdatasync
+public import Spec.os.CrashStIL
+public import Proof.go_etcd_io.bbolt.Inv.BFileCommit
 public import Spec.go_etcd_io.bbolt.TxStats__IncWrite
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Write
 public import Spec.go_etcd_io.bbolt.internal.common.Page__Id
@@ -51,31 +55,47 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- The commit step `writeMeta` runs under `metalock` right after the meta page's `WriteAt`
-(slot `s`, the mapping's base `b`): from `metalock`'s resource, the slot's page-cache bytes
-(whole) and its cells' client halves (as bytes at ½), and, given them back as the write left
-them (`j` bytes written, all or nothing) and a time receipt (of a step under `metalock`, for
-the writer side's receipts) with the persistent receipt `⧖ m` the first half gave raised to
-`⧖ (m + 1)` by that step (session bbolt-inv: `metaR`'s receipt of the committed txid),
-`metalock`'s resource and `Ψ j`. -/
-def commitStep (K : BC) (s : Nat) (b : Loc) (buf : List w8) (Ψ : Nat → IProp GF) : IProp GF :=
-  iprop(metaR K.B K.db K.p ={⊤}=∗ ∃ (m : Nat) (xs : List ByteG) (old : List w8), ⧖ m ∗
-    osBytes K.p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.length = 4096 ∧ old.length = 4096⌝ ∗
-    bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) old ∗
-    ∀ (j : Nat) (ys : List ByteG),
-      ⌜(j = 0 ∨ j = 4096) ∧ ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else buf)⌝ -∗
-      osBytes K.p.ino (4096 * s) (DFrac.own 1) ys -∗
-      bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (ys.map Prod.fst) -∗
-      receipt 1 -∗ ⧖ (m + 1) ={⊤}=∗ metaR K.B K.db K.p ∗ Ψ j)
+/-- The commit step `writeMeta` runs under `metalock` around the meta page's `WriteAt` (slot `s`,
+the mapping's base `b`), committing `C` to `C'` (the writer's share of the file's `OsMeta` at
+`om`). In three parts:
+* from `metalock`'s resource, the persistent receipt `⧖ m` of the committed txid;
+* given it raised to `⧖ (m + 1)` by the next step (session bbolt-inv: `metaR`'s receipt of the
+  committed txid) and the writer's share `bMeta`, **the commit point**, before the `pwrite` starts
+  (the caller's update fires under `FsNoErr`; W1: in crash mode the file's value moves to
+  committing, `bMetaCm`): the slot's page-cache bytes (whole), its cells' client halves (as bytes
+  at ½), and, in crash mode, that the slot and the meta are `C'`'s current ones;
+* given back the cells as the write left them (`j` bytes written, all or nothing; all when the
+  file system does not fail, `FsNoErr`) and a time receipt (of a step under `metalock`, for the
+  writer side's receipts), `metalock`'s resource and, for the slot's bytes as the write left them
+  (as the sync leaves them: the same values), `Ψ j`. -/
+def commitStep (K : BC) (s : Nat) (b : Loc) (buf : List w8) (C C' : CommitSt) (om : OsMeta)
+    (Ψ : Nat → IProp GF) : IProp GF :=
+  iprop(metaR K.B K.db K.p ={⊤}=∗ ∃ m : Nat, ⧖ m ∗
+    (⧖ (m + 1) -∗ bMeta K.p C [] om ={⊤}=∗ ∃ (xs : List ByteG) (old : List w8),
+      bBytes K.p (4096 * s) (DFrac.own 1) xs ∗
+      ⌜xs.length = 4096 ∧ old.length = 4096 ∧
+        (K.p.cs ≠ none → C'.txid % 2 = s ∧ C'.slot C'.txid = buf)⌝ ∗
+      bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) old ∗
+      bMetaCm K.p C' C [] om ∗
+      ∀ (j : Nat) (ys : List ByteG),
+        ⌜(j = 0 ∨ j = 4096) ∧ (FsNoErr → j = 4096) ∧
+          ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else buf)⌝ -∗
+        bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (ys.map Prod.fst) -∗
+        receipt 1 ={⊤}=∗ metaR K.B K.db K.p ∗
+          ∀ ys' : List ByteG, ⌜ys'.map Prod.fst = ys.map Prod.fst⌝ -∗
+            bBytes K.p (4096 * s) (DFrac.own 1) ys' -∗ Ψ j))
 
 /-- **`tx.writeMeta()`** (see the file header): the meta `mv` (as `Meta.Write` needs it) written
 at slot `mv.txid % 2` of a file of at least two pages mapped once at `b` (at least two pages);
 the commit step `commitStep` runs under `metalock`. Afterwards the meta is summed, the file's
 size and mappings are unchanged, and `Ψ j` holds for the bytes written `j` (all of them on
-success). -/
+success); the writer's share of the file's `OsMeta` (`bMeta`) is at the committed state `C` before,
+and at `C'` once the meta is written (`j = 4096`; W1: in crash mode the commit step's commit point
+says the slot and the meta are `C'`'s, the write and the second sync go through the crash
+invariant, `bMetaCm`, and the file's sync options are on, `bSyncs`). -/
 abbrev Tx.writeMeta.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (mp : Loc) (mv : Meta)
-    (f : Loc) (fd : w64) (om : OsMeta) (b : Loc) (l : Nat) (dqf dqw : DFrac)
+    (f : Loc) (fd : w64) (C C' : CommitSt) (om : OsMeta) (b : Loc) (l : Nat) (dqf dqw : DFrac)
     (Ψ : Nat → IProp GF),
   uint.Z mv.root'.root' < uint.Z mv.pgid' →
   (uint.Z mv.freelist' < uint.Z mv.pgid' ∨ mv.freelist'.toNat = pgidNoFreelist) →
@@ -86,8 +106,8 @@ abbrev Tx.writeMeta.spec : Prop :=
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
-      osMeta K.p.ino (DFrac.own 1) om ∗
-      commitStep K (mv.txid'.toNat % 2) b (metaBuf mv) Ψ }}
+      bMeta K.p C [] om ∗ bSyncs K.db K.p ∗
+      commitStep K (mv.txid'.toNat % 2) b (metaBuf mv) C C' om Ψ }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗
       tx.[Tx, go!"db"] ↦{dq} K.db ∗ tx.[Tx, go!"meta"] ↦{dq} mp ∗ mp ↦ metaSummed mv ∗
@@ -95,9 +115,9 @@ abbrev Tx.writeMeta.spec : Prop :=
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
-      (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
+      ∃ j : Nat, (∃ om' : OsMeta, bMeta K.p (if j = 4096 then C' else C) [] om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
-      ∃ j : Nat, Ψ j ∗ ⌜(j = 0 ∨ j = 4096) ∧ (err = interface.nil → j = 4096)⌝ ∗
+      Ψ j ∗ ⌜(j = 0 ∨ j = 4096) ∧ (err = interface.nil → j = 4096)⌝ ∗
         (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) }}
 
 end spec
@@ -168,14 +188,17 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
-    (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
+    (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG))
+    (hWC : os.File.WriteAt.specCrashILR (GF := GF) (hG := hG))
+    (hSyncC : fdatasync.specC (GF := GF) (hG := hG)) :
     Tx.writeMeta.spec (GF := GF) (hG := hG) := by
-  intro K tx r sm q dq mp mv f fd om b l dqf dqw Ψ hroot hfl hmp hsz hmaps hl
-  wp_start as ⟨#Hcore, #Hreg, Hst, Hdb, Hme, Hmv, Hf, Hwa, Hfo, Hfd, Hm, Hcp⟩
+  intro K tx r sm q dq mp mv f fd C C' om b l dqf dqw Ψ hroot hfl hmp hsz hmaps hl
+  wp_start as ⟨#Hcore, #Hreg, Hst, Hdb, Hme, Hmv, Hf, Hwa, Hfo, Hfd, Hm, #Hsy, Hcp⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
+  icases BC.core_bfile K $$ Hcore with ⟨#Hci, %hns⟩
   iunfold dbFixed at Hfix
   icases Hfix with ⟨#Hps, #Hsp, ⟨%lg, #Hlg, #Hlgok⟩, -, -, -, ⟨%ns, #Hns⟩, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -207,8 +230,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   wp_apply +noauto sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   -- the commit step's first half (its persistent receipt `Hm'`, raised by the next step)
   iunfold commitStep at Hcp
-  imod Hcp $$ HR with ⟨%m, %xs, %old, #Hm', Hxs, %Hxl, Hold, Hk⟩
+  imod Hcp $$ HR with ⟨%m, #Hm', Hk1⟩
   wp_take_receipt as Hrc raising Hm'
+  -- the commit point (the update fires under `FsNoErr`; in crash mode the file's value moves)
+  imod Hk1 $$ Hm' Hm with ⟨%xs, %old, Hxs, %Hxl, Hold, Hm, Hk⟩
   wp_apply hId $$ [Hh] as Hh
   · iframe #; iframe
   have hoff : ((mv.txid' % W64 2) * W64 4096).toNat = 4096 * (mv.txid'.toNat % 2) := by
@@ -223,10 +248,81 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   ihave Hc : mcellsAny om.maps ((mv.txid' % W64 2) * W64 4096).toNat
       (((mv.txid' % W64 2) * W64 4096).toNat + (metaBuf mv).length) $$ [Hold]
   · rw [hmaps, metaBuf_length, hoff]
-    iapply wm_cells_of_bytes b l _ old (by omega) Hxl.2 $$ Hold
+    iapply wm_cells_of_bytes b l _ old (by omega) Hxl.2.1 $$ Hold
   -- the write
   have h0 : 0 ≤ ((mv.txid' % W64 2) * W64 4096).toInt := by
     rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+  cases hc : K.p.cs with
+  | some c =>
+    -- crash mode (W1): the meta page's write through the crash invariant, committing
+    obtain ⟨hpar, hbuf⟩ := Hxl.2.2 (by rw [hc]; exact fun h => nomatch h)
+    have hoff' : ((mv.txid' % W64 2) * W64 4096).toNat = 4096 * (C'.txid % 2) := by
+      rw [hoff, hpar]
+    wp_apply wp_bWriteMetaC hWC f fd K.p.path dqf sl (metaBuf mv) (DFrac.own 1)
+      ((mv.txid' % W64 2) * W64 4096) dqf (dbFd K.p.ino) K.p c hc C' C om xs rfl rfl h0 hns
+      hoff' hbuf.symm (metaBuf_length mv) Hxl.1
+      $$ [Hfo Hsl Hfd Hm Hxs Hc] as %n %err ⟨%hne, Hfo, Hsl, Hfd, Hc, %om', %ys, %Hys, Hm, Hys⟩
+    · iframe #
+      rw [← fileOwn_eq, hoff]
+      iframe
+    obtain ⟨hn, herr⟩ := hne
+    subst hn herr
+    obtain ⟨hsz', hmaps', hys⟩ := Hys
+    rw [hoff]
+    rw [metaBuf_length]
+    have hyl : ys.length = 4096 := by
+      have := congrArg List.length hys; simp only [List.length_map] at this
+      rw [this, metaBuf_length]
+    ihave Hc : ∃ vf, cellsR b (4096 * (mv.txid'.toNat % 2)) ys.length vf $$ [Hc]
+    · rw [hmaps, hyl]
+      iapply wm_cells_any b l _ (by omega) $$ Hc
+    icases Hc with ⟨%vf, Hc⟩
+    icases bMetaCm_osMeta K.p C' C _ om' $$ Hm with ⟨%qm, Hm, Hmb⟩
+    iapply cellsR_agree_bytes _ rfl K.p (DFrac.own qm) _ b l (by simp [hmaps', hmaps])
+      (DFrac.own 1) (by simp) _ ys (4096 * (mv.txid'.toNat % 2)) vf (by omega) $$ Hos Hm Hys Hc
+    iintro Hm Hys Hc
+    ihave Hm := Hmb $$ Hm
+    icases cellsR_bytes b (ys.map Prod.fst) _ $$ [Hc] with Hc
+    · simp only [List.length_map]; iexact Hc
+    imod Hk $$ %4096 %ys [] Hc Hrc with ⟨HR, HΨ⟩
+    · ipureintro
+      exact ⟨Or.inr rfl, fun _ => rfl, by rw [if_neg (by decide)]; exact hys⟩
+    cases lg with
+    | nil => unfold boltLogger; iexfalso; iexact Hlgok
+    | ok li =>
+    wp_auto
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk HR]
+    · iexact HR
+    ihave Hfo : fileOwn f fd K.p.path dqf $$ [Hfo]
+    · rw [fileOwn_eq]; iexact Hfo
+    -- crash mode: `NoSync` is off (`bSyncs`), so the second sync runs
+    icases bSyncs_some K.db hc $$ Hsy with ⟨#Hns0, -⟩
+    ihave %hns0 := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hns0
+    subst hns0
+    wp_auto
+    wp_apply hSyncC K.db f fd K.p c C' C om' (4096 * (mv.txid'.toNat % 2)) ys dqf dqf hc hns
+      (by rw [hpar]) (by rw [hys, hbuf])
+      $$ [Hf Hfo Hfd Hm Hys] as %e2 ⟨Hf, Hfo, Hfd, %He, %m', %ys', Hm, Hys, %hm2⟩
+    · iframe; iframe #
+    subst He
+    ihave HΨ := HΨ $$ %ys' %hm2.2.2 Hys
+    wp_auto
+    wp_apply hInc K tx r sm q (W64 1) $$ [Hst] as %_n Hst
+    · iframe #; iframe
+    try wp_auto
+    iapply HΦ
+    unfold metaSummed
+    iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
+    iexists 4096
+    isplitl [Hm]
+    · iexists m'; rw [if_pos rfl]; iframe; ipureintro; exact ⟨hm2.1.trans hsz', hm2.2.1.trans hmaps'⟩
+    iframe
+    isplitr
+    · ipureintro; exact ⟨Or.inr rfl, fun _ => rfl⟩
+    ileft; ipureintro; rfl
+  | none =>
+  ihave Hm := bMetaCm_to_os hc C' C [] om $$ Hm
+  ihave Hxs := (bBytes_none (GF := GF) hc _ _ _).1 $$ Hxs
   wp_apply hWriteAt f fd K.p.path dqf sl (metaBuf mv) (DFrac.own 1)
     ((mv.txid' % W64 2) * W64 4096) dqf (dbFd K.p.ino) om xs rfl h0
     (by rw [hoff]; omega) (by rw [metaBuf_length, hoff]; omega)
@@ -236,6 +332,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iframe #
     rw [← fileOwn_eq, hoff]
     iframe
+  ihave Hys := (bBytes_none (GF := GF) hc _ _ _).2 $$ Hys
   obtain ⟨hjle, hpo, hcut, hres⟩ := Hj
   simp only [metaBuf_length, hoff] at hcut hjle
   have hj01 : j = 0 ∨ j = 4096 := by
@@ -270,8 +367,19 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   iintro Hm Hys Hc
   icases cellsR_bytes b (ys.map Prod.fst) _ $$ [Hc] with Hc
   · simp only [List.length_map]; iexact Hc
-  imod Hk $$ %j %ys [] Hys Hc Hrc Hm' with ⟨HR, HΨ⟩
-  · ipureintro; exact ⟨hj01, hys⟩
+  -- under `FsNoErr` the write lands whole (it ends below `maxBytes`)
+  have hne : FsNoErr → j = 4096 := by
+    intro hfs
+    rcases hres with ⟨h1, -, -⟩ | ⟨-, -, h3⟩
+    · rw [metaBuf_length] at h1; exact h1
+    · rw [hoff, metaBuf_length] at h3
+      have hmb : maxBytes = 0xffffffff000 := rfl
+      rcases h3 with h3 | h3
+      · exact absurd hfs h3
+      · rw [hmb] at h3; omega
+  imod Hk $$ %j %ys [] Hc Hrc with ⟨HR, HΨ⟩
+  · ipureintro; exact ⟨hj01, hne, hys⟩
+  ihave HΨ := HΨ $$ %ys %rfl Hys
   cases lg with
   | nil => unfold boltLogger; iexfalso; iexact Hlgok
   | ok li =>
@@ -323,9 +431,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rw [← fileOwn_eq]
     unfold metaSummed
     iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-    isplitl [Hm]
-    · iexists _; iframe; ipureintro; exact hom'
     iexists j
+    isplitl [Hm]
+    · iexists _; ihave Hm := bMeta_of_os hc (if j = 4096 then C' else C) [] _ $$ Hm
+      iframe; ipureintro; exact hom'
     iframe
     isplitr
     · ipureintro; exact ⟨hj, fun h => nomatch h⟩
@@ -353,9 +462,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       iapply HΦ
       unfold metaSummed
       iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-      isplitl [Hm]
-      · iexists _; iframe; ipureintro; exact hom'
       iexists j
+      isplitl [Hm]
+      · iexists _; ihave Hm := bMeta_of_os hc (if j = 4096 then C' else C) [] _ $$ Hm
+        iframe; ipureintro; exact hom'
       iframe
       isplitr
       · ipureintro; exact ⟨Or.inr hj, fun _ => hj⟩
@@ -374,9 +484,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iapply HΦ
         unfold metaSummed
         iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-        isplitl [Hm]
-        · iexists m'; iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iexists j
+        isplitl [Hm]
+        · iexists m'; ihave Hm := bMeta_of_os hc (if j = 4096 then C' else C) [] _ $$ Hm
+          iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iframe
         isplitr
         · ipureintro; exact ⟨Or.inr hj, fun _ => hj⟩
@@ -409,9 +520,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iapply HΦ
         unfold metaSummed
         iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-        isplitl [Hm]
-        · iexists m'; iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iexists j
+        isplitl [Hm]
+        · iexists m'; ihave Hm := bMeta_of_os hc (if j = 4096 then C' else C) [] _ $$ Hm
+          iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iframe
         isplitr
         · ipureintro; exact ⟨Or.inr hj, fun _ => hj⟩

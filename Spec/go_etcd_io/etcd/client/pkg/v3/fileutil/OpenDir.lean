@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import Proof.os.NsS
 public import Spec.os.StatAbove
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -38,6 +39,18 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec : Prop :=
       ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
           osDirFdS fd j .idle) ∨
        ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
+
+/-- `OpenDir(p)` of the directory `j` **with no error**: where the file system cannot fail on `p`
+(`FsNoErrOn (· = p)`) and `p` fits, `nil` and the directory's fd (`os.Open.wp_dirSNE`: the open's only
+failure is `EINTR`, which `os.OpenFile` retries). -/
+abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specNE : Prop :=
+  ∀ (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp),
+  FsNoErrOn (· = p) → PathFits p →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R p dq j ∗
+      osCallPerm (GF := GF) (callKey R p) qc }}
+    (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir)) (Val #p))
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
+      ∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osDirFdS fd j .idle }}
 
 /-- `OpenDir(p)` of a strict ancestor of a root (`os.AboveRoot`): an fd of a directory outside the
 roots' trees (`osOutFd`: only `Sync` and `Close` on it), or an error (2026-11-13, the extension's

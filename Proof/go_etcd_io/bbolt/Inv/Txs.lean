@@ -17,6 +17,7 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.Shape
 public import Proof.go_etcd_io.bbolt.Model.WOps
 public import Perennial.Proof.ThreadPool
+public import Proof.go_etcd_io.bbolt.Inv.State
 
 @[expose] public section
 
@@ -65,8 +66,42 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `tx` is registered in `B`'s transactions as `r` (persistent, timeless). -/
-def reg (tx : Loc) (B : BNs) (r : TxReg) : IProp GF := iprop(tx ↪[B.txs]□ r)
+/-- **The transaction's view is `v`** (persistent, agreeing): its registry's entry at the fixed
+key `null`, for both kinds (maintainer R's U6g item 2 for readers; U6w, the review's F2, for
+writers: two fragments agree, so a cursor's, a handle's or a slice's view is the writer's current
+`X.v` on a later call). A writer's base view, minted at `beginRWTx`; its re-based views (a remap
+in `Commit`) are `viewBase`. -/
+def viewOf (r : TxReg) (v : View) : IProp GF :=
+  iprop(null ↪[r.n.vw]□ v)
+
+/-- **A writer's registration carries the synced mark of its view's version** (W3; `emp` for a
+reader): `beginRWTx` mints it, the committed state being idle at that version (`bMeta_syncedB`), so
+that the backend's crash record made from a fresh write transaction (C-I1's `dbCrashKeep_new`, which
+opens no invariant) knows no commit to that version is still in flight. -/
+def regX (B : BNs) (r : TxReg) : IProp GF :=
+  if r.rw then iprop(∃ v : View, viewOf r v ∗ syncedB B v.txid) else iprop(emp)
+
+instance regX_persistent (B : BNs) (r : TxReg) : Persistent (regX (GF := GF) B r) := by
+  unfold regX viewOf; split <;> infer_instance
+
+instance regX_timeless (B : BNs) (r : TxReg) : Timeless (regX (GF := GF) B r) := by
+  unfold regX viewOf; split <;> infer_instance
+
+/-- `tx` is registered in `B`'s transactions as `r` (persistent, timeless), with `regX`. -/
+def reg (tx : Loc) (B : BNs) (r : TxReg) : IProp GF := iprop(tx ↪[B.txs]□ r ∗ regX B r)
+
+/-- A registration's `regX`. -/
+theorem reg_regX (tx : Loc) (B : BNs) (r : TxReg) : reg (GF := GF) tx B r ⊢ regX B r := by
+  unfold reg; iintro ⟨-, #H⟩; iexact H
+
+/-- A writer's `regX`: the synced mark at its view's version. -/
+theorem regX_rw (B : BNs) (r : TxReg) (h : r.rw = true) :
+    regX (GF := GF) B r ⊢ ∃ v : View, viewOf r v ∗ syncedB B v.txid := by
+  unfold regX; rw [if_pos h]
+
+/-- A reader's `regX`. -/
+theorem regX_ro (B : BNs) (r : TxReg) (h : r.rw = false) : ⊢ regX (GF := GF) B r := by
+  unfold regX; rw [h]; iempintro
 
 /-- The store's writer state of a live writer on the view `v`, of the committed state `C`, before
 its publish, its view lent. -/
@@ -216,6 +251,7 @@ private theorem txs_open_i (tx : Loc) (r : TxReg) :
   unfold txsInv
   icases Hi with ⟨%M, >Hauth, Hm⟩
   unfold reg
+  icases Hreg with ⟨#Hreg, -⟩
   icombine Hauth Hreg gives %Hlk
   ihave Hm := (later_mono (BigSepM.bigSepM_lookup_acc (Φ := fun tx r => txEntry (GF := GF) B p sp t0 tx r) Hlk).1) $$ Hm
   icases Hm with ⟨He, Hback⟩
@@ -237,10 +273,11 @@ quarter), its statistics and its exclusive part; it gets its registration and `t
 theorem txs_register (tx : Loc) (r : TxReg) (s : TxStats) :
     inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗
       tx.[Tx, go!"db"] ↦ r.db ∗ tx.[Tx, go!"stats"] ↦ s ∗
-      txExcl B p sp t0 tx r ∗ ghostVar r.n.done (1 : Qp).half false ∗ readerHandles r ⊢
+      txExcl B p sp t0 tx r ∗ ghostVar r.n.done (1 : Qp).half false ∗ readerHandles r ∗
+      regX B r ⊢
     |={E}=> reg tx B r ∗
       tx.[Tx, go!"db"] ↦{DFrac.own ((1 : Qp).half + (1 : Qp).half.half)} r.db := by
-  iintro ⟨#Hinv, Hdb, Hst, Hx, Hd, Hrh⟩
+  iintro ⟨#Hinv, Hdb, Hst, Hx, Hd, Hrh, #HrX⟩
   iinv Hinv with Hi Hclose
   unfold txsInv
   icases Hi with ⟨%M, >Hauth, Hm⟩
@@ -281,7 +318,7 @@ theorem txs_register (tx : Loc) (r : TxReg) (s : TxStats) :
       iexists s; iexact Hst
     imodintro
     iframe Hdb
-    unfold reg; iexact Hreg
+    unfold reg; iframe Hreg HrX
 
 open Iris.ProofMode in
 /-- The holder of the whole `ex` token takes the exclusive part out (under a later: it is not

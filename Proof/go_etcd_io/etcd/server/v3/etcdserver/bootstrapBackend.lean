@@ -222,7 +222,7 @@ theorem bootstrapBackend.wp_proof
     bootKB_P (Classical.ofNonempty) null gx (storage.openLimit cfg) hlim0 hlim1
   ihave #HmS := hMS γ0 $$ Hinv
   have hm0 : metaIs (∅ : backend.Data) π0.m0 := ⟨rfl, rfl⟩
-  ihave Hcreate := snap_create γ0 π0 (bootP (storage.openLimit cfg)) ∅ (mvcc.api.mvccW gx) hm0
+  ihave Hcreate := snap_create (IR := fun _ _ => iprop(True)) γ0 π0 (bootP (storage.openLimit cfg)) ∅ (mvcc.api.mvccW gx) hm0
     hciK $$ HmS Hinv Hpd0 Hmt0a HlateW
   ihave #HisCI0 : isCI cil γ0.ci $$ []
   · rw [hγci]; iexact HisCI
@@ -230,7 +230,7 @@ theorem bootstrapBackend.wp_proof
   · iPkgInit
   ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
-  ihave #Hhooks := hooksOk_server_fut hOn hSave hPut hUR hID hName hSafe γ0 π0 cil
+  ihave #Hhooks := hooksOk_server_fut (IR := fun _ _ => iprop(True)) hOn hSave hPut hUR hID hName hSafe γ0 π0 cil
     (bootP (storage.openLimit cfg)) (fun _ => mvcc.api.mvccW gx) bh cfg.Logger' hciK hhP
     $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $HisCI0 $Hinv]
   -- `storage.OpenBackend(cfg, beHooks)`: the fresh file
@@ -239,7 +239,7 @@ theorem bootstrapBackend.wp_proof
       (fun _ => mvcc.api.mvccW gx)
       (fun γB => batchLockInv (γ0.withPh (futPhys π0 γB)) (metaTM γB (bootP (storage.openLimit cfg))))
       (snapOpenK γ0 π0 (bootP (storage.openLimit cfg)))) $$ [Hfile Hcreate Hfg]
-    as %b %γB ⟨Hnew, #HhkAt, #Hbfile, Hpath⟩
+    as %b %γB ⟨Hnew, #HhkAt, #Hbfile, Hpath, -⟩
   · iframe Hfile
     iunfold storage.openPre
     iframe Hfg Hhooks Hvoff Hzlg
@@ -289,7 +289,7 @@ theorem bootstrapBackend.wp_proof
   ihave Hab : applyBackend (GF := GF) (γ0.withPh π') cil (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) $$ [Hown]
   · iunfold applyBackend; iframe Hown HmB
-  wp_apply (wp_ci_get hCIg (γ0.withPh π') cil _ ⟨W64 0, W64 0, W64 0, false⟩ rfl)
+  wp_apply (wp_ci_get (IR := fun _ _ => iprop(True)) hCIg (γ0.withPh π') cil _ ⟨W64 0, W64 0, W64 0, false⟩ rfl)
     $$ [Hst Hab] as ⟨Hst, Hab⟩
   · iframe Hst Hab; isplitr; · iexact HisCI0
     rw [show consInv (GF := GF) (γ0.withPh π') = consInv γ0 from rfl]; iexact Hinv

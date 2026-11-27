@@ -74,10 +74,10 @@ theorem BC.core_mmapFields (K : BC) :
 theorem wdbW'_file_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
     wdbW' (GF := GF) fr K tx v w ⊢ (K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f ∗
         fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) ∗
-        osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) ∗ osMeta K.p.ino (DFrac.own 1) w.m) ∗
+        osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) ∗ bMeta K.p w.C [] w.m) ∗
       ((K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f ∗
         fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) ∗
-        osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) ∗ osMeta K.p.ino (DFrac.own 1) w.m) -∗
+        osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) ∗ bMeta K.p w.C [] w.m) -∗
         wdbW' fr K tx v w) ∗
       ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ := by
   unfold wdbW' wdbLive wdbCoreG
@@ -235,11 +235,13 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   try wp_auto
   icases wdbW'_file_acc fr K tx X.v w $$ Hdb with ⟨⟨Hfile, Hfo, Hfd, Hosm⟩, Hdbback, %Hwok⟩
   obtain ⟨hok, hms, hv⟩ := Hwok
+  icases bMeta_osMeta K.p w.C [] w.m $$ Hosm with ⟨%qm, Hosm, Hosmb⟩
   wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
-    (DFrac.own (1 : Qp).half) (DFrac.own 1)
+    (DFrac.own (1 : Qp).half) (DFrac.own qm)
     (dbFd K.p.ino) w.m rfl (wdbOK'_size_lt fr w hok) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
+  ihave Hosm := Hosmb $$ Hosm
   cases lg with
   | nil => unfold boltLogger; iexfalso; iexact Hlgok
   | ok li =>
@@ -369,7 +371,8 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · iexact Hpmf
   have hmap0 : w.m.maps !! b0 = some l := by rw [hk1 b0 l hmsL]; exact GMap.lookup_singleton _ _
   simp only [mapLen]
-  wp_apply hMunmap K.db b0 l (GoInterface.ok li) K.p w.m vf Hdb (by omega) hmap0
+  icases BC.core_bfile K $$ Hcore with ⟨#Hci, %hns⟩
+  wp_apply hMunmap K.db b0 l (GoInterface.ok li) K.p w.C [] w.m vf Hdb (by omega) hmap0 hns
     $$ [Hmf1 Hdsz Hosm Hcells] as %e ⟨Hmf0, Hdsz, Hun⟩
   · iframe; iframe #
   have hv' : (Xd.rebase Xd.v.base).v = X.v := by
@@ -384,8 +387,8 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     ihave Hjunk : junkRes (GF := GF) K.B w.junk $$ [Hjunk]
     · unfold junkRes; iexact Hjunk
     imod junkRes_leak_or ⊤ K.B w.junk
-      (osMeta (GF := GF) K.p.ino (DFrac.own 1) { w.m with maps := GMap.delete b0 w.m.maps })
-      (fun _ : Unit => osMeta (GF := GF) K.p.ino (DFrac.own 1) w.m) (fun _ => b0) (fun _ => l) he.2.2
+      (bMeta (GF := GF) K.p w.C [] { w.m with maps := GMap.delete b0 w.m.maps })
+      (fun _ : Unit => bMeta (GF := GF) K.p w.C [] w.m) (fun _ => b0) (fun _ => l) he.2.2
       $$ [Hjunk Hun] with HunJ
     · iframe Hjunk
       icases Hun with (H | ⟨H, Hc⟩)
@@ -447,9 +450,9 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   simp only [mapFields]
   icases Hmf0 with ⟨Hdr, Hdd, Hm0f, Hm1f⟩
   wp_apply hMmapF K.db w.f w.fd K.p (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
-    (DFrac.own (1 : Qp).half) mf
+    (DFrac.own (1 : Qp).half) mf w.C []
     { w.m with maps := GMap.delete b0 w.m.maps } nsz slice.nil null (W64 0) Hmf
-    (by simp only [sint.Z] at hnszZ; omega) $$ [Hfile Hfo Hfd Hosm Hdr Hdd Hdsz]
+    (by simp only [sint.Z] at hnszZ; omega) hns $$ [Hfile Hfo Hfd Hosm Hdr Hdd Hdsz]
     as %e ⟨Hfile, Hfo, Hfd, Hres⟩
   · iframe; iframe #
   have hmaps1 : (GMap.delete b0 w.m.maps) = ∅ := by
@@ -463,8 +466,8 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     ihave Hjunk : junkRes (GF := GF) K.B w.junk $$ [Hjunk]
     · unfold junkRes; iexact Hjunk
     imod junkRes_leak_or ⊤ K.B w.junk
-      (osMeta (GF := GF) K.p.ino (DFrac.own 1) { w.m with maps := GMap.delete b0 w.m.maps })
-      (fun base : Loc => iprop(⌜0 < base.addr⌝ ∗ osMeta (GF := GF) K.p.ino (DFrac.own 1)
+      (bMeta (GF := GF) K.p w.C [] { w.m with maps := GMap.delete b0 w.m.maps })
+      (fun base : Loc => iprop(⌜0 < base.addr⌝ ∗ bMeta (GF := GF) K.p w.C []
         { { w.m with maps := GMap.delete b0 w.m.maps } with
           maps := <[base := nsz.toNat]> (GMap.delete b0 w.m.maps) }))
       (fun base => base) (fun _ => nsz.toNat) he.2.2
@@ -580,9 +583,10 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   icases mapCells_scatter base L' _ _ _ hP' $$ Hc with ⟨Hc01, HS, Hws, Hpart⟩
   wp_bind (App (Val (GoInstruction (GoLoad go.bool))) (Val #(K.db.[DB, go!"Mlock"])))
   iapply wp_load_bool_split
+  icases bMeta_osMeta K.p w.C [] _ $$ Hosm with ⟨%qm, Hosm, Hosmb⟩
   iapply (store_cells_agree K.B K.N K.p ⊤ CoPset.subseteq_top _
     (StartRead (Val #(K.db.[DB, go!"Mlock"]))) rfl inferInstance hE' w.C w.fl
-    ((some X.v, some (w.C.txid + 1), false, false) : WSt) base L' _ (DFrac.own 1) W hb2
+    ((some X.v, some (w.C.txid + 1), false, false) : WSt) base L' _ (DFrac.own qm) W hb2
     (fun s hs => (hsl' s hs).2) _ (by simp))
     $$ Hpinv Hos Hcur Hgfl Hgmap Hgwv Hbyt Hosm HS
   iintro %bs2 %hW2 Hcur Hgfl Hgmap Hgwv Hbyt Hosm HS
@@ -593,9 +597,10 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     simp only [List.length_map, List.length_append] at this
     rw [this, hgat.2.1.1, hgat.2.1.2.1]
   rw [← hxl]
-  iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) _ base L' hb2 _
+  iapply cellsR_agree_bytes _ rfl K.p (DFrac.own qm) _ base L' hb2 _
     hE' _ xs 0 _ (by omega) $$ Hos Hosm Hxs Hc01
   iintro Hosm Hxs Hcm
+  ihave Hosm := Hosmb $$ Hosm
   -- the metas' bytes at the new mapping, at a half
   have hm0 := hgat.2.1.1
   have hm1 := hgat.2.1.2.1
@@ -727,7 +732,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       rw [show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by rw [loc_add_assoc]; rfl]
       iframe
       ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
-    ihave Hmob : metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C $$ [Hxs]
+    ihave Hmob : metaOsBytes K.p (DFrac.own 1) w.C $$ [Hxs]
     · unfold metaOsBytes; iexists xs; iframe; ipureintro; exact hxs
     ihave Hwcn := wCells_carve w.C w.fl base L' (max L' w.m.size / 4096)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
@@ -779,7 +784,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       rw [show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by rw [loc_add_assoc]; rfl]
       iframe
       ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
-    ihave Hmob : metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C $$ [Hxs]
+    ihave Hmob : metaOsBytes K.p (DFrac.own 1) w.C $$ [Hxs]
     · unfold metaOsBytes; iexists xs; iframe; ipureintro; exact hxs
     ihave Hwcn := wCells_carve w.C w.fl base L' (max L' w.m.size / 4096)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]

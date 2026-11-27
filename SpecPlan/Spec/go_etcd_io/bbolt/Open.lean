@@ -11,7 +11,7 @@ reopen (`:594`), `examples/bbolt/bank/bbolttest.go:278` (`nil` options), `exampl
 over OsFs, or the custom `OpenFile` by `openFileOk`), `flock`s it (trivial in OsFs), and opens
 `boltFile γ`'s crash invariant with `boltClosed γ`: the invariant's closed state holds the file's
 OsFs halves the open database takes (its `fileHolds`-shaped well-formedness, the other half of `σ`).
-A fresh file is laid out by the fork's crash-safe `init` (`nonissues/bbolt-init-not-crash-safe.md`):
+A fresh file is laid out by the fork's crash-safe `init` (`issues/bbolt-init-not-crash-safe.md`):
 each of its steps keeps the invariant's "every crash image is `Data.empty`" (`σ.data = Data.empty`
 for a fresh file); else `getPageSize` reads page 0's meta (D18: a read error, not a probe), the file
 size, `mmap` (4d's `common` decoders for the metas, `meta()` choosing the newest valid one),

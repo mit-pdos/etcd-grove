@@ -72,29 +72,32 @@ theorem tailMeta_synced (m : OsMeta) (bs : List ByteG) (hl : bs.length = m.size)
 /-- **Step 7 of `cut`** (`walInvBody_cutSynced`) as an update of the invariant, at a program step
 (the generation's `notCrashed`, handed back). -/
 theorem walInv_cutSynced (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (x : Nat)
+    (dir : GoString) (ii : Nat) (I : GMap GoString Nat) (hii : incOf I dir = ii) (j : Ino) (X : List GoString)
+    (hj : NamesH) (x : Nat)
     (e : LogEntry) (c : Ents) (bt : GoString) (i : Ino) (dq : DFrac) (γ : GName) (tg : TailG)
     (n : Nat) (hx : x < n) (hw : e.op.Writes j bt) (hwal : walNameP bt = true)
     (hc : c !! bt = some (.file i)) (hti : tg.2.2.2.2.1 = i) :
     ⊢ walInv (L := L) (W := W) walCodec Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) dq (hj.log x e c) -∗
+      walDirKey (W := W) dir ii j X -∗ walIncQ (W := W) I -∗
+      osNames (L := L) j (.except X) dq (hj.log x e c) -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walCutFrag (W := W) (some dir) -∗
       osCommitLb (L := L) n ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) j (.except X) dq (hj.log x e c) ∗
+      notCrashed (hC := L.goose_crashGS) ∗ walIncQ (W := W) I ∗ osNames (L := L) j (.except X) dq (hj.log x e c) ∗
         walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗ walCutFrag (W := W) none := by
-  iintro #Hinv Hnc #Hkey Hq Hk Hv Hcf #Hc
+  subst hii
+  iintro #Hinv Hnc #Hkey HI Hq Hk Hv Hcf #Hc
   iapply walInv_step walCodec Mr R jr r
-    iprop(walDirKey (W := W) dir j X ∗ osCommitLb (L := L) n ∗
+    iprop(walDirKey (W := W) dir (incOf I dir) j X ∗ osCommitLb (L := L) n ∗ walIncQ (W := W) I ∗
       osNames (L := L) j (.except X) dq (hj.log x e c) ∗ walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ tg ∗ walCutFrag (W := W) (some dir))
-    iprop(osNames (L := L) j (.except X) dq (hj.log x e c) ∗ walTailKey (W := W) dir γ ∗
+    iprop(walIncQ (W := W) I ∗ osNames (L := L) j (.except X) dq (hj.log x e c) ∗ walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ tg ∗ walCutFrag (W := W) none)
     ⊤ (fun _ _ => CoPset.mem_full) (fun s => by
-      iintro Hb ⟨#Hkey, #Hc, Hq, Hk, Hv, Hcf⟩
-      imod walInvBody_cutSynced walCodec Mr R jr r s dir j X hj x e c bt i dq γ tg n hx hw hwal hc hti
-        $$ Hb Hkey Hq Hk Hv Hcf Hc with ⟨Hb, Hq, Hk, Hv, Hcf⟩
+      iintro Hb ⟨#Hkey, #Hc, HI, Hq, Hk, Hv, Hcf⟩
+      imod walInvBody_cutSynced walCodec Mr R jr r s dir I j X hj x e c bt i dq γ tg n hx hw hwal hc hti
+        $$ Hb Hkey HI Hq Hk Hv Hcf Hc with ⟨Hb, HI, Hq, Hk, Hv, Hcf⟩
       imodintro
-      iframe) $$ Hinv Hnc [Hq Hk Hv Hcf]
+      iframe) $$ Hinv Hnc [HI Hq Hk Hv Hcf]
   iframe; iframe #
 
 end iris

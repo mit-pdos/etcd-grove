@@ -654,7 +654,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
             iunfold rnReplayJob at Hjob
             ihave Hhist := Hjob $$ %sm %(ciEff γ st''.k) %(by rw [hbootLog]; exact ⟨Hty, rfl, by omega, hciLen⟩)
             rw [hγn, hbootLog]
-            icases Hhist $$ Hsm with ⟨%runs, %run, #Hruns, %hr⟩
+            ihave Hhist' := Hhist $$ Hsm %m Hsrc
+            imod Hhist' with ⟨%runs, %run, #Hruns, %hr⟩
             have hsend := hCM s m sm at' ai' (ciEff γ st''.k) durableTerm terms boot cs' sv.lg kv be dq
               RC RC' RS RS' Qd γr.raft hsz20
               (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩)
@@ -766,7 +767,7 @@ theorem EtcdServer.applyAll.wp_proof
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hCM hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave
       hPut hUR hID hName hSafe,
-    EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT (EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec hCM) hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
+    EtcdServer.applyAll.wp_proofSnapM hASnap.2.1 hAE.2 hBk hLg hV hSINC.2 hGT (EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec hCM) hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
       hSafe⟩
 
 end proof

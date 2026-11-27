@@ -48,26 +48,27 @@ theorem wp_tailFsyncP (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (d
     (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd) (Φ : val → IProp GF)
     (hm : TailMetaZ m bs) (hzw : ∀ b x, wr ≤ b → bs[b]? = some x → x.1 = 0)
-    (hzf : ∀ z, m.zf = some z → m.size ≤ z) (hwr : wr = (tailStream Mr H md cuts).length) :
-    ⊢ walAreaOk walCodec Mr R jr r -∗ osFd fd dq d -∗ walLentTokB (W := W) dir γ k false -∗
+    (hzf : ∀ z, m.zf = some z → m.size ≤ z) (hwr : wr = (tailStream Mr H md cuts).length) (ic : Nat) :
+    ⊢ walAreaOk walCodec Mr R jr r -∗ walIncLb (W := W) dir ic -∗ osFd fd dq d -∗
+      walLentTokB (W := W) dir γ k false -∗
       tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) -∗ walCutFrag (W := W) none -∗
       osMeta d.ino (DFrac.own (1 : Qp).half) m -∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs -∗
       (∀ e : w64, osFd fd dq d -∗
         tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) -∗ walCutFrag (W := W) none -∗
         ((⌜e = 0⌝ ∗ walTailKey (W := W) dir γ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m.synced ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1)) ∗
-            walSyncedLb (W := W) dir H.length) ∨
+            walSyncedLb (W := W) dir ic H.length) ∨
          (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ walLentTokB (W := W) dir γ k false ∗
             osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
-  iintro #Harea Hfd Hk Hv Hcf Hm1 Hb1 HΦ
+  iintro #Harea #Hil Hfd Hk Hv Hcf Hm1 Hb1 HΦ
   unfold walAreaOk
   icases Harea with ⟨#Hinv, #Hos, -⟩
   iapply (wp_atomic_nc (E1 := ⊤) (E2 := (⊤ : CoPset) \ ↑walN) _ _ rfl)
   iintro Hnc
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_syncP walCodec walCodec_ok Mr R jr r s dir γ k _ $$ Hb Hk Hv Hcf with
+  icases walInvBody_syncP walCodec walCodec_ok Mr R jr r s dir γ k _ ic $$ Hb Hk Hv Hcf Hil with
     ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hv, Hcf, Hconts⟩
   obtain ⟨hdw, hs, htg, ⟨ents, habs⟩⟩ := hp
   simp only [tailG, Prod.mk.injEq] at htg
@@ -113,11 +114,7 @@ theorem wp_tailFsyncP (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (d
     iframe
     isplitr
     · ipureintro; exact he
-    unfold walSyncedLb
-    iexists (walSyncS s dir dw), { dw with m := dw.H.length }
-    iframe Hpast
-    ipureintro
-    exact ⟨walSyncS_lookup s dir dw, by rw [hH]; exact Nat.le_refl _⟩
+    rw [hH]; iexact Hpast
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
     icases Hconts with ⟨-, Hfail⟩
@@ -140,8 +137,9 @@ theorem syscall.Fdatasync.wp_tailP (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
     (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd)
     (hm : TailMetaZ m bs) (hzw : ∀ b x, wr ≤ b → bs[b]? = some x → x.1 = 0)
-    (hzf : ∀ z, m.zf = some z → m.size ≤ z) (hwr : wr = (tailStream Mr H md cuts).length) :
-    {{ walAreaOk walCodec Mr R jr r ∗ osFd fd dq d ∗ walLentTokB (W := W) dir γ k false ∗
+    (hzf : ∀ z, m.zf = some z → m.size ≤ z) (hwr : wr = (tailStream Mr H md cuts).length) (ic : Nat) :
+    {{ walAreaOk walCodec Mr R jr r ∗ walIncLb (W := W) dir ic ∗ osFd fd dq d ∗
+        walLentTokB (W := W) dir γ k false ∗
         tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) ∗ walCutFrag (W := W) none ∗
         osMeta d.ino (DFrac.own (1 : Qp).half) m ∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs }}
       (App (Val (@! syscall.Fdatasync)) (Val #fd))
@@ -149,14 +147,14 @@ theorem syscall.Fdatasync.wp_tailP (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
         tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) ∗ walCutFrag (W := W) none ∗
         ((⌜e = 0⌝ ∗ walTailKey (W := W) dir γ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m.synced ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1)) ∗
-            walSyncedLb (W := W) dir H.length) ∨
+            walSyncedLb (W := W) dir ic H.length) ∨
          (⌜e ≠ 0⌝ ∗ walLentTokB (W := W) dir γ k false ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) }} := by
-  wp_start as ⟨#Harea, Hfd, Hk, Hv, Hcf, Hm, Hb⟩
+  wp_start as ⟨#Harea, #Hil, Hfd, Hk, Hv, Hcf, Hm, Hb⟩
   try wp_auto
   wp_stub syscall.fsFsync.impl
-  wp_apply wp_tailFsyncP Mr R jr r dir γ k H md cuts wr m bs fd dq d _ hm hzw hzf hwr
-    $$ Harea Hfd Hk Hv Hcf Hm Hb as %e Hfd Hv Hcf Hr
+  wp_apply wp_tailFsyncP Mr R jr r dir γ k H md cuts wr m bs fd dq d _ hm hzw hzf hwr ic
+    $$ Harea Hil Hfd Hk Hv Hcf Hm Hb as %e Hfd Hv Hcf Hr
   try wp_auto
   wp_apply wp_errnoErr
   try wp_auto
@@ -192,8 +190,8 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG)) (Mr : WalMarshal) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (hG := hG) (W := W) Mr := by
-  intro R jr r f fd name dir γ i H md cuts o0 sz k hS
-  wp_start as ⟨#Harea, Hw, Hcf⟩
+  intro R jr r f fd name dir γ i H md cuts o0 sz k ic hS
+  wp_start as ⟨#Harea, #Hil, Hw, Hcf⟩
   unfold walTailP
   icases Hw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   obtain ⟨hmsz, ⟨hmz, hz⟩, hsz62, hfd, hlw⟩ := hp
@@ -205,9 +203,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
   · unfold tailVar; iexact Hv
   wp_apply syscall.Fdatasync.wp_tailP Mr R jr r dir γ k H md cuts (o0 + ([] : List w8).length) m bs fd
     (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ hmz (fun b x hb hx => hz b x (by simpa using hb) hx) hzf
-    (by simpa using hS) $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    (by simpa using hS) ic $$ [Harea Hfd Hk Hv Hcf Hm Hb]
     as %e ⟨Hfd, Hv, Hcf, Hr⟩
-  · iframe; iexact Harea
+  · iframe Hil; iframe; iexact Harea
   iapply HΦ
   iframe Hcf
   icases Hr with (⟨%he, Hk, Hm, Hb, #Hs⟩ | ⟨%he, Hk, Hm, Hb⟩)

@@ -26,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`aa.LeaseRevoke(lc)`**: `checkLeasePuts` of the lease (an auth error: rejected), then the inner applier's `LeaseRevoke`. -/
+/-- **`aa.LeaseRevoke(lc)`**: `checkLeasePuts` of the lease (an auth error: rejected), then the inner applier's `LeaseRevoke`. (T10 step 2) Without the
+lock (the lease not live) the live set and the rest buckets are unchanged (`kvPost`'s `N`, `revokeNoEff`). -/
 abbrev apply.authApplierV3.LeaseRevoke.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log)
     (T : List w64) (rs : apply.RestM) (Pre Q Post : IProp GF)
@@ -36,7 +37,8 @@ abbrev apply.authApplierV3.LeaseRevoke.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗ apply.kvPost E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log
-        (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs resp err o)) Pre Post }}
+        (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs resp err o)) Pre Post
+        (apply.revokeNoEff rq T rs) }}
 
 end spec
 

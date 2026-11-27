@@ -1,6 +1,6 @@
 /-
 `purgeRound.wp_proof` (unit `locks`, session 10; `notes/wal-units/locks.md`): one round of
-`fileutil.purgeFile`'s loop on the WAL directory, while the WAL's handle is lent (`walOpenWF_lend`).
+`fileutil.purgeFile`'s loop on the WAL directory, while the WAL's handle is lent (`walOpenWFI_lend`).
 
 * `fileutil.ReadDir(dir)` under the handle's half of the directory's claim `(j, .except X, hj)`: every name
   of the claim is listed; `X` is the pipeline's names (`walDirKey_tmps`), none ending in `"wal"`, so every
@@ -169,28 +169,30 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- **A name of the WAL directory's claim the round keeps is a file**: a `.wal` name's (`walInv_walFiles`),
 another's (the invariant's leftover, lent and given back: `walInv_lendOther`, `walInv_unlendOther`). -/
 theorem pr_fileOf (W : WalGS GF) (Mr : WalMarshal) (R0 : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) (bt : GoString) (nd : Node)
+    (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) (bt : GoString) (nd : Node)
     (hD : lendKey j bt ∉ o.D) (hcur : hj.cur !! bt = some nd) :
-    ⊢ WalFs.walInv (W := W) walCodec Mr R0 jr r -∗ notCrashed -∗ walDirKey (W := W) dir j X -∗
+    ⊢ WalFs.walInv (W := W) walCodec Mr R0 jr r -∗ notCrashed -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj -∗ walOutFrag (W := W) o ={⊤}=∗
       notCrashed ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walOutFrag (W := W) o ∗
+        walIncQ (W := W) I ∗
         ⌜∃ i, nd = .file i⌝ := by
-  iintro #Hinv Hnc #Hkey Hn Ho
+  iintro #Hinv Hnc #Hkey HIq Hn Ho
   by_cases hbw : walNameP bt = true
-  · imod walInv_walFiles walCodec Mr R0 jr r ⊤ CoPset.subseteq_top dir j X hj (1 : Qp).half
-      $$ Hinv Hnc Hkey Hn with ⟨Hnc, Hn, %hfiles⟩
+  · imod walInv_walFiles walCodec Mr R0 jr r ⊤ CoPset.subseteq_top dir I j X hj (1 : Qp).half
+      $$ Hinv Hnc Hkey HIq Hn with ⟨Hnc, Hn, HIq, %hfiles⟩
     imodintro
-    iframe Hnc Hn Ho
+    iframe Hnc Hn Ho HIq
     ipureintro; exact hfiles bt nd hbw hcur
   · have hbw' : walNameP bt = false := by simpa using hbw
-    imod walInv_lendOther walCodec Mr R0 jr r ⊤ CoPset.subseteq_top dir j X hj (DFrac.own (1 : Qp).half) o bt nd
-      hbw' hD hcur $$ Hinv Hnc Hkey Hn Ho with ⟨Hnc, Hn, Ho, Hte⟩
+    imod walInv_lendOther walCodec Mr R0 jr r ⊤ CoPset.subseteq_top dir I j X hj (DFrac.own (1 : Qp).half) o bt nd
+      hbw' hD hcur $$ Hinv Hnc Hkey HIq Hn Ho with ⟨Hnc, Hn, HIq, Ho, Hte⟩
     rcases nd with i | dn
     rotate_left
     · simp only [tmpEnt]; icases Hte with ⟨⟩
-    imod walInv_unlendOther walCodec Mr R0 jr r ⊤ CoPset.subseteq_top dir j X hj (DFrac.own (1 : Qp).half)
-      (o.addClaim (lendKey j bt)) bt (.file i) hbw' (List.mem_cons_self ..) hcur $$ Hinv Hnc Hkey Hn Ho Hte
-      with ⟨Hnc, Hn, Ho⟩
+    imod walInv_unlendOther walCodec Mr R0 jr r ⊤ CoPset.subseteq_top dir I j X hj (DFrac.own (1 : Qp).half)
+      (o.addClaim (lendKey j bt)) bt (.file i) hbw' (List.mem_cons_self ..) hcur $$ Hinv Hnc Hkey HIq Hn Ho Hte
+      with ⟨Hnc, Hn, HIq, Ho⟩
     have ho : (o.addClaim (lendKey j bt)).delClaim (lendKey j bt) = o := by
       obtain ⟨O, D, T⟩ := o
       simp only [WalOut.addClaim, WalOut.delClaim, WalOut.mk.injEq, true_and, and_true]
@@ -199,7 +201,7 @@ theorem pr_fileOf (W : WalGS GF) (Mr : WalMarshal) (R0 : Roots) (jr : Ino) (r : 
         simp only [ne_eq, decide_eq_true_eq]; rintro rfl; exact hD ha)
     rw [ho]
     imodintro
-    iframe Hnc Hn Ho
+    iframe Hnc Hn Ho HIq
     ipureintro; exact ⟨i, rfl⟩
 
 /-- **The round's `os.Remove` of a name of the claim** (the file `i` at `bt`, locked by the round, neither the
@@ -208,8 +210,8 @@ leftover's (`walPurgeOther_osAUnc`); the claim's names after it unchanged, or wi
 the call succeeds. -/
 theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W : WalGS GF)
     (Mr : WalMarshal) (R0 : Roots) (jr : Ino) (r : GoString) (dir : GoString) (j : Ino) (X : List GoString)
-    (hj' : NamesH) (γ : GName) (tg : TailG) (γt : GName) (b : Nat) (ino : Ino) (Pc : IProp GF)
-    (R : Roots) (q qc : Qp) (bt : GoString) (i : Ino) (nm0 : GoString) (ls : List (GoString × Ino))
+    (hj' : NamesH) (γ : GName) (tg : TailG) (γt : GName) (b : Nat) (ino : Ino) (Pc : IProp GF) (inc : Nat)
+    (I : GMap GoString Nat) (R : Roots) (q qc : Qp) (bt : GoString) (i : Ino) (nm0 : GoString) (ls : List (GoString × Ino))
     (hXw : ∀ b ∈ X, walNameP b = false) (hnd : hj'.cur !! bt = some (.file i)) (hbX : bt ∉ X)
     (hbok : NameOk bt)
     (hseg : walNameP bt = true →
@@ -218,7 +220,7 @@ theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W 
       ∃ sq ix : Nat, bt = walFileName sq ix ∧ sq < 2 ^ 64)
     (hlk : LkRel hj' tg.2.2.1 nm0 ls b) (h0 : bt ≠ nm0) (hnl : bt ∉ ls.map (·.1)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ WalFs.walInv (W := W) walCodec Mr R0 jr r ∗
-        walPurgeAcc (W := W) dir Pc ∗ walDirKey (W := W) dir j X ∗
+        walPurgeAcc (W := W) dir inc Pc ∗ walDirKey (W := W) dir (incOf I dir) j X ∗ walIncQ (W := W) I ∗
         osPathS R dir (DFrac.own q) j ∗ osCallPerm (callKey R dir) qc ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj' ∗
         walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat)) ∗
         walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walTailKey (W := W) dir γ ∗
@@ -228,9 +230,9 @@ theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W 
         ∃ hjN : NamesH, osNames j (.except X) (DFrac.own (1 : Qp).half) hjN ∗
         walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat)) ∗
         walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walTailKey (W := W) dir γ ∗
-        tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗ Pc ∗
+        tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗ walIncQ (W := W) I ∗ Pc ∗
         ⌜WalSubAt hj' hjN bt ∧ (rerr = interface.nil → hjN.cur = purgeNames X bt hj')⌝ }} := by
-  iintro %Φ ⟨#Hos, #Hsh, #Hinv, #Hacc, #Hkey, Hp, Hc, Hn, Htf, Ho, Htk, Hv, Hcf, HPc⟩ HΦ
+  iintro %Φ ⟨#Hos, #Hsh, #Hinv, #Hacc, #Hkey, HIq, Hp, Hc, Hn, Htf, Ho, Htk, Hv, Hcf, HPc⟩ HΦ
   ihave Hn2 := (osNames_frac j (.except X) qQuarter qQuarter hj').1 $$ [Hn]
   · rw [pr_quarter_half]; iexact Hn
   icases Hn2 with ⟨Hq1, Hq2⟩
@@ -238,8 +240,8 @@ theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W 
     simp
   by_cases hbw : walNameP bt = true
   · obtain ⟨hfirst, hlast, sq, ix, hbtn, hsq⟩ := hseg hbw
-    ihave Hau := walPurge_osAUnc Mr R0 jr r dir j X hj' γ tg γt b ⟨[ino], [(j, .except X)], [dir]⟩ Pc bt i sq ix
-      nm0 ls hoD hnd hbw hfirst hlast hbtn hsq hlk h0 hnl $$ Hinv Hacc [Htk Hv Hq1 Ho Hcf Htf HPc]
+    ihave Hau := walPurge_osAUnc Mr R0 jr r dir I j X hj' γ tg γt b ⟨[ino], [(j, .except X)], [dir]⟩ Pc inc bt i sq ix
+      nm0 ls hoD hnd hbw hfirst hlast hbtn hsq hlk h0 hnl $$ Hinv Hacc [Htk Hv Hq1 Ho Hcf Htf HPc HIq]
     · unfold walPurgeP; iframe; iexact Hkey
     iapply wp_Remove dir bt j i (.except X) R (DFrac.own q) hj' qQuarter ((1 : Qp).half + qQuarter) qc _
       hbok hbX hnd pr_quarter_three $$ [Hp Hc Hq2 Hau]
@@ -251,20 +253,20 @@ theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W 
     rcases oc with _ | ⟨x, s0⟩
     · unfold rmFileOutN
       simp only [walPurgeQ, walPurgeP, logOut, claimOut]
-      icases HQ with ⟨-, Htk, Hv, Hq1, Ho, Hcf, Htf, HPc⟩
+      icases HQ with ⟨-, HIq, Htk, Hv, Hq1, Ho, Hcf, Htf, HPc⟩
       icases Hout with ⟨-, Hq2⟩
       iexists hj'
-      iframe Htk Hv Ho Hcf Htf HPc
+      iframe Htk Hv Ho Hcf Htf HPc HIq
       isplitl [Hq1 Hq2]
       · rw [← pr_quarter_half]; iapply (osNames_frac j (.except X) qQuarter qQuarter hj').2; iframe
       ipureintro
       exact ⟨fun _ _ => Or.inl rfl, fun he => absurd (hoc he) (by simp)⟩
     · unfold rmFileOutN
       simp only [walPurgeQ, walPurgeP, logOut, claimOut, purgeClaim]
-      icases HQ with ⟨-, Htk, Hv, Hq1, Ho, Hcf, Htf, HPc⟩
+      icases HQ with ⟨-, HIq, Htk, Hv, Hq1, Ho, Hcf, Htf, HPc⟩
       icases Hout with ⟨-, Hq2⟩
       iexists hj'.log x (rmFileEnt j bt i s0) (purgeNames X bt hj')
-      iframe Htk Hv Ho Hcf Htf HPc
+      iframe Htk Hv Ho Hcf Htf HPc HIq
       isplitl [Hq1 Hq2]
       · rw [← pr_quarter_half]; iapply (osNames_frac j (.except X) qQuarter qQuarter _).2
         iframe Hq1
@@ -272,8 +274,8 @@ theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W 
       ipureintro
       exact ⟨pr_walSubAt hXw rfl, fun _ => rfl⟩
   · have hbw' : walNameP bt = false := by simpa using hbw
-    ihave Hau := walPurgeOther_osAUnc Mr R0 jr r dir j X hj' ⟨[ino], [(j, .except X)], [dir]⟩ bt i hoD hnd hbw'
-      hbX $$ Hinv [Hq1 Ho]
+    ihave Hau := walPurgeOther_osAUnc Mr R0 jr r dir I j X hj' ⟨[ino], [(j, .except X)], [dir]⟩ bt i hoD hnd hbw'
+      hbX $$ Hinv [Hq1 Ho HIq]
     · unfold walPurgeOP; iframe; iexact Hkey
     iapply wp_Remove dir bt j i (.except X) R (DFrac.own q) hj' qQuarter ((1 : Qp).half + qQuarter) qc _
       hbok hbX hnd pr_quarter_three $$ [Hp Hc Hq2 Hau]
@@ -285,20 +287,20 @@ theorem pr_remove (wp_Remove : os.Remove.specFileSncN (GF := GF) (hG := hG)) (W 
     rcases oc with _ | ⟨x, s0⟩
     · unfold rmFileOutN
       simp only [walPurgeOQ, walPurgeOP, logOut, claimOut]
-      icases HQ with ⟨-, Hq1, Ho⟩
+      icases HQ with ⟨-, HIq, Hq1, Ho⟩
       icases Hout with ⟨-, Hq2⟩
       iexists hj'
-      iframe Htk Hv Ho Hcf Htf HPc
+      iframe Htk Hv Ho Hcf Htf HPc HIq
       isplitl [Hq1 Hq2]
       · rw [← pr_quarter_half]; iapply (osNames_frac j (.except X) qQuarter qQuarter hj').2; iframe
       ipureintro
       exact ⟨fun _ _ => Or.inl rfl, fun he => absurd (hoc he) (by simp)⟩
     · unfold rmFileOutN
       simp only [walPurgeOQ, walPurgeOP, logOut, claimOut, purgeClaim]
-      icases HQ with ⟨-, Hq1, Ho⟩
+      icases HQ with ⟨-, HIq, Hq1, Ho⟩
       icases Hout with ⟨-, Hq2⟩
       iexists hj'.log x (rmFileEnt j bt i s0) (purgeNames X bt hj')
-      iframe Htk Hv Ho Hcf Htf HPc
+      iframe Htk Hv Ho Hcf Htf HPc HIq
       isplitl [Hq1 Hq2]
       · rw [← pr_quarter_half]; iapply (osNames_frac j (.except X) qQuarter qQuarter _).2
         iframe Hq1
@@ -314,16 +316,16 @@ theorem purgeRound.wp_proof
     (wp_HasSuffix : strings.HasSuffix.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
     purgeRound.spec (GF := GF) (hG := hG) := by
-  intro W P Mr R0 jr r lg w dir mx Pc hmx
+  intro W P Mr R0 jr r lg w dir inc mx Pc hmx
   wp_start as ⟨#Hos, #Hinv, Hh, #Hacc, HPc⟩
   ihave #Hfu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil $$ []
   · iPkgInit
   ihave #Hstr : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
-  icases walOpenWF_lend P Mr w dir $$ Hh with ⟨%j, %X, %hj, %R, %q, %nm0, %ino, %lfs, %γ, %tg, %tfd,
-    #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, Htk, Hv, Hcf, Htl, %hf, Hback⟩
+  icases walOpenWFI_lend P Mr w dir inc $$ Hh with ⟨%j, %X, %hj, %R, %q, %nm0, %ino, %lfs, %γ, %tg, %tfd, %I,
+    #Hkey, HIq, %hI, Hn, Hp, #Hsh, Hc, Ho, Hlk, Htk, Hv, Hcf, Htl, %hf, Hback⟩
   obtain ⟨hw0, hc0, hXw, hmax⟩ := hf
-  ihave %hXt := walDirKey_tmps dir j X $$ Hkey
+  ihave %hXt := walDirKey_tmps dir _ j X $$ Hkey
   wp_auto
   wp_apply wp_ReadDir dir slice.nil [] [] (DFrac.own 1) R j (DFrac.own q) (1 : Qp).half.half (.except X)
       (DFrac.own (1 : Qp).half) hj rfl $$ [Hp Hc Hn]
@@ -344,7 +346,7 @@ theorem purgeRound.wp_proof
       wp_auto
       iapply HΦ
       iframe HPc
-      iapply Hback $$ %hj %(walSub_refl hj nm0) Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl
+      iapply Hback $$ %hj %(walSub_refl hj nm0) Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl HIq
   obtain ⟨rfl, hnok, hnm, hcnt, hout⟩ := hrd
   obtain ⟨srt, hperm, hsorted, hrs⟩ := hout
   simp only [fileutil.optsExt, List.foldl_nil, ↓reduceIte] at hrs
@@ -450,11 +452,11 @@ theorem purgeRound.wp_proof
       "Hc" ∷ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
       "Ho" ∷ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
       "Htk" ∷ walTailKey (W := W) dir γ ∗ "Hv" ∷ tailVar (W := W) γ tg ∗ "Hcf" ∷ walCutFrag (W := W) none ∗
-      "Htl" ∷ walTailLk tfd ino ∗ "HPc" ∷ Pc ∗
+      "Htl" ∷ walTailLk tfd ino ∗ "HIq" ∷ walIncQ (W := W) I ∗ "HPc" ∷ Pc ∗
       "%Hi2" ∷ ⌜uint.nat k ≤ L.length ∧ WalSub hj hj' nm0 ∧
         (∀ b ∈ L.drop (uint.nat k), hj'.cur !! b = hj.cur !! b) ∧
         (∀ b, walNameP b = true → (hj'.cur !! b).isSome → b ∈ L.drop (uint.nat k))⌝)
-      $$ [n Ht Hn Hlk Hp Hc Ho Htk Hv Hcf Htl HPc]
+      $$ [n Ht Hn Hlk Hp Hc Ho Htk Hv Hcf Htl HIq HPc]
   · iexists W64 0, hj
     iframe
     ipureintro
@@ -467,7 +469,7 @@ theorem purgeRound.wp_proof
   · try wp_auto
     iapply HΦ
     iframe HPc
-    iapply Hback $$ %hj' %hsub Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl
+    iapply Hback $$ %hj' %hsub Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl HIq
   have hkn : uint.nat k < L.length := by
     have h1 : uint.Z (k + mx) < uint.Z tsl.len := Hif
     have h2 := HtL.2
@@ -489,8 +491,8 @@ theorem purgeRound.wp_proof
   rw [← hcur'] at hnd
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod pr_fileOf W Mr R0 jr r dir j X hj' ⟨[ino], [(j, .except X)], [dir]⟩ bt nd (by simp [lendKey]) hnd
-    $$ Hinv Hnc Hkey Hn Ho with ⟨Hnc, Hn, Ho, %hfi⟩
+  imod pr_fileOf W Mr R0 jr r dir I j X hj' ⟨[ino], [(j, .except X)], [dir]⟩ bt nd (by simp [lendKey]) hnd
+    $$ Hinv Hnc Hkey HIq Hn Ho with ⟨Hnc, Hn, Ho, HIq, %hfi⟩
   imodintro
   iframe Hnc
   obtain ⟨i, rfl⟩ := hfi
@@ -520,7 +522,7 @@ theorem purgeRound.wp_proof
       wp_for_post
       iapply HΦ
       iframe HPc
-      iapply Hback $$ %hj' %hsub Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl
+      iapply Hback $$ %hj' %hsub Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl HIq
   subst he
   obtain ⟨hfd0, hii⟩ := hc
   subst i'
@@ -552,9 +554,9 @@ theorem purgeRound.wp_proof
       · exact e
     · obtain ⟨sq, ix, hbtn, hsqlt⟩ := hlkr.2.2.2.2.1 bt (.file i) hnd hbw hne0 hnl
       exact ⟨sq, ix, hbtn, by have := hlkr.2.1; omega⟩
-  wp_apply (pr_remove wp_Remove W Mr R0 jr r dir j X hj' γ tg γt b ino Pc R q (1 : Qp).half.half bt i nm0 ls
-      hXw hnd hbX hbok hseg hlkr hne0 hnl) $$ [Hp Hc Hn Htf Ho Htk Hv Hcf HPc]
-    as %rerr ⟨Hp, Hc, %hjN, Hn, Htf, Ho, Htk, Hv, Hcf, HPc, %hrm⟩
+  wp_apply (pr_remove wp_Remove W Mr R0 jr r dir j X hj' γ tg γt b ino Pc inc I R q (1 : Qp).half.half bt i nm0 ls
+      hXw hnd hbX hbok hseg hlkr hne0 hnl) $$ [Hp Hc Hn Htf Ho Htk Hv Hcf HIq HPc]
+    as %rerr ⟨Hp, Hc, %hjN, Hn, Htf, Ho, Htk, Hv, Hcf, HIq, HPc, %hrm⟩
   · iframe; iframe #
   obtain ⟨hsa, hok⟩ := hrm
   ihave Hlk := Hlkb $$ %hjN %hsa Htf
@@ -571,7 +573,7 @@ theorem purgeRound.wp_proof
     wp_for_post
     iapply HΦ
     iframe HPc
-    iapply Hback $$ %hjN %hsubN Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl
+    iapply Hback $$ %hjN %hsubN Hn Hp Hsh Hc Ho Hlk Htk Hv Hcf Htl HIq
   | nil =>
     try wp_auto
     wp_apply (wp_lockedClose wp_Close lf f fd (child dir bt) (fileutil.lkFd lk0 i (W64 1))) $$ [Hf Hfd Hlocks]

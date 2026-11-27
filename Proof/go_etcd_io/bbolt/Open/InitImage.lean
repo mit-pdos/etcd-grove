@@ -7,7 +7,7 @@ an empty freelist page 2 and an empty leaf page 3 (`initImg`), and its committed
 module
 
 public import Proof.go_etcd_io.bbolt.Commit.MetaBuf
-public import Proof.go_etcd_io.bbolt.Inv.FileHolds
+public import Proof.go_etcd_io.bbolt.Inv.FileImg
 public import Proof.go_etcd_io.bbolt.Spill.STree
 
 @[expose] public section
@@ -48,6 +48,23 @@ theorem emptyPg_length (id : Nat) (fl : w16) : (emptyPg id fl).length = 4096 := 
 
 theorem initImg_length : initImg.length = 16384 := by
   simp only [initImg, List.length_append, metaBuf_length, emptyPg_length]
+
+theorem initImg_split :
+    initImg = (metaBuf (initMv 0) ++ metaBuf (initMv 1)) ++
+      (emptyPg 2 (W16 16) ++ emptyPg 3 (W16 2)) := by
+  simp only [initImg, List.append_assoc]
+
+theorem emptyPgs_length : (emptyPg 2 (W16 16) ++ emptyPg 3 (W16 2)).length = 8192 := by
+  simp only [List.length_append, emptyPg_length]
+
+theorem metaBufs_length : (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length = 8192 := by
+  simp only [List.length_append, metaBuf_length]
+
+/-- **The bytes an interrupted `init` can leave** (`DB.needsInit`'s test of a nonempty file): at
+most `initImg`'s four pages, every byte zero or `initImg`'s byte at its offset (`init` writes the
+image in two writes, each synced, and a crash keeps any subset of the bytes of the unsynced one). -/
+def initPartial (xs : List w8) : Prop :=
+  xs.length ≤ 16384 ∧ ∀ (i : Nat) (b : w8), xs[i]? = some b → b = W8 0 ∨ initImg[i]? = some b
 
 /-- The header of a page laid out as a header's encoding and bytes after it. -/
 private theorem pageHdr_encode (h : Page) (r : List w8) : pageHdr (encode h ++ r) = h := by

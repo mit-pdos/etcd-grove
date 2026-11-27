@@ -20,7 +20,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 prefix file and after its deferred close. The caller retains the tail
 registration and can change the outstanding file reservation inside the view. -/
 theorem walInvBody_probe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH)
+    (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj0 : NamesH)
     (T : GMap GoString GName) (Lk : GMap GoString Nat) (P Q : IProp GF)
     (useView : ∀ (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl)
       (d : WalDur) (lay : WalLay), Ls !! dir = some lay → WalAbsD C Mr d lay hj0.cur →
@@ -28,15 +28,16 @@ theorem walInvBody_probe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       (lay.segs.map (·.ino)).Nodup → TailsOnly T Ls F →
       ⊢ walParked (L := L) (W := W) Ls cl F -∗ laysResF (L := L) F Ls -∗ P ==∗
         walParked (L := L) (W := W) Ls cl F ∗ laysResF (L := L) F Ls ∗ Q) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
-      osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) T Lk -∗ P ==∗ walInvBody (L := L) (W := W) C Mr R jr r s ∗
-        osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗ walTailsFrag (W := W) T Lk ∗ Q := by
-  iintro Hb #Hk Hn Hf HP
+        osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗ walIncQ (W := W) I ∗
+        walTailsFrag (W := W) T Lk ∗ Q := by
+  iintro Hb #Hk HIq Hn Hf HP
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hk with %hK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hk HIq with %hK
   obtain ⟨lay, hj, hl, hlj, -, hXw, hOnce, -, hOther⟩ := Hdko.1 dir j X hK
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
     cases h : s.wal !! dir with
@@ -60,7 +61,7 @@ theorem walInvBody_probe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   have hnd : (lay.segs.map (·.ino)).Nodup := segsAll_nodup_segs HW.2.2.1 hl
   icases walTailsRes_only (W := W) C Mr s Ls F T $$ Htl Hf with ⟨%ht, Htl, Hf⟩
   imod useView Ls cl F d lay hl habs hsn HW.2.2.1 hnd ht $$ Hpk Hlays HP with ⟨Hpk, Hlays, HQ⟩
-  imodintro; iframe Hn Hf HQ
+  imodintro; iframe Hn HIq Hf HQ
   iexists Ls, cl, n, F
   iframe Hg Hcm HCR Htl Hpk Hnms Hcl Hlays
   isplitr
@@ -128,7 +129,7 @@ private theorem probe_idle {Ls : GMap GoString WalLay} {F : GMap Ino SegFl} {dir
 
 /-- Reserve the actual bytes for a single iteration of snapshotPrefix. -/
 theorem walInvBody_takeProbe (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
-    (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState) (dir : GoString)
+    (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat)
     (j : Ino) (X : List GoString) (hj : NamesH) (T : GMap GoString GName) (Lk : GMap GoString Nat)
     (gs : List SegG) (o : WalOut) (k i : Nat) (name : GoString) (index : w64)
     (ho : o.O = gs.map (·.ino)) (hi : i < k) (hk : k < (walNames hj.cur).length)
@@ -136,10 +137,12 @@ theorem walInvBody_takeProbe (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
     (hnm : ∀ g ∈ gs, hj.cur !! g.name = some (.file g.ino))
     (hhead : ∀ nm, (walNames hj.cur)[k]? = some nm → ∀ sq ix,
       nm = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat index) :
-    ⊢ walInvBody (L := L) (W := W) walCodec M R jr r s -∗ walDirKey (W := W) dir j X -∗
+    ⊢ walInvBody (L := L) (W := W) walCodec M R jr r s -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗ walTailsFrag (W := W) T Lk -∗
       walOutFrag (W := W) o ==∗ walInvBody (L := L) (W := W) walCodec M R jr r s ∗
-        osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walTailsFrag (W := W) T Lk ∗
+        osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walIncQ (W := W) I ∗
+        walTailsFrag (W := W) T Lk ∗
         ∃ g : SegG, ⌜g.name = name ∧ hj.cur !! name = some (.file g.ino) ∧ g.om.size = g.bs.length ∧
           NameOk g.name ∧ g.name.length ≤ 255 ∧ walNameP g.name = true ∧
           ProbeBelow walCodec U (uint.nat index) [segImg g] 0 0#32⌝ ∗
@@ -163,19 +166,20 @@ theorem walInvBody_takeProbe (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
 The directory agreement and the file's metadata recover the current layout's
 parked resource after the read-only probe. -/
 theorem walInvBody_putProbe (M : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
+    (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH)
     (γ : GName) (Lk : GMap GoString Nat) (gs : List SegG) (o : WalOut) (k i : Nat)
     (name : GoString) (prev : SegG) (ho : o.O = gs.map (·.ino)) (hi : i < k)
     (hk : k < (walNames hj.cur).length) (hn : (walNames hj.cur)[i]? = some name)
     (hdrop : (walNames hj.cur).drop k = gs.map (·.name))
     (hnm : ∀ g ∈ gs, hj.cur !! g.name = some (.file g.ino))
     (hino : hj.cur !! name = some (.file prev.ino)) (hsize : prev.om.size = prev.bs.length) :
-    ⊢ walInvBody (L := L) (W := W) walCodec M R jr r s -∗ walDirKey (W := W) dir j X -∗
+    ⊢ walInvBody (L := L) (W := W) walCodec M R jr r s -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       walTailsFrag (W := W) (<[dir := γ]> ∅) Lk -∗
       (walOutFrag (W := W) (o.addSeg prev.ino) ∗ segRes (L := L) prev) ==∗
         walInvBody (L := L) (W := W) walCodec M R jr r s ∗
-        osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+        osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walIncQ (W := W) I ∗
         walTailsFrag (W := W) (<[dir := γ]> ∅) Lk ∗ walOutFrag (W := W) o := by
   apply walInvBody_probe
   intro Ls cl F d lay hl hab hsn hnd hnd' hT

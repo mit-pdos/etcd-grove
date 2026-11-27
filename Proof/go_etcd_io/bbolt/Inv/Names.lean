@@ -27,6 +27,20 @@ namespace bbolt
 
 open Iris
 
+/-- The ghost names of the crash invariant's client resource (W3 of `plans/bbolt-crash-plan.md`;
+`Inv/BFile.lean`'s `bR`): the version (`cv`, a `ghostVar` of `Data × Nat`: half in `bR`, half in the
+committed data's `crashPart`), the history (`hs`, a `ghostMap Nat Data`, its elements persistent:
+`histE`) and the synced mark (`sy`, a mono `Nat`: `syncedE`). -/
+structure CsG where
+  cv : GName
+  hs : GName
+  sy : GName
+  deriving Inhabited, DecidableEq
+
+instance CsG.countable : Pos.Countable CsG :=
+  countableOfLeftInverse (fun g : CsG => (g.cv, g.hs, g.sy)) (fun p => ⟨p.1, p.2.1, p.2.2⟩)
+    (fun _ => rfl)
+
 /-- **The decoded ghost names of a database** (design §3.1; the shares are the design's):
 - `st`: `ghostVar Data`, the committed data (½ client, ¼ `metaR`, ¼ `rwR`/the writer);
 - `bq`: `ghostVar Unit` at `q`, `boltState`'s validity (client only);
@@ -61,7 +75,10 @@ open Iris
   writer side's junk clause while no mapping leaked; `true`, discarded, once a mapping leaked or
   `DB.Close` closed the database without giving the file back (`closedR`);
 - `clo`: `ghostVar Unit`, the closer token (session S3f, `boltCloser`): whole with the client from
-  `Open` until a `Close`, which deposits it in `closedR`; so the holder knows the database open. -/
+  `Open` until a `Close`, which deposits it in `closedR`; so the holder knows the database open;
+- `cn`: `dghostVar (Option CsG)`, discarded: the crash invariant's client names (`cnReg`, W3 of
+  `plans/bbolt-crash-plan.md`): `none` outside crash mode; what the committed data's crash part
+  (`crashPart`) is relative to. -/
 structure BNs where
   st : GName
   bq : GName
@@ -86,6 +103,7 @@ structure BNs where
   spr : GName
   nf : GName
   clo : GName
+  cn : GName
   deriving Inhabited
 
 /-- The names of a `BoltName`'s list `gs` (`γ.gs`), by position. -/
@@ -95,12 +113,12 @@ def bnsOf (gs : List GName) : BNs :=
    gs.getD 8 default, gs.getD 9 default, gs.getD 10 default, gs.getD 11 default,
    gs.getD 12 default, gs.getD 13 default, gs.getD 14 default, gs.getD 15 default,
    gs.getD 16 default, gs.getD 17 default, gs.getD 18 default, gs.getD 19 default,
-   gs.getD 20 default, gs.getD 21 default, gs.getD 22 default⟩
+   gs.getD 20 default, gs.getD 21 default, gs.getD 22 default, gs.getD 23 default⟩
 
 /-- The list of names `Open` returns (`⟨mkGs B, N⟩` is the database's `BoltName`). -/
 def mkGs (B : BNs) : List GName :=
   [B.st, B.bq, B.cur, B.fl, B.rds, B.fltx, B.mtok, B.map, B.out, B.mlk, B.wv, B.txs, B.dbl,
-    B.cls, B.t0, B.pool, B.mln, B.byt, B.fpb, B.opn, B.spr, B.nf, B.clo]
+    B.cls, B.t0, B.pool, B.mln, B.byt, B.fpb, B.opn, B.spr, B.nf, B.clo, B.cn]
 
 theorem bnsOf_mkGs (B : BNs) : bnsOf (mkGs B) = B := rfl
 

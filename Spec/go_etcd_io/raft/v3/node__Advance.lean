@@ -43,7 +43,16 @@ dummy and the batch after it (`snapReceipt`); the post: raft's applied index has
 committed log delivered (`nodeAppliedLb`, the snapshot's index after a snapshot `Ready`). (Until U8
 v2 the old contract's receipts and `storFloor`/`storTermsAt`; until then also the static cluster's
 `node.Advance.spec` and the dynamic one's `node.Advance.dynamicSpec`, dropped in U8 v2 ahead of U9.)
-(2026-11-01, durability stage I-4: `nodeAppliedLb` of the storage's key, `st.key`.) -/
+(2026-11-01, durability stage I-4: `nodeAppliedLb` of the storage's key, `st.key`.)
+
+(2026-11-24, option D of `notes/raft-restart-confpoint.md`; ledger entry of that date) After a `Ready`
+without a snapshot, the view's membership is the cluster's at the committed log delivered (`confAt` at
+`max v.applied st.delivered.length`: the conf entries passed need not be skipped, only leave the
+membership; etcd skips the replayed ones after a restart, which were decided to apply), and the view
+moves there (a view left below it would let a later `ApplyConfChange` take raft's configuration below
+its applied index, `issues/raft-advance-before-applyconfchange.md`). Until then `skippedIn γ
+st.delivered v.applied st.delivered.length` and the view unchanged; `confAt_skipped` derives the new
+premise from the old. -/
 abbrev node.Advance.spec : Prop :=
   ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan) (v : ConfigView),
@@ -53,15 +62,15 @@ abbrev node.Advance.spec : Prop :=
       nodeDriver n γ N st ∗ advReceipt st.storage st.delivered.length es L ∗ nodeConfig n γ N v ∗
       -- (raft-final, 2026-10-29, the design's A1, review 1's H1) the conf entries skipped only after a
       -- `Ready` without a snapshot (after one, the configuration is the snapshot's, `confAt`); until
-      -- then after both
+      -- then after both; (2026-11-24, option D) the membership at the committed log delivered
       (match L with
-       | none => skippedIn γ st.delivered v.applied st.delivered.length
+       | none => confAt γ (max v.applied st.delivered.length) v.membership
        | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
     (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
       nodeAppliedLb γ st.key st.delivered.length ∗
       match L with
-      | none => nodeConfig n γ N v
+      | none => nodeConfig n γ N ⟨max v.applied st.delivered.length, v.membership⟩
       | some l => ∃ m : Membership,
           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
           confAt γ (uint.nat l.snap.Metadata'.Index') m ∗

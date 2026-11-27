@@ -29,7 +29,7 @@ theorem pbutil.MustMarshalMessage.wp_proof
   wp_start as #Hro
   ihave %Hok := pbEncC_ok T l c $$ Hro
   wp_auto
-  wp_apply wp_Marshal T hreg l c hm hs $$ [$Hro] as %d ⟨Hd, Hcap⟩
+  wp_apply wp_Marshal T hreg l c hm hs $$ [$Hro] as %d ⟨Hd, Hcap, -⟩
   (try wp_auto)
   iapply HΦ
   iframe

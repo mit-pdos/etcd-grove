@@ -68,14 +68,15 @@ what is out (`o`: the directory's claim among it, `walCut_osAUnc`'s `hoD`), the 
 the old tail, the new segment `g` whole, and the facts that the history is synced and the WAL named. -/
 def walCutP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : GoString)
     (ht : NamesH) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
-    (wr0 : Nat) (i0 : Ino) (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) : IProp GF :=
-  iprop(walDirKey (W := W) dir j X ∗ walTailKey (W := W) dir γ ∗
+    (wr0 : Nat) (i0 : Ino) (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) (w : Loc) (i : Nat) :
+    IProp GF :=
+  iprop(walDirKey (W := W) dir i j X ∗ walTailKey (W := W) dir γ ∗
     tailVar (W := W) γ ((H, md, cuts, wr0, i0, none) : TailG) ∗
     osNames j (.except X) (DFrac.own qQuarter) hj ∗ osNames j (.only [tmp]) (DFrac.own qTmpI) ht ∗
     walParkFrag (W := W) false ∗ walOutFrag (W := W) o ∗ walCutFrag (W := W) none ∗
     osMeta i0 (DFrac.own (1 : Qp).half) m0 ∗ osBytes i0 0 (DFrac.own (1 : Qp).half) bs0 ∗
     osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs ∗
-    walSyncedLb (W := W) dir H.length ∗ walNamed (W := W) dir)
+    walOpenWCI (W := W) w dir i ∗ walSyncedLb (W := W) dir i H.length ∗ walNamed (W := W) dir i)
 
 /-- **What `cut` gets from the rename's update**: with no effect, what it held; after the commit
 (logged at `x` by a call begun at `s0`), the claims' new histories (a quarter of the pipeline's,
@@ -84,17 +85,18 @@ a quarter of the WAL's), the keys, the tail record at the new segment (the cut a
 new segment out), the new segment's other halves. -/
 def walCutQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : GoString)
     (ht : NamesH) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
-    (wr0 : Nat) (i0 : Ino) (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) (bt : GoString)
-    (wr : Nat) : Option (Nat × Nat) → IProp GF
-  | none => walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o
+    (wr0 : Nat) (i0 : Ino) (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) (w : Loc) (i : Nat)
+    (bt : GoString) (wr : Nat) : Option (Nat × Nat) → IProp GF
+  | none => walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o w i
   | some (x, s0) => iprop(
       osNames j (.only [tmp]) (DFrac.own qTmpI)
         (ht.log x (renFileEnt j tmp j bt g.ino hj s0) (GMap.delete tmp ht.cur)) ∗
       osNames j (.except X) (DFrac.own qQuarter) (cutClaim j X hj tmp bt g.ino x s0).2.2 ∗
-      walDirKey (W := W) dir j X ∗ walTailKey (W := W) dir γ ∗
+      walDirKey (W := W) dir i j X ∗ walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts ++ [H.length], wr, g.ino, none) : TailG) ∗
       walParkFrag (W := W) false ∗ walOutFrag (W := W) ((o.delSeg i0).addSeg g.ino) ∗
-      walCutFrag (W := W) (some dir) ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
+      walCutFrag (W := W) (some dir) ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
+      walOpenWCI (W := W) w dir i)
 
 /-- A tail record's halves, both updated. -/
 private theorem tailVar_upd (γ : GName) (a1 a2 b : TailG) :
@@ -121,7 +123,8 @@ bytes its headers' frames (`wr` bytes) then zeros, durable, its `OsMeta` sized t
 theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : GoString) (ht : NamesH)
     (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr0 : Nat) (i0 : Ino)
-    (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) (bt nm0 : GoString) (wr sq ix : Nat)
+    (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) (w : Loc) (i : Nat) (bt nm0 : GoString)
+    (wr sq ix : Nat)
     (hoD : (j, NameSet.except X) ∈ o.D) (htmpX : tmp ∈ X) (hcuts : ∀ b ∈ cuts, b < H.length)
     (hcpos : walCutPos (H.map WalOpG.toM) H.length ∧ 0 < H.length)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file i0))
@@ -141,14 +144,14 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr) (hgname : g.name = bt) (hgbs : g.bs ≠ [])
     (htw : tmp ∈ walTmps) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
-      walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o -∗
+      walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o w i -∗
       osAUnc iprop(osNames j (.only [tmp]) (DFrac.own (1 : Qp).half) ht ∗
           osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
         (renFileOut j j g.ino (.only [tmp]) (.except X) tmp bt ht hj (DFrac.own (1 : Qp).half)
           (DFrac.own ((1 : Qp).half + qQuarter)))
-        (walCutQ (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o bt wr) := by
+        (walCutQ (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o w i bt wr) := by
   iintro #Hinv HP
-  iapply osAUnc_coiter _ _ _ (walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g o w i) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -156,11 +159,11 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
   icases Hb with ⟨%s, Hb⟩
   unfold walCutP
-  icases HP with ⟨#Hkey, Hk, Hv, Hq, Ht, Hpf, Ho, Hcf, Hm0, Hb0, Hmg, Hbg, #Hsy, #Hnd⟩
+  icases HP with ⟨#Hkey, Hk, Hv, Hq, Ht, Hpf, Ho, Hcf, Hm0, Hb0, Hmg, Hbg, Hwc, #Hsy, #Hnd⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupWC K w dir i j X $$ Hdk Hkey Hwc with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
@@ -219,7 +222,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
     imodintro
     dsimp only
-    iframe Hkey Hk Hv Hq Ht Hpf Ho Hcf Hm0 Hb0 Hmg Hbg Hsy Hnd
+    iframe Hkey Hk Hv Hq Ht Hpf Ho Hcf Hm0 Hb0 Hmg Hbg Hwc Hsy Hnd
   · iintro %o Hβ
     rcases o with _ | ⟨x, s0⟩
     · -- no effect: as the abort
@@ -259,7 +262,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
       imodintro
       dsimp only [walCutQ, walCutP]
-      iframe Hkey Hk Hv Hq Ht Hpf Ho Hcf Hm0 Hb0 Hmg Hbg Hsy Hnd
+      iframe Hkey Hk Hv Hq Ht Hpf Ho Hcf Hm0 Hb0 Hmg Hbg Hwc Hsy Hnd
     · imod Hcl'
       unfold renFileOut
       simp only [logOut, claimOut]
@@ -292,8 +295,8 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       obtain ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ := Hok
       obtain ⟨lay2, nm, hj2, hl2, hA, hjr2, hnm2, hc2, habs, hcr⟩ := hW1 dir d hd
       rw [hl1] at hl2; cases hl2
-      icases walGhost_synced s dir _ $$ Hg Hsy with ⟨%hsyn, Hg⟩
-      icases walGhost_named s dir $$ Hg Hnd with ⟨%hnmd, Hg⟩
+      icases walGhost_synced s w dir i _ $$ Hg Hwc Hsy with ⟨%hsyn, Hg, Hwc⟩
+      icases walGhost_named s w dir i $$ Hg Hwc Hnd with ⟨%hnmd, Hg, Hwc⟩
       have hm : d.m = d.H.length := Nat.le_antisymm habs.synced.1 (hsyn d hd)
       -- the old tail's halves agree with the program's
       obtain ⟨pre, hs⟩ := List.getLast?_eq_some_iff.1 hg0
@@ -354,7 +357,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         have := allRecs_cut Mr d.H d.metadata lay1.cuts (habs.cuts.2.1.imp Nat.le_of_lt)
           (fun b hb => Nat.le_of_lt (hcuts b hb))
         unfold allRecs at this
-        rw [show histM d = d.H.map WalOpG.toM from rfl, this]
+        rw [show histM d = histN d.H from rfl, this]
         intro r hr
         rcases List.mem_append.1 hr with h | h
         · exact habs.fit r h
@@ -362,7 +365,9 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       obtain ⟨hok', hco', hcro', han', hnm', hdko'⟩ := cutCommit_pure (x := x) (s0 := s0)
         ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ Hco Hcro Han.1 Han.2 Hnm Hdko HK hd hl1 hg0
         ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hex0
-        (fun z hz => by rw [hm0] at hz ⊢; exact hm0z z hz) hcuts hcpos hnm0 hbt hsq hbtw hcur hwr' hbs' hmeta hfit hz
+        (fun z hz => by rw [hm0] at hz ⊢; exact hm0z z hz) hcuts
+        ⟨(walCutPos_normH _ _).2 hcpos.1, hcpos.2⟩ hnm0
+        ⟨hbt.1, by rw [show histM d = histN d.H from rfl, histN, walLastIdx_normH]; exact hbt.2.1, hbt.2.2⟩ hsq hbtw hcur hwr' hbs' hmeta hfit hz
         hino hgname htmpX (Nat.le_trans (Nat.le_max_right _ _) hls) hsx
       -- the tail record moved, the flag, the parked halves
       imod tailVar_upd γ _ _ (tailG d (cutLay lay1 d.H.length g wr) g.ino none) $$ Hv Hvi with ⟨Hv, Hvi⟩
@@ -433,7 +438,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       imodintro
       dsimp only [walCutQ, cutClaim]
       rw [hgbs']
-      iframe Htn Hqn Hkey Hk Hpf Ho Hcf Hm2 Hb2
+      iframe Htn Hqn Hkey Hk Hpf Ho Hcf Hm2 Hb2 Hwc
       rw [tailG_cut]
       iexact Hv
 

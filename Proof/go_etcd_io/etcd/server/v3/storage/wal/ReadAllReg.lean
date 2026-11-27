@@ -33,15 +33,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 
 /-- **The opening handle lends its pending-cut flag** (see the file header). -/
-theorem walOpening_cutFrag (w : Loc) (dir : GoString) (s : w64 × w64) :
-    walOpening (W := W) w dir s ⊢
-      walCutFrag (W := W) none ∗ (walCutFrag (W := W) none -∗ walOpening (W := W) w dir s) := by
-  unfold walOpening walHandleP walLockedTok
-  iintro ⟨%γ, Hd, Hm, Hp, Ht, Hpk, Hc⟩
+theorem walOpening_cutFrag (w : Loc) (dir : GoString) (s : w64 × w64) {ic : Nat} :
+    walOpening (W := W) w dir s ic ⊢
+      walCutFrag (W := W) none ∗ (walCutFrag (W := W) none -∗ walOpening (W := W) w dir s ic) := by
+  unfold walOpening walHandlePI walLockedTokI
+  iintro ⟨%γ, %I, Hd, Hm, Hp, ⟨Ht, Hpk, Hc, HI⟩, %hi⟩
   iframe Hc
   iintro Hc
-  iexists γ
+  iexists γ, I
   iframe
+  ipureintro; exact hi
 
 end iris
 

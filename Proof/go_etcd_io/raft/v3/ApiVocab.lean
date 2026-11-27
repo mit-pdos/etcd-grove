@@ -374,11 +374,13 @@ driver knows. (D43 M3, 2026-10-25) The change `op` applied need not be the decod
 have its effect on `cfg` (`ccStepB`): the ghost step folds `op'`, the code applies `op`, both
 giving `cs'` (etcd hands raft a failed validation's change with `NodeId` `0`, a no-op, in place
 of the entry's `AddNode` of a member, also a no-op). (2026-10-28, the decision switch) The conf
-entries between the view and `k` rejected by the decoder (skipped; until then none, `NoConfIn`). -/
+entries between the view and `k` rejected by the decoder (skipped; until then none, `NoConfIn`);
+(2026-11-24, option D of `notes/raft-restart-confpoint.md`) the view's configuration kept from the view
+to `k` (`CfgKeep`: the entries passed need not be skipped, only leave the configuration as it was). -/
 def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp)
     (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
-  NoUndecConfIn dec D ca k ∧ (∃ op', dec (D.take k) e = some (.apply op') ∧ ccStepB op' cfg = some cs') ∧
+  CfgKeep dec D ca k cfg ∧ (∃ op', dec (D.take k) e = some (.apply op') ∧ ccStepB op' cfg = some cs') ∧
   ccStepB op cfg = some cs'
 
 /-- (2026-10-28, the decision switch) More decisions keep the premise. -/

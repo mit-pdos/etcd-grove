@@ -91,7 +91,7 @@ theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
     | some x => exact List.mem_map.2 ⟨(e.jr, x), (GMap.mem_toList _ _ _).2 he, rfl⟩
   imod walBoot0 hPre walCodec walCodec_ok walRaftMr L e.R e.jr (e.area) V hV hR hr _ hjrm hslots
     hrb walRaftMr_encState_lt E hE $$ Hos Hsh Hab Hall
-    with ⟨%W, #Hok, Hres, Hu, Hc, #Hp, Hown, -, Hrest⟩
+    with ⟨%W, #Hok, Hres, Hu, Hc, #Hp, Hown, HIq, -, Hrest⟩
   ihave #Hdd := dirDurable_boot0 (W := W) (e.area) $$ Hp
   -- the oracle directory's claim, and durable's boot
   have hmem : e.jo ∈ ((GMap.toList V.now).map (·.1)).erase e.jr := by
@@ -111,20 +111,20 @@ theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
   imod ghostVar_alloc (GF := GF) (none : Option WalDur) with ⟨%γw, Hw⟩
   icases (ghostVar_split_half (GF := GF) γw 1 (none : Option WalDur)).1 $$ Hw with ⟨Hw1, Hw2⟩
   let γ : TGS := ⟨γd, γo, γw⟩
-  imod inv_alloc tN E (TInvBody (GF := GF) (W := W) e γ) $$ [Hds Ho1 Hw1 Hown] with #Hinv
+  imod inv_alloc tN E (TInvBody (GF := GF) (W := W) e γ) $$ [Hds Ho1 Hw1 Hown HIq] with #Hinv
   · inext
     unfold TInvBody
     iexists ⟨none, none⟩, tFreshOracle, none, none
     iframe Hds Ho1 Hw1
     isplitr
     · ipureintro; exact tOracleFile_fresh
-    isplitl [Hown]
-    · unfold WalFs.walDirIs
-      iexists ∅
-      iframe Hown
+    isplitl [Hown HIq]
+    · unfold WalFs.walDirIsI
+      iexists ∅, ∅
+      iframe Hown HIq
       ipureintro
-      show walOptLe none ((∅ : GMap GoString WalDur) !! tWalDir e.area)
-      rw [GMap.lookup_empty]; trivial
+      show walOptLe none ((∅ : GMap GoString WalDur) !! tWalDir e.area) ∧ incOf ∅ (tWalDir e.area) = 0
+      rw [GMap.lookup_empty]; exact ⟨trivial, incOf_empty _⟩
     isplitr
     · unfold tRelI
       simp only [tFreshOracle, Bool.false_eq_true, ite_false]

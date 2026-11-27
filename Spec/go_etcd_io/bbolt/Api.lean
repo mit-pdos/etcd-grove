@@ -114,6 +114,25 @@ commit all of it). Survives `Close` (the data then stays `D`). -/
 @[no_expose] def boltState [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (q : Qp) (D : Data) : IProp GF :=
   boltStateDef (bnsOf γ.gs) q D
 
+/-- **The database `γ` syncs** (persistent): `γ`'s `DB` (`dblAt`) has `NoSync = false` and
+`NoGrowSync = false` (fields `Open` sets from its options and never writes again, `dbFixed`), so every
+`Tx.Commit` `fdatasync`s after its pages and after its meta, `DB.grow` `fsync`s after its `Truncate`, and a
+writable `Open` `fdatasync`s before it returns. What C-I1's `dbOpts` is (the crash laws need it). -/
+@[no_expose] def boltSyncs [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
+  iprop(∃ db : Loc, dblAt (bnsOf γ.gs) db ∗ db.[DB, go!"NoSync"] ↦□ false ∗
+    db.[DB, go!"NoGrowSync"] ↦□ false)
+
+/-- **The namespace of the crash invariant of `γ`'s file** (under `γ.ns`): what a crash law over the
+database's file opens (C-I1's `dbCrash`). -/
+def crashN (N : Namespace) : Namespace := N .@ "crash"
+
+/-- **The committed data of `γ` is `D` at version `ν`**, at fraction `q`: `boltState` with the
+version, the committed txid, which moves by exactly one at each commit (`Tx.Commit.spec`'s update
+gives the data back at `ν + 1`). -/
+@[no_expose] def boltStateV [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (q : Qp) (D : Data)
+    (ν : Nat) : IProp GF :=
+  boltStateVDef (bnsOf γ.gs) q D ν
+
 /-- **`tx` is a transaction of `γ`, live, with the view `T`**, at fraction `q`. A read
 transaction's whole (`q = 1`) holds the reader slot `Begin(false)` took for the caller's
 `threadTok` (given back by `Rollback`); its fractions may be shared between goroutines for
@@ -336,6 +355,22 @@ theorem boltState_agree (γ : BoltName) (q1 q2 : Qp) (D1 D2 : Data) :
 theorem boltState_valid (γ : BoltName) (q : Qp) (D : Data) :
     boltState (GF := GF) γ q D ⊢ ⌜q ≤ 1⌝ := by
   unfold boltState; exact boltStateDef_valid _ _ _
+/-- `boltState` is `boltStateV` at some version. -/
+theorem boltState_eq_V (γ : BoltName) (q : Qp) (D : Data) :
+    boltState (GF := GF) γ q D ⊣⊢ ∃ ν, boltStateV γ q D ν := by
+  unfold boltState boltStateV boltStateDef; exact .rfl
+@[instance] theorem boltSyncs_persistent (γ : BoltName) :
+    Persistent (boltSyncs (GF := GF) γ) := by
+  unfold boltSyncs dblAt; infer_instance
+@[instance] theorem boltStateV_timeless (γ : BoltName) (q : Qp) (D : Data) (ν : Nat) :
+    Timeless (boltStateV (GF := GF) γ q D ν) := by
+  unfold boltStateV; infer_instance
+@[instance] theorem boltStateV_fractional (γ : BoltName) (D : Data) (ν : Nat) :
+    Fractional (fun q => boltStateV (GF := GF) γ q D ν) := by
+  unfold boltStateV; exact boltStateVDef_fractional _ _ _
+theorem boltStateV_agree (γ : BoltName) (q1 q2 : Qp) (D1 D2 : Data) (ν1 ν2 : Nat) :
+    boltStateV (GF := GF) γ q1 D1 ν1 ∗ boltStateV γ q2 D2 ν2 ⊢ ⌜D1 = D2 ∧ ν1 = ν2⌝ := by
+  unfold boltStateV; exact boltStateVDef_agree _ _ _ _ _ _ _
 
 /-- **A later transaction is a transaction, given its database** (decided by the coordinator after
 the invariant design, D-A, in place of `boltTx_timeless`: `boltTx` holds the transaction's locks'
@@ -460,12 +495,21 @@ theorem boltState_read_au (γ : BoltName) (D : Data) :
         <{ boltState γ q D', COMM boltState γ 1 D ∗ ⌜D' = D⌝ }> := by
   unfold boltState; exact boltState_read_au' _ _ _
 
-/-- The same for a commit from `D` to `S`. -/
+/-- The same for a commit from `D` to `S` (the versioned update `Tx.Commit` takes). -/
 theorem boltState_commit_au (γ : BoltName) (D S : Data) :
     boltState (GF := GF) γ 1 D ⊢
-      AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ⌜D' = D⌝ ∗ boltState γ 1 S, COMM boltState γ 1 S }> := by
-  unfold boltState; exact boltState_commit_au' _ _ _ _
+      AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateV γ 1 D' ν }> @ ⊤ \ ↑γ.ns, ∅
+        <{ ⌜D' = D⌝ ∗ boltStateV γ 1 S (ν + 1), COMM boltState γ 1 S }> := by
+  unfold boltState boltStateV; exact boltState_commit_au' _ _ _ _
+
+/-- **A commit update over `boltState` is one over `boltStateV`** (what a caller holding the
+unversioned update gives `Tx.Commit`). -/
+theorem commitAU_of_unversioned (γ : BoltName) (Db Dn : Data) (Q : IProp GF) :
+    AU <{ ∃∃ (D' : Data), boltState (GF := GF) γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
+        <{ ⌜D' = Db⌝ ∗ boltState γ 1 Dn, COMM Q }> ⊢
+      AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateV γ 1 D' ν }> @ ⊤ \ ↑γ.ns, ∅
+        <{ ⌜D' = Db⌝ ∗ boltStateV γ 1 Dn (ν + 1), COMM Q }> := by
+  unfold boltState boltStateV; exact commitAU_versioned _ _ _ _ _
 
 /-- **bbolt's `Close` succeeds** (opaque, a named premise about the program's environment, moved
 from the backend's `InvBbolt.lean`): `db.Close()` does not fail for the environment's reasons
@@ -531,6 +575,15 @@ theorem fileHoldsM_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
   · ipureintro
     exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
   · ipureintro; rw [hsize]; exact hlen
+
+omit hG in
+/-- **The txid's receipt is the run's, not the generation's** (D6-T6, P7, 2026-11-25): a time receipt is
+global ghost state (`GooseGlobalGS`'s receipts), so `boltImageRcpt` at a generation `L` is it at any other
+`L'` (a crash keeps it: what a file kept whole across a crash needs, `backend.fileHoldsMDur_crash`). -/
+theorem boltImageRcpt_gen (G : GooseGlobalGS hlc GF) (L L' : GooseLocalGS GF) (bs : List w8) :
+    boltImageRcpt (hG := ⟨G, L⟩) bs ⊢ boltImageRcpt (hG := ⟨G, L'⟩) bs := by
+  unfold boltImageRcpt fileRcpt
+  exact .rfl
 
 end vocab
 

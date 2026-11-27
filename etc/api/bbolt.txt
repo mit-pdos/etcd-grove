@@ -17,6 +17,8 @@ vocab Spec.go_etcd_io.bbolt.Logger
 vocab Spec.go_etcd_io.bbolt.Options
 vocab Spec.go_etcd_io.bbolt.ApiS
 vocab Spec.go_etcd_io.bbolt.ApiIno
+vocab Spec.go_etcd_io.bbolt.CrashPremise
+vocab Spec.go_etcd_io.bbolt.ApiCrash
 
 ## The API: the vocabulary (pure data, the sealed predicates and their laws), the logger contract,
 ## the options and their trust-boundary axioms
@@ -24,6 +26,9 @@ importable Spec.go_etcd_io.bbolt.Data
 importable Spec.go_etcd_io.bbolt.Api
 importable Spec.go_etcd_io.bbolt.ApiS
 importable Spec.go_etcd_io.bbolt.ApiIno
+importable Spec.go_etcd_io.bbolt.CrashPremise
+# W3: the crash record (C-I1's dbCrashKeep/dbCrashHole), sealed, and its laws
+importable Spec.go_etcd_io.bbolt.ApiCrash
 importable Spec.go_etcd_io.bbolt.Logger
 importable Spec.go_etcd_io.bbolt.Options
 importable Proof.go_etcd_io.bbolt.Options

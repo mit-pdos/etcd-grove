@@ -33,7 +33,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 `fmtErrorOk` one, the file's size possibly changed. Batch 37: `sz + AllocSize` is an `int64`
 (`grow` truncates to it above `AllocSize`; session S3g: at most `maxMapSize`, the file's bound,
 `wdbSz`) and `sz` a whole number of pages (so is the grown file,
-`wdbOK`'s page clause); `Commit` passes `(pgid + 1) · 4096`. Batch 44.1: over the flagged writer side `wdbW' fr` (`Commit`
+`wdbOK`'s page clause); `Commit` passes `(pgid + 1) · 4096`. W1 (crash mode, stage B step 4): on
+success with `NoGrowSync` off the file is at least `sz` or the mapping, whichever is smaller (`grow`
+truncates to the mapping's length up to `AllocSize`, else past `sz`), so every page below the new
+high-water mark is inside the file and a commit's writes are in-file. Batch 44.1: over the flagged writer side `wdbW' fr` (`Commit`
 grows after the old freelist page's free; `wdbW_wdbW'`/`wdbW'_wdbW` convert at `fr = false`). -/
 abbrev DB.grow.spec : Prop :=
   ∀ (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (sz : w64),
@@ -41,7 +44,9 @@ abbrev DB.grow.spec : Prop :=
   {{ K.core (GF := GF) ∗ wdbW' fr K tx v w }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"grow")) (Val #sz))
   {{ (err : GoInterface), RET #err; ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ ∗
-      (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) }}
+      ((⌜err = interface.nil⌝ ∗
+        (K.db.[DB, go!"NoGrowSync"] ↦□ false -∗ ⌜min (sint.Z sz).toNat (mapLen w.ms) ≤ w'.m.size⌝)) ∨
+        ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) }}
 
 end spec
 

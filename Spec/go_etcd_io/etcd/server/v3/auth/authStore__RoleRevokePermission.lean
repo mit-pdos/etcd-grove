@@ -35,7 +35,7 @@ abbrev auth.authStore.RoleRevokePermission.spec : Prop :=
       authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleRevokePermissionR role key rangeEnd)⌝ ∗ capNextM M hs (roleRevokePermissionR role key rangeEnd) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleRevokePermission")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗
       adminOut M hs (roleRevokePermissionR role key rangeEnd) noExtra err }}
 

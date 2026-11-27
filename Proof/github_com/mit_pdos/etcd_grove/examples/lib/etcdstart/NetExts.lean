@@ -8,8 +8,8 @@ net extension: the extensions of an etcd program on a machine of a distributed d
 single-process etcd program that listens (`single-process-restore`). Each extension's semantics and ghost
 state is its own (the file extension's at `etcdFsSem`); the `HasExt` instances by computation; and the
 interpretations' conditions on the initial states, from the network's start and each machine's `FsInit`
-(`etcdNetExts_initP`: `etcdFsSem`, `Fs.fsSemWithS`, keeps `ExtSemantics`'s default `initLocal`, so `FsInit` is
-the statement's to give).
+(`etcdNetExts_initP`; since D4a, 2026-11-24, `etcdFsSem`'s `initLocal` is `FsInit`, `Fs.fsSemWithS`'s, so
+`etcdNetExts_initR` needs no premise beyond `Robust`'s own).
 
 For a single-process program that listens (`notes/single-process-restore.md`): `etcdNetFs_start` (`FsExts.lean`'s
 `etcdFs_start` over this bundle), `netAddrFrees_start` (the right to listen at each address of a list of distinct
@@ -85,6 +85,15 @@ theorem etcdNetExts_initP (g : GlobalState) (nodes : List (Expr × state))
     extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
       extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld :=
   fun hg _ => ⟨⟨trivial, trivial, hg.2.2.1, trivial⟩, fun m hm => ⟨trivial, Hfs m hm, trivial, trivial⟩⟩
+
+/-- **The interpretations' conditions on the machines' initial states, from `Robust`'s alone** (etcd-dist
+D4a, 2026-11-24): `etcdFsSem`'s `initLocal` is `FsInit` (`Fs.fsSemWithS`'s), so `extsInitLocal` gives each
+machine's files and a statement over `etcdNetExts` need not state `FsInit` (`etcdNetExts_initP` is this
+with the premise it no longer needs). -/
+theorem etcdNetExts_initR (g : GlobalState) (nodes : List (Expr × state)) :
+    extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
+      extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld :=
+  fun hg hl => ⟨⟨trivial, trivial, hg.2.2.1, trivial⟩, fun m hm => ⟨trivial, (hl m hm).2.1, trivial, trivial⟩⟩
 
 
 section start

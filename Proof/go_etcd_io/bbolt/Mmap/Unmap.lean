@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 public import Spec.golang_org.x.sys.unix.Munmap
+public import Proof.go_etcd_io.bbolt.Inv.BFileOps
 
 @[expose] public section
 
@@ -28,42 +29,43 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **`munmap(db)` of the mapping `base`/`len`**: the cells' client halves and the file's
-`OsMeta` given, the fields cleared; the error is `unix.Munmap`'s errno. -/
+/-- **`munmap(db)` of the mapping `base`/`len`**: the cells' client halves and the writer's share
+of the file's `OsMeta` (`bMeta`, either mode: `wp_bMunmap`) given, the fields cleared; the error is
+`unix.Munmap`'s errno. -/
 abbrev munmapM.spec : Prop :=
-  ∀ (db base : Loc) (len : w64) (data : Loc) (dsz : w64) (p : BFile) (m : OsMeta)
-    (vf : Nat → val),
-  0 < len.toInt → m.maps !! base = some len.toNat →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+  ∀ (db base : Loc) (len : w64) (data : Loc) (dsz : w64) (p : BFile) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (vf : Nat → val),
+  0 < len.toInt → m.maps !! base = some len.toNat → bNsOk p →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗ bCsInv p ∗
       db.[DB, go!"dataref"] ↦ (⟨base, len, len⟩ : GoSlice) ∗ db.[DB, go!"data"] ↦ data ∗
       db.[DB, go!"datasz"] ↦ dsz ∗
-      osMeta p.ino (DFrac.own 1) m ∗ cellsR (GF := GF) base 0 len.toNat vf }}
+      bMeta p C L m ∗ cellsR (GF := GF) base 0 len.toNat vf }}
     (App (Val #(functions munmap [])) (Val #db))
   {{ (e : w64), RET #(errnoErr e);
       db.[DB, go!"dataref"] ↦ slice.nil ∗ db.[DB, go!"data"] ↦ null ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-      ((⌜e = 0⌝ ∗ osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps }) ∨
-      (⌜e ≠ 0⌝ ∗
-        (osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps } ∨
-         (osMeta p.ino (DFrac.own 1) m ∗ cellsR base 0 len.toNat vf)))) }}
+      ((⌜e = 0⌝ ∗ bMeta p C L { m with maps := GMap.delete base m.maps }) ∨
+      (⌜e ≠ 0 ∧ ¬ FsNoErr⌝ ∗
+        (bMeta p C L { m with maps := GMap.delete base m.maps } ∨
+         (bMeta p C L m ∗ cellsR base 0 len.toNat vf)))) }}
 
-theorem munmapM.wp_proof (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)) :
+theorem munmapM.wp_proof (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG))
+    (hMunmapC : golang_org.x.sys.unix.Munmap.specCrashILR (GF := GF) (hG := hG)) :
     munmapM.spec (GF := GF) (hG := hG) := by
-  intro db base len data dsz p m vf hlen hmap
-  wp_start as ⟨#Hos, Hdr, Hd, Hsz, Hm, Hc⟩
+  intro db base len data dsz p C L m vf hlen hmap hns
+  wp_start as ⟨#Hos, #Hinv, Hdr, Hd, Hsz, Hm, Hc⟩
   wp_auto
   have hne : (⟨base, len, len⟩ : GoSlice) ≠ slice.nil := by
     intro h; have := congrArg GoSlice.len h; simp [slice.nil] at this; subst this; simp at hlen
   rw [decide_eq_false hne]
   wp_auto
-  wp_apply hMunmap base len p.ino m vf hlen hmap $$ [Hm Hc] as %e Hr
+  wp_apply wp_bMunmap hMunmap hMunmapC base len p C L m vf hlen hmap hns $$ [Hm Hc] as %e Hr
   · iframe; iframe #
   try wp_auto
-  icases Hr with (Hr | ⟨%he, Hr⟩)
+  icases Hr with (Hr | Hr)
   · iapply HΦ
     iframe
   · iapply HΦ
     iframe
-    iright; iframe Hr; ipureintro; exact he.1
 
 end unmap
 

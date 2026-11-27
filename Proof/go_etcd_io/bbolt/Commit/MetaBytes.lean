@@ -38,53 +38,19 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- Two halves of the same bytes of a file, as the whole (they agree). -/
-theorem osBytes_join_h (p : BFile) :
-    ∀ (xs ys : List ByteG) (off : Nat), xs.length = ys.length →
-    osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs ∗
-      osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) ys ⊢
-      osBytes (GF := GF) p.ino off (DFrac.own 1) xs
-  | [], _, off, _ => by
-    iintro -; iapply (osBytes_nil' (GF := GF) p off _).2; iempintro
-  | x :: xs, [], _, h => by simp at h
-  | x :: xs, y :: ys, off, h => by
-    iintro ⟨H1, H2⟩
-    icases (osBytes_cons' (GF := GF) p off _ x xs).1 $$ H1 with ⟨Hx, H1⟩
-    icases (osBytes_cons' (GF := GF) p off _ y ys).1 $$ H2 with ⟨Hy, H2⟩
-    iapply (osBytes_cons' (GF := GF) p off _ x xs).2
-    unfold osByte
-    icases gElem_valid_2 _ _ _ _ _ x y $$ Hx Hy with %Hxy
-    obtain ⟨-, rfl⟩ := Hxy
-    isplitl [Hx Hy]
-    · conv => rhs; rw [← Qp.half_add_half 1]
-      iapply (gElem_split _ _ _ _ _ _).2; iframe
-    · iapply osBytes_join_h p xs ys (off + 1) (by simpa using h); iframe
-
-omit sem in
-theorem osBytes_halves_h (p : BFile) (off : Nat) (xs : List ByteG) :
-    osBytes (GF := GF) p.ino off (DFrac.own 1) xs ⊢
-      osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs ∗
-        osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs :=
-  (osBytes_halves p.ino off xs).1
-
-/-- **The meta slots' page-cache bytes, whole, as slot `s` and the other slot** (from the two
-halves: `metalock`'s and the writer's). -/
+/-- **The meta slots' page-cache bytes, whole, as slot `s` and the other slot** (the writer
+side's, W1). -/
 theorem metaOsBytes_take (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096) :
-    metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
-      metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ⊢
-    ∃ xa xb : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xa ∗
-      osBytes p.ino (4096 * (1 - s)) (DFrac.own 1) xb ∗
+    metaOsBytes (GF := GF) p (DFrac.own 1) C ⊢
+    ∃ xa xb : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xa ∗
+      bBytes p (4096 * (1 - s)) (DFrac.own 1) xb ∗
       ⌜xa.map Prod.fst = C.slot s ∧ xb.map Prod.fst = C.slot (s + 1)⌝ := by
   unfold metaOsBytes
-  iintro ⟨⟨%xs, H1, %hx⟩, ⟨%ys, H2, %hy⟩⟩
+  iintro ⟨%xs, H, %hx⟩
   have hxl : xs.length = 8192 := by
     have := congrArg List.length hx; simp only [List.length_map, List.length_append] at this; omega
-  have hyl : ys.length = 8192 := by
-    have := congrArg List.length hy; simp only [List.length_map, List.length_append] at this; omega
-  ihave H := osBytes_join_h p xs ys 0 (by omega) $$ [H1 H2]
-  · iframe
-  icases (osBytes_take_drop p.ino 0 _ xs 4096 (by omega)).1 $$ H with ⟨Ha, Hb⟩
+  icases (bBytes_take_drop p 0 _ xs 4096 (by omega)).1 $$ H with ⟨Ha, Hb⟩
   have e0 : (xs.take 4096).map Prod.fst = C.m0 := by
     rw [List.map_take, hx, List.take_left' h0]
   have e1 : (xs.drop 4096).map Prod.fst = C.m1 := by
@@ -97,14 +63,13 @@ theorem metaOsBytes_take (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     iframe
     ipureintro; simp [CommitSt.slot, e0, e1]
 
-/-- **The meta slots' bytes back as the two halves**, holding `C`. -/
+/-- **The meta slots' bytes back**, holding `C`. -/
 theorem metaOsBytes_put (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096) (xa xb : List ByteG)
     (ha : xa.map Prod.fst = C.slot s) (hb : xb.map Prod.fst = C.slot (s + 1)) :
-    osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xa ∗
-      osBytes (GF := GF) p.ino (4096 * (1 - s)) (DFrac.own 1) xb ⊢
-    metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
-      metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C := by
+    bBytes (GF := GF) p (4096 * s) (DFrac.own 1) xa ∗
+      bBytes (GF := GF) p (4096 * (1 - s)) (DFrac.own 1) xb ⊢
+    metaOsBytes (GF := GF) p (DFrac.own 1) C := by
   have hla := congrArg List.length ha
   have hlb := congrArg List.length hb
   simp only [List.length_map] at hla hlb
@@ -114,28 +79,22 @@ theorem metaOsBytes_put (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
       show (1 : Nat) ≠ 0 from by decide] at ha hb hla hlb
     rw [show 4096 * 0 = 0 from rfl, show 4096 * (1 - 0) = 4096 from rfl]
     iintro ⟨Ha, Hb⟩
-    ihave H : osBytes p.ino 0 (DFrac.own 1) (xa ++ xb) $$ [Ha Hb]
-    · iapply (osBytes_take_drop p.ino 0 _ (xa ++ xb) 4096 (by simp; omega)).2
+    ihave H : bBytes p 0 (DFrac.own 1) (xa ++ xb) $$ [Ha Hb]
+    · iapply (bBytes_take_drop p 0 _ (xa ++ xb) 4096 (by simp; omega)).2
       rw [List.take_left' (by omega), List.drop_left' (by omega)]
       iframe
-    icases osBytes_halves_h p 0 _ $$ H with ⟨H1, H2⟩
     have e : (xa ++ xb).map Prod.fst = C.m0 ++ C.m1 := by rw [List.map_append, ha, hb]
-    isplitl [H1]
-    · iexists _; iframe; ipureintro; exact e
-    · iexists _; iframe; ipureintro; exact e
+    iexists _; iframe; ipureintro; exact e
   · simp only [CommitSt.slot, show 1 % 2 = 1 from rfl, show (1 + 1) % 2 = 0 from rfl, ↓reduceIte,
       show (1 : Nat) ≠ 0 from by decide] at ha hb hla hlb
     rw [show 4096 * 1 = 4096 from rfl, show 4096 * (1 - 1) = 0 from rfl]
     iintro ⟨Ha, Hb⟩
-    ihave H : osBytes p.ino 0 (DFrac.own 1) (xb ++ xa) $$ [Ha Hb]
-    · iapply (osBytes_take_drop p.ino 0 _ (xb ++ xa) 4096 (by simp; omega)).2
+    ihave H : bBytes p 0 (DFrac.own 1) (xb ++ xa) $$ [Ha Hb]
+    · iapply (bBytes_take_drop p 0 _ (xb ++ xa) 4096 (by simp; omega)).2
       rw [List.take_left' (by omega), List.drop_left' (by omega)]
       iframe
-    icases osBytes_halves_h p 0 _ $$ H with ⟨H1, H2⟩
     have e : (xb ++ xa).map Prod.fst = C.m0 ++ C.m1 := by rw [List.map_append, ha, hb]
-    isplitl [H1]
-    · iexists _; iframe; ipureintro; exact e
-    · iexists _; iframe; ipureintro; exact e
+    iexists _; iframe; ipureintro; exact e
 
 omit hos sem in
 /-- **The meta cells' two quarters as slot `s`'s and the other slot's bytes at a half.** -/

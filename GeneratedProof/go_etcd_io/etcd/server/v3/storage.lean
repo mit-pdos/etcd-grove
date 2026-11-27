@@ -7,6 +7,7 @@ public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.github_com.dustin.go_humanize
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
@@ -18,6 +19,7 @@ public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.os
+public import GeneratedProof.path.filepath
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage

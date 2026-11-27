@@ -23,8 +23,8 @@
 //	env_config.go                 the target configuration C         Impl.lean header, pageIn
 //	env_device_no_garbage.go      a device write leaves old or new   CrashFile (candidates only)
 //	env_no_failed_writeback.go    no failed writeback (F1)           Fsync (failure: no change), ReadSees
-//	env_durable_at_first_start.go durable at first start (F2)        FsInit (fs_semantics.initLocal)
-//	env_fresh_process.go          a first start has nothing open      FsInit (proc = ProcState.empty), fs_semantics.initLocal
+//	env_durable_at_first_start.go durable at first start (F2)        FsInit (fs_semantics.initLocal, fsSemWithS.initLocal)
+//	env_fresh_process.go          a first start has nothing open      FsInit (proc = ProcState.empty), fs_semantics.initLocal, fsSemWithS.initLocal
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
 //	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
 //	env_roots_only.go             only the roots' trees              TreeName, TreePath, AtOrAboveRoot, CanonBelow, RootsOk
@@ -39,7 +39,9 @@
 //	data_mixed_writeback.go       a rewrite during writeback (B)     CrashFile (measured)
 //	data_failed_fsync.go          a failed fsync changes nothing     Fsync
 //	data_sizes_since_sync.go      any size in [sizeLo, sizeHi]       OsFile.sizeLo/sizeHi, CrashFile
-//	data_resize_chunks.go         partial resize (F5)                CrashFile (targets), FallocFinish
+//	data_resize_chunks.go         partial fallocate (F5)             CrashFile (targets), FallocFinish
+//	data_truncate_size_exact.go   an ftruncate's size is exact       OsFile.szCrash, OsChangeKind.isTrunc, CrashFile
+//	                              (pending review)
 //	data_durable_zeros.go         pages past a durable size: zeros   diskByte, OsFile.ofDisk, OsFile.synced
 //	data_append_old_block.go      the end's block is not ordered     diskByte (the end's page), CrashFile
 //	data_writeback_tail_zeros.go  writeback zeroes the end's tail    CrashFile (zero at or past sizeLo)
@@ -114,6 +116,9 @@
 //
 //	premise_sector_whole.go       WAL sectors come back whole        SectorWhole, valAt (a known limitation)
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
+//	premise_w1.go                 no torn WAL frame passes the reader W1 (wal/W1.lean), etcdCQ (FsExts.lean)
+//	                              (etcd's crash theorems; pending    AsOfOne, AsOfW, W1Sat
+//	                              review, D6 Q2, 2026-11-24)
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
 //	                              + OFD lock requests, dir reads     IoCovers "OfdLock"/"DirReadNext",

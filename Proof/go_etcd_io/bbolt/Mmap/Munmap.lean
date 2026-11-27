@@ -36,28 +36,29 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 cell's client half): the fields cleared (`mapFields … none`, `datasz` 0); the mapping gone from
 OsFs, or, on an error (`fmtErrorOk`), possibly still there with its cells. -/
 abbrev DB.munmap.spec : Prop :=
-  ∀ (db base : Loc) (l : Nat) (lg : GoInterface) (p : BFile) (m : OsMeta) (vf : Nat → val),
-  db ≠ null → 0 < l → m.maps !! base = some l →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+  ∀ (db base : Loc) (l : Nat) (lg : GoInterface) (p : BFile) (C : CommitSt) (L : List (Nat × Nat))
+    (m : OsMeta) (vf : Nat → val),
+  db ≠ null → 0 < l → m.maps !! base = some l → bNsOk p →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗ bCsInv p ∗
       db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
       mapFields db (DFrac.own 1) (some (base, l)) ∗ db.[DB, go!"datasz"] ↦ W64 (l : Int) ∗
-      osMeta p.ino (DFrac.own 1) m ∗ cellsR (GF := GF) base 0 l vf }}
+      bMeta p C L m ∗ cellsR (GF := GF) base 0 l vf }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
   {{ (err : GoInterface), RET #err;
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
       ((⌜err = interface.nil⌝ ∗
-          osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps }) ∨
+          bMeta p C L { m with maps := GMap.delete base m.maps }) ∨
        (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
-        (osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps } ∨
-         (osMeta p.ino (DFrac.own 1) m ∗ cellsR base 0 l vf)))) }}
+        (bMeta p C L { m with maps := GMap.delete base m.maps } ∨
+         (bMeta p C L m ∗ cellsR base 0 l vf)))) }}
 
 theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     DB.munmap.spec (GF := GF) (hG := hG) := by
-  intro db base l lg p m vf hdb hl hmap
-  wp_start as ⟨#Hos, #Hlg, #Hlgok, Hmf, Hsz, Hm, Hc⟩
+  intro db base l lg p C L m vf hdb hl hmap hns
+  wp_start as ⟨#Hos, #Hinv, #Hlg, #Hlgok, Hmf, Hsz, Hm, Hc⟩
   ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
   · iPkgInit
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
@@ -73,8 +74,8 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto
-  wp_apply hM db base (W64 (l : Int)) base (W64 (l : Int)) p m vf hlen' (by rw [hlen]; exact hmap)
-    $$ [Hdr Hd Hsz Hm Hc] as %e ⟨Hdr, Hd, Hsz, Hr⟩
+  wp_apply hM db base (W64 (l : Int)) base (W64 (l : Int)) p C L m vf hlen' (by rw [hlen]; exact hmap)
+    hns $$ [Hdr Hd Hsz Hm Hc] as %e ⟨Hdr, Hd, Hsz, Hr⟩
   · rw [hlen]; iframe; iframe #
   rw [hlen]
   try wp_auto
@@ -92,7 +93,7 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
       ileft
       iframe
       ipureintro; rfl
-    · exact absurd rfl hne
+    · exact absurd rfl hne.1
   · have hS := hErr e he
     obtain ⟨ii, hii⟩ : ∃ ii, errnoErr e = GoInterface.ok ii :=
       ⟨⟨syscall.Errno.ty, #e⟩, by simp only [errnoErr, he, ↓reduceIte, interface.mkOk]⟩

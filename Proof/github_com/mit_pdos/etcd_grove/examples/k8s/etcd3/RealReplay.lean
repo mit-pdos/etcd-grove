@@ -56,7 +56,7 @@ def rmWf (m : RM) : Prop :=
 /-- **The stores of a history keep their items in strictly increasing key order** (the store's
 `setItem`; read off `KRelH`). -/
 def HistSorted (hs : List GSt) : Prop :=
-  ∀ r ≤ hs.length, ((histN hs r).items.map (·.key')).Pairwise go.GoStringLt
+  ∀ r ≤ hs.length, ((k8s_etcd3.histN hs r).items.map (·.key')).Pairwise go.GoStringLt
 
 theorem changeAtL_rv : ∀ (p q : List item) (r : Nat) (ch : Chg), changeAtL p q r = some ch → ch.rv = r
   | [], [], _, _, h => by simp [changeAtL] at h
@@ -77,10 +77,10 @@ of the store at revision `r` has a revision in `[1, r]` and no annotation, and t
 `r` (`changeAtL`) carries objects with no annotation, its new object at revision `r`. Kept by every step
 (`kstepL_runOk`). -/
 def HistGood (hs : List GSt) : Prop :=
-  (∀ r it, r ≤ hs.length → it ∈ (histN hs r).items →
+  (∀ r it, r ≤ hs.length → it ∈ (k8s_etcd3.histN hs r).items →
     1 ≤ uint.nat it.obj'.ResourceVersion' ∧ uint.nat it.obj'.ResourceVersion' ≤ r ∧
       it.obj'.Annotated' = false) ∧
-  ∀ r ch, 2 ≤ r → r ≤ hs.length → changeAtL (histN hs (r - 1)).items (histN hs r).items r = some ch →
+  ∀ r ch, 2 ≤ r → r ≤ hs.length → changeAtL (k8s_etcd3.histN hs (r - 1)).items (k8s_etcd3.histN hs r).items r = some ch →
     (∀ o, ch.cur = some o → uint.nat o.ResourceVersion' = r ∧ o.Annotated' = false) ∧
       ∀ o, ch.prev = some o → o.Annotated' = false
 
@@ -89,7 +89,7 @@ revision `r` in `(s0, |hs|]`, the item that differs between the stores at `r - 1
 (`changeAtL`), at its store key. -/
 def chgListL (s0 : Nat) (hs : List GSt) : List RChange :=
   (List.range' (s0 + 1) (hs.length - s0)).filterMap fun r =>
-    (changeAtL (histN hs (r - 1)).items (histN hs r).items r).map fun ch =>
+    (changeAtL (k8s_etcd3.histN hs (r - 1)).items (k8s_etcd3.histN hs r).items r).map fun ch =>
       ⟨storeKeyL ch.key, W64 (r : Int), ch.cur, ch.prev⟩
 
 /-- **The replay `R` agrees with the driver's configuration `h` up to its revision**: the state at
@@ -121,8 +121,8 @@ theorem filterMap_congr' {α β : Type} {f g : α → Option β} :
       filterMap_congr' (fun b hb => h b (List.mem_cons_of_mem _ hb))]
 
 theorem histN_append_le (l t : List GSt) (r : Nat) (h : r ≤ l.length) :
-    histN (l ++ t) r = histN l r := by
-  unfold histN; rw [List.take_append_of_le_length h]
+    k8s_etcd3.histN (l ++ t) r = k8s_etcd3.histN l r := by
+  unfold k8s_etcd3.histN; rw [List.take_append_of_le_length h]
 
 theorem histAtL_append_le (l t : List GSt) (r : w64) (h : uint.nat r ≤ l.length) :
     histAtL (l ++ t) r = histAtL l r := by
@@ -133,8 +133,8 @@ theorem histAtL_last (hs : List GSt) (st : GSt) (r : w64) (hlen : hs.length = ui
   unfold histAtL; rw [List.take_of_length_le (by omega), hlast]; rfl
 
 theorem histN_last (hs : List GSt) (st : GSt) (hlast : hs.getLast? = some st) :
-    histN hs hs.length = st := by
-  unfold histN; rw [List.take_length, hlast]; rfl
+    k8s_etcd3.histN hs hs.length = st := by
+  unfold k8s_etcd3.histN; rw [List.take_length, hlast]; rfl
 
 theorem W64_nat (r : Nat) (h : r < 2 ^ 64) : uint.nat (W64 (r : Int)) = r := by
   simp only [W64, BitVec.toNat_ofInt]; omega
@@ -152,13 +152,13 @@ theorem chgListL_filter (s0 : Nat) (l t : List GSt) (hb : (l ++ t).length < 2 ^ 
       congr 1; omega
     rw [hr, List.filterMap_append]
     have h2 : (List.range' (l.length + 1) t.length).filterMap (fun r =>
-        ((changeAtL (histN (l ++ t) (r - 1)).items (histN (l ++ t) r).items r).map fun ch =>
+        ((changeAtL (k8s_etcd3.histN (l ++ t) (r - 1)).items (k8s_etcd3.histN (l ++ t) r).items r).map fun ch =>
           (⟨storeKeyL ch.key, W64 (r : Int), ch.cur, ch.prev⟩ : RChange)).filter
           (fun c => decide (uint.nat c.rv ≤ l.length))) = [] := by
       rw [List.filterMap_eq_nil_iff]
       intro r hr
       rw [List.mem_range'_1] at hr
-      cases changeAtL (histN (l ++ t) (r - 1)).items (histN (l ++ t) r).items r with
+      cases changeAtL (k8s_etcd3.histN (l ++ t) (r - 1)).items (k8s_etcd3.histN (l ++ t) r).items r with
       | none => rfl
       | some ch =>
         simp only [Option.map_some, Option.filter_some, decide_eq_true_eq]
@@ -168,7 +168,7 @@ theorem chgListL_filter (s0 : Nat) (l t : List GSt) (hb : (l ++ t).length < 2 ^ 
     intro r hr
     rw [List.mem_range'_1] at hr
     rw [histN_append_le l t r (by omega), histN_append_le l t (r - 1) (by omega)]
-    cases changeAtL (histN l (r - 1)).items (histN l r).items r with
+    cases changeAtL (k8s_etcd3.histN l (r - 1)).items (k8s_etcd3.histN l r).items r with
     | none => rfl
     | some ch =>
       simp only [Option.map_some, Option.filter_some, decide_eq_true_eq]
@@ -177,7 +177,7 @@ theorem chgListL_filter (s0 : Nat) (l t : List GSt) (hb : (l ++ t).length < 2 ^ 
     rw [h0, List.range'_zero, List.filterMap_nil, List.filterMap_eq_nil_iff]
     intro r hr
     rw [List.mem_range'_1] at hr
-    cases changeAtL (histN (l ++ t) (r - 1)).items (histN (l ++ t) r).items r with
+    cases changeAtL (k8s_etcd3.histN (l ++ t) (r - 1)).items (k8s_etcd3.histN (l ++ t) r).items r with
     | none => rfl
     | some ch =>
       simp only [Option.map_some, Option.filter_some, decide_eq_true_eq]
@@ -186,7 +186,7 @@ theorem chgListL_filter (s0 : Nat) (l t : List GSt) (hb : (l ++ t).length < 2 ^ 
 /-- The changes of a history one store longer: the last revision's change appended. -/
 theorem chgListL_snoc (s0 : Nat) (l : List GSt) (st : GSt) (hs : s0 ≤ l.length) :
     chgListL s0 (l ++ [st]) = chgListL s0 l ++
-      ((changeAtL (histN l l.length).items st.items (l.length + 1)).map fun ch =>
+      ((changeAtL (k8s_etcd3.histN l l.length).items st.items (l.length + 1)).map fun ch =>
         (⟨storeKeyL ch.key, W64 ((l.length + 1 : Nat) : Int), ch.cur, ch.prev⟩ : RChange)).toList := by
   unfold chgListL
   have hr : List.range' (s0 + 1) ((l ++ [st]).length - s0) =
@@ -200,12 +200,12 @@ theorem chgListL_snoc (s0 : Nat) (l : List GSt) (st : GSt) (hs : s0 ≤ l.length
     intro r hr
     rw [List.mem_range'_1] at hr
     rw [histN_append_le l [st] r (by omega), histN_append_le l [st] (r - 1) (by omega)]
-  · have h1 : histN (l ++ [st]) (l.length + 1) = st := by
+  · have h1 : k8s_etcd3.histN (l ++ [st]) (l.length + 1) = st := by
       have := histN_last (l ++ [st]) st (by simp)
       simpa using this
     simp only [List.filterMap_cons, List.filterMap_nil, Nat.add_sub_cancel, h1,
       histN_append_le l [st] l.length (Nat.le_refl _)]
-    cases changeAtL (histN l l.length).items st.items (l.length + 1) <;> rfl
+    cases changeAtL (k8s_etcd3.histN l l.length).items st.items (l.length + 1) <;> rfl
 
 theorem kstepL_hist (x : Input) (h : HSt) :
     (kstepL x h).1.hist =

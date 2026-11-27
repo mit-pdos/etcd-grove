@@ -66,8 +66,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ⟨Hrt, Htie, #HeI, Hres'⟩
   icases Hres' with (⟨%Hne, #HlE, HPre, Hown, Hrvk, HRO, HU⟩ |
     ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, #Hreq, ⟨%t, #Hlt, %Htge, HRO⟩⟩)
-  · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
-    · iright; iexact HPre
+  · ihave HPP : iprop(Post ∨ (Pre ∗ ⌜∃ e, Outcome.rejected .backend = .rejected e⌝)) $$ [HPre]
+    · iright; iframe HPre; ipureintro; exact ⟨_, rfl⟩
     ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL HWt]
     · iunfold apply.leasesLive
       iexists L
@@ -116,7 +116,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       iright; ipureintro; exact Hne.1
   · obtain ⟨He, Hgi⟩ := Hok
     subst He
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPost]
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜∃ e, Outcome.applied log false = .rejected e⌝)) $$ [HPost]
     · ileft; iexact HPost
     imod apply.ltHalf_update E L L (L ++ [g.id]) $$ HltL HltT with ⟨HltL, HltT⟩
     ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL HWt]

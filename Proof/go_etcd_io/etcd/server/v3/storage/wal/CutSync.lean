@@ -141,20 +141,22 @@ the WAL directory's claim, whose history ends with the rename (logged at `x`, wr
 `bt`, which then held the new segment `i`), the directory's key, the tail record (its tail `i`), the
 pending-cut flag and the commit bound `n > x`: the flag back to `none`. -/
 theorem walInvBody_cutSynced (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (x : Nat)
-    (e : LogEntry) (c : Ents) (bt : GoString) (i : Ino) (dq : DFrac) (γ : GName) (tg : TailG)
+    (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH)
+    (x : Nat) (e : LogEntry) (c : Ents) (bt : GoString) (i : Ino) (dq : DFrac) (γ : GName) (tg : TailG)
     (n : Nat) (hx : x < n) (hw : e.op.Writes j bt) (hwal : walNameP bt = true)
     (hc : c !! bt = some (.file i)) (hti : tg.2.2.2.2.1 = i) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗
       osNames (L := L) j (.except X) dq (hj.log x e c) -∗ walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ tg -∗ walCutFrag (W := W) (some dir) -∗ osCommitLb (L := L) n ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ osNames (L := L) j (.except X) dq (hj.log x e c) ∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walIncQ (W := W) I ∗
+        osNames (L := L) j (.except X) dq (hj.log x e c) ∗
         walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗ walCutFrag (W := W) none := by
-  iintro Hb #Hkey Hq Hk Hv Hcf #Hc
+  iintro Hb #Hkey HI Hq Hk Hv Hcf #Hc
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm,
     Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hkey HI with %HK
   icases walCut_agree cp (some dir) $$ Hcp Hcf with %Hcpe
   subst Hcpe
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, -, honce, -, -⟩ := Hdko.1 dir j X HK
@@ -174,7 +176,7 @@ theorem walInvBody_cutSynced (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   subst hgi
   imod walCut_set (some dir) (some dir) none $$ Hcp Hcf with ⟨Hcp, Hcf⟩
   imodintro
-  iframe Hq Hk Hv Hcf
+  iframe HI Hq Hk Hv Hcf
   iexists Ls, l1 ++ (lay1.j, NameSet.except X, hj.log x e c) :: l2, max n0 n, F
   iframe Hg Hcl0 Hlays Htl Hpk
   isplitr

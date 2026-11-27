@@ -46,8 +46,9 @@ and the crash frame"); a client that needs no token passes a plain update (`rest
 Raft names the storage by a fresh key `K` at the attach (`restartStorage`'s continuation). The post:
 the node, its `Ready` loop's token at the committed log of the applied index it starts at
 (`max σ.b A`), the stored hard state, the durable state `S`, the follower's role, the storage's key;
-its view of the configuration at `(a, m)`; its running token whole; the update's `COMM`; and the
-storage's frame.
+its view of the configuration at `(a, m)`; its running token whole; (2026-11-24) its start term,
+the durable state's (`nodeStartTerm`: a client tells this run's `MsgSnap`s from an earlier run's);
+the update's `COMM`; and the storage's frame.
 
 Raft hands the committed log out again from `max σ.b Applied`, so the entries in
 `(max σ.b Applied, a]`, conf entries among them, come again; the view at `(a, m)` already reflects
@@ -134,6 +135,9 @@ abbrev RestartNode.spec : Prop :=
         nodeDriver n γ N ⟨interface.ok si, l, σ.hs, none, K, S, StateFollower⟩ ∗
         nodeConfig n γ N ⟨a, m⟩ ∗
         nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗ nodeArm n γ x ∗
+        -- (2026-11-24, the lifetime law) started at the durable state's term: every `MsgSnap` its
+        -- `Ready`s hand out is past it (`readySnapSources_startTerm`)
+        nodeStartTerm n S.term ∗
         Q S ∗ F K }}
 
 end spec

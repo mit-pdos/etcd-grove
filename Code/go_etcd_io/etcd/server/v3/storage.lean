@@ -3,7 +3,9 @@ module
 
 public import Perennial.Code.fmt
 public import Code.os
+public import Code.path.filepath
 public import Code.go_uber_org.zap
+public import Code.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import Code.go_etcd_io.etcd.server.v3.config
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
@@ -105,6 +107,9 @@ noncomputable def OpenBackend [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def RecoverSnapshotBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.RecoverSnapshotBackend"
 
+noncomputable def syncDir [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage.syncDir"
+
 noncomputable def NewBackendHooks [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.NewBackendHooks"
 
@@ -134,7 +139,7 @@ noncomputable def GetEffectiveNodeIDsFromWALEntries [GooseExts] [GoGlobalContext
 
 /-- OpenSnapshotBackend renames a snapshot db to the current etcd db and opens it.
 
-    go: backend.go:63:6 -/
+    go: backend.go:66:6 -/
 noncomputable def OpenSnapshotBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "ss"
@@ -159,6 +164,7 @@ noncomputable def OpenSnapshotBackend.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType BackendHooks.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Hooks.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendHooks.ty)))) (Var "hooks")))
   (App (App (App (Val (GoInstruction (FuncResolve OpenBackend []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -171,6 +177,29 @@ noncomputable def OpenSnapshotBackend.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"BackendPath"))) (Var "cfg")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.path.filepath.Dir []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve syncDir []))) (Val #())) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"failed to sync database directory (%w)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "snapPath"))
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"BackendPath"))) (Var "cfg")) (Val #()))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Rename []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -215,6 +244,64 @@ noncomputable def OpenSnapshotBackend.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "snapPath") (Var "$r0")))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
+
+/-- syncDir fsyncs the directory dir.
+
+    go: backend.go:128:6 -/
+noncomputable def syncDir.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "dir"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "dir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "dir"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dir"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "df" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "df"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "df"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "df"))) (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Pair (Var "df") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
 
 /-- go: hooks.go:41:6 -/
 noncomputable def NewBackendHooks.impl [GooseExts] [GoGlobalContext] : val :=
@@ -674,7 +761,7 @@ noncomputable def storage.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.github_com.dustin.go_humanize, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.etcd.server.v3.storage.wal.walpb]
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.path.filepath, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.github_com.dustin.go_humanize, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.etcd.server.v3.storage.wal.walpb]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -682,6 +769,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -728,7 +817,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.os.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.path.filepath.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.config.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -999,6 +1092,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Storage_instance : Storage.TypeAssumptions
   storage_instance : storage.TypeAssumptions
   OpenSnapshotBackend_unfold : FuncUnfold OpenSnapshotBackend [] OpenSnapshotBackend.impl
+  syncDir_unfold : FuncUnfold syncDir [] syncDir.impl
   NewBackendHooks_unfold : FuncUnfold NewBackendHooks [] NewBackendHooks.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   costPut_unfold : FuncUnfold costPut [] costPut.impl
@@ -1007,7 +1101,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewStorage_unfold : FuncUnfold NewStorage [] NewStorage.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_os_Assumption : _root_.Perennial.os.Assumptions
+  import_filepath_Assumption : _root_.Perennial.path.filepath.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
+  import_fileutil_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions
   import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
   import_snap_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
@@ -1030,6 +1126,7 @@ attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.Storage_instance
   Assumptions.storage_instance
   Assumptions.OpenSnapshotBackend_unfold
+  Assumptions.syncDir_unfold
   Assumptions.NewBackendHooks_unfold
   Assumptions.«init.0_unfold»
   Assumptions.costPut_unfold
@@ -1038,7 +1135,9 @@ attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.NewStorage_unfold
   Assumptions.import_fmt_Assumption
   Assumptions.import_os_Assumption
+  Assumptions.import_filepath_Assumption
   Assumptions.import_zap_Assumption
+  Assumptions.import_fileutil_Assumption
   Assumptions.import_config_Assumption
   Assumptions.import_snap_Assumption
   Assumptions.import_backend_Assumption

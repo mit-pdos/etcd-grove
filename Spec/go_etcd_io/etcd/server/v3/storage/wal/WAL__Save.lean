@@ -81,6 +81,14 @@ abbrev WalPbIn.ZeroLaw (P : WalPbIn GF) : Prop :=
   ∀ (p : Loc) (E : CoPset),
     p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ |={E}=> P.hsIn p hsZero
 
+/-- **A fresh zero hard state marshals to the zero state's encoding** (P6, the torn-`Save` fix: `Save`'s
+`w.state = &raftpb.HardState{}`, whose state record `encodeState` may write; `walStIn`). As `ZeroLaw.2`,
+with `walStMarsh`. Discharged for raft's instance from `proto.MarshalPb.spec` (non-nil for a non-nil
+message: `RaftModel/LawsHsMarshal.lean`). -/
+abbrev WalPbIn.ZeroStLaw (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
+  ∀ (p : Loc) (E : CoPset),
+    p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ |={E}=> P.hsIn p hsZero ∗ walStMarsh Mr p hsZero
+
 /-- **`w.Save(st, ents)`** (S/wal.go:1115-1160): every entry index below `2^64-1` (a cut's name
 would wrap, as the main tree's spec says), and each entry's encoding below `2^40` bytes (each record
 must fit a frame, whose length field has 56 bits, and the encoder's `2^47`; ledger 2026-11-14, "no
@@ -112,13 +120,13 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr 
       P.hsIn hp hs ∗ sl ↦*□ esL ∗ walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗
       (⌜saveBatchBytes Mr es ≤ maxSaveBatch⌝ -∗
-        AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-          <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }>) }}
+        AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+          <{ WalFs.walDiskAtI dir γ.inc { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }>) }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walLenLb w dir (d.H.length + 1) ∗
-          (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (d.H.length + 1))) ∨
+          WalFs.walLenLb w dir γ.inc (d.H.length + 1) ∗
+          (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir γ.inc (d.H.length + 1))) ∨
       (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d) ∨
       (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < saveBatchBytes Mr es⌝ ∗ walOpenWS Sio P Mr w dir γ q) }}
 

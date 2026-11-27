@@ -20,7 +20,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerShared
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerRFacts
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerRAt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps
 
 @[expose] public section
 
@@ -93,18 +95,13 @@ private theorem rep_cast (P : IProp GF) (a b : Nat) :
   subst h
   iexact H
 
-/-- `bootstrap`'s restart contract is persistent (as `bootstrapContract`). -/
-instance bootstrapRestartContract_persistent [MemStorReg GF] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (U : BootURLs) (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) :
-    Persistent (bootstrapRestartContract (GF := GF) cfg U γ id N dir) := by
-  unfold bootstrapRestartContract; infer_instance
-
 set_option linter.unusedVariables false in
 set_option maxRecDepth 100000 in
 set_option pp.maxSteps 200000 in
 set_option maxHeartbeats 0 in
 /-- **`NewServer(cfg)` at a restart** (`NewServer.specR`), over `wp_proofG`'s callee specs at auth
-off and no compaction (the restart's scope). Skeleton: not yet proved. -/
+off and no compaction (the restart's scope); (D6 T4, 2026-11-24) stated at `bootstrap`'s contract at the
+image (`NewServer.specRAt`), which both the graceful and the crash contract give. -/
 theorem NewServer.wp_proofRG
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
@@ -239,7 +236,7 @@ theorem NewServer.wp_proofRG
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
     (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
-    NewServer.specR (GF := GF) (hG := hG) := by
+    NewServer.specRAt (GF := GF) (hG := hG) := by
   haveI := Hp.1
   intro cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hnsm Hc0 Hch0 Hlog0 Hkcmp Hcbl
     Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hlbc Hbco Hfnc
@@ -274,7 +271,7 @@ theorem NewServer.wp_proofRG
   icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
     Hfiles, Hsdimg⟩
   -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes (`srvSnapRO`'s)
-  icases srvFiles_dataDir_len _ _ _ _ $$ Hfiles with ⟨%Hddl, Hfiles⟩
+  icases srvFilesC_dataDir_len _ _ _ _ $$ Hfiles with ⟨%Hddl, Hfiles⟩
   rw [Hρo] at Himp
   ihave #HA0 : srvRLogLb ⟨γ, [], W64 0⟩ A $$ []
   · rw [← Hρo]; iexact HA
@@ -293,10 +290,10 @@ theorem NewServer.wp_proofRG
   imod restart_peerURLs ρ.rd.raft ρ.rd.kv A (by rw [HρRaft]) $$ HkvI Hsrl [] with %Hpurl
   · rw [HρRaft]; iexact HA0
   rw [HρRaft] at Hpurl
-  -- `bootstrap`'s restart contract at the image
+  -- `bootstrap`'s restart contract at the image (D6 T4: its instance, `bootstrapAtR`)
   ihave #Hboot' := HbootR
-  iunfold bootstrapRestartContract at Hboot'
-  ihave Hbc := Hboot' $$ %σ %i %A %D %M [] []
+  iunfold bootstrapAtR at Hboot'
+  ihave Hbc := Hboot' $$ [] []
   · ipureintro
     exact ⟨Hsw.2.1, Hsw.2.2, Hbl, Hbco, Hfnc, Hdwd, Hdisk.1, Hbwb, Hpurl, Hcvl⟩
   · iexists ρo.rd.kv, A, u
@@ -360,15 +357,11 @@ theorem NewServer.wp_proofRG
     iexists l'
     iframe Hl'
     ipureintro; exact ⟨Hl'b, Hag⟩
-  imod wal.restartOk_start cfg id cid bw.w' σ γ.cl S i _ Hl0len $$ [Hwal Hwsi Hl0] with
-    ⟨%hw, %νw, %Hhw, #Hdur, Hwview, Hwok, Hwstop, Hwapp, #Hwlb, Hwsi, Hwalo, Hwmeta, Hwpurge, %HwDir⟩
+  -- (P5, 2026-11-25: until then the durability allocated here, `wal.restartOk_start`) the restart's
+  -- handover of the WAL, for the crash-aware durability `bootstrappedRaft.newRaftNode` allocates
+  icases wal.restartOk_startRK cfg id cid bw.w' σ γ.cl S i _ Hl0len $$ [Hwal Hwsi Hl0] with
+    ⟨%hw, %Hhw, Hwrec, %Hwvok, Hwsi, Hwalo, Hwmeta, Hwpurge, %HwDir⟩
   · iframe Hwal Hwsi Hl0
-  -- (wal-link L3) the durability's WAL the opened one
-  ihave %Hνh : ⌜νw.h = hw⌝ $$ []
-  · ihave #Hdur' := Hdur
-    iunfold rnDurInv at Hdur'
-    icases Hdur' with ⟨%H, -⟩
-    ipureintro; exact H
   iStructNamed Hbc
   wp_auto
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
@@ -449,19 +442,17 @@ theorem NewServer.wp_proofRG
   ihave #Hctx : peersCtx pv ([] : List (List w8)) $$ []
   · rw [Hrcfg.peersNil]; iunfold peersCtx; iapply BigSepL2.bigSepL2_nil.2; itrivial
   wp_apply (hNS γ (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk)
-      (srvTrStopK γk)) bs.raft' bs.ss' bw.w' bc.cl' (config.snapDirOf cfg.DataDir') (DFrac.own 1) bv cv lok γs νw pv [] ρ.ids.issued
+      (srvTrStopK γk)) bs.raft' bs.ss' bw.w' bc.cl' (config.snapDirOf cfg.DataDir') (DFrac.own 1) bv cv lok γs hw pv [] ρ.ids.issued
       σ cs S mb A)
-    $$ [Hbv Hc Hrest Hpeers Hvac HrS Hwview Hwok]
+    $$ [Hbv Hc Hrest Hpeers Hvac HrS Hwrec]
     as %r ⟨%γrn, %rvr, %Hrnames, #Hsws, Hrd1, Hrd2, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv,
-      Hmsmeta, Hmsnone, Hrsc⟩
-  · ihave #Hdurν : rnDurInv γ.cl νw νw.h $$ []
-    · rw [Hνh]; iexact Hdur
-    iframe Hbv Hc Hrest Hpeers Hvac HrS Hwview Hwok Hdurν
+      Hmsmeta, Hmsnone, Hrsc, #Hdur, Hwstop, Hwapp⟩
+  · iframe Hbv Hc Hrest Hpeers Hvac HrS Hwrec
     iframe #
     ipureintro
-    exact ⟨⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, by rw [Hνh, Hhw], by omega, Hcfg0,
+    exact ⟨⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, by rw [Hhw], by omega, Hcfg0,
       Hcfgsz, Hba, Hac, Hblc, Hsw.1, walReadFacts_F3 σ Hwrf, Hcsv,
-      restart_cs_bound cs γ.cfg Hcsv Hcfgsz, Hnsm⟩, Hγsz⟩
+      restart_cs_bound cs γ.cfg Hcsv Hcfgsz, Hnsm⟩, Hγsz, Hwvok⟩
   clear Hrcfg
   (try wp_auto)
   -- the configuration, field by field from here on
@@ -1131,7 +1122,7 @@ theorem NewServer.wp_proofRG
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnss, Hrna0, Hrnt0, Hrnc0, Hrns0, Hrn10, Hrn11, Hrn12, Hrn13,
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnsd, Hrnss, Hrna0, Hrnt0, Hrnc0, Hrns0, Hrn10, Hrn11, Hrn12, Hrn13,
     Hrn14⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
@@ -1156,7 +1147,7 @@ theorem NewServer.wp_proofRG
     iunfold rnWalTok
     iexists rvr.raftNodeConfig'.storage'
     iframe storageC
-    rw [Hrnν, Hνh]; iexact Hwalo
+    rw [Hrnν]; iexact Hwalo
   icases rnWalTok_split γrn (srvRAddr s) $$ Hwt with ⟨Hwth, Hwtl⟩
   -- (2026-11-03, R2b-1 stages 5-6) the shares: the apply side's with its token and the
   -- durability invariant, the loop's with the stop's claim, the metadata and the purge's right
@@ -1174,19 +1165,17 @@ theorem NewServer.wp_proofRG
       first | exact Hsteq.symm | exact Hsteq.2.symm
     rw [Hsteq']
     iframe Hrd2 Hsws
-    rw [Hrnν]; iframe Hwapp
-    rw [Hrn1, Hνh]; iexact Hdur
+    iframe Hwapp Hdur
+    ipureintro; exact Hrnsd
   ihave Hwtl : rnWalTokL γrn (srvRAddr s) $$ [Hwtl Hwstop Hwmeta Hwpurge Hrd1]
   · iunfold rnWalTokL
     iframe Hwtl
-    ihave Hwstop' : token γrn.wal.stop $$ [Hwstop]
-    · rw [Hrnν]; iexact Hwstop
-    iframe Hwstop'
+    iframe Hwstop
     iunfold rnFixed at Hfix
     iNamed Hfix
     iexists rvr.raftNodeConfig'.storage', _
     iframe storageC Hrd1
-    rw [Hrnν, Hνh]
+    rw [Hrnν]
     -- (R2b-3b) the metadata names the member, the wrapper's id
     have hidr : γrn.id = id := by first | rw [Hrn5, Hrid] | rw [Hrn5, Hrid, Hid]
     rw [hidr]
@@ -1201,7 +1190,7 @@ theorem NewServer.wp_proofRG
   -- most one past the image's index (in place of `snapDir_init` and a fresh counter at `0`)
   icases Hsdimg with ⟨%γd, %γt, %ct, %Hsd, #Hsdir, Hγt⟩
   obtain ⟨Hsloc, Hct⟩ := Hsd
-  ihave #Hsdir : inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd γn.N.img (snapRmM γt)) $$ []
+  ihave #Hsdir : snapDirInvH (config.snapDirOf cfg.DataDir') γd γn.N.img (snapRmM γt) $$ []
   · rw [Hγn.1]; iExactEq Hsdir; rfl
   ihave #Hprocok : srvProcOk γn s id γd $$ []
   · iunfold srvProcOk
@@ -2035,7 +2024,7 @@ theorem NewServer.wp_proofRG
     iexists rvr.raftNodeConfig'.storage'
     iframe storageC
     ipureintro
-    rw [Hrnν, Hνh]; exact HwDir
+    rw [Hrnν]; exact HwDir
   -- (revoke-open, 2026-11-06) the revocation's inner pool: `srvRevokePoolN` of `leadTimeMu`'s rest
   -- and of the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), paired, at level 1
   icases replicate_takeN _ srvRevokePoolN _ (by
@@ -2420,7 +2409,7 @@ theorem NewServer.wp_proofRG
           · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
             iframe HΦ'
             icases Hpre with ⟨Hcst, Hcb⟩
-            iapply (wp_ci_get h83 γA cil cb cst hcp) $$ [Hcst Hcb]
+            iapply (wp_ci_get (IR := fun _ _ => iprop(True)) h83 γA cil cb cst hcp) $$ [Hcst Hcb]
             · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
             iintro ⟨Hcst, Hcb⟩
             rw [hld]
@@ -2666,6 +2655,151 @@ theorem NewServer.wp_proofRG
   iexact Hwtok
 
 
+/-- **`NewServer.specRAt`'s proof as the linker takes it** (D6 T4, 2026-11-24: the callee of the crash
+restart's `NewServer.wp_proofC`; as `wp_proofR` below, which is its graceful instance) (restart S6 B2, 2026-11-14, a form): the
+callees of `NewServer.wp_proof` less the four of the compaction mode, `NewServer.wp_proofRG` at the
+auth mode off (`authSrvTP_off`, the kit `trivial`), as `NewServer.wp_proof` builds `wp_proofG`'s. -/
+theorem NewServer.wp_proofRAt
+    (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
+    (h1 : zap.Error.spec (GF := GF) (hG := hG))
+    (h2 : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (h3 : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (h4 : v2stats.NewServerStats.spec (GF := GF) (hG := hG))
+    (h5 : membership.RaftCluster.String.spec (GF := GF) (hG := hG))
+    (h6 : v2stats.NewLeaderStats.spec (GF := GF) (hG := hG))
+    (h7 : types.ID.String_ptr.spec (GF := GF) (hG := hG))
+    (h8 : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
+    -- (2026-10-27) the node API's node specs, at the cluster's storage model
+    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
+    (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Advance.spec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) `node.Stop` (until then `node.Advance.dynamicSpec`)
+    (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Stop.spec (GF := GF) (hG := hG))
+    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
+    (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ReadIndex.spec (GF := GF) (hG := hG))
+    (h13 : types.URLs.StringSlice.spec (GF := GF) (hG := hG))
+    (h14 : idutil.NewGenerator.spec (GF := GF) (hG := hG))
+    (h15 : notify.NewNotifier.spec (GF := GF) (hG := hG))
+    (h16 : addFeatureGateMetrics.spec (GF := GF) (hG := hG))
+    (h17 : prometheus.GaugeVec.With.spec (GF := GF) (hG := hG))
+    (h18 : membership.RaftCluster.SetVersionChangedNotifier.spec (GF := GF) (hG := hG))
+    (h19 : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (h20 : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
+    (h21 : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
+    (h22 : time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG))
+    (h23 : math.Ceil.spec (GF := GF) (hG := hG))
+    (h24 : lease.NewLessor.spec (GF := GF) (hG := hG))
+    (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
+    (h26 : mvcc.api.New.spec (GF := GF) (hG := hG))
+    -- (R6, 2026-11-07, the `lean` merge) mvcc's API laws the boot uses (the store over its
+    -- storage, `BootStore.boot_storage`; the store invariant, `bootStore_holds`; the readers'
+    -- census of the error paths, `stop_census`; the compactor's revision getter)
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hfresh : mvcc.api.mvccImage_fresh.law (GF := GF))
+    (hopen : mvcc.api.etcdStorage_open.law (GF := GF))
+    (hrest : mvcc.api.backendRest_open.law (GF := GF))
+    (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
+    (hSR : mvcc.api.mvccStorageFor_rest.law (GF := GF))
+    (h27 : newCorruptionChecker.spec (GF := GF) (hG := hG))
+    (h28 : mvcc.api.watchableStore.HashStorage.spec (GF := GF) (hG := hG))
+    (h29 : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
+    (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG))
+    (h31 : v3compactor.New.spec (GF := GF) (hG := hG))
+    (h32 : EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG))
+    (h33 : EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG))
+    (h34 : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
+    (h35 : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
+    (h36 : config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG))
+    (h37 : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
+    -- (prove-ps2-bootstage1, 2026-11-23) the cluster's `Version()`, for `bootOk`'s former `Hclok`/`Hcvm`/`Hisc` rows
+    (hRCV : membership.RaftCluster.Version.spec (GF := GF) (hG := hG))
+    (h38 : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
+    (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
+    (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+    (h42 : mvcc.api.watchableStore.Close.spec (GF := GF) (hG := hG))
+    (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (h48 : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (h49 : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
+    (h50 : lease.lessor.Attach.spec (GF := GF) (hG := hG))
+    (h51 : lease.lessor.Detach.spec (GF := GF) (hG := hG))
+    (h52 : lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG))
+    (h53 : lease.lessor.Lookup.spec (GF := GF) (hG := hG))
+    (h54 : lease.lessor.Grant.spec (GF := GF) (hG := hG))
+    (h55 : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
+    (h56 : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (h57 : lease.lessor.Promote.spec (GF := GF) (hG := hG))
+    (h58 : lease.lessor.Demote.spec (GF := GF) (hG := hG))
+    (h59 : lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG))
+    (h60 : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (h61 : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (h62 : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (h63 : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (h64 : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (h65 : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
+    (h66 : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (h67 : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (h68 : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (h69 : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (h70 : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (h71 : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (h72 : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (h73 : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (h74 : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (h75 : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (h76 : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (h77 : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (h78 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Propose.spec (GF := GF) (hG := hG))
+    (h79 : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (h80 : EtcdServer.Leader.spec (GF := GF) (hG := hG))
+    (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
+    (h82 : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
+    (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
+    (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ApplyConfChange.spec (GF := GF) (hG := hG))
+    -- (2026-10-30, the repair) the fresh `MemoryStorage`'s methods `StartNode`'s `bootStorage` runs
+    -- (`srvMem_bootStorage`; until then `node.ApplyConfChange.dynamicSpec`)
+    (h86d : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
+    (h86e : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (h86f : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (h86g : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (h86h : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
+    -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
+    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
+    (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
+    (h89 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
+    (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
+    (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
+    (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
+    (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
+    (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    -- (the lease-revoke plan, 2026-10-31) the lessor's `Revoke`, for `isApplyLessor`'s clause
+    (h95 : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
+    -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
+    -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
+    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
+    NewServer.specRAt (GF := GF) (hG := hG) :=
+  NewServer.wp_proofRG h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19
+    h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 Hp Hr hsh hfresh hopen hrest hRS hCR
+    hSR h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 hRCV h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48
+    h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72
+    h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90
+    h91 h92 h93 h94 h95 hAG hBSC
+
+
 /-- **`NewServer.specR`'s proof as the linker takes it** (restart S6 B2, 2026-11-14, a form): the
 callees of `NewServer.wp_proof` less the four of the compaction mode, `NewServer.wp_proofRG` at the
 auth mode off (`authSrvTP_off`, the kit `trivial`), as `NewServer.wp_proof` builds `wp_proofG`'s. -/
@@ -2802,7 +2936,7 @@ theorem NewServer.wp_proofR
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
     (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
     NewServer.specR (GF := GF) (hG := hG) :=
-  NewServer.wp_proofRG h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19
+  NewServer.specR_of_RAt <| NewServer.wp_proofRG h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19
     h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 Hp Hr hsh hfresh hopen hrest hRS hCR
     hSR h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 hRCV h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48
     h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72

@@ -197,35 +197,12 @@ theorem take_segPre {Q : WalHist} {c m : Nat} (M : WalMarshal) (hcm : c ≤ m) :
   rw [List.drop_take]
   exact flatMap_take_prefix _ _ _
 
-/-- A crash image of `Q` at or past the last cut. -/
-theorem walImg_segPre {Q I : WalHist} {c m : Nat} (M : WalMarshal) (hI : walImg Q m I)
+/-- A crash image of `Q` at or past the last cut (`walImgS`: whole operations; P6). -/
+theorem walImg_segPre {Q I : WalHist} {c m : Nat} (M : WalMarshal) (hI : walImgS Q m I)
     (hcm : c ≤ m) :
     I.take c = Q.take c ∧ (I.drop c).flatMap (opDs M) <+: (Q.drop c).flatMap (opDs M) := by
-  obtain ⟨j, h1, h2, rfl | ⟨h, es, k, hj, hk, rfl⟩⟩ := hI
-  · exact take_segPre M (by omega)
-  · have hjl : j < Q.length := by
-      rcases Nat.lt_or_ge j Q.length with h | h
-      · exact h
-      · rw [List.getElem?_eq_none h] at hj; cases hj
-    have htj : (Q.take j).length = j := by simp; omega
-    refine ⟨?_, ?_⟩
-    · rw [List.take_append_of_le_length (by omega), List.take_take, Nat.min_eq_left (by omega)]
-    · rw [List.drop_append_of_le_length (by omega), List.flatMap_append, List.drop_take]
-      have hQ : Q.drop c = (Q.drop c).take (j - c) ++ Q.drop j := by
-        conv => lhs; rw [← List.take_append_drop (j - c) (Q.drop c)]
-        rw [List.drop_drop, Nat.add_sub_cancel' (by omega)]
-      have hQj : Q.drop j = .save h es :: Q.drop (j + 1) := by
-        rw [List.drop_eq_getElem_cons hjl]
-        rw [List.getElem?_eq_getElem hjl] at hj
-        injection hj with hj
-        rw [hj]
-      conv => rhs; rw [hQ, hQj]
-      rw [List.flatMap_append, List.prefix_append_right_inj, List.flatMap_cons,
-        List.flatMap_cons, List.flatMap_nil, List.append_nil]
-      apply List.IsPrefix.trans _ (List.prefix_append _ _)
-      simp only [opDs]
-      rw [ite_eq_left hsEmptyP_zero, List.append_nil, List.map_take]
-      exact List.IsPrefix.trans (List.take_prefix _ _) (List.prefix_append _ _)
+  obtain ⟨j, h1, -, rfl⟩ := hI
+  exact take_segPre M (by omega)
 
 /-- A cut position below where two histories agree is a cut position of both. -/
 theorem walCutPos_of_take {P Q : WalHist} {b c : Nat} (hbc : b ≤ c) (ht : P.take c = Q.take c)

@@ -132,7 +132,7 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
   have hn : Named st'.fs.treeDur i := by
     apply Classical.byContradiction; intro hn
     rw [(hc.2.2.2.2.2.2.2 i).2 hn] at hf'; cases hf'
-  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨hlo, hhi⟩, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
+  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨hlo, hhi, -⟩, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
   rw [hf] at hf0; cases hf0
   rw [hf'] at hf1; cases hf1
   have hb : ∀ b, b < sz → (OsFile.ofDisk img sz).cache b = img b := fun b hb => by
@@ -184,6 +184,48 @@ theorem crashSeen_max {Q : OsState → OsState → Prop} {i : Ino} {m : OsMeta}
   rw [hf'] at hf1; cases hf1
   obtain ⟨sz, img, -, hmx, -, rfl⟩ := hcf
   exact hmx
+
+/-- **The size a crash leaves is one `m` knows** (`OsMeta.xs`), or one a change in flight on the
+file allows: its target for an `ftruncate`; for a `pwrite` or `fallocate`, any size between the
+smallest of those `m` knows (or the target) and the largest (or the target), so the size itself for
+a write inside a file whose known sizes are its size alone. -/
+theorem crashSeen_xs {Q : OsState → OsState → Prop} {i : Ino} {m : OsMeta}
+    {rs : List (Nat × DFrac × List ByteG)} {ts : List (Nat × TokInfo)} {fo : Option OsFile}
+    (h : CrashSeenR Q i m rs ts fo) : ∀ f', fo = some f' → ∀ l, m.xs = some l →
+      f'.size ∈ l ∨ ∃ x ∈ ts, (x.2.kind.isTrunc = true → f'.size = x.2.target) ∧
+        ((∃ a ∈ l, a ≤ f'.size) ∨ x.2.target ≤ f'.size) ∧
+        ((∃ b ∈ l, f'.size ≤ b) ∨ f'.size ≤ x.2.target) := by
+  obtain ⟨st, st', Γb, Γm, Γf, Γt, hwf, hcoh, hc, -, hfo, hm, -, hts, -⟩ := h
+  intro f' hf' l hl
+  subst hfo
+  obtain ⟨f, hf, hok⟩ := hcoh.meta_some i m hm
+  have hn : Named st'.fs.treeDur i := by
+    apply Classical.byContradiction; intro hn
+    rw [(hc.2.2.2.2.2.2.2 i).2 hn] at hf'; cases hf'
+  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨hlo, hhi, hsz⟩, -, -, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
+  rw [hf] at hf0; cases hf0
+  rw [hf'] at hf1; cases hf1
+  show sz ∈ l ∨ ∃ x ∈ ts, (x.2.kind.isTrunc = true → sz = x.2.target) ∧
+    ((∃ a ∈ l, a ≤ sz) ∨ x.2.target ≤ sz) ∧ ((∃ b ∈ l, sz ≤ b) ∨ sz ≤ x.2.target)
+  rcases hsz with h | h | h | ⟨t, c, ht, hci, htr⟩
+  · exact .inl (hok.xs l hl sz (.inl h))
+  · exact .inl (hok.xs l hl sz (.inr (.inl h)))
+  · exact .inl (hok.xs l hl sz (.inr (.inr (.inr h))))
+  · obtain ⟨ti, hti⟩ := Option.isSome_iff_exists.1 (by rw [hcoh.toks t, ht]; rfl)
+    obtain ⟨hino, hk, -, -, htg, -⟩ := hcoh.tok_is t ti c hti ht
+    -- the change in flight the bounds name is this one
+    have hone : ∀ t' c', st.proc.inflight !! t' = some c' → c'.ino = i → c'.target = ti.target :=
+      fun t' c' ht' hci' => by
+        have := hwf.infl_one t c t' c' ht ht' (hci.trans hci'.symm)
+        subst this; rw [ht] at ht'; cases ht'; exact htg
+    refine .inr ⟨(t, ti), hts t ti hti (hino.symm.trans hci), fun hk' => ?_, ?_, ?_⟩
+    · rw [← htg]; exact htr (by rw [hk]; exact hk')
+    · rcases hlo with h | ⟨t', c', ht', hci', h⟩
+      · exact .inl ⟨f.sizeLo, hok.xs l hl _ (.inr (.inl rfl)), h⟩
+      · exact .inr (by rw [← hone t' c' ht' hci']; exact h)
+    · rcases hhi with h | ⟨t', c', ht', hci', h⟩
+      · exact .inl ⟨f.sizeHi, hok.xs l hl _ (.inr (.inr (.inl rfl))), h⟩
+      · exact .inr (by rw [← hone t' c' ht' hci']; exact h)
 
 end Fs
 end Perennial

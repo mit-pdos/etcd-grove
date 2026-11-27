@@ -2,9 +2,10 @@
 
 # A length lower bound of the open WAL is at most the handle's history (W6, `Sync`)
 
-`walLenLb w dir n` (a past state's history of `dir` has length at least `n`) and the handle's half of its
+`walLenLb w dir i n` (a past state's history of `dir`'s incarnation `i` has length at least `n`), the
+handle's record at `i` (`walOpenWI w dir i`, current: `walGhostI_openWI`) and the handle's half of its
 tail record (`tailVar γ (H, …)`, which agrees with the invariant's current WAL of `dir`) give `n ≤ |H|`:
-the past state is below the current one (`walPast_ghost_le`, `absLe`: histories only grow). `Sync`
+the past state is below the current one at the same incarnation (`walLenLb_ghost`: histories only grow). `Sync`
 turns `sync`'s `walSyncedLb dir |H|` into the spec's `walSyncedLb dir n` with it.
 -/
 module
@@ -29,18 +30,22 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **The invariant's contents bound a length lower bound by the handle's history** (kept). -/
 theorem walInvBody_lenLb (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (w : Loc) (dir : GoString) (γ : GName) (tg : TailG) (n : Nat) :
+    (s : AbsDiskState) (w : Loc) (dir : GoString) (γ : GName) (tg : TailG) (n : Nat)
+    (i : Nat) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
-      tailVar (W := W) γ tg -∗ walLenLb (W := W) w dir n -∗
+      tailVar (W := W) γ tg -∗ walOpenWI (W := W) w dir i -∗ walLenLb (W := W) w dir i n -∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ walTailKey (W := W) dir γ ∗
-        tailVar (W := W) γ tg ∗ ⌜n ≤ tg.1.length⌝ := by
+        tailVar (W := W) γ tg ∗ walOpenWI (W := W) w dir i ∗ ⌜n ≤ tg.1.length⌝ := by
   letI := walAllG (W := W)
-  iintro Hb Hk Hv #Hn
-  unfold walLenLb
-  icases Hn with ⟨%γ', %p, %dp, -, #Hp, %Hdp⟩
+  iintro Hb Hk Hv Hw #Hn
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n', %F, Hg, Hrest⟩
-  icases walPast_ghost_le (W := W) s p $$ Hg Hp with %Hle
+  iunfold walGhost at Hg
+  icases Hg with ⟨%Ig, Hg⟩
+  icases walGhostI_openWI s Ig w dir i $$ Hg Hw with ⟨%hi, Hg, Hw⟩
+  subst hi
+  icases walLenLb_ghost s Ig w dir n $$ Hg Hn with %Hdp
+  ihave Hg := walGhostI_ghost s Ig $$ Hg
   icases Hrest with ⟨%Har, Hcl, Hn', Hlays, %HW, %HWC, HCR, Htl, Hrest⟩
   unfold walTailsRes
   icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩
@@ -53,12 +58,12 @@ theorem walInvBody_lenLb (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases Hent with ⟨%d, %lay, %g, %hp, Hv'⟩
   unfold tailVar
   icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Htg
-  obtain ⟨d', hd', -, hlen, -⟩ := Hle.2.2 dir dp Hdp.1
+  obtain ⟨d', hd', hlen⟩ := Hdp
   rw [hp.1] at hd'
   cases hd'
   have hn : n ≤ tg.1.length := by
-    rw [Htg]; exact Nat.le_trans Hdp.2 hlen
-  iframe Hk Hv
+    rw [Htg]; exact hlen
+  iframe Hk Hv Hw
   isplitl
   · iexists Ls, cl, n', F
     iframe Hg Hcl Hn' Hlays HCR Hrest
@@ -88,18 +93,19 @@ theorem walInvBody_lenLb (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
 /-- **The same, at an update** (the invariant opened and closed; `notCrashed` excludes its crash
 branch): for `Sync`, around any step. -/
 theorem walLenLb_tail_le (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (E : CoPset) (hE : ↑walN ⊆ E) (w : Loc) (dir : GoString) (γ : GName) (tg : TailG) (n : Nat) :
+    (E : CoPset) (hE : ↑walN ⊆ E) (w : Loc) (dir : GoString) (γ : GName) (tg : TailG) (n i : Nat) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walLenLb (W := W) w dir n -∗
+      walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walOpenWI (W := W) w dir i -∗
+      walLenLb (W := W) w dir i n -∗
       |={E}=> notCrashed (hC := L.goose_crashGS) ∗ walTailKey (W := W) dir γ ∗
-        tailVar (W := W) γ tg ∗ ⌜n ≤ tg.1.length⌝ := by
-  iintro #Hinv Hnc Hk Hv #Hn
+        tailVar (W := W) γ tg ∗ walOpenWI (W := W) w dir i ∗ ⌜n ≤ tg.1.length⌝ := by
+  iintro #Hinv Hnc Hk Hv Hw #Hn
   imod walInv_open C Mr R jr r E hE $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_lenLb C Mr R jr r s w dir γ tg n $$ Hb Hk Hv Hn with ⟨Hb, Hk, Hv, %hn⟩
+  icases walInvBody_lenLb C Mr R jr r s w dir γ tg n i $$ Hb Hk Hv Hw Hn with ⟨Hb, Hk, Hv, Hw, %hn⟩
   imod Hcl $$ [Hb]
   · iexists s; iexact Hb
   imodintro
-  iframe Hnc Hk Hv
+  iframe Hnc Hk Hv Hw
   ipureintro; exact hn
 
 end iris

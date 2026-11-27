@@ -2252,17 +2252,60 @@ theorem RawNode.Advance.tracedSpec_proof
   -- (2026-10-28, the decision switch) A1's decisions join the ghost part; (raft-final, the design's
   -- A1) A1 only after a `Ready` without a snapshot
   ihave #HA1n := HA1 $$ %hsl
-  iunfold undecFree at HA1n
+  iunfold cfgKeepIn at HA1n
   icases HA1n with ⟨%Ma, #HMa, %HMa⟩
   icases ownStepGhost_absorbM γ rs.mode ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s Ma
     $$ [$HMa $Hghost] with ⟨%Hsuba, Hghost⟩
   have Ha1 : ∀ dec c0 h0 h1, rs.mode = .dyn dec c0 h0 h1 →
-      NoUndecConfIn (effDec dec (ds ∪ Ma)) rs.delivered rs.capplied rs.delivered.length := by
+      CfgKeep (effDec dec (ds ∪ Ma)) rs.delivered rs.capplied rs.delivered.length rs.cfg := by
     intro dec c0 h0 h1 hm
     rcases Hsuba with h | h
     · exact (HMa dec c0 h0 h1 hm).mono_dec (effDec_mono dec h)
     · rw [hm] at h; cases h
   generalize ds ∪ Ma = ds at Ha1 ⊢
+  -- (2026-11-24, option D of `notes/raft-restart-confpoint.md`) dynamically, the configuration index
+  -- jumps to the committed log handed out (A1: the configuration kept up to it), so that every
+  -- acknowledgement of the queue, at most there, passes no entry (`ownStepGhost_cidxJump`)
+  obtain ⟨cj, Hcj1, Hcj2, Hcj3, Hcj4, Hcj5⟩ : ∃ cj, rs.capplied ≤ cj ∧
+      cj ≤ max rs.capplied rs.delivered.length ∧ (rs.mode = .static → cj = rs.capplied) ∧
+      (rs.mode.isDyn = true → rs.delivered.length ≤ cj) ∧
+      (rs.mode.isDyn = true → cj = max rs.capplied rs.delivered.length) := by
+    cases hm : rs.mode with
+    | static => exact ⟨rs.capplied, Nat.le_refl _, Nat.le_max_left _ _, fun _ => rfl,
+        fun h => by simp [RNMode.isDyn] at h, fun h => by simp [RNMode.isDyn] at h⟩
+    | dyn _ _ _ _ => exact ⟨max rs.capplied rs.delivered.length, Nat.le_max_left _ _,
+        Nat.le_refl _, fun h => by simp at h, fun _ => Nat.le_max_right _ _, fun _ => rfl⟩
+  icases ownRaftPhysC_logwf cf rnv.raft' id s $$ Hphys with ⟨%Hlw0, Hphys⟩
+  have Hdc : rs.delivered.length ≤ uint.nat s.logst.committed := by
+    have := Hlw0.2; have := uint_nat_eq s.logst.committed
+    have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨cj, rs.cfg, fp, ds⟩) cf id s $$ [Hghost]
+  · cases hm : rs.mode with
+    | static =>
+      have e : cj = rs.capplied := Hcj3 hm
+      iExactEq Hghost; rw [e]
+    | dyn dec c0 h0 h1 =>
+      rw [hm] at Hcj5
+      ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s
+        $$ [Hghost]
+      · iExactEq Hghost; rfl
+      simp only [RNMode.toG]
+      icases ownStepGhost_deliv γ dec c0 h0 ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s rs.delivered
+        (by have := uint_nat_eq s.logst.committed; omega)
+        $$ Hdeliv Hghost with ⟨%Hpre, Hghost⟩
+      rw [Hcj5 rfl]
+      icases ownStepGhost_rinv γ dec c0 h0 _ cf id s $$ Hghost with ⟨%HI, Hghost⟩
+      have Hb2 : max rs.capplied rs.delivered.length ≤ uint.nat s.logst.committed :=
+        Nat.max_le.2 ⟨HI.cidx_commit, Hdc⟩
+      have Hk : CfgKeep (effDec dec ds) (rOf s ⟨rs.capplied, rs.cfg, fp, ds⟩).full rs.capplied
+          (max rs.capplied rs.delivered.length) rs.cfg := by
+        rcases Nat.le_total rs.delivered.length rs.capplied with h | h
+        · rw [Nat.max_eq_left h]; exact CfgKeep.of_le (Nat.le_refl _)
+        · rw [Nat.max_eq_right h]
+          exact (Ha1 dec c0 h0 h1 hm).prefix Hpre (Nat.le_refl _)
+      iapply ownStepGhost_cidxJump γ dec c0 h0 ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s _
+        (Nat.le_max_left _ _) Hb2 Hk
+      iexact Hghost
   ihave Hpend := lentPend_none_elim hsl _ $$ Hpend
   iclear Hret
   wp_auto
@@ -2293,7 +2336,8 @@ theorem RawNode.Advance.tracedSpec_proof
       -- (2026-11-01, durability stage II (m)) the hard state and `offsetInProgress` not back
       "%Hph1" ∷ ⌜HsLe (hsOf s) (hsOf s1) ∧ uint.Z s.logst.inprogress ≤ uint.Z s1.logst.inprogress⌝ ∗
       "%Hca" ∷ ⌜rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length ∧
-                (rs.mode = .static → ca = rs.capplied)⌝ ∗
+                (rs.mode = .static → ca = rs.capplied) ∧
+                (rs.mode.isDyn = true → rs.delivered.length ≤ ca)⌝ ∗
       "%Hok1" ∷ ⌜StepsOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hsb1" ∷ ⌜SelfBound s (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hti1" ∷ ⌜TermInv s s1 (rs.steps.drop (sint.nat n))⌝ ∗
@@ -2311,7 +2355,7 @@ theorem RawNode.Advance.tracedSpec_proof
       -- (step 4) the trace capability at the current state
       "Hrntr" ∷ rnTrace γ rnv.raft' id cf rs.delivered s1)
     $$ [i m ib Hphys Hghost Hsteps Hpend Hrntr]
-  · iexists W64 0, s, steps, null, zero_val w64, rs.capplied
+  · iexists W64 0, s, steps, null, zero_val w64, cj
     have H0 : sint.nat (W64 0) = 0 := rfl
     rw [H0, List.drop_zero, List.drop_zero]
     simp only [named]
@@ -2319,7 +2363,7 @@ theorem RawNode.Advance.tracedSpec_proof
     ipureintro
     refine ⟨by word, ⟨trivial, trivial⟩, Hwf, by simp, ⟨trivial, trivial, trivial⟩, Int.le_refl _, (fun _ h _ => .inl h),
       ⟨HsLe.refl _, Int.le_refl _⟩,
-      (by simp [Nat.le_max_left]),
+      ⟨Hcj1, Hcj2, Hcj3, Hcj4⟩,
       Hstok,
       stepsOk_selfBound s rs.steps Hstok, ⟨Int.le_refl _, by omega, fun _ _ => rfl,
       Hpvoff.2.2.1, Hpvoff.2.2.2.1⟩, ?_, fun _ h => h, Hpvoff.2.2.2.2⟩
@@ -2453,10 +2497,12 @@ theorem RawNode.Advance.tracedSpec_proof
           fun h => absurd (hty.symm.trans h) (by simp [MsgStorageApplyResp, MsgProp])⟩
         have He' := (Hpok e He).2
         rw [Hs1.1] at He'
-        have HA := Ha1 _ _ _ _ hm
-        refine (HA.mono Hca.1 ?_).prefix Hpre ?_
-        · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
-        · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
+        -- (2026-11-24, option D) the index already at the committed log handed out (the jump above)
+        have Hdl := Hca.2.2.2 (by rw [hm]; rfl)
+        apply CfgKeep.of_le
+        show uint.nat e.Index' ≤ ca
+        have := uint_nat_eq e.Index'; have := uint_Z_nonneg s.logst.applying
+        rw [Hdlen] at Hdl; omega
     icases Hres with ⟨%Hpre1, Hghost⟩
     -- (step 4) at a traced node, the term within the ceiling, below the trace's bound
     have HtB1 : γ.reTrace ≠ none →
@@ -2496,7 +2542,8 @@ theorem RawNode.Advance.tracedSpec_proof
       ⟨Hsg2.1.trans Hsg1.1, Hsg2.2.1.trans Hsg1.2.1, Hsg2.2.2.trans Hsg1.2.2⟩,
       Int.le_trans Hc1 Hc12, Hq1.trans Hout2.snapQueue Hti1.1 Hc12,
       ⟨Hph1.1.trans (HsLe.of_step Hout2.voteLe Hc12), Int.le_trans Hph1.2 Hip2⟩,
-      ⟨Nat.le_trans Hca.1 Hca1, ?_, fun h => (Hca3 h).trans (Hca.2.2 h)⟩,
+      ⟨Nat.le_trans Hca.1 Hca1, ?_, fun h => (Hca3 h).trans (Hca.2.2.1 h),
+        fun h => Nat.le_trans (Hca.2.2.2 h) Hca1⟩,
       stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, logStoreRec_stored Hsd2⟩ Hc12 Ha2 (tc_le_of_gh Hsg2.2.2) Hrest,
       fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
       termInv_step s s1 s2 p _ Hok1 Hsb1 Hti1 Ht2 Hps2 Hrl2,
@@ -2629,7 +2676,7 @@ theorem RawNode.Advance.tracedSpec_proof
       exact Hti1.2.2.2.1
     ipureintro
     exact ⟨⟨fun _ => ⟨Hca.1, Hca.2.1⟩, (fun l (h : rs.slent = some l) => by rw [hsl] at h; cases h),
-      Hca.2.2⟩, fun _ => Hcmax⟩
+      Hca.2.2.1⟩, fun _ => Hcmax⟩
 
 end proof
 

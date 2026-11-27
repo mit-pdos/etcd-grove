@@ -934,6 +934,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+/- (T10 session 10) Generic over the apply protocol's image row `IR` (`consInv γA IR`). -/
+variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
 
 /-- **The apply thread's KV over the real backend** (restated over mvcc's API, R8, 2026-11-07;
 until then over mvcc's internals, `txn.isKV`/`soleWriter` at a non-compacting instance): `NewStore`
@@ -1099,7 +1101,7 @@ theorem cindex_hook_backend (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) 
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
-      inv applyN (consInv γA) ∗ applyRegd γA ⊢
+      inv applyN (consInv γA IR) ∗ applyRegd γA ⊢
       {{ backend.batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜backend.hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
@@ -1122,7 +1124,7 @@ theorem cindex_hookFnSpec (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
-      inv applyN (consInv γA) ∗ regdOrLink γA γ ∗
+      inv applyN (consInv γA IR) ∗ regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
@@ -1153,7 +1155,7 @@ theorem backend_server_hooks (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA γ ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA IR) ∗ regdOrLink γA γ ⊢
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b :=
   backend_server_hooks_of storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
     backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
@@ -2585,17 +2587,17 @@ package's, so `applyEntryNormal`'s NOSPACE branch is dead for admin entries too.
 theorem server_apply_admin_not_nospace_on
     (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames)
     (M : auth.AuthMode) (hs : List auth.AuthState) (rq : EtcdGrove.apply.IRRModel)
-    (log : mvcc.Log) (ar : Loc) (out : EtcdGrove.apply.ApplyOut) :
+    (log : mvcc.Log) (ar : Loc) (k : Prop) (out : EtcdGrove.apply.ApplyOut) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars ⊢
       EtcdGrove.apply.applyResultIs rq true log ar out -∗
-      EtcdGrove.apply.adminOut Own γa M hs rq true ar out -∗ EtcdGrove.apply.adminRejErr ar out -∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar k out -∗ EtcdGrove.apply.adminRejErr ar out -∗
       EtcdGrove.apply.applyResultIs rq true log ar out ∗
-      EtcdGrove.apply.adminOut Own γa M hs rq true ar out ∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar k out ∗
       (⌜ar = null⌝ ∨ ∃ err : GoInterface,
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) :=
-  applyResultIs_notNoSpaceAdmin Own γa M hs rq log ar out
+  applyResultIs_notNoSpaceAdmin Own γa M hs rq log ar k out
 
 end applyStateOn
 

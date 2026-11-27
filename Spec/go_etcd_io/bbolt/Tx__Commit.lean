@@ -33,7 +33,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.Commit()` of a write transaction begun at `D = T.base`, with contents `S = T.cur`: the commit point is
 the meta page's write (under `metalock`), where the client's update is fired (`D'` is then `D`:
-the transaction held `rwlock`). On success the data `S` is committed (synced unless `NoSync`).
+the transaction held `rwlock`). On success the data `S` is committed (synced unless `NoSync`). The update is versioned
+(`boltStateV`: the committed txid): it gives the data back at the next version, so that a client can
+tell the state one commit made from one several commits made (`commitAU_of_unversioned` converts an
+update over `boltState`).
 On an error the transaction is rolled back and closed either way, and the commit took effect or
 not: it did when the meta page reached the file before the error (a failed `fdatasync` after
 it; the fork's `2d39641` keeps the freed pages pending then), and the update was fired; else
@@ -55,14 +58,14 @@ whole new one, never a mix; the fork's `rollback` keeps the new one if it became
 abbrev Tx.Commit.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (T : TxView) (Q : IProp GF),
   {{ boltTx (GF := GF) tx γ 1 T ∗ ⌜T.rw = true⌝ ∗
-      AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ⌜D' = T.base⌝ ∗ boltState γ 1 T.cur, COMM Q }> }}
+      AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateV γ 1 D' ν }> @ ⊤ \ ↑γ.ns, ∅
+        <{ ⌜D' = T.base⌝ ∗ boltStateV γ 1 T.cur (ν + 1), COMM Q }> }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Commit")) (Val #()))
   {{ (err : GoInterface), RET #err; txDone tx ∗
       ((⌜err = GoInterface.nil⌝ ∗ Q) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗
-         (Q ∨ AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
-                <{ ⌜D' = T.base⌝ ∗ boltState γ 1 T.cur, COMM Q }>))) }}
+         (Q ∨ AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateV γ 1 D' ν }> @ ⊤ \ ↑γ.ns, ∅
+                <{ ⌜D' = T.base⌝ ∗ boltStateV γ 1 T.cur (ν + 1), COMM Q }>))) }}
 
 end spec
 

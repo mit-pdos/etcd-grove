@@ -39,9 +39,9 @@ variable [sem : go.Semantics]
 a dispatched request's `adminDone` (its step or the model's refusal); a rejected or skipped one
 ran nothing, and the authority with its fuel and the unspent receipt come back. -/
 def apply.adminOut (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames) (M : auth.AuthMode)
-    (hs : List auth.AuthState) (rq : apply.IRRModel) (v3 : Bool) (ar : Loc) :
+    (hs : List auth.AuthState) (rq : apply.IRRModel) (v3 : Bool) (ar : Loc) (k : Prop) :
     apply.ApplyOut → IProp GF
-  | .dispatched _ _ => apply.adminDone Own γa M hs rq v3 ar
+  | .dispatched _ _ => apply.adminDone Own γa M hs rq v3 ar k
   | _ => iprop(Own γa hs ∗ ⧗ 1)
 
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
@@ -70,12 +70,12 @@ abbrev apply.uberApplier.Apply.adminSpec : Prop :=
       Own γa hs ∗ ⧗ 1 ∗ apply.adminWTs E ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗
-    ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
-      apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
+    ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (k : Prop),
+      apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post k ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip)⌝ ∗
       apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
       apply.applyAuthRes E.authMode x.chain rq v3 out ∗ W ∗
-      apply.adminOut Own γa E.authMode hs rq v3 ar out }}
+      apply.adminOut Own γa E.authMode hs rq v3 ar k out }}
 
 end defs
 
@@ -119,9 +119,9 @@ theorem apply.uberApplier.Apply.wp_admin
         Own γa hs ∗ ⧗ 1 ∗ apply.adminWTs E ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True))))
       %(fun ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗
         structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
-        ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
+        ∃ (o : apply.Outcome) (k : Prop), apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post k ∗
           ⌜apply.dispatchStep x.chain rq v3 x.log o⌝ ∗ apply.resTrace ar ∗
-          apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
+          apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar k))
       [Ha Hkv Htt Ho Hrc Hwb HW Hx] as %ar Hpost
   · iframe Hw Ha Hkv Htt Ho Hrc Hwb HW Hx
     isplitr
@@ -138,12 +138,12 @@ theorem apply.uberApplier.Apply.wp_admin
     iapply HΦ'
     simp only []
     iframe Htt Hrt Hres Ha Hrest
-  icases Hpost with (⟨⟨Htt, Hrt, Ha', %o, Hkv, HPP, %Hst', Htr, Hres, HW, Hdone⟩, #Hadm⟩ |
+  icases Hpost with (⟨⟨Htt, Hrt, Ha', %o, %k, Hkv, HPP, %Hst', Htr, Hres, HW, Hdone⟩, #Hadm⟩ |
     ⟨%Hna, ⟨Ha, Hkv, Htt, Ho, Hrc, Hwb, HW, -⟩, Hrej⟩)
   · imodintro
     iapply HΦ
     iframe Htt Hrt
-    iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain, x.crev⟩, (.dispatched o skip), k
     simp only [apply.applyResultIs, apply.applyAuthRes, apply.adminOut]
     iframe Hkv HPP Htr Hres HW Hdone Hadm
     isplitl [Ha']
@@ -161,13 +161,13 @@ theorem apply.uberApplier.Apply.wp_admin
     imodintro
     iapply HΦ
     iframe Htt Hrt
-    iexists x, .rejected
+    iexists x, .rejected, True
     simp only [apply.applyResultIs, apply.applyAuthRes, apply.adminOut]
     iframe Hkv Ho Hrc HW
     isplitl [Ha]
     · iunfold apply.uberOwn; iexists _; iframe Ha HsW Hsh; ipureintro; exact HcE
     isplitl [HPre]
-    · iapply apply.cPost_of_pre
+    · iapply (apply.cPost_of_pre _ _ _ True trivial)
       iexact HPre
     isplitr
     · ipureintro; exact ⟨⟨Hna, rfl⟩, by simp⟩

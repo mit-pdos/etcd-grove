@@ -55,6 +55,9 @@ abbrev raft.becomeLeader.spec : Prop :=
   -- (2026-10-25, T-M M2c) a candidate's (`stepCandidate`): a leader need not be a voter
   s.role ≠ .leader →
   s.term ≠ W64 0 →
+  -- (2026-11-24, the lifetime law) a candidate's term, past the attachment's floor (`StorNames.t0`,
+  -- `ownRaftPhysC_t0`): what a leader's role needs (`LifeOk`)
+  uint.Z s.gh.sn.t0 < uint.Z s.term →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-11, slice 24b) the caller's time receipt

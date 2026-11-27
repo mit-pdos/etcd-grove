@@ -85,7 +85,8 @@ def apply.uberKVC (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
       (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
     {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ apply.revokeOwn E rq ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
-        apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
+        apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out T) ∗
         E.RO (apply.revokeRestA T rq v3 out (apply.restOut rq v3 out rs)) ∗ apply.revokeAnsRA E rq out ar ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧
@@ -132,9 +133,10 @@ abbrev apply.Apply.kvSpecL : Prop :=
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗
       RD ∗ E.FS ∗ apply.revokeOwn E rq ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+      apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out T) ∗
         E.RO (apply.revokeRestA T rq v3 out (apply.restOut rq v3 out rs)) ∗ apply.revokeAnsRA E rq out ar ∗
         ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
@@ -198,7 +200,8 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
         apply.revokeOwn E rq ∗ L hh)
       (fun sk ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ apply.revokeOwn E rq ∗
         ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
-        apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
+        apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out T) ∗
         E.RO (apply.revokeRestA T rq v3 out (apply.restOut rq v3 out rs)) ∗ apply.revokeAnsRA E rq out ar ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o sk) ∧
@@ -228,13 +231,11 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
   · ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
     iapply HΦ
     iframe Htt Hrt HRD HFS Hrv
-    isplitl [HPP]
-    · iapply cPost_if; iexact HPP
     iframe Hok Htr
     isplitr
     · ipureintro; rfl
     iexists x', out
-    iframe Hres HRO Hauth HLt Hra
+    iframe Hres HRO Hauth HLt Hra HPP
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p
       rw [apply.applyStep_crev_nonCmp rq v3 x x' out (fun h => by simp [apply.authKVKind, apply.isKVKind, h] at Hx) Hst.1]
@@ -257,8 +258,6 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn v3 E x.log Pre Q Post $$ Hkv
     iapply HΦ
     iframe Htt Hrt HRD HFS Hrv
-    isplitl [HPre]
-    · iapply cPost_if; iapply apply.cPost_of_pre; iexact HPre
     isplitr
     · iunfold apply.resultErrOk; ileft; ipureintro; rfl
     isplitr
@@ -270,6 +269,10 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     iframe HRO HLt
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
+    isplitl [HPre]
+    · iapply (apply.cPost_of_pre _ _ _ _
+        (apply.applyNoEff_skipped (T := T) (rs := rs) (by simp [apply.applyStep, hns])))
+      iexact HPre
     isplitr
     · itrivial
     isplitr

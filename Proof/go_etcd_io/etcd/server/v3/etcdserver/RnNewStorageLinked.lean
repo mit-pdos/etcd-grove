@@ -59,7 +59,7 @@ theorem walStorSpecs_holds
   exact
     ⟨storage.storage.Save.wp_proof walSrvP walSrvMr
         (walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save walSrvP walSrvMr L.getIndex L.isEmpty
-          L.marshalEnt Lhs L.mustSync L.size L.zero),
+          L.marshalEnt Lhs L.mustSync L.size L.zero (walSrvP_zeroSt proto.MarshalPb.wp_proof)),
       storage.storage.SaveSnap.wp_proof walSrvP walSrvMr
         (walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_SaveSnapshot walSrvP walSrvMr L.isEmpty Lhs),
       storage.storage.Sync.wp_proof walSrvP walSrvMr

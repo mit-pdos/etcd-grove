@@ -227,7 +227,8 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
           (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ apply.applyTok E ∗
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗
+                (Post ∨ (Pre ∗ ⌜oc.logAfter log = log⌝)) ∗ traceRes trace ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
@@ -258,6 +259,10 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iexists oc
   icases HR with ⟨H1, H2, H3, H4, #Hcls, #Hlc⟩
   ihave H2 := kvOwn_of_atP E _ _ $$ H2
+  ihave H4 : iprop(Post ∨ (Pre ∗ ⌜oc.logAfter log = log⌝)) $$ [H4]
+  · icases H4 with (HP | ⟨HP, %h⟩)
+    · ileft; iexact HP
+    · iright; iframe HP; ipureintro; exact h.1
   iframe H1 H2 H3 H4 Htr Htt
   isplitr
   · ipureintro
@@ -279,7 +284,8 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
           (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmDelete cr o log oc⌝ ∗ deleteAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ apply.applyTok E ∗
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗
+                (Post ∨ (Pre ∗ ⌜oc.logAfter log = log⌝)) ∗ traceRes trace ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
@@ -309,6 +315,10 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iexists oc
   icases HR with ⟨H1, H2, H3, H4, #Hcls, -⟩
   ihave H2 := kvOwn_of_atP E _ _ $$ H2
+  ihave H4 : iprop(Post ∨ (Pre ∗ ⌜oc.logAfter log = log⌝)) $$ [H4]
+  · icases H4 with (HP | ⟨HP, %h⟩)
+    · ileft; iexact HP
+    · iright; iframe HP; ipureintro; exact h.1
   iframe H1 H2 H3 H4 Htr Htt
   isplitr
   · ipureintro
@@ -375,7 +385,8 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
           (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗ apply.applyTok E ∗
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗
+                (Post ∨ (Pre ∗ ⌜oc.logAfter log = log⌝)) ∗ traceRes trace ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
@@ -406,6 +417,10 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iexists oc
   icases HR with ⟨H1, H2, H3, H4, #Hcls, #Hlc⟩
   ihave H2 := kvOwn_of_atP E _ _ $$ H2
+  ihave H4 : iprop(Post ∨ (Pre ∗ ⌜oc.logAfter log = log⌝)) $$ [H4]
+  · icases H4 with (HP | ⟨HP, %h⟩)
+    · ileft; iexact HP
+    · iright; iframe HP; ipureintro; exact h.1
   iframe H1 H2 H3 H4 Htr Htt
   isplitr
   · ipureintro
@@ -433,7 +448,8 @@ theorem chain_revoke (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
         {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
             ∃ oc : Outcome, ⌜chainStep backendStep (alarmChain E.authOn ns cr) rq log oc⌝ ∗
               revokeOutcomeIs resp err oc ∗ kvOwn E (oc.logAfter log) ∗
-              chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗
+              chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗
+              (Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ revokeNoEff rq T rs oc⌝)) ∗
               revokeResAfter E rq T rs resp err oc ∗ apply.applyTok E ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
