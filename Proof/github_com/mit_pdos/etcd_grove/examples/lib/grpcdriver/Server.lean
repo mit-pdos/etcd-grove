@@ -64,8 +64,11 @@ theorem Server.wp_proof
   icases Hd with ⟨%mds, %sds, #Hdesc, %Hms⟩
   obtain ⟨hm, hs⟩ := Hms
   try wp_auto
+  ihave #Pgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
+  · iPkgInit
   wp_apply (wp_NewServer slice.nil [] []) $$ [] as %gs Hgs
-  · isplitr
+  · -- (`wp_apply` discharges grpc's `isPkgInit` itself)
+    isplitr
     · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
     · iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).mpr; iempintro
   try wp_auto

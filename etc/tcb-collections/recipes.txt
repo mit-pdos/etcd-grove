@@ -30,7 +30,6 @@ opaque grpcConnOptsRaw
 opaque grpcRepModelOf
 opaque grpcReqModelOf
 opaque grpcSrvPI
-opaque metadata.builtRawMDRaw
 opaque noRefusalAt
 opaque streamRepModelOf
 opaque streamReqModelOf

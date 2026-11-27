@@ -64,7 +64,7 @@ theorem wp_store_hookAny (x : GoString) (h : x ∈ hooksAny) (w : GoInterface)
     {{ RET #(); EtcdGrove.ownInitLb g σ0 }} := by
   wp_start as ⟨Hi, Hown⟩
   unfold internalInit
-  icases Hi with ⟨Ha, -⟩
+  icases Hi with ⟨Ha, -, -⟩
   ihave Hc := (hookCells_mem _ x h) $$ Ha
   wp_apply (wp_store_hook (V := GoInterface) (t := go.any) _ _ g σ0) $$ [Hc Hown] as Hown
   · iframe Hc Hown
@@ -78,7 +78,7 @@ theorem wp_store_hookFunc (x : GoString) (h : x ∈ hooksFunc) {t : go.GoType}
     {{ RET #(); EtcdGrove.ownInitLb g σ0 }} := by
   wp_start as ⟨Hi, Hown⟩
   unfold internalInit
-  icases Hi with ⟨-, Hf⟩
+  icases Hi with ⟨-, Hf, -⟩
   ihave Hc := (hookCells_mem _ x h) $$ Hf
   wp_apply (wp_store_hook (V := GoFunc) (t := t) _ _ g σ0) $$ [Hc Hown] as Hown
   · iframe Hc Hown

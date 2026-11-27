@@ -26,9 +26,10 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
+axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcSrvAtLis
-axiom grpcSrvNew
+axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom os.Getenv.wp_proof
@@ -104,7 +105,6 @@ opaque grpcRepliesFit
 opaque grpcReqModelOf
 opaque grpcSrvPI
 opaque lease.leaseEnc
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk

@@ -32,7 +32,6 @@ opaque apply.semverNorm
 opaque apply.semverValid
 opaque etcdVerifyEnv
 opaque lease.leaseEnc
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk

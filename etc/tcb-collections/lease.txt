@@ -36,7 +36,6 @@ opaque grpcConnOptsRaw
 opaque grpcRepModelOf
 opaque grpcReqModelOf
 opaque grpcSrvPI
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk

@@ -44,7 +44,6 @@ opaque grpcReqModelOf
 opaque grpcSrvPI
 opaque k8sfeature.featureOffRaw
 opaque k8sfeature.featureOnRaw
-opaque metadata.builtRawMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk
 opaque noRefusalAt

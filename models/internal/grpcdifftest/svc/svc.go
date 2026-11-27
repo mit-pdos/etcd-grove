@@ -183,6 +183,8 @@ type Seen struct {
 //	big N             reply N bytes
 //	slow D X          sleep D (a duration), reply X
 //	hdronly CODE      set a header, then fail with CODE (header frame, then trailer)
+//	bighdr N          SendHeader with a header of N bytes (its error is the reply)
+//	bigtrl N          set a trailer of N bytes, reply "bigtrl"
 //
 // Streams: ServerStream sends "1".."N" for "stream N" (then the status of the rest, as above);
 // ClientStream replies with the received values joined by ","; Bidi echoes each message until the
@@ -301,6 +303,14 @@ func run(ctx context.Context, cmd, arg string) (*Msg, error) {
 		case <-ctx.Done():
 		}
 		return M(x), nil
+	case "bighdr":
+		n, _ := strconv.Atoi(arg)
+		err := grpc.SendHeader(ctx, metadata.Pairs("h", strings.Repeat("v", n)))
+		return M(fmt.Sprintf("%v", err)), nil
+	case "bigtrl":
+		n, _ := strconv.Atoi(arg)
+		grpc.SetTrailer(ctx, metadata.Pairs("t", strings.Repeat("v", n)))
+		return M("bigtrl"), nil
 	case "hdronly":
 		grpc.SetHeader(ctx, metadata.Pairs("k", "h"))
 		n, _ := strconv.Atoi(arg)

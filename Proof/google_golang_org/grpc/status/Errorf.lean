@@ -55,6 +55,26 @@ theorem status.Errorf.wp_proof
   iframe H2 H3 H6
   ipureintro; exact ⟨h1, h4, h5, h7⟩
 
+/-- `status.Errorf(c, format, args...)` (`status/status.go:63-65`): `Error(c, fmt.Sprintf(format,
+args...))`. -/
+theorem status.Errorf.wp_proof_args
+    (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG))
+    (wp_Error : status.Error.spec (GF := GF) (hG := hG)) :
+    status.Errorf.spec_args (GF := GF) (hG := hG) := by
+  intro c format ps args_sl xs args dq hf hfits
+  wp_start as ⟨%hc, Hsl, Hargs⟩
+  ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply (wp_Sprintf format ps args_sl xs args dq hf hfits) $$ [$Hsl $Hargs]
+    as %r ⟨Hsl, Hargs, %hr⟩
+  wp_apply (wp_Error c r) $$ [] as %err ⟨%h1, #H2, #H3, %h4, %h5, #H6, %h7⟩
+  · ipureintro; exact hc
+  iapply HΦ
+  iexists r
+  iframe H2 H3 H6 Hsl Hargs
+  ipureintro; exact ⟨hr, h1, h4, h5, h7⟩
+
 end proof
 
 end EtcdGrove

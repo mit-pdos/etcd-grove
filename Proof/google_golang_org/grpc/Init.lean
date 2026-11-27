@@ -4,10 +4,22 @@ Package initialization of `google_golang_org.grpc`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good. Its
+Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good; and (W1,
+2026-11-26) `metadataFromOutgoingContextRaw` holds `metadata.fromOutgoingContextRaw`,
+`globalServerOptions` the nil slice and `defaultServerOptions` its literal (`grpcDefaultSrvOpts`), each
+read-only for good. It runs `defaultServerOptions`' translated initializer, a struct literal of
+constants (until then a goose `[[skip]]`). Its
 initializer initializes its imports, allocates `EnableTracing` (`var EnableTracing bool`,
 `trace.go:33` at v1.84.0: translated, no initializer, so its cell holds `false`), runs the
-untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderListTooLarge`
+(`errors.New` of a constant: Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing`
+(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_linked`) and the slice literals of
+codes `transportFailureCodes` and `http2ErrConvTab` (phase 7 S2 core, 2026-11-23: until then not
+translated, goose `[[skip]]`), runs the
+translated initializer of `metadataFromOutgoingContextRaw` (the type assertion of
+`internal.FromOutgoingContextRaw`, which `metadata`'s fact says holds `metadata.fromOutgoingContextRaw`:
+`grpc/internal/FromOutRaw.lean`, `wp_load_fromOutRaw`; phase 7 S2 core, 2026-11-23, until then a goose
+`[[skip]]`), runs the untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its three translated `init`
 functions (`dialoptions.go`, `rpc_util.go`, `server.go`; phase7-inits, 2026-11-25, until then the
 trust-boundary axiom `initFuncsOk`), which store function values and closures in `internal`'s hook
@@ -23,20 +35,32 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.math.Link
+public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
+public import Proof.encoding.base64.Init
+public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.credentials.Init
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.internal.grpcsync.Init
+public import Proof.google_golang_org.grpc.internal.grpcutil.Init
+public import Proof.google_golang_org.grpc.internal.metadata.Init
+public import Proof.google_golang_org.grpc.internal.stats.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.mem.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
 public import Proof.google_golang_org.grpc.resolver.Init
 public import Proof.google_golang_org.grpc.stats.Init
+public import Proof.google_golang_org.grpc.status.Init
 public import Proof.net.Init
+public import Perennial.Proof.errors.NewVar
+public import Proof.google_golang_org.grpc.internal.FromOutRaw
 public import Proof.google_golang_org.grpc.internal.Hooks
 
 @[expose] public section

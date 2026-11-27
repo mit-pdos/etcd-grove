@@ -85,6 +85,28 @@ theorem rawUrlEncInit_intro
   rw [h1, hp]
   iapply HΦ $$ Hsl
 
+/-- `RawStdEncoding`'s part of the package fact (phase 7 S2 core, 2026-11-23), from the encoding
+it holds. -/
+theorem rawStdEncInit_intro
+    (wp_EncodeToString : base64.Encoding.EncodeToString.spec (GF := GF) (hG := hG))
+    (e : Loc) (enc : _root_.Perennial.encoding.base64.Encoding)
+    (h1 : enc.encode'.arr = _root_.Perennial.encoding.base64.stdAlphabet) (h2 : enc.padChar' = W32 (-1)) :
+    globalAddr _root_.Perennial.encoding.base64.RawStdEncoding ↦□ e -∗ e ↦□ enc -∗
+      _root_.Perennial.encoding.base64.rawStdEncInit (GF := GF) := by
+  iintro #Hg #He
+  iexists e
+  iframe Hg
+  imodintro
+  iintro %sl %dq %d %Φ Hsl HΦ
+  have hp : base64.padOf enc.padChar' = none := by rw [h2]; rfl
+  unfold _root_.Perennial.encoding.base64.rawStdEnc
+  iapply (wp_EncodeToString e enc DFrac.discard sl d dq) $$ [Hsl]
+  · iframe; iexact He
+  inext
+  iintro ⟨-, Hsl⟩
+  rw [h1, hp]
+  iapply HΦ $$ Hsl
+
 /-- `StdEncoding`'s decoder part of the package fact (prove-authcrypto, 2026-11-21), from the encoding
 it holds (`NewEncoding`'s: the standard alphabet, padding `=`, its decode map, not strict). -/
 theorem stdDecInit_intro (wp_DecodeString : base64.Encoding.DecodeString.spec (GF := GF) (hG := hG))

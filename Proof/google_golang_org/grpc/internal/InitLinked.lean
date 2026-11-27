@@ -72,7 +72,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.google_golang_org.grpc.connectivity.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoInterface) ⊤ _ _) $$ HFromOutgoingContextRaw with #CFromOutgoingContextRaw
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoInterface) ⊤ _ _) $$ HSetDefaultBufferPool with #CSetDefaultBufferPool
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoInterface) ⊤ _ _) $$ HSetBufferPoolingThresholdForTesting with #CSetBufferPoolingThresholdForTesting
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoInterface) ⊤ _ _) $$ HCanonicalString with #CCanonicalString
@@ -93,6 +92,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HClearGlobalServerOptions with #CClearGlobalServerOptions
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HHealthCheckFunc with #CHealthCheckFunc
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HBalancerUnregister with #CBalancerUnregister
+  imod (EtcdGrove.grpcInternal.fromOutRaw_alloc (hG := hG) _) $$ HFromOutgoingContextRaw with #CFromOutRaw
   iframe Hown
   imodintro
   isplitr

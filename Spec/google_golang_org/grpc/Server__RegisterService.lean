@@ -1,5 +1,5 @@
 /-
-`(*grpc.Server).RegisterService(sd, ss)` (names only; item 4, the server start): what the generated
+`(*grpc.Server).RegisterService(sd, ss)` (the model's body since W1, 2026-11-26; item 4, the server start): what the generated
 `Register*Server` call.
 -/
 module
