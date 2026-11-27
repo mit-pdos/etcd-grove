@@ -44,7 +44,8 @@ open go_etcd_io.raft.v3
 tick, a proposal's data (`Propose`), a conf change's entry (`ProposeConfChange`: the type and the
 bytes it marshals; parity B3), a read context (`ReadIndex`), `Campaign`, `TransferLeader(to)`,
 `ReportSnapshot` (B3), `ReportUnreachable`, `ApplyConfChange` of the entry at position `k` (B3), a
-storage write's or apply's responses stepped back (async, B2). -/
+storage write's or apply's acknowledgement with its responses stepped back (async, B2: `apply` for an
+apply's, `doneApply`'s drain and note by `"apply"`; a write's by `"write"`). -/
 inductive Input where
   | recv (m : Msg)
   | recvX (x : XMsg)
@@ -57,7 +58,7 @@ inductive Input where
   | snapStatus (to : w64) (ok : Bool)
   | unreachable (to : w64)
   | applyConf (k : Nat)
-  | storeAck (resp : List Msg)
+  | storeAck (resp : List Msg) (apply : Bool)
 
 /-- The `by` of the input's drain (`n.input(by, …)`). -/
 def Input.byE : Input → AntCheck.Str
@@ -69,7 +70,8 @@ def Input.byE : Input → AntCheck.Str
   | .transfer _ => go!"transfer"
   | .snapStatus _ _ => go!"snapstatus"
   | .applyConf _ => go!"apply"
-  | .storeAck _ => go!"write"
+  | .storeAck _ true => go!"apply"
+  | .storeAck _ false => go!"write"
 
 /-- The protocol message the input's drain handles (`n.cause`). -/
 def Input.cause : Input → Option Msg
@@ -116,7 +118,7 @@ def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop
   | .snapStatus to ok, r' => SnapStatusEndR (nodeId n) r r'
   | .unreachable _, r' => r' = r
   | .applyConf _, _ => False
-  | .storeAck resp, r' => StoreAckEndR Adm dec (R.k n) (nodeId n) r resp r'
+  | .storeAck resp _, r' => StoreAckEndR Adm dec (R.k n) (nodeId n) r resp r'
 
 /-- The view once the node has taken an input (before any report): the drain's `by` and cause; its
 `recv` not reported yet. -/
@@ -138,6 +140,15 @@ inductive AdvanceNoSnap (Adm : List EntryM → CCState → Prop) (dec : CCDec) (
 
 /-- The `by`s of the harness's drains (`n.input`'s, and `boot`'s right after the `boot` report). -/
 def DrainBy (b : AntCheck.Str) : Prop := b = go!"boot" ∨ ∃ inp : Input, b = inp.byE
+
+/-- The `by`s of the harness's drains, listed. -/
+theorem drainBy_cases {b : AntCheck.Str} (h : DrainBy b) :
+    b = go!"boot" ∨ b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose" ∨ b = go!"read" ∨
+      b = go!"campaign" ∨ b = go!"transfer" ∨ b = go!"snapstatus" ∨ b = go!"apply" ∨
+      b = go!"write" := by
+  rcases h with rfl | ⟨inp, rfl⟩
+  · exact .inl rfl
+  · rcases inp with _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨_, _ | _⟩ <;> simp [Input.byE]
 
 /-- **How node `n` reached the state `r₁` a `Ready` (or `HasReady`) is taken at**, from its view `v`: no input taken (a drain's, at the view's own
 state), an input taken between inputs (`v` noted it; a message received was sent to it; a protocol

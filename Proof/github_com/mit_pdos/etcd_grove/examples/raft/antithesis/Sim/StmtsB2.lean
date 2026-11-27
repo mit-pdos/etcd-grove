@@ -131,12 +131,12 @@ def NodeFactsD (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
     (R.md.confChanges = false → EntsNormal q.ents)) ∧
   ReadOk v.ps ∧ v.ps.rd.states = []
 
-/-- **A leader's confirmation, B2**: once the disk holds an entry of the leader's term (its win's
-write is made), its `confirmed` is at its term and covers the disk's log (`LeaderConfOk` reads raft's
-whole log, which async, batched and `-parallel` writes announce before the binding's `OnDisk`
-confirms them). -/
+/-- **A leader's confirmation, B2**: once the disk holds raft's whole log (sync) or an entry of the
+leader's term (its win's write is announced), its `confirmed` is at its term and covers the disk's
+log (`LeaderConfOk` reads raft's whole log, which async, batched and `-parallel` writes announce
+before the binding's `OnDisk` confirms them). -/
 def LeaderConfOkD (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
-  (∃ e ∈ v.dur.log, e.Term' = v.ps.term) →
+  (v.dur.log = v.r.full ∨ ∃ e ∈ v.dur.log, e.Term' = v.ps.term) →
     (S.confirmed[n.val]!).term = uint.Z v.ps.term ∧ (v.dur.log.length : Int) ≤ (S.confirmed[n.val]!).index
 
 /-- **C2, a leader's part, B2** (`LeaderPart` with `LeaderConfOkD`). -/
@@ -407,6 +407,16 @@ abbrev antSim_runW0_in.stmt : Prop :=
     InMask msk R net xnet → AntSimD R dec S V net xnet → RaftLaws G → GlobalOk R S net G →
     R.md.async = true → (V n).jobs = j :: js → j.wrec = none → j.ran = false →
     AntSimD R dec S (setV V n { V n with jobs := { j with ran := true } :: js }) net xnet
+
+/-- **The end of a sync batch** (reportless: `flush`'s `note("write")` after the batch's `Advance`): a
+batching node between inputs again takes the next `Ready`'s drain as the write's (`by = "write"`), so
+that the batch's `Advance` is `ReachIn.advance` (whose `DrainBy` has `"write"`, `Input.storeAck`'s). -/
+abbrev antSim_batchEnd_in.stmt : Prop :=
+  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
+    (xnet : List XMsg) (n : Fin R.N),
+    InMask msk R net xnet → AntSimD R dec S V net xnet → R.drv.batch = true → (V n).Idle →
+    AntSimD R dec S (setV V n { V n with byE := go!"write" }) net xnet
 
 /-- **`wrote`** (B 502-504): the announced write is made (async: right after `write`; `-parallel`:
 after its write; batch: after the batch's sends); the undo record goes. -/

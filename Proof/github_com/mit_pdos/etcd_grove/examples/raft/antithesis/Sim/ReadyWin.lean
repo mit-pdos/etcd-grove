@@ -122,8 +122,8 @@ theorem inMemory_win {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
   unfold State.inMemory
   by_cases h0 : uint.Z c = 0
   · have hc0 : decide (uint.Z c > 0) = false := decide_eq_false (by omega)
-    rcases hb with rfl | ⟨inp, rfl⟩ <;> (try cases inp) <;>
-    simp (config := { decide := true }) only [Input.byE, evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+    rcases drainBy_cases hb with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
         InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
         InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
         str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,
@@ -134,8 +134,8 @@ theorem inMemory_win {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
   · have hcn : 0 ≤ uint.Z c := by word
     have hc0 : decide (uint.Z c > 0) = true := decide_eq_true (by omega)
     have hrc := hrec.resolve_left h0
-    rcases hb with rfl | ⟨inp, rfl⟩ <;> (try cases inp) <;>
-    simp (config := { decide := true }) only [Input.byE, evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+    rcases drainBy_cases hb with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
         InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
         InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
         str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,

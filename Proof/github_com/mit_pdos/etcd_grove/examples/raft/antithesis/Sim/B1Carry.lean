@@ -5,9 +5,7 @@ Lean-first (no Rocq counterpart).
 
 `AntSimD` is `AntSim` with conjuncts guarded by the B2 modes or restated over `EffTerm` and the undo
 record, plus the B2 bookkeeping. In a run with the B2 modes off (`SyncB1`), `AntSimD` gives `AntSim`
-(`antSimD_toB1`), once every leader's log has an entry of its term (`LeaderConfOkD` reads its
-confirmation only then; raft's leader appends one at its win, and the sync `ready` that reports the
-win writes it): that is the hypothesis `hterm`. The converse is not a projection: `AntSimD`'s
+(`antSimD_toB1`): sync, the disk is raft's state, which `LeaderConfOkD` reads. The converse is not a projection: `AntSimD`'s
 `EffTerm` forms keep the binding's facts for the terms between a node's undo record and its term,
 which `AntSim` does not say (round 2: each B1 kind restated over `AntSimD`).
 -/
@@ -53,7 +51,6 @@ theorem nodeFactsD_toB1 {R : RunCfg} {n : Fin R.N} {v : NodeView} (hs : SyncB1 R
 
 theorem nodeOkD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N}
     {v : NodeView} (hs : SyncB1 R)
-    (hterm : v.ps.role = .leader → ∃ e ∈ v.r.full, e.Term' = v.ps.term)
     (h : NodeOkD R dec S net n v) : NodeOk R dec S net n v := by
   obtain ⟨hd, hm, hsy, hu, hq, hr, hcl, hf, hl, hc, hp, -, hx, hqs, ht, hca, hxc, hlo, hvs, -⟩ := h
   have hdur : v.dur = durOf v.r := (hsy hs.1 hs.2.1 hs.2.2.1 hs.2.2.2).2.1
@@ -62,19 +59,17 @@ theorem nodeOkD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
     refine ⟨l1, l2, l3, l4, ?_⟩
     have hlog : v.dur.log = v.r.full := by rw [hdur]; rfl
-    obtain ⟨c1, c2⟩ := l5 (by rw [hlog]; exact hterm hrl)
+    obtain ⟨c1, c2⟩ := l5 (.inl hlog)
     exact ⟨c1, by rw [← hlog]; exact c2⟩
   · obtain ⟨c1, c2⟩ := hc hrc
     exact ⟨c1, c2 (by rw [hdur]; rfl)⟩
 
-/-- **`AntSimD` gives `AntSim`** in a run with the B2 modes off, once every leader's log has an entry
-of its term. -/
+/-- **`AntSimD` gives `AntSim`** in a run with the B2 modes off. -/
 theorem antSimD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {V : Fin R.N → NodeView}
     {net : List Msg} {xnet : List XMsg} (hs : SyncB1 R)
-    (hterm : ∀ n, (V n).ps.role = .leader → ∃ e ∈ (V n).r.full, e.Term' = (V n).ps.term)
     (h : AntSimD R dec S V net xnet) : AntSim R dec S V net xnet := by
   obtain ⟨hsh, hb, hn, hx, hv⟩ := h
-  exact ⟨hsh, hb.1, netOkD_toB1 hs.1 hn, xnetOkD_toB1 hx, fun n => nodeOkD_toB1 hs (hterm n) (hv n)⟩
+  exact ⟨hsh, hb.1, netOkD_toB1 hs.1 hn, xnetOkD_toB1 hx, fun n => nodeOkD_toB1 hs (hv n)⟩
 
 end b1carry
 

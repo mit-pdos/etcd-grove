@@ -102,7 +102,7 @@ def Input.InMask (msk : SimMask) : Input → Prop
   | .campaign => msk.campaign = true
   | .snapStatus _ _ => msk.md.snapshots = true
   | .unreachable _ => msk.unreachable = true
-  | .storeAck _ => msk.md.async = true
+  | .storeAck _ _ => msk.md.async = true
 
 /-- `Reach` with the input admitted by the mask. -/
 inductive ReachIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop)

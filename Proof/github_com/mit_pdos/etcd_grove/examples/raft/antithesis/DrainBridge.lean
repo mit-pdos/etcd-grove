@@ -251,7 +251,7 @@ theorem reachIn_b1 {R : AntSim.RunCfg} {dec : CCDec} {Adm : List EntryM → CCSt
       simp only [AntSim.InputStep] at hst; rw [hcc] at hst; exact absurd hst.1 (by simp)
     | snapStatus to ok => simp [ByOk, AntSim.Input.byE] at hby
     | applyConf k => simp only [AntSim.InputStep] at hst
-    | storeAck resp => simp [ByOk, AntSim.Input.byE] at hby
+    | storeAck resp ap => cases ap <;> simp [ByOk, AntSim.Input.byE] at hby
     | _ => simp [AntSim.Input.InMask, AntSim.mskB1]
 
 /-! ## Transfer messages -/
