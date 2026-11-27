@@ -34,6 +34,9 @@ public import Proof.go_etcd_io.raft.v3.RawNode__ReportUnreachableAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__ReadIndexAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__TransferLeaderAbs
 import all Proof.go_etcd_io.raft.v3.InvRawnode
+import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.RawNodeStartSpec
+import Proof.go_etcd_io.raft.v3.InvApi
 
 @[expose] public section
 
@@ -625,6 +628,36 @@ theorem NewRawNode.wp_proofRestartAtApi
   unfold rawNode
   iframe Hrn Hcm Hgen Hfree HrS HF
   ipureintro; exact Hl
+
+/-- (antithesis parity B2) **`StorageHolds_durContents.law`**: a durable state's own contents hold
+it, conjunct by conjunct (the base's term at the base, `entsFrom` at its own base the whole log). -/
+theorem StorageHolds_durContents_holds : StorageHolds_durContents.law := by
+  intro S hb hw
+  refine ⟨Int.le_refl _, plogTermAt_base _ _, ?_, rfl, rfl, hb, hw, Nat.le_refl _, ?_, ?_⟩
+  · show S.ents = S.ents.drop _
+    simp [durContents]
+  · intro sv h
+    simp [durContents] at h
+  · intro h
+    exact absurd rfl h
+
+/-- (antithesis parity B2) **`rawNode_vacate.law`**: `raft_stop` on the node's volatile ghost half
+(`ownStepGhost`'s `ownRaftGhost`), the rest of the node dropped; the vacancy armed at `x` is
+`nodeVacantA`'s body. -/
+theorem rawNode_vacate_holds : rawNode_vacate.law (GF := GF) := by
+  intro md γ rn id rs r qs ip x g E HE
+  unfold Cluster.raftNames at HE ⊢
+  iintro Hnc Hrn Hgv
+  iunfold rawNode at Hrn
+  iNamed Hrn
+  iunfold ownStepGhost at Hghost
+  icases Hghost with ⟨Hg, -⟩
+  imod raft_stop E _ id (toPState s) x g HE $$ Hnc Hgv Hg with ⟨Hnc, Harm⟩
+  imodintro
+  iframe Hnc
+  iunfold EtcdGrove.nodeVacantA
+  iunfold ApiImpl.nodeVacantAU
+  iexact Harm
 
 end specs
 
