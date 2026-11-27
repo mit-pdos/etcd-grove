@@ -58,6 +58,125 @@ theorem ReachIn.syncOff {msk : SimMask} {R : RunCfg} {dec : CCDec} {Adm : List E
     cases inp <;> exact h0
   | advance _ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
 
+/-! ## The binding's facts without the other nodes' unmade acknowledgements
+
+The B1 lemmas read a leader's acknowledgements as `AckIn`; `LeaderPartD` keeps the other nodes'
+outside their unmade writes (`AckInX`). At the state with those acks removed (`stripU`), the B1
+`AckIn` is `AckInX`. -/
+
+open Classical in
+/-- The binding's state without the acks of nodes other than `n` that their unmade writes added. -/
+noncomputable def stripU {N : Nat} (n : Fin N) (S : State) : State :=
+  { S with msgs := S.msgs.filter (fun a => !decide (∃ j : Fin N, j ≠ n ∧ a.type = go!"ack" ∧
+      a.src = nameOf (nodeId j) ∧ ¬ AckOut S j a)) }
+
+theorem stripU_sub {R : RunCfg} {n : Fin R.N} {S : State} {a : Fact} (h : a ∈ (stripU n S).msgs) :
+    a ∈ S.msgs := (List.mem_filter.mp h).1
+
+theorem stripU_keep {R : RunCfg} {n : Fin R.N} {S : State} {a : Fact} (h : a ∈ S.msgs)
+    (hk : ∀ j : Fin R.N, j ≠ n → a.type = go!"ack" → a.src = nameOf (nodeId j) → AckOut S j a) :
+    a ∈ (stripU n S).msgs := by
+  refine List.mem_filter.mpr ⟨h, ?_⟩
+  simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not, not_exists, not_and,
+    Classical.not_not]
+  exact fun j hj ht hs => hk j hj ht hs
+
+theorem stripU_nack {R : RunCfg} {n : Fin R.N} {S : State} {a : Fact} (h : a ∈ S.msgs)
+    (ht : a.type ≠ go!"ack") : a ∈ (stripU n S).msgs :=
+  stripU_keep h fun _ _ h' => absurd h' ht
+
+theorem stripU_self {R : RunCfg} {n : Fin R.N} {S : State} {a : Fact} (h : a ∈ S.msgs)
+    (hs : a.src = nameOf (nodeId n)) : a ∈ (stripU n S).msgs :=
+  stripU_keep h fun j hj _ hs' => absurd (nodeId_inj (nameOf_inj (hs'.symm.trans hs))) hj
+
+theorem stripU_ackX {R : RunCfg} {n j : Fin R.N} {S : State} {t k : Int}
+    (h : AckIn (stripU n S) (nameOf (nodeId j)) (nameOf (nodeId n)) t k) : AckInX S n j t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5⟩ := h
+  refine ⟨a, stripU_sub ha, h1, h2, h3, h4, h5, fun hj => ?_⟩
+  have := (List.mem_filter.mp ha).2
+  simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not, not_exists, not_and,
+    Classical.not_not] at this
+  exact this j hj h1 h2
+
+theorem ackX_stripU {R : RunCfg} {n j : Fin R.N} {S : State} {t k : Int} (h : AckInX S n j t k) :
+    AckIn (stripU n S) (nameOf (nodeId j)) (nameOf (nodeId n)) t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
+  refine ⟨a, stripU_keep ha fun j' hj' _ hs => ?_, h1, h2, h3, h4, h5⟩
+  have e : j' = j := nodeId_inj (nameOf_inj (hs.symm.trans h2))
+  subst e; exact h6 hj'
+
+theorem ackD_stripU {R : RunCfg} {n i : Fin R.N} {S : State} {dst : Str} {t k : Int} (h : AckInD S i dst t k) :
+    AckInD (stripU n S) i dst t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
+  refine ⟨a, stripU_keep ha fun j' _ _ hs => ?_, h1, h2, h3, h4, h5, h6⟩
+  have e : j' = i := nodeId_inj (nameOf_inj (hs.symm.trans h2))
+  subst e; exact h6
+
+theorem stripU_granted {R : RunCfg} {n : Fin R.N} {S : State} (i : Nat) :
+    (stripU n S).granted i = S.granted i := by
+  refine granted_congr i rfl rfl (fun x => ?_) rfl
+  rw [Bool.eq_iff_iff, List.contains_iff_mem, List.contains_iff_mem]
+  exact ⟨stripU_sub, fun h => stripU_nack h (by dsimp only; decide)⟩
+
+theorem ackX_stripX {R : RunCfg} {n j : Fin R.N} {S : State} {t k : Int} (h : AckInX S n j t k) :
+    AckInX (stripU n S) n j t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
+  obtain ⟨b, hb, -⟩ := ackX_stripU ⟨a, ha, h1, h2, h3, h4, h5, h6⟩
+  refine ⟨a, ?_, h1, h2, h3, h4, h5, h6⟩
+  refine stripU_keep ha fun j' hj' _ hs => ?_
+  have e : j' = j := nodeId_inj (nameOf_inj (hs.symm.trans h2))
+  subst e; exact h6 hj'
+
+/-- `NetOkD` holds at the stripped state. -/
+theorem netOkD_stripU {R : RunCfg} {S : State} {net : List Msg} (n : Fin R.N) (h : NetOkD R S net) :
+    NetOkD R (stripU n S) net := by
+  obtain ⟨h1, hrest⟩ := h
+  refine ⟨fun m hm => ?_, hrest⟩
+  obtain ⟨hty, hsrc, j, hdst, hj⟩ := h1 m hm
+  refine ⟨hty, hsrc, j, hdst, fun hle => ?_⟩
+  obtain ⟨r1, r2, r3, r4⟩ := hj hle
+  refine ⟨r1, fun ht => ?_, fun ht => stripU_nack (r3 ht) (by dsimp only; decide), fun ht i hi => ackD_stripU (r4 ht i hi)⟩
+  obtain ⟨f, hf, hfm⟩ := r2 ht
+  rw [voteFact_msgOf] at hf; cases hf
+  exact ⟨_, voteFact_msgOf m m.dst, stripU_nack hfm (by dsimp only; decide)⟩
+
+/-- A node part, unbatched, at the stripped state of its own index. -/
+theorem nodeOkD_stripU {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (hb : R.drv.batch = false) (h : NodeOkD R dec S net n v) : NodeOkD R dec (stripU n S) net n v := by
+  obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hp, -, hx, hqs, rest⟩ := h
+  refine ⟨d1, d2, d3, d4, d5, d6, d7, hf, fun hrl => ?_, fun hrc => ?_, hp,
+    fun hb' => (by rw [hb] at hb'; cases hb'), hx, fun q hq => ?_, rest⟩
+  · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
+    exact ⟨l1, l2, fun j k hk ht => ackX_stripX (l3 j k hk ht), fun j hj => (l4 j hj).imp_right ackX_stripX, l5⟩
+  · obtain ⟨c1, c2⟩ := hc hrc
+    exact ⟨fun j hj => by rw [stripU_granted]; exact c1 j hj, fun hd => stripU_nack (c2 hd) (by dsimp only [State.voteRequest]; decide)⟩
+  · obtain ⟨q1, q2, q3, q4⟩ := hqs q hq
+    refine ⟨q1, q2, q3, ?_⟩
+    rcases q4 with ⟨e, ⟨a1, a2, a, ha, h1, h2, h3, h4, h5⟩ | hv⟩ | hpv
+    · exact .inl ⟨e, .inl ⟨a1, a2, a, stripU_self ha h2, h1, h2, h3, h4, h5⟩⟩
+    · exact .inl ⟨e, .inr hv⟩
+    · exact .inr hpv
+
+/-- And back. -/
+theorem nodeOkD_unstripU {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N}
+    {v : NodeView} (hb : R.drv.batch = false) (h : NodeOkD R dec (stripU n S) net n v) :
+    NodeOkD R dec S net n v := by
+  obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hp, -, hx, hqs, rest⟩ := h
+  refine ⟨d1, d2, d3, d4, d5, d6, d7, hf, fun hrl => ?_, fun hrc => ?_, hp,
+    fun hb' => (by rw [hb] at hb'; cases hb'), hx, fun q hq => ?_, rest⟩
+  · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
+    have tr : ∀ {j : Fin R.N} {t k : Int}, AckInX (stripU n S) n j t k → AckInX S n j t k :=
+      fun ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ => ⟨a, stripU_sub ha, h1, h2, h3, h4, h5, h6⟩
+    exact ⟨l1, l2, fun j k hk ht => tr (l3 j k hk ht), fun j hj => (l4 j hj).imp_right tr, l5⟩
+  · obtain ⟨c1, c2⟩ := hc hrc
+    exact ⟨fun j hj => by rw [← stripU_granted (n := n)]; exact c1 j hj, fun hd => stripU_sub (c2 hd)⟩
+  · obtain ⟨q1, q2, q3, q4⟩ := hqs q hq
+    refine ⟨q1, q2, q3, ?_⟩
+    rcases q4 with ⟨e, ⟨a1, a2, a, ha, h1, h2, h3, h4, h5⟩ | hv⟩ | hpv
+    · exact .inl ⟨e, .inl ⟨a1, a2, a, stripU_sub ha, h1, h2, h3, h4, h5⟩⟩
+    · exact .inl ⟨e, .inr hv⟩
+    · exact .inr hpv
+
 /-- A sync, unbatched node part whose disk is raft's state, no write queued, an announced write not
 made, is the node part of the run with the driver modes off. -/
 theorem nodeOkD_syncOff {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N}
@@ -69,6 +188,7 @@ theorem nodeOkD_syncOff {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} 
   refine ⟨d1, d2, fun _ _ _ _ => ⟨hm, hd, hu⟩, d4, d5, d6, d7, ⟨f1 hb, f2, f3, f4, f5, f6 ha, f7⟩,
     fun hrl => ?_, fun hrc => ?_, hp hb, hx, hqs, ht, hca, hxc, hlo, hvs⟩
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
+    obtain ⟨l3, l4⟩ := leaderPartD_acks l3 l4
     refine ⟨l1, l2, l3, l4, ?_⟩
     have hlog : v.dur.log = v.r.full := by rw [hd]; rfl
     obtain ⟨c1, c2⟩ := l5 (.inl hlog)
@@ -97,20 +217,21 @@ theorem memCommitOk_of_disk {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N}
 
 /-- Back: the node part of the run with the driver modes off is the B2 node part of a `-parallel`
 run, given the B2 bookkeeping of the view before (`w`: the same disk, undo record, queues). -/
-theorem nodeOk_syncOffD {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N}
+theorem nodeOk_syncOffD {R : RunCfg} {dec : CCDec} {S0 : State} {net : List Msg} {n : Fin R.N}
     {v w : NodeView} (ha : R.md.async = false) (hb : R.drv.batch = false)
     (hpar : R.drv.parallel = true) (hm : v.mems = []) (hdu : v.dur = w.dur) (hun : v.undo = w.undo)
-    (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w) (hbo : BindingOk R dec S)
-    (h : NodeOk R.syncOff dec S net n v) : NodeOkD R dec S net n v := by
+    (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w) (hbo : BindingOk R dec S0)
+    (h : NodeOk R.syncOff dec (stripU n S0) net n v) : NodeOkD R dec (stripU n S0) net n v := by
   obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hp, hx, hqs, ht, hca, hxc, hlo, hvs⟩ := h
   have hd : v.dur = durOf v.r := (d3 ha rfl rfl rfl).2.1
   obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := hf
   refine ⟨d1, d2, fun _ _ _ hp0 => (by rw [hpar] at hp0; cases hp0), d4, d5, d6, d7,
     ⟨fun _ => f1, f2, f3, f4, f5, fun _ => f6, f7⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
     fun hb' => (by rw [hb] at hb'; cases hb'), hx, hqs, ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_,
-    fun _ _ => (d3 ha rfl rfl rfl).2.2, memCommitOk_of_disk hbo d1 hd⟩
+    fun _ _ => (d3 ha rfl rfl rfl).2.2, (memCommitOk_of_disk (S := S0) hbo d1 hd :)⟩
   · obtain ⟨l1, l2, l3, l4, l5, l6⟩ := hl hrl
-    refine ⟨l1, l2, l3, l4, fun _ => ⟨l5, ?_⟩⟩
+    refine ⟨l1, l2, fun j k hk ht => ackX_stripX (stripU_ackX (l3 j k hk ht)),
+      fun j hj => (l4 j hj).imp_right fun h => ackX_stripX (stripU_ackX h), fun _ => ⟨l5, ?_⟩⟩
     have hlog : v.dur.log = v.r.full := by rw [hd]; rfl
     rw [hlog]; exact l6
   · obtain ⟨c1, c2⟩ := hc hrc
@@ -171,13 +292,15 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
     rw [hm] at this; exact this
   have hjo := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   have huf := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
-  have hv' := nodeOk_liftC (R := R.syncOff) hqn (nodeOkD_syncOff ha hb hm hd hu hv)
+  have hqn' : (stripU n S).queue[n.val]! = [] := hqn
+  have hv' := nodeOk_liftC (R := R.syncOff) hqn' (nodeOkD_syncOff ha hb hm hd hu (nodeOkD_stripU hb hv))
   have hq : QuietIn msk.b1Of R.syncOff dec Adm net xnet n (V n) ((V n).drainOf r₁ rd) :=
     .silentReady _ r₁ rd hr.syncOff hrop hrep
-  have h1 := nodeOk_unliftC (R := R.syncOff) hqn
-    (nodeOk_quiet (SimMask.b1Of_le hmsk) hin.syncOff hsh.1 (netOkD_toB1L ha hsh.2.2.2.2.2.1 hn) hv' hq)
-  have h2 : NodeOkD R dec S net n ((V n).drainOf r₁ rd) :=
-    nodeOk_syncOffD ha hb hpar hm rfl rfl ((hjo.1 ha).1) ((hjo.1 ha).2) huf hbd.1 h1
+  have h1 := nodeOk_unliftC (R := R.syncOff) hqn'
+    (nodeOk_quiet (SimMask.b1Of_le hmsk) hin.syncOff hsh.1
+      (netOkD_toB1L ha hsh.2.2.2.2.2.1 (netOkD_stripU n hn)) hv' hq)
+  have h2 : NodeOkD R dec S net n ((V n).drainOf r₁ rd) := nodeOkD_unstripU hb
+    (nodeOk_syncOffD ha hb hpar hm rfl rfl ((hjo.1 ha).1) ((hjo.1 ha).2) huf hbd.1 h1)
   have h3 := nodeOkD_pendPerm (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))
     (fun q => by
       show q ∈ _ ↔ q ∈ rd.msgs

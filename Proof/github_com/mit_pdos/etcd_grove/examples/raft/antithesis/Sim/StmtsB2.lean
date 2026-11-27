@@ -143,17 +143,34 @@ def LeaderConfOkD (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Pr
   (v.dur.log = v.r.full ∨ ∃ e ∈ v.dur.log, e.Term' = v.ps.term) →
     (S.confirmed[n.val]!).term = uint.Z v.ps.term ∧ (v.dur.log.length : Int) ≤ (S.confirmed[n.val]!).index
 
-/-- **C2, a leader's part, B2** (`LeaderPart` with `LeaderConfOkD`). -/
+/-- An ack fact of `j` is not one its unmade write added (`OnDisk`'s `pre.msgs`, which a restart
+removes, B 162-194): what `Garbage`'s domination test reads (B 696-706). -/
+def AckOut (S : AntCheck.State) {N : Nat} (j : Fin N) (a : AntCheck.Fact) : Prop :=
+  ∀ u : AntCheck.Pre, S.undo[j.val]! = some u → u.made = false → a ∉ u.msgs
+
+/-- `AckIn` with a witness outside `j`'s unmade write (an acknowledgement `j` has sent: its `send`
+ended the write's undo record, B 1026, and later writes record only new facts). -/
+def AckInD (S : AntCheck.State) {N : Nat} (j : Fin N) (dst : AntCheck.Str) (t k : Int) : Prop :=
+  ∃ a ∈ S.msgs, a.type = go!"ack" ∧ a.src = nameOf (nodeId j) ∧ a.dst = dst ∧ a.term = t ∧
+    k ≤ a.index ∧ AckOut S j a
+
+/-- A leader's `AckIn` for `j`'s acknowledgement: `AckInD` for another node (its `Match` comes from
+a response `j` sent), `AckIn` for itself. -/
+def AckInX (S : AntCheck.State) {N : Nat} (n j : Fin N) (t k : Int) : Prop :=
+  ∃ a ∈ S.msgs, a.type = go!"ack" ∧ a.src = nameOf (nodeId j) ∧ a.dst = nameOf (nodeId n) ∧
+    a.term = t ∧ k ≤ a.index ∧ (j ≠ n → AckOut S j a)
+
+/-- **C2, a leader's part, B2** (`LeaderPart` with `LeaderConfOkD`; the acknowledgements of the other
+nodes outside their unmade writes, `AckInX`). -/
 def LeaderPartD (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
   v.ps.role = .leader →
     S.leaders.contains { server := nameOf (nodeId n), term := uint.Z v.ps.term } ∧
     S.ledLog.get (uint.Z v.ps.term) = .ok (logOf v.r.full) ∧
     (∀ (j : Fin N) (k : w64), uint.Z k ≤ uint.Z (matchOf v.ps (nodeId j)) →
       plogTermAt v.ps.base v.ps.log k = some v.ps.term →
-      AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z k)) ∧
+      AckInX S n j (uint.Z v.ps.term) (uint.Z k)) ∧
     (∀ j : Fin N, j ≠ n → matchOf v.ps (nodeId j) = W64 0 ∨
-      AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term)
-        (uint.Z (matchOf v.ps (nodeId j)))) ∧
+      AckInX S n j (uint.Z v.ps.term) (uint.Z (matchOf v.ps (nodeId j)))) ∧
     LeaderConfOkD S n v
 
 /-- **C2, a candidate's part, B2**: its grants are in `Granted(n)`; its vote request's fact is in
@@ -251,7 +268,8 @@ def NodeOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n 
 term and its unmade write's undo term) is at most the term, so the `currentTerm` forms of
 `TermLenOk`'s and `ConfirmedOk`'s "every node passed it" hold over `EffTerm`; and the state `Boot`
 reverts to (an unmade write's undo record) has the per-node C3 facts: its terms, its commit within
-`chain` and agreeing with it, the acks from the node other than the write's within its term. -/
+`chain` and agreeing with it, the acks from the node other than the write's within its term, and
+those at its term within its confirmed or committed log (they were sent from it). -/
 def UndoBindOk (N : Nat) (S : AntCheck.State) : Prop :=
   (∀ T, 0 < tlOld S.termLen T →
     (∃ l ∈ S.leaders, l.term = T) ∨ ∀ i : Fin N, T < S.effTerm i.val) ∧
@@ -261,7 +279,9 @@ def UndoBindOk (N : Nat) (S : AntCheck.State) : Prop :=
     S.bootTerm ≤ u.term ∧ u.voteTerm ≤ u.term ∧ u.confirmed.term ≤ u.term ∧ 0 ≤ u.commit ∧
     u.commit ≤ S.chain.length ∧
     S.chain.take u.commit.toNat = ((S.log[j.val]!).take u.keep.toNat ++ u.suffix).take u.commit.toNat ∧
-    ∀ a ∈ S.msgs, a ∉ u.msgs → a.type = go!"ack" → a.src = nameOf (nodeId j) → a.term ≤ u.term
+    (∀ a ∈ S.msgs, a ∉ u.msgs → a.type = go!"ack" → a.src = nameOf (nodeId j) → a.term ≤ u.term) ∧
+    ∀ a ∈ S.msgs, a ∉ u.msgs → a.type = go!"ack" → a.src = nameOf (nodeId j) → a.term = u.term →
+      (u.confirmed.term = a.term ∧ a.index ≤ u.confirmed.index) ∨ a.index ≤ u.commit
 
 /-- **C3, B2**: `BindingOk` and the restart facts. -/
 def BindingOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
@@ -293,7 +313,8 @@ term is one some node has written (`EffTerm`: kept by restarts; what `OnDisk`'s 
 in sync mode within its sender's (async sends a heartbeat response or a read answer at raft's
 in-memory term, before its write); what the binding checks at its receipt is in `S` while its
 receiver's `EffTerm` has not passed its term (`GC`'s `Garbage` reads `EffTerm`, B 696-706: a restart
-can bring a passed term back); then `HbCommitOkD` and the rest of `NetOk`. -/
+can bring a passed term back), an acknowledgement's outside its sender's unmade write (`AckInD`);
+then `HbCommitOkD` and the rest of `NetOk`. -/
 def NetOkD (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
   (∀ m ∈ net,
     (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
@@ -310,8 +331,8 @@ def NetOkD (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
         ((m.ty = .voteResp ∧ m.reject = false) →
           ({ type := go!"grant", src := nameOf m.src, dst := nameOf m.dst, term := uint.Z m.term } :
             AntCheck.Fact) ∈ S.msgs) ∧
-        ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
-          AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
+        ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) → ∀ i : Fin R.N, m.src = nodeId i →
+          AckInD S i (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
   HbCommitOkD R.N S net ∧ NetShape net ∧ LeadCommitMsgOkD R.N S net ∧ (∀ m ∈ net, MsgMask R m) ∧
   (∀ m ∈ net, PreVoterOk R m) ∧ ∀ m ∈ net, m.ty = .readIndexResp → MsgNums (2 ^ 61) m
 

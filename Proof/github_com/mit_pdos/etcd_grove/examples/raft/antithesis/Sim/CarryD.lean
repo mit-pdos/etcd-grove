@@ -95,6 +95,67 @@ theorem gcRes_ack_keepE {src : Str} {t k : Int} (j : Fin R.N) (h : AckIn S src (
   · have := hmax b hb ⟨hb1, hb2.trans h2, hb3.trans h3, hb4.trans h4, by omega⟩
     omega
 
+/-- `Garbage`'s domination of an ack is by one outside its sender's undo record (B 700-704). -/
+theorem garbage_ackU {f : Fact} (hf : f ∈ g) (ht : f.type = go!"ack") (j : Fin R.N)
+    (hd : f.dst = nameOf (nodeId j)) (i : Fin R.N) (hs : f.src = nameOf (nodeId i)) :
+    S.effTerm j.val > f.term ∨ ∃ a ∈ S.msgs, a.type = go!"ack" ∧ a.src = f.src ∧ a.dst = f.dst ∧
+      a.term = f.term ∧ a.index > f.index ∧ ∀ u, S.undo[i.val]! = some u → a ∉ u.msgs := by
+  unfold State.garbage at hg
+  have h := (filterM_mem hg hf).2
+  simp (config := { decide := true }) only [ht, hd, idx_name hc, ite_true, ite_false, epure, eok_bind,
+    Bool.false_eq_true] at h
+  by_cases he : S.effTerm j.val > f.term
+  · exact .inl he
+  · right
+    rw [if_neg (by simpa using he)] at h
+    obtain ⟨a, ha, h⟩ := anyM_true h
+    refine ⟨a, ha, ?_⟩
+    by_cases hcond : (a.type == go!"ack" && a.src == f.src && a.dst == nameOf (nodeId j) && a.term == f.term &&
+        decide (a.index > f.index)) = true
+    · rw [if_pos hcond] at h
+      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hcond
+      obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := hcond
+      rw [h2, hs, idx_name hc, eok_bind] at h
+      refine ⟨h1, h2, h3.trans hd.symm, h4, h5, fun u hu hm => ?_⟩
+      rw [hu] at h
+      simp only [epure] at h
+      simp at h
+      exact h hm
+    · rw [if_neg hcond] at h; cases h
+
+/-- `GC` keeps an ack outside its sender's undo record, with any property its being outside gives. -/
+theorem gcRes_ackG_keepE {t k : Int} (i j : Fin R.N) (Q : Fact → Prop)
+    (hQ : ∀ a, (∀ u, S.undo[i.val]! = some u → a ∉ u.msgs) → Q a)
+    (h : ∃ a ∈ S.msgs, a.type = go!"ack" ∧ a.src = nameOf (nodeId i) ∧ a.dst = nameOf (nodeId j) ∧
+      a.term = t ∧ k ≤ a.index ∧ Q a)
+    (hle : S.effTerm j.val ≤ t) :
+    ∃ a ∈ (gcRes S g o).msgs, a.type = go!"ack" ∧ a.src = nameOf (nodeId i) ∧
+      a.dst = nameOf (nodeId j) ∧ a.term = t ∧ k ≤ a.index ∧ Q a := by
+  obtain ⟨a, ha, hP, hmax⟩ := exists_max (fun a : Fact => a.index)
+    (fun a => a.type = go!"ack" ∧ a.src = nameOf (nodeId i) ∧ a.dst = nameOf (nodeId j) ∧ a.term = t ∧
+      k ≤ a.index ∧ Q a) S.msgs h
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hP
+  refine ⟨a, lset_minus_mem.mpr ⟨ha, fun hag => ?_⟩, h1, h2, h3, h4, h5, h6⟩
+  rcases garbage_ackU hc hg hag h1 j h3 i h2 with he | ⟨b, hb, hb1, hb2, hb3, hb4, hb5, hb6⟩
+  · omega
+  · have := hmax b hb ⟨hb1, hb2.trans h2, hb3.trans h3, hb4.trans h4, by omega, hQ b hb6⟩
+    omega
+
+theorem gcRes_ackD_keepE {t k : Int} (i j : Fin R.N) (h : AckInD S i (nameOf (nodeId j)) t k)
+    (hle : S.effTerm j.val ≤ t) : AckInD (gcRes S g o) i (nameOf (nodeId j)) t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
+  obtain ⟨b, hb, b1, b2, b3, b4, b5, b6⟩ := gcRes_ackG_keepE hc hg i j (AckOut S i)
+    (fun a ha' u hu _ => ha' u hu) ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ hle
+  exact ⟨b, hb, b1, b2, b3, b4, b5, b6⟩
+
+theorem gcRes_ackX_keep {t k : Int} (n j : Fin R.N) (h : AckInX S n j t k)
+    (hle : S.currentTerm[n.val]! ≤ t) : AckInX (gcRes S g o) n j t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
+  obtain ⟨b, hb, b1, b2, b3, b4, b5, b6⟩ := gcRes_ackG_keepE hc hg j n (fun a => j ≠ n → AckOut S j a)
+    (fun a ha' _ u hu _ => ha' u hu) ⟨a, ha, h1, h2, h3, h4, h5, h6⟩
+    (Int.le_trans (effTerm_le S n.val) hle)
+  exact ⟨b, hb, b1, b2, b3, b4, b5, b6⟩
+
 /-- `GC` keeps the restart facts. -/
 theorem gc_undoBindOk (h : UndoBindOk R.N S) : UndoBindOk R.N (gcRes S g o) := by
   obtain ⟨h1, h2, h3⟩ := h
@@ -110,8 +171,9 @@ theorem gc_undoBindOk (h : UndoBindOk R.N S) : UndoBindOk R.N (gcRes S g o) := b
       · exact .inr (.inl ((gcRes_has (g := g) (o := o) hov).trans h))
       · exact .inr (.inr fun i => over_true_lt hc hov i)
     · exact .inr (.inr h)
-  · obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := h3 j u hu hm
-    exact ⟨a1, a2, a3, a4, a5, a6, fun a ha => a7 a (gcRes_msgs_sub ha)⟩
+  · obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8⟩ := h3 j u hu hm
+    exact ⟨a1, a2, a3, a4, a5, a6, fun a ha => a7 a (gcRes_msgs_sub ha),
+      fun a ha => a8 a (gcRes_msgs_sub ha)⟩
 
 /-- `GC` keeps C4 over `EffTerm`. -/
 theorem gc_netOkD {net : List Msg} (h : NetOkD R S net) : NetOkD R (gcRes S g o) net := by
@@ -129,9 +191,10 @@ theorem gc_netOkD {net : List Msg} (h : NetOkD R S net) : NetOkD R (gcRes S g o)
     rw [voteFact_msgOf] at hf; cases hf
     exact ⟨_, voteFact_msgOf m m.dst, gcRes_vote_keep hc hg hfm rfl hov⟩
   · exact gcRes_grant_keepE hc hg (r3 ht) rfl j (by rw [hdst]) hle
-  · have := r4 ht
+  · intro i hi
+    have := r4 ht i hi
     rw [hdst] at this ⊢
-    exact gcRes_ack_keepE hc hg j this hle
+    exact gcRes_ackD_keepE hc hg i j this hle
 
 /-- `GC` keeps a node's part, without batching. -/
 theorem gc_nodeOkD (ho : S.oldVotes = .ok o) {dec : CCDec} {net : List Msg} (hbat : R.drv.batch = false)
@@ -147,11 +210,11 @@ theorem gc_nodeOkD (ho : S.oldVotes = .ok o) {dec : CCDec} {net : List Msg} (hba
     · exact List.contains_iff_mem.mpr (gcRes_leaders_keep (List.contains_iff_mem.mp hl1) hov)
     · rw [gcRes_get hov]; exact hl2
     · intro j k hk hkt
-      exact gcRes_ack_keep hc hg n (hl3 j k hk hkt) hct
+      exact gcRes_ackX_keep hc hg n j (hl3 j k hk hkt) hct
     · intro j hj
       rcases hl4 j hj with h | h
       · exact .inl h
-      · exact .inr (gcRes_ack_keep hc hg n h hct)
+      · exact .inr (gcRes_ackX_keep hc hg n j h hct)
   · intro hcand
     obtain ⟨hC1, hC2⟩ := hC hcand
     refine ⟨fun j hj => ?_, fun hdt => gcRes_vote_keep hc hg (hC2 hdt) rfl (over_false hc n (Int.le_refl _))⟩

@@ -31,13 +31,58 @@ variable [GooseExts]
 def SyncB1 (R : RunCfg) : Prop :=
   R.md.async = false ∧ R.drv.batch = false ∧ R.drv.split = 0 ∧ R.drv.parallel = false
 
+theorem AckInD.toAckIn {N : Nat} {S : AntCheck.State} {i : Fin N} {dst : AntCheck.Str} {t k : Int}
+    (h : AckInD S i dst t k) : AckIn S (nameOf (nodeId i)) dst t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, -⟩ := h
+  exact ⟨a, ha, h1, h2, h3, h4, h5⟩
+
+theorem AckInX.toAckIn {N : Nat} {S : AntCheck.State} {n j : Fin N} {t k : Int}
+    (h : AckInX S n j t k) : AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, -⟩ := h
+  exact ⟨a, ha, h1, h2, h3, h4, h5⟩
+
+/-- `LeaderPartD`'s acknowledgements are `LeaderPart`'s. -/
+theorem leaderPartD_acks {N : Nat} {S : AntCheck.State} {n : Fin N} {v : NodeView}
+    (h3 : ∀ (j : Fin N) (k : w64), uint.Z k ≤ uint.Z (matchOf v.ps (nodeId j)) →
+      plogTermAt v.ps.base v.ps.log k = some v.ps.term → AckInX S n j (uint.Z v.ps.term) (uint.Z k))
+    (h4 : ∀ j : Fin N, j ≠ n → matchOf v.ps (nodeId j) = W64 0 ∨
+      AckInX S n j (uint.Z v.ps.term) (uint.Z (matchOf v.ps (nodeId j)))) :
+    (∀ (j : Fin N) (k : w64), uint.Z k ≤ uint.Z (matchOf v.ps (nodeId j)) →
+      plogTermAt v.ps.base v.ps.log k = some v.ps.term →
+      AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z k)) ∧
+    (∀ j : Fin N, j ≠ n → matchOf v.ps (nodeId j) = W64 0 ∨
+      AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term)
+        (uint.Z (matchOf v.ps (nodeId j)))) :=
+  ⟨fun j k hk ht => (h3 j k hk ht).toAckIn, fun j hj => (h4 j hj).imp_right AckInX.toAckIn⟩
+
+/-- `NetOkD`'s receipt facts for a message give `NetOk`'s. -/
+theorem netRcD_toB1 {N : Nat} {S : AntCheck.State} {m : Msg} {i : Fin N} (hi : m.src = nodeId i)
+    (h : ((m.ty = .app ∨ m.ty = .heartbeat) →
+          (AntCheck.toAppendFact (msgOf m m.dst) >>= S.sendable) = .ok true) ∧
+        (m.ty = .vote → ∃ f, AntCheck.voteFact (msgOf m m.dst) = .ok f ∧ f ∈ S.msgs) ∧
+        ((m.ty = .voteResp ∧ m.reject = false) →
+          ({ type := go!"grant", src := nameOf m.src, dst := nameOf m.dst, term := uint.Z m.term } :
+            AntCheck.Fact) ∈ S.msgs) ∧
+        ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) → ∀ i : Fin N, m.src = nodeId i →
+          AckInD S i (nameOf m.dst) (uint.Z m.term) (uint.Z m.index))) :
+    ((m.ty = .app ∨ m.ty = .heartbeat) →
+          (AntCheck.toAppendFact (msgOf m m.dst) >>= S.sendable) = .ok true) ∧
+        (m.ty = .vote → ∃ f, AntCheck.voteFact (msgOf m m.dst) = .ok f ∧ f ∈ S.msgs) ∧
+        ((m.ty = .voteResp ∧ m.reject = false) →
+          ({ type := go!"grant", src := nameOf m.src, dst := nameOf m.dst, term := uint.Z m.term } :
+            AntCheck.Fact) ∈ S.msgs) ∧
+        ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
+          AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)) :=
+  ⟨h.1, h.2.1, h.2.2.1, fun ht => by rw [hi]; exact (h.2.2.2 ht i hi).toAckIn⟩
+
 /-- `NetOkD` gives `NetOk` (sync) given the disk form of the leaders' commits on their messages. -/
 theorem netOkD_toB1 {R : RunCfg} {S : AntCheck.State} {net : List Msg} (hs : R.md.async = false)
     (h : NetOkD R S net) (hlc : LeadCommitMsgOk R.N S net) : NetOk R S net := by
   obtain ⟨h1, hhb, h3, -, h5, h6, h7⟩ := h
   refine ⟨fun m hm => ?_, fun m hm hty j hj hle => (hhb m hm hty j hj).1 hle, h3, hlc, h5, h6, h7⟩
   obtain ⟨hty, ⟨i, hi, -, hti⟩, j, hj, hrc⟩ := h1 m hm
-  exact ⟨hty, ⟨i, hi, hti hs⟩, j, hj, fun hle => hrc (Int.le_trans (effTerm_le S j.val) hle)⟩
+  exact ⟨hty, ⟨i, hi, hti hs⟩, j, hj,
+    fun hle => netRcD_toB1 hi (hrc (Int.le_trans (effTerm_le S j.val) hle))⟩
 
 /-- With no `mem` queued, the in-memory commit is the disk's. -/
 theorem memCommit_nil {S : AntCheck.State} {i : Nat} (hq : S.queue[i]! = []) :
@@ -84,7 +129,8 @@ theorem netOkD_toB1L {R : RunCfg} {S : AntCheck.State} {net : List Msg} (hs : R.
   obtain ⟨h1, hhb, h3, h4, h5, h6, h7⟩ := h
   refine ⟨fun m hm => ?_, fun m hm hty j hj hle => ?_, h3, fun m hm hty i hi hro hct => ?_, h5, h6, h7⟩
   · obtain ⟨hty, ⟨i, hi, -, hti⟩, j, hj, hrc⟩ := h1 m hm
-    exact ⟨hty, ⟨i, hi, hti hs⟩, j, hj, fun hle => hrc (Int.le_trans (effTerm_le S j.val) hle)⟩
+    exact ⟨hty, ⟨i, hi, hti hs⟩, j, hj,
+    fun hle => netRcD_toB1 hi (hrc (Int.le_trans (effTerm_le S j.val) hle))⟩
   · rcases (hhb m hm hty j hj).1 hle with h | h
     · exact .inl h
     · exact .inr (Int.le_trans h (le_liftC S j.val))
@@ -124,6 +170,7 @@ theorem nodeOkD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List
   refine ⟨hd, hm, hsy, hu, hq, hr, hcl, nodeFactsD_toB1 hs hf, fun hrl => ?_, fun hrc => ?_,
     hp hs.2.1, hx, hqs, ht, hca, hxc, hlo, hvs⟩
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
+    obtain ⟨l3, l4⟩ := leaderPartD_acks l3 l4
     refine ⟨l1, l2, l3, l4, ?_⟩
     have hlog : v.dur.log = v.r.full := by rw [hdur]; rfl
     obtain ⟨c1, c2⟩ := l5 (.inl hlog)
