@@ -1110,7 +1110,7 @@ theorem api_committed_cert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑
   icases Hci with ⟨%HNs, #Hcinv, #Hinv, -⟩
   unfold apiInv apiInvBody
   have Ha := apiN_sub N HE
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, %RL, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >#Hcf, >HRF, >#HRk, #HRFok, HRL⟩ Hclose
   ihave #Hli := raftCommitInv_log γ.raft $$ Hcinv
   have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
@@ -1125,11 +1125,11 @@ theorem api_committed_cert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑
   · inext
     iexists P
     iframe HP Hj Htbl Hwt Hds Hq1
-  imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+  imod Hclose $$ [HrL Hfull Hops HF HRF HRL] with -
   · inext
-    iexists P, F, RF
+    iexists P, F, RF, RL
     unfold rLog
-    iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok
+    iframe HrL Hfull Hops HF HFok Hcf HRF HRk HRFok HRL
     ipureintro; exact Hidx
   imodintro
   iright
