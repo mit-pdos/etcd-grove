@@ -24,7 +24,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom WithRequireLeader.wp_proof
 axiom addrClaim
 axiom apply.memberEnc_id_learner

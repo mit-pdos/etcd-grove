@@ -55,7 +55,6 @@ axiom Perennial.raxos.hyp.proto.Unmarshal.wp_proof
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addrClaim
@@ -150,7 +149,6 @@ axiom grpcResolverAt
 axiom grpcSrvAtLis
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
-axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
 axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof

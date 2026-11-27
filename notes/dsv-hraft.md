@@ -22,6 +22,9 @@ The trust added is none:
 - no goose `[[skip]]` or names-only entry (there is no `Dsverify/Code/github_com/hashicorp/**.toml`);
 - no `TrustedCode`, axiom, `sorry` or `HYP_INITS`.
 
+**P1-P3 (2026-11-27): the lab's specs and defs ported** ("Port of the lab proof" below); still no proof of a
+function, no axiom, `sorry` or premise.
+
 ## Provenance
 
 | | |
@@ -72,17 +75,43 @@ The fork's other comments citing `verify/notes/decisions.md` (D17 in `replicatio
 
 ## Package facts and initializers
 
-`Dsverify/Proof/github_com/hashicorp/raft{,/examples/snapstore}/Base.lean` are hand-written. Each fact
-is the package's `errors.New` variables' `errors.newVar`s, as craq's: raft's 17 and snapstore's 2.
-raft's other variables (`keyCurrentTerm`, `keyLastVoteTerm`, `keyLastVoteCand`, `nextObserverID`)
-are allocated and initialized but not yet in the fact.
+`Dsverify/Proof/github_com/hashicorp/raft{,/examples/snapstore}/Base.lean` hold the facts; the `Init.lean`
+files are generated (`etc/gen-init.py`, configured by `etc/dsv/hraft.py`'s `special`), never edited by hand.
 
-S2 replaces raft's fact by the lab's `pkgGlobals`, which adds:
+- **raft** (since P3): the lab's `pkgGlobals`, statement unchanged: the error variables hold pairwise distinct
+  errors, each `errors.newVar` of its message (`errVals`, `isRaftErr`); the three stable-store keys hold
+  read-only bytes; `nextObserverID` is in an invariant. Its proof is the lab's `initialize.lean`, moved into
+  `hraft.py`'s `raft_cfg` (the generated steps) and `InitLemmas.lean` (its lemmas: `exclS` keeps three quarters
+  of each new `errorString`'s field, so the variables' values are distinct, `exclS_nodup`; `wp_New_excl` also
+  returns the persistent quarter, which Perennial's `errors.newVar` now holds).
+- **snapstore**: the lab's `isInit` (its two `errors.newVar`s, named), from its `errors.New` variables, as craq's.
 
-- the errors' pairwise distinctness (`errVals`, via `exclS`);
-- the keys' read-only bytes;
-- `nextObserverID`'s invariant.
+## Port of the lab proof (S2/S3)
 
-That replacement changes `hraft.py`'s `special` (the lab's `initialize.lean` is the proof to move
-into the generated `finish`). The `Init.lean` files are generated (`etc/gen-init.py`); edit the
-script's configuration in `etc/dsv/hraft.py`, never the files.
+The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift catalogue
+`/shared/tmp/ps2/hraft/DRIFT.md`); every ported file starts with its lab path.
+
+- **P1/P2** (`bc8f931ab5`): `proto/`, `gprot/`, `Threads/` (QTok re-proved over leveled thread tokens).
+- **P3** (branch `hraft-p3/2026-11-27`): every spec (`Dsverify/Spec/github_com/hashicorp/raft/`, 171 files:
+  the lab's but `initialize`; `examples/snapstore/`: 9 of the lab's, and the 5 of the readers that moved from
+  inproc, `NewReader`, `Reader.Read`, `Reader.Close`, `ReadAll`, `copyBytes`, now snapstore's) and the defs
+  modules (`EncodingLemmas`, `iface/`, `core/`, `leader/`, `handlers/`, `main/`, `DeferRespond`, the top-level
+  `*Base`, `Repl*`, `Snap*`). Statements unchanged. Fixes: channel AUs are `|NC=…` now (`iapply
+  ncfupd_of_fupd` before an `iinv`), and `lowMask_8`'s `bv_decide` is a kernel proof. The lab's `KitStd.Spec.io.Copy`
+  becomes `Spec/io/Copy.lean` in the main tree (no general `io.Copy` spec existed), still to prove over
+  Perennial's `io.Copy` body (P4). Not ported (the dropped harness): `inproc` (but its readers), `recorder`,
+  `kvmodel`, porcupine, `hr3`, `Goal`, `DsvStatement`.
+- **P4** (next): the 185 code-proof files, in four independent groups (`/shared/tmp/ps2/hraft/P4-SPLIT.md`).
+  Two lab axioms are to be proved there: `fmt.wp_Errorf_tnErr` (`FmtErrorf.lean`) and `io.Copy`'s.
+  - **Group C** (branch `hraft-p4c/2026-11-27`): layers 3-5 (21 files). `Raft__installSnapshot` takes
+    `io.Copy.spec` and `io.Copy_Discard.spec` as callee hypotheses, as for raft's own callees (the lab used
+    `KitStd.Axiom.io.Copy` directly). **`Spec/io/Copy.lean` is not provable as stated** over Perennial's
+    `io.Copy`/`copyBuffer`: (1) a reader of dynamic type `*io.LimitedReader` is not a `WriterTo`, so the spec
+    admits it, and then `copyBuffer` loads `l.N`, which `io.streamReader` does not own: the spec needs a
+    premise `ts ≠ go.PointerType LimitedReader.ty` (installSnapshot's reader, `*countingReader`, meets it);
+    (2) `copyBuffer` compares the reader's error with `io.EOF`, which the model steps only for an error
+    whose pointer-typed value is a location (`io.ptrTyped`, as `io.errAt` carries it): `io.streamReader`'s
+    `err` needs it; (3) `io.Copy_Discard.spec`'s `w` is any value `Discard` holds: Perennial's `io` fact
+    (`io.isInit`, `"#HDiscard"`) says only that `Discard` holds some fixed `Writer`, not `discard{}`, and
+    says nothing of `blackHolePool`, which `discard.ReadFrom` takes its buffer from: proving it needs that
+    fact strengthened in Perennial (its initializer stores `discard{}`; mechanical). Left to the link (P5).
