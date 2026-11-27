@@ -3294,6 +3294,100 @@ T10s3b-1 (the head's Lean unchanged since session 3, its build green). Waiting o
 then B3 per the corrected design (new `isNotifyD`, the job deposited at send 1), B4 (trivial), B5, B6, B7, B8.
 No axiom, `sorry`, `Spec/`, trusted or Lean text changed.
 
+### T10 step 3 (B), session 5 (2026-11-27, branch `etcd-safe-t10s3b-a/2026-11-27`; draft under option (a))
+
+Branch off `7ff538e61d` (session 4's head), same tree and manifest as Handoff T10s3b-1. The lead had not answered
+session 4's (a)/(b); the user approved going on under **(a)** (the axioms' meaning follows the changed definitions)
+as a draft, with every change in an axiom's meaning recorded below for the lead and Upamanyu.
+
+**B3, part 1 done (built green, 10367 jobs: `NewServerCrash`, the server's `Link`, and the 54 axiom-declaring
+modules of the unfolding check; log `/shared/tmp/t10s3b-s5-b4.log`).** Commit `40f3dbc3c9`.
+* `NotifyCD.lean` (new): the deposit-first notify. `isNotifyD γ ch Q R` (the sender's: send 1 deposits `Q`, the
+  receive takes it and deposits `R`, send 2 takes `R`), `isNotifyDR γ ch Q R := ∃ Q0, □ (Q0 -∗ Q) ∗ isNotifyD γ ch Q0 R`
+  (the receiver's view, so the apply side can restate `Q` over its own copy of the field), `isNotifyDR_of`,
+  `start_notifyD`, `notifyD_send1_au`/`_send2_au`/`_recv_au`, `wp_notifyD_send1`, `wp_notifyD_receive` (post `Q`).
+* `rnApN` (`InvRaftNode.lean`): `notifyc` at `isNotifyD γnc ap.notifyc' (rnReplayJob γ ap.replayTerms' ap.raftTerm' n)
+  (rnApR γ F ce)`; the payload's own `rnReplayJob` conjunct is gone. `rnApplyTok_recv` (`InvRaftLoop.lean`) likewise.
+* `Spec/…/EtcdServer__applyAll.lean`, `applyAll.specBatch` (ledger entry 2026-11-27 first): `taReplayBatch ap γn rt n`
+  → `taReplayField ap`; `isNotify γnc nc R` → `isNotifyDR γnc nc (taReplayBatch ap γn rt n) R`. The proof receives
+  the job at `<-apply.notifyc` (`wp_notifyD_receive`), before its one use (the merge).
+* `EtcdServer__run.lean`: the batch lemma's spec the same; the payload's `isNotifyD` turned into the spec's
+  `isNotifyDR` over `ap_ptr`'s `replayTerms` field (`isNotifyDR_of`).
+* `raftNode__start.lean`: `start_notifyD` moved after the replay view `next` is computed (a ghost step; the channel
+  is untouched in between), the two first sends deposit the job (`wp_notifyD_send1 … $$ [… $Hjob]`), the second sends
+  `notifyD_send2_au`. **The job is still `rnReplayState.job` of `replayPending`** (the old evidence): part 2 replaces it.
+* `ReplayJob.lean` (built, not yet used): `rnLeadLaw_enterE` (B1's lemma at any mask holding `srvClusterN`,
+  `srvConfN`, `srvLogN`; the law's wand stays at `⊤`), `rnReplayJob_of_lead` (`rnReplayHist γ view S n`,
+  `rnRestartOk`, `rnLeadLaw γ S`, `S.base.index ≤ n`, `S.term = rt ∨ rt = 0` ⊢ `rnReplayJob γ view rt n`), and
+  `rnDurK_leadLaw` (the law at the loop's *enter*: opens the WAL's crash-aware invariant `rnDurInvK`, whose body holds
+  `raftState … (durOf vk)`, with `notCrashed`, a credit and the loop's `rnWalViewK νk vk`; gives `rnLeadLaw γ (durOf vk)`).
+* Checks: the unfolding check (`AxCheck5.lean`, below), `etc/tier-check.py --check` ok. No axiom, `sorry`, trusted
+  text or axiom statement changed.
+
+**B3 part 2 (next): the job from the history and the law** (`raftNode__start.lean`, entries arm; then the seeds).
+1. The loop's `Hhistory` from `rnReplayState γ view n` to `rnReplayHist γ view S n` at the driver's durable state
+   (session 2's switch list, items 1-3: `rnWorkerStartTok`'s seed, `rnLoopTokP` exposing `S`, the seeds in
+   `NodeStartLinked.lean:202,494,502`/`NodeStart.lean:147`, the snapshot arm `:523/:526` (`.empty`, `.appendEntries`),
+   the entries arm's `.appendEntries` (with `below`/`here` from `plogTermAt_next_batch` at the entered state `S'`),
+   the join and `.after`). `rnReplayHist.state` keeps `rnReplayState.job` usable meanwhile.
+2. At the entries arm's *enter* (`raftNode__start.lean:~1575`): `wp_auto_lc 2` → `3`; right after
+   `rnDurK_enter_law_holds`, `rnDurK_leadLaw γ E.γr.raft hγ γ.walK γ.wal.h ((⟨S', p', none, …⟩ : WalView), none)` with
+   `Hdur`, `Hnc`, the third credit, `Hwv` (`rnWalView` unfolds to `rnWalViewK`), `#Hrok`, and `srvRaftLogInv E.γr.raft`
+   + `hγ` from `rnEnvOk_logInv E γ $$ Henv`, `isCluster` from its `srvClusterOk` (as `InvRaftNode.lean:1398`):
+   `#Hlaw : rnLeadLaw γ S'`.
+3. At the two first sends (`:1739`, `:1891`): the deposit `rnReplayJob_of_lead γ next S' rt' n hb hrt $$ Hhist Hrok
+   Hlaw` in place of `#Hjob` (built before `start_notifyD`, which only fixes `Q`; delete that `ihave`). `hrt` from
+   `Hrt'` (`rt' = 0 ∨ rt' = p'.Term'`) and `S'.term = p'.Term'` (the entered view's `ViewOk`, as `:1600` reads
+   `S.term = p.Term'` off `HσvOk`); `hb : S'.base.index ≤ n`.
+Then B4 has nothing left (the job reaches `applyAll` already), B5, B6, B7 in that order (session 4).
+
+### Option (a): axiom meaning changes (T10s3b, for the lead and Upamanyu)
+
+Under (a) an axiom whose statement unfolds to a definition (B) changes keeps its text and means the new definition.
+Checked in Lean, not by grep: `/shared/tmp/t10s3b-chk/AxCheck5.lean` (session 4's `AxCheck.lean` with the new names
+added to the targets) walks every repository axiom's type through repository definitions; run with
+`lake env --packages=/shared/tmp/t10s3b-manifest.json lean --run /shared/tmp/t10s3b-chk/AxCheck5.lean` after building
+the 54 modules it imports (output `/shared/tmp/t10s3b-chk/out5.txt`). Of the 149 axioms, only
+`etcd_dist.NewServer_dist.wp_proof` (`Proof/…/examples/etcd/dist/NewServerDist.lean`, statement `NewServer.specG_dist`)
+and `etcd_dist.Serve_dist.wp_proof` (`ServeDist.lean`) reach any definition (B) touches.
+
+*Why (a) is sound for these two, in general.* Both are the interim transport boundary (`notes/etcd-dist-plan.md`): each
+restates a spec proved in one process (`NewServer.specG`/`specGAt`, proved by `NewServer.wp_proofG`/`wp_proofGAt`; the
+server's `Serve` proof) with rafthttp's transport across machines assumed. The definitions (B) changes are the server's
+internal protocol between its raft loop and its apply thread (`isRaftNode`'s payload invariant) and its stop image; they
+are not about the transport. The one-process proofs are re-checked against each changed definition (the server's `Link`
+and every axiom module build green at each step), so the axioms keep asserting, across machines, exactly what is proved
+in one process of the same definitions. What a change can cost is a *client* of the axiom that used the old meaning: none
+did for the changes so far (the dist proofs build unchanged).
+
+| Axiom | Definition | Old | New | Why still faithful |
+| --- | --- | --- | --- | --- |
+| `NewServer_dist` (path `specG_dist → srvBuiltG → isRaftNode → isRNApplyc → rnApP → rnApN`) | `rnApN` (B3, done) | the payload on `applyc` carries `rnReplayJob γ ap.replayTerms' ap.raftTerm' n`; `notifyc` is `isNotify γnc ap.notifyc' (rnApR γ F ce)` | no job conjunct; `notifyc` is `isNotifyD γnc ap.notifyc' (rnReplayJob …) (rnApR γ F ce)`: the job is deposited at raft's first `notifyc` send and taken at the apply thread's receive | It describes the Go handoff as it is: raft.go sends `ap` on `applyc` before its WAL `Save`, and sends on `notifyc` after it (the follower after `processMessages`, the leader at once); `applyAll` reads `apply.replayTerms` only after `<-apply.notifyc` (the merge). The replay terms and raft term are fixed in `ap` at the send, as before; only the time the *evidence* about them changes hands moves later, to a point the Go code synchronizes on. Same channel, capacity, send/receive counts: the protocol states (`notifyDMatch`) are `NotifyC.lean`'s plus the deposit `Q` at `(1, false)`. |
+| same | `isNotify` → no longer reached; `isNotifyD`, `notifyDInv`, `notifyDMatch` (new, B3) now reached | — | as above | new definitions, reached only through `rnApN` |
+| same | `rnReplayJob` (reached; unchanged so far) | — | — | its statement is unchanged; part 2 changes only its *proof* (history + `rnLeadLaw`) |
+| same (`isRaftNode → rnRestartOk`) | `rnRestartOk` (B6, not done) | restart data with `|a0| ≤ commit0` | to drop that bound | to fill in at B6: a crash restart's backend can be past the WAL's commit (`σ.commit < i`); the bound is false there |
+| same (`rnApP → rnApSnap`) | `rnApSnap` (B5, not done) | `taReplayField`-style, A8's `|a0| < |pre ++ A'|` | the job, the keep case | to fill in at B5 |
+| same | `rnStopImage` (B7, not done) | the stop image's `i ≤ σ.commit` | dropped | to fill in at B7 |
+| `Serve_dist` (`Serve_dist.spec → memberUpL → srvStopRight → srvDoneInv → srvDiskImage → srvDiskImageAt → wal.stopImage`) | `wal.stopImage` (B7, not done) | `uint.nat i ≤ σ.commit` | dropped | to fill in at B7 |
+
+No axiom reaches `EtcdServer.applyAll.spec*`, `taReplayField`, `taReplayBatch`, `raftNode.onStop.spec`, `rnReplayHist`
+or `rnLeadLaw` (condition (1) holds for the `Spec/` files B3 changed).
+
+**Handoff T10s3b-5.** Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed), tree `/shared/etcd-grove-t10s3b` (switched to
+it), manifest and Perennial as Handoff T10s3b-1. Head built green (log `/shared/tmp/t10s3b-s5-b4.log`), so the next
+checks are incremental: `lake build --packages=/shared/tmp/t10s3b-manifest.json <Module>` under `flock` and
+`systemd-run --scope -p MemoryMax=60G`. Done: B1, B2's layer, B3 part 1 (protocol, Spec change, lemmas). Next: B3 part 2
+(the three steps above), then B5, B6, B7, each with its row in the table above filled in and the unfolding check rerun;
+then B8 as below. No axiom, `sorry`, trusted text or axiom statement changed.
+
+**B8, what it still needs** (unchanged from session 3, item 2): (i) `σ.commit < i`: B5, B6, B7 and `restart_idx`'s
+`|A| ≤ σ.commit` dropped in `NewServerR`; (ii) `confRowW`'s second case: the raft API law `confAt_committed`
+(`/shared/tmp/t10s3b-confAt-committed.patch`, a *proved* law, `InvApiDec.confAt_committed_impl`, so allowed; it rebuilds
+raft's importers and its copies `RaftTla`/`RaftNoAx`/`KvNet`: `etc/gen-raft-tla.py`, `etc/copy-part.py`), then
+`srvCrashImageAt_disk` over `srvRaftLogInv`; (iii) `i < bootLen`: the lead's decision (`⌜γ.cl.bootLen ≤ σ.commit⌝` in the
+crash image, or a raft law); left; (iv) `i < σ.b` (the `.snap.db`): a second hinge for `specRAt` and `wp_proofRG` over
+both file shapes, large, not started.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
