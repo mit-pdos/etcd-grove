@@ -65,6 +65,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoSlice) emptyStorageVersion _ as HemptyStorageVersion
   wp_apply wp_GlobalAlloc (V := Loc) schemaChanges _ as HschemaChanges
+  wp_apply wp_GlobalAlloc (V := GoSlice) MetaConsistentIndexRaftTermName _ as HMetaConsistentIndexRaftTermName
   wp_apply wp_GlobalAlloc (V := GoSlice) MetaStorageVersionName _ as HMetaStorageVersionName
   wp_apply wp_GlobalAlloc (V := GoSlice) ClusterDowngradeKeyName _ as HClusterDowngradeKeyName
   wp_apply wp_GlobalAlloc (V := GoSlice) ClusterClusterVersionKeyName _ as HClusterClusterVersionKeyName
@@ -219,11 +220,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply wp_string_to_bytes go!"storageVersion" as %_ ⟨-, -⟩
   try wp_auto
+  wp_apply wp_string_to_bytes go!"consistentIndexRaftTerm" as %_ ⟨-, -⟩
+  try wp_auto
   wp_apply wp_string_to_bytes go!"" as %_ ⟨-, -⟩
   try wp_auto
   -- translated initializer of ClusterClusterVersionKeyName))
   -- translated initializer of ClusterDowngradeKeyName))
   -- translated initializer of MetaStorageVersionName))
+  -- translated initializer of MetaConsistentIndexRaftTermName))
   -- translated initializer of emptyStorageVersion))
   -- translated initializer of schemaChanges))
   try wp_auto

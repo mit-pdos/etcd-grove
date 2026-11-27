@@ -134,6 +134,8 @@ github.com/upamanyus/etcd/api/v3 v3.0.0-20261125101634-251a430ce042 h1:w9HJiAntH
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261125101634-251a430ce042/go.mod h1:/DuZ/osddKIES1LfZeye/OS8B5pOfQ1XkTzP6Z/t8Gk=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261127173953-01b0497d0628 h1:456Tkm3dFodKXl5Eph9EtOi5KTC/trV/B6p/VKpblSo=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261127173953-01b0497d0628/go.mod h1:/DuZ/osddKIES1LfZeye/OS8B5pOfQ1XkTzP6Z/t8Gk=
+github.com/upamanyus/etcd/api/v3 v3.0.0-20261127201633-b1512efddd11 h1:Osf956xSnHagrU6jYOnd0rE3ePyqsuNHvpzEwlz++M0=
+github.com/upamanyus/etcd/api/v3 v3.0.0-20261127201633-b1512efddd11/go.mod h1:/DuZ/osddKIES1LfZeye/OS8B5pOfQ1XkTzP6Z/t8Gk=
 github.com/upamanyus/etcd/cache/v3 v3.0.0-20261102234523-ce3dbc097fff h1:TQ5XBRyuEegd5wsaWTkCMmhQ7MNpetN6sGsD3vrwsZs=
 github.com/upamanyus/etcd/cache/v3 v3.0.0-20261102234523-ce3dbc097fff/go.mod h1:D7F86th5YiSaXPX4f+/w2CIN56dXd1xUdsIosAQTl2Y=
 github.com/upamanyus/etcd/cache/v3 v3.0.0-20261103162249-673da07c8fab h1:MKbvbXM5Fv/goAxHAhYUlJy2iA0N6AU+3U8J9dWDObk=
@@ -152,6 +154,8 @@ github.com/upamanyus/etcd/cache/v3 v3.0.0-20261125101634-251a430ce042 h1:Z3+siVA
 github.com/upamanyus/etcd/cache/v3 v3.0.0-20261125101634-251a430ce042/go.mod h1:D7F86th5YiSaXPX4f+/w2CIN56dXd1xUdsIosAQTl2Y=
 github.com/upamanyus/etcd/cache/v3 v3.0.0-20261127173953-01b0497d0628 h1:ssvLFB4lEMHnRssOy1jRsu1SjnMlN8yjmsS/hzMVd6s=
 github.com/upamanyus/etcd/cache/v3 v3.0.0-20261127173953-01b0497d0628/go.mod h1:D7F86th5YiSaXPX4f+/w2CIN56dXd1xUdsIosAQTl2Y=
+github.com/upamanyus/etcd/cache/v3 v3.0.0-20261127201633-b1512efddd11 h1:Wvztwl2BFTE6Rv7aHUjN5WdrdUYb36iDizcZ4ay3mNY=
+github.com/upamanyus/etcd/cache/v3 v3.0.0-20261127201633-b1512efddd11/go.mod h1:D7F86th5YiSaXPX4f+/w2CIN56dXd1xUdsIosAQTl2Y=
 github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261102234523-ce3dbc097fff h1:ILiaNd0vQkt8Jrc6bS3LTkWB+1V3zX3X4lpv0JqzLb4=
 github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261102234523-ce3dbc097fff/go.mod h1:DIKLyEdZoK+b0POIntRaci9uL6+fTGRt6MbZ4CLoX9o=
 github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261103162249-673da07c8fab h1:U912jmYLQVfmZl4feAR6HKUaajMYkU6WZTqU0DP3ZCs=
@@ -170,6 +174,8 @@ github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261125101634-251a430ce042 h1:+c
 github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261125101634-251a430ce042/go.mod h1:DIKLyEdZoK+b0POIntRaci9uL6+fTGRt6MbZ4CLoX9o=
 github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261127173953-01b0497d0628 h1:WMQRTcDgOdDQI7aJKGhKSO2EHTk+O50akKymd8pSJYk=
 github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261127173953-01b0497d0628/go.mod h1:DIKLyEdZoK+b0POIntRaci9uL6+fTGRt6MbZ4CLoX9o=
+github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261127201633-b1512efddd11 h1:TPy1ZrPlQgQ2aIatU4Y00fKNX5yFTRM/Ppkp7Y0Lh88=
+github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261127201633-b1512efddd11/go.mod h1:DIKLyEdZoK+b0POIntRaci9uL6+fTGRt6MbZ4CLoX9o=
 github.com/upamanyus/etcd/client/v3 v3.0.0-20261102234523-ce3dbc097fff h1:5412czmL0g5BpxqQg4UG2YqVnSYwYky7PI7LwhfMa/w=
 github.com/upamanyus/etcd/client/v3 v3.0.0-20261102234523-ce3dbc097fff/go.mod h1:ntYZxkBPUU+GIBAgCv8BHFnvinjORmxVky+PXCwByQc=
 github.com/upamanyus/etcd/client/v3 v3.0.0-20261103162249-673da07c8fab h1:/NcygYVITQr7EQ1+q+HWcjMg4Pta74Jne9bjqsOEXfs=
@@ -188,6 +194,8 @@ github.com/upamanyus/etcd/client/v3 v3.0.0-20261125101634-251a430ce042 h1:KYhxsA
 github.com/upamanyus/etcd/client/v3 v3.0.0-20261125101634-251a430ce042/go.mod h1:Fhwh+wwPRABQweP30CDI22vgVBu7cimEy1j7wtlMLxg=
 github.com/upamanyus/etcd/client/v3 v3.0.0-20261127173953-01b0497d0628 h1:Z4j/NrxLcjbuqVbsf57GzoCRBaa89xwR2dBV3GZDuwI=
 github.com/upamanyus/etcd/client/v3 v3.0.0-20261127173953-01b0497d0628/go.mod h1:Fhwh+wwPRABQweP30CDI22vgVBu7cimEy1j7wtlMLxg=
+github.com/upamanyus/etcd/client/v3 v3.0.0-20261127201633-b1512efddd11 h1:e/ONTgAJSiC0yjCHuJSRsiulFRSldj/jpJMTT1UMXBU=
+github.com/upamanyus/etcd/client/v3 v3.0.0-20261127201633-b1512efddd11/go.mod h1:Fhwh+wwPRABQweP30CDI22vgVBu7cimEy1j7wtlMLxg=
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261102234523-ce3dbc097fff h1:ajfOIIPuLR8WstDBxEK+ohZndtusBI2IepO2YRQIO/8=
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261102234523-ce3dbc097fff/go.mod h1:VVZoKvlAPMLR5RhNcTMHxWAN/0WZAFN4b3aoLaBkg/w=
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261103162249-673da07c8fab h1:BPpVsJL17pwmG6RdAHjgUfx1WB9vWtgeN6TpFiogjio=
@@ -206,6 +214,8 @@ github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261125101634-251a430ce042 h1:TH07izt4q
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261125101634-251a430ce042/go.mod h1:VVZoKvlAPMLR5RhNcTMHxWAN/0WZAFN4b3aoLaBkg/w=
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261127173953-01b0497d0628 h1:GYhpSbgOMz4mx9tyTumRqV6evrhF4YQr8dgExy23QuM=
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261127173953-01b0497d0628/go.mod h1:VVZoKvlAPMLR5RhNcTMHxWAN/0WZAFN4b3aoLaBkg/w=
+github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261127201633-b1512efddd11 h1:Y+x3x8htu34dLVJdD5fD5o7GRqTfXlzuVpSJO/oUr7Y=
+github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261127201633-b1512efddd11/go.mod h1:VVZoKvlAPMLR5RhNcTMHxWAN/0WZAFN4b3aoLaBkg/w=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261102234523-ce3dbc097fff h1:wFIjb/19NydMFAHsMFyGN6fNUyEOxKj59V1ywsS0AcI=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261102234523-ce3dbc097fff/go.mod h1:+ZmNAS82E95ZeF+wdM0nIqP5uEArFJuQlUU/54jH1bs=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261103162249-673da07c8fab h1:gw9PTJcKrse90JJdoVmRsxQMhgLXYtMLDty9kWXGagQ=
@@ -224,6 +234,8 @@ github.com/upamanyus/etcd/server/v3 v3.0.0-20261125101634-251a430ce042 h1:61T09Z
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261125101634-251a430ce042/go.mod h1:MsGbq+f+4mPxOUcV4eLwG9tt6+p97xJcqy9XHyDBcOE=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261127173953-01b0497d0628 h1:HsUNljrK4O9Hf+oQsKWYbdDlxAUoMjVXbUiv9biMXF0=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261127173953-01b0497d0628/go.mod h1:MsGbq+f+4mPxOUcV4eLwG9tt6+p97xJcqy9XHyDBcOE=
+github.com/upamanyus/etcd/server/v3 v3.0.0-20261127201633-b1512efddd11 h1:N0p0cVqod5QkW5/c0zDx/inGOpE6bACXM7+K2W1neH4=
+github.com/upamanyus/etcd/server/v3 v3.0.0-20261127201633-b1512efddd11/go.mod h1:MsGbq+f+4mPxOUcV4eLwG9tt6+p97xJcqy9XHyDBcOE=
 github.com/upamanyus/etcd/tests/v3 v3.0.0-20261102234523-ce3dbc097fff h1:qjosWTyshAWz8o8jkv/ltrW8EMOOLuGw0FHTeTUJttY=
 github.com/upamanyus/etcd/tests/v3 v3.0.0-20261102234523-ce3dbc097fff/go.mod h1:rZRVZCnoleM2oWDBK+dwrYTKcV86u2X2idJm184iNpg=
 github.com/upamanyus/etcd/tests/v3 v3.0.0-20261103162249-673da07c8fab h1:olMbrZJfkZ7Gggk7Im2fODAS9xbmRNq4Q1F9K0Qstrg=
@@ -239,6 +251,7 @@ github.com/upamanyus/etcd/tests/v3 v3.0.0-20261121045141-34f5142d062b/go.mod h1:
 github.com/upamanyus/etcd/tests/v3 v3.0.0-20261125101634-251a430ce042 h1:P5NKpO4gWXHw1zUJR1oDodfj7328/KygXS9tCaZ3QpU=
 github.com/upamanyus/etcd/tests/v3 v3.0.0-20261125101634-251a430ce042/go.mod h1:7WbZZ83dQsMASs87k895lsjvZkq6qLBcn6TWblWy0Lg=
 github.com/upamanyus/etcd/tests/v3 v3.0.0-20261127173953-01b0497d0628/go.mod h1:7WbZZ83dQsMASs87k895lsjvZkq6qLBcn6TWblWy0Lg=
+github.com/upamanyus/etcd/tests/v3 v3.0.0-20261127201633-b1512efddd11/go.mod h1:7WbZZ83dQsMASs87k895lsjvZkq6qLBcn6TWblWy0Lg=
 github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247 h1:DQsOyOQIsFoJjySa9HJFLx4a9+edxNn+2IOuBjT78Gc=
 github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
 github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 h1:S2dVYn90KE98chqDkyE9Z4N61UnQd+KOfgp5Iu53llk=

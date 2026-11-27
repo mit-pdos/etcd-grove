@@ -2276,7 +2276,7 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
                                            'ScheduledCompactKeyName', 'FinishedCompactKeyName',
                                            'MetaConfStateName', 'ClusterClusterVersionKeyName',
                                            'ClusterDowngradeKeyName', 'MetaStorageVersionName',
-                                           'emptyStorageVersion']},
+                                           'MetaConsistentIndexRaftTermName', 'emptyStorageVersion']},
                  **{x: 'GoInterface' for x in ['Alarm', 'Cluster', 'Members', 'MembersRemoved', 'Test']}},
     before={
         # `authEnabled`/`authDisabled` (slice literals), then the interface assertions `var _ ... = (*T)(nil)`
@@ -2311,7 +2311,7 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
                               'wp_apply wp_string_to_bytes go!"authRevision" as %sar ⟨Hsar, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"confState" as %sconf ⟨Hsconf, -⟩', 'try wp_auto']
-                             + [l for n in ['clusterVersion', 'downgrade', 'storageVersion', '']
+                             + [l for n in ['clusterVersion', 'downgrade', 'storageVersion', 'consistentIndexRaftTerm', '']
                                 for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')],
         # (prove-initleft, 2026-11-21) `schemaChanges`, a map literal keyed by `version.V3_6`, `V3_7`,
         # `V3_8` (read-only by `version`'s fact; `semver.Version` a safe map key, `MapKey.lean`), whose

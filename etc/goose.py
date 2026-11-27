@@ -437,7 +437,14 @@ PROJECTS = [
         # raised to ci, or a snapshot record at ci and then that hard state), so raft starts with its
         # commit at ci and refuses every snapshot at or below it
         # (~/coordinator-notes/plans/keepfix-d-design.md).
-        rev="01b0497d062852fda05b31b3a78b613470b6e197",
+        # Then (fix (c), 2026-11-27, approved by Upamanyu) b1512efdd, branch
+        # `keepfix-d-term/2026-11-27` (on 01b0497d0): the backend saves the member's raft term with
+        # the consistent index (meta key `consistentIndexRaftTerm`, 16 bytes: index, raft term;
+        # `applyAll` sets it from the batch's `raftTerm`, `bootstrap` seeds it with the hard state's
+        # term), and the boot step raises the hard state's term to at least it, refusing to start
+        # when the backend is ahead of the WAL's commit without that key tagged with its index
+        # (notes/keepguard-optD/stale-ack-panic.md).
+        rev="b1512efddd1176b719dbe23aaf0b2364df909f8a",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)

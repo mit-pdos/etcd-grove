@@ -56,7 +56,7 @@ noncomputable def UpdateConsistentIndexForce [GooseExts] [GoGlobalContext] : GoS
 /-- NewConsistentIndex creates a new consistent index.
     If `be` is nil, it must be set (SetBackend) before first access using `ConsistentIndex()`.
 
-    go: cindex.go:90:6 -/
+    go: cindex.go:101:6 -/
 noncomputable def NewConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "be"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ConsistentIndexer.ty))) (App (Val (GoInstruction (GoZeroVal ConsistentIndexer.ty))) (Val #())))
@@ -71,7 +71,7 @@ noncomputable def NewConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore ConsistentIndexer.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad ConsistentIndexer.ty))) (Var "$res0")))))
 
-/-- go: cindex.go:94:28 -/
+/-- go: cindex.go:105:28 -/
 noncomputable def consistentIndex.ConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam BAnon
@@ -132,7 +132,7 @@ noncomputable def consistentIndex.ConsistentIndex.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: cindex.go:106:28 -/
+/-- go: cindex.go:117:28 -/
 noncomputable def consistentIndex.UnsafeConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam BAnon
@@ -182,7 +182,7 @@ noncomputable def consistentIndex.UnsafeConsistentIndex.impl [GooseExts] [GoGlob
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: cindex.go:116:28 -/
+/-- go: cindex.go:127:28 -/
 noncomputable def consistentIndex.SetConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam "v"
@@ -213,7 +213,33 @@ noncomputable def consistentIndex.SetConsistentIndex.impl [GooseExts] [GoGlobalC
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"pairMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci")))) (Val #())))))))))
   (Val #())))))
 
-/-- go: cindex.go:123:28 -/
+/-- go: cindex.go:134:28 -/
+noncomputable def consistentIndex.SetRaftTerm.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ci"
+  (Lam "raftTerm"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "ci" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistentIndex.ty)))) (Var "ci"))
+  (Let "raftTerm" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "raftTerm"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "raftTerm")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"raftTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci")))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "raftTerm"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"raftTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"pairMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"pairMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci")))) (Val #()))))))))
+  (Val #()))))
+
+/-- go: cindex.go:142:28 -/
 noncomputable def consistentIndex.UnsafeSave.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam "tx"
@@ -229,14 +255,25 @@ noncomputable def consistentIndex.UnsafeSave.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadUint64 []))) (Val #())) (Var "$a0")))
   (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"raftTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci"))))
+  (Let "raftTerm" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "raftTerm"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexRaftTerm []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty))) (Var "tx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"pairMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "raftTerm") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "term") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -245,7 +282,7 @@ noncomputable def consistentIndex.UnsafeSave.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"pairMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci")))) (Val #())))))))
   (Val #()))))
 
-/-- go: cindex.go:131:28 -/
+/-- go: cindex.go:152:28 -/
 noncomputable def consistentIndex.SetBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam "be"
@@ -273,7 +310,7 @@ noncomputable def consistentIndex.SetBackend.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef consistentIndex.ty go!"mutex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType consistentIndex.ty)))) (Var "ci")))) (Val #()))))))))
   (Val #()))))
 
-/-- go: cindex.go:139:28 -/
+/-- go: cindex.go:160:28 -/
 noncomputable def consistentIndex.ConsistentApplyingIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam BAnon
@@ -295,7 +332,7 @@ noncomputable def consistentIndex.ConsistentApplyingIndex.impl [GooseExts] [GoGl
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res1"))))))))
 
-/-- go: cindex.go:143:28 -/
+/-- go: cindex.go:164:28 -/
 noncomputable def consistentIndex.SetConsistentApplyingIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam "v"
@@ -315,7 +352,7 @@ noncomputable def consistentIndex.SetConsistentApplyingIndex.impl [GooseExts] [G
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.StoreUint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
   (Val #())))))
 
-/-- go: cindex.go:148:6 -/
+/-- go: cindex.go:169:6 -/
 noncomputable def NewFakeConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "index"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ConsistentIndexer.ty))) (App (Val (GoInstruction (GoZeroVal ConsistentIndexer.ty))) (Val #())))
@@ -330,7 +367,7 @@ noncomputable def NewFakeConsistentIndex.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore ConsistentIndexer.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad ConsistentIndexer.ty))) (Var "$res0")))))
 
-/-- go: cindex.go:157:31 -/
+/-- go: cindex.go:178:31 -/
 noncomputable def fakeConsistentIndex.ConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -346,7 +383,7 @@ noncomputable def fakeConsistentIndex.ConsistentIndex.impl [GooseExts] [GoGlobal
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: cindex.go:161:31 -/
+/-- go: cindex.go:182:31 -/
 noncomputable def fakeConsistentIndex.ConsistentApplyingIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -368,7 +405,7 @@ noncomputable def fakeConsistentIndex.ConsistentApplyingIndex.impl [GooseExts] [
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res1"))))))))
 
-/-- go: cindex.go:165:31 -/
+/-- go: cindex.go:186:31 -/
 noncomputable def fakeConsistentIndex.UnsafeConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -384,7 +421,7 @@ noncomputable def fakeConsistentIndex.UnsafeConsistentIndex.impl [GooseExts] [Go
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: cindex.go:169:31 -/
+/-- go: cindex.go:190:31 -/
 noncomputable def fakeConsistentIndex.SetConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "index"
@@ -404,7 +441,7 @@ noncomputable def fakeConsistentIndex.SetConsistentIndex.impl [GooseExts] [GoGlo
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.StoreUint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
   (Val #())))))
 
-/-- go: cindex.go:174:31 -/
+/-- go: cindex.go:195:31 -/
 noncomputable def fakeConsistentIndex.SetConsistentApplyingIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "index"
@@ -424,7 +461,17 @@ noncomputable def fakeConsistentIndex.SetConsistentApplyingIndex.impl [GooseExts
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.StoreUint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
   (Val #())))))
 
-/-- go: cindex.go:179:31 -/
+/-- go: cindex.go:200:31 -/
+noncomputable def fakeConsistentIndex.SetRaftTerm.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fakeConsistentIndex.ty)))) (Var "f"))
+  (App (Val doExecute)
+  (Val #()))))
+  (Val #()))))
+
+/-- go: cindex.go:201:31 -/
 noncomputable def fakeConsistentIndex.UnsafeSave.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -434,7 +481,7 @@ noncomputable def fakeConsistentIndex.UnsafeSave.impl [GooseExts] [GoGlobalConte
   (Val #()))))
   (Val #()))))
 
-/-- go: cindex.go:180:31 -/
+/-- go: cindex.go:202:31 -/
 noncomputable def fakeConsistentIndex.SetBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -444,7 +491,7 @@ noncomputable def fakeConsistentIndex.SetBackend.impl [GooseExts] [GoGlobalConte
   (Val #()))))
   (Val #()))))
 
-/-- go: cindex.go:182:6 -/
+/-- go: cindex.go:204:6 -/
 noncomputable def UpdateConsistentIndexForce.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "index"
@@ -507,11 +554,11 @@ attribute [instance] Backend.TypeAssumptions.underlying
 abbrev ConsistentIndexer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def ConsistentIndexer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ConsistentApplyingIndex" (go.signature.Signature [] false [go.uint64, go.uint64])), (go.InterfaceElem.MethodElem go!"ConsistentIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"SetBackend" (go.signature.Signature [Backend.ty] false [])), (go.InterfaceElem.MethodElem go!"SetConsistentApplyingIndex" (go.signature.Signature [go.uint64, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"SetConsistentIndex" (go.signature.Signature [go.uint64, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"UnsafeConsistentIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"UnsafeSave" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ConsistentApplyingIndex" (go.signature.Signature [] false [go.uint64, go.uint64])), (go.InterfaceElem.MethodElem go!"ConsistentIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"SetBackend" (go.signature.Signature [Backend.ty] false [])), (go.InterfaceElem.MethodElem go!"SetConsistentApplyingIndex" (go.signature.Signature [go.uint64, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"SetConsistentIndex" (go.signature.Signature [go.uint64, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"SetRaftTerm" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"UnsafeConsistentIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"UnsafeSave" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false []))])
 
 class ConsistentIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConsistentIndexer.ty ConsistentIndexer.underlying
-  method_set : go.MethodSetIs ConsistentIndexer.ty [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
+  method_set : go.MethodSetIs ConsistentIndexer.ty [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetRaftTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConsistentIndexer.ty) []
 
 attribute [instance] ConsistentIndexer.TypeAssumptions.underlying
@@ -526,10 +573,11 @@ structure consistentIndex [GooseExts] where
   applyingTerm' : w64
   be' : Backend
   mutex' : _root_.Perennial.sync.Mutex
+  raftTerm' : w64
   pairMu' : _root_.Perennial.sync.Mutex
 
 noncomputable instance consistentIndex.zero_val [GooseExts] : ZeroVal consistentIndex :=
-  ⟨consistentIndex.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨consistentIndex.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def consistentIndex.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"consistentIndex" go.uint64),
@@ -538,6 +586,7 @@ noncomputable instance consistentIndex.zero_val [GooseExts] : ZeroVal consistent
 (go.field_decl.FieldDecl go!"applyingTerm" go.uint64),
 (go.field_decl.FieldDecl go!"be" Backend.ty),
 (go.field_decl.FieldDecl go!"mutex" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"raftTerm" go.uint64),
 (go.field_decl.FieldDecl go!"pairMu" _root_.Perennial.sync.Mutex.ty)]
 
 @[irreducible] noncomputable def consistentIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
@@ -565,15 +614,18 @@ class consistentIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_be : ∀ (x : consistentIndex) (y : Backend), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : consistentIndex)))
   get_mutex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"mutex") #x (Val #(x.mutex'))
   set_mutex : ∀ (x : consistentIndex) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : consistentIndex)))
+  get_raftTerm : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"raftTerm") #x (Val #(x.raftTerm'))
+  set_raftTerm : ∀ (x : consistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"raftTerm") (PairV #x #y) (Val #(({ x with raftTerm' := y } : consistentIndex)))
   get_pairMu : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"pairMu") #x (Val #(x.pairMu'))
   set_pairMu : ∀ (x : consistentIndex) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"pairMu") (PairV #x #y) (Val #(({ x with pairMu' := y } : consistentIndex)))
   method_set : go.MethodSetIs consistentIndex.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType consistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType consistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetRaftTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
   ptr_ConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentApplyingIndex" consistentIndex.ConsistentApplyingIndex.impl
   ptr_ConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentIndex" consistentIndex.ConsistentIndex.impl
   ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetBackend" consistentIndex.SetBackend.impl
   ptr_SetConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetConsistentApplyingIndex" consistentIndex.SetConsistentApplyingIndex.impl
   ptr_SetConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetConsistentIndex" consistentIndex.SetConsistentIndex.impl
+  ptr_SetRaftTerm_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetRaftTerm" consistentIndex.SetRaftTerm.impl
   ptr_UnsafeConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"UnsafeConsistentIndex" consistentIndex.UnsafeConsistentIndex.impl
   ptr_UnsafeSave_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"UnsafeSave" consistentIndex.UnsafeSave.impl
 
@@ -591,6 +643,8 @@ attribute [instance] consistentIndex.TypeAssumptions.type_repr
   consistentIndex.TypeAssumptions.set_be
   consistentIndex.TypeAssumptions.get_mutex
   consistentIndex.TypeAssumptions.set_mutex
+  consistentIndex.TypeAssumptions.get_raftTerm
+  consistentIndex.TypeAssumptions.set_raftTerm
   consistentIndex.TypeAssumptions.get_pairMu
   consistentIndex.TypeAssumptions.set_pairMu
   consistentIndex.TypeAssumptions.method_set
@@ -600,6 +654,7 @@ attribute [instance] consistentIndex.TypeAssumptions.type_repr
   consistentIndex.TypeAssumptions.ptr_SetBackend_unfold
   consistentIndex.TypeAssumptions.ptr_SetConsistentApplyingIndex_unfold
   consistentIndex.TypeAssumptions.ptr_SetConsistentIndex_unfold
+  consistentIndex.TypeAssumptions.ptr_SetRaftTerm_unfold
   consistentIndex.TypeAssumptions.ptr_UnsafeConsistentIndex_unfold
   consistentIndex.TypeAssumptions.ptr_UnsafeSave_unfold
 
@@ -633,12 +688,13 @@ class fakeConsistentIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   get_term : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"term") #x (Val #(x.term'))
   set_term : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : fakeConsistentIndex)))
   method_set : go.MethodSetIs fakeConsistentIndex.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeConsistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeConsistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetRaftTerm", (some (go.signature.Signature [go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
   ptr_ConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentApplyingIndex" fakeConsistentIndex.ConsistentApplyingIndex.impl
   ptr_ConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentIndex" fakeConsistentIndex.ConsistentIndex.impl
   ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetBackend" fakeConsistentIndex.SetBackend.impl
   ptr_SetConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetConsistentApplyingIndex" fakeConsistentIndex.SetConsistentApplyingIndex.impl
   ptr_SetConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetConsistentIndex" fakeConsistentIndex.SetConsistentIndex.impl
+  ptr_SetRaftTerm_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetRaftTerm" fakeConsistentIndex.SetRaftTerm.impl
   ptr_UnsafeConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"UnsafeConsistentIndex" fakeConsistentIndex.UnsafeConsistentIndex.impl
   ptr_UnsafeSave_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"UnsafeSave" fakeConsistentIndex.UnsafeSave.impl
 
@@ -655,6 +711,7 @@ attribute [instance] fakeConsistentIndex.TypeAssumptions.type_repr
   fakeConsistentIndex.TypeAssumptions.ptr_SetBackend_unfold
   fakeConsistentIndex.TypeAssumptions.ptr_SetConsistentApplyingIndex_unfold
   fakeConsistentIndex.TypeAssumptions.ptr_SetConsistentIndex_unfold
+  fakeConsistentIndex.TypeAssumptions.ptr_SetRaftTerm_unfold
   fakeConsistentIndex.TypeAssumptions.ptr_UnsafeConsistentIndex_unfold
   fakeConsistentIndex.TypeAssumptions.ptr_UnsafeSave_unfold
 

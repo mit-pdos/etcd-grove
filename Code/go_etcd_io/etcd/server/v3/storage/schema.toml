@@ -32,6 +32,10 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   "Alarm", "Cluster", "Members", "MembersRemoved", "Test", "AllBuckets",
   "ScheduledCompactKeyName", "FinishedCompactKeyName", "MetaConfStateName", "ClusterClusterVersionKeyName",
   "ClusterDowngradeKeyName", "MetaStorageVersionName", "emptyStorageVersion",
+  # (keepfix (c), 2026-11-27) the raft term saved with the consistent index: its key name, reader and
+  # writer (cindex.go), with bodies, for cindex's `UnsafeSave` and the boot step's read
+  "MetaConsistentIndexRaftTermName", "UnsafeReadConsistentIndexRaftTerm", "ReadConsistentIndexRaftTerm",
+  "UnsafeUpdateConsistentIndexRaftTerm",
   # (prove-initleft, 2026-11-21) the rest of the package variables, so that their initializers are
   # translated (`etc/gen-init.py`; until then `opaqueInitsOk`): `schemaChanges` (a map literal keyed by
   # `version`'s `semver` versions, schema.go) with `addNewField` (changes.go), and the interface
