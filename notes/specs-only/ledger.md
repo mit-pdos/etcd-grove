@@ -7025,3 +7025,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Fallout.** Send.lean/Scope.lean (`PreVoterOk`'s position), Init (`NetOk`'s seven conjuncts, the boot state's
   `rd`), Quiet (`nodeOk_quiet`'s two arms), Ready (`afterOk_of`), DrainSteps (`sendHstep`), DrainB1SendWp (the premise).
 - **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: `RawNode.Advance`'s end with no snapshot applied, its premise over the inputs (#33)
+- **Spec.** `RawNode.Advance.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the scoped post's
+  `AdvanceEndR`; through it `RawNode.Advance.absSpec` and `RawNode.Advance.apiSpec` (`RawNodeApi`).
+- **Defect.** The drain's advance phase (`drainAdvanceB1.stmt`) steps the Sim with `AdvanceNoSnap` (`AdvanceEndR`
+  whose storage acknowledgement applies no snapshot, the B1 mode has snapshots off), and the post gave only
+  `AdvanceEndR`, whose `AckEndR` has the snapshot arm: nothing excluded it. And the post's premise,
+  `NoUndecConfIn dec r'.full r.cidx (uint.nat r'.applied)`, was over the call's output `r'`, which no `rawNode` law
+  relates to the inputs: the caller could not discharge it.
+- **Statement (lead-approved 2026-11-27).** The inner `AdvanceEndR Adm dec rs.k id r qs r'` becomes
+  `AdvanceEndR Adm dec rs.k id r qs r' ∧ (md.snapshots = false → AdvanceEndRNoSnap Adm dec rs.k id r qs r')`
+  (`Protocol/InputEnd.lean`'s `AdvanceEndRNoSnap`, `AckEndR`'s first two arms); its premise
+  `NoUndecConfIn dec r'.full r.cidx (uint.nat r'.applied)` becomes `NoUndecConfIn dec r.full r.cidx
+  rs.delivered.length` (over the inputs).
+- **Proof.** `RawNode__AdvanceAbs.lean`: the proof only ever ended with `AckEndR`'s second arm (`StepR.advance`), so the
+  loop invariant (`Hae1`) and `advStep_pure` carry `AdvanceEndRNoSnap` in place of `AdvanceEndR`, and the post gives
+  both (`AdvanceEndRNoSnap.advanceEndR`). The premise: at the end `uint.nat r'.applied = rs.delivered.length`, and
+  both logs (start and end, base `0` with snapshots off) start with `rs.delivered` (`ownStepGhost_cmt_ents` against
+  the persistent `isCommitted γ rs.delivered`, the log long enough by `ownRaftLog_committed`; helpers
+  `ownRaftPhysC_commitLe`, `AdvAbs.take_eq_of_ents`, `AdvAbs.noUndec_of_take`, `AdvAbs.take_append_congr`), so the
+  two full logs agree on their first `rs.delivered.length` entries. No hypothesis added. No other consumer used the
+  post's conjunct (it was not yet applied).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.

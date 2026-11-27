@@ -7,15 +7,15 @@ the old proof (`RawNode.Advance.tracedSpec_proof`) between `ownRawNodeAt_ownRawN
 each queued message through `raft.Step` at the no-snapshot flag (`wp_step_pending_ns`,
 `AdvanceAbsStep.lean`), the loop invariant gaining:
 - the queue's states named (`pendAt`'s `sts`) and its protocol messages still to step (`advQ` of the
-  rest), with the prefix already stepped as `AdvanceEndR` from `ps` (a continuation: whatever ends the
+  rest), with the prefix already stepped as `AdvanceEndRNoSnap` from `ps` (a continuation: whatever ends the
   rest from the current reading ends `qs` from `ps`); the current reading is `toRState` with `applied`
   frozen at the start's (`advR`: antithesis parity B1 stage 3b);
 - the scope (`RnScopeBasic`) at the current state, kept by each step (`advStep_pure`: a self-addressed
   response's `StepEnd` read as `RecvEndR` at the node's configuration, `recvEnd_of_stepEnd_net` and
   `bk_of_stepEnd_net`; a storage acknowledgement's `AckEnd`, the protocol reading and
   `pendingConfIndex` unchanged).
-At the end the acknowledgements' `applied` is `AckEndR`'s second arm (`StepR.advance`), at the
-caller's no-undecided-conf-entry premise.
+At the end the acknowledgements' `applied` is `AckEndRNoSnap`'s second arm (`StepR.advance`), at the
+caller's no-undecided-conf-entry premise; `AdvanceEndR` follows (`AdvanceEndRNoSnap.advanceEndR`).
 The in-progress boundary is read off the end state (`adv_ip_end`): with the boundary at the log's end at
 the start, the storage holds the whole log (`ownRaftPhysC_ipFacts`); no step moves what it holds, nor the
 boundary back; and the log up to the boundary is a prefix of what it holds (`ownRaftPhysC_ipStored`), so
@@ -277,6 +277,18 @@ theorem ownRawNodeAt_steps_nil (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
       Hledger Hdur Hrntr Hsc
 
+/-- (antithesis parity B1, item 2b) The commit index within the log (`ownRaftLog_committed`). -/
+theorem ownRaftPhysC_commitLe (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜uint.Z s.logst.committed ≤ uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
+          + (s.logst.uents.length : Int)⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_log_same c r id s $$ H with ⟨Hlog, Hback⟩
+  icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hw, Hlog⟩
+  ihave H := Hback $$ Hlog
+  iframe H
+  ipureintro; exact Hw.1.2.2
+
 /-- `pendingRel`'s pure part, read out. -/
 theorem pendingRel_pure (γ : RaftNames) (id : w64) (W : DurMaps) (st : MsgSt) (p : Pending) :
     pendingRel (GF := GF) γ id W st p ⊢ ⌜pendSt id st p⌝ ∗ pendingRel γ id W st p := by
@@ -312,8 +324,8 @@ theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id
     (Hpv : s2.logst.prev = s1.logst.prev)
     (Hrl : s2.role = .preCandidate → s1.role = .preCandidate) :
     (∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) rest re,
-      AdvanceEndR Adm dec k id (advR rs fp a s2) rest re →
-      AdvanceEndR Adm dec k id (advR rs fp a s1) (advHead st p ++ rest) re) ∧
+      AdvanceEndRNoSnap Adm dec k id (advR rs fp a s2) rest re →
+      AdvanceEndRNoSnap Adm dec k id (advR rs fp a s1) (advHead st p ++ rest) re) ∧
     (s1.rd.pend = [] → (toPState s1).rd.ro.pending = [] →
       s2.rd.pend = s1.rd.pend ∧ (toPState s2).rd.ro.pending = []) ∧
     RoleFn cf id s1 s2 ∧
@@ -367,6 +379,49 @@ theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id
       roleFn_ack Ha Hrl, .inl (by rw [Ha.1])⟩
     simp only [advHead, List.nil_append]
     rw [← advR_ack Ha Hsn]; exact H
+
+/-- (antithesis parity B1, item 2b) A log at base `0` holding the committed log `D` handed out, read
+entry by entry (`ownStepGhost_cmt_ents`), starts with it. -/
+theorem AdvAbs.take_eq_of_ents {prev : entryID} {L D : List EntryM}
+    (hp : uint.Z prev.index' = 0) (hlen : D.length ≤ L.length)
+    (hent : ∀ k e, L[k]? = some e → uint.nat prev.index' + k < D.length →
+      D[uint.nat prev.index' + k]? = some e) :
+    L.take D.length = D := by
+  have h0 : uint.nat prev.index' = 0 := by have := uint_nat_eq prev.index'; omega
+  apply List.ext_getElem?
+  intro k
+  by_cases hk : k < D.length
+  · rw [List.getElem?_take_of_lt hk]
+    obtain ⟨e, he⟩ : ∃ e, L[k]? = some e := ⟨L[k]'(by omega), List.getElem?_eq_getElem _⟩
+    have := hent k e he (by omega)
+    rw [h0, Nat.zero_add] at this
+    rw [he, this]
+  · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by omega)]
+
+/-- (antithesis parity B1, item 2b) No undecided conf entry in `[lo, hi)` depends only on the first
+`hi` entries. -/
+theorem AdvAbs.noUndec_of_take {dec : CCDec} {l l' : List EntryM} {lo hi : Nat}
+    (h : l.take hi = l'.take hi) (H : NoUndecConfIn dec l lo hi) : NoUndecConfIn dec l' lo hi := by
+  intro k e h1 h2 he hc
+  have hk : l[k]? = l'[k]? := by
+    rw [← List.getElem?_take_of_lt h2, h, List.getElem?_take_of_lt h2]
+  have ht : l.take k = l'.take k := by
+    have := congrArg (List.take k) h
+    simpa [List.take_take, Nat.min_eq_left (Nat.le_of_lt h2)] using this
+  rw [← ht]
+  exact H k e h1 h2 (hk ▸ he) hc
+
+/-- (antithesis parity B1, item 2b) A common prefix in front of two lists that agree on their first
+`n` entries. -/
+theorem AdvAbs.take_append_congr {fp a b : List EntryM} {n : Nat} (h : a.take n = b.take n) :
+    (fp ++ a).take n = (fp ++ b).take n := by
+  rw [List.take_append, List.take_append]
+  congr 1
+  have ha : a.take (n - fp.length) = (a.take n).take (n - fp.length) := by
+    rw [List.take_take, Nat.min_eq_left (Nat.sub_le _ _)]
+  have hb : b.take (n - fp.length) = (b.take n).take (n - fp.length) := by
+    rw [List.take_take, Nat.min_eq_left (Nat.sub_le _ _)]
+  rw [ha, hb, h]
 
 /-- Outside the harness's scope: the old proof. -/
 theorem RawNode.Advance.absProofOut (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
@@ -432,6 +487,16 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
   -- no snapshot `Ready`: the queue holds no snapshot acknowledgement
   have Hunp' : s.logst.unpersisted = [] := Hunp ▸ Hunp0 hsl
   icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hsn0, Hphys⟩
+  -- (antithesis parity B1, item 2b) the log starts with the committed log handed out
+  icases ownRaftPhysC_logwf cf rnv.raft' id s $$ Hphys with ⟨%Hlw0, Hphys⟩
+  icases ownRaftPhysC_commitLe cf rnv.raft' id s $$ Hphys with ⟨%Hcm0, Hphys⟩
+  icases ownStepGhost_cmt_ents γ _ cf id s rs.delivered
+    (by rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega) $$ Hdeliv Hghost
+    with ⟨%Hen0, Hghost⟩
+  have Htk0 : (s.logst.sents ++ s.logst.uents).take rs.delivered.length = rs.delivered :=
+    AdvAbs.take_eq_of_ents (prev := s.logst.prev) Hprev0
+      (by simp only [List.length_append]; rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega)
+      Hen0
   ihave #HA1n := HA1 $$ %hsl
   iunfold undecFree at HA1n
   icases HA1n with ⟨%Ma, #HMa, %HMa⟩
@@ -488,9 +553,9 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       -- (antithesis parity B1 stage 3b) over `RState`, `applied` frozen at the start's (`advR`)
       "%Hae1" ∷ ⌜advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n)) <:+ qs ∧
         ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) re,
-          AdvanceEndR Adm dec rs.k id (advR rs fp s.logst.applied s1)
+          AdvanceEndRNoSnap Adm dec rs.k id (advR rs fp s.logst.applied s1)
             (advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n))) re →
-          AdvanceEndR Adm dec rs.k id ps qs re⌝ ∗
+          AdvanceEndRNoSnap Adm dec rs.k id ps qs re⌝ ∗
       -- (#33 S4) the scope at the current state; (antithesis parity B1, step C3) at the mode `md`, with
       -- the transfer facts
       "%Hsc1" ∷ ⌜RnScope md id rs s1 ∧ (md.transfer = true → XScopeOk γ md s1)⌝ ∗
@@ -813,6 +878,19 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     icases ownRaftPhysC_cq cf rnv.raft' id s1 $$ Hphys with ⟨#Hcqs1, Hphys⟩
     icombine Hcq0 Hcqs1 gives %Hcqe1
     have Hcq1 : s1.cq = s.cq := by first | exact Hcqe1.symm | exact Hcqe1
+    -- (antithesis parity B1, item 2b) the log still starts with the committed log handed out
+    icases ownRaftPhysC_commitLe cf rnv.raft' id s1 $$ Hphys with ⟨%Hcm1, Hphys⟩
+    icases ownStepGhost_cmt_ents γ _ cf id s1 rs.delivered
+      (by rw [Hdlen, ← Hs1.1]; have := uint_Z_nonneg s1.logst.applying; omega) $$ Hdeliv Hghost
+      with ⟨%Hen1, Hghost⟩
+    have Htk1 : (s1.logst.sents ++ s1.logst.uents).take rs.delivered.length = rs.delivered :=
+      AdvAbs.take_eq_of_ents (prev := s1.logst.prev) (by rw [Hs1.2.2.2.1]; exact Hprev0)
+        (by simp only [List.length_append]; rw [Hdlen, ← Hs1.1]
+            have := uint_Z_nonneg s1.logst.applying
+            have hp1 : uint.Z s1.logst.prev.index' = 0 := by rw [Hs1.2.2.2.1]; exact Hprev0
+            have := HlwE.2
+            omega)
+        Hen1
     ihave Hsc' := rnScopeAt_keepOpt (some md) rs
       { rs with steps := [], term := s1.term, capplied := ca, flw := false } s s1
       (fun _ h _ => by cases h; exact Hsc1.1) Hsg1.1 (hfl := ⟨Hsg1.2.1, Hcq1, Hsdr1⟩)
@@ -860,7 +938,8 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     · ipureintro; exact fun _ => Hcmax
     ipureintro
     intro _ _ _
-    refine ⟨fun Adm dec Hnu => Hae1.2 Adm dec _ ?_, fun hl => ?_⟩
+    refine ⟨fun Adm dec Hnu => (fun h => ⟨h.advanceEndR, fun _ => h⟩) (Hae1.2 Adm dec _ ?_),
+      fun hl => ?_⟩
     · -- the queue stepped; the acknowledgements' `applied` (`StepR.advance`), with the configuration
       -- index at the entries handed out, which `applied` reached
       rw [Hdrop, Hdrop', advQ_nil_left]
@@ -872,11 +951,20 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
         have h3 : (rs.delivered.length : Int) = (uint.nat s1.logst.applied : Int) := by
           rw [uint_nat_eq, h1, Hdlen, Int.toNat_of_nonneg (uint_Z_nonneg _)]
         exact_mod_cast h3
+      have Hdl1 : uint.nat s1.logst.applied = rs.delivered.length := by
+        have h1 : uint.Z s1.logst.applied = uint.Z s.logst.applying :=
+          Int.le_antisymm (by rw [← Hs1.1]; exact HlwE.1) Hge
+        have h3 : (rs.delivered.length : Int) = (uint.nat s1.logst.applied : Int) := by
+          rw [uint_nat_eq, h1, Hdlen, Int.toNat_of_nonneg (uint_Z_nonneg _)]
+        exact_mod_cast h3.symm
       subst Hcae
-      refine .nil _ _ (.inr (.inl ⟨s1.logst.applied, .advance _ _ Hfl1.2.1
-        (Int.le_trans HlwE.1 HlwE.2) ?_, rfl⟩))
+      refine .nil _ _ (.inr ⟨s1.logst.applied, .advance _ _ Hfl1.2.1
+        (Int.le_trans HlwE.1 HlwE.2) ?_, rfl⟩)
       rw [← Hps] at Hnu
-      exact Hnu
+      rw [Hdl1]
+      refine AdvAbs.noUndec_of_take (AdvAbs.take_append_congr ?_) Hnu
+      show (s.logst.sents ++ s.logst.uents).take _ = (s1.logst.sents ++ s1.logst.uents).take _
+      rw [Htk0, Htk1]
     · have Hpz1 : uint.Z s1.logst.prev.index' = 0 := by rw [Hs1.2.2.2.1]; exact Hprev0
       have hlen : ip = (s.logst.sents ++ s.logst.uents).length := by rw [hl, ← Hps]; rfl
       obtain ⟨h1, h2⟩ := adv_ip_end Hpz1 Hip hlen (Hst0 hl) (logStoreRec_stored Hs1.2.2.2.2)
