@@ -249,6 +249,66 @@ about 12-18.
   after rule-#8 approval.
 - **G3/G4** are trivial Go fixes, safe to do now. G1/G5/G6 also need no approval. G2 waits for the user's OK.
 
+### 4.1 K5: the client interface (design, 2026-11-27)
+
+**What the library uses today** (callees of `etc/link-lean-first-k8s-etcd3.txt` in the client packages, and
+the `StoreCfg` fields their statements name):
+
+- the store (unary and list paths): `kubernetes.Client.{Get,List,OptimisticPut,OptimisticDelete}`, over
+  `isNewClient c.cl (c.ms.map addr) c.V ∗ clientWriteOnce ∗ [∗list] x ∈ c.ms, kvRegsAt x` (`isStore`), with
+  per-member updates `[∧list] x ∈ c.ms, … x.γr.kv …` and the premise `∀ x ∈ c.ms, noRefusalAt x.addr`;
+- the watch (`watchChan.{syncPaginated,startWatching}`): the client's `KV.Get` (`client_range_any.law`,
+  wrapped by `wp_syncGet`, which already states it abstractly: `□ Qr σ ∗ srvRangeOk …` or `kClientErr`) and
+  its `Watcher.Watch` (`isClientWatcher V w`);
+- the compactor (`Compact`, `compactor.{getCompactRev,runWatchLoop,runCompactLoop}`,
+  `StartCompactorPerEndpoint`): `KV.Txn`/`If`/`Then`/`Else`/`Commit` (one CAS), `Client.Compact`
+  (`client_Compact_kv.law`), `KV.Get` at a revision, `Watcher.Watch`, `Client.Endpoints`; its own
+  `cl ms V γk` arguments, not a `StoreCfg`.
+
+`V` is used only to pass to these specs and in `isNewClient`. `ms` is used for three things: the
+linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the endpoints (`ms.map addr`).
+
+**The interface** (new defs module `Proof/k8s_io/apiserver/pkg/storage/etcd3/EtcdClient.lean`):
+
+- `K8sEtcd GF`, the data, a structure:
+  - `kvs : List KVNames`: the KV ghosts a request may linearize at; every update a spec takes is given at
+    each (`[∗list]`/`[∧list] γ ∈ K.kvs`). In-process: `ms.map (·.γr.kv)`; dist (K7) and S2: `[Γ.kv]`.
+  - `live : Prop`: the premise under which a range error is sound (no refusal). In-process:
+    `∀ x ∈ ms, noRefusalAt x.addr`; dist: what the `_dist` axioms need (`True` if none).
+  - `eps : List GoString`: the endpoints (`Client.Endpoints`). In-process: `ms.map SrvAt.addr`.
+- `k8sClient K cl : IProp GF`, persistent, as the cache's `isEtcdClient` (`CacheWorkDefs.lean:341`): the
+  triples of the client calls the library makes, on `cl` (the `*clientv3.Client`), each the in-process
+  spec with `isNewClient … ∗ clientWriteOnce … ∗ [∗list] kvRegsAt` dropped, `[∧list] x ∈ ms, F x.γr.kv`
+  become `[∧list] γ ∈ K.kvs, F γ`, and `∀ x ∈ ms, noRefusalAt x.addr` become `K.live`. Fields, in
+  batches (one conjunct group each):
+  - **C1** (store): `kubernetes.Client.{Get,List,OptimisticPut,OptimisticDelete}` on any `kc` with
+    `kc.Client' = cl`;
+  - **C2** (watch): `∃ api w`, `cl.KV ↦□ kvIfaceOf api`, `cl.Watcher ↦□ watcherIfaceOf w`, with
+    `wp_syncGet`'s triple (readAus over `K.kvs`) and the watch-open triple the watch proofs use;
+  - **C3** (compactor): the CAS `Txn` chain on an abstract txn handle, `Compact`, `KV.Get` at a
+    revision, the compactor's `Watch`; `Endpoints` returning `K.eps`;
+  - `Ctx` (the client's context, read-only), as today's `isNewClient_ctx`.
+- The in-process instance, `k8sClient_inProc` (defs tier, the specs as hypotheses, linked in `Link`):
+  `isNewClient cl (ms.map addr) V ∗ clientWriteOnce cl (ms.map addr) ∗ [∗list] x ∈ ms, kvRegsAt x ⊢
+  k8sClient (inProcEtcd ms) cl`, from today's specs (`kubernetes.Client.*.spec`, `client_range_any.law`, …).
+- Users: `StoreCfg` replaces `ms`/`V` by `K : K8sEtcd GF`, and `isStore` holds `k8sClient c.K c.cl` in
+  place of the three in-process conjuncts; the compactor's `cl ms V γk` become `cl K γk`. The library's
+  proofs call the client through the predicate (`iapply` of its triple) and no longer take the client's
+  specs as callees. `etcd3.New`'s spec takes `k8sClient K cl`; the driver (`examples/k8s/etcd3`,
+  `compactor`) applies `k8sClient_inProc` where it builds the store, so `k8s_all`'s statement and its
+  premises are untouched (its proof only re-threads).
+
+**Batches** (each built on fk-lean2 with `etc/importers.py --leaves` targets):
+
+1. `EtcdClient.lean` with C1 and the instance's C1 part; ledger entries for the Spec files batch 2 changes.
+2. `StoreCfg`/`isStore` and the store's specs and proofs (unary + list paths, `FirstRead`, `ListDefs`,
+   `State`, `Updates`): `c.ms`/`c.V` gone.
+3. C2 and the watch path (`WatchDefs` `readAus`, `syncPaginated`, `startWatching`, `run`, `Watch`).
+4. C3 and the compactor.
+5. The drivers (`examples/k8s/{etcd3,compactor,all}`: `Apply`, `Check`, `Main*`, `kInv` over `K.kvs`),
+   `Link` regenerated, `k8s_all` rebuilt; `etc/tcb-report.py --check`, byte-identity of the two
+   `TopLevelRobustness` Spec files checked against `lean`.
+
 ## 5. Approvals
 
 | What | Who |
