@@ -2,8 +2,8 @@
 # robustness theorem `raft_antithesis_robust_msgs`
 # (Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/TopLevelRobustness.lean), the harness's linked results (Link.lean, Results.lean) and the checker's (check/Link.lean,
 # `etc/gen-link.py --antithesis`). The axioms are raft's protobuf boundary (also the harness's
-# `proto.Clone`, `proto.ClonePb`) and the raftpb codec registrations, all in etc/tcb-baseline.txt:
-# nothing new to the trust base.
+# `proto.Clone`, `proto.ClonePb`) and the raftpb codec registrations, all in etc/tcb-baseline.txt, and the
+# opaque `pbModelOf` those registrations are stated in (as for raft.txt): nothing new to the trust base.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/antithesis.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/antithesis.txt --check    against the lines below
@@ -22,3 +22,4 @@ axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.SizePb.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
+opaque pbModelOf
