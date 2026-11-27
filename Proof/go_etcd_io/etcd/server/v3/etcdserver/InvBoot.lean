@@ -426,7 +426,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       lgh) ∗
     -- (2026-11-01: `consInv_alloc`'s state, processed through the stored index `γA.m0.1`; until
     -- then `⟨0, 0, 0, false⟩`, a hidden copy of the literal)
-    "Hthr" ∷ applyThread γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ∗
+    -- (keepfix-d, Hthr correction, 2026-11-27) the consistent index as Go leaves it: `bootstrapBackend` loads
+    -- it (`bootstrap.go:316/324`, `recoverSnapshot` `:537/:542` at the pin 251a430ce), so its value is the
+    -- stored index `γA.m0.1` (until then `0`, which a restart's loaded field contradicts)
+    "Hthr" ∷ applyThread γA ⟨γA.m0.1, γA.m0.1, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
     -- the boot backend's meta reads: `#HmetaSnap`'s output at the boot open (`boot_create`,
     -- `SnapApplyOpen.lean`: from the fresh keys and payment rights inside `OpenBackend`'s `openPre`,
