@@ -725,9 +725,9 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : Meta
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
       isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci cl E)
 
-instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :
-    Persistent (srvFieldsAt s γ ci TM E ρ v) := by
+    Persistent (srvFieldsAt s γ ci cl TM E ρ v) := by
   unfold srvFieldsAt; infer_instance
 
 /-- **The server's id generator** (persistent; the vertical slice's unit V2): the apply thread
@@ -748,7 +748,7 @@ hands the wait carry a witness at them, `resultIsW`); the server's raft node (`s
 `ApplyConfChange` `applyConfChange` calls; audit phase B3, 2026-10-18). -/
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
-  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci γr.raft.raft.cl ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
+  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci γr.raft.raft.cl ∗ (∃ v : SrvFields, srvFieldsAt s γ ci γr.raft.raft.cl TM E ρ v) ∗
     srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
     -- (the backend-auth-split stage, 2026-11-02) the thread bound within the backend's pool of
     -- readers (`NewServer`'s premise), for the pool of each backend the apply thread opens

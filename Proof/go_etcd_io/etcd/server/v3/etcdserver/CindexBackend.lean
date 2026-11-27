@@ -315,12 +315,15 @@ contents `S` whose index and term keys are `m`) and the raft-term key of `S`: th
 (Step 2 adds the certificate `□ srvRtCert cl m.1 rt` to the tagged case.) -/
 def metaTMR (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BParams) (m : MetaCI) : IProp GF :=
   iprop(∃ S : Data, hkOwn γ (hkData P S) ∗ ⌜metaIs S m⌝ ∗
+    -- (keepfix (c), S5) the stored pair is a committed entry (the saving triple's `srvCIPair`)
+    (⌜m.1 = W64 0⌝ ∨ □ srvCIPair cl m.1 m.2) ∗
     (⌜m.1 = π.m0.1 ∧ metaRaftTermOf S = π.rk0⌝ ∨
      ∃ rt : w64, ⌜metaRaftTermOf S = some (m.1, rt) ∧ rt ≠ W64 0⌝))
 
-/-- (keepfix (c)) `metaTMR`'s raft-term row, of the raft-term key `r` (persistent). -/
-def metaRkOk (_cl : Cluster) (π : ApplyPhys) (m : MetaCI) (r : Option (w64 × w64)) : IProp GF :=
-  iprop(⌜m.1 = π.m0.1 ∧ r = π.rk0⌝ ∨ ∃ rt : w64, ⌜r = some (m.1, rt) ∧ rt ≠ W64 0⌝)
+/-- (keepfix (c)) `metaTMR`'s rows of the stored pair `m` and the raft-term key `r` (persistent). -/
+def metaRkOk (cl : Cluster) (π : ApplyPhys) (m : MetaCI) (r : Option (w64 × w64)) : IProp GF :=
+  iprop((⌜m.1 = W64 0⌝ ∨ □ srvCIPair cl m.1 m.2) ∗
+    (⌜m.1 = π.m0.1 ∧ r = π.rk0⌝ ∨ ∃ rt : w64, ⌜r = some (m.1, rt) ∧ rt ≠ W64 0⌝))
 
 instance metaRkOk_persistent (cl : Cluster) (π : ApplyPhys) (m : MetaCI) (r : Option (w64 × w64)) :
     Persistent (metaRkOk (GF := GF) cl π m r) := by
@@ -348,9 +351,12 @@ theorem metaTMR_agree (cl : Cluster) (π : ApplyPhys) (γ : BNames) {P : BParams
   exact metaIs_of_hkData hP Heq Hm
 
 /-- (keepfix (c)) **The meta-keys resource after a save** of `(k, tm, rtm)` with the triple predicate:
-nothing written for `k = 0`; else both keys tagged with `k`, certified by the triple. -/
+nothing written for `k = 0`; else both keys tagged with `k`, the pair committed by the triple. `hpos`: a committed
+entry's term is not 0 (the save keeps the stored term when it is; to be discharged by raft's API, with the cluster's
+non-empty boot log). -/
 theorem metaTMR_after_save (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BParams) (mm : MetaCI)
     (k tm rtm : w64) (S' : Data) (r : Option (w64 × w64))
+    (hpos : ∀ k t : w64, srvCIPair (GF := GF) cl k t ⊢ ⌜t ≠ W64 0⌝)
     (hm : metaIs S' (metaAfterSave mm k tm)) (hr : metaRaftTermOf S' = rtAfterSave r k rtm) :
     hkOwn (GF := GF) γ (hkData P S') -∗ metaRkOk cl π mm r -∗
       (⌜k = W64 0⌝ ∨ □ srvCITriple0 cl k tm rtm) -∗ metaTMR cl π γ P (metaAfterSave mm k tm) := by
@@ -365,15 +371,19 @@ theorem metaTMR_after_save (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BP
     have hra : rtAfterSave r k rtm = r := by unfold rtAfterSave; rw [if_pos (Or.inl h0)]
     rw [hma, hr, hra]
     iexact Hr
-  · icases HP with (%H0 | ⟨-, %Hrt0⟩)
+  · icases HP with (%H0 | ⟨#Hpair, %Hrt0⟩)
     · exact absurd H0 h0
-    have hk1 : (metaAfterSave mm k tm).1 = k := by rw [metaAfterSave_fst, if_neg h0]
+    ihave %Htm := hpos k tm $$ Hpair
+    have hma : metaAfterSave mm k tm = (k, tm) := by
+      unfold metaAfterSave; rw [if_neg h0, if_neg Htm]
     have hra : rtAfterSave r k rtm = some (k, rtm) := by
       unfold rtAfterSave; rw [if_neg (fun h => h.elim h0 Hrt0)]
     unfold metaRkOk
+    rw [hma, hr, hra]
+    isplitr
+    · iright; iexact Hpair
     iright
     iexists rtm
-    rw [hk1, hr, hra]
     ipureintro; exact ⟨rfl, Hrt0⟩
 
 /-- A run of the hook from `st0`: the batch lock held at `st` with the client's half of the
@@ -764,8 +774,8 @@ variable [cindex_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 variable {Rw : TRow GF}
 
 -- (keepfix (c)) The server's cluster: the consistent index keeps the triple predicate `srvCITriple0 cl` (step 1), and the
--- batch lock's resource is `metaTMR cl`.
-variable (cl : Cluster)
+-- batch lock's resource is `metaTMR cl`; `hpos`, a committed entry's term is not 0 (`metaTMR_after_save`).
+variable (cl : Cluster) (hpos : ∀ k t : w64, srvCIPair (GF := GF) cl k t ⊢ ⌜t ≠ W64 0⌝)
 
 /-- **The consistent index's pre-commit hook over the real backend**, with the run's facts
 (`hookRun`: what the server's hook needs for its `confState` put): `ci.UnsafeSave(t)`, by the
@@ -833,7 +843,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     rw [metaAfterSave_fst]
     iframe Hmt Hpend HregF
     isplitl [Hhk]
-    · iapply metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) Hm'.1 Hm'.2.1 $$
+    · iapply metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) hpos Hm'.1 Hm'.2.1 $$
         Hhk Hrk HP
     iapply termOk_after_save $$ Htm Hkd
   · ipureintro; exact Hm'.2.2
@@ -863,7 +873,7 @@ theorem ci_hook_backend (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG 
       {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗
           ⌜hookStep P st st'⌝ }} := by
   iintro #H !> %Φ Hpre HΦ
-  iapply (ci_hook_backend_run cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ H Hpre
+  iapply (ci_hook_backend_run cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ H Hpre
   iintro !> ⟨%st', %ui, %ut, %ur, Hl, Hbl, %Hr⟩
   iapply HΦ
   iexists st'
@@ -930,7 +940,7 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
   imod batchLockInv_resolve γA (metaTMR cl γA.ph γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
   iapply Hf
-  iapply (ci_hook_backend (Rw := Rw) cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
+  iapply (ci_hook_backend (Rw := Rw) cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
     [] [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
@@ -975,7 +985,7 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
   imod batchLockInv_resolve γA (metaTMR cl γA.ph γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
-  iapply (ci_hook_backend_run (Rw := Rw) cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
+  iapply (ci_hook_backend_run (Rw := Rw) cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
     [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
@@ -1049,7 +1059,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     rw [metaAfterSave_fst]
     iframe Hmt Hpend Hreg
     isplitl [Hhk]
-    · iapply metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) Hm'.1 Hm'.2.1 $$
+    · iapply metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) hpos Hm'.1 Hm'.2.1 $$
         Hhk Hrk HP
     iapply termOk_after_save γA mm k tm $$ Htm0 Hwd
   · ipureintro; exact Hm'.2.2
@@ -1074,7 +1084,7 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
   iintro #H
   unfold storage.saveReq
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, Hst, %Hpre, Hpay⟩ HΦ
-  iapply (ci_hook_freeze_run (Rw := Rw) cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
+  iapply (ci_hook_freeze_run (Rw := Rw) cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
     $$ H [Hl Hbl Hst]
   · iframe Hl Hbl Hst; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, %ur, Hl, Hbl, HY, %Hr⟩

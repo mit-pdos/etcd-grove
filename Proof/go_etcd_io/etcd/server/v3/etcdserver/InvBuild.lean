@@ -269,9 +269,9 @@ def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM :
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
       isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci cl E)
 
-instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
+instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster)
     (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (v : SrvFields) :
-    Persistent (srvFieldsBuiltNA s γ ci TM E v) := by
+    Persistent (srvFieldsBuiltNA s γ ci cl TM E v) := by
   unfold srvFieldsBuiltNA; infer_instance
 
 /-- `srvReadBuilt` without the KV rows (`srvKVAddr` and the store's handle: `srvBuildGap`). -/
@@ -313,7 +313,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames GF)
     (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
   iprop("#Hci" ∷ isServerCI s γ ci γr.raft.raft.cl ∗
-    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuiltNA s γ ci TM E v) ∗
+    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuiltNA s γ ci γr.raft.raft.cl TM E v) ∗
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
@@ -350,7 +350,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     -- `srvMonitorPermitM_of`: its attribute requests name it)
     "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
-    "#HmetaSnap" ∷ srvMetaSnap γ ∗
+    "#HmetaSnap" ∷ srvMetaSnap γr.raft.raft.cl γ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗

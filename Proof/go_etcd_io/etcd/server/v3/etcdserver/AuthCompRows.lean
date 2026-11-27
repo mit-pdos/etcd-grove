@@ -107,7 +107,7 @@ instance srvAtomicsC_persistent (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr :
 /-- **The apply thread's view of the server** (`isServerM`'s). -/
 def isServerC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
-  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci γr.raft.raft.cl ∗ (∃ v : SrvFields, srvFieldsAtM C.isOn s γ ci TM E ρ v) ∗
+  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci γr.raft.raft.cl ∗ (∃ v : SrvFields, srvFieldsAtM C.isOn s γ ci γr.raft.raft.cl TM E ρ v) ∗
     srvAtomicsC C s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
     ⌜threadBound GF ≤ backend.rdPoolN⌝)
 
@@ -249,7 +249,7 @@ def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- `srvMonitorPermitM_of`: its attribute requests name it)
     "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
-    "#HmetaSnap" ∷ srvMetaSnap γ ∗
+    "#HmetaSnap" ∷ srvMetaSnap γr.raft.raft.cl γ ∗
     -- (restart S4, 2026-11-12) the restart point: the storage's snapshot, the loop's and the apply
     -- side's tokens at `P`, the apply thread's resources at `γn.a0` (until then `Hsnap` (`rnSnapOnce`
     -- at `ai₀`), `Hloop`/`Happly` at `[]` and `Happ` (`applyBuiltC`), a first start's)
@@ -384,7 +384,7 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
-    "#HmetaSnap" ∷ srvMetaSnap γ ∗
+    "#HmetaSnap" ∷ srvMetaSnap γr.raft.raft.cl γ ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (R2d'a A9, swap batch 5, 2026-11-07; until then `%HEr` with `γn.a0 = []`, `Hsnap` (`rnSnapOnce`)
     -- and `Hstart` (`applyStartC`), a first start's, which give it: `srvRunRestartR_first`) a start
