@@ -362,3 +362,7 @@ proof uses, true of the seeded store, and `RealReplay.simR_init` already takes t
 
 No new G-item this session. Edit loop: `/shared/tmp/k4-4/qcc.sh SharedRename.lean SharedAnswer.lean
 SharedHist.lean SharedList.lean SharedWatchEv.lean` (first file whole, the others' bodies appended).
+
+**Build of record** (fk-lean1, `fklean1-check.sh`, target `...k8s.dist.SharedWatchEv`, commit `02ad74a683`):
+exit 0, `Build completed successfully (5216 jobs)`, no error; no `sorry` in the dist files (the only
+`sorry` warnings are Perennial's generated `internal/sync`, as before).
