@@ -46,7 +46,7 @@ the receiver
 
 **S5 (2026-11-27, branch `hraft-s5/2026-11-27`): the server machine, the clients, write linearizability,
 in progress** ("S5" below). Batch 1: the state machine (`service.Store`) and raft's FSM contract for it,
-with the linearization frontier.
+with the linearization frontier; batch 2: the API service's methods but `Read` and `Status`.
 
 ## Provenance
 
@@ -543,9 +543,24 @@ they need the frontier at their call (the barrier's bound) instead.
 returns `(n, nil)`) as a callee hypothesis: true of Go, but Perennial's `Atoi` spec does not give the number
 (`notes/perennial-changes.md`). Not an axiom; to be proved over Perennial's `Atoi` (or in Perennial).
 
-Still to do in S5: the API service's methods over raft's API specs (`waitFuture`, `Apply`, the admin
-requests, `LeadershipTransfer`, `Snapshot`, `Status`; `Read` with S6), the server machine (`Server`:
-configuration, the stores, `BootstrapCluster`, `NewRaft`, the receivers), the clients' operation (`Sys.op`
-over `Conn.Call` into the API, the clients' state `Q`: the model's state half, the operations' updates in an
-escrow keyed by the command's datum, gprot's `opsAuth`, and `linStep`'s proof), the orchestrator and the
+### The API service (batch 2)
+
+Proved over raft's API specs (`Dsverify/{Spec,Proof}/.../hraftnet/service/API__*.lean`, vocabulary
+`ApiDefs.lean`: `isAPI`, `applyOut`): `waitFuture` (hr3's, the future's answer `Q` a hypothesis triple of its
+`Error()`: `wp_future_Error` for `Apply`'s future, `wp_futWait_Error` for the others), `API.done`, `API.Apply`
+(hr3's `apply`: the error compared with raft's distinct error values; no effect gives the command's token back;
+`nil` gives the committed entry and the FSM's answer, `respP`, so the frontier passed it), the four membership
+changes (`AddVoter`, `AddNonvoter`, `DemoteVoter`, `RemoveServer`: the request names a server of the protocol,
+its address its ID, as raft's specs ask), `LeadershipTransfer` (an empty ID, or a server of the protocol) and
+`Snapshot`. Not yet: `Read` (S6: its barrier/verify facts), `Status`: it calls `Raft.LeaderWithID`, whose
+spec takes a quarter thread token (`rtok`), which a net/rpc method does not have (S4's finding for the
+heartbeat handler); `Status` needs a kit change (the call on a goroutine of its own, as the heartbeat) or a
+token-free `LeaderWithID` spec. Reported to coordinator-E.
+
+Still to do in S5: `New` (the API's constructor), the methods' net/rpc service spec (each method's request and
+reply facts over the codec, as S4's `raftSvc`, with the command's token through an escrow keyed by its datum:
+the client deposits it, the server's `Apply` takes it and returns it on no effect), the server machine
+(`Server`: configuration, the stores, `BootstrapCluster`, `NewRaft`, the receivers), the clients' operation
+(`Sys.op` over `Conn.Call` into the API, the clients' state `Q`: the model's state half, the operations' updates in
+an escrow keyed by the command's datum, gprot's `opsAuth`, and `linStep`'s proof), the orchestrator and the
 admin, and the link.
