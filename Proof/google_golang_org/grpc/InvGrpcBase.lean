@@ -708,8 +708,11 @@ error `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: `serverStre
 (`notes/axiom-review/hs6.md`). Since grpc-nr-e (2026-11-27) the error's description is none of
 `refusalDescs` either: `dec` is `serverStream.RecvMsg` (`server.go:1283`), whose errors are grpc's
 own (`stream.go:1921-1969`: the cardinality violations, `io.ErrUnexpectedEOF`'s `"unexpected EOF"`,
-`toRPCErr` of `recv`'s, `"grpc: failed to unmarshal the received message: …"`, `rpc_util.go:1064`),
-none of etcd's four refusal strings or the old balancer's two. -/
+`toRPCErr` of `recv`'s, `"grpc: failed to unmarshal the received message: …"`, `rpc_util.go:1064`;
+a program-registered codec's or decompressor's error is wrapped under that `"grpc: …"` prefix),
+none of etcd's four refusal strings or the old balancer's two. The Go model's `dec`
+(`models/grpc/model_transport.go:921,928`) also returns `Unavailable` with the raw net read error's
+text (`"EOF"`, a `net.OpError`'s `"read tcp …"`), likewise none of them. -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
   iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #l : GoInterface)))
