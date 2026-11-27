@@ -1,6 +1,6 @@
 # etc/bounds-check.py's baseline: KIND PACKAGE COUNT (notes/bounds-plan.md, B0).
 # Counts may only go down; rewrite with `etc/bounds-check.py --check --update`.
-spec-thread github_com/mit_pdos/etcd_grove/examples/lib/authwork 4
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth 4
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/auth3 5
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/authN 4
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/authlease 5
@@ -17,7 +17,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/partition 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/putget 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/putget3 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/putgetN 1
-spec-thread github_com/mit_pdos/etcd_grove/examples/lib/txnwork 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/txnlin 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/watch 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/compactor 2
@@ -29,7 +29,7 @@ spec-thread go_etcd_io/etcd/server/v3/etcdserver 9
 spec-thread go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
 spec-thread go_etcd_io/etcd/server/v3/lease 5
 spec-receipt RaftWitness/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness 4
-spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/authwork 5
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth 5
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/auth3 5
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/authN 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/authlease 3
@@ -46,7 +46,7 @@ spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/partition 7
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/putget 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/putget3 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/putgetN 2
-spec-receipt github_com/mit_pdos/etcd_grove/examples/lib/txnwork 3
+spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/txnlin 3
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN 4
 spec-receipt github_com/mit_pdos/etcd_grove/examples/etcd/watch 2
 spec-receipt github_com/mit_pdos/etcd_grove/examples/k8s/compactor 4
