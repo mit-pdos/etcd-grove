@@ -1,6 +1,6 @@
 /- Preserve the concrete historical term delivered with the apply job. -/
 module
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayJob
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayCoverage
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__after
 
 @[expose] public section
@@ -95,7 +95,21 @@ theorem rnReplayState.after (γ : RNNames GF) (view : GoSlice) (n : Nat) (idx : 
   iexists _
   iframe Hout
   ipureintro
-  exact replayPending_after runs γ.a0 n idx hn hp
+  refine ⟨replayLayout_sublist hp.1 (List.dropWhile_sublist _), ?_⟩
+  intro ci h hci
+  obtain ⟨r, hr, hc⟩ := hp.2 ci (by omega) hci
+  refine ⟨r, ?_, hc⟩
+  have hlarge : ¬uint.nat r.last' ≤ uint.nat idx := by
+    have := hc.2.1; have := uint_nat_eq ci; omega
+  clear hp
+  induction runs with
+  | nil => cases hr
+  | cons x xs ih =>
+    by_cases gone : uint.nat x.last' ≤ uint.nat idx
+    · have hne : r ≠ x := by rintro rfl; exact hlarge gone
+      simp only [List.dropWhile, gone, decide_true, ↓reduceIte]
+      exact ih ((List.mem_cons.mp hr).resolve_left hne)
+    · simpa [List.dropWhile, gone] using hr
 
 end EtcdGrove
 end Perennial

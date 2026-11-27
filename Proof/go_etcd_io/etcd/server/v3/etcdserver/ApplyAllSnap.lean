@@ -68,7 +68,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    sa ag r0 S2 hany hag hgi hi61 hboot hAL hcia hpd hids hraft hc0 hch hlog0 hγn hnI hbase hns
+    sa ag r0 hany hag hgi hi61 hboot hAL hcia hpd hids hraft hc0 hch hlog0 hγn hnI hbase hns
   have hai : uint.Z ai < uint.Z sv.Metadata'.Index' := by omega
   cases hM : E.authMode with
   | any => exact absurd hM hany
@@ -206,7 +206,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
         cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq
         Hif.pre (by rw [Hoff]; exact Hif.hA') (by rw [Hoff, imageLeasesAtM_false]; exact Hif.hlease)
-        (by rw [hraft]) Hmo (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc S2 γn q hns)
+        (by rw [hraft]) Hmo (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc γn q hns)
     rw [Hoff] at hS
     simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM, kvModelM_false, srvRestRpM_false] at hS
     wp_apply hS
@@ -471,7 +471,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           (try wp_auto)
           wp_if_destruct
           · -- The message belongs to the term of this apply batch.
-            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %(by first | trivial | rfl) Hcursor
+            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %True.intro Hcursor
             (try wp_auto)
             -- Installing this snapshot already established the backend index at the apply cursor.
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
@@ -719,7 +719,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       Hif.pre (by rw [hon]; exact Hif.hA') (by rw [hon]; exact Hif.hlease) (by rw [hraft]) Hmo hany
       (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI,
         by have := Hif.len; omega⟩)
-      γnc S2 γn q hns
+      γnc γn q hns
   rw [hon] at hS
   simp only [srvApplyKVM_true, kvModelM_true] at hS
   wp_apply hS
@@ -994,7 +994,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         (try wp_auto)
         wp_if_destruct
         · -- The message belongs to the term of this apply batch.
-          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %(by first | trivial | rfl) Hcursor
+          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %True.intro Hcursor
           (try wp_auto)
           -- Installing this snapshot already established the backend index at the apply cursor.
           ihave #HW' : srvWTPool E' γp $$ []

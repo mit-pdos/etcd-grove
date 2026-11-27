@@ -49,12 +49,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayModel
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__after
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayCoverage
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.ThreadPool
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyCD
 public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
@@ -130,10 +127,6 @@ structure RNNames [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] (
   -- at a first start (`newRaftNode`'s)
   commit0 : Nat
   snap0 : Nat
-  -- (T10s3b B3 part 2, 2026-11-27) the restart point's durable state (`RestartNode`'s `S`;
-  -- `RaftState.init` at a first start), a label: where the loop's driver starts (`rnLoopTok`) and what
-  -- the replay view's seed describes (`rnWorkerStartTok`)
-  s0 : RaftState
 
 /-- (P5) The WAL durability's names (`rnDurInv`'s, now inside the crash-aware `walK`). -/
 abbrev RNNames.wal [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors} (γ : RNNames GF) : WalNames GF := γ.walK.ν
@@ -2164,256 +2157,6 @@ instance rnReplayState_persistent (γ : RNNames GF) (view : GoSlice) (n : Nat) :
     Persistent (rnReplayState (GF := GF) γ view n) := by
   unfold rnReplayState; infer_instance
 
-/-- Advancing the cursor keeps the backend form (`after` drops only runs ending at or below it). -/
-theorem replayPending_after (runs : List replayTermRun) (A : List EntryModel) (n : Nat) (idx : w64)
-    (hn : n ≤ uint.nat idx) (hp : replayPending runs A n) :
-    replayPending (runs.dropWhile (fun r => decide (uint.nat r.last' ≤ uint.nat idx))) A (uint.nat idx) := by
-  refine ⟨replayLayout_sublist hp.1 (List.dropWhile_sublist _), ?_⟩
-  intro ci h hci
-  obtain ⟨r, hr, hc⟩ := hp.2 ci (by omega) hci
-  refine ⟨r, ?_, hc⟩
-  have hlarge : ¬uint.nat r.last' ≤ uint.nat idx := by
-    have := hc.2.1; have := uint_nat_eq ci; omega
-  clear hp
-  induction runs with
-  | nil => cases hr
-  | cons x xs ih =>
-    by_cases gone : uint.nat x.last' ≤ uint.nat idx
-    · have hne : r ≠ x := by rintro rfl; exact hlarge gone
-      simp only [List.dropWhile, gone, decide_true]
-      exact ih ((List.mem_cons.mp hr).resolve_left hne)
-    · simpa [List.dropWhile, gone] using hr
-
-/-! ### (T10 step 3 (B), B2) The replay state over the durable state
-
-`rnReplayHist γ view S n`: the loop's replay view describes the node's durable state `S` above the
-apply cursor `n` (`replayHistoryMatches`), beside the backend form `rnReplayState` keeps
-(`replayPending`, which `rnReplayState.job` reads until B4 builds the job from the history). Its
-lemmas follow `rnReplayState`'s, each with the history premise its step needs (`ReplayCoverage`'s
-`replayHistoryMatches_append`/`_same`, `ReplayHistory`'s `_after`); `.describe` is what B3's
-payload (`∃ S, replayRunsDescribe runs S n ∧ S.term = rt`) takes. -/
-
-def rnReplayHist (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) : IProp GF :=
-  iprop(∃ runs : List replayTermRun, view ↦*□ runs ∗
-    ⌜replayHistoryMatches runs S n⌝)
-
-instance rnReplayHist_persistent (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) :
-    Persistent (rnReplayHist (GF := GF) γ view S n) := by
-  unfold rnReplayHist; infer_instance
-
-theorem rnReplayHist.describe (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) :
-    rnReplayHist γ view S n ⊢ ∃ runs, view ↦*□ runs ∗ ⌜replayRunsDescribe runs S n⌝ := by
-  unfold rnReplayHist
-  iintro ⟨%runs, #Hr, %hp⟩
-  iexists runs; iframe Hr
-  ipureintro; exact replayHistoryMatches_describe runs S n hp
-
-/-- The seed: the history form of the runs. -/
-theorem rnReplayHist.intro (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat)
-    (runs : List replayTermRun) (hh : replayHistoryMatches runs S n) :
-    view ↦*□ runs ⊢ rnReplayHist γ view S n := by
-  unfold rnReplayHist
-  iintro #Hr
-  iexists runs; iframe Hr
-  ipureintro; exact hh
-
-/-- An unchanged log (`replayHistoryMatches_same`): the cursor moves up, `S` to a state with the
-same log. -/
-theorem rnReplayHist.advance (γ : RNNames GF) (view : GoSlice) (S S' : RaftState) (a b : Nat)
-    (hab : a ≤ b) (hb : S'.base = S.base) (he : S'.ents = S.ents) :
-    rnReplayHist γ view S a ⊢ rnReplayHist γ view S' b := by
-  unfold rnReplayHist
-  iintro ⟨%runs, #Hr, %hp⟩
-  iexists runs; iframe Hr
-  ipureintro; exact replayHistoryMatches_same runs S S' a b hp hb he hab
-
-/-- The empty view, at a state with no term above the cursor. -/
-theorem rnReplayHist.empty (γ : RNNames GF) (S : RaftState) (n : Nat)
-    (hS : ∀ ci t, n < uint.nat ci → plogTermAt S.base S.ents ci = some t → False) :
-    ⊢ rnReplayHist γ slice.nil S n := by
-  unfold rnReplayHist
-  iexists ([] : List replayTermRun)
-  ihave #Hnil := ownSlice_nil (GF := GF) (V := replayTermRun) DFrac.discard
-  iframe Hnil
-  ipureintro
-  exact ⟨by simp [replayLayout], fun ci t h ht => False.elim (hS ci t h ht)⟩
-
-/-- A Ready's entries `es`, from the durable state `S` to `S'`: `S'` keeps `S`'s terms below the
-batch (all of them above `n` when the batch is empty) and has the batch's from its first index on
-(`plogTermAt_next_batch` gives both at `S.next`). -/
-theorem rnReplayHist.appendEntries (γ : RNNames GF) (view ents : GoSlice) (S S' : RaftState) (n : Nat)
-    (ls : List Loc) (es : List EntryModel)
-    (order : es.Pairwise (fun a b => uint.nat a.term ≤ uint.nat b.term ∧ uint.nat a.index < uint.nat b.index))
-    (above : ∀ first, es.head? = some first → n < γ.a0.length → γ.a0.length < uint.nat first.index)
-    (below : ∀ ci t, n < uint.nat ci → (∀ first, es.head? = some first → uint.nat ci < uint.nat first.index) →
-      plogTermAt S'.base S'.ents ci = some t → plogTermAt S.base S.ents ci = some t)
-    (here : ∀ first, es.head? = some first → ∀ ci t, n < uint.nat ci → uint.nat first.index ≤ uint.nat ci →
-      plogTermAt S'.base S'.ents ci = some t → ∃ e ∈ es, e.index = ci ∧ e.term = t)
-    (getIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
-    (getTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-       rnReplayHist γ view S n ∗ ents ↦*□ ls ∗ entriesAt ls es }}
-      (App (Val (view @!! replayTerms.ty @!! go!"appendEntries")) (Val #ents))
-    {{ (out : GoSlice), RET #out; rnReplayHist γ out S' n }} := by
-  iintro %Φ ⟨#Hpkg, #Hstate, #Hsl, #Hrows⟩ HΦ
-  cases es with
-  | nil =>
-    ihave %hlen : ⌜ls.length = 0⌝ $$ []
-    · iunfold entriesAt at Hrows; icases Hrows with ⟨%h, -⟩; ipureintro; exact h
-    ihave %hslen := ownSlice_len ents _ ls $$ Hsl
-    wp_apply replayTerms.appendEntries_empty view ents (by word) $$ [$Hpkg]
-    iapply HΦ
-    iunfold rnReplayHist at Hstate
-    icases Hstate with ⟨%runs, #Hr, %hp⟩
-    iunfold rnReplayHist
-    iexists runs; iframe Hr
-    ipureintro
-    exact ⟨hp.1, fun ci t hn ht => hp.2 ci t hn (below ci t hn (by simp) ht)⟩
-  | cons first rest =>
-    iunfold rnReplayHist at Hstate
-    icases Hstate with ⟨%runs, #Hr, %hp⟩
-    wp_apply replayTerms.appendEntries_nonempty view ents runs ls first rest (order.imp fun h => h.1)
-      getIndex getTerm $$ [$Hpkg $Hr $Hsl $Hrows] as %out ⟨%k, %hcut, #Hout⟩
-    have idx := order.imp fun h => h.2
-    have hh := replayHistoryMatches_append runs S S' n k first rest idx hp hcut
-      (fun ci t hn hlt ht => below ci t hn (by intro f hf; cases hf; exact hlt) ht)
-      (here first rfl)
-    iapply HΦ
-    iunfold rnReplayHist
-    iexists _
-    iframe Hout
-    ipureintro
-    exact hh
-
-theorem rnReplayHist.after (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) (idx : w64)
-    (hn : n ≤ uint.nat idx) (after : replayTerms.after.spec (GF := GF) (hG := hG)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rnReplayHist γ view S n }}
-      (App (Val (view @!! replayTerms.ty @!! go!"after")) (Val #idx))
-    {{ (out : GoSlice), RET #out; rnReplayHist γ out S (uint.nat idx) }} := by
-  iintro %Φ ⟨#Hpkg, #Hs⟩ HΦ
-  iunfold rnReplayHist at Hs
-  icases Hs with ⟨%runs, #Hr, %hp⟩
-  wp_apply after view runs idx $$ [$Hpkg $Hr] as %out #Hout
-  iapply HΦ
-  iunfold rnReplayHist
-  iexists _
-  iframe Hout
-  ipureintro
-  exact replayHistoryMatches_after runs S n idx hn hp
-
-/-! ### (T10s3b B3 part 2) The replay view before the *enter*
-
-`rnReplayHistP γ view P n`: the history at every durable state satisfying `P`. A Ready's entries reach
-the view (`terms.appendEntries`) before the WAL `Save` and raft's *enter*; the facts that tie the view
-to the entered state `S'` (`S'`'s log well formed, raft's: `rnDurK_leadLaw`) exist only after it. So
-the view carries the batch's premises (`below`/`here` of `rnReplayHist.appendEntries`) as `P`, and
-`.elim` discharges them at `S'`. -/
-
-def rnReplayHistP (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat) : IProp GF :=
-  iprop(∃ runs : List replayTermRun, view ↦*□ runs ∗
-    ⌜∀ S, P S → replayHistoryMatches runs S n⌝)
-
-instance rnReplayHistP_persistent (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat) :
-    Persistent (rnReplayHistP (GF := GF) γ view P n) := by
-  unfold rnReplayHistP; infer_instance
-
-theorem rnReplayHistP.elim (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat)
-    (S : RaftState) (hS : P S) :
-    rnReplayHistP γ view P n ⊢ rnReplayHist γ view S n := by
-  unfold rnReplayHistP rnReplayHist
-  iintro ⟨%runs, #Hr, %hp⟩
-  iexists runs; iframe Hr
-  ipureintro; exact hp S hS
-
-/-- The batch's premises at the entered state `S'` (`rnReplayHist.appendEntries`'s `below`, `here`). -/
-def replayBatchP (S : RaftState) (n : Nat) (es : List EntryModel) (S' : RaftState) : Prop :=
-  (∀ ci t, n < uint.nat ci → (∀ first, es.head? = some first → uint.nat ci < uint.nat first.index) →
-      plogTermAt S'.base S'.ents ci = some t → plogTermAt S.base S.ents ci = some t) ∧
-  (∀ first, es.head? = some first → ∀ ci t, n < uint.nat ci → uint.nat first.index ≤ uint.nat ci →
-      plogTermAt S'.base S'.ents ci = some t → ∃ e ∈ es, e.index = ci ∧ e.term = t)
-
-/-- `rnReplayHist.appendEntries` with its state premises deferred (`replayBatchP`). -/
-theorem rnReplayHist.appendEntriesP (γ : RNNames GF) (view ents : GoSlice) (S : RaftState) (n : Nat)
-    (ls : List Loc) (es : List EntryModel)
-    (order : es.Pairwise (fun a b => uint.nat a.term ≤ uint.nat b.term ∧ uint.nat a.index < uint.nat b.index))
-    (above : ∀ first, es.head? = some first → n < γ.a0.length → γ.a0.length < uint.nat first.index)
-    (getIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
-    (getTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-       rnReplayHist γ view S n ∗ ents ↦*□ ls ∗ entriesAt ls es }}
-      (App (Val (view @!! replayTerms.ty @!! go!"appendEntries")) (Val #ents))
-    {{ (out : GoSlice), RET #out; rnReplayHistP γ out (replayBatchP S n es) n }} := by
-  iintro %Φ ⟨#Hpkg, #Hstate, #Hsl, #Hrows⟩ HΦ
-  cases es with
-  | nil =>
-    ihave %hlen : ⌜ls.length = 0⌝ $$ []
-    · iunfold entriesAt at Hrows; icases Hrows with ⟨%h, -⟩; ipureintro; exact h
-    ihave %hslen := ownSlice_len ents _ ls $$ Hsl
-    wp_apply replayTerms.appendEntries_empty view ents (by word) $$ [$Hpkg]
-    iapply HΦ
-    iunfold rnReplayHist at Hstate
-    icases Hstate with ⟨%runs, #Hr, %hp⟩
-    iunfold rnReplayHistP
-    iexists runs; iframe Hr
-    ipureintro
-    exact fun S' hS' => ⟨hp.1, fun ci t hn ht => hp.2 ci t hn (hS'.1 ci t hn (by simp) ht)⟩
-  | cons first rest =>
-    iunfold rnReplayHist at Hstate
-    icases Hstate with ⟨%runs, #Hr, %hp⟩
-    wp_apply replayTerms.appendEntries_nonempty view ents runs ls first rest (order.imp fun h => h.1)
-      getIndex getTerm $$ [$Hpkg $Hr $Hsl $Hrows] as %out ⟨%k, %hcut, #Hout⟩
-    have idx := order.imp fun h => h.2
-    iapply HΦ
-    iunfold rnReplayHistP
-    iexists _
-    iframe Hout
-    ipureintro
-    exact fun S' hS' =>
-      replayHistoryMatches_append runs S S' n k first rest idx hp hcut
-        (fun ci t hn hlt ht => hS'.1 ci t hn (by intro f hf; cases hf; exact hlt) ht)
-        (hS'.2 first rfl)
-
-theorem rnReplayHistP.after (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat) (idx : w64)
-    (hn : n ≤ uint.nat idx) (after : replayTerms.after.spec (GF := GF) (hG := hG)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rnReplayHistP γ view P n }}
-      (App (Val (view @!! replayTerms.ty @!! go!"after")) (Val #idx))
-    {{ (out : GoSlice), RET #out; rnReplayHistP γ out P (uint.nat idx) }} := by
-  iintro %Φ ⟨#Hpkg, #Hs⟩ HΦ
-  iunfold rnReplayHistP at Hs
-  icases Hs with ⟨%runs, #Hr, %hp⟩
-  wp_apply after view runs idx $$ [$Hpkg $Hr] as %out #Hout
-  iapply HΦ
-  iunfold rnReplayHistP
-  iexists _
-  iframe Hout
-  ipureintro
-  exact fun S hS => replayHistoryMatches_after runs S n idx hn (hp S hS)
-
-/-- The batch's premises from the entered state's shape (`readyDurable` without a snapshot: same base,
-the entries `MemoryStorage.Append` keeps) and its log well formed (raft's, `rnDurK_leadLaw`), the batch
-past the base (`plogTermAt_next_batch`). -/
-theorem replayBatchP_next (S S' : RaftState) (term vote commit : w64) (es : List EntryModel) (n : Nat)
-    (hbase : S'.base = S.base)
-    (hents : S'.ents = (S.next term vote commit none (es.map EntryModel.toM)).ents)
-    (idx : es.Pairwise (fun a b => uint.nat a.index < uint.nat b.index))
-    (hb : ∀ first, es.head? = some first → uint.Z S.base.index' < uint.Z first.index)
-    (hwf : PlogWf S'.base S'.ents) : replayBatchP S n es S' := by
-  cases es with
-  | nil =>
-    have he : S'.ents = S.ents := by rw [hents]; rfl
-    refine ⟨fun ci t _ _ ht => ?_, fun f hf => by cases hf⟩
-    rwa [hbase, he] at ht
-  | cons first rest =>
-    have hb' : (S.next term vote commit none ((first :: rest).map EntryModel.toM)).base = S.base := rfl
-    have hwf' : PlogWf (S.next term vote commit none ((first :: rest).map EntryModel.toM)).base
-        (S.next term vote commit none ((first :: rest).map EntryModel.toM)).ents := by
-      rw [hb', ← hbase, ← hents]; exact hwf
-    obtain ⟨h1, h2⟩ := plogTermAt_next_batch S term vote commit first rest idx (hb first rfl) hwf'
-    refine ⟨fun ci t _ hlt ht => h1 ci t (hlt first rfl) ?_, fun f hf ci t _ hle ht => ?_⟩
-    · rw [hb', ← hbase, ← hents]; exact ht
-    · cases hf
-      exact h2 ci t hle (by rw [hb', ← hbase, ← hents]; exact ht)
-
 /-- The replay terms an apply job carries, for a `MsgSnap` this node sent at the job's raft term `rt`
 in the replay window (`n < |a0|`): they cover the consistent index with `a0`'s last term.
 (2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) Only for a `MsgSnap` of this run
@@ -2445,12 +2188,8 @@ def rnApN (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp GF :
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
-    -- (D43 M3, 2026-10-25) `notifyc`, with the receive's right: the receive deposits `rnApR`;
-    -- (T10s3b B3, 2026-11-27) the first send (after raft's *enter*) deposits the replay job, which
-    -- until then was a conjunct of the payload
-    (∃ γnc : NotifyNames, isNotifyD γnc ap.notifyc'
-      (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (F ++ ce)).length) (rnApR γ F ce) ∗
-      notifyRcv γnc) ∗
+    -- (D43 M3, 2026-10-25) `notifyc`, with the receive's right: the receive deposits `rnApR`
+    (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ F ce) ∗ notifyRcv γnc) ∗
     -- (D43 M3) a batch the driver's view goes with (`rnHands`): the view after `F`
     rnApGive γ F ce ∗
     -- (D19i part 1) closed once `Advance` returned: (2026-10-30, the repair) the node's applied
@@ -2467,7 +2206,8 @@ def rnApN (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp GF :
         rnWalHanded γ (γ.pre ++ F ++ ce).length)) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
-    rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
+    rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length ∗
+    rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
 
 /-- (D22 J6a, 2026-10-26) **The `i`th payload on `applyc` with a snapshot** (raft's snapshot `Ready`,
 `readySnapData`; `raftNode.start` hands the apply thread its own clone of `rd.Snapshot`): the log
@@ -2507,9 +2247,7 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp G
     -- starting at or above the snapshot's index (what `applySnapshot`'s `Release` takes)
     (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc'
       iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝)
-      -- (T10s3b B5) the second send deposits the payload's replay job (made at the *enter*, after the
-      -- `applyc` send: `rnReplayJob_of_lead`), taken by `applyAll`'s own receive (its merge)
-      (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length) ∗ notifyRcvN γnc 0) ∗
+      iprop(True) ∗ notifyRcvN γnc 0) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
     rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
       -- the snapshot's dummy entry frozen, everything below compacted (`ApplySnapshot`'s)
@@ -2534,13 +2272,13 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) :
   iunfold rnApP at H
   icases H with (H | H)
   · iunfold rnApN at H
-    icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, H7, HG, #H8, #H9, #Hrt⟩
+    icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, H7, HG, #H8, #H9, #Hrt, #Hjob⟩
     isplitl [H7 HG]
     · iunfold rnApP
       ileft
       iunfold rnApN
       iexists F, ce, ceL
-      iframe H1 H2 H3 H4 H5 H7 HG H8 H9 Hrt
+      iframe H1 H2 H3 H4 H5 H7 HG H8 H9 Hrt Hjob
       ipureintro; exact H6
     iexists F, ce
     iframe H2 Hrt
@@ -2575,10 +2313,9 @@ def rnWalView (γ : RNNames GF) (v : WalView) : IProp GF :=
 
 /-- The loop's ghost state: the driver at the node's delivered log `L`, `applyc`'s producer
 half, and `cum`'s authority, one element per payload sent after the first, ending at `L`; and
-(2026-10-30, the repair) the loop's half of the node's running token. (T10s3b B3 part 2) The driver's
-durable state `S` a parameter, so that the loop's replay view can describe it (`rnReplayHist`). -/
-def rnLoopTokP (γ : RNNames GF) (L : List EntryModel) (p : HardStateM) (b : Bool) (S : RaftState) : IProp GF :=
-  iprop(∃ (sent : List toApply) (cums : List (List EntryModel)) (r : StateType),
+(2026-10-30, the repair) the loop's half of the node's running token. -/
+def rnLoopTokP (γ : RNNames GF) (L : List EntryModel) (p : HardStateM) (b : Bool) : IProp GF :=
+  iprop(∃ (sent : List toApply) (cums : List (List EntryModel)) (S : RaftState) (r : StateType),
     rnDrv γ L p S r ∗
     -- (2026-11-03, R2b-3: *enter* at the `Save`) the loop's `islead` (`b`) true only at role leader,
     -- for a leader's early `Send` (`readyLeaderMsgs`)
@@ -2598,9 +2335,9 @@ def rnLoopTokP (γ : RNNames GF) (L : List EntryModel) (p : HardStateM) (b : Boo
     isCommittedLogLb γ.node.cl (srvLE γ.srv L))
 
 /-- The loop's ghost state at some `prevHardSt` (D22l: `rnLoopTokP`, the loop keeps it tied to
-the raft term it records); (T10s3b B3 part 2) the driver at the restart point's durable state `γ.s0`. -/
+the raft term it records). -/
 def rnLoopTok (γ : RNNames GF) (L : List EntryModel) : IProp GF :=
-  iprop(⌜γ.snap0 ≤ (rnLogOf γ L).length⌝ ∗ ∃ p : HardStateM, rnLoopTokP γ L p false γ.s0)
+  iprop(⌜γ.snap0 ≤ (rnLogOf γ L).length⌝ ∗ ∃ p : HardStateM, rnLoopTokP γ L p false)
 
 /-- The apply side's ghost state: `applyc`'s consumer half, and `cum` at the number of
 payloads received, the log `A` forwarded so far. -/
@@ -2740,10 +2477,9 @@ def rnDoneTok (γ : RNNames GF) (r : Loc) : IProp GF :=
   iprop(∃ (dnc : GoChan) (st : GoInterface), rnDoneAddr r ↦□ dnc ∗ rnStorageAddr r ↦□ st ∗
     ownBroadcastChan dnc γ.done (rnDoneEsc γ) .Pending)
 
-/-- The worker takes the bootstrapped replay terms out of the config before its first Ready; (T10s3b B3
-part 2) they describe the restart point's durable state `γ.s0` above `γ.snap0` (`rnReplayHist`). -/
+/-- The worker takes the bootstrapped replay terms out of the config before its first Ready. -/
 def rnWorkerStartTok (γ : RNNames GF) (r : Loc) : IProp GF :=
-  iprop(rnDoneTok γ r ∗ ∃ terms : GoSlice, rnReplayTermsAddr r ↦ terms ∗ rnReplayHist γ terms γ.s0 γ.snap0)
+  iprop(rnDoneTok γ r ∗ ∃ terms : GoSlice, rnReplayTermsAddr r ↦ terms ∗ rnReplayState γ terms γ.snap0)
 
 
 /-- (2026-11-03, R2b-3b; review M2) **The stop's caller takes the image out of `done`'s escrow**: with

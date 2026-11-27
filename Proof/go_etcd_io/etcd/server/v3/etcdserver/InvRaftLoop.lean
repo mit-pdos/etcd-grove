@@ -93,9 +93,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
       (∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
         ⌜ap.snapshot' = null⌝ ∗
-        (∃ γnc : NotifyNames, isNotifyD γnc ap.notifyc'
-          (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (A ++ ce)).length) (rnApR γ A ce) ∗
-          notifyRcv γnc) ∗
+        (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ A ce) ∗ notifyRcv γnc) ∗
         rnApGive γ A ce ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
@@ -103,7 +101,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
             srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
             srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce) ∗
             rnWalHanded γ (γ.pre ++ A ++ ce).length)) ∗
-        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
+        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length ∗
+        rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
         rnApplyTok γ A' ∗
@@ -119,8 +118,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
          snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
         nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗
         □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc'
-          iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝)
-          (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length) ∗ notifyRcvN γnc 0) ∗
+          iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗ notifyRcvN γnc 0) ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
            iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
@@ -151,12 +149,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
     ipureintro; exact Hlen
   ileft
   iunfold rnApN at HP
-  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt, #Hjob⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
   subst Heq
   iexists ce, ceL
-  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt
+  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt Hjob
   isplitl [Hcons]
   · iunfold rnApplyTok
     iexists rcv ++ [ap]

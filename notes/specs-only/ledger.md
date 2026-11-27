@@ -8463,3 +8463,36 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   touches `S2`. A weaker premise, the post unchanged.
 - **Decision.** Under the user's B5 approval for this draft (option (a), 2026-11-27); no axiom states
   `applySnapshot.specSnapM` (`/shared/tmp/t10s3b-chk/AxCheck6.lean`).
+
+## 2026-11-27: `EtcdServer.applyAll.specBatch`: B3's `notifyc` deposit-first change reverted (T10s3b-12)
+
+- **Spec.** `EtcdServer.applyAll.specBatch` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`).
+- **Defect.** None in the (A) statement: **reverted: superseded by the boot fix (D)**. The entry "the replay job comes
+  through `notifyc`'s first send (T10s3b B3)" above was made for the crash window `|a0| > commit0`; with the fork's
+  keep guard replaced by the boot fix (D) (bootstrap raises the WAL's commit to the backend's `ci`), every restart
+  has `|a0| ≤ commit0` and the payload carries the job as at a graceful restart.
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §2 (B3 part 1: revertible, packet row 1 disappears).
+- **Proposed change.** Back to the statement at `0fd28cd373`: `taReplayBatch ap γn rt n` in the precondition,
+  `isNotify γnc nc R` (no `isNotifyD`, `NotifyCD.lean` deleted).
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27): reverted on `etcd-safe-t10s3b-a/2026-11-27`.
+
+## 2026-11-27: `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`: the label `s0` reverted (T10s3b-12)
+
+- **Spec.** `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`).
+- **Defect.** None in the (A) statement: **reverted: superseded by the boot fix (D)**. `s0` (B3 part 2) tied the
+  replay view's seed to the loop's durable state for B3's lead-law job, which (D) makes unnecessary.
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §2 (B2 / B3 part 2: revertible; packet rows 3 and 4
+  disappear, row 4 being `NewServer_dist`'s only stronger row).
+- **Proposed change.** Back to the statements at `0fd28cd373` (no `s0` parameter, no `γ.s0 = s0`/`γw.s0 = …`).
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27).
+
+## 2026-11-27: `EtcdServer.applyAll.specSnapM`, `EtcdServer.applySnapshot.specSnapM`: `S2` reverted (T10s3b-12)
+
+- **Spec.** `EtcdServer.applyAll.specSnapM`, `EtcdServer.applySnapshot.specSnapM`
+  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`, `…__applySnapshot.lean`).
+- **Defect.** None in the (A) statements: **reverted: superseded by the boot fix (D)**. The second deposit `S2`
+  (B5 step 1) carried a kept snapshot's replay job; without the keep guard raft hands out only snapshots `k > |a0|`
+  and the pre-B5 evidence (`taReplayField`, `rnReplayState.empty`) suffices.
+- **Evidence.** `notes/keepguard-optD/t10-t4-impact.md` §1 (B5 step 1: revertible) and §2.
+- **Proposed change.** Back to `isNotify2 γnc nc (…) iprop(True)` with no `S2` parameter, as at `0fd28cd373`.
+- **Decision.** Split agreed by the etcd_safe lead (#50, 2026-11-27).
