@@ -108,3 +108,35 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) :
 It rests on `adminStateR_enabled` (every admin step but `AuthEnable`'s keeps a disabled flag). Once
 D3 wires the six steps, that lemma gains their cases (`AuthDisable` sets `false`; the others write
 users, roles and the revision only).
+
+## Step 3, second attempt (D3 approved, 2026-11-27): stopped at `RoleRevokePermission`
+
+Not started on the code: one kind's Go behaviour is not a function of the model's state, which the
+approved design needs (`authDet`, `detLogOn`'s premise of every committed admin entry).
+
+- `RoleGrantPermission` stores a permission of any `PermType` (`store.go`: `PermType: r.Perm.PermType`,
+  no check; proto3 enums are open, the gRPC handlers and `EtcdServer.RoleGrantPermission` pass it on).
+  The model drops one of an unknown type (`permOfWire = none`, `RoleRec.toRole`, `grantPerms`), and
+  `adminKindOk` admits such a grant (it bounds the name only).
+- `RoleRevokePermission(r, k, e)` compares the record's permissions, the unknown-typed ones included:
+  after `RoleGrantPermission(r, {k, e, PermType 7})` it succeeds and bumps the revision; on a role that
+  never had it, it returns `ErrPermissionNotGranted`. Both roles are `r ↦ []` in the model. So
+  `roleRevokePermissionR` (the success disjunct) is a relation at every state where no model permission
+  matches, and `authDet` fails there. Measured: a Go test in `server/auth` of a fork checkout (`6b942d2`; go1.27.3) grants `{Key: "k", PermType: 7}` to one role, then `RoleRevokePermission(k)` succeeds on it (revision +1) and returns `ErrPermissionNotGranted` on a fresh role (revision kept).
+
+The other five fit: `authDisableF`, `userDeleteF`, `userRevokeRoleF`, `roleDeleteF` agree with
+`store.go` (a disabled `AuthDisable` is `.same`; `RoleDelete` rewrites only the users holding the role,
+which `delRole`'s `fmap filter` equals on the state); `UserChangePassword`'s `ErrNoPasswordUser` is
+determinate under a `pwSure`-like premise (`Password = ""`, `HashedPassword` a base64 encoding: what
+`EtcdServer.UserChangePassword` proposes when `Password` is set), as `UserAdd`'s.
+
+Ways out, each needing a decision:
+1. The model keeps unknown-typed permissions (`Role` over `PermW`, the checks ignoring them): both steps
+   become functions; the trusted vocabulary `AuthState`/`kvGranted` changes.
+2. A fork fix: `RoleGrantPermission` refuses an unknown `PermType` (`ErrInvalidAuthMgmt`), with the tie
+   strengthened to "every stored permission has a known type" (boot and snapshot images included);
+   `roleRevokePermissionR` becomes a function. No premise; a Go change and a model change of
+   `roleGrantPermissionR`.
+3. `adminKindOk` admits only known-typed grants, plus the same tie strengthening: a narrower premise
+   (top-level statements change).
+Recommended: 2 (the Go code is the spec; an unknown permission type is enforced nowhere).
