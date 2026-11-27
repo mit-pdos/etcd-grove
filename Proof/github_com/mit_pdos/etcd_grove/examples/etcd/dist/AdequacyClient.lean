@@ -3,13 +3,12 @@
 # `etcd/dist`: the orchestrators' and the client machines' boots over the full dispatch (F8, `notes/etcd-dist-plan.md` §27.4)
 
 The two client-side machine kinds of a deployment, safe from their boot shares at `EtcdBootNC`'s bounds
-(`Net.DistBootWpSLT etcdThreads 0 etcdSteps`), for every workload kind (M1's `kvremote/AdequacyClient.lean`
-`kvOrchBoot`/`kvNodeBoot`, over the full dispatch):
+(`Net.DistBootWpSLT etcdThreads 0 etcdSteps`), for every workload kind:
 - `orchBoot`: workload `j`'s orchestrator machine (`clientProg d j`), from `orchShareF d j` (`client/Shares.lean`: the
   start's `wlShare` of workload `j`, if `d` is well formed);
 - `nodeBoot`: the `n`-th client machine (`nodeProg d n`), from `nodeShareF d n` (its `wlNodeShare`).
 
-Each is the machine's initialization (the registration rights, `client`'s package initialization, as M1's), the
+Each is the machine's initialization (the registration rights, `client`'s package initialization), the
 deployment's literal, then the linked dispatch (`wp_OrchestratorFull`, `wp_NodeDeploymentFull`,
 `client/DispatchLinked.lean`), whose machine-level pure premises are discharged here: a watch environment
 (`wenv_nonempty`), the thread bound from `etcdThreads`, the receipt bound from `etcdSteps`, `EtcdError` an

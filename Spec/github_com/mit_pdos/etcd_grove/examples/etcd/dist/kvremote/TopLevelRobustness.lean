@@ -8,7 +8,7 @@ d.cfg.auth = false`.** Its binders, premises and conclusion are the full stateme
 order, written with the same definitions (`TopLevelDefs.lean`: `BootFacts`, `EtcdEnv`, `ServerStart`,
 `ClientStart`, `machines`, `etcdThreads`, `etcdSteps`). `etcd_kv_safe_nocrash_of_full`
 (`Proof/.../dist/kvremote/TopLevelRobustness.lean`) proves that the full statement implies this one, so
-the two cannot drift apart. It is the weaker variant, so it has the longer name.
+the two cannot drift apart, and `etcd_kv_safe_nocrash` is proved as that corollary of `etcd_safe_nocrash`. It is the weaker variant, so it has the longer name.
 
 **For every deployment of the scope**: `k ≥ 1` members, each running `examples/etcd/dist/server` on a
 machine of its own, and per workload (all of kind `kv`) an orchestrator machine (`client.Orchestrator`:

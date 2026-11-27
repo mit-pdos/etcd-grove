@@ -22,7 +22,7 @@ The workloads' exclusive shares go to the orchestrators by kind (`distribute`: t
 `kinds_nodup`); every other workload of a class is a lease workload, whose share is persistent.
 
 The pure premises of the client machines' shares that are not the deployment's (`Nonempty (WEnv GF)`, `EtcdError` an
-`errors.As` target) are hypotheses: the linking module has them (M1's `etcdKvBootNC_holds`).
+`errors.As` target) are hypotheses: the linking module has them (`TopLevelRobustness.lean`'s `etcdBootNCOffAuth_holds`).
 
 No axiom, no `sorry`.
 -/

@@ -1,18 +1,13 @@
 /- Lean-first (no Rocq counterpart).
 
-# `dist/kvremote`: the members' boot law of the kv start, proved (`notes/etcd-dist-plan.md` §21.1, step 2)
+# `dist/kvremote`: the kv start's members facts (`notes/etcd-dist-plan.md` §21.1, step 2)
 
-`kvremote/Start.lean`'s `kv_start_deployment` takes the members' part of the start as a law,
-`member_boot_dist.law d MS`, for any members' shares `MS`. Here it is proved at N5's shares:
-- `membersShareKv d boot Γ`: some cluster names `c` whose view is `Γ`, with every member's `memberShareD c …`
-  (what `member_boot_dist` takes, `server/AdequacyMember.lean`, one member at a time);
+- `clusterMembersOf_eq`: `kvremote/Start.lean`'s start members are N5's (`cmsD`);
 - `kvSys_boot`: the cluster's `etcdKV` at the boot state is the kv store's state at the model's start
   (`(kvR γk).sysState (kvR γk).B.init`): the boot log changes no KV state (`linkv.kvRaftOf_boot`), so the state
-  has no key, at revision `1` (`GoodKV`, `absSt` the model's start, `kvGood`);
-- `member_boot_dist_law`: the law, from `server/ClusterStartD.lean`'s `clusterStartD` (the cluster's allocation,
-  the peer addresses at the cluster's raft names, the client addresses at its view) and `kvSys_boot`.
+  has no key, at revision `1` (`GoodKV`, `absSt` the model's start, `kvGood`).
 
-No axiom, no `sorry`.
+Used by the general start (`dist/Start.lean`, `dist/StartAuth.lean`). No axiom, no `sorry`.
 -/
 module
 
@@ -53,13 +48,6 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **The members' shares at the view `Γ`** (`member_boot_dist.law`'s `MS`): some cluster names whose view is
-`Γ`, with every member's share `memberShareD` at `bootstrap`'s peers and contexts and the bootstrap log `boot`. -/
-def membersShareKv (d : Deployment) (boot : List LogEntry) (Γ : DistView) : IProp GF :=
-  iprop(∃ c : ClusterNames, ⌜c.view = Γ⌝ ∗
-    [∗list] i ↦ _m ∈ d.members,
-      memberShareD (GF := GF) (G := Gg) c .none d (distPs d) (distCtxs d) boot i)
-
 /-- **The cluster's KV at the boot state is the kv store's state at the model's start** (see the file header). -/
 theorem kvSys_boot (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) (bl : List EntryM)
     (hb : srvBootLogOk ps bl) :
@@ -83,33 +71,6 @@ theorem kvSys_boot (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) 
     · first | decide | (show (1 : Nat) < 2 ^ 63; omega) | simp [TSo, linkv.txnSpec, linkv.mInit]
     · intro k r hr
       first | cases hr | simp [TSo, linkv.txnSpec, linkv.mInit] at hr
-
-/-- **`member_boot_dist.law`, proved at N5's shares** (see the file header): for a well-formed deployment at the
-bootstrap log `boot` (`BootFacts`) and a receipt budget of at most `2 ^ 60`. -/
-theorem member_boot_dist_law (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry)
-    (Hbf : BootFacts d boot) (Hrb : receiptBound GF ≤ 2 ^ 60) (Hauth : d.cfg.auth = false) :
-    member_boot_dist.law (Gg := Gg) d (membersShareKv d boot) := by
-  have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
-  unfold member_boot_dist.law
-  iintro #Hreg Hs
-  imod (clusterStartD (G := Gg) d Hd boot Hbf Hrb Hauth) $$ Hreg Hs with ⟨%c, %Hlog, Hkv, #Hcs, Hms⟩
-  imodintro
-  iexists c.view
-  isplitr
-  · ipureintro
-    rfl
-  isplitl [Hkv]
-  · rw [show c.view.kv = c.γk from rfl]
-    iapply (kvSys_boot c.γk Hlog (distPs d) _ (srvBootLogOk_of_BootLog _ _ _ Hbc.boot)) $$ Hkv
-  isplitr
-  · rw [clusterMembersOf_eq]
-    iexact Hcs
-  · iunfold membersShareKv
-    iexists c
-    isplitr
-    · ipureintro
-      rfl
-    · iexact Hms
 
 end start
 

@@ -165,7 +165,7 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/MemberSpli
 # (M1, 2026-11-26) kvremote's machine preconditions: the orchestrator's share (`kvOrchPre`: the receipt bound, from
 # the start's `receiptBound ≤ etcdSteps`) and a client machine's local part (`kvNodePreL`: the thread bound, from
 # the machine's boot at `etcdThreads`): the adequacy theorem's constants, handed over by the machines' boots
-# (`kvremote/TopLevelRobustness.lean`'s `etcdKvBootNC_holds`, `kvremote/AdequacyClient.lean`'s `kvNodeBoot`).
+# (`dist/AdequacyClient.lean`'s `orchBoot`, `nodeBoot`, over the dispatch's kv arm).
 spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Orch\.lean$
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Node\.lean$
 # (N9a, 2026-11-26; F5 compact, 2026-11-26) dist/client's orchestrator workloads (putget, durable, compact) and their `newClient`: the logic's thread
