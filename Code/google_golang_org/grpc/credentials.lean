@@ -162,6 +162,36 @@ noncomputable def NewServerTLSFromCert [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def NewServerTLSFromFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.NewServerTLSFromFile"
 
+/-- NewContextWithRequestInfo creates a new context from ctx and attaches ri to it.
+
+    This RequestInfo will be accessible via RequestInfoFromContext.
+
+    Intended to be used from tests for PerRPCCredentials implementations (that
+    often need to check connection's SecurityLevel). Should not be used from
+    non-test code: the gRPC client already prepares a context with the correct
+    RequestInfo attached when calling PerRPCCredentials.GetRequestMetadata.
+
+    This API is experimental.
+
+    go: credentials.go:260:6 -/
+noncomputable def NewContextWithRequestInfo.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Lam "ri"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ri" (App (Val (GoInstruction (GoAlloc RequestInfo.ty))) (Var "ri"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert requestInfoKey.ty go.any))) (App (Val (GoInstruction (CompositeLiteral requestInfoKey.ty))) (LiteralValue [])))
+  (Let "$a2" (App (Val (GoInstruction (Convert RequestInfo.ty go.any))) (App (Val (GoInstruction (GoLoad RequestInfo.ty))) (Var "ri")))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithValue []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "$res0"))))))
+
 /-- The package variables goose does not translate (the `skip` entries of the package's
 goose config): no Lean name, allocation or initialization step, so no translated code names
 them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
@@ -623,6 +653,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   TLSInfo_instance : TLSInfo.TypeAssumptions
   tlsCreds_instance : tlsCreds.TypeAssumptions
   TLSChannelzSecurityValue_instance : TLSChannelzSecurityValue.TypeAssumptions
+  NewContextWithRequestInfo_unfold : FuncUnfold NewContextWithRequestInfo [] NewContextWithRequestInfo.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_grpclog_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.Assumptions
@@ -644,6 +675,7 @@ attribute [instance] Assumptions.PerRPCCredentials_instance
   Assumptions.TLSInfo_instance
   Assumptions.tlsCreds_instance
   Assumptions.TLSChannelzSecurityValue_instance
+  Assumptions.NewContextWithRequestInfo_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_grpclog_Assumption

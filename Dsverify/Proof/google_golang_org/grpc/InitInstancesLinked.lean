@@ -63,6 +63,7 @@ axiom localOpaqueInitsOk :
         errTransportClosing.init,
         transportFailureCodes.init,
         errMalformedFrame.init,
+        errHeaderListTooLarge.init,
         http2ErrCodeNames.init,
         http2ErrConvTab.init,
         errContextCanceled.init,
@@ -136,6 +137,7 @@ theorem local_wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (localOpaqueInitsOk errTransportClosing.init (by mem_tac))
   wp_apply (localOpaqueInitsOk transportFailureCodes.init (by mem_tac))
   wp_apply (localOpaqueInitsOk errMalformedFrame.init (by mem_tac))
+  wp_apply (localOpaqueInitsOk errHeaderListTooLarge.init (by mem_tac))
   wp_apply (localOpaqueInitsOk http2ErrCodeNames.init (by mem_tac))
   wp_apply (localOpaqueInitsOk http2ErrConvTab.init (by mem_tac))
   wp_apply (localOpaqueInitsOk errContextCanceled.init (by mem_tac))

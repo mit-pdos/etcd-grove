@@ -147,19 +147,22 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     imod (lc_fupd_elim_later (GF := GF) (E := ⊤) (P := recvTok (Gg := hG.goose_globalGS) cn false (repP S) ([] ++ frame bd))) $$ Hlc1 HrL with HrT
     icases recvTok_proto cn false (repP S) _ $$ HrT with ⟨-, #Hpp⟩
     rw [List.nil_append]
-    icases rep_read S cn γ i bd (by simp only [maxLen] at Hbl; omega) $$ Hso Hpp with ⟨%v, %Hv, Hvk⟩
-    subst Hv
-    ihave HΦv : iprop(|={⊤}=> ((∃ o, ⌜v = S.ov o⌝ ∗ Φo o) ∨ ⌜S.unkAns i v⌝)) $$ [Hvk Htk Hlc2]
-    · icases Hvk with (%Hu | ⟨%o, %Ho, #Hlb⟩)
-      · imodintro
+    ihave Hvk := rep_read S cn γ i bd (by simp only [maxLen] at Hbl; omega) $$ Hso Hpp
+    ihave HΦv : iprop(|={⊤}=> ((∃ o, b ↦* S.encOut o ∗ Φo o) ∨
+        ∃ v, b ↦* S.encUnk v ∗ ⌜S.unkAns i v⌝)) $$ [Hvk Htk Hlc2 Hb]
+    · icases Hvk with (⟨%v, %Hv⟩ | ⟨%o, %Ho, #Hlb⟩)
+      · obtain ⟨Hu, rfl⟩ := Hv
+        imodintro
         iright
+        iexists v
+        iframe Hb
         ipureintro; exact Hu
-      · imod slot_take S ⊤ (fun _ _ => CoPset.mem_full) a γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
+      · subst Ho
+        imod slot_take S ⊤ (fun _ _ => CoPset.mem_full) a γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
         imodintro
         ileft
         iexists o
-        iframe HΦo
-        ipureintro; exact Ho
+        iframe HΦo Hb
     imod HΦv
     imodintro
     wp_apply wp_Close t cn false a la ra (fun _ => iprop(True)) $$ [] as %err'' -
@@ -175,8 +178,7 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     iapply HΦ
     iframe Hreq
     iright
-    iexists v
-    iframe Hb HΦv
+    iframe HΦv
     ipureintro; rfl
   · icases net.opErr_netErr _ _ _ _ _ $$ Herr with %Hne
     obtain ⟨pe, rfl⟩ := Hne

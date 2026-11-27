@@ -414,7 +414,11 @@ PROJECTS = [
         # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
         # `%p` of the client, which real `fmt` does not cover (the decision on #9,
         # issuecomment-7122889900: fork rewrites, no `%p` axiom).
-        rev="df6af0c36a6bf5394765d3740aaf26ca27eb8ca9",
+        # Then (F7 fork, 2026-11-26, SPECULATIVE, branch etcd-safe-f7-fork/2026-11-26 only)
+        # d26dd5da6 (branch `goose-lean-ttlkeys`, on df6af0c36; pushed 2026-11-26): `LeaseTimeToLive`
+        # checks read permission on the keys it returns (`checkLeaseTimeToLiveKeys`,
+        # issues/etcd-lease-timetolive-keys-toctou.md).
+        rev="d26dd5da6f383bc9b06a957d685360dc12f8faf2",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -681,6 +685,13 @@ PROJECTS = [
             # (phase7-inits batch 2) types and names only but its `logger` and `init`: `SubConn`, the
             # type `health`'s `registerClientSideHealthCheckListener` names
             "google.golang.org/grpc/balancer",
+            # (phase 7 S2 core, 2026-11-23; W1, 2026-11-26) with bodies: what the client attempt's
+            # `createHeaderFields` calls (`grpcutil`'s compressor names, content type and timeout;
+            # `internal/metadata`'s `ValidatePair`)
+            "google.golang.org/grpc/internal/grpcutil",
+            "google.golang.org/grpc/internal/metadata",
+            # (W1, 2026-11-26) with its body: `NewCombinedHandler`, which `grpc.NewServer` calls
+            "google.golang.org/grpc/internal/stats",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

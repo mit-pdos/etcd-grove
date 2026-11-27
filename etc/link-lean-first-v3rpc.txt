@@ -211,8 +211,19 @@ grpc_ChainStreamInterceptor:
 grpc_MaxRecvMsgSize:
 grpc_MaxSendMsgSize:
 grpc_MaxConcurrentStreams:
-grpc_NewServer:
-grpc_Server__RegisterService:
+# (W1, 2026-11-26) `NewServer` and `RegisterService` proved over the model's bodies, with their
+# callees (grpc's internal stats and event, the chain builders, `register` and its helpers)
+stats_NewCombinedHandler:
+grpcsync_NewEvent:
+grpc_chainUnaryInterceptors:
+grpc_chainStreamInterceptors:
+grpc_chainUnaryServerInterceptors: grpc_chainUnaryInterceptors
+grpc_chainStreamServerInterceptors: grpc_chainStreamInterceptors
+grpc_NewServer: stats_NewCombinedHandler grpcsync_NewEvent grpc_chainUnaryServerInterceptors grpc_chainStreamServerInterceptors
+grpc_Server__printf:
+grpc_Server__wrapUnaryHandler:
+grpc_Server__register: grpc_Server__printf grpc_Server__wrapUnaryHandler
+grpc_Server__RegisterService: grpc_Server__register
 health_NewServer:
 health_Server__setServingStatusLocked:
 health_Server__SetServingStatus: health_Server__setServingStatusLocked

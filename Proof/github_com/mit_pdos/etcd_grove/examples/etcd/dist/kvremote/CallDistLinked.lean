@@ -123,7 +123,7 @@ theorem client_Get_dist_law_holds (hGet : KV_Get_dist.spec (GF := GF) (hG := hG)
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, -⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
@@ -173,7 +173,7 @@ theorem client_List_dist_law_holds (hGet : KV_Get_dist.spec (GF := GF) (hG := hG
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, -⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr

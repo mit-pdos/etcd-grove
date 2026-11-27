@@ -1,0 +1,18 @@
+    f9_lag_race_test.go:36: F9 [lag] member 1 (a follower) stopped, auth off there
+    f9_lag_race_test.go:36: F9 [lag] AuthEnable returned
+    f9_lag_race_test.go:36: F9 [lag] member 1 restarted
+    f9_lag_race_test.go:36: F9 [lag] refused     1 x Put c/: context deadline exceeded
+    f9_lag_race_test.go:36: F9 [lag] refused   599 x Put c/: etcdserver: permission denied
+    f9_lag_race_test.go:36: F9 [lag] refused     1 x nested Txn put c/: context deadline exceeded
+    f9_lag_race_test.go:36: F9 [lag] refused     1 x linearizable Get c/1: context deadline exceeded
+    f9_lag_race_test.go:36: F9 [lag] refused   939 x nested Txn put c/: etcdserver: user name is empty
+    f9_lag_race_test.go:36: F9 [lag] refused   939 x linearizable Get c/1: etcdserver: user name is empty
+    f9_lag_race_test.go:36: F9 [lag] refused   599 x nested Txn put c/: etcdserver: permission denied
+    f9_lag_race_test.go:36: F9 [lag] refused   599 x linearizable Get c/1: etcdserver: permission denied
+    f9_lag_race_test.go:36: F9 [lag] refused   939 x Put c/: etcdserver: user name is empty
+    f9_lag_race_test.go:36: F9 [lag] probes 4617, successes 0; keys under c/ afterwards: [c/1]
+--- PASS: TestF9LagWritesReads (8.42s)
+    f9_lag_race_test.go:36: F9 [race] anonymous operations: 3990, succeeded before the enable returned (and applied before it): 502, refused: 3488, successes sent after: 0, applied after: 0 (root's post-enable Put at revision 340)
+--- PASS: TestF9EnableRace (2.49s)
+PASS
+ok  	f9review	10.958s

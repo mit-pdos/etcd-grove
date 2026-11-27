@@ -83,7 +83,7 @@ theorem Node.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
   wp_apply (wp_NewClients eps epsL lg (Classical.choice hV) htb hpl) $$ [$Hlt]
     as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, -, #Hnp⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -, #Hnp, -⟩ | %Hcfail)
   rotate_left
   · -- no client: `Node` returns
     obtain ⟨Hcerr, -⟩ := Hcfail

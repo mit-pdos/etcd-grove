@@ -10,7 +10,7 @@ the prophecies unresolved, and the owned update while `kv ≤ kt` (`kt` is 0 if 
 `kv` carries the owned update if `kv = kt`, and otherwise the read's persistent one (`kv ≠ kt`, both
 below `T`, so `T > 1`: a read). An answer that decodes to an output `ov o` resolves `xs` with `kv`:
 so `known` and `kv = kt`, and the slot gave `Φb o`; then `ys` with the reply's length and bytes
-(the inner loop), so `prophBytes ys` is the reply's bytes, `encOut (ov o)` (`repP`), and the choice
+(the inner loop), so `prophBytes ys` is the reply's bytes, `encOut (ov o)` (`repP`, at the store's fixed-value wire `RBase.svc`), and the choice
 gives `Φo o`. An answer of the unknown output resolves `xs` with `T`: so not `known`, and `Ψ` is
 returned; the loop's end resolves with `T`, not `known` either.
 -/
@@ -219,7 +219,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     wp_apply wp_attempt (RBase.svc (Gg := hG.goose_globalGS) R) a i Φa req (DFrac.own 1) d Hlen
       $$ [Hreq HLa Hu] as %rep %ok ⟨Hreq, Hres⟩
     · iframe Hm Ha Hreq HLa Hu
-    icases Hres with (%Hf | ⟨%v, %Hok, Hrep, Hv⟩)
+    icases Hres with (%Hf | ⟨%Hok, Hv⟩)
     · subst Hf
       wp_auto
       wp_for_post
@@ -229,9 +229,8 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
       ipureintro; word
     subst Hok
     wp_auto
-    imod ownSlice_persist $$ Hrep with #Hrep
-    icases Hv with (⟨%o, %Ho, HΦa⟩ | %Hu)
-    · subst Ho
+    icases Hv with (⟨%o, Hrep, HΦa⟩ | ⟨%v, Hrep, %Hu⟩)
+    · imod (ownSlice_persist (V := w8) rep (DFrac.own 1) (R.encOut (R.ov o))) $$ Hrep with #Hrep
       wp_apply HDecOut $$ %(R.ov o) %rep %DFrac.discard %(Or.inl ⟨o, rfl⟩) [Hrep] as %x %good %Hx
       · iexact Hrep
       cases good
@@ -315,6 +314,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
           ipureintro; rfl
     · have Hu : v = R.unk i := Hu
       subst Hu
+      imod (ownSlice_persist (V := w8) rep (DFrac.own 1) (R.encOut (R.unk i))) $$ Hrep with #Hrep
       wp_apply HDecOut $$ %(R.unk i) %rep %DFrac.discard %(Or.inr ⟨i, rfl⟩) [Hrep] as %x %good %Hx
       · iexact Hrep
       cases good

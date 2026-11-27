@@ -26,6 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartR
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
 public import Perennial.ProgramLogic.Bounds
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 
 @[expose] public section
 
@@ -98,6 +99,48 @@ abbrev newServerMode.spec : Prop :=
           -- (R2c-5) the data directory, the name's `.etcd`, with no dedicated WAL directory
           -- (`srvDataDir`, the slot's: `srvStop.dataDir`), which a stop request carries
           srvDataDir s (memberDataDir name)) }}
+
+/-- **`specAt`** (F7 step 2): `spec` with the member's lessor at the caller's name `γl` (`NewServer.specGAt`'s): half
+of `γl`'s ghost map authority at `∅` and its slot in the pre, the member built with its lessor at `γl`
+(`memberBuiltL`) in the post. -/
+abbrev newServerMode.specAt : Prop :=
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token mode : GoString)
+    (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
+    (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
+    (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
+    (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool) (lm : lease.Mode) (γl : GName),
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  N + 7 + bootWB ≤ backend.wbInit →
+  γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  rafthttp.bootCfg dir ps →
+  Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  addrFits peerAddr → addrFits client →
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
+  name.length ≤ 200 →
+  v3compactor.bootCfg mode retention cmp ρ.rd.kv.cret →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  {{ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
+      isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      zapLoggerOk lg ∗
+      threadTok ∗
+      peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
+      bootPremise N ps bootLog ctxs dir token name Uok id ∗
+      context.isClosedchanInit ∗
+      memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
+      netHttpOk γn id ∗
+      memberFreshRes name {} γn }}
+    (App (App (App (App (App (App (App (App (App (App
+      (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode))
+      (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #mode))
+      (Val #retention)) (Val #snapCount)) (Val #catchUp)) (Val #lg))
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuiltL s ρ E₀ lg γn id N false lm γl ∗
+          leaseTTLRowR s ps ∗
+          srvDataDir s (memberDataDir name)) }}
+
 
 /-- See the file header (`specRestart`). -/
 abbrev newServerMode.specRestart : Prop :=

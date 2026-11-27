@@ -43,13 +43,16 @@ abbrev MainDeployment.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     (v : deployment.Deployment) (d : Deployment) (i : Nat) (m : Member)
-    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
+    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (lm : lease.Mode),
   d.members[i]? = some m →
-  -- the scope: no token provider (`Serve_dist` serves a member with auth off)
-  d.cfg.auth = false →
+  -- the scope (option (a), `notes/specs-only/ledger.md` 2026-11-26): with auth on, in the revocable lease mode no
+  -- lease expires (`NewServer_dist`'s `lease.bootCfg` auth row)
+  (d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry) →
   crypto.fips140.GodebugFips140Off →
   -- `bootstrap`'s results as Go computes them (`BootCore`, `BootGoD`)
   BootCore ps ctxs boot → BootGoD d ps ctxs →
+  -- the lease mode `lm` the start chose, with the running server's lease premise at it
+  lease.runCfg (GF := GF) lm lm →
   srvLevels (GF := GF) →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
@@ -59,7 +62,7 @@ abbrev MainDeployment.spec : Prop :=
       ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir m.name) ∗
       -- its share of the cluster's start, if the deployment is well formed
       (⌜d.WellFormed⌝ -∗ ∃ c : ClusterNames,
-        memberShareD (G := hG.goose_globalGS) c d ps ctxs boot i) }}
+        memberShareD (G := hG.goose_globalGS) c lm d ps ctxs boot i) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MainDeployment)) (Val #v))
       (Val #(W64 i)))
   {{ RET #(); True }}

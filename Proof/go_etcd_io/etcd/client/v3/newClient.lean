@@ -259,7 +259,7 @@ theorem newClient.wp_proof
     wp_apply wp_NewLease «$r0_ptr» conn $$ [$Hcore $HkvS] as %vl ⟨%lp, %Hvl, #HlpS⟩
     iunfold callOptsAt at Hdslok
     icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok, -⟩
-    wp_apply wp_NewWatcher { V with conn := conn, ics := [ic] } «$r0_ptr» dsl cvs
+    wp_apply wp_NewWatcher { V.atEps eps with conn := conn, ics := [ic] } «$r0_ptr» dsl cvs
       $$ [$Hpkg2 $conn $callOpts $Hcvs $Hcvok $HcLg'] as %wi ⟨%w, %wc, %wlg, %Hwi, #Hcw⟩
     · ipureintro; exact Hcnn
     wp_apply wp_NewAuth «$r0_ptr» conn $$ [$HkvS] as %va ⟨%ap, %Hva, #HapS⟩

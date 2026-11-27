@@ -2,9 +2,10 @@
 `attempt(addr, req, d)`: one try of a call to the node at `addr`, which serves the service `S`
 (`svcAddr`: a store's, for `Do`, or a report's, for `Report`): it dials, registers the connection's
 slot with the update `S.upd i Φ` and one of the address's call units (`budUnit a`, `slot_register`), writes the request `req` (the bytes of `i`, at
-most `maxLen`), reads the reply and closes. It returns `true` only with the bytes of a value `v` the
-far side answered (`rep_read`): an output `ov o`, with `Φ o` taken from the slot (`slot_take`), or an
-answer to `i` that is not an output (`S.unkAns i v`: a store's unknown output). On a failure the update stays in the slot, which the far
+most `maxLen`), reads the reply and closes. It returns `true` only with the bytes of an answer of the
+far side (`rep_read`): an output `o`'s (`S.encOut o`), with `Φ o` taken from the slot (`slot_take`),
+or those of an answer `v` to `i` that is not an output (`S.encUnk v`, `S.unkAns i v`: a store's
+unknown output). On a failure the update stays in the slot, which the far
 side may claim later, or never. Proved in `Net/Proof/.../lib/remote/attempt.lean`.
 -/
 module
@@ -38,8 +39,8 @@ abbrev attempt.spec : Prop :=
       req ↦*{dq} S.encIn i ∗ S.upd i Φ ∗ budUnit (Gg := hG.goose_globalGS) a }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.attempt)) (Val #a)) (Val #req)) (Val #d))
   {{ (rep : GoSlice) (ok : Bool), RET (PairV #rep #ok); req ↦*{dq} S.encIn i ∗
-      (⌜ok = false⌝ ∨ ∃ v, ⌜ok = true⌝ ∗ rep ↦* S.encOut v ∗
-        ((∃ o, ⌜v = S.ov o⌝ ∗ Φ o) ∨ ⌜S.unkAns i v⌝)) }}
+      (⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗
+        ((∃ o, rep ↦* S.encOut o ∗ Φ o) ∨ ∃ v, rep ↦* S.encUnk v ∗ ⌜S.unkAns i v⌝))) }}
 
 end spec
 

@@ -9,13 +9,16 @@ facts `clusterFactsOf c` and the member's slice, `clusterAllocN`'s, `ClusterOk`)
 allocation (`alloc1`): its `memberBoot` from the slice (`memberBoot_of_slice`, with `proto.Marshal`'s
 contract), the raft network of the one-member directory of `http://peer`. The result: an error with the
 token, or the member started (`memberUp`) at request names whose KV names are `kvCongr` to the cluster's,
-`c.γk`, what `Serve_dist` takes at the cluster's view. putget's `Member` starts its member this way, so that
+`c.γk`, what `Serve_dist` takes at the cluster's view. (F7 step 2) Over `StartServer.specAt`: the caller hands
+over its lessor name `γl`'s half and slot (the deployment's `memberNamesShare`), and the started member is
+`memberUpL … .none γl`, its lessor at that name. putget's `Member` starts its member this way, so that
 the start fixes the view before the member runs.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClusterStart
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartOne
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
 
 @[expose] public section
 
@@ -56,7 +59,7 @@ theorem net1_alloc (γ : SrvRaft) (peer : GoString) (id : w64) :
 
 set_option maxHeartbeats 1600000 in
 /-- See the file header. -/
-theorem wp_StartServer1_slice (wp_StartServer : StartServer.spec (GF := GF) (hG := hG))
+theorem wp_StartServer1_slice (wp_StartServer : StartServer.specAt (GF := GF) (hG := hG))
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) [go_etcd_io.etcd.cache.v3.Assumptions]
     (N : Nat) (name peer client : GoString) (lg : Loc) (id : w64) (ctxs : List (List w8))
@@ -66,8 +69,9 @@ theorem wp_StartServer1_slice (wp_StartServer : StartServer.spec (GF := GF) (hG 
     (Htb : threadBound GF ≤ 2 ^ 28) (Hrb48 : receiptBound GF ≤ 2 ^ 48)
     (HrbN : receiptBound GF ≤ N + 1) (HwbN : N + 7 + bootWB ≤ backend.wbInit)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
-    (c : ClusterNames) (Hcok : ClusterOk c [id] boot .none false 0 [id]) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+    (c : ClusterNames) (Hcok : ClusterOk c [id] boot .none false 0 [id]) (γl : GName) :
+    {{ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
         zapLoggerOk lg ∗ threadTok ∗ premises (GF := GF) name peer client N id ctxs boot ∗
         context.isClosedchanInit ∗ memberStartRes (GF := GF) name {} ∗
         clusterFactsOf (G := hG.goose_globalGS) c ∗
@@ -78,8 +82,8 @@ theorem wp_StartServer1_slice (wp_StartServer : StartServer.spec (GF := GF) (hG 
     {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
         (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ ∃ (ρ : ReqNames) (E₀ : apply.AEnv GF) (γn : NetNames GF),
-          memberUp s ρ E₀ lg γn id ∗ ⌜kvCongr ρ.rd.kv c.γk⌝) }} := by
-  iintro %Φ ⟨#Hpkg, #Hlgz, Htok, #Hprem, #Hcci, Hstart, #Hcf, Hsl⟩ HΦ
+          memberUpL s ρ E₀ lg γn id .none γl ∗ ⌜kvCongr ρ.rd.kv c.γk⌝) }} := by
+  iintro %Φ ⟨Hlslot, #Hpkg, #Hlgz, Htok, #Hprem, #Hcci, Hstart, #Hcf, Hsl⟩ HΦ
   obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, -, hklg, hpo, hns, -⟩ := Hcok
   iunfold premises at Hprem
   icases Hprem with #Hboot
@@ -109,11 +113,12 @@ theorem wp_StartServer1_slice (wp_StartServer : StartServer.spec (GF := GF) (hG 
   ihave Hfresh := memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_StartServer N name peer client lg (LogEntry.toEntries boot 0) ctxs (dir1 peer id) id
       { c.γ with reg := c.reg id } ρ (env₀ γm (c.idx id) (c.rev id) (srvApi.kvNx ρ.rd false) false)
-      (fun _ => srvFloorFacts (GF := GF) (c.idx id).slog) γn .none Htb Hrb48 HrbN HwbN hvs hrule hboot
+      (fun _ => srvFloorFacts (GF := GF) (c.idx id).slog) γn .none γl Htb Hrb48 HrbN HwbN hvs hrule hboot
       hblen Hγn.1 Hγn.2 Hdirok (by simp [dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) hu hn hpf hcf Haf
       Hbuq Hdbo)
-    $$ [Htok Hmb Hfresh] as %srv %err Hr
-  · iframe; iframe #
+    $$ [Hlslot Htok Hmb Hfresh] as %srv %err Hr
+  · isplitl [Hlslot]; · iexact Hlslot
+    iframe; iframe #
   iapply HΦ
   icases Hr with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup, -⟩)
   · ileft; iframe Htok; ipureintro; exact Herr

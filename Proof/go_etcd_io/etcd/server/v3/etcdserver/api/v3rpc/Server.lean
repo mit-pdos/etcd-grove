@@ -325,6 +325,8 @@ theorem v3rpc.Server.wp_proof
   · iframe; iframe #
   (try wp_auto)
   ihave #Hgn' := v3rpc.srvOpts_neutral gvs $$ Hgn
+  ihave #Pgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
+  · iPkgInit
   wp_apply (hNewSrv _ _ ((((((ks2 ++ [SrvOptKind.chainUnary [il, im, iu]]) ++
       [SrvOptKind.chainStream [ims, is]]) ++ [SrvOptKind.neutral]) ++ [SrvOptKind.neutral]) ++
       [SrvOptKind.neutral]) ++ gvs.map (fun _ => SrvOptKind.neutral))) as %gs Hgs

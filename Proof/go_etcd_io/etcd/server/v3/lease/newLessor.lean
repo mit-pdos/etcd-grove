@@ -31,7 +31,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem lease.newLessor.wp_proof
+theorem lease.newLessor.wp_proofAt
     (hNE : lease.newLeaseExpiredNotifier.spec (GF := GF) (hG := hG))
     (hIR : lease.lessor.initAndRecover.spec (GF := GF) (hG := hG))
     (hRun : lease.lessor.runLoop.spec (GF := GF) (hG := hG))
@@ -42,9 +42,9 @@ theorem lease.newLessor.wp_proof
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
-    lease.newLessor.spec (GF := GF) (hG := hG) := by
-  intro lg cl cfg d W Pk qo GA S r mono recs reqOf Lr hS hlp hrecs hrq hLr
-  wp_start as ⟨Hlg, %Hrate, #Hcl, #HB, Ho, Htoks, Hrb, #HGA, %Htb⟩
+    lease.newLessor.specAt (GF := GF) (hG := hG) := by
+  intro lg cl cfg d W Pk qo GA S r mono recs reqOf Lr γl hS hlp hrecs hrq hLr
+  wp_start as ⟨Hlg, %Hrate, #Hcl, #HB, Ho, Htoks, Hrb, #HGA, %Htb, Hhalf, #Hslot⟩
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hli with ⟨-, -, -, ⟨#Hfor, #Hdrr, -, -, ⟨%dci, #Hdci⟩, ⟨%dri, #Hdri⟩⟩, -⟩
@@ -100,12 +100,12 @@ theorem lease.newLessor.wp_proof
   have hnd : (recs.map (·.1)).Nodup := leaseRecs_nodup _ recs hrecs
   ihave demotec : lF go!"demotec" lp ↦ (chan.nil : GoChan) $$ [demotec]
   · rw [show (chan.nil : GoChan) = null from rfl]; iexact demotec
-  imod (newLessor_alloc lp lm im np h' hx'
+  imod (newLessor_alloc_at γl lp lm im np h' hx'
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)
       cfg.MinLeaseTTL' ec sc dc γec γsc γdc GA mono recs ls reqOf Lr Hnn Hlen hnd hrq hLr)
-    $$ [$mu $demotec $Hlm $HM $itemMap $HI $rd $cp $Hb $Hnp $Hnot $Hh $Hhq $expiredC $Hec $Heco $stopC
+    $$ [$Hhalf $Hslot $mu $demotec $Hlm $HM $itemMap $HI $rd $cp $Hb $Hnp $Hnot $Hh $Hhq $expiredC $Hec $Heco $stopC
       $Hsc $Hsco $doneC $Hdc $Hdco $Hrl $Hr $HGA]
-    with ⟨%γl, #Hinv, #Hmode, #Hexp, #Hguard, Hrds, Hown, Hwt, Hever, Hrvk, Hrdo, Hbh, Hstop, #Hstr,
+    with ⟨#Hinv, #Hmode, #Hexp, #Hguard, Hrds, Hown, Hwt, Hever, Hrvk, Hrdo, Hbh, Hstop, #Hstr,
       #Hreq, #Hat, Hntok, Hdone⟩
   ihave #Hcfg : lessorCfg (GF := GF) lp $$ [Hlg]
   · iunfold lessorCfg
@@ -157,13 +157,44 @@ theorem lease.newLessor.wp_proof
   iframe Ho
   isplitl [Hrb]
   · rw [show (go!"lease" : GoString) = mvcc.leaseName from rfl]; iexact Hrb
-  iexists γl
   iframe Hinv Hmode Hcfg minLeaseTTL Hexp Hguard Hrds Hown Hwt Hever Hrvk Hrdo Happly Hstop Hreq
   isplitl [Hbh]
   · iunfold lessorBeOn; iexact Hbh
   iexists ls
   iframe Hat
   ipureintro; exact Hlen
+
+theorem lease.newLessor.wp_proof
+    (hNE : lease.newLeaseExpiredNotifier.spec (GF := GF) (hG := hG))
+    (hIR : lease.lessor.initAndRecover.spec (GF := GF) (hG := hG))
+    (hRun : lease.lessor.runLoop.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
+    lease.newLessor.spec (GF := GF) (hG := hG) := by
+  intro lg cl cfg d W Pk qo GA S r mono recs reqOf Lr hS hlp hrecs hrq hLr
+  wp_start_folded as ⟨Hlg, %Hrate, #Hcl, #HB, Ho, Htoks, Hrb, #HGA, %Htb⟩
+  -- a fresh lessor name, its slot holding half of its authority at `∅`
+  imod (ghost_map_alloc_empty (GF := GF) (K := Bool) (V := LessorGV)) with ⟨%γl, Ha⟩
+  icases (ghostMapAuth_halves γl (∅ : GMap Bool LessorGV)).1 $$ Ha with ⟨Ha1, Ha2⟩
+  imod (inv_alloc lessorSlotN ⊤ iprop(ghostMapAuth (GF := GF) γl (1 : Qp).half (∅ : GMap Bool LessorGV) ∨
+      (lessorHistOk γl ∗ ∃ γr : LessorRdNames, lessorPinR γl γr))) $$ [Ha2] with #Hs
+  · inext; ileft; iexact Ha2
+  ihave #Hslot : lessorSlot (GF := GF) γl $$ []
+  · iunfold lessorSlot; iexact Hs
+  wp_apply (lease.newLessor.wp_proofAt hNE hIR hRun hBT hLI hUP hUL hID hName hSafe lg cl cfg d W Pk qo GA S r mono recs reqOf Lr γl
+      hS hlp hrecs hrq hLr) $$ [$Hpkg $Hlg $Hcl $HB $Ho $Htoks $Hrb $HGA $Ha1 $Hslot]
+    as %lp Hpost
+  · ipureintro; exact ⟨Hrate, Htb⟩
+  icases Hpost with ⟨Ho, Hrb, Hpost⟩
+  iapply HΦ
+  iframe Ho Hrb
+  iexists γl
+  iexact Hpost
 
 end proof
 

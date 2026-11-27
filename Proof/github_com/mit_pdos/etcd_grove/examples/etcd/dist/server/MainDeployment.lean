@@ -40,14 +40,14 @@ theorem MainDeployment.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_MainDeploymentLogger : MainDeploymentLogger.spec (GF := GF) (hG := hG)) :
     MainDeployment.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB v d i m ps ctxs boot Hm Hauth Hfips Hbf Hbgo HLv Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB v d i m ps ctxs boot lm Hm Hauth Hfips Hbf Hbgo Hrun HLv Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Htok, #Hrepr, #Hvoff, Hwa, Hshare⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   (try wp_auto)
   wp_apply wp_NewNop as %lg #Hlgz
   (try wp_auto)
-  wp_apply (wp_MainDeploymentLogger v d i m lg ps ctxs boot Hm Hauth Hfips Hbf Hbgo HLv Haf Hbuq Hrf
+  wp_apply (wp_MainDeploymentLogger v d i m lg ps ctxs boot lm Hm Hauth Hfips Hbf Hbgo Hrun HLv Haf Hbuq Hrf
       Hdbo Hms) $$ [Htok Hwa Hshare]
   · iframe; iframe #
   (try wp_auto)

@@ -25,7 +25,7 @@ deployment_nameOk:
 deployment_boundsOk:
 deployment_decimal:
 deployment_AddrOk: deployment_decimal
-deployment_compatible: deployment_alone deployment_needsSoleWriter deployment_writesKeys deployment_needsNoExpiry
+deployment_compatible: deployment_alone deployment_needsSoleWriter deployment_writesKeys deployment_needsNoExpiry deployment_grantsLeases
 deployment_memberIDs: membership_NewMember+One
 deployment_RaftIdOk:
 deployment_IdsOk: deployment_memberIDs deployment_grantsLeases deployment_RaftIdOk

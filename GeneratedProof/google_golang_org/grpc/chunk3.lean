@@ -3,18 +3,28 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.encoding.base64
+public import Perennial.GeneratedProof.encoding.binary
+public import GeneratedProof.google_golang_org.grpc.codes
 public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.grpclog
 public import GeneratedProof.google_golang_org.grpc.internal
 public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
+public import GeneratedProof.google_golang_org.grpc.internal.grpcutil
+public import GeneratedProof.google_golang_org.grpc.internal.metadata
+public import GeneratedProof.google_golang_org.grpc.internal.stats
 public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
 public import GeneratedProof.google_golang_org.grpc.stats
+public import GeneratedProof.google_golang_org.grpc.status
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.math
 public import Net.GeneratedProof.net
+public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -30,80 +40,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace google_golang_org.grpc
-
-namespace MethodInfo
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-noncomputable instance MethodInfo_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.MethodInfo where
-  typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq ∗
-    "IsClientStream" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq ∗
-    "IsServerStream" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance MethodInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MethodInfo google_golang_org.grpc.MethodInfo.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance MethodInfo_access_load_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance MethodInfo_access_store_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (Name' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance MethodInfo_access_load_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance MethodInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsClientStream' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) IsClientStream' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsClientStream' := IsClientStream' } : google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance MethodInfo_access_load_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance MethodInfo_access_store_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsServerStream' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) IsServerStream' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsServerStream' := IsServerStream' } : google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end MethodInfo
 
 namespace ServiceInfo
 section def_

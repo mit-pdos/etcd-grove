@@ -149,6 +149,123 @@ theorem auth.NewTokenProvider.wp_proof
       ileft; ipureintro; left
       intro hopt; subst hopt; rw [Hsimple1] at Herr; simp at Herr
 
+
+/-- `wp_proof` at the caller's token names (#50 F7 S2, P-A1). -/
+theorem auth.NewTokenProvider.wp_proofAt
+    (h_decomposeOpts : auth.decomposeOpts.spec (GF := GF) (hG := hG))
+    (h_Simple : auth.newTokenProviderSimple.specAt (GF := GF) (hG := hG))
+    (h_JWT : auth.newTokenProviderJWT.spec (GF := GF) (hG := hG))
+    (h_Nop : auth.newTokenProviderNop.spec (GF := GF) (hG := hG))
+    (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Error : zap.Error.spec (GF := GF) (hG := hG)) :
+    auth.NewTokenProvider.specAt (GF := GF) (hG := hG) := by
+  intro lg opts iw ttl γt γf
+  wp_start as ⟨#Hzl, Htok⟩
+  ihave Hai : (authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HIO, -⟩
+  iunfold authErrVar at HIO
+  icases HIO with ⟨%eIO, #HeIO, -⟩
+  ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply h_decomposeOpts lg opts $$ [] as %tt %m %err Hd
+  · iframe #
+  have Hsimple1 : _root_.Perennial.strings.split go!"simple" go!"," = [go!"simple"] := by
+    simp [_root_.Perennial.strings.split, _root_.Perennial.strings.splitAux]
+  -- not the options `"simple"` (when the token type is not `"simple"`)
+  have Hns : tt = (_root_.Perennial.strings.split opts go!",").head! → tt ≠ go!"simple" →
+      opts ≠ go!"simple" := by
+    intro h hne hopt; subst hopt; rw [Hsimple1] at h; exact hne h
+  icases Hd with (⟨%Herr, %Htt, %mm, Hm⟩ | %Herr)
+  · subst Herr
+    (try wp_auto)
+    wp_if_destruct
+    · -- the simple provider
+      wp_if_destruct
+      · -- a nil logger: no warning
+        (try wp_auto)
+        wp_apply (h_Simple _ iw ttl γt γf) $$ [Htok] as %p ⟨#Hw, Hp⟩
+        · iframe Htok; iframe #
+        (try wp_auto)
+        iapply HΦ
+        isplitl []
+        · ipureintro; intro _; simp
+        icases Hp with (%Hneg | ⟨#Hok, Had⟩)
+        · ileft; ipureintro; right; exact Hneg
+        · iright
+          iexists p
+          iframe Hw Hok Had
+          ipureintro; exact ⟨rfl, rfl⟩
+      · ihave #Hlgok := zapLoggerOrNil_ok lg Hif $$ Hzl
+        wp_apply h_Warn $$ []
+        · iframe #
+        (try wp_auto)
+        wp_apply (h_Simple lg iw ttl γt γf) $$ [Htok] as %p ⟨#Hw, Hp⟩
+        · iframe Htok; iframe #
+        (try wp_auto)
+        iapply HΦ
+        isplitl []
+        · ipureintro; intro _; simp
+        icases Hp with (%Hneg | ⟨#Hok, Had⟩)
+        · ileft; ipureintro; right; exact Hneg
+        · iright
+          iexists p
+          iframe Hw Hok Had
+          ipureintro; exact ⟨rfl, rfl⟩
+    · have Hno := Hns Htt Hif
+      wp_if_destruct
+      · -- the JWT provider
+        wp_apply h_JWT lg m mm $$ [$Hm] as %p %err -
+        · iframe #
+        (try wp_auto)
+        iapply HΦ
+        isplitl []
+        · ipureintro; intro _; simp
+        ileft; ipureintro; left; exact Hno
+      · wp_if_destruct
+        · -- the no-op provider
+          wp_apply h_Nop $$ [] as %p %err %Herr
+          (try wp_auto)
+          iapply HΦ
+          isplitl []
+          · ipureintro; intro _; simp
+          ileft; ipureintro; left; exact Hno
+        · -- an unknown token type: the error
+          wp_if_destruct
+          · (try wp_auto)
+            iapply HΦ
+            isplitl []
+            · ipureintro; intro h; simp at h
+            ileft; ipureintro; left; exact Hno
+          ihave #Hlgok := zapLoggerOrNil_ok lg Hif $$ Hzl
+          wp_apply h_String _ _ as %f1 -
+          (try wp_auto)
+          wp_apply h_Error _ as %f2 -
+          (try wp_auto)
+          wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+          isplitr
+          · ipureintro; rfl
+          iintro %fsl ⟨-, -⟩
+          (try wp_auto)
+          wp_apply h_Warn
+          · iexact Hlgok
+          (try wp_auto)
+          iapply HΦ
+          isplitl []
+          · ipureintro; intro h; simp at h
+          ileft; ipureintro; left; exact Hno
+  · cases err with
+    | nil => exact absurd rfl Herr.1
+    | ok ei =>
+      (try wp_auto)
+      iapply HΦ
+      isplitl []
+      · ipureintro; intro h; simp at h
+      ileft; ipureintro; left
+      intro hopt; subst hopt; rw [Hsimple1] at Herr; simp at Herr
+
 end proof
 
 end EtcdGrove
