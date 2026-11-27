@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.lessor__TimeToLive
 public import Spec.go_etcd_io.etcd.client.v3.lessor__Leases
 public import Spec.go_etcd_io.etcd.client.v3.WithAttachedKeys
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.LeaseAttempts
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section

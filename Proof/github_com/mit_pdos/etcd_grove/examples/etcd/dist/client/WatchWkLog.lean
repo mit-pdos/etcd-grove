@@ -16,10 +16,13 @@ separately, so linkv3p does not rest on its files.
 * `step_wk`, `prog_wk`: a step of etcd's history at a watchkv log, from the watch's position after
   `n` events (`etcdstart.Cur`), to a revision with events is to `2 + n`, with that put's one event;
   a step without events stays or, before the first event, is at most at `1`.
+
+Moved here from `partition/` (2026-11-27): the multi-machine theorem reuses these facts, and no example's
+package `Base` is imported (names and namespace `etcd_partition` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchBase
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWkBase
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher

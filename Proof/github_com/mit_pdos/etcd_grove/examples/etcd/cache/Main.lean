@@ -58,7 +58,8 @@ public import Spec.go_etcd_io.etcd.cache.v3.Cache__Get
 public import Spec.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.cache.checkGet
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.GetFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheGetFacts
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.cache.hasKey
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__RequestProgress
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.cache.awaitProgress
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.cache.checkProgress

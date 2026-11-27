@@ -3,15 +3,28 @@
 `grantPut`, `noAuth`, `foreign`, `absent`) are written in. A barrier's arguments at one member
 (`BArgs`) with `barrier.spec`'s precondition (`barrierPre`) and success (`barrierPost`), for the
 barrier loop `barriers`. Lean-first (no Rocq counterpart).
+
+Moved here from the authlease example's `authlease/Env.lean` (2026-11-27): the multi-machine theorem
+reuses it (names and namespace `etcd_authlease` unchanged).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthTie
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
+public import Proof.go_etcd_io.etcd.client.v3.InvLeaseGrant
+public import Proof.go_etcd_io.etcd.client.v3.AuthnSpec
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOn
 public import Proof.go_etcd_io.etcd.client.v3.LeaseSpecs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.CellModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseCellModel
 
 @[expose] public section
 

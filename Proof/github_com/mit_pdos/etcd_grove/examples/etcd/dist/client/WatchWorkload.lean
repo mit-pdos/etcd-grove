@@ -7,6 +7,9 @@ now the plan is watchkv's own fact, kept with the KV state's changes in the adap
 pure part: a watchkv log (`WkLog`: revisions `0` and `1` empty, every later one exactly one put of
 the plan), which gives `NoDupKeysPerRev` (`WkLog.noDup`), and `wkW P l`, the fact about the state's
 changes `l` (the log `[] :: l` a watchkv log).
+
+Moved here from `watch/` (2026-11-27): the multi-machine theorem reuses these facts (names and
+namespace `etcd_watch` unchanged).
 -/
 module
 

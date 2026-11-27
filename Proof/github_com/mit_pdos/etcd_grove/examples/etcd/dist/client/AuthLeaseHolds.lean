@@ -7,10 +7,13 @@ seen at `F`'s state with the three attachments), the member's lessor holds `z/le
 history). A passed `TimeToLive` keys verdict or `Leases` listing over such a lease, at a principal
 denied the key, is then impossible (`holds_refutes_keys`, `holds_refutes_ids`).
 Lean-first (no Rocq counterpart).
+
+Moved here from the authlease example's `authlease/Holds.lean` (2026-11-27): the multi-machine theorem
+reuses it (names and namespace `etcd_authlease` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Cell
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseCell
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorFollows
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 
