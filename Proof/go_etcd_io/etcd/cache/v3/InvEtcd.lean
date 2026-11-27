@@ -1167,11 +1167,11 @@ instance isEtcdProgressNotifier_persistent (w : GoInterfaceOk) :
     Persistent (isEtcdProgressNotifier (GF := GF) w) := by
   unfold isEtcdProgressNotifier; infer_instance
 
+omit package_sem in
 /-- **Receiving** from a client watch channel (the atomic update of Perennial's channel specs,
 for a `select` case): with `ok`, a response `v` modelled by `r` satisfying etcd's watch contract
 from the consumer's position `cursor` to a new one `c'`; without, the channel was closed (and the
 consumer is done). -/
-omit package_sem in
 theorem etcdWatch_recv_au (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n : Nat)
     (cursor : w64) (Φ : go_etcd_io.etcd.client.v3.WatchResponse → Bool → IProp GF) :
     ⊢ isEtcdWatchChan ch γ pfx -∗ £ 1 ∗ £ 1 -∗ etcdWatchConsumer γ n cursor -∗
