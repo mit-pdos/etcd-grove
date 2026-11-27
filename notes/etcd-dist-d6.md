@@ -3375,6 +3375,7 @@ did for the changes so far (the dist proofs build unchanged).
 
 | `NewServer_dist` (`… → rnWorkerStartTok → rnReplayHist`; found by session 8's rerun, `out6b.txt`) | `rnReplayHist` (B3 part 2) | not reached | reached through `rnWorkerStartTok`'s seed | the seed's row above: the runs describe `γ.s0` above `snap0`, true of `initialReplayTerms` (`replaySeed_history`) |
 | `NewServer_dist` (`… → rnApP → rnApSnap`) | `rnApSnap` (B5 step 1, sessions 8-9; built green, `NewServerCrash` and `Link`, session 9; axiom modules rebuilt and `AxCheck6` rerun session 10, `out6c.txt` = `out6b.txt`) | `notifyc`'s second send deposits `True` | it deposits `rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ A').length` | As the Go: raft.go sends `ap` on `applyc` before the WAL `Save`, and `notifyc` twice after it; `applyAll` reads `apply.replayTerms` only after its own `<-apply.notifyc` (the merge). The terms and raft term are fixed in `ap` at the send; only the evidence moves to the second send (the job is made at the *enter*, `rnReplayJob_of_lead`). Same channel, counts and first deposit. |
+| `NewServer_dist` (`… → rnWorkerStartTok → rnReplayHist`) | `rnReplayHist` (B6 part 1, session 10; also `rnReplayHistP`, not reached by an axiom) | the seed's runs satisfy `replayPending runs γ.a0 n ∧ replayHistoryMatches runs S n` | `replayHistoryMatches runs S n` alone | **Weakens** the axiom: `rnWorkerStartTok` is in `NewServer.specG_dist`'s *post* (`srvBuiltG`'s start packet, which `raftNode.start` consumes), positively (`∃ terms, … ∗ rnReplayHist …`), so the axiom now gives a conjunct less. The dropped conjunct (`replayPending`: while the cursor is below `|a0|`, the backend's last term is in a run) is still true of Go's `initialReplayTerms` (`replaySeed_pending`, kept), merely no longer stated; nothing consumed it since session 7 (the job is `rnReplayJob_of_lead`, over `.describe`). Dropping it removes `.empty`'s `|a0| ≤ n` premise, which B6's restart without A8's bound needs. |
 
 No axiom reaches `EtcdServer.applyAll.spec*`, `EtcdServer.applySnapshot.spec*` (`specSnapM`, generalized in B5 step 1; `specKeep`), `taReplayField`, `taReplayBatch`, `raftNode.onStop.spec` or `rnLeadLaw`
 (condition (1) holds for the `Spec/` files B3 and B5 changed; session 10's rerun, `/shared/tmp/t10s3b-chk/out6c.txt`, 149 axioms). (Until session 8 this line also named `rnReplayHist`:
@@ -3718,3 +3719,54 @@ systemd-run) and rerun `lake env --packages=/shared/tmp/t10s3b-manifest.json lea
 then B6 (the `replayPending` drop above, plus `rnRestartOk`/`rnApSnap`'s A8 bound), B7, B8's parts not needing the
 lead's bootLen decision. No axiom statement, `sorry`, premise or trusted text changed; `Spec/` changed this session:
 `applySnapshot.specSnapM` (ledger first).
+
+### T10 step 3 (B), session 10 (2026-11-27, branch `etcd-safe-t10s3b-a/2026-11-27`; draft under option (a))
+
+**Step 1 done.** The 54 axiom-declaring modules built green at session 9's head (5318 jobs,
+`/shared/tmp/t10s3b-s10-b1.log`); `AxCheck6` rerun, `/shared/tmp/t10s3b-chk/out6c.txt`, identical to `out6b.txt`
+(149 axioms; no hit for `applySnapshot.specSnapM`/`specKeep`/`spec`). Table rows updated.
+
+**B5 step 2: STOPPED at the design (no Lean written).** Writing `applyAll.specKeep`'s post as designed
+(`specBatch`'s post with Go's log `A'`) needs the rest buckets `srvRestRM on E' γr rp A'` (`ApplyRDefs.lean:90`:
+inside the window `srvRestRpM … rp.A₀ (restReplay γr rp A')`, an exact image, `E.RO r`). That is false of the Go:
+the fork's keep guard (`8aa40fd5c`, `applySnapshot`) leaves the stores as they are, so Go's in-memory rest state stays
+`restReplay γr rp A` (the replay of `A.drop rp.b` only), and the entries `A'.drop |A|` are never replayed v2-only.
+`restEntryV2` is not a no-op: `restUpdateAttrs false` sets a member's `name`/`clientURLs` in memory
+(`UpdateAttributes(…, false)`, `membership/cluster.go:467-496` at the pin; `ccRest false` and `restSetVersion false`
+are no-ops). **Consequence for the Go (a finding about our fork's guard, not upstream):** after a crash with the
+backend ahead of the WAL, the replay of an in-window `ClusterMemberAttrSet` entry regresses that member's attributes in
+memory to the entry's (the backend, recovered at `A₀`, has the final ones); if a leader snapshot at `k ≤ ci` then
+takes the keep path past a later attribute update of the same member (`|A| < j ≤ k`), that update is never replayed and
+the member's in-memory attributes stay stale past the window: `restReplay_close`'s identity (replaying a *suffix* of the
+log gives the model back) does not hold for the gapped replay `A.drop b ++ A₀.drop k`. So past the window `srvRestM`
+(memory = the model of Go's log) would be false, and `MemberList` could report the stale name/URLs.
+
+*Proposed fix (fork, for the lead/Upamanyu; needs a fork commit, re-translation and `applySnapshot.wp_proofKeep`'s
+update):* in the keep branch, also reset the in-memory members from the backend (`s.cluster.Recover(...)` or the
+narrower member-attribute reload), so Go's rest state is the backend model at `A₀` again. Then the keep's post is the
+run's invariant at the **restart point `rp' = ⟨|A'|, rp.A₀⟩`** (`restReplay γr rp' G` replays only `G.drop |A'|` over the
+same base), which `restReplay_close` closes at the window's end unchanged; `applyResR`'s other rows depend on `rp.A₀`
+alone. `run`'s keep arm would then move the loop's `rp` (it is fixed today: `run`'s loop invariant needs `rp` an
+existential or a ghost of the loop). Alternative without a fork change: generalize `applyResR`'s rest image to the
+replay of an arbitrary sub-list of the window (and accept a stale-attribute model past it): it weakens what the server
+promises (`MemberList`), so not recommended.
+
+**B6 part 1 done, built green** (`NewServerCrash`, the server's `Link` and the 54 axiom modules, 10367 jobs, `/shared/tmp/t10s3b-s10-b3.log`; the `.empty` call needed its `n` explicit).** `rnReplayHist`/`rnReplayHistP` (`InvRaftNode.lean`) drop `replayPending`
+(table row above: weakens `NewServer_dist`'s post); deleted `rnReplayHist.state`/`rnReplayHistP.state` (no users);
+`.intro` loses `hp`, `.empty` loses `|a0| ≤ n`; `appendEntries(P)`'s nonempty case no longer needs the retain/fold
+coverage (its `above` premise is now unused, kept: B6 part 2 can drop it with the A8 bound); seeds in
+`NodeStartLinked.lean` (both boots) and the `.empty` call in `raftNode__start.lean`. `rnReplayState`,
+`replayPending*`, `replaySeed_pending` and `ReplayWorkerTerms.lean`'s lemmas are now unused (left for cleanup).
+
+**Handoff T10s3b-10** (stopped at the coordinator's context rule). Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed),
+tree `/shared/etcd-grove-t10s3b`, manifest and Perennial as Handoff T10s3b-1. Head built green (`NewServerCrash`,
+`Link`, the 54 axiom modules: `/shared/tmp/t10s3b-s10-b3.log`). `AxCheck6` NOT rerun after B6 part 1 (the definition
+dropped a conjunct; the reachability of names is unchanged, but rerun it to confirm: `lake env
+--packages=/shared/tmp/t10s3b-manifest.json lean --run /shared/tmp/t10s3b-chk/AxCheck6.lean > …/out6d.txt`, expect
+`out6c.txt`). Next, in order: (1) **B5 step 2 waits on a decision** (lead/Upamanyu): the keep guard's stale in-memory
+member attributes (above; proposed fork fix: reset the members from the backend in the keep branch, then the post at
+restart point `⟨|A'|, rp.A₀⟩`, and `run`'s loop over a moving `rp`); if the finding is confirmed, also record it per
+CLAUDE.md "Issues" (it is in our fork, so `notes/`, done here) and add a Go test to the fork. (2) B6 part 2 (drop
+`rnRestartOk`'s `|a0| ≤ commit0` and `rnApSnap`'s A8 bound, plus `appendEntries(P)`'s now-unused `above`) needs B5's
+keep arm in `run` first (`hwin`'s other case). (3) B7, B8 as in Handoff T10s3b-5. No axiom statement, `sorry`, premise,
+trusted text or `Spec/` changed this session.

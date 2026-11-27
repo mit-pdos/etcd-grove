@@ -206,7 +206,6 @@ theorem raftNode_of_StartNode
     isplitr
     · iExactEq Hseed; rfl
     ipureintro
-    refine ⟨by simp [Hwa0, replayPending, replayLayout], ?_⟩
     rw [HwS0]; exact replayHistoryMatches_init _
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
@@ -500,9 +499,8 @@ theorem raftNode_of_RestartNode
     isplitr
     · iExactEq Hseed; rfl
     ipureintro
-    rw [Hwa0, Hws0, HwS0]
-    exact ⟨replaySeed_pending S σ A₀ Hhold hseed.2.1 (hseed.1.imp fun h => h.2) hseed.2.2,
-      replaySeed_history S σ Hhold hseed.2.1 (hseed.1.imp fun h => h.2)⟩
+    rw [Hws0, HwS0]
+    exact replaySeed_history S σ Hhold hseed.2.1 (hseed.1.imp fun h => h.2)
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } hn0 Hb30)
     $$ [Htrf Hlts Hreplay Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩

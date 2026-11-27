@@ -518,7 +518,7 @@ theorem raftNode.start.wp_proof
         -- (T10s3b B3 part 2) the empty view at the snapshot's base `Sb` (no term above its index)
         obtain ⟨Sb, hSb⟩ : ∃ Sb : RaftState, Sb = { S with
             base := entryID.mk l.snap.Metadata'.Term' l.snap.Metadata'.Index', ents := [] } := ⟨_, rfl⟩
-        ihave #Hempty := rnReplayHist.empty γ Sb _ ha (fun ci t h ht => by
+        ihave #Hempty := rnReplayHist.empty γ Sb (rnLogOf γ A').length (fun ci t h ht => by
           rw [hSb] at ht
           simp only [rnLogOf, List.length_map, hlenA] at h
           unfold plogTermAt at ht

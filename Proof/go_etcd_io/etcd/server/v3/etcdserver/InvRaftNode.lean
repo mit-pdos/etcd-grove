@@ -2195,34 +2195,27 @@ payload (`∃ S, replayRunsDescribe runs S n ∧ S.term = rt`) takes. -/
 
 def rnReplayHist (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) : IProp GF :=
   iprop(∃ runs : List replayTermRun, view ↦*□ runs ∗
-    ⌜replayPending runs γ.a0 n ∧ replayHistoryMatches runs S n⌝)
+    ⌜replayHistoryMatches runs S n⌝)
 
 instance rnReplayHist_persistent (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) :
     Persistent (rnReplayHist (GF := GF) γ view S n) := by
   unfold rnReplayHist; infer_instance
-
-theorem rnReplayHist.state (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) :
-    rnReplayHist γ view S n ⊢ rnReplayState γ view n := by
-  unfold rnReplayHist rnReplayState
-  iintro ⟨%runs, #Hr, %hp⟩
-  iexists runs; iframe Hr
-  ipureintro; exact hp.1
 
 theorem rnReplayHist.describe (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) :
     rnReplayHist γ view S n ⊢ ∃ runs, view ↦*□ runs ∗ ⌜replayRunsDescribe runs S n⌝ := by
   unfold rnReplayHist
   iintro ⟨%runs, #Hr, %hp⟩
   iexists runs; iframe Hr
-  ipureintro; exact replayHistoryMatches_describe runs S n hp.2
+  ipureintro; exact replayHistoryMatches_describe runs S n hp
 
-/-- The seed: the backend form and the history form of the same runs. -/
+/-- The seed: the history form of the runs. -/
 theorem rnReplayHist.intro (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat)
-    (runs : List replayTermRun) (hp : replayPending runs γ.a0 n) (hh : replayHistoryMatches runs S n) :
+    (runs : List replayTermRun) (hh : replayHistoryMatches runs S n) :
     view ↦*□ runs ⊢ rnReplayHist γ view S n := by
   unfold rnReplayHist
   iintro #Hr
   iexists runs; iframe Hr
-  ipureintro; exact ⟨hp, hh⟩
+  ipureintro; exact hh
 
 /-- An unchanged log (`replayHistoryMatches_same`): the cursor moves up, `S` to a state with the
 same log. -/
@@ -2232,10 +2225,10 @@ theorem rnReplayHist.advance (γ : RNNames GF) (view : GoSlice) (S S' : RaftStat
   unfold rnReplayHist
   iintro ⟨%runs, #Hr, %hp⟩
   iexists runs; iframe Hr
-  ipureintro; exact ⟨replayPending_mono hp.1 hab, replayHistoryMatches_same runs S S' a b hp.2 hb he hab⟩
+  ipureintro; exact replayHistoryMatches_same runs S S' a b hp hb he hab
 
 /-- The empty view, at a state with no term above the cursor. -/
-theorem rnReplayHist.empty (γ : RNNames GF) (S : RaftState) (n : Nat) (hn : γ.a0.length ≤ n)
+theorem rnReplayHist.empty (γ : RNNames GF) (S : RaftState) (n : Nat)
     (hS : ∀ ci t, n < uint.nat ci → plogTermAt S.base S.ents ci = some t → False) :
     ⊢ rnReplayHist γ slice.nil S n := by
   unfold rnReplayHist
@@ -2243,8 +2236,7 @@ theorem rnReplayHist.empty (γ : RNNames GF) (S : RaftState) (n : Nat) (hn : γ.
   ihave #Hnil := ownSlice_nil (GF := GF) (V := replayTermRun) DFrac.discard
   iframe Hnil
   ipureintro
-  exact ⟨⟨by simp [replayLayout], fun _ h => False.elim (Nat.not_lt_of_ge hn h)⟩,
-    ⟨by simp [replayLayout], fun ci t h ht => False.elim (hS ci t h ht)⟩⟩
+  exact ⟨by simp [replayLayout], fun ci t h ht => False.elim (hS ci t h ht)⟩
 
 /-- A Ready's entries `es`, from the durable state `S` to `S'`: `S'` keeps `S`'s terms below the
 batch (all of them above `n` when the batch is empty) and has the batch's from its first index on
@@ -2276,22 +2268,14 @@ theorem rnReplayHist.appendEntries (γ : RNNames GF) (view ents : GoSlice) (S S'
     iunfold rnReplayHist
     iexists runs; iframe Hr
     ipureintro
-    refine ⟨hp.1, hp.2.1, fun ci t hn ht => hp.2.2 ci t hn (below ci t hn (by simp) ht)⟩
+    exact ⟨hp.1, fun ci t hn ht => hp.2 ci t hn (below ci t hn (by simp) ht)⟩
   | cons first rest =>
     iunfold rnReplayHist at Hstate
     icases Hstate with ⟨%runs, #Hr, %hp⟩
     wp_apply replayTerms.appendEntries_nonempty view ents runs ls first rest (order.imp fun h => h.1)
       getIndex getTerm $$ [$Hpkg $Hr $Hsl $Hrows] as %out ⟨%k, %hcut, #Hout⟩
-    have hp1 := hp.1
-    obtain ⟨layout, bound, keep⟩ := replayRetain_coverage runs k first.index hp1.1 hcut
     have idx := order.imp fun h => h.2
-    obtain ⟨done, prior, _⟩ := replayFold_coverage _ (first :: rest) layout idx (by
-      intro r hr e he
-      have h := bound r hr
-      rcases List.mem_cons.mp he with rfl | he
-      · exact h
-      · exact Nat.lt_trans h ((List.pairwise_cons.mp idx).1 e he))
-    have hh := replayHistoryMatches_append runs S S' n k first rest idx hp.2 hcut
+    have hh := replayHistoryMatches_append runs S S' n k first rest idx hp hcut
       (fun ci t hn hlt ht => below ci t hn (by intro f hf; cases hf; exact hlt) ht)
       (here first rfl)
     iapply HΦ
@@ -2299,10 +2283,7 @@ theorem rnReplayHist.appendEntries (γ : RNNames GF) (view ents : GoSlice) (S S'
     iexists _
     iframe Hout
     ipureintro
-    refine ⟨⟨done, fun ci hn hci => prior _ _ (keep _ _ ?_ (hp1.2 ci hn hci))⟩, hh⟩
-    have h := above first rfl hn
-    have := uint_nat_eq ci
-    omega
+    exact hh
 
 theorem rnReplayHist.after (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) (idx : w64)
     (hn : n ≤ uint.nat idx) (after : replayTerms.after.spec (GF := GF) (hG := hG)) :
@@ -2318,7 +2299,7 @@ theorem rnReplayHist.after (γ : RNNames GF) (view : GoSlice) (S : RaftState) (n
   iexists _
   iframe Hout
   ipureintro
-  exact ⟨replayPending_after runs γ.a0 n idx hn hp.1, replayHistoryMatches_after runs S n idx hn hp.2⟩
+  exact replayHistoryMatches_after runs S n idx hn hp
 
 /-! ### (T10s3b B3 part 2) The replay view before the *enter*
 
@@ -2330,18 +2311,11 @@ the view carries the batch's premises (`below`/`here` of `rnReplayHist.appendEnt
 
 def rnReplayHistP (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat) : IProp GF :=
   iprop(∃ runs : List replayTermRun, view ↦*□ runs ∗
-    ⌜replayPending runs γ.a0 n ∧ ∀ S, P S → replayHistoryMatches runs S n⌝)
+    ⌜∀ S, P S → replayHistoryMatches runs S n⌝)
 
 instance rnReplayHistP_persistent (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat) :
     Persistent (rnReplayHistP (GF := GF) γ view P n) := by
   unfold rnReplayHistP; infer_instance
-
-theorem rnReplayHistP.state (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat) :
-    rnReplayHistP γ view P n ⊢ rnReplayState γ view n := by
-  unfold rnReplayHistP rnReplayState
-  iintro ⟨%runs, #Hr, %hp⟩
-  iexists runs; iframe Hr
-  ipureintro; exact hp.1
 
 theorem rnReplayHistP.elim (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat)
     (S : RaftState) (hS : P S) :
@@ -2349,7 +2323,7 @@ theorem rnReplayHistP.elim (γ : RNNames GF) (view : GoSlice) (P : RaftState →
   unfold rnReplayHistP rnReplayHist
   iintro ⟨%runs, #Hr, %hp⟩
   iexists runs; iframe Hr
-  ipureintro; exact ⟨hp.1, hp.2 S hS⟩
+  ipureintro; exact hp S hS
 
 /-- The batch's premises at the entered state `S'` (`rnReplayHist.appendEntries`'s `below`, `here`). -/
 def replayBatchP (S : RaftState) (n : Nat) (es : List EntryModel) (S' : RaftState) : Prop :=
@@ -2382,33 +2356,22 @@ theorem rnReplayHist.appendEntriesP (γ : RNNames GF) (view ents : GoSlice) (S :
     iunfold rnReplayHistP
     iexists runs; iframe Hr
     ipureintro
-    refine ⟨hp.1, fun S' hS' => ⟨hp.2.1, fun ci t hn ht => hp.2.2 ci t hn (hS'.1 ci t hn (by simp) ht)⟩⟩
+    exact fun S' hS' => ⟨hp.1, fun ci t hn ht => hp.2 ci t hn (hS'.1 ci t hn (by simp) ht)⟩
   | cons first rest =>
     iunfold rnReplayHist at Hstate
     icases Hstate with ⟨%runs, #Hr, %hp⟩
     wp_apply replayTerms.appendEntries_nonempty view ents runs ls first rest (order.imp fun h => h.1)
       getIndex getTerm $$ [$Hpkg $Hr $Hsl $Hrows] as %out ⟨%k, %hcut, #Hout⟩
-    have hp1 := hp.1
-    obtain ⟨layout, bound, keep⟩ := replayRetain_coverage runs k first.index hp1.1 hcut
     have idx := order.imp fun h => h.2
-    obtain ⟨done, prior, _⟩ := replayFold_coverage _ (first :: rest) layout idx (by
-      intro r hr e he
-      have h := bound r hr
-      rcases List.mem_cons.mp he with rfl | he
-      · exact h
-      · exact Nat.lt_trans h ((List.pairwise_cons.mp idx).1 e he))
     iapply HΦ
     iunfold rnReplayHistP
     iexists _
     iframe Hout
     ipureintro
-    refine ⟨⟨done, fun ci hn hci => prior _ _ (keep _ _ ?_ (hp1.2 ci hn hci))⟩, fun S' hS' =>
-      replayHistoryMatches_append runs S S' n k first rest idx hp.2 hcut
+    exact fun S' hS' =>
+      replayHistoryMatches_append runs S S' n k first rest idx hp hcut
         (fun ci t hn hlt ht => hS'.1 ci t hn (by intro f hf; cases hf; exact hlt) ht)
-        (hS'.2 first rfl)⟩
-    have h := above first rfl hn
-    have := uint_nat_eq ci
-    omega
+        (hS'.2 first rfl)
 
 theorem rnReplayHistP.after (γ : RNNames GF) (view : GoSlice) (P : RaftState → Prop) (n : Nat) (idx : w64)
     (hn : n ≤ uint.nat idx) (after : replayTerms.after.spec (GF := GF) (hG := hG)) :
@@ -2424,8 +2387,7 @@ theorem rnReplayHistP.after (γ : RNNames GF) (view : GoSlice) (P : RaftState �
   iexists _
   iframe Hout
   ipureintro
-  exact ⟨replayPending_after runs γ.a0 n idx hn hp.1,
-    fun S hS => replayHistoryMatches_after runs S n idx hn (hp.2 S hS)⟩
+  exact fun S hS => replayHistoryMatches_after runs S n idx hn (hp S hS)
 
 /-- The batch's premises from the entered state's shape (`readyDurable` without a snapshot: same base,
 the entries `MemoryStorage.Append` keeps) and its log well formed (raft's, `rnDurK_leadLaw`), the batch
