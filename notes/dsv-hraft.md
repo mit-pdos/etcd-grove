@@ -44,6 +44,10 @@ the pure encodings of `WireEnc.lean`, to prove of the generated codec), the tran
 the receiver
 (`RaftRPC`, `deliver`), the pipeline, and the link.
 
+**S5 (2026-11-27, branch `hraft-s5/2026-11-27`): the server machine, the clients, write linearizability,
+in progress** ("S5" below). Batch 1: the state machine (`service.Store`) and raft's FSM contract for it,
+with the linearization frontier.
+
 ## Provenance
 
 | | |
@@ -503,3 +507,43 @@ names the same values.
 
 In-tree since (S0): inproc's `Reader`, `NewReader`, `ReadAll`, `copyBytes` moved into
 `examples/snapstore/reader.go`; the conversions' comments cite mit-pdos/perennial#713.
+
+## S5
+
+### The state machine (batch 1)
+
+`service.Store` is proved over the real code (`Dsverify/{Spec,Proof}/github_com/hashicorp/raft/examples/hraftnet/
+service/`: `NewStore`, `encodeState`, `Store.Apply`, `Store.StoreConfiguration`, `Store.Snapshot`, `Store.Restore`,
+`snapshot.Persist`, `snapshot.Release`), and `FsmIface.lean` derives raft's FSM contract (`iface/FSM.lean`'s
+`isFSM`, `fsmNotBatching`) from their specs, as the lab's hr3 `ServerFSM.lean`. The vocabulary
+(`FsmDefs.lean`) is hr3's (`ServerDefs.lean`): the register after a committed prefix (`regOf`), the answer to
+its last command (`respAt`), the store's mutex invariant (`storeInv`), the snapshot's bytes (`snapBytes`),
+`respP`/`snapP` (raft's `RCtx` fields), with the kit's command format (a put is `P`, an 8-byte id, the value;
+anything else is a get) and Perennial's `strconv.Itoa` (`fmtInt`) for the snapshot's index.
+
+**The linearization frontier.** hr3 linearized offline (`LinPure`, over the committed prefixes every response
+carried). remote's clients need online linearization points (`remote.lin`, an atomic update the far side
+fires once). The commit step is gprot's (`commit_upd`, in `leaderLoop`), so firing there would change the
+lab's protocol invariant; the FSMs fire instead. `frInv γ fc` keeps the **frontier**: the longest committed
+prefix any server's FSM has applied, ending with a command, with the clients' state at it (`fc.Q es`, the
+clients' choice). An FSM that applies the command right after the frontier moves it, and moves the clients'
+state by their law `linStep` (`Q es ={⊤ \ frN}=∗ Q (es ++ ns ++ [e])`: there the clients fire the update of
+`e`'s operation, helping); an FSM behind the frontier applies the same entries and moves nothing
+(`frontier_apply`: the frontier cannot stop between the FSM's prefix and its next command, which is the
+only command there). Every response and snapshot carries `frLb` of its prefix: a client whose `Apply`
+answered `nil` finds its operation already linearized, its output the FSM's answer. The first application
+of an index is monotone in the index (an FSM applies in order), and it lies between the operation's call
+(the command is appended after it) and its return (the leader's FSM answers the future), so it is a valid
+linearization point. Reads outside the log (S6) read some FSM's state, which may be behind the frontier:
+they need the frontier at their call (the barrier's bound) instead.
+
+`Store.Restore` takes `strconv.Atoi_dec.spec` (`Spec/strconv/Atoi_dec.lean`: `Atoi` of `Itoa(n)`, `n ≥ 0`,
+returns `(n, nil)`) as a callee hypothesis: true of Go, but Perennial's `Atoi` spec does not give the number
+(`notes/perennial-changes.md`). Not an axiom; to be proved over Perennial's `Atoi` (or in Perennial).
+
+Still to do in S5: the API service's methods over raft's API specs (`waitFuture`, `Apply`, the admin
+requests, `LeadershipTransfer`, `Snapshot`, `Status`; `Read` with S6), the server machine (`Server`:
+configuration, the stores, `BootstrapCluster`, `NewRaft`, the receivers), the clients' operation (`Sys.op`
+over `Conn.Call` into the API, the clients' state `Q`: the model's state half, the operations' updates in an
+escrow keyed by the command's datum, gprot's `opsAuth`, and `linStep`'s proof), the orchestrator and the
+admin, and the link.
