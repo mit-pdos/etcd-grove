@@ -77,12 +77,15 @@ returns.
 
 ## Proof
 
-yes: the dist theorem `etcd_safe_nocrash` runs with snapshots on and auth on (`authLease`), and its
-workload `foreign` (`examples/etcd/dist/client/authlease.go`) checks only what holds in this window:
-a refused `Revoke`, `LeaseTimeToLive` with keys returning no key the caller may not read (true only
-with the verified fork's re-check of the returned keys, `checkLeaseTimeToLiveKeys` at `d26dd5da6`,
-`Lease_TimeToLiveOn_dist`), and nothing of `LeaseLeases`. The single-process `etcd_authlease` asserts
-both refusals, so the multi-machine theorem does not subsume it (rule 41; `notes/etcd-dist-f7-fork.md`).
+yes, for `LeaseTimeToLive` with keys only: the dist theorem `etcd_safe_nocrash` runs with snapshots on and auth on
+(`authLease`), and its workload `foreign` (`examples/etcd/dist/client/authlease.go`) checks the property "no reply
+discloses a key the caller may not read" (Upamanyu's decision (a), 2026-11-27): a refused `Revoke`, and
+`LeaseTimeToLive` with keys refused or returning no such key. Upstream returns the key's name in this window (the
+test above), so the proof needs the verified fork's re-check of the returned keys (`checkLeaseTimeToLiveKeys` at
+`d26dd5da6`, `Lease_TimeToLiveOn_dist`; the fix of `issues/etcd-lease-timetolive-keys-toctou.md`). The rest is
+etcd's all-or-nothing policy, which the proof does not claim: the refusals themselves, and `LeaseLeases` (lease IDs,
+no keys). The single-process `etcd_authlease` asserts both refusals; the multi-machine theorem proves the disclosure
+property instead (rule 41, decision (a)).
 
 ## Fix
 
