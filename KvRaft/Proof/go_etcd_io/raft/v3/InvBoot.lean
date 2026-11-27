@@ -105,13 +105,13 @@ hard state's term and vote, the stored log from the base, the commit index `load
 log stable with nothing unstable or handed out, applying from `A` (or the base), the certification
 bound at the restored commit (durability stage I-6: raft certified the attach record's terms); `prevHardSt` the hard state `r.hardState()` reads then. -/
 def rawNodeAt (rn r : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : Bool) (pre : Bool)
-    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) : IProp GF :=
+    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) (async : Bool := false) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
     "Hrn" ∷ rawNodeOwn rn rnv ∗
     -- (2026-11-12, trace-check step 5) the `raft` struct named (the capability is keyed by it)
     "%Hr" ∷ ⌜rnv.raft' = r⌝ ∗
     "Hphys" ∷ ownRaftPhysC cs.cfg rnv.raft' id s ∗
-    "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
+    "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = async⌝ ∗
     "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
     "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
     "Hsteps" ∷ rnv.stepsOnAdvance' ↦* ([] : List Loc) ∗
@@ -138,11 +138,12 @@ def rawNodeAt (rn r : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr :
 /-- (2026-11-01, durability stage I-6) On an empty storage, at the voters' tracker, the node built
 is `rawNodeFresh`'s (what `setupNode`'s `Bootstrap` takes). -/
 theorem rawNodeAt_fresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr pre : Bool)
-    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) :
-    HsEmpty hs → σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → A = W64 0 →
-    rawNodeAt (GF := GF) rn r id si (cfgState V ∅) sdr pre hs σ A s ⊢
+    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) (async : Bool) :
+    HsEmpty hs → σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → A = W64 0 → async = false →
+    rawNodeAt (GF := GF) rn r id si (cfgState V ∅) sdr pre hs σ A s async ⊢
       rawNodeFresh rn r id si V sdr pre s := by
-  intro Hhs Hp He HA
+  intro Hhs Hp He HA Has
+  subst Has
   obtain ⟨HT, HV, HC⟩ := Hhs
   have Hca : committedAfter σ.prev hs = W64 0 := by
     unfold committedAfter; rw [ite_eq_left (show HsEmpty hs from ⟨HT, HV, HC⟩), Hp]

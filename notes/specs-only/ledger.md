@@ -9207,3 +9207,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   MsgVote → la.isSome` (a campaign changes the term and vote, so its `Ready` has a non-empty hard state differing
   from `prevHardSt`: `needStorageAppendMsg`); new `RawNode.BasicStatus.form`/`.apiSpec` (the hard state handed
   out the node's term, vote and commit; the role `roleProto`'s). Statements, not yet proved.
+
+## 2026-11-27: B2 raft round 3, (B) the async restart (antithesis parity B2, #33)
+
+- **Spec.** `NewRawNode.spec` (`Spec/go_etcd_io/raft/v3/NewRawNode.lean`), `rawNodeAt` (`InvBoot.lean`),
+  `NewRawNode.restartAtSpec`, `NewRawNode.restartAtApiSpec`, `NewRawNode.restartAtApiSpecAsync`.
+- **Defect.** `NewRawNode.spec` took `cv.AsyncStorageWrites' = false` and its post's `rawNodeAt` fixed the node's
+  `asyncStorageWrites` at `false`, so no restart spec covered an async node (`restartAtApiSpecAsync` unprovable);
+  `restartAtApiSpec` took `md.async = false`.
+- **Evidence.** `NewRawNode` copies `Config.AsyncStorageWrites` into `rn.asyncStorageWrites` and reads it nowhere
+  else (`rawnode.go:51`); the proof's `%Hasync` is that copy (`NewRawNode.lean`).
+- **Change.** `rawNodeAt … s (async : Bool := false)` (`%Hasync` `= async`); `NewRawNode.spec` without the
+  premise, its post's `rawNodeAt … cv.AsyncStorageWrites'` (a strengthening); `restartAtSpec sc` takes
+  `cv.AsyncStorageWrites' = scAsync sc` in place of `cv.AsyncStorageWrites' = false` and `scAsync sc = false`;
+  `restartAtApiSpec` takes `cv.AsyncStorageWrites' = md.async`, without `md.async = false` (a strengthening:
+  the old premises imply it); `restartAtApiSpecAsync` deleted (now `restartAtApiSpec`). `ownRawNode` unchanged:
+  the restart builds `ownRawNodeAt` from `rawNodeAt` directly, and `ownRawNode` stays node.go's synchronous node.
+- **Decision.** Lead-approved (B) (b2raft3, 2026-11-27).

@@ -74,7 +74,7 @@ theorem setupNode.wp_proof
   wp_apply wp_NewRawNode c cv lok si sn σ hs csm R
     iprop((⌜γ.reNoSnap = false⌝ ∨ storCapF (GF := GF) (interface.ok si) 1) ∗ R') (cfgState ∅ ∅) γ ps
     P1 P2 P3 P4 P5 P6 P7 P8
-    (fun h => by rw [Hsnz] at h; have h2 := Hmx (by intro hn; rw [hn] at h; cases h); word) P9
+    (fun h => by rw [Hsnz] at h; have h2 := Hmx (by intro hn; rw [hn] at h; cases h); word)
     A1 S3 A2 A3 A4 A5 S6 A7 HAR (.inl Hhs) (.inl P10) A8 A9 A10
     (fun _ => ⟨Hhs, S1, S2, Q1, Q2, Q3, Q4, Q5⟩)
     $$ [Hc HR Hcs]
@@ -93,7 +93,7 @@ theorem setupNode.wp_proof
   wp_auto
   have Hfresh0 : GMap.listToSet csm.Voters' = ∅ := by rw [Q1]; rfl
   ihave Hfresh := rawNodeAt_fresh rn r cv.ID' si ∅ cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s
-    Hhs S1 S2 P10 $$ Hfresh
+    cv.AsyncStorageWrites' Hhs S1 S2 P10 P9 $$ Hfresh
   wp_apply wp_RawNode_Bootstrap γ md rn r cv.ID' si cv.StepDownOnRemoval' cv.PreVote' s peers dq pv ps
     ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Hgtr
     (fun h => ⟨(Htrc h).1, by rw [Hcq]; exact (Htrc h).2.1, (Htrc h).2.2⟩)

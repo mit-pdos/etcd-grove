@@ -605,18 +605,18 @@ theorem RawNode.ReportUnreachable.wp_apiProof
     (RawNode.ReportUnreachable.wp_absProof wp_raft_Step wp_MessageType_Enum)
 
 /-- **`NewRawNode` restarting into `rawNode` at a mode without snapshots or configuration
-changes**: `NewRawNode.restartAtSpec (some md)` (`NewRawNode_restartAt_impl`), the ghost prefix
+changes**, either storage-write mode: `NewRawNode.restartAtSpec (some md)` (`NewRawNode_restartAt_impl`), the ghost prefix
 empty at the boundary `base0` (`RestartScopeOk`'s snapshots conjunct). -/
 theorem NewRawNode.wp_proofRestartAtApi
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG)) :
     NewRawNode.restartAtApiSpec (GF := GF) (hG := hG) := by
   unfold NewRawNode.restartAtApiSpec
-  intro md Hsn _Hcc Hasy γ N c cv lok si σ csm a m S F SV hpSV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ
+  intro md Hsn _Hcc γ N c cv lok si σ csm a m S F SV hpSV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ
     Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh Hsc x
   wp_start_folded as ⟨Hc, Hlg, Hcl, Hvac, Hfits, HrS, Hconf, Hrs, #Hcap⟩
   wp_apply (ApiImpl.RawNodeStart.NewRawNode_restartAt_impl (some md) wp_NewRawNode γ N c cv lok si
-      σ csm a m S F SV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh
-      (fun md' h => by cases h; exact Hsc) Hasy x)
+      σ csm a m S F SV hSV H1 H2 H3 H4 H5 H6 H7 H8 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh
+      (fun md' h => by cases h; exact Hsc) H9 x)
     $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
     as %rn %err ⟨%Herr, %l, %sn, %g, %K, %fp, Hrn, %Hfp, #Hcm, %Hl, Hgen, Hfree, HrS, HF⟩
   · iframe Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs

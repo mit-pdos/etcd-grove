@@ -606,7 +606,7 @@ private theorem wp_RestartNode_impl
     (fun h => by
       change γ.raft.maxData.isSome = true at h
       have h2 := Hmx (by intro hn; change γ.raft.maxData = none at hn; rw [hn] at h; cases h)
-      word) H9
+      word)
     (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
     rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk (fun h => absurd HtrG h)
     $$ [Hc HRb HA]
@@ -895,7 +895,7 @@ private theorem wp_RestartNode_impl
   ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
   · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       (Hglq := by show s.gh.lq = []; rw [Hgh])
-      Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
+      Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) (Hasync.trans H9)
       (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)
       Hun.symm (fun _ => Hsn0) trivial Ht.symm ⟨Hsg.symm, Hlsn.symm⟩
       ⟨fun _ => preGuardF_fol Hr, rfl, by show uint.Z s.term ≤ uint.Z S.term; rw [Ht, HsT]; exact Int.le_refl _,

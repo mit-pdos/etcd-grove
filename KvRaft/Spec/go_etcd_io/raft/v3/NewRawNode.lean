@@ -5,8 +5,9 @@
 
 `NewRawNode(config)` is `newRaft(config)` in a new `RawNode` that records the config's
 `AsyncStorageWrites` and the node's initial `SoftState` and `HardState`. Specified for a
-node of a new cluster: an empty storage (no entries, no `HardState`, nothing applied),
-synchronous storage writes. The premises on the `Config` and the storage are `newRaft`'s
+node of a new cluster: an empty storage (no entries, no `HardState`, nothing applied).
+(antithesis parity B2 round 3) Either storage-write mode: the node's `asyncStorageWrites` the
+`Config`'s (`rawNodeAt`'s last argument; until then synchronous writes only, a premise). The premises on the `Config` and the storage are `newRaft`'s
 (`Spec/newRaft.lean`).
 
 Since 2026-10-16 (stage R8b, D12) the result is the node **open** (`rawNodeFresh`,
@@ -107,7 +108,6 @@ abbrev NewRawNode.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- (out_size C3) in a sized node, `MaxSizePerMsg` at most `entsCutMax` (`newRaft`'s premise)
   (sn.sz = true → uint.nat cv.MaxSizePerMsg' ≤ entsCutMax) →
-  cv.AsyncStorageWrites' = false →
   LogIndicesOk σ.prev σ.ents → σ.pend = [] →
   uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
@@ -141,7 +141,8 @@ abbrev NewRawNode.spec : Prop :=
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       R' ∗ trNoCut γ.reTrace (interface.ok si) ∗
       ∃ (s : NState) (r : Loc),
-        rawNodeAt rn r cv.ID' si cs' cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s ∗
+        rawNodeAt rn r cv.ID' si cs' cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s
+          cv.AsyncStorageWrites' ∗
         ⌜err = interface.nil⌝ ∗
         ⌜s.logst.sn = sn ∧ s.gh.sn = sn ∧ s.gh.tr = γ.reTrace ∧ s.cq = cv.CheckQuorum'⌝ ∗
         trCapB γ.reTrace γ r cv.ID' (bootCfg vs) false (bootPhase vs cv.ID') (bootAt vs cv.ID' 2) }}

@@ -55,7 +55,7 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hmms Hasync
+  intro c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hmms
     Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Hfresh
   wp_start as ⟨Hc, #Hlg, HR, HFI, HLI, HInit, Hcs0⟩
   wp_auto
@@ -90,7 +90,7 @@ theorem NewRawNode.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · ipureintro; simp only; rw [HAW, Hasync]
+    · ipureintro; simp only; rw [HAW]
     isplitr
     · simp only; iapply ownSlice_nil
     isplitr

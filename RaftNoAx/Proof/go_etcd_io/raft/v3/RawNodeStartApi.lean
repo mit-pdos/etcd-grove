@@ -54,11 +54,12 @@ def RestartScopeOk (γ : Cluster) (cv : Config) (σ : StorContents) (m : Members
   (md.snapshots = false → σ.base = base0)
 
 /-- **`NewRawNode` restarting into `rawNode` at the mode `md`** (snapshots and configuration changes
-off): `NewRawNode.restartAtSpec (some md)`'s text over the sealed node, the scope premises
+off; (antithesis parity B2 round 3) synchronous or asynchronous storage writes, the `Config`'s
+`AsyncStorageWrites` the mode's `async`): `NewRawNode.restartAtSpec (some md)`'s text over the sealed node, the scope premises
 `RestartScopeOk … md`, the storage never compacted (`storCapF … 0`), the post's node at the
 restarted state `restartR` with no ghost prefix. -/
 abbrev NewRawNode.restartAtApiSpec : Prop :=
-  ∀ (md : RnMode), md.snapshots = false → md.confChanges = false → md.async = false →
+  ∀ (md : RnMode), md.snapshots = false → md.confChanges = false →
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership) (S : RaftState)
     (F : GName → IProp GF),
@@ -72,7 +73,8 @@ abbrev NewRawNode.restartAtApiSpec : Prop :=
   cv.ReadOnlyOption' = W64 0 →
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
+  -- (antithesis parity B2 round 3) the node's storage-write mode the mode's (either)
+  cv.AsyncStorageWrites' = md.async →
   (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ entsCutMax) →
   (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
   max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
@@ -140,57 +142,6 @@ abbrev rawNode_vacate.law : Prop :=
     ↑(raftN γ.raftNames) ⊆ E →
     ⊢ notCrashed -∗ rawNode (GF := GF) γ.raftNames md rn id rs r qs ip -∗
       genView γ.raftNames id x 1 g ={E}=∗ notCrashed ∗ nodeVacantA γ id x
-
-/-- (antithesis parity B2, design §4's `NewRawNode` restart row; a statement, proved in round 2)
-**`NewRawNode` restarting into `rawNode` at a mode with or without async writes**:
-`NewRawNode.restartAtApiSpec`'s text but for the `Config`'s `AsyncStorageWrites`, which is the mode's
-`async` flag (until round 2, `restartAtApiSpec` covers `false` only). The restarted node has no read
-request pending (`restartR_rd_pend`, design §7 Q8). -/
-abbrev NewRawNode.restartAtApiSpecAsync : Prop :=
-  ∀ (md : RnMode), md.snapshots = false → md.confChanges = false →
-  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership) (S : RaftState)
-    (F : GName → IProp GF),
-  ∀ (SV : SnapshotM → IProp GF) [∀ sv, Persistent (SV sv)],
-  (∀ sv, SV sv ⊢ snapshotValid γ sv) →
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = md.async →
-  (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ entsCutMax) →
-  (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
-  max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
-  γ.bootLen ≤ σ.last →
-  confStateIs csm m →
-  ¬ clusterNoSnap γ →
-  TraceLoggerOk cv.TraceLogger' →
-  Cluster.trace γ = none →
-  StorageHolds S σ →
-  RestartScopeOk γ cv σ m md →
-  ∀ (x : CrashNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗ readyFits γ N ∗
-      raftState γ cv.ID' S ∗
-      confAt γ a m ∗
-      restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F SV ∗
-      storCapF (interface.ok si) 0 }}
-    (App (Val #(functions NewRawNode [])) (Val #c))
-  {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
-      ⌜err = interface.nil⌝ ∗
-      ∃ (l : List EntryM) (sn : StorNames) (g : Nat) (K : GName),
-        rawNode γ.raftNames md rn cv.ID'
-          { rawNodeRestarted γ l (interface.ok si) sn σ.hs S m a with k := cfgK cv }
-          (restartR S σ (max σ.b (uint.nat cv.Applied')) a (ApiImpl.stOf m) []) []
-          (σ.b + σ.ents.length) ∗
-        isCommitted γ.raftNames l ∗
-        ⌜l.length = max σ.b (uint.nat cv.Applied') ∧ l.drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
-        genView γ.raftNames cv.ID' x 1 g ∗ slotFree γ.raftNames cv.ID' g ∗
-        raftState γ cv.ID' S ∗ F K }}
 
 end start_api
 

@@ -449,7 +449,7 @@ theorem node.start.wp_proof
   have Hcsi := start_confStateIs γ.R
   have Hrso := start_restartScope γ j «$v3_ptr» «$v11_ptr»
     (bootContents (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) v.dur.log) Hscope Hrun Hrc rfl
-  have HNR := wp_NewRawNode γ.R.md Hsn Hcc Hasy γ.raft Nr «$a0_ptr»
+  have HNR := wp_NewRawNode γ.R.md Hsn Hcc γ.raft Nr «$a0_ptr»
       (startConfig γ.mode (AntSim.nodeId j) «$v3_ptr» «$v11_ptr»)
       ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.nodeLogger.ty,
         #«$v11_ptr»⟩
@@ -461,7 +461,7 @@ theorem node.start.wp_proof
       (fun K => iprop(memStorMeta ms γs (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
         memStorInvP ms γs (antJ γ.raft K))) (snapshotValid γ.raft)
       (fun _ => .rfl) Hcv rfl rfl (inflight_lt Hmi) rfl rfl rfl
-      (Or.inl (by show W64 1048576 ≠ W64 0; decide)) Hb1.2.1 (fun h => absurd Hmd h) (Or.inl rfl)
+      (Or.inl (by show W64 1048576 ≠ W64 0; decide)) (Hb1.2.1.trans Hasy.symm) (fun h => absurd Hmd h) (Or.inl rfl)
       Hb0 (Nat.zero_le _) Hbl' Hcsi Hns TraceLoggerOk_nil Htr Hsh Hrso x
   wp_apply HNR
     $$ [«$a0» Hrst Hvac Hrs Hconf Hcl Hrfit] as %rn' %err ⟨%Herr, %l, %sn, %g, %K, Hrn, Hcmt, %Hl, Hgv,
