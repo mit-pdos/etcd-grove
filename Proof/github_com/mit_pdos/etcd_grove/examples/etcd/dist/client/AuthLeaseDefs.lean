@@ -13,7 +13,7 @@ stage S4, `notes/etcd-dist-f7.md`, "Handoff S3-1", item 2). Lean-first (no Rocq 
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AuthViewDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.LeaseDefs
 
 @[expose] public section

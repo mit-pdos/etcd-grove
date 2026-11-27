@@ -20,7 +20,7 @@ namespace Perennial
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 
 section bytes
 variable [GooseExts]

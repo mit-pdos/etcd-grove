@@ -1,7 +1,7 @@
 /-
 `clientv3.New` (`client/v3/client.go`).
 
-Users: every client program: `examples/lib/etcdstart` (`NewClient`), `examples/etcd/auth`
+Users: every client program: `examples/lib/etcdstart` (`NewClient`), `examples/lib/authwork`
 (`newUserClient`: a user name and password), `client/v3/kubernetes.New` (Kubernetes' storage factory:
 TLS, dial options with chained interceptors, a stats handler and a context dialer, a logger),
 `examples/k8s/*`; snippets `clientv3client/lifecycle.go` (`ReqNewWrapClose`, `ReqNewNoEndpoints`),

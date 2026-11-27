@@ -14,6 +14,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.auth
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.authwork
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 
 @[expose] public section

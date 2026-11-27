@@ -21,7 +21,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
 public import Proof.go_etcd_io.etcd.client.v3.KVService
 public import Proof.go_etcd_io.etcd.client.v3.InvTxnBuilder
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Calls
 
 @[expose] public section
 

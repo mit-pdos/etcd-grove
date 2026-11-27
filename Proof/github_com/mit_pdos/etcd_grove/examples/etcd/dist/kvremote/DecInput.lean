@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]

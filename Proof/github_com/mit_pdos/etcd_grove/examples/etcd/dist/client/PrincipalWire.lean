@@ -28,7 +28,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthRunDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WriterWire
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Checks
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Checks
 
 @[expose] public section
 

@@ -187,6 +187,25 @@ func inConfiguration(configuration Configuration, id ServerID) bool {
 	return false
 }
 
+// formatServer writes server as fmt's %v does ("{Suffrage ID Address}"),
+// explicitly: goose's fmt model cannot format a struct under %v (notes/dsv-hraft.md).
+func formatServer(server Server) string {
+	return "{" + server.Suffrage.String() + " " + string(server.ID) + " " + string(server.Address) + "}"
+}
+
+// formatConfiguration writes configuration as fmt's %v does ("{[server ...]}"),
+// explicitly, for the same reason as formatServer.
+func formatConfiguration(configuration Configuration) string {
+	s := "{["
+	for i, server := range configuration.Servers {
+		if i > 0 {
+			s += " "
+		}
+		s += formatServer(server)
+	}
+	return s + "]}"
+}
+
 // checkConfiguration tests a cluster membership configuration for common
 // errors.
 func checkConfiguration(configuration Configuration) error {
@@ -195,10 +214,10 @@ func checkConfiguration(configuration Configuration) error {
 	var voters int
 	for _, server := range configuration.Servers {
 		if server.ID == "" {
-			return fmt.Errorf("empty ID in configuration: %v", configuration)
+			return fmt.Errorf("empty ID in configuration: %s", formatConfiguration(configuration))
 		}
 		if server.Address == "" {
-			return fmt.Errorf("empty address in configuration: %v", server)
+			return fmt.Errorf("empty address in configuration: %s", formatServer(server))
 		}
 		if idSet[server.ID] {
 			return fmt.Errorf("found duplicate ID in configuration: %v", server.ID)
@@ -213,7 +232,7 @@ func checkConfiguration(configuration Configuration) error {
 		}
 	}
 	if voters == 0 {
-		return fmt.Errorf("need at least one voter in configuration: %v", configuration)
+		return fmt.Errorf("need at least one voter in configuration: %s", formatConfiguration(configuration))
 	}
 	return nil
 }

@@ -1,7 +1,7 @@
 /-
 `(*clientv3.Client).UserAdd` (`client/v3`; promoted from the embedded `Auth` interface).
 
-Users: `examples/etcd/auth` (through the field), etcdctl.
+Users: `examples/lib/authwork` (through the field), etcdctl.
 
 Proof sketch: the method value dispatches through the `Auth` field (W0's `clientRest_fields`:
 the field, read-only, meeting its bundle: `authAt`), whose `UserAdd` triple (the bundle law)

@@ -5,7 +5,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.setItem
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Calls
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
