@@ -133,7 +133,10 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗
+    ciApplying ci a t ∗
+    -- (keepfix (c), R3) the apply thread's mirror of the raft term field: 0 on a first start
+    ciRaftTerm γ.ci (W64 0) ∗
+    srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗
     srvBeOwn s E ∗ revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`mvcc.New`'s; the
     -- merge of `lean`, 2026-11-06: `lease.rdAt` restated over the API's deleter)
@@ -198,7 +201,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     -- `srvMonitorPermitM_of`: its attribute requests name it)
     "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
-    "#HmetaSnap" ∷ srvMetaSnap γ ∗
+    "#HmetaSnap" ∷ srvMetaSnap γr.raft.raft.cl γ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnWorkerStartTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗

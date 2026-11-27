@@ -24,7 +24,7 @@ backend's (`InvBackend.lean`), for a run of the pre-commit hook:
 
 (keepfix (c), 2026-11-28) The hook also puts the raft-term key (`consistentIndexRaftTerm`, a third hook key and
 token, `hookTM`'s `γr` and raft-term state `r`), and the server's batch-lock resource is `metaTMR cl π γB P`: `metaTM`
-with the raft-term key opened or tagged with the stored index and certified (`srvRtCert`).
+with the raft-term key opened or tagged with the stored index (step 1: and non-zero; step 2: and certified, `srvRtCert`).
 
 `ci_hook_backend` is the hook's triple in `hookFnSpec`'s shape for `ci.UnsafeSave`, the server's
 batch-lock resource `batchLockInv γA (metaTMR cl γA.ph γB P)` as the hooks' resource; `ci_hookFnSpec` the
@@ -311,16 +311,16 @@ theorem metaTM_agree (γ : BNames) {P : BParams} (hP : ciKeys P) (b : Loc) (st :
 
 /-- (keepfix (c)) **The server's meta-keys resource**: `metaTM`'s (the client's half of the hook's own keys, at
 contents `S` whose index and term keys are `m`) and the raft-term key of `S`: the one the backend was opened with
-(`π.rk0`) while the stored index is the opened one, or tagged with the stored index `m.1` and certified
-(`srvRtCert`). -/
+(`π.rk0`) while the stored index is the opened one, or tagged with the stored index `m.1` and a non-zero raft term.
+(Step 2 adds the certificate `□ srvRtCert cl m.1 rt` to the tagged case.) -/
 def metaTMR (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BParams) (m : MetaCI) : IProp GF :=
   iprop(∃ S : Data, hkOwn γ (hkData P S) ∗ ⌜metaIs S m⌝ ∗
     (⌜m.1 = π.m0.1 ∧ metaRaftTermOf S = π.rk0⌝ ∨
-     ∃ rt : w64, ⌜metaRaftTermOf S = some (m.1, rt)⌝ ∗ □ srvRtCert cl m.1 rt))
+     ∃ rt : w64, ⌜metaRaftTermOf S = some (m.1, rt) ∧ rt ≠ W64 0⌝))
 
 /-- (keepfix (c)) `metaTMR`'s raft-term row, of the raft-term key `r` (persistent). -/
-def metaRkOk (cl : Cluster) (π : ApplyPhys) (m : MetaCI) (r : Option (w64 × w64)) : IProp GF :=
-  iprop(⌜m.1 = π.m0.1 ∧ r = π.rk0⌝ ∨ ∃ rt : w64, ⌜r = some (m.1, rt)⌝ ∗ □ srvRtCert cl m.1 rt)
+def metaRkOk (_cl : Cluster) (π : ApplyPhys) (m : MetaCI) (r : Option (w64 × w64)) : IProp GF :=
+  iprop(⌜m.1 = π.m0.1 ∧ r = π.rk0⌝ ∨ ∃ rt : w64, ⌜r = some (m.1, rt) ∧ rt ≠ W64 0⌝)
 
 instance metaRkOk_persistent (cl : Cluster) (π : ApplyPhys) (m : MetaCI) (r : Option (w64 × w64)) :
     Persistent (metaRkOk (GF := GF) cl π m r) := by
@@ -353,9 +353,9 @@ theorem metaTMR_after_save (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BP
     (k tm rtm : w64) (S' : Data) (r : Option (w64 × w64))
     (hm : metaIs S' (metaAfterSave mm k tm)) (hr : metaRaftTermOf S' = rtAfterSave r k rtm) :
     hkOwn (GF := GF) γ (hkData P S') -∗ metaRkOk cl π mm r -∗
-      (⌜k = W64 0⌝ ∨ □ srvCITriple cl k tm rtm) -∗ metaTMR cl π γ P (metaAfterSave mm k tm) := by
+      (⌜k = W64 0⌝ ∨ □ srvCITriple0 cl k tm rtm) -∗ metaTMR cl π γ P (metaAfterSave mm k tm) := by
   rw [metaTMR_unfold]
-  unfold srvCITriple
+  unfold srvCITriple0
   iintro Hk #Hr #HP
   iexists S'
   iframe Hk
@@ -365,7 +365,7 @@ theorem metaTMR_after_save (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BP
     have hra : rtAfterSave r k rtm = r := by unfold rtAfterSave; rw [if_pos (Or.inl h0)]
     rw [hma, hr, hra]
     iexact Hr
-  · icases HP with (%H0 | ⟨-, %Hrt0, #Hc⟩)
+  · icases HP with (%H0 | ⟨-, %Hrt0⟩)
     · exact absurd H0 h0
     have hk1 : (metaAfterSave mm k tm).1 = k := by rw [metaAfterSave_fst, if_neg h0]
     have hra : rtAfterSave r k rtm = some (k, rtm) := by
@@ -374,8 +374,7 @@ theorem metaTMR_after_save (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BP
     iright
     iexists rtm
     rw [hk1, hr, hra]
-    isplitr; · ipureintro; rfl
-    iexact Hc
+    ipureintro; exact ⟨rfl, Hrt0⟩
 
 /-- A run of the hook from `st0`: the batch lock held at `st` with the client's half of the
 hook's own keys, the meta keys `m`, (keepfix (c)) the raft-term key `r`, the tokens of the keys put so far. -/
@@ -764,7 +763,7 @@ variable [cindex_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 /- (T10 session 10) Generic over the apply protocol's image row `Rw` (`consInv γA Rw`). -/
 variable {Rw : TRow GF}
 
--- (keepfix (c)) The server's cluster: the consistent index keeps the triple predicate `srvCITriple cl`, and the
+-- (keepfix (c)) The server's cluster: the consistent index keeps the triple predicate `srvCITriple0 cl` (step 1), and the
 -- batch lock's resource is `metaTMR cl`.
 variable (cl : Cluster)
 
@@ -786,7 +785,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
       applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -814,7 +813,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     isplitr; · itrivial
     isplitr; · itrivial
     ipureintro; exact ⟨Hmm, rfl, hookRun_refl P st⟩
-  iapply (hSave ci γA.ci (srvCITriple cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
+  iapply (hSave ci γA.ci (srvCITriple0 cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
     (token γr) mm (metaRaftTermOf st.S)) $$
     [HTM Hti Htt Htr] [Hmt Hpend HΦ]
   · iframe Hcpkg Hci Hw Hwr HTM Hti Htt Htr
@@ -856,7 +855,7 @@ theorem ci_hook_backend (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
       applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -918,7 +917,7 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
       regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -967,7 +966,7 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
       regdOrLink γA γ ⊢
       storage.saveSpec γ P (batchLockInv γA (metaTMR cl γA.ph γ P)) b t
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ := by
@@ -1002,7 +1001,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple cl) ∗ inv applyN (consInv γA Rw) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗ applyThread γA s ∗
           ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -1030,7 +1029,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     isplitr; · itrivial
     isplitr; · itrivial
     ipureintro; exact ⟨Hmm, rfl, hookRun_refl P st⟩
-  iapply (hSave ci γA.ci (srvCITriple cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
+  iapply (hSave ci γA.ci (srvCITriple0 cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
     (token γr) mm (metaRaftTermOf st.S)) $$
     [HTM Hti Htt Htr] [Hmt Hpend Hst HΦ]
   · iframe Hcpkg Hci Hw Hwr HTM Hti Htt Htr
@@ -1069,7 +1068,7 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple cl) ∗ inv applyN (consInv γA Rw) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ⊢
       storage.saveReq γ P (batchLockInv γA (metaTMR cl γA.ph γ P)) b t
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ (applyThread γA s) (freezeY γA s) := by
   iintro #H

@@ -84,7 +84,7 @@ variable [sem : go.Semantics]
 (persistent). -/
 def isServerCI (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster)
     (Rw : TRow GF := TRow.triv) : IProp GF :=
-  iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci (srvCITriple cl) ∗ inv applyN (consInv γ Rw))
+  iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci (srvCITriple0 cl) ∗ inv applyN (consInv γ Rw))
 
 instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (Rw : TRow GF) :
     Persistent (isServerCI (GF := GF) s γ ci cl Rw) := by
@@ -121,7 +121,8 @@ def hookSpec (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp 
           -- (keepfix) the state loaded: the hook's `UnsafeConsistentIndex` loads only a 0 index
           stLoaded γ st = st⌝ ∗
         -- (keepfix) the predicate of the triple the hook stores: the applying pair at the current raft term
-        □ srvCITriple cl i t rt }}
+        -- (step 1: certificate-free, `srvCITriple0`; step 2: `srvCITriple`)
+        □ srvCITriple0 cl i t rt }}
       (App (Val f) (Val #()))
     {{ RET #(); hookDone γ TM ∗ applyThread γ { st with k := i, pending := true } ∗
         ciApplying ci i t ∗ ciRaftTerm γ.ci rt ∗ applyBackend γ ci b }})

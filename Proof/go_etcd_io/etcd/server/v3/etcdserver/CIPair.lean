@@ -63,6 +63,17 @@ instance srvCITriple_persistent (cl : Cluster) (k t rt : w64) :
     Persistent (srvCITriple (GF := GF) cl k t rt) := by
   unfold srvCITriple; infer_instance
 
+/-- (keepfix (c), step 1, approved 2026-11-28) **The certificate-free triple predicate**: `srvCITriple` without
+`srvRtCert`: `(k, t)` a committed entry and the raft term saved with it non-zero (route (a)). Step 1 uses it
+everywhere `srvCITriple` will stand (`bootOk`, `bootOkR`, `isServerCI`, `hookSpec`); step 2 swaps in `srvCITriple`
+and the certified `metaTMR` at once, with the raft laws (C5). -/
+def srvCITriple0 (cl : Cluster) (k t rt : w64) : IProp GF :=
+  iprop(srvCIPair cl k t ∗ ⌜rt ≠ W64 0⌝)
+
+instance srvCITriple0_persistent (cl : Cluster) (k t rt : w64) :
+    Persistent (srvCITriple0 (GF := GF) cl k t rt) := by
+  unfold srvCITriple0; infer_instance
+
 end defs
 
 end EtcdGrove

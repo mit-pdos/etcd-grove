@@ -415,8 +415,8 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (2026-11-01, the user's decision, "bootOk's boot metadata": until then also `γA.m0 = (0, 0)`,
     -- a literal; now the data's facts `Hm0` and `HmEmpty`)
     "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    -- (keepfix (c), 2026-11-28, row 7c/7e, approved) the triple predicate
-    "#HisCI" ∷ isCI cil γA.ci (srvCITriple γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
+    -- (keepfix (c), step 1) the certificate-free triple predicate (step 2: `srvCITriple`)
+    "#HisCI" ∷ isCI cil γA.ci (srvCITriple0 γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
     -- `SetConfState` `applyConfChange` calls, and (D22 J1a, 2026-10-26) which the snapshot path's

@@ -165,7 +165,11 @@ def applyBuiltR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool) (g₀ : w64) (sa₀ : auth.AuthState),
     applyThread γ st₀ ∗
     ⌜loopOk γ st₀ ai ∧ g₀ = ciEff γ st₀.k ∧ uint.Z g₀ = uint.Z ai₀ + A₀.length⌝ ∗
-    applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
+    applyBackend γ ci b ∗ ciApplying ci a t ∗
+    -- (keepfix (c), step 1, (i)) the apply thread's mirror of the raft term field (the boot seed; step 2 adds
+    -- its certificate)
+    (∃ rt : w64, ciRaftTerm γ.ci rt) ∗
+    srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ acRes C s E ua sa₀ ∗
       apply.applierFor ua E ∗ srvApplyKVW E ua x₀) ∗

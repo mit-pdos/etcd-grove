@@ -593,8 +593,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "Hmem" ∷ membership.clusterMem bc.cl' (restModel (W64 0) γ.boot L).mem ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    -- (keepfix (c), 2026-11-28, row 7c/7e, approved) the triple predicate
-    "#HisCI" ∷ isCI cil γA.ci (srvCITriple γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
+    -- (keepfix (c), step 1) the certificate-free triple predicate (step 2: `srvCITriple`)
+    "#HisCI" ∷ isCI cil γA.ci (srvCITriple0 γ.cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
     -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
     -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
     -- `SetConfState` `applyConfChange` calls, and (D22 J1a) which the snapshot path's
