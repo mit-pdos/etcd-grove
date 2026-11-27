@@ -121,7 +121,7 @@ private theorem node.TransferLeadership.wp_raw
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
-    · iapply netP_local γ id _ _ (.inl rfl) rfl rfl rfl rfl (.inl Htr)
+    · iapply netP_local γ id _ _ (.inl rfl) rfl rfl rfl rfl (by intro h; first | exact ⟨rfl, rfl, rfl, rfl⟩ | simp [MsgTransferLeader] at h) (.inl Htr)
         $$ Hmsg Hlb Hcr Htc
     inext
     iintro -

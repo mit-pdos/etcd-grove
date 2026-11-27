@@ -761,9 +761,14 @@ theorem RawNode.Bootstrap.wp_proof
   · iapply leadW_none; exact Hlead0
   ihave #Hxw : xfW (GF := GF) γ ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState) $$ []
   · iunfold xfW
+    unfold xtW
     rw [show ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState).gh.xw = ∅ by
-      show sk.gh.xw = ∅; rw [HNgh]]
-    iapply BigSepM.bigSepM_empty.2; iempintro
+      show sk.gh.xw = ∅; rw [HNgh],
+      show ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState).gh.xt = ∅ by
+      show sk.gh.xt = ∅; rw [HNgh]]
+    isplitl []
+    · iapply BigSepM.bigSepM_empty.2; iempintro
+    · iapply BigSepM.bigSepM_empty.2; iempintro
   ihave #Hcl' : certLink (GF := GF) γ ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState).gh.sn $$ []
   · rw [show ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } : NState).gh.sn = s.gh.sn by
       show sk.gh.sn = s.gh.sn; rw [HNgh]]

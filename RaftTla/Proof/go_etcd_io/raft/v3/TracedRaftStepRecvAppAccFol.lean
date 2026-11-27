@@ -273,7 +273,7 @@ theorem ownStepGhost_appAccFacts (γ : RaftNames) (md : GMode) (c : CfgM) (id : 
     (Hty : m.ty = .app) (Hterm : uint.Z s.term ≤ uint.Z m.term) (Hbase : (toPState s).base = base0)
     (Hcidx : uint.Z s.logst.committed ≤ uint.Z m.index)
     (Happ : plogMaybeAppend base0 (toPState s).log (entryID.mk m.logterm m.index) m.entries = some (lastnewi, es'))
-    (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
+    (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) (Htr : s.gh.tr.isSome) :
     isMessage (GF := GF) γ m ∗ ownStepGhost γ md c id s ⊢ |={⊤}=> ownStepGhost γ md c id s ∗
       (logRecs γ base0 (toPState s).log ∗ logRecs γ base0 es' ∗
         commitIn γ es' (accCommit (toPState s).commit m.commit lastnewi) m.term ∗
@@ -283,12 +283,14 @@ theorem ownStepGhost_appAccFacts (γ : RaftNames) (md : GMode) (c : CfgM) (id : 
         uint.Z lastnewi = uint.Z m.index + (m.entries.length : Int) ∧
         (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed ∧ (es'.length : Int) < traceNumBound⌝ := by
   iintro ⟨#Hm, Hgh⟩
+  icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
   iunfold ownStepGhost at Hgh
   icases Hgh with ⟨Hg, Hr⟩
   icases ownRaftGhost_appAccFacts γ id (toPState s) m lastnewi es' Hty Hterm Hbase Hcidx Happ $$ Hm Hg with
     ⟨Hg, ⟨#HL, -, -, #HN, #Hci, #Hcm⟩, %Hp⟩
   obtain ⟨hwr, hwr', hcl, hli, hwN⟩ := Hp
-  icases ownRaftGhost_bootLe γ id (toPState s) $$ Hg with ⟨Hg, %Hbt⟩
+  icases ownRaftGhost_bootLe γ id (toPState s)
+    (by rw [← Hnl.2.1]; exact Option.isSome_iff_ne_none.mp Htr) $$ Hg with ⟨Hg, %Hbt⟩
   have hlN : es'.length < 2 ^ 64 := by
     rcases Nat.eq_zero_or_pos es'.length with h0 | hpos
     · omega
@@ -393,7 +395,7 @@ abbrev stepBundle_traced.onRB (Path : NState → MessageM → Prop) : Prop :=
     (Λ : Option TraceEv → Prop) (bt : Bool),
   Path s m →
   s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  s.prevote = false → s.cq = false → TrStepTy m.Type' → NStateWf s →
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
   (m.Type' = MsgHup → s.role ≠ .leader) →
   (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
@@ -531,7 +533,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
       iapply hookGateOpt_fupd_recv
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit (by rw [htr]; rfl)
         $$ [$Hm $Hgh] with ⟨Hgh, ⟨#HL, #HN, #Hci, #Hcm⟩, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       imodintro
@@ -633,7 +635,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
           rw [htr]
           iapply hookGateOpt_fupd_recv
           icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
+          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit (by rw [htr]; rfl)
             $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
           obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
           imodintro
@@ -689,14 +691,14 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's accepted append, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       obtain ⟨ls', hse, hprev', hes', hcm'⟩ : ∃ ls' : LogState,
           s' = sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
             [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧
           ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
           ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
-        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -725,7 +727,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
           [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧
         ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
         ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf
@@ -752,7 +754,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
     · exact h.elim
     all_goals
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit (by rw [htr]; rfl)
         $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       have hre : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl

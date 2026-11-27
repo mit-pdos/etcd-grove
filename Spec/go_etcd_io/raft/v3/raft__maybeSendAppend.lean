@@ -57,7 +57,9 @@ node, the absence of compaction (`TrNoSnap`): a traced node sends no snapshot (t
 the snapshot branch is reached only from a compacted log. Until slice 6 the premise `s.gh.tr = none`
 (stage 0), now `raft.maybeSendAppend.untraced`'s (`TracedUntraced.lean`). -/
 abbrev raft.maybeSendAppend.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (sendIfEmpty : Bool) (G : List Msg → IProp GF),
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag (`NoSnapG`, `IdxFreeN`; `false` for a caller
+  -- whose `IdxFree` premise fixes it): at `true` the log not compacted, whatever the trace mode
+  ∀ {nc : Bool} (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (sendIfEmpty : Bool) (G : List Msg → IProp GF),
   to ≠ id →
   to ∈ domSet s.progress →
   -- (2026-10-16, stage R8a, D11) a leader's: its progress bound `PrvalsOk` makes
@@ -69,7 +71,7 @@ abbrev raft.maybeSendAppend.spec : Prop :=
   s.term ≠ W64 0 →
   -- (2026-11-10, slice 14) the caller's resource indexed by the outbox, ignoring it untraced: the
   -- snapshot fallback (untraced only) queues through no gate
-  IdxFree s.gh.tr G →
+  IdxFreeN nc s.gh.tr G →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
@@ -85,7 +87,7 @@ abbrev raft.maybeSendAppend.spec : Prop :=
       "HG" ∷ G s.outbox ∗
       -- (2026-11-09, Q8 stage 1 slice 6) a traced node's log is not compacted, so the snapshot
       -- fallback (`maybeSendSnapshot`, untraced by design) is not reached in traced mode
-      "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
+      "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendAppend"))
       (Val #to)) (Val #sendIfEmpty))
   {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 Progress), RET #b;

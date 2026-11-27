@@ -106,7 +106,7 @@ theorem RawNode.ReportUnreachable.traced
   imod hb γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s
       ({ (zero_val MessageM) with Type' := W32 10, From' := to } : MessageM) [] none [] [] γd
       (fun _ => True) bt ⟨rfl, rfl⟩ Htr Hscope.1 Hcqe.symm
-      (by unfold StepEndTy; simp [MsgUnreachable]) Hwf (fun _ => rfl) (fun h => absurd h (by msg_ne))
+      (by unfold TrStepTy; simp [MsgUnreachable]) Hwf (fun _ => rfl) (fun h => absurd h (by msg_ne))
       (fun ty h => by rw [Hmt] at h; cases h)
       (by omega) (by show uint.Z (W64 0) < traceNumBound; unfold traceNumBound; decide)
       (fun ty h => by rw [Hmt] at h; cases h)
@@ -159,7 +159,7 @@ theorem RawNode.ReportUnreachable.traced
   have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
   icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
   obtain ⟨Ht1, -, Ht3, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
@@ -180,7 +180,7 @@ theorem RawNode.ReportUnreachable.traced
   ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
     Hpv.symm Hsg.symm $$ Hnosnap
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2

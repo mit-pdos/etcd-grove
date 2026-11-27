@@ -68,7 +68,7 @@ theorem raft.bcastAppend.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s G Hlead Htz Hidx
+  intro nc c r id s G Hlead Htz Hidx
   wp_start as Hpre
   iNamed Hpre
   wp_auto
@@ -150,7 +150,7 @@ theorem raft.bcastAppend.wp_proof
             (by rw [GMap.insert_id _ _ _ Hpvi]; exact Hmm) Hmm1) HG
         isplitl [HG]
         · simp only [sendMsgs]; iexact HG
-        iapply trNoSnap_congr s.gh.tr _ s.logst _ ?hn1 ?hn2 $$ Hnosnap
+        iapply noSnapG_congr nc s.gh.tr _ s.logst _ ?hn1 ?hn2 $$ Hnosnap
         case hn1 => rfl
         case hn2 => rfl
       try wp_auto

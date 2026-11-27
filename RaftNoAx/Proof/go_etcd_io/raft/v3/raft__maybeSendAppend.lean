@@ -168,15 +168,17 @@ local macro "msa_fetch" : tactic => `(tactic| (
         iapply storPast_mono _ (uint.Z p.next) 1 (by have := (word.unsigned_range s.logst.prev.index').1; omega)
         iexact Hcut_e
       -- (Q8 stage 1, slice 6) not at a traced node: its log is not compacted (`TrNoSnap`)
-      by_cases Htr : s.gh.tr = none
+      -- (2026-11-24, P-raft-1b) nor under the no-snapshot flag (`NoSnapG true`)
+      by_cases Htr : s.gh.tr = none ∧ nc = false
       case neg =>
-        imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
+        imod noSnapG_cut nc _ _ (noSnapG_guard Htr) $$ Hnosnap Hcompact with %Hf; exact Hf.elim
+      obtain ⟨Htr, Hnc⟩ := Htr
       wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
       ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
-      · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
+      · rw [Hidx.eq Htr Hnc ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
       iapply HΦ
       iframe
       ipureintro
@@ -333,7 +335,7 @@ local macro "msa_send" : tactic => `(tactic| (
     intro m Hm
     simp only [List.mem_singleton] at Hm
     subst Hm
-    exact ⟨Or.inl Happ, fun _ => Hlvc.1, (fun h => nomatch h), (fun h => nomatch h)⟩
+    exact ⟨Or.inl Happ, fun _ => Hlvc.1, Hcfg, (fun h => nomatch h)⟩
   isplitr
   · ipureintro
     show prvalsMatch _ = _
@@ -403,7 +405,7 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro c r id s to sendIfEmpty G Hto Hcfg Hlead Htz Hidx
+  intro nc c r id s to sendIfEmpty G Hto Hcfg Hlead Htz Hidx
   -- (Q8 stage 1, slice 6) the gate's type as the message literal's
   rw [show (MsgApp : w32) = W32 3 from rfl]
   wp_start as Hpre
@@ -506,14 +508,16 @@ theorem raft.maybeSendAppend.wp_proof
         iapply storPast_one
         iexact Hc
     -- (Q8 stage 1, slice 6) not at a traced node: its log is not compacted (`TrNoSnap`)
-    by_cases Htr : s.gh.tr = none
+    -- (2026-11-24, P-raft-1b) nor under the no-snapshot flag (`NoSnapG true`)
+    by_cases Htr : s.gh.tr = none ∧ nc = false
     case neg =>
-      imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
+      imod noSnapG_cut nc _ _ (noSnapG_guard Htr) $$ Hnosnap Hcompact with %Hf; exact Hf.elim
+    obtain ⟨Htr, Hnc⟩ := Htr
     wp_auto
     wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
-    · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
+    · rw [Hidx.eq Htr Hnc ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
     iapply HΦ
     iframe
     ipureintro

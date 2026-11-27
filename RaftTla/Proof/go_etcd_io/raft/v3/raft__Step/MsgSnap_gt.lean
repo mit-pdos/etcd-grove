@@ -40,7 +40,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 set_option maxHeartbeats 1000000 in
-theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgSnap_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -66,7 +66,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
         "#Hcert" ∷ ksnCert s.gh.sn (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -127,7 +127,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hfid, Hnsf, Htr⟩)
-    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres

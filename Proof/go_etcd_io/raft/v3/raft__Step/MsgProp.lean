@@ -156,7 +156,7 @@ theorem stepCD_sendApps [GoSemanticsFunctions] (c : CfgM) (id : w64) (B : Int) (
   refine ⟨?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
   · rw [HP]
     exact StepC.sendApps _ _ Hrl (fun m hm => (Hms m hm).1)
-      (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ ((Hms m hm).2.2.1 h))
+      (fun m hm _ => (GMap.elem_of_subseteq _ _).1 Hpc _ ((Hms m hm).2.2.1))
   · have Hr : rOf { sendMsgs s1 ms with prvals := pvs } { g with cidx := g.cidx } =
         { rOf s1 g with p := psendMsgs (rOf s1 g).p ms } := by
       unfold rOf pciR
@@ -164,9 +164,9 @@ theorem stepCD_sendApps [GoSemanticsFunctions] (c : CfgM) (id : w64) (B : Int) (
       simp [sendMsgs] <;> rfl
     rw [Hr]
     exact StepR.sendApps _ ms Hrl (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
-      (fun m hm h => by
+      (fun m hm _ => by
         have e : m.dst ∈ c.voters ∪ c.learners :=
-          (GMap.elem_of_subseteq _ _).1 Hpc _ ((Hms m hm).2.2.1 h)
+          (GMap.elem_of_subseteq _ _).1 Hpc _ (Hms m hm).2.2.1
         rw [← hc] at e; exact e)
 
 theorem proposed_role (id : w64) (s : NState) (ents : List EntryM) (h : s.role = .leader) :
@@ -270,7 +270,7 @@ type switch's default arm runs `r.step(r, m)`:
 `recv` is the proposal itself when it is forwarded, and nothing otherwise. `LeadOk`
 (`Protocol/Model.lean`, from `ownRaftGhost`) is what makes the follower's forwarding
 `send` not self-addressed. -/
-theorem wp_Step_MsgProp
+theorem wp_Step_MsgProp {nc : Bool}
     -- (2026-10-29, stage U5) the four callee specs this branch uses, not `raft.Step.Postulates`:
     -- `raft.appliedTo` steps its automatic leave through this branch, so its proof cannot take
     -- the specs of `Step`'s other callees (`appliedTo` among them)
@@ -308,7 +308,7 @@ theorem wp_Step_MsgProp
         -- (2026-10-18, D19b stage 5) a time receipt, for `appendEntry`
         "#Hrc" ∷ ⧖ k0 ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R ∗
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc ∗
         -- (2026-11-11, slice 23a) at a leader, the loan to the `Replicate` gate (`StepG.Tp`) from
         -- `appendEntry`'s receipt
         "HTp" ∷ (⌜s.role = .leader⌝ -∗ ⧖ (k0 + ents.length) -∗ R.Tp ents) }}
@@ -324,8 +324,8 @@ theorem wp_Step_MsgProp
           B < 2 ^ 64⌝ ∗
         "Hrcb" ∷ (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗
           ⧖ (k0 + ents.length)) ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- what `RawNode` keeps track of is untouched (2026-10-09)
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
@@ -363,6 +363,7 @@ theorem wp_Step_MsgProp
   wp_auto
   iunfold stepGates at Hgates
   icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
+  obtain ⟨Hgok, Hncal⟩ := Perennial.EtcdGrove.StepGOkN.split Hgok
   wp_apply wp_traceReceiveMessage c r id s ml _ _ _ ⟨m, _, _, _, _⟩ _
       (fun _ h => (by rw [Hty]; w32_ne : m.Type' ≠ MsgSnap) (mtypeOf_Snap _ h))
     $$ [Hphys Hm Hgrecv HG] as ⟨Hphys, Hm, HG⟩
@@ -393,7 +394,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm Hmb $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [$Hphys Hm Hmb $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgInC_passP Hty (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
@@ -418,7 +419,7 @@ theorem wp_Step_MsgProp
         isplitr
         · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
         isplitr
-        · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+        · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
             (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres0)
         isplitr
         · ipureintro; exact Hwf
@@ -448,7 +449,7 @@ theorem wp_Step_MsgProp
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres0)
       isplitr
       · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
@@ -508,7 +509,7 @@ theorem wp_Step_MsgProp
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inl Hrole) Hres0)
       isplitr
       · ipureintro; exact Hwf
@@ -542,7 +543,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ h => Htr h) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [$Hphys $Hrc Hm Hmb $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
+      (fun _ h => Htr h) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) (by xtx_tac) (by xta_tac) $$ [$Hphys $Hrc Hm Hmb $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
     · isplitl [Hm Hmb]
       · iapply msgInC_passP Hty (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
       · iintro _; iexists cs; iexact Hcc
@@ -583,7 +584,7 @@ theorem wp_Step_MsgProp
       isplitr
       · iintro -; iexact Hrc2
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres0)
       isplitr
       · ipureintro; exact nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf)
@@ -653,8 +654,8 @@ theorem wp_Step_MsgProp
             (.propose (absMsg .propose m ents ctx) _ (leaderPropConf s ents cs' c.joint).1 rfl Hrepl
               Hrl (by have := Hrepl.length; omega))
             (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1)
-              (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
-                have := (Hms m hm).2.2.1 h
+              (fun m hm _ => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
+                have := (Hms m hm).2.2.1
                 simp only [proposed, sendMsgs] at this
                 rw [Hspp] at this; exact this)))
         · -- `StepR.propose`: the loop exactly, `pendingConfIndex` moved; then the broadcast
@@ -684,9 +685,9 @@ theorem wp_Step_MsgProp
               (Int.le_refl _) Hlv) ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
           exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
-            (fun m hm h => by
+            (fun m hm _ => by
               have e : m.dst ∈ c.voters ∪ c.learners := (GMap.elem_of_subseteq _ _).1 Hpc _ (by
-                have := (Hms m hm).2.2.1 h
+                have := (Hms m hm).2.2.1
                 simp only [proposed, sendMsgs] at this
                 rw [Hspp] at this; exact this)
               rw [← hc] at e; exact e)
@@ -706,7 +707,7 @@ theorem wp_Step_MsgProp
         isplitr
         · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
         isplitr
-        · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+        · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
             (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres0)
         isplitr
         · ipureintro; exact Hwf
@@ -768,7 +769,7 @@ theorem wp_Step_MsgProp
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inr Hrole) Hres0)
       isplitr
       · ipureintro; exact Hwf

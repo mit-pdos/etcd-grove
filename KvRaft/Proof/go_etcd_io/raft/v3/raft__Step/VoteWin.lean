@@ -108,7 +108,7 @@ log the won state's, so the tally was won (not pending, not lost: those keep the
 theorem voteWin_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (pvs1 : GMap w64 Progress)
     (hty : m.Type' = MsgVoteResp) (hrole : s.role = .candidate) (hterm : m.Term' = s.term)
-    (Hend : StepEnd c id m ents ctx s s') (hlog : (wonState id s m pvs1).logst = s'.logst) :
+    (Hend : StepEndG c id m ents ctx s s') (hlog : (wonState id s m pvs1).logst = s'.logst) :
     ∃ (lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress),
       s' = { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs } ∧
       JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∧

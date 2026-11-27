@@ -71,13 +71,16 @@ term past `0` (`SendOk`'s `Hstz`, or the caller's `Hmterm`). (Case (c), the tran
 hand.) -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
+  refine ⟨⟨?_, ?_, ⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [Hty1, $args,*]; simp [sentShapeTypes, sentTypes, MsgReadIndex, MsgProp, MsgVote,
       MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,
       MsgReadIndexResp, MsgSnap, MsgTransferLeader, MsgTimeoutNow]
   · simp only [Hfr1]; first | exact Hidnz | exact Hsrc0
   · intro h; simp only [Hty1, Hte1, $args,*] at h ⊢
     all_goals first | rfl | trivial | exact absurd h (by tyd)
+  -- (antithesis parity B1) no transfer message here
+  · intro h
+    rcases h with h | h <;> simp only [Hty1, $args,*] at h <;> exact absurd h (by tyd)
   · intro h hz
     simp only [Hty1, Hte1, $args,*] at h hz
     all_goals first | exact Hstz hz | exact absurd (by tyd) h | exact Hmterm hz | trivial
@@ -111,7 +114,19 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     | (intro h; cases h)
     | (intro h; simp [mtypeOf] at h; done)
     | (simp [Hty1, htyx]; done)
-    | (simp only [Hty1, $args,*] at htyx ⊢; simp [htyx]; done)))
+    | (simp only [Hty1, $args,*] at htyx ⊢; simp [htyx]; done)
+  -- (2026-11-24, #33 S4) of a described type (every type but the transfer messages, case (c))
+  · intro _
+    first
+    | (rw [Hty1, Hty]; exact Option.some_ne_none _)
+    | (simp only [Hty1, $args,*]; decide)
+    | (simp only [Hty1, $args,*]; simp [mtypeOf]; done)
+    | (simp only; decide)
+    | (simp only; simp [mtypeOf]; done)
+    | (simp only [Hty1]; rw [Hty]; exact Option.some_ne_none _)
+  -- (antithesis parity B1, Q3) not a transfer message: `XQOk` vacuous (case (c) by hand)
+  · exact XQOk.of_ne (fun h => by simp only [Hty1, $args,*] at h; exact absurd h (by tyd))
+      (fun h => by simp only [Hty1, $args,*] at h; exact absurd h (by tyd))))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -420,7 +435,7 @@ theorem raft.send.wp_proof
   unfold SendOk at Hok
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, Hstz, rfl⟩ |
-    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw⟩) |
+    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hzf, Hself, rfl, Hxw, Hxt, Hxs, Hxsrc⟩) |
     ⟨HAR, Hmterm, Hstz, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. A request goes onto `r.msgs`, a response onto
@@ -570,8 +585,10 @@ theorem raft.send.wp_proof
         · exact Hidnz
         · assumption
       simp only
-      refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
-        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_⟩
+      refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, ⟨fun h => ?_, fun _ => by subst Hm1; exact Hzf⟩,
+        fun h hz => ?_, ?_, fun h => ?_,
+        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h => ?_, fun htr => ?_,
+        fun hx => absurd (Hxs.symm.trans hx) Bool.noConfusion, ⟨fun h => ⟨?_, ?_⟩, fun h => ⟨?_, ?_⟩, fun h => ?_, fun h => ?_⟩⟩
       · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h'
@@ -588,6 +605,25 @@ theorem raft.send.wp_proof
       · -- (2026-11-12, implementation step 3) untraced: the premise refutes a traced node
         obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)
         rw [htyx] at Hty; cases Hty
+      -- (antithesis parity B1, Q3) `XQOk`: a `MsgTimeoutNow` from the node (`From` unset), at its
+      -- term (`Htn`); not self-addressed (`Hself`); at the node's term (stamped)
+      · simp only [Hty1] at h
+        rw [Hfr1, Hsrc (by rw [h]; tyd) (by rw [h]; tyd)]
+      · simp only [Hty1] at h ⊢
+        exact Htn h
+      · simp only [Hto1]; exact Hself
+      · simp only; exact Int.le_refl _
+      -- (option (b)) recorded in `NGhost.xt` (`Hxt`), at the node's term (stamped)
+      · simp only [Hty1] at h
+        simp only [Hto1]
+        exact Hxt h
+      -- (antithesis parity B1, transfer source) the sender: the node's id for an unset `From`
+      -- (`src`), else the request's, recorded in `NGhost.xsrc` (`Hxsrc`)
+      · simp only [Hty1] at h
+        rw [Hfr1, Hsrc_eq]
+        split
+        · exact .inl rfl
+        · exact .inr (Hxsrc h)
     · ipureintro
       refine ⟨by simpa [Hto1] using Hself, ?_⟩
       simp only [Hty1]
