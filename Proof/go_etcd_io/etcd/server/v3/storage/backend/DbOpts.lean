@@ -2,7 +2,7 @@
 
 # C-I1's `dbOpts`: the database was opened syncing (etcd-dist D6)
 
-Split from `CrashInterim.lean` (2026-11-25) so that its producer, `storage.OpenBackend`'s post
+Kept apart from `CrashLaws.lean` so that its producer, `storage.OpenBackend`'s post
 (`Spec/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`), can name it without importing the crash
 laws. **Trusted** (through its producer, the axiom `storage.OpenBackend`): bbolt's `boltSyncs γ`, the database's
 `NoSync`/`NoGrowSync` fields persistently `false` (concrete since 2026-11-25, plan F4; review

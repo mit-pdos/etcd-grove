@@ -100,7 +100,7 @@ zero or whole and `Open` succeeds (meta 1 or meta 0 valid, or both zero and `nee
 between the model's per-byte crash and sector atomicity, not a bug seen on hardware.
 
 **Blocks the proof** of `etcd_safe` (a member machine may crash inside its first start's `bolt.Open`):
-C-I1 (`Proof/.../storage/backend/CrashInterim.lean`) is restricted to databases past `Open`, and C-I3
+C-I1 (`Proof/.../storage/backend/CrashLaws.lean`) is restricted to databases past `Open`, and C-I3
 (`Proof/.../etcdserver/CrashInterim.lean`) excludes such a file. Ways out: a fork change, `needsInit`
 also reinitializing a file of exactly four pages whose pages 2 and 3 are the first write's image (or
 zero) and whose metas are each zero or invalid (only `init` writes such a file: a database past `init`

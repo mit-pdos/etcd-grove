@@ -33,7 +33,7 @@ renamed away, then the rename lost: it exists again). A test with the configurat
 
 ## Proof
 
-yes: C-I1 (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`) gives the file at `path`
+yes: C-I1 (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashLaws.lean`) gives the file at `path`
 only when its name is durable (`dbSyncs γ path`); the snapshot install's rename makes no such fact until the
 WAL's next directory sync, so the member's crash law (T7) must handle a backend file that is the old one
 (a fork change, `syncDir` after both renames, would remove the window; the owner decides).

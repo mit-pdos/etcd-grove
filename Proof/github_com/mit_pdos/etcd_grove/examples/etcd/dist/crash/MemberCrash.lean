@@ -39,7 +39,7 @@ public import GooseLang.Ext.Fs.TreeSharedCoh
 public import GooseLang.Ext.Fs.TreeStepLemmas
 public import GooseLang.Ext.Fs.TreeLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.BootCrashRes
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashInterim
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashLaws
 
 @[expose] public section
 
@@ -1094,6 +1094,8 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   imod hB1n ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ Q [] false V' $$ HKB Hrest with ⟨%hdb, HKB, Hrest⟩
   imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb i0 Dl Dn (hA1 i0) [] (by simp) V'
     ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest with ⟨%D', %hD', Hfm, Hrest⟩
+  ihave Hfm := bbolt.fileHoldsMDurC_dur (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) i0 D' $$ Hfm
+  ihave Hfm := bbolt.fileHoldsMDur_holds (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) i0 D' $$ Hfm
   -- the WAL area (T5's crash)
   have hDw : ∀ i ∈ [i0], ¬ WalFs.InAreaDir V'.now jr i := by
     intro i hi
