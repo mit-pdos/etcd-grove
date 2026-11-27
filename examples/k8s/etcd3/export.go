@@ -1,11 +1,9 @@
 package etcd3
 
-// This directory is a copy of examples/k8s/etcd3's package (k8setcd3.go, watch.go and realcheck.go,
-// byte for byte: TestVerbatim in examples/k8s/dist checks it), so that examples/k8s/dist can split
-// the driver's Check between machines: its model, its seeds, its generator and the per-client cache
-// are unexported there, and the driver itself must stay as k8s_safe's proof has it. This file is
-// the only addition: what the distributed workload needs of the copy, each a thin wrapper of the
-// driver's own functions (notes/k8s-dist.md, "Copies").
+// The exported wrappers examples/k8s/dist needs to split the driver's Check between machines (its
+// model, its seeds, its generator and the per-client cache are unexported): each a thin wrapper of
+// the driver's own functions, which this file does not change, so that k8s_safe's proof of them
+// stands (notes/k8s-dist.md, "Exported wrappers").
 
 import (
 	"context"
@@ -302,8 +300,9 @@ func (hh *histHashes) skipTo(c mcfg, t uint64) mcfg {
 // target is the least revision a configuration at rv must be at for the operation in to answer
 // out (0: none): a write's new revision less one, the current revision a "not found" or a current
 // List names, the revision a past List reads, a Get's minimum resource version, the greatest
-// revision a watch's events name. A write that answers with a revision at most rv is a no-op
-// update (the stored object) and needs none.
+// revision a watch's events name (and, for a watch-list with an event, its resource version, at
+// least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
+// and needs none.
 func target(in Input, out Output, rv uint64) uint64 {
 	if in.Kind == KWatch {
 		if out.WFailed || in.Skip {
@@ -314,9 +313,20 @@ func target(in Input, out Output, rv uint64) uint64 {
 			return 0
 		}
 		var t uint64
+		some := false
 		for _, ev := range evs {
 			if ev.Type < WError {
 				t = max(t, ev.Obj.ResourceVersion)
+				some = true
+			}
+		}
+		// (G7, notes/k8s-dist-k4.md, "The gap") a watch-list with an event: Model's check accepts
+		// its initial events only at a configuration at its resource version (at least 1) or
+		// above, whether or not its answer reaches the initial-events-end bookmark.
+		if in.SendInit == 2 && some {
+			req, err := parseRV(in.MinRV)
+			if err == nil {
+				t = max(t, max(req, 1))
 			}
 		}
 		return t
@@ -789,10 +799,12 @@ func (s Seeded) SeedRevs() (uint64, uint64) {
 	return it1.obj.ResourceVersion, it2.obj.ResourceVersion
 }
 
-// EncodeItems is encodeItems (a List output's items), and RVBytes rvBytes (a resource version's
-// string): for the tests of SharedModel.
-func EncodeItems(items []Obj) string { return encodeItems(items) }
-func RVBytes(n uint64) string        { return rvBytes(n) }
+// EncodeItems is encodeItems (a List output's items), EncodeWEvents encodeWEvents (a watch
+// output's events), and RVBytes rvBytes (a resource version's string): for the tests of
+// SharedModel.
+func EncodeItems(items []Obj) string    { return encodeItems(items) }
+func EncodeWEvents(evs []WEvent) string { return encodeWEvents(evs) }
+func RVBytes(n uint64) string           { return rvBytes(n) }
 
 // ---------------------------------------------------------------------------------------------
 // The watch check over an indexed history
@@ -801,7 +813,7 @@ func RVBytes(n uint64) string        { return rvBytes(n) }
 // window of revisions (wantEvents, initialPrefixOk) costs the square of its length in walks. On the
 // shared cluster a watch's window spans the compactor's writes too, thousands of revisions, and
 // the check timed out. watchOkIdx is watchOk line for line (watchListOk, initialPrefixOk,
-// reliableOk, wantEvents likewise), every other function the copy's own, with histAt answered from
+// reliableOk, wantEvents likewise), every other function the driver's own, with histAt answered from
 // one walk (hview); TestReplayHistory checks the two agree on every watch step of a history
 // (CrossCheckWatches).
 
@@ -958,7 +970,7 @@ func stepIdx(memo map[wkey]bool, c mcfg, in Input, out Output) []mcfg {
 	if !seen {
 		ok = watchOkIdx(in, out, c)
 		if crossCheck && ok != watchOk(in, out, c) {
-			panic("storecopy: watchOkIdx and watchOk differ")
+			panic("etcd3: watchOkIdx and watchOk differ")
 		}
 		memo[k] = ok
 	}
