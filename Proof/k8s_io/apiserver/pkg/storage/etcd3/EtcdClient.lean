@@ -38,7 +38,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 public import Proof.go_etcd_io.etcd.client.v3.InvTxnBuilder
 public import Proof.go_etcd_io.etcd.client.v3.KVService
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Client
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Client
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
 
 @[expose] public section
