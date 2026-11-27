@@ -227,7 +227,9 @@ grpc_Server__RegisterService: grpc_Server__register
 health_NewServer:
 health_Server__setServingStatusLocked:
 health_Server__SetServingStatus: health_Server__setServingStatusLocked
-grpc_health_v1_HealthCheckResponse_ServingStatus__String:
+# (prove-healthstr, 2026-11-27) over its trusted model, whose fallback is strconv.Itoa (until then an axiom)
+strconv_Itoa:
+grpc_health_v1_HealthCheckResponse_ServingStatus__String: strconv_Itoa
 grpc_health_v1_RegisterHealthServer: grpc_Server__RegisterService
 prometheus_NewServerMetrics:
 prometheus_WithServerHandlingTimeHistogram:

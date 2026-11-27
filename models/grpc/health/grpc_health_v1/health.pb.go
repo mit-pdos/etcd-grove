@@ -27,6 +27,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
+	strconv "strconv"
 	sync "sync"
 	unsafe "unsafe"
 )
@@ -69,8 +70,31 @@ func (x HealthCheckResponse_ServingStatus) Enum() *HealthCheckResponse_ServingSt
 	return p
 }
 
+// MODEL: in place of protoc-gen-go's `return protoimpl.X.EnumStringOf(x.Descriptor(),
+// protoreflect.EnumNumber(x))` (protobuf-go v1.36.12, internal/impl/api_export.go: the name of the
+// descriptor's value of number n, `ed.Values().ByNumber(n).Name()`, else `strconv.Itoa(int(n))`), the
+// same result without reflection, which goose does not translate. The enum's descriptor,
+// file_grpc_health_v1_health_proto_enumTypes[0], is built in init from the raw descriptor below
+// (enum ServingStatus: UNKNOWN = 0, SERVING = 1, NOT_SERVING = 2, SERVICE_UNKNOWN = 3, from
+// grpc/health/v1/health.proto; HealthCheckResponse_ServingStatus_name lists the same), with no
+// aliases (no allow_alias), so ByNumber(n) finds a value exactly for n in 0..3, and its Name() is the
+// case's string; EnumNumber and this type are both int32, so int(n) is int(x). Building and reading
+// the descriptor cannot fail and has no effect a program observes. Evidence:
+// models/internal/grpcdifftest's TestServingStatusString (against grpc-go and the model) and
+// examples/premisefix/enumstring/healthstatus_test.go (grpc-go's method against this switch, on 0..4,
+// negative and extreme values; the descriptor's values against the four).
 func (x HealthCheckResponse_ServingStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+	switch x {
+	case 0:
+		return "UNKNOWN"
+	case 1:
+		return "SERVING"
+	case 2:
+		return "NOT_SERVING"
+	case 3:
+		return "SERVICE_UNKNOWN"
+	}
+	return strconv.Itoa(int(x))
 }
 
 func (HealthCheckResponse_ServingStatus) Descriptor() protoreflect.EnumDescriptor {

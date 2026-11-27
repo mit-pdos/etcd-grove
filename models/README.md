@@ -102,7 +102,12 @@ marked `MODEL:`, and its difference from grpc-go is computed, never stored: `dif
   `LastIndex`'s name; for a one-byte separator the loop gives the same index, `-1` if absent; as in
   `net/rpc/server.go`'s `readRequestHeader`; phase 7 S2 core, 2026-11-23). Evidence:
   `internal/grpcdifftest`'s `TestPerRPCCredsAudience` (the audience with and without a `:443`
-  suffix, against grpc-go and the model).
+  suffix, against grpc-go and the model). And (2026-11-27, etcd-grove#24) the health status's
+  `HealthCheckResponse_ServingStatus.String` (`health/grpc_health_v1/health.pb.go`) is a switch on
+  the enum's four values, else `strconv.Itoa`, in place of protoimpl's reflective `EnumStringOf`
+  (goose translates no reflection; the descriptor has exactly those values, no aliases). Evidence:
+  `TestServingStatusString`, and `examples/premisefix/enumstring/healthstatus_test.go` (grpc-go's
+  method against the switch, and the descriptor's values).
 
 **The trusted claim:** every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it
 (what handlers run with which requests, metadata, deadlines and contexts; what calls and streams
