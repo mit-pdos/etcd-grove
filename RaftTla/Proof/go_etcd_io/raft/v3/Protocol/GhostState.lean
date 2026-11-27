@@ -3223,10 +3223,13 @@ def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (W : 
     "#Hcmt"    ∷ isCommitted γ (cprefix fp s) ∗
     -- 2026-10-14 (stage B5): a candidate's and a leader's acknowledgements of their term
     "%Hlacks"  ∷ ⌜LeadAcksOk s W.acks⌝ ∗
-    -- 2026-10-16 (stage R8b, D12): the bootstrap log is committed from the start, and the
-    -- commit index only grows. (With the records it puts `reBoot` at the full log's start,
-    -- `ownLogGhost_boot`, and with `TermsLe` a non-empty one puts the term at `≥ 1`.)
-    "%Hboot"   ∷ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝)
+    -- 2026-10-16 (stage R8b, D12): the full log starts with the bootstrap log (with `TermsLe`
+    -- a non-empty one puts the term at `≥ 1`, `ownLogGhost_boot`). 2026-11-26 (#33 parity B1,
+    -- the bootstrapped start): no longer that the commit index is past it, which a node started
+    -- at commit `0` over its storage's bootstrap entries (`HardState{Term:1}`) does not have;
+    -- that only in a traced cluster, where `RawNode.Bootstrap` commits it.
+    "%Hboot"   ∷ ⌜γ.reBoot <+: fp ++ s.log ∧
+                   (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z s.commit)⌝)
 
 -- Not `Timeless` since 2026-10-05: it holds the invariant `raftCommitInv`.
 

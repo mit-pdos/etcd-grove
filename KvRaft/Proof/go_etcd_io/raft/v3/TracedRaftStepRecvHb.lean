@@ -59,13 +59,13 @@ log's records and, when the heartbeat raises the commit index, the raised index 
 commit certificate at the node's term and the committed prefix; the ghost state is unchanged. -/
 theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) {md : Bool} :
     m.ty = .heartbeat → m.dst = id → m.term = s.term → s.role ≠ .leader → s.base = base0 →
-    PlogWf base0 s.log →
+    PlogWf base0 s.log → γ.reTrace ≠ none →
     ⊢ notCrashed -∗ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ={⊤}=∗
       notCrashed ∗ ownRaftGhost γ id s md ∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ ∗ logRecs γ base0 s.log ∗
       (⌜¬ uint.Z s.commit < uint.Z m.commit⌝ ∨
         (⌜uint.Z s.commit < uint.Z m.commit ∧ uint.Z m.commit ≤ s.log.length⌝ ∗ commitIn γ s.log m.commit s.term ∗
           isCommitted γ (s.log.take (uint.Z m.commit).toNat))) := by
-  intro Hty Hto Hterm Hrole Hbase Hw
+  intro Hty Hto Hterm Hrole Hbase Hw Htr
   iintro Hnc #Hm Hown
   imod heartbeat_commit_le_last ⊤ γ id s m CoPset.subseteq_top CoPset.subseteq_top Hty Hto
     (by rw [Hterm]; exact Int.le_refl _) (fun _ => Hrole) $$ Hnc Hown Hm with ⟨Hnc, Hown, %Hcm⟩
@@ -123,7 +123,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
         iexists γs, V, πc, kl
         iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
         ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
-      isplitr; · ipureintro; exact Hbt.1
+      isplitr; · ipureintro; exact Hbt.1 Htr
       iframe Hrecs
       iright
       isplitr; · ipureintro; exact ⟨Hlt, by omega⟩
@@ -142,7 +142,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
         iexists γs, V, πc, kl
         iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
         ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
-      isplitr; · ipureintro; exact Hbt.1
+      isplitr; · ipureintro; exact Hbt.1 Htr
       iframe Hrecs
       iright
       isplitr; · ipureintro; exact ⟨Hlt, by omega⟩
@@ -157,7 +157,7 @@ theorem ownRaftGhost_hbFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) 
       iexists γs, V, πc, kl
       iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
       ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
-    isplitr; · ipureintro; exact Hbt.1
+    isplitr; · ipureintro; exact Hbt.1 Htr
     iframe Hrecs
     ileft; ipureintro; exact Hlt
 
@@ -658,7 +658,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
       icases Hgh with ⟨Hg, Hr⟩
       imod ownRaftGhost_hbFacts γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl hto'
         (by show m.Term' = s.term; exact hterm) (by show proleRole s.role ≠ .leader; rw [hrole]; nofun)
-        hs0.1 hwB $$ Hnc Hm Hg with ⟨Hnc, Hg, %Hbc, #HL, #Hcert⟩
+        hs0.1 hwB (by rw [← Hnl.2.1, htr]; simp) $$ Hnc Hm Hg with ⟨Hnc, Hg, %Hbc, #HL, #Hcert⟩
       imodintro
       iframe Hnc
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
@@ -762,10 +762,10 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's heartbeat handling, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
-        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -780,7 +780,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
     have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf

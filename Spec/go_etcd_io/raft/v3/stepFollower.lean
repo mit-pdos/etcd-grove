@@ -122,8 +122,9 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
      else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
        dropped = false ∧ s' = s
      else if m.Type' = MsgTimeoutNow then
-       -- (2026-10-17) the transfer's campaign makes no pre-candidate
-       dropped = false ∧ HupOkC c id s s' ∧ (s'.role = .preCandidate → s'.role = s.role)
+       -- (2026-10-17) the transfer's campaign makes no pre-candidate; (#33 parity B1, 2026-11-26)
+       -- `hup(campaignTransfer)`'s result, its requests carrying the transfer marker
+       dropped = false ∧ HupOkC c id campaignTransfer s s' ∧ (s'.role = .preCandidate → s'.role = s.role)
      else False)
 
 end results
@@ -170,7 +171,9 @@ that does not campaign gives `G`, at `s' = s`, as `hup`'s), else `G`. A `MsgSnap
 (`TracedUntracedStep.lean`).
 -/
 abbrev stepFollower.spec : Prop :=
-  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag (`NoSnapG`, `IdxFreeN`; `false` for a caller
+  -- whose `IdxFree` premise fixes it): at `true` the log not compacted, whatever the trace mode
+  ∀ {nc : Bool} (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
     (G G' : List Msg → IProp GF),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
@@ -213,10 +216,14 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
         ents = [] ∧ cl = [] ∧
+        -- (antithesis parity B1) its other numbers zero, no rejection (`send`'s transfer case)
+        (m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false) ∧
         -- (raft-final, 2026-10-29, U7: the design's A8) a forward to the leader recorded with its
         -- witness (`NGhost.xw`: `raft.Step`'s transfer arm, `send`'s clause (c)); until then only
         -- with leader transfer on (`NGhost.xf = false`, D21 M2r)
-        (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome)) ∧
+        (s.lead ≠ W64 0 → (s.gh.xw !! (s.lead, s.term)).isSome) ∧
+        -- (antithesis parity B1, transfer source) and its sender recorded (`NGhost.xsrc`)
+        (s.lead ≠ W64 0 → (s.gh.xsrc !! m.From').isSome)) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
        -- (D19i part 1) the floor at most `applied` (`hup`'s)
        uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →
@@ -235,11 +242,16 @@ abbrev stepFollower.spec : Prop :=
   -- order (`hup`'s)
   PermInv G' →
   -- ... and `G` ignoring it untraced (a snapshot, untraced only, is handled through no gate)
-  IdxFree s.gh.tr G →
+  IdxFreeN nc s.gh.tr G →
   -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) a traced node
   -- forwards no transfer request (a type the model does not describe, which `send` takes only
   -- untraced): `raft.Step.spec`'s premise
   (m.Type' = MsgTransferLeader → s.gh.tr = none) →
+  -- (2026-11-24, #33 S4) a transfer request recorded as stepped (`NGhost.xs`, which `raft.Step`'s
+  -- transfer arm sets before the step at a follower or a leader), for the forward to the leader
+  -- (`send`'s transfer clause): a leaderless follower forwards nothing (and the preamble's
+  -- step-down leaves no leader)
+  (m.Type' = MsgTransferLeader → s.lead ≠ W64 0 → s.gh.xs = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a
@@ -271,7 +283,8 @@ abbrev stepFollower.spec : Prop :=
       -- a forward to the leader: the send's gate, at no event (none of the three types is traced),
       -- whatever untraced messages it queues
       "Hgfwd" ∷ (⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader⌝ -∗
-        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false⌝ -∗ G s.outbox -∗
+        -- (2026-11-24, P-raft-1b) and no snapshot
+        ∀ out : List Msg, ⌜∀ x ∈ out, x.ty.traced = false ∧ x.ty ≠ .snap⌝ -∗ G s.outbox -∗
         HookGateOpt s.gh.tr r none (G (s.outbox ++ out))) ∗
       -- a `MsgTimeoutNow`: `hup(campaignTransfer)`'s gates (the `BecomeCandidate` line, then each
       -- vote message, at the candidate's state)

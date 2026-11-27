@@ -157,7 +157,7 @@ theorem raft.appliedTo.wp_proof
           icases ownRaftPhysC_traceLogger c r id s1 Htr1 $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
           ihave Hgates := stepGates_none (GF := GF) c r id s1 leaveMsgM [leaveEntM] none [] [] tl
             iprop(emp) iprop(emp) .rfl Htr1 Htlok $$ Htl
-          wp_apply (StepProof.wp_Step_MsgProp (traceReceiveMessage.gated wp_traceReceiveMessage) wp_stepFollower
+          wp_apply (StepProof.wp_Step_MsgProp (nc := false) (traceReceiveMessage.gated wp_traceReceiveMessage) wp_stepFollower
               wp_stepCandidate wp_stepLeader Q c r id s1 ml leaveMsgM none [] [] [leaveEntM]
               [some (.v2 ConfChangeV2M.empty)] k0
               ⟨iprop(emp), fun _ => iprop(emp), fun _ => iprop(emp), fun _ => iprop(emp), iprop(emp),
@@ -197,7 +197,9 @@ theorem raft.appliedTo.wp_proof
               rw [← Hs1ps] at Hlt
               iapply Hrcb $$ %Hlt
         · have Hst : stateW64 s1.role ≠ W64 2 := by
-            cases h : s1.role <;> simp_all [stateW64] <;> decide
+            -- (2026-11-24) by cases on the role alone (`simp_all` over this context timed out)
+            revert Hrl; generalize s1.role = rr
+            cases rr <;> intro hr <;> first | exact absurd rfl hr | (simp only [stateW64]; decide)
           rw [decide_eq_false (show ¬ (stateW64 s1.role = W64 2) from Hst)]
           try wp_auto
           iapply HΦ $$ %s1 %(plogLastIndexZ (toPState s).base (toPState s).log) %([] : List Msg)

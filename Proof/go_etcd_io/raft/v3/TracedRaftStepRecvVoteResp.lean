@@ -46,7 +46,7 @@ abbrev stepBundle_traced.onC (Path : CfgM → NState → MessageM → Prop) : Pr
     (Λ : Option TraceEv → Prop) (bt : Bool),
   Path c s m →
   s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  s.prevote = false → s.cq = false → TrStepTy m.Type' → NStateWf s →
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
   (m.Type' = MsgHup → s.role ≠ .leader) →
   (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
@@ -198,11 +198,11 @@ theorem stepBundle_traced_candVoteRespPending :
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's tally recorded, nothing more
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
           s' = { ({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState) with prvals := pvs } := by
-        obtain ⟨pvs0, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs0, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs0] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
         unfold CandidateStepResultC at hf
@@ -225,7 +225,7 @@ theorem stepBundle_traced_candVoteRespPending :
     iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
         s' = { ({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState) with prvals := pvs } := by
-      obtain ⟨pvs0, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs0, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs0] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
       unfold CandidateStepResultC at hf

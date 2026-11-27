@@ -53,7 +53,7 @@ namespace StepProof
 set_option maxHeartbeats 6000000 in
 /-- `MsgVote` with `m.Term > r.Term`: step down to follower first, then grant or decline
 in the new term. -/
-theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
@@ -71,12 +71,12 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (stage R4) the message, as `Step` received it
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- `recv` is whatever this branch consumed -- nothing, or the incoming message
         -- once or twice. Naming its elements rather than the list lets
@@ -251,7 +251,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨StepEnd.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
+    refine ⟨StepEndG.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
         rw [preState_bf' hbf hlead pvs, ← Hs1]
         exact VoteEnd.reject' Hty (fun h => absurd (Hutd.trans h.2) (by decide))⟩),
       nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
@@ -315,7 +315,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨StepEnd.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
+    refine ⟨StepEndG.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
         rw [preState_bf' hbf hlead pvs, ← Hs1]
         exact VoteEnd.grant' Hty ⟨.inr (.inl ⟨Hv1, Hl1⟩), Hutd.symm⟩⟩),
       Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,

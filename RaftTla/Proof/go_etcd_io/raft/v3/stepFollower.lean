@@ -35,6 +35,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 set_option linter.unusedSimpArgs false in
+/-- (2026-11-24, P-raft-1b) `handleSnapshot` queues one answer, no snapshot. -/
+private theorem handleSnapResult_outbox {id : w64} {s : NState} {m : MessageM} {sv : SnapshotM}
+    {cl : CSLists} {s' : NState} (H : HandleSnapResult id s m sv cl s') :
+    ∃ mm : Msg, s'.outbox = s.outbox ++ [mm] ∧ mm.ty ≠ .snap := by
+  unfold HandleSnapResult at H
+  rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, rfl⟩ <;>
+    exact ⟨_, rfl, by simp [appResp]⟩
+
 /-- By type. The type switch's first test is against `MsgProp`
 (`W32 2`); rewriting `m.Type` to its literal lets `wp_auto` decide
 the rest by computation.
@@ -77,7 +85,7 @@ theorem stepFollower.wp_proof
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 8) the gated specs, each arm consuming its gates; a `MsgSnap` untraced
-  intro c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Hpinv Hidx Hxtr
+  intro nc c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Hpinv Hidx Hxtr Hxs
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -152,7 +160,7 @@ theorem stepFollower.wp_proof
           rw [Hty]; rfl
         rw [hn]
         iapply Hgfwd $$ %(by first | exact Or.inl trivial | exact Or.inl Hty) %([propForward id s.lead m ents cl])
-          %(by intro x hx; simp only [List.mem_singleton] at hx; subst hx; rfl) HG
+          %(by intro x hx; simp only [List.mem_singleton] at hx; subst hx; exact ⟨rfl, by simp [propForward, readForward]⟩) HG
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
           [propForward id s.lead m ents cl] (G (s.outbox ++ [propForward id s.lead m ents cl]))
           (Or.imp_right Or.inl Hfrom0)
@@ -286,9 +294,11 @@ theorem stepFollower.wp_proof
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
         Hrole Hvotes Hsn Hscfg Hscope Hfid Hns (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) (by tr_none) $$ [$Hphys $Hm $Hcs]
       as %s' ⟨Hphys, %Hres⟩
-    -- (2026-11-10, slice 14) untraced: the caller's resource ignores the outbox
+    -- (2026-11-10, slice 14) untraced: the caller's resource ignores the outbox ((2026-11-24,
+    -- P-raft-1b) or, under the no-snapshot flag, is kept by the answer, no snapshot)
     ihave HG : G s'.outbox $$ [HG]
-    · rw [Hidx Htr s'.outbox s.outbox]; iexact HG
+    · obtain ⟨mm, ho, hmm⟩ := handleSnapResult_outbox Hres
+      iapply Hidx.step' Htr [mm] ho (fun _ => NoSnapL.single hmm) $$ HG
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -363,7 +373,7 @@ theorem stepFollower.wp_proof
         rw [hn]
         iapply Hgfwd $$ %(by first | exact Or.inr (Or.inl trivial) | exact Or.inr (Or.inl Hty))
           %([readForward id s.lead m ents cl])
-          %(by intro x hx; simp only [List.mem_singleton] at hx; subst hx; rfl) HG
+          %(by intro x hx; simp only [List.mem_singleton] at hx; subst hx; exact ⟨rfl, by simp [propForward, readForward]⟩) HG
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
           [readForward id s.lead m ents cl] (G (s.outbox ++ [readForward id s.lead m ents cl]))
           (Or.inr (Or.inr (Or.inl Hty)))
@@ -533,7 +543,7 @@ theorem stepFollower.wp_proof
   · -- `MsgTransferLeader` (2026-10-13): forwarded to the leader, if any; it is outside
     -- the model (`mtypeOf` is `none`), so nothing is queued abstractly
     obtain ⟨Htl, -⟩ := Hrest (Or.inl Hty)
-    obtain ⟨Hterm0, Hents0, Hctx0, Hxo⟩ := Htl Hty
+    obtain ⟨Hterm0, Hents0, Hctx0, Hzf, Hxo, Hxso⟩ := Htl Hty
     subst Hents0 Hctx0
     simp only [Hty, MsgTransferLeader]
     wp_auto
@@ -581,7 +591,9 @@ theorem stepFollower.wp_proof
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs [] (G (s.outbox ++ []))
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
-            rfl, rfl, Hterm0', fun h => Hlid h, rfl, fun _ => Hxo Hlead⟩))))
+            rfl, rfl, Hterm0', Hzf, fun h => Hlid h, rfl, fun _ => Hxo Hlead,
+            fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]), Hxs Hty Hlead,
+            fun _ => Hxso Hlead⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty)))

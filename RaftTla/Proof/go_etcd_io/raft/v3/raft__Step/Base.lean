@@ -111,6 +111,7 @@ traced node's message is no snapshot. -/
 macro "wp_recv_gate " h:term:max : tactic => `(tactic| (
   iunfold Perennial.EtcdGrove.stepGates at Hgates
   icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
+  obtain ⟨Hgok, Hncal⟩ := Perennial.EtcdGrove.StepGOkN.split Hgok
   wp_apply _P.traceReceiveMessage c r id s ml _ _ _ ⟨m, _, _, _, _⟩ _ $h $$ [Hphys Hm Hgrecv HG] as ⟨Hphys, Hm, HG⟩
   · iframe Hphys Hm
     iapply Hgrecv; iexact HG))
@@ -121,6 +122,7 @@ is raised at the next resolution). -/
 macro "wp_recv_gate_noauto " h:term:max : tactic => `(tactic| (
   iunfold Perennial.EtcdGrove.stepGates at Hgates
   icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
+  obtain ⟨Hgok, Hncal⟩ := Perennial.EtcdGrove.StepGOkN.split Hgok
   wp_apply +noauto _P.traceReceiveMessage c r id s ml _ _ _ ⟨m, _, _, _, _⟩ _ $h $$ [Hphys Hm Hgrecv HG]
     as ⟨Hphys, Hm, HG⟩
   · iframe Hphys Hm
@@ -192,9 +194,9 @@ macro "bf_gate" : tactic => `(tactic| (
   ihave Hgb := Perennial.EtcdGrove.preGate_bf c r id s m R.G0 R.G1 _ hbf hlead $$ Hgpre HG))
 
 set_option hygiene false in
-/-- (Q8 stage 1 slice 13) `StepEnd` of a step function's arm at the node's term, no step-down
+/-- (Q8 stage 1 slice 13) `StepEndG` of a step function's arm at the node's term, no step-down
 (`hnbf`, `Hteq`, `Hty`, the role `Hrole` and the step function's result `Hres` in context). -/
-macro "end_nobf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_nobf hnbf
+macro "end_nobf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEndG.fn_nobf hnbf
   (by first
     | exact Perennial.EtcdGrove.notStale_of_le (by rw [Hteq]; exact Int.le_refl _)
     | exact Perennial.EtcdGrove.notStale_of_zero Hterm)
@@ -211,9 +213,9 @@ macro "end_nobf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_nobf
        | exact Perennial.EtcdGrove.StepFnEnd.candidate (.inr Hrole) Hres)))
 
 set_option hygiene false in
-/-- (Q8 stage 1 slice 13) `StepEnd` of a step function's arm after the preamble's step-down (`hbf`,
+/-- (Q8 stage 1 slice 13) `StepEndG` of a step function's arm after the preamble's step-down (`hbf`,
 `hlead` of `bf_gate`, `Hty`, the step-down's `pvs` and the follower's result `Hres` in context). -/
-macro "end_bf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_bf hbf hlead
+macro "end_bf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEndG.fn_bf hbf hlead
   (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs (Perennial.EtcdGrove.StepFnEnd.follower rfl Hres))
 
 set_option hygiene false in
@@ -241,6 +243,25 @@ macro "xtr_tac" : tactic => `(tactic| first
         Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
 
 set_option hygiene false in
+/-- (2026-11-24, #33 S4) `stepLeader`'s and `stepFollower`'s premise that a transfer request is
+recorded as stepped (`NGhost.xs`): the transfer arm's (`Hxs`, set before the step), or vacuous at a
+branch of another type (`Hty`, as `xtr_tac`). -/
+macro "xs_tac" : tactic => `(tactic| first
+  | exact fun _ => Hxs
+  | exact fun _ _ => Hxs
+  | exact fun _ => Hxs (.inr Hrole)
+  | exact fun _ _ => Hxs (.inl Hrole)
+  | exact fun _ h => absurd rfl h
+  | (intro Hc; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgTransferLeader, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
+
+set_option hygiene false in
 /-- (2026-11-12, implementation step 3) `stepLeader`'s premise that a traced node stepping an append
 response has no transferee: `raft.Step.spec`'s (`Hltr`), or vacuous at a branch of another type. -/
 macro "ltr_tac" : tactic => `(tactic| first
@@ -253,6 +274,42 @@ macro "ltr_tac" : tactic => `(tactic| first
     | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
     | (simp_all [Perennial.EtcdGrove.MsgAppResp, Perennial.EtcdGrove.MsgProp,
         Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
+
+set_option hygiene false in
+/-- (antithesis parity B1, option (b)) `stepLeader`'s premise that a caught-up transferee of a transfer
+request is recorded (`NGhost.xt`): the transfer arm's (`Hxtx`, recorded before the step), or vacuous at
+a branch of another type (`Hty`, as `xs_tac`). -/
+macro "xtx_tac" : tactic => `(tactic| first
+  | exact Hxtx Hrole
+  | exact fun h => Hxtx h
+  | (intro Hc; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgTransferLeader, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat,
+        Perennial.EtcdGrove.MsgAppResp])))
+
+set_option hygiene false in
+/-- (antithesis parity B1, option (b)) `stepLeader`'s premise that a transferee acknowledging the last
+index is recorded (`NGhost.xt`): the append response's (`Hxta`, recorded before the step), or vacuous
+at a branch of another type (`Hty`, as `xs_tac`). -/
+macro "xta_tac" : tactic => `(tactic| first
+  | exact fun _ => Hxta Hrole Hteq
+  | exact fun h => Hxta h
+  | (intro Hc; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgTransferLeader, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat,
+        Perennial.EtcdGrove.MsgAppResp])))
 
 set_option hygiene false in
 /-- (2026-10-22, D38a) `stepFollower`'s premise that a forwarded message (`MsgProp`, `MsgReadIndex`,
@@ -289,7 +346,7 @@ macro "rframe" : tactic =>
 section stepEnd
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- (Q8 stage 1 slice 13) A message no older than the node's term is not stale (`StepEnd`). -/
+/-- (Q8 stage 1 slice 13) A message no older than the node's term is not stale (`StepEndG`). -/
 theorem notStale_of_le {s : NState} {m : MessageM} (h : uint.Z s.term ≤ uint.Z m.Term') :
     ¬ StaleMsg s m := fun h' => by unfold StaleMsg at h'; omega
 
@@ -314,19 +371,37 @@ theorem VoteEnd.reject' {id : w64} {s1 : NState} {m : MessageM} (hty : m.Type' =
     VoteEnd id s1 m (sendMsgs s1 [Msg.plain .voteResp id m.From' s1.term true]) :=
   .inr ⟨h, by rw [vrespMsgOf_vote hty]; rfl⟩
 
+/-- (#33 parity B1 (ii)) A `MsgPreVote`'s answer, as `vrespMsgOf` builds it. -/
+theorem vrespMsgOf_prevote {id : w64} {s1 : NState} {m : MessageM} {rej : Bool} (h : m.Type' = MsgPreVote) :
+    vrespMsgOf id s1 m rej = Msg.plain .preVoteResp id m.From' (if rej then s1.term else m.Term') rej := by
+  have hv : m.Type' ≠ MsgVote := by rw [h]; w32_ne
+  simp [vrespMsgOf, hv]
+
+/-- (#33 parity B1 (ii)) A granted `MsgPreVote`'s end state: nothing recorded. -/
+theorem PreVoteEnd.grant' {id : w64} {s : NState} {m : MessageM} (hty : m.Type' = MsgPreVote)
+    (h : VoteGrant s m) :
+    PreVoteEnd id s m (sendMsgs s [Msg.plain .preVoteResp id m.From' m.Term' false]) :=
+  .inl ⟨h, by rw [vrespMsgOf_prevote hty]; rfl⟩
+
+/-- (#33 parity B1 (ii)) A declined `MsgPreVote`'s end state. -/
+theorem PreVoteEnd.reject' {id : w64} {s : NState} {m : MessageM} (hty : m.Type' = MsgPreVote)
+    (h : ¬ VoteGrant s m) :
+    PreVoteEnd id s m (sendMsgs s [Msg.plain .preVoteResp id m.From' s.term true]) :=
+  .inr ⟨h, by rw [vrespMsgOf_prevote hty]; rfl⟩
+
 /-- The step function's end state, without a step-down (`preState` is `s`). -/
-theorem StepEnd.fn_nobf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.fn_nobf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hnbf : ¬ PreBF m s) (hns : ¬ StaleMsg s m) (hh : m.Type' ≠ MsgHup)
-    (hv : m.Type' ≠ MsgVote) (h : StepFnEnd c id s m ents ctx s') : StepEnd c id m ents ctx s s' :=
-  StepEnd.fn hns hh hv ∅ (by rw [preState_nobf hnbf]; exact h)
+    (hv : m.Type' ≠ MsgVote) (h : StepFnEnd c id s m ents ctx s') : StepEndG c id m ents ctx s s' :=
+  StepEndG.fn hns hh hv ∅ (by rw [preState_nobf hnbf]; exact h)
 
 /-- The step function's end state, after the preamble's step-down. -/
-theorem StepEnd.fn_bf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.fn_bf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} {lead : w64} (hbf : PreBF m s) (hl : preLead m = lead) (hh : m.Type' ≠ MsgHup)
     (hv : m.Type' ≠ MsgVote) (pvs : GMap w64 Progress)
     (h : StepFnEnd c id { becomeFollower s m.Term' lead with prvals := pvs } m ents ctx s') :
-    StepEnd c id m ents ctx s s' :=
-  StepEnd.fn (notStale_of_le (Int.le_of_lt hbf.1)) hh hv pvs (by rw [preState_bf' hbf hl]; exact h)
+    StepEndG c id m ents ctx s s' :=
+  StepEndG.fn (notStale_of_le (Int.le_of_lt hbf.1)) hh hv pvs (by rw [preState_bf' hbf hl]; exact h)
 
 end stepEnd
 
@@ -470,7 +545,7 @@ theorem PreCandStep.mk' {m : MessageM} {s s' : NState}
 /-- (2026-10-28, stage U0) What `hup` leaves (`HupGuard`), its log kept: a campaign checked that no
 snapshot is pending. -/
 theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM}
-    {id : w64} {s s' : NState} (h : HupGuard c id s s') (hl : s'.logst = s.logst) :
+    {id : w64} {t : CampaignType} {s s' : NState} (h : HupGuard c id t s s') (hl : s'.logst = s.logst) :
     SnapRoleBack s s' := fun h1 h2 => by
   rcases h with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, -⟩, -⟩
   · exact ⟨h1, h2⟩
@@ -479,7 +554,7 @@ theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM
 /-- (2026-11-12, trace-check implementation step 3) `RoleUp` of a campaign by `hup` at `sb` (the start
 state `s`, or a step-down of it: its log, and a follower or `s`'s role), with the log facts of `s`. -/
 theorem HupGuard.roleUp [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM} {id : w64} {m : MessageM}
-    {s sb s' : NState} (h : HupGuard c id sb s') (hl : s'.logst = sb.logst) (hb : sb.logst = s.logst)
+    {t : CampaignType} {s sb s' : NState} (h : HupGuard c id t sb s') (hl : s'.logst = sb.logst) (hb : sb.logst = s.logst)
     (hr : sb.role = s.role ∨ sb.role = .follower) (hty : m.Type' = MsgHup ∨ m.Type' = MsgTimeoutNow)
     (hlogf : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
       uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :
@@ -754,7 +829,7 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   isplitr
   · simp only [ghostRestM]; ipureintro; exact HC
   rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
-    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW xtW; rw [Hng.1]]
   iframe Hcl Hw' Hx
 
 /-- (2026-10-28, stage U0) `ghost_step_static0` to another static configuration `c'` (a snapshot's
@@ -888,7 +963,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     · isplitr
       · ipureintro; exact ⟨HD, Hcs', HI'⟩
       iframe Hfr' HM
-    rw [show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1], Hps, Hng.1]
+    rw [show xfW (GF := GF) γ s' = xfW γ s by unfold xfW xtW; rw [Hng.1], Hps, Hng.1]
     iexact Hcl
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/

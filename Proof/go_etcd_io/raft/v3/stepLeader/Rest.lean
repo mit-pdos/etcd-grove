@@ -270,10 +270,11 @@ private theorem rest_res (id : w64) (s : NState) (m : MessageM) (ents : List Ent
     (Hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)
     (Hms : ReplSends id s ms) (Hmm : prvalsMatch pvs = prvalsMatch s.prvals)
-    (Hu : m.Type' = MsgUnreachable → lt' = s.lt ∧ ms = []) :
+    (Hu : m.Type' = MsgUnreachable → lt' = s.lt ∧ ms = [])
+    (Hx : m.Type' = MsgTransferLeader → ms ≠ [] → m.From' ∈ c.voters ∧ m.From' ≠ id) :
     LeaderNonpropResultC c id s m ents ctx
       { sendMsgs { s with lt := lt' } ms with prvals := pvs } :=
-  Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, lt', ms, pvs, rfl, Hms, Hmm, Hu⟩)))))
+  Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, lt', ms, pvs, rfl, ⟨Hms, Hx⟩, Hmm, Hu⟩)))))
 
 private theorem rest_nil (s : NState) :
     s = { sendMsgs { s with lt := s.lt } [] with prvals := s.prvals } := by
@@ -287,7 +288,7 @@ private theorem rest_res_self (id : w64) (s : NState) (m : MessageM)
   have H : LeaderNonpropResultC c id s m ents ctx
       { sendMsgs { s with lt := s.lt } [] with prvals := s.prvals } :=
     rest_res c id s m ents ctx s.lt [] s.prvals Hty
-    (fun _ h => absurd h List.not_mem_nil) rfl (fun _ => ⟨rfl, rfl⟩)
+    (fun _ h => absurd h List.not_mem_nil) rfl (fun _ => ⟨rfl, rfl⟩) (fun _ h => absurd rfl h)
   rwa [← rest_nil s] at H
 
 private theorem rest_prvals (s : NState) (pvs : GMap w64 Progress) :
@@ -456,7 +457,7 @@ theorem wp_stepLeader_report
     · iidx HG
     ipureintro
     exact ⟨rfl, rest_res c id s m ents ctx s.lt [] _ Hty' (fun _ h => absurd h List.not_mem_nil)
-      (prvalsMatch_insert_same _ _ p _ Hpvs Hpm) (fun _ => ⟨rfl, rfl⟩)⟩
+      (prvalsMatch_insert_same _ _ p _ Hpvs Hpm) (fun _ => ⟨rfl, rfl⟩) (fun _ h => absurd rfl h)⟩
   · -- `MsgSnapStatus`: only a peer receiving a snapshot
     by_cases Hsn : p.state = .snapshot
     rotate_left
@@ -529,10 +530,22 @@ theorem wp_stepLeader_report
     · iidx HG
     ipureintro
     refine ⟨rfl, rest_res c id s m ents ctx s.lt [] _ Hty' (fun _ h => absurd h List.not_mem_nil) ?_
-      (fun _ => ⟨rfl, rfl⟩)⟩
+      (fun _ => ⟨rfl, rfl⟩) (fun _ h => absurd rfl h)⟩
     rw [prvalsMatch_insert_same (<[m.From' := p']> s.prvals) m.From' p' { p' with paused := true }
       (GMap.lookup_insert_eq _ _ _) rfl]
     exact prvalsMatch_insert_same _ _ p _ Hpvs Hpm
+
+/-- (antithesis parity B1, option (b)) An accepted append response that reaches `maybeCommit`
+(`AppRespRan`) sets its sender's `Match` to its index. -/
+private theorem appRespMatch_ran_self (s : NState) (src index : w64) (H : AppRespRan s src index) :
+    appRespMatch s src index !! src = some index := by
+  obtain ⟨p, hp, h⟩ := H
+  have hm : prvalsMatch s.prvals !! src = some p.matched := by
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, hp]; rfl
+  rw [appRespMatch_of_some s src index p.matched hm, GMap.lookup_insert_eq]
+  rcases h with h | ⟨h, -⟩
+  · simp [h]
+  · subst h; simp
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgTransferLeader`** (2026-10-13): from a peer with a `Progress`; a learner's is
@@ -552,7 +565,13 @@ theorem wp_stepLeader_transfer
     -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) not at a
     -- traced node (`raft.Step.spec`'s premise): `sendTimeoutNow`'s
     (Htr : s.gh.tr = none)
-    (G : List Msg → IProp GF) (Hidx : IdxFree s.gh.tr G) :
+    -- (2026-11-24, #33 S4) the request recorded as stepped (`NGhost.xs`): the transferee's store and
+    -- `sendTimeoutNow`'s
+    (Hxs : s.gh.xs = true)
+    -- (antithesis parity B1, option (b)) a caught-up transferee recorded (`NGhost.xt`): `sendTimeoutNow`'s
+    (Hxt : m.From' ≠ id → (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst →
+      (s.gh.xt !! (m.From', s.term)).isSome)
+    (G : List Msg → IProp GF) {nc : Bool} (Hidx : IdxFreeN nc s.gh.tr G) :
     -- (raft-final, 2026-10-29, U9: until then leader transfer on, `Hxo : s.gh.xf = false`)
     -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) the two sends' gates, at the
     -- state with the transferee recorded: `sendTimeoutNow`'s (no event) and `sendAppend`'s
@@ -564,7 +583,7 @@ theorem wp_stepLeader_transfer
             mm.commit = (toPState s).commit ∧ mm.dst = m.From' ∧
             uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
-        "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
+        "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
@@ -577,6 +596,7 @@ theorem wp_stepLeader_transfer
     rest_res c id s m ents ctx _ [] _ Hty' (fun _ h => absurd h List.not_mem_nil) rfl
       (fun h => absurd (Hty.symm.trans h)
         (by simp only [MsgTransferLeader, MsgUnreachable, ne_eq]; first | exact of_decide_eq_true rfl | word))
+      (fun _ h => absurd rfl h)
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   simp only [Hty, MsgTransferLeader]
@@ -584,7 +604,9 @@ theorem wp_stepLeader_transfer
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   icases ownTrackerC_prvals_dom c tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
-  dsimp only at Hdom Hpdom
+  -- (#33 parity B1) the tracked ids, and their learner flags: a tracked non-learner is a voter
+  icases ownTrackerC_pure c tv _ $$ Htrk with ⟨%Htpure, Htrk⟩
+  dsimp only at Hdom Hpdom Htpure
   wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
   try wp_auto
   ihave Hphys := Hback $$ Htrkf Htrk
@@ -713,7 +735,8 @@ theorem wp_stepLeader_transfer
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
-  wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself $$ Hphys as Hphys
+  wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself
+    (by first | exact Hxs | simpa using Hxs | simp_all) $$ Hphys as Hphys
   -- `if pr.Match == r.raftLog.lastIndex()`
   icases ownRaftPhysC_pr c r id _ m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
@@ -726,10 +749,20 @@ theorem wp_stepLeader_transfer
   ihave Hphys := Hlogback $$ Hlog
   wp_if_destruct
   · -- caught up: `MsgTimeoutNow` now
+    -- (antithesis parity B1, option (b)) the transferee recorded (`Hxt`): its `Match` is the last index
+    have Hmt : (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst := by
+      have hl := logLast_eq_of_Z _ _ Hli
+      have hpm := ((progressAbs_Some _ _ _).1 Habs).2.2.1
+      simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs]
+      first
+        | (rw [← hpm]; exact hl)
+        | (simp only [Option.map_some', Option.getD_some]; rw [← hpm]; exact hl)
+        | (simp; rw [← hpm]; exact hl)
     ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
     ispecialize Hgtnow $$ %s.outbox HG
     wp_apply wp_raft_sendTimeoutNow c r id { s with lt := m.From' } m.From' (G s.outbox) Hself
-      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) Htr $$ [$Hphys $Hgtnow]
+      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) Htr Hxs
+      (Hxt Hself Hmt) $$ [$Hphys $Hgtnow]
       as ⟨Hphys, HG⟩
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
@@ -753,7 +786,7 @@ theorem wp_stepLeader_transfer
     · iintro %mm %o %Hmm HG
       ispecialize Hgxapp $$ %mm %o %Hmm HG
       iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ Hgxapp
-    ihave #Hns : TrNoSnap (GF := GF) ({ s with lt := m.From' } : NState).gh.tr
+    ihave #Hns : NoSnapG (GF := GF) nc ({ s with lt := m.From' } : NState).gh.tr
         ({ s with lt := m.From' } : NState).logst $$ []
     · iexact Hnosnap
     wp_apply wp_raft_sendAppend c r id { s with lt := m.From' } m.From' G Hself (by exact Hfcfg)
@@ -767,9 +800,21 @@ theorem wp_stepLeader_transfer
     isplitl [HG]
     · iidx HG
     ipureintro
+    -- the transferee a voter: tracked (`pr != nil`), not a learner
+    have Hvot : m.From' ∈ c.voters := by
+      have Hids : m.From' ∈ c.voters ∪ c.learners := by
+        have h := Htpure.2.1; rw [h] at Hfcfg; exact Hfcfg
+      have Hnl : m.From' ∉ c.learners := by
+        have h := Htpure.2.2.1 _ _ Hpvs
+        rw [Hpl] at h
+        exact of_decide_eq_false h.symm
+      rcases (GMap.elem_of_union _ _ _).1 Hids with h | h
+      · exact h
+      · exact absurd h Hnl
     exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm
       (fun h => absurd (Hty.symm.trans h)
-        (by simp only [MsgTransferLeader, MsgUnreachable, ne_eq]; first | exact of_decide_eq_true rfl | word))⟩
+        (by simp only [MsgTransferLeader, MsgUnreachable, ne_eq]; first | exact of_decide_eq_true rfl | word))
+      (fun _ _ => ⟨Hvot, Hself⟩)⟩
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgBeat`**: `bcastHeartbeat`, return. -/
@@ -804,7 +849,7 @@ theorem wp_stepLeader_beat
   iframe Hphys HG
   ipureintro
   exact ⟨rfl, Or.inr (Or.inl ⟨Hty, ms, pvs, rfl,
-    fun m' h => ⟨(Hms m' h).1, by rw [(Hms m' h).2]; exact hbCtx_ok _⟩, Hmm⟩)⟩
+    Hms, Hmm⟩)⟩
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgHeartbeatResp`** (2026-11-10, Q8 stage 1 slice 9; until then the premise `s.gh.tr = none`):
@@ -828,7 +873,7 @@ theorem wp_stepLeader_hbresp
     (Hclen : ctx = [] ∨ 8 ≤ ctx.length)
     (Hcb : ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
             ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))
-    (G : List Msg → IProp GF) (Hidx : IdxFree s.gh.tr G) :
+    (G : List Msg → IProp GF) {nc : Bool} (Hidx : IdxFreeN nc s.gh.tr G) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
         "HG" ∷ G s.outbox ∗
@@ -838,7 +883,7 @@ theorem wp_stepLeader_hbresp
           HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
         "#Hgresp" ∷ □ (∀ (mm : Msg) (o : List Msg), ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
-        "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
+        "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ G s'.outbox ∗ ⌜err = interface.nil⌝ ∗
@@ -920,7 +965,7 @@ theorem wp_stepLeader_hbresp
         (Hgapp $$ %mm %o %(and4_last (fun h => by simpa only [Hmm1] using h) Hmm) HG)
     ihave HG : G ({ s with prvals := pvs1 } : NState).outbox $$ [HG]
     · iidx HG
-    ihave #Hns : TrNoSnap (GF := GF) ({ s with prvals := pvs1 } : NState).gh.tr
+    ihave #Hns : NoSnapG (GF := GF) nc ({ s with prvals := pvs1 } : NState).gh.tr
         ({ s with prvals := pvs1 } : NState).logst $$ []
     · iexact Hnosnap
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -1348,9 +1393,13 @@ theorem wp_stepLeader_appresp
       2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
       (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
         uint.Z t0 ≤ 1))
+    -- (antithesis parity B1, option (b)) the transferee recorded (`NGhost.xt`) when it acknowledges the
+    -- last index: `sendTimeoutNow`'s
+    (Hxta : m.Reject' = false → m.From' = s.lt → m.Index' = logLast s.logst →
+      (s.gh.xt !! (m.From', s.term)).isSome)
     (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (G : List Msg → IProp GF) (Gc : Bool → w64 → List Msg → IProp GF)
-    (HiG : IdxFree s.gh.tr G) (HiC : ∀ b N, IdxFree s.gh.tr (Gc b N)) :
+    {nc : Bool} (HiG : IdxFreeN nc s.gh.tr G) (HiC : ∀ b N, IdxFreeN nc s.gh.tr (Gc b N)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
         "HG" ∷ G s.outbox ∗
@@ -1383,7 +1432,7 @@ theorem wp_stepLeader_appresp
           HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N (o ++ [mm]))) ∗
         "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64) (o : List Msg),
           Gc b N o -∗ HookGateOpt s.gh.tr r none (Gc b N o)) ∗
-        "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
+        "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
@@ -1825,7 +1874,7 @@ theorem wp_stepLeader_appresp
           · iapply idx_eq _ ?_ $$ HGc
             exact congrArg NState.outbox Hpv
           wp_apply wp_raft_bcastAppend c r id _ (Gc true N) (by exact Hf.2.1.trans Hlead) (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all)
-            (by first | exact HiC true N | (rw [readRespondAll_gh]; exact HiC true N) | (show IdxFree (readRespondAll _ _ _).gh.tr _; rw [readRespondAll_gh]; exact HiC true N)) $$ [$Hphys $HGc]
+            (by first | exact HiC true N | (rw [readRespondAll_gh]; exact HiC true N) | (show IdxFreeN nc (readRespondAll _ _ _).gh.tr _; rw [readRespondAll_gh]; exact HiC true N)) $$ [$Hphys $HGc]
             as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4, HGc⟩
           · -- (slice 9) the `MsgApp`s' gate, at the committed state (the responses apart)
             obtain ⟨o, rd', Hrr⟩ := readRespondAll_eq id
@@ -1838,7 +1887,8 @@ theorem wp_stepLeader_appresp
               iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
                 (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %true %N %to %mm %o %Hto
                 %(and4_last (fun h => by simpa only [HmA] using h) Hmm) HG)
-            iapply trNoSnap_logst _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
+            isplitr; · ipureintro; trivial
+            iapply noSnapG_logst nc _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
           wp_join_done
           iexists N, readRespondAll id
             { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
@@ -1870,7 +1920,8 @@ theorem wp_stepLeader_appresp
             iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
               (Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %true %N %to %mm %o %Hto
                 %(and4_last (fun h => by simpa only [HmmR, HmA] using h) Hmm) HG)
-          iapply trNoSnap_logst _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
+          isplitr; · ipureintro; trivial
+          iapply noSnapG_logst nc _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
         wp_join_done
         iexists N, releasedState id { s with logst := { s.logst with committed := N } }, hb, ms,
           pvs4, true, N
@@ -1963,7 +2014,7 @@ theorem wp_stepLeader_appresp
       wp_apply wp_raft_maybeSendAppend c r id _ m.From' false (Gc bc Nc) (Ne.symm Hsame)
           (by show m.From' ∈ domSet s2.progress; rw [Hs2p]; exact Hfcfg)
           (by show s2.role = .leader; rw [Hs2r]; exact Hlead) (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz)
-          (by show IdxFree s2.gh.tr (Gc bc Nc); rw [Hs2gh]; exact HiC bc Nc) $$ [$Hphys $HGc]
+          (by show IdxFreeN nc s2.gh.tr (Gc bc Nc); rw [Hs2gh]; exact HiC bc Nc) $$ [$Hphys $HGc]
         as %b %ms'' %pvs'' ⟨Hphys, %Hms'', %Hmm'', HGc⟩
       · -- (slice 9) the `MsgApp`'s gate, at the commit outcome's state (`s2`'s header)
         isplitr
@@ -1979,7 +2030,8 @@ theorem wp_stepLeader_appresp
           case hg1 => exact (congrArg NGhost.tr Hs2gh).symm
           case hg2 => exact (sendOutGate_hdr id _ _ c MsgApp [mm] HhdT HhdV HhdL HhdR).symm
           iapply Hgaapp $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %bc %Nc %m.From' %mm %o %(And.intro (Ne.symm Hsame) Hfcfg) %Hmm' HG
-        iapply trNoSnap_logst s.gh.tr _ s.logst _ ?t1 ?t2 ?t3
+        isplitr; · ipureintro; trivial
+        iapply noSnapG_logst nc s.gh.tr _ s.logst _ ?t1 ?t2 ?t3
         case t1 => exact (congrArg NGhost.tr Hs2gh).symm
         case t2 => show s.logst.prev = s2.logst.prev; rw [Hs2f.2.2.1]
         case t3 => show s.logst.storage = s2.logst.storage; rw [Hs2f.2.2.1]
@@ -2053,6 +2105,21 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           wp_raft_logC
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+          -- (2026-11-24, #33 S4) a transferee: a transfer request was stepped
+          icases ownRaftPhysC_xs_of_lt c r id _ $$ Hphys with ⟨%Hxsl, Hphys⟩
+          -- (antithesis parity B1, option (b)) the transferee recorded (`Hxta`): its `Match`, which
+          -- the response set to its index (`Hran`), is the last index
+          have Hmi : m.Index' = logLast s.logst := by
+            have h1 : prvalsMatch pvs5 !! m.From' = some p5.matched := by
+              simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hp5]; rfl
+            rw [Hmm5, Hmm4, HmA, appRespMatch_ran_self s _ _ Hran] at h1
+            have hl := logLast_eq_of_Z _ _ Hli
+            have hlg : logLast s2.logst = logLast s.logst := by rw [Hs2f.2.2.1]; rfl
+            rw [Option.some.inj h1, ← ((progressAbs_Some _ _ _).1 Habs).2.2.1]
+            exact hl.trans hlg
+          have Hxtt : (s2.gh.xt !! (m.From', s2.term)).isSome := by
+            rw [Hs2gh, Hs2f.2.1]
+            exact Hxta Hrej (by rw [Hft]; show s2.lt = s.lt; exact Hs2lt) Hmi
           wp_apply wp_raft_sendTimeoutNow c r id _ m.From'
               (Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox)
               Hfid (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz)
@@ -2064,7 +2131,7 @@ theorem wp_stepLeader_appresp
                 intro htr
                 have hlt := Hltr htr
                 have : m.From' = s.lt := by rw [Hft]; show s2.lt = s.lt; exact Hs2lt
-                exact Hfrom0 (this.trans hlt)) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
+                exact Hfrom0 (this.trans hlt)) (Hxsl (fun h => Hfrom0 (Hft.trans h))) Hxtt $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
           · -- (slice 9) at no event
             iapply hookGateOpt_congr s.gh.tr _ r none none _ ?hg1 rfl
             case hg1 => exact (congrArg NGhost.tr Hs2gh).symm
@@ -2204,6 +2271,7 @@ theorem wp_stepLeader_appresp
           iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
             (Hgrej $$ %mm %o %(and4_last (fun h => by
               simp only at h; rwa [← Hpvs3, prvalsMatch_insert_same _ _ p2 _ Hpvs2' HM3, Hmm2] at h) Hmm) HG)
+        isplitr; · ipureintro; trivial
         iexact Hnosnap
       ihave Hphys := ownRaftPhysC_eq c r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
@@ -2232,6 +2300,7 @@ theorem wp_stepLeader_appresp
           iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$
             (Hgrej $$ %mm %o %(and4_last (fun h => by
               simp only at h; rwa [← Hpvs3, prvalsMatch_insert_same _ _ p2 _ Hpvs2' HM3, Hmm2] at h) Hmm) HG)
+        isplitr; · ipureintro; trivial
         iexact Hnosnap
       ihave Hphys := ownRaftPhysC_eq c r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys

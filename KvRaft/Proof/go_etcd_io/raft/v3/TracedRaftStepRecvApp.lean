@@ -612,11 +612,11 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's stale handling, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       have hse : s' = sendMsgs { s with lead := m.From' }
           [appResp id { s with lead := m.From' } m.From' false s.logst.committed (W64 0) (W64 0)] := by
-        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -638,7 +638,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
     iintro %s' %B %recv %_ %hend %_ Hout
     have hse : s' = sendMsgs { s with lead := m.From' }
         [appResp id { s with lead := m.From' } m.From' false s.logst.committed (W64 0) (W64 0)] := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf

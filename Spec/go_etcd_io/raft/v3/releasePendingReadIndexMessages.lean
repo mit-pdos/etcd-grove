@@ -35,7 +35,7 @@ def ReleaseResult (c : CfgM) (id : w64) (s s' : NState) : Prop :=
      s' = readRespondAll id { s with rd := { s.rd with pend := [] } } (pendReqs s)) ∨
   (¬ CfgSingle c id ∧ ∃ (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs (releasedState id s) ms with prvals := pvs } ∧
-     (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
+     (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧ HbShape s m' ∧
        ∃ k, 0 < k ∧ k ≤ s.rd.pend.length ∧
          m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))) ∧
      prvalsMatch pvs = prvalsMatch s.prvals)

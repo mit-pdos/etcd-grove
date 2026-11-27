@@ -18,7 +18,7 @@ What only the node API can supply is premised: the received message's token (`re
 specification message in flight, for a traced type), its numbers (`MsgTrOk`, from `isRaftMsg`), the
 terms' bound (`termLB`'s, as a pure bound), the receipts' fit (`readyFits`', for
 `ownRaftGhost_traceBound`); and the traced node's configuration (`TracedConfigOk`: pre-vote and
-check-quorum off) and message types (`StepEndTy`).
+check-quorum off) and message types (`TrStepTy`).
 
 **Slice 13's finding** (the broadcast paths not derivable while the gates' resources were not indexed
 by the outbox) **is resolved by slice 14's indexing**; a traced caller's families are `trFam`
@@ -121,7 +121,7 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   Path s m →
   s.gh.tr = some γd →
   -- a traced node's configuration (`TracedConfigOk`) and message types
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  s.prevote = false → s.cq = false → TrStepTy m.Type' → NStateWf s →
   -- (slice 15) a local message (`tickElection`'s, `tickHeartbeat`'s, `Propose`'s) at term zero, and
   -- `MsgHup` stepped by a node that is not leading (`tickElection` is a non-leader's tick)
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
@@ -171,7 +171,7 @@ abbrev stepBundle_traced.onG (Path : RaftNames → List EntryM → NState → Me
     (Λ : Option TraceEv → Prop) (bt : Bool),
   Path γ ents s m →
   s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  s.prevote = false → s.cq = false → TrStepTy m.Type' → NStateWf s →
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
   (m.Type' = MsgHup → s.role ≠ .leader) →
   (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
@@ -231,7 +231,7 @@ theorem stepClose_anyB_end {γ : RaftNames} {md : GMode} {c : CfgM} {id : w64} {
     {ents : List EntryM} {ctx : List w8} {s : NState} {R : StepG GF} {tr : Option GName} {γ' : RaftNames}
     {r : Loc} {c' : CfgM} {Φ : NState → List w64 → ServerC → List Etcdraft.Msg → Prop}
     {Λ : Option TraceEv → Prop} {bt : Bool}
-    (hty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s') :
+    (hty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s') :
     stepClose γ md c id m ents ctx s R (fun s' => trCapB tr γ' r id c' true (Φ s') Λ) ⊢
       stepClose γ md c id m ents ctx s R
         (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
@@ -324,7 +324,7 @@ abbrev stepBundle_traced.statement : Prop :=
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
     (Λ : Option TraceEv → Prop) (bt : Bool),
   s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → (StepEndTy m.Type' ∨ AckTy m.Type') → NStateWf s →
+  s.prevote = false → s.cq = false → (TrStepTy m.Type' ∨ AckTy m.Type') → NStateWf s →
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgUnreachable ∨
     m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
   (m.Type' = MsgStorageAppendResp → uint.Z m.Term' ≤ uint.Z s.term) →

@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.sendAppend.wp_proof
     (wp_raft_maybeSendAppend : raft.maybeSendAppend.spec (GF := GF) (hG := hG)) :
     raft.sendAppend.spec (GF := GF) (hG := hG) := by
-  intro c r id s to G Hto Hcfg Hlead Htz Hidx
+  intro nc c r id s to G Hto Hcfg Hlead Htz Hidx
   wp_start as Hpre
   iNamed Hpre
   wp_auto

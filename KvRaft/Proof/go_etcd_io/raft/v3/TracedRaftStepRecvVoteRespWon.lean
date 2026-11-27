@@ -674,7 +674,7 @@ theorem stepBundle_traced_candVoteRespWon :
     · exact (hn.1 hhook).elim
     · unfold wonGE
       icases H with ⟨%hlen, %Hid, Hgh, ⟨%b, %hb, Hf⟩, %Hok⟩
-      obtain ⟨ms, pvs, hse, hpm⟩ := wonEnd hTy hrole hterm hlen (hend (by rw [htr]; rfl))
+      obtain ⟨ms, pvs, hse, hpm⟩ := wonEnd hTy hrole hterm hlen hend
       have hS : ∀ C, SimIdleS C (wonLg id s m) = SimIdleS C s' := fun C => by
         rw [hse]; exact simIdleS_wonEnd C id s m ms pvs Hid hpm
       imod trFam_idle (some γd) γ r id c b (wonLg id s m) s' _ hS $$ Hf with Hc

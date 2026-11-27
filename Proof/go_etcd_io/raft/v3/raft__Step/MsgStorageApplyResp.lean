@@ -144,7 +144,7 @@ leaves automatically proposes the leave (`appliedTo`'s `LeaveStep`), which is re
 the leave's proposal `leaveAbs`) at the bound `B` of its entry, its receipt given back. The
 premises are `appliedTo`'s: the last entry is committed, a leader's term nonzero, the last index a
 word, the last index's receipt (`⧖ k0`). -/
-theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgStorageApplyResp {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -166,7 +166,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         "#Hrc" ∷ ⧖ k0 ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (B : Int) (recv : List Msg), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -190,8 +190,11 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Happ2" ∷ ⌜∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-11-11, slice 30c) traced, the protocol reading unchanged (`AckEnd`: no automatic
-        -- leave at a traced node)
-        "%Hack" ∷ ⌜s.gh.tr.isSome → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd⌝ ∗
+        -- leave at a traced node); (#33 S3c design §2.4) and untraced in `AckScope`, where `appliedTo`
+        -- leaves no joint configuration; (#33 parity B1 stage 3b) the pending configuration index with it
+        "%Hack" ∷ ⌜s.gh.tr.isSome ∨ AckScope c →
+          toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+          s'.lead = s.lead ∧ s'.votes = s.votes⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
@@ -238,7 +241,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     isplitr
     · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
     ipureintro
-    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => ⟨rfl, rfl, rfl⟩⟩
+    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -313,7 +316,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       rw [← Hs1]; exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He).1 Hcm.1.2.1
     have Happ1 : s1.logst.applied = w64Max e.Index' s.logst.applied := by rw [← Hs1]; rfl
     have Hps1 : toPState s1 = toPState s := by rw [← Hs1]; rfl
-    have Hlr1 : s1.lt = s.lt ∧ s1.rd = s.rd := by rw [← Hs1]; exact ⟨rfl, rfl⟩
+    have Hlr1 : s1.lt = s.lt ∧ s1.rd = s.rd ∧ s1.pci = s.pci ∧ s1.lead = s.lead ∧ s1.votes = s.votes := by
+      rw [← Hs1]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     have Hrole1 : s1.role = s.role := by rw [← Hs1]
     have Happ2' : uint.Z e.Index' ≤ uint.Z (w64Max e.Index' s.logst.applied) := by
       unfold w64Max
@@ -323,7 +327,10 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     ihave HG : R.G1 s2.outbox $$ [HG]
     · rcases Hls with ⟨rfl, -, -⟩ | ⟨Hal, -⟩
       · rw [← Hs1]; iidx HG
-      · rw [Hgok.2.1 (Htr (by simp) Hal) s2.outbox s.outbox]; iexact HG
+      · -- (2026-11-24, P-raft-1b) not under the no-snapshot flag (no automatic leave there)
+        cases nc
+        · rw [Hgok.2.1.eq (Htr (by simp) Hal) rfl s2.outbox s.outbox]; iexact HG
+        · exact absurd ((Hncal rfl).symm.trans Hal) (by decide)
     ihave HG := stepOut_G1 R $$ HG
     iapply HΦ $$ %interface.nil %s2 %B %recv
     iframe Hphys HG
@@ -364,7 +371,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       ipureintro
       refine ⟨StepCD.trans_leave Hst1 Hst2 Hrl (by rw [Hps1]) Happl2 Hbound,
         .inr ⟨e, by simp, Happl2.trans Happ1⟩, fun e0 He0 => ?_, rfl,
-        fun h => by rw [Htr (by simp) Hal] at h; cases h⟩
+        fun h => h.elim (fun h => by rw [Htr (by simp) Hal] at h; cases h)
+          (fun h => by unfold AckScope at h; rw [h] at Hal; cases Hal)⟩
       have He0' : e = e0 := by simpa using He0
       subst He0'
       rw [Happl2, Happ1]; exact Happ2'
