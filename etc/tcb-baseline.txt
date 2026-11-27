@@ -35,7 +35,6 @@ axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
-axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
