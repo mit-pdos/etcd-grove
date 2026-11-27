@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The refinement to Antithesis's binding: parity B2's statements (#33, durability)
 
-Restarts, batching, `-parallel` and split writes (`mskB2`); `AsyncStorageWrites` with them (`mskB25`, B2.5). Statements only
+Restarts, batching and `-parallel` (`mskB2`); split writes and `AsyncStorageWrites` with them (`mskB25`, B2.5). Statements only
 (round 1): the relation the B2 reports keep (`AntSimD`) and one `abbrev …_in.stmt` per report kind
 or reportless step, each over the runs and inputs a mask `msk ≤ mskB2` admits.
 
@@ -33,18 +33,18 @@ namespace AntSim
 
 open GMap go_etcd_io.raft.v3
 
-/-- **Parity B2's scope**: `mskB1` with batching, `-parallel`, split writes and restarts, storage
-synchronous (the driver's `DrawMode`: parallel and split only without batching; split only
-`splitTermEntriesCommit`). Async storage writes are B2.5's (`mskB25`). -/
+/-- **Parity B2's scope**: `mskB1` with batching, `-parallel` and restarts, storage synchronous (the
+driver's `DrawMode`: parallel only without batching). Split writes and async storage writes are
+B2.5's (`mskB25`). -/
 def mskB2 : SimMask :=
   { md := { prevote := true, cq := true, reads := true, transfer := true, nonVoters := true },
     k := { prevote := true, cq := true, sdr := true }, campaign := true, unreachable := true,
-    batch := true, parallel := true, split := true, restarts := true }
+    batch := true, parallel := true, split := false, restarts := true }
 
-/-- **Parity B2.5's scope**: `mskB2` with async storage writes (`AsyncStorageWrites`; drawn
-independently of batching). -/
+/-- **Parity B2.5's scope**: `mskB2` with split writes (`splitTermEntriesCommit`, without batching)
+and async storage writes (`AsyncStorageWrites`; drawn independently of batching). -/
 def mskB25 : SimMask :=
-  { mskB2 with md := { mskB2.md with async := true } }
+  { mskB2 with md := { mskB2.md with async := true }, split := true }
 
 section b2
 variable [GooseExts]
@@ -545,12 +545,12 @@ abbrev antSim_memP_in.stmt : Prop :=
         pend := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q),
         mems := if w then (V n).mems ++ [rd.memRec (V n)] else (V n).mems }) net xnet
 
-/-! ## Split writes (sync, `splitTermEntriesCommit`) -/
+/-! ## Split writes (sync, `splitTermEntriesCommit`; B2.5: `mskB25`) -/
 
 /-- **`ready`, the first part of a split write** (B 439-447): a sync `Ready` that writes is reported
 part by part; the first part is announced at the drain's start. -/
 abbrev antSim_readyS_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
     (rd : ReadyD) (p : MemRec) (ps : List MemRec) (Adm : List EntryM → CCState → Prop),
@@ -567,7 +567,7 @@ abbrev antSim_readyS_in.stmt : Prop :=
 
 /-- **`ready`, a later part of a split write**: the next part, with the reported role. -/
 abbrev antSim_readyP_in.stmt : Prop :=
-  ∀ (msk : SimMask), msk ≤ mskB2 →
+  ∀ (msk : SimMask), msk ≤ mskB25 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (p : MemRec)
     (ps : List MemRec),
