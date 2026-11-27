@@ -98,15 +98,16 @@ def restBuckets : List GoString :=
 def metaRevVal (v : GoString) : Prop := ∃ x : w64, 0 ≤ sint.Z x ∧ v = revBytes ⟨x, W64 0⟩ false
 
 /-- The backend's parameters of a real instance: the hook's buckets all but `Key`, `Key` the one
-safe-range bucket, the hook's own keys the consistent index's two in `Meta` (2026-10-13, unit 7:
-only the server's pre-commit hook writes them), the tracked buckets the rest buckets (D22,
+safe-range bucket, the hook's own keys the consistent index's three in `Meta` (its index, its term and,
+keepfix (c), the raft term saved with it; 2026-10-13, unit 7: only the server's pre-commit hook writes them), the tracked buckets the rest buckets (D22,
 2026-10-23: the backend over every bucket), the compaction keys' values the store's revisions
 (`metaRevVal`; question 4, 2026-10-29). -/
 def KBReal.P (d : KBReal) : backend.BParams :=
   { BT := d.BT, HB := fun n => decide (n ≠ keyName), SB := fun n => decide (n = keyName),
     HK := fun n k => decide (n = go_etcd_io.etcd.server.v3.storage.schema.metaName ∧
       (k = go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes ∨
-        k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes)),
+        k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes ∨
+        k = go_etcd_io.etcd.server.v3.storage.schema.raftTermKeyBytes)),
     RB := fun n => decide (n ∈ restBuckets),
     hookMax := d.hookMax, limit := d.limit, FV := metaRevVal }
 

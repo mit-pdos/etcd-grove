@@ -47,7 +47,8 @@ def rcP (lim : w64) : backend.BParams :=
   { BT := rcBT, HB := fun n => decide (n ≠ keyName), SB := fun n => decide (n = keyName),
     HK := fun n k => decide (n = go_etcd_io.etcd.server.v3.storage.schema.metaName ∧
       (k = go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes ∨
-        k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes)),
+        k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes ∨
+        k = go_etcd_io.etcd.server.v3.storage.schema.raftTermKeyBytes)),
     RB := fun n => decide (n ∈ restBuckets), hookMax := 0, limit := lim, FV := metaRevVal }
 
 theorem rcKB_P (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64) :
