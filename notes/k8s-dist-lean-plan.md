@@ -335,6 +335,34 @@ linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the en
   `[∗list]/[∧list] x ∈ c.ms, F x.γr.kv` → `… γ ∈ c.K.kvs, F γ` (`bigSepL_map`/`bigAndL_map` give back the
   in-process forms). Then rerun `etc/gen-link.py --k8s-etcd3`.
 
+#### Handoff K5-2 (2026-11-27)
+
+- **Done.** Batch 1's instance builds (`EtcdClientInProc` built on fk-lean1 at `625bb29adb`). Batch 2, commit
+  `78ca909eb9`: `K8sEtcd` gains `kvAt : Loc → IProp GF` (what a `*kv`'s `Get` needs); `Laws` gains `ctxFields`
+  (the client's ctx and `clientCheckFields`, for `New`), and C2 = `kvField` (`K.handle cl ⊢ ∃ api, clientF cl
+  "KV" ↦□ … ∗ □ K.kvAt api`) and `kvGet` (`wp_syncGet`'s triple over `K.kvAt api` and `□ [∗list] γ ∈ K.kvs,
+  kvReadAu γ Qr`); `K8sEtcd.Laws.getLatest` (`Client.Get.latest` over `K`); in-process proofs of all three
+  (`inProcEtcd_laws` now also takes `client_range_any.law`). The watch's `Watcher` needed no law: the library
+  already sees it through `clientWatchOk`. `StoreCfg`'s `ms`/`V` → `K`; `isStore` holds `k8sClient c.K c.cl`;
+  the store and watch specs and proofs switched (`c.K.live`, `[∗list]/[∧list] γv ∈ c.K.kvs`,
+  `k8sAusRW_kvAu1` over `ks : List KVNames`); `New.spec` takes `K` and `k8sClient K cl`;
+  `etc/link-lean-first-k8s-etcd3.txt` drops the `Client__*` and `client_range_any` callees of the store/watch
+  proofs; `Link.lean` regenerated.
+- **Build** (fk-lean1, log `/shared/tmp/k5-2-b2.log`, targets `EtcdClientInProc` + etcd3 `Link`): everything
+  builds (store proofs, `New`, `startWatching`, `GetList`, ...) but **one error**:
+  `watchChan__syncPaginated.lean:95:23`, `iintro: c.K.kvAt api not persistent` (in `wp_syncGet`'s `iintro`,
+  the pattern `#Hkv`). Fix: `Hkv` (spatial) there, or `□ c.K.kvAt api` in `wp_syncGet`'s precondition (the
+  caller holds it as `#Hkv` from `kvField`). `Link` was not reached; rebuild the same targets after the fix.
+- **Left.** Batch 4 (C3, the compactor: `Compact`, `compactor.{getCompactRev,runWatchLoop,runCompactLoop}`,
+  `NewCompactor`, `StartCompactorPerEndpoint` still take `cl ms V`; the Txn chain, `Compact`, `Get` at a
+  revision, `Endpoints` → laws, `cl K γk`). Batch 5, the drivers (`examples/k8s/etcd3`: `Calls`, `Apply`,
+  `WatchQ`, `Main*` (`storeCfgD … ms V` → `K := inProcEtcd ms V`, with `k8sClient_inProc` and
+  `inProcEtcd_laws` linked from the `kubernetes.Client.wp_*` and `client_range_any_law_holds`), Specs
+  `Check`/`Apply`/`call`/`runWatch`/`watchEvents` with `c.ms` → `c.K.kvs`/`c.K.live`, `c.ms ≠ []` →
+  `c.K.kvs ≠ []`); they do not build now. Then `etc/gen-link.py --k8setcd3`, `k8s_all`, `etc/tcb-report.py
+  --check`, the two `TopLevelRobustness` Spec files byte-identical to lean. Extend the ledger entry if
+  `kvAt`/`ctxFields` count as a design change (they are additions inside the K5 interface).
+
 ## 5. Approvals
 
 | What | Who |
