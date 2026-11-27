@@ -93,6 +93,32 @@ func TestSharedModel(t *testing.T) {
 	}
 }
 
+// TestSharedWatchList checks SharedModel on a watch-list (SendInitialEvents true) at a resource
+// version above every revision the history writes, whose answer ends before its
+// initial-events-end bookmark: Model's check accepts it only at a configuration at that resource
+// version or above, so target moves there (G7; notes/k8s-dist-k4.md, "The gap"). The history
+// linearizes (foreign revisions 4..10, then the watch: the store at 10 has pod-1 at 2), and every
+// mode accepts it; with pod-1's value wrong, every mode rejects it.
+func TestSharedWatchList(t *testing.T) {
+	s := k8s.SeededAt(2, 3)
+	in := k8s.Input{Kind: k8s.KWatch, WKey: "/objs/", Recursive: true, MinRV: k8s.RVBytes(10), SendInit: 2,
+		Bookmarks: true, Match: k8s.MNotOlderThan}
+	for _, c := range []struct {
+		value string
+		ok    bool
+	}{{"x", true}, {"z", false}} {
+		out := k8s.Output{WEvents: k8s.EncodeWEvents([]k8s.WEvent{{Type: k8s.WAdded,
+			Obj: k8s.Obj{Namespace: "ns-1", Name: "pod-1", Value: c.value, ResourceVersion: 2}}})}
+		ops := sequential([]k8s.Input{in}, []k8s.Output{out})
+		for _, mode := range []int{k8s.Lazy, k8s.Eager, k8s.Full} {
+			r := porcupine.CheckOperationsTimeout(s.SharedModel(k8s.HistoryRevs(ops), mode), ops, 0)
+			if (r == porcupine.Ok) != c.ok {
+				t.Errorf("value %q, mode %d: %v, want ok %v", c.value, mode, r, c.ok)
+			}
+		}
+	}
+}
+
 func created10Obj() k8s.Obj {
 	return k8s.Obj{Namespace: "ns-1", Name: "pod-11", UID: "u1", Value: "y", ResourceVersion: 10}
 }

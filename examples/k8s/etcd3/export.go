@@ -300,8 +300,9 @@ func (hh *histHashes) skipTo(c mcfg, t uint64) mcfg {
 // target is the least revision a configuration at rv must be at for the operation in to answer
 // out (0: none): a write's new revision less one, the current revision a "not found" or a current
 // List names, the revision a past List reads, a Get's minimum resource version, the greatest
-// revision a watch's events name. A write that answers with a revision at most rv is a no-op
-// update (the stored object) and needs none.
+// revision a watch's events name (and, for a watch-list with an event, its resource version, at
+// least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
+// and needs none.
 func target(in Input, out Output, rv uint64) uint64 {
 	if in.Kind == KWatch {
 		if out.WFailed || in.Skip {
@@ -312,9 +313,20 @@ func target(in Input, out Output, rv uint64) uint64 {
 			return 0
 		}
 		var t uint64
+		some := false
 		for _, ev := range evs {
 			if ev.Type < WError {
 				t = max(t, ev.Obj.ResourceVersion)
+				some = true
+			}
+		}
+		// (G7, notes/k8s-dist-k4.md, "The gap") a watch-list with an event: Model's check accepts
+		// its initial events only at a configuration at its resource version (at least 1) or
+		// above, whether or not its answer reaches the initial-events-end bookmark.
+		if in.SendInit == 2 && some {
+			req, err := parseRV(in.MinRV)
+			if err == nil {
+				t = max(t, max(req, 1))
 			}
 		}
 		return t
@@ -787,10 +799,12 @@ func (s Seeded) SeedRevs() (uint64, uint64) {
 	return it1.obj.ResourceVersion, it2.obj.ResourceVersion
 }
 
-// EncodeItems is encodeItems (a List output's items), and RVBytes rvBytes (a resource version's
-// string): for the tests of SharedModel.
-func EncodeItems(items []Obj) string { return encodeItems(items) }
-func RVBytes(n uint64) string        { return rvBytes(n) }
+// EncodeItems is encodeItems (a List output's items), EncodeWEvents encodeWEvents (a watch
+// output's events), and RVBytes rvBytes (a resource version's string): for the tests of
+// SharedModel.
+func EncodeItems(items []Obj) string    { return encodeItems(items) }
+func EncodeWEvents(evs []WEvent) string { return encodeWEvents(evs) }
+func RVBytes(n uint64) string           { return rvBytes(n) }
 
 // ---------------------------------------------------------------------------------------------
 // The watch check over an indexed history
