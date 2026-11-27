@@ -7,7 +7,7 @@ import (
 
 	"github.com/anishathalye/porcupine"
 
-	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
 )
 
 // sequential is the history of the operations in order, each returning before the next is called.

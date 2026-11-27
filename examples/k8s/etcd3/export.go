@@ -1,11 +1,9 @@
 package etcd3
 
-// This directory is a copy of examples/k8s/etcd3's package (k8setcd3.go, watch.go and realcheck.go,
-// byte for byte: TestVerbatim in examples/k8s/dist checks it), so that examples/k8s/dist can split
-// the driver's Check between machines: its model, its seeds, its generator and the per-client cache
-// are unexported there, and the driver itself must stay as k8s_safe's proof has it. This file is
-// the only addition: what the distributed workload needs of the copy, each a thin wrapper of the
-// driver's own functions (notes/k8s-dist.md, "Copies").
+// The exported wrappers examples/k8s/dist needs to split the driver's Check between machines (its
+// model, its seeds, its generator and the per-client cache are unexported): each a thin wrapper of
+// the driver's own functions, which this file does not change, so that k8s_safe's proof of them
+// stands (notes/k8s-dist.md, "Exported wrappers").
 
 import (
 	"context"
@@ -801,7 +799,7 @@ func RVBytes(n uint64) string        { return rvBytes(n) }
 // window of revisions (wantEvents, initialPrefixOk) costs the square of its length in walks. On the
 // shared cluster a watch's window spans the compactor's writes too, thousands of revisions, and
 // the check timed out. watchOkIdx is watchOk line for line (watchListOk, initialPrefixOk,
-// reliableOk, wantEvents likewise), every other function the copy's own, with histAt answered from
+// reliableOk, wantEvents likewise), every other function the driver's own, with histAt answered from
 // one walk (hview); TestReplayHistory checks the two agree on every watch step of a history
 // (CrossCheckWatches).
 
@@ -958,7 +956,7 @@ func stepIdx(memo map[wkey]bool, c mcfg, in Input, out Output) []mcfg {
 	if !seen {
 		ok = watchOkIdx(in, out, c)
 		if crossCheck && ok != watchOk(in, out, c) {
-			panic("storecopy: watchOkIdx and watchOk differ")
+			panic("etcd3: watchOkIdx and watchOk differ")
 		}
 		memo[k] = ok
 	}

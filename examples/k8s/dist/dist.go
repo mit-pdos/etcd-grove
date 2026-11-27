@@ -19,9 +19,9 @@
 // The DaemonSet controller (examples/k8s/daemonset) is not here: it runs over the model API server
 // (daemonset/apimodel), not over etcd. authz has no etcd either. Neither is in k8s_all's program.
 //
-// The programs are the drivers' code, called through copies of their packages (storecopy,
-// compactorcopy: the drivers' unexported model, generator and checks), so that the drivers stay as
-// k8s_safe's proof has them. dist_test.go deploys random deployments on machines of their own
+// The programs are the drivers' code, called through the exported wrappers each driver's package
+// adds in export.go (the drivers' unexported model, generator and checks), so that the drivers'
+// own functions stay as k8s_safe's proof has them. dist_test.go deploys random deployments on machines of their own
 // (network namespaces where available) and makes the faults (notes/k8s-dist.md).
 package dist
 

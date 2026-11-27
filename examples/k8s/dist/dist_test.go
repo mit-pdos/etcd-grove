@@ -1,7 +1,6 @@
 package dist
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
@@ -9,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -21,8 +19,8 @@ import (
 	etcddist "github.com/mit-pdos/etcd-grove/examples/etcd/dist"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 
-	comp "github.com/mit-pdos/etcd-grove/examples/k8s/dist/compactorcopy"
-	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
+	comp "github.com/mit-pdos/etcd-grove/examples/k8s/compactor"
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
 )
 
 // The role of a k8s client machine's process (a member's is etcd-dist's server role).
@@ -67,41 +65,6 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 	os.Exit(m.Run())
-}
-
-// TestVerbatim checks that the copies (storecopy, compactorcopy) are the drivers' files byte for
-// byte, so that the distributed workloads run the code k8s_safe is proved about.
-func TestVerbatim(t *testing.T) {
-	for _, c := range []struct{ dir, from string }{
-		{"storecopy", "../etcd3"}, {"compactorcopy", "../compactor"},
-	} {
-		srcs, _ := filepath.Glob(filepath.Join(c.from, "*.go"))
-		n := 0
-		for _, src := range srcs {
-			if strings.HasSuffix(src, "_test.go") {
-				continue
-			}
-			n++
-			want, err := os.ReadFile(src)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got, err := os.ReadFile(filepath.Join(c.dir, filepath.Base(src)))
-			if err != nil {
-				t.Fatalf("%s has no copy: %v", src, err)
-			}
-			if !bytes.Equal(got, want) {
-				t.Errorf("%s/%s differs from %s", c.dir, filepath.Base(src), src)
-			}
-		}
-		if n == 0 {
-			t.Errorf("no source in %s", c.from)
-		}
-		copies, _ := filepath.Glob(filepath.Join(c.dir, "*.go"))
-		if len(copies) != n+1 {
-			t.Errorf("%s: %d files, want the %d copies and export.go", c.dir, len(copies), n)
-		}
-	}
 }
 
 // TestStoreCodec checks the store workload's wire on random inputs and on outputs carrying each

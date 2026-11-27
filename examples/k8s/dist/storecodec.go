@@ -1,7 +1,7 @@
 package dist
 
-// The store workload's wire: the driver's Input and Output (examples/k8s/etcd3, through the copy
-// storecopy) as bytes, every field in order through examples/etcd/dist/enc, and the Output's Raw
+// The store workload's wire: the driver's Input and Output (examples/k8s/etcd3, through its
+// export.go) as bytes, every field in order through examples/etcd/dist/enc, and the Output's Raw
 // (what the store returned, which only the maintainers' checker reads) in an encoding of the
 // values the store returns: an *Obj or *ObjList, a *storage.StorageError, the callbacks' own
 // errors, a *apierrors.StatusError (its Status as JSON), and watch events of those objects or of a
@@ -24,7 +24,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/enc"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 
-	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
 )
 
 // StoreOut is an API server's answer: the driver's output, whether its Raw crossed the wire

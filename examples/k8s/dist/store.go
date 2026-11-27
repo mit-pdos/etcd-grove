@@ -32,7 +32,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 
-	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
 )
 
 // StoreAttempt is how long one attempt of a store call may take: a unary call has no deadline of
@@ -69,7 +69,7 @@ func newKubeClient(eps []string) *kubernetes.Client {
 }
 
 // StoreNode is API server machine a of the store workload w: its store (the driver's, without the
-// seeds: storecopy.NewStoreOnly) over a kubernetes client of eps from member a on, then, for every
+// seeds: etcd3.NewStoreOnly) over a kubernetes client of eps from member a on, then, for every
 // client c with c mod A = a, remote.Serve at addrs[c] whose operation is the driver's call (or
 // runWatch) through that store. It never returns.
 func StoreNode(w Workload, a int, addrs []string, eps []string) {
@@ -90,20 +90,20 @@ func StoreNode(w Workload, a int, addrs []string, eps []string) {
 }
 
 // RunStore is the store workload's orchestrator: it seeds the keys through a client of eps (the
-// driver's seed, at whatever revisions the shared cluster gives them: storecopy.SeedShared), waits
+// driver's seed, at whatever revisions the shared cluster gives them: etcd3.SeedShared), waits
 // for its API server machines, calls ready, then runs the driver's clients (lintest.RunLin2's
 // clients, its check left to here) with the operations made at the API servers (remote.Do at
-// addrs[c] for client c), the per-client cache kept here (storecopy.Record, Apply's bookkeeping),
+// addrs[c] for client c), the per-client cache kept here (etcd3.Record, Apply's bookkeeping),
 // and checks the history: porcupine against the driver's Model with foreign revisions
-// (storecopy.SharedModel: the compactor workload writes the same cluster), then Kubernetes' checker
+// (etcd3.SharedModel: the compactor workload writes the same cluster), then Kubernetes' checker
 // where it applies. It panics if porcupine finds the history not linearizable, if Kubernetes'
 // checker rejects a history it applies to, or on an etcd "compacted" error from an operation that
 // reads at no old revision.
 //
 // A "compacted" error (the compactor workload compacts the cluster while the store serves) is
-// accepted on an operation at an explicit old revision (storecopy.PastRead: a List at its resource
+// accepted on an operation at an explicit old revision (etcd3.PastRead: a List at its resource
 // version, a watch from one) and on one at a revision the store fixed at an earlier read of its
-// own (storecopy.PinnedRead: a paged List's later pages; a watch from the most recent revision,
+// own (etcd3.PinnedRead: a paged List's later pages; a watch from the most recent revision,
 // which the store reads first, or after its list for a watch-list, and whose stream the etcd client
 // resumes from its last revision), and nowhere else (a Get, a write, a List of one page: each
 // reads at the latest revision, which compaction never passes). Its outcome tells nothing: a List's is the driver's failed read (EOther, which

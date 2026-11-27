@@ -20,7 +20,8 @@ replace (
 )
 
 // The examples' module (etcd-dist: examples/etcd/dist; etcdstart, robust), the k8s drivers this
-// module's copies come from (examples/k8s/etcd3's correctness package is imported as is), Remote,
+// module runs through their export.go (examples/k8s/etcd3 with its correctness package, and
+// examples/k8s/compactor), Remote,
 // lintest, the vendored porcupine and etcd's test bridge, as translated.
 replace (
 	github.com/anishathalye/porcupine => ../../../third_party/porcupine
@@ -35,18 +36,15 @@ replace (
 
 require (
 	github.com/anishathalye/porcupine v1.3.1
-	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/mit-pdos/etcd-grove/examples v0.0.0-00010101000000-000000000000
+	github.com/mit-pdos/etcd-grove/examples/k8s/compactor v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/k8s/etcd3 v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/lib/lintest v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/lib/remote v0.0.0-00010101000000-000000000000
-	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
-	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0
 	go.uber.org/zap v1.28.0
 	k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c
 	k8s.io/apiserver v0.0.0-20261021221356-9c4ec15b8038
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd
 )
 
 require (
@@ -73,11 +71,13 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.31.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.25.0 // indirect
@@ -92,6 +92,7 @@ require (
 	go.etcd.io/etcd/cache/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.8.0-alpha.0 // indirect
+	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/raft/v3 v3.7.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.72.0 // indirect
@@ -125,6 +126,7 @@ require (
 	k8s.io/component-base v0.0.0-20261018214756-cd2c1afd246a // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20261014044854-ca3452a79603 // indirect
+	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v7 v7.0.0 // indirect
