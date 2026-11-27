@@ -60,7 +60,7 @@ theorem compactor.runCompactLoop.wp_proof
     (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runCompactLoop.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl ms V γk Seen recorded _ _ γc sc γs hsame hcmp hcret
+  intro _ c cl ms V γk Seen recorded _ _ γc sc γs hsame hcmp hcret
   wp_start as ⟨Hlt, #Hc, #Hstop, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
   ihave #Hc' := Hc
   iunfold compactorCore at Hc'

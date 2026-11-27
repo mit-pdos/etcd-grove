@@ -37,7 +37,7 @@ theorem startMember.wp_proof
     (wp_BuildServer : etcdstart.BuildServer.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
-  intro CS N lg bootLog ctxs id γ ρ E₀ Φs γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2
+  intro N lg bootLog ctxs id γ ρ E₀ Φs γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -104,7 +104,7 @@ theorem startMember.wp_proofRestart
     (wp_BuildServer : etcdstart.BuildServer.specRestart (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startMember.specRestart (GF := GF) (hG := hG) := by
-  intro CS N lg bootLog ctxs id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2
+  intro N lg bootLog ctxs id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcci, #Hnet, Hrr, #Hrfs, #Hvoff⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg

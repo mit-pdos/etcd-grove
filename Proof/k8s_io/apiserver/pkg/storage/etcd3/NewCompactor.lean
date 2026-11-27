@@ -47,7 +47,7 @@ theorem NewCompactor.wp_proof
     (wp_runCompactLoop : compactor.runCompactLoop.spec (GF := GF) (hG := hG))
     (wp_runWatchLoop : compactor.runWatchLoop.spec (GF := GF) (hG := hG)) :
     NewCompactor.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk Seen recorded _ _ iv ck f hsame hcmp hcret hiv
+  intro _ cl ms V γk Seen recorded _ _ iv ck f hsame hcmp hcret hiv
   wp_start as ⟨#Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr, #Hclose⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -36,7 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem StartMembersAuth.wp_proof (wp_StartMemberAuth : StartMemberAuth.spec (GF := GF) (hG := hG)) :
     StartMembersAuth.spec (GF := GF) (hG := hG) := by
-  intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn m Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
+  intro N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn m Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
     Hnd Hutf HnL HaF Hx Haf Hbuq Hdbo Hcu
   wp_start as ⟨#Hlg, Htok, #Hms, #Hcc, Hpre⟩
   ihave %Hmsl := ownSlice_len $$ Hms

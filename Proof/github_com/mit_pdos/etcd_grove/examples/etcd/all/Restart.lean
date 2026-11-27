@@ -31,7 +31,7 @@ theorem Restart.wp_proof
     (wp_restartN : etcd_restartN.Main.spec (GF := GF) (hG := hG))
     (wp_restart1 : etcd_restart1.Main.spec (GF := GF) (hG := hG)) :
     Restart.spec (GF := GF) (hG := hG) := by
-  intro CS N k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR TB RB48 RBN HLv hk₅ hlen₅ Hbf₅ HbfR Hwb Haf
+  intro N k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR TB RB48 RBN HLv hk₅ hlen₅ Hbf₅ HbfR Hwb Haf
     Hbuq Hdbo
   wp_start as ⟨Hms₅, HresR, Htok, Hp₅, HpR⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

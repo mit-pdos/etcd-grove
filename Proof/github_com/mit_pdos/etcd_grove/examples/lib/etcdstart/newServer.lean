@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 theorem newServer.wp_proof
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
+  intro N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
     ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Hret Haf Hbuq
     Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
@@ -54,7 +54,7 @@ theorem newServer.wp_proof
 theorem newServer.wp_proofAt
     (wp_newServerMode : newServerMode.specAt (GF := GF) (hG := hG)) :
     newServer.specAt (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
+  intro N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
     ρ E₀ Φs γn cmp lm γl Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Hret Haf Hbuq
     Hdbo
   wp_start as ⟨Hlslot, #Hpkg0, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
@@ -74,7 +74,7 @@ theorem newServer.wp_proofAt
 theorem newServer.wp_proofRestart
     (wp_newServerMode : newServerMode.specRestart (GF := GF) (hG := hG)) :
     newServer.specRestart (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog
+  intro N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog
     ctxs dir id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf Hret
     Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩

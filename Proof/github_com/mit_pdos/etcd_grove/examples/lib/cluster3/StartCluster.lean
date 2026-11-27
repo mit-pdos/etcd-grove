@@ -59,7 +59,7 @@ theorem StartCluster.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
-  intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf
+  intro cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf
     Hdbo Hms Hrun Hap HlP
   -- (lease-mono3) the mode: `alloc3` at it, `StartMember` at it, `etcdKV` in the mode `none` only
   wp_start as ⟨#Hzlg, Hstart, Htok, #Hprem⟩

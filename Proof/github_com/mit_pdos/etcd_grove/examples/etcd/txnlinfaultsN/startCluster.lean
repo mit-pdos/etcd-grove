@@ -131,7 +131,7 @@ theorem startCluster.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS k N ids ps ctxs boot lg hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
+  intro k N ids ps ctxs boot lg hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨#Hlgz, Hss, Hbfree, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with #Hbps

@@ -239,7 +239,7 @@ theorem watchChan.startWatching.wp_proof
     (wp_parseEvent : parseEvent.spec (GF := GF) (hG := hG))
     (wp_logWatchChannelErr : logWatchChannelErr.spec (GF := GF) (hG := hG)) :
     watchChan.startWatching.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 q wcc γb
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 q wcc γb
     hQ hH hR hbm hrpl
   haveI : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
   wp_start as ⟨#Hoff, #Hst, #Hsw, #Hwc, Hir, Hpre, #Hra, #Hre, Hps, Hpe, Halive, Hbc, Htok⟩

@@ -51,7 +51,7 @@ theorem newServerMode.wp_proof
     (wp_NewServer :
       NewServer.spec (GF := GF) (hG := hG)) :
     newServerMode.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
+  intro N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU Hpf Hcf HU8 HnL Hmode Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
@@ -180,7 +180,7 @@ theorem newServerMode.wp_proofAt
     (wp_NewServer :
       NewServer.specAt (GF := GF) (hG := hG)) :
     newServerMode.specAt (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
+  intro N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm γl Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU Hpf Hcf HU8 HnL Hmode Haf Hbuq Hdbo
   wp_start as ⟨Hlslot, #Hpkg0, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
@@ -310,7 +310,7 @@ theorem newServerMode.wp_proofRestart
     (wp_NewServerR :
       NewServer.specR (GF := GF) (hG := hG)) :
     newServerMode.specRestart (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
+  intro N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU Hpf Hcf Hret Haf Hbuq Hdbo
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)

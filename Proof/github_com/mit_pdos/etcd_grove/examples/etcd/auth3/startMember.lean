@@ -51,7 +51,7 @@ theorem startMember.wp_proof
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client peer cluster lg M iu ps bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48
+  intro N name peerAddr client peer cluster lg M iu ps bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48
     HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
