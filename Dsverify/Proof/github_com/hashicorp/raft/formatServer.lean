@@ -1,0 +1,41 @@
+/-
+The proof of `raft.formatServer`. Lean-first.
+-/
+module
+
+public import Dsverify.Spec.github_com.hashicorp.raft.formatServer
+public import Dsverify.Spec.github_com.hashicorp.raft.ServerSuffrage__String
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.Assumptions]
+
+open github_com.hashicorp.raft
+theorem github_com.hashicorp.raft.formatServer.wp_proof
+    (wp_String : github_com.hashicorp.raft.ServerSuffrage.String.spec (GF := GF) (hG := hG)) :
+    github_com.hashicorp.raft.formatServer.spec (GF := GF) (hG := hG) := by
+  intro sv
+  wp_start as -
+  wp_auto
+  iStructNamed server
+  wp_method_call
+  wp_call
+  haveI : go.NotInterface go.int := ⟨trivial⟩
+  wp_auto
+  wp_apply wp_String as %str -
+  iapply HΦ
+  itrivial
+
+end proof
+
+end Perennial
