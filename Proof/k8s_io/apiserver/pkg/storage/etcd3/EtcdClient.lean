@@ -52,7 +52,7 @@ namespace k8s
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver EtcdGrove.kubernetes
 
 /-- **The k8s library's etcd client**: its data (see the file header). -/
-structure K8sEtcd (GF : BundledGFunctors) where
+structure K8sEtcd (GF : BundledGFunctors) [GooseExts] where
   kvs : List KVNames
   live : Prop
   eps : List GoString

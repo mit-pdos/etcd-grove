@@ -389,7 +389,13 @@ linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the en
 - **Ledger.** K5-1's entry extended (`notes/specs-only/ledger.md`, "Extension (K5-3)"): `kvAt`, `ctxFields`, `getLatest`,
   C3.
 - **Build** (fk-lean1, log `/shared/tmp/k5-3-b4.log`; targets `EtcdClientInProc`, `InProcLinked`, the etcd3 `Link`,
-  examples `newStore`): see the result line below.
+  examples `newStore`), at `16328f584a`: **failed early**, `EtcdClient.lean:66:16` and `66:32`, `failed to
+  synthesize GooseExts` (the new field `txnAt`'s `GoInterfaceOk`/`context.ContextDesc` need it; `K8sEtcd` is
+  declared outside the section's variables). Nothing after `EtcdClient` was compiled (C3 laws, in-process proofs,
+  compactor proofs, `InProcLinked`, `newStore` all unchecked). Fix applied in the handoff commit, **not built**:
+  `structure K8sEtcd (GF : BundledGFunctors) [GooseExts]` (every user is in a section with `[GooseExts]`; if a
+  `K8sEtcd GF` use outside one fails, move `txnAt` out to a `Loc → TxnBuild → …` form instead). The next session
+  rebuilds the same four targets first.
 - **Left (batch 5).** Driver Specs `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/{Check,Apply,call,runWatch,
   watchEvents}`: `∀ x ∈ c.ms, noRefusalAt x.addr` → `c.K.live`, `[∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv` →
   `[∗list] γv ∈ c.K.kvs, kInv γ c g0 γv`, `c.ms ≠ []` → `c.K.kvs ≠ []`; their proofs and `Calls`, `Apply`, `WatchQ`;
