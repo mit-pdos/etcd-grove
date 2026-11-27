@@ -863,6 +863,17 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
+# (prove-rtsys, 2026-11-27) `internal/runtime/sys`'s variables translated with their bodies (Perennial's
+# `Code/internal/runtime/sys.toml`; until then names-only, the trust-boundary axiom `opaqueInitsOk`):
+# the two de Bruijn tables (array literals of constants) and `DITSupported` (`false`, `no_dit.go`).
+SPECIAL['internal.runtime.sys'] = dict(
+    doc='''Its fact is `True` (Perennial's `isPkgInit`). Its initializer allocates its variables and runs
+their translated initializers (`intrinsics.go`: the array literals `deBruijn32tab` and `deBruijn64tab`;
+`no_dit.go`, off arm64: `DITSupported = false`). (Until 2026-11-27 names-only, with the trust-boundary
+axiom `opaqueInitsOk`.)''',
+    alloc_types={'deBruijn32tab': 'GoArray w8 32', 'deBruijn64tab': 'GoArray w8 64', 'DITSupported': 'Bool'},
+)
+
 # (2026-11-24, rand-retire) `math.rand` is Perennial's (47ec64a9d translates its global generator and
 # proves its `wp_initialize'`, fact `isInit`); from 2026-11-23 to then its fact was `True` here and its
 # `Init.lean` generated.
