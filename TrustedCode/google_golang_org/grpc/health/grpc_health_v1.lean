@@ -2,14 +2,11 @@
 Trusted code for `google.golang.org/grpc/health/grpc_health_v1` (protoc-gen-go output), in namespace
 `google_golang_org.grpc.health.grpc_health_v1` like the generated package
 (`Code/google_golang_org/grpc/health/grpc_health_v1.toml`): its `init` function, the protobuf runtime's
-registration of the package's file descriptor, which the models skip (as etcdserverpb's, etcd-grove#32);
-and `HealthCheckResponse_ServingStatus.String`, the enum's names for 0-3, else the number in decimal
-(etcd-grove#24, as etcdserverpb's `AlarmType.String`, etcd-grove#39).
+registration of the package's file descriptor, which the models skip (as etcdserverpb's, etcd-grove#32).
 -/
 module
 
 public import Perennial.Golang.Defn
-public import Perennial.Code.strconv
 
 @[expose] public section
 
@@ -40,122 +37,6 @@ translated: names-only or skipped, `Code/google_golang_org/grpc/health/grpc_heal
 `initFuncsOk` said it returns. -/
 def init.«0».impl : val :=
   λ: <>, #()
-
-/-- `HealthCheckResponse_ServingStatus`'s type (the translation's `HealthCheckResponse_ServingStatus.ty`). -/
-@[reducible] def model.HealthCheckResponse_ServingStatus : go.GoType :=
-  go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus" []
-
-/-- `(HealthCheckResponse_ServingStatus).String` (prove-healthstr, 2026-11-27, etcd-grove#24
-7225066078; until then names-only, the trust-boundary axiom
-`grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof`). The translated grpc is grpc-go
-v1.84.0 (the model `models/grpc`, whose `health/grpc_health_v1/health.pb.go` is v1.84.0's byte for
-byte; v1.85.0's differs only in the protoc-gen-go version of its header comment). The generated method
-(`health.pb.go:72`, protoc-gen-go v1.36.11) is
-
-```go
-func (x HealthCheckResponse_ServingStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-func (HealthCheckResponse_ServingStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_grpc_health_v1_health_proto_enumTypes[0].Descriptor()
-}
-```
-
-and `EnumStringOf` (protobuf-go v1.36.12, `internal/impl/api_export.go`) is
-
-```go
-func (Export) EnumStringOf(ed protoreflect.EnumDescriptor, n protoreflect.EnumNumber) string {
-	ev := ed.Values().ByNumber(n)
-	if ev != nil {
-		return string(ev.Name())
-	}
-	return strconv.Itoa(int(n))
-}
-```
-
-The model is the GooseLang the pinned goose produces for
-
-```go
-func (x HealthCheckResponse_ServingStatus) String() string {
-	switch x {
-	case 0:
-		return "UNKNOWN"
-	case 1:
-		return "SERVING"
-	case 2:
-		return "NOT_SERVING"
-	case 3:
-		return "SERVICE_UNKNOWN"
-	}
-	return strconv.Itoa(int(x))
-}
-```
-
-(the type renamed `model.HealthCheckResponse_ServingStatus`, the same named type). It is Go's because
-the enum's descriptor has exactly these four values: `file_grpc_health_v1_health_proto_enumTypes[0]`
-is built from the raw descriptor `file_grpc_health_v1_health_proto_rawDesc` (`health.pb.go:271-275`:
-enum `ServingStatus` with values `UNKNOWN = 0`, `SERVING = 1`, `NOT_SERVING = 2`,
-`SERVICE_UNKNOWN = 3`, from `grpc/health/v1/health.proto`; the generated table
-`HealthCheckResponse_ServingStatus_name`, `health.pb.go:52-57`, lists the same), with no aliases
-(no `allow_alias`), so `ByNumber(n)` finds a value exactly for `n` in 0-3, and its `Name()` is the
-model's string. `EnumNumber` and the type's underlying type are both `int32`, so `int(n)` is `int(x)`.
-The decimal fallback is the precedent's (`AlarmType.String`, `TrustedCode/go_etcd_io/etcd/api/v3/etcdserverpb.lean`),
-`strconv.Itoa(int(x))`; where the precedent looks the value up in the generated name table, this model
-has the four names as constants, because the table is not translated here (a skipped variable,
-`Code/google_golang_org/grpc/health/grpc_health_v1.toml`), and so needs no package fact. Go test:
-`examples/premisefix/enumstring/healthstatus_test.go` (the real method against the model, on 0-4 and
-on negative and extreme values, by value and through a pointer; and the descriptor's values and the
-table against the model's four). The descriptor's build and lookup do not fail and have no effect a
-translated reader sees (the descriptor is built in `init`, before any call). The model's
-`strconv.Itoa` is Perennial's `strconv`'s (its spec `Spec/strconv/Itoa.lean`), which protobuf's
-`internal/impl` imports (`Code/google_golang_org/protobuf/internal/impl.toml`), and the package
-imports `protoimpl`, so the package's initializer has initialized it. -/
-noncomputable def HealthCheckResponse_ServingStatus.String.impl : val :=
-  (LamV "x"
-  (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "x" (App (Val (GoInstruction (GoAlloc model.HealthCheckResponse_ServingStatus))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert model.HealthCheckResponse_ServingStatus go.int))) (App (Val (GoInstruction (GoLoad model.HealthCheckResponse_ServingStatus))) (Var "x")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$sw" (App (Val (GoInstruction (GoLoad model.HealthCheckResponse_ServingStatus))) (Var "x"))
-  (If (App (Val (GoInstruction (GoOp GoEquals model.HealthCheckResponse_ServingStatus))) (Pair (Var "$sw") (Val #(W32 0))))
-  (Let "$r0" (Val #(go!"UNKNOWN"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals model.HealthCheckResponse_ServingStatus))) (Pair (Var "$sw") (Val #(W32 1))))
-  (Let "$r0" (Val #(go!"SERVING"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals model.HealthCheckResponse_ServingStatus))) (Pair (Var "$sw") (Val #(W32 2))))
-  (Let "$r0" (Val #(go!"NOT_SERVING"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals model.HealthCheckResponse_ServingStatus))) (Pair (Var "$sw") (Val #(W32 3))))
-  (Let "$r0" (Val #(go!"SERVICE_UNKNOWN"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))))))
-  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 end code
 end

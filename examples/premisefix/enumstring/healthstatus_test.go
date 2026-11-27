@@ -1,8 +1,8 @@
-// The Go evidence of the trusted model of grpc's HealthCheckResponse_ServingStatus.String
-// (prove-healthstr, 2026-11-27, etcd-grove#24 7225066078;
-// TrustedCode/google_golang_org/grpc/health/grpc_health_v1.lean). The generated method
-// (health.pb.go:72) is protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x)); the
-// model is a switch on the value with the enum's four names, else strconv.Itoa of the value.
+// The Go evidence of the grpc model's HealthCheckResponse_ServingStatus.String (prove-healthstr,
+// 2026-11-27, etcd-grove#24 7225943254; models/grpc/health/grpc_health_v1/health.pb.go, a MODEL:
+// switch). grpc-go's generated method (health.pb.go:72) is protoimpl.X.EnumStringOf(x.Descriptor(),
+// protoreflect.EnumNumber(x)); the model is a switch on the value with the enum's four names, else
+// strconv.Itoa of the value. This test runs against the real grpc-go (examples/go.mod).
 //
 //   - TestHealthModelIsString: for 0-3 and for unknown, negative and extreme values, the real method,
 //     by value and through a pointer, equals the model;

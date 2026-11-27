@@ -1,9 +1,9 @@
 /-
 Proof of `Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`,
-over the trusted model of protoc-gen-go's `HealthCheckResponse_ServingStatus.String`
-(`TrustedCode/google_golang_org/grpc/health/grpc_health_v1.lean`, prove-healthstr, 2026-11-27,
-etcd-grove#24 7225066078): the enum's four names for 0-3, else `strconv.Itoa`. (Until 2026-11-27 a
-trust-boundary axiom.)
+over goose's translation of the grpc model's `HealthCheckResponse_ServingStatus.String`
+(`models/grpc/health/grpc_health_v1/health.pb.go`, a `MODEL:` switch in place of protoimpl's
+`EnumStringOf`; prove-healthstr, 2026-11-27, etcd-grove#24 7225943254): the enum's four names for 0-3,
+else `strconv.Itoa`. (Until 2026-11-27 a trust-boundary axiom.)
 -/
 module
 
@@ -33,16 +33,11 @@ theorem grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
   wp_start as Hpkg
   ihave #Hsc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
-  -- the trusted model names the translation's type by its name
-  have hty : (google_golang_org.grpc.health.grpc_health_v1.model.HealthCheckResponse_ServingStatus :
-      go.GoType) = google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty := by
-    with_unfolding_all rfl
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_auto
   wp_method_call
   wp_call
   unfold google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.String.impl
-  simp only [hty]
   wp_auto
   -- the four names, then the decimal fallback
   by_cases h0 : st = W32 0
