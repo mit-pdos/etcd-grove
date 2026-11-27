@@ -15,6 +15,8 @@ schema_ReadConsistentIndex: schema_UnsafeReadConsistentIndex
 schema_unsafeUpdateConsistentIndex: binary_bigEndian__PutUint64 verify_Verify schema_UnsafeReadConsistentIndex
 schema_UnsafeUpdateConsistentIndex: schema_unsafeUpdateConsistentIndex
 schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
+# (keepfix (c), 2026-11-28) the raft term saved with the consistent index
+schema_UnsafeUpdateConsistentIndexRaftTerm: binary_bigEndian__PutUint64
 # schema's auth backend, the read side (server/storage/schema/auth.go, auth_users.go, auth_roles.go;
 # the auth plan's S1, 2026-10-23), see etcdserver/InvAuthBackend.lean. The trust boundary:
 # proto.Unmarshal on authpb.User and authpb.Role (the encodings opaque, auth/Buckets.lean).
@@ -68,7 +70,8 @@ NewConsistentIndex:
 consistentIndex__SetConsistentIndex:
 consistentIndex__ConsistentApplyingIndex:
 consistentIndex__SetConsistentApplyingIndex:
-consistentIndex__UnsafeSave: schema_UnsafeUpdateConsistentIndex
+consistentIndex__UnsafeSave: schema_UnsafeUpdateConsistentIndex schema_UnsafeUpdateConsistentIndexRaftTerm
+consistentIndex__SetRaftTerm:
 consistentIndex__SetBackend: consistentIndex__SetConsistentIndex
 consistentIndex__ConsistentIndex: consistentIndex__SetConsistentIndex schema_ReadConsistentIndex
 consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex schema_UnsafeReadConsistentIndex
