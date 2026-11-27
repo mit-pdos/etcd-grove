@@ -6,12 +6,10 @@ leader's `Ready` that `StmtsB2` does not state** (round 6), as pure laws the har
   requests `parallel` sends before its write, and every message of a sync `Ready` after it);
 - `reach_fpD.law`, `dst_reachD.law`: `Sim/MsgShape`'s `reach_fp` and `dst_reach` over `NodeOkD`
   (`NetOkD`), unbatched, for the masks below `mskB2` (no snapshot is received; the outbox is empty
-  between `Ready`s without batching, `NodeFactsD`); `DrainB2Report.readyOutP_d` takes them;
-- `antSim_quietP_in.law`: a `-parallel` leader's `Ready` the harness does not report (no write, the
-  same role), its requests moved first in the pending messages (`antSim_memP_in`'s order: `parallel`
-  sends them before the rest).
+  between `Ready`s without batching, `NodeFactsD`); `DrainB2Report.readyOutP_d` takes them.
 `mem`, `write` and `wrote` of `-parallel` are `StmtsB2`'s (`antSim_memP_in.stmt`,
-`antSim_write_in.stmt`, `antSim_wrote_in.stmt`), taken as they are.
+`antSim_write_in.stmt`, `antSim_wrote_in.stmt`), taken as they are; its unreported `Ready` is
+`Sim/QuietP`'s theorem `AntSim.antSim_quietP_in`, used directly.
 -/
 module
 
@@ -45,25 +43,6 @@ abbrev antSim_sendD_in.law : Prop :=
     (V n).pend = q :: rest → AntSim.Told (V n) → AntSim.MsgFacts G q →
     AntSim.SimStepD R dec evs G (AntSim.evSend (AntSim.nodeId n) (V n).byE q)
       (AntSim.setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet
-
-/-- **A `-parallel` leader's `Ready` the harness does not report** (no write, the same role;
-`QuietIn.silentReady`'s step over `AntSimD`): the drain phase, its requests (appends and heartbeats)
-pending first, in their order, then the others in theirs. -/
-abbrev antSim_quietP_in.law : Prop :=
-  ∀ (msk : AntSim.SimMask), msk ≤ AntSim.mskB2 →
-  ∀ (R : AntSim.RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
-    (net : List Msg) (xnet : List XMsg) (G : AntSim.RaftFacts) (n : Fin R.N) (r₁ : RState)
-    (rd : AntSim.ReadyD) (Adm : List EntryM → CCState → Prop),
-    AntSim.InMask msk R net xnet → AntSim.AntSimD R dec S V net xnet → AntSim.RaftLaws G →
-    AntSim.GlobalOk R S net G →
-    R.md.async = false → R.drv.batch = false → R.drv.parallel = true →
-    AntSim.ReachIn msk R dec Adm net xnet n (V n) r₁ → AntSim.ReadyOutP R n (V n) r₁ rd →
-    rd.role = .leader → rd.snap = none → ¬ AntSim.Reported (V n) rd →
-    AntSim.ReadyFacts G (AntSim.nodeId n) r₁ →
-    AntSim.AntSimD R dec S
-      (AntSim.setV V n { ((V n).drainOf r₁ rd) with
-        pend := rd.msgs.filter AntSim.isReqM ++ rd.msgs.filter (fun q => !AntSim.isReqM q) })
-      net xnet
 
 /-- **The ghost prefix is kept along `ReachIn`, B2** (`AntSim.reach_fp` over `NodeOkD`; unbatched,
 below `mskB2`: no snapshot is received). -/
