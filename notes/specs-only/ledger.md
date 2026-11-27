@@ -6942,3 +6942,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   NetMsgOk transfer arm from its `XZero`; `hz.1`). Part copies.
 - **Trust.** No axiom statement or TopLevel file names SentMsgShape or its direct users (lead's check): an untrusted
   vocabulary strengthening. No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1, group D: nodeOwn keeps each pending read's raft request (#33)
+- **Statement (HarnessRun, lead-approved 2026-11-27).** `readsOwn γ v := [∗list] p ∈ v.reads, ∃ Lc, readReq
+  γ.raft.raftNames p.1 Lc ∗ ⌜p.2 ≤ Lc.length⌝` (persistent), a conjunct of `nodeOwn`'s started part after `csPts`;
+  DrainB1Loop's `loopRest` carries it too (same place). The drain's `read` report reads a read's floor bound from it.
+- **Proofs.** node__readIndex: `nodeOwn_read_open` (replaces `nodeOwn_reads_open`), `bigSepL_readsTrunc`, `readsOwn_ask`; `readView` renamed `readreqView` (DrainSteps has a `readView`; the Link imports both);
+  `ReadIndex`'s `readReq γ ctx Lc` (with `G.committed <+: Lc`) kept for the new view read. node__start: no read at the
+  start (`FreshView`'s `reads = []`). HarnessInput/HarnessStep/DrainB1Loop: mechanical (the conjunct threaded).
+- **Recorded.** The lead's approval of `readOk`'s `⧗ 1` (the `readreq` report's second receipt; 74fd3d1d11's entry).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.

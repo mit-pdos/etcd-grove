@@ -533,9 +533,20 @@ def nodeDownRaft (γ : AntNames) (j : Fin γ.R.N) : IProp GF :=
       γ.raft.raftNames.maxData = none ∧ γ.raft.raftNames.reBoot = AntSim.bootLog γ.R ∧
       (↑(raftN γ.raft.raftNames) : CoPset) ⊆ ⊤ \ ↑antN⌝)
 
+/-- (group D) **The view's pending reads, raft's requests** (persistent): each context the view
+asked (`readreq`) with its floor (the committed length known then) has raft's `readReq` at a committed
+log at least that long (`RawNode.ReadIndex`'s post, `node.readIndex`); the drain's `read` report reads
+the floor bound from it against the read state's index. -/
+def readsOwn (γ : AntNames) (v : AntSim.NodeView) : IProp GF :=
+  iprop([∗list] p ∈ v.reads, ∃ Lc : List EntryM, readReq γ.raft.raftNames p.1 Lc ∗ ⌜p.2 ≤ Lc.length⌝)
+
+instance readsOwn_persistent (γ : AntNames) (v : AntSim.NodeView) :
+    Persistent (readsOwn (GF := GF) γ v) := by
+  unfold readsOwn; infer_instance
+
 /-- **Node `j`'s goroutine's state** at `n`, its view `v`, the phase `ph` (see the file header):
 always its disk at `v.dur`, its B2/B3 bookkeeping, the view fragment and the right to report, its
-entries normal; and, once started (any phase but `down`), the `RawNode` and its raft ghost state,
+entries normal; and, once started (any phase but `down`), the `RawNode` and its raft ghost state, its pending reads' raft requests (`readsOwn`),
 its `MemoryStorage` (`nodeStor`: at the disk's hard state, in the `bootStorage` raft reads, with the
 run's initial voters), the Go fields agreeing with the view (`role` the last reported role, `hs` the
 disk's hard state, `conf` the initial voters' configuration (no conf change in B1's mask), `applied` the delivered prefix), the
@@ -571,6 +582,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.Nod
       hsRO hsl (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
       csPts csl DFrac.discard
         (ConfStateM.mk ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1)) [] [] [] false) false ∗
+      readsOwn γ v ∗
       ⌜v.conf = γ.R.c0⌝ ∗
       match ph with
       | .down => iprop(False)

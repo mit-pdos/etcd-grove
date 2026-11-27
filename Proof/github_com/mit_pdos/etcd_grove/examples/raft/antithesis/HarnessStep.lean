@@ -307,7 +307,7 @@ theorem nodeOwn_drained_reset (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Lo
   unfold nodeOwn
   iintro ⟨%d, %rn, %ms, %hsl, %cl, %csl, %role, %applied, #Hd, Hmem, Hrn, Hms, Hrole, Hhs, Hcause,
     Happ, Hconf, Hv, Hl, %HN, Hdisk, %si, %rs, %qs, %ip, %r, Hstor, %Hsto, Hraw, Hnr, %Hrv, #Hhsro,
-    #Hcs, %Hc0, %Hph, -⟩
+    #Hcs, #Hrq, %Hc0, %Hph, -⟩
   iexists cl
   iframe Hcause
   iintro Hcause
@@ -318,7 +318,7 @@ theorem nodeOwn_drained_reset (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Lo
   dsimp only
   iframe Hdisk
   iexists si, rs, qs, ip, r
-  iframe Hstor Hraw Hnr Hhsro Hcs
+  iframe Hstor Hraw Hnr Hhsro Hcs Hrq
   ipureintro
   exact ⟨Hsto, Hrv, Hc0, Hph.1, Hph.2.1, Hph.2.2.1, Hph.2.2.2.1, Hph.2.2.2.2, rfl⟩
 
@@ -392,7 +392,7 @@ theorem nodeOwn_acked (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : 
   unfold nodeOwn
   iintro ⟨⟨%d, %rn, %ms, %hsl, %cl, %csl, %role, %applied, #Hd, Hmem, Hrn, Hms, Hrole, Hhs, Hcause,
     Happ, Hconf, Hv, Hl, %HN, Hdisk, %si, %rs, %qs, %ip, %r, Hstor, %Hsto, Hraw, Hnr, %Hrv, #Hhsro,
-    #Hcs, %Hc0, %Hph⟩, Ha⟩
+    #Hcs, #Hrq, %Hc0, %Hph⟩, Ha⟩
   iunfold nodeRaft at Hnr
   icases Hnr with ⟨%x, %g, Hgv, Hsf, Hdg, Htc, Hb, %Hst⟩
   icases isAcked_term_le (GF := GF) γ.raft.raftNames (AntSim.nodeId j) t i rs.dur $$ Hdg Ha with
@@ -406,7 +406,7 @@ theorem nodeOwn_acked (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : 
   dsimp only
   iframe Hdisk
   iexists si, rs, qs, ip, r
-  iframe Hstor Hraw Hhsro Hcs
+  iframe Hstor Hraw Hhsro Hcs Hrq
   isplitr
   · ipureintro; exact Hsto
   isplitl [Hgv Hsf Hdg Htc Hb]

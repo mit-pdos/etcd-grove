@@ -48,7 +48,7 @@ theorem evReadReq_weight (id : w64) (ctx : List w8) : (AntSim.evReadReq id ctx).
   simp [AntCheck.Event.weight, AntCheck.Event.size, AntSim.evReadReq]
 
 /-- The view after the `readreq` report at raft's facts `G`. -/
-abbrev readView (v : AntSim.NodeView) (ctx : List w8) (G : AntSim.RaftFacts) : AntSim.NodeView :=
+abbrev readreqView (v : AntSim.NodeView) (ctx : List w8) (G : AntSim.RaftFacts) : AntSim.NodeView :=
   { v with reads := AntSim.readsAsk v.reads (ctx, G.committed.length) }
 
 theorem mskB1_le' : AntSim.mskB1 ≤ AntSim.mskB1 := by
@@ -66,8 +66,8 @@ theorem readreq_hstep (h_mask : runInMask.law AntSim.mskB1) (γ : AntNames) (j :
       AntSim.SimPre γ.R γ.dec S V net xnet evs G0 → (∀ i : Fin γ.R.N, (V i).r.full ∈ G0.logs) →
       G = G0 → V j = v → ([] : List Msg) <+: net → ([] : List XMsg) <+: xnet →
       AntSim.SimStep γ.R γ.dec evs G (AntSim.evReadReq (AntSim.nodeId j) ctx)
-          (AntSim.setV V j (readView v ctx G)) (net ++ []) (xnet ++ []) ∧
-        AntSim.RaftLaws G ∧ ∀ i : Fin γ.R.N, (AntSim.setV V j (readView v ctx G) i).r.full ∈ G.logs := by
+          (AntSim.setV V j (readreqView v ctx G)) (net ++ []) (xnet ++ []) ∧
+        AntSim.RaftLaws G ∧ ∀ i : Fin γ.R.N, (AntSim.setV V j (readreqView v ctx G) i).r.full ∈ G.logs := by
   intro evs S V net xnet G0 G hR hpre hlogs hQ hVj _ _
   subst hQ hVj
   simp only [List.append_nil]
@@ -90,38 +90,100 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
-/-- **Node `j` between inputs, its reporting opened** (a report before an input: `readreq`): the right
-to emit (`nodeMemB1`'s `emitOk`), the view fragment and the `live` token, and node `j` between inputs
-again at the view with any reads (no other field of `nodeOwn` reads them). -/
-theorem nodeOwn_reads_open (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) :
+/-- **Node `j` between inputs, opened for a read** (`nodeOwn_idle_open` with the right to emit,
+`nodeMemB1`'s `emitOk`, and the view's pending reads' raft requests, `readsOwn`): the loop head after
+the input `inp` at the view with any reads `rd`, given their requests. -/
+theorem nodeOwn_read_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (γ : AntNames)
+    (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) :
     nodeOwn (GF := GF) c γ j n v .idle ⊢
-      emitOk n ∗ viewFrag γ j v ∗ nodeLive γ j ∗ ⌜v.Idle⌝ ∗
-      (∀ rd, emitOk n -∗ viewFrag γ j { v with reads := rd } -∗ nodeLive γ j -∗
-        nodeOwn c γ j n { v with reads := rd } .idle) := by
+      ∃ (rn : Loc) (rs : RNState),
+        emitOk n ∗ n.[H.node, go!"rn"] ↦ rn ∗
+        rawNode γ.raft.raftNames γ.R.md rn (AntSim.nodeId j) rs v.r [] v.r.p.log.length ∗
+        rnTermLB γ.raft rs.tc ∗ □ rnBudget γ.raft ∗
+        ⌜γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = γ.R.voters0 ∧
+          γ.raft.raftNames.maxData = none⌝ ∗
+        n.[H.node, go!"cause"] ↦ (null : Loc) ∗ viewFrag γ j v ∗ nodeLive γ j ∗ readsOwn γ v ∗
+        ⌜RsView rs v ∧ v.Idle ∧ PIdle rs v.r.p ∧ ViewNormal v ∧ rs.k = γ.R.k j⌝ ∗
+        (∀ (rd : List (AntCheck.Str × Nat)) (rs' : RNState) (r₁ : RState) (ip' : Nat)
+            (inp : AntSim.Input) (net₀ : List Msg) (xnet₀ : List XMsg) (xs₁ : List XMsg) (cl : Loc),
+          emitOk n -∗ n.[H.node, go!"rn"] ↦ rn -∗
+          rawNode γ.raft.raftNames γ.R.md rn (AntSim.nodeId j) rs' r₁ [] ip' -∗
+          ⌜rs'.storage = rs.storage ∧ rs'.dur = rs.dur ∧ rs'.k = rs.k ∧
+            RsView rs' ({ v with reads := rd }.noteInput inp) ∧
+            AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j ({ v with reads := rd }.noteInput inp) r₁ ∧
+            ip' = lcpLen v.r.p.log r₁.p.log ∧ ByOk inp.byE ∧
+            ViewNormal ({ v with reads := rd }.noteInput inp)⌝ -∗
+          rnTermLB γ.raft rs'.tc -∗
+          n.[H.node, go!"cause"] ↦ cl -∗ viewFrag γ j ({ v with reads := rd }.noteInput inp) -∗
+          nodeLive γ j -∗ sentLb γ net₀ -∗ xsentLb γ xnet₀ -∗
+          causeOwn γ j ({ v with reads := rd }.noteInput inp) cl -∗ readsOwn γ { v with reads := rd } -∗
+          nodeOwn c γ j n ({ v with reads := rd }.noteInput inp) (.loop net₀ xnet₀ r₁ xs₁)) := by
   unfold nodeOwn
   iintro ⟨%d, %rn, %ms, %hsl, %cl, %csl, %role, %applied, #Hd, Hmem, Hrn, Hms, Hrole, Hhs, Hcause,
     Happ, Hconf, Hv, Hl, %HN, Hdisk, %si, %rs, %qs, %ip, %r, Hstor, %Hsto, Hraw, Hnr, %Hrv, #Hhsro,
-    #Hcs, %Hc0, %Hph⟩
+    #Hcs, #Hrq, %Hc0, %Hph⟩
+  obtain ⟨hI, rfl, rfl, rfl, hP, rfl⟩ := Hph
   iunfold nodeMemB1 at Hmem
   icases Hmem with ⟨%mhs, %rhs, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, Hem⟩
-  iframe Hem Hv Hl
+  icases nodeRaft_open hbp γ j rs $$ Hnr with ⟨Htc, #Hb, %Hst, Hnrc⟩
+  iexists rn, rs
+  iframe Hem Hrn Hraw Htc Hcause Hv Hl Hrq
   isplitr
-  · ipureintro; exact Hph.1
-  iintro %rd Hem Hv Hl
-  iexists d, rn, ms, hsl, cl, csl, role, applied
+  · iexact Hb
+  isplitr
+  · ipureintro; exact Hst
+  isplitr
+  · ipureintro; exact ⟨Hrv.1, hI, hP, HN, Hrv.2.2.2.2⟩
+  iintro %rd %rs' %r₁ %ip' %inp %net₀ %xnet₀ %xs₁ %cl' Hem Hrn Hraw %Hf Htc Hcause Hv Hl Hlb Hxlb Hco #Hrq'
+  obtain ⟨hsto, hdur, hk, hrv, hR, hip, hby, hN'⟩ := Hf
+  ihave Hnr := Hnrc $$ %rs' %hdur Htc
+  iexists d, rn, ms, hsl, cl', csl, role, applied
   iframe Hd Hrn Hms Hrole Hhs Hcause Happ Hconf Hv Hl
   isplitl [M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 Hem]
   · iunfold nodeMemB1
     iexists mhs, rhs
     iframe M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 Hem
   isplitr
-  · ipureintro; exact HN
+  · ipureintro; exact hN'
   dsimp only
+  rw [show (({ v with reads := rd } : AntSim.NodeView).noteInput inp).dur = v.dur from rfl]
   iframe Hdisk
-  iexists si, rs, qs, ip, r
-  iframe Hstor Hraw Hnr Hhsro Hcs
+  iexists si, rs', [], ip', r₁
+  rw [show readsOwn (GF := GF) γ (({ v with reads := rd } : AntSim.NodeView).noteInput inp) =
+    readsOwn γ { v with reads := rd } from rfl]
+  iframe Hstor Hraw Hnr Hhsro Hcs Hrq' Hlb Hxlb Hco
   ipureintro
-  exact ⟨Hsto, Hrv, Hc0, Hph⟩
+  exact ⟨by rw [hsto]; exact Hsto, ⟨hrv, Hrv.2.1, Hrv.2.2.1, Hrv.2.2.2.1, by rw [hk]; exact Hrv.2.2.2.2⟩,
+    Hc0, rfl, hR, rfl, hip, hby⟩
+
+/-- `readsTrunc` keeps a sublist (the oldest dropped). -/
+theorem bigSepL_readsTrunc {A : Type} (Φ : A → IProp GF) (l : List A) :
+    ([∗list] x ∈ l, Φ x) ⊢ [∗list] x ∈ AntSim.readsTrunc l, Φ x := by
+  unfold AntSim.readsTrunc
+  split
+  · cases l with
+    | nil => iintro H; simp only [List.drop_nil]; iexact H
+    | cons a l =>
+      show ([∗list] x ∈ a :: l, Φ x) ⊢ [∗list] x ∈ l, Φ x
+      iintro H
+      icases (BigSepL.bigSepL_cons).1 $$ H with ⟨-, Hl⟩
+      iexact Hl
+  · iintro H; iexact H
+
+/-- **The reads after a `readreq`, their requests** (`readsAsk`: the new one appended, the oldest
+dropped past `MaxReads`). -/
+theorem readsOwn_ask (γ : AntNames) (v : AntSim.NodeView) (p : AntCheck.Str × Nat) (Lc : List EntryM)
+    (hp : p.2 ≤ Lc.length) :
+    readsOwn (GF := GF) γ v ∗ readReq γ.raft.raftNames p.1 Lc ⊢
+      readsOwn γ { v with reads := AntSim.readsAsk v.reads p } := by
+  unfold readsOwn
+  refine BIBase.Entails.trans ?_ (bigSepL_readsTrunc (GF := GF) (fun q : AntCheck.Str × Nat =>
+    iprop(∃ Lc : List EntryM, readReq γ.raft.raftNames q.1 Lc ∗ ⌜q.2 ≤ Lc.length⌝)) (v.reads ++ [p]))
+  iintro ⟨#Hr, #Hq⟩
+  iapply (BigSepL.bigSepL_snoc).2
+  isplitl [Hr]
+  · iexact Hr
+  · iexists Lc; iframe Hq; ipureintro; exact hp
 
 end laws
 
@@ -158,7 +220,9 @@ theorem node.readIndex.wp_proof
     rw [Hmode.2.2.2.2.2.1]; exact hR Hreads
   iunfold readOk at Hrok
   icases Hrok with ⟨-, Hfr, #Hau, Hrk⟩
-  icases nodeOwn_reads_open c γ j n v $$ Hown with ⟨Hem, Hv, Hl, %hI, Hclose0⟩
+  icases nodeOwn_read_open h_bp c γ j n v $$ Hown with
+    ⟨%rn, %rs, Hem, Hrnf, Hraw, Htc, #Hb, %Hst, Hcause, Hv, Hl, #Hrq, %Hpr, Hclose⟩
+  obtain ⟨hrv0, hI, hP, hN0, hk⟩ := Hpr
   -- the `readreq` report
   wp_take_receipt as Hr1
   ihave Hw : ⧗ (AntSim.evReadReq (AntSim.nodeId j) ctx).weight $$ [Hr1 Hrk]
@@ -189,25 +253,23 @@ theorem node.readIndex.wp_proof
   ihave #Hfx := factsExt_none (GF := GF) γ
   wp_apply wp_emit c γ n j «$a0_ptr» (readReqEvM ctx)
       (iprop(∃ G : AntSim.RaftFacts, raftFactsOwn γ.raft.raftNames G ∗
-        viewFrag γ j (readView v ctx G) ∗ nodeLive γ j))
+        viewFrag γ j (readreqView v ctx G) ∗ nodeLive γ j))
     $$ [$Hpkg $Hc $Hn Hem $Hev Hw Hv Hl] as ⟨Hem, %G, #HF, Hv, Hl⟩
   · iframe Hem
     rw [atNode_readReqEvM]
-    iapply report_updG h_vu h_lo c γ j v (readView v ctx) (AntSim.evReadReq (AntSim.nodeId j) ctx)
+    iapply report_updG h_vu h_lo c γ j v (readreqView v ctx) (AntSim.evReadReq (AntSim.nodeId j) ctx)
       [] [] [] [] (fun G0 G => G = G0) _ (evReadReq_nums _ _) (evReadReq_chg _ _)
       (readreq_hstep h_mask γ j v ctx Hmode Hb1 hI)
     iframe Hc Hlb Hxlb Hfx Hw Hv Hl
     iintro %G %_ #HF Hv Hl -
     iexists G
     iframe HF Hv Hl
-  ihave Hown := Hclose0 $$ %_ Hem Hv Hl
   iunfold raftFactsOwn at HF
   icases HF with ⟨-, -, -, -, #HL0, -⟩
   -- `ReadIndex`
-  have hI1 : (readView v ctx G).Idle := hI
-  icases nodeOwn_idle_open h_bp c γ j n (readView v ctx G) $$ Hown with
-    ⟨%rn, %rs, Hrnf, Hraw, Htc, #Hb, %Hst, Hcause, Hv, Hl, %Hpr, Hclose⟩
-  obtain ⟨hrv, -, hP, hN, hk⟩ := Hpr
+  have hI1 : (readreqView v ctx G).Idle := hI
+  have hrv : RsView rs (readreqView v ctx G) := hrv0
+  have hN : ViewNormal (readreqView v ctx G) := hN0
   try wp_auto
   wp_apply +noauto wp_string_to_bytes as %ds ⟨Hds, -⟩
   imod ownSlice_persist $$ Hds with #Hds
@@ -216,38 +278,42 @@ theorem node.readIndex.wp_proof
   imod Hrdm $$ Hr2 with Hcred
   wp_apply wp_ReadIndex γ.R.md hs hcc hfw has γ.raft.raftNames rn (AntSim.nodeId j) rs v.r []
       v.r.p.log.length ds ctx (fun _ => iprop(True)) G.committed (fun md h => by rw [h]; exact hrd)
-      Hst.1 $$ [$Hrpkg $Hraw $Hds $Hfr $Hau $HL0 $Hcred] as %r' ⟨Hraw, -, %Hend⟩
+      Hst.1 $$ [$Hrpkg $Hraw $Hds $Hfr $Hau $HL0 $Hcred] as %r' ⟨Hraw, #Hrqr, %Hend⟩
   · ipureintro; intro b hb; rw [Hst.2.2] at hb; cases hb
   have hRE := Hend γ.R.md rfl (AdmFold γ.dec γ.R.c0)
   rw [hk] at hRE
   have hlog : r'.p.log = v.r.p.log := by
     have h := AntSim.readIdxEnd_keep (AntSim.recvEnd_readMsg hRE.1)
     rw [h]
+  icases Hrqr with ⟨%Lc, %hLc, #Hrr, -⟩
+  ihave #Hrq1 := readsOwn_ask (GF := GF) γ v (ctx, G.committed.length) Lc hLc.length_le $$ [Hrq Hrr]
+  · iframe Hrq Hrr
   -- the view notes the input
   ihave #Hsw : □ (∀ m, ⌜AntSim.Input.readIndex ctx = .recv m⌝ -∗ sentW (GF := GF) γ m) $$ []
   · imodintro; iintro %m %h; cases h
   ihave #Hsx : □ (∀ x, ⌜AntSim.Input.readIndex ctx = .recvX x⌝ -∗ xsentW (GF := GF) γ x) $$ []
   · imodintro; iintro %x %h; cases h
-  imod view_input h_vu h_lo AntSim.mskB1 h_quiet h_mask γ j (readView v ctx G) (.readIndex ctx) Hmode Hb1
+  imod view_input h_vu h_lo AntSim.mskB1 h_quiet h_mask γ j (readreqView v ctx G) (.readIndex ctx) Hmode Hb1
       (show AntSim.mskB1.md.reads = true from rfl) hI1 (fun m h => by cases h) (fun x h => by cases h)
       $$ [Hv Hl] with ⟨%net₀, %xnet₀, Hv, Hl, #Hlb, #Hxlb, -⟩
   · iframe Hinv Hsw Hsx Hv Hl
-  ihave Hco := causeOwn_noRecv (GF := GF) γ j (readView v ctx G) (.readIndex ctx)
+  ihave Hco := causeOwn_noRecv (GF := GF) γ j (readreqView v ctx G) (.readIndex ctx)
     (by simp only [AntSim.Input.byE]; decide)
   have hR : AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j
-      ((readView v ctx G).noteInput (.readIndex ctx)) r' :=
+      ((readreqView v ctx G).noteInput (.readIndex ctx)) r' :=
     AntSim.Reach.input _ (.readIndex ctx) r' hI1 rfl rfl rfl (fun m h => by cases h) (fun x h => by cases h)
       ⟨hrd, hRE⟩
-  have hip' : v.r.p.log.length = lcpLen (readView v ctx G).r.p.log r'.p.log := by
+  have hip' : v.r.p.log.length = lcpLen (readreqView v ctx G).r.p.log r'.p.log := by
     show v.r.p.log.length = lcpLen v.r.p.log r'.p.log
     rw [hlog, lcpLen_self]
-  ihave Hown := Hclose $$ %_ %r' %_ %(.readIndex ctx) %net₀ %xnet₀ %([] : List XMsg) %null Hrnf Hraw
+  ihave Hown := Hclose $$ %(AntSim.readsAsk v.reads (ctx, G.committed.length)) %_ %r' %_ %(.readIndex ctx)
+    %net₀ %xnet₀ %([] : List XMsg) %null Hem Hrnf Hraw
     %(⟨rfl, rfl, rfl, rsView_noteInput (.readIndex ctx) hrv rfl rfl rfl rfl rfl rfl, hR, hip',
       .inr (.inr (.inr (.inr (.inl rfl)))), viewNormal_noteInput hN (fun _ h => by cases h)⟩)
-    Htc Hcause Hv Hl Hlb Hxlb Hco
+    Htc Hcause Hv Hl Hlb Hxlb Hco Hrq1
   try wp_auto
-  have hin := wp_input c γ n j ((readView v ctx G).noteInput (.readIndex ctx)) net₀ xnet₀ r' [] q slice.nil
-  rw [show ((readView v ctx G).noteInput (.readIndex ctx)).byE = go!"read" from rfl] at hin
+  have hin := wp_input c γ n j ((readreqView v ctx G).noteInput (.readIndex ctx)) net₀ xnet₀ r' [] q slice.nil
+  rw [show ((readreqView v ctx G).noteInput (.readIndex ctx)).byE = go!"read" from rfl] at hin
   wp_apply hin $$ [$Hpkg $Hc $Hn $Hown $Had $Htok] as %v' ⟨Hown, Had, Htok, %Hby⟩
   · ipureintro; exact Hb1
   try wp_auto

@@ -477,7 +477,7 @@ theorem node.start.wp_proof
   have Hr := restartR_fresh γ.R v Hfresh
     (max (bootContents (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) v.dur.log).b
       (uint.nat (startConfig γ.mode (AntSim.nodeId j) «$v3_ptr» «$v11_ptr»).Applied')) (Nat.le_zero.mp Hb0)
-  obtain ⟨HP, Hdel, -, -, -, Hconf0, -, Hpre, -, -, Hidle, -⟩ := Hfresh
+  obtain ⟨HP, Hdel, -, -, -, Hconf0, -, Hpre, Hrd0, -, Hidle, -⟩ := Hfresh
   have Hl0 : l = [] := List.eq_nil_of_length_eq_zero (by rw [Hl.1]; simp [StorContents.b, bootContents, base0])
   subst Hl0
   icases (h_rso γ.raft (AntSim.nodeId j) (downDur γ.R)).1 $$ Hrs with ⟨Hdg, Htlb, Hbud⟩
@@ -546,6 +546,11 @@ theorem node.start.wp_proof
       · show cfgK (startConfig γ.mode (AntSim.nodeId j) «$v3_ptr» «$v11_ptr») = γ.R.k j
         rw [Hrun.2.2.2.1 j]; rfl
     iframe Hhs Hcs
+    isplitr
+    · -- (group D) no pending read
+      iunfold readsOwn
+      simp only [Hrd0]
+      iapply (BigSepL.bigSepL_nil).2; iempintro
     isplitr
     · ipureintro; exact Hconf0
     isplitr

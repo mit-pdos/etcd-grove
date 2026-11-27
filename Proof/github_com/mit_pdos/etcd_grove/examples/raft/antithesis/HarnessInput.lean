@@ -134,7 +134,7 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
   unfold nodeOwn
   iintro ⟨%d, %rn, %ms, %hsl, %cl, %csl, %role, %applied, #Hd, Hmem, Hrn, Hms, Hrole, Hhs, Hcause,
     Happ, Hconf, Hv, Hl, %HN, Hdisk, %si, %rs, %qs, %ip, %r, Hstor, %Hsto, Hraw, Hnr, %Hrv, #Hhsro,
-    #Hcs, %Hc0, %Hph⟩
+    #Hcs, #Hrq, %Hc0, %Hph⟩
   obtain ⟨hI, rfl, rfl, rfl, hP, rfl⟩ := Hph
   icases nodeRaft_open hbp γ j rs $$ Hnr with ⟨Htc, #Hb, %Hst, Hnrc⟩
   iexists rn, rs
@@ -156,7 +156,8 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
   rw [show (v.noteInput inp).dur = v.dur from rfl]
   iframe Hdisk
   iexists si, rs', [], ip', r₁
-  iframe Hstor Hraw Hnr Hhsro Hcs Hlb Hxlb Hco
+  rw [show readsOwn (GF := GF) γ (v.noteInput inp) = readsOwn γ v from rfl]
+  iframe Hstor Hraw Hnr Hhsro Hcs Hrq Hlb Hxlb Hco
   ipureintro
   exact ⟨by rw [hsto]; exact Hsto, ⟨hrv, Hrv.2.1, Hrv.2.2.1, Hrv.2.2.2.1, by rw [hk]; exact Hrv.2.2.2.2⟩,
     Hc0, rfl, hR, rfl, hip, hby⟩
@@ -171,7 +172,7 @@ theorem nodeOwn_drained_idle (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc
   unfold nodeOwn
   iintro ⟨%d, %rn, %ms, %hsl, %cl, %csl, %role, %applied, #Hd, Hmem, Hrn, Hms, Hrole, Hhs, Hcause,
     Happ, Hconf, Hv, Hl, %HN, Hdisk, %si, %rs, %qs, %ip, %r, Hstor, %Hsto, Hraw, Hnr, %Hrv, #Hhsro,
-    #Hcs, %Hc0, %Hph, Hco⟩
+    #Hcs, #Hrq, %Hc0, %Hph, Hco⟩
   rw [hco]
   iunfold pendingCause at Hco
   icases Hco with (%Hnil | ⟨%g, %m, %Hc, -⟩)
@@ -182,7 +183,7 @@ theorem nodeOwn_drained_idle (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc
     dsimp only
     iframe Hdisk
     iexists si, rs, qs, ip, r
-    iframe Hstor Hraw Hnr Hhsro Hcs
+    iframe Hstor Hraw Hnr Hhsro Hcs Hrq
     ipureintro
     exact ⟨Hsto, Hrv, Hc0, Hph.1, Hph.2.1, Hph.2.2.1, Hph.2.2.2.1, Hph.2.2.2.2, Hnil.1⟩
   · exfalso; exact absurd Hc.2 (by simp)

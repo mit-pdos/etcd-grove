@@ -181,7 +181,7 @@ def loopRest (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (n
     nodeRaft γ j rs ∗
     ⌜v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length⌝ ∗
     hsRO hsl (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
-    csPts csl DFrac.discard (ConfStateM.mk (votersW γ) [] [] [] false) false ∗
+    csPts csl DFrac.discard (ConfStateM.mk (votersW γ) [] [] [] false) false ∗ readsOwn γ v ∗
     ⌜v.conf = γ.R.c0⌝ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗ causeOwn γ j v cl)
 
 /-- **`nodeOwn`'s loop phase opened.** -/
@@ -196,7 +196,7 @@ theorem nodeOwn_loop_open (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (
   unfold nodeOwn
   iintro ⟨%d, %rn, %ms, %hsl, %cl, %csl, %role, %applied, #Hd, Hmem, Hrn, Hms, Hrole, Hhs, Hcause,
     Happ, Hconf, Hv, Hl, %HN, Hdisk, %si, %rs, %qs, %ip, %r, Hstor, %Hsto, Hraw, Hnr, %Hrv, #Hhsro,
-    #Hcs, %Hc0, %Hph, #Hlb, #Hxlb, Hco⟩
+    #Hcs, #Hrq, %Hc0, %Hph, #Hlb, #Hxlb, Hco⟩
   obtain ⟨rfl, hR, rfl, hip, hby⟩ := Hph
   iexists rn, rs, ip
   iframe Hrn Hraw
@@ -204,7 +204,7 @@ theorem nodeOwn_loop_open (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (
   · ipureintro; exact ⟨Hrv.1, hR, hip, hby, HN, Hrv.2.2.2.2⟩
   iunfold loopRest
   iexists d, ms, hsl, cl, csl, role, applied, si
-  iframe Hd Hmem Hms Hrole Hhs Hcause Happ Hconf Hv Hl Hdisk Hstor Hnr Hhsro Hcs Hlb Hxlb Hco
+  iframe Hd Hmem Hms Hrole Hhs Hcause Happ Hconf Hv Hl Hdisk Hstor Hnr Hhsro Hcs Hrq Hlb Hxlb Hco
   ipureintro
   exact ⟨Hsto, ⟨Hrv.2.1, Hrv.2.2.1, Hrv.2.2.2.1⟩, Hc0⟩
 
@@ -226,7 +226,7 @@ theorem drain_exit (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
   iintro ⟨#Hinv, Hrn, Hraw, Hrest⟩
   iunfold loopRest at Hrest
   icases Hrest with ⟨%d, %ms, %hsl, %cl, %csl, %role, %applied, %si, #Hd, Hmem, Hms, Hrole, Hhs,
-    Hcause, Happ, Hconf, Hv, Hl, Hdisk, Hstor, %Hsto, Hnr, %Hpv, #Hhsro, #Hcs, %Hc0, #Hlb, #Hxlb, Hco⟩
+    Hcause, Happ, Hconf, Hv, Hl, Hdisk, Hstor, %Hsto, Hnr, %Hpv, #Hhsro, #Hcs, #Hrq, %Hc0, #Hlb, #Hxlb, Hco⟩
   imod view_quiet h_vu h_lo AntSim.mskB1 h_quiet h_mask γ j v { v with r := r₁, qs := [] } net₀ xnet₀
       hrun hb1 (Adm := AdmFold γ.dec γ.R.c0) (P := r₁.full = v.r.full ∧ r₁.p.role = v.ps.role)
       (fun S V net xnet hn hx hin hA hVj =>
@@ -246,8 +246,9 @@ theorem drain_exit (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
   dsimp only
   iframe Hdisk
   iexists si, rs, [], ip, r₁
-  rw [show causeOwn (GF := GF) γ j { v with r := r₁, qs := [] } cl = causeOwn γ j v cl from rfl]
-  iframe Hstor Hraw Hnr Hhsro Hcs Hco
+  rw [show causeOwn (GF := GF) γ j { v with r := r₁, qs := [] } cl = causeOwn γ j v cl from rfl,
+    show readsOwn (GF := GF) γ { v with r := r₁, qs := [] } = readsOwn γ v from rfl]
+  iframe Hstor Hraw Hnr Hhsro Hcs Hrq Hco
   have hrv' : RsView rs { v with r := r₁, qs := [] } := by
     refine ⟨hrv.1, hrv.2.1, hrv.2.2.1, hrv.2.2.2.1, hrv.2.2.2.2.1, hrv.2.2.2.2.2.1, ?_,
       hrv.2.2.2.2.2.2.2⟩
