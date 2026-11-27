@@ -28,12 +28,12 @@ store keeps the pair predicate: the read's continuation gives it for the pair re
 The load is under `mutex` and uses `schema.ReadConsistentIndex` (under the read transaction's
 `RLock`). -/
 abbrev consistentIndex.ConsistentIndex.spec : Prop :=
-  ∀ (ci : Loc) (γ : CINames) (b : GoInterface) (E : CoPset) (View : MetaCI → IProp GF),
+  ∀ (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) (b : GoInterface) (E : CoPset) (View : MetaCI → IProp GF),
   ⊢ ∀ Φ : val → IProp GF,
-    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ ∗ ciOwner ci b ∗ isMetaBackend b E View) -∗
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ P ∗ ciOwner ci b ∗ isMetaBackend b E View) -∗
     (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ k ={∅, ⊤ \ ↑ciN}=∗
       if k = W64 0 then
-        readCIAU E View (fun m => iprop(⌜m.1 ≠ W64 0 → γ.P m.1 m.2⌝ ∗
+        readCIAU E View (fun m => iprop((⌜m.1 = W64 0⌝ ∨ □ P m.1 m.2) ∗
           |={⊤ \ ↑ciN, ∅}=> ∃ k' : w64, ciIdx γ k' ∗
           (ciIdx γ m.1 ={∅, ⊤ \ ↑ciN}=∗ (ciOwner ci b -∗ Φ #m.1))))
       else (ciOwner ci b -∗ Φ #k))) -∗

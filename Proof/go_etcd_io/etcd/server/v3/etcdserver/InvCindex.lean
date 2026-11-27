@@ -22,9 +22,9 @@ atomic steps, so a concurrent `UnsafeSave` could save a new index with the old t
 makes the pair one: `SetConsistentIndex` and `UnsafeSave` both hold `pairMu`, and the index is
 stored only under it. The pair's invariant (`ciPairInv`, the mutex's) holds the term and a second
 mirror of the index (`γ.pk`, its other half in `ciInv`), so that the holder of `pairMu` knows the
-index, and keeps the client's **pair predicate** `γ.P k t` for a non-zero index `k`: the server's
-is "`t` is the committed term of `k`" (the boot step's snapshot label). `UnsafeSave` gives the
-predicate of the pair it saves.
+index, and keeps the client's **pair predicate** `P k t` (persistent, a parameter of `isCI`) for a
+non-zero index `k`: the server's is `srvCIPair` ("`t` is the term of the committed entry `k`", the
+boot step's snapshot label). `UnsafeSave` gives the predicate of the pair it saves.
 
 **The applying index** (`applyingIndex`/`applyingTerm`) is only ever accessed by the apply
 thread, which owns the two fields outright (`ciApplying`).
@@ -117,9 +117,6 @@ structure CINames where
   idx : GName
   /-- (keepfix-d) `ghostVar w64`: the index again (half in `ciInv`, half in `ciPairInv`) -/
   pk : GName
-  /-- (keepfix-d) the client's pair predicate: every stored non-zero index `k` with term `t` has
-  `P k t` -/
-  P : w64 → w64 → Prop
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -147,20 +144,21 @@ def ciInv (ci : Loc) (γ : CINames) : IProp GF :=
   iprop(∃ k : w64, ciIdxAddr ci ↦ k ∗ ghostVar γ.idx (1 : Qp).half k ∗ ghostVar γ.pk (1 : Qp).half k)
 
 /-- (keepfix-d) **The pair mutex's invariant**: the term field, the other half of the index's
-second mirror, and the pair predicate of the stored pair. -/
-def ciPairInv (ci : Loc) (γ : CINames) : IProp GF :=
-  iprop(∃ k t : w64, ghostVar γ.pk (1 : Qp).half k ∗ ciTermAddr ci ↦ t ∗ ⌜k ≠ W64 0 → γ.P k t⌝)
+second mirror, and the client's pair predicate `P` of the stored pair when its index is not 0. -/
+def ciPairInv (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) : IProp GF :=
+  iprop(∃ k t : w64, ghostVar γ.pk (1 : Qp).half k ∗ ciTermAddr ci ↦ t ∗ (⌜k = W64 0⌝ ∨ □ P k t))
 
 /-- The mutex's half of the backend field. -/
 def ciLockInv (ci : Loc) : IProp GF :=
   iprop(∃ b : GoInterface, typedPointsto (ciBeAddr ci) b (DFrac.own (1 : Qp).half))
 
 /-- `ci` is a consistent index with ghost names `γ` (persistent). -/
-def isCI (ci : Loc) (γ : CINames) : IProp GF :=
+def isCI (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) : IProp GF :=
   iprop(inv ciN (ciInv ci γ) ∗ sync.isMutex (ciMutexAddr ci) (ciLockInv ci) ∗
-    sync.isMutex (ciPairMuAddr ci) (ciPairInv ci γ))
+    sync.isMutex (ciPairMuAddr ci) (ciPairInv ci γ P))
 
-instance isCI_persistent (ci : Loc) (γ : CINames) : Persistent (isCI (GF := GF) ci γ) := by
+instance isCI_persistent (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) :
+    Persistent (isCI (GF := GF) ci γ P) := by
   unfold isCI; infer_instance
 
 /-- The owner's half of the backend field: the backend is `b`. -/
