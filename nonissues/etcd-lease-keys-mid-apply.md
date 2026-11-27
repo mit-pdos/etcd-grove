@@ -35,6 +35,9 @@ with keys whose wait for the applied index ended just before the snapshot's appl
 answers `ErrLeaderChanged` there (a fresh object's expiry is `forever`, so `Demoted()` is true,
 `v3_server.go:662`), but not always: the lessor is not demoted by `Recover`, so a `Renew` of a loaded
 lease on the leader refreshes its object's expiry, and `Demoted()` is then false.
+The same window lets the permission checks of `LeaseLeases` and `LeaseTimeToLive` with keys pass
+over the key-less leases, with a failing test at upstream `main`:
+`issues/etcd-lease-auth-snapshot-restore-keyless.md` (2026-11-27).
 
 ## Proof
 

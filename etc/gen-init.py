@@ -153,6 +153,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
 # and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
+# (#33 S4) the Antithesis harness (examples/raft/antithesis) and its checker (`check`), for the
+# closed theorem: no package variables, their facts `True` (`Base.lean`, `check/Base.lean`), so no
+# `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is for the adequacy proof
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.raft.antithesis')
 # (fmt1-errno, 2026-11-24, #9 decision (B) 7127751995) the osfs examples (crashlog, walfs, bboltfs),
 # whose closed theorems took their initializer as a hypothesis (`Hinit_wp`; bboltfs: its spec with
 # `pkgFacts` as its post): now `os`'s path specs take `isPkgInit os`, and their `wp_initialize'` is
@@ -650,11 +654,12 @@ SPECIAL['runtime'] = dict(
 which `Version` returns, holds some string, read-only for good. Its initializer runs the trusted
 model of `buildVersion`'s initialization (Perennial's `TrustedCode/runtime.lean`: it allocates the
 variable and stores an arbitrary string, the linker's; Perennial's `runtime.wp_buildVersion_init`,
-whose cell is made persistent here), initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return. (Until Perennial
-`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated.)
+whose cell is made persistent here), initializes its imports, and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return. Its other 94 initialized
+variables are skipped (goose `[[skip]]`, Perennial's `Code/runtime.toml`: the runtime's own tables and
+state, which no translated code reads), so its initializer does not run them. (Until Perennial
+`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated; until 2026-11-27 the
+94 were names-only, run as `X.init`s that the trust-boundary axiom `opaqueInitsOk` said return.)
 
 And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
@@ -6007,6 +6012,9 @@ for _c in ['server', 'client']:
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
+# (#33 S4) the Antithesis harness, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.raft.antithesis'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/PkgTable.lean'
 
 # (fmt1-errno, 2026-11-24) the osfs examples' boot programs, for their closed (crash) theorems
 for _ex in ['crashlog', 'walfs', 'bboltfs']:

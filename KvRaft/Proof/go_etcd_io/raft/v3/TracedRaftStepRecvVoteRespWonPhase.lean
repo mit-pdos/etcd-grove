@@ -377,7 +377,7 @@ theorem wonEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : 
   have hnh : m.Type' ≠ MsgHup := by rw [hty]; simp only [MsgVoteResp, MsgHup, ne_eq]; exact of_decide_eq_true rfl
   have hnv : m.Type' ≠ MsgVote := by rw [hty]; simp only [MsgVoteResp, MsgVote, ne_eq]; exact of_decide_eq_true rfl
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
-  obtain ⟨pvs0, h⟩ := (Hend hety).2.2.2 hns hnh hnv
+  obtain ⟨pvs0, h⟩ := (Hend hety (by xtrec_tac)).2.2.2 hns hnh hnv
   rw [show preState s m pvs0 = s by simp [preState, hnbf]] at h
   obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
   unfold CandidateStepResultC at hf

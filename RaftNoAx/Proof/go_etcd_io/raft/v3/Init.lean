@@ -421,7 +421,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iframe #
   ipureintro
   exact ⟨nofun, nofun, ⟨_, _, rfl⟩, nofun, nofun,
-    ⟨_, _, rfl⟩, ⟨_, _, rfl⟩, nofun⟩
+    ⟨_, _, rfl⟩, ⟨_, _, rfl⟩, nofun, by unfold localMsgsV; rfl⟩
 
 end raft_init
 

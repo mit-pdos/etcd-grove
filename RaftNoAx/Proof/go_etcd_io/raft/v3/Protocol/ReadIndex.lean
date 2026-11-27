@@ -721,14 +721,46 @@ private theorem plogTermAt_ones (L : List EntryM) (c : w64) :
   simp only [Option.map_eq_map, Option.map_some, Hones e (List.mem_of_getElem? He)]
 
 variable [CrashGS GF] in
-/-- The commit index is past the bootstrap log (`ownLogGhost`'s conjunct, 2026-10-16). -/
+/-- The commit index is past the bootstrap log at a node whose commit index is at an entry of its
+own term, a term of a leader (`isLeader_boot`: past `1` when there is a bootstrap log): the full
+log starts with the bootstrap log (`ownLogGhost`'s conjunct), whose entries have term `1`, and the
+sentinel term `0` (2026-10-16; 2026-11-26, #33 parity B1: from the prefix, the commit index no
+longer past it in general). -/
 private theorem ownLogGhost_boot_commit (γ : RaftNames) (id : w64) (s : PState)
     (kl : Option w64) (W : DurMaps) :
+    s.term ≠ W64 0 → (γ.reBoot ≠ [] → 2 ≤ uint.Z s.term) →
+    plogTermAt s.base s.log s.commit = some s.term →
     ⊢ ownLogGhost (GF := GF) γ id s kl W -∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ := by
+  intro Ht0 Ht2 Hct
   unfold ownLogGhost
   iintro ⟨%γm, %terms, %fp, %γw, %wins, H⟩
   iNamed H
-  ipureintro; exact Hboot
+  obtain ⟨Hf, Hw, -⟩ := Hfull
+  have HwF : PlogWf base0 (fp ++ s.log) := full_wf _ _ _ Hf Hw
+  ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
+  icases logRecs_boot_termAt γ (fp ++ s.log) HwF $$ HrF with %HbtF
+  icases logRecs_boot_wf γ (fp ++ s.log) HwF $$ HrF with %Hbw
+  ipureintro
+  apply Int.not_lt.1
+  intro Hlt
+  have HbF := Hboot.1.length_le
+  have Hbi : uint.Z s.base.index' ≤ uint.Z s.commit := Hlog_ok.2.1
+  have HFi : plogTermAt base0 (fp ++ s.log) s.commit = some s.term := by
+    rw [full_term_at s.base fp s.log s.commit Hf Hbi]; exact Hct
+  by_cases Hz : uint.Z s.commit = 0
+  · have Hc : s.commit = W64 0 := uint_Z_inj.mp (by rw [Hz]; rfl)
+    rw [Hc, show (W64 0 : w64) = (base0 : entryID).index' from rfl, plogTermAt_base] at HFi
+    exact Ht0 (Option.some.inj HFi).symm
+  · have Hc1 : 1 ≤ uint.Z s.commit := by have := uint_Z_nonneg s.commit; omega
+    have Hne : γ.reBoot ≠ [] := by
+      intro h; rw [h] at Hlt; simp only [List.length_nil, Int.natCast_zero] at Hlt
+      have := uint_Z_nonneg s.commit; omega
+    have Hb1 := plogTermAt_ones γ.reBoot s.commit (Hbw Hboot.1).2 Hc1 (by omega)
+    rw [HbtF s.commit (by omega) (by omega), HFi] at Hb1
+    have Ht1 : s.term = W64 1 := Option.some.inj Hb1
+    have := Ht2 Hne
+    rw [Ht1] at this
+    exact absurd this (by decide)
 
 variable [CrashGS GF] in
 variable [CrashGS GF] in
@@ -858,7 +890,8 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
   ihave #Hl : isLeader γ id s.term $$ []
   · rw [← leaderWit_leader γ id s Hr]; iexact Hlead
   ihave ⟨%fp, %Hfl, #Hfr, #Hrecs, #Hcmt⟩ := ownLogGhost_commitIn γ id s kl (virt V πc) $$ Hlg
-  ihave %Hboot := ownLogGhost_boot_commit γ id s kl (virt V πc) $$ Hlg
+  ihave %Hl2 := isLeader_boot γ id s.term $$ Hl
+  ihave %Hboot := ownLogGhost_boot_commit γ id s kl (virt V πc) Htnz Hl2 Hct $$ Hlg
   ihave #Hinv := ownLogGhost_inv $$ Hlg
   ihave #Hrq' := Hrq
   ieval (unfold readReq) at Hrq'

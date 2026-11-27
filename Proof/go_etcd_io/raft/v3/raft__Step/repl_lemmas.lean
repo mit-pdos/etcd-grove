@@ -227,7 +227,7 @@ theorem trunc_handle_app {id : w64} {m : MessageM} {ents : List EntryM} {s t s' 
   · intro h
     have h' : uint.Z ls'.inprogress < uint.Z t.logst.inprogress := by rw [Hl]; exact h
     refine ⟨Ht, ?_⟩
-    have := Htr h'
+    have := Htr.1 h'
     rw [Hl] at this
     exact this
   · exact AppTrunc.of_ip (by show t.logst.inprogress = _; rw [Hl])

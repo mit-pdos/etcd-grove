@@ -258,7 +258,7 @@ theorem releasePendingReadIndexMessages.wp_proof
       "Hpri" ∷ pr ↦* pls ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id
         { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } ∗
-      "%Hms" ∷ ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
+      "%Hms" ∷ ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧ HbShape s m' ∧
          ∃ k, 0 < k ∧ k ≤ sint.nat n ∧
            m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))⌝ ∗
       "%Hmm" ∷ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
@@ -339,12 +339,12 @@ theorem releasePendingReadIndexMessages.wp_proof
     refine ⟨?_, Hmm'.trans Hmm, by word, by word⟩
     intro m' Hm'
     rcases List.mem_append.1 Hm' with Hm' | Hm'
-    · obtain ⟨Hhb, k, Hk0, Hkn, Hctx⟩ := Hms m' Hm'
-      exact ⟨Hhb, k, Hk0, by omega, Hctx⟩
-    · obtain ⟨Hhb, Hctx⟩ := Hms' m' Hm'
+    · obtain ⟨Hhb, Hsh, k, Hk0, Hkn, Hctx⟩ := Hms m' Hm'
+      exact ⟨Hhb, Hsh, k, Hk0, by omega, Hctx⟩
+    · obtain ⟨Hhb, Hctx, Hsh⟩ := Hms' m' Hm'
       refine ⟨heartbeatOk_transfer id s
         { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } m' rfl rfl rfl Hmm Hhb,
-        sint.nat n + 1, by omega, by omega, ?_⟩
+        Hsh, sint.nat n + 1, by omega, by omega, ?_⟩
       rw [Hctx, readonlyRelease_take_succ _ _ _ _ _ _ Hp]
       simp only [readonlyArrive, hbCtx_recvAck]
       rfl
@@ -355,8 +355,8 @@ theorem releasePendingReadIndexMessages.wp_proof
     iframe Hphys HG
     ipureintro
     exact Or.inr ⟨Hsg, ms, pvs, rfl, fun m' Hm' => by
-      obtain ⟨Hhb, k, Hk0, Hkn, Hctx⟩ := Hms m' Hm'
-      exact ⟨Hhb, k, Hk0, by omega, Hctx⟩, Hmm⟩
+      obtain ⟨Hhb, Hsh, k, Hk0, Hkn, Hctx⟩ := Hms m' Hm'
+      exact ⟨Hhb, Hsh, k, Hk0, by omega, Hctx⟩, Hmm⟩
 
 end proof
 

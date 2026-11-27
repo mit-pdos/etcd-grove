@@ -42279,6 +42279,36 @@ real decoding (a stated precondition: only jsontext/v2, outside the model, make 
   - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
   - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
 - **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.
+## A `RawNode` closed outside `RestartNode`: `NewRawNode.restartSpec` (2026-11-23 · #33 S3a · branch `antithesis-rawnode-spec`)
+
+**What:** `NewRawNode.spec` returns the node open (`rawNodeAt`); only `RestartNode`'s and `StartNode`'s proofs
+closed it (`ownRawNode`, the id's slot opened by `raft_restart`, raft's storage names allocated at the attach),
+inside their own proofs. The Antithesis harness of #33 drives `RawNode`s itself (one goroutine each,
+`Ready`/`Step`/`Advance` called directly), so the closing step is now a derived triple of its own:
+`NewRawNode.restartSpec` (`Proof/go_etcd_io/raft/v3/RawNodeStartSpec.lean`, a defs module, as `TracedNodeApi`
+holds `StartNode.tracedSpec`) proved over `NewRawNode.spec` by `NewRawNode.wp_proofRestart`
+(`RawNodeStart.lean`), and its instance for a new cluster's node on an empty storage whose `ConfState` names the
+voters, `NewRawNode.emptyStartSpec` (`NewRawNode.wp_proofEmptyStart`). `raftState_open` opens the node API's
+sealed `raftState` into raft's durable half (`ownDurGhost`, what `RawNode.Ready.spec`'s *enter* moves) and the
+term budget's pieces.
+
+**The statement:** `RestartNode.spec`'s precondition premise for premise, except that the durable state is owned
+(`raftState γ id S` with `StorageHolds S σ`) instead of behind an atomic update (a `RawNode` client has no
+concurrent `run` to linearize against; a later in-process restart starts from the same statement). The post:
+`ownRawNode` at the record `rawNodeRestarted` (every field given: the committed log handed out, the stored hard
+state's term and the hard state as `prevHardSt`, the term ceiling at the durable term, the configuration at `a`,
+the durable state, a follower), the id's generation whole with its free queue (`genView … 1 g`, `slotFree … g`:
+what `RawNode.Ready.spec` takes), the durable state back, the storage's frame at raft's key.
+
+**Why a copy of `RestartNode`'s proof, not a refactor of it:** `RestartNode.lean` is under edit for the crash law
+(#22); the new files are additive (nothing imports them yet). Once #22 lands, `RestartNode`'s proof can call
+`NewRawNode.wp_proofRestart` for its first half and the copied private helpers go.
+
+**Why the storage is not a bare `MemoryStorage`:** a `MemoryStorage` reports its snapshot's `ConfState`, and
+refuses a snapshot at index `0` (`ApplySnapshot`, `CreateSnapshot`: `ErrSnapOutOfDate`), so no bare
+`MemoryStorage` reports the voters with an empty log. The harness wraps it (as kvreconf's `Storage` does: its
+`InitialState` returns the bootstrap `ConfState`, proved in `kvreconf/KvrStorageApi.lean` as `restartStorage`
+under its own `StorageModel` instance).
 
 ## encoding/json per-type dispatch (J3) and the model's bodies (J2) (2026-11-23 · proving session 2, #24 · branch `prove-ps2-jsonj2/2026-11-23`)
 

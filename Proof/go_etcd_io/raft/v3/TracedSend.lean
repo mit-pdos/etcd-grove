@@ -12,6 +12,13 @@ path's specs above `raft.send` that may fall back to a snapshot (`maybeSendAppen
 - `HookGateN tr r E n Q`: `traceReplicate`'s gate, the caller's (`appendEntry` takes it), as
   `HookGate` for `n` events in a row (`TraceFireN`); `hookGateN_none`, the untraced caller's.
 - `normalCount_mapIdx`: stamping keeps the count of normal entries (the events `traceReplicate` logs).
+- (2026-11-24, #33 S4 P-raft-1b; `notes/antithesis-rawnode-design.md` §2.5, option (b)) **the
+  no-snapshot flag `nc`**: `NoSnapG nc tr ls` (`TrNoSnap tr ls` at `nc = false`; at `nc = true` the
+  log not compacted whatever the trace mode) and `IdxFreeN nc tr G` (`IdxFree tr G` at `nc = false`;
+  at `nc = true` the family kept by queueing messages other than snapshots). The send path's specs
+  take them at an implicit `nc`, which a caller's `IdxFree` premise fixes at `false`; an untraced
+  caller that knows its log uncompacted (the harness's `RawNode`, `RnScope`) passes `nc = true` and a
+  family recording that its outbox holds no `MsgSnap`.
 -/
 module
 
@@ -48,6 +55,51 @@ def TrNoSnap (tr : Option GName) (ls : LogState) : IProp GF :=
 instance trNoSnap_persistent (tr : Option GName) (ls : LogState) :
     Persistent (TrNoSnap (GF := GF) tr ls) := by
   unfold TrNoSnap; infer_instance
+
+/-- (2026-11-24, #33 S4 P-raft-1b) **The no-snapshot premise at the flag `nc`**: at `nc = false`
+`TrNoSnap` (a traced node's log not compacted), at `nc = true` the log not compacted whatever the
+trace mode (`maybeSendAppend`'s snapshot fallback then unreachable untraced too). Reducible, so that
+at a literal `false` it is `TrNoSnap` for the proof mode's matching. -/
+@[reducible] def NoSnapG : Bool → Option GName → LogState → IProp GF
+  | false, tr, ls => TrNoSnap tr ls
+  | true, _, ls => iprop(□ ((⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) -∗ |={⊤}=> False))
+
+instance noSnapG_persistent (nc : Bool) (tr : Option GName) (ls : LogState) :
+    Persistent (NoSnapG (GF := GF) nc tr ls) := by
+  cases nc <;> unfold NoSnapG <;> infer_instance
+
+/-- At a traced node or under the flag, a compaction is a contradiction. -/
+theorem noSnapG_cut (nc : Bool) (tr : Option GName) (ls : LogState) (h : tr ≠ none ∨ nc = true) :
+    NoSnapG (GF := GF) nc tr ls ⊢ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) -∗ |={⊤}=> False := by
+  cases nc with
+  | false =>
+    have h' : tr ≠ none := h.resolve_right (by decide)
+    iintro #H #Hc
+    try iunfold NoSnapG at H
+    iunfold TrNoSnap at H
+    iapply H $$ %h' Hc
+  | true =>
+    iintro #H #Hc
+    try iunfold NoSnapG at H
+    iapply H $$ Hc
+
+/-- Off the untraced `nc = false` case, the premise refutes a compaction. -/
+theorem noSnapG_guard {nc : Bool} {tr : Option GName} (h : ¬ (tr = none ∧ nc = false)) :
+    tr ≠ none ∨ nc = true := by
+  cases nc
+  · exact Or.inl (fun h' => h ⟨h', rfl⟩)
+  · exact Or.inr rfl
+
+/-- At equal arguments (a state that reads as `s`). -/
+theorem noSnapG_congr (nc : Bool) (tr tr' : Option GName) (ls ls' : LogState) (h1 : tr = tr') (h2 : ls = ls') :
+    NoSnapG (GF := GF) nc tr ls ⊢ NoSnapG nc tr' ls' := by
+  subst h1 h2; exact .rfl
+
+/-- `NoSnapG` reads the log's boundary and storage only: at two logs agreeing there. -/
+theorem noSnapG_logst (nc : Bool) (tr tr' : Option GName) (ls ls' : LogState) (h1 : tr = tr')
+    (hp : ls.prev = ls'.prev) (hs : ls.storage = ls'.storage) :
+    NoSnapG (GF := GF) nc tr ls ⊢ NoSnapG nc tr' ls' := by
+  subst h1; cases nc <;> dsimp only [NoSnapG, TrNoSnap] <;> rw [hp, hs]
 
 /-- An untraced node's: nothing. -/
 theorem trNoSnap_none (ls : LogState) : ⊢ TrNoSnap (GF := GF) none ls := by
@@ -120,24 +172,21 @@ theorem sendOutGate_sendMsgs (id : w64) (s : NState) (ms : List Msg) (c : CfgM) 
 /-- ... and the ghost (the trace mode) is the state's. -/
 theorem sendMsgs_gh (s : NState) (ms : List Msg) : (sendMsgs s ms).gh = s.gh := rfl
 
-/-- (2026-11-10, Q8 stage 1 slice 14) **An untraced cluster's resource ignores the outbox**: a family
-`G` of caller resources indexed by the outbox (the broadcasts' and the step functions' gates since
-slice 14, `notes/decisions.md`, "Q8 stage 1 (slice 14)") gives the same resource at every index when
-the cluster is untraced. A traced caller indexes its resources by the outbox (the capability's pending
-share is the outbox's traced messages); an untraced one passes a constant family (`IdxFree.const`).
-`maybeSendAppend`'s snapshot fallback, reached only untraced (`TrNoSnap`), queues its messages through
-no gate and needs it. -/
-def IdxFree {α : Type _} (tr : Option GName) (G : List Msg → α) : Prop :=
-  tr = none → ∀ o o' : List Msg, G o = G o'
+/-- (2026-11-24, #33 S4 P-raft-1b) **No snapshot among the messages** `o`. -/
+def NoSnapL (o : List Msg) : Prop := ∀ x ∈ o, x.ty ≠ .snap
 
-theorem IdxFree.const {α : Type _} (tr : Option GName) (x : α) : IdxFree tr (fun _ : List Msg => x) :=
-  fun _ _ _ => rfl
+theorem NoSnapL.nil : NoSnapL [] := fun _ h => absurd h List.not_mem_nil
 
-theorem IdxFree.of_some {α : Type _} {tr : Option GName} (G : List Msg → α) (h : tr ≠ none) :
-    IdxFree tr G :=
-  fun h' => absurd h' h
+theorem NoSnapL.append {o o' : List Msg} (h : NoSnapL o) (h' : NoSnapL o') : NoSnapL (o ++ o') :=
+  fun x hx => (List.mem_append.mp hx).elim (h x) (h' x)
 
-/-- (2026-11-10, Q8 stage 1 slice 14) **A resource family indexed by the outbox up to order**: raft's
+theorem NoSnapL.snoc {o : List Msg} {m : Msg} (h : NoSnapL o) (hm : m.ty ≠ .snap) : NoSnapL (o ++ [m]) :=
+  h.append (fun x hx => by rw [List.mem_singleton.mp hx]; exact hm)
+
+theorem NoSnapL.single {m : Msg} (hm : m.ty ≠ .snap) : NoSnapL [m] :=
+  fun x hx => by rw [List.mem_singleton.mp hx]; exact hm
+
+/-- (2026-11-10, Q8 stage 1 slice 14) A resource family indexed by the outbox up to order: raft's
 abstract outbox is its queues up to permutation (`outboxRel`, `ownRaftPhysC_outbox`), and `campaign`'s
 result names its messages in another order than it sends them (its own vote's response first). A
 caller passes a family that ignores the order: untraced a constant one (`PermInv.const`), traced one
@@ -182,6 +231,64 @@ theorem hookGateOpt_congr (tr tr' : Option GName) (r : Loc) (oE oE' : Option (Tr
   subst h1 h2; exact .rfl
 
 end gates
+
+section idxfree
+variable [GooseExts] {GF : BundledGFunctors}
+
+/-- (2026-11-24, #33 S4 P-raft-1b) **The callees' demand on an outbox-indexed family, at the flag
+`nc`** (`IdxFree` at `nc = false`): untraced, at `nc = false` the family ignores the outbox
+(`maybeSendAppend`'s snapshot fallback queues through no gate); at `nc = true` (the fallback refuted
+by `NoSnapG true`) it is kept by queueing messages other than snapshots (a received `MsgSnap`'s
+answer, `handleSnapshot`'s, queued through no gate). Traced, nothing. -/
+def IdxFreeN (nc : Bool) (tr : Option GName) (G : List Msg → IProp GF) : Prop :=
+  tr = none → (nc = false → ∀ o o' : List Msg, G o = G o') ∧
+    (nc = true → ∀ o ms : List Msg, NoSnapL ms → (G o ⊢ G (o ++ ms)))
+
+/-- (2026-11-10, Q8 stage 1 slice 14) **An untraced cluster's resource ignores the outbox**: a family
+`G` of caller resources indexed by the outbox (the broadcasts' and the step functions' gates since
+slice 14, `notes/decisions.md`, "Q8 stage 1 (slice 14)") gives the same resource at every index when
+the cluster is untraced. A traced caller indexes its resources by the outbox (the capability's pending
+share is the outbox's traced messages); an untraced one passes a constant family (`IdxFree.const`).
+`maybeSendAppend`'s snapshot fallback, reached only untraced (`TrNoSnap`), queues its messages through
+no gate and needs it. (2026-11-24, P-raft-1b) `IdxFreeN` at `nc = false`, an abbreviation, so that a
+caller's `IdxFree` fixes a spec's implicit `nc` at `false`. -/
+abbrev IdxFree (tr : Option GName) (G : List Msg → IProp GF) : Prop := IdxFreeN false tr G
+
+theorem IdxFree.const (tr : Option GName) (x : IProp GF) : IdxFree tr (fun _ : List Msg => x) :=
+  fun _ => ⟨fun _ _ _ => rfl, fun h => absurd h (by decide)⟩
+
+theorem IdxFree.of_some {tr : Option GName} (G : List Msg → IProp GF) (h : tr ≠ none) :
+    IdxFree tr G :=
+  fun h' => absurd h' h
+
+theorem IdxFreeN.const (nc : Bool) (tr : Option GName) (x : IProp GF) :
+    IdxFreeN nc tr (fun _ : List Msg => x) :=
+  fun _ => ⟨fun _ _ _ => rfl, fun _ _ _ _ => .rfl⟩
+
+theorem IdxFreeN.of_some (nc : Bool) {tr : Option GName} (G : List Msg → IProp GF) (h : tr ≠ none) :
+    IdxFreeN nc tr G :=
+  fun h' => absurd h' h
+
+/-- At `nc = false` untraced, the family ignores the outbox. -/
+theorem IdxFreeN.eq {nc : Bool} {tr : Option GName} {G : List Msg → IProp GF} (H : IdxFreeN nc tr G)
+    (htr : tr = none) (hnc : nc = false) (o o' : List Msg) : G o = G o' :=
+  (H htr).1 hnc o o'
+
+/-- **What a send through no gate keeps of the family**: untraced, the family at the outbox `o`
+gives it at `o ++ ms`, for messages `ms` that are not snapshots (any, at `nc = false`). -/
+theorem IdxFreeN.step {nc : Bool} {tr : Option GName} {G : List Msg → IProp GF} (H : IdxFreeN nc tr G)
+    (htr : tr = none) (o ms : List Msg) (hms : nc = true → NoSnapL ms) : G o ⊢ G (o ++ ms) := by
+  cases nc with
+  | false => rw [(H htr).1 rfl (o ++ ms) o]
+  | true => exact (H htr).2 rfl o ms (hms rfl)
+
+/-- ... at an outbox named `o'`. -/
+theorem IdxFreeN.step' {nc : Bool} {tr : Option GName} {G : List Msg → IProp GF} (H : IdxFreeN nc tr G)
+    (htr : tr = none) {o o' : List Msg} (ms : List Msg) (ho : o' = o ++ ms) (hms : nc = true → NoSnapL ms) :
+    G o ⊢ G o' := by
+  rw [ho]; exact H.step htr o ms hms
+
+end idxfree
 
 section idx
 variable [GooseExts] [GooseSemantics] [GooseInterp]

@@ -434,7 +434,7 @@ private theorem wp_RestartNode_impl
       simp only [StorContents.b, StorContents.commit] at Hbc Hwc Hcc
       have := uint_nat_eq σ.hs.Commit'; have := uint_nat_eq σ.base.index'
       have := uint_nat_eq S.commit
-      exact ⟨Hb1, by omega, by omega, Hb2, Hwc⟩) HbootZ
+      exact ⟨Hb1, by omega, by omega, Hb2, Hwc, Or.inl HbootZ⟩) (fun _ => HbootZ)
     $$ Hnc Hvac [HAU Hlc1]
     with ⟨Hnc, %S, %HS, ⟨HQ, #HtS, #Hbinv⟩, Hg, %gen, Hgen, Hfree, #HI1r⟩
   · have HEo : (⊤ \ ↑N : CoPset) ⊆ ⊤ \ ↑(slotN γ.raft cv.ID') := by
@@ -838,9 +838,11 @@ private theorem wp_RestartNode_impl
     · rw [show s1.gh.sn = sn from Hgsn]; iexact Hlink
     isplitr
     · iapply leadW_none γ.raft cv.ID' _ (by rw [HtoP1]; rfl)
-    unfold xfW
-    rw [show s1.gh.xw = ∅ by show s.gh.xw = ∅; rw [Hgh]]
-    iapply BigSepM.bigSepM_empty.2; iempintro
+    unfold xfW xtW
+    rw [show s1.gh.xw = ∅ by show s.gh.xw = ∅; rw [Hgh], show s1.gh.xt = ∅ by show s.gh.xt = ∅; rw [Hgh]]
+    isplitl []
+    · iapply BigSepM.bigSepM_empty.2; iempintro
+    · iapply BigSepM.bigSepM_empty.2; iempintro
   -- the node's record: the committed log up to `max b A` handed out, the stored hard state, the
   -- durable state `S`, a follower; the term ceiling at the term; at the configuration point
   let rs0 : RNState :=

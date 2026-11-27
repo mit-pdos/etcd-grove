@@ -43,7 +43,9 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     (mxd : Option Nat) (Hmxd : ∀ b, mxd = some b → b ≤ 2 ^ 31) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = 0 ∧
-        γ.raft.reTrace = none ∧ γ.raft.maxData = mxd ∧ γ.raft.reNoSnap = false⌝ ∗
+        γ.raft.reTrace = none ∧ γ.raft.maxData = mxd ∧ γ.raft.reNoSnap = false ∧
+        -- (#33 S4, 2026-11-24) the names' configuration, bootstrap log and namespace
+        γ.raft.reCfg = GMap.listToSet vs ∧ γ.raft.reBoot = [] ∧ γ.raft.reNs = N .@ "raft"⌝ ∗
         ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
@@ -141,7 +143,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
   iexists γ
   iframe Hops Hctx Hdc Hja
   isplitr
-  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL]; rfl, Htr0, Hmxd', Hns⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL]; rfl, Htr0, Hmxd', Hns, Hcfg, HbootL, HNs⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd

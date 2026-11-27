@@ -352,7 +352,7 @@ theorem stepBundle_traced_utAppAcc : stepBundle_traced.onRB (GF := GF) (hG := hG
       iapply hookGateOpt_fupd_recv
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hTle hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hTle hbase hge happ hfit (by rw [htr]; rfl)
         $$ [$Hm $Hgh] with ⟨Hgh, ⟨#HL, #HN, #Hci, #Hcm⟩, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       iunfold ownStepGhost at Hgh
@@ -483,7 +483,7 @@ theorem stepBundle_traced_utAppAcc : stepBundle_traced.onRB (GF := GF) (hG := hG
           rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.tr = some γd from htr]
           iapply hookGateOpt_fupd_recv
           icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hTle hbase hge happ hfit
+          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hTle hbase hge happ hfit (by rw [htr]; rfl)
             $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
           obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
           imodintro
@@ -543,7 +543,7 @@ theorem stepBundle_traced_utAppAcc : stepBundle_traced.onRB (GF := GF) (hG := hG
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and accepted handling, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       obtain ⟨pvs, ls', hse, hprev', hes', hcm'⟩ : ∃ (pvs : GMap w64 Progress) (ls' : LogState),
           s' = sendMsgs { ({ ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
@@ -552,7 +552,7 @@ theorem stepBundle_traced_utAppAcc : stepBundle_traced.onRB (GF := GF) (hG := hG
               m.From' false lastnewi (W64 0) (W64 0)] ∧
           ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
           ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
-        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
         unfold FollowerStepResultC at hf
@@ -584,7 +584,7 @@ theorem stepBundle_traced_utAppAcc : stepBundle_traced.onRB (GF := GF) (hG := hG
             m.From' false lastnewi (W64 0) (W64 0)] ∧
         ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
         ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
       unfold FollowerStepResultC at hf
@@ -614,7 +614,7 @@ theorem stepBundle_traced_utAppAcc : stepBundle_traced.onRB (GF := GF) (hG := hG
     · exact h.elim
     all_goals
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hTle hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hTle hbase hge happ hfit (by rw [htr]; rfl)
         $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       have hre : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl

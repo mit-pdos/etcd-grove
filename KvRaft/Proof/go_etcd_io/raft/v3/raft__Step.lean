@@ -58,6 +58,7 @@ public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
 public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndexResp
 public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.MsgRest
 public import KvRaft.Proof.go_etcd_io.raft.v3.TracedUntraced
+public import KvRaft.Proof.go_etcd_io.raft.v3.LemmasXt
 
 @[expose] public section
 
@@ -90,15 +91,45 @@ local macro "ack_ty" : tactic =>
         exact absurd h (by w32_ne))))
 
 set_option hygiene false in
+/-- (#33 parity B1 (ii)) The branch's type is not `ty` (`MsgPreVote`, `MsgTransferLeader`): by its
+type hypothesis, or by an earlier dispatch test's negation in the context. -/
+local macro "close_ty_ne" : tactic =>
+  `(tactic| first
+    | assumption
+    | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne)
+    | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne))
+
+set_option hygiene false in
 /-- (Q8 stage 1 slice 13) The closing wand's `StepEnd` for a type it says nothing of (`StepEndTy`),
 by the branch's type hypothesis. -/
-local macro "end_ty" : tactic =>
-  `(tactic| exact fun _ => Perennial.EtcdGrove.StepEnd.of_ty (fun h => by
-    unfold Perennial.EtcdGrove.StepEndTy at h
-    first
-    | (rcases h with h | h | h | h | h | h | h | h | h | h <;>
+local macro "not_end_ty" : tactic =>
+  `(tactic| (intro h; unfold Perennial.EtcdGrove.StepEndTy at h; first
+    | (rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;>
         (first | rw [Hty] at h | rw [HtyA] at h | rw [HtyB] at h | rw [HtyX] at h) <;>
         exact absurd h (by w32_ne))))
+
+set_option hygiene false in
+/-- (#33 parity B1 (ii)) The closing wand's `StepEnd` from the branch's `StepEndG` (`Hend`): the
+pre-vote and transfer fields by the type. -/
+local macro "end_mk" : tactic =>
+  `(tactic| exact ⟨fun h _ => Hend (.inl h), fun h => absurd h (by close_ty_ne), fun _ h => absurd h (by close_ty_ne),
+    fun h => absurd h (by first | exact Hnx | exact Perennial.EtcdGrove.XtRec.of_ne (by close_ty_ne)),
+    fun _ h => absurd h (by close_ty_ne)⟩)
+
+set_option hygiene false in
+/-- (antithesis parity B1, option (b)) `"%Hxwframe"` at a branch of a type other than the transfer
+request and the append response: vacuous, by the branch's type hypothesis. -/
+local macro "xwf_ne" : tactic =>
+  `(tactic| exact fun h => h.elim
+    (fun h => absurd h (by first | close_ty_ne | (rw [Hns]; w32_ne) | (rw [HtyApp]; w32_ne)))
+    (fun h => absurd h.1 (by first | close_ty_ne | (rw [Hns]; w32_ne) | (rw [HtyApp]; w32_ne))))
+
+set_option hygiene false in
+/-- The closing wand's `StepEnd` for a type it says nothing of. -/
+local macro "end_ty" : tactic =>
+  `(tactic| exact ⟨fun h _ => absurd h (by not_end_ty), fun h => absurd h (by close_ty_ne),
+    fun _ h => absurd h (by close_ty_ne), fun h => absurd h (Perennial.EtcdGrove.XtRec.of_ne (by close_ty_ne)),
+    fun _ h => absurd h (by close_ty_ne)⟩)
 
 section dispatch
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -119,7 +150,7 @@ deposed leader can conflict below the commit index -- and a stale message never 
 `maybeAppend`/`commitTo` (`Step`'s preamble drops it), so the branch lemma needs the
 premise only under `uint.Z s.term ≤ uint.Z m.Term`. -/
 
-private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_App {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -131,7 +162,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .app m ents) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPostT γ md c r id s m (AppTrunc m ents s) Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -170,7 +201,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   unfold ncfupd
   iintro Hnc
-  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
+  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
   iapply finish_branchT γ md c r id s s' m _ recv err Gout Φ (AppTrunc m ents s) Htr (Hot := Hot) (Hdh s') Hwf'
     Hrecv Hstep (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hnc Hm Hghost Hrest Hphys
     [] HGq HΦ
@@ -209,7 +240,7 @@ private theorem isMessage_snap_isLeader (γ : RaftNames) (m : MessageM)
   iintro ⟨H, -⟩
   iexact H
 
-private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_Heartbeat {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -222,7 +253,7 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .heartbeat m ents ctx) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -266,13 +297,13 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   try unfold ncfupd
   iintro Hnc
-  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
+  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
   iapply finish_branch γ md c r id s s' m _ recv err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hrecv Hstep
     (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hnc Hmc Hghost Hrest Hphys
     [] HGq HΦ
   ileft; ipureintro; exact Herr
 
-private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_AppResp {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -282,13 +313,15 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ (m.Reject' = true → m.From' ≠ id))
     (Hnsb : s.gh.ns = true → γ.reBoot ≠ [])
     -- (2026-11-12, trace-check implementation step 3) `raft.Step.spec`'s premise
-    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) :
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0)
+    -- (antithesis parity B1, option (b)) not an append response `Step` records first (`XtRec`)
+    (Hnx : ¬ XtRec id m s) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .appResp m ents) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -361,8 +394,22 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
   -- `s`, for a close past `maybeCommit`
   icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc0, Hphys⟩
   icases ghostRest_dynFacts γ md c id s $$ Hrest with ⟨%Hdyn0, Hrest⟩
+  -- (option (b)) no transferee, or a response from the node itself: `stepLeader`'s timeout premise
+  -- is vacuous (`From ≠ 0`; the transferee is not the node, `ownRaftPhysC_lt_ne`)
+  icases ownRaftPhysC_lt_ne c r id s $$ Hphys with ⟨%Hltid, Hphys⟩
+  have Hxta : s.role = .leader → m.Term' = s.term → m.Reject' = false → m.From' = s.lt →
+      m.Index' = logLast s.logst → (s.gh.xt !! (m.From', s.term)).isSome := by
+    intro _ _ _ hft _
+    exfalso
+    by_cases hlt : s.lt = W64 0
+    · exact Hfnz (hft.trans hlt)
+    · have htr : s.gh.tr = none := by
+        cases h : s.gh.tr with
+        | none => rfl
+        | some _ => exact absurd (Hltr Hty (by rw [h]; simp)) hlt
+      exact Hnx ⟨Hty, fun h => Hltid (hft.symm.trans h), hlt, htr⟩
   ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
-  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hlrd Hack Hltr Hty Hto Hterm Hfnz Hrej Hwf)
+  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hlrd Hack Hltr Hxta Hty Hto Hterm Hfnz Hrej Hwf)
     $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   -- (slice 28c) the ghost state back at `s`, or past `maybeCommit` (`CloseMid`'s third case); (slice
@@ -370,7 +417,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
   unfold ncfupd
   iintro Hnc
   imod gate_close_mid γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv
-      (fun _ => Hstep) (fun _ => Hend) (by ack_ty) $$ Hclose HGo
+      (fun _ => Hstep) (by end_mk) (by ack_ty) $$ Hclose HGo
     with ⟨Hgh, HGq, %Hot⟩
   icases Hgh with (⟨-, Hgs⟩ | ⟨%s1, %Hmid, Hgs⟩)
   · iunfold ownStepGhost at Hgs
@@ -402,7 +449,166 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
       $$ Hnc Hghost Hrest Hphys [] HGq HΦ
     ileft; ipureintro; exact Herr
 
-private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
+/-- (antithesis parity B1, option (b)) **An append response from another node while the node has a
+transferee** (`XtRec`): `dispatch_AppResp` at the state with the transferee's acknowledgement recorded
+(`gh.xt := Y`, `Hrec`), the ghost state at `s` through the gates and the close and recorded after it
+(at `s` or past `maybeCommit`). -/
+private theorem dispatch_AppRespX {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
+    (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
+    (rs : List Loc) (Φ : val → IProp GF) (R : StepG GF) (Gout : NState → IProp GF)
+    (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
+    (Hty : m.Type' = MsgAppResp)
+    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ (m.Reject' = true → m.From' ≠ id))
+    (Hnsb : s.gh.ns = true → γ.reBoot ≠ [])
+    -- (2026-11-12, trace-check implementation step 3) `raft.Step.spec`'s premise
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0)
+    (Hxr : XtRec id m s) (Y : GSet (w64 × w64))
+    (HdhY : ∀ s', DynHypFor md m { s with gh := { s.gh with xt := Y } } s')
+    (HYa : s.role = .leader → m.Term' = s.term → m.Reject' = false → m.From' = s.lt →
+      m.Index' = logLast s.logst → (Y !! (m.From', s.term)).isSome) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
+      ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xt := Y } } -∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
+      □ (∀ t : NState, ⌜t.gh.xt = s.gh.xt⌝ -∗ ownStepGhost γ md c id t -∗
+        ownStepGhost γ md c id { t with gh := { t.gh with xt := Y } }) -∗
+      msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
+      isMessage γ (absMsg .appResp m ents) -∗
+      R.G -∗ stepGates c r id { s with gh := { s.gh with xt := Y } } m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
+      stepClose γ md c id m ents ctx s R Gout -∗
+      ▷ stepPost γ md c r id { s with gh := { s.gh with xt := Y } } m Gout Φ -∗
+      WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+        {{ v, ncfupd ⊤ ⊤ (Φ v) }} := by
+  obtain ⟨Hto, Hterm, Hfnz, Hrej⟩ := Hm
+  iintro #Hinit Hphys Hghost Hrest #Hrec Hmsg #Hm HG Hgates Hclose HΦ
+  -- (2026-10-13) the read-only facts a commit's release needs, from the ghost state
+  have Hlrd_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+      ⌜s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0⌝ := by
+    iintro Hg
+    by_cases hl : s.role = .leader
+    · ihave %H1 := ghost_rdOk γ id s hl c.voters $$ Hg
+      ipureintro; intro _; exact H1
+    · ipureintro; exact fun h => absurd h hl
+  ihave %Hlrd := Hlrd_lem $$ Hghost
+  -- (2026-10-16, stage R8a, D11) an accepted acknowledgement of the leader's term is within its
+  -- log: the message's ghost witness (`ackIn`, `isMessage_appResp_ackIn`) at the leader
+  -- (`ownRaftGhost_ackIn_le`), in `logLast` through `lastIndex() + 1` not wrapping
+  icases ownRaftPhysC_prvals_ok c r id { s with gh := { s.gh with xt := Y } } $$ Hphys with ⟨-, %Hnw, Hphys⟩
+  replace Hnw : LogNoWrap s.logst := Hnw
+  have Hack_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
+      isMessage γ (absMsg .appResp m ents) -∗
+      ⌜s.role = .leader → m.Term' = s.term →
+        (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
+        (m.Reject' = true → s.gh.ns = true →
+          2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
+          (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
+            uint.Z t0 ≤ 1))⌝ ∗
+      ownRaftGhost γ id (toPState s) md.isDyn := by
+    iintro Hg #Hmsg
+    -- (2026-10-19, D21 M3) a rejection in the no-snapshot mode: the message's clause
+    -- (`isMessage_appResp_rej_inv`), and the leader's term at `1` (`ownRaftGhost_term1`)
+    icases ownRaftGhost_term1 γ id (toPState s) $$ Hg with ⟨%Ht1, Hg⟩
+    ihave %Hrejp : ⌜m.Reject' = true → s.gh.ns = true →
+        2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
+        (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
+          uint.Z t0 ≤ 1)⌝ $$ []
+    · by_cases hrj : m.Reject' = true
+      · icases isMessage_appResp_rej_inv γ (absMsg .appResp m ents) rfl hrj $$ Hmsg with %Hc
+        ipureintro
+        intro _ hns
+        have Hne := Hnsb hns
+        obtain ⟨h1, h2, h3⟩ := Hc Hne
+        have Hbl := List.length_pos_iff.mpr Hne
+        exact ⟨by simp only [absMsg, absMsgFrom] at h1; omega, h2, h3, Ht1 Hne⟩
+      · ipureintro; intro h; exact absurd h hrj
+    by_cases hl : s.role = .leader
+    rotate_left
+    · iframe Hg; ipureintro; exact fun h => absurd h hl
+    by_cases ht : m.Term' = s.term
+    rotate_left
+    · iframe Hg; ipureintro; exact fun _ h => absurd h ht
+    by_cases hr : m.Reject' = false
+    rotate_left
+    · iframe Hg; ipureintro; exact fun _ _ => ⟨fun h => absurd h hr, Hrejp⟩
+    ihave #Hai := isMessage_appResp_ackIn γ (absMsg .appResp m ents) rfl hr $$ Hmsg
+    ihave Hai' := ackIn_cast γ (show (absMsg .appResp m ents).term = (toPState s).term from ht)
+      (show (absMsg .appResp m ents).index = m.Index' from rfl) $$ Hai
+    icases ownRaftGhost_ackIn_le γ id (toPState s) m.Index'
+        (by rw [toPState_role, proleRole_leader]; exact hl) $$ Hg Hai' with ⟨%H, Hg⟩
+    iframe Hg
+    ipureintro
+    intro _ _
+    refine ⟨fun _ => ?_, Hrejp⟩
+    rw [Hnw.logLast_Z]
+    simp only [toPState, plogLastIndexZ, List.length_append] at H
+    push_cast at H
+    omega
+  icases Hack_lem $$ Hghost Hm with ⟨%Hack, Hghost⟩
+  -- (2026-11-11, slice 28c) the tracker's peers within the configuration and the dynamic mode's facts at
+  -- `s`, for a close past `maybeCommit`
+  icases ownRaftPhysC_dom c r id { s with gh := { s.gh with xt := Y } } $$ Hphys with ⟨%Hpc0, Hphys⟩
+  icases ghostRest_dynFacts γ md c id s $$ Hrest with ⟨%Hdyn0, Hrest⟩
+  ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
+  wp_apply (wp_Step_MsgAppResp P Q c r id { s with gh := { s.gh with xt := Y } } ml m sn ctx rs ents (ghostIn γ md c id s R) Hlrd Hack Hltr HYa Hty Hto Hterm Hfnz Hrej Hwf)
+    $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
+  obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+  -- (slice 28c) the ghost state back at `s`, or past `maybeCommit` (`CloseMid`'s third case); (slice
+  -- 30c) the branch's result guarded (`stepOutG`: `G0`/`G1` only off `LeadRan`)
+  unfold ncfupd
+  iintro Hnc
+  have hwo : stepOutG c m ({ s with gh := { s.gh with xt := Y } } : NState) (ghostIn γ md c id s R) s'.outbox ⊢
+      stepOutG c m s (ghostIn γ md c id s R) s'.outbox := .rfl
+  ihave HGo := hwo $$ HGo
+  imod gate_close_mid γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv
+      (fun _ => Hstep)
+      ⟨fun _ h => absurd Hxr h, fun h => absurd h (by rw [Hty]; w32_ne),
+        fun _ h => absurd h (by rw [Hty]; w32_ne),
+        fun _ => ⟨Y, Hend (.inl (by unfold StepEndTy; simp [Hty]))⟩,
+        fun _ h => absurd h (by rw [Hty]; w32_ne)⟩ (by ack_ty) $$ Hclose HGo
+    with ⟨Hgh, HGq, %Hot⟩
+  icases Hgh with (⟨-, Hgs⟩ | ⟨%s1, %Hmid, Hgs⟩)
+  · ihave Hgs := Hrec $$ %s %rfl Hgs
+    iunfold ownStepGhost at Hgs
+    icases Hgs with ⟨Hghost, Hrest⟩
+    iapply finish_branch γ md c r id { s with gh := { s.gh with xt := Y } } s' m _ recv err Gout Φ (Hot := Hot)
+      (HdhY s') Hwf' Hrecv Hstep
+      (fun _ => Hfr) (fun _ => Htm) Hresp Hfr.nsst $$ Hnc Hm Hghost Hrest Hphys
+      [] HGq HΦ
+    ileft; ipureintro; exact Herr
+  · -- (slice 28c) past `maybeCommit`, the ghost state there: the release and the appends from there, the
+    -- mode unchanged, the whole step the model's witness; (option (b)) the record made there
+    obtain ⟨-, hrole, hterm', hrej', hdom1, pvs1, b, N, Hpm1, rfl, hlog⟩ :=
+      (Hmid.resolve_left (fun h => absurd (Hty.symm.trans h.1) (by w32_ne))).resolve_left
+        (fun h => absurd (Hty.symm.trans h.1) (by w32_ne))
+    ihave Hgs := Hrec $$ %(commitAt { s with prvals := pvs1 } b N)
+      %(by rw [StepProof.commitAt_gh' s pvs1 b N]) Hgs
+    rw [show ({ commitAt { s with prvals := pvs1 } b N with
+        gh := { (commitAt { s with prvals := pvs1 } b N).gh with xt := Y } } : NState) =
+        commitAt { ({ s with gh := { s.gh with xt := Y } } : NState) with prvals := pvs1 } b N by
+      cases b <;> rfl]
+    iunfold ownStepGhost at Hgs
+    icases Hgs with ⟨Hghost, Hrest⟩
+    have Hng := Hfr.nsst
+    iapply StepProof.finish_branch_mid γ md c r id { s with gh := { s.gh with xt := Y } }
+      (commitAt { ({ s with gh := { s.gh with xt := Y } } : NState) with prvals := pvs1 } b N) _ m err Gout Φ
+      (fun _ _ _ _ hmd _ HI => (StepProof.gmodePre_appResp (md := md) (ents := ents) Hty
+          (by rw [StepProof.commitAt_role, hrole]; decide)).dynHyp
+        (fun h => absurd (Hty.symm.trans h) (by w32_ne))
+        (fun h => absurd (Hty.symm.trans h) (by w32_ne)) hmd HI)
+      Hwf' (StepProof.appResp_rest _ pvs1 b N Hty hrole hterm' hrej' hdom1 Hpm1 Hend
+        (by rw [← hlog]; cases b <;> rfl) Hpc0)
+      (fun _ => Hfr) (fun _ => Htm) Hresp
+      ⟨Hng.1.trans (StepProof.commitAt_gh' { s with gh := { s.gh with xt := Y } } pvs1 b N).symm,
+        Hng.2.trans (StepProof.commitAt_storage { s with gh := { s.gh with xt := Y } } pvs1 b N).symm⟩
+      (StepProof.outTrStep_commitAt { s with gh := { s.gh with xt := Y } } pvs1 b N _ Hot)
+      (fun _ h => StepProof.stepOut_appResp_md Hty h)
+      (StepProof.stepOut_of_stepCD_appResp Hstep Hty (fun dec c0 h0 g hmd =>
+        ⟨(Hdyn0 dec c0 h0 g hmd).1, HdhY _ dec c0 h0 g hmd _ (Hdyn0 dec c0 h0 g hmd).2⟩))
+      $$ Hnc Hghost Hrest Hphys [] HGq HΦ
+    ileft; ipureintro; exact Herr
+
+private theorem dispatch_HeartbeatResp {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -415,7 +621,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .heartbeatResp m ents ctx) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -449,7 +655,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
   obtain ⟨cx, recv, Hc, Hrecv, Hstep⟩ := Hst
   unfold ncfupd
   iintro Hnc
-  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
+  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
   ihave #Hmc : isMessage γ (absMsg .heartbeatResp m ents cx) $$ []
   · rcases Hc with rfl | rfl
     · unfold isMessage; simp only [absMsg, absMsgFrom]; ileft; ipureintro; trivial
@@ -459,7 +665,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
     [] HGq HΦ
   ileft; ipureintro; exact Herr
 
-private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_Beat {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -470,7 +676,7 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -491,14 +697,14 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
     $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
   unfold ncfupd
   iintro Hnc
-  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
+  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
   iapply finish_branch0 γ md c r id s s' m err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hnc Hghost Hrest Hphys [] HGq HΦ
   ileft; ipureintro; exact Herr
 
 /-- `MsgCheckQuorum` (2026-10-17, `CheckQuorum` on): as `MsgBeat`, a local message; the leader
 may step down at its term. -/
-private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_CheckQuorum {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -509,7 +715,7 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -517,10 +723,10 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
   iintro #Hinit Hphys Hghost Hrest Hmsg HG Hgates Hclose HΦ
   ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
   wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hty Hterm Hwf)
-    $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
+    $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
   unfold ncfupd
   iintro Hnc
-  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
+  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
   iapply finish_branch0 γ md c r id s s' m err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hnc Hghost Hrest Hphys [] HGq HΦ
   ileft; ipureintro; exact Herr
@@ -532,7 +738,7 @@ the three `step_snap_*` rules need no other protocol fact: a restore replaces th
 wholesale and the fast-forward's `commitTo` is in range by `matchTerm`. In either mode since
 2026-10-14 (stage B8): the branch's `StepCDS` witness updates the mode's ghost state
 (`ghost_stepCDS`), with what the mode asks of the snapshot (`GMode.SnapOk`). -/
-private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_Snap {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -551,7 +757,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       isMessageC γ (absSnap m sv scfg) -∗
       -- (D22 S-r, 2026-10-21) its data certificate, registered with its configuration's
       snapDataOk γ sv.Metadata'.Index' sv.Data' -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ snapPost γ md c r id s m sn Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -632,7 +838,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [Hsn] at h; cases h; exact Hsf.2
 
 /-- `MsgReadIndex` (2026-10-13): a local or forwarded request, `Term = 0`. -/
-private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_ReadIndex {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -646,7 +852,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .readIndex m ents ctx) -∗
       rdCred γ 1 -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -679,11 +885,11 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
   ihave %Hlrd := Hlrd_lem $$ Hghost
   ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
   wp_apply (wp_Step_MsgReadIndex P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hty Hterm Hne Hlok Hlrd Hwf Hnors)
-    $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
+    $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
   obtain ⟨recv, Hrecv, Hlen, Hstep⟩ := Hst
   unfold ncfupd
   iintro Hnc
-  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
+  imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
   -- the request's credit goes with it, if it was received
   have Hcnt : rdCount recv ≤ 1 := by
     have : rdCount recv ≤ recv.length := List.countP_le_length
@@ -708,7 +914,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
   exact ⟨Hwf', Hout, fun _ => rfl, fun _ => Hfr, fun _ => Htm, by resp_other⟩
 
 /-- `MsgReadIndexResp` (2026-10-13): a leader's answer to a forwarded request. -/
-private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
+private theorem dispatch_ReadIndexResp {nc : Bool} (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
@@ -721,7 +927,7 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .readIndexResp m ents ctx) -∗
-      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) -∗
+      R.G -∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc -∗
       stepClose γ md c id m ents ctx s R Gout -∗
       ▷ stepPost γ md c r id s m Gout Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
@@ -741,15 +947,17 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
   obtain ⟨e, rfl⟩ := He
   ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
   wp_apply (wp_Step_MsgReadIndexResp P Q c r id s ml m sn ctx rs e (ghostIn γ md c id s R) Hty Hto Hterm Hfid Hwf)
-    $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
+    $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   unfold ncfupd
   iintro Hnc
-  imod gate_close γ md c id m [e] ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
+  imod gate_close γ md c id m [e] ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, %Hot⟩
   iapply finish_branch γ md c r id s s' m _ recv err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hrecv Hstep
     (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hnc Hm Hghost Hrest Hphys [] HGq HΦ
   ileft; ipureintro; exact Herr
 
+-- (#33 parity B1 (i)) the five more `StepEnd` types' closes: over the default in the part copies
+set_option maxHeartbeats 400000 in
 /-- The top-level dispatch: the one triple for `Step`, and **the one place in this
 development where ghost state is updated**. Each branch lemma hands back a pure `Step`
 witness together with the list of messages it consumed; here that becomes a single
@@ -811,7 +1019,7 @@ theorem raft.Step.wp_proof
   have PB : raft.Step.PbPostulates (GF := GF) (hG := hG) :=
     ⟨wp_Message_GetType, wp_Message_GetTerm, wp_Message_GetFrom, wp_Message_GetLogTerm,
      wp_Message_GetIndex, wp_Message_GetReject, wp_Message_GetContext, wp_MessageType_Enum⟩
-  intro c md γ r id s ml m ents ctx sn rs R Gout Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+  intro nc c md γ r id s ml m ents ctx sn rs R Gout Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
     Hsnaptr Hsartr Hsaptr Hp3 Hxtr Hltr
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hxfer, Hm, Hcred, Hlc, #Hsnap, HG, Hgates, Hclose⟩ HΦ
@@ -888,7 +1096,7 @@ theorem raft.Step.wp_proof
     ihave HGo := stepOutG_of_ne c m s _ (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) $$ HGo
     unfold ncfupd
     iintro Hnc
-    imod gate_close_mid γ md c id m ents ctx s R Gout s' B recv (fun _ => Hstep) (fun _ => Hend) (by ack_ty) $$ Hclose HGo
+    imod gate_close_mid γ md c id m ents ctx s R Gout s' B recv (fun _ => Hstep) (by end_mk) (by ack_ty) $$ Hclose HGo
       with ⟨Hgh, HGq, %Hot⟩
     have Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage := Hfr.1.nsst
     ihave Hres : |={⊤}=> notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s'
@@ -975,7 +1183,7 @@ theorem raft.Step.wp_proof
           fun h => absurd h (by rw [Hty]; w32_ne)⟩,
         fun h => absurd h (by rw [Hty]; w32_ne)⟩
     isplitr
-    · ipureintro; exact fun _ _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+    · ipureintro; exact fun _ _ _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
     isplitr
     · ipureintro; exact fun h => absurd h (by rw [Hty]; w32_ne)
     isplitr
@@ -1035,7 +1243,7 @@ theorem raft.Step.wp_proof
           fun _ => Happ0⟩,
           fun _ sv h => absurd (Hsn.symm.trans h) (by simp)⟩
       isplitr
-      · ipureintro; exact fun _ _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+      · ipureintro; exact fun _ _ _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
       isplitr
       · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
       isplitr
@@ -1070,6 +1278,10 @@ theorem raft.Step.wp_proof
         $$ [$Hphys $Hmi $HG $Hgates] as %err ⟨Hphys, %Herr, HGo⟩
       icases Hphys with ⟨%prs, %pvs, %il, Hphys⟩
       -- (slice 12) closed at the state the branch returns
+      obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
+      have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
+                                   prvals := pvs, isLearner := il } = toPState s := by
+        simp only [toPState, Hp1, Hp2, Hp3, Hrole]; rfl
       unfold ncfupd
       iintro Hnc
       imod gate_close γ md c id m ents ctx s R Gout
@@ -1077,11 +1289,7 @@ theorem raft.Step.wp_proof
                    isLearner := il } (plogLastIndexZ (toPState s).base (toPState s).log) []
           (fun h => by rw [Htr0] at h; cases h) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP)
           (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
-        (fun h => by rw [Htr0] at h; cases h) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, -⟩
-      obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
-      have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv, progress := prs,
-                                   prvals := pvs, isLearner := il } = toPState s := by
-        simp only [toPState, Hp1, Hp2, Hp3, Hrole]; rfl
+        (fun _ _ => ⟨Hps, rfl, rfl, rfl, rfl, rfl⟩) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, -⟩
       -- the node at the snapshot's configuration: statically `SnapAckOk`, (2026-10-28, stage U3)
       -- dynamically `SnapAckDyn` (`StepR.applySnap`)
       obtain ⟨Hsa1, Hsa2⟩ := ackSnapLog_snapAck s.logst m s.term sv
@@ -1124,9 +1332,9 @@ theorem raft.Step.wp_proof
         exact ⟨fun h => absurd (h HtyA) (by simp),
           fun _ sv' h => by cases h; exact ⟨rfl, ⟨prs, pvs, il, rfl⟩, Hmd'⟩⟩
       isplitr
-      · ipureintro; exact fun _ _ _ h => absurd (h HtyA) (by simp)
+      · ipureintro; exact fun _ _ _ h _ => absurd (h HtyA) (by simp)
       isplitr
-      · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
+      · ipureintro; xwf_ne
       isplitr
       · ipureintro
         obtain ⟨Hk1, Hk2⟩ := ackSnapLog_keep s.logst m s.term sv
@@ -1220,7 +1428,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ h => absurd HtyB h
     isplitr
-    · ipureintro; exact fun h => absurd h (by rw [HtyB]; w32_ne)
+    · ipureintro; xwf_ne
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1 Hpk
     isplitr
@@ -1249,7 +1457,7 @@ theorem raft.Step.wp_proof
       exact ⟨Hwf', Href, fun _ => Hsf.2.1,
         ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
          fun h => absurd h (by rw [Hns]; w32_ne)⟩,
-        fun h => absurd Hns h, fun h => absurd h (by rw [Hns]; w32_ne), fun h => absurd Hns h, Hresp',
+        fun h => absurd Hns h, by xwf_ne, fun h => absurd Hns h, Hresp',
         fun _ => ⟨Hsf.1, Hsf.2.2⟩,
         fun h => absurd h (by rw [Hns]; w32_ne)⟩
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hm', #Hdat⟩
@@ -1274,7 +1482,7 @@ theorem raft.Step.wp_proof
       ipureintro
       exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
           fun h => absurd h HtyA⟩,
-        fun h _ _ _ => Hfr' h, fun h => absurd h (by rw [HtyApp]; w32_ne), Htm', Hresp',
+        fun h _ _ _ _ => Hfr' h, by xwf_ne, Htm', Hresp',
         fun h => absurd h Hns, fun _ => Htr⟩
     ihave #Hm' := Hmsg0 $$ %MsgType.app %(by rw [HtyApp]; exact mtypeOf_MsgApp) %(by decide)
     rw [isMessage_absMsg_ctx γ .app m ents ctx (And.intro (by decide) (by decide))]
@@ -1285,10 +1493,12 @@ theorem raft.Step.wp_proof
   -- `stepPost`: a follower with a leader records it and its term in `NGhost.xw` (the forward's
   -- witness, `ownStepGhost_xw_record`), which `NetFrame` does not allow (`"%Hxwframe"`).
   by_cases HtyX : m.Type' = MsgTransferLeader
-  · obtain ⟨Hent, Hctx0⟩ := Hrest.2.2 HtyX
-    have Hdh1 : ∀ (X : GSet (w64 × w64)) s', DynHypFor md m { s with gh := { s.gh with xw := X } } s' :=
-      fun X _ _ _ _ _ hmd _ HI =>
-        GMode.Pre.dynHyp (s := { s with gh := { s.gh with xw := X } }) Hpre Hns (fun h => absurd h HtyB) hmd HI
+  · obtain ⟨Hent, Hctx0, Hzf⟩ := Hrest.2.2 HtyX
+    have Hdh1 : ∀ (X Y : GSet (w64 × w64)) (b : Bool) (Z : GSet w64) s',
+        DynHypFor md m { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } s' :=
+      fun X Y b Z _ _ _ _ _ hmd _ HI =>
+        GMode.Pre.dynHyp (s := { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } }) Hpre Hns
+          (fun h => absurd h HtyB) hmd HI
     ihave #Hsd := isMessage_stepdown (GF := GF) γ id m
     ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
     have Hlok : s.role = .follower → s.lead ≠ id := by
@@ -1306,6 +1516,44 @@ theorem raft.Step.wp_proof
         ipureintro; exact fun _ => H
       · ipureintro; exact fun h => absurd h hl
     ihave %HLT := HLT_lem $$ Hghost
+    -- (antithesis parity B1, option (b)) at a leader, a transferee whose `Match` is the last index:
+    -- its acknowledgement at the leader's term (`matchedOk`), of an index past `0` (`campOwn`), the
+    -- witness of the `MsgTimeoutNow` the step sends it (`NGhost.xt`)
+    icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨-, %Hnw, Hphys⟩
+    ihave ⟨#Hxwit, Hghost⟩ : (□ (⌜s.role = .leader ∧ m.From' ≠ id ∧
+          (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst⌝ -∗
+          ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ m.From' s.term i)) ∗
+        ownRaftGhost γ id (toPState s) md.isDyn $$ [Hghost]
+    · by_cases HcX : s.role = .leader ∧ m.From' ≠ id ∧
+          (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst
+      · obtain ⟨hl, hne, hmt⟩ := HcX
+        icases ownRaftGhost_leader_last1 γ id (toPState s) $$ Hghost with ⟨%HL1, Hghost⟩
+        have hz : uint.Z (logLast s.logst) ≠ 0 := by
+          have H := HL1 (by rw [toPState_role, proleRole_leader]; exact hl)
+          rw [Hnw.logLast_Z]
+          simp only [toPState, plogLastIndexZ, List.length_append] at H
+          push_cast at H
+          omega
+        have hlk : (toPState s).matched !! m.From' = some (logLast s.logst) := by
+          have h0 : logLast s.logst ≠ W64 0 := fun h => hz (by rw [h]; rfl)
+          simp only [toPState, hl, ↓reduceIte]
+          exact xt_lookup_of_getD hmt h0
+        icases ownRaftGhost_matched_ack γ id (toPState s) m.From' (logLast s.logst)
+            (by rw [toPState_role, proleRole_leader]; exact hl) hne hlk $$ Hghost with ⟨#Hak, Hghost⟩
+        rw [show (toPState s).term = s.term from rfl]
+        isplitl []
+        · imodintro
+          iintro %_
+          iexists logLast s.logst
+          isplitl []
+          · ipureintro; exact hz
+          · iexact Hak
+        · iexact Hghost
+      · isplitl []
+        · imodintro
+          iintro %h
+          exact absurd h HcX
+        · iexact Hghost
     ihave Hg : ownStepGhost γ md c id s $$ [Hghost Hrest]
     · iunfold ownStepGhost; iframe
     -- the stamped request's refutation, from its witness
@@ -1319,36 +1567,154 @@ theorem raft.Step.wp_proof
         iframe Hg; ipureintro; exact fun _ => H
     -- the record, at a follower with a leader: in the struct now; (2026-11-10, Q8 stage 1 slice 11)
     -- in the ghost state after the step (the ghost state is the caller's across the handler, at
-    -- `s`), `Step`'s gates moved to the recorded state (`stepGates_xw`)
-    ihave ⟨%X, %HX, %Hxo, Hgrec, Hphys, Hgates⟩ : ∃ X : GSet (w64 × w64), ⌜∀ p, p ∈ s.gh.xw → p ∈ X⌝ ∗
+    -- `s`), `Step`'s gates moved to the recorded state (`stepGates_xw`). (2026-11-24, #33 S4) And,
+    -- at a follower or a leader (the roles whose step may forward the request or make a transferee),
+    -- the request recorded as stepped (`NGhost.xs`, `ownRaftPhysC_set_xs`, `ownStepGhost_set_xs`).
+    -- (antithesis parity B1, transfer source) and, at a follower or a leader, the request's sender
+    -- (`NGhost.xsrc`, `ownRaftPhysC_xsrc_record`, `ownStepGhost_set_xsrc`): `send`'s transfer clause
+    ihave ⟨%X, %Y, %b, %Z, %HX, %HXg, %Hxo, %HYx, %Hxsb, %HZg, %HZo, Hgrec, Hphys, Hgates⟩ :
+        ∃ (X Y : GSet (w64 × w64)) (b : Bool) (Z : GSet w64),
+        ⌜∀ p, p ∈ s.gh.xw → p ∈ X⌝ ∗
+        ⌜∀ p, p ∈ X → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)⌝ ∗
         ⌜s.role = .follower → s.lead ≠ W64 0 → (X !! (s.lead, s.term)).isSome⌝ ∗
-        (ownStepGhost γ md c id s -∗ ownStepGhost γ md c id { s with gh := { s.gh with xw := X } }) ∗
-        ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xw := X } } ∗
-        stepGates c r id { s with gh := { s.gh with xw := X } } m ents sn ctx rs (ghostIn γ md c id s R)
+        ⌜s.role = .leader → m.From' ≠ id → (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst →
+          (Y !! (m.From', s.term)).isSome⌝ ∗
+        ⌜s.role = .follower ∨ s.role = .leader → b = true⌝ ∗
+        ⌜∀ f, f ∈ Z → f ∈ s.gh.xsrc ∨ f = m.From'⌝ ∗
+        ⌜s.role = .follower → s.lead ≠ W64 0 → (Z !! m.From').isSome⌝ ∗
+        (ownStepGhost γ md c id s -∗
+          ownStepGhost γ md c id { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } }) ∗
+        ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } ∗
+        stepGates c r id { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } m ents sn ctx rs
+          (ghostIn γ md c id s R) nc
         $$ [Hphys Hgates]
     · by_cases Hrec : s.role = .follower ∧ s.lead ≠ W64 0
       · iexists insert (s.lead, s.term) s.gh.xw
+        iexists s.gh.xt
+        iexists true
+        iexists insert m.From' s.gh.xsrc
         isplitr
         · ipureintro; intro p hp; exact (GMap.elem_of_insert_set _ _ _).2 (.inr hp)
         isplitr
+        · ipureintro; intro p hp
+          rcases (GMap.elem_of_insert_set _ _ _).1 hp with h | h
+          · exact .inr ⟨h, Hrec.1, Hrec.2⟩
+          · exact .inl h
+        isplitr
         · ipureintro; intro _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
         isplitr
-        · iintro Hg; iapply ownStepGhost_xw_record γ md c id s Hrec.2 (by rw [Hrec.1]; decide) $$ Hg
+        · ipureintro; intro hl; exact absurd (Hrec.1.symm.trans hl) (by decide)
+        isplitr
+        · ipureintro; intro _; rfl
+        isplitr
+        · ipureintro; exact fun f hf => ((GMap.elem_of_insert_set _ _ _).1 hf).elim .inr .inl
+        isplitr
+        · ipureintro; intro _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
+        isplitr
+        · iintro Hg
+          ihave Hg := ownStepGhost_xw_record γ md c id s Hrec.2 (by rw [Hrec.1]; decide) $$ Hg
+          ihave Hg := ownStepGhost_set_xsrc γ md c id
+            { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } (insert m.From' s.gh.xsrc) $$ Hg
+          iapply ownStepGhost_set_xs γ md c id
+            { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw, xsrc := insert m.From' s.gh.xsrc } } true $$ Hg
         isplitl [Hphys]
-        · iapply ownRaftPhysC_xw_record (c := c) (V := c.voters) r id s (s.lead, s.term) $$ Hphys
-        iapply stepGates_xw c r id s m ents sn ctx rs _ _ HtyX Hrec.1 $$ Hgates
-      · iexists s.gh.xw
-        rw [show ({ s with gh := { s.gh with xw := s.gh.xw } } : NState) = s from rfl]
-        iframe Hphys Hgates
-        isplitr
-        · ipureintro; exact fun _ h => h
-        isplitr
-        · ipureintro; exact fun h1 h2 => absurd ⟨h1, h2⟩ Hrec
-        iintro Hg; iexact Hg
+        · ihave Hphys := ownRaftPhysC_xw_record (c := c) (V := c.voters) r id s (s.lead, s.term) $$ Hphys
+          ihave Hphys := ownRaftPhysC_xsrc_record (c := c) (V := c.voters) r id
+            { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } m.From' $$ Hphys
+          iapply ownRaftPhysC_set_xs (c := c) (V := c.voters) r id
+            { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw, xsrc := insert m.From' s.gh.xsrc } } $$ Hphys
+        iapply stepGates_xw c r id s m ents sn ctx rs _ _ s.gh.xt true _ HtyX (.inl Hrec.1) $$ Hgates
+      · by_cases Hfl : s.role = .follower ∨ s.role = .leader
+        · by_cases HcX : s.role = .leader ∧ m.From' ≠ id ∧
+              (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst
+          · -- (option (b)) a caught-up transferee at a leader: its acknowledgement recorded
+            ihave #Hw := Hxwit $$ %HcX
+            iexists s.gh.xw
+            iexists insert (m.From', s.term) s.gh.xt
+            iexists true
+            iexists insert m.From' s.gh.xsrc
+            isplitr
+            · ipureintro; exact fun _ h => h
+            isplitr
+            · ipureintro; exact fun _ h => .inl h
+            isplitr
+            · ipureintro; exact fun h1 h2 => absurd ⟨h1, h2⟩ Hrec
+            isplitr
+            · ipureintro; intro _ _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
+            isplitr
+            · ipureintro; intro _; rfl
+            isplitr
+            · ipureintro; exact fun f hf => ((GMap.elem_of_insert_set _ _ _).1 hf).elim .inr .inl
+            isplitr
+            · ipureintro; intro _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
+            isplitr
+            · iintro Hg
+              ihave Hg := ownStepGhost_xt_record γ md c id s (m.From', s.term) $$ Hw Hg
+              ihave Hg := ownStepGhost_set_xsrc γ md c id
+                { s with gh := { s.gh with xt := insert (m.From', s.term) s.gh.xt } } (insert m.From' s.gh.xsrc) $$ Hg
+              iapply ownStepGhost_set_xs γ md c id
+                { s with gh := { s.gh with xt := insert (m.From', s.term) s.gh.xt, xsrc := insert m.From' s.gh.xsrc } } true $$ Hg
+            isplitl [Hphys]
+            · ihave Hphys := ownRaftPhysC_xt_record (c := c) (V := c.voters) r id s (m.From', s.term) $$ Hphys
+              ihave Hphys := ownRaftPhysC_xsrc_record (c := c) (V := c.voters) r id
+                { s with gh := { s.gh with xt := insert (m.From', s.term) s.gh.xt } } m.From' $$ Hphys
+              iapply ownRaftPhysC_set_xs (c := c) (V := c.voters) r id
+                { s with gh := { s.gh with xt := insert (m.From', s.term) s.gh.xt, xsrc := insert m.From' s.gh.xsrc } } $$ Hphys
+            iapply stepGates_xw c r id s m ents sn ctx rs _ s.gh.xw (insert (m.From', s.term) s.gh.xt) true _
+              HtyX Hfl $$ Hgates
+          · iexists s.gh.xw
+            iexists s.gh.xt
+            iexists true
+            iexists insert m.From' s.gh.xsrc
+            isplitr
+            · ipureintro; exact fun _ h => h
+            isplitr
+            · ipureintro; exact fun _ h => .inl h
+            isplitr
+            · ipureintro; exact fun h1 h2 => absurd ⟨h1, h2⟩ Hrec
+            isplitr
+            · ipureintro; exact fun h1 h2 h3 => absurd ⟨h1, h2, h3⟩ HcX
+            isplitr
+            · ipureintro; intro _; rfl
+            isplitr
+            · ipureintro; exact fun f hf => ((GMap.elem_of_insert_set _ _ _).1 hf).elim .inr .inl
+            isplitr
+            · ipureintro; intro _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
+            isplitr
+            · iintro Hg
+              ihave Hg := ownStepGhost_set_xsrc γ md c id s (insert m.From' s.gh.xsrc) $$ Hg
+              iapply ownStepGhost_set_xs γ md c id
+                { s with gh := { s.gh with xsrc := insert m.From' s.gh.xsrc } } true $$ Hg
+            isplitl [Hphys]
+            · ihave Hphys := ownRaftPhysC_xsrc_record (c := c) (V := c.voters) r id s m.From' $$ Hphys
+              iapply ownRaftPhysC_set_xs (c := c) (V := c.voters) r id
+                { s with gh := { s.gh with xsrc := insert m.From' s.gh.xsrc } } $$ Hphys
+            iapply stepGates_xw c r id s m ents sn ctx rs _ s.gh.xw s.gh.xt true _ HtyX Hfl $$ Hgates
+        · iexists s.gh.xw
+          iexists s.gh.xt
+          iexists s.gh.xs
+          iexists s.gh.xsrc
+          rw [show ({ s with gh := { s.gh with xw := s.gh.xw, xt := s.gh.xt, xs := s.gh.xs, xsrc := s.gh.xsrc } } : NState) = s from rfl]
+          iframe Hphys Hgates
+          isplitr
+          · ipureintro; exact fun _ h => h
+          isplitr
+          · ipureintro; exact fun _ h => .inl h
+          isplitr
+          · ipureintro; exact fun h1 h2 => absurd ⟨h1, h2⟩ Hrec
+          isplitr
+          · ipureintro; exact fun hl => absurd (.inr hl) Hfl
+          isplitr
+          · ipureintro; exact fun h => absurd h Hfl
+          isplitr
+          · ipureintro; exact fun _ h => .inl h
+          isplitr
+          · ipureintro; exact fun hf => absurd (.inl hf) Hfl
+          iintro Hg; iexact Hg
     iunfold ownStepGhost at Hg
     icases Hg with ⟨Hghost, Hrest⟩
     ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
-    ihave HΦ : ▷ stepPost γ md c r id { s with gh := { s.gh with xw := X } } m Gout Φ $$ [HΦ Hlc]
+    ihave HΦ : ▷ stepPost γ md c r id { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } m Gout Φ $$ [HΦ Hlc]
     · inext
       unfold stepPost
       iframe Hlc
@@ -1356,35 +1722,143 @@ theorem raft.Step.wp_proof
       iapply HΦ $$ %err %s' %c' %md'
       iframe Hphys Hghost Herr HG
       ipureintro
-      have hg : s'.gh = ({ s with gh := { s.gh with xw := X } } : NState).gh := (Hfr' Hns).2.2.2.2.2.2.2.1
+      have hg : s'.gh = ({ s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } : NState).gh := (Hfr' Hns).2.2.2.2.2.2.2.1
       exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
           fun h => absurd h HtyA⟩,
         fun _ _ h _ => absurd HtyX h,
         fun _ => ⟨by
             obtain ⟨a1, a2, a3, a4, a5, a6, a7, -, a9, a10⟩ := Hfr' Hns
             exact ⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩,
-          by rw [hg], fun p hp => by rw [hg]; exact HX p hp⟩,
+          by rw [hg], fun p hp => by rw [hg]; exact HX p hp, fun p hp => by rw [hg] at hp; exact HXg p hp,
+          fun f hf => by rw [hg] at hf; exact (HZg f hf).imp (fun h => h) (fun h => ⟨HtyX, h⟩)⟩,
         Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
     ihave Hmi := msgInC_moves (by rw [HtyX]; decide) _ _ _ $$ Hmi
     wp_apply (wp_Step_MsgTransferLeader (B := plogLastIndexZ (toPState s).base (toPState s).log) P PB c r id
-      { s with gh := { s.gh with xw := X } } ml m ents sn ctx rs (ghostIn γ md c id s R) Hxtr HtyX Hent Hctx0 Hxo Htr
+      { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } ml m ents sn ctx rs (ghostIn γ md c id s R) Hxtr Hxsb
+      (fun hl _ hne hmt => HYx hl hne hmt) HtyX Hent Hctx0 Hzf Hxo HZo Htr
       Hlok Hwf (Hnors (.inr (.inr HtyX))) HLT) $$ [$Hphys $Hmi $HG $Hgates]
-      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
+      as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     unfold ncfupd
     iintro Hnc
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep)
+      ⟨fun h _ => absurd h (by not_end_ty), fun h => absurd h (by rw [HtyX]; w32_ne),
+        fun hns hT => ⟨X, Y, b, Z, (Hend (.inr hT)).2.2.2 hns (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne)⟩,
+        fun h => absurd h.1 (by rw [HtyX]; w32_ne),
+        fun hst hT => ((Hend (.inr hT)).1 hst).elim (fun h => ⟨X, Y, b, Z, h⟩) (fun h => by
+          obtain ⟨_, _, hl, _⟩ := h
+          rcases hl with ⟨-, -, h | h, -⟩ | ⟨-, h, -⟩ <;> rw [HtyX] at h <;> exact absurd h (by w32_ne))⟩ (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     ihave Hg := Hgrec $$ [Hghost Hrest]
     · unfold ownStepGhost; iframe
     iunfold ownStepGhost at Hg
     icases Hg with ⟨Hghost, Hrest⟩
-    iapply finish_branch γ md c r id { s with gh := { s.gh with xw := X } } s' m _ recv err Gout Φ (Hot := Hot)
-      (Hdh1 X s') Hwf' Hrecv Hstep
+    iapply finish_branch γ md c r id { s with gh := { s.gh with xw := X, xt := Y, xs := b, xsrc := Z } } s' m _ recv err Gout Φ (Hot := Hot)
+      (Hdh1 X Y b Z s') Hwf' Hrecv Hstep
       (fun _ => Hfr) (fun _ => Htm)
       (RespStep.of_type (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne)) Hfr.nsst
       (by simp [stepdownMsg, Msg.plain]) (by simp [stepdownMsg, Msg.plain]) $$ Hnc Hsd Hghost Hrest Hphys [] HGq HΦ
     ileft; ipureintro; exact Herr
+  -- (antithesis parity B1, option (b)) an append response from another node while the node has a
+  -- transferee (`"%Hxwframe"`'s case): at a leader of the response's term, the transferee's
+  -- acknowledgement of the last index is recorded in `NGhost.xt` first (the witness of the
+  -- `MsgTimeoutNow` the step then sends it, `isMessage`), then `dispatch_AppRespX`
+  by_cases HxR : m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0
+  · have Hty := HxR.1
+    have Htr0 : s.gh.tr = none := by
+      cases h : s.gh.tr with
+      | none => rfl
+      | some _ => exact absurd (Hltr HxR.1 (by rw [h]; simp)) HxR.2.2
+    have Hxr : XtRec id m s := ⟨HxR.1, HxR.2.1, HxR.2.2, Htr0⟩
+    ihave #Hm' := Hmsg0 $$ %MsgType.appResp %(by rw [Hty]; exact mtypeOf_MsgAppResp) %(by decide)
+    rw [isMessage_absMsg_ctx γ .appResp m ents ctx (And.intro (by decide) (by decide))]
+    icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnl, Hrest⟩
+    ihave Hmi := msgInC_msgIn _ _ _ _ $$ Hmi
+    icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨-, %Hnw, Hphys⟩
+    ihave ⟨%Y, %HYa, #Hrec, Hghost, Hphys, Hgates⟩ : ∃ Y : GSet (w64 × w64),
+        ⌜s.role = .leader → m.Term' = s.term → m.Reject' = false → m.From' = s.lt →
+          m.Index' = logLast s.logst → (Y !! (m.From', s.term)).isSome⌝ ∗
+        (□ ∀ t : NState, ⌜t.gh.xt = s.gh.xt⌝ -∗ ownStepGhost γ md c id t -∗
+          ownStepGhost γ md c id { t with gh := { t.gh with xt := Y } }) ∗
+        ownRaftGhost γ id (toPState s) md.isDyn ∗
+        ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xt := Y } } ∗
+        stepGates c r id { s with gh := { s.gh with xt := Y } } m ents sn ctx rs (ghostIn γ md c id s R) nc
+        $$ [Hghost Hphys Hgates]
+    · by_cases HcA : s.role = .leader ∧ m.Term' = s.term ∧ m.Reject' = false ∧ m.From' = s.lt ∧
+          m.Index' = logLast s.logst
+      · obtain ⟨hl, ht, hrj, hft, hix⟩ := HcA
+        icases ownRaftGhost_leader_last1 γ id (toPState s) $$ Hghost with ⟨%HL1, Hghost⟩
+        have hz : uint.Z m.Index' ≠ 0 := by
+          have H := HL1 (by rw [toPState_role, proleRole_leader]; exact hl)
+          rw [hix, Hnw.logLast_Z]
+          simp only [toPState, plogLastIndexZ, List.length_append] at H
+          push_cast at H
+          omega
+        ihave #Hak := isMessage_appResp_acked γ (absMsg .appResp m ents) rfl hrj $$ Hm'
+        ihave #Hw : ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ m.From' s.term i $$ []
+        · iexists m.Index'
+          isplitl []
+          · ipureintro; exact hz
+          · rw [← ht]
+            rw [show (absMsg .appResp m ents).src = m.From' from rfl,
+              show (absMsg .appResp m ents).term = m.Term' from rfl,
+              show (absMsg .appResp m ents).index = m.Index' from rfl]
+            iexact Hak
+        iexists insert (m.From', s.term) s.gh.xt
+        isplitr
+        · ipureintro; intro _ _ _ _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
+        isplitr
+        · imodintro
+          iintro %t %htx Hg
+          rw [← htx]
+          iapply ownStepGhost_xt_record γ md c id t (m.From', s.term) $$ Hw Hg
+        isplitl [Hghost]
+        · iexact Hghost
+        isplitl [Hphys]
+        · iapply ownRaftPhysC_xt_record (c := c) (V := c.voters) r id s (m.From', s.term) $$ Hphys
+        iapply stepGates_xt c r id s m ents sn ctx rs _ (insert (m.From', s.term) s.gh.xt) Hty hl ht $$ Hgates
+      · iexists s.gh.xt
+        isplitr
+        · ipureintro; intro hl ht hrj hft hix; exact absurd ⟨hl, ht, hrj, hft, hix⟩ HcA
+        isplitr
+        · imodintro
+          iintro %t %htx Hg
+          rw [show ({ t with gh := { t.gh with xt := s.gh.xt } } : NState) = t by rw [← htx]]
+          iexact Hg
+        isplitl [Hghost]
+        · iexact Hghost
+        rw [show ({ s with gh := { s.gh with xt := s.gh.xt } } : NState) = s from rfl]
+        isplitl [Hphys]
+        · iexact Hphys
+        · iexact Hgates
+    have Hdh0 : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd _ HI =>
+      Hpre.dynHyp Hns (fun h => absurd h HtyB) hmd HI
+    have HdhY : ∀ s', DynHypFor md m { s with gh := { s.gh with xt := Y } } s' :=
+      fun _ _ _ _ _ hmd _ HI =>
+        GMode.Pre.dynHyp (s := { s with gh := { s.gh with xt := Y } }) Hpre Hns
+          (fun h => absurd h HtyB) hmd HI
+    ihave HΦ : ▷ stepPost γ md c r id { s with gh := { s.gh with xt := Y } } m Gout Φ $$ [HΦ Hlc]
+    · inext
+      unfold stepPost
+      iframe Hlc
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hfr', %Htm', %Hresp', Herr, HG⟩
+      iapply HΦ $$ %err %s' %c' %md'
+      iframe Hphys Hghost Herr HG
+      ipureintro
+      have hg : s'.gh = ({ s with gh := { s.gh with xt := Y } } : NState).gh :=
+        (Hfr' Hns).2.2.2.2.2.2.2.1
+      exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
+          fun h => absurd h HtyA⟩,
+        fun _ _ _ _ h => absurd (h HxR.1 HxR.2.1) HxR.2.2,
+        fun _ => ⟨by
+            obtain ⟨a1, a2, a3, a4, a5, a6, a7, -, a9, a10⟩ := Hfr' Hns
+            exact ⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩,
+          by rw [hg], fun p hp => by rw [hg]; exact hp, fun p hp => by rw [hg] at hp; exact .inl hp,
+          fun f hf => by rw [hg] at hf; exact .inl hf⟩,
+        Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
+    iapply dispatch_AppRespX P Q γ c r id s ml m ents sn ctx rs Φ R Gout md Hdh0 Hwf Hty (Happresp Hty)
+      Hnl.boot Hltr Hxr Y HdhY HYa $$ Hinit Hphys Hghost Hrest Hrec Hmi Hm' HG Hgates Hclose HΦ
+  have Hnx : ¬ XtRec id m s := fun h => HxR ⟨h.1, h.2.1, h.2.2.1⟩
   ihave HΦ : ▷ stepPost γ md c r id s m Gout Φ $$ [HΦ Hlc]
   · inext
     unfold stepPost
@@ -1396,7 +1870,8 @@ theorem raft.Step.wp_proof
     -- `LocalStepOk` is about the three types handled above, `SnapStep` about the snapshot
     exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
         fun h => absurd h HtyA⟩,
-      fun h _ _ _ => Hfr' h, fun h => absurd h HtyX, Htm', Hresp', fun h => absurd h Hns,
+      fun h _ _ _ _ => Hfr' h, fun h => h.elim (fun h => absurd h HtyX) (fun h => absurd h HxR), Htm', Hresp',
+      fun h => absurd h Hns,
       fun h => absurd h HtyApp⟩
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
   -- from `Hpre`
@@ -1423,7 +1898,7 @@ theorem raft.Step.wp_proof
       as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
     unfold ncfupd
     iintro Hnc
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     iapply finish_branch0 γ md c r id s s' m err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hnc Hghost Hrest Hphys [] HGq HΦ
@@ -1439,7 +1914,7 @@ theorem raft.Step.wp_proof
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     unfold ncfupd
     iintro Hnc
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     iapply finish_branch γ md c r id s s' m _ recv err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hrecv Hstep
       (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hnc Hm' Hghost Hrest Hphys [] HGq HΦ
@@ -1471,7 +1946,7 @@ theorem raft.Step.wp_proof
     -- back at `s`, or at the won state (`CloseMid`)
     unfold ncfupd
     iintro Hnc
-    imod gate_close_mid γ md c id m ents ctx s R Gout s' B recv (fun _ => Hstep) (fun _ => Hend) (by ack_ty) $$ Hclose HGo
+    imod gate_close_mid γ md c id m ents ctx s R Gout s' B recv (fun _ => Hstep) (by end_mk) (by ack_ty) $$ Hclose HGo
       with ⟨Hgh, HGq, %Hot⟩
     icases Hgh with (⟨-, Hgs⟩ | ⟨%s1, %Hmid, Hgs⟩)
     · iunfold ownStepGhost at Hgs
@@ -1515,10 +1990,12 @@ theorem raft.Step.wp_proof
     ihave Hmi := msgInC_msgIn _ _ _ _ $$ Hmi
     ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
     wp_apply (wp_Step_MsgPreVote P PB c r id s ml m ents (ghostIn γ md c id s R) sn ctx rs Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hptc)
-      $$ [$Hphys $Hmi $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
+      $$ [$Hphys $Hmi $HG $Hgates] as %err %s' ⟨Hphys, %Hpv, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
     unfold ncfupd
     iintro Hnc
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst)
+      ⟨fun h _ => absurd h (by not_end_ty), fun _ => Hpv, fun _ h => absurd h (by close_ty_ne),
+        fun h => absurd h (XtRec.of_ne (by close_ty_ne)), fun _ h => absurd h (by close_ty_ne)⟩ (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     iapply finish_branch0 γ md c r id s s' m err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.nsst $$ Hnc Hghost Hrest Hphys [] HGq HΦ
@@ -1531,11 +2008,11 @@ theorem raft.Step.wp_proof
     ihave Hmi := msgInC_msgIn _ _ _ _ $$ Hmi
     ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
     wp_apply (wp_Step_MsgPreVoteResp P PB c r id s ml m ents (ghostIn γ md c id s R) sn ctx rs Hty Hto Hterm Hnw Hwf)
-      $$ [$Hphys $Hmi $HG $Hgates] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
+      $$ [$Hphys $Hmi $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     unfold ncfupd
     iintro Hnc
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     iapply finish_branch γ md c r id s s' m _ recv err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hrecv Hstep
       (fun _ => Hfr) (fun _ => Htm) Hresp Hfr.nsst $$ Hnc Hm' Hghost Hrest Hphys [] HGq HΦ
@@ -1545,7 +2022,7 @@ theorem raft.Step.wp_proof
     ihave #Hm' := Hmsg $$ %MsgType.appResp %(by rw [Hty]; exact mtypeOf_MsgAppResp) %(And.intro (by decide) (by decide))
     icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnl, Hrest⟩
     ihave Hmi := msgInC_msgIn _ _ _ _ $$ Hmi
-    iapply dispatch_AppResp P Q γ c r id s ml m ents sn ctx rs Φ R Gout md Hdh Hwf Hty (Happresp Hty) Hnl.boot Hltr
+    iapply dispatch_AppResp P Q γ c r id s ml m ents sn ctx rs Φ R Gout md Hdh Hwf Hty (Happresp Hty) Hnl.boot Hltr Hnx
       $$ Hinit Hphys Hghost Hrest Hmi Hm' HG Hgates Hclose HΦ
   by_cases Hty : m.Type' = MsgHeartbeat
   · -- MsgHeartbeat: `dispatch_Heartbeat`.
@@ -1599,7 +2076,7 @@ theorem raft.Step.wp_proof
     -- (slice 27n, Q27 (a)) the end state from the branch (`MsgUnreachable`'s)
     unfold ncfupd
     iintro Hnc
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (fun _ => Hend) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     have Hn : m.Type' ≠ MsgVoteResp ∧ m.Type' ≠ MsgAppResp ∧ m.Type' ≠ MsgPreVoteResp := by
       rcases HtyL with h | h | h <;> rw [h] <;> exact ⟨by w32_ne, by w32_ne, by w32_ne⟩
@@ -1613,11 +2090,11 @@ theorem raft.Step.wp_proof
     ihave Hmi := msgInC_msgIn _ _ _ _ $$ Hmi
     ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
     wp_apply (wp_Step_MsgTimeoutNow P PB c r id s ml m ents sn ctx rs (ghostIn γ md c id s R) Hty Hnw Hnwm Hwf Hfla) $$ [$Hphys $Hmi $HG $Hgates]
-      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
+      as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     unfold ncfupd
     iintro Hnc
-    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
+    imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep) (by end_mk) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     iapply finish_branch γ md c r id s s' m _ recv err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hrecv Hstep
       (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst

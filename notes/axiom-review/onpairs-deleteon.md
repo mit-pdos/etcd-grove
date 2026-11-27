@@ -1,5 +1,7 @@
 # Auth-on dist axioms paired with their auth-on contracts; `KV_DeleteOn_dist` gains `reqShape` (2026-11-27)
 
+(Superseded in part: `txnshape-narrowing.md` restates the premise as `kvShapeAll` of the wire request.)
+
 Branch `etcd-safe-onpairs/2026-11-27` (from lean `c123838fbc`). This branch continues
 `onrevlb-weakening.md`'s "Not done". It weakens one landed interim axiom by adding a premise. That shrinks trust,
 so the coordinator pre-approved it.
