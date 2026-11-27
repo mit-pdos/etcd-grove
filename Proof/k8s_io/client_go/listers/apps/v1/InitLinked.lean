@@ -8,9 +8,9 @@ module
 
 public import Proof.k8s_io.client_go.listers.apps.v1.Init
 public import Perennial.Proof.fmt.Link
-public import Proof.k8s_io.api.apps.v1.Init
-public import Proof.k8s_io.api.core.v1.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
+public import Proof.k8s_io.api.apps.v1.InitLinked
+public import Proof.k8s_io.api.core.v1.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.labels.Init
 public import Proof.k8s_io.client_go.listers.InitLinked
 public import Proof.k8s_io.client_go.tools.cache.InitLinked

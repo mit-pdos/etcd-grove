@@ -27,10 +27,10 @@ public import Proof.go_opentelemetry_io.otel.attribute.InitLinked
 public import Proof.google_golang_org.grpc.codes.InitLinked
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.status.InitLinked
-public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
-public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.unstructured.Init
+public import Proof.k8s_io.apimachinery.pkg.api.errors.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.api.meta.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.unstructured.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.conversion.Init
 public import Proof.k8s_io.apimachinery.pkg.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.Init
