@@ -204,13 +204,14 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
             srvFrozenTerms C.γs (uint.nat C.ai₀ + 1) (A ++ ce) ∗
             rnWalHanded γn (uint.nat C.ai₀ + (A ++ ce).length))) ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
-        isNotify γnc nc (dvView C.ρ.raft dv (ghostOf rp (A ++ ce))) ∗ notifyRcv γnc ∗
+        isNotifyDR γnc nc (taReplayBatch apL γn rt (rnLogOf γn (A ++ ce)).length)
+          (dvView C.ρ.raft dv (ghostOf rp (A ++ ce))) ∗ notifyRcv γnc ∗
         dvView C.ρ.raft dv (ghostOf rp A) ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
         es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
         applyResR K C rp A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) ∗
         srvSnapDisk C.s C.γr ∗
         (letI : MemStorReg GF := ⟨C.γr.raft.raft.reg⟩; srvAttachedMem C.ms C.γs C.γr.raft.raft.cl nk C.γr.cursor γn.nl γn.snap0) ∗
-        taRaftTermAddr apL ↦□ rt ∗ taReplayBatch apL γn rt (rnLogOf γn (A ++ ce)).length ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
+        taRaftTermAddr apL ↦□ rt ∗ taReplayField apL ∗ rnRtOk γn rt (rnLogOf γn (A ++ ce)).length ∗ srvMergeAttachment C.s C.γr γn }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
@@ -1307,7 +1308,7 @@ theorem EtcdServer.run.wp_proofG
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
     icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
-      (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok, #Hjob⟩ | Hsnp)
+      (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok⟩ | Hsnp)
     rotate_left
     · -- (R2d'a task 4) the snapshot arm: `run_job_snapC` over `applyAll.specSnapM`, inside
       -- the window or past it
@@ -1396,7 +1397,9 @@ theorem EtcdServer.run.wp_proofG
     -- (R2d'a A10 item 4) over the ghost log (`rnApR_dv`/`rnApGive_dv`, no `γn.a0 = []`)
     have hp0' : γn.pre = [] := Hc0a.2.1
     have hrp : ρ.raft.pre = [] := by rw [← hpre]; exact hp0'
-    ihave #Hncb : isNotify γnc apv.notifyc' (dvView ρ.raft (rnDv γn ce) (ghostOf ⟨P.length, A₀⟩ (A ++ ce))) $$ []
+    ihave #Hncb1 : isNotifyD γnc apv.notifyc'
+        (rnReplayJob γn apv.replayTerms' apv.raftTerm' (rnLogOf γn (A ++ ce)).length)
+        (dvView ρ.raft (rnDv γn ce) (ghostOf ⟨P.length, A₀⟩ (A ++ ce))) $$ []
     · have h := rnApR_dv (GF := GF) γn ρ.raft P.length hrp hnd0 A ce
       simp only [hp0', Ha0, List.nil_append] at h
       rw [← h]; iexact Hncb0
@@ -1433,8 +1436,15 @@ theorem EtcdServer.run.wp_proofG
     ipersist ap
     ihave #Hapf := ap
     iStructNamedSuffix Hapf "A"
-    ihave #HreplayField : taReplayBatch ap_ptr γn apv.raftTerm' (rnLogOf γn (A ++ ce)).length $$ []
-    · iunfold taReplayBatch; iexists apv.replayTerms'; iframe replayTermsA Hjob
+    ihave #HreplayField : taReplayField ap_ptr $$ []
+    · iunfold taReplayField; iexists apv.replayTerms'; iexact replayTermsA
+    -- (T10s3b B3) the first send's deposit, the job, over the apply job's copy of the field
+    ihave #Hncb : isNotifyDR γnc apv.notifyc'
+        (taReplayBatch ap_ptr γn apv.raftTerm' (rnLogOf γn (A ++ ce)).length)
+        (dvView ρ.raft (rnDv γn ce) (ghostOf ⟨P.length, A₀⟩ (A ++ ce))) $$ []
+    · iapply isNotifyDR_of $$ Hncb1
+      iintro !> #Hjob
+      iunfold taReplayBatch; iexists apv.replayTerms'; iframe replayTermsA Hjob
     ihave #HC'' := HC'
     iunfold srvCM at HC''
     icases HC'' with ⟨%Hcp, #Hbw, #Hlbr⟩

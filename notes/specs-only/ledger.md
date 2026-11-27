@@ -8398,3 +8398,21 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `errKeyOk`. Widening `errKeyOk` alone, the audit's preferred fix, leaves the post false. Until one of these
   lands, only the docstring is corrected: it said every protobuf error is a pointer.
 - **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction.
+## 2026-11-27: `EtcdServer.applyAll.specBatch`: the replay job comes through `notifyc`'s first send (T10s3b B3; draft under option (a))
+
+- **Spec.** `EtcdServer.applyAll.specBatch` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyAll.lean`).
+- **Defect.** Its precondition takes the batch's replay job (`taReplayBatch ap γn rt n`, `rnReplayJob`) with the
+  payload. In the crash window (`|a0| > commit0`, B6) raft can build that job only from the history form (the
+  replayed runs describe the durable state `S` the batch enters, `rnReplayHist`) and L2's law at `S`
+  (`rnLeadLaw`, raft's `raftState_leadAgree`), and the law exists only after raft's *enter*, which follows
+  `r.applyc <- ap` and the WAL `Save` (raft.go). So no payload field can carry it.
+- **Evidence.** `notes/etcd-dist-d6.md`, "T10 step 3 (B), session 4" (B3's direction), and the option-(a) entry of
+  2026-11-24 (items 3-4).
+- **Proposed change.** `notifyc` becomes a deposit-first notify (`isNotifyD γnc nc Q R`, `NotifyCD.lean`): raft's
+  first send (after the *enter*) deposits `Q := taReplayBatch ap γn rt n`, the apply thread's receive takes it
+  (and deposits the view `R`, as before). The precondition's `taReplayBatch ap γn rt n` becomes `taReplayField ap`
+  (the field only), and `isNotify γnc nc R` becomes `isNotifyD γnc nc (taReplayBatch ap γn rt n) R`. The job is
+  used only after the receive (`applyAll`'s merge, after `<-apply.notifyc`), so the proof is unchanged in kind.
+- **Decision.** B3 approved by the lead (#50, 2026-11-26, conditions 1-4); condition 3 (axioms unfolding to changed
+  definitions) taken as option (a) for this draft (user, 2026-11-27, lead away): the changes in the axioms'
+  meaning are listed in `notes/etcd-dist-d6.md`, "Option (a): axiom meaning changes".

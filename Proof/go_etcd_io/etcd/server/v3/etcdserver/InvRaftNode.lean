@@ -54,6 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayCoverage
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.ThreadPool
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyCD
 public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
@@ -2346,8 +2347,12 @@ def rnApN (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp GF :
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
-    -- (D43 M3, 2026-10-25) `notifyc`, with the receive's right: the receive deposits `rnApR`
-    (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ F ce) ∗ notifyRcv γnc) ∗
+    -- (D43 M3, 2026-10-25) `notifyc`, with the receive's right: the receive deposits `rnApR`;
+    -- (T10s3b B3, 2026-11-27) the first send (after raft's *enter*) deposits the replay job, which
+    -- until then was a conjunct of the payload
+    (∃ γnc : NotifyNames, isNotifyD γnc ap.notifyc'
+      (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (F ++ ce)).length) (rnApR γ F ce) ∗
+      notifyRcv γnc) ∗
     -- (D43 M3) a batch the driver's view goes with (`rnHands`): the view after `F`
     rnApGive γ F ce ∗
     -- (D19i part 1) closed once `Advance` returned: (2026-10-30, the repair) the node's applied
@@ -2364,8 +2369,7 @@ def rnApN (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp GF :
         rnWalHanded γ (γ.pre ++ F ++ ce).length)) ∗
     committedLast E.γr ce ∗
     -- (D22 S-b) the raft term it carries; (D22l) whose witness's commit index bounds the batch
-    rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length ∗
-    rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
+    rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length)
 
 /-- (D22 J6a, 2026-10-26) **The `i`th payload on `applyc` with a snapshot** (raft's snapshot `Ready`,
 `readySnapData`; `raftNode.start` hands the apply thread its own clone of `rd.Snapshot`): the log
@@ -2430,13 +2434,13 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) :
   iunfold rnApP at H
   icases H with (H | H)
   · iunfold rnApN at H
-    icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, H7, HG, #H8, #H9, #Hrt, #Hjob⟩
+    icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, H7, HG, #H8, #H9, #Hrt⟩
     isplitl [H7 HG]
     · iunfold rnApP
       ileft
       iunfold rnApN
       iexists F, ce, ceL
-      iframe H1 H2 H3 H4 H5 H7 HG H8 H9 Hrt Hjob
+      iframe H1 H2 H3 H4 H5 H7 HG H8 H9 Hrt
       ipureintro; exact H6
     iexists F, ce
     iframe H2 Hrt

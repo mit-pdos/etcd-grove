@@ -89,7 +89,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     q γn rt n rp g
   simp only [srvRunH_applyAll_specBatch]
   wp_start as ⟨%hP, #HsrvC, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #HreplayField, #Hrt, #Hmerge, Hcursor, HbootField, Hso, HtokR⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #HreplayF0, #Hrt, #Hmerge, Hcursor, HbootField, Hso, HtokR⟩
   iunfold epReplayCfg at HbootField
   icases HbootField with ⟨%boot, HbootField, #HbootCfg⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hEpk, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA, hbase, hbootLog, hnsw⟩ := hP
@@ -211,8 +211,9 @@ theorem EtcdServer.applyAll.wp_proofBatch
   wp_apply HTrig $$ []
   · iintro !>; iexact Hlb
   (try wp_auto)
-  -- `<-apply.notifyc`: (D43 M3) the view after the batch deposited
-  wp_apply wp_notify_receive γnc nc _ $$ [Hnrc Hdv]
+  -- `<-apply.notifyc`: (D43 M3) the view after the batch deposited; (T10s3b B3) the batch's replay
+  -- job taken, raft's first send's deposit
+  wp_apply wp_notifyD_receive γnc nc (taReplayBatch ap γn rt n) _ $$ [Hnrc Hdv] as #HreplayField
   · iframe Hncb Hnrc Hdv
   (try wp_auto)
   -- (D19i part 1) `select { case <-apply.raftAdvancedC: case <-s.stopping: return }`: raft has

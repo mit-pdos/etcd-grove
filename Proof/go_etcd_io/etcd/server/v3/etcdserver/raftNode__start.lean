@@ -1334,8 +1334,7 @@ theorem raftNode.start.wp_proof
       -- along, `rnApR`), `raftAdvancedC`
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
       · ipureintro; decide
-      imod start_notify (rnApR γ L' ce) nc γnc0 (by rw [Hncap]; rfl) $$ Hncch Hncown with
-        ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
+      -- (T10s3b B3) its invariant (`start_notifyD`) once the replay view `next` is known, below
       -- (D43 M3) the view: with the batch if `rnHands` (with the committed log handed out), else
       -- kept
       iunfold rnCfgAt at Hcv
@@ -1415,6 +1414,12 @@ theorem raftNode.start.wp_proof
           have hempty : ce = [] := List.eq_nil_of_length_eq_zero (by omega)
           rw [hempty, List.append_nil]; iexact Hupdated
       (try wp_auto)
+      -- (T10s3b B3) `notifyc`'s invariant: the first send (after the *enter*) deposits the batch's
+      -- replay job over the view `next`
+      ihave #Hjob := rnReplayState.job γ next rt' (rnLogOf γ (L' ++ ce)).length $$ Hnext
+      imod start_notifyD (rnReplayJob γ next rt' (rnLogOf γ (L' ++ ce)).length) (rnApR γ L' ce) nc
+          γnc0 (by rw [Hncap]; rfl) $$ Hncch Hncown with
+        ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
       rw [Hsnapnil]
       wp_apply wp_CloneS.2.1 $$ [$Hppkg]
       irename notifyc => Hncl
@@ -1480,8 +1485,7 @@ theorem raftNode.start.wp_proof
             iexact HacU
           isplitr
           · iexact Hclast
-          iframe Hrtok
-          iapply rnReplayState.job γ next rt' _ $$ Hnext
+          iexact Hrtok
         inext
         iintro Hprod
         wp_auto
@@ -1732,7 +1736,7 @@ theorem raftNode.start.wp_proof
           imod rnRawMsgs_sent E γ qms r' $$ Henv Hraw Hsent with Hmsok
           wp_apply wp_processMessages E γ r _ (qms.map QMsg.loc) $$ [$Hpkg $Hr $Hms $Hmsok] as %out
             ⟨%outL, Hout, Houtok⟩
-          wp_apply wp_notify_send1 γnc nc _ $$ [$Hncb $Hnsnd] as Hnsnd
+          wp_apply wp_notifyD_send1 γnc nc _ _ $$ [$Hncb $Hnsnd $Hjob] as Hnsnd
           cases cc
           · wp_auto
             wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
@@ -1796,8 +1800,8 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact ⟨rfl, rfl⟩
               isplitr
-              · iapply is_notify_is_chan γnc nc _ $$ Hncb
-              iapply notify_send2_au γnc nc _ _ $$ [$HlcA $HlcB] Hncb Hnsnd
+              · iapply is_notifyD_is_chan γnc nc _ _ $$ Hncb
+              iapply notifyD_send2_au γnc nc _ _ _ $$ [$HlcA $HlcB] Hncb Hnsnd
               inext
               iintro ⟨-, HRr⟩
               wp_auto
@@ -1884,7 +1888,7 @@ theorem raftNode.start.wp_proof
         · -- the leader: `notifyc <- struct{}{}`, then (on a conf change, D43 M3: the fork's
           -- leader wait) a second `notifyc` send or `<-r.stopped`
           wp_auto
-          wp_apply wp_notify_send1 γnc nc _ $$ [$Hncb $Hnsnd] as Hnsnd
+          wp_apply wp_notifyD_send1 γnc nc _ _ $$ [$Hncb $Hnsnd $Hjob] as Hnsnd
           cases cc
           · wp_auto
             -- `r.Advance()`: the driver moves to `L' ++ ce`
@@ -1942,8 +1946,8 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact ⟨rfl, rfl⟩
               isplitr
-              · iapply is_notify_is_chan γnc nc _ $$ Hncb
-              iapply notify_send2_au γnc nc _ _ $$ [$HlcA $HlcB] Hncb Hnsnd
+              · iapply is_notifyD_is_chan γnc nc _ _ $$ Hncb
+              iapply notifyD_send2_au γnc nc _ _ _ $$ [$HlcA $HlcB] Hncb Hnsnd
               inext
               iintro ⟨-, HRr⟩
               wp_auto

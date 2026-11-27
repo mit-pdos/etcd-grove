@@ -93,7 +93,9 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
       (∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
         ⌜ap.snapshot' = null⌝ ∗
-        (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ A ce) ∗ notifyRcv γnc) ∗
+        (∃ γnc : NotifyNames, isNotifyD γnc ap.notifyc'
+          (rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (A ++ ce)).length) (rnApR γ A ce) ∗
+          notifyRcv γnc) ∗
         rnApGive γ A ce ∗
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
@@ -101,8 +103,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
             srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
             srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce) ∗
             rnWalHanded γ (γ.pre ++ A ++ ce).length)) ∗
-        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length ∗
-        rnReplayJob γ ap.replayTerms' ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
+        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
         rnApplyTok γ A' ∗
@@ -149,12 +150,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames GF) (rcv : List toApply) (A
     ipureintro; exact Hlen
   ileft
   iunfold rnApN at HP
-  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt, #Hjob⟩
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
   subst Heq
   iexists ce, ceL
-  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt Hjob
+  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt
   isplitl [Hcons]
   · iunfold rnApplyTok
     iexists rcv ++ [ap]

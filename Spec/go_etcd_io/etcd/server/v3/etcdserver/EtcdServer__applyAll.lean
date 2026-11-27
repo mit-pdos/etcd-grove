@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyCD
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
@@ -90,8 +91,11 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
           -- (2026-11-03, R2b-1 stage 5) the batch's log handed at its WAL `Save`
           rnWalHanded γn (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat)) ∗
           taSnapshotAddr ap ↦□ (null : Loc) ∗
-      -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
-      taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (ghostOf rp (A ++ unapplied ai ms))) ∗
+      -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`);
+      -- (T10s3b B3, 2026-11-27) and takes the batch's replay job, which raft's first send deposits
+      -- after its *enter* (`NotifyCD.lean`; until then the job came with the payload)
+      taNotifycAddr ap ↦□ nc ∗
+      isNotifyDR γnc nc (taReplayBatch ap γn rt n) (dvView ρ.raft dv (ghostOf rp (A ++ unapplied ai ms))) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft (ghostOf rp A) cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
@@ -110,7 +114,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       rnWalTokA γn (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ taReplayBatch ap γn rt n ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length A.length ∗
+      taRaftTermAddr ap ↦□ rt ∗ taReplayField ap ∗ rnRtOk γn rt n ∗ srvMergeAttachment s γr γn ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length A.length ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
       -- (`srvSnapOwn`), passed through the batch; (restart S6, CP2 route (C), 2026-11-13) at the
       -- ghost applied index `g` (until then Go's `ai`)
