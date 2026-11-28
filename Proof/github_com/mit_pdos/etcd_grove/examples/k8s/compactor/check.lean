@@ -97,7 +97,7 @@ theorem check.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     check.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γr γk γ c cl' γc hsame
+  intro _ cl ms V γr γk γ c cl' γc hsame
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hst, #Hko, #Hinv, #Hkvi, #Hc, #H0⟩
   rw [show github_com.mit_pdos.etcd_grove.examples.k8s.compactor.compactRevKey = #k8s.compactRevKey
     from rfl]

@@ -5,7 +5,8 @@ latest `Get` of `key`, panicking if the `Get` reads below the compaction revisio
 Lean-first (no Rocq counterpart); #50 F5 (`notes/etcd-dist-plan.md` §26).
 
 **The triple:** from `RunCompact`'s client of endpoints serving the cluster's view `Γ` (`isNewClient`, dialing
-with no proxy, `membersAt`), the cluster's retention `1`, the KV invariant (`kvInv`: the compaction revision's
+with no proxy, `membersAt`), the cluster's retention `1` and auth off (`Γ.auth = false`, `compactShare`'s: the
+client's KV calls need etcd's KV entries, which the table has for an auth-off view, stage B′), the KV invariant (`kvInv`: the compaction revision's
 permit, a revision the cluster reached, bounds the later `Get`'s), compact's prefix and invariant with a fired
 `key` under `cw/` and a lower bound `l0` of the history (what the watch's read update starts from), it returns
 (it does not panic).
@@ -40,7 +41,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev checkCompactRev.spec : Prop :=
   ∀ [π : NetProtoGS] (cl : Loc) (key : GoString) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (γr : ServerRaftNames) (γ γF γh : GName) (σ₀ : KVState) (l0 : List (List mvcc.Change)),
-  compactPfx <+: key → key.length ≤ 70 → Γ.kv.cret = 1 →
+  compactPfx <+: key → key.length ≤ 70 → Γ.kv.cret = 1 → Γ.auth = false →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       levelTok 0 ∗ isNewClient cl eps V ∗ clientNoProxy cl ∗

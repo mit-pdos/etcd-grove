@@ -42,7 +42,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assum
 
 /-- See the file header. -/
 abbrev startMember.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString)
+  ∀ (N : Nat) (name peerAddr client : GoString)
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

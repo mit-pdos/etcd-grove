@@ -62,7 +62,7 @@ theorem run.wp_proof
     (wp_listed : listed.spec (GF := GF) (hG := hG))
     (wp_PeerStep : cluster3.PeerStep.spec (GF := GF) (hG := hG)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ ps ctxs boot lg
+  intro N id₁ id₂ id₃ ps ctxs boot lg
   wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, #Hzlg, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   obtain ⟨Htb, HLv, Hrb48, HrbN, HwbN⟩ := Hp₂

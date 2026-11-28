@@ -111,7 +111,7 @@ instance srvdWL_persistent (s : Loc) (x : GMember × MemberG GF) (w : Wit GF) :
 /-- **A member served with its Lease service** (`Run`'s `Serve` step, for a member in the revocable
 lease mode): authN's `serve_member`, then `etcdstart.lease_served_on` from its `leaseReady`; on
 success, `serve_member`'s served facts and the member's Lease service with auth on. -/
-theorem serve_member_lease [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem serve_member_lease [HasExt idIssueExt]
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF))
@@ -343,7 +343,7 @@ theorem run.wp_proof
     (hR : mvcc.api.mvccState_reachable.law (GF := GF))
     (hlaw : lessor_keys_of_read_stmt (GF := GF)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS srvsl msl lg ss xs x0 γn σ0 hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
+  intro ES FS RS srvsl msl lg ss xs x0 γn σ0 hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
     hlog hlm hLp hns hsc hx
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   have hk1 : 1 ≤ xs.length := by

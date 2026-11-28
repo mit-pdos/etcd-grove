@@ -40,8 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 /-- See the file header. -/
 abbrev startCluster.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (lg : Loc)
+  ∀ (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (lg : Loc)
     (pfx : GoString),
   BootFacts id₁ id₂ id₃ ps ctxs boot → 
   threadBound GF ≤ 2 ^ 28 →

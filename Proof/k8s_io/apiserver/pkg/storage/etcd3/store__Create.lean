@@ -67,7 +67,7 @@ theorem store.Create.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG))
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG)) :
     store.Create.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
+  intro _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, #Hk8, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩

@@ -1167,6 +1167,7 @@ instance isEtcdProgressNotifier_persistent (w : GoInterfaceOk) :
     Persistent (isEtcdProgressNotifier (GF := GF) w) := by
   unfold isEtcdProgressNotifier; infer_instance
 
+omit package_sem in
 /-- **Receiving** from a client watch channel (the atomic update of Perennial's channel specs,
 for a `select` case): with `ok`, a response `v` modelled by `r` satisfying etcd's watch contract
 from the consumer's position `cursor` to a new one `c'`; without, the channel was closed (and the

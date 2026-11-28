@@ -79,7 +79,7 @@ with the watch-resume fixes) and grpc-go v1.84 (the model) over the net extensio
    proved (`watcher.Watch.spec`, over `isClientWatcher V w`, whose `watchSrvFacts V` holds the `Watch`
    stream's registration at each member's address). Across machines the stream goes through grpc's
    `NewStream` over the net extension, which reads the stream's entry off the dialed address's table. This
-   line's `GrpcSvc` has unary entries only, and `etcdSvc` has no law. On `lean`, SW1 adds `.stream` entries
+   line's `GrpcSvc` has unary entries only, and `etcdSvc`'s entry is `etcdSvcRest`'s, with no law. On `lean`, SW1 adds `.stream` entries
    and the transport (`NewStream`, `Serve`), but the entry etcd's member would need, `watchMethod pw R W`,
    names the member's server, lock and logger (heap locations allocated at run time), its store handle and
    its whole apply environment (`NewServer`'s existential), none a function of `(Γ, mid)`. So no
@@ -92,7 +92,7 @@ with the watch-resume fixes) and grpc-go v1.84 (the model) over the net extensio
 
 **Why it is true.** It is `watcher.Watch.spec` with `isClientWatcher V w ∗ ⌜V.kst = γ.st⌝` replaced by
 `watchClientAt` (the address facts at `Γ`), `γ := Γ.kv`, and no auth row:
-* *Who answers.* As `KV_Get_dist`: the client dials the endpoints themselves (`clientNoProxy`); each
+* *Who answers.* As for the KV calls: the client dials the endpoints themselves (`clientNoProxy`); each
   endpoint's table is set once by the start and answered by `Serve_dist` at a member whose KV names are
   `kvCongr` to `Γ.kv`, or by a program that answers no stream: a raw listener writes nothing, so (clientv3
   dials with `WaitForReady`) no response comes and `Watch` returns a closed channel when the caller's context

@@ -31,7 +31,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `NewStore` over a backend holding an image (B3, mvccfull's Freeze, 2026-11-10): the proof is
 `NewStoreR.lean`'s (the resumed compaction inside `restore()` is a callee, `compactLockfree`). -/

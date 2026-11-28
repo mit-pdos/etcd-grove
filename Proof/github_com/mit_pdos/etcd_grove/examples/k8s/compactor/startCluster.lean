@@ -60,7 +60,7 @@ theorem startCluster.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS k N ids ps ctxs boot lg ThB RcB RcN hk1 hk Hlen Hbf HLv HwbN Haf Hbuq Hrf Hdbo Hms
+  intro k N ids ps ctxs boot lg ThB RcB RcN hk1 hk Hlen Hbf HLv HwbN Haf Hbuq Hrf Hdbo Hms
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)

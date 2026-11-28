@@ -32,7 +32,7 @@ theorem MainChecked.wp_proof
     (wp_RandomSchedule : cluster3.RandomSchedule.spec (GF := GF) (hG := hG))
     (wp_Main : Main.spec (GF := GF) (hG := hG)) :
     MainChecked.spec (GF := GF) (hG := hG) := by
-  intro CS SE RT SC ST SV k₁ N ids ps ctxs boot k₂ ids' ps' ctxs' boot' clients ops
+  intro SE RT SC ST SV k₁ N ids ps ctxs boot k₂ ids' ps' ctxs' boot' clients ops
     watchers wops n₁ n₂ TB RB48 RBN HLv hlen Hbf hlen' Hbf' HwbN Haf Hbuq Hrf Hdbo Hms hAs Hse Hot
   wp_start as ⟨Hbundle, Htok, #Hprem1, #Hprem2, Hreg⟩
   ihave #Pc3 : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 $$ []

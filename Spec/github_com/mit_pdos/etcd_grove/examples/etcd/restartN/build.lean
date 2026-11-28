@@ -3,9 +3,10 @@
 2026-11-15): `etcdstart.BuildServer` at `restart3`'s token and snapshot settings
 (`SnapCount = SnapCatchUp = 1`). Lean-first (no Rocq counterpart).
 
-**`spec`, a first build:** `etcdstart.BuildServer.spec`'s at those arguments (lease mode `none`): an
+**`spec`, a first build:** `etcdstart.BuildServer.specF`'s at those arguments (lease mode `none`): an
 error with the thread token, or the member built (`etcdstart.memberBuilt`, its peer address not yet
-served) and its data directory.
+served) and its data directory; `bootstrap`'s contract borrows the frame `R` for the call (`bootPremiseF`;
+restartN's first boots lend it the members' peer addresses, not yet served), given back on every path.
 
 **`specRestart`, a build after a stop:** `etcdstart.BuildServer.specRestart`'s: from the stopped
 member's restart bundle without addresses (its peer address stays served by its `raftSwap`, D-R3-4),
@@ -37,12 +38,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.As
 
 /-- See the file header. -/
 abbrev build.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString)
+  ∀ (N : Nat) (name peerAddr client : GoString)
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (R : IProp GF)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
@@ -56,22 +57,22 @@ abbrev build.spec : Prop :=
   -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
   name.length ≤ 200 →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restartN ∗
+  {{ R ∗ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restartN ∗
       zapLoggerOk lg ∗ threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      etcdstart.bootPremise N ps bootLog ctxs dir token name Uok id ∗
+      etcdstart.bootPremiseF R N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗ etcdstart.memberBoot γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
       etcdstart.memberFreshRes name {} γn }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.build))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #lg))
-  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err); R ∗
+      ((⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ etcdstart.memberBuilt s ρ E₀ lg γn id N false ∗
-          srvDataDir s (memberDataDir name)) }}
+          srvDataDir s (memberDataDir name))) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev build.specRestart : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString)
+  ∀ (N : Nat) (name peerAddr client : GoString)
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

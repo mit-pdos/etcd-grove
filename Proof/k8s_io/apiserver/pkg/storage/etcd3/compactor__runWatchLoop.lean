@@ -118,7 +118,7 @@ theorem compactor.runWatchLoop.wp_proof
     (wp_fromWatchResponse : compactor.fromWatchResponse.spec (GF := GF) (hG := hG))
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runWatchLoop.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl K γk recorded γc sc γs
+  intro _ c cl K γk recorded γc sc γs
   wp_start as ⟨Hlt, #Hc, #Hstop, #HK, #Hko, #Hwo, #Hkr⟩
   ihave #HK' := HK
   iunfold k8sClient at HK'

@@ -48,7 +48,7 @@ theorem StartCompactorPerEndpoint.wp_proof
     (wp_V : klog.V.spec (GF := GF) (hG := hG))
     (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl K γk Seen recorded _ _ iv hsame hcmp hcret hiv
+  intro _ cl K γk Seen recorded _ _ iv hsame hcmp hcret hiv
   wp_start as ⟨Hlt, #HK, #Hko, #Hwo, #Hcas, #Hkr, #Hclaims⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

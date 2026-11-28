@@ -1,0 +1,14 @@
+    q2_shape_test.go:44: txn, compare range [a,a): err=etcdserver: permission denied
+    q2_shape_test.go:51: txn, compare range [e,b): err=etcdserver: permission denied
+    q2_shape_test.go:56: txn, get [a,a) then put p: err=etcdserver: permission denied
+    q2_shape_test.go:61: delete [e,b): err=etcdserver: permission denied
+    q2_shape_test.go:65: p after: count=0, revision 1 -> 1
+--- PASS: TestQ2ShapeTxnEmptyCompareRange (0.14s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration	0.181s
+    q2_contains_test.go:12: empty [a,a) over {p}: false
+    q2_contains_test.go:13: inverted [e,b) over {p}: false
+    q2_contains_test.go:26: inverted [e,b) over {[c,d),[d,z)}: inserted x then y: false; y then x: true
+--- PASS: TestQ2ContainsEmptyInverted (0.00s)
+PASS
+ok  	go.etcd.io/etcd/pkg/v3/adt	0.003s

@@ -131,155 +131,99 @@ def latestTie (M : AuthMode) (hs : List AuthState) (b : Bool) (sc : AuthState) :
       b = stl.enabled ∧ (b = true → sc = stl) ∧ permView sc = permView stl
   | _ => True
 
-/-- **`isRangeOpPermitted`'s verdict at the cache's state `sc`** (pure): for a request of the shape
-the cache decides, at a state with valid permission keys, the check passes exactly when the user
-exists at `sc` with permissions covering the request. -/
-def cacheVerdictP (sc : AuthState) (user k e : GoString)
-    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) : Prop :=
-  k ≠ [] → (e = [] ∨ isOpenEnded e ∨ go.GoStringLt k e) → permKeysOk sc →
-    (b = true ↔ ∃ roles, sc.users !! user = some roles ∧
-      (if e = [] then coversPoint sc roles (permOp pt) k else coversRange sc roles (permOp pt) k e))
-
 /-- **A permission check's verdict at the latest state** of the admin side's authority `hs` (pure;
 the auth plan's E2r): in `on γa`, at the latest state `stl` a passing check is the principal
 permitted there with a revision not below `stl`'s (or auth disabled), a refusing one the refusal
-at `stl` in each of the four reads (`refusedV`); in `off` the check passes; in `any` nothing. -/
+at `stl` in each of the four reads (`refusedV`), and `stl`'s permission keys are non-empty
+(`permKeysOk`, for the bridge to the coverage, `permVerdictL_granted`); in `off` the check passes;
+in `any` nothing. -/
 def permVerdictL (M : AuthMode) (hs : List AuthState) (ai : AuthInfoM) (key rangeEnd : GoString)
     (op : PermType) (err : GoInterface) : Prop :=
   match M with
   | .on _ => ∀ stl, hs.getLast? = some stl →
       (err = GoInterface.nil → permitted stl ai key rangeEnd op ∧
         (stl.enabled = false ∨ stl.revision ≤ ai.rev)) ∧
-      (err ≠ GoInterface.nil → refusedV ⟨stl, stl, stl, stl⟩ ai key rangeEnd op)
+      (err ≠ GoInterface.nil → refusedV ⟨stl, stl, stl, stl⟩ ai key rangeEnd op) ∧
+      permKeysOk stl
   | .off => err = GoInterface.nil
   | .any => True
 
-/-- For a request of the shape the cache decides, the latest verdict is exact: the check passes
-iff the principal is permitted at the latest state and its revision is not stale. -/
+/-- The latest verdict is exact (every request): the check passes iff the principal is permitted
+at the latest state and its revision is not stale. -/
 theorem permVerdictL_iff (γa : AuthNames) (hs : List AuthState) (ai : AuthInfoM)
     (key rangeEnd : GoString) (op : PermType) (err : GoInterface) (stl : AuthState)
-    (hl : hs.getLast? = some stl) (hsh : reqShape key rangeEnd)
+    (hl : hs.getLast? = some stl)
     (h : permVerdictL (.on γa) hs ai key rangeEnd op err) :
     err = GoInterface.nil ↔
       permitted stl ai key rangeEnd op ∧ (stl.enabled = false ∨ stl.revision ≤ ai.rev) := by
-  obtain ⟨hp, hr⟩ := h stl hl
+  obtain ⟨hp, hr, -⟩ := h stl hl
   constructor
   · exact hp
   · intro ⟨hpm, hrev⟩
     refine Classical.byContradiction fun hne => ?_
-    have hrf := (refusedV_diag stl ai key rangeEnd op hsh).1 (hr hne)
+    have hrf := (refusedV_diag stl ai key rangeEnd op).1 (hr hne)
     rcases hrf with hn | ⟨he, hlt⟩
     · exact hn hpm
     · rcases hrev with h1 | h1
       · rw [he] at h1; cases h1
       · omega
 
-theorem cacheVerdictP_entry (sc : AuthState) (user k e : GoString)
-    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) (Lr Lw : List adt.Entry)
-    (hpt : pt = W32 0 ∨ pt = W32 1) (Hent : cacheEntryIs sc user Lr Lw)
-    (hb : k ≠ [] → (e = [] ∨ isOpenEnded e ∨ go.GoStringLt k e) →
-      (b = true ↔ if e = [] then ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 k
-        else ∀ x, adt.inIvl (queryIvl k e) x →
-          ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 x)) :
-    cacheVerdictP sc user k e pt b := by
-  intro hk hr hkeys
-  obtain ⟨roles, hroles, hLr, hLw⟩ := Hent
-  rw [hb hk hr]
-  have hL : ((if pt = W32 0 then Lr else Lw).map Prod.fst).Perm
-      (ivlsOf (permOp pt) (userPerms sc roles)) := by
-    unfold permOp
-    rcases hpt with rfl | rfl
-    · simp only [↓reduceIte]; exact hLr
-    · rw [if_neg (by word), if_neg (by word)]; exact hLw
-  have hiff : ∀ roles', sc.users !! user = some roles' ↔ roles' = roles := by
-    intro roles'; rw [hroles]; constructor
-    · intro h; cases h; rfl
-    · rintro rfl; rfl
-  simp only [hiff, exists_eq_left]
-  by_cases he : e = []
-  · simp only [he, ↓reduceIte]
-    rw [coversPoint_iff sc roles (permOp pt) k hkeys]
-    exact exists_inIvl_perm hL k
-  · simp only [he, ↓reduceIte]
-    rw [coversRange_iff sc roles (permOp pt) k e hk he hkeys]
-    constructor
-    · intro H x hx; exact (exists_inIvl_perm hL x).1 (H x hx)
-    · intro H x hx; exact (exists_inIvl_perm hL x).2 (H x hx)
-
-theorem cacheVerdictP_absent (sc : AuthState) (Mp : GMap GoString Loc) (user k e : GoString)
-    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type)
-    (hdom : ∀ u, (Mp !! u).isSome ↔ (sc.users !! u).isSome) (h : Mp !! user = none) :
-    cacheVerdictP sc user k e pt false := by
-  intro _ _ _
-  have hu : sc.users !! user = none := by
-    have hd := hdom user
-    rw [h] at hd
-    cases hs : sc.users !! user with
-    | none => rfl
-    | some r => rw [hs] at hd; simp at hd
-  simp only [hu, Bool.false_eq_true, false_iff, not_exists, not_and]
-  intro _ hr; cases hr
-
 /-- `!as.IsAuthEnabled()` at the latest flag (`on`): the check passes, auth disabled at the latest
 state. -/
 theorem permVerdictL_on_disabled (γa : AuthNames) (hs : List AuthState) (sc : AuthState)
     (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType)
-    (ht : latestTie (.on γa) hs false sc) :
+    (ht : latestTie (.on γa) hs false sc) (hk : ∀ stl, hs.getLast? = some stl → permKeysOk stl) :
     permVerdictL (.on γa) hs ai key rangeEnd op GoInterface.nil := by
   intro stl hl
   have he := (ht stl hl).1
-  exact ⟨fun _ => ⟨Or.inl he.symm, Or.inl he.symm⟩, fun h => absurd rfl h⟩
+  exact ⟨fun _ => ⟨Or.inl he.symm, Or.inl he.symm⟩, fun h => absurd rfl h, hk stl hl⟩
 
 /-- A refusal at the latest state (`on`), auth enabled there, for one of `refusedV`'s reasons. -/
 theorem permVerdictL_on_refused (γa : AuthNames) (hs : List AuthState) (sc : AuthState)
     (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType) (err : GoInterface)
     (herr : err ≠ GoInterface.nil) (ht : latestTie (.on γa) hs true sc)
+    (hk : ∀ stl, hs.getLast? = some stl → permKeysOk stl)
     (hwhy : ∀ stl, hs.getLast? = some stl → sc = stl →
       ai.rev = 0 ∨ ai.rev < stl.revision ∨
         ∀ u, stl.users !! ai.user = some u → ¬ isRoot u ∧
-          (reqShape key rangeEnd →
-            ∀ u', stl.users !! ai.user = some u' → ¬ covers stl u' op key rangeEnd)) :
+          ∀ u', stl.users !! ai.user = some u' → coversX stl u' op key rangeEnd = false) :
     permVerdictL (.on γa) hs ai key rangeEnd op err := by
   intro stl hl
   obtain ⟨he, hc, -⟩ := ht stl hl
-  refine ⟨fun h => absurd h herr, fun _ => ?_⟩
+  refine ⟨fun h => absurd h herr, fun _ => ?_, hk stl hl⟩
   exact ⟨he.symm, hwhy stl hl (hc rfl)⟩
 
 /-- A pass at the latest state (`on`): auth enabled, the token's revision not below the latest's,
-the user present there, root or (for a request of the cache's shape) covered there. -/
+the user present there, root or granted by Go's verdict there. -/
 theorem permVerdictL_on_pass (γa : AuthNames) (hs : List AuthState) (sc : AuthState)
     (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType)
-    (ht : latestTie (.on γa) hs true sc)
+    (ht : latestTie (.on γa) hs true sc) (hk : ∀ stl, hs.getLast? = some stl → permKeysOk stl)
     (hok : ∀ stl, hs.getLast? = some stl → sc = stl →
       ai.rev ≠ 0 ∧ stl.revision ≤ ai.rev ∧ ∃ u, stl.users !! ai.user = some u ∧
-        (isRoot u ∨ (reqShape key rangeEnd → covers stl u op key rangeEnd))) :
+        (isRoot u ∨ coversX stl u op key rangeEnd = true)) :
     permVerdictL (.on γa) hs ai key rangeEnd op GoInterface.nil := by
   intro stl hl
   obtain ⟨-, hc, -⟩ := ht stl hl
   obtain ⟨h0, hrev, u, hu, hcov⟩ := hok stl hl (hc rfl)
-  exact ⟨fun _ => ⟨Or.inr ⟨h0, u, hu, hcov⟩, Or.inr hrev⟩, fun h => absurd rfl h⟩
+  exact ⟨fun _ => ⟨Or.inr ⟨h0, u, hu, hcov⟩, Or.inr hrev⟩, fun h => absurd rfl h, hk stl hl⟩
 
-/-- The cache's refusal at `stl`, for a request of the cache's shape: no user of the name with
-covering permissions. -/
-theorem cacheVerdictP_false_not_covers (stl : AuthState) (user k e : GoString)
+/-- The cache's refusal at `stl`: Go's verdict refuses every user of the name. -/
+theorem cacheVerdictP_false (stl : AuthState) (user k e : GoString)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type)
-    (hc : cacheVerdictP stl user k e pt false) (hkeys : permKeysOk stl)
-    (hsh : reqShape k e) (u' : User) (hu : stl.users !! user = some u') :
-    ¬ covers stl u' (permOp pt) k e := by
-  intro hcov
-  have := (hc hsh.1 hsh.2 hkeys).2 ⟨u', hu, by unfold covers at hcov; exact hcov⟩
-  cases this
+    (hc : cacheVerdictP stl user k e pt false) (u' : User) (hu : stl.users !! user = some u') :
+    coversX stl u' (permOp pt) k e = false := by
+  cases hcov : coversX stl u' (permOp pt) k e
+  · rfl
+  · cases hc.2 ⟨u', hu, hcov⟩
 
-/-- The cache's pass at `stl`, for a request of the cache's shape: the user's permissions cover
-it. -/
-theorem cacheVerdictP_true_covers (stl : AuthState) (user k e : GoString)
+/-- The cache's pass at `stl`: Go's verdict grants the user. -/
+theorem cacheVerdictP_true (stl : AuthState) (user k e : GoString)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type)
-    (hc : cacheVerdictP stl user k e pt true) (hkeys : permKeysOk stl)
-    (hsh : reqShape k e) (u : User) (hu : stl.users !! user = some u) :
-    covers stl u (permOp pt) k e := by
-  obtain ⟨u', hu', hcov⟩ := (hc hsh.1 hsh.2 hkeys).1 rfl
+    (hc : cacheVerdictP stl user k e pt true) (u : User) (hu : stl.users !! user = some u) :
+    coversX stl u (permOp pt) k e = true := by
+  obtain ⟨u', hu', hcov⟩ := hc.1 rfl
   rw [hu] at hu'; cases hu'
-  unfold covers; exact hcov
+  exact hcov
 
 end pure
 
@@ -458,10 +402,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_latest
       · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM Hq; iunfold cacheOf; iframe Hall
         ipureintro; exact Hdom
       ipureintro
-      apply cacheVerdictP_entry sc user k e pt b Lr Lw Hpt Hent
-      intro _ _
-      rw [if_pos Hif]
-      exact Hb
+      exact cacheVerdictP_entry sc user k e pt b Lr Lw Hpt Hent ⟨fun _ => Hb, fun h => absurd Hif h⟩
     · rw [he0] at Hif
       wp_apply (h_checkKeyInterval lg p Lr Lw key re k e dk de pt) $$ [$Hp $Hk $He]
         as %b ⟨Hk, He, %Hb⟩
@@ -476,12 +417,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_latest
       · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM Hq; iunfold cacheOf; iframe Hall
         ipureintro; exact Hdom
       ipureintro
-      apply cacheVerdictP_entry sc user k e pt b Lr Lw Hpt Hent
-      intro hk hr
-      rw [if_neg Hif]
-      rcases hr with h | h
-      · exact absurd h Hif
-      · exact Hb hk h
+      exact cacheVerdictP_entry sc user k e pt b Lr Lw Hpt Hent ⟨fun h => absurd h Hif, fun _ => Hb⟩
 
 end proof
 
@@ -547,7 +483,9 @@ theorem auth.authStore.isOpPermitted.wp_latest
     · iunfold authErrIs; ileft; ipureintro; rfl
     ipureintro
     cases M with
-    | on γa => exact permVerdictL_on_disabled γa hs sc _ _ _ _ Htie
+    | on γa =>
+      exact permVerdictL_on_disabled γa hs sc _ _ _ _ Htie
+        (fun stl hl => Hkeys stl hl rfl (by nofun))
     | off => rfl
     | any => trivial
   ihave %Hnoff := enabledVerdict_true_ne_off M $$ Hev
@@ -565,7 +503,8 @@ theorem auth.authStore.isOpPermitted.wp_latest
     ipureintro
     cases M with
     | on γa =>
-      refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie ?_
+      refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie
+        (fun stl hl => Hkeys stl hl rfl (by nofun)) ?_
       intro stl _ _
       left; unfold authInfoM; simp only; rw [Hif]; rfl
     | off => exact absurd rfl Hnoff
@@ -601,7 +540,8 @@ theorem auth.authStore.isOpPermitted.wp_latest
     ipureintro
     cases M with
     | on γa =>
-      refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie ?_
+      refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie
+        (fun stl hl => Hkeys stl hl rfl (by nofun)) ?_
       intro stl hl _
       right; left
       have hc := Hcur hs stl rfl hl rfl (by nofun)
@@ -654,7 +594,8 @@ theorem auth.authStore.isOpPermitted.wp_latest
     ipureintro
     cases M with
     | on γa =>
-      refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie ?_
+      refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie
+        (fun stl hl => Hkeys stl hl rfl (by nofun)) ?_
       intro stl hl _
       right; right
       have hsl := histLast_on_unique γa hs sta stl Hsta hl
@@ -693,7 +634,8 @@ theorem auth.authStore.isOpPermitted.wp_latest
       ipureintro
       cases M with
       | on γa =>
-        refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie ?_
+        refine permVerdictL_on_refused γa hs sc _ _ _ _ _ (fun h => by cases h) Htie
+          (fun stl hl => Hkeys stl hl rfl (by nofun)) ?_
         intro stl hl hsc
         subst hsc
         have hsl := histLast_on_unique γa hs sta sc Hsta hl
@@ -702,9 +644,8 @@ theorem auth.authStore.isOpPermitted.wp_latest
         intro u' hu'
         have hu'' : sta.users !! info.Username' = some u' := hu'
         rw [Hur.1] at hu''; cases hu''
-        refine ⟨hn, fun hsh u2 hu2 => ?_⟩
-        exact cacheVerdictP_false_not_covers sta info.Username' k e pt Hcv
-          (Hkeys sta Hsta rfl (by nofun)) hsh u2 hu2
+        refine ⟨hn, fun u2 hu2 => ?_⟩
+        exact cacheVerdictP_false sta info.Username' k e pt Hcv u2 hu2
       | off => exact absurd rfl Hnoff
       | any => trivial
     · (try wp_auto)
@@ -721,16 +662,16 @@ theorem auth.authStore.isOpPermitted.wp_latest
       ipureintro
       cases M with
       | on γa =>
-        refine permVerdictL_on_pass γa hs sc _ _ _ _ Htie ?_
+        refine permVerdictL_on_pass γa hs sc _ _ _ _ Htie
+          (fun stl hl => Hkeys stl hl rfl (by nofun)) ?_
         intro stl hl hsc
         subst hsc
         have hsl := histLast_on_unique γa hs sta sc Hsta hl
         subst hsl
         have hc := Hcur hs sta rfl Hsta rfl (by nofun)
-        refine ⟨h0, ?_, roles, Hur.1, Or.inr fun hsh => ?_⟩
+        refine ⟨h0, ?_, roles, Hur.1, Or.inr ?_⟩
         · show sta.revision ≤ uint.nat info.Revision'; rw [← hc]; exact hcur
-        · exact cacheVerdictP_true_covers sta info.Username' k e pt Hcv
-            (Hkeys sta Hsta rfl (by nofun)) hsh roles Hur.1
+        · exact cacheVerdictP_true sta info.Username' k e pt Hcv roles Hur.1
       | off => exact absurd rfl Hnoff
       | any => trivial
   · have hroot : isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_true Hroot.symm
@@ -748,7 +689,8 @@ theorem auth.authStore.isOpPermitted.wp_latest
     ipureintro
     cases M with
     | on γa =>
-      refine permVerdictL_on_pass γa hs sc _ _ _ _ Htie ?_
+      refine permVerdictL_on_pass γa hs sc _ _ _ _ Htie
+        (fun stl hl => Hkeys stl hl rfl (by nofun)) ?_
       intro stl hl hsc
       have hsl := histLast_on_unique γa hs sta stl Hsta hl
       subst hsl
@@ -770,7 +712,7 @@ variable [GooseExts]
 E2q's model step, `etcdserver/KVAuthModel.lean`): for a request of the cache's shape, a check of
 `op` on `[key, rangeEnd)` passes exactly when, at the latest state, auth is disabled, or the token's
 revision is not `0` nor stale and its user exists with the root role or permissions covering the
-request. -/
+request (`granted_iff_covers`, from the latest state's non-empty permission keys). -/
 theorem permVerdictL_granted (γa : AuthNames) (hs : List AuthState) (ai : AuthInfoM)
     (key rangeEnd : GoString) (op : PermType) (err : GoInterface) (stl : AuthState)
     (hl : hs.getLast? = some stl) (hsh : reqShape key rangeEnd)
@@ -778,8 +720,10 @@ theorem permVerdictL_granted (γa : AuthNames) (hs : List AuthState) (ai : AuthI
     err = GoInterface.nil ↔
       (stl.enabled = false ∨ (ai.rev ≠ 0 ∧ stl.revision ≤ ai.rev ∧
         ∃ u, stl.users !! ai.user = some u ∧ (isRoot u ∨ covers stl u op key rangeEnd))) := by
-  rw [permVerdictL_iff γa hs ai key rangeEnd op err stl hl hsh h]
-  unfold permitted granted
+  have hk := (h stl hl).2.2
+  rw [permVerdictL_iff γa hs ai key rangeEnd op err stl hl h]
+  unfold permitted
+  rw [granted_iff_covers stl ai key rangeEnd op hk hsh]
   constructor
   · rintro ⟨hp | ⟨h0, u, hu, hc⟩, hr⟩
     · exact Or.inl hp

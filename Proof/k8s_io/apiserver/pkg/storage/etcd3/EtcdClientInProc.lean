@@ -71,7 +71,7 @@ update fired at most once at each member (as linkvtxn's `txn_Commit_st`'s writin
 `txn.Commit.specM`, which keeps the reply's revision reached, `txnRevLb`): the reply's verdict and
 responses the server's run at the state `σ` the update fired at, its revision `σ`'s after it,
 positive and reached. -/
-theorem cas_commit [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem cas_commit [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG)) (tp : Loc) (ms : List (client.SrvAt GF))
     (γk : KVNames) (hsame : ∀ x ∈ ms, kvSame x.γr.kv γk) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (ev rev : w64)
@@ -128,7 +128,7 @@ theorem cas_commit [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] 
     iunfold client.txnWriteOnce at Hone
     icases Hone with %Hnr
     isplitl []
-    · ipureintro; exact Hnr
+    · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
     inext
     iexact Hau'
   inext
@@ -207,7 +207,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG))
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) : (inProcEtcd ms V).Laws where
   get := by
-    intro _ _ _ kc ci cd key opts Q h1 h2
+    intro _ _ kc ci cd key opts Q h1 h2
     simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, -, #Hregs⟩, #Hctx, #Hce, Hau⟩ HΦ
     iapply (wp_Get kc ms V ci cd key opts Q h1 h2) $$ [Hlt Hau] [HΦ]
@@ -215,7 +215,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
       iframe #
     · iexact HΦ
   list := by
-    intro _ _ _ kc ci cd pfx opts Q h1 h2 h3 h4 h5
+    intro _ _ kc ci cd pfx opts Q h1 h2 h3 h4 h5
     simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, -, #Hregs⟩, #Hctx, #Hce, Hau⟩ HΦ
     iapply (wp_List kc ms V ci cd pfx opts Q h1 h2 h3 h4 h5) $$ [Hlt Hau] [HΦ]
@@ -223,7 +223,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
       iframe #
     · iexact HΦ
   optimisticPut := by
-    intro _ _ _ kc ci cd key vsl val rev opts Q h1 h2 h3
+    intro _ _ kc ci cd key vsl val rev opts Q h1 h2 h3
     simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, #Hwo, #Hregs⟩, #Hctx, #Hce, #Hv, Hau⟩ HΦ
     iapply (wp_OptimisticPut kc ms V ci cd key vsl val rev opts Q h1 h2 h3) $$ [Hlt Hau] [HΦ]
@@ -231,7 +231,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
       iframe #
     · iexact HΦ
   optimisticDelete := by
-    intro _ _ _ kc ci cd key rev opts Q h1
+    intro _ _ kc ci cd key rev opts Q h1
     simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, #Hwo, #Hregs⟩, #Hctx, #Hce, Hau⟩ HΦ
     iapply (wp_OptimisticDelete kc ms V ci cd key rev opts Q h1) $$ [Hlt Hau] [HΦ]
@@ -257,7 +257,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     · iexact Hkv
     iexact Hregs
   kvGet := by
-    intro _ _ api ctx cdw pk osl gs Qr hsz hg hser hss
+    intro _ api ctx cdw pk osl gs Qr hsz hg hser hss
     simp only [inProcEtcd]
     iintro %Φ ⟨#Pc, Hlt, ⟨#Hkv, #Hregs⟩, #Hctx, #Hce, #Hopts, #Hra⟩ HΦ
     imod (client.srvStart_alloc (GF := GF) ms) with #Hst
@@ -373,7 +373,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     iframe Hobj Htwo
     iexact Hregs
   casCommit := by
-    intro _ tp γk hsame ci cd b ev rev Q hb
+    intro tp γk hsame ci cd b ev rev Q hb
     have hsame' : ∀ x ∈ ms, kvSame x.γr.kv γk := fun x hx =>
       hsame x.γr.kv (List.mem_map_of_mem (f := fun x : client.SrvAt GF => x.γr.kv) hx)
     simp only [inProcEtcd, BigAndL.bigAndL_map]
