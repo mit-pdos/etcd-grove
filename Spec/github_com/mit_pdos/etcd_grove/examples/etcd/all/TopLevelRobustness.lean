@@ -61,17 +61,15 @@ checked at the bound by `examples/etcd/all`'s `TestMemberIDs`. The proof does no
 condition under which that trusted model is faithful (each cluster's own `BootFacts` states it for that
 cluster, `BootCore.lowNodup`).
 **`bootstrap`'s contracts** (premises to axioms, 2026-11-27; until then the Iris premises `Hprem₅` and
-`HpremR`, each cluster's named premises): restart1's first start and both clusters' restarts are
-`bootstrap`'s interim axioms' (`bootstrap.wp_proofOne`, `bootstrap.wp_proofRestart`, at Go's values), so the
-statement takes the pure facts that the ids, peers, contexts and directories it names are what `bootstrap`
-computes (`Hbg₅`, `HbgR`: putget's `BootGo1` per member) and `GODEBUG` `fips140` off (`Hfips`, `crypto/sha1`'s
-setting, as the distributed statements). One Iris premise is left, `Hprem₅`: restartN's members' first-start
-contracts (`etcd_restartN.bootPremises`, `bootstrapContract` at each), at every step bound `n` with
-`n + 1 ≤ 2 ^ 48`. No spec of `bootstrap` covers a first start of several members in one process yet: there
-`isMemberBootstrapped` sends `GET /members` to the members already serving, whose answer no protocol of the
-in-process HTTP model constrains (`notes/specs-only/ledger.md`, 2026-11-24, `isMemberBootstrapped.spec`).
+`HpremR`, each cluster's named premises): every first start and restart is `bootstrap`'s interim axioms'
+(`bootstrap.wp_proofOne` for restart1's first start, `bootstrap.wp_proofUnserved` for restartN's, whose
+`startMembers` builds every member before it serves any, so that no first boot's `GET /members` finds a
+listener; `bootstrap.wp_proofRestart` for both clusters' restarts; at Go's values), so the statement takes the
+pure facts that the ids, peers, contexts and directories it names are what `bootstrap` computes (`Hbg₅`,
+`HbgR`: putget's `BootGo1` per member) and `GODEBUG` `fips140` off (`Hfips`, `crypto/sha1`'s setting, as the
+distributed statements). No Iris premise is left.
 The count is the program's `uint64` argument, any value: the premises indexed by it (`Hlen₅`, `Hbf₅`,
-`Hprem₅`, `Hlow`) are stated at `uint.nat k₅`, and the addresses and data directories (`HAs`, `HDs`,
+`Hlow`) are stated at `uint.nat k₅`, and the addresses and data directories (`HAs`, `HDs`,
 `HWal`) are `etcdProgAddrs`/`etcdProgDirs` (`TopLevelDefs.lean`): the clusters' at a count in range,
 none outside, where `MainChecked` starts no member.
 -/
@@ -138,11 +136,6 @@ def etcd_restart_robust_single_process.spec : Prop :=
     (HEnv : EtcdVerifyOff)
     -- `GODEBUG` `fips140` off (`crypto/sha1`, with which `bootstrap` computes the member ids)
     (Hfips : crypto.fips140.GodebugFips140Off)
-    -- restartN's members' first-start contracts (`bootstrap` at a first start of `k₅` members in one
-    -- process: no spec of `bootstrap` covers it yet, see the header)
-    (Hprem₅ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.bootPremises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅
-          ps₅ ctxs₅ boot₅)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdProgDirs k₅)),

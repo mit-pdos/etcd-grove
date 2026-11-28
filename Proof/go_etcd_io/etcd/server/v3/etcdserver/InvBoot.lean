@@ -620,6 +620,48 @@ instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.Se
     Persistent (bootstrapContract (GF := GF) cfg U γ id ctxs N dir) := by
   unfold bootstrapContract; infer_instance
 
+/-- **`bootstrapContract` with a frame `R`** (2026-11-27, restartN's first boots): the caller lends `R` to
+`bootstrap` for the call and gets it back, on an error too. `bootstrapContract` is the case `R = emp`
+(`bootstrapContractF_of`). For a contract whose precondition holds a resource (`bootstrap.specUnserved`: the
+other members' peer addresses, not yet served). -/
+def bootstrapContractF (R : IProp GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (U : BootURLs) (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat)
+    (dir : w64 → List GoString) : IProp GF :=
+  iprop(□ ({{ R ∗ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
+          storage.dbOpensOk⌝ ∗
+        zapLoggerOk cfg.Logger' ∗
+        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
+        ⌜EtcdVerifyOff⌝ ∗
+        bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+        wal.bootRes cfg }}
+      (App (Val (@! bootstrap)) (Val #cfg))
+    {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
+        R ∗ (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b) }}))
+
+instance bootstrapContractF_persistent (R : IProp GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (U : BootURLs) (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat)
+    (dir : w64 → List GoString) :
+    Persistent (bootstrapContractF (GF := GF) R cfg U γ id ctxs N dir) := by
+  unfold bootstrapContractF; infer_instance
+
+/-- **`bootstrapContract` is `bootstrapContractF` at any frame**: the contract with no resource of its own
+is used framing `R` around the call. -/
+theorem bootstrapContractF_of (R : IProp GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (U : BootURLs) (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat)
+    (dir : w64 → List GoString) :
+    bootstrapContract (GF := GF) cfg U γ id ctxs N dir ⊢
+      bootstrapContractF (GF := GF) R cfg U γ id ctxs N dir := by
+  iintro #H
+  iunfold bootstrapContract at H
+  iunfold bootstrapContractF
+  imodintro
+  iintro %Φ !> ⟨HR, Hpre⟩ HΦ
+  iapply H $$ Hpre
+  iintro !> %b %err Hpost
+  iapply HΦ
+  iframe
+
 /-- **The boot apply thread on a fresh file** (2026-11-01, "bootOk's boot metadata"): `bootOk`'s
 `Hthr`, at `consInv_alloc`'s state, is at `⟨0, 0, 0, false⟩` when `γA.m0 = (0, 0)`. -/
 theorem thr_fresh (γA : ApplyNames) (h : γA.m0 = (W64 0, W64 0)) :

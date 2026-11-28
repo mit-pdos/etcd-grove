@@ -75,6 +75,7 @@ axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bootstrap.wp_proofOne
 axiom bootstrap.wp_proofRestart
+axiom bootstrap.wp_proofUnserved
 axiom bootstrap.wp_proof_dist
 axiom bridge.New.wp_proof
 axiom bridge.bridge.Blackhole.wp_proof

@@ -3,6 +3,7 @@ package restartN
 import (
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -105,22 +106,45 @@ const (
 	cntCompact   = "compacted Raft logs"
 )
 
+// cntBootCluster is what bootstrap logs right before bootstrapCluster (bootstrap.go:92), whose first-start
+// branch sends GET /members to every other member's peer URL (isMemberBootstrapped).
+const cntBootCluster = "bootstrapping cluster"
+
 var cntEvents = []string{cntRestart, cntWALSnap, cntSkipSnap, cntRecSnap, cntNoWALSnap, cntSaveSnap,
 	cntSnapSent, cntSnapDone, cntCompact}
 
 // counts is a zap core that logs nothing and counts the messages of cntEvents, at every level,
-// before and after the restart, and keeps the integer fields of the last such message after it.
+// before and after the restart, and keeps the integer fields of the last such message after it. At
+// each first boot's cntBootCluster (before the restart) it dials every peer address of peers and
+// counts the boots (probes) and the addresses that accepted (served).
 type counts struct {
 	mu        *sync.Mutex
 	restarted *bool
 	before    map[string]int
 	after     map[string]int
 	fields    map[string]map[string]int64
+	peers     []string
+	probes    *int
+	served    *int
 }
 
-func newCounts() counts {
+func newCounts(peers []string) counts {
 	return counts{mu: &sync.Mutex{}, restarted: new(bool), before: map[string]int{},
-		after: map[string]int{}, fields: map[string]map[string]int64{}}
+		after: map[string]int{}, fields: map[string]map[string]int64{}, peers: peers,
+		probes: new(int), served: new(int)}
+}
+
+// probe dials every peer address and returns how many accepted.
+func (c counts) probe() int {
+	n := 0
+	for _, a := range c.peers {
+		conn, err := net.DialTimeout("tcp", a, time.Second)
+		if err == nil {
+			n++
+			conn.Close()
+		}
+	}
+	return n
 }
 
 func (c counts) Enabled(zapcore.Level) bool        { return true }
@@ -132,6 +156,18 @@ func (c counts) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.Checke
 }
 
 func (c counts) Write(e zapcore.Entry, fs []zapcore.Field) error {
+	if e.Message == cntBootCluster {
+		c.mu.Lock()
+		first := !*c.restarted
+		c.mu.Unlock()
+		if first {
+			n := c.probe()
+			c.mu.Lock()
+			*c.probes++
+			*c.served += n
+			c.mu.Unlock()
+		}
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if strings.Contains(e.Message, cntWALSnap) || strings.Contains(e.Message, cntNoWALSnap) ||
@@ -184,7 +220,8 @@ func (c counts) report() string {
 
 // TestRun runs Run once with k members, in a fresh directory (the members' DataDirs are relative), with
 // a logger that counts what the members did, and fails unless Run's check ran (it panics if it fails)
-// and the run tested what it is meant to: disk snapshots taken before the stop; exactly one member
+// and the run tested what it is meant to: each of the k first boots ran while no peer address accepted
+// a connection (so its GET /members found no listener); disk snapshots taken before the stop; exactly one member
 // restarted from its WAL, which held a snapshot record above index 0; its WAL's commit index at least
 // the bootstrap entries (k) plus the Puts before the stop; raft's log compacted; and the snapshot
 // catch-up: a merged snapshot sent and a snapshot installed after the restart. k is RESTARTN_MEMBERS
@@ -202,13 +239,27 @@ func TestRun(t *testing.T) {
 	t.Logf("k = %d", k)
 	t.Chdir(t.TempDir())
 	walarea.ResetFamily(t, "restartN") // the members' WAL areas (wal-link P2)
-	c := newCounts()
+	var peers []string
+	for _, m := range etcdstart.Members("restartN", k, PeerBase, ClientBase) {
+		peers = append(peers, m.Peer)
+	}
+	c := newCounts(peers)
 	start := time.Now()
 	ok := Run(k, zap.New(c))
 	t.Logf("Run took %v", time.Since(start))
 	t.Log(c.report())
 	if !ok {
 		t.Fatalf("Run returned before its check")
+	}
+	c.mu.Lock()
+	probes, served := *c.probes, *c.served
+	c.mu.Unlock()
+	t.Logf("first boots probed: %d, peer addresses accepting at them: %d", probes, served)
+	if probes != int(k) {
+		t.Errorf("%d first boots logged %q, not k = %d", probes, cntBootCluster, k)
+	}
+	if served != 0 {
+		t.Errorf("a first boot found %d peer addresses accepting connections", served)
 	}
 	if c.get(false, cntSaveSnap) == 0 {
 		t.Errorf("no disk snapshot taken before the stop")
