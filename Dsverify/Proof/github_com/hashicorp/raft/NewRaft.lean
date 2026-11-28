@@ -596,8 +596,9 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   obtain ⟨hlen0, hdl0, hents0, hdpd0, hdpn0⟩ := HF
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
-      fixPost (GF := GF) rc' false X.lat D' X.A.staged X.s.term lastLog_ptr ∗ rtok tid ∗ r_ptr ↦ r)))
-    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog Htok r snapIdx snapTerm] [-]
+      fixPost (GF := GF) rc' false X.lat D' X.A.staged X.s.term lastLog_ptr ∗ rtok tid ∗ r_ptr ↦ r ∗
+      (match X.lat with | none => iprop(True) | some (m, _) => applLb rc' (uint.nat m.Index')))))
+    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog Htok r snapIdx snapTerm Hlb] [-]
   · rw [htp]
     rcases hL : X.lat with _ | ⟨m, b⟩
     · -- no snapshot: nothing to discard
@@ -658,7 +659,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
           try simp only [Hif, decide_false]
           try wp_auto
           isplitr; · ipureintro; trivial
-          iframe Htok r
+          iframe Htok r Hlb
           unfold fixPost
           simp only [latIdxW, latTermW, latIdx, latTerm]
           iexists X.s, X.A, lv, X.c
@@ -720,7 +721,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
             wp_if_destruct
             all_goals try (exfalso; simp [hTa] at Hif; done)
             isplitr; · ipureintro; trivial
-            iframe Htok r
+            iframe Htok r Hlb
             unfold fixPost
             simp only [latIdxW, latTermW, latIdx, latTerm]
             iexists X.s, X.A, lv, X.c
@@ -734,7 +735,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
           · try simp only [Hif, decide_false]
             try wp_auto
             isplitr; · ipureintro; trivial
-            iframe Htok r
+            iframe Htok r Hlb
             unfold fixPost
             simp only [latIdxW, latTermW, latIdx, latTerm]
             iexists X.s, X.A, lv, X.c
@@ -745,8 +746,65 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
             ipureintro
             refine ⟨rfl, hci, hvmD, hstg, hxd, hcl, habove', Or.inl ⟨hlI, hlT, ?_⟩⟩
             rw [HlvIdx.1]; exact hge
-      · sorry
-  iintro %v ⟨%hv, Hfix, Htok, r⟩
+      · -- a discard pending (an install's, crashed between its snapshot's close and its log's discard): finish it
+        obtain ⟨hxd, htd⟩ := hdplat d hdp
+        have hdur := hdpd0 d hdp
+        have hlo := hlod2 d hdp
+        iunfold dpRes at Hdpr
+        icases Hdpr with ⟨#Hae, #Hld, %Hdpp⟩
+        have hpre : pendPre γ i X.s (.discard d) := Hdpp
+        ihave Hph : (pendHyps γ i X.s (.discard d) : IProp GF) $$ []
+        · simp only [pendHyps]; iframe #
+        simp only [latIdxD] at *
+        ihave #Hll : (latLb rc' d.x : IProp GF) $$ []
+        · rw [← hxd]; iexact Hlatlb
+        ihave #Hlb' : (applLb rc' d.x : IProp GF) $$ [Hlb]
+        · rw [← hxd]; iexact Hlb
+        iclear Happ
+        by_cases hAe : X.A.m = ∅
+        · -- an empty store: the discard fires at `FirstIndex` (ghostly)
+          wp_bind (App (Val #(methods _ _ _)) _)
+          iapply HFI $$ Htok
+          iapply (bootRead_L_discard (GF := GF) γ rc' i X.A (some (m, b)) X.s d X.c hAe)
+          iframe #
+          iframe Hboot Hsv Hpend Hcomp
+          iintro %s' Hboot Hsv Hpend Hcomp #Hdx %Hs' #HCs ⟨%a, Happ, %ha⟩ %r0 %Hr0 Htok
+          wp_auto
+          have hr0 : uint.nat r0 = 0 := by
+            rcases Hr0 with ⟨h, -⟩ | ⟨h, -⟩
+            · exact h
+            · rw [hAe] at h; simp at h
+          wp_if_destruct
+          all_goals try (exfalso; word; done)
+          try simp only [Hif, decide_false]
+          try wp_auto
+          ihave #Hlbu : (monoNatLbOwn rc'.dur.applied d.x : IProp GF) $$ []
+          · unfold applLb at *; iexact Hlb'
+          ihave ⟨Happ, %hle⟩ := monoNatAuth_lb_le _ _ _ _ $$ [$Happ $Hlbu]
+          obtain ⟨hl', hlt', hd', ht', hvt', hvc', hcx'⟩ := Hs'
+          have haeq : a = uint.nat m.Index' := by omega
+          subst haeq
+          isplitr; · ipureintro; trivial
+          iframe Htok r Hlb
+          unfold fixPost
+          simp only [latIdxW, latTermW, latIdx, latTerm]
+          iexists s', X.A, lv, d.x
+          iunfold srvV at Hsv
+          unfold srvVP
+          iframe
+          ipureintro
+          have hhi0 : X.A.hi = W64 0 := by
+            rcases hhi2 with h | ⟨e2, h⟩
+            · exact h
+            · rw [hAe] at h; simp at h
+          have hvm' : voteMatches D' s' := by
+            unfold voteMatches at hvmD ⊢; rw [hvt', hvc', ht']; exact hvmD
+          refine ⟨ht', by rw [hcx']; exact hci, hvm', by omega, by omega, by omega, ?_,
+            Or.inr ⟨by trivial, ?_, by omega, by omega⟩⟩
+          · intro k hk1 hk2; omega
+          · rw [HlvIdx.1, hhi0]; have := He.2; simp; omega
+        · sorry
+  iintro %v ⟨%hv, Hfix, Htok, r, Hlb⟩
   subst hv
   wp_auto
   -- fix 4: lastLog raised to the snapshot's last entry when below
