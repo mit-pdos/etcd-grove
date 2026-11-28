@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# k8s-dist K8-1/K8-2: the shared seed is one `realCheck` runs from (`notes/k8s-dist-k8-scope.md` §2)
+# k8s-dist K8-1..K8-4: the shared seed is one `realCheck` runs from (`notes/k8s-dist-k8-scope.md` §2)
 
 - `seedAt r1 r2 r`: the store of the shared seed's history (`seedSharedL r1 r2`, `SeedShared`/`SeededAt`)
   at revision `r`: empty below `r1`, the first seed from `r1` to below `r2`, both seeds at `r2`;
@@ -10,8 +10,11 @@ Lean-first (no Rocq counterpart).
   (`realCheck_pure`) takes of the configuration it starts from (`runOk_g0s`'s generalization: the
   driver's seed is `r1 = 2`, `r2 = 3`; the padded stores between them are the foreign revisions).
 
-`noForeign_erase` (a run of the semantic model showing no foreign revision is one of `kSpec`) is not
-here yet: Handoff K8-2.
+- `noForeign_erase` (K8-4): a failure-free run of the semantic model (`SRun`) whose history shows no
+  foreign revision (`NoForeignOk`) is a run of the driver's model (`PRun`, no foreign step). Step 3
+  (`sRun_jr`): a successful write answers the revision it writes or an item's (a no-op update), and items
+  carry only written revisions, so no foreign step comes before `m`; after it, `erase_go` takes K4's
+  `CRel.op` with every target at most `m` (`targetL_le_anchors`) and `stepL_sound`.
 -/
 module
 
@@ -599,6 +602,118 @@ theorem covL_step {f : w64} {lo lo' m : Nat} {x : Input} {y : Output} {rest : Li
   rcases List.mem_cons.1 hp with rfl | hp
   · have := hb v hv; omega
   · exact ⟨p, hp, hv⟩
+
+/-- **The erasure's induction.** The search's configuration `e` (related to the cluster's `g` by
+`CRel`, no pending write) is either the cluster's own, below `m`, every revision up to `m` still to be
+answered by a write (`CovL`): then no foreign step comes before the next operation (`sRun_jr`); or at
+`m`, where every operation's target is (`targetL_le_anchors`) and no write advances it. Either way the
+search's step (`CRel.op`) is from `e` itself, a step of `kSpec` (`stepL_sound`). -/
+theorem erase_go {h0 : HSt} {f : w64} {m : Nat} (hn0 : 1 ≤ uint.nat h0.st.rv) (hfm : uint.nat f ≤ m)
+    (hm1 : 1 ≤ m) {g : GCfg} {xs : List (Input × Output)} {g' : GCfg} (hr : SRun h0 g xs g') :
+    FailureFreeL xs → (∀ p ∈ xs, OpAnchors (List.range (m + 1)) p.1 p.2) →
+    (∀ p ∈ xs, ∀ v, nfWriteRV f p = some v → uint.nat v ≤ m) →
+    ∀ e, CRel (List.range (m + 1)) (uint.nat h0.st.rv) e g → e.pend = [] →
+    ((e = g ∧ uint.nat f ≤ uint.nat g.st.st.rv ∧ uint.nat g.st.st.rv < m ∧
+        CovL f (uint.nat g.st.st.rv) m xs) ∨ uint.nat e.st.st.rv = m) →
+    ∃ e'', PRun h0 e xs e'' := by
+  induction hr with
+  | nil c => intro _ _ _ e _ _ _; exact ⟨e, .nil e⟩
+  | @cons g g₁ g₂ g' x y rest hre hnw hps _ ih =>
+    intro hff hanc hle e hc hep hph
+    have hxy : (x, y) ∈ (x, y) :: rest := List.mem_cons_self
+    have hgp : g.pend = [] := by have := hc.perm; rw [hep] at this; exact this.symm.eq_nil
+    obtain ⟨d, hsd, hcd⟩ := CRel.reach hre hc
+    have hde : d = e := settleL_nil hsd hep
+    subst hde
+    obtain ⟨ρ, W, hh⟩ := hcd.rel
+    -- phase 1: no foreign step before this operation
+    have hph1 : (d = g₁ ∧ uint.nat f ≤ uint.nat g₁.st.st.rv ∧ uint.nat g₁.st.st.rv < m ∧
+        CovL f (uint.nat g₁.st.st.rv) m ((x, y) :: rest)) ∨ uint.nat d.st.st.rv = m := by
+      rcases hph with ⟨rfl, hf, hlt, hcov⟩ | hm
+      · rcases sReach_first hre hgp with rfl | ⟨hnw0, hre'⟩
+        · exact Or.inl ⟨rfl, hf, hlt, hcov⟩
+        · exfalso
+          obtain ⟨ρ0, W0, hh0⟩ := hc.rel
+          have hb0 : uint.nat d.st.st.rv + 1 < 2 ^ 64 := hnw0
+          have hj : JR (uint.nat d.st.st.rv + 1) (foreignL d.st).st :=
+            ⟨Nat.le_of_eq (foreignL_rv _ hnw0).symm, fun it hi => by have := hh0.items_le it hi; omega⟩
+          have hno := sRun_jr (SRun.cons hre' hnw hps ‹_›) hj
+          have hv : uint.nat (W64 ((uint.nat d.st.st.rv + 1 : Nat) : Int)) = uint.nat d.st.st.rv + 1 := by
+            word
+          obtain ⟨p, hp, hpv⟩ := hcov (W64 ((uint.nat d.st.st.rv + 1 : Nat) : Int)) (by rw [hv]; omega)
+            (by rw [hv]; omega)
+          obtain ⟨hw, h0, -, hrv⟩ := nfWriteRV_some hpv
+          exact hno p hp hw h0 (by rw [hrv, hv])
+      · exact Or.inr hm
+    have tb : targetL x y (uint.nat d.st.st.rv) ≤ uint.nat d.st.st.rv := by
+      rcases hph1 with ⟨rfl, -⟩ | hm
+      · exact pStep_target hps (fun it hi => hh.items_le it hi) hnw _
+      · rw [hm]; exact targetL_le_anchors x y _ m hm1 (hanc _ hxy)
+    obtain ⟨e', ⟨d', hsd', he'⟩, hc'⟩ := CRel.op hn0 hc hre hnw hps (hanc _ hxy)
+    have hd' : d' = d := settleL_nil hsd' hep
+    subst hd'
+    rw [skipToL_le _ _ tb] at he'
+    have hpe : linkv.PStep (kSpec h0) d' x (ansOf y) e' := stepL_sound d' x y (pStep_hk hps) e' he'
+    have hep' := pStep_pend_nil hpe (hff _ hxy) hep
+    have hle' : ∀ v, nfWriteRV f (x, y) = some v → uint.nat v ≤ m := hle _ hxy
+    obtain ⟨e'', hrun⟩ := ih (fun p hp => hff p (List.mem_cons_of_mem _ hp))
+      (fun p hp => hanc p (List.mem_cons_of_mem _ hp)) (fun p hp => hle p (List.mem_cons_of_mem _ hp))
+      e' hc' hep' (by
+        rcases hph1 with ⟨rfl, hf, hlt, hcov⟩ | hm
+        · have e2 : e' = g₂ := pStep_det hpe hps
+          subst e2
+          have hb : uint.nat d'.st.st.rv + 1 < 2 ^ 64 := hnw
+          rcases pStep_rv hps hnw with ⟨hrv, hans⟩ | ⟨hrv, hw, hz, hry⟩
+          · rw [hrv]
+            refine Or.inl ⟨rfl, hf, hlt, covL_step hcov (Nat.le_refl _) fun v hv => ?_⟩
+            obtain ⟨hw, hz, -, rfl⟩ := nfWriteRV_some hv
+            obtain ⟨it, hi, hit⟩ := hans hw hz
+            rw [hit]; exact hh.items_le it hi
+          · have hm' := hle' _ (nfWriteRV_of (p := (x, y)) hw hz (by rw [hry, hrv]; omega))
+            rw [hry, hrv] at hm'
+            have hcs := covL_step hcov (Nat.le_succ _) fun v hv => by
+              obtain ⟨-, -, -, rfl⟩ := nfWriteRV_some hv
+              rw [hry, hrv]; exact Nat.le_refl _
+            replace hcs : CovL f (uint.nat e'.st.st.rv) m rest := by rw [hrv]; exact hcs
+            by_cases hlt' : uint.nat e'.st.st.rv < m
+            · exact Or.inl ⟨rfl, by omega, hlt', hcs⟩
+            · exact Or.inr (by omega)
+        · right
+          have hb : uint.nat d'.st.st.rv + 1 < 2 ^ 64 := by
+            have := hh.le; have : uint.nat g₁.st.st.rv + 1 < 2 ^ 64 := hnw; omega
+          rcases pStep_rv hpe hb with ⟨hrv, -⟩ | ⟨hrv, hw, hz, hry⟩
+          · rw [hrv]; exact hm
+          · exfalso
+            have hm' := hle' _ (nfWriteRV_of (p := (x, y)) hw hz (by rw [hry, hrv]; omega))
+            rw [hry, hrv] at hm'
+            omega)
+    exact ⟨e'', .cons (.refl _) hpe hrun⟩
+
+/-- **Foreign erasure**: a failure-free run of the semantic model from the seeded store `h0` (K4's
+seed premises, `FullComplete`'s), whose history shows no foreign revision (`NoForeignOk`), is a run of
+the driver's model `kSpec h0` (no foreign step): the foreign steps all come after the last write
+(`erase_go`'s first phase) and the operations after it answer as at `m` (`CRel.op`). -/
+theorem noForeign_erase (h0 : HSt) (xs : List (Input × Output)) (c' : GCfg) (m : w64)
+    (hlen : h0.hist.length = uint.nat h0.st.rv) (hlast : h0.hist.getLast? = some h0.st)
+    (hseed : ∀ g ∈ h0.hist, ∀ it ∈ g.items, uint.nat it.obj'.ResourceVersion' ≤ uint.nat h0.st.rv)
+    (hnf : NoForeignOk h0.st.rv xs m) (hff : FailureFreeL xs) (hr : SRun h0 ⟨h0, []⟩ xs c') :
+    ∃ c'', PRun h0 ⟨h0, []⟩ xs c'' := by
+  have hn0 : 1 ≤ uint.nat h0.st.rv := by
+    rw [← hlen]
+    cases hh : h0.hist with
+    | nil => rw [hh] at hlast; cases hlast
+    | cons _ _ => simp
+  obtain ⟨M, hM⟩ : ∃ M, M = max (uint.nat m) (uint.nat h0.st.rv) := ⟨_, rfl⟩
+  have hA : ∀ p ∈ xs, OpAnchors (List.range (M + 1)) p.1 p.2 := fun p hp =>
+    opAnchors_mono (hnf.2.2 p hp) fun a ha => by simp only [List.mem_range] at ha ⊢; omega
+  have hle : ∀ p ∈ xs, ∀ v, nfWriteRV h0.st.rv p = some v → uint.nat v ≤ M := fun p hp v hv => by
+    have := ((hnf.1 v).2 ⟨p, hp, hv⟩).2; omega
+  have hinit : CRel (List.range (M + 1)) (uint.nat h0.st.rv) ⟨h0, []⟩ ⟨h0, []⟩ :=
+    ⟨⟨id, [], HRel.init h0 hlen hlast hseed⟩, List.Perm.refl _, by simp, by simp⟩
+  refine erase_go hn0 (by omega) (by omega) hr hff hA hle _ hinit rfl ?_
+  by_cases hfm : uint.nat h0.st.rv < uint.nat m
+  · exact Or.inl ⟨rfl, Nat.le_refl _, by dsimp only; omega, fun v h1 h2 => (hnf.1 v).1 ⟨h1, by omega⟩⟩
+  · exact Or.inr (by show uint.nat h0.st.rv = M; omega)
 
 end pure
 
