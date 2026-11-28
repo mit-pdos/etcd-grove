@@ -599,8 +599,7 @@ theorem srvKVCoreM_fire (on : Bool)
       -- (2026-10-27) `A`'s requested entries are a prefix of the server's log's
       obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
       rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
-      unfold kvModel
-      exact kvRaftOf_prefix _ _ _ A' Lf hA'L
+      exact kvModel_prefix _ A' Lf hA'L
     -- the update, fired at the committed state
     imod (fupd_mask_subseteq Hsub) with Hback
     ihave Hacc := aupd_aacc $$ Hau

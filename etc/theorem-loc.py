@@ -21,9 +21,17 @@ part's `<root>/Proof/`), print
     closing brace holding code) of the Go functions whose proofs the theorem's proof reaches --
     a `T.M.wp_proof` that is a theorem, not an axiom -- split into code outside this repository
     (etcd, Raft, bbolt, Kubernetes, ...: "system") and this repository's own (`examples/`,
-    `third_party/`: drivers, models, Porcupine).  Generated files, test-helper packages and the
+    `third_party/`: drivers, models, Porcupine, and the projects checked in here, such as the
+    dsverify kits' forks under `examples/dsverify/`), in lines and in functions
+    (`verified_funcs`, `verified_funcs_inrepo`).  Generated files, test-helper packages and the
     modules a project's `counted_modules` leaves out are excluded, as etc/verified-code.py does;
-    Go's standard library (no source here) is not counted.
+    Go's standard library (no source here) is not counted, but a standard-library package or a
+    module a project translates from this repository's model (`std_models`, `module_models`:
+    `Net/`'s net/rpc and net/http) is, as the model's code.
+    A proof `[Pkg.]T.M.wp_proof` is of the function its file's directory names
+    (`Proof/<pkg>/...`, or a package above it), else of the one its name names
+    (`Perennial.<pkg>.T.M`, for a proof filed elsewhere); a spec variant (`M_kv`, `MV`,
+    `MRL`: a `_suffix` or up to three capitals) is of `M`.
 
 The axioms are those of the `etc/tcb-collections/*.txt` file whose `roots` patterns match the
 theorem's `Results.lean` (or its name), family collections (with `axioms` lines) excepted;
@@ -64,6 +72,9 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(ROOT, "etc"))
 import goose  # noqa: E402
 import proof_roots  # noqa: E402
+
+sys.path.insert(0, os.path.join(ROOT, "models"))
+import goroot  # noqa: E402  (models/goroot.py: the standard-library packages' models)
 
 PARTS = list(proof_roots.PART_ROOTS)
 PROJECT_SUBDIRS = ("Spec", "Proof")
@@ -477,8 +488,24 @@ def go_functions(go_src, refresh):
                             and not os.path.abspath(x).startswith(ROOT)})
         print(f"theorem-loc: listing the Go functions of {name}", file=sys.stderr)
         counted = set(p.counted_modules or [])
-        for g in vc.go_functions(dirs):
-            inrepo = g["src"] == d and p.local is not None
+        # standard-library packages translated from this repository's models (`std_models`: the
+        # model's Go files stand in for the package's, models/goroot.py): their code, at the
+        # package's own path
+        # and modules translated from their models (`module_models`: the model's module stands in
+        # for the module, at the module's path)
+        models = {}
+        for m in p.std_models or []:
+            md = os.path.join(goroot.MODELS, goroot.STD_MODELS[m])
+            if os.path.isdir(md):
+                models[md] = m
+        for m, md in (p.module_models or {}).items():
+            if os.path.isdir(os.path.join(ROOT, md)):
+                models[os.path.join(ROOT, md)] = m
+        for g in vc.go_functions(dirs) + vc.go_functions(list(models)):
+            if g["src"] in models:
+                m = models[g["src"]]
+                g = dict(g, pkg=m + g["pkg"][len(g["module"]):], module=m)
+            inrepo = (g["src"] == d and p.local is not None) or g["src"] in models
             ok = not g["generated"] and not vc.TEST_PKG.search(g["pkg"][len(g["module"]):])
             if g["src"] == d and counted and g["module"] not in counted:
                 ok = False
@@ -503,6 +530,12 @@ def go_index(funcs):
     return ix
 
 
+# this repository's namespace (`Perennial.EtcdGrove`), and its first component, the namespace of
+# Goose's packages (`Perennial.github_com.hashicorp.raft`): stripped from a proof's name to read
+# the package it names
+NS_COMPS = [c for c in proof_roots.namespace().split(".") if c]
+
+
 def verified(env, root, goix):
     """The Go functions whose proofs `root`'s proof reaches, and the proofs reached that are of
     no Go function here (standard library, promoted or interface methods)."""
@@ -522,21 +555,45 @@ def verified(env, root, goix):
             mroot, rel = rel[0], rel[1:]
         dirs = rel[1:-1]  # below Proof/
         comps = [norm_name(c) for c in t.name.split(".")[:-1]]
-        cands = ([(comps[-2], comps[-1])] if len(comps) >= 2 else []) + [("", comps[-1])]
-        # spec variants of one function (`Stats_kv`): drop `_suffix`es
-        for rv, nm in list(cands):
-            ps = nm.split("_")
-            cands += [(rv, "_".join(ps[:j])) for j in range(len(ps) - 1, 0, -1)]
+        roots = [mroot, ""] if mroot else [""]
+
+        def lookup(fs, cs):
+            """The function `cs` names in `fs`: `[T.]F`, or a spec variant of it (`Stats_kv`,
+            `HasV`, `callMasterRL`: a `_suffix`, or up to three capital letters, dropped)."""
+            cands = ([(cs[-2], cs[-1])] if len(cs) >= 2 else []) + [("", cs[-1])]
+            for strip in (lambda nm: ["_".join(nm.split("_")[:j])
+                                      for j in range(nm.count("_"), 0, -1)],
+                          lambda nm: [nm[:-j] for j in range(1, 4)
+                                      if len(nm) > j and nm[-j:].isupper() and (nm[-j - 1].islower() or nm[-j - 1].isdigit())]):
+                for c in list(cands):
+                    if c in fs:
+                        return fs[c]
+                cands += [(rv, v) for rv, nm in cands for v in strip(nm)]
+            return next((fs[c] for c in cands if c in fs), None)
+
         hit = None
+        # the package the proof's directory names (`Proof/<pkg>/<F>.lean`), or a package above it
         for k in range(len(dirs), 0, -1):
-            for r in ([mroot, ""] if mroot else [""]):
+            for r in roots:
                 fs = goix.get((r, "/".join(dirs[:k])))
-                if fs:
-                    hit = next((fs[c] for c in cands if c in fs), None)
-                    if hit:
-                        break
+                if fs and (hit := lookup(fs, comps)):
+                    break
             if hit:
                 break
+        # else the package its name names (`Perennial.<pkg>.[T.]F.wp_proof`: a proof filed under
+        # another directory, `gryff/H1/`, `go_vsr/Proof/log/`, or of a subpackage's function)
+        ncomps = comps
+        for pre in (NS_COMPS, NS_COMPS[:1]):
+            if pre and ncomps[:len(pre)] == pre:
+                ncomps = ncomps[len(pre):]
+                break
+        for k in range(len(ncomps) - 1, 0, -1):
+            if hit:
+                break
+            for r in roots:
+                fs = goix.get((r, "/".join(ncomps[:k])))
+                if fs and (hit := lookup(fs, ncomps[k:])):
+                    break
         if hit:
             funcs[(hit["pkg"], hit["recv"], hit["name"], hit["root"])] = hit
         else:
@@ -598,6 +655,7 @@ def main():
             row.update(verified_go=sum(g["sloc"] for g in cf if not g["inrepo"]),
                        verified_go_inrepo=sum(g["sloc"] for g in cf if g["inrepo"]),
                        verified_funcs=sum(1 for g in cf if not g["inrepo"]),
+                       verified_funcs_inrepo=sum(1 for g in cf if g["inrepo"]),
                        assumed_funcs=len(assumed), unmapped_proofs=len(unmapped))
             det.update(verified=sorted(fs, key=lambda g: (g["pkg"], g["recv"], g["name"])),
                        unmapped=[dict(name=t.name, file=os.path.relpath(t.file, ROOT)) for t in unmapped])
@@ -612,7 +670,8 @@ def main():
 
     cols = ["theorem", "tcb", "tcb_premises", "tcb_axioms", "axioms"]
     if goix is not None:
-        cols += ["verified_go", "verified_go_inrepo", "verified_funcs", "assumed_funcs", "unmapped_proofs"]
+        cols += ["verified_go", "verified_go_inrepo", "verified_funcs", "verified_funcs_inrepo",
+                 "assumed_funcs", "unmapped_proofs"]
     if args.tsv:
         print("\t".join(cols))
         for r in rows:

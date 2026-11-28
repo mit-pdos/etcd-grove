@@ -6,13 +6,11 @@
 * **`k8s_compactor_Main`** (`MainLinked.lean`): `Main` does not panic. From `isPkgInit`, the right
   to listen on the client address, the main thread's token, the member's start premises
   (`etcdstart.premises`), a fresh data directory and the compactor registry's authority with no
-  endpoint claimed (`regAuth ∅`), under the named hypothesis of
-  `clock.RealClock.After`.
+  endpoint claimed (`regAuth ∅`).
 * **`k8s_compactor_MainPartition`** (`MainLinked.lean`; K6): `MainPartition(k, sched)` does not panic.
   From `isPkgInit`, the right to listen on the nine addresses of `clusterCfg` (the members' peer
   addresses with their HTTP rights), the schedule read-only (any steps), the main thread's token,
-  the cluster's premises (`cluster3.premises`), fresh data directories and `regAuth ∅`, under the
-  named hypothesis of `clock.RealClock.After`.
+  the cluster's premises (`cluster3.premises`), fresh data directories and `regAuth ∅`.
 
 **The closed theorems retired (2026-11-20, the user's decision D3 of `notes/k8s-unified-scope.md`).**
 Its closed theorems `k8s_compactor_safe` and `k8s_compactor_partition_safe` (with
@@ -47,16 +45,14 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_Main`). -/
-theorem k8s_compactor_Main
-    (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
+theorem k8s_compactor_Main :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
-  k8s_compactor.wp_Main h_After
+  k8s_compactor.wp_Main
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_MainPartition`). -/
-theorem k8s_compactor_MainPartition
-    (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
+theorem k8s_compactor_MainPartition :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
-  k8s_compactor.wp_MainPartition h_After
+  k8s_compactor.wp_MainPartition
 
 end results
 

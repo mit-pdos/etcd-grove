@@ -66,8 +66,7 @@ theorem kvSys_boot (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) 
     etcdKV (Gg := Gg) γk (kvModelSt γk (bootEntries bl)) ⊢
       (kvR (GF := GF) γk).sysState (kvR (GF := GF) γk).B.init := by
   have h : kvModel γk (bootEntries bl) = [[], []] := by
-    unfold kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) ps bl hb, hlog]
+    rw [kvModel_bootE _ ps bl hb, hlog]
   show _ ⊢ kvSys γk TSo.init
   unfold kvSys
   iintro H

@@ -76,6 +76,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
 public import Proof.go_etcd_io.etcd.server.v3.auth.WhyDefs
@@ -309,8 +310,97 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 
-/-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
-def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
+end kvGhost
+
+section kvPure
+variable [GooseExts]
+
+/-- **The KV fold of the committed log `L`** (the no-mode plan, N1b-2, 2026-11-28): the auth-aware
+model `kvRaftOfOn` from the server's start (`srvAuthSt0`, the start log, the empty lease table):
+the auth state, the KV log and the lease table after `L`. -/
+def kvFold (γk : KVNames) (L : List EntryModel) : OnState :=
+  kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L
+
+/-- **The KV model of the committed log `L`**: the fold's log (until N1b-2, the auth-free
+`kvRaftOf γk.c0 γk.ch0 γk.log0 L`, which it equals on a log with no `AuthEnable`: `kvModel_off`). -/
+def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := (kvFold γk L).2.1
+
+/-- **The auth state after the committed log `L`**: the fold's. -/
+def kvAuth (γk : KVNames) (L : List EntryModel) : auth.AuthState := (kvFold γk L).1
+
+/-- **The lease table of the committed log `L`**: the fold's (until N1b-2, the auth-free
+`kvTableOf γk.c0 γk.ch0 [] L`: `kvLeases_off`). -/
+def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := (kvFold γk L).2.2
+
+theorem kvModel_nil (γk : KVNames) : kvModel γk [] = γk.log0 := rfl
+
+theorem kvLeases_nil (γk : KVNames) : kvLeases γk [] = [] := rfl
+
+/-- **The porting lemma at the server's start** (`kvRaftOfOn_disabled`): along a log with no
+`AuthEnable` above `c0`, the auth state stays disabled and the model's log and table are the
+auth-free model's. -/
+theorem kvFold_off (γk : KVNames) (L : List EntryModel) (h : noAuthEnable γk.c0 L) :
+    (kvAuth γk L).enabled = false ∧ kvModel γk L = kvRaftOf γk.c0 γk.ch0 γk.log0 L ∧
+      kvLeases γk L = kvTableOf γk.c0 γk.ch0 [] L := by
+  obtain ⟨h1, h2⟩ := kvRaftOfOn_disabled γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L rfl h
+  refine ⟨h1, ?_, ?_⟩
+  · unfold kvModel kvFold kvRaftOf; rw [h2]
+  · unfold kvLeases kvFold; rw [h2]; exact kvRaftSt_snd _ _ L (γk.log0, [])
+
+theorem kvModel_off (γk : KVNames) (L : List EntryModel) (h : noAuthEnable γk.c0 L) :
+    kvModel γk L = kvRaftOf γk.c0 γk.ch0 γk.log0 L := (kvFold_off γk L h).2.1
+
+theorem kvLeases_off (γk : KVNames) (L : List EntryModel) (h : noAuthEnable γk.c0 L) :
+    kvLeases γk L = kvTableOf γk.c0 γk.ch0 [] L := (kvFold_off γk L h).2.2
+
+/-- `kvModel_off` on a plain log (`plainLogM`, the auth-off invariant's). -/
+theorem kvModel_offM (γk : KVNames) (L : List EntryModel) {cmp : Bool} {lm : lease.Mode}
+    (h : plainLogM cmp lm L) : kvModel γk L = kvRaftOf γk.c0 γk.ch0 γk.log0 L :=
+  kvModel_off γk L (noAuthEnable_of_plainLogM _ L h)
+
+/-- `kvLeases_off` on a plain log. -/
+theorem kvLeases_offM (γk : KVNames) (L : List EntryModel) {cmp : Bool} {lm : lease.Mode}
+    (h : plainLogM cmp lm L) : kvLeases γk L = kvTableOf γk.c0 γk.ch0 [] L :=
+  kvLeases_off γk L (noAuthEnable_of_plainLogM _ L h)
+
+/-- The table of a log with no `AuthEnable` never holds the id `0`. -/
+theorem kvLeases_ne0_of (γk : KVNames) (L : List EntryModel) (h : noAuthEnable γk.c0 L) :
+    W64 0 ∉ (kvLeases γk L).ids := by
+  rw [kvLeases_off γk L h]; exact kvTableOf_ne0 _ _ [] L (by simp [LeaseTable.ids])
+
+/-- The model's log extends the start log. -/
+theorem kvModel_extends (γk : KVNames) (L : List EntryModel) : γk.log0 <+: kvModel γk L :=
+  kvRaftOfOn_extends γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L
+
+/-- **The model grows with the raft log.** -/
+theorem kvModel_prefix (γk : KVNames) (A B : List EntryModel) (h : A <+: B) :
+    kvModel γk A <+: kvModel γk B :=
+  kvRaftOfOn_prefix γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) A B h
+
+/-- The model grows by at most one revision per entry. -/
+theorem kvModel_length_le (γk : KVNames) (L : List EntryModel) :
+    (kvModel γk L).length ≤ γk.log0.length + L.length :=
+  kvRaftOfOn_length_le γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L
+
+/-- The fold after `L ++ [e]` is the step of `e` from the fold after `L`. -/
+theorem kvFold_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel) :
+    kvFold γk (L ++ [e]) = kvEntryOn γk.c0 γk.ch0 (kvFold γk L) e := by
+  unfold kvFold; rw [kvRaftOfOn_snoc]
+
+/-- The model reads only the start values `c0`, `ch0`, `log0`. -/
+theorem kvFold_congr (γk γk' : KVNames) (h0 : γk.c0 = γk'.c0) (h1 : γk.ch0 = γk'.ch0)
+    (h2 : γk.log0 = γk'.log0) : kvFold γk = kvFold γk' := by
+  funext L; unfold kvFold; rw [h0, h1, h2]
+
+end kvPure
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The log `l` is the off model of a committed raft log** (persistent; strict M1, 2026-11-05):
 `KVStoreApi.lean`'s raft witness `kvNx γr false`, by `rfl` (`kvNx_off`), stated here below the
@@ -323,10 +413,6 @@ def kvNxOff (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) : IProp GF :=
 instance kvNxOff_persistent (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) :
     Persistent (kvNxOff (GF := GF) γ γk l) := by
   unfold kvNxOff; infer_instance
-
-/-- **The lease table of the committed log `L`** (unit T3, L3a: the fold of `kvTable` from the
-empty table). -/
-def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk.c0 γk.ch0 [] L
 
 /-- **The KV state of the committed log `L`** (unit T3, L3a): its model's log's state, with its
 lease table. -/
@@ -354,8 +440,8 @@ theorem kvRoom_stateOf (l : mvcc.Log) (lt : LeaseTable) (h : l.length ≤ 2 ^ 62
 theorem kvRoom_model (γk : KVNames) (L : List EntryModel) (h : kvLogSmall γk L) :
     kvRoom (kvModelSt γk L) := by
   apply kvRoom_stateOf
-  have := kvRaftOf_length_le γk.c0 γk.ch0 γk.log0 L
-  unfold kvModel; unfold kvLogSmall at h; omega
+  have := kvModel_length_le γk L
+  unfold kvLogSmall at h; omega
 
 /-- A small log stays small one entry on, when the entry's log is still below `2 ^ 61`. -/
 theorem kvLogSmall_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel)
@@ -981,8 +1067,8 @@ theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
     (h : kvCongr γk γk') :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
   obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
-  unfold kvInv kvWork kvGrantIds idUnclaimed entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
-    cmpEntryOk kvModel kvStQ KVNames.lg kvLogSmall
+  unfold kvInv kvWork kvGrantIds idUnclaimed entryClaim kvModelSt kvLeases kvModel kvFold idRegdAt idWaitIs cmpLogOk
+    cmpEntryOk kvModel kvFold kvStQ KVNames.lg kvLogSmall
   rw [propext h13, h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12]
 
 end kvGhost
@@ -1493,7 +1579,7 @@ omit raftAsm in
 theorem kvRevLbZ_same (γk γk' : KVNames) (h : kvSame γk γk') (n : Int) :
     kvRevLbZ (GF := GF) γk n ⊢ kvRevLbZ γk' n := by
   obtain ⟨-, h2, h3, h4, h5, -, -⟩ := h
-  unfold kvRevLbZ kvModel
+  unfold kvRevLbZ kvModel kvFold
   rw [h2, h3, h4, h5]
 
 end kvGhost
@@ -1585,7 +1671,7 @@ theorem kvCmpPermit_same (γk γk' : KVNames) (h : kvSame γk γk') :
   have hc : γk.cret = γk'.cret := h.2.2.2.2.2.2
   obtain ⟨-, h2, h3, h4, h5, -, -⟩ := h
   funext c
-  unfold kvCmpPermit kvRevLbZ kvModel
+  unfold kvCmpPermit kvRevLbZ kvModel kvFold
   rw [h2, h3, h4, h5, hc]
 
 omit raftAsm in
@@ -1643,7 +1729,7 @@ theorem kv_revLbZ_le (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
   iunfold etcdKV
   iframe Hc
   ipureintro
-  have hpre : kvModel γk L₀ <+: kvModel γk L := kvRaftOf_prefix _ _ _ _ _ Hp.2
+  have hpre : kvModel γk L₀ <+: kvModel γk L := kvModel_prefix _ _ _ Hp.2
   have hlen := hpre.length_le
   have hσ : σ = kvModelSt γk L := Hag.symm
   rw [hσ]

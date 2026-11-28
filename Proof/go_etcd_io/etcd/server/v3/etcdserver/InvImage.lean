@@ -92,7 +92,7 @@ def bkRestAt [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel
 /-- **The leased image of a log that grants nothing is the plain one** (the lease-grant plan's
 Freeze, amendment (D)): with no live lease, `bkRestAtL`'s records are none. -/
 theorem bkRestAt_of_L [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
-    {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAtL γk bootLog L D) :
+    {D : Data} (hn : (kvTableOf γk.c0 γk.ch0 [] L).ids = []) (h : bkRestAtL γk bootLog L D) :
     bkRestAt γk.c0 bootLog L D := by
   obtain ⟨f, -, hf⟩ := h
   intro n hn'
@@ -101,7 +101,7 @@ theorem bkRestAt_of_L [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : L
 /-- **The plain image of a log that grants nothing is the leased one** (`bkRestAt_of_L`'s converse):
 with no live lease, `bkRestAtL`'s records are none. -/
 theorem bkRestAtL_of_nil [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
-    {D : Data} (hn : (kvLeases γk L).ids = []) (h : bkRestAt γk.c0 bootLog L D) :
+    {D : Data} (hn : (kvTableOf γk.c0 γk.ch0 [] L).ids = []) (h : bkRestAt γk.c0 bootLog L D) :
     bkRestAtL γk bootLog L D := by
   refine ⟨fun _ => W64 0, leaseTTLsGeReq_of_ids_nil hn _, fun n hn' => ?_⟩
   rw [h n hn', hn, apply.restLeasesWith_nil]; rfl
@@ -146,11 +146,11 @@ theorem imageAt_kv_congr [GooseExts] {γk γk' : KVNames} {bootLog : List EntryM
     (h0 : γk.c0 = γk'.c0) (h1 : γk.ch0 = γk'.ch0) (h2 : γk.log0 = γk'.log0)
     (hc : γk.cmp = true → γk'.cmp = false → crevOf γk A = -1) :
     imageAt γk bootLog i L A D → imageAt γk' bootLog i L A D := by
-  have hk : kvModel γk A = kvModel γk' A := by simp only [kvModel, h0, h1, h2]
+  have hk : kvModel γk A = kvModel γk' A := by simp only [kvModel, kvFold, h0, h1, h2]
   have hcr : crevOf γk A = crevOf γk' A := by simp only [crevOf, h0, h1]
   rintro ⟨⟨r, hkI, hr⟩, h2', h3, h4, h5⟩
   have hb : mvcc.LogB (kvModel γk A) := ⟨by have := h5.2.1; omega, h5.2.2.2⟩
-  have hl : kvLeases γk L = kvLeases γk' L := by simp only [kvLeases, h0, h1]
+  have hl : kvTableOf γk.c0 γk.ch0 [] L = kvTableOf γk'.c0 γk'.ch0 [] L := by rw [h0, h1]
   refine ⟨⟨r, ?_, by rw [← hcr]; exact hr⟩, h2', h3,
     by unfold bkRestAtL at h4 ⊢; rw [← hl, ← h0]; exact h4, by rw [← hk]; exact h5⟩
   rw [← hk]
@@ -225,7 +225,7 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
     (h0 : γk.c0 = γk'.c0) (h1 : γk.ch0 = γk'.ch0) (h2 : γk.log0 = γk'.log0) :
     dbImage (GF := GF) γ γk i D ⊢ dbImage γ γk' i D := by
   have hk : ∀ A, kvModel γk A = kvModel γk' A := by
-    intro A; simp only [kvModel, h0, h1, h2]
+    intro A; simp only [kvModel, kvFold, h0, h1, h2]
   have hc : ∀ A, crevOf γk A = crevOf γk' A := by
     intro A; simp only [crevOf, h0, h1]
   iintro H
@@ -239,8 +239,8 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
   ipureintro
   unfold imageRestAt at h ⊢
   obtain ⟨hi, ⟨hci, ht, hrest⟩, hre⟩ := h
-  have hl : kvLeases γk (γ.pre ++ A) = kvLeases γk' (γ.pre ++ A) := by
-    simp only [kvLeases, h0, h1]
+  have hl : kvTableOf γk.c0 γk.ch0 [] (γ.pre ++ A) = kvTableOf γk'.c0 γk'.ch0 [] (γ.pre ++ A) := by
+    rw [h0, h1]
   exact ⟨hi, ⟨hci, ht, by unfold bkRestAtL at hrest ⊢; rw [← hl, ← h0]; exact hrest⟩, hre⟩
 
 /-- A member's image certificate is the network's. -/

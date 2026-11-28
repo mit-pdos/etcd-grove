@@ -707,6 +707,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   icases Hkvi'' with ⟨#HkI, -, #HrI, -⟩
   imod kv_log_plain γr.raft γr.kv (A ++ [m]) $$ HkI HrI HAm with %Hpc0
   have Hch0 := Hpc0.2
+  have HnaA : noAuthEnable γr.kv.c0 A :=
+    noAuthEnable_of_plainLogM _ A (fun m' hm' => Hpc0.1 m' (List.mem_append_left _ hm'))
   imod (srvKVCoreM_keysA false E γr (A ++ [m])) $$ [] [] with %HkeysA
   · rw [srvKVCoreM_false]; iexact Hkvi
   · iexact HAm
@@ -829,7 +831,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       -- the entry's certificate at `lean`'s lease mode, as in `wp_proofOff`
       ihave #Hcp := kv_certPre_G E γr.raft γr.kv HNx γr.kv.c0 (kvLeases γr.kv A) x m rq true E.lm
         (Hpl rq hdata hdec) Hoff Htyp
-        hdata hdec HkA.2 Hnl (kvTableOf_ne0 _ _ [] A (by simp [LeaseTable.ids])) $$ Hkc
+        hdata hdec HkA.2 Hnl (kvLeases_ne0_of γr.kv A HnaA) $$ Hkc
       obtain ⟨HEP, HEf, HEnn⟩ := HE
       -- the floor its proposer recorded with the entry's claim (the vertical slice's unit V2)
       -- (and, unit T1, the committed log it is in)
@@ -958,7 +960,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
           (fun s0 T0 h => by obtain ⟨s1, hs1⟩ := Hwn.2 hlg; rw [hs1] at h; cases h; rfl)
           (fun oc hb _ => by
             rw [backendStep_kvEntryM γr.kv.c0 (kvLeases γr.kv A) γr.kv.cmp E.lm m x.log rq oc Hpe Htyp hdata hdec
-              HkA.2.symm Hnl (kvTableOf_ne0 _ _ [] A (by simp [LeaseTable.ids])) hb, Hxch.trans Hch0])
+              HkA.2.symm Hnl (kvLeases_ne0_of γr.kv A HnaA) hb, Hxch.trans Hch0])
       wp_apply Apply_specRec_win hA fv.lg e m ua fv.w true E wn
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -1011,7 +1013,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       have hes : entryStep m true x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
       obtain ⟨hc', hl'⟩ := batchStep_plainMG γr.kv.c0 (kvLeases γr.kv A) _ _ m x x' Hpe Hoff Hnl
-        (kvTableOf_ne0 _ _ [] A (by simp [LeaseTable.ids]))
+        (kvLeases_ne0_of γr.kv A HnaA)
         (batchStep_of_entryStep γr.kv.c0 m true x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch)
         (crevOf_batchStep γr.kv A m x x' Hpe

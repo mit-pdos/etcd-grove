@@ -9586,6 +9586,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `deferError.Error.spec`, unchanged). No top-level statement changes.
 - **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).
 
+## 2026-11-28: `walRecs`/`walFiles` carry raft's `committed ≤ lastIndex`; `Save`'s spec requires it (walcommitle, C1)
+
+- **Spec.** `walRecs`, `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), `Save`'s law of the server's
+  WAL storage (`isWalStorage`'s `Save`, `walSaveSized_spec`, `walSaveRn_spec`: `WalApi.lean`; `rnNewStorageOk`:
+  `RnNewStorage.lean`), and the restart premise `bootstrapRestartContract` (through `walFiles`).
+- **Defect.** The etcd_safe lead's C1 (#50, 2026-11-28 05:02Z): with the eager-fold conjunct (walfiles-fold,
+  `c4b79f5406`) `walFiles` still admits histories that Go's `ReadAll` reads back differently from the model:
+  `Save(hs{Term 1, Commit 1}, entries 1..6)`, `SaveSnapshot(3)`, `Save(hs{Term 1, Commit 4}, [])`, `SaveSnapshot(4)`:
+  the model's records have no entries, the real WAL's `ReadAll` returns `[5 6]`, no error. Every mismatch of 100k
+  random histories had a prefix whose commit exceeds its last index (0 of 7,350 without). Not a soundness problem
+  today (raft's node loop, the only writer, keeps `committed ≤ lastIndex`), but nothing stated it, and the restart
+  premise had the same gap.
+- **Evidence.** `examples/axiomcx/restartcommitle` (the four calls at the etcd pin; `ReadAll` returns `[5 6]`); the
+  lead's random runs; raft's `ReadyRestFacts` (`(phsNext hs h).Commit ≤ (readyDurable …).last`).
+- **Change.** `walRecs` and `walFiles` gain `walCommitLeFrom walFresh (walSrvHist d.H)` (every prefix of the history's
+  eager fold has its commit within its last index; the crash line's `wal.restartOk` conjunct, same definition);
+  `Save`'s atomic update requires `WalSaveCommitLe σ hs es` (`(walSave σ hs es).commit ≤ (walSave σ hs es).last`)
+  beside `WalSaveOk`; `walRecs_saveAU`, `walRecs_saveSnapAU` (`walSaveSnap_commitLe`), `walRecs_releaseAU` and
+  `walRecs_closeAU` keep it; the node driver supplies it from `ReadyRestFacts` (`WalSaveStep`). `walFiles` is
+  stronger, so `bootstrapRestartContract` (a premise) assumes less of what a restart reads; `wal.Create.specSrv`'s
+  post (`walOpened … walFresh`) claims the conjunct of the fresh WAL, where it holds.
+- **Decision.** Approved (the lead's proposal, #50; WCL-1 owns it, coordinator etcd-grove-03). No axiom or `sorry`.
 ## 2026-11-28: `rpctransport.New.spec` takes `svcAt`; `CodecLaws` gains `enc_mono` (hraft S5d)
 
 - **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/New.lean` (the kit's transport,
@@ -9649,6 +9671,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   the read); the law is proved (`readCall_law_holds`), no longer a hypothesis of `Sys.try.wp_proof`. No
   top-level statement changes; no axiom.
 - **Decision.** Untrusted specs, proved here (S6, #48).
+## 2026-11-28: `kvModel`/`kvLeases` (and so `kvRevLbZ`/`kvRevLb`) -- the fold of the auth-aware model from `srvAuthSt0` (nomode N1b-2)
+
+- **Spec.** `kvModel`, `kvLeases` (`Proof/.../etcdserver/InvRequest.lean`), the vocabulary of `kvRevLbZ`/`kvRevLb`,
+  which `kv.Put.spec`, `kv.Compact.spec`, `txn.Commit.spec`, `EtcdServer.Compact.spec` and the client `_dist`
+  contracts name (their text unchanged).
+- **Defect.** Two models of one log (auth-free `kvRaftOf`, auth-aware `kvRaftOfOn`), so a mode: `kvRevLb` spoke of
+  the auth-free one, which an auth-on server does not follow (`notes/axiom-review/onrevlb-weakening.md`).
+- **Evidence.** The no-mode packet (local `nomode-packet.md`, sections 1-2); the porting lemma `kvRaftOfOn_disabled`.
+- **Change.** `kvFold γk L := kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L`; `kvModel := (kvFold ·).2.1`,
+  `kvLeases := (kvFold ·).2.2`, `kvAuth := (kvFold ·).1`. Equal to the old values on every log with no `AuthEnable`
+  (`kvFold_off`), which every `plainLogM` log is (`noAuthEnable_of_plainLogM`): under auth off `kvRevLbZ` holds of
+  the same revisions. `notes/nomode-n1b.md`, "N1b-2".
+- **Decision.** The user (no auth modes; one `kvModel`, one `kvRevLb`), relayed by the dsverify-net lead; the
+  meaning change of `kvRevLb` is trusted-visible and goes in the statement review.
 ## 2026-11-28: the rewrite kinds' name bounds replaced by the stored names' (nomode D3, narrowed)
 
 - **Spec.** `apply.adminKindOk` (UserGrantRole, RoleGrantPermission, UserChangePassword, UserRevokeRole,

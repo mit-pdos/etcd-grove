@@ -351,7 +351,7 @@ theorem Main.wp_proof
   · rw [etcdKV_congr γk g0.ρ.rd.kv hst0.symm,
       show kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)) =
         kvModelSt g0.ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)) by
-        unfold kvModelSt kvLeases kvModel; rw [hc00, hch0, hlog0],
+        unfold kvModelSt kvLeases kvModel kvFold; rw [hc00, hch0, hlog0],
       kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]
     iexact Hetcd
   imod (client.putGetInv_alloc_log g0.ρ.rd (kvModel g0.ρ.rd.kv

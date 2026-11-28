@@ -24,6 +24,11 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
+/-- **The auth state the KV model starts from** (`kvFold`): the store's latest at the server's
+start (`newAuthStore_boot`: the history `[bootState, bump bootState]`, the revision committed
+once): disabled, revision 1, no users. -/
+def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
+
 section pure
 variable [GooseExts]
 
@@ -587,6 +592,20 @@ theorem kvRaftOfOn_snoc (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     kvRaftOfOn c₀ ch s₀ (A ++ [m]) = kvEntryOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) m := by
   rw [kvRaftOfOn_append]; rfl
 
+/-- (2026-11-05, H-rr1) **The mode-`on` model grows by at most one revision per entry**
+(`kvRaftOf_length_le`'s counterpart). -/
+theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
+    (A : List EntryModel) : (kvRaftOfOn c₀ ch s₀ A).2.1.length ≤ s₀.2.1.length + A.length := by
+  induction A generalizing s₀ with
+  | nil => simp [kvRaftOfOn_nil]
+  | cons m A ih =>
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2.1.length ≤ _
+    have h := ih (kvEntryOn c₀ ch s₀ m)
+    rcases kvEntryOn_grow c₀ ch s₀ m with he | ⟨cs, he⟩
+    · rw [he] at h; simp only [List.length_cons]; omega
+    · rw [he] at h; simp only [List.length_append, List.length_singleton] at h
+      simp only [List.length_cons]; omega
+
 /-- An admitted admin request (`apply.adminKindOk`) needing the admin permission is of an admin
 kind (`Authenticate`, the one other kind it admits, needs none). -/
 theorem adminDispatchKind_of_adminKindOk (rq : apply.IRRModel) (hk : apply.adminKindOk rq)
@@ -760,6 +779,56 @@ theorem not_writeKind_of_adminDispatchKind (k : apply.ReqKind) (h : adminDispatc
     ¬ writeKind k := by
   unfold writeKind; cases k <;> simp_all [adminDispatchKind]
 
+/-- **A write-free entry keeps the model's log and table** (`kvEntry_nonwrite`'s): an admin step
+and a refusal keep them too. -/
+theorem kvEntryOn_snd_nonwrite (c₀ : w64) (ch : apply.Chain) (s : OnState) (e : EntryModel)
+    (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
+      ¬ writeKind (apply.dispatchKind rq)) :
+    (kvEntryOn c₀ ch s e).2 = s.2 := by
+  have hk := kvEntry_nonwrite c₀ ch s.2.2 s.2.1 e h
+  have hl := kvTable_nonwrite c₀ ch s.2.2 e h
+  unfold kvEntryOn
+  split
+  · split
+    · split
+      · rfl
+      · split
+        · rfl
+        · split
+          · rfl
+          · show (kvEntry c₀ ch s.2.2 s.2.1 e, kvTable c₀ ch s.2.2 e) = s.2
+            rw [hk, hl]
+    · rfl
+  · show (kvEntry c₀ ch s.2.2 s.2.1 e, kvTable c₀ ch s.2.2 e) = s.2
+    rw [hk, hl]
+
+/-- **At a disabled auth state an entry steps the log and table as the auth-free model does**
+(every check passes; an admin step writes neither). -/
+theorem kvEntryOn_snd_disabled (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel)
+    (hen : s.1.enabled = false) : (kvEntryOn c₀ ch s m).2 = kvEntrySt c₀ ch s.2 m := by
+  have hok : ∀ rq, auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq))) :=
+    fun _ => Or.inl hen
+  unfold kvEntryOn
+  split
+  · rename_i hc
+    split
+    · rename_i rq hdec
+      rw [if_neg (fun h => h.2 (hok rq))]
+      split
+      · rename_i ha
+        have hw : m.data = [] ∨ m.typ ≠ W32 0 ∨ ∀ rq', apply.irrDecode m.data = some rq' →
+            ¬ writeKind (apply.dispatchKind rq') :=
+          Or.inr (Or.inr fun rq' h => by
+            rw [hdec] at h; cases h; exact not_writeKind_of_adminDispatchKind _ ha.2)
+        unfold kvEntrySt
+        rw [kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m hw, kvTable_nonwrite c₀ ch s.2.2 m hw]
+      · rw [if_neg (fun h => h.2 (kvGrantedL_of_disabled _ _ rq hen))]
+        rfl
+    · rename_i hdec
+      unfold kvEntrySt kvEntry kvTable
+      rw [if_pos hc.1, if_neg hc.2, if_pos hc.1, if_neg hc.2, hdec]
+  · rfl
+
 /-- **The porting lemma** (the no-mode plan, step 4): from a disabled auth state, along a log with
 no `AuthEnable` above `c₀`, the auth-aware model stays disabled and its log and table are the
 auth-free model's (`kvRaftSt`): every check passes (`adminOk`, `kvGrantedL` of a disabled state),
@@ -801,6 +870,25 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) :
     show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).1.enabled = false ∧
       (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).2 = kvRaftSt c₀ ch (kvEntrySt c₀ ch s.2 m) A
     rw [← hstep.2]; exact ih
+
+/-- `srvAuthSt0` is disabled. -/
+theorem srvAuthSt0_enabled : srvAuthSt0.enabled = false := rfl
+
+/-- `noAuthEnable` of a log holds of its sublists. -/
+theorem noAuthEnable_sub (c₀ : w64) {A B : List EntryModel} (hs : ∀ m ∈ A, m ∈ B)
+    (h : noAuthEnable c₀ B) : noAuthEnable c₀ A :=
+  fun m hm => h m (hs m hm)
+
+/-- **A plain log has no `AuthEnable`** (`plainLogM`: a plain request is of a proposer's kind
+`putgetKind`, the others a compaction, a grant or a revocation). -/
+theorem noAuthEnable_of_plainLogM (c₀ : w64) {cmp : Bool} {lm : lease.Mode} (A : List EntryModel)
+    (h : plainLogM cmp lm A) : noAuthEnable c₀ A := by
+  intro m hm rq ht hd hdec _ hk
+  rcases h m hm ht hd rq hdec with hp | ⟨-, hc⟩ | ⟨-, hg⟩ | ⟨-, hr⟩
+  · have h2 := hp.2; rw [hk] at h2; simp [putgetKind] at h2
+  · have h2 := hc.1.1; rw [hk] at h2; cases h2
+  · have h2 := hg.1; rw [hk] at h2; cases h2
+  · have h2 := hr.1; rw [hk] at h2; cases h2
 
 /-- **Entries that are no normal entries keep the model's log and table** (the bootstrap log's
 configuration changes). -/

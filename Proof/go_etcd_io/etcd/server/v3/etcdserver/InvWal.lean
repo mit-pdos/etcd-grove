@@ -149,6 +149,25 @@ theorem drop_take_append (l new : List EntryM) (d k : Nat) (hd : d ≤ k) (hl : 
     (l.take k ++ new).drop d = (l.drop d).take (k - d) ++ new := by
   rw [List.drop_append_of_le_length (by rw [List.length_take]; omega), List.drop_take]
 
+/-- (walcommitle, 2026-11-28) Records holding a durable state reach at least its last index. -/
+theorem storageHolds_last_le {S : RaftState} {σ : StorContents} (h : StorageHolds S σ) :
+    S.last ≤ σ.last := by
+  obtain ⟨H1, -, H3, -⟩ := h
+  have hb : σ.b = uint.nat σ.base.index' := rfl
+  simp only [RaftState.last, StorContents.last, hb, H3, RaftState.entsFrom, List.length_drop]
+  word
+
+/-- (walcommitle, 2026-11-28) **A `Ready`'s `Save` keeps the commit within the last index**: the saved
+records hold the durable state after the batch (`StorageHolds`), whose last index is at least the hard
+state's commit (raft's `ReadyRestFacts`: `committed ≤ lastIndex` after the `Ready`'s entries). -/
+theorem walSaveCommitLe_of_holds {σ : StorContents} {S' : RaftState} {st : NodeDriverState} {h : HardStateM}
+    {es : List EntryM} (Hhs : σ.hs = st.hardState) (Hh' : StorageHolds S' (walSave σ h es))
+    (R2 : uint.nat (phsNext st.hardState h).Commit' ≤ S'.last) : WalSaveCommitLe σ h es := by
+  have := storageHolds_last_le Hh'
+  unfold WalSaveCommitLe
+  simp only [StorContents.commit, walSave, Hhs] at this ⊢
+  omega
+
 theorem walSave_holds : walSave_holds_stmt := by
   intro st σ ce es h Hh Hhs Hr Hcons
   unfold StorageHolds at Hh
@@ -551,11 +570,13 @@ theorem rnDur_alloc (cl : Cluster) (w : WalH GF) :
   iframe Hr Hc
 
 /-- (2026-11-03, R2b-1 stage 4) **A `Save` from the view `v` to `v'`** (pure): from any records
-`σ` the view describes (`ViewOk`), the batch `(h, es)` is in `Save`'s case (`WalSaveOk`) and the
-saved records describe `v'`, at no pending snapshot. -/
+`σ` the view describes (`ViewOk`), the batch `(h, es)` is in `Save`'s case (`WalSaveOk`), (walcommitle,
+2026-11-28) the saved records' commit within their last index (`WalSaveCommitLe`), and the saved records
+describe `v'`, at no pending snapshot. -/
 def WalSaveStep (v v' : WalView) (h : HardStateM) (es : List EntryM) : Prop :=
   v'.pend = none ∧ v.l <+: v'.l ∧
-    ∀ σ, ViewOk v σ → WalSaveOk (recsOf v σ) es ∧ ViewOk v' (walSave (recsOf v σ) h es)
+    ∀ σ, ViewOk v σ → WalSaveOk (recsOf v σ) es ∧ WalSaveCommitLe (recsOf v σ) h es ∧
+      ViewOk v' (walSave (recsOf v σ) h es)
 
 /-- (2026-11-03, R2b-1 stage 4) **The raft loop's `Save`, as the WAL contract's atomic update**
 (`walSave_spec`): from the loop's view `v` (its half) and its "not stopped" token (`ν.ok`, which
@@ -564,7 +585,8 @@ at `v'`, the token back and the handed log's lower bound at `v'.l`. -/
 theorem rnDur_save_au (cl : Cluster) (ν : WalNames GF) (w : WalH GF) (v v' : WalView) (h : HardStateM)
     (es : List EntryM) (Hst : WalSaveStep v v' h es) :
     rnDurInv (GF := GF) cl ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
-      AU <{ ∃∃ (σ : StorContents), walRecs w σ true ∗ ⌜WalSaveOk σ es⌝ }> @ WalFs.walAuMask, ∅
+      AU <{ ∃∃ (σ : StorContents), walRecs w σ true ∗ ⌜WalSaveOk σ es ∧ WalSaveCommitLe σ h es⌝ }>
+        @ WalFs.walAuMask, ∅
         <{ walRecs w (walSave σ h es) true,
           COMM ghostVar ν.view (1 : Qp).half v' ∗ token ν.ok ∗ walCommitLb ν v'.l }> := by
   obtain ⟨Hpn, Hpfx, Hstep⟩ := Hst
@@ -583,14 +605,14 @@ theorem rnDur_save_au (cl : Cluster) (ν : WalNames GF) (w : WalH GF) (v v' : Wa
   subst Hvv
   iunfold walAsViewed at Hw
   icases Hw with ⟨%σ, Hr, %Hok0, #Hc⟩
-  obtain ⟨Hsok, Hok1⟩ := Hstep σ Hok0
+  obtain ⟨Hsok, Hscl, Hok1⟩ := Hstep σ Hok0
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   iexists recsOf v σ
   iframe Hr
   isplitr
-  · ipureintro; exact Hsok
+  · ipureintro; exact ⟨Hsok, Hscl⟩
   isplit
   · iintro ⟨Hr, -⟩
     imod Hmask with -
@@ -645,6 +667,7 @@ theorem walSaveStep_ready (st : NodeDriverState) (ce : List LogEntry) (es : List
   have Hr0 := Hr
   simp only [ReadyRestFacts] at Hr0
   obtain ⟨R1, R2, R3, R4, R5, R6, R7⟩ := Hr0
+  have Hscl := walSaveCommitLe_of_holds Hhs Hh' R2
   have Hcσ : σ.commit = uint.nat st.hardState.Commit' := by
     simp only [StorContents.commit, Hhs]
   have HbS : uint.Z st.durable.base.index' ≤ uint.Z σ.base.index' := Hh.1
@@ -654,7 +677,7 @@ theorem walSaveStep_ready (st : NodeDriverState) (ce : List LogEntry) (es : List
   have hBn : uint.nat st.durable.base.index' ≤ st.delivered.length := by
     simp only [StorContents.b] at Hb; word
   have hLc : st.delivered.length ≤ uint.nat st.hardState.Commit' := by rw [← Hcσ]; exact Hc
-  refine ⟨Hsok, Hh', ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨Hsok, Hscl, Hh', ?_, ?_, ?_, ?_, ?_⟩
   · simp only [walSave, Hhs]
   · simp only [walSave, StorContents.b, List.length_append] at Hb ⊢; omega
   · simp only [walSave, StorContents.commit, Hhs] at R4 ⊢; exact R4
@@ -740,6 +763,9 @@ theorem walSnapSteps_ready (st : NodeDriverState) (ce : List LogEntry) (es : Lis
     simp only at Hh Hhs Hb Hc Hda
     simp only [recsOf]
     obtain ⟨Hsok, Hh'⟩ := walSnapSave_holds st σ ce es h l Hh Hhs Hr Hcons
+    have Hscl : WalSaveCommitLe (walSaveSnap σ l.snap.Metadata') h es :=
+      walSaveCommitLe_of_holds (σ := walSaveSnap σ l.snap.Metadata') (by rw [walSaveSnap_hs]; exact Hhs)
+        Hh' R2
     have Hcσ : σ.commit = uint.nat st.hardState.Commit' := by
       simp only [StorContents.commit, Hhs]
     have hnlt : ¬ uint.nat l.snap.Metadata'.Index' < σ.b := by
@@ -750,7 +776,7 @@ theorem walSnapSteps_ready (st : NodeDriverState) (ce : List LogEntry) (es : Lis
         { σ with base := entryID.mk l.snap.Metadata'.Term' l.snap.Metadata'.Index',
                  snap := some (SnapshotM.mk [] l.snap.Metadata'), ents := [] } := by
       unfold walSaveSnap; simp only [hnlt, hnle, ↓reduceIte]
-    refine ⟨Hsok, Hh', ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨Hsok, Hscl, Hh', ?_, ?_, ?_, ?_, ?_⟩
     · simp only [walSave, hσ1, Hhs]
     · simp only [walSave, hσ1, StorContents.b]; omega
     · simp only [walSave, hσ1, StorContents.commit, Hhs]; omega

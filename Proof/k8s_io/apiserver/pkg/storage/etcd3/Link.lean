@@ -89,6 +89,7 @@ public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
+public import Proof.k8s_io.utils.clock.RealClock__After
 public import Proof.k8s_io.utils.clock.RealClock__Now
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__CompactRevision
@@ -214,7 +215,6 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__getStartWatchRes
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.LinkMembers
-public import Spec.k8s_io.utils.clock.RealClock__After
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
@@ -545,6 +545,10 @@ theorem wait.channelContext.wp_Value :
     EtcdGrove.wait.channelContext.Value.spec (GF := GF) (hG := hG) :=
   EtcdGrove.wait.channelContext.Value.wp_proof
 
+theorem clock.RealClock.wp_After :
+    EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.clock.RealClock.After.wp_proof
+
 theorem compactor.wp_UpdateCompactRevision :
     EtcdGrove.k8s.compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.compactor.UpdateCompactRevision.wp_proof
@@ -552,6 +556,10 @@ theorem compactor.wp_UpdateCompactRevision :
 theorem klog.wp_Errorf :
     EtcdGrove.klog.Errorf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.klog.Errorf.wp_proof
+
+theorem compactor.wp_runCompactLoop :
+    EtcdGrove.k8s.compactor.runCompactLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.compactor.runCompactLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err wait.channelContext.wp_Deadline wait.channelContext.wp_Value clock.RealClock.wp_After wp_Compact compactor.wp_UpdateCompactRevision klog.wp_Errorf
 
 theorem compactor.wp_getCompactRev :
     EtcdGrove.k8s.compactor.getCompactRev.spec (GF := GF) (hG := hG) :=
@@ -564,6 +572,10 @@ theorem compactor.wp_fromWatchResponse :
 theorem compactor.wp_runWatchLoop :
     EtcdGrove.k8s.compactor.runWatchLoop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.compactor.runWatchLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err wait.channelContext.wp_Deadline wait.channelContext.wp_Value _root_.Perennial.time.wp_After compactor.wp_getCompactRev compactor.wp_UpdateCompactRevision v3.wp_WithRev client.v3.watcher.wp_Watch compactor.wp_fromWatchResponse klog.wp_Errorf
+
+theorem wp_NewCompactor :
+    EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.NewCompactor.wp_proof compactor.wp_runCompactLoop compactor.wp_runWatchLoop
 
 theorem wp_NewDefaultLeaseManagerConfig :
     EtcdGrove.k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG) :=
@@ -680,6 +692,10 @@ theorem tracing.Span.wp_AddEvent :
 theorem tracing.Span.wp_End :
     EtcdGrove.tracing.Span.End.spec (GF := GF) (hG := hG) :=
   EtcdGrove.tracing.Span.End.wp_proof
+
+theorem wp_StartCompactorPerEndpoint :
+    EtcdGrove.k8s.StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.StartCompactorPerEndpoint.wp_proof wp_NewCompactor klog.wp_V klog.Verbose.wp_Infof
 
 theorem strings.wp_TrimSuffix :
     EtcdGrove.strings.TrimSuffix.spec (GF := GF) (hG := hG) :=
@@ -1050,32 +1066,6 @@ theorem store.wp_Watch :
   EtcdGrove.k8s.store.Watch.wp_proof store.wp_prepareKey store.wp_watchContext client.v3.wp_WithRequireLeader watcher.wp_Watch
 
 end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
-variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable (h_clock_RealClock__After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
-include h_clock_RealClock__After
-
-theorem compactor.wp_runCompactLoop :
-    EtcdGrove.k8s.compactor.runCompactLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.compactor.runCompactLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err wait.channelContext.wp_Deadline wait.channelContext.wp_Value h_clock_RealClock__After wp_Compact compactor.wp_UpdateCompactRevision klog.wp_Errorf
-
-theorem wp_NewCompactor :
-    EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.NewCompactor.wp_proof (compactor.wp_runCompactLoop h_clock_RealClock__After) compactor.wp_runWatchLoop
-
-theorem wp_StartCompactorPerEndpoint :
-    EtcdGrove.k8s.StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.StartCompactorPerEndpoint.wp_proof (wp_NewCompactor h_clock_RealClock__After) klog.wp_V klog.Verbose.wp_Infof
-
-end links_pending
 
 end k8s
 end EtcdGrove

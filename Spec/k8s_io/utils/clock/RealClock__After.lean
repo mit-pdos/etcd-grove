@@ -1,9 +1,8 @@
 /-
-`clock.RealClock.After(d)` (`k8s.io/utils/clock`, names-only: it is `time.After(d)`). **A named
-hypothesis** (outside client-go, no axiom this round; the reflector's `watch` waits on it to back
-off; phase 4 of `notes/k8s-daemonset-plan.md`, fifth round): `?` in
-`etc/link-lean-first-k8scache.txt`. Stated as Perennial's proof of `time.After` gives: a channel
-some goroutine sends a time on (a `isChanBag` with no resource).
+`clock.RealClock.After(d)` (`k8s.io/utils/clock`: `time.After(d)`, translated with its body). The
+reflector's `watch` waits on it to back off, the compactor's loop between compactions. Stated as
+Perennial's `time.After.spec_pkgInit` gives: a channel some goroutine sends a time on (a `isChanBag`
+with no resource). Proved in `Proof/k8s_io/utils/clock/RealClock__After.lean`.
 -/
 module
 

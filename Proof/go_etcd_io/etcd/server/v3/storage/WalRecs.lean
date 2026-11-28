@@ -66,6 +66,15 @@ def WalSaveOk (σ : StorContents) (es : List EntryM) : Prop :=
   ∀ e0, es.head? = some e0 → σ.b < uint.nat e0.Index' ∧ uint.nat e0.Index' ≤ σ.last + 1 ∧
     ∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j
 
+/-- (walcommitle, 2026-11-28) **`Save`'s records keep raft's `committed ≤ lastIndex`**: the records after
+`Save(h, es)` have their commit within their last index. What `Save`'s law requires beside `WalSaveOk`, so
+that `walRecs` (and the files a `Close` leaves, `walFiles`) carry it along the history
+(`walCommitLeFrom`); raft's `Ready` gives it (`ReadyRestFacts`: the hard state's commit is within the last
+index after the `Ready`'s entries). Without it a history `ReadAll` reads back other than the eager fold
+is admitted (`notes/axiom-review/bootstrap-restart-commitle.md`). -/
+def WalSaveCommitLe (σ : StorContents) (h : HardStateM) (es : List EntryM) : Prop :=
+  (walSave σ h es).commit ≤ (walSave σ h es).last
+
 end model
 
 -- (wal-link P2, 2026-11-19) the opaque `config.walDirOf dataDir dedicated` (`ServerConfig.WALDir()`) is
@@ -189,12 +198,15 @@ end walOpen
 clears it, `walDurFresh` sets it: what layer 1's `Save`/`SaveSnapshot` updates read), its name durable (`walNamed`), with the
 authority over the history's prefixes (`walSnapRec`, `walBaseLb`). Once `σ.b ≤ σ.commit`, what a restart
 reads (`walRead_of_fold`). **`sized`**: every entry record is the wrap of a content `c` with
-`entSizeOk c` (`walEntsSized`); `false` claims nothing more. -/
+`entSizeOk c` (`walEntsSized`); `false` claims nothing more. (walcommitle, 2026-11-28) Every prefix of the
+history's eager fold has its commit within its last index (`walCommitLeFrom walFresh`: raft's
+`committed ≤ lastIndex`, which `Save`'s law requires of each `Save`, `WalSaveCommitLe`, and `SaveSnapshot`
+keeps); what `walFiles` carries to a restart. -/
 @[no_expose] def walRecs (h : WalH GF) (σ : StorContents) (sized : Bool := false) : IProp GF :=
   letI := h.W
   iprop(∃ d : WalDur, WalFs.walDiskAt h.dir d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir ∗
     ⌜walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧ d.metadata = h.md ∧ d.sized = true ∧
-      (sized = true → walEntsSized d.H)⌝)
+      (sized = true → walEntsSized d.H) ∧ walCommitLeFrom walFresh (walSrvHist d.H)⌝)
 
 /-- **The WAL `h`'s records' base is at least `i`** (persistent): a prefix of the history folds to records
 of base at least `i`. -/
@@ -219,6 +231,11 @@ record applied, as `walRecs`): the files a graceful `Close` leaves (`walRecs_clo
 admitted a history ending with a synced snapshot record above the saved commit, which `walRead` drops and the
 eager fold applies, so the restart contract (`bootstrapRestartContract`, whose post is `walRecs h σ`) was false
 of them; etcd's graceful runs never write it (`notes/axiom-review/bootstrap-restart-eagerfold.md`).
+(walcommitle, 2026-11-28) **Every prefix of the eager fold has its commit within its last index**
+(`walCommitLeFrom walFresh`, as `walRecs`): raft's `committed ≤ lastIndex`, which every `Save` of a graceful
+run keeps (`WalSaveCommitLe`). Without it the files admitted a history (a `Save` whose commit is above its
+last index, then a `SaveSnapshot` at that commit) whose `ReadAll` returns entries the eager fold dropped (C1,
+`notes/axiom-review/bootstrap-restart-commitle.md`; `examples/axiomcx/restartcommitle`).
 **Describes only a cleanly closed WAL: produced only by `walRecs_closeAU`.** A crash-restart axiom or spec must
 use the crash model's read-based post (`walRead`), never `walFiles`. Counterexample: `SaveSnap` synced, process
 killed before `Save`; `ReadAll` skips the trailing snapshot record while the eager fold applies it
@@ -230,7 +247,7 @@ killed before `Save`; `ReadAll` skips the trailing snapshot record while the eag
     WalFs.walUnlockedTok ∗ Fs.osCallPerm (Fs.callKey a.R a.dir) (1 : Qp).half ∗
     ⌜walRead (walSrvHist d.H) = some σ ∧ walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧
       d.metadata = walMetaEnc id cid ∧ d.sized = true ∧
-      (sized = true → walEntsSized d.H)⌝)
+      (sized = true → walEntsSized d.H) ∧ walCommitLeFrom walFresh (walSrvHist d.H)⌝)
 
 /-- **The right to close the WAL `h` with its files kept** (exclusive): layer 1's purge right
 (`WalFs.walPurgeW`): no purge of the WAL's files is running. -/
@@ -271,7 +288,7 @@ theorem walRecs_unsize (h : WalH GF) (σ : StorContents) (sized : Bool) :
   imodintro
   iexists d
   iframe Hd Ha Hn
-  ipureintro; exact ⟨hf.1, hf.2.1, hf.2.2.1, fun h => by cases h⟩
+  ipureintro; exact ⟨hf.1, hf.2.1, hf.2.2.1, (fun h => by cases h), hf.2.2.2.2⟩
 
 /-- Two records of one WAL exclude each other. -/
 theorem walRecs_excl (h : WalH GF) (σ σ' : StorContents) (s : Bool := false) (s' : Bool := false) :
@@ -373,7 +390,8 @@ theorem walSrvHist_snoc_snap (H : List (WalOpG WalEnt)) (m : SnapshotMetadataM) 
 written as their wraps `walEntW c`). -/
 theorem walRecs_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : List EntryC) (Q : IProp GF)
     (hc : ∀ c ∈ cs, ufWire entrySchema c.uf ∧ entrySize c < 2 ^ 48 ∧ (sized = true → entSizeOk c)) :
-    (AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+    (AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+          ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
         @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) ⊢
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
         <{ WalFs.walDiskAt (W := h.W) h.dir { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] },
@@ -411,10 +429,15 @@ theorem walRecs_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : List
     iexists { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] }
     iframe Hd Ha Hn
     ipureintro
-    refine ⟨?_, hf.2.1, hf.2.2.1, ?_⟩
-    · show walFoldChkFrom walFresh (walSrvHist (d.H ++ _)) = _
-      rw [walSrvHist_snoc_save _ _ _ (fun c hcm => ⟨(hc c hcm).1, (hc c hcm).2.1⟩)]
-      exact walFoldChkFrom_snoc_save hf.1 hok
+    have hsnoc := walSrvHist_snoc_save d.H hs cs (fun c hcm => ⟨(hc c hcm).1, (hc c hcm).2.1⟩)
+    have hfold : walFoldChkFrom walFresh (walSrvHist (d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw])) =
+        some (walSave σ hs (cs.map EntryC.model)) := by
+      rw [hsnoc]
+      exact walFoldChkFrom_snoc_save hf.1 hok.1
+    refine ⟨hfold, hf.2.1, hf.2.2.1, ?_, ?_⟩
+    rotate_left
+    · rw [hsnoc] at hfold ⊢
+      exact walCommitLeFrom_snoc hf.2.2.2.2 hfold hok.2
     · intro hsz hs' es' hmem e he
       have hmem' : WalOpG.save hs' es' ∈ d.H.map WalOpG.toM ∨
           WalOpG.save hs' es' = WalOpG.save hs (cs.map walEntW) := by
@@ -422,7 +445,7 @@ theorem walRecs_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : List
           List.mem_singleton] at hmem
         exact hmem
       rcases hmem' with hmem' | heq
-      · exact hf.2.2.2 hsz hs' es' hmem' e he
+      · exact hf.2.2.2.1 hsz hs' es' hmem' e he
       · injection heq with h1 h2
         subst h2
         obtain ⟨c, hcm, rfl⟩ := List.mem_map.mp he
@@ -470,17 +493,21 @@ theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) 
     · iexists { d with H := d.H ++ [WalOpG.snap m al] }
       iframe Hd Ha Hn
       ipureintro
-      refine ⟨?_, hf.2.1, hf.2.2.1, ?_⟩
+      refine ⟨?_, hf.2.1, hf.2.2.1, ?_, ?_⟩
       · show walFoldChkFrom walFresh (walSrvHist (d.H ++ _)) = _
         rw [walSrvHist_snoc_snap]
         exact walFoldChkFrom_snoc_snap hf.1
+      rotate_left
+      · show walCommitLeFrom walFresh (walSrvHist (d.H ++ _))
+        rw [walSrvHist_snoc_snap]
+        exact walCommitLeFrom_snoc_snap hf.2.2.2.2 hf.1
       · intro hsz hs' es' hmem e he
         have hmem' : WalOpG.save hs' es' ∈ d.H.map WalOpG.toM ∨
             WalOpG.save hs' es' = (WalOpG.snap m al : WalOpG WalEnt).toM := by
           rw [List.map_append, List.mem_append, List.map_singleton, List.mem_singleton] at hmem
           exact hmem
         rcases hmem' with hmem' | heq
-        · exact hf.2.2.2 hsz hs' es' hmem' e he
+        · exact hf.2.2.2.1 hsz hs' es' hmem' e he
         · cases heq
     imodintro
     iframe HQ Hlb

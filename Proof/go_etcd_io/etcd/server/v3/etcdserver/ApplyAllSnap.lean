@@ -255,7 +255,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     ihave #HkL : kvLogAt γr sv.Metadata'.Index' x'.log $$ []
     · iunfold kvLogAt; iexists A'; iframe HA'; ipureintro; exact ⟨hiL, hxl⟩
     imod applied_jump s E' γr ag sv.Metadata'.Index' x.log x'.log hgi
-        (by rw [hxl, HxA.1]; exact kvRaftOf_prefix _ _ _ _ _ Hif.pre)
+        (by rw [hxl, HxA.1]; exact kvModel_prefix _ _ _ Hif.pre)
       $$ Hainv1 Hao Hlog HkL Hic with ⟨Hao, #Hlb, #Hlog1⟩
     iunfold isWaitTime at Hwt
     icases Hwt with ⟨%wi, %Hwi, -, #HTrig⟩
