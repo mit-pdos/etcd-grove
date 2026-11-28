@@ -178,7 +178,37 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     (try wp_auto)
     wp_apply (wp_mapInsert _ mi' I' _ true) $$ [$HI] as HI
     (try wp_auto)
-    fail "end"
+    ipersist «$r0»
+    iapply HΦ
+    isplitl [Hc Hi HC HI Hg Hgs Hns' Hcap' Hback]
+    · iunfold hhInv
+      iexists mc', mi', mg, _, _, G
+      iframe
+      iright
+      iframe
+      icases Hback with ⟨Hb1, -⟩
+      iapply Hb1
+      iexists ns ++ [«$r0_ptr»]
+      iframe
+      iapply BigSepL.bigSepL_snoc.2
+      iframe #
+      iunfold canonNode
+      iexists _
+      isplitr
+      · iexact «$r0»
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      iexists s
+      iexact Hst
+    · iapply (histOwn_snoc «$r0_ptr» hs s).2
+      iexists _
+      isplitr
+      · iexact «$r0»
+      isplitr
+      · iexact Hst
+      isplitr
+      · ipureintro; show n = _; word
+      iexact Hprev
 
 end proof
 
