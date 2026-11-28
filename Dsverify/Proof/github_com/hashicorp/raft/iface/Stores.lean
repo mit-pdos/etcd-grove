@@ -225,7 +225,16 @@ def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) (Wl : LogOp → I
           rtok tid -∗
           (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
             (own A ={∅,⊤ \ ↑storeN}=∗ (rtok tid -∗ Φ (PairV #A.readCi #interface.nil)))) -∗
-          WP (App (Val #(methods x.ty go!"GetCommitIndex" x.v)) (Val #())) {{ Φ }})))
+          WP (App (Val #(methods x.ty go!"GetCommitIndex" x.v)) (Val #())) {{ Φ }})) ∗
+    -- (hraft_robust, R5 Q2) `FirstIndex()` atomically: `0` only for an empty store, and at most every
+    -- stored index (fix 2 of `NewRaft` compares it with the snapshot's index)
+    □ (∀ (tid : Nat) (Φ : val → IProp GF),
+        rtok tid -∗
+        (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
+          (own A ={∅,⊤ \ ↑storeN}=∗ ∀ r : w64,
+            ⌜(uint.nat r = 0 → A.m = ∅) ∧ (∀ k e, A.m.lookup k = some e → uint.nat r ≤ k)⌝ -∗
+            rtok tid -∗ Φ (PairV #r #interface.nil))) -∗
+        WP (App (Val #(methods x.ty go!"FirstIndex" x.v)) (Val #())) {{ Φ }}))
 
 instance isLogStore_persistent x own Wl : Persistent (isLogStore (GF := GF) x own Wl) := by
   unfold isLogStore; infer_instance
@@ -345,6 +354,20 @@ instance isSnapshotStore_persistent x : Persistent (isSnapshotStore (GF := GF) x
 /-- (stage 3) The snapshot store's abstract state: its latest closed snapshot, if any (metadata, as
 `List`/`Open` return it, and bytes). -/
 abbrev SnapLatest : Type := Option (SnapshotMeta × List w8)
+
+/-- (hraft_robust: moved from `examples/snapstore/Base`; raft pins its latest snapshot at boot) -/
+instance snapshotMeta_countable : Pos.Countable SnapshotMeta :=
+  Pos.Countable.ofInjective
+    (fun m => Pos.Countable.encode (m.Version', m.ID', m.Index', m.Term', m.Peers',
+      m.Configuration'.Servers', m.ConfigurationIndex', m.Size'))
+    (by
+      intro a b h
+      have h := Pos.encode_inj h
+      obtain ⟨a1, a2, a3, a4, a5, ⟨a6⟩, a7, a8⟩ := a
+      obtain ⟨b1, b2, b3, b4, b5, ⟨b6⟩, b7, b8⟩ := b
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
+      subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
 /-- (stage 3) **The order of snapshots** (upstream `FileSnapshotStore`'s: by term, then index): a
 snapshot `(m, b)` closed into a store whose latest is `old` becomes the latest unless `old` is newer
