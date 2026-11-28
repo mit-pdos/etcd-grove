@@ -10149,3 +10149,24 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
   top-level statement changes.
 - **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).
+## 2026-11-28: `proto.MarshalPb.spec` -- the post gains `⌜l ≠ null → d ≠ slice.nil⌝` (a trust-boundary strengthening, MPB-1)
+
+- **Spec.** `Spec/google_golang_org/protobuf/proto/MarshalPb.lean`, `proto.MarshalPb.spec` (a trust-boundary axiom:
+  `proto.Marshal` of a frozen `*T` of a registered type, `pbModelOf`); SpecPlan's counterpart
+  `SpecPlan/Spec/google_golang_org/protobuf/proto/Marshal.lean`.
+- **Defect.** Too weak for its users: the post gave the bytes (`d ↦* pbEncC I c`) and the capacity but not that `d`
+  is non-nil, which the WAL's re-proof over the torn-Save fix needs (P6, applied to the delta line in 9e8ed696c8,
+  `MustMarshalMessage`/`MustMarshalMessageWalSnap`: a marshalled record or snapshot of empty encoding is still a
+  non-nil slice).
+- **Evidence.** protobuf-go v1.36.12 `proto/encode.go:119-146`: `Marshal` replaces an empty result by
+  `emptyBytesForMessage(m)`, the non-nil `emptyBuf[:]` for a valid message, `nil` only for an invalid one (a nil
+  `*T`). The Go test `examples/pbschema/marshalnonnil_test.go` (`TestMarshalNonNil`, at examples/go.mod's pins:
+  protobuf-go v1.36.12, etcd's and raft's forks) marshals every registered type (`walpb.Record`, `walpb.Snapshot`,
+  `raftpb.Entry`, `raftpb.HardState`, `raftpb.Message`) and `raftpb.Snapshot`, `raftpb.ConfState`, empty and
+  populated: every non-nil `*T` gives a non-nil slice (length 0 for the empty ones) and a nil error; a nil `*T`
+  gives `(nil, nil)`, the case the premise `l ≠ null` leaves out. Its output is in the file's comment.
+- **Proposed change.** The post `{{ (d : GoSlice), RET (d, nil); d ↦* pbEncC I c ∗ ownSliceCap w8 d 1 }}` becomes
+  `{{ …; d ↦* pbEncC I c ∗ ownSliceCap w8 d 1 ∗ ⌜l ≠ null → d ≠ slice.nil⌝ }}` (as on branch
+  `etcd-safe-crash-delta-now/2026-11-27`); pre unchanged. SpecPlan's `Marshal.spec` to take the same post when the
+  real spec converges.
+- **Decision.** Pending: Go test (MPB-1, done: passes) + independent axiom review; approval coordinator-E (#50).
