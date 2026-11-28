@@ -284,7 +284,7 @@ theorem walRecs_unsize (h : WalH GF) (σ : StorContents) (sized : Bool) :
   imodintro
   iexists d
   iframe Hd Ha Hn
-  ipureintro; exact ⟨hf.1, hf.2.1, hf.2.2.1, fun h => by cases h, hf.2.2.2.2⟩
+  ipureintro; exact ⟨hf.1, hf.2.1, hf.2.2.1, (fun h => by cases h), hf.2.2.2.2⟩
 
 /-- Two records of one WAL exclude each other. -/
 theorem walRecs_excl (h : WalH GF) (σ σ' : StorContents) (s : Bool := false) (s' : Bool := false) :
