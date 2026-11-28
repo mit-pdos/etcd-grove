@@ -109,6 +109,7 @@ theorem raftState_committedAtTerm (γ : Cluster) (id : w64) (S : RaftState) (N :
   iunfold committedAtTerm
   iexact Hcat
 
+omit [StorageModel GF] in
 /-- (keepfix (c), 2026-11-27) Every entry of a log with records has a term `≥ 1`, once the
 bootstrap log is non-empty (`isEntryR_term_pos`). -/
 theorem logRecs_terms_pos (γ : RaftNames) (G : List EntryM) (Hwf : PlogWf base0 G)
