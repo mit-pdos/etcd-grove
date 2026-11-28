@@ -195,14 +195,14 @@ theorem wp_ci_swapR (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG)
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        isCI ci γ.ci CP ∗ inv applyN (consInv γ Rw) ∗ □ Rw.IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗
+        isCI ci γ.ci CP ∗ inv applyN (consInv γ Rw) ∗ □ Rw.IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗ ciRaftTerm γ.ci rt ∗
         ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
-        monoListIdxOwn γ.fut j (π', γc) ∗ ciRaftTerm γ.ci rt) -∗
-      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be ∗
-        ciRaftTerm γ.ci rt -∗ Φ #()) -∗
+        monoListIdxOwn γ.fut j (π', γc)) -∗
+      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be ∗ ciRaftTerm γ.ci rt -∗
+        Φ #()) -∗
       WP (App (Val (ci @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"SetBackend"))
         (Val #be)) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, #Hir, Hst, Hown, Hmt, Hwr, Htc, #Hidx, Hrt⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, #Hir, Hst, Hown, Hrt, Hmt, Hwr, Htc, #Hidx⟩ HΦ
   iapply (hSB ci γ.ci CP b be rt) $$ [Hown Hrt] [HΦ Hst Hmt Hwr Htc]
   · iframe Hpkg Hci Hown Hrt
   iapply ci_swap_auR γ s s' π' j γc (iprop(ciOwner ci be -∗ ciRaftTerm γ.ci rt -∗ Φ #())) hk' hps' hok hle
@@ -219,19 +219,19 @@ theorem wp_ci_swap (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        isCI ci γ.ci CP ∗ inv applyN (consInv γ) ∗ applyThread γ s ∗ ciOwner ci b ∗
+        isCI ci γ.ci CP ∗ inv applyN (consInv γ) ∗ applyThread γ s ∗ ciOwner ci b ∗ ciRaftTerm γ.ci rt ∗
         ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
-        monoListIdxOwn γ.fut j (π', γc) ∗ ciRaftTerm γ.ci rt) -∗
-      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be ∗
-        ciRaftTerm γ.ci rt -∗ Φ #()) -∗
+        monoListIdxOwn γ.fut j (π', γc)) -∗
+      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be ∗ ciRaftTerm γ.ci rt -∗
+        Φ #()) -∗
       WP (App (Val (ci @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"SetBackend"))
         (Val #be)) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hown, Hmt, Hwr, Htc, #Hidx, Hrt⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hown, Hrt, Hmt, Hwr, Htc, #Hidx⟩ HΦ
   ihave #Ht : iprop(□ (True : IProp GF)) $$ []
   · imodintro; itrivial
   iapply (wp_ci_swapR (Rw := TRow.triv) hSB γ ci s s' π' j γc b be rt hk' hps' hok hle)
-    $$ [Hst Hown Hmt Hwr Htc Hrt] HΦ
-  iframe Hpkg Hci Hinv Ht Hst Hown Hmt Hwr Htc Hidx Hrt
+    $$ [Hst Hown Hrt Hmt Hwr Htc] HΦ
+  iframe Hpkg Hci Hinv Ht Hst Hown Hrt Hmt Hwr Htc Hidx
 
 end swap
 

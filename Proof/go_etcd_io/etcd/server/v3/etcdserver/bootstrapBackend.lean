@@ -263,10 +263,10 @@ theorem bootstrapBackend.wp_proof
   let π' := futPhys π0 γB
   wp_apply (wp_ci_swap hSB γ0 cil ⟨W64 0, W64 0, W64 0, false⟩ ⟨W64 0, W64 0, W64 0, false⟩ π' jf γcf
       GoInterface.nil (interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) rfl rfl
+        go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (W64 0) rfl rfl
       ⟨by simp [ciEff, π', π0], by simp [ciEff, π', π0]⟩ (by simp [ciEff, hγm0, π', π0]))
-    $$ [Hst Hown Hmt0b Hwr0 Htcf] as ⟨Hst, #Hreg', Hfs, Hown⟩
-  · iframe HisCI0 Hinv Hst Hown Hwr0 Htcf Hidxf
+    $$ [Hst Hown Hrt0 Hmt0b Hwr0 Htcf] as ⟨Hst, #Hreg', Hfs, Hown, Hrt0⟩
+  · iframe HisCI0 Hinv Hst Hown Hrt0 Hwr0 Htcf Hidxf
     iexact Hmt0b
   (try wp_auto)
   -- the boot backend's payment rights, back from the futures: `bootLeft N`, the session's
