@@ -4907,3 +4907,22 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   translated body (`Perennial/Proof/internal/strconv/AtoiBasics.lean`: the fast loop's invariant); corollary
   `internal.strconv.parseInt_fmtInt10_0`. Here `Atoi_dec` is proved from it (`Proof/strconv/Atoi_dec.lean`), once
   the pin includes it.
+
+## A struct of comparable fields is not a safe map key without a hand proof (2026-11-28, K9-10)
+
+- **Limitation.** `SafeMapKey key_type k` (`Perennial/Golang/Theory/Map.lean`) has one generic
+  instance, `safeMapKey_of_go_eq`, which needs `⟦GoOp GoEquals key_type, (#k, #k')⟧ ⤳ #(decide (k = k'))`
+  as one step. A struct's `==` is `go_eq_struct` (`Defn/PostLang.lean`), a chain of `if`s over its
+  fields, so no struct key gets the instance: each proof here steps the fields by hand
+  (`ikey_safeMapKey`, `ckey_safeMapKey` in `etcd3/SharedDefs.lean`, 3 and 4 fields). K9's `stepIdx` keys
+  its memo by `wkey`, whose `Input` has 33 fields, one an `Obj` of 8.
+- **Workaround.** `split_field_eq` (`Proof/.../k8s/etcd3/WMemo.lean`): a tactic that splits on the
+  first field comparison `decide (a = b)` left in the goal and rewrites it; `wkey_safeMapKey` is
+  `wp_pures; repeat' (split_field_eq <;> try wp_pures)`, closed by the structures' `ext` lemmas.
+  No axiom, no trusted text.
+- **Proposed change.** A generic instance in `Theory/Map.lean`: for a struct type whose Lean record
+  has a `TypeRepr`, every field strictly comparable (`IsStrictlyComparable`, or recursively a struct
+  of such fields), `GoEquals` on it is a `PureWp` to `#(decide (k = k'))` (induction over
+  `fds_unsealed` with the field getters), so that `safeMapKey_of_go_eq` (or a `PureWp` variant of it)
+  applies to every such key, generated structs included. Independent of this proof; to be designed and
+  reviewed in Perennial.

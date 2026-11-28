@@ -588,3 +588,33 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   fk-lean2 (`/home/ubuntu/eg/remote-check.sh`, lines 5 and 61).
 - **No `sorry`** in built files, no axiom, no top-level statement, premise or trusted-text change.
 - **Build of record** at `e83de24429` (FKLEAN_HOST=fk-lean2, `etcd3.Link`, `etcd3.Results`): passed, 12305 jobs.
+
+## Handoff K9-10 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Merged `lean`** (47361ba2d4, which contains f3ff8d9bdd) at `8cd14dc429`; the Perennial pin is still
+  `e2eda8223`. **Build of record** at `8cd14dc429` (FKLEAN_HOST=fk-lean2, target `etcd3.Link`): passed,
+  12256 jobs.
+- **The map key: no Perennial lemma applies.** `SafeMapKey`'s one generic instance,
+  `safeMapKey_of_go_eq` (`Perennial/Golang/Theory/Map.lean`), needs struct `==` to be a single step to
+  `#(decide (k = k'))`. A struct's `==` is `go_eq_struct` (`Defn/PostLang.lean`), an `if` chain over its
+  fields, and nothing lifts per-field `IsStrictlyComparable` to the struct. Plan (local): the tactic
+  `split_field_eq` (an `elab`: it splits on the first `decide (a = b)` in the goal whose sides are not
+  both fvars, then rewrites it with `decide_eq_true`/`decide_eq_false`). Then `wkey_safeMapKey` is `iintro
+  HΦ; wp_pures; repeat' (split_field_eq <;> try wp_pures)`, closed by `rintro rfl; contradiction` (some
+  field differs) or by `wkey.ext`/`Input.ext`/`Obj.ext` + `assumption` (all fields equal; `attribute [ext]
+  Obj Input wkey`). The general fix is recorded as a proposed independent Perennial change in
+  `notes/perennial-changes.md` ("A struct of comparable fields is not a safe map key without a hand
+  proof"). Perennial is unchanged.
+- **WIP, not checked, not built (nothing imports it)**, committed as a draft:
+  `Proof/.../k8s/etcd3/WMemo.lean` (defs: `wkey_decEq`, `wkey_intoVal_inj` (fields via `proj_eq`, `in`
+  via MDefs's `Input_intoVal_inj`), `split_field_eq`, `wkey_safeMapKey`, `wentry k v` (`∃ H, histOwn
+  k.hist H.hist ∗ ⌜HWf H ∧ ∀ y, y.WEvents = k.evs → y.WFailed = k.fail → v = watchOkL k.in y H⌝`),
+  `wmemoInv`, `memoOwn` (`isMutex` on `memo.mu`), `wentries_insert` (by `bigSepM_insert`/`_insert_acc`),
+  `watchOkL_out`, `HWf_eq`) and `Spec/.../etcd3/stepIdx.lean` (`step`'s spec + `memoOwn memo` + `x.Kind =
+  5 → HWf g.st`). No `sorry` and no axiom anywhere. First job: `rc.sh` both, then fix.
+- **Left**: `stepIdx.wp_proof` (callees `step`, `watchOkIdx`; Lock/`wp_map_lookup2`/Unlock; on a hit
+  `bigSepM_lookup` → `wentry`, `histOwn_agree_len` (length `< 2^64` from `HWf`), `HWf_eq` gives `H =
+  g.st`, `watchOkL_out` + `watchOkL_plainOut` (`step.lean`); on a miss `wp_watchOkIdx` (its `2^63` premise
+  from `HWf` + the rv premise), Lock, `wp_mapInsert`, `wentries_insert`, Unlock; the return is copied from
+  `step.lean`'s watch branch). Then add `stepIdx: step watchOkIdx` to `etc/link-lean-first-k8setcd3.txt`
+  and regenerate `Link`. After that, `SharedModel` (§2.1).
