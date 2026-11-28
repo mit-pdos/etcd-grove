@@ -22,6 +22,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.Raft__processHeartbeat
 public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftBase
+public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftBoot
 
 @[expose] public section
 
@@ -177,14 +178,6 @@ theorem ownPointer_zero_cfg (u : Loc) :
       sync.atomic.ownPointer (T' := Configuration) u (DFrac.own 1) null := by
   rw [sync.atomic.ownPointer_unseal]; unfold sync.atomic.ownPointerDef; exact .rfl
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- (stage 3) A fresh snapshot store's invariant: nothing stored, no install pending. -/
-theorem snapCell_alloc (rc : github_com.hashicorp.raft.RCtx GF) (γ : github_com.hashicorp.raft.gprot.GNames)
-    (i : github_com.hashicorp.raft.proto.SID) :
-    rc.ownSS none ∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
-      |={⊤}=> github_com.hashicorp.raft.snapCell rc γ i := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
 
 /-- The bootstrapped log store's map: the genesis at index 1. -/
 theorem genesisStore_m (g : Entry) (k : Nat) :
@@ -215,8 +208,340 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     (wp_runSnapshots : github_com.hashicorp.raft.Raft.runSnapshots.spec (GF := GF) (hG := hG))
     (wp_processHeartbeat : github_com.hashicorp.raft.Raft.processHeartbeat.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.NewRaft.spec (GF := GF) (hG := hG) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
-
-end proof
-
-end Perennial
+  intro htb cp c fsmI logsI stableI snapsI transI rpcCh γ i rc eof X tid
+  wp_start as ⟨Hcp, %Hcfg, #Hfsm, %Hnb, #Hlogs, %Hnmono, #Hstable, #Hsnaps, #Heof, #Htrans, %Hpv,
+    #Hinv, #Hvoter, #Hdi, Hsv, HstV, HtermV, HcidxV, Happ', Happ, Hcomp, Hpend, Hpw, Hboot, %Hrec, #Hfirst, %Hg,
+    HfsmOwn, Htok⟩
+  obtain ⟨Hcv, ss, Hss, Hgss⟩ := Hg
+  obtain ⟨htp, hci, hpend, hcl, hhi1, hhi2, habove, hdplat, hpref⟩ := Hrec
+  ihave #Hglob := pkgGlobals_access $$ Hpkg
+  unfold pkgGlobals
+  icases Hglob with ⟨⟨%errf, #Herrs⟩, ⟨%kCT, #HkCT, #HkCTs⟩, ⟨%kLVT, #HkLVT, #HkLVTs⟩,
+    ⟨%kLVC, #HkLVC, #HkLVCs⟩, #HobsId⟩
+  ihave #HstableC := Hstable
+  iunfold isStableStore at Hstable
+  icases Hstable with ⟨#HGetU, #HSetU, #HGet, #HSet⟩
+  ihave #HlogsC := Hlogs
+  iunfold isLogStore at Hlogs
+  icases Hlogs with ⟨#HLastIdx, #HFirstIdx, #HGetLog, #HStoreLogs, #HStoreLog, #HDelRange, -⟩
+  wp_auto
+  wp_apply wp_ValidateConfig $$ [$Hcp] as Hcp
+  · ipureintro; exact Hcfg
+  -- the current term: the crash state's (no term step pending)
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HGetU $$ HkCTs Htok
+  iapply (bootRead_S γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged)
+  iframe #
+  iframe Hsv HstV
+  isplitl [Hboot]
+  · unfold bootV; iexact Hboot
+  iintro Hboot Hsv HstV %X1 %HX1 Htok
+  obtain ⟨-, -, hs1, htp1, -, hD1, -, hp1⟩ := HX1
+  have htd : termDurOk X1.D X1.s X1.tp := hp1.2.2.2.1
+  rw [hD1] at htd ⊢
+  rw [hs1, htp1, htp] at htd
+  have hct : uint.nat ((X.D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0)) = X.s.term := by
+    rcases htd with ⟨-, h⟩ | ⟨t, h, -⟩ | ⟨h, -⟩ <;> first | exact h | cases h
+  generalize hctv : (X.D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0) = ct at hct
+  wp_auto
+  -- LastIndex: the largest stored index
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HLastIdx $$ Htok
+  iapply (bootRead_L γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged)
+  iframe #
+  iframe Hsv HstV Hboot
+  iintro Hboot Hsv HstV %X2 %HX2 Htok
+  obtain ⟨hA2, -⟩ := HX2
+  rw [hA2]
+  wp_auto
+  ipersist logs
+  -- the last entry stored (none if the store is empty)
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ bootV rc X.A X.lat ∗ srvVP rc X.s X.tp X.dp ∗
+      stVS rc X.D X.A.staged ∗ rtok tid ∗ (∃ e : GoInterface, err_ptr ↦ e) ∗ ∃ lv : Log, lastLog_ptr ↦ lv ∗
+      ⌜lv.Index' = X.A.hi ∧ (X.A.hi = W64 0 → lv.Term' = W64 0) ∧
+        (X.A.hi ≠ W64 0 → ∃ e, X.A.m.lookup (uint.nat X.A.hi) = some e ∧ uint.nat lv.Term' = e.term)⌝)))
+    $$ [Hboot Hsv HstV Htok lastLog err lastIndex] [-]
+  · wp_if_destruct
+    · have hne : X.A.hi ≠ W64 0 := by intro h; rw [h] at Hif; simp at Hif
+      obtain ⟨e, he⟩ : ∃ e, X.A.m.lookup (uint.nat X.A.hi) = some e := by
+        rcases hhi2 with h | h
+        · exact absurd h hne
+        · exact h
+      wp_bind (App (App (Val #(methods _ _ _)) _) _)
+      iapply HGetLog $$ lastLog Htok
+      iapply (bootRead_L γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged)
+      iframe #
+      iframe Hsv HstV Hboot
+      iintro Hboot Hsv HstV %X3 %HX3 %err' Hpost Htok
+      obtain ⟨hA3, -⟩ := HX3
+      rw [hA3] at *
+      unfold getLogPost
+      rw [he]
+      icases Hpost with ⟨%Herr, %lv, lastLog, #HlvIs⟩
+      subst Herr
+      wp_auto
+      unfold logIs
+      icases HlvIs with ⟨%h, -⟩
+      isplitr; · ipureintro; trivial
+      iframe
+      ipureintro
+      refine ⟨by apply BitVec.eq_of_toNat_eq; simpa using h.1, fun h' => absurd h' hne, fun _ => ⟨e, rfl, h.2.1⟩⟩
+    · isplitr; · ipureintro; trivial
+      iframe
+      ipureintro
+      have h0 : X.A.hi = W64 0 := by
+        apply BitVec.eq_of_toNat_eq
+        have : ¬ (uint.Z (W64 0) < uint.Z X.A.hi) := Hif
+        simp at this ⊢; word
+      exact ⟨h0.symm, fun _ => rfl, fun h => absurd h0 h⟩
+  iintro %v ⟨%hv, Hboot, Hsv, HstV, Htok, ⟨%e0, err⟩, %lv, lastLog, %HlvIdx⟩
+  subst hv
+  wp_auto
+  ihave #HtransC := Htrans
+  unfold isTransport
+  icases Htrans with ⟨#HrpcCh, #HConsumer, #HLocalAddr, #HEncPeer, #HDecPeer, #HSetHB, #HAEP,
+    #HAE, #HRV, #HPV, #HIS, #HTN⟩
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HLocalAddr
+  wp_auto
+  obtain ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hRCL, hNSR, hMA1, hMA2, hHB1, hHB2, hCT,
+    hSI, hLL1, hLL2, hET, hHT, hCT2, hSI2⟩ := Hcfg
+  rw [hPV]
+  wp_auto
+  wp_apply (chan.wp_make1 (V := Loc)) as %applyCh %γapply ⟨#HapplyCh, %HapplyCap, HapplyOwn⟩
+  rw [hBA]
+  wp_auto
+  wp_apply (chan.wp_make2 (V := GoInterface) (W64 128)) as %fsmCh %γfsm ⟨#HfsmCh, %HfsmCap, HfsmOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make1 (V := Loc)) as %snapCh %γsnap ⟨#HsnapCh, %HsnapCap, HsnapOwn⟩
+  wp_apply (chan.wp_make2 (V := Bool) (W64 1)) as %leaderCh %γlch ⟨#HlchCh, %HlchCap, HlchOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make1 (V := Loc)) as %ccCh %γcc ⟨#HccCh, %HccCap, HccOwn⟩
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HConsumer
+  wp_auto
+  wp_apply (chan.wp_make1 (V := Loc)) as %usCh %γus ⟨#HusCh, %HusCap, HusOwn⟩
+  wp_apply (chan.wp_make1 (V := Loc)) as %urCh %γur ⟨#HurCh, %HurCap, HurOwn⟩
+  wp_apply (chan.wp_make1 (V := Unit)) as %sdCh %γsd ⟨#HsdCh, %HsdCap, HsdOwn⟩
+  wp_apply (chan.wp_make2 (V := Loc) (W64 64)) as %vCh %γv ⟨#HvCh, %HvCap, HvOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make2 (V := Loc) (W64 8)) as %cfgsCh %γcfgs ⟨#HcfgsCh, %HcfgsCap, HcfgsOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make1 (V := Loc)) as %bsCh %γbs ⟨#HbsCh, %HbsCap, HbsOwn⟩
+  wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %obsM HobsM
+  wp_apply (chan.wp_make2 (V := Loc) (W64 1)) as %ltCh %γlt ⟨#HltCh, %HltCap, HltOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make2 (V := Unit) (W64 1)) as %lnCh %γln ⟨#HlnCh, %HlnCap, HlnOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make2 (V := Unit) (W64 1)) as %fnCh %γfn ⟨#HfnCh, %HfnCap, HfnOwn⟩
+  · ipureintro; decide
+  rw [hPVD, Hpv]
+  wp_auto
+  irename «$r0» => Hr
+  generalize «$r0_ptr» = r at *
+  iStructNamed Hr
+  -- r.conf.Store(*conf)
+  ihave Hconfv := (sync.atomic.ownValue_zero (GF := GF) _ (DFrac.own 1)).mp $$ conf
+  wp_apply (sync.atomic.Value.wp_Store _ _ (by simp [interface.mkOk]))
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iframe Hconfv
+  isplitr
+  · ipureintro; trivial
+  iintro Hconfv
+  imod Hclose with _
+  imodintro
+  wp_auto
+  -- the leaderLock (needed by setState's setLeader)
+  have hb : threadBound GF ≤ 2 ^ 28 := htb.threadBound_le
+  imod sync.rwmutex.init_RWMutex (E := ⊤) (nroot.@"rw") (r.[Raft, go!"leaderLock"]) $$ leaderLock
+    with ⟨%γLL, #HllIs, HllSt, HllToks⟩
+  irename currentTerm => HcurTerm
+  iStructNamed raftState
+  irename currentTerm => FcurrentTerm
+  irename commitIndex => FcommitIndex
+  irename lastApplied => FlastApplied
+  irename state => Fstate
+  -- r.setState(Follower), inlined
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setState")]
+  wp_call
+  unfold Follower
+  wp_auto
+  wp_apply wp_setLeader_init $$ [$HllIs $HllSt $leaderAddr $leaderID] as ⟨HllSt, leaderAddr, leaderID⟩
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"getState")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"getState")]
+  wp_call
+  wp_auto
+  wp_apply sync.atomic.wp_LoadUint32
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iexists _
+  iframe Fstate
+  iintro Fstate
+  imod Hclose with _
+  imodintro
+  wp_auto
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"setState")]
+  wp_call
+  wp_auto
+  wp_apply sync.atomic.wp_StoreUint32
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iexists _
+  iframe Fstate
+  iintro Fstate
+  imod Hclose with _
+  imodintro
+  wp_auto
+  -- r.setCurrentTerm(currentTerm), inlined: the stored term rewritten (an idempotent write), then the atomic
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setCurrentTerm")]
+  wp_call
+  wp_auto
+  iunfold stVS at HstV
+  ihave ⟨HstV, HstQ⟩ := (ghostVar_split_half rc.dur.st (1 : Qp).half _).1 $$ HstV
+  ihave ⟨Hpw, HpwQ⟩ := (ghostVar_split_half rc.dur.pw 1 _).1 $$ Hpw
+  wp_bind (App (App (Val #(methods _ _ _)) _) _)
+  iapply HSetU $$ HkCTs [HstQ HpwQ]
+  · unfold stWin; iright; iright
+    iexists _, ct, X.D, X.A.staged
+    unfold stVq
+    iframe
+    ipureintro; exact ⟨rfl, hctv⟩
+  iintro HW
+  unfold stWin
+  icases HW with (⟨%s', %p', -, Hwr⟩ | ⟨%vb, %Hvb⟩ | ⟨%kb, %v, %D2, %g2, -, HstQ, HpwQ⟩)
+  · unfold winRes
+    icases Hwr with ⟨HpwQ, -⟩
+    icombine Hpw HpwQ gives %Hag
+    cases Hag.2
+  · cases Hvb
+  unfold stVq
+  icombine HstV HstQ gives %Hag
+  obtain ⟨-, Hag⟩ := Hag
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨rfl, rfl⟩ := Hag
+  icombine HstV HstQ as HstV
+  icombine Hpw HpwQ as Hpw
+  iapply (bootRewrite_S γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged _ ct hctv)
+  iframe #
+  iframe Hboot Hsv
+  isplitl [HstV]
+  · unfold stVS; iexact HstV
+  iintro Hboot Hsv HstV
+  wp_auto
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"setCurrentTerm")]
+  wp_call
+  wp_auto
+  wp_apply sync.atomic.wp_StoreUint64
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iexists _
+  iframe FcurrentTerm
+  iintro FcurrentTerm
+  imod Hclose with _
+  imodintro
+  wp_auto
+  -- the raft-local ghost state and the FSM channel
+  imod ghostVar_alloc (W32 0) with ⟨%γst, Hgst⟩
+  icases (ghostVar_split_half γst 1 (W32 0)).mp $$ Hgst with ⟨Hgst, Hgst'⟩
+  imod ghostVar_alloc ((0, 0) : Nat × Nat) with ⟨%γll, Hgll⟩
+  icases (ghostVar_split_half γll 1 ((0, 0) : Nat × Nat)).mp $$ Hgll with ⟨Hgll, Hgll'⟩
+  imod dghostVar_alloc (some ((W64 0, W64 0, W64 0, W64 0) : w64 × w64 × w64 × w64)) with ⟨%γllb, Hllb⟩
+  icases dghostVar_halves' γllb _ $$ Hllb with ⟨Hllb, Hllb'⟩
+  imod ghost_map_alloc_empty (K := Nat) (V := Nat) with ⟨%γb, Hgb⟩
+  imod ghost_map_alloc_empty (K := Loc × SID) (V := Unit) with ⟨%γvtok, Hvtok⟩
+  imod ghost_map_alloc_empty (K := Loc) (V := Nat × Snap) with ⟨%γvreg, Hvreg⟩
+  imod ghost_map_alloc_empty (K := Loc) (V := Unit) with ⟨%γvlive, Hvlive⟩
+  imod ghost_map_alloc_empty (K := Loc) (V := Unit) with ⟨%γvnm, Hvnm⟩
+  icases (ghostMapAuth_halves γvnm (∅ : GMap Loc Unit)).mp $$ Hvnm with ⟨Hvnm, Hvnm'⟩
+  let rc0 : RCtx GF := { rc with names := ⟨γst, γll, γllb, ⟨γfsm, γst, γst⟩, γb, γvtok, γvreg, γvlive, γvnm⟩ }
+  imod start_spsc fsmCh (fsmP γ rc0 i) (fun _ => iprop(False)) γfsm $$ HfsmCh [HfsmOwn]
+    with ⟨%γspsc, #HfsmSpsc, HfsmProd, HfsmCons⟩
+  · iright; iexact HfsmOwn
+  let rc' : RCtx GF := { rc with names := ⟨γst, γll, γllb, γspsc, γb, γvtok, γvreg, γvlive, γvnm⟩ }
+  have hfsmP : fsmP γ rc0 i = fsmP γ rc' i := rfl
+  rw [hfsmP] at *
+  -- lastLock, its fields pinned by NewRaft (`llb`)
+  imod sync.init_Mutex (lastLockInv r γ rc' i) ⊤ _ $$ lastLock [lastLogIndex lastLogTerm lastSnapshotIndex
+    lastSnapshotTerm Hgll' Hllb'] with #HlastLock
+  · inext; unfold lastLockInv
+    rw [show (zeroValDef : raftState).lastLogIndex' = W64 0 from rfl,
+      show (zeroValDef : raftState).lastLogTerm' = W64 0 from rfl,
+      show (zeroValDef : raftState).lastSnapshotIndex' = W64 0 from rfl,
+      show (zeroValDef : raftState).lastSnapshotTerm' = W64 0 from rfl]
+    iexists _, _, _, _
+    iframe lastLogIndex lastLogTerm lastSnapshotIndex lastSnapshotTerm
+    isplitl [Hgll']
+    · rw [show uint.nat (W64 0) = 0 from rfl]; iexact Hgll'
+    isplitr
+    · ileft; ipureintro; rfl
+    iright; iexact Hllb'
+  -- r.setLastLog(lastLog.Index, lastLog.Term), inlined (the fields pinned)
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setLastLog")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"setLastLog")]
+  wp_call
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$HlastLock] as ⟨Hlocked, HR⟩
+  iunfold lastLockInv at HR
+  icases HR with ⟨%li0, %lt0, %si0, %st0, HlI, HlT, HsI, HsT, Hgll', #Hsn, Hb⟩
+  icases Hb with (Hb | Hb)
+  · icombine Hb Hllb gives %Hag; cases Hag.2
+  icombine Hb Hllb gives %Hag
+  obtain ⟨-, Hag⟩ := Hag
+  simp only [Option.some.injEq, Prod.mk.injEq] at Hag
+  obtain ⟨h1, h2, h3, h4⟩ := Hag
+  subst li0 lt0 si0 st0
+  wp_auto
+  imod ghostVar_update_halves (uint.nat lv.Index', uint.nat lv.Term') γll _ _ $$ Hgll Hgll' with ⟨Hgll, Hgll'⟩
+  imod dghostVar_update_halves (some (lv.Index', lv.Term', W64 0, W64 0)) _ _ _ $$ Hb Hllb with ⟨Hb, Hllb⟩
+  wp_apply sync.Mutex.wp_Unlock $$ [$HlastLock $Hlocked HlI HlT HsI HsT Hgll' Hb]
+  · inext; unfold lastLockInv
+    iexists _, _, _, _
+    iframe HlI HlT HsI HsT
+    isplitl [Hgll']
+    · iexact Hgll'
+    isplitr
+    · ileft; ipureintro; rfl
+    iright; iexact Hb
+  -- the lastApplied cell (at 0)
+  imod inv_alloc appliedN ⊤ iprop(∃ a : w64,
+      r.[Raft, go!"raftState"].[raftState, go!"lastApplied"] ↦ a ∗
+      monoNatAuthOwn rc'.dur.applied (1 : Qp).half (uint.nat a))
+    $$ [FlastApplied Happ'] with #HappliedCell
+  · inext; iexists _; iframe FlastApplied
+    rw [show uint.nat (zeroValDef : raftState).lastApplied' = 0 from rfl]; iexact Happ'
+  -- restore the latest snapshot
+  imod (sync.atomic.ownValue_dfractional (GF := GF) _ _).dfractional_persist (DFrac.own 1) $$ Hconfv
+    with #Hconfv
+  ipersist snapshots
+  ipersist fsm
+  ihave Hlp0 := ownPointer_zero_cfg _ $$ latestConfiguration
+  ihave Hboot : (bootV rc' X.A X.lat : IProp GF) $$ [Hboot]
+  · unfold bootV; iexact Hboot
+  have hdur : rc'.dur = rc.dur := rfl
+  ihave Hsv : (srvVP rc' X.s X.tp X.dp : IProp GF) $$ [Hsv]
+  · unfold srvVP; rw [hdur]; iexact Hsv
+  ihave Hpend : (ghostVar rc'.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) : IProp GF) $$ [Hpend]
+  · rw [hdur]; iexact Hpend
+  ihave Happ : (monoNatAuthOwn rc'.dur.applied (1 : Qp).half 0 ∨ ⌜∃ d, X.dp = some d⌝ : IProp GF) $$ [Happ]
+  · rw [hdur]; iexact Happ
+  wp_apply (wp_restoreSnapshot r γ i rc' c snapsI fsmI eof X.A X.lat X.s X.tp X.dp lv.Index' lv.Term'
+      (zero_val Configuration) (zero_val Configuration) (W64 0) (W64 0) null tid)
+    $$ [$Hboot $Hpend $Hsv $Happ $Hllb configurations $Hlp0 $HfsmOwn $Htok]
+    as ⟨Hboot, Hpend, Hsv, Htok, #Hlat, Hres⟩
+  · iframe #
+    isplitr; · ipureintro; exact hNSR
+    isplitr; · rw [show snapWin γ rc' i = snapWin γ rc i from rfl]; iexact Hsnaps
+    isplitr; · rw [show srvDurInvRaw γ rc' i = srvDurInvRaw γ rc i from rfl]; iexact Hdi
+    isplitr; · unfold appliedCell; iexact HappliedCell
+    rw [show (zero_val configurations : configurations) = configurations.mk (zero_val Configuration) (W64 0)
+      (zero_val Configuration) (W64 0) from rfl]
+    iexact configurations
+  sorry
