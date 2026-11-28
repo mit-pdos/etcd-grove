@@ -125,11 +125,11 @@ theorem logRecs_terms_pos (γ : RaftNames) (G : List EntryM) (Hwf : PlogWf base0
   icases isEntryR_term_pos γ x pt $$ He with %Hp
   ipureintro; exact Hp hb
 
+omit [StorageModel GF] in
 /-- (keepfix (c), 2026-11-27) **Every entry of a committed log has a nonzero term** (in a cluster
 started from a non-empty bootstrap log): the committed log is the bootstrap log (every entry's term
 `1`) or a prefix of a commit quorum's leader log, whose entries have records (`isEntryR_term_pos`).
 Through the cluster's invariant (`api_committed_cert`). -/
-omit [StorageModel GF] in
 theorem isCommittedLogLb_term_pos (γ : Cluster) (N : Namespace) (l : List LogEntry) (Em : CoPset)
     (hEm : ↑N ⊆ Em) (hb : 0 < γ.bootLen) :
     isCluster (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢ |={Em}=> ⌜∀ e ∈ l, 1 ≤ uint.Z e.term⌝ := by
