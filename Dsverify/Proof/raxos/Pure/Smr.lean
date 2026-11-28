@@ -21,7 +21,7 @@ kit's porcupine model is `pSeq kvB`'s state sets, as paxos's `woB`), in place of
 module
 
 public import Perennial.Std.ByteString
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 
 @[expose] public section
 

@@ -49,7 +49,7 @@ theorem store.Watch.wp_proof
   obtain ⟨hk, hkl, hrv, hn, hpn, hrt⟩ := Hpre
   ihave #Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, -, -, #Fvi, -, -, #Fpp, #Frp, -, -, -, -, -, -, -, -, #Hcon, -⟩
+  icases Hst' with ⟨%Hsp, -, -, #Fvi, -, -, #Fpp, #Frp, -, -, -, -, -, -, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, -, #Hver, -, -, -, -⟩
   iunfold versionerOk at Hver
@@ -81,10 +81,10 @@ theorem store.Watch.wp_proof
   wp_apply (wp_watchContext sp (GoInterface.ok ci)
     iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗
-      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)))
+      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (hG := hG)))
     (fun cv => iprop(∃ ci' : GoInterfaceOk, ⌜cv = GoInterface.ok ci'⌝ ∗
       context.isContext ci' cd ∗ metadata.outgoingCtxOkC ci' ∗ ctxErrClient ci' cd ∗
-      context.valueAt ci' flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)))))
+      context.valueAt ci' flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (hG := hG)))))
     $$ [] as %cv ⟨%ci', %Hcv, #Hctx', #Hmd', #Hce', #Hsig'⟩
   · intro Φ'
     iintro ⟨#Pcl', #Hc, #Hm, #He, #Hs⟩ HΦ'
@@ -112,7 +112,7 @@ theorem store.Watch.wp_proof
     · unfold context.valueAt
       imodintro
       iintro %Φ2 HΦ2
-      iapply HVal $$ %flowcontrol.initSignalKeyAny %(flowcontrol.initSignalRes (sem := sem))
+      iapply HVal $$ %flowcontrol.initSignalKeyAny %(flowcontrol.initSignalRes (hG := hG))
         [] [] [] [HΦ2]
       · ipureintro
         intro k' hk'

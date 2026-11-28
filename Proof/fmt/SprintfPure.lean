@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section defs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 theorem fmt.PureArgs.cons_of {x : GoInterface} {a : _root_.Perennial.fmt.Arg}
     {xs : List GoInterface} {args : List _root_.Perennial.fmt.Arg}

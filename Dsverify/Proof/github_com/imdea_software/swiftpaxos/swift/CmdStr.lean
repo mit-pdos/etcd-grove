@@ -33,7 +33,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 /-! ## The function and its injectivity (pure) -/
 
 section sprintf
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
 
 end sprintf
 

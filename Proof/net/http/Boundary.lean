@@ -107,7 +107,7 @@ structure HReq where
   body : List w8
 
 section fields
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The field `f` of the `*http.Request` at `r`. -/
 abbrev reqF (f : GoString) (r : Loc) : Loc :=

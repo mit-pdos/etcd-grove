@@ -22,6 +22,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 section step
 variable [GooseExts] [GoGlobalContext] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 
 /-- Every step of `ftruncate`'s end on the token `t` of the change `c0` (a resize to `sz`, at most
 `maxBytes`) returns errno 0 when every inode is covered. -/
@@ -29,7 +30,7 @@ theorem ftFinish_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, S
     (t : Nat) (c0 : OsChange) (sz : Nat) :
     ∀ h st g e' h' st' g', (st.proc.inflight !! t = some c0 ∧ c0.kind = .truncate sz ∧
         c0.target ≤ maxBytes) →
-      S.step "FtruncateFinish" (osTokV t) h st g e' h' st' g' →
+      S.step tf "FtruncateFinish" (osTokV t) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' ⟨hc0, hk0, htg⟩ hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -51,7 +52,7 @@ theorem fallocFinish_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st 
     (t : Nat) (c0 : OsChange) (sz : Nat) :
     ∀ h st g e' h' st' g', (st.proc.inflight !! t = some c0 ∧ c0.kind = .falloc sz ∧
         c0.target ≤ maxBytes) →
-      S.step "FallocFinish" (osTokV t) h st g e' h' st' g' →
+      S.step tf "FallocFinish" (osTokV t) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' ⟨hc0, hk0, htg⟩ hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)

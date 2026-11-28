@@ -43,7 +43,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- It never steps (it has no operation) and survives a crash unchanged. -/
 instance trivial_semantics : ExtSemantics trivialExt where
-  step _ _ _ _ _ _ _ _ _ := False
+  step _ _ _ _ _ _ _ _ _ _ := False
   crash _ _ := True
 
 /-- Its ghost state: none. -/

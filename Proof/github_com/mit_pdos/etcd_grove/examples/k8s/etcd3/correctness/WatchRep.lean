@@ -46,7 +46,7 @@ def wInPre (x : Input) : Prop :=
 end pure
 
 section vals
-variable [GooseExts] [GoSemanticsFunctions] [GoGlobalContext]
+variable [GooseExts] [GoLocalContext] [GoSemanticsFunctions] [GoGlobalContext]
 
 /-- **The validator `realCheck` builds** over the replay at `rp` (`NewWatchValidator(versioner{},
 replay, keyFunc)`). -/

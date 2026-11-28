@@ -100,7 +100,7 @@ theorem store.pagedChunks.wp_proof
       "withRev" ∷ withRev_ptr ↦ wr ∗ "limit" ∷ limit_ptr ↦ lm ∗
       "continueKey" ∷ continueKey_ptr ↦ ck ∗ "Htt" ∷ threadTok ∗ "HJ" ∷ J o i ∗
       "Hi" ∷ (if i = 0 then iprop(⌜o = none ∧ wr = rev0 ∧ lm = lim0 ∧ ck = []⌝ ∗
-          (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)))
+          (∀ R, |==> □ [∧list] γv ∈ c.K.kvs, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu γv (Q R)))
         else iprop(∃ (σ : KVState) (R : w64), □ Q (W64 (σ.rev : Int)) σ ∗
           ⌜o = some (σ, R) ∧ wr = R ∧ pageInv kp opts.Recursive' rev0 lim0 σ R lm ck i⌝)) :
       IProp GF) $$ [withRev limit continueKey Htt HJ HQ]

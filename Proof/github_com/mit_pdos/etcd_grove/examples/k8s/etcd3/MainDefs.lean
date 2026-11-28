@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # k8setcd3: `Main`'s named premises (stage 6g)
 
-`k8setcd3`'s `Main` starts the one-member server as `examples/etcd/txnlin`'s does (`etcdstart.StartServer`,
+`k8setcd3`'s `Main` starts the one-member server as `examples/lib/txnwork`'s does (`etcdstart.StartServer`,
 `etcdstart.Serve`), on other ports and names, so its premises are putget's (`Proof/.../putget/Defs.lean`, whose header explains each) at
 `k8setcd3`'s configuration: `cfgOk` (member and cluster token `k8setcd3`, data directory `k8s_etcd3.etcd`,
 raft's clock), `urlsOk` (peer URL `http://127.0.0.1:23906`, client URL `http://127.0.0.1:23896`)

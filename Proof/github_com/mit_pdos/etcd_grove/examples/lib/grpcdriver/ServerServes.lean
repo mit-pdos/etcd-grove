@@ -48,21 +48,21 @@ theorem server_isDriverServer :
 /-- The table's entry for `echoName`. -/
 theorem drvSvc_echo (γid : GName) :
     drvSvc (GF := GF) γid echoName =
-      some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid⟩) := by
+      some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid, false⟩) := by
   unfold drvSvc
   rw [if_pos rfl]
 
 /-- The table's entry for `failName`. -/
 theorem drvSvc_fail (γid : GName) :
     drvSvc (GF := GF) γid failName =
-      some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec⟩) := by
+      some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec, false⟩) := by
   unfold drvSvc
   rw [if_neg (by decide), if_pos rfl]
 
 /-- The table's entry for `metaName`. -/
 theorem drvSvc_meta (γid : GName) :
     drvSvc (GF := GF) γid metaName =
-      some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec⟩) := by
+      some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec, false⟩) := by
   unfold drvSvc
   rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
 
@@ -246,7 +246,7 @@ theorem echo_servesEnt (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
     isDrvServer γid s ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
       grpcServesEnt [] sics regs sregs echoName
-        (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid⟩) := by
+        (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid, false⟩) := by
   iintro ⟨#Hs, #Hsvc⟩
   simp only [grpcServesEnt]
   isplitr
@@ -254,10 +254,11 @@ theorem echo_servesEnt (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
   iintro %mh %srv %hin
   obtain ⟨hmh, rfl⟩ := hreg mh srv hin
   rw [hmh]
-  iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), echoSpec γid
+  iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), echoSpec γid, false
   isplitr
   · ipureintro
     exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
+  simp only [Bool.false_eq_true, ↓reduceIte]
   iapply echo_runOk wp_Echo wp_H γid s
   iframe #
 
@@ -273,7 +274,7 @@ theorem fail_servesEnt (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
       grpcServesEnt [] sics regs sregs failName
-        (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec⟩) := by
+        (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec, false⟩) := by
   iintro ⟨#Hpkg, #Hsvc⟩
   simp only [grpcServesEnt]
   isplitr
@@ -281,10 +282,11 @@ theorem fail_servesEnt (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
   iintro %mh %srv %hin
   obtain ⟨hmh, rfl⟩ := hreg mh srv hin
   rw [hmh]
-  iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (failSpec (GF := GF))
+  iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (failSpec (GF := GF)), false
   isplitr
   · ipureintro
     exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
+  simp only [Bool.false_eq_true, ↓reduceIte]
   iapply fail_runOk wp_Fail wp_H s
   iframe #
 
@@ -344,7 +346,7 @@ theorem meta_servesEnt (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
       grpcServesEnt [] sics regs sregs metaName
-        (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec⟩) := by
+        (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec, false⟩) := by
   iintro ⟨#Hpkg, #Hsvc⟩
   simp only [grpcServesEnt]
   isplitr
@@ -352,10 +354,11 @@ theorem meta_servesEnt (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
   iintro %mh %srv %hin
   obtain ⟨hmh, rfl⟩ := hreg mh srv hin
   rw [hmh]
-  iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (metaSpec (GF := GF))
+  iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (metaSpec (GF := GF)), false
   isplitr
   · ipureintro
     exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
+  simp only [Bool.false_eq_true, ↓reduceIte]
   iapply meta_runOk wp_Meta wp_H s
   iframe #
 

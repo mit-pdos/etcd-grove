@@ -11,7 +11,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRefusals
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCalls
 
 @[expose] public section
 
