@@ -236,7 +236,8 @@ theorem latestOk_dur (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) :
 invariant (for the context `rc` with those names and the generation's store handles), the crash
 token for the crash wand, and the generation's initial resources: the main goroutine's views, the
 atomics' views, the `lastApplied` authority (at `0`, both halves), the compaction frontier's
-authority (at `X.c`) and the main goroutine's half of the pending-install record (none).
+authority (at `X.c`), the main goroutine's half of the pending-install record (none) and its
+pending-write record (`pw`, none).
 (R2: a fancy update, for the invariant's allocation; was `|==>`.) -/
 theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
     srvVacant γ rc0 i X ⊢ |={E}=> ∃ dn : DurNames,
@@ -244,7 +245,8 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
       srvVP { rc0 with dur := dn } X.s X.tp X.dp ∗ stVS { rc0 with dur := dn } X.D X.A.staged ∗
       termV { rc0 with dur := dn } X.s.term ∗ cidxV { rc0 with dur := dn } X.s.cidx ∗
       monoNatAuthOwn dn.applied 1 0 ∗ monoNatAuthOwn dn.comp 1 X.c ∗
-      ghostVar dn.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) := by
+      ghostVar dn.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      ghostVar dn.pw 1 (none : Option Pend) := by
   iintro Hv
   unfold srvVacant
   icases Hv with ⟨Ho, Hdv, Hlc, Htc, Hcc, HL, HS, HSS, %Hp, Hlat, Hld, Htp, Hdp⟩
@@ -257,14 +259,15 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
   imod (mono_nat_own_alloc X.c) with ⟨%gcomp, Hcomp, #Hclb⟩
   imod (ghostVar_alloc (none : Option (Nat × Nat × GoString))) with ⟨%gpend, Hpend⟩
   imod (ghostVar_alloc ()) with ⟨%gtok, Htok⟩
+  imod (ghostVar_alloc (none : Option Pend)) with ⟨%gpw, Hpw⟩
   ihave ⟨Hsv1, Hsv2⟩ := (ghostVar_split_half gsv 1 (X.s, X.tp, X.dp)).1 $$ Hsv
   ihave ⟨Hst1, Hst2⟩ := (ghostVar_split_half gst 1 (X.D, X.A.staged)).1 $$ Hst
   ihave ⟨Htv1, Htv2⟩ := (ghostVar_split_half gtv 1 X.s.term).1 $$ Htv
   ihave ⟨Hcv1, Hcv2⟩ := (ghostVar_split_half gcv 1 X.s.cidx).1 $$ Hcv
   ihave ⟨Hpend1, Hpend2⟩ := (ghostVar_split_half gpend 1 (none : Option (Nat × Nat × GoString))).1 $$ Hpend
-  rw [← latestOk_dur γ rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩ X.lat]
-  imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩ } i X') ∨
-      crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩ }))
+  rw [← latestOk_dur γ rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw⟩ X.lat]
+  imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw⟩ } i X') ∨
+      crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw⟩ }))
     $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Hld Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1] with #Hinv
   · inext
     ileft
@@ -278,7 +281,7 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
     ipureintro
     exact ⟨hlo, hlc, hvm, htd, hci⟩
   imodintro
-  iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩
+  iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw⟩
   unfold srvDurInv srvCrashTok srvVP stVS termV cidxV
   dsimp only
   iframe
