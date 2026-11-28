@@ -96,7 +96,7 @@ theorem raftState_committedAtTerm (γ : Cluster) (id : w64) (S : RaftState) (N :
     iexists fp ++ S.ents
     iframe Hlog HcIn Hcommit
     ipureintro; exact hfw
-  imod ApiImpl.committedAtTerm_of_raft γ N Em hEm S.term S.commit $$ Hci Hw with Hcat
+  imod ApiImpl.committedAtTerm_of_raft γ N Em hEm S.term S.commit $$ Hci Hw Hterm with Hcat
   imodintro
   isplitl [Hshares Hslot Hi1]
   · iunfold raftState
@@ -128,6 +128,7 @@ theorem logRecs_terms_pos (γ : RaftNames) (G : List EntryM) (Hwf : PlogWf base0
 started from a non-empty bootstrap log): the committed log is the bootstrap log (every entry's term
 `1`) or a prefix of a commit quorum's leader log, whose entries have records (`isEntryR_term_pos`).
 Through the cluster's invariant (`api_committed_cert`). -/
+omit [StorageModel GF] in
 theorem isCommittedLogLb_term_pos (γ : Cluster) (N : Namespace) (l : List LogEntry) (Em : CoPset)
     (hEm : ↑N ⊆ Em) (hb : 0 < γ.bootLen) :
     isCluster (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢ |={Em}=> ⌜∀ e ∈ l, 1 ≤ uint.Z e.term⌝ := by
