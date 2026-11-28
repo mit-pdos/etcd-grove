@@ -214,7 +214,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     (wp_processHeartbeat : github_com.hashicorp.raft.Raft.processHeartbeat.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.NewRaft.spec (GF := GF) (hG := hG) := by
   intro htb cp c fsmI logsI stableI snapsI transI rpcCh γ i rc eof X tid
-  wp_start as ⟨Hcp, %Hcfg, #Hfsm, %Hnb, #Hlogs, %Hnmono, #Hstable, #Hsnaps, #Heof, #Htrans, %Hpv,
+  wp_start as ⟨Hcp, %Hcfg, #Hfsm, %Hnb, #Hlogs, %Hnmono, %HrclCT, #Hstable, #Hsnaps, #Heof, #Htrans, %Hpv,
     #Hinv, #Hvoter, #Hdi, Hsv, HstV, HtermV, HcidxV, Happ', Happ, Hcomp, Hpend, Hpw, Hboot, %Hrec, #Hfirst, %Hg,
     HfsmOwn, Htok⟩
   obtain ⟨Hcv, ss, Hss, Hgss⟩ := Hg
@@ -311,7 +311,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   wp_bind (App (Val #(methods _ _ _)) _)
   iapply HLocalAddr
   wp_auto
-  obtain ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hRCL, hNSR, hMA1, hMA2, hHB1, hHB2, hCT,
+  obtain ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hNSR, hMA1, hMA2, hHB1, hHB2, hCT,
     hSI, hLL1, hLL2, hET, hHT, hCT2, hSI2⟩ := Hcfg
   rw [hPV]
   wp_auto
@@ -1001,8 +1001,10 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   iintro %v ⟨%hv, Hfix, r⟩
   subst hv
   wp_auto
-  -- restoreFromCommittedLogs (`RestoreCommittedLogs = false`: nothing)
-  rw [hRCL]
+  -- restoreFromCommittedLogs
+  cases hRCL : c.RestoreCommittedLogs'
+  case true => sorry -- hraft_robust rcl: `RestoreCommittedLogs = true` (in progress)
+  -- `RestoreCommittedLogs = false`: nothing
   ipersist RestoreCommittedLogs
   wp_apply wp_restoreFromCommittedLogs $$ [$RestoreCommittedLogs]
   -- the state after the fixes
@@ -1326,6 +1328,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     isplitr; · iexact Hvoter
     isplitr
     · unfold raftImm; rw [hLID] at *; iframe #
+      try (iexists false; iexact RestoreCommittedLogs)
     isplitr
     · unfold raftIfaces
       rw [show logWin γ rc' i = logWin γ rc i from rfl, show stWin γ rc' i = stWin γ rc i from rfl,
@@ -1351,7 +1354,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     · unfold raftConf
       iexists c
       iframe #
-      ipureintro; exact ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hRCL, hNSR, hMA1, hMA2,
+      ipureintro; exact ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hNSR, hMA1, hMA2,
         hHB1, hHB2, hCT, hSI, hLL1, hLL2, hET, hHT, hCT2, hSI2⟩
     isplitr
     · unfold raftCells termCell cidxCell stateCell appliedCell cftCell ltipCell

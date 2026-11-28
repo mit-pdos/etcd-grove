@@ -34,7 +34,9 @@ through `goFunc`); returns `r` with `isRaft` (for `rc` with the generation's raf
 error. Needs the thread bound `2 ^ 28` (its `RWMutex` thread pools). The stores' contracts are over
 raft's window families (`logWin`, `stWin`, `snapWin`) of `rc`. (Stage 4) The protocol's decoding of a
 configuration's voters is `DecodeConfiguration`'s (`γ.cv = cfgDec γ.srvs`; `isRaft` keeps it).
-(`RestoreCommittedLogs` is still `false`, `cfgOk`: REQUESTS.md Q5.) A store holding a snapshot gives
+(hraft_robust rcl) With `RestoreCommittedLogs` on, the log store is a `CommitTrackingLogStore` (else
+`restoreFromCommittedLogs` returns `ErrIncompatibleLogStore`), and the entries up to its written commit
+index are applied before the scan. A store holding a snapshot gives
 `FirstIndex` as its smallest key (`isLogStoreFirst`, for fix 2). -/
 abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
   ThreadBoundLe GF (2 ^ 28) →
@@ -43,6 +45,7 @@ abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ cp ↦ c ∗ ⌜cfgOk c i⌝ ∗
      isFSM fsmI γ i rc.fsmOwn rc.respP rc.snapP ∗ ⌜fsmNotBatching fsmI⌝ ∗
      isLogStore logsI rc.ownL (logWin γ rc i) ∗ ⌜go.typeSetContains logsI.ty MonotonicLogStore.ty = false⌝ ∗
+     ⌜c.RestoreCommittedLogs' = false ∨ go.typeSetContains logsI.ty CommitTrackingLogStore.ty = true⌝ ∗
      isStableStore stableI rc.ownS (stWin γ rc i) ∗ isSnapStore snapsI rc.ownSS eof (snapWin γ rc i) ∗
      globalAddr io.EOF ↦□ eof ∗
      isTransport transI γ rc.snapP i rpcCh ∗ ⌜go.typeSetContains transI.ty WithPreVote.ty = true⌝ ∗

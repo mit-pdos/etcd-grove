@@ -1095,7 +1095,7 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
       rotate_left
       · -- removed or demoted: step down (`ShutdownOnRemove` is off)
         wp_apply (wp_config r γ rc i) $$ [$Hr] as %c4 %Hc4
-        rw [Hc4.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2]
+        rw [Hc4.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2]
         wp_auto
         ihave ⟨Hstv, Hmclose⟩ := ml_mainOwnAt_state' r γ rc i s1 stLeader $$ Hm
         rw [show (Follower : val) = #stFollower from rfl]
@@ -1417,7 +1417,7 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
           wp_if_destruct
           · obtain ⟨Hfs1ne, Hj⟩ := Hfs1
             have hP := of_decide_eq_true (go.intoVal_inj Hif)
-            have hmax : uint.nat c2.MaxAppendEntries' ≤ 64 := Hc2.2.2.2.2.2.2.2.2.2.2.1
+            have hmax : uint.nat c2.MaxAppendEntries' ≤ 64 := Hc2.2.2.2.2.2.2.2.2.2.1
             wp_apply_core chan.wp_select_nonblocking
             isplit
             · iapply BigAndL.bigAndL_cons.2
