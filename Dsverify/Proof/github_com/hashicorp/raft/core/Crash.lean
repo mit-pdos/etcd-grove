@@ -60,12 +60,10 @@ def latApplF (rc : RCtx GF) (lat : SnapLatest) (pend : Option (Nat × Nat × GoS
 theorem latApplOk_eq (rc : RCtx GF) (X : SrvDur) : latApplOk rc X = latApplF rc X.lat X.pend X.dp := by
   unfold latApplOk latApplF; rfl
 
-/-- (R2) The boot pin after the boot (`bootOver`): the boot record's half at none (the boot not yet
-closed in the body), or the latest snapshot's `lastApplied` bound. -/
+/-- (R2) The boot pin after the boot (`bootOver`): the latest snapshot's `lastApplied` bound. -/
 def bootPinF (rc : RCtx GF) (lat : SnapLatest) (pend : Option (Nat × Nat × GoString))
     (dp : Option DiscPend) : IProp GF :=
-  iprop(dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (none : Option (LogAbs × SnapLatest)) ∨
-    latApplF rc lat pend dp)
+  latApplF rc lat pend dp
 
 /-- (R2) **The timeless part of `durBody`**: gprot's halves, the views' halves, the couplings, the
 compaction bound, the pending-install record's half and the pending steps' premises. -/
@@ -147,18 +145,13 @@ theorem durBody_split (X : SrvDur) :
     bootOver rc ∗ durBody γ rc i X ⊢ durCore γ rc i X ∗ durStores γ rc i X := by
   unfold durBody durCore durStores bootPin bootOver
   iintro ⟨#Hbo, H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, %Hs5, Hla, Hl, Hpe, Ht, Hd⟩
-  icases Hb with (⟨%o, Hb, %ho⟩ | ⟨-, Hlo⟩)
+  icases Hb with (Hb | ⟨-, Hlo⟩)
   · icombine Hb Hbo gives %h
-    have ho' : o = none := h.2
-    subst ho'
-    iframe
-    isplitl []
-    · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr, Hs5⟩
-    unfold bootPinF; ileft; iexact Hb
+    exact absurd h.2 (by simp)
   · iframe
     isplitl []
     · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr, Hs5⟩
-    unfold bootPinF; iright; rw [← latApplOk_eq]; iexact Hlo
+    unfold bootPinF; rw [← latApplOk_eq]; iexact Hlo
 
 theorem durBody_join (X : SrvDur) :
     bootOver rc ∗ durCore γ rc i X ∗ durStores γ rc i X ⊢ durBody γ rc i X := by
@@ -170,9 +163,7 @@ theorem durBody_join (X : SrvDur) :
   isplitl []
   · ipureintro; exact Hp.2.2.2.2.2.1
   isplitl [Hbp]
-  · icases Hbp with (Hb | Hlo)
-    · ileft; iexists none; iframe; ipureintro; intro p hp; cases hp
-    · iright; iframe Hbo; rw [latApplOk_eq]; iexact Hlo
+  · iright; iframe Hbo; rw [latApplOk_eq]; iexact Hbp
   iframe
   ipureintro; exact Hp.2.2.2.2.2.2
 
@@ -387,12 +378,7 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
     · ipureintro; exact ⟨hlo, hlc, hvm, htd, hci⟩
     isplitl []
     · ipureintro; rw [hpend] at hdpl; exact hdpl.1
-    isplitl [Hb1]
-    · ileft
-      iexists (some (X.A, X.lat))
-      iframe
-      ipureintro
-      intro p hp; cases hp; rfl
+    try (isplitl [Hb1]; · ileft; iexact Hb1)
     ipureintro; exact hdpl.2
   imodintro
   iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩
