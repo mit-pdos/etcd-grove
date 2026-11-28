@@ -147,15 +147,15 @@ theorem wp_BuildServer :
     EtcdGrove.etcdstart.BuildServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.BuildServer.wp_proof wp_newServer
 
-theorem wp_newServerModeF [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServerModeF :
     EtcdGrove.etcdstart.newServerMode.specF (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServerMode.wp_proofF features.wp_NewDefaultServerFeatureGate wp_NewServerAtA
 
-theorem wp_newServerF [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServerF :
     EtcdGrove.etcdstart.newServer.specF (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServer.wp_proofF wp_newServerModeF
 
-theorem wp_BuildServerF [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_BuildServerF :
     EtcdGrove.etcdstart.BuildServer.specF (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.BuildServer.wp_proofF wp_newServerF
 
