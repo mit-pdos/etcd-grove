@@ -151,7 +151,8 @@ theorem nodeOkD_stripU {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {
     exact ⟨l1, l2, fun j k hk ht => ackX_stripX (l3 j k hk ht), fun j hj => (l4 j hj).imp_right ackX_stripX, l5⟩
   · obtain ⟨c1, c2⟩ := hc hrc
     exact ⟨fun j hj => by rw [stripU_granted]; exact c1 j hj, fun hd => stripU_nack (c2 hd) (by dsimp only [State.voteRequest]; decide)⟩
-  · obtain ⟨q1, q2, q3, q4⟩ := hqs q hq
+  · refine (hqs q hq).elim (fun hQ' => Or.inl ?_) Or.inr
+    obtain ⟨q1, q2, q3, q4⟩ := hQ'
     refine ⟨q1, q2, q3, ?_⟩
     rcases q4 with ⟨e, ⟨a1, a2, a, ha, h1, h2, h3, h4, h5⟩ | hv⟩ | hpv
     · exact .inl ⟨e, .inl ⟨a1, a2, a, stripU_self ha h2, h1, h2, h3, h4, h5⟩⟩
@@ -171,7 +172,8 @@ theorem nodeOkD_unstripU {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg}
     exact ⟨l1, l2, fun j k hk ht => tr (l3 j k hk ht), fun j hj => (l4 j hj).imp_right tr, l5⟩
   · obtain ⟨c1, c2⟩ := hc hrc
     exact ⟨fun j hj => by rw [← stripU_granted (n := n)]; exact c1 j hj, fun hd => stripU_sub (c2 hd)⟩
-  · obtain ⟨q1, q2, q3, q4⟩ := hqs q hq
+  · refine (hqs q hq).elim (fun hQ' => Or.inl ?_) Or.inr
+    obtain ⟨q1, q2, q3, q4⟩ := hQ'
     refine ⟨q1, q2, q3, ?_⟩
     rcases q4 with ⟨e, ⟨a1, a2, a, ha, h1, h2, h3, h4, h5⟩ | hv⟩ | hpv
     · exact .inl ⟨e, .inl ⟨a1, a2, a, stripU_sub ha, h1, h2, h3, h4, h5⟩⟩
@@ -182,12 +184,15 @@ theorem nodeOkD_unstripU {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg}
 made, is the node part of the run with the driver modes off. -/
 theorem nodeOkD_syncOff {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N}
     {v : NodeView} (ha : R.md.async = false) (hb : R.drv.batch = false) (hm : v.mems = [])
-    (hd : v.dur = durOf v.r) (hu : v.undo ≠ none → v.made = false)
+    (hp0 : v.parts = []) (hd : v.dur = durOf v.r) (hu : v.undo ≠ none → v.made = false)
     (h : NodeOkD R dec S net n v) : NodeOk R.syncOff dec S net n v := by
   obtain ⟨d1, d2, -, d4, d5, d6, d7, hf, hl, hc, hp, -, hx, hqs, ht, hca, hxc, hlo, hvs, -⟩ := h
   obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := hf
-  refine ⟨d1, d2, fun _ _ _ _ => ⟨hm, hd, hu⟩, d4, d5, d6, d7, ⟨f1 hb, f2, f3, f4, f5, f6 ha, f7⟩,
-    fun hrl => ?_, fun hrc => ?_, hp hb, hx, hqs, ht, hca, hxc, hlo, hvs⟩
+  have f6' := f6 ha
+  rw [hm, hp0] at f6'
+  refine ⟨d1, d2, fun _ _ _ _ => ⟨hm, hd, hu⟩, d4, d5, d6, d7, ⟨f1 hb, f2, f3, f4, f5, f6', f7⟩,
+    fun hrl => ?_, fun hrc => ?_, hp hb, hx, fun q hq => (hqs q hq).resolve_right fun hw => hw.2.2.2.2.2.2.1 hm,
+    ht, hca, hxc, hlo, hvs⟩
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
     obtain ⟨l3, l4⟩ := leaderPartD_acks l3 l4
     refine ⟨l1, l2, l3, l4, ?_⟩
@@ -200,7 +205,7 @@ theorem nodeOkD_syncOff {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} 
 /-- **The in-memory commit is recorded** when it is the disk's (sync, between writes): C3's commit
 facts for the node (`BindingOk`). -/
 theorem memCommitOk_of_disk {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {v : NodeView}
-    (hb : BindingOk R dec S) (hd : DiskIs S n v) (hdur : v.dur = durOf v.r) : MemCommitOk S v := by
+    (hb : BindingOkM R dec S) (hd : DiskIs S n v) (hdur : v.dur = durOf v.r) : MemCommitOk S v := by
   intro _
   obtain ⟨d1, -, d3, d4⟩ := hd
   have ec : v.dur.commit = v.ps.commit := by rw [hdur]; rfl
@@ -221,14 +226,14 @@ run, given the B2 bookkeeping of the view before (`w`: the same disk, undo recor
 theorem nodeOk_syncOffD {R : RunCfg} {dec : CCDec} {S0 : State} {net : List Msg} {n : Fin R.N}
     {v w : NodeView} (ha : R.md.async = false) (hb : R.drv.batch = false)
     (hpar : R.drv.parallel = true) (hm : v.mems = []) (hdu : v.dur = w.dur) (hun : v.undo = w.undo)
-    (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w) (hbo : BindingOk R dec S0)
+    (hp0 : v.parts = []) (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w) (hbo : BindingOkM R dec S0)
     (h : NodeOk R.syncOff dec (stripU n S0) net n v) : NodeOkD R dec (stripU n S0) net n v := by
   obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hp, hx, hqs, ht, hca, hxc, hlo, hvs⟩ := h
   have hd : v.dur = durOf v.r := (d3 ha rfl rfl rfl).2.1
   obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := hf
   refine ⟨d1, d2, fun _ _ _ hp0 => (by rw [hpar] at hp0; cases hp0), d4, d5, d6, d7,
-    ⟨fun _ => f1, f2, f3, f4, f5, fun _ => f6, f7⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
-    fun hb' => (by rw [hb] at hb'; cases hb'), hx, hqs, ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_,
+    ⟨fun _ => f1, f2, f3, f4, f5, fun _ => by rw [hm, hp0]; exact f6, f7⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
+    fun hb' => (by rw [hb] at hb'; cases hb'), hx, fun q hq => .inl (hqs q hq), ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_,
     fun _ _ => (d3 ha rfl rfl rfl).2.2, (memCommitOk_of_disk (S := S0) hbo d1 hd :)⟩
   · obtain ⟨l1, l2, l3, l4, l5, l6⟩ := hl hrl
     refine ⟨l1, l2, fun j k hk ht => ackX_stripX (stripU_ackX (l3 j k hk ht)),
@@ -294,14 +299,14 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
   have hjo := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   have huf := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   have hqn' : (stripU n S).queue[n.val]! = [] := hqn
-  have hv' := nodeOk_liftC (R := R.syncOff) hqn' (nodeOkD_syncOff ha hb hm hd hu (nodeOkD_stripU hb hv))
+  have hv' := nodeOk_liftC (R := R.syncOff) hqn' (nodeOkD_syncOff ha hb hm hparts hd hu (nodeOkD_stripU hb hv))
   have hq : QuietIn msk.b1Of R.syncOff dec Adm net xnet n (V n) ((V n).drainOf r₁ rd) :=
     .silentReady _ r₁ rd hr.syncOff hrop hrep
   have h1 := nodeOk_unliftC (R := R.syncOff) hqn'
     (nodeOk_quiet (SimMask.b1Of_le hmsk) hin.syncOff hsh.1
       (netOkD_toB1L ha hsh.2.2.2.2.2.1 (netOkD_stripU n hn)) hv' hq)
   have h2 : NodeOkD R dec S net n ((V n).drainOf r₁ rd) := nodeOkD_unstripU hb
-    (nodeOk_syncOffD ha hb hpar hm rfl rfl ((hjo.1 ha).1) ((hjo.1 ha).2) huf hbd.1 h1)
+    (nodeOk_syncOffD ha hb hpar hm rfl rfl hparts ((hjo.1 ha).1) ((hjo.1 ha).2) huf hbd.1 h1)
   have h3 := nodeOkD_pendPerm (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))
     (fun q => by
       show q ∈ _ ↔ q ∈ rd.msgs

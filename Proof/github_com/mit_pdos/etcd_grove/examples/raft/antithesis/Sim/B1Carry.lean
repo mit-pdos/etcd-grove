@@ -14,6 +14,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.StmtsB2
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.GC
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.LiftC
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.BindM
 
 @[expose] public section
 
@@ -120,17 +121,21 @@ theorem xnetOkD_toB1 {R : RunCfg} {S : AntCheck.State} {xnet : List XMsg} (h : X
   exact ⟨i, Int.le_trans hi (effTerm_le S i.val)⟩
 
 theorem nodeFactsD_toB1 {R : RunCfg} {n : Fin R.N} {v : NodeView} (hs : SyncB1 R)
+    (hm : v.mems = []) (hp : v.parts = [])
     (h : NodeFactsD R n v) : NodeFacts R n v := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
-  exact ⟨h1 hs.2.1, h2, h3, h4, h5, h6 hs.1, h7⟩
+  have h6' := h6 hs.1
+  rw [hm, hp] at h6'
+  exact ⟨h1 hs.2.1, h2, h3, h4, h5, h6', h7⟩
 
 theorem nodeOkD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N}
-    {v : NodeView} (hs : SyncB1 R)
+    {v : NodeView} (hs : SyncB1 R) (hpa : v.parts = [])
     (h : NodeOkD R dec S net n v) : NodeOk R dec S net n v := by
   obtain ⟨hd, hm, hsy, hu, hq, hr, hcl, hf, hl, hc, hp, -, hx, hqs, ht, hca, hxc, hlo, hvs, -⟩ := h
   have hdur : v.dur = durOf v.r := (hsy hs.1 hs.2.1 hs.2.2.1 hs.2.2.2).2.1
-  refine ⟨hd, hm, hsy, hu, hq, hr, hcl, nodeFactsD_toB1 hs hf, fun hrl => ?_, fun hrc => ?_,
-    hp hs.2.1, hx, hqs, ht, hca, hxc, hlo, hvs⟩
+  have hme : v.mems = [] := (hsy hs.1 hs.2.1 hs.2.2.1 hs.2.2.2).1
+  refine ⟨hd, hm, hsy, hu, hq, hr, hcl, nodeFactsD_toB1 hs hme hpa hf, fun hrl => ?_, fun hrc => ?_,
+    hp hs.2.1, hx, fun q hq' => ?_, ht, hca, hxc, hlo, hvs⟩
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
     obtain ⟨l3, l4⟩ := leaderPartD_acks l3 l4
     refine ⟨l1, l2, l3, l4, ?_⟩
@@ -139,10 +144,13 @@ theorem nodeOkD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List
     exact ⟨c1, by rw [← hlog]; exact c2⟩
   · obtain ⟨c1, c2⟩ := hc hrc
     exact ⟨c1, c2 (by rw [hdur]; rfl)⟩
+  · rcases hqs q hq' with h | h
+    · exact h
+    · exact absurd hme h.2.2.2.2.2.2.1
 
 /-- **`AntSimD` gives `AntSim`** in a run with the B2 modes off. -/
 theorem antSimD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {V : Fin R.N → NodeView}
-    {net : List Msg} {xnet : List XMsg} (hs : SyncB1 R)
+    {net : List Msg} {xnet : List XMsg} (hs : SyncB1 R) (hpa : ∀ n, (V n).parts = [])
     (h : AntSimD R dec S V net xnet) : AntSim R dec S V net xnet := by
   obtain ⟨hsh, hb, hn, hx, hv⟩ := h
   have hq : ∀ i : Fin R.N, S.queue[i.val]! = [] := fun i => by
@@ -152,7 +160,8 @@ theorem antSimD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {V : Fin R.
   have hlc : LeadCommitMsgOk R.N S net := fun m hm hty i hi hro hct => by
     obtain ⟨c, hc, hle⟩ := hn.2.2.2.1 m hm hty i hi hro hct
     rw [memCommit_nil (hq i)] at hc; cases hc; exact hle
-  exact ⟨hsh, hb.1, netOkD_toB1 hs.1 hn hlc, xnetOkD_toB1 hx, fun n => nodeOkD_toB1 hs (hv n)⟩
+  exact ⟨hsh, hb.1.toB1 hq, netOkD_toB1 hs.1 hn hlc, xnetOkD_toB1 hx,
+    fun n => nodeOkD_toB1 hs (hpa n) (hv n)⟩
 
 end b1carry
 

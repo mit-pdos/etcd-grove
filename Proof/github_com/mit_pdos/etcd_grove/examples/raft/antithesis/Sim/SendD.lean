@@ -37,11 +37,16 @@ variable [GooseExts]
 
 /-! ## The step after the write: B1's case analysis over the node's facts -/
 
+theorem BindingOkM.toW {R : RunCfg} {dec : CCDec} {S : State} (hb : BindingOkM R dec S) :
+    BindingOkW R dec S := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18⟩ := hb
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15.1, h16, h17, h18⟩
+
 /-- **`send`'s step and side conditions from node `n`'s B1 facts** (`antSim_send_in`'s case
 analysis): what it reads of the network is the cause's `Sendable` and the pre-vote voters. -/
 theorem sendD_step {R : RunCfg} {dec : CCDec} {S1 : State} {net : List Msg} {G : RaftFacts}
     {n : Fin R.N} {v : NodeView} {q : Msg} {rest : List Msg}
-    (hsn : R.md.snapshots = false) (hsh : Shape R S1) (hb : BindingOk R dec S1) (hl : RaftLaws G)
+    (hsn : R.md.snapshots = false) (hsh : Shape R S1) (hb : BindingOkW R dec S1) (hl : RaftLaws G)
     (hgo1 : GlobalOk R S1 net G)
     (hcs : ∀ m ∈ net, m.dst = nodeId n → S1.currentTerm[n.val]! ≤ uint.Z m.term → m.ty = .app →
       (toAppendFact (msgOf m m.dst) >>= S1.sendable) = .ok true)
@@ -409,8 +414,8 @@ theorem hbU_of_leader {R : RunCfg} {S : State} {n : Fin R.N} {v : NodeView} {q :
 
 /-- C3 after a `send` (`send_rel`'s). -/
 theorem SendOkD.bindingOk {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q : Msg}
-    {M : List Fact} {C : List Confirmed} (hb : BindingOk R dec S) (hok : SendOkD R S n q M C) :
-    BindingOk R dec (sendS S n.val M C) := by
+    {M : List Fact} {C : List Confirmed} (hb : BindingOkM R dec S) (hok : SendOkD R S n q M C) :
+    BindingOkM R dec (sendS S n.val M C) := by
   have hsub := hok.sub
   obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
   refine ⟨hb1, hb2, hb3, hb4, ?_, ?_, hb7, hb8, ?_, hb10, hb11, ?_, hb13, ?_, hb15, hb16, hb17.1,
@@ -529,7 +534,8 @@ theorem NodeOkD.sendD {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {k
     exact ⟨fun j hj => granted_mono (s1 := sendS S n.val M C) (s := S) k.val rfl rfl hsub rfl (c1 j hj),
       fun hd => hsub _ (c2 hd)⟩
   · intro x hx
-    obtain ⟨a1, a2, a3, ⟨a4, a5⟩ | a6⟩ := d14 x hx
+    refine (d14 x hx).elim (fun hQ' => Or.inl ?_) Or.inr
+    obtain ⟨a1, a2, a3, ⟨a4, a5⟩ | a6⟩ := hQ'
     · exact ⟨a1, a2, a3, .inl ⟨a4, a5.imp (fun h => ⟨h.1, h.2.1, hack h.2.2⟩) id⟩⟩
     · exact ⟨a1, a2, a3, .inr a6⟩
   · intro m hm
@@ -539,7 +545,7 @@ theorem NodeOkD.sendD {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {k
 /-- C4 after a `send` (`send_rel`'s `NetOk` over `NetOkD`). -/
 theorem SendOkD.netOkD {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
     {n : Fin R.N} {q : Msg} {M : List Fact} {C : List Confirmed} (hn : n.val < S.undo.length)
-    (hb : BindingOk R dec S) (hno : ∀ k, NodeOkD R dec S net k (V k)) (hnet : NetOkD R S net)
+    (hb : BindingOkM R dec S) (hno : ∀ k, NodeOkD R dec S net k (V k)) (hnet : NetOkD R S net)
     (hok : SendOkD R S n q M C) (hshape : MsgShape q) (hmask : MsgMask R q)
     (hnum : q.ty = .readIndexResp → MsgNums (2 ^ 61) q) :
     NetOkD R (sendS S n.val M C) (net ++ [q]) := by
@@ -720,7 +726,7 @@ theorem leader_sendableM {S : State} {N : Nat} {n : Fin N} {v : NodeView}
 
 /-- `SendOkD` of a leader's request (an append or a heartbeat), which adds no fact. -/
 theorem SendOkD.ofReq {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q : Msg} (hsh : Shape R S)
-    (hb : BindingOk R dec S) (hty : q.ty = .app ∨ q.ty = .heartbeat)
+    (hb : BindingOkW R dec S) (hty : q.ty = .app ∨ q.ty = .heartbeat)
     (hsrc : q.src = nodeId n ∧ uint.Z q.term ≤ S.currentTerm[n.val]!) (hdst : ∃ j : Fin R.N, q.dst = nodeId j)
     (hreq : (toAppendFact (msgOf q q.dst) >>= S.sendable) = .ok true)
     (hhb : q.ty = .heartbeat → ∀ j : Fin R.N, q.dst = nodeId j → S.currentTerm[j.val]! ≤ uint.Z q.term →
@@ -804,7 +810,7 @@ theorem antSim_sendD_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
   · -- after the write: B1's case analysis at the run with the driver modes off
     have hd : (V n).dur = durOf (V n).r := by have := hdf hparts; rw [hm] at this; exact this
     have hno' : NodeOk R.syncOff dec S1 net n (V n) :=
-      nodeOkD_syncOff ha hbat hm hd (hum ha hbat) (hno n)
+      nodeOkD_syncOff ha hbat hm hparts hd (hum ha hbat) (hno n)
     have hcs : ∀ m ∈ net, m.dst = nodeId n → S1.currentTerm[n.val]! ≤ uint.Z m.term → m.ty = .app →
         (toAppendFact (msgOf m m.dst) >>= S1.sendable) = .ok true := by
       intro m hm' hd' hle hty
@@ -812,7 +818,7 @@ theorem antSim_sendD_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
       have e : j' = n := nodeId_inj (hj'.symm.trans hd')
       subst e
       exact (hjk (Int.le_trans (effTerm_le _ _) hle)).1 (.inl hty)
-    obtain ⟨M, C, hst, hok⟩ := sendD_step (R := R.syncOff) hsn hsh hb hl hgo1 hcs
+    obtain ⟨M, C, hst, hok⟩ := sendD_step (R := R.syncOff) hsn hsh (BindingOkM.toW hb) hl hgo1 hcs
       hn.2.2.2.2.2.1 hcz hno' hd hpend htold hq7
     have hok' : SendOk R S1 n q M C :=
       { sub := hok.sub, new := hok.new, clen := hok.clen, cother := hok.cother, conf := hok.conf,
@@ -892,7 +898,7 @@ theorem antSim_sendD_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
       have hsd := leader_sendableM l1 l2 hmc' (nameOf q.dst) hpt hes hcm
       rw [← h2] at hsd
       exact ⟨_, _, send_app_eq n q _ hc hsrv hne' hty h1 hterm hrl hsd,
-        SendOkD.ofReq hsh hb (.inl hty) ⟨h1, by omega⟩ ⟨j, hj⟩
+        SendOkD.ofReq hsh (BindingOkM.toW hb) (.inl hty) ⟨h1, by omega⟩ ⟨j, hj⟩
           (by rw [toAppendFact_msgOf, eok_bind, h1]; exact hsd) (fun h => nomatch hty.symm.trans h)
           ⟨_, hmcm, hcm⟩ (fun h => nomatch hty.symm.trans h), .inl rfl⟩
     · have hcase' := hcase
@@ -906,7 +912,7 @@ theorem antSim_sendD_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
           uint.Z q.logterm, logOf q.entries, uint.Z q.commit⟩ = .ok true := by
         rw [hi0, hlt0, hen, h2]; exact hsd0
       exact ⟨_, _, send_hb_eq n q _ hc hsrv hne' hty h1 hterm hrl hsd,
-        SendOkD.ofReq hsh hb (.inr hty) ⟨h1, by omega⟩ ⟨j, hj⟩
+        SendOkD.ofReq hsh (BindingOkM.toW hb) (.inr hty) ⟨h1, by omega⟩ ⟨j, hj⟩
           (by rw [toAppendFact_msgOf, eok_bind, h1]; exact hsd) hhbs ⟨_, hmcm, hcm⟩ hbU, .inl rfl⟩
 
 end sendD

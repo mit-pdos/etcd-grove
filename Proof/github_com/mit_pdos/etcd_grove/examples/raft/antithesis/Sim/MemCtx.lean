@@ -60,7 +60,7 @@ theorem ldCtxD_of {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : CCD
   have hqn : S1.queue[n.val]! = [] := by
     have hqi : QueueIs S1 n (V n) := hvD.2.2.2.2.1
     unfold QueueIs at hqi; rw [hqi, hm]; rfl
-  have hv0 : NodeOk R.syncOff dec S1 net n (V n) := nodeOkD_syncOff ha hbat hm hd hu hvD
+  have hv0 : NodeOk R.syncOff dec S1 net n (V n) := nodeOkD_syncOff ha hbat hm hparts hd hu hvD
   have hv : NodeOk R.syncOff dec (liftC S1) net n (V n) := nodeOk_liftC hqn hv0
   have hnet : NetOk R.syncOff (liftC S1) net := netOkD_toB1L ha hsh.2.2.2.2.2.1 hs1.2.2.1
   have hr' := hr.syncOff

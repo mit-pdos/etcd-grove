@@ -270,7 +270,7 @@ theorem cmt_mem (hx : LdCtx R dec V net xnet G n r₁ rd S1)
   have hc0 : 0 < uint.Z r₁.p.commit := by have := uint_Z_nonneg (V n).ps.commit; omega
   have hcmi : S1.commitIndex[n.val]! < uint.Z r₁.p.commit := by rw [hx.d4]; exact hlt
   have hk : tlOld S1.termLen (uint.Z r₁.p.term) < uint.Z r₁.p.commit := by
-    have := (hb.termLenOk.2 n hrole).2; rw [hT] at this; omega
+    have := (hb.termLenOkM.lead_nil hx.hq0 hrole).2; rw [hT] at this; omega
   have hplT : plogTermAt base0 r₁.p.log r₁.p.commit = some r₁.p.term := by rw [← hbase]; exact hcm.2.1
   have hterm : termAt (logOf r₁.p.log) (uint.Z r₁.p.commit) = uint.Z r₁.p.term := (termAt_of_plog hplT).2
   have hq : isQuorum (S1.acked n.val (uint.Z r₁.p.term) (uint.Z r₁.p.commit)) R.cfg.initConf = true :=

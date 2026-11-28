@@ -115,8 +115,9 @@ def splitParts (d : DurW) (rd : ReadyD) (base : MemRec) : List MemRec :=
 /-- **C1, raft's side, B2** (`NodeFacts` with two conjuncts guarded): raft's outbox is empty between
 `Ready`s only when not batching (a batching node takes several inputs before its `Ready`); what was
 handed out is within the disk's commit only in sync mode (async: the apply goroutine may hand out
-entries whose commit is not yet written; they are within the binding's `chain`, `ApplyChainOk`). The
-other conjuncts are `NodeFacts`'. -/
+entries whose commit is not yet written; they are within the binding's `chain`, `ApplyChainOk`),
+and sync, within the commit of the disk with the announced writes made (a `-parallel` leader's `mem`
+announces a commit its write makes later; #33 B2 round 11). The other conjuncts are `NodeFacts`'. -/
 def NodeFactsD (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   (R.drv.batch = false → v.ps.outbox = []) ∧
   (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
@@ -124,7 +125,8 @@ def NodeFactsD (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
     v.r.cfg.cfg = CfgM.simple R.voters0 ∅ ∧ EntsNormal v.r.full ∧ EntsNormal v.dur.log) ∧
   LogIdx v.dur.log ∧
   v.delivered ++ v.ce <+: v.dur.log ∧
-  (R.md.async = false → (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit) ∧
+  (R.md.async = false →
+    (v.delivered ++ v.ce).length ≤ uint.nat ((v.mems ++ v.parts).foldl DurW.write v.dur).commit) ∧
   (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term ∧
   (v.pre = true → v.ps.role = .follower) ∧
   (R.md.reads = false → v.ps.rd.pend = [] ∧ (v.ps.role = .leader → v.ps.rd.ro.pending = [])) ∧
@@ -243,6 +245,15 @@ def MemCommitOk (S : AntCheck.State) (v : NodeView) : Prop :=
     S.chain.take (uint.nat v.ps.commit) = (logOf v.r.full).take (uint.nat v.ps.commit) ∧
     (v.ps.commit = W64 0 ∨ ∃ p ∈ S.termLen, p.1 ≤ uint.Z v.ps.term ∧ uint.Z v.ps.commit ≤ p.2)
 
+/-- **A leader's self-acknowledgement waiting for its write** (`-parallel`, #33 B2 round 11): a win's
+or a proposal's `Ready` queues the leader's acknowledgement of its new last index, whose ack fact
+the binding records only at the write's `OnDisk` (B 407); until then it is within the log of the disk
+with the announced writes made. -/
+def QsAckW {N : Nat} (n : Fin N) (v : NodeView) (q : Msg) : Prop :=
+  q.src = nodeId n ∧ q.dst = nodeId n ∧ q.reject = false ∧ q.ty = .appResp ∧ q.term = v.ps.term ∧
+    v.ps.role = .leader ∧ v.mems ≠ [] ∧
+    uint.nat q.index ≤ ((v.mems ++ v.parts).foldl DurW.write v.dur).log.length
+
 /-- **C1, C2 and the drain's facts, B2** (`NodeOk` with `NodeFactsD`, `LeaderPartD`, `CandPartD`; a
 batch's pending messages by `PendOkB` once its queued `mem`s are written: a vote, a vote request
 and an acknowledgement are recorded by the write, `OnDisk`), and the B2 bookkeeping: in a sync,
@@ -255,7 +266,7 @@ def NodeOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n 
   (R.drv.batch = false → ∀ q ∈ v.pend, PendOk R.N (nodeId n) v q) ∧
   (R.drv.batch = true → v.mems = [] → ∀ q ∈ v.pend, PendOkB S n v q) ∧
   (∀ x ∈ v.xpend, XPendOk R.N (nodeId n) v.ps x) ∧
-  (∀ q ∈ v.qs, QsOk R S n v q) ∧
+  (∀ q ∈ v.qs, QsOk R S n v q ∨ QsAckW n v q) ∧
   (v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
     (∃ x, v.xcause = some x ∧ S.pending[n.val]! = [xmsgOf x])) ∧
   (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧
@@ -283,9 +294,49 @@ def UndoBindOk (N : Nat) (S : AntCheck.State) : Prop :=
     ∀ a ∈ S.msgs, a ∉ u.msgs → a.type = go!"ack" → a.src = nameOf (nodeId j) → a.term = u.term →
       (u.confirmed.term = a.term ∧ a.index ≤ u.confirmed.index) ∨ a.index ≤ u.commit
 
-/-- **C3, B2**: `BindingOk` and the restart facts. -/
+/-- **C3, the terms' recorded commits, B2** (`TermLenOk` with its leader clause read at the leader's
+announced commit, `MemCommit`, B 139): a `-parallel` leader's `cmt` records its new commit in
+`termLen` at its `mem` (`InMemory`, B 252-258), before the write that makes it its `commitIndex`
+(#33 B2 round 11). With no `mem` queued it is `TermLenOk` (`termLenOkM_iff`). -/
+def TermLenOkM (N : Nat) (S : AntCheck.State) : Prop :=
+  (∀ T, 0 < tlOld S.termLen T →
+    (∃ l ∈ S.leaders, l.term = T) ∨ ∀ i : Fin N, T < S.currentTerm[i.val]!) ∧
+  ∀ n : Fin N, S.role[n.val]! = AntCheck.leader → ∃ c, S.memCommit n.val = .ok c ∧
+    (AntCheck.termAt (S.log[n.val]!) c = S.currentTerm[n.val]! →
+      c ≤ tlOld S.termLen (S.currentTerm[n.val]!)) ∧
+    tlOld S.termLen (S.currentTerm[n.val]!) ≤ c
+
+/-- **C3 over the announced commits** (`BindingOk` with `TermLenOkM` for `TermLenOk`, the rest
+unchanged). -/
+def BindingOkM (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
+  S.viol = [] ∧
+  (∀ p ∈ S.termLen, p.2 ≤ S.chain.length) ∧
+  (∀ n : Fin R.N, S.commitIndex[n.val]! ≤ S.chain.length ∧
+    S.chain.take (S.commitIndex[n.val]!).toNat = (S.log[n.val]!).take (S.commitIndex[n.val]!).toNat) ∧
+  (∀ n : Fin R.N, S.commitIndex[n.val]! = 0 ∨
+    ∃ p ∈ S.termLen, p.1 ≤ S.currentTerm[n.val]! ∧ S.commitIndex[n.val]! ≤ p.2) ∧
+  (∀ n : Fin R.N, ∀ l, S.ledLog.get (S.confirmed[n.val]!).term = .ok l →
+    (S.confirmed[n.val]!).index ≤ (S.log[n.val]!).length ∧ (S.confirmed[n.val]!).index ≤ l.length ∧
+    (S.log[n.val]!).take (S.confirmed[n.val]!).index.toNat = l.take (S.confirmed[n.val]!).index.toNat) ∧
+  (∀ n : Fin R.N, ∀ a ∈ S.msgs, a.type = go!"ack" → a.src = nameOf (nodeId n) →
+    a.term = S.currentTerm[n.val]! →
+    ((S.confirmed[n.val]!).term = a.term ∧ a.index ≤ (S.confirmed[n.val]!).index) ∨
+      a.index ≤ S.commitIndex[n.val]!) ∧
+  (∀ p ∈ S.ledLog, ∃ l ∈ S.leaders, l.term = p.1) ∧
+  (∀ n : Fin R.N, ∀ l ∈ S.leaders, l.server = nameOf (nodeId n) →
+    l.term < S.currentTerm[n.val]! ∨
+      (l.term = S.currentTerm[n.val]! ∧ S.role[n.val]! ≠ AntCheck.candidate)) ∧
+  (∀ f ∈ S.msgs, f.type ≠ go!"vote" →
+    (∃ i : Fin R.N, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin R.N, f.dst = nameOf (nodeId j)) ∧
+  (∀ v ∈ S.votes, ∃ i : Fin R.N, v.voter = nameOf (nodeId i)) ∧
+  (∀ n : Fin R.N, S.vote n.val ≠ [] →
+    { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes) ∧
+  AckTermsOk R.N S ∧ VoteTermOk R.N S ∧ ConfirmedOk R.N S ∧ TermLenOkM R.N S ∧ LedConfOk R dec S ∧
+  TlSorted S ∧ BootTermOk R.N S
+
+/-- **C3, B2**: `BindingOkM` and the restart facts. -/
 def BindingOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
-  BindingOk R dec S ∧ UndoBindOk R.N S
+  BindingOkM R dec S ∧ UndoBindOk R.N S
 
 /-- **C4, a heartbeat's commit, B2**: as `HbCommitOk` for the receiver's current state, and for the
 state a restart may revert it to (its unmade write's undo record), when that is at most the

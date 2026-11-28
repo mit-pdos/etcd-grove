@@ -16,6 +16,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Ready
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.LiftC
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.BindM
 
 @[expose] public section
 
@@ -50,6 +51,24 @@ theorem lead_unique {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
   have h := hgo.leader_server hl hnm hkm hct
   exact name_inj h.symm
 
+/-- `commit_recorded` over `BindingOkM` (the conjuncts it reads are `BindingOk`'s). -/
+theorem commit_recordedM {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {lg : List EntryM} {c : Nat}
+    (hb : BindingOkM R dec S)
+    (hlg : S.log[n.val]! = logOf lg) (hc : (c : Int) ≤ S.commitIndex[n.val]!) :
+    c = 0 ∨ (c ≤ lg.length ∧ c ≤ S.chain.length ∧
+      (∃ x ∈ S.termLen, x.1 ≤ S.currentTerm[n.val]! ∧ (c : Int) ≤ x.2) ∧
+      S.chain.take c = (logOf lg).take c) := by
+  obtain ⟨h1, h2⟩ := hb.2.2.1 n
+  rcases hb.2.2.2.1 n with h0 | ⟨x, hx, hx1, hx2⟩
+  · left; omega
+  · right
+    have hlen := congrArg List.length h2
+    rw [hlg] at h2 hlen
+    simp only [List.length_take, logOf_length] at hlen
+    refine ⟨by omega, by omega, ⟨x, hx, hx1, by omega⟩, ?_⟩
+    have e : c = min c (S.commitIndex[n.val]!).toNat := by omega
+    rw [e, ← List.take_take, ← List.take_take, h2]
+
 /-- **A reported `Ready`'s node-local context** at node `n`, at the binding's state `S1` (after
 `GC`): `RdCtx` without the checker's prefix, the `GC` run and the whole relation; in their place the
 binding's and the node's facts at `S1`, the network's at `liftC S1`, the node's disk its raft state,
@@ -60,7 +79,7 @@ structure LdCtx (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView) (net : Lis
   hl : RaftLaws G
   hgo1 : GlobalOk R S1 net G
   hsh : Shape R S1
-  hb : BindingOk R dec S1
+  hb : BindingOkM R dec S1
   hnet : NetOk R (liftC S1) net
   hv : NodeOk R dec S1 net n (V n)
   hdn : (V n).dur = durOf (V n).r
@@ -107,7 +126,7 @@ theorem RdCtx.toLd {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeV
     rw [hx.hs1.1.2.2.2.2.2.1] at hi
     exact hx.hqa ⟨i, hi⟩
   exact {
-    hl := hx.hl, hgo1 := hx.hgo1, hsh := hx.hs1.1, hb := hx.hs1.2.1
+    hl := hx.hl, hgo1 := hx.hgo1, hsh := hx.hs1.1, hb := bindingOkM_of_B1 (fun i => hx.hqa i) hx.hs1.2.1
     hnet := by rw [hL]; exact hx.hs1.2.2.1
     hv := hx.hs1.2.2.2.2 n
     hdn := hx.hdk n

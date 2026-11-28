@@ -228,7 +228,8 @@ theorem gc_nodeOkD (ho : S.oldVotes = .ok o) {dec : CCDec} {net : List Msg} (hba
           (server_of hc n) (Int.le_refl _))
     rw [heq]; exact this
   · intro q hq
-    obtain ⟨q1, q2, q4, ⟨q3, q5⟩ | q6⟩ := hQ q hq
+    refine (hQ q hq).elim (fun hQ' => Or.inl ?_) Or.inr
+    obtain ⟨q1, q2, q4, ⟨q3, q5⟩ | q6⟩ := hQ'
     · refine ⟨q1, q2, q4, .inl ⟨q3, ?_⟩⟩
       rcases q5 with ⟨h1, h0, h2⟩ | ⟨h1, h2⟩
       · exact .inl ⟨h1, h0, gcRes_ack_keep hc hg n h2 hct⟩
@@ -244,7 +245,7 @@ theorem gc_relD {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List
     (ho : S.oldVotes = .ok o) : AntSimD R dec (gcRes S g o) V net xnet ∧ GlobalOk R (gcRes S g o) net G := by
   obtain ⟨hsh, ⟨hb, hu⟩, hn, hxn, hno⟩ := hs
   have hc : S.cfg = R.cfg := hsh.1
-  refine ⟨⟨hsh, ⟨gc_bindingOk hc hb hg ho, gc_undoBindOk hc hg hu⟩, gc_netOkD hc hg hn, hxn,
+  refine ⟨⟨hsh, ⟨gc_bindingOkM hc hb hg ho, gc_undoBindOk hc hg hu⟩, gc_netOkD hc hg hn, hxn,
     fun n => gc_nodeOkD hc hg ho hbat n (hno n)⟩, ?_⟩
   obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9⟩ := hgo
   exact ⟨fun l hl => g1 l (gcRes_leaders_sub hl), fun v hv => g2 v (gcRes_votes_sub hv), g3,
@@ -257,8 +258,8 @@ theorem gcLoop_relD {dec : CCDec} {V : Fin R.N → NodeView} {net : List Msg} {x
   | 0, _, h, _, _ => absurd h (Nat.not_lt_zero _)
   | k + 1, S, hlt, hs, hgo => by
     have hc : S.cfg = R.cfg := hs.1.1
-    obtain ⟨g, hg⟩ := garbage_ok hc hs.2.1.1.factsWf
-    obtain ⟨o, ho⟩ := oldVotes_ok hc hs.2.1.1.factsWf
+    obtain ⟨g, hg⟩ := garbage_ok hc (BindingOkM.factsWf hs.2.1.1)
+    obtain ⟨o, ho⟩ := oldVotes_ok hc (BindingOkM.factsWf hs.2.1.1)
     cases hd : (decide (g.length + o.length ≥ gcBatch) || S.staleLed.length != 0)
     · refine ⟨S, ?_, hs, hgo⟩
       rw [gcLoop, gcDue_eq hg ho, hd]; rfl

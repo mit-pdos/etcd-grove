@@ -330,7 +330,7 @@ theorem win_mem (hx : LdCtx R dec V net xnet G n r₁ rd S1)
       simp only [Bool.and_eq_false_iff, beq_eq_false_iff_ne]; right; omega
   have hrec : uint.Z r₁.p.commit = 0 ∨ recordedIn S1.chain S1.termLen
       (logOf (V n).ps.log ++ logOf [pleaderEntry (V n).ps]) (uint.Z r₁.p.commit) (uint.Z r₁.p.term) = .ok true := by
-    rcases commit_recorded (c := uint.nat r₁.p.commit) hb d3 (by rw [hcnZ, hcmi]; exact Int.le_refl _)
+    rcases commit_recordedM (c := uint.nat r₁.p.commit) hb d3 (by rw [hcnZ, hcmi]; exact Int.le_refl _)
       with h0 | ⟨h1, h2, ⟨x, hx', hx1, hx2⟩, h4⟩
     · left; omega
     · right

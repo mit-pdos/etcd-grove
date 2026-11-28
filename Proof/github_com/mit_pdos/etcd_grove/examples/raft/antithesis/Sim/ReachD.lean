@@ -33,8 +33,37 @@ theorem nodeOkD_factsS {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : Li
   h.2.2.2.2.2.2.2.1
 
 theorem nodeOkD_qsS {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N}
-    {v : NodeView} (h : NodeOkD R dec S net n v) : ∀ q ∈ v.qs, QsOk R S n v q :=
+    {v : NodeView} (h : NodeOkD R dec S net n v) : ∀ q ∈ v.qs, QsOk R S n v q ∨ QsAckW n v q :=
   h.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem qsD_ty3 {R : RunCfg} {S : AntCheck.State} {n : Fin R.N} {v : NodeView} {q : Msg}
+    (h : QsOk R S n v q ∨ QsAckW n v q) : q.ty = .appResp ∨ q.ty = .voteResp ∨ q.ty = .preVoteResp :=
+  h.elim QsOk.ty3 fun h => .inl h.2.2.2.1
+
+theorem qsD_self {R : RunCfg} {S : AntCheck.State} {n : Fin R.N} {v : NodeView} {q : Msg}
+    (h : QsOk R S n v q ∨ QsAckW n v q) (hne : q.ty ≠ .preVoteResp) : SelfMsg (nodeId n) v.ps.term q :=
+  h.elim (fun h => h.self hne) fun ⟨h1, h2, h3, h4, h5, _⟩ => ⟨h1, h2, h5, h3, .inl h4⟩
+
+/-- `AdvanceEnd.split` over the B2 queue (a leader's self-acknowledgement may wait for its write,
+`QsAckW`). -/
+theorem AdvanceEnd.splitD {R : RunCfg} {S : AntCheck.State} {n : Fin R.N} {v : NodeView} {k : NodeK}
+    {c : CfgM} {s' : PState} (hqs : ∀ q ∈ v.qs, QsOk R S n v q ∨ QsAckW n v q)
+    (h : AdvanceEnd k c (nodeId n) v.ps v.qs s') :
+    (∀ q ∈ v.qs, q.ty ≠ .preVoteResp) ∨
+    ((∀ q ∈ v.qs, q.ty = .preVoteResp ∧ q.reject = false) ∧ nodeId n ∈ v.r.cfg.cfg.voters ∧
+      (R.k n).prevote = true ∧
+      (s' = v.ps ∨ (v.ps.role = .follower ∧ v.ps.lead = W64 0 ∧ CampaignSends c (nodeId n) v.ps [] s'))) := by
+  by_cases hex : ∃ q ∈ v.qs, q.ty = .preVoteResp
+  · obtain ⟨q, hq, hty⟩ := hex
+    have hpo : ∀ q' ∈ v.qs, q'.ty = .preVoteResp → QsOk R S n v q' := fun q' hq' ht =>
+      (hqs q' hq').resolve_right fun hw => by rw [hw.2.2.2.1] at ht; cases ht
+    obtain ⟨-, -, -, ⟨-, h1 | h1⟩ | ⟨-, -, hvt, hpv, hall⟩⟩ := hpo q hq hty
+    · rw [hty] at h1; cases h1.1
+    · rw [hty] at h1; cases h1.1
+    have hpr : ∀ q ∈ v.qs, q.ty = .preVoteResp ∧ q.reject = false :=
+      fun q' hq' => ⟨hall q' hq', (hpo q' hq' (hall q' hq')).2.2.1⟩
+    exact .inr ⟨hpr, hvt, hpv, advanceEnd_pre hpr h⟩
+  · exact .inl fun q hq hty => hex ⟨q, hq, hty⟩
 
 theorem nodeOkD_leadOkS {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N}
     {v : NodeView} (h : NodeOkD R dec S net n v) : LeadOk n v :=
@@ -95,7 +124,7 @@ theorem ReachIn.toPD {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : 
       · exact .sends _ _ hi (.inr ⟨.transfer to, hbe⟩) hl hse
     · exact .stay _ hi (.inr ⟨.unreachable t, hbe⟩)
   | advance _ hpd _ hce _ hb ha _ =>
-    rcases AdvanceEnd.split (nodeOkD_qsS hv) (advanceEndR_toP ha) with hno | ⟨hpr, hvt, hpv, h⟩
+    rcases AdvanceEnd.splitD (nodeOkD_qsS hv) (advanceEndR_toP ha) with hno | ⟨hpr, hvt, hpv, h⟩
     · exact .advance _ _ hpd hce hb hno (advanceEndR_toP ha)
     · exact .advP _ _ hpd hce hb hpr hvt hpv h
 
@@ -120,7 +149,7 @@ theorem reach_fpD {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : CCD
     · exact (inputStep_x_keep hx hs).2.1
   | advance _ _ _ _ _ _ ha _ =>
     refine advanceEndR_fp ha fun q hq => ?_
-    rcases (nodeOkD_qsS hv q hq).ty3 with h | h | h <;> rw [h] <;> decide
+    rcases qsD_ty3 (nodeOkD_qsS hv q hq) with h | h | h <;> rw [h] <;> decide
 
 /-- **The destinations of the messages of the state a `Ready` is taken at, B2** (`dst_reach` over
 `NetOkD`/`NodeOkD`, unbatched). -/
@@ -137,7 +166,7 @@ theorem dst_reachD {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : CC
     ⟨hf.2.2.2.2.2.2.2.2.2.2.2.1, hf.2.2.2.2.2.2.2.2.2.2.2.2.1⟩
     (fun m hmn => by obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1; exact ⟨i, hi⟩)
     (fun q hq hne => ?_) (ReachIn.toPD hmsk hin hnet hv hr)
-  obtain ⟨h1, -, -, -, h5⟩ := (nodeOkD_qsS hv q hq).self hne
+  obtain ⟨h1, -, -, -, h5⟩ := qsD_self (nodeOkD_qsS hv q hq) hne
   exact ⟨h5, h1⟩
 
 end reachD

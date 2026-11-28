@@ -214,7 +214,7 @@ theorem prop_mem (hx : LdCtx R dec V net xnet G n r₁ rd S1)
   have htermc : termAt (logOf r₁.p.log) (uint.Z r₁.p.commit) =
       termAt (logOf (V n).ps.log) (uint.Z r₁.p.commit) := by
     rw [← hLeq]; exact rr_termAt_append _ _ _ (by rw [logOf_length]; exact hcmL)
-  have hTL := (hb.termLenOk.2 n hrole)
+  have hTL := (hb.termLenOkM.lead_nil hx.hq0 hrole)
   rw [hlogn, hcmi, hT] at hTL
   have hcm : (decide (uint.Z r₁.p.commit > tlOld S1.termLen (uint.Z r₁.p.term)) &&
       (termAt (logOf (V n).ps.log ++ logOf (e :: es')) (uint.Z r₁.p.commit) == uint.Z r₁.p.term)) = false := by
@@ -226,7 +226,7 @@ theorem prop_mem (hx : LdCtx R dec V net xnet G n r₁ rd S1)
   have hcnZ : ((uint.nat r₁.p.commit : Nat) : Int) = uint.Z r₁.p.commit := by word
   have hrec : uint.Z r₁.p.commit = 0 ∨ recordedIn S1.chain S1.termLen (logOf (V n).ps.log ++ logOf (e :: es'))
       (uint.Z r₁.p.commit) (uint.Z r₁.p.term) = .ok true := by
-    rcases commit_recorded (c := uint.nat r₁.p.commit) hb hlogn (by rw [hcnZ, hcmi]; exact Int.le_refl _)
+    rcases commit_recordedM (c := uint.nat r₁.p.commit) hb hlogn (by rw [hcnZ, hcmi]; exact Int.le_refl _)
       with h0 | ⟨h1, h2, ⟨x, hx1, hx2, hx3⟩, h4⟩
     · left; omega
     · right
