@@ -16,8 +16,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8s_etcd3
 
-open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
-  (mstore mcfg hnode Input histHashes cfgSet)
+open Iris Iris.BI
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (mstore mcfg hnode Input histHashes cfgSet)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

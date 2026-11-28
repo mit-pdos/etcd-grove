@@ -17,8 +17,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8s_etcd3
 
-open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
-  (mstore mcfg hnode Input histHashes cfgSet)
+open Iris Iris.BI
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (mstore mcfg hnode Input histHashes cfgSet)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,7 +32,7 @@ abbrev histHashes.skipTo.spec : Prop :=
   ∀ (hh : Loc) (c : mcfg) (g : GCfg) (t : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ hhOwn hh ∗ cfgOwn c g ∗ ⌜HWf g.st ∧ uint.nat t < 2 ^ 63⌝ }}
     (App (App (Val (hh @!! go.GoType.PointerType histHashes.ty @!! go!"skipTo")) (Val #c)) (Val #t))
-  {{ (c' : mcfg), RET #c'; cfgOwn c' ⟨skipToL g.st (uint.nat t), g.pend⟩ }}
+  {{ (c' : mcfg), RET #c'; cfgOwn c' ⟨k8s_dist.skipToL g.st (uint.nat t), g.pend⟩ }}
 
 end spec
 
