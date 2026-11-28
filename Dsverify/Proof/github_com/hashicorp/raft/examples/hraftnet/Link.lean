@@ -30,6 +30,17 @@ public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.chooseN
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.chooseOps
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.command
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.configure
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.Disk__decode
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.Disk__encode
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.Snaps__decode
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.Snaps__encode
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.decodeConfiguration
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.encodeConfiguration
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.putBytes
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.putUint64
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.reader__bytes
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.reader__done
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.reader__uint64
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.listen
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.opID
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.peers
@@ -1022,6 +1033,76 @@ variable [bvi : go.BasicIntoValInj]
 
 theorem hraftnet.wp_decStr : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.decStr.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.decStr.wp_proof
+
+end link
+
+section link
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.disk.Assumptions]
+
+theorem hraftnet.disk.reader.wp_uint64 : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.reader.uint64.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.reader.uint64.wp_proof
+
+theorem hraftnet.disk.reader.wp_bytes : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.reader.bytes.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.reader.bytes.wp_proof hraftnet.disk.reader.wp_uint64
+
+theorem hraftnet.disk.reader.wp_done : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.reader.done.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.reader.done.wp_proof
+
+end link
+
+section link
+variable [GooseExts]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.disk.Assumptions]
+
+theorem hraftnet.disk.Disk.wp_decode : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Disk.decode.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Disk.decode.wp_proof hraftnet.disk.reader.wp_uint64 hraftnet.disk.reader.wp_bytes hraftnet.disk.reader.wp_done
+
+end link
+
+section link
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.disk.Assumptions]
+
+theorem hraftnet.disk.wp_putUint64 : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.putUint64.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.putUint64.wp_proof
+
+theorem hraftnet.disk.wp_putBytes : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.putBytes.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.putBytes.wp_proof hraftnet.disk.wp_putUint64
+
+theorem hraftnet.disk.Disk.wp_encode : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Disk.encode.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Disk.encode.wp_proof hraftnet.disk.wp_putUint64 hraftnet.disk.wp_putBytes
+
+theorem hraftnet.disk.wp_decodeConfiguration : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.decodeConfiguration.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.decodeConfiguration.wp_proof hraftnet.disk.reader.wp_uint64 hraftnet.disk.reader.wp_bytes
+
+theorem hraftnet.disk.Snaps.wp_decode : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.decode.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.decode.wp_proof hraftnet.disk.reader.wp_uint64 hraftnet.disk.reader.wp_bytes hraftnet.disk.reader.wp_done hraftnet.disk.wp_decodeConfiguration
+
+theorem hraftnet.disk.wp_encodeConfiguration : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.encodeConfiguration.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.encodeConfiguration.wp_proof hraftnet.disk.wp_putUint64 hraftnet.disk.wp_putBytes
+
+theorem hraftnet.disk.Snaps.wp_encode : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.encode.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.encode.wp_proof hraftnet.disk.wp_putUint64 hraftnet.disk.wp_putBytes hraftnet.disk.wp_encodeConfiguration
+
+end link
+
+section link
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.Assumptions]
+variable [bvi : go.BasicIntoValInj]
 
 theorem hraftnet.wp_encStr : _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.encStr.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.encStr.wp_proof
