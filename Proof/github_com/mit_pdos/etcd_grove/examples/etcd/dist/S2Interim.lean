@@ -113,15 +113,15 @@ a voter for its whole life (`ServeDist.lean`; `notes/etcdsvc-b.md`).
 The guard `Γ.auth = false` is interim: there are no auth modes (one KV model, `nomode` N1-N4); once the
 KV view specs are single (N4) the guard goes and auth-on members serve the same entries. -/
 def etcdSvc (Γ : DistView) (mid : w64) : GrpcSvc GF := fun name =>
-  match Γ.auth, etcdKvSvc (GF := GF) Γ.kv name with
-  | false, some e => some e
-  | _, _ => etcdSvcRest Γ mid name
+  if Γ.auth = false then (etcdKvSvc (GF := GF) Γ.kv name <|> etcdSvcRest Γ mid name)
+  else etcdSvcRest Γ mid name
 
 theorem etcdSvc_kv (Γ : DistView) (mid : w64) (name : GoString) (e : GrpcSvcEntry GF)
     (hauth : Γ.auth = false) (h : etcdKvSvc (GF := GF) Γ.kv name = some e) :
     etcdSvc (GF := GF) Γ mid name = some e := by
   unfold etcdSvc
-  rw [hauth, h]
+  rw [if_pos hauth, h]
+  rfl
 
 theorem etcdKvSvc_put (γk : KVNames) :
     etcdKvSvc (GF := GF) γk go!"/etcdserverpb.KV/Put" =

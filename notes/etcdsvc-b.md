@@ -44,9 +44,8 @@ def etcdKvSvc (γk : KVNames) : GrpcSvc GF := fun name =>
   else none
 
 def etcdSvc (Γ : DistView) (mid : w64) : GrpcSvc GF := fun name =>
-  match Γ.auth, etcdKvSvc (GF := GF) Γ.kv name with
-  | false, some e => some e
-  | _, _ => etcdSvcRest Γ mid name
+  if Γ.auth = false then (etcdKvSvc (GF := GF) Γ.kv name <|> etcdSvcRest Γ mid name)
+  else etcdSvcRest Γ mid name
 ```
 The specs are stage A's view specs (`client/v3/KVService.lean`, heap-free, naming no member); the wire parts
 are `KVServiceV.lean`'s (`pbPutRequest.wire = putReqWire`, `rfl`). `Compact`'s entry is unconditional: its view
@@ -173,4 +172,5 @@ independent axiom review is still to run.
 
 ## Build and gates
 
-See the final report of the session (VM build, `etc/gates.sh`).
+The table is an `if` over `Option`'s `<|>`, not a `match`: the model-param gate walks the table's definition, and a
+`match` on its entries binds a `GrpcSvcEntry` (a model binder, rule 1) in every axiom reading `etcdAddrAt`.
