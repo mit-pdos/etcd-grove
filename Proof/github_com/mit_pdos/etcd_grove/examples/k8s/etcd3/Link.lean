@@ -26,6 +26,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetRe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetUID
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetAnnotations
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetResourceVersion
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PastRead
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PinnedRead
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__Floor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__SharedModel
 public import Proof.k8s_io.apimachinery.pkg.runtime.SetZeroValue
 public import Proof.k8s_io.apiserver.pkg.storage.StorageError__Unwrap
@@ -830,6 +833,18 @@ theorem Obj.wp_DeepCopyObject :
 theorem Obj.wp_SetResourceVersion :
     EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem wp_PastRead :
+    EtcdGrove.k8s_etcd3.PastRead.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.PastRead.wp_proof wp_parseRV wp_pastRead
+
+theorem wp_PinnedRead :
+    EtcdGrove.k8s_etcd3.PinnedRead.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.PinnedRead.wp_proof
+
+theorem Seeded.wp_Floor :
+    EtcdGrove.k8s_etcd3.Seeded.Floor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Seeded.Floor.wp_proof
 
 theorem storage.StorageError.wp_Unwrap :
     EtcdGrove.storage.StorageError.Unwrap.spec (GF := GF) (hG := hG) :=

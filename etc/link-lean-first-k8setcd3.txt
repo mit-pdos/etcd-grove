@@ -110,6 +110,9 @@ rvOfMsg: parseRV
 HistoryRevs: parseRV rvOfMsg decodeWEvents decodeItemRVs =_root_.Perennial.slices.wp_Sort
 # (K9 step 5) the distributed driver's check of the shared store's history (`examples/k8s/dist`)
 CheckShared: Seeded__SharedModel CheckOperationsTimeout
+PastRead: parseRV pastRead
+PinnedRead:
+Seeded__Floor:
 shows: decodeWEvents decodeItemRVs
 target: decodeWEvents parseRV pastRead
 bound: parseRV pastRead isWrite
