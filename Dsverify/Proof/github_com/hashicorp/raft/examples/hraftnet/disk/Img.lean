@@ -603,6 +603,53 @@ theorem logM_lookup_none (I : DiskImg) (k : w64) (h : ∀ e ∈ I.ents, e.idx �
   obtain ⟨e, he, rfl⟩ := hq
   intro h'; exact h e he (by simp only at h'; word)
 
+/-! ## Well-formedness from the encoding's length -/
+
+/-- The structural part of `DiskImg.Ok` (the lengths follow from the encoding's, `ok_of_enc`). -/
+def DiskImg.Pre (I : DiskImg) : Prop :=
+  IdxOk I.ents ∧ (I.kv.map Prod.fst).Nodup ∧ (I.ikv.map Prod.fst).Nodup
+
+theorem len_le_flatMap {α : Type} (l : List α) (f : α → List w8) (hf : ∀ x, 1 ≤ (f x).length) :
+    l.length ≤ (l.flatMap f).length := by
+  induction l with
+  | nil => simp
+  | cons x xs ih => simp only [List.flatMap_cons, List.length_append, List.length_cons]; have := hf x; omega
+
+theorem mem_le_flatMap {α : Type} (l : List α) (f : α → List w8) (x : α) (hx : x ∈ l) :
+    (f x).length ≤ (l.flatMap f).length := by
+  induction l with
+  | nil => simp at hx
+  | cons y ys ih =>
+    simp only [List.flatMap_cons, List.length_append]
+    rcases List.mem_cons.1 hx with rfl | hx
+    · omega
+    · have := ih hx; omega
+
+theorem ok_of_enc (I : DiskImg) (hp : I.Pre) (hl : (encImg I).length < 2 ^ 63) : I.Ok := by
+  obtain ⟨h1, h2, h3⟩ := hp
+  have he : (I.ents.flatMap encEnt).length + (I.kv.flatMap encKV).length + (I.ikv.flatMap encIKV).length ≤
+      (encImg I).length := by
+    simp only [encImg, List.length_append]; omega
+  have hE : ∀ e, 1 ≤ (encEnt e).length := fun e => by simp [encEnt, encBytes, encU64_length]; omega
+  have hK : ∀ p, 1 ≤ (encKV p).length := fun p => by simp [encKV, encBytes, encU64_length]; omega
+  have hI : ∀ p, 1 ≤ (encIKV p).length := fun p => by simp [encIKV, encBytes, encU64_length]; omega
+  refine ⟨h1, h2, h3, ?_, ?_, ?_, ?_⟩
+  · have := len_le_flatMap I.ents encEnt hE
+    have := len_le_flatMap I.kv encKV hK
+    have := len_le_flatMap I.ikv encIKV hI
+    omega
+  · intro e he'
+    have := mem_le_flatMap I.ents encEnt e he'
+    simp only [encEnt, encBytes, List.length_append] at this; omega
+  · intro p hp'
+    have := mem_le_flatMap I.kv encKV p hp'
+    simp only [encKV, encBytes, List.length_append] at this; omega
+  · intro p hp'
+    have := mem_le_flatMap I.ikv encIKV p hp'
+    simp only [encIKV, encBytes, List.length_append] at this; omega
+
+theorem pre_of_ok (I : DiskImg) (h : I.Ok) : I.Pre := ⟨h.idx, h.kvKeys, h.ikvKeys⟩
+
 end github_com.hashicorp.raft.examples.hraftnet.disk
 
 end Perennial

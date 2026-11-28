@@ -63,12 +63,13 @@ def imgHolds (v : Option GoString) (D : DiskAbs) : Prop :=
 
 theorem crash_of (I : DiskImg) (stg : w64) : (DiskAbs.of I stg).crash = absImg I := rfl
 
-/-- The window: idle; a write `op` to the image `I'` between its rename and its commit; the first start's
-`Fresh` before its write is synced. -/
+/-- The window: idle; a write `op` to the image `I'` between its rename and its commit (`sy`: its directory
+synced); the first start's `Fresh` before its write is synced (`r`: its rename done, the file holds the
+record's image). -/
 inductive DiskWin
   | idle
-  | open (op : DiskOp) (I' : DiskImg)
-  | fresh
+  | open (op : DiskOp) (I' : DiskImg) (sy : Bool)
+  | fresh (r : Bool)
 
 /-! ## Countable encodings (for the ghost variables) -/
 
@@ -98,10 +99,10 @@ def diskOpEnc : DiskOp → ((Nat × RLog) ⊕ (Bool × Nat × Nat)) ⊕ ((List w
   | .log o => .inl (logOpEnc o)
   | .stab o => .inr (stableOpEnc o)
 
-def diskWinEnc : DiskWin → Option (Option ((((Nat × RLog) ⊕ (Bool × Nat × Nat)) ⊕ ((List w8 × w64) ⊕ (List w8 × List w8))) × DiskImg))
+def diskWinEnc : DiskWin → Option (Bool ⊕ ((((Nat × RLog) ⊕ (Bool × Nat × Nat)) ⊕ ((List w8 × w64) ⊕ (List w8 × List w8))) × DiskImg × Bool))
   | .idle => none
-  | .fresh => some none
-  | .open op I => some (some (diskOpEnc op, I))
+  | .fresh r => some (.inl r)
+  | .open op I sy => some (.inr (diskOpEnc op, I, sy))
 
 theorem diskOpEnc_inj (a b : DiskOp) (h : diskOpEnc a = diskOpEnc b) : a = b := by
   cases a with
@@ -116,8 +117,9 @@ instance diskWin_countable : Pos.Countable DiskWin :=
   Pos.Countable.ofInjective (fun w => Pos.Countable.encode (diskWinEnc w))
     (fun a b h => by
       have h := Pos.encode_inj h
-      cases a <;> cases b <;> simp only [diskWinEnc, Option.some.injEq, Prod.mk.injEq, reduceCtorEq] at h
-      all_goals first | rfl | (obtain ⟨h1, h2⟩ := h; rw [diskOpEnc_inj _ _ h1, h2]))
+      cases a <;> cases b <;> simp only [diskWinEnc, Option.some.injEq, Prod.mk.injEq, reduceCtorEq,
+        Sum.inl.injEq, Sum.inr.injEq] at h
+      all_goals first | rfl | (subst h; rfl) | (obtain ⟨h1, h2, h3⟩ := h; rw [diskOpEnc_inj _ _ h1, h2, h3]))
 
 /-! ## Names -/
 
@@ -180,9 +182,9 @@ abbrev DiskRec : Type := DiskImg × w64 × DiskWin
 def diskWinRes (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Wf : IProp GF) (I : DiskImg) (stg : w64)
     (s : DurFs.DurSt) : DiskWin → IProp GF
   | .idle => iprop(⌜s = ⟨some (encImg I), none⟩⌝)
-  | .open op I' => iprop(⌜I'.Ok ∧ DiskAbs.of I' stg = op.apply (DiskAbs.of I stg) ∧ s.cur = some (encImg I') ∧
-      (s.alt = none ∨ s.alt = some (some (encImg I)))⌝ ∗ winOf Wl Ws op)
-  | .fresh => Wf
+  | .open op I' sy => iprop(⌜I'.Ok ∧ DiskAbs.of I' stg = op.apply (DiskAbs.of I stg) ∧ s.cur = some (encImg I') ∧
+      (s.alt = none ∨ (sy = false ∧ s.alt = some (some (encImg I))))⌝ ∗ winOf Wl Ws op)
+  | .fresh r => iprop(Wf ∗ ⌜r = true → s.cur = some (encImg I)⌝)
 
 /-- **The invariant's contents** (see the file header). -/
 def diskBody (g : DiskGen) (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Wf : IProp GF) : IProp GF :=
