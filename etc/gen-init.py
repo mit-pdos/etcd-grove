@@ -2311,7 +2311,12 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
                               'wp_apply wp_string_to_bytes go!"authRevision" as %sar ⟨Hsar, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"confState" as %sconf ⟨Hsconf, -⟩', 'try wp_auto']
-                             + [l for n in ['clusterVersion', 'downgrade', 'storageVersion', 'consistentIndexRaftTerm', '']
+                             + [l for n in ['clusterVersion', 'downgrade', 'storageVersion']
+                                for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')]
+                             # (keepfix (c), 2026-11-28) the raft-term key's name, in the fact
+                             + ['wp_apply wp_string_to_bytes go!"consistentIndexRaftTerm" as %srtk ⟨Hsrtk, -⟩',
+                                'try wp_auto']
+                             + [l for n in ['']
                                 for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')],
         # (prove-initleft, 2026-11-21) `schemaChanges`, a map literal keyed by `version.V3_6`, `V3_7`,
         # `V3_8` (read-only by `version`'s fact; `semver.Version` a safe map key, `MapKey.lean`), whose
@@ -2347,8 +2352,10 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
             'ipersist Hscluster', 'ipersist Hsmembers', 'ipersist Hsmrem', 'ipersist HMembersRemoved',
             'ipersist HCluster',
             # (prove-ps2-v3alarm, 2026-11-24) the alarm store's bucket
-            'ipersist Hsalarm', 'ipersist HAlarm'] + FIN_PRE[:6] + ['imodintro',
-            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
+            'ipersist Hsalarm', 'ipersist HAlarm',
+            # (keepfix (c), 2026-11-28) the raft-term key's name
+            'ipersist Hsrtk', 'ipersist HMetaConsistentIndexRaftTermName'] + FIN_PRE[:6] + ['imodintro',
+            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes raftTermKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
 

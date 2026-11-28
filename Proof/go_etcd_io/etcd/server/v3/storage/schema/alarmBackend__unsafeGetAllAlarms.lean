@@ -39,7 +39,7 @@ theorem schema.alarmBackend.unsafeGetAllAlarms.wp_proof
   · iPkgInit
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bk, #HA, #HAb⟩⟩
+  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%bk, #HA, #HAb⟩, -⟩
   ihave #Hbk : backend.isBucket bk mvcc.alarmBI $$ []
   · unfold mvcc.alarmBI
     iapply mvcc.bucketIs_isBucket hID hName hSafe $$ [$Hpkg $HAb]

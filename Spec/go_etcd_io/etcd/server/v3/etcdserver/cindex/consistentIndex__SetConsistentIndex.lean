@@ -25,13 +25,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 /-- `ci.SetConsistentIndex(v, term)`, under the pair mutex, stores the index `v` (the
 linearization point: the caller's update gets `ciIdx γ k` and gives back `ciIdx γ v`), then the
 term. (keepfix-d, 2026-11-27) The caller gives the pair predicate of the pair it stores, for a
-non-zero index. -/
+non-zero index; (keepfix (c)) of the triple at the raft term `rt`, which the caller's mirror
+(`ciRaftTerm`, given back) says the field holds. -/
 abbrev consistentIndex.SetConsistentIndex.spec : Prop :=
-  ∀ (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) (v term : w64),
+  ∀ (ci : Loc) (γ : CINames) (P : w64 → w64 → w64 → IProp GF) (v term rt : w64),
   ⊢ ∀ Φ : val → IProp GF,
     (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isCI ci γ P ∗ (⌜v = W64 0⌝ ∨ □ P v term)) -∗
-    (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ v ={∅, ⊤ \ ↑ciN}=∗ Φ #())) -∗
+      isCI ci γ P ∗ ciRaftTerm γ rt ∗ (⌜v = W64 0⌝ ∨ □ P v term rt)) -∗
+    (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ v ={∅, ⊤ \ ↑ciN}=∗ (ciRaftTerm γ rt -∗ Φ #()))) -∗
     WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetConsistentIndex"))
       (Val #v)) (Val #term)) {{ Φ }}
 

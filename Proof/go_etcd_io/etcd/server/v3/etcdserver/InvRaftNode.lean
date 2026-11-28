@@ -2030,7 +2030,7 @@ theorem rnRtOk_of_commit (γ : RNNames GF) (rt cur : w64) (n : Nat)
   · iexists cur; iframe Hcur Hsrc; isplit <;> ipureintro <;> assumption
   · by_cases within : (γ.a0.length : Int) ≤ uint.Z cur
     · iexists cur; iframe Hcur Hsrc; isplit <;> ipureintro <;> assumption
-    · ihave #Hcover := committedAtTerm_mono_term γ.node.cl srvClusterN old rt cover prior.1 $$ Hprior
+    · ihave #Hcover := committedAtTerm_mono_term γ.node.cl srvClusterN old rt cover cur prior.1 $$ Hprior Hcur
       iexists cover; iframe Hcover Hsrc
       isplit <;> ipureintro <;> omega
 

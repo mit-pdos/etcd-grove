@@ -272,6 +272,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetRaftTerm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Proof.go_etcd_io.etcd.pkg.v3.contention.NewTimeoutDetector
@@ -598,6 +599,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexRaftTerm
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__CreateAlarmBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__ForceCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__GetAllAlarms
@@ -1336,9 +1338,13 @@ theorem schema.wp_UnsafeUpdateConsistentIndex :
     schema.UnsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=
   schema.UnsafeUpdateConsistentIndex.wp_proof schema.wp_unsafeUpdateConsistentIndex
 
+theorem schema.wp_UnsafeUpdateConsistentIndexRaftTerm :
+    schema.UnsafeUpdateConsistentIndexRaftTerm.spec (GF := GF) (hG := hG) :=
+  schema.UnsafeUpdateConsistentIndexRaftTerm.wp_proof binary.bigEndian.wp_PutUint64
+
 theorem consistentIndex.wp_UnsafeSave :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
-  consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
+  consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex schema.wp_UnsafeUpdateConsistentIndexRaftTerm
 
 theorem snap.Snapshotter.wp_DBFilePath :
     snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG) :=
@@ -1851,6 +1857,10 @@ theorem config.ServerConfig.wp_ShouldDiscover :
 theorem config.ServerConfig.wp_hasLocalMember :
     config.ServerConfig.hasLocalMember.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.hasLocalMember.wp_proof fmt.wp_Errorf
+
+theorem consistentIndex.wp_SetRaftTerm :
+    consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG) :=
+  consistentIndex.SetRaftTerm.wp_proof
 
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=

@@ -419,24 +419,24 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
 `γ`: `bootOk`'s `#HmetaSnap` (J8a-4) by name, which `NewServer` passes to `run` through `start`'s
 construction premise (`srvBuilt`, `isServerBuilt`, `isServerRunC`'s `#HmetaSnap`) for
 `applyAll.specSnapM`'s premise of the same text. -/
-def srvMetaSnap (γ : ApplyNames) : IProp GF :=
+def srvMetaSnap (cl : Cluster) (γ : ApplyNames) : IProp GF :=
   iprop(□ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
         backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
         □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTM γB P)) b -∗
+          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTMR cl π γB P)) b -∗
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γ.withPh π))))
 
-instance srvMetaSnap_persistent (γ : ApplyNames) : Persistent (srvMetaSnap (GF := GF) γ) := by
+instance srvMetaSnap_persistent (cl : Cluster) (γ : ApplyNames) : Persistent (srvMetaSnap (GF := GF) cl γ) := by
   unfold srvMetaSnap; infer_instance
 
 /-- `srvMetaSnap` at the next backend's names: `beSucc` keeps the logical names, and the premise
 names only `γ.withPh π`. -/
-theorem srvMetaSnap_withPh (γ : ApplyNames) (ph : ApplyPhys) :
-    srvMetaSnap (GF := GF) (γ.withPh ph) = srvMetaSnap γ := by
+theorem srvMetaSnap_withPh (cl : Cluster) (γ : ApplyNames) (ph : ApplyPhys) :
+    srvMetaSnap (GF := GF) cl (γ.withPh ph) = srvMetaSnap cl γ := by
   unfold srvMetaSnap; rfl
 
 end defs

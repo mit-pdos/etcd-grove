@@ -109,7 +109,9 @@ def entriesFrom [GooseExts] (f0 : w64) (ms : List EntryModel) : Prop :=
 when the server starts (the applied index is the snapshot's, at most the stored consistent
 index, through which the backend holds everything) and `applyEntries` keeps it. -/
 def loopOk (γ : ApplyNames) (st : ApplyState) (a : w64) : Prop :=
-  st.pending = false ∧ uint.Z st.p = max (uint.Z (ciEff γ st.k)) (uint.Z a)
+  st.pending = false ∧ uint.Z st.p = max (uint.Z (ciEff γ st.k)) (uint.Z a) ∧
+    -- (keepfix) the consistent index loaded: 0 only if the backend's stored index is 0
+    stLoaded γ st = st
 
 /-! ## What a batch of entries does to the KV (pure) -/
 
@@ -647,11 +649,12 @@ instance srvBkTie_persistent (B₀ B : mvcc.KBReal) : Persistent (srvBkTie (GF :
 pending and loaded (`stLoaded γ st = st`: `ConsistentIndex` gives it back unchanged; D22 receiver
 epochs, S8d, 2026-10-26: until then any state, false after a snapshot, whose `γ.m0.1` is not 0),
 with the backend's owner share (`applyBackend`), as `wp_ci_get` takes them, and the value it
-returns there (`ciEff γ st.k`; C1's A2, 2026-10-28); the environment's `E.ciC`. -/
+returns there (`ciEff γ st.k`; C1's A2, 2026-10-28); the environment's `E.ciC`. (keepfix (c) step 1,
+2026-11-28) With the apply thread's mirror of the raft term field, which `wp_ci_get` takes and gives back. -/
 def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) (x : w64) : Prop :=
-  ∃ (st : ApplyState) (b : GoInterface),
-    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false ∧ stLoaded γ st = st ∧
-      x = ciEff γ st.k
+  ∃ (st : ApplyState) (b : GoInterface) (rt : w64),
+    C = iprop(applyThread γ st ∗ applyBackend γ ci b ∗ ciRaftTerm γ.ci rt) ∧ st.pending = false ∧
+      stLoaded γ st = st ∧ x = ciEff γ st.k
 
 /-- The apply environment's threaded resources are the server's (D14i); (D22, 2026-10-23) its rest
 buckets' resource the backend's tracked buckets with the cluster `cl`'s in-memory members, its
@@ -687,19 +690,19 @@ snapshot's window needs to freeze the stored index (`commitReq_freeze`; strict M
 the epoch's batch-lock invariant `E.Pk B` that one, which the window's commit request and snapshot
 observation name). Made where the backend is:
 `NewServer` (`bootOk`'s), `applySnapshot` (`OpenSnapshotBackend`'s). -/
-def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IProp GF :=
+def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (B : mvcc.KBReal) (bh lgh : Loc) (gx : GName),
     ⌜E.BkTie = srvBkTie B ∧ ciKeys B.P ∧ storage.hooksParams B.P ∧
-      E.Pk B = batchLockInv γ (metaTM B.γB B.P)⌝ ∗
+      E.Pk B = batchLockInv γ (metaTMR cl γ.ph B.γB B.P)⌝ ∗
     structFieldRef EtcdServer go!"beHooks" s ↦□ bh ∗
     storage.isBackendHooks bh
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
       lgh ∗
     backend.hooksAt B.be (storage.hooksIface bh) ∗
-    backend.isBackend B.γB B.P (mvccW gx) (batchLockInv γ (metaTM B.γB B.P)) B.be)
+    backend.isBackend B.γB B.P (mvccW gx) (batchLockInv γ (metaTMR cl γ.ph B.γB B.P)) B.be)
 
-instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) :
-    Persistent (srvBeHooked (GF := GF) s γ ci E) := by
+instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (E : apply.AEnv GF) :
+    Persistent (srvBeHooked (GF := GF) s γ ci cl E) := by
   unfold srvBeHooked; infer_instance
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
@@ -708,12 +711,12 @@ rest buckets' resource is the backend's tracked buckets and `s.cluster`'s in-mem
 (`srvRestOwn`, D22, 2026-10-23). (D22 receiver epochs, S7a, 2026-10-23: `s.uberApply`, which
 `applySnapshot` rebuilds, is no longer here, read-only for good: it is the apply thread's,
 `srvApplyKV`.) -/
-def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
-      hookSpec γ ci TM v.hook ∗
+      hookSpec γ ci cl TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
@@ -721,11 +724,11 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci cl E)
 
-instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :
-    Persistent (srvFieldsAt s γ ci TM E ρ v) := by
+    Persistent (srvFieldsAt s γ ci cl TM E ρ v) := by
   unfold srvFieldsAt; infer_instance
 
 /-- **The server's id generator** (persistent; the vertical slice's unit V2): the apply thread
@@ -746,7 +749,7 @@ hands the wait carry a witness at them, `resultIsW`); the server's raft node (`s
 `ApplyConfChange` `applyConfChange` calls; audit phase B3, 2026-10-18). -/
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
-  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci γr.raft.raft.cl ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
+  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci γr.raft.raft.cl ∗ (∃ v : SrvFields, srvFieldsAt s γ ci γr.raft.raft.cl TM E ρ v) ∗
     srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft ∗
     -- (the backend-auth-split stage, 2026-11-02) the thread bound within the backend's pool of
     -- readers (`NewServer`'s premise), for the pool of each backend the apply thread opens

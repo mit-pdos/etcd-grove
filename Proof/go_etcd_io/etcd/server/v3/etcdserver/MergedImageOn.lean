@@ -68,7 +68,7 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
         □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
   iintro ⟨#Hmi, %hau, #Hsrv, Hka⟩
   iunfold mergedImgM at Hmi
-  icases Hmi with ⟨%hobs, %u, #Him⟩
+  icases Hmi with ⟨%hobs, ⟨%u, #Him⟩, #Hrow⟩
   obtain ⟨hci, hterm, hrest, hre⟩ := hobs
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨-, -, -, Hat, -, -⟩
@@ -105,6 +105,8 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   simp only [srvNet]
   rw [hao, srvImageM_on]
   iunfold srvImageOn
+  -- (keepfix (c) step 1, G5) the term row, the window's (`mergedImgM`)
+  iframe Hrow
   iexists γr.kv
   isplitr
   · ipureintro; exact ⟨h0.1, hch, h0.2⟩

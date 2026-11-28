@@ -84,7 +84,7 @@ variable [sem : go.Semantics]
 (persistent). -/
 def isServerCI (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster)
     (Rw : TRow GF := TRow.triv) : IProp GF :=
-  iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci (srvCIPair cl) ∗ inv applyN (consInv γ Rw))
+  iprop(srvCIAddr s ↦□ ciIface ci ∗ isCI ci γ.ci (srvCITriple0 cl) ∗ inv applyN (consInv γ Rw))
 
 instance isServerCI_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (Rw : TRow GF) :
     Persistent (isServerCI (GF := GF) s γ ci cl Rw) := by
@@ -105,24 +105,31 @@ def hookDone (γ : ApplyNames) (TM : MetaCI → IProp GF) : IProp GF :=
   iprop(∃ mm : MetaCI, ghostVar γ.mt (1 : Qp).half mm.1 ∗ TM mm ∗ applyRegdF γ ∗
     (⌜mm.2 = γ.m0.2⌝ ∨ wrDone γ))
 
-/-- The post-lock hook's contract (persistent). -/
-def hookSpec (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (f : val) : IProp GF :=
-  iprop(∀ (st : ApplyState) (i t : w64) (b : GoInterface),
-    {{ batchLockInv γ TM ∗ applyThread γ st ∗ ciApplying ci i t ∗ applyBackend γ ci b ∗
-        ⌜st.pending = false ∧ i = st.p + 1 ∧ uint.Z st.p < uint.Z i ∧
-          uint.Z (ciEff γ st.k) < uint.Z i⌝ }}
-      (App (Val f) (Val #()))
-    {{ RET #(); hookDone γ TM ∗ applyThread γ { st with k := i, pending := true } ∗
-        ciApplying ci i t ∗ applyBackend γ ci b }})
-
-instance hookSpec_persistent (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (f : val) :
-    Persistent (hookSpec (GF := GF) γ ci TM f) := by
-  unfold hookSpec; infer_instance
-
 /-- The protocol's state after reading `ci` (`ConsistentIndex`/`UnsafeConsistentIndex`):
 loaded if it was 0. -/
 def stLoaded (γ : ApplyNames) (st : ApplyState) : ApplyState :=
   if st.k = W64 0 then { st with k := γ.m0.1 } else st
+
+/-- The post-lock hook's contract (persistent). (keepfix (c), 2026-11-28, row A of `keepfix-c-AB.md` /
+`keepfix-c-design.md` rev 2, approved) Of the cluster `cl`: the caller also holds the raft term's mirror (given
+back), a loaded state, and the triple predicate of the applying pair at the current raft term. -/
+def hookSpec (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF) (f : val) : IProp GF :=
+  iprop(∀ (st : ApplyState) (i t rt : w64) (b : GoInterface),
+    {{ batchLockInv γ TM ∗ applyThread γ st ∗ ciApplying ci i t ∗ ciRaftTerm γ.ci rt ∗ applyBackend γ ci b ∗
+        ⌜st.pending = false ∧ i = st.p + 1 ∧ uint.Z st.p < uint.Z i ∧
+          uint.Z (ciEff γ st.k) < uint.Z i ∧
+          -- (keepfix) the state loaded: the hook's `UnsafeConsistentIndex` loads only a 0 index
+          stLoaded γ st = st⌝ ∗
+        -- (keepfix) the predicate of the triple the hook stores: the applying pair at the current raft term
+        -- (step 1: certificate-free, `srvCITriple0`; step 2: `srvCITriple`)
+        □ srvCITriple0 cl i t rt }}
+      (App (Val f) (Val #()))
+    {{ RET #(); hookDone γ TM ∗ applyThread γ { st with k := i, pending := true } ∗
+        ciApplying ci i t ∗ ciRaftTerm γ.ci rt ∗ applyBackend γ ci b }})
+
+instance hookSpec_persistent (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF) (f : val) :
+    Persistent (hookSpec (GF := GF) γ ci cl TM f) := by
+  unfold hookSpec; infer_instance
 
 /-- Loading keeps the effective consistent index (restart3 A1: the merge's window guard). -/
 theorem stLoaded_ciEff (γ : ApplyNames) (st : ApplyState) : ciEff γ (stLoaded γ st).k = ciEff γ st.k := by
@@ -169,25 +176,25 @@ theorem stLoaded_self_of_k0 (γ : ApplyNames) (st : ApplyState) (h : st.k = W64 
 /-- Reading `ci` through `ConsistentIndex`/`UnsafeConsistentIndex` (by the apply thread,
 outside an entry's flight): the update their specs take. It returns `ciEff γ st.k`, and
 loads `ci` if it was 0. -/
-theorem ci_get_au (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
-    (st : ApplyState) (hp : st.pending = false) (Φ : val → IProp GF) :
+theorem ci_get_au (P : w64 → w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (rt : w64) (st : ApplyState) (hp : st.pending = false) (Φ : val → IProp GF) :
     inv applyN (consInv γ Rw) ⊢
       -- (keepfix-d) the pair predicate of the meta keys the backend was opened with, which the load
       -- stores; or (route (i)) no load of a non-zero index: a state at 0 is one whose backend's index is 0
-      (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2) -∗ applyThread γ st -∗
-      (applyThread γ (stLoaded γ st) -∗ ciOwner ci b -∗ Φ #(ciEff γ st.k)) -∗
+      (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2 rt) -∗ applyThread γ st -∗
+      (applyThread γ (stLoaded γ st) -∗ ciOwner ci b -∗ ciRaftTerm γ.ci rt -∗ Φ #(ciEff γ st.k)) -∗
       |={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ.ci k ∗ (ciIdx γ.ci k ={∅, ⊤ \ ↑ciN}=∗
         if k = W64 0 then
-          readCIAU (⊤ \ ↑applyN) (readView γ) (fun m => iprop((⌜m.1 = W64 0⌝ ∨ □ P m.1 m.2) ∗
+          readCIAU (⊤ \ ↑applyN) (readView γ) (fun m => iprop((⌜m.1 = W64 0⌝ ∨ □ P m.1 m.2 rt) ∗
             |={⊤ \ ↑ciN, ∅}=> ∃ k' : w64,
-            ciIdx γ.ci k' ∗ (ciIdx γ.ci m.1 ={∅, ⊤ \ ↑ciN}=∗ (ciOwner ci b -∗ Φ #m.1))))
-        else (ciOwner ci b -∗ Φ #k)) := by
+            ciIdx γ.ci k' ∗ (ciIdx γ.ci m.1 ={∅, ⊤ \ ↑ciN}=∗ (ciOwner ci b -∗ ciRaftTerm γ.ci rt -∗ Φ #m.1))))
+        else (ciOwner ci b -∗ ciRaftTerm γ.ci rt -∗ Φ #k)) := by
   iintro #Hinv #HP0 Hst HΦ
   iapply ci_read_au γ st _ $$ Hinv Hst
   iintro Hst
   by_cases hk : st.k = W64 0
   · -- (keepfix-d, route (i)) the supply at the loaded pair: its index 0, or its predicate
-    ihave #HP1 : iprop(⌜γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2) $$ []
+    ihave #HP1 : iprop(⌜γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2 rt) $$ []
     · icases HP0 with (%h | #HP0)
       · ileft; ipureintro; exact h hk
       · iright; iexact HP0
@@ -221,65 +228,65 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 /-- `ci.UnsafeConsistentIndex()` by the apply thread: `ciEff`, loading `ci` if it was 0. -/
 theorem wp_ci_unsafeGet (hU : consistentIndex.UnsafeConsistentIndex.spec (GF := GF) (hG := hG))
-    (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (st : ApplyState)
-    (hp : st.pending = false) :
+    (P : w64 → w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (rt : w64)
+    (st : ApplyState) (hp : st.pending = false) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       isCI ci γ.ci P ∗ inv applyN (consInv γ Rw) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2)) -∗
-      (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b -∗ Φ #(ciEff γ st.k)) -∗
+      ciRaftTerm γ.ci rt ∗ (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2 rt)) -∗
+      (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b ∗ ciRaftTerm γ.ci rt -∗ Φ #(ciEff γ st.k)) -∗
       WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeConsistentIndex"))
         (Val #())) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hbe, #HP0⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hbe, Hrt, #HP0⟩ HΦ
   iunfold applyBackend at Hbe
   icases Hbe with ⟨Hown, #Hmb⟩
-  iapply (hU ci γ.ci P b (⊤ \ ↑applyN) (readView γ)) $$ [Hown] [HΦ Hst]
-  · iframe Hpkg Hci Hown Hmb
-  iapply ci_get_au P γ ci b st hp $$ Hinv HP0 Hst
-  iintro Hst Hown
+  iapply (hU ci γ.ci P b rt (⊤ \ ↑applyN) (readView γ)) $$ [Hown Hrt] [HΦ Hst]
+  · iframe Hpkg Hci Hown Hmb Hrt
+  iapply ci_get_au P γ ci b rt st hp $$ Hinv HP0 Hst
+  iintro Hst Hown Hrt
   iapply HΦ
-  iframe Hst
+  iframe Hst Hrt
   iunfold applyBackend
   iframe Hown Hmb
 
 /-- `ci.ConsistentIndex()` by the apply thread: `ciEff`, loading `ci` if it was 0. -/
 theorem wp_ci_get (hC : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (st : ApplyState)
-    (hp : st.pending = false) :
+    (P : w64 → w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (rt : w64)
+    (st : ApplyState) (hp : st.pending = false) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       isCI ci γ.ci P ∗ inv applyN (consInv γ Rw) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2)) -∗
-      (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b -∗ Φ #(ciEff γ st.k)) -∗
+      ciRaftTerm γ.ci rt ∗ (⌜st.k = W64 0 → γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2 rt)) -∗
+      (applyThread γ (stLoaded γ st) ∗ applyBackend γ ci b ∗ ciRaftTerm γ.ci rt -∗ Φ #(ciEff γ st.k)) -∗
       WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #())) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hbe, #HP0⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hbe, Hrt, #HP0⟩ HΦ
   iunfold applyBackend at Hbe
   icases Hbe with ⟨Hown, #Hmb⟩
-  iapply (hC ci γ.ci P b (⊤ \ ↑applyN) (readView γ)) $$ [Hown] [HΦ Hst]
-  · iframe Hpkg Hci Hown Hmb
-  iapply ci_get_au P γ ci b st hp $$ Hinv HP0 Hst
-  iintro Hst Hown
+  iapply (hC ci γ.ci P b rt (⊤ \ ↑applyN) (readView γ)) $$ [Hown Hrt] [HΦ Hst]
+  · iframe Hpkg Hci Hown Hmb Hrt
+  iapply ci_get_au P γ ci b rt st hp $$ Hinv HP0 Hst
+  iintro Hst Hown Hrt
   iapply HΦ
-  iframe Hst
+  iframe Hst Hrt
   iunfold applyBackend
   iframe Hown Hmb
 
 /-- The post-lock hook's `ci.SetConsistentIndex(i, t)`, holding the batch lock's token, for
 the entry `i = p + 1`: its writes are now in flight. -/
 theorem wp_ci_hookSet (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG))
-    (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (st : ApplyState) (i t : w64) (hp : st.pending = false)
-    (hi : i = st.p + 1) (hlt : uint.Z st.p < uint.Z i) :
+    (P : w64 → w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (st : ApplyState) (i t rt : w64)
+    (hp : st.pending = false) (hi : i = st.p + 1) (hlt : uint.Z st.p < uint.Z i) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       isCI ci γ.ci P ∗ inv applyN (consInv γ Rw) ∗ applyThread γ st ∗ token γ.pend ∗
-      (⌜i = W64 0⌝ ∨ □ P i t)) -∗
-      (applyThread γ { st with k := i, pending := true } -∗ Φ #()) -∗
+      ciRaftTerm γ.ci rt ∗ (⌜i = W64 0⌝ ∨ □ P i t rt)) -∗
+      (applyThread γ { st with k := i, pending := true } -∗ ciRaftTerm γ.ci rt -∗ Φ #()) -∗
       WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetConsistentIndex"))
         (Val #i)) (Val #t)) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Htok, #HP⟩ HΦ
-  iapply (hS ci γ.ci P i t) $$ [] [HΦ Hst Htok]
-  · iframe Hpkg Hci HP
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Htok, Hrt, #HP⟩ HΦ
+  iapply (hS ci γ.ci P i t rt) $$ [Hrt] [HΦ Hst Htok]
+  · iframe Hpkg Hci Hrt HP
   iapply hook_set_au γ st i _ hp hi hlt $$ Hinv Hst Htok
   iintro Hst
   iapply HΦ $$ Hst
@@ -287,17 +294,18 @@ theorem wp_ci_hookSet (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (
 /-- The deferred `ci.SetConsistentIndex(i, t)` of `applyEntryNormal`, outside the batch lock,
 for a processed entry `i` above `ci`. -/
 theorem wp_ci_advance (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG))
-    (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (st : ApplyState) (i t : w64) (hp : st.pending = false)
-    (hle : uint.Z i ≤ uint.Z st.p) (hlt : uint.Z (ciEff γ st.k) < uint.Z i) :
+    (P : w64 → w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (st : ApplyState) (i t rt : w64)
+    (hp : st.pending = false) (hle : uint.Z i ≤ uint.Z st.p) (hlt : uint.Z (ciEff γ st.k) < uint.Z i) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isCI ci γ.ci P ∗ inv applyN (consInv γ Rw) ∗ applyThread γ st ∗ (⌜i = W64 0⌝ ∨ □ P i t)) -∗
-      (applyThread γ { st with k := i } -∗ Φ #()) -∗
+      isCI ci γ.ci P ∗ inv applyN (consInv γ Rw) ∗ applyThread γ st ∗ ciRaftTerm γ.ci rt ∗
+      (⌜i = W64 0⌝ ∨ □ P i t rt)) -∗
+      (applyThread γ { st with k := i } -∗ ciRaftTerm γ.ci rt -∗ Φ #()) -∗
       WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetConsistentIndex"))
         (Val #i)) (Val #t)) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, #HP⟩ HΦ
-  iapply (hS ci γ.ci P i t) $$ [] [HΦ Hst]
-  · iframe Hpkg Hci HP
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hrt, #HP⟩ HΦ
+  iapply (hS ci γ.ci P i t rt) $$ [Hrt] [HΦ Hst]
+  · iframe Hpkg Hci Hrt HP
   iapply ci_advance_au γ st i hp hle hlt _ $$ Hinv Hst
   iintro Hst
   iapply HΦ $$ Hst

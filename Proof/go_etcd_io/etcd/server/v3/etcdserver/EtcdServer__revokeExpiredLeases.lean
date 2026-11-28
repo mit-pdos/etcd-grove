@@ -62,7 +62,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     (hErr : zap.Error.spec (GF := GF) (hG := hG))
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ v γr γg γcx rv SP ls
+  intro s γ ci cl TM E ρ v γr γg γcx rv SP ls
   wp_start as ⟨#Hf, #Hrf, #Hexp, #Hrvk, %Hpre, Htok⟩
   obtain ⟨hlm, hlev, hoff⟩ := Hpre
   have hlevK : srvRevokeK ≤ threadBound GF := hlev

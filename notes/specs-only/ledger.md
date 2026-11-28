@@ -8573,3 +8573,35 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (route (i): the pure disjunct is `stLoaded γ st = st`, `srvCiC`'s condition), weaker.
 - **Decision.** Route (i) decided by the etcd_safe lead (2026-11-27). The hook's own contract `hookSpec` (in
   `srvBuiltG`, trusted) is NOT changed here: see the callers brief's progress log.
+
+## 2026-11-28: the cindex triple's untrusted specs (keepfix (c) step 1)
+
+- **Spec.** The cindex specs (`Spec/go_etcd_io/etcd/server/v3/etcdserver/cindex/*`: `NewConsistentIndex`,
+  `SetConsistentIndex`, `ConsistentIndex`, `UnsafeConsistentIndex`, `SetBackend`, `UnsafeSave`, new `SetRaftTerm`);
+  `schema.UnsafeUpdateConsistentIndexRaftTerm.spec` (new); the generic batch-writer contract (`metaWriter`'s
+  companion `metaRtWriter`, `InvCindex.lean`); the hook-backend lemmas (`CindexBackend.lean`: `hookTM`,
+  `ci_hook_backend_run`, `ci_hookFnSpec`, `ci_saveSpec`, `ci_hook_freeze_run`, `ci_saveFreeze`); the server's ci
+  helpers (`InvServer.lean`: `ci_get_au`, `wp_ci_get`, `wp_ci_unsafeGet`, `wp_ci_hookSet`, `wp_ci_advance`).
+- **Defect.** With the approved triple rows (keepfix (c) rev 2, 7b: `isCI ci γ (P : w64 → w64 → w64 → IProp)`,
+  `ciRaftTerm`; R1: the raft-term key a hook key, `metaTMR`) these name the pair predicate and two hook puts; the
+  fork's `UnsafeSave` (b1512efdd) does a third put, of the raft-term key, and `SetRaftTerm` has no spec.
+- **Evidence.** `~/coordinator-notes/plans/keepfix-c-design.md` §4 (the untrusted work the rows force).
+- **Proposed change.** The predicate takes the raft term (`P k t rt`); every store (`SetConsistentIndex`, the
+  loads of `ConsistentIndex`/`UnsafeConsistentIndex`) takes the apply thread's mirror `ciRaftTerm γ rt` and gives
+  it back, its supply `⌜v = 0⌝ ∨ □ P v t rt`; `NewConsistentIndex` gives `ciRaftTerm γ 0`; `SetRaftTerm r` takes the
+  mirror at `rt` and `∀ k t, P k t rt -∗ P k t (max rt r)` (persistent) and gives it at the max; `UnsafeSave`'s
+  writer is `metaWriter` at a fixed raft-term state `r` plus `metaRtWriter` (the raft-term put, a third token), its
+  continuation `∀ t rt, (⌜k = 0⌝ ∨ □ P k t rt) -∗ TMx (metaAfterSave m k t) (rtAfterSave r k rt)`. The hook-backend
+  lemmas move to `metaTMR` at `P := srvCITriple cl`, `hookTM` gets the raft-term state and token. The helpers take
+  and give back `ciRaftTerm`.
+- **Decision.** As designed in rev 2 §4 (approved rows; these are the untrusted consequences).
+
+## 2026-11-28: the server's untrusted specs and lemmas take the cluster `cl` (keepfix (c) step 1 callers)
+
+- **Spec.** `EtcdServer.revokeExpiredLeases.spec`, `EtcdServer.getTxPostLockInsideApplyHook.spec`, and every untrusted
+  spec or lemma naming `srvFieldsAt`/`srvFieldsAtM`/`srvFieldsBuiltNA`/`srvBeHooked`/`srvMetaSnap`/`hookSpec`.
+- **Defect.** The approved step-1 rows give these definitions a cluster argument (row A's `hookSpec … cl`,
+  `srvBeHooked`'s `metaTMR cl`, S2's `srvMetaSnap cl`).
+- **Evidence.** `~/coordinator-notes/plans/keepfix-c-design.md` (rev 2 and its step-1 notes).
+- **Proposed change.** Quantify `cl` and pass it through (at the server, `γr.raft.raft.cl`); no other change.
+- **Decision.** Mechanical consequence of the approved rows.

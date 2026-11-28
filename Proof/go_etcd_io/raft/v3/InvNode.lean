@@ -1571,13 +1571,14 @@ instance committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) :
   unfold committedAtTerm; exact ApiImpl.committedAtTerm_persistent γ N t c
 
 /-- Use a pre-restart commit certificate to label a snapshot in a later
-term, even if the WAL lost its most recent HardState commit. -/
-theorem committedAtTerm_mono_term (γ : Cluster) (N : Namespace) (old t c : w64)
+term, even if the WAL lost its most recent HardState commit. (keepfix (c), 2026-11-28) The later term's
+budget comes from a certificate at it (`committedAtTerm`'s `termLB`). -/
+theorem committedAtTerm_mono_term (γ : Cluster) (N : Namespace) (old t c c' : w64)
     (ht : uint.Z old ≤ uint.Z t) :
-    committedAtTerm (GF := GF) γ N old c ⊢ committedAtTerm γ N t c := by
+    committedAtTerm (GF := GF) γ N old c ⊢ committedAtTerm γ N t c' -∗ committedAtTerm γ N t c := by
   unfold committedAtTerm ApiImpl.committedAtTerm
-  iintro ⟨#Hw, Hlb⟩
-  iframe Hlb
+  iintro ⟨#Hw, -, Hlb⟩ ⟨-, #Htlb, -⟩
+  iframe Hlb Htlb
   iapply commitWit_mono_term γ.raft old t c ht $$ Hw
 
 end api

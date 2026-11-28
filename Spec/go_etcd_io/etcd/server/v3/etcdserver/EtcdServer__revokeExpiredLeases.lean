@@ -44,11 +44,11 @@ token, which it returns (its goroutines' reader slots come from pools backed by 
 NIT 1.1–1.2, 2026-11-06: the premises a `⌜…⌝` conjunct, until then Lean implications, and the lease
 mode alone, until then `srvRevokesLeases E ρ`.) -/
 abbrev EtcdServer.revokeExpiredLeases.spec : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (v : SrvFields) (γr : ReadNames) (γg : GoNames)
     (γcx : context.ContextNames) (rv : RunFields) (SP : IProp GF) (ls : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvFieldsAt s γ ci TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
+      srvFieldsAt s γ ci cl TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
       lease.expiredLeases (srvGrantGuard E.lg E.authMode.isOn) ls ∗
       srvRevokeCtx s E ρ γr γg ∗ ⌜ρ.rd.kv.lm = .revocable ∧ srvRevokeLevels (GF := GF) ∧ E.authOn = false⌝ ∗
       threadTok }}

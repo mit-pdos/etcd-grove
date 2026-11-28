@@ -97,7 +97,7 @@ theorem raftState_committedAtTerm (γ : Cluster) (id : w64) (S : RaftState) (N :
     iexists fp ++ S.ents
     iframe Hlog HcIn Hcommit
     ipureintro; exact hfw
-  imod ApiImpl.committedAtTerm_of_raft γ N Em hEm S.term S.commit $$ Hci Hw with Hcat
+  imod ApiImpl.committedAtTerm_of_raft γ N Em hEm S.term S.commit $$ Hci Hw Hterm with Hcat
   imodintro
   isplitl [Hshares Hslot Hi1]
   · iunfold raftState

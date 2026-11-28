@@ -22,13 +22,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
 /-- `ci.SetBackend(be)` (by the owner, under `mutex`) makes `be` the backend and resets the
-index to 0 (the linearization point), so that the next read loads it from `be`. -/
+index to 0 (the linearization point), so that the next read loads it from `be`. (keepfix (c)) The reset is a `SetConsistentIndex`, so it takes the
+raft term's mirror `ciRaftTerm` and gives it back. -/
 abbrev consistentIndex.SetBackend.spec : Prop :=
-  ∀ (ci : Loc) (γ : CINames) (P : w64 → w64 → IProp GF) (b0 be : GoInterface),
+  ∀ (ci : Loc) (γ : CINames) (P : w64 → w64 → w64 → IProp GF) (b0 be : GoInterface) (rt : w64),
   ⊢ ∀ Φ : val → IProp GF,
-    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ P ∗ ciOwner ci b0) -∗
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ P ∗ ciOwner ci b0 ∗ ciRaftTerm γ rt) -∗
     (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ (W64 0) ={∅, ⊤ \ ↑ciN}=∗
-      (ciOwner ci be -∗ Φ #()))) -∗
+      (ciOwner ci be -∗ ciRaftTerm γ rt -∗ Φ #()))) -∗
     WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetBackend")) (Val #be)) {{ Φ }}
 
 end spec
