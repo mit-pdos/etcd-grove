@@ -145,6 +145,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.keyInScope
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__Empty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__Matches
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__RequiresExactMatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.landings
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lastObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOptions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.listOut
@@ -203,6 +204,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.sameObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seed
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seedOne
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.setItem
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.settle
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.shows
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step
@@ -1187,13 +1189,21 @@ theorem labelSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.wp_proof
 
+theorem wp_shows :
+    EtcdGrove.k8s_etcd3.shows.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.shows.wp_proof wp_decodeWEvents wp_decodeItemRVs
+
+theorem wp_landings :
+    EtcdGrove.k8s_etcd3.landings.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.landings.wp_proof wp_shows _root_.Perennial.sort.wp_Search
+
 theorem wp_newCache :
     EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newCache.wp_proof
 
-theorem wp_shows :
-    EtcdGrove.k8s_etcd3.shows.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.shows.wp_proof wp_decodeWEvents wp_decodeItemRVs
+theorem wp_settle :
+    EtcdGrove.k8s_etcd3.settle.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.settle.wp_proof cfgSet.wp_add wp_mstep wp_removeAt wp_landings histHashes.wp_skipTo wp_advance
 
 end links_hasLC
 
