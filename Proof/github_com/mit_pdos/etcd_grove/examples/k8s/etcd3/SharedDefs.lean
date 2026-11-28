@@ -231,15 +231,17 @@ instance hhOwn_persistent (hh : Loc) : Persistent (hhOwn (GF := GF) hh) := by
   unfold hhOwn; infer_instance
 
 /-- **A `cfgSet` at `s` over `hh`** holding the configurations `gs` (in its list's order), its
-buckets' indices into the list. -/
+buckets' indices into the list, each of a configuration whose history is the key's (what makes a
+match of the store and the pending writes an equal configuration). -/
 def cfgSetOwn (s hh : Loc) (gs : List GCfg) : IProp GF :=
   iprop(∃ (lsl : GoSlice) (mb : GoMap) (cs : List mcfg) (B : GMap ckey GoSlice),
     structFieldRef cfgSet go!"hh" s ↦ hh ∗ structFieldRef cfgSet go!"list" s ↦ lsl ∗
     structFieldRef cfgSet go!"buckets" s ↦ mb ∗
     lsl ↦* cs ∗ ownSliceCap mcfg lsl (DFrac.own 1) ∗ ([∗list] c;g ∈ cs;gs, cfgOwn c g) ∗
     ⌜cs.length < 2 ^ 63⌝ ∗
-    (⌜mb = map.nil ∧ cs = []⌝ ∨ mb ↦$ B ∗ [∗map] _k ↦ sl ∈ B, ∃ is : List w64,
-      sl ↦* is ∗ ownSliceCap w64 sl (DFrac.own 1) ∗ ⌜∀ i ∈ is, 0 ≤ sint.Z i ∧ sint.nat i < cs.length⌝))
+    (⌜mb = map.nil ∧ cs = []⌝ ∨ mb ↦$ B ∗ [∗map] k ↦ sl ∈ B, ∃ is : List w64,
+      sl ↦* is ∗ ownSliceCap w64 sl (DFrac.own 1) ∗
+      ⌜∀ i ∈ is, 0 ≤ sint.Z i ∧ ∃ d, cs[sint.nat i]? = some d ∧ d.hist' = k.hist'⌝))
 
 end defs
 

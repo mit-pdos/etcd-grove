@@ -43,7 +43,66 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
   iunfold hhInv at Hinv
   icases Hinv with ⟨%mc, %mi, %mg, %C, %I, %G, Hc, Hi, Hg, Hci, Hgs⟩
   (try wp_auto)
-  fail "ctx1"
+  wp_join iprop(∃ (mc' mi' : GoMap) (C' : GMap ikey GoSlice) (I' : GMap Loc Bool),
+      structFieldRef histHashes go!"canon" hh ↦ mc' ∗ structFieldRef histHashes go!"is" hh ↦ mi' ∗
+      mc' ↦$ C' ∗ mi' ↦$ I' ∗
+      [∗map] k ↦ sl ∈ C', ∃ ns : List Loc, sl ↦* ns ∗ ownSliceCap Loc sl (DFrac.own 1) ∗
+        [∗list] n ∈ ns, canonNode k n) with [Hc Hi Hci]
+      as ⟨%mc', %mi', %C', %I', Hc, Hi, HC, HI, HCs⟩
+  · (try wp_auto)
+    wp_apply (wp_map_make1 (K := ikey) (V := GoSlice) _ _) as %m1 Hm1
+    (try wp_auto)
+    wp_apply (wp_map_make1 (K := Loc) (V := Bool) _ _) as %m2 Hm2
+    (try wp_auto)
+    iexists m1, m2, ∅, ∅
+    iframe
+    iapply BigSepM.bigSepM_empty.2
+    itrivial
+  · icases Hci with [%Hnil | ⟨HC, HI, HCs⟩]
+    · exact absurd Hnil.1 (by assumption)
+    · iexists mc, mi, C, I
+      iframe
+  wp_apply wp_storeHash st s as %hv -
+  (try wp_auto)
+  wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [HC] as HC
+  ihave Hsl : (∃ ns : List Loc,
+      ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) ↦* ns ∗
+      ownSliceCap Loc ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) (DFrac.own 1) ∗
+      ([∗list] c ∈ ns, canonNode (ikey.mk prev n hv) c) ∗
+      ⌜ns = [] ∨ C' !! ikey.mk prev n hv = some ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice))⌝ ∗
+      (∀ sl' : GoSlice, (∃ ns' : List Loc, sl' ↦* ns' ∗ ownSliceCap Loc sl' (DFrac.own 1) ∗
+          [∗list] c ∈ ns', canonNode (ikey.mk prev n hv) c) -∗
+        [∗map] k ↦ sl ∈ <[ikey.mk prev n hv := sl']> C', ∃ ns : List Loc, sl ↦* ns ∗
+          ownSliceCap Loc sl (DFrac.own 1) ∗ [∗list] n ∈ ns, canonNode k n) : IProp GF) $$ [HCs]
+  · cases hC : C' !! ikey.mk prev n hv with
+    | none =>
+      ihave Hrest := (BigSepM.bigSepM_subseteq (m₂ := Iris.Std.PartialMap.delete C' (ikey.mk prev n hv))
+        LawfulPartialMap.delete_subset_self) $$ HCs
+      iexists []
+      isplitr
+      · iapply ownSlice_nil
+      isplitr
+      · iapply ownSliceCap_nil
+      isplitr
+      · iapply BigSepL.bigSepL_nil.2; itrivial
+      isplitr
+      · ipureintro; exact .inl rfl
+      iintro %sl' Hsl'
+      iapply BigSepM.bigSepM_insert_delete.2
+      iframe
+    | some sl0 =>
+      icases (BigSepM.bigSepM_delete hC).1 $$ HCs with ⟨⟨%ns, Hns, Hcap, #Hcn⟩, Hrest⟩
+      iexists ns
+      iframe
+      isplitr
+      · ipureintro; exact .inr rfl
+      iintro %sl' Hsl'
+      iapply BigSepM.bigSepM_insert_delete.2
+      iframe
+  icases Hsl with ⟨%ns, Hns, Hcap, #Hcn, %Hns0, Hback⟩
+  ihave %Hlns := ownSlice_len $$ Hns
+  (try wp_auto)
+  fail "ctx2"
 
 end proof
 
