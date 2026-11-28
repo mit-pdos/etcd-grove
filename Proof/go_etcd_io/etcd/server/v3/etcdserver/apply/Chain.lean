@@ -388,10 +388,14 @@ only, the names within bbolt's key bound (the step specs' premise; the fuel boun
 `AuthFuel.lean`). The eleven that change the auth state (`SetUp`'s five, `UserAdd`, `RoleAdd`,
 `UserGrantRole`, `RoleGrantPermission`, `AuthEnable`, and since nomode D3, 2026-11-28,
 `AuthDisable`, `UserDelete`, `UserChangePassword`, `UserRevokeRole`, `RoleDelete`,
-`RoleRevokePermission`); not the lists. A `UserAdd`'s and a `UserChangePassword`'s password choice
-cannot fail (`UserAddModel.pwSure`, `ChangePasswordModel.pwSure`: the server's own form, which
-`EtcdServer.UserAdd` and `EtcdServer.UserChangePassword` propose: E2x), so its outcome is the
-step's alone (E3a). (C1's A2,
+`RoleRevokePermission`); not the lists. A `UserAdd`'s password choice cannot fail
+(`UserAddModel.pwSure`: the form `EtcdServer.UserAdd` always proposes: E2x), so its outcome is the
+step's alone (E3a). **Interim, a proof-simplifying premise the model rule disallows:**
+`UserChangePassword` requires `ChangePasswordModel.pwSure`, which `EtcdServer.UserChangePassword` does
+NOT ensure (with an empty `Password` it forwards the client's `HashedPassword` as sent; clientv3 never
+sets it, a raw gRPC client can). It goes once `selectPassword`'s outcome is modelled exactly (base64
+`DecodeString`'s error, bcrypt's exact error condition, the user's `NoPassword` option):
+`notes/nomode-n1.md`, "D3, narrowed", follow-up (a). (C1's A2,
 2026-10-28) And `Authenticate`, which writes nothing (`GetUser` only reads its name: no key bound),
 in a request needing no admin permission (`needAdminPermission` reads the request's fields, the
 dispatch its first: a request with an admin field beside it would pass the admin check and still

@@ -277,3 +277,13 @@ when only `Password` is given, bcrypt's (`bcrypt.GenerateFromPassword.spec`, an 
 any input; Go errs iff the password is over 72 bytes or the cost is invalid). So either (a) a Perennial
 proof of `DecodeString`'s exact error and a strengthened bcrypt axiom (new trust), or a premise. The
 premise `pwSure` is kept until decided.
+
+**Decided (coordinator for Upamanyu, 2026-11-28): option (b), interim.** `pwSure` on `UserChangePassword` stays
+as a premise of `adminKindOk`. It is a proof-simplifying premise the model rule (no premise that only
+simplifies proofs; the model is correct for every request Go accepts) disallows: kept only until (a).
+Still a strict improvement: before D3 the six kinds were excluded from logs entirely.
+**Follow-up (a), owner: the dsverify-net lead.** (i) a Perennial proof of `base64.StdEncoding.DecodeString`'s
+exact error (Perennial's own workflow, a branch off its `lean`); (ii) the `bcrypt.GenerateFromPassword`
+axiom narrowed to Go's exact error condition (password over 72 bytes or an invalid cost), with a witness
+and an axiom review; (iii) the user's `NoPassword` option in the model, `selectPassword`'s outcome exact,
+the step a function; `pwSure` removed.
