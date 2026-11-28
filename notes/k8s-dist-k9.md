@@ -67,6 +67,13 @@ proved function, K12's), `Serve`/`Record` (K10, `Apply` split), `SeededAt`/`Seed
 - **G13 (needed).** `HistoryRevs` sorts with `sort.Slice` (reflectlite's swapper: no spec at Perennial
   `148615524`). Use `slices.Sort` on the `[]uint64`s (`Spec/slices/Sort.lean`, `[]uint64`). `sort.Search`
   in `landings` has Perennial's proof (`Perennial/Proof/sort/Search.lean`) and stays.
+- **G14 (done K9-15, `7a0016d6a0`; coordinator decision).** `rvOfMsg` called `strings.Index`, which
+  Perennial translates names-only and nobody specifies. Replaced by the first-match loop
+  `for i := 0; i+len(p) <= len(msg); i++ { if msg[i:i+len(p)] == p {...} }` (the same result;
+  `rvOfMsgL`'s `find?` is written to match it); the package no longer imports `strings`. `go vet`, the
+  package's tests, dist's unit tests, a `-short` `TestDist` with `DIST_DUMP` (95 operations) and on that
+  history `TestCrossCheckWatches` and `TestReplayHistory` pass (go1.27.3); `etc/goose.py --check
+  --project k8s-apiserver` clean; gen-init and gen-specs-pkginit regenerated (init order only).
 
 Then `etc/goose.py --project k8s-apiserver` re-translates.
 
@@ -778,3 +785,27 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
 - **Left in K9**: finish step 4 (above, plus G14 and `rvOfMsg`'s proof, then link `HistoryRevs:
   parseRV rvOfMsg decodeWEvents decodeItemRVs` (+ `slices.Sort` as Perennial's) in
   `etc/link-lean-first-k8setcd3.txt`); step 5 not started.
+
+## Handoff K9-15 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **G14 done** (`7a0016d6a0`, §"Go changes": tests and goose `--check` as recorded there).
+- **`rvOfMsg` proved** (`Proof/…/etcd3/rvOfMsg.lean`, `fd591407cf`; pure lemmas `find_range_some`,
+  `rvOfMsgL_none`, `rvOfMsgL_some`; the loop's bound from `wp_string_len_maxAddr`, so `i + 32` does not
+  overflow) and **linked** (`rvOfMsg: parseRV` in `etc/link-lean-first-k8setcd3.txt`, `gen-link --k8setcd3`).
+- **`HistoryRevs.wp_proof`: still WIP, `sorry`** (commit `020560ab3b`, marked WIP; not linked). Done: the
+  closures, `generalize hfn/hfo` and two persistent specs in the proof: `Hnum` (`am ↦$ A` to
+  `am ↦$ (if v = 0 then A else <[v := true]> A)`) and `Hobj` (the same for `all`, plus
+  `bm ↦$ B ∗ [∗map] l ∈ B, ∃ m, l ↦$ m` kept for some `B'`; the `== nil` test splits on `B !! key`, the
+  `some` case gets non-nil from `ownMap_not_nil`); `all`, `byKey` are `ipersist`ed. Left, as K9-14 planned:
+  - the ops loop: a `doFor` over `i_ptr` (`i < len(sl)`), the body a `glv(λ: "$key", λ: "$value", ...)`
+    on `sl[i]` (pattern: search for a proved `slice.forRange` unfolded to `doFor`); invariant
+    `∃ A B, am ↦$ A ∗ ⌜(∀ k, (A !! k).isSome → k ≠ 0) ∧ ∀ p ∈ xs.take j, ∀ u, OpReq p.1 p.2 u → u = 0 ∨
+    (A !! u).isSome⌝ ∗ bm ↦$ B ∗ [∗map]…` plus `wm ↦$ W`; calls: load `obj_ptr`/`num_ptr`, then
+    `iapply Hobj`/`Hnum` (the WP is on `RecV fn.f fn.x fn.e`, as `landings`);
+  - the tail: `map.forRange` over `all` collecting keys into `r.anchors` (template:
+    `Proof/k8s_io/apimachinery/pkg/util/sets/Set__UnsortedList.lean`, `wp_map_len_lt` for the size bound
+    `slices.Sort` needs), `slices.Sort`, strictness from `Nodup`; then the nested `byKey` loops, needing
+    only `keyRevsOwn` for some `f` (persist the maps and slices at the end); `anchorsOk_of` closes.
+  - then link `HistoryRevs: parseRV rvOfMsg decodeWEvents decodeItemRVs` (+ `slices.Sort`).
+- Step 5 not started. `notes/STATUS.md` not updated for K9 (as before: K9's entry goes in at landing).
+- **Build of record**: below.

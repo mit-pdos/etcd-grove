@@ -204,6 +204,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.runWatch
 public import Proof.k8s_io.apimachinery.pkg.runtime.Decode
 public import Proof.k8s_io.apimachinery.pkg.runtime.Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvBytes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvOfMsg
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvString
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.sameObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seed
@@ -1259,6 +1260,10 @@ theorem labelSel.wp_RequiresExactMatch :
 theorem wp_newCache :
     EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newCache.wp_proof
+
+theorem wp_rvOfMsg :
+    EtcdGrove.k8s_etcd3.rvOfMsg.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.rvOfMsg.wp_proof wp_parseRV
 
 end links_hasLC
 

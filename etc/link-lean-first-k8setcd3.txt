@@ -105,6 +105,7 @@ getField:
 decodeObj: getField
 # (K9 step 2) where a pending write lands: `shows`
 decodeItemRVs: parseRV decodeObj
+rvOfMsg: parseRV
 shows: decodeWEvents decodeItemRVs
 target: decodeWEvents parseRV pastRead
 bound: parseRV pastRead isWrite
