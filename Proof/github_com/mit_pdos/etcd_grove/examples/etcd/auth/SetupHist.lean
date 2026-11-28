@@ -39,8 +39,7 @@ variable [GooseExts]
 /-- The permission `SetUp` grants role `r` on the wire: `READWRITE` (`2`) on `[a, b)`. -/
 def permRW : PermW := ⟨W32 2, lo, hi⟩
 
-theorem permOfWire_permRW : permOfWire permRW = some permR := by
-  simp [permOfWire, permRW, permR]
+theorem permOfWire_permRW : permOfWire permRW = permR := rfl
 
 /-- **A state of the set-up's shape**: disabled, the users `root`, `u`, `v` and the role `r`
 each absent or at a stage of its set-up, no other user or role. -/

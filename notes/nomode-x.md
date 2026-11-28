@@ -119,3 +119,41 @@ permission's range valid (`rangeValid`, which `RoleGrantPermission` checks but n
 **Statements.** No top-level statement's text changes; `authkv_granted_iff` (`examples/etcd/auth/Results.lean`)
 gains a `[GooseExts]` binder (it names `auth.granted`). Its meaning at the point requests it states is unchanged
 (`granted_iff_covers`).
+
+## X-a4: a role holds its stored permissions, unknown types included
+
+Option 1 of the D3 blocker (`notes/nomode-n1.md` on `nomode-n1/2026-11-27`; decided by the coordinator for the
+user, 2026-11-28; `nonissues/etcd-auth-unknown-permtype-stored.md`). Go (fork pin `18ab647b0`):
+`RoleGrantPermission` stores the request's `PermType` unchecked (`server/auth/store.go:845-849`);
+`RoleRevokePermission` keeps the permissions not on `(Key, RangeEnd)` whatever their type (`store.go:700-704`)
+and returns `ErrPermissionNotGranted` iff none was removed (`store.go:706-708`); `getMergedPerms` inserts a
+permission in a tree only for READWRITE, READ, WRITE (`range_perm_cache.go:53-63`, no default); the checks
+query only those trees (`range_perm_cache.go:87-90, 100-103`). Ledger: `notes/specs-only/ledger.md`, 2026-11-28.
+
+**Trusted-visible definitions: before / after.**
+
+- `auth.Perm` (`Model.lean`). Before: `{ key rangeEnd : GoString, ty : PermType }`. After: `{ key rangeEnd :
+  GoString, ty : w32 }` (the stored `int32`, any value). `AuthState`'s roles (`Role := List Perm`) change with it.
+  `PermType.toFin`/`ofFin` deleted (the countable encoding is over `w32`).
+- `auth.permKind t : Option PermType` (new): `0 ↦ read`, `1 ↦ write`, `2 ↦ readwrite`, else `none`.
+- `auth.Perm.grants p op : Bool` (new): `match permKind p.ty with | some t => t.grants op | none => false`.
+- `auth.Perm.covers p op k`. Before: `p.ty.grants op = true ∧ inRange …`. After: `p.grants op = true ∧ inRange …`.
+  (`coversPoint`, `coversRange`, `covers`, and through them `kvGranted`, unchanged in text.)
+- `auth.ivlsOf op ps`. Before: `(ps.filter fun p => p.ty.grants op).map permIvl`. After: `… p.grants op …`
+  (`treeOf`, `coversX`, `granted` unchanged in text).
+- `auth.permOfWire` (`Buckets.lean`). Before: `PermW → Option Perm`, `none` for a type other than 0, 1, 2. After:
+  `PermW → Perm`, `⟨p.key, p.rangeEnd, p.ty⟩`. `RoleRec.toRole`: before `r.perms.filterMap permOfWire`, after
+  `r.perms.map permOfWire` (so `roleOut`'s `rr.toRole = ps` says the role is the stored list).
+- `auth.grantPerms ps w` (`Steps.lean`). Before: the filter, then `permInsert p` if `permOfWire w = some p`, else
+  the filter alone. After: `permInsert (permOfWire w) (ps.filter (¬ permAt w.key w.rangeEnd ·))`.
+- `auth.roleRevokePermissionR role key rangeEnd`. Before (`some ps`): `(o = .err .permissionNotGranted ∧ ∀ p ∈ ps,
+  ¬ permAt key rangeEnd p) ∨ o = .next (bump (putRole st role (ps.filter …)))` (a relation: success allowed
+  whatever the model's role). After: `if ∃ p ∈ ps, permAt key rangeEnd p then o = .next (bump (putRole st role
+  (ps.filter …))) else o = .err .permissionNotGranted` (a function of the state).
+- `auth.permKeysOk st` (the history's invariant). Before: `∀ r ps, st.roles !! r = some ps → ∀ p ∈ ps, p.key ≠
+  []`. After: `… → ∀ p ∈ ps, rangeValid p.key p.rangeEnd` (what `RoleGrantPermission` checks,
+  `isValidPermissionRange`, `store.go:823`; every step keeps it: `grant_keys`, `permKeysOk_putRole`). Name kept.
+
+**Bridges** (`PermTree.lean`): with the strengthened invariant, `coversX_empty_iff` (`[k, k)`, `k ≠ []`, `k` not
+`"\x00"`: `coversX … = true ↔ coversPoint`, over `adt.visit_stab_empty`, `adt.containsT_eq_empty`,
+`adt.containsRes_empty`: `Visit` of an empty query on non-empty intervals finds exactly those holding `k`).

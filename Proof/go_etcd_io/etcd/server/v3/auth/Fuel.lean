@@ -428,14 +428,14 @@ theorem stepSmall_roleRevokePermission (role key rangeEnd : GoString) :
   split at hR
   · cases hR
   · rename_i ps hps
-    rcases hR with ⟨hR, -⟩ | hR
-    · cases hR
+    split at hR
     · cases hR
       refine ⟨by simp [bump, putRole],
         authSmall_bump_putRole st role _ ?_ (h.nonempty.2 role (by rw [hps]; rfl)) h⟩
       rw [hps]; simp only [Option.getD_some]
       have := List.length_filter_le (fun p => decide ¬ permAt key rangeEnd p) ps
       omega
+    · cases hR
 
 theorem stepSmall_roleGrantPermission (role : GoString) (w : Option PermW) :
     StepSmall (roleGrantPermissionR role w) := by
@@ -454,7 +454,7 @@ theorem stepSmall_roleGrantPermission (role : GoString) (w : Option PermW) :
           authSmall_bump_putRole st role _ ?_ (h.nonempty.2 role (by rw [hps]; rfl)) h⟩
         rw [hps]; simp only [Option.getD_some]
         have := List.length_filter_le (fun p => decide ¬ permAt w.key w.rangeEnd p) ps
-        cases hw : permOfWire w <;> simp only [grantPerms, hw, permInsert_length] <;> omega
+        simp only [grantPerms, permInsert_length]; omega
 
 /-! ## The fuel -/
 

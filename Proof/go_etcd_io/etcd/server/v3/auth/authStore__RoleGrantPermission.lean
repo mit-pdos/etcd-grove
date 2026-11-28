@@ -532,8 +532,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       have hstep : roleGrantPermissionR name (some w) st0
           (.next (bump (putRole st0 name (grantPerms ps w)))) := by
         simp [roleGrantPermissionR, hvalid, Hlook]
-      have hkeys : M.isOn = true → M ≠ .any → ∀ p ∈ grantPerms ps w, p.key ≠ [] := fun h1 h2 =>
-        auth.grant_keys ps w hvalid.1 (fun p hp => Hpk st0 Hl0 h1 h2 name ps Hlook p hp)
+      have hkeys : M.isOn = true → M ≠ .any → ∀ p ∈ grantPerms ps w, rangeValid p.key p.rangeEnd :=
+        fun h1 h2 => auth.grant_keys ps w hvalid (fun p hp => Hpk st0 Hl0 h1 h2 name ps Hlook p hp)
       have hgp := auth.grant_kept_eq rr ps w kl xs' «$r0_ptr» Hrrp Hsrt0 hkept Hperm Hsorted
       have hrn : ({ rr with perms := xs'.map Prod.snd } : RoleRec).name = name := Hrrn
       generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hgp hrn ⊢

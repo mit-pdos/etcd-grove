@@ -175,6 +175,14 @@ theorem containsT_eq (q : IvlS) (T : RbT Entry) (hs : IvSorted T.inorder)
   unfold containsT containsRes
   rw [visit_stab q hq T hs]
 
+/-- `containsT` of an empty query `[k, k)` on a sorted tree of non-empty intervals: `containsRes`
+over the entries (`visit_stab_empty`). -/
+theorem containsT_eq_empty (q : IvlS) (T : RbT Entry) (hs : IvSorted T.inorder)
+    (hv : ∀ z ∈ T.inorder, affLt z.1.1 z.1.2) (hq : q.2 = q.1) :
+    containsT q T = containsRes q T.inorder := by
+  unfold containsT containsRes
+  rw [visit_stab_empty q hq T hs hv]
+
 /-- The scan over one more entry: it breaks when the entry begins above the running maximum,
 else the maximum takes the entry's end when above it (`Contains`' loop body). -/
 theorem scanFrom_snoc (z : Entry) : ∀ (zs : List Entry) (me : GoString),
@@ -351,6 +359,46 @@ theorem containsRes_iff (q : IvlS) (L : List Entry) (hs : IvSorted L) (hq : affL
           · exact affLt_irrefl _
           · exact hsorted.1 w hw
         exact affLe_trans hwz0 hw1
+
+/-- The scan over entries holding `k`, from a maximum above `k`, never breaks and ends above `k`. -/
+theorem scanFrom_hold (k : GoString) : ∀ (zs : List Entry) (me : GoString), affLt k me →
+    (∀ w ∈ zs, ¬ affLt k w.1.1 ∧ affLt k w.1.2) →
+    ∃ me', scanFrom me zs = some me' ∧ affLt k me'
+  | [], me, h, _ => ⟨me, rfl, h⟩
+  | w :: ws, me, h, hw => by
+    have hw0 := hw w List.mem_cons_self
+    have hnb : ¬ affCmp me w.1.1 < 0 := by
+      rw [affCmp_neg_iff]; intro hlt; exact hw0.1 (affLt_trans h hlt)
+    simp only [scanFrom, hnb, ↓reduceIte]
+    exact scanFrom_hold k ws _ (by split <;> first | exact hw0.2 | exact h)
+      (fun x hx => hw x (List.mem_cons_of_mem _ hx))
+
+/-- **`Contains` of an empty query `[k, k)`** (nomode X-a4): some entry overlaps it (holds `k`). -/
+theorem containsRes_empty (q : IvlS) (hq : q.2 = q.1) (L : List Entry) :
+    containsRes q L = true ↔ stab q L ≠ [] := by
+  have hhold : ∀ w ∈ stab q L, ¬ affLt q.1 w.1.1 ∧ affLt q.1 w.1.2 := by
+    intro w hw
+    have h0 := ((mem_stab _ _ _).1 hw).2
+    rw [ivlCmp_eq_zero_iff] at h0
+    refine ⟨fun h => ?_, h0.2⟩
+    have h1 := h0.1 h
+    rw [hq] at h1
+    exact affLt_asymm h h1
+  unfold containsRes
+  cases hst : stab q L with
+  | nil => simp
+  | cons z zs =>
+    have hz := hhold z (by rw [hst]; exact List.mem_cons_self)
+    obtain ⟨me', hsc, hme⟩ := scanFrom_hold q.1 zs z.1.2 hz.2
+      (fun w hw => hhold w (by rw [hst]; exact List.mem_cons_of_mem _ hw))
+    constructor
+    · intro _; exact List.cons_ne_nil _ _
+    · intro _
+      simp only [hsc]
+      apply decide_eq_true
+      refine ⟨?_, ?_⟩
+      · rw [affCmp_nonneg_iff, hq]; exact affLt_asymm hme
+      · rw [affCmp_nonpos_iff]; exact hz.1
 
 end pure
 

@@ -1,7 +1,7 @@
 /-
 **`RoleGrantPermission`'s pure lemmas** (the auth plan's S4d, 2026-10-24; nomode X-a1, 2026-11-27).
 Lean-first (no Rocq counterpart). The role record's permissions on the wire (`RoleRec.perms`) and
-the model's (`RoleRec.toRole`, those of a known type): the order `permSlice.Less` sorts by
+the model's (`RoleRec.toRole`, every one, nomode X-a4): the order `permSlice.Less` sorts by
 (`bytes.Compare` of the keys, then of the range ends: `rangeLt`) is a strict total order on the
 ranges, so a strict weak order on the pairs the sorter holds (`StrictWeakOrder_permWLt`); the
 fork's grant (E3z: the permissions off the range kept, the new one appended, sorted) gives a record
@@ -32,19 +32,8 @@ theorem strictWeakOrder_comap {A B : Type} (g : A → B) (R : B → B → Prop)
       trans := fun hxy hyz => h.strict_weak_order_equiv.trans hxy hyz }
 
 /-- `permOfWire` keeps the key and the range end. -/
-theorem permOfWire_key (w : PermW) (p : Perm) (h : permOfWire w = some p) :
-    p.key = w.key ∧ p.rangeEnd = w.rangeEnd := by
-  unfold permOfWire at h
-  by_cases h0 : w.ty = W32 0
-  · rw [if_pos h0] at h; cases h; exact ⟨rfl, rfl⟩
-  rw [if_neg h0] at h
-  by_cases h1 : w.ty = W32 1
-  · rw [if_pos h1] at h; cases h; exact ⟨rfl, rfl⟩
-  rw [if_neg h1] at h
-  by_cases h2 : w.ty = W32 2
-  · rw [if_pos h2] at h; cases h; exact ⟨rfl, rfl⟩
-  rw [if_neg h2] at h; cases h
-
+theorem permOfWire_key (w : PermW) :
+    (permOfWire w).key = w.key ∧ (permOfWire w).rangeEnd = w.rangeEnd := ⟨rfl, rfl⟩
 
 /-- `rangeLt` is irreflexive, transitive and total on (key, range end) pairs. -/
 theorem rangeLt_irrefl (k e : GoString) : ¬ rangeLt k e k e := by
@@ -133,39 +122,31 @@ theorem permInsert_sorted (p : Perm) : ∀ l : Role, l.Pairwise permLt → (∀ 
 theorem grantPerms_sorted (ps : Role) (w : PermW) (h : ps.Pairwise permLt) :
     (grantPerms ps w).Pairwise permLt := by
   unfold grantPerms
-  cases hw : permOfWire w with
-  | none => exact h.filter _
-  | some p =>
-    try dsimp only
-    refine permInsert_sorted p _ (h.filter _) ?_
-    intro q hq hpq
-    have hk := (permOfWire_key w p hw)
-    simp only [Prod.mk.injEq] at hpq
-    have hq' := of_decide_eq_true (List.mem_filter.mp hq).2
-    exact hq' ⟨by rw [← hpq.1, hk.1], by rw [← hpq.2, hk.2]⟩
+  refine permInsert_sorted _ _ (h.filter _) ?_
+  intro q hq hpq
+  simp only [Prod.mk.injEq] at hpq
+  have hq' := of_decide_eq_true (List.mem_filter.mp hq).2
+  exact hq' ⟨hpq.1.symm, hpq.2.symm⟩
 
 /-- A wire permission on the range `[key, rangeEnd)` (`bytes.Equal` on both). -/
 def permWAt (key rangeEnd : GoString) (q : PermW) : Bool :=
   decide (q.key = key) && decide (q.rangeEnd = rangeEnd)
 
 /-- Keeping the wire permissions off a range keeps the model's off it. -/
-theorem filterMap_filter_permWAt (l : List PermW) (key rangeEnd : GoString) :
-    (l.filter (fun q => !permWAt key rangeEnd q)).filterMap permOfWire =
-      (l.filterMap permOfWire).filter (fun p => ¬ permAt key rangeEnd p) := by
+theorem map_filter_permWAt (l : List PermW) (key rangeEnd : GoString) :
+    (l.filter (fun q => !permWAt key rangeEnd q)).map permOfWire =
+      (l.map permOfWire).filter (fun p => ¬ permAt key rangeEnd p) := by
   induction l with
   | nil => rfl
   | cons q l ih =>
-    simp only [List.filter_cons, List.filterMap_cons]
-    cases hq : permOfWire q with
-    | none =>
-      cases permWAt key rangeEnd q <;> simp [List.filterMap_cons, hq, ih]
-    | some p =>
-      obtain ⟨hk, hre⟩ := permOfWire_key q p hq
-      have hpw : permWAt key rangeEnd q = decide (permAt key rangeEnd p) := by
-        simp [permWAt, permAt, hk, hre]
-      by_cases hpa : permAt key rangeEnd p
-      · simp [hpw, hpa, ih]
-      · simp [hpw, hpa, List.filterMap_cons, hq, ih]
+    simp only [List.filter_cons, List.map_cons]
+    have hpw : permWAt key rangeEnd q = decide (permAt key rangeEnd (permOfWire q)) := by
+      unfold permWAt
+      by_cases h1 : q.key = key <;> by_cases h2 : q.rangeEnd = rangeEnd <;>
+        simp [permAt, permOfWire, h1, h2]
+    by_cases hpa : permAt key rangeEnd (permOfWire q)
+    · simp [hpw, hpa, ih]
+    · simp [hpw, hpa, ih]
 
 /-- **The grant's record matches the model's step**: the pairs kept (`kept`, whose permissions are
 the record's off `w`'s range) with `w`'s appended, permuted and sorted by `permWLt` (`sort.Sort`'s
@@ -179,69 +160,54 @@ theorem grant_kept_eq (rr : RoleRec) (ps : Role) (w : PermW) (kept xs' : List (L
       i < j → ¬ permWLt xj xi) :
     ({ rr with perms := xs'.map Prod.snd } : RoleRec).toRole = grantPerms ps w := by
   -- the new record's model role is a permutation of the model's permissions kept, then `w`'s
-  have h1 : ((xs'.map Prod.snd).filterMap permOfWire).Perm
-      (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ (permOfWire w).toList) := by
-    have h1 : (xs'.map Prod.snd).filterMap permOfWire |>.Perm
-        (((kept ++ [(np, w)]).map Prod.snd).filterMap permOfWire) :=
-      ((hperm.map Prod.snd).filterMap permOfWire).symm
+  have h1 : ((xs'.map Prod.snd).map permOfWire).Perm
+      (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ [permOfWire w]) := by
+    have h1 : (xs'.map Prod.snd).map permOfWire |>.Perm
+        (((kept ++ [(np, w)]).map Prod.snd).map permOfWire) :=
+      ((hperm.map Prod.snd).map permOfWire).symm
     refine h1.trans ?_
-    rw [List.map_append, hkept, List.filterMap_append, filterMap_filter_permWAt]
+    rw [List.map_append, hkept, List.map_append, map_filter_permWAt]
     unfold RoleRec.toRole at hrr
     rw [hrr]
-    cases hw : permOfWire w <;> simp [hw]
+    simp
   -- whose ranges are distinct
-  have hne : (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ (permOfWire w).toList).Pairwise
+  have hne : (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ [permOfWire w]).Pairwise
       permNe := by
-    refine List.pairwise_append.2 ⟨(hps.filter _).imp permNe_of_permLt, ?_, ?_⟩
-    · cases permOfWire w <;> simp
-    · cases hw : permOfWire w with
-      | none => simp
-      | some p' =>
-        intro q hq p hp
-        simp only [Option.toList_some, List.mem_singleton] at hp; subst hp
-        have hk := permOfWire_key w _ hw
-        have hq' := of_decide_eq_true (List.mem_filter.mp hq).2
-        intro hqp
-        simp only [Prod.mk.injEq] at hqp
-        exact hq' ⟨by rw [hqp.1, hk.1], by rw [hqp.2, hk.2]⟩
+    refine List.pairwise_append.2 ⟨(hps.filter _).imp permNe_of_permLt, by simp, ?_⟩
+    intro q hq p hp
+    simp only [List.mem_singleton] at hp; subst hp
+    have hq' := of_decide_eq_true (List.mem_filter.mp hq).2
+    intro hqp
+    simp only [Prod.mk.injEq] at hqp
+    exact hq' ⟨hqp.1, hqp.2⟩
   -- so it is strictly sorted
-  have hys : ((xs'.map Prod.snd).filterMap permOfWire).Pairwise permLt := by
-    have hw1 : ((xs'.map Prod.snd).filterMap permOfWire).Pairwise (fun p q => ¬ permLt q p) := by
-      refine List.Pairwise.filterMap (R := fun a b : PermW =>
-        ¬ rangeLt b.key b.rangeEnd a.key a.rangeEnd) permOfWire ?_ ?_
-      · intro a a' h b hb b' hb'
-        have ha := permOfWire_key a b hb
-        have ha' := permOfWire_key a' b' hb'
-        show ¬ permLt b' b
-        unfold permLt; rw [ha.1, ha.2, ha'.1, ha'.2]; exact h
-      · exact List.pairwise_map.2 (pairwise_of_sorted permWLt xs' hsorted)
+  have hys : ((xs'.map Prod.snd).map permOfWire).Pairwise permLt := by
+    have hw0 : (xs'.map Prod.snd).Pairwise
+        (fun a b : PermW => ¬ rangeLt b.key b.rangeEnd a.key a.rangeEnd) :=
+      List.pairwise_map.2 (pairwise_of_sorted permWLt xs' hsorted)
+    have hw1 : ((xs'.map Prod.snd).map permOfWire).Pairwise (fun p q => ¬ permLt q p) :=
+      List.pairwise_map.2 hw0
     have hw2 := hne.perm h1.symm (fun h => fun e => h e.symm)
     exact (hw1.and hw2).imp fun h => permLt_of_not h.1 h.2
   -- and so is `grantPerms ps w`, another such permutation
   have h2 : (grantPerms ps w).Perm
-      (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ (permOfWire w).toList) := by
+      (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ [permOfWire w]) := by
     unfold grantPerms
-    cases hw : permOfWire w with
-    | none => simp
-    | some p =>
-      exact (permInsert_perm p _).trans (List.perm_append_singleton p _).symm
+    exact (permInsert_perm _ _).trans (List.perm_append_singleton _ _).symm
   unfold RoleRec.toRole
   exact List.Perm.eq_of_pairwise
     (fun a b _ _ h h' => absurd (rangeLt_trans h h') (rangeLt_irrefl _ _))
     hys (grantPerms_sorted ps w hps) (h1.trans h2.symm)
 
-/-- The keys of the role after the grant are non-empty, if the role's were and `w`'s is. -/
-theorem grant_keys (ps : Role) (w : PermW) (hw : w.key ≠ []) (hold : ∀ p ∈ ps, p.key ≠ []) :
-    ∀ p ∈ grantPerms ps w, p.key ≠ [] := by
+/-- The ranges of the role after the grant are valid, if the role's were and `w`'s is. -/
+theorem grant_keys (ps : Role) (w : PermW) (hw : rangeValid w.key w.rangeEnd)
+    (hold : ∀ p ∈ ps, rangeValid p.key p.rangeEnd) :
+    ∀ p ∈ grantPerms ps w, rangeValid p.key p.rangeEnd := by
   intro p hp
   unfold grantPerms at hp
-  cases hw' : permOfWire w with
-  | none => rw [hw'] at hp; dsimp only at hp; exact hold p (List.mem_filter.mp hp).1
-  | some q =>
-    rw [hw'] at hp; dsimp only at hp
-    rcases List.mem_cons.mp ((permInsert_perm q _).subset hp) with h | h
-    · subst h; rw [(permOfWire_key w _ hw').1]; exact hw
-    · exact hold p (List.mem_filter.mp h).1
+  rcases List.mem_cons.mp ((permInsert_perm _ _).subset hp) with h | h
+  · subst h; exact hw
+  · exact hold p (List.mem_filter.mp h).1
 
 end auth
 end EtcdGrove

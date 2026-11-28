@@ -50,8 +50,8 @@ instance (who k : GoString) : Decidable (permittedK who k) := by unfold permitte
 
 /-! ## The auth state `SetUp` leaves -/
 
-/-- Role `r`'s one permission: `[a, b)`, `READWRITE`. -/
-def permR : Perm := ⟨lo, hi, .readwrite⟩
+/-- Role `r`'s one permission: `[a, b)`, `READWRITE` (`2`). -/
+def permR : Perm := ⟨lo, hi, W32 2⟩
 
 /-- **The store after `SetUp`**, at the auth revision `rev` (the set-up's admin requests bump it;
 its value does not matter): auth enabled, users `root` with the root role, `u` with role `r`, `v`
@@ -79,14 +79,17 @@ theorem userPerms_v (rev : Nat) : userPerms (setupSt rev) [] = [] := by
 
 /-- `permR` covers a key, for any operation, exactly when the key is in `[lo, hi)`. -/
 theorem permR_covers (op : PermType) (k : GoString) : permR.covers op k ↔ inRangeK k := by
-  simp only [Perm.covers, auth.inRange, permR, isOpenEnded, inRangeK]
+  have hg : permR.grants op = PermType.readwrite.grants op := grants_of_kind (permKind_readwrite rfl) op
+  unfold Perm.covers
+  rw [hg]
+  simp only [auth.inRange, permR, isOpenEnded, inRangeK]
   cases op <;> simp [PermType.grants, PermType.grantsRead, PermType.grantsWrite]
 
 theorem not_isRoot_u : ¬ isRoot [go!"r"] := by simp [isRoot, rootRole]
 
 theorem not_isRoot_v : ¬ isRoot ([] : User) := by simp [isRoot]
 
-/-- `setupSt`'s one permission has a non-empty key. -/
+/-- `setupSt`'s one permission has a valid range. -/
 theorem setupSt_permKeysOk (rev : Nat) : permKeysOk (setupSt rev) := by
   intro r ps h p hp
   simp only [setupSt, GMap.lookup_insert_eq_iff, GMap.lookup_empty] at h
@@ -94,7 +97,7 @@ theorem setupSt_permKeysOk (rev : Nat) : permKeysOk (setupSt rev) := by
   · cases h
     rw [List.mem_singleton] at hp
     subst hp
-    decide
+    exact ⟨by decide, Or.inr (Or.inl (by decide))⟩
   · cases h
 
 /-- **A point request of `u`**: granted exactly on `[lo, hi)`. -/

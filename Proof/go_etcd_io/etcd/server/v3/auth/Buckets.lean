@@ -12,8 +12,8 @@ them, as `mvcc.kvEncode` for `mvccpb.KeyValue`.
 `ownUser p u` / `ownRole p r`: the message `*authpb.User` / `*authpb.Role` at `p` (owned: the
 backend allocates it for the caller) holds the record, its byte fields fresh read-only slices (as
 `proto.Unmarshal` leaves them), a role's permissions read-only messages. The model's `User`
-(`Model.lean`) is the record's role names; its `Role` the record's permissions of a known type
-(`permOfWire`: `getMergedPerms` grants nothing for another `PermType`, `RoleRec.toRole`).
+(`Model.lean`) is the record's role names; its `Role` the record's permissions, every type
+(`permOfWire`, `RoleRec.toRole`: the checks ignore an unknown type, `Perm.grants`).
 
 `userOut u st name` / `roleOut r st name`: what the backend's `UnsafeGetUser(name)` /
 `UnsafeGetRole(name)` return of the state `st`: nil if `st` has no such user or role, else a
@@ -88,16 +88,13 @@ structure RoleRec where
   perms : List PermW
   deriving Inhabited
 
-/-- The model's permission of one on the wire: `READ` (0), `WRITE` (1), `READWRITE` (2); none of
-another type (`getMergedPerms` grants nothing for it). -/
-def permOfWire (p : PermW) : Option Perm :=
-  if p.ty = W32 0 then some ⟨p.key, p.rangeEnd, .read⟩
-  else if p.ty = W32 1 then some ⟨p.key, p.rangeEnd, .write⟩
-  else if p.ty = W32 2 then some ⟨p.key, p.rangeEnd, .readwrite⟩
-  else none
+/-- The model's permission of one on the wire: its key, range end and type, whatever the type
+(`RoleGrantPermission` stores any, `store.go:845-849`; the checks ignore an unknown one,
+`Perm.grants`; nomode X-a4). -/
+def permOfWire (p : PermW) : Perm := ⟨p.key, p.rangeEnd, p.ty⟩
 
-/-- The model's role of a role record: its permissions of a known type. -/
-def RoleRec.toRole (r : RoleRec) : Role := r.perms.filterMap permOfWire
+/-- The model's role of a role record: its permissions as stored, in order. -/
+def RoleRec.toRole (r : RoleRec) : Role := r.perms.map permOfWire
 
 /-- The protobuf encoding of a user record (`proto.Marshal`): opaque. -/
 opaque userEncode : UserRec → GoString

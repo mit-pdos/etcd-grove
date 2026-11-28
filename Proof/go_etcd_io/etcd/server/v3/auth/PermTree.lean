@@ -118,7 +118,7 @@ theorem inIvl_permIvl (p : Perm) (hk : p.key ≠ []) (k : GoString) :
         · exact ⟨(hge (hkn h)).2 h, hkn h, Or.inr h2⟩
 
 /-- The queried interval is the interval of a permission with that range (a non-empty one). -/
-theorem queryIvl_eq_permIvl (key rangeEnd : GoString) (he : rangeEnd ≠ []) (ty : PermType) :
+theorem queryIvl_eq_permIvl (key rangeEnd : GoString) (he : rangeEnd ≠ []) (ty : w32) :
     queryIvl key rangeEnd = permIvl ⟨key, rangeEnd, ty⟩ := by
   unfold queryIvl permIvl
   by_cases ho : isOpenEnded rangeEnd <;> simp [he, ho]
@@ -126,8 +126,8 @@ theorem queryIvl_eq_permIvl (key rangeEnd : GoString) (he : rangeEnd ≠ []) (ty
 /-- The queried interval holds a key exactly when the request's range does. -/
 theorem inIvl_queryIvl (key rangeEnd : GoString) (hk : key ≠ []) (he : rangeEnd ≠ []) (k : GoString) :
     adt.inIvl (queryIvl key rangeEnd) k ↔ inRange key rangeEnd k := by
-  rw [queryIvl_eq_permIvl key rangeEnd he .read]
-  exact inIvl_permIvl ⟨key, rangeEnd, .read⟩ hk k
+  rw [queryIvl_eq_permIvl key rangeEnd he (W32 0)]
+  exact inIvl_permIvl ⟨key, rangeEnd, W32 0⟩ hk k
 
 /-- The queried interval of a request with a non-empty key and an open-ended or proper range is
 below its end (`Contains`' premise). -/
@@ -153,12 +153,12 @@ theorem covers_iff (st : AuthState) (u : User) (op : PermType) (k : GoString)
   · rintro ⟨p, hp, hg, hr⟩
     obtain ⟨r, ps, hps, hpps⟩ := mem_userPerms hp
     refine ⟨permIvl p, List.mem_map_of_mem (List.mem_filter.2 ⟨hp, hg⟩), ?_⟩
-    exact (inIvl_permIvl p (hst r ps hps p hpps) k).2 hr
+    exact (inIvl_permIvl p (hst r ps hps p hpps).1 k).2 hr
   · rintro ⟨x, hx, hxk⟩
     obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hx
     obtain ⟨hp, hg⟩ := List.mem_filter.1 hp
     obtain ⟨r, ps, hps, hpps⟩ := mem_userPerms hp
-    exact ⟨p, hp, hg, (inIvl_permIvl p (hst r ps hps p hpps) k).1 hxk⟩
+    exact ⟨p, hp, hg, (inIvl_permIvl p (hst r ps hps p hpps).1 k).1 hxk⟩
 
 /-- **`coversPoint` is the tree's point query** (`checkKeyPoint`). -/
 theorem coversPoint_iff (st : AuthState) (u : User) (op : PermType) (key : GoString)
@@ -227,10 +227,10 @@ theorem treeOf_ok (op : PermType) (ps : List Perm) :
 /-- One more permission: its interval inserted when it grants `op`. -/
 theorem treeOf_snoc (op : PermType) (ps : List Perm) (p : Perm) :
     treeOf op (ps ++ [p]) =
-      if p.ty.grants op then (treeOf op ps).insertRB (permIvl p, permVal) else treeOf op ps := by
+      if p.grants op then (treeOf op ps).insertRB (permIvl p, permVal) else treeOf op ps := by
   unfold treeOf ivlsOf
   rw [List.filter_append, List.map_append, List.foldl_append]
-  by_cases h : p.ty.grants op = true
+  by_cases h : p.grants op = true
   · rw [if_pos h]; simp [h]
   · rw [if_neg h]; simp [h]
 
@@ -393,9 +393,8 @@ theorem containsT_true_holds (q : adt.IvlS) (T : adt.RbT adt.Entry) (hq : ¬ adt
     exact ⟨z, hzT, fun hlt => hq (adt.affLt_trans hlt (hc.1 hlt)), hc.2⟩
 
 /-- **An empty (`[k, k)`) or inverted range granted is the point `k` covered** (in a state with
-non-empty permission keys): `Contains` passes only through an interval holding the begin. (The
-converse for `[k, k)` holds of permissions with valid ranges, `rangeValid`, which `permKeysOk` does
-not state.) -/
+valid permission ranges): `Contains` passes only through an interval holding the begin. (For
+`[k, k)` the converse holds too: `coversX_empty_iff`.) -/
 theorem coversX_point_of_not_lt (st : AuthState) (u : User) (op : PermType) (k e : GoString)
     (hkeys : permKeysOk st) (he : e ≠ []) (hno : ¬ isOpenEnded e) (hle : ¬ go.GoStringLt k e)
     (h : coversX st u op k e = true) : coversPoint st u op k := by
@@ -410,6 +409,59 @@ theorem coversX_point_of_not_lt (st : AuthState) (u : User) (op : PermType) (k e
   obtain ⟨z, hz, hin⟩ := containsT_true_holds _ _ hnaff h
   rw [coversPoint_iff st u op k hkeys]
   exact (exists_inIvl_perm (treeOf_ok op (userPerms st u)).2 k).1 ⟨z, hz, hin⟩
+
+/-- A valid permission range's interval is non-empty. -/
+theorem permIvl_valid (p : Perm) (hv : rangeValid p.key p.rangeEnd) :
+    adt.affLt (permIvl p).1 (permIvl p).2 := by
+  obtain ⟨hk, h⟩ := hv
+  unfold permIvl
+  by_cases he : p.rangeEnd = []
+  · simp only [he, ↓reduceIte]
+    exact ⟨hk, Or.inr (adt.strLt_append _ _ (by simp))⟩
+  · by_cases ho : isOpenEnded p.rangeEnd
+    · simp only [he, ho, ↓reduceIte]
+      exact ⟨hk, Or.inl rfl⟩
+    · simp only [he, ho, ↓reduceIte]
+      rcases h with h | h | h
+      · exact absurd h he
+      · exact ⟨hk, Or.inr h⟩
+      · exact absurd h ho
+
+/-- The tree of a user's permissions holds non-empty intervals, in a state with valid permission
+ranges. -/
+theorem treeOf_valid (st : AuthState) (u : User) (op : PermType) (hkeys : permKeysOk st) :
+    ∀ z ∈ (treeOf op (userPerms st u)).inorder, adt.affLt z.1.1 z.1.2 := by
+  intro z hz
+  have hx : z.1 ∈ ivlsOf op (userPerms st u) :=
+    (treeOf_ok op (userPerms st u)).2.subset (List.mem_map_of_mem hz)
+  unfold ivlsOf at hx
+  obtain ⟨p, hp, hpz⟩ := List.mem_map.1 hx
+  obtain ⟨r, ps, hps, hpps⟩ := mem_userPerms (List.mem_filter.1 hp).1
+  rw [← hpz]
+  exact permIvl_valid p (hkeys r ps hps p hpps)
+
+/-- **An empty range `[k, k)` is the point `k`** (nomode X-a4; a non-empty key, not `"\x00"`, which
+is open-ended), in a state with valid permission ranges: `Visit` of the empty query finds every
+interval holding `k`, and `Contains` passes exactly when one does. -/
+theorem coversX_empty_iff (st : AuthState) (u : User) (op : PermType) (k : GoString)
+    (hkeys : permKeysOk st) (hk : k ≠ []) (hno : ¬ isOpenEnded k) :
+    coversX st u op k k = true ↔ coversPoint st u op k := by
+  unfold coversX
+  rw [if_neg hk]
+  have hq : queryIvl k k = (k, k) := by unfold queryIvl; simp [hno]
+  obtain ⟨hsort, hperm⟩ := treeOf_ok op (userPerms st u)
+  rw [hq, adt.containsT_eq_empty (k, k) _ hsort (treeOf_valid st u op hkeys) rfl,
+    adt.containsRes_empty (k, k) rfl, coversPoint_iff st u op k hkeys, ← exists_inIvl_perm hperm k]
+  constructor
+  · intro hne
+    obtain ⟨z, hz⟩ := List.exists_mem_of_ne_nil _ hne
+    obtain ⟨hzL, h0⟩ := (adt.mem_stab _ _ _).1 hz
+    rw [adt.ivlCmp_eq_zero_iff] at h0
+    exact ⟨z, hzL, fun h => adt.affLt_asymm h (h0.1 h), h0.2⟩
+  · rintro ⟨z, hzL, hz1, hz2⟩
+    refine List.ne_nil_of_mem ((adt.mem_stab _ _ _).2 ⟨hzL, ?_⟩)
+    rw [adt.ivlCmp_eq_zero_iff]
+    exact ⟨fun h => absurd h hz1, hz2⟩
 
 end pure
 

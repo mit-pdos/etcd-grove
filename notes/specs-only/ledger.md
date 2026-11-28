@@ -9265,3 +9265,22 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   request side's shape premises stay until N1b.
 - **Decision.** Design X, decided by the user 2026-11-27 (`~/coordinator-notes/plans/nomode-packet.md`); trusted-
   visible definitions to independent review before landing.
+
+## 2026-11-28: a role holds its stored permissions, unknown types included (nomode X-a4)
+
+- **Spec.** The auth model's `Perm` (`auth/Model.lean`), `permOfWire`/`RoleRec.toRole` (`Buckets.lean`),
+  `grantPerms`/`roleRevokePermissionR` (`Steps.lean`), and through `Perm.covers`/`ivlsOf` the verdict
+  vocabulary (`coversPoint`, `coversRange`, `covers`, `coversX`, `granted`; `kvGranted` uses `covers`).
+- **Defect.** `RoleGrantPermission` stores a permission of any `PermType` unchecked (`store.go:845-849 at the pin `18ab647b0``);
+  `RoleRevokePermission` removes on `(Key, RangeEnd)` whatever the type (`store.go:700-704`). The model
+  dropped unknown types (`permOfWire = none`), so revoke was a relation (a success allowed whatever the
+  model's role), not a function of the model's state (the D3 blocker, `notes/nomode-n1.md` on
+  `nomode-n1/2026-11-27`; `nonissues/etcd-auth-unknown-permtype-stored.md`).
+- **Evidence.** `TestD3RevokeUnknownTypedPermission` (the nonissue's test): grant of `PermType 7`, revoke
+  succeeds (revision +1); on a role without it, `ErrPermissionNotGranted`.
+- **Change.** `Perm.ty` is the stored `int32` (`w32`, any value); `permKind` decodes READ/WRITE/READWRITE
+  (`range_perm_cache.go:53-63`'s switch, no default), `Perm.grants` is false for another value, so the
+  checks and the tree build ignore it exactly where Go does; `permOfWire` is total, `toRole` a `map`;
+  `grantPerms` always inserts the granted permission; `roleRevokePermissionR` is a function (an error iff
+  no stored permission is on the range). Before/after in `notes/nomode-x.md`, "X-a4".
+- **Decision.** Option 1 of the D3 blocker, decided by the coordinator for the user (2026-11-28).
