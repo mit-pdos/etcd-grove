@@ -15,7 +15,7 @@ module
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.GooseLang.NotCrashed
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
-public import Dsverify.Proof.github_com.hashicorp.raft.core.Crash
+public import Dsverify.Proof.github_com.hashicorp.raft.core.CrashLaws
 
 @[expose] public section
 
@@ -128,38 +128,13 @@ variable (γ : GNames) (rc : RCtx GF) (i : SID)
 
 theorem srvV_eq (s : SState) : srvV rc s = srvVP rc s none none := rfl
 
-/-- **A read of the main goroutine's protocol state** (`durStep` with the crash state unchanged):
+/-- **A read of the main goroutine's protocol state** (R2's `durPeek` at `srvV`):
 with its view `srvV rc s`, an update that uses `srvOwn γ i s` and gives it back. -/
 theorem durRead {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) :
     srvDurInv γ rc i ∗ srvV rc s ∗ P ∗
       (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢ |NC={E}=> srvV rc s ∗ Q := by
-  iintro ⟨#Hd, Hs, HP, Hf⟩
-  ihave H := durStep γ rc i hE s none none iprop(P ∗ (srvOwn γ i s -∗ P -∗
-      |={E \ ↑durN}=> srvOwn γ i s ∗ Q))
-    (fun X' => iprop(⌜X'.s = s ∧ X'.tp = none ∧ X'.dp = none⌝ ∗ Q)) $$ [Hs HP Hf]
-  · iframe #
-    iframe HP Hf
-    isplitl [Hs]
-    · rw [srvV_eq]; iexact Hs
-    iintro %X %hX HX Hs ⟨HP, Hf⟩
-    rcases hX with ⟨hs, htp, hdp⟩
-    unfold durBody
-    icases HX with ⟨Ho, Hrest⟩
-    rw [hs]
-    imod Hf $$ Ho HP with ⟨Ho, HQ⟩
-    imodintro
-    iexists X
-    rw [hs, htp, hdp]
-    iframe
-    ipureintro; exact ⟨rfl, rfl, rfl⟩
-  iapply ncfupd_wand
-  isplitl [H]
-  · iexact H
-  iintro ⟨%X', Hs, %h, HQ⟩
-  rcases h with ⟨hs, htp, hdp⟩
-  rw [hs, htp, hdp]
-  iframe HQ
-  rw [srvV_eq]; iexact Hs
+  rw [srvV_eq]
+  exact durPeek γ rc i hE s none none P Q
 
 end dur
 
