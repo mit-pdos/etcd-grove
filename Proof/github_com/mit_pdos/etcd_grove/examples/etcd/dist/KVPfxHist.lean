@@ -399,7 +399,9 @@ theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Chan
 /-- **An owner's persistent read update of the KV, reading the history** (F5): `kvPfx_readAu`'s, the step
 also learning that the state's changes extend `l0` (a lower bound the caller has), its compaction revision
 and base, that its changes keep the owner's discipline, and holding the history's authority over the
-firing, handed back unchanged (a lower bound its `W` keeps is a prefix of the state's changes). -/
+firing, handed back unchanged (a lower bound its `W` keeps is a prefix of the state's changes). As
+`kvPfxP_au1H`'s (K8-10), the step learns the room the server reports (`kvRoom σ`) and is a fancy update at
+`kvPfxCbE`, so it can commit another atomic update (a linearization ghost's). -/
 theorem kvPfxP_readAuH (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Change → Prop) (γh : GName)
     (σ₀ : KVState) (s : String) (hs : s ≠ "share")
     (W : PfxV → IProp GF) [hW : ∀ v, Timeless (W v)] (l0 : List (List mvcc.Change))
@@ -407,9 +409,9 @@ theorem kvPfxP_readAuH (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.C
     kvPfxHP γk p γ okp γh σ₀ ∗
       inv (client.kvClientN .@ s) iprop(∃ v, ghostVar γ (1 : Qp).half v ∗ W v) ∗
       monoListLbOwn γh l0 ∗
-      □ (∀ σ, ⌜l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes⌝ -∗
-        monoListAuthOwn γh 1 σ.changes -∗ W (pfxVH p σ) ==∗
-          monoListAuthOwn γh 1 σ.changes ∗ W (pfxVH p σ) ∗ □ Q σ) ⊢
+      □ (∀ σ, ⌜l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes ∧ kvRoom σ⌝ -∗
+        monoListAuthOwn γh 1 σ.changes -∗ W (pfxVH p σ) -∗ |={kvPfxCbE}=>
+          (monoListAuthOwn γh 1 σ.changes ∗ W (pfxVH p σ) ∗ □ Q σ)) ⊢
     kvReadAu γk Q := by
   have Hm := client.kvClientN_mask
   have Hm2 := kvShareN_mask s hs
@@ -447,10 +449,12 @@ theorem kvPfxP_readAuH (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.C
     icases (viewsP_acc ps i p γ Hi σ).1 $$ Hviews with ⟨Hown, Hrest⟩
     ihave %Hv := ghostVar_agree γ v _ (pfxVH p σ) _ $$ Hhalf Hown
     subst Hv
-    have hpre' : l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes :=
+    have hpre' : l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes ∧ kvRoom σ :=
       ⟨Hp.2, Hσok.1, fun cs hcs c hc hpc =>
-        (Hok c).1 (Hσok.2 (p, γ) (List.mem_of_getElem? Hi) cs hcs c hc hpc)⟩
+        (Hok c).1 (Hσok.2 (p, γ) (List.mem_of_getElem? Hi) cs hcs c hc hpc), Hroom⟩
+    imod (fupd_mask_subseteq (kvPfxCbE_sub s)) with Hclcb
     imod Hstep $$ %σ %hpre' Hh HW with ⟨Hh, HW, #HQ⟩
+    imod Hclcb with -
     imod Hcloses $$ [Hσ Hown Hrest Hh] with -
     · inext; iexists σ; iframe Hσ Hh
       isplitl [Hown Hrest]
