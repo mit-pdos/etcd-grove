@@ -80,7 +80,8 @@ theorem memNode_of (hs : AntSimD R dec S V net xnet) (hok : MemOk R dec S V G n 
     (hvself : VoteSelf n { ((V n).drainOf r₁ rd) with pend := P, mems := [rd.memRec (V n)] })
     (hDF : (V n).parts = [] → (V n).dur.write (rd.memRec (V n)) = durOf (accepted r₁))
     (hMC : MemCommitOk (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i)
-      { ((V n).drainOf r₁ rd) with pend := P, mems := [rd.memRec (V n)] }) :
+      { ((V n).drainOf r₁ rd) with pend := P, mems := [rd.memRec (V n)] })
+    (hPW : ParWriteOk R { ((V n).drainOf r₁ rd) with pend := P, mems := [rd.memRec (V n)] }) :
     NodeOkD R dec (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) net n
       { ((V n).drainOf r₁ rd) with pend := P, mems := [rd.memRec (V n)] } := by
   have hsh := hs.1
@@ -91,7 +92,7 @@ theorem memNode_of (hs : AntSimD R dec S V net xnet) (hok : MemOk R dec S V G n 
   refine ⟨d1, ⟨?_, d2.2.1, ?_, ?_⟩, fun _ _ _ h => absurd hpar (by rw [h]; decide), d4, ?_, d6,
     hCL, hNF, hLP, fun h => absurd h (by show r₁.p.role ≠ .candidate; rw [hrl]; decide),
     hpend, fun _ h => absurd h (List.cons_ne_nil _ _), hxpend, hqs, d15, d16, d17, hlead, hvself,
-    d20, ?_, ?_, fun h => absurd h (by rw [ha]; decide), d24, hMC⟩
+    d20, ?_, ?_, fun h => absurd h (by rw [ha]; decide), d24, hMC, hPW⟩
   · show r.role[n.val]! = roleOf r₁.p.role
     rw [hok.hrole, get!_set_self _ hn6, hrl]; rfl
   · show r.config[n.val]! = _; rw [hok.hmem.1]; exact d2.2.2.1
@@ -135,6 +136,41 @@ theorem lead_pfx {v : NodeView} {r₁ : RState} {rd : ReadyD} (hro : ReadyOutP R
     omega
   exact List.prefix_of_prefix_length_le h1 hlog (Nat.le_trans h2 hcn)
 
+/-- The disk's log is raft's (no write queued: `DiskFold`; snapshots off: no ghost prefix). -/
+theorem LdCtx.dlog {r₁ : RState} {rd : ReadyD} {S1 : State}
+    (hx : LdCtx R.syncOff dec V net xnet G n r₁ rd S1) : (V n).dur.log = (V n).ps.log := by
+  have hfp0 : (V n).r.fp = [] := (hx.hv.facts.snap0 hx.hsnf).2.1
+  rw [hx.hdn]; show (V n).r.fp ++ (V n).r.p.log = _; rw [hfp0]; rfl
+
+/-- **A leader's entries start at the disk log's end**: a `Ready`'s first entry starts at a conflict
+with the disk's log or past its end (`ReadyOutP`), at its position in the full log (`LogIdx`); when
+the full log extends the disk's, there is no conflict, so it is the disk log's next index. -/
+theorem first_at_end {d full ents : List EntryM} {e0 : EntryM} (hidx : LogIdx full) (hpre : d <+: full)
+    (hfull : full = d.take (uint.nat e0.Index' - 1) ++ ents)
+    (hconf : ∀ e ∈ d[uint.nat e0.Index' - 1]?, e.Term' ≠ e0.Term') (he : e0 ∈ ents.head?) :
+    uint.Z e0.Index' = (d.length : Int) + 1 := by
+  obtain ⟨t, ht⟩ := hpre
+  have hj : full[(d.take (uint.nat e0.Index' - 1)).length]? = some e0 := by
+    rw [hfull, List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]
+    cases ents with
+    | nil => cases he
+    | cons a l =>
+      have : a = e0 := by simpa using he
+      subst this; rfl
+  have hI := hidx _ _ hj
+  rw [List.length_take] at hI hj
+  by_cases hlt : uint.nat e0.Index' - 1 < d.length
+  · exfalso
+    have hmin : min (uint.nat e0.Index' - 1) d.length = uint.nat e0.Index' - 1 :=
+      Nat.min_eq_left (Nat.le_of_lt hlt)
+    rw [hmin] at hj
+    have h1 : d[uint.nat e0.Index' - 1]? = full[uint.nat e0.Index' - 1]? := by
+      rw [← ht, List.getElem?_append_left hlt]
+    rw [hj] at h1
+    exact hconf e0 (by rw [h1]; rfl) rfl
+  · have hmin : min (uint.nat e0.Index' - 1) d.length = d.length := Nat.min_eq_right (by omega)
+    rw [hmin] at hI; exact hI
+
 /-- **A `-parallel` leader's own part after its `mem`, over the node-local context** (`memNode_of`
 with its kind-independent premises discharged by `memView_of`: `AfterOk` from `afterOk_loc` at the run
 with the driver modes off and `liftC`; `CandLt` and `VoteSelf` from the leader's role; the requests
@@ -146,6 +182,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
     (ha : R.md.async = false) (hpar : R.drv.parallel = true)
     (hm : (V n).mems = []) (hpar0 : (V n).parts = []) (htold : Told (V n))
     (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hrl : rd.role = .leader)
+    (hlog : (V n).ps.log <+: r₁.p.log)
     (hpfx : (V n).delivered ++ rd.ce <+: (V n).dur.log)
     (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) (hlt : LogTermsLe r₁.p)
     (hLP : LeaderPartD (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) n
@@ -175,8 +212,27 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
   obtain ⟨hNF, hCL, hpend, hxpend, hlead, hDF⟩ :=
     memView_of (P := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q)) hA
       hvD.2.2.2.2.2.2.2.1 hpar0 hro hx.hsn hP hpfx hterm hcl hlt hsm
+  have hPW : ParWriteOk R
+      (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))) := by
+    intro _ _ m hmem
+    obtain rfl : m = rd.memRec (V n) := List.mem_singleton.mp hmem
+    have hpre0 : rd.pre = false := by
+      cases h : rd.pre
+      · rfl
+      · have := hx.hpre h; rw [hrl1] at this; cases this
+    have hkk := kind_leadKeep hx.hk hrl1
+    obtain ⟨-, -, -, -, -, -, hhd, -, -, -, -, -, -, -, -, hidx, -⟩ := hro
+    refine ⟨rfl, hpar0, hrl, hpre0, hx.hsn, rfl, hrl1, ?_, ?_, ?_, ?_⟩
+    · show (V n).dur.term = r₁.p.term; rw [hx.hdn, hkk.1]; rfl
+    · show (V n).dur.vote = r₁.p.vote; rw [hx.hdn, hkk.2]; rfl
+    · intro e0 he
+      obtain ⟨hf, hc⟩ := hhd e0 he
+      exact first_at_end (d := (V n).dur.log) hidx
+        (show (V n).dur.log <+: r₁.full by rw [hx.dlog, hx.hfl]; exact hlog) hf hc he
+    · show uint.Z (V n).dur.commit ≤ uint.Z r₁.p.commit
+      exact commit_reachD hmsk hin hs.2.2.1 hvD hm hpar0 hr
   exact memNode_of hs hok ha hpar hm htold hrl1 hNF hCL hLP (fun _ => hpend) hxpend hqs hlead
-    (fun h => hx.hvs1 h) hDF hMC
+    (fun h => hx.hvs1 h) hDF hMC hPW
 
 end main
 

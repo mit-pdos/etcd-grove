@@ -271,6 +271,19 @@ def MemCommitOk (S : AntCheck.State) (v : NodeView) : Prop :=
     S.chain.take (uint.nat v.ps.commit) = (logOf v.r.full).take (uint.nat v.ps.commit) ∧
     (v.ps.commit = W64 0 ∨ ∃ p ∈ S.termLen, p.1 ≤ uint.Z v.ps.term ∧ uint.Z v.ps.commit ≤ p.2)
 
+/-- **A `-parallel` leader's queued write** (sync, unbatched; #33 parity B2, Sim round 18, lead-approved): a queued
+`mem` is the one write of a leader's `Ready` (`antSim_memP_in` queues it with none before it, and raft's
+state stays the `Ready`'s until its `Advance`, after the write): the leader's, at the disk's term and
+vote, its entries appended at the disk log's end, its commit not below the disk's. What the write's
+`OnDisk` (B 290-436, its leader branch) reads: `T1 = T0` with `ro[n] = "leader"`, the vote unchanged,
+`first = Len(L0) + 1`, a moved commit above `commitIndex[n]`. -/
+def ParWriteOk (R : RunCfg) (v : NodeView) : Prop :=
+  R.md.async = false → R.drv.batch = false → ∀ m ∈ v.mems,
+    v.mems = [m] ∧ v.parts = [] ∧ m.role = .leader ∧ m.pre = false ∧ m.snap = none ∧ m.bat = false ∧
+    v.ps.role = .leader ∧ v.dur.term = v.ps.term ∧ v.dur.vote = v.ps.vote ∧
+    (∀ e0 ∈ m.ents.head?, uint.Z e0.Index' = (v.dur.log.length : Int) + 1) ∧
+    uint.Z v.dur.commit ≤ uint.Z v.ps.commit
+
 /-- **A leader's self-acknowledgement waiting for its write** (`-parallel`, #33 B2 round 11): a win's
 or a proposal's `Ready` queues the leader's acknowledgement of its new last index, whose ack fact
 the binding records only at the write's `OnDisk` (B 407); until then it is within the log of the disk
@@ -284,7 +297,8 @@ def QsAckW {N : Nat} (n : Fin N) (v : NodeView) (q : Msg) : Prop :=
 batch's pending messages by `PendOkB` once its queued `mem`s are written: a vote, a vote request
 and an acknowledgement are recorded by the write, `OnDisk`), and the B2 bookkeeping: in a sync,
 unbatched run an announced write is not `made` while the binding keeps its undo record (the first
-`send` after it ends it, B 1026), and the in-memory commit is recorded (`MemCommitOk`). -/
+`send` after it ends it, B 1026), and the in-memory commit is recorded (`MemCommitOk`), and a `-parallel` leader's queued write is its
+`Ready`'s (`ParWriteOk`). -/
 def NodeOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n : Fin R.N)
     (v : NodeView) : Prop :=
   DiskIs S n v ∧ MemIs R.N S n v ∧ SyncDisk R v ∧ UndoIs S n v ∧ QueueIs S n v ∧ ReadsIs S n v ∧
@@ -299,7 +313,8 @@ def NodeOkD (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n 
   (∀ x, v.xcause = some x → x.dst = nodeId n ∧ v.cause = none) ∧
   LeadOk n v ∧ VoteSelf n v ∧
   UndoFacts R v ∧ DiskFold v ∧ JobsOk R n net v ∧ ApplyChainOk R S n v ∧
-  (R.md.async = false → R.drv.batch = false → v.undo ≠ none → v.made = false) ∧ MemCommitOk S v
+  (R.md.async = false → R.drv.batch = false → v.undo ≠ none → v.made = false) ∧ MemCommitOk S v ∧
+  ParWriteOk R v
 
 /-- **C3 with restarts**: what `GC` keeps is kept while some node's `EffTerm` (B 152: the lower of its
 term and its unmade write's undo term) is at most the term, so the `currentTerm` forms of

@@ -267,11 +267,11 @@ theorem mq_node_other (hs : AntSimD R dec S V net xnet) (hok : MemOk R dec S V G
     NodeOkD R dec (memQ S r n.val it i) net k (V k) := by
   have hne : k.val ≠ n.val := fun e => hk (Fin.ext e)
   obtain ⟨d1, d2, d3, d4, d5, d6, d7, d8, hL, d10, d11, d12, d13, d14, d15, d16, d17, d18, d19, d20,
-    d21, d22, -, d24, d25⟩ := hs.2.2.2.2 k
+    d21, d22, -, d24, d25, d26⟩ := hs.2.2.2.2 k
   refine ⟨d1, ⟨by rw [mq_role_o hok hk]; exact d2.1, d2.2.1,
       by show r.config[k.val]! = _; rw [hok.hmem.1]; exact d2.2.2.1,
       by show r.confAt[k.val]! = _; rw [hok.hmem.2]; exact d2.2.2.2⟩, d3, d4, ?_, d6, d7, d8, ?_, d10,
-    d11, d12, d13, d14, d15, d16, d17, d18, d19, d20, d21, d22, (fun h => by rw [ha] at h; cases h), d24, ?_⟩
+    d11, d12, d13, d14, d15, d16, d17, d18, d19, d20, d21, d22, (fun h => by rw [ha] at h; cases h), d24, ?_, d26⟩
   · unfold QueueIs at d5 ⊢
     show (S.queue.set n.val _)[k.val]! = _
     rw [get!_set_ne _ _ hne]; exact d5

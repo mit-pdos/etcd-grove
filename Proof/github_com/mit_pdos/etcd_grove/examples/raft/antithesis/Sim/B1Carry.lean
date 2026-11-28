@@ -33,6 +33,15 @@ variable [GooseExts]
 def SyncB1 (R : RunCfg) : Prop :=
   R.md.async = false ∧ R.drv.batch = false ∧ R.drv.split = 0 ∧ R.drv.parallel = false
 
+/-- `ParWriteOk` with no `mem` queued (#33 B2 Sim round 19). -/
+theorem parWriteOk_nil {R : RunCfg} {v : NodeView} (hm : v.mems = []) : ParWriteOk R v :=
+  fun _ _ m hm' => by rw [hm] at hm'; cases hm'
+
+/-- `ParWriteOk` depends on the view's queued writes, split parts, raft state and disk only. -/
+theorem parWriteOk_congr {R : RunCfg} {v w : NodeView} (hm : w.mems = v.mems) (hp : w.parts = v.parts)
+    (hs : w.ps = v.ps) (hd : w.dur = v.dur) (h : ParWriteOk R v) : ParWriteOk R w := by
+  unfold ParWriteOk; rw [hm, hp, hs, hd]; exact h
+
 theorem AckInD.toAckIn {N : Nat} {S : AntCheck.State} {i : Fin N} {dst : AntCheck.Str} {t k : Int}
     (h : AckInD S i dst t k) : AckIn S (nameOf (nodeId i)) dst t k := by
   obtain ⟨a, ha, h1, h2, h3, h4, h5, -⟩ := h

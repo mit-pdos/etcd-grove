@@ -43,11 +43,6 @@ theorem AckInX.le {N : Nat} {S : State} {n j : Fin N} {t k k' : Int} (h : AckInX
   obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
   exact ⟨a, ha, h1, h2, h3, h4, Int.le_trans hk h5, h6⟩
 
-/-- The disk's log is raft's (no write queued: `DiskFold`; snapshots off: no ghost prefix). -/
-theorem LdCtx.dlog (hx : LdCtx R.syncOff dec V net xnet G n r₁ rd S) : (V n).dur.log = (V n).ps.log := by
-  have hfp0 : (V n).r.fp = [] := (hx.hv.facts.snap0 hx.hsnf).2.1
-  rw [hx.hdn]; show (V n).r.fp ++ (V n).r.p.log = _; rw [hfp0]; rfl
-
 /-- **The term grown**: a leader's `Ready` keeps the term (`kind_leadKeep`). -/
 theorem memLead_term (hx : LdCtx R.syncOff dec V net xnet G n r₁ rd S) (hrl : r₁.p.role = .leader) :
     uint.Z (V n).ps.term ≤ uint.Z r₁.p.term :=
@@ -93,7 +88,7 @@ theorem memLead_mcKeep (hs : AntSimD R dec S V net xnet) (hok : MemOk R dec S V 
     (hpc : r₁.p.commit = (V n).ps.commit) {it : QItem} {P : List Msg} :
     MemCommitOk (memQ S r n.val it i) (memView (V n) r₁ rd P) := by
   intro _
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, d25⟩ := hs.2.2.2.2 n
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, d25, -⟩ := hs.2.2.2.2 n
   obtain ⟨m1, m2, m3⟩ := d25 hpar0
   have hcl := LdCtx.commit_le hx
   have hT := memLead_term hx hrl

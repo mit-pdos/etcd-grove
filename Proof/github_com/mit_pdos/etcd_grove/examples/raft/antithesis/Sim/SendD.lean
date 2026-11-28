@@ -791,7 +791,7 @@ theorem antSim_sendD_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
     exact ⟨_, Prefix.snoc hp hgc hst (violated_nil hs2.2.1.1.1 hl hgo2), hs2, hgo2⟩
   obtain ⟨hsh, ⟨hb, hub⟩, hn, -, hno⟩ := hs1
   have hcz : ∀ j : Fin R.N, 0 ≤ S1.commitIndex[j.val]! := fun j => by rw [(hno j).1.2.2.2]; word
-  obtain ⟨d1, d2, -, -, d5, -, -, hf, hL, -, hpo, -, -, -, -, -, -, -, -, -, hdf, -, -, hum, hmc⟩ := hno n
+  obtain ⟨d1, d2, -, -, d5, -, -, hf, hL, -, hpo, -, -, -, -, -, -, -, -, -, hdf, -, -, hum, hmc, -⟩ := hno n
   obtain ⟨hne, ⟨j, hj⟩, hcase⟩ := hpo hbat q hqp
   have hc : S1.cfg = R.cfg := hsh.1
   have hsrv : S1.cfg.server.has (nameOf q.dst) = true := by rw [hc, hj]; exact cfg_has R j

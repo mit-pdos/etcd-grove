@@ -238,7 +238,8 @@ theorem nodeOk_syncOffD {R : RunCfg} {dec : CCDec} {S0 : State} {net : List Msg}
     ⟨fun _ => f1, f2, f3, f4, f5, fun _ => by rw [hm, hp0]; exact f6, f7, f8, f9, f10, f11, f12, f13, f14,
       f15, hcl, hlt, hsm⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
     fun hb' => (by rw [hb] at hb'; cases hb'), hx, fun q hq => .inl (hqs q hq), ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_,
-    fun _ _ => (d3 ha rfl rfl rfl).2.2, (memCommitOk_of_disk (S := S0) hbo d1 hd :)⟩
+    fun _ _ => (d3 ha rfl rfl rfl).2.2, (memCommitOk_of_disk (S := S0) hbo d1 hd :),
+    parWriteOk_nil hm⟩
   · obtain ⟨l1, l2, l3, l4, l5, l6⟩ := hl hrl
     refine ⟨l1, l2, fun j k hk ht => ackX_stripX (stripU_ackX (l3 j k hk ht)),
       fun j hj => (l4 j hj).imp_right fun h => ackX_stripX (stripU_ackX h), fun _ => ⟨l5, ?_⟩⟩
