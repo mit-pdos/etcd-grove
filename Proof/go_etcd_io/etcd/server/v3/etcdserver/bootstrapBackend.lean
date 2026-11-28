@@ -282,7 +282,7 @@ theorem bootstrapBackend.wp_proof
   icases toks_take γB.wb _ 1 (by omega) $$ Hnwb with ⟨-, Hwb2⟩
   -- `schema.CreateMetaBucket(be.BatchTx())`
   wp_apply (hBT γB (bootP (storage.openLimit cfg)) _ _ b) $$ [$Hbpkg $HnB] as %t #Ht
-  wp_apply (hCMB γB (bootP (storage.openLimit cfg)) _ _ b t (1 : Qp).half hciK.1 hciK.2.2.2.2.2)
+  wp_apply (hCMB γB (bootP (storage.openLimit cfg)) _ _ b t (1 : Qp).half hciK.1 hciK.2.2.2.2.2.2)
     $$ [$Hschpkg $HnB $Ht $HoA Hwb1] as HoA
   · iunfold backend.wbTok; iexact Hwb1
   (try wp_auto)

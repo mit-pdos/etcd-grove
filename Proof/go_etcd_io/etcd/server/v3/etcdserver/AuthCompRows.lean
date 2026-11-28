@@ -122,7 +122,10 @@ def applyBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
+    ciApplying ci a t ∗
+    -- (keepfix (c)) the apply thread's mirror of the raft term field: 0 on a first start (`applyBuilt`'s)
+    ciRaftTerm γ.ci (W64 0) ∗
+    srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ acRes C s E ua srvAuthSt0 ∗
       apply.applierFor ua E ∗ srvApplyKVW E ua x₀) ∗
     revAuth E x₀.log ∗
@@ -560,17 +563,17 @@ theorem applyBuilt_C (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E
   dsimp only [AuthC.isOn, AuthC.mode, kvAuthM, kvRunM] at hC ⊢
   simp only [srvTokRights, hC, srvRestM_false]
   constructor
-  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Hfor, Hakv⟩, Hra,
+  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hrt, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Hfor, Hakv⟩, Hra,
       Har, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hra Hrdat Hao Hal Hkr Hrest Hap Hfs
+    iframe Hth Hbe Hca Hrt Hlg Hbm Hrdk Hbo Hra Hrdat Hao Hal Hkr Hrest Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iexists ua; iframe Hua Har Hfor Hakv
-  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Har, Hfor, Hakv⟩, Hra,
+  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hrt, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Har, Hfor, Hakv⟩, Hra,
       Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, -⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hra Har Hrdat Hao Hal Hkr Hrest Hap Hfs
+    iframe Hth Hbe Hca Hrt Hlg Hbm Hrdk Hbo Hra Har Hrdat Hao Hal Hkr Hrest Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iexists ua; iframe Hua Hfor Hakv
@@ -587,19 +590,19 @@ theorem applyBuiltOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
   simp only [← hT, ← kvAuthM_eq]
   dsimp only [AuthC.isOn, kvAuthM]
   constructor
-  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Hub, Hfor, Hakv⟩, Hra,
+  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hrt, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Hub, Hfor, Hakv⟩, Hra,
       Har, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hra Hrdat Hao Hal Hrest Hap Hfs Htok
+    iframe Hth Hbe Hca Hrt Hlg Hbm Hrdk Hbo Hra Hrdat Hao Hal Hrest Hap Hfs Htok
     isplitr
     · ipureintro; exact Hok
     isplitl [Hua Hub Har Hfor Hakv]
     · iexists ua; iframe Hua Hub Har Hfor Hakv
     iapply (kvRunM_nil_on γr ai₀ c₀ x₀).1 $$ Hkr
-  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, ⟨Hub, Har⟩, Hfor, Hakv⟩,
+  · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hrt, Hlg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, ⟨Hub, Har⟩, Hfor, Hakv⟩,
       Hra, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hra Har Hrdat Hao Hal Hrest Hap Hfs Htok
+    iframe Hth Hbe Hca Hrt Hlg Hbm Hrdk Hbo Hra Har Hrdat Hao Hal Hrest Hap Hfs Htok
     isplitr
     · ipureintro; exact Hok
     isplitl [Hua Hub Hfor Hakv]
@@ -630,11 +633,13 @@ theorem applyBuiltR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b 
       applyBuiltR C s γ ci b E γr ai₀ c₀ x₀ [] ai₀ := by
   iintro H
   iunfold applyBuiltC at H
-  icases H with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, Hua, Hra, Hrd, Hao,
+  icases H with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hrt, Hlg, Hbm, Hrdk, Hbo, Hua, Hra, Hrd, Hao,
     Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
   iunfold applyBuiltR
   iexists st₀, a, t, f, ai₀, srvAuthSt0
-  iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hua Hra Hrd Hao Hal Hkr Hrest Hap Hfs Htok
+  ihave Hrt' : iprop(∃ rt : w64, ciRaftTerm (GF := GF) γ.ci rt) $$ [Hrt]
+  · iexists _; iexact Hrt
+  iframe Hth Hbe Hca Hrt' Hlg Hbm Hrdk Hbo Hua Hra Hrd Hao Hal Hkr Hrest Hap Hfs Htok
   ipureintro
   exact ⟨Hok.1, by rw [← hc]; exact Hok.2, by simp⟩
 
