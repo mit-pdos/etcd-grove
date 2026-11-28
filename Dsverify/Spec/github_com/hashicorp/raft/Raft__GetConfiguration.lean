@@ -24,17 +24,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
-/-- `(*Raft).GetConfiguration()` (stage 4), on any goroutine: a `*configurationsFuture` (already
-answered `nil`; the client never calls `Error()` in scope) whose `configurations` field holds, as
-latest, a copy of the latest configuration cell's value (`getLatestConfiguration`: no servers, or a
-valid configuration, `cfgOpt`; it may not be committed). -/
+/-- `(*Raft).GetConfiguration()` (stage 4), on any goroutine: a `*configurationsFuture`, already
+answered `nil`, whose `configurations` field holds, as latest, a copy of the latest configuration
+cell's value (`getLatestConfiguration`: no servers, or a valid configuration, `cfgOpt`; it may not be
+committed), and the right to wait for its answer once (`deferWait`, answer `True`: S5c, the kit's
+`API.Status` calls `Error()` through `waitFuture`). -/
 abbrev github_com.hashicorp.raft.Raft.GetConfiguration.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"GetConfiguration")) (Val #()))
   {{ (fi : GoInterface), RET #fi; ∃ (f : Loc) (cf : configurations),
       ⌜fi = interface.mkOk (go.GoType.PointerType configurationsFuture.ty) #f⌝ ∗
-      f.[configurationsFuture, go!"configurations"] ↦ cf ∗ cfgOpt γ cf.latest' }}
+      f.[configurationsFuture, go!"configurations"] ↦ cf ∗ cfgOpt γ cf.latest' ∗
+      deferWait (f.[configurationsFuture, go!"deferError"]) (fun _ => iprop(True)) }}
 
 end spec
 

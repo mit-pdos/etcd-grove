@@ -14,9 +14,9 @@ is a prefix of another (`PfxsApart`; the deployment's are `pg/`, `du/`, `cw/`, `
   from `p`), `pfxLocal_putKey` (a put of a key under `p` is local to `p`);
 - `kvPfxInv γk ps`, `kvPfx γk p γ` (persistent: the invariant, with `p` at `γ` among its prefixes);
 - `kvPfx_au1`: an owner's update of the KV by an update local to its prefix, fired at most once (a write
-  sent at most once: `KV_Put_dist`'s), from the owner's own invariant over its half
+  sent at most once: `kv.Put.spec`'s at `dup = false`), from the owner's own invariant over its half
   (`inv (kvClientN.@s) (∃ v, ghostVar γ ½ v ∗ W v)`) and a step of `W`;
-- `kvPfx_readAu`: an owner's persistent read update (`kvReadAu`, `KV_Get_dist`'s), from a persistent read
+- `kvPfx_readAu`: an owner's persistent read update (`kvReadAu`, `kv.Get.spec`'s), from a persistent read
   of `W`;
 - `kvPfx_alloc`: the start's allocation, from `etcdKV γk σ₀` with no key-value and no change, for prefixes
   apart: the invariant and each prefix's half at `[]`.
@@ -507,7 +507,7 @@ theorem kvPfx_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Chang
 
 /-- **An owner's update of the KV, fired at most once** (see the file header): from the shared KV, the
 owner's invariant over its half and a step of its `W` (local to its prefix), an atomic update of the KV by
-`f`, as `KV_Put_dist` takes (`kvAu1`'s). -/
+`f`, as `kv.Put.spec` takes at `dup = false` (`kvAu1`'s). -/
 theorem kvPfx_au1 (γk : KVNames) (p : GoString) (γ : GName) (s : String) (hs : s ≠ "share")
     (W : List EtcdKv → IProp GF) [hW : ∀ v, Timeless (W v)]
     (f : KVState → KVState) (hf : PfxLocal p f) (Q : KVState → IProp GF) :
@@ -528,7 +528,7 @@ theorem kvPfx_au1 (γk : KVNames) (p : GoString) (γ : GName) (s : String) (hs :
   iapply Hstep $$ HW
 
 /-- **An owner's persistent read update of the KV** (see the file header): from the shared KV, the
-owner's invariant over its half and a persistent read of its `W`, `kvReadAu` (`KV_Get_dist`'s). -/
+owner's invariant over its half and a persistent read of its `W`, `kvReadAu` (`kv.Get.spec`'s). -/
 theorem kvPfx_readAu (γk : KVNames) (p : GoString) (γ : GName) (s : String) (hs : s ≠ "share")
     (W : List EtcdKv → IProp GF) [hW : ∀ v, Timeless (W v)] (Q : KVState → IProp GF) :
     kvPfx γk p γ ∗ inv (client.kvClientN .@ s) iprop(∃ v, ghostVar γ (1 : Qp).half v ∗ W v) ∗

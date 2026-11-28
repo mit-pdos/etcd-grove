@@ -40,7 +40,7 @@ stated `FsInit` as a premise). The premises restrict steps and crashes only; the
 start. Satisfiable: `TestsInit.lean`'s `fsInit0`. -/
 @[instance_reducible] def fsSemWithS (SQ : StepPrem) (Q : OsState → OsState → Prop) :
     ExtSemantics fsExt where
-  step o v h st g e' h' st' g' := FsStep o v h st g e' h' st' g' ∧ SQ o v st e' st'
+  step _ o v h st g e' h' st' g' := FsStep o v h st g e' h' st' g' ∧ SQ o v st e' st'
   crash st st' := OsCrash st st' ∧ Q st st'
   initLocal st _ := FsInit st
 

@@ -148,7 +148,7 @@ theorem rnLogOf_append [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalConte
   simp [rnLogOf]
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 abbrev rnLgAddr (r : Loc) : Loc := structFieldRef raftNode go!"lg" r
 abbrev rnTickMuAddr (r : Loc) : Loc := structFieldRef raftNode go!"tickMu" r

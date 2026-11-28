@@ -135,27 +135,39 @@ theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof featuregate.wp_New featuregate.featureGate.wp_Add featuregate.featureGate.wp_Enabled featuregate.featureGate.wp_GetAll
 
-theorem wp_newServerMode [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServerMode :
     EtcdGrove.etcdstart.newServerMode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServerMode.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer
 
-theorem wp_newServer [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServer :
     EtcdGrove.etcdstart.newServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServer.wp_proof wp_newServerMode
 
-theorem wp_BuildServer [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_BuildServer :
     EtcdGrove.etcdstart.BuildServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.BuildServer.wp_proof wp_newServer
 
-theorem wp_newServerModeRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServerModeF :
+    EtcdGrove.etcdstart.newServerMode.specF (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.newServerMode.wp_proofF features.wp_NewDefaultServerFeatureGate wp_NewServerAtA
+
+theorem wp_newServerF :
+    EtcdGrove.etcdstart.newServer.specF (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.newServer.wp_proofF wp_newServerModeF
+
+theorem wp_BuildServerF :
+    EtcdGrove.etcdstart.BuildServer.specF (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdstart.BuildServer.wp_proofF wp_newServerF
+
+theorem wp_newServerModeRestart :
     EtcdGrove.etcdstart.newServerMode.specRestart (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServerMode.wp_proofRestart mvcc.api.mvccApi_names_nonempty_law_holds features.wp_NewDefaultServerFeatureGate wp_NewServerR
 
-theorem wp_newServerRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServerRestart :
     EtcdGrove.etcdstart.newServer.specRestart (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServer.wp_proofRestart wp_newServerModeRestart
 
-theorem wp_BuildServerRestart [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_BuildServerRestart :
     EtcdGrove.etcdstart.BuildServer.specRestart (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.BuildServer.wp_proofRestart wp_newServerRestart
 
@@ -187,7 +199,7 @@ theorem net.wp_ListenHttp :
     EtcdGrove.net.Listen.specHttp (GF := GF) (hG := hG) :=
   EtcdGrove.net.Listen.wp_proofHttp _root_.Perennial.net.Listen.wp_proof
 
-theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_NewMember :
     EtcdGrove.etcdstart.NewMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewMember.wp_proof wp_newServer net.wp_ListenHttp EtcdServer.wp_RaftHandler
 
@@ -203,39 +215,39 @@ theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Server.Serve.wp_proof
 
-theorem wp_Serve [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_Serve :
     EtcdGrove.etcdstart.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.Serve.wp_proof grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.grpcCfgOk_of_startedM_law_holds client.raftKV_serverM_law_holds
 
-theorem wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartCompactingServer :
     EtcdGrove.etcdstart.StartCompactingServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartCompactingServer.wp_proof wp_newServerMode EtcdServer.wp_Start
 
-theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartMember :
     EtcdGrove.etcdstart.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start
 
-theorem wp_StartMembers [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartMembers :
     EtcdGrove.etcdstart.StartMembers.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartMembers.wp_proof wp_NewMember EtcdServer.wp_Start
 
-theorem wp_StartPeriodicServer [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartPeriodicServer :
     EtcdGrove.etcdstart.StartPeriodicServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartPeriodicServer.wp_proof wp_newServerMode EtcdServer.wp_Start
 
-theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartServer :
     EtcdGrove.etcdstart.StartServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartServer.wp_proof wp_newServer EtcdServer.wp_Start
 
-theorem wp_newServerModeAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServerModeAt :
     EtcdGrove.etcdstart.newServerMode.specAt (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServerMode.wp_proofAt features.wp_NewDefaultServerFeatureGate wp_NewServerAt
 
-theorem wp_newServerAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_newServerAt :
     EtcdGrove.etcdstart.newServer.specAt (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServer.wp_proofAt wp_newServerModeAt
 
-theorem wp_StartServerAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartServerAt :
     EtcdGrove.etcdstart.StartServer.specAt (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartServer.wp_proofAt wp_newServerAt EtcdServer.wp_Start
 

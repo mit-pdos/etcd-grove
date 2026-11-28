@@ -575,16 +575,16 @@ theorem apply.uberApplier.dispatch.wp_kvL
   ihave %nAD := apply.presentIs_null _ _ $$ HAD
   ihave %nAS := apply.presentIs_null _ _ $$ HAS
   ihave %nUA := apply.optReqIs_null _ _ _ (apply.authUserAddIs_nn lUA) $$ HUA
-  ihave %nUD := apply.presentIs_null _ _ $$ HUD
-  ihave %nUC := apply.presentIs_null _ _ $$ HUC
+  ihave %nUD := apply.optReqIs_null _ _ _ (apply.authUserDeleteIs_nn lUD) $$ HUD
+  ihave %nUC := apply.optReqIs_null _ _ _ (apply.authUserChangePasswordIs_nn lUC) $$ HUC
   ihave %nUGR := apply.optReqIs_null _ _ _ (apply.authUserGrantRoleIs_nn lUGR) $$ HUGR
-  ihave %nURR := apply.presentIs_null _ _ $$ HURR
+  ihave %nURR := apply.optReqIs_null _ _ _ (apply.authUserRevokeRoleIs_nn lURR) $$ HURR
   ihave %nUL := apply.presentIs_null _ _ $$ HUL
   ihave %nRL := apply.presentIs_null _ _ $$ HRL
   ihave %nRA := apply.optReqIs_null _ _ _ (apply.authRoleAddIs_nn lRA) $$ HRA
-  ihave %nRD := apply.presentIs_null _ _ $$ HRD
+  ihave %nRD := apply.optReqIs_null _ _ _ (apply.authRoleDeleteIs_nn lRD) $$ HRD
   ihave %nRGP := apply.optReqIs_null _ _ _ (apply.authRoleGrantPermissionIs_nn lRGP) $$ HRGP
-  ihave %nRRP := apply.presentIs_null _ _ $$ HRRP
+  ihave %nRRP := apply.optReqIs_null _ _ _ (apply.authRoleRevokePermissionIs_nn lRRP) $$ HRRP
   ihave %nDT := apply.presentIs_null _ _ $$ HDT
   ihave #Hsp := Hs
   iunfold apply.applierSpec at Hsp
@@ -1047,23 +1047,17 @@ theorem apply.uberApplier.dispatch.wp_kvL
   wp_if_destruct
   · -- AuthUserDelete (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUD ≠ null := by simpa using Hif
-    have hs : rq.authUserDelete = true := by
-      cases h : rq.authUserDelete
-      · exact absurd (nUD.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUD.2 h))
     have hk : dispatchKind rq = .authUserDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, hs]
     exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
-  have zAuthUserDelete : rq.authUserDelete = false := nUD.1 (by simpa using Hif)
+  have zAuthUserDelete : rq.authUserDelete = none := nUD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserChangePassword (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUC ≠ null := by simpa using Hif
-    have hs : rq.authUserChangePassword = true := by
-      cases h : rq.authUserChangePassword
-      · exact absurd (nUC.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUC.2 h))
     have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
     exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
-  have zAuthUserChangePassword : rq.authUserChangePassword = false := nUC.1 (by simpa using Hif)
+  have zAuthUserChangePassword : rq.authUserChangePassword = none := nUC.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGrantRole (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUGR ≠ null := by simpa using Hif
@@ -1082,13 +1076,10 @@ theorem apply.uberApplier.dispatch.wp_kvL
   wp_if_destruct
   · -- AuthUserRevokeRole (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lURR ≠ null := by simpa using Hif
-    have hs : rq.authUserRevokeRole = true := by
-      cases h : rq.authUserRevokeRole
-      · exact absurd (nURR.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nURR.2 h))
     have hk : dispatchKind rq = .authUserRevokeRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, hs]
     exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
-  have zAuthUserRevokeRole : rq.authUserRevokeRole = false := nURR.1 (by simpa using Hif)
+  have zAuthUserRevokeRole : rq.authUserRevokeRole = none := nURR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleAdd (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRA ≠ null := by simpa using Hif
@@ -1115,23 +1106,17 @@ theorem apply.uberApplier.dispatch.wp_kvL
   wp_if_destruct
   · -- AuthRoleRevokePermission (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRRP ≠ null := by simpa using Hif
-    have hs : rq.authRoleRevokePermission = true := by
-      cases h : rq.authRoleRevokePermission
-      · exact absurd (nRRP.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRRP.2 h))
     have hk : dispatchKind rq = .authRoleRevokePermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, hs]
     exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
-  have zAuthRoleRevokePermission : rq.authRoleRevokePermission = false := nRRP.1 (by simpa using Hif)
+  have zAuthRoleRevokePermission : rq.authRoleRevokePermission = none := nRRP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleDelete (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRD ≠ null := by simpa using Hif
-    have hs : rq.authRoleDelete = true := by
-      cases h : rq.authRoleDelete
-      · exact absurd (nRD.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRD.2 h))
     have hk : dispatchKind rq = .authRoleDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, hs]
     exact absurd Hkk (by simp [apply.authKVKind, apply.isKVKind, hk])
-  have zAuthRoleDelete : rq.authRoleDelete = false := nRD.1 (by simpa using Hif)
+  have zAuthRoleDelete : rq.authRoleDelete = none := nRD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserList (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUL ≠ null := by simpa using Hif

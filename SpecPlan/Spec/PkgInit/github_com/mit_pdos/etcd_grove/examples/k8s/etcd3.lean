@@ -4,6 +4,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
+public import Perennial.Proof.slices.Base
 public import Perennial.Proof.sort.Base
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base

@@ -1014,8 +1014,8 @@ theorem kInv_same (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk γk' : KV
 
 /-- One `kInv` at the cluster's KV names is one at every member's (`kInv_same`). -/
 theorem kInvs_of_same (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
-    (ms : List (EtcdGrove.client.SrvAt GF)) (h : ∀ x ∈ ms, kvSame x.γr.kv γk) :
-    kInv (GF := GF) γ c g0 γk ⊢ [∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv := by
+    (ms : List KVNames) (h : ∀ x ∈ ms, kvSame x γk) :
+    kInv (GF := GF) γ c g0 γk ⊢ [∗list] sv ∈ ms, kInv γ c g0 sv := by
   induction ms with
   | nil => iintro _; iapply BigSepL.bigSepL_nil.2; itrivial
   | cons y ys ih =>

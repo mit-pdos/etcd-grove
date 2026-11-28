@@ -34,6 +34,8 @@ importable Proof.go_etcd_io.raft.v3.InvNodeRule
 importable Proof.go_etcd_io.raft.v3.DurableLogView
 # (2026-11-24) leader completeness through the durable state: `cmtBefore` (sealed), L1/L2
 importable Proof.go_etcd_io.raft.v3.LeaderCompleteLaw
+# (2026-11-27) a durable log ends within its cluster's room (the restart's WAL read facts, I2)
+importable Proof.go_etcd_io.raft.v3.DurableLastFits
 # (2026-10-28, the conf-change decision switch) a client library deciding conf entries by a rule over
 # the cluster's decisions: `confPolicy` (persistent), `confPolicy_alloc`, `confPolicy_decide`
 importable Proof.go_etcd_io.raft.v3.ConfPolicy

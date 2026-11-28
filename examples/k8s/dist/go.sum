@@ -104,8 +104,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 h1:6fotK7otjonDflCTK0BCfls4SPy3NcCVb5dqqmbRknE=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75/go.mod h1:KO6IkyS8Y3j8OdNO85qEYBsRPuteD+YciPomcXdrMnk=
-github.com/upamanyus/bbolt v0.0.0-20261125221737-2f6fcfff7e4b h1:M1RVFcEBzyxBtpvlIbBaF9H46gAnp6pU7jHuro7aWF8=
-github.com/upamanyus/bbolt v0.0.0-20261125221737-2f6fcfff7e4b/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
+github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23 h1:4ZtCM9krEnL599tmD9RvTGxbedgdpDMGQMpwUH4pdXg=
+github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261128085012-be2e2542fe89 h1:76QxpuuGb0POBDFU9QmvzJH37bZ42RQRlYUnUCsBmSk=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261128085012-be2e2542fe89/go.mod h1:/DuZ/osddKIES1LfZeye/OS8B5pOfQ1XkTzP6Z/t8Gk=
 github.com/upamanyus/etcd/cache/v3 v3.0.0-20261128085012-be2e2542fe89 h1:oZPxB2OiN1ts7INg3c31xfQloROkYAYNN1Czku8BF2g=
@@ -118,8 +118,6 @@ github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261128085012-be2e2542fe89 h1:WZ/fdpUp0
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261128085012-be2e2542fe89/go.mod h1:VVZoKvlAPMLR5RhNcTMHxWAN/0WZAFN4b3aoLaBkg/w=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261128085012-be2e2542fe89 h1:w2F+sExN8uRIqy1EbVo0gN1Oe62uSpSGPRrknETNB7Y=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261128085012-be2e2542fe89/go.mod h1:MsGbq+f+4mPxOUcV4eLwG9tt6+p97xJcqy9XHyDBcOE=
-github.com/upamanyus/etcd/tests/v3 v3.0.0-20261128085012-be2e2542fe89 h1:IJ0MD/d8fRqfuNruQJpEb3gxmLN5Jvnsmjfd9kWCeXc=
-github.com/upamanyus/etcd/tests/v3 v3.0.0-20261128085012-be2e2542fe89/go.mod h1:7WbZZ83dQsMASs87k895lsjvZkq6qLBcn6TWblWy0Lg=
 github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247 h1:DQsOyOQIsFoJjySa9HJFLx4a9+edxNn+2IOuBjT78Gc=
 github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
 github.com/upamanyus/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261124053658-ef23adaea1b3 h1:wTFdocX1VfspZ9bwzOmkNDr2Nf9oWpl7LC1GoB8K9mo=

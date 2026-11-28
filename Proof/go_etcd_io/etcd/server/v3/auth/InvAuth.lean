@@ -19,11 +19,12 @@ P2)".
 - `rangePermCacheMu` (an `RWMutex`) guards the permission cache `rangePermCache` (`cacheP`): a
   map from user name to a `*unifiedRangePermissions` whose two interval trees (`readPerms`,
   `writePerms`) are read-only once built (`refreshRangePermCache` replaces the map whole with
-  freshly built trees). The auth plan's S2 (2026-10-23): each entry's trees hold lists of
-  bytes-affine entries (`permsAt`, `adt.ownIvtB`), and in the mode `on γa` the whole map is of
-  one recorded state (`cacheOk`): its keys are the state's users and each entry's intervals are
-  the user's permissions' (`cacheEntryIs`, `PermTree.lean`), so that `isRangeOpPermitted`
-  computes the model's `coversPoint`/`coversRange` of that state (`cacheVerdict`).
+  freshly built trees). The auth plan's S2 (2026-10-23; exact trees since nomode X-a3): each
+  entry's trees are bytes-affine red-black trees (`permsAt`, `adt.ownIvtTB`), and in the mode
+  `on γa` the whole map is of one recorded state (`cacheOk`): its keys are the state's users and
+  each entry's trees are those `getMergedPerms` builds from the user's permissions
+  (`cacheEntryIs`, `treeOf`, `PermTree.lean`), so that `isRangeOpPermitted` computes Go's verdict
+  `coversX` of that state (`cacheVerdict`).
 
 **Contracts** (the store calls them through interfaces; not yet proved of the real objects):
 - the backend `be` (`authBackendOk be R M`: schema's `authBackend` in the server): `ReadTx()`
@@ -38,7 +39,7 @@ P2)".
   (`etcdserver/InvAuthBackend.lean`, `authBucketsAre`);
 - the token provider (`tokenProviderOk`): `info(ctx, token, rev)` returns an auth info (nil, or
   one with read-only fields) and a boolean;
-- the cached trees are the interval tree's over bytes-affine keys (`adt.ownIvtB`,
+- the cached trees are the interval tree's over bytes-affine keys (`adt.ownIvtTB`,
   `adt/BytesIvl.lean`: its `Insert`/`Intersects`/`Contains` axioms pending the tree's comparator
   generalization; until S2 the trees were a contract, `ivtQuery`, returning any boolean).
 
@@ -89,6 +90,24 @@ namespace auth
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth
 
+section keys
+variable [GooseExts]
+
+/-- **Every stored user's name a bbolt key** at the state the batch transaction finds (nomode D3,
+2026-11-28: the premise of the writes that rewrite an existing user's record, `UserChangePassword`,
+`UserGrantRole`, `UserRevokeRole`; the fuel's `authSmall.names` gives it). -/
+abbrev userKeysOk (M : AuthMode) (hs : List AuthState) : Prop :=
+  ∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
+    n.length ≤ backend.maxKeySize
+
+/-- **Every stored role's name a bbolt key** (as `userKeysOk`; `RoleGrantPermission`'s and `RoleRevokePermission`'s rewrites;
+`authSmall.roleNames`). -/
+abbrev roleKeysOk (M : AuthMode) (hs : List AuthState) : Prop :=
+  ∀ s : AuthState, histLast M hs s → ∀ r : GoString, (s.roles !! r).isSome →
+    r.length ≤ backend.maxKeySize
+
+end keys
+
 section fields
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
@@ -136,26 +155,18 @@ instance authInfoRO_persistent (a : Loc) : Persistent (authInfoRO (GF := GF) a) 
   unfold authInfoRO; infer_instance
 
 /-- **A cache entry** `p` (a `*unifiedRangePermissions`, not nil; persistent): its two interval
-trees (`*intervalTree`s behind the `IntervalTree` interface), read-only, holding the entries `Lr`
-(`readPerms`) and `Lw` (`writePerms`) over bytes-affine keys (`adt.ownIvtB`). -/
-def permsAt (p : Loc) (Lr Lw : List adt.Entry) : IProp GF :=
+trees (`*intervalTree`s behind the `IntervalTree` interface), read-only, exactly the trees `Tr`
+(`readPerms`) and `Tw` (`writePerms`) over bytes-affine keys (`adt.ownIvtTB`, nomode X-a3). -/
+def permsAt (p : Loc) (Tr Tw : adt.RbT adt.Entry) : IProp GF :=
   iprop(⌜p ≠ null⌝ ∗ ∃ (tr tw : Loc),
     upF go!"readPerms" p ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tr ∗
     upF go!"writePerms" p ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tw ∗
-    adt.ownIvtB tr Lr .discard ∗ adt.ownIvtB tw Lw .discard)
+    adt.ownIvtTB tr Tr .discard ∗ adt.ownIvtTB tw Tw .discard)
 
 set_option synthInstance.maxSize 512 in
-instance permsAt_persistent (p : Loc) (Lr Lw : List adt.Entry) :
-    Persistent (permsAt (GF := GF) p Lr Lw) := by
+instance permsAt_persistent (p : Loc) (Tr Tw : adt.RbT adt.Entry) :
+    Persistent (permsAt (GF := GF) p Tr Tw) := by
   unfold permsAt; infer_instance
-
-/-- The entry's trees' lists for the user `u` at the state `st` (`getMergedPerms`): the user
-exists, and the lists' intervals are, as multisets (the tree orders them), the intervals of the
-user's permissions granting reads, resp. writes (`ivlsOf`, `PermTree.lean`). -/
-def cacheEntryIs (st : AuthState) (u : GoString) (Lr Lw : List adt.Entry) : Prop :=
-  ∃ roles, st.users !! u = some roles ∧
-    (Lr.map Prod.fst).Perm (ivlsOf .read (userPerms st roles)) ∧
-    (Lw.map Prod.fst).Perm (ivlsOf .write (userPerms st roles))
 
 /-- **The cache's map** `Mp` in the mode `M` (persistent): every entry a `permsAt`; in `on γa`,
 all of one recorded state `sta` (`refreshRangePermCache` builds the map from one transaction):
@@ -174,20 +185,14 @@ instance cacheOk_persistent (M : AuthMode) (Mp : GMap GoString Loc) :
   unfold cacheOk; cases M <;> infer_instance
 
 /-- **`isRangeOpPermitted`'s verdict** `b` in the mode `M` for the user `user` on `[k, e)` with
-the permission type `pt` (persistent): `on γa`, a recorded state in which the user's permissions
-of the type cover the point (`e` empty: `checkKeyPoint`) or the range (`checkKeyInterval`)
-exactly when the check passed, for a request with a non-empty key and a range that is open-ended
-or proper, of a state whose permissions' keys are non-empty (`permKeysOk`, what
-`isValidPermissionRange` enforces on grants); a user absent from that state is the check
-refusing. In the other modes nothing. -/
+the permission type `pt` (persistent): `on γa`, a recorded state at which the check's answer is Go's
+verdict (`cacheVerdictP`: the user exists with `coversX` of the request, for every request; a user
+absent from that state is the check refusing). In the other modes nothing. -/
 def cacheVerdict (M : AuthMode) (user k e : GoString)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (i : Nat) (sta : AuthState), authStateAt γa i sta ∗
-      ⌜k ≠ [] → (e = [] ∨ isOpenEnded e ∨ go.GoStringLt k e) → permKeysOk sta →
-        (b = true ↔ ∃ roles, sta.users !! user = some roles ∧
-          (if e = [] then coversPoint sta roles (permOp pt) k
-            else coversRange sta roles (permOp pt) k e))⌝)
+      ⌜cacheVerdictP sta user k e pt b⌝)
   | _ => iprop(True)
 
 instance cacheVerdict_persistent (M : AuthMode) (user k e : GoString)
@@ -197,12 +202,12 @@ instance cacheVerdict_persistent (M : AuthMode) (user k e : GoString)
 
 /-- A cache entry's model in the mode `M`: `on γa`, a recorded state whose user's permissions the
 entry's trees hold (`cacheEntryIs`); else nothing. -/
-def entryVerdict (M : AuthMode) (user : GoString) (Lr Lw : List adt.Entry) : IProp GF :=
+def entryVerdict (M : AuthMode) (user : GoString) (Lr Lw : adt.RbT adt.Entry) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (i : Nat) (sta : AuthState), authStateAt γa i sta ∗ ⌜cacheEntryIs sta user Lr Lw⌝)
   | _ => iprop(True)
 
-instance entryVerdict_persistent (M : AuthMode) (user : GoString) (Lr Lw : List adt.Entry) :
+instance entryVerdict_persistent (M : AuthMode) (user : GoString) (Lr Lw : adt.RbT adt.Entry) :
     Persistent (entryVerdict (GF := GF) M user Lr Lw) := by
   unfold entryVerdict; cases M <;> infer_instance
 
@@ -250,29 +255,19 @@ theorem cacheOk_absent (M : AuthMode) (Mp : GMap GoString Loc) (user k e : GoStr
     iexists i, sta
     iframe Hst
     ipureintro
-    intro _ _ _
-    have hu : sta.users !! user = none := by
-      have hd := Hdom user
-      rw [h] at hd
-      cases hs : sta.users !! user with
-      | none => rfl
-      | some r => rw [hs] at hd; simp at hd
-    simp only [hu, Bool.false_eq_true, false_iff, not_exists, not_and]
-    intro _ hr; cases hr
+    exact cacheVerdictP_absent sta Mp user k e pt Hdom h
   | off => unfold cacheVerdict; iintro -; itrivial
   | any => unfold cacheVerdict; iintro -; itrivial
 
-/-- **The check's result over the entry's trees is the verdict**: the point query or the
-coverage of the queried interval over the tree of the permission type (`checkKeyPoint`,
-`checkKeyInterval`), for a request with a non-empty key and an empty, open-ended or proper range,
-is the model's `coversPoint`/`coversRange` of the entry's state (`PermTree.lean`). -/
+/-- **The check's result over the entry's trees is the verdict**: the point query
+(`checkKeyPoint`: some entry of the tree of the permission type holds the key) or `Contains` of
+the queried interval on that tree (`checkKeyInterval`), over the trees `getMergedPerms` built from
+the entry's state, is Go's verdict there (`cacheVerdictP_entry`, `PermTree.lean`). -/
 theorem cacheVerdict_entry (M : AuthMode) (user k e : GoString)
-    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) (Lr Lw : List adt.Entry)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) (Lr Lw : adt.RbT adt.Entry)
     (hpt : pt = W32 0 ∨ pt = W32 1)
-    (hb : k ≠ [] → (e = [] ∨ isOpenEnded e ∨ go.GoStringLt k e) →
-      (b = true ↔ if e = [] then ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 k
-        else ∀ x, adt.inIvl (queryIvl k e) x →
-          ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 x)) :
+    (hb : (e = [] → (b = true ↔ ∃ z ∈ (if pt = W32 0 then Lr else Lw).inorder, adt.inIvl z.1 k)) ∧
+      (e ≠ [] → b = adt.containsT (queryIvl k e) (if pt = W32 0 then Lr else Lw))) :
     entryVerdict (GF := GF) M user Lr Lw ⊢ cacheVerdict M user k e pt b := by
   cases M with
   | on γa =>
@@ -281,30 +276,7 @@ theorem cacheVerdict_entry (M : AuthMode) (user k e : GoString)
     iexists i, sta
     iframe Hst
     ipureintro
-    intro hk hr hkeys
-    obtain ⟨roles, hroles, hLr, hLw⟩ := Hent
-    rw [hb hk hr]
-    -- the tree of the type holds the intervals of the permissions granting the operation
-    have hL : ((if pt = W32 0 then Lr else Lw).map Prod.fst).Perm
-        (ivlsOf (permOp pt) (userPerms sta roles)) := by
-      unfold permOp
-      rcases hpt with rfl | rfl
-      · simp only [↓reduceIte]; exact hLr
-      · rw [if_neg (by word), if_neg (by word)]; exact hLw
-    have hiff : ∀ roles', sta.users !! user = some roles' ↔ roles' = roles := by
-      intro roles'; rw [hroles]; constructor
-      · intro h; cases h; rfl
-      · rintro rfl; rfl
-    simp only [hiff, exists_eq_left]
-    by_cases he : e = []
-    · simp only [he, ↓reduceIte]
-      rw [coversPoint_iff sta roles (permOp pt) k hkeys]
-      exact exists_inIvl_perm hL k
-    · simp only [he, ↓reduceIte]
-      rw [coversRange_iff sta roles (permOp pt) k e hk he hkeys]
-      constructor
-      · intro H x hx; exact (exists_inIvl_perm hL x).1 (H x hx)
-      · intro H x hx; exact (exists_inIvl_perm hL x).2 (H x hx)
+    exact cacheVerdictP_entry sta user k e pt b Lr Lw hpt Hent hb
   | off => unfold cacheVerdict; iintro -; itrivial
   | any => unfold cacheVerdict; iintro -; itrivial
 
@@ -408,7 +380,7 @@ def permView (s : AuthState) : GoString → Option (List Perm) :=
   fun u => (s.users !! u).map (userPerms s)
 
 theorem cacheEntryIs_permView (s s' : AuthState) (h : permView s = permView s') (u : GoString)
-    (Lr Lw : List adt.Entry) : cacheEntryIs s u Lr Lw → cacheEntryIs s' u Lr Lw := by
+    (Lr Lw : adt.RbT adt.Entry) : cacheEntryIs s u Lr Lw → cacheEntryIs s' u Lr Lw := by
   have hu := congrFun h u
   unfold permView at hu
   rintro ⟨roles, hr, h1, h2⟩
@@ -1536,7 +1508,7 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
       {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
-            rr.toRole.Perm ps⌝ }}
+            rr.toRole = ps ∧ ps.Pairwise permLt⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
@@ -1598,7 +1570,7 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
       {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
-            rr.toRole.Perm ps⌝ }}
+            rr.toRole = ps ∧ ps.Pairwise permLt⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
@@ -2637,7 +2609,8 @@ theorem roleOut_null (st : AuthState) (name : GoString) :
 /-- `UnsafeGetRole(name)` returned a message: the state's role. -/
 theorem roleOut_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r ≠ null) :
     roleOut (GF := GF) r st name ⊢ ∃ (ps : Role) (rr : RoleRec),
-      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole.Perm ps⌝ ∗ ownRole r rr := by
+      ⌜st.roles !! name = some ps ∧ rr.name = name ∧ rr.toRole = ps ∧ ps.Pairwise permLt⌝ ∗
+        ownRole r rr := by
   unfold roleOut
   cases h : st.roles !! name with
   | none => iintro %Hn; exact absurd Hn hnn
@@ -2645,7 +2618,7 @@ theorem roleOut_some (r : Loc) (st : AuthState) (name : GoString) (hnn : r ≠ n
     iintro ⟨%rr, %Hrr, Hr⟩
     iexists ps, rr
     iframe Hr
-    ipureintro; exact ⟨rfl, Hrr.1, Hrr.2⟩
+    ipureintro; exact ⟨rfl, Hrr⟩
 
 /-- **A state of the latest one's revision appended** (`AuthEnable`: the flag set, the revision
 as stored): the atomic is unchanged, so the store's revision invariant is reopened only to move

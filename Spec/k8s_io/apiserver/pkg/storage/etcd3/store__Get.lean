@@ -46,7 +46,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev store.Get.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString)
     (opts : k8s_io.apiserver.pkg.storage.GetOptions) (out : GoInterface) (o0 : Obj) (rv0 : GoString)
@@ -56,8 +56,8 @@ abbrev store.Get.spec : Prop :=
       ⌜prepareKeyM c.resourcePrefix key false = some k ∧ (c.pathPrefix ++ k).length ≤ opKeyMax ∧
         c.S.parseRV opts.ResourceVersion' = some n⌝ ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt out o0 rv0 ∗
-      (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
-        kvReadAu x.γr.kv (Q R m))) }}
+      (∀ R m, |==> □ [∧list] γv ∈ c.K.kvs, ⌜Q R m = fun _ => iprop(True)⌝ ∨
+        kvReadAu γv (Q R m))) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Get")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #opts)) (Val #out))

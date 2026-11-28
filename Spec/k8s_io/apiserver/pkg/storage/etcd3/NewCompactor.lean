@@ -15,6 +15,7 @@ wait group's `Add(1)`s are `sync.join`'s, which needs no thread token. Returns t
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.EtcdClient
 
 @[expose] public section
 
@@ -36,17 +37,16 @@ variable [sync_sem : sync.Assumptions]
 
 /-- See the file header. -/
 abbrev NewCompactor.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γk : KVNames)
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (K : K8sEtcd GF) (γk : KVNames)
     (Seen : IProp GF) (recorded : w64 → IProp GF) [Persistent Seen] [∀ c, Persistent (recorded c)]
     (iv : w64) (ck : k8s_io.utils.clock.RealClock) (f : GoFunc),
-  (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 → iv ≠ W64 0 →
+  (∀ γ ∈ K.kvs, kvSame γ γk) → γk.cmp = true → γk.cret = 0 → iv ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗
-      client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      k8sClient K cl ∗
       clientKvOk cl γk ∗ clientWatchOk cl γk ∗
-      casOk ms γk Seen recorded ∗ keyReadOk γk recorded ∗ closeOk f }}
+      casOk K.kvs γk Seen recorded ∗ keyReadOk γk recorded ∗ closeOk f }}
     (App (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.NewCompactor)) (Val #cl))
       (Val #iv)) (Val #(interface.mkOk k8s_io.utils.clock.RealClock.ty #ck : GoInterface)))
       (Val #f))

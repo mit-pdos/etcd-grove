@@ -32,17 +32,16 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.getList.wp_proof
-    (wp_kList : kubernetes.Client.List.spec (GF := GF) (hG := hG))
-    (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG))
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_rse : store.getResourceSizeEstimator.spec (GF := GF) (hG := hG)) :
     store.getList.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp hkne hnr
+  intro _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp hkne hnr
   wp_start as ⟨#Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hkh⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
@@ -67,9 +66,9 @@ theorem store.getList.wp_proof
     wp_call
     (try wp_auto)
     icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
-    wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+    wp_apply (hK.get (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-        c.ms c.V ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision')
+        ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision')
         (fun R _ σ => Q R σ) hrev hkp) $$ [$Hlt HQ]
       as %gresp %gerr ⟨Hlt, Hget⟩
     · iframe #
@@ -170,9 +169,9 @@ theorem store.getList.wp_proof
     wp_call
     (try wp_auto)
     icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
-    wp_apply (wp_kList (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+    wp_apply (hK.list (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-        c.ms c.V ci cd kp lo Q hkp hct hrev hlim hcp) $$ [$Hlt HQ]
+        ci cd kp lo Q hkp hct hrev hlim hcp) $$ [$Hlt HQ]
       as %resp %lerr ⟨Hlt, Hlist⟩
     · iframe #
       iexact HQ

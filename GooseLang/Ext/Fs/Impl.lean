@@ -1345,7 +1345,7 @@ machine's first process starts in (`FsInit`, its `initLocal`, since 2026-11-22: 
 "durable at first start", `env_durable_at_first_start.go`, and a fresh process's nothing open,
 `env_fresh_process.go`). The shared state is unconstrained (the extension has none). -/
 instance fs_semantics : ExtSemantics fsExt where
-  step := FsStep
+  step := fun _ => FsStep
   crash := OsCrash
   initLocal st _ := FsInit st
 

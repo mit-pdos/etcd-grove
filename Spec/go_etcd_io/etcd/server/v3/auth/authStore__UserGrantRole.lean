@@ -25,14 +25,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserGrantRole(r)`** for a request naming `user` (within bbolt's key bound: the put
-contract's premise) and `role`, the user's roles in the latest state fewer than `2^62` (`sort.Strings`'
+/-- **`as.UserGrantRole(r)`** for a request naming `user` and `role`, every stored user's
+name a bbolt key (`userKeysOk`: the put contract's premise for the existing record it rewrites;
+nomode D3, until then the request's name bounded), the user's roles in the latest state fewer than `2^62` (`sort.Strings`'
 bound, after the append): the step `userGrantRoleR user role`. -/
 abbrev auth.authStore.UserGrantRole.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      userGrantRoleReqIs r user role ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗
       authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
         u.length < 2 ^ 62⌝ ∗

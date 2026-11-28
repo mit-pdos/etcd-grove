@@ -52,6 +52,14 @@ distinctness stays a premise of the four lease axioms. `etcdSvc`'s intended inte
 auth-on member's entries are the `etcd*SpecOn` handlers at `T := False` (no TLS identity: `ClientCertAuthEnabled`
 false in `deployment`'s configuration).
 
+**With auth off the table's KV entries are defined** (stage B′, 2026-11-28, `S2Interim.lean`'s `etcdSvc`: the
+view specs `etcd*SpecV Γ.kv`, flagged `nr`). Serving them claims, of a real auth-off member, that its KV
+handlers through etcd's unary chain meet the view specs and never return a refusal (`grpcRunNRMd`): the auth
+store stays disabled (no proof can call the Auth service of an auth-off view: its entries are `etcdSvcRest`'s),
+and the member is a voter for its whole life (`NewServer`'s `bootCfgFresh`: a member of a new cluster's initial
+membership; etcd has no voter-to-learner change). The axiom's docstring has the argument, `notes/etcdsvc-b.md`
+the details. The statement's text is unchanged.
+
 **Condition C** (re-reviews A and C, 2026-11-26): the auth-on drafts (`AuthViewDist.lean`) that read `Γ.au mid`
 are sound only while *every* route that serves `etcdSvc Γ mid` for an auth-on `Γ` requires
 `etcdstart.memberUpOn(L) … (Γ.au mid) …`, as this text does. No other serve axiom (an in-process `Serve`,
@@ -66,7 +74,7 @@ fixed `Γ` across crashes is a crash-line item.
 The distinct-auth-names premise binds only auth-on views (re-review C's N2: `Γ.au` is never read with auth off,
 so an auth-off start need not pad it). -/
 abbrev Serve_dist.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (mid : w64) (Γ : DistView),
   -- with auth on, distinct auth names per member (the lease review's form; redundant given the tie below;

@@ -20,7 +20,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `ti.Keep(rev)` by a reader (its knowledge `kn` of the index, a part of the compaction
 revision's authority at or below `rev`): the map of every key's revision `keep` keeps at `rev`

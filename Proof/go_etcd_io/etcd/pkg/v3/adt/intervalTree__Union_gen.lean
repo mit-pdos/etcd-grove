@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union_gen
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.VisitL
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert_gen
 
 @[expose] public section
@@ -36,7 +37,7 @@ theorem adt.intervalTree.Union_gen.wp_proof
   let I : List (Loc × adt.Entry) → IProp GF := fun acc =>
     iprop(adt.ownIvtK K t ((acc.map Prod.snd).foldl (fun a z => adt.ivtInsert z a) L) (DFrac.own 1) ∗
       [∗list] x ∈ acc, K.ivAt x.1 q' x.2)
-  wp_apply (h_Visit_gen K hK t' L' vb ve db de b e q' _ I (fun _ => iprop(False))) $$ [Ht Ht' Hkb Hke]
+  wp_apply (adt.Visit_gen_L h_Visit_gen K hK t' L' vb ve db de b e q' _ I (fun _ => iprop(False))) $$ [Ht Ht' Hkb Hke]
     as ⟨Hkb, Hke, %ps, %es, %r, %hpl, HI, Hwand⟩
   · iframe Ht' Hkb Hke
     isplitr [Ht]
@@ -51,7 +52,7 @@ theorem adt.intervalTree.Union_gen.wp_proof
         have := hpre.1.length_le
         simp only [List.length_append, List.length_map, List.length_singleton] at this
         omega
-      wp_apply (h_Insert_gen K hK t _ zb ze z.1.1 z.1.2 z.2) $$ [HIt] as HIt
+      wp_apply (adt.Insert_gen_L h_Insert_gen K hK t _ zb ze z.1.1 z.1.2 z.2) $$ [HIt] as HIt
       · iframe HIt
         iframe #
         ipureintro

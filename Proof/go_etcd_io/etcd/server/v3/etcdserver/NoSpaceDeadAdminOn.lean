@@ -124,6 +124,48 @@ theorem adminReqResult_authApplyErrIs (Own : auth.AuthNames → List auth.AuthSt
     isplitl [H]
     · iexists en; iframe Hev H; ipureintro; exact ⟨Hrn, Hk⟩
     · iexact HA
+  | authDisable =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨%en, #Hev, H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iexists en; iframe Hev H; ipureintro; exact Hrn
+    · iexact HA
+  | userDelete n =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨%en, #Hev, H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iexists en; iframe Hev H; ipureintro; exact Hrn
+    · iexact HA
+  | userChangePassword n =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iframe H; ipureintro; exact Hrn
+    · iexact HA
+  | userRevokeRole n ro =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨%en, #Hev, H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iexists en; iframe Hev H; ipureintro; exact Hrn
+    · iexact HA
+  | roleDelete ro =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨%en, #Hev, H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iexists en; iframe Hev H; ipureintro; exact Hrn
+    · iexact HA
+  | roleRevokePermission ro k e =>
+    simp only [apply.AdminReq.result]
+    icases H with ⟨H, %Hrn⟩
+    ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
+    isplitl [H]
+    · iframe H; ipureintro; exact Hrn
+    · iexact HA
   | authenticate n pre =>
     simp only [apply.AdminReq.result]
     icases H with ⟨Ho, Hout⟩

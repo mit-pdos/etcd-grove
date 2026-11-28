@@ -4,8 +4,8 @@
 
 `client_bootK`: the client's boot program (`putgetk.initialize' #()`, then `putgetk.Client(ep)`, its result
 discarded) is safe from its share of the start (`⌜ep ≠ ""⌝ -∗ ⌜addrOk ep⌝ ∗ clientShare ep Γ mid`) and its whole start, as putget's `client_boot` (`dist/putget/AdequacyClient.lean`): `Client.wp_proof`
-at `AddrOK`'s proof and putget's `Client.wp_proof` at its linked callees and `Client_Put_dist`, `Client_Get_dist`
-(theorems over the interim axioms `KV_Put_dist`, `KV_Get_dist`).
+at `AddrOK`'s proof and putget's `Client.wp_proof` at its linked callees and the client's linked
+`client.v3.kv.wp_Put`, `wp_Get`.
 -/
 module
 
@@ -14,6 +14,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Ad
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.decimal
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.AdequacyMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AdequacyClient
+public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AddrOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.decimal
 
@@ -39,7 +40,6 @@ set_option maxHeartbeats 1600000 in
 /-- **The client machine's boot** (see the file header). -/
 theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (ep : GoString) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (Γ : etcd_dist.DistView) (mid : w64) :
@@ -73,8 +73,8 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   wp_apply (Client.wp_proof (AddrOK.wp_proof decimal.wp_proof)
       (etcd_putget_dist.Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background
         context.WithTimeoutBackground.wp_proof context.wp_ErrAny
-        (etcd_dist.Client_Put_dist.wp_proof etcd_dist.KV_Put_dist.wp_proof)
-        (etcd_dist.Client_Get_dist.wp_proof etcd_dist.KV_Get_dist.wp_proof)
+        EtcdGrove.client.v3.kv.wp_Put
+        EtcdGrove.client.v3.kv.wp_Get
         (etcd_putget_dist.AddrOk.wp_proof etcd_putget_dist.decimal.wp_proof)
         mvcc.api.mvccApi_names_nonempty_law_holds)
       ep Γ mid EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hlt Hshare] as %b -

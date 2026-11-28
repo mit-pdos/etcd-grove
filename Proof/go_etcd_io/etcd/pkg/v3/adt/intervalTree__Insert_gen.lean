@@ -31,12 +31,12 @@ theorem adt.intervalTree.Insert_gen.wp_proof
     (h_updateMax : adt.intervalNode.updateMax.spec (GF := GF) (hG := hG))
     (h_insertFixup : adt.intervalTree.insertFixup.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Insert_gen.spec (GF := GF) (hG := hG) := by
-  intro K hK t L vb ve b e v
+  intro K hK t T vb ve b e v
   wp_start as ⟨Ht, #Hkb, #Hke, %hlen⟩
-  ihave %Htn := adt.ownIvtK_not_null K _ _ _ $$ Ht
-  unfold adt.ownIvtK
-  icases Ht with ⟨%tv, %T, Ht, Hsent, Hn, %Hp⟩
-  obtain ⟨hTL, hrb, hsorted, hcnt, -⟩ := Hp
+  ihave %Htn := adt.ownIvtT_not_null K _ _ _ $$ Ht
+  unfold adt.ownIvtT
+  icases Ht with ⟨%tv, Ht, Hsent, Hn, %Hp⟩
+  obtain ⟨hrb, hsorted, hcnt, -⟩ := Hp
   icases adt.ivt_fields _ _ _ $$ Ht with ⟨Hr, Hc, Hs, -⟩
   wp_auto
   wp_apply (h_createIntervalNode K hK) t tv.sentinel' (DFrac.own 1) vb ve b e v $$ [Hs]
@@ -57,12 +57,13 @@ theorem adt.intervalTree.Insert_gen.wp_proof
       "HC" ∷ adt.ownCtx K t tv.sentinel' C x y Tx.maxEnd ∗
       "Hn" ∷ adt.ownNode K tv.sentinel' (DFrac.own 1) y x Tx ∗
       "%Hd" ∷ ⌜C.plug Tx = T ∧ C.plug (Tx.insertBST ((b, e), v)) = T.insertBST ((b, e), v) ∧
-        C.dirOk ((b, e), v)⌝ : IProp GF) $$ [x y Hr Hn]
+        C.dirOk ((b, e), v) ∧ Tx.insertAt ((b, e), v) C = T.insertRB ((b, e), v)⌝ : IProp GF)
+      $$ [x y Hr Hn]
   · icases adt.ownCtx_root K t _ tv.root' T $$ [Hr Hn] with ⟨HC, Hn⟩
     · iframe
     iexists tv.root', tv.sentinel', .top, T
     iframe
-    ipureintro; exact ⟨rfl, rfl, trivial⟩
+    ipureintro; exact ⟨rfl, rfl, trivial, rfl⟩
   wp_for HI
   cases Tx with
   | leaf =>
@@ -100,7 +101,7 @@ theorem adt.intervalTree.Insert_gen.wp_proof
         wp_auto
         wp_apply hK .discard .discard zb yb b ye.1.1 $$ [] as ⟨-, -⟩
         · iframe ∗ #
-        have hlt : adt.ivlLt (b, e) ye.1 := Hd.2.2
+        have hlt : adt.ivlLt (b, e) ye.1 := Hd.2.2.1
         wp_join iprop(y.[intervalNode, go!"left"] ↦ z ∗ y_ptr ↦ y ∗ z_ptr ↦ z ∗
             beginCompare_ptr ↦ W64 (adt.affCmp b ye.1.1) ∗
             z.[intervalNode, go!"iv"].[IntervalValue, go!"Ivl"].[Interval, go!"End"] ↦
@@ -149,7 +150,7 @@ theorem adt.intervalTree.Insert_gen.wp_proof
         wp_auto
         wp_apply hK .discard .discard zb yb b ye.1.1 $$ [] as ⟨-, -⟩
         · iframe ∗ #
-        have hge : ¬ adt.ivlLt (b, e) ye.1 := Hd.2.2
+        have hge : ¬ adt.ivlLt (b, e) ye.1 := Hd.2.2.1
         wp_join iprop(y.[intervalNode, go!"right"] ↦ z ∗ y_ptr ↦ y ∗ z_ptr ↦ z ∗
             beginCompare_ptr ↦ W64 (adt.affCmp b ye.1.1) ∗
             z.[intervalNode, go!"iv"].[IntervalValue, go!"Ivl"].[Interval, go!"End"] ↦
@@ -212,17 +213,23 @@ theorem adt.intervalTree.Insert_gen.wp_proof
       iframe
     ihave Ht := adt.ivt_combine t R tv.sentinel' (tv.count' + W64 1) Htn $$ [Hr Hc Hs]
     · iframe
-    iapply HΦ
-    iexists ({ root' := R, count' := tv.count' + W64 1, sentinel' := tv.sentinel' } : intervalTree),
-      T'
-    iframe
-    ipureintro
+    have hTeq : T' = T.insertRB ((b, e), v) := HT'.2.2.trans Hd.2.2.2
+    subst hTeq
     have hins : (RbCtx.plug C (.node .red .leaf ((b, e), v) .leaf)) =
         T.insertBST ((b, e), v) := Hd.2.1
-    refine ⟨?_, HT'.1, adt.ivtInsert_ivSorted _ L hsorted, ?_, ?_⟩
-    · rw [HT'.2, hins, adt.inorder_insertBST _ T (by rw [hTL]; exact hsorted), hTL]
-    · rw [adt.length_ivtInsert, hcnt]; word
-    · rw [adt.length_ivtInsert]; exact hlen
+    have hinord' : (T.insertRB ((b, e), v)).inorder = adt.ivtInsert ((b, e), v) T.inorder := by
+      rw [HT'.2.1, hins, adt.inorder_insertBST _ T hsorted]
+    iapply HΦ
+    isplitl
+    · iexists ({ root' := R, count' := tv.count' + W64 1, sentinel' := tv.sentinel' } :
+        intervalTree)
+      iframe
+      ipureintro
+      refine ⟨HT'.1, ?_, ?_, ?_⟩
+      · rw [hinord']; exact adt.ivtInsert_ivSorted _ _ hsorted
+      · rw [hinord', adt.length_ivtInsert, hcnt]; word
+      · rw [hinord', adt.length_ivtInsert]; exact hlen
+    · ipureintro; exact hinord'
   | node c l xe r =>
     icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hn with
       ⟨%lp, %rp, %Hxn, Hxiv, Hxmx, Hxl, Hxr, Hxp, Hxc, Hxln, Hxrn⟩
@@ -245,8 +252,9 @@ theorem adt.intervalTree.Insert_gen.wp_proof
       iexists lp, x, .inL c C xe r, l
       iframe
       ipureintro
-      refine ⟨by simpa using Hd.1, ?_, hlt⟩
-      rw [← Hd.2.1, adt.plug_insertBST_left _ _ _ _ _ _ hlt]
+      refine ⟨by simpa using Hd.1, ?_, hlt, ?_⟩
+      · rw [← Hd.2.1, adt.plug_insertBST_left _ _ _ _ _ _ hlt]
+      · rw [← Hd.2.2.2]; simp [adt.RbT.insertAt, hlt]
     · have hb1 : ¬ adt.affCmp b xe.1.1 < 0 := by rw [hz, h0] at Hif; exact Hif
       wp_if_destruct
       · have hb0 := (hw0 _ _).1 Hif
@@ -266,8 +274,9 @@ theorem adt.intervalTree.Insert_gen.wp_proof
           iexists lp, x, .inL c C xe r, l
           iframe
           ipureintro
-          refine ⟨by simpa using Hd.1, ?_, hlt⟩
-          rw [← Hd.2.1, adt.plug_insertBST_left _ _ _ _ _ _ hlt]
+          refine ⟨by simpa using Hd.1, ?_, hlt, ?_⟩
+          · rw [← Hd.2.1, adt.plug_insertBST_left _ _ _ _ _ _ hlt]
+          · rw [← Hd.2.2.2]; simp [adt.RbT.insertAt, hlt]
         · -- begin equal, end not below: right
           have hge : ¬ adt.ivlLt (b, e) xe.1 := by
             rintro (h | ⟨-, h⟩)
@@ -284,8 +293,9 @@ theorem adt.intervalTree.Insert_gen.wp_proof
           iexists rp, x, .inR c l xe C, r
           iframe
           ipureintro
-          refine ⟨by simpa using Hd.1, ?_, hge⟩
-          rw [← Hd.2.1, adt.plug_insertBST_right _ _ _ _ _ _ hge]
+          refine ⟨by simpa using Hd.1, ?_, hge, ?_⟩
+          · rw [← Hd.2.1, adt.plug_insertBST_right _ _ _ _ _ _ hge]
+          · rw [← Hd.2.2.2]; simp [adt.RbT.insertAt, hge]
       · -- begin above: right
         have hge : ¬ adt.ivlLt (b, e) xe.1 := by
           rintro (h | ⟨h, -⟩)
@@ -302,8 +312,9 @@ theorem adt.intervalTree.Insert_gen.wp_proof
         iexists rp, x, .inR c l xe C, r
         iframe
         ipureintro
-        refine ⟨by simpa using Hd.1, ?_, hge⟩
-        rw [← Hd.2.1, adt.plug_insertBST_right _ _ _ _ _ _ hge]
+        refine ⟨by simpa using Hd.1, ?_, hge, ?_⟩
+        · rw [← Hd.2.1, adt.plug_insertBST_right _ _ _ _ _ _ hge]
+        · rw [← Hd.2.2.2]; simp [adt.RbT.insertAt, hge]
 
 
 end proof

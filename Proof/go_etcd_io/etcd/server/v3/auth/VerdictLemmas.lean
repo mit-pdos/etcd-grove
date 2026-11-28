@@ -199,16 +199,11 @@ theorem permVerdict_cache_pass (M : AuthMode) (info : AuthInfo) (key rangeEnd : 
   | on γa =>
     unfold revisionVerdict authSnap cacheVerdict permVerdict
     iintro ⟨%j, %sr, #Hsr, %Hr⟩ ⟨%i, #Hsu⟩ ⟨%k, %sc, #Hsc, %Hc⟩
-    ihave %Hk := authStateAt_permKeysOk γa k sc $$ Hsc
     isplitr
-    · by_cases hs : reqShape key rangeEnd
-      · iexists k, sc; iframe #; ipureintro; intro _
-        obtain ⟨roles', hu', hcov⟩ := (Hc hs.1 hs.2 Hk).1 rfl
-        unfold permitted granted
-        exact Or.inr ⟨h0, roles', hu', Or.inr fun _ => hcov⟩
-      · iexists i, sta; iframe #; ipureintro; intro _
-        unfold permitted granted
-        exact Or.inr ⟨h0, roles, hu, Or.inr fun h => absurd h hs⟩
+    · iexists k, sc; iframe #; ipureintro; intro _
+      obtain ⟨roles', hu', hcov⟩ := Hc.1 rfl
+      unfold permitted granted
+      exact Or.inr ⟨h0, roles', hu', Or.inr hcov⟩
     isplitr
     · iexists j, sr; iframe #; ipureintro; intro _; right; rw [← Hr]; exact hcur
     · iexists ⟨sta, sta, sta, sta⟩
@@ -230,7 +225,6 @@ theorem permVerdict_cache_refused (M : AuthMode) (info : AuthInfo) (key rangeEnd
   | on γa =>
     unfold enabledVerdict authSnap cacheVerdict permVerdict
     iintro ⟨%i, %sf, #Hsf, %Hb⟩ ⟨%j, #Hsu⟩ ⟨%k, %sc, #Hsc, %Hc⟩
-    ihave %Hk := authStateAt_permKeysOk γa k sc $$ Hsc
     isplitr
     · iexists i, sf; iframe #; ipureintro; intro h; exact absurd h herr
     isplitr
@@ -242,10 +236,13 @@ theorem permVerdict_cache_refused (M : AuthMode) (info : AuthInfo) (key rangeEnd
         refine ⟨Hb.symm, Or.inr (Or.inr fun u hu' => ?_)⟩
         have hu'' : sta.users !! info.Username' = some u := hu'
         rw [hu] at hu''; cases hu''
-        refine ⟨hnroot, fun hs u' hu2 hcov => ?_⟩
+        refine ⟨hnroot, fun u' hu2 => ?_⟩
         have hu2' : sc.users !! info.Username' = some u' := hu2
-        have hf := (Hc hs.1 hs.2 Hk).2 ⟨u', hu2', hcov⟩
-        cases hf
+        have hx : coversX sc u' (permOp pt) key rangeEnd = false := by
+          cases hcov : coversX sc u' (permOp pt) key rangeEnd
+          · rfl
+          · cases Hc.2 ⟨u', hu2', hcov⟩
+        exact hx
 
 /-! ## `IsAdminPermitted` -/
 

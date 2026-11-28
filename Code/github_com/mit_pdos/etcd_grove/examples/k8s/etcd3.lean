@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.context
+public import Perennial.Code.slices
 public import Perennial.Code.sort
 public import Perennial.Code.strings
 public import Perennial.Code.sync
@@ -90,6 +91,11 @@ noncomputable def wkey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.wkey" [])
 
 attribute [irreducible] wkey.ty
+
+noncomputable def wmemo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.wmemo" [])
+
+attribute [irreducible] wmemo.ty
 
 noncomputable def Obj.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.Obj" [])
@@ -341,9 +347,6 @@ attribute [irreducible] change.ty
 @[reducible] noncomputable def WBad [GooseExts] [GoGlobalContext] : val :=
   #(5 : Int)
 
-noncomputable def crossCheck [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.crossCheck"
-
 noncomputable def errNotObj [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.errNotObj"
 
@@ -457,9 +460,6 @@ noncomputable def reliableOkIdx [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def wantEventsIdx [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.wantEventsIdx"
-
-noncomputable def CrossCheckWatches [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.CrossCheckWatches"
 
 noncomputable def stepIdx [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.stepIdx"
@@ -832,7 +832,7 @@ noncomputable def nonBookmarks [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- Model is the driver's Model from the seeded store.
 
-    go: export.go:32:17 -/
+    go: export.go:33:17 -/
 noncomputable def Seeded.Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -852,7 +852,7 @@ noncomputable def Seeded.Model.impl [GooseExts] [GoGlobalContext] : val :=
 /-- NewCache is Check's per-client cache (newWCache): clients unary clients of ops operations each,
     the rest watchers, the drawn resource versions floored at the seeded store's revision.
 
-    go: export.go:38:17 -/
+    go: export.go:39:17 -/
 noncomputable def Seeded.NewCache.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "clients"
@@ -876,7 +876,7 @@ noncomputable def Seeded.NewCache.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RealCheck is the maintainers' checker (realCheck) on a failure-free history ordered by the
     driver's linearization.
 
-    go: export.go:44:17 -/
+    go: export.go:45:17 -/
 noncomputable def Seeded.RealCheck.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ops"
@@ -899,7 +899,7 @@ noncomputable def Seeded.RealCheck.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- FailureFree is failureFree.
 
-    go: export.go:49:6 -/
+    go: export.go:50:6 -/
 noncomputable def FailureFree.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ops"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -919,7 +919,7 @@ noncomputable def FailureFree.impl [GooseExts] [GoGlobalContext] : val :=
     store over kc with the driver's codec, versioner, decoder and transformer; false if a step
     failed.
 
-    go: export.go:57:6 -/
+    go: export.go:58:6 -/
 noncomputable def NewStoreOnly.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kc"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty))) (Val #())))
@@ -997,7 +997,7 @@ noncomputable def NewStoreOnly.impl [GooseExts] [GoGlobalContext] : val :=
     watch: runWatch's output; otherwise call's), without the prophecy and without the cache, which
     stay with the orchestrator (Record).
 
-    go: export.go:73:6 -/
+    go: export.go:74:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "in"
@@ -1049,7 +1049,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
     with a name; the unary operations' count). An output whose call got no answer (a unary EOther,
     a failed watch) records nothing but the count, as Apply's output of a failed call.
 
-    go: export.go:85:6 -/
+    go: export.go:86:6 -/
 noncomputable def Record.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tbl"
   (Lam "in"
@@ -1128,7 +1128,7 @@ noncomputable def Record.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- IsWrite is isWrite.
 
-    go: export.go:106:6 -/
+    go: export.go:107:6 -/
 noncomputable def IsWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1146,7 +1146,7 @@ noncomputable def IsWrite.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Rejections are the callbacks' own errors (errDeleteRejected, errUpdateRejected), which a Raw's
     encoding names.
 
-    go: export.go:112:6 -/
+    go: export.go:113:6 -/
 noncomputable def Rejections.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1167,7 +1167,7 @@ noncomputable def Rejections.impl [GooseExts] [GoGlobalContext] : val :=
 /-- SetFeatures sets the features newStore sets (no streaming lists, WatchList on), or returns
     false: the orchestrator's process has the API servers' features, as the driver's one process.
 
-    go: export.go:118:6 -/
+    go: export.go:119:6 -/
 noncomputable def SetFeatures.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1182,7 +1182,7 @@ noncomputable def SetFeatures.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- rvOfMsg is the resource version a failed precondition's message names (preMsg), or 0.
 
-    go: export.go:153:6 -/
+    go: export.go:154:6 -/
 noncomputable def rvOfMsg.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "msg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -1241,7 +1241,7 @@ noncomputable def rvOfMsg.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- decodeItemRVs is a list's items (encodeItems) as key and resource version, or false.
 
-    go: export.go:167:6 -/
+    go: export.go:168:6 -/
 noncomputable def decodeItemRVs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType item.ty)))) (Val #())))
@@ -1379,7 +1379,7 @@ noncomputable def decodeItemRVs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- HistoryRevs collects the revisions the history ops names.
 
-    go: export.go:192:6 -/
+    go: export.go:193:6 -/
 noncomputable def HistoryRevs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ops"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Revs.ty))) (App (Val (GoInstruction (GoZeroVal Revs.ty))) (Val #())))
@@ -1451,45 +1451,20 @@ noncomputable def HistoryRevs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Revs.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.MapType go.uint64 go.bool))))) (Var "byKey"))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 go.bool)))) (Val #())))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (map.forRange go.string (go.GoType.MapType go.uint64 go.bool))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "$key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.uint64) go.any))) (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"fastByKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))))
-  (Let "$a1" (Lam "i"
-  (Lam "j"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"fastByKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"fastByKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Let "$a0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"fastByKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice' []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.uint64) go.any))) (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"byKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))))
-  (Let "$a1" (Lam "i"
-  (Lam "j"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"byKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"byKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Let "$a0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"byKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "m"))
   (Let "v" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 go.bool)) (Var "$range"))
@@ -1513,29 +1488,18 @@ noncomputable def HistoryRevs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"byKey"))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "v") (Var "$key"))))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "v") (Var "$key")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (Var "m") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (Var "m") (Var "$value"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (Pair (App (Val (GoInstruction (StructFieldRef Revs.ty go!"fastByKey"))) (Var "r")) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.SliceType go.uint64))))) (Pair (App (Val (GoInstruction (StructFieldRef Revs.ty go!"byKey"))) (Var "r")) (Var "$r0"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.uint64) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"anchors"))) (Var "r"))))
-  (Let "$a1" (Lam "i"
-  (Lam "j"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"anchors"))) (Var "r"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"anchors"))) (Var "r"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Revs.ty go!"anchors"))) (Var "r")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.uint64), go.uint64]))) (Val #())) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "all"))
   (Let "v" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val (map.forRange go.uint64 go.bool)) (Var "$range"))
@@ -1606,7 +1570,7 @@ noncomputable def HistoryRevs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "its") (Var "$r0"))))))))))))
   (App (Val doExecute)
   (Val #())))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "out"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENone)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Name"))) (Var "out"))) (Val #(go!""))))) (Val #false)))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "out"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENone)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KCreate)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KDelete))))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KUpdate)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"NoOp"))) (Var "in")))) (Val #false)))
   (Let "$r0" (Val #true)
@@ -1754,7 +1718,7 @@ noncomputable def HistoryRevs.impl [GooseExts] [GoGlobalContext] : val :=
     revision appended to the history), or c if it is at t or beyond. The stores appended to a
     history node are built once and shared (gaps), so that histories that skip alike are one.
 
-    go: export.go:277:23 -/
+    go: export.go:280:23 -/
 noncomputable def histHashes.skipTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "c"
@@ -1852,13 +1816,13 @@ noncomputable def histHashes.skipTo.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "$res0")))))))
 
 /-- target is the least revision a configuration at rv must be at for the operation in to answer
-    out (0: none): a write's new revision less one, the current revision a "not found" or a current
-    List names, the revision a past List reads, a Get's minimum resource version, the greatest
-    revision a watch's events name (and, for a watch-list with an event, its resource version, at
-    least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
+    out (0: none): a write's (create, delete, update) new revision less one, the current revision a
+    "not found" or a current List names, the revision a past List reads, any other kind's (a Get's)
+    minimum resource version, the greatest revision a watch's events name (and, for a watch-list
+    with an event, its resource version, at least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
     and needs none.
 
-    go: export.go:306:6 -/
+    go: export.go:309:6 -/
 noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -1868,6 +1832,7 @@ noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "rv" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "rv"))
   (Let "out" (App (Val (GoInstruction (GoAlloc Output.ty))) (Var "out"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1883,24 +1848,13 @@ noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W64 0))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "req"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "out"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv")))))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "out"))) (Val #(W64 1))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (Let "$sw" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in")))
-  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KList))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KList)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ListRV"))) (Var "out")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1919,15 +1873,8 @@ noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))
-  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KGet))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "req"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))))
+  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1941,6 +1888,26 @@ noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "req") (Var "$r0"))))))))))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in")))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KUpdate)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KDelete)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KCreate))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "out"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv")))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "out"))) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "out"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ENone))))))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2067,7 +2034,7 @@ noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
     write's answer's revision, the current revision a "not found" or a current List names, one less
     than a too-large resource version.
 
-    go: export.go:363:6 -/
+    go: export.go:370:6 -/
 noncomputable def bound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -2156,7 +2123,7 @@ noncomputable def bound.impl [GooseExts] [GoGlobalContext] : val :=
     if b > 0 or where the answer needs w at that revision (shows), and the answer's own revision
     for w's key; with full, those and every anchor and the one after it, whatever the bound.
 
-    go: export.go:391:6 -/
+    go: export.go:398:6 -/
 noncomputable def landings.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "revs"
   (Lam "c"
@@ -2288,7 +2255,7 @@ noncomputable def landings.impl [GooseExts] [GoGlobalContext] : val :=
     write's refusal on key (exists, rejected, a failed precondition), which shows an object there
     and not its revision.
 
-    go: export.go:425:6 -/
+    go: export.go:432:6 -/
 noncomputable def shows.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -2448,7 +2415,7 @@ noncomputable def shows.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- intern is the canonical node of the store st after the canonical history prev (hh.mu held).
 
-    go: export.go:481:23 -/
+    go: export.go:488:23 -/
 noncomputable def histHashes.intern.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "prev"
@@ -2532,7 +2499,7 @@ noncomputable def histHashes.intern.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- canonical is h's canonical node.
 
-    go: export.go:499:23 -/
+    go: export.go:506:23 -/
 noncomputable def histHashes.canonical.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "h"
@@ -2560,7 +2527,7 @@ noncomputable def histHashes.canonical.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef histHashes.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType histHashes.ty)))) (Var "hh")))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hnode.ty)))) (Var "$res0"))))))
 
-/-- go: export.go:505:23 -/
+/-- go: export.go:512:23 -/
 noncomputable def histHashes.canonLocked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "h"
@@ -2615,7 +2582,7 @@ noncomputable def histHashes.canonLocked.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType hnode.ty)))) (Pair (Var "n") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hnode.ty)))) (Var "$res0"))))))
 
-/-- go: export.go:518:6 -/
+/-- go: export.go:525:6 -/
 noncomputable def mix.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "v"
@@ -2637,7 +2604,7 @@ noncomputable def mix.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "h") (App (Val (GoInstruction (GoOp GoXor go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "h")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v")))))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: export.go:524:6 -/
+/-- go: export.go:531:6 -/
 noncomputable def strHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "s"
@@ -2679,7 +2646,7 @@ noncomputable def strHash.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- storeHash is a hash of a store (its revision and items).
 
-    go: export.go:533:6 -/
+    go: export.go:540:6 -/
 noncomputable def storeHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -2769,7 +2736,7 @@ noncomputable def storeHash.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "h") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
 
-/-- go: export.go:567:18 -/
+/-- go: export.go:574:18 -/
 noncomputable def cfgSet.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -2853,7 +2820,7 @@ noncomputable def cfgSet.add.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: export.go:584:6 -/
+/-- go: export.go:591:6 -/
 noncomputable def pendEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -2904,7 +2871,7 @@ noncomputable def pendEqual.impl [GooseExts] [GoGlobalContext] : val :=
 /-- settle is every configuration c reaches by its pending writes taking effect, in any order, each
     at one of its landings (Model's closure, with the revision chosen).
 
-    go: export.go:598:6 -/
+    go: export.go:605:6 -/
 noncomputable def settle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "revs"
@@ -3071,7 +3038,7 @@ noncomputable def settle.impl [GooseExts] [GoGlobalContext] : val :=
     the one before is not; CheckShared (examples/k8s/dist) runs them in turn on Illegal, and only
     Full's Illegal is a verdict.
 
-    go: export.go:644:17 -/
+    go: export.go:651:17 -/
 noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "revs"
@@ -3087,8 +3054,9 @@ noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoAlloc histHashes.ty))) (App (Val (GoInstruction (CompositeLiteral histHashes.ty))) (LiteralValue [])))
   (Let "hh" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType histHashes.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType histHashes.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType wkey.ty go.bool)))) (LiteralValue []))
-  (Let "memo" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType wkey.ty go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType wkey.ty go.bool)))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc wmemo.ty))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType wkey.ty go.bool)))) (LiteralValue []))
+  (App (Val (GoInstruction (CompositeLiteral wmemo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"m")) (ElementExpression (go.GoType.MapType wkey.ty go.bool) (Var "$v0")))]))))
+  (Let "memo" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType wmemo.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType wmemo.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
@@ -3170,7 +3138,7 @@ noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (FuncResolve target []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType histHashes.ty) go!"skipTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType histHashes.ty)))) (Var "hh"))) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType wkey.ty go.bool)))) (Var "memo"))
+  (Let "$range" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "d"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad Output.ty))) (Var "out"))
@@ -3203,7 +3171,7 @@ noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType histHashes.ty) go!"skipTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType histHashes.ty)))) (Var "hh"))) (Var "$a0")) (Var "$a1"))))
   (Let "d" (App (Val (GoInstruction (GoAlloc mcfg.ty))) (App (Val (GoInstruction (GoZeroVal mcfg.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType wkey.ty go.bool)))) (Var "memo"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "d"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad Output.ty))) (Var "out"))
@@ -3313,7 +3281,7 @@ noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType wkey.ty go.bool)))) (Pair (Var "memo") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType wmemo.ty)))) (Pair (Var "memo") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType histHashes.ty)))) (Pair (Var "hh") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -3324,7 +3292,7 @@ noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
     through cli, at whatever revisions they get; the history has the empty store up to the first,
     then each seed's store up to the next revision it reaches. False if a Put failed.
 
-    go: export.go:694:6 -/
+    go: export.go:701:6 -/
 noncomputable def SeedShared.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Seeded.ty))) (App (Val (GoInstruction (GoZeroVal Seeded.ty))) (Val #())))
@@ -3473,7 +3441,7 @@ noncomputable def SeedShared.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Floor is the seeded store's revision (the resource versions drawn are floored at it).
 
-    go: export.go:716:17 -/
+    go: export.go:723:17 -/
 noncomputable def Seeded.Floor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3494,7 +3462,7 @@ noncomputable def Seeded.Floor.impl [GooseExts] [GoGlobalContext] : val :=
     writes answer with above the seeded store's are exactly the next ones, from it up to the greatest
     M, and no revision any input or output names is above M.
 
-    go: export.go:725:17 -/
+    go: export.go:732:17 -/
 noncomputable def Seeded.NoForeign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ops"
@@ -3577,7 +3545,7 @@ noncomputable def Seeded.NoForeign.impl [GooseExts] [GoGlobalContext] : val :=
 /-- AcceptAll is a model that accepts every history: RunLin2 with it only runs the clients and
     returns their history, which the caller checks.
 
-    go: export.go:745:6 -/
+    go: export.go:752:6 -/
 noncomputable def AcceptAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -3637,7 +3605,7 @@ noncomputable def AcceptAll.impl [GooseExts] [GoGlobalContext] : val :=
     version (pastRead: Exact, or the legacy match recursive with a limit), or a watch from a resource
     version above 0.
 
-    go: export.go:756:6 -/
+    go: export.go:763:6 -/
 noncomputable def PastRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3694,7 +3662,7 @@ noncomputable def PastRead.impl [GooseExts] [GoGlobalContext] : val :=
     getStartWatchResourceVersion; and the etcd client resumes a broken watch stream from the last
     revision it received).
 
-    go: export.go:773:6 -/
+    go: export.go:780:6 -/
 noncomputable def PinnedRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3711,7 +3679,7 @@ noncomputable def PinnedRead.impl [GooseExts] [GoGlobalContext] : val :=
 /-- SeededAt is the seeded store SeedShared makes when its Puts get the revisions r1 < r2 (the
     driver's seed: 2 and 3), without a cluster: for the tests and for rechecking a dumped history.
 
-    go: export.go:779:6 -/
+    go: export.go:786:6 -/
 noncomputable def SeededAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r1"
   (Lam "r2"
@@ -3824,7 +3792,7 @@ noncomputable def SeededAt.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- SeedRevs are the seeds' revisions.
 
-    go: export.go:796:17 -/
+    go: export.go:803:17 -/
 noncomputable def Seeded.SeedRevs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3876,7 +3844,7 @@ noncomputable def Seeded.SeedRevs.impl [GooseExts] [GoGlobalContext] : val :=
     output's events), and RVBytes rvBytes (a resource version's string): for the tests of
     SharedModel.
 
-    go: export.go:805:6 -/
+    go: export.go:812:6 -/
 noncomputable def EncodeItems.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "items"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3891,7 +3859,7 @@ noncomputable def EncodeItems.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: export.go:806:6 -/
+/-- go: export.go:813:6 -/
 noncomputable def EncodeWEvents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3906,7 +3874,7 @@ noncomputable def EncodeWEvents.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: export.go:807:6 -/
+/-- go: export.go:814:6 -/
 noncomputable def RVBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3923,7 +3891,7 @@ noncomputable def RVBytes.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- viewFrom is h's view from the revision lo (at least 1).
 
-    go: export.go:828:6 -/
+    go: export.go:834:6 -/
 noncomputable def viewFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "lo"
@@ -3990,7 +3958,7 @@ noncomputable def viewFrom.impl [GooseExts] [GoGlobalContext] : val :=
 /-- at is histAt(v.h, r): the store at r from the view when r is in it (every revision has its node:
     histOf, advance and skipTo append one per revision), histAt otherwise.
 
-    go: export.go:844:16 -/
+    go: export.go:850:16 -/
 noncomputable def hview.«at».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Lam "r"
@@ -4021,7 +3989,7 @@ noncomputable def hview.«at».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- watchOkIdx is watchOk.
 
-    go: export.go:852:6 -/
+    go: export.go:858:6 -/
 noncomputable def watchOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -4152,7 +4120,7 @@ noncomputable def watchOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- watchListOkIdx is watchListOk.
 
-    go: export.go:878:6 -/
+    go: export.go:884:6 -/
 noncomputable def watchListOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "req"
@@ -4241,7 +4209,7 @@ noncomputable def watchListOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- initialPrefixOkIdx is initialPrefixOk.
 
-    go: export.go:897:6 -/
+    go: export.go:903:6 -/
 noncomputable def initialPrefixOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "req"
@@ -4327,7 +4295,7 @@ noncomputable def initialPrefixOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- reliableOkIdx is reliableOk.
 
-    go: export.go:916:6 -/
+    go: export.go:922:6 -/
 noncomputable def reliableOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "req"
@@ -4408,7 +4376,7 @@ noncomputable def reliableOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- wantEventsIdx is wantEvents.
 
-    go: export.go:932:6 -/
+    go: export.go:938:6 -/
 noncomputable def wantEventsIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "lo"
@@ -4502,23 +4470,12 @@ noncomputable def wantEventsIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore hview.ty))) (Pair (Var "v") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType WEvent.ty)))) (Var "$res0"))))))))
 
-/-- CrossCheckWatches turns the cross-check of watchOkIdx against watchOk on or off (the tests).
-
-    go: export.go:951:6 -/
-noncomputable def CrossCheckWatches.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "on"
-  (Seq (App (Val exceptionDo)
-  (Let "on" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "on"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "on"))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (GlobalVarAddr crossCheck))) (Val #())) (Var "$r0")))))))
-  (Val #())))
-
 /-- stepIdx is step, with a watch checked by watchOkIdx, its verdict kept in memo per history (a
     watch's verdict is a function of the history: porcupine tries a watch at many points, and again
-    after it backtracks).
+    after it backtracks). The lock is held around the lookup and around the store, not around
+    watchOkIdx. (The cross-check of watchOkIdx against watchOk is a test: TestCrossCheckWatches.)
 
-    go: export.go:964:6 -/
+    go: export.go:972:6 -/
 noncomputable def stepIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "memo"
   (Lam "c"
@@ -4529,7 +4486,7 @@ noncomputable def stepIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "out" (App (Val (GoInstruction (GoAlloc Output.ty))) (Var "out"))
   (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
   (Let "c" (App (Val (GoInstruction (GoAlloc mcfg.ty))) (Var "c"))
-  (Let "memo" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType wkey.ty go.bool)))) (Var "memo"))
+  (Let "memo" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType wmemo.ty)))) (Var "memo"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hnode.ty)))) (App (Val (GoInstruction (StructFieldRef mcfg.ty go!"hist"))) (Var "c")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
@@ -4538,13 +4495,15 @@ noncomputable def stepIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral wkey.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"hist")) (ElementExpression (go.GoType.PointerType hnode.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"in")) (ElementExpression Input.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"evs")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"fail")) (ElementExpression go.bool (Var "$v3")))]))))))
   (Let "k" (App (Val (GoInstruction (GoAlloc wkey.ty))) (App (Val (GoInstruction (GoZeroVal wkey.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 wkey.ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType wkey.ty go.bool)))) (Var "memo"))) (App (Val (GoInstruction (GoLoad wkey.ty))) (Var "k")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 wkey.ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType wkey.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef wmemo.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo"))))) (App (Val (GoInstruction (GoLoad wkey.ty))) (Var "k")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "seen" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4573,25 +4532,25 @@ noncomputable def stepIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (App (Val (map.insert wkey.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType wkey.ty go.bool)))) (Var "memo"))) (App (Val (GoInstruction (GoLoad wkey.ty))) (Var "k"))) (Var "$r0"))))))
-  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (GlobalVarAddr crossCheck))) (Val #()))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (Let "$a0" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Output.ty))) (Var "out"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad mcfg.ty))) (Var "c"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve watchOk []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))) (Val #false))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef wmemo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo")))) (Val #())))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"etcd3: watchOkIdx and watchOk differ")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (App (Val (map.insert wkey.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType wkey.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef wmemo.ty go!"m"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo"))))) (App (Val (GoInstruction (GoLoad wkey.ty))) (Var "k"))) (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef wmemo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo")))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef wmemo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo")))) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "seen") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef wmemo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType wmemo.ty)))) (Var "memo")))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore wkey.ty))) (Pair (Var "k") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KWatch))))))
@@ -15973,7 +15932,7 @@ noncomputable def nonBookmarks.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType WEvent.ty)))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.sort, pkg_id.strings, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.client.v3.kubernetes, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.etcd3, pkg_id.errors, pkg_id.io, pkg_id.strconv, pkg_id.sync.atomic, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.apiserver.pkg.storage.value, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge, pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.slices, pkg_id.sort, pkg_id.strings, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.client.v3.kubernetes, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.etcd3, pkg_id.errors, pkg_id.io, pkg_id.strconv, pkg_id.sync.atomic, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.apiserver.pkg.storage.value, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge, pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -16043,6 +16002,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.slices.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
@@ -16102,8 +16063,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (go.GlobalAlloc crossCheck go.bool)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc errNotObj go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -16955,6 +16914,47 @@ attribute [instance] wkey.TypeAssumptions.type_repr
   wkey.TypeAssumptions.set_fail
   wkey.TypeAssumptions.method_set
   wkey.TypeAssumptions.ptr_method_set
+
+structure wmemo [GooseExts] where
+  mk ::
+  mu' : _root_.Perennial.sync.Mutex
+  m' : GoMap
+
+noncomputable instance wmemo.zero_val [GooseExts] : ZeroVal wmemo :=
+  ⟨wmemo.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def wmemo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"m" (go.GoType.MapType wkey.ty go.bool))]
+
+@[irreducible] noncomputable def wmemo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  wmemo.fieldsUnsealed
+
+noncomputable instance equals_unfold_wmemo [GooseExts] [GoGlobalContext] :
+    EqualsUnfold wmemo.fields wmemo.fieldsUnsealed :=
+  ⟨by unfold wmemo.fields; rfl⟩
+
+@[reducible] noncomputable def wmemo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType wmemo.fields)
+
+class wmemo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying wmemo.underlying wmemo
+  underlying : go.UnderlyingDirectedEq wmemo.ty wmemo.underlying
+  get_mu : ∀ (x : wmemo), go.IsGoStepPureDetTagged under (StructFieldGet wmemo.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : wmemo) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet wmemo.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : wmemo)))
+  get_m : ∀ (x : wmemo), go.IsGoStepPureDetTagged under (StructFieldGet wmemo.underlying go!"m") #x (Val #(x.m'))
+  set_m : ∀ (x : wmemo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet wmemo.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : wmemo)))
+  method_set : go.MethodSetIs wmemo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType wmemo.ty) []
+
+attribute [instance] wmemo.TypeAssumptions.type_repr
+  wmemo.TypeAssumptions.underlying
+  wmemo.TypeAssumptions.get_mu
+  wmemo.TypeAssumptions.set_mu
+  wmemo.TypeAssumptions.get_m
+  wmemo.TypeAssumptions.set_m
+  wmemo.TypeAssumptions.method_set
+  wmemo.TypeAssumptions.ptr_method_set
 
 structure ObjList [GooseExts] where
   mk ::
@@ -17959,6 +17959,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ckey_instance : ckey.TypeAssumptions
   hview_instance : hview.TypeAssumptions
   wkey_instance : wkey.TypeAssumptions
+  wmemo_instance : wmemo.TypeAssumptions
   Obj_instance : Obj.TypeAssumptions
   ObjList_instance : ObjList.TypeAssumptions
   codec_instance : codec.TypeAssumptions
@@ -18012,7 +18013,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   initialPrefixOkIdx_unfold : FuncUnfold initialPrefixOkIdx [] initialPrefixOkIdx.impl
   reliableOkIdx_unfold : FuncUnfold reliableOkIdx [] reliableOkIdx.impl
   wantEventsIdx_unfold : FuncUnfold wantEventsIdx [] wantEventsIdx.impl
-  CrossCheckWatches_unfold : FuncUnfold CrossCheckWatches [] CrossCheckWatches.impl
   stepIdx_unfold : FuncUnfold stepIdx [] stepIdx.impl
   putField_unfold : FuncUnfold putField [] putField.impl
   encodeWith_unfold : FuncUnfold encodeWith [] encodeWith.impl
@@ -18137,6 +18137,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   wantEvents_unfold : FuncUnfold wantEvents [] wantEvents.impl
   nonBookmarks_unfold : FuncUnfold nonBookmarks [] nonBookmarks.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_slices_Assumption : _root_.Perennial.slices.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -18176,6 +18177,7 @@ attribute [instance] Assumptions.Seeded_instance
   Assumptions.ckey_instance
   Assumptions.hview_instance
   Assumptions.wkey_instance
+  Assumptions.wmemo_instance
   Assumptions.Obj_instance
   Assumptions.ObjList_instance
   Assumptions.codec_instance
@@ -18229,7 +18231,6 @@ attribute [instance] Assumptions.Seeded_instance
   Assumptions.initialPrefixOkIdx_unfold
   Assumptions.reliableOkIdx_unfold
   Assumptions.wantEventsIdx_unfold
-  Assumptions.CrossCheckWatches_unfold
   Assumptions.stepIdx_unfold
   Assumptions.putField_unfold
   Assumptions.encodeWith_unfold
@@ -18354,6 +18355,7 @@ attribute [instance] Assumptions.Seeded_instance
   Assumptions.wantEvents_unfold
   Assumptions.nonBookmarks_unfold
   Assumptions.import_context_Assumption
+  Assumptions.import_slices_Assumption
   Assumptions.import_sort_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption

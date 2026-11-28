@@ -1,8 +1,8 @@
 /-
 **The putget and durable workloads of `examples/etcd/dist/client`, linked** (#50 N9a,
 `notes/etcd-dist-plan.md` §23): each `wp_proof` at its callees' linked results, the cross-machine clientv3
-calls at the interim axioms `etcd_dist.KV_Put_dist.wp_proof`/`KV_Get_dist.wp_proof` (N2's, reviewed:
-`notes/axiom-review/n2-kv-dist.md`) and `Client.Close` at its existing trust-boundary axiom. No new axiom.
+calls at the client's linked `client.v3.kv.wp_Put`/`wp_Get` (at the client's `isKv` of the auth-off view,
+stage B′) and `Client.Close` at its existing trust-boundary axiom. No new axiom.
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -16,8 +16,7 @@ public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
+public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
@@ -59,14 +58,14 @@ theorem wp_newClientKVW : newClient.spec (GF := GF) (hG := hG) :=
 theorem wp_RunPutGet : RunPutGet.spec (GF := GF) (hG := hG) :=
   RunPutGet.wp_proof wp_newClientKVW checked.wp_proof ended.wp_proof EtcdGrove.strconv.Itoa.wp_proof
     context.wp_Background context.WithTimeoutBackground.wp_proof context.wp_ErrAny
-    EtcdGrove.Client.Close.wp_proof KV_Put_dist.wp_proof KV_Get_dist.wp_proof
+    EtcdGrove.Client.Close.wp_proof client.v3.kv.wp_Put client.v3.kv.wp_Get
 
 /-- **durable's orchestrator, linked.** -/
 theorem wp_RunDurable : RunDurable.spec (GF := GF) (hG := hG) :=
   RunDurable.wp_proof wp_newClientKVW checked.wp_proof ended.wp_proof durableKey.wp_proof
     durableValue.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof context.wp_ErrAny
     (EtcdGrove.WithPrefix.wp_proof EtcdGrove.getPrefix.wp_proof) EtcdGrove.Client.Close.wp_proof
-    KV_Put_dist.wp_proof KV_Get_dist.wp_proof
+    client.v3.kv.wp_Put client.v3.kv.wp_Get
 
 end linked
 

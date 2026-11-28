@@ -227,6 +227,7 @@ public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.InProcLinked
 public import Perennial.Proof.bytes.Link
 public import Proof.reflect.DeepEqualK8s
 public import Proof.maps.Keys
@@ -1121,9 +1122,9 @@ theorem wp_watchList :
 
 theorem wp_newStore :
     EtcdGrove.k8s_etcd3.newStore.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.newStore.wp_proof wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion runtime.wp_Decode codec.wp_Decode storage.wp_AnnotateInitialEventsEndBookmark Obj.wp_GetAnnotations Obj.wp_SetAnnotations
+  EtcdGrove.k8s_etcd3.newStore.wp_proof wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion runtime.wp_Decode codec.wp_Decode storage.wp_AnnotateInitialEventsEndBookmark Obj.wp_GetAnnotations Obj.wp_SetAnnotations k8s.inProcEtcd_laws_law_holds
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_Main :
     EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_newStore context.wp_ErrAny wp_Check mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 

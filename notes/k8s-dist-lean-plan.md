@@ -236,6 +236,14 @@ cl (ms.map SrvAt.addr) V ∗ [∗list] x ∈ ms, kvRegsAt x` and per-member read
   `SendInit == 2` with a non-Error event, `max(t, max(req, 1))`. **Done** (`152e1a4634`):
   `TestSharedWatchList` (K4's counterexample: every mode accepts, and rejects it with a wrong value; all
   three answered Illegal before the fix).
+- **G8, G9, G10** (from K4-3, `notes/k8s-dist-k4.md` "K4-3", branch `k8s-dist-k4/2026-11-27`). G8: `target`
+  parses `MinRV` only for the kinds that read it (a create, delete or update never does); G9: `HistoryRevs`
+  anchors every successful answer's revision, with or without a name; G10: `target`'s write arm only for
+  `KCreate`, `KDelete`, `KUpdate`, every other kind its `MinRV` (`mstep` answers it with `mget`). **Done**
+  (branch `k8s-dist-g8/2026-11-27`): `TestSharedGaps` (K4-3's three counterexamples: CheckShared and Full
+  accept each, and reject it with a wrong value in every mode; Lazy, by design, still rejects G9's, whose
+  pending create it cannot land below a later write it applied first; before the fix every mode and
+  CheckShared answered Illegal on all three).
 
 ## 4. Stages (riskiest first), with estimates
 
@@ -245,7 +253,7 @@ under `systemd-run --scope -p MemoryMax=56G` on the 61G hosts.
 
 | Stage | What | Risk | Sessions | Build |
 |---|---|---|---|---|
-| **K4** | **`SharedModel`'s full mode is complete**, a pure proof. If the cluster's real history linearizes with foreign revisions, compactions and pending writes, then the full mode's search reaches a configuration that answers it. It needs the canonical-placement argument (k8s-dist.md: a pending write moves down to one above the greatest revision named below it); the "Still open" eager timeouts do not matter for soundness. First on paper, then as Lean functions mirroring `settle`/landings and the theorem | **highest** (if it fails: two clusters) | 2-4 | light (pure modules over the driver's `Model` defs) |
+| **K4** (K4-1: paper proof done, complete but for the watch-list gap, G7; Handoff K4-1) | **`SharedModel`'s full mode is complete**, a pure proof. If the cluster's real history linearizes with foreign revisions, compactions and pending writes, then the full mode's search reaches a configuration that answers it. It needs the canonical-placement argument (k8s-dist.md: a pending write moves down to one above the greatest revision named below it); the "Still open" eager timeouts do not matter for soundness. First on paper, then as Lean functions mirroring `settle`/landings and the theorem | **highest** (if it fails: two clusters) | 2-4 | light (pure modules over the driver's `Model` defs) |
 | K5 | The client abstraction of the k8s library (`StoreCfg`'s `ms`/`V` → `k8sClient` and its laws), in-process instance re-proved; `k8s_all` unchanged | medium (wide, mechanical) | 2-3 | heavy: k8s cone rebuilt, several hours at 16 cores |
 | K6 | Interim-axiom packet: `KV_GetE_dist` (kvErr + rangeErrΨ at `Γ`), Txn/Compact error arms (kvErr); the `kubernetes.Client.{Get,List}` compacted half proved in-process | medium (review) | 1 + reviews | light |
 | K1/K2/K3 | Statement packet (§1) for approval; Go changes G1-G6 and a TestDist re-run; the `k8s-dist` translation and `etc/gen-init.py` entries | low | 0.5 + 1-2 + 1 | translation: moderate |
@@ -271,6 +279,195 @@ about 12-18.
   after rule-#8 approval.
 - **G3/G4** are trivial Go fixes, safe to do now. G1/G5/G6 also need no approval. G2 waits for the user's OK.
 
+### 4.1 K5: the client interface (design, 2026-11-27)
+
+**What the library uses today** (callees of `etc/link-lean-first-k8s-etcd3.txt` in the client packages, and
+the `StoreCfg` fields their statements name):
+
+- the store (unary and list paths): `kubernetes.Client.{Get,List,OptimisticPut,OptimisticDelete}`, over
+  `isNewClient c.cl (c.ms.map addr) c.V ∗ clientWriteOnce ∗ [∗list] x ∈ c.ms, kvRegsAt x` (`isStore`), with
+  per-member updates `[∧list] x ∈ c.ms, … x.γr.kv …` and the premise `∀ x ∈ c.ms, noRefusalAt x.addr`;
+- the watch (`watchChan.{syncPaginated,startWatching}`): the client's `KV.Get` (`client_range_any.law`,
+  wrapped by `wp_syncGet`, which already states it abstractly: `□ Qr σ ∗ srvRangeOk …` or `kClientErr`) and
+  its `Watcher.Watch` (`isClientWatcher V w`);
+- the compactor (`Compact`, `compactor.{getCompactRev,runWatchLoop,runCompactLoop}`,
+  `StartCompactorPerEndpoint`): `KV.Txn`/`If`/`Then`/`Else`/`Commit` (one CAS), `Client.Compact`
+  (`client_Compact_kv.law`), `KV.Get` at a revision, `Watcher.Watch`, `Client.Endpoints`; its own
+  `cl ms V γk` arguments, not a `StoreCfg`.
+
+`V` is used only to pass to these specs and in `isNewClient`. `ms` is used for three things: the
+linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the endpoints (`ms.map addr`).
+
+**The interface** (new defs module `Proof/k8s_io/apiserver/pkg/storage/etcd3/EtcdClient.lean`):
+
+- `K8sEtcd GF`, the data, a structure:
+  - `kvs : List KVNames`: the KV ghosts a request may linearize at; every update a spec takes is given at
+    each (`[∗list]`/`[∧list] γ ∈ K.kvs`). In-process: `ms.map (·.γr.kv)`; dist (K7) and S2: `[Γ.kv]`.
+  - `live : Prop`: the premise under which a range error is sound (no refusal). In-process:
+    `∀ x ∈ ms, noRefusalAt x.addr`; dist: what the `_dist` axioms need (`True` if none).
+  - `eps : List GoString`: the endpoints (`Client.Endpoints`). In-process: `ms.map SrvAt.addr`.
+- `k8sClient K cl : IProp GF`, persistent, as the cache's `isEtcdClient` (`CacheWorkDefs.lean:341`): the
+  triples of the client calls the library makes, on `cl` (the `*clientv3.Client`), each the in-process
+  spec with `isNewClient … ∗ clientWriteOnce … ∗ [∗list] kvRegsAt` dropped, `[∧list] x ∈ ms, F x.γr.kv`
+  become `[∧list] γ ∈ K.kvs, F γ`, and `∀ x ∈ ms, noRefusalAt x.addr` become `K.live`. Fields, in
+  batches (one conjunct group each):
+  - **C1** (store): `kubernetes.Client.{Get,List,OptimisticPut,OptimisticDelete}` on any `kc` with
+    `kc.Client' = cl`;
+  - **C2** (watch): `∃ api w`, `cl.KV ↦□ kvIfaceOf api`, `cl.Watcher ↦□ watcherIfaceOf w`, with
+    `wp_syncGet`'s triple (readAus over `K.kvs`) and the watch-open triple the watch proofs use;
+  - **C3** (compactor): the CAS `Txn` chain on an abstract txn handle, `Compact`, `KV.Get` at a
+    revision, the compactor's `Watch`; `Endpoints` returning `K.eps`;
+  - `Ctx` (the client's context, read-only), as today's `isNewClient_ctx`.
+- The in-process instance, `k8sClient_inProc` (defs tier, the specs as hypotheses, linked in `Link`):
+  `isNewClient cl (ms.map addr) V ∗ clientWriteOnce cl (ms.map addr) ∗ [∗list] x ∈ ms, kvRegsAt x ⊢
+  k8sClient (inProcEtcd ms) cl`, from today's specs (`kubernetes.Client.*.spec`, `client_range_any.law`, …).
+- Users: `StoreCfg` replaces `ms`/`V` by `K : K8sEtcd GF`, and `isStore` holds `k8sClient c.K c.cl` in
+  place of the three in-process conjuncts; the compactor's `cl ms V γk` become `cl K γk`. The library's
+  proofs call the client through the predicate (`iapply` of its triple) and no longer take the client's
+  specs as callees. `etcd3.New`'s spec takes `k8sClient K cl`; the driver (`examples/k8s/etcd3`,
+  `compactor`) applies `k8sClient_inProc` where it builds the store, so `k8s_all`'s statement and its
+  premises are untouched (its proof only re-threads).
+
+**Batches** (each built on fk-lean2 with `etc/importers.py --leaves` targets):
+
+1. `EtcdClient.lean` with C1 and the instance's C1 part; ledger entries for the Spec files batch 2 changes.
+2. `StoreCfg`/`isStore` and the store's specs and proofs (unary + list paths, `FirstRead`, `ListDefs`,
+   `State`, `Updates`): `c.ms`/`c.V` gone.
+3. C2 and the watch path (`WatchDefs` `readAus`, `syncPaginated`, `startWatching`, `run`, `Watch`).
+4. C3 and the compactor.
+5. The drivers (`examples/k8s/{etcd3,compactor,all}`: `Apply`, `Check`, `Main*`, `kInv` over `K.kvs`),
+   `Link` regenerated, `k8s_all` rebuilt; `etc/tcb-report.py --check`, byte-identity of the two
+   `TopLevelRobustness` Spec files checked against `lean`.
+
+#### Handoff K5-1 (2026-11-27)
+
+- **Done.** Design above (§4.1). Batch 1, commit `a84dfc1ecb`: `Proof/k8s_io/apiserver/pkg/storage/etcd3/EtcdClient.lean`
+  (`K8sEtcd` = `kvs`/`live`/`eps`/`handle`; `K8sEtcd.Laws`, C1 = `get`/`list`/`optimisticPut`/`optimisticDelete`,
+  each the `kubernetes.Client` spec over `K.handle kc.Client'`; `k8sClient K cl := ⌜K.Laws⌝ ∗ □ K.handle cl`)
+  and `EtcdClientInProc.lean` (`inProcEtcd ms V`, `inProcEtcd_laws` from the four specs taken
+  `∀ [kubernetes.Assumptions]`, `k8sClient_inProc`). Ledger entry for the Spec changes of batches 2-5 written
+  (`notes/specs-only/ledger.md`, 2026-11-27). Laws are Prop-level triples (not WPs inside the predicate), so the
+  library's proofs call `hK.get …` with `wp_apply` as they call `wp_Get` today, after `icases` of `k8sClient`
+  into `⟨%hK, #Hh⟩`.
+- **Build host.** fk-lean2 refused to seed a worktree (64 GB free, needs 65 GB; its `wt/` holds 10 other
+  sessions' worktrees), so batch 1 was built on **fk-lean1** (`wt/k8s-dist-k5/2026-11-27` there), against the
+  brief. The next session should go back to fk-lean2 once it has disk (or keep fk-lean1 with the coordinator's OK).
+- **Build state.** Built on fk-lean1 (log `/home/ubuntu/eg/logs/k8s-dist-k5_2026-11-27-20261127-192136.log`):
+  `EtcdClient` builds; `EtcdClientInProc` failed only because `bigAndL_map` was unqualified (the follow-on
+  `iframe` errors came from the `simp` that did not run). Fixed to `BigAndL.bigAndL_map` in the handoff commit,
+  **not rebuilt**: the next session builds `Proof.k8s_io.apiserver.pkg.storage.etcd3.EtcdClientInProc` first
+  (if `simp only` does not reduce the `K8sEtcd` projections, `show` the old forms before `iapply`).
+- **Next (batch 2).** `StoreCfg`: `ms`/`V` → `K : K8sEtcd GF`; `isStore`'s `isNewClient … ∗ clientWriteOnce … ∗
+  [∗list] kvRegsAt` → `k8sClient c.K c.cl` (about 20 proofs `icases` isStore with `#Hcl, #Hone, #Hregs`: one slot
+  now). The watch (`syncPaginated` via `client_range_any.law`, `WatchDefs.readAus`) and compactor consumers of
+  `c.ms` break at the same time, so batch 2 cannot build alone unless C2 (the `wp_syncGet` triple) is added to
+  `Laws` first; do C2 before or with batch 2. Spec rewrites: `∀ x ∈ c.ms, noRefusalAt x.addr` → `c.K.live`,
+  `[∗list]/[∧list] x ∈ c.ms, F x.γr.kv` → `… γ ∈ c.K.kvs, F γ` (`bigSepL_map`/`bigAndL_map` give back the
+  in-process forms). Then rerun `etc/gen-link.py --k8s-etcd3`.
+
+#### Handoff K5-2 (2026-11-27)
+
+- **Done.** Batch 1's instance builds (`EtcdClientInProc` built on fk-lean1 at `625bb29adb`). Batch 2, commit
+  `78ca909eb9`: `K8sEtcd` gains `kvAt : Loc → IProp GF` (what a `*kv`'s `Get` needs); `Laws` gains `ctxFields`
+  (the client's ctx and `clientCheckFields`, for `New`), and C2 = `kvField` (`K.handle cl ⊢ ∃ api, clientF cl
+  "KV" ↦□ … ∗ □ K.kvAt api`) and `kvGet` (`wp_syncGet`'s triple over `K.kvAt api` and `□ [∗list] γ ∈ K.kvs,
+  kvReadAu γ Qr`); `K8sEtcd.Laws.getLatest` (`Client.Get.latest` over `K`); in-process proofs of all three
+  (`inProcEtcd_laws` now also takes `client_range_any.law`). The watch's `Watcher` needed no law: the library
+  already sees it through `clientWatchOk`. `StoreCfg`'s `ms`/`V` → `K`; `isStore` holds `k8sClient c.K c.cl`;
+  the store and watch specs and proofs switched (`c.K.live`, `[∗list]/[∧list] γv ∈ c.K.kvs`,
+  `k8sAusRW_kvAu1` over `ks : List KVNames`); `New.spec` takes `K` and `k8sClient K cl`;
+  `etc/link-lean-first-k8s-etcd3.txt` drops the `Client__*` and `client_range_any` callees of the store/watch
+  proofs; `Link.lean` regenerated.
+- **Build** (fk-lean1, log `/shared/tmp/k5-2-b2.log`, targets `EtcdClientInProc` + etcd3 `Link`): everything
+  builds (store proofs, `New`, `startWatching`, `GetList`, ...) but **one error**:
+  `watchChan__syncPaginated.lean:95:23`, `iintro: c.K.kvAt api not persistent` (in `wp_syncGet`'s `iintro`,
+  the pattern `#Hkv`). Fix: `Hkv` (spatial) there, or `□ c.K.kvAt api` in `wp_syncGet`'s precondition (the
+  caller holds it as `#Hkv` from `kvField`). `Link` was not reached; rebuild the same targets after the fix.
+- **Left.** Batch 4 (C3, the compactor: `Compact`, `compactor.{getCompactRev,runWatchLoop,runCompactLoop}`,
+  `NewCompactor`, `StartCompactorPerEndpoint` still take `cl ms V`; the Txn chain, `Compact`, `Get` at a
+  revision, `Endpoints` → laws, `cl K γk`). Batch 5, the drivers (`examples/k8s/etcd3`: `Calls`, `Apply`,
+  `WatchQ`, `Main*` (`storeCfgD … ms V` → `K := inProcEtcd ms V`, with `k8sClient_inProc` and
+  `inProcEtcd_laws` linked from the `kubernetes.Client.wp_*` and `client_range_any_law_holds`), Specs
+  `Check`/`Apply`/`call`/`runWatch`/`watchEvents` with `c.ms` → `c.K.kvs`/`c.K.live`, `c.ms ≠ []` →
+  `c.K.kvs ≠ []`); they do not build now. Then `etc/gen-link.py --k8setcd3`, `k8s_all`, `etc/tcb-report.py
+  --check`, the two `TopLevelRobustness` Spec files byte-identical to lean. Extend the ledger entry if
+  `kvAt`/`ctxFields` count as a design change (they are additions inside the K5 interface).
+
+#### Handoff K5-3 (2026-11-27)
+
+- **Merged** lean `457833b241` (clean). Pin unchanged (Perennial `02e741641`, as fk-lean1's warm tree).
+- **Item 1** (`87683b0d9b`): `wp_syncGet` takes `□ c.K.kvAt api` (the caller's `#Hkv` from `kvField`).
+- **Batch 4** (`940556c4d9`): C3 in `K8sEtcd`/`Laws` (`EtcdClient.lean`): field `txnAt tp ci cd b`; laws `endpoints`
+  (`sl ↦* K.eps`), `kvTxn`, `txnIf`, `txnThen`, `txnElse` (plain), `casCommit` (`casClientTxn ev rev`, moved here from
+  `Compact.lean`; update at each of `K.kvs`, premise `∀ γ ∈ K.kvs, kvSame γ γk`). In-process (`EtcdClientInProc`):
+  `txnAt := txnObjAt … ∗ txnWriteOnce … ∗ [∗list] kvRegsAt`, the six proofs, `cas_commit`/`casTxn_size` moved there;
+  `inProcEtcd_laws` takes six more specs (`Client.Endpoints`, `kv.Txn`, `txn.{If,Then,Else}`, `txn.Commit.specM`).
+  `casOk` over `ks : List KVNames`. Specs and proofs of `Compact`, `compactor.{runCompactLoop,runWatchLoop}`,
+  `NewCompactor`, `StartCompactorPerEndpoint`: `K`/`k8sClient K cl` for `ms V`/`isNewClient …` (runWatchLoop: for
+  `eps V`), `Endpoints` through `hK.endpoints` (the endpoint equality is now `K.eps` itself). Compact's `Client.Compact`,
+  getCompactRev's `Get` and runWatchLoop's `Watch` stay on `clientKvOk`/`clientWatchOk` (per cluster already; no law,
+  as K5-2 decided for the store's watch). Link list (`etc/link-lean-first-k8s-etcd3.txt`) drops their `Client__Endpoints`,
+  `kv__Txn`, `txn__*`, `wp_CommitM` callees; `Link.lean` regenerated (`--k8s-etcd3`).
+- **Batch 5, started** (`16328f584a`): `storeCfgD [v3rpc.Assumptions] kc cl ms V …` has `K := inProcEtcd ms V` (its
+  signature is unchanged, so `Main*` keep passing `ms V`); `inProcEtcd_laws.law` (defs, `EtcdClientInProc`) proved by
+  `inProcEtcd_laws_law_holds` in the new linking module `Proof/k8s_io/apiserver/pkg/storage/etcd3/InProcLinked.lean`
+  (imported by the `--k8setcd3` Link through `EXTRA_IMPORTS`); `newStore.wp_proof` takes it (`h_inproc`, last; link
+  list appends `=k8s.inProcEtcd_laws_law_holds`) and builds `k8sClient` by `k8sClient_inProc` before `New`.
+- **K7 note** (coordinator, 2026-11-27): the compactor's `Client.Compact`, `Get` at a revision and `Watch` (and the
+  store's watch) stay on `clientKvOk`/`clientWatchOk`, outside `Laws`. K7 (the dist client) must supply those two
+  predicates for its client, or fold them into `Laws` then.
+- **Ledger.** K5-1's entry extended (`notes/specs-only/ledger.md`, "Extension (K5-3)"): `kvAt`, `ctxFields`, `getLatest`,
+  C3.
+- **Build** (fk-lean1, log `/shared/tmp/k5-3-b4.log`; targets `EtcdClientInProc`, `InProcLinked`, the etcd3 `Link`,
+  examples `newStore`), at `16328f584a`: **failed early**, `EtcdClient.lean:66:16` and `66:32`, `failed to
+  synthesize GooseExts` (the new field `txnAt`'s `GoInterfaceOk`/`context.ContextDesc` need it; `K8sEtcd` is
+  declared outside the section's variables). Nothing after `EtcdClient` was compiled (C3 laws, in-process proofs,
+  compactor proofs, `InProcLinked`, `newStore` all unchecked). Fix applied in the handoff commit, **not built**:
+  `structure K8sEtcd (GF : BundledGFunctors) [GooseExts]` (every user is in a section with `[GooseExts]`; if a
+  `K8sEtcd GF` use outside one fails, move `txnAt` out to a `Loc → TxnBuild → …` form instead). The next session
+  rebuilds the same four targets first.
+- **Left (batch 5).** Driver Specs `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/{Check,Apply,call,runWatch,
+  watchEvents}`: `∀ x ∈ c.ms, noRefusalAt x.addr` → `c.K.live`, `[∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv` →
+  `[∗list] γv ∈ c.K.kvs, kInv γ c g0 γv`, `c.ms ≠ []` → `c.K.kvs ≠ []`; their proofs and `Calls`, `Apply`, `WatchQ`;
+  `Main`/`MainCluster`/`MainPartition` (`(storeCfgD …).ms = …` rewrites become `.K.kvs`/`.K.live` by `rfl` through
+  `inProcEtcd`, `bigSepL_map`); the compactor example (`examples/k8s/compactor/{Aus,Inv,apiserver}`: `casOk ms` →
+  `casOk (ms.map (·.γr.kv))`, `StartCompactorPerEndpoint`'s `ms V` → `inProcEtcd ms V` with `k8sClient_inProc` and
+  `h_inproc`, its Link list gains `=k8s.inProcEtcd_laws_law_holds`); `k8s/all`. Then `etc/gen-link.py --k8setcd3` (and
+  the compactor's link mode, if it has one; `MainLinked` there is hand-written), build `k8s_all`'s `Results` and
+  `TopLevelRobustness`, `etc/tcb-report.py --check`, `git diff <lean> --` the two `TopLevelRobustness` Spec files.
+
+#### Handoff K5-4 (2026-11-27)
+
+- **Build 1** (fk-lean1, `/shared/tmp/k5-4-b1.log`, K5-3's four targets at `35bd964a11`): `EtcdClient` builds (the
+  `[GooseExts]` fix works). Errors: `EtcdClientInProc.lean:324` (`client.clientWriteOnce_api` needs the client
+  section's `cache.v3`/`etcdserver`/`client.v3` `Assumptions`: inlined as an `iunfold` of `clientWriteOnce`/`writeOnce`),
+  `watchChan__syncPaginated.lean:103` (`iexact` across `(rangeWireOf o).base.rev` vs `o.base.rev`: now `iExactEq Hok; rfl`),
+  `Calls.lean` (`c.ms`). All fixed in `8aeaf7c256`, with batch 5's edits.
+- **Batch 5 edits** (`8aeaf7c256`): driver Specs `Check`/`Apply`/`call`/`runWatch`/`watchEvents` over `c.K.live`,
+  `[∗list] γv ∈ c.K.kvs, kInv γ c g0 γv`, `c.K.kvs ≠ []`; `InvSteps`' makers (`get_maker`, `plain_maker`, `list_maker(P)`,
+  `plainL_maker(P)`), `Inv.kInvs_of_same`, `Calls.callPre`/`listPre`, `Apply`, `WatchQ.watch_readAus` over `List KVNames`;
+  `Main`/`MainCluster`/`MainPartition` (`kInvs_of_same` at `(storeCfgD …).K.kvs`, `hmsne` by `simpa [storeCfgD, inProcEtcd]`);
+  compactor `Aus.casOk_of_cinv` over `List KVNames`, `apiserver.wp_proof` takes `h_inproc` and calls `NewCompactor`/
+  `StartCompactorPerEndpoint` at `inProcEtcd ms V` (spec unchanged); compactor `MainLinked` passes
+  `k8s.inProcEtcd_laws_law_holds` and imports `InProcLinked`; examples' etcd3 `Link` regenerated (`--k8setcd3`: imports
+  `InProcLinked`; `newStore` gets the law). `--k8s-etcd3` Link was already current.
+- **Build 2** (fk-lean1, `/shared/tmp/k5-4-b2.log`, targets etcd3 example `Results`, compactor `Results`, `k8s/all`
+  `Results` + `TopLevelRobustness`, at `8aeaf7c256`): everything else builds (1726 modules; store, watch, compactor library,
+  `Calls`, `Apply`, `Check`, `call`, `runWatch`, `watchEvents`, `WatchQ`, `InvSteps`). **Errors** (next session's item 1):
+  - `InProcLinked.lean:28:46` `Unknown identifier HasLC.hasLC` (missing `open`/qualification: copy the header opens of
+    `EtcdClientInProc`); `:32:63`, `:33:8` follow from it.
+  - `newStore.lean:128:15` `k8sClient_inProc` needs `[HasExt idIssueExt]` (`EtcdClientInProc`'s section variable): add it
+    to newStore's section variables, or drop it from `EtcdClientInProc`'s section if no proof there needs it.
+  - `MainCluster.lean:149:28`, `MainPartition.lean:147:28` `Unknown identifier inProcEtcd` (write `k8s.inProcEtcd` or open
+    `k8s`/import `EtcdClientInProc`); `:150`/`:148` (`cases`) and `:177`/`:183` (the `simpa … using hmsne`) follow from it.
+  - `Main.lean:310:2` `wp_apply (wp_Check …)`: elaboration failed (one argument: likely the `hnr` `by intro y hy; simp only
+    [storeCfgD, …] at hy` (now `.K.live` = `∀ x ∈ [x], …` after `inProcEtcd` unfolds) or `(by simp [storeCfgD, inProcEtcd])`
+    for `K.kvs ≠ []`); check it with `--goal`.
+  - `compactor/apiserver.lean:60:2` `ihave #HK := k8s.k8sClient_inProc … $$ [Hcl Hone Hregs]` leaves its premise as a goal:
+    add `· iframe #` after it.
+  Not reached: `k8s/all` `Results`/`TopLevelRobustness` (downstream of the errors), end checks (`tcb-report --check`,
+  byte-identity of the two `TopLevelRobustness` Spec files vs lean: no Spec file outside the five drivers changed).
+
 ## 5. Approvals
 
 | What | Who |
@@ -281,6 +478,31 @@ about 12-18.
 | G2: the drivers gain `export.go`, and the copies go | the user (reverses k8s-dist.md "Copies") |
 | Two remote protocols at one start (`remote`/start generalization) | `remote`'s owner, the coordinator (#28) |
 | Landing | `etc/land.sh` after the coordinator's go |
+
+## Handoff K4-1 (2026-11-27, branch `k8s-dist-k4/2026-11-27`)
+
+K4's paper proof is `notes/k8s-dist-k4.md`. **Verdict: full mode is complete except for one history
+shape, with a one-line Go fix (G7); one cluster stays feasible.**
+
+- The gap: a watch-list (`SendInit = 2`) whose answer has initial events but ends before its bookmark
+  needs the configuration at `max(MinRV, 1)` or above (`initialPrefixOk`), and `target` does not skip
+  there. Counterexample (seeds at 2, 3): one watch-list at `MinRV "10"` answering `[ADDED ns-1/pod-1
+  @2]`. It linearizes with foreign revisions 4..10, and `SharedModel` answers Illegal in every mode
+  (checked in Go 2026-11-27). The driver's generator never makes it (watch-lists draw no future
+  resource version), but the theorem would otherwise need that as a premise on the history.
+- **G7** (Go, with K9's session): in `target`'s watch arm, for `SendInit == 2` with a non-Error event,
+  return `max(t, max(req, 1))`. This is the least revision the check needs. (Landed: `152e1a4634`, §3.)
+- Lean: `Proof/.../examples/k8s/dist/SharedPlace.lean` (pure, no imports) proves the revision-number
+  core: the canonical landing is a full landing (`canonL_mem`), is no later than the cluster's
+  (`canonL_le`), and no named revision tells them apart (`canonL_cut`); `canonAll_ok` covers a settle
+  phase. It was checked with the pinned toolchain's `lean` (v4.34.1). The fk-lean1 run did not build:
+  its seed source `/home/ubuntu/eg/etcd-grove/.lake/build` is missing, as is fk-lean1's `wt/lean-warm`.
+  The run left a seedless worktree `wt/k8s-dist-k4/2026-11-27` on fk-lean1. fk-lean2 has 64 GB free,
+  below the 65 GB a seed needs.
+- Next (K4-2, `notes/k8s-dist-k4.md` §6): the semantic model (`kSpec` plus a foreign step), the
+  search as Lean functions (`targetL` with G7, `landingsL`, `settleL`), the renaming invariance of
+  `kstepL`/`mlistL`/`watchOkL`, and the theorem. It imports `KWatch.lean`'s cone, so it needs a
+  seeded build host.
 
 ## Handoff KGO-1 (2026-11-27, branch `k8s-dist-go/2026-11-27`)
 

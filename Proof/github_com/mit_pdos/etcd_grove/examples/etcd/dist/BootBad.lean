@@ -248,7 +248,7 @@ end boot
 (`serverBootBad`, `clientBootBad`, `nodeBootBad`). -/
 theorem etcdBootNCBad_holds :
     EtcdBootNCBad := by
-  intro _ lctx _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb i m hm
+  intro _ lctx _ _ _ _ d Hd σs σc σn Hfips _ hb i m hm
   rcases machines_prog hm with ⟨k, σ, rfl⟩ | ⟨j, σ, rfl⟩ | ⟨n, σ, rfl⟩
   · exact serverBootBad d Hd Hfips k σ
   · exact clientBootBad d Hd Hfips j σ

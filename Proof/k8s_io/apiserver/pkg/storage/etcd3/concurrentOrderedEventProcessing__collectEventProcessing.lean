@@ -36,7 +36,7 @@ set_option maxHeartbeats 1600000 in
 theorem concurrentOrderedEventProcessing.collectEventProcessing.wp_proof
     (wp_sendEvent : watchChan.sendEvent.spec (GF := GF) (hG := hG)) :
     concurrentOrderedEventProcessing.collectEventProcessing.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ pp chQ γq wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur q Hhist
+  intro _ Obj _ _ pp chQ γq wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur q Hhist
   wp_start as ⟨#Fwc, #FQ, #Hcons, #HQs, Hcq, Hpd, Hpe, Hal⟩
   ihave #Hh : □ (∀ (l l' : Nat) (s s' : KVState), Q l s -∗ Q l' s' -∗ ⌜kvSameHist s s'⌝) $$ []
   · imodintro

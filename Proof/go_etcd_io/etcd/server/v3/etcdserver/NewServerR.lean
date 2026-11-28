@@ -278,6 +278,7 @@ theorem NewServer.wp_proofRG
   obtain ⟨Hiz, Himg, Hist⟩ := Himp
   simp only [List.nil_append] at Himg
   have HiA : uint.nat i = A.length := by simp at Hiz; word
+  icases wal.stopImage_readFacts _ _ _ _ $$ Hwsi with ⟨Hwsi, %Hwrf⟩
   icases wal.stopImage_elim _ _ _ _ $$ Hwsi with ⟨%Hsw, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩
   -- the contract's antecedents: the cluster version (`restart_clusterVerLogOk`) and the members'
   -- peer URLs at `A` the boot log's (clause (G), `restart_peerURLs`)
@@ -295,7 +296,7 @@ theorem NewServer.wp_proofRG
   iunfold bootstrapAtR at Hboot'
   ihave Hbc := Hboot' $$ [] [] []
   · ipureintro
-    exact ⟨Hsw.2.1, Hsw.2.2, Hbl, Hbco, Hfnc, Hdwd, Hdisk.1, Hbwb, Hpurl, Hcvl⟩
+    exact ⟨Hsw.2.1, Hsw.2.2, Hbl, Hbco, Hfnc, Hdwd, Hdisk.1, Hbwb, Hpurl, Hcvl, Hwrf⟩
   · iexists ρo.rd.kv, A, u
     iframe Hmvi
     ipureintro; exact ⟨Himr.2, Himg, Hist⟩
@@ -353,7 +354,7 @@ theorem NewServer.wp_proofRG
     iapply isCommittedLogLb_mono _ _ _ ?_ $$ H
     simp only [srvLE, List.nil_append, List.map_take]
     exact List.take_prefix _ _
-  ihave Hwsi := wal.stopImage_intro γ.cl S σ i Hsw.1 Hsw.2.1 Hsw.2.2 $$ [Hcert Hl']
+  ihave Hwsi := wal.stopImage_intro γ.cl S σ i Hsw.1 Hsw.2.1 Hsw.2.2 Hwrf $$ [Hcert Hl']
   · iframe Hcert
     iexists l'
     iframe Hl'

@@ -28,10 +28,10 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.getResourceSizeEstimator.wp_proof :
     store.getResourceSizeEstimator.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c
+  intro _ Obj _ sp c
   wp_start as ⟨#Hst, Htt⟩
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hlo⟩
+  icases Hst with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hlo⟩
   iunfold storeListOk at Hlo
   icases Hlo with ⟨%f, %γp, -, -, #Hpool, -⟩
   iapply fupd_wp

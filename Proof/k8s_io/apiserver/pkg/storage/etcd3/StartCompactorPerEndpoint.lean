@@ -45,24 +45,20 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem StartCompactorPerEndpoint.wp_proof
     (wp_NewCompactor : NewCompactor.spec (GF := GF) (hG := hG))
-    (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_V : klog.V.spec (GF := GF) (hG := hG))
     (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk Seen recorded _ _ iv hsame hcmp hcret hiv
-  wp_start as ⟨Hlt, #Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr, #Hclaims⟩
+  intro _ cl K γk Seen recorded _ _ iv hsame hcmp hcret hiv
+  wp_start as ⟨Hlt, #HK, #Hko, #Hwo, #Hcas, #Hkr, #Hclaims⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Pe : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
   · iPkgInit
   ihave #Hreg : (registryFact : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pe
-  ihave #Hcl' := Hcl
-  iunfold isNewClient at Hcl'
-  icases Hcl' with ⟨-, #Hrco, -⟩
-  ihave #Heps := isNewClient_endpoints $$ Hcl
-  iunfold clientEndpointsAt at Heps
-  icases Heps with ⟨%esl0, #Hef, #Hes⟩
+  ihave #HK' := HK
+  iunfold k8sClient at HK'
+  icases HK' with ⟨%hK, #Hh⟩
   iunfold registryFact at Hreg
   icases Hreg with ⟨#Hreg, -⟩
   (try wp_auto)
@@ -73,18 +69,16 @@ theorem StartCompactorPerEndpoint.wp_proof
   iunfold registryInv at HR
   icases HR with ⟨%mref, %m, Hmp, Hm, Hents⟩
   (try wp_auto)
-  wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps, Hesl, Heq⟩
+  wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl ⟨Hlt, Hesl⟩
   · iframe #
-  ihave %Heq' := Heq $$ %esl0 %_ Hef Hes
-  subst Heq'
   ipersist Hesl
   ihave %Hsll := ownSlice_len $$ Hesl
   (try wp_auto)
   -- the lookups: no endpoint so far is registered
   ihave IH : iprop(∃ (n : w64) (e0 : GoString),
       "i" ∷ i_ptr ↦ n ∗ "ep" ∷ ep_ptr ↦ e0 ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ((ms.map client.SrvAt.addr).length : Int)⌝ ∗
-      "%Hnone" ∷ ⌜∀ j e, j < sint.nat n → (ms.map client.SrvAt.addr)[j]? = some e →
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (K.eps.length : Int)⌝ ∗
+      "%Hnone" ∷ ⌜∀ j e, j < sint.nat n → K.eps[j]? = some e →
         m.lookup e = none⌝) $$ [i ep]
   · iexists W64 0, _
     simp only [named]
@@ -94,8 +88,8 @@ theorem StartCompactorPerEndpoint.wp_proof
     simp at hj; omega
   wp_for IH
   wp_if_destruct
-  · have Hlt : sint.nat n < (ms.map client.SrvAt.addr).length := by word
-    obtain ⟨e, He⟩ : ∃ e, (ms.map client.SrvAt.addr)[sint.nat n]? = some e :=
+  · have Hlt : sint.nat n < K.eps.length := by word
+    obtain ⟨e, He⟩ : ∃ e, K.eps[sint.nat n]? = some e :=
       ⟨_, List.getElem?_eq_getElem Hlt⟩
     have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z esl.len := ⟨Hn.1, by word⟩
     rw [ite_eq_left Hbnd]
@@ -135,7 +129,7 @@ theorem StartCompactorPerEndpoint.wp_proof
       wp_apply (wp_map_lookup2 (K := GoString) (V := Loc) go.string _ mref m e) $$ [$Hm] as Hm
       simp only [Hme, Option.isSome_some, Option.getD_some]
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl2 ⟨Hlt, %eps2, Hesl2, -⟩
+      wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl2 ⟨Hlt, Hesl2⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal
@@ -172,10 +166,9 @@ theorem StartCompactorPerEndpoint.wp_proof
   · -- no endpoint is registered: a new compactor, registered at each
     ipersist client
     simp only [recv_eq_func_mk]
-    wp_apply (wp_NewCompactor cl ms V γk Seen recorded iv _ _ hsame hcmp hcret hiv)
-      $$ [Hone Hregs] as %c %γc ⟨#Hc, #H0⟩
+    wp_apply (wp_NewCompactor cl K γk Seen recorded iv _ _ hsame hcmp hcret hiv)
+      $$ [] as %c %γc ⟨#Hc, #H0⟩
     · iframe #
-      iframe
       -- `onClose`: under the lock, delete the client's endpoints (dropping their entries)
       unfold closeOk
       iright
@@ -188,7 +181,7 @@ theorem StartCompactorPerEndpoint.wp_proof
       iunfold registryInv at HR2
       icases HR2 with ⟨%mref2, %m2, Hmp2, Hm2, Hents2⟩
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl3 ⟨Hlt, %eps3, Hesl3, -⟩
+      wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl3 ⟨Hlt, Hesl3⟩
       · iframe #
       ipersist Hesl3
       ihave %Hsll3 := ownSlice_len $$ Hesl3
@@ -197,15 +190,15 @@ theorem StartCompactorPerEndpoint.wp_proof
           "i" ∷ i_ptr ↦ n ∗ "ep" ∷ ep_ptr ↦ e0 ∗ "Hm2" ∷ mref2 ↦$ m' ∗
           "Hents2" ∷ ([∗map] k ↦ v ∈ m', iprop(∃ (Ψ : CompactorId → IProp GF) (x : CompactorId),
             epClaim k Ψ ∗ ⌜x.fst = v⌝ ∗ □ Ψ x)) ∗
-          "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (eps3.length : Int)⌝) $$ [i ep Hm2 Hents2]
+          "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (K.eps.length : Int)⌝) $$ [i ep Hm2 Hents2]
       · iexists W64 0, _, m2
         simp only [named]
         iframe
         ipureintro; constructor <;> word
       wp_for IH3
       wp_if_destruct
-      · have Hlt : sint.nat n < eps3.length := by word
-        obtain ⟨e, He⟩ : ∃ e, eps3[sint.nat n]? = some e := ⟨_, List.getElem?_eq_getElem Hlt⟩
+      · have Hlt : sint.nat n < K.eps.length := by word
+        obtain ⟨e, He⟩ : ∃ e, K.eps[sint.nat n]? = some e := ⟨_, List.getElem?_eq_getElem Hlt⟩
         have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z esl3.len := ⟨Hn.1, by word⟩
         rw [ite_eq_left Hbnd]
         icases ownSlice_elem_acc (sint.Z n) e esl3 DFrac.discard _ Hn.1 He $$ Hesl3 with ⟨#Hle3, -⟩
@@ -234,10 +227,8 @@ theorem StartCompactorPerEndpoint.wp_proof
     · iunfold compactorFor
       iframe #
     (try wp_auto)
-    wp_apply wp_Endpoints cl $$ [$Hlt] as %esl4 ⟨Hlt, %eps4, Hesl4, Heq4⟩
+    wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl4 ⟨Hlt, Hesl4⟩
     · iframe #
-    ihave %Heq4' := Heq4 $$ %esl0 %_ Hef Hes
-    subst Heq4'
     ipersist Hesl4
     ihave %Hsll4 := ownSlice_len $$ Hesl4
     (try wp_auto)
@@ -245,15 +236,15 @@ theorem StartCompactorPerEndpoint.wp_proof
         "i" ∷ i_ptr ↦ n ∗ "ep" ∷ ep_ptr ↦ e0 ∗ "Hm" ∷ mref ↦$ m' ∗
         "Hents" ∷ ([∗map] k ↦ v ∈ m', iprop(∃ (Ψ : CompactorId → IProp GF) (x : CompactorId),
           epClaim k Ψ ∗ ⌜x.fst = v⌝ ∗ □ Ψ x)) ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ ((ms.map client.SrvAt.addr).length : Int)⌝) $$ [i ep Hm Hents]
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (K.eps.length : Int)⌝) $$ [i ep Hm Hents]
     · iexists W64 0, _, m
       simp only [named]
       iframe
       ipureintro; constructor <;> word
     wp_for IH4
     wp_if_destruct
-    · have Hlt : sint.nat n < (ms.map client.SrvAt.addr).length := by word
-      obtain ⟨e, He⟩ : ∃ e, (ms.map client.SrvAt.addr)[sint.nat n]? = some e :=
+    · have Hlt : sint.nat n < K.eps.length := by word
+      obtain ⟨e, He⟩ : ∃ e, K.eps[sint.nat n]? = some e :=
         ⟨_, List.getElem?_eq_getElem Hlt⟩
       have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z esl4.len := ⟨Hn.1, by word⟩
       rw [ite_eq_left Hbnd]

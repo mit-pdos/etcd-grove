@@ -4,7 +4,7 @@
 N10a, `notes/etcd-dist-plan.md` §24): `Writer.spec` (`Spec/.../lib/etcdstart/Writer.lean`) with its
 client of one process (`cli`'s `KV` field a `*kv` with `isKv api γk false`) replaced by a client of the
 cluster's members at other machines (`kvClientAt cl api eps V Γ`, `KVClientDist.lean`; auth off,
-`Γ.auth = false`) and `γk := Γ.kv`, so that its `Put`s are `KV_Put_dist`'s. Everything else is
+`Γ.auth = false`) and `γk := Γ.kv`, so that its `Put`s are `kv.Put.spec`'s at the client's `isKv` (`isKv_of_kvClientAt`). Everything else is
 verbatim: the Puts `tried[lo:hi]` in order, each with the caller's write update (one of its persistent
 family, fired at most once, its result `QW k v σ`) in a context with the request timeout, each that
 returned no error logged in `w` (`wsInvF`) with the caller's fact `OkF` of its record (from `QW` and the
@@ -17,7 +17,7 @@ after `Writer`, which must fit a message); the conversion to `OkF` is told the P
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkDefs
 
 @[expose] public section

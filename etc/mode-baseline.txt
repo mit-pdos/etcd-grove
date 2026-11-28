@@ -12,6 +12,7 @@ lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/authlease 1
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/dist 3  # 0 -> 3: NewServer.specC_dist's 3 auth-off literals, accepted by the etcd_safe lead 2026-11-27 for these three restart specs until an auth-on restart stage moves them
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/dist/server 1
 lit-mode github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 11
-lit-mode go_etcd_io/etcd/client/v3 24
+# +2 (2026-11-28, coordinator): etcdPutSpecV_M and etcdTxnSpecV_M (KVServiceV.lean); removed at N4 (nomode-packet)
+lit-mode go_etcd_io/etcd/client/v3 26
 lit-mode go_etcd_io/etcd/server/v3/etcdserver 282  # 276 -> 282: NewServer.specC's and NewServer.specRAt's 3+3 auth-off literals, accepted by the etcd_safe lead 2026-11-27 for these three restart specs until an auth-on restart stage moves them
 lit-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 30

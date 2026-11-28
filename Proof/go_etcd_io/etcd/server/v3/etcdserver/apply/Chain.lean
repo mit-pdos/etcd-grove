@@ -384,11 +384,19 @@ theorem restReqOk_attr (rq : IRRModel) (rs : RestM) (a : MemberAttrModel) (h : r
     (rs.mem.lookup a.memberID).isSome = true := h hk a ha
 
 /-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
-only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
-`AuthFuel.lean`). `SetUp`'s five: `UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`
-(whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds.
-A `UserAdd`'s password choice cannot fail (`UserAddModel.pwSure`, the server's own form, which
-`EtcdServer.UserAdd` proposes: E2x), so its outcome is the step's alone (E3a). (C1's A2,
+only; `UserAdd`'s and `RoleAdd`'s names within bbolt's key bound (the step specs' premise; the rewrite
+kinds instead take `userKeysOk`/`roleKeysOk`, from the fuel's `authSmall`; the fuel bounds the rest,
+`AuthFuel.lean`). The ones that change the auth state (`SetUp`'s five, `UserAdd`, `RoleAdd`,
+`UserGrantRole`, `RoleGrantPermission`, `AuthEnable`, and since nomode D3, 2026-11-28,
+`AuthDisable`, `UserDelete`, `UserChangePassword`, `UserRevokeRole`, `RoleDelete`,
+`RoleRevokePermission`); not the lists. A `UserAdd`'s password choice cannot fail
+(`UserAddModel.pwSure`: the form `EtcdServer.UserAdd` always proposes: E2x), so its outcome is the
+step's alone (E3a). **Interim, a proof-simplifying premise the model rule disallows:**
+`UserChangePassword` requires `ChangePasswordModel.pwSure`, which `EtcdServer.UserChangePassword` does
+NOT ensure (with an empty `Password` it forwards the client's `HashedPassword` as sent; clientv3 never
+sets it, a raw gRPC client can). It goes once `selectPassword`'s outcome is modelled exactly (base64
+`DecodeString`'s error, bcrypt's exact error condition, the user's `NoPassword` option):
+`notes/nomode-n1.md`, "D3, narrowed", follow-up (a). (C1's A2,
 2026-10-28) And `Authenticate`, which writes nothing (`GetUser` only reads its name: no key bound),
 in a request needing no admin permission (`needAdminPermission` reads the request's fields, the
 dispatch its first: a request with an admin field beside it would pass the admin check and still
@@ -398,12 +406,17 @@ def adminKindOk (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
   | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
-  | .authUserGrantRole => ∀ u ro, rq.authUserGrantRole = some (u, ro) → u.length ≤ backend.maxKeySize
-  | .authRoleGrantPermission =>
-      ∀ n w, rq.authRoleGrantPermission = some (n, w) → n.length ≤ backend.maxKeySize
+  | .authUserGrantRole => True
+  | .authRoleGrantPermission => True
   | .authEnable => True
   | .authenticate => needAdminPermission rq = false ∧
       ∀ am, rq.authenticate = some am → auth.tokPrefixOk am.simpleToken
+  | .authDisable => True
+  | .authUserDelete => True
+  | .authUserChangePassword => ∀ m, rq.authUserChangePassword = some m → m.pwSure
+  | .authUserRevokeRole => True
+  | .authRoleDelete => True
+  | .authRoleRevokePermission => True
   | _ => False
 
 /-- **The per-request premise in the auth mode `M`** (E2m, continued): `rqOk`, or, in the mode `on`

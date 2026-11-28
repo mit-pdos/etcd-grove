@@ -39,16 +39,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     (γ : KNames) (sp : Loc) (c : k8s.StoreCfg GF DObj) (g0 : HSt) (γk : KVNames) (s0 : mstore)
     (hsl : GoSlice) (hs : List mstore) (clients ops watchers wops dur : w64),
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
-  c.ms ≠ [] →
+  threadBound GF ≤ 2 ^ 30 - 1 → c.K.live →
+  c.K.kvs ≠ [] →
   receiptBound GF ≤ 2 ^ 63 →
   0 ≤ sint.Z clients → 0 ≤ sint.Z watchers → sint.Z clients + sint.Z watchers < 2 ^ 31 →
   0 ≤ sint.Z ops → 0 ≤ sint.Z wops →
@@ -58,7 +57,7 @@ abbrev Check.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       context.isClosedchanInit ∗ k8s.isStore sp c ∗ rangeStreamOff ∗
-      ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) ∗ kState γ g0 (linkv.pInit (kSpec g0)) ∗
+      ([∗list] γv ∈ c.K.kvs, kInv γ c g0 γv) ∗ kState γ g0 (linkv.pInit (kSpec g0)) ∗
       kInv γ c g0 γk ∗ storeWatchOk sp c driverW γk ∗ watchListOn ∗
       storeOwn s0 g0.st ∗ hsl ↦*□ hs ∗ ([∗list] x;g ∈ hs;g0.hist, storeOwn x g) }}
     (App (App (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check))

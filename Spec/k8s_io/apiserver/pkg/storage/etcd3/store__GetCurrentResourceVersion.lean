@@ -42,15 +42,15 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev store.GetCurrentResourceVersion.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (k : GoString) (Q : w64 → w64 → KVState → IProp GF),
   prepareKeyM c.resourcePrefix c.resourcePrefix false = some k →
   (c.pathPrefix ++ k).length ≤ opKeyMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
-        kvReadAu x.γr.kv (Q R m))) }}
+      (∀ R m, |==> □ [∧list] γv ∈ c.K.kvs, ⌜Q R m = fun _ => iprop(True)⌝ ∨
+        kvReadAu γv (Q R m))) }}
     (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GetCurrentResourceVersion"))
       (Val #(GoInterface.ok ci)))

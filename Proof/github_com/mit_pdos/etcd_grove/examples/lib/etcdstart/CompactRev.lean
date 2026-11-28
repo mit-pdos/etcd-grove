@@ -30,7 +30,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
 
 theorem CompactRev.wp_proof : CompactRev.spec (GF := GF) (hG := hG) := by
-  intro CS Ok wch γ c0
+  intro Ok wch γ c0
   wp_start as ⟨#Hw, Hcons⟩
   (try wp_auto)
   wp_apply (wp_respChan_receive wch γ Ok 0 c0) $$ [Hcons] as %v %ok H

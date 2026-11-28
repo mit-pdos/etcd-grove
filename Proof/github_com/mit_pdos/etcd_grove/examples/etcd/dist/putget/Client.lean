@@ -6,16 +6,15 @@ The in-process putget's `Main` from `NewClient` on (`Proof/.../examples/etcd/put
 machine of its own: `zap.NewNop()`; `etcdstart.NewClient` (at any watch environment, `wenv_nonempty`:
 `Put`/`Get` read none of it), whose client dials with no proxy (`clientNoProxy`); each call's context
 with the request timeout (`client.wp_WithTimeout_bg`); `cli.Put` at the cluster's view under the start's putget
-invariant (`etcd_dist.Client_Put_dist`, a theorem over the interim contract `KV_Put_dist`), whose `nil` reply gives
-the put's flag; `cli.Get` (`etcd_dist.Client_Get_dist`, over `KV_Get_dist`); the check, on the reply's message
+invariant (`wp_pgPut`, over the client's `kv.Put.spec`: `ClientCalls.lean`), whose `nil` reply gives
+the put's flag; `cli.Get` (`wp_pgGet`, over `kv.Get.spec`); the check, on the reply's message
 (`rangeRespMsg`), takes the `else` branch, as `Main`'s. Every step's error returns `false`. (Until 2026-11-25 the
 `Put` learned the member's published view, `envAt_pub`.)
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientPutDist
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientGetDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.ClientCalls
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient
 public import Perennial.Spec.context.Background
@@ -52,12 +51,12 @@ theorem Client.wp_proof
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (wp_Put_dist : etcd_dist.Client_Put_dist.spec (GF := GF) (hG := hG))
-    (wp_Get_dist : etcd_dist.Client_Get_dist.spec (GF := GF) (hG := hG))
+    (wp_KV_Put : kv.Put.spec (GF := GF) (hG := hG))
+    (wp_KV_Get : kv.Get.spec (GF := GF) (hG := hG))
     (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Client.spec (GF := GF) (hG := hG) := by
-  intro CS TB π ep Γ mid hlen hAs
+  intro TB π ep Γ mid hlen hAs
   have Htb : threadBound GF ≤ 2 ^ 30 := TB.threadBound_le
   wp_start as ⟨Hlt, Hshare⟩
   (try wp_auto)
@@ -128,7 +127,7 @@ theorem Client.wp_proof
     iintro %i %f %g %Hf %Hg
     simp at Hf
   -- `cli.Put(pctx, "k", "v")`, at the cluster's view
-  wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γf pctx pcd
+  wp_apply (wp_pgPut wp_KV_Put cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γf pctx pcd
       go!"k" go!"v" slice.nil
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
         (by decide)) Hauth) $$ [Hlt] as %presp %perr ⟨Hlt, Hput⟩
@@ -153,9 +152,9 @@ theorem Client.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
   -- `cli.Get(gctx, "k")`, after the put fired
-  wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γf
+  wp_apply (wp_pgGet wp_KV_Get cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γf
       gctx gcd go!"k" go!"v" slice.nil
-      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)) Hauth)
     $$ [Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
   · iframe Hlt; iframe #
   -- `gcancel()`

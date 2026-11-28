@@ -45,7 +45,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev store.updateOnce.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (span : Loc) (key : GoString) (dest : GoInterface)
     (o0 : Obj) (rv0 : GoString) (st : Loc) (s : OState Obj) (x : GoInterface) (dsl : GoSlice)
@@ -60,7 +60,7 @@ abbrev store.updateOnce.spec : Prop :=
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜span ≠ null⌝ ∗ ownStateX c st s x ∗ stFrom c key s ∗
       ⌜s.rev = W64 0 → ign = true⌝ ∗
       dsl ↦*□ c.S.encode o' ∗ c.S.objAt dest o0 rv0 ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep key ign c.S.zero pre f) W Φ)) }}
+      ([∗list] γv ∈ c.K.kvs, k8sAuRW γv c (updStep key ign c.S.zero pre f) W Φ)) }}
     (App (App (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"updateOnce")) (Val #(GoInterface.ok ci)))
       (Val #span)) (Val #key)) (Val #dest)) (Val #st)) (Val #dsl)) (Val #(W64 0))) (Val #v))

@@ -387,7 +387,7 @@ theorem wp_osLockStepP (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsF
     (hst : ∀ st e' st', st.proc.fds !! fd = some d → IsFsStep o v st e' st' →
       LockStep st k fd d req nb (ExternalOp fsExt.name o (Val v)) e' st')
     (Ψ : Expr → Prop)
-    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) o v h st () e' h' st' () → Ψ e')
+    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns o v h st () e' h' st' () → Ψ e')
     (Φ : val → IProp GF) (hM : o ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) k fd d -∗
       (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) k fd d req e -∗ Φ (#e)) -∗
@@ -521,7 +521,7 @@ theorem wp_osOfdLockP (fd cmd typ : w64) (d : OsFd) (req : Option Bool) (hE : �
     (hcmd : cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) (hreq : ofdReq typ.toNat = some req)
     (hw : req = some true → d.writable = true) (hr : req = some false → d.readable = true)
     (hfree : req ≠ none → d.ofd = none) (Ψ : Expr → Prop)
-    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) "OfdLock"
+    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "OfdLock"
       (PairV (#fd) (PairV (#cmd) (#typ))) h st () e' h' st' () → Ψ e') (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .ofd fd d -∗
       (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) .ofd fd d req e -∗ Φ (#e)) -∗
@@ -559,7 +559,7 @@ the request `req`), with the whole fd and the token of its `flock` lock (if excl
 theorem wp_osFlockP (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool) (hE : ↑osN ⊆ E)
     (hhow : flockReq how.toNat = some (req, nb)) (hfree : req ≠ none → d.flk = none)
     (Ψ : Expr → Prop)
-    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) "Flock" (PairV (#fd) (#how)) h st () e' h'
+    (hΨ : ∀ h st e' h' st', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Flock" (PairV (#fd) (#how)) h st () e' h'
       st' () → Ψ e') (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) .flock fd d -∗
       (∀ e : w64, ⌜Ψ (Val (#e))⌝ -∗ lockOut (L := L) .flock fd d req e -∗ Φ (#e)) -∗

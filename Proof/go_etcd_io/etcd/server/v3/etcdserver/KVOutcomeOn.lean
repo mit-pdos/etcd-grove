@@ -55,13 +55,8 @@ theorem outcomeOn_of_authOutL (c₀ : w64) (s : OnState) (m : EntryModel)
       s.2.1 (reqPerms rq) oc) :
     outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) := by
   have hm : m.typ = W32 0 ∧ m.data ≠ [] := ⟨ht, hd⟩
-  have hna' : ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true) := by
-    rintro ⟨-, h⟩; rw [hna] at h; cases h
   have hak : apply.authKVKind (apply.dispatchKind rq) = true := apply.authKVKind_of_isKVKind _ hk
-  unfold outcomeOn
-  rw [if_pos hm, hdec]
-  simp only
-  rw [if_neg hna']
+  rw [outcomeOn_nonadmin c₀ _ s m _ rq hm hdec hna]
   rcases h with ⟨rfl, hr⟩ | ⟨hc, hpass⟩
   · -- refused at the latest state: the state kept
     have hng := not_kvGranted_of_refusedL γa hs s.1 hl rq (reqPerms rq) (fun _ hx => hx) hr
@@ -594,13 +589,8 @@ theorem outcomeOn_of_kvOutLL (lm : lease.Mode) (c₀ : w64) (s : OnState) (m : E
     (hex : plainCover rq ∨ apply.leaseExactL s.2.2.ids rq s.2.1 oc) :
     outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1, s.2.2) := by
   have hm : m.typ = W32 0 ∧ m.data ≠ [] := ⟨ht, hd⟩
-  have hna' : ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true) := by
-    rintro ⟨-, h⟩; rw [hna] at h; cases h
   have hak : apply.authKVKind (apply.dispatchKind rq) = true := apply.authKVKind_of_isKVKind _ hk
-  unfold outcomeOn
-  rw [if_pos hm, hdec]
-  simp only
-  rw [if_neg hna']
+  rw [outcomeOn_nonadmin c₀ _ s m _ rq hm hdec hna]
   rcases kvGrantedL_of_kvOutL γa hs s.1 hl _ rq s.2.1 oc hz h with ⟨rfl, hng⟩ | ⟨hc, hg⟩
   · rw [if_pos ⟨hak, hng⟩]
     rfl
@@ -673,13 +663,8 @@ theorem outcomeOn_of_kvOutL_revoke (c₀ : w64) (s : OnState) (m : EntryModel)
     outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2.1,
       if oc = .rejected .auth then s.2.2 else kvTable c₀ (apply.alarmChain true false false) s.2.2 m) := by
   have hm : m.typ = W32 0 ∧ m.data ≠ [] := ⟨ht, hd⟩
-  have hna' : ¬ (uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true) := by
-    rintro ⟨-, h⟩; rw [hna] at h; cases h
   have hak : apply.authKVKind (apply.dispatchKind rq) = true := by rw [hk]; rfl
-  unfold outcomeOn
-  rw [if_pos hm, hdec]
-  simp only
-  rw [if_neg hna']
+  rw [outcomeOn_nonadmin c₀ _ s m _ rq hm hdec hna]
   rcases kvGrantedL_of_kvOutL γa hs s.1 hl _ rq s.2.1 oc hz h with ⟨rfl, hng⟩ | ⟨hc, hg⟩
   · rw [if_pos ⟨hak, hng⟩, if_pos rfl]
     rfl

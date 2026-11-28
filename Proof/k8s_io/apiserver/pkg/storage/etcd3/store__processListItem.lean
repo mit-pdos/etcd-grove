@@ -33,15 +33,14 @@ theorem store.processListItem.wp_proof
     (wp_ValueOf : reflect.ValueOf.spec (GF := GF) (hG := hG))
     (wp_Set : reflect.Value.Set.spec (GF := GF) (hG := hG)) :
     store.processListItem.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c L ctx kvp kv pred sel emp nf ag v p s os o hdec
+  intro _ Obj _ sp c L ctx kvp kv pred sel emp nf ag v p s os o hdec
   obtain ⟨b, hd⟩ := hdec
   obtain ⟨d, st, hfs, hdc, -⟩ := ObjCodec.dec_some _ _ _ _ hd
   wp_start as ⟨#Hst, #Hlc, #Hsel, #Hnf, #Hctx, %hv, #Hkv, Hp, Hit⟩
   ihave #Pr : isPkgInit (PROP := IProp GF) pkg_id.reflect $$ []
   · iPkgInit
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, -⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, -, -, #Htr, -, -, -⟩
   iunfold transformerOk at Htr

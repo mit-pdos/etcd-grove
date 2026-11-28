@@ -54,7 +54,6 @@ theorem k8s_compactor_Main
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_MainPartition`). -/
 theorem k8s_compactor_MainPartition
-    [go_etcd_io.etcd.cache.v3.Assumptions]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.wp_MainPartition h_After

@@ -4890,3 +4890,20 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   #(discard.mk)`; raft's initializer, which loads it, is unaffected), and specs of `discard.Write`,
   `WriteString` and `ReadFrom` (`Write` returns `(len p, nil)` and reads nothing of `p`).
 - **Status.** Open.
+
+## `strconv.Atoi`'s spec does not give the number (2026-11-27, hraft S5, #48)
+
+- **Limitation.** Perennial's `strconv.Atoi.spec` (and `internal.strconv.Atoi.spec`) give only the error
+  (nil, `ErrSyntax` or `ErrRange`), not the number parsed. A parser of what `strconv.Itoa` wrote cannot show
+  it gets the number back: the hraft kit's FSM (`examples/dsverify/hraft/examples/hraftnet/service`,
+  `Store.Restore`) panics unless `Atoi` of its snapshot's index succeeds with a non-negative number.
+- **Workaround.** `Spec/strconv/Atoi_dec.lean` (`strconv.Atoi_dec.spec`: `Atoi(fmtInt n 10)` of `n ≥ 0`
+  returns `(n, nil)`), a hypothesis of `service.Store.Restore.wp_proof`, unproved: no axiom.
+- **Proposed change.** A functional spec of `internal.strconv.Atoi`: its result is `parseInt s 10 64`'s
+  (the slow path is `ParseInt`'s, already functional; the fast path, 1 to 18 bytes, a digit loop), so that
+  `Atoi(Itoa(n)) = (n, nil)` follows from `parseInt_fmtInt10`. Mechanical (a proof over the translated body).
+- **Status.** Landed in Perennial `e2eda8223` (2026-11-28; pin bump requested on #9): `internal.strconv.Atoi.spec`
+  and `strconv.Atoi.spec` give `parseInt s 10 0`'s result (stronger posts; the errors unchanged), proved over the
+  translated body (`Perennial/Proof/internal/strconv/AtoiBasics.lean`: the fast loop's invariant); corollary
+  `internal.strconv.parseInt_fmtInt10_0`. Here `Atoi_dec` is proved from it (`Proof/strconv/Atoi_dec.lean`), once
+  the pin includes it.

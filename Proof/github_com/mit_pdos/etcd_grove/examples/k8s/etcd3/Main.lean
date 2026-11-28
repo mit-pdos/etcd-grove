@@ -74,7 +74,7 @@ theorem Main.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id ctxs boot clients ops watchers wops Hbf Htb HLv Hrb48 HrbN HwbN Haf
+  intro EK RT SC ST VA N id ctxs boot clients ops watchers wops Hbf Htb HLv Hrb48 HrbN HwbN Haf
     Hbuq Hrf Hdbo Hms hAs hse Hty H0 Hw0 H31 Hops Hwops Hmul
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
@@ -311,11 +311,11 @@ theorem Main.wp_proof
       wops (W64 0) rfl rfl rfl rfl rfl hAs hse (by omega)
       (by intro y hy; simp only [storeCfgD, List.mem_cons, List.not_mem_nil, _root_.or_false] at hy
           subst hy; exact Hnr)
-      (by simp [storeCfgD]) (by omega) H0 Hw0 H31 Hops Hwops Hmul
+      (by simp [storeCfgD, k8s.inProcEtcd]) (by omega) H0 Hw0 H31 Hops Hwops Hmul
       (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp)
       (by simp [g0s, st3]) runOk_g0s)
     $$ [Hks Hst0 Hhs] as %r %hr
-  · rw [show (storeCfgD kc cl [x] V mt lt γh).ms = [x] from rfl]
+  · rw [show (storeCfgD kc cl [x] V mt lt γh).K.kvs = [x.γr.kv] from rfl]
     iframe #
     iframe Hks Hst0 Hhs
     iapply BigSepL.bigSepL_nil.2; itrivial

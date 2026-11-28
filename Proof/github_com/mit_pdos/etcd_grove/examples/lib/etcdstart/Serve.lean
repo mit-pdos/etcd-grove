@@ -45,7 +45,7 @@ theorem Serve.wp_proof
     (h_grpcCfgOk_of_startedM : client.grpcCfgOk_of_startedM.law (GF := GF) (hG := hG))
     (h_raftKV_serverM : v3rpc.raftKV_serverM.law (GF := GF) (hG := hG)) :
     Serve.spec (GF := GF) (hG := hG) := by
-  intro CS s addr E ρ γr cfg Q
+  intro s addr E ρ γr cfg Q
   wp_start as ⟨#Hzlg, %Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, Hlg3, Hbemu, Hgo, HG⟩
   obtain ⟨Htos, Hwpi, Hms, Hbuq, Hany, Htb⟩ := Hpure
   ihave #Hwp := srvServeFacts_interval s E cfg $$ Hsf

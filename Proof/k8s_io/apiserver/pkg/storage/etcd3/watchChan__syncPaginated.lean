@@ -8,7 +8,7 @@ them and the client's `Get` reads them (`optsAt`). The loop's invariant: before 
 `withRev = 0` and the read updates from `lbf`; after a page cut by `More` (recursive only), the
 first page's state `σ0` (its revision the start point, `withRev` and `initialRev`), the raw events
 queued so far `I` followed by the scope from the next start key (`fromL`) being the initial raw
-events (`kInitRaws`). Each page is a client `KV.Get` (`client_range_any`), its key-values the scope's
+events (`kInitRaws`). Each page is a client `KV.Get` (the client's law `kvGet`), its key-values the scope's
 from the start key (`srvRangeOk_page`, `srvRangeOk_key0`), each queued through `parseKV` and
 `queueEvent` (`kProd_queue`, a prefix of the initial part: `kInit_ok`).
 -/
@@ -56,21 +56,12 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
-/-- The read updates at the members, as `client_range_any` takes them (linearizable reads). -/
-theorem readAus_members {Obj : Type} (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF)
-    (o : OpFull) (hs : o.base.serializable = false) :
-    readAus c γk Q ⊢ □ [∧list] x ∈ c.ms, ⌜Q = fun _ => iprop(True)⌝ ∨
-      (⌜o.base.serializable = false⌝ ∗ kvReadAu x.γr.kv Q) := by
+/-- The read updates at the client's KVs, as its `KV.Get` takes them. -/
+theorem readAus_kvs {Obj : Type} (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF) :
+    readAus c γk Q ⊢ □ [∗list] γv ∈ c.K.kvs, kvReadAu γv Q := by
   unfold readAus
   iintro ⟨-, #H⟩
-  imodintro
-  iapply (BigAndL.bigAndL_intro (P := iprop(□ [∗list] x ∈ c.ms, kvReadAu x.γr.kv Q))
-    (fun k x hk => ?_)) $$ H
-  iintro #H'
-  ihave #Hx := BigSepL.bigSepL_lookup hk $$ H'
-  iright
-  iframe Hx
-  ipureintro; exact hs
+  iexact H
 
 /-- `syncPaginated`'s options before a page: `syncGs` until the first page's revision is known,
 then `WithRev` of it. -/
@@ -78,20 +69,19 @@ def syncGsOf (kp : GoString) (recur : Bool) (wr : w64) : List (OpFull → OpFull
   if wr = W64 0 then syncGs kp recur else syncGs kp true ++ [withRevM wr]
 
 /-- **One page: the client's `KV.Get`** of `pk` with the options `gs` (a linearizable range,
-unsorted), through the store's client (`kvObjAt` of its `*kv`), with the read update `Qr` at the
+unsorted), through the store's client (`K.kvAt` of its `*kv`), with the read update `Qr` at the
 members: `nil` and the reply `m` (its key-values' slice owned) at a state `σ` the update fired at,
 `m` the server's answer at `σ`; or a client error (`kClientErr`). -/
-theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem wp_syncGet
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] {Obj : Type}
-    (h_range_any : client.client_range_any.law (GF := GF) (hG := hG))
-    (c : StoreCfg GF Obj) (γk : KVNames) (api : Loc) (ctx : GoInterfaceOk)
+    (c : StoreCfg GF Obj) (hK : c.K.Laws) (γk : KVNames) (api : Loc) (ctx : GoInterfaceOk)
     (cdw : context.ContextDesc (IProp GF)) (pk : GoString) (osl : GoSlice)
     (gs : List (OpFull → OpFull)) (Qr : KVState → IProp GF)
     (hsz : opSizeOk (opGetModel pk gs)) (hg : ¬ opGetPanics gs ∧ (opGetModel pk gs).t = W64 1)
     (hser : (rangeWireOf (opGetModel pk gs)).base.serializable = false)
     (hss : (opGetModel pk gs).base.sortSet = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        EtcdGrove.kvObjAt api (c.ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ c.ms, client.kvRegsAt x) ∗
+        □ c.K.kvAt api ∗
         ctxOk ctx cdw ∗ ctxErrClient ctx cdw ∗ optsAt osl gs ∗ readAus c γk Qr }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ctx))) (Val #pk)) (Val #osl))
@@ -102,39 +92,20 @@ theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
             m.hdr.revision = W64 (σ.rev : Int) ∧
             σ.readRev (rangeWireOf (opGetModel pk gs)).base.rev ≤ σ.rev ∧ kvRevFits σ.rev⌝) ∨
         (⌜err ≠ GoInterface.nil⌝ ∗ kClientErr err)) }} := by
-  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hregs, #Hctx, #Hce, #Hopts, #Hra⟩ HΦ
-  imod (client.srvStart_alloc (GF := GF) c.ms) with #Hst
-  ihave #Hopts' := optsAt_res osl gs iprop(True) $$ Hopts
-  ihave #Hst' := client.srvStart_both c.ms $$ Hst
-  ihave #Hau := readAus_members c γk Qr (rangeWireOf (opGetModel pk gs)) hser $$ Hra
-  wp_apply (h_range_any api c.ms (W64 0) ctx cdw pk osl gs iprop(True) Qr [] hsz) $$ [$Hlt]
-    as %resp %err ⟨Hlt, -, Hout, -⟩
+  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hctx, #Hce, #Hopts, #Hra⟩ HΦ
+  ihave #Hau := readAus_kvs c γk Qr $$ Hra
+  wp_apply (hK.kvGet api ctx cdw pk osl gs Qr hsz hg hser hss) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
-    isplitl []
-    · rw [hss]; iapply sortNamesIf_false
-    ipureintro; exact hg
   iapply HΦ
   iframe Hlt
-  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, #Hq⟩ | ⟨⟨%Herr, %Hrn⟩, #Hke⟩)
-  · subst Herr
-    ihave Hs := kubernetes.rangeReply_state_at x.E x.γr (W64 0) x.cid x.mid _ [] Qr m hser $$ Hq
-    icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    obtain ⟨hsel, -, hrevσ, hle, hb, -⟩ := Hσ
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexists m, σ
-    iframe Hm HQ
-    ipureintro
-    exact ⟨hsel, hrevσ, hle, hb⟩
+  icases Hout with (Hok | ⟨%Herr, #Hke⟩)
+  · ileft; iExactEq Hok; rfl
   · iright
-    iunfold kvErr at Hke
-    icases Hke with ⟨%Hce, #Hse, #Hcl⟩
     isplitr
     · ipureintro; exact Herr
     iunfold kClientErr
-    iframe Hse Hcl
-    ipureintro; exact ⟨Herr, Hce⟩
+    iexact Hke
 
 theorem watchChan.syncPaginated.wp_proof
     (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG))
@@ -148,10 +119,9 @@ theorem watchChan.syncPaginated.wp_proof
     (wp_ErrorfPlain : fmt.ErrorfPlain.spec (GF := GF) (hG := hG))
     (wp_interpretListError : interpretListError.spec (GF := GF) (hG := hG))
     (wp_parseKV : parseKV.spec (GF := GF) (hG := hG))
-    (wp_queueEvent : watchChan.queueEvent.spec (GF := GF) (hG := hG))
-    (h_range_any : client.client_range_any.law (GF := GF) (hG := hG)) :
+    (wp_queueEvent : watchChan.queueEvent.spec (GF := GF) (hG := hG)) :
     watchChan.syncPaginated.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
     hQ hH hR hf hle
   wp_start as ⟨Hlt, #Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
   ihave #Hwc' := Hwc
@@ -166,11 +136,12 @@ theorem watchChan.syncPaginated.wp_proof
   subst Hwp
   ihave #Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, #Hcl, -, #Hregs, -, #Hlst⟩
+  icases Hst' with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, #Hkcl, -, #Hlst⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
-  iunfold isNewClient at Hcl
-  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hh⟩
+  icases (hK.kvField c.cl) $$ Hh with ⟨%api, #Hkvf, #Hkv⟩
   ihave #Hreg : (registryFact : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   iunfold registryFact at Hreg
@@ -335,7 +306,7 @@ theorem watchChan.syncPaginated.wp_proof
   have hss : (opGetModel pk (syncGsOf kp recur wr)).base.sortSet = false := by
     unfold syncGsOf syncGs
     split <;> (try cases recur) <;> rfl
-  wp_apply (wp_syncGet h_range_any c γk api ctx (kCdw γ cd) pk osl (syncGsOf kp recur wr) (Q lbq) hsz hg hser hss)
+  wp_apply (wp_syncGet c hK γk api ctx (kCdw γ cd) pk osl (syncGsOf kp recur wr) (Q lbq) hsz hg hser hss)
     $$ [$Hlt] as %resp %gerr ⟨Hlt, Hget⟩
   · iframe #
   (try wp_auto)

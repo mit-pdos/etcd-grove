@@ -25,7 +25,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- The writer's history and the lock's agree on the events (the lock's is a prefix with at
 least as many events). -/

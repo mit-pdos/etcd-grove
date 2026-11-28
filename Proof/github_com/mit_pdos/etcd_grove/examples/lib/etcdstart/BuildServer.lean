@@ -32,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 theorem BuildServer.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG)) :
     BuildServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
+  intro N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
     dir id γ ρ E₀ Φs γn lm ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf
     Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
@@ -47,11 +47,29 @@ theorem BuildServer.wp_proof
   iapply HΦ
   iexact Hres
 
+/-- `BuildServer.wp_proof` with `bootstrap`'s contract borrowing a frame `R` (2026-11-27): `newServer.specF`. -/
+theorem BuildServer.wp_proofF
+    (wp_newServer : newServer.specF (GF := GF) (hG := hG)) :
+    BuildServer.specF (GF := GF) (hG := hG) := by
+  intro N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
+    dir id γ ρ E₀ Φs γn lm R ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf
+    Hbuq Hdbo
+  wp_start as ⟨HR, #Hpkg, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
+  (try wp_auto)
+  -- `newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)`: the compactor off
+  wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu
+      Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn false lm R HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
+      Hdir Hdirps HU Hpf Hcf HU8 HnL (by decide) Haf Hbuq Hdbo) $$ [HR Htok Hmb Hfresh] as %s %err Hres
+  · iframe; iframe #
+  iapply HΦ
+  iexact Hres
+
 /-- (Restart S7.4, 2026-11-14) `BuildServer` at a restart: `newServer.specRestart` at retention `0`. -/
 theorem BuildServer.wp_proofRestart
     (wp_newServer : newServer.specRestart (GF := GF) (hG := hG)) :
     BuildServer.specRestart (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
+  intro N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
     dir id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg

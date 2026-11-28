@@ -57,11 +57,13 @@ theorem compactor.runCompactLoop.wp_proof
     (wp_ClockAfter : clock.RealClock.After.spec (GF := GF) (hG := hG))
     (wp_Compact : Compact.spec (GF := GF) (hG := hG))
     (wp_UpdateCompactRevision : compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG))
-    (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runCompactLoop.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl ms V γk Seen recorded _ _ γc sc γs hsame hcmp hcret
-  wp_start as ⟨Hlt, #Hc, #Hstop, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
+  intro _ c cl K γk Seen recorded _ _ γc sc γs hsame hcmp hcret
+  wp_start as ⟨Hlt, #Hc, #Hstop, #HK, #Hko, #Hcas⟩
+  ihave #HK' := HK
+  iunfold k8sClient at HK'
+  icases HK' with ⟨%hK, #Hh⟩
   ihave #Hc' := Hc
   iunfold compactorCore at Hc'
   icases Hc' with ⟨%Hpers, #Hclf, ⟨%iv, #Hiv, %hiv⟩, ⟨%ck, #Hck⟩, #Honc, #Hmu, -⟩
@@ -84,17 +86,13 @@ theorem compactor.runCompactLoop.wp_proof
       "compactTime" ∷ compactTime_ptr ↦ cv ∗ "rev" ∷ rev_ptr ↦ rv ∗
       "compactRev" ∷ compactRev_ptr ↦ cr ∗ "err" ∷ err_ptr ↦ e ∗
       "Hcv" ∷ (⌜cv = W64 0⌝ ∨ Seen) ∗ "Hrv" ∷ revOk γk rv ∗
-      "Hone" ∷ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
-      "Hregs" ∷ ([∗list] x ∈ ms, client.kvRegsAt x) ∗ "Hlt" ∷ levelTok 0)
-    $$ [compactTime rev compactRev err Hone Hregs Hlt]
+      "Hlt" ∷ levelTok 0)
+    $$ [compactTime rev compactRev err Hlt]
   · iexists W64 0, W64 0, W64 0, GoInterface.nil
     iframe
     isplitl []
     · ileft; ipureintro; rfl
     unfold revOk; ileft; ipureintro; rfl
-  ihave #Hcl' := Hcl
-  iunfold isNewClient at Hcl'
-  icases Hcl' with ⟨-, #Hrco, -, -⟩
   ipersist c
   ipersist ctx
   wp_for HI
@@ -107,14 +105,14 @@ theorem compactor.runCompactLoop.wp_proof
   isplit
   · iintro %t
     (try wp_auto)
-    wp_apply (wp_Compact cl ms V γk (chanCtxVal sc) (chanCd γi) Seen recorded cv rv hsame hcmp hcret)
-        $$ [$Hlt $Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hlt, Hone, Hregs, Hcv, Hrv, #Hrec, %Herr, Herrf⟩
+    wp_apply (wp_Compact cl K γk (chanCtxVal sc) (chanCd γi) Seen recorded cv rv hsame hcmp hcret)
+        $$ [$Hlt $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hlt, Hcv, Hrv, #Hrec, %Herr, Herrf⟩
     · iframe #
     cases err with
     | ok ei =>
       -- a failed round: logged, the next one at the returned version and revision
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps, Hesl, -⟩
+      wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl ⟨Hlt, Hesl⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal

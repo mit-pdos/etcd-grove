@@ -24,6 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Swap
 public import Perennial.Proof.sync.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootUnserved
 
 @[expose] public section
 
@@ -66,15 +67,32 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.As
 /-- **The token of `restartN`'s cluster** (`Token`). -/
 abbrev token : GoString := go!"restartN-11208"
 
+/-- **The members' peer addresses, not yet served** (2026-11-27): the frame each member's first boot lends
+`bootstrap` (`etcdstart.addrsFree`, `bootstrap.specUnserved`): the right to listen at each member's peer address,
+reserved for HTTP. `startMembers` holds it for every member while it builds them all, before serving any. -/
+abbrev peersFree (ms : List GMember) : IProp GF := etcdstart.addrsFree (hG := hG) (ms.map (·.Peer'))
+
+/-- **What `startMembers` takes per member** (`etcdstart.memberPre`, its contract `bootPremiseF` at the frame
+`peersFree ms`): `bootstrap`'s contract at the member's name, URLs and id, its `memberBoot`, its network's HTTP
+side and its fresh bundle (with its peer address). -/
+def memberPreU (N : Nat) (ms : List GMember) (ps : List w64) (bootLog : List EntryM)
+    (ctxs : List (List w8)) (dir : w64 → List GoString)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (x : GMember × MemberG GF) :
+    IProp GF :=
+  iprop(bootPremiseF (peersFree ms) N ps bootLog ctxs dir token x.1.Name' (urlsN ms x.1) x.2.id ∗
+    memberBoot x.2.γ ctxs x.2.ρ x.2.E Φs x.2.id ∗ netHttpOk γn x.2.id ∗
+    memberFreshRes x.1.Name' ⟨some x.1.Peer', none⟩ γn)
+
 /-- **`Run(k)`'s named premises** (persistent; see the file header), at the bound `N`, the member ids
 (in the members' order), the peers `ps` (in `bootstrap`'s order), the peers' contexts and the bootstrap
 log. -/
 def premises (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : IProp GF :=
   iprop(
-    ([∗list] m; id ∈ members k; ids,
-      etcdstart.bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dirN (members k) ids) token
-        m.Name' (etcdstart.urlsN (members k) m) id) ∗
+    -- (2026-11-28) at a member count `Run` covers (`k ≤ 1000`: the peer addresses loopback literals)
+    (□ (⌜k ≤ 1000⌝ -∗ [∗list] m; id ∈ members k; ids,
+      etcdstart.bootPremiseF (peersFree (members k)) N ps (LogEntry.toEntries boot 0) ctxs
+        (dirN (members k) ids) token m.Name' (etcdstart.urlsN (members k) m) id)) ∗
     ([∗list] m; id ∈ (members k).drop (k - nStop k); ids.drop (k - nStop k),
       etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dirN (members k) ids) token
         m.Name' (etcdstart.urlsN (members k) m) id))

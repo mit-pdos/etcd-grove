@@ -40,7 +40,7 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_vrOf : vrOf.spec (GF := GF) (hG := hG))
     (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     callGet.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs key Q hkl
+  intro cl ms V hAs key Q hkl
   wp_start as ⟨Hlt, #Hcl, #Hregs, #Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit

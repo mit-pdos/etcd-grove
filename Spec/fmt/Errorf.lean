@@ -149,7 +149,7 @@ abbrev fmt.Errorf.spec : Prop :=
 end spec
 
 section methods
-variable [GooseExts] [GoSemanticsFunctions]
+variable [GooseExts] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- A method absent from a type's method set, from the type's `go.MethodSetIs` (premise-fixes-4: for
 `fmt.argOk`'s method facts). -/

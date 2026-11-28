@@ -77,18 +77,18 @@ def apply.irrEmpty : apply.IRRModel where
   authStatus := false
   authenticate := none
   authUserAdd := none
-  authUserDelete := false
+  authUserDelete := none
   authUserGet := none
-  authUserChangePassword := false
+  authUserChangePassword := none
   authUserGrantRole := none
-  authUserRevokeRole := false
+  authUserRevokeRole := none
   authUserList := false
   authRoleList := false
   authRoleAdd := none
-  authRoleDelete := false
+  authRoleDelete := none
   authRoleGet := none
   authRoleGrantPermission := none
-  authRoleRevokePermission := false
+  authRoleRevokePermission := none
   clusterVersionSet := none
   clusterMemberAttrSet := none
   downgradeInfoSet := none
@@ -151,16 +151,16 @@ def reqTypeName (rq : apply.IRRModel) : GoString :=
   else if rq.authDisable then go!"AuthDisable"
   else if rq.authStatus then go!"AuthStatus"
   else if rq.authUserAdd.isSome then go!"AuthUserAdd"
-  else if rq.authUserDelete then go!"AuthUserDelete"
-  else if rq.authUserChangePassword then go!"AuthUserChangePassword"
+  else if rq.authUserDelete.isSome then go!"AuthUserDelete"
+  else if rq.authUserChangePassword.isSome then go!"AuthUserChangePassword"
   else if rq.authUserGrantRole.isSome then go!"AuthUserGrantRole"
   else if rq.authUserGet.isSome then go!"AuthUserGet"
-  else if rq.authUserRevokeRole then go!"AuthUserRevokeRole"
+  else if rq.authUserRevokeRole.isSome then go!"AuthUserRevokeRole"
   else if rq.authRoleAdd.isSome then go!"AuthRoleAdd"
   else if rq.authRoleGrantPermission.isSome then go!"AuthRoleGrantPermission"
   else if rq.authRoleGet.isSome then go!"AuthRoleGet"
-  else if rq.authRoleRevokePermission then go!"AuthRoleRevokePermission"
-  else if rq.authRoleDelete then go!"AuthRoleDelete"
+  else if rq.authRoleRevokePermission.isSome then go!"AuthRoleRevokePermission"
+  else if rq.authRoleDelete.isSome then go!"AuthRoleDelete"
   else if rq.authUserList then go!"AuthUserList"
   else if rq.authRoleList then go!"AuthRoleList"
   else if rq.clusterVersionSet.isSome then go!"ClusterVersionSet"
@@ -206,20 +206,23 @@ def irrNoHdrIs (p : Loc) (rq : apply.IRRModel) : IProp GF :=
     apply.irrField p go!"AuthStatus" (fun l => apply.presentIs l rq.authStatus) ∗
     apply.irrField p go!"Authenticate" (fun l => apply.optReqIs l rq.authenticate apply.authenticateIs) ∗
     apply.irrField p go!"AuthUserAdd" (fun l => apply.optReqIs l rq.authUserAdd apply.authUserAddIs) ∗
-    apply.irrField p go!"AuthUserDelete" (fun l => apply.presentIs l rq.authUserDelete) ∗
+    apply.irrField p go!"AuthUserDelete" (fun l => apply.optReqIs l rq.authUserDelete apply.authUserDeleteIs) ∗
     apply.irrField p go!"AuthUserGet" (fun l => apply.optReqIs l rq.authUserGet apply.authUserGetIs) ∗
-    apply.irrField p go!"AuthUserChangePassword" (fun l => apply.presentIs l rq.authUserChangePassword) ∗
+    apply.irrField p go!"AuthUserChangePassword"
+      (fun l => apply.optReqIs l rq.authUserChangePassword apply.authUserChangePasswordIs) ∗
     apply.irrField p go!"AuthUserGrantRole"
       (fun l => apply.optReqIs l rq.authUserGrantRole apply.authUserGrantRoleIs) ∗
-    apply.irrField p go!"AuthUserRevokeRole" (fun l => apply.presentIs l rq.authUserRevokeRole) ∗
+    apply.irrField p go!"AuthUserRevokeRole"
+      (fun l => apply.optReqIs l rq.authUserRevokeRole apply.authUserRevokeRoleIs) ∗
     apply.irrField p go!"AuthUserList" (fun l => apply.presentIs l rq.authUserList) ∗
     apply.irrField p go!"AuthRoleList" (fun l => apply.presentIs l rq.authRoleList) ∗
     apply.irrField p go!"AuthRoleAdd" (fun l => apply.optReqIs l rq.authRoleAdd apply.authRoleAddIs) ∗
-    apply.irrField p go!"AuthRoleDelete" (fun l => apply.presentIs l rq.authRoleDelete) ∗
+    apply.irrField p go!"AuthRoleDelete" (fun l => apply.optReqIs l rq.authRoleDelete apply.authRoleDeleteIs) ∗
     apply.irrField p go!"AuthRoleGet" (fun l => apply.optReqIs l rq.authRoleGet apply.authRoleGetIs) ∗
     apply.irrField p go!"AuthRoleGrantPermission"
       (fun l => apply.optReqIs l rq.authRoleGrantPermission apply.authRoleGrantPermissionIs) ∗
-    apply.irrField p go!"AuthRoleRevokePermission" (fun l => apply.presentIs l rq.authRoleRevokePermission) ∗
+    apply.irrField p go!"AuthRoleRevokePermission"
+      (fun l => apply.optReqIs l rq.authRoleRevokePermission apply.authRoleRevokePermissionIs) ∗
     apply.irrField p go!"ClusterVersionSet" (fun l => apply.optReqIs l rq.clusterVersionSet apply.clusterVersionSetIs) ∗
     apply.irrField p go!"ClusterMemberAttrSet"
       (fun l => apply.optReqIs l rq.clusterMemberAttrSet apply.memberAttrSetIs) ∗
@@ -342,7 +345,7 @@ instance (priority := high) raftNodeConfig_typeRepr_u :
 end typeRepr
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The configuration's fields the request path reads. -/
 abbrev srvCfgFieldAddr (s : Loc) (f : GoString) : Loc :=

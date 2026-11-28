@@ -46,9 +46,8 @@ theorem adt.cstate_cons (K : adt.KeyRep (GF := GF)) (pmin pmax : Loc) (z : adt.E
 theorem adt.intervalTree.Contains_gen.wp_proof
     (h_Visit_gen : adt.intervalTree.Visit_gen.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Contains_gen.spec (GF := GF) (hG := hG) := by
-  intro K hK t L vb ve db de b e dq
+  intro K hK t T vb ve db de b e dq
   wp_start as ⟨Ht, Hkb, Hke⟩
-  ihave %hsorted := adt.ownIvtK_sorted K _ _ _ $$ Ht
   wp_auto
   have hz : ∀ a c, sint.Z (W64 (adt.affCmp a c)) = adt.affCmp a c := by
     intro a c; have := adt.affCmp_bounds a c; word
@@ -64,7 +63,7 @@ theorem adt.intervalTree.Contains_gen.wp_proof
       ∃ (vmin vmax : val) (mb me : GoString),
         minBegin_ptr ↦ interface.mkOk K.ty vmin ∗ K.keyAt .discard vmin mb ∗
         maxEnd_ptr ↦ interface.mkOk K.ty vmax ∗ K.keyAt .discard vmax me)
-  wp_apply (h_Visit_gen K hK t L vb ve db de b e dq _ I J)
+  wp_apply (h_Visit_gen K hK t T vb ve db de b e dq _ I J)
     $$ [Ht Hkb Hke minBegin maxEnd isContiguous] as ⟨Hkb, Hke, %ps, %es, %r, %hpl, HIJ, Hwand⟩
   · iframe Ht Hkb Hke
     isplitr [minBegin maxEnd isContiguous]
@@ -165,7 +164,7 @@ theorem adt.intervalTree.Contains_gen.wp_proof
       iframe
       iapply BigSepL.bigSepL_nil.2; itrivial
   -- after the visit: the result from the scan's state
-  obtain ⟨hsub, hlen, hpq⟩ := hpl
+  obtain ⟨hlen, hpq⟩ := hpl
   have hes : (ps.zip es).map Prod.snd = es := List.map_snd_zip (by omega)
   icases adt.ivl_split _ _ _ $$ ivl with ⟨Hivb, Hive, -⟩
   simp only [adt.KeyRep.ivl_Begin, adt.KeyRep.ivl_End]
@@ -181,10 +180,9 @@ theorem adt.intervalTree.Contains_gen.wp_proof
     isplitl [Hacc Hwand]
     · iapply Hwand; iexact Hacc
     ipureintro
-    intro hq
-    obtain ⟨⟨t, ht⟩, -⟩ := hpq hq
+    obtain ⟨⟨t, ht⟩, -⟩ := hpq
     rw [hes0] at ht
-    unfold adt.containsRes
+    unfold adt.containsT
     rw [← ht]
     simp only [List.cons_append, adt.scanFrom_none_append t zs0 _ hnone]
   | true =>
@@ -202,10 +200,9 @@ theorem adt.intervalTree.Contains_gen.wp_proof
       isplitl [Hacc Hwand]
       · iapply Hwand; iexact Hacc
       ipureintro
-      intro hq
-      have := hpq hq
+      have := hpq
       rw [hes'] at this
-      unfold adt.containsRes
+      unfold adt.containsT
       rw [← this]
     | cons z zs =>
       (try simp only [hes'])
@@ -214,12 +211,11 @@ theorem adt.intervalTree.Contains_gen.wp_proof
       wp_auto
       wp_apply hK .discard de vmax ve me e $$ [Hke] as ⟨-, Hke⟩
       · iframe ∗ #
-      have hres : ∀ hq : (b = go!"" ∨ adt.affLt b e), adt.containsRes (b, e) L =
+      have hres : adt.containsT (b, e) T =
           decide (adt.affCmp me e ≥ 0 ∧ adt.affCmp z.1.1 b ≤ 0) := by
-        intro hq
-        have := hpq hq
+        have := hpq
         rw [hes'] at this
-        unfold adt.containsRes
+        unfold adt.containsT
         rw [← this]
         dsimp only
         rw [hscan]
@@ -234,8 +230,7 @@ theorem adt.intervalTree.Contains_gen.wp_proof
           isplitl [Hacc Hwand]
           · iapply Hwand; iexact Hacc
           ipureintro
-          intro hq
-          rw [hres hq]
+          rw [hres]
           (try simp only [hz, h0])
           first
             | (rw [decide_eq_decide]; constructor <;> intro <;> omega)
@@ -247,8 +242,7 @@ theorem adt.intervalTree.Contains_gen.wp_proof
           isplitl [Hacc Hwand]
           · iapply Hwand; iexact Hacc
           ipureintro
-          intro hq
-          rw [hres hq]
+          rw [hres]
           (try simp only [hz, h0])
           first
             | (rw [decide_eq_decide]; constructor <;> intro <;> omega)
@@ -260,8 +254,7 @@ theorem adt.intervalTree.Contains_gen.wp_proof
         isplitl [Hacc Hwand]
         · iapply Hwand; iexact Hacc
         ipureintro
-        intro hq
-        rw [hres hq]
+        rw [hres]
         (try simp only [hz, h0])
         first
           | (rw [decide_eq_decide]; constructor <;> intro <;> omega)

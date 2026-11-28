@@ -92,7 +92,7 @@ def idIssueCrash (M : IdIssueState) : IdIssueState := GMap.fmap (fun _ => (none 
 
 /-- A crash keeps the record, every entry an earlier incarnation's (`idIssueCrash`). -/
 instance idIssue_semantics : ExtSemantics idIssueExt where
-  step := IdIssueStep
+  step := fun _ => IdIssueStep
   crash M M' := M' = idIssueCrash M
 
 end Perennial

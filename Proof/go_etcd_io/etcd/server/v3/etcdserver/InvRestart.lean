@@ -77,7 +77,10 @@ outputs.) Exclusivity per directory
 closes (R2b: `wal.Close`, `backend.Close`, axioms at the trust boundary, from what the server's
 `Save`s and the backend's commits wrote), consumed by `bootstrap`'s restart contract. A graceful
 stop in the same process: every write is visible to the next open, synced or not (the plan's
-Q4).
+Q4). (walfiles-fold, 2026-11-28) The records `σ` are also the WAL history's eager fold (`walFiles`' second
+conjunct), as a graceful stop leaves them: without it `srvFiles` admitted a WAL ending with a synced snapshot
+record above the saved commit, on which `bootstrap` succeeds while the restart contract's post (`walRecs h σ`,
+the eager fold) cannot hold (`notes/axiom-review/bootstrap-restart-eagerfold.md`).
 
 (out_size C3, 2026-11-12; freeze-c2 §4 MAJ-1, MAJ-2, MIN-3) **The WAL's files are sized**
 (`walFiles … true`). What that asserts (`walFiles`' trusted docstring): every entry record a
@@ -739,16 +742,15 @@ monitors propose `ClusterVersionSet`, with the minimum of the members' versions,
 `membership.clusterImageOk_restModel`'s callers do. (Until then nothing in the contract excluded
 `Recover`'s panic on a newer stored version; the CP2 package's §5 listed it as a world assumption.)
 
-**The WAL's read facts** (restart S6, CP2 review, minor (a), 2026-11-13). `bootOkR`'s WAL slot
-(`wal.restartOk`) includes `walReadFacts σ` (the WAL interface's I1-I4: entries consecutive from the
-base, the last index within raft's room `2^61 - 1`, base ≤ commit ≤ last, the snapshot record at the
-base). `bootstrap` neither establishes nor checks them, and the stopped member's image
-(`srvDiskImageAt`, `wal.stopImage`) does not carry all of them (I2's bound in particular rests on the
-first incarnation's lifetime bound, `receiptBound`, and is recorded nowhere in the image): they are
-the WAL interface's promise about the records any graceful stop leaves, trusted here as part of the
-contract, to be discharged by the WAL collaborator's crash-model spec (C6: `walReadCut_wf`,
-`walReadCut_last_le`, `walReadCut_b_le_commit`, `walReadCut_snapAtBase` of the server's history
-invariant; `notes/wal-crash-handoff/restart-wal-interface.md` §2). -/
+**The WAL's read facts** (restart S6, CP2 review, minor (a), 2026-11-13; a premise since 2026-11-27, the
+review of `bootstrap.wp_proofRestart`, R2: `notes/axiom-review/bootstrap-restart-walreadfacts.md`). `bootOkR`'s WAL slot (`wal.restartOk`) includes
+`walReadFacts σ` (the WAL interface's I1-I4: entries consecutive from the base, the last index within raft's
+room `2^61 - 1`, base ≤ commit ≤ last, the snapshot record at the base). `bootstrap` neither establishes
+nor checks them, and Go's `ReadAll` does not enforce I3: files whose WAL got a later `Save` of a hard state
+with a commit past the last entry make `bootstrap` succeed and raft's `RestartNode` panic (`loadState`,
+"commit is out of range"; the reviewer's Go test). So the contract takes them as a premise of the records
+`σ`, the caller's, from the stopped image (`srvDiskImageAt`), and `wal.restartOk` passes them on. Until
+2026-11-27 the post asserted them for every `σ` that `srvFiles` admits: false of Go. -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
@@ -766,7 +768,11 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       -- (restart S6, 2026-11-13, CP2; etcd-grove-81's decision: derived, not a world assumption)
       -- the image's committed log's cluster requests are ones `Recover` accepts
       -- (`clusterVerLogOk`): see the docstring, "The cluster version"
-      clusterVerLogOk L⌝ -∗
+      clusterVerLogOk L ∧
+      -- (2026-11-27, review R2) the WAL interface's I1-I4 of the records the files hold (what `bootOkR`'s
+      -- `wal.restartOk` passes on): the caller's, from the stopped image; `bootstrap` neither establishes
+      -- nor checks them
+      walReadFacts σ⌝ -∗
     (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
       ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗

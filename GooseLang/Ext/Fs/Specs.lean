@@ -981,7 +981,7 @@ theorem wp_osMmapG (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMet
     (hprot : prot.toNat = PROT_READ)
     (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Fail : w64 → Prop)
     (hfail : ∀ h st e h' st', st.proc.fds !! fd = some d →
-      ExtSemantics.step (E := fsExt) "Mmap"
+      ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Mmap"
         (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))) h st ()
         (osRes (#null) e) h' st' () → e ≠ 0 → Fail e)
     (R : IProp GF) (Ψ : Loc → w64 → IProp GF) (Φ : val → IProp GF) :

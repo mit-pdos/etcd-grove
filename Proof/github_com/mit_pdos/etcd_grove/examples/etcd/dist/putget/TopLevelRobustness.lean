@@ -16,8 +16,8 @@ its whole start (`DistBootWpST putgetThreads putgetSteps`: its files' and listen
 main thread's token, the logic's bounds: at most `2 ^ 48` receipts, the member's ceiling, and the thread
 bound `putgetThreads`, which also gives the served member's `srvLevels`; the bridge `robust_of_distBootIT`
 runs an execution of `n` steps at `n + 1` receipts). Over the interim cross-machine axioms
-(`notes/putget-dist-plan.md` §12; `etcd/dist/S2Interim.lean` and the axioms `Serve_dist`,
-`KV_Put_dist`, `KV_Get_dist`), `putget_safe` discharges it:
+(`notes/putget-dist-plan.md` §12; `etcd/dist/S2Interim.lean`'s table `etcdSvc` over the opaque
+`etcdSvcRest`, and the axiom `Serve_dist`), `putget_safe` discharges it:
 * the start (`putget_shares`, proved): the one-member cluster's allocation (`etcdstart.clusterAllocN`), which
   fixes the cluster's view `c.view` (O1 option B, `notes/etcd-dist-plan.md` §18.3), the client's putget
   invariant from its `etcdKV` (`putGetInvK_alloc`), the client address set at the view
@@ -28,8 +28,8 @@ runs an execution of `n` steps at `n + 1` receipts). Over the interim cross-mach
   start (its files' fresh areas; the metric IDs' registration rights allocated by each machine's boot,
   prom-registry);
 * the client's boot (`client_boot`, `AdequacyClient.lean`, proved): the in-process second half, its
-  `Put` and `Get` at the view (`Client_Put_dist`, `Client_Get_dist`, theorems over the interim axioms
-  `KV_Put_dist`, `KV_Get_dist`).
+  `Put` and `Get` at the view (`ClientCalls.lean`: the client's `kv.Put.spec`/`kv.Get.spec` at the client's
+  `isKv` of the auth-off view, stage B′).
 -/
 module
 
@@ -83,7 +83,7 @@ The member's and the client's proofs (`member_boot`, `client_boot`). -/
 def PutgetBoot : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+    [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [log.NewModel]
     (peer client : GoString)
@@ -104,7 +104,7 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` with `Robust`'s thread bound (`Net.robust_of_distBootIT`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
+  intro _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
     Hm Hc Hlp Hlc HEnv
   refine Net.robust_of_distBootIT (GF := putgetGF) (startAddrs peer client) (system peer client σm σc) g
     putgetThreads putgetSteps ?_
@@ -222,12 +222,12 @@ end start
 /-- **`putget_safe`** (see the file header): the start is proved (`putget_shares`), the member's boot is
 proved (`member_boot`), the client's boot is proved (`client_boot`), the bridge is proved
 (`putget_safe_of_boot`); the cross-machine steps are the interim axioms of `notes/putget-dist-plan.md` §12 and
-`notes/etcd-dist-plan.md` §18 (the table `etcd_dist.etcdSvc`, `Serve_dist`, `KV_Put_dist`, `KV_Get_dist`;
-the start law `etcdAddr_set` proved over grpc's `grpc_addr_set` since the S2 interface switch,
-`Client_Put_dist`/`Client_Get_dist` theorems over the contracts since O1-B). -/
+`notes/etcd-dist-plan.md` §18 (the table `etcd_dist.etcdSvc` over the opaque `etcdSvcRest`, and
+`Serve_dist`; the start law `etcdAddr_set` proved over grpc's `grpc_addr_set` since the S2 interface switch;
+the client's `Put`/`Get` by the client's specs since stage B′). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
+  intro _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
     Hm Hc Hlp Hlc HEnv G hb
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩

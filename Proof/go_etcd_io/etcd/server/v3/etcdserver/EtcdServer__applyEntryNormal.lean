@@ -2697,13 +2697,13 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         have hmod : (sa', x'.log, kvLeasesOn γr.kv srvAuthSt0 A) = kvEntryOn γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m := by
           rw [hl']
           exact outcomeOn_eq γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) (sa', x.log, kvLeasesOn γr.kv srvAuthSt0 A) m Hdet
-            (outcomeOn_of_adminStateR γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq sa' Htyp hdata hdec hv hna hR)
+            (outcomeOn_of_adminStateR γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq sa' Htyp hdata hdec hv (adminDispatchKind_of_adminKindOk rq hadm hna) hR)
         have Htie : authTie sa x.log (kvLeasesOn γr.kv srvAuthSt0 A) rq out :=
           authTie_nonAuthKV sa x.log _ rq out (adminKindOk_nonAuthKV rq hadm)
         -- (E3x) the result's tie at the model's step
         have hsa : sa' = adminNext rq sa :=
           (Prod.mk.inj (hmod.trans (kvEntryOn_admin γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq Htyp hdata
-            hdec hv hna))).1
+            hdec hv (adminDispatchKind_of_adminKindOk rq hadm hna)))).1
         ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
         · rw [← hsa]; iexact HtA0
         ihave HAR := Hcl $$ %hs' %sa' Hfu Htie %Hsa'.1 HT Htp

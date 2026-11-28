@@ -85,6 +85,20 @@ def userChangePasswordReqIs (r : Loc) (name : GoString) : IProp GF :=
       structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"Password" r ↦□ pw ∗
       structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"HashedPassword" r ↦□ hpw)
 
+/-- **The `*pb.AuthUserChangePasswordRequest` `r`'s password choice cannot fail** (`pwSureP` of its
+`Password` and `HashedPassword`, no option asked: an empty `Password` with a base64-encoded
+`HashedPassword`): with it, `UserChangePassword` does not return `ErrNoPasswordUser`
+(`UserChangePassword.specTSureB`; nomode D3, 2026-11-28). -/
+def userChangePasswordSure (r : Loc) : IProp GF :=
+  iprop(∃ (pw hpw : GoString),
+    structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"Password" r ↦□ pw ∗
+    structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"HashedPassword" r ↦□ hpw ∗
+    ⌜pwSureP pw hpw false⌝)
+
+instance userChangePasswordSure_persistent (r : Loc) :
+    Persistent (userChangePasswordSure (GF := GF) r) := by
+  unfold userChangePasswordSure; infer_instance
+
 /-- The `*pb.AuthUserGrantRoleRequest` `r` (not nil): its `User` and `Role`. -/
 def userGrantRoleReqIs (r : Loc) (user role : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserGrantRoleRequest go!"User" r ↦□ user ∗

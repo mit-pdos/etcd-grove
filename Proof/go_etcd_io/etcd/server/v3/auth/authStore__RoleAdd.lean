@@ -164,7 +164,8 @@ theorem auth.authStore.RoleAdd.wp_tieB
     · simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #«$r0_ptr»))
   iapply HPutR $$ %st0 %Post %«$r0_ptr» %rrN %rrN.toRole %AuthSess.init [$HL $Hrc $Hsw $Hnr]
-  · ipureintro; exact ⟨by decide, (List.length_pos_iff.2 hname), Hlen, List.Perm.refl _⟩
+  · ipureintro; exact ⟨by decide, (List.length_pos_iff.2 hname), Hlen, rfl,
+      by first | exact List.Pairwise.nil | simp [rrN, RoleRec.toRole]⟩
   inext
   iintro ⟨HL, Hsw, -⟩
   (try wp_auto)

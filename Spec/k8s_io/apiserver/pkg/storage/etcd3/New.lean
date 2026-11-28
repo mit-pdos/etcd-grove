@@ -47,9 +47,9 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev New.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (Obj : Type) [DecidableEq Obj] (S : ObjSpec GF Obj) (kc cl : Loc) (ms : List (client.SrvAt GF))
-    (V : client.WEnv GF) (γh : GName) (cmp codec : GoInterface) (nf nlf rkf : GoFunc)
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (Obj : Type) [DecidableEq Obj] (S : ObjSpec GF Obj) (kc cl : Loc) (K : K8sEtcd GF)
+    (γh : GName) (cmp codec : GoInterface) (nf nlf rkf : GoFunc)
     (pfx0 rp : GoString) (gr : k8s_io.apimachinery.pkg.runtime.schema.GroupResource)
     (vi ti di : GoInterfaceOk) (lmc : k8s_io.apiserver.pkg.storage.etcd3.LeaseManagerConfig),
   path.PathCleanAbs pfx0 → go!"/" <+: rp → rp ≠ go!"/" →
@@ -59,9 +59,7 @@ abbrev New.spec : Prop :=
       kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
           #kc)) ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗
-      client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
-      ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      k8sClient K cl ∗
       (∃ cx : GoInterface, structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ cx) ∗
       contractOk S codec vi ti di ∗
       □ (∀ Φ : val → IProp GF, ▷ (∀ x : GoInterface, ⌜x ≠ GoInterface.nil⌝ -∗ Φ #x) -∗
@@ -72,10 +70,10 @@ abbrev New.spec : Prop :=
       (Val #(GoInterface.ok ti))) (Val #lmc)) (Val #(GoInterface.ok di))) (Val #(GoInterface.ok vi)))
   {{ (sp : Loc) (err : GoInterface), RET (PairV #sp #err); ⌜err = GoInterface.nil⌝ ∗
       ∃ mt lt : Loc, isStore sp
-        ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, ms, V, mt, lt, γh⟩ ∗
+        ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, K, mt, lt, γh⟩ ∗
       □ (∀ (W : WatchSpec GF Obj) (γk : KVNames), clientWatchOk cl γk -∗ watchContractOk S W codec -∗
           newItemOk S nf -∗
-          storeWatchOk sp ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, ms, V, mt, lt, γh⟩ W γk) }}
+          storeWatchOk sp ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, K, mt, lt, γh⟩ W γk) }}
 
 end spec
 

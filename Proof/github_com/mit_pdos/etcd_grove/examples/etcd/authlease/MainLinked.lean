@@ -83,7 +83,7 @@ theorem etcd_authlease.wp_grantPut :
     WithLease.wp_proof
 
 /-- **authlease's `noAuth`**: every lease method refused for a client with no or an invalid token. -/
-theorem etcd_authlease.wp_noAuth [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_authlease.wp_noAuth :
     etcd_authlease.noAuth.spec (GF := GF) (hG := hG) :=
   etcd_authlease.noAuth.wp_proof etcd_authlease.wp_reqCtx etcd_authlease.refused.wp_proof
     client.v3.lessor.wp_Grant client.v3.lessor.wp_Revoke client.v3.lessor.wp_TimeToLive
@@ -95,7 +95,7 @@ theorem etcd_authlease.wp_absent :
   etcd_authlease.absent.wp_proof context.wp_ErrAny etcd_auth.context.wp_WithTimeoutBackground
 
 /-- **authlease's `foreign`**: the lease methods on another principal's lease refused. -/
-theorem etcd_authlease.wp_foreign [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_authlease.wp_foreign :
     etcd_authlease.foreign.spec (GF := GF) (hG := hG) :=
   etcd_authlease.foreign.wp_proof etcd_authlease.wp_reqCtx etcd_authlease.refused.wp_proof
     client.v3.lessor.wp_Revoke client.v3.lessor.wp_TimeToLive client.v3.lessor.wp_Leases
@@ -103,7 +103,7 @@ theorem etcd_authlease.wp_foreign [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 /-- **authlease's `run`** (`run.lean`), over authkv's linked `SetUp` (`auth/Link.lean`) and the per-member
 lessor law. -/
-theorem etcd_authlease.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_authlease.wp_run :
     etcd_authlease.run.spec (GF := GF) (hG := hG) :=
   etcd_authlease.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_authlease.wp_newUserClient etcd_authlease.wp_barriers

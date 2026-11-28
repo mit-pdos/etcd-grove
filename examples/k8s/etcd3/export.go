@@ -7,6 +7,7 @@ package etcd3
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -237,7 +238,9 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 		if r := rvOfMsg(out.ErrMsg); r != 0 {
 			obj(in.Key, r)
 		}
-		if out.Err == ENone && out.Name != "" {
+		// (G9) a successful answer's revision, with or without a name (a key without a
+		// "/"-suffix names an object with an empty name)
+		if out.Err == ENone {
 			obj(out.Namespace+"/"+out.Name, out.RV)
 			if in.Kind == KCreate || in.Kind == KDelete || (in.Kind == KUpdate && !in.NoOp) {
 				written[out.RV] = true
@@ -255,7 +258,7 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 	for v := range all {
 		r.anchors = append(r.anchors, v)
 	}
-	sort.Slice(r.anchors, func(i, j int) bool { return r.anchors[i] < r.anchors[j] })
+	slices.Sort(r.anchors)
 	r.byKey = map[string][]uint64{}
 	r.fastByKey = map[string][]uint64{}
 	for k, m := range byKey {
@@ -265,8 +268,8 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 				r.fastByKey[k] = append(r.fastByKey[k], v)
 			}
 		}
-		sort.Slice(r.byKey[k], func(i, j int) bool { return r.byKey[k][i] < r.byKey[k][j] })
-		sort.Slice(r.fastByKey[k], func(i, j int) bool { return r.fastByKey[k][i] < r.fastByKey[k][j] })
+		slices.Sort(r.byKey[k])
+		slices.Sort(r.fastByKey[k])
 	}
 	return r
 }
@@ -298,10 +301,10 @@ func (hh *histHashes) skipTo(c mcfg, t uint64) mcfg {
 }
 
 // target is the least revision a configuration at rv must be at for the operation in to answer
-// out (0: none): a write's new revision less one, the current revision a "not found" or a current
-// List names, the revision a past List reads, a Get's minimum resource version, the greatest
-// revision a watch's events name (and, for a watch-list with an event, its resource version, at
-// least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
+// out (0: none): a write's (create, delete, update) new revision less one, the current revision a
+// "not found" or a current List names, the revision a past List reads, any other kind's (a Get's)
+// minimum resource version, the greatest revision a watch's events name (and, for a watch-list
+// with an event, its resource version, at least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
 // and needs none.
 func target(in Input, out Output, rv uint64) uint64 {
 	if in.Kind == KWatch {
@@ -337,23 +340,27 @@ func target(in Input, out Output, rv uint64) uint64 {
 	if out.Err != ENone {
 		return 0
 	}
+	// (G8, G10; notes/k8s-dist-k4.md, "K4-3") the write arm only for the kinds mstep writes with
+	// (a write never reads its MinRV), the MinRV for every other kind (mstep answers it with mget,
+	// which checks it)
+	switch in.Kind {
+	case KCreate, KDelete, KUpdate:
+		if out.RV > rv {
+			return out.RV - 1
+		}
+		return 0
+	}
 	req, err := parseRV(in.MinRV)
 	if err != nil {
 		return 0
 	}
-	switch in.Kind {
-	case KList:
+	if in.Kind == KList {
 		if pastRead(in, req) {
 			return req
 		}
 		return out.ListRV
-	case KGet:
-		return req
 	}
-	if out.RV > rv {
-		return out.RV - 1
-	}
-	return 0
+	return req
 }
 
 // bound is the greatest revision a configuration may be at, after its pending writes took effect
@@ -644,7 +651,7 @@ const (
 func (s Seeded) SharedModel(revs Revs, mode int) porcupine.Model {
 	full := mode == Full
 	hh := &histHashes{}
-	memo := map[wkey]bool{}
+	memo := &wmemo{m: map[wkey]bool{}}
 	return porcupine.Model{
 		Init: func() any { return state{mcfg{st: s.st0, hist: hh.canonical(histOf(s.h0))}} },
 		Step: func(st, input, output any) (bool, any) {
@@ -814,8 +821,7 @@ func RVBytes(n uint64) string           { return rvBytes(n) }
 // shared cluster a watch's window spans the compactor's writes too, thousands of revisions, and
 // the check timed out. watchOkIdx is watchOk line for line (watchListOk, initialPrefixOk,
 // reliableOk, wantEvents likewise), every other function the driver's own, with histAt answered from
-// one walk (hview); TestReplayHistory checks the two agree on every watch step of a history
-// (CrossCheckWatches).
+// one walk (hview); TestCrossCheckWatches checks the two agree on every watch step of a history.
 
 // An hview is the stores of a history at the revisions lo to its own, by revision.
 type hview struct {
@@ -944,12 +950,6 @@ func wantEventsIdx(in Input, lo uint64, hi uint64, c mcfg) []WEvent {
 	return want
 }
 
-// crossCheck makes the shared model compute every watch step both ways and panic if they differ.
-var crossCheck bool
-
-// CrossCheckWatches turns the cross-check of watchOkIdx against watchOk on or off (the tests).
-func CrossCheckWatches(on bool) { crossCheck = on }
-
 // A wkey is a watch step: the configuration's (canonical) history and the watch with its events.
 type wkey struct {
 	hist *hnode
@@ -958,21 +958,30 @@ type wkey struct {
 	fail bool
 }
 
+// A wmemo is the watch steps' verdicts (stepIdx), under its lock: porcupine may call a model's Step
+// from several goroutines.
+type wmemo struct {
+	mu sync.Mutex
+	m  map[wkey]bool
+}
+
 // stepIdx is step, with a watch checked by watchOkIdx, its verdict kept in memo per history (a
 // watch's verdict is a function of the history: porcupine tries a watch at many points, and again
-// after it backtracks).
-func stepIdx(memo map[wkey]bool, c mcfg, in Input, out Output) []mcfg {
+// after it backtracks). The lock is held around the lookup and around the store, not around
+// watchOkIdx. (The cross-check of watchOkIdx against watchOk is a test: TestCrossCheckWatches.)
+func stepIdx(memo *wmemo, c mcfg, in Input, out Output) []mcfg {
 	if in.Kind != KWatch {
 		return step(c, in, out)
 	}
 	k := wkey{hist: c.hist, in: in, evs: out.WEvents, fail: out.WFailed}
-	ok, seen := memo[k]
+	memo.mu.Lock()
+	ok, seen := memo.m[k]
+	memo.mu.Unlock()
 	if !seen {
 		ok = watchOkIdx(in, out, c)
-		if crossCheck && ok != watchOk(in, out, c) {
-			panic("etcd3: watchOkIdx and watchOk differ")
-		}
-		memo[k] = ok
+		memo.mu.Lock()
+		memo.m[k] = ok
+		memo.mu.Unlock()
 	}
 	if !ok {
 		return nil

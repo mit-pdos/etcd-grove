@@ -49,11 +49,10 @@ theorem store.stateFromEtcdResponse.wp_proof
     (wp_Type : reflect.Value.Type.spec (GF := GF) (hG := hG))
     (wp_Interface : reflect.Value.Interface.spec (GF := GF) (hG := hG)) :
     store.stateFromEtcdResponse.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ctx kvp mkv rev key v p ign hdec
+  intro _ Obj _ sp c ctx kvp mkv rev key v p ign hdec
   wp_start as ⟨#Hst, #Hkv, %Hv⟩
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, -⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave #Prf : isPkgInit (PROP := IProp GF) pkg_id.reflect $$ []

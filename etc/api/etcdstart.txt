@@ -48,6 +48,10 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
 # (2026-11-25, etcd_safe's bootstrap interim axiom) `bootPremise` from `bootstrap.spec`: the bridge an example
 # uses to drop `bootstrap`'s contract as a premise (`etcd_dist.BootDist` builds the dist variant on it)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootBridge
+# (2026-11-27, premises to axioms) `bootPremiseR` from `bootstrap.specRestart` (the interim restart axiom)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootRestart
+# (2026-11-27) `bootPremiseF` from the interim axiom `bootstrap.wp_proofUnserved` (restartN's first boots)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootUnserved
 # the package's initialization
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked

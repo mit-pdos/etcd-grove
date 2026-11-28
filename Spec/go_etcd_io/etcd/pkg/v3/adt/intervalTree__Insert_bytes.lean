@@ -6,6 +6,7 @@ plan's S2, stated as here). Lean-first; see `BytesIvl.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.TreeInsert
 
 @[expose] public section
 
@@ -23,15 +24,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-/-- **`t.Insert(ivl, v)` over bytes-affine keys** (`intervalTree.Insert.spec` with `bytesIvl`:
-the slices read-only, the keys their contents). -/
+/-- **`t.Insert(ivl, v)` over bytes-affine keys** (`intervalTree.Insert_gen.spec` with `bytesKey`:
+the slices read-only, the keys their contents), on the exact tree (`ownIvtTB`): the tree `Insert`
+computes (`RbT.insertRB`; its entries `RbT.inorder_insertRB`). -/
 abbrev adt.intervalTree.Insert_bytes.spec : Prop :=
-  ∀ (t : Loc) (L : List adt.Entry) (b e : GoSlice) (bs es : GoString) (v : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvtB t L (DFrac.own 1) ∗
-      b ↦*□ bs ∗ e ↦*□ es ∗ ⌜L.length + 1 < 2 ^ 63⌝ }}
+  ∀ (t : Loc) (T : adt.RbT adt.Entry) (b e : GoSlice) (bs es : GoString) (v : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
+      adt.ownIvtTB t T (DFrac.own 1) ∗ b ↦*□ bs ∗ e ↦*□ es ∗ ⌜T.inorder.length + 1 < 2 ^ 63⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Insert"))
       (Val #(adt.bytesIvl b e))) (Val #v))
-  {{ RET #(); adt.ownIvtB t (adt.ivtInsert ((bs, es), v) L) (DFrac.own 1) }}
+  {{ RET #(); adt.ownIvtTB t (T.insertRB ((bs, es), v)) (DFrac.own 1) }}
 
 end spec
 

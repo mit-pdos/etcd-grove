@@ -39,8 +39,7 @@ variable [GooseExts]
 /-- The permission `SetUp` grants role `r` on the wire: `READWRITE` (`2`) on `[a, b)`. -/
 def permRW : PermW := ⟨W32 2, lo, hi⟩
 
-theorem permOfWire_permRW : permOfWire permRW = some permR := by
-  simp [permOfWire, permRW, permR]
+theorem permOfWire_permRW : permOfWire permRW = permR := rfl
 
 /-- **A state of the set-up's shape**: disabled, the users `root`, `u`, `v` and the role `r`
 each absent or at a stage of its set-up, no other user or role. -/
@@ -297,7 +296,8 @@ theorem setupEff_putRole (st : AuthState) (x : auth.Role) (i : Nat)
 
 theorem grantPerms_permRW (ps : auth.Role) (h : ps = [] ∨ ps = [permR]) :
     grantPerms ps permRW = [permR] := by
-  rcases h with rfl | rfl <;> simp only [grantPerms, permOfWire_permRW] <;> simp [permAt, permR, permRW]
+  rcases h with rfl | rfl <;> simp only [grantPerms, permOfWire_permRW] <;>
+    simp [permAt, permR, permRW, permInsert]
 
 /-- A user's roles granted one more, at the set-up's stage before it. -/
 theorem setup_ugr_roles (u u' : User) (role : GoString) (h : u = [] ∨ u = [role])

@@ -182,7 +182,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- **The producer's `sendError`** (then it returns): `kProdExited` set first (`kCancelPD`'s producer
 arm, for `wc.cancel()`), the commit from `kResChan`, the running-producer token back. -/
-theorem wp_prod_sendError [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem wp_prod_sendError
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (wp_sendError : watchChan.sendError.spec (GF := GF) (hG := hG))
     {Obj : Type} [DecidableEq Obj] [Pos.Countable Obj] (wc sp : Loc)
@@ -239,7 +239,7 @@ theorem watchChan.startWatching.wp_proof
     (wp_parseEvent : parseEvent.spec (GF := GF) (hG := hG))
     (wp_logWatchChannelErr : logWatchChannelErr.spec (GF := GF) (hG := hG)) :
     watchChan.startWatching.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 q wcc γb
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 q wcc γb
     hQ hH hR hbm hrpl
   haveI : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
   wp_start as ⟨#Hoff, #Hst, #Hsw, #Hwc, Hir, Hpre, #Hra, #Hre, Hps, Hpe, Halive, Hbc, Htok⟩
@@ -256,7 +256,7 @@ theorem watchChan.startWatching.wp_proof
   subst Hwp
   ihave #Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, #Hcl, -, #Hregs, -, #Hlst⟩
+  icases Hst' with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, #Hkcl, -, #Hlst⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, %Hrp⟩
   ihave #Pcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []

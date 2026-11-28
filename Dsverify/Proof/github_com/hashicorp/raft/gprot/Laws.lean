@@ -1725,18 +1725,21 @@ theorem CLb_idx (L : RLog) (k : Nat) (e : Entry) (h : ent L k = some e) :
 
 /-! ## Allocation -/
 
-/-- The bootstrapped protocol (stage 4): the servers `srvs`; the bootstrap voters `cv g.data` (a
-valid configuration over `srvs`) with log `[g]`, term 1; the other servers with the empty log,
-term 0 (`proto.initSrv`). Needs two receipts (`maxT = maxI = 1`). -/
-theorem alloc (E : CoPset) (srvs : List SID) (g : Entry) (cv : List w8 → List SID)
-    (hnd : srvs.Nodup) (hg1 : g.term = 1) (hgk : g.kind = kConfig)
-    (hcv : cfgValid srvs (cv g.data)) (hne : ∀ j ∈ srvs, j ≠ []) :
-    receipt (GF := GF) 2 ⊢ |={E}=> ∃ γ : GNames, ⌜γ.srvs = srvs ∧ γ.g = g ∧ γ.cv = cv⌝ ∗ Inv γ ∗
-      opsAuth γ ∅ ∗
-      [∗list] i ∈ srvs, isSrv γ i ∗
-        srvOwn γ i (initSrv cv g i) ∗ durView γ i (1 : Qp).half 0 ∗
-        termCouple γ i (initSrv cv g i).term ∗ logCouple γ i (initSrv cv g i).log ∗
-        cidxCouple γ i 0 := by
+/-- The protocol's state before its invariant (`alloc_names`'s, for `alloc_core`): the ghost state
+of the bootstrapped protocol `init γ.srvs γ.g γ.cv`, its servers' full states, and its
+configuration-change records. -/
+def allocPre (γ : GNames) : IProp GF :=
+  iprop(HistG γ (init γ.srvs γ.g γ.cv) ∗
+    ([∗list] i ∈ γ.srvs, fullG (initSrv γ.cv γ.g i)
+      (γ.term i, γ.dur i, γ.srv i, γ.slog i, γ.cidx i)) ∗
+    CcfgG γ (init γ.srvs γ.g γ.cv))
+
+/-- The first part of `alloc`: the bootstrapped protocol's ghost names and state, needing no receipt
+(so a deployment's start can allocate it before the genesis is used: the hraft kit allocates one per
+first-configuration size and runs `alloc_core` for the one its orchestrator draws). -/
+theorem alloc_names (E : CoPset) (srvs : List SID) (g : Entry) (cv : List w8 → List SID)
+    (hnd : srvs.Nodup) (hgk : g.kind = kConfig) :
+    ⊢ |={E}=> ∃ γ : GNames, ⌜γ.srvs = srvs ∧ γ.g = g ∧ γ.cv = cv⌝ ∗ opsAuth (GF := GF) γ ∅ ∗ allocPre γ := by
   have oLl : ∀ p, p ∉ [((1 : Nat), (1 : Nat))] → llogF (init srvs g cv) p = none := by
     intro ⟨T, k⟩ hp
     simp only [llogF, init]
@@ -1757,7 +1760,7 @@ theorem alloc (E : CoPset) (srvs : List SID) (g : Entry) (cv : List w8 → List 
     intro p _; simp [commitsF, init]
   have oVs : ∀ i, i ∉ srvs → srvsF (init srvs g cv) i = none := by
     intro i hi; unfold srvsF; exact if_neg hi
-  iintro Hr
+
   imod GMapOf_alloc (GF := GF) (K := Nat) (V := SID) with ⟨%γL, HL⟩
   imod GMapOf_alloc (GF := GF) (K := Nat × Nat) (V := Entry) with ⟨%γLl, HLl⟩
   imod GMapOf_grow γLl [((1 : Nat), (1 : Nat))] (fun _ => none) (llogF (init srvs g cv))
@@ -1791,6 +1794,7 @@ theorem alloc (E : CoPset) (srvs : List SID) (g : Entry) (cv : List w8 → List 
   imod ghost_map_alloc_empty (GF := GF) (K := SID × Nat) (V := Nat) with ⟨%γPM, HPM⟩
   imod mono_list_own_alloc (GF := GF) ([] : List Snap) with ⟨%γH, HH, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := SID × Nat) (V := Nat) with ⟨%γCF, HCF⟩
+  imodintro
   iexists (GNames.mk srvs cv g γL γLl γL0 γC γV γA γCm γCC γVs (fun i => (N i).1)
     (fun i => (N i).2.1) (fun i => (N i).2.2.1) (fun i => (N i).2.2.2.1) (fun i => (N i).2.2.2.2)
     γops γP γPM γH γCF)
@@ -1812,40 +1816,73 @@ theorem alloc (E : CoPset) (srvs : List SID) (g : Entry) (cv : List w8 → List 
   ihave HCF := CcfgG_init (GNames.mk srvs cv g γL γLl γL0 γC γV γA γCm γCC γVs (fun i => (N i).1)
     (fun i => (N i).2.1) (fun i => (N i).2.2.1) (fun i => (N i).2.2.2.1) (fun i => (N i).2.2.2.2)
     γops γP γPM γH γCF) srvs g cv $$ HCF
-  ihave H := alloc_core (GNames.mk srvs cv g γL γLl γL0 γC γV γA γCm γCC γVs (fun i => (N i).1)
-    (fun i => (N i).2.1) (fun i => (N i).2.2.1) (fun i => (N i).2.2.2.1) (fun i => (N i).2.2.2.2)
-    γops γP γPM γH γCF)
-    E hnd hne hg1 hgk hcv $$ [HL HLl HL0 HC HV HA HCm HVs HCC HN Hr HP HPM HH HCF]
-  · unfold HistG
-    rw [show ∀ v g', (init v g' cv).C = ([] : List Entry) from fun _ _ => rfl]
-    iframe
-    isplitr [HPM HH]
-    · unfold OpsG
-      iexists ∅
-      isplitr
-      · ipureintro
-        refine ⟨fun T k e he hk => absurd hk (hnc T k e he), fun T1 k1 e1 T2 k2 e2 h1 _ hk1 =>
-          absurd hk1 (hnc _ _ _ h1), fun d n y hn => ?_⟩
-        cases hn
-      · iapply (BigSepM.bigSepM_empty (PROP := IProp GF)).2; iempintro
-    isplitl [HPM]
-    · unfold PubMaxG
-      iexists ∅
-      isplitl [HPM]; · iexact HPM
-      ipureintro
-      refine ⟨fun c T => ?_, fun T k h => False.elim h⟩
-      show ((∅ : GMap (SID × Nat) Nat).lookup (c, T)).isSome = true ↔ (none : Option (Nat × Nat)) ≠ none
-      simp
-    · unfold SnapG
-      iexists []
-      isplitl [HH]; · iexact HH
-      ipureintro
-      exact ⟨fun n s h => by simp at h, List.Pairwise.nil⟩
-  imod H with ⟨Hinv, Hl⟩
-  imodintro
-  isplitl [Hinv]; · iexact Hinv
   isplitl [Hops]; · unfold opsAuth; iexact Hops
-  iexact Hl
+  unfold allocPre
+  isplitr [HN HCF]
+  unfold HistG
+  rw [show ∀ v g', (init v g' cv).C = ([] : List Entry) from fun _ _ => rfl]
+  iframe
+  isplitr [HPM HH]
+  · unfold OpsG
+    iexists ∅
+    isplitr
+    · ipureintro
+      refine ⟨fun T k e he hk => absurd hk (hnc T k e he), fun T1 k1 e1 T2 k2 e2 h1 _ hk1 =>
+        absurd hk1 (hnc _ _ _ h1), fun d n y hn => ?_⟩
+      cases hn
+    · iapply (BigSepM.bigSepM_empty (PROP := IProp GF)).2; iempintro
+  isplitl [HPM]
+  · unfold PubMaxG
+    iexists ∅
+    isplitl [HPM]; · iexact HPM
+    ipureintro
+    refine ⟨fun c T => ?_, fun T k h => False.elim h⟩
+    show ((∅ : GMap (SID × Nat) Nat).lookup (c, T)).isSome = true ↔ (none : Option (Nat × Nat)) ≠ none
+    simp
+  · unfold SnapG
+    iexists []
+    isplitl [HH]; · iexact HH
+    ipureintro
+    exact ⟨fun n s h => by simp at h, List.Pairwise.nil⟩
+  iframe
+
+/-- The second part of `alloc` (`alloc_core`, from `alloc_names`'s state and two receipts,
+`maxT = maxI = 1`): the invariant and every server's share. -/
+theorem alloc_init (E : CoPset) (hnd : γ.srvs.Nodup) (hne : ∀ j ∈ γ.srvs, j ≠ [])
+    (hg1 : γ.g.term = 1) (hgk : γ.g.kind = kConfig) (hcv : cfgValid γ.srvs (γ.cv γ.g.data)) :
+    allocPre (GF := GF) γ ∗ receipt 2 ⊢ |={E}=> Inv γ ∗
+      [∗list] i ∈ γ.srvs, isSrv γ i ∗
+        srvOwn γ i (initSrv γ.cv γ.g i) ∗ durView γ i (1 : Qp).half 0 ∗
+        termCouple γ i (initSrv γ.cv γ.g i).term ∗ logCouple γ i (initSrv γ.cv γ.g i).log ∗
+        cidxCouple γ i 0 := by
+  iintro ⟨Hpre, Hr⟩
+  unfold allocPre
+  icases Hpre with ⟨Hh, HN, Hcc⟩
+  iapply alloc_core γ E hnd hne hg1 hgk hcv $$ [Hh HN Hr Hcc]
+  iframe
+
+/-- The bootstrapped protocol (stage 4): the servers `srvs`; the bootstrap voters `cv g.data` (a
+valid configuration over `srvs`) with log `[g]`, term 1; the other servers with the empty log,
+term 0 (`proto.initSrv`). Needs two receipts (`maxT = maxI = 1`). -/
+theorem alloc (E : CoPset) (srvs : List SID) (g : Entry) (cv : List w8 → List SID)
+    (hnd : srvs.Nodup) (hg1 : g.term = 1) (hgk : g.kind = kConfig)
+    (hcv : cfgValid srvs (cv g.data)) (hne : ∀ j ∈ srvs, j ≠ []) :
+    receipt (GF := GF) 2 ⊢ |={E}=> ∃ γ : GNames, ⌜γ.srvs = srvs ∧ γ.g = g ∧ γ.cv = cv⌝ ∗ Inv γ ∗
+      opsAuth γ ∅ ∗
+      [∗list] i ∈ srvs, isSrv γ i ∗
+        srvOwn γ i (initSrv cv g i) ∗ durView γ i (1 : Qp).half 0 ∗
+        termCouple γ i (initSrv cv g i).term ∗ logCouple γ i (initSrv cv g i).log ∗
+        cidxCouple γ i 0 := by
+  iintro Hr
+  imod alloc_names E srvs g cv hnd hgk with ⟨%γ, %hγ, Hops, Hpre⟩
+  obtain ⟨hs, hg, hc⟩ := hγ
+  subst hs hg hc
+  imod alloc_init γ E hnd hne hg1 hgk hcv $$ [Hpre Hr] with ⟨Hinv, Hl⟩
+  · iframe
+  imodintro
+  iexists γ
+  isplitr; · ipureintro; exact ⟨rfl, rfl, rfl⟩
+  iframe
 
 end laws
 

@@ -5661,6 +5661,37 @@ theorem ownRaftGhost_lastRec (γ : RaftNames) (id : w64) (s : PState) :
     · unfold isEntry; iexists pt; iexact Hx
     ipureintro; rw [Hxi]; push_cast; omega
 
+/-- A node's durable state's last index is `0` or has a record (2026-11-27, for `raftState_lastFits`):
+`ownRaftGhost_lastRec`'s argument over the durable state's persistent facts (`durPers`): the last entry's
+record (`logRecs`), or the base's (`baseOk`: index `0`, or an `isSnapMeta` record). -/
+theorem durPers_lastRec (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps) :
+    ⊢ durPers (GF := GF) γ id S E -∗ lastRec γ (plogLastIndexZ S.base S.ents) := by
+  iintro Hd
+  iunfold durPers at Hd
+  icases Hd with ⟨%kd, %fp, %hf, #Hrecs, #Hbase, -⟩
+  obtain ⟨-, -, -, -, -, Hwl, -⟩ := hf
+  have Hr := PlogWf_range _ _ Hwl
+  unfold lastRec plogLastIndexZ
+  by_cases Hnil : S.ents = []
+  · rw [Hnil]
+    iunfold baseOk at Hbase
+    icases Hbase with (%H0 | #Hsm)
+    · ileft; ipureintro; simp [H0]
+    · iunfold isSnapMeta at Hsm
+      icases Hsm with ⟨%e, #He, %Hte⟩
+      iright; iexists e; iframe He; ipureintro; rw [Hte.2]; simp
+  · have Hlen : 0 < S.ents.length := List.length_pos_iff.mpr Hnil
+    obtain ⟨x, Hx⟩ : ∃ x, S.ents[S.ents.length - 1]? = some x :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    have Hxi := Hwl _ _ Hx
+    unfold plogLastIndexZ at Hr
+    icases logRecs_elem γ S.base S.ents (S.ents.length - 1) x Hx (by omega) $$ Hrecs
+      with ⟨%pt, -, #Hx⟩
+    iright; iexists x
+    isplitl
+    · unfold isEntry; iexists pt; iexact Hx
+    ipureintro; rw [Hxi]; push_cast; omega
+
 /-- A step that creates no entry needs no receipt (2026-10-18, D19b stage 5). -/
 theorem rcpt_frame {P : IProp GF} {k : Nat} (h : ⊢ P) : ⊢ ⧖ k -∗ P := by
   iintro -
