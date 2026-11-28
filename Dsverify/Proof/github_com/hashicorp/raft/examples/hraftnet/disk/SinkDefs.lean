@@ -62,6 +62,65 @@ def sinkOwn (k : Loc) (Cm : IProp GF) : Option (List w8) → IProp GF
   | some bs => iprop(sinkSt k (some bs) ∗ Cm)
   | none => sinkSt k none
 
+/-- `snapsMemAt`'s last conjunct, by name (so that a substitution in it is not simplified away). -/
+def snapTail (lt : SLat) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice) : IProp GF :=
+  match lt with
+  | none => iprop(⌜has = false⌝)
+  | some (m, b) => iprop(⌜has = true⌝ ∗ metaRep mv m b.length ∗ dt ↦*□ b)
+
+theorem snapsMemAt_open (s : Loc) (nid : w64) (lt : SLat) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice) :
+    snapsMemAt (GF := GF) s ⟨nid, lt⟩ has mv dt ⊢
+      s.[Snaps, go!"has"] ↦ has ∗ s.[Snaps, go!"meta"] ↦ mv ∗ s.[Snaps, go!"data"] ↦ dt ∗
+      s.[Snaps, go!"nextID"] ↦ nid ∗ snapTail lt has mv dt := by
+  unfold snapsMemAt snapTail; iintro H; iexact H
+
+theorem snapsMemAt_close (s : Loc) (nid : w64) (lt : SLat) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice) :
+    s.[Snaps, go!"has"] ↦ has ∗ s.[Snaps, go!"meta"] ↦ mv ∗ s.[Snaps, go!"data"] ↦ dt ∗
+      s.[Snaps, go!"nextID"] ↦ nid ∗ snapTail lt has mv dt ⊢
+    snapsMemAt (GF := GF) s ⟨nid, lt⟩ has mv dt := by
+  unfold snapsMemAt snapTail; iintro H; iexact H
+
+/-- The fields `has`, `meta`, `data` at the latest `lat` (the lock holder's view of them). -/
+def latCell (lat : SnapLatest) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice) : IProp GF :=
+  match lat with
+  | none => iprop(⌜has = false⌝)
+  | some (m, b) => iprop(⌜has = true ∧ mv = m⌝ ∗ dt ↦*□ b)
+
+instance latCell_persistent lat has mv dt : Persistent (latCell (GF := GF) lat has mv dt) := by
+  unfold latCell; split <;> infer_instance
+
+/-- The lock invariant's memory shows the latest. -/
+theorem snapMem_view (s : Loc) (nid : w64) (lt : SLat) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice)
+    (lat : SnapLatest) (hmv : latMv lat mv) :
+    snapsMemAt (GF := GF) s ⟨nid, lt⟩ has mv dt ∗ latRep lat lt ⊢
+      snapsMemAt s ⟨nid, lt⟩ has mv dt ∗ latCell lat has mv dt := by
+  rcases lat with _ | ⟨m, b⟩ <;> rcases lt with _ | ⟨sm, b'⟩ <;>
+    simp only [latRep, latCell, snapsMemAt, latMv] at hmv ⊢
+  · iintro ⟨⟨H1, H2, H3, H4, %Hh⟩, -⟩
+    isplitl [H1 H2 H3 H4]
+    · iframe; ipureintro; exact Hh
+    · ipureintro; exact Hh
+  · iintro ⟨-, H⟩; iexfalso; iexact H
+  · iintro ⟨-, H⟩; iexfalso; iexact H
+  · iintro ⟨⟨H1, H2, H3, H4, %Hh, #Hmr, #Hd⟩, %Hb, -⟩
+    subst Hb
+    isplitl [H1 H2 H3 H4]
+    · iframe; iframe #; ipureintro; exact Hh
+    · iframe #; ipureintro; exact ⟨Hh, hmv⟩
+
+/-- `ErrNoSnapshot` holds a non-nil error, for good. -/
+theorem dk_errNoSnapshot_ok :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet.disk ⊢
+      ∃ e : GoInterface, globalAddr ErrNoSnapshot ↦□ e ∗ ⌜e ≠ interface.nil⌝ := by
+  iintro #Hi
+  ihave Hi2 := isInit_access $$ Hi
+  icases Hi2 with ⟨-, -, -, #H1, -⟩
+  unfold errors.newVar
+  icases H1 with ⟨%x, #Hx, -⟩
+  iexists _
+  iframe Hx
+  ipureintro; simp
+
 end defs
 
 end github_com.hashicorp.raft.examples.hraftnet.disk
