@@ -661,3 +661,47 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `memoOwn` from a fresh `wmemo` with an empty map and a mutex). `Equal`: same `hist` pointer ⇒
   same history (`histOwn_agree_len`, lengths from `HWf`), `storeEqual`/`pendEqual` ⇒ equal configs.
   Then link (`Seeded__SharedModel: histOf histHashes__canonical …`).
+
+## Handoff K9-12 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Decision (coordinator, 2026-11-28): the revision bound `2^62` is accepted** (`RevsBelow`,
+  `RevsLBelow`, the spec's `rv ≤ 2^62`). K10 discharges it from the run's step bound: every run has fewer
+  than `2^48` steps, so every revision stays far below `2^62`.
+- **Lemmas done** (`526b72a3e2`, `SharedModelDefs.lean`, section `lemmas`, checked): `hwf_foreignL`,
+  `hwf_repeat_foreignL`, `hwf_skipToL`, `hwf_kstepL` moved down from `settle.lean` (names unchanged;
+  `settle.lean` imports `SharedModelDefs`); `evMaxL_lt`; **`targetL_lt`** (`RevsBelow x y →
+  targetL x y rv < 2^62`, whatever `rv`: stronger than the handoff's `≤ max rv B'`); **`landingsL_le`**
+  (a landing is `rv + 1`, or past it and `≤ 2^62`); `sharedBounded_skipTo`, `sharedBounded_stepL`
+  (`k → k+1`), `sharedBounded_settle` (through `GoSettle`), `sharedBounded_goStep`;
+  `sharedBounded_settleOk` (`SettleOk`) and `sharedBounded_stepIdxOk` (`stepIdx`'s premise), both for
+  `B < 2^61`, `k < 2^60`. **`SharedBounded` gained `g.pend.length ≤ k`** (needed: a landing at
+  `≤ 2^62` keeps `rv + pend ≤ 2^62 + k` only if `pend ≤ k`).
+- **`Seeded.SharedModel.wp_proof`, WIP** (`Proof/.../etcd3/Seeded__SharedModel.lean`, `6100d553e9`,
+  **one `sorry`**: the Step's outer-loop body and its end; not linked). Done and checked: allocation
+  (`hh`'s and `memo`'s mutexes by `sync.init_Mutex`, `hhOwn`/`memoOwn`), `Init`, `Equal` (fields of a
+  slice element by `ownSlice_elem_acc` + `iStructNamed`; `gcfg_eq`), the Step's set-up (`bound`, the
+  empty `cfgSet`, the outer invariant `∀ e, e ∈ ngs ↔ ∃ c ∈ gs.take j, GoStep … c x y e`, `Htake`),
+  `cfgSet_add_post` (either result of `add`: `e ∈ gs' ↔ e ∈ gs ∨ e = g`).
+  **Left (the `sorry` at the loop body, the goal `WP (if: #(decide (mode = W64 0)) then …)`)**:
+  - split `by_cases hm : mode = W64 0`; with `all_goals first | (prefix A) | (prefix B)` both reach the
+    `settle` part, so its script is written once. A (mode 0): `iunfold cfgOwn`/`storeOwn` at `Hc` for
+    `c.st'.rv' = g.st.st.rv`; `wp_target`, `wp_skipTo` (`HWf`, `targetL_lt`), `wp_stepIdx`
+    (`sharedBounded_stepIdxOk` of `sharedBounded_skipTo`); `wp_if_destruct` on `len > 0`: add loop
+    (invariant `e ∈ ngs' ↔ (∃ c ∈ take j, GoStep) ∨ e ∈ lazy.take p`), `continue`, then `Htake` with
+    `GoStep`'s `if_pos`; `len = 0` gives `lazy = []`. B: `uint.nat mode ≠ 0`.
+  - the settle part: `wp_settle` (`sharedBounded_settleOk`; `full` is `decide (mode = W64 2)` vs
+    `GoStep`'s `decide (uint.nat mode = 2)`), loop over its slice (`∨ ∃ d ∈ dgs.take m, e ∈ stepL
+    ⟨skipToL d.st (targetL …), d.pend⟩ x (plainOut y)`; `d` from `wp_load_slice_index`, `HWf` from
+    `settle`'s post, bounds from `sharedBounded_settle`), the inner add loop over `stepIdx`'s result;
+    at its end `GoStep`'s `if_neg`.
+  - the outer loop's end (`· sorry`): as `Model.lean`'s: `ok = decide (ngs ≠ [])` against
+    `(sharedM …).step S (boxIn x, boxOut y)` (a `decIO_box` lemma, as `decOp_box`), the new state
+    `sharedRep … (k+1)` from the outer invariant and `sharedBounded_goStep`; take the result's list out
+    of `cfgSetOwn` (as `settle.lean`'s end).
+  Then link (`Seeded__SharedModel: histOf histHashes__canonical histHashes__skipTo target bound stepIdx
+  settle cfgSet__add storeEqual pendEqual` in `etc/link-lean-first-k8setcd3.txt`, `etc/gen-link.py
+  --k8setcd3 > Link.lean`). Step 4 (`HistoryRevs`) not started.
+- Pitfalls met: the context's `"_" ∷ True` and a hypothesis named `in` break `wp_for`'s `iNamed`
+  (`irename … => Hjunk; iclear Hjunk`, `irename : (in_ptr ↦ x …) => Hin`); `ioOk`'s pure is one
+  conjunction (`⟨%x, %y, %Hxy⟩`); an error in the Step's branch makes `lean-check` report spurious
+  errors in `Equal` — fix the first error first.
