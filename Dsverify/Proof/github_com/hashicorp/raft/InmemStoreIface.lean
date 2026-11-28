@@ -39,6 +39,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **`*InmemStore` is a stable store**, its contents the view `kvView γs`. -/
 theorem inmem_isStableStore
     (wp_GetUint64 : github_com.hashicorp.raft.InmemStore.GetUint64.spec (GF := GF) (hG := hG))
@@ -74,6 +75,7 @@ theorem inmem_isStableStore
     iapply (wp_Set γs i key vs kb vb) $$ [] [HW HAU]
     · iframe #
     · iapply HAU $$ HW
+-/
 
 /-- **`*InmemSnapshotStore` is a snapshot store** (no snapshot). -/
 theorem inmem_isSnapshotStore

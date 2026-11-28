@@ -32,6 +32,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **`*InmemStore` is a log store**, its contents `inmemLogs γs`. -/
 theorem inmem_isLogStore
     (wp_LastIndex : github_com.hashicorp.raft.InmemStore.LastIndex.spec (GF := GF) (hG := hG))
@@ -85,6 +86,7 @@ theorem inmem_isLogStore
     ileft
     ipureintro
     go_type_set
+-/
 
 end iface
 

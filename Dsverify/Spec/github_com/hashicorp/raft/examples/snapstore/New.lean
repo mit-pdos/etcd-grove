@@ -28,12 +28,12 @@ variable [package_sem : github_com.hashicorp.raft.examples.snapstore.Assumptions
 (`isSnapStore`, with `io.EOF`'s value `eof`), its abstract state (the latest snapshot: none) owned by
 the caller (`own`). -/
 abbrev github_com.hashicorp.raft.examples.snapstore.New.spec : Prop :=
-  ∀ (eof : GoInterface),
+  ∀ (eof : GoInterface) (Qc : SnapshotMeta → List w8 → IProp GF),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.snapstore ∗
         globalAddr io.EOF ↦□ eof }}
       (App (Val (@! github_com.hashicorp.raft.examples.snapstore.New)) (Val #()))
     {{ (st : Loc), RET #st; ∃ own : SnapLatest → IProp GF,
-        isSnapStore ⟨go.GoType.PointerType Store.ty, #st⟩ own eof ∗ own none }}
+        isSnapStore ⟨go.GoType.PointerType Store.ty, #st⟩ own eof Qc ∗ own none }}
 
 end spec
 
