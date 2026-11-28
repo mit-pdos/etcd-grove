@@ -85,7 +85,6 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN',
          # leaseN (2026-11-16, notes/leaseN-plan.md): the lease examples with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN',
-         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN',
          # txnlinfaultsN (2026-11-15, notes/txnlinfaultsN-plan.md): partition with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
@@ -2067,9 +2066,7 @@ SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
 its message, read-only (`wp_New_errorString_struct`). Its initializer allocates them, initializes
 its imports and runs their translated initializers.''',
     imports=['Proof.errors.NewVarCell'],
-    # (k8s-dist G2, 2026-11-27) `export.go`'s `crossCheck` (a `bool` only `CrossCheckWatches`, a test
-    # hook, sets): allocated, not in the fact
-    alloc_types={**{x: 'GoInterface' for x, _ in _K8E}, 'crossCheck': 'Bool'},
+    alloc_types={x: 'GoInterface' for x, _ in _K8E},
     before={'$end': ['try wp_auto'] + [l for _, t in _K8E for l in [
         f'wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %x{t} ⟨#M{t}, #C{t}⟩',
         'try wp_auto']]},
@@ -5987,12 +5984,10 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
-            # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
-            # tables, restored
+            # (2026-11-23, etcd-grove#28) k8s_safe_single_process's table, restored (leaseexpiryN's went with
+            # its theorem, 2026-11-27, rule 41)
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean'}
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'

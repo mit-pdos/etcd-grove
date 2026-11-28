@@ -76,7 +76,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's `LeaseTimeToLive` handler meets etcd's `LeaseTimeToLive` spec** (`grpcHandlerOk`),
 over the lease-read contract at the run resource `S` and the revision reader `A.revR`, at the lower

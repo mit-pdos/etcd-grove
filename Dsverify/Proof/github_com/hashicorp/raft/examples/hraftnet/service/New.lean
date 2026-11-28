@@ -29,6 +29,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.New.wp_proof :
   wp_start as ⟨#Hr, %Hresp, #Hs⟩
   iapply wp_fupd
   wp_auto
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$r0»
   iStructNamed «$r0»
   imod sync.init_Mutex (apiMuInv «$r0_ptr») ⊤ (structFieldRef API go!"mu" «$r0_ptr») $$ [mu] [barrierIn] with #Hmu
   · iexact mu
@@ -39,10 +40,12 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.New.wp_proof :
   ipersist wait
   imodintro
   iapply HΦ
-  unfold isAPI
-  iexists r, fsm, enq, wt
-  iframe #
-  ipureintro; exact Hresp
+  isplitr
+  · unfold isAPI
+    iexists r, fsm, enq, wt
+    iframe #
+    ipureintro; exact Hresp
+  · ipureintro; exact Hnn
 
 end proof
 

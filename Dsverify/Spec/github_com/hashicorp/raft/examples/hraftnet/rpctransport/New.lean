@@ -28,7 +28,7 @@ abbrev github_com.hashicorp.raft.examples.hraftnet.rpctransport.New.spec : Prop 
   ∀ (lc : GoString) (peers : Loc) (dq : DFrac) (M : GMap GoString GoString) (d : w64) (γ : github_com.hashicorp.raft.gprot.GNames)
     (snapP : Nat → List w8 → IProp GF) (W : net.rpc.RpcWorld GF) (C : net.rpc.CodecSpec GF),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet.rpctransport ∗ peers ↦${dq} M ∗
-        ([∗map] a ↦ na ∈ M, net.rpc.rpcAddr (Gg := hG.goose_globalGS) W na ∗ ⌜W.SS na svcName = some (raftSvc γ snapP a)⌝) ∗
+        ([∗map] a ↦ na ∈ M, net.rpc.rpcAddr (Gg := hG.goose_globalGS) W na ∗ svcAt γ snapP W a na) ∗
         ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ net.rpc.codecSet C ∗ ⌜CodecLaws C⌝ }}
       (App (App (App (Val (@! New)) (Val #lc)) (Val #peers)) (Val #d))
     {{ (t : Loc), RET #t; peers ↦${dq} M ∗ isTrans t γ snapP lc W C }}

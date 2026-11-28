@@ -92,6 +92,62 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   Before/after text: `notes/nomode-n1.md`.
 - **Decision.** Accepted (the user, through the coordinator, 2026-11-27: D1); independent review of
   the before/after pending.
+## 2026-11-28: `walFiles` / `walRecs` -- admit histories with a saved commit above the last index, where Go's `ReadAll` differs from the model (C1)
+
+- **Spec.** `walRecs` and `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), through `srvFiles`
+  the pre of `bootstrapRestartContract` (`etcdserver/InvRestart.lean`), the statement of the interim axiom
+  `bootstrap.wp_proofRestart` (`Spec/.../etcdserver/bootstrapRestart.lean`) on branch `etcd-safe-rule41rm/2026-11-27`.
+- **Defect.** `walRecs`' `Save` law (`walRecs_saveAU`) takes any hard state, so `walRecs`, and from it `walFiles`
+  (`walRecs_closeAU`), admit WAL histories where some prefix has its commit above its last index (`walCommitLe`
+  false). On those the eager fold and `walRead` agree and `walReadFacts σ` holds, yet Go's restart read
+  (`ValidSnapshotEntries`, the newest record, `Open`, `ReadAll`) returns other entries than `σ`, so `bootOkR`'s
+  `σ` (`wal.restartOk`'s `walRecs h σ`) is false of Go there. Not reachable: in the verified programs the only
+  writer is raft's node loop through `isWalStorage`'s `Save`/`SaveSnap` laws, and raft keeps
+  `committed ≤ lastIndex` in every `Ready`; `walFiles`/`walRecs` are `@[no_expose]`, and Go's `bootstrap` is
+  unexported. The axiom's soundness rests on that invariant of the producer, which no statement records.
+- **Evidence.** The fresh review of `bootstrap.wp_proofRestart` after walfiles-fold
+  (`~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.md`, verdict sound with condition C1). Its
+  differential test `TestBrrDifferential` (copy: `~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.walread_diff_test.go.txt`,
+  run in a scratch copy of the fork's `server/storage/wal`): of 100000 random histories the Lean write laws admit,
+  29036 kept (eager fold = `walRead`, `walReadFacts`), 4 mismatches, every one with `walCommitLe` false; with only
+  `walCommitLe` histories, 7350 kept, 0 mismatches. Minimal counterexample (`TestBrrMinimal`):
+  1. `Save(hs{T1,C1}, ents 1..6)`;
+  2. `SaveSnapshot(3)` (above commit 1: the model clears the entries);
+  3. `Save(hs{T1,C4}, [])` (commit 4 above the last index 3);
+  4. `SaveSnapshot(4)`.
+  The model and `walRead` give base 4, no entries, commit 4; Go reads `err = nil`, commit 4, entries `[5 6]` (it
+  clears entries only at the start record 4, not at the earlier record 3). Not an etcd history: raft never
+  persists step 3. It is our spec gap, not a Go bug (no `issues/` or `nonissues/` file).
+- **Proposed change.** `walRecs` carries `walCommitLe` (or `WalEnc.walReadsBack`, the premise of the proved
+  real-WAL read `readAllFold_zero_eq`), and `walFiles` with it through `walRecs_closeAU`; WAL `Save`'s spec
+  (`walRecs_saveAU`) requires the hard state empty or its commit ≤ the last index after the save, which the raft
+  driver supplies (raft's `Ready` invariant). The constraint goes on the producer, not into a new law.
+- **Decision.** Land rule41rm with C1 recorded (`bootstrap.wp_proofRestart`'s docstring, `notes/audit.md`;
+  approved by the etcd_safe lead under Upamanyu's delegation, 2026-11-28); the follow-up is owned on the walfiles line.
+
+## 2026-11-28: etcd's table `etcdSvc`, the KV `_dist` contracts and `isKv`'s dup clause -- a remote member cannot supply `noRefusalAt`; the table is opaque (stage B′)
+
+- **Spec.** `etcd_dist.etcdSvc` (`Proof/.../examples/etcd/dist/S2Interim.lean`, trusted), `Serve_dist.spec`
+  (`Spec/.../dist/ServeDist.lean`, meaning only), the axioms `KV_{Put,Get,Delete,Compact}_dist`,
+  `Txn_Commit_dist` and the theorems `Client_{Put,Get}_dist` (`Spec/.../dist/*.lean`), the client's `isKv`
+  (`Proof/go_etcd_io/etcd/client/v3/KVService.lean`, the vocabulary of `kv.Put.spec`, ...) and its write path
+  (`kvReqPre`, `txnReqPre`, `reqPre`, `modePre`: `InvKVConn.lean`, `InvTxnBuilder.lean`), and the internal specs
+  `checkCompactRev.spec`, `watchShare` (`RunWatch.spec`, `RunCache.spec`), `client_{Get,List}_dist.law`.
+- **Defect.** Across machines the client's KV calls were five interim axioms, because `etcdSvc` had no law and
+  `isKv`'s at-most-once clause asked for `noRefusalAt` (opaque; only the in-process `etcd_noRefusal` gives it).
+- **Evidence.** `notes/etcdsvc-plan` (coordinator, stage B′), `notes/grpc-nr-e.md` (E: `GrpcEntry.nr`,
+  `isGrpcRpcsNR`); the users of the five axioms (`notes/etcdsvc-b.md`).
+- **Proposed change.** `etcdSvc` defined: with `Γ.auth = false`, the KV methods at stage A's view specs, flagged
+  `nr`; every other entry the new opaque `etcdSvcRest` (no law). `isKv`'s clause becomes `kvDupNR dup addrs`
+  (`noRefusalAt` at every endpoint, or flagged `Put`/`DeleteRange`/`Txn` entries at every endpoint), carried by
+  the write path to the interceptor's proof. `isKv_of_kvClientAt` proves `kvClientAt ⊢ isKv api Γ.kv false` for
+  an auth-off view; the five axioms and two theorems are deleted, their users re-proved over the client specs.
+  `checkCompactRev.spec`, `watchShare` and the Get/List laws gain `Γ.auth = false` (their users had `KV_Get_dist`/
+  `KV_Compact_dist`, which took no auth premise; every start's view has auth off). `Serve_dist`'s statement is
+  unchanged; it now claims an auth-off member's KV handlers never refuse (`grpcRunNRMd`): the auth store stays
+  disabled, the member is a voter (`notes/etcdsvc-b.md`). No top-level statement changes. Net −5 axioms.
+- **Decision.** Approved design B′ (coordinator, 2026-11-27; the guard `Γ.auth = false` approved as interim,
+  removed at N4). Trusted text drafted on `etcdsvc-b/2026-11-27`; landing waits for Upamanyu's review.
 ## 2026-11-28: `walFiles` (hence `srvFiles` and `bootstrapRestartContract`) -- the files' records are only what a restart reads, not the history's eager fold
 
 - **Spec.** `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), the WAL part of `srvFiles`
@@ -9440,3 +9496,60 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `UserChangePassword`'s password choice that cannot fail). Exact before/after: `notes/nomode-n1.md`, "D3".
 - **Decision.** D3 approved by the coordinator for Upamanyu (2026-11-27/28); the trusted-visible text goes to his
   review packet before landing.
+
+## 2026-11-28: `Raft.GetConfiguration.spec` gives the future's `deferWait` (hraft S5c)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/Raft__GetConfiguration.lean` (hashicorp/raft, ported from
+  dsverify-lab; its only user was raft's Link).
+- **Defect.** Too weak for the kit's `API.Status` (S5c): the post gave the future's `configurations` field but not
+  the right to wait for its answer, so a caller could not call `Error()` (`waitFuture(f, …)`) on it; the lab's
+  hr3 client never called it.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/service/service.go`, `API.Status`: `waitFuture(f,
+  a.wait)` then `f.Configuration()`.
+- **Change.** The post gains `deferWait (f.[configurationsFuture, "deferError"]) (fun _ => True)` (the consumer side
+  of `init`'s channel, the `err` and `ShutdownCh` fields still zero); a strengthening, proved
+  (`Raft__GetConfiguration.lean`). `API.Status` waits on it with `snapFut.wp_cf_Error` (the sixth conjunct of
+  `deferError.Error.spec`, unchanged). No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).
+
+## 2026-11-28: `rpctransport.New.spec` takes `svcAt`; `CodecLaws` gains `enc_mono` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/New.lean` (the kit's transport,
+  S4b) and its vocabulary `rpctransport/Trans.lean` (`peerOk`), `rpctransport/CodecLaws.lean` (`CodecLaws`).
+- **Defect.** Too strong a premise for the server machine (S5d): `New` asked each peer's rpc address to have the
+  service spec `raftSvc γ snapP a` exactly (`W.SS na svcName = some (raftSvc γ snapP a)`), but the deployment's rpc
+  world is fixed at its start, before the orchestrator draws the first configuration's size, so the world's spec
+  is the wrap `svcK γc (fun n => raftSvc (γs n) …)` over the protocols of both sizes (coordinator-E, #48 7233410712).
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/kit.go`: `chooseN0` at run time, `configure`;
+  `server.go`'s `bootConfiguration(n0)`, the genesis of `gprot.GNames`.
+- **Change.** `peerOk`'s and `New.spec`'s per-peer fact is `svcAt γ snapP W a na`: the world's spec `S` at `na`
+  accepts every `raftSvc γ snapP a` deposit (`svcAt_of_eq` gives it for the old form, so the old premise implies
+  the new one); `Transport.send` converts the deposit with `CodecLaws.enc_mono`, a new law (the encoder's
+  continuation can be weakened), proved of the generated codec (`hraftCodec_enc_mono`, emitted into
+  `hraftCodecLaws` by `etc/dsv/tools/hraft-codec.py`). No caller outside the kit; no top-level statement changes.
+- **Decision.** Untrusted specs, proved here (S5d, coordinator-E's approval of the draw's design on #48).
+
+## 2026-11-28: `service.New.spec`'s post gives `a ≠ null` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/service/New.lean` (the kit's API, S5b).
+- **Defect.** Too weak for the server machine: `Server.Register` of the API (`apiRcv`) needs the receiver not
+  `nil`, and `isAPI` holds only its fields' points-tos, from which `a ≠ null` does not follow.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/server.go`: `srv.Register(api)` of `service.New`'s result.
+- **Change.** The post gains `⌜a ≠ null⌝` (`typedPointsto_not_null` of the allocated `API`, before its fields are
+  split); a strengthening, proved. Its only caller is `Server`. No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5d).
+
+## 2026-11-28: `rpctransport.Conn.Call.spec`'s deposit given back on `CallNotSent` (hraft S5f)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/Conn__Call.lean` (the kit's
+  transport, S4; proved, no axiom).
+- **Defect.** Too weak for the kit's clients: on `CallNotSent` the post gave back the encoder's premise `C.enc args
+  Ψ`, a WP of the encoder, from which a caller cannot recover the deposit inside `Ψ`; a client retries its
+  operation at the next server, with a fresh argument struct, after `CallNotSent`, and needs its operation's state
+  back.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/rpctransport/rpctransport.go`: `Conn.Call` returns
+  `CallNotSent` when the dial fails, before it uses `args`; `kit.go`'s `Sys.op` retries `try` at the next server.
+- **Change.** The premise is `R ∗ (R -∗ C.enc args Ψ)` for any `R`, and `CallNotSent` gives `R ∗ D` back (a
+  strengthening: `R := C.enc args Ψ` gives the old spec). `Conn.Call.wp_proof` and `Transport.send` (its only
+  caller) updated; no top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5f, #48).

@@ -118,3 +118,10 @@ them, interceptors included, with a member being a voter. Then:
   the `noRefusalAt` certificate, so `grpcServeTok`'s disjunct goes.
 - **S3.2** carries the flag over the wire (above), and the trusted clause (2) then becomes a theorem
   of `Invoke`'s proof.
+- **Model gap for the proof of (1)** (stage B′ review, 2026-11-28): `Serve_dist` asserts (1) for an
+  auth-off member, true of Go because a member stays a voter (`notes/etcdsvc-b.md`). A proof of
+  `grpcRunNRMd` for etcd's handlers needs that fact in the server's invariants: today
+  `membership.IsLearner.spec` returns any boolean, so the interceptor's learner branch
+  (`v3rpc/interceptor.go:54`) is not excluded by the model. The fact to add: the local member's
+  membership record has `IsLearner = false` for the whole run (initial members are voters, conf-change
+  validation never demotes, `MemberUpdate` keeps it false).

@@ -3,8 +3,7 @@ The API's receiver over its service spec `apiSvc` (`ApiSvc.lean`): the `API` met
 `Spec/.../service/API__*.lean`, taken as hypotheses, a proof's callees) give the receiver's obligations
 `ApiRcvLaws` (`CodecApi.lean`) for `apiSvc γ fc`, with `apiP` (the package and `isAPI`) as the
 receiver's persistent facts: a deposit's request is the decoded one (`encApplyArgs_inj`, ...), and the
-method's reply facts are the deposit's success answer. `Read` (S6) and `Status` (its kit change is
-pending) are hypotheses here. With `apiRcv`, a server's `*API` is a net/rpc receiver of `apiSvc`
+method's reply facts are the deposit's success answer. `Read` (S6) is a hypothesis here. With `apiRcv`, a server's `*API` is a net/rpc receiver of `apiSvc`
 (`Server.Register`'s premise): `apiRcv_apiSvc`.
 -/
 module
@@ -19,6 +18,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.service.
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.service.API__RemoveServer
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.service.API__LeadershipTransfer
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.service.API__Snapshot
+public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.service.API__Status
 
 @[expose] public section
 
@@ -285,8 +285,39 @@ theorem apiMeth_Snapshot (wp : API.Snapshot.spec (GF := GF)) (a : Loc) (γ : GNa
   iexists _
   ipureintro; rfl
 
+theorem apiMeth_Status (wp : API.Status.spec (GF := GF)) (a : Loc) (γ : GNames) (rc : RCtx GF)
+    (i : SID) (fc : FCtx GF) (alb : GName) :
+    apiMeth.spec (apiP a γ rc i fc alb) a go!"Status" adminArgsOwn encAdminArgs statusReplyOwn
+      encStatusReply (apiSvc γ fc go!"Status") := by
+  intro ap rp wa va Φ
+  iintro %Ψ ⟨⟨#Hpk, #Hapi⟩, %Hl, HS, Hp, Hown, Hr⟩ HΨ
+  unfold apiSvc
+  simp only [↓reduceIte]
+  (repeat rw [if_neg (by decide)])
+  (try rw [if_pos rfl])
+  icases HS with ⟨%v, %Hbs, Hans⟩
+  obtain rfl := encAdminArgs_inj va v (by omega) Hbs
+  rcases wa with ⟨id, addr⟩
+  unfold adminArgsOwn
+  icases Hown with %Hown
+  obtain ⟨rfl, rfl⟩ := Hown
+  ipersist Hp
+  wp_apply (wp a ap rp γ rc i fc alb (zero_val StatusReply)) $$ [Hr] as ⟨%rep, Hr⟩
+  · iframe Hr
+    iframe #
+  iapply HΨ
+  iexists rep, (StatusReplyV.mk rep.Leader' rep.LeaderID' rep.Configured' rep.Servers' rep.Voters')
+  iframe Hr
+  isplitr
+  · unfold statusReplyOwn; ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  unfold answers
+  icases Hans with ⟨Hok, -⟩
+  iapply Hok
+  iexists _
+  ipureintro; rfl
+
 /-- **A server's `*API` `a` meets the receiver's obligations for `apiSvc γ fc`**, from the
-methods' specs (`Read`'s and `Status`'s receiver obligations as hypotheses). -/
+methods' specs (`Read`'s receiver obligation a hypothesis). -/
 theorem apiRcvLaws_of (wpAp : API.Apply.spec (GF := GF)) (wpAV : API.AddVoter.spec (GF := GF))
     (wpAN : API.AddNonvoter.spec (GF := GF)) (wpDV : API.DemoteVoter.spec (GF := GF))
     (wpRS : API.RemoveServer.spec (GF := GF)) (wpLT : API.LeadershipTransfer.spec (GF := GF))
@@ -294,8 +325,7 @@ theorem apiRcvLaws_of (wpAp : API.Apply.spec (GF := GF)) (wpAV : API.AddVoter.sp
     (fc : FCtx GF) (alb : GName)
     (mRead : apiMeth.spec (apiP a γ rc i fc alb) a go!"Read" readArgsOwn encReadArgs readReplyOwn
       encReadReply (apiSvc γ fc go!"Read"))
-    (mStatus : apiMeth.spec (apiP a γ rc i fc alb) a go!"Status" adminArgsOwn encAdminArgs
-      statusReplyOwn encStatusReply (apiSvc γ fc go!"Status")) :
+    (wpSt : API.Status.spec (GF := GF)) :
     ApiRcvLaws (apiP a γ rc i fc alb) a (apiSvc γ fc) where
   enc_AddNonvoter := fun args Φ => apiSvc_admin_enc γ fc _ (by simp) args Φ
   meth_AddNonvoter := apiMeth_AddNonvoter wpAN a γ rc i fc alb
@@ -314,7 +344,7 @@ theorem apiRcvLaws_of (wpAp : API.Apply.spec (GF := GF)) (wpAV : API.AddVoter.sp
   enc_Snapshot := fun args Φ => apiSvc_admin_enc γ fc _ (by simp) args Φ
   meth_Snapshot := apiMeth_Snapshot wpSn a γ rc i fc alb
   enc_Status := fun args Φ => apiSvc_Status_enc γ fc args Φ
-  meth_Status := mStatus
+  meth_Status := apiMeth_Status wpSt a γ rc i fc alb
 
 /-- **A server's `*API` `a` is a net/rpc receiver of `apiSvc γ fc`** (`Server.Register`'s premise),
 from the methods' specs. -/
@@ -325,12 +355,11 @@ theorem apiRcv_apiSvc (wpAp : API.Apply.spec (GF := GF)) (wpAV : API.AddVoter.sp
     (fc : FCtx GF) (alb : GName)
     (mRead : apiMeth.spec (apiP a γ rc i fc alb) a go!"Read" readArgsOwn encReadArgs readReplyOwn
       encReadReply (apiSvc γ fc go!"Read"))
-    (mStatus : apiMeth.spec (apiP a γ rc i fc alb) a go!"Status" adminArgsOwn encAdminArgs
-      statusReplyOwn encStatusReply (apiSvc γ fc go!"Status")) :
+    (wpSt : API.Status.spec (GF := GF)) :
     ⌜a ≠ null⌝ ∗ net.rpc.codecSet (hraftCodec (GF := GF)) ∗ apiP a γ rc i fc alb ⊢
     (hraftCodec (GF := GF)).rcv (ptrI service.API.ty a)
       (net.rpc.rcvrIs hraftCodec (ptrI service.API.ty a) (apiSvc γ fc) go!"API" false) :=
-  apiRcv _ a _ (apiRcvLaws_of wpAp wpAV wpAN wpDV wpRS wpLT wpSn a γ rc i fc alb mRead mStatus)
+  apiRcv _ a _ (apiRcvLaws_of wpAp wpAV wpAN wpDV wpRS wpLT wpSn a γ rc i fc alb mRead wpSt)
 
 end proof
 

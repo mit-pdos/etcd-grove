@@ -7,6 +7,7 @@ package etcd3
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -257,7 +258,7 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 	for v := range all {
 		r.anchors = append(r.anchors, v)
 	}
-	sort.Slice(r.anchors, func(i, j int) bool { return r.anchors[i] < r.anchors[j] })
+	slices.Sort(r.anchors)
 	r.byKey = map[string][]uint64{}
 	r.fastByKey = map[string][]uint64{}
 	for k, m := range byKey {
@@ -267,8 +268,8 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 				r.fastByKey[k] = append(r.fastByKey[k], v)
 			}
 		}
-		sort.Slice(r.byKey[k], func(i, j int) bool { return r.byKey[k][i] < r.byKey[k][j] })
-		sort.Slice(r.fastByKey[k], func(i, j int) bool { return r.fastByKey[k][i] < r.fastByKey[k][j] })
+		slices.Sort(r.byKey[k])
+		slices.Sort(r.fastByKey[k])
 	}
 	return r
 }
@@ -650,7 +651,7 @@ const (
 func (s Seeded) SharedModel(revs Revs, mode int) porcupine.Model {
 	full := mode == Full
 	hh := &histHashes{}
-	memo := map[wkey]bool{}
+	memo := &wmemo{m: map[wkey]bool{}}
 	return porcupine.Model{
 		Init: func() any { return state{mcfg{st: s.st0, hist: hh.canonical(histOf(s.h0))}} },
 		Step: func(st, input, output any) (bool, any) {
@@ -820,8 +821,7 @@ func RVBytes(n uint64) string           { return rvBytes(n) }
 // shared cluster a watch's window spans the compactor's writes too, thousands of revisions, and
 // the check timed out. watchOkIdx is watchOk line for line (watchListOk, initialPrefixOk,
 // reliableOk, wantEvents likewise), every other function the driver's own, with histAt answered from
-// one walk (hview); TestReplayHistory checks the two agree on every watch step of a history
-// (CrossCheckWatches).
+// one walk (hview); TestCrossCheckWatches checks the two agree on every watch step of a history.
 
 // An hview is the stores of a history at the revisions lo to its own, by revision.
 type hview struct {
@@ -950,12 +950,6 @@ func wantEventsIdx(in Input, lo uint64, hi uint64, c mcfg) []WEvent {
 	return want
 }
 
-// crossCheck makes the shared model compute every watch step both ways and panic if they differ.
-var crossCheck bool
-
-// CrossCheckWatches turns the cross-check of watchOkIdx against watchOk on or off (the tests).
-func CrossCheckWatches(on bool) { crossCheck = on }
-
 // A wkey is a watch step: the configuration's (canonical) history and the watch with its events.
 type wkey struct {
 	hist *hnode
@@ -964,21 +958,30 @@ type wkey struct {
 	fail bool
 }
 
+// A wmemo is the watch steps' verdicts (stepIdx), under its lock: porcupine may call a model's Step
+// from several goroutines.
+type wmemo struct {
+	mu sync.Mutex
+	m  map[wkey]bool
+}
+
 // stepIdx is step, with a watch checked by watchOkIdx, its verdict kept in memo per history (a
 // watch's verdict is a function of the history: porcupine tries a watch at many points, and again
-// after it backtracks).
-func stepIdx(memo map[wkey]bool, c mcfg, in Input, out Output) []mcfg {
+// after it backtracks). The lock is held around the lookup and around the store, not around
+// watchOkIdx. (The cross-check of watchOkIdx against watchOk is a test: TestCrossCheckWatches.)
+func stepIdx(memo *wmemo, c mcfg, in Input, out Output) []mcfg {
 	if in.Kind != KWatch {
 		return step(c, in, out)
 	}
 	k := wkey{hist: c.hist, in: in, evs: out.WEvents, fail: out.WFailed}
-	ok, seen := memo[k]
+	memo.mu.Lock()
+	ok, seen := memo.m[k]
+	memo.mu.Unlock()
 	if !seen {
 		ok = watchOkIdx(in, out, c)
-		if crossCheck && ok != watchOk(in, out, c) {
-			panic("etcd3: watchOkIdx and watchOk differ")
-		}
-		memo[k] = ok
+		memo.mu.Lock()
+		memo.m[k] = ok
+		memo.mu.Unlock()
 	}
 	if !ok {
 		return nil

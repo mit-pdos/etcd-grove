@@ -33,7 +33,7 @@ theorem store.processListItem.wp_proof
     (wp_ValueOf : reflect.ValueOf.spec (GF := GF) (hG := hG))
     (wp_Set : reflect.Value.Set.spec (GF := GF) (hG := hG)) :
     store.processListItem.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c L ctx kvp kv pred sel emp nf ag v p s os o hdec
+  intro _ Obj _ sp c L ctx kvp kv pred sel emp nf ag v p s os o hdec
   obtain ⟨b, hd⟩ := hdec
   obtain ⟨d, st, hfs, hdc, -⟩ := ObjCodec.dec_some _ _ _ _ hd
   wp_start as ⟨#Hst, #Hlc, #Hsel, #Hnf, #Hctx, %hv, #Hkv, Hp, Hit⟩

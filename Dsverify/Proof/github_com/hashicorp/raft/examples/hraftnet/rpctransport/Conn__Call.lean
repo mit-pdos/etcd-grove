@@ -36,8 +36,8 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.Conn.Call.wp_pr
     (wp_Go : net.rpc.Client.Go.spec (GF := GF) (hG := hG))
     (wp_After : time.After.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.examples.hraftnet.rpctransport.Conn.Call.spec (GF := GF) (hG := hG) := by
-  intro p W a sm svc M S args reply Φm Rargs D Θ C d
-  wp_start as ⟨#Hc, %Hsv, %Hsm, #Hset, Henc, HD, #Hdec⟩
+  intro p W a sm svc M S args reply Φm Rargs D Θ C d R
+  wp_start as ⟨#Hc, %Hsv, %Hsm, #Hset, HR, Hw, HD, #Hdec⟩
   ihave #Henv := dialEnv_of_pkg $$ Hpkg
   iunfold dialEnv at Henv
   icases Henv with ⟨-, -, #Htime, -⟩
@@ -48,8 +48,9 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.Conn.Call.wp_pr
     wp_auto
     iapply HΦ
     iright; ileft
-    iframe Henc HD
+    iframe HR HD
     ipureintro; rfl
+  ihave Henc := Hw $$ HR
   icases Hcl with (%Hn | #Hcl)
   · exfalso; exact Hif Hn
   ihave #Hcl0 := Hcl

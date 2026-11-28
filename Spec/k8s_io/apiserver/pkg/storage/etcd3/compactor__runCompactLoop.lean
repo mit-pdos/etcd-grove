@@ -37,7 +37,7 @@ variable [sync_sem : sync.Assumptions]
 
 /-- See the file header. -/
 abbrev compactor.runCompactLoop.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (c cl : Loc) (K : K8sEtcd GF) (γk : KVNames)
     (Seen : IProp GF) (recorded : w64 → IProp GF) [Persistent Seen] [∀ c, Persistent (recorded c)]
     (γc : CompactorNames) (sc : GoChan) (γs : ChanNames),

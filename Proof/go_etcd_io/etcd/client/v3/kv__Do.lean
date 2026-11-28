@@ -160,7 +160,7 @@ theorem kv.Do.wp_generic
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.val) Qp) $$ [Hrun]
     · simp only [putReqOp, putWireOf, hlease, hpk, hiv, hil]
-      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" kvMethod_put addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" (.inl rfl) addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_Put rkv conn addr Sp Qp ci om cd _ _ o.key o.val sl vs $$ [Hlt «$r0» Hrun']
       as %resp %err ⟨Hlt, -, Hres⟩
@@ -220,7 +220,7 @@ theorem kv.Do.wp_generic
           unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.base.rangeEnd) Qd) $$ [Hrun]
     · simp only [deleteReqOp, deleteWireOf, hpk]
-      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" kvMethod_deleteRange addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" (.inr (.inl rfl)) addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci om cd _ _ o.key o.base.rangeEnd sl vs
       $$ [Hlt «$r0» Hrun'] as %resp %err ⟨Hlt, -, Hres⟩
@@ -336,27 +336,9 @@ theorem kv.Do.wp_members
   iapply HΦ $$ [Hlt Hout]
   iframe Hlt Hout
 
-/-- What `kv.Do`'s precondition says of the operation's kind. -/
-theorem doRunOk_kind (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) :
-    doRunOk (GF := GF) γ dup o Q ⊢ ⌜o.t = W64 1 ∨
-      o.t = W64 2 ∨ (o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0])⌝ ∗
-      doRunOk γ dup o Q := by
-  unfold doRunOk
-  iintro (⟨%H, Hs, #Hu⟩ | ⟨%H, Hu⟩ | ⟨%H, Hu⟩)
-  · isplitr
-    · ipureintro; exact Or.inl H
-    ileft; iframe Hs Hu; ipureintro; exact H
-  · isplitr
-    · ipureintro; exact Or.inr (Or.inl H.1)
-    iright; ileft; iframe Hu; ipureintro; exact H
-  · isplitr
-    · ipureintro; exact Or.inr (Or.inr H)
-    iright; iright; iframe Hu; ipureintro; exact H
-
-/-- `kv.Do` on a `*kv` of etcd's KV `γ` (D44): `kv.Do.wp_members` at its hidden members, from the
-floor `[]` and the committed index `0` (`isKv`'s `srvStart`) and the caller's update at each member's
-names (`rangeUpd_of`, `putUpd_of`, `delUpd_of`); the reply's fields as the state's
-(`rangeAns_st`, `putAns_st`, `delAns_st`). -/
+/-- `kv.Do` on a `*kv` of etcd's KV `γ` (D44; stage A, 2026-11-27): `kv.Do.wp_generic` at the
+view specs its endpoints register (`isKv`, `kvRegsV_rpcRange`, ...), met by the caller's update at
+`γ` (`rangePre_V`, `putPre_V`, `delPre_V`); the reply facts are the specs' (`putStOk`, ...). -/
 theorem kv.Do.wp_proof
     (wp_IsSortOptionValid : Op.IsSortOptionValid.spec (GF := GF) (hG := hG))
     (wp_toRangeRequest : Op.toRangeRequest.spec (GF := GF) (hG := hG))
@@ -367,66 +349,62 @@ theorem kv.Do.wp_proof
     kv.Do.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd opv o Q
   iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
-  ihave ⟨%Hk, Hrun⟩ := doRunOk_kind γ dup o Q $$ Hrun
-  have hdz : o.t ≠ W64 1 → o.t ≠ W64 2 → (deleteWireOf o).base.rangeEnd ≠ [W8 0] :=
-    fun h1 h2 => by
-      rcases Hk with h | h | ⟨_, h⟩
-      · exact absurd h h1
-      · exact absurd h h2
-      · exact h
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
   iunfold isKv at Hkv
-  icases Hkv with ⟨%ms, #Hkv⟩
-  iunfold isKvOf at Hkv
-  icases Hkv with ⟨#Hobj, #Hregs, #Hst, %Hm⟩
-  obtain ⟨Hns, Hr, Hrb⟩ := Hm
-  have Hn : ∀ x ∈ ms, x.γr.kv.st = γ.st := fun x hx => (Hns x hx).1
-  ihave #HK := srvStart_both ms $$ Hst
-  ihave #HF := srvStart_idx ms $$ Hst
-  iapply (kv.Do.wp_members wp_IsSortOptionValid wp_toRangeRequest wp_retry_Range wp_retry_Put
-    wp_retry_DeleteRange wp_ContextError api ms ci cd opv o (W64 0) [] Q) $$ [Hlt Hat Hrun]
+  icases Hkv with ⟨%addrs, #Hobj, #Hregs, #Hnr⟩
+  icases (kvObjAt_conn api addrs).1 $$ Hobj with ⟨%conn, #Hobj⟩
+  iapply (kv.Do.wp_generic wp_IsSortOptionValid wp_toRangeRequest wp_retry_Range wp_retry_Put
+    wp_retry_DeleteRange wp_ContextError api conn addrs ci om cd opv o
+    (etcdPutSpecV γ) (putStOk γ (putWireOf o) Q)
+    (etcdRangeSpecV γ) (rangeStOk (rangeWireOf o) Q)
+    (etcdDeleteSpecV γ) (delStOk (deleteWireOf o) Q) (fun _ => iprop(True))) $$ [Hlt Hat Hrun]
   · iframe #
     iframe Hlt Hat
-    isplitl []
-    · iunfold isKV; iframe #
     isplitl [Hrun]; rotate_left
     · ipureintro; exact Hsz
     iunfold doRunOk at Hrun
-    unfold doRunM
+    unfold doRunGen
     icases Hrun with (⟨%Ht, #Hsn, #Hu⟩ | ⟨%Hp, Hu⟩ | ⟨%Hd, Hu⟩)
     · ileft
       isplitl []
       · ipureintro; exact Ht
       iframe Hsn
       isplitl []
-      · iunfold knownAt; iexact HK
+      · iapply (kvRegsV_rpcRange addrs γ) $$ Hregs
       ihave #Hu := readAu_upd γ (rangeWireOf o) Q $$ Hu
-      iapply (rangeUpd_of ms γ Hn (rangeWireOf o) Q) $$ Hu
+      imodintro
+      inext
+      iapply (rangePre_V conn om γ (rangeWireOf o) Q) $$ Hu
     · iright
       ileft
       isplitl []
-      · ipureintro; exact Hp
+      · ipureintro; exact Hp.1
       isplitl []
-      · iunfold floorsAt; iexact HF
+      · iapply (kvRegsV_rpcPut addrs γ) $$ Hregs
       ihave Hu := writeAu_upd dup γ _ Q $$ Hu
-      iapply (kvReqPre_of_upd api ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
-        (putUpd_of ms γ Hn (putWireOf o) Q)) $$ Hu
+      iapply (kvReqPre_of_upd api addrs dup _ _
+        (putPre_V conn om γ (putWireOf o) Q Hp.2))
+      isplitl []
+      · iexact Hnr
+      · iexact Hu
     · iright
       iright
       isplitl []
-      · ipureintro; exact Hd
+      · ipureintro; exact Hd.1
       isplitl []
-      · iunfold floorsAt; iexact HF
+      · iapply (kvRegsV_rpcDelete addrs γ) $$ Hregs
       ihave Hu := writeAu_upd dup γ _ Q $$ Hu
-      iapply (kvReqPre_of_upd api ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
-        (delUpd_of ms γ Hn (deleteWireOf o) Q)) $$ Hu
+      iapply (kvReqPre_of_upd api addrs dup _ _
+        (delPre_V conn om γ (deleteWireOf o) Q Hd.2))
+      isplitl []
+      · iexact Hnr
+      · iexact Hu
   inext
-  iintro %r %err ⟨Hlt, Hout⟩
+  iintro %r %err ⟨Hlt, -, Hout⟩
   iapply HΦ
-  iframe Hlt
-  iapply (doOut_mono o _ _ _ _ _ _ r err
-    (fun _ m => rangeAns_st Hrb ms (W64 0) [] (rangeWireOf o) Q m)
-    (fun _ m => putAns_st Hrb ms γ Hns [] (putWireOf o) Q m)
-    (fun h1 h2 m => delAns_st Hrb ms [] (deleteWireOf o) Q m (hdz h1 h2))) $$ Hout
+  iframe Hlt Hout
 
 end proof
 

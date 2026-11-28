@@ -71,7 +71,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's KV calls at `addr`** (persistent): `Put`, `Range`, `DeleteRange`, `Txn`, at the
 server's views (`E`, the request names' read names `ρ.rd` and the read names `γr`) and the KV
@@ -88,7 +87,7 @@ instance etcdKVAt_persistent (addr : GoString) (E : apply.AEnv GF) (ρ : ReqName
     (γr : ReadNames) (cid mid : w64) : Persistent (etcdKVAt (GF := GF) addr E ρ γr cid mid) := by
   unfold etcdKVAt; infer_instance
 
-omit [HasExt idIssueExt] cache_sem in
+omit [HasExt idIssueExt] in
 /-- **`etcdKVAt` is its five registrations** (`rfl`; lease-mono3's review r2, N1: the law a client
 rewrites with, in place of unfolding the definition). -/
 theorem etcdKVAt_eq (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)

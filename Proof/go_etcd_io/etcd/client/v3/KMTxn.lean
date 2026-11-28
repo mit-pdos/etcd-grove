@@ -128,7 +128,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **The spec's run is the old proof's**: at the log's length, on its last state, of the model's
 transaction. -/
@@ -514,13 +513,6 @@ def kmTxnUncoveredTodo (api : Loc) (γ : KMNames) [KMWritable γ] : IProp GF :=
 instance kmTxnUncoveredTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ] :
     Persistent (kmTxnUncoveredTodo (GF := GF) api γ) := by
   unfold kmTxnUncoveredTodo; infer_instance
-
-theorem isKv_kvObjAt (api : Loc) (γ : KVNames) (dup : Bool) :
-    isKv (GF := GF) api γ dup ⊢ ∃ addr : List GoString, kvObjAt api addr := by
-  unfold isKv isKvOf
-  iintro ⟨%ms, #Ho, -⟩
-  iexists _
-  iexact Ho
 
 /-- **A client of etcd's KV meets the recipes' transaction contract** (`isEtcdTxnKVTodo`) at the
 adapter's model (see the file header). Premises: that `errors.As` can take

@@ -3,7 +3,7 @@
 # The putget and durable workloads of `examples/etcd/dist/client`: their vocabulary (#50 N9a)
 
 `notes/etcd-dist-plan.md` §23. Both run on their orchestrator machine against every member's client endpoint,
-over the cross-machine clientv3 contracts `KV_Put_dist`/`KV_Get_dist`, at the cluster's view `Γ`, and each
+over the clientv3 specs `kv.Put.spec`/`kv.Get.spec`, at the cluster's view `Γ`, and each
 owns its key prefix of the cluster's KV (`etcd_dist.kvPfx`, `KVPfxDist.lean`): putget `pg/`, durable `du/`.
 
 **putget** (`RunPutGet`, compacted's check in rounds): round `i` puts `pg/k<i>` with `v<i>` and gets it.
@@ -19,7 +19,7 @@ their keys' values, so nothing they do breaks a later round's check. This is `cl
 byte `j`; `v` and `j`), then one linearizable range of `du/`. Its invariant (`durInv γ γF γs n`, namespace
 `kvClientN.@"du"`) keeps the prefix's key-values with: each is `durKey j ↦ durVal j` at version `1` for some
 `j` of the fired list `F` (monotone at `γF`), `j < n`, and each `j ∈ F` has its key-value. Put `j` fires at
-most once (`KV_Put_dist`'s one-shot update): its update holds the token `γs[j]`, which it gives to the
+most once (`kv.Put.spec`'s one-shot update): its update holds the token `γs[j]`, which it gives to the
 invariant when it fires (`durPutAu`), so the key is absent before (version `1`); its result is
 `durFired γF j`. The range's read update (`durGetAu`) gives the state's `du/` key-values those facts
 (`durReadOk`) and, for each fired put the caller knows of, its key-value. This is restart1's `r1Ok` argument

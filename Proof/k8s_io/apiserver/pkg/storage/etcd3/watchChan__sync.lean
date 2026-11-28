@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem watchChan.sync.wp_proof
     (wp_syncPaginated : watchChan.syncPaginated.spec (GF := GF) (hG := hG)) :
     watchChan.sync.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
     hQ hH hR hf hle
   wp_start as ⟨Hlt, #Hoff, #Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
   ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []

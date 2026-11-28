@@ -13,6 +13,10 @@
 # `raft_tracecheck_safe`/`raft_tracecheck_accepts`: the results now rest on raft's linked traced
 # `StartNode` (newRaft, Bootstrap, run), which brings existing axioms of etc/tcb-baseline.txt (raft's
 # collection's: the protobuf boundary, fmt/strconv, ...). Nothing new to the trust base.
+# (2026-11-28) The premise `Hprem` (`proto.Marshal`'s contract at the bootstrap log's conf changes)
+# retired: `Main`'s proof takes `proto.MarshalBootConfChange.spec`, and Results.lean passes the axiom
+# proto.MarshalBootConfChange.wp_proof, the main tree's (already in etc/tcb-baseline.txt) copied into
+# RaftTla by etc/gen-raft-tla.py: the same name and statement text, so nothing new to the trust base.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt --check    against the lines below
@@ -27,6 +31,7 @@ axiom pbMessageC_reg
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
+axiom proto.MarshalBootConfChange.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.SizePb.wp_proof

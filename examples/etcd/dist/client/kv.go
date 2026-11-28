@@ -1,8 +1,6 @@
 package client
 
 import (
-	"time"
-
 	"github.com/anishathalye/porcupine"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote"
@@ -17,17 +15,15 @@ import (
 // effect at any later time, or never (the error rule: an error at the client machine, or a call to
 // it without an answer). Panics if porcupine finds the history illegal.
 
-// kvCheckTimeout bounds porcupine's search: an answer it does not reach in time is Unknown, which
-// is not a failure (the theorem is that the answer is never Illegal).
-const kvCheckTimeout = 2 * time.Minute
-
 // RunKV runs the kv workload (see above) with the client machines nodes (client c's at nodes[c],
 // its clientv3 client of every endpoint, preferring eps[c mod k]); no set-up (ready at once). A
 // client machine that is not listening yet is a call without an answer (no wait: the harness starts
-// the orchestrator once its client machines listen).
+// the orchestrator once its client machines listen). Porcupine's search has no timeout (0): the check
+// always runs to its verdict, Ok or Illegal. The Unknown branch below is kept (porcupine returns
+// Unknown only on a timeout, which a timeout of 0 never sets; the proof does not rely on that).
 func RunKV(nodes []string, ops int, ready func()) Result {
 	ready()
-	r := kvremote.Orch(nodes, ops, kvCheckTimeout)
+	r := kvremote.Orch(nodes, ops, 0)
 	if r == porcupine.Illegal {
 		panic("dist kv: porcupine found the history not linearizable")
 	}

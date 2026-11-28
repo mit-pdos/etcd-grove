@@ -42,7 +42,7 @@ theorem concurrentOrderedEventProcessing.scheduleEventProcessing.wp_proof
     (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
     (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG)) :
     concurrentOrderedEventProcessing.scheduleEventProcessing.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ pp chQ γq wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur wg P HQok
+  intro _ Obj _ _ pp chQ γq wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur wg P HQok
   wp_start as ⟨#Fwc, #FQ, #Hcons, Hci, #HQs, Hqp, Hdone, Hl1⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

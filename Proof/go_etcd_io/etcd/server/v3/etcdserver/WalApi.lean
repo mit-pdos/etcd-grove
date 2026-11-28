@@ -609,6 +609,27 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
   iframe Hinv Hv Hok Hst Hap Hlb Ho Hm Hp
   ipureintro; exact ⟨Hw, Hd⟩
 
+/-- **What a restart's read of the WAL returns, as facts of the records `σ`** (the interface's
+I1-I4; pure): the entries consecutive from the base (I1, the history model's `walEntsWf`); the last index within raft's
+room (I2, `σ.last ≤ 2^61 - 1`); the base at or below the commit and the commit at or below the last
+index (I3: raft's `loadState` panics otherwise, `raft.go`'s "commit is out of range"); and (I4) either
+the fresh base `(0, 0)` with no snapshot record, or a data-less snapshot record at the base
+(`walSnapAtBase`'s form; both written out here, as `storage/WalHistLemmas.lean` states them: this
+module does not import the history model). I4 gives `NodeStartSpecR`'s snapshot-term premise (F3, `walReadFacts_F3`).
+I4 does not give `bootstrappedWAL.MemoryStorage.spec`'s premise that a base at index `0` has term
+`0` (F2's third clause): the WAL model's `walSaveSnap` at index `0` sets the snapshot's term, any term
+(`storage/WalRecs.lean`), so only the server's history (no `SaveSnap` at index `0`: `snapshot`'s
+`0 < ai`, raft's snapshots past its commit) excludes it (CP2 review, minor (b)). `bootstrap` never checks these facts and Go's `ReadAll` does not
+enforce I3, so (2026-11-27, the restart axiom's review R2; until then the restart contract's post asserted
+them, false of Go) the restart contract takes them as a premise and the stop's image carries them
+(`wal.stopImage`): I1, I4 of the files' read (`walFiles_readShape`), I3 from raft's durable log, I2 from
+the cluster's room (`raftState_lastFits`, raft's `DurableLastFits.lean`). -/
+def walReadFacts (σ : StorContents) : Prop :=
+  (∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j) ∧
+    σ.last ≤ 2 ^ 61 - 1 ∧ σ.b ≤ σ.commit ∧ σ.commit ≤ σ.last ∧
+    ((σ.snap = none ∧ σ.base = entryID.mk (W64 0) (W64 0)) ∨
+      ∃ m, σ.snap = some (SnapshotM.mk [] m) ∧ σ.base = entryID.mk m.Term' m.Index')
+
 /-- **The WAL's slot in the stopped member's image** (R2d review F7, 2026-11-06; DRAFT; the slot
 convention, `notes/spec-first-plan.md`, "The slot convention": the WAL's facts move into their slot
 as the WAL next changes the hub, which the certificate does). Sealed; `wal.stopImage_intro` builds
@@ -628,18 +649,25 @@ the restarted storage applies it, so it certifies the restarted storage's snapsh
 two conf states agree: in a static cluster (HS2's caveat (ii), `notes/restart-plan.md`). -/
 @[no_expose] def wal.stopImage (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
     IProp GF :=
-  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ ∗
+  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗
+    -- (2026-11-27, the restart axiom's review R2) the records' read facts I1-I4, which the restart's
+    -- `bootstrap` contract now takes as a premise
+    ⌜walReadFacts σ⌝ ∗ walSnapCert cl σ ∗
     -- (restart S6, 2026-11-13; S1's, r2db §4.1) a committed log reaching the records' base, which
     -- the durable state's log agrees with (`raftNode.stop`'s `DurAgrees`): for `wal.restartOk_start`
     (∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝))
 
 /-- `wal.stopImage`'s intro, from the stop's facts. -/
 theorem wal.stopImage_intro (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64)
-    (hS : StorageHolds S σ) (hb : σ.b ≤ uint.nat i) (hc : uint.nat i ≤ σ.commit) :
+    (hS : StorageHolds S σ) (hb : σ.b ≤ uint.nat i) (hc : uint.nat i ≤ σ.commit)
+    (hr : walReadFacts σ) :
     walSnapCert (GF := GF) cl σ ∗
         (∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝) ⊢
       wal.stopImage cl S σ i := by
-  unfold wal.stopImage; iintro ⟨H, Hl⟩; iframe H Hl; ipureintro; exact ⟨hS, hb, hc⟩
+  unfold wal.stopImage; iintro ⟨H, Hl⟩; iframe H Hl
+  isplitr
+  · ipureintro; exact ⟨hS, hb, hc⟩
+  · ipureintro; exact hr
 
 /-- `wal.stopImage`'s elimination: the stop's facts, the snapshot certificate (the Freeze 1
 review's F5, for its R2d' consumer, the restart's `bootstrap`) and the committed log the durable
@@ -648,7 +676,15 @@ theorem wal.stopImage_elim (cl : Cluster) (S : RaftState) (σ : StorContents) (i
     wal.stopImage (GF := GF) cl S σ i ⊢
       ⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ ∗
         (∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝) := by
-  unfold wal.stopImage; iintro H; iexact H
+  unfold wal.stopImage; iintro ⟨H, -, Hc⟩; iframe H Hc
+
+/-- `wal.stopImage`'s read facts (2026-11-27, review R2): what the restart contract takes. -/
+theorem wal.stopImage_readFacts (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
+    wal.stopImage (GF := GF) cl S σ i ⊢ wal.stopImage cl S σ i ∗ ⌜walReadFacts σ⌝ := by
+  unfold wal.stopImage; iintro ⟨H1, %H, H2⟩
+  isplitl [H1 H2]
+  · iframe H1 H2; ipureintro; exact H
+  · ipureintro; exact H
 
 /-! ### The WAL's slot in a restart's boot hub
 
@@ -657,26 +693,6 @@ theorem wal.stopImage_elim (cl : Cluster) (S : RaftState) (σ : StorContents) (i
 WAL, sealed: the restart proofs use only its two laws (`wal.restartOk_facts`, `wal.restartOk_start`),
 so that the crash-model WAL (C6, the WAL collaborator's) can replace the body and re-prove the laws
 without touching them. -/
-
-/-- **What a restart's read of the WAL returns, as facts of the records `σ`** (the interface's
-I1-I4; pure): the entries consecutive from the base (I1, the history model's `walEntsWf`); the last index within raft's
-room (I2, `σ.last ≤ 2^61 - 1`); the base at or below the commit and the commit at or below the last
-index (I3: raft's `loadState` panics otherwise, `raft.go`'s "commit is out of range"); and (I4) either
-the fresh base `(0, 0)` with no snapshot record, or a data-less snapshot record at the base
-(`walSnapAtBase`'s form; both written out here, as `storage/WalHistLemmas.lean` states them: this
-module does not import the history model). I4 gives `NodeStartSpecR`'s snapshot-term premise (F3, `walReadFacts_F3`).
-I4 does not give `bootstrappedWAL.MemoryStorage.spec`'s premise that a base at index `0` has term
-`0` (F2's third clause): the WAL model's `walSaveSnap` at index `0` sets the snapshot's term, any term
-(`storage/WalRecs.lean`), so only the server's history (no `SaveSnap` at index `0`: `snapshot`'s
-`0 < ai`, raft's snapshots past its commit) excludes it (CP2 review, minor (b)). **Trusted, not
-checked** (CP2 review, minor (a)): `bootstrap` never checks these facts, and the stop's image does not
-carry them all (I2); they are the WAL interface's promise, inside the trusted restart contract's
-`bootOkR`, to be discharged by the WAL collaborator's crash-model spec (C6). -/
-def walReadFacts (σ : StorContents) : Prop :=
-  (∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j) ∧
-    σ.last ≤ 2 ^ 61 - 1 ∧ σ.b ≤ σ.commit ∧ σ.commit ≤ σ.last ∧
-    ((σ.snap = none ∧ σ.base = entryID.mk (W64 0) (W64 0)) ∨
-      ∃ m, σ.snap = some (SnapshotM.mk [] m) ∧ σ.base = entryID.mk m.Term' m.Index')
 
 /-- I4 gives F3: a snapshot record's term is the base's. -/
 theorem walReadFacts_F3 (σ : StorContents) (h : walReadFacts σ) :
@@ -734,6 +750,7 @@ theorem wal.restartOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
         ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
   unfold wal.restartOk
   iintro ⟨⟨⟨%h, %Hw, Hwo, Hp⟩, %Hf⟩, Hsi, #Hl0⟩
+  icases wal.stopImage_readFacts cl S σ i $$ Hsi with ⟨Hsi, %Hrf⟩
   icases wal.stopImage_elim cl S σ i $$ Hsi with ⟨%Hs, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩
   icases isCommittedLogLb_agree cl l₀ l' $$ [$Hl0 $Hl'] with %Hpre
   have hpre : l₀ <+: l' := by
@@ -748,7 +765,7 @@ theorem wal.restartOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
   icases walOpened_elim _ _ _ _ _ _ $$ Hwo with ⟨Ho, Hr, Hm, %Hd⟩
   imod rnDur_alloc_view cl h σ _ hv rfl $$ [Hr Hcert] with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
   · iframe Hr Hcert
-  ihave Hsi2 := wal.stopImage_intro cl S σ i Hs.1 Hs.2.1 Hs.2.2 $$ [Hcert Hl']
+  ihave Hsi2 := wal.stopImage_intro cl S σ i Hs.1 Hs.2.1 Hs.2.2 Hrf $$ [Hcert Hl']
   · iframe Hcert
     iexists l'
     iframe Hl'

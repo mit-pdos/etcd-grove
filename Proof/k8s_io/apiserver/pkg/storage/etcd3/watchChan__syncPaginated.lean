@@ -72,7 +72,7 @@ def syncGsOf (kp : GoString) (recur : Bool) (wr : w64) : List (OpFull → OpFull
 unsorted), through the store's client (`K.kvAt` of its `*kv`), with the read update `Qr` at the
 members: `nil` and the reply `m` (its key-values' slice owned) at a state `σ` the update fired at,
 `m` the server's answer at `σ`; or a client error (`kClientErr`). -/
-theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem wp_syncGet
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] {Obj : Type}
     (c : StoreCfg GF Obj) (hK : c.K.Laws) (γk : KVNames) (api : Loc) (ctx : GoInterfaceOk)
     (cdw : context.ContextDesc (IProp GF)) (pk : GoString) (osl : GoSlice)
@@ -121,7 +121,7 @@ theorem watchChan.syncPaginated.wp_proof
     (wp_parseKV : parseKV.spec (GF := GF) (hG := hG))
     (wp_queueEvent : watchChan.queueEvent.spec (GF := GF) (hG := hG)) :
     watchChan.syncPaginated.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
     hQ hH hR hf hle
   wp_start as ⟨Hlt, #Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
   ihave #Hwc' := Hwc
