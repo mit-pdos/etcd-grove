@@ -618,8 +618,9 @@ linearization point. Reads outside the log (S6) read some FSM's state, which may
 they need the frontier at their call (the barrier's bound) instead.
 
 `Store.Restore` takes `strconv.Atoi_dec.spec` (`Spec/strconv/Atoi_dec.lean`: `Atoi` of `Itoa(n)`, `n ≥ 0`,
-returns `(n, nil)`) as a callee hypothesis: true of Go, but Perennial's `Atoi` spec does not give the number
-(`notes/perennial-changes.md`). Not an axiom; to be proved over Perennial's `Atoi` (or in Perennial).
+returns `(n, nil)`) as a callee hypothesis, proved by `strconv.Atoi_dec.wp_proof` (`Proof/strconv/Atoi_dec.lean`,
+2026-11-28) from Perennial's functional `strconv.Atoi.spec` (Perennial `atoi-functional`: `Atoi`'s result is
+`parseInt s 10 0`'s); the kit's Link passes it for `Restore`'s `wp_Atoi`.
 
 ### The API service (batch 2)
 
@@ -672,6 +673,130 @@ token-free `LeaderWithID` spec. Reported to coordinator-E.
   (`cfgOpt`'s `Servers' ↦*□ ss`). The reply carries no facts. `apiMeth_Status` (`ApiRcvSvc.lean`) replaces the
   receiver's `mStatus` hypothesis: `apiRcvLaws_of`/`apiRcv_apiSvc` take `API.Status.spec` instead.
 
-Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the clients' registration and claim
-lemmas over `kitQ`, the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
+### S5c batch 2: the clients' registration and claim (`KitQ.lean`)
+
+- **Freshness**: `KG` gains `seq`, a ghost map from a client to its operation counter; client `c` owns
+  `seqOwn g c m` (exclusive). `kitQ` keeps the map's authority and, for every registered datum `d`, `idOf d =
+  (c, s)` with `s` below `c`'s counter (`idOf`: the datum's bytes 1-8, `opID`'s, as client and count). A datum
+  whose id is `(c, m)` for the client's own `m` is then unregistered, and so no command of the frontier
+  (`not_cmdIn_ops`: a committed command's datum is in `opsAuth`, `cmd_committed_ops`). `kitQ`'s register bound
+  is now `putsShort es` (every put of the frontier has a value under 256 bytes), which prefixes inherit
+  (`regShort_of_putsShort`).
+- **`kit_register`**: from `frInv`, a credit, `seqOwn g c m`, `datumOf i d`, `idOf d = (c, m)` and the update
+  `slotUpd (regR g.st) i Φ`: `opTok γ d n` (the `Apply` deposit's token), `seqOwn g c (m+1)` and the claim
+  `kitTicket g d i Φ` (the escrow's entry, the saved `Φ`, the client's token).
+- **`kit_claim`**: from `frInv`, two credits, the claim and `applyOut`'s done facts (`CIdx γ k e`, `e.data = d`,
+  `cIdxs γ es'` with `|es'| = k`, `frLb fc es'`): `Φ (firedOut i es')` (the entry fired at `es'`, by
+  `cmd_unique`), `datumOf i d`, `es'.getLast? = some e`, `putsShort es'`; **`firedOut_respAt`** says the output
+  is the FSM's answer `respAt es'` (nothing found for a put).
+- **`kitQ_alloc`**: the clients' state at the empty frontier from `Inv γ ∗ opsAuth γ ∅`, with the model's other
+  half and every client's counter.
+
+### S5c batch 2: the kit's `Codec()` (`KitCodecDefs.lean`, `KitCodec.lean`)
+
+`Codec()` meets `codecOk (regR g)` over the real code (vr's `CodecProof`, adapted): its helpers `flag`,
+`encStr` (appends a length byte and the bytes) and `decStr` (on an encoded string: the string, a rest as long as
+the remaining bytes, the input's bytes back) are proved first; `EncIn`/`DecIn` (put flag, way, value), `EncOut`/
+`DecOut` (unknown and found flags, value; `encOutV_outVal` from `Out`'s injective values), `IsRead`, `Unknown`,
+`IsUnknown`.
+
+Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof that its datum's id is `(c, m)`
+(`opID`/`command`'s bytes, `idOf`) and that `m < 2^56` (remote's call budget, `budUsed_add`), the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
 `Sys.op`/`try` and `Client`, the orchestrator and the admin, and the link.
+
+### S5d batch 1 (branch `hraft-s5d/2026-11-28`): the server machine's helpers, the draw, the conf protocol
+
+- **Kit change 6** (approved by coordinator-E, #48 7233410712): `Server` registers its API before
+  `go srv.Accept(listen(...))` (it used to serve first). Net's `Server.Accept.spec` asks that every service the rpc world
+  gives the address be registered (`srvServes`), and a request before `Register(api)` would be answered "can't find
+  service"; peers' and clients' failed dials are retried. `TestDeployment` passes.
+- **The draw of the first configuration** (coordinator-E's design (a)-(e), (e1), #48 7233410712). `gprot.GNames` fixes
+  the genesis, `bootConfiguration(n0)`, and `n0` is drawn by the orchestrator at run time, while the rpc world's specs
+  are fixed at the start. So `gprot.alloc` is split: `alloc_names` (the names and the protocol's initial ghost state,
+  no receipt: the start allocates one protocol per size 3 and 5) and `alloc_init` (= `alloc_core`, the two receipts:
+  the orchestrator, after its draw); `alloc` is their composition (one protocol, nothing added). The draw is
+  `chosen γc n` (`Choice.lean`, persistent, agreeing). The world's specs are wraps: `svcK γc Sn` (`∃ n, chosen n ∗
+  Sn n`) for `RaftRPC`, whose callers know the draw, and `svcKE γc ok Sn` (`⌜ok⌝ ∗ ∀ n, chosen n -∗ |={⊤}=> Sn n`)
+  for the API, whose clients do not: the server, which does, turns the deposit into the drawn protocol's (so the
+  clients' registration of an operation runs in the server's method, on the client's draw-free resources).
+- **`rpctransport` over the wrapped world**: `peerOk` and `New.spec` take `svcAt` (the world's spec at the peer's
+  address accepts `raftSvc`'s deposits), `Transport.send` weakens the encoder's continuation with the new
+  `CodecLaws.enc_mono` (ledger 2026-11-28). `raftRcvLaws_svcK`/`apiRcvLaws_svcK` (`ChoiceRcv.lean`, `ApiRcvK.lean`): the
+  receiver laws for the wrapped specs, from the drawn protocol's.
+- **The server machines' share** (`ServerShare.lean`): `HK` (the draw, the protocol and frontier per size, the rpc
+  world, the share tokens), `kitSS` (the world's services at the servers' addresses), `srvPkg K n j` (what server `j`
+  runs raft with in the protocol of size `n`), `drawInv` (the draw, with every server's package until it takes it),
+  `claim_pkg` (server `j`, knowing the draw, takes its package), `srvShare`, `srvBoot`, the specs' `errOk`.
+- **Proved over the real code** (`Dsverify/{Spec,Proof}/.../hraftnet/`): `rnd`, `serverID`, `serverAddr` (`sidOf`, the
+  number in decimal), `peers` (`peersUpTo 6`), `bootConfiguration` (`bootSrvs n0`, a valid configuration over the six
+  servers, `srvsOkIn_bootSrvs`), `raftConfig` (`cfgOk`), `ServerAddrs`/`ConfAddrs`/`ClientAddrs`, `listen`, and the
+  conf protocol's `awaitConf` (`ConfDefs.lean`: `confProto γc`, a prefix of the drawn size's byte; vr's proof on one
+  byte).
+- Landed at `754015a493`.
+
+### S5d batch 2: the server machine `Server`
+
+- **`Server.spec`** (`Spec/.../hraftnet/Server.lean`): server machine `j` (`1 ≤ j ≤ 6`) from its share `srvShare K j`
+  (the configuration addresses' protocols, the world's server addresses and listening right at its own, `kitSS`,
+  `γsOk` (the protocol of each size: the six servers, the genesis `bootSrvs n`, `cfgDec`), `drawInv`, its
+  `shareTok`), `srvBoot` (net/rpc's codec unregistered, its server's variables, `log`'s initialization), the bounds
+  and a thread token; `ThreadBoundLe GF (2 ^ 28)`, `ReceiptBoundLe GF (2 ^ 62)`.
+- **`Server.wp_proof`** (`Proof/.../hraftnet/Server.lean`), over the real code, step by step (as the lab's hr3
+  `run.lean` per server): `awaitConf` on a goroutine and the future (`confOk`: the drawn size `n`), `claim_pkg` (a
+  later credit), `Register()`, `raftConfig` and `ValidateConfig`, two `NewInmemStore`s and `snapstore.New`,
+  `rpctransport.New` over `peers()` in the wrapped world (`peers_ok`: `svcAt_svcK` per peer), `NewServer` (owned
+  registry), `Register(trans.Receiver())` (`raftRcv` of `raftRcvLaws_svcK`), `BootstrapCluster` of
+  `bootConfiguration(n)` iff `j ≤ n` (`j`'s ID among the genesis voters iff `j ≤ n`), `NewStore` (`durBound_of`),
+  `NewRaft` (`store_isFSM`, `inmem_isLogStore` (ported: `InmemLogIface.lean`), `inmem_isStableStore`,
+  `Transport_isTransport`), `New` (its post now gives `a ≠ null`, ledger 2026-11-28), `Register(api)` (`apiRcv` of
+  `apiRcvLaws_svcK`), `listen` and `Accept` on a goroutine (`srvServes`: `RaftRPC` and `API` registered, their
+  `errOk`), the sleep loop. Callees are hypotheses (the API's `Read` obligation `mRead` among them, S6). Not linked
+  yet.
+- Next (S5d): `Sys.try`/`op`/`Client` (the clients' side of (e1): see `S5-HANDOFF.md`).
+
+### S5e (branch `hraft-s5e/2026-11-28`): the kit's `Model()` and `Gen`
+
+- **The pure simulation** (`ModelSet.lean`, craq's `craqnet/ModelSet.lean` adapted to the register): `stepSpec` asks
+  `step`'s verdict to be exactly whether `pSeq regB` allows the step, so the Go state `(a, P)` (the register
+  `State{Present, V}`, the values of the pending writes `Pend = P.map pendV`) **brackets** the model's set: `Sim a P S`
+  holds every configuration reachable from `⟨a, P⟩` (`Funl`) and only configurations reachable from `a` with pending
+  inputs whose *values* are some of `P`'s (`Fall`). Values, not inputs: Go keeps only a write's value, and a read of
+  `w` erases the first pending write of value `w` (`findPend`/`erasePend`), which need not be the input a
+  configuration applied (two writes of one value in different ways); `map_erase_perm` closes the gap. `goStep` is
+  kit.go's `step` on the decoded answer; `sim_step` (the verdict is `goStep`'s, the next set bracketed by its next
+  state), from `reach_cons`, `reach_sub`, `reach_val` (the register after late effects: before, or a pending write's
+  value, which may be taken to have fired first). Side conditions kept in the rep: every pending input a write, the
+  register's value short (`RegOk`: the get's answer `bndO (regOut st)` is then the register's).
+- **The Go side** (`ModelDefs.lean`): `pushPend`, `findPend`, `erasePend` over read-only `[]string`, `wp_step` (every
+  branch of `step`; `find_idx`: `findPend`'s index is `P`'s first write of the value, `goStep`'s `find?`), `regDec`
+  (boxed `In`, boxed short `Out`; `decAns`), `regS0`/`regRep`/`regS` (the porcupine model spec), `regS_pendDec` and
+  `regR_encOut_inj` (remote's `Check` premises, for the orchestrator), `Model.spec`, `Gen.spec`.
+- **`Model.wp_proof`, `Gen.wp_proof`** (`KitProof.lean`), over the real code. `Equal` is always false (nothing to
+  prove beyond its triple). **`Gen.spec` is `isPkgInit hraftnet ⊢ genSpec …`**: `Gen` calls `strconv.Itoa`, whose spec
+  needs `strconv`'s initialization, and `lintest.genSpec`'s triple has no package premise (the other kits' `Gen`
+  build their digits by hand); the orchestrator holds `isPkgInit hraftnet` where it passes `Gen`. A write's value
+  `"v" ++ Itoa(c) ++ "." ++ Itoa(n)` is shorter than 256 bytes by `fmtInt_length_le`; a read's way is below 3.
+- Not linked yet (as `Codec.wp_proof`): the orchestrator (S6) passes `Model.wp_proof`, `Codec.wp_proof`,
+  `Gen.wp_proof`, `regS_pendDec`, `regR_encOut_inj` to remote's `Check`. No axiom, `sorry` or premise.
+
+### S5f batch 1 (branch `hraft-s5f/2026-11-28`): the kit's ghost state at the start, the clients' commands
+
+- **The clients' ghost state is allocated at the start** (S5d's design change; an untrusted restructuring): a client
+  cannot know the drawn protocol, so `KG` (one for both sizes, now a field `g` of `HK`, with the frontier's name
+  `fr`; `HK.fcs n := kitFC (γs n) g fr` is a definition, no longer a field) is allocated by `kit_start` (the model's
+  halves, the escrow's empty map, the clients' counters and the **ids' invariant** `idInv g`), and the draw makes
+  the drawn protocol's clients' state and frontier from it (`kitQ_init`, `frInv_init`: `Inv γ ∗ opsAuth γ ∅ ∗
+  kitPre g`, the frontier's list allocated empty at the start). `kitQ_alloc` is gone.
+- **Freshness by id reservations**, not by the counters inside `kitQ`: a client reserves the id `(c, m)` of its next
+  operation in `idInv` (`id_reserve`: its counter `seqOwn g c m` moves to `m + 1`, it gets the exclusive
+  `idTok g (c, m)`), and the escrow keeps each registered datum's `idTok g (idOf d)`, so `kit_register` (which now
+  takes `idTok g (idOf d)` in place of `seqOwn` and `idOf d = (c, m)`) sees that the datum is not registered.
+  The counter stays with the client when a deposit is lost (a failed call), which the counter inside `kitQ` could not.
+- **`drawInv`'s drawn branch holds the drawn protocol's `frInv`** (persistent); `draw_frInv` (a later credit) gives
+  it to whoever knows the draw: the server's method registering a client's operation, the client claiming it.
+- **`rpctransport.Conn.Call.spec`**: the deposit is a resource `R` with a wand to the encoder's premise, and
+  `CallNotSent` gives `R` back (the code returns before touching the arguments), so a client retries at the next
+  server with its operation's state (ledger 2026-11-28; `Transport.send` passes the encoder's premise itself).
+- **The clients' commands** (`ClientDefs.lean`, pure): `opIDB c s` (`opID`'s bytes, `beBytes` of `c << 56 |
+  s % 2^56`), `cmdB` (`command`'s), `idOf_cmdB` (`idOf (cmdB c s ..) = (c, s % 2^56)` for `c < 256`, by
+  `beBytes_fold`), `datumOf_cmdB`. **Proved over the real code**: `opID` (the loop, as rabia's `putU64`), `command`.

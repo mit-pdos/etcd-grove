@@ -102,6 +102,10 @@ structure CodecLaws (C : net.rpc.CodecSpec GF) : Prop where
   dec_PreVoteResp : decLaw C PreVoteResp.ty preVoteRespOwn encPreVoteResp
   dec_SnapResp : decLaw C SnapResp.ty snapRespOwn encSnapResp
   dec_TimeoutResp : decLaw C TimeoutResp.ty timeoutRespOwn encTimeoutResp
+  /-- The encoder's continuation can be weakened (the transport's peers accept a wider spec than
+  `raftSvc`: the hraft kit's rpc world wraps it, S5d). -/
+  enc_mono : ∀ (v : GoInterface) (Ψ Ψ' : List w8 → IProp GF),
+    C.enc v Ψ ∗ (∀ bs, Ψ bs -∗ Ψ' bs) ⊢ C.enc v Ψ'
 
 end laws
 

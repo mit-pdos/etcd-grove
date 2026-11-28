@@ -4902,4 +4902,8 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 - **Proposed change.** A functional spec of `internal.strconv.Atoi`: its result is `parseInt s 10 64`'s
   (the slow path is `ParseInt`'s, already functional; the fast path, 1 to 18 bytes, a digit loop), so that
   `Atoi(Itoa(n)) = (n, nil)` follows from `parseInt_fmtInt10`. Mechanical (a proof over the translated body).
-- **Status.** Open.
+- **Status.** Landed in Perennial `e2eda8223` (2026-11-28; pin bump requested on #9): `internal.strconv.Atoi.spec`
+  and `strconv.Atoi.spec` give `parseInt s 10 0`'s result (stronger posts; the errors unchanged), proved over the
+  translated body (`Perennial/Proof/internal/strconv/AtoiBasics.lean`: the fast loop's invariant); corollary
+  `internal.strconv.parseInt_fmtInt10_0`. Here `Atoi_dec` is proved from it (`Proof/strconv/Atoi_dec.lean`), once
+  the pin includes it.
