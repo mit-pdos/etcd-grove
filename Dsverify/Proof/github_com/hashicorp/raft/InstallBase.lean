@@ -933,21 +933,72 @@ theorem install_cfgs (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (i : SID)
     ipureintro; exact ⟨h1, he, hk, hd⟩
   ipureintro; exact ⟨hl, h1, h2, by omega⟩
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **The restore's `Open(id)`** (the FSM goroutine, holding the pending record's main-goroutine half,
-lent through the restore future): the store's latest is the install's snapshot `(s, st)` with id `id`
-(`snapCell`'s pending case): `Open` returns its metadata and a reader over its bytes, a snapshot of `s`. -/
+lent through the restore future; hraft_robust: over `srvDurInv`): the store's latest is the install's
+snapshot `(s, st)` with id `id` (`latestDur`'s pending case): `Open` returns its metadata and a reader
+over its bytes, a snapshot of `s`. -/
 theorem restore_open (γ : GNames) (rc : RCtx GF) (i : SID) (fx : GoInterfaceOk) (s st : Nat)
     (id : GoString) (eof : GoInterface) (Ψ : val → IProp GF) :
-    snapCell rc γ i ∗ isFSM fx γ i rc.fsmOwn rc.respP rc.snapP ∗
+    srvDurInv γ rc i ∗ isFSM fx γ i rc.fsmOwn rc.respP rc.snapP ∗
       ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) ∗
       (∀ (m : SnapshotMeta) (b : List w8) (mp : Loc) (rd : GoInterfaceOk) (R : List w8 → IProp GF),
         ⌜uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ 1 ≤ s⌝ -∗ mp ↦ m -∗ readCloserOk rd R eof -∗ R b -∗
         rc.snapP s b -∗ ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) -∗
         Ψ (PairV (PairV #mp #(GoInterface.ok rd)) #interface.nil)) ⊢
-    |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗ (rc.ownSS old ={∅,⊤}=∗ ∀ v, openPost old id eof v -∗ Ψ v) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old, rc.ownSS old ∗
+      (rc.ownSS old ={∅, ⊤ \ ↑storeN}=∗ ∀ v, openPost old id eof v -∗ Ψ v) := by
+  iintro ⟨#Hsc0, #HisFSM, Hpend, HΨ⟩ Hnc
+  iunfold srvDurInv at Hsc0
+  icases Hsc0 with ⟨#Hsc, -⟩
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑storeN) (by unfold durN raftN storeN; solve_ndisj) $$ Hsc
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Hnc
+  inext
+  unfold durBody
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HownL, HownS, Hown, HpA, HpB, Hbp,
+    Hcomp, HpC, HpD, Hla, Hld, Hpd, Hrest⟩
+  iexists X.lat
+  iframe Hown
+  iintro Hown
+  imod Hmask with -
+  ihave %Hpdq := ghostVar_agree _ _ _ _ _ $$ Hpend Hpd
+  unfold latestDur
+  icases Hld with ⟨Hlat, Hcase⟩
+  rw [← Hpdq]
+  icases Hcase with ⟨%m, %b, %a', %Hm, #Hfol, Happ⟩
+  obtain ⟨Hl, Hid, Hi, Ht, Ha⟩ := Hm
+  rw [Hl]
+  unfold latestOk
+  icases Hlat with ⟨#HCm, HsP, #Hcfgm, %Hmfacts⟩
+  ihave ⟨%e1, -, %He1⟩ := HCm
+  ihave #HsP := isFSM_snapP_persistent _ γ i _ _ _ _ b $$ [$HisFSM $HsP]
+  imod Hclose $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS Hown HpA HpB Hbp Hcomp HpC HpD Hla Hpd
+    Hrest Happ] with -
+  · inext
+    iexists X
+    iframe
+    rw [Hl, ← Hpdq]
+    unfold latestDur latestOk
+    dsimp only
+    isplitr
+    · iframe #; ipureintro; exact Hmfacts
+    iexists m, b, a'
+    iframe Happ Hfol
+    ipureintro; exact ⟨rfl, Hid, Hi, Ht, Ha⟩
+  imodintro
+  iintro %v Hpost
+  unfold openPost
+  dsimp only
+  rw [if_pos Hid]
+  icases Hpost with ⟨%mp, %rd, %R, %Hv, Hmp, #Hrc, HR, %HnWT⟩
+  subst Hv
+  subst Hi
+  iapply HΨ $$ %m %b %mp %rd %R [] Hmp Hrc HR HsP Hpend
+  ipureintro; exact ⟨rfl, Ht, He1.2⟩
+
 
 end github_com.hashicorp.raft.snapProof
 

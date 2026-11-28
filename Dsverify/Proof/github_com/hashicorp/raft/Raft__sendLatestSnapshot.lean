@@ -155,7 +155,6 @@ theorem github_com.hashicorp.raft.Raft.sendLatestSnapshot.wp_proof
   iapply wp_ncmod _ _ rfl (termLb_bound r γ rc i T)
   isplitr; · iframe #
   iintro %hT
-  · iframe #
   imod snap_valid γ i T (uint.nat m.Index') (uint.nat m.Term') e He.2 $$ [] with (#Hae | #Hstale)
   · iframe #; ipureintro; exact He.1
   rotate_left
