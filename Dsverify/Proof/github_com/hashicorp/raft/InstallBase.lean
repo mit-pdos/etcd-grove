@@ -654,9 +654,10 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
           isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
           · iframe
             ipureintro
+            rw [hd] at Hok
             obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, ⟨h9, ⟨h10, h11⟩⟩⟩ := Hok
             refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩,
-              ⟨h9, ⟨h10, fun d hd' => by rw [hd] at hd'; cases hd'⟩⟩⟩
+              ⟨h9, ⟨h10, fun d hd' => by cases hd'⟩⟩⟩
             simp only [latIdxD, sinkMeta, hl] at h8 ⊢; rw [hix]; omega
           isplitl [Hnew]
           · inext
@@ -664,7 +665,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
             iframe Hnew
             iright; iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
             isplitr; · ipureintro; rfl
-            ileft; simp only [sinkMeta]; rw [hix]; iframe Hdl; ipureintro; first | exact hd | rfl
+            ileft; simp only [sinkMeta]; rw [hix]; iframe Hdl
           isplitr
           · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
           imodintro
@@ -682,7 +683,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
           imod later_exists_except0 $$ Hc with ⟨%b2, Hc⟩
           icases Hc with ⟨>%Heq2, Hd2⟩
           ihave Hd2 := later_or.1 $$ Hd2
-          icases Hd2 with (⟨-, >%Hdn⟩ | ⟨>#Hfol0, >%Hdp0, Ha⟩)
+          icases Hd2 with (⟨-, >%Hdn⟩ | ⟨Hfol0, >%Hdp0, Ha⟩)
           · simp at Hdn
           imod later_exists_except0 $$ Ha with ⟨%a0, Ha⟩
           icases Ha with ⟨>Hauth, >%Hale⟩
@@ -704,13 +705,14 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
           isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
           · iframe
             ipureintro
+            rw [hd] at Hok
             obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, ⟨h9, ⟨h10, h11⟩⟩⟩ := Hok
             refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩,
               ⟨h9, ⟨h10, fun d' hd' => ?_⟩⟩⟩
             · simp only [latIdxD, sinkMeta, hl] at h8 ⊢; rw [hix]; omega
-            · rw [hd] at hd'; cases hd'
+            · simp only [Option.some.injEq] at hd'; subst hd'
               refine ⟨(sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b, rfl, ?_, ?_⟩ <;> simp only [sinkMeta] <;> omega
-          isplitl [Hnew Hauth]
+          isplitl [Hnew Hauth Hfol0]
           · inext
             simp only [hp]
             iframe Hnew
@@ -979,9 +981,10 @@ theorem restore_open (γ : GNames) (rc : RCtx GF) (i : SID) (fx : GoInterfaceOk)
     Hrest Happ] with -
   · inext
     iexists X
-    iframe
     rw [Hl, ← Hpdq]
-    unfold latestDur latestOk
+    iframe
+    try unfold latestDur
+    try unfold latestOk
     dsimp only
     isplitr
     · iframe #; ipureintro; exact Hmfacts

@@ -136,13 +136,19 @@ theorem latest_good (γ : GNames) (rc : RCtx GF) (i : SID) (fsmI : GoInterfaceOk
       · isplitl []; · iframe #; ipureintro; exact Hp
         iright; iexists m, b; isplitr; · ipureintro; rfl
         ileft; iframe #; ipureintro; exact Hdn
-      iframe #; isplitr; · ipureintro; exact Hp
+      isplitr; · iexact He
+      isplitr; · iexact Hsp2
+      isplitr; · iexact Hcfg
+      isplitr; · ipureintro; exact Hp
       ileft; iexact Hd
     · isplitl [Ha]
       · isplitl []; · iframe #; ipureintro; exact Hp
         iright; iexists m, b; isplitr; · ipureintro; rfl
         iright; iframe #; iframe; ipureintro; exact Hdp
-      iframe #; isplitr; · ipureintro; exact Hp
+      isplitr; · iexact He
+      isplitr; · iexact Hsp2
+      isplitr; · iexact Hcfg
+      isplitr; · ipureintro; exact Hp
       iright; iexact Hf
   · dsimp only
     icases Hm with ⟨%m', %b', %a, %Hq, #Hf, Ha⟩
@@ -152,7 +158,10 @@ theorem latest_good (γ : GNames) (rc : RCtx GF) (i : SID) (fsmI : GoInterfaceOk
     isplitl [Ha]
     · isplitl []; · iframe #; ipureintro; exact Hp
       iexists m, b, a; iframe #; iframe; ipureintro; exact ⟨rfl, Hid, rfl, rfl, Ha'⟩
-    iframe #; isplitr; · ipureintro; exact Hp
+    isplitr; · iexact He
+    isplitr; · iexact Hsp2
+    isplitr; · iexact Hcfg
+    isplitr; · ipureintro; exact Hp
     iright; iexact Hf
 
 /-- (Unfolds iface's `openPost`.) `Open` of the latest's id (Goose's left-nested triple
