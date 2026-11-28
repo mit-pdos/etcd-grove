@@ -793,46 +793,127 @@ the caller's step on the core, which must re-establish it with the other stores 
 
 section stores
 
+theorem crash_dur_storeN : (↑durN : CoPset) ⊆ ⊤ \ ↑storeN := by
+  unfold durN raftN storeN; solve_ndisj
+
 /-- (R2) A log-store write (`StoreLogs`, `StoreLog`, `StageCommitIndex`: `f` the write's effect). -/
 theorem logWrite_au (f : LogAbs → LogAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
-        ⌜X'.A = f X.A ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
+        ⌜X'.A = f X.A ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL (f A) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro HL
+  imod Hmask
+  imod Hf $$ %X Hc HR with ⟨%X', Hc', %hX', HΨ⟩
+  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A log-store `DeleteRange(mn, mx)` (the store chooses the new `hi'`). -/
 theorem logDelete_au (mn mx : Nat) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ (X : SrvDur) (hi' : w64), durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur,
         durCore γ rc i X' ∗
-        ⌜X'.A = X.A.delete mn mx hi' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
+        ⌜X'.A = X.A.delete mn mx hi' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
         (∀ hi' : w64, rc.ownL (A.delete mn mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro %hi' HL
+  imod Hmask
+  imod Hf $$ %X %hi' Hc HR with ⟨%X', Hc', %hX', HΨ⟩
+  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A log-store read (`GetLog`, `LastIndex`, `GetCommitIndex`): the caller's result over the
 opened core (the store's state `X.A`, its coupling with `X.s`). -/
 theorem logRead_au (R : IProp GF) (Ψ : LogAbs → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ Ψ X.A) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ |={⊤ \ ↑storeN}=> Ψ X.A) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  imod Hf $$ %X Hc HR with ⟨Hc, HΨ⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro HL
+  imod Hmask
+  imod Hcl $$ %X Hc [HL HS HSS Hlat] with -
+  · iunfold durStores; inext; iframe
+  iexact HΨ
 
 /-- (R2) A stable-store write (`f` the write's effect). -/
 theorem stableWrite_au (f : StableAbs → StableAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
-        ⌜X'.D = f X.D ∧ X'.A = X.A ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
+        ⌜X'.D = f X.D ∧ X'.A = X.A ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗ (rc.ownS (f D) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.D
+  iframe HS
+  iintro HS
+  imod Hmask
+  imod Hf $$ %X Hc HR with ⟨%X', Hc', %hX', HΨ⟩
+  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A stable-store read. -/
 theorem stableRead_au (R : IProp GF) (Ψ : StableAbs → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ Ψ X.D) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ |={⊤ \ ↑storeN}=> Ψ X.D) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗ (rc.ownS D ={∅, ⊤ \ ↑storeN}=∗ Ψ D) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  imod Hf $$ %X Hc HR with ⟨Hc, HΨ⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.D
+  iframe HS
+  iintro HS
+  imod Hmask
+  imod Hcl $$ %X Hc [HL HS HSS Hlat] with -
+  · iunfold durStores; inext; iframe
+  iexact HΨ
 
 /-- (R2) A snapshot-store commit (a sink's `Close`: `f` the store's new latest); the caller's step
 also gets `latestDur` (under its later: it mentions `snapP`) and re-establishes it. -/
@@ -840,17 +921,49 @@ theorem snapWrite_au (f : SnapLatest → SnapLatest) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
         |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗ ▷ latestDur γ rc i X'.lat X'.pend ∗
-          ⌜X'.lat = f X.lat ∧ X'.A = X.A ∧ X'.D = X.D⌝ ∗ Ψ) -∗
+          ⌜X'.lat = f X.lat ∧ X'.A = X.A ∧ X'.D = X.D⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS (f old) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.lat
+  iframe HSS
+  iintro HSS
+  imod Hmask
+  imod Hf $$ %X Hc [Hlat] HR with ⟨%X', Hc', Hlat, %hX', HΨ⟩
+  · inext; iexact Hlat
+  obtain ⟨h1, h2, h3⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A snapshot-store read (`List`, `Open`). -/
 theorem snapRead_au (R : IProp GF) (Ψ : SnapLatest → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
-        |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend ∗ Ψ X.lat) -∗
+        |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend ∗ |={⊤ \ ↑storeN}=> Ψ X.lat) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS old ={∅, ⊤ \ ↑storeN}=∗ Ψ old) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  imod Hf $$ %X Hc Hlat HR with ⟨Hc, Hlat, HΨ⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.lat
+  iframe HSS
+  iintro HSS
+  imod Hmask
+  imod Hcl $$ %X Hc [HL HS HSS Hlat] with -
+  · iunfold durStores; inext; iframe
+  iexact HΨ
 
 /-- (R2) `StageCommitIndex(idx)` by the main goroutine (its view of the staged index updated; no
 window: volatile). -/
