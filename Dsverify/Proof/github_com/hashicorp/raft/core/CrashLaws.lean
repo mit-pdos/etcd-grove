@@ -1137,6 +1137,58 @@ theorem logOk_delete (A : LogAbs) (L : RLog) (lo n mx : Nat) (hi : w64) (h : log
     rw [if_neg (by omega), ent_take _ _ _ hkn]
     exact h2 k hlo (by simp at hk; omega)
 
+/-- (R2) **A store of `es` at `first` keeps the coupling** with the log `L ++ X` when the stored entries
+are the new log's and every index of the new log outside them is one of `L`'s. -/
+theorem logOk_store_gen (A : LogAbs) (L X : RLog) (lo first : Nat) (es : RLog) (h : logOk A L lo)
+    (hin : ∀ t, t < es.length → ent (L ++ X) (first + t) = es[t]?)
+    (hout : ∀ x, lo ≤ x → x ≤ (L ++ X).length → ¬ (first ≤ x ∧ x < first + es.length) → x ≤ L.length) :
+    logOk (A.store first es) (L ++ X) lo := by
+  obtain ⟨h1, h2⟩ := h
+  unfold logOk
+  rw [LogAbs.store_m]
+  constructor
+  · intro k e hk
+    rw [crash_lookup_ins] at hk
+    split at hk
+    · rename_i hr
+      have := hin (k - first) (by omega)
+      rw [show first + (k - first) = k by omega] at this
+      rw [this]; exact hk
+    · exact gprot.ent_prefix (List.prefix_append L X) (h1 k e hk)
+  · intro k hlo hk
+    rw [crash_lookup_ins]
+    split
+    · rename_i hr
+      have := hin (k - first) (by omega)
+      rw [show first + (k - first) = k by omega] at this
+      rw [this]
+    · rename_i hr
+      have hkL := hout k hlo hk hr
+      rw [gprot.ent_append_left L X k hkL]
+      exact h2 k hlo hkL
+
+/-- (R2) The follower's (re-)store of `ents.drop k` at `prev + k + 1` with the log becoming
+`L ++ ents.drop j` (`k ≤ j`, the entries `k..j-1` already the log's). -/
+theorem logOk_fstore (A : LogAbs) (L ents : RLog) (lo prev j k : Nat) (h : logOk A L lo)
+    (hkj : k ≤ j) (hov : ∀ m, k ≤ m → m < j → ent L (prev + m + 1) = ents[m]?)
+    (hl : (j < ents.length ∧ L.length = prev + j) ∨ (j = ents.length ∧ prev + j ≤ L.length)) :
+    logOk (A.store (prev + k + 1) (ents.drop k)) (L ++ ents.drop j) lo := by
+  apply logOk_store_gen A L (ents.drop j) lo (prev + k + 1) (ents.drop k) h
+  · intro t ht
+    simp only [List.length_drop] at ht
+    rw [List.getElem?_drop]
+    by_cases hm : k + t < j
+    · rw [gprot.ent_append_left L _ _ (by omega), show prev + k + 1 + t = prev + (k + t) + 1 by omega]
+      exact hov (k + t) (by omega) hm
+    · rcases hl with ⟨hj, hlen⟩ | ⟨hj, hlen⟩
+      · rw [show prev + k + 1 + t = L.length + 1 + (k + t - j) by omega, gprot.ent_append_right,
+          List.getElem?_drop]
+        congr 1; omega
+      · omega
+  · intro x hlo hx hr
+    simp only [List.length_append, List.length_drop] at hx hr
+    rcases hl with ⟨hj, hlen⟩ | ⟨hj, hlen⟩ <;> omega
+
 /-- (R2) **Lending a window**: the pending-write record set to `p` (half lent), a quarter of each
 view lent. -/
 theorem winRes_make (s : SState) (p : Pend) (D : StableAbs) (g : w64)
@@ -1338,9 +1390,10 @@ theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (
 /-- (R2) **The follower's append** at `StoreLogs`' commit (`followerStore_upd`), then, with
 `lc = some v`, the commit learnt with it (`learnCommitFollower` of `min lci v`, so that the written
 staged index `g ≤ min lci v` is durable). -/
-theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
+theorem storeLogs_fstore_win_k (s : SState) (prev pt : Nat) (ents : RLog) (lci j k : Nat)
     (lc : Option Nat) (D : StableAbs) (g : w64)
     (hpre : pendPre γ i s (.fstore prev pt ents lci j lc))
+    (hk : k ≤ j ∧ ∀ m, k ≤ m → m < j → ent s.log (prev + m + 1) = ents[m]?)
     (hg : (lc = none → uint.nat g ≤ s.dur.1) ∧ (∀ v, lc = some v → uint.nat g ≤ Min.min lci v))
     (Ψ : IProp GF) :
     Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗
@@ -1349,16 +1402,16 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
         ⌜s.dur.1 ≤ d.1 ∧ uint.nat g ≤ d.1 ∧
           (∀ v, lc = some v → d.1 = Max.max s.dur.1 (Min.min lci v)) ∧ (lc = none → d = s.dur)⌝ -∗
         (∀ v, ⌜lc = some v⌝ -∗ durLb γ i (Min.min lci v)) ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      |==> (logWin γ rc i (.store (prev + j + 1) (ents.drop j)) ∗
-      (logWin γ rc i (.store (prev + j + 1) (ents.drop j)) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
-        rc.ownL A ∗ (rc.ownL (A.store (prev + j + 1) (ents.drop j)) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
+      |==> (logWin γ rc i (.store (prev + k + 1) (ents.drop k)) ∗
+      (logWin γ rc i (.store (prev + k + 1) (ents.drop k)) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+        rc.ownL A ∗ (rc.ownL (A.store (prev + k + 1) (ents.drop k)) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hh Hk
   imod (winRes_make γ rc i s (.fstore prev pt ents lci j lc) D g ⟨hpre, hg⟩ rfl) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
   · iframe
   imodintro
   isplitl [HW]
   · iunfold logWin; ileft; iexists s, (Pend.fstore prev pt ents lci j lc); iframe HW; ipureintro
-    exact ⟨j, Nat.le_refl _, rfl, fun m h1 h2 => absurd h2 (by omega)⟩
+    exact ⟨k, hk.1, rfl, hk.2⟩
   iintro HW
   iunfold logWin at HW
   icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
@@ -1368,7 +1421,7 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
   ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.fstore prev pt ents lci j lc)) $$ Hpw
-  iapply (logWrite_au γ rc i (fun A => A.store (prev + j + 1) (ents.drop j))
+  iapply (logWrite_au γ rc i (fun A => A.store (prev + k + 1) (ents.drop k))
     iprop(srvV rc s' ∗ stVS rc D g ∗ pendHyps γ i s' (.fstore prev pt ents lci j lc) ∗ (|==> ghostVar rc.dur.pw 1 (none : Option Pend)) ∗
       (∀ d : Nat × Nat, ghostVar rc.dur.pw 1 (none : Option Pend) -∗
         srvV rc { s' with log := s'.log ++ ents.drop j, dur := d } -∗ stVS rc D g -∗
@@ -1390,18 +1443,30 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
   obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
   iunfold pendHyps at Hh
   icases Hh with #Hae
-  obtain ⟨hpm, hmu, hjl, hlen, hlcv⟩ := hpre
-  have hf : prev + j + 1 = s'.log.length + 1 := by omega
-  obtain ⟨hpm', hmu'⟩ := crash_matched_store s'.log prev pt ents j hpm hmu hlen (by omega)
-  imod (gprot.followerStore_upd γ _ crash_gprot_store i s' prev pt ents lci j ⟨hpm, hmu, hjl, hlen⟩)
-    $$ [HI Ho Hlc Hae] with ⟨Ho, Hlc⟩
-  · iframe #; try iframe
+  obtain ⟨hpm, hmu, hcase, hlcv⟩ := hpre
+  have hlog : logOk (X.A.store (prev + k + 1) (ents.drop k)) (s'.log ++ ents.drop j) X.lo :=
+    logOk_fstore X.A s'.log ents X.lo prev j k hlo hk.1 hk.2 hcase
+  have hpmm : prevMatch (s'.log ++ ents.drop j) prev pt ∧
+      matchedUpTo (s'.log ++ ents.drop j) prev ents ents.length := by
+    rcases hcase with ⟨hjl, hlen⟩ | ⟨hj, hlen⟩
+    · exact crash_matched_store s'.log prev pt ents j hpm hmu hlen (by omega)
+    · subst hj; rw [List.drop_length, List.append_nil]; exact ⟨hpm, hmu⟩
+  obtain ⟨hpm', hmu'⟩ := hpmm
+  ihave Hol : |={(⊤ \ ↑storeN) \ ↑durN}=> (srvOwn γ i { s' with log := s'.log ++ ents.drop j } ∗
+      logCouple γ i (s'.log ++ ents.drop j)) $$ [Ho Hlc]
+  · rcases hcase with ⟨hjl, hlen⟩ | ⟨hj, hlen⟩
+    · iapply (gprot.followerStore_upd γ _ crash_gprot_store i s' prev pt ents lci j ⟨hpm, hmu, hjl, hlen⟩)
+      iframe; iframe #
+    · subst hj
+      rw [List.drop_length, List.append_nil, show ({ s' with log := s'.log } : SState) = s' from rfl]
+      imodintro; iframe
+  imod Hol with ⟨Ho, Hlc⟩
   rcases lc with _ | v
   · unfold srvV
     imod (ghostVar_update_halves ({ s' with log := s'.log ++ ents.drop j, dur := s'.dur }, (none : Option TermPend), (none : Option DiscPend))
       rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
     imodintro
-    iexists ({ X with s := { s' with log := s'.log ++ ents.drop j, dur := s'.dur }, A := X.A.store (prev + j + 1) (ents.drop j), tp := none })
+    iexists ({ X with s := { s' with log := s'.log ++ ents.drop j, dur := s'.dur }, A := X.A.store (prev + k + 1) (ents.drop k), tp := none })
     isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
     · iunfold durCore
       dsimp only
@@ -1411,7 +1476,7 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
       iframe
       ipureintro
       try simp only [and_true]
-      refine ⟨by rw [hf]; exact logOk_store _ _ _ _ hlo, hlc, hvm, htd, ?_, hci.2⟩
+      refine ⟨hlog, hlc, hvm, htd, ?_, hci.2⟩
       rw [hstg]; exact hg.1 rfl
     isplitl []
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
@@ -1429,7 +1494,7 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
     imod (ghostVar_update_halves ({ s' with log := s'.log ++ ents.drop j, dur := d }, (none : Option TermPend), (none : Option DiscPend))
       rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
     imodintro
-    iexists ({ X with s := { s' with log := s'.log ++ ents.drop j, dur := d }, A := X.A.store (prev + j + 1) (ents.drop j), tp := none })
+    iexists ({ X with s := { s' with log := s'.log ++ ents.drop j, dur := d }, A := X.A.store (prev + k + 1) (ents.drop k), tp := none })
     isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
     · iunfold durCore
       dsimp only
@@ -1439,7 +1504,7 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
       iframe
       ipureintro
       try simp only [and_true]
-      refine ⟨by rw [hf]; exact logOk_store _ _ _ _ hlo, hlc, hvm, htd, ?_, hci.2⟩
+      refine ⟨hlog, hlc, hvm, htd, ?_, hci.2⟩
       rw [hstg]; have := hg.2 v rfl; omega
     isplitl []
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
@@ -1449,6 +1514,24 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
       refine ⟨by omega, by omega, ⟨fun v' h => (by cases h; exact hd), fun h => (by cases h)⟩⟩
     · iintro %v' %h; cases h; iexact Hlb
     iexact HΨ
+
+/-- (R2) `storeLogs_fstore_win_k` at `k = j` (no overlap). -/
+theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
+    (lc : Option Nat) (D : StableAbs) (g : w64)
+    (hpre : pendPre γ i s (.fstore prev pt ents lci j lc))
+    (hg : (lc = none → uint.nat g ≤ s.dur.1) ∧ (∀ v, lc = some v → uint.nat g ≤ Min.min lci v))
+    (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗
+      pendHyps γ i s (.fstore prev pt ents lci j lc) -∗
+      (∀ d : Nat × Nat, ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log ++ ents.drop j, dur := d } -∗ stVS rc D g -∗
+        ⌜s.dur.1 ≤ d.1 ∧ uint.nat g ≤ d.1 ∧
+          (∀ v, lc = some v → d.1 = Max.max s.dur.1 (Min.min lci v)) ∧ (lc = none → d = s.dur)⌝ -∗
+        (∀ v, ⌜lc = some v⌝ -∗ durLb γ i (Min.min lci v)) ={⊤ \ ↑storeN}=∗ Ψ) -∗
+      |==> (logWin γ rc i (.store (prev + j + 1) (ents.drop j)) ∗
+      (logWin γ rc i (.store (prev + j + 1) (ents.drop j)) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+        rc.ownL A ∗ (rc.ownL (A.store (prev + j + 1) (ents.drop j)) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) :=
+  storeLogs_fstore_win_k γ rc i s prev pt ents lci j j lc D g hpre
+    ⟨Nat.le_refl _, fun m h1 h2 => absurd h2 (by omega)⟩ hg Ψ
 
 /-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, |s.log|)`'s commit
 (`truncate_upd`). -/
@@ -1569,10 +1652,11 @@ theorem setUint64_term_win (s : SState) (tp : TermPend) (tv : Nat) (D : StableAb
     rcases ht with ⟨rfl, _⟩ | ⟨rfl, rfl⟩ <;> rfl
   iintro HW
   iunfold stWin at HW
-  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩ | ⟨%kb, %v, %D', %g', %hop, Hq3⟩)
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩ | ⟨%kb, %v, %D', %g', %hop, Hq3, Hpw3⟩)
   rotate_left
   · cases hop
-  · sorry -- hraft_robust R2: stWin's idempotent branch (request 4: it needs the pw half to be refuted)
+  · icombine Hpw3 Hpw gives %h
+    exact absurd h.2 (by simp)
   ihave ⟨%heq, Hpw, Hv, Hst, Htp, -⟩ := winRes_back γ rc i s s' (.term tp) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
@@ -1707,10 +1791,11 @@ theorem setUint64_vote_win (s : SState) (c : SID) (li lt : Nat) (D : StableAbs) 
   · iunfold stWin; ileft; iexists s, (Pend.vote c li lt); iframe HW; ipureintro; rfl
   iintro HW
   iunfold stWin at HW
-  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩ | ⟨%kb, %v, %D', %g', %hop, Hq3⟩)
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩ | ⟨%kb, %v, %D', %g', %hop, Hq3, Hpw3⟩)
   rotate_left
   · cases hop
-  · sorry -- hraft_robust R2: stWin's idempotent branch (request 4: it needs the pw half to be refuted)
+  · icombine Hpw3 Hpw gives %h
+    exact absurd h.2 (by simp)
   ihave ⟨%heq, Hpw, Hv, Hst, Hcand, -⟩ := winRes_back γ rc i s s' (.vote c li lt) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
