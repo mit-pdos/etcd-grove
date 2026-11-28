@@ -58,7 +58,8 @@ def durCore (X : SrvDur) : IProp GF :=
     ghostVar rc.dur.sv (1 : Qp).half (X.s, X.tp, X.dp) ∗ ghostVar rc.dur.st (1 : Qp).half (X.D, X.A.staged) ∗
     ghostVar rc.dur.tv (1 : Qp).half X.s.term ∗ ghostVar rc.dur.cv (1 : Qp).half X.s.cidx ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
-      uint.nat X.A.ci ≤ X.s.dur.1 ∧ (∀ d, X.dp = some d → X.lo ≤ d.x)⌝ ∗
+      uint.nat X.A.ci ≤ X.s.dur.1 ∧ ((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat)⌝ ∗
     compLb rc X.c ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
@@ -231,7 +232,8 @@ def srvVacant (X : SrvDur) : IProp GF :=
     rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1 ∧ uint.nat X.A.staged ≤ X.s.dur.1 ∧ X.pend = none ∧
-      (∀ d, X.dp = some d → X.lo ≤ d.x)⌝ ∗
+      ((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+        (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat)⌝ ∗
     latestDur γ rc i X.lat X.pend X.dp ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
@@ -297,7 +299,7 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
     isplitl []
     · ipureintro; exact ⟨hlo, hlc, hvm, htd, hci⟩
     isplitl []
-    · ipureintro; exact hdpl
+    · ipureintro; rw [hpend] at hdpl; exact hdpl
     ileft
     iexists (some (X.A, X.lat))
     iframe
@@ -316,7 +318,8 @@ def deadCore (X : SrvDur) : IProp GF :=
   iprop(srvOwn γ i X.s ∗ durView γ i (1 : Qp).half X.s.dur.1 ∗ logCouple γ i X.s.log ∗
     termCouple γ i X.s.term ∗ cidxCouple γ i X.s.cidx ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
-      uint.nat X.A.ci ≤ X.s.dur.1 ∧ (∀ d, X.dp = some d → X.lo ≤ d.x)⌝ ∗
+      uint.nat X.A.ci ≤ X.s.dur.1 ∧ ((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat)⌝ ∗
     latestDur γ rc i X.lat X.pend X.dp ∗ tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
 /-- (R2) What `raft_crash` leaves: `deadCore` and `durBody`'s halves of the main goroutine's state
