@@ -151,6 +151,69 @@ theorem durRead {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) 
   rw [srvV_eq]
   exact durPeek γ rc i hE s none none P Q
 
+/-- **Rewriting an atomic update's post**: a store contract's update, from one whose commit gives
+`Q a` to one whose commit gives `Q' a`. -/
+theorem au_post {A : Type} {E : CoPset} (P P' Q Q' : A → IProp GF) :
+    (|NC={E, ∅}=> ▷ ∃ a, P a ∗ (P' a ={∅, E}=∗ Q a)) -∗ (∀ a, Q a -∗ Q' a) -∗
+      |NC={E, ∅}=> ▷ ∃ a, P a ∗ (P' a ={∅, E}=∗ Q' a) := by
+  iintro Hau Hw Hnc
+  imod Hau $$ Hnc with ⟨Hnc, Hau⟩
+  iframe Hnc
+  imodintro
+  inext
+  icases Hau with ⟨%a, Hp, Hcl⟩
+  iexists a
+  iframe Hp
+  iintro Hp
+  imod Hcl $$ Hp with HQ
+  imodintro
+  iapply Hw $$ HQ
+
+/-- **A read of the stable store by the main goroutine**: its view `stVS rc D g` pins the store's
+contents. -/
+theorem stRead_main (D : StableAbs) (g : w64) :
+    srvDurInv γ rc i -∗ stVS rc D g -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
+        (rc.ownS D0 ={∅, ⊤ \ ↑storeN}=∗ stVS rc D g ∗ ⌜D0 = D⌝) := by
+  iintro #Hd Hv
+  iapply (stableRead_au γ rc i (stVS rc D g) (fun D0 => iprop(stVS rc D g ∗ ⌜D0 = D⌝))) $$ Hd Hv
+  iintro %X Hc Hv
+  ihave ⟨Hc, Hv, %h⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hv]
+  · iframe
+  imodintro
+  iframe
+  ipureintro; exact h.1
+
+/-- The server's term, as a persistent lower bound (with the main goroutine's view). -/
+theorem srvV_termLb {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) :
+    srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ termLb γ i s.term := by
+  iintro ⟨#Hd, Hv⟩
+  rw [srvV_eq]
+  ihave H := durStep γ rc i hE s none none iprop(True)
+    (fun X' => iprop(⌜X'.s = s ∧ X'.tp = none ∧ X'.dp = none⌝ ∗ termLb γ i s.term)) $$ [Hv]
+  · iframe Hd Hv
+    isplitl []
+    · itrivial
+    iintro %X %hX Hc Hs Hv -
+    rcases hX with ⟨h1, h2, h3⟩
+    unfold durCore
+    icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hrest⟩
+    ihave ⟨Htc, #Hlb⟩ := termCouple_get_lb γ i _ $$ Htc
+    imodintro
+    iexists X
+    rw [h1, h2, h3]
+    iframe
+    iframe #
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  iapply ncfupd_wand
+  isplitl [H]
+  · iexact H
+  iintro ⟨%X', Hs, %h, #Hlb⟩
+  rcases h with ⟨h1, h2, h3⟩
+  rw [h1, h2, h3]
+  iframe Hs
+  iexact Hlb
+
 end dur
 
 end github_com.hashicorp.raft
