@@ -103,7 +103,7 @@ theorem snap_create (cl : Cluster) (γA : ApplyNames) (π0 : ApplyPhys) (P : bac
 registry's first). At the open of data `D` whose meta keys are `γA.m0`, the fresh backend's own keys
 and payment rights (`OpenBackend`'s `openPre` wand arguments), with the protocol's pieces
 `consInv_alloc` gives (at `bwb := γB.wb`, `bopn := γB.opn`), make the batch lock's resource
-`batchLockInv γA (metaTM γB P)`, give the payment rights back, and through `bootOk`'s
+`batchLockInv γA (metaTMR cl γA.ph γB P)`, give the payment rights back, and through `bootOk`'s
 `#HmetaSnap` at `π := γA.ph` give the meta reads of every backend with that lock resource:
 `bootOk`'s `#Hmeta` is this step's output at `bootstrap`'s open (names-only, so `bootOk` states it). -/
 theorem boot_create (cl : Cluster) (γA : ApplyNames) (γB : backend.BNames) (P : backend.BParams)
