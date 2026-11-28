@@ -618,8 +618,9 @@ linearization point. Reads outside the log (S6) read some FSM's state, which may
 they need the frontier at their call (the barrier's bound) instead.
 
 `Store.Restore` takes `strconv.Atoi_dec.spec` (`Spec/strconv/Atoi_dec.lean`: `Atoi` of `Itoa(n)`, `n ≥ 0`,
-returns `(n, nil)`) as a callee hypothesis: true of Go, but Perennial's `Atoi` spec does not give the number
-(`notes/perennial-changes.md`). Not an axiom; to be proved over Perennial's `Atoi` (or in Perennial).
+returns `(n, nil)`) as a callee hypothesis, proved by `strconv.Atoi_dec.wp_proof` (`Proof/strconv/Atoi_dec.lean`,
+2026-11-28) from Perennial's functional `strconv.Atoi.spec` (Perennial `atoi-functional`: `Atoi`'s result is
+`parseInt s 10 0`'s); the kit's Link passes it for `Restore`'s `wp_Atoi`.
 
 ### The API service (batch 2)
 
@@ -672,8 +673,35 @@ token-free `LeaderWithID` spec. Reported to coordinator-E.
   (`cfgOpt`'s `Servers' ↦*□ ss`). The reply carries no facts. `apiMeth_Status` (`ApiRcvSvc.lean`) replaces the
   receiver's `mStatus` hypothesis: `apiRcvLaws_of`/`apiRcv_apiSvc` take `API.Status.spec` instead.
 
-Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the clients' registration and claim
-lemmas over `kitQ`, the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
+### S5c batch 2: the clients' registration and claim (`KitQ.lean`)
+
+- **Freshness**: `KG` gains `seq`, a ghost map from a client to its operation counter; client `c` owns
+  `seqOwn g c m` (exclusive). `kitQ` keeps the map's authority and, for every registered datum `d`, `idOf d =
+  (c, s)` with `s` below `c`'s counter (`idOf`: the datum's bytes 1-8, `opID`'s, as client and count). A datum
+  whose id is `(c, m)` for the client's own `m` is then unregistered, and so no command of the frontier
+  (`not_cmdIn_ops`: a committed command's datum is in `opsAuth`, `cmd_committed_ops`). `kitQ`'s register bound
+  is now `putsShort es` (every put of the frontier has a value under 256 bytes), which prefixes inherit
+  (`regShort_of_putsShort`).
+- **`kit_register`**: from `frInv`, a credit, `seqOwn g c m`, `datumOf i d`, `idOf d = (c, m)` and the update
+  `slotUpd (regR g.st) i Φ`: `opTok γ d n` (the `Apply` deposit's token), `seqOwn g c (m+1)` and the claim
+  `kitTicket g d i Φ` (the escrow's entry, the saved `Φ`, the client's token).
+- **`kit_claim`**: from `frInv`, two credits, the claim and `applyOut`'s done facts (`CIdx γ k e`, `e.data = d`,
+  `cIdxs γ es'` with `|es'| = k`, `frLb fc es'`): `Φ (firedOut i es')` (the entry fired at `es'`, by
+  `cmd_unique`), `datumOf i d`, `es'.getLast? = some e`, `putsShort es'`; **`firedOut_respAt`** says the output
+  is the FSM's answer `respAt es'` (nothing found for a put).
+- **`kitQ_alloc`**: the clients' state at the empty frontier from `Inv γ ∗ opsAuth γ ∅`, with the model's other
+  half and every client's counter.
+
+### S5c batch 2: the kit's `Codec()` (`KitCodecDefs.lean`, `KitCodec.lean`)
+
+`Codec()` meets `codecOk (regR g)` over the real code (vr's `CodecProof`, adapted): its helpers `flag`,
+`encStr` (appends a length byte and the bytes) and `decStr` (on an encoded string: the string, a rest as long as
+the remaining bytes, the input's bytes back) are proved first; `EncIn`/`DecIn` (put flag, way, value), `EncOut`/
+`DecOut` (unknown and found flags, value; `encOutV_outVal` from `Out`'s injective values), `IsRead`, `Unknown`,
+`IsUnknown`.
+
+Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof that its datum's id is `(c, m)`
+(`opID`/`command`'s bytes, `idOf`) and that `m < 2^56` (remote's call budget, `budUsed_add`), the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
 `Sys.op`/`try` and `Client`, the orchestrator and the admin, and the link.
 
 ### S5d batch 1 (branch `hraft-s5d/2026-11-28`): the server machine's helpers, the draw, the conf protocol
