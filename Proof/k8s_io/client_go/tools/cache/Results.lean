@@ -83,7 +83,7 @@ namespace k8scache
 -- `isTooLargeResourceVersionError`, the boundary callees pending approval (the `apierrors`
 -- predicates, `meta.ExtractListWithAlloc`/`LenList`, `Trace.Step`), the typed lists'
 -- `typedListMeta` (k8s 7g (B'): what `meta.ListAccessor`'s former axiom said of them) and the
--- outside-client-go names-only ones (klog, logr, `utilnet`, `rand`, `RealClock.After`,
+-- outside-client-go names-only ones (klog, logr, `utilnet`, `rand`,
 -- `wait.Group.Start`), all in `links_pending`
 #print axioms cache.wp_handleWatch
 #print axioms cache.wp_isExpiredError

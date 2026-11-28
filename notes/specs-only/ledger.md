@@ -10767,6 +10767,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `deferError.Error.spec`, unchanged). No top-level statement changes.
 - **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).
 
+## 2026-11-28: `walRecs`/`walFiles` carry raft's `committed ≤ lastIndex`; `Save`'s spec requires it (walcommitle, C1)
+
+- **Spec.** `walRecs`, `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), `Save`'s law of the server's
+  WAL storage (`isWalStorage`'s `Save`, `walSaveSized_spec`, `walSaveRn_spec`: `WalApi.lean`; `rnNewStorageOk`:
+  `RnNewStorage.lean`), and the restart premise `bootstrapRestartContract` (through `walFiles`).
+- **Defect.** The etcd_safe lead's C1 (#50, 2026-11-28 05:02Z): with the eager-fold conjunct (walfiles-fold,
+  `c4b79f5406`) `walFiles` still admits histories that Go's `ReadAll` reads back differently from the model:
+  `Save(hs{Term 1, Commit 1}, entries 1..6)`, `SaveSnapshot(3)`, `Save(hs{Term 1, Commit 4}, [])`, `SaveSnapshot(4)`:
+  the model's records have no entries, the real WAL's `ReadAll` returns `[5 6]`, no error. Every mismatch of 100k
+  random histories had a prefix whose commit exceeds its last index (0 of 7,350 without). Not a soundness problem
+  today (raft's node loop, the only writer, keeps `committed ≤ lastIndex`), but nothing stated it, and the restart
+  premise had the same gap.
+- **Evidence.** `examples/axiomcx/restartcommitle` (the four calls at the etcd pin; `ReadAll` returns `[5 6]`); the
+  lead's random runs; raft's `ReadyRestFacts` (`(phsNext hs h).Commit ≤ (readyDurable …).last`).
+- **Change.** `walRecs` and `walFiles` gain `walCommitLeFrom walFresh (walSrvHist d.H)` (every prefix of the history's
+  eager fold has its commit within its last index; the crash line's `wal.restartOk` conjunct, same definition);
+  `Save`'s atomic update requires `WalSaveCommitLe σ hs es` (`(walSave σ hs es).commit ≤ (walSave σ hs es).last`)
+  beside `WalSaveOk`; `walRecs_saveAU`, `walRecs_saveSnapAU` (`walSaveSnap_commitLe`), `walRecs_releaseAU` and
+  `walRecs_closeAU` keep it; the node driver supplies it from `ReadyRestFacts` (`WalSaveStep`). `walFiles` is
+  stronger, so `bootstrapRestartContract` (a premise) assumes less of what a restart reads; `wal.Create.specSrv`'s
+  post (`walOpened … walFresh`) claims the conjunct of the fresh WAL, where it holds.
+- **Decision.** Approved (the lead's proposal, #50; WCL-1 owns it, coordinator etcd-grove-03). No axiom or `sorry`.
 ## 2026-11-28: `rpctransport.New.spec` takes `svcAt`; `CodecLaws` gains `enc_mono` (hraft S5d)
 
 - **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/New.lean` (the kit's transport,
