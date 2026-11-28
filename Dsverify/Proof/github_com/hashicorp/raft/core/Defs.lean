@@ -998,12 +998,20 @@ structure SrvDur where
   pend : Option (Nat × Nat × GoString)
   dp : Option DiscPend
 
+/-- (hraft_robust, R4b) After the boot, with no install and no discard pending, the latest snapshot's index
+is at most `lastApplied` (`applLb`; a fact of the generation: the boot's restore sets `lastApplied` to it).
+An install compares its snapshot with `lastApplied`, so its snapshot is then the newer one. -/
+def latApplOk (rc : RCtx GF) (X : SrvDur) : IProp GF :=
+  match X.lat with
+  | none => iprop(True)
+  | some (m, _) => iprop(⌜X.pend ≠ none ∨ X.dp ≠ none⌝ ∨ applLb rc (uint.nat m.Index'))
+
 /-- (hraft_robust, R5 Q0) **The boot pin** in the crash state: during `NewRaft`, the stores' state is the
 arm-time one (`NewRaft` holds the other ½); afterwards discarded `none`. -/
 def bootPin (rc : RCtx GF) (X : SrvDur) : IProp GF :=
   iprop((∃ o : Option (LogAbs × SnapLatest), dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) o ∗
       ⌜∀ p, o = some p → p = (X.A, X.lat)⌝) ∨
-    dghostVar rc.dur.boot DFrac.discard (none : Option (LogAbs × SnapLatest)))
+    dghostVar rc.dur.boot DFrac.discard (none : Option (LogAbs × SnapLatest)) ∗ latApplOk rc X)
 
 /-- (hraft_robust, R5 Q0) The boot is over (persistent): `bootPin` is its second disjunct. -/
 def bootOver (rc : RCtx GF) : IProp GF :=
