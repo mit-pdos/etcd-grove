@@ -79,6 +79,12 @@ def srvTermPos (cl : Cluster) : IProp GF :=
 instance srvTermPos_persistent (cl : Cluster) : Persistent (srvTermPos (GF := GF) cl) := by
   unfold srvTermPos; infer_instance
 
+/-- (keepfix (c), step 1, sub-goal 1) **`srvTermPos` from the cluster**, as a law: proved in the linking modules
+once raft's `isCommittedLogLb_term_pos` lands (bootlaw), passed to the proofs that need `srvTermPos` (the hooks
+at boot and in the apply-time snapshot window) as a hypothesis. -/
+abbrev srvTermPos_of_cluster.law : Prop :=
+  ∀ cl, 0 < cl.bootLen → isCluster (GF := GF) cl srvClusterN ⊢ srvTermPos cl
+
 instance srvCITriple0_persistent (cl : Cluster) (k t rt : w64) :
     Persistent (srvCITriple0 (GF := GF) cl k t rt) := by
   unfold srvCITriple0; infer_instance
