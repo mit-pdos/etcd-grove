@@ -46,15 +46,19 @@ HRAFT = 'github_com.hashicorp.raft'
 _DURABLE = 'github_com.mit_pdos.etcd_grove.examples.lib.durable'
 OWN = {_DURABLE}
 HRAFT_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s in range(1, 7)]
+# hraft_robust: the restartable server machines' commands (`rserver.ServerR`)
+HRAFT_RNODES = [f'rserver{s}' for s in range(1, 7)]
 PKGS = [HRAFT, f'{HRAFT}.examples.snapstore', f'{HRAFT}.examples.hraftnet.rpctransport',
         f'{HRAFT}.examples.hraftnet.service', f'{HRAFT}.examples.hraftnet',
         # hraft_robust (R3): the durable stores
-        f'{HRAFT}.examples.hraftnet.disk', _DURABLE] + \
-    [f'{HRAFT}.examples.hraftnet.cmd.{n}' for n in HRAFT_NODES]
-# the twelve commands' package tables (the deployment's boots)
+        f'{HRAFT}.examples.hraftnet.disk', _DURABLE,
+        # hraft_robust: the restartable server machine
+        f'{HRAFT}.examples.hraftnet.rserver'] + \
+    [f'{HRAFT}.examples.hraftnet.cmd.{n}' for n in HRAFT_NODES + HRAFT_RNODES]
+# the twelve commands' package tables (the deployment's boots), and the restartable servers'
 PROGRAMS = {f'{HRAFT}.examples.hraftnet.cmd.{n}':
             f'Proof/{HRAFT.replace(".", "/")}/examples/hraftnet/cmd/{n}/PkgTable.lean'
-            for n in HRAFT_NODES}
+            for n in HRAFT_NODES + HRAFT_RNODES}
 HYP_INITS = []
 # the main tree's packages net/http's closure needs, added to `NET_MAIN` (as craq's)
 MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls',
