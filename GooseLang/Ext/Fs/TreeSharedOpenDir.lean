@@ -51,7 +51,7 @@ theorem wp_osOpenDirGenSQ (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) (Pe : w64 → Prop)
     (hpe : ∀ st e' st', st.proc.calls !! k = some (s0, p) → st.lookup p = some (.dir j) →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#p) (#flRO))) st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#p) (#flRO)))
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Open" (PairV (osTokV k) (PairV (#p) (#flRO)))
         hh st () e' hh' st' ()) →
       ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → Pe e) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ P -∗
