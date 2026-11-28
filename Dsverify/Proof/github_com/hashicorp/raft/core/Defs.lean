@@ -1009,8 +1009,7 @@ def latApplOk (rc : RCtx GF) (X : SrvDur) : IProp GF :=
 /-- (hraft_robust, R5 Q0) **The boot pin** in the crash state: during `NewRaft`, the stores' state is the
 arm-time one (`NewRaft` holds the other ½); afterwards discarded `none`. -/
 def bootPin (rc : RCtx GF) (X : SrvDur) : IProp GF :=
-  iprop((∃ o : Option (LogAbs × SnapLatest), dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) o ∗
-      ⌜∀ p, o = some p → p = (X.A, X.lat)⌝) ∨
+  iprop(dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) ∨
     dghostVar rc.dur.boot DFrac.discard (none : Option (LogAbs × SnapLatest)) ∗ latApplOk rc X)
 
 /-- (hraft_robust, R5 Q0) The boot is over (persistent): `bootPin` is its second disjunct. -/
