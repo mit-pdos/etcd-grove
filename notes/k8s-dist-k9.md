@@ -470,6 +470,8 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
 - **Merges**: lean at `2018327946` (Perennial pin `e2eda8223`, built on fk-lean2 as `perennial-e2eda8223`
   with `pbuild-e2eda8223.sh`). The merge rebuilds nearly everything (new pin): the first Link build after it
   is long (bbolt, etcd server); lean-check of one etcd3 file rebuilt its cone in ~45 min.
+- **Build of record**: fk-lean2, targets `etcd3.Link`, `Spec…landings`, `Spec…settle` at `6bb8fcae8b`, exit 0
+  (12231 jobs).
 - **Proved and linked**: `decodeItemRVs` (new spec: `decItemRVsL`, each item `item.mk (objKeyL o) o false`,
   owned) and `shows` (`showsL`). `decWEventsL_t` moved from `watchOk.lean` (a proof) to `SharedLand.lean`.
 - **Spec changes (branch only)**: `cfgSet.add` drops its premise `gs.length + 1 < 2^63` (the appended
