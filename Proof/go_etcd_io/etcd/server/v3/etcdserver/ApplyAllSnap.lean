@@ -235,6 +235,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     · simp only [snapOpt]; iexact Hsnv
     simp only [Option.elim] at HbE
     subst HbE
+    ihave Hsnv : ownSnapM sn DFrac.discard sv $$ [Hsnv]
+    · first | iexact Hsnv | (iunfold snapOpt at Hsnv; iexact Hsnv)
     have hneS : sv.Metadata'.Index' ≠ W64 0 := by intro h; rw [h] at hai; word
     simp only [hneS, decide_false]
     (try wp_auto)
@@ -784,6 +786,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   · simp only [snapOpt]; iexact Hsnv
   simp only [Option.elim] at HbE
   subst HbE
+  ihave Hsnv : ownSnapM sn DFrac.discard sv $$ [Hsnv]
+  · first | iexact Hsnv | (iunfold snapOpt at Hsnv; iexact Hsnv)
   have hneS : sv.Metadata'.Index' ≠ W64 0 := by intro h; rw [h] at hai; word
   simp only [hneS, decide_false]
   (try wp_auto)

@@ -2273,11 +2273,11 @@ theorem EtcdServer.apply.wp_proof
     EtcdServer.apply.spec (GF := GF) (hG := hG) := by
   have hOff := EtcdServer.apply.wp_proofOff hDebug hInt hU64 hStr hCI hSAI hSCI hGI hGT hGTy hAEN hSet1 hSet2 hMU hACC hId hMem hPers hReach
   have hOn := EtcdServer.apply.wp_proofOn hDebug hInt hU64 hStr hCI hSAI hSCI hGI hGT hGTy hAEN hSet1 hSet2 hMU hACC hId hMem hPers hReach
-  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa hany
+  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa rt hany
   cases hm : E.authMode with
   | any => exact absurd hm hany
-  | off => exact hOff s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa hm
-  | on γa => exact hOn s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa ⟨γa, hm⟩
+  | off => exact hOff s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa rt hm
+  | on γa => exact hOn s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa rt ⟨γa, hm⟩
 
 end proof
 
