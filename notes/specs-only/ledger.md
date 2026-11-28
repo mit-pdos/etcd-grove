@@ -8640,3 +8640,17 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `srvSnapBoot` passes `γr.raft.raft.cl`; `srvSnapApplied`/`srvSnapAppliedG` use `γr.raft.raft.cl` (their `γr`).
 - **Decision.** Approved by the coordinator (2026-11-28, via the lead); reviewer to confirm the fixed post is
   consistent.
+
+## 2026-11-28: the restart images carry the stored pair's row (keepfix (c) step 1 (b), helper A)
+
+- **Spec.** `srvDiskImageAt` (InvRestart), `srvCrashImageAt` (InvCrashImage), `bootstrapAtR` (NewServerRAt), dist's
+  `memberImageRows` (MemberCrash, B1's output).
+- **Defect.** keepfix-d's restart contracts take `(⌜i = 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D))`, but nothing the
+  restart (`NewServer.specR`/`specRAt`/`specC`) holds supplies it: the images had no term row.
+- **Evidence.** InvRestart.lean:770 and InvCrashImage.lean:186 (the contracts' premise); the images' texts.
+- **Proposed change.** Both images gain the row `(⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D))`. The graceful
+  image's producers are the stop paths, from the stopped backend's `metaTMR` (S5's row). The crash image's producer
+  is dist's `crashImage_of`, from `memberImageRows`, which T10 supplies from `bkImg`'s `bkTermRow` and the committed
+  prefix (`srvRLogLb_ciPair`). `bootstrapAtR` takes the premise and the restart proofs pass the image's row.
+- **Decision.** Approved by the lead (relayed, 2026-11-28; (b) and the crash image's row, weakenings of
+  `NewServer.specC`/`NewServerC_dist`); the reviewer checks the texts.
