@@ -131,6 +131,47 @@ theorem diskStage (g : DiskGen) (Wl : LogOp → IProp GF) (Ws : StableOp → IPr
     imodintro; iframe
   · iexfalso; iapply notCrashed_crashed $$ Hnc Hc
 
+/-! ### raft's error variables (as `core/Laws.lean`'s, which the disk does not import) -/
+
+theorem dk_errVals_elem (f : RaftErr → GoInterface) (c : RaftErr) :
+    errVals (GF := GF) f ⊢ globalAddr c.var ↦□ f c ∗ errors.newVar c.var c.msg := by
+  unfold errVals
+  iintro ⟨-, #H⟩
+  have hm : c ∈ RaftErr.all := by cases c <;> simp [RaftErr.all]
+  iapply (BigSepL.bigSepL_mem hm) $$ H
+
+theorem dk_pkgGlobals_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ⊢ pkgGlobals (GF := GF) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.github_com.hashicorp.raft
+
+theorem dk_isRaftErr_of_init (c : RaftErr) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ⊢ ∃ e, isRaftErr c e := by
+  iintro #H
+  ihave Hg := dk_pkgGlobals_of_init $$ H
+  unfold pkgGlobals
+  icases Hg with ⟨⟨%f, #Hf⟩, -⟩
+  iexists f c
+  unfold isRaftErr
+  iexists f; iframe #; ipureintro; rfl
+
+theorem dk_isRaftErr_nonnil (c : RaftErr) (e : GoInterface) :
+    isRaftErr (GF := GF) c e ⊢ ⌜e ≠ interface.nil⌝ := by
+  unfold isRaftErr
+  iintro ⟨%f, #H, %h⟩
+  icases dk_errVals_elem f c $$ H with ⟨#P, #Hn⟩
+  unfold errors.newVar
+  icases Hn with ⟨%x, #Px, -⟩
+  icombine P Px gives %h'
+  ipureintro; subst h; rw [h']
+  simp [interface.mkOk]
+
+theorem dk_isRaftErr_global (c : RaftErr) (e : GoInterface) :
+    isRaftErr (GF := GF) c e ⊢ globalAddr c.var ↦□ e := by
+  unfold isRaftErr
+  iintro ⟨%f, #H, %h⟩
+  icases dk_errVals_elem f c $$ H with ⟨#P, -⟩
+  subst h; iexact P
+
 end lemmas
 
 end github_com.hashicorp.raft.examples.hraftnet.disk
