@@ -732,3 +732,49 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `Seeded__SharedModel` or `Link`.
 - **Left**: step 4 (`HistoryRevs`: no spec yet, `Spec/…/HistoryRevs.lean` to write from §2.7; its Go
   function is `export.go:193`, closures over three maps), then step 5.
+
+## Handoff K9-14 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Merged lean** `58dd8f77a9` (`7c4036ca72`, clean; the Perennial pin did not change, so fk-lean2 needed
+  no new Perennial build).
+- **Step 4 started.** `HistoryRevs`' spec is written (`Spec/…/etcd3/HistoryRevs.lean`): for `ops`
+  `Forall₂`-boxing `xs` and `∀ p ∈ xs, HistOpOk p.1 p.2`, it returns `r` with `∃ R, revsOwn r R ∗
+  ⌜(∀ a ∈ R.anchors, a ≠ 0) ∧ AnchorsOk (0 :: R.anchors.map uint.nat) xs⌝` (sortedness is in `revsOwn`).
+  **Deviation from §2.7**: the premise is `HistOpOk` (new, `HistRevsDefs.lean`), not `GenInA`: §2.7's
+  draft was not provable. (1) `OpAnchors` asks for the object revision of every `preMsgL x o` message,
+  and `GenInA` does not bound `x.PreRV'`; a `PreRV` holding the pattern makes `rvOfMsg`'s first match
+  the wrong one. `HistOpOk` asks `x.PreRV'.length < 32` (the generator's is a `rvString`: 0 or 8).
+  (2) `OpAnchors` asks for the revisions of every `os` with `y.Items' = encItemsL os`; if the items do
+  not decode (`decodeD` fails on fields ≥ 256 bytes) Go anchors none. `HistOpOk` asks that a successful
+  list's items decode and are shorter than `2^64`. Both hold of an `SRun`'s outputs (the model's items
+  are `itemOk`: `decodeD_encode`), which is where step 5 / K12 must discharge them (`searchRun_accepts`
+  or CheckShared's premise).
+- **`HistRevsDefs.lean`** (defs, no `sorry`): `rvPatL`, `rvOfMsgL` (Go's `rvOfMsg` as a Lean function),
+  `rvOfMsgL_preMsgL` (the RV branch's message reads back `o.ResourceVersion'`), `decItemRVsL_encItemsL`
+  (decoding items gives `os`' revisions), `HistOpOk`.
+- **`rvOfMsg`'s spec** (`Spec/…/rvOfMsg.lean`: `RET #(rvOfMsgL msg)`) has **no proof**, and needs a
+  decision: Go's `rvOfMsg` calls `strings.Index`, which Perennial translates names-only and nobody
+  specifies (no axiom here or in Perennial). Options: (a) **G14**, a Go change in the spirit of G11-G13:
+  replace `strings.Index` by the loop `for i := 0; i+len(p) <= len(msg); i++ { if msg[i:i+len(p)] == p {...} }`
+  (same result; `rvOfMsgL` is written to match it), then `etc/goose.py --project k8s-apiserver`; or (b) a
+  trust-boundary axiom for `strings.Index` (a TCB change: needs approval, rule #8). (a) recommended.
+- **`HistoryRevs.wp_proof`** (`Proof/…/etcd3/HistoryRevs.lean`): **WIP, `sorry`** (commits `60e3bf8e6b`,
+  `837a237247` are marked WIP); not linked. Done: `OpReq` (the revisions `OpAnchors` asks of an op),
+  `opAnchors_of`, `anchorsOk_of` (from `all`'s keys and the collected anchors list to `AnchorsOk`); the
+  proof runs to the ops loop (the three maps made; `obj`/`num` are `func.mk` values in `obj_ptr`/`num_ptr`).
+  Plan for the rest:
+  - give `obj`/`num` specs once (`ihave` an `∃ f, obj_ptr ↦ f ∗ □ triple(f)`, proved by `wp_call; wp_auto`,
+    so the five call sites do not inline the body): pre/post `allI P` → `allI (fun u => P u ∨ u = v)`,
+    with `allI P := ∃ A, am ↦$ A ∗ ⌜(∀ k, (A !! k).isSome → k ≠ 0) ∧ ∀ u, P u → u = 0 ∨ (A !! u).isSome⌝`
+    (+ `all_ptr ↦ am`), and for `obj` the ownership `∃ B, bm ↦$ B ∗ [∗map] k ↦ l ∈ B, ∃ m, l ↦$ m`
+    (the `byKey[key] == nil` test needs no non-nil fact: the `==` branch overwrites);
+  - the ops loop (`slice.forRange` unfolds to a `for` over `i`, as `failureFree`): invariant `allI (fun u
+    => ∃ p ∈ xs.take j, OpReq p.1 p.2 u)`, `written` owned; per op, `Hops` gives `boxIn`/`boxOut`; the
+    list and message cases use `decItemRVsL_encItemsL`, `rvOfMsgL_preMsgL` with `Hok`;
+  - the tail: `map.forRange` over `all` (`wp_map_for_range`, as `Set.UnsortedList`) collects the keys,
+    `slices.Sort` (`Spec/slices/Sort.lean`) sorts them; strictness from the keys' `Nodup`; then the
+    `byKey` loops (nested `map.forRange`, appends, sorts) only need to build `keyRevsOwn` for some `f`.
+- Build of record: see below.
+- **Left in K9**: finish step 4 (above, plus G14 and `rvOfMsg`'s proof, then link `HistoryRevs:
+  parseRV rvOfMsg decodeWEvents decodeItemRVs` (+ `slices.Sort` as Perennial's) in
+  `etc/link-lean-first-k8setcd3.txt`); step 5 not started.
