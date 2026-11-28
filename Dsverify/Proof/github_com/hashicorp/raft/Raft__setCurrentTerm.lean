@@ -25,12 +25,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
     (wp_rs_setCurrentTerm : github_com.hashicorp.raft.raftState.setCurrentTerm.spec (GF := GF) (hG := hG)) :
-    github_com.hashicorp.raft.Raft.setCurrentTerm.spec (GF := GF) (hG := hG) := by
+    github_com.hashicorp.raft.Raft.setCurrentTerm.spec (GF := GF) (hG := hG) :=
   fun r γ rc i s sst t tp => by
   wp_start as ⟨#Hr, Hs, Hst, Htp, %Htp⟩
   ihave #Hg := pkgGlobals_access $$ Hpkg
@@ -42,7 +43,7 @@ theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
   ihave ⟨#HInv, -⟩ := isRaft_proto r γ rc i $$ Hr
   unfold isStableStore
   icases Hss with ⟨#HgetU, #HsetU, #Hget, #Hset⟩
-  unfold stV
+  rw [stV_eq rc sst]
   icases Hst with ⟨%g, Hst⟩
   have Ht64 : uint.nat t < 2 ^ 64 := by word
   have Hwt : (W64 (uint.nat t : Int)) = t := by word
@@ -73,12 +74,15 @@ theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
     · iintro %t0 Hc
       iapply ncfupd_wand
       isplitl [Hs Hc]
-      · iapply setTerm_R γ rc i gd_diff_termN s (uint.nat t) t0 $$ [$HInv $Hdur $Hs $Hc]
+      · iapply setTerm_R γ rc i (E := ⊤ \ ↑termN) s (uint.nat t) t0 $$ [$HInv $Hdur $Hs $Hc]
       iintro ⟨Hs, Hc, #Hlb⟩
       iframe; iframe #
     iapply HΦ
     iframe; iframe #
-    unfold stV; iexists g; iexact Hst
+    rw [stV_eq]
+    isplitl [Hst]
+    · iexists g; iexact Hst
+    · simp only; itrivial
   · wp_apply wp_rs_setCurrentTerm r γ rc i t
       iprop(srvV rc { s with term := s.term + 1 } ∗ termLb γ i (s.term + 1) ∗
         candIs γ i (s.term + 1) s.log.length (lastTerm s.log) ∗
@@ -87,11 +91,11 @@ theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
     · iintro %t0 Hc
       iapply ncfupd_wand
       isplitl [Hs Hc]
-      · iapply electTerm_R γ rc i gd_diff_termN s t0 $$ [$HInv $Hdur $Hs $Hc]
+      · iapply electTerm_R γ rc i (E := ⊤ \ ↑termN) s t0 $$ [$HInv $Hdur $Hs $Hc]
       iintro ⟨Hs, Hc, Hrest⟩
       rw [Hel]
       iframe
     iapply HΦ
     rw [Hel]
     iframe; iframe #
-    unfold stV; iexists g; iexact Hst
+    rw [stV_eq]; iexists g; iexact Hst

@@ -133,12 +133,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 open Iris Iris.BI Iris.ProofMode
 
 variable (γ : GNames) (rc : RCtx GF) (i : SID)
 
 theorem srvV_eq (s : SState) : srvV rc s = srvVP rc s none none := rfl
+
+theorem stV_eq (D : StableAbs) : stV rc D = iprop(∃ g : w64, stVS rc D g) := rfl
 
 /-- **A read of the main goroutine's protocol state** (R2's `durPeek` at `srvV`):
 with its view `srvV rc s`, an update that uses `srvOwn γ i s` and gives it back. -/
