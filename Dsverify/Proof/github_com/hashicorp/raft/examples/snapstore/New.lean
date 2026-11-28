@@ -138,15 +138,19 @@ theorem github_com.hashicorp.raft.examples.snapstore.New.wp_proof
     inext
     iintro %k %id ⟨#Hcore, Hopen⟩
     iapply HΦ
-    iintro %R Hcm
+    iintro %Qx %R Hcm
     imodintro
     iexists _
     isplitr
     · iapply sink_isSink wp_Write wp_Close wp_Cancel wp_ID k st γ eof id ver idx term cfgIdx cfg
-        (fun bs => Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs) R
+        (fun bs => iprop(Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs ∗ Qx bs)) R
       iframe #
     simp only [sinkOwn]
     iframe
+    iintro %bs %Hl ⟨HQc, HQx⟩
+    ispecialize Hcm $$ %bs %Hl HQc HQx
+    unfold sinkCommit
+    iexact Hcm
   isplitr
   · imodintro
     iintro %tid %Φ Htok HAU
