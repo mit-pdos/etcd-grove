@@ -169,6 +169,23 @@ theorem dst_reachD {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : CC
   obtain ⟨h1, -, -, -, h5⟩ := qsD_self (nodeOkD_qsS hv q hq) hne
   exact ⟨h5, h1⟩
 
+/-- **The disk's commit is at most raft's after `ReachIn`, B2** (`commit_reach` over `NodeOkD`): with
+no write queued and no split write in progress the disk is raft's state (`DiskFold`), and commits
+only grow along `ReachP` (`commit_reachP`). -/
+theorem commit_reachD {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
+    (hnet : NetOkD R S net) (hv : NodeOkD R dec S net n v) (hm : v.mems = []) (hp : v.parts = [])
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) :
+    uint.Z v.dur.commit ≤ uint.Z r₁.p.commit := by
+  have hdf : DiskFold v := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+  have hd := hdf hp
+  rw [hm] at hd
+  have hd' : v.dur = durOf v.r := hd
+  rw [hd']
+  exact commit_reachP (fun q hq hne => (qsD_self (nodeOkD_qsS hv q hq) hne).2.2.2.2)
+    (ReachIn.toPD hmsk hin hnet hv hr)
+
 end reachD
 
 end AntSim
