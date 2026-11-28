@@ -137,6 +137,104 @@ theorem pfxChs_same_ext {p : GoString} {σ₀ σl σ : KVState} (hl : KVExt σ�
   conv => lhs; rw [← hm]
   rw [← hm, List.drop_left]
 
+/-! ### Updates local to a prefix: commits of changes under it -/
+
+/-- A change of a key not under `q` keeps the key-values under `q`. -/
+theorem filter_applyChange_other (q : GoString) (r : w64) (s : List EtcdKv) (c : mvcc.Change)
+    (hc : ¬ q <+: c.key) :
+    (mvcc.applyChange r s c).filter (fun v => decide (q <+: v.key)) =
+      s.filter (fun v => decide (q <+: v.key)) := by
+  cases c with
+  | put k val l =>
+    apply filter_putKv_other
+    intro v hv hvk
+    simp only [decide_eq_true_eq] at hv
+    rw [hvk] at hv
+    exact hc hv
+  | del k =>
+    simp only [mvcc.applyChange]
+    rw [List.filter_filter]
+    apply List.filter_congr
+    intro v _
+    by_cases hv : q <+: v.key
+    · have hk : v.key ≠ k := fun h => hc (by rw [← h]; exact hv)
+      simp [hv, hk]
+    · simp [hv]
+
+/-- Changes of keys not under `q` keep the key-values under `q`. -/
+theorem filter_applyChanges_other (q : GoString) (r : w64) (cs : List mvcc.Change)
+    (hc : ∀ c ∈ cs, ¬ q <+: c.key) : ∀ s : List EtcdKv,
+    (mvcc.applyChanges r s cs).filter (fun v => decide (q <+: v.key)) =
+      s.filter (fun v => decide (q <+: v.key)) := by
+  induction cs with
+  | nil => intro s; rfl
+  | cons c cs ih =>
+    intro s
+    simp only [mvcc.applyChanges, List.foldl_cons] at ih ⊢
+    rw [ih (fun c' hc' => hc c' (List.mem_cons_of_mem _ hc')),
+      filter_applyChange_other q r s c (hc c List.mem_cons_self)]
+
+/-- A commit of changes of keys not under `q` keeps the view of `q`. -/
+theorem pfxView_commit_other (q : GoString) (σ : KVState) (cs : List mvcc.Change)
+    (hc : ∀ c ∈ cs, ¬ q <+: c.key) : pfxView q (σ.commit cs) = pfxView q σ := by
+  by_cases h : cs = []
+  · rw [h, KVState.commit_nil]
+  · unfold pfxView
+    rw [KVState.commit_kvs σ cs h]
+    exact filter_applyChanges_other q _ cs hc σ.kvs
+
+/-- A commit keeps the compaction revision and the base, and appends its changes (if any). -/
+theorem commit_hist (σ : KVState) (cs : List mvcc.Change) :
+    (σ.commit cs).compacted = σ.compacted ∧ (σ.commit cs).base = σ.base ∧
+      ∃ new : List (List mvcc.Change), (σ.commit cs).changes = σ.changes ++ new ∧ ∀ x ∈ new, x = cs := by
+  unfold KVState.commit
+  split
+  · exact ⟨rfl, rfl, [], by simp, by simp⟩
+  · exact ⟨rfl, rfl, [cs], rfl, by simp⟩
+
+/-- **An update that commits changes of keys under `p` (or does nothing) is local to `p`** (the k8s
+store's compare-put, compare-delete and else-get Txns under `/registry/`: `pfxLocal_txn`). -/
+theorem pfxLocal_commit (p : GoString) (f : KVState → KVState)
+    (hf : ∀ σ, f σ = σ ∨ ∃ cs, f σ = σ.commit cs ∧ ∀ c ∈ cs, p <+: c.key) : PfxLocal p f := by
+  have hoth : ∀ σ (cs : List mvcc.Change), (∀ c ∈ cs, p <+: c.key) → ∀ q : GoString, ¬ q <+: p →
+      ¬ p <+: q → ∀ c ∈ cs, ¬ q <+: c.key := by
+    intro σ cs hcs q hqp hpq c hc hqc
+    rcases List.prefix_or_prefix_of_prefix hqc (hcs c hc) with h | h
+    · exact hqp h
+    · exact hpq h
+  refine ⟨fun σ q hqp hpq => ?_, fun σ => ?_⟩
+  · rcases hf σ with h | ⟨cs, h, hcs⟩
+    · rw [h]
+    · rw [h]; exact pfxView_commit_other q σ cs (hoth σ cs hcs q hqp hpq)
+  · rcases hf σ with h | ⟨cs, h, hcs⟩
+    · rw [h]; exact ⟨rfl, rfl, [], by simp, by simp⟩
+    · obtain ⟨h1, h2, new, h3, h4⟩ := commit_hist σ cs
+      rw [h]
+      refine ⟨h1, h2, new, h3, fun x hx c hc => ?_⟩
+      rw [h4 x hx] at hc
+      exact hcs c hc
+
+/-- **A Txn whose changes are all of keys under `p`, whatever the state, is local to `p`.** -/
+theorem pfxLocal_txn (p : GoString) {t}
+    (ht : ∀ (σ : KVState) (c : mvcc.Change),
+      c ∈ (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1 → p <+: c.key) :
+    PfxLocal p (kvOpStep (.txn t)) := by
+  apply pfxLocal_commit
+  intro σ
+  simp only [kvOpStep]
+  split
+  · exact Or.inr ⟨_, rfl, ht σ⟩
+  · exact Or.inl rfl
+
+/-- **A delete whose changes are all of keys under `p`, in every state, is local to `p`** (a delete of
+one key under `p`). -/
+theorem pfxLocal_deleteRange (p : GoString) {o}
+    (ho : ∀ (s : List EtcdKv) (c : mvcc.Change), c ∈ txn.delChanges s o → p <+: c.key) :
+    PfxLocal p (kvOpStep (.deleteRange o)) := by
+  apply pfxLocal_commit
+  intro σ
+  exact Or.inr ⟨_, rfl, ho σ.kvs⟩
+
 end pure
 
 section ghost
