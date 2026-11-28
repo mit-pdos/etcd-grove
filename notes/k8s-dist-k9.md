@@ -808,4 +808,4 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
     only `keyRevsOwn` for some `f` (persist the maps and slices at the end); `anchorsOk_of` closes.
   - then link `HistoryRevs: parseRV rvOfMsg decodeWEvents decodeItemRVs` (+ `slices.Sort`).
 - Step 5 not started. `notes/STATUS.md` not updated for K9 (as before: K9's entry goes in at landing).
-- **Build of record**: below.
+- **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`, `all.PkgTable`, SpecPlan's etcd3 PkgInit) at `0df9d8c123`: passed, 12734 jobs, 0 errors (`HistoryRevs.wp_proof` warns its WIP `sorry`; `Link` has none).
