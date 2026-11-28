@@ -49,7 +49,7 @@ theorem store.Watch.wp_proof
   obtain ⟨hk, hkl, hrv, hn, hpn, hrt⟩ := Hpre
   ihave #Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, -, -, #Fvi, -, -, #Fpp, #Frp, -, -, -, -, -, -, -, -, #Hcon, -⟩
+  icases Hst' with ⟨%Hsp, -, -, #Fvi, -, -, #Fpp, #Frp, -, -, -, -, -, -, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, -, #Hver, -, -, -, -⟩
   iunfold versionerOk at Hver

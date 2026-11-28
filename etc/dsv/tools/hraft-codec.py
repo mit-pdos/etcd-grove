@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Generate the proofs of the hraft kit's rpcgen codec (examples/dsverify/hraft/examples/hraftnet/rpc_gen.go):
 the encoders (CodecEnc.lean), the decoders (CodecDec.lean), the codec laws (CodecLawsProof.lean) and the
-receiver's methods (CodecRcv.lean), in Dsverify/Proof/github_com/hashicorp/raft/examples/hraftnet/.
+receiver's methods (CodecRcv.lean), in Dsverify/Proof/github_com/hashicorp/raft/examples/hraftnet/,
+and the same for the API service's structs and its `*service.API` receiver (CodecApi.lean; the records,
+encodings and ownership are ApiWire.lean's, hand-written; API_METHS checked against rpc_model_gen.go).
 The hand-written parts (CodecDefs.lean: the codec spec and the pure decoders; CodecPrim.lean: the basic
 types) are not generated.
 
@@ -9,7 +11,7 @@ Each struct's proof is generated from its fields (STRUCTS: the Go field, its kin
 of its generated encoder/decoder, checked against rpc_gen.go); a field's step is joined after its
 `if` (`wp_join`), so a proof is linear in its fields.
 
-  etc/dsv/tools/hraft-codec.py           regenerate the four files
+  etc/dsv/tools/hraft-codec.py           regenerate the five files
   etc/dsv/tools/hraft-codec.py --check   exit 1 if a file differs, or STRUCTS from rpc_gen.go
 """
 import os, re, sys
@@ -874,6 +876,9 @@ STRUCTS = [
  ('t33','TimeoutResp',[('Failed','bool','t14'),('Err','str','t15'),('Hdr','hdr','t4')]),
 ]
 
+def PKG(ty):
+    return 'service' if ty in SVC else 'rpctransport'
+
 SIMP = ('fU64, fU8, fBool, fStr, fBytes, fStruct, fEnts, fld, ne_eq, *, not_false_eq_true, not_true_eq_false, '
         'decide_true, decide_false, Bool.false_eq_true, ↓reduceIte, List.append_assoc, List.cons_append, '
         'List.singleton_append, List.nil_append')
@@ -919,7 +924,7 @@ def field_info(i, f, kind, t):
 def gen_enc_struct(tn, ty, fields):
     infos = [field_info(i, f, k, t) for i, (f, k, t) in enumerate(fields)]
     binds = ' '.join(f'({a} : {b})' for inf in infos for (a, b) in inf['bind'])
-    gov = f'{ty}.mk ' + ' '.join(inf['go'] for inf in infos)
+    gov = (f'service.{ty}.mk ' if ty in SVC else f'{ty}.mk ') + ' '.join(inf['go'] for inf in infos)
     fexps = [inf['fexp'] for inf in infos]
     res = [r for inf in infos for r in inf['res']]
     R = ' ∗ '.join(p for (_, p) in res) if res else 'True'
@@ -1010,7 +1015,7 @@ def gen_dec_generic(tn, ty, fields, asm_only=False):
     binds = ' '.join(f'{{a{i} : {k["T"]}}}' for i, k in enumerate(ks))
     prem = []
     for i, ((f, kind, t), k) in enumerate(zip(fields, ks)):
-        ref = f'(structFieldRef rpctransport.{ty} go!"{f}" p)'
+        ref = f'(structFieldRef {PKG(ty)}.{ty} go!"{f}" p)'
         if k['O'] is None: prem.append(f'{ref} ↦ a{i}')
         else: prem.append(f'{k["O"]} {ref} a{i}')
     if ty == 'TimeoutReq':
@@ -1026,22 +1031,22 @@ def gen_dec_generic(tn, ty, fields, asm_only=False):
         if k['O'] is None: pats.append(f'H{i}'); mk.append(f'a{i}')
         else: pats.append(f'⟨%s{i}, H{i}, Hs{i}⟩'); mk.append(f's{i}')
     out.append(f'  iintro ⟨{", ".join(pats)}⟩')
-    out.append(f'  iexists (rpctransport.{ty}.mk {" ".join(mk)})')
+    out.append(f'  iexists ({PKG(ty)}.{ty}.mk {" ".join(mk)})')
     out.append(f'  isplitl [{" ".join(f"H{i}" for i in range(len(ks)))}]')
     out.append('  · iapply typedPointsto_combine _ _ _ Hnn')
     out.append('    simp only [TypedPointsto.typedPointstoDef]')
     out.append('    iframe')
-    out.append(f'  · unfold {own}' + (' hdrOwn' if own not in ('hdrOwn', 'entOwn', 'timeoutReqOwn') else ''))
+    out.append(f'  · unfold {own}' + (' hdrOwn' if own not in ('hdrOwn', 'entOwn', 'timeoutReqOwn') and ty not in SVC else ''))
     out.append('    iframe')
     out.append('    (try (ipureintro; and_intros <;> rfl))')
     out.append('')
     if asm_only:
-        zmk = f'(rpctransport.{ty}.mk ' + ' '.join(k['z'] for k in ks) + ')'
-        out.append(f'theorem zero_{ty} : (zero_val rpctransport.{ty} : rpctransport.{ty}) = {zmk} := rfl')
+        zmk = f'({PKG(ty)}.{ty}.mk ' + ' '.join(k['z'] for k in ks) + ')'
+        out.append(f'theorem zero_{ty} : (zero_val {PKG(ty)}.{ty} : {PKG(ty)}.{ty}) = {zmk} := rfl')
         return '\n'.join(out)
     # decoder
-    zmk = f'(rpctransport.{ty}.mk ' + ' '.join(k['z'] for k in ks) + ')'
-    out.append(f'theorem zero_{ty} : (zero_val rpctransport.{ty} : rpctransport.{ty}) = {zmk} := rfl')
+    zmk = f'({PKG(ty)}.{ty}.mk ' + ' '.join(k['z'] for k in ks) + ')'
+    out.append(f'theorem zero_{ty} : (zero_val {PKG(ty)}.{ty} : {PKG(ty)}.{ty}) = {zmk} := rfl')
     out.append('')
     if ty == 'Entry':
         out.append('set_option maxHeartbeats 2000000 in')
@@ -1053,7 +1058,7 @@ def gen_dec_generic(tn, ty, fields, asm_only=False):
     out.append('  iStructNamed Hp')
     for i, (f, kind, t) in enumerate(fields):
         if f == 'Type':
-            out.append(f'  irename : (structFieldRef rpctransport.{ty} go!"Type" p ↦ {ks[i]["z"]} : IProp GF) => FType')
+            out.append(f'  irename : (structFieldRef {PKG(ty)}.{ty} go!"Type" p ↦ {ks[i]["z"]} : IProp GF) => FType')
     out.append(f'  dec_hdr {D}')
     for i, ((f, kind, t), k) in enumerate(zip(fields, ks)):
         F = f if f != 'Type' else 'FType'
@@ -1152,7 +1157,7 @@ def gen_dec_enc(tn, ty, fields):
     D, own = OWN[ty]
     ks = [fk(kind, i, t) for i, (f, kind, t) in enumerate(fields)]
     kz = [kinfo(kind, t) for (f, kind, t) in fields]
-    zmk = f'(rpctransport.{ty}.mk ' + ' '.join(k['z'] for k in kz) + ')'
+    zmk = f'({PKG(ty)}.{ty}.mk ' + ' '.join(k['z'] for k in kz) + ')'
     fs = [k['f'] for k in ks]
     BS = f'(W8 1 :: {nest(fs)})'
     rec = 'a0' if ty == 'TimeoutReq' else '⟨' + ', '.join(f'a{i}' for i in range(len(fields))) + '⟩'
@@ -1170,7 +1175,7 @@ def gen_dec_enc(tn, ty, fields):
     Fs = []
     for i, (f, kind, t) in enumerate(fields):
         if f == 'Type':
-            out.append(f'  irename : (structFieldRef rpctransport.{ty} go!"Type" p ↦ {kz[i]["z"]} : IProp GF) => FType')
+            out.append(f'  irename : (structFieldRef {PKG(ty)}.{ty} go!"Type" p ↦ {kz[i]["z"]} : IProp GF) => FType')
             Fs.append('FType')
         else:
             Fs.append(f)
@@ -1197,7 +1202,7 @@ def gen_dec_enc(tn, ty, fields):
         start_len = len(out)
         T = nest(fs[i+1:])
         cur = f'({k["f"]} ++ {T})'
-        ref = f'structFieldRef rpctransport.{ty} go!"{fields[i][0]}" p'
+        ref = f'structFieldRef {PKG(ty)}.{ty} go!"{fields[i][0]}" p'
         if k['O'] is None:
             FO = f'"{F}" ∷ {ref} ↦ a{i}'
         else:
@@ -1282,7 +1287,7 @@ def nest2(fs, last):
 def gen_enc(tn, ty, fields):
     own = OWN[ty][1]
     out = []
-    out.append(f'theorem enc_{ty} : encLaw (hraftCodec (GF := GF)) rpctransport.{ty}.ty {own_of(ty)} {ENC[ty]} := by')
+    out.append(f'theorem enc_{ty} : encLaw (hraftCodec (GF := GF)) {PKG(ty)}.{ty}.ty {own_of(ty)} {ENC[ty]} := by')
     out.append('  intro p dq w v Ψ')
     out.append('  iintro ⟨Hp, Hown, HΨ⟩')
     out.append('  simp only [hraftCodec]')
@@ -1302,6 +1307,13 @@ def gen_enc(tn, ty, fields):
     if ty == 'TimeoutReq':
         out.append('  unfold hdrOwn')
         out.append('  icases Hown with ⟨%Hpv, Hhid, Hhad⟩')
+    elif ty in SVC:
+        out.append(f'  unfold {own}')
+        ipat = (['%Hv'] if npure else []) + res
+        out.append(f'  icases Hown with {ipat[0]}' if len(ipat) == 1 else f'  icases Hown with ⟨{", ".join(ipat)}⟩')
+        if npure:
+            out.append('  simp only at Hv')
+            out.append(f'  obtain ⟨{", ".join(["rfl"] * npure)}⟩ := Hv' if npure > 1 else '  obtain rfl := Hv')
     else:
         out.append(f'  unfold {own} hdrOwn')
         ipat = (['%Hv'] if npure else []) + ['⟨%Hpv, Hhid, Hhad⟩'] + res
@@ -1309,16 +1321,17 @@ def gen_enc(tn, ty, fields):
         if npure:
             out.append('  simp only at Hv')
             out.append(f'  obtain ⟨{", ".join(["rfl"] * npure)}⟩ := Hv' if npure > 1 else '  obtain rfl := Hv')
-    out.append('  simp only at Hpv')
-    out.append('  subst Hpv')
+    if ty not in SVC:
+        out.append('  simp only at Hpv')
+        out.append('  subst Hpv')
     out.append('  wp_func_call')
     out.append('  wp_call')
     out.append('  wp_auto')
     out.append('  (try (rw [decide_eq_false Hnn]; wp_auto))')
     out.append('  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩')
     out.append('  (try wp_auto)')
-    allres = ['Hhid', 'Hhad'] + res
-    out.append(f'  wp_apply (wp_rpcEnc_{tn} (dq := dq)) $$ [$Hb $Hcap {" ".join("$" + r for r in allres)}] as %b\' ⟨Hb, Hcap, {", ".join(allres)}⟩')
+    allres = ([] if ty in SVC else ['Hhid', 'Hhad']) + res
+    out.append(f'  wp_apply (wp_rpcEnc_{tn} (dq := dq)) $$ [{" ".join(["$Hb", "$Hcap"] + ["$" + r for r in allres])}] as %b\' ⟨{", ".join(["Hb", "Hcap"] + (allres or ["-"]))}⟩')
     out.append('  (try wp_auto)')
     out.append('  iapply HΦ $$ Hb Hcap')
     out.append(f'  unfold {ENC[ty]} tagged')
@@ -1335,7 +1348,7 @@ def gen_dec(tn, ty, fields):
     fs = fexps(ty, fields)
     args = ' '.join(vexp(ty, i) for i in range(len(fields)))
     out = []
-    out.append(f'theorem dec_{ty} : decLaw (hraftCodec (GF := GF)) rpctransport.{ty}.ty {own_of(ty)} {ENC[ty]} := by')
+    out.append(f'theorem dec_{ty} : decLaw (hraftCodec (GF := GF)) {PKG(ty)}.{ty}.ty {own_of(ty)} {ENC[ty]} := by')
     out.append('  intro p v Ψ')
     out.append('  iintro ⟨Hp, HΨ⟩')
     out.append('  simp only [hraftCodec]')
@@ -1549,6 +1562,269 @@ def gen_svc():
     return '\n'.join(out)
 
 
+# ---- the API service (package service: its argument and reply structs, the `*service.API` receiver)
+
+SVC_STRUCTS = [
+ ('t37','AdminArgs',[('ID','str','t15'),('Addr','str','t15')]),
+ ('t39','AdminReply',[('Ok','bool','t14')]),
+ ('t41','ApplyArgs',[('Data','bytes','t6')]),
+ ('t43','ApplyReply',[('Status','u64','t8'),('Found','bool','t14'),('V','str','t15')]),
+ ('t45','ReadArgs',[('Way','u64','t8')]),
+ ('t47','ReadReply',[('Ok','bool','t14'),('Found','bool','t14'),('V','str','t15')]),
+ ('t49','StatusReply',[('Leader','bool','t14'),('LeaderID','str','t15'),('Configured','bool','t14'),('Servers','u64','t8'),('Voters','u64','t8')]),
+]
+SVC = {ty for _, ty, _ in SVC_STRUCTS}
+# ApiWire.lean's names
+OWN.update({
+ 'AdminArgs': (None, 'adminArgsOwn'), 'AdminReply': (None, 'adminReplyOwn'),
+ 'ApplyArgs': (None, 'applyArgsOwn'), 'ApplyReply': (None, 'applyReplyOwn'),
+ 'ReadArgs': (None, 'readArgsOwn'), 'ReadReply': (None, 'readReplyOwn'),
+ 'StatusReply': (None, 'statusReplyOwn'),
+})
+ENC.update({ty: 'enc' + ty for ty in SVC})
+REC.update({
+ 'AdminArgs': ['id', 'addr'], 'AdminReply': ['ok'], 'ApplyArgs': ['data'],
+ 'ApplyReply': ['status', 'found', 'v'], 'ReadArgs': ['way'], 'ReadReply': ['ok', 'found', 'v'],
+ 'StatusReply': ['leader', 'leaderID', 'configured', 'servers', 'voters'],
+})
+# the methods rpcReceiver registers for a *service.API, in the order of its map literal
+# (method, argument struct, reply struct)
+API_METHS = [
+ ('AddNonvoter', 'AdminArgs', 'AdminReply'),
+ ('AddVoter', 'AdminArgs', 'AdminReply'),
+ ('Apply', 'ApplyArgs', 'ApplyReply'),
+ ('DemoteVoter', 'AdminArgs', 'AdminReply'),
+ ('LeadershipTransfer', 'AdminArgs', 'AdminReply'),
+ ('Read', 'ReadArgs', 'ReadReply'),
+ ('RemoveServer', 'AdminArgs', 'AdminReply'),
+ ('Snapshot', 'AdminArgs', 'AdminReply'),
+ ('Status', 'AdminArgs', 'StatusReply'),
+]
+RPCMODEL = os.path.join(ROOT, 'examples/dsverify/hraft/examples/hraftnet/rpc_model_gen.go')
+
+T_api_head = r'''/-
+The hraft kit's generated codec on the API service's structs (`rpc_gen.go`'s `rpcEnc_t37` `AdminArgs`, ...,
+`rpcEnc_t49` `StatusReply`, and their decoders) and its `*service.API` receiver, as `CodecEnc.lean`,
+`CodecDec.lean`, `CodecLawsProof.lean` and `CodecRcv.lean` for the transport's: the encoders append
+`ApiWire.lean`'s encodings, the decoders decode them (`wp_rpcDec_tN_enc`); both laws of every struct
+(`enc_ApplyArgs`, `dec_ApplyArgs`, ...: the client encodes arguments and decodes replies, the server the
+reverse); `apiMeth.spec`, what the server needs of an `API` method, and `apiRcv`: `rpcReceiver` on a
+`*service.API` meets `rcvrIs hraftCodec _ S "API" false` (`Server.Register`'s premise), given
+`ApiRcvLaws`.
+-/
+module
+
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.CodecRcv
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.ApiWire
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedVariables false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+
+namespace github_com.hashicorp.raft.examples.hraftnet
+
+open rpctransport
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
+variable [bvi : go.BasicIntoValInj]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+set_option goose.wp.extras true
+
+'''
+
+T_api_meth = r'''theorem newArg_{M} (P : IProp GF) [Persistent P] (s : Loc) (Sm : net.rpc.MSpec GF)
+    (hS : encOf (GF := GF) {EA} Sm)
+    (HM : apiMeth.spec P s go!"{M}" {AO} {EA} {RO} {ER} Sm) :
+    net.rpc.codecSet (hraftCodec (GF := GF)) ∗ P ⊢
+    newArgOk hraftCodec (ptrI service.API.ty s) Sm
+      (mOf rpcNewArg_r1_{M} rpcNewReply_r1_{M} rpcCall_r1_{M}) := by
+  iintro ⟨#Hcs, #HP⟩
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  have hne : ptrI service.{A}.ty p ≠ interface.nil := by simp [ptrI, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec hraftCodec (ptrI service.{A}.ty p) (p ↦ (zero_val service.{A})) Sm
+      (fun args ok => iprop(if ok then ∃ (w : service.{A}) (va : {A}V), ⌜args = {EA} va ∧ args.length < 2 ^ 63⌝ ∗
+          p ↦ w ∗ {AO} w (DFrac.own 1) va else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HD
+    ihave ⟨%Hex, HD⟩ := (persistent_entails_right (hS args Φ)) $$ HD
+    obtain ⟨va, rfl⟩ := Hex
+    iframe HD
+    iapply dec_len
+    iintro %Hl
+    iapply dec_{A}
+    iframe Hp
+    iintro %w Hp Hown
+    (try simp only [ite_true])
+    iexists w, va
+    iframe
+    ipureintro; exact ⟨rfl, Hl⟩
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HD Hp
+  (try simp only [ite_true])
+  icases Hp with ⟨%w, %va, ⟨%Hargs, %Hl⟩, Hp, Hown⟩
+  subst Hargs
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (HM p «$r0_ptr» w va Φ) $$ [HD Hp Hown «$r0»] as ⟨%wr, %vr, Hr, Hrown, HΦ⟩
+  · iframe HD Hp Hown «$r0»
+    isplitr
+    · iexact HP
+    · ipureintro; exact Hl
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iapply enc_{R}
+  iframe Hr Hrown
+  iintro _ _
+  iexact HΦ
+'''
+
+T_api_spec = r'''/-- What the receiver needs of an `API` method `M` of `s`, for the method spec `Sm` (with `P`, the
+receiver's persistent facts): `rpcMeth.spec`, on a `*service.API`. -/
+abbrev apiMeth.spec {A R AV RV : Type} [TypedPointsto (GF := GF) A] [TypedPointsto (GF := GF) R]
+    [ZeroVal R] (P : IProp GF) (s : Loc) (M : GoString) (aOwn : A → DFrac → AV → IProp GF)
+    (encA : AV → List w8) (rOwn : R → DFrac → RV → IProp GF) (encR : RV → List w8)
+    (Sm : net.rpc.MSpec GF) : Prop :=
+  ∀ (ap rp : Loc) (wa : A) (va : AV) (Φ : List w8 → GoString → IProp GF),
+    {{ P ∗ ⌜(encA va).length < 2 ^ 63⌝ ∗ Sm (encA va) Φ ∗ ap ↦ wa ∗ aOwn wa (DFrac.own 1) va ∗
+        rp ↦ (zero_val R) }}
+      (App (App (Val (s @!! go.GoType.PointerType service.API.ty @!! M)) (Val #ap)) (Val #rp))
+    {{ RET #interface.nil; ∃ (wr : R) (vr : RV), rp ↦ wr ∗ rOwn wr (DFrac.own 1) vr ∗ Φ (encR vr) [] }}
+
+/-- The receiver's obligations of an `API` `s` for the service spec `S` (with `P`, its persistent
+facts): each method's deposits are encodings of its argument, and the method meets `apiMeth.spec`. -/
+structure ApiRcvLaws (P : IProp GF) (s : Loc) (S : net.rpc.MethodSpec GF) : Prop where'''
+
+T_api_rcv = r'''/-- **A server's `*service.API` `s` is a net/rpc receiver of the service spec `S`** (`Register`'s
+premise), from its methods' obligations. -/
+theorem apiRcv (P : IProp GF) [Persistent P] (s : Loc) (S : net.rpc.MethodSpec GF)
+    (L : ApiRcvLaws P s S) :
+    ⌜s ≠ null⌝ ∗ net.rpc.codecSet (hraftCodec (GF := GF)) ∗ P ⊢
+    (hraftCodec (GF := GF)).rcv (ptrI service.API.ty s)
+      (net.rpc.rcvrIs hraftCodec (ptrI service.API.ty s) S go!"API" false) := by
+  iintro ⟨%Hnn, #Hcs, #HP⟩
+  rw [hraftCodec_rcv_eq]
+  iintro %Φ HΦ
+  iapply wp_fupd
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Loc) _ _) as %mp Hm
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)'''
+
+def gen_api_meth(M, A, R):
+    t = T_api_meth
+    for k, v in [('{M}', M), ('{A}', A), ('{R}', R), ('{AO}', OWN[A][1]), ('{EA}', ENC[A]),
+                 ('{RO}', OWN[R][1]), ('{ER}', ENC[R])]:
+        t = t.replace(k, v)
+    return t
+
+def gen_api_rcv():
+    out = [T_api_spec]
+    for (M, A, R) in API_METHS:
+        out.append(f'  enc_{M} : encOf (GF := GF) {ENC[A]} (S go!"{M}")')
+        out.append(f'  meth_{M} : apiMeth.spec P s go!"{M}" {OWN[A][1]} {ENC[A]} {OWN[R][1]} {ENC[R]} (S go!"{M}")')
+    out.append('')
+    out.append(''.join(gen_api_meth(*m) + '\n' for m in API_METHS) + T_api_rcv)
+    for i in range(len(API_METHS)):
+        out.append(f'''  wp_alloc m{i} as H{i}
+  ipersist H{i}
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)''')
+    out.append('''  ipersist «$r0»
+  imod ownMap_persist $$ Hm with #Hm
+  iapply HΦ
+  unfold net.rpc.rcvrIs
+  iexists _, _
+  iframe «$r0» Hm
+  isplitr
+  · ipureintro
+    refine ⟨rfl, ?_, ?_⟩
+    · simp [Hnn]
+    · exact GMap.map_size_ne_0_lookup_2 _ (GMap.lookup_insert _ _ _)''')
+    for i in reversed(range(len(API_METHS))):
+        M = API_METHS[i][0]
+        out.append(f'''  iapply (BI.BigSepM.bigSepM_insert (Φ := fun k mm => net.rpc.methodOk hraftCodec
+    (ptrI service.API.ty s) (S k) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H{i}
+    iapply newArg_{M} P s _ L.enc_{M} L.meth_{M}
+    iframe Hcs HP''')
+    out.append('''  iapply BI.BigSepM.bigSepM_empty.2
+  itrivial''')
+    return '\n'.join(out)
+
+def api_file():
+    t = note(T_api_head)
+    for tn, ty, fs in SVC_STRUCTS:
+        t += f'/-! ## `{ty}` (`{tn}`) -/\n\n'
+        t += gen_enc_struct(tn, ty, fs) + '\n\n'
+        t += gen_dec_generic(tn, ty, fs, True) + '\n\n'
+        t += gen_dec_enc(tn, ty, fs) + '\n\n'
+        t += gen_enc(tn, ty, fs) + '\n\n'
+        t += gen_dec(tn, ty, fs) + '\n\n'
+    t += '/-! ## The `*service.API` receiver -/\n\n' + gen_api_rcv() + '\n\n' + T_enc_foot
+    return t
+
+def check_api_meths():
+    """API_METHS against rpc_model_gen.go: rpcReceiver's methods for a *service.API, in order, and each
+    method's argument and reply structs."""
+    src = open(RPCMODEL).read()
+    bad = []
+    m = re.search(r'case \*service\.API:\n(.*?)\n\t\t\}\}', src, re.S)
+    if not m:
+        return ['rpc_model_gen.go: no *service.API case in rpcReceiver']
+    got = re.findall(r'"(\w+)":\s*\{NewArg: rpcNewArg_r1_(\w+), NewReply: rpcNewReply_r1_(\w+), Call: rpcCall_r1_(\w+)\}', m.group(1))
+    if [g[0] for g in got] != [M for M, _, _ in API_METHS] or any(len(set(g)) != 1 for g in got):
+        bad.append(f'rpc_model_gen.go registers {[g[0] for g in got]}, API_METHS {[M for M, _, _ in API_METHS]}')
+    for M, A, R in API_METHS:
+        a = re.search(r'func rpcNewArg_r1_%s\(\) any \{\n\treturn new\(service\.(\w+)\)' % M, src)
+        r = re.search(r'func rpcNewReply_r1_%s\(\) any \{\n\tr := new\(service\.(\w+)\)' % M, src)
+        c = re.search(r'func rpcCall_r1_%s\(rcvr, argv, replyv any\) error \{\n\treturn rcvr\.\(\*service\.API\)\.%s\(argv\.\(\*service\.%s\), replyv\.\(\*service\.%s\)\)' % (M, M, A, R), src)
+        if not a or a.group(1) != A or not r or r.group(1) != R or not c:
+            bad.append(f"{M}: rpc_model_gen.go's argument/reply/call differ from API_METHS ({A}, {R})")
+    return bad
+
 # ---- files
 
 def note(t):
@@ -1569,14 +1845,16 @@ def files():
     laws = (note(T_laws_head) + ''.join(gen_enc(tn, ty, fs) + '\n\n' for tn, ty, fs in STRUCTS if ty in ENC) +
             ''.join(gen_dec(tn, ty, fs) + '\n\n' for tn, ty, fs in STRUCTS if ty in ENC) + T_laws_tail + T_enc_foot)
     rcvf = note(T_rcv_head) + gen_laws() + '\n\n' + ''.join(gen_meth(*m) + '\n' for m in METHS) + gen_rcv() + '\n\n' + gen_svc() + '\n' + T_enc_foot
-    return {'CodecEnc.lean': enc, 'CodecDec.lean': dec, 'CodecLawsProof.lean': laws, 'CodecRcv.lean': rcvf}
+    return {'CodecEnc.lean': enc, 'CodecDec.lean': dec, 'CodecLawsProof.lean': laws, 'CodecRcv.lean': rcvf,
+            'CodecApi.lean': api_file()}
 
 def check_structs():
     """STRUCTS against rpc_gen.go: each struct encoder's fields, in order, with their type numbers."""
     src = open(RPCGEN).read()
     bad = []
-    for tn, ty, fs in STRUCTS:
-        m = re.search(r'func rpcEnc_%s\(b \[\]byte, v p_rpctransport\.%s\) \[\]byte \{(.*?)\n\}' % (tn, ty), src, re.S)
+    for tn, ty, fs in STRUCTS + SVC_STRUCTS:
+        pk = 'service' if ty in SVC else 'p_rpctransport'
+        m = re.search(r'func rpcEnc_%s\(b \[\]byte, v %s\.%s\) \[\]byte \{(.*?)\n\}' % (tn, pk, ty), src, re.S)
         if not m:
             bad.append(f'{tn} {ty}: no encoder'); continue
         got = re.findall(r'if rpcSent_(t\d+)\(v\.(\w+)\)', m.group(1))
@@ -1587,7 +1865,7 @@ def check_structs():
 
 if __name__ == '__main__':
     check = '--check' in sys.argv[1:]
-    bad = check_structs()
+    bad = check_structs() + check_api_meths()
     for b in bad: print('hraft-codec: ' + b, file=sys.stderr)
     if bad: sys.exit(1)
     diff = False
