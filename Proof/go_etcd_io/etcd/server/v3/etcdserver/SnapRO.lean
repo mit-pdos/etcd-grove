@@ -629,7 +629,7 @@ raise stays below it (`applySnapshot(j)` at `j > g`, `snapshot`'s `Release(ai')`
 def srvSnapOwn (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames) (ai : w64) :
     IProp GF :=
   iprop(∃ (γm : GName) (c : Nat), srvSnapRO s ci E γr γm ∗ ⌜c ≤ uint.nat ai + 1⌝ ∗
-    monoNatAuthOwn γm 1 c ∗ srvSnapRes s E γA)
+    monoNatAuthOwn γm 1 c ∗ srvSnapRes s E γA γr.raft.raft.cl)
 
 /-- The resources hold at any larger applied index. -/
 theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames)
