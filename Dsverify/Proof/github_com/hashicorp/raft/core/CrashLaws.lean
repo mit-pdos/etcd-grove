@@ -62,6 +62,18 @@ theorem crash_hE_gprot {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) : (↑gpr
 
 /-! ## Generic: a step of gprot's halves with the main goroutine's view -/
 
+/-- (R2) The main goroutine's plain view agrees with the crash state (no pending step). -/
+theorem durCore_srvV_agree (X : SrvDur) (s : SState) :
+    durCore γ rc i X ∗ srvV rc s ⊢ durCore γ rc i X ∗ srvV rc s ∗ ⌜X.s = s ∧ X.tp = none ∧ X.dp = none⌝ :=
+  durCore_srvVP_agree γ rc i X s none none
+
+theorem durStores_with (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
+    durStores γ rc i { X with s := s, tp := tp, dp := dp } = durStores γ rc i X := rfl
+
+theorem dpRes_dur (s : SState) (d : Nat × Nat) (dp : Option DiscPend) :
+    dpRes (GF := GF) γ i { s with dur := d } dp = dpRes γ i s dp := by
+  cases dp <;> rfl
+
 /-- (R2) **A look at gprot's `srvOwn`** with the main goroutine's view, the state unchanged. -/
 theorem durPeek {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option TermPend)
     (dp : Option DiscPend) (P Q : IProp GF) :
@@ -92,7 +104,30 @@ theorem durStepV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Ter
         |={E \ ↑durN}=> ∃ d : Nat × Nat, srvOwn γ i { s with dur := d } ∗
           durView γ i (1 : Qp).half d.1 ∗ ⌜s.dur.1 ≤ d.1⌝ ∗ Q { s with dur := d }) ⊢
       |NC={E}=> ∃ d : Nat × Nat, srvVP rc { s with dur := d } tp dp ∗ Q { s with dur := d } := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hd, Hv, HP, Hf⟩ Hnc
+  imod (durOpen γ rc i hE) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [hs, htp, hdp] at *
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  imod Hf $$ Ho Hdv HP with ⟨%d, Ho, Hdv, %hle, HQ⟩
+  unfold srvVP
+  imod (ghostVar_update_halves ({ s with dur := d }, tp, dp) rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  rw [← dpRes_dur γ i s d dp]
+  rw [← durStores_with γ rc i X { s with dur := d } tp dp]
+  imod Hcl $$ %({ X with s := { s with dur := d }, tp := tp, dp := dp }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  · iunfold durCore
+    dsimp only
+    iframe
+    ipureintro
+    exact ⟨hlo, hlc, hvm, htd, by omega⟩
+  imodintro
+  iframe Hnc
+  iexists d
+  iframe
 
 /-- (R2) `durPeek` at the main goroutine's plain view. -/
 theorem durPeekV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) :
@@ -100,6 +135,15 @@ theorem durPeekV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF)
       (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢
       |NC={E}=> srvV rc s ∗ Q :=
   durPeek γ rc i hE s none none P Q
+
+/-- (R2) `durStepV` at the main goroutine's plain view. -/
+theorem durStepVV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P : IProp GF) (Q : SState → IProp GF) :
+    srvDurInv γ rc i ∗ srvV rc s ∗ P ∗
+      (srvOwn γ i s -∗ durView γ i (1 : Qp).half s.dur.1 -∗ P -∗
+        |={E \ ↑durN}=> ∃ d : Nat × Nat, srvOwn γ i { s with dur := d } ∗
+          durView γ i (1 : Qp).half d.1 ∗ ⌜s.dur.1 ≤ d.1⌝ ∗ Q { s with dur := d }) ⊢
+      |NC={E}=> ∃ d : Nat × Nat, srvV rc { s with dur := d } ∗ Q { s with dur := d } :=
+  durStepV γ rc i hE s none none P Q
 
 /-! ## The fact laws (the state unchanged) -/
 
@@ -376,7 +420,28 @@ theorem learnCommitLeader_R (k k' p m : Nat) (hk : k ≤ k') :
       pubOwn γ i s.term m ⊢
       |NC={E}=> ∃ d : Nat × Nat, srvV rc { s with dur := d } ∗ durLb γ i k ∗
         pubOwn γ i s.term (Max.max m k) ∗ pubIs γ s.term k ∗ ⌜d.1 = Max.max s.dur.1 k⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, #Hl, #Hc, Hp⟩ Hnc
+  imod (durStepVV γ rc i (crash_hE_dur hE) s (pubOwn γ i s.term m)
+    (fun s' => iprop(durLb γ i k ∗ pubOwn γ i s.term (Max.max m k) ∗ pubIs γ s.term k ∗
+      ⌜s'.dur.1 = Max.max s.dur.1 k⌝))) $$ [Hd Hv Hp] Hnc with ⟨Hnc, %d, Hv, #Hlb, Hp, #Hpub, %hd⟩
+  · iframe Hd Hv Hp
+    iintro Ho Hdv Hp
+    imod (gprot.learnCommitLeader γ _ (crash_hE_gprot hE) i s k k' p m hk) $$ [HI Ho Hdv Hl Hc Hp]
+      with ⟨%d, Ho, Hdv, #Hlb, Hp, #Hpub, %hd⟩
+    · iframe #; try iframe
+    imodintro
+    iexists d
+    iframe
+    iframe #
+    ipureintro
+    exact ⟨by omega, hd⟩
+  imodintro
+  iframe Hnc
+  iexists d
+  iframe
+  iframe #
+  ipureintro
+  exact hd
 
 theorem learnCommitFollower_R (prev pt : Nat) (ents : RLog) (lci v : Nat)
     (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents ents.length ∧
@@ -384,7 +449,30 @@ theorem learnCommitFollower_R (prev pt : Nat) (ents : RLog) (lci v : Nat)
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ aeValid γ s.term prev pt ents lci ⊢
       |NC={E}=> ∃ d : Nat × Nat, srvV rc { s with dur := d } ∗ durLb γ i (Min.min lci v) ∗
         ⌜d.1 = Max.max s.dur.1 (Min.min lci v)⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, #Hae⟩ Hnc
+  imod (durStepVV γ rc i (crash_hE_dur hE) s iprop(True)
+    (fun s' => iprop(durLb γ i (Min.min lci v) ∗ ⌜s'.dur.1 = Max.max s.dur.1 (Min.min lci v)⌝)))
+    $$ [Hd Hv] Hnc with ⟨Hnc, %d, Hv, #Hlb, %hd⟩
+  · iframe Hd Hv
+    isplitl []
+    · itrivial
+    iintro Ho Hdv -
+    imod (gprot.learnCommitFollower γ _ (crash_hE_gprot hE) i s prev pt ents lci v hpre) $$ [HI Ho Hdv Hae]
+      with ⟨%d, Ho, Hdv, #Hlb, %hd⟩
+    · iframe #; try iframe
+    imodintro
+    iexists d
+    iframe
+    iframe #
+    ipureintro
+    exact ⟨by omega, hd⟩
+  imodintro
+  iframe Hnc
+  iexists d
+  iframe
+  iframe #
+  ipureintro
+  exact hd
 
 end facts
 
@@ -400,7 +488,58 @@ fired (`setTerm_upd`, its `termOk` from `tpRes`). -/
 theorem setTerm_R (s : SState) (t t0 : Nat) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvVP rc s (some (.set t)) none ∗ termV rc t0 ⊢
       |NC={E}=> srvV rc { s with term := t } ∗ termV rc t ∗ termLb γ i t := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s _ _ $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_termV_agree γ rc i X t0 $$ [Hc Ht]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [hs, htp, hdp] at *
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  have hle : s.term ≤ t := by
+    unfold termDurOk at htd
+    rcases htd with ⟨h, _⟩ | ⟨t', h, _, h'⟩ | ⟨h, _⟩
+    · cases h
+    · cases h; exact h'
+    · cases h
+  have hdt : uint.nat ((X.D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0)) = t := by
+    unfold termDurOk at htd
+    rcases htd with ⟨h, _⟩ | ⟨t', h, h1, _⟩ | ⟨h, _⟩
+    · cases h
+    · cases h; exact h1
+    · cases h
+  iunfold tpRes at Htp
+  imod (gprot.setTerm_upd γ _ (crash_hE_gprot hE) i s t hle) $$ [HI Ho Htc Htp] with ⟨Ho, Htc, #Hlb⟩
+  · iframe #; try iframe
+  unfold srvVP termV
+  imod (ghostVar_update_halves ({ s with term := t }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imod (ghostVar_update_halves t rc.dur.tv _ _) $$ Htv Ht with ⟨Htv, Ht⟩
+  rw [← durStores_with γ rc i X { s with term := t } none none]
+  imod Hcl $$ %({ X with s := { s with term := t }, tp := none, dp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend] Hs with -
+  · iunfold durCore
+    dsimp only
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨hlo, hlc, ?_, ?_, hci⟩
+    · unfold voteMatches at hvm ⊢
+      obtain ⟨h1, h2⟩ := hvm
+      refine ⟨h1, ?_⟩
+      rcases h2 with h | h | h
+      · exact Or.inl h
+      · exact Or.inr (Or.inl (by simp only; omega))
+      · exact Or.inr (Or.inr h)
+    · unfold termDurOk
+      exact Or.inl ⟨rfl, hdt⟩
+  imodintro
+  unfold srvV
+  iframe
+  iframe #
 
 /-- (R2) **The election's term step at the `currentTerm` store** (`electTerm_upd`, its receipt from
 `tpRes`). -/
@@ -409,48 +548,196 @@ theorem electTerm_R (s : SState) (t0 : Nat) :
       |NC={E}=> srvV rc { s with term := s.term + 1 } ∗ termV rc (s.term + 1) ∗
         termLb γ i (s.term + 1) ∗ candIs γ i (s.term + 1) s.log.length (lastTerm s.log) ∗
         pubOwn γ i (s.term + 1) 0 ∗ ccfgOwn γ i (s.term + 1) 0 ∗ ccfgOwn γ i (s.term + 1) 0 := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s _ _ $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_termV_agree γ rc i X t0 $$ [Hc Ht]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [hs, htp, hdp] at *
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  have hdt : uint.nat ((X.D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0)) = s.term + 1 := by
+    unfold termDurOk at htd
+    rcases htd with ⟨h, _⟩ | ⟨t', h, h1, _⟩ | ⟨h, h1⟩
+    · cases h
+    · cases h
+    · exact h1
+  iunfold tpRes at Htp
+  imod (gprot.electTerm_upd γ _ (crash_hE_gprot hE) i s) $$ [HI Ho Htc Htp]
+    with ⟨Ho, Htc, #Hlb, #Hcand, Hpub, Hcc1, Hcc2⟩
+  · iframe #; try iframe
+  unfold srvVP termV
+  imod (ghostVar_update_halves ({ s with term := s.term + 1 }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imod (ghostVar_update_halves (s.term + 1) rc.dur.tv _ _) $$ Htv Ht with ⟨Htv, Ht⟩
+  rw [← durStores_with γ rc i X { s with term := s.term + 1 } none none]
+  imod Hcl $$ %({ X with s := { s with term := s.term + 1 }, tp := none, dp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend] Hs with -
+  · iunfold durCore
+    dsimp only
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨hlo, hlc, ?_, ?_, hci⟩
+    · unfold voteMatches at hvm ⊢
+      obtain ⟨h1, h2⟩ := hvm
+      refine ⟨h1, ?_⟩
+      rcases h2 with h | h | h
+      · exact Or.inl h
+      · exact Or.inr (Or.inl (by simp only; omega))
+      · exact Or.inr (Or.inr h)
+    · unfold termDurOk
+      exact Or.inl ⟨rfl, hdt⟩
+  imodintro
+  unfold srvV
+  iframe
+  iframe #
 
 /-- (R2) **The commit index at the `commitIndex` store** (inside `cidxCell`'s update,
 `E = ⊤ \ ↑cidxN`; `setCidx_upd`). -/
 theorem setCidx_R (s : SState) (c c0 : Nat) (hc : c ≤ s.dur.1) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ cidxV rc c0 ⊢
       |NC={E}=> srvV rc { s with cidx := c } ∗ cidxV rc c := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_cidxV_agree γ rc i X c0 $$ [Hc Ht]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [hs, htp, hdp] at *
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  imod (gprot.setCidx_upd γ _ (crash_hE_gprot hE) i s c hc) $$ [HI Ho Hcc] with ⟨Ho, Hcc⟩
+  · iframe #; try iframe
+  unfold srvV cidxV
+  imod (ghostVar_update_halves ({ s with cidx := c }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imod (ghostVar_update_halves c rc.dur.cv _ _) $$ Hcv Ht with ⟨Hcv, Ht⟩
+  rw [← durStores_with γ rc i X { s with cidx := c } none none]
+  imod Hcl $$ %({ X with s := { s with cidx := c }, tp := none, dp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  · iunfold durCore
+    dsimp only
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    exact ⟨hlo, hlc, hvm, htd, hci⟩
+  imodintro
+  iframe
 
 /-- (R2) The term atomic's view is the main goroutine's term (was `termCouple_agree`). -/
 theorem termV_agree_R (s : SState) (tp : Option TermPend) (dp : Option DiscPend) (t : Nat) :
     srvDurInv γ rc i ∗ srvVP rc s tp dp ∗ termV rc t ⊢
       |NC={E}=> srvVP rc s tp dp ∗ termV rc t ∗ ⌜t = s.term⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hd, Hv, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_termV_agree γ rc i X t $$ [Hc Ht]
+  · iframe
+  imod Hcl $$ %X Hc Hs with -
+  imodintro
+  iframe
+  ipureintro
+  rw [← Hat, Hag.1]
 
 /-- (R2) The commit index atomic's view is the main goroutine's (was `cidxCouple_agree`). -/
 theorem cidxV_agree_R (s : SState) (tp : Option TermPend) (dp : Option DiscPend) (c : Nat) :
     srvDurInv γ rc i ∗ srvVP rc s tp dp ∗ cidxV rc c ⊢
       |NC={E}=> srvVP rc s tp dp ∗ cidxV rc c ∗ ⌜c = s.cidx⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hd, Hv, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_cidxV_agree γ rc i X c $$ [Hc Ht]
+  · iframe
+  imod Hcl $$ %X Hc Hs with -
+  imodintro
+  iframe
+  ipureintro
+  rw [← Hat, Hag.1]
 
 /-- (R2) The term atomic's value is a lower bound of the server's term (was `termCouple_get_lb`). -/
 theorem termV_lb_R (t : Nat) :
     srvDurInv γ rc i ∗ termV rc t ⊢ |NC={E}=> termV rc t ∗ termLb γ i t := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hd, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_termV_agree γ rc i X t $$ [Hc Ht]
+  · iframe
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [Hat]
+  ihave ⟨Htc, #Hlb⟩ := gprot.termCouple_get_lb γ i t $$ Htc
+  imod Hcl $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  · iunfold durCore; rw [Hat]; iframe
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  all_goals first | (ipureintro; assumption) | iframe #
 
 /-- (R2) A lower bound of the server's term is at most the atomic's value (was `termCouple_lb`). -/
 theorem termV_le_R (t t' : Nat) :
     srvDurInv γ rc i ∗ termV rc t ∗ termLb γ i t' ⊢ |NC={E}=> termV rc t ∗ ⌜t' ≤ t⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hd, Ht, #Hlb⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_termV_agree γ rc i X t $$ [Hc Ht]
+  · iframe
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [Hat]
+  ihave %hle := gprot.termCouple_lb γ i t t' $$ [Htc Hlb]
+  · iframe #; try iframe
+  imod Hcl $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  · iunfold durCore; rw [Hat]; iframe
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  all_goals first | (ipureintro; assumption) | iframe #
 
 /-- (R2) A snapshot of the history at the atomic's term (was `termCouple_now`). -/
 theorem termV_now_R (t : Nat) (s0 : Snap) :
     Inv γ ∗ srvDurInv γ rc i ∗ isSrv γ i ∗ termV rc t ∗ histLb γ s0 ⊢
       |NC={E}=> termV rc t ∗ ∃ s', histLb γ s' ∗ ⌜snapLe s0 s' ∧ s'.term i = t⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, #Hsrv, Ht, #Hh⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_termV_agree γ rc i X t $$ [Hc Ht]
+  · iframe
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [Hat]
+  imod (gprot.termCouple_now γ _ (crash_hE_gprot hE) i t s0) $$ [HI Hsrv Htc Hh] with ⟨Htc, HQ⟩
+  · iframe #; try iframe
+  imod Hcl $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  · iunfold durCore; rw [Hat]; iframe
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  all_goals first | (ipureintro; assumption) | iframe #
 
 /-- (R2) A leader's replication reads the commit index (was `readCidx_repl`). -/
 theorem readCidx_repl_R (T c : Nat) :
     Inv γ ∗ srvDurInv γ rc i ∗ cidxV rc c ∗ leaderIs γ T i ∗ termLb γ i T ⊢
       |NC={E}=> cidxV rc c ∗ (lciOk γ T c ∨ termLb γ i (T + 1)) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Ht, #Hl, #Hlb⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_cidxV_agree γ rc i X c $$ [Hc Ht]
+  · iframe
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [Hat]
+  imod (gprot.readCidx_repl γ _ (crash_hE_gprot hE) i T c) $$ [HI Hcc Hl Hlb] with ⟨Hcc, HQ⟩
+  · iframe #; try iframe
+  imod Hcl $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  · iunfold durCore; rw [Hat]; iframe
+    ipureintro; exact Hp
+  imodintro
+  iframe
+  all_goals first | (ipureintro; assumption) | iframe #
 
 end cells
 
@@ -465,20 +752,44 @@ the store's `logOk` gives; was `readLog_repl` over `logCell`). -/
 theorem readLog_repl_core (X : SrvDur) (T k : Nat) (e : Entry) (he : ent X.s.log k = some e) :
     Inv γ ∗ durCore γ rc i X ∗ leaderIs γ T i ∗ termLb γ i T ⊢ |={E}=>
       durCore γ rc i X ∗ (llogIdx γ T k e ∨ termLb γ i (T + 1)) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, Hc, #Hl, #Hlb⟩
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  imod (gprot.readLog_repl γ _ hE i T k X.s.log e he) $$ [HI Hlc Hl Hlb] with ⟨Hlc, HQ⟩
+  · iframe #; try iframe
+  imodintro
+  iframe HQ
+  iunfold durCore
+  iframe
+  ipureintro; exact Hp
 
 /-- (R2) The stored entries are the protocol log's (from `logOk`). -/
 theorem durCore_logOk (X : SrvDur) :
     durCore γ rc i X ⊢ durCore γ rc i X ∗
       ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ uint.nat X.A.ci ≤ X.s.dur.1⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro Hc
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  iunfold durCore
+  iframe
+  ipureintro
+  exact ⟨Hp, Hp.1, Hp.2.1, Hp.2.2.2.2⟩
 
 /-- (R2) The protocol facts of the core's state (`srvOwn_facts` on it). -/
 theorem durCore_facts (X : SrvDur) :
     Inv γ ∗ durCore γ rc i X ⊢ |={E}=> durCore γ rc i X ∗
       ⌜X.s.dur.1 ≤ X.s.log.length ∧ X.s.cidx ≤ X.s.dur.1 ∧ X.s.vterm ≤ X.s.term ∧
         X.s.log.length < 2 ^ 62⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, Hc⟩
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  imod (gprot.srvOwn_facts γ _ hE i X.s) $$ [HI Ho] with ⟨Ho, -, %hf⟩
+  · iframe #; try iframe
+  imodintro
+  iunfold durCore
+  iframe
+  ipureintro
+  exact ⟨Hp, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.2.2.1⟩
 
 /-- (R2) The installed snapshot's discard on the opened core (`installDiscard_upd`, R4b/R5's
 `DeleteRange` with `Pend.discard`): the new log and durable prefix, the main goroutine's view (lent
@@ -506,46 +817,127 @@ the caller's step on the core, which must re-establish it with the other stores 
 
 section stores
 
+theorem crash_dur_storeN : (↑durN : CoPset) ⊆ ⊤ \ ↑storeN := by
+  unfold durN raftN storeN; solve_ndisj
+
 /-- (R2) A log-store write (`StoreLogs`, `StoreLog`, `StageCommitIndex`: `f` the write's effect). -/
 theorem logWrite_au (f : LogAbs → LogAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
-        ⌜X'.A = f X.A ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
+        ⌜X'.A = f X.A ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL (f A) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro HL
+  imod Hmask
+  imod Hf $$ %X Hc HR with ⟨%X', Hc', %hX', HΨ⟩
+  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A log-store `DeleteRange(mn, mx)` (the store chooses the new `hi'`). -/
 theorem logDelete_au (mn mx : Nat) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ (X : SrvDur) (hi' : w64), durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur,
         durCore γ rc i X' ∗
-        ⌜X'.A = X.A.delete mn mx hi' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
+        ⌜X'.A = X.A.delete mn mx hi' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
         (∀ hi' : w64, rc.ownL (A.delete mn mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro %hi' HL
+  imod Hmask
+  imod Hf $$ %X %hi' Hc HR with ⟨%X', Hc', %hX', HΨ⟩
+  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A log-store read (`GetLog`, `LastIndex`, `GetCommitIndex`): the caller's result over the
 opened core (the store's state `X.A`, its coupling with `X.s`). -/
 theorem logRead_au (R : IProp GF) (Ψ : LogAbs → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ Ψ X.A) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ |={⊤ \ ↑storeN}=> Ψ X.A) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  imod Hf $$ %X Hc HR with ⟨Hc, HΨ⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro HL
+  imod Hmask
+  imod Hcl $$ %X Hc [HL HS HSS Hlat] with -
+  · iunfold durStores; inext; iframe
+  iexact HΨ
 
 /-- (R2) A stable-store write (`f` the write's effect). -/
 theorem stableWrite_au (f : StableAbs → StableAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
-        ⌜X'.D = f X.D ∧ X'.A = X.A ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
+        ⌜X'.D = f X.D ∧ X'.A = X.A ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗ (rc.ownS (f D) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.D
+  iframe HS
+  iintro HS
+  imod Hmask
+  imod Hf $$ %X Hc HR with ⟨%X', Hc', %hX', HΨ⟩
+  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A stable-store read. -/
 theorem stableRead_au (R : IProp GF) (Ψ : StableAbs → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ Ψ X.D) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ |={⊤ \ ↑storeN}=> Ψ X.D) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗ (rc.ownS D ={∅, ⊤ \ ↑storeN}=∗ Ψ D) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  imod Hf $$ %X Hc HR with ⟨Hc, HΨ⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.D
+  iframe HS
+  iintro HS
+  imod Hmask
+  imod Hcl $$ %X Hc [HL HS HSS Hlat] with -
+  · iunfold durStores; inext; iframe
+  iexact HΨ
 
 /-- (R2) A snapshot-store commit (a sink's `Close`: `f` the store's new latest); the caller's step
 also gets `latestDur` (under its later: it mentions `snapP`) and re-establishes it. -/
@@ -553,24 +945,78 @@ theorem snapWrite_au (f : SnapLatest → SnapLatest) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
         |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗ ▷ latestDur γ rc i X'.lat X'.pend ∗
-          ⌜X'.lat = f X.lat ∧ X'.A = X.A ∧ X'.D = X.D⌝ ∗ Ψ) -∗
+          ⌜X'.lat = f X.lat ∧ X'.A = X.A ∧ X'.D = X.D⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS (f old) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.lat
+  iframe HSS
+  iintro HSS
+  imod Hmask
+  imod Hf $$ %X Hc [Hlat] HR with ⟨%X', Hc', Hlat, %hX', HΨ⟩
+  · inext; iexact Hlat
+  obtain ⟨h1, h2, h3⟩ := hX'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
+  · iunfold durStores; rw [h1, h2, h3]; inext; iframe
+  iexact HΨ
 
 /-- (R2) A snapshot-store read (`List`, `Open`). -/
 theorem snapRead_au (R : IProp GF) (Ψ : SnapLatest → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
-        |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend ∗ Ψ X.lat) -∗
+        |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend ∗ |={⊤ \ ↑storeN}=> Ψ X.lat) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS old ={∅, ⊤ \ ↑storeN}=∗ Ψ old) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd HR Hf Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  imod Hf $$ %X Hc Hlat HR with ⟨Hc, Hlat, HΨ⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.lat
+  iframe HSS
+  iintro HSS
+  imod Hmask
+  imod Hcl $$ %X Hc [HL HS HSS Hlat] with -
+  · iunfold durStores; inext; iframe
+  iexact HΨ
 
 /-- (R2) `StageCommitIndex(idx)` by the main goroutine (its view of the staged index updated; no
 window: volatile). -/
 theorem stageCommit_au (D : StableAbs) (g idx : w64) (Ψ : IProp GF) :
     srvDurInv γ rc i -∗ stVS rc D g -∗ (stVS rc D idx ={⊤ \ ↑storeN}=∗ Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL { A with staged := idx } ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd Hst Hk
+  iapply (logWrite_au γ rc i (fun A => { A with staged := idx })
+    iprop(stVS rc D g ∗ (stVS rc D idx ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hst Hk]
+  · iframe
+  iintro %X Hc ⟨Hst, Hk⟩
+  ihave ⟨Hc, Hst, %Hag⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hD, hg⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  unfold stVS
+  imod (ghostVar_update_halves (X.D, idx) rc.dur.st _ _) $$ Hst0 Hst with ⟨Hst0, Hst⟩
+  imodintro
+  iexists { X with A := { X.A with staged := idx } }
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp]
+  · iunfold durCore
+    iframe
+    ipureintro
+    exact Hp
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  rw [hD]
+  iapply Hk $$ Hst
 
 end stores
 
