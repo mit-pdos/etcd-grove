@@ -31,7 +31,7 @@ namespace EtcdGrove
 namespace k8s_dist
 
 open k8s_etcd3 k8s_correctness
-open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj item)
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj item)
 
 section pure
 variable [GooseExts]
@@ -199,6 +199,31 @@ theorem runOk_seedShared (r1 r2 : w64) (h1 : 1 < uint.nat r1) (h12 : uint.nat r1
   · rw [histN_seedShared r1 r2 h1 h12 r (by omega) (by omega),
       histN_seedShared r1 r2 h1 h12 (r - 1) (by omega) (by omega)] at ho
     exact seedAt_change r1 r2 h1 h12 r hr2 (by omega) ch ho
+
+/-- **A run of the driver's model** (`kSpec h0`, no foreign step): `SRun` with only `kSpec`'s silent
+steps (`linkv.PReach`). The target of `noForeign_erase` (Handoff K8-2). -/
+inductive PRun (h0 : HSt) : GCfg → List (Input × Output) → GCfg → Prop where
+  | nil (c : GCfg) : PRun h0 c [] c
+  | cons {c c₁ c₂ c' : GCfg} {x : Input} {y : Output} {ops : List (Input × Output)} :
+      linkv.PReach (kSpec h0) c c₁ → linkv.PStep (kSpec h0) c₁ x (ansOf y) c₂ → PRun h0 c₂ ops c' →
+      PRun h0 c ((x, y) :: ops) c'
+
+/-- **A run of the driver's model is one its sequential model allows**: from a model state holding the
+run's first configuration, `pSeq (kSpec h0)` runs the operations (as `(input, ansOf output)`) to a state
+holding the last, if that state is closed under late effects. -/
+theorem pRun_run {h0 : HSt} {c c' : GCfg} {xs : List (Input × Output)} (hr : PRun h0 c xs c') :
+    ∀ (S : linkv.PSet HSt Input), S c → linkv.PSet.Closed (kSpec h0) S →
+      ∃ S', github_com.anishathalye.porcupine.Theory.run (linkv.pSeq (kSpec h0)) S
+        (xs.map fun p => (p.1, ansOf p.2)) = some S' ∧ S' c' := by
+  induction hr with
+  | nil c => exact fun S hS _ => ⟨S, rfl, hS⟩
+  | cons hreach hstep _ ih =>
+    intro S hS hcl
+    obtain ⟨S1, e1, h1⟩ := linkv.pSeq_step_of_pstep (hcl _ _ hS hreach) hstep (.refl _)
+    obtain ⟨S', e', h'⟩ := ih S1 h1 (by rw [linkv.pSeq_step_some e1]; exact linkv.ppost_closed _ _ _)
+    refine ⟨S', ?_, h'⟩
+    simp only [List.map_cons, github_com.anishathalye.porcupine.Theory.run, e1]
+    exact e'
 
 end pure
 

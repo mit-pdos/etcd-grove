@@ -176,11 +176,12 @@ inputs in the in-process driver. **Proposed fix (statement-level, coordinator; p
 **Lean.** `Proof/.../k8s/dist/NoForeignErase.lean` (new, builds): K8-1's draft repaired —
 `runOk_seedShared (r1 r2) : 1 < r1 → r1 < r2 → r2 < 2^63 → RunOk (seedSharedL r1 r2)` proved (with `seedAt`,
 `range'_seedShared`, `seedSharedL_hist`, `histN_seedShared`, `seedAt_ok`, `seedAt_rv`, `seedAt_change`).
-**`noForeign_erase` not started** (budget). Plan, from reading `SharedSem`/`KList`/`KModel`:
-1. `PRun (kSpec g0) c xs c'` = `SRun` without the `foreign` silent step (`linkv.PReach` then `PStep`), and
-   `pRun_lin`: a `PRun` from `⟨g0, []⟩` along `xs = vals (histOf lops) ord` gives `run (pM (kSpec g0) decOp)
-   init … isSome` (`pSeq_step_of_pstep` per step); the real-time half of `IsLinearization` comes unchanged from
-   the shared linearization (same `ord`).
+**`noForeign_erase` not proved** (budget). Done: `PRun g0 c xs c'` (`SRun` without the `foreign` silent
+step: `linkv.PReach` then `PStep`) and `pRun_run` (a `PRun` is a run of `pSeq (kSpec g0)` on
+`(x, ansOf y)`, from any closed model state holding its start). Plan, from reading `SharedSem`/`KList`/`KModel`:
+1. Left of this step: through `decOp` (`boxIn`/`boxOut`, `plainOut`) to `run (pM (kSpec g0) decOp) init
+   (vals (histOf lops) ord)`; the real-time half of `IsLinearization` comes unchanged from the shared
+   linearization (same `ord`).
 2. `FailureFreeL xs`: no `EOther` answer and no failed watch (Go's `failureFree`); then no `errW` step, so no
    pending write (`PSilent` never fires).
 3. Before the last write, no foreign step: each successful bumping write answers `RV` = its new revision
