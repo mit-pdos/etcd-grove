@@ -83,7 +83,7 @@ theorem walFiles_walFilesC (a : WalA GF) (id cid : w64) (σ : StorContents) (siz
   iintro ⟨%i, %d, Hd, -, Hn, Hu, Hc, %hf⟩
   iexists i, d
   iframe Hd Hn Hu Hc
-  ipureintro; exact hf
+  ipureintro; exact ⟨hf.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1⟩
 
 /-- **The WAL's files after a crash** (see the file header): the area `a` of the old generation's WAL
 names `a.W`, the new generation's `W'`; the old state `d` given back. -/

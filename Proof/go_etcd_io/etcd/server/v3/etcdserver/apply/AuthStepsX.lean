@@ -499,7 +499,7 @@ theorem isAuthStepsX_wIso (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : au
     ihave HW := Hb $$ HW
     iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
     · iframe
-    iintro !> %err ⟨HPP, HW, Hrest⟩
+    iintro !> %err ⟨HW, Hrest⟩
     ihave HW := Ha $$ HW
     iapply HΦ
     iframe
@@ -772,7 +772,12 @@ theorem isAuthStepsX_of_authInvTB
     · iunfold auth.authWRxB; iframe; iframe #
     iapply (hDisable st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact Hok
-    iintro !> ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
+    iintro !> ⟨%b, %sc, HA, HWR, %en, %Hen, HPP, #Hv, Hout⟩
+    -- (keepfix (c) integration) the no-lock disjunct (T10) weakened to the step's `Post ∨ Pre`
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
+    · icases HPP with (HP | ⟨HP, -⟩)
+      · ileft; iexact HP
+      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -796,6 +801,10 @@ theorem isAuthStepsX_of_authInvTB
     iapply (hUserDelete st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hcs]
     · iframe; iframe #; ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HA, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
+    · icases HPP with (HP | ⟨HP, -⟩)
+      · ileft; iexact HP
+      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -820,6 +829,10 @@ theorem isAuthStepsX_of_authInvTB
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HA, HPP, HWR, Hresp, Hout⟩
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
+    · icases HPP with (HP | ⟨HP, -⟩)
+      · ileft; iexact HP
+      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -843,6 +856,10 @@ theorem isAuthStepsX_of_authInvTB
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
+    · icases HPP with (HP | ⟨HP, -⟩)
+      · ileft; iexact HP
+      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -867,6 +884,10 @@ theorem isAuthStepsX_of_authInvTB
     iapply (hRoleDelete st R M P f T Wb hs Pre Q Post r role b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hok, Hnm⟩
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
+    · icases HPP with (HP | ⟨HP, -⟩)
+      · ileft; iexact HP
+      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -890,6 +911,10 @@ theorem isAuthStepsX_of_authInvTB
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
+    · icases HPP with (HP | ⟨HP, -⟩)
+      · ileft; iexact HP
+      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
