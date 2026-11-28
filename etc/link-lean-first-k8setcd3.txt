@@ -304,3 +304,4 @@ reliableOkIdx: eventsEqual evRange reliableLo wantEventsIdx nonBookmarks
 initialPrefixOkIdx: initialEvents viewFrom hview__at eventsEqual
 watchListOkIdx: firstBookmark initialPrefixOkIdx histAt initialEvents eventsEqual reliableOkIdx
 watchOkIdx: decodeWEvents checkedEvents bookmarksOk parseRV watchListOkIdx reliableOkIdx
+stepIdx: step watchOkIdx

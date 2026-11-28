@@ -212,6 +212,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.settle
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.shows
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.stepIdx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeHash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
@@ -1238,10 +1239,6 @@ theorem wp_settle :
     EtcdGrove.k8s_etcd3.settle.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.settle.wp_proof cfgSet.wp_add wp_mstep wp_removeAt wp_landings histHashes.wp_skipTo wp_advance
 
-theorem wp_target :
-    EtcdGrove.k8s_etcd3.target.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.target.wp_proof wp_decodeWEvents wp_parseRV wp_pastRead
-
 theorem wp_watchListOkIdx :
     EtcdGrove.k8s_etcd3.watchListOkIdx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.watchListOkIdx.wp_proof wp_firstBookmark wp_initialPrefixOkIdx wp_histAt wp_initialEvents wp_eventsEqual wp_reliableOkIdx
@@ -1249,6 +1246,14 @@ theorem wp_watchListOkIdx :
 theorem wp_watchOkIdx :
     EtcdGrove.k8s_etcd3.watchOkIdx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.watchOkIdx.wp_proof wp_decodeWEvents wp_checkedEvents wp_bookmarksOk wp_parseRV wp_watchListOkIdx wp_reliableOkIdx
+
+theorem wp_stepIdx :
+    EtcdGrove.k8s_etcd3.stepIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.stepIdx.wp_proof wp_step wp_watchOkIdx
+
+theorem wp_target :
+    EtcdGrove.k8s_etcd3.target.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.target.wp_proof wp_decodeWEvents wp_parseRV wp_pastRead
 
 end links_hasLC
 
