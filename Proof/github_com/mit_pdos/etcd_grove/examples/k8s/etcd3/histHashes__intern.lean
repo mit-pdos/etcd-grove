@@ -37,8 +37,8 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     histHashes.intern.spec (GF := GF) (hG := hG) := by
   intro hh prev hs st s n
   wp_start as ⟨Hinv, #Hprev, #Hst, %Hn⟩
-  iunfold hhInv at Hinv
-  icases Hinv with ⟨%mc, %mi, %mg, %C, %I, %G, Hc, Hi, Hg, Hci, Hgs⟩
+  iunfold hhCanon at Hinv
+  icases Hinv with ⟨%mc, %mi, %C, %I, Hc, Hi, Hci⟩
   (try wp_auto)
   wp_join iprop(∃ (mc' mi' : GoMap) (C' : GMap ikey GoSlice) (I' : GMap Loc Bool),
       hh_ptr ↦ hh ∗ structFieldRef histHashes go!"canon" hh ↦ mc' ∗ structFieldRef histHashes go!"is" hh ↦ mi' ∗
@@ -134,9 +134,9 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       wp_for_post
       (try wp_auto)
       iapply HΦ
-      isplitl [Hc Hi HC HI Hg Hgs Hns Hcap Hback]
-      · iunfold hhInv
-        iexists mc', mi', mg, C', I', G
+      isplitl [Hc Hi HC HI Hns Hcap Hback]
+      · iunfold hhCanon
+        iexists mc', mi', C', I'
         iframe
         iright
         iframe
@@ -177,9 +177,9 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     wp_apply (wp_mapInsert _ mi' I' _ true) $$ [$HI] as HI
     (try wp_auto)
     iapply HΦ
-    isplitl [Hc Hi HC HI Hg Hgs Hns' Hcap' Hback]
-    · iunfold hhInv
-      iexists mc', mi', mg, _, _, G
+    isplitl [Hc Hi HC HI Hns' Hcap' Hback]
+    · iunfold hhCanon
+      iexists mc', mi', _, _
       iframe
       iright
       iframe

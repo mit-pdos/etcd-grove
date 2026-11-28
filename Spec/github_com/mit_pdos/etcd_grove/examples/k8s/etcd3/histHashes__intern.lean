@@ -2,7 +2,7 @@
 
 `(*histHashes).intern(prev, st, n)` (export.go), `hh.mu` held: a node holding the history `prev`
 holds with the store `st` appended (an equal node of `canon[prev, n, hash]`, or a new one, recorded).
-The caller holds `hhInv hh` (the lock's contents) and gets it back.
+The caller holds `hhCanon hh` (the lock's maps `canon` and `is`) and gets it back.
 -/
 module
 
@@ -30,9 +30,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev histHashes.intern.spec : Prop :=
   ∀ (hh prev : Loc) (hs : List GSt) (st : mstore) (s : GSt) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ hhInv hh ∗ histOwn prev hs ∗ storeOwn st s ∗ ⌜uint.nat n = hs.length + 1⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ hhCanon hh ∗ histOwn prev hs ∗ storeOwn st s ∗ ⌜uint.nat n = hs.length + 1⌝ }}
     (App (App (App (Val (hh @!! go.GoType.PointerType histHashes.ty @!! go!"intern")) (Val #prev)) (Val #st)) (Val #n))
-  {{ (c : Loc), RET #c; hhInv hh ∗ histOwn c (hs ++ [s]) }}
+  {{ (c : Loc), RET #c; hhCanon hh ∗ histOwn c (hs ++ [s]) }}
 
 end spec
 

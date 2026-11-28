@@ -29,9 +29,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev histHashes.canonLocked.spec : Prop :=
   ∀ (hh h : Loc) (hs : List GSt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ hhInv hh ∗ histOwn h hs ∗ ⌜hs.length < 2 ^ 64⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ hhCanon hh ∗ histOwn h hs ∗ ⌜hs.length < 2 ^ 64⌝ }}
     (App (Val (hh @!! go.GoType.PointerType histHashes.ty @!! go!"canonLocked")) (Val #h))
-  {{ (c : Loc), RET #c; hhInv hh ∗ histOwn c hs }}
+  {{ (c : Loc), RET #c; hhCanon hh ∗ histOwn c hs }}
 
 end spec
 

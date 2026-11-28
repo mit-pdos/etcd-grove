@@ -14,6 +14,8 @@ The vocabulary of the specs of `SharedModel`'s search (`examples/k8s/etcd3/expor
   (nothing relies on it: `canonLocked` walks the caller's own history), and `gaps[base]` the nodes of
   `base`'s history with `i + 1` foreign stores appended (`gapsOwn`). Hash-consing is for speed: no
   spec relies on two equal histories being one node, only on one node holding one history;
+- `hhCanon hh`/`hhGaps hh`: `hhInv`'s two parts, the maps `canon` and `is` (`intern`'s and
+  `canonLocked`'s), and `gaps` (`skipTo`'s);
 - `hhOwn hh`: `hh`'s mutex, with `hhInv hh` (persistent);
 - `cfgSetOwn s hh gs`: a `cfgSet` at `s` over `hh`, its list holding the configurations `gs`, its
   buckets' indices into the list.
@@ -215,16 +217,23 @@ theorem histOwn_agree_len (h : Loc) (a b : List GSt) (ha : a.length < 2 ^ 64)
     simp only [BitVec.toNat_ofInt] at this
     omega
 
-/-- **What `hh.mu` protects** (see the file header). -/
-def hhInv (hh : Loc) : IProp GF :=
-  iprop(∃ (mc mi mg : GoMap) (C : GMap ikey GoSlice) (I : GMap Loc Bool) (G : GMap Loc GoSlice),
+/-- **`hh`'s maps `canon` and `is`** (see the file header): what `intern` and `canonLocked` use. -/
+def hhCanon (hh : Loc) : IProp GF :=
+  iprop(∃ (mc mi : GoMap) (C : GMap ikey GoSlice) (I : GMap Loc Bool),
     structFieldRef histHashes go!"canon" hh ↦ mc ∗ structFieldRef histHashes go!"is" hh ↦ mi ∗
-    structFieldRef histHashes go!"gaps" hh ↦ mg ∗
     (⌜mc = map.nil ∧ mi = map.nil⌝ ∨
       mc ↦$ C ∗ mi ↦$ I ∗
       [∗map] k ↦ sl ∈ C, ∃ ns : List Loc, sl ↦* ns ∗ ownSliceCap Loc sl (DFrac.own 1) ∗
-        [∗list] n ∈ ns, canonNode k n) ∗
+        [∗list] n ∈ ns, canonNode k n))
+
+/-- **`hh`'s map `gaps`** (see the file header): what `skipTo` adds to. -/
+def hhGaps (hh : Loc) : IProp GF :=
+  iprop(∃ (mg : GoMap) (G : GMap Loc GoSlice),
+    structFieldRef histHashes go!"gaps" hh ↦ mg ∗
     (⌜mg = map.nil⌝ ∨ mg ↦$ G ∗ [∗map] b ↦ sl ∈ G, gapsOwn b sl))
+
+/-- **What `hh.mu` protects** (see the file header). -/
+def hhInv (hh : Loc) : IProp GF := iprop(hhCanon hh ∗ hhGaps hh)
 
 /-- **`hh`'s mutex**, protecting `hhInv hh` (persistent). -/
 def hhOwn (hh : Loc) : IProp GF :=

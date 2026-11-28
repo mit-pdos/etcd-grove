@@ -43,11 +43,15 @@ theorem histHashes.canonical.wp_proof
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock _ (hhInv hh) $$ [$Hsync $Hmu] as ⟨Hlk, Hinv⟩
+  iunfold hhInv at Hinv
+  icases Hinv with ⟨Hinv, Hgaps⟩
   try wp_auto
   wp_apply wp_canonLocked hh h hs $$ [$Hinv $Hh] as %c ⟨Hinv, #Hc⟩
   · ipureintro; exact Hlen
   try wp_auto
-  wp_apply sync.Mutex.wp_Unlock _ (hhInv hh) $$ [$Hsync $Hmu $Hlk $Hinv]
+  wp_apply sync.Mutex.wp_Unlock _ (hhInv hh) $$ [$Hsync $Hmu $Hlk Hinv Hgaps]
+  · iunfold hhInv
+    iframe
   try wp_auto
   iapply HΦ
   iexact Hc

@@ -39,28 +39,28 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- `hh.is[n]` (`hh.mu` held): some Boolean, the invariant kept. -/
 theorem wp_hh_is (hh nn : Loc) :
-    {{ hhInv (GF := GF) hh }}
+    {{ hhCanon (GF := GF) hh }}
       (App (App (Val (map.lookup1 (go.GoType.PointerType hnode.ty) go.bool))
         (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType hnode.ty) go.bool))))
           (Val #(structFieldRef histHashes go!"is" hh)))) (Val #nn))
-    {{ (b : Bool), RET #b; hhInv hh }} := by
+    {{ (b : Bool), RET #b; hhCanon hh }} := by
   iintro %Φ Hinv HΦ
-  iunfold hhInv at Hinv
-  icases Hinv with ⟨%mc, %mi, %mg, %C, %I, %G, Hc, Hi, Hg, Hci, Hgs⟩
+  iunfold hhCanon at Hinv
+  icases Hinv with ⟨%mc, %mi, %C, %I, Hc, Hi, Hci⟩
   icases Hci with (%Hnil | ⟨HC, HI, HCs⟩)
   · obtain ⟨rfl, rfl⟩ := Hnil
     (try wp_auto)
     iapply HΦ
-    iunfold hhInv
-    iexists map.nil, map.nil, mg, C, I, G
+    iunfold hhCanon
+    iexists map.nil, map.nil, C, I
     iframe
     ileft
     ipureintro; exact ⟨rfl, rfl⟩
   · (try wp_auto)
     wp_apply (wp_map_lookup1 _ _ mi I nn (DFrac.own 1)) $$ [$HI] as HI
     iapply HΦ
-    iunfold hhInv
-    iexists mc, mi, mg, C, I, G
+    iunfold hhCanon
+    iexists mc, mi, C, I
     iframe
     iright
     iframe
@@ -72,7 +72,7 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
   (try wp_auto)
   ihave HI : (∃ (tsl : GoSlice) (ts : List Loc) (nn : Loc),
       "todo" ∷ todo_ptr ↦ tsl ∗ "n" ∷ n_ptr ↦ nn ∗ "Hts" ∷ tsl ↦* ts ∗
-      "Hcap" ∷ ownSliceCap Loc tsl (DFrac.own 1) ∗ "Hinv" ∷ hhInv hh ∗
+      "Hcap" ∷ ownSliceCap Loc tsl (DFrac.own 1) ∗ "Hinv" ∷ hhCanon hh ∗
       "#Hn" ∷ histOwn nn (hs.take (hs.length - ts.length)) ∗
       "#Htso" ∷ ([∗list] j ↦ t ∈ ts, histOwn t (hs.take (hs.length - j))) ∗
       "%Hk" ∷ ⌜ts.length ≤ hs.length⌝ : IProp GF) $$ [todo n Hinv]
@@ -88,7 +88,7 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     · iapply BigSepL.bigSepL_nil.2; itrivial
     ipureintro; simp
   wp_for HI
-  wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ hhInv hh ∗ hh_ptr ↦ hh ∗ n_ptr ↦ nn ∗
+  wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ hhCanon hh ∗ hh_ptr ↦ hh ∗ n_ptr ↦ nn ∗
       ⌜b = true → nn ≠ null⌝)) with [Hinv hh n] as ⟨%b, %Hv, Hinv, hh, n, %Hb⟩
   · iexists false
     iframe
@@ -106,7 +106,7 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     ihave %Hlts := ownSlice_len $$ Hts
     (try wp_auto)
     ihave HJ : (∃ (i : w64) (m : Loc) (k : Nat), "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ m ∗
-        "Hinv" ∷ hhInv hh ∗ "#Hm" ∷ histOwn m (hs.take (hs.length - k)) ∗
+        "Hinv" ∷ hhCanon hh ∗ "#Hm" ∷ histOwn m (hs.take (hs.length - k)) ∗
         "%Hi" ∷ ⌜sint.Z i + 1 = k ∧ k ≤ ts.length⌝ : IProp GF) $$ [i n Hinv]
     · iexists _, nn, ts.length
       iframe
