@@ -229,3 +229,38 @@ pending: `SettleL` is `refl`; skip identity by `targetL_le_anchors` or `kstepL_t
 for `PStep`; invariant `e.rv = g.rv ∨ e.rv = m`. The open point is step 3 (no foreign step below `m`): a
 no-op update's answer `RV` counts in `nfWriteRV`, so the cover argument needs "every item's revision is a
 bumping write's" (HRel's `stored`/`ρ`), not just revision monotonicity.
+
+## Handoff K8-4 (2026-11-28)
+
+**`noForeign_erase` proved** (`Proof/.../k8s/dist/NoForeignErase.lean`, no `sorry`, no axiom):
+
+```
+theorem noForeign_erase (h0 : HSt) (xs) (c' : GCfg) (m : w64)
+    (hlen : h0.hist.length = uint.nat h0.st.rv) (hlast : h0.hist.getLast? = some h0.st)
+    (hseed : ∀ g ∈ h0.hist, ∀ it ∈ g.items, uint.nat it.obj'.ResourceVersion' ≤ uint.nat h0.st.rv)
+    (hnf : NoForeignOk h0.st.rv xs m) (hff : FailureFreeL xs) (hr : SRun h0 ⟨h0, []⟩ xs c') :
+    ∃ c'', PRun h0 ⟨h0, []⟩ xs c''
+```
+
+The statement had not been written before (only §2's sketch); its three seed premises `hlen`/`hlast`/`hseed`
+are `FullComplete`'s (K4's `HRel.init`, needed to reuse `CRel`), true of the seeded store and already
+discharged wherever K8-8 calls `fullComplete` on the same `h0`. Nothing else beyond the sketch.
+
+- K8-3's draft lemmas checked (`pStep_pend_nil`, `pSilent_nil`, `sReach_nil`, `targetL_le_anchors`; the last
+  needs `1 ≤ m`: a watch-list with `SendInit = 2` has target at least 1). `FailureFreeL` uses
+  `k8s_correctness.okOut` (imports `etcd3.RealMS`, `etcd3.NoForeignDefs`; both defs tier).
+- **Step 3** (`sRun_jr`): `JR r st` = "`r ≤ st.rv` and no item carries `r`" is kept by every silent and
+  operation step, and no successful write answers `r` (`mstepL_items`, `mstepL_bump`: an advancing step is a
+  successful write answering the new revision; `mstepL_keep`: a successful non-advancing write, the no-op
+  update, answers an item's revision). A foreign step from `rv` makes `JR (rv+1)` hold, so `NoForeignOk`'s cover
+  (`CovL`) rules out a foreign step while the store is below `m`. No statement change was needed.
+- **Main** (`erase_go`, induction on `SRun`): invariant `CRel A n0 e g`, `e.pend = []`, and either
+  `e = g` below `m` with `CovL` of the rest, or `e.rv = m`. Each step: `CRel.op`, `settleL_nil` (no pending:
+  settle is `refl`), target `≤ e.rv` (`pStep_target` from the cluster's step, or `targetL_le_anchors` at `m`),
+  `skipToL_le`, `stepL_sound`; at `m` no write advances (it would answer `m+1 > m`, against `NoForeignOk`).
+  `M = max m h0.rv` handles `m < h0.rv`.
+
+**Build of record**: see the commit after this note (fk-lean1, `wt/k8s-dist-k8/2026-11-28`).
+
+**Left for K8**: K8-8 wires `noForeign_erase` + `pRun_run` into `realCheck_pure` (step 1 of Handoff K8-2:
+`decOp`, the same `ord`); the `pMF` decision (K8-3 §1) is still open.
