@@ -90,7 +90,15 @@ theorem node.applyCommitted.wp_proof (wp_reportCause : node.reportCause.spec (GF
     wp_take_receipt as Hr1
     wp_apply +noauto wp_GetIndex.1 l DFrac.discard e $$ [$Hpb $He] as -
     wp_take_receipt as Hr2
-    wp_apply +noauto wp_entries c γ n j sl dq (l :: ls) (e :: r) hn $$ [$Hpkg $Hc $Hn $Hsl $Hents]
+    ihave #Hc' := Hc
+    iunfold antCluster at Hc'
+    icases Hc' with ⟨%cfg, %rr, %ns, %stop, -, -, -, -, -, #Hro, -⟩
+    iunfold clusterRO at Hro
+    icases Hro with ⟨%nsl, %ivl, -, -, -, #Hmd, -⟩
+    ihave #Hn' := Hn
+    iunfold nodeRO at Hn'
+    icases Hn' with ⟨%ch, %d, #Hnc, -⟩
+    wp_apply +noauto wp_entries c n γ.mode sl dq (l :: ls) (e :: r) hn $$ [$Hpkg $Hnc $Hmd $Hsl $Hents]
       as %out ⟨Hsl, -, #Hlog, Hr3⟩
     ihave Hrep := Hrep $$ [Hr1 Hr2 Hr3]
     · iapply (receipt_add (GF := GF) ((e :: r).length + 1) 1).2
