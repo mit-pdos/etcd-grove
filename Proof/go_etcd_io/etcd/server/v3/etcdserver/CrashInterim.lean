@@ -111,9 +111,15 @@ complete `Save`s), opens the backend (`bootstrapBackend`: `recoverSnapshot` with
 index `i ≥ σ.b`, so no `.snap.db` is opened), and `bootstrapWALFromSnapshot` opens the WAL at the
 snapshot and `ReadAll`s exactly `σ` (the trailing entry run of an unfinished `Save` dropped, the fix's
 `readAll`); raft's `RestartNode` on a `MemoryStorage` holding `σ` (I1-I4 by `walReadFacts σ`: raft's
-`loadState` does not panic on `σ.commit ≤ σ.last`). A backend ahead of the WAL's commit (`i > σ.commit`,
-the apply thread's synced commits beside an unsynced commit-only `Save`) is what `bootOkR` already
-covers at `i` (the apply thread skips entries at or below the consistent index). (Review 2026-11-24,
+`loadState` does not panic on `σ.commit ≤ σ.last`). A backend ahead of the WAL's commit (`i > σ.commit`: the apply thread's synced commits beside an unsynced
+commit-only `Save`, or beside a `Save` the crash prevented) is caught up first (keepfix (c), fork
+`catchUpWithBackend`, 828afc98f): when the WAL holds the entry at `i` with the backend's stored term, its hard
+state becomes `bootHS` (the term raised to the larger of the stored term and the raft term saved with `i`,
+`metaRaftTermOf`; the commit `i`); otherwise a snapshot record at `i` (the stored term, the members'
+configuration) is written, then the hard state `bootHSB` (the term also raised past the WAL's, no vote), and the
+WAL is read back. The records are then `bootFix σ i t rt cs`; the node's durable state moves with them by raft's
+boot law (`raftBootFix.law`, proved), whose premises, with the durable state, the vacancy and a time receipt, the
+precondition gives in that case. (Review 2026-11-24,
 `notes/axiom-review/c-i2-bootstrap-crash.md`: refuted as first stated) Only for the deployment's names:
 `γ.vs` the cluster's members `ps` (sorted out by `bootOkR`'s `Hraft`: non-empty, distinct, no `0`, `id`
 among them), `γ.boot` their bootstrap log, and `dir` their peer URLs as the bootstrap log's members

@@ -37,6 +37,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvCrash
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootFix
 
 @[expose] public section
 
@@ -175,7 +176,7 @@ both. -/
 def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop((□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
-      (M : GMap Loc MemStorNamesRec),
+      (M : GMap Loc MemStorNamesRec) (S : RaftState) (x : CrashNames),
     ⌜σ.b ≤ uint.nat i ∧ walReadFacts σ ∧ γ.cl.bootLen ≤ σ.commit ∧
       bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir' ∧
       storage.dbOpensOk ∧
@@ -192,10 +193,34 @@ def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
-        srvFilesC cfg.DataDir' id σ D }}
+        srvFilesC cfg.DataDir' id σ D ∗
+        -- (keepfix (c), row 1) the backend at or below the WAL's commit (no catch-up), or ahead of it:
+        -- then the catch-up moves the node's durable state `S` (held by `σ`), and its vacancy, with
+        -- raft's boot law's premises (the cluster, its room, the committed log reaching `i` with the
+        -- stored term, the raft term `rt ≠ 0` saved with `i` and raft's certificate at it) and a time
+        -- receipt (the raised term's budget)
+        (⌜uint.nat i ≤ σ.commit⌝ ∨
+         ⌜σ.commit < uint.nat i ∧ StorageHolds S σ⌝ ∗ isCluster γ.cl srvClusterN ∗
+           readyFits γ.cl srvClusterN ∗
+           (∃ (l : List LogEntry) (e : LogEntry) (rt c : w64),
+             isCommittedLogLb γ.cl l ∗ committedAtTerm γ.cl srvClusterN rt c ∗
+             ⌜0 < uint.nat i ∧ l[uint.nat i - 1]? = some e ∧ e.term ≠ W64 0 ∧
+               backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
+                 go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta e.term ∧
+               metaRaftTermOf D = some (i, rt) ∧ rt ≠ W64 0 ∧ uint.Z i ≤ uint.Z c⌝) ∗
+           raftState γ.cl id S ∗ nodeVacantA γ.cl id x ∗ ⧗ 1) }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }}) ∗
+        (⌜err ≠ GoInterface.nil⌝ ∗
+          (⌜uint.nat i ≤ σ.commit⌝ ∨ nodeVacantA γ.cl id x ∗ ∃ S'' : RaftState, raftState γ.cl id S'')) ∨
+        ⌜err = GoInterface.nil⌝ ∗
+          ((⌜uint.nat i ≤ σ.commit⌝ ∗ bootOkR cfg γ id N dir σ i L D M b) ∨
+           nodeVacantA γ.cl id x ∗ ∃ (t rt : w64) (cs : ConfStateM) (S' : RaftState),
+             ⌜backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
+                 go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t ∧ t ≠ W64 0 ∧
+               metaRaftTermOf D = some (i, rt) ∧
+               v3ConfStateIs D cs ∧ StorageHolds S' (bootFix σ (uint.nat i) t rt cs)⌝ ∗
+             raftState γ.cl id S' ∗ bootOkR cfg γ id N dir (bootFix σ (uint.nat i) t rt cs) i L D M b) }}) ∗
   (□ ∀ (σ : StorContents) (i : w64) (D : backend.Data) (j : w64) (Ls : List EntryModel)
       (Ds : backend.Data) (M : GMap Loc MemStorNamesRec),
     ⌜uint.nat i < σ.b ∧ uint.nat j = σ.b ∧

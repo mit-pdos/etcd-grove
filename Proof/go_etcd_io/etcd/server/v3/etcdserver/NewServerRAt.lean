@@ -110,10 +110,25 @@ theorem bootstrapAtR_of_crash (cfg : go_etcd_io.etcd.server.v3.config.ServerConf
   iintro ⟨#H, -⟩
   imodintro
   iintro %Hp Hs Hpr
-  ihave Hc := H $$ %σ %i %L %D %M [] [Hs]
+  -- (keepfix (c), row 1) the backend at or below the WAL's commit: no catch-up, no raft state moved
+  ihave Hc := H $$ %σ %i %L %D %M %(RaftState.init) %default [] [Hs]
   · ipureintro; exact ⟨Hp.1, hw, Nat.le_trans Hp.2.2.1 Hp.2.1, Hp.2.2.2⟩
   · iexact Hs
-  iapply Hc $$ Hpr
+  ihave Hc := Hc $$ Hpr
+  iintro !> %Φ Hpre HΦ
+  iapply Hc $$ [Hpre]
+  · iframe Hpre; ileft; ipureintro; exact Hp.2.1
+  inext
+  iintro %b %err Hq
+  iapply HΦ
+  icases Hq with (⟨%Herr, -⟩ | ⟨%Herr, (⟨-, Hok⟩ | ⟨-, %t, %rt, %cs, %S', -, -, Hok⟩)⟩)
+  · ileft; ipureintro; exact Herr
+  · iright; iframe Hok; ipureintro; exact Herr
+  · -- the catch-up's records are the WAL's own (no catch-up at or below the WAL's commit)
+    iright
+    isplitr; · ipureintro; exact Herr
+    iExactEq Hok
+    rw [bootFix_id σ _ t rt cs Hp.2.1]
 
 end boot
 
