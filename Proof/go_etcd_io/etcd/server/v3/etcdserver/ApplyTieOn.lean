@@ -107,7 +107,7 @@ successor of the model's admin step, for `examples/lib/authwork`'s `SetUp`'s req
 theorem adminStateR_of_step (rq : apply.IRRModel) (st : auth.AuthState) (o : auth.Outcome)
     (ha : auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))))
     (hR : (∃ m, apply.dispatchKind rq = .authUserAdd ∧ rq.authUserAdd = some m ∧
-            auth.stepOf (auth.userAddF m.name) st o) ∨
+            auth.stepOf (auth.userAddF m.name m.noPassword) st o) ∨
           (∃ n, apply.dispatchKind rq = .authRoleAdd ∧ rq.authRoleAdd = some n ∧
             auth.stepOf (auth.roleAddF n) st o) ∨
           (∃ u r, apply.dispatchKind rq = .authUserGrantRole ∧ rq.authUserGrantRole = some (u, r) ∧

@@ -20,9 +20,9 @@ no permission, which the proposer had to know.
 
 `roleRevokePermissionR` is a function since nomode X-a4 (the role holds every stored permission).
 
-`authDet_of_sorted`: an admin entry is determinate at a sorted state when it is `UserAdd` or
-`UserChangePassword` with a password choice that cannot fail (`pwSure`, E2t/E2x; nomode D3), or any
-other kind.
+`authDet_of_sorted`: an admin entry is determinate at a sorted state when it is a `UserAdd` with a
+password choice that cannot fail (`pwSure`, E2t/E2x), or any other kind (`UserChangePassword`'s step
+a function of the state and the request since nomode D3 follow-up (a)).
 -/
 module
 
@@ -123,6 +123,13 @@ theorem rolesSorted_enabled (st : auth.AuthState) (b : Bool) (h : rolesSorted st
 theorem rolesSorted_putRole (st : auth.AuthState) (r : GoString) (ps : auth.Role)
     (h : rolesSorted st) : rolesSorted (auth.putRole st r ps) := h
 
+theorem rolesSorted_addUser (st : auth.AuthState) (name : GoString) (nob : Bool) (h : rolesSorted st) :
+    rolesSorted (auth.addUser st name nob) := by
+  intro u us' hu
+  by_cases e : name = u
+  · subst e; simp only [auth.addUser, auth.putUser, GMap.lookup_insert] at hu; cases hu; exact List.Pairwise.nil
+  · simp only [auth.addUser, auth.putUser, GMap.lookup_insert_ne _ _ e] at hu; exact h u us' hu
+
 theorem rolesSorted_putUser (st : auth.AuthState) (name : GoString) (us : auth.User)
     (hus : us.Pairwise go.GoStringLt) (h : rolesSorted st) :
     rolesSorted (auth.putUser st name us) := by
@@ -178,7 +185,7 @@ theorem rolesSorted_adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState)
           · split at hs
             · cases hs
             · cases hs
-              exact rolesSorted_bump _ (rolesSorted_putUser st _ [] List.Pairwise.nil h)
+              exact rolesSorted_bump _ (rolesSorted_addUser st _ _ h)
       · subst hR; exact h
     · split at hR
       · obtain ⟨o, ho, rfl⟩ := hR
@@ -256,15 +263,16 @@ theorem rolesSorted_adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState)
           · cases hs; exact rolesSorted_bump _ (rolesSorted_delUser st _ h)
       · subst hR; exact h
     · split at hR
-      · rcases hR with ⟨-, rfl⟩ | ⟨o, ho, rfl⟩
-        · exact h
-        · apply rolesSorted_outState st o h
-          intro s hs
-          simp only [auth.stepOf, auth.userChangePasswordF] at ho
-          subst ho
-          split at hs
-          · cases hs
+      · obtain ⟨o, ho, rfl⟩ := hR
+        apply rolesSorted_outState st o h
+        intro s hs
+        simp only [auth.stepOf, auth.userChangePasswordF] at ho
+        subst ho
+        split at hs
+        · cases hs
+        · split at hs
           · cases hs; exact rolesSorted_bump _ h
+          · cases hs
       · subst hR; exact h
     · split at hR
       · obtain ⟨o, ho, rfl⟩ := hR
@@ -422,22 +430,11 @@ theorem det_of_unique {P : auth.AuthState → Prop} (h : ∃ s, ∀ st', P st' �
   obtain ⟨s, hs⟩ := h
   exact ⟨s, (hs s).2 rfl, fun st'' h'' => (hs st'').1 h''⟩
 
-/-- **The proposer's side of an admin entry's determinacy** (see the header): a `UserAdd`, and a
-`UserChangePassword` that `dispatch` applies (nomode D3), whose password choice cannot fail; every
-other kind as it is. -/
+/-- **The proposer's side of an admin entry's determinacy** (see the header): a `UserAdd` whose
+password choice cannot fail; every other kind as it is (nomode D3 follow-up (a), 2026-11-28:
+`UserChangePassword`'s step is a function, so it needs nothing). -/
 def adminDetReq (rq : apply.IRRModel) : Prop :=
-  (∀ m, rq.authUserAdd = some m → m.pwSure) ∧
-    (apply.dispatchKind rq = .authUserChangePassword →
-      ∀ m, rq.authUserChangePassword = some m → m.pwSure)
-
-/-- An admitted `UserChangePassword` has a password choice that cannot fail (`adminKindOk`). -/
-theorem adminKindOk_cpSure (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
-    apply.dispatchKind rq = .authUserChangePassword →
-      ∀ m, rq.authUserChangePassword = some m → m.pwSure := by
-  intro hk m hm
-  unfold apply.adminKindOk at h
-  rw [hk] at h
-  exact h m hm
+  ∀ m, rq.authUserAdd = some m → m.pwSure
 
 /-- **An admin entry is determinate at a sorted state** meeting `adminDetReq`. -/
 theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : rolesSorted st)
@@ -447,9 +444,9 @@ theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : roles
   · split
     · split
       · rename_i m hm
-        have hsure := hpw.1 m hm
-        obtain ⟨s, hs⟩ := (⟨_, relState_stepOf_iff (auth.userAddF m.name) st⟩ :
-          ∃ s, ∀ st', authRelState (auth.stepOf (auth.userAddF m.name)) st st' ↔ st' = s)
+        have hsure := hpw m hm
+        obtain ⟨s, hs⟩ := (⟨_, relState_stepOf_iff (auth.userAddF m.name m.noPassword) st⟩ :
+          ∃ s, ∀ st', authRelState (auth.stepOf (auth.userAddF m.name m.noPassword)) st st' ↔ st' = s)
         refine ⟨s, Or.inr ((hs s).2 rfl), fun st'' h'' => ?_⟩
         rcases h'' with ⟨hn, -⟩ | h''
         · exact absurd hsure hn
@@ -478,14 +475,7 @@ theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : roles
       · exact det_of_unique ⟨_, relState_stepOf_iff _ st⟩
       · exact ⟨st, rfl, fun _ h => h⟩
     · split
-      · rename_i m hm
-        have hsure := hpw.2 (by assumption) m hm
-        obtain ⟨s, hs⟩ := (⟨_, relState_stepOf_iff (auth.userChangePasswordF m.name) st⟩ :
-          ∃ s, ∀ st', authRelState (auth.stepOf (auth.userChangePasswordF m.name)) st st' ↔ st' = s)
-        refine ⟨s, Or.inr ((hs s).2 rfl), fun st'' h'' => ?_⟩
-        rcases h'' with ⟨hn, -⟩ | h''
-        · exact absurd hsure hn
-        · exact (hs st'').1 h''
+      · exact det_of_unique ⟨_, relState_stepOf_iff _ st⟩
       · exact ⟨st, rfl, fun _ h => h⟩
     · split
       · exact det_of_unique ⟨_, relState_stepOf_iff _ st⟩

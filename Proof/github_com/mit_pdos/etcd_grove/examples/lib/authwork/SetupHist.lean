@@ -42,7 +42,8 @@ def permRW : PermW := ⟨W32 2, lo, hi⟩
 theorem permOfWire_permRW : permOfWire permRW = permR := rfl
 
 /-- **A state of the set-up's shape**: disabled, the users `root`, `u`, `v` and the role `r`
-each absent or at a stage of its set-up, no other user or role. -/
+each absent or at a stage of its set-up, no other user or role, no user without a password (`SetUp`'s
+`UserAdd`s ask for one). -/
 def setupLike (st : AuthState) : Prop :=
   st.enabled = false ∧
   (st.users !! go!"root" = none ∨ st.users !! go!"root" = some [] ∨
@@ -52,7 +53,8 @@ def setupLike (st : AuthState) : Prop :=
   (st.users !! go!"v" = none ∨ st.users !! go!"v" = some []) ∧
   (∀ k, k ≠ go!"root" → k ≠ go!"u" → k ≠ go!"v" → st.users !! k = none) ∧
   (st.roles !! go!"r" = none ∨ st.roles !! go!"r" = some [] ∨ st.roles !! go!"r" = some [permR]) ∧
-  (∀ k, k ≠ go!"r" → st.roles !! k = none)
+  (∀ k, k ≠ go!"r" → st.roles !! k = none) ∧
+  st.noPwUsers = ∅
 
 /-- **The set-up's effects**, one per request but `AuthEnable` (`0` to `6`, in `SetUp`'s order). -/
 def setupEff (j : Nat) (st : AuthState) : Prop :=
@@ -69,13 +71,16 @@ def setupEff (j : Nat) (st : AuthState) : Prop :=
 /-- **`SetUp`'s `j`-th admin request** (`0` to `7`, in `SetUp`'s order; see `setupRq`). -/
 def setupReqAt (j : Nat) (rq : apply.IRRModel) : Prop :=
   match j with
-  | 0 => ∃ um : apply.UserAddModel, rq = irrUserAdd um ∧ um.pwSure ∧ um.name = go!"root"
+  | 0 => ∃ um : apply.UserAddModel, rq = irrUserAdd um ∧ um.pwSure ∧ um.name = go!"root" ∧
+      um.noPassword = false
   | 1 => rq = irrUserGrantRole go!"root" go!"root"
   | 2 => rq = irrRoleAdd go!"r"
   | 3 => rq = irrRoleGrantPermission go!"r" (some permRW)
-  | 4 => ∃ um : apply.UserAddModel, rq = irrUserAdd um ∧ um.pwSure ∧ um.name = go!"u"
+  | 4 => ∃ um : apply.UserAddModel, rq = irrUserAdd um ∧ um.pwSure ∧ um.name = go!"u" ∧
+      um.noPassword = false
   | 5 => rq = irrUserGrantRole go!"u" go!"r"
-  | 6 => ∃ um : apply.UserAddModel, rq = irrUserAdd um ∧ um.pwSure ∧ um.name = go!"v"
+  | 6 => ∃ um : apply.UserAddModel, rq = irrUserAdd um ∧ um.pwSure ∧ um.name = go!"v" ∧
+      um.noPassword = false
   | 7 => rq = irrAuthEnable
   | _ => False
 
@@ -105,14 +110,15 @@ theorem setup_step_userAdd (um : apply.UserAddModel) (hm : apply.HeaderModel) (s
     (hpw : um.pwSure) (hl : setupLike st)
     (hn : um.name = go!"root" ∨ um.name = go!"u" ∨ um.name = go!"v")
     (hR : adminStateR (apply.withHeader (irrUserAdd um) hm) st st') :
-    st' = st ∨ ((st.users !! um.name) = none ∧ st' = bump (putUser st um.name [])) := by
+    st' = st ∨ ((st.users !! um.name) = none ∧ st' = bump (addUser st um.name um.noPassword)) := by
   unfold adminStateR at hR
   rw [if_pos (adminOk_disabled _ _ hl.1)] at hR
   simp only [dispatchKind_withHeader] at hR
   have hk : apply.dispatchKind (irrUserAdd um) = .authUserAdd := by
     simp [apply.dispatchKind, irrUserAdd, apply.irrEmpty]
   rw [hk] at hR
-  have hR' : (¬ um.pwSure ∧ st' = st) ∨ authRelState (stepOf (userAddF um.name)) st st' := hR
+  have hR' : (¬ um.pwSure ∧ st' = st) ∨
+      authRelState (stepOf (userAddF um.name um.noPassword)) st st' := hR
   rcases hR' with ⟨h, -⟩ | ⟨o, ho, rfl⟩
   · exact absurd hpw h
   · unfold stepOf at ho
@@ -225,31 +231,44 @@ theorem setupLike_putUser (st : AuthState) (n : GoString) (x : User) (hl : setup
     (hx : (n = go!"root" ∧ (x = [] ∨ x = [rootRole])) ∨ (n = go!"u" ∧ (x = [] ∨ x = [go!"r"])) ∨
       (n = go!"v" ∧ x = [])) :
     setupLike (bump (putUser st n x)) := by
-  obtain ⟨he, hr, hu, hv, ho, hrr, hro⟩ := hl
+  obtain ⟨he, hr, hu, hv, ho, hrr, hro, hnp⟩ := hl
   simp only [setupLike, bump, putUser]
   rcases hx with ⟨rfl, hx⟩ | ⟨rfl, hx⟩ | ⟨rfl, rfl⟩
-  · refine ⟨he, ?_, ?_, ?_, ?_, hrr, hro⟩
+  · refine ⟨he, ?_, ?_, ?_, ?_, hrr, hro, hnp⟩
     · rw [GMap.lookup_insert]; rcases hx with rfl | rfl <;> simp
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hu
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hv
     · intro k h1 h2 h3; rw [GMap.lookup_insert_ne _ _ (Ne.symm h1)]; exact ho k h1 h2 h3
-  · refine ⟨he, ?_, ?_, ?_, ?_, hrr, hro⟩
+  · refine ⟨he, ?_, ?_, ?_, ?_, hrr, hro, hnp⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hr
     · rw [GMap.lookup_insert]; rcases hx with rfl | rfl <;> simp
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hv
     · intro k h1 h2 h3; rw [GMap.lookup_insert_ne _ _ (Ne.symm h2)]; exact ho k h1 h2 h3
-  · refine ⟨he, ?_, ?_, ?_, ?_, hrr, hro⟩
+  · refine ⟨he, ?_, ?_, ?_, ?_, hrr, hro, hnp⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hr
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hu
     · rw [GMap.lookup_insert]; simp
     · intro k h1 h2 h3; rw [GMap.lookup_insert_ne _ _ (Ne.symm h3)]; exact ho k h1 h2 h3
 
+theorem setupLike_addUser (st : AuthState) (n : GoString) (hl : setupLike st)
+    (hx : n = go!"root" ∨ n = go!"u" ∨ n = go!"v") :
+    setupLike (bump (addUser st n false)) := by
+  have hnp : st.noPwUsers = ∅ := hl.2.2.2.2.2.2.2
+  obtain ⟨a, b, c, d, e, f, g, -⟩ := setupLike_putUser st n [] hl (by
+    rcases hx with h | h | h
+    · exact Or.inl ⟨h, Or.inl rfl⟩
+    · exact Or.inr (Or.inl ⟨h, Or.inl rfl⟩)
+    · exact Or.inr (Or.inr ⟨h, rfl⟩))
+  refine ⟨a, b, c, d, e, f, g, ?_⟩
+  show setNoPw st.noPwUsers n false = ∅
+  rw [hnp]; apply GMap.ext; intro k; simp [setNoPw]
+
 theorem setupLike_putRole (st : AuthState) (x : auth.Role) (hl : setupLike st)
     (hx : x = [] ∨ x = [permR]) :
     setupLike (bump (putRole st go!"r" x)) := by
-  obtain ⟨he, hr, hu, hv, ho, hrr, hro⟩ := hl
+  obtain ⟨he, hr, hu, hv, ho, hrr, hro, hnp⟩ := hl
   simp only [setupLike, bump, putRole]
-  refine ⟨he, hr, hu, hv, ho, ?_, ?_⟩
+  refine ⟨he, hr, hu, hv, ho, ?_, ?_, hnp⟩
   · rw [GMap.lookup_insert]; rcases hx with rfl | rfl <;> simp
   · intro k h1; rw [GMap.lookup_insert_ne _ _ (Ne.symm h1)]; exact hro k h1
 
@@ -318,39 +337,42 @@ theorem setup_step (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j rq₀) 
   have hadd : ∀ (n : GoString), st.users !! n = none →
       ((n = go!"root" ∧ ([] : User) = []) ∨ (n = go!"u" ∧ ([] : User) = []) ∨
         (n = go!"v" ∧ ([] : User) = [])) →
-      setupLike (bump (putUser st n [])) ∧
-        (∀ i, setupEff i st → setupEff i (bump (putUser st n []))) := by
+      setupLike (bump (addUser st n false)) ∧
+        (∀ i, setupEff i st → setupEff i (bump (addUser st n false))) := by
     intro n hnone hn
-    refine ⟨setupLike_putUser st n [] hl ?_, fun i h => setupEff_putUser st n [] i ?_ h⟩
+    refine ⟨setupLike_addUser st n hl ?_, fun i h => setupEff_putUser st n [] i ?_ h⟩
     · rcases hn with ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
-      · exact Or.inl ⟨h, Or.inl rfl⟩
-      · exact Or.inr (Or.inl ⟨h, Or.inl rfl⟩)
-      · exact Or.inr (Or.inr ⟨h, rfl⟩)
+      · exact Or.inl h
+      · exact Or.inr (Or.inl h)
+      · exact Or.inr (Or.inr h)
     · intro u0 hu0; rw [hnone] at hu0; cases hu0
   have hlook : ∀ n x, (bump (putUser st n x)).users !! n = some x := by
     intro n x; simp only [bump, putUser]; exact GMap.lookup_insert _ _ _
   match j, hj with
-  | 0, ⟨um, hrq, hpw, hn⟩ =>
+  | 0, ⟨um, hrq, hpw, hn, hnob⟩ =>
     subst hrq
     rcases setup_step_userAdd um hm st st' hpw hl (Or.inl hn) hR with h | ⟨hnone, rfl⟩
     · exact same h
-    · obtain ⟨h1, h2⟩ := hadd um.name hnone (Or.inl ⟨hn, rfl⟩)
+    · rw [hnob]
+      obtain ⟨h1, h2⟩ := hadd um.name hnone (Or.inl ⟨hn, rfl⟩)
       refine ⟨h1, h2, fun _ => ?_⟩
       show ((bump (putUser st um.name [])).users !! go!"root").isSome
       rw [← hn, hlook]; rfl
-  | 4, ⟨um, hrq, hpw, hn⟩ =>
+  | 4, ⟨um, hrq, hpw, hn, hnob⟩ =>
     subst hrq
     rcases setup_step_userAdd um hm st st' hpw hl (Or.inr (Or.inl hn)) hR with h | ⟨hnone, rfl⟩
     · exact same h
-    · obtain ⟨h1, h2⟩ := hadd um.name hnone (Or.inr (Or.inl ⟨hn, rfl⟩))
+    · rw [hnob]
+      obtain ⟨h1, h2⟩ := hadd um.name hnone (Or.inr (Or.inl ⟨hn, rfl⟩))
       refine ⟨h1, h2, fun _ => ?_⟩
       show ((bump (putUser st um.name [])).users !! go!"u").isSome
       rw [← hn, hlook]; rfl
-  | 6, ⟨um, hrq, hpw, hn⟩ =>
+  | 6, ⟨um, hrq, hpw, hn, hnob⟩ =>
     subst hrq
     rcases setup_step_userAdd um hm st st' hpw hl (Or.inr (Or.inr hn)) hR with h | ⟨hnone, rfl⟩
     · exact same h
-    · obtain ⟨h1, h2⟩ := hadd um.name hnone (Or.inr (Or.inr ⟨hn, rfl⟩))
+    · rw [hnob]
+      obtain ⟨h1, h2⟩ := hadd um.name hnone (Or.inr (Or.inr ⟨hn, rfl⟩))
       refine ⟨h1, h2, fun _ => ?_⟩
       show ((bump (putUser st um.name [])).users !! go!"v").isSome
       rw [← hn, hlook]; rfl
@@ -406,7 +428,7 @@ theorem setup_step (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j rq₀) 
 revision. -/
 theorem setup_enable (st : AuthState) (hl : setupLike st) (he : ∀ i, i < 7 → setupEff i st) :
     { st with enabled := true } = setupSt st.revision := by
-  obtain ⟨-, hr, hu, hv, ho, hrr, hro⟩ := hl
+  obtain ⟨-, hr, hu, hv, ho, hrr, hro, hnp⟩ := hl
   have hr' : st.users !! go!"root" = some [rootRole] := by
     obtain ⟨x, hx, hm⟩ := (he 1 (by omega) : setupEff 1 st)
     rcases hr with h | h | h <;> rw [hx] at h <;> cases h
@@ -427,10 +449,10 @@ theorem setup_enable (st : AuthState) (hl : setupLike st) (he : ∀ i, i < 7 →
     rcases hrr with h | h | h <;> rw [hx] at h <;> cases h
     · simp at hm
     · exact hx
-  obtain ⟨en, rev, us, rs⟩ := st
+  obtain ⟨en, rev, us, rs, np⟩ := st
   simp only [setupSt, AuthState.mk.injEq, true_and]
-  simp only at hr' hu' hv' hrr' ho hro
-  constructor
+  simp only at hr' hu' hv' hrr' ho hro hnp
+  refine ⟨?_, ?_, hnp⟩
   · apply GMap.ext
     intro k
     show us !! k = _
@@ -469,7 +491,7 @@ theorem setup_notRec_eff (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j r
     have := congrArg AuthState.revision h
     simp [outState, bump, hx] at this
   match j, hj with
-  | 0, ⟨um, hrq, _, _⟩ | 4, ⟨um, hrq, _, _⟩ | 6, ⟨um, hrq, _, _⟩ =>
+  | 0, ⟨um, hrq, _, _, _⟩ | 4, ⟨um, hrq, _, _, _⟩ | 6, ⟨um, hrq, _, _, _⟩ =>
     subst hrq
     have hk : apply.dispatchKind (irrUserAdd um) = .authUserAdd := by
       simp [apply.dispatchKind, irrUserAdd, apply.irrEmpty]

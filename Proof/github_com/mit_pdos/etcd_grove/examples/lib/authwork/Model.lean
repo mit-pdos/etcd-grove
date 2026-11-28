@@ -55,13 +55,14 @@ def permR : Perm := ⟨lo, hi, W32 2⟩
 
 /-- **The store after `SetUp`**, at the auth revision `rev` (the set-up's admin requests bump it;
 its value does not matter): auth enabled, users `root` with the root role, `u` with role `r`, `v`
-with none, and role `r` with `permR`. -/
+with none, each with a password, and role `r` with `permR`. -/
 def setupSt (rev : Nat) : AuthState where
   enabled := true
   revision := rev
   users := GMap.insert go!"root" [rootRole] (GMap.insert go!"u" [go!"r"]
     (GMap.insert go!"v" [] ∅))
   roles := GMap.insert go!"r" [permR] ∅
+  noPwUsers := ∅
 
 /-! ## The verdicts at that state -/
 

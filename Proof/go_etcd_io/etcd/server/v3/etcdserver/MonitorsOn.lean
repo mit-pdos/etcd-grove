@@ -4,7 +4,7 @@ until the cluster-rows stage, 2026-11-02, beside `InvMonitors.lean`'s mode-off `
 since deleted): `publishV3` and
 `monitorClusterVersions` propose only cluster requests (`monitorReq`), whose header the server
 stamps; in the mode `on` their proposal permission is `reqPropOkOn`'s first case (a non-write
-request needing no permission: `kvShapeAll` holds of a request with no permissions). Lean-first
+request needing no permission). Lean-first
 (no Rocq counterpart).
 -/
 module
@@ -28,8 +28,7 @@ variable [GooseExts]
 
 /-- A monitor's request is a plain non-write request of a good shape (`srvMonitorPermitM_of`'s). -/
 theorem monitorReq_prop (lid : w64) (rq : apply.IRRModel) (h : monitorReq lid rq) :
-    plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape .none rq ∧
-      kvShapeAll rq := by
+    plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape .none rq := by
   have hs := rqShape_of_monitorReq lid rq h
   obtain ⟨⟨hz, hna, hns, hk⟩, -⟩ := h
   have hk' : apply.dispatchKind rq = .clusterMemberAttrSet ∨
@@ -37,12 +36,10 @@ theorem monitorReq_prop (lid : w64) (rq : apply.IRRModel) (h : monitorReq lid rq
     rcases hk with hk | ⟨hk, -⟩
     · exact Or.inl hk
     · exact Or.inr hk
-  refine ⟨?_, ?_, hz, hs, ?_⟩
+  refine ⟨?_, ?_, hz, hs⟩
   · refine ⟨?_, putgetKind_cluster rq hk'⟩
     unfold plainCover; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact ⟨hns, hna⟩
   · unfold writeKind; rcases hk' with hk' | hk' <;> rw [hk'] <;> decide
-  · unfold kvShapeAll reqPerms
-    rcases hk' with hk' | hk' <;> rw [hk'] <;> simp
 
 /-- A monitor's request with the header the server stamps is a monitor's request. -/
 theorem monitorReq_withHeader (lid : w64) (rq : apply.IRRModel) (hm : apply.HeaderModel) :
@@ -92,7 +89,7 @@ theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
     iunfold reqPropOkW
     ileft
     ipureintro
-    obtain ⟨h1, h2, h3, h4, -⟩ := monitorReq_prop lid rq hrq
+    obtain ⟨h1, h2, h3, h4⟩ := monitorReq_prop lid rq hrq
     exact ⟨h1, h2, h3, rqShape_mono _ _ h4, rfl⟩
   · iunfold reqPropOkM
     isplitl
@@ -102,9 +99,9 @@ theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
     iunfold reqPropOkOn
     ileft
     ipureintro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := monitorReq_prop lid (apply.withHeader rq hm)
+    obtain ⟨h1, h2, h3, h4⟩ := monitorReq_prop lid (apply.withHeader rq hm)
       ((monitorReq_withHeader lid rq hm).2 hrq)
-    exact ⟨h1, h2, h3, h4, h5, rfl⟩
+    exact ⟨h1, h2, h3, h4, rfl⟩
 
 end defs
 

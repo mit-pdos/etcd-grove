@@ -133,28 +133,39 @@ theorem km_rangeLogEvents_watchEvents (L : Log) (o : OpFull) (rg : WatchRange)
 
 /-! ## The prefix's range (pure) -/
 
-/-- The registered range of a prefix watch on `pfx` (its key and range end). -/
-def pfxRange (pfx : GoString) : WatchRange := ⟨pfx, some (prefixRangeEnd pfx), W64 0, W64 0⟩
+/-- The registered range of a prefix watch on `pfx` (its key and range end): the range end
+`prefixRangeEnd pfx`, or, when that is the from-key end `[0]` (`pfx` all `0xff`), the open end `[]`,
+as the watch server registers it (`recvLoop`'s normalization, `v3rpc.createRangeOk`). -/
+def pfxRange (pfx : GoString) : WatchRange :=
+  ⟨pfx, some (if prefixRangeEnd pfx = [W8 0] then [] else prefixRangeEnd pfx), W64 0, W64 0⟩
 
-theorem pfxRange_covers (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0])
+theorem pfxRange_covers (pfx : GoString) (hp : pfx ≠ [])
     (k : GoString) : (pfxRange pfx).covers k = inRange pfx (prefixRangeEnd pfx) k := by
   have h0 : prefixRangeEnd pfx ≠ [] := concurrency.prefixRangeEnd_ne_nil _
+  have hlt : go.GoStringLt [] pfx := by
+    obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hp
+    rw [ht]; exact go.goStringLt_nil_cons a t
   unfold WatchRange.covers inRange pfxRange
-  simp only [if_neg h0, if_neg hff]
-  simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
-    decide_eq_false_iff_not, adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt]
-  by_cases hk0 : k = go!""
-  · subst hk0
-    have hlt : go.GoStringLt [] pfx := by
-      obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hp
-      rw [ht]; exact go.goStringLt_nil_cons a t
-    simp [hlt]
-  · simp [hk0, hp, h0]
+  by_cases hff : prefixRangeEnd pfx = [W8 0]
+  · simp only [if_neg h0, if_pos hff]
+    simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
+      decide_eq_false_iff_not, adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt]
+    by_cases hk0 : k = go!""
+    · subst hk0
+      simp [hlt]
+    · simp [hk0, hp]
+  · simp only [if_neg h0, if_neg hff]
+    simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
+      decide_eq_false_iff_not, adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt]
+    by_cases hk0 : k = go!""
+    · subst hk0
+      simp [hlt]
+    · simp [hk0, hp, h0]
 
-theorem pfxRange_cov (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) :
+theorem pfxRange_cov (pfx : GoString) (hp : pfx ≠ []) :
     ∀ k, (pfxRange pfx).covers k = true ↔ pfx <+: k := by
   intro k
-  rw [pfxRange_covers pfx hp hff k]
+  rw [pfxRange_covers pfx hp k]
   exact concurrency.inRange_prefix pfx k hp
 
 /-! ## The state's events, as a log's (pure) -/
@@ -169,7 +180,7 @@ theorem kvLogOkTo_len {σ : KVState} {r : Nat} (h : kvLogOkTo σ r) :
 /-- **A prefix watch's events of a well-formed state**, through a revision `r` it is well formed
 to: mvcc's watch events of the prefix's range on its log up to `r`. -/
 theorem rangeEvents_take (σ : KVState) (o : OpFull) (pfx : GoString) (hp : pfx ≠ [])
-    (hff : prefixRangeEnd pfx ≠ [W8 0]) (hk : o.key = pfx)
+    (hk : o.key = pfx)
     (he : o.base.rangeEnd = prefixRangeEnd pfx) (r : Nat) (h : kvLogOkTo σ r) (lo hi : Nat)
     (h0 : 0 < lo) (hh : hi ≤ r + 1) :
     σ.rangeEvents o lo hi = watchEvents (σ.log.take (r + 1)) (pfxRange pfx) lo hi := by
@@ -180,7 +191,7 @@ theorem rangeEvents_take (σ : KVState) (o : OpFull) (pfx : GoString) (hp : pfx 
   rw [h1, ← rangeLogEvents_prefix (List.take_prefix (r + 1) σ.log) o
     (by rw [List.length_take]; omega)]
   exact km_rangeLogEvents_watchEvents _ o _
-    (fun k => by rw [hk, he]; exact pfxRange_covers pfx hp hff k) lo hi
+    (fun k => by rw [hk, he]; exact pfxRange_covers pfx hp k) lo hi
 
 /-- A list of events' revisions are their state events' (pointwise). -/
 theorem map_rev_eq (es : List EvModel) (evs : List EvM) (hl : es.length = evs.length)
@@ -458,12 +469,12 @@ progress notification at the watch's start reached by the caller's floor (`etcdR
 (`kmStep`, `km_step_of`), reached since the client saw the state; events, the state log's watch
 events of the prefix's range (`rangeEvents_take`), a chain of steps (`km_chain`). -/
 theorem watchRespOk_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoString)
-    (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) (o : OpFull) (rev : w64)
+    (hp : pfx ≠ []) (o : OpFull) (rev : w64)
     (hk : o.key = pfx) (he : o.base.rangeEnd = prefixRangeEnd pfx) (hrev : o.base.rev = rev)
     (σ : KVState) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
     kmSeenQ (GF := GF) γ l0 σ ∗ etcdReached (EM := etcdModelOfKV γ) (rev - W64 1) ∗
       watchStateRespOk o σ c c' v r ⊢ watchRespOk (EM := etcdModelOfKV γ) pfx c c' v r := by
-  have hcov := pfxRange_cov pfx hp hff
+  have hcov := pfxRange_cov pfx hp
   iintro ⟨#HQ, #Hr0, #Hok⟩
   iunfold kmSeenQ at HQ
   icases HQ with ⟨#Hlb, -⟩
@@ -490,7 +501,7 @@ theorem watchRespOk_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoStri
     · by_cases hcq : sint.Z c = sint.Z r.hdrRev
       · ileft; ipureintro; word
       iright
-      have hE := rangeEvents_take σ o pfx hp hff hk he (sint.nat r.hdrRev) hok
+      have hE := rangeEvents_take σ o pfx hp hk he (sint.nat r.hdrRev) hok
         (sint.nat c + 1) (sint.nat r.hdrRev + 1) (by omega) (Nat.le_refl _)
       rw [hnil] at hE
       have hLl : (σ.log.take (sint.nat r.hdrRev + 1)).length = sint.nat r.hdrRev + 1 := by
@@ -522,7 +533,7 @@ theorem watchRespOk_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoStri
     have hcz : ((sint.nat c : Nat) : Int) = sint.Z c := by
       show (((sint.Z c).toNat : Nat) : Int) = _; omega
     have hWc := km_w64_nat c hc0
-    have hE := rangeEvents_take σ o pfx hp hff hk he (sint.nat c') hok
+    have hE := rangeEvents_take σ o pfx hp hk he (sint.nat c') hok
       (sint.nat c + 1) (sint.nat c' + 1) (by omega) (Nat.le_refl _)
     have hLl : (σ.log.take (sint.nat c' + 1)).length = sint.nat c' + 1 := by
       rw [List.length_take]; omega
@@ -558,7 +569,7 @@ theorem watchRespOk_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoStri
 /-- **The `i`-th response of a prefix watch with the adapter's read update is etcd's** (the
 cache's channel element, `etcdWatchElem`). -/
 theorem etcdWatchElem_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoString)
-    (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) (o : OpFull) (rev : w64)
+    (hp : pfx ≠ []) (o : OpFull) (rev : w64)
     (hk : o.key = pfx) (he : o.base.rangeEnd = prefixRangeEnd pfx) (hrev : o.base.rev = rev)
     (γk : KVNames) (γw : EtcdWatchNames) (Au : IProp GF) (i : Int)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) :
@@ -571,7 +582,7 @@ theorem etcdWatchElem_of_km (γ : KMNames) (l0 : List (List Change)) (pfx : GoSt
   unfold etcdWatchElem
   iexists r, c, c'
   iframe Hra Hi Hi'
-  iapply watchRespOk_of_km γ l0 pfx hp hff o rev hk he hrev σ c c' v r $$ [HQ Hr0 Hok]
+  iapply watchRespOk_of_km γ l0 pfx hp o rev hk he hrev σ c c' v r $$ [HQ Hr0 Hok]
   iframe HQ Hr0 Hok
 
 end ghost

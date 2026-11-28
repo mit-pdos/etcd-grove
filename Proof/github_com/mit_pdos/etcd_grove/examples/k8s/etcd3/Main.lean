@@ -235,8 +235,7 @@ theorem Main.wp_proof
   -- the seeding, from the server's start state (`σb`: no key, revision `1`)
   have hboot0 : kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = σb := by
     have h : kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = [[], []] := by
-      unfold kvModel
-      rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) [id] (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
+      rw [kvModel_bootE _ [id] (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
     rw [kvModelSt_boot _ (fun _ _ => True) _ (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), h]; rfl
   imod (seedInv_alloc ρ.rd.kv σb ⊤) $$ [Hetcd] with ⟨%γs, #Hsi, Hs⟩
   · rw [← hboot0]; iexact Hetcd

@@ -47,7 +47,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_e
 (`dispatchKind`): one of `SetUp`'s five, an `Authenticate` (C1's A2), or none. -/
 def apply.adminReqOf (rq : apply.IRRModel) : Option apply.AdminReq :=
   match apply.dispatchKind rq with
-  | .authUserAdd => rq.authUserAdd.map (fun m => .userAdd m.name)
+  | .authUserAdd => rq.authUserAdd.map (fun m => .userAdd m.name m.noPassword)
   | .authRoleAdd => rq.authRoleAdd.map .roleAdd
   | .authUserGrantRole => rq.authUserGrantRole.map (fun ur => .userGrantRole ur.1 ur.2)
   | .authRoleGrantPermission => rq.authRoleGrantPermission.map (fun nw => .roleGrantPermission nw.1 nw.2)
@@ -55,7 +55,7 @@ def apply.adminReqOf (rq : apply.IRRModel) : Option apply.AdminReq :=
   | .authenticate => rq.authenticate.map (fun am => .authenticate am.name am.simpleToken)
   | .authDisable => some .authDisable
   | .authUserDelete => rq.authUserDelete.map .userDelete
-  | .authUserChangePassword => rq.authUserChangePassword.map (fun m => .userChangePassword m.name)
+  | .authUserChangePassword => rq.authUserChangePassword.map (fun m => .userChangePassword m.name m.password m.hashed)
   | .authUserRevokeRole => rq.authUserRevokeRole.map (fun nr => .userRevokeRole nr.1 nr.2)
   | .authRoleDelete => rq.authRoleDelete.map .roleDelete
   | .authRoleRevokePermission =>
@@ -704,17 +704,17 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUA.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUA
     have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
-    have hns : (apply.AdminReq.userAdd x.name).nameOk ∧ x.pwSure := by
+    have hns : (apply.AdminReq.userAdd x.name x.noPassword).nameOk ∧ x.pwSure := by
       have h := Hadmk; simp only [apply.adminKindOk, hk] at h
       exact h x hs
     have hnm := hns.1
     ihave #HS := apply.authUserAddIs_sure _ _ hns.2 $$ HR
     ihave #HR := apply.authUserAddIs_req _ _ $$ HR
-    ihave Hx : (apply.AdminReq.userAdd x.name).extraPre E γa hh Pre $$ [Hx]
+    ihave Hx : (apply.AdminReq.userAdd x.name x.noPassword).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.userAdd x.name) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.userAdd x.name x.noPassword) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -749,7 +749,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, (apply.AdminReq.userAdd x.name), resp
+    iexists _, (apply.AdminReq.userAdd x.name x.noPassword), resp
     iframe H0
     isplitr
     · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
@@ -822,17 +822,13 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUC.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUC
     have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
-    have hnm : (apply.AdminReq.userChangePassword x.name).nameOk := trivial
-    have hsure : x.pwSure := by
-      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      exact h x hs
-    ihave #HS := apply.authUserChangePasswordIs_sure _ _ hsure $$ HR
+    have hnm : (apply.AdminReq.userChangePassword x.name x.password x.hashed).nameOk := trivial
     ihave #HR := apply.authUserChangePasswordIs_req _ _ $$ HR
-    ihave Hx : (apply.AdminReq.userChangePassword x.name).extraPre E γa hh Pre $$ [Hx]
+    ihave Hx : (apply.AdminReq.userChangePassword x.name x.password x.hashed).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.userChangePassword x.name) %lUC %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.userChangePassword x.name x.password x.hashed) %lUC %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -866,7 +862,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, (apply.AdminReq.userChangePassword x.name), resp
+    iexists _, (apply.AdminReq.userChangePassword x.name x.password x.hashed), resp
     iframe H0
     isplitr
     · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩

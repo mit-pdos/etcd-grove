@@ -60,7 +60,7 @@ theorem auth.userOutX_null (st : AuthState) (name : GoString) :
 theorem auth.userOutX_some_named (u : Loc) (st : AuthState) (name : GoString) (hnn : u ≠ null) :
     userOutX (GF := GF) u st name ⊢ ∃ (roles : User) (ur : UserRec),
       ⌜st.users !! name = some roles ∧ ur.name = name ∧ ur.roles = roles ∧
-        roles.Pairwise go.GoStringLt⌝ ∗ ownUserX u ur := by
+        roles.Pairwise go.GoStringLt ∧ ur.noPassword = st.noPw name⌝ ∗ ownUserX u ur := by
   unfold userOutX
   cases h : st.users !! name with
   | none =>
@@ -73,7 +73,7 @@ theorem auth.userOutX_some_named (u : Loc) (st : AuthState) (name : GoString) (h
     iintro ⟨%ur, %Hur, Hu⟩
     iexists roles, ur
     iframe Hu
-    ipureintro; exact ⟨rfl, Hur.1, Hur.2.1, Hur.2.2⟩
+    ipureintro; exact ⟨rfl, Hur.1, Hur.2.1, Hur.2.2.1, Hur.2.2.2⟩
 
 end lemmas
 

@@ -84,30 +84,6 @@ theorem splitBatches_block (x : w64) (B : List EvModel)
 
 /-! ## The prefix watch's range -/
 
-/-- **A prefix watch's registered range covers exactly the keys under its key** (a non-empty key,
-not all `0xff`: its range end is neither empty nor `[0]`). -/
-theorem covers_prefix (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange)
-    (hc : v3rpc.createRangeOk c id r) (hkey : c.key ≠ []) (hend : c.rangeEnd = prefixRangeEnd c.key)
-    (hff : prefixRangeEnd c.key ≠ [W8 0]) : ∀ k, r.covers k = true ↔ c.key <+: k := by
-  intro k
-  rw [← concurrency.inRange_prefix c.key k hkey, ← hend]
-  obtain ⟨hk, -, -, he⟩ := hc
-  rw [if_neg hkey] at hk
-  have h0 : c.rangeEnd ≠ [] := by rw [hend]; exact concurrency.prefixRangeEnd_ne_nil _
-  have h1 : c.rangeEnd ≠ [W8 0] := by rw [hend]; exact hff
-  rw [if_neg h0, if_neg h1] at he
-  unfold WatchRange.covers inRange
-  rw [he, if_neg h0, if_neg h1, hk]
-  simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
-    decide_eq_false_iff_not, adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt]
-  by_cases hk0 : k = go!""
-  · subst hk0
-    have hlt : go.GoStringLt [] c.key := by
-      obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hkey
-      rw [ht]; exact go.goStringLt_nil_cons a t
-    simp [hlt]
-  · simp [hk0, hkey, h0]
-
 /-- **A point watch is registered exactly** (G2, 2026-10-30). -/
 theorem rangeExact_point (key : GoString) : rangeExact key [] := by
   intro c id r hck hce hc k
@@ -155,6 +131,16 @@ theorem rangeExact_of_ne (key ed : GoString) (hkey : key ≠ []) : rangeExact ke
   by_cases h1 : ed = [W8 0]
   · subst h1; exact rangeExact_fromKey key hkey
   exact rangeExact_proper key ed hkey h0 h1
+
+/-- **A prefix watch's registered range covers exactly the keys under its key** (a non-empty key;
+an all-`0xff` key's range end `[0]` is registered open-ended, and every key from it on has it as a
+prefix). -/
+theorem covers_prefix (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange)
+    (hc : v3rpc.createRangeOk c id r) (hkey : c.key ≠ []) (hend : c.rangeEnd = prefixRangeEnd c.key) :
+    ∀ k, r.covers k = true ↔ c.key <+: k := by
+  intro k
+  rw [rangeExact_of_ne c.key c.rangeEnd hkey c id r (if_neg hkey) rfl hc k, hend]
+  exact concurrency.inRange_prefix c.key k hkey
 
 /-! ## The second cursor's steps (pure) -/
 

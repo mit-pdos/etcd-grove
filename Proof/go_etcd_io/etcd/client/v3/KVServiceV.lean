@@ -10,7 +10,7 @@ conversions from the member's auth-off specs (`etcdPutSpecV_plain`, ...). Here:
   heap, `rfl`), as `grpcdriver/SvcG.lean`'s.
 * **A member serving its specs over the mode serves the view** (`etcdPutSpecV_M`, ...: the view's
   caller meets the member's spec over the mode, after an update): `Range` in either mode; `DeleteRange`
-  in either, for requests of the shape the auth-on spec asks (`auth.reqShape`); `Compact` with auth
+  in either; `Compact` with auth
   off (the only mode its spec covers); `Put` and `Txn` with auth off (with auth on the member's spec
   gives no revision bound for a write's reply yet).
 -/
@@ -170,13 +170,12 @@ theorem etcdRangeSpecV_M (on : Bool) (T : IProp GF) [Persistent T] (E : apply.AE
   · ipureintro; exact List.mem_singleton_self _
   iexact Hm
 
-/-- **The view's `DeleteRange` meets a member's spec in the mode `on`** (after an update): with
-auth on, for requests of the shape the permission cache decides (`auth.reqShape`, what the auth-on
-spec asks); the reply's grant unused. -/
+/-- **The view's `DeleteRange` meets a member's spec in the mode `on`** (after an update): in either
+mode (N1b-1: until then, with auth on, only for requests of the shape `auth.reqShape`); the reply's
+grant unused. -/
 theorem etcdDeleteSpecV_M (on : Bool) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γk : KVNames) (hk : kvSame ρ.rd.kv γk)
-    (hrb : receiptBound GF ≤ 2 ^ 62)
-    (hsh : ∀ o : OpFull, on = true → auth.reqShape o.key o.base.rangeEnd) :
+    (hrb : receiptBound GF ≤ 2 ^ 62) :
     ∀ md o Φ Ψe, etcdDeleteSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdDeleteSpecM on T E ρ cid mid md o Φ Ψe := by
   intro md o Φ Ψe
@@ -189,8 +188,6 @@ theorem etcdDeleteSpecV_M (on : Bool) (T : IProp GF) [Persistent T] (E : apply.A
   imodintro
   isplitr
   · iexact HΨe
-  isplitr
-  · ipureintro; exact hsh o
   iexists []
   isplitr
   · iexact HF

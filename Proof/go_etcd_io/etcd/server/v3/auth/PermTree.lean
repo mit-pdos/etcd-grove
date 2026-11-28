@@ -378,6 +378,50 @@ theorem coversX_emptyKey (st : AuthState) (u : User) (op : PermType) (e : GoStri
     rw [adt.containsT_eq _ _ hsort (Or.inl hq1)]
     simp only [adt.containsRes, hstab]
 
+/-- **`coversX` of a point is `coversPoint`** (every key, the empty one included), in a state with
+valid permission ranges. -/
+theorem coversX_point_iff (st : AuthState) (u : User) (op : PermType) (k : GoString)
+    (hkeys : permKeysOk st) : coversX st u op k [] = true ↔ coversPoint st u op k := by
+  rw [coversX_point, coversPoint_iff st u op k hkeys]
+
+/-- **Go's verdict covers the range it grants** (N1b-1, for every request): when `coversX` passes,
+every key of `[k, e)` in the model's sense (`inRange`) is covered by a permission of the type. A
+range of the cache's shape by `coversX_iff_covers`, a point by `coversX_point_iff`; an empty key is
+refused (`coversX_emptyKey`), and an empty or inverted range holds no key. -/
+theorem coversX_covers (st : AuthState) (u : User) (op : PermType) (k e : GoString)
+    (hkeys : permKeysOk st) (h : coversX st u op k e = true) :
+    ∀ x, inRange k e x → ∃ p ∈ userPerms st u, p.covers op x := by
+  intro x hx
+  by_cases hk : k = []
+  · subst hk; rw [coversX_emptyKey] at h; cases h
+  by_cases he : e = []
+  · subst he
+    simp only [inRange, ↓reduceIte] at hx
+    subst hx
+    exact (coversX_point_iff st u op x hkeys).1 h
+  by_cases hs : isOpenEnded e ∨ go.GoStringLt k e
+  · have hc := (coversX_iff_covers st u op k e hkeys ⟨hk, Or.inr hs⟩).1 h
+    unfold covers at hc
+    rw [if_neg he] at hc
+    exact hc x hx
+  · exfalso
+    simp only [inRange, he, ↓reduceIte] at hx
+    obtain ⟨hle, hlt⟩ := hx
+    rcases hlt with ho | hlt
+    · exact hs (Or.inl ho)
+    · rcases hle with rfl | hle
+      · exact hs (Or.inr hlt)
+      · exact hs (Or.inr (go.goStringLt_trans hle hlt))
+
+/-- **`granted` gives the coverage** (for every request): auth's grant at `st` is a revision that is
+not `0` and a user with the root role or covering every key of the range (`coversX_covers`). -/
+theorem granted_covers (st : AuthState) (ai : AuthInfoM) (k e : GoString) (op : PermType)
+    (hkeys : permKeysOk st) (h : granted st ai k e op) :
+    ai.rev ≠ 0 ∧ ∃ u, st.users !! ai.user = some u ∧
+      (isRoot u ∨ ∀ x, inRange k e x → ∃ p ∈ userPerms st u, p.covers op x) := by
+  obtain ⟨h0, u, hu, hc⟩ := h
+  exact ⟨h0, u, hu, hc.imp id (coversX_covers st u op k e hkeys)⟩
+
 /-- `Contains` true of a query whose end is not above its begin (an empty or inverted range): an
 entry holds the query's begin (every entry `Visit` hands the scan overlaps the query, `ivlCmp`). -/
 theorem containsT_true_holds (q : adt.IvlS) (T : adt.RbT adt.Entry) (hq : ¬ adt.affLt q.1 q.2)

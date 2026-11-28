@@ -382,12 +382,14 @@ theorem ownRoleX_persist (E : CoPset) (p : Loc) (r : RoleRec) :
 /-! ## What the backend's reads return of a state -/
 
 /-- What `UnsafeGetUser(name)` returns of the state `st`: nil if `st` has no such user, else a
-message holding a record of that name whose roles are the state's, sorted. -/
+message holding a record of that name whose roles are the state's, sorted, and whose `NoPassword` is
+the state's (`AuthState.noPw`; nomode D3 follow-up (a), 2026-11-28). -/
 def userOut (u : Loc) (st : AuthState) (name : GoString) : IProp GF :=
   match st.users.lookup name with
   | none => iprop(⌜u = null⌝)
   | some roles => iprop(∃ ur : UserRec,
-      ⌜ur.name = name ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt⌝ ∗ ownUser u ur)
+      ⌜ur.name = name ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt ∧
+        ur.noPassword = st.noPw name⌝ ∗ ownUser u ur)
 
 /-- What `UnsafeGetRole(name)` returns of the state `st`: nil if `st` has no such role, else a
 message holding a record of that name whose permissions of a known type are the state's, which are
@@ -405,7 +407,8 @@ def userOutX (u : Loc) (st : AuthState) (name : GoString) : IProp GF :=
   match st.users.lookup name with
   | none => iprop(⌜u = null⌝)
   | some roles => iprop(∃ ur : UserRec,
-      ⌜ur.name = name ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt⌝ ∗ ownUserX u ur)
+      ⌜ur.name = name ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt ∧
+        ur.noPassword = st.noPw name⌝ ∗ ownUserX u ur)
 
 /-- `roleOut` with the message as `proto.Unmarshal` returns it (`ownRoleX`). -/
 def roleOutX (r : Loc) (st : AuthState) (name : GoString) : IProp GF :=

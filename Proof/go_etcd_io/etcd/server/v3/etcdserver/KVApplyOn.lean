@@ -81,7 +81,7 @@ theorem outcomeOn_eq (c₀ : w64) (ch : apply.Chain) (s o : OnState)
         split
         · rename_i ha
           rw [if_pos ha] at ho
-          have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1
+          have hdet := hd hm.1 hm.2 rq hdec ha.1
             (needAdminPermission_of_adminDispatchKind rq ha.2)
           obtain ⟨h1, h2⟩ := ho
           exact Prod.ext (adminNext_of_det rq s.1 o.1 hdet h1).symm h2
@@ -109,7 +109,7 @@ theorem outcomeOn_model (c₀ : w64) (ch : apply.Chain) (s : OnState)
           ¬ auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))
       · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_pos hrf]
       by_cases ha : uint.Z c₀ < uint.Z m.index ∧ adminDispatchKind (apply.dispatchKind rq) = true
-      · have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1 (needAdminPermission_of_adminDispatchKind rq ha.2)
+      · have hdet := hd hm.1 hm.2 rq hdec ha.1 (needAdminPermission_of_adminDispatchKind rq ha.2)
         simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg hrf, if_pos ha]
         refine ⟨?_, trivial⟩
         simp only [adminNext, dif_pos hdet]
@@ -194,20 +194,6 @@ theorem kvTable_alarmChain_on (c₀ : w64) (lt : LeaseTable) (e : EntryModel) :
       · rename_i rq _; rw [hc rq]
       · rfl
   · rfl
-
-/-- (2026-11-05, H-rr1) **The mode-`on` model grows by at most one revision per entry**
-(`kvRaftOf_length_le`'s counterpart). -/
-theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
-    (A : List EntryModel) : (kvRaftOfOn c₀ ch s₀ A).2.1.length ≤ s₀.2.1.length + A.length := by
-  induction A generalizing s₀ with
-  | nil => simp [kvRaftOfOn_nil]
-  | cons m A ih =>
-    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2.1.length ≤ _
-    have h := ih (kvEntryOn c₀ ch s₀ m)
-    rcases kvEntryOn_grow c₀ ch s₀ m with he | ⟨cs, he⟩
-    · rw [he] at h; simp only [List.length_cons]; omega
-    · rw [he] at h; simp only [List.length_append, List.length_singleton] at h
-      simp only [List.length_cons]; omega
 
 /-- **The mode-`on` model of a log with short keys, from a start with none, has none**
 (`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
@@ -596,7 +582,7 @@ theorem kvInv_keysA (γr : ReadNames) (A : List EntryModel) :
   ipureintro
   obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
   rw [(kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
-  unfold kvModel
+  rw [kvModel_offM _ A' (fun m hm => Hok'.1 m (hA'L.subset hm))]
   exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2.1
 
 /-- `kvInv_keysA` in the mode `on`, at the start's auth state `st₀`. -/

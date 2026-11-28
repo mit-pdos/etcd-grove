@@ -177,7 +177,7 @@ auth on, the update persistent and told the delete's grant: `client_delete_on` t
 `*Client` method. -/
 theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ [])
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
@@ -200,7 +200,7 @@ theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : ap
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_delete_on api conn addr (srvTLSId s) E ρ cid mid ci om cd key sl Q F hk hsz) $$ [$Hlt]
+  wp_apply (client_delete_on api conn addr (srvTLSId s) E ρ cid mid ci om cd key sl Q F hsz) $$ [$Hlt]
     as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   iapply HΦ

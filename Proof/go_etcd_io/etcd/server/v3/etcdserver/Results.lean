@@ -1427,7 +1427,7 @@ theorem auth_op_permitted_latest :
 
 /-- **`IsPutPermitted`, `IsRangePermitted`, `IsDeleteRangePermitted` on the apply thread at the
 latest state** (the auth plan's E2r): the verdict of their one permission at the latest state
-(`permVerdictL`; for a request of the cache's shape, `kvGranted`'s form, `auth.permVerdictL_granted`). -/
+(`permVerdictL`; in `kvGranted`'s form for every request, `auth.permVerdictL_granted`). -/
 theorem auth_put_permitted_latest :
     auth.authStore.IsPutPermitted.specL (GF := GF) (hG := hG) :=
   auth.authStore.IsPutPermitted.wp_latest auth_op_permitted_latest
@@ -1673,7 +1673,7 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     (auth.authStore.UserDelete.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
       zap.Logger.wp_Info)
-    (auth.authStore.UserChangePassword.wp_tieSureB auth.authStore.wp_commitRevision
+    (auth.authStore.UserChangePassword.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
       zap.wp_Strings zap.Logger.wp_Info)
     (auth.authStore.UserRevokeRole.wp_tieB auth.authStore.wp_commitRevision
@@ -2212,7 +2212,7 @@ theorem srv_auth_tp_on : authSrvTPAt (GF := GF) (hG := hG) true :=
     (auth.authStore.UserDelete.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
       zap.Logger.wp_Info)
-    (auth.authStore.UserChangePassword.wp_tieSureB auth.authStore.wp_commitRevision
+    (auth.authStore.UserChangePassword.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
       zap.wp_Strings zap.Logger.wp_Info)
     (auth.authStore.UserRevokeRole.wp_tieB auth.authStore.wp_commitRevision
@@ -2580,7 +2580,7 @@ theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (s
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
       ⌜plainReqL γr.kv.lm rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
         entryDetOn γr.kv.c0 (st, x.log, kvLeasesOn γr.kv st₀ A) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
-        noZeroEnds rq ∧ kvShapeAll rq⌝ ∗
+        noZeroEnds rq⌝ ∗
       EtcdGrove.apply.certPreVW true E x.chain rq x.log
         (EtcdGrove.apply.kvOutLT (.on γa) E.lg hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
           (.quota .backend) rq x.log (kvLeasesOn γr.kv st₀ A).ids) ∗

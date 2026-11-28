@@ -47,7 +47,11 @@ theorem apply.applierV3backend.UserAdd.wp_proof
   wp_auto
   rw [Hai]
   wp_apply HM $$ %r %um.name %B %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt $Htie] as %resp %err ⟨HPP, Hrt, Htie, Hhdr, #HeI, HRW⟩
-  · iframe Hr; ipureintro; exact ⟨Hadm, Hn⟩
+  · isplitr
+    · ipureintro; exact Hadm
+    isplitr
+    · iexists um.noPassword; iexact Hr
+    ipureintro; exact Hn
   wp_if_destruct
   · -- no response
     iapply HΦ

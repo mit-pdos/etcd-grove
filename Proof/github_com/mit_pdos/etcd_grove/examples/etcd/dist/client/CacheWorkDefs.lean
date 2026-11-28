@@ -343,13 +343,13 @@ theorem isEtcdProgressNotifier_of_dist (wp_RP : RequestProgress_dist.spec (GF :=
 /-- **`New`'s client of endpoints serving the view is the cache's client** at the adapter's model (see the
 file header; `client.isEtcdClient_of_km` across machines): its `KV` a KV client of the view
 (`kv.Get.spec`, auth off), its `Watcher` a watch client of it (`Watch_dist`, `RequestProgress_dist`), for a
-non-empty prefix not all `0xff`. -/
+non-empty prefix. -/
 theorem isEtcdClient_of_dist (wp_Get : kv.Get.spec (GF := GF) (hG := hG))
     (wp_Watch : Watch_dist.spec (GF := GF) (hG := hG))
     (wp_RP : RequestProgress_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
     (cl api w : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (hauth : Γ.auth = false)
     (γ : KMNames) (hγ : γ.kv = Γ.kv)
-    (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) :
+    (pfx : GoString) (hp : pfx ≠ []) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ ctxErrClientAllW ∗
@@ -373,7 +373,7 @@ theorem isEtcdClient_of_dist (wp_Get : kv.Get.spec (GF := GF) (hG := hG))
   · iapply isEtcdKVE_of_dist wp_Get cl api eps V Γ hauth γ hγ pfx hp
     iframe #
   isplitr
-  · iapply isEtcdWatcher_of_kmW w γ pfx hp hff
+  · iapply isEtcdWatcher_of_kmW w γ pfx hp
     iframe #
   iapply isEtcdProgressNotifier_of_dist wp_RP cl w eps V Γ
   iframe #

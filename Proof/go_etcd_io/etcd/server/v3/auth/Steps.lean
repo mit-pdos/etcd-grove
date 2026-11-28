@@ -100,12 +100,52 @@ abbrev StepRel := AuthState → Outcome → Prop
 def bump (st : AuthState) : AuthState := { st with revision := st.revision + 1 }
 
 /-- **The auth state of freshly created buckets**: disabled, revision `0`, no user, no role. -/
-def bootState : AuthState := ⟨false, 0, ∅, ∅⟩
+def bootState : AuthState := ⟨false, 0, ∅, ∅, ∅⟩
 
 /-- `UnsafePutUser` of a record of the name with the roles (the user's other fields are not
 in the model). -/
 def putUser (st : AuthState) (name : GoString) (roles : User) : AuthState :=
   { st with users := GMap.insert name roles st.users }
+
+/-- The set of no-password users `m` with `n`'s `NoPassword` set to `b`. -/
+def setNoPw (m : GMap GoString Unit) (n : GoString) (b : Bool) : GMap GoString Unit :=
+  if b then GMap.insert n () m else GMap.delete n m
+
+theorem setNoPw_lookup (m : GMap GoString Unit) (n k : GoString) (b : Bool) :
+    ((setNoPw m n b) !! k).isSome = if n = k then b else (m !! k).isSome := by
+  unfold setNoPw; cases b <;> by_cases h : n = k <;> simp [h]
+
+theorem setNoPw_same (m : GMap GoString Unit) (n : GoString) (b : Bool) (h : b = (m !! n).isSome) :
+    setNoPw m n b = m := by
+  apply GMap.ext; intro k
+  unfold setNoPw
+  cases b
+  · simp only [Bool.false_eq_true, ↓reduceIte, GMap.lookup_delete_iff]
+    by_cases hk : n = k
+    · subst hk; cases hm : m !! n <;> simp_all
+    · simp [hk]
+  · simp only [↓reduceIte, GMap.lookup_insert_eq_iff]
+    by_cases hk : n = k
+    · subst hk; cases hm : m !! n <;> simp_all
+    · simp [hk]
+
+/-- `UnsafePutUser` of the record `ur`: its roles and its `NoPassword` (the store's view of a put,
+`authBatchTxLk`). Every put but `UserAdd`'s rewrites a user with the `Options` it read
+(`putUserRec_same`). -/
+def putUserRec (st : AuthState) (ur : UserRec) : AuthState :=
+  { putUser st ur.name ur.roles with noPwUsers := setNoPw st.noPwUsers ur.name ur.noPassword }
+
+theorem putUserRec_same (st : AuthState) (ur : UserRec) (h : ur.noPassword = st.noPw ur.name) :
+    putUserRec st ur = putUser st ur.name ur.roles := by
+  unfold putUserRec putUser; rw [setNoPw_same _ _ _ h]
+
+theorem putUserRec_noPw (st : AuthState) (ur : UserRec) (k : GoString) :
+    (putUserRec st ur).noPw k = if ur.name = k then ur.noPassword else st.noPw k :=
+  setNoPw_lookup _ _ _ _
+
+/-- `UserAdd`'s write: the user `name` with no roles and the `NoPassword` option `nob`. -/
+def addUser (st : AuthState) (name : GoString) (nob : Bool) : AuthState :=
+  { putUser st name [] with noPwUsers := setNoPw st.noPwUsers name nob }
 
 /-- `UnsafeDeleteUser`. -/
 def delUser (st : AuthState) (name : GoString) : AuthState :=
@@ -137,13 +177,14 @@ def authEnableF (en : Bool) (st : AuthState) : Outcome :=
 def authDisableF (en : Bool) (st : AuthState) : Outcome :=
   if en then .next (bump { st with enabled := false }) else .same
 
-/-- `UserAdd(name)`: an empty name (`ErrUserEmpty`), an existing user (`ErrUserAlreadyExist`),
-else the user with no roles. (`ErrNoPasswordUser`, when the password cannot be selected, is a
-data-dependent refusal outside the model: `adminOut`'s `extra`.) -/
-def userAddF (name : GoString) (st : AuthState) : Outcome :=
+/-- `UserAdd(name)` with the `NoPassword` option `nob`: an empty name (`ErrUserEmpty`), an existing
+user (`ErrUserAlreadyExist`), else the user with no roles and the option. (`ErrNoPasswordUser`, when
+the password cannot be selected, is a refusal outside the model: `adminOut`'s `extra`; the request
+model rules it out, `UserAddModel.pwSure`.) -/
+def userAddF (name : GoString) (nob : Bool) (st : AuthState) : Outcome :=
   if name = [] then .err .userEmpty
   else if (st.users !! name).isSome then .err .userAlreadyExist
-  else .next (bump (putUser st name []))
+  else .next (bump (addUser st name nob))
 
 /-- `UserDelete(name)`, having read the flag `en`: `root` with auth enabled
 (`ErrInvalidAuthMgmt`); no such user (`ErrUserNotFound`); else deleted. -/
@@ -153,12 +194,16 @@ def userDeleteF (en : Bool) (name : GoString) (st : AuthState) : Outcome :=
     | none => .err .userNotFound
     | some _ => .next (bump (delUser st name))
 
-/-- `UserChangePassword(name)`: no such user (`ErrUserNotFound`); else the record rewritten with
-the same roles, the revision bumped. (`ErrNoPasswordUser`: `extra`.) -/
-def userChangePasswordF (name : GoString) (st : AuthState) : Outcome :=
+open Classical in
+/-- `UserChangePassword(name)`, the request's password choice succeeding or not (`ok`:
+`selectPwOk` of its passwords): no such user (`ErrUserNotFound`); a user with a password
+(`NoPassword` false) whose choice fails (`ErrNoPasswordUser`); else the record rewritten with the same
+roles and options, the revision bumped. (nomode D3 follow-up (a), 2026-11-28: until then
+`ErrNoPasswordUser` was a refusal outside the model.) -/
+def userChangePasswordF (name : GoString) (ok : Prop) (st : AuthState) : Outcome :=
   match st.users !! name with
   | none => .err .userNotFound
-  | some _ => .next (bump st)
+  | some _ => if st.noPw name = true ∨ ok then .next (bump st) else .err .noPasswordUser
 
 /-- `UserGrantRole(user, role)`: no such user (`ErrUserNotFound`); a role other than `root` that
 does not exist (`ErrRoleNotFound`); a role the user has (nothing: "ignored"); else the user's
@@ -268,6 +313,12 @@ theorem permKeysOk_enabled (st : AuthState) (b : Bool) (h : permKeysOk st) :
 
 theorem permKeysOk_putUser (st : AuthState) (name : GoString) (roles : User) (h : permKeysOk st) :
     permKeysOk (putUser st name roles) := h
+
+theorem permKeysOk_putUserRec (st : AuthState) (ur : UserRec) (h : permKeysOk st) :
+    permKeysOk (putUserRec st ur) := h
+
+theorem permKeysOk_addUser (st : AuthState) (name : GoString) (nob : Bool) (h : permKeysOk st) :
+    permKeysOk (addUser st name nob) := h
 
 theorem permKeysOk_delUser (st : AuthState) (name : GoString) (h : permKeysOk st) :
     permKeysOk (delUser st name) := h

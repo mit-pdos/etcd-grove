@@ -46,7 +46,7 @@ variable [sem : go.Semantics]
 theorem auth.userOut_some_named (u : Loc) (st : AuthState) (name : GoString) (hnn : u ≠ null) :
     userOut (GF := GF) u st name ⊢ ∃ (roles : User) (ur : UserRec),
       ⌜st.users !! name = some roles ∧ ur.name = name ∧ ur.roles = roles ∧
-        roles.Pairwise go.GoStringLt⌝ ∗ ownUser u ur := by
+        roles.Pairwise go.GoStringLt ∧ ur.noPassword = st.noPw name⌝ ∗ ownUser u ur := by
   unfold userOut
   cases h : st.users !! name with
   | none =>
@@ -59,7 +59,7 @@ theorem auth.userOut_some_named (u : Loc) (st : AuthState) (name : GoString) (hn
     iintro ⟨%ur, %Hur, Hu⟩
     iexists roles, ur
     iframe Hu
-    ipureintro; exact ⟨rfl, Hur.1, Hur.2.1, Hur.2.2⟩
+    ipureintro; exact ⟨rfl, Hur.1, Hur.2.1, Hur.2.2.1, Hur.2.2.2⟩
 
 end lemmas
 

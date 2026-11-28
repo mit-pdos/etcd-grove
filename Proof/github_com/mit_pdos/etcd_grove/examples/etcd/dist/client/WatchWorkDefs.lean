@@ -141,8 +141,7 @@ theorem kvWatcherW_of_dist (wp_Watch : Watch_dist.spec (GF := GF) (hG := hG)) [�
 
 /-- **A watcher of the adapter's KV meets the cache's watcher contract** at the adapter's model
 (`client.isEtcdWatcher_of_km` over `kvWatcherW`; see the file header). -/
-theorem isEtcdWatcher_of_kmW (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx ≠ [])
-    (hff : prefixRangeEnd pfx ≠ [W8 0]) :
+theorem isEtcdWatcher_of_kmW (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx ≠ []) :
     kvWatcherW (GF := GF) w γ.kv ∗ kmInv γ ⊢
     isEtcdWatcher (EM := etcdModelOfKV γ) (watcherIfaceOf w) pfx := by
   iintro ⟨#Hw, #Hinv⟩
@@ -185,7 +184,7 @@ theorem isEtcdWatcher_of_kmW (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx
     iintro !> %i %v H
     ihave H := watchStateElemP_elem _ γw (opWatchModel key gs) (kmSeenQ γ l0) _ i v $$ H
     imodintro
-    iapply etcdWatchElem_of_km γ l0 pfx hp hff (opWatchModel key gs) rev hkey hend hr _ γw _ i v
+    iapply etcdWatchElem_of_km γ l0 pfx hp (opWatchModel key gs) rev hkey hend hr _ γw _ i v
       $$ [Hreach H]
     iframe Hreach H
   unfold etcdWatchConsumer

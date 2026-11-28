@@ -81,7 +81,10 @@ theorem base64.Encoding.Decode.wp_proof
   · -- nothing to decode
     try wp_auto
     iapply HΦ; iexists d; iframe; ipureintro
-    refine ⟨rfl, by word, by word, fun _ _ => rfl⟩
+    have hs0 : s = [] := List.eq_nil_of_length_eq_zero (by
+      have := Hsl.1
+      first | word | (have := of_decide_eq_true Hif.symm; word) | (have := of_decide_eq_true Hif; word))
+    refine ⟨rfl, by word, by word, fun _ => ⟨fun _ => by rw [hs0]; simp [_root_.Perennial.encoding.base64.dropNL, base64.b64Ok], fun _ => rfl⟩⟩
   · icases base64.enc_open e enc dqe $$ He with ⟨%Hnn, Hf⟩
     icases Hf with ⟨Henc, Hdm, Hpad, Hstrict⟩
     try wp_auto
@@ -93,24 +96,24 @@ theorem base64.Encoding.Decode.wp_proof
         "n" ∷ n_ptr ↦ n ∗ "si" ∷ si_ptr ↦ si ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗ "Hdst" ∷ dst ↦* d' ∗
         "%Hinv'" ∷ ⌜d'.length = d.length ∧ 0 ≤ sint.Z si ∧ sint.Z si ≤ s.length ∧ 0 ≤ sint.Z n ∧
           sint.Z n ≤ d.length ∧ ((∃ k : Nat, sint.Z n = 3 * k ∧ 4 * k ≤ sint.Z si) ∨ sint.Z si = s.length) ∧
-          (base64.decOk enc → base64.b64Ok enc.encode'.arr s →
-            sint.Z si % 4 = 0 ∧ base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)))⌝ : IProp GF)
+          (base64.decOk enc → (base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s) ↔
+            base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝ : IProp GF)
         $$ [n si err Hdst]
     · iexists W64 0, W64 0, d; iframe; ipureintro
       refine ⟨rfl, by word, by word, by word, by word, .inl ⟨0, by word, by word⟩,
-        fun _ hb => ⟨by word, by rw [show sint.nat (W64 0) = 0 from rfl, List.drop_zero]; exact hb⟩⟩
+        fun _ => by rw [show sint.nat (W64 0) = 0 from rfl, List.drop_zero]⟩
     wp_join (Q := fun v => iprop(
         (∃ (n si : w64) (d' : List w8), "He" ∷ e ↦{dqe} enc ∗ "n" ∷ n_ptr ↦ n ∗ "si" ∷ si_ptr ↦ si ∗
           "err" ∷ err_ptr ↦ GoInterface.nil ∗ "Hdst" ∷ dst ↦* d' ∗ "Hsrc" ∷ src ↦*{dq} s ∗
           "src" ∷ src_ptr ↦ src ∗ "dst" ∷ dst_ptr ↦ dst ∗ "enc" ∷ enc_ptr ↦ e ∗
           "%Hv" ∷ ⌜v = executeVal⌝ ∗ "%Hinv'" ∷ ⌜d'.length = d.length ∧ 0 ≤ sint.Z si ∧ sint.Z si ≤ s.length ∧ 0 ≤ sint.Z n ∧
           sint.Z n ≤ d.length ∧ ((∃ k : Nat, sint.Z n = 3 * k ∧ 4 * k ≤ sint.Z si) ∨ sint.Z si = s.length) ∧
-          (base64.decOk enc → base64.b64Ok enc.encode'.arr s →
-            sint.Z si % 4 = 0 ∧ base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)))⌝) ∨
+          (base64.decOk enc → (base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s) ↔
+            base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝) ∨
         (∃ (n : w64) (err : GoInterface) (d' : List w8), "He" ∷ e ↦{dqe} enc ∗ "n" ∷ n_ptr ↦ n ∗
           "err" ∷ err_ptr ↦ err ∗ "Hdst" ∷ dst ↦* d' ∗ "Hsrc" ∷ src ↦*{dq} s ∗
           "%Hret" ∷ ⌜v = returnVal #() ∧ d'.length = d.length ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ d.length ∧
-            (base64.decOk enc → base64.b64Ok enc.encode'.arr s → err = GoInterface.nil)⌝))) at next
+            (base64.decOk enc → (err = GoInterface.nil ↔ base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s)))⌝))) at next
       with [-HΦ]
     · wp_for HI
       by_cases hc1 : sint.Z (W64 8) ≤ sint.Z (src.len - si)
@@ -288,27 +291,52 @@ theorem base64.Encoding.Decode.wp_proof
               isplitl [Henc Hdm Hpad Hstrict]
               · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; iframe
               iframe; ipureintro
-              refine ⟨rfl, hlen', by word, by word, fun hok hb => ?_⟩
-              exfalso
-              obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-              have := (hq7 hok (by word) hb').1
-              exact absurd this (by intro h; cases h)
+              refine ⟨rfl, hlen', by word, by word, fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun hb => ?_⟩⟩
+              exact absurd ((Hinv'.2.2.2.2.2.2 hok).1 hb) ((hq7 hok).2 (by intro h'; cases h'))
             · -- no error: on
               try wp_auto
               wp_for_post
               iframe; iexists n + ninc, si', _; iframe; ipureintro
-              refine ⟨hlen', by word, hq3, by word, by word, ?_, fun hok hb => ?_⟩
+              refine ⟨hlen', by word, hq3, by word, by word, ?_, fun hok => ?_⟩
               · rcases hq6 rfl with ⟨h3, h4⟩ | h
                 · rcases Hinv'.2.2.2.2.2.1 with ⟨k, hk1, hk2⟩ | h'
                   · exact .inl ⟨k + 1, by word, by word⟩
                   · exfalso; omega
                 · exact .inr h
-              · obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-                obtain ⟨-, hsi4, -⟩ := hq7 hok (by word) hb'
-                refine ⟨by word, ?_⟩
-                rw [show sint.nat si' = sint.nat si + 4 by word]
-                exact base64.b64Ok_dropAt _ hok.2.1 s _ hb' (by word)
+              · exact (Hinv'.2.2.2.2.2.2 hok).trans (base64.quantumOk_iff ((hq7 hok).1 rfl))
           · -- all symbols: stored at once
+            have hor := base64.not_of_true_eq_not_decide Hok
+            obtain ⟨h06, h7⟩ := base64.or_ne_ff hor
+            obtain ⟨h05, h6⟩ := base64.or_ne_ff h06
+            obtain ⟨h04, h5⟩ := base64.or_ne_ff h05
+            obtain ⟨h03, h4⟩ := base64.or_ne_ff h04
+            obtain ⟨h02, h3⟩ := base64.or_ne_ff h03
+            obtain ⟨h01, h2⟩ := base64.or_ne_ff h02
+            obtain ⟨h0, h1⟩ := base64.or_ne_ff h01
+            have hs0 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x0 h0
+            have hx0' : s[sint.nat si]? = some x0 := by
+              rw [show sint.nat si = (sint.Z si + sint.Z (W64 0)).toNat by word]; exact hx0
+            have hs1 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x1 h1
+            have hx1' : s[sint.nat si + 1]? = some x1 := by
+              rw [show sint.nat si + 1 = (sint.Z si + sint.Z (W64 1)).toNat by word]; exact hx1
+            have hs2 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x2 h2
+            have hx2' : s[sint.nat si + 2]? = some x2 := by
+              rw [show sint.nat si + 2 = (sint.Z si + sint.Z (W64 2)).toNat by word]; exact hx2
+            have hs3 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x3 h3
+            have hx3' : s[sint.nat si + 3]? = some x3 := by
+              rw [show sint.nat si + 3 = (sint.Z si + sint.Z (W64 3)).toNat by word]; exact hx3
+            have hs4 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x4 h4
+            have hx4' : s[sint.nat si + 4]? = some x4 := by
+              rw [show sint.nat si + 4 = (sint.Z si + sint.Z (W64 4)).toNat by word]; exact hx4
+            have hs5 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x5 h5
+            have hx5' : s[sint.nat si + 4 + 1]? = some x5 := by
+              rw [show sint.nat si + 4 + 1 = (sint.Z si + sint.Z (W64 5)).toNat by word]; exact hx5
+            have hs6 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x6 h6
+            have hx6' : s[sint.nat si + 4 + 2]? = some x6 := by
+              rw [show sint.nat si + 4 + 2 = (sint.Z si + sint.Z (W64 6)).toNat by word]; exact hx6
+            have hs7 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x7 h7
+            have hx7' : s[sint.nat si + 4 + 3]? = some x7 := by
+              rw [show sint.nat si + 4 + 3 = (sint.Z si + sint.Z (W64 7)).toNat by word]; exact hx7
             have hsp : 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z dst.len := by
               have := Hinv'.2.2.2.1; have := Hinv'.2.2.2.2.1; have := Hinv'.1; constructor <;> word
             have hsl1 : 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z dst.len ∧ sint.Z dst.len ≤ sint.Z dst.cap :=
@@ -332,14 +360,14 @@ theorem base64.Encoding.Decode.wp_proof
             wp_for_post
             iframe; iexists n + W64 6, si + W64 8, _; iframe; ipureintro
             refine ⟨by rw [List.length_append, List.length_take, hbs', List.length_drop]; have := Hinv'.1; have := Hinv'.2.2.2.2.1; word,
-              by word, by word, by word, by word, ?_, fun hok hb => ?_⟩
+              by word, by word, by word, by word, ?_, fun hok => ?_⟩
             · rcases Hinv'.2.2.2.2.2.1 with ⟨k, hk1, hk2⟩ | h
               · exact .inl ⟨k + 2, by word, by word⟩
               · exfalso; omega
-            · obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-              refine ⟨by word, ?_⟩
+            · refine (Hinv'.2.2.2.2.2.2 hok).trans ?_
               rw [show sint.nat (si + W64 8) = sint.nat si + 4 + 4 by word]
-              exact base64.b64Ok_dropAt _ hok.2.1 s _ (base64.b64Ok_dropAt _ hok.2.1 s _ hb' (by word)) (by word)
+              exact (base64.b64Ok_drop_sym4 hok s _ x0 x1 x2 x3 hx0' hx1' hx2' hx3' (hs0 hok) (hs1 hok) (hs2 hok) (hs3 hok)).trans
+                (base64.b64Ok_drop_sym4 hok s _ x4 x5 x6 x7 hx4' hx5' hx6' hx7' (hs4 hok) (hs5 hok) (hs6 hok) (hs7 hok))
         · rw [decide_eq_false hc2]
           try wp_auto
           rw [base64.ite_ft, base64.ite_ff]
@@ -369,8 +397,8 @@ theorem base64.Encoding.Decode.wp_proof
             "n" ∷ n_ptr ↦ n ∗ "si" ∷ si_ptr ↦ si ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗ "Hdst" ∷ dst ↦* d' ∗
             "%Hinv'" ∷ ⌜d'.length = d.length ∧ 0 ≤ sint.Z si ∧ sint.Z si ≤ s.length ∧ 0 ≤ sint.Z n ∧
               sint.Z n ≤ d.length ∧ ((∃ k : Nat, sint.Z n = 3 * k ∧ 4 * k ≤ sint.Z si) ∨ sint.Z si = s.length) ∧
-              (base64.decOk enc → base64.b64Ok enc.encode'.arr s →
-                sint.Z si % 4 = 0 ∧ base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)))⌝ : IProp GF)
+              (base64.decOk enc → (base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s) ↔
+                base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝ : IProp GF)
             $$ [n si err Hdst]
         · iexists _, _, _; iframe; ipureintro; exact Hinv'
         wp_join (Q := fun v => iprop(
@@ -379,12 +407,12 @@ theorem base64.Encoding.Decode.wp_proof
               "src" ∷ src_ptr ↦ src ∗ "dst" ∷ dst_ptr ↦ dst ∗ "enc" ∷ enc_ptr ↦ e ∗
               "%Hv" ∷ ⌜v = executeVal⌝ ∗ "%Hinv'" ∷ ⌜d'.length = d.length ∧ 0 ≤ sint.Z si ∧ sint.Z si ≤ s.length ∧ 0 ≤ sint.Z n ∧
               sint.Z n ≤ d.length ∧ ((∃ k : Nat, sint.Z n = 3 * k ∧ 4 * k ≤ sint.Z si) ∨ sint.Z si = s.length) ∧
-              (base64.decOk enc → base64.b64Ok enc.encode'.arr s →
-                sint.Z si % 4 = 0 ∧ base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)))⌝) ∨
+              (base64.decOk enc → (base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s) ↔
+                base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝) ∨
             (∃ (n : w64) (err : GoInterface) (d' : List w8), "He" ∷ e ↦{dqe} enc ∗ "n" ∷ n_ptr ↦ n ∗
               "err" ∷ err_ptr ↦ err ∗ "Hdst" ∷ dst ↦* d' ∗ "Hsrc" ∷ src ↦*{dq} s ∗
               "%Hret" ∷ ⌜v = returnVal #() ∧ d'.length = d.length ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ d.length ∧
-                (base64.decOk enc → base64.b64Ok enc.encode'.arr s → err = GoInterface.nil)⌝))) at next
+                (base64.decOk enc → (err = GoInterface.nil ↔ base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s)))⌝))) at next
           with [-HΦ]
         · wp_for HI
           by_cases hc1 : sint.Z (W64 4) ≤ sint.Z (src.len - si)
@@ -514,27 +542,37 @@ theorem base64.Encoding.Decode.wp_proof
                   isplitl [Henc Hdm Hpad Hstrict]
                   · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; iframe
                   iframe; ipureintro
-                  refine ⟨rfl, hlen', by word, by word, fun hok hb => ?_⟩
-                  exfalso
-                  obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-                  have := (hq7 hok (by word) hb').1
-                  exact absurd this (by intro h; cases h)
+                  refine ⟨rfl, hlen', by word, by word, fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun hb => ?_⟩⟩
+                  exact absurd ((Hinv'.2.2.2.2.2.2 hok).1 hb) ((hq7 hok).2 (by intro h'; cases h'))
                 · -- no error: on
                   try wp_auto
                   wp_for_post
                   iframe; iexists n + ninc, si', _; iframe; ipureintro
-                  refine ⟨hlen', by word, hq3, by word, by word, ?_, fun hok hb => ?_⟩
+                  refine ⟨hlen', by word, hq3, by word, by word, ?_, fun hok => ?_⟩
                   · rcases hq6 rfl with ⟨h3, h4⟩ | h
                     · rcases Hinv'.2.2.2.2.2.1 with ⟨k, hk1, hk2⟩ | h'
                       · exact .inl ⟨k + 1, by word, by word⟩
                       · exfalso; omega
                     · exact .inr h
-                  · obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-                    obtain ⟨-, hsi4, -⟩ := hq7 hok (by word) hb'
-                    refine ⟨by word, ?_⟩
-                    rw [show sint.nat si' = sint.nat si + 4 by word]
-                    exact base64.b64Ok_dropAt _ hok.2.1 s _ hb' (by word)
+                  · exact (Hinv'.2.2.2.2.2.2 hok).trans (base64.quantumOk_iff ((hq7 hok).1 rfl))
               · -- all symbols: stored at once
+                have hor := base64.not_of_true_eq_not_decide Hok
+                have h03 := hor
+                obtain ⟨h02, h3⟩ := base64.or_ne_ff h03
+                obtain ⟨h01, h2⟩ := base64.or_ne_ff h02
+                obtain ⟨h0, h1⟩ := base64.or_ne_ff h01
+                have hs0 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x0 h0
+                have hx0' : s[sint.nat si]? = some x0 := by
+                  rw [show sint.nat si = (sint.Z si + sint.Z (W64 0)).toNat by word]; exact hx0
+                have hs1 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x1 h1
+                have hx1' : s[sint.nat si + 1]? = some x1 := by
+                  rw [show sint.nat si + 1 = (sint.Z si + sint.Z (W64 1)).toNat by word]; exact hx1
+                have hs2 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x2 h2
+                have hx2' : s[sint.nat si + 2]? = some x2 := by
+                  rw [show sint.nat si + 2 = (sint.Z si + sint.Z (W64 2)).toNat by word]; exact hx2
+                have hs3 := fun (hok : base64.decOk enc) => base64.decOk_sym_of_ne hok x3 h3
+                have hx3' : s[sint.nat si + 3]? = some x3 := by
+                  rw [show sint.nat si + 3 = (sint.Z si + sint.Z (W64 3)).toNat by word]; exact hx3
                 have hsp : 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z dst.len := by
                   have := Hinv'.2.2.2.1; have := Hinv'.2.2.2.2.1; have := Hinv'.1; constructor <;> word
                 have hsl1 : 0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z dst.len ∧ sint.Z dst.len ≤ sint.Z dst.cap :=
@@ -558,14 +596,13 @@ theorem base64.Encoding.Decode.wp_proof
                 wp_for_post
                 iframe; iexists n + W64 3, si + W64 4, _; iframe; ipureintro
                 refine ⟨by rw [List.length_append, List.length_take, hbs', List.length_drop]; have := Hinv'.1; have := Hinv'.2.2.2.2.1; word,
-                  by word, by word, by word, by word, ?_, fun hok hb => ?_⟩
+                  by word, by word, by word, by word, ?_, fun hok => ?_⟩
                 · rcases Hinv'.2.2.2.2.2.1 with ⟨k, hk1, hk2⟩ | h
                   · exact .inl ⟨k + 1, by word, by word⟩
                   · exfalso; omega
-                · obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-                  refine ⟨by word, ?_⟩
+                · refine (Hinv'.2.2.2.2.2.2 hok).trans ?_
                   rw [show sint.nat (si + W64 4) = sint.nat si + 4 by word]
-                  exact base64.b64Ok_dropAt _ hok.2.1 s _ hb' (by word)
+                  exact base64.b64Ok_drop_sym4 hok s _ x0 x1 x2 x3 hx0' hx1' hx2' hx3' (hs0 hok) (hs1 hok) (hs2 hok) (hs3 hok)
             · rw [decide_eq_false hc2]
               try wp_auto
               rw [base64.ite_ft, base64.ite_ff]
@@ -595,8 +632,8 @@ theorem base64.Encoding.Decode.wp_proof
                 "n" ∷ n_ptr ↦ n ∗ "si" ∷ si_ptr ↦ si ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗ "Hdst" ∷ dst ↦* d' ∗
                 "%Hinv'" ∷ ⌜d'.length = d.length ∧ 0 ≤ sint.Z si ∧ sint.Z si ≤ s.length ∧ 0 ≤ sint.Z n ∧
                   sint.Z n ≤ d.length ∧ ((∃ k : Nat, sint.Z n = 3 * k ∧ 4 * k ≤ sint.Z si) ∨ sint.Z si = s.length) ∧
-                  (base64.decOk enc → base64.b64Ok enc.encode'.arr s →
-                    sint.Z si % 4 = 0 ∧ base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)))⌝ : IProp GF)
+                  (base64.decOk enc → (base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s) ↔
+                    base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝ : IProp GF)
                 $$ [n si err Hdst]
             · iexists _, _, _; iframe; ipureintro; exact Hinv'
             wp_for HI
@@ -664,26 +701,19 @@ theorem base64.Encoding.Decode.wp_proof
                 isplitl [Henc Hdm Hpad Hstrict]
                 · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; iframe
                 iframe; ipureintro
-                refine ⟨hlen', by word, by word, fun hok hb => ?_⟩
-                exfalso
-                obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-                have := (hq7 hok (by word) hb').1
-                exact absurd this (by intro h; cases h)
+                refine ⟨hlen', by word, by word, fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun hb => ?_⟩⟩
+                exact absurd ((Hinv'.2.2.2.2.2.2 hok).1 hb) ((hq7 hok).2 (by intro h'; cases h'))
               · -- no error: on
                 try wp_auto
                 wp_for_post
                 iframe; iexists n + ninc, si', _; iframe; ipureintro
-                refine ⟨hlen', by word, hq3, by word, by word, ?_, fun hok hb => ?_⟩
+                refine ⟨hlen', by word, hq3, by word, by word, ?_, fun hok => ?_⟩
                 · rcases hq6 rfl with ⟨h3, h4⟩ | h
                   · rcases Hinv'.2.2.2.2.2.1 with ⟨k, hk1, hk2⟩ | h'
                     · exact .inl ⟨k + 1, by word, by word⟩
                     · exfalso; omega
                   · exact .inr h
-                · obtain ⟨hm, hb'⟩ := Hinv'.2.2.2.2.2.2 hok hb
-                  obtain ⟨-, hsi4, -⟩ := hq7 hok (by word) hb'
-                  refine ⟨by word, ?_⟩
-                  rw [show sint.nat si' = sint.nat si + 4 by word]
-                  exact base64.b64Ok_dropAt _ hok.2.1 s _ hb' (by word)
+                · exact (Hinv'.2.2.2.2.2.2 hok).trans (base64.quantumOk_iff ((hq7 hok).1 rfl))
             · -- the end: `return n, err`
               rw [decide_eq_false hc1]
               try wp_auto
@@ -694,7 +724,9 @@ theorem base64.Encoding.Decode.wp_proof
               isplitl [Henc Hdm Hpad Hstrict]
               · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; iframe
               iframe; ipureintro
-              exact ⟨Hinv'.1, Hinv'.2.2.2.1, Hinv'.2.2.2.2.1, fun _ _ => rfl⟩
+              have hend : s.length ≤ sint.nat si := by have := Hsl.1; have := Hinv'.2.1; word
+              exact ⟨Hinv'.1, Hinv'.2.2.2.1, Hinv'.2.2.2.2.1, fun hok => ⟨fun _ => (Hinv'.2.2.2.2.2.2 hok).2
+                (by rw [base64.dropNL_drop_end s _ hend]; simp [base64.b64Ok]), fun _ => rfl⟩⟩
           · obtain ⟨hv, Hret⟩ := Hret
             subst hv
             try wp_auto

@@ -1,8 +1,9 @@
 /-
 `(*Encoding).Decode(dst, src)` (`encoding/base64`, go1.27.3 `base64.go`), for a padded encoding
 (`padChar` `=`) and a `dst` of at least `DecodedLen(len(src))` bytes (what the function documents):
-for any input, the count of bytes written is within `dst`; on padded base64 text over the
-encoding's alphabet (`decOk`, `b64Ok`), no error.
+for any input, the count of bytes written is within `dst`; for an encoding that decodes padded
+base64 (`decOk`), the error is `nil` exactly when `src` without its newlines (`dropNL`) is padded
+base64 text over the encoding's alphabet (`b64Ok`).
 Proved in `Proof/encoding/base64/Encoding__Decode.lean`. Lean-first (prove-authcrypto, 2026-11-21).
 -/
 module
@@ -34,7 +35,9 @@ abbrev base64.Encoding.Decode.spec : Prop :=
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       ∃ d' : List w8, e ↦{dqe} enc ∗ dst ↦* d' ∗ src ↦*{dq} s ∗
       ⌜d'.length = d.length ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ d.length ∧
-        (base64.decOk enc → base64.b64Ok enc.encode'.arr s → err = GoInterface.nil)⌝ }}
+        (base64.decOk enc →
+          (err = GoInterface.nil ↔
+            base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s)))⌝ }}
 
 end spec
 

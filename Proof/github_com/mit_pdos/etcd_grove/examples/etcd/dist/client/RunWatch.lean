@@ -177,7 +177,7 @@ theorem RunWatch.wp_proof
   · iframe #
   ihave #Hkw : kvWatcherW (GF := GF) w γ.kv $$ []
   · rw [hγk]; iexact HkwΓ
-  ihave #Hew := isEtcdWatcher_of_kmW w γ etcd_partition.wkPfx (by decide) (by decide) $$ [Hkw Hkm]
+  ihave #Hew := isEtcdWatcher_of_kmW w γ etcd_partition.wkPfx (by decide) $$ [Hkw Hkm]
   · iframe #
   (try wp_auto)
   -- `wctx, cancel := context.WithCancel(context.Background())`, `defer cancel()`

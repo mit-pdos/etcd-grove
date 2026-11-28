@@ -227,8 +227,7 @@ theorem MainWatch.wp_proof
   -- the clients' adapter over the KV state, its property the plan's (the start: revision `1`, no
   -- change)
   have hboot : kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = [[], []] := by
-    unfold kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) ps
+    rw [kvModel_bootE _ ps
       (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog₁]
   have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes := by
     rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hboot]; exact wkW_start _
@@ -288,7 +287,7 @@ theorem MainWatch.wp_proof
     iexists { cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx with conn := conn, ics := ics, wc := wc, lg := lgw }
     iframe Hcw
     ipureintro; rw [hγk]; rfl
-  ihave #Hew := client.isEtcdWatcher_of_km w γ wkPfx (by decide) (by decide) $$ [Pcli Ppb Pctx Hkw]
+  ihave #Hew := client.isEtcdWatcher_of_km w γ wkPfx (by decide) $$ [Pcli Ppb Pctx Hkw]
   · iframe #
   (try wp_auto)
   -- `wctx, cancel := context.WithCancel(context.Background())`

@@ -24,6 +24,11 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
+/-- **The auth state the KV model starts from** (`kvFold`): the store's latest at the server's
+start (`newAuthStore_boot`: the history `[bootState, bump bootState]`, the revision committed
+once): disabled, revision 1, no users. -/
+def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
+
 section pure
 variable [GooseExts]
 
@@ -44,16 +49,19 @@ open Classical in
 /-- **An admitted admin entry's effect on the auth state** (`st` to `st'`): with the principal
 admin-permitted at `st` (`auth.adminOk`; `authApplierV3.Apply` checks it of `needAdminPermission`
 requests), its kind's step (`auth/Steps.lean`; the flag the steps read is `st`'s: the apply thread
-applies at the latest state); otherwise nothing. `UserAdd` and `UserChangePassword` may also be
-refused with `ErrNoPasswordUser` (the state kept), unless their password choice cannot fail
-(`UserAddModel.pwSure`, `ChangePasswordModel.pwSure`: the request model keeps it). An entry of
-another kind keeps the state. (Nomode D3, 2026-11-28: the six kinds from `AuthDisable` on.) -/
+applies at the latest state); otherwise nothing. `UserAdd` may also be refused with
+`ErrNoPasswordUser` (the state kept), unless its password choice cannot fail (`UserAddModel.pwSure`:
+the request model keeps it); `UserChangePassword`'s step decides that refusal itself
+(`auth.userChangePasswordF` with `auth.selectPwOk` of the request's passwords and the user's
+`NoPassword`; nomode D3 follow-up (a), 2026-11-28). An entry of another kind keeps the state.
+(Nomode D3, 2026-11-28: the six kinds from `AuthDisable` on.) -/
 def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
   if auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) then
     match apply.dispatchKind rq with
     | .authUserAdd =>
         match rq.authUserAdd with
-        | some m => (¬ m.pwSure ∧ st' = st) ∨ authRelState (auth.stepOf (auth.userAddF m.name)) st st'
+        | some m => (¬ m.pwSure ∧ st' = st) ∨
+            authRelState (auth.stepOf (auth.userAddF m.name m.noPassword)) st st'
         | none => st' = st
     | .authRoleAdd =>
         match rq.authRoleAdd with
@@ -75,8 +83,8 @@ def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
         | none => st' = st
     | .authUserChangePassword =>
         match rq.authUserChangePassword with
-        | some m => (¬ m.pwSure ∧ st' = st) ∨
-            authRelState (auth.stepOf (auth.userChangePasswordF m.name)) st st'
+        | some m =>
+            authRelState (auth.stepOf (auth.userChangePasswordF m.name (auth.selectPwOk m.password m.hashed))) st st'
         | none => st' = st
     | .authUserRevokeRole =>
         match rq.authUserRevokeRole with
@@ -98,7 +106,7 @@ aside): the request model's step of its kind (`AuthEnable`'s at `st`'s own flag)
 steps. -/
 def adminStepO (rq : apply.IRRModel) (st : auth.AuthState) (o : auth.Outcome) : Prop :=
   match apply.dispatchKind rq with
-  | .authUserAdd => ∃ m, rq.authUserAdd = some m ∧ auth.stepOf (auth.userAddF m.name) st o
+  | .authUserAdd => ∃ m, rq.authUserAdd = some m ∧ auth.stepOf (auth.userAddF m.name m.noPassword) st o
   | .authRoleAdd => ∃ n, rq.authRoleAdd = some n ∧ auth.stepOf (auth.roleAddF n) st o
   | .authUserGrantRole =>
       ∃ u r, rq.authUserGrantRole = some (u, r) ∧ auth.userGrantRoleR u r st o
@@ -108,7 +116,8 @@ def adminStepO (rq : apply.IRRModel) (st : auth.AuthState) (o : auth.Outcome) : 
   | .authDisable => auth.stepOf (auth.authDisableF st.enabled) st o
   | .authUserDelete => ∃ n, rq.authUserDelete = some n ∧ auth.stepOf (auth.userDeleteF st.enabled n) st o
   | .authUserChangePassword =>
-      ∃ m, rq.authUserChangePassword = some m ∧ auth.stepOf (auth.userChangePasswordF m.name) st o
+      ∃ m, rq.authUserChangePassword = some m ∧
+        auth.stepOf (auth.userChangePasswordF m.name (auth.selectPwOk m.password m.hashed)) st o
   | .authUserRevokeRole =>
       ∃ n ro, rq.authUserRevokeRole = some (n, ro) ∧
         auth.stepOf (auth.userRevokeRoleF st.enabled n ro) st o
@@ -159,7 +168,7 @@ theorem adminStateR_of_stepO (rq : apply.IRRModel) (st : auth.AuthState) (o : au
   · exact ⟨o, hO, rfl⟩
   · exact ⟨o, hO, rfl⟩
   · obtain ⟨n, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
-  · obtain ⟨m, hm, h⟩ := hO; simp only [hm]; exact Or.inr ⟨o, h, rfl⟩
+  · obtain ⟨m, hm, h⟩ := hO; simp only [hm]; exact ⟨o, h, rfl⟩
   · obtain ⟨n, ro, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
   · obtain ⟨n, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
   · obtain ⟨ro, k, e, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
@@ -222,7 +231,9 @@ def reqPerms (rq : apply.IRRModel) : List apply.Perm3 :=
 permissions, at one state: the apply thread is the store's only writer): every permission the
 request needs passes, each check passing when auth is disabled, or when the principal's revision
 is not `0` (`ErrUserEmpty`) and not below the store's (`ErrAuthOldRevision`) and its user exists
-with the root role or with permissions covering it. A request needing no permission (a transaction
+with the root role or Go's verdict on its roles' permissions passes (`auth.coversX`, the permission
+cache's answer, exact for every request: N1b-1, until then the coverage `auth.covers`, exact only on
+the shape `auth.reqShape` the log had to keep). A request needing no permission (a transaction
 without comparisons or operations) is let through whatever the principal, as the code applies it
 unchecked (E2v; until then the model asked the revision and the user of it too). -/
 def kvGranted (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
@@ -230,7 +241,7 @@ def kvGranted (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
     ((auth.authInfoM (apply.principalOf rq)).rev ≠ 0 ∧
       st.revision ≤ (auth.authInfoM (apply.principalOf rq)).rev ∧
       ∃ u, st.users !! (auth.authInfoM (apply.principalOf rq)).user = some u ∧
-        (auth.isRoot u ∨ auth.covers st u x.2.2 x.1 x.2.1))
+        (auth.isRoot u ∨ auth.coversX st u x.2.2 x.1 x.2.1 = true))
 
 /-- With auth disabled, every request is let through. -/
 theorem kvGranted_of_disabled (st : auth.AuthState) (rq : apply.IRRModel)
@@ -260,8 +271,10 @@ mode-`on` log, `plainEntryOn`): the one end at which a check can see another ran
 model's (`authEndOf`: a non-`nil` empty `RangeEnd` on the wire, which the model reads as `"\x00"`). -/
 def noZeroEnds (rq : apply.IRRModel) : Prop := ∀ x ∈ reqPerms rq, x.2.1 ≠ [W8 0]
 
-/-- **Every permission the request needs is of the shape the permission cache decides** (since E3o
-kept by the mode-`on` log, `plainEntryOn`): the check is decided at any state (`kvDet`). -/
+/-- **Every permission the request needs is of the shape `auth.reqShape`** (the cache's answer is the
+coverage `auth.covers` there). No longer part of the model or the log (N1b-1: `kvGranted` is Go's
+verdict for every request); kept as the vocabulary of the dist axioms that still take it as a premise
+(`KVDeleteOnDist`, `TxnCommitOnDist`). -/
 def kvShapeAll (rq : apply.IRRModel) : Prop :=
   ∀ x ∈ reqPerms rq, auth.reqShape x.1 x.2.1
 
@@ -332,11 +345,6 @@ theorem noZeroEnds_of_irr (rq : apply.IRRModel) (h : irrNoZeroEnd rq) : noZeroEn
     · cases hx
   · cases hx
 
-/-- **The check is decided at `st`**: with auth enabled, every permission the request needs is of
-the shape the permission cache decides (`auth.reqShape`). -/
-def kvDet (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
-  st.enabled = true → ∀ x ∈ reqPerms rq, auth.reqShape x.1 x.2.1
-
 /-! ## The model -/
 
 /-- **The mode-`on` model's state** (auth-lease S3a): the auth state, the KV log and the lease table. -/
@@ -344,14 +352,15 @@ abbrev OnState := auth.AuthState × mvcc.Log × LeaseTable
 
 /-- **One lease's keys writable by the principal at `st`** (auth-lease S3a; `checkLeasePuts`' check of one
 lease at one state): auth disabled, or the principal an admin there (no revision: `IsAdminPermitted`), or
-every key attached to the lease writable by the principal (a lease attaching no key passes). -/
+every key attached to the lease writable by the principal (a lease attaching no key passes; a key's
+check Go's verdict `auth.coversX` on the point, N1b-1). -/
 def leaseOk (st : auth.AuthState) (a : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : Prop :=
   st.enabled = false ∨ auth.adminOk st (some (auth.authInfoM a)) ∨
     ∀ k : GoString, I.lookup ⟨k⟩ = some id →
       ((auth.authInfoM a).rev ≠ 0 ∧ st.revision ≤ (auth.authInfoM a).rev ∧
         ∃ u, st.users !! (auth.authInfoM a).user = some u ∧
-          (auth.isRoot u ∨ auth.covers st u .write k []))
+          (auth.isRoot u ∨ auth.coversX st u .write k [] = true))
 
 /-- **The lease part of the apply-time check** (auth-lease S3a; `checkLeasePuts` of a put, of a
 transaction's puts, of a revocation); a grant is not checked at apply. -/
@@ -587,6 +596,20 @@ theorem kvRaftOfOn_snoc (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     kvRaftOfOn c₀ ch s₀ (A ++ [m]) = kvEntryOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) m := by
   rw [kvRaftOfOn_append]; rfl
 
+/-- (2026-11-05, H-rr1) **The mode-`on` model grows by at most one revision per entry**
+(`kvRaftOf_length_le`'s counterpart). -/
+theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
+    (A : List EntryModel) : (kvRaftOfOn c₀ ch s₀ A).2.1.length ≤ s₀.2.1.length + A.length := by
+  induction A generalizing s₀ with
+  | nil => simp [kvRaftOfOn_nil]
+  | cons m A ih =>
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2.1.length ≤ _
+    have h := ih (kvEntryOn c₀ ch s₀ m)
+    rcases kvEntryOn_grow c₀ ch s₀ m with he | ⟨cs, he⟩
+    · rw [he] at h; simp only [List.length_cons]; omega
+    · rw [he] at h; simp only [List.length_append, List.length_singleton] at h
+      simp only [List.length_cons]; omega
+
 /-- An admitted admin request (`apply.adminKindOk`) needing the admin permission is of an admin
 kind (`Authenticate`, the one other kind it admits, needs none). -/
 theorem adminDispatchKind_of_adminKindOk (rq : apply.IRRModel) (hk : apply.adminKindOk rq)
@@ -718,11 +741,10 @@ theorem adminStateR_enabled (rq : apply.IRRModel) (st st' : auth.AuthState)
         (repeat' split) <;> exact hen
       · subst h; exact hen
     · split at h
-      · rcases h with ⟨-, rfl⟩ | ⟨o, ho, rfl⟩
-        · exact hen
-        · simp only [auth.stepOf] at ho; subst ho
-          unfold auth.userChangePasswordF
-          (repeat' split) <;> exact hen
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf] at ho; subst ho
+        unfold auth.userChangePasswordF
+        (repeat' split) <;> exact hen
       · subst h; exact hen
     · split at h
       · obtain ⟨o, ho, rfl⟩ := h
@@ -759,6 +781,56 @@ theorem adminNext_enabled (rq : apply.IRRModel) (st : auth.AuthState) (hen : st.
 theorem not_writeKind_of_adminDispatchKind (k : apply.ReqKind) (h : adminDispatchKind k = true) :
     ¬ writeKind k := by
   unfold writeKind; cases k <;> simp_all [adminDispatchKind]
+
+/-- **A write-free entry keeps the model's log and table** (`kvEntry_nonwrite`'s): an admin step
+and a refusal keep them too. -/
+theorem kvEntryOn_snd_nonwrite (c₀ : w64) (ch : apply.Chain) (s : OnState) (e : EntryModel)
+    (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
+      ¬ writeKind (apply.dispatchKind rq)) :
+    (kvEntryOn c₀ ch s e).2 = s.2 := by
+  have hk := kvEntry_nonwrite c₀ ch s.2.2 s.2.1 e h
+  have hl := kvTable_nonwrite c₀ ch s.2.2 e h
+  unfold kvEntryOn
+  split
+  · split
+    · split
+      · rfl
+      · split
+        · rfl
+        · split
+          · rfl
+          · show (kvEntry c₀ ch s.2.2 s.2.1 e, kvTable c₀ ch s.2.2 e) = s.2
+            rw [hk, hl]
+    · rfl
+  · show (kvEntry c₀ ch s.2.2 s.2.1 e, kvTable c₀ ch s.2.2 e) = s.2
+    rw [hk, hl]
+
+/-- **At a disabled auth state an entry steps the log and table as the auth-free model does**
+(every check passes; an admin step writes neither). -/
+theorem kvEntryOn_snd_disabled (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel)
+    (hen : s.1.enabled = false) : (kvEntryOn c₀ ch s m).2 = kvEntrySt c₀ ch s.2 m := by
+  have hok : ∀ rq, auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq))) :=
+    fun _ => Or.inl hen
+  unfold kvEntryOn
+  split
+  · rename_i hc
+    split
+    · rename_i rq hdec
+      rw [if_neg (fun h => h.2 (hok rq))]
+      split
+      · rename_i ha
+        have hw : m.data = [] ∨ m.typ ≠ W32 0 ∨ ∀ rq', apply.irrDecode m.data = some rq' →
+            ¬ writeKind (apply.dispatchKind rq') :=
+          Or.inr (Or.inr fun rq' h => by
+            rw [hdec] at h; cases h; exact not_writeKind_of_adminDispatchKind _ ha.2)
+        unfold kvEntrySt
+        rw [kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m hw, kvTable_nonwrite c₀ ch s.2.2 m hw]
+      · rw [if_neg (fun h => h.2 (kvGrantedL_of_disabled _ _ rq hen))]
+        rfl
+    · rename_i hdec
+      unfold kvEntrySt kvEntry kvTable
+      rw [if_pos hc.1, if_neg hc.2, if_pos hc.1, if_neg hc.2, hdec]
+  · rfl
 
 /-- **The porting lemma** (the no-mode plan, step 4): from a disabled auth state, along a log with
 no `AuthEnable` above `c₀`, the auth-aware model stays disabled and its log and table are the
@@ -801,6 +873,25 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) :
     show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).1.enabled = false ∧
       (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s m) A).2 = kvRaftSt c₀ ch (kvEntrySt c₀ ch s.2 m) A
     rw [← hstep.2]; exact ih
+
+/-- `srvAuthSt0` is disabled. -/
+theorem srvAuthSt0_enabled : srvAuthSt0.enabled = false := rfl
+
+/-- `noAuthEnable` of a log holds of its sublists. -/
+theorem noAuthEnable_sub (c₀ : w64) {A B : List EntryModel} (hs : ∀ m ∈ A, m ∈ B)
+    (h : noAuthEnable c₀ B) : noAuthEnable c₀ A :=
+  fun m hm => h m (hs m hm)
+
+/-- **A plain log has no `AuthEnable`** (`plainLogM`: a plain request is of a proposer's kind
+`putgetKind`, the others a compaction, a grant or a revocation). -/
+theorem noAuthEnable_of_plainLogM (c₀ : w64) {cmp : Bool} {lm : lease.Mode} (A : List EntryModel)
+    (h : plainLogM cmp lm A) : noAuthEnable c₀ A := by
+  intro m hm rq ht hd hdec _ hk
+  rcases h m hm ht hd rq hdec with hp | ⟨-, hc⟩ | ⟨-, hg⟩ | ⟨-, hr⟩
+  · have h2 := hp.2; rw [hk] at h2; simp [putgetKind] at h2
+  · have h2 := hc.1.1; rw [hk] at h2; cases h2
+  · have h2 := hg.1; rw [hk] at h2; cases h2
+  · have h2 := hr.1; rw [hk] at h2; cases h2
 
 /-- **Entries that are no normal entries keep the model's log and table** (the bootstrap log's
 configuration changes). -/

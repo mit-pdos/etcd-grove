@@ -49,6 +49,9 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
+/-- A conf change's type is no normal entry's. -/
+theorem w32_one_ne_zero_boot : (W32 1 : w32) ≠ W32 0 := by decide
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -107,12 +110,33 @@ theorem kvTableOf_boot (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
     rw [this]
     exact ih (fun e' h' => hl e' (List.mem_cons_of_mem _ h'))
 
+omit [GooseSemantics] [GooseInterp] go_gctx hG sem package_sem in
+/-- **A bootstrap log's entries change neither the KV log nor the table** (they are conf changes:
+`kvRaftOfOn_conf`). -/
+theorem kvFold_boot (γk : KVNames) (ps : List w64) (bootLog : List EntryM)
+    (hb : srvBootLogOk ps bootLog) : (kvFold γk (bootEntries bootLog)).2 = (γk.log0, []) := by
+  obtain ⟨-, -, he⟩ := hb
+  unfold kvFold
+  refine kvRaftOfOn_conf _ _ _ _ (fun m hm => ?_)
+  unfold bootEntries at hm
+  obtain ⟨e, he', rfl⟩ := List.mem_map.1 hm
+  obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem he'
+  have ht : (bootLog[k]).Type' = W32 1 := (he k _ (List.getElem?_eq_getElem hk)).2.2.1
+  show (bootLog[k]).Type' ≠ W32 0
+  rw [ht]; exact w32_one_ne_zero_boot
+
+omit [GooseSemantics] [GooseInterp] go_gctx hG sem package_sem in
+/-- **A bootstrap log's KV model is the start log.** -/
+theorem kvModel_bootE (γk : KVNames) (ps : List w64) (bootLog : List EntryM)
+    (hb : srvBootLogOk ps bootLog) : kvModel γk (bootEntries bootLog) = γk.log0 :=
+  congrArg Prod.fst (kvFold_boot γk ps bootLog hb)
+
 /-- **The start state of a bootstrap log has no lease** (unit T3, L3a). -/
 theorem kvModelSt_boot (γk : KVNames) (ccOk : w32 → List w8 → Prop) (ps : List w64)
     (bootLog : List EntryM) (hb : srvBootLogOk ps bootLog) :
     kvModelSt γk (bootEntries bootLog) = kvStateOf (kvModel γk (bootEntries bootLog)) := by
-  unfold kvModelSt kvLeases
-  rw [kvTableOf_boot _ _ _ ccOk ps bootLog hb]
+  unfold kvModelSt
+  rw [show kvLeases γk (bootEntries bootLog) = [] from congrArg Prod.snd (kvFold_boot γk ps bootLog hb)]
 
 /-- **A message raft hands the server is no `MsgSnap`** (D19p, 2026-10-18; since D21 M3,
 2026-10-19, of any cluster in the no-snapshot mode, `RaftNames.reNoSnap`, which `isRaftMsg` says;

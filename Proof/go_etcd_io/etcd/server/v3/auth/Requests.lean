@@ -17,6 +17,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 public import Proof.encoding.base64.Base
+public import Proof.encoding.base64.DecodeDefs
 
 @[expose] public section
 
@@ -45,21 +46,40 @@ abbrev stdB64Enc : List w8 → GoString := _root_.Perennial.encoding.base64.stdE
 def pwSureP (pw hpw : GoString) (nob : Bool) : Prop :=
   nob = true ∨ (pw = [] ∧ ∃ bs : List w8, hpw = stdB64Enc bs)
 
+open Classical in
+/-- **`selectPassword(password, hashedPassword)` succeeds** (no error), at a store whose `bcryptCost`
+is at most `bcrypt.MaxCost` (`authInv`): with a `password` and no hash, bcrypt's
+`GenerateFromPassword`, which errs only on a password over 72 bytes; otherwise base64's
+`StdEncoding.DecodeString` of the hash, which errs unless it is padded base64 up to newlines
+(`stdDecOk`). Exact (nomode D3 follow-up (a), 2026-11-28; witness
+`notes/axiom-review/pw-gotest/`). -/
+def selectPwOk (pw hpw : GoString) : Prop :=
+  if pw ≠ [] ∧ hpw = [] then pw.length ≤ 72 else _root_.Perennial.encoding.base64.stdDecOk hpw
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- A password choice that cannot fail is one `selectPassword` accepts, or asks for none. -/
+theorem pwSureP_ok {pw hpw : GoString} {nob : Bool} (h : pwSureP pw hpw nob) :
+    nob = true ∨ selectPwOk pw hpw := by
+  rcases h with h | ⟨hp, bs, rfl⟩
+  · exact .inl h
+  · right; unfold selectPwOk; rw [if_neg (by simp [hp])]
+    exact _root_.Perennial.encoding.base64.stdDecOk_stdEnc bs
+
 /-- The `*pb.AuthUserAddRequest` `r` (not nil): its `Name`, its passwords (`Password`,
-`HashedPassword`: read-only, any strings; the model keeps no passwords, `selectPassword` is the
-trust boundary), and its `Options` (nil, or a read-only `UserAddOptions` whose unknown fields are
-valid wire format, `userOptsAt`: the store keeps them in the user's record). -/
-def userAddReqIs (r : Loc) (name : GoString) : IProp GF :=
+`HashedPassword`: read-only, any strings; the model keeps no passwords), and its `Options` (nil, or a
+read-only `UserAddOptions` whose unknown fields are valid wire format, `userOptsAt`: the store keeps
+them in the user's record), whose `NoPassword` is `nob` (`false` for nil `Options`; the model keeps
+it, `AuthState.noPw`). -/
+def userAddReqIs (r : Loc) (name : GoString) (nob : Bool) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" r ↦□ name ∗
     (∃ pw hpw : GoString, structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦□ pw ∗
       structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦□ hpw) ∗
-    ∃ (o : Loc) (b : Bool), structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ userOptsAt o b)
+    ∃ o : Loc, structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ userOptsAt o nob)
 
 /-- **The `*pb.AuthUserAddRequest` `r`'s password choice cannot fail** (`pwSureP` of its
 `Password`, `HashedPassword` and its options' `NoPassword`): with it, `UserAdd` does not return
@@ -78,26 +98,13 @@ instance userAddSure_persistent (r : Loc) : Persistent (userAddSure (GF := GF) r
 def userDeleteReqIs (r : Loc) (name : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserDeleteRequest go!"Name" r ↦□ name)
 
-/-- The `*pb.AuthUserChangePasswordRequest` `r` (not nil): its `Name` and its passwords. -/
-def userChangePasswordReqIs (r : Loc) (name : GoString) : IProp GF :=
+/-- The `*pb.AuthUserChangePasswordRequest` `r` (not nil): its `Name` and its passwords `pw` and
+`hpw` (read-only; the step reads whether `selectPassword` accepts them, `selectPwOk`; nomode D3
+follow-up (a), 2026-11-28: until then the passwords were any). -/
+def userChangePasswordReqIs (r : Loc) (name pw hpw : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"Name" r ↦□ name ∗
-    ∃ pw hpw : GoString,
-      structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"Password" r ↦□ pw ∗
-      structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"HashedPassword" r ↦□ hpw)
-
-/-- **The `*pb.AuthUserChangePasswordRequest` `r`'s password choice cannot fail** (`pwSureP` of its
-`Password` and `HashedPassword`, no option asked: an empty `Password` with a base64-encoded
-`HashedPassword`): with it, `UserChangePassword` does not return `ErrNoPasswordUser`
-(`UserChangePassword.specTSureB`; nomode D3, 2026-11-28). -/
-def userChangePasswordSure (r : Loc) : IProp GF :=
-  iprop(∃ (pw hpw : GoString),
     structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"Password" r ↦□ pw ∗
-    structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"HashedPassword" r ↦□ hpw ∗
-    ⌜pwSureP pw hpw false⌝)
-
-instance userChangePasswordSure_persistent (r : Loc) :
-    Persistent (userChangePasswordSure (GF := GF) r) := by
-  unfold userChangePasswordSure; infer_instance
+    structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"HashedPassword" r ↦□ hpw)
 
 /-- The `*pb.AuthUserGrantRoleRequest` `r` (not nil): its `User` and `Role`. -/
 def userGrantRoleReqIs (r : Loc) (user role : GoString) : IProp GF :=
@@ -142,14 +149,14 @@ def roleGrantPermissionReqIs (r : Loc) (name : GoString) (w : Option PermW) : IP
       | none => iprop(⌜p = null⌝)
       | some w => ownPermW p w)
 
-instance userAddReqIs_persistent (r : Loc) (name : GoString) :
-    Persistent (userAddReqIs (GF := GF) r name) := by
+instance userAddReqIs_persistent (r : Loc) (name : GoString) (nob : Bool) :
+    Persistent (userAddReqIs (GF := GF) r name nob) := by
   unfold userAddReqIs; infer_instance
 instance userDeleteReqIs_persistent (r : Loc) (name : GoString) :
     Persistent (userDeleteReqIs (GF := GF) r name) := by
   unfold userDeleteReqIs; infer_instance
-instance userChangePasswordReqIs_persistent (r : Loc) (name : GoString) :
-    Persistent (userChangePasswordReqIs (GF := GF) r name) := by
+instance userChangePasswordReqIs_persistent (r : Loc) (name pw hpw : GoString) :
+    Persistent (userChangePasswordReqIs (GF := GF) r name pw hpw) := by
   unfold userChangePasswordReqIs; infer_instance
 instance userGrantRoleReqIs_persistent (r : Loc) (user role : GoString) :
     Persistent (userGrantRoleReqIs (GF := GF) r user role) := by

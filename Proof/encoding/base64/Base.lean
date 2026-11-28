@@ -68,6 +68,34 @@ def rawUrlEnc (d : List w8) : GoString := b64Enc urlAlphabet none d
 string (phase 7 S2 core, 2026-11-23: grpc's `encodeBinHeader`). -/
 def rawStdEnc (d : List w8) : GoString := b64Enc stdAlphabet none d
 
+end encoding.base64
+
+namespace EtcdGrove.base64
+
+/-- **Padded base64 text over the alphabet `α`** (RFC 4648 §4, as `StdEncoding` emits it): groups of
+four symbols of `α`, the last of which may end in one or two `=` (61) after at least two symbols. -/
+def b64Ok (α : List w8) : List w8 → Prop
+  | [] => True
+  | [a, b, c, d] => a ∈ α ∧ b ∈ α ∧ ((c ∈ α ∧ (d ∈ α ∨ d = 61)) ∨ (c = 61 ∧ d = 61))
+  | a :: b :: c :: d :: e :: rest => a ∈ α ∧ b ∈ α ∧ c ∈ α ∧ d ∈ α ∧ b64Ok α (e :: rest)
+  | _ => False
+
+end EtcdGrove.base64
+
+namespace encoding.base64
+
+open Iris Iris.BI
+
+/-- The bytes of `s` without its newlines (`'\n'`, 10, and `'\r'`, 13), which the decoder skips
+wherever they are (`decodeQuantum`: "New line characters (\r and \n) are ignored"). -/
+def dropNL (s : List w8) : List w8 := s.filter fun c => !((c == W8 10) || (c == W8 13))
+
+/-- **What `StdEncoding.DecodeString` accepts** (go1.27.3 `base64.go`, `StdEncoding` not strict): `s`
+without its newlines is padded base64 text over the standard alphabet (`b64Ok`: groups of four
+symbols, the last of which may end in `==` after two symbols or `=` after three; the unused bits of the
+last symbol are not checked). Every other text gives a `CorruptInputError`. -/
+def stdDecOk (s : GoString) : Prop := EtcdGrove.base64.b64Ok stdAlphabet (dropNL s)
+
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -108,14 +136,15 @@ abbrev rawStdEncInit : IProp GF :=
 
 /-- **`encoding/base64`'s fact, `StdEncoding`'s decoder** (prove-authcrypto, 2026-11-21; the auth
 store's `selectPassword`): on `StdEncoding`'s fixed pointer, `DecodeString(s)` returns a fresh slice
-and an error, the error `nil` when `s` is the standard encoding `stdEnc` of some bytes
-(`(*Encoding).DecodeString`: `make([]byte, enc.DecodedLen(len(s)))`, `enc.Decode(dbuf, []byte(s))`,
-`dbuf[:n]`; no panic on any input). -/
+and an error, the error `nil` exactly when `stdDecOk s` (`(*Encoding).DecodeString`:
+`make([]byte, enc.DecodedLen(len(s)))`, `enc.Decode(dbuf, []byte(s))`, `dbuf[:n]`; no panic on any
+input). (D3 follow-up (a), 2026-11-28: until then only "the standard encoding of some bytes decodes
+without an error".) -/
 abbrev stdDecInit : IProp GF :=
   iprop(∃ e : Loc, globalAddr StdEncoding ↦□ e ∗
     □ ∀ (s : GoString) (Φ : val → IProp GF),
       ▷ (∀ (b : GoSlice) (err : GoInterface) (bs : List w8), b ↦* bs -∗
-          ⌜(∃ x : List w8, s = stdEnc x) → err = GoInterface.nil⌝ -∗ Φ (PairV #b #err)) -∗
+          ⌜err = GoInterface.nil ↔ stdDecOk s⌝ -∗ Φ (PairV #b #err)) -∗
       WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"DecodeString" #e)) (Val #s))
         {{ Φ }})
 

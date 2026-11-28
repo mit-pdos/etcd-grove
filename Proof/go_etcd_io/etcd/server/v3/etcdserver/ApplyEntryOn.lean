@@ -174,9 +174,8 @@ theorem kv_certPreVW_on (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVName
 
 /-- **Before `apply.Apply` on a KV entry, in the mode `on`** (the apply thread's ghost step ahead of
 the call, `kv_applied_step_on`): the next committed entry `m`, a KV request, is plain
-(`plainCover`: the mode-`on` log's entries of a KV kind are), with no range end `"\x00"` and its
-checks of the cache's shape (`noZeroEnds`, `kvShapeAll`: since E3o the log keeps them), determinate at the apply thread's
-state, the chain the start's; the model's state after it certified, and so the certificates the
+(`plainCover`: the mode-`on` log's entries of a KV kind are), with no range end `"\x00"`
+(`noZeroEnds`: since E3o the log keeps it), determinate at the apply thread's state, the chain the start's; the model's state after it certified, and so the certificates the
 latest-state triple asks (`certPreVW`, `kv_certPreVW_on`). -/
 theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState)
     (A : List EntryModel) (m : EntryModel) (x : apply.ApplyKV) (st : auth.AuthState)
@@ -189,7 +188,7 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
       ⌜plainReqL γr.kv.lm rq ∧ apply.needAdminPermission rq = false ∧
         entryDetOn γr.kv.c0 (st, x.log, kvLeasesOn γr.kv st₀ A) m ∧ x.chain = apply.alarmChain true false false ∧
-        noZeroEnds rq ∧ kvShapeAll rq⌝ ∗
+        noZeroEnds rq⌝ ∗
       apply.certPreVW true E x.chain rq x.log
         (apply.kvOutLT (.on γa) E.lg hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq
           x.log (kvLeasesOn γr.kv st₀ A).ids) ∗
@@ -201,16 +200,16 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
   imod kv_applied_step_on E γr st₀ A m x st _ hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
   obtain ⟨Hpl, hdet, -, hch⟩ := Hp
   -- (auth-lease S3a2) a KV request of the auth-on log at its lease mode (a leased put or transaction too)
-  have hpz : plainReqL γr.kv.lm rq ∧ noZeroEnds rq ∧ kvShapeAll rq := by
-    rcases Hpl ht hd rq hdec with ((⟨h1, h2, h3⟩ | h | h) | h)
-    · exact ⟨h1, h2, h3⟩
+  have hpz : plainReqL γr.kv.lm rq ∧ noZeroEnds rq := by
+    rcases Hpl ht hd rq hdec with ((⟨h1, h2⟩ | h | h) | h)
+    · exact ⟨h1, h2⟩
     · exfalso; rw [h.2.1] at hk; simp [apply.isKVKind] at hk
     · exfalso; rw [h.2.1] at hk; simp [apply.isKVKind] at hk
     · exfalso
       obtain ⟨h, -⟩ := h
       unfold apply.adminKindOk at h
       split at h <;> rename_i hkd <;> simp_all [apply.isKVKind]
-  obtain ⟨hp, hz, hsa⟩ := hpz
+  obtain ⟨hp, hz⟩ := hpz
   have hna : apply.needAdminPermission rq = false := (plainReqL_facts _ rq hp).2.1
   have hlm : E.lg = false → γr.kv.lm = .none := fun hg => by
     rw [Hrows.2.1]; exact apply.AEnv.lm_of_lg_false hg
@@ -224,7 +223,7 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
   imodintro
   iframe Ha
   isplitr
-  · ipureintro; exact ⟨hp, hna, hdet, hch, hz, hsa⟩
+  · ipureintro; exact ⟨hp, hna, hdet, hch, hz⟩
   ihave #Hc' : iprop(kvNxOn γr.raft γr.kv st₀
       (kvEntryOn γr.kv.c0 (apply.alarmChain true false false) (st, x.log, kvLeasesOn γr.kv st₀ A) m).2.1) $$ []
   · rw [← hch]; iexact Hc

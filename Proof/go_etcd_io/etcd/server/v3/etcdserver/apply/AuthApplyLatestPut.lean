@@ -40,8 +40,7 @@ abbrev apply.checkLeasePutsKeys.specL : Prop :=
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (l : Loc) (id : w64)
     (γl : GName) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lf ∗ ai ↦{dq} info ∗ lease.leaseOwnOpenW γl L I id l w ∗ RD ∗ Lf hs ∗
-      ⌜apply.leaseShapedL on hs I id⌝ }}
+      apply.isAuthStoreL st RD on Lf ∗ ai ↦{dq} info ∗ lease.leaseOwnOpenW γl L I id l w ∗ RD ∗ Lf hs }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKeys))
       (Val #st)) (Val #ai)) (Val #l))
   {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lf hs ∗ lease.leaseOwnOpenW γl L I id l w ∗
@@ -60,7 +59,7 @@ abbrev apply.checkLeasePuts.specL : Prop :=
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (id : w64) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lf ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl L I w ∗
-      ai ↦{dq} info ∗ RD ∗ Lf hs ∗ ⌜apply.leaseShapedL on hs I id⌝ }}
+      ai ↦{dq} info ∗ RD ∗ Lf hs }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePuts))
       (Val #st)) (Val #ai)) (Val #le)) (Val #id))
   {{ (err : GoInterface), RET #err; lease.lessorUserW γl L I w ∗ ai ↦{dq} info ∗ RD ∗ Lf hs ∗
@@ -80,7 +79,7 @@ abbrev apply.checkPutAuth.specL : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lf ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl L I w ∗
       ai ↦{dq} info ∗ RD ∗ Lf hs ∗
-      txn.putRequestIs r o ∗ ⌜apply.shapedL on hs (apply.putPerms o) ∧ apply.leaseShapedL on hs I o.leaseID⌝ }}
+      txn.putRequestIs r o }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #r))
   {{ (err : GoInterface), RET #err; lease.lessorUserW γl L I w ∗ ai ↦{dq} info ∗ RD ∗ Lf hs ∗
@@ -105,10 +104,7 @@ abbrev apply.authApplierV3.Put.specL : Prop :=
       apply.putPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log Pre Q Post
         (apply.authOutLL E.authMode hs (auth.authInfoM info) c rq log (apply.putPerms o)
           (mvcc.leaseItemsOf (mvcc.stateAfter log)) [o.leaseID]) ∗
-      srvApi.kvLogLb E.γs F ∗ L hs ∗
-      ⌜apply.shapedL E.authMode hs (apply.putPerms o) ∧
-        apply.leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID⌝ ∗
-      apply.applyTok E }}
+      srvApi.kvLogLb E.γs F ∗ L hs ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
@@ -164,7 +160,7 @@ private def keysPerms (ks : List GoString) : List apply.Perm3 := ks.map (fun k =
 theorem apply.checkLeasePutsKeys.wp_latest (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePutsKeys.specL (GF := GF) (hG := hG) := by
   intro st RD on Lf hs ai info dq l id γl L I w
-  wp_start as ⟨#Hst, Hai, Hv, Hrd, HLf, %Hsh⟩
+  wp_start as ⟨#Hst, Hai, Hv, Hrd, HLf⟩
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
   iunfold apply.isAuthStoreL at Hst
@@ -243,14 +239,6 @@ theorem apply.checkLeasePutsKeys.wp_latest (hK : lease.Lease.Keys.spec (GF := GF
     wp_apply wp_string_to_bytes kx as %bsl ⟨Hb, -⟩
     ihave %Hbl := ownSlice_len _ _ _ $$ Hb
     have hkxI : I.lookup ⟨kx⟩ = some id := (Hkall kx).1 (List.mem_of_getElem? Hkx)
-    have hshx : apply.shapedL on hs [(kx, [], .write)] := by
-      cases on with
-      | on γa =>
-        intro stl hl hen x hx
-        simp only [List.mem_singleton] at hx; subst hx
-        exact Hsh stl hl hen kx hkxI
-      | off => trivial
-      | any => trivial
     wp_apply HPut $$ [$Hai $Hb $Hrd $HLf] as %err ⟨Hai, -, Hrd, HLf, #HeI2, %Hv2L, #Hv2⟩
     · ipureintro
       have h1 := Hksb kx (List.mem_of_getElem? Hkx)
@@ -258,7 +246,7 @@ theorem apply.checkLeasePutsKeys.wp_latest (hK : lease.Lease.Keys.spec (GF := GF
       have h3 := Hbl.2
       unfold sint.nat at h1
       word
-    have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv2L hshx
+    have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv2L
     cases err with
     | nil =>
       wp_auto
@@ -338,7 +326,7 @@ theorem apply.checkLeasePuts.wp_latest
     (hKeys : apply.checkLeasePutsKeys.specL (GF := GF) (hG := hG)) :
     apply.checkLeasePuts.specL (GF := GF) (hG := hG) := by
   intro st le RD on Lf hs γl L I ai info dq id w
-  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HLf, %Hsh⟩
+  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HLf⟩
   ihave ⟨Hu, %HI⟩ := lease.lessorUserW_items γl L I w $$ Hu
   ihave #Htl' := Htl
   iunfold txn.isTxnLessor at Htl'
@@ -377,7 +365,6 @@ theorem apply.checkLeasePuts.wp_latest
     wp_auto
     wp_apply (hKeys st RD on Lf hs ai info dq l id γl L I w) $$ [$Hst $Hai $Hrd $Ho $HLf]
       as %err ⟨Hai, Hrd, HLf, Ho, #HeI, %Hoff, #Hcls, %Hvd⟩
-    · ipureintro; exact Hsh
     iapply HΦ; iframe Hai Hrd HeI Hcls HLf
     isplitl [Hrdl Hrv Ho]
     · iapply lease.lessorUserOpenW_close γl L I id l w
@@ -390,8 +377,7 @@ theorem apply.checkPutAuth.wp_latest
     (hLP : apply.checkLeasePuts.specL (GF := GF) (hG := hG)) :
     apply.checkPutAuth.specL (GF := GF) (hG := hG) := by
   intro st le RD on Lf hs γl L I ai info dq r o w
-  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HLr, #Hr, %Hsh⟩
-  obtain ⟨Hsh, Hshl⟩ := Hsh
+  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HLr, #Hr⟩
   ihave #Hst' := Hst
   iunfold apply.isAuthStoreL at Hst'
   icases Hst' with ⟨%sti, %Hsti, #HPut, #HRange, -⟩
@@ -400,16 +386,11 @@ theorem apply.checkPutAuth.wp_latest
   iunfold txn.putRequestIs at Hr
   icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, #HL, #HPK, -, -, -, %Ho, %Hkb⟩
   subst Ho
-  have Hsh' : apply.shapedL on hs ([(k, [], .write)] ++ if pk then [(k, [], .read)] else []) := by
-    simpa [apply.putPerms, txn.putOpOf.proj_key, txn.putOpOf.proj_base] using Hsh
-  have hshw : apply.shapedL on hs [(k, [], .write)] :=
-    ((apply.shapedL_append on hs [(k, [], .write)] _).1 Hsh').1
-  have Hshl' : apply.leaseShapedL on hs I lease := by simpa [txn.putOpOf] using Hshl
   wp_auto
   rw [Hsti]
   wp_apply HPut $$ [$Hai $Hk $Hrd $HLr] as %err ⟨Hai, -, Hrd, HLr, #HeI1, %Hv1, #Hpv1⟩
   · ipureintro; exact Hkb
-  have Hone1 := apply.verdictL_one _ _ _ _ _ _ _ Hv1 hshw
+  have Hone1 := apply.verdictL_one _ _ _ _ _ _ _ Hv1
   have Hoff1 := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv1
   cases err with
   | ok e =>
@@ -429,7 +410,6 @@ theorem apply.checkPutAuth.wp_latest
   rw [← Hsti]
   wp_apply (hLP st le RD on Lf hs γl L I ai info dq lease w) $$ [$Hst $Htl $Hu $Hai $Hrd $HLr]
     as %err2 ⟨Hu, Hai, Hrd, HLr, #HeI2, %Hoff2, #Hlc, %Hvl⟩
-  · ipureintro; exact Hshl'
   cases err2 with
   | ok e2 =>
     wp_auto
@@ -464,14 +444,12 @@ theorem apply.checkPutAuth.wp_latest
     simp only [apply.putPerms, txn.putOpOf.proj_key, txn.putOpOf.proj_base, Bool.false_eq_true, ↓reduceIte]
     exact Hone1.1 rfl
   wp_auto
-  have hshr : apply.shapedL on hs [(k, [], .read)] := by
-    simpa using ((apply.shapedL_append on hs [(k, [], .write)] _).1 Hsh').2
   ihave Hnil' := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   rw [Hsti]
   wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) %hs [Hai Hnil' Hrd HLr]
     as %err ⟨Hai, -, -, Hrd, HLr, #HeI3, %Hv3, #Hpv3⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
-  have Hone3 := apply.verdictL_one _ _ _ _ _ _ _ Hv3 hshr
+  have Hone3 := apply.verdictL_one _ _ _ _ _ _ _ Hv3
   have Hoff3 := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv3
   cases err with
   | ok e =>
@@ -511,7 +489,7 @@ theorem apply.authApplierV3.Put.wp_latest
     (hPut : apply.checkPutAuth.specL (GF := GF) (hG := hG)) :
     apply.authApplierV3.Put.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log F Pre Q Post info L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #HF, HL, %Hsh, Htt⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #HF, HL, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.isApplyLessor at Hle
@@ -534,7 +512,6 @@ theorem apply.authApplierV3.Put.wp_latest
   wp_apply (hPut st le E.RD E.authMode L hs (mvcc.api.mvccLeases E.γ) Lw
       (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ info (DFrac.own 1) r o E.win)
     $$ [$Hst $Htl $Hu $Hinfo $Hard $HL $Hr] as %err ⟨Hu, Hinfo, Hard, HL, #HeI, %Hoff, #Hcls, %Hvd⟩
-  · ipureintro; exact Hsh
   ihave Hkv := Hkv $$ Hard Hu
   cases err with
   | ok e' =>

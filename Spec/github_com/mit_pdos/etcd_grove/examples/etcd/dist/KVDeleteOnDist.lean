@@ -41,8 +41,9 @@ An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `auth.reqShape` of the caller's key and the range end, and `kvShapeAll (irrDeleteRange …)`, the shape the
 permission cache decides on the wire request. Both are kept: over arbitrary option transformers the wire key
 need not be `key`, so neither implies the other from the pure premises. The auth-on contract requires it of its
-caller: `etcdDeleteSpecOnW`/`etcdDeleteSpecMW` (`Proof/go_etcd_io/etcd/client/v3/KVServiceOn.lean:106`/`:527`),
-used by the handler's proof (`Results.lean:1372`), and `client.client_delete_on` takes `key ≠ []`. Without it
+caller until N1b-1 (2026-11-28), which dropped it from the in-process contracts (`etcdDeleteSpecOnW`/`MW`,
+`client.client_delete_on`): the auth model now gives Go's exact verdict (`auth.coversX`) for every range; this
+axiom's shape premise goes at N5 (the etcd_safe lead's). Without it
 the axiom claimed a success for requests no proof covers, and its update applied a delete Go refuses with auth
 on (empty or inverted ranges). Callers lose nothing real: etcd refuses an empty key before auth
 (`ErrGRPCEmptyKey`), and an inverted range deletes nothing. -/

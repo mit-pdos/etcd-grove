@@ -1,0 +1,220 @@
+package zzpw
+
+// Witness for nomode D3 follow-up (a) (notes/nomode-n1.md, "D3 follow-up (a)"): the exact error
+// conditions the model of `authStore.selectPassword` rests on.
+//   - TestBcryptExactError: bcrypt.GenerateFromPassword (x/crypto v0.57.0) errs iff
+//     len(password) > 72 (ErrPasswordTooLong, checked first) or cost > MaxCost (InvalidCostError);
+//     a cost below MinCost means DefaultCost, no error.
+//   - TestStdDecodeExact: base64.StdEncoding.DecodeString errs iff the text without its '\n'/'\r'
+//     is not padded base64 (`stdDecOk`, Proof/encoding/base64/Base.lean), exhaustively to length 7
+//     over a small alphabet and on random longer texts.
+//   - TestChangePasswordModel / TestUserAddModel: the real authStore (bbolt backend): the outcome of
+//     UserChangePassword / UserAdd is the model's (`auth.selectPwOk`, the stored user's NoPassword).
+
+import (
+	"encoding/base64"
+	"errors"
+	"math/rand"
+	"strings"
+	"testing"
+
+	"go.uber.org/zap/zaptest"
+	"golang.org/x/crypto/bcrypt"
+
+	"go.etcd.io/etcd/api/v3/authpb"
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/server/v3/auth"
+	betesting "go.etcd.io/etcd/server/v3/storage/backend/testing"
+	"go.etcd.io/etcd/server/v3/storage/schema"
+)
+
+func TestBcryptExactError(t *testing.T) {
+	lens := []int{0, 1, 71, 72, 73, 80, 200}
+	// costs we can afford to run to the end (31 would take 2^31 rounds: its "no error" is read off
+	// checkCost; 73-byte passwords at cost 31 are run: the length check comes first)
+	costs := []int{-1 << 62, -1, 0, 3, 4, 5, 32, 33, 1000, 1 << 40}
+	for _, n := range lens {
+		pw := []byte(strings.Repeat("a", n))
+		for _, c := range append(costs, 31) {
+			if c == 31 && n <= 72 {
+				continue
+			}
+			h, err := bcrypt.GenerateFromPassword(pw, c)
+			model := n > 72 || c > bcrypt.MaxCost
+			if (err != nil) != model {
+				t.Errorf("len=%d cost=%d: err=%v, model says error=%v", n, c, err, model)
+			}
+			if err != nil && h != nil {
+				t.Errorf("len=%d cost=%d: error with a non-nil hash", n, c)
+			}
+			if n > 72 && !errors.Is(err, bcrypt.ErrPasswordTooLong) {
+				t.Errorf("len=%d cost=%d: err=%v, want ErrPasswordTooLong", n, c, err)
+			}
+			if n <= 72 && c > bcrypt.MaxCost {
+				var ic bcrypt.InvalidCostError
+				if !errors.As(err, &ic) || int(ic) != c {
+					t.Errorf("len=%d cost=%d: err=%v, want InvalidCostError(%d)", n, c, err, c)
+				}
+			}
+		}
+	}
+}
+
+func isSym(b byte) bool {
+	return strings.IndexByte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", b) >= 0
+}
+
+// b64Ok is Lean's EtcdGrove.base64.b64Ok over the standard alphabet.
+func b64Ok(s []byte) bool {
+	if len(s)%4 != 0 {
+		return false
+	}
+	for i := 0; i < len(s); i += 4 {
+		a, b, c, d := s[i], s[i+1], s[i+2], s[i+3]
+		if !isSym(a) || !isSym(b) {
+			return false
+		}
+		if i+4 == len(s) {
+			return (isSym(c) && (isSym(d) || d == '=')) || (c == '=' && d == '=')
+		}
+		if !isSym(c) || !isSym(d) {
+			return false
+		}
+	}
+	return true
+}
+
+// stdDecOk is Lean's encoding.base64.stdDecOk: b64Ok of the text without '\n' and '\r'.
+func stdDecOk(s string) bool {
+	var t []byte
+	for i := 0; i < len(s); i++ {
+		if s[i] != '\n' && s[i] != '\r' {
+			t = append(t, s[i])
+		}
+	}
+	return b64Ok(t)
+}
+
+func checkDec(t *testing.T, s string) {
+	_, err := base64.StdEncoding.DecodeString(s)
+	if (err == nil) != stdDecOk(s) {
+		t.Fatalf("%q: DecodeString err=%v, stdDecOk=%v", s, err, stdDecOk(s))
+	}
+}
+
+func TestStdDecodeExact(t *testing.T) {
+	alpha := []byte{'A', 'Q', '/', '=', '\n', '\r', '!'}
+	var rec func(prefix []byte, n int)
+	count := 0
+	rec = func(prefix []byte, n int) {
+		checkDec(t, string(prefix))
+		count++
+		if n == 0 {
+			return
+		}
+		for _, c := range alpha {
+			rec(append(prefix, c), n-1)
+		}
+	}
+	rec(nil, 7)
+	r := rand.New(rand.NewSource(1))
+	big := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r!-_ ")
+	for i := 0; i < 200000; i++ {
+		n := r.Intn(40)
+		b := make([]byte, n)
+		for j := range b {
+			if r.Intn(4) == 0 {
+				b[j] = big[r.Intn(len(big))]
+			} else {
+				b[j] = big[r.Intn(64)]
+			}
+		}
+		checkDec(t, string(b))
+		// and an encoding with newlines sprinkled in
+		enc := []byte(base64.StdEncoding.EncodeToString(b))
+		for k := r.Intn(4); k > 0; k-- {
+			p := r.Intn(len(enc) + 1)
+			enc = append(enc[:p], append([]byte{"\n\r"[r.Intn(2)]}, enc[p:]...)...)
+		}
+		checkDec(t, string(enc))
+		count += 2
+	}
+	t.Logf("%d texts agree", count)
+}
+
+// selectPwOk is the model's auth.selectPwOk (cost valid: NewAuthStore clamps it).
+func selectPwOk(pw, hpw string) bool {
+	if pw != "" && hpw == "" {
+		return len(pw) <= 72
+	}
+	return stdDecOk(hpw)
+}
+
+var pwCases = [][2]string{
+	{"", ""}, {"x", ""}, {strings.Repeat("a", 72), ""}, {strings.Repeat("a", 73), ""},
+	{"", "!!notb64"}, {"", "QUJD"}, {"", "QU\nJD\r\n"}, {"", "QQ=="}, {"", "QQ="}, {"", "Q==="},
+	{"", "QUJD\nQQ==\n"}, {"", "QQ==QQ=="}, {"x", "QUJD"}, {"x", "!!"}, {strings.Repeat("a", 80), "QUJD"},
+}
+
+func newStore(t *testing.T, cost int) auth.AuthStore {
+	lg := zaptest.NewLogger(t)
+	be, _ := betesting.NewDefaultTmpBackend(t)
+	t.Cleanup(func() { betesting.Close(t, be) })
+	schema.CreateMetaBucket(be.BatchTx())
+	tp, _ := auth.NewTokenProvider(lg, "simple", func(uint64) <-chan struct{} { c := make(chan struct{}); close(c); return c }, 300)
+	return auth.NewAuthStore(lg, schema.NewAuthBackend(lg, be), tp, cost)
+}
+
+func TestChangePasswordModel(t *testing.T) {
+	// cost 32 is invalid: NewAuthStore uses DefaultCost, so the bcrypt branch errs only on length
+	for _, cost := range []int{bcrypt.MinCost, 32} {
+		as := newStore(t, cost)
+		for _, nob := range []bool{false, true} {
+			name := "u"
+			if nob {
+				name = "n"
+			}
+			if _, err := as.UserAdd(&pb.AuthUserAddRequest{Name: name, Options: &authpb.UserAddOptions{NoPassword: nob}}); err != nil {
+				t.Fatal(err)
+			}
+			for _, c := range pwCases {
+				rev := as.Revision()
+				_, err := as.UserChangePassword(&pb.AuthUserChangePasswordRequest{Name: name, Password: c[0], HashedPassword: c[1]})
+				model := nob || selectPwOk(c[0], c[1])
+				if (err == nil) != model {
+					t.Errorf("cost=%d nob=%v %q: err=%v, model ok=%v", cost, nob, c, err, model)
+				}
+				if err != nil && !errors.Is(err, auth.ErrNoPasswordUser) {
+					t.Errorf("cost=%d nob=%v %q: err=%v, want ErrNoPasswordUser", cost, nob, c, err)
+				}
+				if bumped := as.Revision() == rev+1; bumped != (err == nil) {
+					t.Errorf("cost=%d nob=%v %q: revision %d -> %d", cost, nob, c, rev, as.Revision())
+				}
+			}
+		}
+		// a missing user: ErrUserNotFound whatever the passwords
+		if _, err := as.UserChangePassword(&pb.AuthUserChangePasswordRequest{Name: "missing", HashedPassword: "!!"}); !errors.Is(err, auth.ErrUserNotFound) {
+			t.Errorf("missing user: %v", err)
+		}
+	}
+}
+
+func TestUserAddModel(t *testing.T) {
+	as := newStore(t, bcrypt.MinCost)
+	i := 0
+	for _, nob := range []bool{false, true} {
+		for _, c := range pwCases {
+			i++
+			name := "u" + strings.Repeat("x", i)
+			rev := as.Revision()
+			_, err := as.UserAdd(&pb.AuthUserAddRequest{Name: name, Password: c[0], HashedPassword: c[1], Options: &authpb.UserAddOptions{NoPassword: nob}})
+			model := nob || selectPwOk(c[0], c[1])
+			if (err == nil) != model {
+				t.Errorf("nob=%v %q: err=%v, model ok=%v", nob, c, err, model)
+			}
+			if bumped := as.Revision() == rev+1; bumped != (err == nil) {
+				t.Errorf("nob=%v %q: revision %d -> %d", nob, c, rev, as.Revision())
+			}
+		}
+	}
+}

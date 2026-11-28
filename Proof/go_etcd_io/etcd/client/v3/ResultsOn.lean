@@ -257,12 +257,11 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persi
     · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 /-- **`kv.Delete(ctx, key)` through a `*kv` over `conn` to a member with auth on** (as
-`client_put_on`; `client_delete_any` at one member): a non-empty key (the shape the permission
-cache decides, `auth.reqShape`); the reply with `deleteReplied` and the delete's grant at the
+`client_put_on`; `client_delete_any` at one member): the reply with `deleteReplied` and the delete's grant at the
 token of some attempt's metadata. -/
 theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ [])
+    (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         kvObjAtC api conn [addr] ∗
@@ -312,8 +311,6 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
       unfold etcdDeleteSpecOn etcdDeleteSpecOnW
       isplitr
       · imodintro; iintro %_; itrivial
-      isplitl []
-      · ipureintro; exact ⟨hk, Or.inl rfl⟩
       iexists F
       iframe HF
       iexists Q
@@ -362,8 +359,7 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
 
 /-- **`Commit()` on a builder over a `*kv` over `conn` to a member with auth on** (as
 `client_txn_any` at one member, nested transactions included: `notes/txn-nested.md`): a
-transaction, read-only within the model (`txnModelIn`), a writing one with every permission of the
-shape the permission cache decides (`kvShapeAll`), the member's committed index at least `c`, the
+transaction, read-only within the model (`txnModelIn`), the member's committed index at least `c`, the
 floor `F`, a lower bound `n` of the published auth index and the caller's update
 (`txnUpdAtOn`: a writing one's told its grant), persistent or on a builder that sends a write at
 most once; `nil` with the reply's `txnReplied` and the transaction's auth facts at the token of
@@ -372,9 +368,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
     (ρ : ReqNames) (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hin : txn.txnReadonly (txnWireOf b.model) = true → txnModelIn (txnWireOf b.model))
-    (hsz : txnSizeOk (txnWireOf b.model))
-    (hsh : txn.txnReadonly (txnWireOf b.model) = false →
-      ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)) :
+    (hsz : txnSizeOk (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         txnObjAt tp [addr] ci cd b ∗ metadata.outMD ci om ∗ txnKvIs tp api ∗ kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn T E ρ γr cid mid) ∗
@@ -403,7 +397,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
     isplitr
     · imodintro; iintro %_; itrivial
     isplitl []
-    · ipureintro; exact ⟨hin, hsh⟩
+    · ipureintro; exact hin
     iexists Q
     isplitl [Hu]
     · iunfold txnUpdAtOn at Hu

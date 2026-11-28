@@ -92,7 +92,7 @@ theorem auth.authStore.HasRole.wp_proof
     exact ⟨st0, Hl0, by simp [Hnone]⟩
   ihave Hu' := auth.userOut_some_named _ st0 user Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
-  obtain ⟨Hlook, Hurn, Hurr, Hsorted⟩ := Hur
+  obtain ⟨Hlook, Hurn, Hurr, Hsorted, -⟩ := Hur
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
   icases typedPointsto_split _ _ _ $$ Hup with Hup

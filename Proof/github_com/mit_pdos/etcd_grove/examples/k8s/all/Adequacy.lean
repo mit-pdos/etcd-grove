@@ -118,8 +118,6 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
     [log.NewModel]
-    (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
-      EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     -- the store's cluster: `k₁` members
     (k₁ : w64) (ids : List w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) (Hlen : ids.length = uint.nat k₁)
@@ -204,7 +202,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     haveI : ThreadBoundLe k8sGF (2 ^ 28) := ⟨by rw [HT]; word⟩
     haveI : ReceiptBoundLe k8sGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe k8sGF (n + 1) := ⟨by rw [HN]; omega⟩
-    have hM := k8s_all.wp_MainChecked (GF := k8sGF) (Hafter hG) k₁ n ids ps ctxs boot k₂ ids' ps'
+    have hM := k8s_all.wp_MainChecked (GF := k8sGF) k₁ n ids ps ctxs boot k₂ ids' ps'
       ctxs' boot' clients ops watchers wops n₁ n₂ (srvLevels_of_max HT) Hlen Hbf Hlen' Hbf'
       (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance
       EtcdGrove.rpctypesEtcdError_asTarget k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds
@@ -245,7 +243,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     haveI : ThreadBoundLe k8sGF (2 ^ 28) := ⟨by rw [HT]; word⟩
     haveI : ReceiptBoundLe k8sGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe k8sGF (n + 1) := ⟨by rw [HN]; omega⟩
-    have hM := k8s_all.wp_MainChecked (GF := k8sGF) (Hafter hG) k₁ n ids ps ctxs boot k₂ ids' ps'
+    have hM := k8s_all.wp_MainChecked (GF := k8sGF) k₁ n ids ps ctxs boot k₂ ids' ps'
       ctxs' boot' clients ops watchers wops n₁ n₂ (srvLevels_of_max HT) Hlen Hbf Hlen' Hbf'
       (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance
       EtcdGrove.rpctypesEtcdError_asTarget k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds
@@ -266,8 +264,6 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
     [log.NewModel]
-    (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
-      EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     -- the store's cluster: `k₁` members
     (k₁ : w64) (ids : List w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) (Hlen : ids.length = uint.nat k₁)
@@ -302,7 +298,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_adequate_below Hafter k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot' Hlen' Hbf'
+  k8s_adequate_below k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot' Hlen' Hbf'
     Haf Hbuq Hrf Hdbo clients ops watchers wops n₁ n₂ HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 ((RealNstepsBelow.of_one Hsteps' Hthreads).mono (by omega)) (by omega)
 

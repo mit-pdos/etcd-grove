@@ -36,7 +36,10 @@ default reader, which etcd never replaces, `crypto/internal/rand.reader`, return
 crashes the program), the salt it encodes decodes, and `blowfish.NewSaltedCipher`'s key (the
 password and a trailing 0) is not empty. Otherwise `newFromPassword` and `p.Hash()`, which builds
 a fresh slice (`expensiveBlowfishSetup` copies the key, `append(key[:len(key):len(key)], 0)`, so
-the argument is not written); no panic. (The error facts since 2026-10-27, the auth plan's E3y:
+the argument is not written); no panic. **Exactly when** (D3 follow-up (a), 2026-11-28): an error iff
+the password is over 72 bytes or `cost > MaxCost` (31; `cost` as Go's signed `int`: one below
+`MinCost` means `DefaultCost`, no error), the two checks of `GenerateFromPassword` and `checkCost`
+(bcrypt.go:96, 300); witness `notes/axiom-review/pw-gotest/` (`TestBcryptExactError`). (The error facts since 2026-10-27, the auth plan's E3y:
 what the gRPC layer needs of the error `UserAdd` hands it, `applyErrIs`.) (fromerror-stable,
 2026-11-06) The error's `Error()` returns one string on every call (it returned some string): the
 errors `GenerateFromPassword` returns are `ErrPasswordTooLong` (an `errors.New` value, its cell
@@ -71,8 +74,9 @@ abbrev bcrypt.GenerateFromPassword.spec : Prop :=
           (_root_.Perennial.errors.IsPointerError ei ∨
             (ei.ty = golang_org.x.crypto.bcrypt.InvalidCostError.ty ∧ ∃ c : w64, ei.v = #c))⌝ ∗
           (∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
-            WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}) ∗ ⌜h = slice.nil⌝) ∨
-        ⌜err = GoInterface.nil⌝ ∗ ∃ hs : List w8, h ↦* hs) }}
+            WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}) ∗ ⌜h = slice.nil⌝ ∗
+          ⌜72 < p.length ∨ 31 < sint.Z cost⌝) ∨
+        ⌜err = GoInterface.nil⌝ ∗ ⌜p.length ≤ 72 ∧ sint.Z cost ≤ 31⌝ ∗ ∃ hs : List w8, h ↦* hs) }}
 
 end spec
 

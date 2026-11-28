@@ -640,11 +640,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               iframe Htag
               isplitr
               · iapply apply.watchClassFrom_of_classResFrom $$ Hcl
-              isplitr
-              · iintro !> %hon
-                iapply Hbd; ipureintro; exact hon
-              ipureintro
-              exact apply.reqShape_of_watch c.key c.rangeEnd Hrng
+              iintro !> %hon
+              iapply Hbd; ipureintro; exact hon
             iintro !> Hprod
             wp_auto
             recv_next
