@@ -52,7 +52,20 @@ theorem durPeek {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Term
     srvDurInv γ rc i ∗ srvVP rc s tp dp ∗ P ∗
       (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢
       |NC={E}=> srvVP rc s tp dp ∗ Q := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hi, Hv, HP, Hf⟩ Hnc
+  imod (durOpen γ rc i hE) $$ Hi Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  obtain ⟨hs, -, -⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hc⟩
+  ihave Ho : srvOwn γ i s $$ [Ho]
+  · rw [← hs]; iexact Ho
+  imod Hf $$ Ho HP with ⟨Ho, HQ⟩
+  imod Hcl $$ %X [Ho Hc] Hs with -
+  · iunfold durCore; rw [hs]; iframe
+  imodintro
+  iframe
 
 /-- (R2) **An in-memory step of the main goroutine**: only the durable prefix `dur` changes, and
 only up (what the commit laws do); the couplings are unchanged. -/
