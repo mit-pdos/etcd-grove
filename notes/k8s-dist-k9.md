@@ -444,7 +444,8 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   of `landingsL R c.st'.rv' …`), `settle` (the result's configurations are exactly `GoSettle`'s from `g`, each
   `HWf`; premise `HWf g.st ∧ SettleOk R y g`). `settle`'s `SettleOk` is a DRAFT guess at the bounds the proof
   needs (skipTo's `t < 2^63`, `l - 1` with `l ≥ 1`). Checked with `etc/lean-check.py` on fk-lean2 (0 errors);
-  not yet in a `lake build` of record, no proofs yet, not in `Link`.
+  built (fk-lean2, targets the three specs and `etcd3.Link` at `f34b269629`, exit 0, 12227 jobs); no proofs yet,
+  not in `Link`.
 - **Edit loop that worked** (much faster than a build per edit): copy the file into fk-lean2's worktree
   `/home/ubuntu/eg/wt/k8s-dist-k9/2026-11-28` and run `etc/lean-check.py -a FILE` there (script
   `scratchpad/rcheck.sh` of this session: `scp` then `ssh … python3 etc/lean-check.py`). Always pass `-a`:
