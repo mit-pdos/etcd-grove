@@ -86,6 +86,12 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
   intro sl ops xs dq Hops Hok
   wp_start as Hs
   wp_auto
+  wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %am Ham
+  (try wp_auto)
+  wp_apply (wp_map_make1 (K := GoString) (V := GoMap)) as %bm Hbm
+  (try wp_auto)
+  wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %wm Hwm
+  (try wp_auto)
   sorry
 
 end proof
