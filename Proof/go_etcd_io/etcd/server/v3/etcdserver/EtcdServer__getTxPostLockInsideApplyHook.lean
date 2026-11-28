@@ -43,9 +43,9 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
   isplitr
   · ipureintro; simp [func.nil]
   iunfold hookSpec
-  iintro %st %i %t %b
-  wp_start as ⟨HL, Hst, Happ, Hbe, %Hpre⟩
-  obtain ⟨hp, hi, hlt, hce⟩ := Hpre
+  iintro %st %i %t %rt %b
+  wp_start as ⟨HL, Hst, Happ, Hrt, Hbe, %Hpre, #HP⟩
+  obtain ⟨hp, hi, hlt, hce, hld⟩ := Hpre
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
   iunfold isServerCI at Hsrv
@@ -53,9 +53,12 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
   wp_auto
   wp_apply hA ci i t $$ [$Happ] as Happ
   (try wp_auto)
-  wp_apply_core (wp_ci_unsafeGet (Rw := TRow.triv) hU (srvCIPair cl) γ ci b st hp) $$ [Hst Hbe] [HΦ HL Happ applyingIdx applyingTerm]
-  · iframe Hcipkg Hci Hinv Hst Hbe
-  iintro ⟨Hst, Hbe⟩
+  wp_apply_core (wp_ci_unsafeGet (Rw := TRow.triv) hU (srvCITriple0 cl) γ ci b rt st hp) $$ [Hst Hbe Hrt]
+      [HΦ HL Happ applyingIdx applyingTerm]
+  · iframe Hcipkg Hci Hinv Hst Hbe Hrt
+    -- (keepfix, route (i)) the state is loaded: no load of a non-zero index
+    ileft; ipureintro; exact stLoaded_self_k0 γ st hld
+  iintro ⟨Hst, Hbe, Hrt⟩
   (try wp_auto)
   -- the applying index is above `ci`: set it
   wp_if_destruct
@@ -63,13 +66,15 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
     icases HL with ⟨%mm, Hmt, HTM, Htok, #Hreg⟩
     have hlst : (stLoaded γ st).pending = false ∧ i = (stLoaded γ st).p + 1 := by
       unfold stLoaded; split <;> exact ⟨hp, hi⟩
-    wp_apply_core (wp_ci_hookSet (Rw := TRow.triv) hS (srvCIPair cl) γ ci (stLoaded γ st) i t hlst.1 hlst.2 (by
-        unfold stLoaded; split <;> exact hlt)) $$ [Hst Htok] [HΦ Hmt HTM Happ Hbe]
-    · iframe Hcipkg Hci Hinv Hst Htok
-    iintro Hst
+    wp_apply_core (wp_ci_hookSet (Rw := TRow.triv) hS (srvCITriple0 cl) γ ci (stLoaded γ st) i t rt hlst.1
+        hlst.2 (by unfold stLoaded; split <;> exact hlt)) $$ [Hst Htok Hrt] [HΦ Hmt HTM Happ Hbe]
+    · iframe Hcipkg Hci Hinv Hst Htok Hrt
+      -- (keepfix (c)) the applying triple's predicate, the caller's
+      iright; iexact HP
+    iintro Hst Hrt
     (try wp_auto)
     iapply HΦ
-    iframe Happ Hbe
+    iframe Happ Hbe Hrt
     isplitl [Hmt HTM]
     · iunfold hookDone; iexists mm; iframe; iexact Hreg
     have hw : { stLoaded γ st with k := i, pending := true } = { st with k := i, pending := true } := by

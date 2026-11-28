@@ -33,7 +33,7 @@ abbrev EtcdServer.getTxPostLockInsideApplyHook.spec : Prop :=
       isServerCI s γ ci cl }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getTxPostLockInsideApplyHook"))
       (Val #()))
-  {{ (g : GoFunc), RET #g; ⌜g ≠ func.nil⌝ ∗ hookSpec γ ci TM #g }}
+  {{ (g : GoFunc), RET #g; ⌜g ≠ func.nil⌝ ∗ hookSpec γ ci cl TM #g }}
 
 end spec
 
