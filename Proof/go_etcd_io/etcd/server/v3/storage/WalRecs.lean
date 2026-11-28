@@ -598,10 +598,10 @@ theorem walFiles_readShape (a : WalA GF) (id cid : w64) (σ : StorContents) (siz
       ⌜walEntsWf σ ∧ ((σ.snap = none ∧ σ.base = entryID.mk (W64 0) (W64 0)) ∨
         ∃ m, σ.snap = some (SnapshotM.mk [] m) ∧ σ.base = entryID.mk m.Term' m.Index')⌝ := by
   unfold walFiles
-  iintro ⟨%d, H1, H2, H3, H4, H5, %hp⟩
+  iintro ⟨%inc, %d, H1, H2, H3, H4, H5, %hp⟩
   have hr := hp.1
   isplitl [H1 H2 H3 H4 H5]
-  · iexists d
+  · iexists inc, d
     iframe H1 H2 H3 H4 H5
     ipureintro; exact hp
   · ipureintro

@@ -813,10 +813,10 @@ theorem auth.authStore.AuthDisable.specT_of_TB (h : auth.authStore.AuthDisable.s
   ihave #Hcap := Hcap0 $$ %b0
   iapply (h st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Hw3 Htpa Hcs]
   · iframe; iframe #; ipureintro; exact Hok
-  iintro !> ⟨%b, %sc, Htpa, HPP, HWR, %en, -, Hrest⟩
+  iintro !> ⟨%b, %sc, Htpa, HWR, %en, -, Hrest⟩
   iapply HΦ
   iexists b, sc
-  iframe Htpa HPP
+  iframe Htpa
   isplitl [HWR]
   · iapply authWRx_of_B $$ HWR
   iexists en; iexact Hrest
