@@ -91,3 +91,17 @@ Directions (to confirm): a premise whose pre is `walFiles`/`srvFiles` (`bootstra
 a premise whose post is `walRecs`/`walOpened` (`wal.Create.specSrv`, the restart's post) claims more, the conjunct
 holding of the fresh WAL and following from the pre's `walFiles` of the same history; `isWalStorage`'s `Save`
 (axiom vocabulary of `etcd_kv_safe_nocrash`) requires more of its caller, so claims less.
+
+## WCL-2 (2026-11-28)
+
+Built and gated on fk-lean1 after merging lean `eeb6103cf4` (rule41rm and etcdsvc-b included): one fix
+(`walRecs_unsize`: `fun h => by cases h, x` parsed as `cases h, x`; parenthesized); `WalRecs.lean`'s docstring
+conflict with lean's walfiles note kept both paragraphs; `bootstrap.wp_proofRestart`'s docstring no longer lists
+C1 (axiom text unchanged). `GATES_FAILFAST=0 etc/gates.sh`: all passed (30885 jobs; tcb 364 axioms, 0 `sorry`,
+baseline unchanged). Vocabulary diff against lean (`etc/theorem-tcb.py`, `/shared/tmp/wcl-delta2/premdiff.txt`;
+`etcd_restart_robust_single_process` with `--collection etc/tcb-collections/etcd-all-single-process.txt`, whose roots
+do not name `TopLevelRobustness.lean`): `etcd_restart_robust_single_process` (axiom `bootstrap.wp_proofRestart`
+docstring; axiom vocabulary `walRecs`, `walFiles`, `srvFiles`, `walCommitLeFrom`), `etcd_kv_safe_nocrash` (axiom
+vocabulary, also `isWalStorage`, `WalSaveCommitLe`), `putget_safe` (axiom vocabulary), `k8s_robust_single_process`
+(premise vocabulary `walRecs`, `walCommitLeFrom`, through the fresh WAL's `walOpened … walFresh`); every other
+theorem unchanged. Directions confirmed on the built text as in WCL-1's list.
