@@ -83,7 +83,8 @@ def targetL (x : Input) (y : Output) (rv : Nat) : Nat :=
 
 /-- **`settle`'s configurations** from `c`, with the full mode's landings over the anchors `A`: the
 `i`-th pending write is dropped if it has no effect on the store (`mstepL` keeps its revision), or
-lands at a landing `l` (the store skipped to `l - 1`, then the write's step); any number of times. -/
+lands at a landing `l` below `2^64` (the store skipped to `l - 1`, then the write's step; Go's
+`landings` computes `a + 1` in `uint64`, K9-1); any number of times. -/
 inductive SettleL (A : List Nat) : GCfg → GCfg → Prop where
   | refl (c : GCfg) : SettleL A c c
   | drop {c d : GCfg} (i : Nat) : i < c.pend.length →
@@ -91,7 +92,7 @@ inductive SettleL (A : List Nat) : GCfg → GCfg → Prop where
       SettleL A ⟨c.st, removeAtL c.pend i⟩ d → SettleL A c d
   | land {c d : GCfg} (i l : Nat) : i < c.pend.length →
       (mstepL (pendAt c i) c.st.st).1.rv ≠ c.st.st.rv →
-      l ∈ landingsFull A [] [] (uint.nat c.st.st.rv) →
+      l ∈ landingsFull A [] [] (uint.nat c.st.st.rv) → l < 2 ^ 64 →
       SettleL A ⟨(kstepL (pendAt c i) (skipToL c.st (l - 1))).1, removeAtL c.pend i⟩ d →
       SettleL A c d
 
@@ -110,13 +111,14 @@ inductive SearchRun (A : List Nat) : GCfg → List (Input × Output) → Prop wh
 its minimum resource version and resource-version precondition (where they parse); an answer's error
 revision and list revision, a successful answer's object's revision (with or without a name: G9, `notes/k8s-dist-k4.md`, "K4-3: more
 gaps"); the revisions of a
-successful list's items, of a watch's events and bookmarks (not its errors), and of the object a failed
+successful list's items, of a watch's events and bookmarks (types below 4, Error's: Go's `HistoryRevs`,
+which anchors no Error event and no bad one, type 5 or more; K9-1), and of the object a failed
 resource-version precondition's message names (Go's `rvOfMsg`). -/
 def OpAnchors (A : List Nat) (x : Input) (y : Output) : Prop :=
   (∀ r, parseRVD x.MinRV' = some r → uint.nat r ∈ A) ∧
   (∀ r, x.HasPreRV' = true → parseRVD x.PreRV' = some r → uint.nat r ∈ A) ∧
   (x.Kind' = W64 5 → y.WFailed' = false → ∀ evs, decWEventsL y.WEvents' = some evs → ∀ e ∈ evs,
-    e.t ≠ 4 → uint.nat e.o.ResourceVersion' ∈ A) ∧
+    e.t < 4 → uint.nat e.o.ResourceVersion' ∈ A) ∧
   (x.Kind' ≠ W64 5 →
     uint.nat y.ErrRV' ∈ A ∧ uint.nat y.ListRV' ∈ A ∧
     (y.Err' = W64 0 → uint.nat y.RV' ∈ A) ∧

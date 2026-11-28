@@ -35,7 +35,7 @@ theorem SettleL.trans {A : List Nat} {c d e : GCfg} (h1 : SettleL A c d) (h2 : S
   induction h1 with
   | refl => exact h2
   | drop i hi hs _ ih => exact .drop i hi hs (ih h2)
-  | land i l hi hs hl _ ih => exact .land i l hi hs hl (ih h2)
+  | land i l hi hs hl hl64 _ ih => exact .land i l hi hs hl hl64 (ih h2)
 
 /-- **The search's configuration `e` and the cluster's `g`**: the stores related by `HRel` from the
 seeds at `n0`, the pending writes the same up to order, each a write with an anchored precondition. -/
@@ -117,7 +117,7 @@ theorem CRel.silent {A : List Nat} {n0 : Nat} {h0 : HSt} {e g g₁ : GCfg} (hc :
           exact ⟨c1, c2⟩
         have hw' := h'.write i hpre hb hch'' hcut
         refine ⟨⟨(kstepL i (skipToL e.st (l - 1))).1, removeAtL e.pend (e.pend.idxOf i)⟩,
-          .land _ l hidx (by rw [hat]; exact hch') hmem (by rw [hat]; exact .refl _),
+          .land _ l hidx (by rw [hat]; exact hch') hmem (by omega) (by rw [hat]; exact .refl _),
           ⟨⟨extR ρ (uint.nat (skipToL e.st (l - 1)).st.rv) (uint.nat g.st.st.rv),
             W ++ [uint.nat (skipToL e.st (l - 1)).st.rv + 1], ?_⟩, hrm, hpw', hpa'⟩⟩
         show HRel A n0 (extR ρ (uint.nat (skipToL e.st (l - 1)).st.rv) (uint.nat g.st.st.rv))
