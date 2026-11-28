@@ -58,3 +58,36 @@ history above.
 What the restart premise now assumes: `walFiles` is stronger, so `bootstrapRestartContract` (whose pre is
 `srvFiles`) promises its post of fewer files: it claims less. `wal.Create.specSrv` (a premise of
 `bootstrapNewWAL`) claims the conjunct of the fresh WAL, where it holds (an empty history).
+
+## Handoff WCL-1 (2026-11-28)
+
+Done (branch `walcommitle/2026-11-28`, off lean `2018327946`):
+- the predicate: `walRecs`/`walFiles` gain `walCommitLeFrom walFresh (walSrvHist d.H)`; `WalSaveCommitLe σ h es :=
+  (walSave σ h es).commit ≤ (walSave σ h es).last` (`WalRecs.lean`) beside `WalSaveOk` in `Save`'s atomic update
+  (`WalApi.lean` 4 laws, `RnNewStorage.lean` `walSave_law`, `InvWal.lean` `rnDur_save_au`);
+- proofs edited, **not yet compiled**: `walRecs_unsize`, `walRecs_saveAU` (`walCommitLeFrom_snoc`),
+  `walRecs_saveSnapAU` (new `walCommitLeFrom_snoc_snap`, `WalLinkPure.lean`), `walRecs_closeAU`; the driver:
+  `WalSaveStep` gains the conjunct (second), proved in `walSaveStep_ready`/`walSnapSteps_ready` by the new
+  `storageHolds_last_le` and `walSaveCommitLe_of_holds` (`InvWal.lean`) from `ReadyRestFacts`' second conjunct;
+  `raftNode__start` needs no edit (it takes `.1` of the step);
+- Go: `examples/axiomcx/restartcommitle` passes at the etcd pin (`ReadAll` err=nil, commit 4, entries [5 6]);
+- docstrings `walRecs`, `walFiles`, `srvFiles`; ledger entry; README row;
+- Perennial e2eda8223 built on fk-lean1 (`/home/ubuntu/eg/perennial-e2eda8223`, `pbuild-e2eda8223.sh`, EXIT 0);
+- vocabulary diff (source-level `etc/theorem-tcb.py`, `cmp7.py`'s method; `/shared/tmp/wcl-delta/premdiff-1f0a06f925.txt`):
+  changed only `etcd_robust_single_process`, `etcd_leaseexpiryN_robust_single_process`, `k8s_robust_single_process`
+  (premise vocabulary: `walRecs` changed, `walCommitLeFrom` added; the first also `srvFiles`/`walFiles`) and
+  `etcd_kv_safe_nocrash`, `putget_safe` (axiom vocabulary: `walRecs`, `walFiles`, `srvFiles`, `walCommitLeFrom`;
+  `etcd_kv_safe_nocrash` also `isWalStorage`, `WalSaveCommitLe`); every other theorem unchanged. Five names of the
+  list gave no TCB on either tree (`crash_robust`, `etcd_robust`, `etcd_robust_nocrash`, `hraft_nocrash_robust`,
+  `putgetK_safe`): not compared.
+
+Left: the build (`etc/lean-check.py`/remote `fkcheck.sh` on fk-lean1, the branch's first build seeds from
+lean-warm at another pin, so near-full); fix what fails; regenerate/`--check` `etc/copy-part.py`,
+`etc/gen-raft-tla.py`, `etc/gen-init.py` (no copies of the edited modules were found); `GATES_FAILFAST=0
+etc/gates.sh`; `etc/tcb-report.py --check`; the STATUS entry; the directions below confirmed against the built
+statements.
+
+Directions (to confirm): a premise whose pre is `walFiles`/`srvFiles` (`bootstrapRestartContract`) assumes less;
+a premise whose post is `walRecs`/`walOpened` (`wal.Create.specSrv`, the restart's post) claims more, the conjunct
+holding of the fresh WAL and following from the pre's `walFiles` of the same history; `isWalStorage`'s `Save`
+(axiom vocabulary of `etcd_kv_safe_nocrash`) requires more of its caller, so claims less.
