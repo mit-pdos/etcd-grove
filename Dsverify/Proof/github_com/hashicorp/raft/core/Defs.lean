@@ -415,8 +415,7 @@ def lastLockInv (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
     r.[Raft, go!"raftState"].[raftState, go!"lastLogTerm"] ↦ lt ∗
     r.[Raft, go!"raftState"].[raftState, go!"lastSnapshotIndex"] ↦ si ∗
     r.[Raft, go!"raftState"].[raftState, go!"lastSnapshotTerm"] ↦ st ∗
-    ghostVar rc.names.lastLog (1 : Qp).half
-      (if uint.nat li < uint.nat si then (uint.nat si, uint.nat st) else (uint.nat li, uint.nat lt)) ∗
+    ghostVar rc.names.lastLog (1 : Qp).half (uint.nat li, uint.nat lt) ∗
     (⌜si = W64 0⌝ ∨ ∃ e : Entry, CIdx γ (uint.nat si) e ∗ ⌜e.term = uint.nat st⌝ ∗
       applLb rc (uint.nat si) ∗
       (durLb γ i (uint.nat si) ∨ snapFollow γ i (uint.nat si) (uint.nat st))) ∗

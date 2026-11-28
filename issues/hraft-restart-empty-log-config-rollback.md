@@ -3,6 +3,8 @@ upstream: none
 checked: 2026-11-28
 links:
   - hashicorp/raft#728 issue open: related (NewRaft's configuration scan on restart), a different bug
+  - hashicorp/raft#741 issue open: related (appendEntries and the snapshot boundary), a different bug
+  - hashicorp/raft#697 issue open, hashicorp/raft#721 issue open: related (installSnapshot keeping the log), different bugs
 blocks-proof: yes
 ---
 # raft: after a restart whose log ends below the snapshot, a delayed AppendEntries rolls the latest configuration back
@@ -63,3 +65,18 @@ re-processed configuration entries break `cfgFacts`, the configurations' invaria
 protocol log). The proposed fork fix (R5's Q1 option (ii), pending coordinator-E's approval): `NewRaft`
 sets `lastLog` to `(snapIdx, snapTerm)` when `lastLog.Index < snapIdx` after the restore, which makes
 `lastLogIndex ≥ lastSnapshotIndex` an invariant.
+
+## Upstream status
+
+Searched hashicorp/raft's issues and PRs on 2026-11-28 ("snapshot restart", "lastLog", "NewRaft lastLog
+snapshot index", "configuration rollback restart snapshot", "getLastLog appendEntries snapshot"): no report
+of this bug. The nearest are #741 (a matching predecessor at the snapshot boundary rejected), #728, #697 and
+#721, each a different bug.
+
+## Fix (the verification fork, fix 4; approved by coordinator-E, #48)
+
+`NewRaft`, after the snapshot restore and fix 2: if `lastLog.Index` is below the restored snapshot's index,
+set `lastLog` (and `setLastLog`) to the snapshot's last entry, as `installSnapshot` does
+(`examples/dsverify/hraft/api.go`). With it the test passes (3/3), and so do the other three R0 issue tests
+on the fork; the fork's own `go test .` passes.
+

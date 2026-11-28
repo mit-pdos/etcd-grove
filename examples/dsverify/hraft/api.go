@@ -601,6 +601,15 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 		}
 	}
 
+	// Fix 4 (issues/hraft-restart-empty-log-config-rollback): a log store that ends below the restored
+	// snapshot (an install discarded the log before a crash) leaves lastLog below the snapshot's last entry.
+	// Raise it, as installSnapshot does, so that appendEntries does not take entries the snapshot covers for
+	// new ones (and re-apply their configurations).
+	if snapIdx, snapTerm := r.getLastSnapshot(); lastLog.Index < snapIdx {
+		lastLog = Log{Index: snapIdx, Term: snapTerm}
+		r.setLastLog(snapIdx, snapTerm)
+	}
+
 	if err := r.restoreFromCommittedLogs(); err != nil {
 		return nil, err
 	}
