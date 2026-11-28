@@ -672,6 +672,25 @@ token-free `LeaderWithID` spec. Reported to coordinator-E.
   (`cfgOpt`'s `Servers' ↦*□ ss`). The reply carries no facts. `apiMeth_Status` (`ApiRcvSvc.lean`) replaces the
   receiver's `mStatus` hypothesis: `apiRcvLaws_of`/`apiRcv_apiSvc` take `API.Status.spec` instead.
 
-Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the clients' registration and claim
-lemmas over `kitQ`, the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
+### S5c batch 2: the clients' registration and claim (`KitQ.lean`)
+
+- **Freshness**: `KG` gains `seq`, a ghost map from a client to its operation counter; client `c` owns
+  `seqOwn g c m` (exclusive). `kitQ` keeps the map's authority and, for every registered datum `d`, `idOf d =
+  (c, s)` with `s` below `c`'s counter (`idOf`: the datum's bytes 1-8, `opID`'s, as client and count). A datum
+  whose id is `(c, m)` for the client's own `m` is then unregistered, and so no command of the frontier
+  (`not_cmdIn_ops`: a committed command's datum is in `opsAuth`, `cmd_committed_ops`). `kitQ`'s register bound
+  is now `putsShort es` (every put of the frontier has a value under 256 bytes), which prefixes inherit
+  (`regShort_of_putsShort`).
+- **`kit_register`**: from `frInv`, a credit, `seqOwn g c m`, `datumOf i d`, `idOf d = (c, m)` and the update
+  `slotUpd (regR g.st) i Φ`: `opTok γ d n` (the `Apply` deposit's token), `seqOwn g c (m+1)` and the claim
+  `kitTicket g d i Φ` (the escrow's entry, the saved `Φ`, the client's token).
+- **`kit_claim`**: from `frInv`, two credits, the claim and `applyOut`'s done facts (`CIdx γ k e`, `e.data = d`,
+  `cIdxs γ es'` with `|es'| = k`, `frLb fc es'`): `Φ (firedOut i es')` (the entry fired at `es'`, by
+  `cmd_unique`), `datumOf i d`, `es'.getLast? = some e`, `putsShort es'`; **`firedOut_respAt`** says the output
+  is the FSM's answer `respAt es'` (nothing found for a put).
+- **`kitQ_alloc`**: the clients' state at the empty frontier from `Inv γ ∗ opsAuth γ ∅`, with the model's other
+  half and every client's counter.
+
+Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof that its datum's id is `(c, m)`
+(`opID`/`command`'s bytes, `idOf`) and that `m < 2^56` (remote's call budget, `budUsed_add`), the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
 `Sys.op`/`try` and `Client`, the orchestrator and the admin, and the link.
