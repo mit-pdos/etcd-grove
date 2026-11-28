@@ -102,7 +102,7 @@ theorem nodeStart_of_crashBootT [lctx : GoLocalContext] [G : GooseGlobalGS .hasL
     (crashing : List (Expr × state)) (i : Nat) (m : Expr × state) (hm : crashing[i]? = some m)
     (hf : Fresh lctx m.2) (hfs : Fs.FsInit (extLocal Fs.fsExt m.2.world))
     (Q : GooseLocalGS GF → IProp GF) (HQ : CrashBootWpT T m.1 Q) :
-    (∀ L : GooseLocalGS GF, ⌜L.goose_go_local_context = lctx⌝ -∗
+    (⌜Fs.FsInit (extLocal Fs.fsExt m.2.world)⌝ -∗ ∀ L : GooseLocalGS GF, ⌜L.goose_go_local_context = lctx⌝ -∗
         fsStartRes L (extLocal Fs.fsExt m.2.world) -∗ ownGoState (hG := L.goose_go_stateGS) ∅
         ={⊤}=∗ Q L) ⊢
       nodeStart T' m.2 (crashPreT T crashing i) := by
@@ -110,7 +110,7 @@ theorem nodeStart_of_crashBootT [lctx : GoLocalContext] [G : GooseGlobalGS .hasL
   rw [hf.2.1]
   iintro H %L %_ %hL Hls Hgs
   imod fsStartRes_of_localStart L m.2.world hfs $$ Hls with Hr
-  imod H $$ %L %(hL.trans hf.1) Hr Hgs with HQL
+  imod H $$ %hfs %L %(hL.trans hf.1) Hr Hgs with HQL
   imodintro
   unfold crashPreT
   iexists Q
@@ -125,7 +125,8 @@ theorem nodeStart_of_crashBootT [lctx : GoLocalContext] [G : GooseGlobalGS .hasL
 `addrs` distinct and valid, and an update from the protocols' registry and every address unset to
 - for each crashing machine `i`, a precondition `Pc i` of its generations, with its boot program
   safe in every generation whose thread bound is at most `threads` (`CrashBootWpT`), and its first
-  generation's `Pc i L` from that generation's file start resources and empty package state, and
+  generation's `Pc i L` from its first file system as on disk (`Fs.FsInit`, `Robust`'s premise),
+  that generation's file start resources and empty package state, and
 - for each stable machine `j`, a share `Ps j`, with its boot program safe from it under the thread
   bound `threads` (`StableBootWpT`),
 
@@ -140,8 +141,8 @@ theorem robust_of_netFsBootT [lctx : GoLocalContext] (addrs : List GoString)
             CrashBootWpT threads m.1 (Pc i)⌝ ∗
           ⌜∀ (j : Nat) (m : Expr × state), stable[j]? = some m →
             StableBootWpT threads m.1 m.2 (Ps j)⌝ ∗
-          ([∗list] i ↦ m ∈ crashing, ∀ L : GooseLocalGS GF,
-            ⌜L.goose_go_local_context = lctx⌝ -∗ fsStartRes L (extLocal Fs.fsExt m.2.world) -∗
+          ([∗list] i ↦ m ∈ crashing, ⌜Fs.FsInit (extLocal Fs.fsExt m.2.world)⌝ -∗
+            ∀ L : GooseLocalGS GF, ⌜L.goose_go_local_context = lctx⌝ -∗ fsStartRes L (extLocal Fs.fsExt m.2.world) -∗
             ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
           [∗list] j ↦ _m ∈ stable, Ps j) :
     Robust crashing stable g threads bound := by

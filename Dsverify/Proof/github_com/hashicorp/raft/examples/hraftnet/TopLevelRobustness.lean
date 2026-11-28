@@ -344,7 +344,7 @@ theorem hraft_robust_of [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sema
       HK kvraftGF → Nat → GooseLocalGS kvraftGF → IProp kvraftGF)
     (Hfirst : ∀ [G : GooseGlobalGS .hasLC kvraftGF] [π : NetProtoGS]
         [ReceiptBoundLe kvraftGF (2 ^ 62)] (K : HK kvraftGF) (j : Nat), 1 ≤ j ∧ j ≤ 6 →
-      ∀ st : Fs.OsState, hraftDataDir ∈ st.fs.roots.map (·.1) →
+      ∀ st : Fs.OsState, Fs.FsInit st → hraftDataDir ∈ st.fs.roots.map (·.1) →
         (∀ c, st.lookup (joinPath hraftDataDir [c]) = none) →
         srvShare (hG := atStartFs lctx G) K j ⊢ ∀ L : GooseLocalGS kvraftGF,
           ⌜L.goose_go_local_context = lctx⌝ -∗ fsStartRes L st -∗
@@ -378,18 +378,6 @@ theorem hraft_robust_of [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sema
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs4, Hss⟩
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs5, Hss⟩
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs6, -⟩
-  ihave H1 := Hfirst K 1 ⟨by omega, by omega⟩ _ (Hdir 6 (by omega) (by omega)).1
-    (Hdir 6 (by omega) (by omega)).2 $$ Hs1
-  ihave H2 := Hfirst K 2 ⟨by omega, by omega⟩ _ (Hdir 7 (by omega) (by omega)).1
-    (Hdir 7 (by omega) (by omega)).2 $$ Hs2
-  ihave H3 := Hfirst K 3 ⟨by omega, by omega⟩ _ (Hdir 8 (by omega) (by omega)).1
-    (Hdir 8 (by omega) (by omega)).2 $$ Hs3
-  ihave H4 := Hfirst K 4 ⟨by omega, by omega⟩ _ (Hdir 9 (by omega) (by omega)).1
-    (Hdir 9 (by omega) (by omega)).2 $$ Hs4
-  ihave H5 := Hfirst K 5 ⟨by omega, by omega⟩ _ (Hdir 10 (by omega) (by omega)).1
-    (Hdir 10 (by omega) (by omega)).2 $$ Hs5
-  ihave H6 := Hfirst K 6 ⟨by omega, by omega⟩ _ (Hdir 11 (by omega) (by omega)).1
-    (Hdir 11 (by omega) (by omega)).2 $$ Hs6
   imodintro
   iexists fun i => Pc K (i + 1)
   iexists fun i => if i = 0 then iprop(orchShare (hG := atStartFs lctx G) (ρ := ρ) K γp)
@@ -471,33 +459,51 @@ theorem hraft_robust_of [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sema
           (cmd.client4.wp_main EtcdGrove.hraftnet.wp_Client K hrb64) $$ [HP] Hgs
       iapply cliShare_atFs G Lexts Lheap Lgs Lthr Lcr K 4 $$ HP
     | _ + 6, hm => simp [stableMachines] at hm
-  isplitl [H1 H2 H3 H4 H5 H6]
+  isplitl [Hs1 Hs2 Hs3 Hs4 Hs5 Hs6]
   · -- every server's first generation
     simp only [crashServers]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [H1]
+    isplitl [Hs1]
     · simp only [Nat.zero_add, Nat.reduceAdd]
-      iexact H1
+      iintro %hfs
+      ihave H := Hfirst K 1 ⟨by omega, by omega⟩ _ hfs (Hdir 6 (by omega) (by omega)).1
+        (Hdir 6 (by omega) (by omega)).2 $$ Hs1
+      iexact H
     iapply BigSepL.bigSepL_cons.2
-    isplitl [H2]
+    isplitl [Hs2]
     · simp only [Nat.zero_add, Nat.reduceAdd]
-      iexact H2
+      iintro %hfs
+      ihave H := Hfirst K 2 ⟨by omega, by omega⟩ _ hfs (Hdir 7 (by omega) (by omega)).1
+        (Hdir 7 (by omega) (by omega)).2 $$ Hs2
+      iexact H
     iapply BigSepL.bigSepL_cons.2
-    isplitl [H3]
+    isplitl [Hs3]
     · simp only [Nat.zero_add, Nat.reduceAdd]
-      iexact H3
+      iintro %hfs
+      ihave H := Hfirst K 3 ⟨by omega, by omega⟩ _ hfs (Hdir 8 (by omega) (by omega)).1
+        (Hdir 8 (by omega) (by omega)).2 $$ Hs3
+      iexact H
     iapply BigSepL.bigSepL_cons.2
-    isplitl [H4]
+    isplitl [Hs4]
     · simp only [Nat.zero_add, Nat.reduceAdd]
-      iexact H4
+      iintro %hfs
+      ihave H := Hfirst K 4 ⟨by omega, by omega⟩ _ hfs (Hdir 9 (by omega) (by omega)).1
+        (Hdir 9 (by omega) (by omega)).2 $$ Hs4
+      iexact H
     iapply BigSepL.bigSepL_cons.2
-    isplitl [H5]
+    isplitl [Hs5]
     · simp only [Nat.zero_add, Nat.reduceAdd]
-      iexact H5
+      iintro %hfs
+      ihave H := Hfirst K 5 ⟨by omega, by omega⟩ _ hfs (Hdir 10 (by omega) (by omega)).1
+        (Hdir 10 (by omega) (by omega)).2 $$ Hs5
+      iexact H
     iapply BigSepL.bigSepL_cons.2
-    isplitl [H6]
+    isplitl [Hs6]
     · simp only [Nat.zero_add, Nat.reduceAdd]
-      iexact H6
+      iintro %hfs
+      ihave H := Hfirst K 6 ⟨by omega, by omega⟩ _ hfs (Hdir 11 (by omega) (by omega)).1
+        (Hdir 11 (by omega) (by omega)).2 $$ Hs6
+      iexact H
     iapply BigSepL.bigSepL_nil.2
     iempintro
   · -- the stable machines' shares
