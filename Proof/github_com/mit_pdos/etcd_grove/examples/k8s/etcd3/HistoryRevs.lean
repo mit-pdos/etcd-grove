@@ -15,6 +15,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvOfMsg
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeWEvents
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeItemRVs
+public import Perennial.Spec.slices.Sort
 
 @[expose] public section
 
@@ -684,7 +685,15 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
           iexact Hst
         ipureintro
         constructor <;> word
-  · sorry
+  · have hge : ¬ sint.Z j < sint.Z sl.len := by first | exact Hif | exact dec_false Hif
+    have hfull : xs.take (sint.nat j) = xs := List.take_of_length_le (by rw [← Hops.length_eq, Hlen.1]; word)
+    unfold allSt
+    icases Hst with ⟨%A, %B, HA, HB, HBs, %HG⟩
+    rw [hfull] at HG
+    iStructNamed r
+    -- WIP (K9-16): the tail (collect `A`'s keys, `slices.Sort`, the `byKey` loops). Blocked on a size
+    -- bound `slices.Sort` needs (`notes/specs-only/ledger.md`, 2026-11-28, `HistoryRevs.spec`).
+    sorry
 
 end proof
 

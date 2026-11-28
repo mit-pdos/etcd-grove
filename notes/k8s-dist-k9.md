@@ -809,3 +809,32 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   - then link `HistoryRevs: parseRV rvOfMsg decodeWEvents decodeItemRVs` (+ `slices.Sort`).
 - Step 5 not started. `notes/STATUS.md` not updated for K9 (as before: K9's entry goes in at landing).
 - **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`, `all.PkgTable`, SpecPlan's etcd3 PkgInit) at `0df9d8c123`: passed, 12734 jobs, 0 errors (`HistoryRevs.wp_proof` warns its WIP `sorry`; `Link` has none).
+
+## Handoff K9-16 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **`HistoryRevs.wp_proof`: the ops loop is proved; still WIP, one `sorry`** (the tail, after the loop
+  exit; marked in the file; not linked). How the loop goes (`Proof/…/etcd3/HistoryRevs.lean`):
+  - `Good P A` (keys nonzero, every nonzero `u` with `P u` a key) and `allSt am bm P` (`all`, `byKey`
+    and its per-key maps owned, `Good P A`); `Hnum'`/`Hobj'` take `allSt P` to `allSt (P ∨ · = v)`
+    (from K9-15's `Hnum`/`Hobj` by `good_ite`); `allSt_mono`/`allSt_mono0` weaken.
+  - Per op the statements are joined (`wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm P') at
+    next`, `in`/`out` passed in and out: a load from a persisted struct pointer does not go through
+    `wp_auto`), the predicates named by `generalize hPj/hP2/hP3/hP4`; the watch and list loops are
+    `wp_for` over `P ∨ ∃ e ∈ L.take k, …` (`hr_mem_take_succ`); the last `if` (the list) cannot be
+    joined (`at next` finds no statement after it), so its leaves end the iteration themselves with
+    `hfin` (the op's `OpReq` cases, `take_succ_req`, `decItemRVsL_encItemsL`, `rvOfMsgL_preMsgL`).
+  - The loop exit gives `Good (fun u => ∃ p ∈ xs, OpReq p.1 p.2 u) A` (`HG`); `r` is split by
+    `iStructNamed r`; the `sorry` is right after.
+- **Blocked: a spec gap.** The tail's `slices.Sort` calls need `xs.length ≤ 2 ^ 62` (Perennial's
+  `slices.Sort.spec`, and `Spec/slices/Sort.lean`), i.e. `GMap.size A ≤ 2 ^ 62` and the same for the
+  per-key maps, and `HistoryRevs.spec` bounds nothing (no `len` call in the Go code, so
+  `wp_map_len_lt` does not apply). Ledger entry `notes/specs-only/ledger.md`, 2026-11-28
+  ("`HistoryRevs.spec` has no size bound"), with a proposed premise (`histCost xs ≤ 2 ^ 62`, sizes
+  carried in `allSt` as a count `n`); decision open, for the coordinator.
+- Once decided, the tail as K9-15 planned: `wp_map_for_range` over `HA` collecting into the `anchors`
+  field (`r_ptr.[Revs, go!"anchors"] ↦ sl`, template `Set__UnsortedList.lean`), `slices.Sort` (take
+  `(wp_Sort : _root_.Perennial.slices.Sort.spec (GF := GF) (hG := hG))`, as `sets/List.lean`, with
+  `lessImplements_uint64`; link it `=_root_.Perennial.slices.wp_Sort`, as `etc/link-lean-first-k8s-authz.txt`),
+  strictness from `Nodup`; the nested `byKey` loops building `keyRevsOwn`; persist; `anchorsOk_of`
+  (`HG.2` with `0 ∨`, `HG.1` for `a ≠ 0`). Then link `HistoryRevs`.
+- Step 5 not started. `notes/STATUS.md` not updated for K9 (K9's entry goes in at landing).
