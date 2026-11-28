@@ -508,3 +508,54 @@ hand σ` from the real `σ`. Then `rwD_au` is `createD_au`'s body in the `b = tr
 
 **Build of record**: `lake build …k8s.dist.StoreRead …k8s.dist.PfxTxn` (every importer of `KVPfxHist`, the
 new file) at `4b2358cb41` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5261 jobs, OK.
+
+## Handoff K8-11 (2026-11-28)
+
+**Coordinator decisions** (etcd-grove-03), and what came of them:
+- **`rw_au`: K8-10's proposal** (a fixed-`op` update whose step discharges `k8sAuRW_kvAu1`'s condition `h` from the
+  caught-up state, `b := ok σ || hand σ`). *Done, in a fused form*: the lease-invariance lemma holds for `h`'s
+  **hypotheses** (`kvWf c σ`: `kvWf_sameL`; the revision: `SameL.kvs_rev`; `kvSeen c.γh σ`, hence `A σ`: new
+  `kvSeen_sameL`, `kvSeen` reads `kvs` only), so the step learns them at the **real** `σ` and applies `h` there.
+  `h`'s **conclusion** is not lease-invariant and is never transferred: `kvOpStep` of a put naming lease `ℓ ≠ 0`
+  (or a transaction, `PathsLeaseOk`) reads the lease table (counterexample: `ℓ` granted in `σc.leases`, not in
+  `σ.leases`, all else equal: `kvOpStep (.put o) σ = σ` but `kvOpStep (.put o) σc` commits). Why fused: with a
+  `∀∀ b` AU (`kvPfxP_auRWH`) the caller must hand `etcdKV γk (F b σ)` before the step runs, and for `b = false`
+  that needs `kvOpStep op σ = σ`, which `h` gives only under `A σ`, known only inside the step. So the step
+  chooses `b` itself, from the real `σ`, and `kvPfxP_auRWH` is not used (kept; deletable).
+- **`revBoundD_law`: deleted** (`StoreInv.lean`). K10 owes **no revision law for the store's firings**: every
+  firing learns the share's `kvRoom σ` (the server's), which gives `RevBoundD`. K9's own revision bound still
+  stands and stays K10's.
+
+**Proved** (no `sorry`, no top-level statement, axiom, trusted text or premise touched):
+- `StoreRW.lean` (new): `kvSeen_sameL`; `rwCallD` (`rwCall` over `linUD`); **`rwD_au`**: `kvPfxHP ∗ kInvD ∗
+  monoListLbOwn γsh l0 ∗ rwCallD γ g0 γt x Φ ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝) ⊢ □ (dghostVar γt 1 () -∗
+  kvOpAu1 γk op (λ σ, (if ok σ || hand σ then contAt … ∗ ansOk … else dghostVar γt 1 ()) ∗ rdFacts c σ ∗ ⌜A σ⌝))`
+  for `h` stated with the model's step `(kStep eD eU x ·).1` — what `rw_au` then `k8sAuRW_kvAu1` give, so
+  `k8sAusRW_kvAu1`'s `[∧list]` over members follows the same way (the `□ (W -∗ …)` per member, `W` shared by `∧`).
+  **`pendD_rw`** (`pend_rw` likewise, consuming `pendTok γ n x` where it takes effect).
+- `StoreList.lean` (new): `kvKeysShortP p σ` (`kvKeysShort` restricted to keys under `p`), `keysOkP_shortP`
+  (`keysOkP ⇒ kvKeysShortP regP`), `kvKeysShortP_mono` (to a longer prefix: a list's scope), `revs_sameL` and the
+  transfers `kvWfHist_sameL`/`keysOkP_sameL`/`valsOkP_sameL`/`kvKeysShortP_sameL`, `facts_sameL`; `plainLD`
+  (`plainL` at the caught-up `σc`), **`plainLD_read_au`**, `plainLD_pure`/`listQD_pure` (the facts at the read's
+  `σ`: `kvWf`, `kvWfHist`, `kvKeysShortP regP`, room, `valsOkP`); `revOwnD_ext`; **`listD_later_au`**
+  (`list_later_au`, for a first page `σ1` equal up to its leases to the map's `s`).
+
+**The list pages without `kvKeysShort` — needs a spec change (not made, Rule #8).** The posts give
+`kvKeysShortP regP σ`/`valsOkP σ` only (other users' keys may be long and many). But `GetList`'s consumers state the
+whole-state premise: `store__GetList.spec`, `store__pagedChunks.spec` (`Q R σ ⊢ ⌜kvWf ∧ kvWfHist ∧ kvKeysShort σ⌝`),
+the driver's `call.spec` (`QL … ⊢ ⌜… ∧ kvKeysShort σ ∧ valsOk σ⌝`), and the watch specs (`watchChan__{run,sync,
+syncPaginated,startWatching}`, `watcher__Watch`, `store__Watch`, the driver's `watchEvents`/`runWatch`). Their
+proofs use it **only for keys in the list's scope** (code reading): `store__GetList.lean` ~584 and ~1105 (the
+scope's count `< 2^41`, bounded through `length_filter_le` by the whole revision's count — the scope's own count
+suffices), `store__pagedChunks.lean` ~148 (`pageKvsL_snd_le`: the same, the page's scan count) and ~316 (a page's
+last key `kl`, a key in scope, `< opKeyMax`). The scope `c.pathPrefix ++ k` extends `c.pfx = /registry/objs`
+(`prepareKeyM_prefix`), so under `/registry/`. **Proposal**: those premises become `kvKeysShortP kp σ` for the
+list's prepared prefix `kp` (and `valsOk` → `valsOkP`); the driver proves them from `kvKeysShortP regP` by
+`kvKeysShortP_mono`; the two count bounds switch from `kvs.length` to the scope's filtered count
+(`pageKvsL_snd_le` against the filter by `kp`). The watch specs were not examined in detail: check whether they
+read keys outside the watched prefix before the change. Coordinator's call (a premise change of internal specs).
+
+**Next**: decide the `kvKeysShortP` spec change; then the dist makers (`list_maker`/`plainL_maker{,P}` over one
+shared KV), `Apply`'s list case on `listQD`, and the rest of K8's port list.
+
+**Build of record**: see below.
