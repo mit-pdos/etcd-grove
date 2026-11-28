@@ -600,6 +600,10 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
     · -- no latest: the snapshot becomes it
       simp only [hp, hl]
       have hnew : newerSnap none (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b = some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) := rfl
+      have hdpn : X.dp = none := by
+        cases hd : X.dp with
+        | none => rfl
+        | some d => obtain ⟨_, _, h, _⟩ := Hok.2.2.2.2.2.2.2.2 d hd; rw [hl] at h; cases h
       imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp [latIdxD]) $$ Hlat with ⟨Hlat, #Hlbn⟩
       imodintro
       iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
@@ -608,8 +612,9 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
       isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
       · iframe
         ipureintro
-        obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, h9⟩ := Hok
-        refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩, h9⟩
+        obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, ⟨h9, ⟨h10, h11⟩⟩⟩ := Hok
+        refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩,
+          ⟨h9, ⟨h10, fun d hd => by rw [hdpn] at hd; cases hd⟩⟩⟩
         simp only [latIdxD, sinkMeta, hl] at h8 ⊢; omega
       isplitl [Hnew]
       · inext
@@ -617,7 +622,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
         iframe Hnew
         iright; iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
         isplitr; · ipureintro; rfl
-        ileft; simp only [sinkMeta]; rw [hix]; iexact Hdl
+        ileft; simp only [sinkMeta]; rw [hix]; iframe Hdl; ipureintro; exact hdpn
       isplitr
       · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
       imodintro
@@ -637,30 +642,92 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
           rcases Nat.lt_or_ge x (uint.nat m0.Index') with h | h
           · have := Ht (by omega); omega
           · exact h
-        imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp only [latIdxD, sinkMeta]; omega)
-          $$ Hlat with ⟨Hlat, #Hlbn⟩
-        imodintro
-        iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
-        simp only
-        try rw [hp]
-        isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
-        · iframe
-          ipureintro
-          obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, h9⟩ := Hok
-          refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩, h9⟩
-          simp only [latIdxD, sinkMeta, hl] at h8 ⊢; rw [hix]; omega
-        isplitl [Hnew]
-        · inext
-          simp only [hp]
-          iframe Hnew
-          iright; iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
-          isplitr; · ipureintro; rfl
-          ileft; simp only [sinkMeta]; rw [hix]; iexact Hdl
-        isplitr
-        · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
-        imodintro
-        unfold latLb
-        iapply monoNatLbOwn_le x (by simp only [latIdxD, sinkMeta]; omega) $$ Hlbn
+        rcases hd : X.dp with _ | d
+        · -- no discard pending: the own snapshot becomes the latest, durable
+          imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp only [latIdxD, sinkMeta]; omega)
+            $$ Hlat with ⟨Hlat, #Hlbn⟩
+          imodintro
+          iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
+          simp only
+          try rw [hp]
+          try rw [hd]
+          isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+          · iframe
+            ipureintro
+            obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, ⟨h9, ⟨h10, h11⟩⟩⟩ := Hok
+            refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩,
+              ⟨h9, ⟨h10, fun d hd' => by rw [hd] at hd'; cases hd'⟩⟩⟩
+            simp only [latIdxD, sinkMeta, hl] at h8 ⊢; rw [hix]; omega
+          isplitl [Hnew]
+          · inext
+            simp only [hp]
+            iframe Hnew
+            iright; iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
+            isplitr; · ipureintro; rfl
+            ileft; simp only [sinkMeta]; rw [hix]; iframe Hdl; ipureintro; first | exact hd | rfl
+          isplitr
+          · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
+          imodintro
+          unfold latLb
+          iapply monoNatLbOwn_le x (by simp only [latIdxD, sinkMeta]; omega) $$ Hlbn
+        · -- a discard pending (the install's snapshot, at `lastApplied ≥ x`): the own snapshot is the
+          -- same entry, and replaces it with the same index and term
+          obtain ⟨m1, b1, hl1, hi1, ht1⟩ := Hok.2.2.2.2.2.2.2.2 d hd
+          rw [hl] at hl1
+          cases hl1
+          ihave Hcase := later_or.1 $$ Hcase
+          icases Hcase with (>%Hn | Hc)
+          · cases Hn
+          imod later_exists_except0 $$ Hc with ⟨%m2, Hc⟩
+          imod later_exists_except0 $$ Hc with ⟨%b2, Hc⟩
+          icases Hc with ⟨>%Heq2, Hd2⟩
+          ihave Hd2 := later_or.1 $$ Hd2
+          icases Hd2 with (⟨-, >%Hdn⟩ | ⟨>#Hfol0, >%Hdp0, Ha⟩)
+          · simp at Hdn
+          imod later_exists_except0 $$ Ha with ⟨%a0, Ha⟩
+          icases Ha with ⟨>Hauth, >%Hale⟩
+          simp only [Option.some.injEq, Prod.mk.injEq] at Heq2
+          obtain ⟨rfl, rfl⟩ := Heq2
+          ihave %Hxa := applLb_le rc _ _ _ $$ Hauth Hlb
+          have hxe : x = uint.nat m0.Index' := by omega
+          ihave #HC0' : CIdx γ x e0 $$ []
+          · rw [hxe]; iexact HC0
+          ihave %Heqe := CIdx_agree γ x e e0 $$ [$HC $HC0']
+          have htx0 : tx = uint.nat m0.Term' := by rw [← he, Heqe]; exact He0.1
+          imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp only [latIdxD, sinkMeta]; omega)
+            $$ Hlat with ⟨Hlat, #Hlbn⟩
+          imodintro
+          iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
+          simp only
+          try rw [hp]
+          try rw [hd]
+          isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+          · iframe
+            ipureintro
+            obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, ⟨h9, ⟨h10, h11⟩⟩⟩ := Hok
+            refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩,
+              ⟨h9, ⟨h10, fun d' hd' => ?_⟩⟩⟩
+            · simp only [latIdxD, sinkMeta, hl] at h8 ⊢; rw [hix]; omega
+            · rw [hd] at hd'; cases hd'
+              refine ⟨(sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b, rfl, ?_, ?_⟩ <;> simp only [sinkMeta] <;> omega
+          isplitl [Hnew Hauth]
+          · inext
+            simp only [hp]
+            iframe Hnew
+            iright; iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
+            isplitr; · ipureintro; rfl
+            iright
+            simp only [sinkMeta]
+            rw [hix, htt]
+            rw [hxe, htx0]
+            iframe Hfol0
+            isplitr; · ipureintro; first | exact Hdp0 | (rw [hd] at Hdp0; exact Hdp0) | (rw [← hd]; exact Hdp0)
+            iexists a0; iframe; ipureintro; exact Hale
+          isplitr
+          · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
+          imodintro
+          unfold latLb
+          iapply monoNatLbOwn_le x (by simp only [latIdxD, sinkMeta]; omega) $$ Hlbn
       · have hnew : newerSnap (some (m0, b0)) (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b = some (m0, b0) := by
           simp only [newerSnap, sinkMeta, htt, hix]; split <;> first | rfl | (exfalso; omega) | simp_all
         imod CIdx_term_mono_imp γ _ hE (uint.nat m0.Index') x e0 e $$ [$HI $HC $HC0] with %Ht

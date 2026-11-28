@@ -184,8 +184,8 @@ theorem github_com.hashicorp.raft.Raft.takeSnapshot.wp_proof
           wp_bind
           iapply HCreate
           iintro %k %sid Hcont
-          imod Hcont $$ %(fun _ => latLb rc x) [] with ⟨%own, #Hsink, Hown⟩
-          · iintro %bs %Hbs Hwin
+          imod Hcont $$ %(fun _ => iprop(True)) %(fun _ => latLb rc x) [] with ⟨%own, #Hsink, Hown⟩
+          · iintro %bs %Hbs Hwin -
             iunfold snapWin at Hwin
             ihave ⟨Hlat, -⟩ := Hwin $$ []
             · ipureintro; exact Hbs
@@ -195,9 +195,10 @@ theorem github_com.hashicorp.raft.Raft.takeSnapshot.wp_proof
           wp_auto
           wp_bind
           iapply HPersist $$ %k %sid %own
-            %(fun bs => snapWin γ rc i (sinkMeta (W64 1) (W64 x) (W64 tx) cf.committedIndex' cf.committed' sid bs) bs)
+            %(fun bs => iprop(snapWin γ rc i (sinkMeta (W64 1) (W64 x) (W64 tx) cf.committedIndex' cf.committed' sid bs) bs ∗ True))
             %(fun _ => latLb rc x) Hsink [] Hown
           · iintro !> %b0 H
+            isplitl; rotate_left; · itrivial
             unfold snapWin
             iintro %Hb0
             isplitl
