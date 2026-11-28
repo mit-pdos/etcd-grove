@@ -1461,18 +1461,35 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
         rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) s.log.length hi')
           ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hh Hk
-  imod (winRes_make γ rc i s (.trunc prev pt ents lci j) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
-  · iframe
+  iunfold pendHyps at Hh
+  icases Hh with #Hh
+  imod (winRes_make γ rc i s (.trunc prev pt ents lci j) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iunfold pendHyps; iframe; iexact Hh
   imodintro
   isplitl [HW]
   · iunfold logWin; ileft; iexists s, (Pend.trunc prev pt ents lci j); iframe HW; ipureintro; rfl
   iintro HW
   iunfold logWin at HW
-  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -, -, #Hlb⟩)
   rotate_left
-  · iexfalso
-    -- the compaction branch: its op is a delete too; refute with the pinned record
-    sorry
+  · -- the compaction window: it deletes only durable entries, but the truncation's top is above `dur`
+    cases hop
+    iintro Hnc
+    imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, -, -⟩
+    iunfold durCore at Hc
+    icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, -⟩
+    unfold srvVq
+    icombine Hsv Hq gives %Hag
+    have hs := Hag.2
+    simp only [Prod.mk.injEq] at hs
+    obtain ⟨hs, -, -⟩ := hs
+    rw [hs]
+    imod (gprot.truncate_gt_dur γ _ crash_gprot_store i s prev pt ents lci j hpre) $$ [HI Ho Hh] with ⟨Ho, %hgt⟩
+    · iframe #; try iframe
+    ihave %hle := gprot.durView_lb γ i _ _ _ $$ [Hdv Hlb]
+    · iframe #; try iframe
+    have := hpre.2.2.2.1
+    exfalso; omega
   ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.trunc prev pt ents lci j) p' D g $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
