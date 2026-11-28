@@ -49,7 +49,10 @@ theorem snapSt_ciEff (γ : ApplyNames) (π0 : ApplyPhys) (γB : backend.BNames) 
 /-- `srvSnapApplied`'s `loopOk` at the snapshot's index. -/
 theorem snapSt_loopOk (γ : ApplyNames) (π0 : ApplyPhys) (γB : backend.BNames) (i t : w64)
     (hm : π0.m0 = (i, t)) : loopOk (snapγ γ π0 γB) (snapSt (snapγ γ π0 γB) i) i := by
-  refine ⟨snapSt_pending _ i, ?_, stLoaded_idem _ _⟩
+  refine ⟨snapSt_pending _ i, ?_, ?_⟩
+  rotate_left
+  · unfold snapSt stLoaded
+    by_cases h : (snapγ γ π0 γB).m0.1 = W64 0 <;> simp [h]
   rw [snapSt_ciEff γ π0 γB i t hm]
   have : (snapSt (snapγ γ π0 γB) i).p = i := by unfold snapSt stLoaded; split <;> rfl
   rw [this]; omega
