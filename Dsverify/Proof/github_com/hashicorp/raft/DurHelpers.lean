@@ -100,6 +100,18 @@ theorem gprotN_diff_cidxN_durN : (↑gprotN : CoPset) ⊆ (⊤ \ ↑cidxN) \ ↑
   gprotN_sub_diff "dur" gprotN_diff_cidxN
 theorem gprotN_diff_durN : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
 
+/-- The wrapper laws' mask condition inside a cell's opening, or anywhere below `⊤ \ raftN.@y`. -/
+theorem gd_sub {E : CoPset} (h1 : (↑gprotN : CoPset) ⊆ E) (h2 : (↑durN : CoPset) ⊆ E) :
+    (↑gprotN ∪ ↑durN : CoPset) ⊆ E := by
+  intro p hp
+  rcases LawfulSet.mem_union.mp hp with h | h
+  · exact h1 p h
+  · exact h2 p h
+
+theorem gd_diff_termN : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ \ ↑termN := gd_sub gprotN_diff_termN durN_diff_termN
+theorem gd_diff_cidxN : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ \ ↑cidxN := gd_sub gprotN_diff_cidxN durN_diff_cidxN
+theorem gd_top : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ := fun _ _ => CoPset.mem_full
+
 /-- Writing the `CurrentTerm` key of the stable store keeps the last vote. -/
 theorem voteMatches_ct (D : StableAbs) (s : SState) (v : w64) (h : voteMatches D s) :
     voteMatches { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) v } s := by
