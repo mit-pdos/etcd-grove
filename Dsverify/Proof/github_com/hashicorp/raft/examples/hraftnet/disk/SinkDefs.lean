@@ -205,6 +205,64 @@ theorem sink_metaRep (ver idx term cfgIdx : w64) (cfg : Configuration) (id : GoS
   · iexact H
   · ipureintro; rfl
 
+theorem srvOf_injective : Function.Injective srvOf := by
+  intro a b h
+  cases a; cases b
+  simp only [srvOf, SServer.mk.injEq] at h
+  obtain ⟨h1, h2, h3⟩ := h
+  subst h1 h2 h3; rfl
+
+theorem map_srvOf_inj : ∀ (a b : List Server), a.map srvOf = b.map srvOf → a = b
+  | [], [], _ => rfl
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+  | x :: xs, y :: ys, h => by
+    simp only [List.map_cons, List.cons.injEq] at h
+    rw [srvOf_injective h.1, map_srvOf_inj xs ys h.2]
+
+theorem snapsMem_at (s : Loc) (S : SnapImg) :
+    snapsMem (GF := GF) s S ⊢ ∃ (has : Bool) (mv : SnapshotMeta) (dt : GoSlice), snapsMemAt s S has mv dt := by
+  rw [snapsMem_eq]
+
+/-- The latest a decoded `*Snaps` holds: its metadata field's value, the image's bytes. -/
+def latOfMem (lt : SLat) (mv : SnapshotMeta) : SnapLatest :=
+  match lt with
+  | none => none
+  | some (_, b) => some (mv, b)
+
+/-- A decoded `*Snaps` represents the latest `latOfMem`. -/
+theorem snapMem_lat (s : Loc) (S : SnapImg) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice) :
+    snapsMemAt (GF := GF) s S has mv dt ⊢
+      snapsMemAt s S has mv dt ∗ latRep (latOfMem S.latest mv) S.latest ∗ ⌜latMv (latOfMem S.latest mv) mv⌝ := by
+  unfold snapsMemAt
+  rcases S.latest with _ | ⟨sm, b⟩ <;> simp only [latOfMem, latRep, latMv]
+  · iintro H; iframe H; isplit <;> itrivial
+  · iintro ⟨H1, H2, H3, H4, %Hh, #Hmr, #Hd⟩
+    iframe; iframe #
+    ipureintro; trivial
+
+/-- **The next generation's latest is the old one up to its servers slice** (`latEquiv`), from what the crash
+carried (`latMatch`) and what the decoded `*Snaps` represents. -/
+theorem latEquiv_of (lat lat' : SnapLatest) (lt : SLat) (svs : List Server) (h : latMatch lat lt svs) :
+    latRep (GF := GF) lat' lt ⊢ latEquiv lat lat' svs := by
+  rcases lat with _ | ⟨m, b⟩ <;> rcases lt with _ | ⟨sm, b'⟩ <;> rcases lat' with _ | ⟨m', b''⟩ <;>
+    simp only [latMatch] at h <;> simp only [latRep, latEquiv]
+  all_goals first | (iintro _; itrivial) | (iintro H; iexact H) | skip
+  obtain ⟨hb, hp, hsv⟩ := h
+  subst hb
+  iintro ⟨%hb', #Hmr⟩
+  subst hb'
+  unfold metaRep cfgRep
+  icases Hmr with ⟨%hp', %svs', #Hs, %hsv'⟩
+  have : svs' = svs := map_srvOf_inj _ _ (by rw [hsv', hsv])
+  subst this
+  iframe #
+  ipureintro
+  unfold metaPure at hp
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := hp
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7⟩ := hp'
+  refine ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp only [*]
+
 end defs
 
 end github_com.hashicorp.raft.examples.hraftnet.disk
