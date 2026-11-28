@@ -1465,7 +1465,7 @@ def mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st 
   iprop(∃ (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (cidx li : w64)
       (lch : Loc) (γl : ChanNames) (bs : List Bool) (c : Nat),
     srvV rc s ∗ ⌜True⌝ ∗
-    stV rc sst ∗ ⌜voteMatches sst s⌝ ∗
+    (∃ g : w64, stVS rc sst g ∗ ⌜uint.nat g ≤ s.dur.1⌝) ∗ ⌜voteMatches sst s⌝ ∗
     ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
     ghostVar rc.names.state (1 : Qp).half st ∗
     (⌜st ≠ stLeader⌝ ∨ leaderIs γ s.term i ∗ (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
@@ -1494,7 +1494,7 @@ def mainOwnAtSt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) : 
   iprop(∃ (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (li : w64)
       (lch : Loc) (γl : ChanNames) (bs : List Bool) (c : Nat),
     srvV rc s ∗ ⌜True⌝ ∗
-    stV rc sst ∗ ⌜voteMatches sst s⌝ ∗
+    (∃ g : w64, stVS rc sst g ∗ ⌜uint.nat g ≤ s.dur.1⌝) ∗ ⌜voteMatches sst s⌝ ∗
     ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
     ghostVar rc.names.state (1 : Qp).half stLeader ∗
     (leaderIs γ s.term i ∗ (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
