@@ -9,7 +9,7 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
+	"github.com/mit-pdos/etcd-grove/examples/lib/authwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -76,14 +76,14 @@ func collectFor(wch clientv3.WatchChan, cancel context.CancelFunc, upTo int64) (
 
 // RunAuth is the auth workload (authN's run minus its members' gRPC serving, copied; Lean:
 // Workload.auth; alone in its deployment, which has the token provider): through a client of
-// eps[0], authkv's set-up (auth.SetUp: the auth state set up and auth enabled); root's barrier at
+// eps[0], authkv's set-up (authwork.SetUp: the auth state set up and auth enabled); root's barrier at
 // every member; then the four principals' workloads at once, each at its own machine (nodes[c] is
-// auth.Principals()[c]'s: remotePrincipals, NodeMain) through its own client (auth.Work): the
+// authwork.Principals()[c]'s: remotePrincipals, NodeMain) through its own client (authwork.Work): the
 // client with no token through eps[0], u and the client with an invalid token through eps[1 mod k],
 // v through eps[2 mod k] (principalClient); then root's Put of z/end, root's
-// watch of everything from revision 1 up to it, checked by auth.CheckHistory (every write one its
+// watch of everything from revision 1 up to it, checked by authwork.CheckHistory (every write one its
 // principal was permitted), and u's watch of [a, b), whose events must all be keys u may read.
-// Every refusal the checks expect is any error (auth.Work's refused): an error never counts as a
+// Every refusal the checks expect is any error (authwork.Work's refused): an error never counts as a
 // write not applied, since the history check reads what was applied.
 func RunAuth(eps []string, nodes []string, ready func()) Result {
 	k := len(eps)
@@ -92,7 +92,7 @@ func RunAuth(eps []string, nodes []string, ready func()) Result {
 	if err != nil {
 		return ended("auth: a client failed to connect")
 	}
-	if !auth.SetUp(cli) {
+	if !authwork.SetUp(cli) {
 		return ended("auth: the set-up failed")
 	}
 	if !barriers(eps) {
@@ -120,15 +120,15 @@ func RunAuth(eps []string, nodes []string, ready func()) Result {
 	if !ok {
 		return ended("auth: root's watch ended")
 	}
-	auth.CheckHistory(evs, "z/end")
+	authwork.CheckHistory(evs, "z/end")
 	uctx, ucancel := context.WithCancel(context.Background())
 	uch := ucli.Watcher.Watch(uctx, "a", clientv3.WithRange("b"), clientv3.WithRev(1))
-	uevs, ok := collectFor(uch, ucancel, auth.LastIn(evs))
+	uevs, ok := collectFor(uch, ucancel, authwork.LastIn(evs))
 	if !ok {
 		return ended("auth: u's watch ended")
 	}
 	for _, e := range uevs {
-		if !auth.Permitted("u", e.Key) {
+		if !authwork.Permitted("u", e.Key) {
 			panic("dist auth: u's watch reported a key u may not read")
 		}
 	}

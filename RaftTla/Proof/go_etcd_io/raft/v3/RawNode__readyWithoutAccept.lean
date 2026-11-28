@@ -28,6 +28,8 @@ messages are read through `GetTo` (each one's ownership looked up in the queue's
 module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.LemmasReadyR
+public import RaftTla.Proof.go_etcd_io.raft.v3.RawNodeReadyAt
+public import RaftTla.Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 public import RaftTla.Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import RaftTla.Spec.go_etcd_io.raft.v3.raftLog__nextUnstableEnts
 public import RaftTla.Spec.go_etcd_io.raft.v3.raftLog__nextCommittedEnts
@@ -115,10 +117,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0
+  intro γ rn id rs ps qs ip sc hsc0 Hsteps0 Hunp0
   wp_start as H
   iNamed H
   iNamed Hrn
+  -- (#33 S4) `ownRawNodeAt`: the queue's states forgotten, the scope read
+  ihave Hpend := pendAt_lentPend γ id rs.bw rs.slent steps rs.steps qs $$ Hpend
+  icases rnScopeAt_pureOpt sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
   -- (D22 S-d3a) no loan (the queue is empty): a pending snapshot was restored since the last
   -- `Ready`, and is not in progress
   have Hsl : rs.slent = none := Hloan.none_of_nil Hsteps0
@@ -134,6 +139,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   | nil =>
   -- ghost facts, read before anything moves
   icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
+  icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hprecand, Hphys⟩
   icases ownRaftPhysC_ns cf rnv.raft' id s $$ Hphys with ⟨%Hlns, -, Hphys⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
@@ -291,7 +297,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- it bounds every committed log handed out within it, the snapshot's too (`Hhsw` below)
   ihave #HHP : iprop(∃ h, hsOptC HP h ∗ phsWit γ (phsNext rs.phs h) ∗
       -- (2026-11-01, durability stage II (k), fix C) the hard state after it is the node's
-      ⌜phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed⌝)
+      ⌜phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed ∧
+        -- (#33 S4) a non-empty one differs from `prevHardSt` (`isHardStateEqual`'s `false`)
+        (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs)⌝)
     $$ []
   · rw [← HHP]
     by_cases He : nodeHardstate s = hsAbs hprev
@@ -301,6 +309,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       isplitr
       rotate_left
       · ipureintro
+        refine ⟨?_, fun hn => absurd ⟨rfl, rfl, rfl⟩ hn⟩
         rw [phsNext_zero, ← Hphe]
         have Hh : hardstateVal (nodeHardstate s) = hardstateVal (hsAbs hprev) := congrArg hardstateVal He
         rw [show hardstateVal (hsAbs hprev) = hprev by cases hprev; rfl] at Hh
@@ -317,6 +326,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
         isplitr
         rotate_left
         · ipureintro
+          refine ⟨?_, fun hn => absurd Hz hn⟩
           -- (2026-11-01, durability stage II (m)) the node's hard state empty: `prevHardSt`'s
           -- record, below it (`PhsOk`), is empty too
           have Hz' : hsOf s = HardStateM.mk (W64 0) (W64 0) (W64 0) := by
@@ -330,7 +340,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
       rw [phsNext_ne _ _ Hz]
       isplitr
       rotate_left
-      · ipureintro; rfl
+      · ipureintro
+        exact ⟨rfl, fun _ heq => He (Hhs_iff.1 (by rw [heq, ← Hphe]; exact ⟨rfl, rfl, rfl⟩))⟩
       unfold phsWit TermPos
       rw [show (hardstateVal (nodeHardstate s)).Term' = (toPState s).term from rfl,
         show (hardstateVal (nodeHardstate s)).Commit' = (toPState s).commit from rfl]
@@ -565,7 +576,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
     outboxRelP_props _ _ _ _ Houtbox
   -- the committed entries handed out extend `delivered`: both are prefixes of the
   -- global committed log, and `delivered` is as long as the `applying` entries before `ce`
-  ihave #Hdeliv' : isCommitted γ (rs.delivered ++ ce) $$ []
+  -- (#33 S4) with no snapshot pending, a prefix of the committed log
+  ihave %Hdpre : ⌜s.logst.snap = none → rs.delivered ++ ce <+: cprefix fp0 (toPState s)⌝ $$ []
   · cases hs : s.logst.snap with
     | none =>
       have Hpre := ready_committed_prefix fp0 (s.logst.sents ++ s.logst.uents) ce s.logst.prev
@@ -578,7 +590,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
       · iapply isCommitted_mono γ _ (cprefix fp0 (toPState s)) Hpre.1 $$ Hcm
       ihave %Hagree := isCommitted_agree γ rs.delivered _ $$ Hdeliv Hcm'
       have Hdeq := eq_of_prefix_or _ _ _ Hagree (Hdlen.trans Hpre.2.symm)
-      rw [Hdeq]; iexact Hcm'
+      ipureintro; intro _; rw [Hdeq]; exact Hpre.1
+    | some _ => ipureintro; intro h; cases h
+  ihave #Hdeliv' : isCommitted γ (rs.delivered ++ ce) $$ []
+  · cases hs : s.logst.snap with
+    | none =>
+      iapply isCommitted_mono γ _ (cprefix fp0 (toPState s)) (Hdpre hs) $$ Hcm
     | some _ =>
       -- (D22 S-d3a) no committed entries with a snapshot pending
       rw [Hcesn (by rw [hs]; simp), List.append_nil]; iexact Hdeliv
@@ -596,7 +613,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iexists s.rd.states
     iframe Hrdrs
     ipureintro; exact fun h => h
-  icases HHP with ⟨%hrd, #HHP, #Hphn, %Hhseq⟩
+  icases HHP with ⟨%hrd, #HHP, #Hphn, %Hhseq2⟩
+  obtain ⟨Hhseq, Hhnew⟩ := Hhseq2
   have Hcge : uint.Z s.logst.committed ≤ uint.Z (phsNext rs.phs hrd).Commit' := by
     rw [Hhseq]; exact Int.le_refl _
   ihave #Hrdhard : iprop(∃ h, hsOptC HP h ∗ phsWit γ h ∗
@@ -638,17 +656,19 @@ theorem RawNode.readyWithoutAccept.wp_proof
     rw [show s.outbox = (toPState s).outbox from rfl]
     iapply outboxRelP_snapTo γ id (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hto $$ Ho
   -- the `Ready`'s soft state: `nil` (the role `prevSoftSt`'s, the node's), or the node's
-  ihave #Hrdlead : iprop(∃ ss : Option (w64 × StateType), softStateIs sp ss ∗
-      ⌜(sp = null → ss = none) ∧
-        (roleAfter rs.role ss = StateLeader → ms1 ++ nonself id ms2 = [] ∨ s.role = .leader)⌝) $$ []
+  -- (#33 S4) and the role it reports `s`'s
+  ihave #Hrdlead2 : iprop(∃ ss : Option (w64 × StateType), softStateIs sp ss ∗
+      ⌜((sp = null → ss = none) ∧
+        (roleAfter rs.role ss = StateLeader → ms1 ++ nonself id ms2 = [] ∨ s.role = .leader)) ∧
+        roleAfter rs.role ss = stateW64 s.role⌝) $$ []
   · by_cases He : nodeSoftstate s = soft0
     · rw [ite_pos' He]
       icases Hsoftp with %Hn
       iexists none
       unfold softStateIs
       ipureintro
-      refine ⟨Hn, fun _ => rfl, fun h => .inr (stateW64_leader ?_)⟩
       have h2 := (Hsoft_iff.2 He).2
+      refine ⟨Hn, ⟨fun _ => rfl, fun h => .inr (stateW64_leader ?_)⟩, Hrole.trans h2.symm⟩
       simp only [roleAfter, Option.map_none, Option.getD_none] at h
       rw [h2, ← Hrole]; exact h
     · rw [ite_neg' He]
@@ -660,7 +680,16 @@ theorem RawNode.readyWithoutAccept.wp_proof
       iNamed Hv'
       iframe Lead RaftState
       ipureintro
-      exact ⟨Hnn, fun h => absurd h Hnn, fun h => .inr (stateW64_leader h)⟩
+      exact ⟨Hnn, ⟨fun h => absurd h Hnn, fun h => .inr (stateW64_leader h)⟩, rfl⟩
+  ihave #Hrdlead : iprop(∃ ss : Option (w64 × StateType), softStateIs sp ss ∗
+      ⌜(sp = null → ss = none) ∧
+        (roleAfter rs.role ss = StateLeader → ms1 ++ nonself id ms2 = [] ∨ s.role = .leader)⌝) $$ []
+  · icases Hrdlead2 with ⟨%ss, #H1, %H2⟩
+    iexists ss; iframe H1; ipureintro; exact H2.1
+  ihave #Hssr : iprop(∃ ss : Option (w64 × StateType), softStateIs sp ss ∗
+      ⌜roleAfter rs.role ss = stateW64 s.role⌝) $$ []
+  · icases Hrdlead2 with ⟨%ss, #H1, %H2⟩
+    iexists ss; iframe H1; ipureintro; exact H2.2
   ihave #Hout : iprop([∗list] x ∈ ([] : List Msg), □ (durFrags γ id rs.bw -∗ isMessage γ x)) $$ []
   · iapply BigSepL.bigSepL_nil.2; iempintro
   -- (D22 S-d3a) the snapshot handed out, if any: half of the clone to the application, half kept
@@ -761,9 +790,47 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd %L
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger]
-  · unfold ownRawNodeReady
-    iexists s, cf, fp, ds, rnv, sv, hprev
+  -- (#33 S4) the facts at `s`: the messages' readings (`readyMsgs_perm`), and in the scope the role
+  -- and the committed log handed out
+  have Hmsperm := (readyMsgs_perm id s.outbox ms1 ms2 Houtbox (fun q h => (HmsgsAA_ok.2 q h).1)).1
+  have Hscf0 : ∀ md, sc = some md → rs.delivered ++ ce <+: ps.p.log ∧
+      (rs.delivered ++ ce).length ≤ uint.nat ps.p.commit := by
+    intro md hsc
+    obtain ⟨-, Hprev, Hsn, -⟩ := (Hscope md hsc).1.2.2.2.2.1 (hsc0 md hsc).1
+    subst Hps
+    simp only [toRState_p]
+    have Hfp0 : fp0 = [] := by
+      apply List.eq_nil_of_length_eq_zero
+      have := Hfp.1
+      have h0 : uint.Z (toPState s).base.index' = 0 := by
+        show uint.Z s.logst.prev.index' = 0; rw [Hprev]; rfl
+      omega
+    have H := Hdpre Hsn
+    rw [Hfp0] at H
+    unfold cprefix at H
+    simp only [List.nil_append] at H
+    refine ⟨H.trans (List.take_prefix _ _), ?_⟩
+    have := H.length_le
+    simp only [List.length_take] at this
+    show _ ≤ uint.nat (toPState s).commit
+    unfold uint.nat; unfold uint.Z at this; omega
+  -- (#33 S4, 2026-11-24) and every message handed out typed: no transfer request stepped in the
+  -- scope (`RnScopeBasic`'s `NGhost.xs`), so `XfOk`'s last clause
+  have Hscf : ∀ md, sc = some md → rs.delivered ++ ce <+: ps.p.log ∧
+      (rs.delivered ++ ce).length ≤ uint.nat ps.p.commit ∧
+      (md.transfer = false → ∀ q ∈ ms1 ++ nonself id ms2, (absMsgOf q.st).isSome) := fun md hsc =>
+    ⟨(Hscf0 md hsc).1, (Hscf0 md hsc).2,
+      fun ht q hq => absMsgOf_isSome_of_rel Houtbox q (Hsub q hq)
+        (Hxf.typed_xs ((Hscope md hsc).1.2.2.2.2.2.1 ht) q (Hsub q hq))⟩
+  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger Hsc]
+  · iexists s
+    isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger]
+    rotate_left
+    · iframe Hsc
+      isplitr
+      · ipureintro; exact ⟨by subst Hps; rfl, Hip, Hmsperm, Hto, rfl, Hprecand, Hscf⟩
+      · iexact Hssr
+    iexists cf, fp, ds, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
@@ -806,6 +873,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iexact Hrs_ok
   isplitr
   · iexact HHP
+  isplitr
+  · ipureintro; exact Hhnew
   · iapply hsWit_of_phsWit γ _ _ ?_ $$ Hphn
     cases L with
     | none => show ((rs.delivered ++ ce).length : Int) ≤ _; omega

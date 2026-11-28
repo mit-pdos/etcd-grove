@@ -38,10 +38,10 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/txnwork"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
 
@@ -71,10 +71,10 @@ const (
 	SnapCatchUp uint64 = 1
 )
 
-// Apply runs one operation through a client of clis picked at random (txnlin.Apply).
+// Apply runs one operation through a client of clis picked at random (txnwork.Apply).
 func Apply(clis []*clientv3.Client, input any) any {
 	i := primitive.RandomUint64() % uint64(len(clis))
-	return txnlin.Apply(clis[i], input)
+	return txnwork.Apply(clis[i], input)
 }
 
 // Check runs lintest.Run of clients concurrent clients, each running ops operations through the
@@ -82,7 +82,7 @@ func Apply(clis []*clientv3.Client, input any) any {
 // verdict against linkvtxn's model.
 func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
 	apply := func(input any) any { return Apply(clis, input) }
-	return lintest.Run(txnlin.Model(), apply, txnlin.Gen, lintest.CounterClock(), clients, ops,
+	return lintest.Run(txnwork.Model(), apply, txnwork.Gen, lintest.CounterClock(), clients, ops,
 		timeout)
 }
 

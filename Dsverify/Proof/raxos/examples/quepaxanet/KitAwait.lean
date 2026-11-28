@@ -60,7 +60,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : raxos.examples.quepaxanet.Assumptions]
 variable [π : NetProtoGS] [qv : hyp.QpVocab GF]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 variable [_root_.Perennial.io.Assumptions]
 
 attribute [local instance] HeapGS.goose_globalGS
@@ -109,8 +109,11 @@ theorem wp_awaitConf_of
   icases HUEOFv with ⟨%xu, #Hueof, -⟩
   have wp_L := net.Listen.spec_addrOk wp_Listen
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_L go!"tcp" net.tcpNet_tcp a as %li %err Hres
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Hok
     iapply listen_au $$ Hpr
   ihave HLs : (∃ (lv' err' : GoInterface), "l" ∷ l_ptr ↦ lv' ∗ "err" ∷ err_ptr ↦ err' ∗
@@ -264,8 +267,11 @@ theorem wp_awaitConf_of
       rw [ite_eq_left_of_eq_true _ _ (by simp)]
       wp_auto
       wp_apply time.wp_Sleep
+      ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+      · solve_pkg_init
       wp_apply wp_L go!"tcp" net.tcpNet_tcp a as %li2 %err2 Hres2
-      · isplitr
+      · (try iframe HnetPk)
+        isplitr
         · ipureintro; exact Hok
         iapply listen_au $$ Hpr
       wp_for_post

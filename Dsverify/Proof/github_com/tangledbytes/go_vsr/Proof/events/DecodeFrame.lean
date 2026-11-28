@@ -37,7 +37,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : events.Assumptions] [log.Assumptions] [examples.vsrwire.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.Assumptions] [π : NetProtoGS]
 variable [encoding.json.Assumptions] [models_lab.jsoncodec.Assumptions]
 
 set_option goose.wp.extras true

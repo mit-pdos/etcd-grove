@@ -67,7 +67,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- **The destination opened for a write of `n` bytes at its end** (`os.File.Write.wp_long`'s pre). -/
 theorem io.copyDst_open (i : Ino) (vs : List w8) (n : Nat) :

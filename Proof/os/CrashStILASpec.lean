@@ -40,10 +40,14 @@ theorem syscall.Fdatasync.wp_proof_crashILAR [syscall.Assumptions] :
     · iintro HR; imodintro; isplitl
       · iapply hR.1 $$ HR
       · iempintro
+    try wp_auto
+    wp_stub syscall.fsFsync.impl
     wp_apply wp_osFsync_L fd dq d N (csInvIR (GF := GF) N d.ino γ γa γc Ok R) (csTokI γ γa a') (Ok a')
       (csI_accR R N d.ino γ γa γc Ok a') m bs c hN hcov hok $$ Hos Hinv Hfd Hown Hb as %e Hr Hfd
     icases Hr with (⟨%he, H⟩ | ⟨%he, Hown, Hb⟩)
-    · iapply wp_errno
+    · try wp_auto
+      wp_apply wp_errnoErr
+      try wp_auto
       iapply HΦ
       iframe Hfd
       ileft; iframe; ipureintro; exact he
@@ -52,7 +56,9 @@ theorem syscall.Fdatasync.wp_proof_crashILAR [syscall.Assumptions] :
       · iintro HR; imodintro; isplitl
         · iapply hR.2 $$ HR
         · iempintro
-      iapply wp_errno
+      try wp_auto
+      wp_apply wp_errnoErr
+      try wp_auto
       iapply HΦ
       iframe Hfd
       iright; iframe; ipureintro; exact ⟨he.1, he.2.2⟩
@@ -68,11 +74,15 @@ theorem syscall.Fdatasync.wp_proof_crashILAR [syscall.Assumptions] :
         first | exact .rfl | exact hR.1 | exact hR.2
     ihave Hown := csOwnL_tok (csTokI γ γa a) (fun s => csTokI γ γa (av s) s) d.ino _
       (by show _ = csTokI γ γa (av _) _; rw [h0]) $$ Hown
+    try wp_auto
+    wp_stub syscall.fsFsync.impl
     wp_apply wp_osFsync_L fd dq d N (csInvIR (GF := GF) N d.ino γ γa γc Ok R)
       (fun s => csTokI γ γa (av s) s) (fun s => Ok (av s) s)
       (csI_accAR R N d.ino γ γa γc Ok av hRav) m bs c hN hcov (by show Ok (av _) _; rw [h1]; exact hok)
       $$ Hos Hinv Hfd Hown Hb as %e Hr Hfd
-    iapply wp_errno
+    try wp_auto
+    wp_apply wp_errnoErr
+    try wp_auto
     iapply HΦ
     iframe Hfd
     icases Hr with (⟨%he, Hown, Hb⟩ | ⟨%he, Hown, Hb⟩)

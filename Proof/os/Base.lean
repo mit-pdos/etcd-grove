@@ -4,12 +4,13 @@ Shared definitions of the specs of `os`'s trusted models (`TrustedCode/os.lean`,
 resource of an open `*os.File` (`ownFile`) and of the `fileStat` its `Stat` returns
 (`ownFileStat`).
 
-The model's `file` and `fileStat` are trusted types (`Code/os.toml`); goose emits no field-access
-assumptions for them (`file.TypeAssumptions` has no `get_fd`/`set_fd`, unlike `File`'s
-`get_file`), so `TrustedCode/os.lean` states them by hand (`file.FieldAssumptions`,
-`fileStat.FieldAssumptions`), and their `IntoValTyped`, which a `GoAlloc` of one needs (in
-`OpenFile` and `Stat`), takes them as instance hypotheses. Their fields are owned one by one
-(`structFieldRef os.file go!"fd" inner ↦ fd`), which is all that loads and stores need.
+Since 2026-11-24 (Go-model overlays S5, perennial#692) `file` is Go's layout (`models/os/model.go`,
+with the model's `off`) and `fileStat` Go's own, both translated: their typed points-to and
+`IntoValTyped` are goose's (`GeneratedProof/os.lean`). Until then they were trusted layouts whose
+field facts `TrustedCode/os.lean` stated by hand (`file.FieldAssumptions`,
+`fileStat.FieldAssumptions`), which every theorem over them took as instance hypotheses. The fd of
+an open file is its `pfd.Sysfd`; the other fields the models read, `name` and `off`, are owned one
+by one (`structFieldRef os.file go!"name" inner ↦ name`), which is all that loads and stores need.
 -/
 module
 
@@ -67,74 +68,22 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
-theorem file_ty_eq : os.model.file = os.file.ty := by
-  unfold os.file.ty; rfl
-
-theorem File_ty_eq : os.model.File = os.File.ty := by
-  unfold os.File.ty; rfl
-
-theorem fileStat_ty_eq : os.model.fileStat = os.fileStat.ty := by
-  unfold os.fileStat.ty; rfl
-
-/-! The typed points-to of the model's `file` and `fileStat`, as goose emits it for a translated
-struct; their `IntoValTyped` needs the struct-field facts of `TrustedCode/os.lean`
-(`file.FieldAssumptions`, `fileStat.FieldAssumptions`), which goose cannot emit for a trusted
-layout. -/
-
-instance file_fields_unfold :
-    EqualsUnfold [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string,
-        go.field_decl.FieldDecl go!"off" go.int64]
-      [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string,
-        go.field_decl.FieldDecl go!"off" go.int64] :=
-  ⟨rfl⟩
-
-instance fileStat_fields_unfold :
-    EqualsUnfold [go.field_decl.FieldDecl go!"name" go.string,
-        go.field_decl.FieldDecl go!"size" go.int64,
-        go.field_decl.FieldDecl go!"mode" io.fs.FileMode.ty]
-      [go.field_decl.FieldDecl go!"name" go.string,
-        go.field_decl.FieldDecl go!"size" go.int64,
-        go.field_decl.FieldDecl go!"mode" io.fs.FileMode.ty] :=
-  ⟨rfl⟩
-
-noncomputable instance file_typed_pointsto : TypedPointsto (GF := GF) os.file where
-  typedPointstoDef l v dq := iprop(
-    "fd" ∷ typedPointsto (structFieldRef os.file go!"fd" l) v.fd' dq ∗
-    "name" ∷ typedPointsto (structFieldRef os.file go!"name" l) v.name' dq ∗
-    "off" ∷ typedPointsto (structFieldRef os.file go!"off" l) v.off' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance file_into_val_typed [os.file.FieldAssumptions] :
-    IntoValTypedUnderlying (GF := GF) os.file os.file.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance fileStat_typed_pointsto : TypedPointsto (GF := GF) os.fileStat where
-  typedPointstoDef l v dq := iprop(
-    "name" ∷ typedPointsto (structFieldRef os.fileStat go!"name" l) v.name' dq ∗
-    "size" ∷ typedPointsto (structFieldRef os.fileStat go!"size" l) v.size' dq ∗
-    "mode" ∷ typedPointsto (structFieldRef os.fileStat go!"mode" l) v.mode' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance fileStat_into_val_typed [os.fileStat.FieldAssumptions] :
-    IntoValTypedUnderlying (GF := GF) os.fileStat os.fileStat.underlying := by
-  solve_into_val_typed_struct
-
 include sem package_sem' in
 /-- The `*os.File` `f` is open on the fd `fd`, named `name`: `f` points to a `File` whose inner
-`file` holds the fd (a fraction `dq` of it: `Close` writes it) and the name. And `syscall`'s
+`file` holds the fd in its `pfd.Sysfd` (a fraction `dq` of it: `Close` writes it), the name, and
+`nonblock` false (the real `fd()` reads it; the model's `OpenFile` never sets it), `appendMode`
+false (the real `(*File).readFrom` reads it; Go's `OpenFile` sets it to `flag&O_APPEND != 0`, which
+is false because the extension's `Open` refuses `O_APPEND`, so the model's leaves it zero:
+`models/os/model.go:106`). And `syscall`'s
 package fact (2026-11-24, fmt stage 1: `Errno.Error`, translated, reads its error table, so the
 error a method returns is `fmtErrorOk` only given it: `Proof/syscall/ErrorOk.lean`), which the
 functions that open a file have (`isPkgInit os`), so that the methods' callers need none. -/
 def ownFile (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
   iprop(∃ inner : Loc, f ↦□ (os.File.mk inner) ∗
-    structFieldRef os.file go!"fd" inner ↦{dq} fd ∗
+    structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{dq} fd ∗
     structFieldRef os.file go!"name" inner ↦□ name ∗
+    structFieldRef os.file go!"nonblock" inner ↦□ false ∗
+    structFieldRef os.file go!"appendMode" inner ↦□ false ∗
     syscall.errnoOk (GF := GF))
 
 include sem package_sem' in
@@ -151,19 +100,28 @@ def heldByte (rs : List (Nat × DFrac × List ByteG)) (i : Nat) (b : w8) : Prop 
   ∃ r ∈ rs, r.1 ≤ i ∧ (r.2.2[i - r.1]?).map Prod.fst = some b
 
 variable [syscall.Assumptions] in
-/-- `f.wrapErr(op, Errno(e))` (`model.wrapErrno`) for the file whose inner `file` is `inner`: a
-fresh `*PathError` as an `error`. -/
+/-- `modelWrapErrno(op, inner, e)` (`f.wrapErr(op, Errno(e))`) for the file whose inner `file` is
+`inner`, `e ≠ 0`: a fresh `*PathError` as an `error`. -/
 theorem wp_wrapErrno (op : GoString) (inner : Loc) (name : GoString) (e : w64)
     (Φ : val → IProp GF) :
     structFieldRef os.file go!"name" inner ↦□ name -∗
       (∀ pe : Loc, Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) -∗
-      WP (App (App (App (Val os.model.wrapErrno) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
+      WP (App (App (App (Val (@! os.modelWrapErrno)) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
   iintro #Hn HΦ
-  unfold os.model.wrapErrno os.model.pathError
-  rw [file_ty_eq]
-  wp_auto
-  wp_apply wp_errno
-  iapply HΦ
+  wp_func_call; wp_call
+  try wp_auto
+  -- modelErrno(e)
+  wp_func_call; wp_call
+  try wp_auto
+  wp_if_destruct
+  all_goals
+    try wp_auto
+    -- modelPathError(op, name, err)
+    wp_func_call; wp_call
+    try wp_auto
+    wp_alloc pe as Hpe
+    try wp_auto
+    iapply HΦ
 
 end def_
 

@@ -23,7 +23,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : Assumptions]
 variable [π : NetProtoGS]
 
 theorem isFailMsg.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF := GF) (hG := hG)) :

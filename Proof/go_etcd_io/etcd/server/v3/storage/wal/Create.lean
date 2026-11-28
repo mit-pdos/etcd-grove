@@ -74,7 +74,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- The probe's name is not the first segment's. -/

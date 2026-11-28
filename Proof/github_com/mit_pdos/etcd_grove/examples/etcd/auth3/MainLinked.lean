@@ -15,12 +15,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.barrier
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.newUserClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.startMember
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn
 public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 
 @[expose] public section
@@ -46,8 +46,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assum
 
 /-- **A member started with auth on** (`startMember.lean`): `NewServer.specM true`
 (`server_new_auth_on`), the raft handler served, `Start.spec`. -/
-theorem etcd_auth3.wp_startMember [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem etcd_auth3.wp_startMember :
     etcd_auth3.startMember.spec (GF := GF) (hG := hG) :=
   etcd_auth3.startMember.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
     server_new_auth_on etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler server_Start
@@ -66,8 +65,7 @@ theorem etcd_auth3.wp_barrier :
 
 /-- **auth3's `run`**: authkv's run across the three members (`run.lean`), over authkv's linked
 `SetUp`, `Work` and checks (`auth/Link.lean`). -/
-theorem etcd_auth3.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem etcd_auth3.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_auth3.run.spec (GF := GF) (hG := hG) :=
   etcd_auth3.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_auth3.wp_newUserClient etcd_auth3.wp_barrier
@@ -79,8 +77,7 @@ theorem etcd_auth3.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.et
 
 /-- **auth3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/Main.lean`). -/
-theorem etcd_auth3.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+theorem etcd_auth3.wp_Main
     [EtcdGrove.ErrorStringLeaf] :
     etcd_auth3.Main.spec (GF := GF) (hG := hG) :=
   etcd_auth3.Main.wp_proof zap.NewNop.wp_proof etcd_auth3.wp_startMember etcd_auth3.wp_run

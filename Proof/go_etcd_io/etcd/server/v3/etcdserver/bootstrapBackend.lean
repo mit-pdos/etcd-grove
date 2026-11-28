@@ -133,7 +133,7 @@ variable [sem : go.Semantics]
 file, `O_CREATE`). -/
 theorem fileHolds_of_fileFree (p : GoString) :
     backend.fileFree (GF := GF) p ⊢ backend.fileHolds p ∅ := by
-  rcases hfs : backend.theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
+  rcases hfs : backend.theFs GF with _ | ⟨S, ok, has, ne⟩
   · simp only [backend.fileFree, backend.onFs_none hfs]
     iintro H; iexfalso; iexact H
   · simp only [backend.fileFree, backend.fileHolds, backend.onFs_some hfs]

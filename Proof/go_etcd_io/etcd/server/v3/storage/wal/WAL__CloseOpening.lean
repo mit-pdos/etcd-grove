@@ -76,7 +76,7 @@ theorem syncOut_seg (g : SegG) (hlen : g.bs.length = g.om.size) (P : Prop) :
     exact ⟨rfl, hlen.symm⟩
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (Mr : WalMarshal)
     (wp_syncIdle : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdle (W := W) Mr)
     (wp_fpClose : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Close.spec (GF := GF) (hG := hG))

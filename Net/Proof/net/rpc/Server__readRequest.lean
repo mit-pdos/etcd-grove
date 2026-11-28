@@ -33,7 +33,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -91,6 +91,7 @@ theorem Server.readRequest.wp_proof
   ihave #Hsc0 := Hsc
   iunfold srvCodecAt at Hsc0
   icases Hsc0 with ⟨#Hrwc, #Hconn⟩
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hconn
   wp_auto
   wp_apply wp_readRequestHeader s γs C W a sc t cn la ra $$ [$Hsrv $Hserves $Henv $Hsc $Hrd]
     as %svc %mt %req %keep %err Hres
@@ -243,7 +244,7 @@ theorem Server.readRequest.wp_proof
     | ok e1 =>
     wp_auto
     ihave #Hre := rdErr_readE la ra eof ueof ed _ true got (interface.ok e1)
-      $$ [$HefV $Hef $Hio $Heof $Hueof $HE1]
+      $$ [$HefV $Hef $Hio $Hsys $Heof $Hueof $HE1]
     iapply HΦ
     iright
     isplitr

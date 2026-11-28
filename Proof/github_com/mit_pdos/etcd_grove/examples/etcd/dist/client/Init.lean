@@ -15,10 +15,10 @@ public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init

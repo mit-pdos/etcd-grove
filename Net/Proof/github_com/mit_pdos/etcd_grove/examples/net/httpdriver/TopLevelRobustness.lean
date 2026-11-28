@@ -62,7 +62,7 @@ theorem addrUnset_lisUnset (a : GoString) (h : addrOk a = true) :
 end start
 
 theorem httpdriver_robust : httpdriver_robust.spec := by
-  intro _ lctx sem srv_sem cli_sem field_sem _ σs σc g HEnv hd
+  intro _ lctx sem srv_sem cli_sem _ σs σc g HEnv hd
   refine robust_of_distBootIT (GF := netGF) httpAddrs (system σs σc) g httpThreads httpSteps
     (fun hg hl => ⟨extsInitgP_of_init ⟨net_init_compat, trivial⟩ hg,
       fun m hm => extsInitP_of_init ⟨net_init_compat, trivial⟩ (hl m hm)⟩) ?_ hd.1 hd.2.1

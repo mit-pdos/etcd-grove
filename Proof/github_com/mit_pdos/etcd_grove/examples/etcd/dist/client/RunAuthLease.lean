@@ -5,8 +5,9 @@ orchestrator's `etcdKV Γ.kv σ0`, the set-up's puts offered from it (`cell_setu
 the member of each address used, root's and u's grants recorded in the cell (`fixZD`, `fixAD`), u's leased
 transaction (`cell_txnTAu`); then the checks: `noAuth`'s refutations from the frozen floor
 (`noAuth_refutesD`), u's refused put/txn (`refused_updateD`), `foreign`'s revocations (`refused_updateD`,
-`revokeLu_updateD`) and its lessor reads (the hypothesis `foreignReads.law`), root's reads from the cell
-(`seenD_z`, `seenD_gone`). Not linked while `foreignReads.law` stands (Handoff S5-3/S5-4).
+`revokeLu_updateD`) and its TimeToLive checks (`foreign_refutesD`, from the frozen floor; the lessor lower bound
+its calls take at u's member from u's grant, at v's from v's own lease, `ownLease`, recorded in the cell's grant
+ids only), root's reads from the cell (`seenD_z`, `seenD_gone`).
 Lean-first (no Rocq counterpart); F7 stage S5.
 -/
 module
@@ -18,11 +19,12 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.barr
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.grantPut
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.noAuth
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.foreign
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ownLease
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.absent
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.refused
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUpDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUpDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TxnCommitOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetOnDist
@@ -37,8 +39,8 @@ public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.ClientCallDistLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRunLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRefusals
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ForeignReadsLaw
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ForeignRefutes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCalls
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
@@ -58,73 +60,6 @@ namespace etcd_dist_client
 open Iris Iris.BI Iris.ProofMode Net client go_etcd_io.etcd.server.v3.etcdserver
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
 open etcd_dist etcd_dist.view etcd_dist.authd etcd_authlease
-
-section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-
-/-- `c % k` at `k = len`, a positive length below `2^63`, as a signed index (authN's `mod_len_sint`,
-without its bound of 1000). -/
-theorem mod_len_sintD (len : w64) (L c : Nat) (hkl : uint.nat len = L) (hL : 0 < L) (hL' : L < 2 ^ 63)
-    (hc : c < 2 ^ 32) : sint.Z (W64 (c : Int) % len) = ((c % L : Nat) : Int) := by
-  subst hkl
-  have hm := Nat.mod_lt c hL
-  have h0 : (W64 (c : Int)).toNat = c := by simp [W64]; omega
-  have h1 : (W64 (c : Int) % len).toNat = c % len.toNat := by rw [BitVec.toNat_umod, h0]
-  have h2 : uint.nat len = len.toNat := rfl
-  have hL2 : len.toNat < 2 ^ 63 := hL'
-  have hm2 : c % len.toNat < len.toNat := hm
-  have h3 : (W64 (c : Int) % len).toNat < 2 ^ 63 := by rw [h1]; omega
-  rw [h2, ← h1]
-  generalize (W64 (c : Int) % len) = x at h3 ⊢
-  word
-
-/-- Go's `%` on non-negative `int`s is the unsigned remainder. -/
-theorem srem_eq_umodD (x y : w64) (hx : x.toNat < 2 ^ 63) (hy : y.toNat < 2 ^ 63) :
-    BitVec.srem x y = x % y := by
-  have h1 : x.msb = false := by rw [BitVec.msb_eq_decide]; simp; omega
-  have h2 : y.msb = false := by rw [BitVec.msb_eq_decide]; simp; omega
-  simp only [BitVec.srem, h1, h2]
-  rfl
-
-/-- **The anonymous client** (`newClient`'s result at one endpoint) is a user client with no principal. -/
-theorem anonCli_of_new (cl : Loc) (a : GoString) (V : WEnv GF) :
-    isNewClient cl [a] V ∗ clientNoProxy cl ∗ (∃ cfg : go_etcd_io.etcd.client.v3.Config,
-        clientF cl go!"cfg" ↦□ cfg ∗ ⌜cfg.Token' = [] ∧ cfg.Username' = go!"" ∧ cfg.Password' = go!""⌝) ⊢
-      ∃ cfg : go_etcd_io.etcd.client.v3.Config, userCli cl a V cfg ∗ ⌜principalOf cfg = none⌝ := by
-  iintro ⟨#Hnc, #Hnp, %cfg, #Hcfg, %Hc⟩
-  iexists cfg
-  iunfold userCli
-  iframe #
-  ipureintro
-  exact ⟨Hc.1, by simp [principalOf, Hc.2.1]⟩
-
-instance authClientAt_persistent [π : NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF)
-    (Γ : DistView) (cfg : go_etcd_io.etcd.client.v3.Config) :
-    Persistent (authClientAt (GF := GF) cl ap eps V Γ cfg) := by
-  unfold authClientAt; infer_instance
-
-/-- A user client of an endpoint serving the view is an auth client of it (its `Auth` field). -/
-theorem authClientAt_of_userCli [π : NetProtoGS] (cl : Loc) (a : GoString) (V : WEnv GF)
-    (cfg : go_etcd_io.etcd.client.v3.Config) (Γ : DistView) :
-    userCli cl a V cfg ∗ membersAt (Gg := hG.goose_globalGS) [a] Γ ⊢
-      ∃ ap : Loc, authClientAt cl ap [a] V Γ cfg := by
-  iintro ⟨#Hu, #Hms⟩
-  iunfold userCli at Hu
-  icases Hu with ⟨#Hnc, #Hnp, #Hcfg, %Htok⟩
-  ihave #Hnc' := Hnc
-  iunfold isNewClient at Hnc'
-  icases Hnc' with ⟨-, -, -, -, -, ⟨%ap, #Haf, -⟩, -⟩
-  iexists ap
-  iunfold authClientAt
-  iframe #
-  ipureintro; exact Htok
-
-end lemmas
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -149,6 +84,7 @@ theorem RunAuthLease.wp_proof
     (wp_grantPut : grantPut.spec (GF := GF) (hG := hG))
     (wp_noAuth : noAuth.spec (GF := GF) (hG := hG))
     (wp_foreign : foreign.spec (GF := GF) (hG := hG))
+    (wp_ownLease : ownLease.spec (GF := GF) (hG := hG))
     (wp_absent : absent.spec (GF := GF) (hG := hG))
     (wp_refused : refused.spec (GF := GF) (hG := hG))
     (wp_ended : ended.spec (GF := GF) (hG := hG))
@@ -162,8 +98,7 @@ theorem RunAuthLease.wp_proof
     (wp_Commit : Txn_CommitOn_dist.spec (GF := GF) (hG := hG))
     (wp_Put : KV_PutOn_dist.spec (GF := GF) (hG := hG))
     (wp_Get : KV_GetOn_dist.spec (GF := GF) (hG := hG))
-    (wp_Revoke : Lease_RevokeOn_dist.spec (GF := GF) (hG := hG))
-    (hlaw : foreignReads.law (GF := GF) (hG := hG)) :
+    (wp_Revoke : Lease_RevokeOn_dist.spec (GF := GF) (hG := hG)) :
     RunAuthLease.spec (GF := GF) (hG := hG) := by
   intro π _ _ _ Γ eps addrs ready γR σ0 hV Htb hAs hne hauth hlm hγR hau hls hx
   wp_start as ⟨Hlt, #Heps, #Hms, #Hready, #HkvI, #HL0, HkV, Hview⟩
@@ -247,7 +182,7 @@ theorem RunAuthLease.wp_proof
   · iframe #
   (try wp_auto)
   -- `auth.SetUp(cli)` through `a0`, the set-up puts offered from the cell
-  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth $$ []
+  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork $$ []
   · iPkgInit
   ihave ⟨%api0, #Huc0⟩ := userClientAt_of_userCli cl a0 V cfg0 Γ $$ [Hu0 Hm0']
   · iframe #
@@ -468,11 +403,12 @@ theorem RunAuthLease.wp_proof
       (psAtLeast γc 3) hau hauth hγR (outTokOk_none _)) $$ [$Hlt Hobj] as %tresp %terr ⟨Hlt, Ht⟩
   · iframe Hobj; iframe #
     isplitl []
-    · ipureintro; exact ⟨htpm, htin⟩
+    · ipureintro; exact htin
     isplitl []
     · iright
       isplitl []
-      · ipureintro; exact ⟨hro, Or.inr ⟨hlm, htpl⟩, htnz⟩
+      · ipureintro; exact ⟨hro, Or.inr ⟨hlm, htpl⟩, htnz,
+          txnNestOk_of_plain _ (txnWireOf_plain _ htpm) htin, leaseTxnD_shape tK lu (by decide)⟩
       iunfold writeAuD
       ihave #Htx := cell_txnTAu Γ.kv γc lz lu ps2 hps2 (opGrantD Γ.kv (principalOf ucfg)
         (.txn (txnWireOf (leaseTxn tK lu))) Lset) $$ []
@@ -495,6 +431,20 @@ theorem RunAuthLease.wp_proof
   isimp only [hro, Bool.false_eq_true, ↓reduceIte] at HQt
   iunfold psAtLeast at HQt
   icases HQt with ⟨%ps3, #Hps3, %hps3⟩
+  (try wp_auto)
+  -- `ownLease(vcli)`: v's own lease at `av`, holding no key (its grant recorded in the cell's `gs` only); its
+  -- lessor lower bound at v's member is what `foreign`'s calls there take
+  ihave #Hgov := cell_grantWriteAuD Γ.kv γc (principalOf vcfg) (W64 9000000000) Lset (by decide) hlm $$ Hinv
+  wp_apply (wp_ownLease vcl av V Γ midv vcfg γR Lset mv (gsHas γc) hau hls hauth hlm hγR hAs) $$ [$Hlt]
+    as %okv ⟨Hlt, Hov⟩
+  · iframe #
+  icases Hov with (%Hov | ⟨%Hov, %mvl, #Hlbv⟩)
+  · subst Hov
+    (try wp_auto)
+    wp_apply wp_ended as %r -
+    (try wp_auto)
+    iapply HΦ; iframe Hlt
+  subst Hov
   (try wp_auto)
   -- `barriers(eps)` again: only its result is used
   wp_apply (wp_barriers eps addrs V Γ γR Lset Htb hpe hAs hau hauth hγR) $$ [$Hlt] as %ok2 ⟨Hlt, Hb2⟩
@@ -636,11 +586,12 @@ theorem RunAuthLease.wp_proof
       (fun _ => iprop(False)) hau hauth hγR (outTokOk_none _)) $$ [$Hlt Hobj3] as %xresp %xerr ⟨Hlt, Hx⟩
   · iframe Hobj3; iframe #
     isplitl []
-    · ipureintro; exact ⟨htpm', htin'⟩
+    · ipureintro; exact htin'
     isplitl []
     · iright
       isplitl []
-      · ipureintro; exact ⟨hro', Or.inr ⟨hlm, htpl'⟩, htnz'⟩
+      · ipureintro; exact ⟨hro', Or.inr ⟨hlm, htpl'⟩, htnz',
+          txnNestOk_of_plain _ (txnWireOf_plain _ htpm') htin', leaseTxnD_shape xK lz (by decide)⟩
       rw [hPu]
       iexact Hrft
     ipureintro; exact htsz'
@@ -683,19 +634,22 @@ theorem RunAuthLease.wp_proof
     (try wp_auto)
     iapply HΦ; iframe Hlt
   (try wp_auto)
-  -- `foreign(ucli, "u", lz)` at `au`: its revocation refused (`Lz` holds `z/lease`), its lessor reads
-  -- refuted by `foreignReads.law` while the main thread holds u's revocation unpermitted (`Ha`)
-  imod (cell_seen_now Γ.kv γc ps3 ⊤ (by simp)) $$ [Hinv Hps3] with ⟨%σs, #Hseen⟩
-  · iframe #
+  -- `foreign(ucli, "u", lz, zKey)` at `au`: its revocation refused (`Lz` holds `z/lease`), its TimeToLive check
+  -- at `z/lease` refuted from the frozen floor (`foreign_refutesD`)
   ihave #Hrfr := refused_updateD Γ.kv γc γz hs Lset Lset rr (some go!"u") go!"u" (.leaseRevoke lz) zK lz
     [lz] ps1 (fun _ => iprop(False)) (List.prefix_refl _) hadm hst
     (opChecksLeaseD_revoke Γ.kv _ lz) (userOk_some_akUser _ (Or.inl rfl)) hcellZ hwu
     $$ [Hinv HlbZ Hps1 Hfz]
   · iframe #
-  imod (hlaw Γ γR γc γz hs Lset Lset rr midu mu ps3 0 σs lz lu lz zK (some go!"u") hauth (List.prefix_refl _)
-      hadm hst hps3 (Or.inl ⟨rfl, rfl, rfl⟩)) $$ HkvI Hfz Hfdu Hinv Hseen HlbU
-    with ⟨%nu₀, %mu₀, #Hpnu, #Hlmu₀, #Hru1, #Hru2⟩
-  wp_apply (wp_foreign ucl go!"u" au lz V Γ midu ucfg γR Lset nu₀ mu₀ (fun _ => iprop(False))
+  ihave #Hru := foreign_refutesD Γ γR midu Lset mu γz hs rr hadm hst (some go!"u") zK (Or.inl ⟨rfl, rfl⟩)
+    $$ HkvI Hfz Hfdu
+  ihave #HnoTu : □ (∀ n : Nat, ⌜mu ≤ n⌝ -∗
+      leaseCheckD (Γ.au midu) (some go!"u") n
+        (fun info => auth.permVerdictFrom (.on (Γ.au midu)) n info zK [] .read GoInterface.nil) -∗
+      monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False) $$ []
+  · iintro !> %n %hn Hc _
+    iapply Hru $$ %n %hn Hc
+  wp_apply (wp_foreign ucl go!"u" au lz zK V Γ midu ucfg γR Lset mu mu' (fun _ => iprop(False))
       (monoNatAuthOwn γc.a (1 : Qp).half 0) hau hls hauth hlm hγR (fun h => absurd h (by decide)) hAs)
     $$ [$Hlt Ha] as ⟨Hlt, Ha⟩
   · rw [hPu]
@@ -703,16 +657,22 @@ theorem RunAuthLease.wp_proof
     iintro !> %σ Hf _
     iexfalso; iexact Hf
   (try wp_auto)
-  -- `foreign(vcli, "v", lu)` at `av`: a revocation of `Lu` tells `revoked`, refuted while the main
-  -- thread holds u's revocation unpermitted (`cell_not_revoked`)
+  -- `foreign(vcli, "v", lu, aKey)` at `av`: a revocation of `Lu` tells `revoked`, refuted while the main
+  -- thread holds u's revocation unpermitted (`cell_not_revoked`); its TimeToLive check at `a/lease` refuted from
+  -- the frozen floor, its lessor lower bound v's own lease's (`Hlbv`)
   ihave #Hrvv := revokeLu_updateD Γ.kv γc γz hs Lset Lset rr (some go!"v") go!"v" lz lu ps3 hps3 hlu0
     (List.prefix_refl _) hadm hst (userOk_some_akUser _ (Or.inr rfl)) (Or.inr (Or.inr rfl))
     $$ [Hinv HlbU Hps3 Hfz]
   · iframe #
-  imod (hlaw Γ γR γc γz hs Lset Lset rr midv mv ps3 0 σs lz lu lu aK (some go!"v") hauth (List.prefix_refl _)
-      hadm hst hps3 (Or.inr ⟨rfl, rfl, rfl⟩)) $$ HkvI Hfz Hfdv Hinv Hseen HlbU
-    with ⟨%nv₀, %mv₀, #Hpnv, #Hlmv₀, #Hrv1, #Hrv2⟩
-  wp_apply (wp_foreign vcl go!"v" av lu V Γ midv vcfg γR Lset nv₀ mv₀ (revoked γc)
+  ihave #Hrv := foreign_refutesD Γ γR midv Lset mv γz hs rr hadm hst (some go!"v") aK (Or.inr ⟨rfl, rfl⟩)
+    $$ HkvI Hfz Hfdv
+  ihave #HnoTv : □ (∀ n : Nat, ⌜mv ≤ n⌝ -∗
+      leaseCheckD (Γ.au midv) (some go!"v") n
+        (fun info => auth.permVerdictFrom (.on (Γ.au midv)) n info aK [] .read GoInterface.nil) -∗
+      monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False) $$ []
+  · iintro !> %n %hn Hc _
+    iapply Hrv $$ %n %hn Hc
+  wp_apply (wp_foreign vcl go!"v" av lu aK V Γ midv vcfg γR Lset mv mvl (revoked γc)
       (monoNatAuthOwn γc.a (1 : Qp).half 0) hau hls hauth hlm hγR (fun h => absurd h (by decide)) hAs)
     $$ [$Hlt Ha] as ⟨Hlt, Ha⟩
   · rw [hPv]

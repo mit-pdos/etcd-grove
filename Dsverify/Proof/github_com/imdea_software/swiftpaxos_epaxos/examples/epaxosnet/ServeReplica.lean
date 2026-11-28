@@ -31,7 +31,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [examples.epaxosnet.Assumptions] [master.Assumptions] [epaxos.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
 
@@ -154,8 +154,11 @@ theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hk
     rcases hk with rfl | rfl | rfl | rfl | rfl <;> rfl
   rw [hn, listenAddr_eq k]
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (wp_Listen go!"tcp" net.tcpNet_tcp (rpcAddrOf k)) as %lv %err Hl
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact rpcAddrOf_listenOk k hk
     iapply RpcHttpAddr.rpcLisP_lis
     iexact Hlis

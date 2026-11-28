@@ -151,6 +151,84 @@ theorem fixAD (γk : KVNames) (γc : CellNames) (γz : GName) (hs : List auth.Au
 
 end lemmas
 
+section runLemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- `c % k` at `k = len`, a positive length below `2^63`, as a signed index (authN's `mod_len_sint`,
+without its bound of 1000; with the three lemmas after it, `RunAuthLease`'s and `RunAuth`'s). -/
+theorem mod_len_sintD (len : w64) (L c : Nat) (hkl : uint.nat len = L) (hL : 0 < L) (hL' : L < 2 ^ 63)
+    (hc : c < 2 ^ 32) : sint.Z (W64 (c : Int) % len) = ((c % L : Nat) : Int) := by
+  subst hkl
+  have hm := Nat.mod_lt c hL
+  have h0 : (W64 (c : Int)).toNat = c := by simp [W64]; omega
+  have h1 : (W64 (c : Int) % len).toNat = c % len.toNat := by rw [BitVec.toNat_umod, h0]
+  have h2 : uint.nat len = len.toNat := rfl
+  have hL2 : len.toNat < 2 ^ 63 := hL'
+  have hm2 : c % len.toNat < len.toNat := hm
+  have h3 : (W64 (c : Int) % len).toNat < 2 ^ 63 := by rw [h1]; omega
+  rw [h2, ← h1]
+  generalize (W64 (c : Int) % len) = x at h3 ⊢
+  word
+
+/-- Go's `%` on non-negative `int`s is the unsigned remainder. -/
+theorem srem_eq_umodD (x y : w64) (hx : x.toNat < 2 ^ 63) (hy : y.toNat < 2 ^ 63) :
+    BitVec.srem x y = x % y := by
+  have h1 : x.msb = false := by rw [BitVec.msb_eq_decide]; simp; omega
+  have h2 : y.msb = false := by rw [BitVec.msb_eq_decide]; simp; omega
+  simp only [BitVec.srem, h1, h2]
+  rfl
+
+/-- One of the members' addresses serves a member. -/
+theorem membersAt_of_mem [π : NetProtoGS] (addrs : List GoString) (Γ : DistView) (a : GoString)
+    (ha : a ∈ addrs) :
+    membersAt (Gg := hG.goose_globalGS) addrs Γ ⊢ membersAt (Gg := hG.goose_globalGS) [a] Γ := by
+  obtain ⟨i, hi⟩ := List.getElem?_of_mem ha
+  iintro #H
+  iunfold membersAt at H
+  ihave ⟨%mid, #Ha⟩ := BigSepL.bigSepL_lookup hi $$ H
+  iapply membersAt_one (Gg := hG.goose_globalGS) a Γ mid
+  iexact Ha
+
+/-- **The anonymous client** (`newClient`'s result at one endpoint) is a user client with no principal. -/
+theorem anonCli_of_new (cl : Loc) (a : GoString) (V : WEnv GF) :
+    isNewClient cl [a] V ∗ clientNoProxy cl ∗ (∃ cfg : go_etcd_io.etcd.client.v3.Config,
+        clientF cl go!"cfg" ↦□ cfg ∗ ⌜cfg.Token' = [] ∧ cfg.Username' = go!"" ∧ cfg.Password' = go!""⌝) ⊢
+      ∃ cfg : go_etcd_io.etcd.client.v3.Config, userCli cl a V cfg ∗ ⌜principalOf cfg = none⌝ := by
+  iintro ⟨#Hnc, #Hnp, %cfg, #Hcfg, %Hc⟩
+  iexists cfg
+  iunfold userCli
+  iframe #
+  ipureintro
+  exact ⟨Hc.1, by simp [principalOf, Hc.2.1]⟩
+
+instance authClientAt_persistent [π : NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF)
+    (Γ : DistView) (cfg : go_etcd_io.etcd.client.v3.Config) :
+    Persistent (authClientAt (GF := GF) cl ap eps V Γ cfg) := by
+  unfold authClientAt; infer_instance
+
+/-- A user client of an endpoint serving the view is an auth client of it (its `Auth` field). -/
+theorem authClientAt_of_userCli [π : NetProtoGS] (cl : Loc) (a : GoString) (V : WEnv GF)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (Γ : DistView) :
+    userCli cl a V cfg ∗ membersAt (Gg := hG.goose_globalGS) [a] Γ ⊢
+      ∃ ap : Loc, authClientAt cl ap [a] V Γ cfg := by
+  iintro ⟨#Hu, #Hms⟩
+  iunfold userCli at Hu
+  icases Hu with ⟨#Hnc, #Hnp, #Hcfg, %Htok⟩
+  ihave #Hnc' := Hnc
+  iunfold isNewClient at Hnc'
+  icases Hnc' with ⟨-, -, -, -, -, ⟨%ap, #Haf, -⟩, -⟩
+  iexists ap
+  iunfold authClientAt
+  iframe #
+  ipureintro; exact Htok
+
+end runLemmas
+
 end etcd_dist_client
 end EtcdGrove
 end Perennial

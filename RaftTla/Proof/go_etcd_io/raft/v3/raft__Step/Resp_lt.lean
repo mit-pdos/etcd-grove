@@ -41,7 +41,7 @@ set_option maxHeartbeats 1000000 in
 /-- `m.Term < r.Term` for a `MsgAppResp` or `MsgHeartbeatResp`: with `checkQuorum` and
 `preVote` both off, and the type neither `MsgPreVote` nor `MsgStorageAppendResp`, the
 stale message is only logged, then `return nil`. `StepC.refl`, nothing received. -/
-theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_Resp_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -54,12 +54,12 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg ty m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -106,7 +106,7 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨StepEnd.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+    exact ⟨StepEndG.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof

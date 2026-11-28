@@ -12,7 +12,7 @@ which no implementation can meet for the contexts it allocates, `notes/errdesc-g
 This file keeps the pure operations on metadata values: `mdAdd md k v` is the metadata with `v`
 appended to the values of `k` (as `AppendToOutgoingContext(ctx, k, v)` adds it, for a lower-case
 `k`); `mdSet md k vs`, with them set to `vs` (`MD.Set`). The client's auth contract
-(`examples/etcd/auth/ClientAuth.lean`, C1-C4) is stated over `outMD` and `ctxInMD`. A raw `MD` whose
+(`examples/lib/authwork/ClientAuth.lean`, C1-C4) is stated over `outMD` and `ctxInMD`. A raw `MD` whose
 keys collide up to case (a literal map given to `NewOutgoingContext`, where grpc's result depends on
 map order) is outside the model (G2, 2026-10-30: `streamKeyOf`'s laws rely on this reading).
 -/

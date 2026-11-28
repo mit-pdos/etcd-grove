@@ -82,7 +82,7 @@ end laws
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
   [net.http.Assumptions] [client.Assumptions] [examples.swiftnet.Assumptions] [io.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 variable [ρ : RemoteGS]

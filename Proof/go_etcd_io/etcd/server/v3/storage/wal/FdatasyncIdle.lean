@@ -53,9 +53,13 @@ theorem syscall.Fdatasync.wp_idle (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : 
          (⌜e ≠ 0⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) }} := by
   wp_start as ⟨#Harea, Hfd, Hk, HI, Hn, Hf, Hcf, Hm, Hb⟩
+  try wp_auto
+  wp_stub syscall.fsFsync.impl
   wp_apply wp_idleFsync Mr R jr r dir i I hiI j X hj b m bs fd dq d _ hb hi hlen
     $$ Harea Hfd Hk HI Hn Hf Hcf Hm Hb as %e Hfd Hk HI Hn Hf Hcf Hr
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe Hfd Hk HI Hn Hf Hcf
   icases Hr with (⟨%he, Hr⟩ | ⟨%he, Hr⟩)

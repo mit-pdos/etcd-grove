@@ -34,7 +34,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 open EtcdGrove EtcdGrove.etcd_txnlin EtcdGrove.etcd_dist
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 section proof
@@ -46,7 +46,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremo
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem Node.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
@@ -72,7 +71,7 @@ theorem Node.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Ptl : isPkgInit (PROP := IProp GF)
-      pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin $$ []
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

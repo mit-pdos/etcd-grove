@@ -22,7 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [os.file.FieldAssumptions]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- A truncate that shrank the file to `tg` landed, the caller's half (`os.ftDoneH`, nothing grown):
 its `OsMeta`'s half, of size `tg`, the same mappings, the page cache known zero to the end of the

@@ -74,7 +74,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
-variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 
 theorem DB.wp_munmapC : DB.munmap.specCrash (GF := GF) (hG := hG) :=
   DB.munmap.wp_proof_crash golang_org.x.sys.unix.Munmap.wp_proof_crashS
@@ -184,7 +183,7 @@ def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : Goos
 threads are live (`RealCrashNstepsBelow`: the thread bound on the execution itself, Perennial's
 `goose_crash_adequacy_below`, so `N` is not bounded by `T`). -/
 theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    [package_sem : Assumptions]
     [hPre : GooseGpreS GF]
     (N T : Nat) (hT : T ≤ 2 ^ 30) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
@@ -305,7 +304,7 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
 /-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions along which fewer
 than `2 ^ 30` threads are live), under the hypotheses of the file header: the `os.file`/`os.fileStat` field instances. -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    [package_sem : Assumptions]
     (dir : GoString) :
     BootCrashSafety dir := by
   intro σ g Hlctx Hpkgs Hinit Hdir Hnone Hthreads n κs t2 σ2 b Hsteps Hlive

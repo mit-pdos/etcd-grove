@@ -73,9 +73,13 @@ theorem syscall.Fdatasync.wp_tailNE [syscall.Assumptions] (hS : ∀ st i, Sio.in
         osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1)) ∗
         walSyncedLb (W := W) dir ic H.length }} := by
   wp_start as ⟨#Harea, #Hil, Hfd, Hk, Hv, Hcf, Hm, Hb⟩
+  try wp_auto
+  wp_stub syscall.fsFsync.impl
   wp_apply wp_tailFsyncNE hS Mr R jr r dir γ H md cuts wr m bs fd dq d _ ic hm hwr
     $$ Harea Hil Hfd Hk Hv Hcf Hm Hb as Hfd Hk Hv Hcf Hm Hb Hs
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe
 

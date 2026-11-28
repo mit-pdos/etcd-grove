@@ -165,14 +165,29 @@ def writeCheckedD [NetProtoGS] (eps : List GoString) (Γ : DistView) (γR : Serv
 /-- **What an admin call's success tells the caller** (`v3rpc.adminReplied` at the cluster: the member's
 publication `pubAfterM` and the token binding dropped, the requested log in place of the committed one):
 member `mid` of the endpoints served it; the stamped request, admitted and applied after the requested
-prefix `L` (`adminDoneM`: `auth.adminOk` at the history's last state along `L`), its result (`adminQh`: the
-history update's `Q`), its header's user one `P` may be bound to. -/
+prefix `L` (`adminDoneM`: `auth.adminOk` at the history's last state along `L`, at the mode of the member's auth
+slot `AuthC.on (Γ.au mid)`, which is `true`: `adminRepliedD_eq`), its result (`adminQh`: the history update's
+`Q`), its header's user one `P` may be bound to. -/
 def adminRepliedD [NetProtoGS] (eps : List GoString) (Γ : DistView) (γR : ServerRaftNames)
     (P : Option GoString) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) : IProp GF :=
   iprop(∃ (mid : w64) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (L : List EntryModel),
     servedBy eps Γ mid ∗
-    ⌜irrWireOf (apply.withHeader rq hm) rq' ∧ adminDoneM true Γ.kv rq' L ∧ userOk P hm.username⌝ ∗
+    ⌜irrWireOf (apply.withHeader rq hm) rq' ∧ adminDoneM (AuthC.on (Γ.au mid)).isOn Γ.kv rq' L ∧
+      userOk P hm.username⌝ ∗
     srvReqLogLb γR L ∗ adminQh Γ.kv rq Q hm L)
+
+/-- **`adminRepliedD`'s body with `adminDoneM` at a mode `b` that is `true`** (the F9 AuthC-slot refactor,
+2026-11-26): the definition before it (`adminDoneM` at the literal `true`), so `adminRepliedD` means what it
+meant (the `Auth_*_dist` posts unchanged). By `rfl`: `(AuthC.on γa).isOn` is `true` by definition. -/
+theorem adminRepliedD_eq [NetProtoGS] (eps : List GoString) (Γ : DistView) (γR : ServerRaftNames)
+    (P : Option GoString) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) (b : Bool)
+    (hb : b = true) :
+    adminRepliedD eps Γ γR P rq Q =
+      iprop(∃ (mid : w64) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (L : List EntryModel),
+        servedBy eps Γ mid ∗
+        ⌜irrWireOf (apply.withHeader rq hm) rq' ∧ adminDoneM b Γ.kv rq' L ∧ userOk P hm.username⌝ ∗
+        srvReqLogLb γR L ∗ adminQh Γ.kv rq Q hm L) := by
+  subst hb; rfl
 
 /-- **What a successful auth-on read tells the caller of its check, cluster-level**: the principal it
 was bound to may read `[key, end)` at the auth state after the requested prefix `L` extending `L₀`
@@ -200,7 +215,7 @@ against: the cross-machine form of the single-process `akAuthFixed`.
 Under a fancy update at a mask holding `authTieReadMask` (F7 S5 review, `notes/axiom-review/f7-s5-review.md`
 §2.2, 2026-11-26: until then a plain persistent wand, false in the logic: the log fragment `srvReqLogLb γR L'`
 of a state recorded after the floor exists only inside the tie's invariant `authTieN`, so it is obtained by
-opening it, as `akAuthFixed` states, `examples/etcd/auth/WorkEnv.lean`). -/
+opening it, as `akAuthFixed` states, `examples/lib/authwork/WorkEnv.lean`). -/
 def authFloorD (Γ : DistView) (γR : ServerRaftNames) (mid : w64)
     (L₀ : List EntryModel) (m : Nat) : IProp GF :=
   iprop(auth.authPubLbM (.on (Γ.au mid)) m ∗ ∃ (L : List EntryModel) (i : Nat), ⌜L₀ <+: L ∧ i ≤ m⌝ ∗

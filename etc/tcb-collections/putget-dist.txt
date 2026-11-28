@@ -13,7 +13,6 @@
 #   etc/tcb-report.py --collection etc/tcb-collections/putget-dist.txt [--check [--update]]
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness\.lean$
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom NewRaftLoggerZap.wp_proof
@@ -21,12 +20,10 @@ axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
-axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom WithRequireLeader.wp_proof
 axiom addrClaim
 axiom apply.memberEnc_id_learner
@@ -140,7 +137,6 @@ axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom streamIcMdIs
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
@@ -191,7 +187,6 @@ opaque lease.leasesNoExpiry
 opaque membership.memBucketsOk
 opaque membership.membersOf
 opaque membership.peerURLsOk
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk
@@ -202,5 +197,7 @@ opaque prometheus.vecLabels
 opaque snap.dirReadOk
 opaque snapDecode
 opaque storage.dbOpensOk
+opaque streamRepModelOf
+opaque streamReqModelOf
 opaque trace.otelSpan
 opaque v3rpc.ctxCauseOkRaw

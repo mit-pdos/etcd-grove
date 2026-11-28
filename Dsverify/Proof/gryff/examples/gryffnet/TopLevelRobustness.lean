@@ -146,7 +146,7 @@ end boot
 /-- **The gryff kit, closed** (see the statement's file); net/rpc's client over HTTP over Perennial's
 proofs of `strings.Cut`/`TrimLeft` (Net's `DialHTTP.wp`, in `Link.lean`'s `wp_Server`). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem σ g
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 bvi rsem σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBTT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 30)
     (2 ^ 63) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb

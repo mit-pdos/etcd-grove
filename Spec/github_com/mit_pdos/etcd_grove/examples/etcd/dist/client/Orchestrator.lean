@@ -59,7 +59,11 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 /-- Of a Go value `v` holding `d`, from workload `j`'s share if `d` is well formed, the machine's thread token
 and its pure facts, `Orchestrator` does not panic. -/
 abbrev Orchestrator.spec : Prop :=
-  ∀ [π : NetProtoGS] [ρ : RemoteGS] (v : deployment.Deployment) (d : Deployment) (j : w64),
+  ∀ [π : NetProtoGS] [ρ : RemoteGS]
+    -- (F7 S13) the auth arm's (`MainReadyAuth.spec`, `RunAuth.spec`) instances, the boot's (`EtcdBootNCAt`)
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+    (v : deployment.Deployment) (d : Deployment) (j : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       ⌜crypto.fips140.GodebugFips140Off ∧ orchMachinePure (GF := GF)⌝ ∗ threadTok ∗ deploymentRepr v d ∗
       (⌜d.WellFormed⌝ -∗ orchShareF (Gg := hG.goose_globalGS) d j) }}

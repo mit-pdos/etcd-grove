@@ -48,6 +48,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Loc) loggableMetadataKeys _ as HloggableMetadataKeys
   wp_apply (_root_.Perennial.google_golang_org.grpc.internal.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
@@ -84,12 +85,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   ihave #Hfi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.internalInit (hG := hG) : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd3
-  try wp_auto
-  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw
-      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  wp_apply (EtcdGrove.grpcInternal.wp_store_fromOutRaw (hG := hG) _ _) $$ [Hfi Hown] as ⟨Hown, #Hfact⟩
   · iframe Hown Hfi
   try wp_auto
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

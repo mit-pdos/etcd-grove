@@ -37,7 +37,7 @@ colliding id prefixes); `TestMemberIDEtcd`: `MemberID` is etcd's id on 3000.
   classes `Hctx`, `Hcec` until ctx-leaf-fix, 2026-11-25: theorems since);
 - what `bootstrap` computes at each member's URLs (`Hbgo : BootGoK peers clients ps ctxs`: the peers `ps`,
   the contexts `ctxs`, the peer-URL directory and each member's id are Go's values, `bootGo.*`, and the
-  cluster has **at most 64 members**, the interim axiom `bootstrap.wp_proof_dist`'s shape): facts of the
+  cluster has **at most `etcd_dist.typed.maxMembers` (1000) members**, the interim axiom `bootstrap.wp_proof_dist`'s shape): facts of the
   configuration, not yet evaluated in Lean. (Until 2026-11-25 the members' named Iris premises `Hprem`, every
   member's `bootstrap` contract at every ghost-state instance; now the interim axiom
   `bootstrap.wp_proof_dist`, from which the member boot derives the contract);
@@ -87,7 +87,7 @@ def putgetK_safe.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     -- the configuration: any members' peer and client addresses
     (peers clients : List GoString)
     -- bootstrap's log at the ids etcd computes (the peers in bootstrap's order, their contexts, the log)
@@ -96,7 +96,7 @@ def putgetK_safe.spec : Prop :=
     -- the server's workload and environment (putget_safe's)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    -- what bootstrap computes at each member's URLs, and at most 64 members (the interim axiom's shape)
+    -- what bootstrap computes at each member's URLs, and at most `etcd_dist.typed.maxMembers` members (the interim axiom's shape)
     (Hbgo : BootGoK peers clients ps ctxs)
     -- the machines' start states: member i's from σs i, the client's from σc
     (σs : Nat → state) (σc : state) (g : GlobalState)

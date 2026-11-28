@@ -21,10 +21,10 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.container.heap.Init
-public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
-public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.unstructured.Init
+public import Proof.k8s_io.apimachinery.pkg.api.errors.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.api.meta.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.unstructured.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1beta1.Init
 public import Proof.k8s_io.apimachinery.pkg.fields.Init
 public import Proof.k8s_io.apimachinery.pkg.labels.Init
@@ -43,7 +43,7 @@ public import Proof.k8s_io.apimachinery.pkg.watch.Init
 public import Proof.k8s_io.client_go.features.Init
 public import Proof.k8s_io.client_go.rest.Init
 public import Proof.k8s_io.client_go.tools.cache.synctrack.Init
-public import Proof.k8s_io.client_go.tools.pager.Init
+public import Proof.k8s_io.client_go.tools.pager.InitLinked
 public import Proof.k8s_io.client_go.util.consistencydetector.Init
 public import Proof.k8s_io.client_go.util.watchlist.Init
 public import Proof.k8s_io.klog.v2.Init

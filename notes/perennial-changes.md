@@ -107,6 +107,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `runtime/debug.SetMaxStack`'s default on 64-bit, over the 8-byte minimum frame), still any `n` below it;
   Go evidence beside `goose/model/runtime/callers_test.go` (a deep recursion's `Callers` with a buffer
   larger than its depth). A trusted-model change: for upamanyus's review.
+### `io.Discard`'s value and `discard.ReadFrom` (2026-11-27, hraft-iocopy)
+
+- **Limitation.** Perennial's `io.isInit` said only that `Discard` holds some fixed `Writer`, and nothing of
+  `blackHolePool`; `discard.ReadFrom` was a name only. So `io.Copy(io.Discard, r)` (copyBuffer's `ReaderFrom`
+  branch) was stuck.
+- **Who needs it.** `io.Copy_Discard.spec` (`Spec/io/Copy.lean`), a callee of hashicorp/raft's
+  `Raft__installSnapshot` (drains the snapshot stream).
+- **Change.** Perennial `148615524` (landed, no review needed: proofs and a translation): `io.toml` translates
+  `discard.ReadFrom` with its body; `io.isInit` gains `"#HDiscardV"` (`Discard` holds `discard{}`) and
+  `"#HblackHolePool"` (`sync.isPool` of 8192-byte buffers, `New` not nil), proved from the translated initializer.
+  Existing users are unaffected (new conjuncts before `"_"`). Needs the pin bump (#9).
+
 ### `io.WriteString` names only (2026-11-24, phase 7 S5)
 
 - **Limitation.** Perennial's `io` translates `WriteString` as a name only (`Perennial/Code/io.toml`), so a
@@ -181,6 +193,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
   `isContext` of a value context over `isContext` or `Background()`; `isParentCtx` widened to a `*valueCtx`
   chain over `Background()`/`TODO()` (`propagateCancel` returns at `Done() == nil`).
+### `encoding/binary`'s `AppendUint32` has no spec (2026-11-23, phase7-s2-core)
+
+Perennial translates `bigEndian` with its bodies but specifies only `Uint32`/`Uint64`/`PutUint32`/
+`PutUint64`. The grpc model's frame writers call `binary.BigEndian.AppendUint32`; proved here from the
+translated body (`Spec/encoding/binary/bigEndian__AppendUint32.lean`, its proof: load the global, a
+four-byte slice literal, `wp_slice_append`). Proposed: the `Append*` methods of both byte orders in
+Perennial (`Perennial/Spec/encoding/binary/`), with the pointer-method lifts of `PtrMethods.lean`.
+
+### `time.Until` has no spec; `strings.LastIndex` has no model (2026-11-23, phase7-s2-core)
+
+The grpc model's `createHeaderFields` calls `time.Until` (the `grpc-timeout` field) and
+`strings.LastIndex` (the audience of per-RPC credentials). Perennial translates `Until` with its body
+but states no spec: stated and proved here as `time.Since`'s (`Spec/time/Until.lean`, its proof the
+same `repeat'` over the same callees). `LastIndex` is names-only (the entry "`strings.LastIndex` and
+`log.Print` have no model" below, net/rpc's): `createHeaderFields`' credentials branch is stuck on it
+until Perennial models it, or the model replaces it by a backwards byte loop as net/rpc's did (a
+trusted-model change, for the user). Proposed: `time.Until.spec` beside `Since`'s in Perennial;
+`LastIndex` as in that entry.
 ### `sort.Slice` is names-only: `mvcc.hashStorage.Store` stays an axiom (2026-11-23, ps2-crc32-merge, claim #18)
 
 - **Limitation.** Perennial proves `sort.Sort` (and `slices.Sort`/`SortFunc`) only for a `Less` that agrees with

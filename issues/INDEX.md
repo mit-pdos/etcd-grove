@@ -4,17 +4,19 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (80)
+## Not reported (86)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
 | [bbolt: `Put` accepts a value of `MaxValueSize` bytes that `Commit` or `Get` then panics on](bbolt-max-value-size-unusable.md) | yes | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#968 pr merged; etcd-io/bbolt#1044 issue closed |
 | [bbolt: a power loss after a process crash and a restart can corrupt the database](bbolt-open-unsynced-meta-kill-then-power-loss.md) | yes | etcd-io/bbolt#778 issue open; etcd-io/bbolt#701 issue closed; etcd-io/bbolt#562 issue closed |
 | [cache: a stale progress notification makes a watch "from now" fail with ErrCompacted](cache-stale-progress-compacts-newest-watch.md) | yes | etcd-io/etcd#15237 pr merged; etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20614 pr merged |
+| [auth: in a cluster mixing etcd v3.5.7 and v3.5.9, the same role grants leave different permissions on the members, and a put is applied on one member and refused on the other](etcd-auth-perm-order-go-version.md) | yes | etcd-io/etcd#21845 pr open |
 | [server: a member with auth enabled panics on a permission check while it restores a snapshot from the leader](etcd-auth-snapshot-closed-backend-panic.md) | yes | etcd-io/etcd#17223 issue closed; etcd-io/etcd#21873 pr closed; etcd-io/etcd#13883 issue closed; etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#14256 issue closed; etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [auth: adding a user or role with a name longer than 32768 bytes makes every member exit](etcd-auth-useradd-long-name-fatal.md) | yes | etcd-io/etcd#10907 pr merged |
 | [etcdserver: a restarted member panics on a leader transfer to it while it applies the entries replayed from its WAL](etcd-compact-past-raft-applied.md) | yes | etcd-io/etcd#9079 issue closed; etcd-io/etcd#12134 pr merged; etcd-io/etcd#7470 issue closed; etcd-io/etcd#18825 pr merged; etcd-io/etcd#17098 issue closed |
 | [etcdserver: two membership changes while the leader's apply loop lags can lose an acknowledged write](etcd-leader-advance-before-applyconfchange.md) | yes | etcd-io/raft#80 issue open; etcd-io/raft#354 issue open |
+| [etcdserver: while a member restores a snapshot, `LeaseLeases` and `LeaseTimeToLive` with keys skip the lease-key permission check](etcd-lease-auth-snapshot-restore-keyless.md) | yes | etcd-io/etcd#15656 pr merged |
 | [etcdserver: a leader that steps down while saving a Ready can send a follower a snapshot of a term above the follower's term](etcd-merged-snapshot-stale-term.md) | yes | etcd-io/etcd#7470 issue closed; etcd-io/etcd#7513 pr merged; etcd-io/raft#47 pr open; etcd-io/raft#108 issue open |
 | [etcdserver: a member that catches up by a snapshot rejects writes with "database space exceeded" while its db is under its quota](etcd-quota-stale-backend-after-snapshot.md) | yes | etcd-io/etcd#20553 pr merged |
 | [rafthttp: a raft message the member rejects makes the peer handler panic and answer 500 instead of 403](etcd-rafthttp-pipeline-process-error-panic.md) | yes | etcd-io/etcd#10569 issue closed; etcd-io/etcd#17078 pr merged; etcd-io/etcd#3579 pr merged |
@@ -25,6 +27,10 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [wal: Sync races with ReleaseLockTo on a follower that receives a snapshot while it takes its own](etcd-wal-sync-releaselockto-race.md) | yes |  |
 | [watch: a progress notification requested before a watch is created can reach that watch before its events](etcd-watch-progress-before-created.md) | yes | etcd-io/etcd#15220 issue closed; etcd-io/etcd#15237 pr merged; etcd-io/etcd#20229 pr merged |
 | [clientv3: after a reconnect, a watch from a future revision can deliver events below its start revision](etcd-watch-resume-below-start-revision.md) | yes | etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20263 pr closed; etcd-io/etcd#15248 pr merged |
+| [raft: a candidate counts its votes against the quorum of the configuration it had before its pre-vote, and two leaders win one term](hraft-candidate-stale-quorum.md) | yes | hashicorp/raft#727 issue open |
+| [raft: `InstallSnapshot` that keeps the log forgets a newer configuration entry in it, and two leaders commit different entries at one index](hraft-installsnapshot-drops-newer-configuration.md) | yes | hashicorp/raft#721 issue open; hashicorp/raft#728 issue open |
+| [raft: `VerifyLeader` counts the leader's own vote after it removed or demoted itself, so its consistent read is stale](hraft-verifyleader-removed-leader-self-vote.md) | yes | hashicorp/raft#725 issue open; hashicorp/raft#740 pr open |
+| [raft: a read after `Barrier` and `VerifyLeader` (Consul's consistent read) can miss a write another server already returned](hraft-verifyleader-single-voter-fsm-lag.md) | yes | hashicorp/raft#603 issue closed |
 | [apiserver etcd3: GuaranteedUpdate from a cached object that changes nothing ignores a failed resource version precondition](k8s-etcd3-cached-noop-skips-preconditions.md) | yes | kubernetes/kubernetes#82303 pr closed; kubernetes/kubernetes#89828 pr closed |
 | [clientv3/leasing: a range delete through the leasing KV ignores `WithPrevKV`](leasing-delete-range-drops-prevkv.md) | yes | etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a transaction answered from the cache takes the wrong branch when it compares a missing key or a lease](leasing-evalcmp-missing-key.md) | yes | etcd-io/etcd#20704 issue closed |
@@ -116,6 +122,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [server: a request arriving as the member's own removal is applied can crash the member](etcd-unary-interceptor-learner-removed.md) | yes | etcd-io/etcd#21966 issue open; etcd-io/etcd#22188 pr open; etcd-io/etcd#22205 pr open; etcd-io/etcd#21967 pr closed; etcd-io/etcd#18606 pr merged |
 | [clientv3: a progress notification right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-progress-closed-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open; etcd-io/etcd#21981 pr closed |
 | [clientv3: a reconnect right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-resume-closing-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open |
+| [raft: `VerifyLeader` counts a non-voter's heartbeat response as a vote, so a deposed leader's consistent read is stale](hraft-verifyleader-nonvoter-vote.md) | yes | hashicorp/raft#725 issue open; hashicorp/raft#740 pr open |
 | [clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted](leasing-evictrange-key.md) | yes | etcd-io/etcd#21869 pr closed; etcd-io/etcd#21589 pr closed; etcd-io/etcd#20704 issue closed |
 | [raft: TLA+ trace validation rejects a correct run with a stale leader (`LeaderCompletenessInv` is false)](raft-tla-leader-completeness-stale-leader.md) | yes | etcd-io/raft#549 issue open |
 | [raft: TLA+ trace validation rejects a correct run with small `MaxSizePerMsg` (`MoreUpToDateCorrectInv` is false)](raft-tla-more-up-to-date-cut-batches.md) | yes | etcd-io/raft#515 issue open; etcd-io/raft#549 issue open |

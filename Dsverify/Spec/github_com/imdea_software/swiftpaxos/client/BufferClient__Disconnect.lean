@@ -23,7 +23,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] -- change log C4 (`failed`)
+variable [net.Assumptions] [net.rpc.Assumptions] -- change log C4 (`failed`)
 variable [client.Assumptions]
 
 /-- Closes what a failed `Connect` opened; the client is dropped. -/

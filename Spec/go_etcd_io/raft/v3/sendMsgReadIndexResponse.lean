@@ -137,6 +137,12 @@ theorem readRespondAll_take_succ (id : w64) (s : NState) (qs : List ReadReq) (n 
   rw [List.take_add_one, H]
   simp [List.foldl_append]
 
+/-- (antithesis parity B1, Q1) **A heartbeat's shape** as `bcastHeartbeat` sends it (its post's
+facts but the context and `HeartbeatOk`): no index, log term or entries, to a peer of the progress
+map. -/
+def HbShape (s : NState) (m : Msg) : Prop :=
+  m.index = W64 0 ∧ m.logterm = W64 0 ∧ m.entries = [] ∧ m.dst ∈ domSet s.progress
+
 /-- What `sendMsgReadIndexResponse` does with the request `m` (entries `ents`) at the leader in
 state `s` at the configuration `c` (2026-10-14): at a configuration whose only voter is the
 leader itself, answered at once at the commit index; otherwise queued, and heartbeats with the
@@ -147,7 +153,7 @@ def SendRIResult (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   (¬ CfgSingle c id ∧ ∃ (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs (arriveState id s m ents) ms with prvals := pvs } ∧
      (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
-        m'.ctx = hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents))) ∧
+        m'.ctx = hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)) ∧ HbShape s m') ∧
      prvalsMatch pvs = prvalsMatch s.prvals)
 
 end results

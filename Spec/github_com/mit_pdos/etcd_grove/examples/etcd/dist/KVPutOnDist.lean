@@ -38,9 +38,11 @@ by the principal of `cfg`; a success tells the member and its grant, `writeCheck
 nothing). A lease `0`, or the revocable lease mode, as `etcdPutSpecOn`'s filter: this is also F2's
 `KV_PutLease_dist` row (`Put` with `WithLease(id)`, auth on), at `leaseID ≠ 0`; the lease's attach is
 `kvOpStep`'s (the update's `Q` sees it), its absence `ErrLeaseNotFound` (a refusal, no step).
+No revision lower bound: the in-process `etcdPutSpecMW` gives one only with auth off, and auth-on revisions
+follow `kvModelOn`, not `kvRevLb`'s `kvModel` (weakened 2026-11-27, `notes/axiom-review/onrevlb-weakening.md`).
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
-`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVPutOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`). -/
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVPutOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`) but for the 2026-11-27 weakening above. -/
 abbrev KV_PutOn_dist.spec : Prop :=
   ∀ [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames) (L₀ : List EntryModel)
@@ -59,7 +61,6 @@ abbrev KV_PutOn_dist.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ kvRevFits (σ.rev + 1) ∧ kvLogOk σ⌝ ∗
-        kvRevLb Γ.kv m.hdr.revision ∗
         writeCheckedD eps Γ γR (principalOf cfg) (irrPut (putWireOf (opPutModel key val opts))) L₀) ∨
       ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 

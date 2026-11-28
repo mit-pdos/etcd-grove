@@ -71,7 +71,9 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧ γk.ids.gen = gen ∧
-          γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
+          γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps ∧
+          -- (F7 S13) the KV names' raft log is raft's (`kvInvOn` does not say it)
+          γk.rlog = γ.log⌝ ∗
         -- (auth-lease S4, D-k) in raft's no-snapshot mode exactly when `ns` (`cluster_alloc_ns`'s)
         ⌜clusterNoSnap γ.cl ↔ ns = true⌝ ∗
         srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
@@ -229,7 +231,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   iframe Hsrl Hkv Hetcd Hhv Hcl H0 Hpm Hrc
   isplitr
   · ipureintro
-    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · ipureintro; rw [hcl]; exact Hns
   isplitl [Hps Hfs Hsd Hboots Hslots]
@@ -368,7 +370,9 @@ theorem srvClusterBootOn_allocG (ps : List w64) (ctxs : List (List w8)) (boot : 
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧ γk.ids.gen = gen ∧
-          γk.cmp = false ∧ γk.cret = 0 ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
+          γk.cmp = false ∧ γk.cret = 0 ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps ∧
+          -- (F7 S13) the KV names' raft log is raft's (`kvInvOn` does not say it)
+          γk.rlog = γ.log⌝ ∗
         -- (auth-lease S4, D-k) in raft's no-snapshot mode exactly when `ns` (`cluster_alloc_ns`'s;
         -- until then `¬ clusterNoSnap γ.cl`, the `ns = false` instance)
         ⌜clusterNoSnap γ.cl ↔ ns = true⌝ ∗
@@ -522,7 +526,7 @@ theorem srvClusterBootOn_allocG (ps : List w64) (ctxs : List (List w8)) (boot : 
   iframe Hsrl Hkv Hetcd Hhv Hcl H0 Hpm Hrc
   isplitr
   · ipureintro
-    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · ipureintro; rw [hcl]; exact Hns
   isplitl [Hps Hfs Hsd Hboots Hslots]

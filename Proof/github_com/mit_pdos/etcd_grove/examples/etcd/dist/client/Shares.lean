@@ -14,17 +14,19 @@ the boot's), under the net extension's registry `π` and the remote library's na
   | 2 `cache` | `cacheShare eps ns` (F6; the same as watch's) |
   | 3 `compact` | `compactShare eps` (F5) |
   | 4 `putget` | `putgetShare eps` (N9a) |
-  | 5 `auth`, 6 `authLease` | `False` (D2: their classes are boot hypotheses, `AuthBootNC`/`AuthLeaseBootNC`) |
+  | 5 `auth` | `authShare eps ns` (`client/AuthShares.lean`; F7 S14) |
+  | 6 `authLease` | `authLeaseShare eps` (`client/AuthShares.lean`; F7 fork, K-6) |
   | 7 `leaseRead` | `∃ Γ, [∗list] a ∈ eps, leaseMember Γ a` |
   | 8 `leaseCatchup` | the same with `Γ.kv.lm = .mono` and `Γ.ls` injective |
   | 9 `leaseExpiry` | the same at `.revocable` |
   | 10 `durable` | `durableShare eps` (N9a) |
   | other | `True` |
 
-- `wlNodeShare w c addr eps'`: client machine `c` of workload `w`, at `addr`, `eps'` the members' client addresses
-  rotated by `c`: `kv` `kvNodePre c addr eps'` (M1); `watch`, `cache` `writerNodePre addr eps'` (the writer
-  machine's share: `nodeWatchPre` without its machine-local and pure parts, `nodeWatchPre_of`); `auth` `False`
-  (D2); other kinds `True` (they have no client machine: `NodeMain` returns).
+- `wlNodeShare w c addr eps`: client machine `c` of workload `w`, at `addr`, `eps` the members' client addresses
+  (not rotated; F7 S13), `eps'` those rotated by `c`: `kv` `kvNodePre c addr eps'` (M1); `watch`, `cache`
+  `writerNodePre addr eps'` (the writer machine's share: `nodeWatchPre` without its machine-local and pure parts,
+  `nodeWatchPre_of`); `auth` `authNodePre addr eps` (`client/AuthShares.lean`, at the endpoints unrotated, as
+  `NodeMain` hands them to `principalOp`; F7 S13, linked by `wp_NodeMainAuth`); other kinds `True` (they have no client machine: `NodeMain` returns).
 - `orchShareF d j`, `nodeShareF d n`: those at the arguments the dispatch computes from the deployment (as M1's
   `orchShare`/`nodeShare`, `client/KvDefs.lean`), with their `_eq` laws.
 
@@ -42,6 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Cac
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CompactWorkDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KVWorkDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.LeaseDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthShares
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Orch
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Node
@@ -148,14 +151,19 @@ theorem members_plain {d : Deployment} (Hd : d.WellFormed) :
   simp only [Deployment.addrs]
   exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm', by simp⟩)
 
-/-- The rotated client addresses of a well-formed deployment are plain endpoints. -/
-theorem rotateL_plain {d : Deployment} (Hd : d.WellFormed) (c : Nat) :
-    plainEndpoints (rotateL (d.members.map Member.client) c) := by
-  obtain ⟨hne, hpl⟩ := members_plain Hd
+/-- A rotation of plain endpoints is plain. -/
+theorem plainEndpoints_rotateL {eps : List GoString} (h : plainEndpoints eps) (c : Nat) :
+    plainEndpoints (rotateL eps c) := by
+  obtain ⟨hne, hpl⟩ := h
   refine ⟨fun h => ?_, fun ep hep => hpl ep (mem_rotateL hep)⟩
   have := congrArg List.length h
   rw [rotateL_length] at this
   exact hne (List.eq_nil_of_length_eq_zero this)
+
+/-- The rotated client addresses of a well-formed deployment are plain endpoints. -/
+theorem rotateL_plain {d : Deployment} (Hd : d.WellFormed) (c : Nat) :
+    plainEndpoints (rotateL (d.members.map Member.client) c) :=
+  plainEndpoints_rotateL (members_plain Hd) c
 
 end pure
 
@@ -164,7 +172,7 @@ end pure
 section shares
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt] [GoGlobalContext]
 variable [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
-variable [go_etcd_io.raft.v3.Assumptions]
+variable [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS] [ρ : RemoteGS]
 
@@ -187,8 +195,8 @@ def wlShare (w : Workload) (eps ns : List GoString) : IProp GF :=
   else if w.kind = W64 2 then cacheShare (Gg := Gg) eps ns
   else if w.kind = W64 3 then compactShare (Gg := Gg) eps
   else if w.kind = W64 4 then putgetShare (Gg := Gg) eps
-  else if w.kind = W64 5 then iprop(False)
-  else if w.kind = W64 6 then iprop(False)
+  else if w.kind = W64 5 then authShare (Gg := Gg) eps ns
+  else if w.kind = W64 6 then authLeaseShare (Gg := Gg) eps
   else if w.kind = W64 7 then leaseShare (Gg := Gg) (fun _ => True) eps
   else if w.kind = W64 8 then
     leaseShare (Gg := Gg) (fun Γ => Γ.kv.lm = .mono ∧ ∀ a b : w64, Γ.ls a = Γ.ls b → a = b) eps
@@ -197,11 +205,14 @@ def wlShare (w : Workload) (eps ns : List GoString) : IProp GF :=
   else if w.kind = W64 10 then durableShare (Gg := Gg) eps
   else iprop(True)
 
-/-- **Client machine `c`'s share in workload `w`** (see the file header). -/
+/-- **Client machine `c`'s share in workload `w`** (see the file header), at the members' client addresses `eps`
+**not rotated** (F7 S13, W-6's rotation gap): the kv and writer arms at `eps` rotated by `c` (what `NodeMain` hands
+their machines); the auth arm `authNodePre addr eps` at `eps` itself (what `NodeMain` hands `principalOp`;
+`NodeMainAuth`, linked in `DispatchLinked`). -/
 def wlNodeShare (w : Workload) (c : w64) (addr : GoString) (eps : List GoString) : IProp GF :=
-  if w.kind = W64 0 then kvNodePre (Gg := Gg) c addr eps
-  else if w.kind = W64 1 ∨ w.kind = W64 2 then writerNodePre (Gg := Gg) addr eps
-  else if w.kind = W64 5 then iprop(False)
+  if w.kind = W64 0 then kvNodePre (Gg := Gg) c addr (rotateL eps (sint.nat c))
+  else if w.kind = W64 1 ∨ w.kind = W64 2 then writerNodePre (Gg := Gg) addr (rotateL eps (sint.nat c))
+  else if w.kind = W64 5 then authNodePre (Gg := Gg) addr eps
   else iprop(True)
 
 /-! ### The arms (each a law, so that no caller unfolds the chain) -/
@@ -225,10 +236,10 @@ theorem wlShare_compact (h : w.kind = W64 3) : wlShare (Gg := Gg) w eps ns = com
 theorem wlShare_putget (h : w.kind = W64 4) : wlShare (Gg := Gg) w eps ns = putgetShare (Gg := Gg) eps := by
   unfold wlShare; rw [if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_pos h]
 
-theorem wlShare_auth (h : w.kind = W64 5) : wlShare (Gg := Gg) w eps ns = iprop(False) := by
+theorem wlShare_auth (h : w.kind = W64 5) : wlShare (Gg := Gg) w eps ns = authShare (Gg := Gg) eps ns := by
   unfold wlShare; rw [if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_pos h]
 
-theorem wlShare_authLease (h : w.kind = W64 6) : wlShare (Gg := Gg) w eps ns = iprop(False) := by
+theorem wlShare_authLease (h : w.kind = W64 6) : wlShare (Gg := Gg) w eps ns = authLeaseShare (Gg := Gg) eps := by
   unfold wlShare; rw [if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_pos h]
 
 theorem wlShare_leaseRead (h : w.kind = W64 7) :
@@ -255,15 +266,16 @@ theorem wlShare_other (h : ¬ kindKnown w.kind) : wlShare (Gg := Gg) w eps ns = 
 variable {c : w64} {addr : GoString}
 
 theorem wlNodeShare_kv (h : w.kind = W64 0) :
-    wlNodeShare (Gg := Gg) w c addr eps = kvNodePre (Gg := Gg) c addr eps := by
+    wlNodeShare (Gg := Gg) w c addr eps = kvNodePre (Gg := Gg) c addr (rotateL eps (sint.nat c)) := by
   unfold wlNodeShare; rw [if_pos h]
 
 theorem wlNodeShare_writer (h : w.kind = W64 1 ∨ w.kind = W64 2) :
-    wlNodeShare (Gg := Gg) w c addr eps = writerNodePre (Gg := Gg) addr eps := by
+    wlNodeShare (Gg := Gg) w c addr eps = writerNodePre (Gg := Gg) addr (rotateL eps (sint.nat c)) := by
   unfold wlNodeShare
   rw [if_neg (by rcases h with h | h <;> rw [h] <;> decide), if_pos h]
 
-theorem wlNodeShare_auth (h : w.kind = W64 5) : wlNodeShare (Gg := Gg) w c addr eps = iprop(False) := by
+theorem wlNodeShare_auth (h : w.kind = W64 5) :
+    wlNodeShare (Gg := Gg) w c addr eps = authNodePre (Gg := Gg) addr eps := by
   unfold wlNodeShare
   rw [if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_pos h]
 
@@ -283,12 +295,12 @@ def orchShareF (d : Deployment) (j : w64) : IProp GF :=
   else iprop(True)
 
 /-- **The `n`-th client machine's share**: `wlNodeShare` at its workload, its index `c` in it, its address,
-and the members' client addresses rotated by `c`, when the deployment has an `n`-th client machine (otherwise
-the program returns at once). -/
+and the members' client addresses (`wlNodeShare` rotates them by `c` where its arm needs it), when the deployment
+has an `n`-th client machine (otherwise the program returns at once). -/
 def nodeShareF (d : Deployment) (n : w64) : IProp GF :=
   if 0 ≤ sint.Z n then
     match d.nodeList[sint.nat n]? with
-    | some (w, c, a) => wlNodeShare (Gg := Gg) w (W64 c) a (rotateL (d.members.map Member.client) c)
+    | some (w, c, a) => wlNodeShare (Gg := Gg) w (W64 c) a (d.members.map Member.client)
     | none => iprop(True)
   else iprop(True)
 
@@ -301,7 +313,7 @@ theorem orchShareF_eq (d : Deployment) (j : w64) (w : Workload) (ns : List GoStr
 /-- **Law**: the `n`-th client machine's share, when the deployment has an `n`-th client machine. -/
 theorem nodeShareF_eq (d : Deployment) (n : w64) (w : Workload) (c : Nat) (a : GoString) (h0 : 0 ≤ sint.Z n)
     (hn : d.nodeList[sint.nat n]? = some (w, c, a)) :
-    nodeShareF (Gg := Gg) d n = wlNodeShare (Gg := Gg) w (W64 c) a (rotateL (d.members.map Member.client) c) := by
+    nodeShareF (Gg := Gg) d n = wlNodeShare (Gg := Gg) w (W64 c) a (d.members.map Member.client) := by
   unfold nodeShareF; rw [if_pos h0, hn]
 
 end shares

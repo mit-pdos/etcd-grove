@@ -8,6 +8,7 @@ module
 
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.Init
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.strconv.Link
 public import Proof.google_golang_org.grpc.InitLinked
 public import Proof.runtime.PkgInitExt
 
@@ -47,15 +48,34 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.google_golang_org.grpc.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) Health_ServiceDesc _ as HHealth_ServiceDesc
+  wp_apply (_root_.Perennial.google_golang_org.grpc.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
-      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
+      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of Health_ServiceDesc))
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pm ⟨Sm, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %ps ⟨Ss, -⟩; try wp_auto
   -- the translated init.«0»
   wp_func_call
   wp_call
   try wp_auto
+  try wp_auto
+  ipersist Sm
+  ipersist Ss
+  ipersist HHealth_ServiceDesc
+  iStructNamed HHealth_ServiceDesc
   iframe Hown
   is_pkg_init_finish
+  try imodintro
+  unfold google_golang_org.grpc.health.grpc_health_v1.healthDescs go_etcd_io.etcd.cache.v3.pbDescIs
+  iframe #
+  repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))
+  try (ipureintro; exact ⟨rfl, rfl⟩)
+  try exact ⟨rfl, rfl⟩
+  all_goals (simp [sint.nat, BitVec.toInt])
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -71,7 +71,7 @@ def boltLogger (l : GoInterface) : IProp GF :=
 
 /-- The backend's logger contract is bbolt's, at the instances. -/
 theorem boltLogger_eq [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [FsNoErrAll] (l : GoInterface) :
+ [FsNoErrAll] (l : GoInterface) :
     boltLogger (GF := GF) l = bbolt.boltLogger l := by
   unfold boltLogger; rw [theFs_eq]
 

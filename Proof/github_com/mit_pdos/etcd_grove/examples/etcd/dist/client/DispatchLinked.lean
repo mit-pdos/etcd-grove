@@ -9,9 +9,12 @@ kind, their callees' proofs linked:
   `RunKV`, `kvremote.wp_Orch`), watch `wp_RunWatch` (N10a, `WatchLinked`), cache `wp_RunCache` (F6, `CacheLinked`),
   compact `wp_RunCompact` (F5, `CompactLinked`), putget and durable `wp_RunPutGet`/`wp_RunDurable` (N9a,
   `KVWorkLinked`), the lease workloads `wp_RunLeaseRead`/`wp_RunLeaseCatchup`/`wp_RunLeaseExpiry` (F2/F7,
-  `Results`). `auth` and `authLease` need no callee: their shares are `False` (D2).
+  `Results`), auth `wp_MainReadyAuth` (F7 S14, `RunAuthLinked`: `RunAuth` over the authd interim contracts and the
+  `Auth_*` admin axioms), authLease `wp_RunAuthLease` (F7 fork, `RunAuthLeaseLinked`: `RunAuthLease` over the
+  authd interim contracts, the `Lease_*On_dist` ones among them).
 - `wp_NodeDeploymentFull : NodeDeployment.spec`: `NodeDeployment`, `NodeMain` (F8's proofs) with the kv arm M1's
-  (`NodeMain.wp_proofKv`, `kvremote.wp_Node`) and the writer arm `wp_NodeMainWatch` (N10a, `WatchLinked`).
+  (`NodeMain.wp_proofKv`, `kvremote.wp_Node`), the writer arm `wp_NodeMainWatch` (N10a, `WatchLinked`) and the auth
+  arm `wp_NodeMainAuth` (F7 S13, `PrincipalsLinked`: the principal machines, over the authd interim contracts).
 
 No hypothesis, no `sorry`; the axioms are the workloads' interim contracts (`#print axioms` below).
 -/
@@ -30,6 +33,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Cac
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CompactLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KVWorkLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalsLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunAuthLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunAuthLeaseLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Link
 
 @[expose] public section
@@ -61,7 +67,6 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [rem_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [NaInvG GF]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions] [_root_.Perennial.sort.Assumptions]
   [_root_.Perennial.crypto.sha1.Assumptions] [encoding.binary.Assumptions]
@@ -77,7 +82,7 @@ theorem wp_OrchestratorFull : Orchestrator.spec (GF := GF) (hG := hG) :=
             (RunKV.wp_proof _ (fun nodes ns ops =>
               EtcdGrove.kvremote.wp_Orch (ρ := ρ) nodes ns ops (W64 120000000000))))
         wp_RunWatch wp_RunCache wp_RunCompact wp_RunPutGet wp_RunDurable
-        wp_RunLeaseRead wp_RunLeaseCatchup wp_RunLeaseExpiry))
+        wp_RunLeaseRead wp_RunLeaseCatchup wp_RunLeaseExpiry wp_MainReadyAuth wp_RunAuthLease))
 
 /-- **The `n`-th client machine, of any workload** (`NodeDeployment.spec`; see the file header). -/
 theorem wp_NodeDeploymentFull [ThreadBoundLe GF (2 ^ 30)] : NodeDeployment.spec (GF := GF) (hG := hG) :=
@@ -86,7 +91,7 @@ theorem wp_NodeDeploymentFull [ThreadBoundLe GF (2 ^ 30)] : NodeDeployment.spec 
       (by
         intro π ρ
         exact NodeMain.wp_proofKv _ wp_NodeCount Rotate.wp_proof (EtcdGrove.kvremote.wp_Node (ρ := ρ)))
-      wp_NodeMainWatch)
+      wp_NodeMainWatch wp_NodeMainAuth)
 
 end links
 

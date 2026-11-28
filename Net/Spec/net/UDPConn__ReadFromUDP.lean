@@ -1,6 +1,7 @@
 /-
 `(*UDPConn).ReadFromUDP(b)` on this node's socket `s` bound to `a` (`udpConnAt`), through
-`UDPConn.ReadFromUDP.impl` (`Net/TrustedCode/net.lean`): the UDP extension's `Recv` of `len(b)`, by
+Go's `ReadFromUDP`/`readFromUDP` and the model's `UDPConn.readFrom` (`models/net/model.go`): the
+UDP extension's `Recv` of `len(b)`, by
 a logically atomic update over `a`'s datagrams (`udpSent`, left as they are), opened at the step
 that decides (`RecvOut`: a failure, `none`, or one of the datagrams sent to `a`, `some d`, U4, U5).
 `Q od` is the update's result. For `some d`: `(n, addr, nil)`, `n = min(len(b), len(d))`, the first
@@ -28,7 +29,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt udpExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.UdpFieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 /-- See the file header. -/
 abbrev UDPConn.ReadFromUDP.spec : Prop :=

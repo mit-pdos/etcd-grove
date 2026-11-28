@@ -968,3 +968,69 @@ func TestManualResolver(t *testing.T) {
 		t.Fatal(cc.Target(), cc.CanonicalTarget())
 	}
 }
+
+// audCreds is per-RPC credentials that record the audience (uri) grpc passes and add one key.
+type audCreds struct {
+	mu   sync.Mutex
+	auds []string
+}
+
+func (a *audCreds) GetRequestMetadata(_ context.Context, uri ...string) (map[string]string, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.auds = append(a.auds, strings.Join(uri, ","))
+	return map[string]string{"Tok": "t1"}, nil
+}
+
+func (a *audCreds) RequireTransportSecurity() bool { return false }
+
+// TestPerRPCCredsAudience: per-RPC credentials get the audience grpc-go's createHeaderFields makes
+// (the service's URL: the method up to its last '/', the authority without a ":443" suffix; the
+// model's backwards byte loop in place of strings.LastIndex), and their keys reach the handler
+// lower-cased.
+func TestPerRPCCredsAudience(t *testing.T) {
+	srv, addr := serve(t)
+	for _, tc := range []struct{ authority, want string }{
+		{"auth.example:443", "https://auth.example/difftest.Echo"},
+		{"auth.example:8443", "https://auth.example:8443/difftest.Echo"},
+	} {
+		creds := &audCreds{}
+		_, c := dialOpts(t, addr, grpc.WithPerRPCCredentials(creds), grpc.WithAuthority(tc.authority))
+		id := fresh()
+		r, err := c.Unary(ctx5(t), svc.M(id+" echo a"))
+		if err != nil || r.GetValue() != "a" {
+			t.Fatal(r, err)
+		}
+		creds.mu.Lock()
+		auds := append([]string(nil), creds.auds...)
+		creds.mu.Unlock()
+		if len(auds) != 1 || auds[0] != tc.want {
+			t.Fatalf("audiences %q, want [%q]", auds, tc.want)
+		}
+		if vs := srv.Seen(id).MD["tok"]; len(vs) != 1 || vs[0] != "t1" {
+			t.Fatalf("incoming md %s", mdString(srv.Seen(id).MD))
+		}
+	}
+}
+
+// TestServingStatusString: the health status's String (the model's switch in place of protoimpl's
+// EnumStringOf, models/grpc/health/grpc_health_v1/health.pb.go): the four names, else the number in
+// decimal, by value and through a pointer.
+func TestServingStatusString(t *testing.T) {
+	for _, tc := range []struct {
+		v    int32
+		want string
+	}{
+		{0, "UNKNOWN"}, {1, "SERVING"}, {2, "NOT_SERVING"}, {3, "SERVICE_UNKNOWN"}, {4, "4"},
+		{-1, "-1"}, {1 << 30, "1073741824"}, {2147483647, "2147483647"}, {-2147483648, "-2147483648"},
+	} {
+		x := healthpb.HealthCheckResponse_ServingStatus(tc.v)
+		r := &healthpb.HealthCheckResponse{Status: x}
+		if got := x.String(); got != tc.want {
+			t.Errorf("ServingStatus(%d).String() = %q, want %q", tc.v, got, tc.want)
+		}
+		if got := (&r.Status).String(); got != tc.want {
+			t.Errorf("(&ServingStatus(%d)).String() = %q, want %q", tc.v, got, tc.want)
+		}
+	}
+}

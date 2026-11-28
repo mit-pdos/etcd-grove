@@ -206,7 +206,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- **`os.Remove(d/wal.tmp/seg)`**, `d` the directory `j`, with the whole claim on `wal.tmp` and
 `tmpRes`: what the next `os.Remove(d/wal.tmp)` needs (`subRes`). -/

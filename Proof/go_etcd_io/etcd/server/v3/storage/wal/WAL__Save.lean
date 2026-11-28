@@ -93,7 +93,7 @@ theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) 
   iframe HQ Hlb Hs
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [FsStepSat (NoMapLockErr Sio)]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)

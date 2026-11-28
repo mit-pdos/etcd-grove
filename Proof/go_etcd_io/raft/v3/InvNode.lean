@@ -1238,7 +1238,7 @@ theorem sentMsg_mode (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
   iunfold ApiImpl.sentMsg at Hs
   icases Hs with ⟨-, Hr, -⟩
   iunfold isRaftMsg at Hr
-  icases Hr with ⟨-, -, -, -, -, -, %H⟩
+  icases Hr with ⟨-, -, -, -, -, -, %H, -⟩
   ipureintro; exact H
 
 end api

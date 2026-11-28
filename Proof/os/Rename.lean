@@ -12,6 +12,7 @@ public import Spec.os.Rename
 public import Spec.os.RenameS
 public import GooseLang.Ext.Fs.NoErrSpecsRename
 public import GooseLang.Ext.Fs.TreeSharedRoots
+public import Proof.os.ForLoeb
 
 @[expose] public section
 
@@ -65,27 +66,33 @@ private theorem rename_fileNE :
   have hk : callKey R (child d' bt) = callKey R d := by
     rw [callKey_of_sameRoot hRo hsr, hkd]
   ihave Hperm := osCallPerm_congr qc hk.symm $$ Hperm
+  try wp_auto
+  wp_stub os.fsLstatDir.impl
   wp_apply wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
+  -- PORT: which stub? (LstatDirS)
   wp_apply wp_osLstatDirS_mem R d' bt j' N' dq' (DFrac.own 1) h' t s0 qc hbt hN'
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp' Hn2 Hk as %isDir %e %hd Hperm Hp' Hn2
   ihave Hperm := osCallPerm_congr qc ((hkd' bt).symm.trans hk) $$ Hperm
   have hd1 : isDir ≠ 1 := fun h1 => by obtain ⟨⟨J, hJ⟩, -⟩ := hd h1; exact htgt J hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
-  wp_auto
+  wp_for_bind
+  wp_for_step
   icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_stub os.fsRename.impl
   wp_apply +noauto wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t2 %s1 %hs1 Hk Hls
   iclear Hls
-  wp_auto
+  try wp_auto
   wp_bind (ExternalOp _ _ _)
   iapply wp_osRenameFileSNE Sio R d bs d' bt j j' i N N' dq dq' h h' t2 s1 qc hbs hbt hN hN'
     hkey hsrc htgt (Nat.le_trans (Nat.le_max_left _ _) hs1)
     (Nat.le_trans (Nat.le_max_right _ _) hs1) hsr (.inl (hS _)) hfit CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
   iintro Hperm Hp Hp' ⟨%x, Hlg, Hn1, Hn2⟩
-  wp_auto
+  try wp_auto
+  wp_for_post
   iapply HΦ
   iframe Hp Hp' Hperm
   iexists _, _
@@ -122,7 +129,7 @@ theorem osNames_keys_ne [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (j j' : In
 theorem os.Rename.wp_proof [os.Assumptions] :
     os.Rename.spec (GF := GF) (hG := hG) := by
   intro src dst D γ hpar
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.fileAt, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H

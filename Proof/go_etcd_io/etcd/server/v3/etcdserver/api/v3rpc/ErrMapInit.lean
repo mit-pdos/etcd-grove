@@ -95,6 +95,7 @@ description `mk` neither read error's, mapped to an error grpc's `status` accept
 description `mv` that is a read error's only for that read error's own key. -/
 theorem v3rpc.wp_errMapInsert [bc_sem : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions]
     [ctx_sem : _root_.Perennial.context.Assumptions]
+    [impl_sem : google_golang_org.protobuf.internal.impl.Assumptions]
     (mref : Loc) (M : GMap GoInterface GoInterface)
     (kf kc : GoInterface) (n : Nat) (X : GoString) (k : GoInterface) (e : GoInterfaceOk)
     (mk mv : GoString)

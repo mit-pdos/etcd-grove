@@ -28,7 +28,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : vsrwire.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
+variable [net.Assumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
 variable [encoding.json.Assumptions] [models_lab.jsoncodec.JsonCodec GF]
 
 /-- `decodeFrame` is a frame decoder, once `encoding/json` is initialized (all it calls; so

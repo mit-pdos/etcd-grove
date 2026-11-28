@@ -23,6 +23,7 @@ public import Net.Proof.net.http.ServeLoopDefs
 public import Net.Proof.net.http.ServerConnLemmas
 public import Net.Proof.net.http.ServeLemmas
 public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 public import Net.Spec.net.Listener__Close
 public import Perennial.Proof.log.Base
 public import Perennial.Proof.sync.WaitGroupJoin
@@ -211,18 +212,20 @@ theorem connNew_alloc (c s t : Loc) :
   rw [← hz]
   iexact Hcs
 
-/-- An `*OpError` is an argument `fmt` formats through its `Error()` (`wp_OpError_Error`). -/
+/-- An `*OpError` of net's own fields (`net.opErrOk`) is an argument `fmt` formats through its
+`Error()` once `syscall` is initialized (`net.wp_OpError_Error`, Go's code: it calls `Err.Error()`). -/
 theorem opError_argOk (pe : Loc) (v : net.OpError) :
-    (pe ↦□ v : IProp GF) ⊢
+    (pe ↦□ v : IProp GF) ∗ net.opErrOk v ∗ syscall.errnoOk (GF := GF) ⊢
       fmt.argOk (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
-  iintro #Hpe
+  iintro ⟨#Hpe, #Hok0, #Hsys⟩
+  ihave #Hok := net.opErrOk_opErrMsgOk v $$ Hok0
   simp only [fmt.argOk]
   iright; ileft
   isplitl
   · rw [fmt.stringMethodSpec_unfold]
     imodintro
     iintro %Φ HΦ
-    iapply wp_OpError_Error $$ Hpe
+    iapply net.wp_OpError_Error $$ Hpe Hok Hsys
     inext
     iintro %msg -
     iapply HΦ
@@ -286,7 +289,7 @@ instance oclOnce_persistent (oc : Loc) : Persistent (oclOnce (GF := GF) oc) := b
 
 /-- `oc.Close()` on `Serve`'s `onceCloseListener` over this node's shared listener `l` at `la`:
 closed (once), its error returned. -/
-theorem wp_oclClose [net.Assumptions] [net.FieldAssumptions]
+theorem wp_oclClose [net.Assumptions]
     (wp_Close : net.Listener.Close.spec (GF := GF) (hG := hG))
     (oc tl : Loc) (l : w64) (x : GoInterface) (la : GoString) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ oclOnce oc ∗
@@ -320,13 +323,14 @@ theorem wp_logf_accept [log.Assumptions] (s : Loc) (f : GoString) (sl : GoSlice)
     (v : net.OpError) (d : time.Duration) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗
         structFieldRef net.http.Server go!"ErrorLog" s ↦□ (null : Loc) ∗ pe ↦□ v ∗
+        net.opErrOk v ∗ syscall.errnoOk (GF := GF) ∗
         sl ↦* [interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe,
           interface.mkOk time.Duration.ty #d] }}
       (App (App (Val (s @!! go.GoType.PointerType net.http.Server.ty @!! go!"logf")) (Val #f))
         (Val #sl))
     {{ RET #(); True }} := by
-  wp_start_folded as ⟨#Hel, #Hpe, Hsl⟩
-  ihave #A1 := opError_argOk (GF := GF) (hG := hG) pe v $$ Hpe
+  wp_start_folded as ⟨#Hel, #Hpe, #Hok, #Hsys, Hsl⟩
+  ihave #A1 := opError_argOk (GF := GF) (hG := hG) pe v $$ [$Hpe $Hok $Hsys]
   ihave #A2 := duration_argOk (GF := GF) d
   ihave #Hl : (□ ([∗list] x ∈ ([interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe,
       interface.mkOk time.Duration.ty #d] : List GoInterface), fmt.argOk (GF := GF) x) : IProp GF) $$ []

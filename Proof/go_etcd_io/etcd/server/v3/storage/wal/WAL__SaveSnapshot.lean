@@ -73,7 +73,7 @@ theorem walLastHS_snap (H : WalHist) (md : SnapshotMetadataM) (al : Bool) :
   simp [walLastHS, List.foldl_append]
 
 /-- **`SaveSnapshot` on a share of an open WAL** (the state `shared`; see the file header). -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [FsStepSat (NoMapLockErr Sio)] (P : WalPbIn GF)
     (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
@@ -700,7 +700,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [FsStepSat (NoMapLockErr Sio)] (P : WalPbIn GF)
     (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)

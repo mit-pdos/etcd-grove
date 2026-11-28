@@ -30,15 +30,20 @@ v1.84's `Server.Serve` (the model, `models/grpc`), over the net extension: `Serv
 server from the started member (`v3rpc.Server`), listens at `a` (`net.Listen`), starts
 `gs.Serve(l)` on its own goroutine and returns, and no thread it starts gets stuck or panics on
 the connections to `a`, each of which carries the calls of the clientv3 contracts (`KV_Put_dist`,
-`KV_Get_dist`, `KV_Delete_dist`, `KV_Compact_dist`, `Txn_Commit_dist`; review F4; since the S2 interface
+`KV_Get_dist`, `KV_Delete_dist`, `KV_Compact_dist`, `Txn_Commit_dist`; review F4; with auth on also
+`KV_PutOn_dist`, `KV_DeleteOn_dist`, `KV_GetOn_dist`, `Txn_CommitOn_dist`, `New_user_dist`'s `Authenticate`,
+the five `Auth_*_dist` admin calls and the `Lease_*On_dist`/F2 lease calls, whose handlers are the
+`etcd*SpecOn` ones at `T := False`: `f9-auth-combined-review.md` D4; since the S2 interface
 switch `etcdAddrAt` is `grpcAddrAt a (etcdSvc Γ mid)`, whose
 `addrProto` lets another program dial, listen and accept at `a` or serve an empty grpc server there, none of
 which answers a call successfully (not an HTTP server: `http.register` needs the `addrUnset` the start spent;
 not bridge it: `bridge.New` also consumes `netAddrLeft a` since review 4's fix); no proof establishes the
 opaque `grpcCliPI`/`grpcSrvPI` of any bytes, and this axiom's post is `True`. Its claim that no thread of the
 member gets stuck or panics covers every connection a verified program can make to `a`: the client contracts'
-calls, the watch streams of `Watch_dist`/`RequestProgress_dist` (the clientv3 watcher's create, cancel and
-progress requests, under `watcher.Watch.spec`'s preconditions), which the member's watch handler meets as in its
+calls, the watch streams of `Watch_dist`/`RequestProgress_dist`/`WatchOn_dist` (the clientv3 watcher's create,
+cancel and progress requests, under `watcher.Watch.spec`'s preconditions; with auth on, the stream carries the
+client's own token or none, and metadata meeting `outTokOkS`; the handler's refusal path is `isWatchPermitted`'s,
+proved in process: `watchon-dist.md` F5, `f9-auth-combined-review.md` D1), which the member's watch handler meets as in its
 in-process proof (`watchUp`; the N3 review's F4, added with the first result resting on those axioms, F5's
 compact workload, 2026-11-26), and raw writes, which establish no protocol (true of grpc-go, which closes a connection on a bad
 preface; re-review after review 4, 2026-11-24; narrowed by the O1-B review's F4, 2026-11-25). Every call that reaches a handler is one a client deposited under `a`'s

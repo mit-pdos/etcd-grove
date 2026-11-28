@@ -45,9 +45,8 @@ variable [NaInvG GF]
 /-- **txnlinfaultsN's `Main(k, clients, ops, sched)` does not panic, for every schedule** (see the file
 header; `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/Main.lean`), under the semantic
 premises of its callees' linked results (partition's and putgetN's). -/
-theorem etcd_txnlinfaultsN.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem etcd_txnlinfaultsN.wp_Main
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_txnlinfaultsN.Main.spec (GF := GF) (hG := hG) :=
   etcd_txnlinfaultsN.Main.wp_proof zap.NewNop.wp_proof
     (etcd_txnlinfaultsN.startCluster.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers

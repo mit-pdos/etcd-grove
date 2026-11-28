@@ -101,7 +101,7 @@ def RestMsgOk [GooseExts] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
   -- (D19i part 1) and with the floor at most `applied` (`hup`'s)
   (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64 ∧
      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) ∧
-  (m.Type' = MsgTransferLeader → ents = [] ∧ ctx = [])
+  (m.Type' = MsgTransferLeader → ents = [] ∧ ctx = [] ∧ m.Index' = W64 0 ∧ m.LogTerm' = W64 0 ∧ m.Commit' = W64 0 ∧ m.Reject' = false)
 
 /-- `RestMsgOk` of a message of none of those types. -/
 theorem RestMsgOk.of_ne [GooseExts] {s : NState} {m : MessageM} {ents : List EntryM}
@@ -505,7 +505,10 @@ premise), no automatic leave at an application acknowledgement (`appliedTo`'s, s
 node's configuration never leaves automatically), no proposed configuration change (P3, `stepLeader`'s). The untraced instance is `raft.Step.untraced`
 (`TracedUntracedRaftStep.lean`), the statement before slice 11, which the node API uses. -/
 abbrev raft.Step.spec : Prop :=
-  ∀ (c : CfgM)
+  -- (2026-11-24, #33 S4 P-raft-1b) the no-snapshot flag of the gates (`stepGates`' `nc`, `false` for
+  -- a caller whose gates are stated at the default): at `true` the log not compacted, whatever the
+  -- trace mode, and the families kept by queueing anything but snapshots (`IdxFreeN`)
+  ∀ {nc : Bool} (c : CfgM)
     -- (2026-10-14, stage B7) the mode of the ghost state: static (`ownRaftGhost`, at a
     -- configuration with the ghost state's voters) or dynamic (`ownRaftGhostR`, the node's
     -- reconfiguration state over the struct's configuration); see `StepGhostMode.lean`
@@ -778,7 +781,7 @@ abbrev raft.Step.spec : Prop :=
       -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource, through the gates of the path that
       -- runs, raft's ghost state with it from the receive hook on ...
       "HG" ∷ R.G ∗
-      "Hgates" ∷ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      "Hgates" ∷ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) nc ∗
       -- ... and back, whichever resource the path ends in, with (traced) the step's new messages'
       -- numbers (`OutTrStep`, which the node's outbox keeps: `NsLink`'s `OutTr`), each logged by a
       -- send line of the caller's
@@ -814,11 +817,27 @@ abbrev raft.Step.spec : Prop :=
       -- log (2026-10-09)
       -- (raft-final phase 2, 2026-10-29) but a transfer request, which may record the node's
       -- leader and term in `NGhost.xw` (the forward's witness, `ownStepGhost_xw_record`)
+      -- (#33 parity B1) and a leader's append response from another node while it has a transferee,
+      -- which may record the sender and term in `NGhost.xt` (the witness of the `MsgTimeoutNow` it
+      -- may send, `isAcked`)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
-      -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows
-      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+                   (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
+      -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows, and
+      -- `xs` (2026-11-24, #33 S4: set at a follower or a leader, the request recorded as stepped);
+      -- (#33 parity B1) and `xt`, the queued `MsgTimeoutNow`s' destinations and terms; the same
+      -- frame for that append response
+      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader ∨
+                     (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0) →
+                   NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } ∧
+                   (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                   -- (#33 parity B1) the one record a step adds: a follower's forward to its leader
+                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨
+                      (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)) ∧
+                   -- (antithesis parity B1, transfer source) the forwarded requests' senders
+                   -- (`NGhost.xsrc`): at most the request's own `From` added
+                   (∀ f, f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (m.Type' = MsgTransferLeader ∧ f = m.From'))⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)

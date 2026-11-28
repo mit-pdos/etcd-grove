@@ -16,7 +16,7 @@ deployment's literal, then the linked dispatch (`wp_OrchestratorFull`, `wp_NodeD
 `errors.As` target (`rpctypesEtcdError_asTarget`); the client machine's level token from its thread token
 (`threadTok_level0`). The deployment-level ones (bounds, plain endpoints) the dispatch derives from `WellFormed`
 itself, so neither boot takes `d.WellFormed` nor `d.cfg.auth = false` (with auth on, a well-formed deployment's
-only workload is `auth` or `authLease`, whose shares are `False`: D2).
+only workload is `auth` or `authLease`, whose shares `authShare`/`authLeaseShare` the auth starts give).
 
 No axiom, no `sorry`, no hypothesis beyond `EtcdBootNC`'s.
 -/
@@ -48,7 +48,9 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 
 /-- **Workload `j`'s orchestrator machine** (see the file header), from its share `orchShareF d j`. -/
 theorem orchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (d : Deployment) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat) (σ : state)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] (ρ : RemoteGS) :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (clientProg d j) σ
@@ -87,7 +89,7 @@ theorem orchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **The `n`-th client machine** (see the file header), from its share `nodeShareF d n`. -/
 theorem nodeBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (d : Deployment) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat) (σ : state)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] (ρ : RemoteGS) :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (nodeProg d n) σ

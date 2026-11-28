@@ -65,6 +65,15 @@ public import Proof.google_golang_org.grpc.GenericServerStream__Context
 public import Proof.google_golang_org.grpc.NewClient
 public import Proof.google_golang_org.grpc.NewServer
 public import Proof.google_golang_org.grpc.Server__RegisterService
+public import Proof.google_golang_org.grpc.Server__register
+public import Proof.google_golang_org.grpc.Server__printf
+public import Proof.google_golang_org.grpc.Server__wrapUnaryHandler
+public import Proof.google_golang_org.grpc.chainUnaryInterceptors
+public import Proof.google_golang_org.grpc.chainStreamInterceptors
+public import Proof.google_golang_org.grpc.chainUnaryServerInterceptors
+public import Proof.google_golang_org.grpc.chainStreamServerInterceptors
+public import Proof.google_golang_org.grpc.internal.stats.NewCombinedHandler
+public import Proof.google_golang_org.grpc.internal.grpcsync.NewEvent
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.google_golang_org.grpc.WithTransportCredentials
 public import Proof.google_golang_org.grpc.credentials.insecure.NewCredentials
@@ -100,7 +109,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.Assumptions]
-variable [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+variable [go.BasicIntoValInj]
 
 theorem wp_String :
     google_golang_org.protobuf.types.known.wrapperspb.String.spec (GF := GF) (hG := hG) :=
@@ -210,8 +219,14 @@ theorem wp_sClientStream : server.ClientStream.spec (GF := GF) (hG := hG) :=
 theorem wp_sBidi : server.Bidi.spec (GF := GF) (hG := hG) := server.Bidi.wp_proof
 
 theorem wp_Server : Server.spec (GF := GF) (hG := hG) :=
-  Server.wp_proof grpc.NewServer.wp_proof
-    (svc.RegisterDriverServer.wp_proof grpc.Server.RegisterService.wp_proof)
+  Server.wp_proof
+    (grpc.NewServer.wp_proof istats.NewCombinedHandler.wp_proof grpcsync.NewEvent.wp_proof
+      (grpc.chainUnaryServerInterceptors.wp_proof grpc.chainUnaryInterceptors.wp_proof)
+      (grpc.chainStreamServerInterceptors.wp_proof grpc.chainStreamInterceptors.wp_proof))
+    (svc.RegisterDriverServer.wp_proof
+      (grpc.Server.RegisterService.wp_proof
+        (grpc.Server.register.wp_proof grpc.Server.printf.wp_proof
+          grpc.Server.wrapUnaryHandler.wp_proof)))
     _root_.Perennial.net.Listen.wp_proof grpc.Server.Serve.wp_proof
     wp_sEcho wp_sFail wp_sMeta wp_sServerStream wp_sClientStream wp_sBidi
     svc._Driver_Echo_Handler.wp_proof svc._Driver_Fail_Handler.wp_proof

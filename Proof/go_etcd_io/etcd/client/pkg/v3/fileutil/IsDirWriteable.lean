@@ -26,7 +26,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))

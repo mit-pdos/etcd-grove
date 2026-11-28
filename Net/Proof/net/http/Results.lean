@@ -277,7 +277,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
-variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions]
 variable [bufio_sem : bufio.Assumptions]
 
 theorem connReader.backgroundRead.wp :
@@ -329,6 +329,8 @@ theorem conn.serve.wp
     EtcdGrove.bufio.Reader.Reset.wp_proof
     (EtcdGrove.bufio.NewReader.wp_proofFresh EtcdGrove.bufio.NewReaderSize.wp_proofFresh)
     EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
+    fmt.wp_newPrinter fmt.buffer.wp_writeString fmt.pp.wp_free internal.gomodel.wp_Choose
+    internal.gomodel.wp_ChooseUint64
 
 /-- `Server.Serve`'s accept loop, over `conn.serve` (and so the two interim context hypotheses),
 the net extension's `Listener.Accept`/`Close` and `OpError.Temporary`. -/
@@ -443,7 +445,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
-variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions]
 variable [bufio_sem : bufio.Assumptions]
 
 /-- `http.Serve(l, nil)` on an rpc listener, over `Serve.wpHandler` with the two context axioms

@@ -27,7 +27,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 theorem fileutil.ReadDir.wp_specChildIs
     (wp_Strings : sort.Strings.spec (GF := GF) (hG := hG))
@@ -56,7 +56,7 @@ theorem fileutil.ReadDir.wp_specChildIs
           osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc ∗ osNames J N dqn h) -∗
         (∀ (f : Loc) (err : GoInterface),
           ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
-              iprop(osDirFdS fd J .idle ∗ osInv) ∗
+              iprop(os.ownOff f (W64 0) ∗ osDirFdS fd J .idle ∗ osInv) ∗
               iprop(osSharedInv R ∗ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osNames J N dqn h ∗
                 osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc)) ∨
            (⌜err ≠ interface.nil⌝ ∗ Er err ∗
@@ -68,7 +68,7 @@ theorem fileutil.ReadDir.wp_specChildIs
     wp_apply os.Open.wp_dirChildS d b R jp J Np dq dqp hp qc hb hNp hJ $$ [Hp Hnp Hperm]
       as %f %err ⟨Hp, Hnp, Hperm, Hr⟩
     · iframe; isplitl [] <;> iassumption
-    icases Hr with (⟨%fd, %herr0, Hf, Hfd⟩ | ⟨%e, %he, #Herr⟩)
+    icases Hr with (⟨%fd, %herr0, Hf, Hoff, Hfd⟩ | ⟨%e, %he, #Herr⟩)
     · iapply HΦ; ileft; iexists fd; iframe
       isplitr
       · ipureintro; exact herr0
@@ -80,7 +80,7 @@ theorem fileutil.ReadDir.wp_specChildIs
       · ipureintro; exact hne
       iapply (herr err e he.1 he.2.1) $$ Hos Herr
   have wpRead : ∀ (f : Loc) (fd n : w64) (Φ : val → IProp GF), ⊢ ⌜sint.Z n ≤ 0⌝ -∗
-      os.ownFile f fd (child d b) (DFrac.own 1) -∗ iprop(osDirFdS fd J .idle ∗ osInv) -∗
+      os.ownFile f fd (child d b) (DFrac.own 1) -∗ iprop(os.ownOff f (W64 0) ∗ osDirFdS fd J .idle ∗ osInv) -∗
       iprop(osSharedInv R ∗ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osNames J N dqn h ∗
         osPathS R d dq jp ∗ osNames jp Np dqp hp ∗ osCallPerm (callKey R d) qc) -∗
       (∀ (r : GoSlice) (err : GoInterface), os.ownFile f fd (child d b) (DFrac.own 1) -∗
@@ -91,9 +91,9 @@ theorem fileutil.ReadDir.wp_specChildIs
       WP (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Readdirnames")) (Val #n))
         {{ Φ }} := by
     intro f fd n Φ
-    iintro %hn Hf ⟨Hfd, #Hinv⟩ ⟨#Hsi, #Hos, Hn, Hp, Hnp, Hperm⟩ HΦ
+    iintro %hn Hf ⟨Hoff, Hfd, #Hinv⟩ ⟨#Hsi, #Hos, Hn, Hp, Hnp, Hperm⟩ HΦ
     wp_apply os.File.Readdirnames.wp_dirChildS f fd (child d b) (DFrac.own 1) R J N dqn h n hn
-      d b jp Np dq dqp hp hb hNp hJ $$ [Hf Hfd Hn Hp Hnp] as %r %err ⟨Hf, Hn, Hp, Hnp, Hr⟩
+      d b jp Np dq dqp hp hb hNp hJ $$ [Hf Hoff Hfd Hn Hp Hnp] as %r %err ⟨Hf, Hn, Hp, Hnp, Hr⟩
     · iframe; isplitl [] <;> iassumption
     icases Hr with (⟨%names, %hr, Hr, Hfd⟩ | ⟨⟨%e, %he, #Herr⟩, %r0, %rs, Hfd⟩)
     · iapply HΦ $$ Hf [Hfd] [Hp Hnp Hperm Hn]

@@ -118,11 +118,12 @@ with the watch-resume fixes) and grpc-go v1.84 (the model) over the net extensio
   cluster's state `σ` it fired at, the read of `σ`'s range events from the cursor (`watchStateRespOkP`),
   and the compaction revision the cluster's permit (`cmpOkOf Γ.kv`), which the in-process proof derives
   from the member's `crevOk` (`kvCpOk` at its names, `cmpOkOf_same` through `kvSame`).
-* *Any auth mode.* Every member serving `Γ` runs auth off (`memberUp`, `Serve_dist`'s `Γ.auth = false`),
-  so no create is refused; the statement does not constrain `Γ.auth`, and with `Γ.auth = true` no member
-  serves `Γ`. (In Go a refused create is a canceled response with a reason: the error arm.) The
-  single-process spec's auth row (`watchCheckOk`, gated on
-  `V.nm = 1`) is not claimed: it reads member 0's auth tag and server, per-member names not in `Γ` (N11).
+* *Any auth mode.* With auth off (`memberUpL`) no create is refused. With auth on (`Serve_dist`'s
+  `memberUpOnL` since F7 step 3), a refused create (permission denied, empty user, invalid token, old
+  revision) is a created-and-canceled response with its reason, the error arm. A passing create's events
+  are the cluster's, as with auth off. No row is claimed: `WatchOn_dist` states it (the single-process
+  spec's auth row, `watchCheckOk` gated on `V.nm = 1`, reads member 0's auth tag and server, per-member
+  names not in `Γ`: N11). (`watchon-dist.md` F4, `f9-auth-combined-review.md` D2.)
 
 **Margin: the watcher's environment.** The lock keeps the stream this call adds under the servers' facts
 (`wgsGuard`), over `V.atEps eps`: off `V.addrs = eps` it asks nothing of it; at `V.addrs = eps` the use is
@@ -144,8 +145,13 @@ so it needs the same stream entry, which cannot be stated yet (§22.6).
 
 **Why it is true.** The call only sends a `*progressRequest` on the stream's `reqc` (or returns the closed
 watcher's, the context's or the stream's close error), and grpc's `status` accepts each error it returns
-(`statusErrOk`); nothing is claimed of the server's answer, which arrives, if ever, as a progress response
-of the watch channels `Watch_dist` describes.
+(`statusErrOk`): the stream's close error is set by `run` only: the raw `Recv` error on a halt or `ErrNoLeader`,
+or `v3rpc.Error` of `openWatchClient`'s (`NewStream`'s, etcd's interceptor's `getToken`, or `w.ctx`'s
+`Canceled`). All of them are built in the caller's process by grpc-go (`cliStreamErr`, unconditional of the
+peer) or clientv3, and a remote member chooses only their code, message and status details. `addSubstream`'s
+`CancelReason` error is overwritten by `run`'s defer before `donec` closes
+(`notes/axiom-review/requestprogress-dist-statuserr.md` D1). Nothing is claimed of the server's answer, which
+arrives, if ever, as a progress response of the watch channels `Watch_dist` describes.
 
 Retired with `Watch_dist`, from `watcher.RequestProgress.spec`. As `Watch_dist`, a stream it starts is kept
 under the servers' facts (`wgsGuard`, over `V.atEps eps`): off `V.addrs = eps` the lock asks nothing of it,

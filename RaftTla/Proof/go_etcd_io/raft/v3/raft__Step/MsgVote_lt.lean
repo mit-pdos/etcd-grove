@@ -45,7 +45,7 @@ namespace StepProof
 set_option maxHeartbeats 2000000 in
 /-- `MsgVote` with `m.Term < r.Term`: a stale vote request, dropped silently after the
 log line. -/
-theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgVote_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
@@ -63,12 +63,12 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (stage R4) the message, as `Step` received it
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- `recv` is whatever this branch consumed -- nothing, or the incoming message
         -- once or twice. Naming its elements rather than the list lets
@@ -142,7 +142,7 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro
-  exact ⟨StepEnd.stale ⟨Hterm, Hlt0⟩ (.inl rfl), Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, StepCD.frame (stepCF_drop c id _) (RFrame.refl _)⟩, rfl,
+  exact ⟨StepEndG.stale ⟨Hterm, Hlt0⟩ (.inl rfl), Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, StepCD.frame (stepCF_drop c id _) (RFrame.refl _)⟩, rfl,
     keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof

@@ -848,20 +848,20 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne (nX _ hne.2.2.1))
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
-    have hok' : HupOkC c id s s' := (hend (by rw [htr]; rfl) hty).2.1 hns hp
+    have hok' : HupOkC c id (hupType s) s s' := (hend hty (by xtrec_tac)).2.1 hns hp
     obtain ⟨-, -, ⟨-, -, -, hpv', -⟩, -, hg⟩ := hok'
     unfold stepOut
     dsimp only [hupR]
     icases Hout with (⟨%ho, H⟩ | ⟨%ho, H⟩ | ⟨%hc, H⟩ | %hf | ⟨%b, %N, %hf⟩)
-    · rcases hg with ⟨-, hss⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
+    · rcases hg.exists_pre_ctx with ⟨-, hss⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
       · subst s'
         iapply lineF_close γ md c r id s s (stepLastEv Λ) bt (fun _ => rfl) (fun h => h) $$ H
       · exact absurd ho (campaignState_outbox_ne id s pre peers cl pvs)
-    · rcases hg with ⟨-, hss⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
+    · rcases hg.exists_pre_ctx with ⟨-, hss⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
       · subst s'
         iapply lineF_close γ md c r id s s (stepLastEv Λ) bt (fun _ => rfl) (fun h => h) $$ H
       · exact absurd ho (campaignState_outbox_ne id s pre peers cl pvs)
-    · rcases hg with ⟨hnc, -⟩ | ⟨-, pre, peers, pvs, cl, hpp, -, rfl⟩
+    · rcases hg.exists_pre_ctx with ⟨hnc, -⟩ | ⟨-, pre, peers, pvs, cl, hpp, -, rfl⟩
       · exact absurd hc hnc
       cases pre with
       | true =>

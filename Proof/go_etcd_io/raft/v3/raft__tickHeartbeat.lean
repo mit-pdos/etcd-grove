@@ -186,7 +186,7 @@ theorem raft.tickHeartbeat.wp_proof
         have h0 : 0 ≤ uint.Z s.term := by word
         rw [Int.max_eq_left h0] at Ht3
         have Hi := Hi (by msg_ne)
-        have Hf := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+        have Hf := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
         have Heq : s0.term = s.term := by word
         intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg', Hs', Hr'⟩
         refine ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq,
@@ -219,7 +219,7 @@ theorem raft.tickHeartbeat.wp_proof
           isplitr
           · ipureintro
             exact ⟨⟨Hwf0, Hcm0, Htr0⟩,
-              NetFrame.ns (Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => trivial)), .inl rfl⟩
+              NetFrame.ns (Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => trivial) (fun h => absurd h (by msg_ne))), .inl rfl⟩
           iright; iexact HG
         · rw [decide_eq_false Hlt]
           try wp_auto
@@ -232,7 +232,7 @@ theorem raft.tickHeartbeat.wp_proof
           isplitr
           · ipureintro
             exact ⟨⟨Hwf0, ⟨Hcm0.commit, Hcm0.vote, Hcm0.queue⟩, Htr0⟩,
-              NetFrame.ns (Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => trivial)), .inr rfl⟩
+              NetFrame.ns (Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => trivial) (fun h => absurd h (by msg_ne))), .inr rfl⟩
           iright; iexact HG
       all_goals
         wp_join_done
@@ -241,7 +241,7 @@ theorem raft.tickHeartbeat.wp_proof
         isplitr
         · ipureintro
           exact ⟨⟨Hwf0, Hcm0, Htr0⟩,
-            NetFrame.ns (Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => trivial)), .inl rfl⟩
+            NetFrame.ns (Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => trivial) (fun h => absurd h (by msg_ne))), .inl rfl⟩
         iright; iexact HG
   · -- the election timeout not passed: the caller's `R.G` kept
     iexists s, s
@@ -377,7 +377,7 @@ theorem raft.tickHeartbeat.wp_proof
       have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
       have H0 : uint.Z (tickMsg MsgBeat id).Term' = 0 := rfl
       simp only [H0] at Ht3
-      exact Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
+      exact Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)), Ht1,
         by have h0 : 0 ≤ uint.Z s2.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
         Hi (by msg_ne), fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg,

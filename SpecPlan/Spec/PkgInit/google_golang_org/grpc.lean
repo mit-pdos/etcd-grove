@@ -6,17 +6,28 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.io.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.codes
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.status
+public import Perennial.Proof.math.Base
+public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.keepalive
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.resolver
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.mem
 public import SpecPlan.Spec.PkgInit.net
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.credentials
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.stats
+public import SpecPlan.Spec.PkgInit.encoding.base64
+public import Perennial.Proof.strconv.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
+public import Perennial.Proof.encoding.binary.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.grpcutil
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.metadata
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.peer
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.grpclog
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.grpcsync
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.stats
 
 @[expose] public section
 noncomputable section

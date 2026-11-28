@@ -34,7 +34,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 /-- An entry of a claim writing a name of `N` is an entry of its restriction to `N`. -/
 private theorem restrict_ents_of {h : NamesH} {j : Ino} {N : NameSet} {xe : Nat × LogEntry × Ents}

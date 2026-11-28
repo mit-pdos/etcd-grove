@@ -24,7 +24,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : gryff.examples.gryffnet.Assumptions] [wire.BufioSpecs GF] [wire.BinaryVarintHyps GF]
-variable [net.Assumptions] [net.FieldAssumptions] [nS : netN.NetSpecs GF] [ρ : RemoteGS]
+variable [net.Assumptions] [nS : netN.NetSpecs GF] [ρ : RemoteGS]
 
 theorem op.wp_proof : op.spec (GF := GF) (hG := hG) := by
   intro γ c sp mu cl i Φ hc

@@ -477,8 +477,9 @@ theorem lessorSlots_of (ids : List w64) (ls : w64 → GName) (au : w64 → EtcdG
 and, with auth on, no compaction, from the protocol registry and every member's peer and client addresses unset, the
 cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their compaction setting `(cmp, cret)`,
 their lessor and auth names injective), the cluster's persistent facts (`clusterFactsOf`: with auth off its KV invariant
-`kvInv ⟨c.γ, [], 0⟩ c.γk`, `kvInv_of_clusterFacts`), with auth off in the lease mode `none` the client's `etcdKV` at the
-boot state, every member's lessor slot, every member's client address fact at the view `c.view d.cfg.auth`, and every
+`kvInv ⟨c.γ, [], 0⟩ c.γk`, `kvInv_of_clusterFacts`), with auth on (F7 S13) the KV names' raft log raft's
+(`c.γk.rlog = c.γ.log`) and the client's `etcdKV` and auth history view at the start, with auth off in the lease mode
+`none` the client's `etcdKV` at the boot state, every member's lessor slot, every member's client address fact at the view `c.view d.cfg.auth`, and every
 member's share. -/
 theorem clusterStartDC (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
     (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids)
@@ -488,7 +489,13 @@ theorem clusterStartDC (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
       ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.γk.cmp = cmp ∧ c.γk.cret = cret ∧
           c.NamesInj⌝ ∗
         clusterFactsOf (GF := GF) c d.cfg.auth ∗
-        (if d.cfg.auth then iprop(True) else if decide (lm ≠ .none) then iprop(True) else
+        -- (F7 S13) with auth on, the KV names' raft log raft's, the client's `etcdKV` and auth history view at
+        -- the start (`clusterAllocN`'s auth arm)
+        (if d.cfg.auth then
+          iprop(⌜c.γk.rlog = c.γ.log⌝ ∗
+            etcdKV c.γk (kvStateOf (kvModelOn c.γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
+            authHistView c.γk [srvAuthSt0])
+        else if decide (lm ≠ .none) then iprop(True) else
           etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))) ∗
         clientSvcFacts (cmsD d) (c.view d.cfg.auth) ∗
         ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ∗
@@ -502,7 +509,7 @@ theorem clusterStartDC (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
     | cons m0 ms => exact ⟨m0, ms, rfl⟩
   have hid0 : memberId (go!"http://" ++ m0.peer) d.token ∈ d.ids := by
     simp [Deployment.ids, hm0]
-  have hbl : boot.length ≤ 64 := by
+  have hbl : boot.length ≤ 1000 := by
     rw [Hbc.boot.1, hperm.length_eq]
     simp only [Deployment.ids, List.length_map]
     unfold typed.maxMembers at hlen
@@ -516,7 +523,6 @@ theorem clusterStartDC (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
   imod (clusterAllocN (GF := GF) d.ids (distPs d) hperm _ hid0 (distCtxs d) boot Hbc (by omega) (by omega)
       lm hap cmp cret d.cfg.auth Hon)
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
-  ihave Hetcd := ite_drop_left d.cfg.auth _ _ $$ Hetcd
   imod (memberNames_alloc (GF := GF) d.ids Hd.idsNodup.1) with ⟨%ls, %au, %Hinj, Hnm⟩
   imod (peersAt_start γ (cmsD d)) $$ Hreg Hp with #Hpf
   imod (clientsAt_start (ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ d.cfg.auth)
@@ -570,6 +576,7 @@ theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
   iintro #Hreg Hs
   imod (clusterStartDC d Hd boot Hbf Hrb lm hap cmp cret Hcmp Hon) $$ Hreg Hs
     with ⟨%c, %Hc, -, Hetcd, #Hcs, #Hsl, Hms⟩
+  ihave Hetcd := ite_drop_left d.cfg.auth _ _ $$ Hetcd
   imodintro
   iexists c
   isplitr

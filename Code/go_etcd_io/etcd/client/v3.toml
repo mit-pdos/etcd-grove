@@ -322,6 +322,12 @@ translate = [
   # `rand.Float64.wp_proof`): until then the trust-boundary axioms
   # `Client.roundRobinQuorumBackoff.wp_proof` and `defaultOptions_init`
   "Client.roundRobinQuorumBackoff", "backoffLinearWithJitter", "jitterUp", "defaultOptions",
+  # (phase7-s3-interceptor, S3.4, 2026-11-26) retry_interceptor.go's `streamClientInterceptor` with its
+  # body (the stream path: `withVersion`, `getToken`, the call options, the streamer at `max = 0`,
+  # `Unimplemented` for a client stream otherwise; its `serverStreamingRetryingStream` branch, a
+  # server stream with `max > 0`, is translated but never reached by the contract's callers): until
+  # then the trust-boundary axiom `Client.streamClientInterceptor.wp_proof`
+  "Client.streamClientInterceptor",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata", "math/rand"]
 

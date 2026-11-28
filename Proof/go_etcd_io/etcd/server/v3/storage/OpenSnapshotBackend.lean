@@ -87,7 +87,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     iintro %dr %hdr
     rw [config.dirModel_backendPathOf] at hdr
     subst hdr
-    rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+    rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
     · isimp only [backend.fileAt, onFs_none hfs] at Hf
       iexfalso; iexact Hf
     isimp only [backend.fileAt, onFs_some hfs, backend.fileAtF, backend.nameAtF] at Hf

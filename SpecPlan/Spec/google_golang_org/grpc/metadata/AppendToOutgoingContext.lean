@@ -1,7 +1,7 @@
 /-
 `metadata.AppendToOutgoingContext(ctx, kv...)` (grpc-go, assumed: `metadata/metadata.go`).
 
-Users: Kubernetes' etcd3 client setup and `examples/etcd/auth` (a caller's own token: W0's
+Users: Kubernetes' etcd3 client setup and `examples/lib/authwork` (a caller's own token: W0's
 `ctxPrin` introduction for it is 1c's).
 
 Why true: it panics on an odd number of arguments (excluded); else returns a `WithValue` context

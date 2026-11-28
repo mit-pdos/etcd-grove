@@ -1,14 +1,18 @@
 # Project models-net (etc/goose.py): `go/token`, names only, but `IsExported` (the net/rpc model's
-# `register` checks a service name with it), trusted: Net/TrustedCode/go/token.lean (its body calls
-# `unicode.IsUpper`, whose tables nothing translates; the model is exact on a name whose first byte
-# is ASCII and a choice point otherwise; models/README.md).
+# `register` checks a service name with it), a Go model (perennial#692, since 2026-11-24; until then
+# trusted, Net/TrustedCode/go/token.lean): the [model] table below, models/go/token/model.go (exact
+# on a name whose first byte is ASCII, internal/gomodel's `Choose` otherwise; its MODEL: comment says
+# why; models/README.md).
 # (dsv-fix2b, 2026-11-25) With bodies, what importing `go/token` runs: `tokens` (the keyed array
 # literal of the tokens' names), `keywords` and `init` (go1.27's: the map of the keyword tokens'
 # names, `keyword_beg+1 .. keyword_end-1`), so that its initializer is proved, not assumed
 # (`Net/Proof/go/token/Init.lean`), for net/rpc's first initialization.
 translate = ["!*", "tokens", "keywords", "init.0", "Token", "keyword_beg", "keyword_end"]
-imports = ["!*"]
-trusted = ["IsExported"]
+imports = ["!*", "internal/gomodel"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+[model]
+dir = "models/go/token"
+replaces = ["IsExported"]

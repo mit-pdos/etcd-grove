@@ -145,7 +145,7 @@ set_option maxHeartbeats 1600000 in
 theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (HEnv : EtcdVerifyOff)
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
@@ -195,7 +195,7 @@ theorem putgetKBoot_of
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     PutgetKBoot := by
-  intro _ lctx _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo σs σc Hm Hc
+  intro _ lctx _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo σs σc Hm Hc
     Hfips Hnd Hok HEnv G hlo hb
   have hS5' : ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS],
       Nonempty (etcd_dist.S5Draft putgetGF) := HS5

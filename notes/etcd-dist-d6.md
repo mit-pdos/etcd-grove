@@ -3900,3 +3900,32 @@ Perennial as Handoff T10s3b-1. Next, once the lead lands `srvCIPair` and the cin
 lemmas, `bootstrapBackend`'s `NewConsistentIndex`): merge it, build `NewServerCrash`, the `Link`, the 54 modules of
 `notes/t10s3b-chk/mods.txt`, rerun `AxCheck6`; then task 2 (`batchLockInv`'s term conjunct from `UnsafeSave`'s pair
 predicate, session 12's interface note). No axiom statement, `sorry`, premise or trusted text changed.
+
+### Handoff SYNC-1 (2026-11-28; the crash line and the keep-guard work on lean `3da78a5581` with one etcd pin; STOPPED before the build)
+
+**Fork** (local only, the user pushes it): `upamanyus/etcd` branch `goose-lean-crashsync/2026-11-27` = `780d689f6`
+(worktree `/shared/etcd-fork-crashsync`): `d26dd5da6` (lean's pin) + the crash line's 7 commits (`df6af0c36..251a430ce`,
+cherry-picked: `47d6cdeeb`..`251a430ce`) + keepfix's 5 (`251a430ce..b1512efdd`, branch `keepfix-d-term/2026-11-27`: the keep
+guard reverted, cindex's own term, the WAL brought up to the backend's consistent index, fix (c) the member's raft term saved
+with the consistent index). No conflicts; the tree is `b1512efdd`'s plus exactly `d26dd5da6`'s LeaseTimeToLive commit.
+`go test` (etcdserver, cindex, backend, wal, schema) passes; `TestWALByteMix` (pre-existing, exhaustive) skipped: it alone
+exceeds the 10-minute default timeout.
+
+**This branch** (`etcd-safe-crashsync/2026-11-27`, worktree `/shared/etcd-grove-crashsync`): off the crash line's pushed head
+`027bafc765` (DELTA-6; DELTA-7's local lean merge `ceab063d9b` was not pushed), merged `etcd-safe-t10s3b-a` `1bf4211471`
+(conflicts: the etcd pin in `etc/goose.py` and the examples' go.mod/go.sum, resolved to `780d689f6`) and lean `3da78a5581`
+(conflict: `examples/k8s/dist/go.sum`, lean's with the etcd lines at `780d689f6`, `go mod tidy`); status-history rebuilt as
+lean's lines in lean's order (+47/−0). The go.sum hashes were computed from the local clone (`GIT_CONFIG_GLOBAL` with
+`url./shared/etcd.insteadOf`, `GOPRIVATE`): they are content hashes, valid once the user pushes `780d689f6`. Retranslated
+(`etc/goose.py --src etcd=/shared/etcd-fork-crashsync`): 4 files change, all from `b1512efdd` (fix (c)): `Code/.../etcdserver`,
+`cindex`, `storage/schema`, `GeneratedProof/.../cindex`. copy-part, gen-raft-tla, gen-specs-pkginit, gen-k8s-deep,
+gen-pbschema, gen-driver-boottable `--check` green.
+
+**Why it stopped (rule #8):** `etc/gen-init.py` then regenerates `storage/schema/Init.lean` with a NEW trust-boundary axiom
+`schema.opaqueInitsOk` (fix (c)'s `MetaConsistentIndexRaftTermName`, names-only), and cindex's `UnsafeSave` now calls the
+names-only `UnsafeUpdateConsistentIndexRaftTerm`: its proof needs a new callee spec. Both are the lead's keepfix (c) step 1
+(`etcd-safe-keepfix` `7cf348d97c`: schema.toml's four names, gen-init's `raftTermKeyBytes` fact, the cindex triple), not
+mechanical fallout. Not committed: gen-init's output (so `gen-init --check` fails on this branch until (c)'s Lean lands).
+Not done: build, gates, tcb, vocabulary diff. Options: (1) the lead merges this branch into `etcd-safe-keepfix` (whose (c)
+step 1 fixes both) and builds there; (2) a fork commit without fix (c) (`d26dd5da6` + crash line + `251a430ce..01b0497d0`,
+t10s3b-a's level), whose retranslation should leave `Code/` unchanged, built here as the mechanical sync.

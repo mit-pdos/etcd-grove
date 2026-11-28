@@ -99,9 +99,31 @@ func NewDirtyBinaryTieredBufferPool(powerOfTwoExponents ...uint8) (*BinaryTiered
 	}, NewDirtySimplePool(), powerOfTwoExponents...)
 }
 
+// MODEL: compactExponents(s) is slices.Compact(s) on a []uint8, as a plain loop (goose refuses
+// Compact's generic element copy `s[k] = s2[k2]`, modelcheck R4): it returns the same slice (s[:k],
+// consecutive duplicates removed) and leaves s's array as Compact does (the elements after the
+// result zeroed). model_compact_test.go checks both against slices.Compact on random inputs.
+func compactExponents(s []uint8) []uint8 {
+	if len(s) < 2 {
+		return s
+	}
+	k := 1
+	for i := 1; i < len(s); i++ {
+		if s[i] != s[k-1] {
+			v := s[i]
+			s[k] = v
+			k++
+		}
+	}
+	for j := k; j < len(s); j++ {
+		s[j] = 0
+	}
+	return s[:k]
+}
+
 func newBinaryTiered(sizedPoolFactory func(int) bufferPool, fallbackPool bufferPool, powerOfTwoExponents ...uint8) (*BinaryTieredBufferPool, error) {
 	slices.Sort(powerOfTwoExponents)
-	powerOfTwoExponents = slices.Compact(powerOfTwoExponents)
+	powerOfTwoExponents = compactExponents(powerOfTwoExponents) // MODEL: slices.Compact, as a loop
 
 	// Determine the maximum exponent we need to support. This depends on the
 	// word size (32-bit vs 64-bit).

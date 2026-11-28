@@ -10,9 +10,9 @@ timeout, and the dialer sets no read deadline).
   `hsErr`: the server could not read the handshake); its read deadline not set (`rdlTok cn false
   false`); and the once-cell `γe` (a monotone list): empty while no read has failed, `[r]` once one
   failed at `r`, and then the end reads nothing more (`readDead`, `read_after_dead_au`).
-* `crErr γe r err`: a read failed at `r` (persistent): no byte after it (`crErr_final`), what
-  `http.ReadResponse.spec`'s finality law asks; its error is `errLeaf` (`io.EOF`'s `*errorString`
-  or an `*OpError`), what `http.ReadResponse.spec_errs` passes on.
+* `crErr γe r err`: a read failed at `r` with `err` (persistent): no byte after it (`crErr_final`),
+  `err` has an `Error()` (`net.errStr`): what `http.ReadResponse.spec`'s laws ask; and it is `errLeaf`
+  (`io.EOF`'s `*errorString` or an `*OpError`), what `http.ReadResponse.spec_errs` passes on.
 -/
 module
 
@@ -36,7 +36,7 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -53,7 +53,7 @@ def crSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (γe : 
 
 /-- See the file header. -/
 def crErr (γe : GName) (r : List w8) (err : GoInterface) : IProp GF :=
-  iprop(monoListLbOwn γe [r] ∗ ⌜models_lab.errLeaf err⌝)
+  iprop(monoListLbOwn γe [r] ∗ net.errStr err ∗ ⌜models_lab.errLeaf err⌝)
 
 instance crErr_persistent (γe : GName) (r : List w8) (err : GoInterface) :
     Persistent (crErr (GF := GF) γe r err) := by

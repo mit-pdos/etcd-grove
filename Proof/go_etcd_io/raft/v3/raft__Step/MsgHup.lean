@@ -42,7 +42,7 @@ entirely and it goes straight to `hup`.
 Like the other branch lemmas this is ghost-free: it establishes the `Step` witness as a
 pure fact, and `raft.Step.wp_proof` turns them into the single `ownRaftGhost_step` of
 the whole development. -/
-theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgHup {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
@@ -60,12 +60,12 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
@@ -144,7 +144,8 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro
-    exact ⟨StepEnd.hup Hty (notStale_of_zero Hterm) Hok0, Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
+    exact ⟨StepEndG.hup Hty (notStale_of_zero Hterm)
+      (by first | (rw [hupType_pre Hpv]; exact Hok0) | (rw [hupType_el Hpv]; exact Hok0)), Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
       fun h => absurd (Hty.symm.trans h) (by w32_ne), Hpcs⟩
 

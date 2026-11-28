@@ -116,7 +116,7 @@ local macro "unsaved_close" : tactic => `(tactic| (
 
 /-- See the spec file's header. -/
 theorem wal.Unsaved.wp_proof
-    [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr) (hUs : U.SnapCoh)
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))

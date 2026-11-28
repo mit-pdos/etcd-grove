@@ -17,6 +17,13 @@ translate = ["!*", "StatusFailure", "StatusReasonTimeout", "CauseTypeResourceVer
   "NamespaceAll",
   # (DaemonSet plan phase 5) the daemon pods' node affinity and `GetTargetNodeName` use it
   "ObjectNameField",
+  # (prove-metav1, 2026-11-27) `init.1` (`zz_generated.conversion.go`:
+  # `localSchemeBuilder.Register(RegisterConversions)`, an append of a function value to
+  # `schemeBuilder`), `localSchemeBuilder` (`&schemeBuilder`), which it reads, and `schemeBuilder`
+  # (no initializer: nil); until then the
+  # `init` names-only (the trust-boundary axiom `initFuncsOk`) and the variable skipped. `init.0`
+  # (`register.go`) stays names-only: it registers types into `scheme` through `reflect`
+  "init.1", "localSchemeBuilder", "schemeBuilder",
   # BEGIN etc/gen-k8s-deep.py: the deep copies the proofs need (generated; do not edit)
   "LabelSelector.DeepCopyInto",
   "LabelSelectorRequirement.DeepCopyInto",
@@ -47,7 +54,7 @@ formatting method; the arguments have none). So each terminates, cannot panic an
 beyond its variable."""
 
 [[skip]]
-names = ["cborNull", "localSchemeBuilder", "SchemeGroupVersion", "Unversioned", "optionsTypes",
+names = ["cborNull", "SchemeGroupVersion", "Unversioned", "optionsTypes",
   "map_APIGroup", "map_APIGroupList", "map_APIResource", "map_APIResourceList", "map_APIVersions",
   "map_ApplyOptions", "map_Condition", "map_CreateOptions", "map_DeleteOptions",
   "map_FieldSelectorRequirement", "map_GetOptions", "map_GroupVersionForDiscovery",
@@ -62,6 +69,16 @@ Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`
 function values (built, not called) and other package variables' values or addresses, with no call.
 Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
 has no effect beyond its variable."""
+
+[[skip]]
+names = ["ParameterCodec"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewParameterCodec(scheme)` allocates a `*parameterCodec` whose four fields hold `scheme`
+(`codec.go`: a composite literal, no other call). So it terminates, cannot panic and has no effect
+beyond its variable. (prove-metav1, 2026-11-27; until then its initializer untranslated,
+`opaqueInitsOk`; its one reader in translated code, client-go's `NewFilteredListWatchFromClient`, is
+names-only, `Code/k8s_io/client_go/tools/cache.toml`.)"""
 
 [[skip]]
 names = ["scheme"]

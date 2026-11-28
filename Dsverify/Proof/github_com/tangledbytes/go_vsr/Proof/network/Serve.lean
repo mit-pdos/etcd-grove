@@ -6,7 +6,7 @@ with `listen_au` and `accept_au` at the configured address's `addrProto`; the la
 `net.ListenNet.wp_proof`, `net.TCPListener.Accept.wp_proof`, `net.TCPConn.RemoteAddr.wp_String`);
 the listener is `net.isListener li l` with the node's `netLis l me true` (the loop's invariant),
 `netLisAt l me`, instead of the lab's `net.ownListener l lid me`; the remote address's `String()` is
-the extension's `AnyString` (`wp_TCPAddr_String`); `slog.Debug` is `wp_Debug`, and the reader
+the Go model's `extAnyString` (`wp_TCPAddr_String`); `slog.Debug` is `wp_Debug`, and the reader
 `handleConn` takes its own hypotheses.
 -/
 /-
@@ -15,6 +15,7 @@ the extension's `AnyString` (`wp_TCPAddr_String`); `slog.Debug` is `wp_Debug`, a
 module
 
 public import Net.Proof.net.AtAddr
+public import Net.Proof.net.Errors
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.HandleConnDefs
 public import Net.Spec.net.Listen
 public import Net.Spec.net.Listener__Accept
@@ -33,12 +34,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net VsrModel
 section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 set_option goose.wp.extras true
 
-/-- `(*TCPAddr).String()`: some string (the extension's `AnyString`). -/
+/-- `(*TCPAddr).String()`: some string (the Go model's `extAnyString`). -/
 theorem network.wp_TCPAddr_String (p : Loc) :
     {{ (True : IProp GF) }}
       (App (Val #(methods (go.GoType.PointerType net.TCPAddr.ty) go!"String" #p)) (Val #()))
@@ -46,11 +47,10 @@ theorem network.wp_TCPAddr_String (p : Loc) :
   wp_start_folded as -
   wp_method_call
   wp_call
-  unfold net.TCPAddr.String.impl
-  wp_pures
-  iapply wp_net_AnyString
-  iintro %s
-  iapply HΦ; itrivial
+  try wp_auto
+  wp_apply net.wp_extAnyString as %s
+  iapply HΦ
+  itrivial
 
 /-- `tcp.serve(li)`, `li` this node's listener `l` at `me` (open): accepts connections forever
 (does not return). -/
@@ -169,7 +169,9 @@ theorem network.TCP.serve.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply network.wp_debug_resErr wp_Debug _ _ _ (some k) $$ [$Haerr $Hsl]
+    ihave #HnetD : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
+    wp_apply network.wp_debug_resErr wp_Debug _ _ _ (some k) $$ [$HnetD $Haerr $Hsl]
     wp_for_post
     iframe
 
@@ -186,7 +188,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net VsrModel
 section proofs2
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 set_option goose.wp.extras true

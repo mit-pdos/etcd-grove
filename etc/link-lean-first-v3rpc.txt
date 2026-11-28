@@ -211,12 +211,26 @@ grpc_ChainStreamInterceptor:
 grpc_MaxRecvMsgSize:
 grpc_MaxSendMsgSize:
 grpc_MaxConcurrentStreams:
-grpc_NewServer:
-grpc_Server__RegisterService:
+# (W1, 2026-11-26) `NewServer` and `RegisterService` proved over the model's bodies, with their
+# callees (grpc's internal stats and event, the chain builders, `register` and its helpers)
+stats_NewCombinedHandler:
+grpcsync_NewEvent:
+grpc_chainUnaryInterceptors:
+grpc_chainStreamInterceptors:
+grpc_chainUnaryServerInterceptors: grpc_chainUnaryInterceptors
+grpc_chainStreamServerInterceptors: grpc_chainStreamInterceptors
+grpc_NewServer: stats_NewCombinedHandler grpcsync_NewEvent grpc_chainUnaryServerInterceptors grpc_chainStreamServerInterceptors
+grpc_Server__printf:
+grpc_Server__wrapUnaryHandler:
+grpc_Server__register: grpc_Server__printf grpc_Server__wrapUnaryHandler
+grpc_Server__RegisterService: grpc_Server__register
 health_NewServer:
-health_Server__SetServingStatus:
-grpc_health_v1_HealthCheckResponse_ServingStatus__String:
-grpc_health_v1_RegisterHealthServer:
+health_Server__setServingStatusLocked:
+health_Server__SetServingStatus: health_Server__setServingStatusLocked
+# (prove-healthstr, 2026-11-27) over its trusted model, whose fallback is strconv.Itoa (until then an axiom)
+strconv_Itoa:
+grpc_health_v1_HealthCheckResponse_ServingStatus__String: strconv_Itoa
+grpc_health_v1_RegisterHealthServer: grpc_Server__RegisterService
 prometheus_NewServerMetrics:
 prometheus_WithServerHandlingTimeHistogram:
 prometheus_ServerMetrics__UnaryServerInterceptor:

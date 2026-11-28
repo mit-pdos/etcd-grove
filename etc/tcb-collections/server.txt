@@ -139,7 +139,6 @@ axiom traceutil.Tracer.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
-axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
@@ -181,7 +180,6 @@ opaque leasePeersOk
 opaque membership.memBucketsOk
 opaque membership.membersOf
 opaque membership.peerURLsOk
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk

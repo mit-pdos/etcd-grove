@@ -44,7 +44,9 @@ own names `Γ.au mid`/`Γ.ls mid`, which `Serve_dist`'s auth-on premise (`member
 resources, and an error arm that claims nothing (an invalid or expired token, a token another member has not yet
 applied, a permission refusal, a timeout or partition all return `err ≠ nil`).
 
-**Reviews** (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`).
+**Reviews** (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`) but for one weakening:
+**Weakened** (2026-11-27, `notes/axiom-review/onrevlb-weakening.md`): no `kvRevLb` of the reply's revision (the
+in-process `etcdPutSpecMW` gives it only with auth off; auth-on revisions follow `kvModelOn`).
 
 Retired by #24's S2 client side (`etcdSvc` defined, `Invoke` over the net model). The statement does not
 change. -/

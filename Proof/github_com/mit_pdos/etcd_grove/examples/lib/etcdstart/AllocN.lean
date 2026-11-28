@@ -254,7 +254,9 @@ theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid
       ([∗list] id ∈ ids, memberSlice (GF := GF) γ ps ctxs (LogEntry.toEntries boot 0) cnt wn fs gen
         (xsOf ids idx (idPfxOf (W16 (uint.Z id)))) (idx id) (cok id) (rev id) (reg id) id) ∗
       (if on then
-        iprop(etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
+        -- (F7 S13) with the KV names' raft log raft's (what the auth client's `RunAuth` needs)
+        iprop(⌜γk.rlog = γ.log⌝ ∗
+          etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
           authHistView γk [srvAuthSt0])
       else if decide (lm ≠ .none) then iprop(True) else
         etcdKV γk (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)))) := by
@@ -312,7 +314,7 @@ theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid
         (gpsOk_of_apart lm ids id0 hid0 hap))
       with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, Hah, #Hcl, #H0, #Hpm,
         #Hrc, Hms, Hwns, Htoks⟩
-    obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+    obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hkr, hklg, hgp, hgps, hrl⟩ := Hγ
     have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
     have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklg ▸ h))
     ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
@@ -324,6 +326,7 @@ theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid
     rw [if_pos (rfl : true = true)]
     iframe Hetcd
     iframe Hah
+    iframe %hrl
     isplitr
     · ipureintro
       exact ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap,

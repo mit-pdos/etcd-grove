@@ -112,7 +112,7 @@ section master
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions]
 
 /-- The master as `master.New(5, 7501, cfg, logger)` builds it (exclusive): its fields (`N` 5,
@@ -265,7 +265,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [examples.epaxosnet.Assumptions]
 
 /-- `master.New(5, 7501, cfg, logger)` (as `serve(1, ...)` calls it), with a configuration with

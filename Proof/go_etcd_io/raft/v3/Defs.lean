@@ -1158,6 +1158,14 @@ structure NGhost [GooseExts] where
   (`NetFrame`). (Until then the flags `xf`, leader transfer off, and `bt`, past term `0` for good,
   which the cluster's no-transfer mode set; both deleted with the mode, U9.) -/
   xw : GMap (w64 × w64) Unit := ∅
+  /-- (antithesis parity B1, 2026-11-26, option (b)) **The timeout requests stamped**: the destination
+  and term `(To, Term)` of every `MsgTimeoutNow` the node queued (`XQOk`'s last clause), each with a
+  witness that its destination acknowledged an index past `0` at that term (`ghostRest`'s `xfW`, its
+  `xtW` half). Only a leader queues one, to its transferee once that one's `Match` is the last index
+  (`sendTimeoutNow`, `SendOk`'s transfer clause): `raft.Step` records `(transferee, term)` before the
+  step, from the leader's `Match` witness (`matchedOk`) on a transfer request and from the
+  acknowledgement's own (`isMessage`) on an append response (`"%Hxwframe"`). Only grows. -/
+  xt : GMap (w64 × w64) Unit := ∅
   /-- (D22 S-d3a, 2026-10-21) **The storage lent**: a mirror of `LogState.lent` (`SnpOk`), which a
   step keeps (`NetFrame`'s `s'.gh = s.gh`), so that the `RawNode` knows across the steps between a
   snapshot's `Ready` and its `Advance` that the application holds the storage. Only the `RawNode`'s
@@ -1188,6 +1196,21 @@ structure NGhost [GooseExts] where
   `[]` outside `send` (the `RawNode` predicates record it, `%Hglq`), which the queue-draining closures
   need. A list, not an `Option`, so that `send` pops back to whatever its caller's state held. -/
   lq : List (Loc × MsgSt) := []
+  /-- (2026-11-24, #33 S4) **A transfer request was stepped**: set by `raft.Step`'s
+  `MsgTransferLeader` arm before the step (`ownRaftPhysC_set_xs`, `"%Hxwframe"`), never cleared.
+  Until it is set the node has no transferee and every queued message is of a type the model
+  describes (`XfOk`'s last clause): the only untyped messages raft queues, `MsgTimeoutNow` and a
+  forwarded `MsgTransferLeader`, come from a transfer request's step or from a transferee
+  (`sendTimeoutNow`'s premise, `SendOk`'s transfer clause). The Antithesis harness never steps one
+  (`RnScope`), so a `Ready`'s messages are typed there. -/
+  xs : Bool := false
+  /-- (antithesis parity B1, 2026-11-27, transfer source) **The transfer requests forwarded**: the
+  sender `From` of every `MsgTransferLeader` the node queued (`XfOk`'s last clause; `send`'s
+  transfer clause). The only one raft queues is `stepFollower`'s forward, which keeps the request's
+  `From`: `raft.Step`'s transfer arm records `m.From` first, with `xw`'s record (`"%Hxwframe"`).
+  Pure (no witness); only grows. The Antithesis scope bounds it by the cluster's ids
+  (`XScopeOk`'s last clause), which a `Ready` reads for a forward's sender (`XReadyOk`). -/
+  xsrc : GMap w64 Unit := ∅
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)
@@ -1588,9 +1611,9 @@ which the dynamic model's `StepR.sendApps`/`win` require (stage B3's finding: I1
 `MsgApp` with an older commit index). -/
 def ReplSends (id : w64) (s : NState) (ms : List Msg) : Prop :=
   ∀ m ∈ ms, ReplOk id (toPState s) m ∧ AppCommitEq (toPState s) m ∧
-    -- (D19p, 2026-10-18) a snapshot goes to a peer of the progress map (`maybeSendSnapshot`'s
-    -- `pr`)
-    (m.ty = .snap → m.dst ∈ domSet s.progress) ∧
+    -- (D19p, 2026-10-18; every message since 2026-11-25, #33 S4) it goes to a peer of the
+    -- progress map (`maybeSendAppend`'s `to`, `maybeSendSnapshot`'s `pr`)
+    m.dst ∈ domSet s.progress ∧
     -- (2026-10-19, D21 M3) and never in the no-snapshot mode (`NGhost.ns`): there `Next ≥ 2`
     -- and the storage is never compacted past `1`, so `maybeSendAppend` never falls back to one
     (m.ty = .snap → s.gh.ns = false)
@@ -1609,7 +1632,7 @@ theorem ReplSends.commitEq {id : w64} {s : NState} {ms : List Msg} (H : ReplSend
 theorem ReplSends.snapTo {id : w64} {s : NState} {ms : List Msg} (H : ReplSends id s ms)
     {c : CfgM} (Hc : domSet s.progress ⊆ c.voters ∪ c.learners) :
     ∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners :=
-  fun m hm hs => (GMap.elem_of_subseteq _ _).1 Hc _ ((H m hm).2.2.1 hs)
+  fun m hm _ => (GMap.elem_of_subseteq _ _).1 Hc _ (H m hm).2.2.1
 
 /-! Each physical transition is its protocol counterpart on `toPState`. Stated so that
 proofs rewrite rather than unfold. -/
@@ -1733,19 +1756,19 @@ theorem replOk_proper (id : w64) (ps ps' : PState) (m : Msg)
   unfold ReplOk AppOk SnapOk at *
   rw [Ht, Hb, Hl, Hc]; exact H
 
-/-- `replAC_proper` for `ReplSends`'s element (D19p: with the snapshot's peer), at a state with
+/-- `replAC_proper` for `ReplSends`'s element (D19p: with the destination's peer), at a state with
 the same progress map. -/
 theorem replACS_proper (id : w64) (s s' : NState) (m : Msg)
     (Ht : (toPState s').term = (toPState s).term) (Hb : (toPState s').base = (toPState s).base)
     (Hl : (toPState s').log = (toPState s).log) (Hc : (toPState s').commit = (toPState s).commit)
     (Hp : s'.progress = s.progress)
     (H : ReplOk id (toPState s) m ∧ AppCommitEq (toPState s) m ∧
-      (m.ty = .snap → m.dst ∈ domSet s.progress) ∧ (m.ty = .snap → s.gh.ns = false))
+      m.dst ∈ domSet s.progress ∧ (m.ty = .snap → s.gh.ns = false))
     (Hg : s'.gh.ns = s.gh.ns) :
     ReplOk id (toPState s') m ∧ AppCommitEq (toPState s') m ∧
-      (m.ty = .snap → m.dst ∈ domSet s'.progress) ∧ (m.ty = .snap → s'.gh.ns = false) :=
+      m.dst ∈ domSet s'.progress ∧ (m.ty = .snap → s'.gh.ns = false) :=
   ⟨replOk_proper id _ _ m Ht Hb Hl Hc H.1, fun h => by rw [Hc]; exact H.2.1 h,
-    fun h => by rw [Hp]; exact H.2.2.1 h, fun h => by rw [Hg]; exact H.2.2.2 h⟩
+    by rw [Hp]; exact H.2.2.1, fun h => by rw [Hg]; exact H.2.2.2 h⟩
 
 theorem replSends_prvals (id : w64) (s : NState) (pvs : GMap w64 Progress) (ms : List Msg) :
     ReplSends id { s with prvals := pvs } ms ↔ ReplSends id s ms := by

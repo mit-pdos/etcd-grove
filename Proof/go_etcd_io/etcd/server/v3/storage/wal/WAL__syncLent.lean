@@ -37,7 +37,7 @@ variable [syscall_sem : syscall.Assumptions]
 variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofLent [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofLent
     (Mr : WalMarshal)
     (wp_FdatasyncP : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (hG := hG) (W := W) Mr)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))

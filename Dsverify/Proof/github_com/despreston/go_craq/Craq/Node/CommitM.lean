@@ -25,7 +25,7 @@ section commitm
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- The latest map after committing `v` of `k`. -/
 def bumpLat (lat : GMap GoString w64) (k : GoString) (v : w64) : GMap GoString w64 :=

@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PerTypeLeaseKeepAlive
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseKeepAlive
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__NewStream
+public import Proof.go_etcd_io.etcd.client.v3.EtcdNewStream
 
 @[expose] public section
 
@@ -38,11 +39,8 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   wp_start as ⟨Hlt, #Hstub, #Hconn, #Hstr0, #Hdesc, #Hctx, #Hopts, #Hok⟩
   iunfold isEtcdConn at Hconn
   icases Hconn with ⟨%ic, #Hgc, -, -, #Hcst⟩
-  iunfold etcdConnStream at Hcst
-  icases Hcst with ⟨%d, #Hcod, %hd⟩
-  obtain ⟨si, hsi⟩ : ∃ si, d.streamIc = some si := Option.ne_none_iff_exists'.mp hd.1
-  have hE : streamErrShape (GF := GF) d = fun _ => iprop(True) := by
-    funext err; unfold streamErrShape; rw [hsi]
+  ihave #Hwc : etcdWatchConn (GF := GF) conn [addr] [ic] $$ []
+  · iunfold etcdWatchConn; iframe Hgc Hcst
   iunfold leaseKAStreamOk at Hstr0
   icases Hstr0 with ⟨%Up, %Spec, #Hstr, #Hz⟩
   wp_auto
@@ -91,20 +89,16 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   ihave #HctxO := ctxOk_outgoingC ctx cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
-  have hNS := wp_NewStream conn [addr] [ic] clientRes d etcdVersionMd
+  have hNS := etcdNewStream_of wp_NewStream conn [addr] [ic]
     go!"/etcdserverpb.Lease/LeaseKeepAlive"
     pbLeaseKeepAliveRequestT pbLeaseKeepAliveResponseT pbLeaseKeepAliveRequestT_reg
     pbLeaseKeepAliveResponseT_reg Up (fun _ _ => Spec) ctx cd om
-  simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT, hE, ← clientAttemptMd_eq] at hNS
+  simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT] at hNS
   iapply (hNS _ copts ([sm] ++ vs) (levelTok 0)) $$ [Hlt]
   · isplitr
     · iframe #
     isplitr
     · iframe #
-    isplitr
-    · iframe #
-    isplitr
-    · ipureintro; exact hd.2
     isplitr
     · ipureintro; rfl
     isplitl [Hlt]
@@ -113,7 +107,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
     iframe Hd0
-    ipureintro; exact Or.inl hcs
+    ipureintro; exact hcs
   inext
   iintro %cs %err ⟨Hlt, Hres⟩
   wp_auto
@@ -141,7 +135,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     iframe #
     iframe
   · ihave #Herr' := Herr
-    iunfold cliStreamErr at Herr'
+    iunfold cliOpenErr at Herr'
     icases Herr' with ⟨%Hne, -, -⟩
     subst Hcs
     cases err with

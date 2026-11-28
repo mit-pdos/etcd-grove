@@ -25,7 +25,6 @@ axiom pbLeaseKeepAliveRequestT_reg
 axiom pbLeaseKeepAliveResponseT_reg
 axiom pbLeaseRevokeRequestT_reg
 axiom pbLeaseRevokeResponseT_reg
-axiom streamIcMdIs
 opaque apply.irrDecodeRest
 opaque apply.semverAtMostServer
 opaque apply.semverValid
@@ -37,7 +36,6 @@ opaque grpcConnOptsRaw
 opaque grpcRepModelOf
 opaque grpcReqModelOf
 opaque grpcSrvPI
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk

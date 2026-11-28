@@ -17,7 +17,7 @@ client panics when a property of net/rpc fails, this says each holds, under ever
 extension allows (cut, reset or delayed connections, refused dials).
 
 **Premises**: only the deployment's start (`DistDeploy`) and the program's typing facts (the
-commands' `Assumptions`, `net.FieldAssumptions`, `go.BasicIntoValInj`), as echo's and the kits'
+commands' `Assumptions`, `go.BasicIntoValInj`; `net.FieldAssumptions` went with the Go-model net), as echo's and the kits'
 statements. What it rests on beyond the proofs, besides the net extension's semantics and the
 net/rpc and net/http models' trusted claims: the trust-base collection
 `etc/tcb-collections/rpcdriver.txt` (the interim axioms of net/rpc's and net/http's first-run
@@ -47,7 +47,7 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 def rpcdriver_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState),
     DistDeploy rpcAddrs (system σs σc) g →
     Robustness.Robust [] (system σs σc) g rpcThreads rpcSteps

@@ -1,0 +1,25 @@
+TestF7TxnNested (f7txn_nested_test.go): auth on, 3 members, each case run through a client at each
+member (m0, m1, m2). Users: alice readwrite [a,b); wo write-only [a,b); root. Model column: what
+Txn_CommitOn_dist's model says (grantedAt over reqPerms/opPerms: comparisons' reads and BOTH branches,
+recursively; kvOpStep (.txn t) = commit of srvRunTxn, nested verdicts at the read state s0).
+
+ 1 T4: Then(OpTxn(nil,[Put c/..],nil))                  model: refused     Go: permission denied, no rev step
+ 2 Then(Put a/.., OpTxn([Put c/..]))                    model: refused     Go: permission denied, a/.. not written
+ 3 Else(OpTxn([Put c/..])) on the untaken outer branch  model: refused     Go: permission denied
+ 4 nested OpTxn(nil,[Put a],[Put c]) (else untaken)     model: refused     Go: permission denied
+ 5 nested compare on c/x (no read)                      model: refused     Go: permission denied
+ 6 wo: nested compare in a/ (write-only)                model: refused     Go: permission denied
+   wo: nested put in a/                                 model: granted     Go: ok, one step
+ 7 wo: nested Delete a/.. WithPrevKV                    model: refused     Go: permission denied
+ 8 Then(Put a/n1, OpTxn([Put a/n2]))                    model: one step    Go: ok, one step, nested Succeeded
+ 9 40-deep nested put c/.. / a/..                       model: refused / one step   Go: same; 40 nested verdicts true
+10 Then(Put a/k=x, OpTxn(If(Value(a/k)=x),..)) a/k=b    model: nested verdict at s0 = false, else runs   Go: same
+11 Then(Put a/g, OpTxn([Get a/g]))                      model: nested get reads the put (in order)   Go: same
+12 Then(OpTxn([Get a/g])) (not read-only)               model: write arm, no step   Go: ok, rev unchanged
+13 OpTxn(nil,[Put a/z=t],[Put a/z=e])                   model: one step, z=t   Go: same
+14 sibling conflicts: Del-then-Put nested; nested Put + top Delete (both orders); Put+Put siblings
+                                                        Go: duplicate key (error arm: no claim)
+   Then(OpTxn([Put a/s]), OpTxn([Delete a/s]))         excluded by txnNestOk (txnSibSafeL); Go accepts
+                                                        (issues/etcd-txn-check-intervals-sibling.md), one step, key deleted
+15 raw gRPC TxnRequest with a nested put c/..           Go: PermissionDenied (the request is not flattened)
+All 3 x 22 cases PASS.

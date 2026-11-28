@@ -43,7 +43,7 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
   GooseGlobalGS.gooseInvGS
 
 theorem grpcdriver_robust : grpcdriver_robust.spec := by
-  intro _ lctx sem srv_sem cli_sem field_sem _ σs σc g hd
+  intro _ lctx sem srv_sem cli_sem _ σs σc g hd
   refine robust_of_distBootIT (GF := netGF) grpcAddrs (system σs σc) g grpcThreads grpcSteps
     (fun hg hl => ⟨extsInitgP_of_init ⟨net_init_compat, trivial⟩ hg,
       fun m hm => extsInitP_of_init ⟨net_init_compat, trivial⟩ (hl m hm)⟩) ?_ hd.1 hd.2.1

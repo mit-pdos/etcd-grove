@@ -1,11 +1,13 @@
 /-
-The vocabulary of the specs of `net`'s UDP models (`Net/TrustedCode/net.lean`, section "UDP", over
-the UDP extension `GooseLang/Ext/Udp`, `notes/net-udp.md`):
+The vocabulary of the specs of `net`'s UDP calls (Go's `ListenUDP`, `WriteToUDP`, `ReadFromUDP`, over
+the Go model's `sysListener.listenUDP`, `UDPConn.readFrom`, `UDPConn.writeTo`, `models/net/model.go`,
+and the UDP extension `GooseLang/Ext/Udp`, `notes/net-udp.md`):
 
-* `udpConnAt c s a` (persistent): the `*UDPConn` `c` holds the UDP extension's socket id `s`, bound
-  to `a` (`udpSock`), its local address (a non-nil `*UDPAddr`, read-only) and the network `"udp4"`.
-  Sockets are never closed (`Close` is not modeled, U12), so it is persistent: any number of
-  threads may send and receive on `c` at once.
+* `udpConnAt c s a` (persistent): the `*UDPConn` `c` (Go's `struct{ conn }`, read-only) holds a
+  `netFD` (`udpFdAt`, read-only) with the UDP extension's socket id `s` in Go's `pfd.Sysfd`, bound
+  to `a` (`udpSock`), its local address (a non-nil `*UDPAddr`, read-only), no remote address, and
+  the network `"udp4"`. Sockets are never closed (`Close` is not modeled, U12), so it is
+  persistent: any number of threads may send and receive on `c` at once.
 * `udpAddrAt p ip port` (persistent): the `*UDPAddr` `p` holds the IP `ip` (its slice, read-only)
   and the port `port`, for good: what `ListenUDP` and `WriteToUDP` read of their address.
 * `udpErr op src addr err`: `err` is a new `*OpError{Op: op, Net: "udp4", Source: src, Addr: addr}`
@@ -30,26 +32,11 @@ open Net Udp
 
 namespace net
 
-/-! The model's types as goose names them, for proofs over the UDP extension alone (`Base.lean`'s
-equations of the same types carry its section's `HasExt netExt`). -/
-section tys
-variable [GooseExts] [go_gctx : GoGlobalContext]
-
-theorem udp_OpError_ty_eq : model.OpError = OpError.ty := by unfold OpError.ty; rfl
-theorem udp_Addr_ty_eq : model.Addr = Addr.ty := by unfold Addr.ty; rfl
-theorem udp_IP_ty_eq : model.IP = IP.ty := by unfold IP.ty; rfl
-theorem udp_Errno_ty_eq : model.Errno = syscall.Errno.ty := by unfold syscall.Errno.ty; rfl
-
-end tys
-
 section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt udpExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.UdpFieldAssumptions]
-
-theorem UDPConn_ty_eq : model.UDPConn = UDPConn.ty := by unfold UDPConn.ty; rfl
-theorem UDPAddr_ty_eq : model.UDPAddr = UDPAddr.ty := by unfold UDPAddr.ty; rfl
+variable [package_sem' : net.Assumptions]
 
 /-- `x` is a non-nil `*UDPAddr` (as an `Addr`), read-only for good. -/
 def udpAddr (x : GoInterface) : IProp GF :=
@@ -59,10 +46,20 @@ def udpAddr (x : GoInterface) : IProp GF :=
 instance udpAddr_persistent (x : GoInterface) : Persistent (udpAddr (GF := GF) x) := by
   unfold udpAddr; infer_instance
 
-/-- The `*UDPConn` `c` is this node's UDP socket `s`, bound to `a`, with the local address `la`. -/
+/-- The `netFD` `fd` (read-only for good) is a model UDP socket: the UDP extension's id `s` in Go's
+`pfd.Sysfd`, the network `"udp4"`, the local address `la`, no remote address (`udpFD`). -/
+def udpFdAt (fd : Loc) (s : w64) (la : GoInterface) : IProp GF :=
+  iprop(∃ v : netFD, ⌜v.pfd'.Sysfd' = s ∧ v.net' = go!"udp4" ∧ v.laddr' = la ∧
+    v.raddr' = interface.nil⌝ ∗ fd ↦□ v)
+
+instance udpFdAt_persistent (fd : Loc) (s : w64) (la : GoInterface) :
+    Persistent (udpFdAt (GF := GF) fd s la) := by
+  unfold udpFdAt; infer_instance
+
+/-- The `*UDPConn` `c` is this node's UDP socket `s`, bound to `a`. -/
 def udpConnAt (c : Loc) (s : w64) (a : GoString) : IProp GF :=
-  iprop(∃ la, c ↦□ (UDPConn.mk s la go!"udp4") ∗ udpAddr la ∗ ⌜s ≠ 0⌝ ∗
-    udpSock (extLocalGS udpExt (L := hG.goose_localGS)) s a)
+  iprop(∃ (fd : Loc) (la : GoInterface), c ↦□ (UDPConn.mk (conn.mk fd)) ∗ udpFdAt fd s la ∗
+    udpAddr la ∗ ⌜s ≠ 0⌝ ∗ udpSock (extLocalGS udpExt (L := hG.goose_localGS)) s a)
 
 instance udpConnAt_persistent (c : Loc) (s : w64) (a : GoString) :
     Persistent (udpConnAt (GF := GF) c s a) := by

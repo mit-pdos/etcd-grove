@@ -16,7 +16,9 @@ translate = ["!*", "FromOutgoingContextRaw",
   # `health`'s (batch 2, 2026-11-25)
   "HealthCheckFunc", "RegisterClientHealthCheckListener",
   # `balancer`'s
-  "BalancerUnregister"]
+  "BalancerUnregister",
+  # (grpc-mem, 2026-11-26) `mem`'s and `internal/mem`'s
+  "SetDefaultBufferPool", "SetBufferPoolingThresholdForTesting"]
 # `HealthChecker` (`HealthCheckFunc`'s type) names `context` and `connectivity`
 imports = ["!*", "context", "google.golang.org/grpc/connectivity"]
 

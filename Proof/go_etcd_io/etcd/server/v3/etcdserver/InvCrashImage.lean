@@ -128,7 +128,7 @@ def srvCrashImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S
 /-- **The snapshot directory's invariant with its crash token, as a restart returns it** (D-T7-2,
 2026-11-25): `srvCrashImageAt`'s `snapDirKeep`, at the member's directory names `γd` and some removal
 counter `γm`; `NewServer.specC`'s post gives it back (the server keeps only the handle), for the
-generation's crash frame (`memberCrash.memberSnapKeep`). -/
+generation's crash frame (`srvSnapKeepK`). -/
 def srvSnapKeep (γ : SrvRaft) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ γd γm : GName, ⌜γ.snapLoc id = some γd⌝ ∗
     snapDirKeep (config.snapDirOf dd) γd (srvImageM γ.authOn γ)

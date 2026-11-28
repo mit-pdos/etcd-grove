@@ -43,24 +43,17 @@ def imp(m):
     f = x.replace('.', '/') + '.lean'
     if os.path.exists(f'{g.DSV_ROOT}/{f}') or f'{g.DSV_ROOT}/{f}' in made:
         x = f'{g.DSV_ROOT}.{x}'
-    elif os.path.exists(f'{g.NET_ROOT}/{f}') or x == 'Proof.runtime.PkgInitExt':
+    elif os.path.exists(f'{g.NET_ROOT}/{f}'):
         x = f'{g.NET_ROOT}.{x}'
     return m.group(1) + x
 
 
-# (as etc/gen-init.py's `dsv_inits`) an external initializer `Net/`'s `ExternalInit` does not list
-have = set(re.findall(r'(?m)^  \| (\S+) : ExternalInit',
-                      open(f'{g.NET_ROOT}/Proof/runtime/PkgInitExt.lean').read()))
-pat = r"\(EtcdGrove\.initLb_of_spec (pkg_id\.\S+) (\S+)\n\s+EtcdGrove\.ExternalInit\.(\S+) (\S+)"
-
-
+# (L1, 2026-11-24) `Proof/runtime/PkgInitExt.lean` is one module for every tree, its `ExternalInit`
+# generic (no list of registered packages), so the generated walk's `initLb_of_spec` steps stay as
+# gen-init writes them (until then those of a package `Net/`'s inductive did not list became
+# `Dsv.initLb_of_spec`, over `Dsverify/`'s `PkgInitDsv`)
 def fix(txt):
-    new = re.sub(pat, lambda m: m.group(0) if m.group(3) in have else
-                 f"(EtcdGrove.Dsv.initLb_of_spec {m.group(1)} {m.group(2)}\n      {m.group(4)}", txt)
-    if new != txt:
-        new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
-                          'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
-    return new
+    return txt
 
 
 AX_DOC = {
@@ -93,6 +86,8 @@ def transform(p, txt):
     txt = txt.replace("theorem wp_initialize' ", "theorem local_wp_initialize' ")
     txt = txt.replace("(wp_initialize'_lb get_is_pkg_init Hinit)", "(local_wp_initialize'_lb get_is_pkg_init Hinit)")
     end = f'\nend {p}\n\nend init\n'
+    if end not in txt:  # gen-init closes its sections in either order
+        end = f'\nend init\n\nend {p}\n'
     assert end in txt, p
     txt = txt.replace(end, f'''
 /-- **The instance** (a theorem, not an `instance`: etc/dsv/README.md): `{p}`'s `InitHyp`. -/
@@ -101,10 +96,36 @@ theorem initHyp_holds : InitHyp GF := ⟨local_wp_initialize'⟩
     return txt
 
 
+
+def merge_linked(init, linked):
+    """(gen-init splits a translated package's walk into `Init.lean`, its axioms, and `InitLinked.lean`,
+    its `wp_initialize'`: "Import tiers") one text as before the split: the imports of both (the axioms'
+    module's, then the linked module's but its import of `Init` itself, which `dsv_hyp_fix` adds), the
+    axioms' sections, then the linked module's `init` section."""
+    imps = lambda t: re.findall(r'(?m)^public import \S+\n', t)
+    li, ii = imps(linked), imps(init)
+    seen, out = set(), []
+    for x in li[:1] + ii + li[1:]:
+        if x.endswith('.Init\n') and x == li[0]:
+            continue  # its hypothesis module's import, which dsv_hyp_fix adds
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    head = init[:init.index(ii[0])]
+    body = init[init.index(ii[-1]) + len(ii[-1]):]
+    body = body[:body.rindex('\nend Perennial\n')]
+    sec = linked[linked.index('\nsection init\n'):]
+    return head + ''.join(out) + body + sec
+
+
+rawd = dict(raw)
 bad = []
 for path, txt in raw:
     if path not in want:
         continue
+    lk = path[:-len('Init.lean')] + 'InitLinked.lean'
+    if lk in rawd:
+        txt = merge_linked(txt, rawd[lk])
     p = want[path]
     t = transform(p, g.dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt)), need))
     out = f'{g.DSV_ROOT}/Proof/{g.dirof(p)}/InitInstancesLinked.lean'

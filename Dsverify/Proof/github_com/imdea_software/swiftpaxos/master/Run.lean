@@ -37,7 +37,7 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 end spec
@@ -46,7 +46,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -245,7 +245,7 @@ section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 

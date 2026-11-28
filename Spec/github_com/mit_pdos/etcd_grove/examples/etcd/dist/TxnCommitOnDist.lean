@@ -35,7 +35,9 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `txnSerializable = false` in the read-only case). A read-only transaction's update is `□ AU` (resent at the
 next endpoint on `Unavailable`), its success the member's check (`txnReadCheckedD`); a writing one's is
 `writeAuD` (resent after a token refresh), its success the grant of `irrTxn` (`writeCheckedD`, nested
-operations included). The error arm claims nothing.
+operations included). The error arm claims nothing. No revision lower bound for a writing transaction: the
+in-process `etcdTxnSpecMW` gives one only with auth off, and auth-on revisions follow `kvModelOn`, not
+`kvRevLb`'s `kvModel` (weakened 2026-11-27, `notes/axiom-review/onrevlb-weakening.md`).
 
 **Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; reviewed SOUND,
 `notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write
@@ -43,10 +45,20 @@ arm admits a leased transaction in the revocable lease mode, `txn.txnPlain … �
 as `KV_PutOn_dist`'s `leaseID = 0 ∨ Γ.kv.lm = .revocable` and the in-process `client.txnUpdAtOn` (`RunAuthLease`'s
 leased transactions; a weaker premise, callers unaffected). The auth-off `Txn_Commit_dist` is unchanged.
 
-**Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review): `authFloorD` also says every state member `mid` records from the floor's index `i` on is the history's after a committed prefix `L' ⊒ L₀` (`srvReqLogLb γR L'`), the shape `readCheckedD` has after N1 (`f7-getOn-n1.md`'s R1 argument).
+**Widened to nested transactions** (F7 S11, 2026-11-26; ledger `notes/specs-only/ledger.md`, review
+`notes/axiom-review/f7-txn-nested-review.md`): no `TxnModel.plain b.model` (a read-only transaction is flat anyway,
+`txnReadonly_plain`), and the write arm takes `client.txnUpdAtOn`'s condition, `txnNestOk` added: a writing
+transaction may nest `OpTxn`s (`examples/lib/authwork`'s T4), as in the in-process `client.client_txn_on`.
+
+**Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review: done, `f9-auth-combined-review.md`, SOUND): `authFloorD` also says every state member `mid` records from the floor's index `i` on is the history's after a committed prefix `L' ⊒ L₀` (`srvReqLogLb γR L'`), the shape `readCheckedD` has after N1 (`f7-getOn-n1.md`'s R1 argument).
+
+**Narrowed 2026-11-27** (`notes/axiom-review/txnshape-narrowing.md`; a weakening): the write arm requires every
+permission of the request to have the shape the permission cache decides, `kvShapeAll (irrTxn tw)` for the wire
+transaction, as `client.client_txn_on`'s `hsh`. With auth on, Go refuses a transaction with an empty or inverted
+range (the entry commits as a no-op), while the model granted it and `writeAuD`'s update applied its puts.
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
-`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean`). Reviews (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C, the Serve tie). Unchanged since (`f7-changed-since-review.md`). -/
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean`). Reviews (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C, the Serve tie). Widened since (S5, S11); reviewed `f7-txn-review.md`, `f7-txn-nested-review.md`, and with the set `f9-auth-combined-review.md` (SOUND). -/
 abbrev Txn_CommitOn_dist.spec : Prop :=
   ∀ [NetProtoGS] (cl api txn_ptr : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
@@ -57,14 +69,15 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗
       txnObjAt txn_ptr eps ctx ctx_desc b ∗ txnKvIs txn_ptr api ∗
-      ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗
+      ⌜txnModelIn (txnWireOf b.model)⌝ ∗
       ((⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
           □ AU <{ ∃∃ (σ : KVState), etcdKV Γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
             <{ etcdKV Γ.kv σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧
             (txn.txnPlain (txnWireOf b.model) ∨
               (Γ.kv.lm = .revocable ∧ txnPlainL (txnWireOf b.model))) ∧
-            txnNoZeroEnd (txnWireOf b.model)⌝ ∗
+            txnNoZeroEnd (txnWireOf b.model) ∧ txnNestOk (txnWireOf b.model) ∧
+            ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)⌝ ∗
           writeAuD Γ.kv (principalOf cfg) (.txn (txnWireOf b.model)) L₀ Q)) ∗
       ⌜txnSizeOk (txnWireOf b.model)⌝ }}
     (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
@@ -82,7 +95,6 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
           (txn.txnReadonly (txnWireOf b.model) = false →
             kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
               (txnWireOf b.model)).2.1))⌝ ∗
-        client.txnRevLb Γ.kv (txnWireOf b.model) m ∗
         (if txn.txnReadonly (txnWireOf b.model) then
           txnReadCheckedD eps Γ γR (principalOf cfg) L₀ (txnWireOf b.model)
         else iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = txnWireOf b.model⌝ ∗

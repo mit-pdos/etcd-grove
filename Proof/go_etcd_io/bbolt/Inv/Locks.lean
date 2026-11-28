@@ -112,8 +112,10 @@ def metaOsBytes (p : BFile) (dq : DFrac) (C : CommitSt) : IProp GF :=
 /-- The `*os.File` `f` is open on `fd`, named `name` (`os.ownFile`'s body, `fileOwn_eq`). -/
 def fileOwn (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
   iprop(∃ inner : Loc, f ↦□ (os.File.mk inner) ∗
-    structFieldRef os.file go!"fd" inner ↦{dq} fd ∗
+    structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{dq} fd ∗
     structFieldRef os.file go!"name" inner ↦□ name ∗
+    structFieldRef os.file go!"nonblock" inner ↦□ false ∗
+    structFieldRef os.file go!"appendMode" inner ↦□ false ∗
     syscall.errnoOk (GF := GF))
 
 theorem fileOwn_eq [os.Assumptions] (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) :
@@ -492,17 +494,17 @@ theorem fileOwn_fractional (f : Loc) (fd : w64) (nm : GoString) :
     Fractional (fun q : Qp => fileOwn (GF := GF) f fd nm (DFrac.own q)) where
   fractional q1 q2 := by
     have hfr : ∀ inner : Loc, Fractional (fun q : Qp =>
-        (structFieldRef os.file go!"fd" inner ↦{DFrac.own q} fd : IProp GF)) := fun inner =>
-      fractional_of_dfractional (fun dq => (structFieldRef os.file go!"fd" inner ↦{dq} fd : IProp GF))
+        (structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{DFrac.own q} fd : IProp GF)) := fun inner =>
+      fractional_of_dfractional (fun dq => (structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{dq} fd : IProp GF))
     refine ⟨?_, ?_⟩
     · unfold fileOwn
-      iintro ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩
+      iintro ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩
       icases ((hfr inner).fractional q1 q2).1 $$ Hfd with ⟨H1, H2⟩
       isplitl [H1]
       · iexists inner; iframe; iframe #
       · iexists inner; iframe; iframe #
     · unfold fileOwn
-      iintro ⟨⟨%inner, #Hf, Hfd1, #Hn, #Hsys⟩, ⟨%inner2, #Hf2, Hfd2, #Hn2, #Hsys2⟩⟩
+      iintro ⟨⟨%inner, #Hf, Hfd1, #Hn, #Hnb, #Hap, #Hsys⟩, ⟨%inner2, #Hf2, Hfd2, #Hn2, #Hn2b, #Hap2, #Hsys2⟩⟩
       icombine Hf Hf2 gives %Heq
       cases Heq
       iexists inner
@@ -514,7 +516,7 @@ theorem fileOwn_fractional (f : Loc) (fd : w64) (nm : GoString) :
 theorem fileOwn_agree (f : Loc) (fd fd' : w64) (nm nm' : GoString) (dq1 dq2 : DFrac) :
     fileOwn (GF := GF) f fd nm dq1 ∗ fileOwn f fd' nm' dq2 ⊢ ⌜fd = fd' ∧ nm = nm'⌝ := by
   unfold fileOwn
-  iintro ⟨⟨%i1, #Hf1, Hd1, #Hn1, -⟩, ⟨%i2, #Hf2, Hd2, #Hn2, -⟩⟩
+  iintro ⟨⟨%i1, #Hf1, Hd1, #Hn1, #Hn1b, #Hap1, -⟩, ⟨%i2, #Hf2, Hd2, #Hn2, #Hn2b, #Hap2, -⟩⟩
   icombine Hf1 Hf2 gives %Heq
   cases Heq
   icombine Hd1 Hd2 gives %h1

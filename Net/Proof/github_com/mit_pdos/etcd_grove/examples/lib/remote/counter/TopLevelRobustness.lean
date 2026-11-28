@@ -77,7 +77,7 @@ end boot
 
 /-- **remote's counter instance, closed** (see the statement's file). -/
 theorem counter_remote_robust : counter_remote_robust.spec := by
-  intro gctx lctx sem osem c0sem c1sem ssem fsem bvi σo σ0 σ1 σs g threads
+  intro gctx lctx sem osem c0sem c1sem ssem bvi σo σ0 σ1 σs g threads
   refine remote_robustRB (GF := remoteGF) (St := w64) (I := Bool) (O := w64) counterAddrs
     (system σo σ0 σ1 σs) g threads (2 ^ 63) [go!"127.0.0.1:7302", go!"127.0.0.1:7303"] 60
     (by decide) ?_

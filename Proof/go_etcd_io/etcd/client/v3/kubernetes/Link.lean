@@ -37,7 +37,7 @@ public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.CallsLinked
 public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section

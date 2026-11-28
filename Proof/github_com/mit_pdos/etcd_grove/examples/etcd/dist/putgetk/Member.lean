@@ -26,7 +26,7 @@ public import Spec.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.raft.v3.BootMarshal
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.StartMemberDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Dir
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start

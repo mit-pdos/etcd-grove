@@ -11,7 +11,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvraft, raft-tla, tracecheck, antithesis, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, k8s-all, k8s-dist, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -44,10 +44,12 @@ out at the pinned revision, otherwise a clone in `.lake/goose/perennial`.  A
 project's source is cloned into `.lake/goose/<name>` at its pinned revision, except
 for a project in this repository (`local`), whose source is that directory.
 
-Every `go` command runs with `GOTOOLCHAIN` set to the pinned GO_TOOLCHAIN (Go fetches it if
-absent): the translation of a standard-library package (names-only `net/http`, `encoding/json`,
-...) is of the toolchain's own source, which changes between patch releases (go1.27.1's
-`net/http` gives a different translation from go1.27.3's).
+Every `go` command runs on the pinned GO_TOOLCHAIN (Go fetches it if absent): the translation
+of a standard-library package (names-only `net/http`, `encoding/json`, ...) is of the toolchain's
+own source, which changes between patch releases (go1.27.1's `net/http` gives a different
+translation from go1.27.3's). It runs from a copy of the toolchain outside the Go module cache,
+`.lake/goose/goroot-<GO_TOOLCHAIN>` (`GOROOT` set to it, `GOTOOLCHAIN=local`; pinned_goroot says
+why).
 """
 
 import argparse
@@ -66,6 +68,16 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 WORK = os.path.join(ROOT, ".lake", "goose")
 # The Go toolchain the translations are generated with (the module docstring says why).
 GO_TOOLCHAIN = "go1.27.3"
+
+# The build tags of every project (one build configuration for every program): `netgo`, the pure-Go
+# `net` (Go-model overlays S6, 2026-11-24). `net`'s Go model (`[model]` in Net/Code/net.toml) splices
+# only a package without cgo files (Perennial's goose/util/model.go), and the default linux build
+# of `net` has them (the cgo resolver). The verified build is `-tags netgo`. etcd's release builds
+# use CGO_ENABLED=0 (scripts/build_lib.sh, `CGO_ENABLED="${CGO_ENABLED:-0}"`), which selects the
+# same `net` files but `netgo_off.go` for `netgo_on.go`: the constant `netGoBuildTag`, read only by
+# the resolver's configuration (`conf.go`), which the model replaces. `netgo` changes no other
+# package's files.
+BUILD_TAGS = ["netgo"]
 
 # Project raft's pin (projects raft and raft-tla translate two builds of it).
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
@@ -110,9 +122,10 @@ class Project:
     # The Go source is this directory of this repository (relative to its root) instead
     # of a fork (`repo`, `rev`: None).
     local: str = None
-    # Additional Go build tags the packages are loaded with, beside `goose` (goose's and proofgen's
-    # `-tags`, Perennial c6b39d4f8). Every package of one program must be translated with the same
-    # tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones with any.
+    # Additional Go build tags the packages are loaded with, beside `goose` and BUILD_TAGS (goose's
+    # and proofgen's `-tags`, Perennial c6b39d4f8). Every package of one program must be translated
+    # with the same tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones
+    # with any.
     tags: list = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
@@ -429,8 +442,14 @@ PROJECTS = [
         # `func Discard(lg, dirpath) error` (RemoveAll(dir.tmp), Rename(dir, dir.tmp), syncDir of
         # the parent), without its own `Unsaved` check: `bootstrap` calls it only after its
         # `Unsaved` returned (true, nil) and after `removeBackendDurably`.
+        # Then (F7 fork, 2026-11-26, SPECULATIVE)
+        # d26dd5da6 (branch `goose-lean-ttlkeys`, on df6af0c36; pushed 2026-11-26): `LeaseTimeToLive`
+        # checks read permission on the keys it returns (`checkLeaseTimeToLiveKeys`,
+        # issues/etcd-lease-timetolive-keys-toctou.md).
+        # The two combined (etcd-safe-integ, 2026-11-26): 30df685e4, branch
+        # `goose-lean-discardfix-ttlkeys`, d26dd5da6 cherry-picked onto 251a430ce.
         # Then (the keep guard's replacement, 2026-11-27, mit-pdos/etcd-grove#50; Upamanyu's decision:
-        # a boot-only fix) 01b0497d0, branch `keepfix-d-crashpin/2026-11-27` (on 251a430ce): 47d6cdeeb
+        # a boot-only fix) branch `keepfix-d-term/2026-11-27` (b1512efdd, on 251a430ce): 47d6cdeeb
         # reverted; cindex saves the consistent index with its own term (one mutex for the pair:
         # nonissues/etcd-cindex-torn-index-term.md); at restart, when the backend's consistent index
         # ci is above the WAL's commit, `bootstrap` brings the WAL to ci (the hard state's commit
@@ -444,7 +463,12 @@ PROJECTS = [
         # term), and the boot step raises the hard state's term to at least it, refusing to start
         # when the backend is ahead of the WAL's commit without that key tagged with its index
         # (notes/keepguard-optD/stale-ack-panic.md).
-        rev="b1512efddd1176b719dbe23aaf0b2364df909f8a",
+        # The three combined (etcd-safe-crashsync, 2026-11-27): 780d689f6, branch
+        # `goose-lean-crashsync/2026-11-27`: d26dd5da6 with the crash line's commits (df6af0c36..251a430ce)
+        # and keepfix's (251a430ce..b1512efdd) cherry-picked onto it.
+        # Rebased onto lean's 18ab647b0 (keepfix (c) integration, 2026-11-28, agreed on #50): be2e2542f,
+        # branch `goose-lean-crashsync2/2026-11-28`: 780d689f6's commits on 18ab647b0 (permsort).
+        rev="be2e2542fe8916ac89c33b9fff051d70ee9de390",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -692,6 +716,11 @@ PROJECTS = [
             # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) types only: `grpcsync.Event`, the
             # type of `grpc.Server`'s `quit`/`done` fields
             "google.golang.org/grpc/internal/grpcsync",
+            # (grpc-mem, 2026-11-26) types only but what their initializers run: `mem`'s buffer types,
+            # which grpc's `baseCodec` names (Code/google_golang_org/grpc/mem.toml), and `internal/mem`'s
+            # tiered pool, which `mem`'s `init` builds
+            "google.golang.org/grpc/mem",
+            "google.golang.org/grpc/internal/mem",
             # (status-bodies) types only: the message `internal/status.Status` holds
             "google.golang.org/genproto/googleapis/rpc/status",
             "google.golang.org/protobuf/types/known/anypb",
@@ -706,6 +735,13 @@ PROJECTS = [
             # (phase7-inits batch 2) types and names only but its `logger` and `init`: `SubConn`, the
             # type `health`'s `registerClientSideHealthCheckListener` names
             "google.golang.org/grpc/balancer",
+            # (phase 7 S2 core, 2026-11-23; W1, 2026-11-26) with bodies: what the client attempt's
+            # `createHeaderFields` calls (`grpcutil`'s compressor names, content type and timeout;
+            # `internal/metadata`'s `ValidatePair`)
+            "google.golang.org/grpc/internal/grpcutil",
+            "google.golang.org/grpc/internal/metadata",
+            # (W1, 2026-11-26) with its body: `NewCombinedHandler`, which `grpc.NewServer` calls
+            "google.golang.org/grpc/internal/stats",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
@@ -920,8 +956,10 @@ PROJECTS = [
         # `FileMode` and `PathError`, the errors the models return)
         # (`internal/poll` and `internal/syscall/unix`, 2026-11-07: what `os`'s translated
         # initializer reads; Perennial's import its own `syscall`)
+        # (`internal/filepathlite=`, 2026-11-24, Go-model overlays S5: os's Go `MkdirAll` and its
+        # models' `filepathlite.Base`, over this repository's translation, Code/internal/filepathlite)
         lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs=", "internal/poll=", "internal/syscall="],
+                    "io/fs=", "internal/poll=", "internal/syscall=", "internal/filepathlite="],
         packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
                   "internal/syscall/unix"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),
@@ -1304,6 +1342,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlin")],
     ),
     Project(
+        name="txnwork",
+        # linkvtxn's workload and porcupine model as a library (moved verbatim out of
+        # examples/etcd/txnlin on 2026-11-27, so that the multi-machine example imports no
+        # single-process driver): Gen, Call, Apply, Model and their helpers. A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd, lintest and porcupine
+        # projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "txnwork"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "txnwork")],
+    ),
+    Project(
         name="linkv3p",
         # linkvtxn's workload under network partitions (notes/partition-plan.md): three members
         # started in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
@@ -1371,6 +1425,21 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth")],
+    ),
+    Project(
+        name="authwork",
+        # authkv's set-up, workload and checks as a library (moved verbatim out of
+        # examples/etcd/auth on 2026-11-27, so that the multi-machine example imports no
+        # single-process driver): SetUp, Work, Principals, CheckHistory, LastIn, Permitted and their
+        # helpers. A package of the examples' Go module (examples/go.mod); its imports are the etcd
+        # project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "authwork"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "authwork")],
     ),
     Project(
         name="auth3",
@@ -2060,6 +2129,27 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "all")],
     ),
     Project(
+        name="k8s-dist",
+        # k8s_safe's program as a distributed deployment (notes/k8s-dist.md,
+        # notes/k8s-dist-lean-plan.md G6): package `.` of examples/k8s/dist, a Go module of its own
+        # requiring the two drivers' modules (examples/k8s/etcd3, examples/k8s/compactor, with their
+        # export.go) by path and everything else at examples/k8s/etcd3/go.mod's pins (CLIENT_GO_PINS,
+        # GO_MOD_PINS), with bodies: the deployment and its entry points (Orchestrator,
+        # NodeDeployment), the store's and the compactor's machines and orchestrators, their codecs.
+        # Everything it names outside the package is the k8s-apiserver, k8s-compactor, putget-dist
+        # (etcd-dist's client, deployment and enc), etcd and other projects' translations (the empty
+        # root), Remote and `net` the part Net/'s.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8s", "dist"),
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "k8s.io=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "github.com/mit-pdos/etcd-grove=",
+                    "github.com/anishathalye/porcupine=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "os=", "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "dist")],
+    ),
+    Project(
         name="kvwitness",
         # The key-value store example (project kv) on the witness raft (project raft-witness):
         # a cluster of two voters and an in-process witness (`StartClusterWitness`, `MainWitness`;
@@ -2387,6 +2477,71 @@ def host_env():
     return {k: v for k, v in os.environ.items() if k not in target}
 
 
+def pinned_goroot():
+    """The GOROOT every `go` command (and goose, proofgen) runs with: a copy of the pinned
+    GO_TOOLCHAIN's GOROOT at `.lake/goose/goroot-<GO_TOOLCHAIN>`, made once (its files hard links
+    to the toolchain's where the file system allows, else copies).
+
+    Not the toolchain's own GOROOT: `GOTOOLCHAIN=<GO_TOOLCHAIN>` runs the toolchain Go fetched
+    into the module cache (`$GOMODCACHE/golang.org/toolchain@v0.0.1-go1.27.3.linux-amd64`), and
+    the go command refuses an overlay that replaces a file there ("go: overlay contains a
+    replacement for .../src/hash/crc32/crc32_amd64.go. Files beneath GOMODCACHE (...) must not
+    be replaced."), which Perennial's Go models of standard-library packages are (since go-models
+    da0a82c26: the models of `os` and `syscall` replace `hash/crc32/crc32_amd64.go`). The go
+    command compares the overlay's paths with GOMODCACHE as strings, so a GOROOT outside it
+    suffices; a copy rather than a symbolic link keeps the paths outside it for a tool that
+    resolves links. The copy is renamed into place only when complete, so its `bin/go` marks a
+    finished one."""
+    d = os.path.join(WORK, "goroot-" + GO_TOOLCHAIN)
+    if os.path.isfile(os.path.join(d, "bin", "go")):
+        return d
+    env = {k: v for k, v in os.environ.items() if k != "GOROOT"}
+    env["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    r = subprocess.run(["go", "env", "GOROOT", "GOVERSION"], capture_output=True, text=True,
+                       env=env)
+    if r.returncode != 0:
+        sys.exit(f"goose.py: go env GOROOT (GOTOOLCHAIN={GO_TOOLCHAIN}) failed: {r.stderr.strip()}")
+    src, version = r.stdout.split()
+    if version != GO_TOOLCHAIN:
+        sys.exit(f"goose.py: GOTOOLCHAIN={GO_TOOLCHAIN} runs {version} ({src})")
+
+    def link_or_copy(a, b):
+        try:
+            os.link(a, b)
+        except OSError:
+            shutil.copy2(a, b)
+
+    os.makedirs(WORK, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix="goroot-" + GO_TOOLCHAIN + ".", dir=WORK)
+    new = os.path.join(tmp, "goroot")
+    # the directories are made writable (the module cache's are read-only), so that a copy can
+    # be deleted; the files keep their modes (a hard link shares the module cache's file)
+    for dp, dns, fns in os.walk(src):
+        rel = os.path.relpath(dp, src)
+        out = os.path.normpath(os.path.join(new, rel))
+        os.makedirs(out, mode=0o755)
+        for n in list(dns):
+            if os.path.islink(os.path.join(dp, n)):
+                os.symlink(os.readlink(os.path.join(dp, n)), os.path.join(out, n))
+                dns.remove(n)
+        for n in fns:
+            a = os.path.join(dp, n)
+            if os.path.islink(a):
+                os.symlink(os.readlink(a), os.path.join(out, n))
+            else:
+                link_or_copy(a, os.path.join(out, n))
+    try:
+        os.rename(new, d)
+    except OSError:
+        if not os.path.isfile(os.path.join(d, "bin", "go")):
+            raise
+        # another goose.py made it first: ours is left in `tmp`
+        print(f"goose.py: {d} made meanwhile; {tmp} is a spare copy to delete", file=sys.stderr)
+        return d
+    os.rmdir(tmp)
+    return d
+
+
 def git_head(d):
     r = subprocess.run(["git", "-C", d, "rev-parse", "HEAD"], capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else None
@@ -2708,8 +2863,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             piece_out = os.path.join(out, str(i))
             config = os.path.join(lib_dir, "Code")
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
-            if proj.tags:
-                roots = ["-tags", ",".join(proj.tags)] + roots
+            roots = ["-tags", ",".join(BUILD_TAGS + (proj.tags or []))] + roots
             if overlay and i == 0:
                 roots = ["-overlay", overlay] + roots
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
@@ -2769,7 +2923,11 @@ def main():
     ap.add_argument("--src", action="append", default=[], metavar="NAME=DIR")
     ap.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
     args = ap.parse_args()
-    os.environ["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    # the pinned toolchain from its copy outside the module cache (pinned_goroot says why), for
+    # every go command: the translator's build, the translations, the prophecy patches' checks
+    goroot = pinned_goroot()
+    os.environ.update(GOROOT=goroot, GOTOOLCHAIN="local",
+                      PATH=os.path.join(goroot, "bin") + os.pathsep + os.environ.get("PATH", ""))
     # The checked-in translations are linux/amd64's with cgo (the standard library's
     # cgo-processed packages, e.g. `net`, translate differently per target): translate for that
     # target on any host unless told otherwise (an arm64 host needs amd64's C cross-compiler for
@@ -2794,6 +2952,11 @@ def main():
         perennial, rev = pinned_perennial()
     sources = [(p,) + source(p, local.get(p.name), args.check) for p in projects]
     sources = [with_proph_patches(p, src, desc) for p, src, desc in sources]
+
+    # the [model] dir of every internal/gomodel.toml: Perennial's internal/gomodel at the Lean pin
+    # (etc/gomodels.py)
+    import gomodels
+    gomodels.materialize([perennial])
 
     bindir = os.path.join(WORK, "bin")
     os.makedirs(bindir, exist_ok=True)

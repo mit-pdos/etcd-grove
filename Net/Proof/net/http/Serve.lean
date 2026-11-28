@@ -27,7 +27,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.http.Assumptions]
 variable [π : NetProtoGS]
 
 theorem Serve.wp_proof_rpc (wp_ServeH : Serve.specHandler (GF := GF) (hG := hG))

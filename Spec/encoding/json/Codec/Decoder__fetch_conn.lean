@@ -33,7 +33,7 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [HasExt netExt] [net.Assumptions] [π : NetProtoGS]
 
 /-- What `fetch` returns (see the file header): `nil` with bytes read (not on a dead end), or no
 bytes and `io.ErrUnexpectedEOF`'s value `ue` (the end reading nothing more), or no bytes and an
@@ -51,7 +51,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [encoding.json.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [HasExt netExt] [net.Assumptions] [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev Decoder.fetch_conn.spec : Prop :=

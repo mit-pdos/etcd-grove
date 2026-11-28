@@ -1,0 +1,9 @@
+--- a/server/etcdserver/server.go
++++ b/server/etcdserver/server.go
+@@ applySnapshot @@
+ 		lg.Info("restored lease store")
+ 	}
++	// (f7b test only: widens the window between the lessor's Recover and mvcc's Restore)
++	// gofail: var applyAfterRecoverLessor struct{}
+ 
+ 	lg.Info("restoring mvcc store")

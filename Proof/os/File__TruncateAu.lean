@@ -8,6 +8,7 @@ relate the states to `m`'s). Lean-first.
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Spec.os.File__TruncateAu
 public import Proof.os.ErrorOk
 
@@ -135,24 +136,24 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
   intro f fd name dqf sz dq d m xs K P hfd0 hwr hsz hmaps hxs hP hPa
   unfold os.truncSup
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
   try rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   have h1 : ¬ (sint.Z fd < sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd0
   rw [decide_eq_false h1]
-  wp_auto
+  try wp_auto
   have h2 : ¬ (sint.Z sz < sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hsz
   rw [decide_eq_false h2]
-  wp_auto
+  try wp_auto
   ihave HS : ftStateH d.ino m sz.toNat xs $$ [Hm Hb]
   · unfold ftStateH; ileft; iexists m, xs; iframe; ipureintro; exact ⟨.inl rfl, rfl, hxs⟩
+  wp_for_bind
   iloeb as IH generalizing HS HK Hosfd Hfd HΦ
+  wp_for_step
   unfold ftStateH
   icases HS with (⟨%m0, %xs0, %hm0, Hm, Hb⟩ | ⟨%zs, Hd⟩)
   · obtain ⟨hm0, hv, hl⟩ := hm0
@@ -173,6 +174,8 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
       · exact hPa _ (Nat.le_of_eq (os.announce_lo _ _ _ _ _ _)) (.inl hsz0)
     ihave Hau := Hsup $$ %m0 %xs0 %hl %hP0 HK Hm Hb
     unfold os.truncAuW
+    try wp_auto
+    wp_stub os.fsFtruncate.impl
     wp_apply wp_osFtruncateStart_auW fd sz dq d m0 xs0 hwr hsz (by rw [hmaps0]; exact hmaps)
       hl _ $$ Hinv Hosfd Hau as %t %n %- Hosfd Hau
     wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat m0 xs0 n _ $$ Hinv Hau as %e ⟨Hr, HK⟩ %hne
@@ -209,21 +212,24 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         rw [← hv]; simp [rsAnn, List.map_map, Function.comp_def]
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       icases Hr with (⟨%he, -⟩ | ⟨-, HS⟩)
       · exact absurd (he4 ▸ he) (by decide)
-      iapply IH $$ [HS] HK Hosfd Hfd HΦ
+      wp_for_post
+      inext
+      iapply IH $$ [HS] HK Hosfd Hfd HΦ [$] [$] [$] [$]
       icases HS with (H | ⟨%xs1, %tc, %rz, %hxs1, Hm, Hb⟩)
       · iright; iexact H
       · ileft; iexists _, xs1; iframe; ipureintro; exact ⟨.inr ⟨tc, rz, hxs1.2, rfl⟩, hxs1.1⟩
     · rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       icases Hr with (⟨%he, Hg⟩ | ⟨%he, HS⟩)
       · subst he
         rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
         simp only [Bool.not_true]
-        wp_auto
+        try wp_auto
         ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
@@ -234,9 +240,10 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         ipureintro; rfl
       · have he0' : ¬ e = W64 0 := he
         rw [decide_eq_false he0']
-        wp_auto
+        try wp_auto
         wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
@@ -265,6 +272,8 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
     ihave Hau := Hsup $$ %((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0) %([] : List ByteG)
       %(by rw [hdsz]; simp) %(hPa _ (Nat.le_of_eq (os.rsPost_lo _ _ _ _ _ _)) (.inr hdsz)) HK Hm Hb0
     unfold os.truncAuW
+    try wp_auto
+    wp_stub os.fsFtruncate.impl
     wp_apply wp_osFtruncateStart_auW fd sz dq d ((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0) []
       hwr hsz (by rw [hdmaps]; exact hmaps) (by rw [hdsz]; simp) _ $$ Hinv Hosfd Hau
       as %t %n %- Hosfd Hau
@@ -273,16 +282,19 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
     · iapply os.truncOutH_again _ m tc0 rz0 sz.toNat n e zs hzs htc0.1 htc0.2 $$ [Hr Hbs]; iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
-      iapply IH $$ [Hd] HK Hosfd Hfd HΦ
+      try wp_auto
+      wp_for_post
+      inext
+      iapply IH $$ [Hd] HK Hosfd Hfd HΦ [$] [$] [$] [$]
       iright; iexists zs; iexact Hd
     · rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
         simp only [Bool.not_true]
-        wp_auto
+        try wp_auto
         ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
@@ -291,9 +303,10 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         ileft
         ipureintro; rfl
       · rw [decide_eq_false he0]
-        wp_auto
+        try wp_auto
         wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe

@@ -29,7 +29,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
-variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS] [net.Assumptions]
 variable [bufio_sem : bufio.Assumptions]
 
 theorem wp_NewReadWriter (r w : Loc) :

@@ -25,7 +25,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.orch.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.orch.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Orch : counter.Orch.spec (GF := GF) (hG := hG)) (γs : GName)

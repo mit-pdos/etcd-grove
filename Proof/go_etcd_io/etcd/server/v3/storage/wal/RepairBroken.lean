@@ -35,7 +35,7 @@ section triples
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
-variable [sem : go.Semantics] [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [sem : go.Semantics] [os_sem : os.Assumptions]
 
 theorem qQuarter_three : qQuarter + ((1 : Qp).half + qQuarter) = 1 := by
   apply Subtype.ext

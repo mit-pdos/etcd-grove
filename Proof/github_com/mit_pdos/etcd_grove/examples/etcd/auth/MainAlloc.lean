@@ -11,7 +11,7 @@ start (`authHistView … [srvAuthSt0]`, what `SetUp` takes).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
@@ -61,7 +61,7 @@ theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (Li
       (by simp) (by simpa using Hid0.symm)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, -, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns, Hpis⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hlm, -, -⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hlm, -, -, -⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hpis with ⟨#Hpi, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩

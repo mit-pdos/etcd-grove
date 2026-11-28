@@ -52,8 +52,8 @@ theorem raft.bcastHeartbeat.wp_proof
     iapply HΦ
     iframe Hphys HG
     ipureintro
-    refine ⟨fun m Hm => ⟨(Hms m Hm).1, ?_⟩, Hmm⟩
-    rw [(Hms m Hm).2]
+    refine ⟨fun m Hm => ⟨(Hms m Hm).1, ?_, (Hms m Hm).2.2⟩, Hmm⟩
+    rw [(Hms m Hm).2.1]
   · imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
     rw [show hbCtx s.rd.ro = u64Le (readonlyPosition s.rd.ro) by unfold hbCtx; simp [Hne]]
     wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ _ G Hlead Htz
@@ -63,8 +63,8 @@ theorem raft.bcastHeartbeat.wp_proof
     iapply HΦ
     iframe Hphys HG
     ipureintro
-    refine ⟨fun m Hm => ⟨(Hms m Hm).1, ?_⟩, Hmm⟩
-    rw [(Hms m Hm).2]
+    refine ⟨fun m Hm => ⟨(Hms m Hm).1, ?_, (Hms m Hm).2.2⟩, Hmm⟩
+    rw [(Hms m Hm).2.1]
 
 end proof
 

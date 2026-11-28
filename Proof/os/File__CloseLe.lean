@@ -46,23 +46,26 @@ private abbrev os.File.Close.tripleNELe : Prop :=
 private theorem os.File.Close.wp_oldLe : os.File.Close.tripleOldLe (GF := GF) (hG := hG) := by
   intro f fd name d
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hlt⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hlt⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
-  wp_auto
+  try wp_auto
   ihave %hfd0 := osFd_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
-  wp_auto
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKind fd (DFrac.own 1) d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  try wp_auto
+  wp_stub os.fsClose.impl
   wp_apply wp_osClose fd d CoPset.subseteq_top $$ [Hinv Hosfd Hlt] as %e -
   · iframe; iexact Hinv
   by_cases he : e = W64 0
   · rw [decide_eq_true he]
-    wp_auto
+    try wp_auto
     iapply HΦ
     isplitl
     · iexists inner
@@ -71,7 +74,7 @@ private theorem os.File.Close.wp_oldLe : os.File.Close.tripleOldLe (GF := GF) (h
     unfold fmtErrorOkOrNilLe
     itrivial
   · rw [decide_eq_false he]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno_okLe _ inner name e he $$ Hn Hsys as %pe #Hok
     iapply HΦ
     isplitl
@@ -86,18 +89,21 @@ private theorem os.File.Close.wp_oldLe : os.File.Close.tripleOldLe (GF := GF) (h
 private theorem os.File.Close.wp_NELe : os.File.Close.tripleNELe (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name d
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hlt⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hlt⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
-  wp_auto
+  try wp_auto
   ihave %hfd0 := osFd_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
-  wp_auto
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKind fd (DFrac.own 1) d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  try wp_auto
+  wp_stub os.fsClose.impl
   wp_apply wp_osCloseNE hS fd d CoPset.subseteq_top $$ [Hinv Hosfd Hlt]
   · iframe; iexact Hinv
   iapply HΦ

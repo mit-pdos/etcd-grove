@@ -403,7 +403,8 @@ EtcdServer__checkLeaseTimeToLive: EtcdServer__AuthInfoFromCtx EtcdServer__AuthSt
 # The lease read entry points (the lease-read plan, 2026-10-31). The trust boundary:
 # `leaseTimeToLive` (names-only, a contract: the leader's re-lookup and the follower's forwarding).
 EtcdServer__leaseTimeToLive:
-EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__AuthStore
+EtcdServer__checkLeaseTimeToLiveKeys: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeaseTimeToLive EtcdServer__leaseTimeToLive EtcdServer__checkLeaseTimeToLiveKeys EtcdServer__AuthStore
 # The lease keep-alive entry point (the lease-renew plan, 2026-11-01; its contracts approved by
 # the user): the trust boundary was the lessor's `Renew` (until 2026-11-21), `ensureLeadership`, `waitAppliedIndex`,
 # `waitLeader` (names-only; `waitAppliedIndex` proved by prove-etcdserver, `waitLeader` by prove-srvloops)
@@ -1186,7 +1187,7 @@ strconv_Itoa:
 probing_NewProber:
 # (prove-metrics3, 2026-11-21) proved over the real code
 rate_Every: time_Duration__Seconds_ptr
-types_IDFromString:
+types_IDFromString: =_root_.Perennial.strconv.wp_ParseUint =_root_.Perennial.strconv.NumError.wp_Error =_root_.Perennial.strconv.NumError.wp_Unwrap
 strings_TrimSuffix:
 fmt_ErrorfPlain:
 # (prove-smalllibs, 2026-11-20) semver's `New`, `Major`, `Minor` proved over the real code

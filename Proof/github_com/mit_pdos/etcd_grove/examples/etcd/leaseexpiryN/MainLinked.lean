@@ -61,15 +61,14 @@ theorem etcd_leaseexpiryN.wp_gone :
     time.wp_Sleep
 
 /-- **leaseexpiryN's `run` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/run.lean`). -/
-theorem etcd_leaseexpiryN.wp_run [_root_.Perennial.net.FieldAssumptions] :
+theorem etcd_leaseexpiryN.wp_run :
     etcd_leaseexpiryN.run.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiryN.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient etcd_leaseexpiryN.wp_grant
     etcd_leaseexpiryN.wp_leases etcd_leaseexpiryN.listed.wp_proof etcd_leaseexpiryN.wp_gone
 
 /-- **leaseexpiryN's `Main(k)` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Main.lean`),
 under the semantic premises of its callees' linked results (putgetN's). -/
-theorem etcd_leaseexpiryN.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem etcd_leaseexpiryN.wp_Main :
     etcd_leaseexpiryN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiryN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcd_leaseexpiryN.wp_run (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)

@@ -67,8 +67,11 @@ abbrev orchMachinePure : Prop :=
 
 /-- Of any workload, from its orchestrator share, `MainReady` does not panic (see the file header). -/
 abbrev MainReady.spec : Prop :=
-  ∀ [π : NetProtoGS] [ρ : RemoteGS] (w : Workload) (eps nodes : GoSlice) (epsL ns : List GoString)
-    (ready : GoFunc),
+  ∀ [π : NetProtoGS] [ρ : RemoteGS]
+    -- (F7 S13) the auth arm's (`MainReadyAuth.spec`, `RunAuth.spec`) instances, the boot's (`EtcdBootNCAt`)
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+    (w : Workload) (eps nodes : GoSlice) (epsL ns : List GoString) (ready : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       ⌜wlPure w ∧ plainEndpoints epsL ∧ orchMachinePure (GF := GF)⌝ ∗ threadTok ∗ eps ↦*□ epsL ∗ nodes ↦*□ ns ∗
       readySpec ready ∗ wlShare (Gg := hG.goose_globalGS) w epsL ns }}

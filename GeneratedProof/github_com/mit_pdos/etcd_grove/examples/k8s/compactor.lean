@@ -28,6 +28,165 @@ open Iris Iris.BI
 noncomputable section
 namespace github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 
+namespace Log
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
+
+noncomputable instance Log_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log where
+  typedPointstoDef l v dq := iprop(
+    "Samples" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Samples" l) v.Samples' dq ∗
+    "Stopped" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Stopped" l) v.Stopped' dq ∗
+    "Get1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get1" l) v.Get1' dq ∗
+    "Rev1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev1" l) v.Rev1' dq ∗
+    "HasKey" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"HasKey" l) v.HasKey' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Value" l) v.Value' dq ∗
+    "Get2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get2" l) v.Get2' dq ∗
+    "Rev2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev2" l) v.Rev2' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance Log_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Log_access_load_Samples (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Samples" l) v.Samples' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Samples" l) v.Samples' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_Samples (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (Samples' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Samples" l) v.Samples' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Samples" l) Samples' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Samples' := Samples' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_load_Stopped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Stopped" l) v.Stopped' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Stopped" l) v.Stopped' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_Stopped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (Stopped' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Stopped" l) v.Stopped' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Stopped" l) Stopped' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stopped' := Stopped' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_load_Get1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get1" l) v.Get1' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get1" l) v.Get1' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_Get1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (Get1' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get1" l) v.Get1' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get1" l) Get1' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get1' := Get1' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_load_Rev1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev1" l) v.Rev1' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev1" l) v.Rev1' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_Rev1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (Rev1' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev1" l) v.Rev1' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev1" l) Rev1' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rev1' := Rev1' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_load_HasKey (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"HasKey" l) v.HasKey' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"HasKey" l) v.HasKey' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_HasKey (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (HasKey' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"HasKey" l) v.HasKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"HasKey" l) HasKey' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HasKey' := HasKey' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_load_Value (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Value" l) v.Value' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_Value (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (Value' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Value" l) Value' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_load_Get2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get2" l) v.Get2' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get2" l) v.Get2' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_Get2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (Get2' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get2" l) v.Get2' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Get2" l) Get2' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get2' := Get2' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_load_Rev2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev2" l) v.Rev2' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev2" l) v.Rev2' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Log_access_store_Rev2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (Rev2' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev2" l) v.Rev2' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log go!"Rev2" l) Rev2' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rev2' := Rev2' } : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Log) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end Log
+
 end github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 end
 end Perennial

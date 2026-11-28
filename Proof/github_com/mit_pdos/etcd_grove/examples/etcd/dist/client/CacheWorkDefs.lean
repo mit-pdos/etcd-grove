@@ -31,8 +31,8 @@ public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.go_etcd_io.etcd.cache.v3.InvNew
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Workload
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.GetFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkload
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheGetFacts
 
 @[expose] public section
 

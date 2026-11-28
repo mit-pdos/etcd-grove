@@ -18,7 +18,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MemberDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Dir
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadyRecv
@@ -404,12 +404,12 @@ theorem memberBuiltL_split (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg 
     iexact Hps
 
 /-- **`memberUp_req` with the lessor at `γl`** (F7 step 3's preparation): the request view split off
-`etcdstart.memberUpL`, which keeps its lessor name. -/
+`etcdstart.memberUpL`, which keeps its lessor name; at a mode (auth off's), as `NewPeerHandler_dist` takes it. -/
 theorem memberUpL_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (lm : lease.Mode) (γl : GName) :
     etcdstart.memberUpL s ρ E₀ lg γn id lm γl ⊢
-      etcdstart.memberUpL s ρ E₀ lg γn id lm γl ∗ ∃ (E : apply.AEnv GF) (ρ' : ReqNames),
-        isServerReqM false s E ρ' := by
+      etcdstart.memberUpL s ρ E₀ lg γn id lm γl ∗ ∃ (on : Bool) (E : apply.AEnv GF) (ρ' : ReqNames),
+        isServerReqM on s E ρ' := by
   iintro H
   iunfold etcdstart.memberUpL at H
   icases H with ⟨%E, %cfg, %γw, %HE, Hstk, Hrs, #Hreq, Hrest⟩
@@ -425,7 +425,7 @@ theorem memberUpL_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc
     isplitr
     · iexact Hreq
     iexact Hrest
-  · iexists E, { ρ with wait := γw }
+  · iexists false, E, { ρ with wait := γw }
     rw [isServerReqM_false]
     iexact Hreq
 
@@ -488,13 +488,13 @@ theorem memberBuiltOnL_split (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (l
     · iexact Hnm
     iexact Hps
 
-/-- **`memberUpL_req` with auth on** (#50 F7 S2 step 4): the request view at `true`, split off
-`etcdstart.memberUpOnL`. -/
+/-- **`memberUpL_req` with auth on** (#50 F7 S2 step 4): the request view (at the auth slot `AuthC.on γa`'s
+mode), split off `etcdstart.memberUpOnL`. -/
 theorem memberUpOnL_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (γa : auth.AuthNames) (lm : lease.Mode) (γl : GName) :
     etcdstart.memberUpOnL s ρ E₀ lg γn id γa lm γl ⊢
-      etcdstart.memberUpOnL s ρ E₀ lg γn id γa lm γl ∗ ∃ (E : apply.AEnv GF) (ρ' : ReqNames),
-        isServerReqM true s E ρ' := by
+      etcdstart.memberUpOnL s ρ E₀ lg γn id γa lm γl ∗ ∃ (on : Bool) (E : apply.AEnv GF) (ρ' : ReqNames),
+        isServerReqM on s E ρ' := by
   iintro H
   iunfold etcdstart.memberUpOnL at H
   icases H with ⟨%E, %cfg, %γw, %HE, Hstk, Hrs, #Hreq, Hrest⟩
@@ -510,7 +510,7 @@ theorem memberUpOnL_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : L
     isplitr
     · iexact Hreq
     iexact Hrest
-  · iexists E, { ρ with wait := γw }
+  · iexists (AuthC.on γa).isOn, E, { ρ with wait := γw }
     iexact Hreq
 
 end split

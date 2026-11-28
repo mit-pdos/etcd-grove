@@ -110,7 +110,7 @@ theorem cut_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
 
 -- (the proof term's instantiation at the end of the declaration exceeds the default budget)
 set_option maxHeartbeats 1000000 in
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
     [FsStepSat (NoMapLockErr Sio)] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))

@@ -8,7 +8,9 @@ Its fact (`internalInit`, `cache/v3/Base.lean`): the invariants of its hook cell
 which a package initializer holding its package state opens for a plain store (`grpc/internal/Hooks.lean`).
 Its initializer allocates the hook variables that the translated `init`s of `metadata`, `codes` and grpc
 set (`internal.go`, `experimental.go`: no initializers, so each holds `nil`) and puts each cell in its
-invariant (phase7-inits, 2026-11-25; `FromOutgoingContextRaw` first in phase 7 S2 core, 2026-11-23); its
+invariant (phase7-inits, 2026-11-25); `FromOutgoingContextRaw`, which grpc's initializer also reads, in an
+invariant of its own that says `metadata`'s `init` stored `metadata.fromOutgoingContextRaw` in it
+(`fromOutRawInv`, `grpc/internal/FromOutRaw.lean`; phase 7 S2 core, 2026-11-23; W1, 2026-11-26); its
 other variables with initializers are goose `[[skip]]`s (literals), the rest names only.
 -/
 module
@@ -17,6 +19,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context.Link
 public import Proof.google_golang_org.grpc.connectivity.Init
 public import Proof.google_golang_org.grpc.internal.Hooks
+public import Proof.google_golang_org.grpc.internal.FromOutRaw
 
 @[expose] public section
 

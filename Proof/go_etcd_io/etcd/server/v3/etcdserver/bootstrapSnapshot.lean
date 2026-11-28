@@ -60,7 +60,7 @@ theorem bootstrapSnapshot.wp_proof
     (hErr : zap.Error.spec (GF := GF) (hG := hG)) :
     bootstrapSnapshot.spec (GF := GF) (hG := hG) := by
   intro cfg Hfits
-  rcases hfs : backend.theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : backend.theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [bootFs.dirFresh, backend.onFs_none hfs]
     wp_start as ⟨-, H⟩
     iexfalso; iexact H

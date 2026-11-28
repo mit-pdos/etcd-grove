@@ -40,9 +40,11 @@ a killed process's file system synced before it restarts; no process outside the
 or dials the replicas' addresses), and the UDP extension's closed world: no process outside the
 deployment sends datagrams to the replicas' addresses.
 
-**Trusted beyond kvraft's**: the UDP extension's semantics, the trusted models of `net.ListenUDP`,
-`(*UDPConn).WriteToUDP` and `(*UDPConn).ReadFromUDP` (`Net/TrustedCode/net.lean`, section "UDP"), and
-the package assumption `net.UdpFieldAssumptions` (the layout of `UDPConn`/`UDPAddr` those models read).
+**Trusted beyond kvraft's**: the UDP extension's semantics, and the UDP part of `net`'s Go model
+(`models/net/model.go`: `sysListener.listenUDP`, `UDPConn.readFrom`, `UDPConn.writeTo`,
+`UDPAddr.String` over the stubs `extUdp*`, one UDP-extension operation each, `Net/TrustedCode/net.lean`);
+Go's `net.ListenUDP`, `(*UDPConn).WriteToUDP` and `(*UDPConn).ReadFromUDP` are translated
+(etcd-grove#58; until then they were trusted Lean models, with the premise `net.UdpFieldAssumptions`).
 
 **The bounds**:
 * Steps: fewer than `2 ^ 61`, the most the proof allows: raft's cluster invariant needs `receiptBound + bootLen ≤ 2 ^ 61` (`readyFits_intro`).
@@ -53,7 +55,6 @@ Safety only, as kvraft's.
 module
 
 public import KvRaft.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvraft.cmd.kvraft_udp.TopLevelDefs
-public import KvRaft.ManualProof.net
 public import KvRaft.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvraft.TopLevelRobustness
 public import Robustness.Statement
 public import Proof.log.NewModel
@@ -80,8 +81,6 @@ variable [go_gctx : GoGlobalContext]
 def kvraft_udp_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions] [udp_field_sem : net.UdpFieldAssumptions]
-    [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
     [log_sem : log.NewModel],
   ∀ (cl : ClusterConfig) (dir : GoString) (replicas : List (GoString × state)) (σc : state)
     (g : GlobalState),
@@ -99,8 +98,6 @@ UDP. A corollary of `kvraft_udp_robust`. -/
 def kvraft_udp_robust_example.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions] [udp_field_sem : net.UdpFieldAssumptions]
-    [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
     [log_sem : log.NewModel],
   ∀ (σ₁ σ₂ σ₃ σ₄ σ₅ σc : state) (g : GlobalState),
     (∀ σ ∈ [σ₁, σ₂, σ₃, σ₄, σ₅],
