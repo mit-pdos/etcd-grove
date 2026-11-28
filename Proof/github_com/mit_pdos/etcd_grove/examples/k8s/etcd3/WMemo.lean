@@ -36,11 +36,13 @@ open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
 
 attribute [ext] Obj Input wkey
 
+variable [GooseExts] in
 instance wkey_decEq : DecidableEq wkey := fun a b => Classical.propDecidable (a = b)
 
 section inj
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
@@ -58,6 +60,7 @@ theorem wkey_intoVal_inj : Function.Injective (intoVal (V := wkey)) := by
     (wkey.TypeAssumptions.get_fail x) (wkey.TypeAssumptions.get_fail y) h))
   cases x; cases y; simp_all
 
+set_option synthInstance.checkSynthOrder false in
 instance wkey_intoValInj : go.IntoValInj wkey := ⟨wkey_intoVal_inj (sem := sem) (package_sem := package_sem)⟩
 
 end inj
@@ -147,6 +150,9 @@ end defs
 
 /-! ## `watchOkL` reads only the events and the failure of the output -/
 
+section pure
+variable [GooseExts]
+
 theorem watchOkL_out (x : Input) (y y' : Output) (h : HSt) (he : y.WEvents' = y'.WEvents')
     (hf : y.WFailed' = y'.WFailed') : watchOkL x y h = watchOkL x y' h := by
   unfold watchOkL; rw [he, hf]
@@ -156,6 +162,8 @@ theorem HWf_eq {H H' : HSt} (h : HWf H) (h' : HWf H') (e : H.hist = H'.hist) : H
   obtain ⟨_, h1⟩ := h; obtain ⟨_, h2⟩ := h'
   rw [e, h2] at h1
   cases H; cases H'; cases e; simp_all
+
+end pure
 
 end k8s_etcd3
 end EtcdGrove
