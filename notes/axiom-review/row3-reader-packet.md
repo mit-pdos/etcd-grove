@@ -113,3 +113,50 @@ eager fold is not `σ`); B2's `walHistH`, `walSaveH`/`walSaveSnapH` laws and Wal
 
 No Lean changed. Merging lean into this branch conflicts in 8 files (auth's nomode D3 follow-up, and
 `WalApi.lean`/`RnNewStorage.lean`, which B2-1's port resolves): the Lean start waits for B2-1's merge.
+
+## ReleaseSnapDBs / revived record (session R3-2, 2026-11-28)
+
+Question: between the restart that drops the dangling record at `S` and the one that revives it, can etcd
+lose the files bootstrap then needs? Read at the examples' etcd pin (`upamanyus/etcd` `be2e2542fe89`,
+`server/v3`). **Verdict: no.** No path deletes or replaces `S.snap.db` while `S` can be the snapshot
+bootstrap picks with the backend's consistent index below `S`; no Go test (nothing to reach), no
+`issues/`/`nonissues/` file (no finding).
+
+- **No `.snap` file exists at the pin.** `storage.SaveSnap` writes only the WAL record (`storage/storage.go:58-68`);
+  `bootstrapSnapshot` deletes every `*.snap` as legacy v2 (`etcdserver/bootstrap.go:274`). There is no
+  `LoadNewestAvailable`: `recoverSnapshot` builds the snapshot from the valid WAL record of the **highest
+  index** (`newestSnapshotEntry`, `bootstrap.go:494,517`). So only `S.snap.db` matters, and only when the
+  durable consistent index `ci < S` (`RecoverSnapshotBackend` skips it otherwise, `storage/backend.go:117`).
+- **What can remove `S.snap.db`**, all paths (grep of `os.Remove`/`Rename`/`RemoveMatchFile` in
+  `etcdserver`, `storage`, `embed`):
+  1. `OpenSnapshotBackend(S)` renames it to the backend (`backend.go:71`, dir synced): at boot only when `S`
+     is picked and `ci < S`; in `applySnapshot` of a received `S` (`server.go:1080`). Either way the new
+     backend is the leader's db, whose `ci = S` (the leader makes the index its db's `ci`,
+     `snapshot_merge.go:40`), durably: the file is no longer needed.
+  2. `ReleaseSnapDBs(X)` deletes only `index < X` (`snapshotter.go:63`), so `S.snap.db` only for `X > S`. Its
+     callers: `applySnapshot` (`server.go:1123`), **after** `OpenSnapshotBackend(X)` (so `ci = X > S`
+     durably) and after the raft loop's `Save`+`Sync` (`notifyc`, `server.go:1069`, `raft.go:276,296`), so
+     record `X` is valid; and `snapshot()` at `T = appliedi` (`server.go:2164`), **after** `KV().Commit()`
+     (`server.go:2142`, `ci ≥ T > S` on disk) and after `<-apply.notifyc` (`server.go:1004`, the commit
+     covering `T` saved), so record `T` is valid. In both, a newer valid record exists (bootstrap never picks
+     `S` again) **and** `ci > S` (it would not need the file anyway). `ci` on disk never decreases afterwards
+     (a later rename is of a db at an index above `appliedi`; boot renames only when the record is above `ci`).
+  3. No purger: `purgeFile` purges only WAL files (`server.go:604-626`; the fork dropped the `snap.db` count
+     purge that upstream main keeps, `maxSnapDBFiles = 5`), and there is no `MaxSnapFiles`.
+  4. `SaveDBFrom` never replaces an existing `S.snap.db` (`os.Link`, `db.go:62`): a second `MsgSnap` at `S`
+     keeps the first file. Boot removes only `tmp*`, `db.tmp*`, `*.snap` (`bootstrap.go:253-277`).
+  5. The `.broken` renamings are of WAL files (`wal/repair.go:68`) and of a WAL directory whose `Create`
+     failed (`wal.go:308`); neither touches `snap/`. `Finalize` removes the **backend** only when it is
+     missing, and fails the boot (`bootstrap.go:570-573`); `removeBackendDurably` only with an unsaved WAL,
+     which is then discarded with its records (`bootstrap.go:89-97`).
+- **Step 1 leaves the file in place**: `applySnapshot` waits on `notifyc`, sent after `Save`+`Sync`
+  (`raft.go:276-296`), so a kill between `SaveSnap` and `Save` never reaches the rename, and the file was
+  synced before raft saw the message (`SaveDBFrom`, `db.go:33-38`).
+- **If the file were gone** at step 4 (`S` picked, `ci < S`): no fallback to an older record;
+  `OpenSnapshotBackend` returns "failed to find database snapshot file" and `recoverSnapshot` panics
+  (`bootstrap.go:536-537`). (Upstream main, which still keeps `.snap.db` by count, has the known related
+  bug `issues/etcd-release-snapdb-before-open.md`; not the revived record's.)
+
+For the proof (item 3(a) above): the invariant that holds is "`S.snap.db` exists **or** the durable
+`ci ≥ S`", for every record `S` of the history; `sd` need not be persistent, only this disjunction, which
+`ReleaseSnapDBs(X)`/the rename keep because each runs only after `ci ≥ X` is durable.
