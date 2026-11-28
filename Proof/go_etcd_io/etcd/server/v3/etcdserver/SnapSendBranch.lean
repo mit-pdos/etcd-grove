@@ -241,10 +241,10 @@ theorem snapObsA (cl : Cluster) (γA : ApplyNames) (γ : backend.BNames) (P : ba
     · ipureintro; left; exact h0
     icases Hrow with (%h0 | #Hrow)
     · ipureintro; left; exact h0
-    ihave %He := srvCIPair_agree cl _ _ _ $$ [$Hrow $Hpk]
+    ihave %He := srvCIPair_agree cl (ciEff γA s.k) t tk $$ [$Hrow $Hpk]
     ipureintro; right; exact He
   ipureintro
-  refine ⟨⟨Hob.1, Hterm.imp_right (fun h => h ▸ ht)⟩, Hob.2⟩
+  refine ⟨⟨Hob.1, Hterm.imp_right (fun (h : t = tk) => h ▸ ht)⟩, Hob.2⟩
 
 -- (the mvcc merge, 2026-11-06) `lean`'s `srvBeSnapOk_window` (over `backend.Snapshot`) and
 -- `soleWriter_idxWf` (mvcc's sole writer) are dropped with F2's route.
