@@ -264,3 +264,31 @@ discharged wherever K8-8 calls `fullComplete` on the same `h0`. Nothing else bey
 
 **Left for K8**: K8-8 wires `noForeign_erase` + `pRun_run` into `realCheck_pure` (step 1 of Handoff K8-2:
 `decOp`, the same `ord`); the `pMF` decision (K8-3 §1) is still open.
+
+## Handoff K8-5 (2026-11-28)
+
+**`pMF` decided (routine, no statement change): a separate model in `k8s/dist`, not a `PendSpec` field.** A
+field (a silent step in `PSilent`) changes `linkv.PSilent`/`pM`, which `Spec/.../k8s/etcd3/realCheck.lean`
+(`IsLinearization (linkv.pM (kSpec g0) decOp)`) and the other txnwork/linkv specs are written in (25 files):
+a spec-vocabulary change and a rebuild of every linkv user. `k8s/dist/SharedSem.lean` already has the
+semantic model with foreign steps (`SSilent` = `kSpec`'s `PSilent` or `foreignL`, `SReach`, `SRun`), so `pMF`
+is `pSeq`'s construction over `SReach`/`PStep` (sets of `GCfg`), with its `run`/`IsLinearization` lemmas beside it.
+
+**Step "K8-2": `Proof/.../etcd/dist/KVPfxHist.lean`, new, additive** (`KVPfxDist` untouched: its 42 importers,
+putget/durable/compact, do not rebuild). The ghost variable holds `pfxVH p σ = (pfxView p σ, pfxChs p σ)`
+(`pfxChs` = `chsFrom p σ.compacted σ.changes`: the revisions with a change under `p`, with those changes).
+`kvPfxInvP`/`kvPfxHP`/`kvPfxP_au1H`/`kvPfxP_readAuH`/`kvPfxP_alloc`/`kvPfxP_seen` are `KVPfxDist`'s at `pfxVH`;
+`kvPfxP_au1H` also takes a lower bound `l0` of the changes (its step gets `l0 <+: σ.changes`, as readAuH's).
+Pure: `pfxVH_local` (another owner's update keeps `pfxVH p`), `pfxVH_init`, **`pfxChs_same`/`pfxChs_same_ext`**
+(equal `pfxChs`, changes extended ⇒ no change under `p` in between: closes the put-then-delete gap; the owner's
+`W v` records `v = pfxVH p σl` with a lower bound of `σl.changes`). Built OK at `1ca71fabf4` (fk-lean1).
+Then added (commit `pfxLocal_commit, ...`): `filter_applyChange(s)_other`, `pfxView_commit_other`, `commit_hist`,
+`pfxLocal_commit` (an update committing changes under `p`, or nothing, is `PfxLocal p`), `pfxLocal_txn`,
+`pfxLocal_deleteRange` (premise: every change of the op is under `p`; the store's Txn's key facts are left to
+the caller). **That commit does NOT build** (stopped by the coordinator before fixing): line 199,
+`Failed to infer type of binder σ` in `pfxLocal_commit`'s `have hoth : ∀ σ (cs ...` — `σ` is unused; drop it
+from `hoth` (and from its two uses `hoth σ cs hcs ...`), then rebuild `...etcd.dist.KVPfxHist` on fk-lean1.
+
+**Next**: fix line 199; the store's Txn premise of `pfxLocal_txn` (keys of `srvRunTxn`'s changes = its ops'
+keys, compare-put/compare-delete/else-get under `/registry/`); then step "K8-3" (`pMF` as above, `kInvD` over
+`kvPfxHP`, `kOkD_foreign` statement first).
