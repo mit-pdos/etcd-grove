@@ -529,6 +529,8 @@ theorem hraft_robust_of [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sema
     iapply BigSepL.bigSepL_nil.2
     iempintro
 
+#print axioms hraft_robust_of
+
 end crash
 
 end github_com.hashicorp.raft.examples.hraftnet
