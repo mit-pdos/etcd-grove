@@ -27,6 +27,7 @@ public import GeneratedProof.k8s_io.apiserver.pkg.storage
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.value
 public import GeneratedProof.k8s_io.apiserver.pkg.util.feature
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
