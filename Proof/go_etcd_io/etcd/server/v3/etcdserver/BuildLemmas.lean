@@ -156,7 +156,7 @@ theorem hooksOk_server_fut
     t hP hH
   ihave #Hinv' : inv applyN (consInv (γA.withPh (futPhys π0 γ)) Rw) $$ []
   · rw [show consInv (GF := GF) (γA.withPh (futPhys π0 γ)) Rw = consInv γA Rw from rfl]; iexact Hinv
-  iframe Hbpkg Hsch Hcpkg Hb Ht Hci Hinv' Hrl
+  iframe Hbpkg Hsch Hcpkg Hb Ht Hci Htp Hinv' Hrl
 
 end backend
 
