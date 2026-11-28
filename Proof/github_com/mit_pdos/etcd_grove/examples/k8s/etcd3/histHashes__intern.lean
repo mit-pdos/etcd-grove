@@ -67,6 +67,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
   wp_apply wp_storeHash st s $$ [$Hst] as %hv -
   (try wp_auto)
   wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [HC] as HC
+  fail "c0"
   ihave Hsl : (∃ ns : List Loc,
       ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) ↦* ns ∗
       ownSliceCap Loc ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) (DFrac.own 1) ∗
