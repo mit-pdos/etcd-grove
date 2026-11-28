@@ -109,6 +109,32 @@ theorem at_ext_foreign {σl σ : KVState} {m : List (List mvcc.Change)} (q : GoS
   rw [List.take_append, List.take_of_length_le (by omega), runFrom_append']
   exact filter_runFrom_other q _ _ _ (fun cs hcs => hf cs (List.mem_of_mem_take hcs))
 
+/-- **A fact of every key-value under `/registry/` at every revision survives foreign revisions.** -/
+theorem regAll_foreign (P : EtcdKv → Prop) {σl σ : KVState} {m : List (List mvcc.Change)}
+    (hc : σ.compacted = σl.compacted) (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m)
+    (hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key)
+    (hl : ∀ r ≤ σl.rev, ∀ v ∈ (σl.at r).kvs, regP <+: v.key → P v) :
+    ∀ r ≤ σ.rev, ∀ v ∈ (σ.at r).kvs, regP <+: v.key → P v := by
+  intro r _ v hv hp
+  by_cases hr : r ≤ σl.rev
+  · rw [at_ext_below hc hb hm r hr] at hv
+    exact hl r hr v hv hp
+  · have he := at_ext_foreign regP hc hb hm hf r (by omega)
+    have hv' : v ∈ (σ.at r).kvs.filter (fun v => decide (regP <+: v.key)) :=
+      List.mem_filter.2 ⟨hv, by simpa using hp⟩
+    rw [he] at hv'
+    exact hl σl.rev le_rfl v (List.mem_filter.1 hv').1 hp
+
+theorem keysOkP_foreign {σl σ : KVState} {m : List (List mvcc.Change)}
+    (hc : σ.compacted = σl.compacted) (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m)
+    (hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) (h : keysOkP σl) : keysOkP σ :=
+  regAll_foreign (fun v => v.key ∈ wkKeysL.map mkeyL) hc hb hm hf h
+
+theorem valsOkP_foreign {σl σ : KVState} {m : List (List mvcc.Change)}
+    (hc : σ.compacted = σl.compacted) (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m)
+    (hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) (h : valsOkP σl) : valsOkP σ :=
+  regAll_foreign (fun v => ∀ d, driverCodec.dec v.value = some d → d.1.val.length ≤ 2 ^ 20) hc hb hm hf h
+
 end pure
 
 section defs
