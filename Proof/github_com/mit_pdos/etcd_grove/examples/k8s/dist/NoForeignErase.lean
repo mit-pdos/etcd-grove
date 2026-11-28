@@ -19,6 +19,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SeedShared
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SeedRun
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealB4
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedRename
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedComplete
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealMS
 
 @[expose] public section
 
@@ -224,6 +226,117 @@ theorem pRun_run {h0 : HSt} {c c' : GCfg} {xs : List (Input × Output)} (hr : PR
     refine ⟨S', ?_, h'⟩
     simp only [List.map_cons, github_com.anishathalye.porcupine.Theory.run, e1]
     exact e'
+
+/-! ## Step 2: a failure-free run has no pending write -/
+
+/-- **A failure-free history** (Go's `failureFree`, `failureFree.spec`'s post): no unary answer
+`EOther` (error 4), no failed watch the driver did not skip. -/
+def FailureFreeL (xs : List (Input × Output)) : Prop := ∀ p ∈ xs, okOut p.1 p.2 = true
+
+/-- A step on a failure-free answer adds no pending write. -/
+theorem pStep_pend_nil {h0 : HSt} {c c' : GCfg} {x : Input} {y : Output}
+    (hs : linkv.PStep (kSpec h0) c x (ansOf y) c') (hok : okOut x y = true) (hp : c.pend = []) :
+    c'.pend = [] := by
+  generalize ha : ansOf y = a at hs
+  cases hs with
+  | ok => exact hp
+  | errW _ ho =>
+    exfalso
+    have h4 : y.Err' = W64 4 := by
+      unfold ansOf at ha; split at ha
+      · assumption
+      · cases ha
+    have hk : x.Kind' ≠ W64 5 := by simpa using ho
+    rw [okOut, if_neg hk, h4] at hok; simp at hok
+  | errR => exact hp
+  | obs => exact hp
+
+/-- With no pending write, `kSpec`'s silent step changes nothing. -/
+theorem pSilent_nil {h0 : HSt} {c c' : GCfg} (hs : linkv.PSilent (kSpec h0) c c') (hp : c.pend = []) :
+    c' = c := by
+  cases hs with
+  | apply i hi => rw [hp] at hi; cases hi
+  | perm q hq =>
+    rw [hp] at hq
+    rw [List.Perm.eq_nil hq]
+    cases c; simp_all
+
+theorem repeat_foreignL_succ (k : Nat) (h : HSt) :
+    Nat.repeat foreignL k (foreignL h) = foreignL (Nat.repeat foreignL k h) := by
+  induction k with
+  | zero => rfl
+  | succ k ih => simp only [Nat.repeat]; rw [ih]
+
+/-- **Silent steps from no pending write are foreign revisions.** -/
+theorem sReach_nil {h0 : HSt} {c c₁ : GCfg} (hr : SReach h0 c c₁) (hp : c.pend = []) :
+    ∃ k, c₁ = ⟨Nat.repeat foreignL k c.st, []⟩ := by
+  induction hr with
+  | refl c => exact ⟨0, by cases c; simp_all [Nat.repeat]⟩
+  | step hs _ ih =>
+    cases hs with
+    | pend _ hps =>
+      have e := pSilent_nil hps hp
+      subst e
+      exact ih hp
+    | foreign _ =>
+      obtain ⟨k, hk⟩ := ih hp
+      exact ⟨k + 1, by rw [hk, repeat_foreignL_succ]; rfl⟩
+
+/-! ## Step 4's bound: an operation naming revisions up to `m` has its target at most `m` -/
+
+theorem evMaxL_le (evs : List WEv) (m : Nat)
+    (h : ∀ e ∈ evs, e.t < 4 → uint.nat e.o.ResourceVersion' ≤ m) : evMaxL evs ≤ m :=
+  evMaxL_foldl_le m _ 0 (Nat.zero_le _) fun e he => by
+    obtain ⟨he, ht⟩ := List.mem_filter.1 he
+    exact h e he (by simpa using ht)
+
+/-- **The target of an operation whose revisions are all at most `m`** (`OpAnchors` over `0, ..., m`,
+`NoForeignOk`'s second half) is at most `m`, from any revision. -/
+theorem targetL_le_anchors (x : Input) (y : Output) (rv m : Nat)
+    (h1 : 1 ≤ m) (h : OpAnchors (List.range (m + 1)) x y) : targetL x y rv ≤ m := by
+  obtain ⟨hmin, -, hw, hnw⟩ := h
+  simp only [List.mem_range] at hmin hw hnw
+  unfold targetL
+  split
+  · next h5 =>
+    have hm := fun req (hq : parseRVD x.MinRV' = some req) => hmin (Or.inl h5) req hq
+    split
+    · omega
+    · next hf =>
+      have hwf : y.WFailed' = false := by
+        cases hy' : y.WFailed' <;> simp_all
+      split
+      · omega
+      · next evs hevs =>
+        have hev := evMaxL_le evs m fun e he ht => by have := hw h5 hwf evs hevs e he ht; omega
+        split
+        · split
+          · next req hreq => have := hm req hreq; omega
+          · exact hev
+        · exact hev
+  · next h5 =>
+    obtain ⟨hE, hL, hR, -, -⟩ := hnw h5
+    split
+    · omega
+    split
+    · omega
+    next h0' =>
+    have h0 : y.Err' = W64 0 := by simpa using h0'
+    have hm := fun req (hq : parseRVD x.MinRV' = some req) =>
+      hmin (Or.inr (by rw [h0]; decide)) req hq
+    have hR' := hR h0
+    split
+    · split
+      · omega
+      · next req hreq =>
+        split
+        · have := hm req hreq; omega
+        · omega
+    split
+    · split <;> omega
+    · split
+      · omega
+      · next req hreq => have := hm req hreq; omega
 
 end pure
 
