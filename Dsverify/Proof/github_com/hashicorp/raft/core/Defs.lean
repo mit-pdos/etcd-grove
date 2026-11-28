@@ -109,6 +109,10 @@ structure DurNames where
   /-- (hraft_robust, R2 req. 2) `ghostVar (Option Pend)`: the main goroutine's pending write (`none`
   between writes; `some p` from a write's start to its commit, ½ lent in its window `winRes`). -/
   pw : GName
+  /-- (hraft_robust, R5 Q0) `dghostVar (Option (LogAbs × SnapLatest))`: the boot pin. From the arm to the
+  end of `NewRaft`, `some (A, lat)` (½ `durBody`, ½ `NewRaft`): the stores' state the restore reads is the
+  arm-time one; then `none`, discarded (`bootOver`, in `srvDurInv`). -/
+  boot : GName
 
 /-- One server's context: its ghost names and the client predicates fixed at `NewRaft`. -/
 structure RCtx [GooseExts] (GF : BundledGFunctors) where
@@ -405,7 +409,8 @@ def lastLockInv (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
     r.[Raft, go!"raftState"].[raftState, go!"lastLogTerm"] ↦ lt ∗
     r.[Raft, go!"raftState"].[raftState, go!"lastSnapshotIndex"] ↦ si ∗
     r.[Raft, go!"raftState"].[raftState, go!"lastSnapshotTerm"] ↦ st ∗
-    ghostVar rc.names.lastLog (1 : Qp).half (uint.nat li, uint.nat lt) ∗
+    ghostVar rc.names.lastLog (1 : Qp).half
+      (if uint.nat li < uint.nat si then (uint.nat si, uint.nat st) else (uint.nat li, uint.nat lt)) ∗
     (⌜si = W64 0⌝ ∨ ∃ e : Entry, CIdx γ (uint.nat si) e ∗ ⌜e.term = uint.nat st⌝ ∗
       applLb rc (uint.nat si) ∗
       (durLb γ i (uint.nat si) ∨ snapFollow γ i (uint.nat si) (uint.nat st))))
@@ -946,11 +951,12 @@ body; R1 §1.5): the latest (`latestOk`), and, with no install pending, the late
 `setLastApplied(s)`), with the main goroutine's half of the `lastApplied` authority at `a < s`.
 (`snapCell`'s `applLb` of the latest, a fact of one generation, is dropped: R1 §1.5.) -/
 def latestDur (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest)
-    (pend : Option (Nat × Nat × GoString)) : IProp GF :=
+    (pend : Option (Nat × Nat × GoString)) (dp : Option DiscPend) : IProp GF :=
   iprop(latestOk γ rc lat ∗
     (match pend with
       | none => ⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
-          (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term'))
+          (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term') ∗
+            ⌜∃ ℓ, dp = some ⟨uint.nat m.Index', uint.nat m.Term', ℓ⟩⌝)
       | some (s, st, id) => ∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
           ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
           snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a))
@@ -970,6 +976,20 @@ structure SrvDur where
   pend : Option (Nat × Nat × GoString)
   dp : Option DiscPend
 
+/-- (hraft_robust, R5 Q0) **The boot pin** in the crash state: during `NewRaft`, the stores' state is the
+arm-time one (`NewRaft` holds the other ½); afterwards discarded `none`. -/
+def bootPin (rc : RCtx GF) (X : SrvDur) : IProp GF :=
+  iprop((∃ o : Option (LogAbs × SnapLatest), dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) o ∗
+      ⌜∀ p, o = some p → p = (X.A, X.lat)⌝) ∨
+    dghostVar rc.dur.boot DFrac.discard (none : Option (LogAbs × SnapLatest)))
+
+/-- (hraft_robust, R5 Q0) The boot is over (persistent): `bootPin` is its second disjunct. -/
+def bootOver (rc : RCtx GF) : IProp GF :=
+  dghostVar rc.dur.boot DFrac.discard (none : Option (LogAbs × SnapLatest))
+
+instance bootOver_persistent rc : Persistent (bootOver (GF := GF) rc) := by
+  unfold bootOver; infer_instance
+
 /-- (hraft_robust L0) **The body of `srvDurInv`** at `X`: gprot's exclusive halves of server `i` (its
 state, log, term, commit index and durable-prefix view), the views' other halves, the stores'
 client authorities, and the couplings between the two: the log store holds the protocol log (`logOk`,
@@ -985,7 +1005,8 @@ def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
     rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1⌝ ∗
-    compLb rc X.c ∗ latestDur γ rc i X.lat X.pend ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
+    ⌜∀ d, X.dp = some d → X.lo ≤ d.x⌝ ∗ bootPin rc X ∗
+    compLb rc X.c ∗ latestDur γ rc i X.lat X.pend X.dp ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
 /-- (hraft_robust L0) The crash token of `srvDurInv` (held by the generation's crash wand). -/
@@ -996,8 +1017,16 @@ def srvCrashTok (rc : RCtx GF) : IProp GF := ghostVar rc.dur.tok 1 ()
 crash token, which the crash law (`raft_crash`) swaps in to take the body out. Allocated before the
 generation runs (`raft_arm`); replaces `logCell` and `snapCell`. A goroutine of the generation opens it
 with its crash token (`inv_nc_acc`, `|NC=`). -/
-def srvDurInv (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+def srvDurInvRaw (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   inv durN iprop((∃ X : SrvDur, durBody γ rc i X) ∨ crashed ∗ srvCrashTok rc)
+
+instance srvDurInvRaw_persistent γ rc i : Persistent (srvDurInvRaw (GF := GF) γ rc i) := by
+  unfold srvDurInvRaw; infer_instance
+
+/-- (hraft_robust, R5 Q0) **`srvDurInv` after the boot**: the raw invariant (`raft_arm` allocates it, `NewRaft`
+and the crash law use it) with the boot over (`bootOver`). -/
+def srvDurInv (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  iprop(srvDurInvRaw γ rc i ∗ bootOver rc)
 
 instance srvDurInv_persistent γ rc i : Persistent (srvDurInv (GF := GF) γ rc i) := by
   unfold srvDurInv; infer_instance
