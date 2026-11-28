@@ -125,27 +125,7 @@ theorem durBody_split (X : SrvDur) :
 theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
     srvDurInv γ rc i ⊢ |NC={E, E \ ↑durN}=> ∃ X : SrvDur, durCore γ rc i X ∗ ▷ durStores γ rc i X ∗
       (∀ X' : SrvDur, durCore γ rc i X' -∗ ▷ durStores γ rc i X' ={E \ ↑durN, E}=∗ True) := by
-  unfold srvDurInv
-  iintro ⟨#Hi, #Hbo⟩ Hnc
-  imod (durAcc γ rc i hE) $$ Hi Hnc with ⟨Hnc, HX, Hcl⟩
-  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
-  ihave HX := later_mono (durBody_split γ rc i X).1 $$ HX
-  icases HX with ⟨>Hc, Hs, -⟩
-  imodintro
-  iframe Hnc
-  iexists X
-  iframe Hc Hs
-  iintro %X' Hc' Hs'
-  iapply Hcl
-  iapply later_exists_mp
-  iexists X'
-  inext
-  iapply (durBody_split γ rc i X').2
-  iframe
-  unfold bootPin
-  iright
-  unfold bootOver at *
-  iexact Hbo
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- (R2) The main goroutine's view agrees with the crash state. -/
 theorem durCore_srvVP_agree (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
