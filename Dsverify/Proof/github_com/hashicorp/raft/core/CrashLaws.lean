@@ -1106,6 +1106,37 @@ theorem crash_matched_store (L : RLog) (prev pt : Nat) (ents : RLog) (j : Nat)
       rw [termAt_append_right _ _ _ (by omega), termAt_drop _ _ _ (by omega)]
       congr 1; omega
 
+/-- `LogAbs.del` pointwise. -/
+theorem crash_lookup_del (m : GMap Nat Entry) (mn mx k : Nat) :
+    (LogAbs.del m mn mx).lookup k = if mn ≤ k ∧ k ≤ mx then none else m.lookup k := by
+  unfold LogAbs.del
+  show (GMap.filter _ m) !! k = _
+  rw [GMap.lookup_filter]
+  by_cases hr : mn ≤ k ∧ k ≤ mx
+  · rw [if_pos hr]; cases m !! k <;> simp [Option.filter, hr]
+  · rw [if_neg hr]; cases hc : m !! k <;> simp [Option.filter, hr]
+
+/-- (R2) Deleting the log's tail from `n + 1` keeps the store's coupling with the log's prefix. -/
+theorem logOk_delete (A : LogAbs) (L : RLog) (lo n mx : Nat) (hi : w64) (h : logOk A L lo)
+    (hmx : L.length ≤ mx) : logOk (A.delete (n + 1) mx hi) (L.take n) lo := by
+  obtain ⟨h1, h2⟩ := h
+  unfold logOk
+  rw [LogAbs.delete_m]
+  constructor
+  · intro k e hk
+    rw [crash_lookup_del] at hk
+    split at hk
+    · cases hk
+    · rename_i hr
+      have he := h1 k e hk
+      have hkL := gprot.ent_le_length he
+      rw [ent_take _ _ _ (by omega)]; exact he
+  · intro k hlo hk
+    rw [crash_lookup_del]
+    have hkn : k ≤ n := by simp at hk; omega
+    rw [if_neg (by omega), ent_take _ _ _ hkn]
+    exact h2 k hlo (by simp at hk; omega)
+
 /-- (R2) **Lending a window**: the pending-write record set to `p` (half lent), a quarter of each
 view lent. -/
 theorem winRes_make (s : SState) (p : Pend) (D : StableAbs) (g : w64)
@@ -1420,15 +1451,76 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
 /-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, |s.log|)`'s commit
 (`truncate_upd`). -/
 theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
-    (hpre : pendPre γ i s (.trunc prev pt ents lci j)) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ pendHyps γ i s (.trunc prev pt ents lci j) -∗
-      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log.take (prev + j) } -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      ∀ (D : StableAbs) (g : w64), stVS rc D g -∗
+    (D : StableAbs) (g : w64) (hpre : pendPre γ i s (.trunc prev pt ents lci j)) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗
+      pendHyps γ i s (.trunc prev pt ents lci j) -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log.take (prev + j) } -∗
+        stVS rc D g -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
       |==> (logWin γ rc i (.del (prev + 1 + j) s.log.length) ∗
       (logWin γ rc i (.del (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) s.log.length hi')
-          ={∅, ⊤ \ ↑storeN}=∗ stVS rc D g -∗ Ψ))) := by
-  sorry -- hraft_robust R2: proof pending
+          ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
+  iintro #HI #Hd Hpw Hv Hst Hh Hk
+  imod (winRes_make γ rc i s (.trunc prev pt ents lci j) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iframe
+  imodintro
+  isplitl [HW]
+  · iunfold logWin; ileft; iexists s, (Pend.trunc prev pt ents lci j); iframe HW; ipureintro; rfl
+  iintro HW
+  iunfold logWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
+  rotate_left
+  · iexfalso
+    -- the compaction branch: its op is a delete too; refute with the pinned record
+    sorry
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.trunc prev pt ents lci j) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.trunc prev pt ents lci j)) $$ Hpw
+  iapply (logDelete_au γ rc i (prev + 1 + j) s'.log.length
+    iprop(srvV rc s' ∗ stVS rc D g ∗ pendHyps γ i s' (.trunc prev pt ents lci j) ∗ (|==> ghostVar rc.dur.pw 1 (none : Option Pend)) ∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s' with log := s'.log.take (prev + j) } -∗
+        stVS rc D g -∗ ⌜s'.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hv Hst Hh Hpw Hk]
+  · iframe
+  iintro %X %hi' Hc ⟨Hv, Hst, Hh, Hpw, Hk⟩
+  imod Hpw
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s' $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  obtain ⟨hD, hstg⟩ := Hag2
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  rw [hs, htp, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  iunfold pendHyps at Hh
+  icases Hh with #Hae
+  imod (gprot.truncate_upd γ _ crash_gprot_store i s' prev pt ents lci j hpre) $$ [HI Ho Hlc Hae]
+    with ⟨Ho, Hlc, %hdur⟩
+  · iframe #; try iframe
+  unfold srvV
+  imod (ghostVar_update_halves ({ s' with log := s'.log.take (prev + j) }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imodintro
+  iexists ({ X with s := { s' with log := s'.log.take (prev + j) }, A := X.A.delete (prev + 1 + j) s'.log.length hi', tp := none })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
+  · iunfold durCore
+    dsimp only
+    try rw [hdp]
+    rw [LogAbs.delete_staged, LogAbs.delete_ci]
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨?_, hlc, hvm, htd, hci⟩
+    rw [show prev + 1 + j = (prev + j) + 1 by omega]
+    exact logOk_delete _ _ _ _ _ _ hlo (Nat.le_refl _)
+  isplitl []
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
+  ihave HΨ := Hk $$ Hpw Hv Hst [] 
+  · ipureintro; exact hdur
+  iexact HΨ
 
 /-- (R2) **`SetUint64(CurrentTerm, t)`'s commit** (`setCurrentTerm`): no model step; the term step
 recorded pending (`tp`, its `tpRes` moved into the crash state), fired at the atomic store
