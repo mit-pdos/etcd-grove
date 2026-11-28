@@ -97,7 +97,7 @@ protocol at the apply thread's state `st` (`freezeY`, the stop's commit stored `
 and its halves of the tracked buckets at the rest model's, what `Close` returned of the stopped lock
 at `D` (at any client resource `W`) holds the consistent index `ai`, some term and the rest buckets
 of the applied log (`bkRestAtM`, `mergedImgM`'s). -/
-theorem stop_obs (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64)
+theorem stop_obs (cl : Cluster) (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64)
     (A : List EntryModel) (d : mvcc.KBReal) (f : w64 → w64) (st : ApplyState) (W : IProp GF)
     (D : backend.Data) (hcK : ciKeys d.P) (hRB : ∀ n ∈ restBuckets, d.P.RB n = true)
     (hci : ciEff γA st.k = ai) (hfb : E.lg = true → leaseTTLsGeReq (appliedTableM E.authOn γr A) f) :
@@ -108,28 +108,40 @@ theorem stop_obs (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) (ai : 
       backend.rbPart d.γB (restSet E.authMode)
         (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
           (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
-      backend.bStopView d.γB d.P W (batchLockInv γA (metaTM d.γB d.P)) D ⊢
+      backend.bStopView d.γB d.P W (batchLockInv γA (metaTMR cl γA.ph d.γB d.P)) D ⊢
     ⌜backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
         go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
       (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
         go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
       bkRestAtM E.authMode (if E.lg then appliedTableM E.authOn γr A else []) γr.kv.c0
-        γr.raft.raft.boot (γr.raft.pre ++ A) D⌝ := by
+        γr.raft.raft.boot (γr.raft.pre ++ A) D⌝ ∗
+    -- (keepfix (c) step 1) the stored pair a committed entry, or the index 0 (`metaTMR`'s S5 row, `snapObsAR`)
+    □ (⌜ai = W64 0⌝ ∨ srvCIPair cl ai (metaTermOf D)) := by
   iintro ⟨HY, Hrc, Hrn, Hsv⟩
   iunfold backend.bStopView at Hsv
   icases Hsv with ⟨-, HPk, -, Hhk, Hr, -, -⟩
   ihave Hnone := backend.rbPart_none (GF := GF) d.γB (∅ : GMap GoString backend.BktData)
-  ihave %h := snapObsA γA d.γB d.P hcK st (restSet E.authMode)
+  icases snapObsAR cl γA d.γB d.P hcK st (restSet E.authMode)
     (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk (fun _ => False) ∅
-    $$ %(backend.hkData d.P D) %(backend.rbData d.P D) [HY Hrc Hrn Hnone] HPk Hhk Hr
+    (backend.hkData d.P D) (backend.rbData d.P D) $$ [HY Hrc Hrn Hnone] HPk Hhk Hr
+    with ⟨%h, %t, %htk, #Hpr⟩
   · iframe HY Hrc Hrn Hnone
-  ipureintro
-  obtain ⟨⟨hci1, t1, ht1⟩, hrbD, -⟩ := h
+  obtain ⟨⟨hci1, -⟩, hrbD, -⟩ := h
   rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
-  rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
-  exact ⟨by rw [← hci]; simpa using hci1, ⟨t1, by simpa using ht1⟩,
-    bkRestAtM_of_obs E γr A d f D hRB hrbD hfb⟩
+  rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at htk
+  have hci' : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
+      go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai := by
+    rw [← hci]; simpa using hci1
+  have htk' : backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
+      go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t := by
+    simpa using htk
+  have hmt : metaTermOf D = t := metaTermOf_of_metaIs (m := (ai, t)) ⟨hci', htk'⟩
+  isplitr
+  · ipureintro
+    exact ⟨hci', ⟨t, htk'⟩, bkRestAtM_of_obs E γr A d f D hRB hrbD hfb⟩
+  rw [hmt, ← hci]
+  iexact Hpr
 
 /-- **The image clause of the stopped backend's data** (the restart plan's R2b-3d stage 5a; the
 pure part of `merged_image`; R6, 2026-11-07: over `mergedImgM` and mvcc's `mvccImage`, until then
@@ -146,7 +158,9 @@ theorem stop_imageAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
       |={⊤}=> kvApplied γr.raft γr.kv A x ∗
         ⌜imageRestAt γr.kv γr.raft.raft.boot ai (γr.raft.pre ++ A) D ∧
           imageStOk (kvModel γr.kv A) (crevOf γr.kv A)⌝ ∗
-        ∃ u : Bool, mvcc.api.mvccImage D (kvModel γr.kv A) (crevOf γr.kv A) u := by
+        (∃ u : Bool, mvcc.api.mvccImage D (kvModel γr.kv A) (crevOf γr.kv A) u) ∗
+        -- (keepfix (c) step 1) the stored pair's row (`mergedImgM`'s)
+        □ (⌜ai = W64 0⌝ ∨ srvCIPair γr.raft.raft.cl ai (metaTermOf D)) := by
   iintro ⟨#Hmi, #Hsrv, Hka⟩
   iunfold isServer at Hsrv
   icases Hsrv with ⟨-, -, -, Hat, -, -⟩
@@ -167,7 +181,7 @@ theorem stop_imageAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
     iframe HA Hhi Hcert
     ipureintro; exact ⟨hlog, hx⟩
   iunfold mergedImgM at Hmi
-  icases Hmi with ⟨%hmi, %u, #Him⟩
+  icases Hmi with ⟨%hmi, ⟨%u, #Him⟩, #Hpr⟩
   obtain ⟨hci', hterm, hrest, hre⟩ := hmi
   rw [hM] at hrest
   simp only [auth.AuthMode.isOn, appliedTableM_false] at hrest
@@ -184,8 +198,10 @@ theorem stop_imageAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   rw [← hlog, ← hx.2]
   isplitr
   · ipureintro; exact ⟨⟨hci', hterm, hrestL⟩, hre⟩
-  iexists u
-  iexact Him
+  isplitr
+  · iexists u
+    iexact Him
+  iexact Hpr
 
 end proof
 

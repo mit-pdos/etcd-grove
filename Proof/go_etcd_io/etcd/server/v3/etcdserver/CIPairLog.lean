@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CIPair
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
+public import Proof.go_etcd_io.raft.v3.DurableLogView
 
 @[expose] public section
 
@@ -105,6 +106,24 @@ theorem srvRaftLogInv_termPos (hTP : srvTermPos_of_cluster.law (GF := GF)) (γ :
     rw [Hbl, Hvs.2.2.1.1]; exact List.length_pos_iff.mpr Hvs.1
   iapply (hTP γ.raft.cl hpos)
   iexact Hc
+
+/-- (keepfix (c), step 1, sub-goal 1) **`srvTermPos_of_cluster.law` holds**: a committed entry of a cluster with a
+non-empty boot log has a term at least `1` (raft's `isCommittedLogLb_term_pos`). -/
+theorem srvTermPos_of_cluster_holds : srvTermPos_of_cluster.law (GF := GF) := by
+  intro cl hb
+  iintro #Hc
+  unfold srvTermPos
+  iintro !> %k %t #Hp
+  unfold srvCIPair
+  icases Hp with ⟨%l, %e, #Hl, %h⟩
+  imod isCommittedLogLb_term_pos cl srvClusterN l ⊤ CoPset.subseteq_top hb $$ [$Hc $Hl] with %Hpos
+  imodintro
+  ipureintro
+  obtain ⟨-, he, ht⟩ := h
+  have h1 := Hpos e (List.mem_of_getElem? he)
+  intro h0
+  rw [ht, h0] at h1
+  revert h1; decide
 
 end ghostHeap
 

@@ -55,6 +55,8 @@ def bootstrapAtR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : Boot
     (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
       ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
+    -- (keepfix-d) the stored term is the committed term of the stored index (the contracts'; the image's row)
+    (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)) -∗
     {{ zapLoggerOk cfg.Logger' ∗
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         ⌜EtcdVerifyOff⌝ ∗
@@ -91,11 +93,11 @@ theorem bootstrapAtR_of_restart (cfg : go_etcd_io.etcd.server.v3.config.ServerCo
   unfold bootstrapRestartContract bootstrapAtR
   iintro #H
   imodintro
-  iintro %Hp Hs
+  iintro %Hp Hs Hpr
   ihave Hc := H $$ %σ %i %L %D %M [] [Hs]
   · ipureintro; exact Hp
   · iexact Hs
-  iexact Hc
+  iapply Hc $$ Hpr
 
 /-- The crash contract at an image whose records meet the WAL's read facts (the restart contract's
 `i ≤ σ.commit` puts the bootstrap log, below the index, below the commit: the crash contract's
@@ -107,11 +109,11 @@ theorem bootstrapAtR_of_crash (cfg : go_etcd_io.etcd.server.v3.config.ServerConf
   unfold bootstrapCrashContract bootstrapAtR
   iintro ⟨#H, -⟩
   imodintro
-  iintro %Hp Hs
+  iintro %Hp Hs Hpr
   ihave Hc := H $$ %σ %i %L %D %M [] [Hs]
   · ipureintro; exact ⟨Hp.1, hw, Nat.le_trans Hp.2.2.1 Hp.2.1, Hp.2.2.2⟩
   · iexact Hs
-  iexact Hc
+  iapply Hc $$ Hpr
 
 end boot
 
@@ -149,7 +151,7 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
     ipureintro; exact hg
   obtain ⟨hc, hb, hbl⟩ := hg
   unfold srvCrashImageAt srvDiskImageAt wal.crashImageR snapRowB2
-  iintro ⟨#Hsrl, Hvac, HrS, %Hρ, #HA, %Himp, Hmv, #Hconf, Hcrow, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles,
+  iintro ⟨#Hsrl, Hvac, HrS, %Hρ, #HA, %Himp, Hmv, #Hpair, #Hconf, Hcrow, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles,
     ⟨%γd, %γm, %c, %Hsl, Hrow, Hsdi, Hmn⟩⟩
   -- (T10s3b B8) the stored `confState` is the index's in both cases of `confRowW`: the configurations
   -- at `i` and `i + 1` are both the boot one
@@ -175,7 +177,7 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
   imodintro
   ileft
   isplitl [Hvac HrS Hmv Hws Hreg Hfiles Hmn]
-  · iframe Hvac HrS HA Hmv Hconf Hws Hreg Hfiles
+  · iframe Hvac HrS HA Hmv Hpair Hconf Hws Hreg Hfiles
     isplitr
     · ipureintro; exact Hρ
     isplitr

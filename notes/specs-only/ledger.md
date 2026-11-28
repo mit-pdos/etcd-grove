@@ -8635,3 +8635,51 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   resource `C` (lead-approved 2026-11-28).
 - **Decision.** Mechanical consequence of the approved rows; the rt ≠ 0 premise is sub-goal 2 of the callers plan
   (etcd_safe lead, 2026-11-28).
+## 2026-11-28: `bootstrap`'s first start builds its hooks over `metaTMR γ.cl` (keepfix (c) step 1, helper A)
+
+- **Spec.** `bootstrapBackend.spec` (and `bootBackendRows`, `bootBackendNew`, `bootBackendData`, `BootParts.lean`),
+  `bootstrapBackend.metaSnap.law`, `bootstrap.spec`; the hook lemmas `hooksOk_server_fut`, `backend_server_hooks_of`
+  (`BuildLemmas.lean`) and `snap_create`/`boot_create`/`snapOpenK` (`SnapApplyOpen.lean`); new pending law
+  `srvTermPos_of_cluster.law` (`BuildLemmas.lean`) and `NewServer.wp_proof*`'s hypothesis `hTermPos`.
+- **Defect.** `bootOk` (approved) puts the boot backend's batch lock at `metaTMR γ.cl γA.ph`, its `isCI` at
+  `srvCITriple0 γ.cl` and the mirror `ciRaftTerm γA.ci 0`; the hooks `bootstrapBackend` builds keep `metaTMR` across
+  a save only given `srvTermPos γ.cl` (a save of term 0 keeps the stored term), which nothing in `bootstrap.spec`'s
+  precondition gives (no `isCluster`, and `SrvRaft` does not tie `cl.bootLen` to `boot`).
+- **Evidence.** `CindexBackend.lean`'s `metaTMR_after_save` (its `srvTermPos` premise); `bootstrap.spec`'s text.
+- **Proposed change.** `bootstrapBackend.spec` takes `cl` (in place of the pair predicate `CP`) and `srvTermPos cl`
+  in its precondition; its rows at `srvCITriple0 cl`, `metaTMR cl`, `"Hrt" ∷ ciRaftTerm γA.ci 0`, the data's
+  `metaRaftTermOf D = γA.rk0`. `bootstrap.spec` (and the axioms' statements `bootstrap.specDist`, `bootstrap.specOne`,
+  and the contracts `bootstrapContract`, `bootstrapLeftContract` stated as it) gain `srvTermPos γ.cl` in the
+  precondition: a weakening of the axioms. Its caller, `NewServer`, derives it from `srvRaftLogInv` (`srvClusterOk`'s
+  `isCluster` and `bootLen = boot.length`, the boot log non-empty) by `srvTermPos_of_cluster.law`, pending until the
+  bootlaw merge brings raft's `isCommittedLogLb_term_pos` (then proved, and the hypothesis goes).
+- **Decision.** Approved by the lead (relayed coordinator decision, 2026-11-28): the axioms' weakening is approved;
+  the reviewer checks the text.
+
+## 2026-11-28: `srvStopChans` at `metaTMR` (keepfix (c) step 1 fix, helper A)
+
+- **Spec.** `srvStopChans` (`SnapRO.lean`), `srvSnapRes`, `srvSnapBoot`, `srvSnapApplied`, `srvSnapAppliedG` (through
+  `srvStopChans`); `srvStopChans_boot`.
+- **Defect.** `srvStopChans` stated the server backend's `isBackend` at the old lock resource `metaTM`, while the
+  approved `srvBeHooked` (same post, `NewServer_dist`'s through `srvBuiltG`'s `srvSnapBoot`) states it at
+  `metaTMR cl γ.ph`: the post asserted one backend's `isBackend` at two lock resources (probably inconsistent), and
+  `bootOk`'s `Hnew` gives only the `metaTMR` one.
+- **Evidence.** `SnapRO.lean:580` (before), `InvApplier.lean`'s `srvBeHooked`, `InvBoot.lean`'s `Hnew`.
+- **Proposed change.** `srvStopChans cl γA d` at `batchLockInv γA (metaTMR cl γA.ph d.γB d.P)`; `srvSnapRes s E γA cl`;
+  `srvSnapBoot` passes `γr.raft.raft.cl`; `srvSnapApplied`/`srvSnapAppliedG` use `γr.raft.raft.cl` (their `γr`).
+- **Decision.** Approved by the coordinator (2026-11-28, via the lead); reviewer to confirm the fixed post is
+  consistent.
+
+## 2026-11-28: the restart images carry the stored pair's row (keepfix (c) step 1 (b), helper A)
+
+- **Spec.** `srvDiskImageAt` (InvRestart), `srvCrashImageAt` (InvCrashImage), `bootstrapAtR` (NewServerRAt), dist's
+  `memberImageRows` (MemberCrash, B1's output).
+- **Defect.** keepfix-d's restart contracts take `(⌜i = 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D))`, but nothing the
+  restart (`NewServer.specR`/`specRAt`/`specC`) holds supplies it: the images had no term row.
+- **Evidence.** InvRestart.lean:770 and InvCrashImage.lean:186 (the contracts' premise); the images' texts.
+- **Proposed change.** Both images gain the row `(⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D))`. The graceful
+  image's producers are the stop paths, from the stopped backend's `metaTMR` (S5's row). The crash image's producer
+  is dist's `crashImage_of`, from `memberImageRows`, which T10 supplies from `bkImg`'s `bkTermRow` and the committed
+  prefix (`srvRLogLb_ciPair`). `bootstrapAtR` takes the premise and the restart proofs pass the image's row.
+- **Decision.** Approved by the lead (relayed, 2026-11-28; (b) and the crash image's row, weakenings of
+  `NewServer.specC`/`NewServerC_dist`); the reviewer checks the texts.

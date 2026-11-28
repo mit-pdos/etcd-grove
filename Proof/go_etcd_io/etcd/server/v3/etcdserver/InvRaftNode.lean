@@ -1997,7 +1997,7 @@ theorem rn_rtOk_st (γ : RNNames GF) (rt : w64) (L : List EntryModel) (st : Node
   iunfold rnRtOk
   rcases Hrt with Hrt | Hrt
   · ileft; ipureintro; word
-  · icases Hc with (%Hz | ⟨#Hc, %Hle⟩)
+  · icases Hc with ⟨%Hle, (%Hz | #Hc)⟩
     · ileft; ipureintro; rw [Hrt, Hz]
     · iright
       iexists st.hardState.Commit'

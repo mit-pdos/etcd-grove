@@ -230,6 +230,9 @@ def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S 
       imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
       imageStOk (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A)⌝ ∗
     (∃ u : Bool, mvcc.api.mvccImage D (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) u) ∗
+    -- (keepfix (c) step 1, (b), 2026-11-28) the stored pair is a committed entry, or the index 0: what the
+    -- stopped backend's lock resource said of its meta keys (`metaTMR`'s S5 row), the restart contracts' premise
+    (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)) ∗
     ⌜γ.cl.bootLen ≤ uint.nat i⌝ ∗
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
     -- (R2d review F7, 2026-11-06; DRAFT) the WAL's slot: `StorageHolds S σ`, `σ.b ≤ i ≤ σ.commit`

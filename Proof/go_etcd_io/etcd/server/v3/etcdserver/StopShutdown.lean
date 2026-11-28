@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopCensus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CIPairLog
 
 @[expose] public section
 
@@ -400,7 +401,9 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (hStop : mvcc.api.mvccImage_stop.law (GF := GF))
     (Hp : mvcc.api.persistent.law (GF := GF))
-    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
+    (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    -- (keepfix (c) step 1, sub-goal 1; pending until the bootlaw merge) the hooks' `srvTermPos`
+    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
   intro K C rp A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
   iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hmidr, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
@@ -475,6 +478,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hat with ⟨-, -, Hki⟩
   iunfold srvKVInvs at Hki
   icases Hki with ⟨-, -, #Hrl, #Hks, %Hwit, -⟩
+  -- (keepfix (c)) a committed entry's term is not 0 (the stop commit's hook keeps `metaTMR`)
+  ihave #Htp := srvRaftLogInv_termPos hTP _ $$ Hrl
   obtain ⟨-, -, ⟨hw1, hw2, hw3, hw4⟩, -⟩ := Hwit
   -- the lessor's stop right and the auth store's closer (the slot's)
   icases srvStop.cleanup_pieces C.s C.E $$ Hclp with ⟨⟨%lp, #Hlpa, Hlst⟩, #Hauth⟩
@@ -566,13 +571,14 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvStopChans at Hsch
   icases Hsch with ⟨#HB, #HSC⟩
   ihave #Hnh := isBackendNH_of_hooksAt d.γB d.P (mvcc.api.mvccW d.gx)
-    (batchLockInv B.γ (metaTM d.γB d.P)) d.be (storage.hooksIface bh) $$ [HB HhkAt]
+    (batchLockInv B.γ (metaTMR C.γr.raft.raft.cl B.γ.ph d.γB d.P)) d.be (storage.hooksIface bh) $$ [HB HhkAt]
   · iframe #
   iunfold isServerCI at HCI
   icases HCI with ⟨-, #Hci, #Hinv⟩
-  ihave #Hreq := commitReq_freeze (Rw := TRow.triv) hOn hSave hPut hUR hID hName hSafe B.γ C.ci d.γB d.P
+  ihave #Hreq := commitReq_freeze (Rw := TRow.triv) hOn hSave hPut hUR hID hName hSafe C.γr.raft.raft.cl B.γ C.ci
+    d.γB d.P
     (mvcc.api.mvccW d.gx) d.be bh lgh hcK hhP st hp.1.1
-    $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
+    $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Htp Hinv]
   · iframe #
   -- the KV at the store's handle
   icases Hkv with ⟨%kv, #Hkva, #HisKV, %HkvE⟩
@@ -580,7 +586,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iapply wp_fupd
   wp_apply hCl C.s lp kv C.E.γ 1 (B.E.Pk d) stl iprop(True) C.E.γbe d
       (DFrac.own (1 : Qp).half.half.half) (mvcc.api.mvccW d.gx)
-      (batchLockInv B.γ (metaTM d.γB d.P)) v.compactor (applyThread B.γ st) (freezeY B.γ st)
+      (batchLockInv B.γ (metaTMR C.γr.raft.raft.cl B.γ.ph d.γB d.P)) v.compactor (applyThread B.γ st) (freezeY B.γ st)
     $$ [Hlst Hop Hrs HmB Hbr Hbe Hg Hwand Hst]
     as ⟨-, HmB, -, -, -, HY, %D, Hsv, Hfile⟩
   · rw [hcp]
@@ -608,21 +614,23 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (restModel C.γr.kv.c0 C.γr.raft.raft.boot (C.γr.raft.pre ++ G)) hbk]
   -- the store's part (`mvccImage_stop.law`, with the apply thread's whole share)
   ihave HmB : mvcc.api.mvccBackend C.E.γ 1 (mvcc.api.etcdStorage d)
-      (batchLockInv B.γ (metaTM d.γB d.P)) $$ [HmB]
+      (batchLockInv B.γ (metaTMR C.γr.raft.raft.cl B.γ.ph d.γB d.P)) $$ [HmB]
   · rw [← hPk]; iexact HmB
   imod srvApi.stopImageG Hp Hr hStop B.E.Nx B.E.Cp B.E.kv C.E.γ B.E.γs x.log x.crev d
-    (batchLockInv B.γ (metaTM d.γB d.P)) D
+    (batchLockInv B.γ (metaTMR C.γr.raft.raft.cl B.γ.ph d.γB d.P)) D
     $$ [Hks Hws HmB Hsv] with ⟨-, -, Hsv, %Hre, %u, #Him⟩
   · iframe Hks Hws HmB Hsv
   -- the server's parts (the window's observation on the stopped lock's pieces)
-  ihave %hobs := stop_obs B.γ B.E C.γr ai G d f st (mvcc.api.mvccW d.gx) D hcK hRB hci Hfb
-    $$ [HY Hrc Hrn' Hsv]
+  icases stop_obs C.γr.raft.raft.cl B.γ B.E C.γr ai G d f st (mvcc.api.mvccW d.gx) D hcK hRB hci Hfb
+    $$ [HY Hrc Hrn' Hsv] with ⟨%hobs, #Hpo⟩
   · iframe HY Hrc Hrn' Hsv
   ihave #Hmi : mergedImgM (GF := GF) B.E.authMode B.E.lg C.γr ai G x.log x.crev D $$ []
   · iunfold mergedImgM
     isplitr
     · ipureintro; exact ⟨hobs.1, hobs.2.1, hobs.2.2, Hre⟩
-    iexists u; iexact Him
+    isplitr
+    · iexists u; iexact Him
+    iexact Hpo
   -- the KV names' start values
   have ekr : kvRunM (GF := GF) AuthC.off.isOn C.γr C.ai₀ C.c₀ G x sa = kvRun C.γr C.ai₀ C.c₀ G x :=
     rfl
@@ -633,7 +641,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hsa with ⟨%wt0, %msc, %sc, -, -, -, -, -, -, -, -, -, -, -, %Hlog0⟩
   have hc0' : C.γr.kv.c0 = W64 0 := hk0.1.trans hc00
   imod stop_imageAt C.s B.γ C.ci B.TM B.E C.ρ C.γr ai G x D hBam ⟨hc0', Hlog0⟩ $$ [HsrvI Hka]
-    with ⟨Hka, %himg, %u', #Him'⟩
+    with ⟨Hka, %himg, ⟨%u', #Him'⟩, #Hpair⟩
   · iframe HsrvI Hka Hmi
   iunfold kvApplied at Hka
   icases Hka with ⟨Hka, -⟩
@@ -721,6 +729,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     exact ⟨by rw [hk0.2]; exact h1, himg⟩
   isplitr
   · iexists u'; iexact Him'
+  isplitr
+  · iexact Hpair
   isplitr
   · ipureintro; rw [HbL]; omega
   isplitr

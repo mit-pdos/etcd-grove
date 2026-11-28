@@ -342,7 +342,7 @@ def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) 
     srvApplyKVM on s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRestM on E' γr A' ∗
     -- (the mvcc merge) `lean`'s `srvKVCloserW s E'` was here: over the API the close right is the
     -- apply thread's `mvccOpen` (`srvApplyKVM`'s `cmpOwn`)
-    srvStopChans γ' d' ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
+    srvStopChans γr.raft.raft.cl γ' d' ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1) ∗
     backend.bPath d'.γB.db bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗

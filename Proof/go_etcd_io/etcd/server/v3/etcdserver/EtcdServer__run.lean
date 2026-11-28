@@ -1734,10 +1734,12 @@ theorem EtcdServer.run.wp_proof
     (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (hStop : mvcc.api.mvccImage_stop.law (GF := GF))
     (Hp : mvcc.api.persistent.law (GF := GF))
-    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
+    (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    -- (keepfix (c) step 1, sub-goal 1; pending until the bootlaw merge) the stop commit's `srvTermPos`
+    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
   EtcdServer.run.wp_proofG hSStop hRStop
-    (stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe hRdS hCR hStop Hp Hr) hAA.1 hAA.2
+    (stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe hRdS hCR hStop Hp Hr hTP) hAA.1 hAA.2
     hLg hGI hGT hFifo
     hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch
 

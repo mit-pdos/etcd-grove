@@ -180,8 +180,8 @@ theorem bootstrapBackend.wp_proof
     (hWA : mvcc.api.mvccW_alloc.law (GF := GF))
     (hMS : bootstrapBackend.metaSnap.law (GF := GF)) :
     bootstrapBackend.spec (GF := GF) (hG := hG) := by
-  intro _ _ cfg N CP hdd hcfg hN hdbo
-  wp_start as ⟨#Hzlg, Hfg, #Hvoff, Hfree⟩
+  intro _ _ cfg N cl hdd hcfg hN hdbo
+  wp_start as ⟨#Hzlg, Hfg, #Hvoff, Hfree, #Htp⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ipersist cfg
@@ -198,7 +198,7 @@ theorem bootstrapBackend.wp_proof
   -- `cindex.NewConsistentIndex(nil)`
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
-  wp_apply (hNCI GoInterface.nil CP) $$ [$Hcipkg] as %cil %γci ⟨#HisCI, Hidx, Happ, Hown⟩
+  wp_apply (hNCI GoInterface.nil (srvCITriple0 cl)) $$ [$Hcipkg] as %cil %γci ⟨#HisCI, Hidx, Happ, Hown, Hrt⟩
   -- `storage.NewBackendHooks(cfg.Logger, ci)`
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
@@ -215,31 +215,38 @@ theorem bootstrapBackend.wp_proof
   imod consInv_alloc (GF := GF) γci (W64 0, W64 0) γmt0 γmt0 ⊤ $$ Hidx
     with ⟨%γ0, %Hγ0, #Hinv, Hst, -, -, -⟩
   obtain ⟨hγci, hγm0⟩ := Hγ0
-  let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (W64 0, W64 0), γmt0, γmt0⟩
+  -- (keepfix (c)) a fresh backend: no raft-term key (`consInv_alloc`'s default `rk0 := none`)
+  let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (W64 0, W64 0), γmt0, γmt0, none⟩
   imod hWA with ⟨%gx, HwReg, HlateW⟩
   have hlim0 := hcfg.2.1
   have hlim1 := hcfg.2.2.1
   obtain ⟨hbr, hciK, hhP, hWf, -, hlpP, halP, hauP, hauuP, haurP, hmbP, hmrP, hclP⟩ :=
     bootKB_P (Classical.ofNonempty) null gx (storage.openLimit cfg) hlim0 hlim1
-  ihave #HmS := hMS γ0 $$ Hinv
+  ihave #HmS := hMS cl γ0 $$ Hinv
   have hm0 : metaIs (∅ : backend.Data) π0.m0 := ⟨rfl, rfl⟩
-  ihave Hcreate := snap_create (Rw := TRow.triv) γ0 π0 (bootP (storage.openLimit cfg)) ∅ (mvcc.api.mvccW gx) hm0
-    hciK $$ HmS Hinv Hpd0 Hmt0a HlateW
-  ihave #HisCI0 : isCI cil γ0.ci CP $$ []
+  have hr0 : metaRaftTermOf (∅ : backend.Data) = π0.rk0 := rfl
+  ihave #Hpr0 : iprop(⌜π0.m0.1 = W64 0⌝ ∨ □ srvCIPair (GF := GF) cl π0.m0.1 π0.m0.2) $$ []
+  · ileft; ipureintro; rfl
+  ihave Hcreate := snap_create (Rw := TRow.triv) cl γ0 π0 (bootP (storage.openLimit cfg)) ∅
+    (mvcc.api.mvccW gx) hm0 hr0 hciK $$ HmS Hpr0 Hinv Hpd0 Hmt0a HlateW
+  ihave #HisCI0 : isCI cil γ0.ci (srvCITriple0 cl) $$ []
   · rw [hγci]; iexact HisCI
+  ihave Hrt0 : ciRaftTerm (GF := GF) γ0.ci (W64 0) $$ [Hrt]
+  · rw [hγci]; iexact Hrt
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
-  ihave #Hhooks := hooksOk_server_fut (Rw := TRow.triv) hOn hSave hPut hUR hID hName hSafe γ0 π0 cil
+  ihave #Hhooks := hooksOk_server_fut (Rw := TRow.triv) hOn hSave hPut hUR hID hName hSafe cl γ0 π0 cil
     (bootP (storage.openLimit cfg)) (fun _ => mvcc.api.mvccW gx) bh cfg.Logger' hciK hhP
-    $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $HisCI0 $Hinv]
+    $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $HisCI0 $Htp $Hinv]
   -- `storage.OpenBackend(cfg, beHooks)`: the fresh file
   ihave Hfile := fileHolds_of_fileFree _ $$ Hfree
   wp_apply (hOB cfg (storage.hooksIface bh) (bootP (storage.openLimit cfg)) ∅
       (fun _ => mvcc.api.mvccW gx)
-      (fun γB => batchLockInv (γ0.withPh (futPhys π0 γB)) (metaTM γB (bootP (storage.openLimit cfg))))
-      (snapOpenK γ0 π0 (bootP (storage.openLimit cfg)))) $$ [Hfile Hcreate Hfg]
+      (fun γB => batchLockInv (γ0.withPh (futPhys π0 γB))
+        (metaTMR cl (futPhys π0 γB) γB (bootP (storage.openLimit cfg))))
+      (snapOpenK cl γ0 π0 (bootP (storage.openLimit cfg)))) $$ [Hfile Hcreate Hfg]
     as %b %γB ⟨Hnew, #HhkAt, #Hbfile, Hpath, -⟩
   · iframe Hfile
     iunfold storage.openPre
@@ -290,9 +297,10 @@ theorem bootstrapBackend.wp_proof
   ihave Hab : applyBackend (GF := GF) (γ0.withPh π') cil (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) $$ [Hown]
   · iunfold applyBackend; iframe Hown HmB
-  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg CP (γ0.withPh π') cil _ ⟨W64 0, W64 0, W64 0, false⟩ rfl)
-    $$ [Hst Hab] as ⟨Hst, Hab⟩
-  · iframe Hst Hab; isplitr; · iexact HisCI0
+  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg (srvCITriple0 cl) (γ0.withPh π') cil _ (W64 0)
+      ⟨W64 0, W64 0, W64 0, false⟩ rfl)
+    $$ [Hst Hab Hrt0] as ⟨Hst, Hab, Hrt⟩
+  · iframe Hst Hab Hrt0; isplitr; · iexact HisCI0
     isplitr
     · rw [show consInv (GF := GF) (γ0.withPh π') = consInv γ0 from rfl]; iexact Hinv
     -- (keepfix-d) the fresh backend's index is 0
@@ -327,10 +335,10 @@ theorem bootstrapBackend.wp_proof
   iframe «$r0»
   isplitr
   · ipureintro
-    refine ⟨rfl, ⟨rfl, rfl⟩, mvcc.keyView_of_dget hbr' (fun _ => rfl), fun _ _ => rfl, rfl⟩
-  isplitl [Hst Happ Hown HwReg Hpath]
+    refine ⟨rfl, ⟨rfl, rfl⟩, rfl, mvcc.keyView_of_dget hbr' (fun _ => rfl), fun _ _ => rfl, rfl⟩
+  isplitl [Hst Happ Hown Hrt HwReg Hpath]
   · iunfold bootBackendRows
-    iframe Hst Happ Hown HwReg Hpath HisCI0 HhkAt Hbfile HmB
+    iframe Hst Happ Hown Hrt HwReg Hpath HisCI0 HhkAt Hbfile HmB
     isplitr
     · ipureintro; rfl
     isplitr
