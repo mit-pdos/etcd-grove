@@ -464,3 +464,35 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `sort.Search` with a closure: Perennial's spec), then `settle` (worklist invariant, §2.2), then
   `SharedModel` (`bound`, `target`, `stepIdx`; `targetL` exists, `boundL` not yet). Link each when proved.
 - **No `sorry`**, no axiom, no statement/premise/trusted-text change.
+
+## Handoff K9-6 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Merges**: lean at `2018327946` (Perennial pin `e2eda8223`, built on fk-lean2 as `perennial-e2eda8223`
+  with `pbuild-e2eda8223.sh`). The merge rebuilds nearly everything (new pin): the first Link build after it
+  is long (bbolt, etcd server); lean-check of one etcd3 file rebuilt its cone in ~45 min.
+- **Proved and linked**: `decodeItemRVs` (new spec: `decItemRVsL`, each item `item.mk (objKeyL o) o false`,
+  owned) and `shows` (`showsL`). `decWEventsL_t` moved from `watchOk.lean` (a proof) to `SharedLand.lean`.
+- **Spec changes (branch only)**: `cfgSet.add` drops its premise `gs.length + 1 < 2^63` (the appended
+  slice's `ownSlice_len` gives it; settle could not supply it); `SettleOk` revised to what settle needs:
+  every landing `l` R or the answer names has `l + |pend| + 1 ≤ 2^63` (anchors `a + |pend| + 2`), the
+  configuration's `rv + |pend| + 1 ≤ 2^63`, `items + |pend| < 2^63`, pending inputs are writes.
+- **Drafts, not built** (`notes/k9-drafts/`, move back to `Proof/.../etcd3/` to continue):
+  `settle.lean.txt`: pure part complete but unchecked (`settleSuccs`, `SettleWith` trans/closure,
+  `hwf_*`, `landingsL_mem`, `SGood`, `sgood_succ`, `SetInv` init/skip/add/done) and the WP proof drafted
+  on `closure.lean`'s template (outer worklist loop, `cfgSet.add`, inner loop over `d.pend`, no-effect push,
+  landing loop over `skipTo`/`mstep`/`advance`), never checked. `landings.lean.txt`: `dropWhile_eq_drop`,
+  `ancF`, skeleton. Plan for `landings`' closure `add`: persist the read-only local cells, state its triple
+  as a persistent Iris hypothesis (`predImplements` style, `wp_start` inside), `wp_apply` it at the four
+  calls; `sort.Search` as in Perennial's `SearchInts` (`RecV` → `#(func.mk ..)` rewrite, `I` = the cells).
+  Link lines then: `landings: shows =_root_.Perennial.sort.wp_Search`, `settle: cfgSet__add mstep removeAt
+  landings histHashes__skipTo advance`.
+- **Proof notes**: `wp_if_destruct` on a Go string/uint equality `subst`s the variable (`key`, `r` vanish):
+  state facts as `∀ k rr, k = … → rr = … → showsL x y k rr = true`. A `word` inside such a branch can make
+  a kernel error (`_proof_1_N` applied to the wrong arguments): prove the fact before the branch or as a
+  top-level lemma (`sint_lt3_iff`). Avoid dependent `os[i]'h` in loops (kernel mismatch): `list_elem`.
+  A context cell named `in` breaks `wp_for` (`iNamed`): `irename : (in_ptr ↦ x : IProp GF) => Hin` first.
+  An Iris hypothesis whose type is a `match` on `hd`: `isimp only [hd] at Hd`. `simp` turns `W64 5` into
+  `5#64`, so `simp [hk5]` misses: `simp only [showsL, if_neg hk5, …]`.
+- **Left**: finish and check `settle` and `landings` from the drafts, link them; then `boundL`/`bound`,
+  `target`, `SharedModel`.
+- **No `sorry`** in built files, no axiom, no top-level statement/premise/trusted-text change.
