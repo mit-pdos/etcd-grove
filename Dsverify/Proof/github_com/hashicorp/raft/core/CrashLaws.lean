@@ -1225,7 +1225,64 @@ theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (
       |==> (logWin γ rc i (.store (s.log.length + 1) [e]) ∗
       (logWin γ rc i (.store (s.log.length + 1) [e]) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) [e]) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #HI #Hd Hpw Hv Hst Hh Hk
+  imod (winRes_make γ rc i s (.cfg e k p) D g ⟨hpre, hg⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iframe
+  imodintro
+  isplitl [HW]
+  · iunfold logWin; ileft; iexists s, (Pend.cfg e k p); iframe HW; ipureintro; rfl
+  iintro HW
+  iunfold logWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
+  rotate_left
+  · cases hop
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.cfg e k p) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.cfg e k p)) $$ Hpw
+  iapply (logWrite_au γ rc i (fun A => A.store (s'.log.length + 1) [e])
+    iprop(srvV rc s' ∗ stVS rc D g ∗ pendHyps γ i s' (.cfg e k p) ∗ (|==> ghostVar rc.dur.pw 1 (none : Option Pend)) ∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s' with log := s'.log ++ [e] } -∗ stVS rc D g -∗
+        ccfgOwn γ i s'.term (lastCfgIdx s'.log) -∗
+        llogIdx γ s'.term (s'.log.length + 1) e ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hv Hst Hh Hpw Hk]
+  · iframe
+  iintro %X Hc ⟨Hv, Hst, Hh, Hpw, Hk⟩
+  imod Hpw
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s' $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  obtain ⟨hD, hstg⟩ := Hag2
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [hs, htp, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  iunfold pendHyps at Hh
+  icases Hh with ⟨#Hl, Hcf, #Hci, Hr⟩
+  imod (gprot.leaderAppendCfg_upd γ _ crash_gprot_store i s' e k p hpre) $$ [HI Ho Hlc Hl Hcf Hci Hr]
+    with ⟨Ho, Hlc, Hcf, #Hidx⟩
+  · iframe #; try iframe
+  unfold srvV
+  imod (ghostVar_update_halves ({ s' with log := s'.log ++ [e] }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imodintro
+  iexists ({ X with s := { s' with log := s'.log ++ [e] }, A := X.A.store (s'.log.length + 1) [e], tp := none })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp]
+  · iunfold durCore
+    dsimp only
+    try rw [hdp]
+    rw [LogAbs.store_staged, LogAbs.store_ci]
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨logOk_store _ _ _ _ hlo, hlc, hvm, htd, ?_⟩
+    exact ⟨by rw [hstg]; exact hg, hci.2⟩
+  isplitl []
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
+  ihave HΨ := Hk $$ Hpw Hv Hst Hcf Hidx
+  iexact HΨ
 
 /-- (R2) **The follower's append** at `StoreLogs`' commit (`followerStore_upd`), then, with
 `lc = some v`, the commit learnt with it (`learnCommitFollower` of `min lci v`, so that the written
