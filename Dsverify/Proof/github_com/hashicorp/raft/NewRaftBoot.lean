@@ -154,9 +154,9 @@ theorem bootPin_agree (X : SrvDur) (A : LogAbs) (lat : SnapLatest) :
     obtain ⟨-, h⟩ := Hag
     simp only [Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨h1, h2⟩ := h
-    rw [← h1, ← h2]
+    subst h1 h2
     iframe
-    ipureintro; exact ⟨h1, h2⟩
+    ipureintro; exact ⟨rfl, rfl⟩
   · icombine Hd Hv gives %Hag
     cases Hag.2
 
