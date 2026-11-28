@@ -402,6 +402,14 @@ theorem capAuth_lb_prefixW (γa : auth.AuthNames) (C C' : List auth.AuthState) :
   · iexact H
   · iexact Hl
 
+/-- A request carrying an admin request (`apply.adminReqOf`) other than an `Authenticate` is of an
+admin kind. -/
+theorem adminDispatchKind_of_adminReqOf (rq : apply.IRRModel) (ad : apply.AdminReq)
+    (had : apply.adminReqOf rq = some ad) (hk : apply.dispatchKind rq ≠ .authenticate) :
+    adminDispatchKind (apply.dispatchKind rq) = true := by
+  unfold apply.adminReqOf at had
+  split at had <;> rename_i h <;> simp_all [adminDispatchKind]
+
 /-- The admin step's cap permission, from the cap's lower bound at the history of `A ++ [m]` when
 the store's history is `A`'s (`authHistTie_raise`'s last step). -/
 theorem adminExtraG_of_capLb (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.AuthNames)
@@ -438,10 +446,11 @@ theorem adminExtraG_of_capLb (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.A
     have hne : adminNext rq st ≠ st := by
       rw [hnext]; intro h; rw [h] at hord; exact Nat.lt_irrefl _ hord
     have hadm : admEntry γr.kv.c0 (srvAuthAtLog γr.kv (auth.bump auth.bootState) A) m := by
-      rw [hsa]; exact ⟨ht, hd, rq, hdec, hv, hna, hok, hne⟩
+      rw [hsa]; exact ⟨ht, hd, rq, hdec, hv, adminDispatchKind_of_adminReqOf rq ad had hk, hok, hne⟩
     have hH : srvHist γr.kv (A ++ [m]) = hs ++ [st'] := by
       unfold srvHist
-      rw [admStates_snoc_adm _ _ _ _ hadm, srvAuthAtLog_snoc_adm _ _ _ _ rq ht hd hdec hv hna, hsa,
+      rw [admStates_snoc_adm _ _ _ _ hadm, srvAuthAtLog_snoc_adm _ _ _ _ rq ht hd hdec hv
+        (adminDispatchKind_of_adminReqOf rq ad had hk), hsa,
         hnext, hseq]
       rfl
     unfold auth.capNext

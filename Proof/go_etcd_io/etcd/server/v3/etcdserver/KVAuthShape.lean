@@ -233,10 +233,12 @@ theorem rolesSorted_kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : OnState)
   split
   · split
     · split
-      · exact rolesSorted_adminNext _ _ h
+      · exact h
       · split
-        · exact h
-        · exact h
+        · exact rolesSorted_adminNext _ _ h
+        · split
+          · exact h
+          · exact h
     · exact h
   · exact h
 

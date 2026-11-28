@@ -249,11 +249,13 @@ theorem kvEntryOn_wf  {lm : lease.Mode} (c₀ : w64) (ch : apply.Chain) (s : OnS
     split
     · rename_i rq hdec
       split
-      · exact adminNext_wf rq s.1 h (plainEntryOn_userAdd m hm hn.1 hn.2 rq hdec)
-          (apply.irrDecode_utf8 _ rq hdec)
+      · exact ⟨h, Nat.le_succ _⟩
       · split
-        · exact ⟨h, Nat.le_succ _⟩
-        · exact ⟨h, Nat.le_succ _⟩
+        · exact adminNext_wf rq s.1 h (plainEntryOn_userAdd m hm hn.1 hn.2 rq hdec)
+            (apply.irrDecode_utf8 _ rq hdec)
+        · split
+          · exact ⟨h, Nat.le_succ _⟩
+          · exact ⟨h, Nat.le_succ _⟩
     · exact ⟨h, Nat.le_succ _⟩
   · exact ⟨h, Nat.le_succ _⟩
 

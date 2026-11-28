@@ -70,6 +70,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: `kvEntryOn` (the auth-aware KV model) -- an admin field beside a KV field drops the KV op (D1)
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/KVAuthModelDefs.lean`, `kvEntryOn` (and its
+  relational twin `outcomeOn`, `KVApplyOn.lean`; the recorded-entry predicate `admEntry`): the model
+  `kvInvOn`, `writeAuD` and the `*On_dist` axioms are written over.
+- **Defect.** A request with an admin field and a KV field (`needAdminPermission = true`, `dispatchKind
+  = .put`, ...) takes the admin branch, so the model drops the put. Go (`authApplierV3.Apply`,
+  `server/etcdserver/apply/auth.go:43-58`) checks `IsAdminPermitted`, then dispatches the first set
+  field: the put is applied. Today's log premises (`adminKindOk`) exclude such entries, so no proof is
+  wrong, but the model is not Go's for every request Go accepts.
+- **Evidence.** `apply.dispatchKind` (`apply/InvRequest.lean:276`) vs `apply.needAdminPermission`
+  (`:319`); the scoping `~/coordinator-notes/plans/nomode-packet.md`, section 2.
+- **Proposed change.** `kvEntryOn`: refuse (state kept) when `needAdminPermission ∧ ¬ adminOk`, at
+  any index (the check runs before `dispatch`, whatever `shouldApplyV3`); take the admin step only above
+  `c₀` and for a kind `dispatch` applies as an admin step (`adminDispatchKind`); otherwise the KV
+  branches as today. `outcomeOn` and `admEntry` follow (`admEntry`'s `needAdminPermission rq = true`
+  becomes `adminDispatchKind (dispatchKind rq) = true`). On every log today's premises admit the model's
+  value is unchanged (an admitted admin entry is of an admin kind, `adminDispatchKind_of_adminKindOk`;
+  a refused one kept the state through `adminNext_refused`). No top-level statement changes.
+  Before/after text: `notes/nomode-n1.md`.
+- **Decision.** Accepted (the user, through the coordinator, 2026-11-27: D1); independent review of
+  the before/after pending.
 ## 2026-11-25: the antithesis harness's `CfgOk` -- `0 ≤ MaxDelay` goes with the delay (#33 S4)
 
 - **Spec.** `Proof/.../raft/antithesis/HarnessDefs.lean` (`CfgOk`, `defaultCfg`, `clusterRO`), the premise
