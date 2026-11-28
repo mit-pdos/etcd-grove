@@ -313,8 +313,11 @@ theorem newServerMode.wp_proofF
       NewServer.specAtA (GF := GF) (hG := hG)) :
     newServerMode.specF (GF := GF) (hG := hG) := by
   intro N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
-    bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm R Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
+    bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm R ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU Hpf Hcf HU8 HnL Hmode Haf Hbuq Hdbo
+  have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
+  have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
   wp_start as ⟨HR, #Hpkg0, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremiseF at Hboot
