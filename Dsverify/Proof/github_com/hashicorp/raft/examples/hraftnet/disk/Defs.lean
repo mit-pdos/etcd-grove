@@ -164,6 +164,64 @@ def diskMem (d : Loc) (I : DiskImg) (stg : w64) : IProp GF :=
 
 end rep
 
+
+/-! ## (codec round trip) The decoders' pre-states and `*Snaps`'s memory -/
+
+section rep2
+open Iris Iris.BI
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.disk.Assumptions]
+
+/-- **A fresh `*Disk`'s decoded fields** (`Open`'s `&Disk{mu: …, file: …}`): every slice nil, the staged and
+written commit indexes zero. -/
+def diskMem0 (d : Loc) : IProp GF :=
+  iprop(d.[Disk, go!"ents"] ↦ slice.nil ∗ d.[Disk, go!"keys"] ↦ slice.nil ∗ d.[Disk, go!"vals"] ↦ slice.nil ∗
+    d.[Disk, go!"ikeys"] ↦ slice.nil ∗ d.[Disk, go!"ivals"] ↦ slice.nil ∗
+    d.[Disk, go!"staged"] ↦ W64 0 ∗ d.[Disk, go!"commit"] ↦ W64 0)
+
+/-- The server a `Server` value holds. -/
+def srvOf (sv : Server) : SServer := ⟨sv.Suffrage', sv.ID', sv.Address'⟩
+
+/-- **A configuration value holds the servers `ss`**: its `Servers'` slice (read-only) holds `Server` values
+whose servers are `ss`. -/
+def cfgRep (c : Configuration) (ss : List SServer) : IProp GF :=
+  iprop(∃ svs : List Server, c.Servers' ↦*□ svs ∗ ⌜svs.map srvOf = ss⌝)
+
+instance cfgRep_persistent c ss : Persistent (cfgRep (GF := GF) c ss) := by
+  unfold cfgRep; infer_instance
+
+/-- **A `SnapshotMeta` value holds `m`**, with `Size` the data's length `n` and `Peers` nil (raft no longer
+sets it). -/
+def metaRep (mv : SnapshotMeta) (m : SMeta) (n : Nat) : IProp GF :=
+  iprop(⌜mv.Version' = m.version ∧ mv.ID' = m.id ∧ mv.Index' = m.index ∧ mv.Term' = m.term ∧
+      mv.Peers' = slice.nil ∧ mv.ConfigurationIndex' = m.cfgIndex ∧ mv.Size' = W64 (n : Int)⌝ ∗
+    cfgRep mv.Configuration' m.servers)
+
+instance metaRep_persistent mv m n : Persistent (metaRep (GF := GF) mv m n) := by
+  unfold metaRep; infer_instance
+
+/-- **`*Snaps` `s`'s fields** (but `mu` and `file`) at the image `S`: without a snapshot `has` is false (the
+metadata and data fields hold anything); with one, the metadata holds it and the data (read-only) its bytes. -/
+def snapsMem (s : Loc) (S : SnapImg) : IProp GF :=
+  iprop(∃ (has : Bool) (mv : SnapshotMeta) (dt : GoSlice),
+    s.[Snaps, go!"has"] ↦ has ∗ s.[Snaps, go!"meta"] ↦ mv ∗ s.[Snaps, go!"data"] ↦ dt ∗
+    s.[Snaps, go!"nextID"] ↦ S.nextID ∗
+    match S.latest with
+    | none => ⌜has = false⌝
+    | some (m, b) => ⌜has = true⌝ ∗ metaRep mv m b.length ∗ dt ↦*□ b)
+
+/-- **A fresh `*Snaps`'s decoded fields** (`OpenSnaps`'s `&Snaps{mu: …, file: …}`): no snapshot, the rest
+anything. -/
+def snapsMem0 (s : Loc) : IProp GF :=
+  iprop(∃ (mv : SnapshotMeta) (dt : GoSlice) (nid : w64),
+    s.[Snaps, go!"has"] ↦ false ∗ s.[Snaps, go!"meta"] ↦ mv ∗ s.[Snaps, go!"data"] ↦ dt ∗
+    s.[Snaps, go!"nextID"] ↦ nid)
+
+end rep2
+
 end github_com.hashicorp.raft.examples.hraftnet.disk
 
 end Perennial
