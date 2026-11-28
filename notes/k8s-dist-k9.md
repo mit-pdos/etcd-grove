@@ -299,7 +299,7 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   are not made yet and need a KGO session. They do not block step 1 (the hub).
 - **K4 tweaks** (`361664181e`, §3): `OpAnchors`'s watch clause is now `e.t < 4`, and `SettleL.land` now
   requires `l < 2 ^ 64`. Neither is a top-level statement.
-  Build of record: BUILD1_RESULT.
+  Build of record: fk-lean2, `fklean1-check.sh`, target `...k8s.dist.SharedComplete` at `0befb48da1`, exit 0 (SharedWatch, SharedSettle and SharedComplete recompiled; the first try failed on a syntax error in the edited line, fixed). `fullComplete` still has no `sorry`.
 - **`SharedGo.lean`** (`bd99e48765`, pure): `SettleWith`/`SearchRunWith` (K4's search with any landings),
   `SearchRunN` + `fullCompleteN` (K4's run starts each operation at or above the seed's revision), and
   `searchRunN_with` (K4's run is a run with any landings that contain K4's). **Not built yet**: the coordinator
