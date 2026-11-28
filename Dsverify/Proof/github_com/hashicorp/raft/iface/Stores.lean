@@ -232,8 +232,8 @@ instance isLogStore_persistent x own Wl : Persistent (isLogStore (GF := GF) x ow
 
 /-- (hraft_robust, R5 Q2) **An exact `FirstIndex`**, which only some log stores have (the disk: its smallest
 key; not `InmemStore`, whose `lowIndex` can exceed a key stored below it, or stay at a deleted index):
-`FirstIndex()` atomically, `0` only for an empty store, and at most every stored index (fix 2 of `NewRaft`
-compares it with the snapshot's index). With `isLogStore`'s `1 ≤ first`, a store whose answer is its
+`FirstIndex()` atomically: `0` for an empty store, otherwise its smallest key (fix 2 of `NewRaft` compares it
+with the snapshot's index). With `isLogStore`'s `1 ≤ first`, a store whose answer is its
 smallest key has it. -/
 def isLogStoreFirst (x : GoInterfaceOk) (own : LogAbs → IProp GF) : IProp GF :=
   iprop(
@@ -241,7 +241,8 @@ def isLogStoreFirst (x : GoInterfaceOk) (own : LogAbs → IProp GF) : IProp GF :
         rtok tid -∗
         (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
           (own A ={∅,⊤ \ ↑storeN}=∗ ∀ r : w64,
-            ⌜(uint.nat r = 0 → A.m = ∅) ∧ (∀ k e, A.m.lookup k = some e → uint.nat r ≤ k)⌝ -∗
+            ⌜(uint.nat r = 0 ∧ A.m = ∅) ∨
+              ((A.m.lookup (uint.nat r)).isSome ∧ ∀ k e, A.m.lookup k = some e → uint.nat r ≤ k)⌝ -∗
             rtok tid -∗ Φ (PairV #r #interface.nil))) -∗
         WP (App (Val #(methods x.ty go!"FirstIndex" x.v)) (Val #())) {{ Φ }}))
 
