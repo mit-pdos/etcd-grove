@@ -818,3 +818,17 @@ Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof th
   `Failed`/other statuses the unknown output, `Done` the claimed output; a read outside the log by the law);
   `Sys.op` (the count moved, `command`, the id reserved (`id_reserve`, `idOf_cmdB` with `seq + 1 < 2^56`), `try` at
   the servers in turn, `Tries` times, `1 + j % NS`).
+
+### S5f batch 3: the client machine `Client`
+
+- **`Client.spec`** (`Spec/.../hraftnet/Client.lean`): client machine `c < 5` from its share of the start:
+  net/rpc's codec unregistered (`Register`'s premise), `kitSS K`, `drawInv K`, `idInv K.g` and `seqOwn K.g c 1`, the
+  world's server addresses (`rpcAddr`), its address serving the far side's store (`remoteAddr (regR K.g.st)`), whose
+  budget `N` satisfies `N + 1 < 2 ^ 56` (the operations' counts stay below `opID`'s 56 bits), `receiptBound GF ≤ 2^64`.
+- **`Client.wp_proof`** over the real code: `Register()`, `ClientAddrs()[c]`, `Codec()` (`codecOk_wireOk`),
+  `attempt()`, `remote.ServeClient` with the system's state `sysTok` (the `*Sys`, its count `seq` with the counter at
+  `seq + 1` and `seq` at most the calls served, `budUsed`); the operation closure meets `opMaybe` (`budUsed_add` bounds
+  the count, `Sys.op`, `Out` boxed as the store's output or unknown), the `newClient` closure makes a `Sys` from
+  `serverConns()` and `1 + rnd(NS)`. Also proved: `serverConns` (`NewConn` per server address), `attempt`.
+- What the start (S6) must give each client machine: the above share; the orchestrator's start gives `kit_start`'s
+  `seqOwn K.g c 1` (`S := {c ↦ 1 | c < 5}`) and `idInv`.
