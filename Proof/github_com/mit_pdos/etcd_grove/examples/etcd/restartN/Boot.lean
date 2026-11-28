@@ -22,6 +22,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootRestart
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootUnserved
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Dir
 
 @[expose] public section
 
@@ -68,7 +69,7 @@ theorem firstPremises_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundL
     (hb : ∀ [MemStorReg GF], _root_.Perennial.EtcdGrove.bootstrap.specUnserved (GF := GF) (hG := hG))
     (k N : Nat) (ids ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (hfips : crypto.fips140.GodebugFips140Off) (Hbf : BootFacts ids ps ctxs boot)
-    (Hbg : BootGoN k ids ps ctxs) (hlen : (members k).length = ids.length) (hk : k ≤ 2 ^ 64) :
+    (Hbg : BootGoN k ids ps ctxs) (hlen : (members k).length = ids.length) (hk : k ≤ 1000) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ⊢
       [∗list] m; id ∈ members k; ids,
         etcdstart.bootPremiseF (peersFree (members k)) N ps (LogEntry.toEntries boot 0) ctxs
@@ -81,8 +82,9 @@ theorem firstPremises_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundL
   have hidm : id ∈ ids := List.mem_of_getElem? Hid
   have hmm : m ∈ members k := List.mem_of_getElem? Hm
   iapply (bootPremiseF_of_specUnserved hb N ps (LogEntry.toEntries boot 0) ctxs (dirN (members k) ids)
-    token m.Name' (etcdstart.urlsN (members k) m) id ((members k).map (·.Peer')) hfips (Hbg.idRaft id hidm)
-    (fun U hu => urlsN_shapeUnserved (members k) (membersOf_names_nodup _ k hk _ _) m hmm U hu)
+    token m.Name' (etcdstart.urlsN (members k) m) id ((members k).map (·.Peer')) (restartNAddrs_lit k hk)
+    hfips (Hbg.idRaft id hidm)
+    (fun U hu => urlsN_shapeUnserved (members k) (members_names_nodup k hk) m hmm U hu)
     (fun U hu => by
       obtain ⟨hplain, hps, hctxs, hdir, hidU, hnp, hune, hiok⟩ := Hbg.go i m id Hm Hid U hu
       exact ⟨hplain, hps, hctxs, hdir, hidU, ⟨boot, Hbf.boot, rfl⟩, hnp, hune, hiok⟩))
@@ -122,13 +124,14 @@ theorem premises_of_specs [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60
     (hbR : ∀ [MemStorReg GF], _root_.Perennial.EtcdGrove.bootstrap.specRestart (GF := GF) (hG := hG))
     (k N : Nat) (ids ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (hfips : crypto.fips140.GodebugFips140Off) (Hbf : BootFacts ids ps ctxs boot)
-    (Hbg : BootGoN k ids ps ctxs) (hlen : (members k).length = ids.length) (hk : k ≤ 2 ^ 64) :
+    (Hbg : BootGoN k ids ps ctxs) (hlen : (members k).length = ids.length) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ⊢
       premises (GF := GF) k N ids ps ctxs boot := by
   iintro #Hpkg
   iunfold premises
   isplitl []
-  · iapply (firstPremises_of_specUnserved hbU k N ids ps ctxs boot hfips Hbf Hbg hlen hk)
+  · iintro !> %hk
+    iapply (firstPremises_of_specUnserved hbU k N ids ps ctxs boot hfips Hbf Hbg hlen hk)
     iexact Hpkg
   · iapply (restartPremises_of_specRestart hbR k N ids ps ctxs boot hfips Hbf Hbg hlen (k - nStop k))
     iexact Hpkg

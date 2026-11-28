@@ -6,7 +6,7 @@
 initial-cluster entry, this member's peer URLs its entry's, one client URL), where the other members run in the same
 process and none of them serves its peer address yet (restartN's first boots: `examples/etcd/restartN`'s
 `startMembers` builds every member before it serves any):
-* the hosts of the other members' peer URLs are among `addrs`;
+* the hosts of the other members' peer URLs are among `addrs`, numeric loopback literals (`netAddrLit`);
 * the precondition lends `bootstrap` the right to listen at each address of `addrs`, reserved for HTTP
   (`http.httpAddrFree a`, `Proof/net/http/AddrNet.lean`: the claim `addrClaim a` and `a`'s net protocols net/http's),
   and the post gives it back, on an error too.
@@ -44,7 +44,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
 /-- **`bootstrap.spec` with every other member's peer address not served** (see the file header): one peer URL per
-initial-cluster entry, this member's peer URLs its entry's, one client URL, the other entries' hosts among `addrs`, and
+initial-cluster entry, this member's peer URLs its entry's, one client URL, the other entries' hosts among `addrs` (numeric loopback literals), and
 the rights `http.httpAddrFree a` (`a ∈ addrs`) lent for the call; otherwise `bootstrap.spec`'s premises, precondition
 and post. -/
 abbrev bootstrap.specUnserved : Prop :=
@@ -54,6 +54,8 @@ abbrev bootstrap.specUnserved : Prop :=
   (∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length = 1) →
   U.peer = U.initURLs cfg.Name' → U.client.length = 1 →
   (∀ k, (U.initMap.lookup k).isSome → k ≠ cfg.Name' → ∀ u ∈ U.initURLs k, u.Host' ∈ addrs) →
+  -- (review R1, 2026-11-28) the addresses numeric loopback literals: no proxy (`http.ProxyFromEnvironment`)
+  (∀ a ∈ addrs, netAddrLit a = true) →
   -- `bootstrap.spec`'s premises
   cfg.UnsafeNoFsync' = false → bootGo.idRaftOk cfg U → bootGo.urlsNe U →
   bootGo.bootURLsPlain U →

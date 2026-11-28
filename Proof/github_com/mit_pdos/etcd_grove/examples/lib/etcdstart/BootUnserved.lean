@@ -74,6 +74,7 @@ theorem bootstrapContractF_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptB
     (hb : _root_.Perennial.EtcdGrove.bootstrap.specUnserved (GF := GF) (hG := hG))
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat)
     (addrs : List GoString) (hsh : shapeUnserved U cfg.Name' addrs)
+    (hlit : ∀ a ∈ addrs, netAddrLit a = true)
     (hidr : bootGo.idRaftOk cfg U) (hune : bootGo.urlsNe U)
     (hplain : bootGo.bootURLsPlain U) (hfips : crypto.fips140.GodebugFips140Off)
     (hiok : bootGo.initMapOk U cfg.InitialClusterToken')
@@ -92,7 +93,7 @@ theorem bootstrapContractF_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptB
   have hnf : cfg.UnsafeNoFsync' = false := by
     obtain ⟨⟨-, -, -, -, -, -, h⟩, -⟩ := Hpure; exact h
   obtain ⟨h1, hpeer, hcl, hhosts⟩ := hsh
-  iapply (hb cfg U γ N addrs h1 hpeer hcl hhosts hnf hidr hune hplain hfips hiok hvs hbl hmem) $$ [HR Hrest] HΦ
+  iapply (hb cfg U γ N addrs h1 hpeer hcl hhosts hlit hnf hidr hune hplain hfips hiok hvs hbl hmem) $$ [HR Hrest] HΦ
   iunfold addrsFree at HR
   iframe HR
   isplitr
@@ -107,7 +108,7 @@ theorem bootPremiseF_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe
     (hb : ∀ [MemStorReg GF], _root_.Perennial.EtcdGrove.bootstrap.specUnserved (GF := GF) (hG := hG))
     (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64)
-    (addrs : List GoString)
+    (addrs : List GoString) (hlit : ∀ a ∈ addrs, netAddrLit a = true)
     (hfips : crypto.fips140.GodebugFips140Off)
     (hidr : id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614)
     (hshape : ∀ U, Uok U → shapeUnserved U name addrs)
@@ -132,7 +133,7 @@ theorem bootPremiseF_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe
   have hmem : memBoot γ.boot = bootGo.memMap U cfg.InitialClusterToken' := by
     rw [hbl0]; exact memBoot_bootLog U _ bl hplain hnp hbl
   iapply (letI : MemStorReg GF := ⟨γ.reg⟩
-    bootstrapContractF_of_specUnserved hb cfg U γ N addrs hsh (by unfold bootGo.idRaftOk; exact hidr) hune
+    bootstrapContractF_of_specUnserved hb cfg U γ N addrs hsh hlit (by unfold bootGo.idRaftOk; exact hidr) hune
       hplain hfips hiok hvs ⟨bl, hbl, hbl0⟩ hmem)
   iexact Hpkg
 

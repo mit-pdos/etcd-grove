@@ -51,12 +51,16 @@ GET fails:
   net/http's opaque `httpNetCliP`/`httpNetSrvP` (`httpAddrNet a`), so it writes nothing a client reads; the GET then
   ends in an error (refused, EOF, or the client's timeout `BootstrapTimeoutEffective`, 1s by default,
   `config/config.go:345-350`);
-* no proxy: `addrClaim` is given only at program start, for numeric loopback addresses (`goose_adequacy_start`,
-  `hAsLit`, `Proof/runtime/Start.lean`), which `http.ProxyFromEnvironment` (`client/pkg/transport/transport.go:42`)
-  never proxies; no other process binds them (`addrsUnclaimed`).
+* no proxy: the addresses are numeric loopback literals (the premise `netAddrLit`), which
+  `http.ProxyFromEnvironment` (`client/pkg/transport/transport.go:42`) never proxies; no other process binds them
+  (`addrsUnclaimed`).
 Go evidence: `examples/etcd/restartN`'s `TestRun` probes every peer address at each first boot (`bootstrapping
 cluster`, logged right before `bootstrapCluster`) and finds none accepting; with the members served in between (the
-example before 2026-11-27) it finds them. -/
+example before 2026-11-27) it finds them.
+
+What this rests on: a `/members` answer from anything but etcd's peer handler, with a `null` element, panics
+`bootstrap` (`nonissues/etcd-bootstrap-members-null-panic.md`); the lent claims exclude every responder at the
+addresses, and their loopback form (the premise `netAddrLit`) excludes a proxy. -/
 axiom bootstrap.wp_proofUnserved : bootstrap.specUnserved (GF := GF) (hG := hG)
 
 end proof

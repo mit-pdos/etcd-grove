@@ -89,9 +89,10 @@ log. -/
 def premises (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : IProp GF :=
   iprop(
-    ([∗list] m; id ∈ members k; ids,
+    -- (2026-11-28) at a member count `Run` covers (`k ≤ 1000`: the peer addresses loopback literals)
+    (□ (⌜k ≤ 1000⌝ -∗ [∗list] m; id ∈ members k; ids,
       etcdstart.bootPremiseF (peersFree (members k)) N ps (LogEntry.toEntries boot 0) ctxs
-        (dirN (members k) ids) token m.Name' (etcdstart.urlsN (members k) m) id) ∗
+        (dirN (members k) ids) token m.Name' (etcdstart.urlsN (members k) m) id)) ∗
     ([∗list] m; id ∈ (members k).drop (k - nStop k); ids.drop (k - nStop k),
       etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dirN (members k) ids) token
         m.Name' (etcdstart.urlsN (members k) m) id))

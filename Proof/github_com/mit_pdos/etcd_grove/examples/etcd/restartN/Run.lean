@@ -288,6 +288,7 @@ theorem Run.wp_proof
   wp_start as ⟨#Hzlg, Hss, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hbps, #HbRs⟩
+  ihave #Hbps := Hbps $$ %hk
   -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
   -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
   ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []

@@ -51,7 +51,9 @@ Known limitation (W1, 2026-11-26, `notes/axiom-review/phase7-w1.md` §3.3): sinc
 definition, the axioms `etcd_noRefusal`/`etcd_noOtherRefusal` (`v3rpc/NoRefusal.lean`) resist a server
 certified in another program only through this predicate's opacity (inside `netListenerAt`) and its
 single producer, `goose_adequacy_start`. A change that gives `addrClaim` a definition, a law or another
-producer must re-review those two axioms. -/
+producer must re-review those two axioms, and `bootstrap.wp_proofUnserved` (2026-11-28: its claims exclude
+every responder at the lent addresses only while `addrClaim` is held once per address; it takes the addresses'
+loopback form, which excludes a proxy, as its own premise `netAddrLit`). -/
 axiom addrClaim {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 /-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,

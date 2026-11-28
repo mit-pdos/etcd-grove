@@ -182,7 +182,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofUnserved)
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
       (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
-      (by rw [etcdstart.membersOf_length, Hlen₅]) (by word) $$ Hsrvpkg
+      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg
     ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
     unfold etcd_all.etcdStarts
@@ -230,7 +230,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofUnserved)
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
       (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
-      (by rw [etcdstart.membersOf_length, Hlen₅]) (by word) $$ Hsrvpkg
+      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg
     ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
     have hM := hMain hG n k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR (srvLevels_of_max HT)
