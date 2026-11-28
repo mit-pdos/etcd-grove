@@ -897,8 +897,10 @@ def fsmProd (γ : GNames) (rc : RCtx GF) (a : Nat) : IProp GF :=
     noCmdBetween γ e (a + 1))
 
 /-- **The FSM consumer's initial state** (given to `runFSM` by `NewRaft`). -/
-def fsmCons (rc : RCtx GF) : IProp GF :=
-  iprop(spscConsumer rc.names.fsmCh ([] : List GoInterface) ∗ rc.fsmOwn rc.names.fsm0)
+def fsmCons (γ : GNames) (rc : RCtx GF) : IProp GF :=
+  iprop(spscConsumer rc.names.fsmCh ([] : List GoInterface) ∗
+    ∃ (k0 : Nat) (r : GoInterface), rc.fsmOwn k0 ∗ ⌜k0 ≤ rc.names.fsm0⌝ ∗
+      noCmdBetween γ k0 (rc.names.fsm0 + 1) ∗ (⌜k0 = 0⌝ ∨ □ rc.respP k0 r))
 
 /-! ## Snapshots (stage 3) -/
 
