@@ -67,8 +67,8 @@ theorem durCore_srvV_agree (X : SrvDur) (s : SState) :
     durCore γ rc i X ∗ srvV rc s ⊢ durCore γ rc i X ∗ srvV rc s ∗ ⌜X.s = s ∧ X.tp = none ∧ X.dp = none⌝ :=
   durCore_srvVP_agree γ rc i X s none none
 
-theorem durStores_with (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
-    durStores γ rc i { X with s := s, tp := tp, dp := dp } = durStores γ rc i X := rfl
+theorem durStores_with (X : SrvDur) (s : SState) (tp : Option TermPend) :
+    durStores γ rc i { X with s := s, tp := tp } = durStores γ rc i X := rfl
 
 theorem dpRes_dur (s : SState) (d : Nat × Nat) (dp : Option DiscPend) :
     dpRes (GF := GF) γ i { s with dur := d } dp = dpRes γ i s dp := by
@@ -111,19 +111,20 @@ theorem durStepV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Ter
   obtain ⟨hs, htp, hdp⟩ := Hag
   iunfold durCore at Hc
   icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
-  rw [hs, htp, hdp] at *
+  rw [hs, htp, hdp] at Hp ⊢
   obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
   imod Hf $$ Ho Hdv HP with ⟨%d, Ho, Hdv, %hle, HQ⟩
   unfold srvVP
   imod (ghostVar_update_halves ({ s with dur := d }, tp, dp) rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
   rw [← dpRes_dur γ i s d dp]
-  rw [← durStores_with γ rc i X { s with dur := d } tp dp]
-  imod Hcl $$ %({ X with s := { s with dur := d }, tp := tp, dp := dp }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  rw [← durStores_with γ rc i X { s with dur := d } tp]
+  imod Hcl $$ %({ X with s := { s with dur := d }, tp := tp }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
   · iunfold durCore
     dsimp only
+    try rw [hdp]
     iframe
     ipureintro
-    exact ⟨hlo, hlc, hvm, htd, by omega⟩
+    exact ⟨hlo, hlc, hvm, htd, by have := hci.1; omega, hci.2⟩
   imodintro
   iframe Hnc
   iexists d
@@ -497,7 +498,7 @@ theorem setTerm_R (s : SState) (t t0 : Nat) :
   obtain ⟨hs, htp, hdp⟩ := Hag
   iunfold durCore at Hc
   icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
-  rw [hs, htp, hdp] at *
+  rw [hs, htp, hdp] at Hp ⊢
   obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
   have hle : s.term ≤ t := by
     unfold termDurOk at htd
@@ -518,10 +519,11 @@ theorem setTerm_R (s : SState) (t t0 : Nat) :
   imod (ghostVar_update_halves ({ s with term := t }, (none : Option TermPend), (none : Option DiscPend))
     rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
   imod (ghostVar_update_halves t rc.dur.tv _ _) $$ Htv Ht with ⟨Htv, Ht⟩
-  rw [← durStores_with γ rc i X { s with term := t } none none]
-  imod Hcl $$ %({ X with s := { s with term := t }, tp := none, dp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend] Hs with -
+  rw [← durStores_with γ rc i X { s with term := t } none]
+  imod Hcl $$ %({ X with s := { s with term := t }, tp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend] Hs with -
   · iunfold durCore
     dsimp only
+    try rw [hdp]
     simp only [tpRes, dpRes]
     iframe
     ipureintro
@@ -557,7 +559,7 @@ theorem electTerm_R (s : SState) (t0 : Nat) :
   obtain ⟨hs, htp, hdp⟩ := Hag
   iunfold durCore at Hc
   icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
-  rw [hs, htp, hdp] at *
+  rw [hs, htp, hdp] at Hp ⊢
   obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
   have hdt : uint.nat ((X.D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0)) = s.term + 1 := by
     unfold termDurOk at htd
@@ -573,10 +575,11 @@ theorem electTerm_R (s : SState) (t0 : Nat) :
   imod (ghostVar_update_halves ({ s with term := s.term + 1 }, (none : Option TermPend), (none : Option DiscPend))
     rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
   imod (ghostVar_update_halves (s.term + 1) rc.dur.tv _ _) $$ Htv Ht with ⟨Htv, Ht⟩
-  rw [← durStores_with γ rc i X { s with term := s.term + 1 } none none]
-  imod Hcl $$ %({ X with s := { s with term := s.term + 1 }, tp := none, dp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend] Hs with -
+  rw [← durStores_with γ rc i X { s with term := s.term + 1 } none]
+  imod Hcl $$ %({ X with s := { s with term := s.term + 1 }, tp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend] Hs with -
   · iunfold durCore
     dsimp only
+    try rw [hdp]
     simp only [tpRes, dpRes]
     iframe
     ipureintro
@@ -610,7 +613,7 @@ theorem setCidx_R (s : SState) (c c0 : Nat) (hc : c ≤ s.dur.1) :
   obtain ⟨hs, htp, hdp⟩ := Hag
   iunfold durCore at Hc
   icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
-  rw [hs, htp, hdp] at *
+  rw [hs, htp, hdp] at Hp ⊢
   obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
   imod (gprot.setCidx_upd γ _ (crash_hE_gprot hE) i s c hc) $$ [HI Ho Hcc] with ⟨Ho, Hcc⟩
   · iframe #; try iframe
@@ -618,10 +621,11 @@ theorem setCidx_R (s : SState) (c c0 : Nat) (hc : c ≤ s.dur.1) :
   imod (ghostVar_update_halves ({ s with cidx := c }, (none : Option TermPend), (none : Option DiscPend))
     rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
   imod (ghostVar_update_halves c rc.dur.cv _ _) $$ Hcv Ht with ⟨Hcv, Ht⟩
-  rw [← durStores_with γ rc i X { s with cidx := c } none none]
-  imod Hcl $$ %({ X with s := { s with cidx := c }, tp := none, dp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  rw [← durStores_with γ rc i X { s with cidx := c } none]
+  imod Hcl $$ %({ X with s := { s with cidx := c }, tp := none }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
   · iunfold durCore
     dsimp only
+    try rw [hdp]
     simp only [tpRes, dpRes]
     iframe
     ipureintro
@@ -773,7 +777,7 @@ theorem durCore_logOk (X : SrvDur) :
   iunfold durCore
   iframe
   ipureintro
-  exact ⟨Hp, Hp.1, Hp.2.1, Hp.2.2.2.2⟩
+  exact ⟨Hp, Hp.1, Hp.2.1, Hp.2.2.2.2.1⟩
 
 /-- (R2) The protocol facts of the core's state (`srvOwn_facts` on it). -/
 theorem durCore_facts (X : SrvDur) :
@@ -824,7 +828,7 @@ theorem crash_dur_storeN : (↑durN : CoPset) ⊆ ⊤ \ ↑storeN := by
 theorem logWrite_au (f : LogAbs → LogAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
-        ⌜X'.A = f X.A ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
+        ⌜X'.A = f X.A ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend ∧ X'.dp = X.dp⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL (f A) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
   iintro #Hd HR Hf Hnc
   imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
@@ -839,9 +843,9 @@ theorem logWrite_au (f : LogAbs → LogAbs) (R Ψ : IProp GF) :
   iintro HL
   imod Hmask
   imod Hf $$ %X Hc HR with ⟨%X', Hc', %hX', HΨ⟩
-  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hX'
   imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
-  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  · iunfold durStores; rw [h1, h2, h3, h4, h5]; inext; iframe
   iexact HΨ
 
 /-- (R2) A log-store `DeleteRange(mn, mx)` (the store chooses the new `hi'`). -/
@@ -849,7 +853,7 @@ theorem logDelete_au (mn mx : Nat) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ (X : SrvDur) (hi' : w64), durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur,
         durCore γ rc i X' ∗
-        ⌜X'.A = X.A.delete mn mx hi' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
+        ⌜X'.A = X.A.delete mn mx hi' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend ∧ X'.dp = X.dp⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
         (∀ hi' : w64, rc.ownL (A.delete mn mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
   iintro #Hd HR Hf Hnc
@@ -865,9 +869,9 @@ theorem logDelete_au (mn mx : Nat) (R Ψ : IProp GF) :
   iintro %hi' HL
   imod Hmask
   imod Hf $$ %X %hi' Hc HR with ⟨%X', Hc', %hX', HΨ⟩
-  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hX'
   imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
-  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  · iunfold durStores; rw [h1, h2, h3, h4, h5]; inext; iframe
   iexact HΨ
 
 /-- (R2) A log-store read (`GetLog`, `LastIndex`, `GetCommitIndex`): the caller's result over the
@@ -897,7 +901,7 @@ theorem logRead_au (R : IProp GF) (Ψ : LogAbs → IProp GF) :
 theorem stableWrite_au (f : StableAbs → StableAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
-        ⌜X'.D = f X.D ∧ X'.A = X.A ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
+        ⌜X'.D = f X.D ∧ X'.A = X.A ∧ X'.lat = X.lat ∧ X'.pend = X.pend ∧ X'.dp = X.dp⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗ (rc.ownS (f D) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
   iintro #Hd HR Hf Hnc
   imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
@@ -912,9 +916,9 @@ theorem stableWrite_au (f : StableAbs → StableAbs) (R Ψ : IProp GF) :
   iintro HS
   imod Hmask
   imod Hf $$ %X Hc HR with ⟨%X', Hc', %hX', HΨ⟩
-  obtain ⟨h1, h2, h3, h4⟩ := hX'
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hX'
   imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
-  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
+  · iunfold durStores; rw [h1, h2, h3, h4, h5]; inext; iframe
   iexact HΨ
 
 /-- (R2) A stable-store read. -/
@@ -943,9 +947,9 @@ theorem stableRead_au (R : IProp GF) (Ψ : StableAbs → IProp GF) :
 also gets `latestDur` (under its later: it mentions `snapP`) and re-establishes it. -/
 theorem snapWrite_au (f : SnapLatest → SnapLatest) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
-        |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗ ▷ latestDur γ rc i X'.lat X'.pend ∗
-          ⌜X'.lat = f X.lat ∧ X'.A = X.A ∧ X'.D = X.D⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend X.dp -∗ R -∗
+        |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗ ▷ latestDur γ rc i X'.lat X'.pend X'.dp ∗
+          ⌜X'.lat = f X.lat ∧ X'.A = X.A ∧ X'.D = X.D ∧ X'.dp = X.dp⌝ ∗ |={⊤ \ ↑storeN}=> Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS (f old) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
   iintro #Hd HR Hf Hnc
   imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
@@ -961,16 +965,16 @@ theorem snapWrite_au (f : SnapLatest → SnapLatest) (R Ψ : IProp GF) :
   imod Hmask
   imod Hf $$ %X Hc [Hlat] HR with ⟨%X', Hc', Hlat, %hX', HΨ⟩
   · inext; iexact Hlat
-  obtain ⟨h1, h2, h3⟩ := hX'
+  obtain ⟨h1, h2, h3, h4⟩ := hX'
   imod Hcl $$ %X' Hc' [HL HS HSS Hlat] with -
-  · iunfold durStores; rw [h1, h2, h3]; inext; iframe
+  · iunfold durStores; rw [h1, h2, h3, h4]; inext; iframe
   iexact HΨ
 
 /-- (R2) A snapshot-store read (`List`, `Open`). -/
 theorem snapRead_au (R : IProp GF) (Ψ : SnapLatest → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
-        |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend ∗ |={⊤ \ ↑storeN}=> Ψ X.lat) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend X.dp -∗ R -∗
+        |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend X.dp ∗ |={⊤ \ ↑storeN}=> Ψ X.lat) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS old ={∅, ⊤ \ ↑storeN}=∗ Ψ old) := by
   iintro #Hd HR Hf Hnc
   imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
@@ -1014,7 +1018,7 @@ theorem stageCommit_au (D : StableAbs) (g idx : w64) (Ψ : IProp GF) :
     ipureintro
     exact Hp
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   rw [hD]
   iapply Hk $$ Hst
 
@@ -1183,7 +1187,7 @@ theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
   obtain ⟨hD, hstg⟩ := Hag2
   iunfold durCore at Hc
   icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
-  rw [hs, htp, hdp] at *
+  rw [hs, htp, hdp] at Hp ⊢
   obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
   iunfold pendHyps at Hh
   icases Hh with ⟨#Hl, Hr, Hops⟩
@@ -1194,19 +1198,20 @@ theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
   imod (ghostVar_update_halves ({ s' with log := s'.log ++ es }, (none : Option TermPend), (none : Option DiscPend))
     rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
   imodintro
-  iexists ({ X with s := { s' with log := s'.log ++ es }, A := X.A.store (s'.log.length + 1) es, tp := none, dp := none })
+  iexists ({ X with s := { s' with log := s'.log ++ es }, A := X.A.store (s'.log.length + 1) es, tp := none })
   isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp]
   · iunfold durCore
     dsimp only
+    try rw [hdp]
     rw [LogAbs.store_staged, LogAbs.store_ci]
     simp only [tpRes, dpRes]
     iframe
     ipureintro
     try simp only [and_true]
     refine ⟨logOk_store _ _ _ _ hlo, hlc, hvm, htd, ?_⟩
-    rw [hstg]; exact hg
+    exact ⟨by rw [hstg]; exact hg, hci.2⟩
   isplitl []
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
   ihave HΨ := Hk $$ Hpw Hv Hst Hidx
   iexact HΨ
 
@@ -1220,7 +1225,64 @@ theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (
       |==> (logWin γ rc i (.store (s.log.length + 1) [e]) ∗
       (logWin γ rc i (.store (s.log.length + 1) [e]) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) [e]) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #HI #Hd Hpw Hv Hst Hh Hk
+  imod (winRes_make γ rc i s (.cfg e k p) D g ⟨hpre, hg⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iframe
+  imodintro
+  isplitl [HW]
+  · iunfold logWin; ileft; iexists s, (Pend.cfg e k p); iframe HW; ipureintro; rfl
+  iintro HW
+  iunfold logWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
+  rotate_left
+  · cases hop
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.cfg e k p) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.cfg e k p)) $$ Hpw
+  iapply (logWrite_au γ rc i (fun A => A.store (s'.log.length + 1) [e])
+    iprop(srvV rc s' ∗ stVS rc D g ∗ pendHyps γ i s' (.cfg e k p) ∗ (|==> ghostVar rc.dur.pw 1 (none : Option Pend)) ∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s' with log := s'.log ++ [e] } -∗ stVS rc D g -∗
+        ccfgOwn γ i s'.term (lastCfgIdx s'.log) -∗
+        llogIdx γ s'.term (s'.log.length + 1) e ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hv Hst Hh Hpw Hk]
+  · iframe
+  iintro %X Hc ⟨Hv, Hst, Hh, Hpw, Hk⟩
+  imod Hpw
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s' $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  obtain ⟨hD, hstg⟩ := Hag2
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [hs, htp, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  iunfold pendHyps at Hh
+  icases Hh with ⟨#Hl, Hcf, #Hci, Hr⟩
+  imod (gprot.leaderAppendCfg_upd γ _ crash_gprot_store i s' e k p hpre) $$ [HI Ho Hlc Hl Hcf Hci Hr]
+    with ⟨Ho, Hlc, Hcf, #Hidx⟩
+  · iframe #; try iframe
+  unfold srvV
+  imod (ghostVar_update_halves ({ s' with log := s'.log ++ [e] }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imodintro
+  iexists ({ X with s := { s' with log := s'.log ++ [e] }, A := X.A.store (s'.log.length + 1) [e], tp := none })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp]
+  · iunfold durCore
+    dsimp only
+    try rw [hdp]
+    rw [LogAbs.store_staged, LogAbs.store_ci]
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨logOk_store _ _ _ _ hlo, hlc, hvm, htd, ?_⟩
+    exact ⟨by rw [hstg]; exact hg, hci.2⟩
+  isplitl []
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
+  ihave HΨ := Hk $$ Hpw Hv Hst Hcf Hidx
+  iexact HΨ
 
 /-- (R2) **The follower's append** at `StoreLogs`' commit (`followerStore_upd`), then, with
 `lc = some v`, the commit learnt with it (`learnCommitFollower` of `min lci v`, so that the written
