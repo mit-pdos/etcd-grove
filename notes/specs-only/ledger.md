@@ -7961,6 +7961,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   two full logs agree on their first `rs.delivered.length` entries. No hypothesis added. No other consumer used the
   post's conjunct (it was not yet applied).
 - **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+## 2026-11-28 — antithesis parity B2: `DrainB2` excludes split writes until B2.5 (#33)
+- **Spec.** `DrainB2` (`Proof/.../examples/raft/antithesis/HarnessDur.lean`), the drain specs' off-bits premise.
+- **Defect.** Its last conjunct allowed `Split ∈ {0, 1}`, but B2's drain proof covers only non-split writes (split writes
+  are staged to B2.5), and nothing else pins the cluster's scope to `b2Scope` (`InScope b2Scope` alone gives `Split = 0`).
+- **Statement (lead-approved 2026-11-28, option (a)).** The conjunct becomes `mode.Split' = W64 0` until B2.5.
+  `drainB2_of_inScope.law` stays true at `b2Scope` (`b2Scope.Split' = false`, so `InScope` gives `Split = 0`).
+- **Decision.** The Antithesis lead (2026-11-28). No axiom, no top-level premise.
 ## 2026-11-23: rpc protocols of a listener's addresses (`rpcLisP`); `Server.Accept.spec` on a wildcard listener; `rpcAccepted` with a cut handshake answer; `ansPend` knows the answer was written (net/rpc model, server over HTTP)
 
 - **Specs.** `Net/Proof/net/rpc/Proto.lean` (`rpcLisP`), `Net/Spec/net/rpc/Server__Accept.lean`,

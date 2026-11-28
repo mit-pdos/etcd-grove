@@ -78,10 +78,11 @@ def b2Scope : H.Scope :=
 
 /-- **The masked-off bits a node's input paths test under B2's mask** (B1's `DrainB1`, its B2 bits
 lifted): no snapshots and no snapshot reports (`drain`'s and `drainAsync`'s snapshot branches,
-`sent`), no conf changes, no forwarding; the split order `none` or `splitTermEntriesCommit`. -/
+`sent`), no conf changes, no forwarding; no split writes (`Split` `none`: split writes are staged to
+B2.5, which allows `splitTermEntriesCommit`). -/
 def DrainB2 (scope : H.Scope) (mode : H.Mode) : Prop :=
   mode.SnapStatus' = false ∧ scope.Snapshots' = false ∧ scope.ConfChanges' = false ∧
-  scope.Forwarding' = false ∧ (mode.Split' = W64 0 ∨ mode.Split' = W64 1)
+  scope.Forwarding' = false ∧ mode.Split' = W64 0
 
 /-- `InScope b2Scope` gives every bit `DrainB2` tests. -/
 abbrev drainB2_of_inScope.law : Prop :=
