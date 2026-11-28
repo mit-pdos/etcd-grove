@@ -206,6 +206,10 @@ instance kInvDV_timeless (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γsh :
     (v : etcd_dist.PfxV) : Timeless (kInvDV (GF := GF) γ c g0 γsh σ₀ v) := by
   unfold kInvDV kInvDW revOwnD shistOwn oneKeyRevs; infer_instance
 
+instance kInvDBody_timeless (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs γsh : GName)
+    (σ₀ : KVState) : Timeless (kInvDBody (GF := GF) γ c g0 γs γsh σ₀) := by
+  unfold kInvDBody; infer_instance
+
 /-- **A `Create` whose prophecy says the call answers, on the shared KV** (`create_au`): the store's update
 of etcd is the share's (`kvPfxP_au1H`) at the transaction `op` whose step is the model's create; at its
 firing the store catches up (`kInvDV_catchup`), takes its step (`invD_fire`, `kOkD_ok`) and commits
@@ -373,6 +377,96 @@ theorem pendD_au1 (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) 
   · iframe
   imodintro
   iframe Ha HW
+
+theorem drvED_mask_top : ⊤ \ drvED ⊆ ⊤ \ ↑drvDInvN := by
+  intro p hp
+  simp only [drvED, Std.LawfulSet.mem_diff, Std.LawfulSet.mem_union] at hp ⊢
+  exact ⟨hp.1, fun h => hp.2 (Or.inr (nclose_subseteq client.kvClientN "k8s" p h))⟩
+
+/-- **A write whose prophecy says `EOther`** (`write_err_commit`): lintest's update commits at once, the
+write pending (`kOkD_errW`), with the pending write's token. No firing: the store's state does not move. -/
+theorem writeD_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs γsh : GName) (σ₀ : KVState)
+    (x : Input) (hx : InOk x) (hval : x.Val'.length ≤ 2 ^ 20) (hw : isWriteL x = true) (Φ : val → IProp GF) :
+    kInvD γ c g0 γs γsh σ₀ ∗ linUD γ g0 (boxIn x) Φ ⊢
+      |={⊤}=> ∃ n : Nat, contAt g0 x otherL Φ ∗ pendTok γ n x := by
+  have HE := drvED_mask_top
+  iintro ⟨#Hinv, HU⟩
+  iunfold kInvD at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold kInvDBody at Hi
+  icases Hi with ⟨%v, Hg, HV⟩
+  iunfold kInvDV at HV
+  icases HV with ⟨%σl, %Hv, #Hlb, HW⟩
+  iunfold kInvDW at HW
+  icases HW with ⟨%h, %S, %M, %nx, Hh, Hp, Hr, Hs, %Hpure⟩
+  obtain ⟨hel, hrun, hok⟩ := Hpure
+  obtain ⟨S', HS', Hok'⟩ := kOkD_errW hok x hw hx hval
+  have Hst : (pMF g0 decOp).step S (boxIn x, boxOut otherL) = some S' := by
+    rw [stepF_box (GF := GF), otherL_plain, ansOf_otherL]; exact HS'
+  imod (fupd_mask_subseteq HE) with Hclose3
+  imod (linUD_commit γ g0 x _ Φ h S S' hrun Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
+  · iframe
+  imod Hclose3 with -
+  imod ghost_map_insert nx x (hok.fresh nx (Nat.le_refl _)) $$ Hp with ⟨Hp, Htok⟩
+  imod Hclose $$ [Hg Hh Hp Hr Hs] with -
+  · inext
+    iunfold kInvDBody
+    iexists v
+    iframe Hg
+    iunfold kInvDV
+    iexists σl
+    iframe Hlb
+    isplitr
+    · ipureintro; exact Hv
+    iunfold kInvDW
+    iexists _, S', _, nx + 1
+    iframe
+    ipureintro; exact ⟨hel, runF_snoc g0 h S S' _ hrun Hst, Hok'⟩
+  imodintro
+  iexists nx
+  iframe HΦ
+  iunfold pendTok
+  iexact Htok
+
+/-- **A `Get` whose prophecy says `EOther`** (`read_err_commit`): lintest's update commits at once
+(`kOkD_errR`). -/
+theorem readD_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs γsh : GName) (σ₀ : KVState)
+    (x : Input) (hw : isWriteL x = false) (h5 : x.Kind' ≠ W64 5) (Φ : val → IProp GF) :
+    kInvD γ c g0 γs γsh σ₀ ∗ linUD γ g0 (boxIn x) Φ ⊢ |={⊤}=> contAt g0 x otherL Φ := by
+  have HE := drvED_mask_top
+  iintro ⟨#Hinv, HU⟩
+  iunfold kInvD at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold kInvDBody at Hi
+  icases Hi with ⟨%v, Hg, HV⟩
+  iunfold kInvDV at HV
+  icases HV with ⟨%σl, %Hv, #Hlb, HW⟩
+  iunfold kInvDW at HW
+  icases HW with ⟨%h, %S, %M, %nx, Hh, Hp, Hr, Hs, %Hpure⟩
+  obtain ⟨hel, hrun, hok⟩ := Hpure
+  obtain ⟨S', HS', Hok'⟩ := kOkD_errR hok x hw h5
+  have Hst : (pMF g0 decOp).step S (boxIn x, boxOut otherL) = some S' := by
+    rw [stepF_box (GF := GF), otherL_plain, ansOf_otherL]; exact HS'
+  imod (fupd_mask_subseteq HE) with Hclose3
+  imod (linUD_commit γ g0 x _ Φ h S S' hrun Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
+  · iframe
+  imod Hclose3 with -
+  imod Hclose $$ [Hg Hh Hp Hr Hs] with -
+  · inext
+    iunfold kInvDBody
+    iexists v
+    iframe Hg
+    iunfold kInvDV
+    iexists σl
+    iframe Hlb
+    isplitr
+    · ipureintro; exact Hv
+    iunfold kInvDW
+    iexists _, S', M, nx
+    iframe
+    ipureintro; exact ⟨hel, runF_snoc g0 h S S' _ hrun Hst, Hok'⟩
+  imodintro
+  iexact HΦ
 
 end defs
 

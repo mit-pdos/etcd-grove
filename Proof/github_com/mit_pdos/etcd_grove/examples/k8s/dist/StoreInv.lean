@@ -777,13 +777,15 @@ instance kInvD_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs �
 
 /-! ### The catch-up of `kInvDW` (K8-8; decisions of Handoff K8-7) -/
 
-/-- **The bound on the share's revision the catch-up needs** (decision 3): one more revision fits in
-etcd's revisions. A named premise of the catch-up and of the firings, never assumed elsewhere; K10
-discharges it by the client law from time receipts (`srvLogCert`'s `⧖`, as K9's revision bound). -/
-def RevBoundD (σ : KVState) : Prop := σ.rev + 1 < 2 ^ 63
+/-- **The bound on the share's revision the catch-up and the reads need** (decision 3): two more
+revisions fit in etcd's revisions (`+2`, coordinator's decision on K8-9's point 3: a read's post says
+`σ.rev + 2 < 2^63` and a read learns no `kvRoom`; K10's receipt law gives revisions far below, `< 2^62`).
+A named premise of the catch-up and of the firings, never assumed elsewhere; K10 discharges it by the
+client law from time receipts (`srvLogCert`'s `⧖`, as K9's revision bound). -/
+def RevBoundD (σ : KVState) : Prop := σ.rev + 2 < 2 ^ 63
 
 /-- **The revision bound, from the share's history** (K8-9, coordinator's decision on K8-8's point 3): at
-every state whose changes the share's history authority `γsh` holds, one more revision fits. The one
+every state whose changes the share's history authority `γsh` holds, two more revisions fit. The one
 place this bound is assumed: a premise of the firings that need it (a read's, `kvPfxP_readAuH`, whose
 step learns no `kvRoom`); a write's firing gets it from `kvRoom` instead. K10 proves it from time
 receipts. -/
@@ -934,7 +936,7 @@ theorem kInvDW_catchup (γ : KNames) (c : StoreCfg GF DObj) (hcd : CfgD c) (g0 :
     iframe Hh Hp Hr Hs
     ipureintro; exact ⟨hel, hrun, hok⟩
   · have hm' : σ.changes = σl.changes ++ m := hm.symm
-    have hok' := kOkD_foreign c g0 S σl σ M nx m hcd hok hc hb hm' hf hrb
+    have hok' := kOkD_foreign c g0 S σl σ M nx m hcd hok hc hb hm' hf (by unfold RevBoundD at hrb; omega)
     imod (revOwnD_catchup γ hc hb hm' hf hne) $$ Hr with Hr
     imod (shistOwn_catchup c hcd σl m σ hne hc hb hm' hf (by unfold RevBoundD at hrb; omega)) $$ Hs
       with Hs
