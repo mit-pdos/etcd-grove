@@ -3,8 +3,15 @@
 # the ones there when the gate came (2026-11-25, after `Hctx`/`Hcec` were found unsatisfiable and
 # removed: notes/axiom-review/ctx-readerrs-vacuity.md); the list only shrinks. A new Iris premise
 # needs a `witness:` theorem: the premise holds at an initialized world (from `isPkgInit`, or for
-# every heap).
-RaftTla/Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/TopLevelRobustness.lean:raft_tracecheck_robust Hprem unwitnessed grandfathered (2026-11-25): no witness yet
+# every heap). An anonymous premise (`(∀ G L, …) →`, Dsverify's form) is listed as `anon:<head>`; the
+# gate sees them since 2026-11-28 (the six lines below, `grandfathered (2026-11-28)`: in the statements
+# before then, not new premises).
+Dsverify/Spec/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean:craq_remote_robust anon:RpcHttpServe unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
+Dsverify/Spec/rabia/examples/rabianet/TopLevelRobustness.lean:rabia_remote_robust anon:github_com.go_redis.redis.v8.InitHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
+Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust anon:github_com.go_redis.redis.v8.InitHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
+Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust anon:google_golang_org.grpc.InitHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
+Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust anon:raxos.hyp.grpc.GrpcHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
+Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust anon:raxos.hyp.sync.MapHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremC unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremCW unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremK unwitnessed grandfathered (2026-11-25): no witness yet
