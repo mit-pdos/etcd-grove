@@ -30,7 +30,7 @@ open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
     github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) :=
-  fun r γ rc i s sst t cs c li lt => by
+  fun r γ rc i s sst g t cs c li lt => by
   wp_start as ⟨#Hr, Hs, Hst, #Hcs, #Hci, %Hpre⟩
   ihave #Hg := pkgGlobals_access $$ Hpkg
   unfold pkgGlobals
@@ -40,8 +40,6 @@ theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
   ihave ⟨#HInv, -⟩ := isRaft_proto r γ rc i $$ Hr
   unfold isStableStore
   icases Hss with ⟨#HgetU, #HsetU, #Hget, #Hset⟩
-  rw [stV_eq rc sst]
-  icases Hst with ⟨%g, Hst⟩
   obtain ⟨Ht, Hv, Hup⟩ := Hpre
   have Hwt : (W64 (s.term : Int)) = t := by rw [← Ht]; word
   -- the first write: `Set(LastVoteCand, c)`, no step
@@ -92,6 +90,3 @@ theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
   wp_auto
   iapply HΦ
   iframe; iframe #
-  rw [stV_eq]
-  iexists g
-  iexact Hst

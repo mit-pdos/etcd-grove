@@ -24,17 +24,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
-/-- `(*Raft).persistVote`: Writes the vote to the stable store (whose writes never fail). (hraft_robust L0, R1 §2.4) Writes `LastVoteCand` first, then `LastVoteTerm`, where the vote step (`grantVote_upd`) fires, at the second write's commit point: the caller lends its view `srvV` and the candidate's `candIs`, and gets the vote back. -/
+/-- `(*Raft).persistVote`: Writes the vote to the stable store (whose writes never fail). (hraft_robust L0, R1 §2.4) Writes `LastVoteCand` first, then `LastVoteTerm`, where the vote step (`grantVote_upd`) fires, at the second write's commit point: the caller lends its view `srvV` and the candidate's `candIs`, and gets the vote back. (hraft_robust R4a) The stable view keeps its staged commit index `g` (`stVS`). -/
 abbrev github_com.hashicorp.raft.Raft.persistVote.spec : Prop :=
-  ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (sst : StableAbs) (t : w64)
+  ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (sst : StableAbs) (g : w64) (t : w64)
     (cs : GoSlice) (c : SID) (li lt : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
-     srvV rc s ∗ stV rc sst ∗ cs ↦*□ c ∗ candIs γ c s.term li lt ∗
+     srvV rc s ∗ stVS rc sst g ∗ cs ↦*□ c ∗ candIs γ c s.term li lt ∗
      ⌜uint.nat t = s.term ∧ s.vterm < s.term ∧ upToDate li lt s.log⌝ }}
     (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"persistVote")) (Val #t)) (Val #cs))
   {{ RET #interface.nil; srvV rc { s with vterm := s.term, vcand := c } ∗ voteIs γ i s.term c ∗
-      stV rc (StableAbs.mk (sst.ints.insert (go!"LastVoteTerm" : List w8) t)
-        (sst.bytes.insert (go!"LastVoteCand" : List w8) c)) }}
+      stVS rc (StableAbs.mk (sst.ints.insert (go!"LastVoteTerm" : List w8) t)
+        (sst.bytes.insert (go!"LastVoteCand" : List w8) c)) g }}
 
 end spec
 
