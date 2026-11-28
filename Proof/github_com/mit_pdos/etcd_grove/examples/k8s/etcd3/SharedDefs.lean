@@ -124,9 +124,9 @@ def gapsOwn (base : Loc) (sl : GoSlice) : IProp GF :=
     [∗list] i ↦ n ∈ ns, histOwn n (hs ++ gapsL s hs.length (i + 1)))
 
 theorem nil_or_snoc {α : Type} (l : List α) : l = [] ∨ ∃ l' x, l = l' ++ [x] := by
-  induction l using List.reverseRecOn with
-  | nil => exact .inl rfl
-  | append_singleton l' x _ => exact .inr ⟨l', x, rfl⟩
+  cases h : l.reverse with
+  | nil => exact .inl (List.reverse_eq_nil_iff.mp h)
+  | cons x r => exact .inr ⟨r.reverse, x, by rw [← List.reverse_reverse l, h]; simp⟩
 
 /-- **One node holds one history**: a history's nodes record their lengths (below `2^64`), so two
 histories of one node have one length (`histOwn_agree`). -/
