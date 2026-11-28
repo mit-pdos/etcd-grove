@@ -166,11 +166,18 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (
     |NC={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       ⌜a ≤ x⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half x ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
   have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑appliedN) \ ↑durN := by
-    unfold appliedN durN raftN gprotN; solve_ndisj
+    intro p hp
+    rw [LawfulSet.mem_diff]
+    exact ⟨gprotN_diff_raft "applied" p hp, fun h' => (LawfulSet.mem_diff.mp (gprotN_diff_raft "dur" p hp)).2 h'⟩
   iintro ⟨#HI, #Hd0, Hv, Hpend, HΨ⟩ Hnc
   iunfold srvDurInv at Hd0
   icases Hd0 with ⟨#Hd, #Hbo⟩
-  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑appliedN) (by unfold durN raftN appliedN; solve_ndisj) $$ Hd
+  have hD : (↑durN : CoPset) ⊆ ⊤ \ ↑appliedN := by
+    intro p hp
+    rw [LawfulSet.mem_diff]
+    exact ⟨CoPset.mem_full, fun h' =>
+      ndot_ne_disjoint raftN (show ("dur" : String) ≠ "applied" by decide) p ⟨hp, h'⟩⟩
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑appliedN) hD $$ Hd
   imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩
   unfold durBody
@@ -216,11 +223,24 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (
     · inext
       iexists { X with pend := none }
       simp only
+      rw [hdc]
+      rw [hdc] at HpB HpC HpD
       iframe
-      sorry
+      isplitr; · ipureintro; exact HpA
+      isplitr; · ipureintro; exact ⟨HpB.1, fun _ _ _ h => by simp at h, HpB.2.2⟩
+      isplitl [Hbp]
+      · unfold bootPin
+        icases Hbp with (Hb | ⟨Hbn, -⟩)
+        · unfold bootOver; icombine Hb Hbo gives %h; simp at h
+        iright; iframe Hbn; unfold latApplOk; simp only [hl]; iright; rw [hidx]; iexact Hax
+      isplitr; · ipureintro; exact HpC
+      isplitr; · ipureintro; exact HpD
+      iright; iexists m, b
+      isplitr; · ipureintro; exact hl
+      ileft; rw [hidx]; iframe Hdx; ipureintro; rfl
     imodintro
     iapply HΨ $$ [Hv] Hpend
-    · unfold srvVP; rw [← hs, ← htp, ← hdp]; iexact Hv
+    · iexact Hv
     ileft; iframe; ipureintro; rw [← hdp, hdc]
   · -- a discard pending: the half stays in `latestDur` until the discard
     imod Hclose $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS Hbp Hcomp Hla Hlat Hfol Hpd Hrest
@@ -228,11 +248,32 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (
     · inext
       iexists { X with pend := none }
       simp only
+      rw [hdc]
+      rw [hdc] at HpB HpC HpD
       iframe
-      sorry
+      isplitr; · ipureintro; exact HpA
+      isplitr; · ipureintro; exact ⟨HpB.1, fun _ _ _ h => by simp at h, HpB.2.2⟩
+      isplitl [Hbp]
+      · unfold bootPin
+        icases Hbp with (Hb | ⟨Hbn, -⟩)
+        · unfold bootOver; icombine Hb Hbo gives %h; simp at h
+        iright; iframe Hbn; unfold latApplOk; simp only [hl]; ileft; ipureintro; right; simp
+      isplitr; · ipureintro; exact HpC
+      isplitr; · ipureintro; exact HpD
+      iright; iexists m, b
+      isplitr; · ipureintro; exact hl
+      iright
+      obtain ⟨m', b', hl', hi', ht'⟩ := HpD.2 d rfl
+      rw [hl] at hl'
+      simp only [Option.some.injEq, Prod.mk.injEq] at hl'
+      obtain ⟨rfl, rfl⟩ := hl'
+      rw [hidx, htm]
+      iframe Hfol
+      isplitr; · ipureintro; exact ⟨d.ℓ, by rw [← hidx, ← htm, hi', ht']⟩
+      iexists x; iframe; ipureintro; omega
     imodintro
     iapply HΨ $$ [Hv] Hpend
-    · unfold srvVP; rw [← hs, ← htp, ← hdp]; iexact Hv
+    · iexact Hv
     iright; ipureintro; rw [← hdp, hdc]; simp
 
 
@@ -663,12 +704,8 @@ theorem CIdx_term_mono_imp (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (x 
 theorem bootPinF_newLat (rc : RCtx GF) (lat lat' : SnapLatest) (pend : Option (Nat × Nat × GoString))
     (dp : Option DiscPend) (x : Nat) (h : latIdxD lat' = x) :
     bootPinF rc lat pend dp ∗ applLb rc x ⊢ bootPinF rc lat' pend dp := by
-  iintro ⟨Hb, #Ha⟩
-  unfold bootPinF
-  icases Hb with (Hb | -)
-  · ileft; iexact Hb
-  iright
-  unfold latApplF
+  iintro ⟨-, #Ha⟩
+  unfold bootPinF latApplF
   rcases lat' with _ | ⟨m, b⟩
   · itrivial
   dsimp only
