@@ -68,6 +68,9 @@ def bootV (A : LogAbs) (lat : SnapLatest) : IProp GF :=
 instance bootV_timeless A lat : Timeless (bootV (GF := GF) rc A lat) := by
   unfold bootV; infer_instance
 
+instance latApplOk_timeless' X : Timeless (latApplOk (GF := GF) rc X) := by
+  unfold latApplOk applLb; rcases X.lat with _ | ⟨_, _⟩ <;> infer_instance
+
 instance bootPin_timeless' X : Timeless (bootPin (GF := GF) rc X) := by
   unfold bootPin; infer_instance
 
@@ -77,7 +80,7 @@ theorem bootPin_agree (X : SrvDur) (A : LogAbs) (lat : SnapLatest) :
       dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (A, lat)) ∗ bootV rc A lat ∗
         ⌜X.A = A ∧ X.lat = lat⌝ := by
   unfold bootPin bootV
-  iintro ⟨(⟨%o, Ho, %Hp⟩ | Hd), Hv⟩
+  iintro ⟨(⟨%o, Ho, %Hp⟩ | ⟨Hd, -⟩), Hv⟩
   · icombine Ho Hv gives %Hag
     obtain ⟨-, rfl⟩ := Hag
     obtain h := Hp (A, lat) rfl
@@ -126,28 +129,35 @@ theorem bootOpen {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLates
 /-- (hraft_robust R5) **Ending the boot**: the pin discarded at `none` (`bootOver`), `srvDurInv` from the raw
 invariant. -/
 theorem bootEnd {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLatest) :
-    srvDurInvRaw γ rc i ∗ bootV rc A lat ⊢ |NC={E}=> srvDurInv γ rc i := by
-  iintro ⟨#Hi, Hv⟩ Hnc
+    srvDurInvRaw γ rc i ∗ bootV rc A lat ∗
+      (match lat with | none => iprop(True) | some (m, _) => applLb rc (uint.nat m.Index')) ⊢
+    |NC={E}=> srvDurInv γ rc i := by
+  iintro ⟨#Hi, Hv, Hla⟩ Hnc
   ihave Hi' := Hi
   unfold srvDurInvRaw
   imod (inv_nc_acc hE) $$ Hi' Hnc with ⟨Hnc, HX, Hcl⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩
   ihave HX := later_mono (durBody_split γ rc i X).1 $$ HX
   icases HX with ⟨Hc, Hs, >Hb⟩
-  ihave ⟨Hb, Hv, -⟩ := bootPin_agree rc X A lat $$ [Hb Hv]
+  ihave ⟨Hb, Hv, %Hag⟩ := bootPin_agree rc X A lat $$ [Hb Hv]
   · iframe
   unfold bootV
   icombine Hb Hv as Hb
   imod dghostVar_update (none : Option (LogAbs × SnapLatest)) _ _ $$ Hb with Hb
   imod dghostVar_persist _ _ _ $$ Hb with #Hb
-  imod Hcl $$ [Hc Hs] with -
+  imod Hcl $$ [Hc Hs Hla] with -
   · inext
     iexists X
     iapply (durBody_split γ rc i X).2
     iframe
     unfold bootPin
     iright
-    iexact Hb
+    iframe #
+    unfold latApplOk
+    rw [Hag.2]
+    rcases lat with _ | ⟨m, b⟩
+    · itrivial
+    · iright; iexact Hla
   imodintro
   iframe Hnc
   unfold srvDurInv bootOver srvDurInvRaw
