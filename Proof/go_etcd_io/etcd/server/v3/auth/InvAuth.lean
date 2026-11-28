@@ -1265,8 +1265,10 @@ def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
     (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp M) ∗
     sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st M) ∗
     sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st M) ∗
-    -- (prove-authcrypto, 2026-11-21) the read-only `bcryptCost`, which `selectPassword` reads
-    (∃ c : w64, aF go!"bcryptCost" st ↦□ c))
+    -- (prove-authcrypto, 2026-11-21) the read-only `bcryptCost`, which `selectPassword` reads;
+    -- (D3 follow-up (a), 2026-11-28) at most `bcrypt.MaxCost` (`NewAuthStore` replaces a cost out of
+    -- `[MinCost, MaxCost]` by `DefaultCost`), so bcrypt errs only on a long password
+    (∃ c : w64, aF go!"bcryptCost" st ↦□ c ∗ ⌜sint.Z c ≤ 31⌝))
 
 instance authInv_persistent (st : Loc) (R : IProp GF) (M : AuthMode) :
     Persistent (authInv (GF := GF) st R M) := by
@@ -1274,7 +1276,7 @@ instance authInv_persistent (st : Loc) (R : IProp GF) (M : AuthMode) :
 
 /-- The store's `bcryptCost`, read-only, from its invariant. -/
 theorem authInv_bcryptCost (st : Loc) (R : IProp GF) (M : AuthMode) :
-    authInv (GF := GF) st R M ⊢ ∃ c : w64, aF go!"bcryptCost" st ↦□ c := by
+    authInv (GF := GF) st R M ⊢ ∃ c : w64, aF go!"bcryptCost" st ↦□ c ∗ ⌜sint.Z c ≤ 31⌝ := by
   iintro #H
   iunfold authInv at H
   icases H with ⟨-, -, -, -, -, -, -, #Hc⟩
@@ -1462,7 +1464,7 @@ D14f) and the mode `M`:
   record's, valid wire format (`userOptsIs`, `UserRec.optsUF`, the review's MAJ-2), and
   whose roles are valid UTF-8 (S0's F4, 2026-11-12: `authpb.User.roles` is a proto3 `repeated
   string`, which protobuf-go's `Marshal` refuses otherwise, and `UnsafePutUser` then panics,
-  `nonissues/etcd-auth-putuser-invalid-utf8-role.md`) puts the user (`putUser`; the message kept), `UnsafeDeleteUser(name)` deletes it, likewise the
+  `nonissues/etcd-auth-putuser-invalid-utf8-role.md`) puts the user (`putUserRec`: its roles and `NoPassword`; the message kept), `UnsafeDeleteUser(name)` deletes it, likewise the
   roles (`ownRole`: no unknown fields in the role's message nor in its permissions', `ownPermS`,
   the review's MAJ-1); `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
   revision;
@@ -1499,7 +1501,7 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
           ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
             ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
-      {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
+      {{ RET #(); Lk (putUserRec st ur) X ∗ Sw { w with users := .puts } ∗
           ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
       {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
@@ -1561,7 +1563,7 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
           ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
             ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
-      {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
+      {{ RET #(); Lk (putUserRec st ur) X ∗ Sw { w with users := .puts } ∗
           ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
       {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}

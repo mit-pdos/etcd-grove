@@ -32,7 +32,7 @@ theorem auth.authStore.selectPassword.wp_proof
     (h_gen : bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG)) :
     auth.authStore.selectPassword.spec (GF := GF) (hG := hG) := by
   intro st password hashed
-  wp_start as ⟨%Hst, %c, #Hc⟩
+  wp_start as ⟨%Hst, %c, #Hc, %Hc31⟩
   ihave #Hb64 : isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 $$ []
   · iPkgInit
   ihave ⟨%e, #He, #Hdec⟩ := encoding.base64.stdDecInit_access $$ Hb64
@@ -50,11 +50,12 @@ theorem auth.authStore.selectPassword.wp_proof
     try wp_auto
     iapply HΦ
     iexists bs; iframe Hb; ipureintro
-    intro _ hx; exact Herr hx
+    unfold selectPwOk; rw [if_neg (by simp_all)]; exact Herr
   · -- `password != ""`
     have hpw := Hif
     wp_if_destruct
     · -- `hashedPassword == ""`: hashed with bcrypt
+      have hh := Hif
       try wp_auto
       wp_apply wp_string_to_bytes password as %psl ⟨Hpsl, -⟩
       try wp_auto
@@ -63,20 +64,28 @@ theorem auth.authStore.selectPassword.wp_proof
       · iframe; iPkgInit
       inext
       iintro %h %err ⟨Hpsl, Hor⟩
-      icases Hor with (⟨%ei, %Hei, #Hm, %Hnil⟩ | ⟨%Hnil, %hs, Hh⟩)
+      icases Hor with (⟨%ei, %Hei, #Hm, %Hnil, %Hcond⟩ | ⟨%Hnil, %Hcond, %hs, Hh⟩)
       · subst Hnil
         try wp_auto
         iapply HΦ
         iexists []
         isplitr
         · iapply ownSlice_nil
-        ipureintro; intro hp; exact absurd hp (by simpa using hpw)
+        ipureintro
+        unfold selectPwOk
+        rw [if_pos (by constructor <;> simp_all)]
+        constructor
+        · intro h; rw [Hei.1] at h; cases h
+        · intro h; omega
       · imod ownSlice_persist h _ _ $$ Hh with #Hh
         try wp_auto
         iapply HΦ
         iexists hs; iframe Hh; ipureintro
-        intro hp; exact absurd hp (by simpa using hpw)
+        unfold selectPwOk
+        rw [if_pos (by constructor <;> simp_all)]
+        exact ⟨fun _ => Hcond.1, fun _ => Hnil⟩
     · -- decoded
+      have hh := Hif
       try wp_auto
       wp_bind (App (Val _) (Val _))
       iapply Hdec
@@ -86,7 +95,7 @@ theorem auth.authStore.selectPassword.wp_proof
       try wp_auto
       iapply HΦ
       iexists bs; iframe Hb; ipureintro
-      intro hp; exact absurd hp (by simpa using hpw)
+      unfold selectPwOk; rw [if_neg (by simp_all)]; exact Herr
 
 end proof
 

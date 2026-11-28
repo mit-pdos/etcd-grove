@@ -9628,3 +9628,31 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   name a bbolt key), which `authSmall.names`/the new `authSmall.roleNames` give. `notes/nomode-n1.md`, "D3,
   narrowed".
 - **Decision.** The lead (dsverify-net), relaying the review; strengthening, no new trust.
+
+## 2026-11-28: `UserChangePassword` exact: the password choice's outcome, the user's `NoPassword` (nomode D3 follow-up (a))
+
+- **Spec.** `bcrypt.GenerateFromPassword.spec` (the trust-boundary axiom's); `encoding.base64.stdDecInit`
+  (`Base.lean`) and `base64.Encoding.{decodeQuantum,Decode,DecodeString}.spec`;
+  `auth.authStore.selectPassword.spec`; `auth.authStore.UserChangePassword.{spec,specT,specTB}` (was
+  `specTSureB`), `UserAdd.{spec,specSure,specT,specTSure,specTSureB}`; the model (`auth.AuthState.noPwUsers`,
+  `userAddF`, `userChangePasswordF`, `putUserRec`), `auth.userOut(X)`, `schema.authBucketsAre`/`usersAt`,
+  the batch-transaction put contract (`authBatchTxLk`); `apply.adminKindOk`, `adminStateR`, `adminStepO`,
+  `adminDetReq`; the apply layer's `isAuthSteps(X)`/`stepSpec(X)`/`fuelSpec(X)` and `AdminReq`.
+- **Defect.** `UserChangePassword`'s outcome was not a function of the state and the request: the store spec
+  allowed `ErrNoPasswordUser` on any request, so `adminKindOk` needed the proof-simplifying premise
+  `ChangePasswordModel.pwSure` (`notes/nomode-n1.md`, "D3, narrowed"). The gaps: `selectPassword`'s spec gave
+  only "an empty password with a base64 hash succeeds" (bcrypt's axiom allowed an error on any input,
+  `stdDecInit` gave only "an encoding decodes"), and the model did not keep the user's `NoPassword` option,
+  which decides whether `UserChangePassword` selects a password at all (store.go:516).
+- **Evidence.** `notes/axiom-review/pw-gotest/` (bcrypt v0.57.0's exact error, base64's exact acceptance on
+  1.36M texts, the real store's outcomes against the model).
+- **Change.** bcrypt errs iff the password is over 72 bytes or `cost > 31` (narrowed axiom); `stdDecInit`
+  and the decoder specs: no error iff the text without newlines is padded base64 (`stdDecOk`, proved);
+  `selectPassword`: `err = nil ↔ selectPwOk pw hpw` at a cost ≤ 31 (`authInv` keeps the bound,
+  `NewAuthStore` clamps); the model keeps `noPwUsers` (set by `UserAdd`, kept by every rewrite), the store's
+  reads and the bucket relation give a record's `NoPassword` as the state's; `userChangePasswordF name ok`
+  refuses with `ErrNoPasswordUser` iff the user has a password and `ok` fails, the specs take the request's
+  passwords and have no extra error; `adminKindOk`'s `UserChangePassword` clause is `True`. `UserAdd` keeps
+  its `pwSure` (a workload fact `EtcdServer.UserAdd` discharges) and only gains `nob` in its step.
+- **Decision.** The lead (dsverify-net), follow-up (a) decided by the coordinator for Upamanyu
+  (2026-11-28); the bcrypt narrowing is trusted text, for an independent axiom review before landing.

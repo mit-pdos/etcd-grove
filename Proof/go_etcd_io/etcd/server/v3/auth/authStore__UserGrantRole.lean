@@ -120,7 +120,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   have hunn : u ≠ null := Hif
   ihave Hu' := auth.userOutX_some_named _ st0 user Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
-  obtain ⟨Hlook, Hurn, Hurr, Hsorted⟩ := Hur
+  obtain ⟨Hlook, Hurn, Hurr, Hsorted, Hunp⟩ := Hur
   (try wp_auto)
   obtain ⟨rn0, hrn0⟩ : ∃ x, x = rn := ⟨_, rfl⟩
   obtain ⟨rt, hrt⟩ : ∃ x : GoString, x = go!"root" := ⟨_, rfl⟩
@@ -333,7 +333,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have Hstep := Hok st0 Hl0
       ihave HL : Lk (putUser st0 user xs') Post $$ [HL]
-      · iExactEq HL; rw [Hurn]
+      · iExactEq HL; rw [putUserRec_same st0 urN (by show ur.noPassword = _; rw [Hunp, Hurn])]; rw [Hurn]
       obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
       have Hfit' := (Hfit _ _ hstepR rfl).1
       ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstepR $$ Hcap

@@ -41,7 +41,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserChangePassword.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T Wb hs Pre Q Post r name b0 sc0
+  intro st R M P f T Wb hs Pre Q Post r name pw hpw b0 sc0
   wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Htpa, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
@@ -56,7 +56,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
   icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -, -⟩
   subst Htpi
   iunfold userChangePasswordReqIs at Hr
-  icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩⟩
+  icases Hr with ⟨%Hrnn, #HN, #Hpw, #Hhpw⟩
   iunfold authWRx at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
@@ -119,7 +119,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     simp only [outRes, authErrOf, AuthErr.var]
     iframe Hown
     iexists eUNF; iframe HeUNF; ipureintro; rfl
-  ihave Hu' := userOut_some _ st0 name Hif $$ Hu
+  ihave Hu' := userOut_someP _ st0 name Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
@@ -130,11 +130,15 @@ theorem auth.authStore.UserChangePassword.wp_tie
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok st0 Hl0)
   (try wp_auto)
-  wp_join (Q := fun v => iprop(⌜v = #(decide (uo = null ∨ ur.noPassword = false))⌝ ∗ user_ptr ↦ u ∗
+  wp_join (Q := fun v => iprop(⌜v = #(decide (ur.noPassword = false))⌝ ∗ user_ptr ↦ u ∗
       structFieldRef authpb.User go!"Options" u ↦ uo))
     at (if: _ then #true else _) with [user Options] as ⟨%Hv, user, Options⟩
   · wp_if_destruct
-    · iframe; ipureintro; simp
+    · ihave #Huo0 := Huo
+      iunfold userOptsIs at Huo0
+      icases Huo0 with (%Hn | ⟨%Honn, -⟩)
+      · iframe; ipureintro; simp [Hn.2.1]
+      · exact absurd rfl Honn
     · iunfold userOptsIs at Huo
       icases Huo with (%Hn | ⟨%Honn, %ouf, %ou, -, #NoPassword, -, -, -⟩)
       · exact absurd Hn.1 Hif
@@ -147,7 +151,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
   · -- the password selected
     (try wp_auto)
     ihave #Hbc := auth.authInv_bcryptCost _ _ _ $$ Hinv
-    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl, -⟩
+    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl, %Hsel⟩
     · isplitr
       · ipureintro; exact Hst
       iexact Hbc
@@ -174,14 +178,18 @@ theorem auth.authStore.UserChangePassword.wp_tie
         · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
         · ileft; ipureintro; rfl
       iunfold adminOutP
-      ileft
-      iexists .noPasswordUser
+      iright
+      iexists st0, (.err .noPasswordUser)
       isplitr
       · ipureintro; exact tieStep_same _ _ _ _
-      iframe Hown
       isplitr
-      · ipureintro; rfl
-      simp only [authErrOf, AuthErr.var]
+      · ipureintro
+        refine ⟨Hl0, ?_⟩
+        have hok : ¬ selectPwOk pw hpw := fun h => by cases Hsel.2 h
+        have hnp : st0.noPw name = false := by rw [← Hur.2.2.2]; simpa using Hif
+        simp [stepOf, userChangePasswordF, Hur.1, hnp, hok]
+      simp only [outRes, authErrOf, AuthErr.var]
+      iframe Hown
       iexists eNPU; iframe HeNPU; ipureintro; rfl
     | nil =>
       (try wp_auto)
@@ -202,23 +210,24 @@ theorem auth.authStore.UserChangePassword.wp_tie
         · iexact Huo
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
-      · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
+      · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2.1,
           List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
       inext
       iintro ⟨HL, Hsw, -⟩
-      have hput : putUser st0 urN.name urN.roles = st0 := by
+      have hput : putUserRec st0 urN = st0 := by
+        rw [putUserRec_same st0 urN Hur.2.2.2]
         simp only [urN, putUser, Hur.2.1]
         cases st0
         simp only [AuthState.mk.injEq, _root_.and_true, _root_.true_and]
         exact GMap.insert_id _ _ _ Hur.1
       rw [hput]
       (try wp_auto)
-      have hstep : userChangePasswordF name st0 = .next (bump st0) := by
-        simp [userChangePasswordF, Hur.1]
+      have hstep : userChangePasswordF name (selectPwOk pw hpw) st0 = .next (bump st0) := by
+        simp [userChangePasswordF, Hur.1, Hsel.1 rfl]
       obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
       have Hfit' := (Hfit _ _ rfl hstep).1
-      ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
+      ihave #Hcn := capNextM_step M hs (userChangePasswordF name (selectPwOk pw hpw)) st0 (bump st0) Hl0
         (by rw [hstep]; try simp_all) $$ Hcap
       wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw st0 Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
@@ -322,23 +331,25 @@ theorem auth.authStore.UserChangePassword.wp_tie
       · iexact Huo
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
-    · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
+    · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2.1,
           List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
     inext
     iintro ⟨HL, Hsw, -⟩
-    have hput : putUser st0 urN.name urN.roles = st0 := by
+    have hput : putUserRec st0 urN = st0 := by
+      rw [putUserRec_same st0 urN Hur.2.2.2]
       simp only [urN, putUser, Hur.2.1]
       cases st0
       simp only [AuthState.mk.injEq, _root_.and_true, _root_.true_and]
       exact GMap.insert_id _ _ _ Hur.1
     rw [hput]
     (try wp_auto)
-    have hstep : userChangePasswordF name st0 = .next (bump st0) := by
-      simp [userChangePasswordF, Hur.1]
+    have hnp : st0.noPw name = true := by rw [← Hur.2.2.2]; simpa using Hif
+    have hstep : userChangePasswordF name (selectPwOk pw hpw) st0 = .next (bump st0) := by
+      simp [userChangePasswordF, Hur.1, hnp]
     obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
     have Hfit' := (Hfit _ _ rfl hstep).1
-    ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
+    ihave #Hcn := capNextM_step M hs (userChangePasswordF name (selectPwOk pw hpw)) st0 (bump st0) Hl0
       (by rw [hstep]; try simp_all) $$ Hcap
     wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw st0 Post hs st0)
       $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
@@ -425,16 +436,16 @@ theorem auth.authStore.UserChangePassword.wp_tie
     iframe Hown
 
 
-theorem auth.authStore.UserChangePassword.wp_tieSureB
+theorem auth.authStore.UserChangePassword.wp_tieB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_selectPassword : auth.authStore.selectPassword.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.UserChangePassword.specTSureB (GF := GF) (hG := hG) := by
-  intro st R M P f T Wb hs Pre Q Post r name b0 sc0 be
-  wp_start as ⟨#Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hw1, Hw2, Htpa, Hcs, %Hok, #Hcap⟩
+    auth.authStore.UserChangePassword.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post r name pw hpw b0 sc0 be
+  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Htpa, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
   simp only [AuthErr.var]
@@ -448,7 +459,7 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
   icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -, -⟩
   subst Htpi
   iunfold userChangePasswordReqIs at Hr
-  icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩⟩
+  icases Hr with ⟨%Hrnn, #HN, #Hpw, #Hhpw⟩
   iunfold authWRxB at HWR
   icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
@@ -511,7 +522,7 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
     simp only [outRes, authErrOf, AuthErr.var]
     iframe Hown
     iexists eUNF; iframe HeUNF; ipureintro; rfl
-  ihave Hu' := userOut_some _ st0 name Hif $$ Hu
+  ihave Hu' := userOut_someP _ st0 name Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
@@ -522,11 +533,15 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok st0 Hl0)
   (try wp_auto)
-  wp_join (Q := fun v => iprop(⌜v = #(decide (uo = null ∨ ur.noPassword = false))⌝ ∗ user_ptr ↦ u ∗
+  wp_join (Q := fun v => iprop(⌜v = #(decide (ur.noPassword = false))⌝ ∗ user_ptr ↦ u ∗
       structFieldRef authpb.User go!"Options" u ↦ uo))
     at (if: _ then #true else _) with [user Options] as ⟨%Hv, user, Options⟩
   · wp_if_destruct
-    · iframe; ipureintro; simp
+    · ihave #Huo0 := Huo
+      iunfold userOptsIs at Huo0
+      icases Huo0 with (%Hn | ⟨%Honn, -⟩)
+      · iframe; ipureintro; simp [Hn.2.1]
+      · exact absurd rfl Honn
     · iunfold userOptsIs at Huo
       icases Huo with (%Hn | ⟨%Honn, %ouf, %ou, -, #NoPassword, -, -, -⟩)
       · exact absurd Hn.1 Hif
@@ -546,15 +561,39 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
     (try wp_auto)
     cases e with
     | ok ei =>
-      -- impossible: the password choice cannot fail (`userChangePasswordSure`)
-      iunfold userChangePasswordSure at Hsure
-      icases Hsure with ⟨%pw2, %hpw2, #Hpw2, #Hhpw2, %Hsp⟩
-      icombine Hpw Hpw2 gives %Epw
-      icombine Hhpw Hhpw2 gives %Ehpw
-      subst Epw Ehpw
-      rcases Hsp with Hnb | ⟨Hp, Hx⟩
-      · cases Hnb
-      · exact absurd (Hsel Hp Hx) (by simp)
+      -- no password could be selected: `ErrNoPasswordUser`, the step's
+      (try wp_auto)
+      wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+      · ipureintro; exact Hl0
+      (try wp_auto)
+      iapply HΦ
+      iexists b0, sc0
+
+      isplitl [HA]
+
+      · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
+      isplitl [HPost]
+      · ileft; iexact HPost
+      isplitl [Hbe HT Hfl Hca]
+      · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
+      isplitr
+      · iunfold respOk; isplitr
+        · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
+        · ileft; ipureintro; rfl
+      iunfold adminOutP
+      iright
+      iexists st0, (.err .noPasswordUser)
+      isplitr
+      · ipureintro; exact tieStep_same _ _ _ _
+      isplitr
+      · ipureintro
+        refine ⟨Hl0, ?_⟩
+        have hok : ¬ selectPwOk pw hpw := fun h => by cases Hsel.2 h
+        have hnp : st0.noPw name = false := by rw [← Hur.2.2.2]; simpa using Hif
+        simp [stepOf, userChangePasswordF, Hur.1, hnp, hok]
+      simp only [outRes, authErrOf, AuthErr.var]
+      iframe Hown
+      iexists eNPU; iframe HeNPU; ipureintro; rfl
     | nil =>
       (try wp_auto)
       wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
@@ -574,23 +613,24 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
         · iexact Huo
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
-      · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
+      · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2.1,
           List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
       inext
       iintro ⟨HL, Hsw, -⟩
-      have hput : putUser st0 urN.name urN.roles = st0 := by
+      have hput : putUserRec st0 urN = st0 := by
+        rw [putUserRec_same st0 urN Hur.2.2.2]
         simp only [urN, putUser, Hur.2.1]
         cases st0
         simp only [AuthState.mk.injEq, _root_.and_true, _root_.true_and]
         exact GMap.insert_id _ _ _ Hur.1
       rw [hput]
       (try wp_auto)
-      have hstep : userChangePasswordF name st0 = .next (bump st0) := by
-        simp [userChangePasswordF, Hur.1]
+      have hstep : userChangePasswordF name (selectPwOk pw hpw) st0 = .next (bump st0) := by
+        simp [userChangePasswordF, Hur.1, Hsel.1 rfl]
       obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
       have Hfit' := (Hfit _ _ rfl hstep).1
-      ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
+      ihave #Hcn := capNextM_step M hs (userChangePasswordF name (selectPwOk pw hpw)) st0 (bump st0) Hl0
         (by rw [hstep]; try simp_all) $$ Hcap
       wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw st0 Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
@@ -694,23 +734,25 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
       · iexact Huo
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
-    · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
+    · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2.1,
           List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
     inext
     iintro ⟨HL, Hsw, -⟩
-    have hput : putUser st0 urN.name urN.roles = st0 := by
+    have hput : putUserRec st0 urN = st0 := by
+      rw [putUserRec_same st0 urN Hur.2.2.2]
       simp only [urN, putUser, Hur.2.1]
       cases st0
       simp only [AuthState.mk.injEq, _root_.and_true, _root_.true_and]
       exact GMap.insert_id _ _ _ Hur.1
     rw [hput]
     (try wp_auto)
-    have hstep : userChangePasswordF name st0 = .next (bump st0) := by
-      simp [userChangePasswordF, Hur.1]
+    have hnp : st0.noPw name = true := by rw [← Hur.2.2.2]; simpa using Hif
+    have hstep : userChangePasswordF name (selectPwOk pw hpw) st0 = .next (bump st0) := by
+      simp [userChangePasswordF, Hur.1, hnp]
     obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
     have Hfit' := (Hfit _ _ rfl hstep).1
-    ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
+    ihave #Hcn := capNextM_step M hs (userChangePasswordF name (selectPwOk pw hpw)) st0 (bump st0) Hl0
       (by rw [hstep]; try simp_all) $$ Hcap
     wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw st0 Post hs st0)
       $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩

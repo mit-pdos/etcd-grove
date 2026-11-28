@@ -89,7 +89,7 @@ theorem adminReqResult_authApplyErrIs (Own : auth.AuthNames → List auth.AuthSt
       ad.result Own γa M hs resp err -∗ ad.result Own γa M hs resp err ∗ authApplyErrIs err := by
   iintro #Hpkg H
   cases ad with
-  | userAdd n =>
+  | userAdd n nob =>
     simp only [apply.AdminReq.result]
     icases H with ⟨H, %Hrn⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
@@ -138,7 +138,7 @@ theorem adminReqResult_authApplyErrIs (Own : auth.AuthNames → List auth.AuthSt
     isplitl [H]
     · iexists en; iframe Hev H; ipureintro; exact Hrn
     · iexact HA
-  | userChangePassword n =>
+  | userChangePassword n pw hpw =>
     simp only [apply.AdminReq.result]
     icases H with ⟨H, %Hrn⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H

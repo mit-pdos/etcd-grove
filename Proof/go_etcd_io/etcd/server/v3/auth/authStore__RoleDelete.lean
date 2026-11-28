@@ -272,7 +272,7 @@ theorem auth.authStore.RoleDelete.wp_tieB
       "Hs" ∷ s ↦* us ∗
       "Husers" ∷ ([∗list] x ∈ (us.zip names).drop (sint.nat k), userOut x.1 st1 x.2) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ us.length ∧ sk.enabled = st1.enabled ∧
-        sk.revision = st1.revision ∧ sk.roles = st1.roles ∧
+        sk.revision = st1.revision ∧ (sk.roles = st1.roles ∧ sk.noPwUsers = st1.noPwUsers) ∧
         auth.usersAfter st1.users names (sint.nat k) role sk.users⌝)
     $$ [i user HL Hsw Hs Husers]
   · iexists W64 0, _, st1, _
@@ -280,7 +280,7 @@ theorem auth.authStore.RoleDelete.wp_tieB
     isplitr
     · ipureintro; decide
     ipureintro
-    exact ⟨by word, by word, rfl, rfl, rfl, auth.usersAfter_zero _ _ _⟩
+    exact ⟨by word, by word, rfl, rfl, ⟨rfl, rfl⟩, auth.usersAfter_zero _ _ _⟩
   wp_for IHo
   wp_if_destruct
   · -- another user
@@ -315,7 +315,7 @@ theorem auth.authStore.RoleDelete.wp_tieB
     iunfold userOut at Hu
     simp only [hlook']
     icases Hu with ⟨%ur, %Hur, Hu⟩
-    obtain ⟨Hurn, Hurr, Hsorted⟩ := Hur
+    obtain ⟨Hurn, Hurr, Hsorted, Hunp⟩ := Hur
     iunfold ownUser at Hu
     icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
     ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
@@ -460,7 +460,10 @@ theorem auth.authStore.RoleDelete.wp_tieB
     iexists k + W64 1, u, (putUser sk nm roles'), { ws with users := .puts }
     iframe
     isplitl [HL]
-    · iExactEq HL; rw [Hurn]
+    · iExactEq HL
+      rw [putUserRec_same sk ({ ur with roles := roles' } : UserRec)
+        (by show ur.noPassword = sk.noPw ur.name; unfold AuthState.noPw at Hunp ⊢; rw [Hurn, Hk.2.2.2.2.1.2]; exact Hunp)]
+      rw [Hurn]
     isplitr
     · ipureintro; simp
     isplitl [Husers]
@@ -476,14 +479,14 @@ theorem auth.authStore.RoleDelete.wp_tieB
     have : ¬ sint.Z k < sint.Z s.len := by
       first | exact Hif | (intro h; apply Hif; simp [h])
     rw [← Huslen, Hsl.1]; word
-  obtain ⟨Hk0, -, Hken, Hkrev, Hkroles, Hkusers⟩ := Hk
+  obtain ⟨Hk0, -, Hken, Hkrev, ⟨Hkroles, Hknp⟩, Hkusers⟩ := Hk
   rw [hkall] at Hkusers
   have hsk : sk = delRole st0 role := by
     have hu := auth.usersAfter_all st1.users sk.users names role Hmem Hkusers
     cases sk
-    simp only at Hken Hkrev Hkroles hu
-    rw [hst1] at Hken Hkrev Hkroles hu
-    simp only [delRole, Hken, Hkrev, Hkroles, hu]
+    simp only at Hken Hkrev Hkroles hu Hknp
+    rw [hst1] at Hken Hkrev Hkroles hu Hknp
+    simp only [delRole, Hken, Hkrev, Hkroles, hu, Hknp]
   subst hsk
   (try wp_auto)
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown

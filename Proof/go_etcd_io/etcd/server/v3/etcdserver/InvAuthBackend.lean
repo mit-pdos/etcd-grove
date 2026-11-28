@@ -186,18 +186,20 @@ def authBucketsAre (st : auth.AuthState) (D : AuthData) : Prop :=
   D.auth.lookup authRevisionKey = some (u64Be (W64 st.revision)) ∧
   (∀ n, (D.users.lookup n).isSome ↔ (st.users.lookup n).isSome) ∧
   (∀ n v, D.users.lookup n = some v → ∃ ur : auth.UserRec, v = auth.userEncode ur ∧
-    ur.name = n ∧ st.users.lookup n = some ur.roles ∧ ur.roles.Pairwise go.GoStringLt) ∧
+    ur.name = n ∧ st.users.lookup n = some ur.roles ∧ ur.roles.Pairwise go.GoStringLt ∧
+    ur.noPassword = st.noPw n) ∧
   (∀ n, (D.roles.lookup n).isSome ↔ (st.roles.lookup n).isSome) ∧
   (∀ n v, D.roles.lookup n = some v → ∃ rr : auth.RoleRec, v = auth.roleEncode rr ∧
     rr.name = n ∧ ∃ ps, st.roles.lookup n = some ps ∧ rr.toRole = ps ∧ ps.Pairwise auth.permLt)
 
 /-- **The users bucket `m` holds the state `st`'s users with the records `dU`** (F-enc): a name
 is in `m` iff a user of `st`; its value is `dU n`'s encoding, a record of that name whose roles are
-the state's, sorted. -/
+the state's, sorted, and whose `NoPassword` is the state's (`noPw`). -/
 def usersAt (st : auth.AuthState) (m : backend.BktData) (dU : GoString → auth.UserRec) : Prop :=
   (∀ n, (m.lookup n).isSome ↔ (st.users.lookup n).isSome) ∧
   ∀ n v, m.lookup n = some v → v = auth.userEncode (dU n) ∧ (dU n).name = n ∧
-    st.users.lookup n = some (dU n).roles ∧ (dU n).roles.Pairwise go.GoStringLt
+    st.users.lookup n = some (dU n).roles ∧ (dU n).roles.Pairwise go.GoStringLt ∧
+    (dU n).noPassword = st.noPw n
 
 /-- **The roles bucket `m` holds the state `st`'s roles with the records `dR`** (F-enc): a name is in `m`
 iff a role of `st`; its value is `dR n`'s encoding, a record of that name whose permissions of a known type are
@@ -218,7 +220,8 @@ theorem authBucketsAre_usersAt {st : auth.AuthState} {D : AuthData} (h : authBuc
     ∃ dU, usersAt st D.users dU := by
   obtain ⟨-, -, -, hu1, hu2, -, -⟩ := h
   have H : ∀ n, ∃ x : auth.UserRec, ∀ v, D.users.lookup n = some v →
-      v = auth.userEncode x ∧ x.name = n ∧ st.users.lookup n = some x.roles ∧ x.roles.Pairwise go.GoStringLt := by
+      v = auth.userEncode x ∧ x.name = n ∧ st.users.lookup n = some x.roles ∧ x.roles.Pairwise go.GoStringLt ∧
+        x.noPassword = st.noPw n := by
     intro n
     cases hl : D.users.lookup n with
     | none => exact ⟨default, fun v hv => by cases hv⟩
@@ -255,12 +258,12 @@ theorem userOutD_are (st : auth.AuthState) (m : backend.BktData) (u : Loc) (name
       have := hu1 name; rw [hl] at this; simpa using this
     rw [this]
   | some v =>
-    obtain ⟨-, hn, hs, hsort⟩ := hu2 name v hl
+    obtain ⟨-, hn, hs, hsort, hnp⟩ := hu2 name v hl
     rw [hs]
     iintro H
     iexists dU name
     iframe H
-    ipureintro; exact ⟨hn, rfl, hsort⟩
+    ipureintro; exact ⟨hn, rfl, hsort, hnp⟩
 
 /-- As `userOutD_are`, the message as `proto.Unmarshal` returns it (`auth.userOutX`). -/
 theorem userOutDX_are (st : auth.AuthState) (m : backend.BktData) (u : Loc) (name : GoString)
@@ -274,12 +277,12 @@ theorem userOutDX_are (st : auth.AuthState) (m : backend.BktData) (u : Loc) (nam
       have := hu1 name; rw [hl] at this; simpa using this
     rw [this]
   | some v =>
-    obtain ⟨-, hn, hs, hsort⟩ := hu2 name v hl
+    obtain ⟨-, hn, hs, hsort, hnp⟩ := hu2 name v hl
     rw [hs]
     iintro H
     iexists dU name
     iframe H
-    ipureintro; exact ⟨hn, rfl, hsort⟩
+    ipureintro; exact ⟨hn, rfl, hsort, hnp⟩
 
 theorem roleOutD_are (st : auth.AuthState) (m : backend.BktData) (r : Loc) (name : GoString)
     (dR : GoString → auth.RoleRec) (h : rolesAt st m dR) :

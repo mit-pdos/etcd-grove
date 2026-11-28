@@ -1673,7 +1673,7 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     (auth.authStore.UserDelete.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
       zap.Logger.wp_Info)
-    (auth.authStore.UserChangePassword.wp_tieSureB auth.authStore.wp_commitRevision
+    (auth.authStore.UserChangePassword.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
       zap.wp_Strings zap.Logger.wp_Info)
     (auth.authStore.UserRevokeRole.wp_tieB auth.authStore.wp_commitRevision
@@ -2212,7 +2212,7 @@ theorem srv_auth_tp_on : authSrvTPAt (GF := GF) (hG := hG) true :=
     (auth.authStore.UserDelete.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
       zap.Logger.wp_Info)
-    (auth.authStore.UserChangePassword.wp_tieSureB auth.authStore.wp_commitRevision
+    (auth.authStore.UserChangePassword.wp_tieB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
       zap.wp_Strings zap.Logger.wp_Info)
     (auth.authStore.UserRevokeRole.wp_tieB auth.authStore.wp_commitRevision

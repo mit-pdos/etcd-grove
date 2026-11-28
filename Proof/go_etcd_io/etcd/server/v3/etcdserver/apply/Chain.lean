@@ -391,12 +391,10 @@ kinds instead take `userKeysOk`/`roleKeysOk`, from the fuel's `authSmall`; the f
 `AuthDisable`, `UserDelete`, `UserChangePassword`, `UserRevokeRole`, `RoleDelete`,
 `RoleRevokePermission`); not the lists. A `UserAdd`'s password choice cannot fail
 (`UserAddModel.pwSure`: the form `EtcdServer.UserAdd` always proposes: E2x), so its outcome is the
-step's alone (E3a). **Interim, a proof-simplifying premise the model rule disallows:**
-`UserChangePassword` requires `ChangePasswordModel.pwSure`, which `EtcdServer.UserChangePassword` does
-NOT ensure (with an empty `Password` it forwards the client's `HashedPassword` as sent; clientv3 never
-sets it, a raw gRPC client can). It goes once `selectPassword`'s outcome is modelled exactly (base64
-`DecodeString`'s error, bcrypt's exact error condition, the user's `NoPassword` option):
-`notes/nomode-n1.md`, "D3, narrowed", follow-up (a). (C1's A2,
+step's alone (E3a). `UserChangePassword` takes any request: its step is a function of the state and
+the request (`auth.userChangePasswordF`, with `auth.selectPwOk` of its passwords and the user's
+`NoPassword`; nomode D3 follow-up (a), 2026-11-28, which removed the interim premise
+`ChangePasswordModel.pwSure`). (C1's A2,
 2026-10-28) And `Authenticate`, which writes nothing (`GetUser` only reads its name: no key bound),
 in a request needing no admin permission (`needAdminPermission` reads the request's fields, the
 dispatch its first: a request with an admin field beside it would pass the admin check and still
@@ -413,7 +411,7 @@ def adminKindOk (rq : IRRModel) : Prop :=
       ∀ am, rq.authenticate = some am → auth.tokPrefixOk am.simpleToken
   | .authDisable => True
   | .authUserDelete => True
-  | .authUserChangePassword => ∀ m, rq.authUserChangePassword = some m → m.pwSure
+  | .authUserChangePassword => True
   | .authUserRevokeRole => True
   | .authRoleDelete => True
   | .authRoleRevokePermission => True

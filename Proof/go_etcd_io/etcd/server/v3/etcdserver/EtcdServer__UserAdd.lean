@@ -67,7 +67,7 @@ theorem EtcdServer.UserAdd.wp_proof
               (deTypedErr_of_ty _ (errKeyOk_invalidCost _ hic hc).2.2)
           iunfold errMsgOk; iexact Hm
       · cases Hnil
-    icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
+    icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, -, %hs, Hh⟩)
     · cases Hei.1
     wp_auto
     wp_apply Henc $$ [$Hh] as Hh
@@ -176,7 +176,7 @@ theorem EtcdServer.UserAdd.wp_proof
               (deTypedErr_of_ty _ (errKeyOk_invalidCost _ hic hc).2.2)
             iunfold errMsgOk; iexact Hm
         · cases Hnil
-      icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
+      icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, -, %hs, Hh⟩)
       · cases Hei.1
       wp_auto
       wp_apply Henc $$ [$Hh] as Hh

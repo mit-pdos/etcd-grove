@@ -101,12 +101,6 @@ structure ChangePasswordModel where
   password : GoString
   hashed : GoString
 
-/-- **The password choice cannot fail** (`UserChangePassword`'s `ErrNoPasswordUser` is not
-possible): an empty `Password` with a base64-encoded `HashedPassword`, which `selectPassword` decodes
-without an error (`EtcdServer.UserChangePassword` proposes this form when a password is set: its
-bcrypt hash, base64-encoded, `Password` cleared); a user without a password selects none. -/
-def ChangePasswordModel.pwSure (m : ChangePasswordModel) : Prop :=
-  auth.pwSureP m.password m.hashed false
 
 /-- A `ClusterMemberAttrSetRequest`'s `Member_ID` and its `MemberAttributes`' `Name` and
 `ClientUrls`. -/
@@ -453,13 +447,13 @@ def authUserAddIs (u : Loc) (m : UserAddModel) : IProp GF :=
 
 /-- The request model gives the auth store's (`auth.userAddReqIs`). -/
 theorem authUserAddIs_req (u : Loc) (m : UserAddModel) :
-    authUserAddIs (GF := GF) u m ⊢ auth.userAddReqIs u m.name := by
+    authUserAddIs (GF := GF) u m ⊢ auth.userAddReqIs u m.name m.noPassword := by
   unfold authUserAddIs auth.userAddReqIs
   iintro ⟨%hu, #Hn, #Hp, #Hh, %o, #Ho, #Hb⟩
   isplit; · ipureintro; exact hu
   isplit; · iexact Hn
   isplit; · iexists m.password, m.hashed; isplit <;> iassumption
-  iexists o, m.noPassword; isplit <;> iassumption
+  iexists o; isplit <;> iassumption
 
 /-- A request whose model's password choice cannot fail gives the auth store's `userAddSure`
 (the auth plan's E2u: `UserAdd.specSure`). -/
@@ -531,22 +525,10 @@ def authRoleRevokePermissionIs (r : Loc) (rke : GoString × GoString × GoString
 
 /-- The request model gives the auth store's (`auth.userChangePasswordReqIs`). -/
 theorem authUserChangePasswordIs_req (u : Loc) (m : ChangePasswordModel) :
-    authUserChangePasswordIs (GF := GF) u m ⊢ auth.userChangePasswordReqIs u m.name := by
+    authUserChangePasswordIs (GF := GF) u m ⊢
+      auth.userChangePasswordReqIs u m.name m.password m.hashed := by
   unfold authUserChangePasswordIs auth.userChangePasswordReqIs
-  iintro ⟨%hu, #Hn, #Hp, #Hh⟩
-  isplit; · ipureintro; exact hu
-  isplit; · iexact Hn
-  iexists m.password, m.hashed; isplit <;> iassumption
-
-/-- A request whose model's password choice cannot fail gives the auth store's
-`userChangePasswordSure`. -/
-theorem authUserChangePasswordIs_sure (u : Loc) (m : ChangePasswordModel) (h : m.pwSure) :
-    authUserChangePasswordIs (GF := GF) u m ⊢ auth.userChangePasswordSure u := by
-  unfold authUserChangePasswordIs auth.userChangePasswordSure
-  iintro ⟨%hu, #Hn, #Hp, #Hh⟩
-  iexists m.password, m.hashed
-  iframe Hp Hh
-  ipureintro; exact h
+  iintro H; iexact H
 
 instance authUserDeleteIs_persistent (r : Loc) (name : GoString) :
     Persistent (authUserDeleteIs (GF := GF) r name) := by

@@ -45,7 +45,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.serve
 /-- **An admin request of `SetUp`'s five** (the auth plan's E2m), with its arguments; and (C1's
 A2, 2026-10-28) an `Authenticate`, with the user's name and the token's prefix. -/
 inductive AdminReq where
-  | userAdd (name : GoString)
+  | userAdd (name : GoString) (nob : Bool)
   | roleAdd (name : GoString)
   | userGrantRole (user role : GoString)
   | roleGrantPermission (name : GoString) (w : Option auth.PermW)
@@ -54,14 +54,14 @@ inductive AdminReq where
   /-- (nomode D3, 2026-11-28) the six other admin requests -/
   | authDisable
   | userDelete (name : GoString)
-  | userChangePassword (name : GoString)
+  | userChangePassword (name pw hpw : GoString)
   | userRevokeRole (name role : GoString)
   | roleDelete (role : GoString)
   | roleRevokePermission (role key rangeEnd : GoString)
 
 /-- The applier's method the request runs. -/
 @[reducible] def AdminReq.method : AdminReq → GoString
-  | .userAdd _ => go!"UserAdd"
+  | .userAdd _ _ => go!"UserAdd"
   | .roleAdd _ => go!"RoleAdd"
   | .userGrantRole _ _ => go!"UserGrantRole"
   | .roleGrantPermission _ _ => go!"RoleGrantPermission"
@@ -69,7 +69,7 @@ inductive AdminReq where
   | .authenticate _ _ => go!"Authenticate"
   | .authDisable => go!"AuthDisable"
   | .userDelete _ => go!"UserDelete"
-  | .userChangePassword _ => go!"UserChangePassword"
+  | .userChangePassword _ _ _ => go!"UserChangePassword"
   | .userRevokeRole _ _ => go!"UserRevokeRole"
   | .roleDelete _ => go!"RoleDelete"
   | .roleRevokePermission _ _ _ => go!"RoleRevokePermission"
@@ -80,7 +80,7 @@ inductive AdminReq where
 (2026-10-30) an `Authenticate`'s token prefix one the provider makes (`auth.tokPrefixOk`); (S0's
 F4, 2026-11-12) a `UserGrantRole`'s role valid UTF-8 (the decoded request's, `irrUtf8`). -/
 @[reducible] def AdminReq.nameOk : AdminReq → Prop
-  | .userAdd n => n.length ≤ backend.maxKeySize
+  | .userAdd n nob => n.length ≤ backend.maxKeySize
   | .roleAdd n => n.length ≤ backend.maxKeySize
   | .userGrantRole _ ro => utf8Valid ro
   | .roleGrantPermission _ _ => True
@@ -88,7 +88,7 @@ F4, 2026-11-12) a `UserGrantRole`'s role valid UTF-8 (the decoded request's, `ir
   | .authenticate _ pre => auth.tokPrefixOk pre
   | .authDisable => True
   | .userDelete _ => True
-  | .userChangePassword _ => True
+  | .userChangePassword _ _ _ => True
   | .userRevokeRole _ _ => True
   | .roleDelete _ => True
   | .roleRevokePermission _ _ _ => True
@@ -101,7 +101,7 @@ variable [sem : go.Semantics]
 
 /-- The type of the response the method returns (a pointer to it, in `Result.Resp`). -/
 @[reducible] def AdminReq.respTy : AdminReq → go.GoType
-  | .userAdd _ => etcdserverpb.AuthUserAddResponse.ty
+  | .userAdd _ _ => etcdserverpb.AuthUserAddResponse.ty
   | .roleAdd _ => etcdserverpb.AuthRoleAddResponse.ty
   | .userGrantRole _ _ => etcdserverpb.AuthUserGrantRoleResponse.ty
   | .roleGrantPermission _ _ => etcdserverpb.AuthRoleGrantPermissionResponse.ty
@@ -109,7 +109,7 @@ variable [sem : go.Semantics]
   | .authenticate _ _ => etcdserverpb.AuthenticateResponse.ty
   | .authDisable => etcdserverpb.AuthDisableResponse.ty
   | .userDelete _ => etcdserverpb.AuthUserDeleteResponse.ty
-  | .userChangePassword _ => etcdserverpb.AuthUserChangePasswordResponse.ty
+  | .userChangePassword _ _ _ => etcdserverpb.AuthUserChangePasswordResponse.ty
   | .userRevokeRole _ _ => etcdserverpb.AuthUserRevokeRoleResponse.ty
   | .roleDelete _ => etcdserverpb.AuthRoleDeleteResponse.ty
   | .roleRevokePermission _ _ _ => etcdserverpb.AuthRoleRevokePermissionResponse.ty
@@ -122,7 +122,7 @@ variable [sem : go.Semantics]
 
 /-- The request `r` holds the request (read-only: the auth package's request models). -/
 @[reducible] def AdminReq.reqIs (r : Loc) : AdminReq → IProp GF
-  | .userAdd n => iprop(auth.userAddReqIs r n ∗ auth.userAddSure r)
+  | .userAdd n nob => iprop(auth.userAddReqIs r n nob ∗ auth.userAddSure r)
   | .roleAdd n => auth.roleAddReqIs r n
   | .userGrantRole u ro => auth.userGrantRoleReqIs r u ro
   | .roleGrantPermission n w => auth.roleGrantPermissionReqIs r n w
@@ -131,7 +131,7 @@ variable [sem : go.Semantics]
       ⌜am.name = n ∧ am.simpleToken = pre⌝)
   | .authDisable => iprop(True)
   | .userDelete n => auth.userDeleteReqIs r n
-  | .userChangePassword n => iprop(auth.userChangePasswordReqIs r n ∗ auth.userChangePasswordSure r)
+  | .userChangePassword n pw hpw => auth.userChangePasswordReqIs r n pw hpw
   | .userRevokeRole n ro => auth.userRevokeRoleReqIs r n ro
   | .roleDelete ro => auth.roleDeleteReqIs r ro
   | .roleRevokePermission ro k e => auth.roleRevokePermissionReqIs r ro k e
@@ -143,7 +143,7 @@ five that may append to the history `hs`, the cap's permission for their step (`
 `AuthEnable`'s at the flag the latest state has, `auth.authEnableOwnR`). -/
 @[reducible] def AdminReq.extraPre (E : AEnv GF) (γa : auth.AuthNames) (hs : List auth.AuthState)
     (Pre : IProp GF) : AdminReq → IProp GF
-  | .userAdd n => auth.capNextM (.on γa) hs (auth.stepOf (auth.userAddF n))
+  | .userAdd n nob => auth.capNextM (.on γa) hs (auth.stepOf (auth.userAddF n nob))
   | .roleAdd n => auth.capNextM (.on γa) hs (auth.stepOf (auth.roleAddF n))
   | .userGrantRole u ro => auth.capNextM (.on γa) hs (auth.userGrantRoleR u ro)
   | .roleGrantPermission n w => auth.capNextM (.on γa) hs (auth.roleGrantPermissionR n w)
@@ -152,7 +152,7 @@ five that may append to the history `hs`, the cap's permission for their step (`
       auth.tokFresh γa (auth.simpleTok pre x))
   | .authDisable => auth.capNextM (.on γa) hs (auth.ownFlagR auth.authDisableF)
   | .userDelete n => auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.userDeleteF en n))
-  | .userChangePassword n => auth.capNextM (.on γa) hs (auth.stepOf (auth.userChangePasswordF n))
+  | .userChangePassword n pw hpw => auth.capNextM (.on γa) hs (auth.stepOf (auth.userChangePasswordF n (auth.selectPwOk pw hpw)))
   | .userRevokeRole n ro =>
       auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.userRevokeRoleF en n ro))
   | .roleDelete ro => auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.roleDeleteF en ro))
@@ -166,7 +166,7 @@ refusal; (C1's A2) an `Authenticate`'s, at its response `resp`: the authority as
 @[reducible] def AdminReq.result (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState) (resp : Loc)
     (err : GoInterface) : AdminReq → IProp GF
-  | .userAdd n => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userAddF n)) auth.noExtra err ∗
+  | .userAdd n nob => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userAddF n nob)) auth.noExtra err ∗
       ⌜err = GoInterface.nil → resp ≠ null⌝)
   | .roleAdd n => iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.roleAddF n)) auth.noExtra err ∗
       ⌜err = GoInterface.nil → resp ≠ null⌝)
@@ -187,8 +187,8 @@ refusal; (C1's A2) an `Authenticate`'s, at its response `resp`: the authority as
       auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.userDeleteF en n)))
         auth.noExtra err ∗
       ⌜err = GoInterface.nil → resp ≠ null⌝)
-  | .userChangePassword n =>
-      iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userChangePasswordF n)) auth.noExtra err ∗
+  | .userChangePassword n pw hpw =>
+      iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userChangePasswordF n (auth.selectPwOk pw hpw))) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝)
   | .userRevokeRole n ro => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
       auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.userRevokeRoleF en n ro)))
@@ -448,12 +448,12 @@ theorem applierAdmin_backendX
   iintro !> %ar %r %γa %hs %log %Pre %Q %Post %info %hh
   obtain ⟨hM, hb, hn⟩ := hh
   cases ar with
-  | userAdd n =>
+  | userAdd n nob =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hUA E γa X W p r log Pre Q Post info hs n nob hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | roleAdd n =>
@@ -504,13 +504,13 @@ theorem applierAdmin_backendX
     iapply (hUD E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
-  | userChangePassword n =>
+  | userChangePassword n pw hpw =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUC E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
+    iapply (hUC E γa X W p r log Pre Q Post info hs n pw hpw hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | userRevokeRole n ro =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]

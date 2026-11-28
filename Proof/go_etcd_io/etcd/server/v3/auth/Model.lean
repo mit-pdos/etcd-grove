@@ -160,13 +160,19 @@ instance permLt_decidable (p q : Perm) : Decidable (permLt p q) :=
 /-- A user: the names of its roles (`authpb.User.Roles`). -/
 abbrev User := List GoString
 
-/-- The auth store's state. -/
+/-- The auth store's state. `noPwUsers`: the users whose `Options.NoPassword` is set (a record
+without `Options` reads as not set), which decides whether `UserChangePassword` selects a password
+(nomode D3 follow-up (a), 2026-11-28; `AuthState.noPw`). -/
 structure AuthState where
   enabled : Bool
   revision : Nat
   users : GMap GoString User
   roles : GMap GoString Role
+  noPwUsers : GMap GoString Unit
   deriving Inhabited
+
+/-- The user `n`'s `Options.NoPassword` (read only at a name with a user). -/
+def AuthState.noPw (st : AuthState) (n : GoString) : Bool := (st.noPwUsers !! n).isSome
 
 /-- The principal a check is given: `AuthInfo`'s user name and revision. -/
 structure AuthInfoM where
@@ -432,11 +438,13 @@ theorem Perm.dec_enc (p : Perm) : Perm.dec (Perm.enc p) = p := by
 
 instance Perm.countable : Pos.Countable Perm := countableOfLeftInverse Perm.enc Perm.dec Perm.dec_enc
 
-def AuthState.enc (st : AuthState) : Bool × Nat × GMap GoString User × GMap GoString Role :=
-  (st.enabled, st.revision, st.users, st.roles)
+def AuthState.enc (st : AuthState) :
+    Bool × Nat × GMap GoString User × GMap GoString Role × GMap GoString Unit :=
+  (st.enabled, st.revision, st.users, st.roles, st.noPwUsers)
 
-def AuthState.dec (x : Bool × Nat × GMap GoString User × GMap GoString Role) : AuthState :=
-  ⟨x.1, x.2.1, x.2.2.1, x.2.2.2⟩
+def AuthState.dec (x : Bool × Nat × GMap GoString User × GMap GoString Role × GMap GoString Unit) :
+    AuthState :=
+  ⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2⟩
 
 theorem AuthState.dec_enc (st : AuthState) : AuthState.dec (AuthState.enc st) = st := by
   cases st; rfl

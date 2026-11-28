@@ -57,7 +57,21 @@ theorem userOut_some (u : Loc) (st : AuthState) (name : GoString) (hnn : u ≠ n
     iintro ⟨%ur, %Hur, Hu⟩
     iexists roles, ur
     iframe Hu
-    ipureintro; exact ⟨rfl, Hur.2.1, Hur.2.2⟩
+    ipureintro; exact ⟨rfl, Hur.2.1, Hur.2.2.1⟩
+
+/-- `userOut_some` with the record's `NoPassword`, the state's (nomode D3 follow-up (a)). -/
+theorem userOut_someP (u : Loc) (st : AuthState) (name : GoString) (hnn : u ≠ null) :
+    userOut (GF := GF) u st name ⊢ ∃ (roles : User) (ur : UserRec),
+      ⌜st.users !! name = some roles ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt ∧
+        ur.noPassword = st.noPw name⌝ ∗ ownUser u ur := by
+  unfold userOut
+  cases h : st.users !! name with
+  | none => iintro %Hn; exact absurd Hn hnn
+  | some roles =>
+    iintro ⟨%ur, %Hur, Hu⟩
+    iexists roles, ur
+    iframe Hu
+    ipureintro; exact ⟨rfl, Hur.2.1, Hur.2.2.1, Hur.2.2.2⟩
 
 /-! ## The permission types the callers pass -/
 

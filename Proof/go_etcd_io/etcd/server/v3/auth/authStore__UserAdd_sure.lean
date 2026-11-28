@@ -59,7 +59,7 @@ theorem auth.authStore.UserAdd.wp_sure
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserAdd.specSure (GF := GF) (hG := hG) := by
-  intro st R M P f T Wb hs Pre Q Post r name
+  intro st R M P f T Wb hs Pre Q Post r name nob
   wp_start as ⟨#Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userEmpty $$ Hpkg with ⟨%eUE, #HeUE⟩
   icases authErrVar_of_init .userAlreadyExist $$ Hpkg with ⟨%eUAE, #HeUAE⟩
@@ -69,7 +69,7 @@ theorem auth.authStore.UserAdd.wp_sure
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold userAddReqIs at Hr
-  icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩, ⟨%o, %nob, #Ho, #Hopts⟩⟩
+  icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩, ⟨%o, #Ho, #Hopts⟩⟩
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
@@ -222,9 +222,9 @@ theorem auth.authStore.UserAdd.wp_sure
       subst Epw Ehpw Eo
       ihave %Eb := userOptsAt_agree o nob b2 $$ Hopts Hb2
       subst Eb
-      rcases Hsp with Hnb | ⟨Hp, Hx⟩
+      rcases pwSureP_ok Hsp with Hnb | Hsok
       · simp_all
-      · exact absurd (Hsel Hp Hx) (by simp)
+      · cases Hsel.2 Hsok
     | nil =>
       (try wp_auto)
       ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
@@ -250,23 +250,24 @@ theorem auth.authStore.UserAdd.wp_sure
       inext
       iintro ⟨HL, Hsw, -⟩
       (try wp_auto)
-      have hstep : userAddF name st0 = .next (bump (putUser st0 name [])) := by
-        simp [userAddF, hname, Hnone]
+      subst Hbnob
+      have hstep : userAddF name false st0 = .next (bump (putUserRec st0 urN)) := by
+        rw [show putUserRec st0 urN = addUser st0 name false from rfl]; simp [userAddF, hname, Hnone]
       obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
       have Hfit' := (Hfit _ _ rfl hstep).1
-      ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
+      ihave #Hcn := capNextM_step M hs (userAddF name false) st0 (bump (putUserRec st0 urN)) Hl0
         (by rw [hstep]; try simp_all) $$ Hcap
-      wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (putUser st0 urN.name urN.roles) Post hs st0)
+      wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (putUserRec st0 urN) Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
-        refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
+        refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUserRec _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
         intro hM; subst hM; exact Hl0
-      have Hl1 := histLast_after M hs (putUser st0 urN.name urN.roles) rev (fun h => by subst h; exact Hl0) Hrev
+      have Hl1 := histLast_after M hs (putUserRec st0 urN) rev (fun h => by subst h; exact Hl0) Hrev
       imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
       icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
-      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
+      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUserRec st0 urN with revision := rev } : AuthState) (hs ++ [bump (putUserRec st0 urN)]))
         $$ [HL Hca Hown]
       · iframe Hpkg Hinv Hca
         isplitr
@@ -298,7 +299,7 @@ theorem auth.authStore.UserAdd.wp_sure
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 urN.name urN.roles)]) [HL $Hsw $Hown $Hw1 $Hw2]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUserRec st0 urN)]) [HL $Hsw $Hown $Hw1 $Hw2]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL; rfl
@@ -315,7 +316,7 @@ theorem auth.authStore.UserAdd.wp_sure
         · iright; iexists _; iexact Header
       iunfold adminOut
       iright
-      iexists st0, (.next (bump (putUser st0 name [])))
+      iexists st0, (.next (bump (putUserRec st0 urN)))
       isplitr
       · ipureintro; exact ⟨Hl0, hstep.symm⟩
       simp only [outRes]
@@ -345,23 +346,24 @@ theorem auth.authStore.UserAdd.wp_sure
     inext
     iintro ⟨HL, Hsw, -⟩
     (try wp_auto)
-    have hstep : userAddF name st0 = .next (bump (putUser st0 name [])) := by
-      simp [userAddF, hname, Hnone]
+    subst Hbnob
+    have hstep : userAddF name true st0 = .next (bump (putUserRec st0 urN)) := by
+      rw [show putUserRec st0 urN = addUser st0 name true from rfl]; simp [userAddF, hname, Hnone]
     obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
     have Hfit' := (Hfit _ _ rfl hstep).1
-    ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
+    ihave #Hcn := capNextM_step M hs (userAddF name true) st0 (bump (putUserRec st0 urN)) Hl0
       (by rw [hstep]; try simp_all) $$ Hcap
-    wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (putUser st0 urN.name urN.roles) Post hs st0)
+    wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (putUserRec st0 urN) Post hs st0)
       $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
     · ipureintro
-      refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
+      refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUserRec _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
       intro hM; subst hM; exact Hl0
-    have Hl1 := histLast_after M hs (putUser st0 urN.name urN.roles) rev (fun h => by subst h; exact Hl0) Hrev
+    have Hl1 := histLast_after M hs (putUserRec st0 urN) rev (fun h => by subst h; exact Hl0) Hrev
     imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
     icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
-    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
+    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUserRec st0 urN with revision := rev } : AuthState) (hs ++ [bump (putUserRec st0 urN)]))
       $$ [HL Hca Hown]
     · iframe Hpkg Hinv Hca
       isplitr
@@ -393,7 +395,7 @@ theorem auth.authStore.UserAdd.wp_sure
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hresp
     (try wp_auto)
-    wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 urN.name urN.roles)]) [HL $Hsw $Hown $Hw1 $Hw2]
+    wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUserRec st0 urN)]) [HL $Hsw $Hown $Hw1 $Hw2]
       as ⟨HPost, HT, Hown⟩
     · isplitl [HL]
       · iExactEq HL; rfl
@@ -410,7 +412,7 @@ theorem auth.authStore.UserAdd.wp_sure
       · iright; iexists _; iexact Header
     iunfold adminOut
     iright
-    iexists st0, (.next (bump (putUser st0 name [])))
+    iexists st0, (.next (bump (putUserRec st0 urN)))
     isplitr
     · ipureintro; exact ⟨Hl0, hstep.symm⟩
     simp only [outRes]

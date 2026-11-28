@@ -70,7 +70,7 @@ theorem auth.authStore.UserGet.wp_proof :
     ipureintro; rfl
   ihave Hu' := auth.userOut_some_named _ sta name Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
-  obtain ⟨Hlook, Hurn, Hurr, -⟩ := Hur
+  obtain ⟨Hlook, Hurn, Hurr, -, -⟩ := Hur
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
   icases typedPointsto_split _ _ _ $$ Hup with Hup

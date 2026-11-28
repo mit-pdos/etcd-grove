@@ -13,8 +13,8 @@ What changes from `SetupInv.lean`:
   `client.clientHistAu`;
 - `UserAdd`'s update is asked for every `um` of the name with `noPassword = false`, not only those
   whose password choice cannot fail (`um.pwSure`, which `setupReqAt` asks): such a request's step is
-  the same as the one of `um` with `noPassword` set, or keeps the state (`setupReqAtD`,
-  `adminStateR_userAdd_sure`);
+  the same as the one of `um` with the server's own form of a password, or keeps the state
+  (`setupReqAtD`, `adminStateR_userAdd_sure`);
 - the reply is `adminRepliedD` (the member, the requested log), with no publication: `AuthEnable`'s
   reply gives the frozen history at a lower bound of the requested log (`setupD_reply_enable`), not
   the member's published state nor a committed log (at the view a member's floor comes from a later
@@ -56,11 +56,14 @@ def setupReqAtD (j : Nat) (rq₀ : apply.IRRModel) : Prop :=
 theorem setupReqAtD_of (j : Nat) (rq : apply.IRRModel) (h : setupReqAt j rq) : setupReqAtD j rq :=
   ⟨rq, h, fun _ _ _ h' => Or.inr h'⟩
 
-/-- **A `UserAdd`'s step is the one of the same request with no password asked for**, or keeps the
-state (the password choice failed). -/
+/-- **A `UserAdd`'s step is the one of the same request with the server's own form of a password**
+(an empty `Password`, the base64 encoding of no bytes as the hash: `pwSure`), or keeps the state (the
+password choice failed). (Nomode D3 follow-up (a), 2026-11-28: the step reads the request's
+`NoPassword`, so the substitute keeps it, where it set it before.) -/
 theorem adminStateR_userAdd_sure (um : apply.UserAddModel) (hm : apply.HeaderModel) (st st' : AuthState)
     (h : adminStateR (apply.withHeader (irrUserAdd um) hm) st st') :
-    st' = st ∨ adminStateR (apply.withHeader (irrUserAdd { um with noPassword := true }) hm) st st' := by
+    st' = st ∨ adminStateR (apply.withHeader (irrUserAdd
+      { um with password := [], hashed := auth.stdB64Enc [] }) hm) st st' := by
   have hk : ∀ m, apply.dispatchKind (irrUserAdd m) = .authUserAdd := by
     intro m; simp [apply.dispatchKind, irrUserAdd, apply.irrEmpty]
   have ha : ∀ m, (apply.withHeader (irrUserAdd m) hm).authUserAdd = some m := fun _ => rfl
@@ -68,7 +71,7 @@ theorem adminStateR_userAdd_sure (um : apply.UserAddModel) (hm : apply.HeaderMod
   simp only [dispatchKind_withHeader, hk, ha] at h ⊢
   by_cases hok : adminOk st (some (authInfoM (apply.principalOf (apply.withHeader (irrUserAdd um) hm))))
   · have hok' : adminOk st (some (authInfoM (apply.principalOf
-        (apply.withHeader (irrUserAdd { um with noPassword := true }) hm)))) := hok
+        (apply.withHeader (irrUserAdd { um with password := [], hashed := auth.stdB64Enc [] }) hm)))) := hok
     rw [if_pos hok] at h
     rw [if_pos hok']
     rcases h with ⟨-, h⟩ | h
@@ -79,9 +82,10 @@ theorem adminStateR_userAdd_sure (um : apply.UserAddModel) (hm : apply.HeaderMod
 
 /-- **`SetUp`'s `UserAdd`s, at any password choice.** -/
 theorem setupReqAtD_userAdd (j : Nat) (name : GoString) (um : apply.UserAddModel)
-    (hj : ∀ um' : apply.UserAddModel, um'.name = name → um'.pwSure → setupReqAt j (irrUserAdd um'))
-    (hn : um.name = name) : setupReqAtD j (irrUserAdd um) :=
-  ⟨irrUserAdd { um with noPassword := true }, hj _ hn (Or.inl rfl),
+    (hj : ∀ um' : apply.UserAddModel, um'.name = name → um'.noPassword = false → um'.pwSure →
+      setupReqAt j (irrUserAdd um'))
+    (hn : um.name = name) (hnob : um.noPassword = false) : setupReqAtD j (irrUserAdd um) :=
+  ⟨irrUserAdd { um with password := [], hashed := auth.stdB64Enc [] }, hj _ hn hnob (Or.inr ⟨rfl, [], rfl⟩),
     fun hm st st' h => adminStateR_userAdd_sure um hm st st' h⟩
 
 /-- **A changed step of a request of `setupReqAtD` keeps the open history's facts, with its effect.** -/
