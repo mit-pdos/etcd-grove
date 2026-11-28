@@ -54,10 +54,11 @@ theorem github_com.hashicorp.raft.Raft.pipelineSend.wp_proof
   subst Herr
   wp_auto
   ihave #Htc := isRaft_termCell r γ rc i $$ Hr
+  ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
   icases Hvalid with (#Hvalid | #Hstale)
   rotate_left
   · -- some read was of a later term: the term check stops
-    wp_apply wp_getCurrentTerm.2 $$ [$Htc $Hstale] as %t ⟨#Hlbt, %Ht⟩
+    wp_apply wp_getCurrentTerm.2 $$ [$Htc $Hdur $Hstale] as %t ⟨#Hlbt, %Ht⟩
     wp_if_destruct
     · exfalso
       have h1 : uint.nat (W64 (T : Int)) ≤ T := by word
@@ -65,7 +66,7 @@ theorem github_com.hashicorp.raft.Raft.pipelineSend.wp_proof
     · iapply HΦ
       iframe
   -- every read was of term `T`: the request is valid
-  wp_apply wp_getCurrentTerm.2 $$ [$Htc $Hlb] as %t ⟨#Hlbt, %Ht⟩
+  wp_apply wp_getCurrentTerm.2 $$ [$Htc $Hdur $Hlb] as %t ⟨#Hlbt, %Ht⟩
   wp_if_destruct
   rotate_left
   · -- the term moved on: stop

@@ -13,6 +13,7 @@ Shared definitions and lemmas of the replication subsystem (replication.go, comm
 module
 
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Laws
+public import Dsverify.Proof.github_com.hashicorp.raft.leader.DurView
 public import Perennial.Spec.sync.atomic.LoadUint64
 public import Perennial.Spec.sync.atomic.StoreUint64
 public import Perennial.Proof.sync.Results
@@ -364,7 +365,26 @@ instance termCouple_timeless γ i t : Timeless (termCouple (GF := GF) γ i t) :=
 /-- A term lower bound of `i` fits in a `uint64` (the term cell holds a `w64` above it). -/
 theorem termLb_bound (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) :
     termCell (GF := GF) r γ rc i ∗ srvDurInv γ rc i ∗ termLb γ i T ⊢ |NC={⊤}=> ⌜T < 2 ^ 64⌝ := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  iintro ⟨#Hc, #Hd, #Hlb⟩ Hnc
+  unfold termCell termV
+  iinv Hc with ⟨%t, >Ht, >Htv⟩ Hclose
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑termN) durN_diff_termN $$ Hd
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hcl2⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  unfold durBody
+  icases HX with ⟨Hs, Hdv, Hlc, >Htc, Hcc, Hsv, Hst, >Htv2, Hrest⟩
+  ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Htv Htv2
+  ihave %Hle := termCouple_lb γ i X.s.term T $$ [Htc]
+  · iframe Htc; iexact Hlb
+  imod Hcl2 $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv2 Hrest] with -
+  · inext; iexists X; iframe
+  imod Hclose $$ [Ht Htv] with -
+  · inext; iexists t; iframe
+  imodintro
+  iframe Hnc
+  ipureintro
+  have : uint.nat t < 2 ^ 64 := by word
+  omega
 
 /-- An entry of a prefix is an entry of the whole log. -/
 theorem ent_append_some (L ps : RLog) (k : Nat) (e : Entry) (h : ent L k = some e) :

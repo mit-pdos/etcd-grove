@@ -53,7 +53,10 @@ theorem github_com.hashicorp.raft.Raft.heartbeat.wp_proof
   fun r γ rc i T j s stopCh γh tid => by
   wp_start as ⟨#Hr, #Hs, #Hl, #Hlb, #Hstop, Hcons, Htok⟩
   ihave #Htc := isRaft_termCell r γ rc i $$ Hr
-  imod termLb_bound r γ i T $$ [$Htc $Hlb] with %hT
+  ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
+  iapply wp_ncmod _ _ rfl (termLb_bound r γ rc i T)
+  isplitr; · iframe #
+  iintro %hT
   ihave ⟨#HcurT, ⟨%psf, #Hpeer⟩, #Hvj, #Hpl, -, -, ⟨%nch, #Hnch, #Hnchb⟩, -⟩ := replShared_core r γ i T j s $$ Hs
   ihave ⟨%vch, #Hvch, #Hnl⟩ := replShared_notify r γ rc i T j s $$ Hs
   ihave ⟨#HInv, -⟩ := isRaft_proto r γ rc i $$ Hr
