@@ -110,10 +110,13 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
         "%Hi" ∷ ⌜sint.Z i + 1 = k ∧ k ≤ ts.length⌝ : IProp GF) $$ [i n Hinv]
     · iexists _, nn, ts.length
       iframe
+      isplitr
+      · iexact Hn
       ipureintro; constructor <;> word
     wp_for HJ
     wp_if_destruct
-    · have Hik : k = sint.nat i + 1 := by word
+    · have Hif' := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+      have Hik : k = sint.nat i + 1 := by word
       list_elem ts (sint.nat i) as t
       have Hb' : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z tsl.len := ⟨by word, by word⟩
       ihave #Ht := BigSepL.bigSepL_lookup Ht_lookup $$ Htso
@@ -147,7 +150,8 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
       · rw [show hs.length - sint.nat i = hs.length - k + 1 by omega, hx]
         iexact Hc
       ipureintro; constructor <;> word
-    · have Hk0 : k = 0 := by word
+    · have Hif' : ¬ (sint.Z (W64 0) ≤ sint.Z i) := fun h => Hif (by rw [_root_.decide_eq_true h])
+      have Hk0 : k = 0 := by word
       subst Hk0
       (try wp_auto)
       rw [show hs.take (hs.length - 0) = hs by simp]
