@@ -119,8 +119,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     ipureintro; word
   wp_for HJ
   wp_if_destruct
-  · have Hlt := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
-    have Hb' := And.intro Hj Hlt
+  · have Hb' := And.intro Hj Hif
     list_elem ns (sint.nat j) as v
     simp only [Hb', _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z j) ns _ v Hj $$ [Hns] as Hns
@@ -165,10 +164,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       iexists j + W64 1, _
       iframe
       ipureintro; word
-  · have Hge : ¬ (sint.Z j < sint.Z ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)).len) :=
-      fun h => Hif (by rw [_root_.decide_eq_true h])
-    simp only [Hge, decide_false, Bool.false_eq_true, ↓reduceIte]
-    (try wp_auto)
+  · (try wp_auto)
     wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [$HC] as HC
     (try wp_auto)
     wp_apply wp_slice_literal
