@@ -26,9 +26,8 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `NewRaft`: Builds server `i` of protocol `γ` from its stores, for one generation `rc` of the server
 (hraft_robust R5, R1 §6): the generation's crash state `X` is armed (`raft_arm`: the crash invariant
-`srvDurInv`, the main goroutine's views at `X`, the `lastApplied` authority at `0`, the compaction
-frontier's at `X.c`, the pending-install and pending-write records empty) and recovered (`RecOk X`,
-`recRes`: a fresh server's genesis state, `freshDur`, or a restarted one's); restores the latest snapshot
+`srvDurInvRaw` with the boot pin at the arm-time stores, the main goroutine's views at `X`, the `lastApplied` authority at `0`, the compaction
+frontier's at `X.c`, the pending-install and pending-write records empty) and recovered (`RecOk X`: a fresh server's genesis state, `freshDur`, or a restarted one's); restores the latest snapshot
 (`restoreSnapshot`, into the FSM), finishes an interrupted install's discard (fix 2), scans the log after
 the snapshot for configurations (fix 1, upstream #728); starts `run`, `runFSM`, `runSnapshots` (each
 through `goFunc`); returns `r` with `isRaft` (for `rc` with the generation's raft-local names) and no
@@ -46,12 +45,13 @@ abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
      isStableStore stableI rc.ownS (stWin γ rc i) ∗ isSnapStore snapsI rc.ownSS eof (snapWin γ rc i) ∗
      globalAddr io.EOF ↦□ eof ∗
      isTransport transI γ rc.snapP i rpcCh ∗ ⌜go.typeSetContains transI.ty WithPreVote.ty = true⌝ ∗
-     Inv γ ∗ isSrv γ i ∗ srvDurInv γ rc i ∗
+     Inv γ ∗ isSrv γ i ∗ srvDurInvRaw γ rc i ∗
+     dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) ∗
      srvVP rc X.s X.tp X.dp ∗ stVS rc X.D X.A.staged ∗ termV rc X.s.term ∗ cidxV rc X.s.cidx ∗
      monoNatAuthOwn rc.dur.applied 1 0 ∗ monoNatAuthOwn rc.dur.comp 1 X.c ∗
      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
      ghostVar rc.dur.pw 1 (none : Option Pend) ∗
-     ⌜RecOk X⌝ ∗ recRes γ i X ∗
+     ⌜RecOk X⌝ ∗
      ⌜γ.cv = cfgDec γ.srvs ∧ ∃ ss, srvsOk γ ss ∧ γ.g = genesisOf ss⌝ ∗ rc.fsmOwn 0 ∗ rtok tid }}
     (App (App (App (App (App (App (Val (@! github_com.hashicorp.raft.NewRaft)) (Val #cp)) (Val #(GoInterface.ok fsmI))) (Val #(GoInterface.ok logsI))) (Val #(GoInterface.ok stableI))) (Val #(GoInterface.ok snapsI))) (Val #(GoInterface.ok transI)))
   {{ (r : Loc), RET (PairV #r #interface.nil);
