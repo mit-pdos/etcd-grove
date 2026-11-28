@@ -8595,3 +8595,13 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   lemmas move to `metaTMR` at `P := srvCITriple cl`, `hookTM` gets the raft-term state and token. The helpers take
   and give back `ciRaftTerm`.
 - **Decision.** As designed in rev 2 §4 (approved rows; these are the untrusted consequences).
+
+## 2026-11-28: the server's untrusted specs and lemmas take the cluster `cl` (keepfix (c) step 1 callers)
+
+- **Spec.** `EtcdServer.revokeExpiredLeases.spec`, `EtcdServer.getTxPostLockInsideApplyHook.spec`, and every untrusted
+  spec or lemma naming `srvFieldsAt`/`srvFieldsAtM`/`srvFieldsBuiltNA`/`srvBeHooked`/`srvMetaSnap`/`hookSpec`.
+- **Defect.** The approved step-1 rows give these definitions a cluster argument (row A's `hookSpec … cl`,
+  `srvBeHooked`'s `metaTMR cl`, S2's `srvMetaSnap cl`).
+- **Evidence.** `~/coordinator-notes/plans/keepfix-c-design.md` (rev 2 and its step-1 notes).
+- **Proposed change.** Quantify `cl` and pass it through (at the server, `γr.raft.raft.cl`); no other change.
+- **Decision.** Mechanical consequence of the approved rows.
