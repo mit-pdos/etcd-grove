@@ -21,6 +21,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealB4
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedRename
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedComplete
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RealMS
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.NoForeignDefs
 
 @[expose] public section
 
@@ -337,6 +338,267 @@ theorem targetL_le_anchors (x : Input) (y : Output) (rv m : Nat)
     · split
       · omega
       · next req hreq => have := hm req hreq; omega
+
+/-! ## Step 3: no foreign revision below `m`
+
+A successful write answers either the revision it writes (a write that changes the store) or the
+revision of an item it finds (a no-op update). Items carry only revisions writes wrote (or the seed's),
+so a revision passed by a foreign step is never a write's answer (`sRun_jr`); `NoForeignOk`'s first
+half then leaves no foreign step below `m`. -/
+
+/-- A step's items are its store's, or carry the new revision of a step that advanced it. -/
+theorem mstepL_items (x : Input) (st : GSt) (it : item) (hi : it ∈ (mstepL x st).1.items) :
+    it ∈ st.items ∨ ((mstepL x st).1.rv = st.rv + W64 1 ∧ it.obj'.ResourceVersion' = st.rv + W64 1) := by
+  revert hi
+  simp only [mstepL, mcreateL, mdeleteL, mupdateL]
+  repeat' split
+  all_goals
+    intro h
+    dsimp only at h ⊢
+    first
+    | exact Or.inl h
+    | (unfold delItemL at h; exact Or.inl (List.mem_filter.1 h).1)
+    | (rcases setItemL_mem _ _ _ h with rfl | h
+       · exact Or.inr ⟨rfl, rfl⟩
+       · exact Or.inl h)
+
+/-- A step that advances the store is a successful write answering the new revision. -/
+theorem mstepL_bump (x : Input) (st : GSt) (h : (mstepL x st).1.rv ≠ st.rv) :
+    isWriteL x = true ∧ (mstepL x st).2.Err' = W64 0 ∧ (mstepL x st).2.RV' = (mstepL x st).1.rv := by
+  revert h
+  simp only [mstepL, mcreateL, mdeleteL, mupdateL]
+  repeat' split
+  all_goals
+    simp only [notFoundL, errOutL, existsL, invalidObjL, invalidOutL, rejectedL, objOutL]
+    first
+    | (intro h; exact absurd rfl h)
+    | (intro; refine ⟨?_, ?_, ?_⟩ <;> simp_all [isWriteL])
+
+/-- A successful write that keeps the store's revision answers an item's revision. -/
+theorem mstepL_keep (x : Input) (st : GSt) (hw : isWriteL x = true)
+    (h0 : (mstepL x st).2.Err' = W64 0) (h : (mstepL x st).1.rv = st.rv) :
+    ∃ it ∈ st.items, (mstepL x st).2.RV' = it.obj'.ResourceVersion' := by
+  revert h0 h
+  simp only [mstepL, mcreateL, mdeleteL, mupdateL]
+  repeat' split
+  all_goals
+    simp only [notFoundL, errOutL, existsL, invalidObjL, invalidOutL, rejectedL, objOutL]
+    first
+    | (intro h; exact absurd h (by decide))
+    | (intro _ h; exfalso; revert h; word)
+    | (intro _ _; exact ⟨_, lookupL_mem _ _ ‹(lookupL _ _).2 = true ∧ _›.1, rfl⟩)
+    | (exfalso; simp_all [isWriteL])
+
+/-- **A revision no item carries**, at most the store's: `r` stays so through every step. -/
+def JR (r : Nat) (st : GSt) : Prop :=
+  r ≤ uint.nat st.rv ∧ ∀ it ∈ st.items, uint.nat it.obj'.ResourceVersion' ≠ r
+
+/-- `JR` is kept by a step, whose successful write does not answer `r`. -/
+theorem jr_step (r : Nat) (x : Input) (st : GSt) (hj : JR r st) (hb : uint.nat st.rv + 1 < 2 ^ 64) :
+    JR r (mstepL x st).1 ∧
+      (isWriteL x = true → (mstepL x st).2.Err' = W64 0 → uint.nat (mstepL x st).2.RV' ≠ r) := by
+  have hs : uint.nat (st.rv + W64 1) = uint.nat st.rv + 1 := by word
+  have hj1 := hj.1
+  by_cases he : (mstepL x st).1.rv = st.rv
+  · refine ⟨⟨by rw [he]; exact hj1, fun it hi => ?_⟩, fun hw h0 => ?_⟩
+    · rcases mstepL_items x st it hi with hi | ⟨hr, -⟩
+      · exact hj.2 it hi
+      · exfalso; rw [hr] at he; revert he; word
+    · obtain ⟨it, hi, hrv⟩ := mstepL_keep x st hw h0 he
+      rw [hrv]; exact hj.2 it hi
+  · obtain ⟨-, -, hrv⟩ := mstepL_bump x st he
+    have hr1 : (mstepL x st).1.rv = st.rv + W64 1 := (mstepL_rv x st).resolve_left he
+    refine ⟨⟨by rw [hr1, hs]; omega, fun it hi => ?_⟩, fun _ _ => ?_⟩
+    · rcases mstepL_items x st it hi with hi | ⟨-, hr⟩
+      · exact hj.2 it hi
+      · rw [hr, hs]; omega
+    · rw [hrv, hr1, hs]; omega
+
+/-- `kstepL` is `mstepL` on the store, or a non-write that changes nothing. -/
+theorem kstepL_parts (x : Input) (h : HSt) :
+    ((kstepL x h).1.st = (mstepL x h.st).1 ∧ (kstepL x h).2 = (mstepL x h.st).2) ∨
+      (isWriteL x = false ∧ (kstepL x h).1 = h) := by
+  unfold kstepL
+  split
+  · next h4 => right; exact ⟨by simp [isWriteL, h4], rfl⟩
+  · left; exact ⟨advanceL_items _ _, rfl⟩
+
+theorem kjr_step (r : Nat) (x : Input) (h : HSt) (hj : JR r h.st) (hb : uint.nat h.st.rv + 1 < 2 ^ 64) :
+    JR r (kstepL x h).1.st ∧
+      (isWriteL x = true → (kstepL x h).2.Err' = W64 0 → uint.nat (kstepL x h).2.RV' ≠ r) := by
+  rcases kstepL_parts x h with ⟨e1, e2⟩ | ⟨hw, e⟩
+  · rw [e1, e2]; exact jr_step r x h.st hj hb
+  · rw [e]; exact ⟨hj, fun h' => by rw [hw] at h'; cases h'⟩
+
+theorem ansOf_ok {y z : Output} (h : ansOf y = .ok z) : z = y ∧ y.Err' ≠ W64 4 := by
+  unfold ansOf at h
+  split at h
+  · cases h
+  · cases h; exact ⟨rfl, ‹_›⟩
+
+/-- `JR` is kept by an operation's step, whose successful write does not answer `r`. -/
+theorem pStep_jr {h0 : HSt} {c₁ c₂ : GCfg} {x : Input} {y : Output} {r : Nat}
+    (hs : linkv.PStep (kSpec h0) c₁ x (ansOf y) c₂) (hj : JR r c₁.st.st) (hb : NoWrap c₁) :
+    JR r c₂.st.st ∧ (isWriteL x = true → y.Err' = W64 0 → uint.nat y.RV' ≠ r) := by
+  generalize ha : ansOf y = a at hs
+  cases hs with
+  | ok ho =>
+    obtain ⟨hy, -⟩ := ansOf_ok ha
+    subst hy
+    exact kjr_step r x c₁.st hj hb
+  | errW _ _ =>
+    have h4 := (ansOf_err y).1 ha
+    exact ⟨hj, fun _ h0 => by rw [h4] at h0; exact absurd h0 (by decide)⟩
+  | errR _ _ =>
+    have h4 := (ansOf_err y).1 ha
+    exact ⟨hj, fun _ h0 => by rw [h4] at h0; exact absurd h0 (by decide)⟩
+  | obs o hob _ =>
+    have hk : x.Kind' = W64 5 := by simpa using hob
+    exact ⟨hj, fun hw => by simp [isWriteL, hk] at hw⟩
+
+theorem sReach_jr {h0 : HSt} {c c₁ : GCfg} {r : Nat} (hr : SReach h0 c c₁) (hj : JR r c.st.st) :
+    JR r c₁.st.st := by
+  induction hr with
+  | refl => exact hj
+  | step hs _ ih =>
+    apply ih
+    cases hs with
+    | pend hnw hps =>
+      cases hps with
+      | apply i _ => exact (kjr_step r i _ hj hnw).1
+      | perm _ _ => exact hj
+    | foreign hnw =>
+      have hj1 := hj.1
+      exact ⟨by rw [foreignL_rv _ hnw]; omega, fun it hi => hj.2 it hi⟩
+
+/-- **No successful write of a run answers a revision `JR` excludes.** -/
+theorem sRun_jr {h0 : HSt} {c c' : GCfg} {xs : List (Input × Output)} {r : Nat}
+    (hr : SRun h0 c xs c') (hj : JR r c.st.st) :
+    ∀ p ∈ xs, isWriteL p.1 = true → p.2.Err' = W64 0 → uint.nat p.2.RV' ≠ r := by
+  induction hr with
+  | nil => intro p hp; cases hp
+  | cons hre hnw hps _ ih =>
+    obtain ⟨h2, ha⟩ := pStep_jr hps (sReach_jr hre hj) hnw
+    intro p hp
+    rcases List.mem_cons.1 hp with rfl | hp
+    · exact ha
+    · exact ih h2 p hp
+
+/-- From no pending write, silent steps do nothing or start with a foreign step. -/
+theorem sReach_first {h0 : HSt} {c c₁ : GCfg} (hr : SReach h0 c c₁) (hp : c.pend = []) :
+    c₁ = c ∨ (NoWrap c ∧ SReach h0 ⟨foreignL c.st, []⟩ c₁) := by
+  induction hr with
+  | refl => exact Or.inl rfl
+  | step hs hr' ih =>
+    cases hs with
+    | pend hnw hps =>
+      have e := pSilent_nil hps hp
+      subst e
+      exact ih hp
+    | foreign hnw =>
+      right; rw [hp] at hr'; exact ⟨hnw, hr'⟩
+
+/-! ## The erasure -/
+
+theorem settleL_nil {A : List Nat} {e d : GCfg} (h : SettleL A e d) (hp : e.pend = []) : d = e := by
+  cases h with
+  | refl => rfl
+  | drop _ hi => rw [hp] at hi; simp at hi
+  | land _ _ hi => rw [hp] at hi; simp at hi
+
+theorem pStep_hk {h0 : HSt} {g g₂ : GCfg} {x : Input} {y : Output}
+    (hs : linkv.PStep (kSpec h0) g x (ansOf y) g₂) : x.Kind' = W64 5 → y.Err' ≠ W64 4 := by
+  intro hk
+  generalize ha : ansOf y = a at hs
+  cases hs with
+  | ok ho => simp [hk] at ho
+  | errW _ ho => simp [hk] at ho
+  | errR _ ho => simp [hk] at ho
+  | obs o _ _ => exact (ansOf_ok ha).2
+
+/-- An operation's step is from a configuration at least at its target. -/
+theorem pStep_target {h0 : HSt} {g₁ g₂ : GCfg} {x : Input} {y : Output}
+    (hs : linkv.PStep (kSpec h0) g₁ x (ansOf y) g₂)
+    (hit : ∀ it ∈ g₁.st.st.items, uint.nat it.obj'.ResourceVersion' ≤ uint.nat g₁.st.st.rv)
+    (hnw : NoWrap g₁) (r : Nat) : targetL x y r ≤ uint.nat g₁.st.st.rv := by
+  generalize ha : ansOf y = a at hs
+  cases hs with
+  | ok ho =>
+    have hk : x.Kind' ≠ W64 5 := by simpa using ho
+    obtain ⟨hy, -⟩ := ansOf_ok ha
+    exact kstepL_target x y g₁.st hit hnw hk hy.symm r
+  | errW _ ho =>
+    have hk : x.Kind' ≠ W64 5 := by simpa using ho
+    rw [targetL_err x y r hk ((ansOf_err y).1 ha)]; exact Nat.zero_le _
+  | errR _ ho =>
+    have hk : x.Kind' ≠ W64 5 := by simpa using ho
+    rw [targetL_err x y r hk ((ansOf_err y).1 ha)]; exact Nat.zero_le _
+  | obs o hob hoo =>
+    have hk : x.Kind' = W64 5 := by simpa using hob
+    obtain ⟨hy, -⟩ := ansOf_ok ha
+    subst hy
+    exact watchOkL_target x o g₁.st hk r hoo
+
+theorem pStep_det {h0 : HSt} {c c₁ c₂ : GCfg} {x : Input} {a : linkv.Ans Output}
+    (h1 : linkv.PStep (kSpec h0) c x a c₁) (h2 : linkv.PStep (kSpec h0) c x a c₂) : c₁ = c₂ := by
+  cases h1 <;> cases h2 <;> simp_all
+
+/-- An operation's step keeps the revision, a successful write then answering an item's; or advances
+it by one, a successful write answering the new revision. -/
+theorem pStep_rv {h0 : HSt} {c c₂ : GCfg} {x : Input} {y : Output}
+    (hs : linkv.PStep (kSpec h0) c x (ansOf y) c₂) (hb : NoWrap c) :
+    (c₂.st.st.rv = c.st.st.rv ∧ (isWriteL x = true → y.Err' = W64 0 →
+        ∃ it ∈ c.st.st.items, y.RV' = it.obj'.ResourceVersion')) ∨
+      (uint.nat c₂.st.st.rv = uint.nat c.st.st.rv + 1 ∧ isWriteL x = true ∧ y.Err' = W64 0 ∧
+        y.RV' = c₂.st.st.rv) := by
+  generalize ha : ansOf y = a at hs
+  cases hs with
+  | ok ho =>
+    obtain ⟨hy, -⟩ := ansOf_ok ha
+    subst hy
+    show ((kstepL x c.st).1.st.rv = _ ∧ _) ∨ (uint.nat (kstepL x c.st).1.st.rv = _ ∧ _)
+    rcases kstepL_parts x c.st with ⟨e1, e2⟩ | ⟨hw, e⟩
+    · rw [e1, e2]
+      by_cases he : (mstepL x c.st.st).1.rv = c.st.st.rv
+      · exact Or.inl ⟨he, fun hw h0 => mstepL_keep x _ hw h0 he⟩
+      · obtain ⟨hw, h0, hrv⟩ := mstepL_bump x _ he
+        have hr1 := (mstepL_rv x c.st.st).resolve_left he
+        have hb' : uint.nat c.st.st.rv + 1 < 2 ^ 64 := hb
+        refine Or.inr ⟨by rw [hr1]; word, hw, h0, hrv⟩
+    · rw [e]; exact Or.inl ⟨rfl, fun h' => by rw [hw] at h'; cases h'⟩
+  | errW _ _ =>
+    have h4 := (ansOf_err y).1 ha
+    exact Or.inl ⟨rfl, fun _ h0 => by rw [h4] at h0; exact absurd h0 (by decide)⟩
+  | errR _ _ =>
+    have h4 := (ansOf_err y).1 ha
+    exact Or.inl ⟨rfl, fun _ h0 => by rw [h4] at h0; exact absurd h0 (by decide)⟩
+  | obs o hob _ =>
+    have hk : x.Kind' = W64 5 := by simpa using hob
+    exact Or.inl ⟨rfl, fun hw => by simp [isWriteL, hk] at hw⟩
+
+theorem nfWriteRV_some {f v : w64} {p : Input × Output} (h : nfWriteRV f p = some v) :
+    isWriteL p.1 = true ∧ p.2.Err' = W64 0 ∧ uint.nat f < uint.nat p.2.RV' ∧ p.2.RV' = v := by
+  unfold nfWriteRV at h
+  split at h
+  · next hc => cases h; exact ⟨hc.1, hc.2.1, hc.2.2, rfl⟩
+  · cases h
+
+theorem nfWriteRV_of {f : w64} {p : Input × Output} (hw : isWriteL p.1 = true) (h0 : p.2.Err' = W64 0)
+    (hf : uint.nat f < uint.nat p.2.RV') : nfWriteRV f p = some p.2.RV' := by
+  unfold nfWriteRV; rw [if_pos ⟨hw, h0, hf⟩]
+
+/-- Every revision in `(lo, m]` is a successful write's answer in `xs`. -/
+def CovL (f : w64) (lo m : Nat) (xs : List (Input × Output)) : Prop :=
+  ∀ v : w64, lo < uint.nat v → uint.nat v ≤ m → ∃ p ∈ xs, nfWriteRV f p = some v
+
+theorem covL_step {f : w64} {lo lo' m : Nat} {x : Input} {y : Output} {rest : List (Input × Output)}
+    (hc : CovL f lo m ((x, y) :: rest)) (hlo : lo ≤ lo')
+    (hb : ∀ v, nfWriteRV f (x, y) = some v → uint.nat v ≤ lo') : CovL f lo' m rest := by
+  intro v h1 h2
+  obtain ⟨p, hp, hv⟩ := hc v (by omega) h2
+  rcases List.mem_cons.1 hp with rfl | hp
+  · have := hb v hv; omega
+  · exact ⟨p, hp, hv⟩
 
 end pure
 
