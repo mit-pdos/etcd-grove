@@ -330,8 +330,9 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `cfgSet.add`. Not yet written: `settle` and `SharedModel` (§2.1-2.2: need `RevsL`, `revsOwn`,
   `landingsL`; take `GoSettle R b full x y := SettleWith (landingsL R b full x y)` from `SharedGo`, so
   that `searchRunN_with` applies directly).
-- **Proofs** (`Proof/.../k8s/etcd3/`): `pendEqual`, `mix`, `histHashes__canonical` build; `strHash`:
-  see the build line below. Left (step 1): `storeHash`, `intern`, `canonLocked`, `skipTo`, `cfgSet.add`,
+- **Proofs built** (`Proof/.../k8s/etcd3/`): `pendEqual`, `mix`, `strHash`, `histHashes__canonical`
+  (over `canonLocked`'s spec). Build of record: fk-lean2, targets the nine specs and four proofs, exit 0
+  at the commit before this note. Left (step 1): `storeHash`, `intern`, `canonLocked`, `skipTo`, `cfgSet.add`,
   then `settle`'s worklist and `SharedModel`. None is in `etc/link-lean-first-k8setcd3.txt` yet (add
   them with their callees and rerun `etc/gen-link.py --k8setcd3` once the set is complete).
 - **Proof notes** (learned the hard way): the package's `IsPkgInit` needs `variable [reg :
