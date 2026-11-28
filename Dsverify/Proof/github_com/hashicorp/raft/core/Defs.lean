@@ -961,8 +961,9 @@ def latestDur (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest)
           ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
           snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a))
 
-/-- (hraft_robust, R2) The latest snapshot's index (`0`: none). The compaction frontier stays at most it
-(compaction follows its snapshot's `Close`). -/
+/-- (hraft_robust, R2) The latest snapshot's index (`0`: none). The log store's lower bound `lo` stays at
+most one above it (a compaction deletes up to a snapshot closed before; an install's discard up to its own);
+the frontier `c` may run ahead (the configurations answer raises it before the snapshot's `Close`). -/
 def latIdxD (lat : SnapLatest) : Nat :=
   match lat with
   | none => 0
@@ -1013,7 +1014,7 @@ def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1⌝ ∗
     ⌜(∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat⌝ ∗
+      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1⌝ ∗
     bootPin rc X ∗
     monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ⌜∀ d, X.dp = some d → X.c < d.x⌝ ∗
     latestDur γ rc i X.lat X.pend X.dp ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
