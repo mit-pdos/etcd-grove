@@ -151,6 +151,121 @@ theorem durRead {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) 
   rw [srvV_eq]
   exact durPeek γ rc i hE s none none P Q
 
+/-- **Rewriting an atomic update's post**: a store contract's update, from one whose commit gives
+`Q a` to one whose commit gives `Q' a`. -/
+theorem au_post {A : Type} {E : CoPset} (P P' Q Q' : A → IProp GF) :
+    (|NC={E, ∅}=> ▷ ∃ a, P a ∗ (P' a ={∅, E}=∗ Q a)) -∗ (∀ a, Q a -∗ Q' a) -∗
+      |NC={E, ∅}=> ▷ ∃ a, P a ∗ (P' a ={∅, E}=∗ Q' a) := by
+  iintro Hau Hw Hnc
+  imod Hau $$ Hnc with ⟨Hnc, Hau⟩
+  iframe Hnc
+  imodintro
+  inext
+  icases Hau with ⟨%a, Hp, Hcl⟩
+  iexists a
+  iframe Hp
+  iintro Hp
+  imod Hcl $$ Hp with HQ
+  imodintro
+  iapply Hw $$ HQ
+
+/-- **A read of the stable store by the main goroutine**: its view `stVS rc D g` pins the store's
+contents. -/
+theorem stRead_main (D : StableAbs) (g : w64) :
+    srvDurInv γ rc i -∗ stVS rc D g -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
+        (rc.ownS D0 ={∅, ⊤ \ ↑storeN}=∗ stVS rc D g ∗ ⌜D0 = D⌝) := by
+  iintro #Hd Hv
+  iapply (stableRead_au γ rc i (stVS rc D g) (fun D0 => iprop(stVS rc D g ∗ ⌜D0 = D⌝))) $$ Hd Hv
+  iintro %X Hc Hv
+  ihave ⟨Hc, Hv, %h⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hv]
+  · iframe
+  imodintro
+  iframe
+  ipureintro; exact h.1
+
+/-- The server's term, as a persistent lower bound (with the main goroutine's view). -/
+theorem srvV_termLb {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) :
+    srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ termLb γ i s.term := by
+  iintro ⟨#Hd, Hv⟩
+  rw [srvV_eq]
+  ihave H := durStep γ rc i hE s none none iprop(True)
+    (fun X' => iprop(⌜X'.s = s ∧ X'.tp = none ∧ X'.dp = none⌝ ∗ termLb γ i s.term)) $$ [Hv]
+  · iframe Hd Hv
+    isplitl []
+    · itrivial
+    iintro %X %hX Hc Hs Hv -
+    rcases hX with ⟨h1, h2, h3⟩
+    unfold durCore
+    icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hrest⟩
+    ihave ⟨Htc, #Hlb⟩ := termCouple_get_lb γ i _ $$ Htc
+    imodintro
+    iexists X
+    rw [h1, h2, h3]
+    iframe
+    iframe #
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  iapply ncfupd_wand
+  isplitl [H]
+  · iexact H
+  iintro ⟨%X', Hs, %h, #Hlb⟩
+  rcases h with ⟨h1, h2, h3⟩
+  rw [h1, h2, h3]
+  iframe Hs
+  iexact Hlb
+
+/-- **A read of the log store by the main goroutine** (`GetLog`): every entry the store holds is the
+main goroutine's log's (`logOk`). -/
+theorem logRead_main (s : SState) (Ψ : LogAbs → IProp GF) :
+    srvDurInv γ rc i -∗ srvV rc s -∗
+      (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗ srvV rc s -∗ Ψ A) -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
+  iintro #Hd Hv Hw
+  iapply (logRead_au γ rc i iprop(srvV rc s ∗
+      (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗ srvV rc s -∗ Ψ A)) Ψ)
+    $$ Hd [Hv Hw]
+  · iframe
+  iintro %X Hc ⟨Hv, Hw⟩
+  rw [srvV_eq]
+  ihave ⟨Hc, Hv, %hs⟩ := durCore_srvVP_agree γ rc i X s none none $$ [$Hc $Hv]
+  ihave ⟨Hc, %hl⟩ := durCore_logOk γ rc i X $$ Hc
+  imodintro
+  iframe Hc
+  iapply Hw
+  · ipureintro; rw [← hs.1]; exact hl.1.1
+  · iexact Hv
+
+/-- **A read of the log store at `k` by the main goroutine**, `k` past its compaction frontier `cm`
+(its authority): the store holds the log's entry at `k` (`logOk`, from `lo ≤ c + 1 ≤ cm + 1`). -/
+theorem logRead_main_k (s : SState) (q : Qp) (cm k : Nat) (hk : cm < k) (Ψ : LogAbs → IProp GF) :
+    srvDurInv γ rc i -∗ srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗
+      (∀ A : LogAbs, ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
+          (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
+        srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗ Ψ A) -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
+  iintro #Hd Hv Ha Hw
+  iapply (logRead_au γ rc i iprop(srvV rc s ∗ monoNatAuthOwn rc.dur.comp q cm ∗
+      (∀ A : LogAbs, ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
+          (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
+        srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗ Ψ A)) Ψ)
+    $$ Hd [Hv Ha Hw]
+  · iframe
+  iintro %X Hc ⟨Hv, Ha, Hw⟩
+  rw [srvV_eq]
+  ihave ⟨Hc, Hv, %hs⟩ := durCore_srvVP_agree γ rc i X s none none $$ [$Hc $Hv]
+  unfold durCore
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, #Hcomp, Hrest⟩
+  unfold compLb
+  ihave %hc := monoNatLbOwn_valid _ _ _ _ $$ [$Ha $Hcomp]
+  imodintro
+  iframe; iframe #
+  iapply Hw
+  · ipureintro
+    rw [← hs.1]
+    refine ⟨Hp.1.1, fun hkl => Hp.1.2 k (by have := Hp.2.1; omega) hkl⟩
+  · iexact Hv
+  · iexact Ha
+
 end dur
 
 end github_com.hashicorp.raft

@@ -29,10 +29,11 @@ abbrev github_com.hashicorp.raft.Raft.persistVote.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (sst : StableAbs) (g : w64) (t : w64)
     (cs : GoSlice) (c : SID) (li lt : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
-     srvV rc s ∗ stVS rc sst g ∗ cs ↦*□ c ∗ candIs γ c s.term li lt ∗
+     srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc sst g ∗ cs ↦*□ c ∗ candIs γ c s.term li lt ∗
      ⌜uint.nat t = s.term ∧ s.vterm < s.term ∧ upToDate li lt s.log⌝ }}
     (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"persistVote")) (Val #t)) (Val #cs))
-  {{ RET #interface.nil; srvV rc { s with vterm := s.term, vcand := c } ∗ voteIs γ i s.term c ∗
+  {{ RET #interface.nil; srvV rc { s with vterm := s.term, vcand := c } ∗
+      ghostVar rc.dur.pw 1 (none : Option Pend) ∗ voteIs γ i s.term c ∗
       stVS rc (StableAbs.mk (sst.ints.insert (go!"LastVoteTerm" : List w8) t)
         (sst.bytes.insert (go!"LastVoteCand" : List w8) c)) g }}
 

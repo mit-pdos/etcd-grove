@@ -31,7 +31,7 @@ open github_com.hashicorp.raft proto gprot
 theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
     github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) :=
   fun r γ rc i s sst g t cs c li lt => by
-  wp_start as ⟨#Hr, Hs, Hst, #Hcs, #Hci, %Hpre⟩
+  wp_start as ⟨#Hr, Hs, Hpw, Hst, #Hcs, #Hci, %Hpre⟩
   ihave #Hg := pkgGlobals_access $$ Hpkg
   unfold pkgGlobals
   icases Hg with ⟨-, -, ⟨%k1, #Hk1, #Hk1s⟩, ⟨%k2, #Hk2, #Hk2s⟩, -⟩
@@ -68,12 +68,13 @@ theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
     simp only [GMap.lookup_insert]
   ihave Hwin := setUint64_vote_win γ rc i s c li lt
     { sst with bytes := sst.bytes.insert (go!"LastVoteCand" : List w8) c } g ⟨Hv, Hup⟩ Hc
-    iprop(srvV rc { s with vterm := s.term, vcand := c } ∗ voteIs γ i s.term c ∗
+    iprop(ghostVar rc.dur.pw 1 (none : Option Pend) ∗ srvV rc { s with vterm := s.term, vcand := c } ∗ voteIs γ i s.term c ∗
       stVS rc { ({ sst with bytes := sst.bytes.insert (go!"LastVoteCand" : List w8) c } : StableAbs) with
         ints := sst.ints.insert (go!"LastVoteTerm" : List w8) (W64 s.term) } g)
-    $$ HInv Hdur Hs Hst Hci
-  ihave ⟨HW, HAU⟩ := Hwin $$ []
-  · iintro Hs Hst Hvo; imodintro; iframe
+    $$ HInv Hdur Hpw Hs Hst Hci
+  ihave Hwin2 := Hwin $$ []
+  · iintro Hpw Hs Hst Hvo; imodintro; iframe
+  imod Hwin2 with ⟨HW, HAU⟩
   rw [Hwt]
   wp_apply_core HsetU $$ Hk1s HW
   iintro HW Hnc
@@ -85,7 +86,7 @@ theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
   iexists D0
   iframe Hown
   iintro Hown
-  imod Hcl $$ Hown with ⟨Hs, #Hvo, Hst⟩
+  imod Hcl $$ Hown with ⟨Hpw, Hs, #Hvo, Hst⟩
   imodintro
   wp_auto
   iapply HΦ

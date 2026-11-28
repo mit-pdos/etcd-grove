@@ -236,30 +236,6 @@ theorem voteMatches_term (sst : StableAbs) (s : SState) (v : w64) (t : Nat)
   · exact Or.inr (Or.inl (by omega))
   · exact Or.inr (Or.inr h2)
 
-open proto gprot in
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- Reassembling the main goroutine's resources (a non-leader state). (Stage 3: the `lastApplied`
-authority half, the pending-install half `none`, the compaction authority at `c ≤ a`.) -/
-theorem mainOwnAt_intro (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32)
-    (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (cidx li : w64) (lch : Loc)
-    (γl : ChanNames) (bs : List Bool) (c : Nat) (hvm : voteMatches sst s) (hst : st ≠ stLeader)
-    (ha : a ≤ s.dur.1 ∧ s.cidx ≤ a) (hc : c ≤ a)
-    (hcc : uint.nat li = lastCfgIdx s.log ∧
-      (cidx = li ∨ (uint.nat cidx = lastCfgIdx (s.log.take (uint.nat li - 1)) ∧ a < uint.nat li)))
-    (hcap : sint.Z γl.chanCap = 1 ∧ bs.length ≤ 1) :
-    srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗ rc.ownS sst ∗
-      ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-      ghostVar rc.names.state (1 : Qp).half st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
-      fsmProd γ rc a ∗ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
-      cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat cidx) ccfg ∗
-      cmtIdx γ s.term s.log (uint.nat cidx) ∗
-      r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗
-      ownChan γl Bool (.Buffered bs) ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
-      verifyRegistry γ rc i ∗
-      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
 
 open proto gprot in
 theorem aeValid_ent (γ : GNames) (T prev pt : Nat) (ents : RLog) (lci j : Nat) (e : Entry)
@@ -285,16 +261,16 @@ theorem ptrs_drop (ptrs : List Loc) (ents : RLog) (prev j : Nat) :
   iexact Hp
 
 open proto gprot in
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- Reassembling the main goroutine's resources (any state, with its leader witness). -/
+/-- Reassembling the main goroutine's resources (any state, with its leader witness). (hraft_robust
+R4a: over the views `srvV`, `stVS` with the staged commit index durable; no `logPend`.) -/
 theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32)
-    (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (cidx li : w64) (lch : Loc)
-    (γl : ChanNames) (bs : List Bool) (c : Nat) (hvm : voteMatches sst s)
+    (a : Nat) (sst : StableAbs) (g : w64) (cfg ccfg : Configuration) (cidx li : w64) (lch : Loc)
+    (γl : ChanNames) (bs : List Bool) (c : Nat) (hvm : voteMatches sst s) (hg : uint.nat g ≤ s.dur.1)
     (ha : a ≤ s.dur.1 ∧ s.cidx ≤ a) (hc : c ≤ a)
     (hcc : uint.nat li = lastCfgIdx s.log ∧
       (cidx = li ∨ (uint.nat cidx = lastCfgIdx (s.log.take (uint.nat li - 1)) ∧ a < uint.nat li)))
     (hcap : sint.Z γl.chanCap = 1 ∧ bs.length ≤ 1) :
-    srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗ rc.ownS sst ∗
+    srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc sst g ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       ghostVar rc.names.state (1 : Qp).half st ∗
       (⌜st ≠ stLeader⌝ ∨ leaderIs γ s.term i ∗ (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
@@ -307,12 +283,25 @@ theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
       cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat cidx) ccfg ∗
       cmtIdx γ s.term s.log (uint.nat cidx) ∗
       r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗
-      ownChan γl Bool (.Buffered bs) ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
+      ownChan γl Bool (.Buffered bs) ∗
       verifyRegistry γ rc i ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c ⊢ mainOwnAt r γ rc i s st := by
+  iintro ⟨Hs, Hpw, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, #Hcfg, #Hccf, #Hcmt, #Hlch, #Hlchan, Hlown,
+    Hvreg, Hpnd, Hcomp⟩
+  unfold mainOwnAt
+  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
+  isplitl [Hs]
+  · iexact Hs
+  isplitl [Hpw]
+  · iexact Hpw
+  isplitl [HS]
+  · iexists g; iframe HS; ipureintro; exact hg
+  isplitr
+  · ipureintro; exact hvm
+  iframe; iframe #
+  ipureintro
+  exact ⟨ha, hc, hcc, hcap⟩
 
 open proto gprot in
 theorem obsArg_state (γ : GNames) (i : SID) (s : SState) (st : w32) (h : st ≠ stLeader) :
@@ -396,58 +385,8 @@ instance cidxCouple_timeless (γ : GNames) (i : SID) (c : Nat) :
     Timeless (cidxCouple (GF := GF) γ i c) := by
   unfold cidxCouple; infer_instance
 
-open proto gprot in
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- An atomic read of the log store (`GetLog`), by the main goroutine (`srvOwn`): (stage 3) every
-entry the store holds is the server's log's. -/
-theorem logCell_read (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (Ψ : LogAbs → IProp GF) :
-    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
-      (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗
-        srvOwn γ i s -∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ A) ⊢
-      |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-open proto gprot in
-/-- The log store's `DeleteRange(prev+1+j, |log|)` by the main goroutine: the protocol step
-`truncate` at its linearization point. -/
-theorem logCell_truncate (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
-    (prev pt : Nat) (ents : RLog) (lci j : Nat) (mn mx : w64)
-    (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧ j < ents.length ∧
-      prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1))
-    (hmn : uint.nat mn = prev + 1 + j) (hmx : uint.nat mx = s.log.length) (Ψ : IProp GF) :
-    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
-      aeValid γ s.term prev pt ents lci ∗
-      (srvOwn γ i { s with log := s.log.take (prev + j) } -∗
-        ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
-      |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
-        (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m (uint.nat mn) (uint.nat mx), hi'⟩ ={∅,⊤}=∗ Ψ) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
 
-open proto gprot in
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- The log store's `StoreLogs(ents[j:])` by the main goroutine (its log ends at `prev + j`):
-the protocol step `followerStore` at its linearization point. -/
-theorem logCell_store (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
-    (prev pt : Nat) (ents : RLog) (lci j : Nat)
-    (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧ j < ents.length ∧
-      s.log.length = prev + j) (Ψ : IProp GF) :
-    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
-      aeValid γ s.term prev pt ents lci ∗
-      (srvOwn γ i { s with log := s.log ++ ents.drop j } -∗
-        ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
-      |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
-        (rc.ownL (A.store (prev + 1 + j) (ents.drop j)) ={∅,⊤}=∗ Ψ) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
-
-open proto gprot in
-/-- The server's own term, as a persistent lower bound (from the term cell). -/
-theorem termLb_of_srv (γ : GNames) (r : Loc) (i : SID) (s : SState) :
-    Inv (GF := GF) γ ∗ termCell r γ rc i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 /-- The ghost update run at the `currentTerm` store (`raftState.setCurrentTerm`): the protocol

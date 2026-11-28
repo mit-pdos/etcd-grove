@@ -29,10 +29,11 @@ abbrev github_com.hashicorp.raft.Raft.setCurrentTerm.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (sst : StableAbs) (g : w64) (t : w64)
     (tp : TermPend),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
-     srvV rc s ∗ stVS rc sst g ∗ tpRes γ (some tp) ∗
+     srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc sst g ∗ tpRes γ (some tp) ∗
      ⌜(tp = .set (uint.nat t) ∧ s.term ≤ uint.nat t) ∨ (tp = .elect ∧ uint.nat t = s.term + 1)⌝ }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setCurrentTerm")) (Val #t))
-  {{ RET #(); srvV rc { s with term := uint.nat t } ∗ termLb γ i (uint.nat t) ∗
+  {{ RET #(); srvV rc { s with term := uint.nat t } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+      termLb γ i (uint.nat t) ∗
       stVS rc { sst with ints := sst.ints.insert (go!"CurrentTerm" : List w8) t } g ∗
       (match tp with
         | .set _ => iprop(True)
