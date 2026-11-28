@@ -31,7 +31,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`Txn_CommitOn_dist`: `(*txn).Commit()` across machines, auth on** (mirrors
-`client.client_txn_on` at the cluster, in `Txn_Commit_dist`'s statement; linearizable only:
+`client.client_txn_on` at the cluster, in the form of `txn.Commit.spec` at a `kvClientAt`; linearizable only:
 `txnSerializable = false` in the read-only case). A read-only transaction's update is `□ AU` (resent at the
 next endpoint on `Unavailable`), its success the member's check (`txnReadCheckedD`); a writing one's is
 `writeAuD` (resent after a token refresh), its success the grant of `irrTxn` (`writeCheckedD`, nested
@@ -43,7 +43,7 @@ in-process `etcdTxnSpecMW` gives one only with auth off, and auth-on revisions f
 `notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write
 arm admits a leased transaction in the revocable lease mode, `txn.txnPlain … ∨ (Γ.kv.lm = .revocable ∧ txnPlainL …)`,
 as `KV_PutOn_dist`'s `leaseID = 0 ∨ Γ.kv.lm = .revocable` and the in-process `client.txnUpdAtOn` (`RunAuthLease`'s
-leased transactions; a weaker premise, callers unaffected). The auth-off `Txn_Commit_dist` is unchanged.
+leased transactions; a weaker premise, callers unaffected).
 
 **Widened to nested transactions** (F7 S11, 2026-11-26; ledger `notes/specs-only/ledger.md`, review
 `notes/axiom-review/f7-txn-nested-review.md`): no `TxnModel.plain b.model` (a read-only transaction is flat anyway,

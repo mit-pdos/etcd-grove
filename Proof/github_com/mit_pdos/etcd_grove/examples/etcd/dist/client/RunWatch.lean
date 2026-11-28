@@ -84,7 +84,7 @@ theorem RunWatch.wp_proof
   intro π ρ eps nodes addrs ns nops ready hV Htb hpl H0 Hmul Hrb
   wp_start as ⟨Hlt, #Heps, #Hnodes, #Hready, Hsh⟩
   iunfold watchShare at Hsh
-  icases Hsh with ⟨%Γ, %σ₀, %Hσ0, #Hms, Hkv, HWS⟩
+  icases Hsh with ⟨%Γ, %σ₀, %Hσ0, %Hauth, #Hms, Hkv, HWS⟩
   ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
   · iapply _root_.Perennial.context.isClosedchanInit_of_init
     iPkgInit

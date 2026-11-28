@@ -203,7 +203,7 @@ theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (
     ihave #Hinv'' := grpcInvokerOk_of_chainRes conn addr inv inv' $$ [Hinv Hinv']
     · iframe #
     iunfold reqPre at Hpre
-    icases Hpre with (#Hpre | ⟨%Hw, Hpre⟩)
+    icases Hpre with (#Hpre | ⟨⟨%Hw, #Hn⟩, Hpre⟩)
     · -- any number of attempts
       iunfold etcdInterceptorOk at Hic
       ihave Hic' := Hic $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
@@ -227,7 +227,7 @@ theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (
       · iframe #
         iframe
         simp only [modePre]
-        iframe
+        iframe Hpre Hn
         ipureintro; exact Hw
       · inext
         iintro %err ⟨Htok, Hpost⟩

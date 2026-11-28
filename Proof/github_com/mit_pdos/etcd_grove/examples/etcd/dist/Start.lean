@@ -359,8 +359,8 @@ theorem budUnits_one [ρ : RemoteGS] (a : GoString) : budUnits (Gg := Gg) a 1 �
 /-- **The watch (or cache) workload's start** (§24.3, §29.4): the KV half whole at a state with no change after
 the boot's, the writers' slot map with one call per writer machine, and every writer machine's address set to the
 writer service at the view: the orchestrator's `watchShare writersShare eps ns`, every writer address's `svcAddr`. -/
-theorem watch_start (Γ : DistView) (σ₀ : KVState) (hσ : σ₀.changes = [[]]) (eps ns : List GoString)
-    (hnd : ns.Nodup) :
+theorem watch_start (Γ : DistView) (σ₀ : KVState) (hσ : σ₀.changes = [[]]) (hauth : Γ.auth = false)
+    (eps ns : List GoString) (hnd : ns.Nodup) :
     ⊢ regCtx (Gg := Gg) -∗ ([∗list] a ∈ ns, addrUnset (Gg := Gg) a) -∗ membersAt (Gg := Gg) eps Γ -∗
       etcdKV (GF := GF) Γ.kv σ₀ ={⊤}=∗
       ∃ ρ : RemoteGS, watchShare (Gg := Gg) (writersShare (Gg := Gg) (ρ := ρ)) eps ns ∗
@@ -376,6 +376,8 @@ theorem watch_start (Γ : DistView) (σ₀ : KVState) (hσ : σ₀.changes = [[]
     iexists Γ, σ₀
     isplitr
     · ipureintro; exact hσ
+    isplitr
+    · ipureintro; exact hauth
     isplitr
     · iexact Hm
     iframe Hkv
@@ -657,7 +659,7 @@ theorem etcd_start (d : Deployment) (Hd : d.WellFormed) (ha : d.cfg.auth = false
         · iexact Hmem
         · iexact Ha
     · -- watch or cache: the KV half whole, the writers' service
-      have hws := watch_start (Gg := Gg) c.view _ hch eps ns hnsnd
+      have hws := watch_start (Gg := Gg) c.view _ hch rfl eps ns hnsnd
       rw [show c.view.kv = c.γk from rfl] at hws
       imod hws $$ Hreg Hn Hmem Hetcd with ⟨%ρ, Hw, #Ha⟩
       imodintro

@@ -2019,12 +2019,54 @@ inductive AttemptMode where
   | write
   deriving DecidableEq
 
+/-- **No endpoint of `addr` answers `method` with a refusal** (persistent; D29; stage B′,
+2026-11-28): every endpoint is refusal-free (`noRefusalAt`, the in-process members' certificate) or
+serves `method` at a flagged entry (`isGrpcRpcsNR`); either way the attempt contract
+(`grpcInvokerOk`) excludes a refusal of a `kvMethod` call. -/
+def noRefusalFor (method : GoString) (addr : List GoString) : IProp GF :=
+  iprop(⌜∀ a ∈ addr, noRefusalAt a⌝ ∨ isGrpcRpcsNR addr method)
+
+instance noRefusalFor_persistent (method : GoString) (addr : List GoString) :
+    Persistent (noRefusalFor (GF := GF) method addr) := by
+  unfold noRefusalFor; infer_instance
+
+/-- **No endpoint of `addr` answers a write of the `*kv` with a refusal** (persistent): `noRefusalFor`
+of `Put`, `DeleteRange` and `Txn` at once. -/
+def kvWriteNR (addr : List GoString) : IProp GF :=
+  iprop(⌜∀ a ∈ addr, noRefusalAt a⌝ ∨ (isGrpcRpcsNR addr go!"/etcdserverpb.KV/Put" ∗
+    isGrpcRpcsNR addr go!"/etcdserverpb.KV/DeleteRange" ∗ isGrpcRpcsNR addr go!"/etcdserverpb.KV/Txn"))
+
+instance kvWriteNR_persistent (addr : List GoString) : Persistent (kvWriteNR (GF := GF) addr) := by
+  unfold kvWriteNR; infer_instance
+
+/-- Refusal-free endpoints refuse no write. -/
+theorem kvWriteNR_of_pure (addr : List GoString) (h : ∀ a ∈ addr, noRefusalAt a) :
+    ⊢ kvWriteNR (GF := GF) addr := by
+  unfold kvWriteNR
+  iintro
+  ileft
+  ipureintro; exact h
+
+/-- A `*kv`'s write method is refused by no endpoint. -/
+theorem kvWriteNR_for (addr : List GoString) (method : GoString)
+    (hm : method = go!"/etcdserverpb.KV/Put" ∨ method = go!"/etcdserverpb.KV/DeleteRange" ∨
+      method = go!"/etcdserverpb.KV/Txn") :
+    kvWriteNR (GF := GF) addr ⊢ noRefusalFor method addr := by
+  unfold kvWriteNR noRefusalFor
+  iintro (%H | ⟨#Hp, #Hd, #Ht⟩)
+  · ileft; ipureintro; exact H
+  · iright
+    rcases hm with rfl | rfl | rfl
+    · iexact Hp
+    · iexact Hd
+    · iexact Ht
+
 /-- The request's precondition in a mode. -/
 def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : List GoInterface)
     (P : IProp GF) : IProp GF :=
   match md with
   | .any => iprop(□ ▷ P)
-  | .write => iprop(▷ P ∗ ⌜kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝)
+  | .write => iprop(▷ P ∗ ⌜kvMethod method ∧ scalarOpts vs⌝ ∗ noRefusalFor method addr)
 
 /-- The retry interceptor's contract in a mode (D29): `etcdInterceptorOk` (`.any`),
 `etcdInterceptorOkW` (`.write`). -/
@@ -2123,7 +2165,7 @@ instance isEtcdConn_persistent (conn : Loc) (addr : List GoString) :
 write, never retried). -/
 def reqPre (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
     (P : IProp GF) : IProp GF :=
-  iprop(□ ▷ P ∨ (⌜kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
+  iprop(□ ▷ P ∨ ((⌜kvMethod method ∧ scalarOpts vs⌝ ∗ noRefusalFor method addr) ∗ ▷ P))
 
 theorem reqPre_box (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
     (P : IProp GF) : (□ ▷ P : IProp GF) ⊢ reqPre conn method addr vs P := by
@@ -2133,10 +2175,12 @@ theorem reqPre_box (conn : Loc) (method : GoString) (addr : List GoString) (vs :
 theorem reqPre_mono (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
     (P P' : IProp GF) (h : P ⊢ P') : reqPre (GF := GF) conn method addr vs P ⊢ reqPre conn method addr vs P' := by
   unfold reqPre
-  iintro (#H | ⟨%Hw, H⟩)
+  iintro (#H | ⟨⟨%Hw, #Hn⟩, H⟩)
   · ileft; imodintro; inext; iapply h $$ H
   · iright; isplitr
-    · ipureintro; exact Hw
+    · isplitr
+      · ipureintro; exact Hw
+      · iexact Hn
     inext; iapply h $$ H
 
 /-- Scalar options added to a call's options keep its precondition (the stubs' `StaticMethod`). -/
@@ -2144,14 +2188,14 @@ theorem reqPre_scalar_app (conn : Loc) (method : GoString) (addr : List GoString
     (ws vs : List GoInterface) (P : IProp GF) (h : scalarOpts ws) :
     reqPre (GF := GF) conn method addr vs P ⊢ reqPre conn method addr (ws ++ vs) P := by
   unfold reqPre
-  iintro (#H | ⟨%Hw, H⟩)
+  iintro (#H | ⟨⟨%Hw, #Hn⟩, H⟩)
   · ileft; iexact H
-  · iright; iframe H
+  · iright; iframe H Hn
     ipureintro
-    refine ⟨Hw.1, Hw.2.1, fun v hv => ?_⟩
+    refine ⟨Hw.1, fun v hv => ?_⟩
     rcases List.mem_append.1 hv with hv | hv
     · exact h v hv
-    · exact Hw.2.2 v hv
+    · exact Hw.2 v hv
 
 /-! ## Context errors -/
 
@@ -2333,25 +2377,34 @@ theorem kvObjAtC_agree (api conn conn' : Loc) (addr addr' : List GoString) :
 /-- **A request's precondition on a `*kv`** (D29): persistent, or ordinary over a refusal-free
 connection (a write: the `*kv` passes its client's call options, scalars, `callOptsAt`). -/
 def kvReqPre (api : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
-  iprop(□ ▷ P ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
+  iprop(□ ▷ P ∨ (kvWriteNR addr ∗ ▷ P))
 
 theorem kvReqPre_box (api : Loc) (addr : List GoString) (P : IProp GF) :
     (□ ▷ P : IProp GF) ⊢ kvReqPre api addr P := by
   unfold kvReqPre; iintro #H; ileft; iexact H
 
 /-- A `*kv`'s precondition is its connection's, with scalar call options. -/
-theorem kvReqPre_conn (api rkv conn : Loc) (method : GoString) (hm : kvMethod method)
+theorem kvReqPre_conn (api rkv conn : Loc) (method : GoString)
+    (hm : method = go!"/etcdserverpb.KV/Put" ∨ method = go!"/etcdserverpb.KV/DeleteRange" ∨
+      method = go!"/etcdserverpb.KV/Txn")
     (addr : List GoString) (vs : List GoInterface) (P : IProp GF) (hvs : scalarOpts vs) :
     structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
         GoInterface) ∗ retryKVAt rkv conn ∗ kvReqPre api addr P ⊢ reqPre conn method addr vs P := by
+  have hk : kvMethod method := by
+    rcases hm with rfl | rfl | rfl
+    · exact kvMethod_put
+    · exact kvMethod_deleteRange
+    · exact kvMethod_txn
   iintro ⟨-, -, H⟩
   unfold kvReqPre reqPre
-  icases H with (#H | ⟨%Hnr, H⟩)
+  icases H with (#H | ⟨#Hnr, H⟩)
   · ileft; iexact H
   · iright
     iframe H
-    ipureintro; exact ⟨hm, Hnr, hvs⟩
+    isplitl []
+    · ipureintro; exact ⟨hk, hvs⟩
+    · iapply (kvWriteNR_for addr method hm) $$ Hnr
 
 /-- **What `NewKV` reads of the `*Client` `cl`**: its connection (to the server at `addr`) and call
 options, fixed since `clientv3.New` (an assumption about the unverified constructor). -/

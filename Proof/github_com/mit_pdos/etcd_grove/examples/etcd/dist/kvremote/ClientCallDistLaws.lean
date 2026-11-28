@@ -7,12 +7,11 @@ analogues of `client/v3/ClientCallLaws.lean`'s `client_{Put,Get,Delete,Txn}_st.l
 (the copies of txnlin's `call*` proofs) takes instead of those. Each is the `_st` law with the
 in-process servers' facts (`isNewClient ∗ clientWriteOnce ∗ [∗list] kvRegsAt`, one update per member)
 replaced by the cluster view's client facts `kvClientAt cl api eps V Γ` and one update at the
-cluster's KV names `Γ.kv`; the write calls for a cluster with auth off (`Γ.auth = false`); the error
-arm without `kvErr` (N2's drafts claim nothing of a remote call's error; txnlin's `call*` read only
-`err ≠ nil` there).
+cluster's KV names `Γ.kv`, for a cluster with auth off (`Γ.auth = false`: the table has etcd's KV entries
+for an auth-off view); the error arm without `kvErr` (txnlin's `call*` read only `err ≠ nil` there).
 
-`CallDistLinked.lean` proves them from N2's drafts (`dist/ClientViewDist.lean`: `KV_Put_dist`,
-`KV_Get_dist`, `KV_Delete_dist`, `Txn_Commit_dist`, hypotheses) and the client's `kv.Txn`.
+`CallDistLinked.lean` proves them from the client's specs (`kv.Put.spec`, `kv.Get.spec`, `kv.Delete.spec`,
+`txn.Commit.spec`, `kv.Txn.spec`, hypotheses) at the client's `isKv` of the auth-off view.
 -/
 module
 
@@ -53,7 +52,7 @@ or none. -/
 abbrev client_Get_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-      (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel key [])),
+      (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel key [])) (hauth : Γ.auth = false),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
           □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
@@ -70,7 +69,8 @@ view). -/
 abbrev client_List_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
-      (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])),
+      (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo]))
+      (hauth : Γ.auth = false),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
           optsAt sl [withRangeM listTo] ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
@@ -119,7 +119,7 @@ abbrev client_Delete_dist.law : Prop :=
           ⌜err ≠ GoInterface.nil⌝) }}
 
 /-- `cli.Txn(ctx)` across machines (`client_Txn_st.law` at the view): the builder, empty, made from
-the client's `*kv` `api` (`txnKvIs`, what `Txn_Commit_dist` takes). -/
+the client's `*kv` `api` (`txnKvIs`, what `txn.Commit.spec` takes). -/
 abbrev client_Txn_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
