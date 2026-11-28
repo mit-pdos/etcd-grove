@@ -164,10 +164,9 @@ theorem ml_mainOwnAt_state' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s 
   iframe Hst
   iintro %st' Hst %Hne
   iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
-  iframe
+  iframe H1 H2 H3 H5 Hst
   isplitr; · ipureintro; exact H4
   isplitr; · ileft; ipureintro; exact Hne
-  icases H7 with ⟨-, H7⟩
   iexact H7
 
 set_option synthInstance.maxSize 10000 in

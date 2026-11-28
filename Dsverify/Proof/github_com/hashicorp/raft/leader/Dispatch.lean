@@ -370,29 +370,29 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     (D : StableAbs) (g : w64)
     (hwin : ∀ es : RLog, es.length = fs.length → (∀ e ∈ es, e.term = s.term ∧ K e.kind e.data) →
       ∀ g' : w64, uint.nat g' ≤ s.dur.1 →
-      (Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ stVS rc D g' ∗ leaderIs γ s.term i ∗ receipt es.length ∗
+      (Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗ leaderIs γ s.term i ∗ receipt es.length ∗
         ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗ A ⊢
-        logWin γ rc i (.store (s.log.length + 1) es) ∗
+        |==> logWin γ rc i (.store (s.log.length + 1) es) ∗
         (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
           rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗
-            srvV rc { s with log := s.log ++ es } ∗ stVS rc D g' ∗
+            srvV rc { s with log := s.log ++ es } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗
             ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B)))) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
-       srvV rc s ∗ stVS rc D g ∗ ⌜uint.nat g ≤ s.dur.1⌝ ∗
+       srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g ∗ ⌜uint.nat g ≤ s.dur.1⌝ ∗
        ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
        monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1⌝ ∗ leaderIs γ s.term i ∗
        leaderOwnM r γ rc i s.term P s.log.length ∗
        sl ↦*{dq} fs ∗ ([∗list] f ∈ fs, dispOpen γ rc i K f) ∗ A }}
       (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"dispatchLogs")) (Val #sl))
     {{ RET #(); ∃ es : RLog, ⌜es.length = fs.length ∧ ∀ e ∈ es, e.term = s.term ∧ K e.kind e.data⌝ ∗
-        srvV rc { s with log := s.log ++ es } ∗
+        srvV rc { s with log := s.log ++ es } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
         (∃ g' : w64, stVS rc D g' ∗ ⌜uint.nat g' ≤ s.dur.1⌝) ∗
         ghostVar rc.names.lastLog (1 : Qp).half ((s.log ++ es).length, s.term) ∗
         monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
         leaderOwnM r γ rc i s.term P (s.log ++ es).length ∗ sl ↦*{dq} fs ∗ B ∗
         ([∗list] j ↦ q ∈ fs.map (fun q => q.[logFuture, go!"log"]),
           ∃ e, ⌜es[j]? = some e⌝ ∗ logPtr q (s.log.length + 1 + j) e) }} := by
-  wp_start as ⟨#Hr, Hsrv, Hst, %Hg, HlastLog, Happ, %Ha, #Hldr, Hl, Hsl, Hfs, HA⟩
+  wp_start as ⟨#Hr, Hsrv, Hpw, Hst, %Hg, HlastLog, Happ, %Ha, #Hldr, Hl, Hsl, Hfs, HA⟩
   ihave ⟨#HInv, #Hvoter⟩ := isRaft_proto r γ rc i $$ Hr
   ihave #Hcells := isRaft_cells r γ rc i $$ Hr
   unfold raftCells
@@ -549,8 +549,11 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     -- (hraft_robust) the leader's appends fire at `StoreLogs`' commit (`hwin`), the window lent till then
     rw [show fs.length = (ds.map DItem.e).length by rw [List.length_map, hdslen]] at Hbound
     rw [show fs.length = (ds.map DItem.e).length by rw [List.length_map, hdslen]]
-    ihave ⟨Hwin, Hau⟩ := hwin (ds.map DItem.e) hlen Hes g' hg' $$ [Hsrv Hst Hrc Htoks HA]
+    ihave Hwin := hwin (ds.map DItem.e) hlen Hes g' hg' $$ [Hsrv Hpw Hst Hrc Htoks HA]
     · iframe; iframe #
+    iapply fupd_wp
+    icases Hwin with ⟨>Hwin, Hau⟩
+    imodintro
     wp_apply HSL $$ %lsl %(DFrac.own 1) %(ds.map (fun d => d.f.[logFuture, go!"log"]))
       %(s.log.length + 1) %(ds.map DItem.e) [] [$Hlsl] [] [Hwin]
     · ipureintro; exact ⟨by simp, by omega⟩
@@ -565,7 +568,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     iexists A'
     iframe HownL
     iintro HownL
-    imod Hcl $$ HownL with ⟨Hsrv, Hst, #Hidx, HB⟩
+    imod Hcl $$ HownL with ⟨Hsrv, Hpw, Hst, #Hidx, HB⟩
     imodintro
     iintro Hlsl
     ihave #Himm := isRaft_imm r γ rc i $$ Hr
@@ -636,7 +639,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     iapply HΦ
     iexists ds.map DItem.e
     isplitr; · ipureintro; first | exact ⟨hlen, Hes⟩ | exact ⟨rfl, Hes⟩
-    iframe Hsrv HlastLog Happ Hsl HB Hptrs
+    iframe Hsrv Hpw HlastLog Happ Hsl HB Hptrs
     isplitl [Hst]; · iexists g'; iframe; ipureintro; exact hg'
     iexists cc, cm, infl', fs0 ++ newItems (s.log.length + 1) ds, rs, rmap, nt, sd, n0
     rw [List.map_append, newItems_f]

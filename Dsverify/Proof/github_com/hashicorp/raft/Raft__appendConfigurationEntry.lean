@@ -55,7 +55,7 @@ theorem github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof
   ihave ⟨#HInv, #Hsrvi⟩ := isRaft_proto r γ rc i $$ Hr
   ihave %Hcv := isRaft_cv r γ rc i $$ Hr
   ihave #HdurI := isRaft_durInv r γ rc i $$ Hr
-  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAtSt_open r γ rc i s $$ Hm
+  ihave ⟨%a, Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAtSt_open r γ rc i s $$ Hm
   ihave ⟨%D, %g, Hst, %Hg, Hrest⟩ := mainRest_stV r γ rc i s a $$ Hrest
   iunfold confOwnSt at Hconf
   icases Hconf with ⟨%cfg, %ccfg, %cidx, Hconfs, #Hcfg, #Hccfg, %Hli1, #Hcmt, Hcc, %n0, #Hn0, Hcix, #Hcl0⟩
@@ -105,7 +105,7 @@ theorem github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof
     ihave Hrest := Hrest $$ Hst []
     · ipureintro; exact Hg
     iapply mainOwnAt_lclose r γ rc i s a
-    iframe Hsrv HlastLog Happ Hrest
+    iframe Hsrv Hpw HlastLog Happ Hrest
     iframe #
     isplitr; · ipureintro; exact Ha
     iapply confOwn_intro r γ i s a cfg ccfg cidx cidx n0 Hli
@@ -145,14 +145,14 @@ theorem github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof
   have hwin : ∀ es : RLog, es.length = [f.[configurationChangeFuture, go!"logFuture"]].length →
       (∀ e ∈ es, e.term = s.term ∧ (fun k d => k = kConfig ∧ d = encodeServers ss') e.kind e.data) →
       ∀ g' : w64, uint.nat g' ≤ s.dur.1 →
-      (gprot.Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ stVS rc D g' ∗ leaderIs γ s.term i ∗
+      (gprot.Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗ leaderIs γ s.term i ∗
         receipt es.length ∗
         ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗
         (ccfgOwn γ i s.term (lastCfgIdx s.log) ∗ commitIs γ s.term k p) ⊢
-        logWin γ rc i (.store (s.log.length + 1) es) ∗
+        |==> logWin γ rc i (.store (s.log.length + 1) es) ∗
         (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
           rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗
-            srvV rc { s with log := s.log ++ es } ∗ stVS rc D g' ∗
+            srvV rc { s with log := s.log ++ es } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗
             ([∗list] j ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + j) e) ∗
             ccfgOwn γ i s.term (lastCfgIdx s.log)))) := by
     intro es hlen hes g' hg'
@@ -162,25 +162,24 @@ theorem github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof
       rw [Hcv, he.2.2, cfgDec_encode _ _ Hss'.1]; exact srvsOk_cfgValid _ _ Hss'.1
     have hadj : adjV (cfgOfC γ.cv s.log) (γ.cv e.data) := by
       rw [hcur, he.2.2, Hcv, cfgDec_encode _ _ Hss'.1]; exact Hss'.2
-    iintro ⟨#HI, #Hd, Hsrv, Hst, #Hl, Hrc, -, Hcc, #Hcm⟩
+    iintro ⟨#HI, #Hd, Hsrv, Hpw, Hst, #Hl, Hrc, -, Hcc, #Hcm⟩
     ihave H := storeLogs_cfg_win γ rc i s e k p D g' ⟨he.1, he.2.1, hcv', hadj, Hk⟩ hg'
-      iprop(srvV rc { s with log := s.log ++ [e] } ∗ stVS rc D g' ∗
+      iprop(srvV rc { s with log := s.log ++ [e] } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗
         ([∗list] j ↦ e' ∈ [e], llogIdx γ s.term (s.log.length + 1 + j) e') ∗
         ccfgOwn γ i s.term (lastCfgIdx s.log))
-      $$ HI Hd Hsrv Hst [Hrc Hcc]
+      $$ HI Hd Hpw Hsrv Hst [Hrc Hcc]
     · simp only [pendHyps]; iframe; iframe #
-    ihave ⟨Hw, Hau⟩ := H $$ []
-    · iintro Hs Hst Hcc #Hx; imodintro; iframe
-      iapply BigSepL.bigSepL_singleton.2
-      rw [Nat.add_zero]; iexact Hx
-    iframe
+    iapply H
+    iintro Hpw Hs Hst Hcc #Hx; imodintro; iframe
+    iapply BigSepL.bigSepL_singleton.2
+    rw [Nat.add_zero]; iexact Hx
   wp_apply (leader.dispatch_gen wp_getCurrentTerm wp_getLastIndex wp_getCommitIndex
     wp_tryStageCommitIndex wp_match wp_setLastLog wp_asyncNotifyCh wp_Now r γ rc i s _ (DFrac.own 1)
     [f.[configurationChangeFuture, go!"logFuture"]] a _
     iprop(ccfgOwn γ i s.term (lastCfgIdx s.log) ∗ commitIs γ s.term k p)
     (ccfgOwn γ i s.term (lastCfgIdx s.log)) (replCover γ.srvs i s.log) (by simp) D g hwin)
-    $$ [$Hr $Hsrv $Hst $HlastLog $Happ $Hldr $Hl $Hnsl $Hdo $Hcc $Hcm]
-    as ⟨%es, %Hes, Hsrv, ⟨%g', Hst, %Hg'⟩, HlastLog, Happ, Hl, Hnsl, Hcc, #Hptrs⟩
+    $$ [$Hr $Hsrv $Hpw $Hst $HlastLog $Happ $Hldr $Hl $Hnsl $Hdo $Hcc $Hcm]
+    as ⟨%es, %Hes, Hsrv, Hpw, ⟨%g', Hst, %Hg'⟩, HlastLog, Happ, Hl, Hnsl, Hcc, #Hptrs⟩
   · ipureintro; exact ⟨Hg, Ha.1⟩
   obtain ⟨hlen, hes⟩ := Hes
   obtain ⟨e, rfl⟩ := List.length_eq_one_iff.mp hlen
@@ -247,7 +246,7 @@ theorem github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof
   · simp only
     rw [hidx, hlast]
     iframe; iframe #
-  ihave Hm := mainOwnAt_lclose r γ rc i { s with log := s.log ++ [e] } a $$ [Hsrv HlastLog Happ Hrest Hconf]
+  ihave Hm := mainOwnAt_lclose r γ rc i { s with log := s.log ++ [e] } a $$ [Hsrv Hpw HlastLog Happ Hrest Hconf]
   · simp only
     rw [hLT]
     iframe; iframe #

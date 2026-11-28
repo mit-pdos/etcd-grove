@@ -63,7 +63,7 @@ theorem github_com.hashicorp.raft.Raft.configurationChangeChIfStable.wp_proof
   icases Hcells with ⟨-, #HcidxC, -⟩
   ihave ⟨%ccch, %γq, #Hccf, #Hccb⟩ := isRaft_configurationChangeCh r γ rc i $$ Hr
   ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
-  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
+  ihave ⟨%a, Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
   iunfold confOwn at Hconf
   icases Hconf with ⟨%cfg, %ccfg, %cidx, %li, Hconfs, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, #Hcix, #Hcl⟩
   ihave ⟨%si, %n0', #Hsi, #Hn0', %Hsin⟩ := commitment_startIndex γ i s.term cm $$ Hcmi
@@ -106,7 +106,7 @@ theorem github_com.hashicorp.raft.Raft.configurationChangeChIfStable.wp_proof
       · isplitr; · iexists γq; iexact Hccb
         iexact Hst
       iapply mainOwnAtSt_close r γ rc i s a
-      iframe Hsrv HlastLog Happ Hrest Hldr
+      iframe Hsrv Hpw HlastLog Happ Hrest Hldr
       isplitr; · ipureintro; exact Ha
       unfold confOwnSt
       iexists cfg, ccfg, cidx
@@ -117,7 +117,7 @@ theorem github_com.hashicorp.raft.Raft.configurationChangeChIfStable.wp_proof
       ileft
       isplitr; · ipureintro; rfl
       iapply mainOwnAt_lclose r γ rc i s a
-      iframe Hsrv HlastLog Happ Hrest
+      iframe Hsrv Hpw HlastLog Happ Hrest
       iframe #
       isplitr; · ipureintro; exact Ha
       iapply confOwn_intro r γ i s a cfg ccfg cidx cidx n0 Hli
@@ -127,7 +127,7 @@ theorem github_com.hashicorp.raft.Raft.configurationChangeChIfStable.wp_proof
   ileft
   isplitr; · ipureintro; rfl
   iapply mainOwnAt_lclose r γ rc i s a
-  iframe Hsrv HlastLog Happ Hrest
+  iframe Hsrv Hpw HlastLog Happ Hrest
   iframe #
   isplitr; · ipureintro; exact Ha
   iapply confOwn_intro r γ i s a cfg ccfg cidx li n0 Hli

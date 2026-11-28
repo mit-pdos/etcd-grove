@@ -70,7 +70,7 @@ theorem mainOwnAt_state (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
     mainOwnAt r γ rc i s st ⊢ ghostVar rc.names.state (1 : Qp).half st ∗
       (ghostVar rc.names.state (1 : Qp).half st -∗ mainOwnAt r γ rc i s st) := by
   unfold mainOwnAt
-  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, H1, -, H3, %H4, H5, Hst, H7⟩
+  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, H1, H2, H3, %H4, H5, Hst, H7⟩
   iframe Hst
   iintro Hst
   iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c

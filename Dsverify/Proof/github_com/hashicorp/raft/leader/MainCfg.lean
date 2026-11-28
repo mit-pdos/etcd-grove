@@ -128,18 +128,18 @@ theorem mainRest_stV (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SStat
 /-- (hraft_robust R4b) A leader's `mainOwnAt`, opened: its view `srvV`, `lastLog`, `lastApplied`, `leaderIs`,
 the rest and the configurations part. -/
 theorem mainOwnAt_lopen (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
-    mainOwnAt r γ rc i s stLeader ⊢ ∃ a : Nat, srvV rc s ∗
+    mainOwnAt r γ rc i s stLeader ⊢ ∃ a : Nat, srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwn r γ i s a := by
   unfold mainOwnAt mainRest confOwn
-  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, Hsrv, -, HownS, %Hvm, HlastLog,
+  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, Hsrv, Hpw, HownS, %Hvm, HlastLog,
     Hst, Hldr0, -, Hreg, Happ, %Ha, Hprod, Hpdn, Hcomp, %Hcp, Hconf, #Hcfg, #Hccfg, %Hli,
     #Hcmt, #Hlch, #Hlchan, Hlown, %Hlcap⟩
   icases Hldr0 with (%Hc | ⟨#Hldr, Hpub, Hcc, %n0, #Hn0, Hcix, Hcl⟩)
   · exact absurd rfl Hc
   iexists a
-  iframe Hsrv HlastLog Happ
+  iframe Hsrv Hpw HlastLog Happ
   isplitr; · ipureintro; exact Ha
   isplitr; · iexact Hldr
   isplitl [HownS Hst Hpub Hreg Hprod Hpdn Hcomp Hlown]
@@ -150,18 +150,18 @@ theorem mainOwnAt_lopen (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
   ipureintro; exact Hli
 
 theorem mainOwnAt_lclose (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
-    srvV rc s ∗
+    srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwn r γ i s a ⊢
       mainOwnAt r γ rc i s stLeader := by
   unfold mainOwnAt mainRest confOwn
-  iintro ⟨Hsrv, HlastLog, Happ, %Ha, #Hldr,
+  iintro ⟨Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr,
     ⟨%sst, %lch, %γl, %bs, %c, HownS, %Hvm, Hst, Hpub, Hreg, Hprod, Hpdn, Hcomp, %Hcp, #Hlch,
       #Hlchan, Hlown, %Hlcap⟩,
     ⟨%cfg, %ccfg, %cidx, %li, Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩⟩
   iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
-  iframe Hsrv HownS HlastLog Hst Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
+  iframe Hsrv Hpw HownS HlastLog Hst Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
   iframe #
   isplitr; · ipureintro; exact Hvm
   isplitl [Hpub Hcc Hcix Hcl]
@@ -225,7 +225,7 @@ theorem mainOwnAt_leader_cfg [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : 
     Inv γ ∗ srvDurInv γ rc i ∗ mainOwnAt r γ rc i s stLeader ⊢ |NC={⊤}=>
       mainOwnAt r γ rc i s stLeader ∗ ⌜1 ≤ lastCfgIdx s.log⌝ := by
   iintro ⟨#HInv, #Hdur, Hm⟩
-  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
+  ihave ⟨%a, Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
   iunfold confOwn at Hconf
   icases Hconf with ⟨%cfg, %ccfg, %cidx, %li, Hconfs, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩
   iapply ncfupd_fupd_l
@@ -243,7 +243,7 @@ theorem mainOwnAt_leader_cfg [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : 
   iintro ⟨Hsrv, %Hent0⟩
   isplitl
   · iapply mainOwnAt_lclose r γ rc i s a
-    iframe Hsrv HlastLog Happ Hrest
+    iframe Hsrv Hpw HlastLog Happ Hrest
     iframe #
     isplitr; · ipureintro; exact Ha
     iapply confOwn_intro r γ i s a cfg ccfg cidx li n0 Hli
@@ -278,16 +278,16 @@ theorem confOwnSt_confOwn (r : Loc) (γ : GNames) (i : SID) (s : SState) (a : Na
   · iright; iexact Hk
 
 theorem mainOwnAtSt_open (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
-    mainOwnAtSt r γ rc i s ⊢ ∃ a : Nat, srvV rc s ∗
+    mainOwnAtSt r γ rc i s ⊢ ∃ a : Nat, srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwnSt r γ i s a := by
   unfold mainOwnAtSt mainRest confOwnSt
-  iintro ⟨%a, %sst, %cfg, %ccfg, %li, %lch, %γl, %bs, %c, Hsrv, -, HownS, %Hvm, HlastLog,
+  iintro ⟨%a, %sst, %cfg, %ccfg, %li, %lch, %γl, %bs, %c, Hsrv, Hpw, HownS, %Hvm, HlastLog,
     Hst, ⟨#Hldr, Hpub, Hcc, %n0, #Hn0, Hcix, Hcl⟩, -, Hreg, Happ, %Ha, Hprod, Hpdn, Hcomp, %Hcp,
     Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, #Hlch, #Hlchan, Hlown, %Hlcap⟩
   iexists a
-  iframe Hsrv HlastLog Happ
+  iframe Hsrv Hpw HlastLog Happ
   isplitr; · ipureintro; exact Ha
   isplitr; · iexact Hldr
   isplitl [HownS Hst Hpub Hreg Hprod Hpdn Hcomp Hlown]
@@ -298,17 +298,17 @@ theorem mainOwnAtSt_open (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
   ipureintro; exact Hli
 
 theorem mainOwnAtSt_close (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
-    srvV rc s ∗
+    srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwnSt r γ i s a ⊢ mainOwnAtSt r γ rc i s := by
   unfold mainOwnAtSt mainRest confOwnSt
-  iintro ⟨Hsrv, HlastLog, Happ, %Ha, #Hldr,
+  iintro ⟨Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr,
     ⟨%sst, %lch, %γl, %bs, %c, HownS, %Hvm, Hst, Hpub, Hreg, Hprod, Hpdn, Hcomp, %Hcp, #Hlch,
       #Hlchan, Hlown, %Hlcap⟩,
     ⟨%cfg, %ccfg, %li, Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩⟩
   iexists a, sst, cfg, ccfg, li, lch, γl, bs, c
-  iframe Hsrv HownS HlastLog Hst Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
+  iframe Hsrv Hpw HownS HlastLog Hst Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
   iframe #
   isplitr; · ipureintro; exact Hvm
   isplitl [Hpub Hcc Hcix Hcl]
@@ -318,7 +318,7 @@ theorem mainOwnAtSt_close (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : 
 theorem mainOwnAtSt_mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
     mainOwnAtSt r γ rc i s ⊢ mainOwnAt r γ rc i s stLeader := by
   iintro Hm
-  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAtSt_open r γ rc i s $$ Hm
+  ihave ⟨%a, Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAtSt_open r γ rc i s $$ Hm
   ihave Hconf := confOwnSt_confOwn r γ i s a $$ Hconf
   iapply mainOwnAt_lclose r γ rc i s a
   iframe; iframe #; ipureintro; exact Ha

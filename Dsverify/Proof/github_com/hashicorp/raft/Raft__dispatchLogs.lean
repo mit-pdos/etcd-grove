@@ -39,7 +39,7 @@ theorem github_com.hashicorp.raft.Raft.dispatchLogs.wp_proof
     github_com.hashicorp.raft.Raft.dispatchLogs.spec (GF := GF) (hG := hG) :=
   fun r γ rc i s sl dq fs => by
   iintro %Φ ⟨#Hpkg, #Hr, Hm, Hl, Hsl, %Hne, Hfs⟩ HΦ
-  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
+  ihave ⟨%a, Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
   ihave ⟨%D, %g, Hst, %Hg, Hrest⟩ := mainRest_stV r γ rc i s a $$ Hrest
   ihave Hfs : ([∗list] f ∈ fs, dispOpen γ rc i Kstd f) $$ [Hfs]
   · iapply (BigSepL.bigSepL_mono (fun {k x} _ => dispP_open γ rc i x)) $$ Hfs
@@ -47,19 +47,18 @@ theorem github_com.hashicorp.raft.Raft.dispatchLogs.wp_proof
     wp_getCommitIndex wp_tryStageCommitIndex wp_match wp_setLastLog wp_asyncNotifyCh wp_Now
     r γ rc i s sl dq fs a Kstd iprop(True) iprop(True) (replCover γ.srvs i s.log) Hne D g
     (fun es _ hes g' hg' => by
-      iintro ⟨#HI, #Hd, Hsrv, Hst, #Hl, Hrc, Htoks, -⟩
+      iintro ⟨#HI, #Hd, Hsrv, Hpw, Hst, #Hl, Hrc, Htoks, -⟩
       ihave H := storeLogs_app_win γ rc i s es D g' hes hg'
-        iprop(srvV rc { s with log := s.log ++ es } ∗ stVS rc D g' ∗
+        iprop(srvV rc { s with log := s.log ++ es } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗
           ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ True)
-        $$ HI Hd Hsrv Hst [Hrc Htoks]
+        $$ HI Hd Hpw Hsrv Hst [Hrc Htoks]
       · simp only [pendHyps]; iframe; iframe #
-      ihave ⟨Hw, Hau⟩ := H $$ []
-      · iintro Hs Hst #Hx; imodintro; iframe; iframe #
-      iframe))
-    $$ [Hsrv Hst HlastLog Happ Hl Hsl Hfs]
+      iapply H
+      iintro Hpw Hs Hst #Hx; imodintro; iframe; iframe #))
+    $$ [Hsrv Hpw Hst HlastLog Happ Hl Hsl Hfs]
   · iframe; iframe #; ipureintro; exact ⟨Hg, Ha.1⟩
   inext
-  iintro ⟨%es, %Hes, Hsrv, ⟨%g', Hst, %Hg'⟩, HlastLog, Happ, Hl, Hsl, -, -⟩
+  iintro ⟨%es, %Hes, Hsrv, Hpw, ⟨%g', Hst, %Hg'⟩, HlastLog, Happ, Hl, Hsl, -, -⟩
   ihave Hrest := Hrest $$ Hst []
   · ipureintro; exact Hg'
   have hnc : ∀ e ∈ es, e.kind ≠ kConfig := by
@@ -74,7 +73,7 @@ theorem github_com.hashicorp.raft.Raft.dispatchLogs.wp_proof
     (replCover_append_noCfg γ.srvs i s.log es hnc) $$ Hl
   iapply HΦ
   iexists { s with log := s.log ++ es }
-  isplitl [Hsrv HlastLog Happ Hrest Hconf]
+  isplitl [Hsrv Hpw HlastLog Happ Hrest Hconf]
   · ihave Hrest := (mainRest_log r γ rc i s a (s.log ++ es)).2 $$ Hrest
     iapply mainOwnAt_lclose r γ rc i { s with log := s.log ++ es } a
     simp only [hLT]

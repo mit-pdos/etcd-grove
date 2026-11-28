@@ -38,7 +38,7 @@ theorem github_com.hashicorp.raft.Raft.setupLeaderState.wp_proof
   ihave ⟨#HInv, #Hvoter⟩ := isRaft_proto r γ rc i $$ Hr
   ihave %Hcv := isRaft_cv r γ rc i $$ Hr
   ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
-  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
+  ihave ⟨%a, Hsrv, Hpw, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
   iunfold confOwn at Hconf
   icases Hconf with ⟨%cfg, %ccfg, %cidx, %li, Hconfs, #Hcfg, #Hccfg, %Hli, #Hcmt, Hccm, %n0, #Hn0, Hcix, #Hcl⟩
   imod ccfgOwn_entry γ ⊤ (by solve_ndisj) i s.term (lastCfgIdx s.log) $$ [Hcc2] with ⟨Hcc2, %e0, #He0, %He0k⟩
@@ -87,9 +87,9 @@ theorem github_com.hashicorp.raft.Raft.setupLeaderState.wp_proof
   imod (start_bag (fun _ => iprop(True)) _ sd γsd trivial) $$ Hsdch Hsdown with #Hsdb
   wp_auto
   iapply HΦ
-  isplitl [Hsrv HlastLog Happ Hrest Hconfs Hccm Hcix]
+  isplitl [Hsrv Hpw HlastLog Happ Hrest Hconfs Hccm Hcix]
   · iapply mainOwnAt_lclose r γ rc i s a
-    iframe Hsrv HlastLog Happ Hrest
+    iframe Hsrv Hpw HlastLog Happ Hrest
     iframe #
     isplitr; · ipureintro; exact Ha
     iapply confOwn_intro r γ i s a cfg ccfg cidx li n0 Hli
