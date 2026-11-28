@@ -120,7 +120,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
     (hm : (V n).mems = []) (hpar0 : (V n).parts = []) (htold : Told (V n))
     (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hrl : rd.role = .leader)
     (hpfx : (V n).delivered ++ rd.ce <+: (V n).dur.log)
-    (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term)
+    (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) (hlt : LogTermsLe r₁.p)
     (hLP : LeaderPartD (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) n
       (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))))
     (hqs : ∀ q ∈ rd.qs,
@@ -142,7 +142,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
     hr.syncOff hro
   obtain ⟨hNF, hCL, hpend, hxpend, hlead, hDF⟩ :=
     memView_of (P := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q)) hA
-      (hs.2.2.2.2 n).2.2.2.2.2.2.2.1 hpar0 hro hx.hsn hP hpfx hterm hcl
+      (hs.2.2.2.2 n).2.2.2.2.2.2.2.1 hpar0 hro hx.hsn hP hpfx hterm hcl hlt
   exact memNode_of hs hok ha hpar hm htold hrl1 hNF hCL hLP (fun _ => hpend) hxpend hqs hlead
     (fun h => hx.hvs1 h) hDF hMC
 
