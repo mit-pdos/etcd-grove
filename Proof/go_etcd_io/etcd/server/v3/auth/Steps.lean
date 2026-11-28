@@ -504,6 +504,37 @@ theorem capNextM_authEnableOwn_at (M : AuthMode) (hs : List AuthState) (b0 : Boo
   | off => iintro -; unfold capNextM capNext; iintro !> %_ %_ -; itrivial
   | any => iintro -; unfold capNextM capNext; iintro !> %_ %_ -; itrivial
 
+/-- **A flag-reading step at the state's own flag** (nomode D3, 2026-11-28; `authEnableOwnR`'s
+form for `AuthDisable`, `UserDelete`, `UserRevokeRole`, `RoleDelete`): the step `F en` at the flag
+`en` the store read, which in `on γa` is the latest state's. -/
+def ownFlagR (F : Bool → AuthState → Outcome) : StepRel := fun st o => o = F st.enabled st
+
+/-- The cap's permission at every flag gives it at the state's own. -/
+theorem capNextM_ownFlag (M : AuthMode) (hs : List AuthState) (F : Bool → AuthState → Outcome) :
+    (□ ∀ en : Bool, capNextM (GF := GF) M hs (stepOf (F en))) ⊢ capNextM M hs (ownFlagR F) := by
+  unfold capNextM
+  iintro #H !> %st %st' %h
+  iapply H $$ %st.enabled %st %st'
+  ipureintro; exact ⟨h.1, h.2⟩
+
+/-- The cap's permission at the state's own flag gives it at the flag `b0` the latest state has
+(in `on γa`; elsewhere `capNext` is trivial). -/
+theorem capNextM_ownFlag_at (M : AuthMode) (hs : List AuthState) (F : Bool → AuthState → Outcome)
+    (b0 : Bool) (h : ∀ γa, M = .on γa → ∀ st, hs.getLast? = some st → st.enabled = b0) :
+    capNextM (GF := GF) M hs (ownFlagR F) ⊢ capNextM M hs (stepOf (F b0)) := by
+  cases M with
+  | on γa =>
+    unfold capNextM
+    iintro #H !> %st %st' %hh
+    iapply H
+    ipureintro
+    refine ⟨hh.1, ?_⟩
+    have he := h γa rfl st hh.1
+    show _ = F st.enabled st
+    rw [he]; exact hh.2
+  | off => iintro -; unfold capNextM capNext; iintro !> %_ %_ -; itrivial
+  | any => iintro -; unfold capNextM capNext; iintro !> %_ %_ -; itrivial
+
 /-- `capNextM_use` for a step function. -/
 theorem capNextM_step (M : AuthMode) (hs : List AuthState) (f : AuthState → Outcome)
     (st st' : AuthState) (hl : histLast M hs st) (h : f st = .next st') :

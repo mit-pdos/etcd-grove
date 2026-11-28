@@ -51,6 +51,12 @@ def uberKitM (on : Bool) : Prop :=
     apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG) ∧
     apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG) ∧
     apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG) ∧
+    apply.applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG) ∧
+    apply.applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG) ∧
+    apply.applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG) ∧
+    apply.applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG) ∧
+    apply.applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG) ∧
+    apply.applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG) ∧
     apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG) ∧
     apply.authApplierV3.Apply.specL (GF := GF) (hG := hG) ∧
     apply.applierV3backend.Apply.spec (GF := GF) (hG := hG)
@@ -59,7 +65,7 @@ def uberKitM (on : Bool) : Prop :=
 theorem srvUberOn_of_kit (hk : uberKitM (GF := GF) (hG := hG) true) (s : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ⊢
       srvUberOn (GF := GF) s := by
-  obtain ⟨hK, hAd, hRange, hDel, hPut, hTxn, hRev, hUA, hRA, hUGR, hRGP, hAE, hAu, hApplyL, hApply⟩ := hk
+  obtain ⟨hK, hAd, hRange, hDel, hPut, hTxn, hRev, hUA, hRA, hUGR, hRGP, hAE, hAD, hUD, hUC, hURR, hRD, hRRP, hAu, hApplyL, hApply⟩ := hk
   iintro #Hpkg
   iunfold srvUberOn
   iintro !> %E %γa %ua %hM #Hb
@@ -73,7 +79,7 @@ theorem srvUberOn_of_kit (hk : uberKitM (GF := GF) (hG := hG) true) (s : Loc) :
   · iintro %stl %bel %T %Pk %Wb %hPk #Hc #Hf #Hsteps
     iapply apply.uberAdmC_of hAd
     iframe Hpkg
-    iapply srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hAu hApplyL hApply s ua E γa stl bel T Pk Wb hM hPk
+    iapply srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hAD hUD hUC hURR hRD hRRP hAu hApplyL hApply s ua E γa stl bel T Pk Wb hM hPk
     iframe Hpkg Hb Hc Hf Hsteps
 
 end kit

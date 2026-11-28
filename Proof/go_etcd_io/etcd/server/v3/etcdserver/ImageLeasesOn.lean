@@ -37,7 +37,9 @@ theorem kvEntryOn_table_eq_or (c0 : w64) (ch : apply.Chain) (s : OnState) (m : E
       · left; rfl
       · split
         · left; rfl
-        · right; rfl
+        · split
+          · left; rfl
+          · right; rfl
     · left; rfl
   · right; rfl
 

@@ -194,7 +194,7 @@ theorem apiSvc_errOk (γ : GNames) (fc : FCtx GF) : ⊢ net.rpc.errOk (apiSvc (G
   rw [if_neg g0]
   by_cases g1 : m = go!"Read"
   · rw [if_pos g1]
-    icases HS with ⟨%v, -, HA⟩
+    icases HS with ⟨%v, %n0, %sc, %Ψ, -, -, -, -, HA⟩
     imodintro; iapply answers_err _ _ msg hne $$ HA
   rw [if_neg g1]
   by_cases g2 : m = go!"AddVoter"

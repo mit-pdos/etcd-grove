@@ -33,13 +33,28 @@ theorem apply.needAdminPermission.wp_proof :
   iunfold apply.internalRaftRequestIs at Hr
   simp only [apply.presentIs]
   icases Hr with ⟨%Hpn, -, -, -, -, -, -, -, -, -, -, -,
-    ⟨%l1, #F1, %H1⟩, ⟨%l2, #F2, %H2⟩, -, -, ⟨%l3, #F3, H3⟩, ⟨%l4, #F4, %H4⟩, -,
-    ⟨%l5, #F5, %H5⟩, ⟨%l6, #F6, H6⟩, ⟨%l7, #F7, %H7⟩, ⟨%l12, #F12, %H12⟩, ⟨%l13, #F13, %H13⟩,
-    ⟨%l8, #F8, H8⟩, ⟨%l11, #F11, %H11⟩, -, ⟨%l9, #F9, H9⟩, ⟨%l10, #F10, %H10⟩, -, -, -, -⟩
+    ⟨%l1, #F1, %H1⟩, ⟨%l2, #F2, %H2⟩, -, -, ⟨%l3, #F3, H3⟩, ⟨%l4, #F4, H4⟩, -,
+    ⟨%l5, #F5, H5⟩, ⟨%l6, #F6, H6⟩, ⟨%l7, #F7, H7⟩, ⟨%l12, #F12, %H12⟩, ⟨%l13, #F13, %H13⟩,
+    ⟨%l8, #F8, H8⟩, ⟨%l11, #F11, H11⟩, -, ⟨%l9, #F9, H9⟩, ⟨%l10, #F10, H10⟩, -, -, -, -⟩
   ihave %H3 := apply.optReqIs_nil l3 rq.authUserAdd _ apply.authUserAddIs_nn $$ H3
   ihave %H8 := apply.optReqIs_nil l8 rq.authRoleAdd _ apply.authRoleAddIs_nn $$ H8
   ihave %H6 := apply.optReqIs_nil l6 rq.authUserGrantRole _ apply.authUserGrantRoleIs_nn $$ H6
   ihave %H9 := apply.optReqIs_nil l9 rq.authRoleGrantPermission _ apply.authRoleGrantPermissionIs_nn $$ H9
+  ihave %H4 := apply.optReqIs_nil l4 rq.authUserDelete _ apply.authUserDeleteIs_nn $$ H4
+  replace H4 : l4 ≠ null ↔ rq.authUserDelete.isSome = true := by
+    cases h : rq.authUserDelete <;> simp_all
+  ihave %H5 := apply.optReqIs_nil l5 rq.authUserChangePassword _ apply.authUserChangePasswordIs_nn $$ H5
+  replace H5 : l5 ≠ null ↔ rq.authUserChangePassword.isSome = true := by
+    cases h : rq.authUserChangePassword <;> simp_all
+  ihave %H7 := apply.optReqIs_nil l7 rq.authUserRevokeRole _ apply.authUserRevokeRoleIs_nn $$ H7
+  replace H7 : l7 ≠ null ↔ rq.authUserRevokeRole.isSome = true := by
+    cases h : rq.authUserRevokeRole <;> simp_all
+  ihave %H11 := apply.optReqIs_nil l11 rq.authRoleDelete _ apply.authRoleDeleteIs_nn $$ H11
+  replace H11 : l11 ≠ null ↔ rq.authRoleDelete.isSome = true := by
+    cases h : rq.authRoleDelete <;> simp_all
+  ihave %H10 := apply.optReqIs_nil l10 rq.authRoleRevokePermission _ apply.authRoleRevokePermissionIs_nn $$ H10
+  replace H10 : l10 ≠ null ↔ rq.authRoleRevokePermission.isSome = true := by
+    cases h : rq.authRoleRevokePermission <;> simp_all
   replace H6 : l6 ≠ null ↔ rq.authUserGrantRole.isSome = true := by
     cases h : rq.authUserGrantRole <;> simp_all
   replace H9 : l9 ≠ null ↔ rq.authRoleGrantPermission.isSome = true := by

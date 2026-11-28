@@ -32,7 +32,7 @@ theorem Client.wp_proof
     (wp_AddrOK : AddrOK.spec (GF := GF) (hG := hG))
     (wp_Client : etcd_putget_dist.Client.spec (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ ep Γ mid Hat
+  intro _ _ ep Γ mid Hat
   wp_start as ⟨Hlt, Hsh⟩
   ihave #Hpg : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget $$ []

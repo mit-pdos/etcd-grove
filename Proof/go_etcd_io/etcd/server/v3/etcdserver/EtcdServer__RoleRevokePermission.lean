@@ -27,8 +27,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.RoleRevokePermission.wp_proof : EtcdServer.RoleRevokePermission.spec (GF := GF) (hG := hG) := by
-  intro s ctx r P Q
-  wp_start as ⟨%Hrn, HP, #Hraft⟩
+  intro s ctx r role key rangeEnd P Q
+  wp_start as ⟨#Hr, HP, #Hraft⟩
   (try wp_auto)
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
   iStructNamed Hirr
@@ -63,7 +63,7 @@ theorem EtcdServer.RoleRevokePermission.wp_proof : EtcdServer.RoleRevokePermissi
   ipersist ClusterMemberAttrSet
   ipersist DowngradeInfoSet
   ipersist DowngradeVersionTest
-  ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrRoleRevokePermission) $$ []
+  ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrRoleRevokePermission role key rangeEnd) $$ []
   · iunfold irrNoHdrIs
     simp only [irrRoleRevokePermission, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField]
     isplitr
@@ -71,8 +71,8 @@ theorem EtcdServer.RoleRevokePermission.wp_proof : EtcdServer.RoleRevokePermissi
     isplitr
     · have h0 : (W64 0 : w64) = 0 := by decide
       rw [h0]; iexact ID
-    repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp [Hrn]))
-    iexists _; iframe #; try (ipureintro; simp [Hrn])
+    repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
+    iexists _; iframe #; try (ipureintro; simp)
   iunfold authRaftOk at Hraft
   ispecialize Hraft $$ %«$a1_ptr»
   wp_apply Hraft $$ [$HP $Header] as %resp %err ⟨#Herr, Hout⟩

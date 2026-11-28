@@ -170,10 +170,23 @@ def frLb (fc : FCtx GF) (es : RLog) : IProp GF := monoListLbOwn fc.fr es
 instance frLb_persistent fc es : Persistent (frLb (GF := GF) fc es) := by
   unfold frLb; infer_instance
 
+/-- **A server covers the frontier `es`** (persistent, S6): `es` is empty, or within some server's
+durable prefix (the server whose FSM moved the frontier there), so a gprot snapshot taken later bounds
+it (`histLb_now`): a read registered at the frontier finds it within the snapshot it gives `Barrier`. -/
+def frDur (γ : GNames) (es : RLog) : IProp GF :=
+  iprop(⌜es = []⌝ ∨ ∃ j : SID, isSrv γ j ∗ durLb γ j es.length)
+
+instance frDur_persistent γ es : Persistent (frDur (GF := GF) γ es) := by
+  unfold frDur; infer_instance
+
+instance frDur_timeless γ es : Timeless (frDur (GF := GF) γ es) := by
+  unfold frDur isSrv durLb; infer_instance
+
 /-- **The frontier's invariant**: the frontier `es` is a committed prefix ending with a command,
-with the clients' state at it. -/
+within some server's durable prefix (`frDur`), with the clients' state at it. -/
 def frInv (γ : GNames) (fc : FCtx GF) : IProp GF :=
-  inv frN iprop(∃ es : RLog, monoListAuthOwn fc.fr 1 es ∗ cIdxs γ es ∗ ⌜lastCmd es⌝ ∗ fc.Q es)
+  inv frN iprop(∃ es : RLog, monoListAuthOwn fc.fr 1 es ∗ cIdxs γ es ∗ ⌜lastCmd es⌝ ∗ frDur γ es ∗
+    fc.Q es)
 
 instance frInv_persistent γ fc : Persistent (frInv (GF := GF) γ fc) := by
   unfold frInv; infer_instance
@@ -210,10 +223,11 @@ def storeInv (γ : GNames) (fc : FCtx GF) (alb : GName) (s : Loc) : IProp GF :=
     structFieldRef Store go!"index" s ↦ W64 es.length ∗ ⌜es.length < 2 ^ 62 ∧ lastCmd es⌝)
 
 /-- **Server `i`'s store `s`** (persistent): its mutex (the register, `storeInv`), the frontier
-and the clients' law, the bound on `i`'s durable prefix. -/
+and the clients' law, the bound on `i`'s durable prefix, `i` a protocol server (S6: the frontier it
+moves is within `i`'s durable prefix, `frDur`). -/
 def isStore (γ : GNames) (fc : FCtx GF) (alb : GName) (i : SID) (s : Loc) : IProp GF :=
   iprop(sync.isMutex (structFieldRef Store go!"mu" s) (storeInv γ fc alb s) ∗ frInv γ fc ∗
-    linStep γ fc ∗ durBound γ i)
+    linStep γ fc ∗ durBound γ i ∗ isSrv γ i)
 
 instance isStore_persistent γ fc alb i s : Persistent (isStore (GF := GF) γ fc alb i s) := by
   unfold isStore; infer_instance
@@ -403,13 +417,14 @@ theorem cmd_not_between (γ : GNames) (es0 : RLog) (n x : Nat) (hlast : lastCmd 
 frontier has passed) followed by the non-commands `ns` and the command `e`, all committed. If the
 frontier is at `es` (it cannot be strictly between `es` and `e`: no command is), it moves to
 `es ++ ns ++ [e]`, and the clients' state with it (`linStep`); else it is already past. -/
-theorem frontier_apply (γ : GNames) (fc : FCtx GF) (es ns : RLog) (e : Entry)
+theorem frontier_apply (γ : GNames) (fc : FCtx GF) (es ns : RLog) (e : Entry) (i : SID)
     (hns : ∀ x ∈ ns, x.kind ≠ kCommand) (he : e.kind = kCommand) :
     £ 1 ∗ frInv γ fc ∗ linStep γ fc ∗ frLb fc es ∗ cIdxs γ (es ++ ns ++ [e]) ∗
-      noCmdBetween γ es.length (es ++ ns ++ [e]).length ⊢ |={⊤}=> frLb fc (es ++ ns ++ [e]) := by
-  iintro ⟨Hlc, #Hfr, #Hls, #Hlb, #Hpre, #Hnc⟩
+      noCmdBetween γ es.length (es ++ ns ++ [e]).length ∗ isSrv γ i ∗
+      durLb γ i (es ++ ns ++ [e]).length ⊢ |={⊤}=> frLb fc (es ++ ns ++ [e]) := by
+  iintro ⟨Hlc, #Hfr, #Hls, #Hlb, #Hpre, #Hnc, #Hsv, #Hdl⟩
   unfold frInv
-  iinv Hfr with ⟨%esf, >Hauth, >#Hpf, >%Hlf, HQ⟩ Hclose
+  iinv Hfr with ⟨%esf, >Hauth, >#Hpf, >%Hlf, >#Hfd, HQ⟩ Hclose
   unfold frLb
   ihave %Hle := mono_list_auth_lb_valid fc.fr 1 esf es $$ Hauth Hlb
   imod monoListAuthOwn_update esf (List.prefix_refl _) $$ Hauth with ⟨Hauth, #Hlbf⟩
@@ -437,7 +452,10 @@ theorem frontier_apply (γ : GNames) (fc : FCtx GF) (es ns : RLog) (e : Entry)
     imod monoListAuthOwn_update (esf ++ ns ++ [e]) (by simp [List.append_assoc]) $$ Hauth
       with ⟨Hauth, #Hlb'⟩
     imod Hclose $$ [Hauth HQ]
-    · inext; iexists esf ++ ns ++ [e]; iframe; iframe #; ipureintro; exact lastCmd_snoc _ e he
+    · inext; iexists esf ++ ns ++ [e]; iframe; iframe #
+      isplitr
+      · ipureintro; exact lastCmd_snoc _ e he
+      unfold frDur; iright; iexists i; iframe #
     imodintro
     iexact Hlb'
 
