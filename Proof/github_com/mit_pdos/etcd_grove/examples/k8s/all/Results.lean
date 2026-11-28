@@ -5,8 +5,8 @@ user's decisions of 2026-11-20), restated, with the trust base of each printed i
 
 * **`k8s_all_Main`** (`MainLinked.lean`'s `k8s_all.wp_Main`): `Main(k1, clients, ops, watchers, wops,
   sched1, k2, sched2)` does not panic: the two drivers' `MainPartition` triples side by side
-  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/Main.lean`), under the named hypothesis of
-  `clock.RealClock.After`; **`k8s_all_MainChecked`**, the program's entry point, likewise.
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/Main.lean`); **`k8s_all_MainChecked`**, the
+  program's entry point, likewise.
 * **`k8s_safe_single_process`** (`Adequacy.lean`'s `k8s_adequate`): the closed theorem. Every real execution of `n`
   steps of the package's initialization followed by `MainChecked` (the pure-premises plan's P5,
   2026-11-24: `Main` behind `ParamsOk`, with schedules it draws), from a fresh state with one thread,
@@ -62,17 +62,15 @@ variable [NaInvG GF]
 /-- **`MainChecked`, the program's entry point, does not panic** (`MainLinked.lean`'s
 `k8s_all.wp_MainChecked`). -/
 theorem k8s_all_MainChecked
-    [go_etcd_io.etcd.cache.v3.Assumptions]
-    (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
-  k8s_all.wp_MainChecked h_After
+  k8s_all.wp_MainChecked
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_all.wp_Main`). -/
 theorem k8s_all_Main
-    [go_etcd_io.etcd.cache.v3.Assumptions]
-    (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
-  k8s_all.wp_Main h_After
+  k8s_all.wp_Main
 
 end results
 
@@ -91,8 +89,6 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
-    (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
-      EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     -- the store's cluster: `k₁` members
     (k₁ : w64) (ids : List w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) (Hlen : ids.length = uint.nat k₁)
@@ -129,7 +125,7 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_adequate Hafter k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot' Hlen' Hbf'
+  k8s_adequate k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot' Hlen' Hbf'
     Haf Hbuq Hrf Hdbo clients ops watchers wops n₁ n₂ HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 

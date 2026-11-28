@@ -37,12 +37,12 @@ variable [go_gctx : GoGlobalContext]
 
 /-- `k8s_robust_single_process.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean`). -/
 theorem k8s_robust_single_process : k8s_robust_single_process.spec := by
-  intro lctx sem package_sem cache_sem _ Hafter k₁ ids ps ctxs boot
+  intro lctx sem package_sem cache_sem _ k₁ ids ps ctxs boot
     Hlen Hbf k₂ ids' ps' ctxs' boot' Hlen' Hbf' Hlow Haf Hbuq Hrf Hdbo clients ops watchers wops n₁ n₂
     HAs HDs HEnv Hprem₁ Hprem₂ σ g Hfs HWal
   exact
     robust_of_single_below_init fun hf hg _ n κs t2 σ2 hn hexec =>
-      (k8s_adequate_below Hafter k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot'
+      (k8s_adequate_below k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot'
         Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops n₁ n₂ HAs HDs HEnv n
         (Hprem₁ n (by omega)) (Hprem₂ n (by omega)) σ g hg Hfs HWal
         hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2

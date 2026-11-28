@@ -28,9 +28,8 @@ is in `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.
 `k8s_compactor_partition_safe`'s, now retired): each cluster's member ids and bootstrap log
 (`BootFacts`), the server's four opaque workload and environment premises once, the program's addresses and data directories (both
 clusters', concatenated), `ETCD_VERIFY` off, each cluster's named premises (`Hprem₁`, `Hprem₂`, at one
-step bound), `time.After`'s contract (the compactor's), the file system's initial state and the members'
-WAL areas; and one new premise, `Hlow`: the 16 low bits of the ids of the process's every member
-(both clusters') are distinct, the precondition of the trusted model of etcd's request-id generator
+step bound), the file system's initial state and the members' WAL areas; and one new premise, `Hlow`:
+the 16 low bits of the ids of the process's every member (both clusters') are distinct, the precondition of the trusted model of etcd's request-id generator
 (`TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`: no two generators of the process issue one id),
 checked for every `k₁ ≤ 1000` and `k₂ ≤ 600` by `examples/k8s/all`'s `TestMemberIDs` (the bound on
 `k₂`: with the store's 1000 ids fixed, no compactor token keeps 1000 more distinct; the plan's §3).
@@ -53,7 +52,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
-public import Spec.k8s_io.utils.clock.RealClock__After
 
 @[expose] public section
 
@@ -90,8 +88,6 @@ def k8s_robust_single_process.spec : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
-    (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
-      EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     -- the store's cluster: `k₁` members
     (k₁ : w64) (ids : List w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) (Hlen : ids.length = uint.nat k₁)
