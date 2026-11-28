@@ -176,6 +176,7 @@ sections were added at the top). Sections moved later are appended at the end, n
 - 2026-10-19 (D22 S-0, on `raft-retarget`: the plan checked by hand, no Lean change; D22a (A) fails (the stale merged snapshot makes receiver invariants false), (D) a fork check proposed; D22g (A) and D22k (A) fork fixes adopted; a second Go bug filed and reproduced, `issues/etcd-auth-snapshot-closed-backend-panic.md`; see "D22 S-0: the plan checked")
 - 2026-10-22 (client-default: linkv, linkv3, linkvtxn, watchkv and cachekv use etcd's default client configuration, their members refusal-free (`etcd_noRefusal`, D29); one family of client call lemmas in `client/v3/ClientPutGet.lean`; D31; see "The examples' clients")
 - 2026-10-22 (the repository is sorry-free: mvcc's `kvHasher` translated, its `hash.Hash32` field's package `hash` types-only here, so its generated instances are no longer `sorry -- axiomatized type`; trust base 543 axioms, 0 sorries; see "`kvHasher` translated: no sorry left")
+- 2026-11-27 (**hraft-p4b batch 2: `nextConfiguration` and `Raft.leadershipTransfer_`'s proofs** (#48; branch `hraft-p4b2/2026-11-27`): the last two of P4 group B's 52 code proofs of hashicorp/raft, ported from dsverify-lab (`241f27e`) unchanged but the rename, over group A's `FmtErrorf` (`fmt.wp_Errorf_*`, theorems). No axiom, `sorry` or premise)
 
 ## The opening paragraph of STATUS.md until 2026-10-22 (its lines 4-50)
 
