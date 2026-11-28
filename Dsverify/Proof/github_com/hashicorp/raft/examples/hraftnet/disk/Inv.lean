@@ -44,7 +44,7 @@ inductive DiskOp
 /-- The state after the write `op` (the contracts' updates; `del`'s `hi'` the largest index left). -/
 def DiskOp.apply : DiskOp → DiskAbs → DiskAbs
   | .log (.store first es), D => { D with L := D.L.store first es }
-  | .log (.del mn mx), D => { D with L := D.L.delete mn mx (maxKey (LogAbs.del D.L.m mn mx)) }
+  | .log (.del _ mn mx), D => { D with L := D.L.delete mn mx (maxKey (LogAbs.del D.L.m mn mx)) }
   | .stab (.setU k v), D => { D with S := { D.S with ints := D.S.ints.insert k v } }
   | .stab (.set k vb), D => { D with S := { D.S with bytes := D.S.bytes.insert k vb } }
 
@@ -86,19 +86,19 @@ instance diskImg_countable : Pos.Countable DiskImg :=
       cases a; cases b; simp only [Prod.mk.injEq] at h
       obtain ⟨h1, h2, h3, h4⟩ := h; subst h1 h2 h3 h4; rfl)
 
-def logOpEnc : LogOp → (Nat × RLog) ⊕ (Nat × Nat)
+def logOpEnc : LogOp → (Nat × RLog) ⊕ (Bool × Nat × Nat)
   | .store f es => .inl (f, es)
-  | .del a b => .inr (a, b)
+  | .del t a b => .inr (t, a, b)
 
 def stableOpEnc : StableOp → (List w8 × w64) ⊕ (List w8 × List w8)
   | .setU k v => .inl (k, v)
   | .set k v => .inr (k, v)
 
-def diskOpEnc : DiskOp → ((Nat × RLog) ⊕ (Nat × Nat)) ⊕ ((List w8 × w64) ⊕ (List w8 × List w8))
+def diskOpEnc : DiskOp → ((Nat × RLog) ⊕ (Bool × Nat × Nat)) ⊕ ((List w8 × w64) ⊕ (List w8 × List w8))
   | .log o => .inl (logOpEnc o)
   | .stab o => .inr (stableOpEnc o)
 
-def diskWinEnc : DiskWin → Option (Option ((((Nat × RLog) ⊕ (Nat × Nat)) ⊕ ((List w8 × w64) ⊕ (List w8 × List w8))) × DiskImg))
+def diskWinEnc : DiskWin → Option (Option ((((Nat × RLog) ⊕ (Bool × Nat × Nat)) ⊕ ((List w8 × w64) ⊕ (List w8 × List w8))) × DiskImg))
   | .idle => none
   | .fresh => some none
   | .open op I => some (some (diskOpEnc op, I))
