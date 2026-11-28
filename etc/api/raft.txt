@@ -32,6 +32,8 @@ importable Proof.go_etcd_io.raft.v3.ConfRule
 importable Proof.go_etcd_io.raft.v3.InvNodeRule
 # A client retaining durable-state ownership can observe the ordered, committed log prefix.
 importable Proof.go_etcd_io.raft.v3.DurableLogView
+# (keepfix (c), 2026-11-28) raft's boot law proved: `raftBootFix_law : raftBootFix.law`
+importable Proof.go_etcd_io.raft.v3.BootFixFacts
 # (2026-11-24) leader completeness through the durable state: `cmtBefore` (sealed), L1/L2
 importable Proof.go_etcd_io.raft.v3.LeaderCompleteLaw
 # (2026-10-28, the conf-change decision switch) a client library deciding conf entries by a rule over

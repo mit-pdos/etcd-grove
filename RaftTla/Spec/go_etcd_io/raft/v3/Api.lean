@@ -60,6 +60,7 @@ part of the signature yet.
 module
 
 public import RaftTla.Spec.go_etcd_io.raft.v3.RestartNode
+public import RaftTla.Spec.go_etcd_io.raft.v3.RaftBootFix
 public import RaftTla.Spec.go_etcd_io.raft.v3.StartNode
 public import RaftTla.Spec.go_etcd_io.raft.v3.node__Propose
 public import RaftTla.Spec.go_etcd_io.raft.v3.node__ProposeConfChange

@@ -213,6 +213,11 @@ theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64
 /-! ## The bootstrap log's length (2026-10-29, U9: the static cluster's section, `isStaticCluster`,
 `cluster_alloc`, `cluster_alloc_static`, deleted; one cluster, `isCluster`, `InvNodeRule.lean`) -/
 
+/-- (keepfix (c), 2026-11-28) **The namespace of raft's term budget** (sealed): its invariant is
+outside the cluster's namespace; a law that raises a term past every node's (`raftBootFix.law`)
+opens it. -/
+@[no_expose] def raftBudgetN : Namespace := budgetN
+
 /-- The length of the bootstrap log the cluster was started from (sealed). -/
 @[no_expose] def Cluster.bootLen (γ : Cluster) : Nat := γ.raft.reBoot.length
 

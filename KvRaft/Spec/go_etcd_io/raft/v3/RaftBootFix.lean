@@ -1,0 +1,70 @@
+-- The copy for the part `KvRaft/` of `RaftNoAx/Spec/go_etcd_io/raft/v3/RaftBootFix.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Lean-first (no Rocq counterpart).
+
+## Raft's boot law (keepfix (c), 2026-11-27)
+
+The ghost step etcd's restart takes after `bootstrap`'s catch-up (fork `catchUpWithBackend`): with no
+node of the id running, its durable state moves to the hard state and log the catch-up writes
+(`~/coordinator-notes/plans/keepfix-c-design.md` §2, rev 2, with `notCrashed` and `rt ≠ 0`).
+-/
+module
+
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvNode
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvNodeRule
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section pure
+variable [GooseExts]
+
+/-- **The durable state after the boot step's catch-up** (Go `bootstrap.go`'s `catchUpWithBackend`,
+fork keepfix-d-term-bbump @828afc98f): `T = max t rt` (the backend's consistent index's term `t`, the
+raft term saved with it `rt`); the commit index raised to `ci`. If the log holds `(ci, t)`, the term
+raised to `T` with the vote cleared when it moves. Otherwise the log is replaced by the empty log at
+the base `(t, ci)` (a snapshot record at `ci`, `wcommit` with it) and the term raised to
+`max(T, S.term + 1)` with the vote cleared: a term in which the member neither voted nor campaigned
+with the log the record dropped. -/
+def raftBootFix (S : RaftState) (ci : Nat) (t rt : w64) : RaftState :=
+  let T := if uint.Z t ≤ uint.Z rt then rt else t
+  if plogTermAt S.base S.ents (W64 ci) = some t then
+    { S with term := if uint.Z S.term < uint.Z T then T else S.term,
+             vote := if uint.Z S.term < uint.Z T then W64 0 else S.vote, commit := W64 ci }
+  else
+    { term := if uint.Z S.term < uint.Z T then T else S.term + W64 1, vote := W64 0,
+      base := entryID.mk t (W64 ci), ents := [], commit := W64 ci, wcommit := W64 ci }
+
+end pure
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable [CrashGS GF]
+
+/-- **Raft's boot law** (keepfix (c)): node `id` vacant (`nodeVacantA`), its durable state `S`
+behind the backend's consistent index `ci > S.commit` (the committed log `l`'s entry `e` at `ci`),
+raft having committed the log through `c ≥ ci` at the saved raft term `rt ≠ 0`
+(`committedAtTerm`): the durable state moves to `raftBootFix S ci e.term rt`. With the generation
+running (`notCrashed`), and a time receipt (`⧗ 1`) paying for the term budget of a raise past the
+member's term (`budget_spend`). -/
+abbrev raftBootFix.law : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (id : w64) (x : CrashNames) (S : RaftState) (l : List LogEntry)
+    (ci : Nat) (e : LogEntry) (rt c : w64) (E : CoPset),
+  ↑N ⊆ E → ↑raftBudgetN ⊆ E → 0 < ci → l[ci - 1]? = some e → uint.nat S.commit < ci → ci ≤ uint.nat c → rt ≠ W64 0 →
+  ⊢ notCrashed -∗ ⧗ 1 -∗ isCluster (GF := GF) γ N -∗ nodeVacantA γ id x -∗ isCommittedLogLb γ l -∗
+      committedAtTerm γ N rt c -∗ raftState γ id S ={E}=∗
+      notCrashed ∗ nodeVacantA γ id x ∗ raftState γ id (raftBootFix S ci e.term rt)
+
+end spec
+
+end EtcdGrove
+end Perennial

@@ -60,6 +60,7 @@ part of the signature yet.
 module
 
 public import KvRaft.Spec.go_etcd_io.raft.v3.RestartNode
+public import KvRaft.Spec.go_etcd_io.raft.v3.RaftBootFix
 public import KvRaft.Spec.go_etcd_io.raft.v3.StartNode
 public import KvRaft.Spec.go_etcd_io.raft.v3.node__Propose
 public import KvRaft.Spec.go_etcd_io.raft.v3.node__ProposeConfChange
