@@ -50,7 +50,7 @@ existing term, and a snapshot later than `s0` in which `i`'s term is `t` (`termC
 atomic load). -/
 theorem github_com.hashicorp.raft.wp_getCurrentTerm_wit (r : Loc) (γ : GNames) (i : SID)
     (s0 : Snap) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ termCell r γ i ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ termCell r γ rc i ∗
         isSrv γ i ∗ histLb γ s0 }}
       (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getCurrentTerm")) (Val #()))
     {{ (t : w64), RET #t; termOk γ (uint.nat t) ∗

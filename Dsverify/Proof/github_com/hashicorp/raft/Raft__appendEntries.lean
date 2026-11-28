@@ -410,7 +410,7 @@ theorem github_com.hashicorp.raft.Raft.appendEntries.wp_proof
   ihave ⟨#HI, #Hvi⟩ := isRaft_proto r γ rc i $$ Hr
   ihave #Htc := isRaft_termCell r γ rc i $$ Hr
   ihave #Hcc := isRaft_cidxCell r γ rc i $$ Hr
-  ihave #Hlc := isRaft_logCell r γ rc i $$ Hr
+  ihave #Hlc := isRaft_durInv r γ rc i $$ Hr
   ihave #Hsc := isRaft_stateCell r γ rc i $$ Hr
   wp_apply wp_with_defer as %defer Hdefer
   wp_apply wp_getRPCHeader r γ rc i $$ [$Hr] as %h0 #Hh0

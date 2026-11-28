@@ -40,7 +40,7 @@ theorem github_com.hashicorp.raft.Raft.observe.wp_proof :
   wp_apply (lc := 2) wp_with_defer as %defer Hdefer
   imod qpool.borrow_lc observersLockN γp _ ⊤ (by solve_ndisj) tid $$ [$Hlc1 $Hpool $Htok]
     with ⟨Hown, Hloan⟩
-  wp_apply (sync.RWMutex.wp_RLock _ (observersP γ i r)) $$ [$Hown] as ⟨Hrl, HP⟩
+  wp_apply (sync.RWMutex.wp_RLock _ (observersP γ rc i r)) $$ [$Hown] as ⟨Hrl, HP⟩
   iunfold observersP at HP
   icases HP with ⟨%m, %mv, Hm, Hmv, #Hobs⟩
   wp_auto
@@ -79,7 +79,7 @@ theorem github_com.hashicorp.raft.Raft.observe.wp_proof :
         iframe
   iintro ⟨Harg, -⟩ Hmv
   wp_auto
-  wp_apply (sync.RWMutex.wp_RUnlock _ (observersP γ i r)) $$ [$Hrl Hm Hmv] as Hown
+  wp_apply (sync.RWMutex.wp_RUnlock _ (observersP γ rc i r)) $$ [$Hrl Hm Hmv] as Hown
   · inext; iunfold observersP; iexists m, mv; iframe; iframe #
   imod qpool.giveBack observersLockN γp _ ⊤ (by solve_ndisj) tid $$ [$Hpool $Hloan $Hown]
     with Htok

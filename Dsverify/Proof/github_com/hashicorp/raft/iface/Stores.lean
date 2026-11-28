@@ -15,7 +15,9 @@ values and the protocol model's entries.
   the end and truncations of a suffix, as raft does them. A write takes, for the duration of the
   call, a fraction of the server's durable-prefix view (`gprot.durView`) showing that it writes
   past the durable prefix: hr3's `checkedStore` checks exactly this before writing (log safety).
-* The stable store is owned by one goroutine (raft's main goroutine): plain specs.
+* (hraft_robust L0) The stable store is TaDa too, and every atomic update is a crash-token update
+  (`|NC=`); writes lend the client's window resource `W` to the store until their commit point (see
+  `isLogStore`). (Was: owned by one goroutine, plain specs.)
 * The snapshot store has no snapshots: `List` returns none (snapshots are out of scope).
 * Reads take a `sync.RWMutex` read lock, so they take the calling thread's quarter token `rtok tid` (a reader
   token is borrowed from a quarter thread pool for the critical section: `Threads/QPool.lean`, D15)
@@ -77,6 +79,12 @@ deletion it is some value, which raft uses only for `shouldSnapshot`'s threshold
 structure LogAbs where
   m : GMap Nat Entry
   hi : w64
+  /-- (hraft_robust L0) the commit index staged for the next `StoreLogs` (`StageCommitIndex`; a
+  store that is not a `CommitTrackingLogStore` never changes it). Volatile: a crash resets it. -/
+  staged : w64
+  /-- (hraft_robust L0) the commit index written with the last `StoreLogs` (`GetCommitIndex`
+  returns it, capped at `hi`). Durable. -/
+  ci : w64
 
 /-- `m` with the entries `es` inserted at `first, first+1, …`. -/
 def LogAbs.ins (m : GMap Nat Entry) (first : Nat) : RLog → GMap Nat Entry
@@ -88,24 +96,33 @@ def LogAbs.del (m : GMap Nat Entry) (mn mx : Nat) : GMap Nat Entry :=
   GMap.filter (fun k _ => decide (¬ (mn ≤ k ∧ k ≤ mx))) m
 
 /-- The empty store (`NewInmemStore`). -/
-def LogAbs.empty : LogAbs := ⟨∅, W64 0⟩
+def LogAbs.empty : LogAbs := ⟨∅, W64 0, W64 0, W64 0⟩
 
 /-- The store after `StoreLogs` of `es` at `first..` (`hi`: the larger of the old one and the last
 index written). -/
 def LogAbs.store (A : LogAbs) (first : Nat) (es : RLog) : LogAbs :=
   ⟨LogAbs.ins A.m first es,
     if es = [] then A.hi else
-      (if uint.nat A.hi < first + es.length - 1 then W64 (first + es.length - 1) else A.hi)⟩
+      (if uint.nat A.hi < first + es.length - 1 then W64 (first + es.length - 1) else A.hi),
+    A.staged, A.staged⟩
+
+/-- (hraft_robust L0) The store after `DeleteRange(mn, mx)`, with the new `LastIndex` value `hi'`
+(some value: the contract lets the store choose it). -/
+def LogAbs.delete (A : LogAbs) (mn mx : Nat) (hi' : w64) : LogAbs :=
+  { A with m := LogAbs.del A.m mn mx, hi := hi' }
+
+/-- (hraft_robust L0) What `GetCommitIndex` returns: the written commit index, at most `hi`. -/
+def LogAbs.readCi (A : LogAbs) : w64 := if uint.nat A.hi < uint.nat A.ci then A.hi else A.ci
 
 instance logAbs_countable : Pos.Countable LogAbs :=
-  Pos.Countable.ofInjective (fun A => Pos.Countable.encode (A.m, A.hi))
+  Pos.Countable.ofInjective (fun A => Pos.Countable.encode (A.m, A.hi, A.staged, A.ci))
     (by
       intro a b h
       have h := Pos.encode_inj h
       cases a; cases b
       simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2⟩ := h
-      subst h1; subst h2; rfl)
+      obtain ⟨h1, h2, h3, h4⟩ := h
+      subst h1; subst h2; subst h3; subst h4; rfl)
 
 /-- What `GetLog(idx, ptr)` leaves, for store contents `m`: the entry copied into `*ptr` and a nil
 error, or (no entry at `idx`) a non-nil error, the value of a raft error variable (both stores return
@@ -120,13 +137,23 @@ through `own` (exclusive, one owner; stage 3: a partial map with the last index 
 Every operation is logically atomic (the caller's atomic update is committed at the store's
 linearization point) and returns a nil error; reads take the calling thread's quarter token.
 (Stage 3: the writes no longer take `durView`/`llogIdx`: they were for hr3's `checkedStore`, which
-`Main` no longer uses; the client's invariant, `core.logCell`, keeps what it needs.) -/
+`Main` no longer uses.)
+
+(hraft_robust L0, R1 §2.1) **Crash-aware form.** Every atomic update is a crash-token update
+(`|NC={⊤,∅}=>`): the client may open invariants shared with later generations (`srvDurInv`). A write
+also takes a **window resource** `W` of the client's choosing, which it hands to the atomic update at
+its commit point (a durable store: the directory sync of its file write); between its file's rename
+and that sync the store holds `W`, and its crash lemma gives `W` back if the new contents survived (so
+the client can fire, at the crash, the step it would have fired at the commit). A store without a
+window (`InmemStore`) passes `W` on at once. The written commit index (`CommitTrackingLogStore`,
+`StageCommitIndex`/`GetCommitIndex`) is in `LogAbs` (`staged`, `ci`); when `x`'s dynamic type is a
+`CommitTrackingLogStore`, its two methods are specified too. -/
 def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) : IProp GF :=
   iprop(
     -- `LastIndex()`: `hi`, atomically
     □ (∀ (tid : Nat) (Φ : val → IProp GF),
         rtok tid -∗
-        (|={⊤,∅}=> ▷ ∃ A, own A ∗
+        (|NC={⊤,∅}=> ▷ ∃ A, own A ∗
           (own A ={∅,⊤}=∗ (rtok tid -∗ Φ (PairV #A.hi #interface.nil)))) -∗
         WP (App (Val #(methods x.ty go!"LastIndex" x.v)) (Val #())) {{ Φ }}) ∗
     -- `FirstIndex()`: some index, no error (raft uses it only as the start of a compaction)
@@ -136,33 +163,48 @@ def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) : IProp GF :=
     -- `GetLog(idx, ptr)`: a copy of the entry at `idx`, or `ErrLogNotFound`, atomically
     □ (∀ (idx : w64) (ptr : Loc) (lv0 : Log) (tid : Nat) (Φ : val → IProp GF),
         ptr ↦ lv0 -∗ rtok tid -∗
-        (|={⊤,∅}=> ▷ ∃ A, own A ∗
+        (|NC={⊤,∅}=> ▷ ∃ A, own A ∗
           (own A ={∅,⊤}=∗ ∀ err : GoInterface, getLogPost ptr (uint.nat idx) A.m err -∗
             rtok tid -∗ Φ #err)) -∗
         WP (App (App (Val #(methods x.ty go!"GetLog" x.v)) (Val #idx)) (Val #ptr)) {{ Φ }}) ∗
-    -- `StoreLogs(sl)`: insert the entries `es` (pointed to by `ptrs`, at indexes `first..`)
-    □ (∀ (sl : GoSlice) (dq : DFrac) (ptrs : List Loc) (first : Nat) (es : RLog)
+    -- `StoreLogs(sl)`: insert the entries `es` (pointed to by `ptrs`, at indexes `first..`), and
+    -- write the staged commit index; committed (durable) at the atomic update, `W` lent till then
+    □ (∀ (sl : GoSlice) (dq : DFrac) (ptrs : List Loc) (first : Nat) (es : RLog) (W : IProp GF)
           (Φ : val → IProp GF),
         ⌜ptrs.length = es.length ∧ first + es.length < 2 ^ 64⌝ -∗
         sl ↦*{dq} ptrs -∗
         ([∗list] k ↦ p ∈ ptrs, ∃ e, ⌜es[k]? = some e⌝ ∗ logPtr p (first + k) e) -∗
-        (|={⊤,∅}=> ▷ ∃ A, own A ∗
+        W -∗
+        (W -∗ |NC={⊤,∅}=> ▷ ∃ A, own A ∗
           (own (A.store first es) ={∅,⊤}=∗ (sl ↦*{dq} ptrs -∗ Φ #interface.nil))) -∗
         WP (App (Val #(methods x.ty go!"StoreLogs" x.v)) (Val #sl)) {{ Φ }}) ∗
     -- `StoreLog(l)`: the same for one entry
-    □ (∀ (p : Loc) (first : Nat) (e : Entry) (Φ : val → IProp GF),
-        ⌜first < 2 ^ 64⌝ -∗ logPtr p first e -∗
-        (|={⊤,∅}=> ▷ ∃ A, own A ∗
+    □ (∀ (p : Loc) (first : Nat) (e : Entry) (W : IProp GF) (Φ : val → IProp GF),
+        ⌜first < 2 ^ 64⌝ -∗ logPtr p first e -∗ W -∗
+        (W -∗ |NC={⊤,∅}=> ▷ ∃ A, own A ∗
           (own (A.store first [e]) ={∅,⊤}=∗ Φ #interface.nil)) -∗
         WP (App (Val #(methods x.ty go!"StoreLog" x.v)) (Val #p)) {{ Φ }}) ∗
     -- `DeleteRange(mn, mx)`: delete the entries at `mn..mx` (none if `mx < mn`); `LastIndex` is some
     -- value afterwards. (`mx < 2^64 - 1`: InmemStore's loop `j <= max` would not end.)
-    □ (∀ (mn mx : w64) (Φ : val → IProp GF),
-        ⌜uint.nat mx < 2 ^ 64 - 1⌝ -∗
-        (|={⊤,∅}=> ▷ ∃ A, own A ∗
-          (∀ hi' : w64, own ⟨LogAbs.del A.m (uint.nat mn) (uint.nat mx), hi'⟩
+    □ (∀ (mn mx : w64) (W : IProp GF) (Φ : val → IProp GF),
+        ⌜uint.nat mx < 2 ^ 64 - 1⌝ -∗ W -∗
+        (W -∗ |NC={⊤,∅}=> ▷ ∃ A, own A ∗
+          (∀ hi' : w64, own (A.delete (uint.nat mn) (uint.nat mx) hi')
             ={∅,⊤}=∗ Φ #interface.nil)) -∗
-        WP (App (App (Val #(methods x.ty go!"DeleteRange" x.v)) (Val #mn)) (Val #mx)) {{ Φ }}))
+        WP (App (App (Val #(methods x.ty go!"DeleteRange" x.v)) (Val #mn)) (Val #mx)) {{ Φ }}) ∗
+    -- (hraft_robust L0) commit tracking: either the dynamic type is not a `CommitTrackingLogStore`,
+    -- or `StageCommitIndex(idx)` sets `staged` (volatile, no window) and `GetCommitIndex()` returns
+    -- the written index capped at `hi` (`readCi`), both atomically
+    (⌜go.typeSetContains x.ty CommitTrackingLogStore.ty = false⌝ ∨
+      ⌜go.typeSetContains x.ty CommitTrackingLogStore.ty = true⌝ ∗
+      □ (∀ (idx : w64) (Φ : val → IProp GF),
+          (|NC={⊤,∅}=> ▷ ∃ A, own A ∗ (own { A with staged := idx } ={∅,⊤}=∗ Φ #interface.nil)) -∗
+          WP (App (Val #(methods x.ty go!"StageCommitIndex" x.v)) (Val #idx)) {{ Φ }}) ∗
+      □ (∀ (tid : Nat) (Φ : val → IProp GF),
+          rtok tid -∗
+          (|NC={⊤,∅}=> ▷ ∃ A, own A ∗
+            (own A ={∅,⊤}=∗ (rtok tid -∗ Φ (PairV #A.readCi #interface.nil)))) -∗
+          WP (App (Val #(methods x.ty go!"GetCommitIndex" x.v)) (Val #())) {{ Φ }})))
 
 instance isLogStore_persistent x own : Persistent (isLogStore (GF := GF) x own) := by
   unfold isLogStore; infer_instance
@@ -174,37 +216,58 @@ structure StableAbs where
   ints : GMap (List w8) w64
   bytes : GMap (List w8) (List w8)
 
+/-- (hraft_robust L0: moved from `InmemStoreBase`, raft's crash state keeps a ghost view of it) -/
+instance stableAbs_countable : Pos.Countable StableAbs :=
+  Pos.Countable.ofInjective
+    (fun s => Pos.Countable.encode (s.ints, s.bytes))
+    (by
+      intro a b h
+      have h := Pos.encode_inj h
+      cases a; cases b
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2⟩ := h
+      subst h1; subst h2; rfl)
+
 /-- The error `errors.New("not found")` (what `Get` of a missing key returns; raft compares its
 `Error()` with `"not found"`). -/
 def isNotFoundErr (err : GoInterface) : IProp GF :=
   iprop(∃ p : Loc, ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #p⌝ ∗
     p ↦□ (errors.errorString.mk go!"not found"))
 
-/-- **The stable store contract** of `x`, owned by one goroutine through `own`. Keys and values
-are read-only byte slices; reads take the thread's token. (Revised: `Get` returns any stored value,
-an empty non-nil slice included.) -/
+/-- **The stable store contract** of `x`, whose abstract contents the client owns through `own`.
+Keys and values are read-only byte slices; reads take the thread's token. (Revised: `Get` returns any
+stored value, an empty non-nil slice included.)
+
+(hraft_robust L0, R1 §2.1) **TaDa, crash-aware**, as the log store's (`isLogStore`): every operation
+is logically atomic, its atomic update a crash-token update; a write is committed (durable) at its
+atomic update and lends the client's window resource `W` to the store until then. (Was: owned by one
+goroutine, plain specs, which pin no commit point for a crash.) -/
 def isStableStore (x : GoInterfaceOk) (own : StableAbs → IProp GF) : IProp GF :=
   iprop(
-    □ (∀ (st : StableAbs) (key : GoSlice) (kb : List w8) (tid : Nat) (Φ : val → IProp GF),
-        own st -∗ key ↦*□ kb -∗ rtok tid -∗
-        (own st -∗ rtok tid -∗ Φ (PairV #((st.ints.lookup kb).getD (W64 0)) #interface.nil)) -∗
+    □ (∀ (key : GoSlice) (kb : List w8) (tid : Nat) (Φ : val → IProp GF),
+        key ↦*□ kb -∗ rtok tid -∗
+        (|NC={⊤,∅}=> ▷ ∃ st, own st ∗
+          (own st ={∅,⊤}=∗ rtok tid -∗ Φ (PairV #((st.ints.lookup kb).getD (W64 0)) #interface.nil))) -∗
         WP (App (Val #(methods x.ty go!"GetUint64" x.v)) (Val #key)) {{ Φ }}) ∗
-    □ (∀ (st : StableAbs) (key : GoSlice) (kb : List w8) (v : w64) (Φ : val → IProp GF),
-        own st -∗ key ↦*□ kb -∗
-        (own { st with ints := st.ints.insert kb v } -∗ Φ #interface.nil) -∗
+    □ (∀ (key : GoSlice) (kb : List w8) (v : w64) (W : IProp GF) (Φ : val → IProp GF),
+        key ↦*□ kb -∗ W -∗
+        (W -∗ |NC={⊤,∅}=> ▷ ∃ st, own st ∗
+          (own { st with ints := st.ints.insert kb v } ={∅,⊤}=∗ Φ #interface.nil)) -∗
         WP (App (App (Val #(methods x.ty go!"SetUint64" x.v)) (Val #key)) (Val #v)) {{ Φ }}) ∗
-    □ (∀ (st : StableAbs) (key : GoSlice) (kb : List w8) (tid : Nat) (Φ : val → IProp GF),
-        own st -∗ key ↦*□ kb -∗ rtok tid -∗
-        (own st -∗ rtok tid -∗
-          ((∀ vb, ⌜st.bytes.lookup kb = some vb⌝ -∗
-              ∀ s : GoSlice, s ↦*□ vb -∗ Φ (PairV #s #interface.nil)) ∧
-           (⌜∀ vb, st.bytes.lookup kb = some vb → vb = []⌝ -∗
-              ∀ err : GoInterface, isNotFoundErr err -∗
-                Φ (PairV #(Perennial.zero_val GoSlice) #err)))) -∗
+    □ (∀ (key : GoSlice) (kb : List w8) (tid : Nat) (Φ : val → IProp GF),
+        key ↦*□ kb -∗ rtok tid -∗
+        (|NC={⊤,∅}=> ▷ ∃ st, own st ∗
+          (own st ={∅,⊤}=∗ rtok tid -∗
+            ((∀ vb, ⌜st.bytes.lookup kb = some vb⌝ -∗
+                ∀ s : GoSlice, s ↦*□ vb -∗ Φ (PairV #s #interface.nil)) ∧
+             (⌜∀ vb, st.bytes.lookup kb = some vb → vb = []⌝ -∗
+                ∀ err : GoInterface, isNotFoundErr err -∗
+                  Φ (PairV #(Perennial.zero_val GoSlice) #err))))) -∗
         WP (App (Val #(methods x.ty go!"Get" x.v)) (Val #key)) {{ Φ }}) ∗
-    □ (∀ (st : StableAbs) (key vs : GoSlice) (kb vb : List w8) (Φ : val → IProp GF),
-        own st -∗ key ↦*□ kb -∗ vs ↦*□ vb -∗
-        (own { st with bytes := st.bytes.insert kb vb } -∗ Φ #interface.nil) -∗
+    □ (∀ (key vs : GoSlice) (kb vb : List w8) (W : IProp GF) (Φ : val → IProp GF),
+        key ↦*□ kb -∗ vs ↦*□ vb -∗ W -∗
+        (W -∗ |NC={⊤,∅}=> ▷ ∃ st, own st ∗
+          (own { st with bytes := st.bytes.insert kb vb } ={∅,⊤}=∗ Φ #interface.nil)) -∗
         WP (App (App (Val #(methods x.ty go!"Set" x.v)) (Val #key)) (Val #vs)) {{ Φ }}))
 
 instance isStableStore_persistent x own : Persistent (isStableStore (GF := GF) x own) := by
@@ -276,7 +339,8 @@ def newerSnap (old : SnapLatest) (m : SnapshotMeta) (b : List w8) : SnapLatest :
 `Create`): its owner's state `own (some bs)` (open, `bs` written so far) or `own none` (closed or
 cancelled). `Write(p)` appends all of `p` and returns `(len p, nil)` while open; `Close()` of an open
 sink, given the close obligation `Q bs` for the bytes written, runs the commit fixed for this sink at
-`Create` (review T1-5: for this sink's id) and returns nil with the commit's result `R bs`, and is a
+`Create` (review T1-5: for this sink's id; hraft_robust L0: a crash-token update, `Q bs` being the
+window resource a durable store holds from its file's rename to its sync) and returns nil with the commit's result `R bs`, and is a
 no-op returning nil once closed; `Cancel()` drops the sink and returns nil; `ID()` returns `id`. Its
 dynamic type is not an `io.ReaderFrom` (so `io.Copy` into it writes with `Write`: the install's copy
 of the snapshot stream). -/
@@ -338,7 +402,7 @@ def isSnapStore (x : GoInterfaceOk) (own : SnapLatest → IProp GF) (eof : GoInt
     □ (∀ (ver idx term cfgIdx : w64) (cfg : Configuration) (trans : GoInterface) (Φ : val → IProp GF),
         (∀ (k : GoInterfaceOk) (id : GoString),
           (∀ (Q R : List w8 → IProp GF),
-            (∀ (bs : List w8), ⌜bs.length < 2 ^ 63⌝ -∗ Q bs -∗ |={⊤,∅}=> ▷ ∃ old, own old ∗
+            (∀ (bs : List w8), ⌜bs.length < 2 ^ 63⌝ -∗ Q bs -∗ |NC={⊤,∅}=> ▷ ∃ old, own old ∗
               (own (newerSnap old (sinkMeta ver idx term cfgIdx cfg id bs) bs) ={∅,⊤}=∗ R bs)) -∗
             |==> ∃ own' : Option (List w8) → IProp GF, isSink k id own' Q R ∗ own' (some [])) -∗
           Φ (PairV #(GoInterface.ok k) #interface.nil)) -∗
@@ -346,7 +410,7 @@ def isSnapStore (x : GoInterfaceOk) (own : SnapLatest → IProp GF) (eof : GoInt
           (Val #idx)) (Val #term)) (Val #cfg)) (Val #cfgIdx)) (Val #trans)) {{ Φ }}) ∗
     □ (∀ (tid : Nat) (Φ : val → IProp GF),
         rtok tid -∗
-        (|={⊤,∅}=> ▷ ∃ old, own old ∗
+        (|NC={⊤,∅}=> ▷ ∃ old, own old ∗
           (own old ={∅,⊤}=∗ ∀ (sl : GoSlice) (ps : List Loc),
             sl ↦* ps -∗
             (match old with
@@ -356,7 +420,7 @@ def isSnapStore (x : GoInterfaceOk) (own : SnapLatest → IProp GF) (eof : GoInt
         WP (App (Val #(methods x.ty go!"List" x.v)) (Val #())) {{ Φ }}) ∗
     □ (∀ (id : GoString) (tid : Nat) (Φ : val → IProp GF),
         rtok tid -∗
-        (|={⊤,∅}=> ▷ ∃ old, own old ∗
+        (|NC={⊤,∅}=> ▷ ∃ old, own old ∗
           (own old ={∅,⊤}=∗ ∀ v : val, openPost old id eof v -∗ rtok tid -∗ Φ v)) -∗
         WP (App (Val #(methods x.ty go!"Open" x.v)) (Val #id)) {{ Φ }}))
 

@@ -34,7 +34,7 @@ theorem github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof
   fun r γ rc i x li tl tid => by
   wp_start as ⟨#Hr, #Hcx, %Hx, Htok⟩
   ihave ⟨%lsx, #Hlsf, #Hls, -⟩ := isRaft_logStore r γ rc i $$ Hr
-  ihave #HlogC := isRaft_logCell r γ rc i $$ Hr
+  ihave #HlogC := isRaft_durInv r γ rc i $$ Hr
   unfold isLogStore
   icases Hls with ⟨-, #HFirst, -, -, -, #HDel⟩
   wp_auto

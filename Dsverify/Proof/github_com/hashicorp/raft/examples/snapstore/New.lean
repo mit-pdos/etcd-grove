@@ -108,75 +108,8 @@ theorem github_com.hashicorp.raft.examples.snapstore.New.wp_proof
     (wp_Close : github_com.hashicorp.raft.examples.snapstore.Sink.Close.spec (GF := GF) (hG := hG))
     (wp_Cancel : github_com.hashicorp.raft.examples.snapstore.Sink.Cancel.spec (GF := GF) (hG := hG))
     (wp_ID : github_com.hashicorp.raft.examples.snapstore.Sink.ID.spec (GF := GF) (hG := hG)) :
-    github_com.hashicorp.raft.examples.snapstore.New.spec (GF := GF) (hG := hG) :=
-  fun eof => by
-  wp_start as #Heof
-  iapply wp_fupd
-  wp_auto
-  irename «$r0» => Hs
-  generalize «$r0_ptr» = st at *
-  iStructNamed Hs
-  ipersist mu
-  imod ghostVar_alloc (none : SnapLatest) with ⟨%γ, Hg⟩
-  icases (ghostVar_split_half γ 1 (none : SnapLatest)).1 $$ Hg with ⟨Hg1, Hg2⟩
-  imod sync.init_Mutex (storeLocked st γ) ⊤ «$v0_ptr» $$ «$v0» [Hg2 has «meta'» data nextID] with #Hmux
-  · inext; unfold storeLocked ownLatest; iexists none, false, zeroValDef, slice.nil, W64 0; iframe
-    simp only [latestCell]; ipureintro; trivial
-  ihave #Hstore : isStore st γ eof $$ []
-  · unfold isStore; iexists «$v0_ptr»; iframe #
-  imodintro
-  iapply HΦ
-  iexists ownLatest γ
-  ihave Hg1 : ownLatest γ (none : SnapLatest) $$ [Hg1]
-  · unfold ownLatest; iexact Hg1
-  iframe Hg1
-  unfold isSnapStore
-  isplitr
-  · imodintro
-    iintro %ver %idx %term %cfgIdx %cfg %trans %Φ HΦ
-    iapply wp_Create st γ eof ver idx term cfgIdx cfg trans $$ [$Hpkg $Hstore]
-    inext
-    iintro %k %id ⟨#Hcore, Hopen⟩
-    iapply HΦ
-    iintro %Q %R Hcm
-    imodintro
-    iexists _
-    isplitr
-    · iapply sink_isSink wp_Write wp_Close wp_Cancel wp_ID k st γ eof id ver idx term cfgIdx cfg Q R
-      iframe #
-    simp only [sinkOwn]
-    iframe
-  isplitr
-  · imodintro
-    iintro %tid %Φ Htok HAU
-    iapply wp_List st γ eof Φ
-    iframe #
-    imod HAU with HAU
-    imodintro
-    inext
-    icases HAU with ⟨%old, Hown, Hcl⟩
-    iexists old
-    iframe Hown
-    iintro Hown
-    imod Hcl $$ Hown with Hk
-    imodintro
-    iintro %sl %ps Hsl Hm
-    iapply Hk $$ Hsl Hm Htok
-  · imodintro
-    iintro %id %tid %Φ Htok HAU
-    iapply wp_Open st γ eof id Φ
-    iframe #
-    imod HAU with HAU
-    imodintro
-    inext
-    icases HAU with ⟨%old, Hown, Hcl⟩
-    iexists old
-    iframe Hown
-    iintro Hown
-    imod Hcl $$ Hown with Hk
-    imodintro
-    iintro %v Hv
-    iapply Hk $$ Hv Htok
+    github_com.hashicorp.raft.examples.snapstore.New.spec (GF := GF) (hG := hG) := by
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 end proof
 

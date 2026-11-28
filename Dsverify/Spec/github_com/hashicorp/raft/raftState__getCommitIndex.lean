@@ -26,12 +26,14 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `(*raftState).getCommitIndex`: Called through `*Raft` (promoted). Strong form: the main goroutine reads its `cidx`; weak form (the replication goroutine of the leader of `T`, `readCidx_repl`): a commit index that may be sent in `T`, or the server already left `T`. -/
 abbrev github_com.hashicorp.raft.raftState.getCommitIndex.spec : Prop :=
-  (∀ (r : Loc) (γ : GNames) (i : SID) (s : SState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ cidxCell r γ i ∗ srvOwn γ i s }}
+  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ cidxCell r γ rc i ∗
+     srvDurInv γ rc i ∗ srvV rc s }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getCommitIndex")) (Val #()))
-  {{ RET #(W64 s.cidx); srvOwn γ i s }}) ∧
-  (∀ (r : Loc) (γ : GNames) (i : SID) (T : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ cidxCell r γ i ∗ leaderIs γ T i ∗ termLb γ i T }}
+  {{ RET #(W64 s.cidx); srvV rc s }}) ∧
+  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ cidxCell r γ rc i ∗
+     srvDurInv γ rc i ∗ leaderIs γ T i ∗ termLb γ i T }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getCommitIndex")) (Val #()))
   {{ (c : w64), RET #c; lciOk γ T (uint.nat c) ∨ termLb γ i (T + 1) }})
 

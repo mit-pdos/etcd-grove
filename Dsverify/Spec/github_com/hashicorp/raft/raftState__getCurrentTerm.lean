@@ -26,12 +26,14 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `(*raftState).getCurrentTerm`: Called through `*Raft` (promoted). Strong form: the main goroutine, with its protocol state, reads its term; weak form (any goroutine): a term at least any lower bound it knows, and a lower bound for the term read (the replication goroutine's final term check uses it to refute `termLb γ i (T+1)`). -/
 abbrev github_com.hashicorp.raft.raftState.getCurrentTerm.spec : Prop :=
-  (∀ (r : Loc) (γ : GNames) (i : SID) (s : SState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ termCell r γ i ∗ srvOwn γ i s }}
+  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ termCell r γ rc i ∗
+     srvDurInv γ rc i ∗ srvV rc s }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getCurrentTerm")) (Val #()))
-  {{ RET #(W64 s.term); srvOwn γ i s }}) ∧
-  (∀ (r : Loc) (γ : GNames) (i : SID) (t0 : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ termCell r γ i ∗ termLb γ i t0 }}
+  {{ RET #(W64 s.term); srvV rc s }}) ∧
+  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (t0 : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ termCell r γ rc i ∗
+     srvDurInv γ rc i ∗ termLb γ i t0 }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getCurrentTerm")) (Val #()))
   {{ (t : w64), RET #t; termLb γ i (uint.nat t) ∗ ⌜t0 ≤ uint.nat t⌝ }})
 

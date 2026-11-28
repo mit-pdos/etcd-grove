@@ -720,7 +720,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     (r.[Raft, go!"lastContactLock"]) hb $$ [lastContact] lastContactLock
     with ⟨%γpLC, #HlcGuard, #HlcPool⟩
   · inext; unfold lastContactP; iexists _; iframe
-  imod sync.init_RWMutex_qpool (observersP γ i r) (E := ⊤) observersLockN
+  imod sync.init_RWMutex_qpool (observersP γ rc i r) (E := ⊤) observersLockN
     (r.[Raft, go!"observersLock"]) hb $$ [observers HobsM] observersLock
     with ⟨%γpOL, #HolGuard, #HolPool⟩
   · inext; unfold observersP; iexists _, _; iframe

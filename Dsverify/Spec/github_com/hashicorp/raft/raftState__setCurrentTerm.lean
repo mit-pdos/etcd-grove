@@ -26,9 +26,9 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `(*raftState).setCurrentTerm`: The raw atomic store, called as `r.raftState.setCurrentTerm(t)` by `(*Raft).setCurrentTerm` (the receiver is the embedded `raftState`). The protocol step at the store (`setTerm_upd` or `electTerm_upd`) is the caller's ghost update `upd`, run with the cell's half of `termCouple` at the linearization point. -/
 abbrev github_com.hashicorp.raft.raftState.setCurrentTerm.spec : Prop :=
-  ∀ (r : Loc) (γ : GNames) (i : SID) (t : w64) (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ termCell r γ i ∗
-     (∀ t0 : Nat, termCouple γ i t0 ={⊤ \ ↑termN}=∗ termCouple γ i (uint.nat t) ∗ Q) }}
+  ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (t : w64) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ termCell r γ rc i ∗
+     (∀ t0 : Nat, termV rc t0 -∗ |NC={⊤ \ ↑termN}=> termV rc (uint.nat t) ∗ Q) }}
     (App (Val ((r.[Raft, go!"raftState"]) @!! go.GoType.PointerType raftState.ty @!! go!"setCurrentTerm")) (Val #t))
   {{ RET #(); Q }}
 

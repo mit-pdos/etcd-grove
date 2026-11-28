@@ -38,13 +38,13 @@ theorem github_com.hashicorp.raft.Raft.RegisterObserver.wp_proof :
   unfold obsOk
   icases Ho' with ⟨%fl, %id, #Hch, #Hbl, #Hf, #Hid, -⟩
   wp_apply wp_with_defer as %defer Hdefer
-  wp_apply (sync.RWMutex.wp_Lock_guard _ (observersP γ i r)) $$ [] as ⟨Hlk, HP⟩
+  wp_apply (sync.RWMutex.wp_Lock_guard _ (observersP γ rc i r)) $$ [] as ⟨Hlk, HP⟩
   · iframe #
   iunfold observersP at HP
   icases HP with ⟨%m, %mv, Hm, Hmv, Hobs⟩
   wp_auto
   wp_apply (wp_mapInsert go.uint64 m mv id o) $$ [$Hmv] as Hmv
-  wp_apply (sync.RWMutex.wp_Unlock_guard _ (observersP γ i r)) $$ [Hlk Hm Hmv Hobs]
+  wp_apply (sync.RWMutex.wp_Unlock_guard _ (observersP γ rc i r)) $$ [Hlk Hm Hmv Hobs]
   · iframe Hlk
     inext
     iunfold observersP

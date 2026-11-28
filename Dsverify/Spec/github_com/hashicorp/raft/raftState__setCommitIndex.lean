@@ -26,9 +26,9 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `(*raftState).setCommitIndex`: Called through `*Raft` (promoted). The protocol step at the store (`setCidx_upd`) is the caller's ghost update. -/
 abbrev github_com.hashicorp.raft.raftState.setCommitIndex.spec : Prop :=
-  ∀ (r : Loc) (γ : GNames) (i : SID) (c : w64) (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ cidxCell r γ i ∗
-     (∀ c0 : Nat, cidxCouple γ i c0 ={⊤ \ ↑cidxN}=∗ cidxCouple γ i (uint.nat c) ∗ Q) }}
+  ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (c : w64) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ cidxCell r γ rc i ∗
+     (∀ c0 : Nat, cidxV rc c0 -∗ |NC={⊤ \ ↑cidxN}=> cidxV rc (uint.nat c) ∗ Q) }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setCommitIndex")) (Val #c))
   {{ RET #(); Q }}
 

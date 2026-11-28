@@ -26,10 +26,10 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `NewObserver`: An observer with no channel, not blocking, whose filter meets `filterOk` (for the server `i` at `r` it will be registered with). -/
 abbrev github_com.hashicorp.raft.NewObserver.spec : Prop :=
-  ∀ (γ : GNames) (i : SID) (r : Loc) (fl : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ filterOk γ i r fl }}
+  ∀ (γ : GNames) (rc : RCtx GF) (i : SID) (r : Loc) (fl : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ filterOk γ rc i r fl }}
     (App (App (App (Val (@! github_com.hashicorp.raft.NewObserver)) (Val #chan.nil)) (Val #false)) (Val #fl))
-  {{ (o : Loc), RET #o; obsOk γ i r o }}
+  {{ (o : Loc), RET #o; obsOk γ rc i r o }}
 
 end spec
 

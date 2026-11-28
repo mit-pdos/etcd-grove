@@ -242,7 +242,7 @@ frontier (`cm < k`, the main goroutine's authority): the store's entries are ent
 log, and it holds the log's entry at `k` if the log reaches `k`. -/
 theorem logCell_getLog (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (cm k : Nat)
     (hk : cm < k) (Ψ : LogAbs → IProp GF) :
-    Inv (GF := GF) γ ∗ logCell rc γ i ∗ srvOwn γ i s ∗
+    Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ monoNatAuthOwn rc.names.comp 1 cm ∗
       (∀ A : LogAbs,
         ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
@@ -312,7 +312,7 @@ compaction frontier raised to `x` first). -/
 theorem logCell_discard (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st : Nat) (ℓ : SID)
     (hℓ : ℓ ≠ i) (hx : 1 ≤ x) (hn : ¬ prevMatch s.log x st) (mx : Nat) (hmx : mx = s.log.length)
     (Ψ : IProp GF) :
-    Inv (GF := GF) γ ∗ logCell rc γ i ∗ srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗
+    Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗
       aeValid γ s.term x st [] x ∗ leaderIs γ s.term ℓ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ compLb rc x ∗
       (∀ (L' : RLog) (d : Nat × Nat), srvOwn γ i { s with log := L', dur := d } -∗
@@ -545,7 +545,7 @@ instance snap_termCouple_timeless (γ : GNames) (i : SID) (t : Nat) :
 
 /-- The server's own term, as a persistent lower bound (from the term cell). -/
 theorem termLb_of_srv (γ : GNames) (r : Loc) (i : SID) (s : SState) :
-    Inv (GF := GF) γ ∗ termCell r γ i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
+    Inv (GF := GF) γ ∗ termCell r γ rc i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
   iintro ⟨#HI, #Hc, Hs⟩
   unfold termCell
   iinv Hc with ⟨%t, Ht, >Hcp⟩ Hclose
@@ -610,7 +610,7 @@ theorem stateCell_val (r : Loc) (rc : RCtx GF) (st : w32) :
 compaction frontier at least `x` (`compLb`): the store's window moves past `mx`. -/
 theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx x : Nat) (hmx : mx ≤ x)
     (Ψ : IProp GF) :
-    logCell rc γ i ∗ compLb rc x ∗ Ψ ⊢
+    srvDurInv γ rc i ∗ compLb rc x ∗ Ψ ⊢
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
       (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m mn mx, hi'⟩ ={∅,⊤}=∗ Ψ) := by
   iintro ⟨#HlogC, #Hcx, HΨ⟩

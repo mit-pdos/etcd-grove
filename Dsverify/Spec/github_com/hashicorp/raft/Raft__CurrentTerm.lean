@@ -31,13 +31,14 @@ snapshot after `s0` (the `currentTerm` atomic load, `getCurrentTerm`, with `gpro
 inside the cell's invariant). hr3's `readAt` reads the term around `Barrier` and `VerifyLeader`
 and so learns that their term is the one it read. -/
 abbrev github_com.hashicorp.raft.Raft.CurrentTerm.spec : Prop :=
-  (∀ (r : Loc) (γ : GNames) (i : SID) (s : SState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ termCell r γ i ∗ srvOwn γ i s }}
+  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ termCell r γ rc i ∗
+     srvDurInv γ rc i ∗ srvV rc s }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"CurrentTerm")) (Val #()))
-  {{ RET #(W64 s.term); srvOwn γ i s }}) ∧
-  (∀ (r : Loc) (γ : GNames) (i : SID) (s0 : Snap),
+  {{ RET #(W64 s.term); srvV rc s }}) ∧
+  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s0 : Snap),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ isSrv γ i ∗
-     termCell r γ i ∗ histLb γ s0 }}
+     termCell r γ rc i ∗ srvDurInv γ rc i ∗ histLb γ s0 }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"CurrentTerm")) (Val #()))
   {{ (t : w64), RET #t; ∃ s' : Snap, histLb γ s' ∗ ⌜snapLe s0 s' ∧ s'.term i = uint.nat t⌝ }})
 

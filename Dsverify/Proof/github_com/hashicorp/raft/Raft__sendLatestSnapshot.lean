@@ -49,7 +49,7 @@ theorem github_com.hashicorp.raft.Raft.sendLatestSnapshot.wp_proof
   fun r γ rc i T j s tid => by
   wp_start as ⟨#Hr, #Hs, #Hl, #Hlb, Hf, Htok⟩
   ihave ⟨%x, %eof, #Hsnaps, #Hss, #Heof⟩ := isRaft_snapshotStore r γ rc i $$ Hr
-  ihave #Hcell := isRaft_snapCell r γ rc i $$ Hr
+  ihave #Hcell := isRaft_durInv r γ rc i $$ Hr
   ihave ⟨%fsmI, -, #Hfsm, -⟩ := isRaft_fsm r γ rc i $$ Hr
   wp_auto
   wp_apply wp_with_defer as %defer Hdefer

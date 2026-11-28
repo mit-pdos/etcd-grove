@@ -411,7 +411,7 @@ open proto gprot in
 /-- An atomic read of the log store (`GetLog`), by the main goroutine (`srvOwn`): (stage 3) every
 entry the store holds is the server's log's. -/
 theorem logCell_read (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (Ψ : LogAbs → IProp GF) :
-    Inv γ ∗ logCell rc γ i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
+    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗
         srvOwn γ i s -∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ A) ⊢
       |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
@@ -445,7 +445,7 @@ theorem logCell_truncate (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
     (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧ j < ents.length ∧
       prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1))
     (hmn : uint.nat mn = prev + 1 + j) (hmx : uint.nat mx = s.log.length) (Ψ : IProp GF) :
-    Inv γ ∗ logCell rc γ i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
+    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       aeValid γ s.term prev pt ents lci ∗
       (srvOwn γ i { s with log := s.log.take (prev + j) } -∗
         ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
@@ -484,7 +484,7 @@ theorem logCell_store (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
     (prev pt : Nat) (ents : RLog) (lci j : Nat)
     (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧ j < ents.length ∧
       s.log.length = prev + j) (Ψ : IProp GF) :
-    Inv γ ∗ logCell rc γ i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
+    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       aeValid γ s.term prev pt ents lci ∗
       (srvOwn γ i { s with log := s.log ++ ents.drop j } -∗
         ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
@@ -518,7 +518,7 @@ theorem logCell_store (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
 open proto gprot in
 /-- The server's own term, as a persistent lower bound (from the term cell). -/
 theorem termLb_of_srv (γ : GNames) (r : Loc) (i : SID) (s : SState) :
-    Inv (GF := GF) γ ∗ termCell r γ i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
+    Inv (GF := GF) γ ∗ termCell r γ rc i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
   iintro ⟨#HI, #Hc, Hs⟩
   unfold termCell
   iinv Hc with ⟨%t, Ht, >Hcp⟩ Hclose

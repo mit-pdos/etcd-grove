@@ -45,7 +45,7 @@ theorem github_com.hashicorp.raft.Raft.setNewLogs.wp_proof
   wp_apply wp_min
   ihave #Hinv := (isRaft_proto r γ rc i).trans sep_elim_left $$ Hr
   ihave ⟨%x, #Hlogs, #Hls, -⟩ := isRaft_logStore r γ rc i $$ Hr
-  ihave #Hcell := isRaft_logCell r γ rc i $$ Hr
+  ihave #Hcell := isRaft_durInv r γ rc i $$ Hr
   ihave HI : iprop(∃ (iv : w64) (sl : GoSlice) (ptrs : List Loc) (ents : List Entry),
       "i" ∷ i_ptr ↦ iv ∗ "Hreq" ∷ req ↦ { rq with Entries' := sl } ∗ "Hsl" ∷ sl ↦* ptrs ∗
       "Hcap" ∷ ownSliceCap Loc sl (DFrac.own 1) ∗

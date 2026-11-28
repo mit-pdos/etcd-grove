@@ -292,7 +292,7 @@ theorem github_com.hashicorp.raft.Raft.installSnapshot.wp_proof
   wp_apply wp_getSnapshotVersion
   -- the sink, with the install's commit
   ihave ⟨%ssx, %eof', #Hssf, #HSS, -⟩ := isRaft_snapshotStore r γ rc i $$ Hr
-  ihave #Hsc := isRaft_snapCell r γ rc i $$ Hr
+  ihave #Hsc := isRaft_durInv r γ rc i $$ Hr
   imod aeValid_install_CIdx γ ⊤ (by simp) T x stx Hx1 $$ [$HI $Hae] with ⟨%ex, #HCx, %Hex⟩
   ihave #Hfol : snapFollow γ i x stx $$ []
   · unfold snapFollow
@@ -475,7 +475,7 @@ theorem github_com.hashicorp.raft.Raft.installSnapshot.wp_proof
     wp_auto
     simp only [HnM]
     wp_auto
-    ihave #HlogC := isRaft_logCell r γ rc i $$ Hr
+    ihave #HlogC := isRaft_durInv r γ rc i $$ Hr
     unfold isLogStore
     icases Hls with ⟨-, -, #HGetLog, -, -, #HDel⟩
     wp_bind

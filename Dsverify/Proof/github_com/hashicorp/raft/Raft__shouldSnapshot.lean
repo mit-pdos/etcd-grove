@@ -41,7 +41,7 @@ theorem github_com.hashicorp.raft.Raft.shouldSnapshot.wp_proof
   wp_apply wp_getLastSnapshot $$ [$Hr] as %si %st -
   wp_bind
   iapply HLast $$ Htok
-  ihave #HlogC := isRaft_logCell r γ rc i $$ Hr
+  ihave #HlogC := isRaft_durInv r γ rc i $$ Hr
   iunfold logCell at HlogC
   iinv HlogC with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset

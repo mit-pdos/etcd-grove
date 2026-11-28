@@ -139,19 +139,20 @@ theorem isRaft_config : isRaft r γ rc i ⊢
   icases H2 with ⟨%c, #Hc, %Hok, -⟩
   iexists c; iframe #; ipureintro; exact Hok
 
-theorem isRaft_termCell : isRaft r γ rc i ⊢ termCell r γ i := by
+theorem isRaft_termCell : isRaft r γ rc i ⊢ termCell r γ rc i := by
   iintro #H
   ihave #H2 := isRaft_cells r γ rc i $$ H
   unfold raftCells
   icases H2 with ⟨#H3, -⟩; iexact H3
 
-theorem isRaft_cidxCell : isRaft r γ rc i ⊢ cidxCell r γ i := by
+theorem isRaft_cidxCell : isRaft r γ rc i ⊢ cidxCell r γ rc i := by
   iintro #H
   ihave #H2 := isRaft_cells r γ rc i $$ H
   unfold raftCells
   icases H2 with ⟨-, #H3, -⟩; iexact H3
 
-theorem isRaft_logCell : isRaft r γ rc i ⊢ logCell rc γ i := by
+/-- (hraft_robust L0) The crash invariant (was `isRaft_durInv`/`isRaft_snapCell`). -/
+theorem isRaft_durInv : isRaft r γ rc i ⊢ srvDurInv γ rc i := by
   iintro #H
   ihave #H2 := isRaft_cells r γ rc i $$ H
   unfold raftCells
@@ -225,13 +226,6 @@ theorem isRaft_ltCh : isRaft r γ rc i ⊢
   unfold raftChans
   icases H2 with ⟨-, -, ⟨%lch, #Hch, %γt, #Hb⟩, -⟩
   iexists lch, γt; iframe #
-
-/-- (stage 3) The snapshot store's invariant. -/
-theorem isRaft_snapCell : isRaft r γ rc i ⊢ snapCell rc γ i := by
-  iintro #H
-  ihave #H2 := isRaft_cells r γ rc i $$ H
-  unfold raftCells
-  icases H2 with ⟨-, -, -, -, -, -, -, #H3⟩; iexact H3
 
 /-- (stage 3) `fsmSnapshotCh`: a bag of snapshot requests. -/
 theorem isRaft_fsmSnapshotCh : isRaft r γ rc i ⊢
@@ -402,7 +396,7 @@ theorem obsArg_other (γ : GNames) (i : SID) (s : SState) (d : GoInterface) (h :
   ipureintro; exact h2
 
 theorem obsArg_leader (γ : GNames) (i : SID) (s : SState) :
-    obsArg (GF := GF) γ i s leaderObs ⊣⊢ srvOwn γ i s ∗ leaderIs γ s.term i := by
+    obsArg (GF := GF) γ i s leaderObs ⊣⊢ leaderIs γ s.term i := by
   unfold obsArg
   rw [if_pos rfl]
   exact ⟨.rfl, .rfl⟩

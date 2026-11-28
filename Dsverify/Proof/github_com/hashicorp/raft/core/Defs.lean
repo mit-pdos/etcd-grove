@@ -10,7 +10,8 @@ raft's subsystems (core, api, main, repl, fsm).
 * `cfgOk`, `cfgVal`, `cfgAtIs`, `cfgOpt` (stage 4; stage 3: `cfgIs`, the bootstrap configuration):
   the `Config` and the `Configuration` values (a valid configuration; the configuration entry at an
   index of a log; the latest configuration cell's);
-* the cells (`termCell`, `cidxCell`, `logCell`, `stateCell`, `appliedCell`, ...), the locks
+* the cells (`termCell`, `cidxCell`, `stateCell`, `appliedCell`, ...), the crash invariant
+  (hraft_robust L0: `srvDurInv`, which replaces `logCell` and `snapCell`), the locks
   (`lastLockInv`, `rwLock`), the routines group (`rgOk`);
 * futures: `deferResp`/`deferDone` (the responder side of a `deferError`), `futQ` (what a
   client's future answers), `applyP` (a future on `applyCh`), `futResp` (a dispatched future),
@@ -59,19 +60,12 @@ open proto gprot
 structure RNames where
   /-- `ghostVar RaftState`: the `state` cell's value (cell ½, main goroutine ½). -/
   state : GName
-  /-- `mono_nat`: the `lastApplied` cell's value (authority: cell ½, main goroutine ½; stage 3: a
-  `mono_nat`, lower bounds `applLb`: the snapshot goroutine's FSM position is at most it). -/
-  applied : GName
   /-- `ghostVar (Nat × Nat)`: `lastLogIndex/Term` (`lastLock` ½, main goroutine ½). -/
   lastLog : GName
   /-- the FSM batch channel `fsmMutateCh` (SPSC: main goroutine → FSM goroutine). -/
   fsmCh : SpscNames
   /-- `ghostMap Nat Nat` (persistent elements): batch `n` of `fsmMutateCh` ends at index `k`. -/
   batch : GName
-  /-- (stage 2) `ghostVar RLog`: the entries the leader appended to its protocol log
-  (`leaderAppend_upd`, before `StoreLogs`) that the log store does not hold yet (`logCell` ½, main
-  goroutine ½; `[]` between appends). -/
-  logPend : GName
   /-- (stage 2) `ghostMap (Loc × SID) Unit`: the vote tokens of registered verify futures (one per
   future and voter, exclusive; authority held by the main goroutine). -/
   vtok : GName
@@ -84,14 +78,34 @@ structure RNames where
   /-- (stage 2) `ghostMap Loc Unit`: the registered futures in the leader's notify set (`nmTok`,
   held by its entries; authority: main goroutine). -/
   vnm : GName
-  /-- (stage 3) `mono_nat`: the compaction frontier `c` (the log store may have lost the entries
-  `1..c`; `logCell`), authority the main goroutine's (`c ≤` its FSM position), lower bounds
-  `compLb` given to the snapshot goroutine with the configurations it asks for. -/
+
+/-- (hraft_robust L0, R1 §1.3) **The ghost names of one generation's crash state**, allocated
+before the generation runs (`raft_arm`, at boot: the crash wand is built before `NewRaft`), so that
+`srvDurInv` (and hence `isRaft`) can name them. (The names `applied`, `comp` and `pend` moved here
+from `RNames`, since `durBody` mentions them.)
+* `sv`, `st`: `ghostVar (SState × Option TermPend × Option DiscPend)`, `ghostVar StableAbs`: the main
+  goroutine's views of its protocol state (with the pending term step and discard, `srvVP`; none
+  outside those phases, `srvV`) and of the stable store's contents (`stV`; ½ each, the other ½ in
+  `durBody`);
+* `tv`, `cv`: `ghostVar Nat`: the `currentTerm` and `commitIndex` atomics' views (`termV`,
+  `cidxV`; ½ in `termCell`/`cidxCell`, ½ in `durBody`);
+* `applied`: `mono_nat`, the `lastApplied` cell's value (authority: cell ½, main goroutine ½; lower
+  bounds `applLb`);
+* `comp`: `mono_nat`, the compaction frontier (authority: the main goroutine's; lower bounds
+  `compLb`, one in `durBody`);
+* `pend`: `ghostVar (Option (Nat × Nat × GoString))`, the install pending between the install's
+  `sink.Close()` and the restore's answer (½ `durBody`, ½ the main goroutine, lent to the restore);
+* `tok`: the crash token of `srvDurInv` (`srvCrashTok`, `ghostVar tok 1 ()`, held by the crash
+  wand). -/
+structure DurNames where
+  sv : GName
+  st : GName
+  tv : GName
+  cv : GName
+  applied : GName
   comp : GName
-  /-- (stage 3) `ghostVar (Option (Nat × Nat × GoString))`: the install pending between the
-  install's `sink.Close()` and the restore's answer (`(s, st, id)`: the snapshot and its sink's id),
-  `snapCell` ½, the main goroutine ½ (lent to the restore future while it is on `fsmMutateCh`). -/
   pend : GName
+  tok : GName
 
 /-- One server's context: its ghost names and the client predicates fixed at `NewRaft`. -/
 structure RCtx [GooseExts] (GF : BundledGFunctors) where
@@ -108,6 +122,8 @@ structure RCtx [GooseExts] (GF : BundledGFunctors) where
   /-- the meaning of a command's response (`isFSM`) -/
   respP : Nat → GoInterface → IProp GF
   names : RNames
+  /-- (hraft_robust L0) this generation's crash-state names (`srvDurInv`) -/
+  dur : DurNames
 
 /-! ## Namespaces -/
 
@@ -116,6 +132,8 @@ def termN : Namespace := raftN.@"term"
 def cidxN : Namespace := raftN.@"cidx"
 def logN : Namespace := raftN.@"log"
 def snapN : Namespace := raftN.@"snap"
+/-- (hraft_robust L0) `srvDurInv`'s namespace (replaces `logN`'s and `snapN`'s cells). -/
+def durN : Namespace := raftN.@"dur"
 def stateN : Namespace := raftN.@"state"
 def appliedN : Namespace := raftN.@"applied"
 def cftN : Namespace := raftN.@"cft"
@@ -226,35 +244,84 @@ instance ownValue_discard_persistent (u : Loc) (x : GoInterface) :
 
 /-! ## Cells (atomics with invariants) -/
 
-/-- The `currentTerm` atomic, coupled with the protocol's term of `i`. -/
-def termCell (r : Loc) (γ : GNames) (i : SID) : IProp GF :=
-  inv termN iprop(∃ t : w64,
-    r.[Raft, go!"raftState"].[raftState, go!"currentTerm"] ↦ t ∗ termCouple γ i (uint.nat t))
+/-- (hraft_robust L0, R1 §2.3) A term step made durable (`SetUint64(CurrentTerm)` synced) but not yet
+taken (the `currentTerm` atomic's store, where `setTerm_upd`/`electTerm_upd` fire): adopt `t`, or
+start an election (`electSelf`, the term `s.term + 1`). -/
+inductive TermPend where
+  | set (t : Nat)
+  | elect
+  deriving DecidableEq
 
-/-- The `commitIndex` atomic, coupled with the protocol's `cidx` of `i`. -/
-def cidxCell (r : Loc) (γ : GNames) (i : SID) : IProp GF :=
+instance termPend_countable : Pos.Countable TermPend :=
+  Pos.Countable.ofInjective
+    (fun p => match p with | .set t => Pos.Countable.encode (some t) | .elect => Pos.Countable.encode (none : Option Nat))
+    (by
+      intro a b h
+      cases a <;> cases b <;> simp only at h <;> first | rfl | (have h := Pos.encode_inj h; simp_all))
+
+/-- (hraft_robust L0, R1 §6.2, fix 2) An install's discard pending: the snapshot `(x, st)` from the
+leader `ℓ` is durable (its sink closed), the log not yet discarded (`installDiscard_upd`). -/
+structure DiscPend where
+  x : Nat
+  st : Nat
+  ℓ : SID
+  deriving DecidableEq
+
+instance discPend_countable : Pos.Countable DiscPend :=
+  Pos.Countable.ofInjective (fun d => Pos.Countable.encode (d.x, d.st, d.ℓ))
+    (by
+      intro a b h
+      have h := Pos.encode_inj h
+      cases a; cases b
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3⟩ := h
+      subst h1; subst h2; subst h3; rfl)
+
+/-- (hraft_robust L0) **The main goroutine's view of its protocol state** `s` (½; `durBody` holds the
+other half, at the crash state's `X.s`). Replaces `srvOwn` in `mainOwnAt`: `srvOwn` itself lives in
+`srvDurInv`, which survives a crash. -/
+def srvV (rc : RCtx GF) (s : SState) : IProp GF :=
+  ghostVar rc.dur.sv (1 : Qp).half (s, (none : Option TermPend), (none : Option DiscPend))
+
+/-- (hraft_robust L0) The main goroutine's view inside a pending phase: its state `s`, with the term
+step `tp` (`setCurrentTerm`, between `SetUint64` and the atomic store) and the discard `dp` (an install,
+between its sink's `Close` and its log discard) pending. `srvV rc s` is `srvVP rc s none none`. -/
+def srvVP (rc : RCtx GF) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) : IProp GF :=
+  ghostVar rc.dur.sv (1 : Qp).half (s, tp, dp)
+
+/-- (hraft_robust L0) The main goroutine's view of the stable store's contents (½; the other half in
+`durBody`). Replaces `rc.ownS` in `mainOwnAt`. -/
+def stV (rc : RCtx GF) (D : StableAbs) : IProp GF := ghostVar rc.dur.st (1 : Qp).half D
+
+/-- (hraft_robust L0) The `currentTerm` atomic's view of the protocol's term (½; the other half in
+`durBody`, at `X.s.term`, where `termCouple` lives). -/
+def termV (rc : RCtx GF) (t : Nat) : IProp GF := ghostVar rc.dur.tv (1 : Qp).half t
+
+/-- (hraft_robust L0) The `commitIndex` atomic's view of the protocol's `cidx` (½; the other half in
+`durBody`, at `X.s.cidx`, where `cidxCouple` lives). -/
+def cidxV (rc : RCtx GF) (c : Nat) : IProp GF := ghostVar rc.dur.cv (1 : Qp).half c
+
+/-- The `currentTerm` atomic, coupled with the protocol's term of `i` (hraft_robust L0: through the
+view `termV`; `termCouple` is in `srvDurInv`). -/
+def termCell (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  inv termN iprop(∃ t : w64,
+    r.[Raft, go!"raftState"].[raftState, go!"currentTerm"] ↦ t ∗ termV rc (uint.nat t))
+
+/-- The `commitIndex` atomic, coupled with the protocol's `cidx` of `i` (hraft_robust L0: through the
+view `cidxV`; `cidxCouple` is in `srvDurInv`). -/
+def cidxCell (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   inv cidxN iprop(∃ c : w64,
-    r.[Raft, go!"raftState"].[raftState, go!"commitIndex"] ↦ c ∗ cidxCouple γ i (uint.nat c))
+    r.[Raft, go!"raftState"].[raftState, go!"commitIndex"] ↦ c ∗ cidxV rc (uint.nat c))
 
 /-- (stage 3) The compaction frontier is at least `c` (persistent). -/
-def compLb (rc : RCtx GF) (c : Nat) : IProp GF := monoNatLbOwn rc.names.comp c
+def compLb (rc : RCtx GF) (c : Nat) : IProp GF := monoNatLbOwn rc.dur.comp c
 
 instance compLb_persistent rc c : Persistent (compLb (GF := GF) rc c) := by
   unfold compLb; infer_instance
 
-/-- The log store, coupled with the protocol's log of `i`, `L ++ ps` (the store's atomic updates
-open it). (Stage 2) `ps`: the entries the leader has appended in the protocol (`leaderAppend_upd`)
-and the store does not hold yet; its other half is the main goroutine's, `[]` except during
-`dispatchLogs`. (Stage 3) The store holds a partial map `A.m`: only entries of `L`, and every entry of
-`L` from `lo` on, where `lo ≤ c + 1` for the compaction frontier `c` (`compLb`): compaction (the
-snapshot goroutine, `compactLogs`, and the install) deletes up to the frontier, an install's discard
-everything with the frontier at the new log's end. -/
-def logCell (rc : RCtx GF) (γ : GNames) (i : SID) : IProp GF :=
-  inv logN iprop(∃ (A : LogAbs) (L ps : RLog) (lo c : Nat), rc.ownL A ∗ logCouple γ i (L ++ ps) ∗
-    ghostVar rc.names.logPend (1 : Qp).half ps ∗
-    ⌜(∀ k e, A.m.lookup k = some e → ent L k = some e) ∧
-      (∀ k, lo ≤ k → k ≤ L.length → A.m.lookup k = ent L k)⌝ ∗
-    compLb rc c ∗ ⌜lo ≤ c + 1⌝)
+-- (hraft_robust L0) `logCell` (the log store's coupling invariant) is gone: its body is
+-- `durBody`'s (`logOk`), in `srvDurInv`; the leader's pending appends (`ps`, `logPend`) are gone with
+-- it (`leaderAppend*` fire at `StoreLogs`' commit point).
 
 /-- The `state` atomic (the main goroutine holds the other half of the ghost variable). -/
 def stateCell (r : Loc) (rc : RCtx GF) : IProp GF :=
@@ -267,10 +334,10 @@ def stateCell (r : Loc) (rc : RCtx GF) : IProp GF :=
 def appliedCell (r : Loc) (rc : RCtx GF) : IProp GF :=
   inv appliedN iprop(∃ a : w64,
     r.[Raft, go!"raftState"].[raftState, go!"lastApplied"] ↦ a ∗
-    monoNatAuthOwn rc.names.applied (1 : Qp).half (uint.nat a))
+    monoNatAuthOwn rc.dur.applied (1 : Qp).half (uint.nat a))
 
 /-- (stage 3) `lastApplied` is at least `x` (persistent). -/
-def applLb (rc : RCtx GF) (x : Nat) : IProp GF := monoNatLbOwn rc.names.applied x
+def applLb (rc : RCtx GF) (x : Nat) : IProp GF := monoNatLbOwn rc.dur.applied x
 
 instance applLb_persistent rc x : Persistent (applLb (GF := GF) rc x) := by
   unfold applLb; infer_instance
@@ -301,12 +368,10 @@ def ltipCell (r : Loc) : IProp GF :=
   inv ltipN iprop(∃ v : w32,
     r.[Raft, go!"leaderState"].[leaderState, go!"leadershipTransferInProgress"] ↦ v)
 
-instance termCell_persistent r γ i : Persistent (termCell (GF := GF) r γ i) := by
+instance termCell_persistent r γ rc i : Persistent (termCell (GF := GF) r γ rc i) := by
   unfold termCell; infer_instance
-instance cidxCell_persistent r γ i : Persistent (cidxCell (GF := GF) r γ i) := by
+instance cidxCell_persistent r γ rc i : Persistent (cidxCell (GF := GF) r γ rc i) := by
   unfold cidxCell; infer_instance
-instance logCell_persistent rc γ i : Persistent (logCell (GF := GF) rc γ i) := by
-  unfold logCell; infer_instance
 instance stateCell_persistent r rc : Persistent (stateCell (GF := GF) r rc) := by
   unfold stateCell; infer_instance
 instance appliedCell_persistent r rc : Persistent (appliedCell (GF := GF) r rc) := by
@@ -774,7 +839,7 @@ def fsmVerifyP (γ : GNames) (rc : RCtx GF) (i : SID) (k0 : Nat) (v : GoInterfac
 still the store's latest, `snapCell`'s pending install, and the FSM's `Restore` returns nil), with
 the main goroutine's half of the pending-install record back. -/
 def restoreQ (rc : RCtx GF) (s st : Nat) (id : GoString) (err : GoInterface) : IProp GF :=
-  iprop(⌜err = interface.nil⌝ ∗ ghostVar rc.names.pend (1 : Qp).half (some (s, st, id)))
+  iprop(⌜err = interface.nil⌝ ∗ ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)))
 
 /-- (stage 3) **A restore future handed to the FSM goroutine** (`v`, boxed in an `interface{}`;
 installSnapshot, after the batches ending at `k0 ≤ s`): the snapshot `(s, st)` closed in the store
@@ -785,7 +850,7 @@ def fsmRestoreP (γ : GNames) (rc : RCtx GF) (k0 s : Nat) (v : GoInterface) : IP
   iprop(∃ (f : Loc) (id : GoString) (st : Nat),
     ⌜v = interface.mkOk (go.GoType.PointerType restoreFuture.ty) #f ∧ k0 ≤ s⌝ ∗
     f.[restoreFuture, go!"ID"] ↦□ id ∗ (∃ e : Entry, CIdx γ s e ∗ ⌜e.term = st⌝) ∗
-    ghostVar rc.names.pend (1 : Qp).half (some (s, st, id)) ∗
+    ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) ∗
     deferResp (f.[restoreFuture, go!"deferError"]) (restoreQ rc s st id))
 
 /-- The SPSC predicate of `fsmMutateCh`: the `n`-th value sent is a batch covering
@@ -828,31 +893,163 @@ def latestOk (γ : GNames) (rc : RCtx GF) (lat : SnapLatest) : IProp GF :=
       ⌜m.Version' = W64 1 ∧ uint.nat m.Size' = b.length ∧
         b.length < 2 ^ 63 ∧ m.Peers' = slice.nil⌝)
 
-/-- (stage 3) **Raft's invariant of its snapshot store** (server `i`; TaDa: the store's abstract
-state `rc.ownSS`, owned here): the latest snapshot (`latestOk`), and the pending-install record (½;
-the other half the main goroutine's, `mainOwnAt`, lent to the restore future):
-* no install pending: the latest is none, or at most `lastApplied` (`applLb`; check N2: so an install
-  past `lastApplied` is newer and becomes the latest) and durable at `i` (its own snapshots,
-  `takeSnapshot`) or installed while `i` followed (`snapFollow`; a completed install);
-* an install of `(s, st)` with sink id `id` pending (from the install's `sink.Close()`, whose commit
-  sets the record, to its `setLastApplied(s)`, whose logically atomic update ends it, check N3): the
-  latest is that snapshot, installed while `i` followed, and the main goroutine's half of the
-  `lastApplied` authority is here, at a value `a < s` (so a snapshot the snapshot goroutine closes
-  meanwhile, at most `a` by its `applLb`, of a term `≤ st`, is not newer: the restore's `Open(id)`
-  succeeds; review T1-5). -/
-def snapCell (rc : RCtx GF) (γ : GNames) (i : SID) : IProp GF :=
-  inv snapN iprop(∃ (lat : SnapLatest) (pend : Option (Nat × Nat × GoString)),
-    rc.ownSS lat ∗ latestOk γ rc lat ∗ ghostVar rc.names.pend (1 : Qp).half pend ∗
+/-! ## The crash-surviving state (hraft_robust L0, R1 §1.3, §2, §3) -/
+
+/-- (hraft_robust L0) The stable store's last vote is the protocol's: `LastVoteTerm` always;
+`LastVoteCand` when voted in the current term (R1 §5: with `persistVote` writing `LastVoteCand`
+first, a torn vote leaves a candidate of a term below the current one, `s.vterm < s.term`). (Was:
+`LastVoteCand` whenever voted.) -/
+def voteMatches (sst : StableAbs) (s : SState) : Prop :=
+  uint.nat ((sst.ints.lookup (go!"LastVoteTerm" : List w8)).getD (W64 0)) = s.vterm ∧
+  (s.vterm = 0 ∨ s.vterm < s.term ∨ sst.bytes.lookup (go!"LastVoteCand" : List w8) = some s.vcand)
+
+/-- (hraft_robust L0) **The log store holds the protocol log** `L` (was `logCell`'s body): only entries
+of `L`, and every entry of `L` from `lo` on. -/
+def logOk (A : LogAbs) (L : RLog) (lo : Nat) : Prop :=
+  (∀ k e, A.m.lookup k = some e → ent L k = some e) ∧
+  (∀ k, lo ≤ k → k ≤ L.length → A.m.lookup k = ent L k)
+
+/-- (hraft_robust L0) The stored `CurrentTerm` against the protocol's term and the pending term step. -/
+def termDurOk (D : StableAbs) (s : SState) (tp : Option TermPend) : Prop :=
+  let dt := uint.nat ((D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0))
+  (tp = none ∧ dt = s.term) ∨ (∃ t, tp = some (.set t) ∧ dt = t ∧ s.term ≤ t) ∨
+    (tp = some .elect ∧ dt = s.term + 1)
+
+/-- (hraft_robust L0) What firing the pending term step `tp` at a crash needs (`setTerm_upd`'s
+`termOk`, `electTerm_upd`'s receipt). -/
+def tpRes (γ : GNames) (tp : Option TermPend) : IProp GF :=
+  match tp with
+  | none => iprop(True)
+  | some (.set t) => termOk γ t
+  | some .elect => receipt 1
+
+/-- (hraft_robust L0) What the pending discard `dp` needs (`installDiscard_upd`'s premises, over the
+protocol state `s`). -/
+def dpRes (γ : GNames) (i : SID) (s : SState) (dp : Option DiscPend) : IProp GF :=
+  match dp with
+  | none => iprop(True)
+  | some d => iprop(aeValid γ s.term d.x d.st [] d.x ∗ leaderIs γ s.term d.ℓ ∗
+      ⌜d.ℓ ≠ i ∧ 1 ≤ d.x ∧ ¬ prevMatch s.log d.x d.st⌝)
+
+/-- (hraft_robust L0) **What raft keeps about its snapshot store across a crash** (was `snapCell`'s
+body; R1 §1.5): the latest (`latestOk`), and, with no install pending, the latest's index durable at
+`i` or installed while `i` followed; an install pending (from the install's `sink.Close()` to its
+`setLastApplied(s)`), with the main goroutine's half of the `lastApplied` authority at `a < s`.
+(`snapCell`'s `applLb` of the latest, a fact of one generation, is dropped: R1 §1.5.) -/
+def latestDur (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest)
+    (pend : Option (Nat × Nat × GoString)) : IProp GF :=
+  iprop(latestOk γ rc lat ∗
     (match pend with
       | none => ⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
-          applLb rc (uint.nat m.Index') ∗
           (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term'))
       | some (s, st, id) => ∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
           ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
-          snapFollow γ i s st ∗ monoNatAuthOwn rc.names.applied (1 : Qp).half a))
+          snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a))
 
-instance snapCell_persistent rc γ i : Persistent (snapCell (GF := GF) rc γ i) := by
-  unfold snapCell; infer_instance
+/-- (hraft_robust L0) **A server's state that survives a crash** (R1 §1.3): its protocol state `s`,
+its log store's state `A` (with `logCell`'s bound `lo` and compaction frontier `c`), its stable store's
+`D`, the pending term step `tp`, its snapshot store's latest `lat` and pending install `pend`, and the
+pending discard `dp`. -/
+structure SrvDur where
+  s : SState
+  A : LogAbs
+  lo : Nat
+  c : Nat
+  D : StableAbs
+  tp : Option TermPend
+  lat : SnapLatest
+  pend : Option (Nat × Nat × GoString)
+  dp : Option DiscPend
+
+/-- (hraft_robust L0) **The body of `srvDurInv`** at `X`: gprot's exclusive halves of server `i` (its
+state, log, term, commit index and durable-prefix view), the views' other halves, the stores'
+client authorities, and the couplings between the two: the log store holds the protocol log (`logOk`,
+from `lo`, `lo ≤ c + 1` for the compaction frontier `c`), the stable store's vote and term are the
+protocol's (`voteMatches`, `termDurOk` with the pending term step), the written commit index is
+durable, the snapshot store's latest (`latestDur`), and the pending steps' premises (`tpRes`,
+`dpRes`). -/
+def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
+  iprop(srvOwn γ i X.s ∗ durView γ i (1 : Qp).half X.s.dur.1 ∗ logCouple γ i X.s.log ∗
+    termCouple γ i X.s.term ∗ cidxCouple γ i X.s.cidx ∗
+    ghostVar rc.dur.sv (1 : Qp).half (X.s, X.tp, X.dp) ∗ ghostVar rc.dur.st (1 : Qp).half X.D ∗
+    ghostVar rc.dur.tv (1 : Qp).half X.s.term ∗ ghostVar rc.dur.cv (1 : Qp).half X.s.cidx ∗
+    rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗
+    ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
+      uint.nat X.A.ci ≤ X.s.dur.1⌝ ∗
+    compLb rc X.c ∗ latestDur γ rc i X.lat X.pend ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
+    tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
+
+/-- (hraft_robust L0) The crash token of `srvDurInv` (held by the generation's crash wand). -/
+def srvCrashTok (rc : RCtx GF) : IProp GF := ghostVar rc.dur.tok 1 ()
+
+/-- (hraft_robust L0, R1 §1.3) **Server `i`'s crash invariant for one generation** (Route 1 of
+`notes/raft-crash-law-design.md`): the crash state `durBody`, or (after the generation crashed) the
+crash token, which the crash law (`raft_crash`) swaps in to take the body out. Allocated before the
+generation runs (`raft_arm`); replaces `logCell` and `snapCell`. A goroutine of the generation opens it
+with its crash token (`inv_nc_acc`, `|NC=`). -/
+def srvDurInv (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  inv durN iprop((∃ X : SrvDur, durBody γ rc i X) ∨ crashed ∗ srvCrashTok rc)
+
+instance srvDurInv_persistent γ rc i : Persistent (srvDurInv (GF := GF) γ rc i) := by
+  unfold srvDurInv; infer_instance
+
+/-! ### Window resources (R1 §3) -/
+
+/-- (hraft_robust L0, R1 §2.2) **A durable step pending at a store write's commit point**: the model
+step that the write's atomic update fires, recorded in the window resource the write lends to the
+store (`winRes`), so that a crash that keeps the write's new contents can fire it (`pend_fire`).
+* `app es`: the leader's appends (`leaderAppendCmd_upd`: no-ops, barriers, commands), `StoreLogs`;
+* `cfg e k p`: a configuration entry (`leaderAppendCfg_upd`), `StoreLogs`;
+* `trunc prev pt ents lci j`: the follower's truncation (`truncate_upd`), `DeleteRange`;
+* `fstore prev pt ents lci j lc`: the follower's append (`followerStore_upd`), then, if `lc = some v`,
+  the commit learnt with it (`learnCommitFollower` of `min lci v`, the written commit index),
+  `StoreLogs`;
+* `discard d`: an install's discard (`installDiscard_upd`), `DeleteRange`;
+* `vote c li lt`: the vote (`grantVote_upd`), the second vote write (`SetUint64(LastVoteTerm)`);
+* `term tp`: a term step made durable (`SetUint64(CurrentTerm)`): recorded as `durBody`'s `tp`. -/
+inductive Pend where
+  | app (es : RLog)
+  | cfg (e : Entry) (k p : Nat)
+  | trunc (prev pt : Nat) (ents : RLog) (lci j : Nat)
+  | fstore (prev pt : Nat) (ents : RLog) (lci j : Nat) (lc : Option Nat)
+  | discard (d : DiscPend)
+  | vote (c : SID) (li lt : Nat)
+  | term (tp : TermPend)
+
+/-- (hraft_robust L0) The pure premises of the pending step `p`'s law, over the protocol state `s`. -/
+def pendPre (γ : GNames) (i : SID) (s : SState) : Pend → Prop
+  | .app es => ∀ e ∈ es, e.term = s.term ∧ (e.kind = kCommand ∨ e.kind = kNoop ∨ e.kind = kBarrier)
+  | .cfg e k _ => e.term = s.term ∧ e.kind = kConfig ∧ cfgValid γ.srvs (γ.cv e.data) ∧
+      adjV (cfgOfC γ.cv s.log) (γ.cv e.data) ∧ lastCfgIdx s.log ≤ k
+  | .trunc prev pt ents _ j => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
+      j < ents.length ∧ prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1)
+  | .fstore prev pt ents lci j lc => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
+      j < ents.length ∧ s.log.length = prev + j ∧
+      (∀ v, lc = some v → v ≤ prev + ents.length ∧ 0 < Min.min lci v)
+  | .discard d => d.ℓ ≠ i ∧ 1 ≤ d.x ∧ ¬ prevMatch s.log d.x d.st
+  | .vote _ li lt => s.vterm < s.term ∧ upToDate li lt s.log
+  | .term (.set t) => s.term ≤ t
+  | .term .elect => True
+
+/-- (hraft_robust L0) The resources of the pending step `p`'s law besides gprot's halves (persistent
+facts, receipts, operation tokens, the lent commitment configuration), over the protocol state `s`. -/
+def pendHyps (γ : GNames) (i : SID) (s : SState) : Pend → IProp GF
+  | .app es => iprop(leaderIs γ s.term i ∗ receipt es.length ∗
+      ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n))
+  | .cfg _ k p => iprop(leaderIs γ s.term i ∗ ccfgOwn γ i s.term (lastCfgIdx s.log) ∗
+      commitIs γ s.term k p ∗ receipt 1)
+  | .trunc prev pt ents lci _ => aeValid γ s.term prev pt ents lci
+  | .fstore prev pt ents lci _ _ => aeValid γ s.term prev pt ents lci
+  | .discard d => iprop(aeValid γ s.term d.x d.st [] d.x ∗ leaderIs γ s.term d.ℓ)
+  | .vote c li lt => candIs γ c s.term li lt
+  | .term tp => tpRes γ (some tp)
+
+/-- (hraft_robust L0, R1 §3) **The window resource of a write that fires `p`**: the main goroutine's
+view of its state `s` (lent to the store, so `s` is frozen in the window: only the main goroutine
+changes it), and the law's premises over `s`. The write's caller lends it (the contracts' `W`); the
+write's atomic update gives it back, and the store's crash lemma, if the new contents survived. -/
+def winRes (γ : GNames) (rc : RCtx GF) (i : SID) (p : Pend) : IProp GF :=
+  iprop(∃ s : SState, srvV rc s ∗ pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
 
 /-- (stage 3) **The FSM goroutine's answer to a snapshot request** `f` (`fsmSnapshotCh`): nil with the
 request's fields set to the FSM's position `x ≥ 1` (the end of an item it processed, `batchEnd`), its
@@ -911,39 +1108,40 @@ def userSnapP (f : Loc) : IProp GF :=
 
 /-- What an observer's filter gets with observation data `d` (and gives back), indexed by the
 server's protocol state `s`: for the `Leader` state (`setState(Leader)`, by the main goroutine as
-it becomes leader), the server's protocol state `s` with its `leaderIs` witness; otherwise only
+it becomes leader), the server's `leaderIs` witness (hraft_robust L0: no longer its protocol state,
+which is in `srvDurInv`); otherwise only
 that a `RaftState` observation carries a `uint32` (`s` is then irrelevant). -/
 def obsArg (γ : GNames) (i : SID) (s : SState) (d : GoInterface) : IProp GF := by
   classical
-  exact if d = leaderObs then iprop(srvOwn γ i s ∗ leaderIs γ s.term i)
+  exact if d = leaderObs then iprop(leaderIs γ s.term i)
     else iprop(⌜∀ v, d = interface.mkOk RaftState.ty v → ∃ st : w32, v = #st⌝)
 
 /-- The spec of an observer's filter `fl` for server `i` at `r`: called with a fresh
 `Observation{r, d}` and `obsArg γ i s d` (and the term cell, so it may call `r.CurrentTerm()`),
 it returns them (for the same `s`). -/
-def filterOk (γ : GNames) (i : SID) (r : Loc) (fl : GoFunc) : IProp GF :=
+def filterOk (γ : GNames) (rc : RCtx GF) (i : SID) (r : Loc) (fl : GoFunc) : IProp GF :=
   iprop(□ ∀ (ob : Loc) (s : SState) (d : GoInterface) (Φ : val → IProp GF),
-    termCell r γ i -∗ obsArg γ i s d -∗ ob ↦ Observation.mk r d -∗
+    termCell r γ rc i -∗ obsArg γ i s d -∗ ob ↦ Observation.mk r d -∗
     ▷ (∀ b : Bool, obsArg γ i s d -∗ ob ↦ Observation.mk r d -∗ Φ #b) -∗
     WP (App (Val #fl) (Val #ob)) {{ Φ }})
 
-instance filterOk_persistent γ i r fl : Persistent (filterOk (GF := GF) γ i r fl) := by
+instance filterOk_persistent γ rc i r fl : Persistent (filterOk (GF := GF) γ rc i r fl) := by
   unfold filterOk; infer_instance
 
 /-- A registered observer: no channel, not blocking, a filter meeting `filterOk`. -/
-def obsOk (γ : GNames) (i : SID) (r : Loc) (o : Loc) : IProp GF :=
+def obsOk (γ : GNames) (rc : RCtx GF) (i : SID) (r : Loc) (o : Loc) : IProp GF :=
   iprop(∃ (fl : GoFunc) (id : w64),
     o.[Observer, go!"channel"] ↦□ chan.nil ∗ o.[Observer, go!"blocking"] ↦□ false ∗
-    o.[Observer, go!"filter"] ↦□ fl ∗ o.[Observer, go!"id"] ↦□ id ∗ filterOk γ i r fl)
+    o.[Observer, go!"filter"] ↦□ fl ∗ o.[Observer, go!"id"] ↦□ id ∗ filterOk γ rc i r fl)
 
-instance obsOk_persistent γ i r o : Persistent (obsOk (GF := GF) γ i r o) := by
+instance obsOk_persistent γ rc i r o : Persistent (obsOk (GF := GF) γ rc i r o) := by
   unfold obsOk; infer_instance
 
 /-- `observersLock`'s resource: the observers map, each registered observer `obsOk`. -/
-def observersP (γ : GNames) (i : SID) (r : Loc) (q : Qp) : IProp GF :=
+def observersP (γ : GNames) (rc : RCtx GF) (i : SID) (r : Loc) (q : Qp) : IProp GF :=
   iprop(∃ (m : GoMap) (mv : GMap w64 Loc),
     r.[Raft, go!"observers"] ↦{DFrac.own q} m ∗ m ↦${DFrac.own q} mv ∗
-    [∗map] _k ↦ o ∈ mv, obsOk γ i r o)
+    [∗map] _k ↦ o ∈ mv, obsOk γ rc i r o)
 
 /-! ## `isRaft` -/
 
@@ -1005,8 +1203,8 @@ instance raftConf_persistent r γ i : Persistent (raftConf (GF := GF) r γ i) :=
 
 /-- `isRaft`'s cells. -/
 def raftCells (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
-  iprop(termCell r γ i ∗ cidxCell r γ i ∗ logCell rc γ i ∗ stateCell r rc ∗ appliedCell r rc ∗
-    cftCell r ∗ ltipCell r ∗ snapCell rc γ i)
+  iprop(termCell r γ rc i ∗ cidxCell r γ rc i ∗ srvDurInv γ rc i ∗ stateCell r rc ∗
+    appliedCell r rc ∗ cftCell r ∗ ltipCell r ∗ ⌜True⌝)
 
 instance raftCells_persistent r γ rc i : Persistent (raftCells (GF := GF) r γ rc i) := by
   unfold raftCells; infer_instance
@@ -1016,7 +1214,7 @@ def raftLocks (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   iprop(sync.isMutex (r.[Raft, go!"raftState"].[raftState, go!"lastLock"]) (lastLockInv r γ rc i) ∗
     rwLock leaderLockN (r.[Raft, go!"leaderLock"]) (leaderLockP r) ∗
     rwLock lastContactLockN (r.[Raft, go!"lastContactLock"]) (lastContactP r) ∗
-    rwLock observersLockN (r.[Raft, go!"observersLock"]) (observersP γ i r) ∗
+    rwLock observersLockN (r.[Raft, go!"observersLock"]) (observersP γ rc i r) ∗
     rgOk r)
 
 instance raftLocks_persistent r γ rc i : Persistent (raftLocks (GF := GF) r γ rc i) := by
@@ -1228,10 +1426,7 @@ def replOwn (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) (s : Loc)
 
 /-! ## The main goroutine -/
 
-/-- The stable store's last vote is the protocol's (`LastVoteTerm`; `LastVoteCand` when voted). -/
-def voteMatches (sst : StableAbs) (s : SState) : Prop :=
-  uint.nat ((sst.ints.lookup (go!"LastVoteTerm" : List w8)).getD (W64 0)) = s.vterm ∧
-  (s.vterm = 0 ∨ sst.bytes.lookup (go!"LastVoteCand" : List w8) = some s.vcand)
+-- (hraft_robust L0) `voteMatches` moved to the crash-state section.
 
 /-- **The main goroutine's exclusive resources** (at every iteration of `run`, and passed to the
 handlers): its protocol state `s` (and half of its durable-prefix view), (stage 3) its half of the
@@ -1263,8 +1458,8 @@ the main goroutine's thread token (passed separately), the leader state (`leader
 def mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32) : IProp GF :=
   iprop(∃ (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (cidx li : w64)
       (lch : Loc) (γl : ChanNames) (bs : List Bool) (c : Nat),
-    srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗
-    rc.ownS sst ∗ ⌜voteMatches sst s⌝ ∗
+    srvV rc s ∗ ⌜True⌝ ∗
+    stV rc sst ∗ ⌜voteMatches sst s⌝ ∗
     ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
     ghostVar rc.names.state (1 : Qp).half st ∗
     (⌜st ≠ stLeader⌝ ∨ leaderIs γ s.term i ∗ (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
@@ -1272,11 +1467,11 @@ def mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st 
       ∃ n0 : Nat, len0Is γ s.term n0 ∗
         (⌜s.cidx ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s.term k p ∗ ⌜s.cidx ≤ k⌝) ∗
         (⌜cidx ≠ li ∨ uint.nat li ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s.term k p ∗ ⌜uint.nat li ≤ k⌝)) ∗
-    ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
+    ⌜True⌝ ∗
     verifyRegistry γ rc i ∗
-    monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗ fsmProd γ rc a ∗
-    ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-    monoNatAuthOwn rc.names.comp 1 c ∗ ⌜c ≤ a⌝ ∗
+    monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗ fsmProd γ rc a ∗
+    ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+    monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗
     r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
     cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat cidx) ccfg ∗
     ⌜uint.nat li = lastCfgIdx s.log ∧
@@ -1292,8 +1487,8 @@ channel, `appendConfigurationEntry` takes it (its new entry's parent is then the
 def mainOwnAtSt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) : IProp GF :=
   iprop(∃ (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (li : w64)
       (lch : Loc) (γl : ChanNames) (bs : List Bool) (c : Nat),
-    srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗
-    rc.ownS sst ∗ ⌜voteMatches sst s⌝ ∗
+    srvV rc s ∗ ⌜True⌝ ∗
+    stV rc sst ∗ ⌜voteMatches sst s⌝ ∗
     ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
     ghostVar rc.names.state (1 : Qp).half stLeader ∗
     (leaderIs γ s.term i ∗ (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
@@ -1301,11 +1496,11 @@ def mainOwnAtSt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) : 
       ∃ n0 : Nat, len0Is γ s.term n0 ∗
         (⌜s.cidx ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s.term k p ∗ ⌜s.cidx ≤ k⌝) ∗
         (⌜uint.nat li ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s.term k p ∗ ⌜uint.nat li ≤ k⌝)) ∗
-    ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
+    ⌜True⌝ ∗
     verifyRegistry γ rc i ∗
-    monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗ fsmProd γ rc a ∗
-    ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-    monoNatAuthOwn rc.names.comp 1 c ∗ ⌜c ≤ a⌝ ∗
+    monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗ fsmProd γ rc a ∗
+    ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+    monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗
     r.[Raft, go!"configurations"] ↦ configurations.mk ccfg li cfg li ∗
     cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat li) ccfg ∗
     ⌜uint.nat li = lastCfgIdx s.log⌝ ∗

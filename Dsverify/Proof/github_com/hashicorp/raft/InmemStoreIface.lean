@@ -48,29 +48,7 @@ theorem inmem_isStableStore
     (γs : InmemNames) (i : Loc) :
     isInmemStore (GF := GF) γs i ⊢
       isStableStore (interface.mk (go.GoType.PointerType InmemStore.ty) #i) (kvView γs) := by
-  iintro #His
-  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft $$ [His]
-  · unfold isInmemStore; iNamed His; iexact Hinit
-  unfold isStableStore
-  isplitr
-  · imodintro
-    iintro %st %key %kb %tid %Φ Hown #Hkey Htok HΦ
-    iapply (wp_GetUint64 γs i st key kb tid) $$ [Hown Htok] HΦ
-    iframe; iframe #
-  isplitr
-  · imodintro
-    iintro %st %key %kb %v %Φ Hown #Hkey HΦ
-    iapply (wp_SetUint64 γs i st key kb v) $$ [Hown] HΦ
-    iframe; iframe #
-  isplitr
-  · imodintro
-    iintro %st %key %kb %tid %Φ Hown #Hkey Htok HΦ
-    iapply (wp_Get γs i st key kb tid) $$ [Hown Htok] HΦ
-    iframe; iframe #
-  · imodintro
-    iintro %st %key %vs %kb %vb %Φ Hown #Hkey #Hvs HΦ
-    iapply (wp_Set γs i st key vs kb vb) $$ [Hown] HΦ
-    iframe; iframe #
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- **`*InmemSnapshotStore` is a snapshot store** (no snapshot). -/
 theorem inmem_isSnapshotStore

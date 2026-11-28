@@ -2,7 +2,7 @@
 Ported from dsverify-lab examples/hraft/proof/HrVerify/Spec/github_com/hashicorp/raft/Raft__persistVote.lean (241f27e).
 -/
 /-
-`raft.(*Raft).persistVote`'s spec (raft-internal interface, notes/raft-iface.md). Writes the vote to the stable store (whose writes never fail).
+`raft.(*Raft).persistVote`'s spec (raft-internal interface, notes/raft-iface.md). Writes the vote to the stable store (whose writes never fail). (hraft_robust L0, R1 §2.4) Writes `LastVoteCand` first, then `LastVoteTerm`, where the vote step (`grantVote_upd`) fires, at the second write's commit point: the caller lends its view `srvV` and the candidate's `candIs`, and gets the vote back.
 -/
 module
 
@@ -24,14 +24,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
-/-- `(*Raft).persistVote`: Writes the vote to the stable store (whose writes never fail). -/
+/-- `(*Raft).persistVote`: Writes the vote to the stable store (whose writes never fail). (hraft_robust L0, R1 §2.4) Writes `LastVoteCand` first, then `LastVoteTerm`, where the vote step (`grantVote_upd`) fires, at the second write's commit point: the caller lends its view `srvV` and the candidate's `candIs`, and gets the vote back. -/
 abbrev github_com.hashicorp.raft.Raft.persistVote.spec : Prop :=
-  ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (sst : StableAbs) (t : w64) (cs : GoSlice)
-    (cb : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ rc.ownS sst ∗ cs ↦*□ cb }}
+  ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (sst : StableAbs) (t : w64)
+    (cs : GoSlice) (c : SID) (li lt : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
+     srvV rc s ∗ stV rc sst ∗ cs ↦*□ c ∗ candIs γ c s.term li lt ∗
+     ⌜uint.nat t = s.term ∧ s.vterm < s.term ∧ upToDate li lt s.log⌝ }}
     (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"persistVote")) (Val #t)) (Val #cs))
-  {{ RET #interface.nil; rc.ownS (StableAbs.mk (sst.ints.insert (go!"LastVoteTerm" : List w8) t)
-      (sst.bytes.insert (go!"LastVoteCand" : List w8) cb)) }}
+  {{ RET #interface.nil; srvV rc { s with vterm := s.term, vcand := c } ∗ voteIs γ i s.term c ∗
+      stV rc (StableAbs.mk (sst.ints.insert (go!"LastVoteTerm" : List w8) t)
+        (sst.bytes.insert (go!"LastVoteCand" : List w8) c)) }}
 
 end spec
 

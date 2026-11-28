@@ -176,7 +176,7 @@ theorem github_com.hashicorp.raft.Raft.takeSnapshot.wp_proof
           wp_auto
           wp_apply wp_getSnapshotVersion
           ihave ⟨%ssx, %eof', #Hssf, #HSS, -⟩ := isRaft_snapshotStore r γ rc i $$ Hr
-          ihave #Hsc := isRaft_snapCell r γ rc i $$ Hr
+          ihave #Hsc := isRaft_durInv r γ rc i $$ Hr
           unfold isSnapStore
           icases HSS with ⟨#HCreate, -, -⟩
           ihave ⟨%xtr, %rpcCh, #Htr, -, -⟩ := isRaft_transport r γ rc i $$ Hr

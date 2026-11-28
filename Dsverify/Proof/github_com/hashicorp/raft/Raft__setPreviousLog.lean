@@ -78,7 +78,7 @@ theorem github_com.hashicorp.raft.Raft.setPreviousLog.wp_proof
       iright; iexact Hst
   ihave ⟨%x, #Hlogs, #Hls, -⟩ := isRaft_logStore r γ rc i $$ Hr
   ihave ⟨#Hinv, -⟩ := isRaft_proto r γ rc i $$ Hr
-  ihave #Hcell := isRaft_logCell r γ rc i $$ Hr
+  ihave #Hcell := isRaft_durInv r γ rc i $$ Hr
   wp_load
   wp_pures
   wp_apply (wp_getLog_repl γ rc i T x (nextIndex - W64 1) l_ptr _) $$ [$l $Htok] as %err ⟨Htok, Hres⟩

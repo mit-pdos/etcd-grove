@@ -45,16 +45,7 @@ namespace github_com.hashicorp.raft
 
 open proto
 
-instance stableAbs_countable : Pos.Countable StableAbs :=
-  Pos.Countable.ofInjective
-    (fun s => Pos.Countable.encode (s.ints, s.bytes))
-    (by
-      intro a b h
-      have h := Pos.encode_inj h
-      cases a; cases b
-      simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2⟩ := h
-      subst h1; subst h2; rfl)
+-- (hraft_robust L0) `stableAbs_countable` moved to `iface/Stores.lean`.
 
 /-- The ghost names of an `InmemStore`. -/
 structure InmemNames where

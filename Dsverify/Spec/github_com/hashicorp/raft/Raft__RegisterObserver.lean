@@ -27,7 +27,7 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 /-- `(*Raft).RegisterObserver`: Adds an observer meeting `obsOk` (under the observers' write lock). -/
 abbrev github_com.hashicorp.raft.Raft.RegisterObserver.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (o : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ obsOk γ i r o }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ obsOk γ rc i r o }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"RegisterObserver")) (Val #o))
   {{ RET #(); True }}
 

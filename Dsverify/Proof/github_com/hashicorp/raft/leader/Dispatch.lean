@@ -242,7 +242,7 @@ theorem log_pend_append (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (es 
       ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗ A ⊢
       |={⊤ \ ↑logN}=> srvOwn γ i { s with log := s.log ++ es } ∗ logCouple γ i (s.log ++ es) ∗
         ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B) :
-    Inv γ ∗ logCell rc γ i ∗ srvOwn γ i s ∗ leaderIs γ s.term i ∗ receipt es.length ∗
+    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ leaderIs γ s.term i ∗ receipt es.length ∗
       ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ £ 1 ∗ A ⊢ |={⊤}=>
       srvOwn γ i { s with log := s.log ++ es } ∗ ghostVar rc.names.logPend (1 : Qp).half es ∗

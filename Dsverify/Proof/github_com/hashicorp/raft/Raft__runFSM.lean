@@ -402,7 +402,7 @@ theorem github_com.hashicorp.raft.Raft.runFSM.wp_proof
       iintro %defer Hdefer
       icases Hli with ⟨%li, %lt, Hli, Hlt, -, -⟩
       ihave ⟨%ssx, %eof, #Hssf, #HSS, #Heof⟩ := isRaft_snapshotStore r γ rc i $$ Hr
-      ihave #Hsc := isRaft_snapCell r γ rc i $$ Hr
+      ihave #Hsc := isRaft_durInv r γ rc i $$ Hr
       unfold isSnapStore
       icases HSS with ⟨-, -, #HOpen⟩
       wp_auto
