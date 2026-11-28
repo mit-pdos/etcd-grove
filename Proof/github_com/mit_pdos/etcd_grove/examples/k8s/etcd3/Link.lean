@@ -214,6 +214,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeHash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.strHash
 public import Proof.strconv.FormatUint
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.target
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toEvent
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toPorcupineModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toWEvent
@@ -1209,6 +1210,10 @@ theorem wp_newCache :
 theorem wp_settle :
     EtcdGrove.k8s_etcd3.settle.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.settle.wp_proof cfgSet.wp_add wp_mstep wp_removeAt wp_landings histHashes.wp_skipTo wp_advance
+
+theorem wp_target :
+    EtcdGrove.k8s_etcd3.target.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.target.wp_proof wp_decodeWEvents wp_parseRV wp_pastRead
 
 end links_hasLC
 
