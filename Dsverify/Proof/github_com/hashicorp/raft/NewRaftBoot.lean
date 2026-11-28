@@ -7,6 +7,8 @@ module
 
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Crash
 public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftRec
+public import Perennial.Proof.sync.atomic.Link
+public import Dsverify.Proof.github_com.hashicorp.raft.core.LastLock
 
 @[expose] public section
 
@@ -19,6 +21,36 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace github_com.hashicorp.raft
 
 open proto gprot
+
+section atomicNc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : sync.atomic.Assumptions]
+
+/-- `sync.atomic.StoreUint64` with a crash-token atomic update (a copy of R4a's `DurHelpers` lemma, whose module
+imports `core/CrashLaws`). -/
+theorem boot_wp_StoreUint64_nc (addr : Loc) (v : w64) :
+    ⊢ ∀ Φ : val → IProp GF, isPkgInit (PROP := IProp GF) pkg_id.sync.atomic -∗
+      (|NC={⊤,∅}=> ▷ ∃ oldv : w64, addr ↦ oldv ∗ (addr ↦ v ={∅,⊤}=∗ Φ #())) -∗
+      WP (App (App (Val (@! sync.atomic.StoreUint64)) (Val #addr)) (Val #v)) {{ Φ }} := by
+  wp_start as _
+  wp_bind (SwapBytes _ _ _)
+  iapply wp_atomic_nc _ _ rfl
+  iintro Hnc
+  imod HΦ $$ Hnc with ⟨Hnc, HΦ⟩
+  iframe Hnc
+  imodintro
+  icases HΦ with ⟨%oldv, Haddr, HΦ⟩
+  wp_apply_core wp_swap_bytes_typed _ _ addr oldv v $$ Haddr
+  iintro Haddr
+  imod HΦ $$ Haddr with HΦ
+  imodintro
+  wp_pures
+  iexact HΦ
+
+end atomicNc
 
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -409,6 +441,86 @@ theorem bootSnapAcc (fx : GoInterfaceOk) (A : LogAbs) (lat : SnapLatest) :
   imodintro
   iframe
   iframe #
+
+theorem durN_diff_appliedN : (↑durN : CoPset) ⊆ ⊤ \ ↑appliedN := by
+  unfold durN appliedN raftN; solve_ndisj
+
+/-- (hraft_robust R5) **`setLastApplied(x)` while a discard is pending** (`NewRaft`'s restore of the
+snapshot `d.x = x`): the main goroutine's half of the `lastApplied` authority is in the crash state
+(`latestDur`'s discard-pending case); the store raises both halves to `x` and puts it back. -/
+theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option TermPend)
+    (d : DiscPend) (x : w64) (hx : uint.nat x = d.x) (Φ : val → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ appliedCell r rc ∗ srvDurInvRaw γ rc i ∗
+      bootV rc A lat ∗ srvVP rc s tp (some d) ∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      (bootV rc A lat -∗ srvVP rc s tp (some d) -∗
+        ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+        applLb rc (uint.nat x) -∗ Φ #()) ⊢
+    WP (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastApplied")) (Val #x)) {{ Φ }} := by
+  iintro ⟨#Hpkg, #Hcell, #Hi, Hv, Hsv, Hpe, HK⟩
+  wp_method_call; wp_call
+  wp_method_call; wp_call
+  wp_auto
+  wp_apply_core boot_wp_StoreUint64_nc _ _ $$ [] [-]
+  · iPkgInit
+  iintro Hnc
+  unfold appliedCell
+  imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hc0, Hcl0⟩
+  ihave Hb := bootOpen γ rc i (E := ⊤ \ ↑appliedN) durN_diff_appliedN A lat $$ [Hv]
+  · iframe #; iframe
+  imod Hb $$ Hnc with ⟨Hnc, %X, %HX, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp (some d) $$ [Hc Hsv]
+  · iframe
+  iunfold durCore at Hc
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, -, H10, Hpe', H12, H13, H14⟩
+  icombine Hpe Hpe' gives %Hpg
+  have hpe : X.pend = none := Hpg.2.symm
+  obtain ⟨m, b, hlat, hmi, hmt⟩ := Hp.2.2.2.2.2.2.2.2 d Hag.2.2
+  iframe Hnc
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  icases Hc0 with ⟨%a, Hpt, Hca⟩
+  iexists a
+  iframe Hpt
+  iintro Hpt
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hld⟩
+  rcases X with ⟨Xs, XA, Xlo, Xc, XD, Xtp, Xlat, Xpend, Xdp⟩
+  simp only at hpe hlat Hag ⊢
+  subst hpe hlat
+  obtain ⟨-, -, hdp⟩ := Hag
+  subst hdp
+  unfold latestDur
+  icases Hld with ⟨Hok, Hd⟩
+  icases Hd with (%Hn | ⟨%m', %b', %Hmb, Hd⟩)
+  · cases Hn
+  cases Hmb
+  icases Hd with (⟨-, %Hdn⟩ | ⟨#Hsf, %Hdp, %a', Ha', %Ha'le⟩)
+  · cases Hdn
+  imod applied_halves_update rc a' (uint.nat a) (uint.nat x) (by omega) $$ [Ha' Hca] with ⟨-, Ha', Hca⟩
+  · iframe
+  ihave #Hlb := monoNatLbOwn_get _ _ _ $$ Hca
+  imod Hmask with -
+  imod Hcl $$ %(⟨Xs, XA, Xlo, Xc, XD, Xtp, some (m, b), none, some d⟩ : SrvDur)
+    [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hpe' H12 H13 H14] [HL HS HSS Hok Hsf Ha'] with Hv
+  · iunfold durCore; iframe; ipureintro; exact Hp
+  · iunfold durStores; iframe; unfold latestDur; iframe
+    iright; iexists m, b
+    isplitr; · ipureintro; rfl
+    iright; iframe #
+    isplitr; · ipureintro; exact Hdp
+    iexists (uint.nat x); iframe; ipureintro; omega
+  imod Hcl0 $$ [Hpt Hca] with -
+  · inext; iexists x; iframe
+  imodintro
+  simp only at HX
+  obtain ⟨hA, hl⟩ := HX
+  subst hA hl
+  wp_auto
+  iapply HK $$ Hv Hsv Hpe
+  unfold applLb; iexact Hlb
 
 end boot
 
