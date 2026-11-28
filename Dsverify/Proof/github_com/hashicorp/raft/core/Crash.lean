@@ -145,40 +145,47 @@ theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
 
 /-- (R2) The main goroutine's view agrees with the crash state. -/
 theorem durCore_srvVP_agree (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
-    durCore γ rc i X ∗ srvVP rc s tp dp ⊢ ⌜X.s = s ∧ X.tp = tp ∧ X.dp = dp⌝ := by
+    durCore γ rc i X ∗ srvVP rc s tp dp ⊢
+      durCore γ rc i X ∗ srvVP rc s tp dp ∗ ⌜X.s = s ∧ X.tp = tp ∧ X.dp = dp⌝ := by
+  iintro ⟨Hc, Hv⟩
   unfold durCore srvVP
-  iintro ⟨⟨-, -, -, -, -, Hsv, -⟩, Hv⟩
+  icases Hc with ⟨H1, H2, H3, H4, H5, Hsv, H7⟩
   icombine Hsv Hv gives %H
-  ipureintro
   have H := H.2
   simp only [Prod.mk.injEq] at H
-  exact H
+  iframe
+  ipureintro; exact H
 
 /-- (R2) The stable store's view (with the staged commit index) agrees with the crash state. -/
 theorem durCore_stVS_agree (X : SrvDur) (D : StableAbs) (g : w64) :
-    durCore γ rc i X ∗ stVS rc D g ⊢ ⌜X.D = D ∧ X.A.staged = g⌝ := by
+    durCore γ rc i X ∗ stVS rc D g ⊢ durCore γ rc i X ∗ stVS rc D g ∗ ⌜X.D = D ∧ X.A.staged = g⌝ := by
+  iintro ⟨Hc, Hv⟩
   unfold durCore stVS
-  iintro ⟨⟨-, -, -, -, -, -, Hst, -⟩, Hv⟩
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, Hst, H8⟩
   icombine Hst Hv gives %H
-  ipureintro
   have H := H.2
   simp only [Prod.mk.injEq] at H
-  exact H
+  iframe
+  ipureintro; exact H
 
 /-- (R2) The term atomic's view agrees with the crash state's term. -/
 theorem durCore_termV_agree (X : SrvDur) (t : Nat) :
-    durCore γ rc i X ∗ termV rc t ⊢ ⌜X.s.term = t⌝ := by
+    durCore γ rc i X ∗ termV rc t ⊢ durCore γ rc i X ∗ termV rc t ∗ ⌜X.s.term = t⌝ := by
+  iintro ⟨Hc, Hv⟩
   unfold durCore termV
-  iintro ⟨⟨-, -, -, -, -, -, -, Htv, -⟩, Hv⟩
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, Htv, H9⟩
   icombine Htv Hv gives %H
+  iframe
   ipureintro; exact H.2
 
 /-- (R2) The commit index atomic's view agrees with the crash state's `cidx`. -/
 theorem durCore_cidxV_agree (X : SrvDur) (c : Nat) :
-    durCore γ rc i X ∗ cidxV rc c ⊢ ⌜X.s.cidx = c⌝ := by
+    durCore γ rc i X ∗ cidxV rc c ⊢ durCore γ rc i X ∗ cidxV rc c ∗ ⌜X.s.cidx = c⌝ := by
+  iintro ⟨Hc, Hv⟩
   unfold durCore cidxV
-  iintro ⟨⟨-, -, -, -, -, -, -, -, Hcv, -⟩, Hv⟩
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, H8, Hcv, H10⟩
   icombine Hcv Hv gives %H
+  iframe
   ipureintro; exact H.2
 
 /-- (R2) **A step of the main goroutine on the crash state** (generic): with its view of `s` (and
@@ -193,7 +200,16 @@ theorem durStep {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Term
         |={E \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗ ▷ durStores γ rc i X' ∗
           srvVP rc X'.s X'.tp X'.dp ∗ Q X') ⊢
       |NC={E}=> ∃ X' : SrvDur, srvVP rc X'.s X'.tp X'.dp ∗ Q X' := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hi, Hv, HP, Hf⟩ Hnc
+  imod (durOpen γ rc i hE) $$ Hi Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  imod Hf $$ %X %Hag Hc Hs Hv HP with ⟨%X', Hc', Hs', Hv', HQ⟩
+  imod Hcl $$ %X' Hc' Hs' with -
+  imodintro
+  iframe Hnc
+  iexists X'
+  iframe
 
 /-! ## Arming and crashing -/
 
@@ -254,24 +270,6 @@ theorem raft_crash {E : CoPset} (hE : ↑durN ⊆ E) :
       ∃ X : SrvDur, srvDead γ rc i X ∗ rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat := by
   sorry -- hraft_robust R2: proof pending
 
-/-- (R2) **The window resource at the main goroutine's state `s`** (what a write's caller lends as
-the contracts' `W`, `winAt_winRes`): its view `srvV rc s`, its stable-store view with the staged
-commit index (lent too, so that the crash knows the written commit index durable), the law's
-premises, and the store facts the step's coupling needs (`winPure`). -/
-def winPure (s : SState) (D : StableAbs) (g : w64) : Pend → Prop
-  | .app _ => uint.nat g ≤ s.dur.1
-  | .cfg _ _ _ => uint.nat g ≤ s.dur.1
-  | .fstore _ _ _ lci _ lc => (lc = none → uint.nat g ≤ s.dur.1) ∧
-      (∀ v, lc = some v → uint.nat g ≤ Min.min lci v)
-  | .vote c _ _ => D.bytes.lookup (go!"LastVoteCand" : List w8) = some c
-  | _ => True
-
-def winAt (s : SState) (p : Pend) : IProp GF :=
-  iprop(winRes γ rc i s p ∗ ∃ (D : StableAbs) (g : w64), stVS rc D g ∗ ⌜winPure s D g p⌝)
-
-theorem winAt_winRes (s : SState) (p : Pend) : winAt γ rc i s p ⊢ winRes γ rc i s p := by
-  sorry -- hraft_robust R2: proof pending
-
 /-- (R2) **What a write that fires `p` from `s` leaves in the stores** (`A'`, `D'`, against the dead
 state's `X.A`, `X.D`): what the store's crash lemma must say of the surviving image (the stores'
 volatile parts, `hi` and `staged`, are not constrained). -/
@@ -298,7 +296,7 @@ recorded (`tp`), fired by `dead_vacant`. -/
 theorem dead_fire {E : CoPset} (hE : ↑gprotN ⊆ E) [hRB : ReceiptBoundLe GF (2 ^ 62)]
     (p : Pend) (s : SState) (X : SrvDur) (A' : LogAbs) (D' : StableAbs)
     (hst : pendStoreOk p s X A' D') :
-    Inv γ ∗ srvDead γ rc i X ∗ winAt γ rc i s p ⊢ |={E}=> ∃ X' : SrvDur, deadCore γ rc i X' ∗
+    Inv γ ∗ srvDead γ rc i X ∗ winRes γ rc i s p ⊢ |={E}=> ∃ X' : SrvDur, deadCore γ rc i X' ∗
       ⌜X'.A.m = A'.m ∧ X'.A.ci = A'.ci ∧ X'.D = D' ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ := by
   sorry -- hraft_robust R2: proof pending
 
