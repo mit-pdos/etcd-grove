@@ -215,7 +215,7 @@ theorem SetUp.wp_proof_dist
       · ipureintro; decide
       iintro !> %um %hum
       iapply (setupD_histAu γR Γ.kv γz 0 _
-        (setupReqAtD_userAdd 0 go!"root" um (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) hum.1) (by decide)
+        (setupReqAtD_userAdd 0 go!"root" um (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) hum.1 hum.2) (by decide)
         _ hP) $$ Hc Hn
     icases Hout0 with (⟨%Herr0, Hq0⟩ | %Herr0)
     rotate_left
@@ -231,7 +231,7 @@ theorem SetUp.wp_proof_dist
         itrivial
     subst Herr0
     icases Hq0 with ⟨%um0, %hum0, Hq0⟩
-    imod (setupD_reply eps Γ γR γz 0 _ ⟨um0, rfl, hum0.2.2, hum0.1⟩ ⊤ (fun _ _ => CoPset.mem_full)
+    imod (setupD_reply eps Γ γR γz 0 _ ⟨um0, rfl, hum0.2.2, hum0.1, hum0.2.1⟩ ⊤ (fun _ _ => CoPset.mem_full)
       (fun _ _ => CoPset.mem_full) _ hP) $$ Hc Hn Hq0 with #F0
     (try wp_auto)
     -- UserGrantRole(root, root)
@@ -313,7 +313,7 @@ theorem SetUp.wp_proof_dist
       · ipureintro; decide
       iintro !> %um %hum
       iapply (setupD_histAu γR Γ.kv γz 4 _
-        (setupReqAtD_userAdd 4 go!"u" um (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) hum.1) (by decide)
+        (setupReqAtD_userAdd 4 go!"u" um (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) hum.1 hum.2) (by decide)
         _ hP) $$ Hc Hn
     icases Hout4 with (⟨%Herr4, Hq4⟩ | %Herr4)
     rotate_left
@@ -329,7 +329,7 @@ theorem SetUp.wp_proof_dist
         itrivial
     subst Herr4
     icases Hq4 with ⟨%um4, %hum4, Hq4⟩
-    imod (setupD_reply eps Γ γR γz 4 _ ⟨um4, rfl, hum4.2.2, hum4.1⟩ ⊤ (fun _ _ => CoPset.mem_full)
+    imod (setupD_reply eps Γ γR γz 4 _ ⟨um4, rfl, hum4.2.2, hum4.1, hum4.2.1⟩ ⊤ (fun _ _ => CoPset.mem_full)
       (fun _ _ => CoPset.mem_full) _ hP) $$ Hc Hn Hq4 with #F4
     (try wp_auto)
     -- UserGrantRole(u, r)
@@ -363,7 +363,7 @@ theorem SetUp.wp_proof_dist
       · ipureintro; decide
       iintro !> %um %hum
       iapply (setupD_histAu γR Γ.kv γz 6 _
-        (setupReqAtD_userAdd 6 go!"v" um (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) hum.1) (by decide)
+        (setupReqAtD_userAdd 6 go!"v" um (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) hum.1 hum.2) (by decide)
         _ hP) $$ Hc Hn
     icases Hout6 with (⟨%Herr6, Hq6⟩ | %Herr6)
     rotate_left
@@ -379,7 +379,7 @@ theorem SetUp.wp_proof_dist
         itrivial
     subst Herr6
     icases Hq6 with ⟨%um6, %hum6, Hq6⟩
-    imod (setupD_reply eps Γ γR γz 6 _ ⟨um6, rfl, hum6.2.2, hum6.1⟩ ⊤ (fun _ _ => CoPset.mem_full)
+    imod (setupD_reply eps Γ γR γz 6 _ ⟨um6, rfl, hum6.2.2, hum6.1, hum6.2.1⟩ ⊤ (fun _ _ => CoPset.mem_full)
       (fun _ _ => CoPset.mem_full) _ hP) $$ Hc Hn Hq6 with #F6
     (try wp_auto)
     ihave #Hall : (□ ∀ i, ⌜i < 7⌝ -∗ effLb Γ.kv i : IProp GF) $$ []

@@ -20,14 +20,6 @@ namespace base64
 padding (`-1`) the bits of a final partial group. -/
 def decLen (p : w32) (n : Nat) : Nat := if p = W32 (-1) then n / 4 * 3 + n % 4 * 6 / 8 else n / 4 * 3
 
-/-- **Padded base64 text over the alphabet `α`** (RFC 4648 §4, as `StdEncoding` emits it): groups of
-four symbols of `α`, the last of which may end in one or two `=` (61) after at least two symbols. -/
-def b64Ok (α : List w8) : List w8 → Prop
-  | [] => True
-  | [a, b, c, d] => a ∈ α ∧ b ∈ α ∧ ((c ∈ α ∧ (d ∈ α ∨ d = 61)) ∨ (c = 61 ∧ d = 61))
-  | a :: b :: c :: d :: e :: rest => a ∈ α ∧ b ∈ α ∧ c ∈ α ∧ d ∈ α ∧ b64Ok α (e :: rest)
-  | _ => False
-
 /-- `NewEncoding`'s decode map after `i` rounds maps each of the first `i` symbols to an index below
 `i`, and every other byte to `0xff`. -/
 theorem dmAfter_val (s : List w8) (x : w8) : ∀ i, i ≤ s.length → i ≤ 255 →
@@ -70,10 +62,12 @@ variable [GooseExts]
 
 /-- **An `Encoding` that decodes padded base64 over its alphabet**: its alphabet is 64 symbols, none
 of them `=`; its decode map is `NewEncoding`'s (`dmAfter`: each symbol's index, `0xff` for any other
-byte); its padding is `=` and it is not strict (`StdEncoding`, bcrypt's `bcEncoding`). -/
+byte); its padding is `=` and it is not strict; neither newline (`'\n'`, `'\r'`) is a symbol (which the
+decoder skips: `dropNL`) (`StdEncoding`). -/
 def decOk (enc : _root_.Perennial.encoding.base64.Encoding) : Prop :=
   enc.encode'.arr.length = 64 ∧ (61 : w8) ∉ enc.encode'.arr ∧
-  enc.decodeMap'.arr = dmAfter enc.encode'.arr 64 ∧ enc.padChar' = W32 61 ∧ enc.strict' = false
+  enc.decodeMap'.arr = dmAfter enc.encode'.arr 64 ∧ enc.padChar' = W32 61 ∧ enc.strict' = false ∧
+  W8 10 ∉ enc.encode'.arr ∧ W8 13 ∉ enc.encode'.arr
 
 /-- The decode map of a `decOk` encoding: a symbol's entry is below 64. -/
 theorem decOk_sym {enc : _root_.Perennial.encoding.base64.Encoding} (h : decOk enc) (x : w8)
@@ -92,6 +86,11 @@ theorem decOk_nonsym {enc : _root_.Perennial.encoding.base64.Encoding} (h : decO
   have := (dmAfter_val enc.encode'.arr x 64 (by omega) (by omega)).2
   rw [← hl] at this ⊢; rw [List.take_length] at this
   exact this hx
+
+/-- The decode map of a `decOk` encoding: an entry other than `0xff` is a symbol's. -/
+theorem decOk_sym_of_ne {enc : _root_.Perennial.encoding.base64.Encoding} (h : decOk enc) (x : w8)
+    (hx : enc.decodeMap'.arr.getD x.toNat 0 ≠ W8 255) : x ∈ enc.encode'.arr :=
+  Classical.byContradiction fun hn => hx (decOk_nonsym h x hn)
 
 /-- The decode map of a `decOk` encoding has 256 entries. -/
 theorem decOk_len {enc : _root_.Perennial.encoding.base64.Encoding} (h : decOk enc) :
@@ -269,6 +268,279 @@ theorem or_ff_right (a b : w8) (hb : b = W8 255) : a ||| b = W8 255 := by
   subst hb
   have e : (W8 255 : w8) = BitVec.allOnes 8 := by decide
   rw [e, BitVec.or_allOnes]
+
+
+/-! The exact error condition of the decoder (D3 follow-up (a), 2026-11-28): the text without its
+newlines (`dropNL`), read a quantum at a time. -/
+
+section exact
+variable [GooseExts]
+
+open Perennial.encoding.base64 (dropNL)
+
+theorem not_of_true_eq_not_decide {P : Prop} [Decidable P] (h : true = !decide P) : ¬ P := by
+  intro hp; simp [hp] at h
+
+theorem or_ne_ff {a b : w8} (h : a ||| b ≠ W8 255) : a ≠ W8 255 ∧ b ≠ W8 255 :=
+  ⟨fun ha => h (or_ff_left a b ha), fun hb => h (or_ff_right a b hb)⟩
+
+theorem drop_eq_cons (s : List w8) (k : Nat) (x : w8) (hx : s[k]? = some x) :
+    s.drop k = x :: s.drop (k + 1) := by
+  have hk : k < s.length := by
+    rcases Nat.lt_or_ge k s.length with h | h
+    · exact h
+    · rw [List.getElem?_eq_none h] at hx; cases hx
+  rw [List.drop_eq_getElem_cons hk]
+  rw [List.getElem?_eq_getElem hk] at hx
+  rw [Option.some.inj hx]
+
+/-- A byte other than a newline is kept. -/
+theorem dropNL_drop_keep (s : List w8) (k : Nat) (x : w8) (hx : s[k]? = some x) (h10 : x ≠ W8 10)
+    (h13 : x ≠ W8 13) : dropNL (s.drop k) = x :: dropNL (s.drop (k + 1)) := by
+  rw [drop_eq_cons s k x hx]
+  simp only [dropNL, List.filter_cons]
+  rw [ite_eq_left_of_eq_true _ _ (by simp; exact ⟨h10, h13⟩)]
+
+/-- A newline is skipped. -/
+theorem dropNL_drop_skip (s : List w8) (k : Nat) (x : w8) (hx : s[k]? = some x)
+    (h : x = W8 10 ∨ x = W8 13) : dropNL (s.drop k) = dropNL (s.drop (k + 1)) := by
+  rw [drop_eq_cons s k x hx]
+  rcases h with rfl | rfl
+  · simp [dropNL]
+  · have e : (((W8 13 : w8) == W8 10) || ((W8 13 : w8) == W8 13)) = true := by decide
+    simp only [dropNL, List.filter_cons, e, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+
+theorem dropNL_drop_end (s : List w8) (k : Nat) (h : s.length ≤ k) : dropNL (s.drop k) = [] := by
+  rw [List.drop_eq_nil_of_le h]; rfl
+
+/-- A symbol is not a newline. -/
+theorem decOk_ne10 {enc : _root_.Perennial.encoding.base64.Encoding} (h : decOk enc) {x : w8}
+    (hx : x ∈ enc.encode'.arr) : x ≠ W8 10 := fun e => h.2.2.2.2.2.1 (e ▸ hx)
+
+theorem decOk_ne13 {enc : _root_.Perennial.encoding.base64.Encoding} (h : decOk enc) {x : w8}
+    (hx : x ∈ enc.encode'.arr) : x ≠ W8 13 := fun e => h.2.2.2.2.2.2 (e ▸ hx)
+
+/-- A whole group of symbols in front does not change padded base64 text's validity. -/
+theorem b64Ok_cons4 (α : List w8) {a b c d : w8} (t : List w8) (ha : a ∈ α) (hb : b ∈ α)
+    (hc : c ∈ α) (hd : d ∈ α) : b64Ok α (a :: b :: c :: d :: t) ↔ b64Ok α t := by
+  match t with
+  | [] => simp only [b64Ok]; exact ⟨fun _ => trivial, fun _ => ⟨ha, hb, .inl ⟨hc, .inl hd⟩⟩⟩
+  | e :: r => simp only [b64Ok]; exact ⟨fun h => h.2.2.2.2, fun h => ⟨ha, hb, hc, hd, h⟩⟩
+
+/-- **What one quantum of `decodeQuantum` accepts** of the text `t` (without newlines), leaving
+`t'`: either the rest is empty and `t` was padded base64 text (no quantum, or the last one), or a
+whole group of four symbols. -/
+def quantumOk (α t t' : List w8) : Prop :=
+  (t' = [] ∧ b64Ok α t) ∨ ∃ a b c d, a ∈ α ∧ b ∈ α ∧ c ∈ α ∧ d ∈ α ∧ t = a :: b :: c :: d :: t'
+
+theorem quantumOk_iff {α t t' : List w8} (h : quantumOk α t t') : b64Ok α t ↔ b64Ok α t' := by
+  rcases h with ⟨rfl, h⟩ | ⟨a, b, c, d, ha, hb, hc, hd, rfl⟩
+  · exact ⟨fun _ => by simp [b64Ok], fun _ => h⟩
+  · exact b64Ok_cons4 α _ ha hb hc hd
+
+/-- `decodeQuantum`'s loop state: from `k0` it has read the `j` symbols `pre` (and any newlines),
+up to `k`. -/
+def readSyms (α s : List w8) (k0 j k : Nat) : Prop :=
+  ∃ pre : List w8, pre.length = j ∧ (∀ x ∈ pre, x ∈ α) ∧ dropNL (s.drop k0) = pre ++ dropNL (s.drop k)
+
+/-- In padded base64 text, the byte after fewer than four symbols of a group is a symbol, or `=`
+after two (then followed by just `=`) or three (then the end). -/
+theorem b64Ok_mid (α : List w8) (h61 : (61 : w8) ∉ α) (pre rest : List w8) (c : w8)
+    (hpre : ∀ x ∈ pre, x ∈ α) (hlen : pre.length < 4) (h : b64Ok α (pre ++ c :: rest)) :
+    c ∈ α ∨ (2 ≤ pre.length ∧ c = 61 ∧ (pre.length = 2 → rest = [61]) ∧
+      (pre.length = 3 → rest = [])) := by
+  obtain ⟨a, b, c', d, r, hl, ha, hb, hc, hd, hcd, hr, -⟩ := b64Ok_group α h61 _ h (by simp)
+  match pre, hlen, hl with
+  | [], _, hl =>
+    simp only [List.nil_append, List.cons.injEq] at hl
+    left; rw [hl.1]; exact ha
+  | [p0], _, hl =>
+    simp only [List.cons_append, List.nil_append, List.cons.injEq] at hl
+    left; rw [hl.2.1]; exact hb
+  | [p0, p1], _, hl =>
+    simp only [List.cons_append, List.nil_append, List.cons.injEq] at hl
+    obtain ⟨-, -, rfl, rfl⟩ := hl
+    rcases hc with hc | hc
+    · exact .inl hc
+    · right
+      refine ⟨by simp, hc, fun _ => ?_, fun h => by simp at h⟩
+      rw [hcd hc, hr (.inl hc)]
+  | [p0, p1, p2], _, hl =>
+    simp only [List.cons_append, List.nil_append, List.cons.injEq] at hl
+    obtain ⟨-, -, -, rfl, rfl⟩ := hl
+    rcases hd with hd | hd
+    · exact .inl hd
+    · right
+      exact ⟨by simp, hd, fun h => by simp at h, fun _ => hr (.inr hd)⟩
+  | _ :: _ :: _ :: _ :: _, h, _ => simp at h; omega
+
+/-- One to three symbols are not padded base64 text. -/
+theorem b64Ok_short (α pre : List w8) (h1 : 1 ≤ pre.length) (h3 : pre.length < 4) :
+    ¬ b64Ok α pre := fun h => by
+  have := b64Ok_len α pre h; omega
+
+theorem b64Ok_pad2 (α pre : List w8) (hpre : ∀ x ∈ pre, x ∈ α) (hl : pre.length = 2) :
+    b64Ok α (pre ++ [61, 61]) := by
+  match pre, hl with
+  | [a, b], _ =>
+    simp only [List.cons_append, List.nil_append, b64Ok]
+    exact ⟨hpre a (by simp), hpre b (by simp), .inr ⟨trivial, trivial⟩⟩
+
+theorem b64Ok_pad1 (α pre : List w8) (hpre : ∀ x ∈ pre, x ∈ α) (hl : pre.length = 3) :
+    b64Ok α (pre ++ [61]) := by
+  match pre, hl with
+  | [a, b, c], _ =>
+    simp only [List.cons_append, List.nil_append, b64Ok]
+    exact ⟨hpre a (by simp), hpre b (by simp), .inl ⟨hpre c (by simp), .inr trivial⟩⟩
+
+theorem quantumOk_four (α pre t : List w8) (hpre : ∀ x ∈ pre, x ∈ α) (hl : pre.length = 4) :
+    quantumOk α (pre ++ t) t := by
+  match pre, hl with
+  | [a, b, c, d], _ =>
+    exact .inr ⟨a, b, c, d, hpre a (by simp), hpre b (by simp), hpre c (by simp), hpre d (by simp), rfl⟩
+
+theorem readSyms_congr {α s : List w8} {k0 j j' k k' : Nat} (hj : j = j') (hk : k = k')
+    (h : readSyms α s k0 j k) : readSyms α s k0 j' k' := hj ▸ hk ▸ h
+
+theorem readSyms_sym {α s : List w8} {k0 j k : Nat} {x : w8} (h : readSyms α s k0 j k)
+    (hx : s[k]? = some x) (hxa : x ∈ α) (h10 : x ≠ W8 10) (h13 : x ≠ W8 13) :
+    readSyms α s k0 (j + 1) (k + 1) := by
+  obtain ⟨pre, hl, hp, he⟩ := h
+  refine ⟨pre ++ [x], by simp [hl], fun y hy => ?_, ?_⟩
+  · rcases List.mem_append.1 hy with hy | hy
+    · exact hp y hy
+    · rw [List.mem_singleton.1 hy]; exact hxa
+  · rw [he, dropNL_drop_keep s k x hx h10 h13, List.append_assoc]; rfl
+
+theorem readSyms_nl {α s : List w8} {k0 j k : Nat} {x : w8} (h : readSyms α s k0 j k)
+    (hx : s[k]? = some x) (hn : x = W8 10 ∨ x = W8 13) : readSyms α s k0 j (k + 1) := by
+  obtain ⟨pre, hl, hp, he⟩ := h
+  exact ⟨pre, hl, hp, by rw [he, dropNL_drop_skip s k x hx hn]⟩
+
+theorem readSyms_end {α s : List w8} {k0 j k : Nat} (h : readSyms α s k0 j k) (hk : s.length ≤ k) :
+    ∃ pre : List w8, pre.length = j ∧ (∀ y ∈ pre, y ∈ α) ∧ dropNL (s.drop k0) = pre := by
+  obtain ⟨pre, hl, hp, he⟩ := h
+  exact ⟨pre, hl, hp, by rw [he, dropNL_drop_end s k hk, List.append_nil]⟩
+
+/-- The input ends inside a group: not padded base64 text. -/
+theorem readSyms_end_bad {α s : List w8} {k0 j k : Nat} (h : readSyms α s k0 j k)
+    (hk : s.length ≤ k) (hj1 : 1 ≤ j) (hj4 : j < 4) : ¬ b64Ok α (dropNL (s.drop k0)) := by
+  obtain ⟨pre, hl, -, he⟩ := readSyms_end h hk
+  rw [he]; exact b64Ok_short α pre (by omega) (by omega)
+
+/-- The input ends at a group's boundary: valid, if all of the text was read. -/
+theorem readSyms_end_ok {α s : List w8} {k0 k : Nat} (h : readSyms α s k0 0 k)
+    (hk : s.length ≤ k) : quantumOk α (dropNL (s.drop k0)) (dropNL (s.drop k)) := by
+  obtain ⟨pre, hl, -, he⟩ := readSyms_end h hk
+  rw [List.length_eq_zero_iff] at hl; subst hl
+  exact .inl ⟨dropNL_drop_end s k hk, by rw [he]; simp [b64Ok]⟩
+
+/-- Four symbols read. -/
+theorem readSyms_four {α s : List w8} {k0 k : Nat} (h : readSyms α s k0 4 k) :
+    quantumOk α (dropNL (s.drop k0)) (dropNL (s.drop k)) := by
+  obtain ⟨pre, hl, hp, he⟩ := h
+  rw [he]; exact quantumOk_four α pre _ hp hl
+
+/-- A byte that is neither a symbol nor a newline, nor `=` after two or three symbols. -/
+theorem readSyms_bad {α s : List w8} (h61 : (61 : w8) ∉ α) {k0 j k : Nat} {x : w8}
+    (h : readSyms α s k0 j k) (hj : j < 4) (hx : s[k]? = some x) (hxa : x ∉ α) (h10 : x ≠ W8 10)
+    (h13 : x ≠ W8 13) (hp : x ≠ 61 ∨ j < 2) : ¬ b64Ok α (dropNL (s.drop k0)) := by
+  obtain ⟨pre, hl, hpre, he⟩ := h
+  rw [he, dropNL_drop_keep s k x hx h10 h13]
+  intro hb
+  rcases b64Ok_mid α h61 pre _ x hpre (by omega) hb with h | ⟨h2, h61', -⟩
+  · exact hxa h
+  · rcases hp with hp | hp
+    · exact hp h61'
+    · omega
+
+/-- `=` at `k` after `j` symbols. -/
+theorem readSyms_pad {α s : List w8} {k0 j k : Nat} (h : readSyms α s k0 j k)
+    (hx : s[k]? = some (W8 61)) : ∃ pre : List w8, pre.length = j ∧ (∀ y ∈ pre, y ∈ α) ∧
+      dropNL (s.drop k0) = pre ++ 61 :: dropNL (s.drop (k + 1)) := by
+  obtain ⟨pre, hl, hp, he⟩ := h
+  exact ⟨pre, hl, hp, by rw [he, dropNL_drop_keep s k (W8 61) hx (by decide) (by decide)]; rfl⟩
+
+theorem pad2_bad (α : List w8) (h61 : (61 : w8) ∉ α) (pre rest : List w8) (hp : ∀ y ∈ pre, y ∈ α)
+    (hl : pre.length = 2) (hr : rest ≠ [61]) : ¬ b64Ok α (pre ++ 61 :: rest) := fun hb => by
+  rcases b64Ok_mid α h61 pre rest 61 hp (by omega) hb with h | ⟨-, -, h2, -⟩
+  · exact h61 h
+  · exact hr (h2 hl)
+
+theorem pad3_bad (α : List w8) (h61 : (61 : w8) ∉ α) (pre rest : List w8) (hp : ∀ y ∈ pre, y ∈ α)
+    (hl : pre.length = 3) (hr : rest ≠ []) : ¬ b64Ok α (pre ++ 61 :: rest) := fun hb => by
+  rcases b64Ok_mid α h61 pre rest 61 hp (by omega) hb with h | ⟨-, -, -, h3⟩
+  · exact h61 h
+  · exact hr (h3 hl)
+
+/-- Four symbols at `k` (the fast paths' `assemble32`/`assemble64`): validity from `k` is validity
+after them. -/
+theorem b64Ok_drop_sym4 {enc : _root_.Perennial.encoding.base64.Encoding} (hok : decOk enc)
+    (s : List w8) (k : Nat) (x0 x1 x2 x3 : w8)
+    (hx0 : s[k]? = some x0) (hx1 : s[k + 1]? = some x1) (hx2 : s[k + 2]? = some x2)
+    (hx3 : s[k + 3]? = some x3) (h0 : x0 ∈ enc.encode'.arr) (h1 : x1 ∈ enc.encode'.arr)
+    (h2 : x2 ∈ enc.encode'.arr) (h3 : x3 ∈ enc.encode'.arr) :
+    b64Ok enc.encode'.arr (dropNL (s.drop k)) ↔ b64Ok enc.encode'.arr (dropNL (s.drop (k + 4))) := by
+  rw [dropNL_drop_keep s k x0 hx0 (decOk_ne10 hok h0) (decOk_ne13 hok h0),
+    dropNL_drop_keep s (k + 1) x1 hx1 (decOk_ne10 hok h1) (decOk_ne13 hok h1),
+    show k + 1 + 1 = k + 2 from rfl,
+    dropNL_drop_keep s (k + 2) x2 hx2 (decOk_ne10 hok h2) (decOk_ne13 hok h2),
+    show k + 2 + 1 = k + 3 from rfl,
+    dropNL_drop_keep s (k + 3) x3 hx3 (decOk_ne10 hok h3) (decOk_ne13 hok h3),
+    show k + 3 + 1 = k + 4 from rfl]
+  exact b64Ok_cons4 _ _ h0 h1 h2 h3
+
+/-- Every byte of padded base64 text is a symbol or `=`. -/
+theorem b64Ok_mem (α : List w8) : ∀ l : List w8, b64Ok α l → ∀ y ∈ l, y ∈ α ∨ y = 61
+  | [], _, y, hy => by simp at hy
+  | [a, b, c, d], h, y, hy => by
+    simp only [b64Ok] at h
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hy
+    obtain ⟨ha, hb, hcd⟩ := h
+    rcases hy with rfl | rfl | rfl | rfl
+    · exact .inl ha
+    · exact .inl hb
+    · rcases hcd with ⟨hc, -⟩ | ⟨hc, -⟩
+      · exact .inl hc
+      · exact .inr hc
+    · rcases hcd with ⟨-, hd⟩ | ⟨-, hd⟩
+      · exact hd
+      · exact .inr hd
+  | a :: b :: c :: d :: e :: rest, h, y, hy => by
+    simp only [b64Ok] at h
+    rcases List.mem_cons.1 hy with rfl | hy
+    · exact .inl h.1
+    rcases List.mem_cons.1 hy with rfl | hy
+    · exact .inl h.2.1
+    rcases List.mem_cons.1 hy with rfl | hy
+    · exact .inl h.2.2.1
+    rcases List.mem_cons.1 hy with rfl | hy
+    · exact .inl h.2.2.2.1
+    exact b64Ok_mem α (e :: rest) h.2.2.2.2 y hy
+  | [_], h, _, _ | [_, _], h, _, _ | [_, _, _], h, _, _ => by simp [b64Ok] at h
+
+/-- Padded base64 text over an alphabet without newlines has none. -/
+theorem dropNL_of_b64Ok (α : List w8) (h10 : W8 10 ∉ α) (h13 : W8 13 ∉ α) (l : List w8)
+    (h : b64Ok α l) : dropNL l = l := by
+  unfold dropNL
+  rw [List.filter_eq_self]
+  intro y hy
+  rcases b64Ok_mem α l h y hy with hy | rfl
+  · have e1 : y ≠ W8 10 := fun e => h10 (e ▸ hy)
+    have e2 : y ≠ W8 13 := fun e => h13 (e ▸ hy)
+    simp only [Bool.not_eq_true', Bool.or_eq_false_iff, beq_eq_false_iff_ne]
+    exact ⟨e1, e2⟩
+  · decide
+
+/-- **`StdEncoding` decodes what it encodes** without an error. -/
+theorem _root_.Perennial.encoding.base64.stdDecOk_stdEnc (x : List w8) :
+    _root_.Perennial.encoding.base64.stdDecOk (_root_.Perennial.encoding.base64.stdEnc x) := by
+  unfold _root_.Perennial.encoding.base64.stdDecOk _root_.Perennial.encoding.base64.stdEnc
+  have hb := b64Enc_ok _root_.Perennial.encoding.base64.stdAlphabet (by decide) x
+  rw [dropNL_of_b64Ok _ (by decide) (by decide) _ hb]
+  exact hb
+
+end exact
 
 end base64
 end EtcdGrove

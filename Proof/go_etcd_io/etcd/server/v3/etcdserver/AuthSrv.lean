@@ -501,7 +501,7 @@ theorem authStoreKit_on
     (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
     (hDisableB : auth.authStore.AuthDisable.specTB (GF := GF) (hG := hG))
     (hUserDeleteB : auth.authStore.UserDelete.specTB (GF := GF) (hG := hG))
-    (hChangePasswordB : auth.authStore.UserChangePassword.specTSureB (GF := GF) (hG := hG))
+    (hChangePasswordB : auth.authStore.UserChangePassword.specTB (GF := GF) (hG := hG))
     (hUserRevokeRoleB : auth.authStore.UserRevokeRole.specTB (GF := GF) (hG := hG))
     (hRoleDeleteB : auth.authStore.RoleDelete.specTB (GF := GF) (hG := hG))
     (hRoleRevokePermissionB : auth.authStore.RoleRevokePermission.specTB (GF := GF) (hG := hG))

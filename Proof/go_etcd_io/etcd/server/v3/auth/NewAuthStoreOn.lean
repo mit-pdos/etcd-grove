@@ -288,7 +288,8 @@ theorem newAuthStore_on
   · exact absurd rfl Hlg
   (try wp_auto)
   -- the cost check: out of bounds, a warning and the default cost (two paths); else nothing
-  wp_join iprop(∃ c : w64, bcryptCost_ptr ↦ c ∗ lg_ptr ↦ lg) with [bcryptCost lg] as ⟨%c, Hbc, Hlgp⟩
+  wp_join iprop(∃ c : w64, bcryptCost_ptr ↦ c ∗ lg_ptr ↦ lg ∗ ⌜sint.Z c ≤ 31⌝) with [bcryptCost lg]
+    as ⟨%c, Hbc, Hlgp, %Hc31⟩
   · (try wp_auto)
     wp_apply h_Int as %f0 -
     wp_apply h_Int as %f1 -
@@ -307,7 +308,7 @@ theorem newAuthStore_on
     simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
     (try wp_auto)
     wp_join_done
-    try (iexists _; iframe)
+    iexists _; iframe; ipureintro; word
   · (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
@@ -328,10 +329,10 @@ theorem newAuthStore_on
       simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
       (try wp_auto)
       wp_join_done
-      try (iexists _; iframe)
+      iexists _; iframe; ipureintro; word
     · (try wp_auto)
       wp_join_done
-      try (iexists _; iframe)
+      iexists _; iframe; ipureintro; word
   -- `CreateAuthBuckets()`, one transaction
   wp_bind (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
   iapply HCreate $$ [$HT $Hw1]
@@ -488,7 +489,7 @@ theorem newAuthStore_on
     isplitr
     · iexists tp; iframe tokenProvider
       iapply tokenProviderOk_of_A $$ HtpA
-    iexists _; iexact bcryptCost
+    iexists _; iframe bcryptCost; ipureintro; exact Hc31
   -- `if enabled { as.tokenProvider.enable() }`: the provider's admin resource kept
   ihave #HtpA' := HtpA
   iunfold tokenProviderOkA at HtpA'

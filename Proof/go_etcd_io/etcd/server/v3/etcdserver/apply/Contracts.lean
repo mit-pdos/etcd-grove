@@ -259,7 +259,8 @@ def isAuthStore (st : GoInterface) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) 
           (Val #pw))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗
           respHdrOk etcdserverpb.AuthenticateResponse resp ∗ applyErrIs err ∗ RW }}) ∗
-    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse Pk f BT RW auth.userAddReqIs M ∗
+    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse Pk f BT RW
+      (fun r n => iprop(∃ nob : Bool, auth.userAddReqIs r n nob)) M ∗
     authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse Pk f BT RW M ∗
     authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse Pk f BT RW M ∗
     authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse Pk f BT RW M ∗

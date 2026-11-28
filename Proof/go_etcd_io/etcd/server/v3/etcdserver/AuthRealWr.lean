@@ -350,25 +350,29 @@ theorem newView {bs : BSess} {st sa su sr su' sr' : auth.AuthState} {cs v : GoSt
 
 theorem usersAt_put {st : auth.AuthState} {m : BktData} {dU : GoString → auth.UserRec} (ur : auth.UserRec)
     (h : schema.usersAt st m dU) (hs : ur.roles.Pairwise go.GoStringLt) :
-    schema.usersAt (auth.putUser st ur.name ur.roles) (m.insert ur.name (auth.userEncode ur))
+    schema.usersAt (auth.putUserRec st ur) (m.insert ur.name (auth.userEncode ur))
       (fun n => if n = ur.name then ur else dU n) := by
   obtain ⟨h1, h2⟩ := h
   refine ⟨fun n => ?_, fun n v hl => ?_⟩
-  · simp only [auth.putUser, GMap.lookup_insert_eq_iff]
+  · simp only [auth.putUserRec, auth.putUser, GMap.lookup_insert_eq_iff]
     by_cases hn : ur.name = n
     · simp [hn]
     · simp only [hn, ↓reduceIte]; exact h1 n
   · simp only [GMap.lookup_insert_eq_iff] at hl
-    simp only [auth.putUser, GMap.lookup_insert_eq_iff]
+    simp only [show (auth.putUserRec st ur).users = (auth.putUser st ur.name ur.roles).users from rfl,
+      auth.putUser, GMap.lookup_insert_eq_iff]
     by_cases hn : ur.name = n
     · subst hn
       simp only [↓reduceIte, Option.some.injEq] at hl
       subst hl
       simp only [↓reduceIte]
-      exact ⟨trivial, trivial, trivial, hs⟩
+      refine ⟨trivial, trivial, trivial, hs, ?_⟩
+      rw [auth.putUserRec_noPw]; simp
     · have hn' : n ≠ ur.name := fun e => hn e.symm
       simp only [hn, hn', ↓reduceIte] at hl ⊢
-      exact h2 n v hl
+      obtain ⟨a, b, c, d, e⟩ := h2 n v hl
+      refine ⟨a, b, c, d, ?_⟩
+      rw [auth.putUserRec_noPw, if_neg hn]; exact e
 
 theorem usersAt_del {st : auth.AuthState} {m : BktData} {dU : GoString → auth.UserRec} (name : GoString)
     (h : schema.usersAt st m dU) :
@@ -506,7 +510,7 @@ theorem lkOk_putUser {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : B
     {w : auth.AuthSess} {k : Nat} (hWf : d.P.Wf) (hhas : d.P.has mvcc.authUsersBI) (ur : auth.UserRec)
     (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58) (hw : w.users ≠ .dels)
     (hs : ur.roles.Pairwise go.GoStringLt) :
-    LkOk d (bs.put mvcc.authUsersBI ur.name (auth.userEncode ur) false true) (auth.putUser st ur.name ur.roles) x
+    LkOk d (bs.put mvcc.authUsersBI ur.name (auth.userEncode ur) false true) (auth.putUserRec st ur) x
       { w with users := .puts } (k + 1) where
   hw := h.hw
   vs := mvcc.viewSame_putHB hWf (hb_auth d _ (by simp [authBktL, authUsersBI_name])) hhas h.vs
@@ -651,7 +655,7 @@ roles. -/
 theorem lkOk_putAuth {d : mvcc.KBReal} {bs : BSess} {st st' : auth.AuthState} {x : BktData × BktData × BktData}
     {w : auth.AuthSess} {k : Nat} (hWf : d.P.Wf) (hhas : d.P.has mvcc.authBI) (kb vb : GoString)
     (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58)
-    (hu : st'.users = st.users) (hr : st'.roles = st.roles)
+    (hu : st'.users = st.users) (hr : st'.roles = st.roles) (hn : st'.noPwUsers = st.noPwUsers)
     (ha : authAt st (bktOf bs.S go!"auth") → authAt st' ((bktOf bs.S go!"auth").insert kb vb)) :
     LkOk d (bs.put mvcc.authBI kb vb false true) st' x w (k + 1) where
   hw := h.hw
@@ -683,7 +687,7 @@ theorem lkOk_putAuth {d : mvcc.KBReal} {bs : BSess} {st st' : auth.AuthState} {x
     simp only [BSess.put, authBI_name]
     rw [bktOf_ins_ne _ _ _ _ auth_ne_users, bktOf_ins_ne _ _ _ _ auth_ne_roles, bktOf_ins]
     refine ⟨ha ha0, ⟨dU, ?_⟩, ⟨dR, ?_⟩⟩
-    · show schema.usersAt st' _ dU; unfold schema.usersAt; rw [hu]; exact hu0
+    · show schema.usersAt st' _ dU; unfold schema.usersAt auth.AuthState.noPw; rw [hu, hn]; exact hu0
     · show schema.rolesAt st' _ dR; unfold schema.rolesAt; rw [hr]; exact hr0
 
 theorem hk_auth (d : mvcc.KBReal) (n k : GoString) (h : n ∈ authBktL) : d.P.HK n k = false := by
@@ -1783,14 +1787,14 @@ theorem real_batchTxLkR
   · iintro !> %st %X %u %ur %w !> %Φ ⟨Hlk, Hr1, Hsw, Hown, %Hc⟩ HΦ
     obtain ⟨hw, hs, hk0, hk1, hutf⟩ := Hc
     wp_apply (hPU l (btIface t) lg u ur iprop(lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 ∗ bkSw γ (1 : Qp).half w)
-        iprop(lkT γ d q0 W Pk Hk (auth.putUser st ur.name ur.roles) X ∗
+        iprop(lkT γ d q0 W Pk Hk (auth.putUserRec st ur) X ∗
           bkSw γ (1 : Qp).half { w with users := .puts }) hutf)
       $$ [$Hp2 $Htx $Hlg $Hown Hlk Hr1 Hsw] as ⟨Hown, Hlk, Hsw⟩
     · iframe Hlk Hr1 Hsw
       iintro !> %bk %key %val !> %Ψ ⟨#Hg, #Hkey, #Hval, Hlk, Hr1, Hsw⟩ HΨ
       ihave #Hbk := schema.authUsers_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
       iapply (lk_put hUP hRB γ d q0 W Pk Hk t hPw mvcc.authUsersBI (by simp [authBktL, authUsersBI_name]) hP.2.1
-        ur.name (auth.userEncode ur) hk0 hk1 st (auth.putUser st ur.name ur.roles) X w { w with users := .puts }
+        ur.name (auth.userEncode ur) hk0 hk1 st (auth.putUserRec st ur) X w { w with users := .puts }
         (fun bs x k h hb => lkOk_putUser hPw hP.2.1 ur h hb hw hs)) $$ [$Hp1 $Hb $Ht] %bk %key %val %Ψ
         [$Hbk $Hkey $Hval $Hlk $Hr1 $Hsw] HΨ
     iapply HΦ
@@ -1854,7 +1858,7 @@ theorem real_batchTxLkR
       ihave #Hbk := schema.auth_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
       iapply (lk_putA hUP hRB γ d q0 W Pk Hk t hPw mvcc.authBI (by simp [authBktL, authBI_name]) hP.1
         schema.authEnabledKey (if b then [W8 1] else [W8 0]) (by decide) (by decide) st { st with enabled := b } X
-        (fun bs x w k h hb => lkOk_putAuth hPw hP.1 _ _ h hb rfl rfl (authAt_enabled b)))
+        (fun bs x w k h hb => lkOk_putAuth hPw hP.1 _ _ h hb rfl rfl rfl (authAt_enabled b)))
         $$ [$Hp1 $Hb $Ht] %bk %key %val %Ψ [$Hbk $Hkey $Hval $Hlk $Hr1] HΨ
     iapply HΦ
     iexact Hlk
@@ -1869,7 +1873,7 @@ theorem real_batchTxLkR
       ihave #Hbk := schema.auth_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
       iapply (lk_putA hUP hRB γ d q0 W Pk Hk t hPw mvcc.authBI (by simp [authBktL, authBI_name]) hP.1
         schema.authRevisionKey (u64Be rev) (by decide) (by decide) st { st with revision := uint.nat rev } X
-        (fun bs x w k h hb => lkOk_putAuth hPw hP.1 _ _ h hb rfl rfl (authAt_revision rev)))
+        (fun bs x w k h hb => lkOk_putAuth hPw hP.1 _ _ h hb rfl rfl rfl (authAt_revision rev)))
         $$ [$Hp1 $Hb $Ht] %bk %key %val %Ψ [$Hbk $Hkey $Hval $Hlk $Hr1] HΨ
     iapply HΦ
     iexact Hlk

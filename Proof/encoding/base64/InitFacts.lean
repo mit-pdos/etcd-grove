@@ -120,18 +120,17 @@ theorem stdDecInit_intro (wp_DecodeString : base64.Encoding.DecodeString.spec (G
   iframe Hg
   imodintro
   iintro %s %Φ HΦ
-  have hok : base64.decOk enc := ⟨by rw [h1]; decide, by rw [h1]; decide, h3, h2, h4⟩
+  have hok : base64.decOk enc :=
+    ⟨by rw [h1]; decide, by rw [h1]; decide, h3, h2, h4, by rw [h1]; decide, by rw [h1]; decide⟩
   iapply (wp_DecodeString e enc DFrac.discard s h2 h4 (base64.decOk_len hok)) $$ [He]
   · iexact He
   inext
   iintro %b %err ⟨%bs, -, Hb, %Herr⟩
   iapply HΦ $$ Hb
   ipureintro
-  rintro ⟨x, rfl⟩
-  apply Herr hok
-  unfold _root_.Perennial.encoding.base64.stdEnc
-  rw [h1]
-  exact base64.b64Enc_ok _ (by decide) x
+  unfold _root_.Perennial.encoding.base64.stdDecOk
+  rw [← h1]
+  exact Herr hok
 
 end facts
 

@@ -25,19 +25,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserChangePassword(r)`** for a request naming `name`, every stored user's name a
-bbolt key (`userKeysOk`: the put contract's premise for the existing record it rewrites; nomode D3,
-until then the request's name bounded): the step
-`userChangePasswordF name` (`ErrUserNotFound`, or the record rewritten with the same roles and the
-revision bumped), or `ErrNoPasswordUser`. -/
+/-- **`as.UserChangePassword(r)`** for a request naming `name` with the passwords `pw` and `hpw`,
+every stored user's name a bbolt key (`userKeysOk`: the put contract's premise for the existing record
+it rewrites; nomode D3, until then the request's name bounded): the step
+`userChangePasswordF name (selectPwOk pw hpw)` (`ErrUserNotFound`; `ErrNoPasswordUser` for a user with
+a password whose choice `selectPassword` refuses; or the record rewritten with the same roles and
+options and the revision bumped), nothing else (nomode D3 follow-up (a), 2026-11-28: until then also
+`ErrNoPasswordUser` on any request). -/
 abbrev auth.authStore.UserChangePassword.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
-    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
-      ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name pw hpw : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name pw hpw ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw)))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
-      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOut M hs (stepOf (userChangePasswordF name)) (fun e => e = .noPasswordUser) err }}
+      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOut M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw))) noExtra err }}
 
 end spec
 

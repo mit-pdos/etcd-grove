@@ -326,12 +326,12 @@ abbrev auth.authStore.AuthDisable.specT : Prop :=
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserAdd.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
-    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
-      ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (nob : Bool) (b0 : Bool) (sc0 : AuthState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name nob ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userAddF name nob))⌝ ∗ capNextM M hs (stepOf (userAddF name nob)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T Wb b sc ∗
-      respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOutP M hs (stepOf (userAddF name)) (fun e => e = .noPasswordUser) err (tieStep M hs b0 sc0 b sc) }}
+      respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOutP M hs (stepOf (userAddF name nob)) (fun e => e = .noPasswordUser) err (tieStep M hs b0 sc0 b sc) }}
 
 /-- `UserDelete.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
@@ -349,12 +349,12 @@ abbrev auth.authStore.UserDelete.specT : Prop :=
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserChangePassword.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
-    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
-      ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name pw hpw : GoString) (b0 : Bool) (sc0 : AuthState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name pw hpw ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw)))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRx st M P f T Wb b sc ∗
-      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOutP M hs (stepOf (userChangePasswordF name)) (fun e => e = .noPasswordUser) err (tieStep M hs b0 sc0 b sc) }}
+      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOutP M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw))) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
 /-- `UserGrantRole.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
@@ -514,17 +514,17 @@ abbrev auth.authStore.UserDelete.specTB : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
       respOk etcdserverpb.AuthUserDeleteResponse resp err ∗ ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗ adminOutP M hs (stepOf (userDeleteF en name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
-/-- `UserChangePassword.specT` of a request whose password choice cannot fail
-(`userChangePasswordSure`: no `ErrNoPasswordUser`, `noExtra`), keeping the store's backend `be`
-(nomode D3, as `UserAdd.specTSureB`). -/
-abbrev auth.authStore.UserChangePassword.specTSureB : Prop :=
+/-- `UserChangePassword.specT` keeping the store's backend `be` (nomode D3, as `UserAdd.specTSureB`;
+D3 follow-up (a), 2026-11-28: exact, for any request, where it took one whose password choice cannot
+fail, `specTSureB`). -/
+abbrev auth.authStore.UserChangePassword.specTB : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
-    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ userChangePasswordSure r ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
-      ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name pw hpw : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name pw hpw ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw)))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
-      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOutP M hs (stepOf (userChangePasswordF name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOutP M hs (stepOf (userChangePasswordF name (selectPwOk pw hpw))) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
 /-- `UserRevokeRole.specT` keeping the store's backend `be`, with the flag it read `b0` (nomode D3). -/
 abbrev auth.authStore.UserRevokeRole.specTB : Prop :=
@@ -629,10 +629,10 @@ theorem auth.authStore.AuthDisable.spec_of_T (h : auth.authStore.AuthDisable.spe
 
 theorem auth.authStore.UserAdd.spec_of_T (h : auth.authStore.UserAdd.specT (GF := GF) (hG := hG)) :
     auth.authStore.UserAdd.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T Wb hs Pre Q Post r name
+  intro st R M P f T Wb hs Pre Q Post r name nob
   iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
   ihave ⟨%b0, %sc0, HWR⟩ := authWR_to_x st M P f T Wb $$ HWR
-  iapply (h st R M P f T Wb hs Pre Q Post r name b0 sc0) $$ [Hown HWR Hw1 Hw2 Hcs]
+  iapply (h st R M P f T Wb hs Pre Q Post r name nob b0 sc0) $$ [Hown HWR Hw1 Hw2 Hcs]
   · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
   iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
   iapply HΦ
@@ -658,10 +658,10 @@ theorem auth.authStore.UserDelete.spec_of_T (h : auth.authStore.UserDelete.specT
 
 theorem auth.authStore.UserChangePassword.spec_of_T (h : auth.authStore.UserChangePassword.specT (GF := GF) (hG := hG)) :
     auth.authStore.UserChangePassword.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T Wb hs Pre Q Post r name
+  intro st R M P f T Wb hs Pre Q Post r name pw hpw
   iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Htpa, Hcs, %Hok, #Hcap⟩ HΦ
   ihave ⟨%b0, %sc0, HWR⟩ := authWR_to_x st M P f T Wb $$ HWR
-  iapply (h st R M P f T Wb hs Pre Q Post r name b0 sc0) $$ [Hown HWR Hw1 Hw2 Htpa Hcs]
+  iapply (h st R M P f T Wb hs Pre Q Post r name pw hpw b0 sc0) $$ [Hown HWR Hw1 Hw2 Htpa Hcs]
   · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
   iintro !> %resp %err ⟨%b, %sc, Htpa, HPP, HWR, Hresp, Hout⟩
   iapply HΦ

@@ -656,7 +656,8 @@ def setupReplied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx
 /-- `UserAdd(name, pw)`, `SetUp`'s `j`-th request. -/
 theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (ctx : GoInterface) (γz : GName) (j : Nat) (name pw : GoString)
-    (hj : ∀ um : apply.UserAddModel, um.name = name → um.pwSure → setupReqAt j (irrUserAdd um))
+    (hj : ∀ um : apply.UserAddModel, um.name = name → um.noPassword = false → um.pwSure →
+      setupReqAt j (irrUserAdd um))
     (hj7 : j < 7) (hlen : name.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       attemptPre conn none (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ) (⟨name, pw⟩ : UserAddW)
@@ -675,7 +676,7 @@ theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
   · imodintro
     iintro %um %hum
     iapply client.clientHistAu_attempt (srvTLSId s) E ρ conn none md _ _ $$ hmd
-    iapply setup_histAu s E ρ conn ctx γz j _ (hj um hum.1 hum.2.2) hj7 $$ Hc Hn Hx
+    iapply setup_histAu s E ρ conn ctx γz j _ (hj um hum.1 hum.2.1 hum.2.2) hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
     iexists md
@@ -804,7 +805,8 @@ theorem setup_post (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c
 /-- **A set-up `UserAdd`'s success**: its effect. -/
 theorem setup_post_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (ctx : GoInterface) (γz : GName) (j : Nat) (name : GoString)
-    (hj : ∀ um : apply.UserAddModel, um.name = name → um.pwSure → setupReqAt j (irrUserAdd um))
+    (hj : ∀ um : apply.UserAddModel, um.name = name → um.noPassword = false → um.pwSure →
+      setupReqAt j (irrUserAdd um))
     (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek) (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       setupReplied s E ρ conn ctx (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok name
@@ -814,7 +816,7 @@ theorem setup_post_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
   icases Hr with ⟨%md, #hmd, #Hr⟩
   iunfold v3rpc.userAddReplied at Hr
   icases Hr with ⟨%um, %hum, #Hr⟩
-  iapply setup_reply s E ρ conn ctx γz j _ (hj um hum.1 hum.2.2) md Ek h1 h2 $$ hmd Hc Hn Hx Hr
+  iapply setup_reply s E ρ conn ctx γz j _ (hj um hum.1 hum.2.1 hum.2.2) md Ek h1 h2 $$ hmd Hc Hn Hx Hr
 
 /-- **`AuthEnable`'s success**: the frozen history and the published `setupSt`. -/
 theorem setup_post_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)

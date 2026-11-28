@@ -47,10 +47,10 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
       "j" ∷ j_ptr ↦ j ∗ "si" ∷ si_ptr ↦ si' ∗ "dbuf" ∷ dbuf_ptr ↦ db ∗
       "%Hinv" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ 4 ∧ sint.Z si + sint.Z j ≤ sint.Z si' ∧
         sint.Z si' ≤ s.length ∧
-        (base64.decOk enc → sint.Z si < s.length → base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-          sint.Z si' = sint.Z si + sint.Z j)⌝ : IProp GF) $$ [j si dbuf]
+        (base64.decOk enc →
+          base64.readSyms enc.encode'.arr s (sint.nat si) (sint.nat j) (sint.nat si'))⌝ : IProp GF) $$ [j si dbuf]
   · iexists W64 0, si, _; iframe; ipureintro
-    refine ⟨by word, by word, by word, hsiL, fun _ _ _ => by word⟩
+    refine ⟨by word, by word, by word, hsiL, fun _ => ⟨[], rfl, by simp, rfl⟩⟩
   wp_join (Q := fun v => iprop(
       (∃ (si'' dl : w64) (err'' : GoInterface) (db' : GoArray w8 4) (j' : w64),
         "He" ∷ e ↦{dqe} enc ∗ "si" ∷ si_ptr ↦ si'' ∗ "dlen" ∷ dlen_ptr ↦ dl ∗ "err" ∷ err_ptr ↦ err'' ∗
@@ -60,9 +60,10 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
         "%Hex" ∷ ⌜v = executeVal ∧ (dl = W64 2 ∨ dl = W64 3 ∨ dl = W64 4) ∧
           sint.Z si + 4 ≤ sint.Z si'' ∧ sint.Z si'' ≤ s.length ∧
           (err'' = GoInterface.nil → dl = W64 4 ∨ sint.Z si'' = s.length) ∧
-          (base64.decOk enc → sint.Z si < s.length →
-            base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-            err'' = GoInterface.nil ∧ sint.Z si'' = sint.Z si + 4 ∧ (dl = W64 4 ∨ sint.Z si'' = s.length))⌝) ∨
+          (base64.decOk enc →
+            (err'' = GoInterface.nil → base64.quantumOk enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))
+              (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si'')))) ∧
+            (err'' ≠ GoInterface.nil → ¬ base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝) ∨
       (∃ (si' ninc : w64) (err : GoInterface) (d' : List w8),
         "He" ∷ e ↦{dqe} enc ∗ "nsi" ∷ nsi_ptr ↦ si' ∗ "n" ∷ n_ptr ↦ ninc ∗ "err" ∷ err_ptr ↦ err ∗
         "Hdst" ∷ dst ↦* d' ∗ "Hsrc" ∷ src ↦*{dq} s ∗
@@ -70,31 +71,25 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
           sint.Z si' ≤ s.length ∧ 0 ≤ sint.Z ninc ∧ sint.Z ninc ≤ 3 * ((sint.Z si' - sint.Z si) / 4) ∧
           (err = GoInterface.nil →
             (sint.Z ninc = 3 ∧ sint.Z si + 4 ≤ sint.Z si') ∨ sint.Z si' = s.length) ∧
-          (base64.decOk enc → sint.Z si < s.length →
-            base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-            err = GoInterface.nil ∧ sint.Z si' = sint.Z si + 4 ∧
-              (sint.Z ninc = 3 ∨ sint.Z si' = s.length))⌝))) at next
+          (base64.decOk enc →
+            (err = GoInterface.nil → base64.quantumOk enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))
+              (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si')))) ∧
+            (err ≠ GoInterface.nil → ¬ base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝))) at next
     with [-HΦ]
   · wp_for HI
     wp_if_destruct
     · have hj4 : sint.Z j < 4 := by revert Hif; word
+      have hj0 := Hinv.1
       try wp_auto
       wp_if_destruct
       · -- the end of the input
         try wp_auto
         have hL : sint.Z src.len = s.length := by have := Hsl.1; word
-        -- on padded base64 text from a quantum boundary, the input does not end inside a quantum
-        have hvalid : base64.decOk enc → sint.Z si < s.length →
-            base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) → False := by
-          intro hok hlt hb
-          have h4 := Hinv.2.2.2.2 hok hlt hb
-          obtain ⟨a, b, c, d', rest, hdr, -⟩ := base64.b64Ok_group _ hok.2.1 _ hb
-            (by intro h; rw [List.drop_eq_nil_iff] at h; word)
-          have := congrArg List.length hdr
-          simp only [List.length_drop, List.length_cons] at this
-          word
+        have hRS := Hinv.2.2.2.2
+        have hle : s.length ≤ sint.nat src.len := by have := Hsl.1; word
         wp_if_destruct
-        · try wp_auto
+        · -- `j == 0`: the end, at a quantum boundary
+          try wp_auto
           wp_for_post
           iright
           iexists _, _, _, _
@@ -102,7 +97,11 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
           · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; iframe
           iframe; ipureintro
           refine ⟨rfl, rfl, by word, by word, by word, by word, fun _ => .inr hL,
-            fun hok hlt hb => absurd (hvalid hok hlt hb) id⟩
+            fun hok => ⟨fun _ => ?_, fun hne => (hne rfl).elim⟩⟩
+          refine base64.readSyms_end_ok (base64.readSyms_congr ?_ rfl (hRS hok)) hle
+          have hj0e : j = W64 0 := by
+            first | exact Hif | exact of_decide_eq_true Hif.symm | exact of_decide_eq_true Hif
+          rw [hj0e]; rfl
         · try wp_auto
           simp only [hp61, decide_false, Bool.not_false, decide_true]
           try wp_auto
@@ -112,9 +111,13 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
           isplitl [Henc Hdm Hpad Hstrict]
           · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; iframe
           iframe; ipureintro
+          have hjne : ¬ j = W64 0 := by
+            first | exact Hif | (intro h; apply Hif; simp [h]) | (intro h; simp [h] at Hif)
+          have hjn0 : sint.Z j ≠ 0 := fun h => hjne (by word)
           refine ⟨rfl, rfl, by word, by word, by word, by word, fun h => ?_,
-            fun hok hlt hb => absurd (hvalid hok hlt hb) id⟩
-          exact absurd h (by intro h'; cases h')
+            fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+          · exact absurd h (by intro h'; cases h')
+          · exact base64.readSyms_end_bad (hRS hok) hle (by word) (by word)
       · have hlt : sint.Z si' < sint.Z src.len := by
           have h1 := Hinv.2.2.2.1
           have h2 : sint.Z src.len = s.length := by have := Hsl.1; word
@@ -123,28 +126,15 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
           omega
         obtain ⟨c, hc⟩ : ∃ c, s[(sint.Z si').toNat]? = some c :=
           ⟨_, List.getElem?_eq_getElem (by have := Hsl.1; word)⟩
+        have hc' : s[sint.nat si']? = some c := by
+          rw [show sint.nat si' = (sint.Z si').toNat by word]; exact hc
+        have hsucc : sint.nat (si' + W64 1) = sint.nat si' + 1 := by
+          have := Hsl.1; have := Hinv.2.2.2.1; word
+        have hRS := Hinv.2.2.2.2
         try wp_auto
         rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, hlt⟩)]
         wp_apply wp_load_slice_index src _ s _ c (by word) $$ [Hsrc] as Hsrc
         · iframe; ipureintro; exact hc
-        -- on padded base64 text, the byte read is a symbol, or `=` at position 2 or 3 of the last quantum
-        have hvc : base64.decOk enc → sint.Z si < s.length →
-            base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-            (c ∈ enc.encode'.arr ∨ (2 ≤ sint.Z j ∧ c = 61 ∧ sint.Z si + 4 = s.length ∧
-              (sint.Z j = 2 → s[(sint.Z si').toNat + 1]? = some 61))) := by
-          intro hok hlt hb
-          have hsi' := Hinv.2.2.2.2 hok hlt hb
-          obtain ⟨-, x, hx, hx'⟩ := base64.b64Ok_at _ hok.2.1 s (sint.nat si) (sint.nat j) hb
-            (by word) (by word)
-          have he : sint.nat si + sint.nat j = (sint.Z si').toNat := by word
-          rw [he, hc] at hx
-          cases hx
-          rcases hx' with hx' | ⟨h2, h61, hL4, h3⟩
-          · exact .inl hx'
-          · refine .inr ⟨by word, h61, by word, fun hj2 => ?_⟩
-            have h3' := h3 (by word)
-            have he3 : sint.nat si + 3 = (sint.Z si').toNat + 1 := by word
-            rw [he3] at h3'; exact h3'
         try wp_auto
         have hcb : 0 ≤ sint.Z (W64 (uint.Z c)) ∧ sint.Z (W64 (uint.Z c)) < 256 := by
           have := c.isLt; constructor <;> word
@@ -165,23 +155,25 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
             iframe
             iexists _, si' + W64 1, _
             iframe; ipureintro
-            refine ⟨by word, by word, by word, by word, fun hok hlt hb => ?_⟩
-            exfalso; rcases hvc hok hlt hb with h | ⟨-, h, -⟩
-            · exact hnsym hok h
-            · exact absurd h (by decide)
-          · wp_if_destruct
+            refine ⟨by word, by word, by word, by word, fun hok => ?_⟩
+            refine base64.readSyms_congr (by word) hsucc.symm (base64.readSyms_nl (hRS hok) hc' (.inl ?_))
+            first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+          · have hn10 : c ≠ W8 10 := by
+              first | exact Hif | exact fun h => Hif (by rw [h]; rfl)
+            wp_if_destruct
             · -- '\r': skipped
               try wp_auto
               wp_for_post
               iframe
               iexists _, si' + W64 1, _
               iframe; ipureintro
-              refine ⟨by word, by word, by word, by word, fun hok hlt hb => ?_⟩
-              exfalso; rcases hvc hok hlt hb with h | ⟨-, h, -⟩
-              · exact hnsym hok h
-              · exact absurd h (by decide)
+              refine ⟨by word, by word, by word, by word, fun hok => ?_⟩
+              refine base64.readSyms_congr (by word) hsucc.symm (base64.readSyms_nl (hRS hok) hc' (.inr ?_))
+              first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
 
             · -- `=`, or a byte that is not base64
+              have hn13 : c ≠ W8 13 := by
+                first | exact Hif | exact fun h => Hif (by rw [h]; rfl)
               try wp_auto
               rw [hpad]
               by_cases hc61 : c = W8 61
@@ -199,10 +191,9 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                   · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                   iframe; ipureintro
                   refine ⟨rfl, rfl, by word, by word, by word, by word, fun h => absurd h (by intro h'; cases h'),
-                    fun hok hlt hb => ?_⟩
-                  exfalso; rcases hvc hok hlt hb with h | ⟨h, -⟩
-                  · exact hnsym hok h
-                  · word
+                    fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+                  exact base64.readSyms_bad hok.2.1 (hRS hok) (by word) hc' (hnsym hok) hn10 hn13
+                    (.inr (by first | word | (subst_vars; word)))
                 · wp_if_destruct
                   · -- `j == 0`: a padding first
                     try wp_auto
@@ -213,10 +204,9 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                     · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                     iframe; ipureintro
                     refine ⟨rfl, rfl, by word, by word, by word, by word, fun h => absurd h (by intro h'; cases h'),
-                      fun hok hlt hb => ?_⟩
-                    exfalso; rcases hvc hok hlt hb with h | ⟨h, -⟩
-                    · exact hnsym hok h
-                    · word
+                      fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+                    exact base64.readSyms_bad hok.2.1 (hRS hok) (by word) hc' (hnsym hok) hn10 hn13
+                      (.inr (by first | word | (subst_vars; word)))
                   · -- `j` is 2 or 3: the padding of the last quantum
                     have hj23 : sint.Z j = 2 ∨ sint.Z j = 3 := by
                       have h0 : j ≠ W64 0 := by assumption
@@ -225,46 +215,40 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                       have h0' : sint.Z j ≠ 0 := fun h => h0 (by word)
                       have h1' : sint.Z j ≠ 1 := fun h => h1 (by word)
                       omega
+                    have hP := fun hok => base64.readSyms_pad (hRS hok) hc'
                     wp_if_destruct
                     · -- `j == 2`: a second `=` expected
                       ihave HA : (∃ x : w64, "si" ∷ si_ptr ↦ x ∗
                           "%Hx" ∷ ⌜sint.Z si' + 1 ≤ sint.Z x ∧ sint.Z x ≤ s.length ∧
-                            (base64.decOk enc → sint.Z si < s.length →
-                              base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) → sint.Z x = sint.Z si' + 1)⌝ : IProp GF) $$ [si]
+                            _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si' + 1)) = _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat x))⌝ : IProp GF) $$ [si]
                       · iexists _; iframe; ipureintro
-                        refine ⟨by word, by word, fun _ _ _ => by word⟩
-                      have hv2 : base64.decOk enc → sint.Z si < s.length →
-                          base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-                          s[(sint.Z si').toNat + 1]? = some 61 ∧ sint.Z si + 4 = s.length := by
-                        intro hok hlt hb
-                        rcases hvc hok hlt hb with h | ⟨-, -, hL4, h⟩
-                        · exact absurd h (hnsym hok)
-                        · exact ⟨h (by word), hL4⟩
+                        refine ⟨by word, by word, by rw [hsucc]⟩
                       wp_for HA
                       wp_if_destruct
                       · -- `si < len(src)`: is `src[si]` a newline?
                         obtain ⟨y, hy⟩ : ∃ y, s[(sint.Z x).toNat]? = some y :=
                           ⟨_, List.getElem?_eq_getElem (by have := Hsl.1; word)⟩
+                        have hy' : s[sint.nat x]? = some y := by
+                          rw [show sint.nat x = (sint.Z x).toNat by word]; exact hy
+                        have hxs : sint.nat (x + W64 1) = sint.nat x + 1 := by
+                          have := Hsl.1; have := Hx.2.1; word
+                        have hX := Hx.2.2
                         try wp_auto
                         rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
                         wp_apply wp_load_slice_index src _ s _ y (by word) $$ [Hsrc] as Hsrc
                         · iframe; ipureintro; exact hy
-                        have hy61 : base64.decOk enc → sint.Z si < s.length →
-                            base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) → y = 61 := by
-                          intro hok hlt hb
-                          have hx := Hx.2.2 hok hlt hb
-                          obtain ⟨h61, -⟩ := hv2 hok hlt hb
-                          rw [show (sint.Z x).toNat = (sint.Z si').toNat + 1 by word, h61] at hy
-                          cases hy; rfl
                         try wp_auto
                         wp_if_destruct
                         · -- '\n': skipped
                           try wp_auto
                           wp_for_post
                           iframe; iexists _; iframe; ipureintro
-                          refine ⟨by word, by word, fun hok hlt hb => ?_⟩
-                          exfalso; have h := hy61 hok hlt hb; exact absurd h (by decide)
-                        · rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
+                          refine ⟨by word, by word, ?_⟩
+                          rw [hX, base64.dropNL_drop_skip s _ _ hy' (.inl ?_), hxs]
+                          first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+                        · have hn10y : y ≠ W8 10 := by
+                            first | exact Hif | exact fun h => Hif (by rw [h]; rfl)
+                          rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
                           wp_apply wp_load_slice_index src _ s _ y (by word) $$ [Hsrc] as Hsrc
                           · iframe; ipureintro; exact hy
                           try wp_auto
@@ -273,10 +257,9 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                             try wp_auto
                             wp_for_post
                             iframe; iexists _; iframe; ipureintro
-                            refine ⟨by word, by word, fun hok hlt hb => ?_⟩
-                            exfalso; have h := hy61 hok hlt hb
-                            have hy13 : y = W8 13 := of_decide_eq_true (go.intoVal_inj Hif)
-                            rw [hy13] at h; exact absurd h (by decide)
+                            refine ⟨by word, by word, ?_⟩
+                            rw [hX, base64.dropNL_drop_skip s _ _ hy' (.inr ?_), hxs]
+                            first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
                           · -- the loop ends at a byte other than a newline: is it `=`?
                             have hy13 : ¬ y = W8 13 := fun h => Hif (by rw [h]; rfl)
                             simp only [hy13, decide_false, Bool.false_eq_true, ↓reduceIte]
@@ -291,25 +274,30 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                               · subst hy61'
                                 simp only [show W32 (uint.Z (W8 61)) = W32 61 from rfl, _root_.decide_true, Bool.not_true]
                                 try wp_auto
+                                have hP2 : base64.decOk enc → ∃ pre : List w8, pre.length = 2 ∧
+                                    (∀ z ∈ pre, z ∈ enc.encode'.arr) ∧
+                                    _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)) = pre ++ 61 :: 61 :: _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat x + 1)) := by
+                                  intro hok
+                                  obtain ⟨pre, hl, hp, he⟩ := hP hok
+                                  refine ⟨pre, by rw [hl]; word, hp, ?_⟩
+                                  rw [he, hX, base64.dropNL_drop_keep s _ _ hy' (by decide) (by decide)]; rfl
                                 have hz : sint.Z si + 4 ≤ sint.Z (x + W64 1) ∧ sint.Z (x + W64 1) ≤ s.length ∧
-                                    (base64.decOk enc → sint.Z si < s.length → base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-                                      sint.Z (x + W64 1) = s.length ∧ sint.Z (x + W64 1) = sint.Z si + 4) := by
+                                    _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat x + 1)) = _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat (x + W64 1))) := by
                                   have := Hx.2.1
-                                  refine ⟨by have := Hinv.2.2.1; have := Hx.1; word, by have := Hsl.1; word, fun hok hlt hb => ?_⟩
-                                  have := Hx.2.2 hok hlt hb; have := Hinv.2.2.2.2 hok hlt hb; have := (hv2 hok hlt hb).2
-                                  constructor <;> word
+                                  refine ⟨by have := Hinv.2.2.1; have := Hx.1; word, by have := Hsl.1; word, by rw [hxs]⟩
                                 ihave HB : (∃ w : w64, "si" ∷ si_ptr ↦ w ∗ "%Hw" ∷ ⌜sint.Z si + 4 ≤ sint.Z w ∧ sint.Z w ≤ s.length ∧
-                                    (base64.decOk enc → sint.Z si < s.length → base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-                                      sint.Z w = s.length ∧ sint.Z w = sint.Z si + 4)⌝ : IProp GF) $$ [si]
+                                    _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat x + 1)) = _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat w))⌝ : IProp GF) $$ [si]
                                 · iexists _; iframe; ipureintro; exact hz
                                 wp_for HB
                                 wp_if_destruct
                                 · -- a byte left: a newline is skipped, anything else is trailing garbage
                                   obtain ⟨y2, hy2⟩ : ∃ y, s[(sint.Z w).toNat]? = some y :=
                                     ⟨_, List.getElem?_eq_getElem (by have := Hsl.1; word)⟩
-                                  have hnv : base64.decOk enc → sint.Z si < s.length →
-                                      base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) → False := by
-                                    intro hok hlt hb; have := (Hw.2.2 hok hlt hb).1; have := Hsl.1; word
+                                  have hy2' : s[sint.nat w]? = some y2 := by
+                                    rw [show sint.nat w = (sint.Z w).toNat by word]; exact hy2
+                                  have hws : sint.nat (w + W64 1) = sint.nat w + 1 := by
+                                    have := Hsl.1; have := Hw.2.1; word
+                                  have hW := Hw.2.2
                                   try wp_auto
                                   rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
                                   wp_apply wp_load_slice_index src _ s _ y2 (by word) $$ [Hsrc] as Hsrc
@@ -319,8 +307,12 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                                   · try wp_auto
                                     wp_for_post
                                     iframe; iexists _; iframe; ipureintro
-                                    refine ⟨by word, by word, fun hok hlt hb => absurd (hnv hok hlt hb) id⟩
-                                  · rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
+                                    refine ⟨by word, by word, ?_⟩
+                                    rw [hW, base64.dropNL_drop_skip s _ _ hy2' (.inl ?_), hws]
+                                    first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+                                  · have hn10z : y2 ≠ W8 10 := by
+                                      first | exact Hif | exact fun h => Hif (by rw [h]; rfl)
+                                    rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
                                     wp_apply wp_load_slice_index src _ s _ y2 (by word) $$ [Hsrc] as Hsrc
                                     · iframe; ipureintro; exact hy2
                                     try wp_auto
@@ -328,7 +320,9 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                                     · try wp_auto
                                       wp_for_post
                                       iframe; iexists _; iframe; ipureintro
-                                      refine ⟨by word, by word, fun hok hlt hb => absurd (hnv hok hlt hb) id⟩
+                                      refine ⟨by word, by word, ?_⟩
+                                      rw [hW, base64.dropNL_drop_skip s _ _ hy2' (.inr ?_), hws]
+                                      first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
                                     · have hy13 : ¬ y2 = W8 13 := fun h => Hif (by rw [h]; rfl)
                                       simp only [hy13, decide_false, Bool.false_eq_true, ↓reduceIte]
                                       try wp_auto
@@ -340,12 +334,16 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                                         · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                                         iframe; ipureintro
                                         refine ⟨rfl, .inl rfl, Hw.1, Hw.2.1, fun h => absurd h (by intro h'; cases h'),
-                                          fun hok hlt hb => absurd (hnv hok hlt hb) id⟩
+                                          fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+                                        obtain ⟨pre, hl, hp, he⟩ := hP2 hok
+                                        rw [he, hW, base64.dropNL_drop_keep s _ _ hy2' hn10z hy13]
+                                        exact base64.pad2_bad _ hok.2.1 pre _ hp hl (by simp)
                                       · exfalso; omega
                                 · -- the end of the input
                                   have hwL : sint.Z w = s.length := by
                                     have : ¬ sint.Z w < sint.Z src.len := by assumption
                                     have := Hw.2.1; have := Hsl.1; word
+                                  have hwe : s.length ≤ sint.nat w := by word
                                   try wp_auto
                                   wp_if_destruct
                                   · exfalso; have := Hsl.1; word
@@ -356,7 +354,11 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                                     · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                                     iframe; ipureintro
                                     refine ⟨rfl, .inl rfl, Hw.1, Hw.2.1, fun _ => .inr hwL,
-                                      fun hok hlt hb => ⟨rfl, (Hw.2.2 hok hlt hb).2, .inr hwL⟩⟩
+                                      fun hok => ⟨fun _ => ?_, fun hne => (hne rfl).elim⟩⟩
+                                    obtain ⟨pre, hl, hp, he⟩ := hP2 hok
+                                    refine .inl ⟨base64.dropNL_drop_end s _ hwe, ?_⟩
+                                    rw [he, Hw.2.2, base64.dropNL_drop_end s _ hwe]
+                                    exact base64.b64Ok_pad2 _ pre hp hl
                               · rw [decide_eq_false (w32_ne y hy61'), Bool.not_false]
                                 try wp_auto
                                 wp_for_post
@@ -366,14 +368,17 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                                 · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                                 iframe; ipureintro
                                 refine ⟨rfl, rfl, by word, by word, by word, by word, fun h => absurd h (by intro h'; cases h'),
-                                  fun hok hlt hb => ?_⟩
-                                exfalso
-                                exact hy61' (hy61 hok hlt hb)
+                                  fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+                                obtain ⟨pre, hl, hp, he⟩ := hP hok
+                                rw [he, hX, base64.dropNL_drop_keep s _ _ hy' hn10y hy13]
+                                exact base64.pad2_bad _ hok.2.1 pre _ hp (by rw [hl]; word)
+                                  (fun h => hy61' (List.cons.inj h).1)
                       · -- the end of the input: not enough padding
                         have hxL : sint.Z x = s.length := by
                           have h3 := Hx.2.1
                           have : ¬ sint.Z x < sint.Z src.len := by assumption
                           omega
+                        have hxe : s.length ≤ sint.nat x := by word
                         try wp_auto
                         wp_if_destruct
                         · try wp_auto
@@ -384,12 +389,10 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                           · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                           iframe; ipureintro
                           refine ⟨rfl, rfl, by word, by word, by word, by word, fun h => absurd h (by intro h'; cases h'),
-                            fun hok hlt hb => ?_⟩
-                          exfalso
-                          have hx := Hx.2.2 hok hlt hb
-                          have := (hv2 hok hlt hb).2
-                          have := Hinv.2.2.2.2 hok hlt hb
-                          word
+                            fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+                          obtain ⟨pre, hl, hp, he⟩ := hP hok
+                          rw [he, Hx.2.2, base64.dropNL_drop_end s _ hxe]
+                          exact base64.pad2_bad _ hok.2.1 pre _ hp (by rw [hl]; word) (by simp)
                         · exfalso; apply Hif; word
                     · -- `j == 3`: the quantum ends
                       have hj3 : j = W64 3 := by
@@ -400,25 +403,21 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                       subst hj3
                       try wp_auto
                       have hz : sint.Z si + 4 ≤ sint.Z (si' + W64 1) ∧ sint.Z (si' + W64 1) ≤ s.length ∧
-                          (base64.decOk enc → sint.Z si < s.length → base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-                            sint.Z (si' + W64 1) = s.length ∧ sint.Z (si' + W64 1) = sint.Z si + 4) := by
-                        refine ⟨by have := Hinv.2.2.1; word, by have := Hsl.1; word, fun hok hlt hb => ?_⟩
-                        have := Hinv.2.2.2.2 hok hlt hb
-                        rcases hvc hok hlt hb with h | ⟨-, -, hL4, -⟩
-                        · exact absurd h (hnsym hok)
-                        · constructor <;> word
+                          _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si' + 1)) = _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat (si' + W64 1))) := by
+                        refine ⟨by have := Hinv.2.2.1; word, by have := Hsl.1; word, by rw [hsucc]⟩
                       ihave HB : (∃ w : w64, "si" ∷ si_ptr ↦ w ∗ "%Hw" ∷ ⌜sint.Z si + 4 ≤ sint.Z w ∧ sint.Z w ≤ s.length ∧
-                          (base64.decOk enc → sint.Z si < s.length → base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-                            sint.Z w = s.length ∧ sint.Z w = sint.Z si + 4)⌝ : IProp GF) $$ [si]
+                          _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si' + 1)) = _root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat w))⌝ : IProp GF) $$ [si]
                       · iexists _; iframe; ipureintro; exact hz
                       wp_for HB
                       wp_if_destruct
                       · -- a byte left: a newline is skipped, anything else is trailing garbage
                         obtain ⟨y2, hy2⟩ : ∃ y, s[(sint.Z w).toNat]? = some y :=
                           ⟨_, List.getElem?_eq_getElem (by have := Hsl.1; word)⟩
-                        have hnv : base64.decOk enc → sint.Z si < s.length →
-                            base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) → False := by
-                          intro hok hlt hb; have := (Hw.2.2 hok hlt hb).1; have := Hsl.1; word
+                        have hy2' : s[sint.nat w]? = some y2 := by
+                          rw [show sint.nat w = (sint.Z w).toNat by word]; exact hy2
+                        have hws : sint.nat (w + W64 1) = sint.nat w + 1 := by
+                          have := Hsl.1; have := Hw.2.1; word
+                        have hW := Hw.2.2
                         try wp_auto
                         rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
                         wp_apply wp_load_slice_index src _ s _ y2 (by word) $$ [Hsrc] as Hsrc
@@ -428,8 +427,12 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                         · try wp_auto
                           wp_for_post
                           iframe; iexists _; iframe; ipureintro
-                          refine ⟨by word, by word, fun hok hlt hb => absurd (hnv hok hlt hb) id⟩
-                        · rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
+                          refine ⟨by word, by word, ?_⟩
+                          rw [hW, base64.dropNL_drop_skip s _ _ hy2' (.inl ?_), hws]
+                          first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+                        · have hn10z : y2 ≠ W8 10 := by
+                            first | exact Hif | exact fun h => Hif (by rw [h]; rfl)
+                          rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
                           wp_apply wp_load_slice_index src _ s _ y2 (by word) $$ [Hsrc] as Hsrc
                           · iframe; ipureintro; exact hy2
                           try wp_auto
@@ -437,7 +440,9 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                           · try wp_auto
                             wp_for_post
                             iframe; iexists _; iframe; ipureintro
-                            refine ⟨by word, by word, fun hok hlt hb => absurd (hnv hok hlt hb) id⟩
+                            refine ⟨by word, by word, ?_⟩
+                            rw [hW, base64.dropNL_drop_skip s _ _ hy2' (.inr ?_), hws]
+                            first | rfl | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
                           · have hy13 : ¬ y2 = W8 13 := fun h => Hif (by rw [h]; rfl)
                             simp only [hy13, decide_false, Bool.false_eq_true, ↓reduceIte]
                             try wp_auto
@@ -449,12 +454,16 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                               · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                               iframe; ipureintro
                               refine ⟨rfl, .inr (.inl rfl), Hw.1, Hw.2.1, fun h => absurd h (by intro h'; cases h'),
-                                fun hok hlt hb => absurd (hnv hok hlt hb) id⟩
+                                fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+                              obtain ⟨pre, hl, hp, he⟩ := hP hok
+                              rw [he, hW, base64.dropNL_drop_keep s _ _ hy2' hn10z hy13]
+                              exact base64.pad3_bad _ hok.2.1 pre _ hp (by rw [hl]; word) (by simp)
                             · exfalso; omega
                       · -- the end of the input
                         have hwL : sint.Z w = s.length := by
                           have : ¬ sint.Z w < sint.Z src.len := by assumption
                           have := Hw.2.1; have := Hsl.1; word
+                        have hwe : s.length ≤ sint.nat w := by word
                         try wp_auto
                         wp_if_destruct
                         · exfalso; have := Hsl.1; word
@@ -465,7 +474,11 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                           · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                           iframe; ipureintro
                           refine ⟨rfl, .inr (.inl rfl), Hw.1, Hw.2.1, fun _ => .inr hwL,
-                            fun hok hlt hb => ⟨rfl, (Hw.2.2 hok hlt hb).2, .inr hwL⟩⟩
+                            fun hok => ⟨fun _ => ?_, fun hne => (hne rfl).elim⟩⟩
+                          obtain ⟨pre, hl, hp, he⟩ := hP hok
+                          refine .inl ⟨base64.dropNL_drop_end s _ hwe, ?_⟩
+                          rw [he, Hw.2.2, base64.dropNL_drop_end s _ hwe]
+                          exact base64.b64Ok_pad1 _ pre hp (by rw [hl]; word)
               · -- not base64
                 have hne : W32 (uint.Z c) ≠ W32 61 := by
                   intro h
@@ -483,11 +496,11 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
                 · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; (try rw [hpad]); iframe
                 iframe; ipureintro
                 refine ⟨rfl, rfl, by word, by word, by word, by word, fun h => absurd h (by intro h'; cases h'),
-                  fun hok hlt hb => ?_⟩
-                exfalso; rcases hvc hok hlt hb with h | ⟨-, h, -⟩
-                · exact hnsym hok h
-                · exact hc61 h
+                  fun hok => ⟨fun h => absurd h (by intro h'; cases h'), fun _ => ?_⟩⟩
+                exact base64.readSyms_bad hok.2.1 (hRS hok) (by word) hc' (hnsym hok) hn10 hn13 (.inl hc61)
         · -- a symbol: `dbuf[j] = out`, next symbol
+          have hsym : base64.decOk enc → c ∈ enc.encode'.arr := fun hok =>
+            base64.decOk_sym_of_ne hok c (by first | exact Hif | exact fun h => Hif h | simpa using Hif)
           rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hinv.1, hj4⟩)]
           wp_apply (base64.wp_store_arr _ 4 _ _ _ ⟨Hinv.1, hj4⟩) $$ dbuf as dbuf
           try wp_auto
@@ -496,8 +509,10 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
           iexists j + W64 1, si' + W64 1, _
           iframe; ipureintro
           have h2 : sint.Z src.len = s.length := by have := Hsl.1; word
-          refine ⟨by word, by word, by word, by word, fun hok hlt hb => ?_⟩
-          have := Hinv.2.2.2.2 hok hlt hb; word
+          refine ⟨by word, by word, by word, by word, fun hok => ?_⟩
+          exact base64.readSyms_congr (by word) hsucc.symm
+            (base64.readSyms_sym (hRS hok) hc' (hsym hok) (base64.decOk_ne10 hok (hsym hok))
+              (base64.decOk_ne13 hok (hsym hok)))
 
     · -- four symbols read
       have hj : sint.Z j = 4 := by
@@ -508,7 +523,8 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
       · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; iframe
       iframe; ipureintro
       refine ⟨trivial, .inr (.inr rfl), by have := Hinv.2.2.1; word, Hinv.2.2.2.1, fun _ => .inl rfl,
-        fun hok hlt hb => ⟨rfl, by have := Hinv.2.2.2.2 hok hlt hb; word, .inl rfl⟩⟩
+        fun hok => ⟨fun _ => base64.readSyms_four (base64.readSyms_congr (by word) rfl (Hinv.2.2.2.2 hok)),
+          fun hne => (hne rfl).elim⟩⟩
 
   · iintro HQ
     icases HQ with (⟨%si'', %dl, %err'', %db', %j', He, si, dlen, err, dbuf, j, nsi, n, Hdst, Hsrc, enc, src, dst, %Hex⟩ |
@@ -561,14 +577,8 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
         · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; rw [hstrict]; iframe
         iframe; ipureintro
         obtain ⟨-, h4, hL, herr, hv⟩ := Hex
-        refine ⟨by simp only [List.length_set], by word, hL, by word, by word, fun h => ?_,
-          fun hok hlt hb => ?_⟩
+        refine ⟨by simp only [List.length_set], by word, hL, by word, by word, fun h => ?_, hv⟩
         · rcases herr h with h' | h'
-          · exact absurd h' (by decide)
-          · exact .inr h'
-        · obtain ⟨he, hs, hd⟩ := hv hok hlt hb
-          refine ⟨he, hs, ?_⟩
-          rcases hd with h' | h'
           · exact absurd h' (by decide)
           · exact .inr h'
       · -- `dlen` 3
@@ -596,14 +606,8 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
         · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; rw [hstrict]; iframe
         iframe; ipureintro
         obtain ⟨-, h4, hL, herr, hv⟩ := Hex
-        refine ⟨by simp only [List.length_set], by word, hL, by word, by word, fun h => ?_,
-          fun hok hlt hb => ?_⟩
+        refine ⟨by simp only [List.length_set], by word, hL, by word, by word, fun h => ?_, hv⟩
         · rcases herr h with h' | h'
-          · exact absurd h' (by decide)
-          · exact .inr h'
-        · obtain ⟨he, hs, hd⟩ := hv hok hlt hb
-          refine ⟨he, hs, ?_⟩
-          rcases hd with h' | h'
           · exact absurd h' (by decide)
           · exact .inr h'
       · -- `dlen` 4
@@ -641,15 +645,9 @@ theorem base64.Encoding.decodeQuantum.wp_proof :
         · iapply base64.enc_close e enc dqe Hnn; unfold base64.encFields; rw [hstrict]; iframe
         iframe; ipureintro
         obtain ⟨-, h4, hL, herr, hv⟩ := Hex
-        refine ⟨by simp only [List.length_set], by word, hL, by word, by word, fun h => ?_,
-          fun hok hlt hb => ?_⟩
+        refine ⟨by simp only [List.length_set], by word, hL, by word, by word, fun h => ?_, hv⟩
         · rcases herr h with h' | h'
           · exact .inl ⟨by word, by word⟩
-          · exact .inr h'
-        · obtain ⟨he, hs, hd⟩ := hv hok hlt hb
-          refine ⟨he, hs, ?_⟩
-          rcases hd with h' | h'
-          · exact .inl (by word)
           · exact .inr h'
     · obtain ⟨rfl, Hret⟩ := Hret
       try wp_auto

@@ -1,7 +1,8 @@
 /-
 `(*Encoding).DecodeString(s)` (`encoding/base64`, go1.27.3 `base64.go`), for a padded encoding
-(`padChar` `=`): a fresh slice of the decoded bytes and an error, `nil` on padded base64 text over the
-encoding's alphabet (`decOk`, `b64Ok`).
+(`padChar` `=`): a fresh slice of the decoded bytes and an error; for an encoding that decodes padded
+base64 (`decOk`), the error is `nil` exactly when `s` without its newlines (`dropNL`) is padded base64
+text over the encoding's alphabet (`b64Ok`).
 Proved in `Proof/encoding/base64/Encoding__DecodeString.lean`. Lean-first (prove-authcrypto, 2026-11-21).
 -/
 module
@@ -32,7 +33,9 @@ abbrev base64.Encoding.DecodeString.spec : Prop :=
     (App (Val (e @!! go.GoType.PointerType _root_.Perennial.encoding.base64.Encoding.ty @!! go!"DecodeString")) (Val #s))
   {{ (b : GoSlice) (err : GoInterface), RET (PairV #b #err);
       ∃ bs : List w8, e ↦{dqe} enc ∗ b ↦* bs ∗
-      ⌜base64.decOk enc → base64.b64Ok enc.encode'.arr s → err = GoInterface.nil⌝ }}
+      ⌜base64.decOk enc →
+        (err = GoInterface.nil ↔
+          base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL s))⌝ }}
 
 end spec
 

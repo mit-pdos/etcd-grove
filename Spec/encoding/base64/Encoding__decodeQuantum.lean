@@ -3,9 +3,10 @@
 quantum of `src` from `si` (up to four symbols, skipping newlines, with its padding) into `dst`, for a
 padded, not strict encoding (`padChar` `=`). For any input it stays within `dst` when `dst` has room for three
 bytes per four remaining input bytes, returns at most three bytes per four bytes consumed, and
-without an error either decoded four symbols or reached the end; on padded base64 text over the
-encoding's alphabet (`decOk`, `b64Ok`) from a quantum boundary it reads exactly one quantum, without
-an error.
+without an error either decoded four symbols or reached the end. For an encoding that decodes padded
+base64 (`decOk`), on the text from `si` without its newlines (`dropNL`): without an error it read one
+quantum of it (`quantumOk`: four symbols, or the rest is padded base64 text and it read all of it);
+with an error, that text is not padded base64 text (`b64Ok`).
 Proved in `Proof/encoding/base64/Encoding__decodeQuantum.lean`. Lean-first (prove-authcrypto, 2026-11-21).
 -/
 module
@@ -42,10 +43,12 @@ abbrev base64.Encoding.decodeQuantum.spec : Prop :=
         0 ≤ sint.Z ninc ∧ sint.Z ninc ≤ 3 * ((sint.Z si' - sint.Z si) / 4) ∧
         (err = GoInterface.nil →
           (sint.Z ninc = 3 ∧ sint.Z si + 4 ≤ sint.Z si') ∨ sint.Z si' = s.length) ∧
-        (base64.decOk enc → sint.Z si < s.length →
-          base64.b64Ok enc.encode'.arr (s.drop (sint.nat si)) →
-          err = GoInterface.nil ∧ sint.Z si' = sint.Z si + 4 ∧
-            (sint.Z ninc = 3 ∨ sint.Z si' = s.length))⌝ }}
+        (base64.decOk enc →
+          (err = GoInterface.nil →
+            base64.quantumOk enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))
+              (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si')))) ∧
+          (err ≠ GoInterface.nil →
+            ¬ base64.b64Ok enc.encode'.arr (_root_.Perennial.encoding.base64.dropNL (s.drop (sint.nat si)))))⌝ }}
 
 end spec
 

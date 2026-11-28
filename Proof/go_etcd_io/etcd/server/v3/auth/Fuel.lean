@@ -135,6 +135,13 @@ theorem authSmall_enabled (st : AuthState) (b : Bool) (h : authSmall st) :
   exact ⟨h.nodup, h.roles, h.names, h.utf8, h.nonempty, h.roleNames, L, hL, hdom,
     by simp only [permsOn] at hle ⊢; omega⟩
 
+/-- A state is small whatever its no-password users. -/
+theorem authSmall_noPwUsers (st : AuthState) (m : GMap GoString Unit) (h : authSmall st) :
+    authSmall { st with noPwUsers := m } := by
+  obtain ⟨L, hL, hdom, hle⟩ := h.perms
+  exact ⟨h.nodup, h.roles, h.names, h.utf8, h.nonempty, h.roleNames, L, hL, hdom,
+    by simp only [permsOn] at hle ⊢; omega⟩
+
 /-- A user's record written (its roles without duplicates, at most the bumped revision in number,
 its name a bbolt key), with the revision bumped. -/
 theorem authSmall_bump_putUser (st : AuthState) (name : GoString) (us : User) (hus : us.Nodup)
@@ -332,8 +339,8 @@ theorem stepSmall_authDisable (en : Bool) : StepSmall (stepOf (authDisableF en))
   · cases hR
 
 /-- `UserAdd` of a name within bbolt's key bound (the request's premise). -/
-theorem stepSmall_userAdd (name : GoString) (hn : name.length ≤ backend.maxKeySize) :
-    StepSmall (stepOf (userAddF name)) := by
+theorem stepSmall_userAdd (name : GoString) (nob : Bool) (hn : name.length ≤ backend.maxKeySize) :
+    StepSmall (stepOf (userAddF name nob)) := by
   intro st st' h hR
   simp only [stepOf, userAddF] at hR
   split at hR
@@ -342,8 +349,8 @@ theorem stepSmall_userAdd (name : GoString) (hn : name.length ≤ backend.maxKey
     split at hR
     · cases hR
     · cases hR
-      exact ⟨by simp [bump, putUser],
-        authSmall_bump_putUser st name [] List.nodup_nil (by simp) hn (by simp) hne h⟩
+      exact ⟨by simp [bump, addUser, putUser],
+        authSmall_noPwUsers _ _ (authSmall_bump_putUser st name [] List.nodup_nil (by simp) hn (by simp) hne h)⟩
 
 theorem stepSmall_userDelete (en : Bool) (name : GoString) :
     StepSmall (stepOf (userDeleteF en name)) := by
@@ -355,13 +362,15 @@ theorem stepSmall_userDelete (en : Bool) (name : GoString) :
     · cases hR
     · cases hR; exact ⟨by simp [bump, delUser], authSmall_bump_delUser st name h⟩
 
-theorem stepSmall_userChangePassword (name : GoString) :
-    StepSmall (stepOf (userChangePasswordF name)) := by
+theorem stepSmall_userChangePassword (name : GoString) (ok : Prop) :
+    StepSmall (stepOf (userChangePasswordF name ok)) := by
   intro st st' h hR
   simp only [stepOf, userChangePasswordF] at hR
   split at hR
   · cases hR
-  · cases hR; exact ⟨by simp [bump], authSmall_bump _ h⟩
+  · split at hR
+    · cases hR; exact ⟨by simp [bump], authSmall_bump _ h⟩
+    · cases hR
 
 /-- `UserGrantRole` of a valid UTF-8 role (the decoded request's, `apply.irrDecode_utf8`). -/
 theorem stepSmall_userGrantRole (user role : GoString) (hr : utf8Valid role) :

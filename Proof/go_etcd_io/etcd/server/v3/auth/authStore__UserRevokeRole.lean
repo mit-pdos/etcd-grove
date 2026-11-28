@@ -181,7 +181,7 @@ theorem auth.authStore.UserRevokeRole.wp_tieB
     iexists eUNF; iframe HeUNF; ipureintro; rfl
   ihave Hu' := auth.userOut_some_named _ st0 name Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
-  obtain ⟨Hlook, Hurn, Hurr, Hsorted⟩ := Hur
+  obtain ⟨Hlook, Hurn, Hurr, Hsorted, Hunp⟩ := Hur
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
@@ -341,7 +341,9 @@ theorem auth.authStore.UserRevokeRole.wp_tieB
     have : role ∈ roles := Hurr ▸ hin
     simp only [userRevokeRoleF, hnr, Hlook, this, if_false, if_true, hroles', Hurr]
   ihave HL : Lk (putUser st0 name roles') Post $$ [HL]
-  · iExactEq HL; rw [Hurn]
+  · iExactEq HL
+    rw [putUserRec_same st0 ({ ur with roles := roles' } : UserRec) (by show ur.noPassword = _; rw [Hunp, Hurn])]
+    rw [Hurn]
   obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
   have Hfit' := (Hfit _ _ rfl hstep).1
   ihave #Hcap1 := Hcap

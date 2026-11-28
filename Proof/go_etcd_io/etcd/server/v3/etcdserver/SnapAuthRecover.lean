@@ -149,14 +149,14 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
     · split at hR <;> rename_i m hm
       · rcases hR with ⟨-, rfl⟩ | hR
         · exact ⟨h, Nat.le_succ _⟩
-        · refine authRelState_wf _ (auth.stepSmall_userAdd m.name (hU m hm hk)) ?_ st st' h hR
+        · refine authRelState_wf _ (auth.stepSmall_userAdd m.name m.noPassword (hU m hm hk)) ?_ st st' h hR
           intro s s' hs hn
           simp only [auth.stepOf, auth.userAddF] at hn
           split at hn
           · cases hn
           · split at hn
             · cases hn
-            · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_putUser _ _ _ hs)
+            · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_addUser _ _ _ hs)
       · subst hR; exact ⟨h, Nat.le_succ _⟩
     · split at hR <;> rename_i n hn
       · refine authRelState_wf _ (auth.stepSmall_roleAdd n (hRA n hn hk)) ?_ st st' h hR
@@ -228,14 +228,14 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
           · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_delUser _ _ hs)
       · subst hR; exact ⟨h, Nat.le_succ _⟩
     · split at hR <;> rename_i m hm
-      · rcases hR with ⟨-, rfl⟩ | hR
-        · exact ⟨h, Nat.le_succ _⟩
-        · refine authRelState_wf _ (auth.stepSmall_userChangePassword m.name) ?_ st st' h hR
-          intro s s' hs hn
-          simp only [auth.stepOf, auth.userChangePasswordF] at hn
-          split at hn
-          · cases hn
+      · refine authRelState_wf _ (auth.stepSmall_userChangePassword m.name _) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.userChangePasswordF] at hn
+        split at hn
+        · cases hn
+        · split at hn
           · cases hn; exact auth.permKeysOk_bump _ hs
+          · cases hn
       · subst hR; exact ⟨h, Nat.le_succ _⟩
     · split at hR <;> rename_i n ro hnr
       · refine authRelState_wf _ (auth.stepSmall_userRevokeRole st.enabled n ro) ?_ st st' h hR

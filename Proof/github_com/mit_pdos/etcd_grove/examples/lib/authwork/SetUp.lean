@@ -190,7 +190,7 @@ theorem SetUp.wp_proof
       · ipureintro; decide
       iintro !>
       inext
-      iapply (setup_pre_userAdd s E ρ conn _ γz 0 go!"root" go!"root-pw" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) (by decide) (by decide)) $$ Hc Hn Hx
+      iapply (setup_pre_userAdd s E ρ conn _ γz 0 go!"root" go!"root-pw" (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) (by decide) (by decide)) $$ Hc Hn Hx
     iunfold authCallOut at Hout0
     icases Hout0 with (⟨%Herr0, Hq0⟩ | ⟨%Herr0, -⟩)
     rotate_left
@@ -205,7 +205,7 @@ theorem SetUp.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr0
-    imod (setup_post_userAdd s E ρ conn _ γz 0 go!"root" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq0 with #F0
+    imod (setup_post_userAdd s E ρ conn _ γz 0 go!"root" (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq0 with #F0
     (try wp_auto)
     wp_apply (wp_UserGrantRole ap conn [ep] cctx none cd go!"root" go!"root" (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrUserGrantRole go!"root" go!"root") (fun _ => effLb ρ.kv 1)))) $$ [$Hlt] as %resp1 %err1 ⟨Hlt, Hout1⟩
@@ -292,7 +292,7 @@ theorem SetUp.wp_proof
       · ipureintro; decide
       iintro !>
       inext
-      iapply (setup_pre_userAdd s E ρ conn _ γz 4 go!"u" go!"u-pw" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) (by decide) (by decide)) $$ Hc Hn Hx
+      iapply (setup_pre_userAdd s E ρ conn _ γz 4 go!"u" go!"u-pw" (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) (by decide) (by decide)) $$ Hc Hn Hx
     iunfold authCallOut at Hout4
     icases Hout4 with (⟨%Herr4, Hq4⟩ | ⟨%Herr4, -⟩)
     rotate_left
@@ -307,7 +307,7 @@ theorem SetUp.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr4
-    imod (setup_post_userAdd s E ρ conn _ γz 4 go!"u" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq4 with #F4
+    imod (setup_post_userAdd s E ρ conn _ γz 4 go!"u" (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq4 with #F4
     (try wp_auto)
     wp_apply (wp_UserGrantRole ap conn [ep] cctx none cd go!"u" go!"r" (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ)
         (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrUserGrantRole go!"u" go!"r") (fun _ => effLb ρ.kv 5)))) $$ [$Hlt] as %resp5 %err5 ⟨Hlt, Hout5⟩
@@ -342,7 +342,7 @@ theorem SetUp.wp_proof
       · ipureintro; decide
       iintro !>
       inext
-      iapply (setup_pre_userAdd s E ρ conn _ γz 6 go!"v" go!"v-pw" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) (by decide) (by decide)) $$ Hc Hn Hx
+      iapply (setup_pre_userAdd s E ρ conn _ γz 6 go!"v" go!"v-pw" (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) (by decide) (by decide)) $$ Hc Hn Hx
     iunfold authCallOut at Hout6
     icases Hout6 with (⟨%Herr6, Hq6⟩ | ⟨%Herr6, -⟩)
     rotate_left
@@ -357,7 +357,7 @@ theorem SetUp.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr6
-    imod (setup_post_userAdd s E ρ conn _ γz 6 go!"v" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq6 with #F6
+    imod (setup_post_userAdd s E ρ conn _ γz 6 go!"v" (fun um h1 h3 h2 => ⟨um, rfl, h2, h1, h3⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq6 with #F6
     (try wp_auto)
     ihave #Hall : (□ ∀ i, ⌜i < 7⌝ -∗ effLb ρ.kv i : IProp GF) $$ []
     · imodintro

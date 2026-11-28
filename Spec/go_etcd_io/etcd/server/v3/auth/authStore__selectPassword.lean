@@ -29,23 +29,23 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- `as.selectPassword(password, hashedPassword)`: a hash (a fresh slice, read-only; `nil` on an
-error) and an error, which is `nil` when `password` is empty and `hashedPassword` is the standard
-base64 encoding of some bytes (`stdB64Enc`; the auth plan's E2u, 2026-10-26). Why that is true of
-the Go code: with `password == ""` the function returns `base64.StdEncoding.DecodeString(
-hashedPassword)`, and `DecodeString` of a string `StdEncoding.EncodeToString` produced decodes
-without an error (the encoding emits only the alphabet's characters, padded to a multiple of 4, which
-is exactly what the decoder accepts). Otherwise the error is any (bcrypt's
-`GenerateFromPassword`, a decoding of other text). The pre has the store's read-only `bcryptCost`
-(prove-authcrypto, 2026-11-21: the bcrypt branch reads `as.bcryptCost`; callers have it from
-`authInv`, `authInv_bcryptCost`; ledger 2026-11-21). -/
+error) and an error, `nil` exactly when `selectPwOk password hashed` (nomode D3 follow-up (a),
+2026-11-28; until then only "`nil` for an empty `password` and a `hashedPassword` the standard base64
+encoding of some bytes"). With `password != ""` and `hashedPassword == ""` the function returns
+`bcrypt.GenerateFromPassword([]byte(password), as.bcryptCost)`, which errs iff the password is over 72
+bytes or the cost over `MaxCost` (its axiom), and the store's cost is at most `MaxCost` (the pre's
+`sint.Z c ≤ 31`: `NewAuthStore` replaces a cost out of range by `DefaultCost`; callers have it from
+`authInv`, `authInv_bcryptCost`); otherwise `base64.StdEncoding.DecodeString(hashedPassword)`, which
+errs iff `stdDecOk` fails (proved, `Proof/encoding/base64/`). The pre has the store's read-only
+`bcryptCost` (prove-authcrypto, 2026-11-21; ledger 2026-11-21). -/
 abbrev auth.authStore.selectPassword.spec : Prop :=
   ∀ (st : Loc) (password hashed : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜st ≠ null⌝ ∗
-      ∃ c : w64, aF go!"bcryptCost" st ↦□ c }}
+      ∃ c : w64, aF go!"bcryptCost" st ↦□ c ∗ ⌜sint.Z c ≤ 31⌝ }}
     (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"selectPassword"))
       (Val #password)) (Val #hashed))
   {{ (b : GoSlice) (err : GoInterface), RET (PairV #b #err); ∃ bs : GoString, b ↦*□ bs ∗
-      ⌜password = [] → (∃ x : List w8, hashed = stdB64Enc x) → err = GoInterface.nil⌝ }}
+      ⌜err = GoInterface.nil ↔ selectPwOk password hashed⌝ }}
 
 end spec
 

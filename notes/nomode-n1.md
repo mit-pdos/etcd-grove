@@ -287,3 +287,69 @@ exact error (Perennial's own workflow, a branch off its `lean`); (ii) the `bcryp
 axiom narrowed to Go's exact error condition (password over 72 bytes or an invalid cost), with a witness
 and an axiom review; (iii) the user's `NoPassword` option in the model, `selectPassword`'s outcome exact,
 the step a function; `pwSure` removed.
+
+## D3 follow-up (a): `UserChangePassword` exact, `pwSure` removed (2026-11-28)
+
+`UserChangePassword`'s step is now a function of the model's state and the request, and `adminKindOk`
+admits every `UserChangePassword` request. Witness: `notes/axiom-review/pw-gotest/` (bcrypt's exact error,
+base64's exact acceptance, the real store's outcomes against the model; all pass at the fork pin).
+Ledger: `notes/specs-only/ledger.md`, 2026-11-28, "`UserChangePassword` exact".
+
+**(i) base64: no Perennial change.** `encoding/base64` is translated with its bodies in this repository
+(`Code/encoding/base64.toml`, project k8s-apiserver), its decoder proved here (`Proof/encoding/base64/`);
+Perennial has nothing of the package, so the exact error is proved here, not on a Perennial branch. The
+package fact, before / after:
+
+- before: `stdDecInit`'s post `⌜(∃ x : List w8, s = stdEnc x) → err = GoInterface.nil⌝`;
+- after: `⌜err = GoInterface.nil ↔ stdDecOk s⌝`, `stdDecOk s := base64.b64Ok stdAlphabet (dropNL s)`,
+  `dropNL s := s.filter fun c => !(c == W8 10 || c == W8 13)` (`b64Ok`, padded base64 text, moved from
+  `DecodeDefs.lean` to `Base.lean` unchanged). Proved over the translated `Decode`/`decodeQuantum`.
+
+**(ii) bcrypt (trusted, for an independent axiom review).** `bcrypt.GenerateFromPassword.spec`, before / after:
+
+- before: error branch `… ∗ ⌜h = slice.nil⌝`; success branch `⌜err = GoInterface.nil⌝ ∗ ∃ hs, h ↦* hs`;
+- after: error branch `… ∗ ⌜h = slice.nil⌝ ∗ ⌜72 < p.length ∨ 31 < sint.Z cost⌝`; success branch
+  `⌜err = GoInterface.nil⌝ ∗ ⌜p.length ≤ 72 ∧ sint.Z cost ≤ 31⌝ ∗ ∃ hs, h ↦* hs`
+  (x/crypto v0.57.0: `len(password) > 72` → `ErrPasswordTooLong`; `newFromPassword` replaces a cost below
+  `MinCost` by `DefaultCost` and `checkCost` refuses one above `MaxCost`; reading the salt from the default
+  `crypto/rand.Reader` does not fail, as the docstring already claimed). Witness `TestBcryptExactError`.
+
+**(iii) the model.** Before / after (trusted definitions the top-level statements are written in):
+
+- `auth.AuthState`: gains `noPwUsers : GMap GoString Unit` (the users whose `Options.NoPassword` is set);
+  `AuthState.noPw st n := (st.noPwUsers !! n).isSome`; `bootState := ⟨false, 0, ∅, ∅, ∅⟩`.
+- `auth.userAddF name st` → `auth.userAddF name nob st`: the next state `bump (putUser st name [])` →
+  `bump (addUser st name nob)`, `addUser st name nob := { putUser st name [] with noPwUsers := setNoPw
+  st.noPwUsers name nob }`, `setNoPw m n b := if b then insert n () m else delete n m`.
+- `auth.userChangePasswordF name st` (before: `none => .err .userNotFound | some _ => .next (bump st)`) →
+  `auth.userChangePasswordF name ok st := match st.users !! name with | none => .err .userNotFound
+  | some _ => if st.noPw name = true ∨ ok then .next (bump st) else .err .noPasswordUser`.
+- New `auth.selectPwOk pw hpw := if pw ≠ [] ∧ hpw = [] then pw.length ≤ 72 else encoding.base64.stdDecOk hpw`
+  (`selectPassword` at a cost ≤ 31: `authInv` keeps the bound, `NewAuthStore` clamps the cost).
+- `adminStateR`'s `UserChangePassword` clause, before `(¬ m.pwSure ∧ st' = st) ∨ authRelState (stepOf
+  (userChangePasswordF m.name)) st st'`, after `authRelState (stepOf (userChangePasswordF m.name (selectPwOk
+  m.password m.hashed))) st st'`; its `UserAdd` clause's step `userAddF m.name m.noPassword`; `adminStepO`
+  alike.
+- `apply.adminKindOk`: `.authUserChangePassword => ∀ m, rq.authUserChangePassword = some m → m.pwSure`
+  → `.authUserChangePassword => True`. `ChangePasswordModel.pwSure` is gone; `adminDetReq` keeps only
+  `UserAdd`'s `pwSure`.
+
+The store side: `userOut(X)`, `schema.usersAt`/`authBucketsAre` give a read record's `noPassword` as the
+state's `noPw`; the batch-transaction put contract (`authBatchTxLk`, trusted at the backend realization,
+proved there: `AuthRealWr.usersAt_put`) puts `putUserRec st ur` (roles and `NoPassword`), equal to
+`putUser` for a rewrite that keeps the read options (`putUserRec_same`). `UserChangePassword.{spec,specT,specTB}`
+(the last was `specTSureB`, which took `userChangePasswordSure`) take the request's passwords
+(`userChangePasswordReqIs r name pw hpw`), step `userChangePasswordF name (selectPwOk pw hpw)`, and no extra
+error (`noExtra`). `selectPassword.spec`: `err = nil ↔ selectPwOk password hashed`, its pre the cost bound.
+
+**`UserAdd`'s `pwSure` kept.** Removing it is not needed for exactness here (the server's `UserAdd`
+proposes the `pwSure` form, a workload fact discharged at the handler) and is not cheap: the set-up
+examples' and the single-process/dist chains read it. Its step gains `nob` only. The authwork set-up asks
+for `noPassword = false` of its `UserAdd`s (`setupReqAt`, from the client's request), so `setupSt` has no
+no-password user (`noPwUsers := ∅`); `adminStateR_userAdd_sure` substitutes the server's form of a password
+(empty password, `stdB64Enc []`) where it set `noPassword`.
+
+The `NewAuthStore` axiom (mode `off`) names `apply.isAuthStore … .off`, whose `UserAdd` clause
+(`authReqContractN`) takes the request predicate `auth.userAddReqIs`, now with the option as a parameter:
+it passes `fun r n => ∃ nob, auth.userAddReqIs r n nob`, the predicate as it was (the option was an
+existential inside); its clauses name no step, so the axiom's meaning is unchanged.

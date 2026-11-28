@@ -62,7 +62,7 @@ theorem adminStateR_ord (rq : apply.IRRModel) (st st' : auth.AuthState)
           · simp_all [outState]
           split
           · simp_all [outState]
-          · exact authOrd_bump st _ (by simp [auth.putUser])
+          · exact authOrd_bump st _ (by simp [auth.addUser, auth.putUser])
       · exact absurd h hne
     · split at h
       · obtain ⟨o, ho, rfl⟩ := h
@@ -129,13 +129,14 @@ theorem adminStateR_ord (rq : apply.IRRModel) (st st' : auth.AuthState)
         · exact authOrd_bump st _ (by simp [auth.delUser])
       · exact absurd h hne
     · split at h
-      · rcases h with ⟨-, h⟩ | ⟨o, ho, rfl⟩
-        · exact absurd h hne
-        · simp only [auth.stepOf, auth.userChangePasswordF] at ho
-          subst ho
-          split
-          · simp_all [outState]
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf, auth.userChangePasswordF] at ho
+        subst ho
+        split
+        · simp_all [outState]
+        · split
           · exact authOrd_bump st _ (by simp)
+          · simp_all [outState]
       · exact absurd h hne
     · split at h
       · obtain ⟨o, ho, rfl⟩ := h
@@ -320,7 +321,7 @@ theorem srvHist_prefix (γk : KVNames) (A B : List EntryModel) (h : A <+: B) :
 /-- **The step an appending admin request's cap permission is for** (H5): its step relation
 (`AuthEnable`'s at the state's own flag, `auth.authEnableOwnR`); an `Authenticate` appends nothing. -/
 def apply.AdminReq.capRel : apply.AdminReq → auth.StepRel
-  | .userAdd n => auth.stepOf (auth.userAddF n)
+  | .userAdd n nob => auth.stepOf (auth.userAddF n nob)
   | .roleAdd n => auth.stepOf (auth.roleAddF n)
   | .userGrantRole u ro => auth.userGrantRoleR u ro
   | .roleGrantPermission n w => auth.roleGrantPermissionR n w
@@ -328,7 +329,7 @@ def apply.AdminReq.capRel : apply.AdminReq → auth.StepRel
   | .authenticate _ _ => fun _ _ => False
   | .authDisable => auth.ownFlagR auth.authDisableF
   | .userDelete n => auth.ownFlagR (fun en => auth.userDeleteF en n)
-  | .userChangePassword n => auth.stepOf (auth.userChangePasswordF n)
+  | .userChangePassword n pw hpw => auth.stepOf (auth.userChangePasswordF n (auth.selectPwOk pw hpw))
   | .userRevokeRole n ro => auth.ownFlagR (fun en => auth.userRevokeRoleF en n ro)
   | .roleDelete ro => auth.ownFlagR (fun en => auth.roleDeleteF en ro)
   | .roleRevokePermission ro k e => auth.roleRevokePermissionR ro k e
@@ -337,13 +338,13 @@ def apply.AdminReq.capRel : apply.AdminReq → auth.StepRel
 theorem capRel_ord (ad : apply.AdminReq) (sa st' : auth.AuthState)
     (hR : ad.capRel sa (.next st')) : authOrd sa < authOrd st' := by
   cases ad with
-  | userAdd n =>
+  | userAdd n nob =>
     simp only [apply.AdminReq.capRel, auth.stepOf, auth.userAddF] at hR
     split at hR
     · cases hR
     · split at hR
       · cases hR
-      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.putUser])
+      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.addUser, auth.putUser])
   | roleAdd n =>
     simp only [apply.AdminReq.capRel, auth.stepOf, auth.roleAddF] at hR
     split at hR
@@ -396,11 +397,13 @@ theorem capRel_ord (ad : apply.AdminReq) (sa st' : auth.AuthState)
     · split at hR
       · cases hR
       · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.delUser])
-  | userChangePassword n =>
+  | userChangePassword n pw hpw =>
     simp only [apply.AdminReq.capRel, auth.stepOf, auth.userChangePasswordF] at hR
     split at hR
     · cases hR
-    · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp)
+    · split at hR
+      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp)
+      · cases hR
   | userRevokeRole n ro =>
     simp only [apply.AdminReq.capRel, auth.ownFlagR, auth.userRevokeRoleF] at hR
     split at hR
@@ -483,7 +486,7 @@ theorem capRel_adminStateR (rq : apply.IRRModel) (ad : apply.AdminReq) (sa st' :
     | some mm =>
       simp only [hm, Option.map_some, Option.some.injEq] at had
       subst had
-      exact Or.inr ⟨.next st', hR, rfl⟩
+      exact ⟨.next st', hR, rfl⟩
   · cases hm : rq.authUserRevokeRole with
     | none => simp [hm] at had
     | some nr =>

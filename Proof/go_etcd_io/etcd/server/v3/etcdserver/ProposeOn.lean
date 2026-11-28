@@ -147,7 +147,7 @@ theorem commitOkOn_admin (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain) (st�
     intro _ _
     apply authDet_of_sorted
     · exact rolesSorted_kvRaftOfOn c₀ ch _ L hsort
-    · exact ⟨hpw, adminKindOk_cpSure rq hk⟩
+    · exact hpw
 
 /-- **A write-free entry keeps the mode-`on` model's state** (auth state, log and table): a request
 that needs no admin permission and writes nothing, let through or refused. -/
@@ -897,7 +897,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         iunfold adminPropRes
         ipureintro
         have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L hadm.2.2.2
-        exact ⟨hs, authDet_of_sorted (apply.withHeader rq₀ hm) _ hs ⟨hadm.2.2.1, adminKindOk_cpSure _ hadm.1⟩⟩
+        exact ⟨hs, authDet_of_sorted (apply.withHeader rq₀ hm) _ hs hadm.2.2.1⟩
     · -- (5b) needing the admin permission: recorded in the history, its client's update fires
       obtain ⟨hadm, -, hna0, hQr⟩ := Had
       subst hQr
@@ -953,7 +953,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         have hdec' : apply.irrDecode e.data = some (apply.withHeader rq₀ hm) := by
           rw [hed]; exact hdec
         have hsrt := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L hadm.2.2.2
-        have hdet := authDet_of_sorted (apply.withHeader rq₀ hm) _ hsrt ⟨hadm.2.2.1, adminKindOk_cpSure _ hadm.1⟩
+        have hdet := authDet_of_sorted (apply.withHeader rq₀ hm) _ hsrt hadm.2.2.1
         have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc (by omega)
         by_cases hr : admRec γk st₀ (apply.withHeader rq₀ hm) L
         · -- recorded: the history grows by the state after the entry
