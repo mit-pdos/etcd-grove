@@ -948,6 +948,87 @@ theorem getLastSnapshot_pinned (r : Loc) (li lt si st : w64) (Φ : val → IProp
     iright; iexact Hb
   iapply HK $$ Hllb
 
+/-- (hraft_robust R5) The latest snapshot durable at `i`, unless a discard is pending (persistent). -/
+def latDurLb (lat : SnapLatest) (dp : Option DiscPend) : IProp GF :=
+  match lat with
+  | none => iprop(True)
+  | some (m, _) => iprop(⌜dp ≠ none⌝ ∨ durLb γ i (uint.nat m.Index'))
+
+instance latDurLb_persistent lat dp : Persistent (latDurLb (GF := GF) γ i lat dp) := by
+  unfold latDurLb; rcases lat with _ | ⟨_, _⟩ <;> infer_instance
+
+theorem latestDur_dlb (lat : SnapLatest) (pend : Option (Nat × Nat × GoString)) (dp : Option DiscPend)
+    (hp : pend = none) :
+    latestDur γ rc i lat pend dp ⊢ latestDur γ rc i lat pend dp ∗ latDurLb γ i lat dp := by
+  subst hp
+  iintro Hld
+  rcases lat with _ | ⟨m, b⟩
+  · iframe; unfold latDurLb; itrivial
+  unfold latestDur
+  icases Hld with ⟨Hok, Hd⟩
+  icases Hd with (%Hn | ⟨%m', %b', %Hmb, Hd⟩)
+  · cases Hn
+  cases Hmb
+  icases Hd with (⟨#Hd, %Hdn⟩ | ⟨#Hsf, %Hdp, Ha⟩)
+  · iframe
+    isplitl []
+    · iright; iexists m, b; isplitr; · ipureintro; rfl
+      ileft; iframe #; ipureintro; exact Hdn
+    unfold latDurLb; dsimp only; iright; iexact Hd
+  · iframe
+    isplitl [Ha]
+    · iright; iexists m, b; isplitr; · ipureintro; rfl
+      iright; iframe #; isplitr; · ipureintro; exact Hdp
+      iexact Ha
+    unfold latDurLb; dsimp only; ileft; ipureintro
+    obtain ⟨ℓ, h⟩ := Hdp; rw [h]; simp
+
+/-- (hraft_robust R5) **A log-store read during the boot that also gives `latDurLb`** (with no install
+pending: the main goroutine's half of `pend`). -/
+theorem bootRead_Ld (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option TermPend) (dp : Option DiscPend)
+    (K : LogAbs → IProp GF) :
+    srvDurInvRaw γ rc i ∗ bootV rc A lat ∗ srvVP rc s tp dp ∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      (bootV rc A lat -∗ srvVP rc s tp dp -∗
+        ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+        latDurLb γ i lat dp -∗ ∀ X : SrvDur,
+        ⌜X.A = A ∧ X.lat = lat ∧ X.s = s ∧ X.tp = tp ∧ X.dp = dp ∧ durPure X⌝ -∗ K X.A) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ a, rc.ownL a ∗ (rc.ownL a ={∅, ⊤ \ ↑storeN}=∗ K a) := by
+  iintro ⟨#Hi, Hv, Hsv, Hpe, HK⟩
+  iapply ncfupd_bind
+  isplitl [Hv]
+  · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
+    iframe #; iframe
+  iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, %Hp⟩ := durCoreB_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  · iframe
+  iunfold durCoreB at Hc
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp', H10, Hpe', H12, H13, H14⟩
+  icombine Hpe Hpe' gives %hpe
+  have hpe' : X.pend = none := hpe.2.symm
+  iapply ncfupd_of_fupd
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hld⟩
+  ihave ⟨Hld, #Hdl⟩ := latestDur_dlb γ rc i X.lat X.pend X.dp hpe' $$ Hld
+  iexists _
+  iframe HL
+  iintro HL
+  imod Hmask with -
+  imod Hcl $$ %X [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hpe' H12 H13 H14] [HL HS HSS Hld] with Hv
+  · iunfold durCoreB; iframe; ipureintro; exact Hp'
+  · iunfold durStores; iframe
+  obtain ⟨hA, hlat⟩ := HX
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  subst hA hlat hdp
+  imodintro
+  iapply HK $$ Hv Hsv Hpe Hdl
+  ipureintro
+  exact ⟨rfl, rfl, hs, htp, rfl, Hp⟩
+
 end gp
 
 end boot
