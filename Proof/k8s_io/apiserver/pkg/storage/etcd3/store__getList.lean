@@ -35,7 +35,7 @@ theorem store.getList.wp_proof
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_rse : store.getResourceSizeEstimator.spec (GF := GF) (hG := hG)) :
     store.getList.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp hkne hnr
+  intro _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp hkne hnr
   wp_start as ⟨#Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'

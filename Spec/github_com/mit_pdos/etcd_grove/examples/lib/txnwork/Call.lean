@@ -32,8 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assu
 
 /-- See the file header. -/
 abbrev Call.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →

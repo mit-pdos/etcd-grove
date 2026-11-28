@@ -32,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 
 theorem barriers.wp_proof (wp_barrier : barrier.spec (GF := GF) (hG := hG)) :
     barriers.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS msl lg ms bs hms htb hAs
+  intro ES FS RS msl lg ms bs hms htb hAs
   wp_start as ⟨Hlt, #Hlg, #Hmsl, #Hbs⟩
   ihave %Hmsll := ownSlice_len $$ Hmsl
   have hlen : ms.length = bs.length := by

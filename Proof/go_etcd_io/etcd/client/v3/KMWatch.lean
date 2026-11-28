@@ -44,7 +44,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **A client watcher of etcd's KV meets the cache's watcher contract** at the adapter's model
 (see the file header), for a prefix not empty and not all `0xff` (`watcher.Watch.spec`'s

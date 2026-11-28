@@ -2,18 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.authN
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.cache
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.partition
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

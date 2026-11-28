@@ -62,7 +62,7 @@ theorem store.updateOnce.wp_proof
     (wp_V : klog.V.spec (GF := GF) (hG := hG))
     (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     store.updateOnce.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl v p ign pre f o' W Φu
+  intro _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl v p ign pre f o' W Φu
     hk hkl hpre hok hosz hw
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, %Hspn, Hos, #Hfrom, %Hign, #Hdsl, Hout, %Hv, HW, #Hau⟩
   ihave Hst' := Hst

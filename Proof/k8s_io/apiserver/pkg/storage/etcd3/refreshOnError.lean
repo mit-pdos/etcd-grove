@@ -31,7 +31,7 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ c st s err f x key ign R
+  intro _ Obj _ c st s err f x key ign R
   wp_start as ⟨Hlt, Hs, Hf⟩
   iunfold ownStateX at Hs
   icases Hs with ⟨%m, %dsl, %Hst, Hst, #Hdsl, Hm⟩

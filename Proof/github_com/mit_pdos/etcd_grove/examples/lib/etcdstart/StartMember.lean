@@ -35,7 +35,7 @@ theorem StartMember.wp_proof
     (wp_NewMember : NewMember.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMember.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
+  intro N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
     γn lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf
     Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩

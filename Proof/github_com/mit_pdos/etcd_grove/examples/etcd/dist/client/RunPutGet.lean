@@ -5,8 +5,8 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/RunPutGe
 The orchestrator allocates putget's invariant from its share's half (`pgInv_alloc`), connects (`newClient`;
 its error ends the workload), defers `Close`, and runs the 50 rounds with the invariant `i ≥ 0` (and the
 token): round `i`'s key and value are `pg/k<s>`/`v<s>` for `s = strconv.Itoa(i)`; its put (`wp_cliPut`, over
-`KV_Put_dist`) carries the round's one-shot update (`pgPutAu_round`), whose result on `nil` is the put's
-`pgFired`; its get (`wp_cliGet`, over `KV_Get_dist`) the read update after it (`pgGetAu`), whose result
+`kv.Put.spec`) carries the round's one-shot update (`pgPutAu_round`), whose result on `nil` is the put's
+`pgFired`; its get (`wp_cliGet`, over `kv.Get.spec`) the read update after it (`pgGetAu`), whose result
 `pgReadOk` makes the reply's first key-value the round's value (`pgReadOk_head`, the selection
 `srvRangeOk_getKey`), so the check does not panic. A failed put or get continues. Then `ended`/`checked`, and
 the deferred `Close`.
@@ -60,8 +60,8 @@ theorem RunPutGet.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Close : EtcdGrove.Client.Close.spec (GF := GF) (hG := hG))
-    (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG))
-    (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) :
+    (wp_KV_Put : kv.Put.spec (GF := GF) (hG := hG))
+    (wp_KV_Get : kv.Get.spec (GF := GF) (hG := hG)) :
     RunPutGet.spec (GF := GF) (hG := hG) := by
   intro π eps addrs hV Htb hpl hAs
   wp_start as ⟨Hlt, #Heps, Hsh⟩
@@ -166,7 +166,7 @@ theorem RunPutGet.wp_proof
     · iframe #
     wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd (go!"pg/k" ++ s2)
         slice.nil [] iprop(True) (fun σ => iprop(⌜pgReadOk (go!"pg/k" ++ s2) σ⌝))
-        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl (pg_sizes s2 hlen).2)
+        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl (pg_sizes s2 hlen).2 Hauth)
       $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
     · iframe Hlt
       iframe #

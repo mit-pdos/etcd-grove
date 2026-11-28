@@ -51,7 +51,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev newServer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
+  ∀ (N : Nat) (name peerAddr client token : GoString)
     (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
@@ -106,7 +106,7 @@ abbrev newServer.spec : Prop :=
 /-- **`specAt`** (F7 step 2): `spec` with the member's lessor at the caller's name `γl`
 (`newServerMode.specAt`'s): the slot's half in the pre, `memberBuiltL` in the post. -/
 abbrev newServer.specAt : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
+  ∀ (N : Nat) (name peerAddr client token : GoString)
     (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
@@ -147,7 +147,7 @@ abbrev newServer.specAt : Prop :=
 
 /-- See the file header (`specRestart`). -/
 abbrev newServer.specRestart : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
+  ∀ (N : Nat) (name peerAddr client token : GoString)
     (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

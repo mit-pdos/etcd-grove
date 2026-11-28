@@ -12,10 +12,10 @@ cluster's KV `Γ.kv` (the watch workload's adapter, `WatchWorkDefs.lean`) instea
   `client.isEtcdClient_of_km` in one process:
   - its watches by `Watch_dist` (`kvWatcherW_of_dist`, `isEtcdWatcher_of_kmW`: N10a's);
   - its progress requests by `RequestProgress_dist` (`isEtcdProgressNotifier_of_dist`);
-  - its gets by `KV_Get_dist` (`kv_get_km_dist`, `isEtcdKVE_of_dist`): `client.kv_get_km`'s proof over it,
-    at any context (`ctxErrClientAllW_of`). The cache needs the error arm's `statusErrOk err`: its watch loop
-    prints `get`'s error with `fmt.Printf`'s `%v` (`getWatchLoop`, `isEtcdKVE`'s `errStrOk`); `KV_Get_dist`
-    claims it since 2026-11-26 (plan §29.7; `kv.Get.spec`'s `kvErr` gives it in one process).
+  - its gets by `kv.Get.spec` at the client's `isKv` of the auth-off view (`isKv_of_kvClientAt`;
+    `kv_get_km_dist`, `isEtcdKVE_of_dist`): `client.kv_get_km`'s proof over it, at any context
+    (`ctxErrClientAllW_of`). The cache needs the error arm's `statusErrOk err`: its watch loop prints `get`'s
+    error with `fmt.Printf`'s `%v` (`getWatchLoop`, `isEtcdKVE`'s `errStrOk`); `kv.Get.spec`'s `kvErr` gives it.
 * `wkW_eq`: the writers' plan property (`etcd_partition.wkW`, the writer wire's `kmOf`) is the cache example's
   (`etcd_watch.wkW`, which its helpers' specs name): the same definition, copied.
 * `cacheShare addrs ns`: the orchestrator's share, the watch workload's (`watchShare writersShare`): the cache
@@ -25,7 +25,8 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WriterWire
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
+public import Spec.go_etcd_io.etcd.client.v3.kv__Get
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 public import Proof.go_etcd_io.etcd.client.v3.ServerKVGetDefs
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
@@ -143,9 +144,10 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **A KV client of the view's linearizable exact get at the adapter's model** (`client.kv_get_km` over
-`KV_Get_dist`; see the file header). -/
-theorem kv_get_km_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
-    (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (γ : KMNames) (hγ : γ.kv = Γ.kv)
+`kv.Get.spec`; see the file header). -/
+theorem kv_get_km_dist (wp_Get : kv.Get.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
+    (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (hauth : Γ.auth = false)
+    (γ : KMNames) (hγ : γ.kv = Γ.kv)
     (pfx : GoString) (hpfx : pfx ≠ [])
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
@@ -167,7 +169,8 @@ theorem kv_get_km_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : N
   -- the floor: changes the client saw, `lo` of them or more, and the read update after them
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
   ihave #Hau := km_read_au γ l0 $$ [$Hinv $Hl0]
-  iapply (wp_Get cl api eps V Γ ci cd key sl gs R (kmSeenQ γ l0)) $$ [Hlt HR]
+  ihave #Hik := isKv_of_kvClientAt cl api eps V Γ hauth $$ Hkv
+  iapply (wp_Get api Γ.kv false ci cd key sl gs R (kmSeenQ γ l0)) $$ [Hlt HR]
   · iframe #
     iframe Hlt
     iframe
@@ -188,9 +191,11 @@ theorem kv_get_km_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : N
   iapply HΦ
   iframe Hlt
   iframe HR
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, #Hse⟩)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
   rotate_left
-  · isplitl
+  · iunfold kvErr at Hke
+    icases Hke with ⟨-, #Hse, -⟩
+    isplitl
     · unfold kvGetResultC; ileft; ipureintro; exact Herr.1
     iexact Hse
   simp only [hws, Bool.false_eq_true, ↓reduceIte]
@@ -287,8 +292,9 @@ theorem kv_get_km_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : N
 /-- **A KV client of the view meets the cache's get contract** (`isEtcdKVE`) at the adapter's model
 (`client.isEtcdKVE_of_km` over `kv_get_km_dist`): any context (`ctxErrClientAllW`), no resource for the
 options, no sort enumerations. -/
-theorem isEtcdKVE_of_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
-    (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (γ : KMNames) (hγ : γ.kv = Γ.kv)
+theorem isEtcdKVE_of_dist (wp_Get : kv.Get.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
+    (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (hauth : Γ.auth = false)
+    (γ : KMNames) (hγ : γ.kv = Γ.kv)
     (pfx : GoString) (hpfx : pfx ≠ []) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvClientAt cl api eps V Γ ∗
         kmInv γ ∗ ctxErrClientAllW ⊢
@@ -303,7 +309,7 @@ theorem isEtcdKVE_of_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π 
   ihave #Hce := Hall $$ %ctx %cs Hctx
   ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
-  iapply (kv_get_km_dist wp_Get cl api eps V Γ γ hγ pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx
+  iapply (kv_get_km_dist wp_Get cl api eps V Γ hauth γ hγ pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx
       Hlin Hsz) $$ [Hlt] [HΦ]
   · (try iframe Hlt)
     iframe #
@@ -336,12 +342,13 @@ theorem isEtcdProgressNotifier_of_dist (wp_RP : RequestProgress_dist.spec (GF :=
 
 /-- **`New`'s client of endpoints serving the view is the cache's client** at the adapter's model (see the
 file header; `client.isEtcdClient_of_km` across machines): its `KV` a KV client of the view
-(`KV_Get_dist`), its `Watcher` a watch client of it (`Watch_dist`, `RequestProgress_dist`), for a non-empty
-prefix not all `0xff`. -/
-theorem isEtcdClient_of_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG))
+(`kv.Get.spec`, auth off), its `Watcher` a watch client of it (`Watch_dist`, `RequestProgress_dist`), for a
+non-empty prefix not all `0xff`. -/
+theorem isEtcdClient_of_dist (wp_Get : kv.Get.spec (GF := GF) (hG := hG))
     (wp_Watch : Watch_dist.spec (GF := GF) (hG := hG))
     (wp_RP : RequestProgress_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
-    (cl api w : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (γ : KMNames) (hγ : γ.kv = Γ.kv)
+    (cl api w : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (hauth : Γ.auth = false)
+    (γ : KMNames) (hγ : γ.kv = Γ.kv)
     (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -363,7 +370,7 @@ theorem isEtcdClient_of_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG))
   iexists kvIfaceOf api, watcherIfaceOf w
   iframe HKV HW
   isplitr
-  · iapply isEtcdKVE_of_dist wp_Get cl api eps V Γ γ hγ pfx hp
+  · iapply isEtcdKVE_of_dist wp_Get cl api eps V Γ hauth γ hγ pfx hp
     iframe #
   isplitr
   · iapply isEtcdWatcher_of_kmW w γ pfx hp hff

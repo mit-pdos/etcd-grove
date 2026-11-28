@@ -39,7 +39,7 @@ theorem runWatch.wp_proof
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG)) :
     runWatch.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c γk x k n Q hS hQ hQQ hnr htb hok
+  intro _ _ sp c γk x k n Q hS hQ hQQ hnr htb hok
   wp_start as ⟨Hlt, #Hst, #Hsw, #Hwl, #Hrs, HQ0, #HQup⟩
   wp_auto
   cases hsk : x.Skip'

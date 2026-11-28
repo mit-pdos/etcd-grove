@@ -41,7 +41,7 @@ theorem watcher.createWatchChan.wp_proof
     (wp_newBlockLogger : newBlockLogger.spec (GF := GF) (hG := hG))
     (wp_Now : clock.RealClock.Now.spec (GF := GF) (hG := hG)) :
     watcher.createWatchChan.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wp sp c W γk ci cd kp rev recur pred sel emp m Q Hpfx Hkp Hklen
+  intro _ Obj _ _ wp sp c W γk ci cd kp rev recur pred sel emp m Q Hpfx Hkp Hklen
   wp_start as ⟨#Hst, #Hsw, #Hwp, #Hctx, #Hmd, #Hsel⟩
   ihave #Hst' := Hst
   iunfold isStore at Hst'

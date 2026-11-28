@@ -136,7 +136,7 @@ theorem compactor.getCompactRev.wp_proof
     (wp_Errorf : EtcdGrove.fmt.Errorf.spec (GF := GF) (hG := hG))
     (wp_Get : EtcdGrove.kv.Get.spec (GF := GF) (hG := hG)) :
     compactor.getCompactRev.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl γk recorded γc ci cd
+  intro _ c cl γk recorded γc ci cd
   wp_start as ⟨Hlt, #Hc, #Hko, #Hctx, #Hce, #Hread⟩
   iunfold compactorCore at Hc
   icases Hc with ⟨%Hpers, #Hclf, -, -, -, -, -⟩

@@ -1,8 +1,9 @@
 # The single-process closed etcd theorem (examples/etcd/all; notes/etcd-unified-scope.md, the user's
 # decisions D1-D6 and N1-N7 of 2026-11-21): the results of
 # Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean (`etcd_all_Main`,
-# `etcd_adequate_of`, `etcd_safe_single_process`: eleven etcd examples, each on a cluster of its own, at
-# once in one process) and MainLinked.lean, over the eleven drivers' linked `Main` results. Retired at
+# `etcd_adequate_of`, `etcd_restart_safe_single_process`: the restart part, restartN and restart1, each on a
+# cluster of its own, at once in one process; until 2026-11-27 eleven examples in four parts) and
+# MainLinked.lean, over the two drivers' linked `Main` results. Retired at
 # the net swap (2026-11-22, collection etcd-all.txt, tag single-process-final) and restored over the net
 # extension (2026-11-23, etcd-grove#28, notes/single-process-restore.md).
 #
@@ -11,11 +12,8 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/(Results|MainLinked)\.lean$
-axiom Client.Close.wp_proof
-axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
-axiom NewLoggableTxnRequest.wp_proof
 axiom NewRaftLoggerZap.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
@@ -26,51 +24,22 @@ axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
 axiom RangeRequest.String.wp_proof
-axiom WithRequireLeader.wp_proof
 axiom addrClaim
 axiom addrUnclaimed
 axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
-axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
-axiom auth.redactToken.wp_proof
-axiom bcrypt.CompareHashAndPassword.wp_proof
-axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
-axiom bridge.New.wp_proof
-axiom bridge.bridge.Blackhole.wp_proof
-axiom bridge.bridge.DropConnections.wp_proof
-axiom bridge.bridge.Unblackhole.wp_proof
-axiom bridge.bridgeAt
+axiom bootstrap.wp_proofOne
+axiom bootstrap.wp_proofRestart
 axiom contention.NewTimeoutDetector.wp_proof
-axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
-axiom endpoint.RequiresCredentials.wp_proof
-axiom etcdResolver_grpc
-axiom etcd_noRefusal
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
-axiom grpc.ClientConn.Invoke.wp_proof
-axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpc.ClientConn.Target.wp_proof
-axiom grpc.NewClient.wp_proof
-axiom grpc.Server.Serve.wp_proof
-axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpcConn
-axiom grpcConn_persistent
-axiom grpcProtoCodec
-axiom grpcResolverAt
-axiom grpcSrvAtLis
-axiom grpcStatsHandlerOk
-axiom grpcWrotePeer
-axiom grpc_prometheus.NewServerMetrics.wp_proof
-axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
-axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
-axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
@@ -109,52 +78,17 @@ axiom membership.RaftCluster.String.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom metadata.AppendToOutgoingContext.wp_proof
-axiom metadata.FromIncomingContext.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom otelgrpc.NewServerHandler.wp_proof
-axiom pbAuthEnableRequestT_reg
-axiom pbAuthEnableResponseT_reg
-axiom pbAuthRoleAddRequestT_reg
-axiom pbAuthRoleAddResponseT_reg
-axiom pbAuthRoleGrantPermissionRequestT_reg
-axiom pbAuthRoleGrantPermissionResponseT_reg
-axiom pbAuthUserAddRequestT_reg
-axiom pbAuthUserAddResponseT_reg
-axiom pbAuthUserGrantRoleRequestT_reg
-axiom pbAuthUserGrantRoleResponseT_reg
-axiom pbAuthenticateRequestT_reg
-axiom pbAuthenticateResponseT_reg
-axiom pbCompactionRequestT_reg
-axiom pbCompactionResponseT_reg
-axiom pbDeleteRangeRequestT_reg
-axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
 axiom pbHsC_reg
-axiom pbLeaseGrantRequestT_reg
-axiom pbLeaseGrantResponseT_reg
-axiom pbLeaseLeasesRequestT_reg
-axiom pbLeaseLeasesResponseT_reg
-axiom pbLeaseRevokeRequestT_reg
-axiom pbLeaseRevokeResponseT_reg
-axiom pbLeaseTimeToLiveRequestT_reg
-axiom pbLeaseTimeToLiveResponseT_reg
 axiom pbMessageC_reg
-axiom pbPutRequestT_reg
-axiom pbPutResponseT_reg
-axiom pbRangeRequestT_reg
-axiom pbRangeResponseT_reg
 axiom pbRecordC_reg
 axiom pbSnapC_reg
-axiom pbTxnRequestT_reg
-axiom pbTxnResponseT_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
-axiom peer.Peer.String.wp_proof
 axiom probing.NewHandler.wp_proof
 axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
-axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
@@ -166,7 +100,6 @@ axiom prometheus.NewGaugeFunc.wp_proof
 axiom prometheus.NewGaugeVec.wp_proof
 axiom prometheus.NewHistogram.wp_proof
 axiom prometheus.NewHistogramVec.wp_proof
-axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
@@ -179,8 +112,6 @@ axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.MarshalPb.wp_proof
-axiom proto.MarshalRole.wp_proof
-axiom proto.MarshalUser.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.SizeMessage.wp_proof
 axiom proto.SizePb.wp_proof
@@ -188,13 +119,10 @@ axiom proto.Unmarshal.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
-axiom proto.UnmarshalRole.wp_proof
-axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
 axiom rand.Int31.wp_proof
-axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -212,8 +140,6 @@ axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom streamKeyFromCtx.wp_proof
-axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
@@ -221,12 +147,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
-axiom v3rpc.codec_proto
-axiom v3rpc.ctxCauseOk_cancellable
-axiom v3rpc.logUnaryRequestStats.wp_proof
-axiom v3rpc.pbWatchRequestT_reg
-axiom v3rpc.pbWatchResponseT_reg
-axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof
 opaque apply.backendUnderQuota
 opaque apply.irrDecodeRest
@@ -235,20 +155,10 @@ opaque apply.semverAtMostServer
 opaque apply.semverIsCore
 opaque apply.semverNorm
 opaque apply.semverValid
-opaque auth.roleEncode
-opaque auth.userEncode
 opaque authRecordsFit
 opaque backend.readerStreams
 opaque backend.renameOk
-opaque credsYieldRaw
 opaque etcdVerifyEnv
-opaque grpcCliPI
-opaque grpcConnClosedRaw
-opaque grpcConnOptsRaw
-opaque grpcRepModelOf
-opaque grpcRepliesFit
-opaque grpcReqModelOf
-opaque grpcSrvPI
 opaque hsDecode
 opaque http.bodyReader
 opaque http.bodyStreamRaw
@@ -272,23 +182,17 @@ opaque http.urlOf
 opaque io.pipeW
 opaque lease.leaseEnc
 opaque lease.leasesNoExpiry
-opaque leasePeersOk
 opaque membership.memBucketsOk
 opaque membership.membersOf
 opaque membership.peerURLsOk
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
-opaque mvcc.viewFk
-opaque noRefusalAt
 opaque pbModelOf
 opaque peer.transportPeer
-opaque promUnaryIc
 opaque prometheus.vecLabels
 opaque reflectM.reflElem
 opaque snap.dirReadOk
 opaque snapDecode
 opaque storage.dbOpensOk
-opaque streamRepModelOf
-opaque streamReqModelOf
 opaque trace.otelSpan
 opaque v3rpc.ctxCauseOkRaw

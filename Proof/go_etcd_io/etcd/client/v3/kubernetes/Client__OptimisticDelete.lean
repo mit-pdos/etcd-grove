@@ -54,7 +54,7 @@ theorem Client.OptimisticDelete.wp_proof
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
     (h_txn_Commit_st : etcd_txnlin.txn_Commit_st.law (GF := GF) (hG := hG)) :
     Client.OptimisticDelete.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key rev opts Q hk
+  intro _ kc ms V ci cd key rev opts Q hk
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hctx, #Hce, Hau⟩
   wp_auto
   ihave #Hnil0 := optsAt_nil (GF := GF)

@@ -59,7 +59,7 @@ theorem compactor.runCompactLoop.wp_proof
     (wp_UpdateCompactRevision : compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG))
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runCompactLoop.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl K γk Seen recorded _ _ γc sc γs hsame hcmp hcret
+  intro _ c cl K γk Seen recorded _ _ γc sc γs hsame hcmp hcret
   wp_start as ⟨Hlt, #Hc, #Hstop, #HK, #Hko, #Hcas⟩
   ihave #HK' := HK
   iunfold k8sClient at HK'
