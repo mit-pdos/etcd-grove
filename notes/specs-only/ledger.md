@@ -9615,6 +9615,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   the read); the law is proved (`readCall_law_holds`), no longer a hypothesis of `Sys.try.wp_proof`. No
   top-level statement changes; no axiom.
 - **Decision.** Untrusted specs, proved here (S6, #48).
+## 2026-11-28: `kvModel`/`kvLeases` (and so `kvRevLbZ`/`kvRevLb`) -- the fold of the auth-aware model from `srvAuthSt0` (nomode N1b-2)
+
+- **Spec.** `kvModel`, `kvLeases` (`Proof/.../etcdserver/InvRequest.lean`), the vocabulary of `kvRevLbZ`/`kvRevLb`,
+  which `kv.Put.spec`, `kv.Compact.spec`, `txn.Commit.spec`, `EtcdServer.Compact.spec` and the client `_dist`
+  contracts name (their text unchanged).
+- **Defect.** Two models of one log (auth-free `kvRaftOf`, auth-aware `kvRaftOfOn`), so a mode: `kvRevLb` spoke of
+  the auth-free one, which an auth-on server does not follow (`notes/axiom-review/onrevlb-weakening.md`).
+- **Evidence.** The no-mode packet (local `nomode-packet.md`, sections 1-2); the porting lemma `kvRaftOfOn_disabled`.
+- **Change.** `kvFold γk L := kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L`; `kvModel := (kvFold ·).2.1`,
+  `kvLeases := (kvFold ·).2.2`, `kvAuth := (kvFold ·).1`. Equal to the old values on every log with no `AuthEnable`
+  (`kvFold_off`), which every `plainLogM` log is (`noAuthEnable_of_plainLogM`): under auth off `kvRevLbZ` holds of
+  the same revisions. `notes/nomode-n1b.md`, "N1b-2".
+- **Decision.** The user (no auth modes; one `kvModel`, one `kvRevLb`), relayed by the dsverify-net lead; the
+  meaning change of `kvRevLb` is trusted-visible and goes in the statement review.
 ## 2026-11-28: the rewrite kinds' name bounds replaced by the stored names' (nomode D3, narrowed)
 
 - **Spec.** `apply.adminKindOk` (UserGrantRole, RoleGrantPermission, UserChangePassword, UserRevokeRole,

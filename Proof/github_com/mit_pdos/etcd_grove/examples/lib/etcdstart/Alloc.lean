@@ -112,7 +112,7 @@ theorem alloc1 (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List
   rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', hiss])]
   rw [← hboot, etcdKV_congr ρ.rd.kv γk hst,
     show kvModelSt ρ.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by
-      unfold kvModelSt kvLeases kvModel; rw [hc0', hch', hlog']]
+      unfold kvModelSt kvLeases kvModel kvFold; rw [hc0', hch', hlog']]
   rw [← hklg]
   rw [hcok]
   iframe Hnb Hsrl Hcl' Hpi' Hkf' Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd Hreg

@@ -34,27 +34,33 @@ open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
 /-! ## Pure facts of the model at the server's start -/
 
+section pureStart
+variable [GooseExts]
+
 /-- The model of a committed log is not empty (the start log is not). -/
 theorem kvModel_ne_nil (γk : KVNames) (L : List EntryModel) (h : γk.log0 ≠ []) :
     kvModel γk L ≠ [] := by
   intro he
   apply h
-  have hp := kvRaftOf_extends γk.c0 γk.ch0 γk.log0 L
-  unfold kvModel at he
+  have hp := kvModel_extends γk L
   rw [he] at hp
   exact List.prefix_nil.1 hp
 
 /-- **A request's entry steps the state** by its request (`kvReqStep`), at the start's chain,
-above the consistent index (unit T3, L3a: any request, the table too). -/
+above the consistent index (unit T3, L3a: any request, the table too), after a log with no
+`AuthEnable` (N1b-2: the fold's auth state is still disabled, so every check passes). -/
 theorem kvModel_snoc_state (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (rq : apply.IRRModel) (hch : γk.ch0 = apply.alarmChain false false false)
     (h0 : γk.log0 ≠ []) (ht : e.typ = W32 0) (hd : e.data ≠ [])
-    (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index) :
+    (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
+    (hL : noAuthEnable γk.c0 L) :
     kvModelSt γk (L ++ [e]) = kvReqStep rq (kvModelSt γk L) := by
+  have hs : (kvFold γk (L ++ [e])).2 = kvEntrySt γk.c0 γk.ch0 (kvFold γk L).2 e := by
+    rw [kvFold_snoc]; exact kvEntryOn_snd_disabled _ _ _ e (kvFold_off γk L hL).1
   have h1 : kvModel γk (L ++ [e]) = kvEntry γk.c0 γk.ch0 (kvLeases γk L) (kvModel γk L) e := by
-    unfold kvModel kvLeases; rw [kvRaftOf_snoc]
+    unfold kvModel; rw [hs]; rfl
   have h2 : kvLeases γk (L ++ [e]) = kvTable γk.c0 γk.ch0 (kvLeases γk L) e := by
-    unfold kvLeases; rw [kvTableOf_snoc]
+    unfold kvLeases; rw [hs]; rfl
   unfold kvModelSt
   rw [h1, h2, hch, kvEntry_base γk.c0 _ _ e rq ht hd hdec hidx,
     kvTable_base γk.c0 _ e rq ht hd hdec hidx]
@@ -63,23 +69,21 @@ theorem kvModel_snoc_state (γk : KVNames) (L : List EntryModel) (e : EntryModel
 /-- **A plain committed log's state has no lease** (unit T3, L3a). -/
 theorem kvModelSt_plain (γk : KVNames) (L : List EntryModel) {cmp : Bool} (h : plainLogM cmp .none L) :
     kvModelSt γk L = kvStateOf (kvModel γk L) := by
-  unfold kvModelSt kvLeases; rw [kvTableOf_plainM _ _ cmp L h]
+  unfold kvModelSt; rw [kvLeases_offM γk L h, kvTableOf_plainM _ _ cmp L h]
 
 /-- A write-free entry keeps the model's log. -/
 theorem kvModel_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
       ¬ writeKind (apply.dispatchKind rq)) :
     kvModel γk (L ++ [e]) = kvModel γk L := by
-  unfold kvModel; rw [kvRaftOf_snoc]
-  exact kvEntry_nonwrite _ _ _ _ e h
+  unfold kvModel; rw [kvFold_snoc, kvEntryOn_snd_nonwrite _ _ _ e h]
 
 /-- A write-free entry keeps the model's lease table (unit T3, L3a). -/
 theorem kvLeases_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
       ¬ writeKind (apply.dispatchKind rq)) :
     kvLeases γk (L ++ [e]) = kvLeases γk L := by
-  unfold kvLeases; rw [kvTableOf_snoc]
-  exact kvTable_nonwrite _ _ _ e h
+  unfold kvLeases; rw [kvFold_snoc, kvEntryOn_snd_nonwrite _ _ _ e h]
 
 /-- A write-free entry keeps the model's state (unit T3, L3a). -/
 theorem kvModelSt_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryModel)
@@ -87,6 +91,8 @@ theorem kvModelSt_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : Entry
       ¬ writeKind (apply.dispatchKind rq)) :
     kvModelSt γk (L ++ [e]) = kvModelSt γk L := by
   unfold kvModelSt; rw [kvModel_snoc_nonwrite γk L e h, kvLeases_snoc_nonwrite γk L e h]
+
+end pureStart
 
 /-! ## The model reads only the requested entries (2026-10-27) -/
 
@@ -157,22 +163,76 @@ theorem srvIdxOkW_above (ai₀ c₀ : w64) (A : List EntryModel) (h : srvIdxOkW 
   have := (h n m hn).1
   omega
 
+/-! ### The fold reads only the requested entries (2026-10-27; moved from `KVAuthModel`, N1b-2) -/
+
+/-- **A requested entry's effect** on the mode-`on` model's state, above the consistent index. -/
+def kvOpOn (ch : apply.Chain) (s : OnState) (x : LogEntry) : OnState :=
+  kvEntryOn (W64 0) ch s ⟨x.term, W64 1, x.type, x.data⟩
+
+theorem kvEntryOn_above (c₀ : w64) (ch : apply.Chain) (s : OnState)
+    (m : EntryModel) (h : uint.Z c₀ < uint.Z m.index) :
+    kvEntryOn c₀ ch s m = kvOpOn ch s m.toLE := by
+  have h1 : decide (uint.Z c₀ < uint.Z m.index) = true := decide_eq_true h
+  have h2 : uint.Z (W64 0) < uint.Z (W64 1) := by decide
+  have h3 : decide (uint.Z (W64 0) < uint.Z (W64 1)) = true := by decide
+  unfold kvOpOn kvEntryOn kvEntry kvTable EntryModel.toLE
+  simp only [h, h2, h1, h3, true_and]
+
+theorem kvEntryOn_filler (c₀ : w64) (ch : apply.Chain) (s : OnState)
+    (m : EntryModel) (hf : m.toLE.isFiller) : kvEntryOn c₀ ch s m = s := by
+  obtain ⟨hd, ht⟩ := hf
+  simp only [EntryModel.toLE] at hd ht
+  unfold kvEntryOn kvEntry kvTable
+  simp [hd]
+
+theorem kvEntryOn_emptyV2 (c₀ : w64) (ch : apply.Chain) (s : OnState)
+    (m : EntryModel) (hv : m.toLE.isEmptyV2) : kvEntryOn c₀ ch s m = s := by
+  obtain ⟨-, ht⟩ := hv
+  simp only [EntryModel.toLE] at ht
+  have h0 : ¬ m.typ = W32 0 := by rw [ht]; decide
+  have h0' : ¬ (m.typ = W32 0 ∧ m.data ≠ []) := fun h => h0 h.1
+  unfold kvEntryOn kvEntry kvTable
+  simp only [if_neg h0', if_neg h0]
+
+theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
+    ∀ (A : List EntryModel) (s : OnState),
+      (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
+      kvRaftOfOn c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpOn ch) s
+  | [], _, _ => rfl
+  | m :: A, s, h => by
+    have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
+    unfold kvRaftOfOn
+    rw [List.foldl_cons]
+    by_cases hf : m.toLE.isFiller
+    · rw [kvEntryOn_filler c₀ ch s m hf]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
+      rw [this]
+      exact kvRaftOfOn_ops c₀ ch A s hA
+    by_cases hv : m.toLE.isEmptyV2
+    · rw [kvEntryOn_emptyV2 c₀ ch s m hv]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hv]
+      rw [this]
+      exact kvRaftOfOn_ops c₀ ch A s hA
+    · rw [kvEntryOn_above c₀ ch s m (h m (List.mem_cons_self ..))]
+      have : opsOf ((m :: A).map EntryModel.toLE) =
+          m.toLE :: opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf, hv]
+      rw [this, List.foldl_cons]
+      exact kvRaftOfOn_ops c₀ ch A _ hA
+
 /-- **The KV model of two logs with the same requested entries** is the same (2026-10-27): the
 server's two logs (`srvEqv`), its start's consistent index at most the start index. -/
 theorem kvModel_eqv (γ : ServerRaftNames) (γk : KVNames) (A B : List EntryModel)
     (h : srvEqv γ A B) (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) :
     kvModel γk A = kvModel γk B ∧ kvLeases γk A = kvLeases γk B := by
   obtain ⟨hA, hB, hops⟩ := h
-  have eA := kvRaftSt_ops γk.c0 γk.ch0 A (γk.log0, []) (srvIdxOkW_above _ _ A hA hc)
-  have eB := kvRaftSt_ops γk.c0 γk.ch0 B (γk.log0, []) (srvIdxOkW_above _ _ B hB hc)
-  have hst : kvRaftSt γk.c0 γk.ch0 (γk.log0, []) A = kvRaftSt γk.c0 γk.ch0 (γk.log0, []) B := by
-    rw [eA, eB, hops]
-  refine ⟨by unfold kvModel kvRaftOf; rw [hst], ?_⟩
-  unfold kvLeases
-  have a := kvRaftSt_snd γk.c0 γk.ch0 A (γk.log0, [])
-  have b := kvRaftSt_snd γk.c0 γk.ch0 B (γk.log0, [])
-  simp only at a b
-  rw [← a, ← b, hst]
+  have hst : kvFold γk A = kvFold γk B := by
+    unfold kvFold
+    rw [kvRaftOfOn_ops γk.c0 γk.ch0 A _ (srvIdxOkW_above _ _ A hA hc),
+      kvRaftOfOn_ops γk.c0 γk.ch0 B _ (srvIdxOkW_above _ _ B hB hc), hops]
+  exact ⟨by unfold kvModel; rw [hst], by unfold kvLeases; rw [hst]⟩
 
 end opsModel
 
@@ -351,8 +411,7 @@ theorem kv_prop_au_cmp (γ : ServerRaftNames) (γk : KVNames) (d : List w8)
       rw [hr] at hr'
       cases hr'
       have h1 := HL0r
-      have h2 := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 L₀ L Hpre).length_le
-      unfold kvModel at h1 ⊢
+      have h2 := (kvModel_prefix γk L₀ L Hpre).length_le
       omega
     -- plain in the mode: a compaction in M2's scope
     have hplain : plainEntryM γk.cmp γk.lm e := by
@@ -516,7 +575,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
         rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1.1 het hdata
-          (by rw [hed]; exact hdec) hidxe, Hag]
+          (by rw [hed]; exact hdec) hidxe (noAuthEnable_of_plainLogM _ L Hok.1), Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
@@ -586,7 +645,7 @@ theorem kv_prop_auW (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : a
         omega
       have hst : kvModelSt γk (L ++ [e]) = kvOpStep op σ := by
         rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2.1.1 het hdata
-          (by rw [hed]; exact hdec) hidxe, Hag]
+          (by rw [hed]; exact hdec) hidxe (noAuthEnable_of_plainLogM _ L Hok.1), Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) (entryPutsOk_of_data e d rq hed hdec hk) (attrEntryOk_of _ e d rq hed hdec ha) $$ Hw (Hecl $$ %e %hed)
@@ -1129,9 +1188,8 @@ theorem kv_read_log (γr : ReadNames) (E : CoPset) (i : w64) (L₀ l : mvcc.Log)
     iframe HA'
     ipureintro
     exact ⟨hA', by have := h.length_le; omega⟩
-  · have hk := kvRaftOf_prefix γr.kv.c0 γr.kv.ch0 γr.kv.log0 A' AR h
+  · have hk := kvModel_prefix γr.kv A' AR h
     have hk' : l <+: L₀ := by
-      unfold kvModel at hA' HR
       rw [hA', ← HR.2] at hk; exact hk
     have heq : L₀ = l := hp.eq_of_length (Nat.le_antisymm hp.length_le hk'.length_le)
     iexists AR
