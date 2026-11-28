@@ -376,7 +376,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     (hUP : cmp = true → backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG))
     -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
-    (hNodeStart raftNode_of_StartNode.law (GF= GF) (hG= hG))
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG))
     -- (keepfix (c), sub-goal 1; pending until the bootlaw merge) `bootstrap`'s contract's `srvTermPos`
     (hTermPos : srvTermPos_of_cluster.law (GF := GF)) :
     NewServer.specGAtA (GF := GF) (hG := hG) on cmp := by
@@ -417,7 +417,9 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
   · iframe; iframe Hcfgro Hzlg Hvoff
     isplitl []
     · ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1⟩
-    iright; iexact Hfg
+    isplitl
+    · iright; iexact Hfg
+    iexact Htp
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
     cases err with
@@ -1888,7 +1890,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     isplitr
     · ipureintro; rfl
     isplitr
-    · iexact HSCE
+    · rw [HρRaft]; iexact HSCE
     -- (R2b-3d) the backend's file at the backend path (`bootOk`'s)
     iexact Hbfile
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
@@ -2208,12 +2210,15 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     iunfold srvTpPend; iexists γy, srv_ptr; iframe Htpp Htpinv srv
     ipureintro; exact HM0.2.2
   unfold srvBuiltG
-  iframe Htpp' HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
+  ihave #HsCIρ : isServerCI (GF := GF) s γA cil ρ.rd.raft.raft.cl $$ []
+  · rw [HρRaft]; iexact HsCI
+  iframe Htpp' HsCIρ Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuiltNA srvLeadInv
+    rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]
     iframe #
     ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, ⟨rfl, rfl⟩, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
@@ -2414,7 +2419,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     exact Hrmem
   isplitr
   · -- (J8b) `bootOk`'s meta reads, by name
-    unfold srvMetaSnap; iexact HmetaSnap
+    unfold srvMetaSnap; rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]; iexact HmetaSnap
   isplitl [Hsend]
   · simp only [srvErM]; iexact Hsend
   isplitl [w]
@@ -2963,7 +2968,7 @@ theorem NewServer.wp_proofGAt (on cmp : Bool)
     (hUP : cmp = true → backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG))
     -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
-    (hNodeStart raftNode_of_StartNode.law (GF= GF) (hG= hG))
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG))
     -- (keepfix (c), sub-goal 1; pending until the bootlaw merge) `bootstrap`'s contract's `srvTermPos`
     (hTermPos : srvTermPos_of_cluster.law (GF := GF)) :
     NewServer.specGAt (GF := GF) (hG := hG) on cmp := by
@@ -3135,7 +3140,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hUP : cmp = true → backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
     (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG))
     -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
-    (hNodeStart raftNode_of_StartNode.law (GF= GF) (hG= hG))
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG))
     -- (keepfix (c), sub-goal 1; pending until the bootlaw merge) `bootstrap`'s contract's `srvTermPos`
     (hTermPos : srvTermPos_of_cluster.law (GF := GF)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
@@ -3309,7 +3314,7 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
     (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG))
     -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
-    (hNodeStart raftNode_of_StartNode.law (GF= GF) (hG= hG))
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG))
     -- (keepfix (c), sub-goal 1; pending until the bootlaw merge) `bootstrap`'s contract's `srvTermPos`
     (hTermPos : srvTermPos_of_cluster.law (GF := GF)) :
     NewServer.specM (GF := GF) (hG := hG) on :=
@@ -3458,7 +3463,7 @@ theorem NewServer.wp_proof
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
     (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG))
     -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
-    (hNodeStart raftNode_of_StartNode.law (GF= GF) (hG= hG))
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG))
     -- (keepfix (c), sub-goal 1; pending until the bootlaw merge) `bootstrap`'s contract's `srvTermPos`
     (hTermPos : srvTermPos_of_cluster.law (GF := GF)) :
     NewServer.spec (GF := GF) (hG := hG) := fun cmp =>
@@ -3608,7 +3613,7 @@ theorem NewServer.wp_proofAt
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
     (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG))
     -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
-    (hNodeStart raftNode_of_StartNode.law (GF= GF) (hG= hG))
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG))
     -- (keepfix (c), sub-goal 1; pending until the bootlaw merge) `bootstrap`'s contract's `srvTermPos`
     (hTermPos : srvTermPos_of_cluster.law (GF := GF)) :
     NewServer.specAt (GF := GF) (hG := hG) := fun cmp =>

@@ -1838,7 +1838,7 @@ theorem NewServer.wp_proofRG
     isplitr
     · ipureintro; rfl
     isplitr
-    · iexact HSCE
+    · rw [HρRaft]; iexact HSCE
     -- (R2b-3d) the backend's file at the backend path (`bootOk`'s)
     iexact Hbfile
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
@@ -2149,12 +2149,15 @@ theorem NewServer.wp_proofRG
   have hidr : γrn.id = id := by rw [Hrn5, Hrid]
   unfold srvBuiltR srvBuiltRC
   simp only [AuthC.isOn]
-  iframe Htpp' HsCI Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb Hwth Hwtl
+  ihave #HsCIρ : isServerCI (GF := GF) s γA cil ρ.rd.raft.raft.cl $$ []
+  · rw [HρRaft]; iexact HsCI
+  iframe Htpp' HsCIρ Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb Hwth Hwtl
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuilt srvLeadInv
+    rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]
     iframe #
     ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, ⟨rfl, rfl⟩, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
@@ -2275,7 +2278,7 @@ theorem NewServer.wp_proofRG
     rw [Hrvs, GMap.elem_of_list_to_set, ← Hrid]
     exact Hrmem
   isplitr
-  · unfold srvMetaSnap; iexact HmetaSnap
+  · unfold srvMetaSnap; rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]; iexact HmetaSnap
   isplitr [Hsend w applyWait done stop stopping ctx cancel read leaderChanged SnapshotCountS SnapshotCatchUpEntriesS wg wgMu Hcmown Hnot Hlr3 Hlr4 Hfcr HWreg Hwtok]
   · -- `HBr`: the restart point (`srvBuiltRestartR .off` at `P := A.take σ.b`)
     iunfold srvBuiltRestartR
