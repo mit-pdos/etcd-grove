@@ -106,6 +106,8 @@ decodeObj: getField
 # (K9 step 2) where a pending write lands: `shows`
 decodeItemRVs: parseRV decodeObj
 rvOfMsg: parseRV
+# (K9 step 4) the revisions a history records: `HistoryRevs`
+HistoryRevs: parseRV rvOfMsg decodeWEvents decodeItemRVs =_root_.Perennial.slices.wp_Sort
 shows: decodeWEvents decodeItemRVs
 target: decodeWEvents parseRV pastRead
 bound: parseRV pastRead isWrite

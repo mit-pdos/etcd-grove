@@ -13,6 +13,7 @@ public import Proof.bytes.Buffer__Bytes
 public import Proof.bytes.Buffer__Write
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
 public import Proof.k8s_io.apiserver.pkg.storage.HasInitialEventsEndBookmarkAnnotation
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HistoryRevs
 public import Proof.k8s_io.apiserver.pkg.storage.IsNotFound
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__DeepCopyObject
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjList__GetContinue
@@ -300,6 +301,18 @@ theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.conversion.EnforcePtr.wp_proof
 
+theorem wp_parseRV :
+    EtcdGrove.k8s_etcd3.parseRV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.parseRV.wp_proof
+
+theorem wp_getField :
+    EtcdGrove.k8s_etcd3.getField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.getField.wp_proof
+
+theorem wp_decodeObj :
+    EtcdGrove.k8s_etcd3.decodeObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeObj.wp_proof wp_getField
+
 theorem ObjList.wp_DeepCopyObject :
     EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.wp_proof
@@ -339,18 +352,6 @@ theorem Obj.wp_GetUID :
 theorem Obj.wp_SetAnnotations :
     EtcdGrove.k8s_etcd3.Obj.SetAnnotations.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Obj.SetAnnotations.wp_proof
-
-theorem wp_parseRV :
-    EtcdGrove.k8s_etcd3.parseRV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.parseRV.wp_proof
-
-theorem wp_getField :
-    EtcdGrove.k8s_etcd3.getField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.getField.wp_proof
-
-theorem wp_decodeObj :
-    EtcdGrove.k8s_etcd3.decodeObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeObj.wp_proof wp_getField
 
 theorem wp_putField :
     EtcdGrove.k8s_etcd3.putField.spec (GF := GF) (hG := hG) :=
@@ -469,6 +470,22 @@ theorem storage.wp_HasInitialEventsEndBookmarkAnnotation :
     EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.wp_proof apimeta.wp_Accessor
 
+theorem wp_rvOfMsg :
+    EtcdGrove.k8s_etcd3.rvOfMsg.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.rvOfMsg.wp_proof wp_parseRV
+
+theorem wp_decodeWEvents :
+    EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
+
+theorem wp_decodeItemRVs :
+    EtcdGrove.k8s_etcd3.decodeItemRVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeItemRVs.wp_proof wp_parseRV wp_decodeObj
+
+theorem wp_HistoryRevs :
+    EtcdGrove.k8s_etcd3.HistoryRevs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.HistoryRevs.wp_proof wp_parseRV wp_rvOfMsg wp_decodeWEvents wp_decodeItemRVs _root_.Perennial.slices.wp_Sort
+
 theorem storage.wp_isErrCode :
     EtcdGrove.storage.isErrCode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.isErrCode.wp_proof
@@ -528,10 +545,6 @@ theorem histHashes.wp_canonical :
 theorem histHashes.wp_skipTo :
     EtcdGrove.k8s_etcd3.histHashes.skipTo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.histHashes.skipTo.wp_proof histHashes.wp_canonLocked histHashes.wp_intern wp_histLen
-
-theorem wp_decodeWEvents :
-    EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
 
 theorem wp_pastRead :
     EtcdGrove.k8s_etcd3.pastRead.spec (GF := GF) (hG := hG) :=
@@ -796,10 +809,6 @@ theorem cfgSet.wp_add :
 theorem wp_removeAt :
     EtcdGrove.k8s_etcd3.removeAt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.removeAt.wp_proof
-
-theorem wp_decodeItemRVs :
-    EtcdGrove.k8s_etcd3.decodeItemRVs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeItemRVs.wp_proof wp_parseRV wp_decodeObj
 
 theorem wp_shows :
     EtcdGrove.k8s_etcd3.shows.spec (GF := GF) (hG := hG) :=
@@ -1260,10 +1269,6 @@ theorem labelSel.wp_RequiresExactMatch :
 theorem wp_newCache :
     EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newCache.wp_proof
-
-theorem wp_rvOfMsg :
-    EtcdGrove.k8s_etcd3.rvOfMsg.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.rvOfMsg.wp_proof wp_parseRV
 
 end links_hasLC
 

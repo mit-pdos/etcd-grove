@@ -163,6 +163,38 @@ theorem size_le_of_keys {V : Type} (m : GMap w64 V) (L : List w64)
   exact List.Nodup.length_le_of_subset (GMap.nodup_dom_list m)
     (fun k hk => h k ((GMap.mem_dom_list m k).1 hk))
 
+/-- `R0` with `k` set to the slice `so` holds, if any (a key's slice being built). -/
+def withKey (R0 : GMap GoString GoSlice) (k : GoString) : Option GoSlice → GMap GoString GoSlice
+  | none => R0
+  | some c => <[k := c]> R0
+
+theorem withKey_lookup {R0 : GMap GoString GoSlice} {k : GoString} (h : R0 !! k = none)
+    (so : Option GoSlice) : ((withKey R0 k so) !! k).getD slice.nil = so.getD slice.nil := by
+  cases so <;> simp [withKey, h]
+
+theorem withKey_insert (R0 : GMap GoString GoSlice) (k : GoString) (so : Option GoSlice)
+    (c : GoSlice) : <[k := c]> (withKey R0 k so) = withKey R0 k (some c) := by
+  cases so <;> simp [withKey, GMap.insert_insert]
+
+theorem withKey_keys {R0 : GMap GoString GoSlice} {k : GoString} {so : Option GoSlice}
+    {P : GoString → Prop} (h : ∀ k', (R0 !! k').isSome → P k') (hk : P k) :
+    ∀ k', ((withKey R0 k so) !! k').isSome → P k' := by
+  intro k' hk'
+  cases so with
+  | none => exact h k' hk'
+  | some c =>
+    simp only [withKey, GMap.lookup_insert_eq_iff] at hk'
+    by_cases e : k = k'
+    · exact e ▸ hk
+    · rw [if_neg e] at hk'; exact h k' hk'
+
+theorem not_mem_take_of_getElem? {α : Type} {L : List α} {p : Nat} {a : α} (hnd : L.Nodup)
+    (h : L[p]? = some a) : a ∉ L.take p := by
+  intro hm
+  have h2 : a ∈ L.drop p := List.mem_iff_getElem?.2 ⟨0, by rw [List.getElem?_drop]; simpa using h⟩
+  rw [← List.take_append_drop p L] at hnd
+  exact (List.nodup_append.1 hnd).2.2 a hm a h2 rfl
+
 end pure
 
 section proof
@@ -172,6 +204,61 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+
+/-- A `[]uint64` being built: its elements and its capacity owned. -/
+def slOwn (s : GoSlice) : IProp GF :=
+  iprop(∃ L : List w64, s ↦* L ∗ ownSliceCap w64 s (DFrac.own 1))
+
+/-- A key's slice put back into the map being built. -/
+theorem withKey_fold (R0 : GMap GoString GoSlice) (k : GoString) (so : Option GoSlice)
+    (h : R0 !! k = none) :
+    ([∗map] _k ↦ s ∈ R0, slOwn (GF := GF) s) ∗ slOwn (so.getD slice.nil) ⊢
+      [∗map] _k ↦ s ∈ withKey R0 k so, slOwn s := by
+  cases so with
+  | none => simp only [withKey]; iintro ⟨H, -⟩; iexact H
+  | some c =>
+    simp only [withKey]
+    iintro ⟨H, Hc⟩
+    iapply (BigSepM.bigSepM_insert (by rw [gmap_get?_eq]; exact h)).2
+    iframe
+
+/-- **The slices of a built map, chosen and made read-only**. -/
+theorem slOwn_choose (R : GMap GoString GoSlice) :
+    ([∗map] _k ↦ s ∈ R, slOwn (GF := GF) s) ⊢
+      |==> ∃ f : GoString → List w64, ⌜∀ k, R !! k = none → f k = []⌝ ∗
+        [∗map] k ↦ s ∈ R, s ↦*□ f k := by
+  induction R using LawfulFiniteMap.induction_on with
+  | hemp =>
+    iintro -
+    imodintro
+    iexists fun _ => []
+    isplitr
+    · ipureintro; intro _ _; rfl
+    iapply BigSepM.bigSepM_empty.2; iempintro
+  | hins k0 s0 R' h ih =>
+    iintro H
+    icases (BigSepM.bigSepM_insert h).1 $$ H with ⟨H0, HR⟩
+    imod ih $$ HR with ⟨%f, %Hf, HR⟩
+    unfold slOwn
+    icases H0 with ⟨%L, H0, -⟩
+    imod ownSlice_persist _ _ _ $$ H0 with #H0
+    imodintro
+    iexists fun l => if l = k0 then L else f l
+    isplitr
+    · ipureintro
+      intro k hk
+      change (<[k0 := s0]> R') !! k = none at hk
+      by_cases e : k = k0
+      · rw [e, GMap.lookup_insert] at hk; cases hk
+      · simp only [e, ↓reduceIte]
+        exact Hf k (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hk; exact hk)
+    iapply (BigSepM.bigSepM_insert h).2
+    simp only [↓reduceIte]
+    iframe H0
+    iapply (BigSepM.bigSepM_mono (fun {k x} hk => by
+      have hne : k ≠ k0 := fun e => by subst e; rw [h] at hk; cases hk
+      simp only [hne, ↓reduceIte]
+      exact .rfl)) $$ HR
 
 /-- The maps `all` (`am`) and `byKey` (`bm`), `all` holding every nonzero `u` with `P u`, and every
 key of `all` and of `byKey`'s maps in `S` (the revisions the history may record: their number bounds
@@ -813,6 +900,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     unfold allSt
     icases Hst with ⟨%A, %B, HA, HB, HBs, %HG⟩
     rw [hfull] at HG
+    ihave %Hrnn := typedPointsto_not_null $$ r
     iStructNamed r
     have hSL : ∀ k, S k → k ∈ xs.flatMap fun p => insL p.1 p.2 := fun k hk => by rw [← hS] at hk; exact hk
     have hNA : GMap.size A ≤ 2 ^ 62 := by
@@ -871,8 +959,220 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         _root_.Perennial.slices.StrictWeakOrder_unsigned_lt $$ [Hsl]
       with %ks' ⟨Hsl, %Hperm, %Hsorted⟩
     · iframe Hsl; iframe #; ipureintro; rw [Hklen]; exact hNA
-    -- WIP (K9-17): the `byKey` loops.
-    sorry
+    -- the two maps of `r`
+    wp_apply (wp_map_make1 (K := GoString) (V := GoSlice)) as %rb Hrb
+    (try wp_auto)
+    wp_apply (wp_map_make1 (K := GoString) (V := GoSlice)) as %rf Hrf
+    (try wp_auto)
+    wp_func_lits
+    wp_bind (App (App (Val (map.forRange _ _)) _) _)
+    iapply wp_map_for_range (fun (bks : List GoString) (p : Int) => iprop(
+        ∃ (RB RF : GMap GoString GoSlice) (mv : GoMap) (kv : GoString),
+        "%Hp" ∷ ⌜0 ≤ p⌝ ∗ "m" ∷ m_ptr ↦ mv ∗ "k" ∷ k_ptr ↦ kv ∗
+        "Hrb" ∷ rb ↦$ RB ∗ "HRB" ∷ ([∗map] _k ↦ s ∈ RB, slOwn s) ∗
+        "Hrf" ∷ rf ↦$ RF ∗ "HRF" ∷ ([∗map] _k ↦ s ∈ RF, slOwn s) ∗
+        "%HRBk" ∷ ⌜∀ k, (RB !! k).isSome → k ∈ bks.take p.toNat⌝ ∗
+        "%HRFk" ∷ ⌜∀ k, (RF !! k).isSome → k ∈ bks.take p.toNat⌝ ∗
+        "HBs" ∷ ([∗map] _k ↦ l ∈ B, ∃ m : GMap w64 Bool, l ↦$ m ∗ ⌜∀ k, (m !! k).isSome → S k⌝) ∗
+        "Hwm" ∷ wm ↦$ W ∗ "byKey" ∷ r_ptr.[Revs, go!"byKey"] ↦ rb ∗
+        "fastByKey" ∷ r_ptr.[Revs, go!"fastByKey"] ↦ rf)) $$ HB
+    iintro %bks ⟨%Hbset, %Hblen, %Hbnodup⟩
+    isplitl [m k Hrb Hrf HBs Hwm byKey fastByKey]
+    · iexists ∅, ∅, _, _
+      simp only [named]
+      iframe
+      isplitr
+      · ipureintro; exact Int.le_refl _
+      isplitl
+      · iapply BigSepM.bigSepM_empty.2; iempintro
+      isplitl
+      · iapply BigSepM.bigSepM_empty.2; iempintro
+      ipureintro
+      constructor <;> (intro _ h; simp at h)
+    isplitr
+    · imodintro
+      iintro %p %key %o ⟨%Hkey, %Ho⟩ HP
+      iNamed HP
+      wp_auto
+      have hRBn : RB !! key = none := by
+        cases hh : RB !! key with
+        | none => rfl
+        | some _ => exact absurd (HRBk key (by rw [hh]; rfl)) (not_mem_take_of_getElem? Hbnodup Hkey)
+      have hRFn : RF !! key = none := by
+        cases hh : RF !! key with
+        | none => rfl
+        | some _ => exact absurd (HRFk key (by rw [hh]; rfl)) (not_mem_take_of_getElem? Hbnodup Hkey)
+      icases (BigSepM.bigSepM_lookup_acc (by rw [gmap_get?_eq]; exact Ho)).1 $$ HBs with ⟨Hom, HBclose⟩
+      icases Hom with ⟨%mm, Hmm, %Hmmk⟩
+      have hNm : GMap.size mm ≤ 2 ^ 62 := by
+        have h := size_le_of_keys mm _ (fun k hk => hSL k (Hmmk k hk))
+        rw [histCost_eq] at h; omega
+      wp_func_lits
+      wp_bind (App (App (Val (map.forRange _ _)) _) _)
+      iapply wp_map_for_range (fun (iks : List w64) (i : Int) => iprop(
+          ∃ (sb sf : Option GoSlice) (x : w64) (Lb Lf : List w64),
+          "%Hi" ∷ ⌜0 ≤ i⌝ ∗ "v" ∷ v_ptr ↦ x ∗ "k" ∷ k_ptr ↦ key ∗
+          "Hrb" ∷ rb ↦$ withKey RB key sb ∗ "Hb" ∷ sb.getD slice.nil ↦* Lb ∗
+          "Hbc" ∷ ownSliceCap w64 (sb.getD slice.nil) (DFrac.own 1) ∗ "%HLb" ∷ ⌜Lb.length ≤ i.toNat⌝ ∗
+          "Hrf" ∷ rf ↦$ withKey RF key sf ∗ "Hf" ∷ sf.getD slice.nil ↦* Lf ∗
+          "Hfc" ∷ ownSliceCap w64 (sf.getD slice.nil) (DFrac.own 1) ∗ "%HLf" ∷ ⌜Lf.length ≤ i.toNat⌝ ∗
+          "Hwm" ∷ wm ↦$ W ∗ "byKey" ∷ r_ptr.[Revs, go!"byKey"] ↦ rb ∗
+          "fastByKey" ∷ r_ptr.[Revs, go!"fastByKey"] ↦ rf)) $$ Hmm
+      iintro %iks ⟨%Hiset, %Hilen, %Hinodup⟩
+      isplitl [v k Hrb Hrf Hwm byKey fastByKey]
+      · iexists none, none, _, [], []
+        simp only [named, withKey, Option.getD_none]
+        iframe
+        isplitr
+        · ipureintro; exact Int.le_refl _
+        iframe #
+        ipureintro; constructor <;> simp
+      isplitr
+      · imodintro
+        iintro %i %vk %bv ⟨%Hvk, %Hbv⟩ HP
+        iNamed HP
+        wp_auto
+        wp_apply (wp_map_lookup1 go.string go.uint64.SliceType rb (withKey RB key sb) key
+          (DFrac.own 1)) $$ Hrb as Hrb
+        rw [show (zero_val GoSlice) = slice.nil from rfl, withKey_lookup hRBn]
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %l1 ⟨Hl1, -⟩
+        simp only [go.arrayLiteralSize, List.foldl]
+        (try wp_auto)
+        wp_apply wp_slice_append_dfrac $$ [$Hb $Hbc $Hl1] as %sb' ⟨Hb, Hbc, -⟩
+        · ipureintro; exact DFrac.valid_own_one
+        (try wp_auto)
+        wp_apply (wp_mapInsert go.string rb (withKey RB key sb) key sb') $$ Hrb as Hrb
+        rw [withKey_insert]
+        (try wp_auto)
+        wp_apply (wp_map_lookup1 go.uint64 go.bool wm W vk (DFrac.own 1)) $$ Hwm as Hwm
+        (try wp_auto)
+        generalize (W !! vk).getD (zero_val Bool) = wb
+        cases wb <;> simp only [Bool.not_true, Bool.not_false]
+        · (try wp_auto)
+          wp_apply (wp_map_lookup1 go.string go.uint64.SliceType rf (withKey RF key sf) key
+            (DFrac.own 1)) $$ Hrf as Hrf
+          rw [show (zero_val GoSlice) = slice.nil from rfl, withKey_lookup hRFn]
+          (try wp_auto)
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %l2 ⟨Hl2, -⟩
+          simp only [go.arrayLiteralSize, List.foldl]
+          (try wp_auto)
+          wp_apply wp_slice_append_dfrac $$ [$Hf $Hfc $Hl2] as %sf' ⟨Hf, Hfc, -⟩
+          · ipureintro; exact DFrac.valid_own_one
+          (try wp_auto)
+          wp_apply (wp_mapInsert go.string rf (withKey RF key sf) key sf') $$ Hrf as Hrf
+          rw [withKey_insert]
+          (try wp_auto)
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          iexists (some sb'), (some sf'), vk, _, _
+          simp only [named, Option.getD_some]
+          iframe
+          ipureintro
+          refine ⟨by omega, ?_, ?_⟩ <;> (try simp) <;> omega
+        · (try wp_auto)
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          iexists (some sb'), sf, vk, _, Lf
+          simp only [named, Option.getD_some]
+          iframe
+          ipureintro
+          refine ⟨by omega, ?_, ?_⟩ <;> (try simp) <;> omega
+      iintro HP Hmm
+      iNamed HP
+      wp_auto
+      wp_apply (wp_map_lookup1 go.string go.uint64.SliceType rb (withKey RB key sb) key
+        (DFrac.own 1)) $$ Hrb as Hrb
+      rw [show (zero_val GoSlice) = slice.nil from rfl, withKey_lookup hRBn]
+      (try wp_auto)
+      wp_apply wp_Sort (fun (x y : w64) => uint.Z x < uint.Z y) (sb.getD slice.nil) Lb
+          _root_.Perennial.slices.StrictWeakOrder_unsigned_lt $$ [Hb]
+        with %Lb' ⟨Hb, -, -⟩
+      · iframe Hb; iframe #; ipureintro; omega
+      (try wp_auto)
+      wp_apply (wp_map_lookup1 go.string go.uint64.SliceType rf (withKey RF key sf) key
+        (DFrac.own 1)) $$ Hrf as Hrf
+      rw [show (zero_val GoSlice) = slice.nil from rfl, withKey_lookup hRFn]
+      (try wp_auto)
+      wp_apply wp_Sort (fun (x y : w64) => uint.Z x < uint.Z y) (sf.getD slice.nil) Lf
+          _root_.Perennial.slices.StrictWeakOrder_unsigned_lt $$ [Hf]
+        with %Lf' ⟨Hf, -, -⟩
+      · iframe Hf; iframe #; ipureintro; omega
+      (try wp_auto)
+      ihave HBs := HBclose $$ [Hmm]
+      · iexists mm; iframe; ipureintro; exact Hmmk
+      ihave HRB := withKey_fold RB key sb hRBn $$ [HRB Hb Hbc]
+      · isplitl [HRB]
+        · iexact HRB
+        simp only [slOwn]; iexists Lb'; iframe
+      ihave HRF := withKey_fold RF key sf hRFn $$ [HRF Hf Hfc]
+      · isplitl [HRF]
+        · iexact HRF
+        simp only [slOwn]; iexists Lf'; iframe
+      unfold forMapPostcondition
+      iright; ileft
+      isplitr
+      · ipureintro; rfl
+      iexists (withKey RB key sb), (withKey RF key sf), o, key
+      simp only [named]
+      iframe
+      ipureintro
+      have Htake : bks.take (p + 1).toNat = bks.take p.toNat ++ [key] := by
+        rw [show (p + 1).toNat = p.toNat + 1 by omega, List.take_add_one, Hkey]; rfl
+      rw [Htake]
+      refine ⟨by omega,
+        withKey_keys (fun k hk => List.mem_append_left _ (HRBk k hk))
+          (List.mem_append_right _ (List.mem_singleton_self _)),
+        withKey_keys (fun k hk => List.mem_append_left _ (HRFk k hk))
+          (List.mem_append_right _ (List.mem_singleton_self _))⟩
+    iintro HP HB
+    iNamed HP
+    ihave Hr : r_ptr ↦ Revs.mk s rb rf $$ [anchors byKey fastByKey]
+    · iapply typedPointsto_combine _ _ _ Hrnn
+      simp only [TypedPointsto.typedPointstoDef, named]
+      iframe
+    imod slOwn_choose RB $$ HRB with ⟨%fb, %Hfb, #HRB⟩
+    imod slOwn_choose RF $$ HRF with ⟨%ff, %Hff, #HRF⟩
+    imod ownMap_persist $$ Hrb with #Hrb
+    imod ownMap_persist $$ Hrf with #Hrf
+    imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
+    wp_auto
+    have hmem : ∀ k, k ∈ ks' ↔ (A !! k).isSome := fun k => Hperm.mem_iff.symm.trans (Hkset k)
+    have hpw : ks'.Pairwise (fun a b => uint.nat a < uint.nat b) := by
+      have hnd : ks'.Nodup := Hperm.nodup_iff.1 Hknodup
+      have hle : ks'.Pairwise (fun a b => uint.Z a ≤ uint.Z b) := by
+        rw [List.pairwise_iff_getElem]
+        intro i j hi hj hij
+        have := Hsorted i j _ _ (List.getElem?_eq_getElem hi) (List.getElem?_eq_getElem hj) hij
+        omega
+      exact (hle.and hnd).imp (fun {a b} h => by
+        obtain ⟨h1, h2⟩ := h
+        have h3 : uint.Z a ≠ uint.Z b := fun e => h2 (by word)
+        word)
+    iapply HΦ
+    iframe Hs
+    iexists ⟨ks', fb, ff⟩
+    isplitr
+    · simp only [revsOwn, keyRevsOwn]
+      iframe Hsl
+      isplitr
+      · ipureintro; exact hpw
+      isplitr
+      · iexists RB; iframe #; ipureintro; exact Hfb
+      · iexists RF; iframe #; ipureintro; exact Hff
+    · ipureintro
+      exact ⟨fun a ha => HG.1.1 a ((hmem a).1 ha),
+        anchorsOk_of A ks' xs hmem (fun p hp u hu => HG.1.2 u ⟨p, hp, hu⟩)⟩
 
 end proof
 
