@@ -26,7 +26,7 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `NewRaft`: Builds server `i` of protocol `γ` from its stores, for one generation `rc` of the server
 (hraft_robust R5, R1 §6): the generation's crash state `X` is armed (`raft_arm`: the crash invariant
-`srvDurInvRaw` with the boot pin at the arm-time stores, the main goroutine's views at `X`, the `lastApplied` authority at `0`, the compaction
+`srvDurInvRaw` with the boot pin at the arm-time stores, the main goroutine's views at `X`, the `lastApplied` authority at `0` (main's half in the crash state while a discard is pending), the compaction
 frontier's at `X.c`, the pending-install and pending-write records empty) and recovered (`RecOk X`: a fresh server's genesis state, `freshDur`, or a restarted one's); restores the latest snapshot
 (`restoreSnapshot`, into the FSM), finishes an interrupted install's discard (fix 2), scans the log after
 the snapshot for configurations (fix 1, upstream #728); starts `run`, `runFSM`, `runSnapshots` (each
@@ -48,7 +48,9 @@ abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
      isTransport transI γ rc.snapP i rpcCh ∗ ⌜go.typeSetContains transI.ty WithPreVote.ty = true⌝ ∗
      Inv γ ∗ isSrv γ i ∗ srvDurInvRaw γ rc i ∗
      srvVP rc X.s X.tp X.dp ∗ stVS rc X.D X.A.staged ∗ termV rc X.s.term ∗ cidxV rc X.s.cidx ∗
-     monoNatAuthOwn rc.dur.applied 1 0 ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗
+     monoNatAuthOwn rc.dur.applied (1 : Qp).half 0 ∗
+     (monoNatAuthOwn rc.dur.applied (1 : Qp).half 0 ∨ ⌜∃ d, X.dp = some d⌝) ∗
+     monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗
      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
      ghostVar rc.dur.pw 1 (none : Option Pend) ∗
      dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) ∗

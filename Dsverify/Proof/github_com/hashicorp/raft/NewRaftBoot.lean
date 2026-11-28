@@ -126,7 +126,8 @@ def durPure (X : SrvDur) : Prop :=
   logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
     uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
     (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
-    (∀ d, X.dp = some d → X.c < d.x))
+    ((∀ d, X.dp = some d → X.c < d.x) ∧ ((X.tp = none ∨ X.dp = none) ∧
+      (∀ d, X.dp = some d → ∃ m b, X.lat = some (m, b) ∧ uint.nat m.Index' = d.x ∧ uint.nat m.Term' = d.st))))
 
 theorem durCore_pure (X : SrvDur) : durCore γ rc i X ⊢ durCore γ rc i X ∗ ⌜durPure X⌝ := by
   unfold durCore
@@ -324,6 +325,47 @@ theorem dghostVar_halves' {A : Type} [Pos.Countable A] (γ' : GName) (a : A) :
   iintro H
   iapply h $$ H
 
+/-- (hraft_robust R5) What the crash state keeps about its latest snapshot, with no install pending, as
+persistent facts (`latFacts`). -/
+theorem latestDur_facts (fx : GoInterfaceOk) (lat : SnapLatest) (pend : Option (Nat × Nat × GoString))
+    (dp : Option DiscPend) (hp : pend = none) :
+    isFSM fx γ i rc.fsmOwn rc.respP rc.snapP ∗ latestDur γ rc i lat pend dp ⊢
+      latestDur γ rc i lat pend dp ∗ latFacts γ rc i lat := by
+  subst hp
+  iintro ⟨#Hfsm, Hld⟩
+  rcases lat with _ | ⟨m, b⟩
+  · iframe; unfold latFacts; itrivial
+  unfold latestDur
+  icases Hld with ⟨Hok, Hd⟩
+  unfold latestOk
+  icases Hok with ⟨#He, Hsp, #Hcf, %Hv⟩
+  ihave #Hsp' := isFSM_snapP_persistent fx γ i rc.fsmOwn rc.respP rc.snapP _ b $$ [Hfsm Hsp]
+  · iframe #; iexact Hsp
+  icases Hd with (%Hn | ⟨%m', %b', %Hmb, Hd⟩)
+  · cases Hn
+  cases Hmb
+  icases Hd with (#Hd | ⟨#Hsf, %Hdp, Ha⟩)
+  · isplitr
+    · isplitr
+      · dsimp only; iframe #; ipureintro; exact Hv
+      iright; iexists m, b
+      isplitr; · ipureintro; rfl
+      ileft; iexact Hd
+    unfold latFacts; dsimp only
+    iframe #
+    ipureintro; exact ⟨Hv.1, Hv.2.2.2⟩
+  · isplitl [Ha]
+    · isplitr
+      · dsimp only; iframe #; ipureintro; exact Hv
+      iright; iexists m, b
+      isplitr; · ipureintro; rfl
+      iright; iframe #
+      isplitr; · ipureintro; exact Hdp
+      iexact Ha
+    unfold latFacts; dsimp only
+    iframe #
+    ipureintro; exact ⟨Hv.1, Hv.2.2.2⟩
+
 /-- (hraft_robust R5) **The snapshot store during the boot, as `restoreSnapshot` reads it**: an atomic read
 of the pinned latest, which also gives what the crash state keeps about it (`latFacts`; no install pending:
 the main goroutine's half of `pend`). -/
@@ -359,22 +401,8 @@ theorem bootSnapAcc (fx : GoInterfaceOk) (A : LogAbs) (lat : SnapLatest) :
   iintro HSS
   imod Hmask with -
   -- the persistent facts of the latest
-  ihave #Hlf : (latFacts γ rc i X.lat : IProp GF) $$ [Hld]
-  · rw [hpe]
-    unfold latestDur latFacts
-    rcases hl : X.lat with _ | ⟨m, b⟩
-    · itrivial
-    · icases Hld with ⟨Hok, Hd⟩
-      unfold latestOk
-      icases Hok with ⟨#He, Hsp, #Hcf, %Hv⟩
-      ihave #Hsp' := isFSM_snapP_persistent fx γ i rc.fsmOwn rc.respP rc.snapP _ b $$ [Hfsm Hsp]
-      · iframe #; iexact Hsp
-      icases Hd with (%Hn | ⟨%m', %b', %Hmb, Hd⟩)
-      · cases Hn
-      cases Hmb
-      icases Hd with (#Hd | ⟨#Hd, -⟩)
-      · dsimp only; iframe #; ipureintro; exact ⟨Hv.1, Hv.2.2.2⟩
-      · dsimp only; iframe #; ipureintro; exact ⟨Hv.1, Hv.2.2.2⟩
+  ihave ⟨Hld, #Hlf⟩ := latestDur_facts γ rc i fx X.lat X.pend X.dp hpe $$ [Hld]
+  · iframe #; iexact Hld
   imod Hcl $$ %X [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hpe' H12 H13 H14] [HL HS HSS Hld] with Hv
   · iunfold durCore; iframe; ipureintro; exact Hp
   · iunfold durStores; iframe
