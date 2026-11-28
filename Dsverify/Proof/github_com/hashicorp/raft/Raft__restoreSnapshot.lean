@@ -46,9 +46,12 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     (wp_setLatestConfiguration :
       github_com.hashicorp.raft.Raft.setLatestConfiguration.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.Raft.restoreSnapshot.spec (GF := GF) (hG := hG) := by
-  intro r γ i rc c x fx eof lat P li lt c0 l0 i0 li0 p0 tid
-  wp_start as ⟨#Hconf, %Hnsr, #Hsnaps, #Hsn, #Heof, #Hfsml, #Hfsm, HP, #Hacc, #Happc, Happ,
-    #Hll, Hgll, Hllb, Hcfgs, Hlp, Hfo, Htok⟩
+  intro r γ i rc c x fx eof A lat s tp dp li lt c0 l0 i0 li0 p0 tid
+  wp_start as ⟨#Hconf, %Hnsr, #Hsnaps, #Hsn, #Heof, #Hfsml, #Hfsm, #Hdi, Hboot, Hpe, Hsv, #Happc, Happ,
+    #Hll, Hllb, Hcfgs, Hlp, Hfo, Htok⟩
+  ihave #Hacc := bootSnapAcc γ rc i fx A lat $$ [Hdi Hfsm]
+  · iframe #
+  icombine Hboot Hpe as HP
   wp_auto
   ihave #Hsn' := Hsn
   iunfold isSnapStore at Hsn'
@@ -62,7 +65,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
   iintro Hl
   inext
   icases Hl with ⟨%old, Hown, %Hold, Hcl⟩
-  subst Hold
+  subst lat
   iexists _
   iframe Hown
   iintro Hown
@@ -91,16 +94,20 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     wp_if_destruct
     rotate_left
     · exfalso; simp at Hsll
-      have : ¬ (sint.Z (W64 0) < sint.Z sl.len) := fun h => Hif h
+      have : ¬ (sint.Z (W64 0) < sint.Z sl.len) := fun h => Hif (by
+        first | exact h | rw [decide_eq_true h])
       word
-    rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len from ⟨by word, Hif⟩)]
+    have Hif' : sint.Z (W64 0) < sint.Z sl.len := by
+      first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+    rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len from ⟨by word, Hif'⟩)]
     wp_apply (wp_load_slice_index sl (sint.Z (W64 0)) [mp] (DFrac.own 1) mp (by word)) $$ [$Hsl] as Hsl
     · ipureintro; simp
     ihave #Hlat0 := Hlat
     iunfold latFacts at Hlat0
     icases Hlat0 with ⟨#HsP, ⟨%e, #HC, %He⟩, #Hdl, ⟨%ss, #Hcv, #Hscfg⟩, %Hvp⟩
     wp_apply (wp_tryRestoreSingleSnapshot r c x fx rc.ownSS eof (snapWin γ rc i) γ i rc.fsmOwn rc.respP
-      rc.snapP mp m b P 0 tid) $$ [$Hmp $HP $Hfo $Htok] as ⟨Hmp, HP, Htok, %k0, %res, Hfo, %Hk0, #Hnc, Hres⟩
+      rc.snapP mp m b iprop(bootV rc A (some (m, b)) ∗
+        ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString))) 0 tid) $$ [$Hmp $HP $Hfo $Htok] as ⟨Hmp, HP, Htok, %k0, %res, Hfo, %Hk0, #Hnc, Hres⟩
     · iframe #
       isplitr
       · ipureintro; exact Hnsr
@@ -122,19 +129,43 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
         imodintro; iexact HP
       ipureintro
       exact Nat.zero_le _
-    -- setLastApplied(m.Index)
+    -- setLastApplied(m.Index): with the main goroutine's half, or (a discard pending) through the crash state
     wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastApplied")) _)
-    iapply (wp_setLastApplied r rc m.Index') $$ [$Hpkg $Happc]
-    iapply fupd_mask_intro Std.LawfulSet.empty_subset
-    iintro Hmask
-    inext
-    iexists 0
-    iframe Happ
-    isplitr
-    · ipureintro; omega
-    iintro Happ
-    imod Hmask with -
-    imodintro
+    iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ bootV rc A (some (m, b)) ∗
+        ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗ srvVP rc s tp dp ∗
+        (monoNatAuthOwn rc.dur.applied (1 : Qp).half (uint.nat m.Index') ∨ ⌜∃ d, dp = some d⌝) ∗
+        applLb rc (uint.nat m.Index'))))
+      $$ [HP Hsv Happ] [-]
+    · icases HP with ⟨Hboot, Hpe⟩
+      icases Happ with (Happ | %Hdp)
+      · iapply (wp_setLastApplied r rc m.Index') $$ [$Hpkg $Happc]
+        iapply fupd_mask_intro Std.LawfulSet.empty_subset
+        iintro Hmask
+        inext
+        iexists 0
+        iframe Happ
+        isplitr
+        · ipureintro; omega
+        iintro Happ
+        imod Hmask with -
+        imodintro
+        ihave #Hlb := monoNatLbOwn_get _ _ _ $$ Happ
+        iframe
+        isplitr; · ipureintro; rfl
+        isplitl [Happ]; · ileft; iexact Happ
+        unfold applLb; iexact Hlb
+      · obtain ⟨d, rfl⟩ := Hdp
+        iapply (setLastApplied_dp γ rc i r A (some (m, b)) s tp d m b rfl)
+        iframe #
+        iframe
+        iintro Hboot Hsv Hpe #Hlb
+        iframe
+        isplitr; · ipureintro; rfl
+        isplitr; · iright; ipureintro; exact ⟨d, rfl⟩
+        iexact Hlb
+    iintro %v ⟨%Hv, Hboot, Hpe, Hsv, Happ, #HappLb0⟩
+    subst Hv
+    icombine Hboot Hpe as HP
     wp_auto
     -- setLastSnapshot(m.Index, m.Term), inlined
     rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setLastSnapshot")]
@@ -154,9 +185,6 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     subst li1 lt1 si1 st1
     imod dghostVar_update_halves (some (li, lt, m.Index', m.Term')) _ _ _ $$ Hb Hllb with ⟨Hb, Hllb⟩
     wp_auto
-    imod ghostVar_update_halves (if uint.nat li < uint.nat m.Index' then (uint.nat m.Index', uint.nat m.Term')
-        else (uint.nat li, uint.nat lt)) _ _ _ $$ Hgll Hg' with ⟨Hgll, Hg'⟩
-    ihave #HappLb := monoNatLbOwn_get _ _ _ $$ Happ
     wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hll Hown Hx Hy Hsi Hst Hg' Hb]
     · iframe #; iframe
       inext
@@ -166,9 +194,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
       iright
       iexists e
       iframe #
-      isplitr
-      · ipureintro; exact He.1
-      unfold applLb; iexact HappLb
+      ipureintro; exact He.1
     rw [Hvp.1]
     wp_auto
     wp_apply wp_setCommittedConfiguration $$ [$Hcfgs] as Hcfgs
@@ -179,6 +205,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     wp_apply hslc $$ [$Hcfgs $Hlp $Hss] as ⟨Hcfgs, -, %pc, %cfg', Hlp, #Hpc, Hss2⟩
     wp_for_post
     iapply HΦ
+    icases HP with ⟨Hboot, Hpe⟩
     iframe
     iframe #
     ipureintro; exact Hk0

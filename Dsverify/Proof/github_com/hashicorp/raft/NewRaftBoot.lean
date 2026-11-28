@@ -61,6 +61,75 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 variable (γ : GNames) (rc : RCtx GF) (i : SID)
 
+
+/-- (hraft_robust R5) **`durCore` during the boot**: without its boot-over part (`bootPinF`), which the
+boot pin replaces until `NewRaft` ends the boot. -/
+def durCoreB (X : SrvDur) : IProp GF :=
+  iprop(srvOwn γ i X.s ∗ durView γ i (1 : Qp).half X.s.dur.1 ∗ logCouple γ i X.s.log ∗
+    termCouple γ i X.s.term ∗ cidxCouple γ i X.s.cidx ∗
+    ghostVar rc.dur.sv (1 : Qp).half (X.s, X.tp, X.dp) ∗ ghostVar rc.dur.st (1 : Qp).half (X.D, X.A.staged) ∗
+    ghostVar rc.dur.tv (1 : Qp).half X.s.term ∗ ghostVar rc.dur.cv (1 : Qp).half X.s.cidx ∗
+    ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
+      uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+      (∀ x st id, X.pend = some (x, st, id) → (∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∨
+        (prevMatch X.s.log x st ∧ x ≤ X.s.dur.1)) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+      ((∀ d, X.dp = some d → X.c < d.x) ∧ ((X.tp = none ∨ X.dp = none) ∧
+        (∀ d, X.dp = some d → ∃ m b, X.lat = some (m, b) ∧ uint.nat m.Index' = d.x ∧ uint.nat m.Term' = d.st))))⌝ ∗
+    monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
+    tpRes γ X.tp ∗ dpRes γ i X.s X.dp ∗ monoNatAuthOwn rc.dur.lat 1 (latIdxD X.lat))
+
+instance durCoreB_timeless (X : SrvDur) : Timeless (durCoreB γ rc i X) := by
+  unfold durCoreB; infer_instance
+
+theorem durCore_B (X : SrvDur) :
+    durCore γ rc i X ⊣⊢ durCoreB γ rc i X ∗ bootPinF rc X.lat X.pend X.dp := by
+  unfold durCore durCoreB
+  refine ⟨?_, ?_⟩
+  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, Hp, H10, H11, H12, H13, H14, H15⟩
+    iframe
+  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, Hp, H10, H11, H12, H13, H14⟩, H15⟩
+    iframe
+
+/-- (hraft_robust R5) `durBody` during the boot: its core without the boot-over part, its stores and the pin. -/
+theorem durBody_splitB (X : SrvDur) :
+    durBody γ rc i X ⊣⊢ durCoreB γ rc i X ∗ durStores γ rc i X ∗ bootPin rc X := by
+  unfold durBody durCoreB durStores
+  refine ⟨?_, ?_⟩
+  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, %Hs5, Hla, Hl, Hpe, Ht, Hd⟩
+    iframe
+    ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr, Hs5⟩
+  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, Hc, Hpe, Ht, Hd, Hla⟩, ⟨HL, HS, HSS, Hl⟩, Hb⟩
+    iframe
+    isplitl []
+    · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2.1⟩
+    isplitl []
+    · ipureintro; exact Hp.2.2.2.2.2.1
+    iframe
+    ipureintro; exact Hp.2.2.2.2.2.2
+
+theorem durCoreB_srvVP_agree (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
+    durCoreB γ rc i X ∗ srvVP rc s tp dp ⊢
+      durCoreB γ rc i X ∗ srvVP rc s tp dp ∗ ⌜X.s = s ∧ X.tp = tp ∧ X.dp = dp⌝ := by
+  iintro ⟨Hc, Hv⟩
+  unfold durCoreB srvVP
+  icases Hc with ⟨H1, H2, H3, H4, H5, Hsv, H7⟩
+  icombine Hsv Hv gives %H
+  have H := H.2
+  simp only [Prod.mk.injEq] at H
+  iframe
+  ipureintro; exact H
+
+theorem durCoreB_stVS_agree (X : SrvDur) (D : StableAbs) (g : w64) :
+    durCoreB γ rc i X ∗ stVS rc D g ⊢ durCoreB γ rc i X ∗ stVS rc D g ∗ ⌜X.D = D ∧ X.A.staged = g⌝ := by
+  iintro ⟨Hc, Hv⟩
+  unfold durCoreB stVS
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, Hst, H8⟩
+  icombine Hst Hv gives %H
+  have H := H.2
+  simp only [Prod.mk.injEq] at H
+  iframe
+  ipureintro; exact H
+
 /-- `NewRaft`'s half of the boot pin. -/
 def bootV (A : LogAbs) (lat : SnapLatest) : IProp GF :=
   dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (A, lat))
@@ -94,13 +163,13 @@ theorem bootPin_agree (X : SrvDur) (A : LogAbs) (lat : SnapLatest) :
 state the pinned one, its core without its later; the closing re-pins at the new state's stores. -/
 theorem bootOpen {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLatest) :
     srvDurInvRaw γ rc i ∗ bootV rc A lat ⊢ |NC={E, E \ ↑durN}=> ∃ X : SrvDur,
-      ⌜X.A = A ∧ X.lat = lat⌝ ∗ durCore γ rc i X ∗ ▷ durStores γ rc i X ∗
-      (∀ X' : SrvDur, durCore γ rc i X' -∗ ▷ durStores γ rc i X' ={E \ ↑durN, E}=∗ bootV rc X'.A X'.lat) := by
+      ⌜X.A = A ∧ X.lat = lat⌝ ∗ durCoreB γ rc i X ∗ ▷ durStores γ rc i X ∗
+      (∀ X' : SrvDur, durCoreB γ rc i X' -∗ ▷ durStores γ rc i X' ={E \ ↑durN, E}=∗ bootV rc X'.A X'.lat) := by
   iintro ⟨#Hi, Hv⟩ Hnc
   unfold srvDurInvRaw
   imod (inv_nc_acc hE) $$ Hi Hnc with ⟨Hnc, HX, Hcl⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩
-  ihave HX := later_mono (durBody_split γ rc i X).1 $$ HX
+  ihave HX := later_mono (durBody_splitB γ rc i X).1 $$ HX
   icases HX with ⟨>Hc, Hs, >Hb⟩
   ihave ⟨Hb, Hv, %Hag⟩ := bootPin_agree rc X A lat $$ [Hb Hv]
   · iframe
@@ -116,7 +185,7 @@ theorem bootOpen {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLates
   imod Hcl $$ [Hc' Hs' Hb] with -
   · inext
     iexists X'
-    iapply (durBody_split γ rc i X').2
+    iapply (durBody_splitB γ rc i X').2
     iframe
     unfold bootPin
     ileft
@@ -137,7 +206,7 @@ theorem bootEnd {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLatest
   unfold srvDurInvRaw
   imod (inv_nc_acc hE) $$ Hi' Hnc with ⟨Hnc, HX, Hcl⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩
-  ihave HX := later_mono (durBody_split γ rc i X).1 $$ HX
+  ihave HX := later_mono (durBody_splitB γ rc i X).1 $$ HX
   icases HX with ⟨Hc, Hs, >Hb⟩
   ihave ⟨Hb, Hv, %Hag⟩ := bootPin_agree rc X A lat $$ [Hb Hv]
   · iframe
@@ -148,7 +217,7 @@ theorem bootEnd {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLatest
   imod Hcl $$ [Hc Hs Hla] with -
   · inext
     iexists X
-    iapply (durBody_split γ rc i X).2
+    iapply (durBody_splitB γ rc i X).2
     iframe
     unfold bootPin
     iright
@@ -167,12 +236,13 @@ theorem bootEnd {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLatest
 def durPure (X : SrvDur) : Prop :=
   logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
     uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-    (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+    (∀ x st id, X.pend = some (x, st, id) → (∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∨
+      (prevMatch X.s.log x st ∧ x ≤ X.s.dur.1)) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
     ((∀ d, X.dp = some d → X.c < d.x) ∧ ((X.tp = none ∨ X.dp = none) ∧
       (∀ d, X.dp = some d → ∃ m b, X.lat = some (m, b) ∧ uint.nat m.Index' = d.x ∧ uint.nat m.Term' = d.st))))
 
-theorem durCore_pure (X : SrvDur) : durCore γ rc i X ⊢ durCore γ rc i X ∗ ⌜durPure X⌝ := by
-  unfold durCore
+theorem durCoreB_pure (X : SrvDur) : durCoreB γ rc i X ⊢ durCoreB γ rc i X ∗ ⌜durPure X⌝ := by
+  unfold durCoreB
   iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, H10⟩
   iframe
   ipureintro; exact ⟨Hp, Hp⟩
@@ -194,10 +264,10 @@ theorem bootRead_L (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option Ter
   · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
     iframe #; iframe
   iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
-  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
-  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  ihave ⟨Hc, %Hp⟩ := durCoreB_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
   · iframe
-  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCoreB_stVS_agree γ rc i X D g $$ [Hc Hst]
   · iframe
   iapply ncfupd_of_fupd
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -232,10 +302,10 @@ theorem bootRead_S (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option Ter
   · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
     iframe #; iframe
   iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
-  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
-  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  ihave ⟨Hc, %Hp⟩ := durCoreB_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
   · iframe
-  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCoreB_stVS_agree γ rc i X D g $$ [Hc Hst]
   · iframe
   iapply ncfupd_of_fupd
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -270,10 +340,10 @@ theorem bootRead_SS (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option Te
   · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
     iframe #; iframe
   iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
-  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
-  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  ihave ⟨Hc, %Hp⟩ := durCoreB_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
   · iframe
-  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCoreB_stVS_agree γ rc i X D g $$ [Hc Hst]
   · iframe
   iapply ncfupd_of_fupd
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -316,10 +386,10 @@ theorem bootRewrite_S (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option 
   · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
     iframe #; iframe
   iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
-  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
-  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  ihave ⟨Hc, %Hp⟩ := durCoreB_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
   · iframe
-  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCoreB_stVS_agree γ rc i X D g $$ [Hc Hst]
   · iframe
   obtain ⟨hD, hg⟩ := Hag2
   subst hD hg
@@ -334,7 +404,7 @@ theorem bootRewrite_S (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option 
   iintro HS
   imod Hmask with -
   let D' : StableAbs := { X.D with ints := X.D.ints.insert kb v }
-  iunfold durCore at Hc
+  iunfold durCoreB at Hc
   icases Hc with ⟨H1, H2, H3, H4, H5, H6, Hst', H8, H9, -, H10, H11, H12, H13, H14⟩
   unfold stVS
   imod ghostVar_update_halves (D', X.A.staged) _ _ _ $$ Hst Hst' with ⟨Hst, Hst'⟩
@@ -342,7 +412,7 @@ theorem bootRewrite_S (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option 
     fun k => getD_insert_same _ kb k v _ h
   imod Hcl $$ %({ X with D := D' }) [H1 H2 H3 H4 H5 H6 Hst' H8 H9 H10 H11 H12 H13 H14] [HL HS HSS Hld]
     with Hv
-  · iunfold durCore
+  · iunfold durCoreB
     simp only
     iframe
     ipureintro
@@ -424,7 +494,7 @@ theorem bootSnapAcc (fx : GoInterfaceOk) (A : LogAbs) (lat : SnapLatest) :
   · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
     iframe #; iframe
   iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
-  iunfold durCore at Hc
+  iunfold durCoreB at Hc
   icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, H10, Hpe', H12, H13, H14⟩
   icombine Hpe Hpe' gives %Hag
   have hpe : X.pend = none := Hag.2.symm
@@ -446,7 +516,7 @@ theorem bootSnapAcc (fx : GoInterfaceOk) (A : LogAbs) (lat : SnapLatest) :
   ihave ⟨Hld, #Hlf⟩ := latestDur_facts γ rc i fx X.lat X.pend X.dp hpe $$ [Hld]
   · iframe #; iexact Hld
   imod Hcl $$ %X [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hpe' H12 H13 H14] [HL HS HSS Hld] with Hv
-  · iunfold durCore; iframe; ipureintro; exact Hp
+  · iunfold durCoreB; iframe; ipureintro; exact Hp
   · iunfold durStores; iframe
   imodintro
   iframe
@@ -479,10 +549,10 @@ theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState)
   ihave Hb := bootOpen γ rc i (E := ⊤ \ ↑appliedN) durN_diff_appliedN A lat $$ [Hv]
   · iframe #; iframe
   imod Hb $$ Hnc with ⟨Hnc, %X, %HX, Hc, Hs, Hcl⟩
-  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
-  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp (some d) $$ [Hc Hsv]
+  ihave ⟨Hc, %Hp⟩ := durCoreB_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s tp (some d) $$ [Hc Hsv]
   · iframe
-  iunfold durCore at Hc
+  iunfold durCoreB at Hc
   icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, -, H10, Hpe', H12, H13, H14⟩
   icombine Hpe Hpe' gives %Hpg
   have hpe : X.pend = none := Hpg.2.symm
@@ -519,7 +589,7 @@ theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState)
   imod Hmask with -
   imod Hcl $$ %(⟨Xs, XA, Xlo, Xc, XD, Xtp, some (m, b), none, some d⟩ : SrvDur)
     [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hpe' H12 H13 H14] [HL HS HSS Hok Hsf Ha'] with Hv
-  · iunfold durCore; iframe; ipureintro; exact Hp
+  · iunfold durCoreB; iframe; ipureintro; exact Hp
   · iunfold durStores; iframe; unfold latestDur; iframe
     iright; iexists m, b
     isplitr; · ipureintro; rfl
