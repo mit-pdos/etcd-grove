@@ -97,6 +97,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       · iintro -
         iexact HCs
     | some sl0 =>
+      simp only [Option.getD_some]
       icases (BigSepM.bigSepM_delete hC).1 $$ HCs with ⟨⟨%ns, Hns, Hcap, #Hcn⟩, Hrest⟩
       iexists ns
       iframe
@@ -108,6 +109,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       · iintro Hsl'
         iapply (BigSepM.bigSepM_delete hC).2
         iframe
+        iexact Hsl'
   icases Hsl with ⟨%ns, Hns, Hcap, #Hcn, Hback⟩
   ihave %Hlns := ownSlice_len $$ Hns
   (try wp_auto)
@@ -129,6 +131,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     ihave #Hcv := BigSepL.bigSepL_lookup Hv_lookup $$ Hcn
     iunfold canonNode at Hcv
     icases Hcv with ⟨%hn, #Hvp, %Hk, %s', #Hs'⟩
+    iStructNamed Hvp
     (try wp_auto)
     wp_apply wp_storeEqual hn.st' st s' s $$ [$Hs' $Hst]
     wp_if_destruct
@@ -141,7 +144,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       iexists j + W64 1, _
       iframe
       ipureintro; word
-  · simp only [decide_true, ↓reduceIte]
+  · rw [if_pos rfl]
     (try wp_auto)
     wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [$HC] as HC
     (try wp_auto)
