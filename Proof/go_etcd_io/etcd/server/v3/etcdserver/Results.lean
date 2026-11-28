@@ -491,8 +491,10 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
     (id : w64) (t : GName) (v : w64) (A : List EntryModel) (hne : m.data ≠ [])
-    (hdec : apply.irrDecode m.data = some rq) (hid : apply.irrId rq = some id) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    (hdec : apply.irrDecode m.data = some rq) (hid : apply.irrId rq = some id)
+    -- (keepfix (c) step 1) the apply thread's mirror of the raft term field, not `0`
+    (rt : w64) (hrt : rt ≠ W64 0) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ciRaftTerm γ.ci rt ∗
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ waitRegd ρ.wait id t ∗ entryAt e m ∗
         applyThread γ st ∗ applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
         mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKV s E ρ.wait x ∗ srvWT E ∗ srvFS s ∗
@@ -508,7 +510,7 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
          else iprop(True)) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
         (Val #e)) (Val #v3))
-    {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
+    {{ RET #(); applyBackend γ ci b ∗ ciRaftTerm γ.ci rt ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m v3 x x' out⌝ ∗ (⌜out.waived = false⌝ ∨ waitGone ρ.wait id t) ∗
           srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x' ∗
@@ -519,7 +521,7 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
   cases v3
   · -- (R2d'a, Q23 (a)) vacuous: the KV invariant's `c0 ≤ ai0` puts the entry, after the applied
     -- index, above `c0`
-    iintro %Φ ⟨#Hpkg, #Hsrv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HkA, %Hvi, -, -⟩ -
+    iintro %Φ ⟨#Hpkg, -, #Hsrv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HkA, %Hvi, -, -⟩ -
     imod isServerM_c0_le false s γ ci TM E ρ γr $$ [] with %Hc0
     · rw [isServerM_false]; iexact Hsrv
     exfalso
@@ -527,14 +529,14 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
     rw [decide_eq_true (show uint.Z γr.kv.c0 < uint.Z m.index by omega)] at h1
     cases h1
   have hAEN := EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
-      s γ ci TM E ρ b e m st true x γr (some t) v A [] (restModel γr.kv.c0 γr.raft.raft.boot [])
+      s γ ci TM E ρ b e m st true x γr (some t) v A [] (restModel γr.kv.c0 γr.raft.raft.boot []) rt
   simp only [↓reduceIte] at hAEN ⊢
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
+  iintro %Φ ⟨#Hpkg, Hrt, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
     HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
-  iapply (hAEN hoff)
-    $$ [Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS]
-  · iframe Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS
+  iapply (hAEN hoff hrt)
+    $$ [Hrt Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS]
+  · iframe Hrt Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hv3 Hao Hka HRS
     iframe #
     isplitr
     · iunfold entryRegd
@@ -551,9 +553,9 @@ theorem request_delivered [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
     exact ⟨Hmc, ⟨HkA.1, of_decide_eq_true HkA.2.symm⟩, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1,
       Hpo.2.2⟩
   inext
-  iintro ⟨Hbe, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
+  iintro ⟨Hbe, Hrt, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ
-  iframe Hbe Hlr Hgr Hmr Hfs Hpost
+  iframe Hbe Hrt Hlr Hgr Hmr Hfs Hpost
   iexists x', out
   iframe HKV Hpre Hka HRS
   isplitr
@@ -936,8 +938,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /- (T10 session 10) Generic over the apply protocol's image row `Rw` (`consInv γA Rw`). -/
 variable {Rw : TRow GF}
--- (keepfix-d) the consistent index's pair predicate (`isCI ci γ CP`)
-variable {CP : w64 → w64 → IProp GF}
 
 /-- **The apply thread's KV over the real backend** (restated over mvcc's API, R8, 2026-11-07;
 until then over mvcc's internals, `txn.isKV`/`soleWriter` at a non-compacting instance): `NewStore`
@@ -1097,21 +1097,21 @@ hook step (`hookStep`) and gives the resource back, the meta keys at what the co
 For backend parameters whose hook's own keys are the consistent index's two (`ciKeys`: a real
 instance's, `ciKeys_of`, for a hook's bound of at least 2). Its trust base: bbolt's contract,
 the backend's and schema's, and the consistent index's (`verify.Verify`, `binary`). -/
-theorem cindex_hook_backend (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P : backend.BParams)
+theorem cindex_hook_backend (cl : Cluster) (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P : backend.BParams)
     (W Pk : IProp GF) (b t : Loc) (hP : ciKeys P) (st : backend.BSess) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci CP ∗
-      inv applyN (consInv γA Rw) ∗ applyRegd γA ⊢
-      {{ backend.batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜backend.hookPre P st⌝ }}
+      backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗
+      srvTermPos cl ∗ inv applyN (consInv γA Rw) ∗ applyRegd γA ⊢
+      {{ backend.batchLocked γ P b st ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗ ⌜backend.hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
           (Val #(interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t)))
       {{ RET #(); ∃ st' : backend.BSess, backend.batchLocked γ P b st' ∗
-          batchLockInv γA (metaTM γ P) ∗ ⌜backend.hookStep P st st'⌝ }} :=
-  ci_hook_backend consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
+          batchLockInv γA (metaTMR cl γA.ph γ P) ∗ ⌜backend.hookStep P st st'⌝ }} :=
+  ci_hook_backend cl consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
     backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name
     schema.bucket.wp_IsSafeRangeBucket γA ci γ P W Pk b t hP st
 
@@ -1120,20 +1120,20 @@ theorem cindex_hook_backend (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) 
 transaction (etcd's `BackendHooks.OnPreCommitUnsafe` does, then saves the `confState` when it
 is dirty: `storage/hooks.go`, not translated), the hooks' resource the server's batch-lock
 resource. -/
-theorem cindex_hookFnSpec (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P : backend.BParams)
+theorem cindex_hookFnSpec (cl : Cluster) (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P : backend.BParams)
     (W Pk : IProp GF) (b t : Loc) (hP : ciKeys P) (f : GoFunc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci CP ∗
-      inv applyN (consInv γA Rw) ∗ regdOrLink γA γ ∗
+      backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗
+      srvTermPos cl ∗ inv applyN (consInv γA Rw) ∗ regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
             (Val v)) {{ Ψ }} -∗
           WP (App (Val #f) (Val v)) {{ Ψ }}) ⊢
-      backend.hookFnSpec γ P (batchLockInv γA (metaTM γ P)) b t f :=
-  ci_hookFnSpec consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
+      backend.hookFnSpec γ P (batchLockInv γA (metaTMR cl γA.ph γ P)) b t f :=
+  ci_hookFnSpec cl consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
     backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name
     schema.bucket.wp_IsSafeRangeBucket γA ci γ P W Pk b t hP f
 
@@ -1146,7 +1146,7 @@ into `Meta`), by Löb induction. For backend parameters whose hook's own keys ar
 index's (`ciKeys`) and that let the hook save the `confState` (`hooksParams`: `Meta` a hook's
 bucket, its `confState` key not a hook's own key, `hookMax ≥ 3`). Its trust base adds
 `schema.MustUnsafeSaveConfStateToBackend` (its `json.Marshal`) to the consistent index's. -/
-theorem backend_server_hooks (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
+theorem backend_server_hooks (cl : Cluster) (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
     (P : backend.BParams) (W : IProp GF) (b bh lgh : Loc) (hP : ciKeys P)
     (hH : storage.hooksParams P) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
@@ -1156,12 +1156,12 @@ theorem backend_server_hooks (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
       storage.isBackendHooks bh
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
-      backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
-      isCI ci γA.ci CP ∗ inv applyN (consInv γA Rw) ∗ regdOrLink γA γ ⊢
-      backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b :=
+      backend.isBackendNH γ P W (batchLockInv γA (metaTMR cl γA.ph γ P)) b (storage.hooksIface bh) ∗
+      isCI ci γA.ci (srvCITriple0 cl) ∗ srvTermPos cl ∗ inv applyN (consInv γA Rw) ∗ regdOrLink γA γ ⊢
+      backend.isBackend γ P W (batchLockInv γA (metaTMR cl γA.ph γ P)) b :=
   backend_server_hooks_of storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
     backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
-    schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket γA ci γ P W b bh lgh hP hH
+    schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket cl γA ci γ P W b bh lgh hP hH
 
 /-- **The apply thread's KV over the real backend, its batch lock the server's** (restated over
 mvcc's API, R8, 2026-11-07): `server_kv_backend` at the batch lock of the apply protocol
@@ -2245,7 +2245,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.Field
     backend.batchTxBuffered.wp_UnsafeDelete 
     
     lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get
-    bootstrappedServer.wp_Close raftNode_of_StartNode_law_holds
+    bootstrappedServer.wp_Close raftNode_of_StartNode_law_holds srvTermPos_of_cluster_holds
 
 end serverAuth
 
