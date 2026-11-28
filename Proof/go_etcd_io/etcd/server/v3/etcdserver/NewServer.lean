@@ -417,7 +417,9 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
   · iframe; iframe Hcfgro Hzlg Hvoff
     isplitl []
     · ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1⟩
-    iright; iexact Hfg
+    isplitl
+    · iright; iexact Hfg
+    iexact Htp
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
     cases err with
