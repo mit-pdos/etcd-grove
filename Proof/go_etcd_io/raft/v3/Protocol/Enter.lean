@@ -2592,6 +2592,136 @@ theorem raft_crash_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState
   imodintro
   iframe Hdur Hslot'
 
+
+/-- (keepfix (c), N2, 2026-11-27) **Closing a campaign key in the slot, its queue free**: with the
+generation `g`'s queue free (`g ↪ none`), the slot's virtual maps are its entered ones `Ed`; the key
+`T`, not in `Ed.camps`, is closed (`Prom.close`) in the promise authorities (both halves), the
+fragments and the virtual maps (the slot's half and the caller's `V`, returned equal to `Ed`). -/
+theorem slot_close (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps) (g : Nat)
+    (Ed : DurMaps) (T : w64) :
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E → Ed.camps !! T = none →
+    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗ ghostVar γs.2.2 (1 : Qp).half g -∗
+      g ↪[γs.2.1] (none : Option RaftBatch) -∗ durShares γ id (1 : Qp).half Ed ={E}=∗
+      ⌜V = Ed⌝ ∗ ghostVar γs.1 (1 : Qp).half (Ed.add (.close T)) ∗ ghostVar γs.2.2 (1 : Qp).half g ∗
+      g ↪[γs.2.1] (none : Option RaftBatch) ∗ durShares γ id (1 : Qp).half (Ed.add (.close T)) ∗
+      isCampNone γ id T := by
+  intro Hsname HsE Hfresh
+  iintro #Hslot Hvirt Hgen Hfree Hsh1
+  unfold slotInv
+  iinv Hslot with H Hclose
+  unfold slotBody
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr, #>Hai, >Hv', >Hg', >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  rw [Hsname] at Hγs'; cases Hγs'
+  ihave %Hgg := ghostVar_agree _ _ _ _ _ $$ Hgen Hg'
+  subst Hgg
+  icombine Hq Hfree gives %HMq
+  have HMq' : Mq !! g = some (none : Option RaftBatch) := HMq
+  have HvQ : virtQ E0 (Mq !! g) = E0 := by rw [HMq']; rfl
+  rw [HvQ]
+  ihave %HV := ghostVar_agree _ _ _ _ _ $$ Hvirt Hv'
+  icases durShares_agree γ id _ _ E0 Ed $$ Hsh0 Hsh1 with ⟨Hsh0, Hsh1, %HE⟩
+  subst E0
+  subst V
+  icases (durShares_combine γ id Ed).1 $$ [Hsh0 Hsh1] with Hsh
+  · iframe Hsh0 Hsh1
+  iunfold durShares at Hsh
+  icases Hsh with ⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv, Ha, Hc, Hl, He⟩
+  obtain ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩ := Hn
+  imod ghost_map_insert_persist T campNone Hfresh $$ Hc with ⟨Hc, #Hf⟩
+  ihave #Hcn : isCampNone (GF := GF) γ id T $$ []
+  · unfold isCampNone; iexists γc; iframe Hf; ipureintro; exact Hγc
+  ihave Hsh : durShares (GF := GF) γ id 1 (Ed.add (.close T)) $$ [Hv Ha Hc Hl He]
+  · unfold durShares
+    simp only [DurMaps.add]
+    iexists γv, γa, γc, γl, γe
+    iframe Hv Ha Hc Hl He
+    ipureintro; exact ⟨Hγv, Hγa, Hγc, Hγl, Hγe⟩
+  icases (durShares_combine γ id (Ed.add (.close T))).2 $$ Hsh with ⟨Hsh0, Hsh1⟩
+  ihave #Hfr' : durFrags (GF := GF) γ id (Ed.add (.close T)) $$ []
+  · iunfold durFrags at Hfr
+    icases Hfr with ⟨#Hfv, #Hfa, #Hfc, #Hfl, %γe', %Hγe', #Hlb⟩
+    unfold durFrags
+    simp only [DurMaps.add]
+    iframe Hfv Hfa Hfl
+    isplitr
+    · iapply (BigSepM.bigSepM_insert (Φ := fun t (x : List EntryM × w64) =>
+        campFrag (GF := GF) γ id t x) Hfresh).2
+      iframe Hfc
+      unfold campFrag
+      iright
+      isplitr; · ipureintro; rfl
+      iexact Hcn
+    iexists γe'; iframe Hlb; ipureintro; exact Hγe'
+  imod ghostVar_update_halves (Ed.add (.close T)) γs.1 _ _ $$ Hvirt Hv' with ⟨Hvirt, Hv'⟩
+  imod Hclose $$ [Hsh0 Hv' Hg' Hq] with -
+  · inext
+    iexists γs, Ed.add (.close T), g, Mq
+    rw [HMq']
+    simp only [virtQ]
+    rw [show (Ed.add (.close T)).acks = Ed.acks from rfl]
+    iframe Hsh0 Hfr' Hai Hv' Hg' Hq
+    isplitr; · ipureintro; exact Hsname
+    isplitr; · ipureintro; exact Hdom
+    isplitr; · ipureintro; rfl
+    ipureintro; intro b hb; cases hb
+  imodintro
+  isplitr; · ipureintro; rfl
+  iframe Hvirt Hgen Hfree Hsh1 Hcn
+
+variable [CrashGS GF] in
+/-- (keepfix (c), N2, 2026-11-27) **Closing a campaign key of a vacant node** (`raftArmed`: its
+generation's queue free, so its virtual maps are the entered ones): the vacant analogue of the cut's
+`cutClose`, for a term raised with no node running (the boot law, `raftBootFix.law`). With the
+generation running (`notCrashed`): the arm's crash invariant holds the virtual maps' other half. -/
+theorem raft_vacant_close (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) (Ed : DurMaps)
+    (T : w64) :
+    ↑(raftN γ) ⊆ E → Ed.camps !! T = none →
+    ⊢ notCrashed -∗ raftArmed (GF := GF) γ id x -∗ durShares γ id (1 : Qp).half Ed ={E}=∗
+        notCrashed ∗ raftArmed γ id x ∗ durShares γ id (1 : Qp).half (Ed.add (.close T)) ∗
+        isCampNone γ id T := by
+  intro HE Hfresh
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
+  have HC : (↑(crashNs γ id) : CoPset) ⊆ E := fun p hp => HE p (crashNs_raftN γ id p hp)
+  iintro Hnc Harm Hsh
+  unfold raftArmed
+  icases Harm with ⟨%V, %g, %terms, %wins, %lcm, %rqm, %Hidnz, Hxv0, Hxg0, Hxt, Hxw, Hxl, Hxq,
+    Hfree, #Hinv, #Hslot, #Hcinv, #Hrci⟩
+  unfold slotFree
+  icases Hfree with ⟨%γs, %Hsname, Hfree⟩
+  imod nodeCrashInv_acc E γ id x iprop(ghostVar x.v (1 : Qp).half (Ed.add (.close T)) ∗
+      ghostVar x.g (1 : Qp).half g ∗ g ↪[γs.2.1] (none : Option RaftBatch) ∗
+      durShares γ id (1 : Qp).half (Ed.add (.close T)) ∗ isCampNone γ id T) HC
+      $$ Hnc Hinv [Hxv0 Hxg0 Hfree Hsh] with ⟨Hnc, Hxv0, Hxg0, Hfree, Hsh, #Hcn⟩
+  · iintro Hcl
+    unfold crashLeft slotLive
+    icases Hcl with ⟨%γs', %V1, %g1, %Hs', Hxv, Hsv, Hxg, ⟨%γs'', %Hs'', Hl1⟩, Ht, Hw, Hl, Hq⟩
+    rw [Hsname] at Hs'; cases Hs'
+    rw [Hsname] at Hs''; cases Hs''
+    icases ghostVar_agree _ _ _ _ _ $$ Hxv0 Hxv with %HV1
+    icases ghostVar_agree _ _ _ _ _ $$ Hxg0 Hxg with %Hg1
+    subst HV1 Hg1
+    imod slot_close (E \ ↑(crashN γ id x)) γ id γs V g Ed T Hsname
+        (fun p hp => crashNs_diff_sub E γ id x p (slotN_diff_crash E γ id HsE p hp)) Hfresh
+        $$ Hslot Hsv Hl1 Hfree Hsh with ⟨%HVE, Hsv, Hl1, Hfree, Hsh, #Hcn⟩
+    subst V
+    imod ghostVar_update_halves (Ed.add (.close T)) x.v _ _ $$ Hxv0 Hxv with ⟨Hxv0, Hxv⟩
+    imodintro
+    isplitl [Hxv Hsv Hxg Hl1 Ht Hw Hl Hq]
+    · iexists γs, Ed.add (.close T), g
+      isplitr; · ipureintro; exact Hsname
+      isplitl [Hxv]; · iexact Hxv
+      isplitl [Hsv]; · iexact Hsv
+      isplitl [Hxg]; · iexact Hxg
+      isplitl [Hl1]; · iexists γs; iframe Hl1; ipureintro; exact Hsname
+      iframe Ht Hw Hl Hq
+    iframe Hxv0 Hxg0 Hfree Hsh Hcn
+  imodintro
+  iframe Hnc Hsh Hcn
+  iexists Ed.add (.close T), g, terms, wins, lcm, rqm
+  isplitr; · ipureintro; exact Hidnz
+  iframe Hxv0 Hxg0 Hxt Hxw Hxl Hxq Hinv Hslot Hcinv Hrci
+  iexists γs; iframe Hfree; ipureintro; exact Hsname
+
 end enter
 
 end EtcdGrove

@@ -1184,9 +1184,12 @@ theorem committedAtTerm_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE 
 /-- (2026-10-27) What a hard state says, the committed log delivered with it of length `n` (raft's
 `hsWit`, as the client sees it). (2026-10-28, stage U3d, until 2026-10-31: or nothing outside raft's
 no-snapshot mode, the witness of a snapshot `Ready` bounding the log before the snapshot; it now
-bounds the one delivered up to it, the snapshot's index being at most the commit index.) -/
+bounds the one delivered up to it, the snapshot's index being at most the commit index.) (keepfix (c),
+F1, 2026-11-27: the bound out of the disjunction, so a zero record bounds the delivered log by 0;
+F2': a nonzero commit index comes with a nonzero term once the bootstrap log is non-empty, `TermPos`.) -/
 def hsCommitted (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) : IProp GF :=
-  iprop(⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝)
+  iprop(⌜(n : Int) ≤ uint.Z h.Commit'⌝ ∗ ⌜TermPos γ.raft h⌝ ∗
+    (⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit'))
 
 instance hsCommitted_persistent (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) :
     Persistent (hsCommitted (GF := GF) γ N h n) := by
@@ -1198,13 +1201,26 @@ theorem hsCommitted_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   iintro #Hci #Hw
   iunfold hsWit at Hw
   unfold hsCommitted
-  icases Hw with (%H | ⟨#Hw, %Hn⟩)
-  · imodintro; ileft; ipureintro; exact H
-  imod committedAtTerm_of_raft γ N E HE _ _ $$ Hci Hw with #Hc
+  icases Hw with ⟨%Hn, %Hp, (%H | #Hw)⟩
+  · imodintro; isplitr; · ipureintro; exact Hn
+    isplitr; · ipureintro; exact Hp
+    ileft; ipureintro; exact H
+  imod committedAtTerm_of_raft γ N E HE _ _ $$ Hci Hw with Hc
   imodintro
+  isplitr; · ipureintro; exact Hn
+  isplitr; · ipureintro; exact Hp
   iright
-  iframe Hc
-  ipureintro; exact Hn
+  iexact Hc
+
+/-- (keepfix (c), F1) `hsCommitted` with its bound inside the disjunction, as a received `Ready`
+states it (`readyGot`). -/
+theorem hsCommitted_disj (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) :
+    hsCommitted (GF := GF) γ N h n ⊢
+      ⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝ := by
+  unfold hsCommitted
+  iintro ⟨%Hn, -, (%H | #H)⟩
+  · ileft; ipureintro; exact H
+  · iright; iframe H; ipureintro; exact Hn
 
 /-- **A read state** (persistent): raft's (`readOk`), its context committed (`γ.ctxs`) after a log
 no longer than its index. -/
@@ -2936,7 +2952,10 @@ abbrev readyPost (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : Nod
     -- (2026-11-03, R2b-1 stage 1) the delivered log after the `Ready` and its hard state's
     -- committed fact, without *enter*: a client that enters at its disk write needs them before
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length)
+    (⌜phsNext st.hardState h = hsZero⌝ ∨
+      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝))
 
 
 
@@ -3095,7 +3114,10 @@ abbrev readyPostT (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : No
     (⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms) ∗
     readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length ∗
+    (⌜phsNext st.hardState h = hsZero⌝ ∨
+      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝) ∗
     readyToksClaim n γ N ms)
 
 
@@ -4161,7 +4183,8 @@ theorem readyRecv_open (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id
         iright; iexact Htab
       · iExactEq Hlb'; rfl
     · isplitl []
-      · iExactEq Hhc
+      · ihave #Hhc' := hsCommitted_disj γ N _ _ $$ Hhc
+        iExactEq Hhc'
         rw [Hp']
         simp only [NodeDriverState.afterReady, List.length_append, strip_length, Hlen]
       iexact Hcl
@@ -4290,7 +4313,8 @@ theorem readyRecv_open (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id
         iright; iexact Htab
       · iExactEq Hlbd; rfl
     · isplitl []
-      · iExactEq Hhc
+      · ihave #Hhc' := hsCommitted_disj γ N _ _ $$ Hhc
+        iExactEq Hhc'
         rw [Hp']
         simp only [NodeDriverState.afterReady, strip_length]
       iexact Hcl

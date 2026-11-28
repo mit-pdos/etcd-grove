@@ -90,6 +90,14 @@ def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Pro
       -- `Bootstrap`'s `ConfChange{Type: ConfChangeAddNode, NodeID: id, Context: ctx}`
       MarshalsConfChange (some (.v1 ⟨W32 0, id, ctx, W64 0⟩)) e.data
 
+/-- (keepfix (c), F2', 2026-11-27) A bootstrap log of a non-empty member list is non-empty: with
+`cluster_alloc_bootG`'s `γ.bootLen = boot.length`, a cluster's `0 < γ.bootLen`
+(`nodeDriver_hardStateTerm`'s premise). -/
+theorem BootLog_length_pos (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) :
+    BootLog ps ctxs boot → ps ≠ [] → 0 < boot.length := by
+  intro ⟨h, _, _⟩ hne
+  rw [h]; exact List.length_pos_iff.mpr hne
+
 /-- The Go entries of the log entries `l`, at the indices after `base`. -/
 def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
   l.mapIdx fun i e => e.toEntryM (W64 (base + i + 1))

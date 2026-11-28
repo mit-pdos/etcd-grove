@@ -478,6 +478,9 @@ private theorem wp_RestartNode_impl
     with ⟨Hg, %fp, %Hfp, #Hfr, #Hcmt⟩
   icases (entails_wand (persistent_entails_left (wand_entails
     (ownRaftGhost_commitWit γ.raft cv.ID' _)))) $$ Hg with ⟨Hg, #Hcw⟩
+  -- (keepfix (c), F2') a nonzero commit index at a nonzero term (`TermPos`)
+  icases (entails_wand (persistent_entails_left (wand_entails
+    (ownRaftGhost_termPos γ.raft cv.ID' _)))) $$ Hg with ⟨Hg, %Htp⟩
   icases (entails_wand (persistent_entails_left (wand_entails
     (ownRaftGhost_logRecs γ.raft cv.ID' _ true)))) $$ Hg with ⟨Hg, %Hwf, #Hrl⟩
   icases (entails_wand (persistent_entails_left (wand_entails
@@ -853,6 +856,9 @@ private theorem wp_RestartNode_impl
   have Hdtk1 : s.logst.dtk = σ.commit := by rw [Hdtk, Hca]; rfl
   ihave #Hphw : phsWit γ.raft hprev $$ []
   · unfold phsWit
+    isplitr
+    · ipureintro; unfold TermPos; rw [Hhz, Hca]
+      simp only [restartP] at Htp; rw [HsT]; exact Htp
     iright
     rw [Hhz, Hca]
     iExactEq Hcw

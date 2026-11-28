@@ -1596,15 +1596,42 @@ theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
 
 /-- (2026-10-31) **The `Ready` loop's hard state is committed**: the last non-empty hard state
 handed out (`st.hardState`, what etcd's raft loop records as `raftTerm`) is zero, or a leader of its
-term committed the log through its commit index (`committedAtTerm`), which bounds the committed log
-delivered, after a snapshot `Ready` the log up to the snapshot. -/
+term committed the log through its commit index (`committedAtTerm`); either way its commit index
+bounds the committed log delivered, after a snapshot `Ready` the log up to the snapshot (keepfix (c),
+F1, 2026-11-27: the bound for the zero record too). -/
 theorem nodeDriver_hardStateCommitted (n : NodeH) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
-      (⌜st.hardState = hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
-        ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝) := by
+      ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝ ∗
+      (⌜st.hardState = hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit') := by
   unfold nodeDriver committedAtTerm
-  exact ApiImpl.nodeDriver_hardStateCommitted_impl n γ N st
+  iintro Hd
+  icases ApiImpl.nodeDriver_hardStateCommitted_impl n γ N st $$ Hd with ⟨Hd, Hc⟩
+  iunfold ApiImpl.hsCommitted at Hc
+  icases Hc with ⟨%Hn, -, Hc⟩
+  iframe Hd Hc
+  ipureintro; exact Hn
+
+/-- (keepfix (c), F2', 2026-11-27) **The `Ready` loop's hard state has a nonzero term once its commit
+index is nonzero** (in a cluster started from a non-empty bootstrap log, `0 < γ.bootLen`): the entry
+at the commit index has a term `≥ 1` and at most the node's. With `nodeDriver_hardStateCommitted`'s
+bound, a non-empty batch of the delivered log comes with a nonzero raft term. -/
+theorem nodeDriver_hardStateTerm (n : NodeH) (γ : Cluster) (N : Namespace) (st : NodeDriverState)
+    (hb : 0 < γ.bootLen) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      ⌜1 ≤ uint.Z st.hardState.Commit' → st.hardState.Term' ≠ W64 0⌝ := by
+  unfold nodeDriver
+  iintro Hd
+  icases ApiImpl.nodeDriver_hardStateCommitted_impl n γ N st $$ Hd with ⟨Hd, Hc⟩
+  iunfold ApiImpl.hsCommitted at Hc
+  icases Hc with ⟨-, %Hp, -⟩
+  iframe Hd
+  ipureintro
+  intro h1 h0
+  have hb' : γ.raft.reBoot ≠ [] := by
+    unfold Cluster.bootLen at hb; exact List.length_pos_iff.mp hb
+  have := Hp hb' h1
+  rw [h0] at this; revert this; word
 
 /-! ### A snapshot the client builds (the snapshot track; open) -/
 
