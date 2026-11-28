@@ -195,7 +195,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       itrivial
     iapply HΨ
     iframe
-    icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, -, -, -, %d, #Hd, -, Heo⟩)
+    icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, -, -, -, %d, #Hd, -, -, Heo⟩)
     · ileft; iframe; ipureintro; exact He
     · iright; iframe Hcl Hse
       isplitl []
@@ -303,7 +303,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, #Hnl, -, %d, #Hd, %Hnr, Heo'⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, #Hnl, -, %d, #Hd, %Hnr, -, Heo'⟩)
       · subst He
         (try wp_auto)
         wp_for_post

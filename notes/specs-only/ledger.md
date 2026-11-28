@@ -25,6 +25,20 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: grpc's service table -- no way to say "this method never refuses" except the opaque `noRefusalAt`
+
+- **Spec.** `GrpcEntry` (`Proof/google_golang_org/grpc/InvGrpcWire.lean`), `grpcServesEnt` (`InvGrpcRun.lean`),
+  `grpcInvokerOk` (`InvGrpc.lean`; `ClientConn.Invoke`'s axiom), `grpcDecOk` (`InvGrpcBase.lean`; `Server.Serve`'s).
+- **Defect.** Too weak for a user: the only route from a server to the client's "not a refusal" is the per-address
+  opaque `noRefusalAt` (with `etcd_noRefusal`, `grpcSrvAtLis`), so a table that is a definition (`etcdSvc`, stage B′)
+  cannot carry the fact, and its five KV `_dist` axioms stay.
+- **Evidence.** `notes/grpc-nr-e.md`; the packet `etcdsvc-grpc-nr-packet` (option E).
+- **Proposed change.** `GrpcEntry.nr : Bool`; `grpcSvcNRAt`/`isGrpcRpcNR`/`isGrpcRpcsNR`; `grpcServesEnt`'s unary clause
+  gives `grpcRunNRMd` (the run contract plus "nil or not a refusal") for a flagged entry; `grpcInvokerOk`'s error arm
+  gains `isGrpcRpcsNR addrs method -∗ ⌜d ∉ refusalDescs⌝`; `grpcDecOk`'s error arm gains `notDescIn refusalDescs`.
+  Every existing entry unflagged. No top-level statement changes.
+- **Decision.** Accepted (the user, option E, 2026-11-27); trusted text, lands after the coordinator's check.
+
 ## 2026-11-25: the antithesis harness's `CfgOk` -- `0 ≤ MaxDelay` goes with the delay (#33 S4)
 
 - **Spec.** `Proof/.../raft/antithesis/HarnessDefs.lean` (`CfgOk`, `defaultCfg`, `clusterRO`), the premise

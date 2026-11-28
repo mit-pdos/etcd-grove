@@ -81,9 +81,9 @@ def strmSpecG (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
 
 /-- **The service's table over the global ghost state** (`drvSvc`'s). -/
 def drvSvcG (γid : GName) : GrpcSvc GF := fun name =>
-  if name = echoName then some (.unary ⟨strWireG, strWireG, echoSpecG γid⟩)
-  else if name = failName then some (.unary ⟨strWireG, strWireG, failSpecG⟩)
-  else if name = metaName then some (.unary ⟨strWireG, strWireG, metaSpecG⟩)
+  if name = echoName then some (.unary ⟨strWireG, strWireG, echoSpecG γid, false⟩)
+  else if name = failName then some (.unary ⟨strWireG, strWireG, failSpecG, false⟩)
+  else if name = metaName then some (.unary ⟨strWireG, strWireG, metaSpecG, false⟩)
   else if name = serverStreamName then
     some (.stream ⟨strWireG, strWireG, ssUpG, ssDnG, strmSpecG ssDnG⟩)
   else if name = clientStreamName then
