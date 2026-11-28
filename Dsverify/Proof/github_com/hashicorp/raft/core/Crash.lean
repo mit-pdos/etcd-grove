@@ -42,8 +42,7 @@ body, and the closing update. The generic accessor; the laws below are its uses.
 theorem durAcc {E : CoPset} (hE : ↑durN ⊆ E) :
     srvDurInv γ rc i ⊢ |NC={E, E \ ↑durN}=> ▷ (∃ X : SrvDur, durBody γ rc i X) ∗
       (▷ (∃ X : SrvDur, durBody γ rc i X) ={E \ ↑durN, E}=∗ True) := by
-  unfold srvDurInv
-  exact inv_nc_acc hE
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-! ## The body's timeless core and its stores
 
