@@ -558,7 +558,24 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         refine take_succ_req hPj hjx (fun u h => ?_) (fun u hu => ?_)
         · subst hP4 hP3 hP2
           exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inl h))))))
-        sorry
+        subst hP4 hP3 hP2
+        rcases hu with h | h | h | ⟨_, h | h | ⟨he, h⟩ | ⟨h4, he, os, hos, o, ho, hrv⟩ | ⟨o, hm, hb, hrv⟩⟩
+        · exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inr h))))))
+        · exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inr h)))))
+        · exact absurd h.1 hK
+        · exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inr h))))
+        · exact Or.inl (Or.inl (Or.inl (Or.inr h)))
+        · exact Or.inl (Or.inr ⟨he, h⟩)
+        · obtain ⟨hs, hl⟩ := hok.2 h4 he
+          rw [hos] at hs hl
+          obtain ⟨ds, hds, hmap⟩ := decItemRVsL_encItemsL os hl hs
+          have hm : u ∈ ds.map (·.ResourceVersion') := by
+            rw [hmap]; exact List.mem_map.2 ⟨o, ho, hrv⟩
+          obtain ⟨d, hd, hdu⟩ := List.mem_map.1 hm
+          exact Or.inr ⟨h4, he, ds, hos ▸ hds, d, hd, hdu⟩
+        · refine Or.inl (Or.inl (Or.inr ?_))
+          rw [hm, rvOfMsgL_preMsgL x o hok.1 hb]
+          exact hrv.symm
       (try wp_auto)
       wp_if_destruct
       rotate_left
