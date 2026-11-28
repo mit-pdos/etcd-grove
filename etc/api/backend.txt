@@ -34,8 +34,6 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
-# (bbolt-crash C-I1, D6-T10, 2026-11-25) bbolt's file after a power loss at the backend's interface (interim axioms; MemberCrash's `dbCrash`)
-importable Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashInterim
 # (etcd-safe P7, D6-T6, 2026-11-25) durable names and database files across a crash (rafthttp's
 # snapshot directory: `fileFreeDur`, `fileHoldsMDur`, `nameCrash`)
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.FileDur

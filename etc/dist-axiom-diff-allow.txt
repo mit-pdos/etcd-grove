@@ -680,5 +680,3 @@ dev Lease_TimeToLiveOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the
 dev Lease_TimeToLiveOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
 dev Lease_TimeToLiveOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
 
-# (etcd_safe S0, 2026-11-26: DRAFTS, unreached, not reviewed; plans/etcd-safe-restart-design.md §3)
-nosource GracefulStop_dist.wp_proof grpc-go's `GracefulStop` has no in-process spec (the planned one is `SpecPlan/Spec/google_golang_org/grpc/Server__GracefulStop.lean`, not in `Spec/`); the axiom speaks of the member's serving stocks (`grpcServing`, `srvStopReaders`), nothing to compare token by token
