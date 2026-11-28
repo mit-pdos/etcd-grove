@@ -85,8 +85,8 @@ before the generation runs (`raft_arm`, at boot: the crash wand is built before 
 from `RNames`, since `durBody` mentions them.)
 * `sv`, `st`: `ghostVar (SState × Option TermPend × Option DiscPend)`, `ghostVar StableAbs`: the main
   goroutine's views of its protocol state (with the pending term step and discard, `srvVP`; none
-  outside those phases, `srvV`) and of the stable store's contents (`stV`; ½ each, the other ½ in
-  `durBody`);
+  outside those phases, `srvV`) and of the stable store's contents with the log store's staged commit
+  index (`stV`, `stVS`: `ghostVar (StableAbs × w64)`; ½ each, the other ½ in `durBody`);
 * `tv`, `cv`: `ghostVar Nat`: the `currentTerm` and `commitIndex` atomics' views (`termV`,
   `cidxV`; ½ in `termCell`/`cidxCell`, ½ in `durBody`);
 * `applied`: `mono_nat`, the `lastApplied` cell's value (authority: cell ½, main goroutine ½; lower
@@ -291,7 +291,13 @@ def srvVP (rc : RCtx GF) (s : SState) (tp : Option TermPend) (dp : Option DiscPe
 
 /-- (hraft_robust L0) The main goroutine's view of the stable store's contents (½; the other half in
 `durBody`). Replaces `rc.ownS` in `mainOwnAt`. -/
-def stV (rc : RCtx GF) (D : StableAbs) : IProp GF := ghostVar rc.dur.st (1 : Qp).half D
+def stV (rc : RCtx GF) (D : StableAbs) : IProp GF :=
+  iprop(∃ g : w64, ghostVar rc.dur.st (1 : Qp).half (D, g))
+
+/-- (hraft_robust L0, R4b Q1) `stV` with the log store's staged commit index `g` (`LogAbs.staged`):
+only the main goroutine stages (`StageCommitIndex`), so its view pins it; a `StoreLogs` writes it
+(`ci := staged`), whose atomic update must then show it durable (`durBody`'s `ci ≤ dur`). -/
+def stVS (rc : RCtx GF) (D : StableAbs) (g : w64) : IProp GF := ghostVar rc.dur.st (1 : Qp).half (D, g)
 
 /-- (hraft_robust L0) The `currentTerm` atomic's view of the protocol's term (½; the other half in
 `durBody`, at `X.s.term`, where `termCouple` lives). -/
@@ -971,7 +977,7 @@ durable, the snapshot store's latest (`latestDur`), and the pending steps' premi
 def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
   iprop(srvOwn γ i X.s ∗ durView γ i (1 : Qp).half X.s.dur.1 ∗ logCouple γ i X.s.log ∗
     termCouple γ i X.s.term ∗ cidxCouple γ i X.s.cidx ∗
-    ghostVar rc.dur.sv (1 : Qp).half (X.s, X.tp, X.dp) ∗ ghostVar rc.dur.st (1 : Qp).half X.D ∗
+    ghostVar rc.dur.sv (1 : Qp).half (X.s, X.tp, X.dp) ∗ ghostVar rc.dur.st (1 : Qp).half (X.D, X.A.staged) ∗
     ghostVar rc.dur.tv (1 : Qp).half X.s.term ∗ ghostVar rc.dur.cv (1 : Qp).half X.s.cidx ∗
     rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
