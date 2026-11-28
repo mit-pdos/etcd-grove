@@ -26,12 +26,12 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `BootstrapCluster`: On empty stores: stores the genesis entry (the configuration entry of the servers `ss`, term 1, index 1) and current term 1; returns nil. (Stage 3: the log store over a partial map, `LogAbs`; its writes no longer take the durable-prefix view and `llogIdx`; the snapshot store is `isSnapStore`, empty.) -/
 abbrev github_com.hashicorp.raft.BootstrapCluster.spec : Prop :=
-  ∀ (cp : Loc) (c : Config) (logsI stableI snapsI : GoInterfaceOk) (trans : GoInterface)
+  ∀ (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Qc : SnapshotMeta → List w8 → IProp GF) (cp : Loc) (c : Config) (logsI stableI snapsI : GoInterfaceOk) (trans : GoInterface)
     (cfgv : Configuration) (ss : List Server) (dq : DFrac) (γ : GNames) (i : SID)
     (ownL : LogAbs → IProp GF) (ownS : StableAbs → IProp GF) (ownSS : SnapLatest → IProp GF)
     (eof : GoInterface) (sst : StableAbs) (tid : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ cp ↦ c ∗ ⌜cfgOk c i⌝ ∗
-     isLogStore logsI ownL ∗ isStableStore stableI ownS ∗ isSnapStore snapsI ownSS eof ∗
+     isLogStore logsI ownL Wl ∗ isStableStore stableI ownS Ws ∗ isSnapStore snapsI ownSS eof Qc ∗
      cfgv.Servers' ↦*{dq} ss ∗ ⌜srvsOk γ ss ∧ γ.srvs.Nodup ∧ γ.srvs ≠ []⌝ ∗
      ownL LogAbs.empty ∗ ownS sst ∗ ⌜(sst.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0) = W64 0⌝ ∗
      ownSS none ∗ rtok tid }}

@@ -387,7 +387,7 @@ def getLogRepl (γ : GNames) (i : SID) (T : Nat) (ptr : Loc) (idx : Nat) (err : 
 
 theorem wp_getLog_repl (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) (x : GoInterfaceOk)
     (idx : w64) (ptr : Loc) (lv0 : Log) (tid : Nat) :
-    {{ Inv γ ∗ srvDurInv γ rc i ∗ isLogStore x rc.ownL ∗ leaderIs γ T i ∗ termLb γ i T ∗
+    {{ Inv γ ∗ srvDurInv γ rc i ∗ isLogStore x rc.ownL (logWin γ rc i) ∗ leaderIs γ T i ∗ termLb γ i T ∗
        ptr ↦ lv0 ∗ rtok tid }}
       (App (App (Val #(methods x.ty go!"GetLog" x.v)) (Val #idx)) (Val #ptr))
     {{ (err : GoInterface), RET #err; rtok tid ∗ getLogRepl γ i T ptr (uint.nat idx) err }} := by
