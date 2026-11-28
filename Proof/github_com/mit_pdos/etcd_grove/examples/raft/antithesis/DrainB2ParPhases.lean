@@ -118,7 +118,7 @@ def parCauseB2 (γ : AntNamesB2) (j : Fin γ.R.N) (dead : Bool) (v : AntSim.Node
 within B2's that the run's relation admits, synchronous storage without batching: from the view `v₁`
 with the requests (appends and heartbeats) pending first (`reqPend … 0`, alive), each request
 reported (`reportCause`, `emit(sendEv)`: `sendHstepD`) and handed over (`sendMsg`), each other message
-left; a kill on the way (`emit`'s fuse) leaves the rest unreported and unsent. Then `K` at the view
+left (the requests' entries normal, as `sendEv` needs, also when dead); a kill on the way (`emit`'s fuse) leaves the rest unreported and unsent. Then `K` at the view
 `v₂`, `v₁` but for its pending messages (alive: the other messages, `reqPend … ms.length`), `told` (set
 once the cause is reported: a `Ready` without requests whose `mem` was not reported reports none) and
 the undo record (none and made once a request is reported); the requests frozen (`drainMsgsParB2`). -/
@@ -129,7 +129,8 @@ abbrev parReqB2.stmt : Prop :=
   msk ≤ AntSim.mskB2 →
   (∀ S V net xnet, AntSim.AntSimD γ.R γ.dec S V net xnet → AntSim.InMask msk γ.R net xnet) →
   γ.mode.Async' = false → γ.mode.Batch' = false →
-  I.OkB2 γ.toAntNames j → (dead = false → v₁.pend = reqPend I.ms 0 ∧ v₁.parts = []) →
+  I.OkB2 γ.toAntNames j → (∀ m ∈ I.ms, isRequestTy m.st.msg.Type' = true → AllNormal m.st.ents) →
+  (dead = false → v₁.pend = reqPend I.ms 0 ∧ v₁.parts = [] ∧ v₁.byE = I.v.byE) →
   isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ ⌜DrainB2 γ.scope γ.mode⌝ ∗
       np ↦ n ∗ bp ↦ I.v.byE ∗ rdp ↦ I.rd ∗ killOwn n dead fuse ∗ n.[H.node, go!"cause"] ↦ cl ∗

@@ -105,7 +105,7 @@ theorem causeOwn_pendingB2 (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView
 /-- **`reportCause`'s reports under B2** (`causeOwn_report`'s): from the cause cell against the view,
 the pending report `o` (some exactly while the view's `recv` is not reported) and `reports` of it: the
 handled message's `recv` (`antSim_recvD_in` / `antSim_recvXD_in`), or nothing; the caller's `Φ` at the
-view with `told` set as `Told` needs, the sent lists' lower bounds grown. -/
+view with `told` set as `Told` needs (or kept), the sent lists' lower bounds grown. -/
 theorem causeOwn_reportB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimMask)
     (hmsk : msk ≤ AntSim.mskB2)
     (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (q : Qp) (v : AntSim.NodeView) (net₀ : List Msg)
@@ -115,7 +115,7 @@ theorem causeOwn_reportB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimM
     antClusterB2 c γ ∗ sentLb γ.toAntNames net₀ ∗ xsentLb γ.toAntNames xnet₀ ∗
         causeOwn γ.toAntNames j v cl ∗ viewFrag γ.toAntNames j v ∗ runLive γ q ∗
         (∀ (b : Bool) (net : List Msg) (xnet : List XMsg),
-          ⌜(v.byE = go!"recv" → b = true) ∧ net₀ <+: net ∧ xnet₀ <+: xnet⌝ -∗
+          ⌜(v.byE = go!"recv" → b = true) ∧ (b = v.told ∨ b = true) ∧ net₀ <+: net ∧ xnet₀ <+: xnet⌝ -∗
             sentLb γ.toAntNames net -∗ xsentLb γ.toAntNames xnet -∗
             viewFrag γ.toAntNames j { v with told := b } -∗ runLive γ q -∗ Φ) ⊢
       ∃ o : Option AntCheck.Event, pendingCause cl o ∗
@@ -149,7 +149,7 @@ theorem causeOwn_reportB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimM
       · iapply factsExt_none
       iintro ⟨Hv, Hl, %net, %xnet, #Hlb2, #Hxlb2, %Hp2⟩
       iapply HΦ $$ %true %net %xnet [] Hlb2 Hxlb2 Hv Hl
-      ipureintro; exact ⟨fun _ => rfl, Hn1.1.trans Hp2.1, Hp2.2.2.1⟩
+      ipureintro; exact ⟨fun _ => rfl, .inr rfl, Hn1.1.trans Hp2.1, Hp2.2.2.1⟩
     · ihave ⟨%xnet₁, #Hxlb1, %Hx1⟩ := xsentLb_join γ.toAntNames xnet₀ x $$ [$Hw $Hxlb]
       iexists some (recvEvM (AntSim.xmsgOf x))
       iframe Hpc
@@ -173,7 +173,7 @@ theorem causeOwn_reportB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimM
       · iapply factsExt_none
       iintro ⟨Hv, Hl, %net, %xnet, #Hlb2, #Hxlb2, %Hp2⟩
       iapply HΦ $$ %true %net %xnet [] Hlb2 Hxlb2 Hv Hl
-      ipureintro; exact ⟨fun _ => rfl, Hp2.1, Hx1.1.trans Hp2.2.2.1⟩
+      ipureintro; exact ⟨fun _ => rfl, .inr rfl, Hp2.1, Hx1.1.trans Hp2.2.2.1⟩
   · rw [if_neg hp]
     iexists none
     iframe Hco
@@ -182,7 +182,7 @@ theorem causeOwn_reportB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimM
     simp only [Option.toList, List.map_nil, reports]
     iapply HΦ $$ %v.told %net₀ %xnet₀ [] Hlb Hxlb Hv Hl
     ipureintro
-    refine ⟨fun hb => ?_, List.prefix_refl _, List.prefix_refl _⟩
+    refine ⟨fun hb => ?_, .inl rfl, List.prefix_refl _, List.prefix_refl _⟩
     cases ht : v.told
     · exact absurd ⟨hb, ht⟩ hp
     · rfl
