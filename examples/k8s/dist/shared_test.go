@@ -175,9 +175,9 @@ func created10Obj() k8s.Obj {
 }
 
 // TestReplayHistory checks a store history RunStore dumped (DIST_DUMP; the file named by
-// DIST_HISTORY) as RunStore does, for profiling the check; with DIST_CROSS set, every watch step
-// is checked both by watchOk and by the shared model's indexed copy of it, which must agree;
-// DIST_CHECK_TIMEOUT (a duration) replaces each mode's CheckTimeout.
+// DIST_HISTORY) as RunStore does, for profiling the check; DIST_CHECK_TIMEOUT (a duration) replaces
+// each mode's CheckTimeout. (examples/k8s/etcd3's TestCrossCheckWatches checks such a history's
+// watch steps both by watchOk and by the shared model's indexed copy of it.)
 func TestReplayHistory(t *testing.T) {
 	p := os.Getenv("DIST_HISTORY")
 	if p == "" {
@@ -187,8 +187,6 @@ func TestReplayHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k8s.CrossCheckWatches(os.Getenv("DIST_CROSS") != "")
-	defer k8s.CrossCheckWatches(false)
 	start := time.Now()
 	revs := k8s.HistoryRevs(ops)
 	timeout := CheckTimeout
