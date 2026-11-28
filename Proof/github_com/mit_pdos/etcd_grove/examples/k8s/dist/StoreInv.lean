@@ -350,6 +350,208 @@ theorem kOkD_foreign (c : StoreCfg GF DObj) (g0 : HSt) : kOkD_foreign.law c g0 :
           keys := keysOkP_foreign hc hb hm hf H.keys, vals := valsOkP_foreign hc hb hm hf H.vals,
           fresh := H.fresh, ins := H.ins, cfg := ⟨cf', hS', hrel', hlen', hpend ▸ hperm⟩ }
 
+/-! ### `KOk`'s steps on `KOkD` (`Inv.lean`'s `kOk_*`, over `pSeqF` and prefix-only keys and values) -/
+
+theorem nowrap_of_krelH {cf : GCfg} {σ : KVState} (h : KRelH cf.st σ) : NoWrap cf := by
+  have e := h.2.1.2.1
+  unfold NoWrap; rw [← e]; simp only [W64, uint.nat, BitVec.toNat_ofInt]; have := h.1; omega
+
+/-- **The keys under `/registry/` stay the workload's** (`keysOk_step`, prefix-only). -/
+theorem keysOkP_step (c : StoreCfg GF DObj) (σ σ' : KVState)
+    (h : keysOkP σ) (hw' : kvWf c σ') (hn : k8s.KvNext σ σ') (hki : k8s.KeysIn c.pfx σ σ')
+    (K : GoString) (hKw : K ∈ wkKeysL.map mkeyL)
+    (hK : ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) : keysOkP σ' := by
+  intro r hr v hv hpv
+  by_cases hle : r ≤ σ.rev
+  · rw [kvNext_at hn r hle] at hv
+    exact h r hle v hv hpv
+  have hr' : r = σ'.rev := by rcases kvNext_rev hn with e | e <;> omega
+  subst hr'
+  have hv' : v ∈ σ'.kvs := hv
+  have hold : ∀ w ∈ σ.kvs, w.key = v.key → v.key ∈ wkKeysL.map mkeyL := fun w hw e =>
+    e ▸ h σ.rev (Nat.le_refl _) w hw (e ▸ hpv)
+  rcases hki v hv' with ⟨w, hw, e⟩ | hp
+  · exact hold w hw e
+  · by_cases hex : ∃ w ∈ σ.kvs, w.key = v.key
+    · obtain ⟨w, hw, e⟩ := hex; exact hold w hw e
+    · have := newKey_eq c σ σ' hw' K hK v hv' hp (fun w hw e => hex ⟨w, hw, e⟩)
+      rw [this]; exact hKw
+
+/-- The store's model of a state whose values under `/registry/` are short has short objects. -/
+theorem absValsP (c : StoreCfg GF DObj) (hc : CfgD c) (σ : KVState) (hw : kvWf c σ) (h : valsOkP σ) :
+    ∀ k it, (c.abs σ).items k = some it → it.obj.val.length ≤ 2 ^ 20 := by
+  intro k it hit
+  by_cases hpk : c.pfx <+: k
+  · cases hf : mvcc.findKey k σ.kvs with
+    | none => rw [c.abs_none σ _ hf] at hit; cases hit
+    | some w =>
+      obtain ⟨o, b, hob⟩ := c.dec_of_wf σ hw k hpk w hf
+      rw [c.abs_some σ k hpk w hf o b hob] at hit
+      cases hit
+      have hpw : regP <+: w.key := by rw [mvcc.findKey_key hf]; exact regP_kpfxD.trans (hc.2 ▸ hpk)
+      exact h σ.rev (Nat.le_refl _) w (mvcc.findKey_mem hf) hpw (o, b) (by rw [← hc.1]; exact hob)
+  · simp [StoreCfg.abs, absK, hpk] at hit
+
+/-- **The values under `/registry/` stay short** (`valsOk_step`, prefix-only). -/
+theorem valsOkP_step (c : StoreCfg GF DObj) (hc : CfgD c) (σ σ' : KVState)
+    (h : valsOkP σ) (hw' : kvWf c σ') (hn : k8s.KvNext σ σ') (hk' : keysOkP σ')
+    (hv : ∀ k it, (c.abs σ').items k = some it → it.obj.val.length ≤ 2 ^ 20) : valsOkP σ' := by
+  intro r hr v hvm hpv d hd
+  by_cases hle : r ≤ σ.rev
+  · rw [kvNext_at hn r hle] at hvm
+    exact h r hle v hvm hpv d hd
+  have hr' : r = σ'.rev := by rcases kvNext_rev hn with e | e <;> omega
+  subst hr'
+  have hv' : v ∈ σ'.kvs := hvm
+  have hf' := txn.findKey_of_mem_sorted hw'.1 hv'
+  have hp : c.pfx <+: v.key := by
+    rw [hc.2]
+    obtain ⟨k, -, e⟩ := List.mem_map.1 (hk' σ'.rev (Nat.le_refl _) v hvm hpv)
+    rw [← e]; exact kpfxD_mkeyL k
+  obtain ⟨o, b⟩ := d
+  have hd' : c.S.dec v.value = some (o, b) := by rw [hc.1]; exact hd
+  exact hv _ _ (c.abs_some σ' v.key hp v hf' o b hd')
+
+section port
+variable {c : StoreCfg GF DObj} {g0 : HSt}
+
+/-- The relation at the start: the model's initial state, nothing pending. -/
+theorem kOkD_init (σ : KVState) (hw : kvWf c σ) (hwh : kvWfHist c σ) (hk : keysOkP σ)
+    (hv : valsOkP σ) (he : KRelH g0 σ) (hl : g0.hist.length = σ.rev) :
+    KOkD c g0 (fInit g0) σ (∅ : GMap Nat Input) 0 := by
+  refine ⟨fInit_closed g0, hw, hwh, hk, hv, fun _ _ => rfl, (fun _ _ h => by cases h),
+    ⟨⟨g0, []⟩, .refl _, he, hl, ?_⟩⟩
+  simp [pendIns]
+
+/-- **An operation answered at the real configuration** (not a list; `kOk_ok`). -/
+theorem kOkD_ok (hc : CfgD c) {S : linkv.PSet HSt Input} {σ σ' : KVState} {M : GMap Nat Input}
+    {nx : Nat} (H : KOkD c g0 S σ M nx) (eD eU : GoInterface) (x : Input) (hx : InOk x)
+    (hval : x.Val'.length ≤ 2 ^ 20) (hk4 : x.Kind' ≠ W64 4) (h5 : x.Kind' ≠ W64 5)
+    (habs : c.abs σ' = (kStep eD eU x (c.abs σ)).1) (hw' : kvWf c σ') (hn : k8s.KvNext σ σ')
+    (hki : k8s.KeysIn c.pfx σ σ') (hr : σ.rev + 2 < 2 ^ 63) :
+    ∃ S', (pSeqF g0).step S (x, .ok (kStep eD eU x (c.abs σ)).2) = some S' ∧
+      KOkD c g0 S' σ' M nx := by
+  obtain ⟨cf, hcf, hrel, hlen, hp⟩ := H.cfg
+  have hwh' := kvWfHist_step c σ σ' H.hwf hw' hn
+  obtain ⟨hrel', hlen', hout⟩ := cfg_step hc eD eU x hx hk4 cf.st σ σ' hrel hlen habs hn hwh' hr
+  obtain ⟨S', hS', hc'⟩ := pSeqF_step_of hcf (.refl _) (nowrap_of_krelH hrel)
+    (linkv.PStep.ok cf x (decide_eq_false h5)) (.refl _)
+  have hKw : mkeyL x.Key' ∈ wkKeysL.map mkeyL := List.mem_map_of_mem hx.1
+  have hkeys := keysOkP_step c σ σ' H.keys hw' hn hki _ hKw
+    (fun k hk => by rw [habs]; exact kStep_items eD eU x _ k hk)
+  have hvals := valsOkP_step c hc σ σ' H.vals hw' hn hkeys
+    (by rw [habs]; exact kStep_vals eD eU x _ (absValsP c hc σ H.wf H.vals) hval)
+  refine ⟨S', ?_, ⟨pSeqF_step_closed hS', hw', hwh', hkeys, hvals, H.fresh, H.ins,
+    ⟨_, hc', hrel', hlen', hp⟩⟩⟩
+  rw [hout]; exact hS'
+
+/-- **A list answered at the real configuration** (`kOk_list`). -/
+theorem kOkD_list {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
+    (H : KOkD c g0 S σ M nx) (x : Input) (hx : InOk x) (hk4 : x.Kind' = W64 4) :
+    ∃ S', (pSeqF g0).step S (x, .ok (lOut x σ)) = some S' ∧ KOkD c g0 S' σ M nx := by
+  obtain ⟨cf, hcf, hrel, hlen, hp⟩ := H.cfg
+  obtain ⟨S', hS', hc'⟩ := pSeqF_step_of hcf (.refl _) (nowrap_of_krelH hrel)
+    (linkv.PStep.ok cf x (decide_eq_false (by rw [hk4]; decide))) (.refl _)
+  have hst : kstepL x cf.st = (cf.st, mlistL x cf.st) := by unfold kstepL; rw [if_pos hk4]
+  rw [show (kSpec g0).step x cf.st = (cf.st, mlistL x cf.st) from hst] at hS' hc'
+  refine ⟨S', ?_, ⟨pSeqF_step_closed hS', H.wf, H.hwf, H.keys, H.vals, H.fresh, H.ins,
+    ⟨_, hc', hrel, hlen, hp⟩⟩⟩
+  rw [refine_lOut x cf.st σ hrel hx hk4]; exact hS'
+
+/-- A write committed as pending, its token minted at `nx` (`kOk_errW`). -/
+theorem kOkD_errW {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
+    (H : KOkD c g0 S σ M nx) (x : Input) (hw : isWriteL x = true) (hx : InOk x)
+    (hval : x.Val'.length ≤ 2 ^ 20) :
+    ∃ S', (pSeqF g0).step S (x, .err) = some S' ∧
+      KOkD c g0 S' σ (GMap.insert nx x M) (nx + 1) := by
+  obtain ⟨cf, hc, hst, hlen, hp⟩ := H.cfg
+  have h5 : x.Kind' ≠ W64 5 := by
+    intro e; simp [isWriteL, e] at hw
+  obtain ⟨S', hS', hc'⟩ := pSeqF_step_of hc (.refl _) (nowrap_of_krelH hst)
+    (linkv.PStep.errW cf x hw (decide_eq_false h5)) (.refl _)
+  refine ⟨S', hS', ⟨pSeqF_step_closed hS', H.wf, H.hwf, H.keys, H.vals, ?_, ?_,
+    ⟨_, hc', hst, hlen, ?_⟩⟩⟩
+  · intro n hn
+    show (GMap.insert nx x M) !! n = none
+    rw [GMap.lookup_insert_ne _ _ (by omega)]
+    exact H.fresh n (by omega)
+  · intro n j hn
+    by_cases e : nx = n
+    · subst e
+      have : (GMap.insert nx x M) !! nx = some x := GMap.lookup_insert _ _ _
+      rw [this] at hn
+      cases hn
+      exact ⟨hx, hw, hval⟩
+    · have : (GMap.insert nx x M) !! n = M !! n := GMap.lookup_insert_ne _ _ e
+      rw [this] at hn
+      exact H.ins n j hn
+  · exact (pendIns_insert M nx x (H.fresh nx (Nat.le_refl _))).trans (hp.cons _)
+
+/-- A read that failed (`kOk_errR`). -/
+theorem kOkD_errR {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
+    (H : KOkD c g0 S σ M nx) (x : Input) (hw : isWriteL x = false) (h5 : x.Kind' ≠ W64 5) :
+    ∃ S', (pSeqF g0).step S (x, .err) = some S' ∧ KOkD c g0 S' σ M nx := by
+  obtain ⟨cf, hc, hst, hlen, hp⟩ := H.cfg
+  obtain ⟨S', hS', hc'⟩ := pSeqF_step_of hc (.refl _) (nowrap_of_krelH hst)
+    (linkv.PStep.errR cf x hw (decide_eq_false h5)) (.refl _)
+  exact ⟨S', hS', ⟨pSeqF_step_closed hS', H.wf, H.hwf, H.keys, H.vals, H.fresh, H.ins,
+    ⟨cf, hc', hst, hlen, hp⟩⟩⟩
+
+/-- A watch whose answer every configuration related at `σ` allows (`kOk_obs`). -/
+theorem kOkD_obs {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
+    (H : KOkD c g0 S σ M nx) (x : Input) (y : Output) (hk5 : x.Kind' = W64 5)
+    (hw : ∀ cf : linkv.PCfg HSt Input, S cf → KRelH cf.st σ → cf.st.hist.length = σ.rev →
+      watchOkL x y cf.st = true) :
+    ∃ S', (pSeqF g0).step S (x, .ok y) = some S' ∧ KOkD c g0 S' σ M nx := by
+  obtain ⟨cf, hc, hst, hlen, hp⟩ := H.cfg
+  obtain ⟨S', hS', hc'⟩ := pSeqF_step_of hc (.refl _) (nowrap_of_krelH hst)
+    (linkv.PStep.obs cf x y (decide_eq_true hk5) (hw cf hc hst hlen)) (.refl _)
+  exact ⟨S', hS', ⟨pSeqF_step_closed hS', H.wf, H.hwf, H.keys, H.vals, H.fresh, H.ins,
+    ⟨cf, hc', hst, hlen, hp⟩⟩⟩
+
+/-- **A late effect**: the pending write `n ↦ x` takes effect, the model state unchanged (`kOk_pend`). -/
+theorem kOkD_pend (hc : CfgD c) {S : linkv.PSet HSt Input} {σ σ' : KVState} {M : GMap Nat Input}
+    {nx : Nat} (H : KOkD c g0 S σ M nx) (eD eU : GoInterface) (n : Nat) (x : Input)
+    (hn : M !! n = some x)
+    (habs : c.abs σ' = (kStep eD eU x (c.abs σ)).1) (hw' : kvWf c σ') (hnx : k8s.KvNext σ σ')
+    (hki : k8s.KeysIn c.pfx σ σ') (hr : σ.rev + 2 < 2 ^ 63) :
+    KOkD c g0 S σ' (GMap.delete n M) nx := by
+  obtain ⟨cf, hcf, hst, hlen, hp⟩ := H.cfg
+  obtain ⟨hx, hwx, hval⟩ := H.ins n x hn
+  have hd := pendIns_delete M n x hn
+  have hmem : x ∈ cf.pend := hp.subset (hd.symm.subset List.mem_cons_self)
+  have hwh' := kvWfHist_step c σ σ' H.hwf hw' hnx
+  obtain ⟨hrel', hlen', -⟩ :=
+    cfg_step hc eD eU x hx (isWriteL_ne4 x hwx) cf.st σ σ' hst hlen habs hnx hwh' hr
+  have hKw : mkeyL x.Key' ∈ wkKeysL.map mkeyL := List.mem_map_of_mem hx.1
+  have hkeys := keysOkP_step c σ σ' H.keys hw' hnx hki _ hKw
+    (fun k hk => by rw [habs]; exact kStep_items eD eU x _ k hk)
+  have hvals := valsOkP_step c hc σ σ' H.vals hw' hnx hkeys
+    (by rw [habs]; exact kStep_vals eD eU x _ (absValsP c hc σ H.wf H.vals) hval)
+  refine ⟨H.closed, hw', hwh', hkeys, hvals, ?_, ?_,
+    ⟨_, H.closed.pend hcf (nowrap_of_krelH hst) (.apply cf x hmem), hrel', hlen', ?_⟩⟩
+  · intro m hm
+    show (GMap.delete n M) !! m = none
+    by_cases e : n = m
+    · subst e; exact GMap.lookup_delete _ _
+    · rw [GMap.lookup_delete_ne _ e]; exact H.fresh m hm
+  · intro m j hm
+    by_cases e : n = m
+    · subst e
+      have : (GMap.delete n M) !! n = none := GMap.lookup_delete _ _
+      rw [this] at hm; cases hm
+    · have : (GMap.delete n M) !! m = M !! m := GMap.lookup_delete_ne _ e
+      rw [this] at hm
+      exact H.ins m j hm
+  · refine List.Perm.cons_inv ((hd.symm.trans hp).trans ?_)
+    exact List.perm_cons_erase hmem
+
+/-- A firing that leaves etcd's state as it was. -/
+theorem kOkD_same {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
+    (H : KOkD c g0 S σ M nx) : KOkD c g0 S σ M nx := H
+
+end port
+
 /-- **The revisions' states on the shared KV** (`revOwn` with `KHistID`). -/
 def revOwnD (γ : KNames) (σ : KVState) : IProp GF :=
   iprop(∃ Mr : GMap Nat KVState, ghostMapAuth γ.r 1 Mr ∗
