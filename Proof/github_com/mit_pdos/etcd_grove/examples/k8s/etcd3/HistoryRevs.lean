@@ -16,6 +16,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeWEvents
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeItemRVs
 public import Perennial.Spec.slices.Sort
+public import Perennial.Proof.slices.Results
 
 @[expose] public section
 
@@ -205,7 +206,8 @@ theorem allSt_mono0 (S : w64 → Prop) (am bm : GoMap) {P Q : w64 → Prop}
 theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     (wp_rvOfMsg : rvOfMsg.spec (GF := GF) (hG := hG))
     (wp_decodeWEvents : decodeWEvents.spec (GF := GF) (hG := hG))
-    (wp_decodeItemRVs : decodeItemRVs.spec (GF := GF) (hG := hG)) :
+    (wp_decodeItemRVs : decodeItemRVs.spec (GF := GF) (hG := hG))
+    (wp_Sort : _root_.Perennial.slices.Sort.spec (GF := GF) (hG := hG)) :
     HistoryRevs.spec (GF := GF) (hG := hG) := by
   intro sl ops xs dq Hops Hok Hcost
   generalize hS : (fun v : w64 => v ∈ xs.flatMap fun p => insL p.1 p.2) = S
@@ -812,8 +814,64 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     icases Hst with ⟨%A, %B, HA, HB, HBs, %HG⟩
     rw [hfull] at HG
     iStructNamed r
-    -- WIP (K9-16): the tail (collect `A`'s keys, `slices.Sort`, the `byKey` loops). Blocked on a size
-    -- bound `slices.Sort` needs (`notes/specs-only/ledger.md`, 2026-11-28, `HistoryRevs.spec`).
+    have hSL : ∀ k, S k → k ∈ xs.flatMap fun p => insL p.1 p.2 := fun k hk => by rw [← hS] at hk; exact hk
+    have hNA : GMap.size A ≤ 2 ^ 62 := by
+      have h := size_le_of_keys A _ (fun k hk => hSL k (HG.2 k hk))
+      rw [histCost_eq] at h; omega
+    ihave Hn := ownSlice_nil (V := w64) (GF := GF) (DFrac.own 1)
+    ihave Hc := ownSliceCap_nil (V := w64) (GF := GF)
+    wp_func_lits
+    wp_bind (App (App (Val (map.forRange _ _)) _) _)
+    iapply wp_map_for_range (fun (keys : List w64) (p : Int) => iprop(∃ (x : w64) (s : GoSlice),
+        "%Hp" ∷ ⌜0 ≤ p⌝ ∗ "v" ∷ v_ptr ↦ x ∗ "anchors" ∷ r_ptr.[Revs, go!"anchors"] ↦ s ∗
+        "Hsl" ∷ s ↦* keys.take p.toNat ∗ "Hcap" ∷ ownSliceCap w64 s (DFrac.own 1))) $$ HA
+    iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
+    isplitl [v anchors Hn Hc]
+    · iexists _, slice.nil
+      simp only [named, Int.toNat_zero, List.take_zero]
+      iframe
+      isplitr
+      · ipureintro; exact Int.le_refl _
+      isplitl [Hn]
+      · iexact Hn
+      · iexact Hc
+    isplitr
+    · imodintro
+      iintro %p %k %o ⟨%Hkey, %Ho⟩ HP
+      iNamed HP
+      wp_auto
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %l1 ⟨Hl1, -⟩
+      simp only [go.arrayLiteralSize, List.foldl]
+      (try wp_auto)
+      wp_apply wp_slice_append_dfrac $$ [$Hsl $Hcap $Hl1]
+        as %sl' ⟨Hsl, Hcap, -⟩
+      · ipureintro; exact DFrac.valid_own_one
+      (try wp_auto)
+      unfold forMapPostcondition
+      iright; ileft
+      isplitr
+      · ipureintro; rfl
+      iexists k, sl'
+      simp only [named]
+      have Htake : keys.take (p + 1).toNat = keys.take p.toNat ++ [k] := by
+        rw [show (p + 1).toNat = p.toNat + 1 by omega]
+        rw [List.take_add_one, Hkey]; rfl
+      rw [Htake]
+      iframe
+      ipureintro; omega
+    iintro HP HA
+    iNamed HP
+    rw [← Hklen, Int.toNat_natCast, List.take_length]
+    wp_auto
+    ihave #Hless := _root_.Perennial.slices.lessImplements_uint64 (GF := GF)
+    wp_apply wp_Sort (fun (x y : w64) => uint.Z x < uint.Z y) s keys
+        _root_.Perennial.slices.StrictWeakOrder_unsigned_lt $$ [Hsl]
+      with %ks' ⟨Hsl, %Hperm, %Hsorted⟩
+    · iframe Hsl; iframe #; ipureintro; rw [Hklen]; exact hNA
+    -- WIP (K9-17): the `byKey` loops.
     sorry
 
 end proof
