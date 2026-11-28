@@ -301,6 +301,24 @@ theorem viewsP_local {ps : List (GoString × GName)} {i : Nat} {p : GoString} {�
   intro k e hk he
   exact pfxVH_local hf σ e.1 (hap k i e (p, γ) hk he hi) (hap i k (p, γ) e (Ne.symm hk) hi he)
 
+/-- An update or the identity, chosen by `b` (`kvPfxP_auRWH`'s `F`). -/
+theorem pfxLocal_ite {p : GoString} {f : KVState → KVState} (hf : PfxLocal p f) (b : Bool) :
+    PfxLocal p (fun σ => if b then f σ else σ) := by
+  cases b
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    exact ⟨fun _ _ _ _ => rfl, fun σ => ⟨rfl, rfl, [], by simp, by simp⟩⟩
+  · simpa using hf
+
+theorem changes_ite_ok {f : KVState → KVState} {okp : mvcc.Change → Prop}
+    (hok : ∀ σ new, (f σ).changes = σ.changes ++ new → ∀ cs ∈ new, ∀ c ∈ cs, okp c) (b : Bool) :
+    ∀ σ new, ((fun σ => if b then f σ else σ) σ).changes = σ.changes ++ new →
+      ∀ cs ∈ new, ∀ c ∈ cs, okp c := by
+  cases b
+  · intro σ new h
+    have hn : new = [] := by simpa using h.symm
+    subst hn; simp
+  · simpa using hok
+
 /-- **The mask of a firing's step** (`kvPfxP_au1H`'s callback, K8-9): the client's update mask without the
 client's invariants (the owner's and the share's, open around the step), so the step can open other
 invariants, e.g. a linearization ghost's. -/
@@ -393,6 +411,87 @@ theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Chan
       ipureintro; exact hnext
     imod Hclosew $$ [Hhalf HW] with -
     · inext; iexists (pfxVH p (f σ)); iframe Hhalf HW
+    imodintro
+    iexact HQ
+
+/-- **An owner's persistent update of the KV that may decline, reading the history** (K8-10; `k8sAuRW`'s
+share law): `kvPfxP_au1H`'s step, persistent, at the update `F b` the caller's commit chooses (`b`; e.g. `F true`
+a transaction's step and `F false` the identity, a declined firing), the caller handing `P b σ` to the step. -/
+theorem kvPfxP_auRWH (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Change → Prop) (γh : GName)
+    (σ₀ : KVState) (s : String) (hs : s ≠ "share")
+    (W : PfxV → IProp GF) [hW : ∀ v, Timeless (W v)] (l0 : List (List mvcc.Change))
+    (F : Bool → KVState → KVState) (hF : ∀ b, PfxLocal p (F b))
+    (hokF : ∀ b σ new, (F b σ).changes = σ.changes ++ new → ∀ cs ∈ new, ∀ c ∈ cs, okp c)
+    (P Q : Bool → KVState → IProp GF) :
+    kvPfxHP γk p γ okp γh σ₀ ∗
+      inv (client.kvClientN .@ s) iprop(∃ v, ghostVar γ (1 : Qp).half v ∗ W v) ∗
+      monoListLbOwn γh l0 ∗
+      □ (∀ σ b, ⌜l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes ∧ kvRoom σ⌝ -∗ P b σ -∗
+        monoListAuthOwn γh 1 σ.changes -∗ W (pfxVH p σ) -∗ |={kvPfxCbE}=>
+          (monoListAuthOwn γh 1 (F b σ).changes ∗ W (pfxVH p (F b σ)) ∗ Q b σ)) ⊢
+    □ AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+      <{ ∀∀ (b : Bool), etcdKV γk (F b σ) ∗ ⌜kvRoom σ⌝ ∗ P b σ, COMM Q b σ }> := by
+  have Hm := client.kvClientN_mask
+  have Hm2 := kvShareN_mask s hs
+  iintro ⟨#Hpfx, #Hinv, #Hl0, #Hstep⟩
+  iunfold kvPfxHP at Hpfx
+  icases Hpfx with ⟨%ps, %i, %ok, %Hps, #Hsh⟩
+  obtain ⟨Hap, Hi, Hok⟩ := Hps
+  iunfold kvPfxInvP at Hsh
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hw Hclosew
+  icases Hw with ⟨%v, Hhalf, HW⟩
+  iinv Hsh with >Hs Hcloses
+  icases Hs with ⟨%σ, Hσ, Hviews, Hh, %Hσok⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hcloses $$ [Hσ Hviews Hh] with -
+    · inext; iexists σ; iframe Hσ Hviews Hh; ipureintro; exact Hσok
+    imod Hclosew $$ [Hhalf HW] with -
+    · inext; iexists v; iframe Hhalf HW
+    imodintro
+    itrivial
+  · iintro %b ⟨Hσ, %Hroom, HP⟩
+    imod Hmask with -
+    have hf := hF b
+    have hok := hokF b
+    obtain ⟨hc, hb, new, hnew, hloc⟩ := hf.2 σ
+    icases (viewsP_acc ps i p γ Hi σ).1 $$ Hviews with ⟨Hown, Hrest⟩
+    ihave %Hv := ghostVar_agree γ v _ (pfxVH p σ) _ $$ Hhalf Hown
+    subst Hv
+    imod (ghostVar_update_halves (pfxVH p (F b σ)) γ (pfxVH p σ) (pfxVH p σ)) $$ Hhalf Hown
+      with ⟨Hhalf, Hown⟩
+    ihave %Hp := mono_list_auth_lb_valid (GF := GF) γh 1 σ.changes l0 $$ Hh Hl0
+    have hpre : σ.changes <+: (F b σ).changes := by rw [hnew]; exact List.prefix_append _ _
+    have hpre' : l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes ∧ kvRoom σ :=
+      ⟨Hp.2, Hσok.1, fun cs hcs c hc hpc =>
+        (Hok c).1 (Hσok.2 (p, γ) (List.mem_of_getElem? Hi) cs hcs c hc hpc), Hroom⟩
+    imod (fupd_mask_subseteq (kvPfxCbE_sub s)) with Hclcb
+    imod Hstep $$ %σ %b %hpre' HP Hh HW with ⟨Hh, HW, HQ⟩
+    imod Hclcb with -
+    ihave Hrest := viewsP_frame ps i σ (F b σ) (viewsP_local Hap Hi hf σ) $$ Hrest
+    have hnext : KVExt σ₀ (F b σ) ∧ ∀ e ∈ ps, PfxChOk e.1 (ok e.1) (F b σ).changes := by
+      refine ⟨⟨by rw [hc]; exact Hσok.1.1, by rw [hb]; exact Hσok.1.2.1,
+        Hσok.1.2.2.trans hpre⟩, ?_⟩
+      rw [hnew]
+      exact pfxChOk_step ps ok i p γ Hap Hi σ.changes new hloc
+        (fun cs hcs c hc' => (Hok c).2 (hok σ new hnew cs hcs c hc')) Hσok.2
+    imod Hcloses $$ [Hσ Hown Hrest Hh] with -
+    · inext; iexists (F b σ); iframe Hσ Hh
+      isplitl [Hown Hrest]
+      · iapply (viewsP_acc ps i p γ Hi (F b σ)).2
+        iframe Hown Hrest
+      ipureintro; exact hnext
+    imod Hclosew $$ [Hhalf HW] with -
+    · inext; iexists (pfxVH p (F b σ)); iframe Hhalf HW
     imodintro
     iexact HQ
 
