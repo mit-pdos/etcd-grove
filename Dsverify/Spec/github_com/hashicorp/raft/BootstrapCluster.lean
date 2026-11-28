@@ -24,7 +24,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
-/-- `BootstrapCluster`: On empty stores: stores the genesis entry (the configuration entry of the servers `ss`, term 1, index 1) and current term 1; returns nil. (Stage 3: the log store over a partial map, `LogAbs`; its writes no longer take the durable-prefix view and `llogIdx`; the snapshot store is `isSnapStore`, empty.) -/
+/-- `BootstrapCluster`: On empty stores: stores the genesis entry (the configuration entry of the servers `ss`, term 1, index 1) and current term 1; returns nil. (Stage 3: the log store over a partial map, `LogAbs`; its writes no longer take the durable-prefix view and `llogIdx`; the snapshot store is `isSnapStore`, empty.) (hraft_robust R5) Pre-model writes: the two writes' window
+resources (`Ws` of the `SetUint64(CurrentTerm, 1)`, `Wl` of the `StoreLog` of the genesis at 1) are the caller's,
+lent to the stores and given back at their commits (the kit's families decide what they are before the
+generation is armed). -/
 abbrev github_com.hashicorp.raft.BootstrapCluster.spec : Prop :=
   ∀ (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Qc : SnapshotMeta → List w8 → IProp GF) (cp : Loc) (c : Config) (logsI stableI snapsI : GoInterfaceOk) (trans : GoInterface)
     (cfgv : Configuration) (ss : List Server) (dq : DFrac) (γ : GNames) (i : SID)
@@ -34,12 +37,12 @@ abbrev github_com.hashicorp.raft.BootstrapCluster.spec : Prop :=
      isLogStore logsI ownL Wl ∗ isStableStore stableI ownS Ws ∗ isSnapStore snapsI ownSS eof Qc ∗
      cfgv.Servers' ↦*{dq} ss ∗ ⌜srvsOk γ ss ∧ γ.srvs.Nodup ∧ γ.srvs ≠ []⌝ ∗
      ownL LogAbs.empty ∗ ownS sst ∗ ⌜(sst.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0) = W64 0⌝ ∗
-     ownSS none ∗ rtok tid }}
+     ownSS none ∗ Ws (.setU (go!"CurrentTerm" : List w8) (W64 1)) ∗ Wl (.store 1 [genesisOf ss]) ∗ rtok tid }}
     (App (App (App (App (App (App (Val (@! github_com.hashicorp.raft.BootstrapCluster)) (Val #cp)) (Val #(GoInterface.ok logsI))) (Val #(GoInterface.ok stableI))) (Val #(GoInterface.ok snapsI))) (Val #trans)) (Val #cfgv))
   {{ RET #interface.nil; cp ↦ c ∗ cfgv.Servers' ↦*{dq} ss ∗
       ownL (LogAbs.empty.store 1 [genesisOf ss]) ∗
       ownS { sst with ints := sst.ints.insert (go!"CurrentTerm" : List w8) (W64 1) } ∗
-      ownSS none ∗ rtok tid }}
+      ownSS none ∗ Ws (.setU (go!"CurrentTerm" : List w8) (W64 1)) ∗ Wl (.store 1 [genesisOf ss]) ∗ rtok tid }}
 
 end spec
 
