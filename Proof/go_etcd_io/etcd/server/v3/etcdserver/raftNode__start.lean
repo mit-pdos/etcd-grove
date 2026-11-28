@@ -152,12 +152,13 @@ theorem raftNode.start.wp_proof
     -- (S1) the restart data (persistent; restart S3 item 7: `isRaftNode`'s `Hrok`), for the stop's
     -- bound at each exit (`rnRestartOk_a0_le`)
     iunfold rnLoopTok at Htok
-    icases Htok with ⟨%hbase, %p0, Htok⟩
+    icases Htok with ⟨%hbase, %p0, Htok, %hp0⟩
     ihave #Hinitial := rnReplayState.advance γ initial _ _ hbase $$ Hseed
     ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM) (view : GoSlice),
         "#Hhistory" ∷ rnReplayState γ view (rnLogOf γ L').length ∗
         "terms" ∷ terms_ptr ↦ view ∗ "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
-        "%Hrt" ∷ ⌜uint.Z rt = 0 ∨ rt = p.Term'⌝ ∗
+        -- (keepfix (c) step 1) `0` only while `prevHardSt` is the restored one, of term `t0`
+        "%Hrt" ∷ ⌜rt = p.Term' ∨ (uint.Z rt = 0 ∧ p.Term' = γ.t0)⌝ ∗
         "Htok" ∷ rnLoopTokP γ L' p b ∗ "HR" ∷ R ∗ "HS" ∷ E.S ∗
         -- (2026-10-31) the loop's half of the WAL's open token; (2026-11-03, R2b-1 stage 6) the
         -- stop's claim, the metadata and the purge's right, for `onStop`'s `Close`
@@ -170,7 +171,7 @@ theorem raftNode.start.wp_proof
     · iexists L, false, _, p0, initial
       iframe Hinitial
       iframe
-      ipureintro; left; rfl
+      ipureintro; right; exact ⟨rfl, hp0⟩
     wp_for HI
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Ready")]
     wp_auto_lc 4
@@ -457,7 +458,7 @@ theorem raftNode.start.wp_proof
         wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs0 %Hehs0
         -- (D22l) the term recorded is `0` or `prevHardSt`'s after the `Ready` (`p'`)
         wp_join iprop(∃ rt' : w64, raftTerm_ptr ↦ rt' ∗ rd_ptr ↦ rd ∗
-            ⌜uint.Z rt' = 0 ∨ rt' = p'.Term'⌝) at next
+            ⌜rt' = p'.Term' ∨ (uint.Z rt' = 0 ∧ p'.Term' = γ.t0)⌝) at next
           with [raftTerm rd] as ⟨%rt', raftTerm, rd, %Hrt'⟩
         · cases ehs0
           · -- a non-empty hard state: `prevHardSt`'s now, its term recorded
@@ -469,7 +470,7 @@ theorem raftNode.start.wp_proof
             · itrivial
             iexists _
             iframe
-            ipureintro; right
+            ipureintro; left
             rw [Hp', phsNext_toM_ne p hs Hne]; rfl
           · (try wp_auto)
             isplitr
@@ -1305,7 +1306,7 @@ theorem raftNode.start.wp_proof
       wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs0 %Hehs0
       -- (D22l) the term recorded is `0` or `prevHardSt`'s after the `Ready` (`p'`)
       wp_join iprop(∃ rt' : w64, raftTerm_ptr ↦ rt' ∗ rd_ptr ↦ rd ∗
-          ⌜uint.Z rt' = 0 ∨ rt' = p'.Term'⌝) at next
+          ⌜rt' = p'.Term' ∨ (uint.Z rt' = 0 ∧ p'.Term' = γ.t0)⌝) at next
         with [raftTerm rd] as ⟨%rt', raftTerm, rd, %Hrt'⟩
       · cases ehs0
         · -- a non-empty hard state: `prevHardSt`'s now, its term recorded
@@ -1317,7 +1318,7 @@ theorem raftNode.start.wp_proof
           · itrivial
           iexists _
           iframe
-          ipureintro; right
+          ipureintro; left
           rw [Hp', phsNext_toM_ne p hs Hne]; rfl
         · (try wp_auto)
           isplitr

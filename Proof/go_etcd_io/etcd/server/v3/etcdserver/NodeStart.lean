@@ -239,6 +239,8 @@ theorem rnToks_of_start (γ : RNNames GF) (hpre : γ.pre = []) (ha : γ.a0 = [])
     isplitr
     · ipureintro; rw [hs0]; exact Nat.zero_le _
     iexists hsZero
+    isplitl; rotate_left
+    · ipureintro; rw [ht]
     iunfold rnLoopTokP
     iexists [], [[]], RaftState.init, W64 0
     isplitl [Hdrv Hcfg]
@@ -293,7 +295,9 @@ restored hard state `p`; the durable state `S`; a follower), its view `v` after 
 theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardStateM) (S : RaftState)
     (v : ConfigView) (hpre : γ.pre = []) (hidx : srvIdxOkW (W64 0) P)
     (hc0 : γ.commit0 ≤ uint.nat p.Commit') (hs0 : γ.snap0 ≤ (rnLogOf γ P).length)
-    (hcfg : srvCfgOk γ.node.cfg (rnGhost γ P) v) :
+    (hcfg : srvCfgOk γ.node.cfg (rnGhost γ P) v)
+    -- (keepfix (c) step 1, T1) the restored hard state's term is the names' `t0`
+    (ht : p.Term' = γ.t0) :
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
           ⟨memStorIface γ.ms, srvLE γ.srv P, p, none, γ.key, S, StateFollower⟩ ∗
@@ -314,6 +318,8 @@ theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardState
     isplitr
     · ipureintro; exact hs0
     iexists p
+    isplitl; rotate_left
+    · ipureintro; exact ht
     iunfold rnLoopTokP
     iexists [], [P], S, StateFollower
     isplitl [Hdrv Hcfg]
@@ -793,7 +799,7 @@ abbrev NodeStartSpec : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal.h = hw ∧ γw.walK.sd = (fun _ => iprop(True)) ∧ γw.ss = ss ∧ γw.a0 = [] ∧ γw.snap0 = 0 ∧
+            γw.wal.h = hw ∧ γw.walK.sd = (fun _ => iprop(True)) ∧ γw.ss = ss ∧ γw.a0 = [] ∧ γw.t0 = W64 0 ∧ γw.snap0 = 0 ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧

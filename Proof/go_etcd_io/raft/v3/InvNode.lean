@@ -1794,10 +1794,14 @@ def readyGot (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDri
     -- `nodeDriver_hardStateCommitted` give them after it): a client that enters the batch at its
     -- disk write (etcd's server, at the WAL's `Save`) hands the committed entries on before
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    (⌜phsNext st.hardState h = hsZero⌝ ∨
+    -- (keepfix (c) step 1, 2026-11-28: F1's bound in the zero case too, and F2's nonzero term)
+    (⌜phsNext st.hardState h = hsZero ∧ ((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝ ∨
       committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
       ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-        uint.Z (phsNext st.hardState h).Commit'⌝))
+        uint.Z (phsNext st.hardState h).Commit' ∧
+        (0 < γ.bootLen → 1 ≤ uint.Z (phsNext st.hardState h).Commit' →
+          (phsNext st.hardState h).Term' ≠ W64 0)⌝))
 
 /-- (2026-11-12, trace-check implementation step 1; the design's §3.1) **The driver's claim on the
 tokens of a received `Ready`'s messages `ms`** (sealed; exclusive). Untraced `True`. Traced: `ms = []`
@@ -1834,10 +1838,14 @@ def readyGotT (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDr
     readyLeaderMsgs γ N id st ms ss ∗
     readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    (⌜phsNext st.hardState h = hsZero⌝ ∨
+    -- (keepfix (c) step 1, 2026-11-28: F1's bound in the zero case too, and F2's nonzero term)
+    (⌜phsNext st.hardState h = hsZero ∧ ((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝ ∨
       committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
       ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-        uint.Z (phsNext st.hardState h).Commit'⌝) ∗
+        uint.Z (phsNext st.hardState h).Commit' ∧
+        (0 < γ.bootLen → 1 ≤ uint.Z (phsNext st.hardState h).Commit' →
+          (phsNext st.hardState h).Term' ≠ W64 0)⌝) ∗
     -- the driver's claim on the messages' tokens
     readyToksClaim n γ N ms)
 

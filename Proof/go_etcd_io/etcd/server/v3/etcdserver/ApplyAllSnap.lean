@@ -569,7 +569,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
             rw [hγn]
-            icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, %HbootCt, #Hbatch⟩)
+            icases Hrt with ⟨-, (%Hrt0 | ⟨%ct, #Hct, %Hnct, %HbootCt, #Hbatch⟩)⟩
             · exfalso
               exact (Hsh.1.2.2.2.1 (by rw [Hty]; simp [MsgSnap, MsgProp, MsgReadIndex,
                 MsgTransferLeader])) Hrt0
@@ -1133,7 +1133,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
           iunfold rnRtOk at Hrt
           rw [hγn]
-          icases Hrt with (%Hrt0 | ⟨%ct, #Hct, %Hnct, %HbootCt, #Hbatch⟩)
+          icases Hrt with ⟨-, (%Hrt0 | ⟨%ct, #Hct, %Hnct, %HbootCt, #Hbatch⟩)⟩
           · exfalso
             exact (Hsh.1.2.2.2.1 (by rw [Hty]; simp [MsgSnap, MsgProp, MsgReadIndex,
               MsgTransferLeader])) Hrt0

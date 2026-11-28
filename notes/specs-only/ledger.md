@@ -8683,3 +8683,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   prefix (`srvRLogLb_ciPair`). `bootstrapAtR` takes the premise and the restart proofs pass the image's row.
 - **Decision.** Approved by the lead (relayed, 2026-11-28; (b) and the crash image's row, weakenings of
   `NewServer.specC`/`NewServerC_dist`); the reviewer checks the texts.
+
+## 2026-11-28: the batch's raft term is nonzero when it carries a log (keepfix (c) step 1, sub-goal 2, helper C)
+
+- **Spec.** Trusted (approved, T1–T3): `rnLoopTok` (InvRaftNode), `srvBuiltG`'s `%HEr` (ServerOn), `applyBuiltR`
+  (AuthCompRows). Untrusted: raft's `readyGot`/`readyGotT`/`readyPost`/`readyPostT` hard-state row and
+  `hsCommitted_disj`; `rnHsC`, `rnRtOk`, `rnRtOk_of_commit`, `rnRtOk_of_hsC` (`rn_rtOk_st` deleted, unused);
+  `srvRestartAtR`, `applyResR`; the first-start rows `isServerBuilt`/`srvBuilt`/`isServerBuiltOn` (`γn.t0 = 0`).
+- **Defect.** `applyAll`'s premise `unapplied ai ms = [] ∨ rtMax rtm rt ≠ 0` was not derivable. Go's `raftTerm`
+  (raft.go:185) is `0` until the first non-empty `HardState`, and raft's `prevHardSt` starts at the restored hard
+  state, so a batch can carry term `0` together with committed entries. The texts lost both the loop's initial
+  `prevHardSt` (`rnLoopTok`'s `∃ p`) and the apply thread's start mirror (`applyBuiltR`'s `∃ rt`). `readyGot` also
+  dropped F1's bound in the zero case and F2's nonzero term.
+- **Evidence.** raft.go:185, :226-227 at b1512efdd. `rnRtOk`'s `t = 0` disjunct, which carries no information.
+  `NewServer_dist`'s post (`srvBuiltG`'s `Hloop`).
+- **Proposed change.**
+  - Loop start: `rnLoopTok` gets `p.Term' = γ.t0`, and `srvBuiltG` gets `γn.t0 = 0`.
+  - Mirror: `applyBuiltR rt₀` and `srvRestartAtR rt₀` hold `∃ rt, ciRaftTerm γ.ci rt ∗ ⌜rt₀ ≠ 0 → rt ≠ 0⌝`, and
+    `applyResR` the same at `C.rn.t0`.
+  - Raft: `readyGot`'s hard-state row keeps F1's bound in the zero case and adds F2's nonzero term, both from the
+    implementation's `hsCommitted`.
+  - Raft loop invariant: `rt = p.Term' ∨ (rt = 0 ∧ p.Term' = γ.t0)`.
+  - `rnHsC` gains the bound and the term fact.
+  - `rnRtOk` gains `⌜t = 0 → n = 0 ∨ γ.t0 ≠ 0⌝`.
+- **Decision.** T1, T2 and T3 (weak form) were approved by the coordinator and the lead on 2026-11-28; the step-2
+  axiom review checks them. The untrusted rest follows them.

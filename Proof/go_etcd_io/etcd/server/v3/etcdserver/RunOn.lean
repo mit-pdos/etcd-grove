@@ -69,19 +69,6 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at'⌝)
 
-/-- **The apply thread's resources when `run` starts, in the mode `on`** (`applyStart`'s; the
-model's auth state at the start's, `srvAuthSt0`). -/
-def applyStartOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
-    (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
-  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
-    applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗
-    srvApplyKVOn s E γw x₀ srvAuthSt0 ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunAtOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
-    srvRestM true E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k) ∗
-    -- (D22 J1b, 2026-10-31) `applyStart`'s snapshot resources
-    srvSnapOwn s ci E γr γ ai₀)
-
 end defs
 
 section lemmas
