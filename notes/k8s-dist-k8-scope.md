@@ -147,3 +147,48 @@ K8-1's Lean not started on the branch (coordinator, at the context limit). A dra
 `realCheck_pure` takes (`IsLinearization (linkv.pM (kSpec g0) decOp) (histOf lops) (List.range lops.length)`),
 probably via a `linkv.PStep` run along the order; the collapse of trailing foreign steps is `SharedRename`'s
 renaming (`CutW`, `mstepL_ren`).
+
+## Handoff K8-2 (2026-11-28)
+
+**Why `NoForeign` rarely holds (Go).** Instrumented `TestForeignHeavy` in mode `none` (a temporary diagnostic,
+not committed: per run, `M`, the missing revisions in `(floor, M]`, and every revision an input or output names
+above `M` with its source field, kind and error), 8 runs: `NoForeign` false in all 8, `CheckShared` Ok, 0 foreign
+revisions. In every run the successful writes' revisions are exactly `4..M` (no gap: floor 3, `M` 82-107,
+`M - 3` distinct write revisions), and the **only** revisions above `M` are **inputs' `MinRV` of Gets (kind 3) and
+Lists (kind 4) answered `ETooLarge`**, 1-5 per run (e.g. `M = 93`: two Lists at MinRV 103; `M = 82`: Lists at
+162, a Get at 129; `M = 97`: a List at 238). They are Gen's own draws: `minRV`'s last branch (`m ≥ 98`,
+`etcd3/k8setcd3.go`) asks for the cached object's revision **plus** `d`, a future revision, to exercise
+`TooLargeResourceVersion`. No compactor, seed, lease or other API server writes in this test (`riskFH` only; in
+the dist store workload every API server's writes are in the history, the compactor is another workload).
+
+So it is **by `NoForeign`'s documented definition** ("no revision any input or output names is above `M`"), not
+a driver bug, but the definition is **stricter than its purpose**: a `TooLarge` answer to `MinRV > M` shows no
+foreign revision. Erasure stays sound without that anchor: answered `TooLarge` at the shared run's revision `s`
+means `MinRV > s`, and the erased run's revision is `min(s, M) ≤ s`, so `mgetL`/`mlistL` answer `tooLargeL`
+there too (their first test, `uint.nat st.rv < uint.nat req`); and Kubernetes' checker already meets such
+inputs in the in-process driver. **Proposed fix (statement-level, coordinator; program not changed):** in
+`NoForeign`'s anchor test, leave out the input `MinRV` of an operation answered `ETooLarge` (e.g. a
+`HistoryRevs` variant, or `NoForeign` computing its own maximum over the other anchors); the Lean side is
+`NoForeignOk`'s `AnchorsOk` with `OpAnchors`' MinRV clause conditioned on the answer not being `tooLargeL`
+(`Seeded__NoForeign`'s spec and proof follow). With it, `none` runs should give `NoForeign` true in all runs
+(as all 8 had no other anchor above `M`), so D4's `RealCheck` arm runs whenever no foreign writer interleaves.
+
+**Lean.** `Proof/.../k8s/dist/NoForeignErase.lean` (new, builds): K8-1's draft repaired —
+`runOk_seedShared (r1 r2) : 1 < r1 → r1 < r2 → r2 < 2^63 → RunOk (seedSharedL r1 r2)` proved (with `seedAt`,
+`range'_seedShared`, `seedSharedL_hist`, `histN_seedShared`, `seedAt_ok`, `seedAt_rv`, `seedAt_change`).
+**`noForeign_erase` not started** (budget). Plan, from reading `SharedSem`/`KList`/`KModel`:
+1. `PRun (kSpec g0) c xs c'` = `SRun` without the `foreign` silent step (`linkv.PReach` then `PStep`), and
+   `pRun_lin`: a `PRun` from `⟨g0, []⟩` along `xs = vals (histOf lops) ord` gives `run (pM (kSpec g0) decOp)
+   init … isSome` (`pSeq_step_of_pstep` per step); the real-time half of `IsLinearization` comes unchanged from
+   the shared linearization (same `ord`).
+2. `FailureFreeL xs`: no `EOther` answer and no failed watch (Go's `failureFree`); then no `errW` step, so no
+   pending write (`PSilent` never fires).
+3. Before the last write, no foreign step: each successful bumping write answers `RV` = its new revision
+   (`mcreateL`/`mdeleteL`/`mupdateL`, `mstepL_rv`), revisions only grow, so a foreign revision in `(f, M]` is
+   one no write answers, against `NoForeignOk`'s first half (counting: `count_cover`).
+4. After it, the foreign steps commute past every later operation (reads, no-op updates, watches): their
+   answers at `foreignL^k c` equal those at `c` when every anchor is `≤ M = c.rv` (`mgetL`/`mlistL`: TooLarge
+   test, `ListRV`, `histAtL` below `M` unchanged by appending; `watchOkL`: no event from a foreign revision,
+   bookmarks are anchors). This is the bulk: a per-kind lemma, `mstepL_ren`'s read counterpart.
+`realCheck_pure` also takes `GOks` and `hn`; `IsLinearization` there is with `List.range lops.length`, so the
+dist linearization ghost must order `lops` as the in-process one does (K8-3's `pMF` decision).

@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# k8s-dist K8-1: the shared seed is one `realCheck` runs from (`notes/k8s-dist-k8-scope.md` §2)
+# k8s-dist K8-1/K8-2: the shared seed is one `realCheck` runs from (`notes/k8s-dist-k8-scope.md` §2)
 
 - `seedAt r1 r2 r`: the store of the shared seed's history (`seedSharedL r1 r2`, `SeedShared`/`SeededAt`)
   at revision `r`: empty below `r1`, the first seed from `r1` to below `r2`, both seeds at `r2`;
@@ -9,6 +9,9 @@ Lean-first (no Rocq counterpart).
 - `runOk_seedShared`: for `1 < r1 < r2 < 2^63`, `RunOk (seedSharedL r1 r2)`, what `realCheck`'s pure core
   (`realCheck_pure`) takes of the configuration it starts from (`runOk_g0s`'s generalization: the
   driver's seed is `r1 = 2`, `r2 = 3`; the padded stores between them are the foreign revisions).
+
+`noForeign_erase` (a run of the semantic model showing no foreign revision is one of `kSpec`) is not
+here yet: Handoff K8-2.
 -/
 module
 
