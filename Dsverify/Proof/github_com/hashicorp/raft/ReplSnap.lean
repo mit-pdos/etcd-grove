@@ -120,7 +120,7 @@ theorem latest_good (γ : GNames) (rc : RCtx GF) (i : SID) (fsmI : GoInterfaceOk
             (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
         | some (s, st, id) => iprop(∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
             ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
-            snapFollow γ i s st ∗ monoNatAuthOwn rc.names.applied (1 : Qp).half a)) ⊢
+            snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a)) ⊢
     latestOk γ rc lat ∗
       (match pend with
         | none => iprop(⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
@@ -128,7 +128,7 @@ theorem latest_good (γ : GNames) (rc : RCtx GF) (i : SID) (fsmI : GoInterfaceOk
             (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
         | some (s, st, id) => iprop(∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
             ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
-            snapFollow γ i s st ∗ monoNatAuthOwn rc.names.applied (1 : Qp).half a)) ∗
+            snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a)) ∗
       latestGood γ rc i lat := by
   iintro ⟨#Hfsm, Hlat, Hm⟩
   rcases lat with _ | ⟨m, b⟩

@@ -29,9 +29,9 @@ the other half of the authority; stage 3: a `mono_nat`). -/
 abbrev github_com.hashicorp.raft.raftState.getLastApplied.spec : Prop :=
   ∀ (r : Loc) (rc : RCtx GF) (a : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ appliedCell r rc ∗
-     monoNatAuthOwn rc.names.applied (1 : Qp).half a }}
+     monoNatAuthOwn rc.dur.applied (1 : Qp).half a }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastApplied")) (Val #()))
-  {{ (x : w64), RET #x; ⌜uint.nat x = a⌝ ∗ monoNatAuthOwn rc.names.applied (1 : Qp).half a }}
+  {{ (x : w64), RET #x; ⌜uint.nat x = a⌝ ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a }}
 
 end spec
 

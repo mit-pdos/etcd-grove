@@ -402,7 +402,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
           ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
        srvOwn γ i s ∗ ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-       monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1⌝ ∗
+       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1⌝ ∗
        ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
        leaderOwnM r γ rc i s.term P s.log.length ∗
        sl ↦*{dq} fs ∗ ([∗list] f ∈ fs, dispOpen γ rc i K f) ∗ A }}
@@ -410,7 +410,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     {{ RET #(); ∃ es : RLog, ⌜es.length = fs.length ∧ ∀ e ∈ es, e.term = s.term ∧ K e.kind e.data⌝ ∗
         srvOwn γ i { s with log := s.log ++ es } ∗
         ghostVar rc.names.lastLog (1 : Qp).half ((s.log ++ es).length, s.term) ∗
-        monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
+        monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
         ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
         leaderOwnM r γ rc i s.term P (s.log ++ es).length ∗ sl ↦*{dq} fs ∗ B ∗
         ([∗list] j ↦ q ∈ fs.map (fun q => q.[logFuture, go!"log"]),

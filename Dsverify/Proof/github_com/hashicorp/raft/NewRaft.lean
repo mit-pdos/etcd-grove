@@ -180,7 +180,7 @@ theorem ownPointer_zero_cfg (u : Loc) :
 /-- (stage 3) A fresh snapshot store's invariant: nothing stored, no install pending. -/
 theorem snapCell_alloc (rc : github_com.hashicorp.raft.RCtx GF) (γ : github_com.hashicorp.raft.gprot.GNames)
     (i : github_com.hashicorp.raft.proto.SID) :
-    rc.ownSS none ∗ ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
+    rc.ownSS none ∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
       |={⊤}=> github_com.hashicorp.raft.snapCell rc γ i := by
   iintro ⟨H1, H2⟩
   unfold github_com.hashicorp.raft.snapCell
@@ -763,7 +763,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   · inext; iexists _; iframe; ipureintro; left; rfl
   imod inv_alloc appliedN ⊤ iprop(∃ a : w64,
       r.[Raft, go!"raftState"].[raftState, go!"lastApplied"] ↦ a ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half (uint.nat a))
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half (uint.nat a))
     $$ [FlastApplied Hgap'] with #HappliedCell
   · inext; iexists _; iframe FlastApplied
     rw [show uint.nat (zeroValDef : raftState).lastApplied' = 0 from rfl]; iexact Hgap'

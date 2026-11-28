@@ -965,8 +965,8 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
       obtain ⟨Hkle, Hkc, Hk0, Hkpos, Hkbrk⟩ := Hk
       have hcdur : uint.nat c ≤ s1.dur.1 := hcd
       wp_join iprop(∃ (a' : Nat) (infl' : GoSlice) (fs' : List InflightItem),
-          monoNatAuthOwn rc.names.applied (1 : Qp).half a' ∗ fsmProd γ rc a' ∗ ⌜a' ≤ s1.dur.1⌝ ∗
-          monoNatAuthOwn rc.names.comp 1 cp ∗
+          monoNatAuthOwn rc.dur.applied (1 : Qp).half a' ∗ fsmProd γ rc a' ∗ ⌜a' ≤ s1.dur.1⌝ ∗
+          monoNatAuthOwn rc.dur.comp 1 cp ∗
           r.[Raft, go!"leaderState"].[leaderState, go!"inflight"] ↦ infl' ∗
           infl' ↦* fs'.map InflightItem.f ∗ ownSliceCap Loc infl' (DFrac.own 1) ∗
           ⌜(fs'.map InflightItem.k).Pairwise (· < ·)⌝ ∗

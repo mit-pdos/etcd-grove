@@ -242,15 +242,15 @@ theorem mainOwnAt_intro (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
     (hcap : sint.Z γl.chanCap = 1 ∧ bs.length ≤ 1) :
     srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗ rc.ownS sst ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-      ghostVar rc.names.state (1 : Qp).half st ∗ monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
+      ghostVar rc.names.state (1 : Qp).half st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       fsmProd γ rc a ∗ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
       cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat cidx) ccfg ∗
       cmtIdx γ s.term s.log (uint.nat cidx) ∗
       r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗
       ownChan γl Bool (.Buffered bs) ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       verifyRegistry γ rc i ∗
-      ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.names.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
   iintro ⟨Hs, Hdv, HS, Hll, Hst, Happ, Hprod, Hcfgs, #Hcl, #Hcc, #Hci, #Hlch, #Hlchan, Hlown, Hpend,
     Hvreg, Hpd, Hcomp⟩
   unfold mainOwnAt
@@ -304,15 +304,15 @@ theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
         ∃ n0 : Nat, len0Is γ s.term n0 ∗
           (⌜s.cidx ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s.term k p ∗ ⌜s.cidx ≤ k⌝) ∗
           (⌜cidx ≠ li ∨ uint.nat li ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s.term k p ∗ ⌜uint.nat li ≤ k⌝)) ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       fsmProd γ rc a ∗ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
       cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat cidx) ccfg ∗
       cmtIdx γ s.term s.log (uint.nat cidx) ∗
       r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗
       ownChan γl Bool (.Buffered bs) ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       verifyRegistry γ rc i ∗
-      ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.names.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
   iintro ⟨Hs, Hdv, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, #Hcl, #Hcc, #Hci, #Hlch, #Hlchan, Hlown,
     Hpend, Hvreg, Hpd, Hcomp⟩
   unfold mainOwnAt

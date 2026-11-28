@@ -128,7 +128,7 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
     have : uint.nat la < uint.nat idx := by word
     subst Hla; word
   ihave HI : (∃ (x : w64) (e lk : Nat) (its : List BatchItem) (sl : GoSlice) (Mr : GMap w64 Loc),
-      "idx" ∷ idx_ptr ↦ x ∗ "batch" ∷ batch_ptr ↦ sl ∗ "Hlp" ∷ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ "Hcomp" ∷ monoNatAuthOwn rc.names.comp 1 cm ∗
+      "idx" ∷ idx_ptr ↦ x ∗ "batch" ∷ batch_ptr ↦ sl ∗ "Hlp" ∷ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ "Hcomp" ∷ monoNatAuthOwn rc.dur.comp 1 cm ∗
       "Hsl" ∷ sl ↦* its.map BatchItem.tp ∗ "Hcap" ∷ ownSliceCap Loc sl (DFrac.own 1) ∗
       "Hps" ∷ prodS rc e ∗ "Hits" ∷ ([∗list] it ∈ its, itemRes γ rc i it) ∗
       "Hcov" ∷ cover γ e lk (its.map BatchItem.k) ∗ "Htail" ∷ noCmdBetween γ lk (uint.nat x) ∗
@@ -165,7 +165,7 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
     wp_join iprop(∃ (tp : Loc) (Mr' : GMap w64 Loc),
         "preparedLog" ∷ preparedLog_ptr ↦ tp ∗ "future" ∷ future_ptr ↦ (M !! x).getD null ∗
         "Hsrv" ∷ srvOwn γ i s ∗ "Htok" ∷ rtok tid ∗ "idx" ∷ idx_ptr ↦ x ∗
-        "Hlp" ∷ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ "Hcomp" ∷ monoNatAuthOwn rc.names.comp 1 cm ∗
+        "Hlp" ∷ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ "Hcomp" ∷ monoNatAuthOwn rc.dur.comp 1 cm ∗
         "HM" ∷ ([∗map] k ↦ f ∈ Mr',
           ∃ e : Entry, futResp γ rc i f (uint.nat k) e ∗ ⌜ent s.log (uint.nat k) = some e⌝) ∗
         "%HMr'" ∷ ⌜∀ k f, M !! k = some f → uint.nat x + 1 ≤ uint.nat k → Mr' !! k = some f⌝ ∗

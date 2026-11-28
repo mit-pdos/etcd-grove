@@ -305,9 +305,9 @@ theorem github_com.hashicorp.raft.Raft.installSnapshot.wp_proof
   wp_bind
   iapply HCreate
   iintro %k %sid Hcont
-  imod Hcont $$ %(fun bs => iprop(⌜bs = b⌝ ∗ monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
-      ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString))))
-    %(fun _ => iprop(ghostVar rc.names.pend (1 : Qp).half (some (x, stx, sid)))) [] with
+  imod Hcont $$ %(fun bs => iprop(⌜bs = b⌝ ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString))))
+    %(fun _ => iprop(ghostVar rc.dur.pend (1 : Qp).half (some (x, stx, sid)))) [] with
     ⟨%own, #Hsink, Hown⟩
   · iintro %bs %_ ⟨%Hbs, Happ, Hpnd⟩
     subst bs
@@ -492,7 +492,7 @@ theorem github_com.hashicorp.raft.Raft.installSnapshot.wp_proof
         srvOwn γ i s' ∗ durView γ i (1 : Qp).half s'.dur.1 ∗
         ghostVar rc.names.lastLog (1 : Qp).half (s'.log.length, lastTerm s'.log) ∗
         ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ rtok tid ∗ (∃ lv : Log, last_ptr ↦ lv) ∗
-        monoNatAuthOwn rc.names.comp 1 x ∗
+        monoNatAuthOwn rc.dur.comp 1 x ∗
         r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg' li' ∗
         cfgAtIs γ s'.log (uint.nat li') cfg' ∗ cfgAtIs γ s'.log (uint.nat cidx') ccfg' ∗
         cmtIdx γ s'.term s'.log (uint.nat cidx') ∗
@@ -576,7 +576,7 @@ theorem github_com.hashicorp.raft.Raft.installSnapshot.wp_proof
               "Hcfgs" ∷ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg' li' ∗
               "Hs" ∷ srvOwn γ i { s with term := T, dur := d } ∗
               "Hlp" ∷ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
-              "Hcomp" ∷ monoNatAuthOwn rc.names.comp 1 x ∗ "Htok" ∷ rtok tid ∗
+              "Hcomp" ∷ monoNatAuthOwn rc.dur.comp 1 x ∗ "Htok" ∷ rtok tid ∗
               "#Hli'" ∷ cfgAtIs γ s.log (uint.nat li') cfg' ∗
               "#Hci'" ∷ cfgAtIs γ s.log (uint.nat cidx') ccfg' ∗
               "#Hcm'" ∷ cmtIdx γ T s.log (uint.nat cidx') ∗

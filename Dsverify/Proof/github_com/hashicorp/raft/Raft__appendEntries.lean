@@ -242,14 +242,14 @@ theorem mainOwnAt_ae (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SStat
     srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗ rc.ownS sst ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       ghostVar rc.names.state (1 : Qp).half st ∗ stArm γ i st s.term s.log s.cidx a cidx li ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       fsmProd γ rc a ∗ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
       cfgFacts γ s.log s.log.length a s.term cfg ccfg cidx li ∗
       r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗
       ownChan γl Bool (.Buffered bs) ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       verifyRegistry γ rc i ∗
-      ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.names.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
   iintro ⟨Hs, Hdv, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, Hcf, #Hlch, #Hlchan, Hlown, Hpend, Hvreg, Hpd,
     Hcomp⟩
   unfold cfgFacts stArm
@@ -607,11 +607,11 @@ theorem github_com.hashicorp.raft.Raft.appendEntries.wp_proof
   wp_join (Q := fun v => iprop(
       (⌜v = executeVal⌝ ∗ srvOwn γ i { s with term := T } ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
         ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-        monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
+        monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
         «$r0_ptr» ↦ rv ∗ rtok tid ∗ ⌜prevMatch s.log prev pt⌝) ∨
       (⌜v = returnVal #()⌝ ∗ srvOwn γ i { s with term := T } ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
         ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-        monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
+        monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
         «$r0_ptr» ↦ { rv with NoRetryBackoff' := true } ∗ rtok tid)))
     at next with [Hs Hpend Hll Hrsp Htok Happ]
   · wp_if_destruct
@@ -1140,12 +1140,12 @@ theorem github_com.hashicorp.raft.Raft.appendEntries.wp_proof
   wp_auto
   wp_join iprop(∃ (d : Nat × Nat) (c : Nat) (a6 : Nat) (ccfg6 : Configuration) (cidx6 : w64),
       srvOwn γ i { s with term := T, log := L5, dur := d, cidx := c } ∗ durView γ i (1 : Qp).half d.1 ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a6 ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a6 ∗
       ⌜a6 ≤ d.1 ∧ a ≤ a6 ∧ c ≤ a6 ∧ (c = s.cidx ∨ c ≤ lci) ∧ (cidx6 = cidx5 ∨ uint.nat li5 ≤ c)⌝ ∗
       fsmProd γ rc a6 ∗
       r.[Raft, go!"configurations"] ↦ configurations.mk ccfg6 cidx6 cfg5 li5 ∗
       cfgFacts γ L5 L5.length a6 T cfg5 ccfg6 cidx6 li5 ∗
-      rtok tid ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ monoNatAuthOwn rc.names.comp 1 cmp)
+      rtok tid ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ monoNatAuthOwn rc.dur.comp 1 cmp)
     at next with [Hs Hdv Happ Hprod Hcfgs Htok Hpend Hcomp]
     as ⟨%d6, %c6, %a6, %ccfg6, %cidx6, Hs, Hdv, Happ, %Ha6, Hprod, Hcfgs, #Hcf6, Htok, Hpend, Hcomp⟩
   · imod srvOwn_facts γ ⊤ (by simp) i _ $$ [$HI $Hs] with ⟨Hs, -, %Hsf5⟩

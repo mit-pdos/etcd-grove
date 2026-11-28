@@ -86,8 +86,8 @@ def mainRest (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : 
     ghostVar rc.names.state (1 : Qp).half stLeader ∗
     (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
     verifyRegistry γ rc i ∗ fsmProd γ rc a ∗
-    ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-    monoNatAuthOwn rc.names.comp 1 c ∗ ⌜c ≤ a⌝ ∗
+    ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+    monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗
     r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗ ownChan γl Bool (.Buffered bs) ∗
     ⌜sint.Z γl.chanCap = 1 ∧ bs.length ≤ 1⌝)
 
@@ -111,7 +111,7 @@ theorem mainRest_log (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SStat
 theorem mainOwnAt_lopen (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
     mainOwnAt r γ rc i s stLeader ⊢ ∃ a : Nat, srvOwn γ i s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwn r γ i s a := by
   unfold mainOwnAt mainRest confOwn
@@ -134,7 +134,7 @@ theorem mainOwnAt_lopen (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
 theorem mainOwnAt_lclose (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
     srvOwn γ i s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwn r γ i s a ⊢ mainOwnAt r γ rc i s stLeader := by
   unfold mainOwnAt mainRest confOwn
@@ -253,7 +253,7 @@ theorem confOwnSt_confOwn (r : Loc) (γ : GNames) (i : SID) (s : SState) (a : Na
 theorem mainOwnAtSt_open (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
     mainOwnAtSt r γ rc i s ⊢ ∃ a : Nat, srvOwn γ i s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwnSt r γ i s a := by
   unfold mainOwnAtSt mainRest confOwnSt
@@ -274,7 +274,7 @@ theorem mainOwnAtSt_open (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
 theorem mainOwnAtSt_close (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
     srvOwn γ i s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwnSt r γ i s a ⊢ mainOwnAtSt r γ rc i s := by
   unfold mainOwnAtSt mainRest confOwnSt

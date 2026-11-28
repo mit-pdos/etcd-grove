@@ -31,11 +31,11 @@ abbrev github_com.hashicorp.raft.raftState.getLastIndex.spec : Prop :=
   (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
      ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗ srvOwn γ i s ∗
-     monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1⌝ }}
+     monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1⌝ }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastIndex")) (Val #()))
   {{ (x : w64), RET #x; ⌜uint.nat x = s.log.length⌝ ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗ srvOwn γ i s ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a }}) ∧
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a }}) ∧
   (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastIndex")) (Val #()))

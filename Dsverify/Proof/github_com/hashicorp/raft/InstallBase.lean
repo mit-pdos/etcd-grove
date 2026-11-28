@@ -52,7 +52,7 @@ theorem latestOk_some (γ : GNames) (rc : RCtx GF) (m : SnapshotMeta) (b : List 
 
 /-- A lower bound of `lastApplied` is below any half of its authority. -/
 theorem applLb_le (rc : RCtx GF) (q : Qp) (a x : Nat) :
-    ⊢ monoNatAuthOwn rc.names.applied q a -∗ applLb rc x -∗ ⌜x ≤ a⌝ := by
+    ⊢ monoNatAuthOwn rc.dur.applied q a -∗ applLb rc x -∗ ⌜x ≤ a⌝ := by
   unfold applLb
   iintro H1 H2
   ihave %Hv := monoNatLbOwn_valid _ _ _ _ $$ H1 H2
@@ -60,14 +60,14 @@ theorem applLb_le (rc : RCtx GF) (q : Qp) (a x : Nat) :
 
 /-- `lastApplied`'s lower bound from a half of its authority. -/
 theorem applLb_get (rc : RCtx GF) (q : Qp) (a : Nat) :
-    monoNatAuthOwn rc.names.applied q a ⊢ applLb rc a := by
+    monoNatAuthOwn rc.dur.applied q a ⊢ applLb rc a := by
   unfold applLb
   iintro H
   iapply monoNatLbOwn_get $$ H
 
 /-- A lower bound of the compaction frontier is below its authority. -/
 theorem compLb_le (rc : RCtx GF) (q : Qp) (c x : Nat) :
-    ⊢ monoNatAuthOwn rc.names.comp q c -∗ compLb rc x -∗ ⌜x ≤ c⌝ := by
+    ⊢ monoNatAuthOwn rc.dur.comp q c -∗ compLb rc x -∗ ⌜x ≤ c⌝ := by
   unfold compLb
   iintro H1 H2
   ihave %Hv := monoNatLbOwn_valid _ _ _ _ $$ H1 H2
@@ -75,7 +75,7 @@ theorem compLb_le (rc : RCtx GF) (q : Qp) (c x : Nat) :
 
 /-- Raising the compaction frontier (the main goroutine's authority). -/
 theorem compLb_raise (rc : RCtx GF) (c c' : Nat) (h : c ≤ c') :
-    monoNatAuthOwn rc.names.comp 1 c ⊢ |==> (monoNatAuthOwn rc.names.comp 1 c' ∗ compLb rc c') := by
+    monoNatAuthOwn rc.dur.comp 1 c ⊢ |==> (monoNatAuthOwn rc.dur.comp 1 c' ∗ compLb rc c') := by
   unfold compLb
   iintro H
   imod mono_nat_own_update c' h $$ H with ⟨Ha, #Hb⟩
@@ -90,23 +90,23 @@ theorem install_close (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id 
     (hb : b.length < 2 ^ 63) (has : a < s) (h1 : 1 ≤ s) (he : e.term = st) :
     CIdx (GF := GF) γ s e ∗ snapFollow γ i s st ∗ rc.snapP s b ∗ cfgVal γ cfg ss ∗
       snapCfg γ s (uint.nat cfgIdx) ss ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
-      ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       rc.ownSS (some (sinkMeta ver idx term cfgIdx cfg id b, b)) ∗
       ((▷ ∃ (lat : SnapLatest) (pend : Option (Nat × Nat × GoString)),
-        rc.ownSS lat ∗ latestOk γ rc lat ∗ ghostVar rc.names.pend (1 : Qp).half pend ∗
+        rc.ownSS lat ∗ latestOk γ rc lat ∗ ghostVar rc.dur.pend (1 : Qp).half pend ∗
         (match pend with
           | none => ⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
               applLb rc (uint.nat m.Index') ∗
               (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term'))
           | some (s, st, id) => ∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
               ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
-              snapFollow γ i s st ∗ monoNatAuthOwn rc.names.applied (1 : Qp).half a)) ={⊤ \ ↑snapN,⊤}=∗
+              snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a)) ={⊤ \ ↑snapN,⊤}=∗
         emp) ⊢
-    |={⊤ \ ↑snapN,⊤}=> ghostVar rc.names.pend (1 : Qp).half (some (s, st, id)) := by
+    |={⊤ \ ↑snapN,⊤}=> ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) := by
   iintro ⟨#HC, #Hfol, HsP, #Hcfg, #Hscfg, Happ, Hpend, Hpd, Hown, Hclose⟩
-  imod ghostVar_update_halves (some (s, st, id)) rc.names.pend none none $$ Hpend Hpd with ⟨Hpend, Hpd⟩
+  imod ghostVar_update_halves (some (s, st, id)) rc.dur.pend none none $$ Hpend Hpd with ⟨Hpend, Hpd⟩
   imod Hclose $$ [Hown Hpd Happ HsP] with -
   · inext
     iexists (some (sinkMeta ver idx term cfgIdx cfg id b, b)), (some (s, st, id))
@@ -141,11 +141,11 @@ theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id
     (hb : b.length < 2 ^ 63) (has : a < s) (h1 : 1 ≤ s) (he : e.term = st) :
     Inv (GF := GF) γ ∗ snapCell rc γ i ∗ CIdx γ s e ∗ snapFollow γ i s st ∗ rc.snapP s b ∗
       cfgVal γ cfg ss ∗ snapCfg γ s (uint.nat cfgIdx) ss ∗
-      monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
-      ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
     |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗
       (rc.ownSS (newerSnap old (sinkMeta ver idx term cfgIdx cfg id b) b) ={∅,⊤}=∗
-        ghostVar rc.names.pend (1 : Qp).half (some (s, st, id))) := by
+        ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id))) := by
   iintro ⟨#HI, #Hsc, #HC, #Hfol, HsP, #Hcfg, #Hscfg, Happ, Hpend⟩
   unfold snapCell
   iinv Hsc with ⟨%lat, %pd, Hown, Hlat, Hpd, Hcase⟩ Hclose
@@ -198,11 +198,11 @@ record ends (`none`), and the latest (the install's) is now at most `lastApplied
 installed while following (`snapFollow`, kept from the pending case). -/
 theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s st : Nat) (id : GoString)
     (Ψ : IProp GF) :
-    snapCell rc γ i ∗ ghostVar rc.names.pend (1 : Qp).half (some (s, st, id)) ∗
-      (ghostVar rc.names.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
-        monoNatAuthOwn rc.names.applied (1 : Qp).half s -∗ Ψ) ⊢
-    |={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.names.applied (1 : Qp).half a ∗
-      ⌜a ≤ s⌝ ∗ (monoNatAuthOwn rc.names.applied (1 : Qp).half s ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
+    snapCell rc γ i ∗ ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) ∗
+      (ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+        monoNatAuthOwn rc.dur.applied (1 : Qp).half s -∗ Ψ) ⊢
+    |={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+      ⌜a ≤ s⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half s ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
   iintro ⟨#Hsc, Hpend, HΨ⟩
   unfold snapCell
   iinv Hsc with ⟨%lat, %pd, Hown, Hlat, Hpd, Hcase⟩ Hclose
@@ -222,7 +222,7 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s st : Nat) (
   iintro Happ
   imod Hmask with -
   ihave #Hlb := applLb_get rc _ s $$ Happ
-  imod ghostVar_update_halves none rc.names.pend _ _ $$ Hpend Hpd with ⟨Hpend, Hpd⟩
+  imod ghostVar_update_halves none rc.dur.pend _ _ $$ Hpend Hpd with ⟨Hpend, Hpd⟩
   imod Hclose $$ [Hown Hlat Hpd] with -
   · inext
     iexists lat, none
@@ -243,12 +243,12 @@ log, and it holds the log's entry at `k` if the log reaches `k`. -/
 theorem logCell_getLog (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (cm k : Nat)
     (hk : cm < k) (Ψ : LogAbs → IProp GF) :
     Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ monoNatAuthOwn rc.names.comp 1 cm ∗
+      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ monoNatAuthOwn rc.dur.comp 1 cm ∗
       (∀ A : LogAbs,
         ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
           (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
         srvOwn γ i s -∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗
-        monoNatAuthOwn rc.names.comp 1 cm -∗ Ψ A) ⊢
+        monoNatAuthOwn rc.dur.comp 1 cm -∗ Ψ A) ⊢
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
   iintro ⟨#HI, #HlogC, Hs, Hlp, Hcm, HΨ⟩
   unfold logCell
@@ -913,10 +913,10 @@ lent through the restore future): the store's latest is the install's snapshot `
 theorem restore_open (γ : GNames) (rc : RCtx GF) (i : SID) (fx : GoInterfaceOk) (s st : Nat)
     (id : GoString) (eof : GoInterface) (Ψ : val → IProp GF) :
     snapCell rc γ i ∗ isFSM fx γ i rc.fsmOwn rc.respP rc.snapP ∗
-      ghostVar rc.names.pend (1 : Qp).half (some (s, st, id)) ∗
+      ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) ∗
       (∀ (m : SnapshotMeta) (b : List w8) (mp : Loc) (rd : GoInterfaceOk) (R : List w8 → IProp GF),
         ⌜uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ 1 ≤ s⌝ -∗ mp ↦ m -∗ readCloserOk rd R eof -∗ R b -∗
-        rc.snapP s b -∗ ghostVar rc.names.pend (1 : Qp).half (some (s, st, id)) -∗
+        rc.snapP s b -∗ ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) -∗
         Ψ (PairV (PairV #mp #(GoInterface.ok rd)) #interface.nil)) ⊢
     |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗ (rc.ownSS old ={∅,⊤}=∗ ∀ v, openPost old id eof v -∗ Ψ v) := by
   iintro ⟨#Hsc, #HisFSM, Hpend, HΨ⟩

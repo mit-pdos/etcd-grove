@@ -9650,3 +9650,25 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   name a bbolt key), which `authSmall.names`/the new `authSmall.roleNames` give. `notes/nomode-n1.md`, "D3,
   narrowed".
 - **Decision.** The lead (dsverify-net), relaying the review; strengthening, no new trust.
+## 2026-11-28: hashicorp/raft's store contracts and term/vote specs made crash-aware (hraft_robust L0)
+
+- **Spec.** `isLogStore`, `isStableStore`, `isSnapStore` (`Dsverify/Proof/github_com/hashicorp/raft/iface/Stores.lean`;
+  `LogAbs` gains `staged`/`ci`); `raftState.{get,set}CurrentTerm`, `raftState.{get,set}CommitIndex`,
+  `Raft.CurrentTerm`, `Raft.setCurrentTerm`, `Raft.persistVote`; `core/Defs`' `mainOwnAt`/`mainOwnAtSt`,
+  `termCell`/`cidxCell`, `voteMatches`, `obsArg`, `filterOk`/`obsOk`/`observersP`; `logCell`/`snapCell` removed.
+- **Defect.** With crashes (`hraft_robust`, #48) the specs pin no durable commit point: the stable store is
+  owned, not atomic; the leader's appends enter the protocol before `StoreLogs`; `grantVote` fires after both
+  vote writes, whose order (upstream: term first) lets a torn vote be granted again without the log check
+  (`issues/hraft-persistvote-torn-vote.md`); the per-server protocol halves live in per-generation cells.
+- **Evidence.** `/shared/tmp/ps2/hraft/robust/R1-DESIGN.md` §§1–5 (agreed by coordinator-E, #48 7237516368);
+  the R0 fork fix `aaca6ccd8d` (candidate written first).
+- **Change.** Every store atomic update is a crash-token update (`|NC={⊤,∅}=>`); writes lend a client window
+  resource `W` until their commit point; the stable store is TaDa; commit tracking (`StageCommitIndex`,
+  `GetCommitIndex`) is specified when the dynamic type implements it. gprot's per-server halves and the stores'
+  authorities move into one crash invariant per server and generation, `srvDurInv` (`durBody`); the main
+  goroutine holds views (`srvV`/`srvVP`, `stV`), the atomics `termV`/`cidxV`. `voteMatches` admits
+  `vterm < term` (a torn vote's candidate). `setCurrentTerm` takes the term step `tp` (adopt or elect) and
+  returns its results; `persistVote` takes `candIs` and the vote's premises and returns `voteIs` (it fires
+  `grantVote`). `obsArg`'s leader case lends only `leaderIs` (no observer filter in scope uses the state).
+  Statements only: the proofs are re-done by stages R2–R5 (integration branch `hraft-robust-int/2026-11-28`).
+- **Decision.** coordinator-E (#48, R1 points 1–8); ported specs, internal to raft and its kit; no new trust.
