@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBranch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MergedImageOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRecvOn
+public import Batteries.Tactic.PermuteGoals
 
 @[expose] public section
 
@@ -157,7 +158,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       rw [HelR] at HeslR
       first | (exfalso; word) | (exfalso; omega) | (apply Hif; word)
     wp_apply (wp_ci_setRaftTerm hSRT γr.raft.raft.cl γ ci rtm rt) $$ [Hrtm] as Hrtm
-    · iframe Hcipkg HisCIR Hrtm
+    · iframe Hrtm; iframe #
     (try wp_auto)
     ihave Hrtm : ciRaftTerm γ.ci (if ms.isEmpty then rtm else rtMax rtm rt) $$ [Hrtm]
     · rw [hmsE]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hrtm
@@ -525,7 +526,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
           (try wp_auto)
           wp_if_destruct
           · -- The message belongs to the term of this apply batch.
-            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %True.intro Hcursor
+            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %(by trivial) Hcursor
             have hsentLe : uint.Z sn.Metadata'.Index' ≤ uint.Z ai' := by
               have := uint_nat_eq sn.Metadata'.Index'
               have := uint_nat_eq ai'
