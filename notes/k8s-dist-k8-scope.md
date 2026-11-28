@@ -198,3 +198,34 @@ Build of record: `lake build Proof.github_com.mit_pdos.etcd_grove.examples.k8s.d
 5270 jobs, OK, on **fk-lean1** (worktree `wt/k8s-dist-k8/2026-11-28`, seeded from `lean-warm`): fk-lean2 has
 46 GB free, below `remote-check.sh`'s 65 GB to seed a worktree. The edit loop ran in fk-lean2's K9 worktree
 (`rcheck8.sh`: my file copied there, the imports identical; the copy removed after).
+
+## Handoff K8-3 (2026-11-28)
+
+**G15 done** (`d7f986f03b`; recorded in `notes/k8s-dist-k9.md` beside G11-G14). Go: `HistoryRevs` records an
+input's `MinRV` only when `in.Kind == KWatch || out.Err != ETooLarge` (`export.go`; `NoForeign`'s doc says so).
+Lean: `OpAnchors`' first clause is `(x.Kind' = W64 5 ∨ y.Err' ≠ W64 6) → ∀ r, parseRVD x.MinRV' = some r →
+uint.nat r ∈ A` (`SharedSearch.lean`); re-proved `HistoryRevs` (`MinOk`, the new nested `if`),
+`SharedComplete` (list case under `Err = 0`), `SharedWatch` (`Or.inl hk`), `SharedModelDefs` (`targetL_lt`,
+`sharedBounded_stepIdxOk`), both `opAnchors_mono`. No statement, axiom, premise or sorry changed (the
+definition `OpAnchors` is weaker, so `FullComplete`'s premise `AnchorsOk` is weaker: K4 proves more).
+
+**Go tests (go1.27.1)**: `go vet` clean; etcd3 package tests ok (330 s), dist package tests ok;
+`TestForeignHeavy -count=24`: mode `none` **8/8 `NoForeign` true, `RealCheck` Ok** (was 0/8 for K8-2, 4/40
+for K8-1), `tail` 8/8 true/Ok, `throughout` 0/8 (expected), `CheckShared` Ok in all 24; `-short TestDist` with
+`DIST_DUMP` (95 operations), on it `TestReplayHistory` Ok and `TestCrossCheckWatches` pass.
+`etc/goose.py --project k8s-apiserver` then `--check`: up to date.
+
+**Build of record**: at `d7f986f03b`, on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`), `lake build` of the leaves of
+the changed modules (`k8s.all.TopLevelRobustness`, `k8s.compactor.Results`, `k8s.dist.NoForeignErase`,
+`k8s.etcd3.Results`, `k8s.etcd3.SharedAccept`, `k8s_io.apiserver.pkg.storage.etcd3.Results`): 12710 jobs, OK.
+
+**`noForeign_erase`: not proved, nothing new committed.** Unchecked draft lemmas (step 2: `FailureFreeL` =
+`∀ p ∈ xs, okOut p.1 p.2`, `pStep_pend_nil`, `pSilent_nil`, `repeat_foreignL_succ`, `sReach_nil` (from no
+pending write, silent steps are `Nat.repeat foreignL k`); step 4's bound `targetL_le_anchors` (with
+`OpAnchors (range (m+1))`, the target is `≤ m`, so `skipToL` is the identity at `e.rv = m`)) at
+`/shared/tmp/k8-3/NoForeignErase.unchecked.lean` (adds `import ...dist.SharedComplete`). Suggested route
+for the main proof: reuse K4's `CRel.op`/`CRel.ok` with `A = range (m+1)`, search side = the erased run (no
+pending: `SettleL` is `refl`; skip identity by `targetL_le_anchors` or `kstepL_target`), then `stepL_sound`
+for `PStep`; invariant `e.rv = g.rv ∨ e.rv = m`. The open point is step 3 (no foreign step below `m`): a
+no-op update's answer `RV` counts in `nfWriteRV`, so the cover argument needs "every item's revision is a
+bumping write's" (HRel's `stored`/`ρ`), not just revision monotonicity.

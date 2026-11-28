@@ -74,6 +74,21 @@ proved function, K12's), `Serve`/`Record` (K10, `Apply` split), `SeededAt`/`Seed
   package's tests, dist's unit tests, a `-short` `TestDist` with `DIST_DUMP` (95 operations) and on that
   history `TestCrossCheckWatches` and `TestReplayHistory` pass (go1.27.3); `etc/goose.py --check
   --project k8s-apiserver` clean; gen-init and gen-specs-pkginit regenerated (init order only).
+- **G15 (done K8-3, coordinator decision 2026-11-28).** `NoForeign`'s anchor test was stricter than its
+  purpose: Gen's own Gets and Lists ask `MinRV` above the current revision to exercise
+  `TooLargeResourceVersion`, so `NoForeign` was false in every `TestForeignHeavy` run of mode `none`
+  (K8-2's diagnostic, `notes/k8s-dist-k8-scope.md`, "Handoff K8-2") and D4's `RealCheck` arm never ran. Now
+  `HistoryRevs` records an input's `MinRV` only for a watch or an answer other than `ETooLarge` (`in.Kind ==
+  KWatch || out.Err != ETooLarge`); in Lean `OpAnchors`' first clause is `(x.Kind' = W64 5 ∨ y.Err' ≠ W64 6)
+  → ∀ r, parseRVD x.MinRV' = some r → uint.nat r ∈ A` (`HistoryRevs.lean`'s `MinOk`). Sound for both uses:
+  a `tooLargeL` answer at revision `s` says `MinRV > s`, which no foreign revision explains, and the search
+  (K4, `FullComplete`) and the erased run (`noForeign_erase`) answer it at a revision at most `s`. Re-proved:
+  `HistoryRevs`, `SharedComplete`/`SharedWatch` (their uses are under a watch or a successful answer),
+  `SharedModelDefs` (`targetL_lt`, `sharedBounded_stepIdxOk`), the `opAnchors_mono`s. Tests (go1.27.1):
+  `go vet`, etcd3's and dist's package tests, `TestForeignHeavy -count=24`: mode `none` **8/8 `NoForeign`
+  true, `RealCheck` Ok** (was 0/8), `tail` 8/8 true and Ok, `throughout` 0/8 (foreign revisions between
+  writes); a `-short` `TestDist` with `DIST_DUMP` (95 operations) and on it `TestReplayHistory` and
+  `TestCrossCheckWatches` pass; `etc/goose.py --check --project k8s-apiserver` clean.
 
 Then `etc/goose.py --project k8s-apiserver` re-translates.
 
