@@ -832,3 +832,29 @@ Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof th
   `serverConns()` and `1 + rnd(NS)`. Also proved: `serverConns` (`NewConn` per server address), `attempt`.
 - What the start (S6) must give each client machine: the above share; the orchestrator's start gives `kit_start`'s
   `seqOwn K.g c 1` (`S := {c ↦ 1 | c < 5}`) and `idInv`.
+
+### S5g batch 1: the orchestrator machine `Orch`
+
+Branch `hraft-s5g/2026-11-28` (#48). The orchestrator is proved over the real code; the start (`Hstart`) and the
+kit's `Link` are the next batches.
+
+- **`OrchDefs.lean`** (defs): the masks of remote's `Check` (`pendN_kit`, `lintestN_kit`); `drawPre K` (what the
+  orchestrator draws with, from the start: both sizes' `opsAuth`/`allocPre` (`gprot.alloc_names`), `kitPre K.g`, the
+  frontier's list `K.fr` empty); **`kit_draw`** (`£ 1 ∗ drawInv K ∗ drawTok K ∗ drawPre K ∗ ⧗ 2 ⊢ |={⊤}=> chosen K.γc n ∗
+  srvsOf K n`: `gprot.alloc_init` with the two receipts, `frInv_init`, `kitQ_linStep`, the draw's invariant closed in
+  its drawn branch with every server's `srvPkg`; it needs `[ReceiptBoundLe GF (2 ^ 62)]`); `srvsOf K n` (the drawn
+  protocol's six `isSrv`); `adminCtx K` (what the admin calls the API with: `kitSS`, `γsOk`, the server addresses, the
+  draw and `srvsOf`); **`admin_dep`** (an admin request of kind `k < 6` naming server `s`, or a transfer to raft's pick:
+  its method `adminMeths[k]` and its deposit at `apiSvcK K`, `addReqW`/`srvReqW`/`transferReqW` from `γsOk` and
+  `srvsOf`), **`status_dep`**; `adminAns`/`statusAns` (the answers' encodings), `encAdminArgs_length`,
+  `adminMeths_len`; `orchBud = 3 * 2 ^ 20` (remote's `MaxOps * readTries`, the clients' budget: `N + 1 < 2 ^ 56`);
+  **`orchShare K γp`** (the orchestrator's share of the start: `confProtos`, the server addresses, `kitSS ∧ γsOk`,
+  `drawInv`, `drawTok`, `drawPre`, remote's `remoteAddr (regR K.g.st)` per client address, `mapCtx`, `pendCtx`/`pendLib`
+  over `regS`, the call units `orchBud`).
+- **Proved over the real code** (spec and proof each): `chooseN0` (3 or 5, with the two receipts of its `*` and `+`,
+  `wp_go_step_receipt'`), `sendConf` (vr's, on one byte), `configure`, `chooseOps`, `adminMethods`, `adminTarget`
+  (the `Status` call, `status_dep`; a named leader among the servers), `admin` (forever: sleep, `adminTarget`, a random
+  request (`admin_dep`), its call; post `False`), `remoteCheck` (remote's `Check` with `Model()`, `Codec()`, `Gen`,
+  `regS_pendDec`, `regR_encOut_inj`), **`Orch`** (`Orch.spec`: from `orchShare K γp` and the codec unregistered;
+  `chooseN0`, `kit_draw` with a credit, `configure`, `Register()`, `go admin()`, `remoteCheck(chooseOps())`).
+- Not linked (the kit's `Link`, next batch). No axiom, `sorry` or premise.
