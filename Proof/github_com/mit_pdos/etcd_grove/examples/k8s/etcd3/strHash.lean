@@ -44,12 +44,12 @@ theorem strHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG)) :
     ipureintro; exact ⟨by word, by word⟩
   wp_for HI
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
-  have e : (W64 (s.length : Int) : w64) = BitVec.ofNat 64 s.length := BitVec.ofInt_natCast _ _
   wp_if_destruct
   · have Hlt : sint.Z j < sint.Z (BitVec.ofNat 64 s.length) := by
-      first | simpa [e] using Hif | exact Classical.byContradiction fun h => by
-        simp only [e, h, decide_false] at Hif
-        exact absurd (GoGlobalContext.intoVal_inj_bool Hif) (by decide)
+      apply Classical.byContradiction
+      intro h
+      simp only [h, decide_false] at Hif
+      exact absurd (GoGlobalContext.intoVal_inj_bool Hif) (by decide)
     have hb : s[sint.nat j]? = some (s.getD (sint.nat j) (W8 0)) := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by word)]; rfl
     rw [if_pos Hj.1, hb]
@@ -62,9 +62,9 @@ theorem strHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG)) :
     iframe
     ipureintro
     exact ⟨by word, by word⟩
-  · have Hge : ¬ (sint.Z j < sint.Z (BitVec.ofNat 64 s.length)) := by
-      intro h; first | (apply Hif; simp [e, h]) | simp [e, h] at Hif
-    simp only [e, Hge, decide_false, Bool.false_eq_true, ↓reduceIte]
+  · have Hge : ¬ (sint.Z j < sint.Z (W64 ↑s.length)) := by
+      intro h; apply Hif; simp only [h, decide_true]
+    simp only [Hge, decide_false, Bool.false_eq_true, ↓reduceIte]
     (try wp_auto)
     iapply HΦ
     itrivial
