@@ -36,12 +36,13 @@ head with no data frame or a reader expecting `settingsBytes` of real HTTP/2, so
 `grpcAddrAt` would be unsound), and the slot map exists; until then `grpcCliP`/`grpcSrvP` and their
 parse laws are a library no address uses; set once from `addrUnset a` (`grpc_addr_set`). `grpcSvcAt a name Wq Wp Spec`
 (persistent, heap-free): the table `a` serves has an entry for `name` at the wire parts `Wq`, `Wp`,
-and a caller of `Spec` meets it after an update (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`).
+and a caller of `Spec` meets it after an update (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`);
+`grpcSvcNRAt a name`: that entry is flagged as never refusing (`GrpcEntry.nr`, `grpcSvcNRAt_of_addr`).
 
-**Sealed** (`@[no_expose]`, decision A of `notes/phase7-endstate.md`): `grpcAddrAt`, `grpcSvcAt` and
-`grpcStreamSvcAt`; outside this module they are used through their laws only (`grpc_addr_set`,
+**Sealed** (`@[no_expose]`, decision A of `notes/phase7-endstate.md`): `grpcAddrAt`, `grpcSvcAt`,
+`grpcSvcNRAt` and `grpcStreamSvcAt`; outside this module they are used through their laws only (`grpc_addr_set`,
 `grpc_addr_set_tok`, `grpcAddrAt_regCtx`, `grpcAddrAt_slots`, `grpc_listen_au`, `grpcSvcAt_of_addr`,
-`grpcSvcAt_mono_upd`, `grpcStreamSvcAt_of_addr`, `grpcStreamSvcAt_mono`).
+`grpcSvcAt_mono_upd`, `grpcSvcNRAt_of_addr`, `grpcStreamSvcAt_of_addr`, `grpcStreamSvcAt_mono`).
 
 **Parsing.** A well-formed head (`headOk`: its block's length fits its `uint32`; the model's
 check before it writes a block, `headerListOk`, gives it: `headOk_of_listOk`, F1 of §0a) and a data
@@ -429,11 +430,15 @@ attribute [instance] ProtoWire.cnt
 abbrev ProtoMsg.wire {GF : BundledGFunctors} (T : ProtoMsg GF) : ProtoWire :=
   ⟨T.ty, T.M, T.tree, T.cnt⟩
 
-/-- **A unary method of a service**: its messages' wire parts and its spec (no heap). -/
+/-- **A unary method of a service**: its messages' wire parts, its spec (no heap), and whether it
+never refuses (`nr`): every run of a flagged entry's handler, through the server's interceptors,
+returns `nil` or an error whose description is none of `refusalDescs` (`grpcServesEnt`), and a
+client of addresses whose entries are all flagged gets no refusal (`grpcInvokerOk`). -/
 structure GrpcEntry (GF : BundledGFunctors) [GooseExts] where
   Wq : ProtoWire
   Wp : ProtoWire
   spec : GrpcMd → Wq.M → (Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF
+  nr : Bool
 
 /-- **A streaming method of a service** (no heap): its messages' wire
 parts, the client's content `up i m` of its `i`-th request, the server's content `dn md γ j m` of its
@@ -494,9 +499,15 @@ update. -/
 @[no_expose] def grpcSvcAt (a name : GoString) (Wq Wp : ProtoWire)
     (Spec : GrpcMd → Wq.M → (Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ (Svc : GrpcSvc GF) (Spec₀ : GrpcMd → Wq.M → (Wp.M → IProp GF) →
-      (GoString → IProp GF) → IProp GF),
-    grpcAddrAt (Gg := Gg) a Svc ∗ ⌜Svc name = some (.unary ⟨Wq, Wp, Spec₀⟩)⌝ ∗
+      (GoString → IProp GF) → IProp GF) (nr : Bool),
+    grpcAddrAt (Gg := Gg) a Svc ∗ ⌜Svc name = some (.unary ⟨Wq, Wp, Spec₀, nr⟩)⌝ ∗
     □ ∀ md m Φ Ψe, Spec md m Φ Ψe ==∗ Spec₀ md m Φ Ψe)
+
+/-- **The unary method `name` at `a` never refuses** (persistent, no heap): the table `a` serves has
+a unary entry for `name` that is flagged (`GrpcEntry.nr`). -/
+@[no_expose] def grpcSvcNRAt (a name : GoString) : IProp GF :=
+  iprop(∃ (Svc : GrpcSvc GF) (e : GrpcEntry GF),
+    grpcAddrAt (Gg := Gg) a Svc ∗ ⌜Svc name = some (.unary e) ∧ e.nr = true⌝)
 
 /-- **The streaming method `name` at `a` meets `Up` and `Spec`** (persistent, no heap): the table `a`
 serves has a stream entry for `name` at the wire parts `Wq`, `Wp`, whose
@@ -516,6 +527,8 @@ instance grpcAddrAt_persistent a Svc : Persistent (grpcAddrAt (Gg := Gg) a Svc) 
 instance grpcSvcAt_persistent a name Wq Wp Spec :
     Persistent (grpcSvcAt (Gg := Gg) a name Wq Wp Spec) := by
   unfold grpcSvcAt; infer_instance
+instance grpcSvcNRAt_persistent a name : Persistent (grpcSvcNRAt (Gg := Gg) a name) := by
+  unfold grpcSvcNRAt; infer_instance
 instance grpcStreamSvcAt_persistent a name Wq Wp Up Spec :
     Persistent (grpcStreamSvcAt (Gg := Gg) a name Wq Wp Up Spec) := by
   unfold grpcStreamSvcAt; infer_instance
@@ -583,7 +596,7 @@ theorem grpcSvcAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (e : GrpcEntry 
     grpcAddrAt (Gg := Gg) a Svc ⊢ grpcSvcAt (Gg := Gg) a name e.Wq e.Wp e.spec := by
   iintro #Ha
   unfold grpcSvcAt
-  iexists Svc, e.spec
+  iexists Svc, e.spec, e.nr
   iframe Ha
   isplitl []
   · ipureintro; rw [h]
@@ -592,6 +605,16 @@ theorem grpcSvcAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (e : GrpcEntry 
     imodintro
     iexact HS
 
+/-- A flagged unary entry of the table `a` serves is a no-refusal registration of its method. -/
+theorem grpcSvcNRAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (e : GrpcEntry GF)
+    (h : Svc name = some (.unary e)) (hnr : e.nr = true) :
+    grpcAddrAt (Gg := Gg) a Svc ⊢ grpcSvcNRAt (Gg := Gg) a name := by
+  iintro #Ha
+  unfold grpcSvcNRAt
+  iexists Svc, e
+  iframe Ha
+  ipureintro; exact ⟨h, hnr⟩
+
 /-- A registration holds of any spec whose callers meet it after an update. -/
 theorem grpcSvcAt_mono_upd (a name : GoString) (Wq Wp : ProtoWire)
     (Spec Spec' : GrpcMd → Wq.M → (Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF) :
@@ -599,8 +622,8 @@ theorem grpcSvcAt_mono_upd (a name : GoString) (Wq Wp : ProtoWire)
       grpcSvcAt (Gg := Gg) a name Wq Wp Spec -∗ grpcSvcAt (Gg := Gg) a name Wq Wp Spec' := by
   iintro #Hw #Ha
   unfold grpcSvcAt
-  icases Ha with ⟨%Svc, %Spec₀, #Haddr, %hS, #H0⟩
-  iexists Svc, Spec₀
+  icases Ha with ⟨%Svc, %Spec₀, %nr, #Haddr, %hS, #H0⟩
+  iexists Svc, Spec₀, nr
   iframe Haddr
   isplitl []
   · ipureintro; exact hS

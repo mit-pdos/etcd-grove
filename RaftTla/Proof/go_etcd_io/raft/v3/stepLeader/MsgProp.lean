@@ -330,7 +330,7 @@ theorem wp_stepLeader_prop
     -- conf change (the Draft's P3)
     (Hncc : s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e)
     (G : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
-    (HiP : IdxFree s.gh.tr Gp2) :
+    {nc : Bool} (HiP : IdxFreeN nc s.gh.tr Gp2) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgInC s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 ∗
         "HG" ∷ G s.outbox ∗
@@ -346,7 +346,7 @@ theorem wp_stepLeader_prop
             uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ Gp2 o -∗
           HookGateOpt s.gh.tr r
             (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
-        "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
+        "#Hnosnap" ∷ NoSnapG nc s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
@@ -748,7 +748,7 @@ theorem wp_stepLeader_prop
         isplitl [HG2]
         · iapply idx_eq _ ?_ $$ HG2
           first | rfl | simp [sendMsgs, propAppended, selfAck]
-        iapply trNoSnap_logst _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
+        iapply noSnapG_logst nc _ _ _ _ (by rfl) (by rfl) (by rfl) $$ Hnosnap
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys
       isplitr

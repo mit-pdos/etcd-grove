@@ -16,7 +16,7 @@ public import Spec.go_etcd_io.etcd.client.v3.OpDelete
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.CallsLaws
 public import Spec.go_etcd_io.etcd.client.v3.kv__Txn
 public import Spec.go_etcd_io.etcd.client.v3.txn__If
 

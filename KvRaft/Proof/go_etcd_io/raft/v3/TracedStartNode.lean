@@ -16,6 +16,7 @@ public import KvRaft.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import KvRaft.Spec.go_etcd_io.raft.v3.StartNode
 public import KvRaft.Proof.go_etcd_io.raft.v3.TracedApiDraft
 import all KvRaft.Proof.go_etcd_io.raft.v3.TracedApiDraft
+import all KvRaft.Proof.go_etcd_io.raft.v3.RawNodeStartSpec
 public import KvRaft.Spec.go_etcd_io.raft.v3.setupNode
 public import KvRaft.Spec.go_etcd_io.raft.v3.node__run
 public import KvRaft.Proof.go_etcd_io.raft.v3.InvNodeRun

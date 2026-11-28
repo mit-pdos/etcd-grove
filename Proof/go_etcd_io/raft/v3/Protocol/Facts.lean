@@ -1294,7 +1294,9 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
     W64 0 ∉ ids →
     BootWf L → (L ≠ [] → 1 ≤ uint.Z t) →
     ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
+      -- (antithesis parity B1, group E) the acknowledgement and win maps' names exactly the ids'
+      |={E}=> ∃ γ : RaftNames, ⌜domSet γ.reAcks = ids ∧ domSet γ.reWins = ids⌝ ∗
+        ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
           γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
           γ.reDec = rdec ∧ γ.dup = dup ∧
@@ -1314,11 +1316,11 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   imod alloc_maps (GF := GF) (K := w64) (V := w64) ids with ⟨%nv, %Hnv, Hv⟩
   imod alloc_maps (GF := GF) (K := w64) (V := TermRec) ids with ⟨%nt, -, Ht⟩
-  imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, -, Ha⟩
+  imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, %Hna, Ha⟩
   imod alloc_maps (GF := GF) (K := w64) (V := List EntryM × w64) ids with ⟨%nc, -, Hc⟩
   imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List EntryM) ids
     with ⟨%nl, -, Hl⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, -, Hw⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, %Hnw, Hw⟩
   imod alloc_evs (GF := GF) ids with ⟨%ne, He⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nlc, -, Hlc⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nrq, -, Hrq⟩
@@ -1480,6 +1482,7 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
   imod alloc_nodes E γ0 ids Hnz $$ Hinv' Hc00 Hcinv' Hsl Hv Ht Ha Hc Hl Hw He Hlc Hrq with Hnodes
   imodintro
   iexists γ0
+  isplitr; · ipureintro; rw [e3, e6]; exact ⟨Hna, Hnw⟩
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
     by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
     by rw [Hγ0]⟩
@@ -1520,9 +1523,14 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
         C γ ∗
-        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) :=
-  ownRaftGhost_alloc_core_reg_tr E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN
-    reg rdec dup none md Hmd HmdL
+        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
+  intro h1 h2 h3 h4
+  iintro H
+  imod ownRaftGhost_alloc_core_reg_tr E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN
+    reg rdec dup none md Hmd HmdL h1 h2 h3 h4 $$ H with ⟨%γ, -, H⟩
+  imodintro
+  iexists γ
+  iexact H
 
 /-- **The allocation's core**, with no registry of the snapshots made
 (`ownRaftGhost_alloc_core_reg` at `none`). -/

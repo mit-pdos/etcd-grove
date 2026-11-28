@@ -17,9 +17,9 @@ public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.google.go_cmp.cmp.Init
-public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
-public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
+public import Proof.k8s_io.apimachinery.pkg.api.errors.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.api.meta.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.watch.Init
 public import Proof.k8s_io.apiserver.pkg.storage.InitLinked

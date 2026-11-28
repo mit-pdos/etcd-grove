@@ -646,6 +646,8 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     (Hty : st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgForgetLeader ∨
       st.msg.Type' = MsgUnreachable ∨ st.msg.Type' = MsgSnapStatus)
     (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = []) (Hr : st.resps = [])
+    (Hz : st.msg.Type' = MsgTransferLeader → st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧
+      st.msg.Commit' = W64 0 ∧ st.msg.Reject' = false)
     -- (2026-11-12, trace-check implementation step 1: the design's §3.5) at a traced node only
     -- `ReportUnreachable`'s (the others are refused there)
     (Hg : γ.raft.reTrace = none ∨ st.msg.Type' = MsgUnreachable) :
@@ -666,7 +668,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     rcases Hty with h | h | h | h <;> rw [h] <;> rfl
   have Hok : NetMsgOk id st := by
     refine ⟨?_, fun h => absurd Hun h, fun _ _ => Ht, fun _ => .inl Ht, fun h => ?_, fun h => ?_,
-      fun _ => ⟨He, Hc⟩, fun h => ?_, Hr⟩
+      fun h => ⟨He, Hc, Hz h⟩, fun h => ?_, Hr⟩
     · rcases Hty with h | h | h | h <;> rw [h] <;> simp [netStepTypes]
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>

@@ -182,7 +182,8 @@ within the timeout, not forced), so the rest of `Step` is verified once, not onc
 (MsgVote_gt: 15m to 3m of CPU, 2026-10-20). The return is closed here (`StepC.refl`); the one
 goal left is the code after the check. -/
 macro "wp_lease_check " cx:term : tactic => `(tactic| (
-  wp_join (Q := fun v => iprop(⌜v = executeVal ∨ (v = returnVal #() ∧ s.cq = true)⌝ ∗
+  wp_join (Q := fun v => iprop(⌜v = executeVal ∨ (v = returnVal #() ∧ s.cq = true ∧ s.lead ≠ W64 0 ∧
+        ¬ $cx = go!"CampaignTransfer")⌝ ∗
       r_ptr ↦ r ∗ m_ptr ↦ ml ∗ ownRaftPhysCV c c.voters r id s ∗
       msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap (⟨m, ents, sn, ctx, rs⟩ : MsgSt).msg)
         ⟨m, ents, sn, ctx, rs⟩ ∗ «$res0_ptr» ↦ interface.nil)) at next
@@ -233,9 +234,9 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
       try wp_auto
       iframe
       ipureintro
-      first | exact Or.inl rfl | exact Or.inr ⟨rfl, by first | rfl | exact Hcq⟩ | (right; refine ⟨rfl, ?_⟩; simp_all) | exact Or.inl trivial)
+      first | exact Or.inl rfl | exact Or.inr ⟨rfl, by assumption, by assumption, by assumption⟩ | exact Or.inr ⟨rfl, by first | rfl | exact Hcq⟩ | (right; refine ⟨rfl, ?_⟩; simp_all) | exact Or.inl trivial)
   iintro ⟨%Hv, r, m, Hphys, Hm, «$res0»⟩
-  rcases Hv with rfl | ⟨rfl, Hcqr⟩
+  rcases Hv with rfl | ⟨rfl, Hcqr, Hlead, Hfrc⟩
   -- ignored within the lease: `nil`, the state unchanged
   rotate_left
   · wp_auto
@@ -245,15 +246,17 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
     iframe Hphys HG
     ipureintro
     first
-      | exact ⟨Perennial.EtcdGrove.StepEnd.vote Hty
-          (Perennial.EtcdGrove.notStale_of_le (Int.le_of_lt Hgt0)) (.inl ⟨Hcqr, rfl⟩), Hwf, ⟨[],
+      | exact ⟨Perennial.EtcdGrove.StepEndG.vote Hty
+          (Perennial.EtcdGrove.notStale_of_le (Int.le_of_lt Hgt0)) (.inl ⟨Hcqr, Hlead, Hgt0, Hfrc, rfl⟩), Hwf, ⟨[],
           fun _ H => absurd H List.not_mem_nil,
           Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _)⟩, rfl,
           Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
       | exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil,
           Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _)⟩, rfl,
           Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
-      | exact ⟨Hwf, Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _),
+      | exact ⟨Perennial.EtcdGrove.PreVoteStepAll.of_fresh
+          (Perennial.EtcdGrove.notStale_of_le (Int.le_of_lt Hgt0)) (.inl ⟨Hcqr, Hlead, Hgt0, Hfrc, rfl⟩), Hwf,
+          Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _),
           rfl, Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
   try wp_auto))
 
@@ -338,7 +341,7 @@ macro "vote_grant_tail" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro
-  refine ⟨Perennial.EtcdGrove.StepEnd.vote Hty
+  refine ⟨Perennial.EtcdGrove.StepEndG.vote Hty
       (Perennial.EtcdGrove.notStale_of_le (by rw [Heq0]; exact Int.le_refl _))
       (.inr ⟨∅, by
         rw [Perennial.EtcdGrove.preState_nobf hnbf]
@@ -405,7 +408,7 @@ macro "vote_reject_tail" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro
-  exact ⟨Perennial.EtcdGrove.StepEnd.vote Hty
+  exact ⟨Perennial.EtcdGrove.StepEndG.vote Hty
       (Perennial.EtcdGrove.notStale_of_le (by rw [Heq0]; exact Int.le_refl _))
       (.inr ⟨∅, by
         rw [Perennial.EtcdGrove.preState_nobf hnbf]
@@ -434,13 +437,13 @@ macro "cv_step" : tactic =>
     | wp_if_destruct)
 
 set_option hygiene false in
-/-- The answer's tail, granted (`grant`: the response `&pb.Message{To: m.From, Term: m.Term,
+/-- (#33 parity B1 (ii): `pv`, the answer's `PreVoteEnd`, for the post's `"%Hpv"`.) The answer's tail, granted (`grant`: the response `&pb.Message{To: m.From, Term: m.Term,
 Type: ..}`, the request's cells) or rejected (the response `&pb.Message{To: m.From, Term:
 new(r.Term), Type: .., Reject: new(true)}`): the log call, `voteRespMsgType`, `send`, and
 the `MsgVote` test, then `StepC.sendFree`. Uses `Hphys`, `Hm`, `PB`, `HΦ`, `Hty`, `Hwf`, and
 the answer's term being nonzero as `Hterm` (a grant at `m.Term`) or `Hs0` (a rejection at
 `r.Term`). -/
-macro "prevote_resp_tail " grant:ident : tactic =>
+macro "prevote_resp_tail " grant:ident pv:term : tactic =>
   `(tactic| (
     wp_gets
     wp_apply Perennial.EtcdGrove.raft.wp_load_idC $$ Hphys as Hphys
@@ -537,7 +540,11 @@ macro "prevote_resp_tail " grant:ident : tactic =>
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
+    refine ⟨Perennial.EtcdGrove.PreVoteStepAll.of_fresh
+      (by first
+        | exact Perennial.EtcdGrove.notStale_of_le (Int.le_of_lt Hgt0)
+        | exact Perennial.EtcdGrove.notStale_of_le (by rw [Heq0]; exact Int.le_refl _)) (.inr ($pv)),
+      nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_sendMsgs]
     exact .sendFree _ _ (.inr rfl) rfl))
@@ -570,7 +577,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+        (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
       · iframe Hphys Hsrc0 HG Hfg; iapply msgIn_nonprop Hnp $$ Hm
       ihave HG := stepOut_or R _ _ $$ HGo
       obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
@@ -582,7 +589,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+      exact ⟨StepEndG.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.follower Hrole Hres), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
@@ -614,7 +622,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩
+      exact ⟨StepEndG.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.candidate (.inl Hrole) Hres), Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩
     · -- Leader: no arm
       simp only [stepFuncOf]
       imod (preceipt_zero (GF := GF)) with #Hrc00
@@ -631,7 +640,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+        (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) (by xtx_tac) (by xta_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
       · iframe Hphys Hrc00 HG Hlg
         isplitl [Hm]
         · iapply msgIn_nonprop Hnp $$ Hm
@@ -646,7 +655,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+      exact ⟨StepEndG.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.leader Hrole Hres), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
@@ -677,7 +687,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩))
+      exact ⟨StepEndG.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.candidate (.inr Hrole) Hres), Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩))
 
 end EtcdGrove
 end Perennial

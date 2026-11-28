@@ -57,10 +57,6 @@ theorem trkFlags_lookup (pvs : GMap w64 Progress) (k : w64) :
     trkFlags pvs !! k = (pvs !! k).map (fun p => p.learner) := by
   simp [trkFlags, GMap.lookup_fmap]
 
-/-- The ids a configuration tracks: the voters of both halves and the learners (a staged
-learner, in `LearnersNext`, is an outgoing voter). -/
-def CfgM.ids (c : CfgM) : GSet w64 := c.voters ∪ c.learners
-
 /-- Each tracked `Progress`'s `IsLearner` is whether its id is a learner of `c`. -/
 def LearnerFlagsC (c : CfgM) (pvs : GMap w64 Progress) : Prop :=
   ∀ k p, pvs !! k = some p → p.learner = decide (k ∈ c.learners)

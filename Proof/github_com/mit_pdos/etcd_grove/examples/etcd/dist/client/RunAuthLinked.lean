@@ -16,7 +16,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.bar
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.collectFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUpDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUpDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AuthUserAddDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AuthUserGrantRoleDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AuthRoleAddDist
@@ -47,7 +47,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-variable [auth_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
+variable [auth_sem : github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [esrv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]

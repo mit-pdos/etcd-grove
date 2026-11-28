@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 set_option maxHeartbeats 1000000 in
-theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgHeartbeat_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
@@ -58,12 +58,12 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -109,7 +109,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨StepEnd.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
+    exact ⟨StepEndG.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
   all_goals -- with pre-vote or `checkQuorum` on, a stale leader message is answered with a
     -- bare `MsgAppResp` at the node's term (2026-10-04, 2026-10-17)
@@ -145,7 +145,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨StepEnd.stale ⟨Hterm, Hlt⟩ (.inr ⟨MsgAppResp, absMsgFrom .appResp ack id s.term [],
+    refine ⟨StepEndG.stale ⟨Hterm, Hlt⟩ (.inr ⟨MsgAppResp, absMsgFrom .appResp ack id s.term [],
       .inl ⟨rfl, by first | exact .inl Hcq | exact .inr Hpv, .inl Hty, rfl⟩, rfl⟩),
       nstateWf_sendMsgs _ _ Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩

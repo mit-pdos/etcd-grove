@@ -191,7 +191,7 @@ theorem cluster_alloc_boot_implG_tr (N : Namespace) (vs : List w64) (ctxs : List
       rw [hd]; exact HmxdB b hb e0 he0)
     Hcne Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
-    $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
+    $$ Hcl with ⟨%γr, -, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0, Hmxd'⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx, #Hblb⟩

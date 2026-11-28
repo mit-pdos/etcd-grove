@@ -26,7 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberName
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S5Interim
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 

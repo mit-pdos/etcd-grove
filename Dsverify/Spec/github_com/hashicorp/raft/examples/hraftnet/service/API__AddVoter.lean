@@ -1,0 +1,38 @@
+/-
+`service.API.AddVoter`'s spec (the hraft kit's API service, notes/dsv-hraft.md, S5).
+-/
+module
+
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.service.ApiDefs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.service.Assumptions]
+
+open github_com.hashicorp.raft.examples.hraftnet.service github_com.hashicorp.raft
+  github_com.hashicorp.raft.proto github_com.hashicorp.raft.gprot
+
+/-- `a.AddVoter(args, reply)`: raft's `AddVoter` of the server `args` names (in scope: a server of the protocol, its address its ID); the
+reply says whether it succeeded in time. -/
+abbrev github_com.hashicorp.raft.examples.hraftnet.service.API.AddVoter.spec : Prop :=
+  ∀ (a args reply : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (fc : FCtx GF) (alb : GName)
+    (id addr : GoString) (rep0 : AdminReply),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet.service ∗ isAPI a γ rc i fc alb ∗ args ↦□ AdminArgs.mk id addr ∗
+      ⌜(id : List w8) ∈ γ.srvs ∧ (addr : List w8) = (id : List w8) ∧ ((id : List w8) ≠ [] ∧ (id : List w8).length < 2 ^ 63 ∧ γ.srvs.length < 2 ^ 32)⌝ ∗ reply ↦ rep0 }}
+    (App (App (Val (a @!! go.GoType.PointerType API.ty @!! go!"AddVoter")) (Val #args)) (Val #reply))
+  {{ RET #interface.nil; ∃ rep : AdminReply, reply ↦ rep }}
+
+end spec
+
+end Perennial

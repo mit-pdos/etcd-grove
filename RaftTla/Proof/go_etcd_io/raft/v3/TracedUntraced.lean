@@ -255,6 +255,8 @@ abbrev raft.sendTimeoutNow.untracedTriple : Prop :=
   to ≠ id →
   s.term ≠ W64 0 →
   s.gh.tr = none →
+  s.gh.xs = true →
+  (s.gh.xt !! (to, s.term)).isSome →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendTimeoutNow")) (Val #to))
   {{ RET #(); ownRaftPhysCV c c.voters r id s }}
@@ -262,10 +264,10 @@ abbrev raft.sendTimeoutNow.untracedTriple : Prop :=
 /-- `raft.sendTimeoutNow.spec`'s untraced instance. -/
 theorem raft.sendTimeoutNow.untraced (h : raft.sendTimeoutNow.spec (GF := GF) (hG := hG)) :
     raft.sendTimeoutNow.untracedTriple (GF := GF) (hG := hG) := by
-  intro c r id s to Hto Htz htr
+  intro c r id s to Hto Htz htr Hxs Hxt
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s to iprop(emp) Hto Htz htr $$ [Hphys]
+  iapply h c r id s to iprop(emp) Hto Htz htr Hxs Hxt $$ [Hphys]
   · iframe Hpkg Hphys
     rw [htr]
     iapply hookGateOpt_none r _ tl iprop(emp) Htlok
@@ -329,7 +331,8 @@ abbrev raft.bcastHeartbeatWithCtx.untracedTriple : Prop :=
       (Val #ctx))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧
+        m.entries = [] ∧ m.dst ∈ domSet s.progress⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 /-- `raft.bcastHeartbeatWithCtx.spec`'s untraced instance: every gate the struct's nil logger. -/
@@ -364,7 +367,8 @@ abbrev raft.bcastHeartbeat.untracedTriple : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧
+        m.entries = [] ∧ m.dst ∈ domSet s.progress⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 /-- `raft.bcastHeartbeat.spec`'s untraced instance: every gate the struct's nil logger. -/

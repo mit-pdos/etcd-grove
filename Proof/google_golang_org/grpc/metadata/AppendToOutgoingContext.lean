@@ -1,6 +1,6 @@
 /-
 The trust boundary: `metadata.AppendToOutgoingContext` (grpc's `metadata` is names-only; contract
-C3 of `examples/etcd/auth`, the auth plan's E2f).
+C3 of `examples/lib/authwork`, the auth plan's E2f).
 -/
 module
 

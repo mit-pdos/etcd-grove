@@ -56,6 +56,11 @@ structure CfgM where
 /-- The voters of either half: what `JointConfig.IDs` returns. -/
 def CfgM.voters (c : CfgM) : GSet w64 := c.incoming ∪ c.outgoing
 
+/-- The ids a configuration tracks: the voters of both halves and the learners (a staged
+learner, in `LearnersNext`, is an outgoing voter). (#33 S4: moved here from `InvTrackerC.lean`, for
+`Protocol/InputEnd.lean`'s destinations.) -/
+def CfgM.ids (c : CfgM) : GSet w64 := c.voters ∪ c.learners
+
 /-- A configuration with the voters `cfg`, the learners `lrn`, not joint. -/
 def CfgM.simple (cfg lrn : GSet w64) : CfgM :=
   { incoming := cfg, outgoing := ∅, learners := lrn, learnersNext := ∅, autoLeave := false }

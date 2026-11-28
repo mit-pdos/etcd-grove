@@ -28,7 +28,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TxnCommitO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetOnDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutOnDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.CallDistLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Link
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.WithAttachedKeys
 public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
@@ -53,7 +53,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-variable [auth_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
+variable [auth_sem : github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [esrv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]

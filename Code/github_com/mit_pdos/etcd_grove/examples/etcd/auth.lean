@@ -3,16 +3,13 @@ module
 
 public import Perennial.Code.context
 public import Perennial.Code.sync
-public import Perennial.Code.time
 public import Code.go_uber_org.zap
-public import Code.google_golang_org.grpc.metadata
-public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
-public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_etcd_io.etcd.server.v3.config
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Code.go_etcd_io.etcd.server.v3.features
+public import Code.github_com.mit_pdos.etcd_grove.examples.lib.authwork
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Perennial.Golang.Defn
 
@@ -63,59 +60,11 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.auth
 @[reducible] noncomputable def vPw [GooseExts] [GoGlobalContext] : val :=
   #(go!"v-pw")
 
-@[reducible] noncomputable def badToken [GooseExts] [GoGlobalContext] : val :=
-  #(go!"badtoken")
-
-@[reducible] noncomputable def refusedWatchTimeout [GooseExts] [GoGlobalContext] : val :=
-  #(W64 2000000000)
-
-noncomputable def Principals [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Principals"
-
 noncomputable def startServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.startServer"
 
 noncomputable def newUserClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.newUserClient"
-
-noncomputable def InRange [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.InRange"
-
-noncomputable def Permitted [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Permitted"
-
-noncomputable def keyOf [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.keyOf"
-
-noncomputable def reqCtx [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.reqCtx"
-
-noncomputable def refused [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.refused"
-
-noncomputable def checkKVs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.checkKVs"
-
-noncomputable def checkTxnReads [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.checkTxnReads"
-
-noncomputable def Work [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Work"
-
-noncomputable def SetUp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.SetUp"
-
-noncomputable def Writer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Writer"
-
-noncomputable def SetupWrite [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.SetupWrite"
-
-noncomputable def CheckHistory [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.CheckHistory"
-
-noncomputable def LastIn [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.LastIn"
 
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Main"
@@ -123,32 +72,12 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/auth.Run"
 
-/-- Principals is the principals: the users u and v, the client with no token (anon) and the one
-    with a token no provider issued (bad).
-
-    go: authkv.go:84:6 -/
-noncomputable def Principals.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "$r0" (Let "$v0" (Val #(go!"u"))
-  (Let "$v1" (Val #(go!"v"))
-  (Let "$v2" (Val #(go!"anon"))
-  (Let "$v3" (Val #(go!"bad"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.string (Var "$v3")))]))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")))))
-
 /-- startServer starts the one member of a new cluster, as etcdstart.StartServer does, with the simple
     token provider (etcd's default, --auth-token simple) and etcd's default token TTL (300 seconds,
     --auth-token-ttl: embed's default; ServerConfig has none, and the simple provider's tokens with
     TTL 0 expire at its keeper's next tick).
 
-    go: authkv.go:92:6 -/
+    go: authkv.go:76:6 -/
 noncomputable def startServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
@@ -237,7 +166,7 @@ noncomputable def startServer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newUserClient connects a client of addr that authenticates as user name with password pw
     (clientv3.New calls Authenticate when it dials, and the token is sent with every request).
 
-    go: authkv.go:124:6 -/
+    go: authkv.go:108:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "name"
@@ -274,1273 +203,9 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- InRange reports whether key k is in [lo, hi), the range role r is granted.
-
-    go: authkv.go:137:6 -/
-noncomputable def InRange.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLe go.string))) (Pair (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val lo)) (App (Val (GoInstruction (GoLoad go.string))) (Var "k")))) (App (Val (GoInstruction (GoOp GoLt go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "k")) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val hi)))) (Val #false))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
-
-/-- Permitted reports whether the auth state lets principal who read or write key k: u, through
-    role r, on [lo, hi); nobody else, anywhere.
-
-    go: authkv.go:143:6 -/
-noncomputable def Permitted.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "who"
-  (Lam "k"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "who")) (Val #(go!"u")))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (App (App (Val (GoInstruction (FuncResolve InRange []))) (Val #())) (Var "$a0"))) (Val #false))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-
-/-- keyOf is the key x/<who>/<n>: once auth is on, written and deleted only by who.
-
-    go: authkv.go:148:6 -/
-noncomputable def keyOf.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "x"
-  (Lam "who"
-  (Lam "n"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "n" (App (Val (GoInstruction (GoAlloc go.string))) (Var "n"))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
-  (Let "x" (App (Val (GoInstruction (GoAlloc go.string))) (Var "x"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "x")) (Val #(go!"/")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!"/")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "n"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))))
-  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))))
-
-/-- reqCtx is a request's context, with the request timeout; the bad principal's carries its token.
-
-    go: authkv.go:153:6 -/
-noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "who"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
-  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (Val #(W64 5000000000))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
-  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "who")) (Val #(go!"bad")))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Let "$sl0" (Val #(go!"token"))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val badToken))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.metadata.AppendToOutgoingContext []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "$res1")))))))
-
-/-- refused panics if err is nil: a request the auth state refuses who returned no error.
-
-    go: authkv.go:162:6 -/
-noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "who"
-  (Lam "what"
-  (Lam "err"
-  (Seq (App (Val exceptionDo)
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
-  (Let "what" (App (Val (GoInstruction (GoAlloc go.string))) (Var "what"))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"authkv: ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!"'s ")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "what")))) (Val #(go!" was not refused")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #())))))))
-  (Val #())))))
-
-/-- checkKVs panics unless every key-value of a reply who received is one who may read.
-
-    go: authkv.go:169:6 -/
-noncomputable def checkKVs.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "who"
-  (Lam "kvs"
-  (Seq (App (Val exceptionDo)
-  (Let "kvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Var "kvs"))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Var "kvs"))
-  (Let "kv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (Val #())))
-  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (Var "kv")))))
-  (App (App (App (Val (GoInstruction (FuncResolve Permitted []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"authkv: a reply to ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!" holds a key ")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!" may not read")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (Pair (Var "kv") (Var "$value")))))))))))))
-  (Val #()))))
-
-/-- checkTxnReads panics unless every range response among the transaction reply's ops holds only
-    keys who may read (one level: the workload's transactions that may succeed nest none).
-
-    go: authkv.go:179:6 -/
-noncomputable def checkTxnReads.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "who"
-  (Lam "ops"
-  (Seq (App (Val exceptionDo)
-  (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (Var "ops"))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (Var "ops"))
-  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (Val #())))
-  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty) go!"GetResponseRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (Var "op"))) (Val #()))
-  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Var "r")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Val UntypedNil))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Var "r"))))
-  (App (App (App (Val (GoInstruction (FuncResolve checkKVs []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Pair (Var "r") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (Pair (Var "op") (Var "$value")))))))))))))
-  (Val #()))))
-
-/-- Work runs principal who's workload through cli, checking each reply (above): its writes and
-    reads inside [lo, hi) (permitted to u alone), reaching outside it, and its transactions, with
-    each branch and a nested transaction reaching outside. A permitted request may fail (a
-    timeout): only its reply, if any, is checked.
-
-    go: authkv.go:192:6 -/
-noncomputable def Work.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "cli"
-  (Lam "who"
-  (Seq (App (Val exceptionDo)
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
-  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (Let "$r0" (Let "$a0" (Val #(go!"a"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"0"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "in0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Val #(go!"c"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"0"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "out0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
-  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "in0"))
-  (Let "$a2" (Val #(go!"v0"))
-  (Let "$a3" (Val #slice.nil)
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "out0"))
-  (Let "$a2" (Val #(go!"v0"))
-  (Let "$a3" (Val #slice.nil)
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val lo))
-  (Let "$a2" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val hi))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRange []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0")))])))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"c/"))
-  (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithPrefix []))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0")))])))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val lo))
-  (Let "$a2" (Let "$sl0" (Let "$a0" (Val #(go!"d"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRange []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0")))])))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Commit"))) (Let "$a0" (Let "$sl0" (Let "$a0" (Let "$a0" (Val #(go!"a"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"t"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a1" (Val #(go!"vt"))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpPut []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val lo))
-  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val hi))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRange []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpGet []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$sl1")))]))))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Then"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Txn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")))) (Var "$a0")))) (Val #()))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Commit"))) (Let "$a0" (Let "$sl0" (Let "$a0" (Let "$a0" (Val #(go!"a"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"t1"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a1" (Val #(go!"vt"))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpPut []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$sl1" (Let "$a0" (Let "$a0" (Val #(go!"c"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"t1"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a1" (Val #(go!"vt"))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpPut []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$sl1")))]))))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Then"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Txn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")))) (Var "$a0")))) (Val #()))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Commit"))) (Let "$a0" (Let "$sl0" (Let "$a0" (Let "$a0" (Val #(go!"c"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"t2"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a1" (Val #(go!"vt"))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpPut []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Else"))) (Let "$a0" (Let "$sl0" (Let "$a0" (Let "$a0" (Val #(go!"a"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"t2"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a1" (Val #(go!"vt"))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpPut []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Then"))) (Let "$a0" (Let "$sl0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "in0"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Value []))) (Val #())) (Var "$a0")))
-  (Let "$a1" (Val #(go!"="))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.string go.any))) (Val #(go!"none")))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"If"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Txn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")))) (Var "$a0")))) (Var "$a0")))) (Var "$a0")))) (Val #()))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Commit"))) (Let "$a0" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Cmp.ty)))) (Val UntypedNil))
-  (Let "$a1" (Let "$v0" (Let "$a0" (Let "$a0" (Val #(go!"c"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"t3"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a1" (Val #(go!"vt"))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpPut []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$v0")))])))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (Val UntypedNil))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.OpTxn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty go!"Then"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Txn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")))) (Var "$a0")))) (Val #()))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Let "$a0" (Val #(go!"a"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"d"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Delete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Let "$a0" (Val #(go!"c"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"d"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a2" (Val #slice.nil)
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Delete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (Val refusedWatchTimeout)
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "wcancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
-  (Let "wctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "wctx"))
-  (Let "$a1" (Val #(go!"c/"))
-  (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithPrefix []))) (Val #())) (Val #()))
-  (Let "$sl1" (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithRev []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty (Var "$sl1")))]))))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher.ty go!"Watch"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Watcher"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "wch" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "wcancel")) (Val #())))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wch"))
-  (Let "wresp" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Val #())))
-  (App (App (Val (chan.forRange _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Var "$range"))
-  (Lam "$key"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty go!"Events"))) (Var "wresp")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"authkv: ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!"'s watch outside [a, b) reported an event")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Pair (Var "wresp") (Var "$key"))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Pair (Var "wch") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "who")) (Val #(go!"bad")))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "wctx"))
-  (Let "$a1" (Let "$sl0" (Val #(go!"token"))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val badToken))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.metadata.AppendToOutgoingContext []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "wctx") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "wcancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "wctx") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"delete outside [a, b)"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Let "$a0" (Val #(go!"a"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"d"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (App (App (App (Val (GoInstruction (FuncResolve Permitted []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"delete in [a, b)"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"nested transaction writing outside [a, b)"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"transaction writing outside [a, b) in its else branch"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"transaction writing outside [a, b)"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty go!"Responses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Var "t"))))
-  (App (App (App (Val (GoInstruction (FuncResolve checkTxnReads []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "who")) (Val #(go!"u"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"authkv: ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!"'s transaction in [a, b) was not refused")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.TxnResponse.ty)))) (Pair (Var "t") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"range past b"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"range outside [a, b)"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Var "g"))))
-  (App (App (App (Val (GoInstruction (FuncResolve checkKVs []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "who")) (Val #(go!"u"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"authkv: ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!"'s range of [a, b) was not refused")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "g") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"put outside [a, b)"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "in0"))
-  (App (App (App (Val (GoInstruction (FuncResolve Permitted []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"put in [a, b)"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0")))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "out0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "in0") (Var "$r0"))))))))))
-  (Val #()))))
-
-/-- SetUp puts the keys the principals' deletes may remove (x/<who>/d, for x in a and c), then
-    creates the auth state and enables auth, through cli (auth off: every request is allowed):
-    user root with the root role, role r granted READWRITE on [lo, hi), user u with role r and user
-    v with no role. It returns false if a step failed.
-
-    go: authkv.go:286:6 -/
-noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "cli"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val wrapDefer)
-  (Lam "$defer"
-  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (Val #(W64 5000000000))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
-  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"v"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val vPw))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"u"))
-  (Let "$a2" (Val #(go!"r"))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"u"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val uPw))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"r"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val lo))
-  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val hi))
-  (Let "$a4" (Val #(W32 2))
-  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"r"))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"root"))
-  (Let "$a2" (Val #(go!"root"))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Val #(go!"root"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val rootPw))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Auth.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Auth"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$f" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
-  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
-  (Lam BAnon
-  (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #()))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
-  (Let "$range" (App (App (Val (GoInstruction (FuncResolve Principals []))) (Val #())) (Val #()))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (Let "$v0" (Val #(go!"a"))
-  (Let "$v1" (Val #(go!"c"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
-  (Let "x" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (Val #(W64 5000000000))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
-  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"d"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$a2" (Val #(go!"setup"))
-  (Let "$a3" (Val #slice.nil)
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0")))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "x") (Var "$value"))))))))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
-
-/-- Writer is the principal whose key k is once auth is on: the who of x/<who>/... for x in a and
-    c, "" if k has no such shape.
-
-    go: authkv.go:329:6 -/
-noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(go!""))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (App (Val (GoInstruction (FuncResolve Principals []))) (Val #())) (Val #()))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (Let "$v0" (Val #(go!"a"))
-  (Let "$v1" (Val #(go!"c"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
-  (Let "x" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "x")) (Val #(go!"/")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!"/"))))
-  (Let "p" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "p"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "p"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "p")))) (Val #false)))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "p") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "x") (Var "$value"))))))))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value")))))))))))))
-  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
-
-/-- SetupWrite is whether e is one of SetUp's puts (keyOf(x, who, "d") for x in a and c, the value
-    "setup"). CheckHistory admits one at any revision: in Go each is applied before SetUp returns
-    (the client resends a Put only when the attempt was never sent), but the proof's model of the
-    client lets an attempt be applied more than once (SetUp gives each put a persistent update),
-    so the check does not depend on where in the history the set-up's puts are.
-
-    go: authkv.go:346:6 -/
-noncomputable def SetupWrite.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "e"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (Var "e"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (App (Val (GoInstruction (FuncResolve Principals []))) (Val #())) (Val #()))
-  (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (Let "$v0" (Val #(go!"a"))
-  (Let "$v1" (Val #(go!"c"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
-  (Let "x" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Put"))) (Var "e"))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Key"))) (Var "e"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a2" (Val #(go!"d"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve keyOf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Val"))) (Var "e"))) (Val #(go!"setup")))) (Val #false))
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "x") (Var "$value"))))))))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$value")))))))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
-
-/-- CheckHistory panics unless every watched event but root's last write (key endKey) and the
-    set-up's puts (SetupWrite) is a write its key's principal was permitted.
-
-    go: authkv.go:359:6 -/
-noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "evs"
-  (Lam "endKey"
-  (Seq (App (Val exceptionDo)
-  (Let "endKey" (App (Val (GoInstruction (GoAlloc go.string))) (Var "endKey"))
-  (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
-  (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (Val #())))
-  (App (App (Val (slice.forRange _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Key"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "endKey"))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (Var "e"))
-  (App (App (Val (GoInstruction (FuncResolve SetupWrite []))) (Val #())) (Var "$a0")))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Key"))) (Var "e")))
-  (App (App (Val (GoInstruction (FuncResolve Writer []))) (Val #())) (Var "$a0")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Key"))) (Var "e")))
-  (App (App (App (Val (GoInstruction (FuncResolve Permitted []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #false))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"authkv: the history holds a write its principal was not permitted")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (Pair (Var "e") (Var "$value")))))))))))))
-  (Val #()))))
-
-/-- LastIn is the revision of the last event of evs in [lo, hi) (0 if there is none).
-
-    go: authkv.go:368:6 -/
-noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "evs"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
-  (Let "last" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "last"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
-  (Let "e" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (Val #())))
-  (App (App (Val (slice.forRange _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Key"))) (Var "e")))
-  (App (App (Val (GoInstruction (FuncResolve InRange []))) (Val #())) (Var "$a0")))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Rev"))) (Var "e")))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "last") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty))) (Pair (Var "e") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")))))
-
 /-- Main starts the member, then runs the set-up, the workloads and the checks through it (Run).
 
-    go: authkv.go:379:6 -/
+    go: authkv.go:121:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1590,7 +255,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
     history through root's watch, and u's watch of [lo, hi). It is Main after the member's start,
     shared with examples/etcd/auth3, whose first member it runs on.
 
-    go: authkv.go:392:6 -/
+    go: authkv.go:134:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "addr"
@@ -1736,7 +401,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "uch"))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
-  (App (App (Val (GoInstruction (FuncResolve LastIn []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.LastIn []))) (Val #())) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1763,7 +428,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val #(go!"u"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Key"))) (Var "e")))
-  (App (App (App (Val (GoInstruction (FuncResolve Permitted []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Permitted []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"authkv: u's watch reported a key u may not read")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -1797,7 +462,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
   (Let "$a1" (Val #(go!"z/end"))
-  (App (App (App (Val (GoInstruction (FuncResolve CheckHistory []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.CheckHistory []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val WatchEnded))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1840,7 +505,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #()))))))
-  (Let "$range" (App (App (Val (GoInstruction (FuncResolve Principals []))) (Val #())) (Val #()))
+  (Let "$range" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Principals []))) (Val #())) (Val #()))
   (App (App (Val (slice.forRange go.string)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
@@ -1859,7 +524,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "c"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (App (Val (GoInstruction (FuncResolve Work []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Work []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Val #())))
   (App (Val doExecute)
   (Fork
@@ -1921,7 +586,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "root") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val (GoInstruction (FuncResolve SetUp []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUp []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Failed))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1962,7 +627,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1977,23 +642,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2005,71 +659,39 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Principals_unfold : FuncUnfold Principals [] Principals.impl
   startServer_unfold : FuncUnfold startServer [] startServer.impl
   newUserClient_unfold : FuncUnfold newUserClient [] newUserClient.impl
-  InRange_unfold : FuncUnfold InRange [] InRange.impl
-  Permitted_unfold : FuncUnfold Permitted [] Permitted.impl
-  keyOf_unfold : FuncUnfold keyOf [] keyOf.impl
-  reqCtx_unfold : FuncUnfold reqCtx [] reqCtx.impl
-  refused_unfold : FuncUnfold refused [] refused.impl
-  checkKVs_unfold : FuncUnfold checkKVs [] checkKVs.impl
-  checkTxnReads_unfold : FuncUnfold checkTxnReads [] checkTxnReads.impl
-  Work_unfold : FuncUnfold Work [] Work.impl
-  SetUp_unfold : FuncUnfold SetUp [] SetUp.impl
-  Writer_unfold : FuncUnfold Writer [] Writer.impl
-  SetupWrite_unfold : FuncUnfold SetupWrite [] SetupWrite.impl
-  CheckHistory_unfold : FuncUnfold CheckHistory [] CheckHistory.impl
-  LastIn_unfold : FuncUnfold LastIn [] LastIn.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   Run_unfold : FuncUnfold Run [] Run.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
-  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
-  import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
-  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
   import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import_authwork_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.Principals_unfold
-  Assumptions.startServer_unfold
+attribute [instance] Assumptions.startServer_unfold
   Assumptions.newUserClient_unfold
-  Assumptions.InRange_unfold
-  Assumptions.Permitted_unfold
-  Assumptions.keyOf_unfold
-  Assumptions.reqCtx_unfold
-  Assumptions.refused_unfold
-  Assumptions.checkKVs_unfold
-  Assumptions.checkTxnReads_unfold
-  Assumptions.Work_unfold
-  Assumptions.SetUp_unfold
-  Assumptions.Writer_unfold
-  Assumptions.SetupWrite_unfold
-  Assumptions.CheckHistory_unfold
-  Assumptions.LastIn_unfold
   Assumptions.Main_unfold
   Assumptions.Run_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_sync_Assumption
-  Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
-  Assumptions.import_metadata_Assumption
-  Assumptions.import_etcdserverpb_Assumption
-  Assumptions.import_mvccpb_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_config_Assumption
   Assumptions.import_etcdserver_Assumption
   Assumptions.import_features_Assumption
+  Assumptions.import_authwork_Assumption
   Assumptions.import_etcdstart_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.auth

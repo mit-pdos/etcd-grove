@@ -21,6 +21,8 @@ public import KvRaft.Proof.go_etcd_io.raft.v3.TraceSimEnd
 import KvRaft.Proof.go_etcd_io.raft.v3.TracedNodeBoot
 public import KvRaft.Proof.go_etcd_io.raft.v3.TracedBootVocab
 public import KvRaft.Proof.go_etcd_io.raft.v3.TraceFits
+public import KvRaft.Proof.go_etcd_io.raft.v3.RawNodeStartSpec
+import all KvRaft.Proof.go_etcd_io.raft.v3.RawNodeStartSpec
 import all KvRaft.Proof.go_etcd_io.raft.v3.InvNode
 import all KvRaft.Proof.go_etcd_io.raft.v3.InvNodeRule
 import KvRaft.Proof.go_etcd_io.raft.v3.InvApi
@@ -49,10 +51,7 @@ needs 0011's trace logging in the verified raft); `AsyncStorageWrites` is off fo
 already. -/
 def TracedConfigOk (cv : Config) : Prop := cv.PreVote' = false ∧ cv.CheckQuorum' = false
 
-/-- **Raft's ghost names of a cluster** (amendment A4; for the package's own statements here):
-sealed, as `Cluster.trace` (`Cluster`'s names are the package's; the package's proofs `import all`
-this file). -/
-@[no_expose] def Cluster.raftNames (γ : Cluster) : RaftNames := ApiImpl.Cluster.raft γ
+-- `Cluster.raftNames` (raft's ghost names of a cluster, amendment A4) is `RawNodeStartSpec`'s.
 
 /-- **The simulation's invariant of a traced cluster `γ`**, the voters `vs`, the trace's names `tn`
 (amendment A4, Q20 (a)): the invariant the capability holds (`trCapB`), shared by the cluster's nodes,
