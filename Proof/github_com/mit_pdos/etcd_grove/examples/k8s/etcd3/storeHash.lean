@@ -31,6 +31,11 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
+/-- A literal of six unkeyed elements has six elements. -/
+theorem arrayLiteralSize6 {a b c d e f} :
+    go.arrayLiteralSize [KeyedElement none a, KeyedElement none b, KeyedElement none c,
+      KeyedElement none d, KeyedElement none e, KeyedElement none f] = 6 := rfl
+
 theorem storeHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG))
     (wp_strHash : strHash.spec (GF := GF) (hG := hG)) :
     storeHash.spec (GF := GF) (hG := hG) := by
@@ -60,25 +65,43 @@ theorem storeHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_apply wp_strHash as %h2 -
     (try wp_auto)
-    rename_i o_ptr
-    wp_apply wp_slice_literal
+    wp_apply (wp_slice_literal (l := [w.obj'.Namespace', w.obj'.Name', w.obj'.UID', w.obj'.Value',
+      w.obj'.Node', w.obj'.App']))
     isplitr
     · ipureintro; rfl
     iintro %fsl ⟨Hf, -⟩
+    simp only [arrayLiteralSize6]
     imod ownSlice_persist _ _ _ $$ Hf with #Hf
-    ihave %Hfl := ownSlice_len $$ Hf
     (try wp_auto)
-    fail "ctx"
-    ihave HJ : (∃ (k : w64) (m : w64) (fv : GoString), "k" ∷ i_ptr' ↦ k ∗ "h" ∷ h_ptr ↦ m ∗
-        "f" ∷ f_ptr ↦ fv ∗
-        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 6⌝ : IProp GF) $$ [i' h f]
+    ihave HJ : (∃ (k : w64) (m : w64) (fv : GoString), "k" ∷ i_ptr ↦ k ∗ "h" ∷ h_ptr ↦ m ∗
+        "f" ∷ f_ptr ↦ fv ∗ "%Hk" ∷ ⌜0 ≤ sint.Z k⌝ : IProp GF) $$ [i h f]
     · iexists W64 0, _, _
       iframe
-      ipureintro; exact ⟨by word, by word⟩
+      ipureintro; word
     wp_for HJ
     wp_if_destruct
-    · sorry
-    · sorry
+    · have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z (W64 6) := ⟨Hk, Hif⟩
+      list_elem [w.obj'.Namespace', w.obj'.Name', w.obj'.UID', w.obj'.Value', w.obj'.Node',
+        w.obj'.App'] (sint.nat k) as v
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index _ (sint.Z k) _ _ v Hk $$ [Hf] as -
+      · isplit
+        · iexact Hf
+        · ipureintro; exact Hv_lookup
+      (try wp_auto)
+      wp_apply wp_strHash as %h3 -
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists k + W64 1, _, _
+      iframe
+      ipureintro; word
+    · (try wp_auto)
+      wp_apply wp_mix as %h4 -
+      (try wp_auto)
+      wp_if_destruct <;> (try wp_auto) <;> (try wp_apply wp_mix as %h5 -) <;> (try wp_auto) <;>
+        wp_if_destruct <;> (try wp_auto) <;> (try wp_apply wp_mix as %h6 -) <;> (try wp_auto) <;>
+        (wp_for_post; iframe; iexists j + W64 1, _, _; iframe; ipureintro; exact ⟨by word, by word⟩)
   · iapply HΦ
     itrivial
 
