@@ -86,6 +86,10 @@ type stable struct {
 	armed  bool
 	images []kv // while armed: the store before each write
 	writes []string
+	// failSecond: the second write of a vote key (LastVoteTerm or LastVoteCand, whichever comes
+	// second) fails, once, with nothing written (an I/O error, or a crash, between the two writes)
+	failSecond bool
+	voteKeys   int
 }
 
 func newStable(s kv) *stable { return &stable{s: s} }
@@ -99,11 +103,30 @@ func (st *stable) write(key string, f func()) {
 	}
 	f()
 }
+// fail says whether this write of key fails (failSecond).
+func (st *stable) fail(key string) bool {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if st.failSecond && (key == "LastVoteTerm" || key == "LastVoteCand") {
+		st.voteKeys++
+		if st.voteKeys == 2 {
+			st.failSecond = false
+			return true
+		}
+	}
+	return false
+}
 func (st *stable) Set(k, v []byte) error {
+	if st.fail(string(k)) {
+		return errors.New("injected: the second vote write fails")
+	}
 	st.write(string(k), func() { st.s.b[string(k)] = append([]byte(nil), v...) })
 	return nil
 }
 func (st *stable) SetUint64(k []byte, v uint64) error {
+	if st.fail(string(k)) {
+		return errors.New("injected: the second vote write fails")
+	}
 	st.write(string(k), func() { st.s.u[string(k)] = v })
 	return nil
 }
@@ -300,5 +323,42 @@ func TestTornVoteGrantsWithoutLogCheck(t *testing.T) {
 	}
 	if len(images) < 2 {
 		t.Fatalf("expected B to write its stable store during the vote; images: %v", images)
+	}
+}
+
+// TestTornVoteFailedWrite: the same window without a crash: the second of the vote's two writes
+// fails (whichever key the server writes second), so B does not grant A; X, whose log is behind B's,
+// then asks for B's vote in the same term.
+func TestTornVoteFailedWrite(t *testing.T) {
+	conf := config()
+	logs, st, snaps := raft.NewInmemStore(), newStable(kv{b: map[string][]byte{}, u: map[string]uint64{}}), raft.NewInmemSnapshotStore()
+	tr := &trans{consumer: make(chan raft.RPC)}
+	cfg := raft.Configuration{}
+	for _, s := range []string{"A", "B", "X"} {
+		cfg.Servers = append(cfg.Servers, raft.Server{Suffrage: raft.Voter, ID: raft.ServerID(s), Address: raft.ServerAddress(s)})
+	}
+	if err := raft.BootstrapCluster(conf, logs, st, snaps, tr, cfg); err != nil {
+		t.Fatal(err)
+	}
+	rc := &record{applied: map[uint64][]string{}}
+	r, err := raft.NewRaft(conf, &fsm{rc}, logs, st, snaps, tr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Shutdown()
+	if !vote(t, tr, "X", 2, 1, 1) {
+		t.Fatal("B refused X's vote in term 2 (logs equal)")
+	}
+	appendEntries(t, tr, "A", 3, 1, 1, []*raft.Log{{Index: 2, Term: 3, Type: raft.LogCommand, Data: []byte("e")}}, 2)
+	waitApplied(t, rc, 2, 1)
+	st.mu.Lock()
+	st.failSecond = true
+	st.mu.Unlock()
+	if vote(t, tr, "A", 4, 2, 3) {
+		t.Fatal("B granted A's vote in term 4 though its second vote write failed")
+	}
+	if vote(t, tr, "X", 4, 1, 1) {
+		t.Errorf("B, whose vote for A in term 4 failed between its two writes (stable store: %v), granted X's "+
+			"vote in term 4 though X's last entry (1, 1) is older than B's (2, 3)", st.s)
 	}
 }

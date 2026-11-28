@@ -991,10 +991,9 @@ fails at both upstream revisions and passes on the fork with its fix.
 |---|---|---|---|
 | `issues/hraft-restore-committed-logs-config` | the lab's `repro-restorecommitted` | #728 (PR #731) | the lab's reference `0001`: `NewRaft` scans every entry after the snapshot, the latest configuration committed if the restored commit index reaches it |
 | `issues/hraft-installsnapshot-crash-keeps-log` | the lab's `repro-installcrash` | #721 (fails there without a crash) | the lab's reference `0002`: `NewRaft` finishes the discard when the log holds entries at or below the snapshot but not its last entry |
-| `issues/hraft-persistvote-torn-vote` | new: B's stable store imaged before each write of its vote, B restarted from each | **confirmed**; #746 (Antithesis, open), PR #747 (writes the candidate first) | the vote as one record `LastVote` (8-byte term, then the candidate), #48's recommended shape (b) |
+| `issues/hraft-persistvote-torn-vote` | new: B's stable store imaged before each write of its vote, B restarted from each; and the second vote write failing (R1's §5.2) | **confirmed**; #746 (Antithesis, open), PR #747 | `LastVoteCand` written before `LastVoteTerm` (PR #747's order, coordinator-E 7237272902/7237516368: the order the proof needs) |
 
-The fixes change raft's `NewRaft`, `requestVote`, `persistVote` and raft's package variables (the keys), so
-`hraft_nocrash_robust`'s proofs of them (and raft's `Init`, `RAFT_KEYS` in `etc/dsv/hraft.py`) must be redone
+The fixes change raft's `NewRaft` and `persistVote`, so `hraft_nocrash_robust`'s proofs of them must be redone
 with them: they are on their own branch, off this one, to land with R4/R5's re-proofs (or as a stage of
 their own), not with R0.
 
