@@ -74,6 +74,13 @@ def runCfgOf (m : H.Mode) (h : InScope b1Scope m) : AntSim.RunCfg where
     rcases hV with hV | ⟨-, hN', hV⟩
     · rw [hV]; rcases hN with hN | hN <;> rw [hN] <;> omega
     · rw [hV, hN']; omega
+  hKpar := fun _ => by
+    have h3 : uint.nat (W64 3) = 3 := rfl
+    have h5 : uint.nat (W64 5) = 5 := rfl
+    obtain ⟨hN, hV, -⟩ := h
+    rcases hV with hV | ⟨-, -, hV⟩
+    · rw [hV]; rcases hN with hN | hN <;> rw [hN] <;> omega
+    · rw [hV]; omega
   hpv := fun _ _ => rfl
 
 theorem modeRun_runCfgOf (m : H.Mode) (h : InScope b1Scope m) :

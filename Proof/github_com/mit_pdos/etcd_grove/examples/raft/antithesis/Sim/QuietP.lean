@@ -30,7 +30,8 @@ variable [GooseExts]
 
 /-- The run with the driver modes off (sync and unbatched runs only differ from it in `SyncDisk`). -/
 def RunCfg.syncOff (R : RunCfg) : RunCfg :=
-  { R with drv := { R.drv with batch := false, parallel := false, split := 0, restarts := false } }
+  { N := R.N, K := R.K, boot := R.boot, k := R.k, md := R.md, hK := R.hK, hpv := R.hpv,
+    drv := { R.drv with batch := false, parallel := false, split := 0, restarts := false } }
 
 /-- The mask with the driver modes off. -/
 def SimMask.b1Of (msk : SimMask) : SimMask :=

@@ -69,6 +69,10 @@ structure RunCfg where
   drv : DrvMode := {}
   hK : 1 ≤ K ∧ K ≤ N ∧ N ≤ 9
   hpv : ∀ n, (k n).prevote = true → md.prevote = true
+  /-- parity B2: a `-parallel` run has at least three initial voters (the driver's `DrawMode`: 3 or 5
+  servers, all or 3 of them voters), so a leader's commit moves only on another voter's
+  acknowledgement -/
+  hKpar : drv.parallel = true → 3 ≤ K := by first | (intro h; cases h) | decide
 
 /-- The binding's constants for the run: `Server = SetOf(names(N))`, `InitVoters = SetOf(names(K))`,
 `Bootstrapped`. -/
