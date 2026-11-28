@@ -11,6 +11,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__sendMsg
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__send
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.CloneMsgLaw
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.SpecsB2
 
 @[expose] public section
 
@@ -94,6 +95,48 @@ theorem node.sendMsg.wp_proof
   iunfold emitOk
   iframe Hdead Hfuse
   iapply msgPtsCC_msgPtsC ml _ _ cap cm hu $$ Hm
+
+/-- **Under B2**: dead, nothing sent; alive, B1's (the sendable facts from the premise's second arm). -/
+theorem node.sendMsg.wp_proofB2
+    (wp_send : Cluster.send.specB2 (GF := GF) (hG := hG))
+    (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG)) :
+    node.sendMsg.specB2 (GF := GF) (hG := hG) := by
+  intro _ c γ n j ml cap st q dead fuse
+  wp_start as ⟨Hc, Hn, Hk, Had, Htok, Hm, Hf, %Hss, %Hres⟩
+  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  iunfold nodeROB2 at Hn
+  icases Hn with ⟨%ch, %d, #Hnc, -⟩
+  iunfold killOwn at Hk
+  icases Hk with ⟨Hdead, Hfuse⟩
+  rcases dead with _ | _
+  · icases Hf with (%Hf | Hf)
+    · cases Hf
+    icases msgPtsC_msgPtsCC ml _ _ cap st $$ Hm with ⟨%cm, Hm, %Hcm⟩
+    obtain ⟨rfl, hu⟩ := Hcm
+    icases msgPtsCC_ro_split ml cap cm $$ Hm with ⟨#Hro, Hm⟩
+    have hcr : cm.resps = [] := by simpa [MsgC.model] using Hres
+    wp_auto
+    wp_apply (cloneMsg_law_of wp_Clone) ml cm hcr $$ [$Hproto $Hro] as %l' Hl'
+    try wp_auto
+    imod msgPtsCC_clone_net l' (needsCap cm.model.msg) cm $$ Hl' with Hl'
+    wp_apply wp_send c γ l' cm.model q $$ [$Hpkg $Hc $Had $Htok Hl' Hf] as ⟨Had, Htok⟩
+    · iunfold sendMsg
+      iframe Hf
+      isplitl [Hl']
+      · iexists cm; iframe Hl'; ipureintro; exact ⟨rfl, hu⟩
+      ipureintro; exact Hss
+    try wp_auto
+    iapply HΦ
+    iframe Had Htok
+    iunfold killOwn
+    iframe Hdead Hfuse
+    iapply msgPtsCC_msgPtsC ml _ _ cap cm hu $$ Hm
+  · wp_auto
+    iapply HΦ
+    iframe Had Htok Hm
+    iunfold killOwn
+    iframe Hdead Hfuse
 
 end proof
 

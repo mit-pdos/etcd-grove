@@ -8,6 +8,8 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__deliver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessPersist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.SpecsB2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessReportB2
 
 @[expose] public section
 
@@ -35,6 +37,45 @@ theorem Cluster.deliver.wp_proof : Cluster.deliver.spec (GF := GF) (hG := hG) :=
   icases Hc with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, %Hmode, #Hr, #Hrec, #Hro, #Hnodes, #Hstop, #Hbc,
     #Hnj, #Hmu, #Hinv, %Hfits, #Hpm⟩
   iunfold nodeRO at Hn
+  icases Hn with ⟨%ch, %d, #Hnc, #Hid, #Hname, #Hin, #Hbag, #Hd, #Hlog⟩
+  ihave #Hsch := ownBroadcastChan_is_chan _ _ _ _ $$ Hbc
+  wp_auto_lc 2
+  wp_apply_core chan.wp_select_blocking
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · simp only [chan.blockingClausePre]
+    iexists H.input, inferInstance, inferInstance, inferInstance, inferInstance, ch, γ.inCh j, inp
+    isplit
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplit
+    · iapply is_bag_is_chan $$ Hbag
+    iapply bag_send_au $$ [$Hlc1 $Hlc2] Hbag Hinp
+    inext
+    (try wp_auto)
+    iapply HΦ; itrivial
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stop, γ.stopCh
+    isplit
+    · ipureintro; rfl
+    isplit
+    · iexact Hsch
+    iapply broadcast_chan_receive $$ Hbc
+    iintro -
+    (try wp_auto)
+    iapply HΦ; itrivial
+  iapply BigAndL.bigAndL_nil.2
+  itrivial
+
+/-- **Under B2** (B1's proof over `antClusterB2`/`nodeROB2`: the bag's predicate `inputOkB2`). -/
+theorem Cluster.deliver.wp_proofB2 : Cluster.deliver.specB2 (GF := GF) (hG := hG) := by
+  intro c γ n j inp
+  wp_start as ⟨#Hc, #Hn, Hinp⟩
+  iunfold antClusterB2 at Hc
+  icases Hc with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, %Hmode, #Hr, #Hrec, #Hro, #Hnodes, #Hstop, #Hbc,
+    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm⟩
+  iunfold nodeROB2 at Hn
   icases Hn with ⟨%ch, %d, #Hnc, #Hid, #Hname, #Hin, #Hbag, #Hd, #Hlog⟩
   ihave #Hsch := ownBroadcastChan_is_chan _ _ _ _ $$ Hbc
   wp_auto_lc 2

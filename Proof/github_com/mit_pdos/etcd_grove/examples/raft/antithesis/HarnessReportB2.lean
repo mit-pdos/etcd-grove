@@ -81,6 +81,12 @@ instance nodeROB2_persistent (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R
     Persistent (nodeROB2 (GF := GF) c γ n j) := by
   unfold nodeROB2; infer_instance
 
+/-- Node `j`'s record under B2, out of the cluster's. -/
+theorem nodeROB2_lookup (c : Loc) (γ : AntNamesB2) (ns : List Loc) (j : Fin γ.R.N) :
+    ([∗list] k ∈ List.finRange γ.R.N, nodeROB2 (GF := GF) c γ ns[k.val]! k) ⊢ nodeROB2 c γ ns[j.val]! j :=
+  BigSepL.bigSepL_lookup (Φ := fun _ k => nodeROB2 (GF := GF) c γ ns[k.val]! k) (i := j.val)
+    (by simp)
+
 instance antClusterB2_persistent (c : Loc) (γ : AntNamesB2) :
     Persistent (antClusterB2 (GF := GF) c γ) := by
   constructor

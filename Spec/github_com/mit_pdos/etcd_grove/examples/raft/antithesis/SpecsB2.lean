@@ -124,6 +124,24 @@ abbrev node.saveDisk.specB2 : Prop :=
     (App (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"saveDisk")) (Val #hp)) (Val #sl))
   {{ RET #(); killOwn n dead fuse ∗ diskOwn d (if dead then w else saveW w oh es) }}
 
+/-- **`(*Cluster).deliver(n, inp)` under B2** (`Cluster.deliver.spec`'s text over the B2 vocabulary: the
+input one node `j`'s bag takes, `inputOkB2`). -/
+abbrev Cluster.deliver.specB2 : Prop :=
+  ∀ (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (inp : H.input),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ inputOkB2 γ j inp }}
+    (App (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"deliver")) (Val #n)) (Val #inp))
+  {{ RET #(); True }}
+
+/-- **`(*Cluster).send(m)` under B2** (`Cluster.send.spec`'s text over the B2 vocabulary). -/
+abbrev Cluster.send.specB2 : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (ml : Loc) (st : MsgSt) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      antClusterB2 c γ ∗ netAdder c γ.toAntNames q ∗ threadTok ∗ sendMsg γ.toAntNames ml st ∗
+      ⌜γ.mode.SnapStatus' = false⌝ }}
+    (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"send")) (Val #ml))
+  {{ RET #(); netAdder c γ.toAntNames q ∗ threadTok }}
+
 /-- **`(*node).sendMsg(m)` under B2**: to the network when alive (B1's); nothing when dead. -/
 abbrev node.sendMsg.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (ml : Loc)
