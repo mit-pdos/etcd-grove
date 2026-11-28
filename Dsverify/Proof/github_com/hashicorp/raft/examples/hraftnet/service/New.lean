@@ -40,10 +40,12 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.New.wp_proof :
   ipersist wait
   imodintro
   iapply HΦ
-  unfold isAPI
-  iexists r, fsm, enq, wt
-  iframe #
-  ipureintro; exact ⟨Hresp, Hnn⟩
+  isplitr
+  · unfold isAPI
+    iexists r, fsm, enq, wt
+    iframe #
+    ipureintro; exact Hresp
+  · ipureintro; exact Hnn
 
 end proof
 
