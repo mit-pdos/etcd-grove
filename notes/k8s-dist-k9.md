@@ -705,3 +705,5 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   (`irename … => Hjunk; iclear Hjunk`, `irename : (in_ptr ↦ x …) => Hin`); `ioOk`'s pure is one
   conjunction (`⟨%x, %y, %Hxy⟩`); an error in the Step's branch makes `lean-check` report spurious
   errors in `Equal` — fix the first error first.
+- Build of record (fk-lean2, targets `etcd3.Link` and `etcd3.Seeded__SharedModel`) at `6100d553e9`: passed,
+  12262 jobs, the one `sorry` above its only warning of note.
