@@ -20,6 +20,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedPend
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Inv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.InvSteps
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPfxHist
 
 @[expose] public section
@@ -817,6 +818,83 @@ theorem kvNext_sameL {σc σ σ' : KVState} (hs : SameL σc σ) (hn : KvNext σ 
   refine ⟨by rw [er]; exact h1, by rw [hk]; exact h2, ?_, ?_⟩
   · obtain ⟨a, b, d⟩ := h3; exact ⟨hs.1.trans a, hs.2.1.trans b, hs.2.2 ▸ d⟩
   · unfold KvOne at h4 ⊢; rw [hs.2.2]; exact h4
+
+/-- The current key-values and revision of two states equal up to their leases. -/
+theorem SameL.kvs_rev {σc σ : KVState} (hs : SameL σc σ) : σc.kvs = σ.kvs ∧ σc.rev = σ.rev := by
+  obtain ⟨er, ea⟩ := at_congr hs.1 hs.2.1 hs.2.2
+  exact ⟨by unfold KVState.kvs KVState.store; rw [er, ea], er⟩
+
+/-- The store's model state reads a state only up to its leases. -/
+theorem abs_sameL (c : StoreCfg GF DObj) {σc σ : KVState} (hs : SameL σc σ) : c.abs σc = c.abs σ := by
+  obtain ⟨hk, hr⟩ := hs.kvs_rev
+  unfold StoreCfg.abs linkv.absSt; rw [hk, hr]
+
+/-- `KHistID` after a step (`khistI_next` with one change per revision under `/registry/` only). -/
+theorem khistID_next (γ : KNames) {σ σ' : KVState} (h : KHistID γ σ) (hn : KvNext σ σ') :
+    KHistID γ σ' := by
+  rcases hn with he | ⟨hr, -, hext, hone⟩
+  · rw [he]; exact h
+  obtain ⟨hc, hb, ho, h1⟩ := h
+  refine ⟨hext.1 ▸ hc, hext.2.1 ▸ hb, fun cs hcs => ?_, by omega⟩
+  obtain ⟨t, ht⟩ := hext.2.2
+  rw [← ht] at hcs
+  rcases List.mem_append.1 hcs with h1 | h1
+  · exact ho cs h1
+  · exact Nat.le_trans (List.length_filter_le _ _) (hone cs (by rw [← ht, List.drop_left]; exact h1))
+
+/-- **The revisions' map after a step** (`revOwn_next` over `KHistID`): the next revision's state added, if
+it moved. -/
+theorem revOwnD_next (γ : KNames) (σ σ' : KVState) (hn : KvNext σ σ') :
+    revOwnD (GF := GF) γ σ ⊢ |==> revOwnD γ σ' := by
+  iintro H
+  have hn' := hn
+  rcases hn with he | ⟨hr, -, hext, -⟩
+  · rw [he]; imodintro; iexact H
+  iunfold revOwnD at H
+  icases H with ⟨%Mr, HA, -, %Hok, Hch, %Hkh⟩
+  have hfresh : Mr !! (σ.rev + 1) = none := Hok.2.1 _ (by omega)
+  imod ghost_map_insert_persist (σ.rev + 1) σ' hfresh $$ HA with ⟨HA, #He⟩
+  ihave Hch := monoListAuthOwn_update σ'.changes hext.2.2 $$ Hch
+  imod Hch with ⟨Hch, -⟩
+  imodintro
+  iunfold revOwnD
+  iexists _
+  rw [hr]
+  iframe He HA Hch
+  ipureintro
+  refine ⟨⟨?_, fun n hn => ?_, fun n s hs => ?_⟩, khistID_next γ Hkh hn'⟩
+  · rw [hr]; exact GMap.lookup_insert _ _ _
+  · rw [GMap.lookup_insert_ne _ _ (by omega)]
+    exact Hok.2.1 n (by omega)
+  · by_cases e : σ.rev + 1 = n
+    · subst e
+      rw [GMap.lookup_insert] at hs
+      cases hs; exact kvExt_refl _
+    · rw [GMap.lookup_insert_ne _ _ e] at hs
+      exact kvExt_trans (Hok.2.2 n s hs) hext
+
+/-- **The store's ghost state follows the store's step** (`inv_next` from the caught-up `σc`, the share's
+`σ` up to its leases; decision 2): a step from `σ` that moves is one from `σc` (`kvNext_sameL`). -/
+theorem invD_next (γ : KNames) (c : StoreCfg GF DObj) {σc σ σ' : KVState} (hs : SameL σc σ)
+    (hn : KvNext σ σ') (hne : σ' ≠ σ) (hw : kvWf c σc) (hw' : kvWf c σ') (hr : kvRoom σ)
+    (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
+    revOwnD (GF := GF) γ σc ∗ shistOwn c σc ⊢
+      |==> (revOwnD γ σ' ∗ shistOwn c σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝ ∗ revSeen c.γh σc σ') := by
+  have hn' := kvNext_sameL hs hn hne
+  have hr' : σ'.rev + 2 < 2 ^ 63 := by
+    unfold kvRoom at hr
+    rcases hn with he | ⟨hrv, -⟩
+    · exact absurd he hne
+    · omega
+  rw [← abs_sameL c hs] at hK
+  iintro ⟨Hrv, Hhist⟩
+  ihave Hrv := (revOwnD_next γ σc σ' hn') $$ Hrv
+  ihave Hhist := (histOwn_next c σc σ' hn' hw hw' hr' hK) $$ Hhist
+  imod Hrv with Hrv
+  imod Hhist with ⟨Hhist, #Hs⟩
+  imodintro
+  iframe Hrv Hhist Hs
+  ipureintro; exact hr'
 
 /-- **The store's half catches up with the share's state** (up to its leases): the store last saw `σl`;
 the share is at `σ`, extending `σl` with the same `pfxVH regP`, so the revisions in between have no change
