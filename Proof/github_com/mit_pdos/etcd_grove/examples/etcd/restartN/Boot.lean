@@ -74,7 +74,7 @@ theorem firstPremises_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundL
         etcdstart.bootPremiseF (peersFree (members k)) N ps (LogEntry.toEntries boot 0) ctxs
           (dirN (members k) ids) token m.Name' (etcdstart.urlsN (members k) m) id := by
   iintro #Hpkg
-  iapply BigSepL.bigSepL_intro
+  iapply BigSepL2.bigSepL2_intro
   isplit
   · ipureintro; simp [hlen]
   iintro !> %i %m %id %Hm %Hid
@@ -85,8 +85,7 @@ theorem firstPremises_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundL
     (fun U hu => urlsN_shapeUnserved (members k) (membersOf_names_nodup _ k hk _ _) m hmm U hu)
     (fun U hu => by
       obtain ⟨hplain, hps, hctxs, hdir, hidU, hnp, hune, hiok⟩ := Hbg.go i m id Hm Hid U hu
-      exact ⟨hplain, hps, hctxs, hdir, hidU, ⟨boot, Hbf.boot, rfl⟩,
-        memBoot_bootLog U token boot hplain hnp (by rw [hps, hctxs]; exact Hbf.boot), hune, hiok⟩))
+      exact ⟨hplain, hps, hctxs, hdir, hidU, ⟨boot, Hbf.boot, rfl⟩, hnp, hune, hiok⟩))
   iexact Hpkg
 
 /-- **The stop candidates' restart contracts from `bootstrap.specRestart`** (`premises`' second part), at

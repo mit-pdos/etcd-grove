@@ -374,8 +374,12 @@ theorem newServerMode.wp_proofF
       -- literal, and the write budget
       (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
     $$ [HR Hl Hslot Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err ⟨HR, Hres⟩
-  · isplitr; · itrivial
-    isplitl [Hl Hslot]; · iframe Hl Hslot
+  · isplitr
+    · itrivial
+    isplitl [Hl Hslot]
+    · isplitl [Hl]
+      · iexact Hl
+      iexact Hslot
     iframe
     iframe #
     isplitr

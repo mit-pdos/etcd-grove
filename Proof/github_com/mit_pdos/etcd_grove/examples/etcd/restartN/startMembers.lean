@@ -295,12 +295,16 @@ theorem startMembers.wp_proof (wp_build : build.spec (GF := GF) (hG := hG))
           List.length_nil, Nat.sub_zero, List.drop_zero]
         iframe
         try (isplitr; (iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2; iempintro))
-        ipureintro; refine ⟨by word, by word, rfl, rfl⟩
+        ipureintro; refine ⟨by word, by word, ?_, ?_⟩ <;> simp
       wp_for HK
       split
       · rename_i Hif
-        have Hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z msl.len := ⟨Hj.1, of_decide_eq_true Hif⟩
+        have Hlt : sint.Z j < sint.Z msl.len := by simpa using Hif
+        have Hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z msl.len := ⟨Hj.1, Hlt⟩
+        have hd : decide (sint.Z j < sint.Z msl.len) = true := decide_eq_true Hlt
+        (try simp only [hd])
         (try wp_auto)
+        (try simp only [hd])
         simp only [Hb, _root_.and_self, ↓reduceIte]
         list_elem xs (sint.nat j) as xj
         have Hmj : (xs.map (·.1))[sint.nat j]? = some xj.1 := by simp [Hxj_lookup]
@@ -311,6 +315,10 @@ theorem startMembers.wp_proof (wp_build : build.spec (GF := GF) (hG := hG))
         · iframe #; ipureintro; exact Hmj
         (try wp_auto)
         -- `srvs[j]`, the member built by the second loop
+        ihave %Hsll := ownSlice_len $$ Hssl
+        have Hb1 : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z ssl.len := by
+          rw [hssl] at Hsll; obtain ⟨h1, h2⟩ := Hsll; constructor <;> word
+        simp only [Hb1, _root_.and_self, ↓reduceIte]
         wp_apply (wp_load_slice_index ssl (sint.Z j) ss _ s Hj.1) $$ [Hssl] as Hssl
         · iframe Hssl; ipureintro; exact Hsj
         (try wp_auto)
@@ -386,7 +394,9 @@ theorem startMembers.wp_proof (wp_build : build.spec (GF := GF) (hG := hG))
         refine ⟨by word, by word, by simp [Hj.2.2.1], ?_⟩
         rw [List.map_append, Hj.2.2.2, List.take_add_one, Hsj]; rfl
       · rename_i Hif
-        have Hif' : ¬ sint.Z j < sint.Z msl.len := fun h => Hif (decide_eq_true h)
+        have Hif' : ¬ sint.Z j < sint.Z msl.len := by simpa using Hif
+        have hd : decide (sint.Z j < sint.Z msl.len) = false := decide_eq_false Hif'
+        (try simp only [hd])
         have hjn' : sint.nat j = xs.length := by rw [← List.length_map (f := (·.1)), hmsl]; word
         (try wp_auto)
         iapply HΦ
@@ -395,10 +405,12 @@ theorem startMembers.wp_proof (wp_build : build.spec (GF := GF) (hG := hG))
         isplitr
         · ipureintro; rfl
         iexists zs, M
+        have hxl : (xs.map (·.1)).length = xs.length := by simp
         have hzs : zs.map (·.1) = ss := by
-          rw [Hj.2.2.2, hjn', ← hssl.trans (by rw [← hmsl, List.length_map]), List.take_length]
-        rw [hzs, Hj.2.2.1, hjn', ← hmsl, List.length_map, Nat.sub_self, List.replicate_zero,
-          List.append_nil, List.take_of_length_le (Nat.le_refl _)]
+          rw [Hj.2.2.2]; exact List.take_of_length_le (by omega)
+        have hzl : sint.nat msl.len - zs.length = 0 := by omega
+        have htk : xs.take (sint.nat j) = xs := List.take_of_length_le (by omega)
+        rw [hzs, hzl, List.replicate_zero, List.append_nil, htk]
         iframe
         iframe #
         ipureintro

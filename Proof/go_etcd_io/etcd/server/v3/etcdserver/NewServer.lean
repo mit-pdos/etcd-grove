@@ -190,7 +190,6 @@ private theorem rep_cast (P : IProp GF) (a b : Nat) :
   subst h
   iexact H
 
-/-- `time.Duration(ttl) * time.Second` is positive for a TTL in `(0, 2 ^ 32)` seconds. -/
 /-- (2026-11-27) A frame given back to a continuation: the continuation of a post `R ∗ Q` with `R` in hand is a
 continuation of `Q` (`NewServer.specGAtA`'s frame, after `bootstrap`'s contract returns it). -/
 private theorem post_frame {α β : Type} (R : IProp GF) (Q Ψ : α → β → IProp GF) :
@@ -199,6 +198,7 @@ private theorem post_frame {α β : Type} (R : IProp GF) (Q Ψ : α → β → I
   iapply HΦ
   iframe
 
+/-- `time.Duration(ttl) * time.Second` is positive for a TTL in `(0, 2 ^ 32)` seconds. -/
 theorem tokenTTL_pos (x : w64) (h1 : 0 < uint.Z x) (h2 : uint.Z x < 2 ^ 32) :
     0 < sint.Z (x * W64 1000000000) := by
   have hm : uint.Z (x * W64 1000000000) = uint.Z x * 1000000000 := by word
@@ -414,13 +414,14 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
   · iPkgInit
   ihave #Hboot' := Hboot
   iunfold bootstrapContractF at Hboot'
-  wp_apply Hboot' $$ [HR Hrauth Hwdf] as %b %err ⟨HR, Hb⟩
+  wp_apply Hboot' $$ [HR Hrauth Hwdf] as %b %err Hpost
   · iframe; iframe Hcfgro Hzlg Hvoff
     isplitl []
     · ipureintro; exact ⟨Hbco, Hbcf, Hbwb, Hdisk.1⟩
     iright; iexact Hfg
   -- (2026-11-27) the frame `bootstrap`'s contract borrowed, back: into the continuation, for every return
-  ihave HΦ := post_frame R _ _ $$ [HR HΦ]
+  icases Hpost with ⟨HR, Hb⟩
+  ihave HΦ := post_frame R _ _ $$ HR HΦ
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
     cases err with

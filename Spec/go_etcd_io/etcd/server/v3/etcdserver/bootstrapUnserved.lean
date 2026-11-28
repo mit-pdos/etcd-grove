@@ -6,8 +6,8 @@
 initial-cluster entry, this member's peer URLs its entry's, one client URL), where the other members run in the same
 process and none of them serves its peer address yet (restartN's first boots: `examples/etcd/restartN`'s
 `startMembers` builds every member before it serves any):
-* the hosts of the other members' peer URLs are among `as`;
-* the precondition lends `bootstrap` the right to listen at each address of `as`, reserved for HTTP
+* the hosts of the other members' peer URLs are among `addrs`;
+* the precondition lends `bootstrap` the right to listen at each address of `addrs`, reserved for HTTP
   (`http.httpAddrFree a`, `Proof/net/http/AddrNet.lean`: the claim `addrClaim a` and `a`'s net protocols net/http's),
   and the post gives it back, on an error too.
 
@@ -44,16 +44,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
 /-- **`bootstrap.spec` with every other member's peer address not served** (see the file header): one peer URL per
-initial-cluster entry, this member's peer URLs its entry's, one client URL, the other entries' hosts among `as`, and
-the rights `http.httpAddrFree a` (`a ∈ as`) lent for the call; otherwise `bootstrap.spec`'s premises, precondition
+initial-cluster entry, this member's peer URLs its entry's, one client URL, the other entries' hosts among `addrs`, and
+the rights `http.httpAddrFree a` (`a ∈ addrs`) lent for the call; otherwise `bootstrap.spec`'s premises, precondition
 and post. -/
 abbrev bootstrap.specUnserved : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat)
-    (as : List GoString),
-  -- the restriction: one peer URL per entry, this member's its entry's, one client URL, the others' hosts in `as`
+    (addrs : List GoString),
+  -- the restriction: one peer URL per entry, this member's its entry's, one client URL, the others' hosts in `addrs`
   (∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length = 1) →
   U.peer = U.initURLs cfg.Name' → U.client.length = 1 →
-  (∀ k, (U.initMap.lookup k).isSome → k ≠ cfg.Name' → ∀ u ∈ U.initURLs k, u.Host' ∈ as) →
+  (∀ k, (U.initMap.lookup k).isSome → k ≠ cfg.Name' → ∀ u ∈ U.initURLs k, u.Host' ∈ addrs) →
   -- `bootstrap.spec`'s premises
   cfg.UnsafeNoFsync' = false → bootGo.idRaftOk cfg U → bootGo.urlsNe U →
   bootGo.bootURLsPlain U →
@@ -63,7 +63,7 @@ abbrev bootstrap.specUnserved : Prop :=
     (bootGo.ctxs U cfg.InitialClusterToken') bl ∧ γ.boot = LogEntry.toEntries bl 0) →
   memBoot γ.boot = bootGo.memMap U cfg.InitialClusterToken' →
   {{ -- the other members' peer addresses, not served (lent for the call)
-      ([∗list] a ∈ as, http.httpAddrFree (hG := hG) a) ∗
+      ([∗list] a ∈ addrs, http.httpAddrFree (hG := hG) a) ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧ storage.dbOpensOk⌝ ∗
       zapLoggerOk cfg.Logger' ∗
@@ -72,7 +72,7 @@ abbrev bootstrap.specUnserved : Prop :=
       wal.bootRes cfg }}
     (App (Val (@! bootstrap)) (Val #cfg))
   {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-      ([∗list] a ∈ as, http.httpAddrFree (hG := hG) a) ∗
+      ([∗list] a ∈ addrs, http.httpAddrFree (hG := hG) a) ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗
         bootOk cfg γ (bootGo.id cfg U) (bootGo.ctxs U cfg.InitialClusterToken') N
           (bootGo.dir U cfg.InitialClusterToken') b) }}

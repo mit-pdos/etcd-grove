@@ -54,7 +54,7 @@ theorem BuildServer.wp_proofF
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
     dir id γ ρ E₀ Φs γn lm R ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf
     Hbuq Hdbo
-  wp_start as ⟨HR, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨HR, #Hpkg, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)`: the compactor off

@@ -43,7 +43,7 @@ Why it is true of Go (at the etcd pin `d26dd5da6`, `server/etcdserver/`): it is 
 (`bootstrapOne.lean`) but for `isMemberBootstrapped` (`bootstrap.go:388`). That sends, through the round tripper
 `bootstrap` makes fresh (`bootstrap.go:72`, `rafthttp.NewRoundTripper`: no pooled connection), `GET <url>/members` to
 each other member's peer URL (`cluster_util.go:41-55`, `:69-121`, `getRemotePeerURLs` `:131-141`: the URLs of the
-members of another name, here `http://a` with `a ∈ as`), and answers `false` on any error, the one-member answer. Each
+members of another name, here `http://a` with `a ∈ addrs`), and answers `false` on any error, the one-member answer. Each
 GET fails:
 * no HTTP server answers at `a`: one is registered only by `http.register`, which takes the listener's
   `netListenerAt`, holding `addrClaim a`, which the caller lends here for the whole call;

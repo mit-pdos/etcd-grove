@@ -35,7 +35,7 @@ theorem build.wp_proof (wp_BuildServer : etcdstart.BuildServer.specF (GF := GF) 
     build.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn R
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo
-  wp_start as ⟨HR, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨HR, #Hpkg, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit

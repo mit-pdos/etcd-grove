@@ -105,7 +105,7 @@ abbrev BuildServer.spec : Prop :=
 member's `bootPremiseF R` in place of `bootPremise`, `R` in the precondition and given back in the post, on every
 path (`NewServer.specGAtA`'s frame). -/
 abbrev BuildServer.specF : Prop :=
-  ∀ (N : Nat) (name peerAddr client token : GoString)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
     (snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
