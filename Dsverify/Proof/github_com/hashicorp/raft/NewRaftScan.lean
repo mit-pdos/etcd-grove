@@ -282,6 +282,41 @@ theorem boot_facts {E : CoPset} (hE : ↑gprotN ⊆ E) (s : SState) (lat : SnapL
         refine ⟨(proto.ent_le_length Hx.1).2, ?_⟩
         rw [proto.termAt_of_ent Hx.1, He.1]
 
+/-- (hraft_robust R5b) **`getLastSnapshot` ending the pin of `lastLock`'s fields** (`NewRaft`'s last use of the lock
+before `isRaft`): the pin discarded at `none` (`raftCells`' slot). -/
+theorem getLastSnapshot_release (r : Loc) (li lt si st : w64) (Φ : val → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗
+      sync.isMutex (r.[Raft, go!"raftState"].[raftState, go!"lastLock"]) (lastLockInv r γ rc i) ∗
+      dghostVar rc.names.llb (DFrac.own (1 : Qp).half) (some (li, lt, si, st)) ∗
+      (dghostVar rc.names.llb DFrac.discard (none : Option (w64 × w64 × w64 × w64)) -∗ Φ (PairV #si #st)) ⊢
+    WP (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastSnapshot")) (Val #())) {{ Φ }} := by
+  iintro ⟨#Hpkg, #HlastLock, Hllb, HK⟩
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"getLastSnapshot")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"getLastSnapshot")]
+  wp_call
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$HlastLock] as ⟨Hlocked, HR⟩
+  iunfold lastLockInv at HR
+  icases HR with ⟨%li0, %lt0, %si0, %st0, HlI, HlT, HsI, HsT, Hgll', #Hsn, Hb⟩
+  icases Hb with (Hb | Hb)
+  · icombine Hb Hllb gives %Hag; cases Hag.2
+  icombine Hb Hllb gives %Hag
+  obtain ⟨-, Hag⟩ := Hag
+  simp only [Option.some.injEq, Prod.mk.injEq] at Hag
+  obtain ⟨h1, h2, h3, h4⟩ := Hag
+  subst li0 lt0 si0 st0
+  imod dghostVar_update_halves (none : Option (w64 × w64 × w64 × w64)) _ _ _ $$ Hb Hllb with ⟨Hb, Hllb⟩
+  imod dghostVar_persist _ _ _ $$ Hb with #Hb
+  imod dghostVar_persist _ _ _ $$ Hllb with #Hllb
+  wp_auto
+  wp_apply sync.Mutex.wp_Unlock $$ [$HlastLock $Hlocked HlI HlT HsI HsT Hgll']
+  · inext; unfold lastLockInv
+    iexists _, _, _, _
+    iframe HlI HlT HsI HsT Hgll'
+    iframe #
+  iapply HK $$ Hllb
+
 /-! ### The configuration scan (a copy of `Raft__appendEntries`' `aeCfg`) -/
 
 /-- The persistent facts of the `configurations` field over the log `L` scanned up to `n`
