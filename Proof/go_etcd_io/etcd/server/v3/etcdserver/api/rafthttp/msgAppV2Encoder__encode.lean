@@ -129,8 +129,10 @@ local macro "enc_full" : tactic => `(tactic| (
   (try wp_auto)
   have wpM := wp_MustMarshalMessage pbMessageC pbMessageC_reg ml c hm' (by simp; omega)
   simp only [pbMessageC_ty, pbMessageC_roC, pbEncC_pbMessageC] at wpM
+  ihave %Hnn := msgRoC_nonnull ml c $$ Hc
   wp_apply wpM $$ [] as %d ⟨Hd, -, -⟩
-  · iexact Hc
+  · iframe #
+    ipureintro; exact Hnn
   (try wp_auto)
   ihave #HA1 : □ A (h ++ [W8 2] ++ u64Be (W64 (msgEncC c).length) ++
       msgEncC c) $$ []
@@ -634,8 +636,13 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
               (try wp_auto)
               have wpMM := wp_MustMarshalMessage pbEntryC pbEntryC_reg p ec trivial (by simp; omega)
               simp only [pbEntryC_ty, pbEntryC_roC, pbEncC_pbEntryC] at wpMM
+              ihave %Hpn : ⌜p ≠ null⌝ $$ [Hepc]
+              · iunfold entRoC at Hepc
+                icases Hepc with ⟨%_, %_, %_, %_, %h, -⟩
+                ipureintro; exact h
               wp_apply wpMM $$ [] as %d ⟨Hd, -, -⟩
-              · iexact Hepc
+              · iframe #
+                ipureintro; exact Hpn
               (try wp_auto)
               ihave #HAe : □ A (h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
                   entFrames ((c.f.entries.map entryEncC).take j) ++

@@ -93,7 +93,9 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     rw [List.take_of_length_le (by simp [u64Be_length])] at *
     have wpM := wp_MustMarshalMessage pbMessageC pbMessageC_reg ml c hm' (by simp; omega)
     simp only [pbMessageC_ty, pbMessageC_roC, pbEncC_pbMessageC] at wpM
+    ihave %Hnn := msgRoC_nonnull ml c $$ Hc
     wp_apply wpM $$ [$Hc] as %d ⟨Hd, Hcap, -⟩
+    · ipureintro; exact Hnn
     (try wp_auto)
     ihave #HA3 : □ A ((h ++ u64Be (W64 (msgEncC c).length)) ++
         msgEncC c) $$ []

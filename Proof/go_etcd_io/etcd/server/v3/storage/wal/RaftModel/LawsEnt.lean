@@ -80,8 +80,13 @@ theorem walRaftP_marshalEnt (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG :=
   wp_auto
   have wpM := wp_Marshal pbEntryC pbEntryC_reg l (walEntCanon e) trivial Hs
   simp only [pbEntryC_ty, pbEntryC_roC, pbEncC_pbEntryC] at wpM
+  ihave %Hnn : ⌜l ≠ null⌝ $$ [Hro]
+  · iunfold entRoC at Hro
+    icases Hro with ⟨%_, %_, %_, %_, %h, -⟩
+    ipureintro; exact h
   wp_apply wpM $$ [] as %d ⟨Hd, Hcap, -⟩
   · iframe #
+    ipureintro; exact Hnn
   (try wp_auto)
   ihave %Hlen := ownSlice_len _ _ _ $$ Hd
   iapply HΦ

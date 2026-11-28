@@ -39,8 +39,13 @@ theorem go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.wp_proofWalSnap (Mr : W
   wp_auto
   have wpM := wp_Marshal pbSnapC pbSnapC_reg sp c trivial hs
   simp only [pbSnapC_ty, pbSnapC_roC, pbEncC_pbSnapC, he] at wpM
+  ihave %Hnn : ⌜sp ≠ null⌝ $$ [Hro]
+  · iunfold walSnapRoC at Hro
+    icases Hro with ⟨%_, %_, %_, %h, -⟩
+    ipureintro; exact h
   wp_apply wpM $$ [] as %d ⟨Hd, Hcap, -⟩
   · iframe #
+    ipureintro; exact Hnn
   (try wp_auto)
   ihave %Hlen := ownSlice_len _ _ _ $$ Hd
   iapply HΦ

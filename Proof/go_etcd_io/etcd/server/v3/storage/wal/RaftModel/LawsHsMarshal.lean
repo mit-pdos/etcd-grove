@@ -58,8 +58,10 @@ theorem walRaftP_marshalHs (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := 
   have wpM := wp_Marshal pbHsC pbHsC_reg hp (walHsCanon hs) trivial
     (by simp only [pbHsC_size, hsSize]; omega)
   simp only [pbHsC_ty, pbHsC_roC, pbEncC_pbHsC] at wpM
+  ihave %Hnn := hsRoC_nonnull hp _ $$ Hro
   wp_apply wpM $$ [] as %d ⟨Hd, Hcap, -⟩
   · iframe #
+    ipureintro; exact Hnn
   (try wp_auto)
   ihave %Hlen := ownSlice_len _ _ _ $$ Hd
   iapply HΦ
@@ -92,9 +94,10 @@ theorem walRaftP_marshSt (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG
   simp only [pbHsC_ty, pbHsC_roC, pbEncC_pbHsC] at wpM
   wp_apply wpM $$ [] as %d ⟨Hd, -, %Hdn⟩
   · iframe #
+    ipureintro; exact hn
   (try wp_auto)
   simp only [walRaftMr]
-  ispecialize HΦ $$ %d Hd %(Hdn hn)
+  ispecialize HΦ $$ %d Hd %Hdn
   iexact HΦ
 
 /-- **`ZeroStLaw`** of the raftpb instance: a fresh zero hard state is canonical. -/

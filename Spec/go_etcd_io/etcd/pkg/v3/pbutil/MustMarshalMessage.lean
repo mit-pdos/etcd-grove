@@ -27,11 +27,13 @@ variable [sem : go.Semantics]
 which marshals, of size below `2^48` (`proto.Marshal`'s allocation, Go's `maxAlloc`): a fresh slice
 of its encoding (`pbEncC T c`, `proto.Marshal`'s; it never panics), an encoding of `c`'s model of
 exactly `c`'s size (stage A of the per-type models: until then over any `PbType`, at the address's
-encoding `pbEnc`). -/
+encoding `pbEnc`). The message is non-nil (`⌜l ≠ null⌝`, `proto.MarshalPb.spec`'s premise: a nil `*T` marshals
+to `nil`). -/
 abbrev pbutil.MustMarshalMessage.spec : Prop :=
   ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
   ∀ (l : Loc) (c : T.data.C), T.data.marshals (T.data.modelOf c) → T.data.size c < 2 ^ 48 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ T.data.roC l c }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ T.data.roC l c ∗
+      ⌜l ≠ null⌝ }}
     (App (Val (@! pbutil.MustMarshalMessage))
       (Val #(interface.mkOk (go.GoType.PointerType T.data.ty) #l)))
   {{ (d : GoSlice), RET #d;

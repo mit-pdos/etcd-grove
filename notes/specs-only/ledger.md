@@ -10169,4 +10169,11 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `{{ …; d ↦* pbEncC I c ∗ ownSliceCap w8 d 1 ∗ ⌜l ≠ null → d ≠ slice.nil⌝ }}` (as on branch
   `etcd-safe-crash-delta-now/2026-11-27`); pre unchanged. SpecPlan's `Marshal.spec` to take the same post when the
   real spec converges.
-- **Decision.** Pending: Go test (MPB-1, done: passes) + independent axiom review; approval coordinator-E (#50).
+- **Decision.** Approved, with a hardening, by coordinator-E on Upamanyu's delegation (#50, 2026-11-28 00:32Z), after
+  the Go test (MPB-1, passes) and an independent `axiom`-skill review (`notes/axiom-review/marshalpb-nonnil.md`:
+  survives for the five registered types). Hardening (MPB-2): the pre takes `⌜l ≠ null⌝` and the post conjunct is
+  plain `⌜d ≠ slice.nil⌝`, so the axiom claims nothing of a nil `*T` (for which Go returns `nil`, which would make
+  `d ↦* pbEncC I c` false), independent of each instance's `roC`. The users supply `l ≠ null` from the instance's
+  `roC` (every registered `roC` holds it) or their context; `pbutil.MustMarshalMessage.spec` (generic `T`) takes the
+  same `⌜l ≠ null⌝` in its pre, its rafthttp callers supply it from `pbMessageC`/`pbEntryC`'s `roC`. SpecPlan's
+  `Marshal.spec` states no non-nil post (`msgAt`): nothing to align.

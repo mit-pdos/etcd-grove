@@ -822,6 +822,16 @@ theorem msgRoC_enc (l : Loc) (c : MsgC) :
   have := msgEncC_ok c hm Hu hs
   exact ⟨this.1, this.2, Hu⟩
 
+/-- A frozen message is at a non-nil address (`proto.MarshalPb.spec`'s premise). -/
+theorem msgRoC_nonnull (l : Loc) (c : MsgC) : msgRoC (GF := GF) l c ⊢ ⌜l ≠ null⌝ := by
+  cases c with
+  | mk f rs =>
+  simp only [msgRoC]
+  iintro ⟨H, -⟩
+  unfold msgFRoC
+  icases H with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %_, %h, -⟩
+  ipureintro; exact h
+
 end fromOwn
 
 /-- **A message's encoding is the encoding of a wire content of the message whose unknown fields

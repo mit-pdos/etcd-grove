@@ -26,10 +26,11 @@ theorem pbutil.MustMarshalMessage.wp_proof
     (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG)) :
     pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG) := by
   intro T hreg l c hm hs
-  wp_start as #Hro
+  wp_start as ⟨#Hro, %Hnn⟩
   ihave %Hok := pbEncC_ok T l c $$ Hro
   wp_auto
   wp_apply wp_Marshal T hreg l c hm hs $$ [$Hro] as %d ⟨Hd, Hcap, -⟩
+  · ipureintro; exact Hnn
   (try wp_auto)
   iapply HΦ
   iframe

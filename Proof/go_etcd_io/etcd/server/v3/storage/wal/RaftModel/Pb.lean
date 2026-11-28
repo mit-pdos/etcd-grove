@@ -83,6 +83,12 @@ def hsRoC (l : Loc) (c : WalHsC) : IProp GF :=
 instance hsRoC_persistent (l : Loc) (c : WalHsC) : Persistent (hsRoC (GF := GF) l c) := by
   unfold hsRoC; infer_instance
 
+/-- A frozen hard state is at a non-nil address (`proto.MarshalPb.spec`'s premise). -/
+theorem hsRoC_nonnull (l : Loc) (c : WalHsC) : hsRoC (GF := GF) l c ⊢ ⌜l ≠ null⌝ := by
+  unfold hsRoC hsCells
+  iintro ⟨⟨%pt, %pv, %pc, %h, -⟩, -⟩
+  ipureintro; exact h
+
 /-- **An owned `*raftpb.HardState` holding exactly `c`**, its hidden fields owned. -/
 def hsOwnC (l : Loc) (c : WalHsC) : IProp GF :=
   iprop(∃ (pt pv pc : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32)

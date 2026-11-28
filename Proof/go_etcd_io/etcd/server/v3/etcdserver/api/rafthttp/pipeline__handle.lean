@@ -112,7 +112,9 @@ theorem rafthttp.pipeline.handle.wp_proof
     (try wp_auto)
     have wpM := hMarshal pbMessageC pbMessageC_reg ml c hm' (by simp; omega)
     simp only [pbMessageC_ty, pbMessageC_roC, pbEncC_pbMessageC] at wpM
+    ihave %Hnn := msgRoC_nonnull ml c $$ Hc
     wp_apply wpM $$ [$Hc] as %d ⟨Hd, -, -⟩
+    · ipureintro; exact Hnn
     (try wp_auto)
     wp_apply hPost Rh p to d _ st Hw0 ⟨c, hcm, Hu, hcu, rfl, hcsz⟩ Hst.2.1 Hst.2.2.1 Hst.2.2.2 $$ [$Hs $Hd $HP $HO] as %err #Herr
     (try wp_auto)

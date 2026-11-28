@@ -1,13 +1,13 @@
 package pbschema
 
-// Evidence for the post `⌜l ≠ null → d ≠ slice.nil⌝` of the trust-boundary axiom proto.MarshalPb.spec
+// Evidence for the post `⌜d ≠ slice.nil⌝` (pre `⌜l ≠ null⌝`) of the trust-boundary axiom proto.MarshalPb.spec
 // (Spec/google_golang_org/protobuf/proto/MarshalPb.lean; notes/specs-only/ledger.md, 2026-11-28): at
 // protobuf-go v1.36.12 (examples/go.mod's pin), proto.Marshal of a non-nil *T returns a non-nil slice and
 // a nil error, also when the encoding is empty (proto/encode.go: Marshal replaces an empty result by
 // emptyBytesForMessage(m), the non-nil emptyBuf[:] for a valid message). The types: every type the proofs
 // register with pbModelOf (walpb.Record, walpb.Snapshot, raftpb.Entry, raftpb.HardState, raftpb.Message)
 // and those the WAL's records carry (raftpb.Snapshot, raftpb.ConfState), at etcd's and raft's pins
-// (examples/go.mod's replaces). A nil *T (an invalid message; outside the post's l ≠ null) is recorded too.
+// (examples/go.mod's replaces). A nil *T (an invalid message; excluded by the pre's l ≠ null) is recorded too.
 //
 // Run: cd examples && go test ./pbschema -run TestMarshalNonNil -v. Output (2026-11-28, go1.27.1, PASS):
 //

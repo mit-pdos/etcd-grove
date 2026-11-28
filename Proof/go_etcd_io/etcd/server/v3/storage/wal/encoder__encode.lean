@@ -131,6 +131,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
     simp only [pbRecordC_ty, pbRecordC_roC, pbEncC_pbRecordC] at wpM
     wp_apply wpM $$ [] as %dat ⟨Hdat, Hcap, -⟩
     · iframe #
+      ipureintro; exact Hrp
     try wp_auto
     wp_apply (wp_pad dat (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)) (by omega))
       $$ [Hdat Hcap] as %dat2 ⟨Hdat2, Hcap2, -⟩
