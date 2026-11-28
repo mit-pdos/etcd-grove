@@ -44,6 +44,22 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 variable (γ : GNames) (rc : RCtx GF) (i : SID)
 
+/-! ## Masks -/
+
+theorem crash_hE_dur {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) : (↑durN : CoPset) ⊆ E :=
+  fun x hx => hE x (Iris.Std.LawfulSet.mem_union.2 (Or.inr hx))
+
+theorem crash_gprot_not_dur : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := by
+  unfold gprotN durN raftN; solve_ndisj
+
+theorem crash_hE_gprot {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) : (↑gprotN : CoPset) ⊆ E \ ↑durN := by
+  intro x hx
+  rw [Iris.Std.LawfulSet.mem_diff]
+  refine ⟨hE x (Iris.Std.LawfulSet.mem_union.2 (Or.inl hx)), ?_⟩
+  have h := crash_gprot_not_dur x hx
+  rw [Iris.Std.LawfulSet.mem_diff] at h
+  exact h.2
+
 /-! ## Generic: a step of gprot's halves with the main goroutine's view -/
 
 /-- (R2) **A look at gprot's `srvOwn`** with the main goroutine's view, the state unchanged. -/
@@ -78,10 +94,18 @@ theorem durStepV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Ter
       |NC={E}=> ∃ d : Nat × Nat, srvVP rc { s with dur := d } tp dp ∗ Q { s with dur := d } := by
   sorry -- hraft_robust R2: proof pending
 
+/-- (R2) `durPeek` at the main goroutine's plain view. -/
+theorem durPeekV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) :
+    srvDurInv γ rc i ∗ srvV rc s ∗ P ∗
+      (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢
+      |NC={E}=> srvV rc s ∗ Q :=
+  durPeek γ rc i hE s none none P Q
+
 /-! ## The fact laws (the state unchanged) -/
 
 section facts
 variable {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) (s : SState)
+include hE
 
 theorem srvOwn_facts_R :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ isSrv γ i ∗
@@ -90,108 +114,260 @@ theorem srvOwn_facts_R :
         (∀ k e, ent s.log k = some e → e.kind = kConfig → cfgValid γ.srvs (γ.cv e.data)) ∧
         (∀ k e, ent s.log k = some e →
           e.kind = kCommand ∨ e.kind = kNoop ∨ e.kind = kBarrier ∨ e.kind = kConfig)⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.srvOwn_facts γ _ (crash_hE_gprot hE) i s) $$ [HI Ho]
+  iframe HI Ho
 
 theorem srvOwn_durLb_R :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ durLb γ i s.dur.1 := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.srvOwn_durLb γ _ (crash_hE_gprot hE) i s) $$ [HI Ho]
+  iframe HI Ho
 
 theorem durLb_le_R (k : Nat) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ durLb γ i k ⊢ |NC={E}=> srvV rc s ∗ ⌜k ≤ s.dur.1⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, HP⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.durLb_le γ _ (crash_hE_gprot hE) i s k) $$ [HI Ho HP]
+  iframe HI Ho; iexact HP
 
 theorem srvOwn_vcand_R :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢
       |NC={E}=> srvV rc s ∗ ⌜0 < s.vterm → s.vcand ∈ γ.srvs⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.srvOwn_vcand γ _ (crash_hE_gprot hE) i s) $$ [HI Ho]
+  iframe HI Ho
 
 theorem vote_again_R (hv : 0 < s.vterm) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ voteIs γ i s.vterm s.vcand := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.vote_again γ _ (crash_hE_gprot hE) i s hv) $$ [HI Ho]
+  iframe HI Ho
 
 theorem becomeLeader_upd_R (Q : List SID) (hQ : isQuorumOf (cfgOfC γ.cv s.log) Q) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ candIs γ i s.term s.log.length (lastTerm s.log) ∗
       ([∗list] j ∈ Q, voteIs γ j s.term i) ∗ ccfgOwn γ i s.term 0 ∗ ccfgOwn γ i s.term 0 ⊢
       |NC={E}=> srvV rc s ∗ leaderIs γ s.term i ∗ len0Is γ s.term s.log.length ∗
         ccfgOwn γ i s.term (lastCfgIdx s.log) ∗ ccfgOwn γ i s.term (lastCfgIdx s.log) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, H1, H2, H3, H4⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.becomeLeader_upd γ _ (crash_hE_gprot hE) i s Q hQ)
+  iframe
+  iexact HI
 
 theorem installCfg_upd_R (p : Nat) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ∗ ccfgOwn γ i s.term p ∗
       ccfgOwn γ i s.term p ⊢
       |NC={E}=> srvV rc s ∗ ccfgOwn γ i s.term (lastCfgIdx s.log) ∗
         ccfgOwn γ i s.term (lastCfgIdx s.log) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, H1, H2, H3⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.installCfg_upd γ _ (crash_hE_gprot hE) i s p)
+  iframe
+  iexact HI
 
 theorem ackLeader_R :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ⊢
       |NC={E}=> srvV rc s ∗ ackIs γ i s.term s.log.length := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, HP⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.ackLeader γ _ (crash_hE_gprot hE) i s) $$ [HI Ho HP]
+  iframe HI Ho; iexact HP
 
 theorem ackFollower_R (prev pt : Nat) (ents : RLog) (lci : Nat)
     (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents ents.length) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ aeValid γ s.term prev pt ents lci ⊢
       |NC={E}=> srvV rc s ∗ ackIs γ i s.term (prev + ents.length) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, HP⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.ackFollower γ _ (crash_hE_gprot hE) i s prev pt ents lci hpre) $$ [HI Ho HP]
+  iframe HI Ho; iexact HP
 
 theorem append_bound_R (n : Nat) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ receipt n ⊢
       |NC={E}=> srvV rc s ∗ receipt n ∗ ⌜s.log.length + n < 2 ^ 62⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, HP⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.append_bound γ _ (crash_hE_gprot hE) i s n) $$ [HI Ho HP]
+  iframe HI Ho; iexact HP
 
 theorem llogIdx_leader_R (k : Nat) (e : Entry) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ∗ llogIdx γ s.term k e ⊢
       |NC={E}=> srvV rc s ∗ ⌜ent s.log k = some e⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, H1, H2⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.llogIdx_leader γ _ (crash_hE_gprot hE) i s k e)
+  iframe
+  iexact HI
 
 theorem applied_C_R (x : Nat) (e : Entry) (hx : 1 ≤ x ∧ x ≤ s.dur.1) (he : ent s.log x = some e) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ CIdx γ x e := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.applied_C γ _ (crash_hE_gprot hE) i s x e hx he) $$ [HI Ho]
+  iframe HI Ho
 
 theorem cfgPrevCommitted_R (p : Nat) (e : Entry) (he : ent s.log p = some e) (hk : e.kind = kConfig) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢
       |NC={E}=> srvV rc s ∗ cmtIdx γ s.term s.log (lastCfgIdx (s.log.take (p - 1))) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.cfgPrevCommitted γ _ (crash_hE_gprot hE) i s p e he hk) $$ [HI Ho]
+  iframe HI Ho
 
 theorem cmtIdx_dur_R (k : Nat) (hk : k ≤ s.dur.1) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ cmtIdx γ s.term s.log k := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.cmtIdx_dur γ _ (crash_hE_gprot hE) i s k hk) $$ [HI Ho]
+  iframe HI Ho
 
 theorem cmtIdx_llog_R (k j : Nat) (e : Entry) (hj : j ≤ k) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ cmtIdx γ s.term s.log k ∗ llogIdx γ s.term j e ⊢
       |NC={E}=> srvV rc s ∗ ⌜ent s.log j = some e⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, H1, H2⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.cmtIdx_llog γ _ (crash_hE_gprot hE) i s k j e hj)
+  iframe
+  iexact HI
 
 theorem srvOwn_CLb_R :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ CLb γ (s.log.take s.dur.1) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.srvOwn_CLb γ _ (crash_hE_gprot hE) i s) $$ [HI Ho]
+  iframe HI Ho
 
 theorem llogPre_leader_R :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ⊢
       |NC={E}=> srvV rc s ∗ llogPre γ s.term s.log := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, HP⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.llogPre_leader γ _ (crash_hE_gprot hE) i s) $$ [HI Ho HP]
+  iframe HI Ho; iexact HP
 
 theorem llogPre_srv_R :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ llogPre γ (lastTerm s.log) s.log := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.llogPre_srv γ _ (crash_hE_gprot hE) i s) $$ [HI Ho]
+  iframe HI Ho
 
 theorem srvOwn_now_R (s0 : Snap) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ histLb γ s0 ⊢ |NC={E}=> srvV rc s ∗
       ∃ s', histLb γ s' ∗ ⌜snapLe s0 s' ∧ s'.term i = s.term ∧ s'.dur i = s.dur.1⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, HP⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.srvOwn_now γ _ (crash_hE_gprot hE) i s s0) $$ [HI Ho HP]
+  iframe HI Ho; iexact HP
 
 theorem srvOwn_now_leader_R (s0 : Snap) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ∗ histLb γ s0 ⊢ |NC={E}=> srvV rc s ∗
       ∃ s', histLb γ s' ∗
         ⌜snapLe s0 s' ∧ s'.term i = s.term ∧ s'.dur i = s.dur.1 ∧ s'.llen s.term = s.log.length⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, H1, H2⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.srvOwn_now_leader γ _ (crash_hE_gprot hE) i s s0)
+  iframe
+  iexact HI
 
 theorem truncate_gt_dur_R (prev pt : Nat) (ents : RLog) (lci j : Nat)
     (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧ j < ents.length ∧
       prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1)) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ aeValid γ s.term prev pt ents lci ⊢
       |NC={E}=> srvV rc s ∗ ⌜s.dur.1 < prev + 1 + j⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, HP⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  iapply (gprot.truncate_gt_dur γ _ (crash_hE_gprot hE) i s prev pt ents lci j hpre) $$ [HI Ho HP]
+  iframe HI Ho; iexact HP
 
 /-! ## In-memory commits (`dur` grows) -/
 
@@ -216,6 +392,7 @@ end facts
 
 section cells
 variable {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E)
+include hE
 
 /-- (R2) **The term step at the `currentTerm` store** (inside `termCell`'s update, `E = ⊤ \ ↑termN`),
 adopting `t`: the pending `tp = .set t` (recorded at `SetUint64`'s commit, `setUint64_term_au`)
@@ -281,6 +458,7 @@ end cells
 
 section core
 variable {E : CoPset} (hE : ↑gprotN ⊆ E)
+include hE
 
 /-- (R2) A leader's replication reads entry `k` from the log store (inside `logRead_au`, the entry
 the store's `logOk` gives; was `readLog_repl` over `logCell`). -/
