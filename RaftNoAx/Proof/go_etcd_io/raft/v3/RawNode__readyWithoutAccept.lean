@@ -147,6 +147,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
     with ⟨Hghost, %fp0, %Hfp, #Hfr0, #Hcm⟩
   -- (D22 S-b) the witness of the node's term and commit index, for a non-`nil` `HardState`
   ihave #Hcw := ownRaftGhost_commitWit _ _ _ $$ Hghost
+  -- (keepfix (c), F2') a nonzero commit index at a nonzero term (`TermPos`)
+  icases (entails_wand (persistent_entails_left (wand_entails
+    (ownRaftGhost_termPos γ id (toPState s))))) $$ Hghost with ⟨Hghost, %Htp⟩
   -- (durability stage II (i)) what the `Ready` cuts from
   icases ownRaftPhysC_persistCut cf rnv.raft' id s $$ Hphys with ⟨%Hpst, Hphys⟩
   -- (2026-11-11, slice 28n) in either mode (`TraceLoggerOkS`)
@@ -328,9 +331,10 @@ theorem RawNode.readyWithoutAccept.wp_proof
       isplitr
       rotate_left
       · ipureintro; rfl
-      unfold phsWit
+      unfold phsWit TermPos
       rw [show (hardstateVal (nodeHardstate s)).Term' = (toPState s).term from rfl,
         show (hardstateVal (nodeHardstate s)).Commit' = (toPState s).commit from rfl]
+      isplitr; · ipureintro; exact Htp
       iright; iexact Hcw
   wp_apply wp_raftLog_hasNextUnstableSnapshot $$ [Hlog] as %bsn ⟨Hlog, %Hbsn⟩
   · iframe Hlog

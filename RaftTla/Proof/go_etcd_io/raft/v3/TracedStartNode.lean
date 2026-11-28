@@ -739,7 +739,10 @@ private theorem wp_StartNode_impl
     isplitr; · ipureintro; exact Hdy
     isplitr; · iexact Htb
     isplitr
-    · unfold hsCommitted; ileft; ipureintro; rfl
+    · unfold hsCommitted
+      isplitr; · ipureintro; simp
+      isplitr; · ipureintro; exact TermPos_zero _
+      ileft; ipureintro; rfl
     isplitr; · iexact HKn
     ileft
     isplitr
