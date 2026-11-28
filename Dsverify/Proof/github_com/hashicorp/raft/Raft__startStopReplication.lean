@@ -140,7 +140,7 @@ theorem github_com.hashicorp.raft.Raft.startStopReplication.wp_proof
   ihave ⟨#HInv, #Hvoter⟩ := isRaft_proto r γ rc i $$ Hr
   ihave #Hcells := isRaft_cells r γ rc i $$ Hr
   unfold raftCells
-  icases Hcells with ⟨#HtermC, -, -, -, -, -, -, -⟩
+  icases Hcells with ⟨#HtermC, -, #Hdur, -, -, -, -, -⟩
   ihave #Himm := isRaft_imm r γ rc i $$ Hr
   unfold raftImm
   icases Himm with ⟨-, #HlocalID, -, -, -, -⟩
@@ -234,7 +234,7 @@ theorem github_com.hashicorp.raft.Raft.startStopReplication.wp_proof
         · ipureintro; word
         wp_apply (chan.wp_make2 (V := Loc) (W64 1)) as %tde %γtde ⟨#Htdech, %Hγtde, Htdeown⟩
         · ipureintro; word
-        wp_apply (wp_getCurrentTerm.1 r γ i s) $$ [$Hsrv $HInv $HtermC] as Hsrv
+        wp_apply (wp_getCurrentTerm.1 r γ rc i s) $$ [$Hsrv $HInv $HtermC $Hdur] as Hsrv
         wp_apply wp_Now as %tnow -
         wp_apply (wp_map_make1 (K := Loc) (V := Unit) (go.GoType.PointerType verifyFuture.ty)
           (go.GoType.StructType [])) as %nmap Hnmap
@@ -278,18 +278,9 @@ theorem github_com.hashicorp.raft.Raft.startStopReplication.wp_proof
         imod (start_bag (fun d => deferResp d (fun _ => iprop(True))) (ChanState.Buffered []) tde γtde
           trivial) $$ Htdech Htdeown with #Htdeb
         imod (isSrv_of_mem γ ⊤ (by solve_ndisj) sv.ID' hssrv) $$ HInv with #Hjv
-        iapply fupd_wp
-        unfold termCell
-        imod (inv_acc (E := ⊤) (N := termN) (by solve_ndisj)) $$ HtermC with ⟨HI, Hclose⟩
-        imod lc_fupd_elim_later $$ Hlc1 HI with ⟨%t, Ht, Hcpl⟩
-        imod gprot.termCouple_agree γ (⊤ \ ↑termN) (by unfold gprotN termN raftN; solve_ndisj) i s
-          (uint.nat t) $$ [Hsrv Hcpl] with ⟨Hsrv, Hcpl, %Hteq⟩
-        · iframe; iframe #
-        ihave ⟨Hcpl, #Htlb⟩ := gprot.termCouple_get_lb γ i (uint.nat t) $$ Hcpl
-        imod Hclose $$ [Ht Hcpl]
-        · inext; iexists t; iframe
-        imodintro
-        rw [Hteq] at *
+        iapply wp_ncmod _ _ rfl (srvV_termLb γ rc i (E := ⊤) (by solve_ndisj) s)
+        isplitl [Hsrv]; · iframe; iframe #
+        iintro ⟨Hsrv, #Htlb⟩
         have hpeer : sv = Server.mk sv.Suffrage' sv.ID' sv.ID' := by
           cases sv; simp only at hsaddr ⊢; rw [hsaddr]
         ihave #Hsh : replShared r γ rc i s.term sv.ID' «$r0_ptr» $$ []

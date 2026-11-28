@@ -15,6 +15,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.hasVote
 public import Dsverify.Proof.github_com.hashicorp.raft.leader.VerifyCase
 public import Dsverify.Proof.github_com.hashicorp.raft.gprot.Snap
 public import Perennial.Proof.sync.Results
+public import Dsverify.Proof.github_com.hashicorp.raft.leader.DurView
 
 @[expose] public section
 
@@ -90,10 +91,24 @@ theorem github_com.hashicorp.raft.Raft.verifyLeader.wp_proof
   unfold verifyNew
   icases Hv with ⟨%sc, #Hsc, HnotifyCh, Hqs, Hvotes, HvoteLock, Hresp⟩
   -- the registration snapshot (after the client's) and the leader's log then
-  imod srvOwn_now_leader γ ⊤ (by solve_ndisj) i s sc $$ [$HInv $Hsrv $Hldr' $Hsc]
-    with ⟨Hsrv, %sv, #Hsv, %Hsv⟩
+  have hfact : iprop(Inv (GF := GF) γ ∗ leaderIs γ s.term i ∗ histLb γ sc) ∗ srvOwn γ i s ⊢
+      |={⊤ \ ↑durN}=> srvOwn γ i s ∗ ((∃ s', histLb γ s' ∗
+        ⌜snapLe sc s' ∧ s'.term i = s.term ∧ s'.dur i = s.dur.1 ∧ s'.llen s.term = s.log.length⌝) ∗
+        llogPre γ s.term s.log) := by
+    iintro ⟨⟨#HI, #Hl, #Hs⟩, Hsrv⟩
+    imod srvOwn_now_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s sc $$ [$HI $Hsrv $Hl $Hs]
+      with ⟨Hsrv, %sv, #Hsv, %Hsv⟩
+    imod llogPre_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s $$ [$HI $Hsrv $Hl] with ⟨Hsrv, #Hpre⟩
+    imodintro
+    iframe Hsrv
+    isplitr
+    · iexists sv; iframe #; ipureintro; exact Hsv
+    iexact Hpre
+  ihave #HdurI := isRaft_durInv r γ rc i $$ Hr
+  iapply wp_ncmod _ _ rfl (durFact γ rc i (E := ⊤) (by solve_ndisj) s _ _ hfact)
+  isplitl [Hsrv]; · iframe; iframe #
+  iintro ⟨Hsrv, ⟨%sv, #Hsv, %Hsv⟩, #Hpre⟩
   obtain ⟨Hscsv, Hsvt, -, Hsvl⟩ := Hsv
-  imod llogPre_leader γ ⊤ (by solve_ndisj) i s $$ [$HInv $Hsrv $Hldr'] with ⟨Hsrv, #Hpre⟩
   ihave %Hn0eq := len0Is_agree γ s.term n0 n0v $$ [Hlen0 Hn0v]
   · iframe #
   have hn0 : n0 < s.log.length := by rw [Hn0eq]; exact Hn0vl
@@ -139,8 +154,10 @@ theorem github_com.hashicorp.raft.Raft.verifyLeader.wp_proof
       iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
       iframe; iframe #
       ipureintro; exact ⟨Hvm, Ha, Hc, Hli, Hlcap⟩
-    imod leader_verify_send r γ rc i s v $$ [Hm Hresp] with ⟨%sent, Hp, HP, Hk⟩
+    iapply wp_ncmod _ _ rfl (leader_verify_send r γ rc i s v)
+    isplitl [Hm Hresp]
     · isplitr; · iexact HInv
+      isplitr; · iexact HdurI
       isplitl [Hm]; · iexact Hm
       ileft
       iexists sc, sv, s.log, [i], n0
@@ -155,6 +172,7 @@ theorem github_com.hashicorp.raft.Raft.verifyLeader.wp_proof
       · unfold respWit; iexists sv; iframe #; ipureintro; exact ⟨snapLe_refl sv, Hsvt⟩
       iframe #
       iapply BigSepL.bigSepL_nil.2; iempintro
+    iintro ⟨%sent, Hp, HP, Hk⟩
     wp_apply_core chan.wp_select_blocking
     iapply BigAndL.bigAndL_cons.2
     isplit

@@ -85,6 +85,26 @@ theorem durFact (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : ↑dur
   imodintro
   iframe
 
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)] in
+/-- The main goroutine's term, as a persistent lower bound (from `durBody`'s `termCouple`). -/
+theorem srvV_termLb (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) :
+    srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ termLb γ i s.term := by
+  iintro ⟨#Hinv, Hv⟩ Hnc
+  ihave Hacc := durAcc γ rc i hE $$ Hinv
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
+  unfold durBody srvV
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  icases HX with ⟨Hsrv, Hdv, Hlc, >Htc, Hcc, >Hsv, Hrest⟩
+  ihave %Hag := ghostVar_agree _ _ _ _ _ $$ Hsv Hv
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨hs, -, -⟩ := Hag
+  subst hs
+  ihave ⟨Htc, #Hlb⟩ := termCouple_get_lb (GF := GF) γ i X.s.term $$ Htc
+  imod Hclose $$ [Hsrv Hdv Hlc Htc Hcc Hsv Hrest] with -
+  · inext; iexists X; iframe
+  imodintro
+  iframe; iframe #
+
 /-- (hraft_robust R4b) **A crash-token update before a step**, as an entailment: run `P ⊢ |NC={E}=> Q`
 before the next step of a non-value `e` (`wp_ncfupd`). A proof applies it with the law and the
 continuation: `iapply wp_ncmod _ _ rfl (srvV_facts γ rc i s)`, then frames `P` and introduces `Q`. -/
@@ -126,6 +146,14 @@ theorem srvV_llogIdx_leader (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) 
   iintro ⟨#HI, #Hd, Hv, #Hl, #Hx⟩
   iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s _ _ h $$ [$Hd $Hv]
   iframe #
+
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)] in
+/-- `gprot.srvOwn_durLb` through the view. -/
+theorem srvV_durLb (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={⊤}=> srvV rc s ∗ durLb γ i s.dur.1 := by
+  have h := srvOwn_durLb (GF := GF) γ (⊤ \ ↑durN) gprotN_diff_durN i s
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ) _ h $$ [$Hd $Hv $HI]
 
 end dur
 
