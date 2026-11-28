@@ -14,7 +14,7 @@ configuration (`AntSim.RunCfg`):
   B2/B3 feature off and forwarding off, `antithesis-parity-plan.md` §3), `InScope s m` (what
   `DrawMode(s)` returns: every drawn flag allowed by `s`, rawnode's exclusions, the simulator's
   values), and `ModeRun s m R` (the run's configuration `R` read off the mode `m` drawn within the
-  scope `s`: `N`, `K`, `boot`, the nodes' `Config` flags `modeK m`, the mask `scopeMd s`, the
+  scope `s`: `N`, `K`, `boot`, the nodes' `Config` flags `modeK m`, the mask `scopeMd s m`, the
   driver's modes `modeDrv m`).
 - **The pure readings of Go data** (S4's): `msgTypeStr`, `roleStr`, `entOfE` (now with the
   bootstrapped run's `"config"` entry), `msgOfSt`, `AllNormal`.
@@ -154,12 +154,13 @@ def InScope (s : H.Scope) (m : H.Mode) : Prop :=
 def modeK (m : H.Mode) : NodeK :=
   { prevote := m.PreVote', cq := m.CheckQuorum', sdr := m.StepDownOnRemoval' }
 
-/-- The RawNode scope mask of a driver scope (design R3: the `RnMode` value of a batch is its
-mask; forwarding and non-voters are the scope's flags of the same names). -/
-def scopeMd (s : H.Scope) : RnMode :=
+/-- The RawNode mask of a run of the mode `m` within the driver scope `s` (design R3: the `RnMode`
+value of a batch is its mask; forwarding and non-voters are the scope's flags of the same names);
+async storage the mode's, as the run's `raft.Config` (`AsyncStorageWrites: m.Async`, `node.go`). -/
+def scopeMd (s : H.Scope) (m : H.Mode) : RnMode :=
   { prevote := s.PreVote', cq := s.CheckQuorum', reads := s.Reads', transfer := s.Transfer',
     forwarding := s.Forwarding', snapshots := s.Snapshots', confChanges := s.ConfChanges',
-    async := s.Async', nonVoters := s.NonVoters' }
+    async := m.Async', nonVoters := s.NonVoters' }
 
 /-- The driver's modes of a run (`AntSim.DrvMode`): batching, parallel and split writes, restarts,
 deliveries per message. -/
@@ -169,10 +170,10 @@ def modeDrv (m : H.Mode) : AntSim.DrvMode :=
 
 /-- **The run's configuration `R` of the mode `m` drawn within the scope `s`** (design §3.1):
 `Server = names(Nodes)`, `InitVoters = names(Voters)`, `Bootstrapped = Boot`, each node's flags the
-mode's, the mask the scope's, the driver's modes the mode's. -/
+mode's, the mask the scope's (async storage the mode's), the driver's modes the mode's. -/
 def ModeRun (s : H.Scope) (m : H.Mode) (R : AntSim.RunCfg) : Prop :=
   R.N = uint.nat m.Nodes' ∧ R.K = uint.nat m.Voters' ∧ R.boot = m.Boot' ∧
-  (∀ n, R.k n = modeK m) ∧ R.md = scopeMd s ∧ R.drv = modeDrv m
+  (∀ n, R.k n = modeK m) ∧ R.md = scopeMd s m ∧ R.drv = modeDrv m
 
 end mode
 

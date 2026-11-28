@@ -65,7 +65,7 @@ def runCfgOf (m : H.Mode) (h : InScope b1Scope m) : AntSim.RunCfg where
   K := uint.nat m.Voters'
   boot := m.Boot'
   k := fun _ => modeK m
-  md := scopeMd b1Scope
+  md := scopeMd b1Scope m
   drv := modeDrv m
   hK := by
     have h3 : uint.nat (W64 3) = 3 := rfl

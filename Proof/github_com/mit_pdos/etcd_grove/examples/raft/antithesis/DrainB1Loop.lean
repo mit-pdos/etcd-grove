@@ -35,7 +35,7 @@ theorem rMd_flags_d {s : H.Scope} {m : H.Mode} {R : AntSim.RunCfg} (hmr : ModeRu
     R.md.snapshots = false ∧ R.md.confChanges = false ∧ R.md.forwarding = false ∧
       R.md.async = false := by
   rw [hmr.2.2.2.2.1]
-  obtain ⟨-, -, -, -, -, -, h1, h2, h3, h4⟩ := hb1
+  obtain ⟨-, h4, -, -, -, -, h1, h2, h3, -⟩ := hb1
   exact ⟨h1, h2, h3, h4⟩
 
 /-- The Sim's reported role string determines the pre-candidate flag and the protocol role (a

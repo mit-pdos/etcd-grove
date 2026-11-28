@@ -6,6 +6,7 @@ Lean-first (no Rocq counterpart). #33 parity B2, driver group E: the pieces of `
 - `bigSepL_frozenReq`: the `Ready`'s requests frozen, the other messages left owned;
 - `req_absMsgOf`: a request (`isRequest`) has a protocol reading, an append or a heartbeat;
 - `rMd_flags_b2`: B2's masked-off raft features off in the run's mask.
+- `rMd_sync_b2`: synchronous storage and no batching in the run, from the mode.
 -/
 module
 
@@ -61,6 +62,14 @@ theorem rMd_flags_b2 {s : H.Scope} {m : H.Mode} {R : AntSim.RunCfg} (hmr : ModeR
   rw [hmr.2.2.2.2.1]
   obtain ⟨-, h1, h2, h3, -⟩ := hb2
   exact ⟨h1, h2, h3⟩
+
+/-- **Synchronous storage and no batching in the run** (`ModeRun`: async storage and batching the
+mode's). -/
+theorem rMd_sync_b2 {s : H.Scope} {m : H.Mode} {R : AntSim.RunCfg} (hmr : ModeRun s m R)
+    (has : m.Async' = false) (hbt : m.Batch' = false) :
+    R.md.async = false ∧ R.drv.batch = false := by
+  rw [hmr.2.2.2.2.1, hmr.2.2.2.2.2]
+  exact ⟨has, hbt⟩
 
 /-- `emit` on a dead node: nothing recorded, the fields kept. -/
 theorem emitStep_dead (f : w64) : emitStep true f = (false, true, f) := by

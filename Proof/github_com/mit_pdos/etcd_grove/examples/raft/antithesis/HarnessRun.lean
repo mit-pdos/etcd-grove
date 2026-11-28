@@ -163,7 +163,7 @@ def ByOk (b : AntCheck.Str) : Prop :=
 batching (`flush`, `note`), synchronous storage (`drainAsync`), no parallel or split writes
 (`parallel`, `parts`), no snapshots and no snapshot reports (`drain`'s snapshot branch, `sent`), no
 conf changes, no restarts (`emit`'s fuse); the scope without forwarding and async storage (the RawNode
-apiSpecs' premises at `γ.R.md = scopeMd γ.scope`). -/
+apiSpecs' premises at `γ.R.md = scopeMd γ.scope γ.mode`). -/
 def DrainB1 (scope : H.Scope) (mode : H.Mode) : Prop :=
   mode.Batch' = false ∧ mode.Async' = false ∧ mode.Parallel' = false ∧ mode.Split' = W64 0 ∧
   mode.SnapStatus' = false ∧ mode.Restarts' = false ∧ scope.Snapshots' = false ∧

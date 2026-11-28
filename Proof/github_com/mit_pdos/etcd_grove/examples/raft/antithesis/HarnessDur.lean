@@ -71,9 +71,10 @@ section pure
 variable [GooseExts]
 
 /-- **Batch B2's mask** (`antithesis-parity-plan.md` §3, B2): B1's and durability (restarts,
-AsyncStorageWrites, batching, parallel and split writes); forwarding and B3's features off. -/
+batching, parallel writes); AsyncStorageWrites and split writes staged to B2.5; forwarding and B3's
+features off. -/
 def b2Scope : H.Scope :=
-  { b1Scope with Restarts' := true, Async' := true, Batch' := true, Parallel' := true, Split' := true }
+  { b1Scope with Restarts' := true, Batch' := true, Parallel' := true }
 
 /-- **The masked-off bits a node's input paths test under B2's mask** (B1's `DrainB1`, its B2 bits
 lifted): no snapshots and no snapshot reports (`drain`'s and `drainAsync`'s snapshot branches,

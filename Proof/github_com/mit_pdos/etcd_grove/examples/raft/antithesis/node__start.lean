@@ -431,7 +431,7 @@ theorem node.start.wp_proof
     $$ Hpkg LquietLogger Ln Nlog
   -- `NewRawNode`, restarting on the boot storage, at the run's mask
   imod nodeVacant_arm γ.raft (AntSim.nodeId j) ⊤ $$ Hvac with ⟨%x, Hvac, -⟩
-  have HmdR : γ.R.md = scopeMd γ.scope := Hrun.2.2.2.2.1
+  have HmdR : γ.R.md = scopeMd γ.scope γ.mode := Hrun.2.2.2.2.1
   have Hsn : γ.R.md.snapshots = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.1
   have Hcc : γ.R.md.confChanges = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.2.1
   have Hmi := inScope_inflight Hscope

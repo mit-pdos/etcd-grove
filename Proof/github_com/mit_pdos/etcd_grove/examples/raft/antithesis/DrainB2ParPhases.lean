@@ -128,7 +128,7 @@ abbrev parReqB2.stmt : Prop :=
     (xnet₁ : List XMsg) (dead : Bool) (fuse : w64) (cl : Loc) (q : Qp) (K : Expr) (Φ : val → IProp GF),
   msk ≤ AntSim.mskB2 →
   (∀ S V net xnet, AntSim.AntSimD γ.R γ.dec S V net xnet → AntSim.InMask msk γ.R net xnet) →
-  γ.R.md.async = false → γ.R.drv.batch = false →
+  γ.mode.Async' = false → γ.mode.Batch' = false →
   I.OkB2 γ.toAntNames j → (dead = false → v₁.pend = reqPend I.ms 0 ∧ v₁.parts = []) →
   isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ ⌜DrainB2 γ.scope γ.mode⌝ ∗

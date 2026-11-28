@@ -44,9 +44,9 @@ theorem mskB1_le : AntSim.mskB1 ≤ AntSim.mskB1 := by
 
 /-- The mask of a scope without forwarding, async storage, snapshots and conf changes is within
 `mskB1`'s. -/
-theorem rnLe_scopeMd_b1 (s : H.Scope) (hfw : s.Forwarding' = false) (has : s.Async' = false)
-    (hsn : s.Snapshots' = false) (hcc : s.ConfChanges' = false) :
-    AntSim.RnMode.Le (scopeMd s) AntSim.mskB1.md := by
+theorem rnLe_scopeMd_b1 (s : H.Scope) (m : H.Mode) (hfw : s.Forwarding' = false)
+    (has : m.Async' = false) (hsn : s.Snapshots' = false) (hcc : s.ConfChanges' = false) :
+    AntSim.RnMode.Le (scopeMd s m) AntSim.mskB1.md := by
   simp [AntSim.RnMode.Le, AntSim.BLe, scopeMd, AntSim.mskB1, hfw, has, hsn, hcc]
 
 /-- **A run of B1's off bits is within `mskB1`**: its features `mskB1`'s, no driver mode, and every

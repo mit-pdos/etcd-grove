@@ -33,14 +33,14 @@ theorem lcpLen_self : ∀ (l : List EntryM), lcpLen l l = l.length
     unfold lcpLen
     simp only [List.length_cons, lcpLen_self l, ite_true]
 
-/-- **The run's mode without B1's off features** (`ModeRun`: `γ.R.md = scopeMd γ.scope`; `DrainB1`'s
+/-- **The run's mode without B1's off features** (`ModeRun`: `γ.R.md = scopeMd γ.scope γ.mode`; `DrainB1`'s
 scope bits): no snapshots, no conf changes, no forwarding, no async storage. -/
 theorem rMd_flags {s : H.Scope} {m : H.Mode} {R : AntSim.RunCfg} (hmr : ModeRun s m R)
     (hb1 : DrainB1 s m) :
     R.md.snapshots = false ∧ R.md.confChanges = false ∧ R.md.forwarding = false ∧
       R.md.async = false := by
   rw [hmr.2.2.2.2.1]
-  obtain ⟨-, -, -, -, -, -, h1, h2, h3, h4⟩ := hb1
+  obtain ⟨-, h4, -, -, -, -, h1, h2, h3, -⟩ := hb1
   exact ⟨h1, h2, h3, h4⟩
 
 /-- A transfer request keeps the log (`TransferEndR`: kept, or a leader's sends). -/

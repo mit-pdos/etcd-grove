@@ -262,9 +262,9 @@ theorem drainSendB1
       AntSim.InMask AntSim.mskB1 γ.R net xnet := by
     intro S V net xnet hA
     obtain ⟨-, -, -, -, hmd', hdrv⟩ := Hmode.2
-    obtain ⟨hb', -, hp', hs', -, hr', hsn', hcc', hfw', has'⟩ := Hb1
+    obtain ⟨hb', has', hp', hs', -, hr', hsn', hcc', hfw', -⟩ := Hb1
     refine inMask_b1_of ?_ ?_ ?_ ?_ ?_ hA
-    · rw [hmd']; exact rnLe_scopeMd_b1 _ hfw' has' hsn' hcc'
+    · rw [hmd']; exact rnLe_scopeMd_b1 _ _ hfw' has' hsn' hcc'
     · rw [hdrv]; exact hb'
     · rw [hdrv]; exact hp'
     · rw [hdrv]; simp [modeDrv, hs']
