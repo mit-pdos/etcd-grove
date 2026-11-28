@@ -1140,7 +1140,7 @@ theorem logOk_delete (A : LogAbs) (L : RLog) (lo n mx : Nat) (hi : w64) (h : log
 /-- (R2) **Lending a window**: the pending-write record set to `p` (half lent), a quarter of each
 view lent. -/
 theorem winRes_make (s : SState) (p : Pend) (D : StableAbs) (g : w64)
-    (h : pendPre γ i s p ∧ winPure s D g p) :
+    (h : pendPre γ i s p ∧ winPure s D g p) (hp0 : pendDp p = none) :
     ghostVar rc.dur.pw 1 (none : Option Pend) ∗ srvV rc s ∗ stVS rc D g ∗ pendHyps γ i s p ⊢
       |==> (winRes γ rc i s p ∗ ghostVar rc.dur.pw (1 : Qp).half (some p) ∗ srvVq rc s ∗
         stVq rc D g) := by
@@ -1152,19 +1152,20 @@ theorem winRes_make (s : SState) (p : Pend) (D : StableAbs) (g : w64)
   ihave ⟨Hv1, Hv2⟩ := (ghostVar_split_half rc.dur.sv (1 : Qp).half _).1 $$ Hv
   ihave ⟨Hs1, Hs2⟩ := (ghostVar_split_half rc.dur.st (1 : Qp).half _).1 $$ Hst
   imodintro
-  unfold winRes srvVq stVq
+  unfold winRes srvVq srvVPq stVq
+  rw [hp0]
   iframe Hpw2 Hv2 Hs2
   iframe
   ipureintro; exact ⟨h.2, h.1⟩
 
 /-- (R2) **A window given back**: its state and step are the lender's (the kept halves agree), and
 the lender's views and record are whole again. -/
-theorem winRes_back (s s' : SState) (p p' : Pend) (D : StableAbs) (g : w64) :
+theorem winRes_back (s s' : SState) (p p' : Pend) (D : StableAbs) (g : w64) (hp0 : pendDp p = none) :
     winRes γ rc i s' p' ∗ ghostVar rc.dur.pw (1 : Qp).half (some p) ∗ srvVq rc s ∗ stVq rc D g ⊢
       ⌜s' = s ∧ p' = p⌝ ∗ ghostVar rc.dur.pw 1 (some p) ∗ srvV rc s ∗ stVS rc D g ∗
         pendHyps γ i s p ∗ ⌜pendPre γ i s p ∧ winPure s D g p⌝ := by
   iintro ⟨HW, Hpw, Hq, Hsq⟩
-  unfold winRes srvVq stVq
+  unfold winRes srvVq srvVPq stVq
   icases HW with ⟨Hpw', Hq', ⟨%D', %g', Hs', %hw⟩, Hh, %hp⟩
   icombine Hpw' Hpw gives %h1
   icombine Hq' Hq gives %h2
@@ -1176,6 +1177,7 @@ theorem winRes_back (s s' : SState) (p p' : Pend) (D : StableAbs) (g : w64) :
   obtain ⟨rfl, -, -⟩ := e2
   subst e1
   obtain ⟨rfl, rfl⟩ := e3
+  rw [hp0]
   ihave Hpw := (ghostVar_split_half rc.dur.pw 1 (some p')).2 $$ [Hpw' Hpw]
   · iframe
   unfold srvV stVS
@@ -1207,7 +1209,7 @@ theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
       (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hh Hk
-  imod (winRes_make γ rc i s (.app es) D g ⟨hpre, hg⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  imod (winRes_make γ rc i s (.app es) D g ⟨hpre, hg⟩ rfl) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
   · iframe
   imodintro
   isplitl [HW]
@@ -1217,7 +1219,7 @@ theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
   icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
   rotate_left
   · cases hop
-  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.app es) p' D g $$ [HW Hpw Hq Hsq]
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.app es) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
   ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.app es)) $$ Hpw
@@ -1275,7 +1277,7 @@ theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (
       (logWin γ rc i (.store (s.log.length + 1) [e]) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) [e]) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hh Hk
-  imod (winRes_make γ rc i s (.cfg e k p) D g ⟨hpre, hg⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  imod (winRes_make γ rc i s (.cfg e k p) D g ⟨hpre, hg⟩ rfl) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
   · iframe
   imodintro
   isplitl [HW]
@@ -1285,7 +1287,7 @@ theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (
   icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
   rotate_left
   · cases hop
-  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.cfg e k p) p' D g $$ [HW Hpw Hq Hsq]
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.cfg e k p) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
   ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.cfg e k p)) $$ Hpw
@@ -1351,7 +1353,7 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
       (logWin γ rc i (.store (prev + j + 1) (ents.drop j)) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (prev + j + 1) (ents.drop j)) ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hh Hk
-  imod (winRes_make γ rc i s (.fstore prev pt ents lci j lc) D g ⟨hpre, hg⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  imod (winRes_make γ rc i s (.fstore prev pt ents lci j lc) D g ⟨hpre, hg⟩ rfl) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
   · iframe
   imodintro
   isplitl [HW]
@@ -1362,7 +1364,7 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
   icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -⟩)
   rotate_left
   · cases hop
-  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.fstore prev pt ents lci j lc) p' D g $$ [HW Hpw Hq Hsq]
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.fstore prev pt ents lci j lc) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
   ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.fstore prev pt ents lci j lc)) $$ Hpw
@@ -1463,7 +1465,7 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
   iintro #HI #Hd Hpw Hv Hst Hh Hk
   iunfold pendHyps at Hh
   icases Hh with #Hh
-  imod (winRes_make γ rc i s (.trunc prev pt ents lci j) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst] with ⟨HW, Hpw, Hq, Hsq⟩
+  imod (winRes_make γ rc i s (.trunc prev pt ents lci j) D g ⟨hpre, trivial⟩ rfl) $$ [Hpw Hv Hst] with ⟨HW, Hpw, Hq, Hsq⟩
   · iunfold pendHyps; iframe; iexact Hh
   imodintro
   isplitl [HW]
@@ -1490,7 +1492,7 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
     · iframe #; try iframe
     have := hpre.2.2.2.1
     exfalso; omega
-  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.trunc prev pt ents lci j) p' D g $$ [HW Hpw Hq Hsq]
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.trunc prev pt ents lci j) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
   ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.trunc prev pt ents lci j)) $$ Hpw
@@ -1559,7 +1561,7 @@ theorem setUint64_term_win (s : SState) (tp : TermPend) (tv : Nat) (D : StableAb
     rcases ht with ⟨rfl, h⟩ | ⟨rfl, _⟩
     · exact h
     · trivial
-  imod (winRes_make γ rc i s (.term tp) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst Htp] with ⟨HW, Hpw, Hq, Hsq⟩
+  imod (winRes_make γ rc i s (.term tp) D g ⟨hpre, trivial⟩ rfl) $$ [Hpw Hv Hst Htp] with ⟨HW, Hpw, Hq, Hsq⟩
   · iunfold pendHyps; iframe
   imodintro
   isplitl [HW]
@@ -1567,10 +1569,11 @@ theorem setUint64_term_win (s : SState) (tp : TermPend) (tv : Nat) (D : StableAb
     rcases ht with ⟨rfl, _⟩ | ⟨rfl, rfl⟩ <;> rfl
   iintro HW
   iunfold stWin at HW
-  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩)
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩ | ⟨%kb, %v, %D', %g', %hop, Hq3⟩)
   rotate_left
   · cases hop
-  ihave ⟨%heq, Hpw, Hv, Hst, Htp, -⟩ := winRes_back γ rc i s s' (.term tp) p' D g $$ [HW Hpw Hq Hsq]
+  · sorry -- hraft_robust R2: stWin's idempotent branch (request 4: it needs the pw half to be refuted)
+  ihave ⟨%heq, Hpw, Hv, Hst, Htp, -⟩ := winRes_back γ rc i s s' (.term tp) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
   ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.term tp)) $$ Hpw
@@ -1639,7 +1642,7 @@ theorem set_voteCand_win (s : SState) (D : StableAbs) (g : w64) (c : List w8)
             ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   iintro #Hd Hv Hst Hk
   isplitl []
-  · iunfold stWin; iright; iexists c; ipureintro; rfl
+  · iunfold stWin; iright; ileft; iexists c; ipureintro; rfl
   iintro -
   iapply (stableWrite_au γ rc i (fun D0 => { D0 with bytes := D0.bytes.insert (go!"LastVoteCand" : List w8) c })
     iprop(srvV rc s ∗ stVS rc D g ∗
@@ -1697,17 +1700,18 @@ theorem setUint64_vote_win (s : SState) (c : SID) (li lt : Nat) (D : StableAbs) 
           (rc.ownS { D0 with ints := D0.ints.insert (go!"LastVoteTerm" : List w8) (W64 s.term) }
             ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hcand Hk
-  imod (winRes_make γ rc i s (.vote c li lt) D g ⟨hpre, hc⟩) $$ [Hpw Hv Hst Hcand] with ⟨HW, Hpw, Hq, Hsq⟩
+  imod (winRes_make γ rc i s (.vote c li lt) D g ⟨hpre, hc⟩ rfl) $$ [Hpw Hv Hst Hcand] with ⟨HW, Hpw, Hq, Hsq⟩
   · iunfold pendHyps; iframe
   imodintro
   isplitl [HW]
   · iunfold stWin; ileft; iexists s, (Pend.vote c li lt); iframe HW; ipureintro; rfl
   iintro HW
   iunfold stWin at HW
-  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩)
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩ | ⟨%kb, %v, %D', %g', %hop, Hq3⟩)
   rotate_left
   · cases hop
-  ihave ⟨%heq, Hpw, Hv, Hst, Hcand, -⟩ := winRes_back γ rc i s s' (.vote c li lt) p' D g $$ [HW Hpw Hq Hsq]
+  · sorry -- hraft_robust R2: stWin's idempotent branch (request 4: it needs the pw half to be refuted)
+  ihave ⟨%heq, Hpw, Hv, Hst, Hcand, -⟩ := winRes_back γ rc i s s' (.vote c li lt) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
   ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.vote c li lt)) $$ Hpw
