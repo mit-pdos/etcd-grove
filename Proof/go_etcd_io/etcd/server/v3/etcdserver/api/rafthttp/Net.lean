@@ -19,7 +19,7 @@ to the message handler, which saves no database file): a merged message (`snap.m
 message carries its bundle and whose reader streams a bbolt image of some `D` with the payload's
 image certificate `N.img i D` at the snapshot's index `i` (`netSnapBundle`). The receiving
 transport saves the stream before it calls `Process` (`SaveDBFrom`: a temporary file, synced,
-renamed to `snapDBPath sd i`, `sd` its directory, unless a file of that index is there, which it keeps). A member's
+linked to `snapDBPath sd i` (`os.Link`, then the directory synced), `sd` its directory, unless a file of that index is there, which it keeps). A member's
 **snapshot directory** is an invariant the receiver allocates and gives `Transport.Start`
 (`snapDirInvH sd γd img Rm`, its contents `snapDirBody`, `snapDir_init`): the `.snap.db` files present (`M`, each with its
 `fileAt`, the claim on its name in the tree's shared mode with the file, S5; until then the abstract `srvFileHolds`, and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements

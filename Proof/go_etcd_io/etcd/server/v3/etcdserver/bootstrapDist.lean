@@ -50,7 +50,8 @@ delta review survives, `notes/axiom-review/bootstrap-dist.md`): `bootstrap.spec`
 (`bootGo.initMapOk`, `BootValues.lean`), and `etcd_dist.bootstrap.specDist_of_spec` (`dist/BootDist.lean`) derives
 this statement from it without using the bound; the Go argument below names no bound on the cluster's size.
 
-Why it is true of Go (`server/etcdserver/bootstrap.go:53-160` at the etcd pin `e94f33b50`): at a first start
+Why it is true of Go (`server/etcdserver/bootstrap.go:54-156` at the etcd pin `30df685e4`; cited at `e94f33b50` until 2026-11-28, and
+between the two only the unsaved-WAL branch under `haveWAL` changed, `:79-103`, which a first start does not reach): at a first start
 (`wal.Exist` false in the fresh WAL area) `bootstrap` touches the data and member directories, makes the snapshot
 directory and the snapshotter, makes the round tripper (`rafthttp.NewRoundTripper`, peer TLS empty:
 `bootCfgOk`'s `tlsEmpty`; an error returned), opens the backend, and builds the cluster

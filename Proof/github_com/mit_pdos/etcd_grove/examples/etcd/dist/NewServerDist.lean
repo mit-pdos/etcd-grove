@@ -33,7 +33,8 @@ each peer, an error ending `NewServer` with an error), neither get stuck nor pan
 connection to a peer address being requests of etcd's peer API from this member (`httpAddrAt γ pid a`'s protocols, `httpPeerSvc`, opaque); its post is
 `specG`'s, at network names `γn` with the in-process network's payload (`srvNet γ`) and directory.
 
-Why it is true: `NewServer.wp_proofG` proves `specG`'s text over the in-process network, whose HTTP side
+Why it is true: `NewServer.wp_proofG` (over the translation at the etcd pin `30df685e4` and the bbolt pin `2f6fcff`,
+2026-11-28) proves `specG`'s text over the in-process network, whose HTTP side
 (`netHttpOk`: every other member's host registered with raft's protocol, `http.reserve`) is what the transport's
 round trips use. Across machines the round trips go to the other members' peer addresses, which the deployment's
 start set to `httpPeerSvc` (`http_addr_set`), served by the other members' peer handlers (`PeerServe_dist`; any

@@ -33,10 +33,10 @@ the closed theorems' Iris premise `etcdstart.premises` (`bootstrapContract` at e
 configuration); it is `bootstrap.spec` (#34's, reviewed with `bootOk`, `notes/bootstrap-proof-plan.md`)
 at the one-member configurations.
 
-Why it is true of Go (`server/etcdserver/bootstrap.go:53-130` at the etcd pin): at a first start
+Why it is true of Go (`server/etcdserver/bootstrap.go:54-156` at the etcd pin `30df685e4`): at a first start
 (`NewCluster`, the WAL area fresh, `wal.Exist` false) `bootstrap` touches the data and member
-directories (`fileutil.TouchDirAll`, `:64`, `:68`), makes the snapshot directory and the snapshotter
-(`bootstrapSnapshot`, `:214-257`), opens the backend in the free backend file and creates its meta bucket
+directories (`fileutil.TouchDirAll`, `:65`, `:69`), makes the snapshot directory and the snapshotter
+(`bootstrapSnapshot`, `:240-283`), opens the backend in the free backend file and creates its meta bucket
 (`bootstrapBackend`), builds the cluster from the initial map (`bootstrapNewClusterNoWAL`:
 `VerifyBootstrap`, `NewClusterFromURLsMap`, `isMemberBootstrapped`, which with no other member sends no
 request and answers `false`), creates the WAL in its fresh area (`bootstrapNewWAL`, `wal.Create`), finalizes

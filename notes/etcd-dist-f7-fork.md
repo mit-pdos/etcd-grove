@@ -787,3 +787,16 @@ reached `wal.W1`/`wal.Codec` only through `FsExts.lean`'s dropped imports (add t
   **axiom-vocabulary** change: `proto.MarshalPb.spec` (the delta's P6, `9e8ed696c8`) adds `⌜l ≠ null → d ≠ slice.nil⌝` to the
   post, reached by `etcd_safe_nocrash`, `etcd_kv_safe_nocrash`, `putget_safe`, `etcd_wal_safe`.
 - **Left**: `-w1` not rebuilt on this lean.
+
+### Pending Upamanyu: idutil's wall clock across a machine reboot (DELTA-8, 2026-11-28)
+
+The crash line had widened `TrustedCode/go_etcd_io/etcd/pkg/v3/idutil.lean`'s docstring (trusted text) with a
+new world assumption; per coordinator-E's decision (#50, 2026-11-28) it leaves the trusted text (the file is
+lean's again) and waits here for Upamanyu. The removed text: a member's generators are "one per start of the
+member, a graceful restart in one process or a start after a crash of its machine (the record keeps a crashed
+incarnation's ids, as the past's, etcd-dist D4b, 2026-11-24)", and they issue distinct ids "if the wall clock
+does not step back across a restart (of the process or of the machine: its clock after a reboot, from the RTC
+and NTP)". The question: may the crash theorems assume that the wall clock read at a member's start after a
+reboot is not before the previous incarnation's start (plus its issued ids / 256 ms)? Lean's docstring assumes
+it for a restart in one process only. Nothing on lean needs the reboot form (no top-level theorem restarts a
+crashed machine); the crash line's restart proofs will, when they reach `idutil.NewGenerator` after a crash.

@@ -41,8 +41,11 @@ a failed removal (a non-empty directory, I/O) is logged and skipped, not returne
   (`snapDir_take`, `rafthttp/Net.lean`: it hands out no `fileHolds`, only the sealed token
   `storage.snapHeld` that `OpenSnapshotBackend` consumes at its rename, the seal gated by
   `etc/import-all.txt`), whose premise refutes `Rm j` and which keeps the resource it could make
-  `Rm j` from sealed in the token: so no caller of this function holds `Rm j` for a held `j`, and Go
-  removes only files in `M` below `i`. At each removal the file leaves `M` with its removal fact
+  `Rm j` from sealed in the token, or (TRUST-1 row 2 review, 2026-11-28) an unclaimed file at an index
+  in `E \ M` (saved, its file gone from `M` with `Rm j`): one a crash brought back after an earlier
+  removal that was not yet durable, or one a later `SaveDBFrom` of `j` linked; no resource names it, so
+  removing it changes none. So no caller of this function holds `Rm j` for a held `j`, and Go
+  removes only files in `M`, or unclaimed ones in `E \ M`, below `i`. At each removal the file leaves `M` with its removal fact
   `Rm j` (given), and its index joins the saved `E` if it was pending (linked by a `SaveDBFrom` not
   yet past its directory sync, D6-T6 2026-11-25: the name may reappear after a crash, an orphan
   later releases remove; `nonissues/etcd-snapdb-removed-before-dirsync.md`); a file whose removal failed leaves `M` too (forgetting its `fileHolds` is sound; a

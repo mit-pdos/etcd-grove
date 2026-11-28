@@ -32,7 +32,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors}
 from its options and never written again, `Inv/Bolt.lean`'s `dbFixed`), so that every `Tx.Commit`
 `fdatasync`s after its pages and after its meta (`tx.go`, both under `!db.NoSync`), `DB.grow`
 `fsync`s after its `Truncate` (under `!db.NoGrowSync`), and `Open` `fdatasync`s before it returns
-(fork `db.go:326`). **Producer**: `storage.OpenBackend`'s post, when the configuration's
+(fork `2f6fcff`, `db.go:304`). **Producer**: `storage.OpenBackend`'s post, when the configuration's
 `UnsafeNoFsync` is `false` (etcd's default; `server/storage/backend.go:38` copies it into the
 backend's configuration, `backend/backend.go:230-231` into `bopts.NoSync` and `bopts.NoGrowSync`,
 which `bolt.Open` stores; defrag reopens the database with the same `b.bopts`, `backend.go:603`).

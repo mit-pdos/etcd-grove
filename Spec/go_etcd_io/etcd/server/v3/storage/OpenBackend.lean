@@ -34,7 +34,8 @@ gave `New`'s post at any receipt bound, which `New`'s proof does not (false abov
 `backend.dbOpts γ.db` (`DbOpts.lean`): the database was opened with `NoSync = false` and
 `NoGrowSync = false` (`server/storage/backend.go:38` copies `UnsafeNoFsync` into the backend's
 configuration, `backend/backend.go:230-231` into `bopts.NoSync`/`bopts.NoGrowSync`, which `bolt.Open`
-stores in the `DB`). The one thing the post holds that `New`'s proved post does not: `dbOpts`, bbolt's
+stores in the `DB`, bbolt `db.go:182-192`; at the etcd pin `30df685e4` and the translated bbolt `2f6fcff`,
+etcd's `go.mod` replacing bbolt by `19e0771`; re-checked 2026-11-28). The one thing the post holds that `New`'s proved post does not: `dbOpts`, bbolt's
 `boltSyncs γ.db` (the `DB`'s two fields persistently `false`), read by the C-I1 laws
 (`backend/CrashInterim.lean`; review `notes/axiom-review/openbackend-dbopts.md`).
 -/

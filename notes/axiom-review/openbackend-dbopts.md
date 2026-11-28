@@ -10,8 +10,13 @@
     (`Spec/go_etcd_io/bbolt/Api.lean`).
   - So the axiom now claims that `γ.db`'s `DB` struct has `NoSync` and `NoGrowSync` persistently
     `false`.
-- Its one consumer is the C-I1 law `dbCrashKeep_new` (`backend/CrashInterim.lean:189`).
-- The pins:
+- Its consumers (at the review: the C-I1 law `dbCrashKeep_new`, `backend/CrashInterim.lean:189`; on
+  `etcd-safe-crash-delta-now/2026-11-27`, 2026-11-28: the interim axiom at `CrashInterim.lean:145`, still
+  there, and two proved theorems, `backend.dbCrashKeep_new` (`backend/CrashLaws.lean:96-110`, from
+  `bbolt.TailsZeroOnOpen`) and `bbolt.crashMode_of` (`Proof/go_etcd_io/bbolt/CrashMode.lean:36`, which
+  combines `boltSyncs` with `isBolt`'s mode points-tos). Both combine `dbOpts` with bbolt's invariant through
+  `↦□` agreement, the attack of (3); each is sound because Go's fields are `false`.)
+- The pins (at the review; see "Re-check at the delta's pins" below for the current ones):
   - branch `axiom/openbackend-dbopts` at `73558d4d57`, on the etcd_safe line;
   - etcd fork `e94f33b50` (`etc/goose.py`, project `etcd`), whose `go.mod` replaces bbolt by the fork's
     `19e0771`;
@@ -54,7 +59,7 @@ sets `options.NoSync = true` (`:534`).
 
 So each `DB` struct's two fields are written once, before `Open` returns, and never again. That is
 what `↦□` says. bbolt's proof already discards both fields persistently (`dbFixed`'s
-`∃ x, NoSync ↦□ x`, `Proof/go_etcd_io/bbolt/Open.lean:884-885`). `Open`'s translation stores the
+`∃ x, NoSync ↦□ x`, `Proof/go_etcd_io/bbolt/Open.lean:884-885`; at the delta `:839` and `:984`). `Open`'s translation stores the
 options' value there, so in the model `x` is the Go value.
 
 **Run.** A Go test was added in a scratch clone of the etcd pin, not in this repository:
@@ -72,9 +77,9 @@ UnsafeNoFsync=true: NoSync=true NoGrowSync=true
 
 - **Where `γ.db` comes from.**
   - `γ : BNames` is `New`'s proved post, and `γ.db : DBNames = bbolt.BoltName` is bbolt `Open.spec`'s
-    `γ` (`isDB db γ.db = onFs (isBolt db γ.db)`, `InvBbolt.lean:359`).
+    `γ` (`isDB db γ.db = onFs (isBolt db γ.db)`, `InvBbolt.lean:359`; at the delta `:357`).
   - `Open`'s proof allocates `(bnsOf γ.gs).dbl` fresh, as a discarded ghost-map element at the key
-    `()` valued `db`: this is `dblAt`, persistent and agreeing (`Inv/Bolt.lean:38`).
+    `()` valued `db`: this is `dblAt`, persistent and agreeing (`Inv/Bolt.lean:38`; at the delta `:40`).
   - So every `dblAt (bnsOf γ.db.gs) db'` has `db' = db`, the location `Open` returned. That is the
     struct whose fields `newBackend` set from `bopts`.
 - **Defrag.**
@@ -138,7 +143,7 @@ The `dbOpts` conjunct could be proved instead of asserted:
 add only `storage.newBackend`'s untranslated copy (`backend.go:38`), which the axiom already trusts for
 the rest of `bcfg`. This fits S5's rule "the axiom creates nothing" (`notes/bbolt-integration-plan.md`).
 
-## Doc fixes (no change in meaning)
+## Doc fixes (no change in meaning; applied on the etcd_safe line)
 
 - `DbOpts.lean`'s and `Spec/.../storage/OpenBackend.lean`'s line citations are stale at `e94f33b50`:
   - `backend/backend.go:227-228` is now `:230-231`;
@@ -148,3 +153,23 @@ the rest of `bcfg`. This fits S5's rule "the axiom creates nothing" (`notes/bbol
 - `Spec/.../storage/OpenBackend.lean`'s header still calls `dbOpts` "an opaque token about the Go
   configuration".
 - `CrashInterim.lean`'s header still lists `dbOpts` among the "three opaque predicates".
+
+## Re-check at the delta's pins (2026-11-28, TRUST-1 row 1, `/shared/tmp/trust-review/row1.md`)
+
+Verdict unchanged: **survives**. The axiom's and the spec's text are `73558d4d57`'s (the doc fixes above
+applied; `[sem : go.Semantics]` from `9f36497a5a`).
+
+- **Pins** on `etcd-safe-crash-delta-now/2026-11-27`: etcd fork `30df685e4` (`etc/goose.py:451`), whose
+  `go.mod:108` and `server/go.mod:84` still replace bbolt by the fork's `19e0771`; bbolt fork `2f6fcff`
+  (`etc/goose.py:252`, the translated one). Between the review's pins and these:
+  - etcd: `git diff --stat e94f33b50 30df685e4 -- server/storage server/config go.mod server/go.mod`
+    touches only the WAL (`server/storage/wal/{unsaved.go,torn_save_test.go}`); every backend citation
+    above holds (`backend.go:38`, `backend/backend.go:219-236`, `:524`, `:534`, `:603`);
+  - bbolt `2f6fcff` (P13b) moves `Open`'s `fdatasync` before the mapping (now `db.go:304`) and writes no
+    option field; `db = &DB{...}` and the two field stores are `db.go:182-192` (`19e0771`: `:188-189`).
+    The only other writer is still `cmd/bbolt/command/command_bench.go:152`.
+- **Consumers**: see "Reviewed" above.
+- **Line citations** that moved: `Open.lean:884-885` → `:839`/`:984`; `Inv/Bolt.lean:38` → `:40`;
+  `InvBbolt.lean:359` → `:357`; `DbOpts.lean`'s `db.go:326` → `:304` (fixed in the docstring).
+- "Optional trust shrinking" is still not done: neither bbolt's `Open.spec` nor `backend.New.spec`
+  gives `boltSyncs`.
