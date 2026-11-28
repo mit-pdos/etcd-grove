@@ -28,15 +28,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- (keepfix (c), step 1, sub-goal 1; PENDING until the bootlaw merge brings raft's
-`isCommittedLogLb_term_pos`, then proved and dropped as a hypothesis) **A cluster with a non-empty boot log
-commits no entry of term 0** (`srvTermPos`): what `bootstrap`'s contract asks of its caller, for the
-backend hooks it builds (`metaTMR`). True of raft: `isCommittedLogLb_term_pos` (`DurableLogView.lean` on
-`etcd-safe-bootlaw/2026-11-27`), `isCluster γ N ∗ isCommittedLogLb γ l ⊢ |={Em}=> ⌜∀ e ∈ l, 1 ≤ e.term⌝` at
-`0 < γ.bootLen`. -/
-abbrev srvTermPos_of_cluster.law : Prop :=
-  ∀ cl : Cluster, 0 < cl.bootLen → isCluster (GF := GF) cl srvClusterN ⊢ srvTermPos cl
-
 /-- **The server's raft names give `srvTermPos`** (`srvRaftLogInv`: the cluster's `isCluster`, its boot log the
 server's, non-empty). -/
 theorem srvTermPos_of_raftLog (hTP : srvTermPos_of_cluster.law (GF := GF)) (γ : ServerRaftNames) :
