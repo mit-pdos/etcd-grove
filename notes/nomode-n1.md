@@ -200,24 +200,24 @@ function (`notes/nomode-x.md`). Ledger: `notes/specs-only/ledger.md`, 2026-11-28
 
   The admin check (`if auth.adminOk st … then … else st' = st`) is unchanged. `adminStepO` gains the same
   six (without the `¬ pwSure` disjunct). `adminNext`, `authDet` are unchanged in text.
-- `apply.adminKindOk` (`apply/Chain.lean`). Before: the six fell to `| _ => False`. After:
+- `apply.adminKindOk` (`apply/Chain.lean`). Before D3: the six fell to `| _ => False`, and
+  `UserGrantRole`/`RoleGrantPermission` bounded the user's/role's name by `backend.maxKeySize`. After
+  (the review's narrowing, see "D3, narrowed" below):
 
   ```lean
+  | .authUserGrantRole => True
+  | .authRoleGrantPermission => True
   | .authDisable => True
   | .authUserDelete => True
-  | .authUserChangePassword =>
-      ∀ m, rq.authUserChangePassword = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
-  | .authUserRevokeRole =>
-      ∀ n ro, rq.authUserRevokeRole = some (n, ro) → n.length ≤ backend.maxKeySize
+  | .authUserChangePassword => ∀ m, rq.authUserChangePassword = some m → m.pwSure
+  | .authUserRevokeRole => True
   | .authRoleDelete => True
-  | .authRoleRevokePermission =>
-      ∀ ro k e, rq.authRoleRevokePermission = some (ro, k, e) → ro.length ≤ backend.maxKeySize
+  | .authRoleRevokePermission => True
   ```
 
-  The name bounds are the store specs' premises where the store writes that key (`UnsafePutUser`,
-  `UnsafePutRole`), as `UserGrantRole`'s; `pwSure` is `UserAdd`'s, what `EtcdServer.UserChangePassword`
-  proposes when a password is set (a request with an empty `Password` it proposes as sent: `pwSure` iff its
-  `HashedPassword` is base64, a workload premise as `UserAdd`'s).
+  `UserChangePassword`'s `pwSure` is NOT like `UserAdd`'s: `EtcdServer.UserChangePassword` forwards a
+  client's `HashedPassword` as sent when `Password` is empty, so a raw gRPC client can break it (clientv3
+  never sets `HashedPassword`); it is still a premise (open: "D3, narrowed").
 - `EtcdServer.{UserDelete,UserRevokeRole,RoleDelete,RoleRevokePermission}.spec`: before, `⌜r ≠ null⌝` and
   the request `irrUserDelete` (a `Bool`); after, the request's model (`apply.authUserDeleteIs r name`, ...)
   and `irrUserDelete name` (`irrUserRevokeRole name role`, `irrRoleDelete role`, `irrRoleRevokePermission
@@ -239,3 +239,41 @@ own flag, `auth.ownFlagR`); `isAuthStepsX_of_authInvT` is now `_of_authInvTB` at
 `adminOut_model` (`ApplyTieOn.lean`), `capRel` (`AuthTie.lean`), `rolesSorted`/`authDet_of_sorted`
 (`KVAuthShape.lean`; `adminDetReq` gains `UserChangePassword`'s `pwSure`, from `adminKindOk`),
 `adminStateR_wf`, `adminStateR_enabled`, `adminStateR_ord` take the six.
+
+## D3, narrowed (2026-11-28, the review rev-d3)
+
+The review found nothing false and one NEEDS-NARROWING finding. Witness:
+`notes/axiom-review/d3-gotest/` (Go, at the fork pin).
+
+**(1) Name bounds dropped where the store only rewrites an existing record.** A 40000-byte name for
+`UserChangePassword`, `UserRevokeRole`, `RoleRevokePermission` (and `UserGrantRole`,
+`RoleGrantPermission`, which rewrite an existing user or role too) meets "not found": no write, no panic.
+Before / after:
+
+- `apply.adminKindOk`: before, `UserGrantRole` `∀ u ro, … → u.length ≤ maxKeySize`, `RoleGrantPermission`
+  `∀ n w, … → n.length ≤ maxKeySize`, `UserChangePassword` `… → m.name.length ≤ maxKeySize ∧ m.pwSure`,
+  `UserRevokeRole`/`RoleRevokePermission` the name bound; after, `True` (`UserChangePassword`: `pwSure` only).
+- The store specs (`authStore.X.spec`/`specT`/`specTB`, `UserChangePassword.specTSureB`) of those five: the
+  premise `⌜name.length ≤ backend.maxKeySize⌝` (the request's name) replaced by `⌜auth.userKeysOk M hs⌝`
+  (UserChangePassword, UserGrantRole, UserRevokeRole) or `⌜auth.roleKeysOk M hs⌝` (RoleGrantPermission,
+  RoleRevokePermission), new (`auth/Steps.lean`): every name stored at the state the batch transaction
+  finds is a bbolt key (`∀ s, histLast M hs s → ∀ n, (s.users !! n).isSome → n.length ≤
+  backend.maxKeySize`; roles alike), as `RoleDelete`'s premise already was. The proofs take the bound of
+  the record they rewrite from it (it exists at `st0`).
+- `auth.authSmall` (`auth/Fuel.lean`) gains `roleNames : ∀ r, (st.roles !! r).isSome → r.length ≤
+  backend.maxKeySize`, kept by every step (`RoleAdd`'s from its request's bound, `stepSmall_roleAdd`'s new
+  premise); the fuel discharges `userKeysOk`/`roleKeysOk` (`names`, `roleNames`), so the apply layer's
+  `isAuthSteps(X)` clauses, `stepSpec(X)` take the stored-name premise and `fuelSpec(X)` none;
+  `AdminReq.nameOk`: `userGrantRole _ ro => utf8Valid ro`, the other rewrites `True`.
+- `EtcdServer.{UserGrantRole,RoleGrantPermission}.specOn` (`ModeSpecs.lean`) and `adminPropOk_*` drop the
+  name premise. (`v3rpc.userGrantRole_end_to_end_on`/`roleGrantPermission_end_to_end_on` keep theirs,
+  now unused: a follow-up.)
+
+**(2) `UserChangePassword` as a function: not done, STOPPED.** Making the step a function of the state
+needs, besides the user's `NoPassword` option in the model's user record, the exact outcome of
+`selectPassword`: when `Password = ""` (or a hash is given), `base64.StdEncoding.DecodeString`'s error
+(Perennial's `stdDecInit` gives only "an encoding decodes"; Go's non-strict decoder also skips `\r`/`\n`), and
+when only `Password` is given, bcrypt's (`bcrypt.GenerateFromPassword.spec`, an axiom, allows an error on
+any input; Go errs iff the password is over 72 bytes or the cost is invalid). So either (a) a Perennial
+proof of `DecodeString`'s exact error and a strengthened bcrypt axiom (new trust), or a premise. The
+premise `pwSure` is kept until decided.

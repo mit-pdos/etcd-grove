@@ -437,7 +437,7 @@ theorem adminKindOk_cpSure (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
   intro hk m hm
   unfold apply.adminKindOk at h
   rw [hk] at h
-  exact (h m hm).2
+  exact h m hm
 
 /-- **An admin entry is determinate at a sorted state** meeting `adminDetReq`. -/
 theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : rolesSorted st)

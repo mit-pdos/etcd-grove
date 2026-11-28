@@ -1710,32 +1710,32 @@ theorem apply_AuthEnable_fuelX :
   EtcdGrove.apply.applierV3backend.AuthEnable.wp_fuelX
     (EtcdGrove.apply.applierV3backend.AuthEnable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_AuthDisable_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem apply_AuthDisable_fuelX :
     EtcdGrove.apply.applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthDisable.wp_fuelX
     (EtcdGrove.apply.applierV3backend.AuthDisable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_UserDelete_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem apply_UserDelete_fuelX :
     EtcdGrove.apply.applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserDelete.wp_fuelX
     (EtcdGrove.apply.applierV3backend.UserDelete.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_UserChangePassword_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem apply_UserChangePassword_fuelX :
     EtcdGrove.apply.applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserChangePassword.wp_fuelX
     (EtcdGrove.apply.applierV3backend.UserChangePassword.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_UserRevokeRole_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem apply_UserRevokeRole_fuelX :
     EtcdGrove.apply.applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_fuelX
     (EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_RoleDelete_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem apply_RoleDelete_fuelX :
     EtcdGrove.apply.applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleDelete.wp_fuelX
     (EtcdGrove.apply.applierV3backend.RoleDelete.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
-theorem apply_RoleRevokePermission_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem apply_RoleRevokePermission_fuelX :
     EtcdGrove.apply.applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleRevokePermission.wp_fuelX
     (EtcdGrove.apply.applierV3backend.RoleRevokePermission.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)

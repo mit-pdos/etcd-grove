@@ -425,7 +425,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tieB
     ipureintro
     exact ⟨by decide, show 0 < rr.name.length by
         rw [Hrrn]; exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 role (by rw [Hlook]; rfl)),
-      show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps', Hsrt0.filter _⟩
+      show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen st0 Hl0 role (by rw [Hlook]; rfl), hps', Hsrt0.filter _⟩
   inext
   iintro ⟨HL, Hsw, Huu⟩
   (try wp_auto)

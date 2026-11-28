@@ -401,21 +401,17 @@ def adminKindOk (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
   | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
-  | .authUserGrantRole => ∀ u ro, rq.authUserGrantRole = some (u, ro) → u.length ≤ backend.maxKeySize
-  | .authRoleGrantPermission =>
-      ∀ n w, rq.authRoleGrantPermission = some (n, w) → n.length ≤ backend.maxKeySize
+  | .authUserGrantRole => True
+  | .authRoleGrantPermission => True
   | .authEnable => True
   | .authenticate => needAdminPermission rq = false ∧
       ∀ am, rq.authenticate = some am → auth.tokPrefixOk am.simpleToken
   | .authDisable => True
   | .authUserDelete => True
-  | .authUserChangePassword =>
-      ∀ m, rq.authUserChangePassword = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
-  | .authUserRevokeRole =>
-      ∀ n ro, rq.authUserRevokeRole = some (n, ro) → n.length ≤ backend.maxKeySize
+  | .authUserChangePassword => ∀ m, rq.authUserChangePassword = some m → m.pwSure
+  | .authUserRevokeRole => True
   | .authRoleDelete => True
-  | .authRoleRevokePermission =>
-      ∀ ro k e, rq.authRoleRevokePermission = some (ro, k, e) → ro.length ≤ backend.maxKeySize
+  | .authRoleRevokePermission => True
   | _ => False
 
 /-- **The per-request premise in the auth mode `M`** (E2m, continued): `rqOk`, or, in the mode `on`

@@ -203,7 +203,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
       · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
-          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
+          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
       inext
       iintro ⟨HL, Hsw, -⟩
@@ -323,7 +323,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
     · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
-          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
+          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
     inext
     iintro ⟨HL, Hsw, -⟩
@@ -575,7 +575,7 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
       · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
-          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
+          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
       inext
       iintro ⟨HL, Hsw, -⟩
@@ -695,7 +695,7 @@ theorem auth.authStore.UserChangePassword.wp_tieSureB
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
     · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
-          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
+          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen st0 Hl0 name (by rw [Hur.1]; rfl),
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
     inext
     iintro ⟨HL, Hsw, -⟩

@@ -9553,3 +9553,16 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   strengthening: `R := C.enc args Ψ` gives the old spec). `Conn.Call.wp_proof` and `Transport.send` (its only
   caller) updated; no top-level statement changes.
 - **Decision.** Untrusted spec, proved here (S5f, #48).
+## 2026-11-28: the rewrite kinds' name bounds replaced by the stored names' (nomode D3, narrowed)
+
+- **Spec.** `apply.adminKindOk` (UserGrantRole, RoleGrantPermission, UserChangePassword, UserRevokeRole,
+  RoleRevokePermission); the store specs of those five (`spec`, `specT`, `specTB`, `specTSureB`);
+  `auth.authSmall`; `isAuthSteps(X)`, `stepSpec(X)`, `fuelSpec(X)`, `AdminReq.nameOk`;
+  `EtcdServer.{UserGrantRole,RoleGrantPermission}.specOn`.
+- **Defect.** A premise bounding the request's name, which Go does not need: these kinds rewrite an
+  existing record only, and a long name returns "not found" (review rev-d3, NEEDS-NARROWING).
+- **Evidence.** `notes/axiom-review/d3-gotest/` (`TestLongNames`, fork `18ab647b02`).
+- **Change.** The request's bound dropped; the store specs take `auth.userKeysOk`/`roleKeysOk` (every stored
+  name a bbolt key), which `authSmall.names`/the new `authSmall.roleNames` give. `notes/nomode-n1.md`, "D3,
+  narrowed".
+- **Decision.** The lead (dsverify-net), relaying the review; strengthening, no new trust.

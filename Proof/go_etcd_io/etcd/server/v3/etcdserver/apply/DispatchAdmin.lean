@@ -822,12 +822,10 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUC.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUC
     have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
-    have hnm : (apply.AdminReq.userChangePassword x.name).nameOk := by
-      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      exact (h x hs).1
+    have hnm : (apply.AdminReq.userChangePassword x.name).nameOk := trivial
     have hsure : x.pwSure := by
       have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      exact (h x hs).2
+      exact h x hs
     ihave #HS := apply.authUserChangePasswordIs_sure _ _ hsure $$ HR
     ihave #HR := apply.authUserChangePasswordIs_req _ _ $$ HR
     ihave Hx : (apply.AdminReq.userChangePassword x.name).extraPre E γa hh Pre $$ [Hx]
@@ -883,10 +881,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUGR.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUGR
     have hk : dispatchKind rq = .authUserGrantRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, hs]
-    have hnm : (apply.AdminReq.userGrantRole x.1 x.2).nameOk := by
-      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      refine ⟨?_, Hutf8 x hs⟩
-      first | exact h x hs | exact h x.1 x.2 hs
+    have hnm : (apply.AdminReq.userGrantRole x.1 x.2).nameOk := Hutf8 x hs
     iunfold apply.authUserGrantRoleIs at HR
     ihave Hx : (apply.AdminReq.userGrantRole x.1 x.2).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx
@@ -949,9 +944,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nURR.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HURR
     have hk : dispatchKind rq = .authUserRevokeRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, hs]
-    have hnm : (apply.AdminReq.userRevokeRole x.1 x.2).nameOk := by
-      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      exact h x.1 x.2 hs
+    have hnm : (apply.AdminReq.userRevokeRole x.1 x.2).nameOk := trivial
     iunfold apply.authUserRevokeRoleIs at HR
     ihave Hx : (apply.AdminReq.userRevokeRole x.1 x.2).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx
@@ -1065,9 +1058,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRGP.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRGP
     have hk : dispatchKind rq = .authRoleGrantPermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, hs]
-    have hnm : (apply.AdminReq.roleGrantPermission x.1 x.2).nameOk := by
-      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      first | exact h x hs | exact h x.1 x.2 hs
+    have hnm : (apply.AdminReq.roleGrantPermission x.1 x.2).nameOk := trivial
     iunfold apply.authRoleGrantPermissionIs at HR
     ihave Hx : (apply.AdminReq.roleGrantPermission x.1 x.2).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx
@@ -1130,9 +1121,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRRP.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRRP
     have hk : dispatchKind rq = .authRoleRevokePermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, hs]
-    have hnm : (apply.AdminReq.roleRevokePermission x.1 x.2.1 x.2.2).nameOk := by
-      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      exact h x.1 x.2.1 x.2.2 hs
+    have hnm : (apply.AdminReq.roleRevokePermission x.1 x.2.1 x.2.2).nameOk := trivial
     iunfold apply.authRoleRevokePermissionIs at HR
     ihave Hx : (apply.AdminReq.roleRevokePermission x.1 x.2.1 x.2.2).extraPre E γa hh Pre $$ [Hx]
     · iunfold apply.adminExtra at Hx

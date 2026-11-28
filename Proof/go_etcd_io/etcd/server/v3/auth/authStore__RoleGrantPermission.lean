@@ -541,7 +541,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) %AuthSess.init [HL Hrc Hsw Hrm]
       · iframe HL Hrc Hsw Hrm; ipureintro; rw [hrn]
         exact ⟨by decide, List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 name (by rw [Hlook]; rfl)),
-          Hnamelen, hgp, auth.grantPerms_sorted ps w Hsrt0⟩
+          Hnamelen st0 Hl0 name (by rw [Hlook]; rfl), hgp, auth.grantPerms_sorted ps w Hsrt0⟩
       inext
       iintro ⟨HL, Hsw, Hrr⟩
       (try wp_auto)

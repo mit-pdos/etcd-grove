@@ -329,7 +329,7 @@ theorem auth.authStore.UserRevokeRole.wp_tieB
     ipureintro
     refine ⟨by decide, hsorted', by
         rw [Hurn]; exact List.length_pos_iff.2 ((Hok en st0 Hl0).2.2.2.1 name (by rw [Hlook]; rfl)),
-      by rw [Hurn]; exact Hnamelen, fun x hx => ?_⟩
+      by rw [Hurn]; exact Hnamelen st0 Hl0 name (by rw [Hlook]; rfl), fun x hx => ?_⟩
     rw [hroles'] at hx
     exact (Hok en st0 Hl0).2.2.1 name roles Hlook x (Hurr ▸ (List.mem_filter.1 hx).1)
   inext

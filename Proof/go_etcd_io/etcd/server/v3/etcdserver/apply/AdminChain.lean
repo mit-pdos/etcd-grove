@@ -74,22 +74,24 @@ inductive AdminReq where
   | .roleDelete _ => go!"RoleDelete"
   | .roleRevokePermission _ _ _ => go!"RoleRevokePermission"
 
-/-- The request's name within bbolt's key bound (the step specs' premise; `AuthEnable` has none);
+/-- The request's name within bbolt's key bound where the step adds a record of that name
+(`UserAdd`, `RoleAdd`; nomode D3: a rewrite of an existing record takes
+`auth.userKeysOk`/`roleKeysOk` from the fuel instead);
 (2026-10-30) an `Authenticate`'s token prefix one the provider makes (`auth.tokPrefixOk`); (S0's
 F4, 2026-11-12) a `UserGrantRole`'s role valid UTF-8 (the decoded request's, `irrUtf8`). -/
 @[reducible] def AdminReq.nameOk : AdminReq → Prop
   | .userAdd n => n.length ≤ backend.maxKeySize
   | .roleAdd n => n.length ≤ backend.maxKeySize
-  | .userGrantRole u ro => u.length ≤ backend.maxKeySize ∧ utf8Valid ro
-  | .roleGrantPermission n _ => n.length ≤ backend.maxKeySize
+  | .userGrantRole _ ro => utf8Valid ro
+  | .roleGrantPermission _ _ => True
   | .authEnable => True
   | .authenticate _ pre => auth.tokPrefixOk pre
   | .authDisable => True
   | .userDelete _ => True
-  | .userChangePassword n => n.length ≤ backend.maxKeySize
-  | .userRevokeRole n _ => n.length ≤ backend.maxKeySize
+  | .userChangePassword _ => True
+  | .userRevokeRole _ _ => True
   | .roleDelete _ => True
-  | .roleRevokePermission ro _ _ => ro.length ≤ backend.maxKeySize
+  | .roleRevokePermission _ _ _ => True
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -467,7 +469,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn.1 hn.2) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | roleGrantPermission n w =>
@@ -475,7 +477,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | authEnable =>
@@ -507,7 +509,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUC E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hUC E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | userRevokeRole n ro =>
@@ -515,7 +517,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hURR E γa X W p r log Pre Q Post info hs n ro hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hURR E γa X W p r log Pre Q Post info hs n ro hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | roleDelete ro =>
@@ -531,7 +533,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRRP E γa X W p r log Pre Q Post info hs ro k e hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hRRP E γa X W p r log Pre Q Post info hs ro k e hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | authenticate n pre =>
