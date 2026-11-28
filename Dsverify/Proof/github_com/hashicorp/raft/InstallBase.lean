@@ -142,7 +142,7 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (
     (x st : Nat) (id : GoString) (Ψ : IProp GF) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvVP rc s none dp ∗ ghostVar rc.dur.pend (1 : Qp).half (some (x, st, id)) ∗
       (srvVP rc s none dp -∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
-        (⌜dp = none⌝ ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half x ∨ ⌜dp ≠ none⌝) -∗ Ψ) ⊢
+        (⌜dp = none⌝ ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half x ∨ ⌜dp ≠ none⌝ ∗ applLb rc x) -∗ Ψ) ⊢
     |NC={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       ⌜a ≤ x⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half x ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
   have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑appliedN) \ ↑durN := by
@@ -223,6 +223,7 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (
     · iexact Hv
     ileft; iframe; ipureintro; rw [← hdp, hdc]
   · -- a discard pending: the half stays in `latestDur` until the discard
+    ihave #Hax := applLb_get rc _ x $$ Happ
     imod Hclose $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS Hbp Hcomp Hla Hlat Hfol Hpd Hrest
       Happ] with -
     · inext
@@ -254,7 +255,7 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (
     imodintro
     iapply HΨ $$ [Hv] Hpend
     · iexact Hv
-    iright; ipureintro; rw [← hdp, hdc]; simp
+    iright; iframe Hax; ipureintro; rw [← hdp, hdc]; simp
 
 
 /-- **A main-goroutine read of the log store** (`GetLog(k)`'s atomic update; hraft_robust: over
@@ -689,7 +690,7 @@ theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st
     |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old, rc.ownSS old ∗
       (rc.ownSS (newerSnap old (sinkMeta ver idx term cfgIdx cfg id b) b) ={∅, ⊤ \ ↑storeN}=∗
         srvVP rc s none dp' ∗ ghostVar rc.dur.pend (1 : Qp).half (some (x, st, id)) ∗
-        monoNatAuthOwn rc.dur.comp (1 : Qp).half c) := by
+        monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗ latLb rc x) := by
   have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN := by
     unfold storeN durN raftN gprotN; solve_ndisj
   iintro ⟨#HI, #Hd0, #HC, #Hfol, Hnew, Hv, Hpend, Happ, Hcm, Hdpr⟩ Hnc
@@ -744,7 +745,7 @@ theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st
       unfold newerSnap sinkMeta; dsimp only
       rw [if_pos (by rw [hs, ht]; omega)]
   imod mono_nat_own_update (latIdxD (some ((sinkMeta ver idx term cfgIdx cfg id b), b)))
-    (show latIdxD X.lat ≤ uint.nat idx by omega) $$ Hlat with ⟨Hlat, -⟩
+    (show latIdxD X.lat ≤ uint.nat idx by omega) $$ Hlat with ⟨Hlat, #Hllb⟩
   imod ghostVar_update_halves (X.s, X.tp, dp') _ _ _ $$ Hsv Hv with ⟨Hsv, Hv⟩
   imod ghostVar_update_halves (some (x, st, id)) _ _ _ $$ Hpd Hpend with ⟨Hpd, Hpend⟩
   rw [Hnewer]
@@ -782,7 +783,43 @@ theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st
     iexact Hfol
   imodintro
   iframe Hpend Hcm
-  unfold srvVP; rw [← hs0, ← htp0]; iexact Hv
+  isplitl [Hv]
+  · unfold srvVP; rw [← hs0, ← htp0]; iexact Hv
+  unfold latLb; simp only [latIdxD, sinkMeta]; rw [hs]; iexact Hllb
+
+/-- (hraft_robust R4b) **The install's case, decided before its commit**: the log holds the snapshot's
+last entry (`prevMatch`: the install is a `learnCommit` of `x`, made durable now, `learnCommitFollower`
+with no entries) and no discard is pending, or it does not and the discard `⟨x, st, ℓ⟩` will be pending
+from the commit on (its premises, `dpRes`). The code finds the same case after the restore
+(`getLog_prevMatch`). -/
+theorem install_prep (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st : Nat) (ℓ : SID)
+    (hℓ : ℓ ≠ i) (hx : 1 ≤ x) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ aeValid γ s.term x st [] x ∗ leaderIs γ s.term ℓ ⊢
+    |NC={⊤}=> ∃ (d : Nat × Nat) (dp : Option DiscPend), srvV rc { s with dur := d } ∗
+      dpRes γ i { s with dur := d } dp ∗
+      ⌜s.dur.1 ≤ d.1 ∧ ((dp = none ∧ prevMatch s.log x st ∧ x ≤ d.1) ∨
+        (∃ ℓ', dp = some ⟨x, st, ℓ'⟩ ∧ ℓ' ≠ i ∧ ¬ prevMatch s.log x st))⌝ := by
+  iintro ⟨#HI, #Hd, Hv, #Hae, #Hl⟩
+  by_cases hpm : prevMatch s.log x st
+  · iapply ncfupd_wand
+    isplitl [Hv]
+    · iapply learnCommitFollower_R γ rc i (fun _ _ => CoPset.mem_full) s x st [] x x
+        ⟨hpm, ⟨Nat.le_refl _, fun j h => absurd h (Nat.not_lt_zero _)⟩, by simp, by simp; omega⟩
+        $$ [$HI $Hd $Hv $Hae]
+    iintro ⟨%d, Hv, -, %Hdd⟩
+    iexists d, none
+    iframe Hv
+    isplitr; · simp only [dpRes]; itrivial
+    ipureintro
+    rw [Nat.min_self] at Hdd
+    exact ⟨by omega, Or.inl ⟨rfl, hpm, by omega⟩⟩
+  · iapply ncfupd_ret
+    iexists s.dur, some ⟨x, st, ℓ⟩
+    iframe Hv
+    simp only [dpRes]
+    iframe Hae Hl
+    ipureintro
+    exact ⟨⟨hℓ, hx, hpm⟩, Nat.le_refl _, Or.inr ⟨ℓ, rfl, hℓ, hpm⟩⟩
 
 /-- `CIdx_term_mono` with its order premise as an implication. -/
 theorem CIdx_term_mono_imp (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (x y : Nat) (e1 e2 : Entry) :
