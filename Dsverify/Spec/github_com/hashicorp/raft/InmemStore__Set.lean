@@ -27,11 +27,12 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 open github_com.hashicorp.raft in
 /-- `i.Set(key, val)` sets `st.bytes[key] := val`'s contents; returns `nil`. -/
 abbrev github_com.hashicorp.raft.InmemStore.Set.spec : Prop :=
-  ∀ (γs : InmemNames) (i : Loc) (st : StableAbs) (key vs : GoSlice) (kb vb : List w8),
+  ∀ (γs : InmemNames) (i : Loc) (key vs : GoSlice) (kb vb : List w8),
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
-      kvView γs st ∗ key ↦*□ kb ∗ vs ↦*□ vb) -∗
-    (kvView γs { st with bytes := st.bytes.insert kb vb } -∗ Φ #interface.nil) -∗
+      key ↦*□ kb ∗ vs ↦*□ vb) -∗
+    (|NC={⊤,∅}=> ▷ ∃ st, kvView γs st ∗
+      (kvView γs { st with bytes := st.bytes.insert kb vb } ={∅,⊤}=∗ Φ #interface.nil)) -∗
     WP (App (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"Set")) (Val #key))
       (Val #vs)) {{ Φ }}
 

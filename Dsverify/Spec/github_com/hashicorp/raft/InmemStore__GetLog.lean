@@ -34,7 +34,7 @@ abbrev github_com.hashicorp.raft.InmemStore.GetLog.spec : Prop :=
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
       ptr ↦ lv0 ∗ rtok tid) -∗
-    (|={⊤,∅}=> ▷ ∃ A, inmemLogs γs A ∗
+    (|NC={⊤,∅}=> ▷ ∃ A, inmemLogs γs A ∗
       (inmemLogs γs A ={∅,⊤}=∗ ∀ err : GoInterface, getLogPost ptr (uint.nat idx) A.m err -∗
         rtok tid -∗ Φ #err)) -∗
     WP (App (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"GetLog")) (Val #idx))
