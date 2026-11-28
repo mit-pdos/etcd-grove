@@ -1064,6 +1064,8 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
         rw [hs1l]
         refine ⟨Hpbc.1, fun x hx1 hx2 => ?_⟩
         exact commit_drop_cover fs k (uint.nat c) Hkc x (by omega) (Hpbc.2 x (by omega) hx2)
+      ihave HownS : (∃ g : w64, stVS rc sst g ∗ ⌜uint.nat g ≤ s1.dur.1⌝ : IProp GF) $$ [HownS]
+      · icases HownS with ⟨%g, Hstg, %Hg⟩; iexists g; iframe; ipureintro; omega
       ihave Hm : mainOwnAt r γ rc i s1 stLeader $$ [HownS HlastLog Hstv Hlown Hdur Hconf Happ Hprod Hsrv Hldr0
           HlogPend Hreg Hpdn Hcomp]
       · unfold mainOwnAt
@@ -1080,7 +1082,7 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
         iframe #
         ipureintro
         refine ⟨?_, ⟨Ha', by rw [hs1c]; omega⟩, by omega, ⟨by rw [hs1l]; exact Hli.1, ?_⟩, Hlcap⟩
-        · unfold voteMatches at Hvm ⊢; rw [hs1vt, hs1vc]; exact Hvm
+        · unfold voteMatches at Hvm ⊢; rw [hs1vt, hs1vc, hs1t]; exact Hvm
         · rcases Hcfg' with h | ⟨h1, h2, h3⟩
           · left; exact h
           · right; refine ⟨by rw [hs1l]; exact h1, by omega⟩
@@ -1237,7 +1239,8 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
           ihave Hl := Hlclose $$ Hrs Hrsm
           ihave ⟨Hl, #Hldr, %n0, #Hlen0, %Hn0⟩ := leaderOwnM_facts r γ rc i s.term _ _ $$ Hl
           obtain ⟨hqQ, hnd, hQv⟩ := HQ
-          imod leader_verify_send r γ rc i s' v $$ [Hm Hst] with ⟨%sent, Hp, HP, Hk⟩
+          iapply wp_ncmod _ _ rfl (leader_verify_send r γ rc i s' v)
+          isplitl [Hm Hst]
           · iframe #; iframe Hm
             icases Hst with (⟨%sc, #Hsc, #Hsv, %Hscv, Hresp⟩ | Hd)
             · ileft
@@ -1249,6 +1252,7 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
               ipureintro
               exact ⟨h1, Hq'.1, Hn0rL, ⟨hnd, hQv, by have := Hq'.2.2.1; omega⟩⟩
             · iright; iexact Hd
+          iintro ⟨%sent, Hp, HP, Hk⟩
           wp_auto_lc 3
           wp_apply_core chan.wp_select_blocking
           iapply BigAndL.bigAndL_cons.2
@@ -1296,8 +1300,9 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
       wp_auto
       wp_apply (wp_getLeadershipTransferInProgress r γ rc i) $$ [$Hr] as %b -
       wp_if_destruct
-      · imod mainOwnAt_cfgReq r γ rc i s' stLeader mx x hx $$ [$HInv $Hbx $Hm]
-          with ⟨%ccfg, %cfg, %cidx, %li, %ss, Hcfgs, #Hccv, #Hlat, #Hsnap, #Hdx, #Hax, #Hcx, Hm⟩
+      · iapply wp_ncmod _ _ rfl (mainOwnAt_cfgReq r γ rc i s' stLeader mx x hx)
+        isplitl [Hm]; · iframe; iframe #
+        iintro ⟨%ccfg, %cfg, %cidx, %li, %ss, Hcfgs, #Hccv, #Hlat, #Hsnap, #Hdx, #Hax, #Hcx, Hm⟩
         ihave #Hccv' := Hccv
         iunfold cfgVal at Hccv'
         icases Hccv' with ⟨#Hss, %Hssok⟩
