@@ -47,11 +47,13 @@ theorem github_com.hashicorp.raft.InmemStore.GetUint64.wp_proof :
     ⟨%c, Hgc, Hlow, Hhigh, Hlogsf, Hlogs, Hkvf, Hkv, Hkvintf, Hkvint, Hgl, Hgk, %Hok, #Hpers⟩
   iapply wp_ncfupd _ _ rfl
   iintro Hnc
+  imod (fupd_mask_subseteq (PROP := IProp GF) (E1 := ⊤) (E2 := ⊤ \ ↑storeN) (by solve_ndisj)) with Hmask
   imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc3 HAU with ⟨%st, Hkvw, Hclose⟩
   ihave %Hst := kvView_agree γs _ st c.st $$ Hkvw Hgk
   subst Hst
   imod Hclose $$ Hkvw with HΦ
+  imod Hmask with -
   imodintro
   iframe Hnc
   wp_apply (wp_bytes_to_string key kb DFrac.discard) $$ [$Hkey] with -

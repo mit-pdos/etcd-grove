@@ -63,6 +63,7 @@ theorem github_com.hashicorp.raft.examples.snapstore.Sink.Close.wp_proof
     -- the commit (the linearization point): the latest becomes `newerSnap o m bs`
     iapply wp_ncfupd _ _ rfl
     iintro Hnc
+    imod (fupd_mask_subseteq (PROP := IProp GF) (E1 := ⊤) (E2 := ⊤ \ ↑storeN) (by solve_ndisj)) with Hmask
     unfold sinkCommit
     imod Hc $$ Hnc with ⟨Hnc, HAU⟩
     imod lc_fupd_elim_later (E := ∅) $$ Hlc1 HAU with ⟨%old, Hown, Hclose⟩
@@ -72,6 +73,7 @@ theorem github_com.hashicorp.raft.examples.snapstore.Sink.Close.wp_proof
     imod ghostVar_update_halves (newerSnap old (sinkMeta ver idx term cfgIdx cfg id bs) bs) γ _ _
       $$ Hown Hg with ⟨Hown, Hg⟩
     imod Hclose $$ Hown with HR
+    imod Hmask with -
     imodintro
     iframe Hnc
     ipersist Hsl
