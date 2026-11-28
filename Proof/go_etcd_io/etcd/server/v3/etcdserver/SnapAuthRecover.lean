@@ -196,7 +196,7 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
             · rename_i ps hps
               cases hn
               exact auth.permKeysOk_bump _ (auth.permKeysOk_putRole _ _ _ hs
-                (auth.grant_keys ps w' (Classical.not_not.1 hv).1 (fun p hp => hs r ps hps p hp)))
+                (auth.grant_keys ps w' (Classical.not_not.1 hv) (fun p hp => hs r ps hps p hp)))
       · subst hR; exact ⟨h, Nat.le_succ _⟩
     · refine authRelState_wf _ (auth.stepSmall_authEnable st.enabled) ?_ st st' h hR
       intro s s' hs hn

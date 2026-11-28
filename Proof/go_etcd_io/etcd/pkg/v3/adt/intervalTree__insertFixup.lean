@@ -35,11 +35,12 @@ theorem adt.intervalTree.insertFixup.wp_proof
   ihave HI : (∃ (z p : Loc) (C : adt.RbCtx adt.Entry) (tz : adt.RbT adt.Entry),
       "z" ∷ z_ptr ↦ z ∗ "HC" ∷ adt.ownCtx K t s C z p tz.maxEnd ∗
       "Hz" ∷ adt.ownNode K s (DFrac.own 1) p z tz ∗
-      "%Hinv" ∷ ⌜C.FixInv tz ∧ (C.plug tz).inorder = (C0.plug tz0).inorder⌝ : IProp GF)
+      "%Hinv" ∷ ⌜C.FixInv tz ∧ (C.plug tz).inorder = (C0.plug tz0).inorder ∧
+        C.fixup tz = C0.fixup tz0⌝ : IProp GF)
       $$ [z HC Hz]
   · iexists z0, p0, C0, tz0
     iframe
-    ipureintro; exact ⟨hinv0, rfl⟩
+    ipureintro; exact ⟨hinv0, rfl, rfl⟩
   wp_for HI
   obtain ⟨l, ze, r, rfl⟩ := adt.RbCtx.fixInv_red C tz Hinv.1
   icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hz with
@@ -74,13 +75,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
     ipureintro
     have hx := adt.RbCtx.fixInv_exit C _ Hinv.1 hcol
     rw [hT] at hx
-    refine ⟨hx, ?_⟩
-    rw [← Hinv.2, hT]; rfl
+    refine ⟨hx, ?_, ?_⟩
+    · rw [← Hinv.2.1, hT]; rfl
+    · rw [← Hinv.2.2, adt.RbCtx.fixup_black C _ hcol, hT]; rfl
   | red =>
     rw [show decide (adt.colorW .red = W64 1) = true by decide]
     simp only [_root_.decide_true, ↓reduceIte]
     have hinv := Hinv.1
-    have hord := Hinv.2
+    have hord := Hinv.2.1
+    have hfx := Hinv.2.2
     cases C with
     | top => cases hcol
     | inL c CP pe s1 =>
@@ -130,7 +133,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           simp only [adt.nodeMax_eq, adt.maxEnd_node]
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
         | black =>
           rw [show decide (adt.colorW .black = W64 1) = false by decide]
           ihave %Hne := adt.ownNode_ne K _ _ _ _ _ _ Hzn.1 $$ Hs1 Hzp
@@ -159,7 +170,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           iexists z, p, .inL .black CG pe (.node .red s1 ge u), .node .red l ze r
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
       | inR cg u ge CG =>
         rw [adt.ownCtx_inR K t s cg u ge CG p]
         icases HC with ⟨%gp, %up, %Hgn, Hgiv, Hgmx, Hgl, Hgr, Hgp, Hgc, Hu, HC⟩
@@ -203,7 +222,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           simp only [adt.nodeMax_eq, adt.maxEnd_node]
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
         | black =>
           rw [show decide (adt.colorW .black = W64 1) = false by decide]
           rw [show black = #(adt.colorW .black) from rfl, show red = #(adt.colorW .red) from rfl]
@@ -247,7 +274,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           iexists p, z, .inR .black (.node .red u ge l) ze CG, .node .red r pe s1
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
     | inR c s1 pe CP =>
       simp only [adt.RbCtx.color] at hcol
       subst hcol
@@ -295,7 +330,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           simp only [adt.nodeMax_eq, adt.maxEnd_node]
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
         | black =>
           rw [show decide (adt.colorW .black = W64 1) = false by decide]
           rw [show black = #(adt.colorW .black) from rfl, show red = #(adt.colorW .red) from rfl]
@@ -339,7 +382,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           iexists p, z, .inL .black CG ze (.node .red r ge u), .node .red s1 pe l
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
       | inR cg u ge CG =>
         rw [adt.ownCtx_inR K t s cg u ge CG p]
         icases HC with ⟨%gp, %up, %Hgn, Hgiv, Hgmx, Hgl, Hgr, Hgp, Hgc, Hu, HC⟩
@@ -383,7 +434,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           simp only [adt.nodeMax_eq, adt.maxEnd_node]
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
         | black =>
           rw [show decide (adt.colorW .black = W64 1) = false by decide]
           ihave %Hne' := adt.ownNode_ne K _ _ _ _ _ _ Hzn.1 $$ Hs1 Hzp
@@ -412,7 +471,15 @@ theorem adt.intervalTree.insertFixup.wp_proof
           iexists z, p, .inR .black (.node .red u ge s1) pe CG, .node .red l ze r
           iframe
           ipureintro
-          exact ⟨hinv', hord'.trans hord⟩
+          exact ⟨hinv', hord'.trans hord, by
+            rw [← hfx]
+            first
+              | rfl
+              | exact (adt.RbCtx.fixup_black_LL _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RL _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_LR _ _ _ _ _ _ _ _ _ _ hucol).symm
+              | exact (adt.RbCtx.fixup_black_RR _ _ _ _ _ _ _ hucol).symm
+              | (simp only [adt.RbCtx.fixup]; done)⟩
 
 end proof
 

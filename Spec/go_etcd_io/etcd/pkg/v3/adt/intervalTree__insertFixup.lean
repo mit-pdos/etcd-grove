@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 /-- `t.insertFixup(z)` (internal, `Insert`'s; CLRS's `RB-INSERT-FIXUP`), at the hole `z` of
 the context `C`, its subtree `tz` red over a tree that is red-black but for `z` under a red
-parent (`FixInv`): the whole tree (from the root field) red-black, with the same entries. -/
+parent (`FixInv`): the whole tree (from the root field) red-black, with the same entries: the
+tree `RbCtx.fixup` computes. -/
 abbrev adt.intervalTree.insertFixup.spec : Prop :=
   ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
   ∀ (t s : Loc) (dq : DFrac) (C : adt.RbCtx adt.Entry) (z p : Loc) (tz : adt.RbT adt.Entry),
@@ -34,7 +35,8 @@ abbrev adt.intervalTree.insertFixup.spec : Prop :=
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"insertFixup")) (Val #z))
   {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
       ∃ (r : Loc) (T : adt.RbT adt.Entry), t.[intervalTree, go!"root"] ↦ r ∗
-        adt.ownNode K s (DFrac.own 1) s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tz).inorder⌝ }}
+        adt.ownNode K s (DFrac.own 1) s r T ∗
+        ⌜adt.RbOk T ∧ T.inorder = (C.plug tz).inorder ∧ T = C.fixup tz⌝ }}
 
 end spec
 
