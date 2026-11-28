@@ -120,6 +120,130 @@ theorem bootEnd {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLatest
   unfold srvDurInv bootOver srvDurInvRaw
   iframe #
 
+/-- (hraft_robust R5) The pure facts of the crash state (`durCore`'s). -/
+def durPure (X : SrvDur) : Prop :=
+  logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
+    uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+    (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+    (∀ d, X.dp = some d → X.c < d.x))
+
+theorem durCore_pure (X : SrvDur) : durCore γ rc i X ⊢ durCore γ rc i X ∗ ⌜durPure X⌝ := by
+  unfold durCore
+  iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, H10⟩
+  iframe
+  ipureintro; exact ⟨Hp, Hp⟩
+
+theorem boot_dur_storeN : (↑durN : CoPset) ⊆ ⊤ \ ↑storeN := by
+  unfold durN raftN storeN; solve_ndisj
+
+/-- (hraft_robust R5) **A log-store read during the boot**: the store's atomic update, from the raw crash invariant
+with the boot pin and the main goroutine's view; the continuation learns the crash state's facts. -/
+theorem bootRead_L (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option TermPend) (dp : Option DiscPend)
+    (K : LogAbs → IProp GF) :
+    srvDurInvRaw γ rc i ∗ bootV rc A lat ∗ srvVP rc s tp dp ∗
+      (bootV rc A lat -∗ srvVP rc s tp dp -∗ ∀ X : SrvDur,
+        ⌜X.A = A ∧ X.lat = lat ∧ X.s = s ∧ X.tp = tp ∧ X.dp = dp ∧ durPure X⌝ -∗ K X.A) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ a, rc.ownL a ∗ (rc.ownL a ={∅, ⊤ \ ↑storeN}=∗ K a) := by
+  iintro ⟨#Hi, Hv, Hsv, HK⟩
+  iapply ncfupd_bind
+  isplitl [Hv]
+  · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
+    iframe #; iframe
+  iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  · iframe
+  iapply ncfupd_of_fupd
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hld⟩
+  iexists _
+  iframe HL
+  iintro HL
+  imod Hmask with -
+  imod Hcl $$ Hc [HL HS HSS Hld] with Hv
+  · iunfold durStores; iframe
+  obtain ⟨hA, hlat⟩ := HX
+  subst hA hlat
+  imodintro
+  iapply HK $$ Hv Hsv
+  ipureintro
+  exact ⟨rfl, rfl, Hag.1, Hag.2.1, Hag.2.2, Hp⟩
+
+/-- (hraft_robust R5) **A stable-store read during the boot**: the store's atomic update, from the raw crash invariant
+with the boot pin and the main goroutine's view; the continuation learns the crash state's facts. -/
+theorem bootRead_S (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option TermPend) (dp : Option DiscPend)
+    (K : StableAbs → IProp GF) :
+    srvDurInvRaw γ rc i ∗ bootV rc A lat ∗ srvVP rc s tp dp ∗
+      (bootV rc A lat -∗ srvVP rc s tp dp -∗ ∀ X : SrvDur,
+        ⌜X.A = A ∧ X.lat = lat ∧ X.s = s ∧ X.tp = tp ∧ X.dp = dp ∧ durPure X⌝ -∗ K X.D) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ a, rc.ownS a ∗ (rc.ownS a ={∅, ⊤ \ ↑storeN}=∗ K a) := by
+  iintro ⟨#Hi, Hv, Hsv, HK⟩
+  iapply ncfupd_bind
+  isplitl [Hv]
+  · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
+    iframe #; iframe
+  iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  · iframe
+  iapply ncfupd_of_fupd
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hld⟩
+  iexists _
+  iframe HS
+  iintro HS
+  imod Hmask with -
+  imod Hcl $$ Hc [HL HS HSS Hld] with Hv
+  · iunfold durStores; iframe
+  obtain ⟨hA, hlat⟩ := HX
+  subst hA hlat
+  imodintro
+  iapply HK $$ Hv Hsv
+  ipureintro
+  exact ⟨rfl, rfl, Hag.1, Hag.2.1, Hag.2.2, Hp⟩
+
+/-- (hraft_robust R5) **A snapshot-store read during the boot**: the store's atomic update, from the raw crash invariant
+with the boot pin and the main goroutine's view; the continuation learns the crash state's facts. -/
+theorem bootRead_SS (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option TermPend) (dp : Option DiscPend)
+    (K : SnapLatest → IProp GF) :
+    srvDurInvRaw γ rc i ∗ bootV rc A lat ∗ srvVP rc s tp dp ∗
+      (bootV rc A lat -∗ srvVP rc s tp dp -∗ ∀ X : SrvDur,
+        ⌜X.A = A ∧ X.lat = lat ∧ X.s = s ∧ X.tp = tp ∧ X.dp = dp ∧ durPure X⌝ -∗ K X.lat) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ a, rc.ownSS a ∗ (rc.ownSS a ={∅, ⊤ \ ↑storeN}=∗ K a) := by
+  iintro ⟨#Hi, Hv, Hsv, HK⟩
+  iapply ncfupd_bind
+  isplitl [Hv]
+  · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
+    iframe #; iframe
+  iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  · iframe
+  iapply ncfupd_of_fupd
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hld⟩
+  iexists _
+  iframe HSS
+  iintro HSS
+  imod Hmask with -
+  imod Hcl $$ Hc [HL HS HSS Hld] with Hv
+  · iunfold durStores; iframe
+  obtain ⟨hA, hlat⟩ := HX
+  subst hA hlat
+  imodintro
+  iapply HK $$ Hv Hsv
+  ipureintro
+  exact ⟨rfl, rfl, Hag.1, Hag.2.1, Hag.2.2, Hp⟩
+
 end boot
 
 end github_com.hashicorp.raft
