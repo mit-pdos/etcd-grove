@@ -34,7 +34,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.getStateFromObject.wp_proof :
     store.getStateFromObject.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c x o r
+  intro _ Obj _ sp c x o r
   wp_start as ⟨#Hst, Hobj⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,

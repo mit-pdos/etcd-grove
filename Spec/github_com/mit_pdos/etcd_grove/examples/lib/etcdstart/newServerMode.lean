@@ -47,7 +47,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev newServerMode.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token mode : GoString)
+  ∀ (N : Nat) (name peerAddr client token mode : GoString)
     (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
@@ -104,7 +104,7 @@ abbrev newServerMode.spec : Prop :=
 member's `bootPremiseF R` in place of `bootPremise`, `R` in the precondition and given back in the post, on every
 path (`NewServer.specGAtA`'s frame). -/
 abbrev newServerMode.specF : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token mode : GoString)
+  ∀ (N : Nat) (name peerAddr client token mode : GoString)
     (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
@@ -163,7 +163,7 @@ abbrev newServerMode.specF : Prop :=
 of `γl`'s ghost map authority at `∅` and its slot in the pre, the member built with its lessor at `γl`
 (`memberBuiltL`) in the post. -/
 abbrev newServerMode.specAt : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token mode : GoString)
+  ∀ (N : Nat) (name peerAddr client token mode : GoString)
     (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
@@ -203,7 +203,7 @@ abbrev newServerMode.specAt : Prop :=
 
 /-- See the file header (`specRestart`). -/
 abbrev newServerMode.specRestart : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token mode : GoString)
+  ∀ (N : Nat) (name peerAddr client token mode : GoString)
     (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

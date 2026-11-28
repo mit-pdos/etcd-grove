@@ -38,7 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.As
 
 /-- See the file header. -/
 abbrev build.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString)
+  ∀ (N : Nat) (name peerAddr client : GoString)
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
@@ -72,7 +72,7 @@ abbrev build.spec : Prop :=
 
 /-- See the file header (`specRestart`). -/
 abbrev build.specRestart : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString)
+  ∀ (N : Nat) (name peerAddr client : GoString)
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

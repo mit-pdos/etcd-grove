@@ -26,7 +26,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumpt
 theorem Main.wp_proof
     (wp_Restart : Restart.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR TB RB48 RBN HLv
+  intro N k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR TB RB48 RBN HLv
     hk₅ hlen₅ Hbf₅ HbfR Hwb Haf Hbuq Hdbo
   wp_start as ⟨Hms₅, HresR, Htok, Hp₅, HpR⟩
   (try wp_auto)

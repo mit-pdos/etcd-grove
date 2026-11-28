@@ -90,7 +90,7 @@ update fired at most once at each member (as linkvtxn's `txn_Commit_st`'s writin
 `txn.Commit.specM`, which keeps the reply's revision reached, `txnRevLb`): the reply's verdict and
 responses the server's run at the state `σ` the update fired at, its revision `σ`'s after it,
 positive and reached. -/
-theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem cas_commit
     (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG)) (tp : Loc) (ms : List (client.SrvAt GF))
     (γk : KVNames) (hsame : ∀ x ∈ ms, kvSame x.γr.kv γk) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (ev rev : w64)
@@ -222,7 +222,7 @@ theorem Compact.wp_proof
     (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG))
     (h_client_Compact_kv : client.client_Compact_kv.law (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
+  intro _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
   ihave #Psc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit

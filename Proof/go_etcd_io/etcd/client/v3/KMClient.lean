@@ -37,7 +37,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- A client watcher's contexts' errors are client errors (`watchConnFacts`' `ctxErrClientAllW`). -/
 theorem ctxErrClientAll_of_kvWatcher (w : Loc) (γk : KVNames) :

@@ -53,7 +53,7 @@ theorem store.deleteOnce.wp_proof
     (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG))
     (wp_kDel : kubernetes.Client.OptimisticDelete.spec (GF := GF) (hG := hG)) :
     store.deleteOnce.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 st s v p pre validate W Φu hk hkl hr hpre hval
+  intro _ Obj _ E _ sp c ci cd key out o0 rv0 st s v p pre validate W Φu hk hkl hr hpre hval
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Hos, #Hfrom, Hout, %Hv, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'

@@ -270,7 +270,7 @@ theorem Run.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro CS k lg N ids ps ctxs boot ThB RcB RcN hk Hlen Hbf HLv HwbN Haf Hbuq Hdbo
+  intro k lg N ids ps ctxs boot ThB RcB RcN hk Hlen Hbf HLv HwbN Haf Hbuq Hdbo
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   -- the loops' counters (stated here, in a small context)
   have L1 : ∀ (a b : Int) (j : w64), sint.Z (W64 a) = a → sint.Z (W64 b) = b → 0 ≤ a → a ≤ sint.Z j →

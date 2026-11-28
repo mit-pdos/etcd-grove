@@ -28,7 +28,7 @@ theorem MainChecked.wp_proof
     (wp_ParamsOk : ParamsOk.spec (GF := GF) (hG := hG))
     (wp_Main : Main.spec (GF := GF) (hG := hG)) :
     MainChecked.spec (GF := GF) (hG := hG) := by
-  intro CS N k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR TB RB48 RBN HLv
+  intro N k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR TB RB48 RBN HLv
     hlen₅ Hbf₅ HbfR Hwb Haf Hbuq Hdbo
   wp_start as ⟨Hbundle, Htok, Hp₅, HpR⟩
   (try wp_auto)

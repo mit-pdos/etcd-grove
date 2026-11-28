@@ -43,7 +43,7 @@ theorem store.Delete.wp_proof
     (wp_EnforcePtr : conversion.EnforcePtr.spec (GF := GF) (hG := hG))
     (wp_condDelete : store.conditionalDelete.spec (GF := GF) (hG := hG)) :
     store.Delete.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 pp pr cx ca opts validate vf W _ Φu k
+  intro _ Obj _ E _ sp c ci cd key out o0 rv0 pp pr cx ca opts validate vf W _ Φu k
   wp_start as ⟨Hlt, #Hst, %Hpre, #Hctx, #Hce, Hout, #Hpp, Hca, HW, #Hau, #Hval⟩
   obtain ⟨hk, hkl, hopt⟩ := Hpre
   ihave Hst' := Hst

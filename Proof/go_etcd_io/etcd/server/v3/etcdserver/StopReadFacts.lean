@@ -33,6 +33,9 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+section pure
+variable [GooseExts]
+
 /-- **The stopped records' read facts, composed** (pure): from `StorageHolds S σ`, the read's shape (I1,
 I4), raft's durable log reaching `S`'s commit (`raftState_logView`'s) and `S`'s last index within raft's
 room. -/
@@ -45,23 +48,25 @@ theorem walReadFacts_of_stop (S : RaftState) (σ : StorContents) (fp : List Entr
     (hlast : S.last ≤ 2 ^ 61 - 1) :
     walReadFacts σ := by
   obtain ⟨hb, -, hents, -, -, hbc, -, hcS, -, -⟩ := hS
+  have e1 := uint_nat_eq S.base.index'
+  have e2 := uint_nat_eq σ.base.index'
+  have e3 := uint_nat_eq S.commit
+  have e4 := uint_nat_eq σ.hs.Commit'
   have hlen : σ.ents.length = S.ents.length - (uint.Z σ.base.index' - uint.Z S.base.index').toNat := by
     rw [hents]; unfold RaftState.entsFrom; rw [List.length_drop]
-  have hfl : fp.length = uint.nat S.base.index' := by
-    have := hfull; omega
-  simp only [List.length_append] at hcommit
+  rw [List.length_append] at hcommit
+  unfold StorContents.b StorContents.commit at hbc
+  unfold StorContents.commit at hcS
   have hσlast : σ.last = S.last := by
     unfold StorContents.last RaftState.last StorContents.b
-    unfold StorContents.b StorContents.commit at hbc
-    unfold StorContents.commit at hcS
     rw [hlen]
     omega
   refine ⟨hshape.1, by rw [hσlast]; exact hlast, hbc, ?_, hshape.2⟩
   rw [hσlast]
-  unfold RaftState.last
-  unfold StorContents.commit at hcS
+  unfold StorContents.commit RaftState.last
   omega
 
+end pure
 
 end EtcdGrove
 end Perennial

@@ -20,8 +20,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-theorem raftState_lastFits (γ : Cluster) (N : Namespace) (id : w64) (S : RaftState) :
-    readyFits (GF := GF) γ N ∗ raftState γ id S ⊢ |==>
+theorem raftState_lastFits (γ : Cluster) (N : Namespace) (id : w64) (S : RaftState) (E : CoPset) :
+    readyFits (GF := GF) γ N ∗ raftState γ id S ⊢ |={E}=>
       raftState γ id S ∗ ⌜S.last ≤ 2 ^ 61 - 1⌝ := by
   iintro ⟨Hfits, Hstate⟩
   iunfold readyFits at Hfits
@@ -30,8 +30,8 @@ theorem raftState_lastFits (γ : Cluster) (N : Namespace) (id : w64) (S : RaftSt
   iunfold ApiImpl.raftStateU at Hstate
   icases Hstate with ⟨Hdur, #Hterm, #Hbudget⟩
   iunfold ownDurGhost at Hdur
-  icases Hdur with ⟨%E, Hshares, #Hpers, Hslot, Hi1⟩
-  ihave #Hlr := durPers_lastRec _ id S E $$ Hpers
+  icases Hdur with ⟨%Em, Hshares, #Hpers, Hslot, Hi1⟩
+  ihave #Hlr := durPers_lastRec _ id S Em $$ Hpers
   imod lastRec_receipt _ _ $$ Hlr with Hrc
   ihave %Hrcl := preceipt_lt _ $$ Hrc
   imodintro
@@ -40,7 +40,7 @@ theorem raftState_lastFits (γ : Cluster) (N : Namespace) (id : w64) (S : RaftSt
     iunfold ApiImpl.raftStateU
     iframe Hterm Hbudget
     iunfold ownDurGhost
-    iexists E
+    iexists Em
     iframe Hshares Hpers Hslot Hi1
   ipureintro
   unfold Cluster.bootLen at Hfit
