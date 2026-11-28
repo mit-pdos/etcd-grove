@@ -10,6 +10,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.raftState__getLastEntry
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.core.LastLock
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 
@@ -31,7 +32,34 @@ open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.raftState.getLastEntry.wp_proof :
     github_com.hashicorp.raft.raftState.getLastEntry.spec (GF := GF) (hG := hG) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  intro r γ rc i s a
+  wp_start as ⟨#His, Hg, Hsrv, Ha, %Hale⟩
+  ihave ⟨#HInv, -⟩ := isRaft_proto r γ rc i $$ His
+  ihave #Hdur := isRaft_durInv r γ rc i $$ His
+  ihave #Hm := isRaft_lastLock r γ rc i $$ His
+  wp_method_call; wp_call
+  wp_auto
+  wp_apply wp_with_defer as %defer Hdefer
+  wp_apply (sync.Mutex.wp_Lock _ (lastLockInv r γ rc i)) $$ [$Hm] with ⟨Hown, HL⟩
+  iunfold lastLockInv at HL
+  icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap, Hllb⟩
+  ihave %he := ghostVar_agree _ _ _ _ _ $$ Hg Hg'
+  wp_auto
+  wp_if_destruct
+  · (try wp_auto)
+    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg' Hllb]
+    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe Hx Hy Hsi Hst Hg' Hllb; iexact Hsnap
+    iapply HΦ
+    iframe
+    ipureintro
+    split at he <;> simp only [Prod.mk.injEq] at he <;> word
+  · (try wp_auto)
+    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg' Hllb]
+    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe Hx Hy Hsi Hst Hg' Hllb; iexact Hsnap
+    iapply HΦ
+    iframe
+    ipureintro
+    split at he <;> simp only [Prod.mk.injEq] at he <;> word
 
 end proof
 

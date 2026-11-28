@@ -25,12 +25,17 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `(*raftState).getLastLog`: Called through `*Raft` (promoted). Strong form: the main goroutine (holding the other half of `lastLog`) reads the exact values; weak form: any goroutine reads some values. -/
+/- (hraft_robust R4a) Strong form: the raw last log entry, at most the effective one (`lastLockInv`'s
+ghost, the later of the last log entry and the last snapshot; was: equal to it, false after R5's fix); below it,
+the effective one is the snapshot's, at most `lastApplied` (`applLb`). -/
 abbrev github_com.hashicorp.raft.raftState.getLastLog.spec : Prop :=
-  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (li lt : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ ghostVar rc.names.lastLog (1 : Qp).half (li, lt) }}
+  (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (li lt a : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
+     ghostVar rc.names.lastLog (1 : Qp).half (li, lt) ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastLog")) (Val #()))
-  {{ (x y : w64), RET (PairV #x #y); ⌜uint.nat x = li ∧ uint.nat y = lt⌝ ∗
-      ghostVar rc.names.lastLog (1 : Qp).half (li, lt) }}) ∧
+  {{ (x y : w64), RET (PairV #x #y);
+      ⌜uint.nat x ≤ li ∧ (uint.nat x = li → uint.nat y = lt) ∧ (uint.nat x < li → li ≤ a)⌝ ∗
+      ghostVar rc.names.lastLog (1 : Qp).half (li, lt) ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a }}) ∧
   (∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastLog")) (Val #()))
