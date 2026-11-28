@@ -418,3 +418,38 @@ exit 1, one error, `SharedComplete.lean:159` (`errW`'s anchored precondition: th
 `OpAnchors`'s second field in the other order). Fixed in the next commit (`fun hp r => hanc.2.1 r hp`)
 and checked with `lake env lean` against that build's oleans (`qc1.sh`): no error, the only `sorry` is
 `CRel.ok`'s. Rebuild `SharedComplete` with `fklean1-check.sh` first thing in K4-6.
+
+## K4-6: `FullComplete` is proved (2026-11-28, branch `k8s-dist-k4/2026-11-27`)
+
+**`fullComplete : FullComplete`** (`SharedComplete.lean`) has no `sorry` and no axiom of this repository:
+`#print axioms fullComplete` gives `[propext, Classical.choice, Quot.sound]`. Build of record:
+fk-lean1, `fklean1-check.sh`, target `...k8s.dist.SharedComplete`.
+
+**The theorem** (`SharedSearch.lean`): every run of the semantic model (`SRun h0 ⟨h0, []⟩ ops c'`: per
+operation, silent steps (a pending write takes effect, the pending list reorders, or a foreign revision
+passes), then `kSpec`'s step on the operation's answer; no step from a configuration at revision
+`2^64 - 1`) is a run of the full mode's search (`SearchRun A ⟨h0, []⟩ ops`: per operation, `settle` with
+the full mode's landings over the anchors `A`, `skipTo` the target, `Model`'s step). Premises:
+
+1. the seeded store `h0`: its history has one store per revision (`h0.hist.length = h0.st.rv`), the last
+   its current store, and every item of every stored store carries a revision at most `h0.st.rv` (K4-4's
+   two seed premises: well-formedness, true of the seeded store);
+2. every revision up to the seed's is an anchor (`∀ v ≤ h0.st.rv, v ∈ A`);
+3. `AnchorsOk A ops`: 0 is an anchor, and every revision an operation names is (`OpAnchors`: its
+   `MinRV` and `PreRV`; an answer's error and list revisions, a success's object revision, a list's
+   items', a watch's events' and bookmarks', a failed precondition's message's object's; Go's
+   `HistoryRevs`).
+
+It holds for the search **with G7-G10** (`targetL` and `stepL` as the Go must be changed to: the
+watch-list target, a write's target without `MinRV`, the answer's revision anchored with or without a
+name, every `mget` kind's `MinRV`); those Go fixes are K9's. No new counterexample in K4-6.
+
+**K4-6's lemmas** (`SharedComplete.lean`): `mstepL_nf`, `mstepL_wr`, `mstepL_rd`, `mlistL_bound`,
+`mlistL_nf`, `HRel.items_le`, **`kstepL_target`** (the cluster's answer's target is at most its
+revision), `mlistL_err`; **`CRel.ok`** as K4-5's plan: skip the search to the target, the answer by
+`mlistL_ren` (a list; a failed one by `mlistL_err`) or `mstepL_ans_ren`, the relation kept by unchanged
+stores (`mstepL_shape`, `advanceL_same`) or, for a write that changes the store, `HRel.write` with the
+search at the cluster's revision (both answer the next revision, so the cut is trivial).
+
+**Left**: K4 is done. The search side (`SearchRun` is what Go's full mode computes) and K8's link from
+the real history to `SRun` are other stages' (`notes/k8s-dist-lean-plan.md`).
