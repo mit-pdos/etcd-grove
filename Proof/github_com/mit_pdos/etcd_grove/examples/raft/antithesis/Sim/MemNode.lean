@@ -108,6 +108,33 @@ theorem memNode_of (hs : AntSimD R dec S V net xnet) (hok : MemOk R dec S V G n 
     show ∀ j ∈ (V n).jobs, _
     rw [hj]; intro j hj'; cases hj'
 
+/-- **A view's commit within its log**, over the node-local context (C3: the binding's commit index
+agrees with `chain` up to it, and its log is the view's). -/
+theorem LdCtx.commit_le {r₁ : RState} {rd : ReadyD} {S1 : State}
+    (hx : LdCtx R dec V net xnet G n r₁ rd S1) : uint.Z (V n).ps.commit ≤ (V n).ps.log.length := by
+  obtain ⟨-, -, hb5, -⟩ := hx.hb
+  obtain ⟨h1, h2⟩ := hb5 n
+  have hlen := congrArg List.length h2
+  rw [hx.d3, hx.d4] at hlen
+  rw [hx.d4] at h1
+  simp only [List.length_take, logOf_length] at hlen
+  omega
+
+/-- **What a leader's `Ready` hands out is on the (unchanged) disk** when its log extends the view's
+and its commit is within the view's log (`memNode_lead`'s `hpfx` for a win or a proposal). -/
+theorem lead_pfx {v : NodeView} {r₁ : RState} {rd : ReadyD} (hro : ReadyOutP R n v r₁ rd)
+    (hfl : r₁.full = r₁.p.log) (hdl : v.dur.log = v.ps.log) (hlog : v.ps.log <+: r₁.p.log)
+    (hc : uint.Z r₁.p.commit ≤ v.ps.log.length) :
+    v.delivered ++ rd.ce <+: v.dur.log := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, h1, h2, -⟩ := hro
+  rw [hfl] at h1
+  rw [hdl]
+  have hcn : uint.nat r₁.p.commit ≤ v.ps.log.length := by
+    have := uint_Z_nonneg r₁.p.commit
+    have e : ((uint.nat r₁.p.commit : Nat) : Int) = uint.Z r₁.p.commit := by word
+    omega
+  exact List.prefix_of_prefix_length_le h1 hlog (Nat.le_trans h2 hcn)
+
 /-- **A `-parallel` leader's own part after its `mem`, over the node-local context** (`memNode_of`
 with its kind-independent premises discharged by `memView_of`: `AfterOk` from `afterOk_loc` at the run
 with the driver modes off and `liftC`; `CandLt` and `VoteSelf` from the leader's role; the requests
