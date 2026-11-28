@@ -353,15 +353,15 @@ theorem oneChangeAu (γk : KVNames) (γ : CNames) :
 
 /-- **The compactors' contract, from the invariant** (see the file header), for members at the
 invariant's KV names. -/
-theorem casOk_of_cinv (ms : List (client.SrvAt GF)) (γk : KVNames)
-    (hs : ∀ x ∈ ms, kvSame x.γr.kv γk) (γ : CNames) :
+theorem casOk_of_cinv (ms : List KVNames) (γk : KVNames)
+    (hs : ∀ x ∈ ms, kvSame x γk) (γ : CNames) :
     cinv (GF := GF) γk γ ⊢ casOk ms γk (seenOk γ) (fun _ => iprop(True)) := by
   iintro #Hinv
   iunfold casOk
   iintro !> %ev %rev #Hev #Hrev
   iapply (BigAndL.bigAndL_intro (P := iprop(cinv (GF := GF) γk γ ∗ (⌜ev = W64 0⌝ ∨ seenOk γ) ∗
       k8s.revOk γk rev))
-    (fun _ x hx => casAu γk x.γr.kv (hs x (List.mem_of_getElem? hx)) γ ev rev))
+    (fun _ x hx => casAu γk x (hs x (List.mem_of_getElem? hx)) γ ev rev))
   iframe #
 
 end aus

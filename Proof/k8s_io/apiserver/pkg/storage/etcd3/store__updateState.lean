@@ -37,8 +37,7 @@ theorem store.updateState.wp_proof : store.updateState.spec (GF := GF) (hG := hG
   wp_start as ⟨#Hst, Hos, #Hup⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, -⟩
+  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   iunfold versionerOk at Hver

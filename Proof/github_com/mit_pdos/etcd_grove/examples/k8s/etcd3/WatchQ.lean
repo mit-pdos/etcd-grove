@@ -241,7 +241,7 @@ theorem one_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNam
 at each member's (`kInv_same`). -/
 theorem watch_readAus (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames)
     (l : List (List mvcc.Change)) (lb : Nat) (hlb : lb ≤ l.length) :
-    kInv γ c g0 γk ∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) ∗ monoListLbOwn γ.ch l ⊢
+    kInv γ c g0 γk ∗ ([∗list] sv ∈ c.K.kvs, kInv γ c g0 sv) ∗ monoListLbOwn γ.ch l ⊢
       readAus c γk (watchQ γ c lb) := by
   iintro ⟨#Hinv, #Hinvs, #Hl⟩
   unfold readAus
@@ -250,7 +250,7 @@ theorem watch_readAus (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVN
     iframe #
   iapply (BigSepL.bigSepL_impl (PROP := IProp GF)) $$ Hinvs
   iintro !> %i %sv %_ #Hi
-  iapply watch_read_au γ c g0 sv.γr.kv l lb hlb
+  iapply watch_read_au γ c g0 sv l lb hlb
   iframe #
 
 /-- **A watch's commit** (stage E of 7f-6, plan §3 step 5): `lintest`'s update commits the watch's

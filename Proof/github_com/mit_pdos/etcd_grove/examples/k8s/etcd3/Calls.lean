@@ -465,16 +465,16 @@ abbrev createStep (x : Input) : KSt DObj → KSt DObj :=
 updates. -/
 def callPre (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (W : IProp GF)
     (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState → IProp GF) : IProp GF :=
-  if x.Kind' = W64 0 then iprop([∧list] sv ∈ c.ms, k8sAu1 sv.γr.kv c (createStep x) Φ)
+  if x.Kind' = W64 0 then iprop([∧list] sv ∈ c.K.kvs, k8sAu1 sv c (createStep x) Φ)
   else if x.Kind' = W64 1 then
-    iprop(W ∗ [∗list] sv ∈ c.ms,
-      k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD eD x.HasReject' x.Reject')) W Φ)
+    iprop(W ∗ [∗list] sv ∈ c.K.kvs,
+      k8sAuRW sv c (delStep (mkeyL x.Key') (preD x) (rejD eD x.HasReject' x.Reject')) W Φ)
   else if x.Kind' = W64 2 then
-    iprop(W ∗ [∗list] sv ∈ c.ms,
-      k8sAuRW sv.γr.kv c
+    iprop(W ∗ [∗list] sv ∈ c.K.kvs,
+      k8sAuRW sv c
         (updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD eU x)) W Φ)
-  else iprop(∀ R m, |==> □ [∧list] sv ∈ c.ms,
-    ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (Q R m))
+  else iprop(∀ R m, |==> □ [∧list] sv ∈ c.K.kvs,
+    ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu sv (Q R m))
 
 /-- **What the caller learns at the state `σ` the answer comes from**: its update's result (a
 write), or the read's (a `Get`, at `σ`'s revision and the key's mod revision). -/
@@ -488,9 +488,9 @@ first page's read updates `QL R` for the revision the client prophesies, and, fr
 result, its later pages' `PL σ`. -/
 def listPre (c : StoreCfg GF DObj) (QL : w64 → KVState → IProp GF)
     (PL : KVState → KVState → IProp GF) : IProp GF :=
-  iprop((∀ R, |==> □ [∧list] sv ∈ c.ms, ⌜QL R = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (QL R)) ∗
+  iprop((∀ R, |==> □ [∧list] sv ∈ c.K.kvs, ⌜QL R = fun _ => iprop(True)⌝ ∨ kvReadAu sv (QL R)) ∗
     (□ ∀ R σ, □ QL R σ -∗
-      |==> □ [∧list] sv ∈ c.ms, ⌜PL σ = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (PL σ)))
+      |==> □ [∧list] sv ∈ c.K.kvs, ⌜PL σ = fun _ => iprop(True)⌝ ∨ kvReadAu sv (PL σ)))
 
 /-- **`call`'s output at the state `σ`** (stage 7e-4): a list's `lOut`, else the store's model's. -/
 def callOut (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (σ : KVState) : Output :=
