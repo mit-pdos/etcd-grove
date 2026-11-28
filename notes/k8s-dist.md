@@ -108,7 +108,8 @@ their tests are unchanged. What sharing the cluster changes, and how the checks 
   and configurations compare in constant time; a watch is checked by `watchOkIdx`, `watchOk` line for
   line but reading the history through one walk (`hview`) where `histAt` walks back per revision (its
   window is thousands of revisions here), its verdict memoized per history; `TestReplayHistory` with
-  `DIST_CROSS` checks the two agree on every watch step. On a 6040-operation history of the long
+  `DIST_CROSS` checked the two agree on every watch step (since 2026-11-28, G12:
+  `examples/k8s/etcd3`'s `TestCrossCheckWatches` on a dumped history, `DIST_HISTORY`). On a 6040-operation history of the long
   runs: 98 s in the first eager version, 34 s with the memo, 0.7 s lazy (a heavy-fault one, below:
   0.6 s). `TestSharedModel` checks
   each mode's verdicts on small histories, both ways.

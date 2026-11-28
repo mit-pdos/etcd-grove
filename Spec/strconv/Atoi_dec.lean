@@ -1,11 +1,8 @@
 /-
-`strconv.Atoi`'s spec on a decimal it wrote (`strconv.Itoa`'s output): the number back, no error.
-Perennial's `strconv.Atoi.spec` does not say which number (it gives the errors only), which a parser
-of `Itoa`'s output needs (the hraft kit's `service.Store.Restore`, notes/dsv-hraft.md, S5). The
-statement is true of Go's `Atoi`: Perennial has the round trip for its slow path
-(`internal.strconv.parseInt_fmtInt10`, through `ParseInt`); its fast path (1 to 18 bytes) is a loop
-of digits. **Not yet proved**: a hypothesis of the proofs that take it (notes/perennial-changes.md:
-a functional `Atoi` spec, proposed to Perennial).
+`strconv.Atoi`'s spec on a decimal it wrote (`strconv.Itoa`'s output): the number back, no error. A
+parser of `Itoa`'s output needs it (the hraft kit's `service.Store.Restore`, notes/dsv-hraft.md, S5).
+Proved (`Proof/strconv/Atoi_dec.lean`) from Perennial's functional `strconv.Atoi.spec` (its result is
+`parseInt s 10 0`'s) and the round trip `internal.strconv.parseInt_fmtInt10_0`.
 -/
 module
 

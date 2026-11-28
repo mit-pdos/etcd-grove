@@ -50,6 +50,19 @@ def hraftCodec : net.rpc.CodecSpec GF where
   rcv rcvr Ψ := iprop(∀ Φ : val → IProp GF, ▷ (∀ rp : Loc, Ψ rp -∗ Φ #rp) -∗
     WP (App (Val #(functions rpcReceiver [])) (Val #rcvr)) {{ Φ }})
 
+/-- `hraftCodec`'s encoder is monotone in its continuation (`CodecLaws.enc_mono`). -/
+theorem hraftCodec_enc_mono (v : GoInterface) (Ψ Ψ' : List w8 → IProp GF) :
+    (hraftCodec (GF := GF) (hG := hG)).enc v Ψ ∗ (∀ bs, Ψ bs -∗ Ψ' bs) ⊢
+      (hraftCodec (GF := GF) (hG := hG)).enc v Ψ' := by
+  iintro ⟨Henc, Hw⟩
+  unfold hraftCodec
+  iintro %Φ HΦ
+  iapply Henc
+  inext
+  iintro %sl %bs Hs Hc HΨ
+  iapply HΦ $$ Hs Hc
+  iapply Hw $$ HΨ
+
 variable [package_sem' : net.rpc.Assumptions]
 
 theorem hraftCodec_encOk : ⊢ net.rpc.encOk (hG := hG) hraftCodec (functions rpcEncode []) := by

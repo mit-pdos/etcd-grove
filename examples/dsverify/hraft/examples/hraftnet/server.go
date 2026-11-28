@@ -98,7 +98,6 @@ func Server(id uint64) {
 	if err := srv.Register(trans.Receiver()); err != nil {
 		return
 	}
-	go srv.Accept(listen(ServerAddrs()[id-1]))
 	if id <= n0 {
 		if err := raft.BootstrapCluster(conf, logs, stable, snaps, trans, bootConfiguration(n0)); err != nil {
 			return
@@ -113,6 +112,10 @@ func Server(id uint64) {
 	if err := srv.Register(api); err != nil {
 		return
 	}
+	// Serve once both services are registered (kit change 6: a request that arrives before its
+	// service is registered would be answered "can't find service"; peers and clients retry a
+	// failed dial).
+	go srv.Accept(listen(ServerAddrs()[id-1]))
 	for {
 		time.Sleep(time.Duration(IdleMs) * time.Millisecond)
 	}

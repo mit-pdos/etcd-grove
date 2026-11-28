@@ -9344,3 +9344,60 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
   top-level statement changes.
 - **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).
+
+## 2026-11-28: `Raft.GetConfiguration.spec` gives the future's `deferWait` (hraft S5c)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/Raft__GetConfiguration.lean` (hashicorp/raft, ported from
+  dsverify-lab; its only user was raft's Link).
+- **Defect.** Too weak for the kit's `API.Status` (S5c): the post gave the future's `configurations` field but not
+  the right to wait for its answer, so a caller could not call `Error()` (`waitFuture(f, …)`) on it; the lab's
+  hr3 client never called it.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/service/service.go`, `API.Status`: `waitFuture(f,
+  a.wait)` then `f.Configuration()`.
+- **Change.** The post gains `deferWait (f.[configurationsFuture, "deferError"]) (fun _ => True)` (the consumer side
+  of `init`'s channel, the `err` and `ShutdownCh` fields still zero); a strengthening, proved
+  (`Raft__GetConfiguration.lean`). `API.Status` waits on it with `snapFut.wp_cf_Error` (the sixth conjunct of
+  `deferError.Error.spec`, unchanged). No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).
+
+## 2026-11-28: `rpctransport.New.spec` takes `svcAt`; `CodecLaws` gains `enc_mono` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/New.lean` (the kit's transport,
+  S4b) and its vocabulary `rpctransport/Trans.lean` (`peerOk`), `rpctransport/CodecLaws.lean` (`CodecLaws`).
+- **Defect.** Too strong a premise for the server machine (S5d): `New` asked each peer's rpc address to have the
+  service spec `raftSvc γ snapP a` exactly (`W.SS na svcName = some (raftSvc γ snapP a)`), but the deployment's rpc
+  world is fixed at its start, before the orchestrator draws the first configuration's size, so the world's spec
+  is the wrap `svcK γc (fun n => raftSvc (γs n) …)` over the protocols of both sizes (coordinator-E, #48 7233410712).
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/kit.go`: `chooseN0` at run time, `configure`;
+  `server.go`'s `bootConfiguration(n0)`, the genesis of `gprot.GNames`.
+- **Change.** `peerOk`'s and `New.spec`'s per-peer fact is `svcAt γ snapP W a na`: the world's spec `S` at `na`
+  accepts every `raftSvc γ snapP a` deposit (`svcAt_of_eq` gives it for the old form, so the old premise implies
+  the new one); `Transport.send` converts the deposit with `CodecLaws.enc_mono`, a new law (the encoder's
+  continuation can be weakened), proved of the generated codec (`hraftCodec_enc_mono`, emitted into
+  `hraftCodecLaws` by `etc/dsv/tools/hraft-codec.py`). No caller outside the kit; no top-level statement changes.
+- **Decision.** Untrusted specs, proved here (S5d, coordinator-E's approval of the draw's design on #48).
+
+## 2026-11-28: `service.New.spec`'s post gives `a ≠ null` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/service/New.lean` (the kit's API, S5b).
+- **Defect.** Too weak for the server machine: `Server.Register` of the API (`apiRcv`) needs the receiver not
+  `nil`, and `isAPI` holds only its fields' points-tos, from which `a ≠ null` does not follow.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/server.go`: `srv.Register(api)` of `service.New`'s result.
+- **Change.** The post gains `⌜a ≠ null⌝` (`typedPointsto_not_null` of the allocated `API`, before its fields are
+  split); a strengthening, proved. Its only caller is `Server`. No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5d).
+
+## 2026-11-28: `rpctransport.Conn.Call.spec`'s deposit given back on `CallNotSent` (hraft S5f)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/Conn__Call.lean` (the kit's
+  transport, S4; proved, no axiom).
+- **Defect.** Too weak for the kit's clients: on `CallNotSent` the post gave back the encoder's premise `C.enc args
+  Ψ`, a WP of the encoder, from which a caller cannot recover the deposit inside `Ψ`; a client retries its
+  operation at the next server, with a fresh argument struct, after `CallNotSent`, and needs its operation's state
+  back.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/rpctransport/rpctransport.go`: `Conn.Call` returns
+  `CallNotSent` when the dial fails, before it uses `args`; `kit.go`'s `Sys.op` retries `try` at the next server.
+- **Change.** The premise is `R ∗ (R -∗ C.enc args Ψ)` for any `R`, and `CallNotSent` gives `R ∗ D` back (a
+  strengthening: `R := C.enc args Ψ` gives the old spec). `Conn.Call.wp_proof` and `Transport.send` (its only
+  caller) updated; no top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5f, #48).

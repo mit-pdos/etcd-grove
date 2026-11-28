@@ -13338,10 +13338,6 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (App (Val (GoInstruction (FuncResolve ServerAddrs []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 1))))))))
-  (App (App (Val (GoInstruction (FuncResolve listen []))) (Val #())) (Var "$a0")))
-  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty) go!"Accept"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty)))) (Var "srv")))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.service.NewStore []))) (Val #())) (Val #()))
   (Let "fsm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.service.Store.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.service.Store.ty)))) (Val #())))
@@ -13370,6 +13366,10 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "api" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.service.API.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.service.API.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (App (Val (GoInstruction (FuncResolve ServerAddrs []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 1))))))))
+  (App (App (Val (GoInstruction (FuncResolve listen []))) (Val #())) (Var "$a0")))
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty) go!"Accept"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty)))) (Var "srv")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (App (Val doExecute)
@@ -13377,6 +13377,9 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
   (Lam BAnon
   (Val #())))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Var "$a0")))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.service.API.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.service.API.ty)))) (Var "api")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty) go!"Register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty)))) (Var "srv"))) (Var "$a0")))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -13421,9 +13424,6 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0")))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.rpctransport.RaftRPC.ty) go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.rpctransport.Transport.ty) go!"Receiver"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.examples.hraftnet.rpctransport.Transport.ty)))) (Var "trans"))) (Val #())))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty) go!"Register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Server.ty)))) (Var "srv"))) (Var "$a0")))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))

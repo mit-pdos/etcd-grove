@@ -48,11 +48,35 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 def hbInv (γ : GNames) (i : SID) (t : Loc) : IProp GF :=
   iprop(∃ f : GoFunc, t.[Transport, go!"hb"] ↦ f ∗ (⌜f = func.nil⌝ ∨ hbHandler γ i f))
 
+/-- The net/rpc address `na` of the rpc world `W` serves raft address `a`'s receiver: its `RaftRPC`
+service's spec `S` accepts every deposit of `raftSvc γ snapP a` (persistent). `S` is `raftSvc γ snapP a`
+itself, or a wider spec the world fixed before `γ` was known (the hraft kit's: the protocol of the
+first configuration the orchestrator draws, S5d). -/
+def svcAt (γ : GNames) (snapP : Nat → List w8 → IProp GF) (W : net.rpc.RpcWorld GF) (a na : GoString) :
+    IProp GF :=
+  iprop(∃ S : net.rpc.MethodSpec GF, ⌜W.SS na svcName = some S⌝ ∗
+    □ (∀ (M : GoString) (bs : List w8) (Φ : List w8 → GoString → IProp GF),
+        raftSvc γ snapP a M bs Φ -∗ S M bs Φ))
+
+instance svcAt_persistent γ snapP W a na : Persistent (svcAt (GF := GF) γ snapP W a na) := by
+  unfold svcAt; infer_instance
+
+/-- `svcAt` of a world whose spec is `raftSvc γ snapP a` itself. -/
+theorem svcAt_of_eq (γ : GNames) (snapP : Nat → List w8 → IProp GF) (W : net.rpc.RpcWorld GF)
+    (a na : GoString) (h : W.SS na svcName = some (raftSvc γ snapP a)) :
+    ⊢ svcAt (GF := GF) γ snapP W a na := by
+  unfold svcAt
+  iexists raftSvc γ snapP a
+  isplitr; · ipureintro; exact h
+  imodintro
+  iintro %M %bs %Φ H
+  iexact H
+
 /-- The peer of raft address `a` is the connection `p` to a net/rpc server of the rpc world `W`
-whose `RaftRPC` service is `a`'s receiver (`raftSvc γ snapP a`). -/
+that serves `a`'s receiver (`svcAt`). -/
 def peerOk (γ : GNames) (snapP : Nat → List w8 → IProp GF) (W : net.rpc.RpcWorld GF) (a : GoString)
     (p : Loc) : IProp GF :=
-  iprop(∃ na : GoString, isConn p W na ∗ ⌜W.SS na svcName = some (raftSvc γ snapP a)⌝)
+  iprop(∃ na : GoString, isConn p W na ∗ svcAt γ snapP W a na)
 
 instance peerOk_persistent γ snapP W a p : Persistent (peerOk (GF := GF) γ snapP W a p) := by
   unfold peerOk; infer_instance

@@ -57,8 +57,8 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.New.wp_proof
     iintro %idx %key %v ⟨%hk, %hv⟩ ⟨%Mc, %k0, %v0, conns, Hcm, a, addr, HMc⟩
     wp_auto
     ihave #Hv := (BigSepM.bigSepM_lookup (Φ := fun a na => iprop(net.rpc.rpcAddr (Gg := hG.goose_globalGS) W na ∗
-      ⌜W.SS na svcName = some (raftSvc γ snapP a)⌝)) (show get? M key = some v from hv)) $$ HM
-    icases Hv with ⟨#Hra, %HS⟩
+      svcAt γ snapP W a na)) (show get? M key = some v from hv)) $$ HM
+    icases Hv with ⟨#Hra, #HS⟩
     wp_apply wp_NewConn W v $$ [$Hra] as %p #Hp
     · ipureintro; exact Hrb
     wp_apply (wp_mapInsert github_com.hashicorp.raft.ServerAddress.ty cm Mc key p) $$ [$Hcm] as Hcm
@@ -68,7 +68,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.New.wp_proof
     iexists _, key, v
     iframe conns Hcm a addr
     ihave #Hpk : peerOk γ snapP W key p $$ []
-    · unfold peerOk; iexists v; iframe Hp; ipureintro; exact HS
+    · unfold peerOk; iexists v; iframe Hp; iexact HS
     cases hMc : Mc !! key with
     | none =>
       iapply (BigSepM.bigSepM_insert (show get? Mc key = none from hMc)).2

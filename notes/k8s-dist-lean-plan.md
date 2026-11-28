@@ -253,7 +253,7 @@ under `systemd-run --scope -p MemoryMax=56G` on the 61G hosts.
 
 | Stage | What | Risk | Sessions | Build |
 |---|---|---|---|---|
-| **K4** | **`SharedModel`'s full mode is complete**, a pure proof. If the cluster's real history linearizes with foreign revisions, compactions and pending writes, then the full mode's search reaches a configuration that answers it. It needs the canonical-placement argument (k8s-dist.md: a pending write moves down to one above the greatest revision named below it); the "Still open" eager timeouts do not matter for soundness. First on paper, then as Lean functions mirroring `settle`/landings and the theorem | **highest** (if it fails: two clusters) | 2-4 | light (pure modules over the driver's `Model` defs) |
+| **K4** (K4-1: paper proof done, complete but for the watch-list gap, G7; Handoff K4-1) | **`SharedModel`'s full mode is complete**, a pure proof. If the cluster's real history linearizes with foreign revisions, compactions and pending writes, then the full mode's search reaches a configuration that answers it. It needs the canonical-placement argument (k8s-dist.md: a pending write moves down to one above the greatest revision named below it); the "Still open" eager timeouts do not matter for soundness. First on paper, then as Lean functions mirroring `settle`/landings and the theorem | **highest** (if it fails: two clusters) | 2-4 | light (pure modules over the driver's `Model` defs) |
 | K5 | The client abstraction of the k8s library (`StoreCfg`'s `ms`/`V` → `k8sClient` and its laws), in-process instance re-proved; `k8s_all` unchanged | medium (wide, mechanical) | 2-3 | heavy: k8s cone rebuilt, several hours at 16 cores |
 | K6 | Interim-axiom packet: `KV_GetE_dist` (kvErr + rangeErrΨ at `Γ`), Txn/Compact error arms (kvErr); the `kubernetes.Client.{Get,List}` compacted half proved in-process | medium (review) | 1 + reviews | light |
 | K1/K2/K3 | Statement packet (§1) for approval; Go changes G1-G6 and a TestDist re-run; the `k8s-dist` translation and `etc/gen-init.py` entries | low | 0.5 + 1-2 + 1 | translation: moderate |
@@ -478,6 +478,31 @@ linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the en
 | G2: the drivers gain `export.go`, and the copies go | the user (reverses k8s-dist.md "Copies") |
 | Two remote protocols at one start (`remote`/start generalization) | `remote`'s owner, the coordinator (#28) |
 | Landing | `etc/land.sh` after the coordinator's go |
+
+## Handoff K4-1 (2026-11-27, branch `k8s-dist-k4/2026-11-27`)
+
+K4's paper proof is `notes/k8s-dist-k4.md`. **Verdict: full mode is complete except for one history
+shape, with a one-line Go fix (G7); one cluster stays feasible.**
+
+- The gap: a watch-list (`SendInit = 2`) whose answer has initial events but ends before its bookmark
+  needs the configuration at `max(MinRV, 1)` or above (`initialPrefixOk`), and `target` does not skip
+  there. Counterexample (seeds at 2, 3): one watch-list at `MinRV "10"` answering `[ADDED ns-1/pod-1
+  @2]`. It linearizes with foreign revisions 4..10, and `SharedModel` answers Illegal in every mode
+  (checked in Go 2026-11-27). The driver's generator never makes it (watch-lists draw no future
+  resource version), but the theorem would otherwise need that as a premise on the history.
+- **G7** (Go, with K9's session): in `target`'s watch arm, for `SendInit == 2` with a non-Error event,
+  return `max(t, max(req, 1))`. This is the least revision the check needs. (Landed: `152e1a4634`, §3.)
+- Lean: `Proof/.../examples/k8s/dist/SharedPlace.lean` (pure, no imports) proves the revision-number
+  core: the canonical landing is a full landing (`canonL_mem`), is no later than the cluster's
+  (`canonL_le`), and no named revision tells them apart (`canonL_cut`); `canonAll_ok` covers a settle
+  phase. It was checked with the pinned toolchain's `lean` (v4.34.1). The fk-lean1 run did not build:
+  its seed source `/home/ubuntu/eg/etcd-grove/.lake/build` is missing, as is fk-lean1's `wt/lean-warm`.
+  The run left a seedless worktree `wt/k8s-dist-k4/2026-11-27` on fk-lean1. fk-lean2 has 64 GB free,
+  below the 65 GB a seed needs.
+- Next (K4-2, `notes/k8s-dist-k4.md` §6): the semantic model (`kSpec` plus a foreign step), the
+  search as Lean functions (`targetL` with G7, `landingsL`, `settleL`), the renaming invariance of
+  `kstepL`/`mlistL`/`watchOkL`, and the theorem. It imports `KWatch.lean`'s cone, so it needs a
+  seeded build host.
 
 ## Handoff KGO-1 (2026-11-27, branch `k8s-dist-go/2026-11-27`)
 

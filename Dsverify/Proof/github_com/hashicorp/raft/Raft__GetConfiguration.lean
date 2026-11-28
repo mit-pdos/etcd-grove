@@ -43,6 +43,7 @@ theorem github_com.hashicorp.raft.Raft.GetConfiguration.wp_proof
     as ⟨%ch, %γe, %Hne, HerrCh, #Hspsc, Hprod, Hcons⟩
   wp_apply wp_getLatestConfiguration $$ [$Hr] as %c #Hc
   ipersist HerrCh
+  ipersist ShutdownCh
   wp_apply futProof.wp_cf_respond f (fun _ => iprop(True)) interface.nil $$ [responded Hprod] as -
   · ileft
     isplitl
@@ -58,7 +59,15 @@ theorem github_com.hashicorp.raft.Raft.GetConfiguration.wp_proof
   iframe
   isplitr
   · ipureintro; rfl
-  iexact Hc
+  isplitr
+  · iexact Hc
+  unfold deferWait
+  iexists ch, γe
+  iframe
+  iframe #
+  isplitr
+  · ipureintro; exact Hne
+  ileft; ipureintro; rfl
   done
 
 end proof
