@@ -125,6 +125,16 @@ theorem dk_idx_succ (i n : w64) (hi : 0 ≤ sint.Z i) (hlt : sint.Z i < sint.Z n
 
 theorem dk_toNat_sint (i : w64) : (sint.Z i).toNat = sint.nat i := rfl
 
+/-- A decoder's loop index below a decoded count. -/
+theorem dk_ulen_lt (i : w64) (n : Nat) (hn : n < 2 ^ 63) (h : uint.Z i < uint.Z (W64 (n : Int))) :
+    uint.nat i < n := by word
+
+theorem dk_ulen_eq (i : w64) (n : Nat) (hn : n < 2 ^ 63) (hi : uint.nat i ≤ n)
+    (h : ¬ uint.Z i < uint.Z (W64 (n : Int))) : uint.nat i = n := by word
+
+theorem dk_usucc (i : w64) (n : Nat) (hn : n < 2 ^ 63) (h : uint.nat i < n) :
+    uint.nat (i + W64 1) = uint.nat i + 1 := by word
+
 section rep
 open Iris Iris.BI Iris.ProofMode
 variable [GooseExts] [GooseSemantics] [GooseInterp]
