@@ -117,7 +117,8 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
       {{ storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           hsOptC hp hs ∗ sl ↦*□ esL ∗ ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+              ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }> }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) go!"Save" #p))
           (Val #hp)) (Val #sl))
@@ -128,7 +129,8 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗
             walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
-            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+                ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }} := by
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨hSave, -, -, -, -⟩ := hS

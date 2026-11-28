@@ -46,12 +46,12 @@ the peers (the premise `bootGo.id cfg U ∈ bootGo.ps U token`), so raft's confi
 boot log. Go evidence: `examples/etcd/restart1` and `examples/etcd/restartN` (`TestRun`) stop a member and
 build it again on its data directory through this branch.
 
-**Condition C1** (review of 2026-11-28, after walfiles-fold): sound only for WALs whose every saved
-`HardState` has commit ≤ the last index; `walFiles` does not yet carry it (C1,
-`notes/specs-only/ledger.md`, 2026-11-28, `walCommitLe`); all writers in the verified programs are raft's
-node loop (raft keeps `committed ≤ lastIndex` in every `Ready`). Without it Go's restart read and `σ` differ:
-`Save(hs{T1,C1}, ents 1..6)`, `SaveSnapshot(3)`, `Save(hs{T1,C4}, [])`, `SaveSnapshot(4)` gives `σ` no
-entries, Go `[5 6]`. -/
+**Commit within the last index** (C1 of the review of 2026-11-28, after walfiles-fold): Go's restart read and
+`σ` agree only for WALs whose every saved `HardState` has commit ≤ the last index (otherwise
+`Save(hs{T1,C1}, ents 1..6)`, `SaveSnapshot(3)`, `Save(hs{T1,C4}, [])`, `SaveSnapshot(4)` gives `σ` no entries,
+Go `[5 6]`). `walFiles` carries it (`walCommitLeFrom`, walcommitle 2026-11-28): every `Save` requires
+`WalSaveCommitLe`, which raft's node driver supplies from raft's `committed ≤ lastIndex` in every `Ready`
+(`notes/axiom-review/bootstrap-restart-commitle.md`), so it is no longer a condition of this axiom. -/
 axiom bootstrap.wp_proofRestart : bootstrap.specRestart (GF := GF) (hG := hG)
 
 end proof
