@@ -21,12 +21,12 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.disk.Assumptions]
 
 open github_com.hashicorp.raft github_com.hashicorp.raft.examples.hraftnet.disk in
-/-- `s.encode()` returns the bytes of `s`'s image (`encSnap`), in a fresh slice. -/
+/-- `s.encode()` returns the bytes of `s`'s image (`encSnap`), in a fresh slice; `s`'s fields as they were. -/
 abbrev github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.encode.spec : Prop :=
-  ∀ (s : Loc) (S : SnapImg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet.disk ∗ snapsMem s S }}
+  ∀ (s : Loc) (S : SnapImg) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet.disk ∗ snapsMemAt s S has mv dt }}
     (App (Val (s @!! go.GoType.PointerType Snaps.ty @!! go!"encode")) (Val #()))
-  {{ (b : GoSlice), RET #b; snapsMem s S ∗ b ↦* encSnap S ∗ ownSliceCap w8 b (DFrac.own 1) }}
+  {{ (b : GoSlice), RET #b; snapsMemAt s S has mv dt ∗ b ↦* encSnap S ∗ ownSliceCap w8 b (DFrac.own 1) }}
 
 end spec
 
