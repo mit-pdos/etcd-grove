@@ -315,7 +315,8 @@ theorem compRaise (s : SState) (c x : Nat) :
     isplitr
     · ipureintro
       obtain ⟨p1, p2, p3, p4, p5, p6, p7⟩ := Hp
-      refine ⟨p1, ?_, p3, p4, p5, p6, fun d hd => by cases hd⟩
+      simp only at p1 p2 p3 p4 p5 p6 p7 ⊢
+      refine ⟨p1, ?_, p3, p4, p5, p6, fun d hd => by simp at hd, p7.2⟩
       exact Nat.le_trans p2 (Nat.add_le_add_right (Nat.le_max_left Xc x) 1)
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
