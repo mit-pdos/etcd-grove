@@ -243,6 +243,12 @@ entry Perennial.EtcdGrove.bootstrap.wp_proofOne 3:Pre:produced2/consumed1,7:Φ:G
 # Its walk (M1, 2026-11-26) has exactly `wp_proofOne`'s findings, keys and truncation notes (the bbolt
 # definitions); `bootRTOk` (`httpAddrAt`'s address invariant, `noProxyEnv`) adds none.
 entry Perennial.EtcdGrove.bootstrap.wp_proof_dist 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  as `bootstrap.wp_proofOne`'s (the same post `bootOk`): `Pre` on one of two exclusive paths, `Φ` `dlIs`'s
+# `bootstrap.wp_proofRestart` (Proof/go_etcd_io/etcd/server/v3/etcdserver/bootstrapRestart.lean; interim, retired when
+# #34 proves `bootstrap`'s restart branch; review notes/axiom-review/bootstrap-restart-walreadfacts.md): `isPkgInit ⊢
+# bootstrapRestartContract …` at Go's values; until 2026-11-27 the same content was the Iris premise `bootPremiseR`, which this
+# gate did not walk. Its post `bootOkR` is `bootOk`'s restart case over the same backend rows, and the walk has
+# `wp_proofOne`'s findings and keys: `Pre` from `clusterApplyRest` (two exclusive paths, as above), `Φ` `dlIs`'s (rule 7).
+entry Perennial.EtcdGrove.bootstrap.wp_proofRestart 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  as `bootstrap.wp_proofOne`'s (`bootOkR` holds `bootOk`'s backend rows): `Pre` on one of two exclusive paths, `Φ` `dlIs`'s
 # `etcd_dist.NewPeerHandler_dist.wp_proof`, `etcd_dist.PeerServe_dist.wp_proof` (Proof/.../examples/etcd/dist/
 # {NewPeerHandler,PeerServe}Dist.lean; interim, retired by phase 7 S5; reviews: plan §17.3). Neither returns
 # anything the user can use: `NewPeerHandler_dist`'s post is `peerHandlerOf h s` = `□ peerHandlerRaw h s`, an
@@ -351,6 +357,7 @@ trunc Perennial.EtcdGrove.bootstrap.wp_proof_dist
 trunc Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
+trunc Perennial.EtcdGrove.bootstrap.wp_proofRestart
 # (etcd-safe-full, 2026-11-26) the nine client axioms above: their 27 truncation notes are exactly those of
 # KV_Put/Get_dist's and Txn_Commit_dist's walks (`isNewClient`'s contexts, `cd.4`, the models' projections,
 # `isCancelCtxOf`, `isMutex`, `named`, `dghostVar`); none is in their posts.
