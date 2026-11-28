@@ -228,6 +228,10 @@ def srvVacant (X : SrvDur) : IProp GF :=
       (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term'))) ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
+theorem latestOk_dur (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) :
+    latestOk γ { rc0 with dur := dn } lat = latestOk γ rc0 lat := by
+  rcases lat with _ | ⟨m, b⟩ <;> rfl
+
 /-- (R2) **Arming a generation** (at boot, before its WP): fresh crash-state names, the crash
 invariant (for the context `rc` with those names and the generation's store handles), the crash
 token for the crash wand, and the generation's initial resources: the main goroutine's views, the
@@ -241,7 +245,44 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
       termV { rc0 with dur := dn } X.s.term ∗ cidxV { rc0 with dur := dn } X.s.cidx ∗
       monoNatAuthOwn dn.applied 1 0 ∗ monoNatAuthOwn dn.comp 1 X.c ∗
       ghostVar dn.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro Hv
+  unfold srvVacant
+  icases Hv with ⟨Ho, Hdv, Hlc, Htc, Hcc, HL, HS, HSS, %Hp, Hlat, Hld, Htp, Hdp⟩
+  obtain ⟨hlo, hlc, hvm, htd, hci, hstg, hpend⟩ := Hp
+  imod (ghostVar_alloc (X.s, X.tp, X.dp)) with ⟨%gsv, Hsv⟩
+  imod (ghostVar_alloc (X.D, X.A.staged)) with ⟨%gst, Hst⟩
+  imod (ghostVar_alloc X.s.term) with ⟨%gtv, Htv⟩
+  imod (ghostVar_alloc X.s.cidx) with ⟨%gcv, Hcv⟩
+  imod (mono_nat_own_alloc 0) with ⟨%gap, Hap, -⟩
+  imod (mono_nat_own_alloc X.c) with ⟨%gcomp, Hcomp, #Hclb⟩
+  imod (ghostVar_alloc (none : Option (Nat × Nat × GoString))) with ⟨%gpend, Hpend⟩
+  imod (ghostVar_alloc ()) with ⟨%gtok, Htok⟩
+  ihave ⟨Hsv1, Hsv2⟩ := (ghostVar_split_half gsv 1 (X.s, X.tp, X.dp)).1 $$ Hsv
+  ihave ⟨Hst1, Hst2⟩ := (ghostVar_split_half gst 1 (X.D, X.A.staged)).1 $$ Hst
+  ihave ⟨Htv1, Htv2⟩ := (ghostVar_split_half gtv 1 X.s.term).1 $$ Htv
+  ihave ⟨Hcv1, Hcv2⟩ := (ghostVar_split_half gcv 1 X.s.cidx).1 $$ Hcv
+  ihave ⟨Hpend1, Hpend2⟩ := (ghostVar_split_half gpend 1 (none : Option (Nat × Nat × GoString))).1 $$ Hpend
+  rw [← latestOk_dur γ rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩ X.lat]
+  imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩ } i X') ∨
+      crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩ }))
+    $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Hld Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1] with #Hinv
+  · inext
+    ileft
+    iexists X
+    iunfold durBody
+    rw [hpend] at *
+    unfold compLb latestDur
+    dsimp only
+    iframe
+    iframe #
+    ipureintro
+    exact ⟨hlo, hlc, hvm, htd, hci⟩
+  imodintro
+  iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok⟩
+  unfold srvDurInv srvCrashTok srvVP stVS termV cidxV
+  dsimp only
+  iframe
+  iexact Hinv
 
 /-- (R2) **The dead generation's crash state, without the stores' authorities**: gprot's halves, the
 couplings (with the dead stores' states `X.A`, `X.D`), `latestDur`, the pending steps' premises. -/
@@ -268,7 +309,23 @@ be fired once the store's crash lemma says what survived, and that lemma needs t
 theorem raft_crash {E : CoPset} (hE : ↑durN ⊆ E) :
     crashed -∗ srvCrashTok rc -∗ srvDurInv γ rc i -∗ £ 1 ={E}=∗
       ∃ X : SrvDur, srvDead γ rc i X ∗ rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hcr Htok #Hd Hlc
+  unfold srvDurInv
+  imod (inv_acc hE) $$ Hd with ⟨Hb, Hclose⟩
+  imod lc_fupd_elim_later $$ Hlc Hb with Hb
+  icases Hb with (⟨%X, Hb⟩ | ⟨-, Htok'⟩)
+  · imod Hclose $$ [Htok] with -
+    · inext; iright; iframe Htok; iexact Hcr
+    imodintro
+    iexists X
+    iunfold durBody at Hb
+    icases Hb with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HL, HS, HSS, %Hp, Hcomp, Hlat, Hpend, Htp, Hdp⟩
+    unfold srvDead deadCore
+    iframe
+    ipureintro; exact Hp
+  · unfold srvCrashTok
+    icombine Htok Htok' gives %H
+    exact absurd H.1 (Qp_one_add_not_le _)
 
 /-- (R2) **What a write that fires `p` from `s` leaves in the stores** (`A'`, `D'`, against the dead
 state's `X.A`, `X.D`): what the store's crash lemma must say of the surviving image (the stores'
@@ -302,7 +359,9 @@ theorem dead_fire {E : CoPset} (hE : ↑gprotN ⊆ E) [hRB : ReceiptBoundLe GF (
 
 /-- (R2) No window survived: the dead state as is. -/
 theorem srvDead_deadCore (X : SrvDur) : srvDead γ rc i X ⊢ deadCore γ rc i X := by
-  sorry -- hraft_robust R2: proof pending
+  unfold srvDead
+  iintro ⟨H, -, -⟩
+  iexact H
 
 /-- (R2) **The next generation's vacant state**, from the dead state and the store authorities of
 the next generation's handles `rc'` at the surviving image (the same entries and written commit
