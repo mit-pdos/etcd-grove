@@ -138,6 +138,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialPrefixOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialPrefixOkIdx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.inputEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj
 public import Proof.k8s_io.apiserver.pkg.storage.isErrCode
@@ -196,6 +197,7 @@ public import Proof.reflect.Value__Type
 public import Proof.reflect.Zero
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableLo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOkIdx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.removeAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.runWatch
 public import Proof.k8s_io.apimachinery.pkg.runtime.Decode
@@ -230,10 +232,13 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner_
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateObject
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.viewFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wantEvents
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wantEventsIdx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchListOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchListOkIdx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchOkIdx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchOptions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.withPre
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadApps
@@ -1197,6 +1202,14 @@ theorem hview.wp_at :
     EtcdGrove.k8s_etcd3.hview.at.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.hview.at.wp_proof wp_histAt
 
+theorem wp_viewFrom :
+    EtcdGrove.k8s_etcd3.viewFrom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.viewFrom.wp_proof wp_histLen
+
+theorem wp_initialPrefixOkIdx :
+    EtcdGrove.k8s_etcd3.initialPrefixOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.initialPrefixOkIdx.wp_proof wp_initialEvents wp_viewFrom hview.wp_at wp_eventsEqual
+
 theorem labelSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.wp_proof
@@ -1213,6 +1226,14 @@ theorem wp_newCache :
     EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newCache.wp_proof
 
+theorem wp_wantEventsIdx :
+    EtcdGrove.k8s_etcd3.wantEventsIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.wantEventsIdx.wp_proof wp_changeAt wp_toEvent wp_viewFrom hview.wp_at wp_storeKey wp_keyInScope
+
+theorem wp_reliableOkIdx :
+    EtcdGrove.k8s_etcd3.reliableOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.reliableOkIdx.wp_proof wp_eventsEqual wp_evRange wp_reliableLo wp_wantEventsIdx wp_nonBookmarks
+
 theorem wp_settle :
     EtcdGrove.k8s_etcd3.settle.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.settle.wp_proof cfgSet.wp_add wp_mstep wp_removeAt wp_landings histHashes.wp_skipTo wp_advance
@@ -1221,9 +1242,13 @@ theorem wp_target :
     EtcdGrove.k8s_etcd3.target.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.target.wp_proof wp_decodeWEvents wp_parseRV wp_pastRead
 
-theorem wp_viewFrom :
-    EtcdGrove.k8s_etcd3.viewFrom.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.viewFrom.wp_proof wp_histLen
+theorem wp_watchListOkIdx :
+    EtcdGrove.k8s_etcd3.watchListOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchListOkIdx.wp_proof wp_firstBookmark wp_initialPrefixOkIdx wp_histAt wp_initialEvents wp_eventsEqual wp_reliableOkIdx
+
+theorem wp_watchOkIdx :
+    EtcdGrove.k8s_etcd3.watchOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchOkIdx.wp_proof wp_decodeWEvents wp_checkedEvents wp_bookmarksOk wp_parseRV wp_watchListOkIdx wp_reliableOkIdx
 
 end links_hasLC
 

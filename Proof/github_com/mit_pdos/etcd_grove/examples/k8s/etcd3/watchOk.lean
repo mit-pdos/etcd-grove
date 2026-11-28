@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchListOk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SharedLand
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HView
 
 @[expose] public section
 
@@ -29,48 +30,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-theorem watchOkL_eq (x : Input) (y : Output) (h : HSt) (all : List WEv) (reqw : w64)
-    (hf : (y.WFailed' || x.Skip') = false) (hd : decWEventsL y.WEvents' = some all)
-    (hr : rejectsL all (uint.nat h.st.rv) = false) (hb : bookmarksOkL (keptL all) = true)
-    (hp : parseRVD x.MinRV' = some reqw) :
-    watchOkL x y h = if x.SendInit' = W64 2 then watchListOkL x (uint.nat reqw) (keptL all) h
-      else reliableOkL x (uint.nat reqw) (keptL all) h := by
-  unfold rejectsL at hr
-  simp only [Bool.or_eq_false_iff] at hr
-  unfold watchOkL
-  rw [hf, hd]
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  rw [hr.1]
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  unfold keptL at hr hb
-  rw [hr.2, hb, hp]
-  rfl
-
-theorem watchOkL_false (x : Input) (y : Output) (h : HSt) (all : List WEv)
-    (hf : (y.WFailed' || x.Skip') = false) (hd : decWEventsL y.WEvents' = some all)
-    (hr : rejectsL all (uint.nat h.st.rv) = true ∨
-      (rejectsL all (uint.nat h.st.rv) = false ∧ bookmarksOkL (keptL all) = false) ∨
-      (rejectsL all (uint.nat h.st.rv) = false ∧ parseRVD x.MinRV' = none)) :
-    watchOkL x y h = false := by
-  unfold watchOkL
-  rw [hf, hd]
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  unfold rejectsL keptL at hr
-  rcases hr with hr | ⟨hr, hb⟩ | ⟨hr, hp⟩
-  · simp only [Bool.or_eq_true] at hr
-    cases h1 : all.any (fun e => decide (5 ≤ e.t))
-    · rcases hr with hr | hr
-      · rw [h1] at hr; cases hr
-      · simp only [Bool.false_eq_true, ↓reduceIte]; rw [hr]; rfl
-    · rfl
-  · simp only [Bool.or_eq_false_iff] at hr
-    rw [hr.1]; simp only [Bool.false_eq_true, ↓reduceIte]; rw [hr.2, hb]; rfl
-  · simp only [Bool.or_eq_false_iff] at hr
-    rw [hr.1]; simp only [Bool.false_eq_true, ↓reduceIte]; rw [hr.2]
-    cases hb : bookmarksOkL (List.filter (fun e => decide (e.t ≠ 4)) all)
-    · rfl
-    · simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]; rw [hp]
 
 theorem watchOk.wp_proof
     (wp_decodeWEvents : decodeWEvents.spec (GF := GF) (hG := hG))

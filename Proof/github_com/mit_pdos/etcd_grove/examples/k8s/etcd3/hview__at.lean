@@ -44,7 +44,7 @@ theorem hview.at.wp_proof
       iterate 3 ((try simp only [hb, _root_.and_self, ↓reduceIte]); (try wp_auto))
       ispecialize Hc $$ %(sint.nat (r - v.lo')) %s0 %Hs0_lookup
       have hr : uint.nat v.lo' + sint.nat (r - v.lo') = uint.nat r := by word
-      rw [hr, ← histAtL_eq_histN']
+      rw [hr, ← histAtL_eq_histN]
       iapply HΦ
       iexact Hc
     · (try wp_auto)

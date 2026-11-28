@@ -296,6 +296,11 @@ initialModel: correctness_NewEmptyModel storeKey
 toPorcupineModel: correctness_Model__Clone correctness_Model__Step correctness_Model__Equal
 etcd3_orderByLinearization:
 realCheck: realRequest realEvents watchOptions initialModel toPorcupineModel etcd3_orderByLinearization CheckOperationsVerbose LinearizationInfo__PartialLinearizations correctness_NewReplay correctness_Replay__Validate correctness_NewWatchValidator correctness_WatchValidator__ValidateWatch
-# (K9 step 3) the indexed watch check (`export.go`): `viewFrom`, `hview.at`
+# (K9 step 3) the indexed watch check (`export.go`): `viewFrom`, `hview.at`, the `*Idx` checks
 viewFrom: histLen
 hview__at: histAt
+wantEventsIdx: changeAt toEvent viewFrom hview__at storeKey keyInScope
+reliableOkIdx: eventsEqual evRange reliableLo wantEventsIdx nonBookmarks
+initialPrefixOkIdx: initialEvents viewFrom hview__at eventsEqual
+watchListOkIdx: firstBookmark initialPrefixOkIdx histAt initialEvents eventsEqual reliableOkIdx
+watchOkIdx: decodeWEvents checkedEvents bookmarksOk parseRV watchListOkIdx reliableOkIdx
