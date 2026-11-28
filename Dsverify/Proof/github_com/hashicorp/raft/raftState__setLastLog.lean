@@ -34,11 +34,14 @@ theorem github_com.hashicorp.raft.raftState.setLastLog.wp_proof :
   intro r γ rc i p a x y
   wp_start as ⟨#His, Hg, Ha, %Hax⟩
   ihave #Hm := isRaft_lastLock r γ rc i $$ His
+  ihave #Hcl := isRaft_cells r γ rc i $$ His
+  unfold raftCells
+  icases Hcl with ⟨-, -, -, -, -, -, -, #Hnone⟩
   wp_method_call; wp_call
   wp_auto
   wp_apply (sync.Mutex.wp_Lock _ (lastLockInv r γ rc i)) $$ [$Hm] with ⟨Hown, HL⟩
   iunfold lastLockInv at HL
-  icases HL with ⟨%x0, %y0, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap⟩
+  icases HL with ⟨%x0, %y0, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap, Hllb⟩
   ihave #Hs2 := Hsnap
   icases Hs2 with (%H0 | ⟨%e, -, -, #Hlb, -⟩)
   · have Hsia : uint.nat si ≤ a := by subst H0; simp
@@ -47,7 +50,10 @@ theorem github_com.hashicorp.raft.raftState.setLastLog.wp_proof :
     wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
     · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st
       rw [if_neg (by omega)]
-      iframe; iexact Hsnap
+      iframe Hx Hy Hsi Hst Hg'
+      isplitr
+      · iexact Hsnap
+      · ileft; iexact Hnone
     iapply HΦ
     iframe
   · ihave %Hsia := applLb_le rc _ a (uint.nat si) $$ [$Ha $Hlb]
@@ -56,7 +62,10 @@ theorem github_com.hashicorp.raft.raftState.setLastLog.wp_proof :
     wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
     · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st
       rw [if_neg (by omega)]
-      iframe; iexact Hsnap
+      iframe Hx Hy Hsi Hst Hg'
+      isplitr
+      · iexact Hsnap
+      · ileft; iexact Hnone
     iapply HΦ
     iframe
 

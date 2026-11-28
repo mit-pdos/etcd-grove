@@ -45,13 +45,13 @@ theorem github_com.hashicorp.raft.raftState.getLastIndex.wp_proof
     wp_apply (lc := 0) wp_with_defer as %defer Hdefer
     wp_apply (sync.Mutex.wp_Lock _ (lastLockInv r γ rc i)) $$ [$Hm] with ⟨Hown, HL⟩
     iunfold lastLockInv at HL
-    icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap⟩
+    icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap, Hllb⟩
     ihave %he := ghostVar_agree _ _ _ _ _ $$ Hg Hg'
     wp_auto
     wp_apply wp_max
     (try wp_auto)
-    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
-    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iframe #
+    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg' Hllb]
+    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe Hx Hy Hsi Hst Hg' Hllb; iexact Hsnap
     iapply HΦ
     iframe
     ipureintro
@@ -64,12 +64,12 @@ theorem github_com.hashicorp.raft.raftState.getLastIndex.wp_proof
     wp_apply (lc := 0) wp_with_defer as %defer Hdefer
     wp_apply (sync.Mutex.wp_Lock _ (lastLockInv r γ rc i)) $$ [$Hm] with ⟨Hown, HL⟩
     iunfold lastLockInv at HL
-    icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap⟩
+    icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap, Hllb⟩
     wp_auto
     wp_apply wp_max
     (try wp_auto)
-    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
-    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iframe #
+    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg' Hllb]
+    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe Hx Hy Hsi Hst Hg' Hllb; iexact Hsnap
     iapply HΦ
     itrivial
 
