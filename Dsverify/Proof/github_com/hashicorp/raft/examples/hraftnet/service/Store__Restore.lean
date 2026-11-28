@@ -114,7 +114,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.Store.Restore.wp_pro
   intro γ fc alb i s k0 x rd R b eof
   wp_start as ⟨#Hst, Hown, %Hk0, #Heof, #Hrd, HR, #Hsnap⟩
   unfold isStore
-  icases Hst with ⟨#Hlock, #Hfr, #Hls, #Hdb⟩
+  icases Hst with ⟨#Hlock, #Hfr, #Hls, #Hdb, #Hsv⟩
   ihave #Hss : isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.snapstore $$ []
   · iPkgInit
   ihave #Hstr : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []

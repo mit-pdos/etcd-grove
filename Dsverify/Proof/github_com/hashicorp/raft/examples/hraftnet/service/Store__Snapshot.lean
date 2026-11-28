@@ -32,7 +32,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.Store.Snapshot.wp_pr
   intro γ fc alb i s k0 x
   wp_start as ⟨#Hst, Hown, %Hk0, #Hnc⟩
   unfold isStore
-  icases Hst with ⟨#Hlock, #Hfr, #Hls, #Hdb⟩
+  icases Hst with ⟨#Hlock, #Hfr, #Hls, #Hdb, #Hsv⟩
   wp_auto
   wp_apply wp_with_defer as %defer Hdefer
   wp_apply wp_Mutex_Lock $$ [$Hlock] as ⟨Hlocked, Hinv⟩

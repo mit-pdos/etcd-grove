@@ -215,14 +215,16 @@ theorem slotUpd_readUpd (K : HK GF) (i : HIn) (Φ : HOut → IProp GF) :
 variable [rpcsem : github_com.hashicorp.raft.examples.hraftnet.rpctransport.Assumptions]
 variable [net.rpc.Assumptions] [net.Assumptions]
 
-/-- **A read outside the log at a server's API** (S6's law, pending: `apiSvc`'s `Read` carries no facts
-yet): `p.Call("API.Read", &ReadArgs{Way}, reply, d)` at server `k + 1` with a read's update answers, when
+/-- **A read outside the log at a server's API** (S6; proved by `readCall_law_holds`, `ReadCall.lean`):
+`p.Call("API.Read", &ReadArgs{Way}, reply, d)` at server `k + 1` with a read's update (and the draw's
+invariant and two later credits, for the server's registration of the read, `kit_rdReg`) answers, when
 `reply.Ok`, an output with `Φ` of it whose fields are the reply's. -/
 abbrev readCall.law : Prop :=
   ∀ (K : HK GF) (p : Loc) (k : Nat) (i : HIn) (Φ : HOut → IProp GF) (args reply : Loc) (d : w64),
     i.1.1 = false → i.1.2.1 ≠ W64 0 → k < 6 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet.rpctransport ∗
         isConn p K.W (serverAddrs.getD k go!"") ∗ ⌜kitSS K⌝ ∗ net.rpc.codecSet hraftCodec ∗
+        drawInv K ∗ £ 1 ∗ £ 1 ∗
         args ↦ service.ReadArgs.mk i.1.2.1 ∗ reply ↦ (zero_val service.ReadReply) ∗
         □ lin (Gg := hG.goose_globalGS) (regR K.g.st) i Φ }}
       (App (App (App (App (Val (p @!! go.GoType.PointerType rpctransport.Conn.ty @!! go!"Call"))

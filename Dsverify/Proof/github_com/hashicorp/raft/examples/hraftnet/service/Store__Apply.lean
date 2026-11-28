@@ -34,7 +34,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.Store.Apply.wp_proof
   intro γ fc alb i s l k0 k e
   wp_start as ⟨#Hst, Hown, #Hl, %Hk, #Hc, #Hdur, #Hnc⟩
   unfold isStore
-  icases Hst with ⟨#Hlock, #Hfr, #Hls, #Hdb⟩
+  icases Hst with ⟨#Hlock, #Hfr, #Hls, #Hdb, #Hsv⟩
   unfold logPtr logIs
   icases Hl with ⟨%lv, #Hlv, %Hlvk, #Hdata, %ext, #Hext⟩
   ihave Hlv2 := Hlv
@@ -64,10 +64,9 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.Store.Apply.wp_proof
     · iapply BigSepL.bigSepL_singleton.2
       rw [List.length_append, Hns.1, show es.length + (k - (es.length + 1)) + 1 + 0 = k by omega]
       iexact Hc
-  ihave Hfa := frontier_apply γ fc es ns e Hns.2 Hk.2 $$ [Hlc1]
-  · iframe Hlc1; iframe #
-    rw [Hlen']
-    iexact Hnc
+  ihave Hfa := frontier_apply γ fc es ns e i Hns.2 Hk.2 $$ [Hlc1]
+  · rw [Hlen']
+    iframe Hlc1; iframe #
   imod Hfa with #Hflb'
   obtain ⟨hk1, -, -⟩ := Hlvk
   have hidxw : lv.Index' = W64 ((es ++ ns ++ [e]).length : Int) := by rw [Hlen', ← hk1]; word
