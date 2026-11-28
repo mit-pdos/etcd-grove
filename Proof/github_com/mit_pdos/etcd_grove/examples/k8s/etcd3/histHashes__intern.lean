@@ -32,9 +32,6 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-/-- A literal of one unkeyed element has one element. -/
-theorem arrayLiteralSize1 {a} : go.arrayLiteralSize [KeyedElement none a] = 1 := rfl
-
 theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG := hG))
     (wp_storeEqual : storeEqual.spec (GF := GF) (hG := hG)) :
     histHashes.intern.spec (GF := GF) (hG := hG) := by

@@ -51,6 +51,9 @@ def HWf (h : HSt) : Prop := h.hist.length = uint.nat h.st.rv ∧ h.hist.getLast?
 def gapsL (s : GSt) (len j : Nat) : List GSt :=
   (List.range j).map fun m => ⟨s.items, W64 ((len + m + 1 : Nat) : Int)⟩
 
+/-- A literal of one unkeyed element has one element. -/
+theorem arrayLiteralSize1 {a} : go.arrayLiteralSize [KeyedElement none a] = 1 := rfl
+
 instance ikey_decEq : DecidableEq ikey := fun a b => Classical.propDecidable (a = b)
 
 instance ckey_decEq : DecidableEq ckey := fun a b => Classical.propDecidable (a = b)

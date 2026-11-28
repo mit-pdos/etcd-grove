@@ -57,7 +57,7 @@ theorem wp_hh_is (hh nn : Loc) :
     ileft
     ipureintro; exact ⟨rfl, rfl⟩
   · (try wp_auto)
-    wp_apply (wp_map_lookup1 _ _ mi I nn (DFrac.own 1)) $$ [HI] as HI
+    wp_apply (wp_map_lookup1 _ _ mi I nn (DFrac.own 1)) $$ [$HI] as HI
     iapply HΦ
     iunfold hhInv
     iexists mc, mi, mg, C, I, G
@@ -86,7 +86,11 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     · iapply BigSepL.bigSepL_nil.2; itrivial
     ipureintro; simp
   wp_for HI
-  fail "loop1"
+  wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ hhInv hh ∗ ⌜b = true → nn ≠ null⌝))
+    with [Hinv] as ⟨%b, %Hv, Hinv, %Hb⟩
+  · fail "j1"
+  · fail "j2"
+  fail "j3"
 
 end proof
 
