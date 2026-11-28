@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-11-27
+checked: 2026-11-28
 links: []
 blocks-proof: no
 ---
@@ -28,10 +28,14 @@ begin. `Contains` then answers from the nodes visited (`pkg/adt/interval_tree.go
 
 ## Proof
 
-no for the top-level results: the auth-on specs require the request shape the cache decides
-(`auth.reqShape`, `kvShapeAll`), where `Contains` answers by the permission set. It is why the shape
-cannot be dropped for transactions (`notes/specs-only/ledger.md`, 2026-11-27, "Q2 widening stopped"): the
-model grants these requests (`coversRange` is vacuous over an empty range).
+no: resolved by X (2026-11-28, `notes/nomode-x.md`): the auth model's verdict is `coversX` over the
+exact tree etcd's cache builds (`treeOf`, the adt specs exact for every query, inverted and empty
+ranges included), and the fork sorts a role's permissions on (Key, RangeEnd) (`permSlice.Less`,
+upamanyus/etcd `18ab647b0`), so the stored order, hence the tree, is a function of the permission set.
+No shape premise remains for this. Before X, the auth-on specs required the request shape
+(`auth.reqShape`, `kvShapeAll`), and the model granted these requests (`coversRange` vacuous over an
+empty range): `notes/specs-only/ledger.md`, 2026-11-27, "Q2 widening stopped". Upstream's
+history-dependent order across Go versions is `issues/etcd-auth-perm-order-go-version.md`.
 
 ## Notes
 
