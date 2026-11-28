@@ -17,6 +17,8 @@ public import Spec.io.Copy
 public import Dsverify.Proof.github_com.hashicorp.raft.proto.Read
 public import Dsverify.Proof.github_com.hashicorp.raft.gprot.Internal
 public import Dsverify.Spec.github_com.hashicorp.raft.countingReader__Read
+public import Dsverify.Proof.github_com.hashicorp.raft.core.CrashLaws
+public import Dsverify.Proof.github_com.hashicorp.raft.leader.DurView
 
 @[expose] public section
 
@@ -470,16 +472,54 @@ theorem stateCell_val (r : Loc) (rc : RCtx GF) (st : w32) :
   imodintro
   iframe; ipureintro; exact Hv
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- **A compaction** (`DeleteRange(mn, mx)`'s atomic update, any goroutine) up to `mx ≤ x` with the
-compaction frontier at least `x` (`compLb`): the store's window moves past `mx`. -/
+omit [GooseSemantics] [GooseInterp] go_gctx package_sem hRB in
+/-- A compaction's deletion keeps the log store's coupling, with the window past what it deleted. -/
+theorem logOk_delete (A : LogAbs) (L : RLog) (lo mn mx : Nat) (hi' : w64) (h : logOk A L lo) :
+    logOk (A.delete mn mx hi') L (Max.max lo (mx + 1)) := by
+  obtain ⟨h1, h2⟩ := h
+  constructor
+  · intro k e hk
+    exact h1 k e ((del_lookup_some A.m mn mx k e).1 hk).1
+  · intro k hlo hk
+    have hk1 : lo ≤ k := by omega
+    have hk2 : mx < k := by omega
+    rw [← h2 k hk1 hk]
+    show (LogAbs.del A.m mn mx).lookup k = A.m.lookup k
+    cases hm : A.m.lookup k with
+    | none =>
+      cases hd : (LogAbs.del A.m mn mx).lookup k with
+      | none => rfl
+      | some e => rw [(del_lookup_some A.m mn mx k e).1 hd |>.1] at hm; cases hm
+    | some e => exact (del_lookup_some A.m mn mx k e).2 ⟨hm, by omega⟩
+
+/-- (hraft_robust R4b) **A compaction** (`DeleteRange(mn, mx)`'s atomic update, any goroutine) up to
+`mx ≤ x` with the compaction frontier at least `x` (`compLb`): the store's window moves past `mx`. -/
 theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx x : Nat) (hmx : mx ≤ x)
     (Ψ : IProp GF) :
     srvDurInv γ rc i ∗ compLb rc x ∗ Ψ ⊢
-    |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
-      (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m mn mx, hi'⟩ ={∅,⊤}=∗ Ψ) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A, rc.ownL A ∗
+      (∀ hi' : w64, rc.ownL (A.delete mn mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+  iintro ⟨#Hd, #Hc, HΨ⟩
+  iapply (logDelete_au γ rc i mn mx iprop(compLb rc x ∗ Ψ) Ψ) $$ Hd [HΨ]
+  · iframe; iframe #
+  iintro %X %hi' HX ⟨#Hc, HΨ⟩
+  unfold durCore
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, #HcX, Hpd, Htp, Hdp⟩
+  obtain ⟨hlog, hlo, hrest⟩ := Hok
+  imodintro
+  iexists { X with A := X.A.delete mn mx hi', lo := Max.max X.lo (mx + 1), c := Max.max X.c x }
+  iframe HΨ
+  isplitl
+  · iframe
+    isplitr
+    · ipureintro
+      refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hrest⟩
+      simp only [Nat.max_def]; split <;> split <;> omega
+    by_cases hcx : X.c ≤ x
+    · rw [Nat.max_eq_right (show X.c ≤ x from hcx)]; iexact Hc
+    · rw [Nat.max_eq_left (show x ≤ X.c by omega)]; iexact HcX
+  ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+
 
 /-- The snapshot goroutine's snapshot `(x, tx)` as the store's latest (`latestOk`; the length bound
 of its bytes from the store's commit, SNAP-2). -/
