@@ -9760,3 +9760,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   its `pwSure` (a workload fact `EtcdServer.UserAdd` discharges) and only gains `nob` in its step.
 - **Decision.** The lead (dsverify-net), follow-up (a) decided by the coordinator for Upamanyu
   (2026-11-28); the bcrypt narrowing is trusted text, for an independent axiom review before landing.
+## 2026-11-28: hashicorp/raft's specs re-stated over the crash state (hraft_robust R2–R5, L2)
+
+- **Spec.** Beyond the L0 entry above: the store contracts (R3: atomic updates at `⊤ ∖ ↑storeN`; per-store window
+  families `Wl : LogOp → IProp`, `Ws : StableOp → IProp`, the snapshot store's `Qc` and a per-sink `Qx`; deletes tagged
+  `LogOp.del (main : Bool)`; `isLogStoreFirst` for an exact `FirstIndex`; `StoreLogs` takes `1 ≤ first`; `isNotFoundErr`
+  is the error's field); `tryStageCommitIndex`, `setCurrentTerm`, `persistVote` (stVS, pw), `getLastLog`, `setLastLog`
+  (R4a); `compactLogs` (`latLb`, `durLb`), iface/FSM `Persist` (the commit's result), `setLastApplied` (`|NC=`), `fsmCons`
+  (R4b); `NewRaft` (from `raft_arm`'s armed, recovered state, `RecOk`, `⌜X.lat = none⌝ ∨ isLogStoreFirst`),
+  `restoreSnapshot` (concrete, boot state), `BootstrapCluster`/`HasExistingState` (their windows) (R5, R5b).
+- **Defect.** Each change was forced by a proof over the crash state; several earlier statements were false (listed
+  with evidence in `/shared/tmp/ps2/hraft-robust/r{3,4a,4b,5}/REQUESTS.md`, `r5/NEWRAFT.md`, `r5b/LEDGER.md`): an atomic
+  `FirstIndex` false of InmemStore; `lastLog` after an install-then-restart (fixed by fork fix 4); a window that could not
+  identify its own step; `voteMatches_term` without the term bound; `fsmCons` at a restored position.
+- **Evidence.** The proofs on `hraft-robust-int/2026-11-28`; the helpers' request files above.
+- **Change.** As listed; every caller re-proved; `hraft_nocrash_robust` unchanged and proved (`#print axioms`: Lean's
+  three plus Net's two interim initializer axioms).
+- **Decision.** The lead (design changes inside raft and its kit), coordinator-E for fork fix 4 (#48 7238885945).
