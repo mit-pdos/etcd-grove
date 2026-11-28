@@ -920,4 +920,5 @@ the program logic: no WP proof sees `n`, and Perennial has no step-count resourc
   is obtained: the section above (recommendation (b), a driver cap, needs the coordinator's decision).
 - **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`,
   `k8s.all.PkgTable`, SpecPlan's etcd3 PkgInit) at `13fef8c4ac`: passed, 12734 jobs, 0 errors, no `sorry`
-  outside the generated (axiomatized-type) instances.
+  in the etcd3 modules (the warnings are the pre-existing ones: generated instances,
+  `raft/v3/MemstorageApi`).
