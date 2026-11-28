@@ -421,10 +421,10 @@ instance snap_termCouple_timeless (γ : GNames) (i : SID) (t : Nat) :
     Timeless (termCouple (GF := GF) γ i t) := by
   unfold termCouple; infer_instance
 
-/-- The server's own term, as a persistent lower bound (from the term cell). -/
-theorem termLb_of_srv (γ : GNames) (r : Loc) (i : SID) (s : SState) :
-    Inv (GF := GF) γ ∗ termCell r γ rc i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+/-- The server's own term, as a persistent lower bound (hraft_robust: through the view, `srvV_termLb`). -/
+theorem termLb_of_srv (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
+    srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={⊤}=> srvV rc s ∗ termLb γ i s.term :=
+  srvV_termLb γ rc i (by solve_ndisj) s
 
 /-- The ghost update at the `currentTerm` store: the protocol step `setTerm`. -/
 theorem setTerm_step (γ : GNames) (i : SID) (s : SState) (t : Nat) (ht : s.term ≤ t) :
@@ -441,11 +441,20 @@ theorem setTerm_step (γ : GNames) (i : SID) (s : SState) (t : Nat) (ht : s.term
 
 omit [GooseSemantics] [GooseInterp] go_gctx package_sem hRB in
 /-- Writing the `CurrentTerm` key of the stable store keeps the last vote. -/
-theorem voteMatches_term (sst : StableAbs) (s : SState) (v : w64) (t : Nat)
+theorem voteMatches_term (sst : StableAbs) (s : SState) (v : w64) (t : Nat) (ht : s.term ≤ t)
     (h : voteMatches sst s) :
     voteMatches { sst with ints := sst.ints.insert (go!"CurrentTerm" : List w8) v }
       { s with term := t } := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  unfold voteMatches at *
+  obtain ⟨h1, h2⟩ := h
+  have hne : (go!"CurrentTerm" : List w8) ≠ (go!"LastVoteTerm" : List w8) := by decide
+  refine ⟨?_, ?_⟩
+  · simp only
+    rw [GMap.lookup_insert_ne _ _ hne]; exact h1
+  · rcases h2 with h2 | h2 | h2
+    · exact Or.inl h2
+    · exact Or.inr (Or.inl (by simp only; omega))
+    · exact Or.inr (Or.inr h2)
 
 theorem obsArg_state (γ : GNames) (i : SID) (s : SState) (st : w32) (h : st ≠ stLeader) :
     ⊢ obsArg (GF := GF) γ i s (interface.mkOk RaftState.ty #st) := by
