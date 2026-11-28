@@ -49,7 +49,7 @@ theorem github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof
   wp_if_destruct
   · iapply HΦ; iframe; ipureintro; rfl
   wp_bind
-  iapply HDel $$ %mn %mx %_ [] []
+  iapply HDel $$ %false %mn %mx %_ [] []
   · ipureintro; omega
   · unfold logWin; iright; iexists (uint.nat mn), (uint.nat mx)
     isplitr; · ipureintro; rfl
