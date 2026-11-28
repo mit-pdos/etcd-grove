@@ -235,18 +235,18 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       opts'.SnapshotServer' = interface.mkOk EtcdServer.ty.PointerType #s⌝ ∗
     -- the snapshot's backend and what reads and writes it (persistent)
     backend.isBackend d'.γB d'.P (mvcc.api.mvccW d'.gx)
-      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) d'.be ∗
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P)) d'.be ∗
     -- (2026-11-02, branch `snap-window`) its hooks the server's `s.beHooks` (`OpenSnapshotBackend`'s)
     backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
     backend.isStopChans d'.γB d'.P (mvcc.api.mvccW d'.gx)
-      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) d'.be ∗
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P)) d'.be ∗
     mvcc.keySized d'.γB d'.P d'.be ∗
     backend.hooksOk d.P (fun _ => mvcc.api.mvccW d'.gx)
-      (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
+      (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTMR γr.raft.raft.cl (futPhys π0 γB) γB d.P)) (storage.hooksIface hk) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
       (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 d'.γB))) ∗
     isServerCI s (γ.withPh (futPhys π0 d'.γB)) ci γr.raft.raft.cl ∗
-    hookSpec (γ.withPh (futPhys π0 d'.γB)) ci (metaTM d'.γB d.P) #g ∗
+    hookSpec (γ.withPh (futPhys π0 d'.γB)) ci γr.raft.raft.cl (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P) #g ∗
     monoListIdxOwn γ.fut jf (futPhys π0 d'.γB, γcf) ∗ applyRegd (γ.withPh (futPhys π0 d'.γB)) ∗
     srvBeRO d' ∗
     srvWAddr s ↦□ w0 ∗ srvLgAddr s ↦□ lg ∗
@@ -291,7 +291,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- (strict M1) the store, restored: its open token, its backend's whole share, the apply thread's
     -- halves at the image's committed log (the mvcc merge: its model by the mode, `kvModelM`)
     mvcc.api.mvccOpen E.γ ∗
-    mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) ∗
+    mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P)) ∗
     srvApi.wStQ E.γs E.stq (kvModelM E.authOn γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
     -- (item 7b F4) the apply thread's window token at no window (the walk freed it)
     E.Wt none ∗
@@ -310,7 +310,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- `srvAuthApplyRes`, and the old backend's buckets, which nothing used)
     revAuth E x.log ∗
     snapAuthRowM E.authMode s E ua ast γr A' d'
-      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) g ∗
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P)) g ∗
     RD0 ∗ apply.uberOwn E up x.chain)
     -- (the mvcc merge) `lean`'s post also held the watchable store's own closer's parts (`wsk`'s
     -- `stopc`, `mvcc.stopCloser`, `mvcc.wsWaiter`, from `restorePre_of_apply`): over the API the
