@@ -277,13 +277,16 @@ state stays the `Ready`'s until its `Advance`, after the write): the leader's, a
 vote, its entries appended at the disk log's end, its commit not below the disk's. What the write's
 `OnDisk` (B 290-436, its leader branch) reads: `T1 = T0` with `ro[n] = "leader"`, the vote unchanged,
 `first = Len(L0) + 1`, a moved commit above `commitIndex[n]`; entries and a moved commit never
-together (a win's or a proposal's keeps the commit, a commit's has no entries; Sim round 20, lead-approved). -/
+together (a win's or a proposal's keeps the commit, a commit's has no entries; Sim round 20, lead-approved);
+the disk's log after the write has every entry at its position (`LogIdx`, raft's full log; Sim round 21,
+lead-approved). -/
 def ParWriteOk (R : RunCfg) (v : NodeView) : Prop :=
   R.md.async = false → R.drv.batch = false → ∀ m ∈ v.mems,
     v.mems = [m] ∧ v.parts = [] ∧ m.role = .leader ∧ m.pre = false ∧ m.snap = none ∧ m.bat = false ∧
     v.ps.role = .leader ∧ v.dur.term = v.ps.term ∧ v.dur.vote = v.ps.vote ∧
     (∀ e0 ∈ m.ents.head?, uint.Z e0.Index' = (v.dur.log.length : Int) + 1) ∧
-    uint.Z v.dur.commit ≤ uint.Z v.ps.commit ∧ (m.ents = [] ∨ m.commit = v.dur.commit)
+    uint.Z v.dur.commit ≤ uint.Z v.ps.commit ∧ (m.ents = [] ∨ m.commit = v.dur.commit) ∧
+    LogIdx (v.dur.write m).log
 
 /-- **A leader's self-acknowledgement waiting for its write** (`-parallel`, #33 B2 round 11): a win's
 or a proposal's `Ready` queues the leader's acknowledgement of its new last index, whose ack fact

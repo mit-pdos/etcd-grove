@@ -222,7 +222,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
       · have := hx.hpre h; rw [hrl1] at this; cases this
     have hkk := kind_leadKeep hx.hk hrl1
     obtain ⟨-, -, -, -, -, -, hhd, -, -, -, -, -, -, -, -, hidx, -⟩ := hro
-    refine ⟨rfl, hpar0, hrl, hpre0, hx.hsn, rfl, hrl1, ?_, ?_, ?_, ?_, hec⟩
+    refine ⟨rfl, hpar0, hrl, hpre0, hx.hsn, rfl, hrl1, ?_, ?_, ?_, ?_, hec, ?_⟩
     · show (V n).dur.term = r₁.p.term; rw [hx.hdn, hkk.1]; rfl
     · show (V n).dur.vote = r₁.p.vote; rw [hx.hdn, hkk.2]; rfl
     · intro e0 he
@@ -231,6 +231,8 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
         (show (V n).dur.log <+: r₁.full by rw [hx.dlog, hx.hfl]; exact hlog) hf hc he
     · show uint.Z (V n).dur.commit ≤ uint.Z r₁.p.commit
       exact commit_reachD hmsk hin hs.2.2.1 hvD hm hpar0 hr
+    · show LogIdx ((V n).dur.write (rd.memRec (V n))).log
+      rw [hDF hpar0]; exact hidx
   exact memNode_of hs hok ha hpar hm htold hrl1 hNF hCL hLP (fun _ => hpend) hxpend hqs hlead
     (fun h => hx.hvs1 h) hDF hMC hPW
 
