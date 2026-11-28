@@ -916,7 +916,33 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
           iintro %v ⟨%hv, %s', %hi', %a, Hpw, Hsv, HstV, Hpend, Hcomp, Happ, %ha, %Hs', Hboot⟩
           subst hv
           wp_auto
-          sorry
+          wp_bind (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastLog")) _) _)
+          iapply (setLastLog_pinned (GF := GF) γ rc' i r lv.Index' lv.Term' m.Index' m.Term' m.Index' m.Term')
+          iframe Hllb Hgll
+          iframe #
+          iintro Hllb Hgll
+          wp_auto
+          ihave #Hlbu : (monoNatLbOwn rc'.dur.applied d.x : IProp GF) $$ []
+          · unfold applLb at *; iexact Hlb'
+          ihave ⟨Happ, %hle⟩ := monoNatAuth_lb_le _ _ _ _ $$ [$Happ $Hlbu]
+          obtain ⟨hl', hlt', hd', ht', hvt', hvc', hcx'⟩ := Hs'
+          have haeq : a = uint.nat m.Index' := by omega
+          subst haeq
+          isplitr; · ipureintro; trivial
+          iframe Htok r Hlb
+          unfold fixPost
+          simp only [latIdxW, latTermW, latIdx, latTerm]
+          iexists s', _, _, d.x
+          iframe lastLog
+          simp only
+          iunfold srvV at Hsv
+          unfold srvVP
+          iframe
+          ipureintro
+          have hvm' : voteMatches D' s' := by
+            unfold voteMatches at hvmD ⊢; rw [hvt', hvc', ht']; exact hvmD
+          refine ⟨ht', by rw [hcx']; exact hci, hvm', by omega, by omega, by omega, ?_, Or.inl ⟨by omega, by omega, by omega⟩⟩
+          intro k hk1 hk2; omega
   iintro %v ⟨%hv, Hfix, Htok, r, Hlb⟩
   subst hv
   wp_auto
