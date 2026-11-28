@@ -431,6 +431,7 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
       ipureintro; omega
     wp_bind
     iapply (wp_setLastApplied r rc idx) $$ [$Hpkg $HappC]
+    iapply ncfupd_of_fupd
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     inext

@@ -13,6 +13,7 @@ Shared definitions and lemmas of the replication subsystem (replication.go, comm
 module
 
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Laws
+public import Dsverify.Proof.github_com.hashicorp.raft.leader.DurView
 public import Perennial.Spec.sync.atomic.LoadUint64
 public import Perennial.Spec.sync.atomic.StoreUint64
 public import Perennial.Proof.sync.Results
@@ -364,7 +365,28 @@ instance termCouple_timeless γ i t : Timeless (termCouple (GF := GF) γ i t) :=
 /-- A term lower bound of `i` fits in a `uint64` (the term cell holds a `w64` above it). -/
 theorem termLb_bound (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) :
     termCell (GF := GF) r γ rc i ∗ srvDurInv γ rc i ∗ termLb γ i T ⊢ |NC={⊤}=> ⌜T < 2 ^ 64⌝ := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  iintro ⟨#Hc, #Hd, #Hlb⟩ Hnc
+  unfold termCell termV
+  iinv Hc with ⟨%t, >Ht, >Htv⟩ Hclose
+  iunfold srvDurInv at Hd
+  icases Hd with ⟨#Hd, -⟩
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑termN) dvN_dur_term $$ Hd
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hcl2⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  unfold durBody
+  icases HX with ⟨Hs, Hdv, Hlc, >Htc, Hcc, Hsv, Hst, >Htv2, Hrest⟩
+  ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Htv Htv2
+  ihave %Hle := termCouple_lb γ i X.s.term T $$ [Htc]
+  · iframe Htc; iexact Hlb
+  imod Hcl2 $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv2 Hrest] with -
+  · inext; iexists X; iframe
+  imod Hclose $$ [Ht Htv] with -
+  · inext; iexists t; iframe
+  imodintro
+  iframe Hnc
+  ipureintro
+  have : uint.nat t < 2 ^ 64 := by word
+  omega
 
 /-- An entry of a prefix is an entry of the whole log. -/
 theorem ent_append_some (L ps : RLog) (k : Nat) (e : Entry) (h : ent L k = some e) :
@@ -391,7 +413,78 @@ theorem wp_getLog_repl (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) (x : GoI
        ptr ↦ lv0 ∗ rtok tid }}
       (App (App (Val #(methods x.ty go!"GetLog" x.v)) (Val #idx)) (Val #ptr))
     {{ (err : GoInterface), RET #err; rtok tid ∗ getLogRepl γ i T ptr (uint.nat idx) err }} := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  iintro %Φ ⟨#Hinv, #Hdur, #Hls, #Hl, #Hlb, Hptr, Htok⟩ HΦ
+  unfold isLogStore
+  icases Hls with ⟨-, -, #HGetLog, -⟩
+  iapply HGetLog $$ Hptr Htok
+  have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN := by
+    unfold storeN durN raftN gprotN; solve_ndisj
+  iintro Hnc
+  iunfold srvDurInv at Hdur
+  icases Hdur with ⟨#Hdur, -⟩
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑storeN) (by unfold storeN durN raftN; solve_ndisj) $$ Hdur
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  unfold durBody
+  icases HX with ⟨Hsrv, Hdv, >Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HownL, HownS, HownSS, >%Hok, Hrest⟩
+  imod logCouple_bound γ _ hE i X.s.log $$ [Hinv Hlc] with ⟨Hlc, %Hbound⟩
+  · iframe #; iexact Hlc
+  cases he : X.A.m.lookup (uint.nat idx) with
+  | none =>
+    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+    iintro Hmask
+    iframe Hnc
+    inext
+    iexists X.A
+    iframe HownL
+    iintro HownL
+    imod Hmask with -
+    imod Hclose $$ [Hsrv Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS Hrest] with -
+    · inext; iexists X; iframe; ipureintro; exact Hok
+    imodintro
+    iintro %err Hpost Htok
+    unfold getLogPost
+    rw [he]
+    icases Hpost with ⟨%Herr, #Hc, Hp⟩
+    iapply HΦ
+    iframe Htok
+    unfold getLogRepl
+    ileft
+    iframe
+    iframe #
+    ipureintro; exact Herr
+  | some e =>
+    have he' : ent X.s.log (uint.nat idx) = some e := Hok.1.1 _ _ he
+    imod readLog_repl γ _ hE i T (uint.nat idx) X.s.log e he' $$ [Hinv Hlc] with ⟨Hlc, #Hr⟩
+    · iframe #; iexact Hlc
+    have hk : 1 ≤ uint.nat idx ∧ uint.nat idx < 2 ^ 62 := by
+      have := proto.ent_le_length he'
+      omega
+    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+    iintro Hmask
+    iframe Hnc
+    inext
+    iexists X.A
+    iframe HownL
+    iintro HownL
+    imod Hmask with -
+    imod Hclose $$ [Hsrv Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS Hrest] with -
+    · inext; iexists X; iframe; ipureintro; exact Hok
+    imodintro
+    iintro %err Hpost Htok
+    unfold getLogPost
+    rw [he]
+    icases Hpost with ⟨%Herr, Hp⟩
+    iapply HΦ
+    iframe Htok
+    unfold getLogRepl
+    iright
+    icases Hp with ⟨%lv, Hp, #His⟩
+    isplitr; · ipureintro; exact Herr
+    iexists lv, e
+    iframe
+    iframe #
+    ipureintro; exact hk
 
 /-- An atomic load of a `uint64` the caller owns. -/
 theorem wp_loadUint64_own (wp_LoadUint64 : sync.atomic.LoadUint64.spec (GF := GF) (hG := hG))

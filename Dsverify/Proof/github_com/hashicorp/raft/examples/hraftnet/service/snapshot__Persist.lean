@@ -58,9 +58,11 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.snapshot.Persist.wp_
   · iapply HQ
     rw [List.nil_append]
     iexact Hsp
-  iintro Hown -
+  iintro Hown HR
   wp_auto
-  iapply HΦ $$ Hown
+  iapply HΦ
+  iframe Hown
+  iexists _; iexact HR
 
 end proof
 

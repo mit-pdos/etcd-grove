@@ -110,27 +110,15 @@ def latestGood (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest) : IProp
 instance latestGood_persistent γ rc i lat : Persistent (latestGood (GF := GF) γ rc i lat) := by
   unfold latestGood; split <;> infer_instance
 
-/-- (Unfolds core's `latestOk`, the body of `snapCell`.) Reading `latestGood` off `snapCell`'s body. -/
+/-- (Unfolds core's `latestOk`; hraft_robust: over `durBody`'s `latestDur`.) Reading `latestGood` off
+what raft keeps about its snapshot store. -/
 theorem latest_good (γ : GNames) (rc : RCtx GF) (i : SID) (fsmI : GoInterfaceOk) (lat : SnapLatest)
-    (pend : Option (Nat × Nat × GoString)) :
-    isFSM fsmI γ i rc.fsmOwn rc.respP rc.snapP ∗ latestOk γ rc lat ∗
-      (match pend with
-        | none => iprop(⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
-            applLb rc (uint.nat m.Index') ∗
-            (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
-        | some (s, st, id) => iprop(∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
-            ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
-            snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a)) ⊢
-    latestOk γ rc lat ∗
-      (match pend with
-        | none => iprop(⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
-            applLb rc (uint.nat m.Index') ∗
-            (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
-        | some (s, st, id) => iprop(∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
-            ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
-            snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a)) ∗
-      latestGood γ rc i lat := by
-  iintro ⟨#Hfsm, Hlat, Hm⟩
+    (pend : Option (Nat × Nat × GoString)) (dp : Option DiscPend) :
+    isFSM fsmI γ i rc.fsmOwn rc.respP rc.snapP ∗ latestDur γ rc i lat pend dp ⊢
+    latestDur γ rc i lat pend dp ∗ latestGood γ rc i lat := by
+  iintro ⟨#Hfsm, Hd⟩
+  unfold latestDur
+  icases Hd with ⟨Hlat, Hm⟩
   rcases lat with _ | ⟨m, b⟩
   · iframe; unfold latestGood; itrivial
   unfold latestOk latestGood
@@ -140,27 +128,40 @@ theorem latest_good (γ : GNames) (rc : RCtx GF) (i : SID) (fsmI : GoInterfaceOk
   · iframe #; iexact Hsp
   rcases pend with _ | ⟨s, st, id⟩
   · dsimp only
-    icases Hm with (%Hn | ⟨%m', %b', %Heq, #Ha, #Hdf⟩)
+    icases Hm with (%Hn | ⟨%m', %b', %Heq, Hdd⟩)
     · cases Hn
     cases Heq
-    isplitl []
-    · iframe #; ipureintro; exact Hp
-    isplitl []
-    · iright; iexists m, b; iframe #; ipureintro; rfl
-    iframe #; ipureintro; exact Hp
+    icases Hdd with (⟨#Hd, %Hdn⟩ | ⟨#Hf, %Hdp, Ha⟩)
+    · isplitl []
+      · isplitl []; · iframe #; ipureintro; exact Hp
+        iright; iexists m, b; isplitr; · ipureintro; rfl
+        ileft; iframe #; ipureintro; exact Hdn
+      isplitr; · iexact He
+      isplitr; · iexact Hsp2
+      isplitr; · iexact Hcfg
+      isplitr; · ipureintro; exact Hp
+      ileft; iexact Hd
+    · isplitl [Ha]
+      · isplitl []; · iframe #; ipureintro; exact Hp
+        iright; iexists m, b; isplitr; · ipureintro; rfl
+        iright; iframe #; iframe; ipureintro; exact Hdp
+      isplitr; · iexact He
+      isplitr; · iexact Hsp2
+      isplitr; · iexact Hcfg
+      isplitr; · ipureintro; exact Hp
+      iright; iexact Hf
   · dsimp only
     icases Hm with ⟨%m', %b', %a, %Hq, #Hf, Ha⟩
     obtain ⟨Heq, Hid, Hs, Hst, Ha'⟩ := Hq
     cases Heq
     subst Hs Hst
-    isplitl []
-    · iframe #; ipureintro; exact Hp
     isplitl [Ha]
-    · iexists m, b, a; iframe #; iframe; ipureintro; exact ⟨rfl, Hid, rfl, rfl, Ha'⟩
-    isplitl []; · iexact He
-    isplitl []; · iexact Hsp2
-    isplitl []; · iexact Hcfg
-    isplitl []; · ipureintro; exact Hp
+    · isplitl []; · iframe #; ipureintro; exact Hp
+      iexists m, b, a; iframe #; iframe; ipureintro; exact ⟨rfl, Hid, rfl, rfl, Ha'⟩
+    isplitr; · iexact He
+    isplitr; · iexact Hsp2
+    isplitr; · iexact Hcfg
+    isplitr; · ipureintro; exact Hp
     iright; iexact Hf
 
 /-- (Unfolds iface's `openPost`.) `Open` of the latest's id (Goose's left-nested triple

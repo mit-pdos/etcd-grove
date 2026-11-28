@@ -33,14 +33,15 @@ theorem github_com.hashicorp.raft.wp_New_errorString_pt (msg : GoString) :
     {{ (True : IProp GF) }}
       (App (Val (@! errors.New)) (Val #msg))
     {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x);
-        x ↦□ errors.errorString.mk msg }} := by
+        x.[errors.errorString, go!"s"] ↦□ msg }} := by
   wp_start
   wp_auto
   wp_alloc x as Hx
-  ipersist Hx
+  iStructNamed Hx
+  ipersist s
   wp_auto
   iapply HΦ
-  iexact Hx
+  iexact s
 
 theorem github_com.hashicorp.raft.InmemStore.Get.wp_proof :
     github_com.hashicorp.raft.InmemStore.Get.spec (GF := GF) (hG := hG) :=

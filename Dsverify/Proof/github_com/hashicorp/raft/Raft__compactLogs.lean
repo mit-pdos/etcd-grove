@@ -35,11 +35,11 @@ theorem github_com.hashicorp.raft.Raft.compactLogs.wp_proof
       github_com.hashicorp.raft.Raft.compactLogsWithTrailing.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.Raft.compactLogs.spec (GF := GF) (hG := hG) :=
   fun r γ rc i x tid => by
-  wp_start as ⟨#Hr, #Hcx, %Hx, Htok⟩
+  wp_start as ⟨#Hr, #Hcx, #Hlx, #Hdx, %Hx, Htok⟩
   wp_auto
   wp_apply (wp_getLastLog.2 r γ rc i) $$ [$Hr] as %li %lt -
   wp_apply wp_config $$ [$Hr] as %c %Hc
-  wp_apply wp_compactLogsWithTrailing r γ rc i x li _ tid $$ [$Hr $Hcx $Htok] as %err ⟨%He, Htok⟩
+  wp_apply wp_compactLogsWithTrailing r γ rc i x li _ tid $$ [$Hr $Hcx $Hlx $Hdx $Htok] as %err ⟨%He, Htok⟩
   · ipureintro; exact Hx
   iapply HΦ; iframe; ipureintro; exact He
 
