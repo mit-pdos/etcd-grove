@@ -1,0 +1,87 @@
+package etcdserverpb
+
+import (
+	"bytes"
+	"testing"
+
+	"google.golang.org/protobuf/proto"
+)
+
+func rt(t *testing.T, name string, r *InternalRaftRequest) *InternalRaftRequest {
+	b, err := proto.Marshal(r)
+	if err != nil {
+		t.Logf("%s: Marshal error: %v", name, err)
+		// try unmarshal of a hand-built encoding as well
+		return nil
+	}
+	var r2 InternalRaftRequest
+	if err := proto.Unmarshal(b, &r2); err != nil {
+		t.Logf("%s: Unmarshal error: %v", name, err)
+		return nil
+	}
+	if !proto.Equal(r, &r2) {
+		t.Errorf("%s: not equal after round trip: %v vs %v", name, r, &r2)
+	}
+	t.Logf("%s: OK len=%d", name, len(b))
+	return &r2
+}
+
+func TestD3RoundTrip(t *testing.T) {
+	hdr := &RequestHeader{ID: 7, Username: "u", AuthRevision: 3}
+	for _, h := range []*RequestHeader{nil, hdr} {
+		p := "nohdr/"
+		if h != nil {
+			p = "hdr/"
+		}
+		rt(t, p+"disable", &InternalRaftRequest{Header: h, AuthDisable: &AuthDisableRequest{}})
+		r := rt(t, p+"udel", &InternalRaftRequest{Header: h, AuthUserDelete: &AuthUserDeleteRequest{Name: "a"}})
+		r = rt(t, p+"udel-empty", &InternalRaftRequest{Header: h, AuthUserDelete: &AuthUserDeleteRequest{}})
+		if r != nil && r.AuthUserDelete == nil {
+			t.Errorf("udel-empty lost presence")
+		}
+		rt(t, p+"cpw", &InternalRaftRequest{Header: h, AuthUserChangePassword: &AuthUserChangePasswordRequest{Name: "a", HashedPassword: "JDJh"}})
+		rt(t, p+"cpw-both", &InternalRaftRequest{Header: h, AuthUserChangePassword: &AuthUserChangePasswordRequest{Name: "a", Password: "x", HashedPassword: "JDJh"}})
+		rt(t, p+"cpw-pwonly", &InternalRaftRequest{Header: h, AuthUserChangePassword: &AuthUserChangePasswordRequest{Name: "a", Password: "x"}})
+		rt(t, p+"cpw-empty", &InternalRaftRequest{Header: h, AuthUserChangePassword: &AuthUserChangePasswordRequest{}})
+		rt(t, p+"urr", &InternalRaftRequest{Header: h, AuthUserRevokeRole: &AuthUserRevokeRoleRequest{Name: "a", Role: "r"}})
+		rt(t, p+"urr-empty", &InternalRaftRequest{Header: h, AuthUserRevokeRole: &AuthUserRevokeRoleRequest{}})
+		rt(t, p+"rdel", &InternalRaftRequest{Header: h, AuthRoleDelete: &AuthRoleDeleteRequest{Role: "r"}})
+		rt(t, p+"rdel-empty", &InternalRaftRequest{Header: h, AuthRoleDelete: &AuthRoleDeleteRequest{}})
+		for _, kk := range [][2][]byte{{nil, nil}, {{}, nil}, {nil, {}}, {{}, {}}, {[]byte("k"), []byte("z")}, {[]byte("k"), {0}}, {{0xff}, {0xfe}}} {
+			r := rt(t, p+"rrp", &InternalRaftRequest{Header: h, AuthRoleRevokePermission: &AuthRoleRevokePermissionRequest{Role: "r", Key: kk[0], RangeEnd: kk[1]}})
+			if r != nil {
+				q := r.AuthRoleRevokePermission
+				if !bytes.Equal(q.Key, kk[0]) || !bytes.Equal(q.RangeEnd, kk[1]) {
+					t.Errorf("rrp bytes differ")
+				}
+				t.Logf("   key nil=%v rangeEnd nil=%v (in: %v %v)", q.Key == nil, q.RangeEnd == nil, kk[0] == nil, kk[1] == nil)
+			}
+		}
+		// invalid utf8 in each string field
+		rt(t, p+"bad/udel", &InternalRaftRequest{Header: h, AuthUserDelete: &AuthUserDeleteRequest{Name: "\xff"}})
+		rt(t, p+"bad/cpw-name", &InternalRaftRequest{Header: h, AuthUserChangePassword: &AuthUserChangePasswordRequest{Name: "\xff"}})
+		rt(t, p+"bad/cpw-pw", &InternalRaftRequest{Header: h, AuthUserChangePassword: &AuthUserChangePasswordRequest{Name: "a", Password: "\xff"}})
+		rt(t, p+"bad/cpw-h", &InternalRaftRequest{Header: h, AuthUserChangePassword: &AuthUserChangePasswordRequest{Name: "a", HashedPassword: "\xff"}})
+		rt(t, p+"bad/urr", &InternalRaftRequest{Header: h, AuthUserRevokeRole: &AuthUserRevokeRoleRequest{Name: "a", Role: "\xff"}})
+		rt(t, p+"bad/rdel", &InternalRaftRequest{Header: h, AuthRoleDelete: &AuthRoleDeleteRequest{Role: "\xff"}})
+		rt(t, p+"bad/rrp", &InternalRaftRequest{Header: h, AuthRoleRevokePermission: &AuthRoleRevokePermissionRequest{Role: "\xff"}})
+	}
+	// combined: several set at once
+	rt(t, "multi", &InternalRaftRequest{Header: hdr, AuthDisable: &AuthDisableRequest{}, AuthUserDelete: &AuthUserDeleteRequest{Name: "a"}, AuthRoleRevokePermission: &AuthRoleRevokePermissionRequest{Role: "r", Key: []byte("k")}})
+	// unmarshal of hand-built bytes with invalid utf8: field 1101 (AuthUserDelete), name = 0xff
+	// tag 1101<<3|2 varint
+	b := []byte{}
+	b = appendVarint(b, 1101<<3|2)
+	b = append(b, 3, 0x0a, 1, 0xff)
+	var r InternalRaftRequest
+	err := proto.Unmarshal(b, &r)
+	t.Logf("unmarshal invalid-utf8 name: err=%v", err)
+}
+
+func appendVarint(b []byte, v uint64) []byte {
+	for v >= 0x80 {
+		b = append(b, byte(v)|0x80)
+		v >>= 7
+	}
+	return append(b, byte(v))
+}

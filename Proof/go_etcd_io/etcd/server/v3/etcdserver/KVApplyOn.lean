@@ -39,7 +39,9 @@ variable [GooseExts]
 open Classical in
 /-- **What the apply thread may make of entry `m` at the state `s`, in the mode `on`** (the
 relation the auth applier's triples give, the auth plan's E2s): a normal entry with data that
-decodes to `rq` is, above `c₀` and of an admin kind, a successor of its admin step
+decodes to `rq` is, if it needs the admin permission and its principal is not admin-permitted at
+`s.1`, nothing (D1, 2026-11-27: `authApplierV3.Apply`'s refusal); above `c₀` and of a kind
+`dispatch` applies as an admin step (`adminDispatchKind`), a successor of its admin step
 (`adminStateR`), the log kept; a KV request the auth layer refuses at `s.1` (the latest state:
 `auth.isOpPermitted.specL`, E2r), nothing; otherwise the entry's write at `s.1` (`kvEntry`). (Auth-lease
 S3a: on the triple state, the guard `authKVKind` with the lease part, the write at the table.) -/
@@ -47,7 +49,9 @@ def outcomeOn (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel) (o 
   if m.typ = W32 0 ∧ m.data ≠ [] then
     match apply.irrDecode m.data with
     | some rq =>
-      if uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true then
+      if apply.needAdminPermission rq = true ∧
+          ¬ auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq))) then o = s
+      else if uint.Z c₀ < uint.Z m.index ∧ adminDispatchKind (apply.dispatchKind rq) = true then
         adminStateR rq s.1 o.1 ∧ o.2 = s.2
       else if apply.authKVKind (apply.dispatchKind rq) = true ∧
           ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq then o = s
@@ -70,16 +74,22 @@ theorem outcomeOn_eq (c₀ : w64) (ch : apply.Chain) (s o : OnState)
       rw [hdec] at ho
       simp only at ho
       split
-      · rename_i ha
-        rw [if_pos ha] at ho
-        have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1 ha.2
-        obtain ⟨h1, h2⟩ := ho
-        exact Prod.ext (adminNext_of_det rq s.1 o.1 hdet h1).symm h2
-      · rename_i ha
-        rw [if_neg ha] at ho
+      · rename_i hrf
+        rw [if_pos hrf] at ho; exact ho
+      · rename_i hrf
+        rw [if_neg hrf] at ho
         split
-        · rename_i hr; rw [if_pos hr] at ho; exact ho
-        · rename_i hr; rw [if_neg hr] at ho; exact ho
+        · rename_i ha
+          rw [if_pos ha] at ho
+          have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1
+            (needAdminPermission_of_adminDispatchKind rq ha.2)
+          obtain ⟨h1, h2⟩ := ho
+          exact Prod.ext (adminNext_of_det rq s.1 o.1 hdet h1).symm h2
+        · rename_i ha
+          rw [if_neg ha] at ho
+          split
+          · rename_i hr; rw [if_pos hr] at ho; exact ho
+          · rename_i hr; rw [if_neg hr] at ho; exact ho
     · rename_i hdec
       rw [hdec] at ho
       exact ho
@@ -95,17 +105,34 @@ theorem outcomeOn_model (c₀ : w64) (ch : apply.Chain) (s : OnState)
   · cases hdec : apply.irrDecode m.data with
     | none => simp only [outcomeOn, kvEntryOn, if_pos hm, hdec]
     | some rq =>
-      by_cases ha : uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true
-      · have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1 ha.2
-        simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_pos ha]
+      by_cases hrf : apply.needAdminPermission rq = true ∧
+          ¬ auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))
+      · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_pos hrf]
+      by_cases ha : uint.Z c₀ < uint.Z m.index ∧ adminDispatchKind (apply.dispatchKind rq) = true
+      · have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1 (needAdminPermission_of_adminDispatchKind rq ha.2)
+        simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg hrf, if_pos ha]
         refine ⟨?_, trivial⟩
         simp only [adminNext, dif_pos hdet]
         exact (Classical.choose_spec hdet).1
       · by_cases hr : apply.authKVKind (apply.dispatchKind rq) = true ∧
             ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq
-        · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg ha, if_pos hr]
-        · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg ha, if_neg hr]
+        · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg hrf, if_neg ha, if_pos hr]
+        · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg hrf, if_neg ha, if_neg hr]
   · simp only [outcomeOn, kvEntryOn, if_neg hm]
+
+open Classical in
+/-- **`outcomeOn` of a request needing no admin permission**: the KV part (D1, 2026-11-27). -/
+theorem outcomeOn_nonadmin (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : EntryModel)
+    (o : OnState) (rq : apply.IRRModel) (hm : m.typ = W32 0 ∧ m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (hna : apply.needAdminPermission rq = false) :
+    Iff (outcomeOn c₀ ch s m o)
+      (if apply.authKVKind (apply.dispatchKind rq) = true ∧
+          ¬ kvGrantedL s.1 (mvcc.leaseItemsOf (mvcc.stateAfter s.2.1)) rq then o = s
+      else o = (s.1, kvEntry c₀ ch s.2.2 s.2.1 m, kvTable c₀ ch s.2.2 m)) := by
+  have hnk := adminDispatchKind_of_needAdmin_false rq hna
+  unfold outcomeOn
+  rw [if_pos hm, hdec]
+  simp only [hna, hnk, Bool.false_eq_true, false_and, and_false, ↓reduceIte]
 
 /-! ## The committer's side (the workload's and the proposers' obligation)
 
@@ -200,7 +227,9 @@ theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
         · exact hl
         · split
           · exact hl
-          · exact kvEntry_keys c₀ ch s₀.2.2 s₀.2.1 m hm hl
+          · split
+            · exact hl
+            · exact kvEntry_keys c₀ ch s₀.2.2 s₀.2.1 m hm hl
       · exact hl
     · exact kvEntry_keys c₀ ch s₀.2.2 s₀.2.1 m hm hl
 
@@ -266,7 +295,7 @@ theorem kvModelOn_snoc_granted (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
 theorem kvModelOn_snoc_admin (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (e : EntryModel) (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
-    (ha : apply.needAdminPermission rq = true) :
+    (ha : adminDispatchKind (apply.dispatchKind rq) = true) :
     kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L := by
   rw [kvModelOn_snoc, kvEntryOn_admin _ _ _ e rq ht hd hdec hidx ha]
   rfl
@@ -275,7 +304,7 @@ theorem kvModelOn_snoc_admin (γk : KVNames) (st₀ : auth.AuthState) (L : List 
 theorem kvLeasesOn_snoc_admin (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (e : EntryModel) (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
-    (ha : apply.needAdminPermission rq = true) :
+    (ha : adminDispatchKind (apply.dispatchKind rq) = true) :
     kvLeasesOn γk st₀ (L ++ [e]) = kvLeasesOn γk st₀ L := by
   rw [kvLeasesOn_snoc, kvEntryOn_admin _ _ _ e rq ht hd hdec hidx ha]
   rfl

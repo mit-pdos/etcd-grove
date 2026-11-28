@@ -26,17 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.UserDelete(ctx, r)`** for a non-nil request `r`: `raftRequest` on the request
-`irrUserDelete` (`&pb.InternalRaftRequest{AuthUserDelete: r}`), taken as the contract `authRaftOk` for the
+/-- **`s.UserDelete(ctx, r)`** for the request `r` naming the user `name` (`apply.authUserDeleteIs`): `raftRequest` on the request
+`irrUserDelete name` (`&pb.InternalRaftRequest{AuthUserDelete: r}`), taken as the contract `authRaftOk` for the
 response type `*pb.AuthUserDeleteResponse` (`AuthEntry.lean`: the proposal path is proved for the KV requests
 only, `reqPropOk`), over the caller's `P` answering `Q`; the outcome `authEntryOut`: the applied
 response (typed) with `Q resp nil`, or `nil` and the error with `Q null err`. The admin check of
 this request is the apply layer's (`apply.adminPass`, for the header's principal). -/
 abbrev EtcdServer.UserDelete.spec : Prop :=
-  ∀ (s : Loc) (ctx : GoInterfaceOk) (r : Loc) (P : IProp GF)
+  ∀ (s : Loc) (ctx : GoInterfaceOk) (r : Loc) (name : GoString) (P : IProp GF)
     (Q : Loc → GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜r ≠ null⌝ ∗ P ∗
-      authRaftOk s ctx (irrUserDelete) etcdserverpb.AuthUserDeleteResponse.ty P Q }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authUserDeleteIs r name ∗ P ∗
+      authRaftOk s ctx (irrUserDelete name) etcdserverpb.AuthUserDeleteResponse.ty P Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserDelete"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗ authEntryOut Q resp err }}

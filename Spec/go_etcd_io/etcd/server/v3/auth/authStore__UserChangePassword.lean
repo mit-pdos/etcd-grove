@@ -25,15 +25,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserChangePassword(r)`** for a request naming `name` (within bbolt's key bound: the
-rewritten record's key; a user of the name exists when it is written, so its key was accepted
-before, which the write contract does not record): the step
+/-- **`as.UserChangePassword(r)`** for a request naming `name`, every stored user's name a
+bbolt key (`userKeysOk`: the put contract's premise for the existing record it rewrites; nomode D3,
+until then the request's name bounded): the step
 `userChangePasswordF name` (`ErrUserNotFound`, or the record rewritten with the same roles and the
 revision bumped), or `ErrNoPasswordUser`. -/
 abbrev auth.authStore.UserChangePassword.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
