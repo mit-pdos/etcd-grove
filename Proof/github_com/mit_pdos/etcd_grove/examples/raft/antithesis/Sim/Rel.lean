@@ -132,6 +132,8 @@ structure MemRec where
   /-- parity B2: a batching node's `mem` (`note`: no `first`; entries only for a leader), not a
   `Ready`'s (`drainAsync`, `parallel`: rawnode's `state` fields) -/
   bat : Bool := false
+  /-- the transfer message handled, for `byE = recv` (the binding's `pending`, as `NodeView.xcause`) -/
+  xcause : Option XMsg := none
 
 /-- Async (parity B2): a queued storage write (`writeJob`, rawnode's `Write`): the `mem` it announced
 (none: nothing to write, only messages waiting for the write), the messages to others that wait for
@@ -278,7 +280,8 @@ def UndoIs (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
 def MemRec.item (id : w64) (m : MemRec) : AntCheck.QItem :=
   { ev := if m.bat then evMemB id m.byE (roleStr m.pre m.role) m.term m.vote m.commit m.ents true
           else evMem id m.byE (roleStr m.pre m.role) m.term m.vote m.commit m.ents m.snap true,
-    m := (m.cause.map (fun c => msgOf c id)).toList }
+    m := if m.byE = go!"recv" then
+        (m.cause.map (fun c => msgOf c id)).toList ++ (m.xcause.map xmsgOf).toList else [] }
 
 /-- **C1, the queue** (async, B 450-459): the binding's `queue[n]` is the view's announced
 in-memory states, in order. -/

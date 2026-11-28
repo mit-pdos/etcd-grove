@@ -93,7 +93,7 @@ def markHead : List WJob → List WJob
 the entries it appended (`bat`: the report carries them only for a leader, and no `first`). -/
 def memRecB (v : NodeView) (r : RState) (pre : Bool) (es : List EntryM) : MemRec :=
   { role := r.p.role, pre := pre, term := r.p.term, vote := r.p.vote, commit := r.p.commit,
-    ents := es, snap := none, cause := v.cause, byE := v.byE, bat := true }
+    ents := es, snap := none, cause := v.cause, byE := v.byE, bat := true, xcause := v.xcause }
 
 /-- Batch: the input was a request to append at raft's term (`note`'s `request`: its write records an
 acknowledgement even when nothing changes). -/

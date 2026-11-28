@@ -435,7 +435,7 @@ abbrev antSim_read.stmt : Prop :=
 /-- An announced in-memory state of a `Ready` (async), as its `mem` report says it. -/
 def ReadyD.memRec (rd : ReadyD) (v : NodeView) : MemRec :=
   { role := rd.role, pre := rd.pre, term := rd.term, vote := rd.vote, commit := rd.commit,
-    ents := rd.ents, snap := rd.snap, cause := v.cause, byE := v.byE }
+    ents := rd.ents, snap := rd.snap, cause := v.cause, byE := v.byE, xcause := v.xcause }
 
 /-- A disk after a queued state's write: its hard state, its entries from their first index. -/
 def DurW.write (d : DurW) (m : MemRec) : DurW :=

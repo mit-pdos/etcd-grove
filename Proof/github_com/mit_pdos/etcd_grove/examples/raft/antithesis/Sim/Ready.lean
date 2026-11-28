@@ -96,15 +96,13 @@ log normal (`msgShape_core`), the `Ready`'s messages under the mask (`MShape` an
 `PendOk` (`pendOk_of_reach`), no transfer message, the leader hint (`reach_leadOk`) and a leader's
 empty read-only queue (`reach_roOk`); a reported pre-candidate a follower at a pre-vote node
 (`ReadyOutP`). -/
-theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
+theorem afterOk_loc {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
     {xnet : List XMsg} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
-    (hin : InMask msk R net xnet) (hs : AntSim R dec S V net xnet)
+    (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n (V n))
     (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hro : ReadyOutP R n (V n) r₁ rd) :
     AfterOk R dec V n ((V n).afterReady r₁ rd) := by
   obtain ⟨hmd, -⟩ := hin.b1 hmsk
-  have hnet := hs.2.2.1
-  have hv := hs.2.2.2.2 n
   have hcc : R.md.confChanges = false := by rw [hmd]
   have hsn : R.md.snapshots = false := by rw [hmd]
   have hfn : EntsNormal (V n).r.full := (hv.facts.conf0 hcc).2.1
@@ -151,6 +149,15 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CC
   obtain ⟨-, h2', h3', -, -⟩ := id hmq
   have hqo : q ∈ r₁.p.outbox := (List.mem_filter.mp ((hmsg.mem_iff).mp hq)).1
   exact ⟨fun _ => h3', fun _ => hnosnap q hqo, h2', mshape_ctx hnet (fun m hm => (hv.cause m hm).1) hmq, hmq.2.2.2.2.2⟩
+
+/-- `afterOk_loc` from the whole relation. -/
+theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
+    {xnet : List XMsg} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
+    (hin : InMask msk R net xnet) (hs : AntSim R dec S V net xnet)
+    (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hro : ReadyOutP R n (V n) r₁ rd) :
+    AfterOk R dec V n ((V n).afterReady r₁ rd) :=
+  afterOk_loc hmsk hin hs.2.2.1 (hs.2.2.2.2 n) hr hro
 
 /-! ## The drain's `by` and the campaign -/
 

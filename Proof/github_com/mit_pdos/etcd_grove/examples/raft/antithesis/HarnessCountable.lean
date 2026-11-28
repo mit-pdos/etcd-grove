@@ -92,12 +92,20 @@ instance hc_durW_countable : Pos.Countable AntSim.DurW :=
   countableOfLeftInverse (fun w : AntSim.DurW => (w.term, w.vote, w.commit, w.log))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
+instance hc_xty_countable : Pos.Countable XTy :=
+  countableOfLeftInverse (fun t : XTy => match t with | .transferLeader => (0 : Nat) | .timeoutNow => 1)
+    (fun k => match k with | 1 => .timeoutNow | _ => .transferLeader) (fun t => by cases t <;> rfl)
+
+instance hc_xmsg_countable : Pos.Countable XMsg :=
+  countableOfLeftInverse (fun x : XMsg => (x.ty, x.src, x.dst, x.term))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+
 instance hc_memRec_countable : Pos.Countable AntSim.MemRec :=
   countableOfLeftInverse
     (fun m : AntSim.MemRec =>
-      (((m.role, m.pre, m.term, m.vote), (m.commit, m.ents, m.snap, m.cause, m.byE)), m.bat))
+      (((m.role, m.pre, m.term, m.vote), (m.commit, m.ents, m.snap, m.cause, m.byE)), m.bat, m.xcause))
     (fun p => ⟨p.1.1.1, p.1.1.2.1, p.1.1.2.2.1, p.1.1.2.2.2, p.1.2.1, p.1.2.2.1, p.1.2.2.2.1,
-      p.1.2.2.2.2.1, p.1.2.2.2.2.2, p.2⟩)
+      p.1.2.2.2.2.1, p.1.2.2.2.2.2, p.2.1, p.2.2⟩)
     (fun _ => rfl)
 
 instance hc_wJob_countable : Pos.Countable AntSim.WJob :=
@@ -107,14 +115,6 @@ instance hc_wJob_countable : Pos.Countable AntSim.WJob :=
 instance hc_aJob_countable : Pos.Countable AntSim.AJob :=
   countableOfLeftInverse (fun j : AntSim.AJob => (j.ents, j.byE, j.ran))
     (fun p => ⟨p.1, p.2.1, p.2.2⟩) (fun _ => rfl)
-
-instance hc_xty_countable : Pos.Countable XTy :=
-  countableOfLeftInverse (fun t : XTy => match t with | .transferLeader => (0 : Nat) | .timeoutNow => 1)
-    (fun k => match k with | 1 => .timeoutNow | _ => .transferLeader) (fun t => by cases t <;> rfl)
-
-instance hc_xmsg_countable : Pos.Countable XMsg :=
-  countableOfLeftInverse (fun x : XMsg => (x.ty, x.src, x.dst, x.term))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
 instance hc_nodeView_countable : Pos.Countable AntSim.NodeView :=
   countableOfLeftInverse
