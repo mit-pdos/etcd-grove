@@ -216,6 +216,26 @@ theorem walCommitLeFrom_snoc {τ σ : StorContents} {H : WalHist} {o : WalOp}
   · rw [List.take_of_length_le (by simp; omega)] at hn
     rw [h] at hn; cases hn; exact hσ
 
+/-- (walcommitle, 2026-11-28) **`walCommitLeFrom` along a snapshot record**: `SaveSnapshot` keeps the
+whole fold's commit within its last index (as `WalEnc.walSaveSnap_commitLe`, which `WalReadAllPost` proves
+above this module). -/
+theorem walCommitLeFrom_snoc_snap {τ σ : StorContents} {H : WalHist} {m : SnapshotMetadataM} {al : Bool}
+    (hc : walCommitLeFrom τ H) (hH : walFoldChkFrom τ H = some σ) :
+    walCommitLeFrom τ (H ++ [.snap m al]) := by
+  have h : σ.commit ≤ σ.last := hc H.length σ (by rw [List.take_length]; exact hH)
+  refine walCommitLeFrom_snoc hc (walFoldChkFrom_snoc_snap hH) ?_
+  unfold walSaveSnap
+  split
+  · exact h
+  · next hlt =>
+    by_cases hcm : uint.nat m.Index' ≤ σ.commit
+    · rw [if_pos hcm]
+      simp only [StorContents.commit, StorContents.last, StorContents.b, List.length_drop] at h hlt hcm ⊢
+      omega
+    · rw [if_neg hcm]
+      simp only [StorContents.commit, StorContents.last, StorContents.b, List.length_nil] at h hlt hcm ⊢
+      omega
+
 theorem walCommitLeFrom_nil (τ : StorContents) (hτ : τ.commit ≤ τ.last) : walCommitLeFrom τ [] := by
   intro n τ' hn
   simp only [List.take_nil, walFoldChkFrom, Option.some.injEq] at hn; subst hn; exact hτ
