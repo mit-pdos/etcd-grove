@@ -113,6 +113,7 @@ CheckShared: Seeded__SharedModel CheckOperationsTimeout
 PastRead: parseRV pastRead
 PinnedRead:
 Seeded__Floor:
+Seeded__NoForeign: isWrite HistoryRevs
 shows: decodeWEvents decodeItemRVs
 target: decodeWEvents parseRV pastRead
 bound: parseRV pastRead isWrite

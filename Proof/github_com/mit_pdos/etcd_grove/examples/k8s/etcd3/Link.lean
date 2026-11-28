@@ -29,6 +29,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetRe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PastRead
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PinnedRead
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__Floor
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__NoForeign
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__SharedModel
 public import Proof.k8s_io.apimachinery.pkg.runtime.SetZeroValue
 public import Proof.k8s_io.apiserver.pkg.storage.StorageError__Unwrap
@@ -845,6 +846,10 @@ theorem wp_PinnedRead :
 theorem Seeded.wp_Floor :
     EtcdGrove.k8s_etcd3.Seeded.Floor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Seeded.Floor.wp_proof
+
+theorem Seeded.wp_NoForeign :
+    EtcdGrove.k8s_etcd3.Seeded.NoForeign.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Seeded.NoForeign.wp_proof wp_isWrite wp_HistoryRevs
 
 theorem storage.StorageError.wp_Unwrap :
     EtcdGrove.storage.StorageError.Unwrap.spec (GF := GF) (hG := hG) :=
