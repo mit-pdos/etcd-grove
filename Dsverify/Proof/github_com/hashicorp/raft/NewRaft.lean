@@ -210,7 +210,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     github_com.hashicorp.raft.NewRaft.spec (GF := GF) (hG := hG) := by
   intro htb cp c fsmI logsI stableI snapsI transI rpcCh γ i rc eof X tid
   wp_start as ⟨Hcp, %Hcfg, #Hfsm, %Hnb, #Hlogs, %Hnmono, #Hstable, #Hsnaps, #Heof, #Htrans, %Hpv,
-    #Hinv, #Hvoter, #Hdi, Hsv, HstV, HtermV, HcidxV, Happ, Hcomp, Hpend, Hpw, Hboot, %Hrec, #Hfirst, %Hg,
+    #Hinv, #Hvoter, #Hdi, Hsv, HstV, HtermV, HcidxV, Happ', Happ, Hcomp, Hpend, Hpw, Hboot, %Hrec, #Hfirst, %Hg,
     HfsmOwn, Htok⟩
   obtain ⟨Hcv, ss, Hss, Hgss⟩ := Hg
   obtain ⟨htp, hci, hpend, hcl, hhi1, hhi2, habove, hdplat, hpref⟩ := Hrec
@@ -450,7 +450,6 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   -- the raft-local ghost state and the FSM channel
   imod ghostVar_alloc (W32 0) with ⟨%γst, Hgst⟩
   icases (ghostVar_split_half γst 1 (W32 0)).mp $$ Hgst with ⟨Hgst, Hgst'⟩
-  icases monoNatAuth_halves rc.dur.applied 0 $$ Happ with ⟨Happ, Happ'⟩
   imod ghostVar_alloc ((0, 0) : Nat × Nat) with ⟨%γll, Hgll⟩
   icases (ghostVar_split_half γll 1 ((0, 0) : Nat × Nat)).mp $$ Hgll with ⟨Hgll, Hgll'⟩
   imod dghostVar_alloc (some ((W64 0, W64 0, W64 0, W64 0) : w64 × w64 × w64 × w64)) with ⟨%γllb, Hllb⟩
@@ -479,7 +478,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     iexists _, _, _, _
     iframe lastLogIndex lastLogTerm lastSnapshotIndex lastSnapshotTerm
     isplitl [Hgll']
-    · rw [if_neg (by simp), show uint.nat (W64 0) = 0 from rfl]; iexact Hgll'
+    · rw [show uint.nat (W64 0) = 0 from rfl]; iexact Hgll'
     isplitr
     · ileft; ipureintro; rfl
     iright; iexact Hllb'
@@ -507,7 +506,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     iexists _, _, _, _
     iframe HlI HlT HsI HsT
     isplitl [Hgll']
-    · rw [if_neg (by simp)]; iexact Hgll'
+    · iexact Hgll'
     isplitr
     · ileft; ipureintro; rfl
     iright; iexact Hb
