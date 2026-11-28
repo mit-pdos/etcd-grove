@@ -752,20 +752,44 @@ the store's `logOk` gives; was `readLog_repl` over `logCell`). -/
 theorem readLog_repl_core (X : SrvDur) (T k : Nat) (e : Entry) (he : ent X.s.log k = some e) :
     Inv γ ∗ durCore γ rc i X ∗ leaderIs γ T i ∗ termLb γ i T ⊢ |={E}=>
       durCore γ rc i X ∗ (llogIdx γ T k e ∨ termLb γ i (T + 1)) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, Hc, #Hl, #Hlb⟩
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  imod (gprot.readLog_repl γ _ hE i T k X.s.log e he) $$ [HI Hlc Hl Hlb] with ⟨Hlc, HQ⟩
+  · iframe #; try iframe
+  imodintro
+  iframe HQ
+  iunfold durCore
+  iframe
+  ipureintro; exact Hp
 
 /-- (R2) The stored entries are the protocol log's (from `logOk`). -/
 theorem durCore_logOk (X : SrvDur) :
     durCore γ rc i X ⊢ durCore γ rc i X ∗
       ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ uint.nat X.A.ci ≤ X.s.dur.1⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro Hc
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  iunfold durCore
+  iframe
+  ipureintro
+  exact ⟨Hp, Hp.1, Hp.2.1, Hp.2.2.2.2⟩
 
 /-- (R2) The protocol facts of the core's state (`srvOwn_facts` on it). -/
 theorem durCore_facts (X : SrvDur) :
     Inv γ ∗ durCore γ rc i X ⊢ |={E}=> durCore γ rc i X ∗
       ⌜X.s.dur.1 ≤ X.s.log.length ∧ X.s.cidx ≤ X.s.dur.1 ∧ X.s.vterm ≤ X.s.term ∧
         X.s.log.length < 2 ^ 62⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, Hc⟩
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  imod (gprot.srvOwn_facts γ _ hE i X.s) $$ [HI Ho] with ⟨Ho, -, %hf⟩
+  · iframe #; try iframe
+  imodintro
+  iunfold durCore
+  iframe
+  ipureintro
+  exact ⟨Hp, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.2.2.1⟩
 
 /-- (R2) The installed snapshot's discard on the opened core (`installDiscard_upd`, R4b/R5's
 `DeleteRange` with `Pend.discard`): the new log and durable prefix, the main goroutine's view (lent
@@ -970,7 +994,29 @@ window: volatile). -/
 theorem stageCommit_au (D : StableAbs) (g idx : w64) (Ψ : IProp GF) :
     srvDurInv γ rc i -∗ stVS rc D g -∗ (stVS rc D idx ={⊤ \ ↑storeN}=∗ Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL { A with staged := idx } ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd Hst Hk
+  iapply (logWrite_au γ rc i (fun A => { A with staged := idx })
+    iprop(stVS rc D g ∗ (stVS rc D idx ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hst Hk]
+  · iframe
+  iintro %X Hc ⟨Hst, Hk⟩
+  ihave ⟨Hc, Hst, %Hag⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hD, hg⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  unfold stVS
+  imod (ghostVar_update_halves (X.D, idx) rc.dur.st _ _) $$ Hst0 Hst with ⟨Hst0, Hst⟩
+  imodintro
+  iexists { X with A := { X.A with staged := idx } }
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp]
+  · iunfold durCore
+    iframe
+    ipureintro
+    exact Hp
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  rw [hD]
+  iapply Hk $$ Hst
 
 end stores
 
