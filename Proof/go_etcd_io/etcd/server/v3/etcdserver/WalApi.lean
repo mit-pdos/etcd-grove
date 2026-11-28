@@ -420,7 +420,8 @@ theorem walSaveRn_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInter
   · iright; iframe Ho Hr; ipureintro; exact Herr
 
 /-- (P5) **`walSaveRn_spec` over the records without their history** (the caller's update independent of
-the history, `walRecs_au_toHist`; the refusal's update dropped: the loop panics there). -/
+the history, `walRecs_au_toHist`; the refusal's update dropped: the loop panics there). (B2, 2026-11-28)
+The update's premise also `WalSaveCommitLe` (the records' commit-le after the `Save`, as lean's `Save` law). -/
 theorem walSaveRnR_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
     (hst : st = GoInterface.ok si) (q : Qp) (hp : Loc) (hs : HardStateM) (sl : GoSlice) (esL : List Loc)
     (es : List EntryModel) (Q : IProp GF) :
@@ -428,15 +429,19 @@ theorem walSaveRnR_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInte
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           (∃ cs : List EntryC, ([∗list] l;c ∈ esL;cs, entRoC l c) ∗
             ⌜cs.map EntryC.model = es.map EntryModel.toM ∧ ∀ c ∈ cs, walSaveEntOk true c⌝) ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs h σ true ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ true ∗
+                ⌜WalSaveOk σ (es.map EntryModel.toM) ∧ WalSaveCommitLe σ hs (es.map EntryModel.toM)⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (es.map EntryModel.toM)) true, COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ Q) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ True) }} := by
-  have hc := walRecs_au_toHist h true (fun σ => WalSaveOk σ (es.map EntryModel.toM))
+  have hc := walRecs_au_toHist h true
+    (fun σ => WalSaveOk σ (es.map EntryModel.toM) ∧ WalSaveCommitLe σ hs (es.map EntryModel.toM))
     (fun σ => walSave σ hs (es.map EntryModel.toM)) (WalOpG.save hs (es.map EntryModel.toM))
-    WalFs.walAuMask Q (fun _ _ hf hok => walFoldChkFrom_snoc_save hf hok)
+    WalFs.walAuMask Q (fun _ _ hf hcl hok =>
+      have hf' := walFoldChkFrom_snoc_save hf hok.1
+      ⟨hf', walCommitLeFrom_snoc hcl hf' hok.2⟩)
   iintro #Hw
   iintro !> %Φ ⟨Ho, Hr, Hh, #Hsl, Hcs, HAU⟩ HΦ
   ihave HAU := hc $$ HAU
@@ -494,7 +499,7 @@ theorem walSaveSnap_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInt
           ∃ i : Nat, walSnapRec h i m.model }} := by
   have hc := walRecs_au_toHist h sized (fun σ => uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term')
     (fun σ => walSaveSnap σ m.model) (WalOpG.snap m.model al) WalFs.walAuMask Q
-    (fun _ _ hf _ => walFoldChkFrom_snoc_snap hf)
+    (fun _ _ hf hcl _ => ⟨walFoldChkFrom_snoc_snap hf, walCommitLeFrom_snoc_snap hcl hf⟩)
   iintro #Hw
   iintro !> %Φ ⟨Ho, Hr, Hsn, #Hm, %h1, %h2, %h3, HAU⟩ HΦ
   ihave HAU := hc $$ HAU
@@ -624,16 +629,17 @@ theorem walOpenedH_elim (h : WalH GF) (dir : GoString) (id cid : w64) (σ : Stor
         walMetaIs h id cid ∗ ⌜h.dir = dir⌝ := by
   unfold walOpenedH; iintro H; iexact H
 
-/-- `walOpenedH` forgets the history. -/
+/-- `walOpenedH` forgets the history (B2, 2026-11-28: given its eager fold's commit-le, `walCommitLeFrom
+walFresh Hs`, which `walRecs` carries since walcommitle: `wal.restartOk`'s, or the empty history's). -/
 theorem walOpenedH_walOpened (h : WalH GF) (dir : GoString) (id cid : w64) (σ : StorContents)
-    (Hs : WalHist) (sized : Bool := false) :
+    (Hs : WalHist) (sized : Bool := false) (hcl : walCommitLeFrom walFresh Hs) :
     walOpenedH (GF := GF) h dir id cid σ Hs sized ⊢ walOpened h dir id cid σ sized := by
   unfold walOpenedH walOpened
   iintro ⟨Ho, Hr, %Hf, Hm, %Hd⟩
   iframe Ho Hm
   isplitl [Hr]
   · iapply walHistH_walRecs h σ Hs sized
-    iframe Hr; ipureintro; exact Hf
+    iframe Hr; ipureintro; exact ⟨Hf, hcl⟩
   · ipureintro; exact Hd
 
 /-! ### The WAL's slots in the boot hub
@@ -723,7 +729,7 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
   iintro ⟨%h, %Hw, Hwo, Hp⟩
   icases walOpenedH_elim _ _ _ _ _ _ _ $$ Hwo with ⟨Ho, Hr, %Hf, Hm, %Hd⟩
   ihave Hr := walHistH_walRecs h _ _ _ $$ [Hr]
-  · iframe Hr; ipureintro; exact Hf
+  · iframe Hr; ipureintro; exact ⟨Hf, walCommitLeFrom_nil walFresh (Nat.le_refl _)⟩
   imod rnDur_alloc cl h $$ Hr with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
   imodintro
   iexists h, ν
@@ -875,8 +881,8 @@ theorem wal.restartOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
         storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗
         ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
   unfold wal.restartOk
-  iintro ⟨⟨⟨%h, %Hs0, %Hw, Hwo, Hp, -, -⟩, %Hf⟩, Hsi, #Hl0⟩
-  ihave Hwo := walOpenedH_walOpened _ _ _ _ _ _ _ $$ Hwo
+  iintro ⟨⟨⟨%h, %Hs0, %Hw, Hwo, Hp, -, %Hcl⟩, %Hf⟩, Hsi, #Hl0⟩
+  ihave Hwo := walOpenedH_walOpened _ _ _ _ _ _ _ Hcl.2 $$ Hwo
   icases wal.stopImage_readFacts cl S σ i $$ Hsi with ⟨Hsi, %Hrf⟩
   icases wal.stopImage_elim cl S σ i $$ Hsi with ⟨%Hs, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩
   icases isCommittedLogLb_agree cl l₀ l' $$ [$Hl0 $Hl'] with %Hpre

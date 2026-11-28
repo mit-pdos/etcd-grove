@@ -56,10 +56,13 @@ instance walHistH_timeless (h : WalH GF) (Hs : WalHist) (sized : Bool) :
     Timeless (walHistH (GF := GF) h Hs sized) := by
   unfold walHistH; infer_instance
 
-/-- **The records are the history at some history whose eager fold they are.** -/
+/-- **The records are the history at some history whose eager fold they are** (B2, 2026-11-28: and along
+which every prefix's eager fold has its commit within its last index, `walCommitLeFrom walFresh`, which
+`walRecs` carries since walcommitle and `walHistH` does not). -/
 theorem walRecs_iff_hist (h : WalH GF) (σ : StorContents) (sized : Bool) :
     walRecs (GF := GF) h σ sized ⊣⊢
-      ∃ Hs : WalHist, walHistH h Hs sized ∗ ⌜walFoldChkFrom walFresh Hs = some σ⌝ := by
+      ∃ Hs : WalHist, walHistH h Hs sized ∗
+        ⌜walFoldChkFrom walFresh Hs = some σ ∧ walCommitLeFrom walFresh Hs⌝ := by
   unfold walRecs walHistH
   constructor
   · iintro ⟨%d, Hd, Ha, Hn, %hf⟩
@@ -67,16 +70,18 @@ theorem walRecs_iff_hist (h : WalH GF) (σ : StorContents) (sized : Bool) :
     isplitl [Hd Ha Hn]
     · iexists d
       iframe Hd Ha Hn
-      ipureintro; exact ⟨hf.2.1, hf.2.2.1, hf.2.2.2, rfl⟩
-    · ipureintro; exact hf.1
+      ipureintro; exact ⟨hf.2.1, hf.2.2.1, hf.2.2.2.1, rfl⟩
+    · ipureintro; exact ⟨hf.1, hf.2.2.2.2⟩
   · iintro ⟨%Hs, ⟨%d, Hd, Ha, Hn, %hf⟩, %hfo⟩
     iexists d
     iframe Hd Ha Hn
-    ipureintro; exact ⟨by rw [hf.2.2.2]; exact hfo, hf.1, hf.2.1, hf.2.2.1⟩
+    ipureintro
+    exact ⟨by rw [hf.2.2.2]; exact hfo.1, hf.1, hf.2.1, hf.2.2.1, by rw [hf.2.2.2]; exact hfo.2⟩
 
-/-- **The history with its eager fold is the records.** -/
+/-- **The history with its eager fold, commit-le along it, is the records.** -/
 theorem walHistH_walRecs (h : WalH GF) (σ : StorContents) (Hs : WalHist) (sized : Bool) :
-    walHistH (GF := GF) h Hs sized ∗ ⌜walFoldChkFrom walFresh Hs = some σ⌝ ⊢ walRecs h σ sized := by
+    walHistH (GF := GF) h Hs sized ∗
+        ⌜walFoldChkFrom walFresh Hs = some σ ∧ walCommitLeFrom walFresh Hs⌝ ⊢ walRecs h σ sized := by
   iintro H
   iapply (walRecs_iff_hist h σ sized).2
   iexists Hs
@@ -249,11 +254,13 @@ theorem walHistH_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM)
 /-- (P5 (b)) **An update of the records, as one of the history** (the contract's `Save`/`SaveSnap` are over
 `walHistH`; the laws over `walRecs` derive from them): the records are the history's eager fold
 (`walRecs_iff_hist`), and at the commit the fold's step `hstep` gives the new records; the caller's `Q`
-independent of the history. -/
+independent of the history. (B2, 2026-11-28) `hstep` also carries the eager fold's commit-le
+(`walCommitLeFrom walFresh`, `walRecs`' since walcommitle) across `o`. -/
 theorem walRecs_au_toHist (h : WalH GF) (sized : Bool) (P : StorContents → Prop)
     (f : StorContents → StorContents) (o : WalOp) (E : CoPset) (Q : IProp GF)
-    (hstep : ∀ (Hs : WalHist) (σ : StorContents), walFoldChkFrom walFresh Hs = some σ → P σ →
-      walFoldChkFrom walFresh (Hs ++ [o]) = some (f σ)) :
+    (hstep : ∀ (Hs : WalHist) (σ : StorContents), walFoldChkFrom walFresh Hs = some σ →
+      walCommitLeFrom walFresh Hs → P σ →
+      walFoldChkFrom walFresh (Hs ++ [o]) = some (f σ) ∧ walCommitLeFrom walFresh (Hs ++ [o])) :
     (AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜P σ⌝ }> @ E, ∅
         <{ walRecs h (f σ) sized, COMM Q }>) ⊢
       AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }> @ E, ∅
@@ -289,7 +296,7 @@ theorem walRecs_au_toHist (h : WalH GF) (sized : Bool) (P : StorContents → Pro
     iapply walHistH_walRecs h (f σ) (Hs ++ [o]) sized
     isplitl [Hr]
     · iexact Hr
-    · ipureintro; exact hstep Hs σ hf hok
+    · ipureintro; exact hstep Hs σ hf.1 hf.2 hok
 
 /-- (P5) **`Release`'s read of the history** (`walRecs_releaseAU`'s): layer 1's lock update at the
 snapshot record the witness names, the history unchanged. -/

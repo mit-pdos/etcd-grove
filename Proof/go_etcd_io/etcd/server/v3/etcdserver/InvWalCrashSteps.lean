@@ -591,7 +591,7 @@ theorem rnDurK_take_law_holds : rnDurK_take.law (GF := GF) := by
   iframe Hsc
   isplitl [Hr]
   · iapply walHistH_walRecs h σ Hs true
-    iframe Hr; ipureintro; exact histReadsK_fold Hrk Hpn
+    iframe Hr; ipureintro; exact ⟨histReadsK_fold Hrk Hpn, histReadsK_commitLe Hrk⟩
   ipureintro
   obtain ⟨Hh, Hhs, Hb, Hc, Hag, -⟩ := Hview
   exact ⟨Hh, Hb, Hc, Hhs, Hag⟩

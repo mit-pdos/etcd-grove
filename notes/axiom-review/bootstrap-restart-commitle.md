@@ -105,3 +105,39 @@ docstring; axiom vocabulary `walRecs`, `walFiles`, `srvFiles`, `walCommitLeFrom`
 vocabulary, also `isWalStorage`, `WalSaveCommitLe`), `putget_safe` (axiom vocabulary), `k8s_robust_single_process`
 (premise vocabulary `walRecs`, `walCommitLeFrom`, through the fresh WAL's `walOpened … walFresh`); every other
 theorem unchanged. Directions confirmed on the built text as in WCL-1's list.
+
+## B2 (2026-11-28): the crash line's history (P5 (b)) under walcommitle
+
+Merging walcommitle into the etcd_safe integration (`etcd-safe-keepfix-integ-wip/2026-11-28` @ `0fb3aea6b3`)
+broke `WalRecsH.lean`: `walRecs` now carries `walCommitLeFrom walFresh (walSrvHist d.H)`, which P5 (b)'s
+`walHistH` deliberately does not, so `walHistH h Hs ∗ ⌜fold Hs = some σ⌝ ⊢ walRecs h σ` (`walRecs_iff_hist`'s
+right-to-left, `walHistH_walRecs`, `walRecs_au_toHist`) no longer holds.
+
+**Decision: option (c), no trusted text changed.** `walHistH`, `walSaveH.law`/`walSaveSnapH.law`, the
+contract's `walSaveHist_spec`/`walSaveSnapHist_spec`, `walOpenedH`, `wal.restartOk` and every axiom are
+unchanged. The history-level `Save`/`SaveSnap` contract already is proved without lean's `walRecs` AU
+(`RnNewStorage.lean`, from layer 1 through `walHistH_saveAU`/`walHistH_saveSnapAU`, which never touch the
+fold); what broke is only the conversion back from `walHistH` to `walRecs`, which now asks for the eager
+commit-le, and every place that converts has it:
+
+- the stop's take (`rnDurK_take_law_holds`): the crash invariant's `HistReadsK` gives `walCommitLeAt Hs c`
+  at every commit `c` from the last saved one on, in particular at a `c` keeping every record
+  (`walKeep_all_exists`), where the read's filtered history is `Hs` itself; so `walCommitLeFrom walFresh Hs`
+  (new `histReadsK_commitLe`, `InvWalCrashPure.lean`, beside `histReadsK_fold`, which does the same for the
+  fold). No new invariant work: P5 (b)'s per-commit reads already imply the eager commit-le;
+- a first start (`wal.bootOk_start`): the empty history (`walCommitLeFrom_nil`);
+- a restart (`wal.restartOk_start`): `wal.restartOk` already states `walCommitLeFrom walFresh Hs` (P5).
+
+Proof-level statement changes (none trusted, none top-level): `walRecs_iff_hist`/`walHistH_walRecs` take the
+pure `walFoldChkFrom walFresh Hs = some σ ∧ walCommitLeFrom walFresh Hs` (was: the fold alone);
+`walRecs_au_toHist`'s `hstep` takes and gives the commit-le too; `walOpenedH_walOpened` takes
+`walCommitLeFrom walFresh Hs`; the records-level wrapper `walSaveRnR_spec` (no callers) asks
+`WalSaveOk ∧ WalSaveCommitLe` in its update, as lean's `Save` law; `walSaveSnap_spec` keeps its statement
+(`walCommitLeFrom_snoc_snap`).
+
+Why not (a): it adds a conjunct to the sealed `walHistH` and a premise to the contract's `Save` update
+(`∀ σ, walFoldChkFrom walFresh Hs = some σ → WalSaveCommitLe σ hs es`), i.e. trusted text in two places,
+and the crash loop's `Save` law would have to prove the eager `WalSaveCommitLe` from the reader's facts
+(the claim that a synced `SaveSnap`'s base is covered by the later `Save`'s commit, or that the eager
+fold's last index is at least the read's). (c) needs neither: the invariant already holds the eager
+commit-le, and the contract need not say it. That claim was therefore not checked.

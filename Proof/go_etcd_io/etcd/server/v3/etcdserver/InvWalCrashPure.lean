@@ -318,6 +318,15 @@ theorem histReadsK_fold {v : WalView} {σ : StorContents} {Hs : WalHist} (h : Hi
   rw [List.filter_eq_self.2 hall] at h1
   rw [h1]; unfold recsAt; rw [hp]
 
+/-- (B2, 2026-11-28) **The reads give the eager fold's commit-le** (at a commit keeping every record, the
+read's fold is the eager one): what `walRecs` carries since walcommitle, for the stop's take. -/
+theorem histReadsK_commitLe {v : WalView} {σ : StorContents} {Hs : WalHist} (h : HistReadsK v σ Hs) :
+    walCommitLeFrom walFresh Hs := by
+  obtain ⟨c, hc, hall⟩ := walKeep_all_exists (uint.nat (walLastHS Hs).Commit') Hs
+  have h2 := (h c hc).2
+  unfold walCommitLeAt at h2
+  rwa [List.filter_eq_self.2 hall] at h2
+
 /-- **The eager fold, with its base at or below its commit, gives the reads** (a first start's history,
 a restart's as the slot `wal.restartOk` states it): at every commit from the last on, the fold. -/
 theorem histReads_of_fold {Hs : WalHist} {σ : StorContents} (hf : walFoldChkFrom walFresh Hs = some σ)
