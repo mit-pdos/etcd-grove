@@ -27,11 +27,12 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 open github_com.hashicorp.raft in
 /-- `i.SetUint64(key, v)` sets `st.ints[key] := v`; returns `nil`. -/
 abbrev github_com.hashicorp.raft.InmemStore.SetUint64.spec : Prop :=
-  ∀ (γs : InmemNames) (i : Loc) (st : StableAbs) (key : GoSlice) (kb : List w8) (v : w64),
+  ∀ (γs : InmemNames) (i : Loc) (key : GoSlice) (kb : List w8) (v : w64),
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
-      kvView γs st ∗ key ↦*□ kb) -∗
-    (kvView γs { st with ints := st.ints.insert kb v } -∗ Φ #interface.nil) -∗
+      key ↦*□ kb) -∗
+    (|NC={⊤,∅}=> ▷ ∃ st, kvView γs st ∗
+      (kvView γs { st with ints := st.ints.insert kb v } ={∅,⊤}=∗ Φ #interface.nil)) -∗
     WP (App (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"SetUint64")) (Val #key))
       (Val #v)) {{ Φ }}
 
