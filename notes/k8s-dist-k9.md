@@ -426,3 +426,40 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `cfgSet__add`, with `histLen` among their callees; `etc/gen-link.py --k8setcd3`).
 - **No `sorry`**, no axiom. The two WIP files end in `done`, so they do not build; neither is in `Link`.
   The WIP commits are build iterations.
+
+## Handoff K9-5 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Merges**: none (lean not fetched again; KGO-5's `k8s-dist-g11` already merged in K9-4).
+- **Proved and linked**: `cfgSet.add` (`cfgSet__add.lean`) and `histHashes.skipTo` (`histHashes__skipTo.lean`),
+  both in `etc/link-lean-first-k8setcd3.txt` (`histHashes__skipTo: histHashes__canonLocked histHashes__intern
+  histLen`, `cfgSet__add: histHashes__canonical storeHash storeEqual pendEqual`), `Link.lean` regenerated.
+  Build of record: fk-lean2, target `Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Link` at
+  `328373cafc`, exit 0 (12214 jobs). No specs changed.
+- **New defs module `SharedLand.lean`** (pure Lean twins read off the Go): `RevsL`, `objKeyL`,
+  `decItemRVsL` (`decodeItemRVs`, as `decWEventsL`), `showsL`, `landOkL` (`landings`' `add` test),
+  `landingsL` (Go's order; `sort.Search` over the sorted anchors is `dropWhile (· < rv)`), `GoSettle R b full
+  x y := SettleWith (fun c w => (landingsL R c.st.st.rv w b full x y).map uint.nat)`, `SettleOk` (bounds), and
+  `revsOwn r R` (anchors `↦*□`, sorted; `keyRevsOwn` for `byKey`/`fastByKey`: `↦$□` map, `[]` off the map).
+- **New specs** (`Spec/.../k8s/etcd3/`): `shows` (returns `showsL`), `landings` (returns a fresh slice
+  of `landingsL R c.st'.rv' …`), `settle` (the result's configurations are exactly `GoSettle`'s from `g`, each
+  `HWf`; premise `HWf g.st ∧ SettleOk R y g`). `settle`'s `SettleOk` is a DRAFT guess at the bounds the proof
+  needs (skipTo's `t < 2^63`, `l - 1` with `l ≥ 1`). Checked with `etc/lean-check.py` on fk-lean2 (0 errors);
+  not yet in a `lake build` of record, no proofs yet, not in `Link`.
+- **Edit loop that worked** (much faster than a build per edit): copy the file into fk-lean2's worktree
+  `/home/ubuntu/eg/wt/k8s-dist-k9/2026-11-28` and run `etc/lean-check.py -a FILE` there (script
+  `scratchpad/rcheck.sh` of this session: `scp` then `ssh … python3 etc/lean-check.py`). Always pass `-a`:
+  without it the check sometimes returns at once with "NOT YET CHECKED". Don't run it while a `fklean1-check.sh`
+  build of the same worktree is going.
+- **Proof notes** (new): a range loop whose value variable shares the index's name (`for _, i := range`) leaves
+  `i✝`: `rename_i iu_ptr` (renames only the LAST inaccessible: `rename_i a b` also renames `inst✝`), then
+  `irename: (iu_ptr ↦ zero_val w64) => iu`. A slice index `s[e]` comes out as `if 0 ≤ sint.Z e ∧ … then …
+  else Panic`: prove the bound and `simp only [Hb, _root_.and_self, ↓reduceIte]` before
+  `wp_load_slice_index`. A loop invariant's persistent part (`[∗list] … histOwn`) comes back spatial after
+  `wp_for`: `icases Hl with #Hl` before a `wp_join … with [...]`, else the join's branches see the stale one.
+  `iframe` splits `[∗list] _;_ ∈ cs ++ [x]; gs ++ [g]` itself, leaving the singleton
+  (`BigSepL2.bigSepL2_singleton`). In `SharedLand` `||` on `Bool` clashes with Iris's notation: `Bool.or`.
+- **Left (step 1)**: prove `shows` (needs `decodeItemRVs`' spec and proof: a loop over `parseRV`/`decodeObj`,
+  `decItemRVsL`'s twin; and `decodeWEvents`' spec), `landings` (closure `add` over a captured slice,
+  `sort.Search` with a closure: Perennial's spec), then `settle` (worklist invariant, §2.2), then
+  `SharedModel` (`bound`, `target`, `stepIdx`; `targetL` exists, `boundL` not yet). Link each when proved.
+- **No `sorry`**, no axiom, no statement/premise/trusted-text change.
