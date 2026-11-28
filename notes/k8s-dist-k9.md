@@ -965,3 +965,57 @@ the program logic: no WP proof sees `n`, and Perennial has no step-count resourc
 - **Merged lean** `8cd6ffac10` (clean); the Perennial pin is lean's, `e2eda8223`.
 - **Build of record** (fk-lean2, targets etcd3 `Link`, `SharedAccept`, `InitLinked`, `k8s.all.TopLevelRobustness`) at `0d3b1b5ebc`: passed, exit 0.
 - **No `sorry`**, no axiom added; no top-level statement touched.
+
+## Handoff K9-20 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **`gen-init --check`**: passes on fk-lean2's worktree (`298 files up to date`, with
+  `PERENNIAL_DIR=/home/ubuntu/eg/perennial-e2eda8223`: the remote worktree has no `.lake/packages`).
+  K9-19's `KeyError` on `internal.gomodel` was the local checkout's incomplete Go/translations, not the
+  branch: nothing to fix.
+- **`HistoryRevs`' post already says the anchors are sorted**: `revsOwn r R` carries
+  `R.anchors.Pairwise (uint.nat · < uint.nat ·)` (Go's `slices.Sort` over a map's keys: no duplicates,
+  so `<`). Its spec is unchanged.
+- **`Seeded.NoForeign`** (`Spec/.../etcd3/Seeded__NoForeign.lean`, proof beside it, no `sorry`), linked
+  (`Seeded__NoForeign: isWrite HistoryRevs`). Premises are `HistoryRevs`', with `histCost xs ≤ 2^62` as
+  the explicit hypothesis (`RunSizeOk`, D7). Post: `b = true → ∃ m, NoForeignOk s.st0'.rv' xs m`, where
+  `NoForeignOk f xs m` (in the new `NoForeignDefs.lean`) says that the revisions of the successful writes
+  above `f` are exactly `f+1..m` (Go's count test, made into a cover by `count_cover`), and that
+  `AnchorsOk (List.range (m+1)) xs` holds: every revision any operation shows is at most `m`
+  (Go's last-anchor test, `le_getLast_of_sorted`, `anchorsOk_mono`).
+- **`SeedShared`'s pure half** (`SeedSharedDefs.lean`): `seedSharedL r1 r2 : HSt` (the empty store at
+  revision 1, each revision before a seed padded with the previous store (`padL`), the seeds `kA` at
+  `r1` and `kB` at `r2`, `seedStepL`), and `seedSharedL_ok`: for `1 < r1 < r2`, `HWf`, every item's
+  revision `≤ st.rv`, `st.rv = r2 ≥ 2`, at most two items (what `Seeded.SharedModel` and `FullComplete`
+  take). **`SeededAt`** (`Spec/.../etcd3/SeededAt.lean`, proof beside it, no `sorry`), linked
+  (`SeededAt: splitKey setItem`): for `1 < r1 < r2 < 2^63`, the result holds `seedSharedL r1 r2`
+  (`storeOwn s.st0'`, `s.h0' ↦* hs` owned, which a caller persists for `SharedModel`, and the
+  `storeOwn` big separating conjunction).
+- **Build of record** (fk-lean2: etcd3 `Link`, `SharedAccept`, `InitLinked`, `k8s.all.TopLevelRobustness`)
+  at `0667917c80`: passed, exit 0.
+- **No `sorry`** and no axiom were added, and no top-level statement was touched.
+
+### What is left for K9 to be complete
+
+Every function in §1's table is proved and linked except **`SeedShared`** itself. Its pure half is done:
+`seedSharedL` and `SeededAt`. Its `cli.Put` half (the revisions `r1 < r2` that the cluster gives, and the
+loop over the two Puts) needs K8's client `Put` spec, so it is K8's or K12's (§1). Once that spec
+exists, the proof is `SeededAt`'s with each `Put` in place of the literal revision, and its post is
+`SeededAt`'s with `r1 < r2` taken from the two responses. Nothing else in K9's scope is open.
+
+### What K10 and K12 need from K9
+
+- **K10**:
+  - `RevsBelow` at `2^62` for every recorded operation (`CheckShared`'s premise, K9-12).
+  - `RunSizeOk` (`histCost xs ≤ 2^62`), taken by `HistoryRevs` and `NoForeign`, both from time
+    receipts (D7, `notes/k8s-dist-statement-packet.md`).
+  - `HistOpOk`: the generator's `PreRV` is 0 or 8 bytes long, and a successful list's items decode
+    (at the codec).
+- **K12**:
+  - The chain: K8's `SRun` ⇒ `searchRun_accepts` ⇒ `CheckShared`'s `Illegal ⇒ ¬ Linearizable` ⇒
+    `NoForeign`'s `NoForeignOk` (the `realCheck` argument, consumed with K8).
+  - The seeded store from `SeedShared` (or `SeededAt` when the history is re-checked), with its
+    history slice persisted before `SharedModel`.
+  - `etc/gen-init.py` entries for the dist package (`Init`/`InitLinked`; today only `Base.lean`, K9-19),
+    which `Main` needs.
+  - The thin exported wrappers (`Model`, `NewCache`, `RealCheck`, `FailureFree`, `NewStoreOnly`,
+    `IsWrite`, `Rejections`, `SetFeatures`: one call each of a proved function).
