@@ -101,7 +101,8 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     ipureintro; exact ⟨rfl, fun _ => Hif⟩
   subst Hv
   cases b
-  · rw [if_neg (fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)),
+  · rw [if_neg (by simp only [decide_eq_true_eq]
+        exact fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)),
       if_pos (decide_eq_true rfl)]
     ihave %Hlts := ownSlice_len $$ Hts
     (try wp_auto)
