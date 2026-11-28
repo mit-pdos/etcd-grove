@@ -83,10 +83,11 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
   · cases hC : C' !! ikey.mk prev n hv with
     | none =>
       iexists []
+      rw [Option.getD_none]
       isplitr
-      · iapply ownSlice_nil
+      · iapply (show ⊢ (zero_val GoSlice ↦* ([] : List Loc) : IProp GF) from ownSlice_nil _)
       isplitr
-      · iapply ownSliceCap_nil
+      · iapply (show ⊢ (ownSliceCap Loc (zero_val GoSlice) (DFrac.own 1) : IProp GF) from ownSliceCap_nil)
       isplitr
       · iapply BigSepL.bigSepL_nil.2; itrivial
       isplit
@@ -99,6 +100,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       icases (BigSepM.bigSepM_delete hC).1 $$ HCs with ⟨⟨%ns, Hns, Hcap, #Hcn⟩, Hrest⟩
       iexists ns
       iframe
+      iframe #
       isplit
       · iintro %sl' Hsl'
         iapply BigSepM.bigSepM_insert_delete.2
@@ -116,7 +118,8 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     ipureintro; word
   wp_for HJ
   wp_if_destruct
-  · have Hb' := And.intro Hj Hif
+  · have Hlt := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+    have Hb' := And.intro Hj Hlt
     list_elem ns (sint.nat j) as v
     simp only [Hb', _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z j) ns _ v Hj $$ [Hns] as Hns
@@ -138,8 +141,22 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       iexists j + W64 1, _
       iframe
       ipureintro; word
-  · (try wp_auto)
-    fail "notfound"
+  · simp only [decide_true, ↓reduceIte]
+    (try wp_auto)
+    wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [$HC] as HC
+    (try wp_auto)
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %lsl ⟨Hl, -⟩
+    simp only [arrayLiteralSize1]
+    wp_apply (wp_slice_append _ ns _ _ (DFrac.own 1)) $$ [$Hns $Hcap $Hl] as %sl' ⟨Hns', Hcap', -⟩
+    (try wp_auto)
+    wp_apply (wp_mapInsert _ mc' C' _ sl') $$ [$HC] as HC
+    (try wp_auto)
+    wp_apply (wp_mapInsert _ mi' I' _ true) $$ [$HI] as HI
+    (try wp_auto)
+    fail "end"
 
 end proof
 
