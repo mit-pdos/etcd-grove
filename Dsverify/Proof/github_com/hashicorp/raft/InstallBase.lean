@@ -513,7 +513,7 @@ theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx : Nat) (Ψ
   · iframe; iframe #
   iintro %X %hi' HX ⟨#Hc, #Hl, HΨ⟩
   unfold durCore
-  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, Hcomp, Hpd, Htp, Hdp, Hlat⟩
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, Hcomp, Hpd, Htp, Hdp, Hlat, Hbp⟩
   ihave %Hmc := compLb_le rc _ X.c mx $$ Hcomp Hc
   ihave %Hml : ⌜mx ≤ latIdxD X.lat⌝ $$ [Hlat]
   · unfold latLb
@@ -522,7 +522,7 @@ theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx : Nat) (Ψ
   obtain ⟨hlog, hlo, hv, ht, hci, ⟨hdl, hpd, hll⟩, ⟨hdc, hrest⟩⟩ := Hok
   imodintro
   iexists { X with A := X.A.delete mn mx hi', lo := Max.max X.lo (mx + 1) }
-  isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+  isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat Hbp]
   · iframe
     ipureintro
     refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hv, ht, hci, ⟨?_, hpd, ?_⟩, ⟨hdc, hrest⟩⟩
@@ -564,6 +564,23 @@ theorem CIdx_term_mono_imp (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (x 
     imodintro; ipureintro; intro _; exact Ht
   · imodintro; ipureintro; intro h'; exact absurd h' h
 
+/-- The boot pin's `lastApplied` bound for a new latest at `x` with `applLb rc x`. -/
+theorem bootPinF_newLat (rc : RCtx GF) (lat lat' : SnapLatest) (pend : Option (Nat × Nat × GoString))
+    (dp : Option DiscPend) (x : Nat) (h : latIdxD lat' = x) :
+    bootPinF rc lat pend dp ∗ applLb rc x ⊢ bootPinF rc lat' pend dp := by
+  iintro ⟨Hb, #Ha⟩
+  unfold bootPinF
+  icases Hb with (Hb | -)
+  · ileft; iexact Hb
+  iright
+  unfold latApplF
+  rcases lat' with _ | ⟨m, b⟩
+  · itrivial
+  dsimp only
+  iright
+  simp only [latIdxD] at h
+  rw [h]; iexact Ha
+
 instance ib_CIdx_timeless (γ : GNames) (k : Nat) (e : Entry) : Timeless (CIdx (GF := GF) γ k e) := by
   unfold CIdx; infer_instance
 
@@ -592,7 +609,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
   · iexact Hnew
   iintro %X HX Hld Hnew
   unfold durCore
-  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, Hcomp, Hpd, Htp, Hdp, Hlat⟩
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, Hcomp, Hpd, Htp, Hdp, Hlat, Hbp⟩
   unfold latestDur
   icases Hld with ⟨Hlok, Hcase⟩
   rcases hp : X.pend with _ | ⟨s0, st0, id0⟩
@@ -605,11 +622,13 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
         | none => rfl
         | some d => obtain ⟨_, _, h, _⟩ := Hok.2.2.2.2.2.2.2.2 d hd; rw [hl] at h; cases h
       imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp [latIdxD]) $$ Hlat with ⟨Hlat, #Hlbn⟩
+      ihave Hbp := bootPinF_newLat rc _ (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b)) _ _ x (by simp only [latIdxD, sinkMeta]; omega) $$ [Hbp]
+      · iframe; iframe #
       imodintro
       iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
       simp only
       try rw [hp]
-      isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+      isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat Hbp]
       · iframe
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, ⟨h9, ⟨h10, h11⟩⟩⟩ := Hok
@@ -646,12 +665,14 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
         · -- no discard pending: the own snapshot becomes the latest, durable
           imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp only [latIdxD, sinkMeta]; omega)
             $$ Hlat with ⟨Hlat, #Hlbn⟩
+          ihave Hbp := bootPinF_newLat rc _ (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b)) _ _ x (by simp only [latIdxD, sinkMeta]; omega) $$ [Hbp]
+          · iframe; iframe #
           imodintro
           iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
           simp only
           try rw [hp]
           try rw [hd]
-          isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+          isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat Hbp]
           · iframe
             ipureintro
             rw [hd] at Hok
@@ -697,12 +718,14 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
           have htx0 : tx = uint.nat m0.Term' := by rw [← he, Heqe]; exact He0.1
           imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp only [latIdxD, sinkMeta]; omega)
             $$ Hlat with ⟨Hlat, #Hlbn⟩
+          ihave Hbp := bootPinF_newLat rc _ (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b)) _ _ x (by simp only [latIdxD, sinkMeta]; omega) $$ [Hbp]
+          · iframe; iframe #
           imodintro
           iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
           simp only
           try rw [hp]
           try rw [hd]
-          isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+          isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat Hbp]
           · iframe
             ipureintro
             rw [hd] at Hok
@@ -743,7 +766,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
         iexists X
         try rw [hp]
         rw [hl]
-        isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+        isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat Hbp]
         · iframe; ipureintro; simp only [hp, hl] at Hok ⊢; exact Hok
         isplitl [HsP0 Hcf0 Hcase]
         · inext
@@ -782,7 +805,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
     iexists X
     try rw [hp]
     rw [hl]
-    isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+    isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat Hbp]
     · iframe; ipureintro; simp only [hp, hl] at Hok ⊢; exact Hok
     isplitl [HsP0 Hcf0 Hfol Happ]
     · inext
