@@ -69,7 +69,7 @@
 // of the trust-boundary axiom snap.Snapshotter.SaveDBFrom.wp_proof and of
 // snapDirInvH (branch etcd-safe-crash-delta-now/2026-11-27; 2026-11-28;
 // meta_link_test.go holds the live measurements, notes/axiom-review/fs-link/
-// the crash harness, not yet run on C):
+// the crash harness; both run on C, notes/axiom-review/fs-link/results.md):
 //
 //	meta_link_no_replace.go       link never replaces: EEXIST,       SaveDBFrom.wp_proof (the keep), snapDirBody
 //	                              atomic with the creation (i)       (fileFreeDur → snapFileAt)

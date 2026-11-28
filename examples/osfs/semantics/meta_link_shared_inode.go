@@ -42,11 +42,14 @@ import (
 // order (fs-v2-r5.md, B1, for create/rename/unlink), so a crash can keep
 // the first and not the second, and never the second alone. Measured live
 // (meta_link_test.go, TestLinkSharedInode: after the link one inode, nlink 2
-// for both names; after the removal nlink 1, the bytes kept; this machine's
-// ext4, 2026-11-28, configuration not confirmed by check.sh). The crash
-// states: notes/axiom-review/fs-link/link.sh snapsave, lreplay.py's (iii)
-// check: NOT YET RUN on C (no loop device or device-mapper on the machine
-// at hand, 2026-11-28).
+// for both names; after the removal nlink 1, the bytes kept; PASS on C
+// through run-models-on-c.sh, fk-lean2, Linux 7.0.0-1017-aws, 2026-11-28).
+// The crash states, measured on C (notes/axiom-review/fs-link/results.md:
+// link.sh snapsave, five runs, 134 crash points, 0 violations): {}, {tmp},
+// {tmp, fn} as one inode with nlink 2 and the stream (after the link's
+// commit, before the unlink's, in the four runs where they committed
+// separately), {fn} with nlink 1; never two inodes, never the removal
+// without the link, never tmp after the directory fsync.
 //
 // Needed for etcd: SaveDBFrom (db.go:39-98, fork 30df685e4) removes the
 // temporary name after the link, without a sync between them; a restart

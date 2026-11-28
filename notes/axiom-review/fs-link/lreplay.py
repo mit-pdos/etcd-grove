@@ -106,7 +106,7 @@ def describe(tree):
 
 work = os.path.join(wd, 'work.img')
 sh('cp', '--sparse=always', base, work)
-marks, npts, bad, seen = [], 0, 0, {}
+marks, npts, bad, seen, per = [], 0, 0, {}, {}
 fd = os.open(work, os.O_RDWR)
 for i, (fl, off, ln, data) in enumerate(entries(logdev)):
     if fl == 'mark':
@@ -123,6 +123,9 @@ for i, (fl, off, ln, data) in enumerate(entries(logdev)):
         why = check(tree, marks)
         key = describe(tree)
         seen.setdefault(key, (i, list(marks), why))
+        last = marks[-1] if marks else '-'
+        per.setdefault(last, {}).setdefault(key, 0)
+        per[last][key] += 1
         if why:
             bad += 1
             print('VIOLATION at entry %d (after %s): %s' % (i, marks[-1:], why))
@@ -132,3 +135,8 @@ print('%s: %d crash points (flush/FUA entries), %d distinct images, %d violation
 for key, (i, mk, why) in sorted(seen.items(), key=lambda kv: kv[1][0]):
     print('  from entry %d (after mark %s): %s%s' % (i, mk[-1] if mk else '-', key,
                                                    '  <-- ' + why if why else ''))
+print('crash points by the last mark before them (image: count):')
+for mk, imgs in per.items():
+    print('  after %s: %d points' % (mk, sum(imgs.values())))
+    for key, n in imgs.items():
+        print('    %d x %s' % (n, key))

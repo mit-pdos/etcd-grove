@@ -50,14 +50,15 @@ import (
 // waits for the data and commits the inode's transaction), so a crash that
 // keeps the link's transaction keeps them. An fsync of the directory commits
 // the whole journal (ext4_force_commit, as in env_journal_order.go).
-// Measurement on C: notes/axiom-review/fs-link/link.sh, scenario snapsave
-// (SaveDBFrom's exact calls under dm-log-writes, every flush/FUA point
-// replayed, recovered by a kernel mount and checked by lreplay.py): NOT YET
-// RUN, as of 2026-11-28 the machine at hand has no loop device and no
-// device-mapper; until it runs, the evidence is the kernel source and
-// round 5's measurement of the same journal order for rename (its `replace`
-// and `segdir` scenarios: a name made after a synced file never showed a
-// partial file in 54 crash points).
+// Measured on C (notes/axiom-review/fs-link/results.md): link.sh, scenario
+// snapsave (SaveDBFrom's exact calls, a 64 KiB stream, under dm-log-writes,
+// every flush/FUA point replayed, recovered by a kernel mount and checked by
+// lreplay.py), five runs on fk-lean2 (Linux 7.0.0-1017-aws, check.sh: "is C",
+// ext4 defaults plus commit=1), 2026-11-28: 134 crash points, 5 distinct
+// images, 0 violations. The .snap.db was absent or held the whole stream at
+// every point, never a prefix or size 0; after the directory fsync's mark it
+// was there with the stream at every point. Scenario snapsave-exist (the
+// link fails with EEXIST): 104 points, the existing file unchanged at each.
 //
 // Needed for etcd: SaveDBFrom (db.go:39-98, fork 30df685e4) creates a
 // temporary file, copies the stream, fsyncs it, links it to <index>.snap.db,

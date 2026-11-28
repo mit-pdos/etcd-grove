@@ -51,11 +51,13 @@ import (
 // TestLinkNeverReplaces (EEXIST, the existing inode, nlink 1 and bytes
 // unchanged) and TestLinkRaceOneWins (5000 rounds of two goroutines linking
 // their own files to one name: exactly one success every round, the name the
-// winner's inode, the other ErrExist), run 2026-11-28 on this machine's ext4
-// (Linux 7.0.0-1014-aws, data=ordered, delalloc, dioread_nolock, barrier),
-// whose configuration check.sh could not confirm (no device node for its
-// dumpe2fs, no loop device for mkfs-mount.sh); the run on C through
-// run-models-on-c.sh is open.
+// winner's inode, the other ErrExist), run on C through run-models-on-c.sh
+// on fk-lean2 (Linux 7.0.0-1017-aws; check.sh: "is C", ext4, block size
+// 4096, data=ordered, delalloc, dioread_nolock, barrier), 2026-11-28: both
+// PASS, the race 5000 rounds, first link won 12, second 4988, never both,
+// never neither (notes/axiom-review/fs-link/results.md). Under crashes
+// (link.sh snapsave-exist, 104 crash points): the existing file kept its
+// inode, nlink 1 and bytes at every point.
 //
 // Needed for etcd: snap.SaveDBFrom (server/etcdserver/api/snap/db.go:39-98,
 // fork 30df685e4) links its synced temporary file to <index>.snap.db and
