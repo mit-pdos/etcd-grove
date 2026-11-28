@@ -447,7 +447,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     icases Hrest with ⟨Hf, Hrest⟩
     unfold dispOpen
     icases Hf with ⟨%lv, %t0, %v0, %d, %x, Hlog, #Hd, #Hx, Hresp, Hdisp, %HK, Hde⟩
-    have hbp := disp_barrier_prep γ rc i (⊤ \ ↑durN) gprotN_diff_durN s n0 (s.log.length + 1 + k)
+    have hbp := disp_barrier_prep γ rc i (⊤ \ ↑durN) dvN_gprot_dur s n0 (s.log.length + 1 + k)
       ⟨s.term, uint.nat lv.Type', d⟩ rfl (by omega) Hpbc.1 f
       iprop(⌜lv.Type' = W8 1⌝ ∗ deferResp (f.[logFuture, go!"deferError"]) (fun _ => iprop(True)))
       iprop(⌜lv.Type' = W8 0⌝ ∗ ∃ n : Nat,
@@ -535,7 +535,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     icases Hifs with ⟨%logsI, %stableI, %snapsI, %transI, %fsmI, %rpcCh, %eof, #Hlogs, #HlogStore, -⟩
     unfold isLogStore
     icases HlogStore with ⟨-, -, -, #HSL, -, -⟩
-    have hib := inflight_bound γ rc i s (⊤ \ ↑durN) gprotN_diff_durN fs0
+    have hib := inflight_bound γ rc i s (⊤ \ ↑durN) dvN_gprot_dur fs0
     iapply wp_ncmod _ _ rfl (durFactL γ rc i (E := ⊤) (by solve_ndisj) s hib)
     isplitl [Hsrv Hfs0]
     · iframe Hsrv; iframe #; iexact Hfs0

@@ -237,7 +237,7 @@ theorem mainOwnAt_leader_cfg [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : 
   · iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ ∗ leaderIs γ s.term i ∗ llogIdx γ s.term (lastCfgIdx s.log) e0)
       iprop(⌜ent s.log (lastCfgIdx s.log) = some e0⌝)
     · iintro ⟨⟨#HI, #Hl, #Hx⟩, Hs⟩
-      iapply llogIdx_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s (lastCfgIdx s.log) e0
+      iapply llogIdx_leader γ (⊤ \ ↑durN) dvN_gprot_dur i s (lastCfgIdx s.log) e0
       iframe; iframe #
     iframe; iframe #
   iintro ⟨Hsrv, %Hent0⟩

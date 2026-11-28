@@ -9,7 +9,6 @@ module
 
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Crash
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
-public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 
@@ -51,6 +50,12 @@ instance dv_termCouple_timeless (γ : GNames) (i : SID) (t : Nat) :
 instance dv_cidxCouple_timeless (γ : GNames) (i : SID) (c : Nat) :
     Timeless (cidxCouple (GF := GF) γ i c) := by
   unfold cidxCouple; infer_instance
+
+/-- The main goroutine's view agrees with the crash state's (no pending step). -/
+theorem dvN_gprot_dur : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
+
+theorem dvN_dur_term : (↑durN : CoPset) ⊆ ⊤ \ ↑termN := by
+  unfold durN termN raftN; solve_ndisj
 
 /-- The main goroutine's view agrees with the crash state's (no pending step). -/
 theorem srvV_agree (rc : RCtx GF) (X : SrvDur) (s : SState) :
@@ -156,7 +161,7 @@ theorem srvV_facts (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
         (∀ k e, ent s.log k = some e → e.kind = kConfig → cfgValid γ.srvs (γ.cv e.data)) ∧
         (∀ k e, ent s.log k = some e →
           e.kind = kCommand ∨ e.kind = kNoop ∨ e.kind = kBarrier ∨ e.kind = kConfig)⌝ := by
-  have h := srvOwn_facts (GF := GF) γ (⊤ \ ↑durN) gprotN_diff_durN i s
+  have h := srvOwn_facts (GF := GF) γ (⊤ \ ↑durN) dvN_gprot_dur i s
   iintro ⟨#HI, #Hd, Hv⟩
   iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ) _ h $$ [$Hd $Hv $HI]
 
@@ -168,7 +173,7 @@ theorem srvV_llogIdx_leader (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) 
   have h : iprop(Inv (GF := GF) γ ∗ leaderIs γ s.term i ∗ llogIdx γ s.term k e) ∗ srvOwn γ i s ⊢
       |={⊤ \ ↑durN}=> srvOwn γ i s ∗ ⌜ent s.log k = some e⌝ := by
     iintro ⟨⟨#HI, #Hl, #Hx⟩, Hs⟩
-    iapply llogIdx_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s k e
+    iapply llogIdx_leader γ (⊤ \ ↑durN) dvN_gprot_dur i s k e
     iframe; iframe #
   iintro ⟨#HI, #Hd, Hv, #Hl, #Hx⟩
   iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s _ _ h $$ [$Hd $Hv]
@@ -178,7 +183,7 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)] in
 /-- `gprot.srvOwn_durLb` through the view. -/
 theorem srvV_durLb (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={⊤}=> srvV rc s ∗ durLb γ i s.dur.1 := by
-  have h := srvOwn_durLb (GF := GF) γ (⊤ \ ↑durN) gprotN_diff_durN i s
+  have h := srvOwn_durLb (GF := GF) γ (⊤ \ ↑durN) dvN_gprot_dur i s
   iintro ⟨#HI, #Hd, Hv⟩
   iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ) _ h $$ [$Hd $Hv $HI]
 

@@ -811,7 +811,7 @@ theorem github_com.hashicorp.raft.Raft.leaderLoop.wp_proof
           wp_apply (wp_hasVote cfg ss DFrac.discard i) $$ [$Hss] as -
           · ipureintro; exact Hssok.1
           iapply wp_ncmod _ _ rfl (durFact γ rc i (E := ⊤) (by solve_ndisj) s1 iprop(gprot.Inv γ) _
-            (cmtIdx_dur γ (⊤ \ ↑durN) gprotN_diff_durN i s1 (uint.nat li) (by omega)))
+            (cmtIdx_dur γ (⊤ \ ↑durN) dvN_gprot_dur i s1 (uint.nat li) (by omega)))
           isplitl [Hsrv]; · iframe; iframe #
           iintro ⟨Hsrv, #Hcmtl⟩
           ihave #Hclc : (⌜li ≠ li ∨ uint.nat li ≤ n0m⌝ ∨

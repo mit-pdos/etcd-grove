@@ -96,9 +96,9 @@ theorem github_com.hashicorp.raft.Raft.verifyLeader.wp_proof
         ⌜snapLe sc s' ∧ s'.term i = s.term ∧ s'.dur i = s.dur.1 ∧ s'.llen s.term = s.log.length⌝) ∗
         llogPre γ s.term s.log) := by
     iintro ⟨⟨#HI, #Hl, #Hs⟩, Hsrv⟩
-    imod srvOwn_now_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s sc $$ [$HI $Hsrv $Hl $Hs]
+    imod srvOwn_now_leader γ (⊤ \ ↑durN) dvN_gprot_dur i s sc $$ [$HI $Hsrv $Hl $Hs]
       with ⟨Hsrv, %sv, #Hsv, %Hsv⟩
-    imod llogPre_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s $$ [$HI $Hsrv $Hl] with ⟨Hsrv, #Hpre⟩
+    imod llogPre_leader γ (⊤ \ ↑durN) dvN_gprot_dur i s $$ [$HI $Hsrv $Hl] with ⟨Hsrv, #Hpre⟩
     imodintro
     iframe Hsrv
     isplitr

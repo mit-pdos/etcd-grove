@@ -370,7 +370,7 @@ theorem termLb_bound (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) 
   iinv Hc with ⟨%t, >Ht, >Htv⟩ Hclose
   iunfold srvDurInv at Hd
   icases Hd with ⟨#Hd, -⟩
-  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑termN) durN_diff_termN $$ Hd
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑termN) dvN_dur_term $$ Hd
   imod Hacc $$ Hnc with ⟨Hnc, HX, Hcl2⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩
   unfold durBody

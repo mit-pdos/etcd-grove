@@ -43,7 +43,7 @@ theorem github_com.hashicorp.raft.commitment.setConfiguration.wp_proof
   have hdomN : γ.cv eN.data = srvVoters ss := by rw [hcv, HeNd]; exact cfgDec_encode _ _ Hssok
   ihave Hf := durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ ∗ leaderIs γ s.term i)
     iprop(llogPre γ s.term s.log)
-    (by iintro ⟨⟨#HI, #Hl⟩, Hs⟩; iapply llogPre_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s; iframe; iframe #)
+    (by iintro ⟨⟨#HI, #Hl⟩, Hs⟩; iapply llogPre_leader γ (⊤ \ ↑durN) dvN_gprot_dur i s; iframe; iframe #)
     $$ [Hsrv]
   · iframe; iframe #
   iapply (wp_ncfupd _ _ rfl)
@@ -67,7 +67,7 @@ theorem github_com.hashicorp.raft.commitment.setConfiguration.wp_proof
     iprop(Inv γ ∗ leaderIs γ s.term i ∗ ccfgOwn γ i s.term p ∗ ccfgOwn γ i s.term p)
     iprop(ccfgOwn γ i s.term (lastCfgIdx s.log) ∗ ccfgOwn γ i s.term (lastCfgIdx s.log))
     (by iintro ⟨⟨#HI, #Hl, H1, H2⟩, Hs⟩
-        iapply installCfg_upd γ (⊤ \ ↑durN) gprotN_diff_durN i s p; iframe; iframe #)
+        iapply installCfg_upd γ (⊤ \ ↑durN) dvN_gprot_dur i s p; iframe; iframe #)
     $$ [Hsrv Hcc Hcc']
   · iframe; iframe #
   wp_auto
