@@ -292,3 +292,44 @@ from `hoth` (and from its two uses `hoth σ cs hcs ...`), then rebuild `...etcd.
 **Next**: fix line 199; the store's Txn premise of `pfxLocal_txn` (keys of `srvRunTxn`'s changes = its ops'
 keys, compare-put/compare-delete/else-get under `/registry/`); then step "K8-3" (`pMF` as above, `kInvD` over
 `kvPfxHP`, `kOkD_foreign` statement first).
+
+## Handoff K8-6 (2026-11-28)
+
+**Build fixed**: `KVPfxHist.lean:199` (`hoth`'s unused `σ` dropped); `...etcd.dist.KVPfxHist` builds (fk-lean1).
+
+**`pfxLocal_txn`'s premise for the store** (`Proof/.../k8s/dist/PfxTxn.lean`, new): `srvOps_keys` (the server's run of a
+model transaction's operations changes only their keys, puts and deletes), `pfxLocal_txnOf` (a `linkv.txnOf cs t e`
+whose operations' keys are under `p` is `PfxLocal p`), `pfxLocal_delOp`, and the store's two Txns:
+`pfxLocal_putTxn`/`pfxLocal_delTxn` (`opOf lk le (k8s.putTxn k v rev g)`/`(k8s.delTxn k rev g)`, `p <+: k`).
+
+**`pMF`** (`Proof/.../k8s/dist/SharedPend.lean`, new, no sorry): `fpost` (silent `SReach`, a non-wrapping `PStep`,
+`SReach`), `fInit h0` (= `SReach h0 ⟨h0, []⟩`, closed), `pSeqF`/`pMF h0 dec` (same state type `linkv.PSet HSt Input`,
+so `k8setcd3S`'s `rep`/`ioOk` carry over), `pMF_step`, `pSeqF_step_of` (the owner's step), `pSeqF_step_some`, `FClosed`
+(+ `fInit_closed`, `fpost_closed`, `pSeqF_step_closed`, `FClosed.foreign`, `FClosed.pend`), `SRun.reach_pre`,
+`pSeqF_run`, `pSeqF_run_nonempty`, and **`pMF_run`**: `List.Forall₂ (fun a p => dec a = some (p.1, ansOf p.2)) l xs →
+run (pMF h0 dec) (pMF h0 dec).init l = some S' → ∃ c', SRun h0 ⟨h0, []⟩ xs c'` (K8-8's input to `searchRun_accepts`).
+
+**`kInvD` started** (`Proof/.../k8s/dist/StoreInv.lean`, new, definitions only): `regP = "/registry/"`; `keysOkP`/
+`valsOkP` (the workload's keys/values only under `regP`), `OneChangeP`/`KHistID`/`revOwnD` (one change per revision
+under `regP` only), `KOkD` (`KOk`'s fields, `closed : FClosed g0 S`, `keys`/`vals` prefix-only), `kInvDW γ c g0 σ₀ σl`
+(`kInvBody` without `etcdKV`: lintest ghost over `pMF g0 decOp` from `fInit g0`, `revOwnD`, `shistOwn`, `KVExt σ₀ σl`,
+`KOkD`), `kInvDBody` (`∃ σl, ghostVar γs ½ (pfxVH regP σl) ∗ kInvDW … σl`), `kInvD` (`inv (kvClientN .@ "k8s")`).
+
+**`kOkD_foreign`'s statement** (in Lean as `kOkD_foreign.law c g0`, an `abbrev`, to be proved as `kOkD_foreign`):
+```
+∀ S σl σ M nx m, CfgD c → KOkD c g0 S σl M nx →
+  σ.compacted = σl.compacted → σ.base = σl.base → σ.changes = σl.changes ++ m →
+  (∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) →          -- pfxChs_same_ext of equal pfxVH regP
+  kvWf c σ → kvWfHist c σ → σ.rev + 1 < 2 ^ 63 →
+  KOkD c g0 S σ M nx
+```
+Proof plan: iterate `FClosed.foreign` `m.length` times from `H.cfg`'s `cf` (NoWrap from `KRelH`'s `σl.rev < 2^63` and the
+bound); `KRelH` at each new revision `r` from `filter_applyChanges_other` (changes not under `regP` keep the view under
+`kpfxD = "/registry/objs"`, a longer prefix) and `KRelS`'s `absK` reading only keys under `kpfxD`; `keysOkP`/`valsOkP` at
+the new revisions: their states agree with `σl.store` under `regP`. Open: `kvWf`/`kvWfHist` of `σ` are premises — the
+caller must get them from the share (foreign keys' mod revisions; a structural lemma `kvWfHist` of every `KVExt`
+state of a well-formed base, or a field of `kvPfxInvP`).
+
+**Next**: prove `kOkD_foreign`; then `kOkD_{ok,list,errW,errR,obs,pend,same}` (port `kOk_*` to `KOkD`: `keysOk_step`/
+`valsOk_step`/`absVals` prefix-only), then `kInvD`'s laws over `kvPfxP_au1H`/`kvPfxP_readAuH` (each firing: catch up
+with `kOkD_foreign`, then the in-process step at `σ`).
