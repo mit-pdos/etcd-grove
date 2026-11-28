@@ -123,7 +123,7 @@ theorem regAll_foreign (P : EtcdKv → Prop) {σl σ : KVState} {m : List (List 
     have hv' : v ∈ (σ.at r).kvs.filter (fun v => decide (regP <+: v.key)) :=
       List.mem_filter.2 ⟨hv, by simpa using hp⟩
     rw [he] at hv'
-    exact hl σl.rev le_rfl v (List.mem_filter.1 hv').1 hp
+    exact hl σl.rev (Nat.le_refl _) v (List.mem_filter.1 hv').1 hp
 
 theorem keysOkP_foreign {σl σ : KVState} {m : List (List mvcc.Change)}
     (hc : σ.compacted = σl.compacted) (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m)

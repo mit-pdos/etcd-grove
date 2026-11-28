@@ -323,7 +323,10 @@ under `regP` only), `KOkD` (`KOk`'s fields, `closed : FClosed g0 S`, `keys`/`val
   kvWf c σ → kvWfHist c σ → σ.rev + 1 < 2 ^ 63 →
   KOkD c g0 S σ M nx
 ```
-Proof plan: iterate `FClosed.foreign` `m.length` times from `H.cfg`'s `cf` (NoWrap from `KRelH`'s `σl.rev < 2^63` and the
+Proved toward it (`StoreInv.lean`, pure): `runFrom_append'`, `filter_runFrom_other`, `at_ext_below` (states at or
+below `σl.rev` are `σl`'s), `at_ext_foreign` (above it, `σ`'s states equal `σl.kvs` under any prefix the new
+revisions do not touch), `regAll_foreign`, **`keysOkP_foreign`, `valsOkP_foreign`** (the `keys`/`vals` fields).
+Proof plan for the rest: iterate `FClosed.foreign` `m.length` times from `H.cfg`'s `cf` (NoWrap from `KRelH`'s `σl.rev < 2^63` and the
 bound); `KRelH` at each new revision `r` from `filter_applyChanges_other` (changes not under `regP` keep the view under
 `kpfxD = "/registry/objs"`, a longer prefix) and `KRelS`'s `absK` reading only keys under `kpfxD`; `keysOkP`/`valsOkP` at
 the new revisions: their states agree with `σl.store` under `regP`. Open: `kvWf`/`kvWfHist` of `σ` are premises — the
