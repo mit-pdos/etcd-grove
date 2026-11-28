@@ -366,3 +366,55 @@ SharedHist.lean SharedList.lean SharedWatchEv.lean` (first file whole, the other
 **Build of record** (fk-lean1, `fklean1-check.sh`, target `...k8s.dist.SharedWatchEv`, commit `02ad74a683`):
 exit 0, `Build completed successfully (5216 jobs)`, no error; no `sorry` in the dist files (the only
 `sorry` warnings are Perennial's generated `internal/sync`, as before).
+
+## Handoff K4-5 (2026-11-28, branch `k8s-dist-k4/2026-11-27`)
+
+Steps 4 and 5 are proved, and step 6 except one lemma. New files (no axiom; edit loop
+`/shared/tmp/k4-5/qc1.sh FILE`: copies one file to fk-lean1's worktree of this branch and runs `lake env
+lean` on it against the oleans there, seconds per check; remove the copied file there before running
+`fklean1-check.sh`, whose checkout an untracked copy of a tracked file would block):
+
+- `SharedWatch.lean`, **step 4** (no `sorry`): `eventsInL_succ`, `evAtL_quiet`; `HRel.ge`, `lt_iff`,
+  `le_iff` (the renaming is strictly increasing on stored revisions), `fits`, `pair_stored`,
+  `hist_stored`, `evAt_stored`; **`HRel.eventsIn_ren`** (the handoff's induction on `xs + yc`, cases
+  (a)-(c)); `changeAtL_objs`, `evAtL_obj`, `HRel.eventsIn_stored` (an event's object carries a stored
+  revision); `map_renEv_fix`/`evsEqL_ren` (renamed events equal to anchored ones are those events);
+  `AnchorIsh A u` (an anchor or one after), `HRel.anchorIsh_pair`, `anchor_pairW`, `eventsIn_anchor`;
+  `evRangeL_ok`; **`HRel.reliableOk`**; `initialEventsL_ren`, `evMaxL_ge`, **`HRel.pair_below`** (the
+  handoff's choice of the search revision for `initialPrefixOkL`), **`HRel.initialPrefixOk`**;
+  **`HRel.watchOk`**: under `HRel`, `OpAnchors` and the search at the target, the cluster's
+  `watchOkL` gives the search's (the bookmark case included).
+- `SharedSettle.lean`, **step 5** (no `sorry`): `SettleL.trans`; **`CRel A n0 e g`** (`HRel` for some
+  `ρ`, `W`; pending lists `Perm`; every pending input a write with an anchored precondition);
+  **`CRel.silent`** (foreign: nothing; reorder: nothing; a pending write with no effect: `drop` at its
+  first index, `removeAtL` at `idxOf` is `erase`; one that changes the store: `land` at
+  `canonL A e.rv (g.rv+1)`, `HRel.skipTo` to `l-1`, then `HRel.write`, the cut from `canonL_cut`),
+  **`CRel.reach`**.
+- `SharedComplete.lean`, **step 6** (WIP): `watchOkL_target` (a watch the cluster allows has its target
+  at most the cluster's revision), `targetL_err`, **`CRel.op`** (one `SRun` step: `errW`, `errR`, `obs`
+  proved; `ok` by `CRel.ok`), **`fullComplete : FullComplete`** (induction on `SRun`; `n0 ≥ 1` from
+  `getLast?`). **`CRel.ok` is `sorry`** (commit `3703c678a7`, marked WIP; the only `sorry`).
+
+**Statement change**: `FullComplete` (`SharedSearch.lean`) now takes K4-4's two seed premises,
+`h0.hist.getLast? = some h0.st` and `∀ g ∈ h0.hist, ∀ it ∈ g.items, it's revision ≤ h0.st.rv`
+(well-formedness of the seeded store the proof uses; not a counterexample). No new G-item.
+
+**Left: `CRel.ok`** (a successful non-watch operation, `y = (kstepL x g.st).2`, `y.Err' ≠ 4`). Plan:
+1. *The cluster's answers are bounded* (new lemmas on `mstepL`/`mlistL`, none exist yet): for
+   `r ≤ g.rv`, `targetL x y r ≤ g.rv`: a "not found"'s `ErrRV` at most the store's revision; a list's
+   past read's revision (else `ETooLarge`) and `ListRV` at most it; a write's `RV` at most `rv + 1`;
+   a read's `MinRV` at most it on success (G10). Then `HRel.skipTo` to `T = targetL x y d.rv`, and
+   `skipToL_rv`: the search at `max d.rv T`.
+2. List (`Kind 4`): `mlistL_ren` (`htgt` from the search at `≥ T`); both stores unchanged.
+3. Otherwise `mstepL_ans_ren` with `AnsRen A ρ x s.items s.rv g.rv y`: `zero` (`ρ_id`), `cut`/`fits`
+   (`stored_cut`, `HRel.fits`), `pre`, `rvA`, `msgA` (`OpAnchors`), `le` (`HRel.le`), `b_lt`
+   (`NoWrap`), `nf`/`wr`/`rd` from the search at `≥ T`; rewrite the cluster's store with `HRel.cur`.
+   Non-write: `kstepL_nonwrite` on both. Write with no effect: `stepRen`, `advanceL_same` on both.
+   Write that changes the store: `mstepL_changed` gives `y.RV = g.rv + 1`, so `T = g.rv` and the search
+   is at `g.rv`; `HRel.write` with `a = b` (the cut is trivial).
+
+**Build of record** (fk-lean1, `fklean1-check.sh`, target `...k8s.dist.SharedComplete`, commit `3703c678a7`):
+exit 1, one error, `SharedComplete.lean:159` (`errW`'s anchored precondition: the arguments of
+`OpAnchors`'s second field in the other order). Fixed in the next commit (`fun hp r => hanc.2.1 r hp`)
+and checked with `lake env lean` against that build's oleans (`qc1.sh`): no error, the only `sorry` is
+`CRel.ok`'s. Rebuild `SharedComplete` with `fklean1-check.sh` first thing in K4-6.

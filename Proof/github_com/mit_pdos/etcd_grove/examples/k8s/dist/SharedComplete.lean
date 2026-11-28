@@ -156,7 +156,7 @@ theorem CRel.op (hn0 : 1 ≤ n0) {h0 : HSt} {e g g₁ g₂ : GCfg} {x : Input} {
         · exact hw
         · exact hpw i hi
       · intro i hi; rcases List.mem_cons.mp hi with rfl | hi
-        · exact hanc.2.1
+        · exact fun hp r => hanc.2.1 r hp
         · exact hpa i hi
     · cases ha
   | errR hw ho =>
