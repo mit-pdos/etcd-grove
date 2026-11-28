@@ -525,6 +525,29 @@ theorem ownIvtT_not_null (t : Loc) (T : RbT Entry) (dq : DFrac) :
   iintro ⟨%tv, Ht, -⟩
   iapply typedPointsto_not_null _ _ _ $$ Ht
 
+instance ownIvtT_persistent (t : Loc) (T : RbT Entry) : Persistent (ownIvtT K t T .discard) := by
+  unfold ownIvtT; infer_instance
+
+/-- A built exact tree made read-only. -/
+theorem ownIvtT_persist (t : Loc) (T : RbT Entry) :
+    ownIvtT K t T (DFrac.own 1) ⊢ |==> ownIvtT K t T .discard := by
+  unfold ownIvtT ownSentinel
+  iintro ⟨%tv, Ht, ⟨%sv, Hs⟩, Hn, %H⟩
+  imod tp_persist _ _ _ $$ Ht with Ht
+  imod tp_persist _ _ _ $$ Hs with Hs
+  imod ownNode_persist K _ _ _ _ $$ Hn with Hn
+  imodintro
+  iexists tv
+  iframe ∗ #
+  ipureintro; exact H
+
+/-- The exact tree's entries are in the tree's order. -/
+theorem ownIvtT_sorted (t : Loc) (T : RbT Entry) (dq : DFrac) :
+    ownIvtT K t T dq ⊢ ⌜IvSorted T.inorder⌝ := by
+  unfold ownIvtT
+  iintro ⟨%tv, -, -, -, %H⟩
+  ipureintro; exact H.2.1
+
 omit K in
 /-- The tree struct as its fields. -/
 theorem ivt_fields (t : Loc) (tv : intervalTree) (dq : DFrac) :

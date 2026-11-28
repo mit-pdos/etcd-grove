@@ -9243,3 +9243,25 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   retryApplyOk`). No top-level statement changes.
 - **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
   independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
+
+## 2026-11-27: the auth verdict as Go's, for every request (nomode X-a3)
+
+- **Spec.** The auth model's verdict vocabulary (`auth/Model.lean`: `granted`, `refusedV`; `auth/PermTree.lean`:
+  `cacheVerdictP`, `cacheEntryIs`; `InvAuth.lean`: `permsAt`, `cacheVerdict`; `FreshCheck.lean`: `permRefusalFrom`;
+  `Latest.lean`: `permVerdictL`) and the cache's specs (`checkKeyInterval`, `checkKeyPoint`, `getMergedPerms`,
+  adt's `Insert_bytes`, `Contains_bytes`).
+- **Defect.** The verdict was stated only for requests of the cache's shape (`reqShape`: non-empty key, point,
+  open-ended or proper range); for the others (`[k, k)`, inverted, empty key) nothing, so the request side needed
+  shape premises (`reqShape`, `kvShapeAll`, `kvDet`), which the decision of 2026-11-27 (no shape premise) removes.
+- **Evidence.** Go's verdict for every class (measured, `d2_*_test.go`): a function of the state once the trees are
+  exact (X-a1: canonical role order; X-a2: exact tree specs). `coversX` states it: `Intersects` of the point for an
+  empty range end, `containsT` of the queried interval on `treeOf` (the tree `getMergedPerms` builds) otherwise.
+- **Change.** As in `notes/nomode-x.md`, "X-a3" (before/after of each definition): `granted`/`refusedV`/
+  `cacheVerdictP`/`cacheVerdict`/`permRefusalFrom` over `coversX`, no `reqShape` guard, no `permKeysOk` premise;
+  the cache entry is the exact trees (`permsAt` over `adt.ownIvtTB`, `cacheEntryIs`: `Tr = treeOf .read …`);
+  `checkKeyInterval` returns `containsT` for every query; `permVerdictL` also carries `permKeysOk` of the latest
+  state (for the bridge `permVerdictL_granted`). Bridges (`PermTree.lean`): `coversX_iff_covers`,
+  `granted_iff_covers` (under `reqShape` and `permKeysOk`), `coversX_emptyKey`, `coversX_point_of_not_lt`. The
+  request side's shape premises stay until N1b.
+- **Decision.** Design X, decided by the user 2026-11-27 (`~/coordinator-notes/plans/nomode-packet.md`); trusted-
+  visible definitions to independent review before landing.

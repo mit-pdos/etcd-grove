@@ -30,14 +30,12 @@ theorem adt.intervalTree.Insert_bytes.wp_proof
     (h_BytesAffineComparable_Compare :
       adt.BytesAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Insert_bytes.spec (GF := GF) (hG := hG) := by
-  intro t L b e bs es v
-  unfold adt.ownIvtB
+  intro t T b e bs es v
+  unfold adt.ownIvtTB
   rw [adt.bytesIvl_eq (GF := GF)]
   wp_start_folded as ⟨Ht, Hb, He, %hlen⟩
-  icases adt.ownIvtK_T adt.bytesKey t L _ $$ Ht with ⟨%T, Ht, %hTL⟩
-  subst hTL
   wp_apply (h_Insert_gen adt.bytesKey (adt.bytesKey_ok h_BytesAffineComparable_Compare)
-    t T #b #e bs es v) $$ [Ht Hb He] as Ht
+    t T #b #e bs es v) $$ [Ht Hb He] as ⟨Ht, -⟩
   · simp only [adt.bytesKey_keyAt]
     iframe Ht
     isplitl [Hb]
@@ -46,9 +44,7 @@ theorem adt.intervalTree.Insert_bytes.wp_proof
     · iapply adt.bytesKeyAt_intro $$ He
     ipureintro; exact hlen
   iapply HΦ
-  icases Ht with ⟨Ht, %hin⟩
-  rw [← hin]
-  iapply adt.ownIvtT_K _ _ _ _ $$ Ht
+  iexact Ht
 
 end proof
 

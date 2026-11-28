@@ -11,11 +11,11 @@ to the end of the key space when `rangeEnd` is `"\x00"` (`isOpenEnded`), with a 
 
 **Permitted**: `permitted st ai key rangeEnd ty` is what `isOpPermitted` decides at one state
 (`store.go`): with auth disabled everything; else the principal `ai` must carry a user name with a
-revision that is not `0` (`granted`), the user must exist, and either has the root role or its
-roles' permissions of the type cover the key (`checkKeyPoint`: some permission contains it) or the
-range (`checkKeyInterval`: the union of the permissions covers every key of `[key, rangeEnd)`,
-which is what an interval tree's `Contains` computes), for a request of the shape the cache
-decides (`reqShape`: a non-empty key, a point, an open-ended or a proper range). The revision
+revision that is not `0` (`granted`), the user must exist, and either has the root role or Go's
+verdict on the request over its roles' permissions of the type holds (`coversX`, nomode X-a3, for
+every request: `checkKeyPoint`'s `Intersects` for a point, `checkKeyInterval`'s `Contains` on the
+interval tree `getMergedPerms` builds, `treeOf`, otherwise; for a request of the shape the cache
+decides, `reqShape`, it is the coverage `covers`, `coversX_iff_covers`). The revision
 check (`ErrAuthOldRevision`: a token minted before a permission change is refused) is a fact of
 its own in the verdict, not of the same state (see `permitted`). `adminOk st ai` is
 `IsAdminPermitted`'s: with auth disabled everything; else a named user that exists and has the
@@ -48,6 +48,8 @@ public import Perennial.Proof.TokSet
 public import Perennial.Golang.Theory.String
 public import Perennial.Std.GMap
 public import Proof.unicode.utf8.Valid
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Contains
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.TreeInsert
 
 @[expose] public section
 
@@ -190,8 +192,9 @@ instance isRoot_decidable (u : User) : Decidable (isRoot u) :=
 /-- **The request's shape the permission cache decides** (the auth plan's S2, `cacheVerdict`):
 a non-empty key, and a range that is empty (a point), open-ended or proper (`key < rangeEnd`).
 The cache's interval trees take the empty key as the top of the key space, the model as its least
-key, and `Contains` of an inverted range is not the model's coverage, so the cache's answer for
-another request is not stated (`permitted` and `refusedV` say nothing of the coverage then). -/
+key, and `Contains` of an inverted range is not the model's coverage: on this shape (and non-empty
+permission keys) Go's verdict `coversX` is `covers` (`coversX_iff_covers`, `PermTree.lean`), which
+the request side's proofs not yet on `coversX` use. -/
 def reqShape (key rangeEnd : GoString) : Prop :=
   key ≠ [] ∧ (rangeEnd = [] ∨ isOpenEnded rangeEnd ∨ go.GoStringLt key rangeEnd)
 
@@ -200,13 +203,61 @@ def reqShape (key rangeEnd : GoString) : Prop :=
 def covers (st : AuthState) (u : User) (op : PermType) (key rangeEnd : GoString) : Prop :=
   if rangeEnd = [] then coversPoint st u op key else coversRange st u op key rangeEnd
 
+/-! ## Go's verdict: the permission cache's trees (nomode X-a3) -/
+
+section xtree
+variable [GooseExts]
+
+instance isOpenEnded_dec : DecidablePred isOpenEnded :=
+  fun e => inferInstanceAs (Decidable (e = [(0 : w8)]))
+
+/-- The interval `getMergedPerms` inserts for the permission `p` (`range_perm_cache.go`): the
+point `[key, key ++ "\x00")` (`NewBytesAffinePoint`) when `rangeEnd` is empty, `[key, "")` (open
+to the end of the key space: `rangeEnd` `nil`) when it is `"\x00"`, else `[key, rangeEnd)`. -/
+def permIvl (p : Perm) : adt.IvlS :=
+  if p.rangeEnd = [] then (p.key, p.key ++ [W8 0])
+  else if isOpenEnded p.rangeEnd then (p.key, [])
+  else (p.key, p.rangeEnd)
+
+/-- The intervals `getMergedPerms` inserts, in order, into the tree of `op` for the permissions
+`ps`: those granting `op` (`readPerms` the permissions granting reads, `writePerms` those granting
+writes, `READWRITE` in both). -/
+def ivlsOf (op : PermType) (ps : List Perm) : List adt.IvlS :=
+  (ps.filter fun p => p.ty.grants op).map permIvl
+
+/-- The interval `checkKeyInterval(key, rangeEnd)` queries: `rangeEnd` `nil` when open-ended. -/
+def queryIvl (key rangeEnd : GoString) : adt.IvlS :=
+  (key, if isOpenEnded rangeEnd then [] else rangeEnd)
+
+/-- The value `getMergedPerms` stores with each interval: `struct{}{}` as an `any`. -/
+def permVal : GoInterface := interface.mkOk (go.GoType.StructType []) (LitV LitUnit)
+
+/-- **The tree `getMergedPerms` builds for `op`** from the permissions `ps` (the user's roles in
+their stored order, each role's permissions in its stored order: `userPerms`): `Insert` of each
+interval in turn into the empty tree (`adt.RbT.insertRB`, the red-black tree the Go code builds,
+its shape included). -/
+def treeOf (op : PermType) (ps : List Perm) : adt.RbT adt.Entry :=
+  (ivlsOf op ps).foldl (fun T x => T.insertRB (x, permVal)) .leaf
+
+open Classical in
+/-- **Go's verdict on a non-root user's request** (`isRangeOpPermitted` with the user's cache
+entry, `range_perm_cache.go`), a function of the state for every request: for an empty `rangeEnd`,
+`checkKeyPoint`'s `Intersects` of the key's point (some interval of the user's permissions of the
+type holds the key); else `checkKeyInterval`'s `Contains` of the queried interval (`queryIvl`) on
+the tree `getMergedPerms` builds (`treeOf`; `adt.containsT`: the scan over the entries `Visit`
+visits). For a request of the shape the cache decides (`reqShape`), in a state with non-empty
+permission keys, it is `covers` (`coversX_iff_covers`); for an inverted range (`rangeEnd` below
+`key`) it depends on the tree's shape. -/
+def coversX (st : AuthState) (u : User) (op : PermType) (key rangeEnd : GoString) : Bool :=
+  if rangeEnd = [] then decide (∃ x ∈ ivlsOf op (userPerms st u), adt.inIvl x key)
+  else adt.containsT (queryIvl key rangeEnd) (treeOf op (userPerms st u))
+
 /-- **The principal `ai` is granted the operation at `st`** (what `isOpPermitted` decides after the
 enabled flag and the revision, `store.go`): a revision that is not `0` (`ErrUserEmpty`: an
-`AuthInfo{}`, no user given), a user that exists, with the root role or whose roles' permissions
-of the type cover the request, for a request of the shape the cache decides (`reqShape`). -/
+`AuthInfo{}`, no user given), a user that exists, with the root role or Go's verdict on the request
+over its roles' permissions of the type (`coversX`), for every request. -/
 def granted (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType) : Prop :=
-  ai.rev ≠ 0 ∧ ∃ u, st.users !! ai.user = some u ∧
-    (isRoot u ∨ (reqShape key rangeEnd → covers st u op key rangeEnd))
+  ai.rev ≠ 0 ∧ ∃ u, st.users !! ai.user = some u ∧ (isRoot u ∨ coversX st u op key rangeEnd = true)
 
 /-- **`isOpPermitted`'s verdict at one state** for the principal `ai` on `[key, rangeEnd)` with an
 operation of type `op` (see the file header): auth disabled, or the principal granted the
@@ -236,15 +287,13 @@ structure AuthView where
   cache : AuthState
 
 /-- **`isOpPermitted` refuses in the view `v`**: auth enabled, and the revision `0`, or below the
-store's, or every user of the name (none, or the one) without the root role and, for a request
-of the shape the cache decides, every user of the name at the cache's state without permissions
-covering the request. -/
+store's, or every user of the name (none, or the one) without the root role and every user of the
+name at the cache's state refused by Go's verdict (`coversX`), for every request. -/
 def refusedV (v : AuthView) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType) : Prop :=
   v.flag.enabled = true ∧
   (ai.rev = 0 ∨ ai.rev < v.rev.revision ∨
     ∀ u, v.user.users !! ai.user = some u → ¬ isRoot u ∧
-      (reqShape key rangeEnd →
-        ∀ u', v.cache.users !! ai.user = some u' → ¬ covers v.cache u' op key rangeEnd))
+      ∀ u', v.cache.users !! ai.user = some u' → coversX v.cache u' op key rangeEnd = false)
 
 /-- **`IsAdminPermitted` refuses**, having read the flag at `sf` and the user at `su`: auth
 enabled, and no principal, an unnamed one (`ErrUserEmpty`), or one whose user does not exist at
@@ -253,10 +302,8 @@ def adminRefused (sf su : AuthState) (ai : Option AuthInfoM) : Prop :=
   sf.enabled = true ∧
   ∀ a u, ai = some a → a.user ≠ [] → su.users !! a.user = some u → ¬ isRoot u
 
-/-- At one state, for a request of the shape the cache decides, a refusal is the verdict's
-negation up to the revision check. -/
-theorem refusedV_diag (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType)
-    (hs : reqShape key rangeEnd) :
+/-- At one state, a refusal is the verdict's negation up to the revision check (every request). -/
+theorem refusedV_diag (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType) :
     refusedV ⟨st, st, st, st⟩ ai key rangeEnd op ↔
       ¬ permitted st ai key rangeEnd op ∨ (st.enabled = true ∧ ai.rev < st.revision) := by
   unfold refusedV permitted granted
@@ -272,7 +319,8 @@ theorem refusedV_diag (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString
       rintro (hf | ⟨-, u, hu', hr | hc⟩)
       · rw [he] at hf; cases hf
       · exact (hu u hu').1 hr
-      · exact (hu u hu').2 hs u hu' (hc hs)
+      · have := (hu u hu').2 u hu'
+        rw [hc] at this; cases this
   · rintro (h | ⟨he, hlt⟩)
     · have he : st.enabled = true := by
         cases hst : st.enabled
@@ -283,12 +331,16 @@ theorem refusedV_diag (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString
       · left; exact h0
       · right; right
         intro u hu
-        have hng : ¬ (isRoot u ∨ (reqShape key rangeEnd → covers st u op key rangeEnd)) :=
+        have hng : ¬ (isRoot u ∨ coversX st u op key rangeEnd = true) :=
           fun hg => h (Or.inr ⟨h0, u, hu, hg⟩)
-        refine ⟨fun hr => hng (Or.inl hr), fun _ u' hu' hc => ?_⟩
+        refine ⟨fun hr => hng (Or.inl hr), fun u' hu' => ?_⟩
         rw [hu] at hu'; cases hu'
-        exact hng (Or.inr fun _ => hc)
+        cases hc : coversX st u op key rangeEnd
+        · rfl
+        · exact absurd (Or.inr hc) hng
     · exact ⟨he, Or.inr (Or.inl hlt)⟩
+
+end xtree
 
 /-! ## Well-formedness of a state's permissions (the request side's premises; the auth plan's S2) -/
 

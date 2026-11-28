@@ -20,6 +20,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Model
+public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
 
 @[expose] public section
 
@@ -85,11 +86,24 @@ theorem not_isRoot_u : ¬ isRoot [go!"r"] := by simp [isRoot, rootRole]
 
 theorem not_isRoot_v : ¬ isRoot ([] : User) := by simp [isRoot]
 
+/-- `setupSt`'s one permission has a non-empty key. -/
+theorem setupSt_permKeysOk (rev : Nat) : permKeysOk (setupSt rev) := by
+  intro r ps h p hp
+  simp only [setupSt, GMap.lookup_insert_eq_iff, GMap.lookup_empty] at h
+  split at h
+  · cases h
+    rw [List.mem_singleton] at hp
+    subst hp
+    decide
+  · cases h
+
 /-- **A point request of `u`**: granted exactly on `[lo, hi)`. -/
-theorem granted_u_point (rev r : Nat) (op : PermType) (k : GoString) (hr : r ≠ 0) (hk : k ≠ []) :
+theorem granted_u_point [GooseExts] (rev r : Nat) (op : PermType) (k : GoString) (hr : r ≠ 0)
+    (hk : k ≠ []) :
     auth.granted (setupSt rev) ⟨go!"u", r⟩ k [] op ↔ inRangeK k := by
   have hs : reqShape k [] := ⟨hk, Or.inl rfl⟩
-  simp only [auth.granted, setupSt_users_u]
+  rw [auth.granted_iff_covers _ _ _ _ _ (setupSt_permKeysOk rev) hs]
+  simp only [setupSt_users_u]
   constructor
   · rintro ⟨-, u, hu, hru⟩
     cases hu
@@ -105,10 +119,11 @@ theorem granted_u_point (rev r : Nat) (op : PermType) (k : GoString) (hr : r ≠
     exact (permR_covers op k).2 hin
 
 /-- **A point request of `v`**: granted nothing. -/
-theorem granted_v_point (rev r : Nat) (op : PermType) (k : GoString) (hk : k ≠ []) :
+theorem granted_v_point [GooseExts] (rev r : Nat) (op : PermType) (k : GoString) (hk : k ≠ []) :
     ¬ auth.granted (setupSt rev) ⟨go!"v", r⟩ k [] op := by
   have hs : reqShape k [] := ⟨hk, Or.inl rfl⟩
-  simp only [auth.granted, setupSt_users_v]
+  rw [auth.granted_iff_covers _ _ _ _ _ (setupSt_permKeysOk rev) hs]
+  simp only [setupSt_users_v]
   rintro ⟨-, u, hu, hru⟩
   cases hu
   rcases hru with hroot | hc
@@ -118,14 +133,14 @@ theorem granted_v_point (rev r : Nat) (op : PermType) (k : GoString) (hk : k ≠
 
 /-- **A principal without a revision** (an `AuthInfo{}`: the user name empty) is granted
 nothing. -/
-theorem granted_rev0 (st : AuthState) (who key rangeEnd : GoString) (op : PermType) :
+theorem granted_rev0 [GooseExts] (st : AuthState) (who key rangeEnd : GoString) (op : PermType) :
     ¬ auth.granted st ⟨who, 0⟩ key rangeEnd op := by
   rintro ⟨h, -⟩; exact h rfl
 
 /-- **The program's verdict is the model's**, for the users of the workload: a point request of
 a non-empty key by `u` or `v` with a revision is granted at `setupSt` exactly when `Permitted`
 says so. -/
-theorem granted_setupSt_iff (rev r : Nat) (op : PermType) (who k : GoString) (hr : r ≠ 0)
+theorem granted_setupSt_iff [GooseExts] (rev r : Nat) (op : PermType) (who k : GoString) (hr : r ≠ 0)
     (hk : k ≠ []) (hw : who = go!"u" ∨ who = go!"v") :
     auth.granted (setupSt rev) ⟨who, r⟩ k [] op ↔ permittedK who k := by
   rcases hw with rfl | rfl
@@ -134,8 +149,10 @@ theorem granted_setupSt_iff (rev r : Nat) (op : PermType) (who k : GoString) (hr
     rintro ⟨h, -⟩; exact absurd h (by decide)
 
 /-- `u`'s range of `[lo, hi)`: granted. -/
-theorem granted_setupSt_range (rev r : Nat) (op : PermType) (hr : r ≠ 0) :
+theorem granted_setupSt_range [GooseExts] (rev r : Nat) (op : PermType) (hr : r ≠ 0) :
     auth.granted (setupSt rev) ⟨go!"u", r⟩ lo hi op := by
+  have hs : reqShape lo hi := ⟨by decide, Or.inr (Or.inr (by decide))⟩
+  rw [auth.granted_iff_covers _ _ _ _ _ (setupSt_permKeysOk rev) hs]
   refine ⟨hr, _, setupSt_users_u rev, Or.inr fun _ => ?_⟩
   have hne : hi ≠ [] := by decide
   simp only [covers, if_neg hne, coversRange, userPerms_u, List.mem_singleton, exists_eq_left]

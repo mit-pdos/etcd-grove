@@ -30,13 +30,10 @@ theorem adt.intervalTree.Contains_bytes.wp_proof
     (h_BytesAffineComparable_Compare :
       adt.BytesAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Contains_bytes.spec (GF := GF) (hG := hG) := by
-  intro t L b e bs es db de dq
-  unfold adt.ownIvtB
+  intro t T b e bs es db de dq
+  unfold adt.ownIvtTB
   rw [adt.bytesIvl_eq (GF := GF)]
   wp_start_folded as ⟨Ht, Hb, He⟩
-  ihave %hs := adt.ownIvtK_sorted adt.bytesKey _ _ _ $$ Ht
-  icases adt.ownIvtK_T adt.bytesKey t L _ $$ Ht with ⟨%T, Ht, %hTL⟩
-  subst hTL
   wp_apply (h_Contains_gen adt.bytesKey (adt.bytesKey_ok h_BytesAffineComparable_Compare)
     t T #b #e db de bs es dq) $$ [Ht Hb He] as %r ⟨Ht, Hb, He, %Hres⟩
   · simp only [adt.bytesKey_keyAt]
@@ -45,14 +42,13 @@ theorem adt.intervalTree.Contains_bytes.wp_proof
     · iapply adt.bytesKeyAt_intro $$ Hb
     iapply adt.bytesKeyAt_intro $$ He
   iapply HΦ
-  ihave Ht := adt.ownIvtT_K _ _ _ _ $$ Ht
   iframe Ht
   (try simp only [adt.bytesKey_keyAt])
   isplitl [Hb]
   · iapply adt.bytesKeyAt_elim $$ Hb
   isplitl [He]
   · iapply adt.bytesKeyAt_elim $$ He
-  ipureintro; intro hq; rw [Hres]; exact adt.containsT_eq _ T hs hq
+  ipureintro; exact Hres
 
 end proof
 

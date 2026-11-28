@@ -419,7 +419,7 @@ PROJECTS = [
         # checks read permission on the keys it returns (`checkLeaseTimeToLiveKeys`,
         # issues/etcd-lease-timetolive-keys-toctou.md).
         # Then (nomode X-a1, 2026-11-27) 18ab647b0 (branch `goose-lean-permsort`, on d26dd5da6;
-        # LOCAL, not yet pushed: --check fails until it is): `permSlice.Less` orders a role's
+        # pushed 2026-11-27): `permSlice.Less` orders a role's
         # permissions by (key, range end), so the stored record is the canonical sorted one
         # whatever the grant history (notes/nomode-x.md; issues/etcd-auth-perm-order-go-version.md).
         rev="18ab647b02772b34e5fd61b3f3c9417bfffab059",

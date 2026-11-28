@@ -125,7 +125,7 @@ end results
 
 /-- **The program's verdict is the model's at the set-up's state**, for a point request of a
 non-empty key by `u` or `v` with a revision (`Model.lean`'s `granted_setupSt_iff`). -/
-theorem authkv_granted_iff (rev r : Nat) (op : auth.PermType) (who k : GoString) (hr : r ≠ 0)
+theorem authkv_granted_iff [GooseExts] (rev r : Nat) (op : auth.PermType) (who k : GoString) (hr : r ≠ 0)
     (hk : k ≠ []) (hw : who = go!"u" ∨ who = go!"v") :
     auth.granted (etcd_auth.setupSt rev) ⟨who, r⟩ k [] op ↔ etcd_auth.permittedK who k :=
   etcd_auth.granted_setupSt_iff rev r op who k hr hk hw

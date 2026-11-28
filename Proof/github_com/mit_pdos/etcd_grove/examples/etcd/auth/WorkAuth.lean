@@ -215,7 +215,9 @@ theorem kvGranted_setupSt_point (r : Nat) (rq : apply.IRRModel) (who k : GoStrin
     rcases hu with h0 | ⟨hw, hw'⟩
     · rw [h0, setupSt_users_empty] at hu'; cases hu'
     · rw [hw] at hu'
-      exact (granted_setupSt_iff r _ op who k hrev hk hw').1 ⟨hrev, u', hu', hc.imp id fun h _ => h⟩
+      exact (granted_setupSt_iff r _ op who k hrev hk hw').1
+        ((auth.granted_iff_covers _ _ _ _ _ (setupSt_permKeysOk r) ⟨hk, Or.inl rfl⟩).2
+          ⟨hrev, u', hu', hc.imp id fun h _ => h⟩)
 
 /-- **The write's grant the history admits**: the stamped request of `rq` granted at some
 `setupSt`, its user one of `who`'s. -/
@@ -245,6 +247,7 @@ theorem granted_setupSt_range_who (r : Nat) (who user : GoString) (rv : Nat) (ke
     (hu : akUser who user) (hg : auth.granted (setupSt r) ⟨user, rv⟩ key e .read)
     (hs : auth.reqShape key e) (he : e ≠ []) :
     who = go!"u" ∧ auth.coversRange (setupSt r) [go!"r"] .read key e := by
+  rw [auth.granted_iff_covers _ _ _ _ _ (setupSt_permKeysOk r) hs] at hg
   obtain ⟨-, u', hu', hc⟩ := hg
   simp only at hu'
   rcases hu with h0 | ⟨rfl, hw⟩

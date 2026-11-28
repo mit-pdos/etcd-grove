@@ -537,6 +537,98 @@ theorem fixup_black_RR (cg : RbColor) (CG : RbCtx E) (ge pe : E) (u s1 t : RbT E
   | leaf => first | rfl | simp [fixup]
   | node cu ul ue ur => simp only [RbT.color] at hu; subst hu; first | rfl | simp [fixup]
 
+/-- **`insertFixup` keeps the entries in order** (nomode X-a3): the in-order list of the tree
+`fixup` leaves is the plugged tree's (recolourings and rotations move no entry across another).
+One case per branch of `fixup`, its overlapping patterns spelled out. -/
+theorem inorder_fixup : ∀ (C : RbCtx E) (t : RbT E), (C.fixup t).inorder = (C.plug t).inorder
+  | .top, t => RbT.inorder_blacken (plug .top t)
+  | .inL .black p e r, t => RbT.inorder_blacken (plug (.inL .black p e r) t)
+  | .inR .black l e p, t => RbT.inorder_blacken (plug (.inR .black l e p) t)
+  | .inL .red .top e r, t => RbT.inorder_blacken (plug (.inL .red .top e r) t)
+  | .inR .red l e .top, t => RbT.inorder_blacken (plug (.inR .red l e .top) t)
+  | .inL .red (.inL cg CG ge (.node .red ul ue ur)) pe s1, t => by
+    rw [show fixup (.inL .red (.inL cg CG ge (.node .red ul ue ur)) pe s1) t =
+        fixup CG (.node .red (.node .black t pe s1) ge (.node .black ul ue ur)) from rfl,
+      inorder_fixup CG]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inL .red (.inL cg CG ge (.node .black ul ue ur)) pe s1, t => by
+    rw [show fixup (.inL .red (.inL cg CG ge (.node .black ul ue ur)) pe s1) t =
+        (CG.plug (.node .black t pe (.node .red s1 ge (.node .black ul ue ur)))).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inL .red (.inL cg CG ge .leaf) pe s1, t => by
+    rw [show fixup (.inL .red (.inL cg CG ge .leaf) pe s1) t =
+        (CG.plug (.node .black t pe (.node .red s1 ge .leaf))).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inL .red (.inR cg (.node .red ul ue ur) ge CG) pe s1, t => by
+    rw [show fixup (.inL .red (.inR cg (.node .red ul ue ur) ge CG) pe s1) t =
+        fixup CG (.node .red (.node .black ul ue ur) ge (.node .black t pe s1)) from rfl,
+      inorder_fixup CG]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inL .red (.inR cg (.node .black ul ue ur) ge CG) pe s1, .node ct tl ze tr => by
+    rw [show fixup (.inL .red (.inR cg (.node .black ul ue ur) ge CG) pe s1) (.node ct tl ze tr) =
+        (CG.plug (.node .black (.node .red (.node .black ul ue ur) ge tl) ze
+          (.node .red tr pe s1))).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inL .red (.inR cg .leaf ge CG) pe s1, .node ct tl ze tr => by
+    rw [show fixup (.inL .red (.inR cg .leaf ge CG) pe s1) (.node ct tl ze tr) =
+        (CG.plug (.node .black (.node .red .leaf ge tl) ze (.node .red tr pe s1))).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inL .red (.inR cg (.node .black ul ue ur) ge CG) pe s1, .leaf =>
+    RbT.inorder_blacken (plug (.inL .red (.inR cg (.node .black ul ue ur) ge CG) pe s1) .leaf)
+  | .inL .red (.inR cg .leaf ge CG) pe s1, .leaf =>
+    RbT.inorder_blacken (plug (.inL .red (.inR cg .leaf ge CG) pe s1) .leaf)
+  | .inR .red s1 pe (.inL cg CG ge (.node .red ul ue ur)), t => by
+    rw [show fixup (.inR .red s1 pe (.inL cg CG ge (.node .red ul ue ur))) t =
+        fixup CG (.node .red (.node .black s1 pe t) ge (.node .black ul ue ur)) from rfl,
+      inorder_fixup CG]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inR .red s1 pe (.inL cg CG ge (.node .black ul ue ur)), .node ct tl ze tr => by
+    rw [show fixup (.inR .red s1 pe (.inL cg CG ge (.node .black ul ue ur))) (.node ct tl ze tr) =
+        (CG.plug (.node .black (.node .red s1 pe tl) ze
+          (.node .red tr ge (.node .black ul ue ur)))).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inR .red s1 pe (.inL cg CG ge .leaf), .node ct tl ze tr => by
+    rw [show fixup (.inR .red s1 pe (.inL cg CG ge .leaf)) (.node ct tl ze tr) =
+        (CG.plug (.node .black (.node .red s1 pe tl) ze (.node .red tr ge .leaf))).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inR .red s1 pe (.inL cg CG ge (.node .black ul ue ur)), .leaf =>
+    RbT.inorder_blacken (plug (.inR .red s1 pe (.inL cg CG ge (.node .black ul ue ur))) .leaf)
+  | .inR .red s1 pe (.inL cg CG ge .leaf), .leaf =>
+    RbT.inorder_blacken (plug (.inR .red s1 pe (.inL cg CG ge .leaf)) .leaf)
+  | .inR .red s1 pe (.inR cg (.node .red ul ue ur) ge CG), t => by
+    rw [show fixup (.inR .red s1 pe (.inR cg (.node .red ul ue ur) ge CG)) t =
+        fixup CG (.node .red (.node .black ul ue ur) ge (.node .black s1 pe t)) from rfl,
+      inorder_fixup CG]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inR .red s1 pe (.inR cg (.node .black ul ue ur) ge CG), t => by
+    rw [show fixup (.inR .red s1 pe (.inR cg (.node .black ul ue ur) ge CG)) t =
+        (CG.plug (.node .black (.node .red (.node .black ul ue ur) ge s1) pe t)).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+  | .inR .red s1 pe (.inR cg .leaf ge CG), t => by
+    rw [show fixup (.inR .red s1 pe (.inR cg .leaf ge CG)) t =
+        (CG.plug (.node .black (.node .red .leaf ge s1) pe t)).blacken from rfl,
+      RbT.inorder_blacken]
+    simp only [plug_inL, plug_inR]
+    exact inorder_plug_congr CG (by simp)
+
 end RbCtx
 
 /-! ## The descent -/
@@ -621,6 +713,28 @@ def RbT.insertAt (z : Entry) : RbCtx Entry → RbT Entry → RbT Entry
 
 /-- **The tree `Insert(z)` leaves**, from the root. -/
 def RbT.insertRB (z : Entry) (T : RbT Entry) : RbT Entry := T.insertAt z .top
+
+/-- `Insert` from the hole of `C`: the descent's tree in the hole, as far as the entries go
+(`RbCtx.inorder_fixup`). -/
+theorem RbT.inorder_insertAt (z : Entry) : ∀ (T : RbT Entry) (C : RbCtx Entry),
+    (T.insertAt z C).inorder = (C.plug (T.insertBST z)).inorder
+  | .leaf, C => RbCtx.inorder_fixup C _
+  | .node c l e r, C => by
+    by_cases h : ivlLt z.1 e.1
+    · rw [show (RbT.node c l e r).insertAt z C = l.insertAt z (.inL c C e r) by
+          simp [RbT.insertAt, h],
+        RbT.inorder_insertAt z l, plug_insertBST_left z C c l e r h]
+    · rw [show (RbT.node c l e r).insertAt z C = r.insertAt z (.inR c l e C) by
+          simp [RbT.insertAt, h],
+        RbT.inorder_insertAt z r, plug_insertBST_right z C c l e r h]
+
+/-- **`Insert`'s entries** (pure; nomode X-a3): the tree `Insert` leaves holds the sorted tree's
+entries with the new one inserted in the tree's order (what `Insert_gen`'s post states). -/
+theorem RbT.inorder_insertRB (z : Entry) (T : RbT Entry) (hs : IvSorted T.inorder) :
+    (T.insertRB z).inorder = ivtInsert z T.inorder := by
+  unfold RbT.insertRB
+  rw [RbT.inorder_insertAt]
+  exact inorder_insertBST z T hs
 
 end entries
 
