@@ -583,14 +583,34 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 		return nil, err
 	}
 
+	// Reference fix (stage 5): a crash inside installSnapshot, after the snapshot was made durable and before the
+	// log was discarded, leaves a log that does not hold the snapshot's last entry but has entries the snapshot
+	// covers (they may conflict with it). Finish the discard (Raft Fig. 13 step 7), as installSnapshot would have.
+	if snapIdx, snapTerm := r.getLastSnapshot(); snapIdx > 0 {
+		first, err := logs.FirstIndex()
+		if err != nil {
+			return nil, fmt.Errorf("failed to find first log: %v", err)
+		}
+		var at Log
+		if first > 0 && first <= snapIdx && (logs.GetLog(snapIdx, &at) != nil || at.Term != snapTerm) {
+			if err := logs.DeleteRange(first, lastLog.Index); err != nil {
+				return nil, fmt.Errorf("failed to discard the log: %v", err)
+			}
+			lastLog = Log{Index: snapIdx, Term: snapTerm}
+			r.setLastLog(snapIdx, snapTerm)
+		}
+	}
+
 	if err := r.restoreFromCommittedLogs(); err != nil {
 		return nil, err
 	}
 
 	// Scan through the log for any configuration change entries.
+	// Reference fix (stage 5, upstream #728): every entry after the snapshot, including those
+	// restoreFromCommittedLogs already applied (it does not take their configurations); the latest
+	// configuration is committed if the restored commit index reaches it.
 	snapshotIndex, _ := r.getLastSnapshot()
-	lastappliedIndex := r.getLastApplied()
-	for index := max(snapshotIndex, lastappliedIndex) + 1; index <= lastLog.Index; index++ {
+	for index := snapshotIndex + 1; index <= lastLog.Index; index++ {
 		var entry Log
 		if err := r.logs.GetLog(index, &entry); err != nil {
 
@@ -599,6 +619,9 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 		if err := r.processConfigurationLogEntry(&entry); err != nil {
 			return nil, err
 		}
+	}
+	if r.configurations.latestIndex <= r.getCommitIndex() {
+		r.setCommittedConfiguration(r.configurations.latest, r.configurations.latestIndex)
 	}
 
 	// Setup a heartbeat fast-path to avoid head-of-line

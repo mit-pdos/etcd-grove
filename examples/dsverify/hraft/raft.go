@@ -2127,11 +2127,16 @@ func (r *Raft) preElectSelf() <-chan *preVoteResult {
 }
 
 // persistVote is used to persist our vote for safety.
+// Verification fork (issues/hraft-persistvote-torn-vote.md; upstream #746, PR #747): the candidate is
+// written before the term. A crash between the two writes then leaves the older vote's term with the
+// new candidate, below the current term (persisted before), so requestVote never takes it for a vote
+// already given in this term; upstream's order left the new term with the older vote's candidate,
+// which requestVote granted again without the log check.
 func (r *Raft) persistVote(term uint64, candidate []byte) error {
-	if err := r.stable.SetUint64(keyLastVoteTerm, term); err != nil {
+	if err := r.stable.Set(keyLastVoteCand, candidate); err != nil {
 		return err
 	}
-	if err := r.stable.Set(keyLastVoteCand, candidate); err != nil {
+	if err := r.stable.SetUint64(keyLastVoteTerm, term); err != nil {
 		return err
 	}
 	return nil

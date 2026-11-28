@@ -582,6 +582,9 @@ on the fork; `39e0c82`'s is upstream's hashicorp/raft#733, reproduced there).
 | `0c7aa12` | with a quorum of one, `VerifyLeader` answers once the FSM has applied every committed entry | `ea6e596`'s wait on the one-voter path | `issues/hraft-verifyleader-single-voter-fsm-lag` |
 | `cc3148d` | `installSnapshot`, keeping the log, takes the latest configuration from the entries after the snapshot | state-machine safety | `issues/hraft-installsnapshot-drops-newer-configuration` |
 | `02f88d5` | `runCandidate` counts the election's votes against the latest configuration's quorum, after the pre-vote | election safety | `issues/hraft-candidate-stale-quorum` |
+| R0 (branch `hraft-r0-fixes`) | `NewRaft` scans every entry after the snapshot for configurations, the latest committed if the restored commit index reaches it | upstream hashicorp/raft#728 (PR #731); dsverify-lab reference `0001` | `issues/hraft-restore-committed-logs-config` |
+| R0 (branch `hraft-r0-fixes`) | `NewRaft` finishes the log discard of an `InstallSnapshot` a crash interrupted | a crash after `sink.Close`, before the discard (our #721 fix's window); dsverify-lab reference `0002` | `issues/hraft-installsnapshot-crash-keeps-log` |
+| R0 (branch `hraft-r0-fixes`) | `persistVote` writes `LastVoteCand` before `LastVoteTerm` | upstream hashicorp/raft#746 (PR #747, the same order) | `issues/hraft-persistvote-torn-vote` |
 
 In-tree after S1 (branch `hraft-fmtsites/2026-11-27`, P4; coordinator-E #48 7227641440, Upamanyu's
 standing decision of 2026-11-24): two `fmt.Errorf` call sites rewritten to format explicitly, since
