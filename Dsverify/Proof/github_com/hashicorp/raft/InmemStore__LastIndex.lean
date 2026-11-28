@@ -42,13 +42,15 @@ theorem github_com.hashicorp.raft.InmemStore.LastIndex.wp_proof :
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc2 HP with HP
   icases (storeInv_unfold γs i _).mp $$ HP with
     ⟨%c, Hgc, Hlow, Hhigh, Hlogsf, Hlogs, Hkvf, Hkv, Hkvintf, Hkvint, Hgl, Hgk, %Hok, #Hpers⟩
-  iapply fupd_wp
-  imod HΦ with HAU
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc3 HAU with ⟨%L, HL, Hclose⟩
   ihave %HLeq := inmemLogs_agree γs _ L c.L $$ HL Hgl
   subst HLeq
   imod Hclose $$ HL with HΦ
   imodintro
+  iframe Hnc
   wp_auto
   wp_apply (sync.RWMutex.wp_RUnlock (i.[InmemStore, go!"l"]) (storeInv γs i))
     $$ [$Hrlocked Hgc Hlow Hhigh Hlogsf Hlogs Hkvf Hkv Hkvintf Hkvint Hgl Hgk] with Hown

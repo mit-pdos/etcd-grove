@@ -61,9 +61,10 @@ theorem github_com.hashicorp.raft.examples.snapstore.Sink.Close.wp_proof
     iNamed HR
     wp_auto
     -- the commit (the linearization point): the latest becomes `newerSnap o m bs`
-    iapply fupd_wp
+    iapply wp_ncfupd _ _ rfl
+    iintro Hnc
     unfold sinkCommit
-    imod Hc with HAU
+    imod Hc $$ Hnc with ⟨Hnc, HAU⟩
     imod lc_fupd_elim_later (E := ∅) $$ Hlc1 HAU with ⟨%old, Hown, Hclose⟩
     unfold ownLatest
     ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hown Hg
@@ -72,6 +73,7 @@ theorem github_com.hashicorp.raft.examples.snapstore.Sink.Close.wp_proof
       $$ Hown Hg with ⟨Hown, Hg⟩
     imod Hclose $$ Hown with HR
     imodintro
+    iframe Hnc
     ipersist Hsl
     cases old with
     | none =>

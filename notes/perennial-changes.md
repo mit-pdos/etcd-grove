@@ -4907,3 +4907,15 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   translated body (`Perennial/Proof/internal/strconv/AtoiBasics.lean`: the fast loop's invariant); corollary
   `internal.strconv.parseInt_fmtInt10_0`. Here `Atoi_dec` is proved from it (`Proof/strconv/Atoi_dec.lean`), once
   the pin includes it.
+
+## 2026-11-28: `sync/atomic`'s Load/Store atomic updates as crash-token updates (hraft_robust, #48)
+
+- **Limitation.** `sync.atomic`'s `LoadUint64`/`StoreUint64` specs take a plain atomic update (`|={⊤,∅}=>`), so a
+  client cannot open an invariant shared with later generations (`inv N (P ∨ crashed ∗ Q)`, `inv_nc_acc`) at the
+  atomic's linearization point. hraft's `termCell`/`cidxCell` openings must also open `srvDurInv` there.
+- **Workaround.** `Dsverify/Proof/github_com/hashicorp/raft/DurHelpers.lean` (stage R4a, branch
+  `hraft-robust-r4a/2026-11-28`): `sync.atomic.wp_LoadUint64_nc`/`wp_StoreUint64_nc`, proved over the TrustedCode
+  impls with `wp_atomic_nc` (no axiom).
+- **Proposed change.** The atomic specs' atomic updates become `ncfupd`s, as the channel specs' already are
+  (`ChanAuBase`): a plain update is one (`ncfupd_of_fupd`), so existing clients are unaffected.
+- **Status.** Not yet proposed.

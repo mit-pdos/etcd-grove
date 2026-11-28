@@ -44,13 +44,15 @@ theorem github_com.hashicorp.raft.InmemStore.GetLog.wp_proof :
   icases (storeInv_unfold γs i _).mp $$ HP with
     ⟨%c, Hgc, Hlow, Hhigh, Hlogsf, Hlogs, Hkvf, Hkv, Hkvintf, Hkvint, Hgl, Hgk, %Hok, #Hpers⟩
   -- the linearization point: the contents are `c.L` while the read lock is held
-  iapply fupd_wp
-  imod HΦ with HAU
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc3 HAU with ⟨%L, HL, Hclose⟩
   ihave %HLeq := inmemLogs_agree γs _ L c.L $$ HL Hgl
   subst HLeq
   imod Hclose $$ HL with HΦ
   imodintro
+  iframe Hnc
   wp_auto
   wp_apply (wp_map_lookup2 go.uint64 (go.GoType.PointerType Log.ty) c.mlog c.lm idx
     (DFrac.own sync.rfrac)) $$ [$Hlogs] with Hlogs

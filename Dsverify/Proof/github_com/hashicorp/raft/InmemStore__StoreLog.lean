@@ -50,8 +50,10 @@ theorem github_com.hashicorp.raft.InmemStore.StoreLog.wp_proof
     isplit
     · ipureintro; rfl
     · rw [Nat.add_zero]; iexact Hp
-  · imod HΦ with HAU
+  · iintro Hnc
+    imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
     imodintro
+    iframe Hnc
     inext
     icases HAU with ⟨%L, HL, Hclose⟩
     iexists L

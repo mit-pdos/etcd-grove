@@ -1050,12 +1050,13 @@ def pendHyps (γ : GNames) (i : SID) (s : SState) : Pend → IProp GF
   | .vote c li lt => candIs γ c s.term li lt
   | .term tp => tpRes γ (some tp)
 
-/-- (hraft_robust L0, R1 §3) **The window resource of a write that fires `p`**: the main goroutine's
-view of its state `s` (lent to the store, so `s` is frozen in the window: only the main goroutine
+/-- (hraft_robust L0, R1 §3) **The window resource of a write that fires `p`** at the state `s` (a
+parameter, so that the writer knows the view it gets back is of its own `s`; the crash law and a store's
+window take `∃ s p`): the main goroutine's view of `s` (lent to the store, so `s` is frozen in the window: only the main goroutine
 changes it), and the law's premises over `s`. The write's caller lends it (the contracts' `W`); the
 write's atomic update gives it back, and the store's crash lemma, if the new contents survived. -/
-def winRes (γ : GNames) (rc : RCtx GF) (i : SID) (p : Pend) : IProp GF :=
-  iprop(∃ s : SState, srvV rc s ∗ pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
+def winRes (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (p : Pend) : IProp GF :=
+  iprop(srvV rc s ∗ pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
 
 /-- (stage 3) **The FSM goroutine's answer to a snapshot request** `f` (`fsmSnapshotCh`): nil with the
 request's fields set to the FSM's position `x ≥ 1` (the end of an item it processed, `batchEnd`), its
