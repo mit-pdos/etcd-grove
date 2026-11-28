@@ -9,6 +9,7 @@ public import Dsverify.Proof.github_com.hashicorp.raft.core.Crash
 public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftRec
 public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.core.LastLock
+public import Dsverify.Proof.github_com.hashicorp.raft.core.CrashLaws
 
 @[expose] public section
 
@@ -632,6 +633,161 @@ theorem srvOwn_ent_durLb {E : CoPset} (hE : ↑gprotN ⊆ E) (s : SState) (x : N
   ipureintro
   refine ⟨?_, hx, hdl⟩
   rw [← proto.ent_take s.log s.dur.1 x hx]; exact he'
+
+instance dpRes_persistent' (s : SState) (dp : Option DiscPend) : Persistent (dpRes (GF := GF) γ i s dp) := by
+  unfold dpRes; rcases dp with _ | _ <;> infer_instance
+
+/-- (hraft_robust R5) **A pending discard's facts during the boot** (persistent; `dpRes`), and the latest
+snapshot's lower bound. -/
+theorem bootDpRes {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLatest) (s : SState)
+    (tp : Option TermPend) (dp : Option DiscPend) :
+    srvDurInvRaw γ rc i ∗ bootV rc A lat ∗ srvVP rc s tp dp ⊢
+      |NC={E}=> bootV rc A lat ∗ srvVP rc s tp dp ∗ dpRes γ i s dp ∗ latLb rc (latIdxD lat) := by
+  iintro ⟨#Hi, Hv, Hsv⟩ Hnc
+  imod (bootOpen γ rc i hE A lat) $$ [Hv] Hnc with ⟨Hnc, %X, %HX, Hc, Hs, Hcl⟩
+  · iframe #; iframe
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  · iframe
+  iunfold durCoreB at Hc
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, H10, H11, H12, #H13, H14⟩
+  ihave #Hll := monoNatLbOwn_get _ _ _ $$ H14
+  imod Hcl $$ %X [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14] Hs with Hv
+  · iunfold durCoreB; iframe; iframe #; ipureintro; exact Hp
+  obtain ⟨hA, hlat⟩ := HX
+  obtain ⟨hs, -, hdp⟩ := Hag
+  subst hA hlat hs hdp
+  imodintro
+  iframe
+  iframe #
+  unfold latLb; iexact Hll
+
+/-- (hraft_robust R5) **Fix 2's discard during the boot**, at `DeleteRange(mn, mx)` with every stored index
+in `mn..mx` (the smallest and largest keys): the window of `.discard d` (`winRes`), and at its commit
+`installDiscard_core` (the log becomes the committed prefix of length `d.x`, the store empty), the snapshot
+store's record to its durable case (its `lastApplied` half back), the frontier to `d.x`, the boot pin at the
+emptied store. (`deleteRange_discard_win`'s boot form: `srvDurInvRaw`, the pin, any `mn`.) -/
+theorem bootDiscard_win (A : LogAbs) (lat : SnapLatest) (s : SState) (d : DiscPend) (D : StableAbs) (g : w64)
+    (mn mx c0 : Nat) (hpre : pendPre γ i s (.discard d))
+    (hall : ∀ k e, A.m.lookup k = some e → mn ≤ k ∧ k ≤ mx) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInvRaw γ rc i -∗ bootV rc A lat -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗
+      srvVP rc s none (some d) -∗ stVS rc D g -∗ pendHyps γ i s (.discard d) -∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c0 -∗ latLb rc d.x -∗ applLb rc d.x -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ ∀ (s' : SState) (hi' : w64), srvV rc s' -∗ stVS rc D g -∗
+        ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+        monoNatAuthOwn rc.dur.comp (1 : Qp).half d.x -∗ durLb γ i d.x -∗
+        ⌜s'.log.length = d.x ∧ lastTerm s'.log = d.st ∧ s'.dur.1 = d.x ∧ s'.term = s.term ∧
+          s'.vterm = s.vterm ∧ s'.vcand = s.vcand ∧ s'.cidx = s.cidx⌝ -∗
+        ([∗list] k ↦ e ∈ s'.log, CIdx γ (k + 1) e) -∗
+        (∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ d.x⌝) -∗
+        bootV rc (A.delete mn mx hi') lat ={⊤ \ ↑storeN}=∗ Ψ) -∗
+      |==> (logWin γ rc i (.del true mn mx) ∗
+      (logWin γ rc i (.del true mn mx) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A' : LogAbs,
+        rc.ownL A' ∗ (∀ hi' : w64, rc.ownL (A'.delete mn mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
+  iintro #HI #Hd Hb Hpw Hv Hst Hh Hpe Hcm #Hll #Happ Hk
+  imod (winRes_makeP γ rc i s (.discard d) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iframe
+  imodintro
+  isplitl [HW]
+  · iunfold logWin; ileft; iexists s, (Pend.discard d); iframe HW; ipureintro; exact ⟨mn, mx, rfl⟩
+  iintro HW
+  iunfold logWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn', %mx', %hop, -⟩)
+  rotate_left
+  · cases hop
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_backP γ rc i s s' (.discard d) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.discard d)) $$ Hpw
+  iintro Hnc
+  imod (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hb] Hnc with ⟨Hnc, %X, %HX, Hc, Hs, Hcl⟩
+  · iframe #; iframe
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro %hi' HL
+  imod Hmask
+  imod Hpw
+  ihave ⟨Hc, Hv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s' none (some d) $$ [Hc Hv]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCoreB at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  icombine Hpend Hpe gives %hpe
+  have hpe' : X.pend = none := hpe.2
+  obtain ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, hpd, hll⟩, hcd, hq5a, hq5b⟩⟩ := Hp
+  obtain ⟨m, b, hlm, hmi, hmt⟩ := hq5b d hdp
+  have hempty : (X.A.delete mn mx hi').m = ∅ := by
+    rw [LogAbs.delete_m]
+    apply GMap.ext
+    intro k
+    rw [crash_lookup_del, GMap.lookup_empty]
+    split
+    · rfl
+    · rename_i hr
+      rcases hk : X.A.m.lookup k with _ | e
+      · rfl
+      · rw [HX.1] at hk
+        exact absurd (hall k e hk) hr
+  unfold latestDur
+  icases Hlat with ⟨Hlok, Hbr⟩
+  rw [hpe']
+  icases Hbr with (%hn | ⟨%m', %b', %hl', (⟨-, %hdn⟩ | ⟨#Hsf, %hdpd, Happl⟩)⟩)
+  · rw [hlm] at hn; cases hn
+  · rw [hdp] at hdn; cases hdn
+  icases Happl with ⟨%a, Happl, %ha⟩
+  have hax : a ≤ d.x := by
+    obtain ⟨ℓ, hℓ⟩ := hdpd
+    rw [hdp] at hℓ
+    cases hℓ
+    exact ha
+  ihave Hc : durCore γ rc i X $$ [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
+  · iunfold durCore
+    rw [hpe']
+    iframe
+    isplitl []
+    · ipureintro
+      exact ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, fun x st id h => (by cases h), hll⟩, hcd, hq5a, hq5b⟩⟩
+    unfold bootPinF latApplF
+    rw [hlm]
+    ileft; ipureintro; right; rw [hdp]; simp
+  try rw [hs]
+  imod (installDiscard_core γ rc i crash_gprot_store X s' d (X.A.delete mn mx hi') c0
+    ⟨hs, hdp, hpe'⟩ ⟨hempty, rfl, rfl⟩) $$ [HI Hc Hv Hcm Hll Happ]
+    with ⟨%X', Hc', Hv', Hcm, #Hlbx, HC, %hX'⟩
+  · rw [htp]; iframe; iframe #
+  obtain ⟨hA', hD', hlat', hpend', hdp', hc', hlo', hlen, hlt, hdur, hterm, hvt, hvc, hcx⟩ := hX'
+  ihave ⟨Hc', -⟩ := (durCore_B γ rc i X').1 $$ Hc'
+  ihave Hpe2 : ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) $$ [Hpe]
+  · iexact Hpe
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlok] with Hb
+  · iunfold durStores
+    rw [hA', hD', hlat', hpend', hdp']
+    inext
+    iframe
+    unfold latestDur
+    rw [hpe']
+    iframe Hlok
+    iright
+    iexists m, b
+    isplitl []
+    · ipureintro; exact hlm
+    ileft
+    rw [hmi]
+    iframe Hlbx
+    ipureintro; rfl
+  rw [htp]
+  rw [hA', hlat', HX.1, HX.2]
+  ihave HΨ := Hk $$ Hpw %X'.s %hi' [Hv'] Hst Hpe2 Hcm Hlbx [] HC [Happl] Hb
+  · unfold srvV; unfold srvVP; iexact Hv'
+  · ipureintro; exact ⟨hlen, hlt, hdur, hterm, hvt, hvc, hcx⟩
+  · iexists a; iframe Happl; ipureintro; exact hax
+  iexact HΨ
 
 end gp
 
