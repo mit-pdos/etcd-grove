@@ -114,6 +114,7 @@ PastRead: parseRV pastRead
 PinnedRead:
 Seeded__Floor:
 Seeded__NoForeign: isWrite HistoryRevs
+SeededAt: splitKey setItem
 shows: decodeWEvents decodeItemRVs
 target: decodeWEvents parseRV pastRead
 bound: parseRV pastRead isWrite

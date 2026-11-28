@@ -28,6 +28,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetAn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetResourceVersion
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PastRead
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PinnedRead
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SeededAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__Floor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__NoForeign
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__SharedModel
@@ -842,6 +843,10 @@ theorem wp_PastRead :
 theorem wp_PinnedRead :
     EtcdGrove.k8s_etcd3.PinnedRead.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.PinnedRead.wp_proof
+
+theorem wp_SeededAt :
+    EtcdGrove.k8s_etcd3.SeededAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.SeededAt.wp_proof wp_splitKey wp_setItem
 
 theorem Seeded.wp_Floor :
     EtcdGrove.k8s_etcd3.Seeded.Floor.spec (GF := GF) (hG := hG) :=
