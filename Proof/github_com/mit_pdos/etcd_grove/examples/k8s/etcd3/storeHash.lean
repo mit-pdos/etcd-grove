@@ -68,6 +68,7 @@ theorem storeHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG))
     imod ownSlice_persist _ _ _ $$ Hf with #Hf
     ihave %Hfl := ownSlice_len $$ Hf
     (try wp_auto)
+    fail "ctx"
     ihave HJ : (∃ (k : w64) (m : w64) (fv : GoString), "k" ∷ i_ptr' ↦ k ∗ "h" ∷ h_ptr ↦ m ∗
         "f" ∷ f_ptr ↦ fv ∗
         "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 6⌝ : IProp GF) $$ [i' h f]
