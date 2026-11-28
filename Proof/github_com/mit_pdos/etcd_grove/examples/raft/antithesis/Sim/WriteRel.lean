@@ -305,6 +305,138 @@ theorem wr_binding (hs : AntSimD R dec S V net xnet) (hok : WriteOk R S G n L1 c
         · exact v8 a hn hp ht hsrc
         · exact (hsrcj a ha hn hsrc).elim
 
+theorem wr_sendable (hok : WriteOk R S G n L1 c cf M p ch tl q) {x : EvalM AppendFact}
+    (h : (x >>= S.sendable) = .ok true) : (x >>= (S₂).sendable) = .ok true := by
+  cases x with
+  | error e => cases h
+  | ok f =>
+    exact rr_sendableIn_mono (fun _ h => h) (fun t l h => ⟨[], by rw [List.append_nil]; exact h⟩)
+      hok.hchain hok.tlDom h
+
+/-- An old fact is outside the node's new announced write. -/
+theorem wr_ackOut (hs : Shape R S) (hok : WriteOk R S G n L1 c cf M p ch tl q) (j : Fin R.N) {a : Fact}
+    (ha : a ∈ S.msgs) (h : AckOut S j a) : AckOut (S₂) j a := by
+  intro u hu hm
+  by_cases hj : j = n
+  · rw [hj, wr_undo_n hs] at hu
+    obtain rfl := Option.some.inj hu
+    exact fun hp => ((hok.pmsgs a).mp hp).2 ha
+  · rw [wr_undo_o hj] at hu; exact h u hu hm
+
+theorem wr_ackInD (hs : Shape R S) (hok : WriteOk R S G n L1 c cf M p ch tl q) {j : Fin R.N} {d : Str}
+    {t k : Int} (h : AckInD S j d t k) : AckInD (S₂) j d t k := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
+  exact ⟨a, hok.msub a ha, h1, h2, h3, h4, h5, wr_ackOut hs hok j ha h6⟩
+
+theorem wr_ackInX (hs : Shape R S) (hok : WriteOk R S G n L1 c cf M p ch tl q) {k j : Fin R.N}
+    {t i : Int} (h : AckInX S k j t i) : AckInX (S₂) k j t i := by
+  obtain ⟨a, ha, h1, h2, h3, h4, h5, h6⟩ := h
+  exact ⟨a, hok.msub a ha, h1, h2, h3, h4, h5, fun hne => wr_ackOut hs hok j ha (h6 hne)⟩
+
+/-- **C4 at the new state.** -/
+theorem wr_net (hs : AntSimD R dec S V net xnet) (hok : WriteOk R S G n L1 c cf M p ch tl q) :
+    NetOkD R (S₂) net := by
+  have hsh := hs.1
+  have hb14 := hs.2.1.1.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+  obtain ⟨n1, n2, n3, n4, n5, n6, n7⟩ := hs.2.2.1
+  obtain ⟨-, -, -, -, pc, -⟩ := hok.pre
+  refine ⟨fun m hm => ?_, fun m hm hty j hj => ?_, n3, fun m hm hty i hsrc hrole hct => ?_, n5, n6, n7⟩
+  · obtain ⟨a1, ⟨i, e1, e2, e3⟩, j, hj, a3⟩ := n1 m hm
+    refine ⟨a1, ⟨i, e1, e2.imp id (fun ⟨k, hk⟩ => ⟨k, Int.le_trans hk (wr_eff hsh hok k)⟩), e3⟩, j, hj,
+      fun he => ?_⟩
+    obtain ⟨b1, b2, b3, b4⟩ := a3 (Int.le_trans (wr_eff hsh hok j) he)
+    exact ⟨fun ht => wr_sendable hok (b1 ht), fun ht => by
+      obtain ⟨f, hf, hfm⟩ := b2 ht; exact ⟨f, hf, hok.msub f hfm⟩, fun ht => hok.msub _ (b3 ht),
+      fun ht i hi => wr_ackInD hsh hok (b4 ht i hi)⟩
+  · obtain ⟨h1, h2⟩ := n2 m hm hty j hj
+    by_cases hk : j = n
+    · rw [hk] at h1 h2 ⊢
+      refine ⟨fun hle => ?_, fun u hu hmd hle => ?_⟩
+      · rw [wr_cf_n hsh, wr_cm_n hsh]
+        rcases h1 hle with ⟨e1, e2⟩ | e
+        · rcases hok.cmono with he | ⟨f1, -, f3⟩
+          · rw [he]; exact .inl ⟨e1, e2⟩
+          · have := (hb14 n).2
+            have hle' : S.currentTerm[n.val]! ≤ uint.Z m.term := hle
+            exact .inl ⟨by omega, Int.le_trans e2 (f3 (by omega))⟩
+        · exact .inr (Int.le_trans e (hok.cge))
+      · rw [wr_undo_n hsh] at hu
+        obtain rfl := Option.some.inj hu
+        rw [hok.pconf, pc]
+        exact h1 (by rw [← hok.pre.2.1]; exact hle)
+    · rw [wr_cf_o hk, wr_cm_o hk, wr_undo_o hk]; exact ⟨h1, h2⟩
+  · by_cases hk : i = n
+    · rw [hk] at hrole hct ⊢
+      obtain ⟨c0, h0, h1⟩ := n4 m hm hty n (by rw [← hk]; exact hsrc) hrole hct
+      obtain ⟨c', h2, h3⟩ := hok.mcGe c0 h0
+      exact ⟨c', h2, Int.le_trans h1 h3⟩
+    · rw [wr_memCommit_o hk]; exact n4 m hm hty i hsrc hrole hct
+
+theorem wr_xnet (hs : AntSimD R dec S V net xnet) (hok : WriteOk R S G n L1 c cf M p ch tl q) :
+    XNetOkD R (S₂) xnet := fun x hx => by
+  obtain ⟨i, hi⟩ := hs.2.2.2.1 x hx
+  exact ⟨i, Int.le_trans hi (wr_eff hs.1 hok i)⟩
+
+/-- **The other nodes' parts at the new state.** -/
+theorem wr_node_other (hs : AntSimD R dec S V net xnet) (hok : WriteOk R S G n L1 c cf M p ch tl q)
+    (ha : R.md.async = false) (hbat : R.drv.batch = false) {k : Fin R.N} (hk : k ≠ n) :
+    NodeOkD R dec (S₂) net k (V k) := by
+  have hsh := hs.1
+  obtain ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, -, d13, d14, d15, d16, d17, d18, d19, d20,
+    d21, d22, -, d24, d25, d26⟩ := hs.2.2.2.2 k
+  refine ⟨⟨d1.1, d1.2.1, by rw [wr_log_o hk]; exact d1.2.2.1, by rw [wr_cm_o hk]; exact d1.2.2.2⟩, d2, d3,
+    ?_, ?_, d6, d7, d8, ?_, ?_, d11, fun h => absurd hbat (by rw [h]; decide), d13, fun x hx => ?_, d15,
+    d16, d17, d18, d19, d20, d21, d22, fun h => absurd ha (by rw [h]; decide), d24, ?_, d26⟩
+  · unfold UndoIs at d4 ⊢
+    rw [wr_undo_o hk, wr_log_o hk]; exact d4
+  · unfold QueueIs at d5 ⊢
+    show (S.queue.set n.val q)[k.val]! = _
+    rw [get!_set_ne _ _ (wr_ne hk)]; exact d5
+  · intro hlk
+    obtain ⟨l1, l2, l3, l4, l5⟩ := d9 hlk
+    refine ⟨l1, l2, fun j i h1 h2 => wr_ackInX hsh hok (l3 j i h1 h2),
+      fun j hj => (l4 j hj).imp id (wr_ackInX hsh hok), ?_⟩
+    unfold LeaderConfOkD at l5 ⊢
+    rw [wr_cf_o hk]; exact l5
+  · intro hc
+    obtain ⟨c1, c2⟩ := d10 hc
+    exact ⟨fun j hj => granted_mono (s1 := S₂) (s := S) k.val rfl rfl hok.msub rfl (c1 j hj),
+      fun h => by
+        have e : (S₂).voteRequest k.val (S.currentTerm[k.val]!) = S.voteRequest k.val (S.currentTerm[k.val]!) := by
+          unfold State.voteRequest State.lastTerm; rw [wr_log_o hk]; rfl
+        show (S₂).voteRequest k.val (S.currentTerm[k.val]!) ∈ M
+        rw [e]; exact hok.msub _ (c2 h)⟩
+  · rcases d14 x hx with ⟨q1, q2, q3, q4⟩ | h
+    · refine .inl ⟨q1, q2, q3, ?_⟩
+      rcases q4 with ⟨t1, ⟨y1, y2, ⟨a, ha', a1⟩⟩ | y⟩ | y
+      · exact .inl ⟨t1, .inl ⟨y1, y2, ⟨a, hok.msub a ha', a1⟩⟩⟩
+      · exact .inl ⟨t1, .inr y⟩
+      · exact .inr y
+    · exact .inr h
+  · intro hp
+    obtain ⟨m1, m2, m3⟩ := d25 hp
+    have hl := hok.hchain.length_le
+    have hk' : uint.nat (V k).ps.commit ≤ S.chain.length := by word
+    refine ⟨show uint.Z (V k).ps.commit ≤ (ch.length : Int) by omega, ?_, ?_⟩
+    · show ch.take _ = _
+      rw [rr_take_prefix hok.hchain hk']; exact m2
+    · rcases m3 with h | ⟨x, hx, h1, h2⟩
+      · exact .inl h
+      · obtain ⟨x', hx', e1, e2⟩ := hok.tlDom x hx
+        exact .inr ⟨x', hx', by omega, by omega⟩
+
+/-- **The relation after a leader's write** (sync, unbatched): under `WriteOk`, the B2 relation and
+`GlobalOk` hold at the binding's state after it, given the node's own part there. -/
+theorem od_relD (hs : AntSimD R dec S V net xnet) (hgo : GlobalOk R S net G)
+    (hok : WriteOk R S G n L1 c cf M p ch tl q) (ha : R.md.async = false) (hbat : R.drv.batch = false)
+    {w : NodeView} (hw : NodeOkD R dec (S₂) net n w) :
+    AntSimD R dec (S₂) (setV V n w) net xnet ∧ GlobalOk R (S₂) net G := by
+  refine ⟨⟨wr_shape hs.1, wr_binding hs hok, wr_net hs hok, wr_xnet hs hok, fun k => ?_⟩,
+    wr_global hgo hs.1 hok⟩
+  by_cases hk : k = n
+  · subst hk; rw [show setV V k w k = w by simp [setV]]; exact hw
+  · rw [show setV V n w k = V k by simp [setV, hk]]; exact wr_node_other hs hok ha hbat hk
+
 end main
 
 end writeRel
