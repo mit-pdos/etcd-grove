@@ -371,22 +371,22 @@ theorem snap_isConsistentIndexer
   isplitr
   · ipureintro; rfl
   iintro !> %C %x %HC
-  obtain ⟨cst, cb, hC, hcp, hld, hx⟩ := HC
+  obtain ⟨cst, cb, crt, hC, hcp, hld, hx⟩ := HC
   subst hC hx
   iintro %Φ' !> Hpre HΦ'
   iapply (wp_wand (Φ := fun w => iprop((
-      iprop(applyThread γ cst ∗ applyBackend γ ci cb) -∗ Φ' #(ciEff γ cst.k)) ∗
-      (⌜w = #(ciEff γ cst.k)⌝ ∗ applyThread γ cst ∗ applyBackend γ ci cb))))
+      iprop(applyThread γ cst ∗ applyBackend γ ci cb ∗ ciRaftTerm γ.ci crt) -∗ Φ' #(ciEff γ cst.k)) ∗
+      (⌜w = #(ciEff γ cst.k)⌝ ∗ applyThread γ cst ∗ applyBackend γ ci cb ∗ ciRaftTerm γ.ci crt))))
     $$ [Hpre HΦ']
   · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
     iframe HΦ'
-    icases Hpre with ⟨Hcst, Hcb⟩
-    iapply (wp_ci_get (Rw := TRow.triv) hCIg (srvCIPair cl) γ ci cb cst hcp) $$ [Hcst Hcb]
-    · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
+    icases Hpre with ⟨Hcst, Hcb, Hcrt⟩
+    iapply (wp_ci_get (Rw := TRow.triv) hCIg (srvCITriple0 cl) γ ci cb crt cst hcp) $$ [Hcst Hcb Hcrt]
+    · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb Hcrt
       ileft; ipureintro; exact stLoaded_self_k0 γ cst hld
-    iintro ⟨Hcst, Hcb⟩
+    iintro ⟨Hcst, Hcb, Hcrt⟩
     rw [hld]
-    iframe Hcst Hcb
+    iframe Hcst Hcb Hcrt
     ipureintro; rfl
   · iintro %w ⟨HΦ', %Hw, HP⟩
     subst Hw
