@@ -126,7 +126,7 @@ bootstrap picks with the backend's consistent index below `S`; no Go test (nothi
   `bootstrapSnapshot` deletes every `*.snap` as legacy v2 (`etcdserver/bootstrap.go:274`). There is no
   `LoadNewestAvailable`: `recoverSnapshot` builds the snapshot from the valid WAL record of the **highest
   index** (`newestSnapshotEntry`, `bootstrap.go:494,517`). So only `S.snap.db` matters, and only when the
-  durable consistent index `ci < S` (`RecoverSnapshotBackend` skips it otherwise, `storage/backend.go:117`).
+  durable consistent index `ci < S` (`RecoverSnapshotBackend` skips it otherwise, `storage/backend.go:118`).
 - **What can remove `S.snap.db`**, all paths (grep of `os.Remove`/`Rename`/`RemoveMatchFile` in
   `etcdserver`, `storage`, `embed`):
   1. `OpenSnapshotBackend(S)` renames it to the backend (`backend.go:71`, dir synced): at boot only when `S`
