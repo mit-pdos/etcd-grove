@@ -271,6 +271,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
         rcases hhi2 with h | h
         · exact absurd h hne
         · exact h
+      try wp_auto
       wp_bind (App (App (Val #(methods _ _ _)) _) _)
       iapply HGetLog $$ lastLog Htok
       iapply (bootRead_L γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged)
@@ -613,8 +614,8 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   obtain ⟨ht1, hci1, hvm1, hg1, hx1, hc1, hab1, hl1⟩ := Hf1
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
-      fixPost (GF := GF) rc' true X.lat D' X.A.staged X.s.term lastLog_ptr)))
-    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog] [-]
+      fixPost (GF := GF) rc' true X.lat D' X.A.staged X.s.term lastLog_ptr ∗ r_ptr ↦ r)))
+    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog r snapIdx snapTerm] [-]
   · wp_if_destruct
     · -- below: the log is the snapshot's prefix
       have hl2 : uint.nat lv1.Index' < latIdx X.lat ∧ s1.log.length = latIdx X.lat ∧
@@ -622,7 +623,8 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
         rcases hl1 with ⟨-, -, h⟩ | ⟨-, h⟩
         · exfalso; rw [← latIdxW_nat] at h; word
         · exact h
-      sorry
+      try wp_auto
+      wp_bind (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastLog")) _) _)
       iapply (setLastLog_pinned (GF := GF) γ rc' i r lv1.Index' lv1.Term' (latIdxW X.lat) (latTermW X.lat)
         (latIdxW X.lat) (latTermW X.lat))
       iframe Hllb Hgll
@@ -630,14 +632,18 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
       iintro Hllb Hgll
       wp_auto
       isplitr; · ipureintro; trivial
+      iframe r
       unfold fixPost
       iexists s1, A1, _, c1
+      iframe lastLog
+      simp only
       iframe
       ipureintro
       refine ⟨ht1, hci1, hvm1, hg1, hx1, hc1, hab1, Or.inl ⟨?_, ?_, ?_⟩⟩ <;>
         simp only [latIdxW_nat, latTermW_nat] <;> omega
     · try wp_auto
       isplitr; · ipureintro; trivial
+      iframe r
       unfold fixPost
       iexists s1, A1, lv1, c1
       iframe
@@ -646,7 +652,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
       rcases hl1 with h | ⟨-, h, -⟩
       · exact h
       · exfalso; rw [← latIdxW_nat] at h; word
-  iintro %v ⟨%hv, Hfix⟩
+  iintro %v ⟨%hv, Hfix, r⟩
   subst hv
   wp_auto
   -- restoreFromCommittedLogs (`RestoreCommittedLogs = false`: nothing)

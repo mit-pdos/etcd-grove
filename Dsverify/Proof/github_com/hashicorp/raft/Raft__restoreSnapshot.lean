@@ -140,6 +140,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     · icases HP with ⟨Hboot, Hpe⟩
       icases Happ with (Happ | %Hdp)
       · iapply (wp_setLastApplied r rc m.Index') $$ [$Hpkg $Happc]
+        iapply ncfupd_of_fupd
         iapply fupd_mask_intro Std.LawfulSet.empty_subset
         iintro Hmask
         inext
