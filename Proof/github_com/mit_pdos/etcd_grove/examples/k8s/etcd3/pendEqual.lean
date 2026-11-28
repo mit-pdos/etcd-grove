@@ -59,6 +59,11 @@ theorem pendEqual.wp_proof (wp_inputEqual : inputEqual.spec (GF := GF) (hG := hG
       · isplit
         · iexact Hap
         · ipureintro; exact Hw_lookup
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index a (sint.Z i) xs _ w Hi.1 $$ [Hap] as -
+      · isplit
+        · iexact Hap
+        · ipureintro; exact Hw_lookup
       simp only [Hb2', _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index b (sint.Z i) ys _ w2 Hi.1 $$ [Hbp] as -
       · isplit

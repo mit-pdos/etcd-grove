@@ -123,6 +123,40 @@ def gapsOwn (base : Loc) (sl : GoSlice) : IProp GF :=
     ⌜hs.getLast? = some s ∧ hs.length + ns.length < 2 ^ 63⌝ ∗
     [∗list] i ↦ n ∈ ns, histOwn n (hs ++ gapsL s hs.length (i + 1)))
 
+theorem nil_or_snoc {α : Type} (l : List α) : l = [] ∨ ∃ l' x, l = l' ++ [x] := by
+  induction l using List.reverseRecOn with
+  | nil => exact .inl rfl
+  | append_singleton l' x _ => exact .inr ⟨l', x, rfl⟩
+
+/-- **One node holds one history**: a history's nodes record their lengths (below `2^64`), so two
+histories of one node have one length (`histOwn_agree`). -/
+theorem histOwn_agree_len (h : Loc) (a b : List GSt) (ha : a.length < 2 ^ 64)
+    (hb : b.length < 2 ^ 64) : histOwn (GF := GF) h a ⊢ histOwn h b -∗ ⌜a = b⌝ := by
+  iintro #Ha #Hb
+  icases histOwn_agree _ _ _ $$ Ha Hb with %H
+  rcases nil_or_snoc a with rfl | ⟨a', x, rfl⟩ <;> rcases nil_or_snoc b with rfl | ⟨b', y, rfl⟩
+  · ipureintro; rfl
+  · icases (histOwn_nil (GF := GF) h).mp $$ Ha with %Hn
+    icases (histOwn_snoc (GF := GF) h b' y).mp $$ Hb with ⟨%hn, Hp, -⟩
+    ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+    exact absurd Hn Hnn
+  · icases (histOwn_nil (GF := GF) h).mp $$ Hb with %Hn
+    icases (histOwn_snoc (GF := GF) h a' x).mp $$ Ha with ⟨%hn, Hp, -⟩
+    ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+    exact absurd Hn Hnn
+  · icases (histOwn_snoc (GF := GF) h a' x).mp $$ Ha with ⟨%hn, #Hp, -, %Hna, -⟩
+    icases (histOwn_snoc (GF := GF) h b' y).mp $$ Hb with ⟨%hn', #Hp', -, %Hnb, -⟩
+    icases typedPointsto_agree_wand _ _ _ _ _ $$ Hp Hp' with %He
+    subst He
+    ipureintro
+    apply H
+    simp only [List.length_append, List.length_singleton] at ha hb ⊢
+    rw [Hna] at Hnb
+    have := congrArg (fun w : w64 => w.toNat) Hnb
+    simp only [W64] at this
+    simp only [BitVec.toNat_ofInt] at this
+    omega
+
 /-- **What `hh.mu` protects** (see the file header). -/
 def hhInv (hh : Loc) : IProp GF :=
   iprop(∃ (mc mi mg : GoMap) (C : GMap ikey GoSlice) (I : GMap Loc Bool) (G : GMap Loc GoSlice),

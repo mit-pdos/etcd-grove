@@ -39,7 +39,9 @@ theorem histHashes.canonical.wp_proof
   wp_start as ⟨#Hhh, #Hh, %Hlen⟩
   iunfold hhOwn at Hhh
   icases Hhh with ⟨#Hsync, #Hmu⟩
-  try wp_auto
+  (try wp_auto)
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
   wp_apply sync.Mutex.wp_Lock _ (hhInv hh) $$ [$Hsync $Hmu] as ⟨Hlk, Hinv⟩
   try wp_auto
   wp_apply wp_canonLocked hh h hs $$ [$Hinv $Hh] as %c ⟨Hinv, #Hc⟩
