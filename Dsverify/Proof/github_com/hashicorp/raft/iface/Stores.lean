@@ -379,6 +379,13 @@ instance snapshotMeta_countable : Pos.Countable SnapshotMeta :=
       obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
       subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
+/-- (hraft_robust R3) **The same snapshot metadata, up to its configuration's servers slice**: every field
+equal but `Configuration'` (whose `Servers'` a durable store's restart decodes into a fresh slice holding the
+same servers). -/
+def metaEquiv (m m' : SnapshotMeta) : Prop :=
+  m'.Version' = m.Version' ∧ m'.ID' = m.ID' ∧ m'.Index' = m.Index' ∧ m'.Term' = m.Term' ∧
+    m'.Peers' = m.Peers' ∧ m'.ConfigurationIndex' = m.ConfigurationIndex' ∧ m'.Size' = m.Size'
+
 /-- (stage 3) **The order of snapshots** (upstream `FileSnapshotStore`'s: by term, then index): a
 snapshot `(m, b)` closed into a store whose latest is `old` becomes the latest unless `old` is newer
 (a strictly larger term, or the same term and a larger index). -/
