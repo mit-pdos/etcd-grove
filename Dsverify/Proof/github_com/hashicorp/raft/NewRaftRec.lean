@@ -58,6 +58,32 @@ def RecOk (X : SrvDur) : Prop :=
 
 end pure
 
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.Assumptions]
+
+/-- (hraft_robust R5) **What the restore needs of the latest snapshot** (persistent; `latestOk` and
+`latestDur`'s facts, read by `NewRaft` from the crash state): its bytes a snapshot of its index (`snapP`), the
+committed entry of its term there, durable at `i` or installed while `i` followed, its configuration the
+committed one at its index (`snapCfg`), version 1 and no `Peers`. -/
+def latFacts (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest) : IProp GF :=
+  match lat with
+  | none => iprop(True)
+  | some (m, b) => iprop(□ rc.snapP (uint.nat m.Index') b ∗
+      (∃ e : Entry, CIdx γ (uint.nat m.Index') e ∗ ⌜e.term = uint.nat m.Term' ∧ 1 ≤ uint.nat m.Index'⌝) ∗
+      (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')) ∗
+      (∃ ss : List Server, cfgVal γ m.Configuration' ss ∗
+        snapCfg γ (uint.nat m.Index') (uint.nat m.ConfigurationIndex') ss) ∗
+      ⌜m.Version' = W64 1 ∧ m.Peers' = slice.nil⌝)
+
+instance latFacts_persistent γ rc i lat : Persistent (latFacts (GF := GF) γ rc i lat) := by
+  unfold latFacts; rcases lat with _ | ⟨_, _⟩ <;> infer_instance
+
+end defs
+
 section fresh
 variable [GooseExts]
 
