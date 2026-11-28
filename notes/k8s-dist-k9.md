@@ -498,3 +498,29 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
 - **Left**: finish and check `settle` and `landings` from the drafts, link them; then `boundL`/`bound`,
   `target`, `SharedModel`.
 - **No `sorry`** in built files, no axiom, no top-level statement/premise/trusted-text change.
+
+## Handoff K9-7 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **K9-6's build of record** (fk-lean2, `c11353076f`, `Link` and the step-2 specs): passed, 12231 jobs.
+- **Proved and linked**: `settle` (`23f7173ca8`, from the K9-6 draft) and `landings` (`bcfe1ca71d`), both
+  in `etc/link-lean-first-k8setcd3.txt` and `Link.lean`. Build of record at `bcfe1ca71d` on fk-lean2
+  (`etcd3.Link`, `etcd3.Results`): passed, 12286 jobs. `notes/k9-drafts/` is gone (both drafts moved).
+- **How `landings` is proved**: the closure `add` is a persistent Iris triple (`Hadd`) proved once, after
+  `generalize hf : (func.mk BAnon (BNamed "r") _ : GoFunc) = f at *`. Its pre/post thread the cells it
+  reads (`in`, `out`, `w`: loading a field from a persistent struct `↦□` does not work) and `ls`; `next`,
+  `full`, `b` are persisted. `sort.Search` follows Perennial's `SearchInts` (`RecV` → `#(func.mk ..)`,
+  `I` = the `revs` and `c` cells, `ancF`, `IsMonoPred` from `Hsorted`). The search's `i ≤ n` is not in
+  `Search`'s post: it follows from `Hoob` and `Hlt`. The `if in.Key == w.Key && ...` statement has five
+  leaves. With `full`, everything after it is proved once: `wp_bind (If _ _ _)`, then
+  `iapply wp_wand (Φ := ⌜v = executeVal⌝ ∗ state)`.
+- **Proof notes**: the kernel error (`_proof_1_N` applied to the wrong arguments) came from two `word`s
+  in different `wp_if_destruct` branches, one where an `obtain ⟨.., rfl⟩` had substituted a variable.
+  Hoisting the second fact before the branch as an implication fixed it (`settle`'s `Hw0`; `landings`'
+  `Hgt`/`Hn`/`Hb0`/...). To find the culprit, turn ranges of `word` into `sorry` and bisect.
+  `iStructNamed` leaves a `"_" ∷ True`; remove it with `irename : ("_" ∷ True : IProp GF) => J; iclear J`.
+  `wp_load_slice_index ... as _` leaves an unnamed copy, which breaks `wp_for`'s `iNamed`: name it and
+  `iclear` it. `wp_if_destruct` on a Go `bool` variable splits `false` first.
+- **Left**: `bound` and `target` have no specs yet (`targetL` exists in `dist/SharedSearch.lean`; there is
+  no `boundL`). Write `boundL` and `bound.spec`, then `target.spec`, prove both and link them; then
+  `SharedModel`.
+- **No `sorry`** in built files, no axiom, no top-level statement, premise or trusted-text change.
