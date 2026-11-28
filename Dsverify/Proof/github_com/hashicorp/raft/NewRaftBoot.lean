@@ -789,6 +789,96 @@ theorem bootDiscard_win (A : LogAbs) (lat : SnapLatest) (s : SState) (d : DiscPe
   · iexists a; iframe Happl; ipureintro; exact hax
   iexact HΨ
 
+/-- (hraft_robust R5) **Fix 2's discard with an empty store** (the code skips the `DeleteRange`: `FirstIndex`
+is 0): a log-store read (`FirstIndex`'s atomic update) whose commit also fires `installDiscard_core`, as
+`bootDiscard_win` does at its `DeleteRange`. -/
+theorem bootRead_L_discard (A : LogAbs) (lat : SnapLatest) (s : SState) (d : DiscPend) (c0 : Nat)
+    (hA : A.m = ∅) (K : LogAbs → IProp GF) :
+    Inv γ ∗ srvDurInvRaw γ rc i ∗ bootV rc A lat ∗ srvVP rc s none (some d) ∗
+      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c0 ∗ latLb rc d.x ∗ applLb rc d.x ∗
+      (∀ s' : SState, bootV rc A lat -∗ srvV rc s' -∗
+        ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+        monoNatAuthOwn rc.dur.comp (1 : Qp).half d.x -∗ durLb γ i d.x -∗
+        ⌜s'.log.length = d.x ∧ lastTerm s'.log = d.st ∧ s'.dur.1 = d.x ∧ s'.term = s.term ∧
+          s'.vterm = s.vterm ∧ s'.vcand = s.vcand ∧ s'.cidx = s.cidx⌝ -∗
+        ([∗list] k ↦ e ∈ s'.log, CIdx γ (k + 1) e) -∗
+        (∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ d.x⌝) -∗ K A) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ a, rc.ownL a ∗ (rc.ownL a ={∅, ⊤ \ ↑storeN}=∗ K a) := by
+  iintro ⟨#HI, #Hd, Hb, Hv, Hpe, Hcm, #Hll, #Happ, HK⟩ Hnc
+  imod (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hb] Hnc with ⟨Hnc, %X, %HX, Hc, Hs, Hcl⟩
+  · iframe #; iframe
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iexists X.A
+  iframe HL
+  iintro HL
+  imod Hmask
+  ihave ⟨Hc, Hv, %Hag⟩ := durCoreB_srvVP_agree γ rc i X s none (some d) $$ [Hc Hv]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCoreB at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  icombine Hpend Hpe gives %hpe
+  have hpe' : X.pend = none := hpe.2
+  obtain ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, hpd, hll⟩, hcd, hq5a, hq5b⟩⟩ := Hp
+  obtain ⟨m, b, hlm, hmi, hmt⟩ := hq5b d hdp
+  unfold latestDur
+  icases Hlat with ⟨Hlok, Hbr⟩
+  rw [hpe']
+  icases Hbr with (%hn | ⟨%m', %b', %hl', (⟨-, %hdn⟩ | ⟨#Hsf, %hdpd, Happl⟩)⟩)
+  · rw [hlm] at hn; cases hn
+  · rw [hdp] at hdn; cases hdn
+  icases Happl with ⟨%a, Happl, %ha⟩
+  have hax : a ≤ d.x := by
+    obtain ⟨ℓ, hℓ⟩ := hdpd
+    rw [hdp] at hℓ
+    cases hℓ
+    exact ha
+  ihave Hc : durCore γ rc i X $$ [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
+  · iunfold durCore
+    rw [hpe']
+    iframe
+    isplitl []
+    · ipureintro
+      exact ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, fun x st id h => (by cases h), hll⟩, hcd, hq5a, hq5b⟩⟩
+    unfold bootPinF latApplF
+    rw [hlm]
+    ileft; ipureintro; right; rw [hdp]; simp
+  imod (installDiscard_core γ rc i crash_gprot_store X s d X.A c0 ⟨hs, hdp, hpe'⟩
+    ⟨by rw [HX.1]; exact hA, rfl, rfl⟩) $$ [HI Hc Hv Hcm Hll Happ]
+    with ⟨%X', Hc', Hv', Hcm, #Hlbx, HC, %hX'⟩
+  · rw [htp]; iframe; iframe #
+  obtain ⟨hA', hD', hlat', hpend', hdp', hc', hlo', hlen, hlt, hdur, hterm, hvt, hvc, hcx⟩ := hX'
+  ihave ⟨Hc', -⟩ := (durCore_B γ rc i X').1 $$ Hc'
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlok] with Hb
+  · iunfold durStores
+    rw [hA', hD', hlat', hpend', hdp']
+    inext
+    iframe
+    unfold latestDur
+    rw [hpe']
+    iframe Hlok
+    iright
+    iexists m, b
+    isplitl []
+    · ipureintro; exact hlm
+    ileft
+    rw [hmi]
+    iframe Hlbx
+    ipureintro; rfl
+  rw [hA', hlat', HX.1, HX.2]
+  imodintro
+  rw [htp]
+  iapply HK $$ %X'.s Hb [Hv'] Hpe Hcm Hlbx [] HC [Happl]
+  · unfold srvV; unfold srvVP; iexact Hv'
+  · ipureintro; exact ⟨hlen, hlt, hdur, hterm, hvt, hvc, hcx⟩
+  · iexists a; iframe Happl; ipureintro; exact hax
+
 end gp
 
 end boot
