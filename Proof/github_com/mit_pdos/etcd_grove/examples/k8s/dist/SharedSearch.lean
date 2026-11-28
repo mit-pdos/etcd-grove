@@ -130,11 +130,15 @@ def AnchorsOk (A : List Nat) (ops : List (Input × Output)) : Prop :=
   0 ∈ A ∧ ∀ p ∈ ops, OpAnchors A p.1 p.2
 
 /-- **K4's theorem, as a statement**: from a seeded store `h0` whose history has a store per revision,
-every run of the semantic model over `ops` is a run of the full mode's search, for anchors naming every
-revision the history shows. (Proved in a later stage: `notes/k8s-dist-k4.md`, "Handoff K4-2".) -/
+the last its current store, and whose items all carry revisions at most its own (K4-4's two seed
+premises: well-formedness the proof uses, true of the seeded store, `notes/k8s-dist-k4.md`, "Handoff
+K4-4"), every run of the semantic model over `ops` is a run of the full mode's search, for anchors
+naming every revision the history shows. (`SharedComplete.lean`.) -/
 def FullComplete : Prop :=
   ∀ (h0 : HSt) (A : List Nat) (ops : List (Input × Output)) (c' : GCfg),
-    h0.hist.length = uint.nat h0.st.rv → (∀ v ≤ uint.nat h0.st.rv, v ∈ A) →
+    h0.hist.length = uint.nat h0.st.rv → h0.hist.getLast? = some h0.st →
+    (∀ g ∈ h0.hist, ∀ it ∈ g.items, uint.nat it.obj'.ResourceVersion' ≤ uint.nat h0.st.rv) →
+    (∀ v ≤ uint.nat h0.st.rv, v ∈ A) →
     AnchorsOk A ops → SRun h0 ⟨h0, []⟩ ops c' → SearchRun A ⟨h0, []⟩ ops
 
 /-! ## `skipToL` -/
