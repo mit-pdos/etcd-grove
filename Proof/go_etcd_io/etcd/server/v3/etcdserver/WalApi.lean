@@ -93,14 +93,16 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
         (cs : List EntryC) (Q : IProp GF),
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+              ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ Q) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+                ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }}) ∗
     □ (∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF),
       {{ storage.walOpen h q ∗ walStorRd st h ∗
@@ -152,14 +154,16 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
         (cs : List EntryC) (Q : IProp GF), R ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+              ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ Q) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+                ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }})
     (hSnap : ∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool) (Q : IProp GF), R ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
@@ -269,14 +273,16 @@ theorem walSaveSized_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoIn
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+              ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ Q) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+                ⌜WalSaveOk σ (cs.map EntryC.model) ∧ WalSaveCommitLe σ hs (cs.map EntryC.model)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) }} := by
   unfold isWalStorage
   iintro ⟨-, %si', %Heq, #HS, -, -, -, -⟩
@@ -378,13 +384,15 @@ theorem walSaveRn_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInter
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           (∃ cs : List EntryC, ([∗list] l;c ∈ esL;cs, entRoC l c) ∗
             ⌜cs.map EntryC.model = es.map EntryModel.toM ∧ ∀ c ∈ cs, walSaveEntOk true c⌝) ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs h σ true ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ true ∗
+              ⌜WalSaveOk σ (es.map EntryModel.toM) ∧ WalSaveCommitLe σ hs (es.map EntryModel.toM)⌝ }>
             @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (es.map EntryModel.toM)) true, COMM Q }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ Q) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents), walRecs h σ true ∗ ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
+            AU <{ ∃∃ (σ : StorContents), walRecs h σ true ∗
+                ⌜WalSaveOk σ (es.map EntryModel.toM) ∧ WalSaveCommitLe σ hs (es.map EntryModel.toM)⌝ }>
               @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (es.map EntryModel.toM)) true, COMM Q }>) }} := by
   iintro #Hw
   iintro !> %Φ ⟨Ho, Hr, Hh, #Hsl, ⟨%cs, #Hb, %Hcs⟩, HAU⟩ HΦ

@@ -89,3 +89,9 @@ Go, at the etcd pin `d26dd5da6f` (`examples/go.mod`), go1.27.1; `cd examples && 
   (Its embedded server logs `http: Server closed` / `use of closed network connection` on each `Close`:
   the listeners' shutdown, not a failure. It listens on the default ports 2379/2380. `embed` needed its
   indirect requirements added to `examples/go.mod`/`go.sum`.)
+
+## Follow-up: C1 (2026-11-28)
+
+The eager-fold conjunct is not the whole gap: `walFiles` also admitted a history with a `Save` whose commit is
+above its last index, which `ReadAll` reads back with entries the model drops. Fixed by carrying
+`walCommitLeFrom walFresh` in `walRecs`/`walFiles`: [bootstrap-restart-commitle](bootstrap-restart-commitle.md).
