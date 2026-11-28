@@ -8,6 +8,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1Store
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDur
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB2Send
 
 @[expose] public section
 
@@ -46,6 +47,23 @@ theorem readyEnts_idx_b2 {l es : List EntryM} (hl : AntSim.LogIdx l)
     have : uint.nat e0.Index' = (uint.Z e0.Index').toNat := rfl
     have : uint.nat e.Index' = (uint.Z e.Index').toNat := rfl
     omega
+
+/-- `ReachIn` does not read `told` (`reportCause` sets it; `reach_told_b1`'s). -/
+theorem reachIn_told_b2 {msk : AntSim.SimMask} {R : AntSim.RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {net : List Msg} {xnet : List XMsg} {n : Fin R.N}
+    {v : AntSim.NodeView} {r₁ : RState} (b : Bool)
+    (h : AntSim.ReachIn msk R dec Adm net xnet n v r₁) :
+    AntSim.ReachIn msk R dec Adm net xnet n { v with told := b } r₁ := by
+  cases h with
+  | stay hI hb => exact .stay { v with told := b } hI hb
+  | input inp r₁ h0 hI h1 h2 h3 h4 h5 h6 => exact .input _ inp _ h0 hI h1 h2 h3 h4 h5 h6
+  | advance r₁ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
+
+/-- The request loop's end: only the other messages pending. -/
+theorem reqPend_end (ms : List QMsg) :
+    reqPend ms ms.length =
+      (ms.filter (fun m => !isRequestTy m.st.msg.Type')).filterMap (fun m => absMsgOf m.st) := by
+  simp [reqPend]
 
 end pure
 
