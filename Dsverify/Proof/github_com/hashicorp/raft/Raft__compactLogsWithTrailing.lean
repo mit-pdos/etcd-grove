@@ -32,7 +32,7 @@ theorem github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof
     (wp_min : github_com.hashicorp.raft.min.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.Raft.compactLogsWithTrailing.spec (GF := GF) (hG := hG) :=
   fun r γ rc i x li tl tid => by
-  wp_start as ⟨#Hr, #Hcx, #Hlx, %Hx, Htok⟩
+  wp_start as ⟨#Hr, #Hcx, #Hlx, #Hdx, %Hx, Htok⟩
   ihave ⟨%lsx, #Hlsf, #Hls, -⟩ := isRaft_logStore r γ rc i $$ Hr
   ihave #HlogC := isRaft_durInv r γ rc i $$ Hr
   unfold isLogStore
@@ -56,7 +56,9 @@ theorem github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof
     unfold compLb latLb
     isplitr
     · iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hcx
+    isplitr
     · iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hlx
+    iapply durLb_mono γ i (uint.nat x) (uint.nat mx) Hmxx $$ Hdx
   iintro -
   ihave #Hcm : compLb rc (uint.nat mx) $$ []
   · unfold compLb; iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hcx
