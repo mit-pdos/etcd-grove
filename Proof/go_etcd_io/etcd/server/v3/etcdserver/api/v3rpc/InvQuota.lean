@@ -59,7 +59,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.serve
 
 /-- **`*quotaKVServer` implements `pb.KVServer`** (a method-set fact; see the file header). -/
 class v3rpc.QuotaKVServerIsKVServer [GooseExts] [GoGlobalContext] [GoLocalContext]
-    [GoSemanticsFunctions] : Prop where
+    [GoLocalContext] [GoSemanticsFunctions] : Prop where
   is_kv : go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty)
     etcdserverpb.KVServer.ty = true
 

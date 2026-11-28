@@ -17,6 +17,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.EtcdClient
 
 @[expose] public section
 
@@ -39,15 +40,14 @@ variable [sync_sem : sync.Assumptions]
 /-- See the file header. -/
 abbrev StartCompactorPerEndpoint.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γk : KVNames)
+    (cl : Loc) (K : K8sEtcd GF) (γk : KVNames)
     (Seen : IProp GF) (recorded : w64 → IProp GF) [Persistent Seen] [∀ c, Persistent (recorded c)]
     (iv : w64),
-  (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 → iv ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
-      client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+  (∀ γ ∈ K.kvs, kvSame γ γk) → γk.cmp = true → γk.cret = 0 → iv ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (k8sClient K cl ∗
       clientKvOk cl γk ∗ clientWatchOk cl γk ∗
-      casOk ms γk Seen recorded ∗ keyReadOk γk recorded ∗
-      [∗list] ep ∈ ms.map client.SrvAt.addr, epOf ep γk recorded) }}
+      casOk K.kvs γk Seen recorded ∗ keyReadOk γk recorded ∗
+      [∗list] ep ∈ K.eps, epOf ep γk recorded) }}
     (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.StartCompactorPerEndpoint)) (Val #cl))
       (Val #iv))
   {{ (c : Loc), RET #c; levelTok 0 ∗ (∃ (cl' : Loc) (γc : CompactorNames),

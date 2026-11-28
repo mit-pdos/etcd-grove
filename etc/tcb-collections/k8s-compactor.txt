@@ -24,8 +24,6 @@ axiom pbPutRequestT_reg
 axiom pbPutResponseT_reg
 axiom pbRangeRequestT_reg
 axiom pbRangeResponseT_reg
-axiom pbTxnRequestT_reg
-axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom proto.EqualStatus.wp_proof
 axiom streamKeyFromCtx.wp_proof

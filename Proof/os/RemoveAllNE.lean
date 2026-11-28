@@ -25,12 +25,13 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 section step
 variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 
 /-- A step of `unlink(2)` returns a value. -/
 theorem unlink_isVal {k : Nat} {p : GoString}
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
-    (hs : S.step "Unlink" (PairV (osTokV k) (#p)) h st g e' h' st' g') : ∃ r, e' = Val r := by
+    (hs : S.step tf "Unlink" (PairV (osTokV k) (#p)) h st g e' h' st' g') : ∃ r, e' = Val r := by
   have hst := (fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)).1
   simp only [IsFsStep] at hst
   obtain ⟨p', k', s0, hv, htn, hcall, hr⟩ := hst
@@ -40,7 +41,7 @@ theorem unlink_isVal {k : Nat} {p : GoString}
 theorem rmdir_isVal {k : Nat} {p : GoString}
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
-    (hs : S.step "Rmdir" (PairV (osTokV k) (#p)) h st g e' h' st' g') : ∃ r, e' = Val r := by
+    (hs : S.step tf "Rmdir" (PairV (osTokV k) (#p)) h st g e' h' st' g') : ∃ r, e' = Val r := by
   have hst := (fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)).1
   simp only [IsFsStep] at hst
   obtain ⟨p', k', s0, hv, htn, hcall, hr⟩ := hst
@@ -50,7 +51,7 @@ theorem rmdir_isVal {k : Nat} {p : GoString}
 theorem open_isVal {k : Nat} {p : GoString} {fl : w64}
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
-    (hs : S.step "Open" (PairV (osTokV k) (PairV (#p) (#fl))) h st g e' h' st' g') :
+    (hs : S.step tf "Open" (PairV (osTokV k) (PairV (#p) (#fl))) h st g e' h' st' g') :
     ∃ fd e : w64, e' = osRes (#fd) e := by
   have hst := (fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)).1
   simp only [IsFsStep] at hst

@@ -94,7 +94,7 @@ def txnModelOf (cs : List CmpModel) (ts es : List ReqOp) : Option TxnModel :=
   | _, _ => none
 
 section srvM
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- `*EtcdServer` `s`'s method `m`. -/
 abbrev srvM (s : Loc) (m : GoString) : val :=

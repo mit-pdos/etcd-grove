@@ -64,7 +64,7 @@ theorem watcher.Watch.wp_proof
   subst Hwp
   ihave #Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hlst⟩
+  icases Hst' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hlst⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, -, %Hrp⟩
   have hrpl : (c.pathPrefix ++ c.resourcePrefix).length ≤ opKeyMax :=
