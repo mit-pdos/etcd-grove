@@ -302,3 +302,51 @@ modules of the k8s cone see `k8sClient`, not the axioms. If S2's single spec sta
   the statement's shape does not change).
 - **D6 (`EtcdEnv` with a k8s workload).** `backendUnderQuota` and `grpcRepliesFit` are opaque workload premises,
   carried over at `d.cluster`; their eventual discharge must cover the k8s workload's writes and replies too.
+
+---
+
+## D7. The run-size bounds of the shared porcupine model (K9-18), and how to get them
+
+The model's proofs need revisions `≤ 2^62` (K9-12, accepted) and `histCost xs ≤ 2^62` (K9-17: 7 per
+operation plus the decoded events and items). K9-18 says Perennial has no step-count resource; **it has one.**
+
+**(a), recommended: time receipts, which already exist; no Perennial change.** Lean Perennial's counterpart of
+Rocq's `steps_lb`/step credits is Mével-Jourdan-Pottier time receipts (`.lake/packages/perennial/README.md`
+68-105; `docs/PERENNIAL_PROOF_REFERENCE.md` 887-1000; `Perennial/GooseLang/Receipts.lean`). The bounded layer
+(`GooseLang/BoundedLang.lean`) gives the state interpretation an authoritative `mono_nat` counter. Every Go
+instruction step (a call, a typed access) yields an exclusive `⧗ 1` (`wp_GoInstruction_receipt`, `Lifting.lean`
+2097; `wp_go_step_receipt'`, `PostLifting.lean` 398; this repository's `wp_take_receipt`,
+`Proof/ReceiptTactics.lean`). `⧗ n ⊢ ⌜n < receiptBound GF⌝` (`receipt_lt`, `Receipts.lean` 262), the persistent
+`⧖ n` likewise (`preceipt_lt`, 272). The ghost state is global, so it is shared by every machine and survives
+crashes. `goose_dist_crash_adequacy` (`GooseLang/DistAdequacy.lean` 744-768) proves `Hwp` under
+`receiptBound GF = N` and concludes for runs with `n < N`. `Robust`'s `n < bound` is that `N` (`Robustness/
+Statement.lean` 54). The k8s specs already take it as `[ReceiptBoundLe GF (2 ^ 48)]` (`Spec/.../k8s/etcd3/
+MainCluster.lean` 55; `etcdSteps = 2^48`). Precedents: apimodel's `Server.nextRV` keeps `⧗ (rev - 1)` beside its
+counter (`Spec/.../k8s/daemonset/apimodel/Server__nextRV.lean`), and mvcc and the client's
+`srvLogCert` keep `⧖ (mvcc.logCh log)` (`Proof/go_etcd_io/etcd/client/v3/KVService.lean` 188-215).
+1. *Step counter in Lean Perennial's WP or state interpretation?* Yes: the receipts above. iris-lean's own
+   `numLatersPerStep` is 0 (`Lifting.lean` 762), and the step count lives in the bounded layer's fuel instead.
+2. *What (a) takes*, all in this repository's k8s proofs, with no definition or adequacy change:
+   - `histCost`: the history's invariant (under the driver's lock) holds `⧗ (|xs| + elems xs)`. Recording an
+     operation adds the `⧗ 1` of that operation's call. `encodeWEvents`/`encodeItems` (`examples/k8s/etcd3/
+     watch.go` 225, `k8setcd3.go` 1189) call `encodeObj` once per element, so their specs return
+     `⧗ |evs|`, and decode-of-encode gives the decoded count. Then `receipt_lt` gives
+     `histCost xs ≤ 7·(|xs| + elems) < 7·2^48`. Changed: those two encoder specs and proofs, the
+     driver's record step, and the history invariant.
+   - revisions (K10): every reply revision lies inside a `srvLogCert` log, whose `⧖ (logCh log)` already
+     bounds it (`srvLogCert_logOk`, `receiptBound GF ≤ 2^62`). K5's exported dist laws must surface
+     `rev < 2^62` as a conjunct (a law added to the client package's API, proved from `srvLogCert_logOk`).
+   - Impact on existing proofs: none outside those specs and their callers. Receipts are added resources,
+     and the driver takes its receipts from its own steps, which no callee's proof consumes.
+3. *Size and risk*: roughly 300-600 Lean lines, 2-4 sessions (one each for the encoders, the history
+   invariant and the K5 law). Risks: (i) whether K5's laws can expose the revision bound without unsealing
+   (`etc/api/` rules: add a law, never unseal); (ii) threading `⧗` through a concurrent recording path if
+   the history is appended outside one lock. There is no framework risk: nothing goes to Perennial.
+
+**(b), the fallback: a cap in the k8s driver.** Stop recording after `N = 2^40` operations. Take an angelic
+exit (`AngelicExit`, `Robustness/Statement.lean` 40-51) when an output decodes to more than `M = 2^20`
+elements or shows a revision `≥ 2^62`. Then `|xs| ≤ N` and `histCost xs ≤ (7 + 2M)·N` are facts of the
+driver's own invariant. **Its exits make a run past the caps count as safe and unchecked**, a small vacuity
+(no real run reaches them, but the statement does not check them). If (b) is chosen, the caps are stated in
+the statement's header, and the program change needs the coordinator's approval. **Given (a)'s cost and its
+lack of vacuity, (a) is recommended. (b) only if K5's revision law proves blocked.**
