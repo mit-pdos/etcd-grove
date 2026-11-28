@@ -9,7 +9,6 @@ import (
 	"context"
 	"slices"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -153,15 +152,17 @@ type Revs struct {
 // rvOfMsg is the resource version a failed precondition's message names (preMsg), or 0.
 func rvOfMsg(msg string) uint64 {
 	const p = "ResourceVersion in object meta: "
-	i := strings.Index(msg, p)
-	if i < 0 {
-		return 0
+	// (G14) the first match, by hand: Perennial has no spec of strings.Index
+	for i := 0; i+len(p) <= len(msg); i++ {
+		if msg[i:i+len(p)] == p {
+			r, err := parseRV(msg[i+len(p):])
+			if err != nil {
+				return 0
+			}
+			return r
+		}
 	}
-	r, err := parseRV(msg[i+len(p):])
-	if err != nil {
-		return 0
-	}
-	return r
+	return 0
 }
 
 // decodeItemRVs is a list's items (encodeItems) as key and resource version, or false.
