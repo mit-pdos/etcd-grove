@@ -23,6 +23,7 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftBase
 public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftBoot
+public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftScan
 
 @[expose] public section
 
@@ -38,6 +39,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 open github_com.hashicorp.raft proto gprot
 
@@ -190,6 +192,7 @@ theorem genesisStore_m (g : Entry) (k : Nat) :
 theorem genesisStore_hi (g : Entry) : (LogAbs.empty.store 1 [g]).hi = W64 1 := by
   simp [LogAbs.store, LogAbs.empty]
 
+set_option pp.maxSteps 2000000 in
 set_option maxHeartbeats 4000000 in
 theorem github_com.hashicorp.raft.NewRaft.wp_proof
     (wp_ValidateConfig : github_com.hashicorp.raft.ValidateConfig.spec (GF := GF) (hG := hG))
@@ -213,7 +216,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     #Hinv, #Hvoter, #Hdi, Hsv, HstV, HtermV, HcidxV, Happ', Happ, Hcomp, Hpend, Hpw, Hboot, %Hrec, #Hfirst, %Hg,
     HfsmOwn, Htok⟩
   obtain ⟨Hcv, ss, Hss, Hgss⟩ := Hg
-  obtain ⟨htp, hci, hpend, hcl, hhi1, hhi2, habove, hdplat, hpref⟩ := Hrec
+  obtain ⟨htp, hci, hpend, hcl, hhi1, hhi2, habove, hdplat, hpref, hstg⟩ := Hrec
   ihave #Hglob := pkgGlobals_access $$ Hpkg
   unfold pkgGlobals
   icases Hglob with ⟨⟨%errf, #Herrs⟩, ⟨%kCT, #HkCT, #HkCTs⟩, ⟨%kLVT, #HkLVT, #HkLVTs⟩,
@@ -251,7 +254,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   iframe #
   iframe Hsv HstV Hboot
   iintro Hboot Hsv HstV %X2 %HX2 Htok
-  obtain ⟨hA2, -⟩ := HX2
+  obtain ⟨hA2, hlat2, hs2, -, hdp2, hD2, -, hp2⟩ := HX2
   rw [hA2]
   wp_auto
   ipersist logs
@@ -544,4 +547,110 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     rw [show (zero_val configurations : configurations) = configurations.mk (zero_val Configuration) (W64 0)
       (zero_val Configuration) (W64 0) from rfl]
     iexact configurations
+  -- the boot reads' facts of the crash state
+  obtain ⟨hlog2, -, hvm2, -, -, ⟨hlod2, -, -⟩, -, -, hdpl2⟩ := hp2
+  rw [hA2, hs2] at hlog2
+  rw [hD2, hs2] at hvm2
+  rw [hdp2] at hlod2
+  rw [hdp2, hlat2] at hdpl2
+  imod (restore_unify (GF := GF) γ rc' i (E := ⊤) r X.lat X.dp lv.Index' lv.Term') $$ [$Hlat $Hres]
+    with ⟨Happ, Hlb, Hllb, ⟨%ccfg0, %cfg0, %cidx0, %li0, %p0, Hcfgs, %Hcb, Hlp, Hpc⟩, Hfsm0⟩
+  ihave #Hdi' : (srvDurInvRaw γ rc' i : IProp GF) $$ []
+  · rw [show srvDurInvRaw γ rc' i = srvDurInvRaw γ rc i from rfl]; iexact Hdi
+  -- the pending discard's facts, the latest's lower bound, gprot's facts of the crash state
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  ihave H1 := bootDpRes (GF := GF) γ rc' i (E := ⊤) (fun _ _ => CoPset.mem_full) X.A X.lat X.s X.tp X.dp
+    $$ [$Hdi' $Hboot $Hsv]
+  imod H1 $$ Hnc with ⟨Hnc, Hboot, Hsv, #Hdpr, #Hlatlb⟩
+  ihave H2 := bootPeek (GF := GF) γ rc' i (E := ⊤) (fun _ _ => CoPset.mem_full) X.A X.lat X.s X.tp X.dp
+    iprop(⌜bootF γ X.s X.lat X.dp⌝) $$ [$Hdi' $Hboot $Hsv $Hpend]
+  · iintro %X3 %HX3 #Hdl Hown
+    rw [HX3.2.2.1]
+    iapply (boot_facts (GF := GF) γ rc' i gprotN_durN X.s X.lat X.dp Hcv hdplat) $$ [$Hinv $Hown $Hlat $Hdl $Hdpr]
+  imod H2 $$ Hnc with ⟨Hnc, Hboot, Hsv, Hpend, %HF⟩
+  iframe Hnc
+  imodintro
+  -- fix 2: the latest snapshot
+  wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastSnapshot")) (Val #()))
+  iapply (getLastSnapshot_pinned (GF := GF) γ rc' i r lv.Index' lv.Term' (latIdxW X.lat) (latTermW X.lat))
+  iframe Hllb
+  iframe #
+  iintro Hllb
+  wp_auto
+  -- the main goroutine's views, over rc'
+  generalize hDg : ({ ints := X.D.ints.insert (go!"CurrentTerm" : List w8) ct, bytes := X.D.bytes } : StableAbs) = D'
+    at *
+  have hvmD : voteMatches D' X.s := by
+    rw [← hDg]; unfold voteMatches
+    rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hvm2
+  ihave Hpw : (ghostVar rc'.dur.pw 1 (none : Option Pend) : IProp GF) $$ [Hpw]
+  · rw [hdur]; iexact Hpw
+  ihave HstV : (stVS rc' D' X.A.staged : IProp GF) $$ [HstV]
+  · unfold stVS; rw [hdur]; iexact HstV
+  ihave Hcomp : (monoNatAuthOwn rc'.dur.comp (1 : Qp).half X.c : IProp GF) $$ [Hcomp]
+  · rw [hdur]; iexact Hcomp
+  ihave Hgll : (ghostVar rc'.names.lastLog (1 : Qp).half (uint.nat lv.Index', uint.nat lv.Term') : IProp GF) $$ [Hgll]
+  · iexact Hgll
+  obtain ⟨hlen0, hdl0, hents0, hdpd0, hdpn0⟩ := HF
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+      fixPost (GF := GF) rc' false X.lat D' X.A.staged X.s.term lastLog_ptr ∗ rtok tid)))
+    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog Htok] [-]
+  · sorry
+  iintro %v ⟨%hv, Hfix, Htok⟩
+  subst hv
+  wp_auto
+  -- fix 4: lastLog raised to the snapshot's last entry when below
+  iunfold fixPost at Hfix
+  icases Hfix with ⟨%s1, %A1, %lv1, %c1, Hboot, Hsv, Hpend, Hpw, HstV, Hcomp, Happ, Hllb, Hgll, lastLog, %Hf1⟩
+  wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastSnapshot")) (Val #()))
+  iapply (getLastSnapshot_pinned (GF := GF) γ rc' i r lv1.Index' lv1.Term' (latIdxW X.lat) (latTermW X.lat))
+  iframe Hllb
+  iframe #
+  iintro Hllb
+  wp_auto
+  obtain ⟨ht1, hci1, hvm1, hg1, hx1, hc1, hab1, hl1⟩ := Hf1
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+      fixPost (GF := GF) rc' true X.lat D' X.A.staged X.s.term lastLog_ptr)))
+    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog] [-]
+  · wp_if_destruct
+    · -- below: the log is the snapshot's prefix
+      have hl2 : uint.nat lv1.Index' < latIdx X.lat ∧ s1.log.length = latIdx X.lat ∧
+          lastTerm s1.log = latTerm X.lat := by
+        rcases hl1 with ⟨-, -, h⟩ | ⟨-, h⟩
+        · exfalso; rw [← latIdxW_nat] at h; word
+        · exact h
+      sorry
+      iapply (setLastLog_pinned (GF := GF) γ rc' i r lv1.Index' lv1.Term' (latIdxW X.lat) (latTermW X.lat)
+        (latIdxW X.lat) (latTermW X.lat))
+      iframe Hllb Hgll
+      iframe #
+      iintro Hllb Hgll
+      wp_auto
+      isplitr; · ipureintro; trivial
+      unfold fixPost
+      iexists s1, A1, _, c1
+      iframe
+      ipureintro
+      refine ⟨ht1, hci1, hvm1, hg1, hx1, hc1, hab1, Or.inl ⟨?_, ?_, ?_⟩⟩ <;>
+        simp only [latIdxW_nat, latTermW_nat] <;> omega
+    · try wp_auto
+      isplitr; · ipureintro; trivial
+      unfold fixPost
+      iexists s1, A1, lv1, c1
+      iframe
+      ipureintro
+      refine ⟨ht1, hci1, hvm1, hg1, hx1, hc1, hab1, Or.inl ?_⟩
+      rcases hl1 with h | ⟨-, h, -⟩
+      · exact h
+      · exfalso; rw [← latIdxW_nat] at h; word
+  iintro %v ⟨%hv, Hfix⟩
+  subst hv
+  wp_auto
+  -- restoreFromCommittedLogs (`RestoreCommittedLogs = false`: nothing)
+  rw [hRCL]
+  ipersist RestoreCommittedLogs
+  wp_apply wp_restoreFromCommittedLogs $$ [$RestoreCommittedLogs]
   sorry
