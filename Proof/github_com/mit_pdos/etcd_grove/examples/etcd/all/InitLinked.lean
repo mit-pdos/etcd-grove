@@ -9,18 +9,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.InitLinked
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -47,7 +37,6 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
 variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.errors.Assumptions]
-variable [_root_.Perennial.fmt.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [_root_.Perennial.log.NewModel]
 
@@ -65,64 +54,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd12⟩
+      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.wp_initialize'_res _ Hinit.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.wp_initialize'_res _ Hinit.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.wp_initialize'_res _ Hinit.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.wp_initialize'_res _ Hinit.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
-      (EtcdGrove.regResL (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.regQs)
-      (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))))))))))))))
-      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.wp_initialize'_res _ Hinit.2.2.2.1))
+      _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.wp_initialize'_res _ Hinit.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1))

@@ -3,8 +3,8 @@
 linked proofs (`enc`'s, `EtcdGrove.enc`; txnlin's `IsWrite`, `Model` and `Gen`, from its proofs: txnlin's
 `Link` reaches the whole server; `remote`'s `Run`, `EtcdGrove.remote`).
 Hand-written, as `enc`'s (`etc/gen-link.py` has no mode for it).
-The Node (`wp_Node`) is linked over `Call_dist_holds` at N2's interim contracts
-(`KV_{Put,Get,Delete}_dist`, `Txn_Commit_dist`: axioms until #24's S2 client side).
+The Node (`wp_Node`) is linked over `Call_dist_holds` (the client's linked KV specs, at the client's `isKv`
+of the auth-off view; stage B′).
 -/
 module
 
@@ -69,10 +69,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.N
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.CallDistLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVDeleteDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TxnCommitDist
 
 @[expose] public section
 
@@ -235,12 +231,10 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [π : NetProtoGS] [ρ : github_com.mit_pdos.etcd_grove.examples.lib.remote.RemoteGS]
 variable [NaInvG GF]
 
-/-- The kv Node, linked: `Call` across machines from `Call_dist_holds` at N2's interim contracts
-(`KV_Put_dist`, `KV_Get_dist`, `KV_Delete_dist`, `Txn_Commit_dist`: axioms until #24's S2 client side). -/
+/-- The kv Node, linked: `Call` across machines from `Call_dist_holds` (the client's linked KV specs). -/
 theorem wp_Node : Node.spec (GF := GF) (hG := hG) :=
   Node.wp_proof zap.NewNop.wp_proof EtcdGrove.etcdstart.wp_NewClients wp_Codec
-    (EtcdGrove.etcd_txnlin.Call_dist_holds KV_Put_dist.wp_proof KV_Get_dist.wp_proof
-      KV_Delete_dist.wp_proof Txn_Commit_dist.wp_proof)
+    EtcdGrove.etcd_txnlin.Call_dist_holds
     EtcdGrove.remote.wp_ServeClient
 
 end linkedNode

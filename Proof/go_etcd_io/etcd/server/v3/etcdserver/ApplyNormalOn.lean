@@ -223,10 +223,12 @@ theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : OnState)
   unfold kvEntryOn
   split
   · split
-    · rw [if_neg (fun h => hv h.1)]
-      split
+    · split
       · rfl
-      · rw [hk, hl]
+      · rw [if_neg (fun h => hv h.1)]
+        split
+        · rfl
+        · rw [hk, hl]
     · rfl
   · rw [hk, hl]
 
@@ -298,7 +300,9 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
       · simp only; omega
       · split
         · simp only; omega
-        · exact hk
+        · split
+          · simp only; omega
+          · exact hk
     · simp only; omega
   · exact hk
 
@@ -364,19 +368,9 @@ theorem dispatchKind_field (rq : apply.IRRModel) :
 theorem adminKindOk_needAdmin (rq : apply.IRRModel) (h : apply.adminKindOk rq)
     (ha : apply.dispatchKind rq ≠ .authenticate) :
     apply.needAdminPermission rq = true := by
-  have hk : apply.dispatchKind rq = .authUserAdd ∨ apply.dispatchKind rq = .authRoleAdd ∨
-      apply.dispatchKind rq = .authUserGrantRole ∨
-      apply.dispatchKind rq = .authRoleGrantPermission ∨ apply.dispatchKind rq = .authEnable := by
-    unfold apply.adminKindOk at h
-    cases hd : apply.dispatchKind rq <;> rw [hd] at h ha <;> simp at h ha ⊢
-  obtain ⟨h1, h2, h3, h4, h5⟩ := dispatchKind_field rq
-  unfold apply.needAdminPermission
-  rcases hk with hk | hk | hk | hk | hk
-  · simp [h1 hk]
-  · simp [h2 hk]
-  · simp [h3 hk]
-  · simp [h4 hk]
-  · simp [h5 hk]
+  apply needAdminPermission_of_adminDispatchKind
+  unfold apply.adminKindOk at h
+  split at h <;> rename_i heq <;> simp_all [adminDispatchKind]
 
 /-- The floor of a request that is no KV write holds trivially. -/
 theorem applyFloorOk_nonFloor (rq : apply.IRRModel) (v3 : Bool) (F log : mvcc.Log)
@@ -403,9 +397,10 @@ theorem kvEntryOn_keep (c₀ : w64) (ch : apply.Chain) (s : OnState)
     Or.inr (Or.inr (fun rq' h => by rw [hdec] at h; cases h; exact hw))
   have hk : kvEntry c₀ ch s.2.2 s.2.1 m = s.2.1 := kvEntry_nonwrite c₀ ch s.2.2 s.2.1 m hw'
   have hl : kvTable c₀ ch s.2.2 m = s.2.2 := kvTable_nonwrite c₀ ch s.2.2 m hw'
+  have hnk := adminDispatchKind_of_needAdmin_false rq hna
   unfold kvEntryOn
   rw [if_pos ⟨ht, hd⟩, hdec]
-  simp only [hna, Bool.false_eq_true, _root_.and_false, ↓reduceIte]
+  simp only [hna, hnk, Bool.false_eq_true, _root_.false_and, _root_.and_false, ↓reduceIte]
   split
   · rfl
   · rw [hk, hl]
@@ -796,6 +791,12 @@ theorem srv_uberAuthStepsL_at
     (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAD : apply.applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG))
+    (hUD : apply.applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hUC : apply.applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG))
+    (hURR : apply.applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRD : apply.applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hRRP : apply.applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG))
     (hAu : apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
@@ -819,7 +820,7 @@ theorem srv_uberAuthStepsL_at
       iprop(□ ∀ γc : auth.AuthBkNames, apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode
         (auth.latestResC stl (.on γa) γc)) := by
     rw [hM]; rfl
-  iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
+  iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAD hUD hUC hURR hRD hRRP hAu hApplyL hApply ua E (auth.authIface stl)
     le (auth.tieRes stl (.on γa)) (adminWC stl bel γa Pk E.f T Wb) (auth.latestResC stl (.on γa) T))
   iframe Hpkg Hub
   isplitr

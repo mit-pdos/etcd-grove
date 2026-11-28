@@ -47,8 +47,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assu
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (γ : LinkvNames) (cl : Loc)
+  ∀ (γ : LinkvNames) (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork -∗

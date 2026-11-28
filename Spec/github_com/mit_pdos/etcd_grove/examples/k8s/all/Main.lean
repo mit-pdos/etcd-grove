@@ -45,7 +45,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumpti
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+  ∀ [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
     (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)

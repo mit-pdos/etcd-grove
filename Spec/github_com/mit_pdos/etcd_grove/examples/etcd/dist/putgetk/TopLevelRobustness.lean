@@ -86,7 +86,6 @@ value. -/
 def putgetK_safe.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     -- the configuration: any members' peer and client addresses
     (peers clients : List GoString)

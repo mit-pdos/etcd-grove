@@ -33,7 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assu
 
 theorem Call.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
     Call.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs x i Q hx hgen
+  intro cl ms V hAs x i Q hx hgen
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   wp_auto
   wp_apply wp_call cl ms V hAs x i Q hx hgen $$ [$Hlt Hau] as %y ⟨Hlt, Hy⟩

@@ -60,7 +60,7 @@ theorem New.wp_proof
     (wp_Ctx : Client.Ctx.spec (GF := GF) (hG := hG))
     (wp_TypeOf : reflect.TypeOf.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ S kc cl K γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1 hu1 hu2 htb hpk
+  intro _ Obj _ S kc cl K γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1 hu1 hu2 htb hpk
   wp_start as ⟨#Hkc, #Hkcl, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
   ihave #Hkcl0 := Hkcl
   iunfold k8sClient at Hkcl

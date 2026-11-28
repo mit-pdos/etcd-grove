@@ -117,7 +117,7 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMod
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOut M hs (auth.stepOf (auth.userDeleteF en name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
-      {{ auth.userChangePasswordReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      {{ auth.userChangePasswordReqIs r name ∗ ⌜auth.userKeysOk M hs⌝ ∗
           auth.authOwn M hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.stepOf (auth.userChangePasswordF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.userChangePasswordF name)) }}
@@ -136,7 +136,7 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMod
           auth.adminOut M hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err }}) ∗
     -- the auth plan's S4b (2026-10-24): the revocations and `RoleDelete`, appended
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString),
-      {{ auth.userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      {{ auth.userRevokeRoleReqIs r name role ∗ ⌜auth.userKeysOk M hs⌝ ∗
           auth.authOwn M hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userRevokeRoleF en name role))⌝ ∗
           (□ ∀ en : Bool, auth.capNextM M hs (auth.stepOf (auth.userRevokeRoleF en name role))) }}
@@ -146,7 +146,7 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMod
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOut M hs (auth.stepOf (auth.userRevokeRoleF en name role)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (role key rangeEnd : GoString),
-      {{ auth.roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜role.length ≤ backend.maxKeySize⌝ ∗
+      {{ auth.roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜auth.roleKeysOk M hs⌝ ∗
           auth.authOwn M hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.roleRevokePermissionR role key rangeEnd)⌝ ∗
           auth.capNextM M hs (auth.roleRevokePermissionR role key rangeEnd) }}
@@ -167,7 +167,7 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMod
             auth.adminOut M hs (auth.stepOf (auth.roleDeleteF en role)) auth.noExtra err }}) ∗
     -- the auth plan's S4c (2026-10-24): `UserGrantRole`, appended
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString),
-      {{ auth.userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗
+      {{ auth.userGrantRoleReqIs r user role ∗ ⌜auth.userKeysOk M hs⌝ ∗
           auth.authOwn M hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜∀ (sta : auth.AuthState) (u : auth.User), auth.histLast M hs sta →
             sta.users !! user = some u → u.length < 2 ^ 62⌝ ∗
@@ -180,7 +180,7 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMod
     -- the auth plan's S4d (2026-10-24): `RoleGrantPermission`, appended
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString)
         (w : Option auth.PermW),
-      {{ auth.roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      {{ auth.roleGrantPermissionReqIs r name w ∗ ⌜auth.roleKeysOk M hs⌝ ∗
           auth.authOwn M hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ ∗
           auth.capNextM M hs (auth.roleGrantPermissionR name w) }}
@@ -526,7 +526,7 @@ if there is a response. -/
 abbrev applierV3backend.UserChangePassword.stepSpec : Prop :=
   ∀ (E : AEnv GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState) (name : GoString),
-    name.length ≤ backend.maxKeySize →
+    auth.userKeysOk E.authMode hs →
     auth.stepOk E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userChangePasswordReqIs r name ∗
@@ -568,7 +568,7 @@ header): the store's `UserRevokeRole` from the authority at `hs` and the write r
 abbrev applierV3backend.UserRevokeRole.stepSpec : Prop :=
   ∀ (E : AEnv GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState) (name role : GoString),
-    name.length ≤ backend.maxKeySize →
+    auth.userKeysOk E.authMode hs →
     (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.userRevokeRoleF en name role))) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.userRevokeRoleReqIs r name role ∗
@@ -588,7 +588,7 @@ abbrev applierV3backend.UserRevokeRole.stepSpec : Prop :=
 abbrev applierV3backend.UserGrantRole.stepSpec : Prop :=
   ∀ (E : AEnv GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState) (user role : GoString),
-    user.length ≤ backend.maxKeySize →
+    auth.userKeysOk E.authMode hs →
     (∀ (sta : auth.AuthState) (u : auth.User), auth.histLast E.authMode hs sta →
       sta.users !! user = some u → u.length < 2 ^ 62) →
     auth.stepOk E.authMode hs (auth.userGrantRoleR user role) →
@@ -610,7 +610,7 @@ abbrev applierV3backend.RoleGrantPermission.stepSpec : Prop :=
   ∀ (E : AEnv GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState) (name : GoString)
     (w : Option auth.PermW),
-    name.length ≤ backend.maxKeySize →
+    auth.roleKeysOk E.authMode hs →
     auth.stepOk E.authMode hs (auth.roleGrantPermissionR name w) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleGrantPermissionReqIs r name w ∗
@@ -630,7 +630,7 @@ abbrev applierV3backend.RoleRevokePermission.stepSpec : Prop :=
   ∀ (E : AEnv GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState)
     (role key rangeEnd : GoString),
-    role.length ≤ backend.maxKeySize →
+    auth.roleKeysOk E.authMode hs →
     auth.stepOk E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleRevokePermissionReqIs r role key rangeEnd ∗

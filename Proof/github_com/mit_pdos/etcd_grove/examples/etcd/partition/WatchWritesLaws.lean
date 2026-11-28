@@ -32,7 +32,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- `client_Put_km`'s statement (`WatchWritesLinked.lean`, a linking module), as a hypothesis of the
 proofs that use it (the import tiers); `client_Put_km_law_holds` proves it. -/
 abbrev client_Put_km.law : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ (cl : Loc) (ms : List (client.SrvAt GF))
       (V : client.WEnv GF) (γk : KVNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF)
       (hsz : opSizeOk (opPutModel key val [])),

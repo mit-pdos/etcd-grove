@@ -99,6 +99,12 @@ theorem apply.uberAuthSteps_of_stepsX
     (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAD : apply.applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG))
+    (hUD : apply.applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hUC : apply.applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG))
+    (hURR : apply.applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRD : apply.applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hRRP : apply.applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG))
     (hAu : apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (E : apply.AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc)
     (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
@@ -113,7 +119,7 @@ theorem apply.uberAuthSteps_of_stepsX
   iframe Hu
   isplitr
   · ipureintro; rfl
-  iapply apply.applierAdmin_uberX hUA hRA hUGR hRGP hAE hAu E X W p opts $$ [Hpkg Hu Hst]
+  iapply apply.applierAdmin_uberX hUA hRA hUGR hRGP hAE hAD hUD hUC hURR hRD hRRP hAu E X W p opts $$ [Hpkg Hu Hst]
   iframe #
 
 set_option hygiene false in

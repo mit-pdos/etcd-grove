@@ -36,7 +36,7 @@ theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
     (wp_setItem : setItem.spec (GF := GF) (hG := hG))
     (h_client_Put_st : client.client_Put_st.law (GF := GF) (hG := hG)) :
     seedOne.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γs s0 g k rv σ hAs hms hk hg
+  intro _ cl ms V γs s0 g k rv σ hAs hms hk hg
   wp_start as ⟨Hlt, #Hnc, #Hwo, #Hregs, #Hsi, Hs, #Hst⟩
   wp_auto
   wp_apply wp_splitKey

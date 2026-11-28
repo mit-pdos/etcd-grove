@@ -31,9 +31,9 @@ theorem github_com.hashicorp.raft.examples.hraftnet.service.New.wp_proof :
   wp_auto
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$r0»
   iStructNamed «$r0»
-  imod sync.init_Mutex (apiMuInv «$r0_ptr») ⊤ (structFieldRef API go!"mu" «$r0_ptr») $$ [mu] [barrierIn] with #Hmu
+  imod sync.init_Mutex (apiMuInv «$r0_ptr» γ i fc alb) ⊤ (structFieldRef API go!"mu" «$r0_ptr») $$ [mu] [barrierIn] with #Hmu
   · iexact mu
-  · unfold apiMuInv; inext; iexists _; iexact barrierIn
+  · unfold apiMuInv; inext; iexists _; iframe barrierIn; ileft; ipureintro; rfl
   ipersist r
   ipersist fsm
   ipersist enqueue

@@ -94,6 +94,20 @@ decodes without an error. -/
 def UserAddModel.pwSure (m : UserAddModel) : Prop :=
   auth.pwSureP m.password m.hashed m.noPassword
 
+/-- An `AuthUserChangePasswordRequest`'s `Name`, `Password` and `HashedPassword` (nomode D3,
+2026-11-28: the request model keeps what `UserChangePassword` reads). -/
+structure ChangePasswordModel where
+  name : GoString
+  password : GoString
+  hashed : GoString
+
+/-- **The password choice cannot fail** (`UserChangePassword`'s `ErrNoPasswordUser` is not
+possible): an empty `Password` with a base64-encoded `HashedPassword`, which `selectPassword` decodes
+without an error (`EtcdServer.UserChangePassword` proposes this form when a password is set: its
+bcrypt hash, base64-encoded, `Password` cleared); a user without a password selects none. -/
+def ChangePasswordModel.pwSure (m : ChangePasswordModel) : Prop :=
+  auth.pwSureP m.password m.hashed false
+
 /-- A `ClusterMemberAttrSetRequest`'s `Member_ID` and its `MemberAttributes`' `Name` and
 `ClientUrls`. -/
 structure MemberAttrModel where
@@ -129,22 +143,27 @@ structure IRRModel where
   `UserAdd` makes it a bbolt key, `issues/etcd-auth-useradd-long-name-fatal.md`; with its passwords
   and options since the auth plan's E2t, 2026-10-26, `UserAddModel`) -/
   authUserAdd : Option UserAddModel
-  authUserDelete : Bool
+  /-- the user's name (nomode D3, 2026-11-28: a `Bool` until then, as the five below) -/
+  authUserDelete : Option GoString
   authUserGet : Option GoString
-  authUserChangePassword : Bool
+  /-- the user's name and passwords -/
+  authUserChangePassword : Option ChangePasswordModel
   /-- the user's and the role's names (the auth plan's E2n, 2026-10-26: a `Bool` until then; the
   step specs bound the user's name, `apply.adminKindOk`) -/
   authUserGrantRole : Option (GoString × GoString)
-  authUserRevokeRole : Bool
+  /-- the user's and the role's names -/
+  authUserRevokeRole : Option (GoString × GoString)
   authUserList : Bool
   authRoleList : Bool
   /-- the role's name (as `authUserAdd`'s) -/
   authRoleAdd : Option GoString
-  authRoleDelete : Bool
+  /-- the role's name -/
+  authRoleDelete : Option GoString
   authRoleGet : Option GoString
   /-- the role's name and the permission (as `authUserGrantRole`'s) -/
   authRoleGrantPermission : Option (GoString × Option auth.PermW)
-  authRoleRevokePermission : Bool
+  /-- the role's name, the key and the range end -/
+  authRoleRevokePermission : Option (GoString × GoString × GoString)
   clusterVersionSet : Option GoString
   clusterMemberAttrSet : Option MemberAttrModel
   downgradeInfoSet : Option DowngradeModel
@@ -286,16 +305,16 @@ def dispatchKind (rq : IRRModel) : ReqKind :=
   else if rq.authDisable then .authDisable
   else if rq.authStatus then .authStatus
   else if rq.authUserAdd.isSome then .authUserAdd
-  else if rq.authUserDelete then .authUserDelete
-  else if rq.authUserChangePassword then .authUserChangePassword
+  else if rq.authUserDelete.isSome then .authUserDelete
+  else if rq.authUserChangePassword.isSome then .authUserChangePassword
   else if rq.authUserGrantRole.isSome then .authUserGrantRole
   else if rq.authUserGet.isSome then .authUserGet
-  else if rq.authUserRevokeRole then .authUserRevokeRole
+  else if rq.authUserRevokeRole.isSome then .authUserRevokeRole
   else if rq.authRoleAdd.isSome then .authRoleAdd
   else if rq.authRoleGrantPermission.isSome then .authRoleGrantPermission
   else if rq.authRoleGet.isSome then .authRoleGet
-  else if rq.authRoleRevokePermission then .authRoleRevokePermission
-  else if rq.authRoleDelete then .authRoleDelete
+  else if rq.authRoleRevokePermission.isSome then .authRoleRevokePermission
+  else if rq.authRoleDelete.isSome then .authRoleDelete
   else if rq.authUserList then .authUserList
   else if rq.authRoleList then .authRoleList
   else .none
@@ -317,10 +336,10 @@ def noSideEffect (rq : IRRModel) : Bool :=
 /-- `needAdminPermission(r)` (`auth.go`): the auth requests that change users or roles, enable
 or disable auth, or list users or roles. -/
 def needAdminPermission (rq : IRRModel) : Bool :=
-  [rq.authEnable, rq.authDisable, rq.authUserAdd.isSome, rq.authUserDelete, rq.authUserChangePassword,
-    rq.authUserGrantRole.isSome, rq.authUserRevokeRole, rq.authRoleAdd.isSome,
-    rq.authRoleGrantPermission.isSome,
-    rq.authRoleRevokePermission, rq.authRoleDelete, rq.authUserList, rq.authRoleList].or
+  [rq.authEnable, rq.authDisable, rq.authUserAdd.isSome, rq.authUserDelete.isSome,
+    rq.authUserChangePassword.isSome, rq.authUserGrantRole.isSome, rq.authUserRevokeRole.isSome,
+    rq.authRoleAdd.isSome, rq.authRoleGrantPermission.isSome,
+    rq.authRoleRevokePermission.isSome, rq.authRoleDelete.isSome, rq.authUserList, rq.authRoleList].or
 
 /-- A KV request: what the txn package applies (and the corrupt applier rejects). -/
 def isKVKind : ReqKind → Bool
@@ -482,6 +501,93 @@ theorem authRoleGrantPermissionIs_nn (l : Loc) (nw : GoString × Option auth.Per
     authRoleGrantPermissionIs (GF := GF) l nw ⊢ ⌜l ≠ null⌝ := by
   unfold authRoleGrantPermissionIs auth.roleGrantPermissionReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
 
+/-- The `*pb.AuthUserDeleteRequest` `r` (not nil): its `Name`, read-only (the auth store's request
+model, `auth.userDeleteReqIs`; nomode D3, 2026-11-28, as the four below). -/
+def authUserDeleteIs (r : Loc) (name : GoString) : IProp GF :=
+  auth.userDeleteReqIs r name
+
+/-- The `*pb.AuthUserChangePasswordRequest` `u` (not nil): its `Name`, `Password` and
+`HashedPassword`, read-only. It gives the auth store's request model
+(`auth.userChangePasswordReqIs`, `authUserChangePasswordIs_req`). -/
+def authUserChangePasswordIs (u : Loc) (m : ChangePasswordModel) : IProp GF :=
+  iprop(⌜u ≠ null⌝ ∗
+    structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"Name" u ↦□ m.name ∗
+    structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"Password" u ↦□ m.password ∗
+    structFieldRef etcdserverpb.AuthUserChangePasswordRequest go!"HashedPassword" u ↦□ m.hashed)
+
+/-- The `*pb.AuthUserRevokeRoleRequest` `r` (not nil): its `Name` and `Role`, read-only
+(`auth.userRevokeRoleReqIs`). -/
+def authUserRevokeRoleIs (r : Loc) (nr : GoString × GoString) : IProp GF :=
+  auth.userRevokeRoleReqIs r nr.1 nr.2
+
+/-- The `*pb.AuthRoleDeleteRequest` `r` (not nil): its `Role`, read-only (`auth.roleDeleteReqIs`). -/
+def authRoleDeleteIs (r : Loc) (role : GoString) : IProp GF :=
+  auth.roleDeleteReqIs r role
+
+/-- The `*pb.AuthRoleRevokePermissionRequest` `r` (not nil): its `Role`, and its `Key` and
+`RangeEnd` holding the key and the range end, read-only (`auth.roleRevokePermissionReqIs`). -/
+def authRoleRevokePermissionIs (r : Loc) (rke : GoString × GoString × GoString) : IProp GF :=
+  auth.roleRevokePermissionReqIs r rke.1 rke.2.1 rke.2.2
+
+/-- The request model gives the auth store's (`auth.userChangePasswordReqIs`). -/
+theorem authUserChangePasswordIs_req (u : Loc) (m : ChangePasswordModel) :
+    authUserChangePasswordIs (GF := GF) u m ⊢ auth.userChangePasswordReqIs u m.name := by
+  unfold authUserChangePasswordIs auth.userChangePasswordReqIs
+  iintro ⟨%hu, #Hn, #Hp, #Hh⟩
+  isplit; · ipureintro; exact hu
+  isplit; · iexact Hn
+  iexists m.password, m.hashed; isplit <;> iassumption
+
+/-- A request whose model's password choice cannot fail gives the auth store's
+`userChangePasswordSure`. -/
+theorem authUserChangePasswordIs_sure (u : Loc) (m : ChangePasswordModel) (h : m.pwSure) :
+    authUserChangePasswordIs (GF := GF) u m ⊢ auth.userChangePasswordSure u := by
+  unfold authUserChangePasswordIs auth.userChangePasswordSure
+  iintro ⟨%hu, #Hn, #Hp, #Hh⟩
+  iexists m.password, m.hashed
+  iframe Hp Hh
+  ipureintro; exact h
+
+instance authUserDeleteIs_persistent (r : Loc) (name : GoString) :
+    Persistent (authUserDeleteIs (GF := GF) r name) := by
+  unfold authUserDeleteIs; infer_instance
+
+instance authUserChangePasswordIs_persistent (u : Loc) (m : ChangePasswordModel) :
+    Persistent (authUserChangePasswordIs (GF := GF) u m) := by
+  unfold authUserChangePasswordIs; infer_instance
+
+instance authUserRevokeRoleIs_persistent (r : Loc) (nr : GoString × GoString) :
+    Persistent (authUserRevokeRoleIs (GF := GF) r nr) := by
+  unfold authUserRevokeRoleIs; infer_instance
+
+instance authRoleDeleteIs_persistent (r : Loc) (role : GoString) :
+    Persistent (authRoleDeleteIs (GF := GF) r role) := by
+  unfold authRoleDeleteIs; infer_instance
+
+instance authRoleRevokePermissionIs_persistent (r : Loc) (rke : GoString × GoString × GoString) :
+    Persistent (authRoleRevokePermissionIs (GF := GF) r rke) := by
+  unfold authRoleRevokePermissionIs; infer_instance
+
+theorem authUserDeleteIs_nn (l : Loc) (n : GoString) :
+    authUserDeleteIs (GF := GF) l n ⊢ ⌜l ≠ null⌝ := by
+  unfold authUserDeleteIs auth.userDeleteReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authUserChangePasswordIs_nn (l : Loc) (m : ChangePasswordModel) :
+    authUserChangePasswordIs (GF := GF) l m ⊢ ⌜l ≠ null⌝ := by
+  unfold authUserChangePasswordIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authUserRevokeRoleIs_nn (l : Loc) (nr : GoString × GoString) :
+    authUserRevokeRoleIs (GF := GF) l nr ⊢ ⌜l ≠ null⌝ := by
+  unfold authUserRevokeRoleIs auth.userRevokeRoleReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authRoleDeleteIs_nn (l : Loc) (r : GoString) :
+    authRoleDeleteIs (GF := GF) l r ⊢ ⌜l ≠ null⌝ := by
+  unfold authRoleDeleteIs auth.roleDeleteReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authRoleRevokePermissionIs_nn (l : Loc) (rke : GoString × GoString × GoString) :
+    authRoleRevokePermissionIs (GF := GF) l rke ⊢ ⌜l ≠ null⌝ := by
+  unfold authRoleRevokePermissionIs auth.roleRevokePermissionReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
 /-- The `*membershippb.ClusterVersionSetRequest` `c` (not nil): its `Ver`, read-only. -/
 def clusterVersionSetIs (c : Loc) (ver : GoString) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗
@@ -568,19 +674,21 @@ def internalRaftRequestIs (p : Loc) (rq : IRRModel) : IProp GF :=
     irrField p go!"AuthStatus" (fun l => presentIs l rq.authStatus) ∗
     irrField p go!"Authenticate" (fun l => optReqIs l rq.authenticate authenticateIs) ∗
     irrField p go!"AuthUserAdd" (fun l => optReqIs l rq.authUserAdd authUserAddIs) ∗
-    irrField p go!"AuthUserDelete" (fun l => presentIs l rq.authUserDelete) ∗
+    irrField p go!"AuthUserDelete" (fun l => optReqIs l rq.authUserDelete authUserDeleteIs) ∗
     irrField p go!"AuthUserGet" (fun l => optReqIs l rq.authUserGet authUserGetIs) ∗
-    irrField p go!"AuthUserChangePassword" (fun l => presentIs l rq.authUserChangePassword) ∗
+    irrField p go!"AuthUserChangePassword"
+      (fun l => optReqIs l rq.authUserChangePassword authUserChangePasswordIs) ∗
     irrField p go!"AuthUserGrantRole" (fun l => optReqIs l rq.authUserGrantRole authUserGrantRoleIs) ∗
-    irrField p go!"AuthUserRevokeRole" (fun l => presentIs l rq.authUserRevokeRole) ∗
+    irrField p go!"AuthUserRevokeRole" (fun l => optReqIs l rq.authUserRevokeRole authUserRevokeRoleIs) ∗
     irrField p go!"AuthUserList" (fun l => presentIs l rq.authUserList) ∗
     irrField p go!"AuthRoleList" (fun l => presentIs l rq.authRoleList) ∗
     irrField p go!"AuthRoleAdd" (fun l => optReqIs l rq.authRoleAdd authRoleAddIs) ∗
-    irrField p go!"AuthRoleDelete" (fun l => presentIs l rq.authRoleDelete) ∗
+    irrField p go!"AuthRoleDelete" (fun l => optReqIs l rq.authRoleDelete authRoleDeleteIs) ∗
     irrField p go!"AuthRoleGet" (fun l => optReqIs l rq.authRoleGet authRoleGetIs) ∗
     irrField p go!"AuthRoleGrantPermission"
       (fun l => optReqIs l rq.authRoleGrantPermission authRoleGrantPermissionIs) ∗
-    irrField p go!"AuthRoleRevokePermission" (fun l => presentIs l rq.authRoleRevokePermission) ∗
+    irrField p go!"AuthRoleRevokePermission"
+      (fun l => optReqIs l rq.authRoleRevokePermission authRoleRevokePermissionIs) ∗
     irrField p go!"ClusterVersionSet" (fun l => optReqIs l rq.clusterVersionSet clusterVersionSetIs) ∗
     irrField p go!"ClusterMemberAttrSet"
       (fun l => optReqIs l rq.clusterMemberAttrSet memberAttrSetIs) ∗

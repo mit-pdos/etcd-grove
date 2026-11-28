@@ -120,7 +120,7 @@ theorem permVerdict_of_L (M : AuthMode) (hs : List AuthState)
   | on γa =>
     simp only [latestSnap, permVerdict]
     iintro #⟨%i, %stl, %Hl, #Hs⟩
-    obtain ⟨hp, hr⟩ := h stl Hl
+    obtain ⟨hp, hr, -⟩ := h stl Hl
     isplitl
     · iexists i, stl; iframe Hs; ipureintro; exact fun he => (hp he).1
     isplitl

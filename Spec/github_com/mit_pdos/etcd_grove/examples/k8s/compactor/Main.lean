@@ -55,8 +55,7 @@ abbrev clientAddr : GoString := go!"127.0.0.1:23976"
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
+  ∀ (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   etcdstart.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 →
   -- (per-type stage B3) the levels of a thread token the server's gRPC runs use

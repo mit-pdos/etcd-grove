@@ -114,7 +114,6 @@ steps, `n + 1 ≤ 2 ^ 48` (the receipt bound of the server's request ids; until 
 consequence of its length. -/
 theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
@@ -261,7 +260,6 @@ with one thread, of `n` steps: if the main thread has finished, its result is `#
 thread has ended in a panic. -/
 theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]

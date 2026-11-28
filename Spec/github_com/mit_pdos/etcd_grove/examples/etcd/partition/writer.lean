@@ -35,8 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 /-- See the file header. -/
 abbrev writer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (clis : GoSlice) (cls : List Loc)
+  ∀ (clis : GoSlice) (cls : List Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γ : client.KMNames) (w : Loc)
     (tsl : GoSlice) (tried : List wkv) (lo hi : w64) (P : List (GoString × GoString)),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

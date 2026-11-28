@@ -37,7 +37,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- A client watcher's contexts' errors are client errors (`watchConnFacts`' `ctxErrClientAllW`). -/
 theorem ctxErrClientAll_of_kvWatcher (w : Loc) (γk : KVNames) :
@@ -85,9 +84,8 @@ theorem isKv_of_regs [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumpti
     (γk : KVNames) (hst : kvSame γr.kv γk) (hrb : receiptBound GF ≤ 2 ^ 62) :
     kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ⊢ |==> isKv api γk true := by
   iintro ⟨#Ho, #Hr⟩
-  imod (srvStart_alloc (GF := GF) (srvsAt addr E γr cid mid)) with #Hs
   imodintro
-  iapply (isKv_intro api γk true (srvsAt addr E γr cid mid)
+  iapply (isKv_of_members api γk true (srvsAt addr E γr cid mid)
     (fun x hx => by obtain ⟨a, -, rfl⟩ := srvsAt_mem hx; exact hst) (fun h => by cases h) hrb)
   rw [srvsAt_addr]
   iframe #

@@ -69,6 +69,7 @@ theorem callGet_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
     (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law (GF := GF) (hG := hG)) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
+    Γ.auth = false →
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
@@ -80,7 +81,7 @@ theorem callGet_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
         ∃ σ : KVState, □ Q σ ∗
           ⌜y = getOut (W64 (σ.rev : Int)) (σ.kvs.filter fun v => decide (v.key = key)) ∧
             kvRevFits σ.rev⌝) }} := by
-  intro _ π cl api eps V Γ hAs key Q hkl
+  intro _ π cl api eps V Γ hauth hAs key Q hkl
   wp_start as ⟨Hlt, #Hkc, #Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -92,7 +93,7 @@ theorem callGet_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
   wp_apply (h_Get cl api eps V Γ cctx ccd key slice.nil Q
-      (opSizeOk_opGetModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ [$Hlt]
+      (opSizeOk_opGetModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)) hauth) $$ [$Hlt]
     as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   -- `cancel()`
@@ -175,6 +176,7 @@ theorem callList_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :
     (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law (GF := GF) (hG := hG)) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
+    Γ.auth = false →
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (Q : KVState → IProp GF),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
@@ -185,7 +187,7 @@ theorem callList_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :
         ∃ σ : KVState, □ Q σ ∗
           ⌜y = listOut (W64 (σ.rev : Int))
               (σ.kvs.filter fun v => inRange listFrom listTo v.key) ∧ kvRevFits σ.rev⌝) }} := by
-  intro _ π cl api eps V Γ hAs Q
+  intro _ π cl api eps V Γ hauth hAs Q
   wp_start as ⟨Hlt, #Hkc, #Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -216,7 +218,7 @@ theorem callList_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :
   (try wp_auto)
   wp_apply (h_List cl api eps V Γ cctx ccd _ Q
       (opSizeOk_opGetModel (K := inMax) (E := inMax) (V := 0)
-        (optsKeep_cons (withRangeM_keep (by decide)) (optsKeep_nil _ _ _)) (by decide) (by decide))) $$ [$Hlt]
+        (optsKeep_cons (withRangeM_keep (by decide)) (optsKeep_nil _ _ _)) (by decide) (by decide)) hauth) $$ [$Hlt]
     as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   -- `cancel()`
@@ -550,6 +552,7 @@ theorem callTxn_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
 /-- `call` across machines (txnlin's `call.spec` at the view), auth off. -/
 theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
+      Γ.auth = false →
       errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
       ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
       {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
@@ -563,6 +566,7 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
               kvRevFits σ.rev⌝) }})
     (wp_callList : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
+      Γ.auth = false →
       errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
       ∀ (Q : KVState → IProp GF),
       {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
@@ -647,7 +651,7 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
     simp only [linkv.MIn.isWrite, Bool.false_eq_true, ↓reduceIte]
     wp_if_destruct
     · icases Hau with #Hau
-      wp_apply wp_callGet cl api eps V Γ hAs x.Key' Q (hgen.2.2 _ hx) $$ [$Hlt] as %y ⟨Hlt, Hy⟩
+      wp_apply wp_callGet cl api eps V Γ hauth hAs x.Key' Q (hgen.2.2 _ hx) $$ [$Hlt] as %y ⟨Hlt, Hy⟩
       · iframe #
       iapply HΦ
       iframe Hlt
@@ -667,7 +671,7 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
     · icases Hau with #Hau
-      wp_apply wp_callList cl api eps V Γ hAs Q $$ [$Hlt] as %y ⟨Hlt, Hy⟩
+      wp_apply wp_callList cl api eps V Γ hauth hAs Q $$ [$Hlt] as %y ⟨Hlt, Hy⟩
       · iframe #
       iapply HΦ
       iframe Hlt

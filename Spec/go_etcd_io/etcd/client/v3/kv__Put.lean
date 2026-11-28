@@ -21,7 +21,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D44: its members hidden):
+/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`: every endpoint registers etcd's KV methods at the
+view specs, `kvRegsV`, which name no member; unless `dup`, no endpoint refuses a write, `kvDupNR`):
 `kv.Do` of `OpPut(key, val, opts...)` (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
 ties the slice `opts_sl` of their closures to them; `[]` for none), options that do not make `OpPut` panic nor change
 the operation's type, a put with no lease (etcd's `Put` spec covers no other),

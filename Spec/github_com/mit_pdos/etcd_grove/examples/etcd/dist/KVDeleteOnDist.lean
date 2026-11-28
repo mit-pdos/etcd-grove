@@ -31,7 +31,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`KV_DeleteOn_dist`: `(*kv).Delete(ctx, key, opts...)` across machines, auth on** (mirrors
-`client.client_delete_on` at the cluster, in `KV_Delete_dist`'s statement: the update persistent
+`client.client_delete_on` at the cluster, in the form of `kv.Delete.spec` at a `kvClientAt`: the update persistent
 (`writeAuD`), the principal of `cfg`, a success's grant `writeCheckedD`; the error arm claims nothing).
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;

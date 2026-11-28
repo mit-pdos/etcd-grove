@@ -22,9 +22,8 @@ never fails.
 **The scope** (`Hscope`) is decidable and is over the Go deployment value:
 - `KvOnly d` (`Proof/.../dist/client/KvDefs.lean`): every workload has kind `kv`
   (`deployment.KV`, kind `0`): `∀ w ∈ d.workloads, w.kind = W64 0`;
-- `d.cfg.auth = false`: the members run with auth off (`deployment.ServerCfg.Auth`). The interim
-  contracts the kv calls rest on (`KV_Put_dist`, `KV_Delete_dist`, `Txn_Commit_dist`, `Serve_dist`)
-  are for members with auth off.
+- `d.cfg.auth = false`: the members run with auth off (`deployment.ServerCfg.Auth`). The kv calls rest
+  on etcd's table's KV entries (`etcdSvc`) and `Serve_dist`, which are for members with auth off.
 
 No other premise is added. The deployment is still checked by the programs, not by a premise: a
 malformed deployment of the scope is covered too, with every machine returning after its check.
@@ -51,9 +50,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 whose workloads are all `kv` and whose members run with auth off. -/
 def etcd_kv_safe_nocrash.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (d : Deployment)
     -- M1's scope (the only premise beyond `etcd_robust_nocrash.spec`'s)

@@ -112,7 +112,9 @@ theorem kvEntryOn_growsOk [GooseExts] (c₀ : w64) (ch : apply.Chain)
       · exact growsOk_refl _
       · split
         · exact growsOk_refl _
-        · exact kvEntry_growsOkOn c₀ ch s.2.2 s.2.1 m hm hl
+        · split
+          · exact growsOk_refl _
+          · exact kvEntry_growsOkOn c₀ ch s.2.2 s.2.1 m hm hl
     · exact growsOk_refl _
   · exact kvEntry_growsOkOn c₀ ch s.2.2 s.2.1 m hm hl
 

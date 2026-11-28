@@ -139,7 +139,9 @@ five kinds `adminStateR` steps, `auth/Fuel.lean`'s `StepSmall`s; a user's name a
 request model's `adminKindOk`). -/
 theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : histWf st)
     (hU : ∀ m, rq.authUserAdd = some m → apply.dispatchKind rq = .authUserAdd →
-      m.name.length ≤ backend.maxKeySize) (hG : apply.irrUtf8 rq)
+      m.name.length ≤ backend.maxKeySize)
+    (hRA : ∀ n, rq.authRoleAdd = some n → apply.dispatchKind rq = .authRoleAdd →
+      n.length ≤ backend.maxKeySize) (hG : apply.irrUtf8 rq)
     (hR : adminStateR rq st st') : histWf st' ∧ st'.revision ≤ st.revision + 1 := by
   unfold adminStateR at hR
   split at hR
@@ -157,7 +159,7 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
             · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_putUser _ _ _ hs)
       · subst hR; exact ⟨h, Nat.le_succ _⟩
     · split at hR <;> rename_i n hn
-      · refine authRelState_wf _ (auth.stepSmall_roleAdd n) ?_ st st' h hR
+      · refine authRelState_wf _ (auth.stepSmall_roleAdd n (hRA n hn hk)) ?_ st st' h hR
         intro s s' hs hn
         simp only [auth.stepOf, auth.roleAddF] at hn
         split at hn
@@ -196,7 +198,7 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
             · rename_i ps hps
               cases hn
               exact auth.permKeysOk_bump _ (auth.permKeysOk_putRole _ _ _ hs
-                (auth.grant_keys ps w' (Classical.not_not.1 hv).1 (fun p hp => hs r ps hps p hp)))
+                (auth.grant_keys ps w' (Classical.not_not.1 hv) (fun p hp => hs r ps hps p hp)))
       · subst hR; exact ⟨h, Nat.le_succ _⟩
     · refine authRelState_wf _ (auth.stepSmall_authEnable st.enabled) ?_ st st' h hR
       intro s s' hs hn
@@ -208,6 +210,68 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
         · split at hn
           · cases hn; exact auth.permKeysOk_enabled _ _ hs
           · cases hn
+    · -- (nomode D3) `AuthDisable`
+      refine authRelState_wf _ (auth.stepSmall_authDisable st.enabled) ?_ st st' h hR
+      intro s s' hs hn
+      simp only [auth.stepOf, auth.authDisableF] at hn
+      split at hn
+      · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_enabled _ _ hs)
+      · cases hn
+    · split at hR <;> rename_i n hn
+      · refine authRelState_wf _ (auth.stepSmall_userDelete st.enabled n) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.userDeleteF] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_delUser _ _ hs)
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i m hm
+      · rcases hR with ⟨-, rfl⟩ | hR
+        · exact ⟨h, Nat.le_succ _⟩
+        · refine authRelState_wf _ (auth.stepSmall_userChangePassword m.name) ?_ st st' h hR
+          intro s s' hs hn
+          simp only [auth.stepOf, auth.userChangePasswordF] at hn
+          split at hn
+          · cases hn
+          · cases hn; exact auth.permKeysOk_bump _ hs
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i n ro hnr
+      · refine authRelState_wf _ (auth.stepSmall_userRevokeRole st.enabled n ro) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.userRevokeRoleF] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · split at hn
+            · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_putUser _ _ _ hs)
+            · cases hn
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i ro hro
+      · refine authRelState_wf _ (auth.stepSmall_roleDelete st.enabled ro) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.roleDeleteF] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_delRole _ _ hs)
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i ro k e hrke
+      · refine authRelState_wf _ (auth.stepSmall_roleRevokePermission ro k e) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.roleRevokePermissionR] at hn
+        split at hn
+        · cases hn
+        · rename_i ps hps
+          split at hn
+          · cases hn
+            exact auth.permKeysOk_bump _ (auth.permKeysOk_putRole _ _ _ hs
+              (fun p hp => hs ro ps hps p (List.mem_filter.1 hp).1))
+          · cases hn
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
     · subst hR; exact ⟨h, Nat.le_succ _⟩
   · subst hR; exact ⟨h, Nat.le_succ _⟩
 
@@ -215,12 +279,14 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
 successor, `adminStateR`'s; else the state kept). -/
 theorem adminNext_wf (rq : apply.IRRModel) (st : auth.AuthState) (h : histWf st)
     (hU : ∀ m, rq.authUserAdd = some m → apply.dispatchKind rq = .authUserAdd →
-      m.name.length ≤ backend.maxKeySize) (hG : apply.irrUtf8 rq) :
+      m.name.length ≤ backend.maxKeySize)
+    (hRA : ∀ n, rq.authRoleAdd = some n → apply.dispatchKind rq = .authRoleAdd →
+      n.length ≤ backend.maxKeySize) (hG : apply.irrUtf8 rq) :
     histWf (adminNext rq st) ∧ (adminNext rq st).revision ≤ st.revision + 1 := by
   unfold adminNext
   split
   · rename_i hd
-    exact adminStateR_wf rq st _ h hU hG (Classical.choose_spec hd).1
+    exact adminStateR_wf rq st _ h hU hRA hG (Classical.choose_spec hd).1
   · exact ⟨h, Nat.le_succ _⟩
 
 /-- A mode-on entry's request names a user by a bbolt key (`plainEntryOn`: a plain request is no
@@ -239,6 +305,21 @@ theorem plainEntryOn_userAdd {lm : lease.Mode} (m : EntryModel) (hm : plainEntry
     rw [hk] at ha
     exact (ha u hu).1
 
+/-- A mode-on entry's request names a role by a bbolt key (as `plainEntryOn_userAdd`). -/
+theorem plainEntryOn_roleAdd {lm : lease.Mode} (m : EntryModel) (hm : plainEntryOn lm m) (h0 : m.typ = W32 0)
+    (hd : m.data ≠ []) (rq : apply.IRRModel) (hdec : apply.irrDecode m.data = some rq) :
+    ∀ n, rq.authRoleAdd = some n → apply.dispatchKind rq = .authRoleAdd →
+      n.length ≤ backend.maxKeySize := by
+  intro n hn hk
+  rcases hm h0 hd rq hdec with ((⟨hp, -⟩ | ⟨-, hg, -⟩ | ⟨-, hr, -⟩) | ⟨ha, -⟩)
+  · have hp := (plainReqL_facts _ rq hp).2.2
+    rw [hk] at hp; simp [putgetKind] at hp
+  · rw [hk] at hg; cases hg
+  · rw [hk] at hr; cases hr
+  · unfold apply.adminKindOk at ha
+    rw [hk] at ha
+    exact ha n hn
+
 /-- A mode-on entry keeps the auth state well formed, its revision bumped at most once. -/
 theorem kvEntryOn_wf  {lm : lease.Mode} (c₀ : w64) (ch : apply.Chain) (s : OnState)
     (m : EntryModel) (hm : plainEntryOn lm m) (h : histWf s.1) :
@@ -249,11 +330,14 @@ theorem kvEntryOn_wf  {lm : lease.Mode} (c₀ : w64) (ch : apply.Chain) (s : OnS
     split
     · rename_i rq hdec
       split
-      · exact adminNext_wf rq s.1 h (plainEntryOn_userAdd m hm hn.1 hn.2 rq hdec)
-          (apply.irrDecode_utf8 _ rq hdec)
+      · exact ⟨h, Nat.le_succ _⟩
       · split
-        · exact ⟨h, Nat.le_succ _⟩
-        · exact ⟨h, Nat.le_succ _⟩
+        · exact adminNext_wf rq s.1 h (plainEntryOn_userAdd m hm hn.1 hn.2 rq hdec)
+            (plainEntryOn_roleAdd m hm hn.1 hn.2 rq hdec)
+            (apply.irrDecode_utf8 _ rq hdec)
+        · split
+          · exact ⟨h, Nat.le_succ _⟩
+          · exact ⟨h, Nat.le_succ _⟩
     · exact ⟨h, Nat.le_succ _⟩
   · exact ⟨h, Nat.le_succ _⟩
 

@@ -3,18 +3,8 @@ module
 
 public import Perennial.Code.sync
 public import Perennial.Code.time
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.authN
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.authlease
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.cache
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.compacted
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.partition
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.restart1
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.restartN
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN
-public import Code.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -40,23 +30,11 @@ noncomputable def holdToken [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def spawn [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.spawn"
 
-noncomputable def KV [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.KV"
-
-noncomputable def Auth [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.Auth"
-
-noncomputable def Lease [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.Lease"
-
 noncomputable def Restart [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.Restart"
 
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.Main"
-
-noncomputable def mulBelow [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.mulBelow"
 
 noncomputable def ParamsOk [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/all.ParamsOk"
@@ -68,7 +46,7 @@ noncomputable def MainChecked [GooseExts] [GoGlobalContext] : GoString :=
     proof keeps that goroutine's thread token for the part's goroutine to exit with (as
     examples/k8s/all's holdToken).
 
-    go: all.go:41:6 -/
+    go: all.go:26:6 -/
 noncomputable def holdToken.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -85,7 +63,7 @@ noncomputable def holdToken.impl [GooseExts] [GoGlobalContext] : val :=
     goroutine (whose thread token the f goroutine exits with: each driver's triple consumes the token
     it is given).
 
-    go: all.go:50:6 -/
+    go: all.go:35:6 -/
 noncomputable def spawn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "f"
@@ -110,158 +88,10 @@ noncomputable def spawn.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$go") (Val #())))))))))
   (Val #()))))
 
-/-- KV is the KV part: txnlinfaultsN.Main(k1, clients, ops, sched1) (k1 members under partitions,
-    porcupine's check of the history), partition.MainWatch(nw, nops, sched2) (three members under
-    partitions, watches), compactwatch.Main() (one member, the revision auto-compactor, compacted
-    watches), compacted.Main() (one member, the periodic auto-compactor, a Put then a Get of its key)
-    and cache.Main(cnw, cnops) (one member, the periodic auto-compactor, etcd's watch cache), at once;
-    it returns when all have. Their results are dropped: a failed check is a panic.
-
-    go: all.go:64:6 -/
-noncomputable def KV.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k1"
-  (Lam "clients"
-  (Lam "ops"
-  (Lam "sched1"
-  (Lam "nw"
-  (Lam "nops"
-  (Lam "sched2"
-  (Lam "cnw"
-  (Lam "cnops"
-  (Seq (App (Val exceptionDo)
-  (Let "cnops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnops"))
-  (Let "cnw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnw"))
-  (Let "sched2" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched2"))
-  (Let "nops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nops"))
-  (Let "nw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nw"))
-  (Let "sched1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched1"))
-  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
-  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
-  (Let "k1" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k1"))
-  (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnw"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnops"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Main []))) (Val #())) (Val #()))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main []))) (Val #())) (Val #()))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "nw"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "nops"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched2"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched1"))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Main []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 4))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))))))))))
-  (Val #())))))))))))
-
-/-- Auth is the auth part: authN.Main(k2) and authlease.Main(k3) (k2 and k3 members with auth on), at
-    once; it returns when both have.
-
-    go: all.go:78:6 -/
-noncomputable def Auth.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k2"
-  (Lam "k3"
-  (Seq (App (Val exceptionDo)
-  (Let "k3" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k3"))
-  (Let "k2" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k2"))
-  (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k3"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Main []))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Main []))) (Val #())) (Var "$a0")))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0")))))))))
-  (Val #()))))
-
-/-- Lease is the lease part: leaseN.Main(k4) (k4 members, lease reads) and leasecatchup.Main() (three
-    members, a lessor recovered from a snapshot), at once; it returns when both have.
-
-    go: all.go:88:6 -/
-noncomputable def Lease.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k4"
-  (Seq (App (Val exceptionDo)
-  (Let "k4" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k4"))
-  (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k4"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Main []))) (Val #())) (Var "$a0")))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))
-  (Val #())))
-
 /-- Restart is the restart part: restartN.Main(k5) (a member of k5 stopped and restarted) and
     restart1.Main() (the one member stopped and restarted), at once; it returns when both have.
 
-    go: all.go:98:6 -/
+    go: all.go:45:6 -/
 noncomputable def Restart.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k5"
   (Seq (App (Val exceptionDo)
@@ -288,228 +118,57 @@ noncomputable def Restart.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))
   (Val #())))
 
-/-- Main runs the four parts at once, three on goroutines of their own (spawn) and Restart on its own
-    thread, and returns when all have (a process ends when its main returns).
+/-- Main runs the restart part, and returns when it has (a process ends when its main returns).
 
-    go: all.go:108:6 -/
+    go: all.go:54:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k1"
-  (Lam "clients"
-  (Lam "ops"
-  (Lam "sched1"
-  (Lam "nw"
-  (Lam "nops"
-  (Lam "sched2"
-  (Lam "cnw"
-  (Lam "cnops"
-  (Lam "k2"
-  (Lam "k3"
-  (Lam "k4"
-  (Lam "k5"
+  (LamV "k5"
   (Seq (App (Val exceptionDo)
   (Let "k5" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k5"))
-  (Let "k4" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k4"))
-  (Let "k3" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k3"))
-  (Let "k2" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k2"))
-  (Let "cnops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnops"))
-  (Let "cnw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnw"))
-  (Let "sched2" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched2"))
-  (Let "nops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nops"))
-  (Let "nw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nw"))
-  (Let "sched1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched1"))
-  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
-  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
-  (Let "k1" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k1"))
-  (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "wg")) (Val #())))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5"))
-  (App (App (Val (GoInstruction (FuncResolve Restart []))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k4"))
-  (App (App (Val (GoInstruction (FuncResolve Lease []))) (Val #())) (Var "$a0")))))
+  (App (App (Val (GoInstruction (FuncResolve Restart []))) (Val #())) (Var "$a0"))))))
   (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k3"))
-  (App (App (App (Val (GoInstruction (FuncResolve Auth []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Var "wg")
-  (Let "$a1" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched1"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "nw"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "nops"))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched2"))
-  (Let "$a7" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnw"))
-  (Let "$a8" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnops"))
-  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve KV []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))))
-  (Val #())))
-  (App (App (App (Val (GoInstruction (FuncResolve spawn []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 3))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))))))))))))))
-  (Val #())))))))))))))))
 
-/-- mulBelow reports whether a*b < bound, for a, b >= 0 and bound > 0, without overflowing.
+/-- ParamsOk reports whether Main's parameter is in the range its proof covers: restartN's member
+    count k5 from 3 to 300.
 
-    go: checked.go:6:6 -/
-noncomputable def mulBelow.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "a"
-  (Lam "b"
-  (Lam "bound"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "bound" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bound"))
-  (Let "b" (App (Val (GoInstruction (GoAlloc go.int))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc go.int))) (Var "a"))
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "bound")) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.int))) (Var "b")))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
-
-/-- ParamsOk reports whether Main's parameters are in the ranges its proof covers: the cluster sizes
-    (k1 at most 1000, k2..k4 at most 300, k5 from 3 to 300), and each workload's client count below
-    2^31 with its total operation count below 2^60 (KV) or 2^62 (the watch and cache workloads).
-
-    go: checked.go:13:6 -/
+    go: checked.go:5:6 -/
 noncomputable def ParamsOk.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k1"
-  (Lam "clients"
-  (Lam "ops"
-  (Lam "nw"
-  (Lam "nops"
-  (Lam "cnw"
-  (Lam "cnops"
-  (Lam "k2"
-  (Lam "k3"
-  (Lam "k4"
-  (Lam "k5"
+  (LamV "k5"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "k5" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k5"))
-  (Let "k4" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k4"))
-  (Let "k3" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k3"))
-  (Let "k2" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k2"))
-  (Let "cnops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnops"))
-  (Let "cnw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnw"))
-  (Let "nops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nops"))
-  (Let "nw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nw"))
-  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
-  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
-  (Let "k1" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k1"))
-  (Let "$r0" (If (If (If (If (If (If (If (If (If (If (If (If (If (If (If (If (If (If (If (If (If (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1")))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1")) (Val #(W64 1000)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.int))) (Var "clients")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "clients")) (Val #(W64 2147483648)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.int))) (Var "ops")))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
-  (Let "$a2" (Val #(W64 1152921504606846976))
-  (App (App (App (App (Val (GoInstruction (FuncResolve mulBelow []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.int))) (Var "nw")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "nw")) (Val #(W64 2147483648)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.int))) (Var "nops")))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "nw"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "nops"))
-  (Let "$a2" (Val #(W64 4611686018427387904))
-  (App (App (App (App (Val (GoInstruction (FuncResolve mulBelow []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.int))) (Var "cnw")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "cnw")) (Val #(W64 2147483648)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (GoLoad go.int))) (Var "cnops")))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnw"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnops"))
-  (Let "$a2" (Val #(W64 4611686018427387904))
-  (App (App (App (App (Val (GoInstruction (FuncResolve mulBelow []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2")) (Val #(W64 300)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k3")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k3")) (Val #(W64 300)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k4")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k4")) (Val #(W64 300)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 3)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5")) (Val #(W64 300)))) (Val #false))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (Val #(W64 3)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5")))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5")) (Val #(W64 300)))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- MainChecked is Main on parameters it checks first (ParamsOk; out of range it returns without
-    running anything), with fault schedules of n1 and n2 steps that it draws itself
-    (cluster3.RandomSchedule).
+/-- MainChecked is Main on a parameter it checks first (ParamsOk; out of range it returns without
+    running anything).
 
-    go: checked.go:26:6 -/
+    go: checked.go:11:6 -/
 noncomputable def MainChecked.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "k1"
-  (Lam "clients"
-  (Lam "ops"
-  (Lam "n1"
-  (Lam "nw"
-  (Lam "nops"
-  (Lam "n2"
-  (Lam "cnw"
-  (Lam "cnops"
-  (Lam "k2"
-  (Lam "k3"
-  (Lam "k4"
-  (Lam "k5"
+  (LamV "k5"
   (Seq (App (Val exceptionDo)
   (Let "k5" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k5"))
-  (Let "k4" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k4"))
-  (Let "k3" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k3"))
-  (Let "k2" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k2"))
-  (Let "cnops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnops"))
-  (Let "cnw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "cnw"))
-  (Let "n2" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n2"))
-  (Let "nops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nops"))
-  (Let "nw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nw"))
-  (Let "n1" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n1"))
-  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
-  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
-  (Let "k1" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "k1"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
-  (Let "$a3" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n1"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.RandomSchedule []))) (Val #())) (Var "$a0")))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "nw"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "nops"))
-  (Let "$a6" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n2"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.RandomSchedule []))) (Val #())) (Var "$a0")))
-  (Let "$a7" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnw"))
-  (Let "$a8" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnops"))
-  (Let "$a9" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2"))
-  (Let "$a10" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k3"))
-  (Let "$a11" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k4"))
-  (Let "$a12" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5"))
-  (App (App (App (App (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve Main []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")) (Var "$a9")) (Var "$a10")) (Var "$a11")) (Var "$a12"))))))))))))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "nw"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "nops"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnw"))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad go.int))) (Var "cnops"))
-  (Let "$a7" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2"))
-  (Let "$a8" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k3"))
-  (Let "$a9" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k4"))
-  (Let "$a10" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5"))
-  (App (App (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve ParamsOk []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")) (Var "$a9")) (Var "$a10"))))))))))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5"))
+  (App (App (Val (GoInstruction (FuncResolve Main []))) (Val #())) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k5"))
+  (App (App (Val (GoInstruction (FuncResolve ParamsOk []))) (Val #())) (Var "$a0"))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))))))))))
-  (Val #())))))))))))))))
+  (Val #()))))))
+  (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.all where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authN, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.cache, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compacted, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart1, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restartN, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart1, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restartN]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -518,95 +177,37 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
   spawn_unfold : FuncUnfold spawn [] spawn.impl
-  KV_unfold : FuncUnfold KV [] KV.impl
-  Auth_unfold : FuncUnfold Auth [] Auth.impl
-  Lease_unfold : FuncUnfold Lease [] Lease.impl
   Restart_unfold : FuncUnfold Restart [] Restart.impl
   Main_unfold : FuncUnfold Main [] Main.impl
-  mulBelow_unfold : FuncUnfold mulBelow [] mulBelow.impl
   ParamsOk_unfold : FuncUnfold ParamsOk [] ParamsOk.impl
   MainChecked_unfold : FuncUnfold MainChecked [] MainChecked.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
-  import_authN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assumptions
-  import_authlease_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions
-  import_cache_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Assumptions
-  import_compacted_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions
-  import_compactwatch_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Assumptions
-  import_leaseN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assumptions
-  import_leasecatchup_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions
-  import_partition_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions
   import_restart1_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions
   import_restartN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions
-  import_txnlinfaultsN_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Assumptions
-  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
 
 attribute [instance] Assumptions.holdToken_unfold
   Assumptions.spawn_unfold
-  Assumptions.KV_unfold
-  Assumptions.Auth_unfold
-  Assumptions.Lease_unfold
   Assumptions.Restart_unfold
   Assumptions.Main_unfold
-  Assumptions.mulBelow_unfold
   Assumptions.ParamsOk_unfold
   Assumptions.MainChecked_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
-  Assumptions.import_authN_Assumption
-  Assumptions.import_authlease_Assumption
-  Assumptions.import_cache_Assumption
-  Assumptions.import_compacted_Assumption
-  Assumptions.import_compactwatch_Assumption
-  Assumptions.import_leaseN_Assumption
-  Assumptions.import_leasecatchup_Assumption
-  Assumptions.import_partition_Assumption
   Assumptions.import_restart1_Assumption
   Assumptions.import_restartN_Assumption
-  Assumptions.import_txnlinfaultsN_Assumption
-  Assumptions.import_cluster3_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.all
 

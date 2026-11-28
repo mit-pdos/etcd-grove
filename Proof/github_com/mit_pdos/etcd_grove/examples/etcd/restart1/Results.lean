@@ -34,8 +34,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_restart1.wp_Main`). -/
-theorem restart1_Main
-    [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem restart1_Main :
     etcd_restart1.Main.spec (GF := GF) (hG := hG) :=
   etcd_restart1.wp_Main
 

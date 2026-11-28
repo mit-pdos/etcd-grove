@@ -88,7 +88,6 @@ the client's `Get` after an acknowledged `Put` returns the `Put`'s value. -/
 def putget_safe.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     -- `os`'s struct field steps (the single-process theorems' premise; `etcdstart`'s linked results take
     -- them since `NewStorage`'s contract is proved over the real WAL, wal-nostorageok)

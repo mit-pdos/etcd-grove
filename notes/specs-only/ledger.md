@@ -8,6 +8,51 @@ plan stays the target the real proofs converge toward: no silent edits.
 One entry per defect, newest first, in this format:
 
 ```
+## 2026-11-27: the interval tree's specs -- the tree's shape hidden, `visit` under a query premise (nomode X-a2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/pkg/v3/adt/`: `intervalTree.insertFixup.spec`, `intervalTree.Insert_gen.spec`,
+  `intervalNode.visit.spec`, `intervalTree.Visit_gen.spec`, `intervalTree.Contains_gen.spec` (no SpecPlan
+  counterpart states the shape).
+- **Defect.** The specs gave the tree's entries only (`ownIvtK K t L`), and `visit`/`Visit`/`Contains` their result
+  only for a query that is not empty-and-finite (`b = "" ∨ b < e`), some sublist/boolean otherwise. etcd's auth
+  check calls `Contains` on any range Go accepts, inverted ones included, whose answer depends on the tree's
+  shape (`visit` prunes on the subtrees' `max`): with the shape hidden, the verdict cannot be a function of the
+  auth state (design X).
+- **Evidence.** `issues/etcd-auth-perm-order-go-version.md`; the D2 tests (`d2_shape_test.go`).
+- **Proposed change.** `ownIvtT K t T dq` (`Defs.lean`): the tree is exactly `T`; `ownIvtK` unchanged, equivalent to
+  `∃ T, ownIvtT K t T dq ∗ ⌜T.inorder = L⌝` (`ownIvtK_T`, `ownIvtT_K`; an empty tree is `.leaf`, `ownIvtK_nil`, so
+  `NewIntervalTree`'s spec stays). `insertFixup`: the tree is also `C.fixup tz` (`RbCtx.fixup`, the loop as a
+  function). `Insert_gen`: on `ownIvtT`, the result `T.insertRB z` (descent, red leaf, fixup), with its entries
+  `ivtInsert z T.inorder`. `visit`/`Visit_gen`: no query premise, no `IvSorted`; the visited entries are
+  `T.visitL q` when no visitor stopped, a non-empty prefix of it else; the visitor is told a prefix. `Contains_gen`:
+  `r = containsT q T` (the scan over `visitL`) for every query. The entry-level forms follow
+  (`VisitL.lean`: `Visit_gen_L`, `Insert_gen_L`; `containsT_eq`), so the string- and bytes-affine instance specs
+  (`Insert`, `Insert_bytes`, `Visit`, `Contains`, `Contains_bytes`, `Stab`, `Union`) and the clients (mvcc's watcher
+  groups, v3rpc, auth) are unchanged.
+- **Decision.** Accepted (coordinator, design X, 2026-11-27: "visit/Visit: visited entries = a prefix of T.visitL q,
+  with NO query premise; Contains: result = containsT q T; NewIntervalTree: T = leaf").
+
+## 2026-11-27: the auth model's roles -- a role's record matches the state only up to order (nomode X-a1)
+
+- **Spec.** `auth.grantPerms` (`Proof/.../auth/Steps.lean`, in `roleGrantPermissionR`: the step of
+  `authStore.RoleGrantPermission.spec`), `auth.roleOut`/`roleOutX` (`Buckets.lean`: the reads of
+  `Spec/.../storage/schema/{unsafeGetRole,authBackend__GetRole,authReadTx__UnsafeGetRole,authBatchTx__UnsafeGetRole}.lean`),
+  `auth.roleGetOut` (`Reads.lean`: `authStore.RoleGet.spec`), the batch contract's `UnsafePutRole` (`authBatchTxLk`,
+  `InvAuth.lean`), and the backend's `schema.rolesAt`/`authBucketsAre` (`InvAuthBackend.lean`).
+- **Defect.** `permSlice.Less` compared keys only, so a role's record kept same-key permissions in grant-history
+  order; the model appended (`grantPerms`) and every read promised the state's permissions up to order
+  (`rr.toRole.Perm ps`). The permission cache's interval tree is built from the record in record order, so
+  with the record's order unknown the cache's shape (and the verdict on an inverted range, which depends on it:
+  `issues/etcd-auth-perm-order-go-version.md`) is not a function of the state.
+- **Evidence.** The D2 tests (`d2_shape_test.go`): two grant orders of one permission set give two records and
+  two verdicts on `[d, c)`.
+- **Proposed change.** The fork sorts by (key, range end) (`goose-lean-permsort`, local, unpushed). `grantPerms`
+  inserts at the sorted place (`permInsert`, order `permLt`); `roleOut`/`roleOutX`/`rolesAt`/`authBucketsAre`/
+  `UnsafePutRole`'s premise say the record's model role **is** the state's (`rr.toRole = ps`) and is strictly sorted
+  (`ps.Pairwise permLt`: distinct ranges), as the users' records already are (`roles.Pairwise GoStringLt`);
+  `roleGetOut` gives the state's permissions in order. Strengthening only; no axiom or top-level premise moves.
+- **Decision.** Accepted (coordinator, design X, 2026-11-27: "roleOut uses equality instead of permutation").
+
 ## <date>: <spec> -- <one-line defect>
 
 - **Spec.** The file and the declaration (`SpecPlan/Spec/<pkg>/<fn>.lean`, `<fn>.spec`; or a law,
@@ -25,6 +70,84 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: `kvEntryOn` (the auth-aware KV model) -- an admin field beside a KV field drops the KV op (D1)
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/KVAuthModelDefs.lean`, `kvEntryOn` (and its
+  relational twin `outcomeOn`, `KVApplyOn.lean`; the recorded-entry predicate `admEntry`): the model
+  `kvInvOn`, `writeAuD` and the `*On_dist` axioms are written over.
+- **Defect.** A request with an admin field and a KV field (`needAdminPermission = true`, `dispatchKind
+  = .put`, ...) takes the admin branch, so the model drops the put. Go (`authApplierV3.Apply`,
+  `server/etcdserver/apply/auth.go:43-58`) checks `IsAdminPermitted`, then dispatches the first set
+  field: the put is applied. Today's log premises (`adminKindOk`) exclude such entries, so no proof is
+  wrong, but the model is not Go's for every request Go accepts.
+- **Evidence.** `apply.dispatchKind` (`apply/InvRequest.lean:276`) vs `apply.needAdminPermission`
+  (`:319`); the scoping `~/coordinator-notes/plans/nomode-packet.md`, section 2.
+- **Proposed change.** `kvEntryOn`: refuse (state kept) when `needAdminPermission ∧ ¬ adminOk`, at
+  any index (the check runs before `dispatch`, whatever `shouldApplyV3`); take the admin step only above
+  `c₀` and for a kind `dispatch` applies as an admin step (`adminDispatchKind`); otherwise the KV
+  branches as today. `outcomeOn` and `admEntry` follow (`admEntry`'s `needAdminPermission rq = true`
+  becomes `adminDispatchKind (dispatchKind rq) = true`). On every log today's premises admit the model's
+  value is unchanged (an admitted admin entry is of an admin kind, `adminDispatchKind_of_adminKindOk`;
+  a refused one kept the state through `adminNext_refused`). No top-level statement changes.
+  Before/after text: `notes/nomode-n1.md`.
+- **Decision.** Accepted (the user, through the coordinator, 2026-11-27: D1); independent review of
+  the before/after pending.
+## 2026-11-28: `walFiles` / `walRecs` -- admit histories with a saved commit above the last index, where Go's `ReadAll` differs from the model (C1)
+
+- **Spec.** `walRecs` and `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), through `srvFiles`
+  the pre of `bootstrapRestartContract` (`etcdserver/InvRestart.lean`), the statement of the interim axiom
+  `bootstrap.wp_proofRestart` (`Spec/.../etcdserver/bootstrapRestart.lean`) on branch `etcd-safe-rule41rm/2026-11-27`.
+- **Defect.** `walRecs`' `Save` law (`walRecs_saveAU`) takes any hard state, so `walRecs`, and from it `walFiles`
+  (`walRecs_closeAU`), admit WAL histories where some prefix has its commit above its last index (`walCommitLe`
+  false). On those the eager fold and `walRead` agree and `walReadFacts σ` holds, yet Go's restart read
+  (`ValidSnapshotEntries`, the newest record, `Open`, `ReadAll`) returns other entries than `σ`, so `bootOkR`'s
+  `σ` (`wal.restartOk`'s `walRecs h σ`) is false of Go there. Not reachable: in the verified programs the only
+  writer is raft's node loop through `isWalStorage`'s `Save`/`SaveSnap` laws, and raft keeps
+  `committed ≤ lastIndex` in every `Ready`; `walFiles`/`walRecs` are `@[no_expose]`, and Go's `bootstrap` is
+  unexported. The axiom's soundness rests on that invariant of the producer, which no statement records.
+- **Evidence.** The fresh review of `bootstrap.wp_proofRestart` after walfiles-fold
+  (`~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.md`, verdict sound with condition C1). Its
+  differential test `TestBrrDifferential` (copy: `~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.walread_diff_test.go.txt`,
+  run in a scratch copy of the fork's `server/storage/wal`): of 100000 random histories the Lean write laws admit,
+  29036 kept (eager fold = `walRead`, `walReadFacts`), 4 mismatches, every one with `walCommitLe` false; with only
+  `walCommitLe` histories, 7350 kept, 0 mismatches. Minimal counterexample (`TestBrrMinimal`):
+  1. `Save(hs{T1,C1}, ents 1..6)`;
+  2. `SaveSnapshot(3)` (above commit 1: the model clears the entries);
+  3. `Save(hs{T1,C4}, [])` (commit 4 above the last index 3);
+  4. `SaveSnapshot(4)`.
+  The model and `walRead` give base 4, no entries, commit 4; Go reads `err = nil`, commit 4, entries `[5 6]` (it
+  clears entries only at the start record 4, not at the earlier record 3). Not an etcd history: raft never
+  persists step 3. It is our spec gap, not a Go bug (no `issues/` or `nonissues/` file).
+- **Proposed change.** `walRecs` carries `walCommitLe` (or `WalEnc.walReadsBack`, the premise of the proved
+  real-WAL read `readAllFold_zero_eq`), and `walFiles` with it through `walRecs_closeAU`; WAL `Save`'s spec
+  (`walRecs_saveAU`) requires the hard state empty or its commit ≤ the last index after the save, which the raft
+  driver supplies (raft's `Ready` invariant). The constraint goes on the producer, not into a new law.
+- **Decision.** Land rule41rm with C1 recorded (`bootstrap.wp_proofRestart`'s docstring, `notes/audit.md`;
+  approved by the etcd_safe lead under Upamanyu's delegation, 2026-11-28); the follow-up is owned on the walfiles line.
+
+## 2026-11-28: etcd's table `etcdSvc`, the KV `_dist` contracts and `isKv`'s dup clause -- a remote member cannot supply `noRefusalAt`; the table is opaque (stage B′)
+
+- **Spec.** `etcd_dist.etcdSvc` (`Proof/.../examples/etcd/dist/S2Interim.lean`, trusted), `Serve_dist.spec`
+  (`Spec/.../dist/ServeDist.lean`, meaning only), the axioms `KV_{Put,Get,Delete,Compact}_dist`,
+  `Txn_Commit_dist` and the theorems `Client_{Put,Get}_dist` (`Spec/.../dist/*.lean`), the client's `isKv`
+  (`Proof/go_etcd_io/etcd/client/v3/KVService.lean`, the vocabulary of `kv.Put.spec`, ...) and its write path
+  (`kvReqPre`, `txnReqPre`, `reqPre`, `modePre`: `InvKVConn.lean`, `InvTxnBuilder.lean`), and the internal specs
+  `checkCompactRev.spec`, `watchShare` (`RunWatch.spec`, `RunCache.spec`), `client_{Get,List}_dist.law`.
+- **Defect.** Across machines the client's KV calls were five interim axioms, because `etcdSvc` had no law and
+  `isKv`'s at-most-once clause asked for `noRefusalAt` (opaque; only the in-process `etcd_noRefusal` gives it).
+- **Evidence.** `notes/etcdsvc-plan` (coordinator, stage B′), `notes/grpc-nr-e.md` (E: `GrpcEntry.nr`,
+  `isGrpcRpcsNR`); the users of the five axioms (`notes/etcdsvc-b.md`).
+- **Proposed change.** `etcdSvc` defined: with `Γ.auth = false`, the KV methods at stage A's view specs, flagged
+  `nr`; every other entry the new opaque `etcdSvcRest` (no law). `isKv`'s clause becomes `kvDupNR dup addrs`
+  (`noRefusalAt` at every endpoint, or flagged `Put`/`DeleteRange`/`Txn` entries at every endpoint), carried by
+  the write path to the interceptor's proof. `isKv_of_kvClientAt` proves `kvClientAt ⊢ isKv api Γ.kv false` for
+  an auth-off view; the five axioms and two theorems are deleted, their users re-proved over the client specs.
+  `checkCompactRev.spec`, `watchShare` and the Get/List laws gain `Γ.auth = false` (their users had `KV_Get_dist`/
+  `KV_Compact_dist`, which took no auth premise; every start's view has auth off). `Serve_dist`'s statement is
+  unchanged; it now claims an auth-off member's KV handlers never refuse (`grpcRunNRMd`): the auth store stays
+  disabled, the member is a voter (`notes/etcdsvc-b.md`). No top-level statement changes. Net −5 axioms.
+- **Decision.** Approved design B′ (coordinator, 2026-11-27; the guard `Γ.auth = false` approved as interim,
+  removed at N4). Trusted text drafted on `etcdsvc-b/2026-11-27`; landing waits for Upamanyu's review.
 ## 2026-11-28: `walFiles` (hence `srvFiles` and `bootstrapRestartContract`) -- the files' records are only what a restart reads, not the history's eager fold
 
 - **Spec.** `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), the WAL part of `srvFiles`
@@ -9236,6 +9359,86 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
   independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
 
+## 2026-11-27: Q2 widening stopped: the model's verdict on an empty or inverted range is not Go's (q2)
+
+- **Spec.** The auth-on request-shape premises the Q2 widening was to remove: `auth.reqShape` (`auth/Model.lean`;
+  in `granted`, `refusedV`, hence `auth.permitted`) and `kvShapeAll`/`kvDet` (`KVAuthModel.lean`), through the
+  member specs `etcdDeleteSpecV_M`/`etcdTxnSpecOn` and `client_delete_on`/`client_txn_on`. And the vocabulary they
+  guard: `kvGranted` (in `grantedAt`, so in `writeGrantG`, `opGrantD`/`writeAuD` and `writeCheckedD`: the posts
+  and premises of `KV_PutOn_dist`, `KV_DeleteOn_dist`, `Txn_CommitOn_dist`), and `auth.permitted`/`refusedV`
+  (`readAuthedD` in `KV_GetOn_dist`; `Spec/.../examples/etcd/auth/Main.lean`).
+- **Defect.** For a range whose end is non-empty, not `"\x00"` and at or below its key (`[a,a)`, `[e,b)`),
+  `auth.covers` is `coversRange`, vacuous: the model grants it to any existing user. Go's `checkKeyInterval` asks
+  `IntervalTree.Contains`, which refuses it in general, and for an inverted query answers by the tree's shape
+  (the order the permissions were inserted), not by the set of intervals. So (1) for a writing transaction with
+  such a compare (or nested get/delete) range and a covered put, the model applies the put and Go refuses the
+  whole transaction: `kvShapeAll` cannot be dropped from `client_txn_on`/`etcdTxnSpecOn` over the current
+  `kvGranted`, and no `Contains` spec over the interval set can state the inverted answer. (2) Restating
+  `granted`/`refusedV` without `reqShape →` (the plan's step 3) changes `auth.permitted`/`refusedV`, trusted
+  vocabulary (`KV_GetOn_dist`'s `readAuthedD`, the auth example's `Main`), and `refusedV` would become false
+  (a Go refusal of `[e,b)` with `covers` true). (3) `Txn_CommitOn_dist` (and `KV_DeleteOn_dist`) take no shape
+  premise, so they cover requests whose in-process counterpart needs `kvShapeAll`/`reqShape`: proving
+  `Txn_CommitOn_dist` (its retirement by #24) needs `kvGranted` changed. Not shown exploitable: the error arm claims
+  nothing, and no axiom tells a program that a refused entry is in a committed prefix it learns; but the model's
+  KV state `kvStateOf (kvModelOn L)` after such an entry is not Go's (the put applied, the revision bumped).
+  For a delete the outcome agrees (an empty range deletes nothing: `kvOpStep` is the identity,
+  `KVState.commit_nil`), so `KV_DeleteOn_dist` is consistent with Go, and a delete outside `reqShape` is provable
+  without trusted change, but by a different route than planned: the apply thread taking an inexact verdict for
+  a no-op request (Go grant implies model grant; a Go refusal of a model-granted no-op keeps the state), not by
+  widening `Contains`/`Visit` (the inverted answer is shape-dependent; the specs' "some boolean" is all there is).
+  The empty key is as analysed (the gRPC layer refuses it before auth, `ErrGRPCEmptyKey`).
+- **Evidence.** Go tests `notes/axiom-review/q2-shape-gotest/` (etcd `8c28a4296`, go1.27.3): the three
+  transactions and the delete refused with `permission denied`, `p` absent and the revision unchanged; `Contains`
+  `false` on `[a,a)`/`[e,b)` over `{p}`, and `false`/`true` on `[e,b)` over `{[c,d),[d,z)}` by insertion order.
+  The model's grant by unfolding `kvGranted`, `auth.covers`, `inRange` (`Model.lean:147-166`).
+- **Proposed change.** Needs a decision (trusted text either way): (a) a scope premise on `Txn_CommitOn_dist`'s
+  write arm, `∀ tw, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)`, as `client_txn_on` has (a
+  weakening of the axiom: the user's sign-off); or (b) keep the axiom and record that its retirement needs a
+  model verdict for these ranges, which is Go's only if it follows the cache tree's shape (the red-black tree
+  built from the user's permissions in `getMergedPerms`' order), not the permission set. Recommendation: (a).
+  For the member specs: keep `kvShapeAll` on transactions; the delete can drop `reqShape` by the inexact-verdict
+  route above (untrusted, a few days), if wanted.
+- **Decision.** Open: stopped and reported to the dsverify-net lead (2026-11-27); no spec or proof changed.
+## 2026-11-27: the auth verdict as Go's, for every request (nomode X-a3)
+
+- **Spec.** The auth model's verdict vocabulary (`auth/Model.lean`: `granted`, `refusedV`; `auth/PermTree.lean`:
+  `cacheVerdictP`, `cacheEntryIs`; `InvAuth.lean`: `permsAt`, `cacheVerdict`; `FreshCheck.lean`: `permRefusalFrom`;
+  `Latest.lean`: `permVerdictL`) and the cache's specs (`checkKeyInterval`, `checkKeyPoint`, `getMergedPerms`,
+  adt's `Insert_bytes`, `Contains_bytes`).
+- **Defect.** The verdict was stated only for requests of the cache's shape (`reqShape`: non-empty key, point,
+  open-ended or proper range); for the others (`[k, k)`, inverted, empty key) nothing, so the request side needed
+  shape premises (`reqShape`, `kvShapeAll`, `kvDet`), which the decision of 2026-11-27 (no shape premise) removes.
+- **Evidence.** Go's verdict for every class (measured, `d2_*_test.go`): a function of the state once the trees are
+  exact (X-a1: canonical role order; X-a2: exact tree specs). `coversX` states it: `Intersects` of the point for an
+  empty range end, `containsT` of the queried interval on `treeOf` (the tree `getMergedPerms` builds) otherwise.
+- **Change.** As in `notes/nomode-x.md`, "X-a3" (before/after of each definition): `granted`/`refusedV`/
+  `cacheVerdictP`/`cacheVerdict`/`permRefusalFrom` over `coversX`, no `reqShape` guard, no `permKeysOk` premise;
+  the cache entry is the exact trees (`permsAt` over `adt.ownIvtTB`, `cacheEntryIs`: `Tr = treeOf .read …`);
+  `checkKeyInterval` returns `containsT` for every query; `permVerdictL` also carries `permKeysOk` of the latest
+  state (for the bridge `permVerdictL_granted`). Bridges (`PermTree.lean`): `coversX_iff_covers`,
+  `granted_iff_covers` (under `reqShape` and `permKeysOk`), `coversX_emptyKey`, `coversX_point_of_not_lt`. The
+  request side's shape premises stay until N1b.
+- **Decision.** Design X, decided by the user 2026-11-27 (`~/coordinator-notes/plans/nomode-packet.md`); trusted-
+  visible definitions to independent review before landing.
+
+## 2026-11-28: a role holds its stored permissions, unknown types included (nomode X-a4)
+
+- **Spec.** The auth model's `Perm` (`auth/Model.lean`), `permOfWire`/`RoleRec.toRole` (`Buckets.lean`),
+  `grantPerms`/`roleRevokePermissionR` (`Steps.lean`), and through `Perm.covers`/`ivlsOf` the verdict
+  vocabulary (`coversPoint`, `coversRange`, `covers`, `coversX`, `granted`; `kvGranted` uses `covers`).
+- **Defect.** `RoleGrantPermission` stores a permission of any `PermType` unchecked (`store.go:845-849 at the pin `18ab647b0``);
+  `RoleRevokePermission` removes on `(Key, RangeEnd)` whatever the type (`store.go:700-704`). The model
+  dropped unknown types (`permOfWire = none`), so revoke was a relation (a success allowed whatever the
+  model's role), not a function of the model's state (the D3 blocker, `notes/nomode-n1.md` on
+  `nomode-n1/2026-11-27`; `nonissues/etcd-auth-unknown-permtype-stored.md`).
+- **Evidence.** `TestD3RevokeUnknownTypedPermission` (the nonissue's test): grant of `PermType 7`, revoke
+  succeeds (revision +1); on a role without it, `ErrPermissionNotGranted`.
+- **Change.** `Perm.ty` is the stored `int32` (`w32`, any value); `permKind` decodes READ/WRITE/READWRITE
+  (`range_perm_cache.go:53-63`'s switch, no default), `Perm.grants` is false for another value, so the
+  checks and the tree build ignore it exactly where Go does; `permOfWire` is total, `toRole` a `map`;
+  `grantPerms` always inserts the granted permission; `roleRevokePermissionR` is a function (an error iff
+  no stored permission is on the range). Before/after in `notes/nomode-x.md`, "X-a4".
+- **Decision.** Option 1 of the D3 blocker, decided by the coordinator for the user (2026-11-28).
 ## 2026-11-27: the k8s storage library's specs take the etcd client through `k8sClient` (k8s-dist K5)
 
 - **Specs.** `Spec/k8s_io/apiserver/pkg/storage/etcd3/*` that name `StoreCfg.ms`/`V` (store `Get`, `GetList`,
@@ -9311,6 +9514,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
   top-level statement changes.
 - **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).
+## 2026-11-28: the request model, its decoder axioms and the admin step for the six unmodelled admin kinds (nomode D3)
+
+- **Spec.** `apply.IRRModel` (`authUserDelete`, `authUserChangePassword`, `authUserRevokeRole`, `authRoleDelete`,
+  `authRoleRevokePermission`), `apply.internalRaftRequestIs` and `irrNoHdrIs` (their fields), so the trust-boundary
+  statements written in them (`pbutil.MustUnmarshalMessage.wp_proof`'s `irrDecode`, `proto.MarshalIRR.spec`);
+  `adminStateR`/`adminStepO`/`adminNext` (`KVAuthModelDefs.lean`), `apply.adminKindOk` (`Chain.lean`); the store's
+  `X.specTB` for `AuthDisable`, `UserDelete`, `UserRevokeRole`, `RoleDelete`, `RoleRevokePermission` and
+  `UserChangePassword.specTSureB` (`LatestTie.lean`); `apply.isAuthStepsX` (six clauses), the backend's
+  `X.stepSpecX`/`fuelSpecX`, `apply.AdminReq` (six constructors); `EtcdServer.{UserDelete,UserRevokeRole,RoleDelete,
+  RoleRevokePermission}.spec` (the request's names, as `RoleAdd.spec`'s).
+- **Defect.** The six kinds were a `Bool` in the request model and excluded by `adminKindOk`, so a log with one of
+  them was outside every mode-`on` statement (`notes/nomode-n1.md`, Step 3).
+- **Evidence.** `store.go` at the fork pin `18ab647b0` (`AuthDisable` 305-324, `UserDelete` 473-500,
+  `UserChangePassword` 502-545, `UserRevokeRole` 611-656, `RoleRevokePermission` 686-722, `RoleDelete` 724-765);
+  `apply/auth.go` `needAdminPermission` (all six need the admin permission); `v3_server.go:949-964`
+  (`EtcdServer.UserChangePassword` proposes the bcrypt hash, base64-encoded, with `Password` cleared).
+- **Change.** Each field an `Option` of the request's model (`authUserDeleteIs` = `auth.userDeleteReqIs`, ...;
+  `ChangePasswordModel` with its `pwSure`); `adminStateR` steps the six (the flag the steps read the state's own);
+  `adminKindOk` admits them (the user's or role's name a bbolt key where the store writes that key; a
+  `UserChangePassword`'s password choice that cannot fail). Exact before/after: `notes/nomode-n1.md`, "D3".
+- **Decision.** D3 approved by the coordinator for Upamanyu (2026-11-27/28); the trusted-visible text goes to his
+  review packet before landing.
 
 ## 2026-11-28: `Raft.GetConfiguration.spec` gives the future's `deferWait` (hraft S5c)
 
@@ -9327,6 +9552,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `deferError.Error.spec`, unchanged). No top-level statement changes.
 - **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).
 
+## 2026-11-28: `walRecs`/`walFiles` carry raft's `committed ≤ lastIndex`; `Save`'s spec requires it (walcommitle, C1)
+
+- **Spec.** `walRecs`, `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), `Save`'s law of the server's
+  WAL storage (`isWalStorage`'s `Save`, `walSaveSized_spec`, `walSaveRn_spec`: `WalApi.lean`; `rnNewStorageOk`:
+  `RnNewStorage.lean`), and the restart premise `bootstrapRestartContract` (through `walFiles`).
+- **Defect.** The etcd_safe lead's C1 (#50, 2026-11-28 05:02Z): with the eager-fold conjunct (walfiles-fold,
+  `c4b79f5406`) `walFiles` still admits histories that Go's `ReadAll` reads back differently from the model:
+  `Save(hs{Term 1, Commit 1}, entries 1..6)`, `SaveSnapshot(3)`, `Save(hs{Term 1, Commit 4}, [])`, `SaveSnapshot(4)`:
+  the model's records have no entries, the real WAL's `ReadAll` returns `[5 6]`, no error. Every mismatch of 100k
+  random histories had a prefix whose commit exceeds its last index (0 of 7,350 without). Not a soundness problem
+  today (raft's node loop, the only writer, keeps `committed ≤ lastIndex`), but nothing stated it, and the restart
+  premise had the same gap.
+- **Evidence.** `examples/axiomcx/restartcommitle` (the four calls at the etcd pin; `ReadAll` returns `[5 6]`); the
+  lead's random runs; raft's `ReadyRestFacts` (`(phsNext hs h).Commit ≤ (readyDurable …).last`).
+- **Change.** `walRecs` and `walFiles` gain `walCommitLeFrom walFresh (walSrvHist d.H)` (every prefix of the history's
+  eager fold has its commit within its last index; the crash line's `wal.restartOk` conjunct, same definition);
+  `Save`'s atomic update requires `WalSaveCommitLe σ hs es` (`(walSave σ hs es).commit ≤ (walSave σ hs es).last`)
+  beside `WalSaveOk`; `walRecs_saveAU`, `walRecs_saveSnapAU` (`walSaveSnap_commitLe`), `walRecs_releaseAU` and
+  `walRecs_closeAU` keep it; the node driver supplies it from `ReadyRestFacts` (`WalSaveStep`). `walFiles` is
+  stronger, so `bootstrapRestartContract` (a premise) assumes less of what a restart reads; `wal.Create.specSrv`'s
+  post (`walOpened … walFresh`) claims the conjunct of the fresh WAL, where it holds.
+- **Decision.** Approved (the lead's proposal, #50; WCL-1 owns it, coordinator etcd-grove-03). No axiom or `sorry`.
 ## 2026-11-28: `rpctransport.New.spec` takes `svcAt`; `CodecLaws` gains `enc_mono` (hraft S5d)
 
 - **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/New.lean` (the kit's transport,
@@ -9368,3 +9615,38 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   strengthening: `R := C.enc args Ψ` gives the old spec). `Conn.Call.wp_proof` and `Transport.send` (its only
   caller) updated; no top-level statement changes.
 - **Decision.** Untrusted spec, proved here (S5f, #48).
+
+## 2026-11-28: the hraft kit's reads outside the log: `frInv`, `isStore`, `NewStore.spec`, `apiSvc`'s `Read`, `readCall.law` (hraft S6)
+
+- **Specs.** `Dsverify/Proof/.../hraftnet/service/FsmDefs.lean` (`frInv`, `isStore`, `frontier_apply`),
+  `Dsverify/Spec/.../hraftnet/service/NewStore.lean`, `ApiDefs.lean` (`apiMuInv`, `isAPI`), `ApiSvc.lean`
+  (`apiSvc`'s `Read`), `ClientDeps.lean` (`readCall.law`); all untrusted, proved.
+- **Defect.** Too weak for a read outside the log to linearize: (1) a read registered at the frontier must
+  find the frontier within the gprot snapshot it gives `Barrier`/`VerifyLeader` (whose bounds speak of the
+  servers' durable prefixes at the snapshot), and `frInv` kept only that the frontier is committed; (2)
+  `apiSvc`'s `Read` carried no facts, so its answer said nothing; (3) `API.Read`'s `WayVerify` skips the barrier
+  in a term whose barrier it saw complete (`barrierIn`), and `isAPI`'s mutex invariant kept only the term.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/service/service.go`: `API.Read`; raft's
+  `barrierOk`/`verifyOk` (`core/Defs.lean`); the lab's hr3 `readAt` (241f27e).
+- **Change.** (1) `frInv` holds `frDur γ es` (a server's durable prefix covers the frontier, `durLb`);
+  `frontier_apply` takes the moving server's `isSrv γ i ∗ durLb γ i |es'|` (`Store.Apply` has both: `isStore`
+  now holds `isSrv γ i`, and `NewStore.spec`'s premise gains `isSrv γ i`, which `Server` has). (2) `apiSvc`'s
+  `Read` deposit carries a snapshot `sc` covering the read's registration frontier and the claim `rdClaim`, its
+  reply `Ok → Ψ Found V` (design: `notes/dsv-hraft.md`, "S6"). (3) `apiMuInv` keeps `barrierFact` of the term
+  (`New` starts it at `0`). `readCall.law`'s premise gains `drawInv K ∗ £ 1 ∗ £ 1` (the server's registration of
+  the read); the law is proved (`readCall_law_holds`), no longer a hypothesis of `Sys.try.wp_proof`. No
+  top-level statement changes; no axiom.
+- **Decision.** Untrusted specs, proved here (S6, #48).
+## 2026-11-28: the rewrite kinds' name bounds replaced by the stored names' (nomode D3, narrowed)
+
+- **Spec.** `apply.adminKindOk` (UserGrantRole, RoleGrantPermission, UserChangePassword, UserRevokeRole,
+  RoleRevokePermission); the store specs of those five (`spec`, `specT`, `specTB`, `specTSureB`);
+  `auth.authSmall`; `isAuthSteps(X)`, `stepSpec(X)`, `fuelSpec(X)`, `AdminReq.nameOk`;
+  `EtcdServer.{UserGrantRole,RoleGrantPermission}.specOn`.
+- **Defect.** A premise bounding the request's name, which Go does not need: these kinds rewrite an
+  existing record only, and a long name returns "not found" (review rev-d3, NEEDS-NARROWING).
+- **Evidence.** `notes/axiom-review/d3-gotest/` (`TestLongNames`, fork `18ab647b02`).
+- **Change.** The request's bound dropped; the store specs take `auth.userKeysOk`/`roleKeysOk` (every stored
+  name a bbolt key), which `authSmall.names`/the new `authSmall.roleNames` give. `notes/nomode-n1.md`, "D3,
+  narrowed".
+- **Decision.** The lead (dsverify-net), relaying the review; strengthening, no new trust.

@@ -61,7 +61,7 @@ theorem kvOrchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics
   letI hG : HeapGS .hasLC etcdDistGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
   have hOrch : Orch.specWith (GF := etcdDistGF) (hG := hG)
       (kvOrchPre (GF := etcdDistGF) (Gg := hG.goose_globalGS) (ρ := ρ)) :=
-    fun nodes ns ops => EtcdGrove.kvremote.wp_Orch (ρ := ρ) nodes ns ops (W64 120000000000)
+    fun nodes ns ops => EtcdGrove.kvremote.wp_Orch (ρ := ρ) nodes ns ops (W64 0)
   have hjZ : sint.Z (W64 j) = j := by word
   have hjN : sint.nat (W64 j) = j := by word
   iintro Hshare - Hgs Htok

@@ -25,7 +25,7 @@ open github_com.hashicorp.raft.examples.hraftnet.service github_com.hashicorp.ra
 
 theorem github_com.hashicorp.raft.examples.hraftnet.service.NewStore.wp_proof : github_com.hashicorp.raft.examples.hraftnet.service.NewStore.spec (GF := GF) (hG := hG) := by
   intro γ fc i
-  wp_start as ⟨#Hfr, #Hls, #Hdb⟩
+  wp_start as ⟨#Hfr, #Hls, #Hdb, #Hsv⟩
   ihave Ha := mono_nat_own_alloc (GF := GF) 0
   imod Ha with ⟨%alb, Halb, -⟩
   ihave ⟨Halb1, Halb2⟩ := monoNat_split alb 0 $$ Halb

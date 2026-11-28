@@ -83,6 +83,12 @@ over `SetCodec`. The length bounds of the size check are S4b's `rpctransport/Wir
 kit's `Link`, S5: pass `hraftCodecLaws` for S4b's `CodecLaws C`, `raftRcv_raftSvc` for the registration). No axiom,
 `sorry` or premise.
 
+**The closed theorem (2026-11-28, branch `hraft-top/2026-11-28`): `hraft_nocrash_robust` proved**
+("The top level" below), as approved, unchanged. Its `#print axioms`: Lean's three and Net/'s interim
+axioms `net.rpc.wp_initialize'` and `net.http.wp_initialize'` (the machines' boots run net/rpc's
+initializer, which runs net/http's; craq's and gryff's rest on them too); no axiom, `sorry` or premise
+of the kit's own.
+
 **S5 (2026-11-27, branch `hraft-s5/2026-11-27`): the server machine, the clients, write linearizability,
 in progress** ("S5" below). Batch 1: the state machine (`service.Store`) and raft's FSM contract for it,
 with the linearization frontier; batch 2: the API service's methods but `Read` and `Status`; batch 3
@@ -800,3 +806,175 @@ Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof th
 - **The clients' commands** (`ClientDefs.lean`, pure): `opIDB c s` (`opID`'s bytes, `beBytes` of `c << 56 |
   s % 2^56`), `cmdB` (`command`'s), `idOf_cmdB` (`idOf (cmdB c s ..) = (c, s % 2^56)` for `c < 256`, by
   `beBytes_fold`), `datumOf_cmdB`. **Proved over the real code**: `opID` (the loop, as rabia's `putU64`), `command`.
+
+### S5f batch 2: the clients' deposits, `Sys.try`, `Sys.op`
+
+- **`ClientDeps.lean`** (coordinator-E's (e1) on the client's side): `opSt K d i Φ`, an operation's state (not
+  registered: its id's reservation and the update; or registered in the drawn protocol: the draw, its `frInv`, the
+  command's `opTok`, the claim); `apply_dep` (the `Apply` deposit `apiSvcK` from `opSt` and two credits: the server,
+  knowing the draw, takes the drawn `frInv` (`draw_frInv`) and runs `kit_register` on its thread, or deposits the
+  registered token); `applyOk` (what the success answer gives back: the draw, `frInv`, `applyOut`, the claim);
+  `apply_done` (`kit_claim` and `firedOut_respAt`: `Φ` of an output whose fields are the reply's),
+  `applyOut_noEffect` (the token back: the operation becomes registered), `slotUpd_readUpd`, `sysConns`, `cliEnv`,
+  `outRes`.
+- **`readCall.law`** (S6's, pending): `Conn.Call("API.Read", ...)` at a server with a read's `□ lin` answers, when
+  `reply.Ok`, an output with `Φ` of it whose fields are the reply's. `apiSvc`'s `Read` carries no facts yet, so the
+  law is a hypothesis of `Sys.try.wp_proof`; S6 proves it from `Conn.Call.spec` and the strengthened `apiSvc`.
+- **Proved over the real code**: `apiTimeout`; `Sys.try` (an `Apply`'s `NotSent`/`NoEffect` give the state back,
+  `Failed`/other statuses the unknown output, `Done` the claimed output; a read outside the log by the law);
+  `Sys.op` (the count moved, `command`, the id reserved (`id_reserve`, `idOf_cmdB` with `seq + 1 < 2^56`), `try` at
+  the servers in turn, `Tries` times, `1 + j % NS`).
+
+### S5f batch 3: the client machine `Client`
+
+- **`Client.spec`** (`Spec/.../hraftnet/Client.lean`): client machine `c < 5` from its share of the start:
+  net/rpc's codec unregistered (`Register`'s premise), `kitSS K`, `drawInv K`, `idInv K.g` and `seqOwn K.g c 1`, the
+  world's server addresses (`rpcAddr`), its address serving the far side's store (`remoteAddr (regR K.g.st)`), whose
+  budget `N` satisfies `N + 1 < 2 ^ 56` (the operations' counts stay below `opID`'s 56 bits), `receiptBound GF ≤ 2^64`.
+- **`Client.wp_proof`** over the real code: `Register()`, `ClientAddrs()[c]`, `Codec()` (`codecOk_wireOk`),
+  `attempt()`, `remote.ServeClient` with the system's state `sysTok` (the `*Sys`, its count `seq` with the counter at
+  `seq + 1` and `seq` at most the calls served, `budUsed`); the operation closure meets `opMaybe` (`budUsed_add` bounds
+  the count, `Sys.op`, `Out` boxed as the store's output or unknown), the `newClient` closure makes a `Sys` from
+  `serverConns()` and `1 + rnd(NS)`. Also proved: `serverConns` (`NewConn` per server address), `attempt`.
+- What the start (S6) must give each client machine: the above share; the orchestrator's start gives `kit_start`'s
+  `seqOwn K.g c 1` (`S := {c ↦ 1 | c < 5}`) and `idInv`.
+
+## S6 (branch `hraft-s6/2026-11-28`): reads outside the log
+
+### Design: how a read linearizes against the frontier
+
+`API.Read` (`WayBarrier`, or `WayVerify`: a barrier of the current term, cached in `barrierIn`, then
+`VerifyLeader`, the term unchanged) reads the FSM's register, which is `regOf es_r` for the store's prefix
+`es_r` at the read: a committed prefix ending with a command that the frontier has passed (`storeInv`), but
+possibly far behind it (other servers' FSMs move the frontier). The read must fire its `□ lin` when the model
+state is `regOf es_r`, which was the frontier's state only at the moment the frontier passed `es_r`, in
+another thread. So the read is **helped**:
+
+- **Registration** (on the server's thread, in the API deposit's draw wrapper `apiSvcK`, after the client's
+  call began): open `frInv` at the frontier `es0`; take a gprot snapshot `sc` of now with `|es0| ≤ sc.maxDur`;
+  fire the read's `□ lin` at `regOf es0` and record the output; append the read to the frontier's **read
+  escrow** (a mono list in `kitQ`: per read its token, its saved continuation, its input, `n0 = |es0|`, and the
+  outputs at every command-ending frontier position `k ≥ n0` it has seen, or the reader's token once claimed).
+- **Helping**: every frontier step (`kitQ_linStep`, at `es ++ ns ++ [e]`) fires every pending read's `□ lin`
+  at the new state (a read leaves it unchanged, `reads_stay`) and records the output at the new position.
+- **The read bound** (the lab's `hr3.readAt`, restated): with `sc` given to `Barrier` (or to `CurrentTerm`'s
+  witness, then `VerifyLeader`), `barrierOk`/`verifyOk` give `fsmAt s` with `sc.maxDur ≤ s`: the store had
+  applied the command at `k0 ≤ s` and no command lies in `(k0, s]`. The store's `es_r` has `k0 ≤ |es_r|`
+  (`appliedLb`). The frontier needs `|es0| ≤ sc.maxDur`: **`frInv` now keeps a server whose durable prefix
+  covers the frontier** (`frDur`: `Store.Apply` moves it with `durLb γ i k`, and `isStore` now holds
+  `isSrv γ i`), so the snapshot covers it (`histLb_now`).
+- **The claim** (on the server, after the FSM read): `es0` ends with a command (or is empty) and is committed,
+  `|es0| ≤ s`, no command in `(k0, s]`, so `|es0| ≤ k0 ≤ |es_r|` (`cmd_not_between`); `es_r` is a prefix of
+  the frontier ending with a command, so its position was recorded: the reader swaps its token for the recorded
+  output at `|es_r|`, which is `Φ` of the register `regOf es_r`, the reply's value. Its linearization point is
+  the frontier's passing of `es_r` (or the registration, if `es_r = es0`), between the call and the return.
+- **The interface**: `apiSvc`'s `Read` deposit carries `histLb γ sc`, `n0 ≤ sc.maxDur` and the claim
+  `rdClaim γ fc n0 Ψ` (for any `es` with `lastCmd es`, `k0 ≤ |es|`, `noCmdBetween γ k0 (k+1)`, `n0 ≤ k`,
+  `frLb fc es`: `Ψ` of `regOf es`'s found/value); the reply's facts are `Ok → Ψ Found V`. The kit builds the
+  claim from its ticket (`kit_rdReg`, `kit_rdClaim`); `service` sees no kit state.
+- No change to raft's `Barrier`/`VerifyLeader` specs was needed: `barrierOk`/`verifyOk` as ported suffice.
+
+### S6 batch 1: what is proved
+
+- **The frontier covered by a durable prefix** (`FsmDefs.lean`): `frInv` holds `frDur γ es`; `isStore` holds
+  `isSrv γ i`; `NewStore.spec`'s premise gains `isSrv γ i` (ledger 2026-11-28).
+- **The read escrow** (`KitQ.lean`): `KG` gains `rd` (a mono list, allocated by `kit_start`, empty in `kitPre`);
+  `kitQ` gains `rdsQ g es`; `read_fire`, `rdEnt_step`, `rds_step` (every frontier step fires every registered read,
+  `kitQ_linStep`). `KitRead.lean`: `rdTicket`, `frDur_snap`, **`kit_rdReg`**, **`kit_rdClaim`**, `readOut_eq`.
+- **The service** (`service/`): `barrierFact`, `apiMuInv` with it, `rdClaim` (`ApiDefs.lean`); `apiSvc`'s `Read`
+  (`ApiSvc.lean`); **`Store.read`** and **`API.Read`** proved over the real code (`API__Read.lean`: the lab's
+  `readAt`, with the API's `barrierIn` for hr3's `readers`, `wp_join` for both ways); `apiMeth_Read`
+  (`ApiRcvSvc.lean`): `apiRcvLaws_of`/`apiRcv_apiSvc` take **`API.Read.spec`** where they took `mRead`, and so
+  does `Server.wp_proof` (`wpRd`).
+- **The client** (`ReadCall.lean`): `read_dep` (the deposit, `kit_rdReg` on the server's thread),
+  **`readCall_law_holds`** from `Conn.Call.spec`; `Sys.try.wp_proof` no longer takes `readCall.law` (its read path
+  gets two credits from `apiTimeout`'s step).
+- For the kit's Link: `API.Read.wp_proof` takes `Raft.Barrier`, `Raft.VerifyLeader`, `Raft.CurrentTerm`,
+  `waitFuture`, `deferError.Error`, `errorFuture.Error`, `Store.read`, `Mutex.Lock/Unlock`; `Server` takes it as
+  `wpRd`; nothing about reads stays PENDING.
+
+### S5g batch 1: the orchestrator machine `Orch`
+
+Branch `hraft-s5g/2026-11-28` (#48). The orchestrator is proved over the real code; the start (`Hstart`) and the
+kit's `Link` are the next batches.
+
+- **`OrchDefs.lean`** (defs): the masks of remote's `Check` (`pendN_kit`, `lintestN_kit`); `drawPre K` (what the
+  orchestrator draws with, from the start: both sizes' `opsAuth`/`allocPre` (`gprot.alloc_names`), `kitPre K.g`, the
+  frontier's list `K.fr` empty); **`kit_draw`** (`£ 1 ∗ drawInv K ∗ drawTok K ∗ drawPre K ∗ ⧗ 2 ⊢ |={⊤}=> chosen K.γc n ∗
+  srvsOf K n`: `gprot.alloc_init` with the two receipts, `frInv_init`, `kitQ_linStep`, the draw's invariant closed in
+  its drawn branch with every server's `srvPkg`; it needs `[ReceiptBoundLe GF (2 ^ 62)]`); `srvsOf K n` (the drawn
+  protocol's six `isSrv`); `adminCtx K` (what the admin calls the API with: `kitSS`, `γsOk`, the server addresses, the
+  draw and `srvsOf`); **`admin_dep`** (an admin request of kind `k < 6` naming server `s`, or a transfer to raft's pick:
+  its method `adminMeths[k]` and its deposit at `apiSvcK K`, `addReqW`/`srvReqW`/`transferReqW` from `γsOk` and
+  `srvsOf`), **`status_dep`**; `adminAns`/`statusAns` (the answers' encodings), `encAdminArgs_length`,
+  `adminMeths_len`; `orchBud = 3 * 2 ^ 20` (remote's `MaxOps * readTries`, the clients' budget: `N + 1 < 2 ^ 56`);
+  **`orchShare K γp`** (the orchestrator's share of the start: `confProtos`, the server addresses, `kitSS ∧ γsOk`,
+  `drawInv`, `drawTok`, `drawPre`, remote's `remoteAddr (regR K.g.st)` per client address, `mapCtx`, `pendCtx`/`pendLib`
+  over `regS`, the call units `orchBud`).
+- **Proved over the real code** (spec and proof each): `chooseN0` (3 or 5, with the two receipts of its `*` and `+`,
+  `wp_go_step_receipt'`), `sendConf` (vr's, on one byte), `configure`, `chooseOps`, `adminMethods`, `adminTarget`
+  (the `Status` call, `status_dep`; a named leader among the servers), `admin` (forever: sleep, `adminTarget`, a random
+  request (`admin_dep`), its call; post `False`), `remoteCheck` (remote's `Check` with `Model()`, `Codec()`, `Gen`,
+  `regS_pendDec`, `regR_encOut_inj`), **`Orch`** (`Orch.spec`: from `orchShare K γp` and the codec unregistered;
+  `chooseN0`, `kit_draw` with a credit, `configure`, `Register()`, `go admin()`, `remoteCheck(chooseOps())`).
+- **The start, `Start.lean`** (defs; vr's `vsrnet/Start.lean`): **`hraft_start`** (`[ReceiptBoundLe GF (2 ^ 62)]`,
+  `kit_start`'s): `regCtx -∗ ([∗list] a ∈ hraftKitAddrs, addrUnset a) ={⊤}=∗ ∃ ρ K γp, orchShare K γp ∗ ([∗list] c ∈
+  range 5, cliShare K c) ∗ ([∗list] j ∈ range' 1 6, srvShare K j)`: remote's slot map (`mapCtx_alloc`, budgets
+  `orchBud`), `kit_start seqs0` (counters at 1), `pend_alloc` over `regS`, `gprot.alloc_names` for sizes 3 and 5 (the
+  six servers, `genesisOf (bootSrvs n)`, `cfgDec allSids`), the draw's map, the frontier's list, the share tokens
+  (keys 0..6), the rpc world (`kitSSOf K0`: its services do not depend on the world, so `kitSS_of` holds by `rfl`),
+  its registry, a listener at each server address (`rpcLis_set_all`, `addrUnset_lisUnset'`: rpcdriver's, for any
+  `GF`), the configuration and client addresses' protocols, the draw's invariant undrawn (`drawInv_alloc`).
+  `cliShare K c` is `Client.spec`'s precondition but the packages' facts and the codec. Note for the top level: the
+  shares are stated over the kit's `HeapGS` (as `srvShare` is, S5d), so the start runs at some machine's `hG`; each
+  machine's share is the same proposition at its own `hG` only up to `hG.goose_globalGS` (definitional).
+- Not linked (the kit's `Link`, next batch). No axiom, `sorry` or premise.
+
+### S5g batch 2: the kit's Link
+
+- **`Dsverify/Proof/github_com/hashicorp/raft/examples/hraftnet/Link.lean`**, generated by
+  `etc/dsv/tools/hraft-kit-link.py` (`etc/gen-link.py --hraft-kit`, checked by the gates' `links`): all 116 of the kit's
+  proofs (`hraftnet`, `rpctransport`, `service`), each `<F>.wp_proof` applied to its callees' results, in dependency
+  order, results `EtcdGrove.hraftnet.…` (`hraftnet.wp_Orch`, `hraftnet.wp_Server`, `hraftnet.wp_Client`,
+  `hraftnet.rpctransport.Conn.wp_Call`, `hraftnet.service.API.wp_Read`, …). The callees, written relative to the
+  proofs' namespaces and `open`s, are resolved as Lean does: the kit's own results; raft's and snapstore's Links;
+  Perennial's (`sync`, `time`, `strconv`); and a table for the others: Net's `net.{Dial,DialTimeout,Listen,
+  Listener.Accept,Conn.*}` proofs, net/rpc's `Results` (`NewServer.wp_owned`, `Server.Register.wp_fresh`,
+  `Server.Accept.wp`, `SetCodec.wp`, `NewClient.wp`, `Client.{Go,Close}.wp`), remote's `wp_Check`/`wp_ServeClient`,
+  and the main tree's `EtcdGrove.strconv.Atoi_dec.wp_proof` for `Store.Restore`'s `wp_Atoi`.
+- `hraftCodecLaws`, `raftRcv_raftSvc`, `apiRcv_apiSvc`, `Transport_isTransport` are used inside `Server.wp_proof`
+  (over the specs it takes, now all linked), so the Link passes only specs. Nothing is PENDING: S6's
+  `API.Read.wp_proof` is linked (`Server`'s `wpRd`, `Sys.try`'s read path through `readCall_law_holds`).
+- A result stated under remote's `[NaInvG GF]` (`wp_Client`, `wp_remoteCheck`, `wp_Orch`) or raft's
+  `[ThreadBoundLe GF (2 ^ 28)]` (`wp_Server`) takes it as an instance, as vr's kit Link does.
+- Trust base (`etc/tcb-collections/dsv-hraft.txt`, roots `^Dsverify/Proof/github_com/hashicorp/`, now with the kit's
+  Link): no axiom, no `sorry`; the one addition is net/http's `opaque godebugHttpmuxgo121` (net/rpc imports net/http),
+  as in the other net/rpc kits' collections.
+- Left: the closed theorem (done: "The top level" below).
+
+## The top level (branch `hraft-top/2026-11-28`): `hraft_nocrash_robust`
+
+- **`TopLevelRobustness.lean`** (`Proof/.../hraftnet/`): dsv-epaxos's `robust_of_distProtoLisRBTT` (no wildcard
+  listener; `hraftStepBound` steps, `hraftThreadBound` threads per machine, each machine's main thread's token),
+  `ReceiptBoundLe GF (2 ^ 62)` from the step bound, `ThreadBoundLe GF (2 ^ 28)` from the thread bound;
+  `hraft_start` at the start; each machine's boot by `wp_bootR` from its first-run boot and its `main`'s spec.
+- **The shares and the heap (S5g's open point)**: the shares (`orchShare`, `cliShare`, `srvShare`) are stated over
+  a `HeapGS`, as raft's `gprot` vocabulary they are written in is (`Inv`, `srvOwn`, ...; `HK`, `drawInv` over them),
+  and the bridges' start has only the global `G`. Chosen: (a), run `hraft_start` at a heap of its own,
+  `atStart lctx G` (`StartAt.lean`: `G` with arbitrary local names `anyLocal`, built from `remoteGF`'s
+  `GooseGpreS`; never a machine's), and convert each share to the machine's heap (`srvShare_at`, `cliShare_at`,
+  `orchShare_at`). Craq/vr/gryff state their kit vocabulary over `G` (option (b)); here that would restate raft's
+  `gprot` definitions (418 lines, imported by all of raft's proofs) and the kit's over `G`, a rebuild of the whole
+  raft proof for a top-level concern. What the conversion needs: `with_unfolding_all` (`gprot`'s `Inv`, `srvOwn`,
+  ... are `@[irreducible]`; a plain `rfl` timed out); the orchestrator's share conjunct by conjunct, since unfolding
+  all of it unfolds `budUnits a orchBud`, a recursion `3 * 2 ^ 20` deep (the kernel times out), and remote's pending
+  library through its model only (`regS_M_at`: `regS`'s representation is a heap's points-to, so `regS` itself
+  differs between the heaps; `pendCtx`/`pendLib` read only `regS.M`).
+- **The boot**: `BootLinked.lean` (hand-written, craq's): `boot_hraftnet`, `hraftnet`'s first initialization, whose
+  second import is net/rpc's first run (`net.rpc.wp_init_first` over `NewServer.wp_owned`), returns net/rpc's
+  `codecUnset`; `BootTable.lean` and `BootCmdsLinked.lean` generated by kitgen (`etc/dsv/hraft.py`'s `boot`; owned
+  packages `hraftnet` and net/rpc), every command's `wp_boot`.
+- **`Mains.lean`**: each command's `main` from its share, the codec unregistered (and, for a server, its thread
+  token); the packages' facts the callees take (`hraftnet`, `sync`, `log`, net/rpc's mutex and server variables,
+  `rpcInit_access`) from the command's.
+- Counts (`etc/theorem-loc.py hraft_nocrash_robust`): see `notes/STATUS.md`'s entry.

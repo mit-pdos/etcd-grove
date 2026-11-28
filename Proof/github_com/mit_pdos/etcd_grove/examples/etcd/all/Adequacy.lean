@@ -3,25 +3,23 @@
 # `etcd/all`: the single-process closed etcd theorem over the operational semantics, from `Main`'s triple
 
 `etcd_adequate_of` (`notes/etcd-unified-scope.md` §3.2; `Results.lean` applies it to
-`etcd_all.wp_Main` as `etcd_safe_single_process`; over the net extension since 2026-11-23,
+`etcd_all.wp_MainChecked` as `etcd_restart_safe_single_process`; over the net extension since 2026-11-23,
 `notes/single-process-restore.md`): every real execution of
-`etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅` (`TopLevelDefs.lean`: the package's
-initialization, then `MainChecked` with the five member counts, the three workloads and the two
-schedules' lengths) from a fresh state with one thread and a network with no connection, of `n` steps
+`etcdProgram k₅` (`TopLevelDefs.lean`: the package's initialization, then `MainChecked` with restartN's
+member count) from a fresh state with one thread and a network with no connection, of `n` steps
 along which fewer than `2 ^ 28` threads are live, with `n + 1 ≤ 2 ^ 48`: if the main thread has
 finished, its result is `#()`; no thread is stuck; no thread has ended in a panic.
 
 It follows from `etcd_adequate_members_below`, in two cases (the pure-premises plan's P4, 2026-11-24:
-the counts' and workloads' ranges are `MainChecked`'s check, no longer premises). When the parameters
-are in range (`etcd_all.paramsOk`), with the eleven clusters' members (`etcdStarts`), their bridges
-(`etcdBridges`), the program's addresses `etcdAddrs` and data directories `etcdDirs`, whose
-distinctness is `Disjoint.lean`'s (for counts in range: out of range the addresses may collide). When
-they are not, with no member, address or directory: `MainChecked` returns without starting any. The
-proof of the body: `etcdall`'s `wp_initialize'` and `MainChecked`'s triple, here a hypothesis
-(`hMain`), so that this module does not import the eleven drivers' linked results (split from
+the count's range is `MainChecked`'s check, no longer a premise). When the parameter is in range
+(`etcd_all.paramsOk`), with the two clusters' members (`etcdStarts`), no bridge (`etcdBridges`), the
+program's addresses `etcdAddrs` and data directories `etcdDirs`, whose distinctness is
+`Disjoint.lean`'s. When it is not, with no member, address or directory: `MainChecked` returns without
+starting any. The proof of the body: `etcdall`'s `wp_initialize'` and `MainChecked`'s triple, here a
+hypothesis (`hMain`), so that this module does not import the drivers' linked results (split from
 `AdequacyLinked.lean`).
 
-Its premises are `etcd_robust_single_process.spec`'s (`Spec/.../examples/etcd/all/TopLevelRobustness.lean`) at one `n`;
+Its premises are `etcd_restart_robust_single_process.spec`'s (`Spec/.../examples/etcd/all/TopLevelRobustness.lean`) at one `n`;
 `Hlow` (the condition of idutil's trusted model) is not used by the proof and is stated in
 `Results.lean`.
 -/
@@ -36,6 +34,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.TopLevelDef
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapOne
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapRestart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapUnserved
 
 @[expose] public section
 
@@ -111,131 +112,54 @@ variable [go_gctx : GoGlobalContext]
 the file header). -/
 theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [log.NewModel]
     (hMain : ∀ hG : HeapGS .hasLC etcdGF,
       etcd_all.MainChecked.spec (GF := etcdGF) (hG := etcdHeapAt hG lctx))
-    -- KV: txnlinfaultsN's cluster, `k₁` members
-    (k₁ : w64) (ids₁ ps₁ : List w64) (ctxs₁ : List (List w8))
-    (boot₁ : List LogEntry) (Hlen₁ : ids₁.length = uint.nat k₁)
-    (Hbf₁ : etcd_txnlinfaultsN.BootFacts ids₁ ps₁ ctxs₁ boot₁)
-    -- KV: partition's cluster (three members)
-    (pid₁ pid₂ pid₃ : w64) (psP : List w64) (ctxsP : List (List w8)) (bootP : List LogEntry)
-    (HbfP : etcd_partition.BootFacts pid₁ pid₂ pid₃ psP ctxsP bootP)
-    -- KV: compactwatch's, compacted's and cache's one-member clusters
-    (cwId : w64) (ctxsCW : List (List w8)) (bootCW : List LogEntry)
-    (HbfCW : etcd_compactwatch.BootFacts cwId ctxsCW bootCW)
-    (cId : w64) (ctxsC : List (List w8)) (bootC : List LogEntry)
-    (HbfC : etcd_compacted.BootFacts cId ctxsC bootC)
-    (kvId : w64) (ctxsK : List (List w8)) (bootK : List LogEntry)
-    (HbfK : etcd_putget.BootFacts kvId ctxsK bootK)
-    -- Auth: authN's cluster, `k₂` members, and authlease's, `k₃` (their ids apart in 15 bits)
-    (k₂ : w64) (ids₂ ps₂ : List w64) (ctxs₂ : List (List w8))
-    (boot₂ : List LogEntry) (Hlen₂ : ids₂.length = uint.nat k₂)
-    (Hbf₂ : etcd_putgetN.BootFacts ids₂ ps₂ ctxs₂ boot₂)
-    (k₃ : w64) (ids₃ ps₃ : List w64) (ctxs₃ : List (List w8))
-    (boot₃ : List LogEntry) (Hlen₃ : ids₃.length = uint.nat k₃)
-    (Hbf₃ : etcd_putgetN.BootFacts ids₃ ps₃ ctxs₃ boot₃) (Hap : leaseIdsApart ids₃)
-    -- Lease: leaseN's cluster, `k₄` members, and leasecatchup's (three members)
-    (k₄ : w64) (ids₄ ps₄ : List w64) (ctxs₄ : List (List w8))
-    (boot₄ : List LogEntry) (Hlen₄ : ids₄.length = uint.nat k₄)
-    (Hbf₄ : etcd_putgetN.BootFacts ids₄ ps₄ ctxs₄ boot₄)
-    (lid₁ lid₂ lid₃ : w64) (psL : List w64) (ctxsL : List (List w8)) (bootL : List LogEntry)
-    (HbfL : cluster3.BootFacts lid₁ lid₂ lid₃ psL ctxsL bootL)
-    -- Restart: restartN's cluster, `k₅` members, and restart1's one member
+    -- restartN's cluster, `k₅` members, and restart1's one member
     (k₅ : w64) (ids₅ ps₅ : List w64) (ctxs₅ : List (List w8))
     (boot₅ : List LogEntry) (Hlen₅ : ids₅.length = uint.nat k₅)
     (Hbf₅ : etcd_restartN.BootFacts ids₅ ps₅ ctxs₅ boot₅)
     (rId : w64) (ctxsR : List (List w8)) (bootR : List LogEntry)
     (HbfR : etcd_restart1.BootFacts rId ctxsR bootR)
+    -- `bootstrap`'s values Go's
+    (Hbg₅ : etcd_restartN.BootGoN (uint.nat k₅) ids₅ ps₅ ctxs₅)
+    (HbgR : etcd_restart1.BootGo rId ctxsR bootR)
     -- the server's workload and environment
-    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
-    (Hdbo : storage.diskOk)
-    -- peers answer `/leases/internal` as etcd's handler does or not with 200; no lease expires in the run
-    (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
-    -- txnlinfaultsN's workload and its schedule's length; partition's; cache's workload
-    (clients ops n₁ nw nops n₂ cnw cnops : w64)
+    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
     -- the program's addresses, data directories and environment
-    (HAs : addrsUnclaimed (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdProgAddrs k₁ k₂ k₃ k₄ k₅))
-    (HDs : dataDirsAbsent (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
-    (HEnv : EtcdVerifyOff)
+    (HAs : addrsUnclaimed (etcdProgram k₅) (etcdProgAddrs k₅))
+    (HDs : dataDirsAbsent (etcdProgram k₅) (etcdProgDirs k₅))
+    (HEnv : EtcdVerifyOff) (Hfips : crypto.fips140.GodebugFips140Off)
     (n : Nat)
-    (Hprem₁ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₁) n ids₁
-          ps₁ ctxs₁ boot₁)
-    (HpremP : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_partition.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n pid₁ pid₂ pid₃ psP ctxsP
-          bootP)
-    (HpremCW : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_compactwatch.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n cwId ctxsCW bootCW)
-    (HpremC : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_compacted.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n cId ctxsC bootC)
-    (HpremK : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_cache.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n kvId ctxsK bootK)
-    (Hprem₂ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_authN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₂) n ids₂ ps₂ ctxs₂
-          boot₂)
-    (Hprem₃ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_authlease.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₃) n ids₃ ps₃
-          ctxs₃ boot₃)
-    (Hprem₄ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_leaseN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₄) n ids₄ ps₄
-          ctxs₄ boot₄)
-    (HpremL : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ cluster3.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) etcd_leasecatchup.clusterCfg n
-          lid₁ lid₂ lid₃ psL ctxsL bootL)
-    (Hprem₅ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅ ps₅
-          ctxs₅ boot₅)
-    (HpremR : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world)
-      (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdProgDirs k₅))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps' : RealNstepsBelow (2 ^ 28) n
-      ([etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅], ((σ, g) : CfgState))
-      κs (t2, σ2))
+    (Hsteps' : RealNstepsBelow (2 ^ 28) n ([etcdProgram k₅], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 1 ≤ 2 ^ 48) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  by_cases hok : etcd_all.paramsOk k₁ clients ops nw nops cnw cnops k₂ k₃ k₄ k₅
-  · -- in range: the eleven clusters' members, bridges, addresses and data directories
-    obtain ⟨h1, h2, -, -, -, -, -, -, -, -, -, -, -, -, h21, h22, h31, h32, h41, h42, h51, h52⟩ :=
-      id hok
-    have hk₁ : uint.nat k₁ ≤ 1000 := by word
-    have hk₂ : uint.nat k₂ ≤ 1000 := by word
-    have hk₃ : uint.nat k₃ ≤ 1000 := by word
-    have hk₄ : uint.nat k₄ ≤ 1000 := by word
+  by_cases hok : etcd_all.paramsOk k₅
+  · -- in range: the two clusters' members, addresses and data directories
+    obtain ⟨h51, h52⟩ := id hok
     have hk₅ : uint.nat k₅ ≤ 1000 := by word
-    have hc : etcdCountsOk k₁ k₂ k₃ k₄ k₅ := by unfold etcdCountsOk; and_intros <;> word
+    have hc : etcdCountsOk k₅ := by unfold etcdCountsOk; and_intros <;> word
     unfold etcdProgAddrs at HAs
     unfold etcdProgDirs at HDs HWal
     rw [if_pos hc] at HAs HDs HWal
     refine etcd_adequate_members_below (GF := etcdGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
-      (hmsL := etcd_all.etcdStarts_names_len _ _ _ _ _)
-      (hAsLit := etcd_all.etcdAddrs_lit _ _ _ _ _ hk₁ hk₂ hk₃ hk₄ hk₅)
-      (hAsOk := etcd_all.etcdAddrs_ok _ _ _ _ _ hk₁ hk₂ hk₃ hk₄ hk₅)
+      (hmsL := etcd_all.etcdStarts_names_len _)
+      (hAsLit := etcd_all.etcdAddrs_lit _ hk₅)
+      (hAsOk := etcd_all.etcdAddrs_ok _ hk₅)
       (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.all.initialize'
-      (App (App (App (App (App (App (App (App (App (App (App (App (App
-        (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.all.MainChecked))
-        (Val #k₁)) (Val #clients)) (Val #ops)) (Val #n₁))
-        (Val #nw)) (Val #nops)) (Val #n₂)) (Val #cnw)) (Val #cnops))
-        (Val #k₂)) (Val #k₃)) (Val #k₄)) (Val #k₅))
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.all.MainChecked)) (Val #k₅))
       (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm)
-      (etcdAddrs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅))
-      (etcd_all.etcdAddrs_nodup _ _ _ _ _ hk₁ hk₂ hk₃ hk₄ hk₅)
-      (etcdDirs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅))
-      (etcd_all.etcdDirs_nodup _ _ _ _ _ hk₁ hk₂ hk₃ hk₄ hk₅)
-      (etcd_all.etcdStarts (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅))
-      (etcd_all.etcdBridges (uint.nat k₁))
-      (etcd_all.etcdAddrs_perm _ _ _ _ _) (etcd_all.etcdDirs_perm _ _ _ _ _)
+      (etcdAddrs (uint.nat k₅)) (etcd_all.etcdAddrs_nodup _ hk₅)
+      (etcdDirs (uint.nat k₅)) (etcd_all.etcdDirs_nodup _ hk₅)
+      (etcd_all.etcdStarts (uint.nat k₅)) etcd_all.etcdBridges
+      (etcd_all.etcdAddrs_perm _) (etcd_all.etcdDirs_perm _)
       σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads
       github_com.mit_pdos.etcd_grove.examples.etcd.all.regQs etcd_regQsOk HAs HDs
       (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
@@ -244,43 +168,31 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     unfold progOk
     refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf, ?_⟩
-    ihave #Hp1 := Hprem₁ hG
-    ihave #HpP := HpremP hG
-    ihave #HpCW := HpremCW hG
-    ihave #HpC := HpremC hG
-    ihave #HpK := HpremK hG
-    ihave #Hp2 := Hprem₂ hG
-    ihave #Hp3 := Hprem₃ hG
-    ihave #Hp4 := Hprem₄ hG
-    ihave #HpL := HpremL hG
-    ihave #Hp5 := Hprem₅ hG
-    ihave #HpR := HpremR hG
-    iintro #Hinit Htok ⟨Hms, Hbs⟩
-    unfold etcd_all.etcdStarts etcd_all.etcdBridges
-    icases Hms with ⟨⟨⟨⟨⟨⟨⟨⟨Hms1, HmsP⟩, HmsKV⟩, Hms2⟩, Hms3⟩, Hms4⟩, HmsL⟩, Hms5⟩, HmsR⟩
-    icases Hbs with ⟨⟨Hbs1, HbsP⟩, HbsL⟩
-    ihave HresP : cluster3.startRes (GF := etcdGF) etcd_partition.clusterCfg $$ [HmsP HbsP]
-    · iapply cluster3.startRes_intro; iframe
-    ihave HresL : cluster3.startRes (GF := etcdGF) etcd_leasecatchup.clusterCfg $$ [HmsL HbsL]
-    · iapply cluster3.startRes_intro; iframe
-    icases BigSepL.bigSepL_cons.1 $$ HmsKV with ⟨HresCW, HmsKV⟩
-    icases BigSepL.bigSepL_cons.1 $$ HmsKV with ⟨HresC, HmsKV⟩
-    icases BigSepL.bigSepL_cons.1 $$ HmsKV with ⟨HresK, -⟩
-    icases BigSepL.bigSepL_cons.1 $$ HmsR with ⟨HresR, -⟩
-    unfold etcd_txnlinfaultsN.startAddrs etcd_authN.startAddrs etcd_authlease.startAddrs
-      etcd_leaseN.startAddrs etcd_restartN.startAddrs
-    simp only [BigSepL.bigSepL_map]
     haveI : ThreadBoundLe etcdGF (2 ^ 28) := ⟨by rw [HT]; word⟩
+    haveI : ThreadBoundLe etcdGF (2 ^ 29) := ⟨by rw [HT]; word⟩
     haveI : ReceiptBoundLe etcdGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
+    haveI : ReceiptBoundLe etcdGF (2 ^ 60) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe etcdGF (n + 1) := ⟨by rw [HN]; omega⟩
-    have hM := hMain hG n k₁ ids₁ ps₁ ctxs₁ boot₁ pid₁ pid₂ pid₃ psP ctxsP bootP cwId ctxsCW bootCW
-      cId ctxsC bootC kvId ctxsK bootK k₂ ids₂ ps₂ ctxs₂ boot₂ k₃ ids₃ ps₃ ctxs₃ boot₃
-      k₄ ids₄ ps₄ ctxs₄ boot₄ lid₁ lid₂ lid₃ psL ctxsL bootL k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR
-      clients ops n₁ nw nops n₂ cnw cnops (srvLevels_of_max HT)
-      Hlen₁ Hbf₁ HbfP HbfCW HbfC HbfK Hlen₂ Hbf₂ Hlen₃ Hbf₃ Hap Hlen₄ Hbf₄ HbfL Hlen₅ Hbf₅ HbfR
-      (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo Hlp Hlne inferInstance
-      EtcdGrove.rpctypesEtcdError_asTarget
-    wp_apply hM $$ [Hms1 Hbs1 HresP HresCW HresC HresK Hms2 Hms3 Hms4 HresL Hms5 HresR Htok]
+    iintro #Hinit Htok ⟨Hms, -⟩
+    -- (premises to axioms, 2026-11-27) restartN's and restart1's contracts from the interim bootstrap axioms
+    -- (until then in the premises `Hprem₅`, `HpremR`; restartN's first starts, `bootstrap.wp_proofUnserved`)
+    ihave #Hsrvpkg : isPkgInit (PROP := IProp etcdGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+    · iPkgInit
+    ihave #Hp5 := etcd_restartN.premises_of_specs
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofUnserved)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
+      (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
+      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg
+    ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
+    unfold etcd_all.etcdStarts
+    icases Hms with ⟨Hms5, HmsR⟩
+    icases BigSepL.bigSepL_cons.1 $$ HmsR with ⟨HresR, -⟩
+    unfold etcd_restartN.startAddrs
+    simp only [BigSepL.bigSepL_map]
+    have hM := hMain hG n k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR (srvLevels_of_max HT)
+      Hlen₅ Hbf₅ HbfR (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hdbo
+    wp_apply hM $$ [Hms5 HresR Htok]
     · iframe; (try iframe #)
       iintro -
       iunfold etcd_all.startBundle
@@ -292,11 +204,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       (HWal := fun d hd => by cases hd) (hmsL := fun m hm => by cases hm)
       (hAsLit := fun a ha => by cases ha) (hAsOk := fun a ha => by cases ha)
       (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.all.initialize'
-      (App (App (App (App (App (App (App (App (App (App (App (App (App
-        (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.all.MainChecked))
-        (Val #k₁)) (Val #clients)) (Val #ops)) (Val #n₁))
-        (Val #nw)) (Val #nops)) (Val #n₂)) (Val #cnw)) (Val #cnops))
-        (Val #k₂)) (Val #k₃)) (Val #k₄)) (Val #k₅))
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.all.MainChecked)) (Val #k₅))
       (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm)
       [] List.nodup_nil [] List.nodup_nil [] [] (List.Perm.refl _) (List.Perm.refl _)
       σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads
@@ -308,28 +216,25 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     unfold progOk
     refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf, ?_⟩
-    ihave #Hp1 := Hprem₁ hG
-    ihave #HpP := HpremP hG
-    ihave #HpCW := HpremCW hG
-    ihave #HpC := HpremC hG
-    ihave #HpK := HpremK hG
-    ihave #Hp2 := Hprem₂ hG
-    ihave #Hp3 := Hprem₃ hG
-    ihave #Hp4 := Hprem₄ hG
-    ihave #HpL := HpremL hG
-    ihave #Hp5 := Hprem₅ hG
-    ihave #HpR := HpremR hG
-    iintro #Hinit Htok -
     haveI : ThreadBoundLe etcdGF (2 ^ 28) := ⟨by rw [HT]; word⟩
+    haveI : ThreadBoundLe etcdGF (2 ^ 29) := ⟨by rw [HT]; word⟩
     haveI : ReceiptBoundLe etcdGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
+    haveI : ReceiptBoundLe etcdGF (2 ^ 60) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe etcdGF (n + 1) := ⟨by rw [HN]; omega⟩
-    have hM := hMain hG n k₁ ids₁ ps₁ ctxs₁ boot₁ pid₁ pid₂ pid₃ psP ctxsP bootP cwId ctxsCW bootCW
-      cId ctxsC bootC kvId ctxsK bootK k₂ ids₂ ps₂ ctxs₂ boot₂ k₃ ids₃ ps₃ ctxs₃ boot₃
-      k₄ ids₄ ps₄ ctxs₄ boot₄ lid₁ lid₂ lid₃ psL ctxsL bootL k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR
-      clients ops n₁ nw nops n₂ cnw cnops (srvLevels_of_max HT)
-      Hlen₁ Hbf₁ HbfP HbfCW HbfC HbfK Hlen₂ Hbf₂ Hlen₃ Hbf₃ Hap Hlen₄ Hbf₄ HbfL Hlen₅ Hbf₅ HbfR
-      (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo Hlp Hlne inferInstance
-      EtcdGrove.rpctypesEtcdError_asTarget
+    iintro #Hinit Htok -
+    -- (premises to axioms, 2026-11-27) restartN's and restart1's contracts from the interim bootstrap axioms
+    -- (until then in the premises `Hprem₅`, `HpremR`; restartN's first starts, `bootstrap.wp_proofUnserved`)
+    ihave #Hsrvpkg : isPkgInit (PROP := IProp etcdGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+    · iPkgInit
+    ihave #Hp5 := etcd_restartN.premises_of_specs
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofUnserved)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
+      (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
+      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg
+    ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
+    have hM := hMain hG n k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR (srvLevels_of_max HT)
+      Hlen₅ Hbf₅ HbfR (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hdbo
     wp_apply hM $$ [Htok]
     · iframe; (try iframe #)
       iintro %h

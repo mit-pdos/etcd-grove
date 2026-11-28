@@ -50,8 +50,7 @@ theorem k8s_compactor_Main :
   k8s_compactor.wp_Main
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_MainPartition`). -/
-theorem k8s_compactor_MainPartition
-    [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem k8s_compactor_MainPartition :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.wp_MainPartition
 

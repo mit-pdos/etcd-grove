@@ -56,7 +56,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
     (h_txn_Commit_st : txn_Commit_st.law (GF := GF) (hG := hG)) :
     callTxn.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs x cs t e Q hx hne hb
+  intro cl ms V hAs x cs t e Q hx hne hb
   obtain ⟨hn, hcs, ht, he⟩ := decIn_txn x cs t e hx
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

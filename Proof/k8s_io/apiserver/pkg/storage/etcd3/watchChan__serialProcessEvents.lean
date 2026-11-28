@@ -39,7 +39,7 @@ theorem watchChan.serialProcessEvents.wp_proof
     (wp_sendEvent : watchChan.sendEvent.spec (GF := GF) (hG := hG))
     (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG)) :
     watchChan.serialProcessEvents.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur q wg HQok Hhist
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur q wg HQok Hhist
   wp_start as ⟨#Hcons, Hproc, Hdone, Htok⟩
   ihave #Hh : □ (∀ (l l' : Nat) (s s' : KVState), Q l s -∗ Q l' s' -∗ ⌜kvSameHist s s'⌝) $$ []
   · imodintro

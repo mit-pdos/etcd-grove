@@ -596,7 +596,6 @@ variable [recipes_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- A client of etcd's KV meets the recipes' `KV` contracts at the clients' model over the KV
 state (`isRecipesKV_of_km`). -/

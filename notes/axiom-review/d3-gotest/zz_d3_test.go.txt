@@ -1,0 +1,57 @@
+package d3probe
+
+import (
+	"strings"
+	"testing"
+
+	"go.uber.org/zap/zaptest"
+	"golang.org/x/crypto/bcrypt"
+
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/api/v3/authpb"
+	"go.etcd.io/etcd/server/v3/auth"
+	betesting "go.etcd.io/etcd/server/v3/storage/backend/testing"
+	"go.etcd.io/etcd/server/v3/storage/schema"
+)
+
+func TestLongNames(t *testing.T) {
+	lg := zaptest.NewLogger(t)
+	be, _ := betesting.NewDefaultTmpBackend(t)
+	defer betesting.Close(t, be)
+	schema.CreateMetaBucket(be.BatchTx())
+	tp, _ := auth.NewTokenProvider(lg, "simple", func(uint64) <-chan struct{} { c := make(chan struct{}); close(c); return c }, 300)
+	as := auth.NewAuthStore(lg, schema.NewAuthBackend(lg, be), tp, bcrypt.MinCost)
+	long := strings.Repeat("x", 40000)
+	_, err := as.RoleAdd(&pb.AuthRoleAddRequest{Name: "r"})
+	t.Logf("roleadd: %v rev=%d", err, as.Revision())
+	_, err = as.UserAdd(&pb.AuthUserAddRequest{Name: "u", Options: &authpb.UserAddOptions{NoPassword: true}})
+	t.Logf("useradd: %v rev=%d", err, as.Revision())
+	_, err = as.UserChangePassword(&pb.AuthUserChangePasswordRequest{Name: long, HashedPassword: ""})
+	t.Logf("chpw long: %v rev=%d", err, as.Revision())
+	_, err = as.UserRevokeRole(&pb.AuthUserRevokeRoleRequest{Name: long, Role: "r"})
+	t.Logf("revoke long: %v rev=%d", err, as.Revision())
+	_, err = as.RoleRevokePermission(&pb.AuthRoleRevokePermissionRequest{Role: long, Key: []byte("k")})
+	t.Logf("revokeperm long: %v rev=%d", err, as.Revision())
+	_, err = as.UserDelete(&pb.AuthUserDeleteRequest{Name: long})
+	t.Logf("udel long: %v rev=%d", err, as.Revision())
+	_, err = as.RoleDelete(&pb.AuthRoleDeleteRequest{Role: long})
+	t.Logf("rdel long: %v rev=%d", err, as.Revision())
+	// NoPassword user, non-base64 hashed: succeeds
+	_, err = as.UserChangePassword(&pb.AuthUserChangePasswordRequest{Name: "u", HashedPassword: "!!notb64"})
+	t.Logf("chpw nopassword-user bad b64: %v rev=%d", err, as.Revision())
+	_, err = as.UserAdd(&pb.AuthUserAddRequest{Name: "p", HashedPassword: ""})
+	t.Logf("useradd p: %v rev=%d", err, as.Revision())
+	_, err = as.UserChangePassword(&pb.AuthUserChangePasswordRequest{Name: "p", HashedPassword: "!!notb64"})
+	t.Logf("chpw pw-user bad b64: %v rev=%d", err, as.Revision())
+	_, err = as.UserChangePassword(&pb.AuthUserChangePasswordRequest{Name: "p", Password: strings.Repeat("a", 80)})
+	t.Logf("chpw pw-user 80-byte plaintext: %v rev=%d", err, as.Revision())
+	_, err = as.UserChangePassword(&pb.AuthUserChangePasswordRequest{Name: "p"})
+	t.Logf("chpw pw-user empty/empty: %v rev=%d", err, as.Revision())
+	// revoke non-granted
+	_, err = as.UserRevokeRole(&pb.AuthUserRevokeRoleRequest{Name: "p", Role: "r"})
+	t.Logf("revoke non-granted: %v rev=%d", err, as.Revision())
+	as.AuthDisable()
+	t.Logf("disable while disabled rev=%d", as.Revision())
+	_, err = as.UserDelete(&pb.AuthUserDeleteRequest{Name: "p"})
+	t.Logf("udel p (disabled): %v rev=%d", err, as.Revision())
+}

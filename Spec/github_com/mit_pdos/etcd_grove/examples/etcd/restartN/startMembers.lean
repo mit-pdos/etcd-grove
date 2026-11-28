@@ -10,7 +10,9 @@ etcd-grove-81, 2026-11-15). Lean-first (no Rocq counterpart).
 **The triple:** `etcdstart.StartMembers.spec`'s (each member `m` paired with its ghost names `g`,
 `xs : List (GMember × MemberG)`, at one cluster, the members' names distinct and valid UTF-8, each
 member's URLs `urlsN` of the cluster's), at restartN's token and snapshot settings and the lease mode
-`none`, per member `build`'s and `newMember`'s resources (`etcdstart.memberPre`): `startMembers`
+`none`, per member `build`'s and `newMember`'s resources (`memberPreU`: `etcdstart.memberPre` with
+`bootstrap`'s contract borrowing every member's peer address, `peersFree`, for its first boot: 2026-11-27,
+`startMembers` builds every member before it serves any): `startMembers`
 returns the thread token and either an error or the slices of the started servers and of the members'
 records, one pair `z` per member in order (`zs`), with the cluster's map (read-only, each name's slice
 its member's one peer URL); per member, its `memberUp` given the thread token back, its record
@@ -49,7 +51,7 @@ def memberStarted (lg : Loc) (γn : NetNames GF) (z : Loc × Loc) (x : GMember �
 
 /-- See the file header. -/
 abbrev startMembers.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (msl : GoSlice) (lg : Loc)
+  ∀ (N : Nat) (msl : GoSlice) (lg : Loc)
     (xs : List (GMember × MemberG GF)) (ps : List w64) (bootLog : List EntryM)
     (ctxs : List (List w8)) (dir : w64 → List GoString)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
@@ -70,7 +72,7 @@ abbrev startMembers.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restartN ∗
       zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗
       context.isClosedchanInit ∗
-      [∗list] x ∈ xs, memberPre N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn .none x }}
+      [∗list] x ∈ xs, memberPreU N (xs.map (·.1)) ps bootLog ctxs dir Φs γn x }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.startMembers))
       (Val #msl)) (Val #lg))
   {{ (ssl msl' : GoSlice) (cl : Loc) (err : GoInterface),

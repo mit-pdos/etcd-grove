@@ -136,7 +136,7 @@ theorem Work.wp_proof_dist
     (wp_Commit : Txn_CommitOn_dist.spec (GF := GF) (hG := hG))
     (wp_WatchOn : WatchOn_dist.spec (GF := GF) (hG := hG)) :
     Work.spec_dist (GF := GF) (hG := hG) := by
-  intro CS EA FA RA π cl api w who a addrs V Γ cfg γR hwho ha hauth hau hP hAs
+  intro EA FA RA π cl api w who a addrs V Γ cfg γR hwho ha hauth hau hP hAs
   wp_start as ⟨Hlt, #Huc, #Hwc, #Henv⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

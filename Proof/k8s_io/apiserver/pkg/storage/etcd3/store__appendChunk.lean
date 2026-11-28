@@ -162,7 +162,7 @@ theorem store.appendChunk.wp_proof
     (wp_growSlice : growSlice.spec (GF := GF) (hG := hG))
     (wp_Len : reflect.Value.Len.spec (GF := GF) (hG := hG)) :
     store.appendChunk.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c L ctx ksl ps kvs pred sel emp nf ag v p paging st hdec hmod hlen hpg
+  intro _ Obj _ sp c L ctx ksl ps kvs pred sel emp nf ag v p paging st hdec hmod hlen hpg
   wp_start as ⟨#Hst, #Hlc, #Hsel, #Hnf, #Hctx, %hv, Hksl, #Hkvs, Hit, %hst⟩
   icases Hit with ⟨%s, Hp, Hit⟩
   ihave #Hsel' := Hsel

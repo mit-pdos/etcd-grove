@@ -34,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev StartCompactingServer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString) (retention : w64)
+  ∀ (N : Nat) (name peerAddr client : GoString) (retention : w64)
     (lg : Loc)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString) (id : w64)
     (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)

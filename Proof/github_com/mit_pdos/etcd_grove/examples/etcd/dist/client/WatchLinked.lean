@@ -4,7 +4,7 @@
 
 `RunWatch` (the orchestrator; its writers' Puts by `GenAll_receipts`) and `NodeMain`'s watch arm (a writer machine) with every callee's proof:
 the interim contracts at clientv3's interface across machines, `Watch_dist` (N3, `WatchDist.lean`;
-linked here first, after the watcher-environment refactor, §25) and `KV_Put_dist` (N2); the writers'
+linked here first, after the watcher-environment refactor, §25) and the client's linked `client.v3.kv.wp_Put` (stage B′); the writers'
 calls over `lib/remote` (`Report`, `ServeClient`) at the writers' wire (§28); `etcdstart`'s, clientv3's
 and Perennial's linked results.
 -/
@@ -26,7 +26,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.end
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Rotate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -71,11 +70,11 @@ variable [NaInvG GF]
 theorem wp_newClient : newClient.spec (GF := GF) (hG := hG) :=
   newClient.wp_proof zap.NewNop.wp_proof EtcdGrove.etcdstart.wp_NewClients
 
-/-- A writer machine's call, linked: `Writer` across machines over `KV_Put_dist` (N2's interim
+/-- A writer machine's call, linked: `Writer` across machines over `kv.Put.spec` (the client's linked
 contract). -/
 theorem wp_writerOp : writerOp.spec (GF := GF) (hG := hG) :=
   writerOp.wp_proof (Writer_dist.wp_proof EtcdGrove.etcdstart.context.wp_WithTimeoutBackground EtcdGrove.context.wp_ErrAny
-    KV_Put_dist.wp_proof)
+    client.v3.kv.wp_Put)
 
 /-- The writers' codec, linked over `enc`. -/
 theorem wp_writerCodec : writerCodec.spec (GF := GF) (hG := hG) :=
@@ -97,7 +96,7 @@ theorem wp_RunWatch : RunWatch.spec (GF := GF) (hG := hG) :=
     wp_remoteWriters time.wp_AfterFunc time.Timer.wp_Stop EtcdGrove.etcdstart.wp_MaxRev
     EtcdGrove.etcdstart.wp_Collect EtcdGrove.etcdstart.wp_Check
 
-/-- **A watch writer machine, linked**: `NodeMain`'s watch arm, its calls `writerOp` over `KV_Put_dist`. -/
+/-- **A watch writer machine, linked**: `NodeMain`'s watch arm, its calls `writerOp` over `kv.Put.spec`. -/
 theorem wp_NodeMainWatch : NodeMainWatch.spec (GF := GF) (hG := hG) :=
   NodeMainWatch.wp_proof wp_NodeCount Rotate.wp_proof wp_newClient wp_writerCodec writerAttempt.wp_proof
     wp_writerOp (fun {_ _} => EtcdGrove.remote.wp_ServeClient)

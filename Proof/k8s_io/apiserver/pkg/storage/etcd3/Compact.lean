@@ -66,7 +66,7 @@ theorem Compact.wp_proof
     (wp_Infof : EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG))
     (h_client_Compact_kv : client.client_Compact_kv.law (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl K γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
+  intro _ cl K γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
   wp_start as ⟨Hlt, #HK, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
   iunfold k8sClient at HK
   icases HK with ⟨%hK, #Hh⟩

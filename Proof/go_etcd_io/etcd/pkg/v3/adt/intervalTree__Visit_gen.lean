@@ -27,11 +27,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 theorem adt.intervalTree.Visit_gen.wp_proof
     (h_visit : adt.intervalNode.visit.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Visit_gen.spec (GF := GF) (hG := hG) := by
-  intro K hK t L vb ve db de b e q ivv I J
+  intro K hK t T vb ve db de b e q ivv I J
   wp_start as ⟨Ht, Hkb, Hke, #Hivv, HI⟩
-  icases adt.ownIvtK_read K _ _ _ $$ Ht with ⟨%tv, %T, Hr, Hc, Hs, Hn, %Hp, Hback⟩
-  obtain ⟨hTL, -, hsorted, -⟩ := Hp
-  subst hTL
+  icases adt.ownIvtT_read K _ _ _ $$ Ht with ⟨%tv, Hr, Hc, Hs, Hn, -, Hback⟩
   wp_auto
   ipersist ivv
   simp only [recv_eq_func_mk]
@@ -40,7 +38,7 @@ theorem adt.intervalTree.Visit_gen.wp_proof
   let J' : List (Loc × adt.Entry) → IProp GF :=
     fun acc => J (acc.map fun x => (x.1.[intervalNode, go!"iv"], x.2))
   wp_apply (h_visit K hK tv.sentinel' q tv.sentinel' tv.root' T ivl_ptr (DFrac.own 1) vb ve db de
-    b e _ (adt.stab (b, e) T.inorder) I' J' [] hsorted (by simp) (fun _ => by simp))
+    b e _ (T.visitL (b, e)) I' J' [] (by simp))
     $$ [Hn ivl Hkb Hke HI] as %r ⟨ivl, Hkb, Hke, %ns, %es, %Hes, Hn, HI⟩
   · iframe Hn ivl Hkb Hke
     isplitr [HI]
@@ -74,7 +72,7 @@ theorem adt.intervalTree.Visit_gen.wp_proof
   iexists ns.map fun m => m.[intervalNode, go!"iv"], es, r
   isplitl []
   · ipureintro
-    exact ⟨Hes.1, by simp [hlen], Hes.2⟩
+    exact ⟨by simp [hlen], Hes⟩
   isplitl [HI]
   · simp only [I', J', List.nil_append]
     rw [List.zip_map_left]

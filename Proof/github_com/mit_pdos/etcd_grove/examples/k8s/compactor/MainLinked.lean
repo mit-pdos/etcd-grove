@@ -96,8 +96,7 @@ theorem k8s_compactor.wp_startCluster :
 /-- **The compactor example's `MainPartition` does not panic** (K6;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the `k`-member cluster's). -/
-theorem k8s_compactor.wp_MainPartition
-    [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem k8s_compactor.wp_MainPartition :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.MainPartition.wp_proof zap.NewNop.wp_proof k8s_compactor.wp_startCluster
     etcdstart.wp_NewClients cluster3.wp_Partitioner context.wp_ErrAny

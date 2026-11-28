@@ -41,7 +41,7 @@ theorem NewMember.wp_proof
     (wp_ListenHttp : net.Listen.specHttp (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG)) :
     NewMember.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
+  intro N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
     γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq
     Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩

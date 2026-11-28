@@ -3,8 +3,8 @@
 # The cache workload's orchestrator, linked (#50 F6, `notes/etcd-dist-plan.md` §29)
 
 `RunCache.wp_proof` at its linked callees: the cache library's (`go_etcd_io/etcd/cache/v3/Link.lean`), the cache
-example's helpers' dist copies, etcdstart's, clientv3's option constructors, `context` and `time`, the interim
-axioms `KV_Get_dist` (its error arm's `statusErrOk` since 2026-11-26, plan §29.7), `Watch_dist` and
+example's helpers' dist copies, etcdstart's, clientv3's option constructors, `context` and `time`, the client's
+linked `client.v3.kv.wp_Get` (at the client's `isKv` of the auth-off view, stage B′), the interim axioms `Watch_dist` and
 `RequestProgress_dist`, and the writers (`remoteWriters.wp_proof`, N10a's, over `reportAll`, `CallAll`,
 `lib/remote`'s `Report`, `writerAttempt` and the writers' codec: `WatchLinked.wp_remoteWriters`, the watch
 workload's). No hypothesis.
@@ -19,7 +19,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.rep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CallAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.writerAttempt
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.cacheCollect
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.awaitProgress
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checkProgress
@@ -73,7 +72,7 @@ variable [NaInvG GF]
 `WatchLinked.wp_remoteWriters`, over N10a's linked `writerCodec`). -/
 theorem wp_RunCache : RunCache.spec (GF := GF) (hG := hG) :=
   RunCache.wp_proof (GenAll_receipts.wp_proof EtcdGrove.etcdstart.wp_Gen) (newClient.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClients)
-    ended.wp_proof checked.wp_proof KV_Get_dist.wp_proof Watch_dist.wp_proof RequestProgress_dist.wp_proof
+    ended.wp_proof checked.wp_proof client.v3.kv.wp_Get Watch_dist.wp_proof RequestProgress_dist.wp_proof
     context.wp_ErrAny context.WithTimeoutBackground.wp_proof (WithPrefix.wp_proof getPrefix.wp_proof) WithRev.wp_proof
     wp_New Cache.wp_Watch Cache.wp_RequestProgress Cache.wp_Get Cache.wp_Close
     wp_remoteWriters

@@ -174,7 +174,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     (wp_runWatch : runWatch.spec (GF := GF) (hG := hG))
     (wp_putW : cache.putW.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp tbl c g0 γk hc hpfx hrp hdi hvi hAs hse htb hnr hg
+  intro _ _ γ sp tbl c g0 γk hc hpfx hrp hdi hvi hAs hse htb hnr hg
   iintro #Hpkg #Hpe #Hst #Hinvs %hne #Htbl #Hrs #HinvK #Hsw #Hwl
   have hcd : CfgD c := ⟨by rw [hc]; rfl, by simp only [StoreCfg.pfx, hpfx, hrp]; rfl⟩
   obtain ⟨s0, hs0⟩ : ∃ s0, s0 ∈ c.K.kvs := by

@@ -206,7 +206,7 @@ theorem store.conditionalDelete.wp_proof
     (wp_deleteOnce : store.deleteOnce.spec (GF := GF) (hG := hG))
     (wp_refresh : refreshOnError.spec (GF := GF) (hG := hG)) :
     store.conditionalDelete.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 v p pp pr cx ca validate vf W _ Φu hk hkl
+  intro _ Obj _ E _ sp c ci cd key out o0 rv0 v p pp pr cx ca validate vf W _ Φu hk hkl
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Hout, %Hv, #Hpre, Hca, HW, #Hau, #Hval⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'

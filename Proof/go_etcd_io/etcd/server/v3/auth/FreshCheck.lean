@@ -139,8 +139,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 - `ErrUserEmpty`: the revision `0` (`AuthInfo{}`);
 - `ErrAuthOldRevision`: a non-zero revision below the revision of such a state (`Revision()`'s read);
 - `ErrPermissionDenied`: a non-zero revision no lower than the revision read (a state no older than
-  `n`), and the user absent, or without the root role and (for a request of the shape the cache
-  decides) not covered, at such states (the user's and the cache's). -/
+  `n`), and the user absent, or without the root role and refused by Go's verdict (`coversX`, every
+  request), at such states (the user's and the cache's). -/
 def permRefusalFrom (γa : AuthNames) (n : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (key rangeEnd : GoString) (op : PermType) (err : GoInterface) : IProp GF :=
   iprop((∃ (i : Nat) (sf : AuthState), authStateAt γa i sf ∗ ⌜n ≤ i ∧ sf.enabled = true⌝) ∗
@@ -152,8 +152,7 @@ def permRefusalFrom (γa : AuthNames) (n : Nat) (info : go_etcd_io.etcd.server.v
         ⌜n ≤ j ∧ n ≤ ju ∧ n ≤ jc ∧ uint.nat info.Revision' ≠ 0 ∧
           sr.revision ≤ uint.nat info.Revision' ∧
           ∀ u, su.users !! info.Username' = some u → ¬ isRoot u ∧
-            (reqShape key rangeEnd → ∀ u', sc.users !! info.Username' = some u' →
-              ¬ covers sc u' op key rangeEnd)⌝)))
+            ∀ u', sc.users !! info.Username' = some u' → coversX sc u' op key rangeEnd = false⌝)))
 
 instance permRefusalFrom_persistent (γa : AuthNames) (n : Nat)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : PermType)
@@ -235,13 +234,13 @@ instance cacheFrom_persistent (M : AuthMode) (n : Nat) (Mp : GMap GoString Loc) 
   unfold cacheFrom; cases M <;> infer_instance
 
 /-- A cache entry's model no older than `n`. -/
-def entryFrom (M : AuthMode) (n : Nat) (user : GoString) (Lr Lw : List adt.Entry) : IProp GF :=
+def entryFrom (M : AuthMode) (n : Nat) (user : GoString) (Lr Lw : adt.RbT adt.Entry) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (i : Nat) (sta : AuthState), authStateAt γa i sta ∗
       ⌜n ≤ i ∧ cacheEntryIs sta user Lr Lw⌝)
   | _ => iprop(True)
 
-instance entryFrom_persistent (M : AuthMode) (n : Nat) (user : GoString) (Lr Lw : List adt.Entry) :
+instance entryFrom_persistent (M : AuthMode) (n : Nat) (user : GoString) (Lr Lw : adt.RbT adt.Entry) :
     Persistent (entryFrom (GF := GF) M n user Lr Lw) := by
   unfold entryFrom; cases M <;> infer_instance
 
@@ -292,12 +291,10 @@ theorem cacheFrom_absent (M : AuthMode) (n : Nat) (Mp : GMap GoString Loc) (user
   | any => unfold cacheVerdictFrom; iintro -; itrivial
 
 theorem entryFrom_verdict (M : AuthMode) (n : Nat) (user k e : GoString)
-    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) (Lr Lw : List adt.Entry)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) (Lr Lw : adt.RbT adt.Entry)
     (hpt : pt = W32 0 ∨ pt = W32 1)
-    (hb : k ≠ [] → (e = [] ∨ isOpenEnded e ∨ go.GoStringLt k e) →
-      (b = true ↔ if e = [] then ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 k
-        else ∀ x, adt.inIvl (queryIvl k e) x →
-          ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 x)) :
+    (hb : (e = [] → (b = true ↔ ∃ z ∈ (if pt = W32 0 then Lr else Lw).inorder, adt.inIvl z.1 k)) ∧
+      (e ≠ [] → b = adt.containsT (queryIvl k e) (if pt = W32 0 then Lr else Lw))) :
     entryFrom (GF := GF) M n user Lr Lw ⊢ cacheVerdictFrom M n user k e pt b := by
   cases M with
   | on γa =>
@@ -516,18 +513,12 @@ theorem permVerdictFrom_cache_pass (M : AuthMode) (n : Nat) (info : AuthInfo)
   | on γa =>
     unfold revisionVerdictFrom authSnapFrom cacheVerdictFrom permVerdictFrom
     iintro ⟨%j, %sr, #Hsr, %Hr⟩ ⟨%i, #Hsu, %Hi⟩ ⟨%k, %sc, #Hsc, %Hc⟩
-    ihave %Hk := authStateAt_permKeysOk γa k sc $$ Hsc
     isplitr
-    · by_cases hs : reqShape key rangeEnd
-      · iexists k, sc; iframe #; ipureintro
-        refine ⟨Hc.1, fun _ => ?_⟩
-        obtain ⟨roles', hu', hcov⟩ := (Hc.2 hs.1 hs.2 Hk).1 rfl
-        unfold permitted granted
-        exact Or.inr ⟨h0, roles', hu', Or.inr fun _ => hcov⟩
-      · iexists i, sta; iframe #; ipureintro
-        refine ⟨Hi, fun _ => ?_⟩
-        unfold permitted granted
-        exact Or.inr ⟨h0, roles, hu, Or.inr fun h => absurd h hs⟩
+    · iexists k, sc; iframe #; ipureintro
+      refine ⟨Hc.1, fun _ => ?_⟩
+      obtain ⟨roles', hu', hcov⟩ := Hc.2.1 rfl
+      unfold permitted granted
+      exact Or.inr ⟨h0, roles', hu', Or.inr hcov⟩
     isplitr
     · iexists j, sr; iframe #; ipureintro
       exact ⟨Hr.1, fun _ => by right; rw [← Hr.2]; exact hcur⟩
@@ -549,7 +540,6 @@ theorem permVerdictFrom_cache_refused (M : AuthMode) (n : Nat) (info : AuthInfo)
   | on γa =>
     unfold enabledVerdictFrom authSnapFrom cacheVerdictFrom permVerdictFrom
     iintro ⟨%i, %sf, #Hsf, %Hb⟩ ⟨%j, #Hsu, %Hj⟩ ⟨%k, %sc, #Hsc, %Hc⟩
-    ihave %Hk := authStateAt_permKeysOk γa k sc $$ Hsc
     isplitr
     · iexists i, sf; iframe #; ipureintro; exact ⟨Hb.1, fun h => absurd h herr⟩
     isplitr
@@ -561,10 +551,9 @@ theorem permVerdictFrom_cache_refused (M : AuthMode) (n : Nat) (info : AuthInfo)
         refine ⟨Hb.2.symm, Or.inr (Or.inr fun u hu' => ?_)⟩
         have hu'' : sta.users !! info.Username' = some u := hu'
         rw [hu] at hu''; cases hu''
-        refine ⟨hnroot, fun hs u' hu2 hcov => ?_⟩
+        refine ⟨hnroot, fun u' hu2 => ?_⟩
         have hu2' : sc.users !! info.Username' = some u' := hu2
-        have hf := (Hc.2 hs.1 hs.2 Hk).2 ⟨u', hu2', hcov⟩
-        cases hf
+        exact cacheVerdictP_false sc info.Username' key rangeEnd pt Hc.2 u' hu2'
 
 /-! ### The refusal half, its error tied to its case (auth-guard-completeness) -/
 
@@ -633,17 +622,15 @@ theorem permRefusalM_cache_refused (M : AuthMode) (n : Nat) (info : AuthInfo)
     unfold enabledVerdictFrom revisionVerdictFrom authSnapFrom cacheVerdictFrom permRefusalM
       permRefusalFrom
     iintro ⟨%i, %sf, #Hsf, %Hb⟩ ⟨%j, %sr, #Hsr, %Hr⟩ ⟨%ju, #Hsu, %Hju⟩ ⟨%k, %sc, #Hsc, %Hc⟩ #He %_
-    ihave %Hk := authStateAt_permKeysOk γa k sc $$ Hsc
     isplitr
     · iexists i, sf; iframe Hsf; ipureintro; exact ⟨Hb.1, Hb.2.symm⟩
     · iright; iright; iframe He; iexists j, ju, k, sr, sta, sc; iframe Hsr Hsu Hsc; ipureintro
       refine ⟨Hr.1, Hju, Hc.1, h0, by rw [← Hr.2]; exact hcur, fun u hu' => ?_⟩
       have hu'' : sta.users !! info.Username' = some u := hu'
       rw [hu] at hu''; cases hu''
-      refine ⟨hnroot, fun hs u' hu2 hcov => ?_⟩
+      refine ⟨hnroot, fun u' hu2 => ?_⟩
       have hu2' : sc.users !! info.Username' = some u' := hu2
-      have hf := (Hc.2 hs.1 hs.2 Hk).2 ⟨u', hu2', hcov⟩
-      cases hf
+      exact cacheVerdictP_false sc info.Username' key rangeEnd pt Hc.2 u' hu2'
   | _ => unfold permRefusalM; iintro - - - - -; itrivial
 
 end lemmas
@@ -739,9 +726,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_lb
       iunfold cacheRd
       iframe Hrd Hk He
       iapply (entryFrom_verdict M n user k e pt b Lr Lw Hpt) $$ Hent
-      intro _ _
-      rw [if_pos Hif]
-      exact Hb
+      exact ⟨fun _ => Hb, fun h => absurd Hif h⟩
     · rw [he0] at Hif
       wp_apply (h_checkKeyInterval lg p Lr Lw key re k e dk de pt) $$ [$Hp $Hk $He]
         as %b ⟨Hk, He, %Hb⟩
@@ -753,11 +738,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_lb
       iunfold cacheRd
       iframe Hrd Hk He
       iapply (entryFrom_verdict M n user k e pt b Lr Lw Hpt) $$ Hent
-      intro hk hr
-      rw [if_neg Hif]
-      rcases hr with h | h
-      · exact absurd h Hif
-      · exact Hb hk h
+      exact ⟨fun h => absurd h Hif, fun _ => Hb⟩
 
 /-- **`as.isOpPermitted(...)` read by a reader with the lower bound `n`** (the auth plan's E3h): the
 verdict at states no older than `n` (`permVerdictFrom`). -/

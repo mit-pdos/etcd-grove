@@ -61,14 +61,12 @@ variable [NaInvG GF]
 
 /-- **`MainChecked`, the program's entry point, does not panic** (`MainLinked.lean`'s
 `k8s_all.wp_MainChecked`). -/
-theorem k8s_all_MainChecked
-    [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem k8s_all_MainChecked :
     k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
   k8s_all.wp_MainChecked
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_all.wp_Main`). -/
-theorem k8s_all_Main
-    [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem k8s_all_Main :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
   k8s_all.wp_Main
 
@@ -87,7 +85,6 @@ bounds, with schedules it draws, and otherwise returns): in every real execution
 stuck, none has ended in a panic, and the main thread's result, if any, is `#()`. -/
 theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     -- the store's cluster: `k₁` members
     (k₁ : w64) (ids : List w64) (ps : List w64)

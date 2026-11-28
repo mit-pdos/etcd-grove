@@ -164,9 +164,7 @@ theorem Server.wp_proof
     (wpAN : API.AddNonvoter.spec (GF := GF)) (wpDV : API.DemoteVoter.spec (GF := GF))
     (wpRS : API.RemoveServer.spec (GF := GF)) (wpLT : API.LeadershipTransfer.spec (GF := GF))
     (wpSn : API.Snapshot.spec (GF := GF)) (wpSt : API.Status.spec (GF := GF))
-    (mRead : ∀ (a : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (fc : FCtx GF) (alb : GName),
-      apiMeth.spec (apiP a γ rc i fc alb) a go!"Read" readArgsOwn encReadArgs readReplyOwn
-        encReadReply (apiSvc γ fc go!"Read")) :
+    (wpRd : API.Read.spec (GF := GF)) :
     Server.spec (GF := GF) := by
   intro hTB K j hj1 hj2
   wp_start as ⟨Hsh, Hboot, %Hb, Htt⟩
@@ -414,7 +412,7 @@ theorem Server.wp_proof
   ihave HRa := apiRcv _ api _ (apiRcvLaws_svcK _ api K n (apiRcvLaws_of wpAp wpAV wpAN wpDV wpRS wpLT
       wpSn api (K.γs n) (RCtx.mk (inmemLogs γs1) ownSS (snapP (K.γs n) (K.fcs n))
       (kvView γs2) (fsmOwn alb) (respP (K.γs n) (K.fcs n) alb) names) (sidOf (W64 (j : Int)))
-      (K.fcs n) alb (mRead _ _ _ _ _ _) wpSt)) $$ []
+      (K.fcs n) alb wpRd wpSt)) $$ []
   · isplitr; · ipureintro; exact Hann
     isplitr; · iexact Hcs
     isplitr

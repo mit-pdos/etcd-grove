@@ -27,7 +27,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- An iteration from nowhere to nowhere visits every entry. -/
 theorem btree.ascRange_none_none {V K : Type} (lt : K → K → Prop) (s : List (V × K)) :

@@ -1,0 +1,804 @@
+package schema
+
+// Differential test (review rev-x4): the real authStore (over the real bbolt backend through
+// schema's auth backend) against a Go transcription of the Lean model at ebb6d80a07:
+// auth/Steps.lean (the admin steps, grantPerms/permInsert, roleRevokePermissionR),
+// auth/Model.lean (permKind, Perm.grants, ivlsOf, permIvl, queryIvl, treeOf, coversX,
+// granted/permitted, rangeValid), adt/{Model,Tree,TreeInsert,Contains}.lean (affCmp, ivlCmp,
+// ivlLt, RbT.insertAt/insertRB, RbCtx.fixup/plug, visitL, nodeMax, scanFrom, containsT).
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"math/rand"
+	"os"
+	"sort"
+	"strconv"
+	"testing"
+
+	"go.uber.org/zap/zaptest"
+	"golang.org/x/crypto/bcrypt"
+
+	"go.etcd.io/etcd/api/v3/authpb"
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/server/v3/auth"
+	betesting "go.etcd.io/etcd/server/v3/storage/backend/testing"
+)
+
+// ---------- adt model ----------
+
+func affCmp(a, b string) int {
+	if a == "" {
+		if b == "" {
+			return 0
+		}
+		return 1
+	}
+	if b == "" {
+		return -1
+	}
+	return bytes.Compare([]byte(a), []byte(b))
+}
+
+func affLt(a, b string) bool { return a != "" && (b == "" || a < b) }
+
+type ivl struct{ b, e string }
+
+func ivlCmp(x, y ivl) int {
+	if affCmp(x.b, y.b) < 0 && affCmp(x.e, y.b) <= 0 {
+		return -1
+	}
+	if affCmp(x.b, y.e) >= 0 {
+		return 1
+	}
+	return 0
+}
+
+func ivlLt(x, y ivl) bool {
+	c := affCmp(x.b, y.b)
+	return c < 0 || (c == 0 && affCmp(x.e, y.e) < 0)
+}
+
+type rbt struct {
+	red  bool
+	l, r *rbt
+	e    ivl
+}
+
+func node(red bool, l *rbt, e ivl, r *rbt) *rbt { return &rbt{red: red, l: l, r: r, e: e} }
+func isRedNode(t *rbt) bool                     { return t != nil && t.red }
+func blacken(t *rbt) *rbt {
+	if t == nil {
+		return nil
+	}
+	return node(false, t.l, t.e, t.r)
+}
+
+// RbCtx: top = nil; inL: left=true (c, p, e, r=sub); inR: left=false (c, l=sub, e, p)
+type ctx struct {
+	left bool
+	red  bool
+	p    *ctx
+	e    ivl
+	sub  *rbt
+}
+
+func plug(c *ctx, t *rbt) *rbt {
+	for c != nil {
+		if c.left {
+			t = node(c.red, t, c.e, c.sub)
+		} else {
+			t = node(c.red, c.sub, c.e, t)
+		}
+		c = c.p
+	}
+	return t
+}
+
+func fixup(C *ctx, t *rbt) *rbt {
+	if C != nil && C.red && C.p != nil {
+		P := C.p
+		pe, s1 := C.e, C.sub
+		CG, ge, u := P.p, P.e, P.sub
+		switch {
+		case C.left && P.left:
+			if isRedNode(u) {
+				return fixup(CG, node(true, node(false, t, pe, s1), ge, node(false, u.l, u.e, u.r)))
+			}
+			return blacken(plug(CG, node(false, t, pe, node(true, s1, ge, u))))
+		case !C.left && P.left:
+			if isRedNode(u) {
+				return fixup(CG, node(true, node(false, s1, pe, t), ge, node(false, u.l, u.e, u.r)))
+			}
+			if t != nil {
+				return blacken(plug(CG, node(false, node(true, s1, pe, t.l), t.e, node(true, t.r, ge, u))))
+			}
+		case C.left && !P.left:
+			if isRedNode(u) {
+				return fixup(CG, node(true, node(false, u.l, u.e, u.r), ge, node(false, t, pe, s1)))
+			}
+			if t != nil {
+				return blacken(plug(CG, node(false, node(true, u, ge, t.l), t.e, node(true, t.r, pe, s1))))
+			}
+		case !C.left && !P.left:
+			if isRedNode(u) {
+				return fixup(CG, node(true, node(false, u.l, u.e, u.r), ge, node(false, s1, pe, t)))
+			}
+			return blacken(plug(CG, node(false, node(true, u, ge, s1), pe, t)))
+		}
+	}
+	return blacken(plug(C, t))
+}
+
+func insertAt(z ivl, C *ctx, T *rbt) *rbt {
+	if T == nil {
+		return fixup(C, node(true, nil, z, nil))
+	}
+	if ivlLt(z, T.e) {
+		return insertAt(z, &ctx{left: true, red: T.red, p: C, e: T.e, sub: T.r}, T.l)
+	}
+	return insertAt(z, &ctx{left: false, red: T.red, p: C, e: T.e, sub: T.l}, T.r)
+}
+
+func insertRB(z ivl, T *rbt) *rbt { return insertAt(z, nil, T) }
+
+func affMaxO(m string, o *string) string {
+	if o == nil {
+		return m
+	}
+	if affCmp(*o, m) > 0 {
+		return *o
+	}
+	return m
+}
+
+func maxEnd(t *rbt) *string {
+	if t == nil {
+		return nil
+	}
+	m := nodeMax(t.l, t.e, t.r)
+	return &m
+}
+
+func nodeMax(l *rbt, e ivl, r *rbt) string { return affMaxO(affMaxO(e.e, maxEnd(l)), maxEnd(r)) }
+
+func visitL(q ivl, t *rbt) []ivl {
+	if t == nil {
+		return nil
+	}
+	c := ivlCmp(q, t.e)
+	if c < 0 {
+		return visitL(q, t.l)
+	}
+	if c > 0 {
+		if ivlCmp(ivl{t.e.b, nodeMax(t.l, t.e, t.r)}, q) == 0 {
+			return append(visitL(q, t.l), visitL(q, t.r)...)
+		}
+		return nil
+	}
+	out := append(visitL(q, t.l), t.e)
+	return append(out, visitL(q, t.r)...)
+}
+
+func containsT(q ivl, T *rbt) bool {
+	v := visitL(q, T)
+	if len(v) == 0 {
+		return false
+	}
+	me := v[0].e
+	for _, z := range v[1:] {
+		if affCmp(me, z.b) < 0 {
+			return false
+		}
+		if affCmp(z.e, me) > 0 {
+			me = z.e
+		}
+	}
+	return affCmp(me, q.e) >= 0 && affCmp(v[0].b, q.b) <= 0
+}
+
+// ---------- auth model ----------
+
+type perm struct {
+	key, end string
+	ty       int32
+}
+
+type mstate struct {
+	enabled bool
+	rev     uint64
+	users   map[string][]string
+	roles   map[string][]perm
+}
+
+const opRead, opWrite = 0, 1
+
+func permKind(t int32) int { // -1 none, 0 read, 1 write, 2 readwrite
+	if t == 0 || t == 1 || t == 2 {
+		return int(t)
+	}
+	return -1
+}
+
+func grants(p perm, op int) bool {
+	k := permKind(p.ty)
+	switch k {
+	case 0:
+		return op == opRead
+	case 1:
+		return op == opWrite
+	case 2:
+		return true
+	}
+	return false
+}
+
+func permIvl(p perm) ivl {
+	if p.end == "" {
+		return ivl{p.key, p.key + "\x00"}
+	}
+	if p.end == "\x00" {
+		return ivl{p.key, ""}
+	}
+	return ivl{p.key, p.end}
+}
+
+func (st *mstate) userPerms(u []string) []perm {
+	var out []perm
+	for _, r := range u {
+		out = append(out, st.roles[r]...) // getD []
+	}
+	return out
+}
+
+func ivlsOf(op int, ps []perm) []ivl {
+	var out []ivl
+	for _, p := range ps {
+		if grants(p, op) {
+			out = append(out, permIvl(p))
+		}
+	}
+	return out
+}
+
+func inIvl(x ivl, k string) bool { return !affLt(k, x.b) && affLt(k, x.e) }
+
+func coversX(st *mstate, u []string, op int, key, end string) bool {
+	ivs := ivlsOf(op, st.userPerms(u))
+	if end == "" {
+		for _, x := range ivs {
+			if inIvl(x, key) {
+				return true
+			}
+		}
+		return false
+	}
+	var T *rbt
+	for _, x := range ivs {
+		T = insertRB(x, T)
+	}
+	qe := end
+	if end == "\x00" {
+		qe = ""
+	}
+	return containsT(ivl{key, qe}, T)
+}
+
+func isRoot(u []string) bool {
+	for _, r := range u {
+		if r == "root" {
+			return true
+		}
+	}
+	return false
+}
+
+// permitted: auth disabled, or granted (the revision check outside: refusedV's ai.rev < rev)
+func permitted(st *mstate, user string, rev uint64, key, end string, op int) bool {
+	if !st.enabled {
+		return true
+	}
+	if rev == 0 {
+		return false
+	}
+	u, ok := st.users[user]
+	if !ok {
+		return false
+	}
+	return isRoot(u) || coversX(st, u, op, key, end)
+}
+
+func rangeValid(key, end string) bool {
+	return key != "" && (end == "" || key < end || end == "\x00")
+}
+
+func permLt(p, q perm) bool { return p.key < q.key || (p.key == q.key && p.end < q.end) }
+
+func permInsert(p perm, ps []perm) []perm {
+	for i, q := range ps {
+		if permLt(p, q) {
+			out := append([]perm{}, ps[:i]...)
+			out = append(out, p)
+			return append(out, ps[i:]...)
+		}
+	}
+	return append(append([]perm{}, ps...), p)
+}
+
+func grantPerms(ps []perm, w perm) []perm {
+	var kept []perm
+	for _, p := range ps {
+		if !(p.key == w.key && p.end == w.end) {
+			kept = append(kept, p)
+		}
+	}
+	return permInsert(w, kept)
+}
+
+func (st *mstate) clone() *mstate {
+	n := &mstate{enabled: st.enabled, rev: st.rev, users: map[string][]string{}, roles: map[string][]perm{}}
+	for k, v := range st.users {
+		n.users[k] = append([]string{}, v...)
+	}
+	for k, v := range st.roles {
+		n.roles[k] = append([]perm{}, v...)
+	}
+	return n
+}
+
+// ---------- the test ----------
+
+var alpha = []byte{0x00, 'a', 'b', 0xff}
+
+func rstr(r *rand.Rand, maxLen int) string {
+	n := r.Intn(maxLen + 1)
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = alpha[r.Intn(len(alpha))]
+	}
+	return string(b)
+}
+
+func rkey(r *rand.Rand) string {
+	switch r.Intn(8) {
+	case 0:
+		return ""
+	case 1:
+		return "\x00"
+	}
+	return rstr(r, 3)
+}
+
+var userNames = []string{"root", "u1", "u2", "u3"}
+var roleNames = []string{"root", "r1", "r2", "r3"}
+var ptypes = []int32{0, 1, 2, 0, 1, 2, 3, -1, 100}
+
+func errIs(err, want error) bool {
+	if want == nil {
+		return err == nil
+	}
+	return errors.Is(err, want)
+}
+
+func TestCoversXDifferential(t *testing.T) {
+	seeds := 300
+	if s := os.Getenv("CX_SEEDS"); s != "" {
+		seeds, _ = strconv.Atoi(s)
+	}
+	queries, mismatches := 0, 0
+	inverted, emptyq := 0, 0
+	nrTrue, nrFalse, invTrue, unk, maxPerms := 0, 0, 0, 0, 0
+	for seed := 0; seed < seeds; seed++ {
+		r := rand.New(rand.NewSource(int64(seed)))
+		lg := zaptest.NewLogger(t)
+		be, _ := betesting.NewDefaultTmpBackend(t)
+		tp, err := auth.NewTokenProvider(lg, "simple", func(uint64) <-chan struct{} {
+			ch := make(chan struct{}, 1)
+			ch <- struct{}{}
+			return ch
+		}, 300)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ab := NewAuthBackend(lg, be)
+		as := auth.NewAuthStore(lg, ab, tp, bcrypt.MinCost)
+		// model after NewAuthStore: disabled, revision 1 (commitRevision)
+		st := &mstate{rev: as.Revision(), users: map[string][]string{}, roles: map[string][]perm{}}
+		if st.rev != 1 {
+			t.Fatalf("rev %d", st.rev)
+		}
+		if seed%5 != 0 {
+			if _, err := as.UserAdd(&pb.AuthUserAddRequest{Name: "root", Options: &authpb.UserAddOptions{NoPassword: true}}); err != nil {
+				t.Fatal(err)
+			}
+			st.users["root"] = nil
+			st.rev++
+			if _, err := as.UserGrantRole(&pb.AuthUserGrantRoleRequest{User: "root", Role: "root"}); err != nil {
+				t.Fatal(err)
+			}
+			st.users["root"] = []string{"root"}
+			st.rev++
+			if err := as.AuthEnable(); err != nil {
+				t.Fatal(err)
+			}
+			st.enabled = true
+		}
+		if seed%7 != 0 {
+			for _, n := range []string{"u1", "u2"} {
+				if _, err := as.UserAdd(&pb.AuthUserAddRequest{Name: n, Options: &authpb.UserAddOptions{NoPassword: true}}); err != nil {
+					t.Fatal(err)
+				}
+				st.users[n] = nil
+				st.rev++
+			}
+			for _, rl := range []string{"r1", "r2", "r3"} {
+				if _, err := as.RoleAdd(&pb.AuthRoleAddRequest{Name: rl}); err != nil {
+					t.Fatal(err)
+				}
+				st.roles[rl] = nil
+				st.rev++
+			}
+			for _, g := range [][2]string{{"u1", "r1"}, {"u1", "r2"}, {"u2", "r2"}, {"u2", "r3"}} {
+				if _, err := as.UserGrantRole(&pb.AuthUserGrantRoleRequest{User: g[0], Role: g[1]}); err != nil {
+					t.Fatal(err)
+				}
+				st.users[g[0]] = append(st.users[g[0]], g[1])
+				st.rev++
+			}
+		}
+		nops := 10 + r.Intn(40)
+		for i := 0; i < nops; i++ {
+			checkOp(t, r, as, st, seed, i)
+		}
+		for _, ps := range st.roles {
+			if len(ps) > maxPerms {
+				maxPerms = len(ps)
+			}
+			for _, p := range ps {
+				if permKind(p.ty) < 0 {
+					unk++
+				}
+			}
+		}
+		// check records against model
+		checkRecords(t, as, st, seed)
+		// queries
+		for qi := 0; qi < 400; qi++ {
+			user := userNames[r.Intn(len(userNames))]
+			key := rkey(r)
+			end := rkey(r)
+			if pts := endpoints(st, st.users[user]); len(pts) > 0 && r.Intn(3) != 0 {
+				key = pts[r.Intn(len(pts))]
+				end = pts[r.Intn(len(pts))]
+			}
+			if r.Intn(5) == 0 {
+				end = key
+			}
+			if end != "" && end != "\x00" && affCmp(key, end) > 0 {
+				inverted++
+			}
+			if end == key {
+				emptyq++
+			}
+			rev := as.Revision()
+			switch r.Intn(10) {
+			case 0:
+				rev = 0
+			case 1:
+				rev = rev - 1
+			case 2:
+				rev = rev + 3
+			}
+			ai := &auth.AuthInfo{Username: user, Revision: rev}
+			for _, op := range []int{opRead, opWrite} {
+				var gerr error
+				if op == opRead {
+					gerr = as.IsRangePermitted(ai, []byte(key), []byte(end))
+				} else {
+					gerr = as.IsDeleteRangePermitted(ai, []byte(key), []byte(end))
+				}
+				var want bool
+				if st.enabled && rev != 0 && rev < st.rev {
+					want = false // ErrAuthOldRevision
+				} else {
+					want = permitted(st, user, rev, key, end, op)
+				}
+				queries++
+				if st.enabled && rev >= st.rev {
+					if u, ok := st.users[user]; ok && !isRoot(u) {
+						if want {
+							nrTrue++
+							if end != "" && end != "\x00" && affCmp(key, end) >= 0 {
+								invTrue++
+							}
+						} else {
+							nrFalse++
+						}
+					}
+				}
+				if (gerr == nil) != want {
+					mismatches++
+					if mismatches < 20 {
+						t.Errorf("seed %d: user %q op %d key %q end %q rev %d (st.rev %d en %v): go err %v, model %v; user %v perms %v",
+							seed, user, op, key, end, rev, st.rev, st.enabled, gerr, want, st.users[user], st.userPerms(st.users[user]))
+					}
+				}
+			}
+		}
+		// recovery: a new store over the same backend's image (Recover)
+		as.Recover(ab)
+		for qi := 0; qi < 100; qi++ {
+			user := userNames[r.Intn(len(userNames))]
+			key, end := rkey(r), rkey(r)
+			ai := &auth.AuthInfo{Username: user, Revision: as.Revision()}
+			gerr := as.IsRangePermitted(ai, []byte(key), []byte(end))
+			if (gerr == nil) != permitted(st, user, ai.Revision, key, end, opRead) {
+				t.Errorf("seed %d after Recover: mismatch user %q key %q end %q", seed, user, key, end)
+			}
+		}
+		// every stored role's permissions rangeValid (permKeysOk)
+		for name, ps := range st.roles {
+			for _, p := range ps {
+				if !rangeValid(p.key, p.end) {
+					t.Errorf("seed %d: role %q stored invalid perm %+v", seed, name, p)
+				}
+			}
+		}
+		as.Close()
+		be.Close()
+	}
+	t.Logf("non-root enabled verdicts true %d false %d; inverted/empty-range true %d; unknown-type stored perms %d; max perms/role %d", nrTrue, nrFalse, invTrue, unk, maxPerms)
+	t.Logf("queries %d mismatches %d (inverted-range draws %d, empty [k,k) draws %d)", queries, mismatches, inverted, emptyq)
+}
+
+func checkRecords(t *testing.T, as auth.AuthStore, st *mstate, seed int) {
+	for _, rn := range roleNames {
+		resp, err := as.RoleGet(&pb.AuthRoleGetRequest{Role: rn})
+		ps, ok := st.roles[rn]
+		if rn == "root" && !ok {
+			// RoleGet("root") answers even without a record? compare errors only
+		}
+		if !ok {
+			if err == nil && rn != "root" {
+				t.Errorf("seed %d: role %q exists in Go, not model", seed, rn)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("seed %d: role %q: %v", seed, rn, err)
+			continue
+		}
+		if rn == "root" {
+			continue // RoleGet(root) returns a synthetic full permission
+		}
+		var got []perm
+		for _, p := range resp.Perm {
+			got = append(got, perm{string(p.Key), string(p.RangeEnd), int32(p.PermType)})
+		}
+		if fmt.Sprint(got) != fmt.Sprint(ps) {
+			t.Errorf("seed %d: role %q record %v model %v", seed, rn, got, ps)
+		}
+	}
+	for _, un := range userNames {
+		resp, err := as.UserGet(&pb.AuthUserGetRequest{Name: un})
+		u, ok := st.users[un]
+		if !ok {
+			if err == nil {
+				t.Errorf("seed %d: user %q in Go not model", seed, un)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("seed %d: user %q: %v", seed, un, err)
+			continue
+		}
+		if fmt.Sprint(resp.Roles) != fmt.Sprint(u) {
+			t.Errorf("seed %d: user %q roles %v model %v", seed, un, resp.Roles, u)
+		}
+	}
+	if as.Revision() != st.rev {
+		t.Errorf("seed %d: revision %d model %d", seed, as.Revision(), st.rev)
+	}
+}
+
+func checkOp(t *testing.T, r *rand.Rand, as auth.AuthStore, st *mstate, seed, i int) {
+	bump := func() { st.rev++ }
+	var err, want error
+	desc := ""
+	k := r.Intn(14)
+	if k >= 11 {
+		k = []int{2, 6, 7}[k-11]
+	}
+	switch k {
+	case 0: // UserAdd
+		n := userNames[r.Intn(len(userNames))]
+		desc = "UserAdd " + n
+		_, err = as.UserAdd(&pb.AuthUserAddRequest{Name: n, Options: &authpb.UserAddOptions{NoPassword: true}})
+		if _, ok := st.users[n]; ok {
+			want = auth.ErrUserAlreadyExist
+		} else {
+			st.users[n] = nil
+			bump()
+		}
+	case 1: // UserDelete
+		n := userNames[r.Intn(len(userNames))]
+		desc = "UserDelete " + n
+		_, err = as.UserDelete(&pb.AuthUserDeleteRequest{Name: n})
+		if st.enabled && n == "root" {
+			want = auth.ErrInvalidAuthMgmt
+		} else if _, ok := st.users[n]; !ok {
+			want = auth.ErrUserNotFound
+		} else {
+			delete(st.users, n)
+			bump()
+		}
+	case 2: // UserGrantRole
+		n, rl := userNames[r.Intn(len(userNames))], roleNames[r.Intn(len(roleNames))]
+		desc = "UserGrantRole " + n + " " + rl
+		_, err = as.UserGrantRole(&pb.AuthUserGrantRoleRequest{User: n, Role: rl})
+		u, ok := st.users[n]
+		_, rok := st.roles[rl]
+		if !ok {
+			want = auth.ErrUserNotFound
+		} else if rl != "root" && !rok {
+			want = auth.ErrRoleNotFound
+		} else {
+			has := false
+			for _, x := range u {
+				if x == rl {
+					has = true
+				}
+			}
+			if !has {
+				nu := append(append([]string{}, u...), rl)
+				sort.Strings(nu)
+				st.users[n] = nu
+				bump()
+			}
+		}
+	case 3: // UserRevokeRole
+		n, rl := userNames[r.Intn(len(userNames))], roleNames[r.Intn(len(roleNames))]
+		desc = "UserRevokeRole " + n + " " + rl
+		_, err = as.UserRevokeRole(&pb.AuthUserRevokeRoleRequest{Name: n, Role: rl})
+		u, ok := st.users[n]
+		if st.enabled && n == "root" && rl == "root" {
+			want = auth.ErrInvalidAuthMgmt
+		} else if !ok {
+			want = auth.ErrUserNotFound
+		} else {
+			var nu []string
+			for _, x := range u {
+				if x != rl {
+					nu = append(nu, x)
+				}
+			}
+			if len(nu) == len(u) {
+				want = auth.ErrRoleNotGranted
+			} else {
+				st.users[n] = nu
+				bump()
+			}
+		}
+	case 4: // RoleAdd
+		rl := roleNames[r.Intn(len(roleNames))]
+		desc = "RoleAdd " + rl
+		_, err = as.RoleAdd(&pb.AuthRoleAddRequest{Name: rl})
+		if _, ok := st.roles[rl]; ok {
+			want = auth.ErrRoleAlreadyExist
+		} else {
+			st.roles[rl] = nil
+			bump()
+		}
+	case 5: // RoleDelete
+		rl := roleNames[r.Intn(len(roleNames))]
+		desc = "RoleDelete " + rl
+		_, err = as.RoleDelete(&pb.AuthRoleDeleteRequest{Role: rl})
+		if st.enabled && rl == "root" {
+			want = auth.ErrInvalidAuthMgmt
+		} else if _, ok := st.roles[rl]; !ok {
+			want = auth.ErrRoleNotFound
+		} else {
+			delete(st.roles, rl)
+			for un, u := range st.users {
+				var nu []string
+				for _, x := range u {
+					if x != rl {
+						nu = append(nu, x)
+					}
+				}
+				st.users[un] = nu
+			}
+			bump()
+		}
+	case 6, 7, 8: // RoleGrantPermission
+		rl := roleNames[1+r.Intn(len(roleNames)-1)]
+		if r.Intn(6) == 0 {
+			rl = "root"
+		}
+		key, end := rkey(r), rkey(r)
+		ty := ptypes[r.Intn(len(ptypes))]
+		desc = fmt.Sprintf("RoleGrantPermission %s %q %q %d", rl, key, end, ty)
+		var p *authpb.Permission
+		if r.Intn(30) != 0 {
+			p = &authpb.Permission{Key: []byte(key), RangeEnd: []byte(end), PermType: authpb.Permission_Type(ty)}
+		}
+		_, err = as.RoleGrantPermission(&pb.AuthRoleGrantPermissionRequest{Name: rl, Perm: p})
+		ps, ok := st.roles[rl]
+		if p == nil {
+			want = auth.ErrPermissionNotGiven
+		} else if !rangeValid(key, end) {
+			want = auth.ErrInvalidAuthMgmt
+		} else if !ok {
+			want = auth.ErrRoleNotFound
+		} else {
+			st.roles[rl] = grantPerms(ps, perm{key, end, ty})
+			bump()
+		}
+	case 9: // RoleRevokePermission
+		rl := roleNames[r.Intn(len(roleNames))]
+		key, end := rkey(r), rkey(r)
+		ps, ok := st.roles[rl]
+		if ok && len(ps) > 0 && r.Intn(2) == 0 {
+			q := ps[r.Intn(len(ps))]
+			key, end = q.key, q.end
+		}
+		desc = fmt.Sprintf("RoleRevokePermission %s %q %q", rl, key, end)
+		_, err = as.RoleRevokePermission(&pb.AuthRoleRevokePermissionRequest{Role: rl, Key: []byte(key), RangeEnd: []byte(end)})
+		if !ok {
+			want = auth.ErrRoleNotFound
+		} else {
+			var kept []perm
+			for _, p := range ps {
+				if !(p.key == key && p.end == end) {
+					kept = append(kept, p)
+				}
+			}
+			if len(kept) == len(ps) {
+				want = auth.ErrPermissionNotGranted
+			} else {
+				st.roles[rl] = kept
+				bump()
+			}
+		}
+	case 10: // AuthEnable / AuthDisable
+		if r.Intn(2) == 0 {
+			desc = "AuthEnable"
+			err = as.AuthEnable()
+			if !st.enabled {
+				u, ok := st.users["root"]
+				if !ok {
+					want = auth.ErrRootUserNotExist
+				} else if !isRoot(u) {
+					want = auth.ErrRootRoleNotExist
+				} else {
+					st.enabled = true
+				}
+			}
+		} else {
+			desc = "AuthDisable"
+			as.AuthDisable()
+			if st.enabled {
+				st.enabled = false
+				bump()
+			}
+		}
+	}
+	if !errIs(err, want) {
+		t.Fatalf("seed %d op %d %s: go err %v, model %v", seed, i, desc, err, want)
+	}
+	if as.IsAuthEnabled() != st.enabled {
+		t.Fatalf("seed %d op %d %s: enabled %v model %v", seed, i, desc, as.IsAuthEnabled(), st.enabled)
+	}
+	if as.Revision() != st.rev {
+		t.Fatalf("seed %d op %d %s: rev %d model %d", seed, i, desc, as.Revision(), st.rev)
+	}
+}
+
+func endpoints(st *mstate, u []string) []string {
+	out := []string{"", "\x00"}
+	for _, p := range st.userPerms(u) {
+		out = append(out, p.key, p.end, p.key+"\x00", p.end+"\x00")
+	}
+	return out
+}
