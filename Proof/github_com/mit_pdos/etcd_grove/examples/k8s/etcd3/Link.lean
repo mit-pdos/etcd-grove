@@ -24,6 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetRe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetUID
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetAnnotations
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetResourceVersion
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Seeded__SharedModel
 public import Proof.k8s_io.apimachinery.pkg.runtime.SetZeroValue
 public import Proof.k8s_io.apiserver.pkg.storage.StorageError__Unwrap
 public import Proof.k8s_io.apimachinery.pkg.api.errors.SuggestsClientDelay
@@ -338,6 +339,30 @@ theorem Obj.wp_SetAnnotations :
     EtcdGrove.k8s_etcd3.Obj.SetAnnotations.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Obj.SetAnnotations.wp_proof
 
+theorem wp_parseRV :
+    EtcdGrove.k8s_etcd3.parseRV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.parseRV.wp_proof
+
+theorem wp_getField :
+    EtcdGrove.k8s_etcd3.getField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.getField.wp_proof
+
+theorem wp_decodeObj :
+    EtcdGrove.k8s_etcd3.decodeObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeObj.wp_proof wp_getField
+
+theorem wp_putField :
+    EtcdGrove.k8s_etcd3.putField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.putField.wp_proof
+
+theorem wp_encodeWith :
+    EtcdGrove.k8s_etcd3.encodeWith.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.encodeWith.wp_proof wp_putField
+
+theorem wp_encodeObj :
+    EtcdGrove.k8s_etcd3.encodeObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.encodeObj.wp_proof wp_encodeWith
+
 theorem reflect.Value.wp_Type :
     EtcdGrove.reflect.Value.Type.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.Value.Type.wp_proof
@@ -354,33 +379,9 @@ theorem runtime.wp_SetZeroValue :
     EtcdGrove.runtime.SetZeroValue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.runtime.SetZeroValue.wp_proof conversion.wp_EnforcePtr reflect.Value.wp_Type reflect.wp_Zero reflect.Value.wp_Set
 
-theorem wp_parseRV :
-    EtcdGrove.k8s_etcd3.parseRV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.parseRV.wp_proof
-
-theorem wp_getField :
-    EtcdGrove.k8s_etcd3.getField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.getField.wp_proof
-
-theorem wp_decodeObj :
-    EtcdGrove.k8s_etcd3.decodeObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeObj.wp_proof wp_getField
-
 theorem codec.wp_Decode :
     EtcdGrove.k8s_etcd3.codec.Decode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.codec.Decode.wp_proof wp_decodeObj
-
-theorem wp_putField :
-    EtcdGrove.k8s_etcd3.putField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.putField.wp_proof
-
-theorem wp_encodeWith :
-    EtcdGrove.k8s_etcd3.encodeWith.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.encodeWith.wp_proof wp_putField
-
-theorem wp_encodeObj :
-    EtcdGrove.k8s_etcd3.encodeObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.encodeObj.wp_proof wp_encodeWith
 
 theorem codec.wp_Encode :
     EtcdGrove.k8s_etcd3.codec.Encode.spec (GF := GF) (hG := hG) :=
@@ -483,85 +484,17 @@ theorem Obj.wp_SetResourceVersion :
     EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.wp_proof _root_.Perennial.strconv.wp_ParseUint
 
-theorem storage.StorageError.wp_Unwrap :
-    EtcdGrove.storage.StorageError.Unwrap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.StorageError.Unwrap.wp_proof
-
-theorem errors.wp_AsNoMatch :
-    EtcdGrove.errors.AsNoMatch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.AsNoMatch.wp_proof
-
-theorem apierrors.wp_SuggestsClientDelay :
-    EtcdGrove.apierrors.SuggestsClientDelay.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apierrors.SuggestsClientDelay.wp_proof errors.wp_AsNoMatch
-
-theorem wp_storeEqual :
-    EtcdGrove.k8s_etcd3.storeEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.storeEqual.wp_proof
-
-theorem wp_inputEqual :
-    EtcdGrove.k8s_etcd3.inputEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.inputEqual.wp_proof
-
 theorem wp_histLen :
     EtcdGrove.k8s_etcd3.histLen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.histLen.wp_proof
-
-theorem wp_histEqual :
-    EtcdGrove.k8s_etcd3.histEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.histEqual.wp_proof wp_histLen wp_storeEqual
-
-theorem wp_configEqual :
-    EtcdGrove.k8s_etcd3.configEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.configEqual.wp_proof wp_storeEqual wp_inputEqual wp_histEqual
-
-theorem wp_addConfig :
-    EtcdGrove.k8s_etcd3.addConfig.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.addConfig.wp_proof wp_configEqual
 
 theorem wp_appendHist :
     EtcdGrove.k8s_etcd3.appendHist.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.appendHist.wp_proof wp_histLen
 
-theorem wp_advance :
-    EtcdGrove.k8s_etcd3.advance.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.advance.wp_proof wp_appendHist
-
-theorem wp_bookmarksOk :
-    EtcdGrove.k8s_etcd3.bookmarksOk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.bookmarksOk.wp_proof
-
-theorem wp_pastRead :
-    EtcdGrove.k8s_etcd3.pastRead.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.pastRead.wp_proof
-
-theorem wp_isWrite :
-    EtcdGrove.k8s_etcd3.isWrite.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.isWrite.wp_proof
-
-theorem wp_bound :
-    EtcdGrove.k8s_etcd3.bound.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.bound.wp_proof wp_parseRV wp_pastRead wp_isWrite
-
-theorem cache.wp_get :
-    EtcdGrove.k8s_etcd3.cache.get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.cache.get.wp_proof
-
-theorem cache.wp_getW :
-    EtcdGrove.k8s_etcd3.cache.getW.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.cache.getW.wp_proof
-
-theorem cache.wp_put :
-    EtcdGrove.k8s_etcd3.cache.put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.cache.put.wp_proof
-
-theorem cache.wp_putW :
-    EtcdGrove.k8s_etcd3.cache.putW.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.cache.putW.wp_proof
-
-theorem wp_cachedObj :
-    EtcdGrove.k8s_etcd3.cachedObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.cachedObj.wp_proof
+theorem wp_histOf :
+    EtcdGrove.k8s_etcd3.histOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histOf.wp_proof wp_appendHist
 
 theorem wp_mix :
     EtcdGrove.k8s_etcd3.mix.spec (GF := GF) (hG := hG) :=
@@ -575,6 +508,10 @@ theorem wp_storeHash :
     EtcdGrove.k8s_etcd3.storeHash.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.storeHash.wp_proof wp_mix wp_strHash
 
+theorem wp_storeEqual :
+    EtcdGrove.k8s_etcd3.storeEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.storeEqual.wp_proof
+
 theorem histHashes.wp_intern :
     EtcdGrove.k8s_etcd3.histHashes.intern.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.histHashes.intern.wp_proof wp_storeHash wp_storeEqual
@@ -587,21 +524,29 @@ theorem histHashes.wp_canonical :
     EtcdGrove.k8s_etcd3.histHashes.canonical.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.histHashes.canonical.wp_proof histHashes.wp_canonLocked
 
-theorem wp_pendEqual :
-    EtcdGrove.k8s_etcd3.pendEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.pendEqual.wp_proof wp_inputEqual
+theorem histHashes.wp_skipTo :
+    EtcdGrove.k8s_etcd3.histHashes.skipTo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histHashes.skipTo.wp_proof histHashes.wp_canonLocked histHashes.wp_intern wp_histLen
 
-theorem cfgSet.wp_add :
-    EtcdGrove.k8s_etcd3.cfgSet.add.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.cfgSet.add.wp_proof histHashes.wp_canonical wp_storeHash wp_storeEqual wp_pendEqual
+theorem wp_decodeWEvents :
+    EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
 
-theorem wp_changeAt :
-    EtcdGrove.k8s_etcd3.changeAt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.changeAt.wp_proof
+theorem wp_pastRead :
+    EtcdGrove.k8s_etcd3.pastRead.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.pastRead.wp_proof
 
-theorem wp_checkedEvents :
-    EtcdGrove.k8s_etcd3.checkedEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.checkedEvents.wp_proof
+theorem wp_target :
+    EtcdGrove.k8s_etcd3.target.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.target.wp_proof wp_decodeWEvents wp_parseRV wp_pastRead
+
+theorem wp_isWrite :
+    EtcdGrove.k8s_etcd3.isWrite.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.isWrite.wp_proof
+
+theorem wp_bound :
+    EtcdGrove.k8s_etcd3.bound.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.bound.wp_proof wp_parseRV wp_pastRead wp_isWrite
 
 theorem wp_lookup :
     EtcdGrove.k8s_etcd3.lookup.spec (GF := GF) (hG := hG) :=
@@ -675,21 +620,37 @@ theorem wp_mstep :
     EtcdGrove.k8s_etcd3.mstep.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.mstep.wp_proof wp_mcreate wp_mdelete wp_mupdate wp_mget
 
-theorem wp_removeAt :
-    EtcdGrove.k8s_etcd3.removeAt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.removeAt.wp_proof
+theorem wp_outEqual :
+    EtcdGrove.k8s_etcd3.outEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.outEqual.wp_proof
 
-theorem wp_closure :
-    EtcdGrove.k8s_etcd3.closure.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.closure.wp_proof wp_addConfig wp_mstep wp_removeAt wp_advance
+theorem wp_histAt :
+    EtcdGrove.k8s_etcd3.histAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histAt.wp_proof
 
-theorem wp_toWEvent :
-    EtcdGrove.k8s_etcd3.toWEvent.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.toWEvent.wp_proof
+theorem wp_fieldSelFor :
+    EtcdGrove.k8s_etcd3.fieldSelFor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.fieldSelFor.wp_proof
 
-theorem wp_consume :
-    EtcdGrove.k8s_etcd3.consume.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.consume.wp_proof wp_toWEvent _root_.Perennial.time.wp_NewTimer _root_.Perennial.time.wp_After _root_.Perennial.time.Timer.wp_Stop
+theorem wp_predicate :
+    EtcdGrove.k8s_etcd3.predicate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.predicate.wp_proof wp_fieldSelFor
+
+theorem wp_keyInScope :
+    EtcdGrove.k8s_etcd3.keyInScope.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.keyInScope.wp_proof k8s.strings.wp_TrimSuffix
+
+theorem wp_matchOpt :
+    EtcdGrove.k8s_etcd3.matchOpt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.matchOpt.wp_proof
+
+theorem wp_listOptions :
+    EtcdGrove.k8s_etcd3.listOptions.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.listOptions.wp_proof wp_matchOpt wp_predicate
+
+theorem wp_encodeItems :
+    EtcdGrove.k8s_etcd3.encodeItems.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.encodeItems.wp_proof wp_encodeObj wp_rvBytes
 
 theorem labelSel.wp_Matches :
     EtcdGrove.k8s_etcd3.labelSel.Matches.spec (GF := GF) (hG := hG) :=
@@ -714,6 +675,202 @@ theorem wp_objLabels :
 theorem wp_getAttrs :
     EtcdGrove.k8s_etcd3.getAttrs.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.getAttrs.wp_proof wp_objLabels
+
+theorem wp_mlist :
+    EtcdGrove.k8s_etcd3.mlist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.mlist.wp_proof wp_parseRV wp_pastRead wp_histAt wp_predicate wp_storeKey wp_keyInScope wp_listOptions wp_encodeItems k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs k8s.storage.wp_PrepareKey k8s.storage.wp_PrepareContinueToken
+
+theorem wp_advance :
+    EtcdGrove.k8s_etcd3.advance.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.advance.wp_proof wp_appendHist
+
+theorem wp_checkedEvents :
+    EtcdGrove.k8s_etcd3.checkedEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.checkedEvents.wp_proof
+
+theorem wp_bookmarksOk :
+    EtcdGrove.k8s_etcd3.bookmarksOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.bookmarksOk.wp_proof
+
+theorem wp_firstBookmark :
+    EtcdGrove.k8s_etcd3.firstBookmark.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.firstBookmark.wp_proof
+
+theorem wp_initialEvents :
+    EtcdGrove.k8s_etcd3.initialEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.initialEvents.wp_proof wp_predicate wp_storeKey wp_keyInScope k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem wp_eventsEqual :
+    EtcdGrove.k8s_etcd3.eventsEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.eventsEqual.wp_proof
+
+theorem wp_initialPrefixOk :
+    EtcdGrove.k8s_etcd3.initialPrefixOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.initialPrefixOk.wp_proof wp_initialEvents wp_histAt wp_eventsEqual
+
+theorem wp_evRange :
+    EtcdGrove.k8s_etcd3.evRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.evRange.wp_proof
+
+theorem wp_reliableLo :
+    EtcdGrove.k8s_etcd3.reliableLo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.reliableLo.wp_proof
+
+theorem wp_changeAt :
+    EtcdGrove.k8s_etcd3.changeAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.changeAt.wp_proof
+
+theorem wp_toEvent :
+    EtcdGrove.k8s_etcd3.toEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.toEvent.wp_proof wp_predicate k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem wp_wantEvents :
+    EtcdGrove.k8s_etcd3.wantEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.wantEvents.wp_proof wp_changeAt wp_toEvent wp_histAt wp_storeKey wp_keyInScope
+
+theorem wp_nonBookmarks :
+    EtcdGrove.k8s_etcd3.nonBookmarks.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.nonBookmarks.wp_proof
+
+theorem wp_reliableOk :
+    EtcdGrove.k8s_etcd3.reliableOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.reliableOk.wp_proof wp_eventsEqual wp_evRange wp_reliableLo wp_wantEvents wp_nonBookmarks
+
+theorem wp_watchListOk :
+    EtcdGrove.k8s_etcd3.watchListOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchListOk.wp_proof wp_firstBookmark wp_initialPrefixOk wp_histAt wp_initialEvents wp_eventsEqual wp_reliableOk
+
+theorem wp_watchOk :
+    EtcdGrove.k8s_etcd3.watchOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchOk.wp_proof wp_decodeWEvents wp_checkedEvents wp_bookmarksOk wp_parseRV wp_watchListOk wp_reliableOk
+
+theorem wp_step :
+    EtcdGrove.k8s_etcd3.step.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.step.wp_proof wp_isWrite wp_mstep wp_outEqual wp_mlist wp_advance wp_watchOk
+
+theorem wp_viewFrom :
+    EtcdGrove.k8s_etcd3.viewFrom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.viewFrom.wp_proof wp_histLen
+
+theorem hview.wp_at :
+    EtcdGrove.k8s_etcd3.hview.at.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.hview.at.wp_proof wp_histAt
+
+theorem wp_initialPrefixOkIdx :
+    EtcdGrove.k8s_etcd3.initialPrefixOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.initialPrefixOkIdx.wp_proof wp_initialEvents wp_viewFrom hview.wp_at wp_eventsEqual
+
+theorem wp_wantEventsIdx :
+    EtcdGrove.k8s_etcd3.wantEventsIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.wantEventsIdx.wp_proof wp_changeAt wp_toEvent wp_viewFrom hview.wp_at wp_storeKey wp_keyInScope
+
+theorem wp_reliableOkIdx :
+    EtcdGrove.k8s_etcd3.reliableOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.reliableOkIdx.wp_proof wp_eventsEqual wp_evRange wp_reliableLo wp_wantEventsIdx wp_nonBookmarks
+
+theorem wp_watchListOkIdx :
+    EtcdGrove.k8s_etcd3.watchListOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchListOkIdx.wp_proof wp_firstBookmark wp_initialPrefixOkIdx wp_histAt wp_initialEvents wp_eventsEqual wp_reliableOkIdx
+
+theorem wp_watchOkIdx :
+    EtcdGrove.k8s_etcd3.watchOkIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchOkIdx.wp_proof wp_decodeWEvents wp_checkedEvents wp_bookmarksOk wp_parseRV wp_watchListOkIdx wp_reliableOkIdx
+
+theorem wp_stepIdx :
+    EtcdGrove.k8s_etcd3.stepIdx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.stepIdx.wp_proof wp_step wp_watchOkIdx
+
+theorem wp_inputEqual :
+    EtcdGrove.k8s_etcd3.inputEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.inputEqual.wp_proof
+
+theorem wp_pendEqual :
+    EtcdGrove.k8s_etcd3.pendEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.pendEqual.wp_proof wp_inputEqual
+
+theorem cfgSet.wp_add :
+    EtcdGrove.k8s_etcd3.cfgSet.add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cfgSet.add.wp_proof histHashes.wp_canonical wp_storeHash wp_storeEqual wp_pendEqual
+
+theorem wp_removeAt :
+    EtcdGrove.k8s_etcd3.removeAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.removeAt.wp_proof
+
+theorem wp_decodeItemRVs :
+    EtcdGrove.k8s_etcd3.decodeItemRVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeItemRVs.wp_proof wp_parseRV wp_decodeObj
+
+theorem wp_shows :
+    EtcdGrove.k8s_etcd3.shows.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.shows.wp_proof wp_decodeWEvents wp_decodeItemRVs
+
+theorem wp_landings :
+    EtcdGrove.k8s_etcd3.landings.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.landings.wp_proof wp_shows _root_.Perennial.sort.wp_Search
+
+theorem wp_settle :
+    EtcdGrove.k8s_etcd3.settle.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.settle.wp_proof cfgSet.wp_add wp_mstep wp_removeAt wp_landings histHashes.wp_skipTo wp_advance
+
+theorem Seeded.wp_SharedModel :
+    EtcdGrove.k8s_etcd3.Seeded.SharedModel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Seeded.SharedModel.wp_proof wp_histOf histHashes.wp_canonical histHashes.wp_skipTo wp_target wp_bound wp_stepIdx wp_settle cfgSet.wp_add wp_storeEqual wp_pendEqual
+
+theorem storage.StorageError.wp_Unwrap :
+    EtcdGrove.storage.StorageError.Unwrap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.StorageError.Unwrap.wp_proof
+
+theorem errors.wp_AsNoMatch :
+    EtcdGrove.errors.AsNoMatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.AsNoMatch.wp_proof
+
+theorem apierrors.wp_SuggestsClientDelay :
+    EtcdGrove.apierrors.SuggestsClientDelay.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.SuggestsClientDelay.wp_proof errors.wp_AsNoMatch
+
+theorem wp_histEqual :
+    EtcdGrove.k8s_etcd3.histEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histEqual.wp_proof wp_histLen wp_storeEqual
+
+theorem wp_configEqual :
+    EtcdGrove.k8s_etcd3.configEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.configEqual.wp_proof wp_storeEqual wp_inputEqual wp_histEqual
+
+theorem wp_addConfig :
+    EtcdGrove.k8s_etcd3.addConfig.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.addConfig.wp_proof wp_configEqual
+
+theorem cache.wp_get :
+    EtcdGrove.k8s_etcd3.cache.get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cache.get.wp_proof
+
+theorem cache.wp_getW :
+    EtcdGrove.k8s_etcd3.cache.getW.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cache.getW.wp_proof
+
+theorem cache.wp_put :
+    EtcdGrove.k8s_etcd3.cache.put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cache.put.wp_proof
+
+theorem cache.wp_putW :
+    EtcdGrove.k8s_etcd3.cache.putW.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cache.putW.wp_proof
+
+theorem wp_cachedObj :
+    EtcdGrove.k8s_etcd3.cachedObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cachedObj.wp_proof
+
+theorem wp_closure :
+    EtcdGrove.k8s_etcd3.closure.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.closure.wp_proof wp_addConfig wp_mstep wp_removeAt wp_advance
+
+theorem wp_toWEvent :
+    EtcdGrove.k8s_etcd3.toWEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.toWEvent.wp_proof
+
+theorem wp_consume :
+    EtcdGrove.k8s_etcd3.consume.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.consume.wp_proof wp_toWEvent _root_.Perennial.time.wp_NewTimer _root_.Perennial.time.wp_After _root_.Perennial.time.Timer.wp_Stop
 
 theorem k8s_correctness.Change.wp_toWatchEvent :
     EtcdGrove.k8s_correctness.Change.toWatchEvent.spec (GF := GF) (hG := hG) :=
@@ -911,21 +1068,9 @@ theorem k8s_correctness.WatchValidator.wp_ValidateWatch :
     EtcdGrove.k8s_correctness.WatchValidator.ValidateWatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.WatchValidator.ValidateWatch.wp_proof k8s_correctness.WatchValidator.wp_checkWatch k8s_correctness.wp_validateMaybeLastEventError k8s_correctness.WatchValidator.wp_validateBookmarks k8s_correctness.WatchValidator.wp_splitInitialEvents k8s_correctness.wp_objectRV k8s_correctness.WatchValidator.wp_validateInitialEvents k8s_correctness.WatchValidator.wp_validateReliable
 
-theorem wp_decodeItemRVs :
-    EtcdGrove.k8s_etcd3.decodeItemRVs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeItemRVs.wp_proof wp_parseRV wp_decodeObj
-
-theorem wp_decodeWEvents :
-    EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
-
 theorem decoder.wp_DecodeListItem :
     EtcdGrove.k8s_etcd3.decoder.DecodeListItem.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.decoder.DecodeListItem.wp_proof wp_decodeObj
-
-theorem wp_encodeItems :
-    EtcdGrove.k8s_etcd3.encodeItems.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.encodeItems.wp_proof wp_encodeObj wp_rvBytes
 
 theorem wp_encodeV0 :
     EtcdGrove.k8s_etcd3.encodeV0.spec (GF := GF) (hG := hG) :=
@@ -946,22 +1091,6 @@ theorem wp_preconditions :
 theorem wp_tryUpdateFor :
     EtcdGrove.k8s_etcd3.tryUpdateFor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.tryUpdateFor.wp_proof wp_updated
-
-theorem wp_matchOpt :
-    EtcdGrove.k8s_etcd3.matchOpt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.matchOpt.wp_proof
-
-theorem wp_fieldSelFor :
-    EtcdGrove.k8s_etcd3.fieldSelFor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.fieldSelFor.wp_proof
-
-theorem wp_predicate :
-    EtcdGrove.k8s_etcd3.predicate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.predicate.wp_proof wp_fieldSelFor
-
-theorem wp_listOptions :
-    EtcdGrove.k8s_etcd3.listOptions.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.listOptions.wp_proof wp_matchOpt wp_predicate
 
 theorem wp_listOut :
     EtcdGrove.k8s_etcd3.listOut.spec (GF := GF) (hG := hG) :=
@@ -998,78 +1127,6 @@ theorem wp_runWatch :
 theorem wp_Apply :
     EtcdGrove.k8s_etcd3.Apply.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Apply.wp_proof wp_call cache.wp_put wp_objOf wp_runWatch cache.wp_putW
-
-theorem wp_outEqual :
-    EtcdGrove.k8s_etcd3.outEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.outEqual.wp_proof
-
-theorem wp_histAt :
-    EtcdGrove.k8s_etcd3.histAt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.histAt.wp_proof
-
-theorem wp_keyInScope :
-    EtcdGrove.k8s_etcd3.keyInScope.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.keyInScope.wp_proof k8s.strings.wp_TrimSuffix
-
-theorem wp_mlist :
-    EtcdGrove.k8s_etcd3.mlist.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.mlist.wp_proof wp_parseRV wp_pastRead wp_histAt wp_predicate wp_storeKey wp_keyInScope wp_listOptions wp_encodeItems k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs k8s.storage.wp_PrepareKey k8s.storage.wp_PrepareContinueToken
-
-theorem wp_firstBookmark :
-    EtcdGrove.k8s_etcd3.firstBookmark.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.firstBookmark.wp_proof
-
-theorem wp_initialEvents :
-    EtcdGrove.k8s_etcd3.initialEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.initialEvents.wp_proof wp_predicate wp_storeKey wp_keyInScope k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
-
-theorem wp_eventsEqual :
-    EtcdGrove.k8s_etcd3.eventsEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.eventsEqual.wp_proof
-
-theorem wp_initialPrefixOk :
-    EtcdGrove.k8s_etcd3.initialPrefixOk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.initialPrefixOk.wp_proof wp_initialEvents wp_histAt wp_eventsEqual
-
-theorem wp_evRange :
-    EtcdGrove.k8s_etcd3.evRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.evRange.wp_proof
-
-theorem wp_reliableLo :
-    EtcdGrove.k8s_etcd3.reliableLo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.reliableLo.wp_proof
-
-theorem wp_toEvent :
-    EtcdGrove.k8s_etcd3.toEvent.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.toEvent.wp_proof wp_predicate k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
-
-theorem wp_wantEvents :
-    EtcdGrove.k8s_etcd3.wantEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.wantEvents.wp_proof wp_changeAt wp_toEvent wp_histAt wp_storeKey wp_keyInScope
-
-theorem wp_nonBookmarks :
-    EtcdGrove.k8s_etcd3.nonBookmarks.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.nonBookmarks.wp_proof
-
-theorem wp_reliableOk :
-    EtcdGrove.k8s_etcd3.reliableOk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.reliableOk.wp_proof wp_eventsEqual wp_evRange wp_reliableLo wp_wantEvents wp_nonBookmarks
-
-theorem wp_watchListOk :
-    EtcdGrove.k8s_etcd3.watchListOk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.watchListOk.wp_proof wp_firstBookmark wp_initialPrefixOk wp_histAt wp_initialEvents wp_eventsEqual wp_reliableOk
-
-theorem wp_watchOk :
-    EtcdGrove.k8s_etcd3.watchOk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.watchOk.wp_proof wp_decodeWEvents wp_checkedEvents wp_bookmarksOk wp_parseRV wp_watchListOk wp_reliableOk
-
-theorem wp_step :
-    EtcdGrove.k8s_etcd3.step.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.step.wp_proof wp_isWrite wp_mstep wp_outEqual wp_mlist wp_advance wp_watchOk
-
-theorem wp_histOf :
-    EtcdGrove.k8s_etcd3.histOf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.histOf.wp_proof wp_appendHist
 
 theorem wp_Model :
     EtcdGrove.k8s_etcd3.Model.spec (GF := GF) (hG := hG) :=
@@ -1195,65 +1252,13 @@ theorem fieldSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.wp_proof
 
-theorem histHashes.wp_skipTo :
-    EtcdGrove.k8s_etcd3.histHashes.skipTo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.histHashes.skipTo.wp_proof histHashes.wp_canonLocked histHashes.wp_intern wp_histLen
-
-theorem hview.wp_at :
-    EtcdGrove.k8s_etcd3.hview.at.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.hview.at.wp_proof wp_histAt
-
-theorem wp_viewFrom :
-    EtcdGrove.k8s_etcd3.viewFrom.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.viewFrom.wp_proof wp_histLen
-
-theorem wp_initialPrefixOkIdx :
-    EtcdGrove.k8s_etcd3.initialPrefixOkIdx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.initialPrefixOkIdx.wp_proof wp_initialEvents wp_viewFrom hview.wp_at wp_eventsEqual
-
 theorem labelSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.wp_proof
 
-theorem wp_shows :
-    EtcdGrove.k8s_etcd3.shows.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.shows.wp_proof wp_decodeWEvents wp_decodeItemRVs
-
-theorem wp_landings :
-    EtcdGrove.k8s_etcd3.landings.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.landings.wp_proof wp_shows _root_.Perennial.sort.wp_Search
-
 theorem wp_newCache :
     EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newCache.wp_proof
-
-theorem wp_wantEventsIdx :
-    EtcdGrove.k8s_etcd3.wantEventsIdx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.wantEventsIdx.wp_proof wp_changeAt wp_toEvent wp_viewFrom hview.wp_at wp_storeKey wp_keyInScope
-
-theorem wp_reliableOkIdx :
-    EtcdGrove.k8s_etcd3.reliableOkIdx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.reliableOkIdx.wp_proof wp_eventsEqual wp_evRange wp_reliableLo wp_wantEventsIdx wp_nonBookmarks
-
-theorem wp_settle :
-    EtcdGrove.k8s_etcd3.settle.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.settle.wp_proof cfgSet.wp_add wp_mstep wp_removeAt wp_landings histHashes.wp_skipTo wp_advance
-
-theorem wp_watchListOkIdx :
-    EtcdGrove.k8s_etcd3.watchListOkIdx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.watchListOkIdx.wp_proof wp_firstBookmark wp_initialPrefixOkIdx wp_histAt wp_initialEvents wp_eventsEqual wp_reliableOkIdx
-
-theorem wp_watchOkIdx :
-    EtcdGrove.k8s_etcd3.watchOkIdx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.watchOkIdx.wp_proof wp_decodeWEvents wp_checkedEvents wp_bookmarksOk wp_parseRV wp_watchListOkIdx wp_reliableOkIdx
-
-theorem wp_stepIdx :
-    EtcdGrove.k8s_etcd3.stepIdx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.stepIdx.wp_proof wp_step wp_watchOkIdx
-
-theorem wp_target :
-    EtcdGrove.k8s_etcd3.target.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.target.wp_proof wp_decodeWEvents wp_parseRV wp_pastRead
 
 end links_hasLC
 
