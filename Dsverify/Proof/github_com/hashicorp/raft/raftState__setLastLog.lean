@@ -30,19 +30,7 @@ open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.raftState.setLastLog.wp_proof :
     github_com.hashicorp.raft.raftState.setLastLog.spec (GF := GF) (hG := hG) := by
-  intro r γ rc i p x y
-  wp_start as ⟨#His, Hg⟩
-  ihave #Hm := isRaft_lastLock r γ rc i $$ His
-  wp_method_call; wp_call
-  wp_auto
-  wp_apply (sync.Mutex.wp_Lock _ (lastLockInv r γ rc i)) $$ [$Hm] with ⟨Hown, HL⟩
-  iunfold lastLockInv at HL
-  icases HL with ⟨%x0, %y0, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap⟩
-  imod ghostVar_update_halves (uint.nat x, uint.nat y) _ _ _ $$ Hg Hg' with ⟨Hg, Hg'⟩
-  wp_auto
-  wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
-  · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iframe #
-  iapply HΦ $$ Hg
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 end proof
 
