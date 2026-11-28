@@ -1101,7 +1101,7 @@ def pendPre (γ : GNames) (i : SID) (s : SState) : Pend → Prop
   | .trunc prev pt ents _ j => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
       j < ents.length ∧ prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1)
   | .fstore prev pt ents lci j lc => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
-      j < ents.length ∧ s.log.length = prev + j ∧
+      ((j < ents.length ∧ s.log.length = prev + j) ∨ (j = ents.length ∧ prev + j ≤ s.log.length)) ∧
       (∀ v, lc = some v → v ≤ prev + ents.length ∧ 0 < Min.min lci v)
   | .discard d => d.ℓ ≠ i ∧ 1 ≤ d.x ∧ ¬ prevMatch s.log d.x d.st
   | .vote _ li lt => s.vterm < s.term ∧ upToDate li lt s.log
