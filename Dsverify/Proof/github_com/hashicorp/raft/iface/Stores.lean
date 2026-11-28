@@ -458,7 +458,9 @@ about it). Every call returns a nil error except `Open` of a snapshot that is no
   bytes, `|bs| < 2^63`, which the store has from its Go slice), and gets the sink, open and empty;
   (hraft_robust R3 Q2) its close obligation is the store's window family at the sink's metadata,
   `Qc (sinkMeta … id bs) bs` (fixed with the store, so that its crash lemma gives back a resource the
-  client recognizes);
+  client recognizes), with a per-sink obligation `Qx bs` the caller fixes at `Create` (its per-generation
+  resources the commit updates; a durable store holds it until the commit and may drop it at a crash; on
+  `Cancel` the caller keeps it, `Close` being never called);
 * `List()`: the latest's metadata (a slice of 0 or 1 pointers), atomically;
 * `Open(id)`: atomically, the latest's metadata and a reader over a copy of its bytes if its id is
   `id` (`readCloserOk`, with `io.EOF`'s value `eof`), otherwise an error (`openPost`). -/
@@ -467,11 +469,12 @@ def isSnapStore (x : GoInterfaceOk) (own : SnapLatest → IProp GF) (eof : GoInt
   iprop(
     □ (∀ (ver idx term cfgIdx : w64) (cfg : Configuration) (trans : GoInterface) (Φ : val → IProp GF),
         (∀ (k : GoInterfaceOk) (id : GoString),
-          (∀ (R : List w8 → IProp GF),
-            (∀ (bs : List w8), ⌜bs.length < 2 ^ 63⌝ -∗ Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ old, own old ∗
+          (∀ (Qx R : List w8 → IProp GF),
+            (∀ (bs : List w8), ⌜bs.length < 2 ^ 63⌝ -∗ Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs -∗
+              Qx bs -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ old, own old ∗
               (own (newerSnap old (sinkMeta ver idx term cfgIdx cfg id bs) bs) ={∅,⊤ \ ↑storeN}=∗ R bs)) -∗
             |==> ∃ own' : Option (List w8) → IProp GF,
-              isSink k id own' (fun bs => Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs) R ∗
+              isSink k id own' (fun bs => iprop(Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs ∗ Qx bs)) R ∗
               own' (some [])) -∗
           Φ (PairV #(GoInterface.ok k) #interface.nil)) -∗
         WP (App (App (App (App (App (App (Val #(methods x.ty go!"Create" x.v)) (Val #ver))
