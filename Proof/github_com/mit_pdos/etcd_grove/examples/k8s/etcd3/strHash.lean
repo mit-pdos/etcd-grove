@@ -46,7 +46,7 @@ theorem strHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG)) :
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
   wp_if_destruct
   · have Hlt : sint.Z j < sint.Z (W64 ↑s.length) := by
-      first | simpa using Hif | (by_contra h; simp [h] at Hif)
+      first | simpa using Hif | exact Classical.byContradiction fun h => by simp [h] at Hif
     have hb : s[sint.nat j]? = some (s.getD (sint.nat j) (W8 0)) := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by word)]; rfl
     rw [if_pos Hj.1, hb]
