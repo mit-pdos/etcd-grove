@@ -336,3 +336,42 @@ state of a well-formed base, or a field of `kvPfxInvP`).
 **Next**: prove `kOkD_foreign`; then `kOkD_{ok,list,errW,errR,obs,pend,same}` (port `kOk_*` to `KOkD`: `keysOk_step`/
 `valsOk_step`/`absVals` prefix-only), then `kInvD`'s laws over `kvPfxP_au1H`/`kvPfxP_readAuH` (each firing: catch up
 with `kOkD_foreign`, then the in-process step at `σ`).
+
+## Handoff K8-7 (2026-11-28)
+
+All in `Proof/.../k8s/dist/StoreInv.lean`, no `sorry`, no statement/axiom/trusted change.
+
+**`kOkD_foreign` proved.** Decision on its `kvWf`/`kvWfHist` premises: **neither a field of `kvPfxInvP` nor a
+server-history lemma; derived structurally** and dropped from `kOkD_foreign.law` (now `… → (no regP change in m)
+→ σ.rev + 1 < 2^63 → KOkD c g0 S σ M nx`). `kvWfHist_foreign1`: a foreign revision keeps `kvWfHist` (keys under
+`c.pfx = kpfxD` extend `regP`, so their key-values are the last revision's, `at_ext_foreign`; mod revisions are
+the old ones or the new revision's, `txn.mem_applyChanges_modRev`); `kvWf_of_hist`: `kvWf` = sortedness
+(`KVStore.kvs_sorted`) + `kvWfHist` at the current revision + the bound. `KRelH`: `krelS_foreign` (`KRelS` reads
+only keys under `regP`: `absK_mkeyL`, `findKey_filter_of`), `krelH_foreign1` (one `foreignL` step), iterated in
+`kOkD_foreign_aux` (reverse induction on `m`, `FClosed.foreign`, `nowrap_of_krelH`). The caller still owes
+`σ.rev + 1 < 2^63` (from `kvRoom`?, see below).
+
+**`kOk_*` ported**: `kOkD_{init,ok,list,errW,errR,obs,pend,same}` over `pSeqF g0` (`pSeqF_step_of` with
+`.refl` and the `linkv.PStep` constructor; `FClosed.pend … (.apply …)` for the late effect), with
+`keysOkP_step`/`valsOkP_step`/`absValsP` (prefix-only). `cfg_step` reused unchanged.
+
+**Catch-up of the ghost state** (toward `kInvD`'s laws): `revOwnD_catchup` (+ `khistID_foreign`),
+`shistOwn_catchup` (+ `histAuth_step`: `History.histAuth_next` with only the revision and the new mod revisions,
+a copy to move to `History.lean`, whose `histAuth_next` becomes its corollary; `chgOf_foreign_pfx`;
+`shistOwn_foreign1`). Both need `m ≠ []`.
+
+**Open (for the next session; decide before the Iris laws):**
+1. **The prefix fact.** The catch-up needs `σl.changes <+: σ.changes` (for `pfxChs_same_ext`); `kvPfxP_au1H`'s
+   callback only gives `l0 <+: σ.changes` for an `l0` fixed *outside* the invariant, while `σl` is existential
+   inside `kInvDBody`. Proposal: `kInvDW` keeps `monoListLbOwn γh σl.changes`, and `kvPfxP_au1H`/`readAuH`'s
+   callback gets `∀ l, monoListLbOwn γh l -∗ ⌜l <+: σ.changes⌝` (their proofs hold the auth there). A statement
+   change of two proved (untrusted) lemmas in `etcd/dist/KVPfxHist.lean`: coordinator's call.
+2. **Leases-only foreign changes (`m = []`, `σ ≠ σl`)**: a lease grant moves no revision, so `σ` may differ
+   from `σl` in `leases` only; `revOwnD`'s `ghostMapElem γ.r σl.rev □ σl` then cannot become `σ`. Options:
+   `revOwnD`/`RevOk` over states up to `leases` (normalize `leases := []` in the map), or the store's laws
+   only use the revisions' `at`, which ignore `leases`. `KOkD`/`kOkD_foreign` already handle `m = []`.
+3. The bound `σ.rev + 1 < 2^63` inside the callback (au1H gives `kvRoom σ` only after).
+
+**Next**: settle 1-3; then `kInvDW_catchup : kInvDW γ c g0 σ₀ σl ∗ ⌜KVExt σ₀ σ ∧ pfxVH regP σ = pfxVH regP σl
+∧ …⌝ ⊢ |==> kInvDW γ c g0 σ₀ σ` (the lintest ghost and `M` unchanged, `kOkD_foreign`, the two catch-ups), and the
+firings over `kvPfxP_au1H`/`readAuH` (`InvSteps.lean`'s `create_au`/`rw_au`/`pend_au1`/… with the catch-up first).
