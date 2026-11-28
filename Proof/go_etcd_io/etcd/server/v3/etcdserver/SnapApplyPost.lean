@@ -248,7 +248,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   icases Hcso with #Hcso
   ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' hcsz $$ Hcso
   -- (R2b-3d stage 3) the new backend's stop channels at the server's own resources
-  ihave #HSCs : srvStopChans (GF := GF) (snapγ γ π0 d'.γB) d' $$ []
+  ihave #HSCs : srvStopChans (GF := GF) γr.raft.raft.cl (snapγ γ π0 d'.γB) d' $$ []
   · iunfold srvStopChans; rw [← hP']; iframe HB HSC
   imodintro
   iunfold srvSnapAppliedG

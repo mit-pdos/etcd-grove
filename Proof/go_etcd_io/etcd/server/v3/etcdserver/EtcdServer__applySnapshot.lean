@@ -110,8 +110,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     [bkSem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     (Hp : mvcc.api.persistent.law (GF := GF)) (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hWA : mvcc.api.mvccW_alloc.law (GF := GF)) (hOpen : mvcc.api.etcdStorage_open.law (GF := GF))
-    (hRest : mvcc.api.backendRest_open.law (GF := GF))
-    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
+    (hRest : mvcc.api.backendRest_open.law (GF := GF)) :
     EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) := by
   · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi hcsz d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta st b hle al ast lp cl x A r0 hRO A' u hxA hst hnl hbr hlp γp hrbw stp γd γt img nt hnt halarm halbi hmbP hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc γw q hns rt hrt
     iintro %Φ Hpre HΦ
@@ -274,7 +273,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         (tableReq (appliedTableM E.authOn γr A')) (srvIds E (appliedTableM E.authOn γr A').ids)
         (srvIds E (appliedTableM E.authOn γr A).ids) hbe hrmono hrUL (fun _ => hlgE) hreq hperm
         (fun h => by rw [hlgE] at h; cases h)
-        (apply.restLeasesWith f0 (srvIds E (appliedTableM E.authOn γr A).ids) r0) u hxA hbr hGTP hSTP hCIg γp hrbw stp γd γt img nt hnt hNAB hAR halarm halbi hmbP hlp hNAuB A' hauthI hAA' hst (fun k id h => by rw [hsI]; exact hnlW k id h) hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc γw q hAG hTODO hns rt hrt hTP) $$ [Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR]
+        (apply.restLeasesWith f0 (srvIds E (appliedTableM E.authOn γr A).ids) r0) u hxA hbr hGTP hSTP hCIg γp hrbw stp γd γt img nt hnt hNAB hAR halarm halbi hmbP hlp hNAuB A' hauthI hAA' hst (fun k id h => by rw [hsI]; exact hnlW k id h) hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc γw q hAG hTODO hns rt hrt) $$ [Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR]
       · iframe #
         iframe Hrtm HcpI Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR
       iintro !> ⟨Hw, Hrcv, Htk, Hboot, HwT, Hrtm⟩
@@ -385,7 +384,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     iapply wp_fupd
     iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe Hp hsh hWA hOpen hRest s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hmmap hdd tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) false [] [] (fun _ => 0) [] []
       hbe0 (fun h => by cases h) (by simp) (fun h => by cases h) (by simp) List.Perm.nil
-      (fun _ => ⟨rfl, rfl⟩) r0 u hxA hbr hGTP hSTP hCIg γp hrbw stp γd γt img nt hnt hNAB hAR halarm halbi hmbP hlp hNAuB A' hauthI hAA' hst hnlE hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc γw q hAG hTODO hns rt hrt hTP) $$ [Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR]
+      (fun _ => ⟨rfl, rfl⟩) r0 u hxA hbr hGTP hSTP hCIg γp hrbw stp γd γt img nt hnt hNAB hAR halarm halbi hmbP hlp hNAuB A' hauthI hAA' hst hnlE hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc γw q hAG hTODO hns rt hrt) $$ [Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR]
     · iframe #
       iframe Hrtm HcpI Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR
       rw [apply.ltHalf_false E [] hlgE, apply.everOwn_false E [] hlgE]
@@ -460,11 +459,10 @@ theorem EtcdServer.applySnapshot.wp_proof
     [bkSem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     (Hp : mvcc.api.persistent.law (GF := GF)) (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hWA : mvcc.api.mvccW_alloc.law (GF := GF)) (hOpen : mvcc.api.etcdStorage_open.law (GF := GF))
-    (hRest : mvcc.api.backendRest_open.law (GF := GF))
-    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
+    (hRest : mvcc.api.backendRest_open.law (GF := GF)) :
     EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applySnapshot.wp_proofEmpty hIES,
-    EtcdServer.applySnapshot.wp_proof_snapM hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hGTP hSTP hCIg hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hRec hTODO Hp hsh hWA hOpen hRest hTP⟩
+    EtcdServer.applySnapshot.wp_proof_snapM hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe hSB hLR hGTP hSTP hCIg hNAB hAR hNAuB hNMB hCSB hClose hCRec hRAP hAP hMID hNUA hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hLead hTerm hFS hAG hRec hTODO Hp hsh hWA hOpen hRest⟩
 
 end proof
 

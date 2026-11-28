@@ -156,9 +156,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     -- (auth-lease S4 item 7b F4) outside the no-snapshot mode: the lessor window freed before `Recover`
     (hns : ¬ clusterNoSnap γr.raft.raft.cl)
     -- (keepfix (c) step 1) the raft term's mirror, not 0 (after `applyAll`'s `SetRaftTerm`)
-    (rt : w64) (hrt : rt ≠ W64 0)
-    -- (keepfix (c) step 1, sub-goal 1) the new backend's hooks' `srvTermPos`, as a law
-    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
+    (rt : w64) (hrt : rt ≠ W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        -- (keepfix (c) step 1, #50) the mirror, and the image's stored pair committed: the reload's store
        ciRaftTerm γ.ci rt ∗ □ srvCIPair γr.raft.raft.cl sv.Metadata'.Index' tI ∗
@@ -219,7 +217,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-       srvStopChans γ d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+       srvStopChans γr.raft.raft.cl γ d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
        -- (2026-11-02, the backend-auth-split stage) the apply thread's token, for the pooled
        -- readers of the new backend (the alarm store's, the auth store's and the cluster's
        -- `Recover`) and (strict M1) the store's `Restore`, given back
@@ -331,15 +329,20 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γwr0, Hwr0⟩
   imod (token_alloc (GF := GF)) with ⟨%γpd0, Hpd0⟩
   let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (sv.Metadata'.Index', tI), γmt0, γmt0, metaRaftTermOf D⟩
-  ihave Hcreate := snap_create (Rw := TRow.triv) γ π0 d.P D (mvcc.api.mvccW gx') hmeta hP.2.2.1 $$ HmetaB Hinv Hpd0 Hmt0a HlateW
+  -- (keepfix (c) S5) the image's stored pair, committed (the reload's and the new lock's row)
+  ihave #HpairI : iprop(⌜π0.m0.1 = W64 0⌝ ∨ □ srvCIPair γr.raft.raft.cl π0.m0.1 π0.m0.2) $$ []
+  · iright; iexact HcpI
+  ihave Hcreate := snap_create (Rw := TRow.triv) γr.raft.raft.cl γ π0 d.P D (mvcc.api.mvccW gx') hmeta rfl hP.2.2.1
+    $$ HmetaB HpairI Hinv Hpd0 Hmt0a HlateW
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
-  ihave #Hhooks := hooksOk_server_fut (Rw := TRow.triv) hOn hSave hPut hBUR hID hName hSafe γ π0 ci d.P
-    (fun _ => mvcc.api.mvccW gx') hk lgh hP.2.2.1 hP.2.2.2 $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $Hisci $Hinv]
+  ihave #HtpS := isServerM_termPos srvTermPos_of_cluster_holds E.authOn s γ ci TM E ρ γr $$ Hsrv
+  ihave #Hhooks := hooksOk_server_fut (Rw := TRow.triv) hOn hSave hPut hBUR hID hName hSafe γr.raft.raft.cl γ π0 ci d.P
+    (fun _ => mvcc.api.mvccW gx') hk lgh hP.2.2.1 hP.2.2.2 $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $Hisci $HtpS $Hinv]
   -- (2026-11-06, `notes/begin-tok-plan.md`) `OpenSnapshotBackend`'s instance, from the server's bound
   ihave %Htb0 : ⌜threadBound GF ≤ backend.rdPoolN⌝ $$ [Hsrv]
   · iunfold isServerM at Hsrv
@@ -350,7 +353,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   haveI : ReceiptBoundLe GF (2 ^ 60) := ⟨hrbw⟩
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
       (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTMR γr.raft.raft.cl (futPhys π0 γB) γB d.P))
-      (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) hdd $$ [Hfile Hpath Hcreate]
+      (snapOpenK γr.raft.raft.cl γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) hdd $$ [Hfile Hpath Hcreate]
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
     iunfold storage.openPre

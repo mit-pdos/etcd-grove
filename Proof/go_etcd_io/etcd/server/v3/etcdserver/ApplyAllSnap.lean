@@ -70,8 +70,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     -- (keepfix (c) step 1) the raft term's guard and `SetRaftTerm`
     (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (hSRT : consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG))
-    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
+    (hSRT : consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
     sa ag r0 rtm hrtP hany hag hgi hi61 hboot hAL hcia hids hraft hc0 hch hlog0 hγn hnI hbase hns
@@ -527,7 +526,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
                   simp only [List.length_nil, Nat.zero_add]; omega)
               $$ HA'
             imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe false s
-                γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hTP tk
+                γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' srvTermPos_of_cluster_holds tk
                 (fun _ => False) (fun _ => True) emp (fun _ h => h.elim)
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
@@ -1078,7 +1077,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
                 simp only [List.length_nil, Nat.zero_add]; omega)
             $$ HA'
           imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe true
-              s γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hTP tk
+              s γ' ci TM' E' ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' srvTermPos_of_cluster_holds tk
               auth.authBkts (authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A'))
               (srvAuthApplyResB s E' (srvAuthAtLog γr.kv srvAuthSt0 A')) authBkts_rest
             $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT HL]

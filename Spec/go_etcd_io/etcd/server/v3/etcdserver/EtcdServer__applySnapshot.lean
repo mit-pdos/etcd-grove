@@ -256,7 +256,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        -- (review R1's F1, decision 5) the apply thread's quarter
-       srvStopChans γ d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+       srvStopChans γr.raft.raft.cl γ d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
        -- (F9) the auth store's `Recover` facts by the mode (`off`: `authRecoverOk`; `on`, Q2's
        -- candidate (ii): the store's invariant at the server's `E.RD` with the snapshot clause,
        -- and the image's committed log)

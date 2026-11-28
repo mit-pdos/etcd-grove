@@ -87,9 +87,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     -- (keepfix (c) step 1) the raft term's guard: `!raft.IsEmptySnap(apply.snapshot) || len(apply.entries) > 0`
     -- and `s.consistIndex.SetRaftTerm(apply.raftTerm)`
     (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (hSRT : consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG))
-    -- (keepfix (c) step 1, sub-goal 1) the hooks' `srvTermPos`, as a law (the snapshot window's commit)
-    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
+    (hSRT : consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
   have hCMpast := EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec hCM
   have hAE := hAE.1
@@ -578,7 +576,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
                 (by rw [hciE, hpre]; have := uint_nat_eq ai'; simp only [List.length_nil, Nat.zero_add]; omega)
                 $$ HlbB
               imod mergedCreate_window hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe C.isOn
-                  s γ ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hTP tk
+                  s γ ci TM E ρ γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 srvTermPos_of_cluster_holds tk
                   (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
                 $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT HL]
                 with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
@@ -688,7 +686,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
                 $$ HlbDisk
               imod mergedCreate_window_replay hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName hSafe
                   C.isOn s γ ci TM E ρ γr b st'' ai' a' t' rp.A₀ x' ρ.wait γp ua kv _
-                  (restReplay_bk γr rp _) Hst''.1 hTP tk (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
+                  (restReplay_bk γr rp _) Hst''.1 srvTermPos_of_cluster_holds tk (acBkts C) (acImg C sa') (acRes C s E ua sa') (acBkts_rest C)
                 $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 HthT HL]
                 with ⟨%be, %dq, %RC, %RC', %RS, %RS', %Qd, Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
               · iframe Hpkg Hsrv Hkvf Hkvi HW Hr1 Hl1 HthT Hst Hbe Happ HKVc HRS HL Hpair
@@ -828,13 +826,12 @@ theorem EtcdServer.applyAll.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
-    (hSRT : consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG))
-    (hTP : srvTermPos_of_cluster.law (GF := GF)) :
+    (hSRT : consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hCM hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave
-      hPut hUR hID hName hSafe hIES hSRT hTP,
+      hPut hUR hID hName hSafe hIES hSRT,
     EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT (EtcdServer.createMergedSnapshotMessage.caughtUp_of_spec hCM) hSMS hGTo hRSn hsh hPers hReach hImg hSnap hOn hSave hPut hUR hID hName
-      hSafe hIES hSRT hTP⟩
+      hSafe hIES hSRT⟩
 
 end proof
 
