@@ -582,7 +582,8 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     wp_auto
     wp_apply (wp_match γ i s.term cm i lix) $$ [Hack]
     · iframe #; iright; ileft; rw [Hlixeq]; iexact Hack
-    wp_apply (wp_setLastLog r γ rc i _ lix (W64 s.term)) $$ [$Hr $HlastLog] as HlastLog
+    wp_apply (wp_setLastLog r γ rc i _ a lix (W64 s.term)) $$ [$Hr $HlastLog $Happ] as ⟨HlastLog, Happ⟩
+    · ipureintro; rw [Hlixeq]; simp only [List.length_append]; omega
     ihave ⟨#Hshared, Hstops⟩ := (replMain_split r γ i s.term rmap).1 $$ Hrmap
     wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
