@@ -75,6 +75,21 @@ theorem hr_forall₂_getElem {α β : Type} {R : α → β → Prop} :
   | _, _, .cons _ t, i + 1, h1, h2 =>
     hr_forall₂_getElem t i (by simpa using h1) (by simpa using h2)
 
+theorem hr_mem_take_succ {α : Type} {L : List α} {k : Nat} {a : α} (h : L[k]? = some a) {e : α}
+    (he : e ∈ L.take (k + 1)) : e ∈ L.take k ∨ e = a := by
+  rw [List.take_add_one, h] at he
+  simpa using he
+
+theorem take_succ_req {xs : List (Input × Output)} {j j' : Nat} {x : Input} {y : Output}
+    {Pj Q : w64 → Prop} (hPj : (fun u => ∃ p ∈ xs.take j, OpReq p.1 p.2 u) = Pj)
+    (hjx : xs.take j' = xs.take j ++ [(x, y)]) (hQ : ∀ u, Pj u → Q u)
+    (hO : ∀ u, OpReq x y u → Q u) : ∀ u, (∃ p ∈ xs.take j', OpReq p.1 p.2 u) → Q u := by
+  rintro u ⟨p, hp, hr⟩
+  rw [hjx, List.mem_append, List.mem_singleton] at hp
+  rcases hp with hp | rfl
+  · exact hQ u (hPj ▸ ⟨p, hp, hr⟩)
+  · exact hO u hr
+
 /-- `A`'s keys are nonzero and it holds every nonzero `u` with `P u`. -/
 def Good (P : w64 → Prop) (A : GMap w64 Bool) : Prop :=
   (∀ k, (A !! k).isSome → k ≠ 0) ∧ ∀ u, P u → u = 0 ∨ (A !! u).isSome
@@ -351,6 +366,133 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         iapply (allSt_mono am bm (P := fun u => P2 u ∨ u = x.Cached'.ResourceVersion')
           (fun u hu => Or.inl hu))
         iexact Hst
+    wp_if_destruct
+    · have hK := Hif
+      wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm (fun u => P2 u ∨ (y.WFailed' = false ∧
+          ∃ evs, decWEventsL y.WEvents' = some evs ∧ ∃ e ∈ evs, e.t < 4 ∧ e.o.ResourceVersion' = u)))
+          at next with [Hst «in» out] as ⟨«in», out, Hst⟩
+      · (try wp_auto)
+        wp_apply wp_decodeWEvents as %esl %ok Hd
+        rcases hd : decWEventsL y.WEvents' with _ | evs <;> isimp only [hd] at Hd
+        · icases Hd with %hok
+          subst hok
+          (try wp_auto)
+          wp_join_done
+          (try iframe)
+          iapply (allSt_mono am bm (P := P2) (fun u hu => by simpa using hu))
+          iexact Hst
+        icases Hd with ⟨%hok, Hd⟩
+        iunfold wevsOwnM at Hd
+        icases Hd with ⟨%ws, Hws, %hws⟩
+        subst hok hws
+        (try wp_auto)
+        cases hw : y.WFailed'
+        rotate_left
+        · (try wp_auto)
+          wp_join_done
+          (try iframe)
+          iapply (allSt_mono am bm (P := P2) (fun u hu => by simpa using hu))
+          iexact Hst
+        (try wp_auto)
+        ihave %Hwl := ownSlice_len $$ Hws
+        irename «in» => Hin
+        ihave Hst := allSt_mono am bm (Q := fun u => P2 u ∨
+          ∃ e ∈ (ws.map wevOf).take (sint.nat (W64 0)), e.t < 4 ∧ e.o.ResourceVersion' = u)
+          (fun u hu => hu.elim id (fun ⟨e, he, _⟩ => by
+            rw [show sint.nat (W64 0) = 0 by word] at he; simp at he)) $$ Hst
+        ihave HJ : (∃ (k : w64) (evv : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WEvent),
+            "i" ∷ i_ptr ↦ k ∗ "ev" ∷ ev_ptr ↦ evv ∗ "Hws" ∷ esl ↦* ws ∗
+            "Hst" ∷ allSt am bm (fun u => P2 u ∨
+              ∃ e ∈ (ws.map wevOf).take (sint.nat k), e.t < 4 ∧ e.o.ResourceVersion' = u) ∗
+            "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z esl.len⌝ : IProp GF) $$ [i ev Hws Hst]
+        · iexists W64 0, _
+          iframe
+          ipureintro
+          constructor <;> word
+        wp_for HJ
+        wp_if_destruct
+        · have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z esl.len :=
+            ⟨Hk.1, by first | exact Hif | exact dec_true Hif⟩
+          list_elem ws (sint.nat k) as w
+          simp only [Hb', _root_.and_self, ↓reduceIte]
+          wp_apply wp_load_slice_index esl (sint.Z k) ws _ w Hk.1 $$ [Hws] as Hws
+          · isplit
+            · iexact Hws
+            · ipureintro; exact Hw_lookup
+          have hl : (ws.map wevOf)[sint.nat k]? = some (wevOf w) := by simp [Hw_lookup]
+          have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+          have hstep : ∀ u, (P2 u ∨ ∃ e ∈ (ws.map wevOf).take (sint.nat (k + W64 1)),
+                e.t < 4 ∧ e.o.ResourceVersion' = u) →
+              (P2 u ∨ ∃ e ∈ (ws.map wevOf).take (sint.nat k), e.t < 4 ∧ e.o.ResourceVersion' = u) ∨
+                (uint.nat w.Type' < 4 ∧ u = w.Obj'.ResourceVersion') := by
+            intro u hu
+            rcases hu with h | ⟨e, he, ht, hrv⟩
+            · exact Or.inl (Or.inl h)
+            rw [hk1] at he
+            rcases hr_mem_take_succ hl he with he' | rfl
+            · exact Or.inl (Or.inr ⟨e, he', ht, hrv⟩)
+            · exact Or.inr ⟨ht, hrv.symm⟩
+          (try wp_auto)
+          wp_if_destruct
+          · wp_apply Hnum' $$ Hst as Hst
+            ihave Hst := allSt_mono am bm (fun u hu => (hstep u hu).imp id (fun h => h.2)) $$ Hst
+            wp_for_post
+            iframe
+            iexists k + W64 1, w
+            iframe
+            ipureintro
+            constructor <;> word
+          (try wp_auto)
+          wp_if_destruct
+          · wp_apply Hobj' $$ Hst as Hst
+            ihave Hst := allSt_mono am bm (fun u hu => (hstep u hu).imp id (fun h => h.2)) $$ Hst
+            wp_for_post
+            iframe
+            iexists k + W64 1, w
+            iframe
+            ipureintro
+            constructor <;> word
+          · ihave Hst := allSt_mono am bm (fun u hu => (hstep u hu).elim id
+              (fun h => absurd h.1 (by word))) $$ Hst
+            wp_for_post
+            iframe
+            iexists k + W64 1, w
+            iframe
+            ipureintro
+            constructor <;> word
+        · have hge : ¬ sint.Z k < sint.Z esl.len := by first | exact Hif | exact dec_false Hif
+          (try rw [decide_eq_false hge, if_pos (decide_eq_true rfl)])
+          (try wp_auto)
+          have hfull : (ws.map wevOf).take (sint.nat k) = ws.map wevOf :=
+            List.take_of_length_le (by simp; word)
+          wp_join_done
+          (try iframe)
+          iapply (allSt_mono am bm (P := fun u => P2 u ∨
+            ∃ e ∈ (ws.map wevOf).take (sint.nat k), e.t < 4 ∧ e.o.ResourceVersion' = u)
+            (fun u hu => hu.imp id (fun ⟨_, evs, he, h⟩ => by
+            simp only [Option.some.injEq] at he; subst he; rw [hfull]; exact h)))
+          iexact Hst
+      wp_for_post
+      iframe
+      iexists j + W64 1, _, W
+      iframe
+      isplitl
+      · have hfin : ∀ u, (∃ p ∈ xs.take (sint.nat (j + W64 1)), OpReq p.1 p.2 u) →
+            P2 u ∨ (y.WFailed' = false ∧ ∃ evs, decWEventsL y.WEvents' = some evs ∧
+              ∃ e ∈ evs, e.t < 4 ∧ e.o.ResourceVersion' = u) := by
+          refine take_succ_req hPj hjx (fun u h => by rw [← hP2]; exact Or.inl (Or.inl (Or.inl h)))
+            (fun u hu => ?_)
+          rw [← hP2]
+          rcases hu with h | h | h | ⟨hk5, _⟩
+          · exact Or.inl (Or.inl (Or.inr h))
+          · exact Or.inl (Or.inr h)
+          · obtain ⟨_, hw, evs, he, e, hm, ht⟩ := h
+            exact Or.inr ⟨hw, evs, he, e, hm, ht.1, ht.2⟩
+          · exact absurd hK hk5
+        iapply (allSt_mono am bm hfin)
+        iexact Hst
+      ipureintro
+      constructor <;> word
     sorry
   · sorry
 
