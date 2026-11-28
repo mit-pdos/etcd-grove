@@ -37,7 +37,7 @@ def prodS (rc : RCtx GF) (e : Nat) : IProp GF :=
     spscProducer rc.names.fsmCh sent ∗ ghostMapAuth rc.names.batch 1 Mb ∗
     ⌜∀ m, (Mb.lookup m).isSome ↔ m < sent.length⌝ ∗
     ⌜∀ m k, Mb.lookup m = some k → k ≤ e⌝ ∗
-    (⌜sent = [] ∧ e = 0⌝ ∨ ⌜sent ≠ []⌝ ∗ batchEnd rc (sent.length - 1) e))
+    (⌜sent = [] ∧ e = rc.names.fsm0⌝ ∨ ⌜sent ≠ []⌝ ∗ batchEnd rc (sent.length - 1) e))
 
 /-- A batch's range is not empty. -/
 theorem fsmBatchP_lt (γ : GNames) (rc : RCtx GF) (i : SID) (k0 k1 : Nat) (v : GoInterface) :

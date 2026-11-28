@@ -191,7 +191,7 @@ theorem leader_verify_send (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s :
     cases hl : M.lookup sent.length with
     | none => rfl
     | some _ => exfalso; rw [hl] at h; simp at h
-  ihave #Hend : (⌜sent = [] ∧ e = 0⌝ ∨ batchEnd rc (sent.length - 1) e : IProp GF) $$ [Hend]
+  ihave #Hend : (⌜sent = [] ∧ e = rc.names.fsm0⌝ ∨ batchEnd rc (sent.length - 1) e : IProp GF) $$ [Hend]
   · icases Hend with (%Hn | #Hend)
     · ileft; ipureintro; exact Hn
     · iright; iexact Hend

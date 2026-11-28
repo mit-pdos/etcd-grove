@@ -27,7 +27,7 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 /-- `(*Raft).runFSM`: The FSM goroutine (started by `NewRaft` through `goFunc`), the consumer of `fsmMutateCh`. It never returns. -/
 abbrev github_com.hashicorp.raft.Raft.runFSM.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (tid : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ fsmCons rc ∗ rtok tid }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ fsmCons γ rc ∗ rtok tid }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"runFSM")) (Val #()))
   {{ RET #(); False }}
 

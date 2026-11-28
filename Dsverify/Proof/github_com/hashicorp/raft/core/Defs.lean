@@ -65,6 +65,9 @@ structure RNames where
   /-- (hraft_robust, R5 Q8) `dghostVar (Option (w64 × w64 × w64 × w64))`: `lastLock`'s fields pinned
   during `NewRaft` (`some`, ½ the lock's invariant, ½ `NewRaft`); then `none`, discarded (in `raftCells`). -/
   llb : GName
+  /-- (hraft_robust, R5b) The FSM's position at the start of the generation (the restored snapshot's
+  index, `0` for a fresh server): batch `0` of `fsmMutateCh` starts there. -/
+  fsm0 : Nat
   /-- the FSM batch channel `fsmMutateCh` (SPSC: main goroutine → FSM goroutine). -/
   fsmCh : SpscNames
   /-- `ghostMap Nat Nat` (persistent elements): batch `n` of `fsmMutateCh` ends at index `k`. -/
@@ -841,7 +844,7 @@ instance batchEnd_persistent rc n k : Persistent (batchEnd (GF := GF) rc n k) :=
 
 /-- Batch `n` starts after index `k0`: the previous batch's end (`0` for the first batch). -/
 def batchStart (rc : RCtx GF) (n k0 : Nat) : IProp GF :=
-  iprop(⌜n = 0 ∧ k0 = 0⌝ ∨ ∃ m, ⌜n = m + 1⌝ ∗ batchEnd rc m k0)
+  iprop(⌜n = 0 ∧ k0 = rc.names.fsm0⌝ ∨ ∃ m, ⌜n = m + 1⌝ ∗ batchEnd rc m k0)
 
 /-- (stage 2) **A verify future handed to the FSM goroutine** (`v`, boxed in an `interface{}`)
 after the batches ending at `k0`: the leader had handed `a ≥ k0` to its FSM (no command in
@@ -890,12 +893,14 @@ def fsmProd (γ : GNames) (rc : RCtx GF) (a : Nat) : IProp GF :=
     spscProducer rc.names.fsmCh sent ∗ ghostMapAuth rc.names.batch 1 M ∗
     ⌜(∀ m, (M.lookup m).isSome ↔ m < sent.length) ∧ e ≤ a ∧
       (∀ m k, M.lookup m = some k → k ≤ e)⌝ ∗
-    (⌜sent = [] ∧ e = 0⌝ ∨ batchEnd rc (sent.length - 1) e) ∗
+    (⌜sent = [] ∧ e = rc.names.fsm0⌝ ∨ batchEnd rc (sent.length - 1) e) ∗
     noCmdBetween γ e (a + 1))
 
 /-- **The FSM consumer's initial state** (given to `runFSM` by `NewRaft`). -/
-def fsmCons (rc : RCtx GF) : IProp GF :=
-  iprop(spscConsumer rc.names.fsmCh ([] : List GoInterface) ∗ rc.fsmOwn 0)
+def fsmCons (γ : GNames) (rc : RCtx GF) : IProp GF :=
+  iprop(spscConsumer rc.names.fsmCh ([] : List GoInterface) ∗
+    ∃ (k0 : Nat) (r : GoInterface), rc.fsmOwn k0 ∗ ⌜k0 ≤ rc.names.fsm0⌝ ∗
+      noCmdBetween γ k0 (rc.names.fsm0 + 1) ∗ (⌜k0 = 0⌝ ∨ □ rc.respP k0 r))
 
 /-! ## Snapshots (stage 3) -/
 

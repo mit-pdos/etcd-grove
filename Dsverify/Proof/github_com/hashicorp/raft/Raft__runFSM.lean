@@ -323,30 +323,32 @@ theorem github_com.hashicorp.raft.Raft.runFSM.wp_proof
   icases Hsd with ⟨%sch, #Hsch, %γs, #Hsbag⟩
   ihave ⟨%snch, %γsn, #Hsnch, #Hsnbag⟩ := isRaft_fsmSnapshotCh r γ rc i $$ Hr
   unfold fsmCons
-  icases Hcons with ⟨Hcons, Hown⟩
-  ihave #Hself0 := noCmdBetween_self (GF := GF) γ 0
+  icases Hcons with ⟨Hcons, %k00, %r00, Hown, %Hk00, #Hnc00, #Hr00⟩
   ihave HI : (∃ (received : List GoInterface) (k0 eL : Nat),
       "Hcons" ∷ spscConsumer rc.names.fsmCh received ∗ "Hown" ∷ rc.fsmOwn k0 ∗
       "Hnc" ∷ noCmdBetween γ k0 (eL + 1) ∗ "%Hk0" ∷ ⌜k0 ≤ eL⌝ ∗ "HR" ∷ lastR rc k0 ∗
-      "Hend" ∷ (⌜received = [] ∧ eL = 0⌝ ∨ ⌜received ≠ []⌝ ∗ batchEnd rc (received.length - 1) eL) ∗
+      "Hend" ∷ (⌜received = [] ∧ eL = rc.names.fsm0⌝ ∨ ⌜received ≠ []⌝ ∗ batchEnd rc (received.length - 1) eL) ∗
       "Hli" ∷ (∃ li lt : w64, lastIndex_ptr ↦ li ∗ lastTerm_ptr ↦ lt ∗ lastF γ rc k0 li lt ∗
         ⌜uint.nat li ≤ eL⌝) ∗
       "Hlc1" ∷ £ 1 ∗ "Hlc2" ∷ £ 1 : IProp GF)
       $$ [Hcons Hown lastIndex lastTerm Hlc1 Hlc2]
-  · iexists [], 0, 0
+  · iexists [], k00, rc.names.fsm0
     iframe Hlc1 Hlc2
-    iframe Hcons Hown Hself0
+    iframe Hcons Hown Hnc00
     isplitr
-    · ipureintro; exact Nat.le_refl _
+    · ipureintro; exact Hk00
     isplitr
-    · unfold lastR; ileft; ipureintro; rfl
+    · unfold lastR
+      icases Hr00 with (%H | #H)
+      · ileft; ipureintro; exact H
+      · iright; iexists r00; iexact H
     isplitr
     · ileft; ipureintro; exact ⟨rfl, rfl⟩
     iexists _, _
     iframe lastIndex lastTerm
     isplitr
     · unfold lastF; ileft; ipureintro; rfl
-    ipureintro; exact Nat.le_of_eq (by rfl)
+    ipureintro; exact Nat.zero_le _
   wp_for HI
   icases HR with #HR
   wp_apply_core chan.wp_select_blocking
