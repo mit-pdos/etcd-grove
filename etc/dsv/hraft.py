@@ -46,15 +46,19 @@ HRAFT = 'github_com.hashicorp.raft'
 _DURABLE = 'github_com.mit_pdos.etcd_grove.examples.lib.durable'
 OWN = {_DURABLE}
 HRAFT_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s in range(1, 7)]
+# hraft_robust: the restartable server machines' commands (`rserver.ServerR`)
+HRAFT_RNODES = [f'rserver{s}' for s in range(1, 7)]
 PKGS = [HRAFT, f'{HRAFT}.examples.snapstore', f'{HRAFT}.examples.hraftnet.rpctransport',
         f'{HRAFT}.examples.hraftnet.service', f'{HRAFT}.examples.hraftnet',
         # hraft_robust (R3): the durable stores
-        f'{HRAFT}.examples.hraftnet.disk', _DURABLE] + \
-    [f'{HRAFT}.examples.hraftnet.cmd.{n}' for n in HRAFT_NODES]
-# the twelve commands' package tables (the deployment's boots)
+        f'{HRAFT}.examples.hraftnet.disk', _DURABLE,
+        # hraft_robust: the restartable server machine
+        f'{HRAFT}.examples.hraftnet.rserver'] + \
+    [f'{HRAFT}.examples.hraftnet.cmd.{n}' for n in HRAFT_NODES + HRAFT_RNODES]
+# the twelve commands' package tables (the deployment's boots), and the restartable servers'
 PROGRAMS = {f'{HRAFT}.examples.hraftnet.cmd.{n}':
             f'Proof/{HRAFT.replace(".", "/")}/examples/hraftnet/cmd/{n}/PkgTable.lean'
-            for n in HRAFT_NODES}
+            for n in HRAFT_NODES + HRAFT_RNODES}
 HYP_INITS = []
 # the main tree's packages net/http's closure needs, added to `NET_MAIN` (as craq's)
 MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls',
@@ -317,4 +321,38 @@ variable [package_sem : cmd.{n}.Assumptions] [π : NetProtoGS]''',
         q='net.rpc.codecUnset',
         post='        isPkgInit (PROP := IProp GF) pkg_id.{pkg}.cmd.{n} ∗ net.rpc.codecUnset',
     ),
+    # hraft_robust: the restartable server machines' commands `cmd/rserver1..6` (package `rserver`),
+    # their table rserver1's chain, in `rserver`'s namespace; the boot lemma `rserver.boot_rserver`
+    # (`RBootLinked.lean`): `rserver`'s first initialization, through `rpctransport`'s, net/rpc's first
+    # run (the packages whose first run is proved there: `rserver`, `rpctransport`, net/rpc)
+    boots=[dict(
+        table='rserver1',
+        table_pkg=f'{_HRAFTNET}.rserver',
+        table_ns='rserver.',
+        cmds=[f'rserver{s}' for s in range(1, 7)],
+        cmds_file='RBootCmdsLinked.lean',
+        boot='rserver.boot_rserver',
+        boot_import=f'Dsverify.Proof.{_HRAFTNET}.RBootLinked',
+        owned=[f'{_HRAFTNET}.rserver', f'{_HRAFTNET}.rpctransport', 'net.rpc'],
+        table_doc='''The package facts of the hraft kit's restartable servers' boot (hraft_robust; notes/dsv-hraft.md, "The
+boot"): generic in a program's table `G` that gives every package of `rserver`'s import closure its
+`isPkgInit` (`KitG G`), the facts at `G` (`wf_*`) and, for the packages whose closure avoids the owned
+packages (`ownedPkgs`: `rserver` and `rpctransport`, whose first initializations the boot proves, and
+net/rpc's, Net's first run), at `gOff S G` for `S` a sub-list of `ownedPkgs` (`wfO_*`): the table in which
+the packages of `S` are not initialized yet.''',
+        cmds_doc='''The hraft kit's restartable server commands' boots (hraft_robust; notes/dsv-hraft.md, "The boot"):
+each command's initialization from the machine's empty package state, its first, through `rserver`'s
+(`RBootLinked.lean`, `rserver.boot_rserver`), at the command's table (`getIsPkgInit`, its
+`PkgTable.lean`; `kitG`).''',
+        opens=['open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net',
+               f'open {HRAFT} {_HRAFTNET}',
+               'open EtcdGrove (wp_package_init_first)'],
+        attributes=['attribute [local instance] GooseGlobalGS.gooseInvGS'],
+        variables='''variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : cmd.{n}.Assumptions] [π : NetProtoGS]''',
+        returns="returns net/rpc's codec unregistered (`codecUnset`, net/rpc's first run's), as the servers'.",
+        q='net.rpc.codecUnset',
+        post='        isPkgInit (PROP := IProp GF) pkg_id.{pkg}.cmd.{n} ∗ net.rpc.codecUnset',
+    )],
 )

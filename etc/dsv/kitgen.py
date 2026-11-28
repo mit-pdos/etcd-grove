@@ -523,10 +523,10 @@ def wfname(q):
     return q.replace('«', '').replace('»', '').replace('.', '_')
 
 
-def boot_chain(kg):
+def boot_chain(kg, b=None):
     """The table command's package chain: [(package, [children])] in order, the commands left
     out (read from gen-init's `cmd/<table>/PkgTable.lean`)."""
-    b = kg['boot']
+    b = b or kg['boot']
     path = os.path.join(ROOT, 'Dsverify', 'Proof', pkg_path(kg), 'cmd', b['table'], 'PkgTable.lean')
     txt = open(path).read()
     blocks = re.findall(r'  have (h\d+) : GetIsPkgInitProp pkg_id\.(\S+) \(getIsPkgInit \(GF := GF\)\) := by\n'
@@ -595,10 +595,12 @@ def tup(kids):
     return f'⟨{kids}True.intro⟩' if kids else 'True.intro'
 
 
-def boot_table_file(kit, kg):
-    b, pkg = kg['boot'], kg['lean_pkg']
+def boot_table_file(kit, kg, b=None):
+    # (an extra boot, `boots`: its table in namespace `table_pkg`, a package of the kit)
+    b = b or kg['boot']
+    pkg = b.get('table_pkg', kg['lean_pkg'])
     short = pkg.rsplit('.', 1)[1]
-    chain = boot_chain(kg)
+    chain = boot_chain(kg, b)
     closure = {}
     for q, cs in chain:
         s = {q}
@@ -644,7 +646,7 @@ BOOT_CMD = '''namespace {pkg}.cmd.{n}
 section boot
 {variables}
 
-theorem kitG : KitG (getIsPkgInit (GF := {GF})) := by
+theorem kitG : {tp}KitG (getIsPkgInit (GF := {GF})) := by
   constructor <;> rfl
 
 set_option maxHeartbeats 4000000 in
@@ -657,16 +659,16 @@ theorem wp_boot :
 {post} }}}} := by
   wp_start as Hgs
   ihave Hown := ownInitializing_of_empty
-    (gOff (pkg_id.{pkg}.cmd.{n} :: bootS1) (getIsPkgInit (GF := {GF}))) $$ Hgs
+    ({tp}gOff (pkg_id.{pkg}.cmd.{n} :: {tp}bootS1) (getIsPkgInit (GF := {GF}))) $$ Hgs
   iapply wp_package_init_first (pkg_id.{pkg}.cmd.{n})
     (P := isPkgInit (PROP := IProp {GF}) pkg_id.{pkg}.cmd.{n}){qsep}(Q := {Q})
-    (gA := gOff (pkg_id.{pkg}.cmd.{n} :: bootS1) (getIsPkgInit (GF := {GF})))
-    (gB := gOff bootS1 (getIsPkgInit (GF := {GF}))) (gC := getIsPkgInit (GF := {GF}))
-    (hA := gOff_off _ _ _ (by decide)) (hAB := gOff_sub _ _ _ (by decide)) (heq := rfl) $$ [Hown] HΦ
+    (gA := {tp}gOff (pkg_id.{pkg}.cmd.{n} :: {tp}bootS1) (getIsPkgInit (GF := {GF})))
+    (gB := {tp}gOff {tp}bootS1 (getIsPkgInit (GF := {GF}))) (gC := getIsPkgInit (GF := {GF}))
+    (hA := {tp}gOff_off _ _ _ (by decide)) (hAB := {tp}gOff_sub _ _ _ (by decide)) (heq := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro Hown
   try wp_auto
-  wp_apply boot_{short} kitG $$ Hown as ⟨Hown, #Hd, HR⟩
+  wp_apply {boot} kitG $$ Hown as ⟨Hown, #Hd, HR⟩
   try wp_auto
   iframe Hown HR
   isplitr
@@ -679,12 +681,22 @@ end {pkg}.cmd.{n}
 '''
 
 
-def boot_cmds_file(kit, kg):
-    b, pkg = kg['boot'], kg['lean_pkg']
-    short = pkg.rsplit('.', 1)[1]
-    ms = machines(kg)
+class _Cmd:
+    """An extra boot's command (`boots`' `cmds`): its name, as a machine's for the templates."""
+
+    def __init__(self, n, pkg):
+        self.n, self.pkg, self.id, self.i, self.k = n, pkg, None, None, None
+
+
+def boot_cmds_file(kit, kg, b=None):
+    # (an extra boot, `boots`: its commands `cmds`, its table's names qualified by `table_ns`, its
+    # boot lemma `boot` from the module `boot_import`)
+    b = b or kg['boot']
+    pkg = kg['lean_pkg']
+    short = b.get('table_pkg', pkg).rsplit('.', 1)[1]
+    ms = [_Cmd(n, pkg) for n in b['cmds']] if 'cmds' in b else machines(kg)
     imports = '\n'.join(f'public import Dsverify.Proof.{pkg}.cmd.{m.n}.PkgTable' for m in ms) + \
-        f'\npublic import Dsverify.Proof.{pkg}.BootLinked'
+        f'\npublic import {b.get("boot_import", f"Dsverify.Proof.{pkg}.BootLinked")}'
     o = [lean_header(kit) + BOOT_HEAD.format(doc=b['cmds_doc'].rstrip(), imports=imports)]
     o.append(lines(b['opens']).rstrip('\n') + '\n')
     if b.get('attributes'):
@@ -693,6 +705,7 @@ def boot_cmds_file(kit, kg):
     for m in ms:
         o.append(BOOT_CMD.format(
             pkg=pkg, n=m.n, short=short, GF=GF, variables=lines(sub(b['variables'], m)).rstrip('\n'),
+            tp=b.get('table_ns', ''), boot=b.get('boot', f'boot_{short}'),
             returns=b['returns'], Q=b['q'], qsep=b.get('q_sep', ' '),
             post=sub(b['post'], m).rstrip('\n')))
     o.append('end Perennial\n')
@@ -903,6 +916,11 @@ def generated(kit, kg):
     if 'boot' in kg:
         out[os.path.join('Dsverify', 'Proof', pp, 'BootTable.lean')] = boot_table_file(kit, kg)
         out[os.path.join('Dsverify', 'Proof', pp, 'BootCmdsLinked.lean')] = boot_cmds_file(kit, kg)
+    for b in kg.get('boots', []):
+        # an extra boot (commands of another package of the kit, with a table of their own)
+        out[os.path.join('Dsverify', 'Proof', b['table_pkg'].replace('.', '/'), 'BootTable.lean')] = \
+            boot_table_file(kit, kg, b)
+        out[os.path.join('Dsverify', 'Proof', pp, b['cmds_file'])] = boot_cmds_file(kit, kg, b)
     return out
 
 

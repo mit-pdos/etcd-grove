@@ -56,6 +56,13 @@ EXT = {
         ("Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link", "_root_.Perennial.EtcdGrove.remote.wp_ServeClient"),
     ("strconv.Atoi_dec", ""): ("Proof.strconv.Atoi_dec", "_root_.Perennial.EtcdGrove.strconv.Atoi_dec.wp_proof"),
 }
+# (hraft_robust) the disk's callees `durable.Read`/`durable.Write`: the part's bodied copy of durable
+# (etc/copy-part.py), proved over fsExt in its own Link, never the main tree's trusted durable, whose
+# modules declare the same names (the two must not meet in one cone)
+_DUR = "github_com.mit_pdos.etcd_grove.examples.lib.durable"
+for _f in ("Read", "Write"):
+    for _k in (f"EtcdGrove.{_DUR}.{_f}", f"{_DUR}.{_f}"):
+        EXT[(_k, "")] = (f"Dsverify.Proof.{_DUR}.Link", f"_root_.Perennial.EtcdGrove.durable.{_DUR}.wp_{_f}")
 
 NAME = hl.NAME
 PROOF_DECL = re.compile(r"^[ \t]*theorem\s+(" + NAME + r")\.wp_proof\b", re.M)
@@ -115,7 +122,8 @@ def path_of_module(mod):
 
 
 def result_vars(mod, result):
-    """The bound and ghost-state instance binders (`NaInvG`, `ThreadBoundLe`, `ReceiptBoundLe`) a
+    """The bound and ghost-state instance binders (`NaInvG`, `ThreadBoundLe`, `ReceiptBoundLe`, and
+    `go.BasicIntoValInj`, which the durable copy's results take: only theirs) a
     callee's result is stated under (its Link's section), if `mod` declares it as `theorem <result>`;
     the packages' `Assumptions` it takes are found from the kit's."""
     p = path_of_module(mod)
@@ -128,7 +136,9 @@ def result_vars(mod, result):
         n = m.group(1)
         if n == short or n == last or short.endswith("." + n):
             return [g for v in section_vars(t, m.start()) for g in (hl.binder_groups(v) or [])
-                    if re.match(r"\[\s*(?:[\w']+\s*:\s*)?(?:NaInvG|ThreadBoundLe|ReceiptBoundLe)\s+GF\b", g)]
+                    if re.match(r"\[\s*(?:[\w']+\s*:\s*)?(?:NaInvG|ThreadBoundLe|ReceiptBoundLe)\s+GF\b", g)
+                    or mod == f"Dsverify.Proof.{_DUR}.Link"
+                    and re.match(r"\[\s*(?:[\w']+\s*:\s*)?go\.BasicIntoValInj\s*\]", g)]
     return []
 
 
