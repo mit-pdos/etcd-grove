@@ -105,4 +105,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261125221737-2f6fcfff7e4b
