@@ -1162,6 +1162,46 @@ def raftImm (r : Loc) (i : SID) : IProp GF :=
 instance raftImm_persistent r i : Persistent (raftImm (GF := GF) r i) := by
   unfold raftImm; infer_instance
 
+/-! ### The stores' window families (hraft_robust, R3 Q2) -/
+
+/-- (hraft_robust) The log store write `op` that the pending step `p` at state `s` makes (its `StoreLogs`
+or `DeleteRange`; `False` for a step that is not a log write). -/
+def pendLogOk (s : SState) : Pend → LogOp → Prop
+  | .app es, op => op = .store (s.log.length + 1) es
+  | .cfg e _ _, op => op = .store (s.log.length + 1) [e]
+  | .fstore prev _ ents _ j _, op => op = .store (prev + j + 1) (ents.drop j)
+  | .trunc prev _ _ _ j, op => op = .del (prev + 1 + j) s.log.length
+  | .discard _, op => ∃ mx, op = .del 1 mx
+  | _, _ => False
+
+/-- (hraft_robust) The stable store write `op` that the pending step `p` at state `s` makes. -/
+def pendStOk (s : SState) : Pend → StableOp → Prop
+  | .vote _ _ _, op => op = .setU (go!"LastVoteTerm" : List w8) (W64 s.term)
+  | .term (.set t), op => op = .setU (go!"CurrentTerm" : List w8) (W64 t)
+  | .term .elect, op => op = .setU (go!"CurrentTerm" : List w8) (W64 (s.term + 1))
+  | _, _ => False
+
+/-- (hraft_robust) **Raft's window family for its log store** (`isLogStore`'s `Wl`): a write of the main
+goroutine lends `winRes` of the step it fires; the snapshot goroutine's compaction (`DeleteRange` up to the
+frontier) lends only the frontier's bound. (Pre-model writes, `BootstrapCluster` on a fresh disk: stage
+R5/the kit.) -/
+def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
+  iprop((∃ (s : SState) (p : Pend), ⌜pendLogOk s p op⌝ ∗ winRes γ rc i s p) ∨
+    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx))
+
+/-- (hraft_robust) **Raft's window family for its stable store** (`isStableStore`'s `Ws`): the vote's second
+write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
+def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
+  iprop((∃ (s : SState) (p : Pend), ⌜pendStOk s p op⌝ ∗ winRes γ rc i s p) ∨
+    (∃ vb : List w8, ⌜op = .set (go!"LastVoteCand" : List w8) vb⌝))
+
+/-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
+snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
+`latestDur` keeps). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
+def snapWin (γ : GNames) (rc : RCtx GF) (i : SID) (m : SnapshotMeta) (b : List w8) : IProp GF :=
+  iprop(latestOk γ rc (some (m, b)) ∗
+    (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
+
 /-- `isRaft`'s interface values and their contracts. (Stage 3: the log store over a partial map,
 not a `MonotonicLogStore`; the snapshot store `isSnapStore` with `io.EOF`'s value; the transport and
 the FSM with the FSMs' snapshot meaning `rc.snapP`.) -/
@@ -1563,46 +1603,6 @@ def leaderOwn (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) : IProp
       r.[Raft, go!"verifyCh"] ↦□ vch ∗
       [∗map] v ↦ _u ∈ NM, leaderNotifyEntry γ rc i T vch v) ∗
     r.[Raft, go!"leaderState"].[leaderState, go!"stepDown"] ↦ sd ∗ notifyChan sd)
-
-/-! ### The stores' window families (hraft_robust, R3 Q2) -/
-
-/-- (hraft_robust) The log store write `op` that the pending step `p` at state `s` makes (its `StoreLogs`
-or `DeleteRange`; `False` for a step that is not a log write). -/
-def pendLogOk (s : SState) : Pend → LogOp → Prop
-  | .app es, op => op = .store (s.log.length + 1) es
-  | .cfg e _ _, op => op = .store (s.log.length + 1) [e]
-  | .fstore prev _ ents _ j _, op => op = .store (prev + j + 1) (ents.drop j)
-  | .trunc prev _ _ _ j, op => op = .del (prev + 1 + j) s.log.length
-  | .discard _, op => ∃ mx, op = .del 1 mx
-  | _, _ => False
-
-/-- (hraft_robust) The stable store write `op` that the pending step `p` at state `s` makes. -/
-def pendStOk (s : SState) : Pend → StableOp → Prop
-  | .vote _ _ _, op => op = .setU (go!"LastVoteTerm" : List w8) (W64 s.term)
-  | .term (.set t), op => op = .setU (go!"CurrentTerm" : List w8) (W64 t)
-  | .term .elect, op => op = .setU (go!"CurrentTerm" : List w8) (W64 (s.term + 1))
-  | _, _ => False
-
-/-- (hraft_robust) **Raft's window family for its log store** (`isLogStore`'s `Wl`): a write of the main
-goroutine lends `winRes` of the step it fires; the snapshot goroutine's compaction (`DeleteRange` up to the
-frontier) lends only the frontier's bound. (Pre-model writes, `BootstrapCluster` on a fresh disk: stage
-R5/the kit.) -/
-def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
-  iprop((∃ (s : SState) (p : Pend), ⌜pendLogOk s p op⌝ ∗ winRes γ rc i s p) ∨
-    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx))
-
-/-- (hraft_robust) **Raft's window family for its stable store** (`isStableStore`'s `Ws`): the vote's second
-write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
-def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
-  iprop((∃ (s : SState) (p : Pend), ⌜pendStOk s p op⌝ ∗ winRes γ rc i s p) ∨
-    (∃ vb : List w8, ⌜op = .set (go!"LastVoteCand" : List w8) vb⌝))
-
-/-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
-snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
-`latestDur` keeps). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
-def snapWin (γ : GNames) (rc : RCtx GF) (i : SID) (m : SnapshotMeta) (b : List w8) : IProp GF :=
-  iprop(latestOk γ rc (some (m, b)) ∗
-    (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
 
 end defs
 
