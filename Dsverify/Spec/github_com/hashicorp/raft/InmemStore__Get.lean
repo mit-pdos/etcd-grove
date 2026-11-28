@@ -35,15 +35,17 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 open github_com.hashicorp.raft in
 /-- `i.Get(key)`: `(val, nil)` for a stored `val`, else `(nil, errors.New("not found"))`. -/
 abbrev github_com.hashicorp.raft.InmemStore.Get.spec : Prop :=
-  ∀ (γs : InmemNames) (i : Loc) (st : StableAbs) (key : GoSlice) (kb : List w8) (tid : Nat),
+  ∀ (γs : InmemNames) (i : Loc) (key : GoSlice) (kb : List w8) (tid : Nat),
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
-      kvView γs st ∗ key ↦*□ kb ∗ rtok tid) -∗
-    (kvView γs st -∗ rtok tid -∗
-      ((∀ vb, ⌜st.bytes.lookup kb = some vb⌝ -∗
-          ∀ s : GoSlice, s ↦*□ vb -∗ Φ (PairV #s #interface.nil)) ∧
-       (⌜∀ vb, st.bytes.lookup kb = some vb → vb = []⌝ -∗
-          ∀ err : GoInterface, isNotFoundErr err -∗ Φ (PairV #(Perennial.zero_val GoSlice) #err)))) -∗
+      key ↦*□ kb ∗ rtok tid) -∗
+    (|NC={⊤,∅}=> ▷ ∃ st, kvView γs st ∗
+      (kvView γs st ={∅,⊤}=∗ rtok tid -∗
+        ((∀ vb, ⌜st.bytes.lookup kb = some vb⌝ -∗
+            ∀ s : GoSlice, s ↦*□ vb -∗ Φ (PairV #s #interface.nil)) ∧
+         (⌜∀ vb, st.bytes.lookup kb = some vb → vb = []⌝ -∗
+            ∀ err : GoInterface, isNotFoundErr err -∗
+              Φ (PairV #(Perennial.zero_val GoSlice) #err))))) -∗
     WP (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"Get")) (Val #key))
       {{ Φ }}
 

@@ -201,8 +201,9 @@ theorem github_com.hashicorp.raft.InmemStore.StoreLogs.wp_proof :
   obtain ⟨Hk, Hinv⟩ := Hk
   have hkn : k = ptrs.length := by word
   subst hkn
-  iapply fupd_wp
-  imod HΦ with HAU
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc2 HAU with ⟨%L, HL, Hclose⟩
   ihave %HLeq := inmemLogs_agree γs _ L c.L $$ HL Hgl
   subst HLeq
@@ -213,6 +214,7 @@ theorem github_com.hashicorp.raft.InmemStore.StoreLogs.wp_proof :
   imod conc_update γs c { c with L := c.L.store first es, lo := low, lm := lm } $$ Hgc with Hgc
   imod Hclose $$ HL with HΦ
   imodintro
+  iframe Hnc
   ihave #Hpers' : (concPers (GF := GF) { c with L := c.L.store first es, lo := low, lm := lm }) $$ [Hpers]
   · unfold concPers
     iNamed Hpers

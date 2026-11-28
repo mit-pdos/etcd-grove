@@ -111,6 +111,7 @@ theorem github_com.hashicorp.raft.examples.snapstore.New.wp_proof
     github_com.hashicorp.raft.examples.snapstore.New.spec (GF := GF) (hG := hG) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
+
 end proof
 
 end Perennial

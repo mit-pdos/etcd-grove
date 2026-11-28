@@ -42,14 +42,16 @@ theorem github_com.hashicorp.raft.examples.snapstore.Store.List.wp_proof
   wp_apply wp_with_defer as %defer Hdefer
   wp_apply (lc := 1) wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iNamed HR
-  iapply fupd_wp
-  imod HAU with HAU
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  imod HAU $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc1 HAU with ⟨%old, Hown, Hclose⟩
   unfold ownLatest
   ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hown Hg
   subst Heq
   imod Hclose $$ Hown with HΦ
   imodintro
+  iframe Hnc
   wp_auto
   cases old with
   | none =>

@@ -29,7 +29,7 @@ id is `id`, else an error (`openPost`). -/
 abbrev github_com.hashicorp.raft.examples.snapstore.Store.Open.spec : Prop :=
   ∀ (st : Loc) (γ : GName) (eof : GoInterface) (id : GoString) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.snapstore ∗ isStore st γ eof ∗
-      (|={⊤,∅}=> ▷ ∃ old, ownLatest γ old ∗
+      (|NC={⊤,∅}=> ▷ ∃ old, ownLatest γ old ∗
         (ownLatest γ old ={∅,⊤}=∗ ∀ v : val, openPost old id eof v -∗ Φ v)) ⊢
     WP (App (Val (st @!! go.GoType.PointerType Store.ty @!! go!"Open")) (Val #id)) {{ Φ }}
 

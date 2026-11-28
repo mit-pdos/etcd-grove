@@ -171,7 +171,7 @@ def sinkSt (k : Loc) : Option (List w8) → IProp GF
 
 /-- The commit of a sink closed with `bs` (`isSnapStore`'s `Create`), its result `R`. -/
 def sinkCommit (γ : GName) (m : SnapshotMeta) (bs : List w8) (R : IProp GF) : IProp GF :=
-  iprop(|={⊤,∅}=> ▷ ∃ old, ownLatest γ old ∗ (ownLatest γ (newerSnap old m bs) ={∅,⊤}=∗ R))
+  iprop(|NC={⊤,∅}=> ▷ ∃ old, ownLatest γ old ∗ (ownLatest γ (newerSnap old m bs) ={∅,⊤}=∗ R))
 
 /-- The owner's state of the sink `k` as `isSink`'s `own`: `sinkSt`, and while open the commit `Cm`
 the client fixed at `Create`. -/

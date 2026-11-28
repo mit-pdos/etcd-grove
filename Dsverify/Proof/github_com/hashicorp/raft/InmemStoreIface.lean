@@ -39,6 +39,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **`*InmemStore` is a stable store**, its contents the view `kvView γs`. -/
 theorem inmem_isStableStore
     (wp_GetUint64 : github_com.hashicorp.raft.InmemStore.GetUint64.spec (GF := GF) (hG := hG))
@@ -48,7 +49,33 @@ theorem inmem_isStableStore
     (γs : InmemNames) (i : Loc) :
     isInmemStore (GF := GF) γs i ⊢
       isStableStore (interface.mk (go.GoType.PointerType InmemStore.ty) #i) (kvView γs) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  iintro #His
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft $$ [His]
+  · unfold isInmemStore; iNamed His; iexact Hinit
+  unfold isStableStore
+  isplitr
+  · imodintro
+    iintro %key %kb %tid %Φ #Hkey Htok HAU
+    iapply (wp_GetUint64 γs i key kb tid) $$ [Htok] HAU
+    iframe; iframe #
+  isplitr
+  · -- no window: `W` goes to the atomic update at once
+    imodintro
+    iintro %key %kb %v %W %Φ #Hkey HW HAU
+    iapply (wp_SetUint64 γs i key kb v) $$ [] [HW HAU]
+    · iframe #
+    · iapply HAU $$ HW
+  isplitr
+  · imodintro
+    iintro %key %kb %tid %Φ #Hkey Htok HAU
+    iapply (wp_Get γs i key kb tid) $$ [Htok] HAU
+    iframe; iframe #
+  · imodintro
+    iintro %key %vs %kb %vb %W %Φ #Hkey #Hvs HW HAU
+    iapply (wp_Set γs i key vs kb vb) $$ [] [HW HAU]
+    · iframe #
+    · iapply HAU $$ HW
+-/
 
 /-- **`*InmemSnapshotStore` is a snapshot store** (no snapshot). -/
 theorem inmem_isSnapshotStore

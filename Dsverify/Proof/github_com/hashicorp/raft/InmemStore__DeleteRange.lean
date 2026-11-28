@@ -88,8 +88,109 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 open github_com.hashicorp.raft proto
 
 theorem github_com.hashicorp.raft.InmemStore.DeleteRange.wp_proof :
-    github_com.hashicorp.raft.InmemStore.DeleteRange.spec (GF := GF) (hG := hG) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+    github_com.hashicorp.raft.InmemStore.DeleteRange.spec (GF := GF) (hG := hG) :=
+  fun γs i mn mx => by
+  wp_start as ⟨#His, %Hmn⟩
+  iNamed His
+  wp_auto
+  wp_apply (lc := 2) wp_with_defer as %defer Hdefer
+  irename i => Hrcv
+  irename max => Hmax
+  irename min => Hmin
+  generalize i_ptr = iptr at *
+  generalize max_ptr = mxp at *
+  generalize min_ptr = mnp at *
+  wp_apply (sync.RWMutex.wp_Lock_guard (i.[InmemStore, go!"l"]) (storeInv γs i)) $$ [$Hguard]
+    with ⟨Hlocked, HP⟩
+  imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HP with HP
+  icases (storeInv_unfold γs i 1).mp $$ HP with
+    ⟨%c, Hgc, Hlow, Hhigh, Hlogsf, Hlogs, Hkvf, Hkv, Hkvintf, Hkvint, Hgl, Hgk, %Hok, #Hpers⟩
+  ihave HI : (∃ (j : w64) (lm : GMap w64 Loc),
+      "j" ∷ j_ptr ↦ j ∗ "Hlogs" ∷ c.mlog ↦$ lm ∗ "%Hinv" ∷ ⌜delInv c.lm mn mx j lm⌝ : IProp GF)
+    $$ [j Hlogs]
+  · iexists mn, c.lm; iframe; ipureintro; exact delInv_init _ _ _
+  wp_for HI
+  wp_if_destruct
+  · wp_apply (wp_mapDelete c.mlog lm j go.uint64 (go.GoType.PointerType Log.ty)) $$ [$Hlogs]
+      with Hlogs
+    wp_for_post
+    iframe
+    iexists _, _
+    iframe
+    ipureintro
+    exact delInv_step _ _ _ _ _ Hinv (by word)
+  wp_join iprop(∃ low1 : w64, i.[InmemStore, go!"lowIndex"] ↦ low1 ∗
+      mnp ↦ mn ∗ mxp ↦ mx ∗ iptr ↦ i) with [Hlow Hmin Hmax Hrcv]
+    as ⟨%low1, Hlow, Hmin, Hmax, Hrcv⟩
+  wp_join iprop(∃ high1 : w64, i.[InmemStore, go!"highIndex"] ↦ high1 ∗
+      mnp ↦ mn ∗ mxp ↦ mx ∗ iptr ↦ i) with [Hhigh Hmin Hmax Hrcv]
+    as ⟨%high1, Hhigh, Hmin, Hmax, Hrcv⟩
+  wp_join iprop(∃ low2 high2 : w64, i.[InmemStore, go!"lowIndex"] ↦ low2 ∗
+      i.[InmemStore, go!"highIndex"] ↦ high2 ∗ iptr ↦ i) with [Hlow Hhigh Hrcv]
+    as ⟨%low2, %high2, Hlow, Hhigh, Hrcv⟩
+  -- the linearization point
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
+  imod lc_fupd_elim_later (E := ∅) $$ Hlc2 HAU with ⟨%L, HL, Hclose⟩
+  ihave %HLeq := inmemLogs_agree γs _ L c.L $$ HL Hgl
+  subst HLeq
+  have hmap := delInv_exit c.lm mn mx j lm Hinv (by word) Hmn
+  let L' : LogAbs := c.L.delete (uint.nat mn) (uint.nat mx) high2
+  have hdel : ∀ k, L'.m.lookup k =
+      if uint.nat mn ≤ k ∧ k ≤ uint.nat mx then none else c.L.m.lookup k := by
+    intro k
+    show (GMap.filter _ c.L.m) !! k = _
+    rw [GMap.lookup_filter]
+    by_cases hr : uint.nat mn ≤ k ∧ k ≤ uint.nat mx
+    · rw [if_pos hr]; cases c.L.m !! k <;> simp [Option.filter, hr]
+    · rw [if_neg hr]; cases hc : c.L.m !! k <;> simp [Option.filter, hr]
+  imod inmemLogs_update γs c.L c.L L' $$ HL Hgl with ⟨HL, Hgl⟩
+  imod conc_update γs c { c with L := L', lo := low2, lm := lm } $$ Hgc with Hgc
+  imod Hclose $$ HL with HΦ
+  imodintro
+  iframe Hnc
+  ihave #Hpers' : (concPers (GF := GF) { c with L := L', lo := low2, lm := lm })
+    $$ [Hpers]
+  · unfold concPers
+    iNamed Hpers
+    isplitl
+    · imodintro
+      iintro %key %q %Hq
+      dsimp only at Hq ⊢
+      rw [hmap key] at Hq
+      by_cases hr : uint.nat mn ≤ uint.nat key ∧ uint.nat key ≤ uint.nat mx
+      · rw [if_pos hr] at Hq; cases Hq
+      · rw [if_neg hr] at Hq
+        icases Hplogs $$ %key %q %Hq with ⟨%e, %He, Hl⟩
+        iexists e
+        isplit
+        · ipureintro; rw [hdel, if_neg hr]; exact He
+        · iexact Hl
+    · iexact Hpkv
+  wp_apply (sync.RWMutex.wp_Unlock_guard (i.[InmemStore, go!"l"]) (storeInv γs i))
+    $$ [$Hlocked Hgc Hlow Hhigh Hlogsf Hlogs Hkvf Hkv Hkvintf Hkvint Hgl Hgk]
+  · inext
+    iapply (storeInv_unfold γs i 1).mpr
+    iexists { c with L := L', lo := low2, lm := lm }
+    dsimp only
+    iframe
+    iframe #
+    ipureintro
+    refine ⟨?_, ?_, Hok.2.2⟩
+    · intro k hk
+      rw [hdel] at hk
+      by_cases hr : uint.nat mn ≤ k ∧ k ≤ uint.nat mx
+      · rw [if_pos hr] at hk; cases hk
+      · rw [if_neg hr] at hk; exact Hok.1 k hk
+    · intro key
+      dsimp only
+      rw [hmap key, hdel]
+      by_cases hr : uint.nat mn ≤ uint.nat key ∧ uint.nat key ≤ uint.nat mx
+      · rw [if_pos hr, if_pos hr]; exact Iff.rfl
+      · rw [if_neg hr, if_neg hr, Hok.2.1 key]
+  iapply HΦ
+
 
 end proof
 

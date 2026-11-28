@@ -1050,13 +1050,34 @@ def pendHyps (γ : GNames) (i : SID) (s : SState) : Pend → IProp GF
   | .vote c li lt => candIs γ c s.term li lt
   | .term tp => tpRes γ (some tp)
 
+/-- (hraft_robust, R2) A quarter of the main goroutine's view of its state (`srvV` is two of them). -/
+def srvVq (rc : RCtx GF) (s : SState) : IProp GF :=
+  ghostVar rc.dur.sv (1 : Qp).half.half (s, (none : Option TermPend), (none : Option DiscPend))
+
+/-- (hraft_robust, R2) A quarter of the main goroutine's stable-store view (`stVS` is two of them). -/
+def stVq (rc : RCtx GF) (D : StableAbs) (g : w64) : IProp GF := ghostVar rc.dur.st (1 : Qp).half.half (D, g)
+
+/-- (hraft_robust, R2) What a crash needs of a write's surviving image, beyond the step's premises: a log
+write makes the staged commit index (written with it) durable (for a follower's append that learns a
+commit, at most the commit it learns); the vote's second write finds the candidate stored by its first. -/
+def winPure (s : SState) (D : StableAbs) (g : w64) : Pend → Prop
+  | .app _ => uint.nat g ≤ s.dur.1
+  | .cfg _ _ _ => uint.nat g ≤ s.dur.1
+  | .fstore _ _ _ lci _ lc => (lc = none → uint.nat g ≤ s.dur.1) ∧
+      (∀ v, lc = some v → uint.nat g ≤ Min.min lci v)
+  | .vote c _ _ => D.bytes.lookup (go!"LastVoteCand" : List w8) = some c
+  | _ => True
+
 /-- (hraft_robust L0, R1 §3) **The window resource of a write that fires `p`** at the state `s` (a
-parameter, so that the writer knows the view it gets back is of its own `s`; the crash law and a store's
-window take `∃ s p`): the main goroutine's view of `s` (lent to the store, so `s` is frozen in the window: only the main goroutine
+parameter; the crash law and a store's window take `∃ s p`): a quarter of the main goroutine's views of
+`s` and of the stable store (R2: the writer keeps the other quarters, so the window it gets back agrees
+with its own `s`, `D`, `g`), the facts a crash needs of the surviving image (`winPure`), and the main
+goroutine's view of `s` (lent to the store, so `s` is frozen in the window: only the main goroutine
 changes it), and the law's premises over `s`. The write's caller lends it (the contracts' `W`); the
 write's atomic update gives it back, and the store's crash lemma, if the new contents survived. -/
 def winRes (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (p : Pend) : IProp GF :=
-  iprop(srvV rc s ∗ pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
+  iprop(srvVq rc s ∗ (∃ (D : StableAbs) (g : w64), stVq rc D g ∗ ⌜winPure s D g p⌝) ∗
+    pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
 
 /-- (stage 3) **The FSM goroutine's answer to a snapshot request** `f` (`fsmSnapshotCh`): nil with the
 request's fields set to the FSM's position `x ≥ 1` (the end of an item it processed, `batchEnd`), its
@@ -1162,15 +1183,55 @@ def raftImm (r : Loc) (i : SID) : IProp GF :=
 instance raftImm_persistent r i : Persistent (raftImm (GF := GF) r i) := by
   unfold raftImm; infer_instance
 
+/-! ### The stores' window families (hraft_robust, R3 Q2) -/
+
+/-- (hraft_robust) The log store write `op` that the pending step `p` at state `s` makes (its `StoreLogs`
+or `DeleteRange`; `False` for a step that is not a log write). -/
+def pendLogOk (s : SState) : Pend → LogOp → Prop
+  | .app es, op => op = .store (s.log.length + 1) es
+  | .cfg e _ _, op => op = .store (s.log.length + 1) [e]
+  | .fstore prev _ ents _ j _, op => op = .store (prev + j + 1) (ents.drop j)
+  | .trunc prev _ _ _ j, op => op = .del (prev + 1 + j) s.log.length
+  | .discard _, op => ∃ mx, op = .del 1 mx
+  | _, _ => False
+
+/-- (hraft_robust) The stable store write `op` that the pending step `p` at state `s` makes. -/
+def pendStOk (s : SState) : Pend → StableOp → Prop
+  | .vote _ _ _, op => op = .setU (go!"LastVoteTerm" : List w8) (W64 s.term)
+  | .term (.set t), op => op = .setU (go!"CurrentTerm" : List w8) (W64 t)
+  | .term .elect, op => op = .setU (go!"CurrentTerm" : List w8) (W64 (s.term + 1))
+  | _, _ => False
+
+/-- (hraft_robust) **Raft's window family for its log store** (`isLogStore`'s `Wl`): a write of the main
+goroutine lends `winRes` of the step it fires; the snapshot goroutine's compaction (`DeleteRange` up to the
+frontier) lends only the frontier's bound. (Pre-model writes, `BootstrapCluster` on a fresh disk: stage
+R5/the kit.) -/
+def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
+  iprop((∃ (s : SState) (p : Pend), ⌜pendLogOk s p op⌝ ∗ winRes γ rc i s p) ∨
+    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx))
+
+/-- (hraft_robust) **Raft's window family for its stable store** (`isStableStore`'s `Ws`): the vote's second
+write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
+def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
+  iprop((∃ (s : SState) (p : Pend), ⌜pendStOk s p op⌝ ∗ winRes γ rc i s p) ∨
+    (∃ vb : List w8, ⌜op = .set (go!"LastVoteCand" : List w8) vb⌝))
+
+/-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
+snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
+`latestDur` keeps). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
+def snapWin (γ : GNames) (rc : RCtx GF) (i : SID) (m : SnapshotMeta) (b : List w8) : IProp GF :=
+  iprop(latestOk γ rc (some (m, b)) ∗
+    (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
+
 /-- `isRaft`'s interface values and their contracts. (Stage 3: the log store over a partial map,
 not a `MonotonicLogStore`; the snapshot store `isSnapStore` with `io.EOF`'s value; the transport and
 the FSM with the FSMs' snapshot meaning `rc.snapP`.) -/
 def raftIfaces (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   iprop(∃ (logsI stableI snapsI transI fsmI : GoInterfaceOk) (rpcCh : Loc) (eof : GoInterface),
-    r.[Raft, go!"logs"] ↦□ (GoInterface.ok logsI) ∗ isLogStore logsI rc.ownL ∗
+    r.[Raft, go!"logs"] ↦□ (GoInterface.ok logsI) ∗ isLogStore logsI rc.ownL (logWin γ rc i) ∗
     ⌜go.typeSetContains logsI.ty MonotonicLogStore.ty = false⌝ ∗
-    r.[Raft, go!"stable"] ↦□ (GoInterface.ok stableI) ∗ isStableStore stableI rc.ownS ∗
-    r.[Raft, go!"snapshots"] ↦□ (GoInterface.ok snapsI) ∗ isSnapStore snapsI rc.ownSS eof ∗
+    r.[Raft, go!"stable"] ↦□ (GoInterface.ok stableI) ∗ isStableStore stableI rc.ownS (stWin γ rc i) ∗
+    r.[Raft, go!"snapshots"] ↦□ (GoInterface.ok snapsI) ∗ isSnapStore snapsI rc.ownSS eof (snapWin γ rc i) ∗
     globalAddr io.EOF ↦□ eof ∗
     r.[Raft, go!"trans"] ↦□ (GoInterface.ok transI) ∗ isTransport transI γ rc.snapP i rpcCh ∗
     ⌜go.typeSetContains transI.ty WithPreVote.ty = true⌝ ∗

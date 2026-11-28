@@ -32,6 +32,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **`*InmemStore` is a log store**, its contents `inmemLogs γs`. -/
 theorem inmem_isLogStore
     (wp_LastIndex : github_com.hashicorp.raft.InmemStore.LastIndex.spec (GF := GF) (hG := hG))
@@ -43,7 +44,49 @@ theorem inmem_isLogStore
     (γs : InmemNames) (i : Loc) :
     isInmemStore (GF := GF) γs i ⊢
       isLogStore (interface.mk (go.GoType.PointerType InmemStore.ty) #i) (inmemLogs γs) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  iintro #His
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft $$ [His]
+  · unfold isInmemStore; iNamed His; iexact Hinit
+  unfold isLogStore
+  isplitr
+  · imodintro
+    iintro %tid %Φ Htok HAU
+    iapply (wp_LastIndex γs i tid) $$ [Htok] HAU
+    iframe; iframe #
+  isplitr
+  · imodintro
+    iintro %tid %Φ Htok HΦ
+    iapply (wp_FirstIndex γs i tid) $$ [Htok] HΦ
+    iframe; iframe #
+  isplitr
+  · imodintro
+    iintro %idx %ptr %lv0 %tid %Φ Hptr Htok HAU
+    iapply (wp_GetLog γs i idx ptr lv0 tid) $$ [Hptr Htok] HAU
+    iframe; iframe #
+  isplitr
+  · -- no window: `W` goes to the atomic update at once
+    imodintro
+    iintro %sl %dq %ptrs %first %es %W %Φ %Hlen Hsl Hptrs HW HAU
+    iapply (wp_StoreLogs γs i sl dq ptrs first es) $$ [Hsl Hptrs] [HW HAU]
+    · iframe; iframe #; ipureintro; exact ⟨Hlen.1, by omega⟩
+    · iapply HAU $$ HW
+  isplitr
+  · imodintro
+    iintro %p %first %e %W %Φ %Hf #Hp HW HAU
+    iapply (wp_StoreLog γs i p first e) $$ [] [HW HAU]
+    · iframe #; ipureintro; exact Hf
+    · iapply HAU $$ HW
+  isplitr
+  · imodintro
+    iintro %mn %mx %W %Φ %Hmx HW HAU
+    iapply (wp_DeleteRange γs i mn mx) $$ [] [HW HAU]
+    · iframe #; ipureintro; exact Hmx
+    · iapply HAU $$ HW
+  · -- `*InmemStore` is not a `CommitTrackingLogStore`
+    ileft
+    ipureintro
+    go_type_set
+-/
 
 end iface
 

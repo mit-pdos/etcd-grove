@@ -27,9 +27,9 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 /-- `(*Raft).restoreSnapshot`: (stage 3) a fresh snapshot store (`isSnapStore`, latest none): `List`
 returns none, nothing is restored; returns nil. -/
 abbrev github_com.hashicorp.raft.Raft.restoreSnapshot.spec : Prop :=
-  ∀ (r : Loc) (x : GoInterfaceOk) (ownSS : SnapLatest → IProp GF) (eof : GoInterface) (tid : Nat),
+  ∀ (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Qc : SnapshotMeta → List w8 → IProp GF) (r : Loc) (x : GoInterfaceOk) (ownSS : SnapLatest → IProp GF) (eof : GoInterface) (tid : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗
-     r.[Raft, go!"snapshots"] ↦□ (GoInterface.ok x) ∗ isSnapStore x ownSS eof ∗ ownSS none ∗
+     r.[Raft, go!"snapshots"] ↦□ (GoInterface.ok x) ∗ isSnapStore x ownSS eof Qc ∗ ownSS none ∗
      rtok tid }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"restoreSnapshot")) (Val #()))
   {{ RET #interface.nil; ownSS none ∗ rtok tid }}
