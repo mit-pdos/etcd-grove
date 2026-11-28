@@ -14,6 +14,7 @@ round 13).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MemRel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MemView
 
 @[expose] public section
 
@@ -106,6 +107,44 @@ theorem memNode_of (hs : AntSimD R dec S V net xnet) (hok : MemOk R dec S V G n 
     refine ⟨j1, j2, j3, fun h => absurd h (by rw [ha]; decide), ?_, fun h => absurd h (by rw [ha]; decide)⟩
     show ∀ j ∈ (V n).jobs, _
     rw [hj]; intro j hj'; cases hj'
+
+/-- **A `-parallel` leader's own part after its `mem`, over the node-local context** (`memNode_of`
+with its kind-independent premises discharged by `memView_of`: `AfterOk` from `afterOk_loc` at the run
+with the driver modes off and `liftC`; `CandLt` and `VoteSelf` from the leader's role; the requests
+first): the kind-dependent premises left are the handed-out entries a prefix of the disk, the term
+grown, the leader's part, the self-acknowledgement and the recorded commit. -/
+theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM → CCState → Prop}
+    (hin : InMask msk R net xnet) (hs : AntSimD R dec S V net xnet) (hok : MemOk R dec S V G n r c)
+    {r₁ : RState} {rd : ReadyD} (hx : LdCtx R.syncOff dec V net xnet G n r₁ rd S)
+    (ha : R.md.async = false) (hpar : R.drv.parallel = true)
+    (hm : (V n).mems = []) (hpar0 : (V n).parts = []) (htold : Told (V n))
+    (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hrl : rd.role = .leader)
+    (hpfx : (V n).delivered ++ rd.ce <+: (V n).dur.log)
+    (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term)
+    (hLP : LeaderPartD (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) n
+      (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))))
+    (hqs : ∀ q ∈ rd.qs,
+      QsOk R (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) n
+        (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))) q ∨
+      QsAckW n (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))) q)
+    (hMC : MemCommitOk (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i)
+      (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q)))) :
+    NodeOkD R dec (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) net n
+      (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))) := by
+  have hro := hx.hro
+  have hrl1 : r₁.p.role = .leader := hro.1.symm.trans hrl
+  have hcl : CandLt r₁.p := fun hc => by rw [hrl1] at hc; cases hc
+  have hP : ∀ q, q ∈ rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q) ↔ q ∈ rd.msgs :=
+    fun q => by
+      simp only [List.mem_append, List.mem_filter]
+      cases isReqM q <;> simp
+  have hA := afterOk_loc (SimMask.b1Of_le hmsk) hin.syncOff hx.hnet (nodeOk_liftC hx.hq0 hx.hv)
+    hr.syncOff hro
+  obtain ⟨hNF, hCL, hpend, hxpend, hlead, hDF⟩ :=
+    memView_of (P := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q)) hA
+      (hs.2.2.2.2 n).2.2.2.2.2.2.2.1 hpar0 hro hx.hsn hP hpfx hterm hcl
+  exact memNode_of hs hok ha hpar hm htold hrl1 hNF hCL hLP (fun _ => hpend) hxpend hqs hlead
+    (fun h => hx.hvs1 h) hDF hMC
 
 end main
 

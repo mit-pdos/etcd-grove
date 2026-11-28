@@ -123,10 +123,10 @@ theorem xnetOkD_toB1 {R : RunCfg} {S : AntCheck.State} {xnet : List XMsg} (h : X
 theorem nodeFactsD_toB1 {R : RunCfg} {n : Fin R.N} {v : NodeView} (hs : SyncB1 R)
     (hm : v.mems = []) (hp : v.parts = [])
     (h : NodeFactsD R n v) : NodeFacts R n v := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, -⟩ := h
   have h6' := h6 hs.1
   rw [hm, hp] at h6'
-  exact ⟨h1 hs.2.1, h2, h3, h4, h5, h6', h7⟩
+  exact ⟨h1 hs.2.1, h2, h3, h4, h5, h6', h7, h8, h9, h10, h11, h12, h13, h14, h15⟩
 
 theorem nodeOkD_toB1 {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N}
     {v : NodeView} (hs : SyncB1 R) (hpa : v.parts = [])

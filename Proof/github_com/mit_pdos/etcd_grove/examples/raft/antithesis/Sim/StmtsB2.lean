@@ -112,12 +112,20 @@ def splitParts (d : DurW) (rd : ReadyD) (base : MemRec) : List MemRec :=
 
 /-! ## The relation (C1-C4 with the B2 modes) -/
 
+/-- **A candidate's log is of earlier terms**: every entry of a candidate's log is of a term below
+its own (its campaign raised the term above the log's, and only a non-candidate adds entries). What a
+win's `LeaderConfOkD` reads: the disk holds no entry of the new leader's term before its win's write
+(#33 parity B2, Sim round 14, lead-approved). -/
+def CandLt (s : PState) : Prop :=
+  s.role = .candidate → ∀ e ∈ s.log, uint.Z e.Term' < uint.Z s.term
+
 /-- **C1, raft's side, B2** (`NodeFacts` with two conjuncts guarded): raft's outbox is empty between
 `Ready`s only when not batching (a batching node takes several inputs before its `Ready`); what was
 handed out is within the disk's commit only in sync mode (async: the apply goroutine may hand out
 entries whose commit is not yet written; they are within the binding's `chain`, `ApplyChainOk`),
 and sync, within the commit of the disk with the announced writes made (a `-parallel` leader's `mem`
-announces a commit its write makes later; #33 B2 round 11). The other conjuncts are `NodeFacts`'. -/
+announces a commit its write makes later; #33 B2 round 11). The other conjuncts are `NodeFacts`', and
+a candidate's log of earlier terms (`CandLt`, Sim round 14). -/
 def NodeFactsD (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   (R.drv.batch = false → v.ps.outbox = []) ∧
   (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
@@ -135,7 +143,7 @@ def NodeFactsD (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
     (R.md.confChanges = false → EntsNormal p.2)) ∧
   (v.ps.role = .leader → ∀ q ∈ v.ps.rd.ro.pending, (q.src = W64 0 ∨ ∃ j : Fin R.N, q.src = nodeId j) ∧
     (R.md.confChanges = false → EntsNormal q.ents)) ∧
-  ReadOk v.ps ∧ v.ps.rd.states = []
+  ReadOk v.ps ∧ v.ps.rd.states = [] ∧ CandLt v.ps
 
 /-- **A leader's confirmation, B2**: once the disk holds raft's whole log (sync) or an entry of the
 leader's term (its win's write is announced), its `confirmed` is at its term and covers the disk's

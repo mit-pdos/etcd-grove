@@ -187,10 +187,11 @@ theorem nodeOkD_syncOff {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} 
     (hp0 : v.parts = []) (hd : v.dur = durOf v.r) (hu : v.undo ≠ none → v.made = false)
     (h : NodeOkD R dec S net n v) : NodeOk R.syncOff dec S net n v := by
   obtain ⟨d1, d2, -, d4, d5, d6, d7, hf, hl, hc, hp, -, hx, hqs, ht, hca, hxc, hlo, hvs, -⟩ := h
-  obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := hf
+  obtain ⟨f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, -⟩ := hf
   have f6' := f6 ha
   rw [hm, hp0] at f6'
-  refine ⟨d1, d2, fun _ _ _ _ => ⟨hm, hd, hu⟩, d4, d5, d6, d7, ⟨f1 hb, f2, f3, f4, f5, f6', f7⟩,
+  refine ⟨d1, d2, fun _ _ _ _ => ⟨hm, hd, hu⟩, d4, d5, d6, d7,
+    ⟨f1 hb, f2, f3, f4, f5, f6', f7, f8, f9, f10, f11, f12, f13, f14, f15⟩,
     fun hrl => ?_, fun hrc => ?_, hp hb, hx, fun q hq => (hqs q hq).resolve_right fun hw => hw.2.2.2.2.2.2.1 hm,
     ht, hca, hxc, hlo, hvs⟩
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hl hrl
@@ -227,12 +228,14 @@ theorem nodeOk_syncOffD {R : RunCfg} {dec : CCDec} {S0 : State} {net : List Msg}
     {v w : NodeView} (ha : R.md.async = false) (hb : R.drv.batch = false)
     (hpar : R.drv.parallel = true) (hm : v.mems = []) (hdu : v.dur = w.dur) (hun : v.undo = w.undo)
     (hp0 : v.parts = []) (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w) (hbo : BindingOkM R dec S0)
+    (hcl : CandLt v.ps)
     (h : NodeOk R.syncOff dec (stripU n S0) net n v) : NodeOkD R dec (stripU n S0) net n v := by
   obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hp, hx, hqs, ht, hca, hxc, hlo, hvs⟩ := h
   have hd : v.dur = durOf v.r := (d3 ha rfl rfl rfl).2.1
-  obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := hf
+  obtain ⟨f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15⟩ := hf
   refine ⟨d1, d2, fun _ _ _ hp0 => (by rw [hpar] at hp0; cases hp0), d4, d5, d6, d7,
-    ⟨fun _ => f1, f2, f3, f4, f5, fun _ => by rw [hm, hp0]; exact f6, f7⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
+    ⟨fun _ => f1, f2, f3, f4, f5, fun _ => by rw [hm, hp0]; exact f6, f7, f8, f9, f10, f11, f12, f13, f14,
+      f15, hcl⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
     fun hb' => (by rw [hb] at hb'; cases hb'), hx, fun q hq => .inl (hqs q hq), ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_,
     fun _ _ => (d3 ha rfl rfl rfl).2.2, (memCommitOk_of_disk (S := S0) hbo d1 hd :)⟩
   · obtain ⟨l1, l2, l3, l4, l5, l6⟩ := hl hrl
@@ -285,7 +288,7 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
         (setV V n { ((V n).drainOf r₁ rd) with
           pend := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q) })
         net xnet := by
-  intro R dec S V net xnet G n r₁ rd Adm hin hs _ _ ha hb hpar hm hparts hr hrop _ _ hrep _
+  intro R dec S V net xnet G n r₁ rd Adm hin hs _ _ ha hb hpar hm hparts hr hrop hrl _ hrep _
   obtain ⟨hsh, hbd, hn, hxn, hno⟩ := hs
   have hv := hno n
   have hu : (V n).undo ≠ none → (V n).made = false :=
@@ -306,7 +309,10 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
     (nodeOk_quiet (SimMask.b1Of_le hmsk) hin.syncOff hsh.1
       (netOkD_toB1L ha hsh.2.2.2.2.2.1 (netOkD_stripU n hn)) hv' hq)
   have h2 : NodeOkD R dec S net n ((V n).drainOf r₁ rd) := nodeOkD_unstripU hb
-    (nodeOk_syncOffD ha hb hpar hm rfl rfl hparts ((hjo.1 ha).1) ((hjo.1 ha).2) huf hbd.1 h1)
+    (nodeOk_syncOffD ha hb hpar hm rfl rfl hparts ((hjo.1 ha).1) ((hjo.1 ha).2) huf hbd.1
+      (fun hc => by
+        have hc' : r₁.p.role = .candidate := hc
+        rw [hrop.1, hc'] at hrl; cases hrl) h1)
   have h3 := nodeOkD_pendPerm (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))
     (fun q => by
       show q ∈ _ ↔ q ∈ rd.msgs
