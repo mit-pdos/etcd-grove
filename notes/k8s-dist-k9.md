@@ -289,3 +289,25 @@ Build of record: below ("Handoff K9-1").
 **Estimate: 4-6 sessions**, plus a short Go session for G11-G13 and the re-translation (they do not block
 step 1: `histHashes`, `skipTo`, `settle` and `cfgSet` are untouched by them). Builds are moderate: the
 etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
+
+## Handoff K9-1 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Scope done**: §1 lists the functions (about 700 Go lines), §2 drafts their specs in Lean, §4 gives the
+  order and the estimate (4-6 sessions, plus a Go session for G11-G13). **G11** (an unlocked `memo` map in a
+  persistent `Step`), **G12** (`crossCheck`, a package variable read in program code) and **G13**
+  (`sort.Slice` has no spec) are Go changes K9 needs before it can prove `stepIdx` and `HistoryRevs`. They
+  are not made yet and need a KGO session. They do not block step 1 (the hub).
+- **K4 tweaks** (`361664181e`, §3): `OpAnchors`'s watch clause is now `e.t < 4`, and `SettleL.land` now
+  requires `l < 2 ^ 64`. Neither is a top-level statement.
+  Build of record: BUILD1_RESULT.
+- **`SharedGo.lean`** (`bd99e48765`, pure): `SettleWith`/`SearchRunWith` (K4's search with any landings),
+  `SearchRunN` + `fullCompleteN` (K4's run starts each operation at or above the seed's revision), and
+  `searchRunN_with` (K4's run is a run with any landings that contain K4's). **Not built yet**: the coordinator
+  stopped the session before its build. The next session builds it first, target
+  `Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedGo`, on fk-lean2 with
+  `/shared/tmp/fklean1-check.sh`. Likely fixes: the `rcases`/`word` chain in `kstepL_rv_ge`, and whether
+  `induction` regeneralizes `hn` in `settleL_with`.
+- **No `sorry`** and no axiom on the branch.
+- **Next steps (K9-2)**: build `SharedGo`. Then the hub, §4 step 1: `SharedDefs.lean` (`HWf`, `RevsL`,
+  `hhOwn`, `sharedM`/`sharedS`), and the specs and proofs of `intern`, `canonLocked`, `canonical`,
+  `cfgSet.add`, `skipTo` and `settle`. Ask KGO for G11-G13.
