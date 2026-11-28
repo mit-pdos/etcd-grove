@@ -904,7 +904,7 @@ theorem github_com.hashicorp.raft.Raft.appendEntries.wp_proof
                 imod Hwin2 with ⟨HW, HAU⟩
                 have hmn : uint.nat lv.Index' = prev + 1 + sint.nat k := Hlvf.1
                 have hmx : uint.nat lx = ({ s with term := T } : SState).log.length := Hlxy.1
-                ihave HW' : logWin γ rc i (LogOp.del (uint.nat lv.Index') (uint.nat lx)) $$ [HW]
+                ihave HW' : logWin γ rc i (LogOp.del true (uint.nat lv.Index') (uint.nat lx)) $$ [HW]
                 · rw [hmn, hmx]; iexact HW
                 wp_apply_core HdelRange $$ Hmn HW'
                 rw [hmn, hmx]
