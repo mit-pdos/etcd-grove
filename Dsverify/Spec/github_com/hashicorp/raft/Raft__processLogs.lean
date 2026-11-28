@@ -33,19 +33,17 @@ indexes `≤ a` are dropped. -/
 abbrev github_com.hashicorp.raft.Raft.processLogs.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (idx : w64) (fm : GoMap)
     (M : GMap w64 Loc) (s : SState) (a c : Nat) (tid : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ srvOwn γ i s ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ srvV rc s ∗
      ⌜uint.nat idx ≤ s.dur.1⌝ ∗
      fsmProd γ rc a ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
      monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗ rtok tid ∗
-     ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
      (⌜fm = null ∧ M = ∅⌝ ∨ fm ↦$ M) ∗
      ([∗map] k ↦ f ∈ M, ∃ e : Entry, futResp γ rc i f (uint.nat k) e ∗
         ⌜ent s.log (uint.nat k) = some e⌝) }}
     (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"processLogs")) (Val #idx)) (Val #fm))
-  {{ RET #(); srvOwn γ i s ∗ fsmProd γ rc (Max.max a (uint.nat idx)) ∗
+  {{ RET #(); srvV rc s ∗ fsmProd γ rc (Max.max a (uint.nat idx)) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half (Max.max a (uint.nat idx)) ∗
       monoNatAuthOwn rc.dur.comp 1 c ∗ rtok tid ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       (⌜fm = null⌝ ∨ fm ↦$ M) }}
 
 end spec

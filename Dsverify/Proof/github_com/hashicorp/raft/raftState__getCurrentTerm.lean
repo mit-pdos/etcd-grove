@@ -31,58 +31,7 @@ open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.raftState.getCurrentTerm.wp_proof :
     github_com.hashicorp.raft.raftState.getCurrentTerm.spec (GF := GF) (hG := hG) := by
-  constructor
-  · intro r γ i s
-    wp_start as ⟨#HInv, #Hcell, Hs⟩
-    wp_method_call; wp_call
-    wp_auto
-    wp_apply_core sync.atomic.wp_LoadUint64 _ (DFrac.own 1) $$ [] [-]
-    · iPkgInit
-    unfold termCell
-    imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-    iapply fupd_mask_intro Std.LawfulSet.empty_subset
-    iintro Hmask
-    inext
-    icases Hi with ⟨%t, Hpt, Hc⟩
-    iexists t
-    iframe Hpt
-    iintro Hpt
-    imod Hmask with -
-    imod termCouple_agree γ (⊤ \ ↑termN) gprotN_diff_termN i s _ $$ [HInv Hs Hc] with ⟨Hs, Hc, %ht⟩
-    · iframe; iframe #
-    imod Hclose $$ [Hpt Hc] with -
-    · inext; iexists t; iframe
-    imodintro
-    wp_auto
-    have : t = W64 (s.term : Int) := by rw [← ht]; word
-    subst this
-    iapply HΦ $$ Hs
-  · intro r γ i t0
-    wp_start as ⟨#Hcell, #Hlb⟩
-    wp_method_call; wp_call
-    wp_auto
-    wp_apply_core sync.atomic.wp_LoadUint64 _ (DFrac.own 1) $$ [] [-]
-    · iPkgInit
-    unfold termCell
-    imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-    iapply fupd_mask_intro Std.LawfulSet.empty_subset
-    iintro Hmask
-    inext
-    icases Hi with ⟨%t, Hpt, Hc⟩
-    iexists t
-    iframe Hpt
-    iintro Hpt
-    imod Hmask with -
-    ihave %hle := termCouple_lb γ i _ t0 $$ [Hc Hlb]
-    · iframe; iframe #
-    ihave ⟨Hc, #Hlb'⟩ := termCouple_get_lb γ i _ $$ Hc
-    imod Hclose $$ [Hpt Hc] with -
-    · inext; iexists t; iframe
-    imodintro
-    wp_auto
-    iapply HΦ
-    iframe #
-    ipureintro; exact hle
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 end proof
 

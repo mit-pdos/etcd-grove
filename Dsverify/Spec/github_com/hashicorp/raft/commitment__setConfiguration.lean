@@ -31,12 +31,12 @@ the lock, the match indexes become those of `c`'s voters (the kept ones' values 
 of `s.term`), the commitment counts the latest configuration (`gprot.installCfg_upd` with the lock's
 half), and the commit index is recalculated with its quorum (`gprot.commit_upd`). -/
 abbrev github_com.hashicorp.raft.commitment.setConfiguration.spec : Prop :=
-  ∀ (γ : GNames) (i : SID) (s : SState) (cm : Loc) (c : Configuration) (p : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isCommitment γ i s.term cm ∗ Inv γ ∗ srvOwn γ i s ∗ leaderIs γ s.term i ∗
+  ∀ (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (cm : Loc) (c : Configuration) (p : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isCommitment γ i s.term cm ∗ Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ∗
      ccfgOwn γ i s.term p ∗ cfgAtIs γ s.log (lastCfgIdx s.log) c ∗
      ⌜1 ≤ lastCfgIdx s.log ∧ γ.cv = cfgDec γ.srvs⌝ }}
     (App (Val (cm @!! go.GoType.PointerType commitment.ty @!! go!"setConfiguration")) (Val #c))
-  {{ RET #(); srvOwn γ i s ∗ ccfgOwn γ i s.term (lastCfgIdx s.log) }}
+  {{ RET #(); srvV rc s ∗ ccfgOwn γ i s.term (lastCfgIdx s.log) }}
 
 end spec
 

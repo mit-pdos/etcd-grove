@@ -47,7 +47,7 @@ abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
      ⌜γ.cv = cfgDec γ.srvs ∧ ∃ ss, srvsOk γ ss ∧ γ.g = genesisOf ss⌝ ∗ fsmOwn 0 ∗ rtok tid }}
     (App (App (App (App (App (App (Val (@! github_com.hashicorp.raft.NewRaft)) (Val #cp)) (Val #(GoInterface.ok fsmI))) (Val #(GoInterface.ok logsI))) (Val #(GoInterface.ok stableI))) (Val #(GoInterface.ok snapsI))) (Val #(GoInterface.ok transI)))
   {{ (r : Loc), RET (PairV #r #interface.nil);
-      (∃ names : RNames, isRaft r γ (RCtx.mk ownL ownSS snapP ownS fsmOwn respP names) i) ∗ cp ↦ c ∗
+      (∃ (names : RNames) (dn : DurNames), isRaft r γ (RCtx.mk ownL ownSS snapP ownS fsmOwn respP names dn) i) ∗ cp ↦ c ∗
       rtok tid }}
 
 end spec

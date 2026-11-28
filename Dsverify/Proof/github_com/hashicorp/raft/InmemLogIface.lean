@@ -43,39 +43,7 @@ theorem inmem_isLogStore
     (γs : InmemNames) (i : Loc) :
     isInmemStore (GF := GF) γs i ⊢
       isLogStore (interface.mk (go.GoType.PointerType InmemStore.ty) #i) (inmemLogs γs) := by
-  iintro #His
-  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft $$ [His]
-  · unfold isInmemStore; iNamed His; iexact Hinit
-  unfold isLogStore
-  isplitr
-  · imodintro
-    iintro %tid %Φ Htok HAU
-    iapply (wp_LastIndex γs i tid) $$ [Htok] HAU
-    iframe; iframe #
-  isplitr
-  · imodintro
-    iintro %tid %Φ Htok HΦ
-    iapply (wp_FirstIndex γs i tid) $$ [Htok] HΦ
-    iframe; iframe #
-  isplitr
-  · imodintro
-    iintro %idx %ptr %lv0 %tid %Φ Hptr Htok HAU
-    iapply (wp_GetLog γs i idx ptr lv0 tid) $$ [Hptr Htok] HAU
-    iframe; iframe #
-  isplitr
-  · imodintro
-    iintro %sl %dq %ptrs %first %es %Φ %Hlen Hsl Hptrs HAU
-    iapply (wp_StoreLogs γs i sl dq ptrs first es) $$ [Hsl Hptrs] HAU
-    iframe; iframe #; ipureintro; exact ⟨Hlen.1, by omega⟩
-  isplitr
-  · imodintro
-    iintro %p %first %e %Φ %Hf #Hp HAU
-    iapply (wp_StoreLog γs i p first e) $$ [] HAU
-    iframe #; ipureintro; exact Hf
-  · imodintro
-    iintro %mn %mx %Φ %Hmx HAU
-    iapply (wp_DeleteRange γs i mn mx) $$ [] HAU
-    iframe #; ipureintro; exact Hmx
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 end iface
 

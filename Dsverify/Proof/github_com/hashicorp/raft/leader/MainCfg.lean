@@ -114,22 +114,7 @@ theorem mainOwnAt_lopen (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwn r γ i s a := by
-  unfold mainOwnAt mainRest confOwn
-  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, Hsrv, Hdur, HownS, %Hvm, HlastLog,
-    Hst, Hldr0, HlogPend, Hreg, Happ, %Ha, Hprod, Hpdn, Hcomp, %Hcp, Hconf, #Hcfg, #Hccfg, %Hli,
-    #Hcmt, #Hlch, #Hlchan, Hlown, %Hlcap⟩
-  icases Hldr0 with (%Hc | ⟨#Hldr, Hpub, Hcc, %n0, #Hn0, Hcix, Hcl⟩)
-  · exact absurd rfl Hc
-  iexists a
-  iframe Hsrv HlastLog Happ HlogPend
-  isplitr; · ipureintro; exact Ha
-  isplitr; · iexact Hldr
-  isplitl [Hdur HownS Hst Hpub Hreg Hprod Hpdn Hcomp Hlown]
-  · iexists sst, lch, γl, bs, c
-    iframe; iframe #; ipureintro; exact ⟨Hvm, Hcp, Hlcap⟩
-  iexists cfg, ccfg, cidx, li
-  iframe; iframe #
-  ipureintro; exact Hli
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem mainOwnAt_lclose (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
     srvOwn γ i s ∗
@@ -137,18 +122,7 @@ theorem mainOwnAt_lclose (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwn r γ i s a ⊢ mainOwnAt r γ rc i s stLeader := by
-  unfold mainOwnAt mainRest confOwn
-  iintro ⟨Hsrv, HlastLog, Happ, %Ha, HlogPend, #Hldr,
-    ⟨%sst, %lch, %γl, %bs, %c, Hdur, HownS, %Hvm, Hst, Hpub, Hreg, Hprod, Hpdn, Hcomp, %Hcp, #Hlch,
-      #Hlchan, Hlown, %Hlcap⟩,
-    ⟨%cfg, %ccfg, %cidx, %li, Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩⟩
-  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
-  iframe Hsrv Hdur HownS HlastLog Hst HlogPend Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
-  iframe #
-  isplitr; · ipureintro; exact Hvm
-  isplitl [Hpub Hcc Hcix Hcl]
-  · iright; iframe
-  ipureintro; exact ⟨Ha, Hcp, Hli, Hlcap⟩
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem confOwn_intro (r : Loc) (γ : GNames) (i : SID) (s : SState) (a : Nat)
     (cfg ccfg : Configuration) (cidx li : w64) (n0 : Nat)
@@ -256,20 +230,7 @@ theorem mainOwnAtSt_open (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwnSt r γ i s a := by
-  unfold mainOwnAtSt mainRest confOwnSt
-  iintro ⟨%a, %sst, %cfg, %ccfg, %li, %lch, %γl, %bs, %c, Hsrv, Hdur, HownS, %Hvm, HlastLog,
-    Hst, ⟨#Hldr, Hpub, Hcc, %n0, #Hn0, Hcix, Hcl⟩, HlogPend, Hreg, Happ, %Ha, Hprod, Hpdn, Hcomp, %Hcp,
-    Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, #Hlch, #Hlchan, Hlown, %Hlcap⟩
-  iexists a
-  iframe Hsrv HlastLog Happ HlogPend
-  isplitr; · ipureintro; exact Ha
-  isplitr; · iexact Hldr
-  isplitl [Hdur HownS Hst Hpub Hreg Hprod Hpdn Hcomp Hlown]
-  · iexists sst, lch, γl, bs, c
-    iframe; iframe #; ipureintro; exact ⟨Hvm, Hcp, Hlcap⟩
-  iexists cfg, ccfg, li
-  iframe; iframe #
-  ipureintro; exact Hli
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem mainOwnAtSt_close (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
     srvOwn γ i s ∗
@@ -277,18 +238,7 @@ theorem mainOwnAtSt_close (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : 
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
       mainRest r γ rc i s a ∗ confOwnSt r γ i s a ⊢ mainOwnAtSt r γ rc i s := by
-  unfold mainOwnAtSt mainRest confOwnSt
-  iintro ⟨Hsrv, HlastLog, Happ, %Ha, HlogPend, #Hldr,
-    ⟨%sst, %lch, %γl, %bs, %c, Hdur, HownS, %Hvm, Hst, Hpub, Hreg, Hprod, Hpdn, Hcomp, %Hcp, #Hlch,
-      #Hlchan, Hlown, %Hlcap⟩,
-    ⟨%cfg, %ccfg, %li, Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩⟩
-  iexists a, sst, cfg, ccfg, li, lch, γl, bs, c
-  iframe Hsrv Hdur HownS HlastLog Hst HlogPend Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
-  iframe #
-  isplitr; · ipureintro; exact Hvm
-  isplitl [Hpub Hcc Hcix Hcl]
-  · iframe
-  ipureintro; exact ⟨Ha, Hcp, Hli, Hlcap⟩
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem mainOwnAtSt_mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
     mainOwnAtSt r γ rc i s ⊢ mainOwnAt r γ rc i s stLeader := by

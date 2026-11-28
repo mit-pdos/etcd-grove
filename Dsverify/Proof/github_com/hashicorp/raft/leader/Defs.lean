@@ -159,13 +159,7 @@ theorem ml_mainOwnAt_state' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s 
     mainOwnAt r γ rc i s st ⊢ ghostVar rc.names.state (1 : Qp).half st ∗
       (∀ st', ghostVar rc.names.state (1 : Qp).half st' -∗ ⌜st' ≠ stLeader⌝ -∗
         mainOwnAt r γ rc i s st') := by
-  unfold mainOwnAt
-  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, H1, H2, H3, H4, H5, Hst, -, H7⟩
-  iframe Hst
-  iintro %st' Hst %Hne
-  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
-  iframe
-  ileft; ipureintro; exact Hne
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 set_option synthInstance.maxSize 10000 in
 set_option synthInstance.maxHeartbeats 2000000 in

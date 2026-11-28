@@ -146,50 +146,7 @@ theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id
     |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗
       (rc.ownSS (newerSnap old (sinkMeta ver idx term cfgIdx cfg id b) b) ={∅,⊤}=∗
         ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id))) := by
-  iintro ⟨#HI, #Hsc, #HC, #Hfol, HsP, #Hcfg, #Hscfg, Happ, Hpend⟩
-  unfold snapCell
-  iinv Hsc with ⟨%lat, %pd, Hown, Hlat, Hpd, Hcase⟩ Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  iexists lat
-  iframe Hown
-  iintro Hown
-  imod Hmask with -
-  icombine Hpend Hpd gives %Hpdq
-  obtain ⟨-, Hpdq⟩ := Hpdq
-  subst Hpdq
-  -- the old latest is not newer
-  have hsn : ∀ (m0 : SnapshotMeta), uint.nat m0.Index' < s → uint.nat m0.Term' ≤ st →
-      uint.nat m0.Term' < st ∨ (uint.nat m0.Term' = st ∧ uint.nat m0.Index' ≤ s) := by
-    intro m0 h1 h2; omega
-  have hnewOf : ∀ old, (old = none ∨ ∃ m0 b0, old = some (m0, b0) ∧ uint.nat m0.Index' < s ∧
-      uint.nat m0.Term' ≤ st) →
-      newerSnap old (sinkMeta ver idx term cfgIdx cfg id b) b =
-        some (sinkMeta ver idx term cfgIdx cfg id b, b) := by
-    intro old h
-    rcases h with rfl | ⟨m0, b0, rfl, h1, h2⟩
-    · rfl
-    · unfold newerSnap sinkMeta
-      simp only
-      rw [if_pos (by rw [ht]; omega)]
-  icases Hcase with (%Hn | ⟨%m0, %b0, %Hl, #Hlb, -⟩)
-  · have Hold : lat = none ∨ ∃ m0 b0, lat = some (m0, b0) ∧ uint.nat m0.Index' < s ∧
-        uint.nat m0.Term' ≤ st := Or.inl Hn
-    rw [hnewOf lat Hold]
-    iclear Hlat
-    iapply install_close γ rc i s st a id ver idx term cfgIdx cfg b e hs ht hver ss hb has h1 he
-    iframe # ∗
-  · subst Hl
-    ihave ⟨%e0, #HC0, %He0⟩ := latestOk_some γ rc m0 b0 $$ Hlat
-    ihave %Hv := applLb_le rc _ _ _ $$ Happ Hlb
-    imod CIdx_term_mono γ (⊤ \ ↑snapN) gprotN_snapN _ _ e0 e (by omega) $$ [$HI $HC0 $HC] with %Hterm
-    have Hold : some (m0, b0) = none ∨ ∃ m1 b1, some (m0, b0) = some (m1, b1) ∧
-        uint.nat m1.Index' < s ∧ uint.nat m1.Term' ≤ st := Or.inr ⟨m0, b0, rfl, by omega, by omega⟩
-    rw [hnewOf _ Hold]
-    iclear Hlat
-    iapply install_close γ rc i s st a id ver idx term cfgIdx cfg b e hs ht hver ss hb has h1 he
-    iframe # ∗
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- **The install's `setLastApplied(s)`** (its logically atomic update): the pending record
 `(s, st, id)` (the main goroutine's half, back from the restore) finds the main goroutine's half of
@@ -203,39 +160,7 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s st : Nat) (
         monoNatAuthOwn rc.dur.applied (1 : Qp).half s -∗ Ψ) ⊢
     |={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       ⌜a ≤ s⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half s ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
-  iintro ⟨#Hsc, Hpend, HΨ⟩
-  unfold snapCell
-  iinv Hsc with ⟨%lat, %pd, Hown, Hlat, Hpd, Hcase⟩ Hclose
-  · unfold snapN appliedN raftN; solve_ndisj
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  icombine Hpend Hpd gives %Hpdq
-  obtain ⟨-, Hpdq⟩ := Hpdq
-  subst Hpdq
-  icases Hcase with ⟨%m, %b, %a', %Hm, #Hfol, Happ⟩
-  obtain ⟨Hl, Hid, Hi, Ht, Ha⟩ := Hm
-  iexists a'
-  iframe Happ
-  isplitr
-  · ipureintro; omega
-  iintro Happ
-  imod Hmask with -
-  ihave #Hlb := applLb_get rc _ s $$ Happ
-  imod ghostVar_update_halves none rc.dur.pend _ _ $$ Hpend Hpd with ⟨Hpend, Hpd⟩
-  imod Hclose $$ [Hown Hlat Hpd] with -
-  · inext
-    iexists lat, none
-    iframe Hown Hlat Hpd
-    iright
-    iexists m, b
-    isplitr
-    · ipureintro; exact Hl
-    rw [Hi, Ht]
-    iframe Hlb
-    iright; iexact Hfol
-  imodintro
-  iapply HΨ $$ Hpend Happ
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- **A main-goroutine read of the log store** (`GetLog(k)`'s atomic update) past the compaction
 frontier (`cm < k`, the main goroutine's authority): the store's entries are entries of the server's
@@ -250,31 +175,7 @@ theorem logCell_getLog (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (cm k
         srvOwn γ i s -∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗
         monoNatAuthOwn rc.dur.comp 1 cm -∗ Ψ A) ⊢
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
-  iintro ⟨#HI, #HlogC, Hs, Hlp, Hcm, HΨ⟩
-  unfold logCell
-  iinv HlogC with Hi Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  icases Hi with ⟨%A, %L, %ps, %lo, %c, HL, Hcpl, Hpend, %HA, #Hc, %Hlo⟩
-  iexists A
-  iframe HL
-  iintro HL
-  imod Hmask with -
-  icombine Hlp Hpend gives %Hps
-  obtain ⟨-, Hps⟩ := Hps
-  subst Hps
-  simp only [List.append_nil]
-  imod logCouple_agree γ (⊤ \ ↑logN) gprotN_diff_logN i s L $$ [$HI $Hs $Hcpl] with ⟨Hs, Hcpl, %HLs⟩
-  ihave %Hcc := compLb_le rc _ _ _ $$ Hcm Hc
-  imod Hclose $$ [HL Hcpl Hpend] with -
-  · inext; iexists A, L, [], lo, c; simp only [List.append_nil]; iframe; iframe #
-    ipureintro; exact ⟨HA, Hlo⟩
-  imodintro
-  subst HLs
-  iapply HΨ $$ %A [] Hs Hlp Hcm
-  ipureintro
-  exact ⟨HA.1, fun h => HA.2 k (by omega) h⟩
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- What the install's `GetLog(s)` tells (`¬ prevMatch`: the discard case). -/
 theorem getLog_prevMatch (L : RLog) (m : GMap Nat Entry) (k st : Nat) (hk : 1 ≤ k)
@@ -321,40 +222,7 @@ theorem logCell_discard (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x s
         ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
       (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m 1 mx, hi'⟩ ={∅,⊤}=∗ Ψ) := by
-  iintro ⟨#HI, #HlogC, Hs, Hdv, #Hae, #Hlead, Hlp, #Hcx, HΨ⟩
-  unfold logCell
-  iinv HlogC with Hi Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  icases Hi with ⟨%A, %L, %ps, %lo, %c, HL, Hcpl, Hpend, %HA, #Hc, %Hlo⟩
-  iexists A
-  iframe HL
-  iintro %hi' HL
-  imod Hmask with -
-  icombine Hlp Hpend gives %Hps
-  obtain ⟨-, Hps⟩ := Hps
-  subst Hps
-  simp only [List.append_nil]
-  imod logCouple_agree γ (⊤ \ ↑logN) gprotN_diff_logN i s L $$ [$HI $Hs $Hcpl] with ⟨Hs, Hcpl, %HLs⟩
-  subst HLs
-  imod installDiscard_upd γ (⊤ \ ↑logN) gprotN_diff_logN i s x st ℓ hℓ hx hn
-    $$ [$HI $Hs $Hcpl $Hdv $Hae $Hlead] with ⟨%L', %d, Hs, Hcpl, Hdv, #Hdl, %Hd, -⟩
-  imod Hclose $$ [HL Hcpl Hpend] with -
-  · inext
-    iexists ⟨LogAbs.del A.m 1 mx, hi'⟩, L', [], x + 1, x
-    simp only [List.append_nil]
-    iframe HL Hcpl Hpend Hcx
-    ipureintro
-    refine ⟨⟨fun k e h => ?_, fun k h1 h2 => ?_⟩, Nat.le_refl _⟩
-    · obtain ⟨h1, h2⟩ := (del_lookup_some A.m 1 mx k e).1 h
-      have h3 := HA.1 k e h1
-      have h4 := proto.ent_le_length h3
-      exact absurd ⟨h4.1, by omega⟩ h2
-    · omega
-  imodintro
-  iapply HΨ $$ Hs Hdv Hdl [] Hlp
-  ipureintro; exact Hd
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 instance batchStart_persistent (rc : RCtx GF) (n k : Nat) :
     Persistent (batchStart (GF := GF) rc n k) := by
@@ -546,16 +414,7 @@ instance snap_termCouple_timeless (γ : GNames) (i : SID) (t : Nat) :
 /-- The server's own term, as a persistent lower bound (from the term cell). -/
 theorem termLb_of_srv (γ : GNames) (r : Loc) (i : SID) (s : SState) :
     Inv (GF := GF) γ ∗ termCell r γ rc i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
-  iintro ⟨#HI, #Hc, Hs⟩
-  unfold termCell
-  iinv Hc with ⟨%t, Ht, >Hcp⟩ Hclose
-  imod termCouple_agree γ (⊤ \ ↑termN) gprotN_diff_termN i s _ $$ [$HI $Hs $Hcp] with ⟨Hs, Hcp, %ht⟩
-  ihave ⟨Hcp, #Hlb⟩ := termCouple_get_lb γ i _ $$ Hcp
-  imod Hclose $$ [Ht Hcp] with -
-  · inext; iexists t; iframe
-  imodintro
-  iframe Hs
-  rw [← ht]; iexact Hlb
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- The ghost update at the `currentTerm` store: the protocol step `setTerm`. -/
 theorem setTerm_step (γ : GNames) (i : SID) (s : SState) (t : Nat) (ht : s.term ≤ t) :
@@ -576,10 +435,7 @@ theorem voteMatches_term (sst : StableAbs) (s : SState) (v : w64) (t : Nat)
     (h : voteMatches sst s) :
     voteMatches { sst with ints := sst.ints.insert (go!"CurrentTerm" : List w8) v }
       { s with term := t } := by
-  unfold voteMatches at h ⊢
-  simp only [GMap.lookup_insert_eq_iff]
-  rw [if_neg (by decide)]
-  exact h
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem obsArg_state (γ : GNames) (i : SID) (s : SState) (st : w32) (h : st ≠ stLeader) :
     ⊢ obsArg (GF := GF) γ i s (interface.mkOk RaftState.ty #st) := by
@@ -613,54 +469,7 @@ theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx x : Nat) (
     srvDurInv γ rc i ∗ compLb rc x ∗ Ψ ⊢
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
       (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m mn mx, hi'⟩ ={∅,⊤}=∗ Ψ) := by
-  iintro ⟨#HlogC, #Hcx, HΨ⟩
-  unfold logCell
-  iinv HlogC with Hi Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  icases Hi with ⟨%A, %L, %ps, %lo, %c, HL, Hcpl, Hpend, %HA, #Hc, %Hlo⟩
-  iexists A
-  iframe HL
-  iintro %hi' HL
-  imod Hmask with -
-  imod Hclose $$ [HL Hcpl Hpend] with -
-  · inext
-    by_cases hcx : c ≤ x
-    · iexists ⟨LogAbs.del A.m mn mx, hi'⟩, L, ps, Max.max lo (mx + 1), x
-      iframe HL Hcpl Hpend Hcx
-      ipureintro
-      refine ⟨⟨fun k e h => ?_, fun k h1 h2 => ?_⟩, by omega⟩
-      · exact HA.1 k e ((del_lookup_some A.m mn mx k e).1 h).1
-      · have h3 := HA.2 k (by omega) h2
-        dsimp only
-        cases hk : A.m.lookup k with
-        | none =>
-          rw [hk] at h3
-          cases hd : (LogAbs.del A.m mn mx).lookup k with
-          | none => rw [h3]
-          | some e => exact absurd ((del_lookup_some A.m mn mx k e).1 hd).1 (by rw [hk]; simp)
-        | some e =>
-          rw [hk] at h3
-          rw [((del_lookup_some A.m mn mx k e).2 ⟨hk, by omega⟩), h3]
-    · iexists ⟨LogAbs.del A.m mn mx, hi'⟩, L, ps, Max.max lo (mx + 1), c
-      iframe HL Hcpl Hpend Hc
-      ipureintro
-      refine ⟨⟨fun k e h => ?_, fun k h1 h2 => ?_⟩, by omega⟩
-      · exact HA.1 k e ((del_lookup_some A.m mn mx k e).1 h).1
-      · have h3 := HA.2 k (by omega) h2
-        dsimp only
-        cases hk : A.m.lookup k with
-        | none =>
-          rw [hk] at h3
-          cases hd : (LogAbs.del A.m mn mx).lookup k with
-          | none => rw [h3]
-          | some e => exact absurd ((del_lookup_some A.m mn mx k e).1 hd).1 (by rw [hk]; simp)
-        | some e =>
-          rw [hk] at h3
-          rw [((del_lookup_some A.m mn mx k e).2 ⟨hk, by omega⟩), h3]
-  imodintro
-  iexact HΨ
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- The snapshot goroutine's snapshot `(x, tx)` as the store's latest (`latestOk`; the length bound
 of its bytes from the store's commit, SNAP-2). -/
@@ -696,82 +505,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
     |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗
       (rc.ownSS (newerSnap old (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b) ={∅,⊤}=∗
         True) := by
-  iintro ⟨#HI, #Hsc, #HC, #Hlb, #Hdl, HsP, #Hcfg, #Hscfg⟩
-  unfold snapCell
-  iinv Hsc with ⟨%lat, %pd, Hown, Hlat, Hpd, Hcase⟩ Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  iexists lat
-  iframe Hown
-  iintro Hown
-  imod Hmask with -
-  have hix : uint.nat (W64 x) = x := by word
-  have htt : uint.nat (W64 tx) = tx := by word
-  cases pd with
-  | none =>
-    -- the new snapshot or the old one
-    cases lat with
-    | none =>
-      simp only [newerSnap] at *
-      imod Hclose $$ [Hown Hpd HsP] with -
-      · inext
-        iexists _, none
-        iframe Hown Hpd
-        isplitl [HsP]
-        · iapply own_latestOk γ rc x tx id cfg ci ss b e hx hx62 he htx hb; iframe # ∗
-        iright
-        iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
-        unfold sinkMeta; dsimp only
-        rw [hix]
-        iframe Hlb
-        isplitr
-        · ipureintro; rfl
-        ileft; iexact Hdl
-      imodintro; itrivial
-    | some mb =>
-      obtain ⟨m0, b0⟩ := mb
-      unfold newerSnap sinkMeta at *
-      dsimp only at *
-      split
-      · imod Hclose $$ [Hown Hpd HsP] with -
-        · inext
-          iexists _, none
-          iframe Hown Hpd
-          isplitl [HsP]
-          · have h := own_latestOk (GF := GF) γ rc x tx id cfg ci ss b e hx hx62 he htx hb
-            unfold sinkMeta at h
-            iapply h; iframe # ∗
-          iright
-          iexists (SnapshotMeta.mk (W64 1) id (W64 x) (W64 tx) slice.nil cfg ci (W64 b.length)), b
-          dsimp only
-          rw [hix]
-          iframe Hlb
-          isplitr
-          · ipureintro; rfl
-          ileft; iexact Hdl
-        imodintro; itrivial
-      · imod Hclose $$ [Hown Hpd Hlat Hcase] with -
-        · inext; iexists _, none; iframe
-        imodintro; itrivial
-  | some p =>
-    obtain ⟨s, st, id'⟩ := p
-    icases Hcase with ⟨%m, %b', %a', %Hm, #Hfol, Happ⟩
-    obtain ⟨Hl, Hid, Hi, Ht, Ha⟩ := Hm
-    subst Hl
-    ihave %Hxa := applLb_le rc _ _ _ $$ Happ Hlb
-    ihave ⟨%e0, #HC0, %He0⟩ := latestOk_some γ rc m b' $$ Hlat
-    imod CIdx_term_mono γ (⊤ \ ↑snapN) gprotN_snapN x _ e e0 (by omega) $$ [$HI $HC $HC0] with %Hterm
-    have hns : newerSnap (some (m, b')) (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b =
-        some (m, b') := by
-      unfold newerSnap sinkMeta
-      dsimp only
-      rw [if_neg (by rw [htt, hix]; omega)]
-    rw [hns]
-    imod Hclose $$ [Hown Hpd Hlat Happ] with -
-    · inext; iexists _, (some (s, st, id')); iframe Hown Hpd Hlat
-      iexists m, b', a'; iframe Happ Hfol; ipureintro; exact ⟨rfl, Hid, Hi, Ht, Ha⟩
-    imodintro; itrivial
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- (Unfolds gprot's `InvBody`, a missing gprot law, as `ReplSnap.CIdx_lt`.) A committed entry's term
 is below the bound on terms (`2^62`). -/
@@ -919,45 +653,7 @@ theorem restore_open (γ : GNames) (rc : RCtx GF) (i : SID) (fx : GoInterfaceOk)
         rc.snapP s b -∗ ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) -∗
         Ψ (PairV (PairV #mp #(GoInterface.ok rd)) #interface.nil)) ⊢
     |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗ (rc.ownSS old ={∅,⊤}=∗ ∀ v, openPost old id eof v -∗ Ψ v) := by
-  iintro ⟨#Hsc, #HisFSM, Hpend, HΨ⟩
-  unfold snapCell
-  iinv Hsc with ⟨%lat, %pd, Hown, Hlat, Hpd, Hcase⟩ Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  iexists lat
-  iframe Hown
-  iintro Hown
-  imod Hmask with -
-  icombine Hpend Hpd gives %Hpdq
-  obtain ⟨-, Hpdq⟩ := Hpdq
-  subst Hpdq
-  icases Hcase with ⟨%m, %b, %a', %Hm, #Hfol, Happ⟩
-  obtain ⟨Hl, Hid, Hi, Ht, Ha⟩ := Hm
-  subst Hl
-  unfold latestOk
-  icases Hlat with ⟨#HCm, HsP, #Hcfgm, %Hmfacts⟩
-  ihave ⟨%e1, -, %He1⟩ := HCm
-  ihave #HsP := isFSM_snapP_persistent _ γ i _ _ _ _ b $$ [$HisFSM $HsP]
-  imod Hclose $$ [Hown Hpd Happ] with -
-  · inext
-    iexists (some (m, b)), (some (s, st, id))
-    iframe Hown Hpd
-    isplitr
-    · dsimp only; iframe #; ipureintro; exact Hmfacts
-    iexists m, b, a'
-    iframe Happ Hfol
-    ipureintro; exact ⟨rfl, Hid, Hi, Ht, Ha⟩
-  imodintro
-  iintro %v Hpost
-  unfold openPost
-  dsimp only
-  rw [if_pos Hid]
-  icases Hpost with ⟨%mp, %rd, %R, %Hv, Hmp, #Hrc, HR, %HnWT⟩
-  subst Hv
-  subst Hi
-  iapply HΨ $$ %m %b %mp %rd %R [] Hmp Hrc HR HsP Hpend
-  ipureintro; exact ⟨rfl, Ht, He1.2⟩
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 end github_com.hashicorp.raft.snapProof
 

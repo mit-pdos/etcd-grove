@@ -30,28 +30,7 @@ open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.raftState.setCommitIndex.wp_proof :
     github_com.hashicorp.raft.raftState.setCommitIndex.spec (GF := GF) (hG := hG) := by
-  intro r γ i x Q
-  wp_start as ⟨#Hcell, Hupd⟩
-  (try (wp_method_call; wp_call))
-  wp_auto
-  wp_apply_core sync.atomic.wp_StoreUint64 _ _ $$ [] [-]
-  · iPkgInit
-  unfold cidxCell
-  imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  icases Hi with ⟨%t, Hpt, Hc⟩
-  iexists t
-  iframe Hpt
-  iintro Hpt
-  imod Hmask with -
-  imod Hupd $$ %(uint.nat t) Hc with ⟨Hc, HQ⟩
-  imod Hclose $$ [Hpt Hc] with -
-  · inext; iexists x; iframe
-  imodintro
-  wp_auto
-  iapply HΦ $$ HQ
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 end proof
 

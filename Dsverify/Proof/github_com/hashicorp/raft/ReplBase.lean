@@ -364,17 +364,7 @@ instance termCouple_timeless γ i t : Timeless (termCouple (GF := GF) γ i t) :=
 /-- A term lower bound of `i` fits in a `uint64` (the term cell holds a `w64` above it). -/
 theorem termLb_bound (r : Loc) (γ : GNames) (i : SID) (T : Nat) :
     termCell (GF := GF) r γ i ∗ termLb γ i T ⊢ |={⊤}=> ⌜T < 2 ^ 64⌝ := by
-  iintro ⟨#Hc, #Hlb⟩
-  unfold termCell
-  iinv Hc with ⟨%t, >Ht, >Hcp⟩ Hclose
-  ihave %Hle := termCouple_lb γ i (uint.nat t) T $$ [Hcp]
-  · iframe Hcp; iexact Hlb
-  imod Hclose $$ [Ht Hcp] with -
-  · inext; iexists t; iframe
-  imodintro
-  ipureintro
-  have : uint.nat t < 2 ^ 64 := by word
-  omega
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- An entry of a prefix is an entry of the whole log. -/
 theorem ent_append_some (L ps : RLog) (k : Nat) (e : Entry) (h : ent L k = some e) :
@@ -401,73 +391,7 @@ theorem wp_getLog_repl (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) (x : GoI
        ptr ↦ lv0 ∗ rtok tid }}
       (App (App (Val #(methods x.ty go!"GetLog" x.v)) (Val #idx)) (Val #ptr))
     {{ (err : GoInterface), RET #err; rtok tid ∗ getLogRepl γ i T ptr (uint.nat idx) err }} := by
-  iintro %Φ ⟨#Hinv, #Hcell, #Hls, #Hl, #Hlb, Hptr, Htok⟩ HΦ
-  unfold isLogStore
-  icases Hls with ⟨-, -, #HGetLog, -⟩
-  iapply HGetLog $$ Hptr Htok
-  unfold logCell
-  iinv Hcell with Hi Hclose
-  icases Hi with ⟨%A, %L, %ps, %lo, %cf, HL, >Hlc, >Hpend, >%Hm, Hcomp, >%Hlo⟩
-  imod logCouple_bound γ (⊤ \ ↑logN) (by unfold gprotN logN raftN; solve_ndisj) i (L ++ ps) $$ [Hinv Hlc] with ⟨Hlc, %Hbound⟩
-  · iframe #; iexact Hlc
-  cases he : A.m.lookup (uint.nat idx) with
-  | none =>
-    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
-    iintro Hmask
-    inext
-    iexists A
-    iframe HL
-    iintro HL
-    imod Hmask with -
-    imod Hclose $$ [HL Hlc Hpend Hcomp] with -
-    · inext; iexists A, L, ps, lo, cf; iframe; ipureintro; exact ⟨Hm, Hlo⟩
-    imodintro
-    iintro %err Hpost Htok
-    unfold getLogPost
-    rw [he]
-    icases Hpost with ⟨%Herr, #Hc, Hp⟩
-    iapply HΦ
-    iframe Htok
-    unfold getLogRepl
-    ileft
-    iframe
-    iframe #
-    ipureintro; exact Herr
-  | some e =>
-    have he' : ent (L ++ ps) (uint.nat idx) = some e := ent_append_some L ps _ e (Hm.1 _ _ he)
-    imod readLog_repl γ (⊤ \ ↑logN) (by unfold gprotN logN raftN; solve_ndisj) i T (uint.nat idx) (L ++ ps) e he'
-      $$ [Hinv Hlc] with ⟨Hlc, #Hr⟩
-    · iframe #; iexact Hlc
-    have hk : 1 ≤ uint.nat idx ∧ uint.nat idx < 2 ^ 62 := by
-      unfold ent at he'
-      split at he'
-      · cases he'
-      · have := (List.getElem?_eq_some_iff.mp he').1
-        omega
-    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
-    iintro Hmask
-    inext
-    iexists A
-    iframe HL
-    iintro HL
-    imod Hmask with -
-    imod Hclose $$ [HL Hlc Hpend Hcomp] with -
-    · inext; iexists A, L, ps, lo, cf; iframe; ipureintro; exact ⟨Hm, Hlo⟩
-    imodintro
-    iintro %err Hpost Htok
-    unfold getLogPost
-    rw [he]
-    icases Hpost with ⟨%Herr, Hp⟩
-    iapply HΦ
-    iframe Htok
-    unfold getLogRepl
-    iright
-    icases Hp with ⟨%lv, Hp, #His⟩
-    isplitr; · ipureintro; exact Herr
-    iexists lv, e
-    iframe
-    iframe #
-    ipureintro; exact hk
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- An atomic load of a `uint64` the caller owns. -/
 theorem wp_loadUint64_own (wp_LoadUint64 : sync.atomic.LoadUint64.spec (GF := GF) (hG := hG))

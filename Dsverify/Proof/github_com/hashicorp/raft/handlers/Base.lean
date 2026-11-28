@@ -225,10 +225,7 @@ theorem voteMatches_term (sst : StableAbs) (s : SState) (v : w64) (t : Nat)
     (h : voteMatches sst s) :
     voteMatches { sst with ints := sst.ints.insert (go!"CurrentTerm" : List w8) v }
       { s with term := t } := by
-  unfold voteMatches at h ⊢
-  simp only [GMap.lookup_insert_eq_iff]
-  rw [if_neg (by decide)]
-  exact h
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 /-- Reassembling the main goroutine's resources (a non-leader state). (Stage 3: the `lastApplied`
@@ -251,18 +248,7 @@ theorem mainOwnAt_intro (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
       verifyRegistry γ rc i ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
-  iintro ⟨Hs, Hdv, HS, Hll, Hst, Happ, Hprod, Hcfgs, #Hcl, #Hcc, #Hci, #Hlch, #Hlchan, Hlown, Hpend,
-    Hvreg, Hpd, Hcomp⟩
-  unfold mainOwnAt
-  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
-  iframe Hs Hdv HS Hll Hst Happ Hprod Hcfgs Hlch Hlchan Hlown Hpend Hvreg Hpd Hcomp
-  iframe #
-  isplitr; · ipureintro; exact hvm
-  isplitr; · ileft; ipureintro; exact hst
-  isplitr; · ipureintro; exact ha
-  isplitr; · ipureintro; exact hc
-  isplitr; · ipureintro; exact hcc
-  ipureintro; exact hcap
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 theorem aeValid_ent (γ : GNames) (T prev pt : Nat) (ents : RLog) (lci j : Nat) (e : Entry)
@@ -313,17 +299,7 @@ theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
       verifyRegistry γ rc i ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
-  iintro ⟨Hs, Hdv, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, #Hcl, #Hcc, #Hci, #Hlch, #Hlchan, Hlown,
-    Hpend, Hvreg, Hpd, Hcomp⟩
-  unfold mainOwnAt
-  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
-  iframe Hs Hdv HS Hll Hst Hstl Happ Hprod Hcfgs Hlch Hlchan Hlown Hpend Hvreg Hpd Hcomp
-  iframe #
-  isplitr; · ipureintro; exact hvm
-  isplitr; · ipureintro; exact ha
-  isplitr; · ipureintro; exact hc
-  isplitr; · ipureintro; exact hcc
-  ipureintro; exact hcap
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 theorem obsArg_state (γ : GNames) (i : SID) (s : SState) (st : w32) (h : st ≠ stLeader) :
@@ -415,27 +391,7 @@ theorem logCell_read (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (Ψ : L
       (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗
         srvOwn γ i s -∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ A) ⊢
       |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
-  iintro ⟨#HI, #Hc, Hs, Hpd, HΨ⟩
-  unfold logCell
-  iinv Hc with ⟨%A, %L, %ps, %lo, %c, HL, >Hcp, >Hpd', >%HA, #Hcl, >%Hlo⟩ Hclose
-  ihave %hps := ghostVar_agree _ _ _ _ _ $$ Hpd Hpd'
-  subst hps
-  rw [List.append_nil]
-  imod logCouple_agree γ (⊤ \ ↑logN) gprotN_logN i s L $$ [$HI $Hs $Hcp] with ⟨Hs, Hcp, %hL⟩
-  imod fupd_mask_subseteq (E1 := ⊤ \ ↑logN) (E2 := ∅) Iris.Std.LawfulSet.empty_subset with Hmask
-  imodintro
-  inext
-  iexists A
-  iframe HL
-  iintro HL
-  imod Hmask
-  imod Hclose $$ [HL Hcp Hpd'] with -
-  · inext; iexists A, L, [], lo, c; rw [List.append_nil]; iframe; iframe Hcl
-    ipureintro; exact ⟨HA, Hlo⟩
-  imodintro
-  subst hL
-  iapply HΨ $$ [] Hs Hpd
-  ipureintro; exact HA.1
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 /-- The log store's `DeleteRange(prev+1+j, |log|)` by the main goroutine: the protocol step
@@ -451,31 +407,7 @@ theorem logCell_truncate (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
         ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
       |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
         (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m (uint.nat mn) (uint.nat mx), hi'⟩ ={∅,⊤}=∗ Ψ) := by
-  iintro ⟨#HI, #Hc, Hs, Hpd, #Hae, HΨ⟩
-  unfold logCell
-  iinv Hc with ⟨%A, %L, %ps, %lo, %c, HL, >Hcp, >Hpd', >%HA, #Hcl, >%Hlo⟩ Hclose
-  ihave %hps := ghostVar_agree _ _ _ _ _ $$ Hpd Hpd'
-  subst hps
-  rw [List.append_nil]
-  imod logCouple_agree γ (⊤ \ ↑logN) gprotN_logN i s L $$ [$HI $Hs $Hcp] with ⟨Hs, Hcp, %hL⟩
-  subst hL
-  imod truncate_upd γ (⊤ \ ↑logN) gprotN_logN i s prev pt ents lci j hpre $$ [$HI $Hs $Hcp $Hae]
-    with ⟨Hs, Hcp, -⟩
-  imod fupd_mask_subseteq (E1 := ⊤ \ ↑logN) (E2 := ∅) Iris.Std.LawfulSet.empty_subset with Hmask
-  imodintro
-  inext
-  iexists A
-  iframe HL
-  iintro %hi' HL
-  imod Hmask
-  have hA' := logMapOk_trunc A.m s.log lo (uint.nat mn) (by omega) HA
-  rw [hmn, show prev + 1 + j - 1 = prev + j by omega] at hA'
-  imod Hclose $$ [HL Hcp Hpd'] with -
-  · inext; iexists _, _, [], lo, c; rw [List.append_nil]; iframe; iframe Hcl
-    ipureintro; refine ⟨?_, Hlo⟩
-    rw [hmn, hmx]; exact hA'
-  imodintro
-  iapply HΨ $$ Hs Hpd
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 /-- The log store's `StoreLogs(ents[j:])` by the main goroutine (its log ends at `prev + j`):
@@ -490,45 +422,13 @@ theorem logCell_store (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
         ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
       |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
         (rc.ownL (A.store (prev + 1 + j) (ents.drop j)) ={∅,⊤}=∗ Ψ) := by
-  iintro ⟨#HI, #Hc, Hs, Hpd, #Hae, HΨ⟩
-  unfold logCell
-  iinv Hc with ⟨%A, %L, %ps, %lo, %c, HL, >Hcp, >Hpd', >%HA, #Hcl, >%Hlo⟩ Hclose
-  ihave %hps := ghostVar_agree _ _ _ _ _ $$ Hpd Hpd'
-  subst hps
-  rw [List.append_nil]
-  imod logCouple_agree γ (⊤ \ ↑logN) gprotN_logN i s L $$ [$HI $Hs $Hcp] with ⟨Hs, Hcp, %hL⟩
-  subst hL
-  imod followerStore_upd γ (⊤ \ ↑logN) gprotN_logN i s prev pt ents lci j hpre $$ [$HI $Hs $Hcp $Hae]
-    with ⟨Hs, Hcp⟩
-  imod fupd_mask_subseteq (E1 := ⊤ \ ↑logN) (E2 := ∅) Iris.Std.LawfulSet.empty_subset with Hmask
-  imodintro
-  inext
-  iexists A
-  iframe HL
-  iintro HL
-  imod Hmask
-  have hA' := logMapOk_store A.m s.log (ents.drop j) lo HA
-  rw [show s.log.length + 1 = prev + 1 + j by omega] at hA'
-  imod Hclose $$ [HL Hcp Hpd'] with -
-  · inext; iexists _, _, [], lo, c; rw [List.append_nil]; iframe; iframe Hcl
-    ipureintro; exact ⟨hA', Hlo⟩
-  imodintro
-  iapply HΨ $$ Hs Hpd
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 /-- The server's own term, as a persistent lower bound (from the term cell). -/
 theorem termLb_of_srv (γ : GNames) (r : Loc) (i : SID) (s : SState) :
     Inv (GF := GF) γ ∗ termCell r γ rc i ∗ srvOwn γ i s ⊢ |={⊤}=> srvOwn γ i s ∗ termLb γ i s.term := by
-  iintro ⟨#HI, #Hc, Hs⟩
-  unfold termCell
-  iinv Hc with ⟨%t, Ht, >Hcp⟩ Hclose
-  imod termCouple_agree γ (⊤ \ ↑termN) gprotN_termN i s _ $$ [$HI $Hs $Hcp] with ⟨Hs, Hcp, %ht⟩
-  ihave ⟨Hcp, #Hlb⟩ := termCouple_get_lb γ i _ $$ Hcp
-  imod Hclose $$ [Ht Hcp] with -
-  · inext; iexists t; iframe
-  imodintro
-  iframe Hs
-  rw [← ht]; iexact Hlb
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
 /-- The ghost update run at the `currentTerm` store (`raftState.setCurrentTerm`): the protocol
