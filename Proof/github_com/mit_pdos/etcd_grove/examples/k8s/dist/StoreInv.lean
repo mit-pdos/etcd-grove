@@ -780,17 +780,10 @@ instance kInvD_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs �
 /-- **The bound on the share's revision the catch-up and the reads need** (decision 3): two more
 revisions fit in etcd's revisions (`+2`, coordinator's decision on K8-9's point 3: a read's post says
 `σ.rev + 2 < 2^63` and a read learns no `kvRoom`; K10's receipt law gives revisions far below, `< 2^62`).
-A named premise of the catch-up and of the firings, never assumed elsewhere; K10 discharges it by the
-client law from time receipts (`srvLogCert`'s `⧖`, as K9's revision bound). -/
+A named premise of the catch-up (`kInvDW_catchup`, `kInvDV_catchup`), never assumed elsewhere. Every firing
+gets it from the share's `kvRoom σ` (the server's, which `kvPfxP_au1H`'s and `kvPfxP_readAuH`'s steps learn), so
+no revision law is owed for the store's firings (K8-11: `revBoundD_law`, unused, deleted). -/
 def RevBoundD (σ : KVState) : Prop := σ.rev + 2 < 2 ^ 63
-
-/-- **The revision bound, from the share's history** (K8-9, coordinator's decision on K8-8's point 3): at
-every state whose changes the share's history authority `γsh` holds, two more revisions fit. The one
-place this bound is assumed: a premise of the firings that need it (a read's, `kvPfxP_readAuH`, whose
-step learns no `kvRoom`); a write's firing gets it from `kvRoom` instead. K10 proves it from time
-receipts. -/
-def revBoundD_law (γsh : GName) : IProp GF :=
-  iprop(□ ∀ σ : KVState, monoListAuthOwn γsh 1 σ.changes -∗ ⌜RevBoundD σ⌝)
 
 /-- **Two states equal up to the lessor's table** (decision 2): what a foreign lease grant, which moves no
 revision, changes. -/
