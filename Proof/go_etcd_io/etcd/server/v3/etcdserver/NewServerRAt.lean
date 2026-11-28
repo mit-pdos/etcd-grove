@@ -114,10 +114,12 @@ theorem bootstrapAtR_of_crash (cfg : go_etcd_io.etcd.server.v3.config.ServerConf
   ihave Hc := H $$ %σ %i %L %D %M %(RaftState.init) %default [] [Hs]
   · ipureintro; exact ⟨Hp.1, hw, Nat.le_trans Hp.2.2.1 Hp.2.1, Hp.2.2.2⟩
   · iexact Hs
-  ihave Hc := Hc $$ Hpr
+  ihave #Hc := Hc $$ Hpr
   iintro !> %Φ Hpre HΦ
   iapply Hc $$ [Hpre]
-  · iframe Hpre; ileft; ipureintro; exact Hp.2.1
+  · icases Hpre with ⟨H1, H2, H3, H4, H5, H6⟩
+    iframe H1 H2 H3 H4 H5 H6
+    ileft; ipureintro; exact Hp.2.1
   inext
   iintro %b %err Hq
   iapply HΦ
