@@ -447,4 +447,75 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   imod Hclose with _
   imodintro
   wp_auto
+  -- the raft-local ghost state and the FSM channel
+  imod ghostVar_alloc (W32 0) with ⟨%γst, Hgst⟩
+  icases (ghostVar_split_half γst 1 (W32 0)).mp $$ Hgst with ⟨Hgst, Hgst'⟩
+  icases monoNatAuth_halves rc.dur.applied 0 $$ Happ with ⟨Happ, Happ'⟩
+  imod ghostVar_alloc ((0, 0) : Nat × Nat) with ⟨%γll, Hgll⟩
+  icases (ghostVar_split_half γll 1 ((0, 0) : Nat × Nat)).mp $$ Hgll with ⟨Hgll, Hgll'⟩
+  imod dghostVar_alloc (some ((W64 0, W64 0, W64 0, W64 0) : w64 × w64 × w64 × w64)) with ⟨%γllb, Hllb⟩
+  icases dghostVar_halves' γllb _ $$ Hllb with ⟨Hllb, Hllb'⟩
+  imod ghost_map_alloc_empty (K := Nat) (V := Nat) with ⟨%γb, Hgb⟩
+  imod ghost_map_alloc_empty (K := Loc × SID) (V := Unit) with ⟨%γvtok, Hvtok⟩
+  imod ghost_map_alloc_empty (K := Loc) (V := Nat × Snap) with ⟨%γvreg, Hvreg⟩
+  imod ghost_map_alloc_empty (K := Loc) (V := Unit) with ⟨%γvlive, Hvlive⟩
+  imod ghost_map_alloc_empty (K := Loc) (V := Unit) with ⟨%γvnm, Hvnm⟩
+  icases (ghostMapAuth_halves γvnm (∅ : GMap Loc Unit)).mp $$ Hvnm with ⟨Hvnm, Hvnm'⟩
+  let rc0 : RCtx GF := { rc with names := ⟨γst, γll, γllb, ⟨γfsm, γst, γst⟩, γb, γvtok, γvreg, γvlive, γvnm⟩ }
+  imod start_spsc fsmCh (fsmP γ rc0 i) (fun _ => iprop(False)) γfsm $$ HfsmCh [HfsmOwn]
+    with ⟨%γspsc, #HfsmSpsc, HfsmProd, HfsmCons⟩
+  · iright; iexact HfsmOwn
+  let rc' : RCtx GF := { rc with names := ⟨γst, γll, γllb, γspsc, γb, γvtok, γvreg, γvlive, γvnm⟩ }
+  have hfsmP : fsmP γ rc0 i = fsmP γ rc' i := rfl
+  rw [hfsmP] at *
+  -- lastLock, its fields pinned by NewRaft (`llb`)
+  imod sync.init_Mutex (lastLockInv r γ rc' i) ⊤ _ $$ lastLock [lastLogIndex lastLogTerm lastSnapshotIndex
+    lastSnapshotTerm Hgll' Hllb'] with #HlastLock
+  · inext; unfold lastLockInv
+    rw [show (zeroValDef : raftState).lastLogIndex' = W64 0 from rfl,
+      show (zeroValDef : raftState).lastLogTerm' = W64 0 from rfl,
+      show (zeroValDef : raftState).lastSnapshotIndex' = W64 0 from rfl,
+      show (zeroValDef : raftState).lastSnapshotTerm' = W64 0 from rfl]
+    iexists _, _, _, _
+    iframe lastLogIndex lastLogTerm lastSnapshotIndex lastSnapshotTerm
+    isplitl [Hgll']
+    · rw [if_neg (by simp), show uint.nat (W64 0) = 0 from rfl]; iexact Hgll'
+    isplitr
+    · ileft; ipureintro; rfl
+    iright; iexact Hllb'
+  -- r.setLastLog(lastLog.Index, lastLog.Term), inlined (the fields pinned)
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setLastLog")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"setLastLog")]
+  wp_call
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$HlastLock] as ⟨Hlocked, HR⟩
+  iunfold lastLockInv at HR
+  icases HR with ⟨%li0, %lt0, %si0, %st0, HlI, HlT, HsI, HsT, Hgll', #Hsn, Hb⟩
+  icases Hb with (Hb | Hb)
+  · icombine Hb Hllb gives %Hag; cases Hag.2
+  icombine Hb Hllb gives %Hag
+  obtain ⟨-, Hag⟩ := Hag
+  simp only [Option.some.injEq, Prod.mk.injEq] at Hag
+  obtain ⟨h1, h2, h3, h4⟩ := Hag
+  subst li0 lt0 si0 st0
+  wp_auto
+  imod ghostVar_update_halves (uint.nat lv.Index', uint.nat lv.Term') γll _ _ $$ Hgll Hgll' with ⟨Hgll, Hgll'⟩
+  imod dghostVar_update_halves (some (lv.Index', lv.Term', W64 0, W64 0)) _ _ _ $$ Hb Hllb with ⟨Hb, Hllb⟩
+  wp_apply sync.Mutex.wp_Unlock $$ [$HlastLock $Hlocked HlI HlT HsI HsT Hgll' Hb]
+  · inext; unfold lastLockInv
+    iexists _, _, _, _
+    iframe HlI HlT HsI HsT
+    isplitl [Hgll']
+    · rw [if_neg (by simp)]; iexact Hgll'
+    isplitr
+    · ileft; ipureintro; rfl
+    iright; iexact Hb
+  -- the lastApplied cell (at 0)
+  imod inv_alloc appliedN ⊤ iprop(∃ a : w64,
+      r.[Raft, go!"raftState"].[raftState, go!"lastApplied"] ↦ a ∗
+      monoNatAuthOwn rc'.dur.applied (1 : Qp).half (uint.nat a))
+    $$ [FlastApplied Happ'] with #HappliedCell
+  · inext; iexists _; iframe FlastApplied
+    rw [show uint.nat (zeroValDef : raftState).lastApplied' = 0 from rfl]; iexact Happ'
   sorry
