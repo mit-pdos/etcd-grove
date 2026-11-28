@@ -92,6 +92,74 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %wm Hwm
   (try wp_auto)
+  ipersist all
+  ipersist byKey
+  generalize hfn : (func.mk BAnon (BNamed "rv") _ : GoFunc) = fn at *
+  generalize hfo : (func.mk BAnon (BNamed "key") _ : GoFunc) = fo at *
+  ihave #Hnum : iprop(∀ (v : w64) (A : GMap w64 Bool),
+      {{ am ↦$ A }} (App (Val #fn) (Val #v))
+      {{ RET #(); am ↦$ (if v = W64 0 then A else <[v := true]> A) }}) $$ []
+  · iintro %v %A !> %Φ' HA HΦ'
+    rw [← hfn, ← recv_eq_func_mk]
+    wp_auto
+    wp_if_destruct
+    · iapply HΦ'
+      iframe
+    · wp_apply (wp_mapInsert go.uint64 am A v true) $$ HA as HA
+      (try wp_auto)
+      iapply HΦ'
+      rw [if_neg Hif]
+      iframe
+  ihave #Hobj : iprop(∀ (key : GoString) (v : w64) (A : GMap w64 Bool) (B : GMap GoString GoMap),
+      {{ am ↦$ A ∗ bm ↦$ B ∗ [∗map] _k ↦ l ∈ B, ∃ m : GMap w64 Bool, l ↦$ m }}
+        (App (App (Val #fo) (Val #key)) (Val #v))
+      {{ RET #(); am ↦$ (if v = W64 0 then A else <[v := true]> A) ∗
+          ∃ B' : GMap GoString GoMap, bm ↦$ B' ∗ [∗map] _k ↦ l ∈ B', ∃ m : GMap w64 Bool, l ↦$ m }}) $$ []
+  · iintro %key %v %A %B !> %Φ' ⟨HA, HB, HBs⟩ HΦ'
+    rw [← hfo, ← recv_eq_func_mk]
+    wp_auto
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ'
+      iframe
+    wp_apply (wp_mapInsert go.uint64 am A v true) $$ HA as HA
+    (try wp_auto)
+    wp_apply (wp_map_lookup1 go.string (go.uint64.MapType go.bool) bm B key) $$ HB as HB
+    (try wp_auto)
+    rcases hBk : B !! key with _ | l0
+    · rw [show ((none : Option GoMap).getD (zero_val GoMap)) = map.nil from rfl,
+        decide_eq_true rfl]
+      (try wp_auto)
+      wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %l1 Hl1
+      (try wp_auto)
+      wp_apply (wp_mapInsert go.string bm B key l1) $$ HB as HB
+      (try wp_auto)
+      wp_apply (wp_map_lookup1 go.string (go.uint64.MapType go.bool) bm _ key) $$ HB as HB
+      (try rw [GMap.lookup_insert])
+      (try wp_auto)
+      wp_apply (wp_mapInsert go.uint64 l1 _ v true) $$ Hl1 as Hl1
+      (try wp_auto)
+      iapply HΦ'
+      rw [if_neg Hif]
+      iframe
+      iapply (BigSepM.bigSepM_insert (Φ := fun (_ : GoString) (l : GoMap) =>
+        iprop(∃ m : GMap w64 Bool, ownMap (GF := GF) l (DFrac.own 1) m)) hBk).2
+      iframe
+    · ihave ⟨⟨%m0, Hl0⟩, HBs⟩ := (BigSepM.bigSepM_lookup_acc hBk).1 $$ HBs
+      ihave %Hl0nn := ownMap_not_nil $$ Hl0
+      rw [show ((some l0).getD (zero_val GoMap)) = l0 from rfl, decide_eq_false Hl0nn]
+      (try wp_auto)
+      wp_apply (wp_map_lookup1 go.string (go.uint64.MapType go.bool) bm B key) $$ HB as HB
+      rw [hBk, Option.getD_some]
+      (try wp_auto)
+      wp_apply (wp_mapInsert go.uint64 l0 m0 v true) $$ Hl0 as Hl0
+      (try wp_auto)
+      iapply HΦ'
+      rw [if_neg Hif]
+      iframe
+      iapply HBs
+      iexists _
+      iframe
   sorry
 
 end proof
