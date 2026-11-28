@@ -133,9 +133,9 @@ theorem strmSpec_self (dn : GrpcMd → StreamNames → Nat → GoString → IPro
 
 /-- **The service's table**: the unary methods and the streams. -/
 def drvSvc (γid : GName) : GrpcSvc GF := fun name =>
-  if name = echoName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid⟩)
-  else if name = failName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec⟩)
-  else if name = metaName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec⟩)
+  if name = echoName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid, false⟩)
+  else if name = failName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec, false⟩)
+  else if name = metaName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec, false⟩)
   else if name = serverStreamName then
     some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec ssDn⟩)
   else if name = clientStreamName then
