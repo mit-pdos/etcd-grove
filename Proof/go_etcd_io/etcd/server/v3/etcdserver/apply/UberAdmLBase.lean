@@ -41,6 +41,12 @@ theorem apply.uberAuthStepsL_of_base
     (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAD : apply.applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG))
+    (hUD : apply.applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hUC : apply.applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG))
+    (hURR : apply.applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRD : apply.applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hRRP : apply.applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG))
     (hAu : apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
@@ -55,7 +61,7 @@ theorem apply.uberAuthStepsL_of_base
   icases Hb with ⟨%p, %opts, %Hpo, #Hu⟩
   obtain ⟨Hua, Hau, Hle⟩ := Hpo
   subst Hau Hle
-  ihave ⟨%base, #Hbf, #Had⟩ := apply.applierAdmin_uberX hUA hRA hUGR hRGP hAE hAu E X W p opts $$
+  ihave ⟨%base, #Hbf, #Had⟩ := apply.applierAdmin_uberX hUA hRA hUGR hRGP hAE hAD hUD hUC hURR hRD hRRP hAu E X W p opts $$
     [Hpkg Hu Hsteps]
   · iframe #
   ihave #Hu' := Hu

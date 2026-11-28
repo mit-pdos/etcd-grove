@@ -25,15 +25,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserRevokeRole(r)`** for a request naming `name` (within bbolt's key bound: the put
-contract's premise; the user exists, so the store accepted the name once, but the contract does
-not remember it) and `role`: having read the flag `en` (outside `enabledMu`), the step
+/-- **`as.UserRevokeRole(r)`** for a request naming `name` and `role`, every stored user's name a
+bbolt key (`userKeysOk`: the put contract's premise for the existing record it rewrites; nomode D3,
+until then the request's name bounded): having read the flag `en` (outside `enabledMu`), the step
 `userRevokeRoleF en name role`. -/
 abbrev auth.authStore.UserRevokeRole.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      userRevokeRoleReqIs r name role ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗
       authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (userRevokeRoleF en name role))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (userRevokeRoleF en name role))) }}

@@ -324,7 +324,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         refine ⟨by decide, hxs, by
             show 0 < ur.name.length; rw [Hurn]
             exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.1 user (by rw [Hlook]; rfl)),
-          by show ur.name.length ≤ _; rw [Hurn]; exact Hnamelen, ?_⟩
+          by show ur.name.length ≤ _; rw [Hurn]; exact Hnamelen st0 Hl0 user (by rw [Hlook]; rfl), ?_⟩
         exact ((Hok st0 Hl0).2.1 _ _ hstepR rfl).2 user xs'
           (by simp only [bump, putUser, GMap.lookup_insert])
       inext

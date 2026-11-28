@@ -30,11 +30,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.AuthDisable.wp_tie
+theorem auth.authStore.AuthDisable.wp_tieB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.AuthDisable.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T Wb hs Pre Q Post en sc0
+    auth.authStore.AuthDisable.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post en sc0 be
   wp_start as ⟨#Hinv, Hown, HWR, Hw1, Hw2, Hw3, Htpa, Hcs, %Hok, #Hcap⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -47,8 +47,8 @@ theorem auth.authStore.AuthDisable.wp_tie
   iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, -, #HDisable, -, -, -⟩
   subst Htpi
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
   icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
@@ -82,8 +82,10 @@ theorem auth.authStore.AuthDisable.wp_tie
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hen HenQ Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iframe Hbe Hbeok
     iexists false
+    isplitr
+    · ipureintro; rfl
     iframe Hev
     iunfold adminOutP
     iright
@@ -124,7 +126,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   have hstep : authDisableF true st0 = .next (bump { st0 with enabled := false }) := rfl
   obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
   have Hoff : M = .off → ({ st0 with enabled := false } : AuthState).enabled = false := fun _ => rfl
-  ihave #Hcap1 := Hcap $$ %true
+  ihave #Hcap1 := Hcap
   ihave #Hcn := capNextM_step M hs (authDisableF true) st0 (bump { st0 with enabled := false }) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1
   wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw { st0 with enabled := false } Post hs st0)
@@ -175,8 +177,10 @@ theorem auth.authStore.AuthDisable.wp_tie
   isplitl [HPost]
   · ileft; iexact HPost
   isplitl [Hbe HT Hen HenQ Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hcsn; iframe Hbe Hbeok
   iexists true
+  isplitr
+  · ipureintro; rfl
   iframe Hev
   iunfold adminOutP
   iright
@@ -191,6 +195,12 @@ theorem auth.authStore.AuthDisable.wp_tie
     all_goals rfl
   · ipureintro; trivial
 
+
+theorem auth.authStore.AuthDisable.wp_tie
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.AuthDisable.specT (GF := GF) (hG := hG) :=
+  auth.authStore.AuthDisable.specT_of_TB (auth.authStore.AuthDisable.wp_tieB h_commitRevision h_Info)
 
 theorem auth.authStore.AuthDisable.wp_proof
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))

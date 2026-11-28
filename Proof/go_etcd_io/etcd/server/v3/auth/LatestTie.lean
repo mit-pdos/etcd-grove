@@ -350,7 +350,7 @@ kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.UserChangePassword.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRx st M P f T Wb b sc ∗
@@ -362,7 +362,7 @@ abbrev auth.authStore.UserGrantRole.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      userGrantRoleReqIs r user role ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗
       authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
         u.length < 2 ^ 62⌝ ∗
@@ -378,7 +378,7 @@ abbrev auth.authStore.UserRevokeRole.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      userRevokeRoleReqIs r name role ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗
       authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (userRevokeRoleF en name role))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (userRevokeRoleF en name role))) }}
@@ -420,7 +420,7 @@ abbrev auth.authStore.RoleGrantPermission.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      roleGrantPermissionReqIs r name w ∗ ⌜roleKeysOk M hs⌝ ∗
       authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleGrantPermissionR name w)⌝ ∗ capNextM M hs (roleGrantPermissionR name w) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
@@ -434,7 +434,7 @@ abbrev auth.authStore.RoleRevokePermission.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (role key rangeEnd : GoString) (b0 : Bool) (sc0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜role.length ≤ backend.maxKeySize⌝ ∗
+      roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜roleKeysOk M hs⌝ ∗
       authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleRevokePermissionR role key rangeEnd)⌝ ∗ capNextM M hs (roleRevokePermissionR role key rangeEnd) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleRevokePermission")) (Val #r))
@@ -458,7 +458,7 @@ abbrev auth.authStore.UserGrantRole.specTB : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      userGrantRoleReqIs r user role ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗
       authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
         u.length < 2 ^ 62⌝ ∗
@@ -483,13 +483,90 @@ abbrev auth.authStore.RoleGrantPermission.specTB : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      roleGrantPermissionReqIs r name w ∗ ⌜roleKeysOk M hs⌝ ∗
       authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleGrantPermissionR name w)⌝ ∗ capNextM M hs (roleGrantPermissionR name w) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
       respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
       adminOutP M hs (roleGrantPermissionR name w) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `AuthDisable.specT` keeping the store's backend `be` (`authWRxB`), with the flag it read the
+admin side's half, `b0` (nomode D3, 2026-11-28, as `AuthEnable.specTB`). -/
+abbrev auth.authStore.AuthDisable.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜∀ en : Bool, stepOk M hs (stepOf (authDisableF en))⌝ ∗
+      capNextM M hs (stepOf (authDisableF b0)) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthDisable")) (Val #()))
+  {{ RET #(); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
+      ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗ adminOutP M hs (stepOf (authDisableF en)) noExtra GoInterface.nil (tieStep M hs b0 sc0 b sc) }}
+
+/-- `UserDelete.specT` keeping the store's backend `be`, with the flag it read `b0` (nomode D3). -/
+abbrev auth.authStore.UserDelete.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userDeleteReqIs r name ∗ authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜∀ en : Bool, stepOk M hs (stepOf (userDeleteF en name))⌝ ∗
+      capNextM M hs (stepOf (userDeleteF b0 name)) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserDelete")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
+      respOk etcdserverpb.AuthUserDeleteResponse resp err ∗ ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗ adminOutP M hs (stepOf (userDeleteF en name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `UserChangePassword.specT` of a request whose password choice cannot fail
+(`userChangePasswordSure`: no `ErrNoPasswordUser`, `noExtra`), keeping the store's backend `be`
+(nomode D3, as `UserAdd.specTSureB`). -/
+abbrev auth.authStore.UserChangePassword.specTSureB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ userChangePasswordSure r ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
+      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOutP M hs (stepOf (userChangePasswordF name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `UserRevokeRole.specT` keeping the store's backend `be`, with the flag it read `b0` (nomode D3). -/
+abbrev auth.authStore.UserRevokeRole.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      userRevokeRoleReqIs r name role ∗ ⌜userKeysOk M hs⌝ ∗ authOwn M hs ∗
+      authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜∀ en : Bool, stepOk M hs (stepOf (userRevokeRoleF en name role))⌝ ∗
+      capNextM M hs (stepOf (userRevokeRoleF b0 name role)) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserRevokeRole")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
+      respOk etcdserverpb.AuthUserRevokeRoleResponse resp err ∗ ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗
+      adminOutP M hs (stepOf (userRevokeRoleF en name role)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `RoleDelete.specT` keeping the store's backend `be`, with the flag it read `b0` (nomode D3). -/
+abbrev auth.authStore.RoleDelete.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (role : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      roleDeleteReqIs r role ∗ authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜∀ en : Bool, stepOk M hs (stepOf (roleDeleteF en role))⌝ ∗
+      capNextM M hs (stepOf (roleDeleteF b0 role)) ∗
+      ⌜∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
+        n.length ≤ backend.maxKeySize⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleDelete")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
+      respOk etcdserverpb.AuthRoleDeleteResponse resp err ∗ ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗
+      adminOutP M hs (stepOf (roleDeleteF en role)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `RoleRevokePermission.specT` keeping the store's backend `be` (nomode D3). -/
+abbrev auth.authStore.RoleRevokePermission.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (role key rangeEnd : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜roleKeysOk M hs⌝ ∗
+      authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (roleRevokePermissionR role key rangeEnd)⌝ ∗ capNextM M hs (roleRevokePermissionR role key rangeEnd) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleRevokePermission")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
+      respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗
+      adminOutP M hs (roleRevokePermissionR role key rangeEnd) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
 /-- **`Authenticate.spec` at the tie's resources, keeping the store's backend `be`** (`authWRxB`;
 C1's A2, 2026-10-28): the apply thread's form, as the admin steps' `X.specTB`. It writes nothing,
@@ -723,6 +800,84 @@ theorem auth.authStore.RoleGrantPermission.specT_of_TB
   iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
   ihave ⟨%be, HWR⟩ := authWRx_B st M P f T Wb b0 sc0 $$ HWR
   iapply (h st R M P f T Wb hs Pre Q Post r name w b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
+  iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe HPP Hrest
+  iapply authWRx_of_B $$ HWR
+
+theorem auth.authStore.AuthDisable.specT_of_TB (h : auth.authStore.AuthDisable.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.AuthDisable.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, Hown, HWR, Hw1, Hw2, Hw3, Htpa, Hcs, %Hok, #Hcap0⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T Wb b0 sc0 $$ HWR
+  ihave #Hcap := Hcap0 $$ %b0
+  iapply (h st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Hw3 Htpa Hcs]
+  · iframe; iframe #; ipureintro; exact Hok
+  iintro !> ⟨%b, %sc, Htpa, HPP, HWR, %en, -, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe Htpa HPP
+  isplitl [HWR]
+  · iapply authWRx_of_B $$ HWR
+  iexists en; iexact Hrest
+
+theorem auth.authStore.UserDelete.specT_of_TB (h : auth.authStore.UserDelete.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.UserDelete.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post r name b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, Hown, HWR, Hw1, Hw2, Htpa, Hcs, %Hok, #Hcap0⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T Wb b0 sc0 $$ HWR
+  ihave #Hcap := Hcap0 $$ %b0
+  iapply (h st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Htpa Hcs]
+  · iframe; iframe #; ipureintro; exact Hok
+  iintro !> %resp %err ⟨%b, %sc, Htpa, HPP, HWR, Hresp, %en, -, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe Htpa HPP Hresp
+  isplitl [HWR]
+  · iapply authWRx_of_B $$ HWR
+  iexists en; iexact Hrest
+
+theorem auth.authStore.UserRevokeRole.specT_of_TB (h : auth.authStore.UserRevokeRole.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.UserRevokeRole.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post r name role b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap0⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T Wb b0 sc0 $$ HWR
+  ihave #Hcap := Hcap0 $$ %b0
+  iapply (h st R M P f T Wb hs Pre Q Post r name role b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
+  iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, -, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe HPP Hresp
+  isplitl [HWR]
+  · iapply authWRx_of_B $$ HWR
+  iexists en; iexact Hrest
+
+theorem auth.authStore.RoleDelete.specT_of_TB (h : auth.authStore.RoleDelete.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.RoleDelete.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post r role b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap0, %Hnames⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T Wb b0 sc0 $$ HWR
+  ihave #Hcap := Hcap0 $$ %b0
+  iapply (h st R M P f T Wb hs Pre Q Post r role b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨Hok, Hnames⟩
+  iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, -, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe HPP Hresp
+  isplitl [HWR]
+  · iapply authWRx_of_B $$ HWR
+  iexists en; iexact Hrest
+
+theorem auth.authStore.RoleRevokePermission.specT_of_TB
+    (h : auth.authStore.RoleRevokePermission.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.RoleRevokePermission.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post r role key rangeEnd b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T Wb b0 sc0 $$ HWR
+  iapply (h st R M P f T Wb hs Pre Q Post r role key rangeEnd b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Hcs]
   · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
   iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hrest⟩
   iapply HΦ

@@ -499,6 +499,12 @@ theorem authStoreKit_on
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
     (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
+    (hDisableB : auth.authStore.AuthDisable.specTB (GF := GF) (hG := hG))
+    (hUserDeleteB : auth.authStore.UserDelete.specTB (GF := GF) (hG := hG))
+    (hChangePasswordB : auth.authStore.UserChangePassword.specTSureB (GF := GF) (hG := hG))
+    (hUserRevokeRoleB : auth.authStore.UserRevokeRole.specTB (GF := GF) (hG := hG))
+    (hRoleDeleteB : auth.authStore.RoleDelete.specTB (GF := GF) (hG := hG))
+    (hRoleRevokePermissionB : auth.authStore.RoleRevokePermission.specTB (GF := GF) (hG := hG))
     (hCP : auth.authStore.CheckPassword.spec (GF := GF) (hG := hG))
     (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
     (rLk : schema.authBatchTx.Lock.spec (GF := GF) (hG := hG))
@@ -687,7 +693,7 @@ theorem authStoreKit_on
         ipureintro; exact Hf'
       iunfold adminW
       iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-        hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' (auth.authWTok γc) (backend.wbTok d.γB)
+        hRoleGrantPermissionB hAuthnB hDisableB hUserDeleteB hChangePasswordB hUserRevokeRoleB hRoleDeleteB hRoleRevokePermissionB stp R (.on γa) Pk' f' (auth.authWTok γc) (backend.wbTok d.γB)
         (beOn d.be)
         $$ [$Hpkg $Hinv]
     -- (P6.2) what an install needs: the lifecycle at the backend's open share, the hook clause,
@@ -698,7 +704,7 @@ theorem authStoreKit_on
     iintro !> %bel %Pk' %f' %T' %Wb'
     iunfold adminW
     iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-      hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' T' Wb' (beOn bel)
+      hRoleGrantPermissionB hAuthnB hDisableB hUserDeleteB hChangePasswordB hUserRevokeRoleB hRoleDeleteB hRoleRevokePermissionB stp R (.on γa) Pk' f' T' Wb' (beOn bel)
       $$ [$Hpkg $Hinv]
   iapply HΦ
   iframe Hopen Hhook

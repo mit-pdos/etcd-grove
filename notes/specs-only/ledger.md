@@ -70,6 +70,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: `kvEntryOn` (the auth-aware KV model) -- an admin field beside a KV field drops the KV op (D1)
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/KVAuthModelDefs.lean`, `kvEntryOn` (and its
+  relational twin `outcomeOn`, `KVApplyOn.lean`; the recorded-entry predicate `admEntry`): the model
+  `kvInvOn`, `writeAuD` and the `*On_dist` axioms are written over.
+- **Defect.** A request with an admin field and a KV field (`needAdminPermission = true`, `dispatchKind
+  = .put`, ...) takes the admin branch, so the model drops the put. Go (`authApplierV3.Apply`,
+  `server/etcdserver/apply/auth.go:43-58`) checks `IsAdminPermitted`, then dispatches the first set
+  field: the put is applied. Today's log premises (`adminKindOk`) exclude such entries, so no proof is
+  wrong, but the model is not Go's for every request Go accepts.
+- **Evidence.** `apply.dispatchKind` (`apply/InvRequest.lean:276`) vs `apply.needAdminPermission`
+  (`:319`); the scoping `~/coordinator-notes/plans/nomode-packet.md`, section 2.
+- **Proposed change.** `kvEntryOn`: refuse (state kept) when `needAdminPermission ∧ ¬ adminOk`, at
+  any index (the check runs before `dispatch`, whatever `shouldApplyV3`); take the admin step only above
+  `c₀` and for a kind `dispatch` applies as an admin step (`adminDispatchKind`); otherwise the KV
+  branches as today. `outcomeOn` and `admEntry` follow (`admEntry`'s `needAdminPermission rq = true`
+  becomes `adminDispatchKind (dispatchKind rq) = true`). On every log today's premises admit the model's
+  value is unchanged (an admitted admin entry is of an admin kind, `adminDispatchKind_of_adminKindOk`;
+  a refused one kept the state through `adminNext_refused`). No top-level statement changes.
+  Before/after text: `notes/nomode-n1.md`.
+- **Decision.** Accepted (the user, through the coordinator, 2026-11-27: D1); independent review of
+  the before/after pending.
 ## 2026-11-28: `walFiles` / `walRecs` -- admit histories with a saved commit above the last index, where Go's `ReadAll` differs from the model (C1)
 
 - **Spec.** `walRecs` and `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), through `srvFiles`
@@ -9492,6 +9514,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
   top-level statement changes.
 - **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).
+## 2026-11-28: the request model, its decoder axioms and the admin step for the six unmodelled admin kinds (nomode D3)
+
+- **Spec.** `apply.IRRModel` (`authUserDelete`, `authUserChangePassword`, `authUserRevokeRole`, `authRoleDelete`,
+  `authRoleRevokePermission`), `apply.internalRaftRequestIs` and `irrNoHdrIs` (their fields), so the trust-boundary
+  statements written in them (`pbutil.MustUnmarshalMessage.wp_proof`'s `irrDecode`, `proto.MarshalIRR.spec`);
+  `adminStateR`/`adminStepO`/`adminNext` (`KVAuthModelDefs.lean`), `apply.adminKindOk` (`Chain.lean`); the store's
+  `X.specTB` for `AuthDisable`, `UserDelete`, `UserRevokeRole`, `RoleDelete`, `RoleRevokePermission` and
+  `UserChangePassword.specTSureB` (`LatestTie.lean`); `apply.isAuthStepsX` (six clauses), the backend's
+  `X.stepSpecX`/`fuelSpecX`, `apply.AdminReq` (six constructors); `EtcdServer.{UserDelete,UserRevokeRole,RoleDelete,
+  RoleRevokePermission}.spec` (the request's names, as `RoleAdd.spec`'s).
+- **Defect.** The six kinds were a `Bool` in the request model and excluded by `adminKindOk`, so a log with one of
+  them was outside every mode-`on` statement (`notes/nomode-n1.md`, Step 3).
+- **Evidence.** `store.go` at the fork pin `18ab647b0` (`AuthDisable` 305-324, `UserDelete` 473-500,
+  `UserChangePassword` 502-545, `UserRevokeRole` 611-656, `RoleRevokePermission` 686-722, `RoleDelete` 724-765);
+  `apply/auth.go` `needAdminPermission` (all six need the admin permission); `v3_server.go:949-964`
+  (`EtcdServer.UserChangePassword` proposes the bcrypt hash, base64-encoded, with `Password` cleared).
+- **Change.** Each field an `Option` of the request's model (`authUserDeleteIs` = `auth.userDeleteReqIs`, ...;
+  `ChangePasswordModel` with its `pwSure`); `adminStateR` steps the six (the flag the steps read the state's own);
+  `adminKindOk` admits them (the user's or role's name a bbolt key where the store writes that key; a
+  `UserChangePassword`'s password choice that cannot fail). Exact before/after: `notes/nomode-n1.md`, "D3".
+- **Decision.** D3 approved by the coordinator for Upamanyu (2026-11-27/28); the trusted-visible text goes to his
+  review packet before landing.
 
 ## 2026-11-28: `Raft.GetConfiguration.spec` gives the future's `deferWait` (hraft S5c)
 
@@ -9571,3 +9615,16 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   the read); the law is proved (`readCall_law_holds`), no longer a hypothesis of `Sys.try.wp_proof`. No
   top-level statement changes; no axiom.
 - **Decision.** Untrusted specs, proved here (S6, #48).
+## 2026-11-28: the rewrite kinds' name bounds replaced by the stored names' (nomode D3, narrowed)
+
+- **Spec.** `apply.adminKindOk` (UserGrantRole, RoleGrantPermission, UserChangePassword, UserRevokeRole,
+  RoleRevokePermission); the store specs of those five (`spec`, `specT`, `specTB`, `specTSureB`);
+  `auth.authSmall`; `isAuthSteps(X)`, `stepSpec(X)`, `fuelSpec(X)`, `AdminReq.nameOk`;
+  `EtcdServer.{UserGrantRole,RoleGrantPermission}.specOn`.
+- **Defect.** A premise bounding the request's name, which Go does not need: these kinds rewrite an
+  existing record only, and a long name returns "not found" (review rev-d3, NEEDS-NARROWING).
+- **Evidence.** `notes/axiom-review/d3-gotest/` (`TestLongNames`, fork `18ab647b02`).
+- **Change.** The request's bound dropped; the store specs take `auth.userKeysOk`/`roleKeysOk` (every stored
+  name a bbolt key), which `authSmall.names`/the new `authSmall.roleNames` give. `notes/nomode-n1.md`, "D3,
+  narrowed".
+- **Decision.** The lead (dsverify-net), relaying the review; strengthening, no new trust.
