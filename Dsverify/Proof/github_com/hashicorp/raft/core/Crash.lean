@@ -229,6 +229,15 @@ theorem durStep {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Term
 
 /-! ## Arming and crashing -/
 
+/-- (R2) **What a vacant server keeps of its snapshot store** (`latestDur` with no install pending and
+without the dead generation's `lastApplied` half, which a generation's arm makes afresh): the latest's
+facts, and its index durable or installed while following with its discard pending. -/
+def latestDurV (lat : SnapLatest) (dp : Option DiscPend) : IProp GF :=
+  iprop(latestOk γ rc lat ∗
+    (⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
+      (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term') ∗
+        ⌜∃ ℓ, dp = some ⟨uint.nat m.Index', uint.nat m.Term', ℓ⟩⌝)))
+
 /-- (hraft_robust L0, R1 §1.3, §6.1) **What a generation of server `i` starts from**: gprot's halves
 and the stores' client authorities (`rc.ownL`, `rc.ownS`, `rc.ownSS`: the generation's handles, fixed before it
 runs; `rc`'s names are not used) at the crash state `X`, with the couplings, but no generation's names yet (`raft_arm` allocates
@@ -243,16 +252,18 @@ def srvVacant (X : SrvDur) : IProp GF :=
         (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
         ((∀ d, X.dp = some d → X.c < d.x) ∧ ((X.tp = none ∨ X.dp = none) ∧
         (∀ d, X.dp = some d → ∃ m b, X.lat = some (m, b) ∧ uint.nat m.Index' = d.x ∧ uint.nat m.Term' = d.st))))⌝ ∗
-    latestDur γ rc i X.lat X.pend X.dp ∗
+    latestDurV γ rc i X.lat X.dp ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
+
+theorem latestOk_snapP (rc0 rc1 : RCtx GF) (lat : SnapLatest) (h : rc1.snapP = rc0.snapP) :
+    latestOk γ rc1 lat = latestOk γ rc0 lat := by
+  rcases lat with _ | ⟨m, b⟩
+  · rfl
+  · simp only [latestOk, h]
 
 theorem latestOk_dur (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) :
     latestOk γ { rc0 with dur := dn } lat = latestOk γ rc0 lat := by
   rcases lat with _ | ⟨m, b⟩ <;> rfl
-
-theorem latestDur_dur_none (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) (dp : Option DiscPend) :
-    latestDur γ { rc0 with dur := dn } i lat none dp = latestDur γ rc0 i lat none dp := by
-  unfold latestDur; rw [latestOk_dur]
 
 /-- (R2) **Arming a generation** (at boot, before its WP): fresh crash-state names, the crash
 invariant (for the context `rc` with those names and the generation's store handles), the crash
@@ -266,7 +277,9 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
       srvDurInvRaw γ { rc0 with dur := dn } i ∗ srvCrashTok { rc0 with dur := dn } ∗
       srvVP { rc0 with dur := dn } X.s X.tp X.dp ∗ stVS { rc0 with dur := dn } X.D X.A.staged ∗
       termV { rc0 with dur := dn } X.s.term ∗ cidxV { rc0 with dur := dn } X.s.cidx ∗
-      monoNatAuthOwn dn.applied 1 0 ∗ monoNatAuthOwn dn.comp (1 : Qp).half X.c ∗
+      monoNatAuthOwn dn.applied (1 : Qp).half 0 ∗
+      (monoNatAuthOwn dn.applied (1 : Qp).half 0 ∨ ⌜∃ d, X.dp = some d⌝) ∗
+      monoNatAuthOwn dn.comp (1 : Qp).half X.c ∗
       ghostVar dn.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       ghostVar dn.pw 1 (none : Option Pend) ∗
       dghostVar dn.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) := by
@@ -294,8 +307,29 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
   ihave ⟨Hpend1, Hpend2⟩ := (ghostVar_split_half gpend 1 (none : Option (Nat × Nat × GoString))).1 $$ Hpend
   icases dghostVar_split _ _ (.own (1 : Qp).half) (.own (1 : Qp).half) $$ [Hboot] with ⟨Hb1, Hb2⟩
   · rw [DFrac.op_own, Qp.half_add_half]; iexact Hboot
-  rw [hpend]
-  rw [← latestDur_dur_none γ i rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ X.lat X.dp]
+  ihave ⟨Hap1, Hap2⟩ := ((monoNatAuthOwn_fractional (GF := GF) gap 0).fractional (1 : Qp).half (1 : Qp).half).1 $$ [Hap]
+  · rw [Qp.half_add_half]; iexact Hap
+  ihave ⟨Hlat, Hap2⟩ : latestDur γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ } i
+      X.lat none X.dp ∗ (monoNatAuthOwn gap (1 : Qp).half 0 ∨ ⌜∃ d, X.dp = some d⌝) $$ [Hlat Hap2]
+  · unfold latestDurV latestDur
+    icases Hlat with ⟨Hlok, Hbr⟩
+    ihave Hlok : latestOk γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ } X.lat $$ [Hlok]
+    · rw [latestOk_snapP γ rc0 { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ } X.lat rfl]; iexact Hlok
+    dsimp only
+    iframe Hlok
+    icases Hbr with (%hn | ⟨%m, %b, %hl, (#Hdl | ⟨#Hsf, %hdpd⟩)⟩)
+    · isplitl []
+      · ileft; ipureintro; exact hn
+      ileft; iexact Hap2
+    · isplitl []
+      · iright; iexists m, b; isplitl []; · ipureintro; exact hl
+        ileft; iexact Hdl
+      ileft; iexact Hap2
+    · isplitl [Hap2]
+      · iright; iexists m, b; isplitl []; · ipureintro; exact hl
+        iright; iframe Hsf; isplitl []; · ipureintro; exact hdpd
+        iexists 0; iframe Hap2; ipureintro; omega
+      iright; ipureintro; obtain ⟨ℓ, h⟩ := hdpd; exact ⟨_, h⟩
   imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ } i X') ∨
       crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ }))
     $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1 Hb1 Hcomp1 Hla] with #Hinv
