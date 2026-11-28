@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mstep
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.removeAt
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedHist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SharedModelDefs
 
 @[expose] public section
 
@@ -61,43 +62,6 @@ theorem settleWith_closed {L : GCfg → Input → List Nat} (S : List GCfg)
     exact ih (hcl _ hc i hi _ (by simp [settleSuccs, hrv]))
   | land i l hi hrv hl _ ih =>
     exact ih (hcl _ hc i hi _ (by simp only [settleSuccs, if_neg hrv]; exact List.mem_map.2 ⟨l, hl, rfl⟩))
-
-theorem hwf_foreignL (h : HSt) (hw : HWf h) (hr : uint.nat h.st.rv + 1 < 2 ^ 64) :
-    HWf (foreignL h) := by
-  unfold HWf at hw ⊢
-  simp only [foreignL, List.length_append, List.length_singleton, List.getLast?_append,
-    List.getLast?_singleton, Option.some_or]
-  refine ⟨?_, by simp⟩
-  rw [hw.1]; word
-
-theorem hwf_repeat_foreignL (n : Nat) (h : HSt) (hw : HWf h) (hr : uint.nat h.st.rv + n < 2 ^ 64) :
-    HWf (Nat.repeat foreignL n h) ∧ uint.nat (Nat.repeat foreignL n h).st.rv = uint.nat h.st.rv + n := by
-  induction n with
-  | zero => exact ⟨hw, rfl⟩
-  | succ n ih =>
-    obtain ⟨h1, h2⟩ := ih (by omega)
-    simp only [Nat.repeat]
-    refine ⟨hwf_foreignL _ h1 (by omega), ?_⟩
-    simp only [foreignL]
-    word
-
-theorem hwf_skipToL (h : HSt) (t : Nat) (hw : HWf h) (ht : t < 2 ^ 64) : HWf (skipToL h t) := by
-  unfold skipToL
-  have : uint.nat h.st.rv < 2 ^ 64 := by word
-  exact (hwf_repeat_foreignL (t - uint.nat h.st.rv) h hw (by omega)).1
-
-theorem hwf_kstepL (x : Input) (h : HSt) (hw : HWf h) (hx : isWriteL x = true)
-    (hr : uint.nat h.st.rv + 1 < 2 ^ 64) : HWf (kstepL x h).1 := by
-  rw [kstepL_write x h hx]
-  by_cases hs : (mstepL x h.st).1.rv = h.st.rv
-  · rw [mstepL_same x h.st hs, advanceL_same h h.st rfl]; exact hw
-  · rw [advanceL_new h _ hs]
-    have := (mstepL_changed x h.st hs).1
-    unfold HWf at hw ⊢
-    simp only [List.length_append, List.length_singleton, List.getLast?_append,
-      List.getLast?_singleton, Option.some_or]
-    refine ⟨?_, by simp⟩
-    rw [this, hw.1]; word
 
 /-- The landings' revisions: the next one, or one of `R`'s or the answer's, past it. -/
 theorem landingsL_mem (R : RevsL) (g : GCfg) (rv : w64) (w : Input) (b : w64) (full : Bool)
