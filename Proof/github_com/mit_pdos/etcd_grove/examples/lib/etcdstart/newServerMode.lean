@@ -22,6 +22,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode
 public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 
 @[expose] public section
 
@@ -302,6 +303,156 @@ theorem newServerMode.wp_proofAt
     iframe #
   ipureintro
   exact ⟨HE.1, HE.2.1, rfl, rfl, rfl, HE.2.2.2⟩
+
+/-- `newServerMode.wp_proof` with `bootstrap`'s contract borrowing a frame `R` (2026-11-27): over `NewServer.specAtA`,
+the lessor's slot and auth names allocated here (as `NewServer.wp_proofG`, `wp_proofGAt`), `R` passed to `NewServer`
+and back. -/
+theorem newServerMode.wp_proofF
+    (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
+    (wp_NewServer :
+      NewServer.specAtA (GF := GF) (hG := hG)) :
+    newServerMode.specF (GF := GF) (hG := hG) := by
+  intro N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
+    bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm R ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
+    HU Hpf Hcf HU8 HnL Hmode Haf Hbuq Hdbo
+  have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
+  have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
+  wp_start as ⟨HR, #Hpkg0, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
+  iunfold bootPremiseF at Hboot
+  iunfold memberBoot at Hmb
+  icases Hmb with ⟨%Hρ, %Hnsn, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
+    Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
+  -- the imports' package facts
+  ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
+  · iPkgInit
+  ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
+  (try wp_auto)
+  -- the configuration's client URLs
+  wp_apply wp_slice_literal
+  try (isplitr; (ipureintro; rfl))
+  iintro %curls ⟨Hcurls, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  (try wp_auto)
+  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc, #Hflc⟩
+  (try wp_auto)
+  -- (2026-10-27, the server port) the member's storage registry (D19r (B)), its `bootstrap`'s to
+  -- join, is the member's names' (`memberBoot`; until then allocated here)
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
+  have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
+  -- (step 6 of the hubs, 2026-11-03) `NewServer.specG` at auth off, in the member's mode `cmp`; its
+  -- mode-indexed rows at `false` are today's (by definition)
+  -- (sweep repairs 1, B4) `ETCD_VERIFY` off, from the member's fresh bundle
+  icases memberFreshRes_verify _ _ _ $$ Hfresh with ⟨#Hvoff, Hfresh⟩
+  have wpNS : NewServer.specGAtA (GF := GF) (hG := hG) false cmp := wp_NewServer cmp
+  simp only [NewServer.specGAtA, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false,
+    Bool.false_eq_true, ↓reduceIte] at wpNS
+  -- the lessor's slot and the auth names (unused with auth off), allocated here
+  have hAl : ⊢ |={⊤}=> ∃ γl : GName, ⌜γl ∉ ([] : List GName)⌝ ∗
+      ghostMapAuth (GF := GF) γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl :=
+    lease.lessorSlot_alloc (Gg := hG.goose_globalGS) ⊤ []
+  imod hAl with ⟨%γl, -, Hl, Hslot⟩
+  have hAa : ⊢ |==> ∃ γa : auth.AuthNames, srvAuthNamesFresh (GF := GF) γa := srvAuthNamesFresh_alloc
+  imod hAa with ⟨%γa, -⟩
+  wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
+      γ id ctxs ρ E₀ N Φs γn dir γd lm γl γa R hraft (by rw [hboot]; exact hrule) (fun h => absurd h Hnsn) hc0 hch hlog hkcmp
+      ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
+      v3rpc.maxTxnOpsOk_default Hmode (fun _ => trivial) hcmp0 hNx Htb Hrb48 HrbN
+      hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      (etcdURLsFit_httpURL peerAddr Hpf) (etcdURLsFit_httpURL client Hcf)
+      -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
+      -- literal's clock, the directory of the peers
+      (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
+      -- auth off: the auth mode's premise holds vacuously
+      (fun h => absurd h (by decide))
+      -- (2026-11-04, the lease-expiry plan's Part C) the lease slot, at the mode of `memberBoot`'s
+      -- running-server premise (`lease.runCfg`), auth off
+      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
+      -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
+      -- literal, and the write budget
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
+    $$ [HR Hl Hslot Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err ⟨HR, Hres⟩
+  · isplitr
+    · itrivial
+    isplitl [Hl Hslot]
+    · isplitl [Hl]
+      · iexact Hl
+      iexact Hslot
+    iframe
+    iframe #
+    isplitr
+    · iapply Hboot
+      ipureintro
+      refine ⟨?_, HU, hvs, hrule, hboot⟩
+      unfold cfgOk; simp [memberDataDir]
+    isplitr
+    · iunfold bootCfgRO
+      isplitr; · iExactEq Hpeer; rfl
+      isplitr; · iExactEq Hcurls; rfl
+      isplitr; · iExactEq Hcl; rfl
+      iexact Hsls
+    isplitl [Hreg]
+    · iunfold memStorRegAuth; iexact Hreg
+    -- the WAL's slot (`wal.bootRes`), from the member's fresh bundle
+    isplitl [Hfresh]
+    · iapply memberFreshRes_boot _ _ _ rfl (srvWalDirOf_lit _); iexact Hfresh
+    isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
+    isplitr; · ipureintro; exact Hsloc
+    isplitr; · ipureintro; exact Haf
+    isplitr; · ipureintro; exact Hbuq
+    isplitr; · ipureintro; exact Hdbo
+    ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, Hstk,
+    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, #Hlsrv, #Httl, -, -, Hkeep⟩)
+  · -- `NewServer` failed: the error returned
+    iapply HΦ; isplitl [HR]; · iexact HR
+    ileft; iframe Htok; ipureintro; exact Herr
+  subst Herr
+  -- what `Start` takes: the built server, the monitors off
+  ihave Hsb := isServerBuilt_of_gap srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) bootKV N
+    $$ [Hbuilt Hgap]
+  · iframe
+  iunfold srvMonitorCfg at Hmon
+  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw⟩
+  ihave #Hoff : srvMonitorsOff srv $$ []
+  · iunfold srvMonitorsOff
+    isplitr; · iExactEq Hmc; rfl
+    isplitr; · iExactEq Hmd; rfl
+    isplitr
+    · iexists _
+      iframe Hmf Hfgc
+    -- (wal-link L2) no WAL purge: the literal leaves `MaxWALFiles` zero
+    iExactEq Hmw; rfl
+  ihave #Hlr : srvLeaseRd srv E lm $$ []
+  · iapply srvLeaseRd_of_srvInv srv E lm _ $$ Hlsrv
+  -- (the lease-expiry plan's E3 (c) stage 2) the lease-TTL row's raft part, at the peers
+  ihave #Httl' : leaseTTLRowR srv ps $$ []
+  · rw [← hvs]; iexact Httl
+  -- (R2c-5) the data directory, the slot's (the literal's fields)
+  icases srvStop.dataDir srv _ E γrn γk (memberDataDir name) rfl (srvWalDirOf_lit _) $$ Hkeep with ⟨#Hddir, Hkeep⟩
+  iapply HΦ
+  isplitl [HR]; · iexact HR
+  iright
+  isplitr; · ipureintro; rfl
+  iframe Htok Httl' Hddir
+  iunfold memberBuilt
+  iexists γA, ci, TM, E, γrn, b, _, γk, τ
+  simp only [etcdstart.memberPeerServeRes, Bool.false_eq_true, ↓reduceIte]
+  -- (per-type stage B2) the raw stocks framed explicitly (`srvServeStock`)
+  isplitr
+  rotate_left
+  · isplitl [Hstk]
+    · iexact Hstk
+    iframe
+    iframe #
+  ipureintro
+  exact ⟨HE.1, HE.2.1, rfl, rfl, rfl⟩
+
 
 /-- `newServerMode` at a restart (see the file header): the glue over `NewServer.specR`. -/
 theorem newServerMode.wp_proofRestart

@@ -32,6 +32,7 @@ axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bootstrap.wp_proofOne
 axiom bootstrap.wp_proofRestart
+axiom bootstrap.wp_proofUnserved
 axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
 axiom dataDirAbsent
