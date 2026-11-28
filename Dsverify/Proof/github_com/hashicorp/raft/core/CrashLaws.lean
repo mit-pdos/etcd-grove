@@ -161,6 +161,33 @@ theorem durStepVV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P : IProp GF) 
       |NC={E}=> ∃ d : Nat × Nat, srvV rc { s with dur := d } ∗ Q { s with dur := d } :=
   durStepV γ rc i hE s none none P Q
 
+/-- (R2) The request's entries agree with the log below a committed index `k` of the current term
+(`cmtIdx_llog`, entry by entry). -/
+theorem crash_ents_match {E : CoPset} (hE : ↑gprotN ⊆ E) (s : SState) (prev : Nat) (ents : RLog) (k n : Nat) (hn : n = 0 ∨ prev + n ≤ k)
+    (hn2 : n ≤ ents.length) :
+    Inv (GF := GF) γ ∗ srvOwn γ i s ∗ cmtIdx γ s.term s.log k ∗
+      ([∗list] j ↦ e ∈ ents, llogIdx γ s.term (prev + 1 + j) e) ⊢ |={E}=>
+      srvOwn γ i s ∗ ⌜∀ m, m < n → ent s.log (prev + m + 1) = ents[m]?⌝ := by
+  induction n with
+  | zero =>
+    iintro ⟨-, Ho, -, -⟩
+    imodintro; iframe; ipureintro; intro m hm; omega
+  | succ n ih =>
+    iintro ⟨#HI, Ho, #Hc, #Hl⟩
+    imod (ih (by omega) (by omega)) $$ [Ho] with ⟨Ho, %h⟩
+    · iframe; iframe #
+    obtain ⟨e, he⟩ : ∃ e, ents[n]? = some e := ⟨ents[n]'(by omega), List.getElem?_eq_getElem (by omega)⟩
+    ihave #He := BigSepL.bigSepL_lookup (Φ := fun j e => llogIdx (GF := GF) γ s.term (prev + 1 + j) e) he $$ Hl
+    imod (gprot.cmtIdx_llog γ _ hE i s k (prev + 1 + n) e (by omega)) $$ [HI Ho Hc He] with ⟨Ho, %hen⟩
+    · iframe #; try iframe
+    imodintro
+    iframe
+    ipureintro
+    intro m hm
+    rcases Nat.lt_or_ge m n with h1 | h1
+    · exact h m h1
+    · rw [show m = n by omega, he, show prev + n + 1 = prev + 1 + n by omega]; exact hen
+
 /-! ## The fact laws (the state unchanged) -/
 
 section facts
@@ -434,7 +461,8 @@ previous entry matched, its entries agree with the log up to `dur` (a mismatch b
 truncation of a durable entry: `truncate_gt_dur`). -/
 theorem aeValid_match_dur_R (prev pt : Nat) (ents : RLog) (lci : Nat) (hp : prevMatch s.log prev pt) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ aeValid γ s.term prev pt ents lci ⊢
-      |NC={E}=> srvV rc s ∗ ⌜matchedUpTo s.log prev ents (Min.min ents.length (s.dur.1 - prev))⌝ := by
+      |NC={E}=> srvV rc s ∗ ⌜matchedUpTo s.log prev ents (Min.min ents.length (s.dur.1 - prev)) ∧
+        ∀ m, m < Min.min ents.length (s.dur.1 - prev) → ent s.log (prev + m + 1) = ents[m]?⌝ := by
   iintro ⟨#HI, #Hd, Hv, #Hae⟩
   iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
   iframe Hd Hv
@@ -444,12 +472,20 @@ theorem aeValid_match_dur_R (prev pt : Nat) (ents : RLog) (lci : Nat) (hp : prev
   imod (gprot.srvOwn_facts γ _ (crash_hE_gprot hE) i s) $$ [HI Ho] with ⟨Ho, -, %hf⟩
   · iframe #; try iframe
   have hdl := hf.2.1
+  imod (gprot.cmtIdx_dur γ _ (crash_hE_gprot hE) i s s.dur.1 (Nat.le_refl _)) $$ [HI Ho] with ⟨Ho, #Hcm⟩
+  · iframe #; try iframe
+  ihave #Hae' := Hae
+  iunfold aeValid at Hae'
+  icases Hae' with ⟨-, -, #Hents, -⟩
+  imod (crash_ents_match γ i (crash_hE_gprot hE) s prev ents s.dur.1 (Min.min ents.length (s.dur.1 - prev))
+    (by omega) (by omega)) $$ [HI Ho Hcm Hents] with ⟨Ho, %hents⟩
+  · iframe #; try iframe
   rcases crash_least (fun m => termAt s.log (prev + 1 + m) ≠ termAt ents (m + 1))
       (Min.min ents.length (s.dur.1 - prev)) with hall | ⟨m, hm, hne, hmin⟩
   · imodintro
     iframe
     ipureintro
-    refine ⟨by omega, fun j' hj' => ⟨by omega, ?_⟩⟩
+    refine ⟨⟨by omega, fun j' hj' => ⟨by omega, ?_⟩⟩, hents⟩
     exact Classical.byContradiction (hall j' hj')
   · have hmin' : ∀ j', j' < m → termAt s.log (prev + 1 + j') = termAt ents (j' + 1) :=
       fun j' hj' => Classical.byContradiction (hmin j' hj')
