@@ -618,3 +618,46 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   from `HWf` + the rv premise), Lock, `wp_mapInsert`, `wentries_insert`, Unlock; the return is copied from
   `step.lean`'s watch branch). Then add `stepIdx: step watchOkIdx` to `etc/link-lean-first-k8setcd3.txt`
   and regenerate `Link`. After that, `SharedModel` (§2.1).
+
+## Handoff K9-11 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **WMemo checked and fixed** (`5d79e56703`): `wkey_decEq` needed `[GooseExts]`; section `inj` needed the
+  `HeapGS` variables (`GoLocalContext` comes from `GF`); `wkey_intoValInj`'s type mentions `GF` only
+  through `wkey`'s `IntoVal` instance (`TypeAssumptions.type_repr`), so Lean refuses it as an instance
+  ("cannot find synthesization order"): declared under `set_option synthInstance.checkSynthOrder false
+  in` (it resolves wherever `GF`, `sem` and `package_sem` are in scope). `split_field_eq` and
+  `wkey_safeMapKey` went through unchanged. `stepIdx`'s spec checked unchanged.
+- **`stepIdx.wp_proof` done** (`Proof/.../etcd3/stepIdx.lean`, no `sorry`), linked (`stepIdx: step
+  watchOkIdx` in `etc/link-lean-first-k8setcd3.txt`, `Link.lean` regenerated with `etc/gen-link.py
+  --k8setcd3 > Link.lean`). Build of record (fk-lean2, target `etcd3.Link`) at `c3bd22b9c5`: passed,
+  12259 jobs.
+- **SharedModel, started** (`698e6380a6`, checked with `rc.sh`, built as a target; nothing imports it
+  yet): `Proof/.../etcd3/SharedModelDefs.lean` (defs tier) and
+  `Spec/.../etcd3/Seeded__SharedModel.lean`. Departures from §2.1's sketch, each forced:
+  - states are `GCfg → Prop` (the repository has no Mathlib `Set`; as `linkv.PSet`); porcupine's model
+    type is `Theory.SeqModel`; a step decodes with `decIO` (input and output as they are, not
+    `decOp`'s `ansOf (plainOut …)`), and `GoStep` steps `stepL` on `plainOut y` (what `stepIdx`'s
+    spec gives) while `targetL`/`GoSettle`/`boundL` read `y` raw, as the Go code does;
+  - **the revision bound is `2^62`, not `2^63`** (`RevsBelow x y := OpAnchors (List.range (2^62)) x y
+    ∧ y.RV' < 2^62`, `RevsLBelow R`): `settle`'s `SettleOk` needs `landing + pend.length + 2 ≤ 2^63`,
+    and pending writes accumulate (one per step, up to porcupine's `2^60`), so a landing at `2^63 − 1`
+    leaves no room. **For the coordinator**: K10 must discharge `RevsBelow` at `2^62` (etcd's
+    revisions are `int64`: a codec check, or a premise on the run's length of revisions);
+  - `sharedRep B k` keeps `SharedBounded B k g` per configuration: `HWf`, pending writes are writes,
+    `rv + pend.length ≤ 2^62 + k`, `items + pend.length ≤ B + k` (`B` the seeded items, `< 2^61` by
+    the spec's premise). Not `Bounded` (whose `hist.length + pend.length < n` fails: `skipTo` jumps
+    the history to the target);
+  - the spec's premises: `storeOwn s.st0' g0.st ∗ s.h0' ↦*□ hs ∗ [∗list] storeOwn` (as `Model.spec`),
+    `revsOwn r R`, `HWf g0 ∧ rv ≤ 2^62 ∧ items < 2^61 ∧ RevsLBelow R`; `mode` is any `w64` (`0` Lazy,
+    `2` Full, anything else Eager, as Go).
+- **Left: `Seeded.SharedModel.wp_proof`**, callees `histOf`, `histHashes.canonical`, `histHashes.skipTo`,
+  `target`, `bound`, `stepIdx`, `settle`, `cfgSet.add`, `storeEqual`, `pendEqual`; the closures as in
+  `Model.lean`'s proof (`initSpec`, `stepSpec`, `isEqHash`). Lemmas it needs, none written: `targetL x y
+  rv ≤ max rv B'` with `B' < 2^62` under `RevsBelow` (for `skipTo`'s `t < 2^63` and the bound);
+  `hwf_skipToL` (now in the proof module `settle.lean`: move it to a defs module, name unchanged);
+  `SharedBounded` through `skipToL`, through `GoSettle` (landings are `rv+1` or a revision of `R`/`y`:
+  a `landingsL` bound lemma), and through `stepL` (`k → k+1`); `SharedBounded` gives `stepIdx`'s
+  and `settle`'s premises (`SettleOk`) for `k < 2^60`. Allocation of `hh` and `memo` (`hhOwn`,
+  `memoOwn` from a fresh `wmemo` with an empty map and a mutex). `Equal`: same `hist` pointer ⇒
+  same history (`histOwn_agree_len`, lengths from `HWf`), `storeEqual`/`pendEqual` ⇒ equal configs.
+  Then link (`Seeded__SharedModel: histOf histHashes__canonical …`).
