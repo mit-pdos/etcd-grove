@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart). #33 parity B2, driver group E: **`node.paralle
 and its write (`writeE`: `if write { … n.announce(n.stateEv("write", hs, rd.Entries));
 n.saveDisk(whs, rd.Entries); n.emit(wrote); n.storeSave(whs, rd.Entries); n.hs = hs }`), its locals
 `n rd by hs write` substituted by their cells `np rdp bp hsp wrp` (as `wp_auto` leaves them);
-and the request loop's statement (`parReqB2.stmt`).
+the request loop's statement (`parReqB2.stmt`) and the write's (`parWriteB2.stmt`).
 -/
 module
 
@@ -153,6 +153,61 @@ abbrev parReqB2.stmt : Prop :=
           WP K {{ Φ }}) ⊢
     WP (App (App (Val exceptionSeq) (Lam BAnon K))
       (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.parallel.reqE np rdp bp))
+      {{ Φ }}
+
+/-- The view after `parallel`'s `write` report (`writeHstepD`): the queued `mem` `m`'s write announced,
+its undo the disk before it. -/
+abbrev parWroteV (v : AntSim.NodeView) (m : AntSim.MemRec) : AntSim.NodeView :=
+  { v with dur := v.dur.write m, undo := some v.dur, made := false, mems := [], jobs := AntSim.markHead v.jobs }
+
+/-- **`parallel`'s write** (`node.parallel.writeE` with `write` set, then the continuation `K`), at a
+mask `msk` within B2's that the run's relation admits, synchronous storage without batching, `-parallel`:
+the `write` report (`announce(stateEv("write", hs, rd.Entries))`: `writeHstepD`, the view's one queued
+`mem` `m`, alive), the disk written (`saveDisk(whs, …)`, `whs` the hard state `hp` if it is not `n.hs`'s
+`hsl`, as `oh`), `wrote` (`wroteHstepD`), the storage (`storeSave`), `n.hs = hs`. A kill on the way
+(`announce`'s fuse, before or after its record, or `emit`'s) leaves the rest unrecorded and, before
+`saveDisk`, the disk unwritten (`wr`); dead on entry, nothing is recorded or written. -/
+abbrev parWriteB2.stmt : Prop :=
+  ∀ (np rdp hsp wrp c n : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (I : DrainIterB1)
+    (msk : AntSim.SimMask) (v : AntSim.NodeView) (m : AntSim.MemRec) (net : List Msg) (xnet : List XMsg)
+    (dead : Bool) (fuse : w64) (hp hsl : Loc) (hs hs0 : HardStateM) (oh : Option HardStateM)
+    (d : Loc) (dk : AntSim.DurW) (els : List Loc) (ms : Loc) (γs : MemStorNames) (k : Nat)
+    (old : List EntryM) (q : Qp) (K : Expr) (Φ : val → IProp GF),
+  msk ≤ AntSim.mskB2 →
+  (∀ S V net xnet, AntSim.AntSimD γ.R γ.dec S V net xnet → AntSim.InMask msk γ.R net xnet) →
+  γ.mode.Async' = false → γ.mode.Batch' = false → γ.mode.Parallel' = true →
+  AllNormal I.es → SaveOk dk I.es →
+  (∀ (i : Nat) (e : EntryM), I.es[i]? = some e → uint.nat e.Index' = k + i) → k + I.es.length ≤ 2 ^ 61 →
+  (dead = false → v.mems = [m] ∧ m.snap = none ∧ m.ents = I.es ∧
+    atNode (AntSim.nameOf (AntSim.nodeId j)) (stateEvM go!"write" hs I.es) =
+      AntSim.evWrite (AntSim.nodeId j) m.term m.vote m.commit m.ents m.snap ∧
+    (AntSim.evWrite (AntSim.nodeId j) m.term m.vote m.commit m.ents m.snap).NumsOk) →
+  isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗
+      np ↦ n ∗ rdp ↦ I.rd ∗ hsp ↦ hp ∗ wrp ↦ true ∗
+      n.[H.node, go!"hs"] ↦ hsl ∗ hsRO hp hs ∗ hsOptRO (if hp = hsl then null else hp) oh ∗
+      n.[H.node, go!"disk"] ↦□ d ∗ diskOwn d dk ∗ killOwn n dead fuse ∗
+      I.rd.Entries' ↦*□ els ∗ ([∗list] p;e ∈ els;I.es, entRO p e) ∗
+      n.[H.node, go!"store"] ↦ ms ∗ memStorLock ms γs ∗ memStorMeta ms γs hs0 ∗
+      (if I.es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
+      entsPtsZ γs.sz I.rd.Entries' DFrac.discard I.es ∗
+      viewFrag γ.toAntNames j v ∗ runLive γ q ∗ sentLb γ.toAntNames net ∗ xsentLb γ.toAntNames xnet ∗
+      (∀ (dead' : Bool) (fuse' : w64) (wr : Bool) (v' : AntSim.NodeView) (net' : List Msg)
+          (xnet' : List XMsg),
+        np ↦ n ∗ rdp ↦ I.rd ∗ hsp ↦ hp ∗ wrp ↦ true ∗ n.[H.node, go!"hs"] ↦ hp ∗
+          killOwn n dead' fuse' ∗ diskOwn d (if wr then saveW dk oh I.es else dk) ∗
+          n.[H.node, go!"store"] ↦ ms ∗ memStorMeta ms γs (oh.getD hs0) ∗
+          entsPtsZ γs.sz I.rd.Entries' DFrac.discard I.es ∗
+          (if I.es = [] then emp else memLog γs k (DFrac.own 1) I.es ∗ memEnd γs (k + I.es.length)) ∗
+          viewFrag γ.toAntNames j v' ∗ runLive γ q ∗ sentLb γ.toAntNames net' ∗ xsentLb γ.toAntNames xnet' ∗
+          ⌜(dead = true → dead' = true ∧ wr = false ∧ v' = v) ∧
+            (dead' = false → wr = true ∧ v' = { parWroteV v m with undo := none, made := true }) ∧
+            ((wr = false ∧ v' = v) ∨ (dead' = true ∧ v' = parWroteV v m) ∨
+              (dead' = false ∧ wr = true ∧ v' = { parWroteV v m with undo := none, made := true })) ∧
+            net <+: net' ∧ xnet <+: xnet'⌝ -∗
+          WP K {{ Φ }}) ⊢
+    WP (App (App (Val exceptionSeq) (Lam BAnon K))
+      (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.parallel.writeE np rdp hsp wrp))
       {{ Φ }}
 
 end defs
