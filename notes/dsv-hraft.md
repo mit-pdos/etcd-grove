@@ -691,6 +691,14 @@ token-free `LeaderWithID` spec. Reported to coordinator-E.
 - **`kitQ_alloc`**: the clients' state at the empty frontier from `Inv γ ∗ opsAuth γ ∅`, with the model's other
   half and every client's counter.
 
+### S5c batch 2: the kit's `Codec()` (`KitCodecDefs.lean`, `KitCodec.lean`)
+
+`Codec()` meets `codecOk (regR g)` over the real code (vr's `CodecProof`, adapted): its helpers `flag`,
+`encStr` (appends a length byte and the bytes) and `decStr` (on an encoded string: the string, a rest as long as
+the remaining bytes, the input's bytes back) are proved first; `EncIn`/`DecIn` (put flag, way, value), `EncOut`/
+`DecOut` (unknown and found flags, value; `encOutV_outVal` from `Out`'s injective values), `IsRead`, `Unknown`,
+`IsUnknown`.
+
 Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof that its datum's id is `(c, m)`
 (`opID`/`command`'s bytes, `idOf`) and that `m < 2^56` (remote's call budget, `budUsed_add`), the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
 `Sys.op`/`try` and `Client`, the orchestrator and the admin, and the link.
