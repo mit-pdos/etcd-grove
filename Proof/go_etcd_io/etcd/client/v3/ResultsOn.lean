@@ -128,7 +128,7 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persist
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iexact Hau
   inext
@@ -341,7 +341,7 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iexact Hau
   inext
@@ -444,7 +444,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
       iunfold txnWriteOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iexact Hu
   inext

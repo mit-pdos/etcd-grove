@@ -69,7 +69,7 @@ theorem newMember.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     (wp_ServeHTTP : raftSwap.ServeHTTP.spec (GF := GF) (hG := hG)) :
     newMember.spec (GF := GF) (hG := hG) := by
-  intro CS N s name peerAddr client peer ρ E₀ lg γn id RcB RcN Hown
+  intro N s name peerAddr client peer ρ E₀ lg γn id RcB RcN Hown
   wp_start as ⟨Htok, Hmb, #Hpeer, Haddr, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -156,7 +156,7 @@ theorem restartMember.wp_proof
     (wp_set : raftSwap.set.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     restartMember.spec (GF := GF) (hG := hG) := by
-  intro CS N m γS name peerAddr client cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
+  intro N m γS name peerAddr client cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, Hrec, #Hcl, #Hsls, #Hboot, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
   iunfold memberRec at Hrec

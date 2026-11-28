@@ -39,7 +39,7 @@ variable [sync_sem : sync.Assumptions]
 
 /-- See the file header. -/
 abbrev apiserver.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γr : ServerRaftNames)
     (γk : KVNames) (γ : CNames) (shared : Bool),
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 →

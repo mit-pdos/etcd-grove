@@ -111,17 +111,24 @@ theorem Client.unaryClientInterceptor.wp_proof
     %vs %Ψ !> ⟨Htok, #Hgc, #Hinv, #Hrpc, Hpre, #Hctx, #Hom, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   -- (D29) a write's ordinary precondition, never retried (`.write`), or a persistent one (`.any`)
   obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
-  ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (attemptPre conn om Spec m Φ' Ψe) else iprop(□ laterHid (attemptPre conn om Spec m Φ' Ψe))) ∗
-      ⌜md = AttemptMode.write → kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝) $$ [Hpre]
+  ihave ⟨Hpre, %Hw, #HwN⟩ : iprop((if once then laterHid (attemptPre conn om Spec m Φ' Ψe) else iprop(□ laterHid (attemptPre conn om Spec m Φ' Ψe))) ∗
+      ⌜md = AttemptMode.write → kvMethod method ∧ scalarOpts vs⌝ ∗
+      □ (⌜md = AttemptMode.write⌝ -∗ noRefusalFor method addr)) $$ [Hpre]
   · subst hon
     cases md
     · unfold modePre laterHid
       simp only [bne_self_eq_false, Bool.false_eq_true, ↓reduceIte]
-      iframe Hpre; ipureintro; intro h; cases h
+      iframe Hpre
+      isplitl []
+      · ipureintro; intro h; cases h
+      · imodintro; iintro %h; cases h
     · unfold modePre laterHid
       simp only [show (AttemptMode.write != AttemptMode.any) = true from rfl, ↓reduceIte]
-      icases Hpre with ⟨Hpre, %Hw⟩
-      iframe Hpre; ipureintro; intro _; exact Hw
+      icases Hpre with ⟨Hpre, %Hw, #Hn⟩
+      iframe Hpre
+      isplitl []
+      · ipureintro; intro _; exact Hw
+      · imodintro; iintro -; iexact Hn
   ihave Hout := Rep.blank_own out $$ Hblank
   (try wp_auto)
   wp_apply wp_withVersion ctx cd om $$ [$Hctx $Hom] as %c' ⟨%ci, %vsv, %Hc', #Hctx', %vver, #Hver⟩
@@ -158,7 +165,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   ihave %Hcovpol : ⌜md = AttemptMode.write → cov.retryPolicy' = W8 1⌝ $$ []
   · cases md
     · ipureintro; intro h; cases h
-    · have Hcoio : co = io := Hco0 (Hnone (Hw rfl).2.2)
+    · have Hcoio : co = io := Hco0 (Hnone (Hw rfl).2)
       subst Hcoio
       iunfold retryOptsPol at Hiop
       icases Hiop with ⟨%ov2, #Hov2, %Hp2⟩
@@ -303,7 +310,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, #Hnl, -, %d, #Hd, %Hnr, -, Heo'⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, #Hnl, -, %d, #Hd, %Hnr, HnrW, Heo'⟩)
       · subst He
         (try wp_auto)
         wp_for_post
@@ -311,6 +318,17 @@ theorem Client.unaryClientInterceptor.wp_proof
         iframe
         ileft; iframe; ipureintro; rfl
       obtain ⟨Hne, Hce⟩ := He
+      -- (stage B′) a write's connection refuses it at no endpoint: refusal-free endpoints
+      -- (`noRefusalAt`) or flagged entries (`isGrpcRpcsNR`)
+      ihave %Hnd : ⌜md = AttemptMode.write → d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝ $$ [HnrW]
+      · by_cases hmd : md = AttemptMode.write
+        · ihave Hn := HwN $$ %hmd
+          iunfold noRefusalFor at Hn
+          icases Hn with (%Hp | #Hn)
+          · ipureintro; intro _; exact Hnr ⟨(Hw hmd).1, Hp⟩
+          · ihave %Hx := HnrW $$ Hn
+            ipureintro; intro _; exact Hx
+        · ipureintro; intro h; exact absurd h hmd
       cases err with
       | nil => exact absurd rfl Hne
       | ok ei =>
@@ -507,7 +525,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitr
           · -- (D29) a refresh follows an auth refusal, which a refusal-free connection never sends
             ipureintro; intro hw; exfalso
-            exact Hnr ⟨(Hw hw).1, (Hw hw).2.1⟩ (Hb2 rfl)
+            exact Hnd hw (Hb2 rfl)
           iframe
           isplitl []
           · iright; iframe Hcl Hse; ipureintro; exact ⟨Hne, Hce⟩
@@ -534,7 +552,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         · -- (D29) a write is retried only after a refusal
           ipureintro; intro hw; exfalso
           rcases Hb3 rfl with h | h
-          · exact Hnr ⟨(Hw hw).1, (Hw hw).2.1⟩ h
+          · exact Hnd hw h
           · rw [Hcovpol hw] at h; simp at h
         iframe
         isplitl []

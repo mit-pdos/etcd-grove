@@ -2,13 +2,15 @@
 Proof of `Spec/.../dist/client/WriterDist.lean` (#50 N10a). Lean-first (no Rocq counterpart).
 
 `etcdstart.Writer.wp_proof`'s loop verbatim, with each `cli.Put` the promoted `(*kv).Put` of the
-client's `KV` field (`ptr_Put_unfold`) and its contract the interim `KV_Put_dist` (a hypothesis) at
-the cluster's view, as `wp_cliPut` does (N9a's `KVCallsDist.lean`), keeping the reply's revision.
+client's `KV` field (`ptr_Put_unfold`) and its contract the client's `kv.Put.spec` (a hypothesis) at the
+client's `isKv` of an auth-off view (`isKv_of_kvClientAt`), as `wp_cliPut` does (`KVCallsDist.lean`), keeping
+the reply's revision.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WriterDist
 public import Spec.context.WithTimeoutBackground
+public import Spec.go_etcd_io.etcd.client.v3.kv__Put
 public import Spec.context.ErrAny
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
@@ -42,7 +44,7 @@ set_option maxHeartbeats 800000 in
 theorem Writer_dist.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG)) :
+    (wp_KV_Put : kv.Put.spec (GF := GF) (hG := hG)) :
     Writer_dist.spec (GF := GF) (hG := hG) := by
   intro π cl api eps V Γ QW OkF w γt γn c0 tsl tried lo hi hauth hP hAs hlo hlh hhi hsz
   wp_start as ⟨Hlt, Htk, Hgn, #Hkc, #Ht, #Hau, #Hconv, #Hmu⟩
@@ -56,6 +58,7 @@ theorem Writer_dist.wp_proof
   ihave #Hkc' := Hkc
   iunfold kvClientAt at Hkc'
   icases Hkc' with ⟨-, -, #Hkvf, -⟩
+  ihave #Hkv := isKv_of_kvClientAt cl api eps V Γ hauth $$ Hkc
   (try wp_auto)
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
@@ -91,7 +94,7 @@ theorem Writer_dist.wp_proof
     wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
       as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
     (try wp_auto)
-    -- `resp, err := cli.Put(ctx, p.Key, p.Val)`: the promoted `(*kv).Put`, `KV_Put_dist`
+    -- `resp, err := cli.Put(ctx, p.Key, p.Val)`: the promoted `(*kv).Put`, `kv.Put.spec`
     rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
     wp_pures
     wp_auto
@@ -102,16 +105,17 @@ theorem Writer_dist.wp_proof
     have hl : (putWireOf (opPutModel x.Key' x.Val' [])).leaseID = W64 0 := by
       simp [putWireOf, opPutModel, opFold, OpFull.putInit, OpFull.newOp, OpModel.zero]
     have hs := (hsz x (List.mem_of_getElem? Hx_lookup)).put
-    wp_apply (wp_KV_Put cl api eps V Γ cctx cd x.Key' x.Val' slice.nil [] (QW x.Key' x.Val') hauth)
+    wp_apply (wp_KV_Put api Γ.kv false cctx cd x.Key' x.Val' slice.nil [] (QW x.Key' x.Val'))
       $$ [Hlt Hau1] as %resp %err ⟨Hlt, Hout⟩
-    · iframe Hlt Hau1
+    · iframe Hlt
       iframe #
-      (try (ipureintro; first | exact ⟨⟨hnp, ht, hl⟩, hs⟩ | exact ⟨hnp, ht, hl, hs⟩ | exact hs |
-        exact ⟨hnp, ht, hl⟩))
+      isplitl []
+      · ipureintro; exact ⟨hnp, ht, hl⟩
+      ipureintro; exact hs
     -- `cancel()`
     (try wp_auto)
     wp_apply Hcancel
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, -⟩ | %Herr)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, -⟩ | ⟨%Herr, -⟩)
     · subst Herr
       ihave #Hok : OkF ⟨m.hdr.revision, x.Key', x.Val'⟩ $$ [HQ]
       · rw [Hs.1]

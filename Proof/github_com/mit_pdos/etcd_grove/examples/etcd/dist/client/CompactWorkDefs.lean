@@ -3,7 +3,7 @@
 # The compact workload of `examples/etcd/dist/client`: its vocabulary (#50 F5)
 
 `notes/etcd-dist-plan.md` §26. `RunCompact` runs on its orchestrator machine against every member's client
-endpoint, over the cross-machine contracts `KV_Put_dist`, `KV_Compact_dist`, `KV_Get_dist` and `Watch_dist`, at
+endpoint, over the client specs `kv.Put.spec`, `kv.Compact.spec`, `kv.Get.spec` and `Watch_dist`, at
 the cluster's view `Γ`, owning the prefix `cw/` of the cluster's shared KV (`etcd_dist.kvPfxH`,
 `KVPfxDist.lean`) beside putget's and durable's. It is compactwatch's argument (`compactwatch/Rounds.lean`)
 with the whole-KV facts restricted to its prefix and its history:
@@ -15,11 +15,11 @@ with the whole-KV facts restricted to its prefix and its history:
   of `pfxView cw/`) with: every value is `v`, and every key of the list `F` (monotone at `γF`: the keys whose
   put fired) has a key-value (`CwOk`, putget's `PgOk` at a constant value). A latest get of a fired key reads
   `v` (`cwReadOk`).
-- **A put's result** (`cwPutAu`, fired at most once, `KV_Put_dist`'s one-shot update): its key fired, the state
+- **A put's result** (`cwPutAu`, fired at most once, `kv.Put.spec`'s one-shot update): its key fired, the state
   it met extending the start's (`KVExt σ₀`), and a lower bound of the history after it. A get at the put's
   revision later reads that state (`KVExt.at_eq`), where the key holds `v` (`cwAt_put`); a latest get later
   reads at a revision at least the put's (`cwSeen`'s bound).
-- **A read's result** (`cwReadAu`, `KV_Get_dist`'s and `Watch_dist`'s persistent read update): `cwSeen σ₀ l0 k`:
+- **A read's result** (`cwReadAu`, `kv.Get.spec`'s and `Watch_dist`'s persistent read update): `cwSeen σ₀ l0 k`:
   the state's history extends the caller's bound `l0` and the start's, keeps the discipline, and the fired key
   `k` reads `v`.
 

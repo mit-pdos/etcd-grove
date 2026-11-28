@@ -35,7 +35,7 @@ theorem watchChan.processEvents.wp_proof
     (wp_serial : watchChan.serialProcessEvents.spec (GF := GF) (hG := hG))
     (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG)) :
     watchChan.processEvents.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur q wg n P HQok Hhist hn
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur q wg n P HQok Hhist hn
   wp_start as ⟨#Hcons, Hproc, Had⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

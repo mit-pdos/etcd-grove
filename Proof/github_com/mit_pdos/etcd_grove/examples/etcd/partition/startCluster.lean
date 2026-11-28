@@ -43,7 +43,7 @@ theorem startCluster.wp_proof
     (wp_StartCluster : cluster3.StartCluster.spec (GF := GF) (hG := hG))
     (wp_NewClient : cluster3.NewClient.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ ps ctxs boot lg pfx Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
+  intro N id₁ id₂ id₃ ps ctxs boot lg pfx Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨#Hzlg, Hstart, Htok, #Hprem⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold premises at Hprem

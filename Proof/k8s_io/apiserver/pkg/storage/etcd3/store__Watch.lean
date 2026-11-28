@@ -43,7 +43,7 @@ theorem store.Watch.wp_proof
     (wp_WithRequireLeader : WithRequireLeader.spec (GF := GF) (hG := hG))
     (wp_wWatch : watcher.Watch.spec (GF := GF) (hG := hG)) :
     store.Watch.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ sp c W γk ci cd key opts k n sie sel emp Q HQok Hhist Hnr
+  intro _ Obj _ _ sp c W γk ci cd key opts k n sie sel emp Q HQok Hhist Hnr
   wp_start as ⟨Hlt, #Hst, #Hsw, %Hpre, #Hsie, #Hsel, #Hwl, #Hrs, #Hctx, #Hmd, #Hce, #Hk8, %Htb, Hra,
     #Hre⟩
   obtain ⟨hk, hkl, hrv, hn, hpn, hrt⟩ := Hpre

@@ -61,7 +61,7 @@ theorem store.Get.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG))
     (wp_Record : metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k n Q hQ
+  intro _ Obj _ sp c ci cd key opts out o0 rv0 k n Q hQ
   wp_start as ⟨Hlt, #Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, Hau⟩
   obtain ⟨hk, hkl, hrv⟩ := Hpre
   ihave #Hst0 := Hst

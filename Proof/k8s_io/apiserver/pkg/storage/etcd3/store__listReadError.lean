@@ -38,7 +38,7 @@ theorem store.listReadError.wp_proof
     (wp_TooLarge : storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG))
     (wp_Is : errors.IsStatusErr.spec (GF := GF) (hG := hG)) :
     store.listReadError.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd err withRev ck kp Q hk
+  intro _ Obj _ sp c ci cd err withRev ck kp Q hk
   obtain ⟨k, hk, hkl⟩ := hk
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, #Herr⟩
   ihave #Prt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []

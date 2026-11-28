@@ -73,8 +73,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev Writer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (cl api : Loc) (γk : KVNames) (QW : GoString → GoString → KVState → IProp GF)
+  ∀ (cl api : Loc) (γk : KVNames) (QW : GoString → GoString → KVState → IProp GF)
     (OkF : wrec → IProp GF) (w : Loc) (tsl : GoSlice) (tried : List wkv) (lo hi : w64),
   (∀ p, Persistent (OkF p)) →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

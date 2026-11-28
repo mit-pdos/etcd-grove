@@ -26,7 +26,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem seed.wp_proof (wp_seedOne : seedOne.spec (GF := GF) (hG := hG)) :
     seed.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γs hAs hms
+  intro _ cl ms V γs hAs hms
   wp_start as ⟨Hlt, #Hnc, #Hwo, #Hregs, #Hsi, Hs⟩
   wp_auto
   ihave #Hs0 : storeOwn (mstore.mk slice.nil (W64 1)) st1 $$ []

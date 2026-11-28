@@ -12,17 +12,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.Base
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Init
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

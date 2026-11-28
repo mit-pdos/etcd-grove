@@ -154,9 +154,9 @@ theorem RunCompact.wp_proof
     (wp_AfterFunc : time.AfterFunc.spec (GF := GF) (hG := hG))
     (wp_Stop : time.Timer.Stop.spec (GF := GF) (hG := hG))
     (wp_Collect : etcdstart.Collect.spec (GF := GF) (hG := hG))
-    (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG))
-    (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG := hG))
-    (wp_KV_Compact : KV_Compact_dist.spec (GF := GF) (hG := hG))
+    (wp_KV_Put : kv.Put.spec (GF := GF) (hG := hG))
+    (wp_KV_Get : kv.Get.spec (GF := GF) (hG := hG))
+    (wp_KV_Compact : kv.Compact.spec (GF := GF) (hG := hG))
     (wp_Watch : Watch_dist.spec (GF := GF) (hG := hG)) :
     RunCompact.spec (GF := GF) (hG := hG) := by
   intro π eps addrs hV Htb hpl hAs
@@ -290,7 +290,7 @@ theorem RunCompact.wp_proof
       as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
     (try wp_auto)
     wp_apply (wp_cliCompact wp_KV_Compact cl api addrs (Classical.choice hV) Γ cctx ccd
-        (m.hdr.revision - W64 1) Hr1 Hcmp) $$ [$Hlt] as %cresp %cerr Hlt
+        (m.hdr.revision - W64 1) Hr1 Hcmp Hauth) $$ [$Hlt] as %cresp %cerr Hlt
     · iframe #
     (try wp_auto)
     wp_apply Hccancel
@@ -307,7 +307,7 @@ theorem RunCompact.wp_proof
     wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd (go!"cw/k" ++ s)
         slice.nil [] iprop(True)
         (fun σ => iprop(⌜cwSeen σ₀ l1 (go!"cw/k" ++ s) σ⌝))
-        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl hgsz)
+        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl hgsz Hauth)
       $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
     · iframe Hlt
       iframe #
@@ -394,7 +394,7 @@ theorem RunCompact.wp_proof
           (fun σ => iprop(⌜cwSeen σ₀ l0 pk σ⌝))
           ⟨by simp [opGetPanics, opFold, withRevM, OpFull.newOp, OpModel.zero], rfl⟩ rfl
           (opSizeOk_opGetModel (K := 70) (E := 0) (V := 0)
-            (optsKeep_cons (withRevM_keep pr) (optsKeep_nil _ _ _)) Hpkl (by decide)))
+            (optsKeep_cons (withRevM_keep pr) (optsKeep_nil _ _ _)) Hpkl (by decide)) Hauth)
         $$ [Hlt] as %oresp %oerr ⟨Hlt, -, Hog⟩
       · iframe Hlt
         iframe #
@@ -620,7 +620,7 @@ theorem RunCompact.wp_proof
         (fun σ => iprop(⌜cwSeen σ₀ l0 pk σ⌝))
         ⟨by simp [opGetPanics, opFold, withRevM, OpFull.newOp, OpModel.zero], rfl⟩ rfl
         (opSizeOk_opGetModel (K := 70) (E := 0) (V := 0)
-          (optsKeep_cons (withRevM_keep pr) (optsKeep_nil _ _ _)) Hpkl (by decide)))
+          (optsKeep_cons (withRevM_keep pr) (optsKeep_nil _ _ _)) Hpkl (by decide)) Hauth)
       $$ [Hlt] as %oresp %oerr ⟨Hlt, -, Hog⟩
     · iframe Hlt
       iframe #
@@ -839,7 +839,7 @@ theorem RunCompact.wp_proof
     · (try wp_auto)
       -- `checkCompactRev(cli, prevKey)`
       wp_apply (wp_checkCompactRev cl pk addrs (Classical.choice hV) Γ γr γ γF γh σ₀
-          l0 Hpk Hpkl Hcret hAs) $$ [$Hlt] as Hlt
+          l0 Hpk Hpkl Hcret Hauth hAs) $$ [$Hlt] as Hlt
       · iframe #
       (try wp_auto)
       wp_apply wp_checked as %r -
@@ -882,7 +882,7 @@ theorem RunCompact.wp_proof
     · (try wp_auto)
       -- `checkCompactRev(cli, prevKey)`
       wp_apply (wp_checkCompactRev cl pk addrs (Classical.choice hV) Γ γr γ γF γh σ₀
-          l0 Hpk Hpkl Hcret hAs) $$ [$Hlt] as Hlt
+          l0 Hpk Hpkl Hcret Hauth hAs) $$ [$Hlt] as Hlt
       · iframe #
       (try wp_auto)
       wp_apply wp_checked as %r -
