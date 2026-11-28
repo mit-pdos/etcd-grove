@@ -213,12 +213,12 @@ def snapsMem (s : Loc) (S : SnapImg) : IProp GF :=
     | none => ⌜has = false⌝
     | some (m, b) => ⌜has = true⌝ ∗ metaRep mv m b.length ∗ dt ↦*□ b)
 
-/-- **A fresh `*Snaps`'s decoded fields** (`OpenSnaps`'s `&Snaps{mu: …, file: …}`): no snapshot, the rest
-anything. -/
+/-- **A fresh `*Snaps`'s decoded fields** (`OpenSnaps`'s `&Snaps{mu: …, file: …}`): no snapshot, the
+metadata's `Peers` nil (as in the zero value), the rest anything. -/
 def snapsMem0 (s : Loc) : IProp GF :=
   iprop(∃ (mv : SnapshotMeta) (dt : GoSlice) (nid : w64),
     s.[Snaps, go!"has"] ↦ false ∗ s.[Snaps, go!"meta"] ↦ mv ∗ s.[Snaps, go!"data"] ↦ dt ∗
-    s.[Snaps, go!"nextID"] ↦ nid)
+    s.[Snaps, go!"nextID"] ↦ nid ∗ ⌜mv.Peers' = slice.nil⌝)
 
 end rep2
 
