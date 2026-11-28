@@ -139,7 +139,7 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
   have Hvv : (v, none) = vk := Hag.2
   subst Hvv
   obtain ⟨Hview, -, Hho, Hrk⟩ := Hp
-  obtain ⟨Hsok, Hview'⟩ := Hstep σ Hview
+  obtain ⟨Hsok, -, Hview'⟩ := Hstep σ Hview
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -696,7 +696,7 @@ theorem wal.restartOk_startRK (cfg : go_etcd_io.etcd.server.v3.config.ServerConf
   have hag0 : DurAgrees S l₀ := durAgrees_prefix S l₀ l' hpre Hag
   have hv : ViewOk ⟨S, σ.hs, none, l₀⟩ σ :=
     viewOk_restart S σ l₀ HsI.1 (by omega) (by rw [hl]; exact hrf.2.2.1) hag0
-  ihave Hsi2 := wal.stopImage_intro cl S σ i HsI.1 HsI.2.1 HsI.2.2 $$ [Hcert Hl']
+  ihave Hsi2 := wal.stopImage_intro cl S σ i HsI.1 HsI.2.1 HsI.2.2 hrf $$ [Hcert Hl']
   · iframe Hcert
     iexists l'
     iframe Hl'
