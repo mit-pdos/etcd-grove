@@ -86,9 +86,34 @@ instance lastContactP_fractional (r : Loc) : Fractional (lastContactP (GF := GF)
     icombine H1 H2 gives %h
     ipureintro; exact h
 
-instance observersP_fractional (γ : GNames) (i : SID) (r : Loc) :
-    Fractional (observersP (GF := GF) γ i r) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+instance observersP_fractional (γ : GNames) (rc : RCtx GF) (i : SID) (r : Loc) :
+    Fractional (observersP (GF := GF) γ rc i r) := by
+  unfold observersP
+  apply fractional_exists_agree'
+  · intro m
+    apply fractional_exists_agree'
+    · intro mv
+      have := ownMap_fractional (GF := GF) m mv
+      refine ⟨fun p q => ?_⟩
+      constructor
+      · iintro ⟨H1, H2, #H3⟩
+        icases (typedPointsto_frac_add (GF := GF) _ m p q).1 $$ H1 with ⟨H1a, H1b⟩
+        icases (this.fractional p q).1 $$ H2 with ⟨H2a, H2b⟩
+        iframe; iframe #
+      · iintro ⟨⟨H1a, H2a, #H3⟩, ⟨H1b, H2b, _⟩⟩
+        isplitl [H1a H1b]
+        · iapply (typedPointsto_frac_add (GF := GF) _ m p q).2; iframe
+        isplitl [H2a H2b]
+        · iapply (this.fractional p q).2; iframe
+        iexact H3
+    · intro x y q1 q2
+      iintro ⟨⟨_, H1, _⟩, ⟨_, H2, _⟩⟩
+      iapply ownMap_agree $$ [H1 H2]
+      iframe
+  · intro x y q1 q2
+    iintro ⟨⟨%mv1, H1, _⟩, ⟨%mv2, H2, _⟩⟩
+    icombine H1 H2 gives %h
+    ipureintro; exact h
 
 theorem pkgGlobals_access :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ⊢ pkgGlobals (GF := GF) := by
@@ -152,12 +177,14 @@ theorem ownPointer_zero_cfg (u : Loc) :
       sync.atomic.ownPointer (T' := Configuration) u (DFrac.own 1) null := by
   rw [sync.atomic.ownPointer_unseal]; unfold sync.atomic.ownPointerDef; exact .rfl
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- (stage 3) A fresh snapshot store's invariant: nothing stored, no install pending. -/
 theorem snapCell_alloc (rc : github_com.hashicorp.raft.RCtx GF) (γ : github_com.hashicorp.raft.gprot.GNames)
     (i : github_com.hashicorp.raft.proto.SID) :
     rc.ownSS none ∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
       |={⊤}=> github_com.hashicorp.raft.snapCell rc γ i := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 /-- The bootstrapped log store's map: the genesis at index 1. -/
 theorem genesisStore_m (g : Entry) (k : Nat) :

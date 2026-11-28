@@ -228,6 +228,7 @@ theorem voteMatches_term (sst : StableAbs) (s : SState) (v : w64) (t : Nat)
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 open proto gprot in
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- Reassembling the main goroutine's resources (a non-leader state). (Stage 3: the `lastApplied`
 authority half, the pending-install half `none`, the compaction authority at `c ≤ a`.) -/
 theorem mainOwnAt_intro (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32)
@@ -249,6 +250,7 @@ theorem mainOwnAt_intro (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 open proto gprot in
 theorem aeValid_ent (γ : GNames) (T prev pt : Nat) (ents : RLog) (lci j : Nat) (e : Entry)
@@ -274,6 +276,7 @@ theorem ptrs_drop (ptrs : List Loc) (ents : RLog) (prev j : Nat) :
   iexact Hp
 
 open proto gprot in
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- Reassembling the main goroutine's resources (any state, with its leader witness). -/
 theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32)
     (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (cidx li : w64) (lch : Loc)
@@ -300,6 +303,7 @@ theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 open proto gprot in
 theorem obsArg_state (γ : GNames) (i : SID) (s : SState) (st : w32) (h : st ≠ stLeader) :
@@ -384,6 +388,7 @@ instance cidxCouple_timeless (γ : GNames) (i : SID) (c : Nat) :
   unfold cidxCouple; infer_instance
 
 open proto gprot in
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- An atomic read of the log store (`GetLog`), by the main goroutine (`srvOwn`): (stage 3) every
 entry the store holds is the server's log's. -/
 theorem logCell_read (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (Ψ : LogAbs → IProp GF) :
@@ -392,7 +397,9 @@ theorem logCell_read (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (Ψ : L
         srvOwn γ i s -∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ A) ⊢
       |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 open proto gprot in
 /-- The log store's `DeleteRange(prev+1+j, |log|)` by the main goroutine: the protocol step
 `truncate` at its linearization point. -/
@@ -408,8 +415,10 @@ theorem logCell_truncate (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
       |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
         (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m (uint.nat mn) (uint.nat mx), hi'⟩ ={∅,⊤}=∗ Ψ) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 open proto gprot in
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- The log store's `StoreLogs(ents[j:])` by the main goroutine (its log ends at `prev + j`):
 the protocol step `followerStore` at its linearization point. -/
 theorem logCell_store (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
@@ -423,6 +432,7 @@ theorem logCell_store (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
       |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
         (rc.ownL (A.store (prev + 1 + j) (ents.drop j)) ={∅,⊤}=∗ Ψ) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 open proto gprot in
 /-- The server's own term, as a persistent lower bound (from the term cell). -/

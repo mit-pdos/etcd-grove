@@ -362,8 +362,8 @@ instance termCouple_timeless γ i t : Timeless (termCouple (GF := GF) γ i t) :=
   unfold termCouple; infer_instance
 
 /-- A term lower bound of `i` fits in a `uint64` (the term cell holds a `w64` above it). -/
-theorem termLb_bound (r : Loc) (γ : GNames) (i : SID) (T : Nat) :
-    termCell (GF := GF) r γ i ∗ termLb γ i T ⊢ |={⊤}=> ⌜T < 2 ^ 64⌝ := by
+theorem termLb_bound (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) :
+    termCell (GF := GF) r γ rc i ∗ srvDurInv γ rc i ∗ termLb γ i T ⊢ |NC={⊤}=> ⌜T < 2 ^ 64⌝ := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- An entry of a prefix is an entry of the whole log. -/

@@ -31,8 +31,8 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 open github_com.hashicorp.raft proto gprot
 
 /-- The term cell gives the (trivial) lower bound `0` on the term. -/
-theorem github_com.hashicorp.raft.termCell_lb0 (r : Loc) (γ : gprot.GNames) (i : SID) :
-    £ 1 ∗ termCell (GF := GF) r γ i ⊢ |={⊤}=> gprot.termLb γ i 0 := by
+theorem github_com.hashicorp.raft.termCell_lb0 (r : Loc) (γ : gprot.GNames) (rc : RCtx GF) (i : SID) :
+    £ 1 ∗ termCell (GF := GF) r γ rc i ∗ srvDurInv γ rc i ⊢ |NC={⊤}=> gprot.termLb γ i 0 := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem github_com.hashicorp.raft.Raft.CurrentTerm.wp_proof

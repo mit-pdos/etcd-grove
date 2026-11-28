@@ -130,6 +130,7 @@ theorem install_close (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id 
   imodintro
   iexact Hpend
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **The install's commit** (its sink's `Close`): the store's latest is none, or at most
 `lastApplied = a < s` (the main goroutine's half of the authority) with a committed entry of a term
 `≤ st` (`CIdx_term_mono`): the install's snapshot is newer and becomes the latest; the pending
@@ -148,6 +149,8 @@ theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id
         ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id))) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
+-/
 /-- **The install's `setLastApplied(s)`** (its logically atomic update): the pending record
 `(s, st, id)` (the main goroutine's half, back from the restore) finds the main goroutine's half of
 `lastApplied`'s authority in `snapCell` at `a < s`; it takes it, and the authority moves to `s`; the
@@ -162,6 +165,8 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s st : Nat) (
       ⌜a ≤ s⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half s ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
+-/
 /-- **A main-goroutine read of the log store** (`GetLog(k)`'s atomic update) past the compaction
 frontier (`cm < k`, the main goroutine's authority): the store's entries are entries of the server's
 log, and it holds the log's entry at `k` if the log reaches `k`. -/
@@ -176,6 +181,7 @@ theorem logCell_getLog (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (cm k
         monoNatAuthOwn rc.dur.comp 1 cm -∗ Ψ A) ⊢
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 /-- What the install's `GetLog(s)` tells (`¬ prevMatch`: the discard case). -/
 theorem getLog_prevMatch (L : RLog) (m : GMap Nat Entry) (k st : Nat) (hk : 1 ≤ k)
@@ -206,6 +212,7 @@ theorem del_lookup_some (m : GMap Nat Entry) (mn mx k : Nat) (e : Entry) :
   simp only [decide_eq_true_eq] at h
   exact h
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **The install's discard** (`DeleteRange(1, |log|)`'s atomic update, then `setLastLog(s, st)`):
 the store loses every entry (they are all within `1..|log|`), the protocol log becomes the committed
 prefix up to `x` (`installDiscard_upd`) and the store's window starts past it (`lo = x + 1`, the
@@ -223,6 +230,7 @@ theorem logCell_discard (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x s
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
       (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m 1 mx, hi'⟩ ={∅,⊤}=∗ Ψ) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 instance batchStart_persistent (rc : RCtx GF) (n k : Nat) :
     Persistent (batchStart (GF := GF) rc n k) := by
@@ -462,6 +470,7 @@ theorem stateCell_val (r : Loc) (rc : RCtx GF) (st : w32) :
   imodintro
   iframe; ipureintro; exact Hv
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **A compaction** (`DeleteRange(mn, mx)`'s atomic update, any goroutine) up to `mx ≤ x` with the
 compaction frontier at least `x` (`compLb`): the store's window moves past `mx`. -/
 theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx x : Nat) (hmx : mx ≤ x)
@@ -470,6 +479,7 @@ theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx x : Nat) (
     |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
       (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m mn mx, hi'⟩ ={∅,⊤}=∗ Ψ) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 /-- The snapshot goroutine's snapshot `(x, tx)` as the store's latest (`latestOk`; the length bound
 of its bytes from the store's commit, SNAP-2). -/
@@ -494,6 +504,7 @@ theorem own_latestOk (γ : GNames) (rc : RCtx GF) (x tx : Nat) (id : GoString) (
   refine ⟨rfl, ?_, hb, rfl⟩
   word
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **The snapshot goroutine's commit** (its sink's `Close`, `takeSnapshot`): its snapshot `(x, tx)`
 (at most `lastApplied` and durable) becomes the latest unless the latest is newer; during a pending
 install it is not newer (`x ≤ a < s`, `CIdx_term_mono`), so the pending case is kept. -/
@@ -506,6 +517,7 @@ theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoS
       (rc.ownSS (newerSnap old (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b) ={∅,⊤}=∗
         True) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 /-- (Unfolds gprot's `InvBody`, a missing gprot law, as `ReplSnap.CIdx_lt`.) A committed entry's term
 is below the bound on terms (`2^62`). -/
@@ -641,6 +653,7 @@ theorem install_cfgs (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (i : SID)
     ipureintro; exact ⟨h1, he, hk, hd⟩
   ipureintro; exact ⟨hl, h1, h2, by omega⟩
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- **The restore's `Open(id)`** (the FSM goroutine, holding the pending record's main-goroutine half,
 lent through the restore future): the store's latest is the install's snapshot `(s, st)` with id `id`
 (`snapCell`'s pending case): `Open` returns its metadata and a reader over its bytes, a snapshot of `s`. -/
@@ -654,6 +667,7 @@ theorem restore_open (γ : GNames) (rc : RCtx GF) (i : SID) (fx : GoInterfaceOk)
         Ψ (PairV (PairV #mp #(GoInterface.ok rd)) #interface.nil)) ⊢
     |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗ (rc.ownSS old ={∅,⊤}=∗ ∀ v, openPost old id eof v -∗ Ψ v) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+-/
 
 end github_com.hashicorp.raft.snapProof
 
