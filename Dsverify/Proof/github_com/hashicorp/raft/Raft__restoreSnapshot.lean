@@ -84,6 +84,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     wp_if_destruct
     · exfalso; simp at Hsll; word
     iapply HΦ
+    icases HP with ⟨Hboot, Hpe⟩
     iframe
     unfold latFacts; itrivial
   · skip
@@ -150,7 +151,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
         imod Hmask with -
         imodintro
         ihave #Hlb := monoNatLbOwn_get _ _ _ $$ Happ
-        iframe
+        iframe Hboot Hpe Hsv
         isplitr; · ipureintro; rfl
         isplitl [Happ]; · ileft; iexact Happ
         unfold applLb; iexact Hlb
