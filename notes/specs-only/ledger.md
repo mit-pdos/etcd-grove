@@ -25,6 +25,29 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-28: `walFiles` (hence `srvFiles` and `bootstrapRestartContract`) -- the files' records are only what a restart reads, not the history's eager fold
+
+- **Spec.** `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), the WAL part of `srvFiles`
+  (`etcdserver/InvRestart.lean`), the pre of the trusted premise `bootstrapRestartContract` of
+  `etcd_robust_single_process` (`etcd_restartN.premises`, `etcd_restart1.premises`).
+- **Defect.** Vacuous premise (false statement). The pre fixes `σ` by `walRead (walSrvHist d.H) = some σ` (the
+  snapshot records above the saved commit dropped); the post (`bootOkR` → `wal.restartOk` → `walOpened` →
+  `walRecs h σ`) asks for the eager fold `walFoldChkFrom walFresh (walSrvHist d.H) = some σ`. They differ on a
+  WAL ending with a synced snapshot record above the commit: `Save(commit 5, entries 1..5)`, `SaveSnapshot(3)`,
+  `SaveSnapshot(10)`, `Close`; `bootstrap` returns `nil` on it and no post state exists, so the premise is
+  false and the theorem vacuous.
+- **Evidence.** `notes/axiom-review/bootstrap-restart-eagerfold.md`; the review `/shared/tmp/efr/report.md`
+  (2026-11-28); Go: `examples/axiomcx/restarteagerfold` (the WAL read, `err = nil`, commit 5, entries `[4 5]`)
+  and `examples/axiomcx/restarteagerfoldboot` (a real member's files with such a record, restarted by
+  `embed.StartEtcd`: ready).
+- **Proposed change.** `walFiles`' pure fact gains the conjunct `walFoldChkFrom walFresh (walSrvHist d.H) =
+  some σ` (only that: not DELTA-8's `σ.b ≤ σ.commit` variant). The producer `walRecs_closeAU` already has it
+  (its `hf.1`); no consumer unfolds `walFiles`. etcd's graceful runs never write the excluded files (the note's
+  (d)). No axiom or `sorry` moves; the statement of `etcd_robust_single_process` changes only through
+  `walFiles`.
+- **Decision.** Accepted (coordinator-E, #50, 2026-11-28 01:31Z, under Upamanyu's delegation); applied on
+  branch `walfiles-fold/2026-11-28`.
+
 ## 2026-11-27: grpc's service table -- no way to say "this method never refuses" except the opaque `noRefusalAt`
 
 - **Spec.** `GrpcEntry` (`Proof/google_golang_org/grpc/InvGrpcWire.lean`), `grpcServesEnt` (`InvGrpcRun.lean`),
