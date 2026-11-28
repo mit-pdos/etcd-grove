@@ -552,3 +552,39 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   then `SharedModel` (§2.1).
 - **No `sorry`** in built files, no axiom, no top-level statement, premise or trusted-text change.
 - **Build of record** at `ae88865065` (FKLEAN_HOST=fk-lean2, `etcd3.Link`, `etcd3.Results`): passed, 12290 jobs.
+
+## Handoff K9-9 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Proved and linked** (step 3, part 1): `viewFrom` and `hview.at` (`0c2c8024e8`); the five indexed
+  checks `wantEventsIdx`, `reliableOkIdx`, `initialPrefixOkIdx`, `watchListOkIdx`, `watchOkIdx`
+  (`2eb3daaab6`, `e83de24429`), all in `etc/link-lean-first-k8setcd3.txt` and `Link.lean`.
+- **`hviewOwn v hs`** (`HView.lean`, defs): `v.h` holds `hs`, `v.sts[i]` (read-only) the store at
+  revision `lo + i` (`histN hs (lo + i)`). `viewFrom.spec`: `histOwn h hs`, `hs.length < 2^63` (the
+  `make`'s length is signed) ⊢ `hviewOwn v hs`. `hview.at.spec`: **`histAt`'s post** (`storeOwn s
+  (histAtL hs r)`), so `at r` is `histAt h r`, under `histAt`'s premise.
+- **The `*Idx` specs** are their counterparts' plus `g.st.hist.length < 2^63` (`viewFrom`'s premise;
+  under `HWf` the history's length is the revision, below `2^63`); the proofs are the counterparts'
+  with `histAt` read through the view. The counterparts' pure lemmas and `prefAt` moved to
+  `HView.lean` (names and statements unchanged; two proof files declaring one name break `Link`),
+  and `wp_max_u64` from `target.lean`.
+- **Proof notes**: `v.at(r)` on a local `v` is `methods (PointerType hview.ty) "at" v_ptr`:
+  `wp_method_call; (try wp_auto)` (the generated `ptr_at_unfold` loads `v`), then `wp_apply wp_at`.
+  `imod` (a `|==>`, `ownSlice_persist`) needs a WP goal, and `wp_if_destruct` on a loop's exit runs
+  to `Φ`: persist before the `wp_auto` that evaluates the condition (`by_cases` on it first). A
+  kernel "application type mismatch" at an auxiliary `_proof_N` (from `word`/`omega` inside the
+  proof): move the arithmetic to a standalone lemma (`viewFrom_ge`, `viewFrom_idx`).
+- **Left** (step 3, part 2): `stepIdx` with `wmemo`. Its map is `map[wkey]bool`, `wkey` holding an
+  `Input` (33 fields, one an `Obj` of 8): a `SafeMapKey wkey.ty k` instance needs Go's `==` on it
+  field by field (`ikey_safeMapKey` in `SharedDefs.lean` does 3 by hand): a tactic loop, or
+  Perennial's `safeMapKey_of_go_eq` if the struct `==` step `⟦GoOp GoEquals t, (#k, #k')⟧ ⤳
+  #(decide (k = k'))` is derivable for a struct of comparable fields (a Perennial change otherwise,
+  per CLAUDE.md). Then `memoOwn memo` = `isMutex mu (∃ M, m ↦$ M ∗ [∗map] k ↦ v ∈ M, ∃ H, histOwn
+  k.hist H.hist ∗ ⌜HWf H ∧ v = watchOkL k.in ⟨.., k.evs, k.fail⟩ H⌝)`, with a lemma that `watchOkL x
+  y H` reads only `y.WEvents`/`y.WFailed` (§2.6), and `histOwn_agree_len` + `HWf` on a hit.
+  `stepIdx.spec` = `step`'s + `memoOwn` + (on a watch) `HWf g.st`. Then `SharedModel` (§2.1).
+- **K9-8's host**: its build of record did run on fk-lean2 (`fkcheck.sh` with `FKLEAN_HOST=fk-lean2`
+  ssh'es to fk-lean2 and prints "build host fk-lean2"); the `[fk-lean1 …]` lines came from
+  fk-lean2's own `remote-check.sh`, copied from fk-lean1 with the label hard-coded. Label fixed on
+  fk-lean2 (`/home/ubuntu/eg/remote-check.sh`, lines 5 and 61).
+- **No `sorry`** in built files, no axiom, no top-level statement, premise or trusted-text change.
+- **Build of record** at `e83de24429` (FKLEAN_HOST=fk-lean2, `etcd3.Link`, `etcd3.Results`): passed, 12305 jobs.
