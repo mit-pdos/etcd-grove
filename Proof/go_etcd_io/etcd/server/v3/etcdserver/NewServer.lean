@@ -2449,12 +2449,12 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr HrdApp beA HγbA HbkP HrtA Hrev HAR Hrdat Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HlEv HTR]
+  isplitl [Hthr Happ Hrt Hown Hlr5 Hbmr HrdApp beA HγbA HbkP HrtA Hrev HAR Hrdat Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HlEv HTR]
   · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
     iapply applyBuiltNAM_of_On
     unfold applyBuiltNAOn srvBemuReaderAt
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
-    iframe Hthr Happ Hlr5 Hbmr HrdApp Haown forceDiskSnapshot HTR
+    iframe Hthr Happ Hrt Hlr5 Hbmr HrdApp Haown forceDiskSnapshot HTR
     isplitr
     · ipureintro
       have hm0 := Hci.2
