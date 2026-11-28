@@ -46,11 +46,13 @@ theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
   have Ht64 : uint.nat t < 2 ^ 64 := by word
   have Hwt : (W64 (uint.nat t : Int)) = t := by word
   ihave Hwin := setUint64_term_win γ rc i s tp (uint.nat t) sst g Htp Ht64
-    iprop(srvVP rc s (some tp) none ∗
+    iprop(ghostVar rc.dur.pw 1 (none : Option Pend) ∗ srvVP rc s (some tp) none ∗
       stVS rc { sst with ints := sst.ints.insert (go!"CurrentTerm" : List w8) (W64 (uint.nat t)) } g)
-    $$ Hdur Hs Hst Htp
-  ihave ⟨HW, HAU⟩ := Hwin $$ [] 
-  · iintro Hs Hst; imodintro; iframe
+    $$ Hdur Hpw Hs Hst Htp
+  ihave Hwin2 := Hwin $$ []
+  · iintro Hpw Hs Hst; imodintro; iframe
+  icases Hwin2 with ⟨HW, HAU⟩
+  imod HW
   rw [Hwt]
   wp_auto
   wp_apply_core HsetU $$ Hk0s HW
@@ -63,7 +65,7 @@ theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
   iexists D0
   iframe Hown
   iintro Hown
-  imod Hcl $$ Hown with ⟨Hs, Hst⟩
+  imod Hcl $$ Hown with ⟨Hpw, Hs, Hst⟩
   imodintro
   wp_auto
   rcases Htp with ⟨rfl, Hle⟩ | ⟨rfl, Hel⟩

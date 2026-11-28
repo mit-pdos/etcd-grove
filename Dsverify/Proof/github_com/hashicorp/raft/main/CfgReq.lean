@@ -14,6 +14,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.Configuration__Clone
 public import Dsverify.Spec.github_com.hashicorp.raft.deferError__respond
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Laws
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 
@@ -94,14 +95,102 @@ valid one (`x ≥ 1` is past the bootstrap), the committed log's at `x` unless i
 compaction authority is raised to `max c x ≤ lastApplied`. -/
 theorem mainOwnAt_cfgReq [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : GNames) (rc : RCtx GF)
     (i : SID) (s : SState) (st : w32) (m x : Nat) (hx : 1 ≤ x) :
-    Inv γ ∗ batchEnd rc m x ∗ mainOwnAt r γ rc i s st ⊢ |={⊤}=>
+    Inv γ ∗ srvDurInv γ rc i ∗ batchEnd rc m x ∗ mainOwnAt r γ rc i s st ⊢ |NC={⊤}=>
       ∃ (ccfg cfg : Configuration) (cidx li : w64) (ss : List Server),
         r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
         cfgVal γ ccfg ss ∗ cfgOpt γ cfg ∗ (⌜x < uint.nat cidx⌝ ∨ snapCfg γ x (uint.nat cidx) ss) ∗
         durLb γ i x ∗ applLb rc x ∗ compLb rc x ∗
         (r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li -∗
           mainOwnAt r γ rc i s st) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  iintro ⟨#HI, #Hdur, #Hb, Hm⟩ Hnc
+  unfold mainOwnAt
+  icases Hm with ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, Hs, Hpw, HS, %Hvm, Hll, Hst,
+    Hstl, -, Hvreg, Happ, %Ha, Hprod, Hpnd, Hcomp, %Hcmp, Hcfgs, #Hli, #Hci, %Hcf, #Hcmt, #Hlch,
+    #Hlchan, Hlown, %Hcap⟩
+  ihave ⟨Hprod, %Hxa⟩ := fsmProd_batchEnd_le γ rc a m x $$ [$Hprod $Hb]
+  ihave H1 := srvOwn_facts_R γ rc i gd_top s $$ [$HI $Hdur $Hs]
+  imod H1 $$ Hnc with ⟨Hnc, Hs, -, %Hf⟩
+  ihave H2 := srvOwn_CLb_R γ rc i gd_top s $$ [$HI $Hdur $Hs]
+  imod H2 $$ Hnc with ⟨Hnc, Hs, #HCL⟩
+  imod genesis_facts γ ⊤ (by simp) $$ HI with %Hgen
+  -- the log holds the genesis at 1 (`x ≥ 1` is applied, so durable)
+  have hlen : x ≤ s.log.length := by have := Hf.2.1; omega
+  have hent1 : ent s.log 1 = some γ.g := by
+    rcases Hf.1 with h | h
+    · rw [h] at hlen; simp at hlen; omega
+    · exact h
+  have hentk : ∀ y, 1 ≤ y → y ≤ s.log.length → ∃ e, ent s.log y = some e := by
+    intro y h1 h2
+    unfold ent; rw [if_neg (by omega)]
+    exact ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  -- the committed configuration's index is positive, and no configuration follows it up to `a`
+  have hP : 1 ≤ uint.nat cidx ∧ ∀ y e, uint.nat cidx < y → y ≤ a → ent s.log y = some e →
+      e.kind ≠ kConfig := by
+    obtain ⟨hli, hc⟩ := Hcf
+    rcases hc with heq | ⟨hpar, hal⟩
+    · subst heq
+      have hsp := lastCfgIdx_spec s.log
+      refine ⟨?_, fun y e h1 _ h3 => hsp.2.2 y e (by omega) h3⟩
+      apply Nat.pos_of_ne_zero; intro h0
+      exact hsp.2.2 1 γ.g (by omega) hent1 Hgen.2.1
+    · have hsp := lastCfgIdx_spec (s.log.take (uint.nat li - 1))
+      refine ⟨?_, fun y e h1 h2 h3 => hsp.2.2 y e (by omega)
+        (by rw [ent_take _ _ _ (by omega)]; exact h3)⟩
+      apply Nat.pos_of_ne_zero; intro h0
+      exact hsp.2.2 1 γ.g (by omega) (by rw [ent_take _ _ _ (by omega)]; exact hent1) Hgen.2.1
+  -- the committed configuration's value
+  ihave Hci2 := Hci
+  iunfold cfgAtIs at Hci2
+  icases Hci2 with (⟨%h0, -⟩ | ⟨%ss, %e, Hval, %He⟩)
+  · exfalso; omega
+  ihave #Hval' := Hval
+  iunfold cfgVal at Hval'
+  icases Hval' with ⟨#Hss, %Hok⟩
+  ihave #Hopt := cfgOpt_of_cfgAtIs γ s.log (uint.nat li) cfg $$ Hli
+  ihave H3 := srvOwn_durLb_R γ rc i gd_top s $$ [$HI $Hdur $Hs]
+  imod H3 $$ Hnc with ⟨Hnc, Hs, #Hd⟩
+  ihave #Hdx := durLb_mono γ i _ x (by omega) $$ Hd
+  ihave #Hal := monoNatLbOwn_get _ _ _ $$ Happ
+  ihave #Hax := monoNatLbOwn_le x Hxa $$ Hal
+  imod mono_nat_own_update (Nat.max c x) (Nat.le_max_left _ _) $$ Hcomp with ⟨Hcomp, #Hcl⟩
+  ihave #Hcx := monoNatLbOwn_le x (Nat.le_max_right _ _) $$ Hcl
+  imodintro
+  iframe Hnc
+  iexists ccfg, cfg, cidx, li, ss
+  iframe Hcfgs
+  iframe #
+  isplitr
+  · by_cases hxc : x < uint.nat cidx
+    · ileft; ipureintro; exact hxc
+    iright
+    unfold snapCfg
+    isplitr
+    · ipureintro; exact ⟨hP.1, by omega, Hok⟩
+    isplitr
+    · iexists e
+      isplitr
+      · iapply CLb_idx (γ := γ) (s.log.take s.dur.1) (uint.nat cidx) e
+          (by rw [ent_take _ _ _ (by omega)]; exact He.2.1) $$ HCL
+      · ipureintro; exact ⟨He.2.2.1, He.2.2.2⟩
+    unfold noCfgBetween
+    iapply (BigSepL.bigSepL_intro (P := iprop(□ CLb γ (s.log.take s.dur.1))) ?_) $$ HCL
+    intro k y hk
+    iintro #H
+    have hy := List.mem_range'.1 (List.mem_of_getElem? hk)
+    obtain ⟨e', he'⟩ := hentk y (by omega) (by omega)
+    iexists e'
+    isplitr
+    · iapply CLb_idx (γ := γ) (s.log.take s.dur.1) y e'
+        (by rw [ent_take _ _ _ (by omega)]; exact he') $$ H
+    · ipureintro; exact hP.2 y e' (by omega) (by omega) he'
+  isplitr; · unfold applLb; iexact Hax
+  isplitr; · unfold compLb; iexact Hcx
+  iintro Hcfgs
+  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, Nat.max c x
+  iframe
+  iframe #
+  ipureintro
+  exact ⟨Hvm, Ha, Nat.max_le.2 ⟨Hcmp, Hxa⟩, Hcf, Hcap⟩
 
 end lemmas
 

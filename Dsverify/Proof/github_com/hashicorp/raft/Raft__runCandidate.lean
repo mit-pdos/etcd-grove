@@ -726,8 +726,13 @@ theorem github_com.hashicorp.raft.Raft.runCandidate.wp_proof
       iintro %f Hf
       unfold cfgReqP
       icases Hf with ⟨%x, %m, %hx, #Hbx, ⟨%cf0, Hcf⟩, Hde⟩
-      imod mainOwnAt_cfgReq r γ rc i s stCandidate m x hx $$ [$HInv $Hbx $Hm]
-        with ⟨%ccfg2, %cfg2, %cidx2, %li2, %ss2, Hcfgs, #Hcfg2, #Hlat, #Hsnap, #Hdx, #Hax, #Hcx, Hm⟩
+      iapply wp_ncfupd _ _ rfl
+      iintro Hnc
+      ihave Hcq := mainOwnAt_cfgReq r γ rc i s stCandidate m x hx $$ [$HInv $Hdur $Hbx $Hm]
+      imod Hcq $$ Hnc
+        with ⟨Hnc, %ccfg2, %cfg2, %cidx2, %li2, %ss2, Hcfgs, #Hcfg2, #Hlat, #Hsnap, #Hdx, #Hax, #Hcx, Hm⟩
+      iframe Hnc
+      imodintro
       ihave #Hcfg' := Hcfg2
       unfold cfgVal
       icases Hcfg' with ⟨#Hss2, %Hssok⟩

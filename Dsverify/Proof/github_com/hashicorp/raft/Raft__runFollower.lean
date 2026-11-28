@@ -206,8 +206,14 @@ theorem github_com.hashicorp.raft.Raft.runFollower.wp_proof
       unfold cfgReqP
       icases Hf with ⟨%x, %m, %hx, #Hbx, ⟨%cf0, Hcf⟩, Hde⟩
       ihave ⟨#HI, -⟩ := isRaft_proto r γ rc i $$ Hr
-      imod mainOwnAt_cfgReq r γ rc i s st m x hx $$ [$HI $Hbx $Hm]
-        with ⟨%ccfg, %cfg, %cidx, %li, %ss, Hcfgs, #Hcfg, #Hlat, #Hsnap, #Hdx, #Hax, #Hcx, Hm⟩
+      ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
+      iapply wp_ncfupd _ _ rfl
+      iintro Hnc
+      ihave Hcq := mainOwnAt_cfgReq r γ rc i s st m x hx $$ [$HI $Hdur $Hbx $Hm]
+      imod Hcq $$ Hnc
+        with ⟨Hnc, %ccfg, %cfg, %cidx, %li, %ss, Hcfgs, #Hcfg, #Hlat, #Hsnap, #Hdx, #Hax, #Hcx, Hm⟩
+      iframe Hnc
+      imodintro
       ihave #Hcfg' := Hcfg
       unfold cfgVal
       icases Hcfg' with ⟨#Hss, %Hssok⟩
