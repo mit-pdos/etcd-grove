@@ -879,6 +879,16 @@ PROJECTS = [
                         "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
                         "internal/filepathlite="],
             packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")]),
+            # and into the part Dsverify (notes/dsv-hraft.md, "hraft_robust"): the hraft kit's
+            # restartable servers keep raft's stores in files of the bodied `durable`, over fsExt
+            Part(
+            root="Dsverify",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=Dsverify",
+                        "github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                        "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
+                        "internal/filepathlite="],
+            packages=["."],
             owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")])],
     ),
     Project(

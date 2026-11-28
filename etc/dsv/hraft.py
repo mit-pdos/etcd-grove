@@ -20,14 +20,19 @@ GOOSE = dict(
     root="Dsverify",
     lean_roots=["github.com/hashicorp/raft=Dsverify",
                 "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                "github.com/mit-pdos/etcd-grove/examples/lib/durable=Dsverify",
                 "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                 "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
                 "bufio=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
+                "golang.org/x/sys=", "path/filepath=", "internal/filepathlite=",
                 "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
     packages=[".", "./examples/snapstore", "./examples/hraftnet/rpctransport",
               "./examples/hraftnet/service", "./examples/hraftnet", "./examples/hraftnet/cmd/orch"]
              + ["./examples/hraftnet/cmd/client%d" % c for c in range(5)]
-             + ["./examples/hraftnet/cmd/server%d" % s for s in range(1, 7)],
+             + ["./examples/hraftnet/cmd/server%d" % s for s in range(1, 7)]
+             # hraft_robust (notes/dsv-hraft.md): the durable stores and the restartable servers
+             + ["./examples/hraftnet/disk", "./examples/hraftnet/rserver"]
+             + ["./examples/hraftnet/cmd/rserver%d" % s for s in range(1, 7)],
     owned=[os.path.join("github_com", "hashicorp")],
     std_models=["net/rpc", "net/http"],
 )
