@@ -32,7 +32,7 @@ abbrev github_com.hashicorp.raft.raftState.setLastApplied.spec : Prop :=
   ∀ (r : Loc) (rc : RCtx GF) (x : w64),
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ appliedCell r rc) -∗
-    (|={⊤ ∖ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+    (|NC={⊤ ∖ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       ⌜a ≤ uint.nat x⌝ ∗
       (monoNatAuthOwn rc.dur.applied (1 : Qp).half (uint.nat x) ={∅, ⊤ ∖ ↑appliedN}=∗ Φ #())) -∗
     WP (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastApplied")) (Val #x)) {{ Φ }}

@@ -166,24 +166,51 @@ theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s st : Nat) (
     |={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       ⌜a ≤ s⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half s ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
-
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 -/
-/-- **A main-goroutine read of the log store** (`GetLog(k)`'s atomic update) past the compaction
-frontier (`cm < k`, the main goroutine's authority): the store's entries are entries of the server's
-log, and it holds the log's entry at `k` if the log reaches `k`. -/
-theorem logCell_getLog (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (cm k : Nat)
-    (hk : cm < k) (Ψ : LogAbs → IProp GF) :
-    Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ monoNatAuthOwn rc.dur.comp 1 cm ∗
+
+/-- **A main-goroutine read of the log store** (`GetLog(k)`'s atomic update; hraft_robust: over
+`srvDurInv`, the main goroutine's view at `s` with any pending discard) past the compaction frontier
+(`cm < k`, the main goroutine's half of its authority): the store's entries are entries of the
+server's log, and it holds the log's entry at `k` if the log reaches `k`. -/
+theorem logCell_getLog (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (dp : Option DiscPend)
+    (cm k : Nat) (hk : cm < k) (Ψ : LogAbs → IProp GF) :
+    srvDurInv γ rc i ∗ srvVP rc s none dp ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half cm ∗
       (∀ A : LogAbs,
         ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
           (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
-        srvOwn γ i s -∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗
-        monoNatAuthOwn rc.dur.comp 1 cm -∗ Ψ A) ⊢
-    |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅,⊤}=∗ Ψ A) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+        srvVP rc s none dp -∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half cm -∗ Ψ A) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
+  iintro ⟨#Hd0, Hv, Hcm, HΨ⟩ Hnc
+  iunfold srvDurInv at Hd0
+  icases Hd0 with ⟨#Hd, -⟩
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑storeN) (by unfold durN raftN storeN; solve_ndisj) $$ Hd
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Hnc
+  inext
+  unfold durBody srvVP
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HownL, HownS, HownSS, %HpA, HpB, Hbp,
+    Hcomp, Hrest⟩
+  ihave %Hag := ghostVar_agree _ _ _ _ _ $$ Hsv Hv
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨hs, -, -⟩ := Hag
+  ihave %Hc := monoNatAuthOwn_agree _ _ _ _ _ $$ Hcomp Hcm
+  obtain ⟨-, hc⟩ := Hc
+  iexists X.A
+  iframe HownL
+  iintro HownL
+  imod Hmask with -
+  imod Hclose $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS HpB Hbp Hcomp Hrest] with -
+  · inext; iexists X; iframe; ipureintro; exact HpA
+  imodintro
+  obtain ⟨⟨h1, h2⟩, hlo, -⟩ := HpA
+  iapply HΨ $$ [] Hv Hcm
+  ipureintro
+  rw [← hs]
+  exact ⟨h1, fun hkl => h2 k (by omega) hkl⟩
+
 
 /-- What the install's `GetLog(s)` tells (`¬ prevMatch`: the discard case). -/
 theorem getLog_prevMatch (L : RLog) (m : GMap Nat Entry) (k st : Nat) (hk : 1 ≤ k)
