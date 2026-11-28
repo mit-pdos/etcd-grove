@@ -63,6 +63,52 @@ under `/registry/` only. -/
 def KHistID (γ : KNames) (σ : KVState) : Prop :=
   σ.compacted = 0 ∧ σ.base = γ.b0 ∧ OneChangeP σ ∧ 1 ≤ σ.rev
 
+/-! ### Foreign revisions keep the states under a prefix (`kOkD_foreign`'s pure part) -/
+
+theorem runFrom_append' (r0 : Nat) (s : List EtcdKv) :
+    ∀ (l m : List (List mvcc.Change)), runFrom r0 s (l ++ m) = runFrom (r0 + l.length) (runFrom r0 s l) m := by
+  intro l
+  induction l generalizing r0 s with
+  | nil => intro m; rfl
+  | cons cs l ih =>
+    intro m
+    simp only [List.cons_append, runFrom, ih, List.length_cons]
+    congr 1
+    omega
+
+/-- Revisions whose changes are of keys not under `q` keep the key-values under `q`. -/
+theorem filter_runFrom_other (q : GoString) :
+    ∀ (l : List (List mvcc.Change)) (r0 : Nat) (s : List EtcdKv), (∀ cs ∈ l, ∀ c ∈ cs, ¬ q <+: c.key) →
+      (runFrom r0 s l).filter (fun v => decide (q <+: v.key)) = s.filter (fun v => decide (q <+: v.key))
+  | [], _, _, _ => rfl
+  | cs :: l, r0, s, h => by
+    simp only [runFrom]
+    rw [filter_runFrom_other q l _ _ (fun cs' hc' => h cs' (List.mem_cons_of_mem _ hc')),
+      etcd_dist.filter_applyChanges_other q _ cs (h cs List.mem_cons_self) s]
+
+/-- The states at or below `σl`'s revision are `σl`'s, when `σ`'s changes extend `σl`'s. -/
+theorem at_ext_below {σl σ : KVState} {m : List (List mvcc.Change)} (hc : σ.compacted = σl.compacted)
+    (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m) (r : Nat) (hr : r ≤ σl.rev) :
+    σ.at r = σl.at r := by
+  unfold KVState.at
+  rw [hc, hb, hm]
+  split
+  · rfl
+  · unfold KVState.rev at hr
+    rw [List.take_append_of_le_length (by omega)]
+
+/-- **Above `σl`'s revision, `σ`'s states are `σl`'s current one under `q`**, when the revisions in between
+change no key under `q`. -/
+theorem at_ext_foreign {σl σ : KVState} {m : List (List mvcc.Change)} (q : GoString)
+    (hc : σ.compacted = σl.compacted) (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m)
+    (hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ q <+: ch.key) (r : Nat) (hr : σl.rev ≤ r) :
+    (σ.at r).kvs.filter (fun v => decide (q <+: v.key)) = σl.kvs.filter (fun v => decide (q <+: v.key)) := by
+  have hle : σ.compacted ≤ r := by unfold KVState.rev at hr; omega
+  rw [KVState.at_kvs σ r hle, KVState.kvs_eq σl, hc, hb, hm]
+  unfold KVState.rev at hr
+  rw [List.take_append_eq_append_take, List.take_of_length_le (by omega), runFrom_append']
+  exact filter_runFrom_other q _ _ _ (fun cs hcs => hf cs (List.mem_of_mem_take hcs))
+
 end pure
 
 section defs
