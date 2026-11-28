@@ -42,25 +42,24 @@ theorem github_com.hashicorp.raft.raftState.getCommitIndex.wp_proof :
     iintro Hnc
     unfold cidxCell
     imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-    ihave Hacc := durAcc γ rc i durN_diff_cidxN $$ Hdur
-    imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose2⟩
+    ihave Hacc := durOpen γ rc i durN_diff_cidxN $$ Hdur
+    imod Hacc $$ Hnc with ⟨Hnc, %X, HX, HXs, Hclose2⟩
     iframe Hnc
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     inext
     icases Hi with ⟨%t, Hpt, Hc⟩
-    icases HX with ⟨%X, HX⟩
     iexists t
     iframe Hpt
     iintro Hpt
     imod Hmask with -
-    unfold durBody
+    unfold durCore
     icases HX with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, Hrest⟩
     unfold srvV cidxV
     icombine Hsv Hs gives %hs
     icombine Hcv Hc gives %ht
-    imod Hclose2 $$ [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hrest] with -
-    · inext; iexists X; iframe
+    imod Hclose2 $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hrest] HXs with -
+    · iframe
     imod Hclose $$ [Hpt Hc] with -
     · inext; iexists t; iframe
     imodintro
@@ -78,26 +77,25 @@ theorem github_com.hashicorp.raft.raftState.getCommitIndex.wp_proof :
     iintro Hnc
     unfold cidxCell
     imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-    ihave Hacc := durAcc γ rc i durN_diff_cidxN $$ Hdur
-    imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose2⟩
+    ihave Hacc := durOpen γ rc i durN_diff_cidxN $$ Hdur
+    imod Hacc $$ Hnc with ⟨Hnc, %X, HX, HXs, Hclose2⟩
     iframe Hnc
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     inext
     icases Hi with ⟨%c, Hpt, Hc⟩
-    icases HX with ⟨%X, HX⟩
     iexists c
     iframe Hpt
     iintro Hpt
     imod Hmask with -
-    unfold durBody
+    unfold durCore
     icases HX with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, Hrest⟩
     unfold cidxV
     icombine Hcv Hc gives %ht
     imod readCidx_repl γ _ gprotN_diff_cidxN_durN i T _ $$ [HInv Hcc Hl Hlb] with ⟨Hcc, Hres⟩
     · iframe #; iframe
-    imod Hclose2 $$ [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hrest] with -
-    · inext; iexists X; iframe
+    imod Hclose2 $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hrest] HXs with -
+    · iframe
     imod Hclose $$ [Hpt Hc] with -
     · inext; iexists c; iframe
     imodintro

@@ -44,18 +44,6 @@ theorem github_com.hashicorp.raft.raftState.getLastEntry.wp_proof :
   iunfold lastLockInv at HL
   icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap⟩
   ihave %he := ghostVar_agree _ _ _ _ _ $$ Hg Hg'
-  iapply wp_ncfupd _ _ rfl
-  iintro Hnc
-  ihave Hr := durRead γ rc i (E := ⊤) (fun _ _ => CoPset.mem_full) s
-      iprop(monoNatAuthOwn rc.dur.applied (1 : Qp).half a)
-      iprop(monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜uint.nat si ≤ s.log.length⌝) $$ [Hsrv Ha]
-  · iframe #; iframe
-    iintro Ho Ha
-    iapply lastLock_snap_le _ gprotN_diff_durN γ rc i s _ a si st $$ [$HInv $Ho $Ha $Hsnap]
-    ipureintro; exact Hale
-  imod Hr $$ Hnc with ⟨Hnc, Hsrv, Ha, %Hsi⟩
-  iframe Hnc
-  imodintro
   wp_auto
   wp_if_destruct
   · (try wp_auto)
@@ -63,11 +51,15 @@ theorem github_com.hashicorp.raft.raftState.getLastEntry.wp_proof :
     · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iframe #
     iapply HΦ
     iframe
-    ipureintro; simp only [Prod.mk.injEq] at he; omega
-  · exfalso
-    simp only [Prod.mk.injEq] at he
-    have : uint.nat si ≤ uint.nat x := by omega
-    word
+    ipureintro
+    split at he <;> simp only [Prod.mk.injEq] at he <;> word
+  · (try wp_auto)
+    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
+    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iframe #
+    iapply HΦ
+    iframe
+    ipureintro
+    split at he <;> simp only [Prod.mk.injEq] at he <;> word
 
 end proof
 

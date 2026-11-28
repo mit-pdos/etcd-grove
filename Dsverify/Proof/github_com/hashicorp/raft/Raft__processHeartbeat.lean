@@ -64,27 +64,26 @@ theorem github_com.hashicorp.raft.wp_getCurrentTerm_wit (r : Loc) (γ : GNames) 
   iintro Hnc
   unfold termCell
   imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-  ihave Hacc := durAcc γ rc i durN_diff_termN $$ Hdur
-  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose2⟩
+  ihave Hacc := durOpen γ rc i durN_diff_termN $$ Hdur
+  imod Hacc $$ Hnc with ⟨Hnc, %X, HX, HXs, Hclose2⟩
   iframe Hnc
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
   icases Hi with ⟨%t, Hpt, Hc⟩
-  icases HX with ⟨%X, HX⟩
   iexists t
   iframe Hpt
   iintro Hpt
   imod Hmask with -
-  unfold durBody
+  unfold durCore
   icases HX with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hrest⟩
   unfold termV
   icombine Htv Hc gives %ht
   imod termCouple_now γ _ gprotN_diff_termN_durN i _ s0 $$ [$HInv $Hv $Htc $Hs0]
     with ⟨Htc, %s', #Hs', %Hs'⟩
   ihave ⟨Htc, #Hlb⟩ := termCouple_get_lb γ i _ $$ Htc
-  imod Hclose2 $$ [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hrest] with -
-  · inext; iexists X; iframe
+  imod Hclose2 $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hrest] HXs with -
+  · iframe
   imod Hclose $$ [Hpt Hc] with -
   · inext; iexists t; iframe
   imodintro

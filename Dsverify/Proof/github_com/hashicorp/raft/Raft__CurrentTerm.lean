@@ -33,16 +33,14 @@ open github_com.hashicorp.raft proto gprot
 /-- The term cell gives the (trivial) lower bound `0` on the term. -/
 theorem github_com.hashicorp.raft.termCell_lb0 (r : Loc) (γ : gprot.GNames) (rc : RCtx GF) (i : SID) :
     £ 1 ∗ termCell (GF := GF) r γ rc i ∗ srvDurInv γ rc i ⊢ |NC={⊤}=> gprot.termLb γ i 0 := by
-  iintro ⟨Hlc, #Hc, #Hdur⟩ Hnc
-  ihave Hacc := durAcc γ rc i (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hdur
-  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
-  imod lc_fupd_elim_later (E := ⊤ \ ↑durN) $$ Hlc HX with HX
-  icases HX with ⟨%X, HX⟩
-  unfold durBody
+  iintro ⟨-, #Hc, #Hdur⟩ Hnc
+  ihave Hacc := durOpen γ rc i (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hdur
+  imod Hacc $$ Hnc with ⟨Hnc, %X, HX, HXs, Hclose⟩
+  unfold durCore
   icases HX with ⟨Ho, Hdv, Hlc, Htc, Hrest⟩
   ihave ⟨Htc, #Hlb⟩ := termCouple_get_lb γ i _ $$ Htc
-  imod Hclose $$ [Ho Hdv Hlc Htc Hrest] with -
-  · inext; iexists X; iframe
+  imod Hclose $$ %X [Ho Hdv Hlc Htc Hrest] HXs with -
+  · iframe
   imodintro
   iframe Hnc
   iapply termLb_mono γ i _ 0 (Nat.zero_le _) $$ Hlb
@@ -68,27 +66,26 @@ theorem github_com.hashicorp.raft.Raft.CurrentTerm.wp_proof
     iintro Hnc
     unfold termCell
     imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-    ihave Hacc := durAcc γ rc i durN_diff_termN $$ Hdur
-    imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose2⟩
+    ihave Hacc := durOpen γ rc i durN_diff_termN $$ Hdur
+    imod Hacc $$ Hnc with ⟨Hnc, %X, HX, HXs, Hclose2⟩
     iframe Hnc
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     inext
     icases Hi with ⟨%t, Hpt, Hc⟩
-    icases HX with ⟨%X, HX⟩
     iexists t
     iframe Hpt
     iintro Hpt
     imod Hmask with -
-    unfold durBody
+    unfold durCore
     icases HX with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hrest⟩
     unfold termV
     icombine Htv Hc gives %ht
     imod termCouple_now γ _ gprotN_diff_termN_durN i _ s0 $$ [HInv Hvi Htc Hs0]
       with ⟨Htc, %s', #Hs', %Hle⟩
     · iframe; iframe #
-    imod Hclose2 $$ [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hrest] with -
-    · inext; iexists X; iframe
+    imod Hclose2 $$ %X [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hrest] HXs with -
+    · iframe
     imod Hclose $$ [Hpt Hc] with -
     · inext; iexists t; iframe
     imodintro
