@@ -103,7 +103,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- key is the i-th Put's key, "k" followed by the byte i (i < 256): the keys are distinct, in the
     order of i, and all in [RangeKey, RangeEnd).
 
-    go: restartN.go:97:6 -/
+    go: restartN.go:99:6 -/
 noncomputable def key.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -121,7 +121,7 @@ noncomputable def key.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- value is the i-th Put's value, "v" followed by the byte i.
 
-    go: restartN.go:102:6 -/
+    go: restartN.go:104:6 -/
 noncomputable def value.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -139,7 +139,7 @@ noncomputable def value.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ServeHTTP serves r with the current incarnation's handler.
 
-    go: restartN.go:120:21 -/
+    go: restartN.go:122:21 -/
 noncomputable def raftSwap.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sw"
   (Lam "w"
@@ -167,7 +167,7 @@ noncomputable def raftSwap.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- set makes h the handler of the member's current incarnation.
 
-    go: restartN.go:128:21 -/
+    go: restartN.go:130:21 -/
 noncomputable def raftSwap.set.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sw"
   (Lam "h"
@@ -190,7 +190,7 @@ noncomputable def raftSwap.set.impl [GooseExts] [GoGlobalContext] : val :=
     Building a member that was stopped finds its data directory (the member's name + ".etcd"): etcd
     restarts it from its WAL.
 
-    go: restartN.go:147:6 -/
+    go: restartN.go:149:6 -/
 noncomputable def build.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -231,7 +231,7 @@ noncomputable def build.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newMember serves member name's peer handler on a listener at peerAddr, forwarding to the built
     first incarnation s's raft handler, and starts s.
 
-    go: restartN.go:154:6 -/
+    go: restartN.go:156:6 -/
 noncomputable def newMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "name"
@@ -310,11 +310,14 @@ noncomputable def newMember.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- startMembers starts the members ms of a new cluster (etcdstart.StartMembers' steps, each member's
     peer address served through its raftSwap): the initial cluster's map (each member's name to its one
-    peer URL http://Peer), then, for each member in order, build and newMember. It returns the started
-    servers and the members' records, in the members' order, and the cluster's map, or the first error
-    (the members started before it keep running).
+    peer URL http://Peer), then every member built, in order, and only then, for each member in order,
+    newMember. Every member's first boot (bootstrap, inside build) thus runs while no member's peer
+    address is listened on: its GET of each other member's /members (isMemberBootstrapped) finds no
+    listener, and the boot goes on as a new member. It returns the started servers and the members'
+    records, in the members' order, and the cluster's map, or the first error (the members built or
+    started before it are left as they are).
 
-    go: restartN.go:171:6 -/
+    go: restartN.go:176:6 -/
 noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ms"
   (Lam "lg"
@@ -336,6 +339,7 @@ noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.PointerType member.ty))]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty)))) (Var "ms"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty)]))) (Val #())) (Var "$a0"))))
   (Let "mems" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
@@ -364,22 +368,7 @@ noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Name"))) (Var "m")))
-  (Let "$a1" (App (App (Val (map.lookup1 go.string _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Name"))) (Var "m"))))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Client"))) (Var "m")))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve build []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Name"))) (Var "m")))
   (Let "$a2" (App (App (Val (map.lookup1 go.string _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Name"))) (Var "m"))))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Peer"))) (Var "m")))
@@ -389,17 +378,14 @@ noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "mem" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType member.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "mem"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (Var "mems")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (Val UntypedNil))
@@ -424,7 +410,37 @@ noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "mem") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "mem") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty))) (Pair (Var "m") (Var "$value"))))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty)))) (Var "ms"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty))) (Val #())))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Name"))) (Var "m")))
+  (Let "$a1" (App (App (Val (map.lookup1 go.string _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Name"))) (Var "m"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Member.ty go!"Client"))) (Var "m")))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve build []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType member.ty))))) (Val UntypedNil))
@@ -481,7 +497,7 @@ noncomputable def startMembers.impl [GooseExts] [GoGlobalContext] : val :=
 /-- restartMember builds a new incarnation of the stopped member m (on its data directory, at its
     addresses), swaps m's peer handler to its raft handler, and starts it.
 
-    go: restartN.go:196:6 -/
+    go: restartN.go:203:6 -/
 noncomputable def restartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "cluster"
@@ -546,7 +562,7 @@ noncomputable def restartMember.impl [GooseExts] [GoGlobalContext] : val :=
 /-- put puts key(i) with value value(i) through s's own API, in a context with the request timeout,
     cancelled after the call.
 
-    go: restartN.go:208:6 -/
+    go: restartN.go:215:6 -/
 noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -604,7 +620,7 @@ noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
     shutdown stops the raft node and the transport and calls Cleanup, which closes the lessor, the KV
     store, the auth store and the backend, so that the data directory can be opened again).
 
-    go: restartN.go:220:6 -/
+    go: restartN.go:227:6 -/
 noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "k"
@@ -628,7 +644,7 @@ noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
     unless it returns exactly the N1 + N2 Puts' keys, in order, each with its value at version 1, at the
     response revision 1 + N1 + N2. It reports whether the check ran: false if the Range failed.
 
-    go: restartN.go:231:6 -/
+    go: restartN.go:238:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -737,7 +753,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Run is Main(k) with the logger lg, so that a test can count what the members log. It reports whether
     the check ran (and passed): false if a step failed first, or if k < 2. It leaves the members running.
 
-    go: restartN.go:260:6 -/
+    go: restartN.go:267:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "lg"
@@ -908,7 +924,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs the example with k members and no logging (Run).
 
-    go: restartN.go:298:6 -/
+    go: restartN.go:305:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Seq (App (Val exceptionDo)

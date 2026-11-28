@@ -56,7 +56,7 @@ theorem etcd_restartN.wp_Main :
   etcd_restartN.Main.wp_proof zap.NewNop.wp_proof
     (etcd_restartN.Run.wp_proof etcdstart.wp_Members
       (etcd_restartN.startMembers.wp_proof
-        (etcd_restartN.build.wp_proof etcdstart.wp_BuildServer)
+        (etcd_restartN.build.wp_proof etcdstart.wp_BuildServerF)
         (etcd_restartN.newMember.wp_proof etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler
           EtcdServer.wp_Start
           (etcd_restartN.raftSwap.ServeHTTP.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock)))

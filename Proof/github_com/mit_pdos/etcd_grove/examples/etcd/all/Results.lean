@@ -90,9 +90,6 @@ theorem etcd_restart_safe_single_process [lctx : GoLocalContext] [sem : go.Seman
     (HDs : dataDirsAbsent (etcdProgram k₅) (etcdProgDirs k₅))
     (HEnv : EtcdVerifyOff) (Hfips : crypto.fips140.GodebugFips140Off)
     (n : Nat)
-    (Hprem₅ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.bootPremises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅ ps₅
-          ctxs₅ boot₅)
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdProgDirs k₅))
@@ -105,7 +102,7 @@ theorem etcd_restart_safe_single_process [lctx : GoLocalContext] [sem : go.Seman
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate_of (fun hG => etcd_all.wp_MainChecked (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     k₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hbg₅ HbgR Haf Hbuq Hdbo HAs HDs HEnv Hfips
-    n Hprem₅ σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    n σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 
