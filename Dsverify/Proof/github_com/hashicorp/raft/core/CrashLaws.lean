@@ -2197,7 +2197,100 @@ theorem dead_fire {E : CoPset} (hE : ↑gprotN ⊆ E)
         rw [gprot.lookup_ins, if_pos rfl]
         simp only [Option.getD_some, termPendVal]
         exact Or.inl ⟨trivial, ht⟩
-  | _ => sorry
+  | fstore prev pt ents lci j lc =>
+    simp only [pendDp] at hdp
+    rw [hdp] at hgrp ⊢
+    obtain ⟨⟨k, hkj, hov, hm⟩, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    icases Hh with #Hae
+    obtain ⟨hpm, hmu, hcase, hlcv⟩ := hpre
+    have hlog := logOk_fstore X.A s.log ents X.lo prev j k hlo hkj hov hcase
+    have hlog' : logOk (LogAbs.mk A'.m X.A.hi X.A.staged A'.ci) (s.log ++ ents.drop j) X.lo :=
+      (logOk_m (X.A.store (prev + k + 1) (ents.drop k)) _ _ _ (by rw [hm]; rfl)).2 hlog
+    have hpmm : prevMatch (s.log ++ ents.drop j) prev pt ∧
+        matchedUpTo (s.log ++ ents.drop j) prev ents ents.length := by
+      rcases hcase with ⟨hjl, hlen⟩ | ⟨hj, hlen⟩
+      · exact crash_matched_store s.log prev pt ents j hpm hmu hlen (by omega)
+      · subst hj; rw [List.drop_length, List.append_nil]; exact ⟨hpm, hmu⟩
+    obtain ⟨hpm', hmu'⟩ := hpmm
+    ihave Hol : |={E}=> (srvOwn γ i { s with log := s.log ++ ents.drop j } ∗
+        logCouple γ i (s.log ++ ents.drop j)) $$ [Ho Hlc]
+    · rcases hcase with ⟨hjl, hlen⟩ | ⟨hj, hlen⟩
+      · iapply (gprot.followerStore_upd γ _ hE i s prev pt ents lci j ⟨hpm, hmu, hjl, hlen⟩)
+        iframe; iframe #
+      · subst hj
+        rw [List.drop_length, List.append_nil, show ({ s with log := s.log } : SState) = s from rfl]
+        imodintro; iframe
+    imod Hol with ⟨Ho, Hlc⟩
+    rcases lc with _ | v
+    · imodintro
+      iexists ({ X with s := { s with log := s.log ++ ents.drop j }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+      iunfold deadCore
+      dsimp only
+      try rw [hdp]
+      rw [hD']
+      simp only [tpRes, dpRes]
+      iframe
+      ipureintro
+      refine ⟨⟨hlog', hlc, hvm, htd, ?_, by simpa using hgrp⟩, by simp, by simp, by simp, by simp⟩
+      · rw [hc, hg]; exact hwp.1 rfl
+    · obtain ⟨hv1, hv2⟩ := hlcv v rfl
+      imod (gprot.learnCommitFollower γ _ hE i { s with log := s.log ++ ents.drop j } prev pt ents lci v
+        ⟨hpm', hmu', hv1, hv2⟩) $$ [HI Ho Hdv Hae] with ⟨%d, Ho, Hdv, -, %hd⟩
+      · iframe #; try iframe
+      dsimp only at hd
+      imodintro
+      iexists ({ X with s := { s with log := s.log ++ ents.drop j, dur := d }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+      iunfold deadCore
+      dsimp only
+      try rw [hdp]
+      rw [hD']
+      simp only [tpRes, dpRes]
+      iframe
+      ipureintro
+      refine ⟨⟨hlog', hlc, hvm, htd, ?_, by simpa using hgrp⟩, by simp, by simp, by simp, by simp⟩
+      · rw [hc, hg]; have := hwp.2 v rfl; omega
+  | discard d =>
+    simp only [pendDp] at hdp
+    obtain ⟨hm, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    icases Hh with ⟨#Hae, #Hl⟩
+    rw [hdp] at hgrp ⊢
+    obtain ⟨⟨hdl, hpd, hll⟩, hcd, hq5a, hq5b⟩ := hgrp
+    obtain ⟨m, b, hlat, hmi, hmt⟩ := hq5b d rfl
+    imod (gprot.srvOwn_durLb γ _ hE i s) $$ [HI Ho] with ⟨Ho, #Hdl0⟩
+    · iframe #; try iframe
+    imod (gprot.installDiscard_upd γ _ hE i s d.x d.st d.ℓ hpre.1 hpre.2.1 hpre.2.2) $$ [HI Ho Hlc Hdv Hae Hl]
+      with ⟨%L', %dd, Ho, Hlc, Hdv, #Hlbx, %hL, -⟩
+    · iframe #; try iframe
+    ihave %hmono := gprot.durView_lb γ i _ dd.1 s.dur.1 $$ [Hdv Hdl0]
+    · iframe #; try iframe
+    ihave Hnl : latestDur γ rc i X.lat none none $$ [Hlat]
+    · unfold latestDur
+      icases Hlat with ⟨Hlok, -⟩
+      iframe Hlok
+      dsimp only
+      iright; iexists m, b
+      isplitl []
+      · ipureintro; exact hlat
+      ileft; rw [hmi]; iexact Hlbx
+    imodintro
+    iexists ({ X with s := { s with log := L', dur := dd }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', lo := d.x + 1, c := d.x, pend := none, dp := none, tp := none })
+    iunfold deadCore
+    dsimp only
+    rw [hD']
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    refine ⟨⟨?_, by omega, hvm, htd, by rw [hc]; exact Nat.le_trans hci hmono,
+      ⟨⟨fun d' h => (by cases h), fun x st id h => (by cases h), ?_⟩, fun d' h => (by cases h), by simp,
+        fun d' h => (by cases h)⟩⟩, by simp, by simp, by simp, by simp⟩
+    · unfold logOk
+      rw [hm]
+      constructor
+      · intro k e h; simp at h
+      · intro k h1 h2; omega
+    · rw [hlat]; simp only [latIdxD]; omega
 
 /-- (R2) No window survived: the dead state as is. -/
 theorem srvDead_deadCore (X : SrvDur) : srvDead γ rc i X ⊢ deadCore γ rc i X := by
