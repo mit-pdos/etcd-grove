@@ -48,6 +48,7 @@ theorem memP_step {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM → 
     (hcw : rd.commit ≠ (V n).dur.commit →
       uint.Z rd.commit ≤ (((V n).dur.write (rd.memRec (V n))).log.length : Int) ∧
       termAt (logOf ((V n).dur.write (rd.memRec (V n))).log) (uint.Z rd.commit) = uint.Z rd.term)
+    (hq0 : rd.ents = [] → rd.qs = [])
     (hpfx : (V n).delivered ++ rd.ce <+: (V n).dur.log) (hlt : LogTermsLe r₁.p)
     (hLP : ∀ (it : QItem) (i : Int), LeaderPartD (memQ S1 r n.val it i) n
       (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))))
@@ -69,7 +70,7 @@ theorem memP_step {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM → 
       rd.ents none true) =
       .ok (some (memQ S1 r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) (S1.i + 1))) := by
     rw [step_evMem n hc, mem_of _ _ _ _ _ _ _ _ _ hev hok1, ← hit]; rfl
-  have hnode := memNode_lead hmsk hin hs1 hok hx ha hpar hm hpar0 htold hr hrl hlog hec hcw hpfx
+  have hnode := memNode_lead hmsk hin hs1 hok hx ha hpar hm hpar0 htold hr hrl hlog hec hcw hq0 hpfx
     (memLead_term hx hrl1) hlt (hLP _ (S1.i + 1)) (memLead_qs hx hrl1 hpar0) (hMC _ (S1.i + 1))
   obtain ⟨hrel, hgo2⟩ := mem_relD hs1 hgo1 hok (by rw [← hit]; rfl) ha hnode
   have hv2 : (memQ S1 r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) (S1.i + 1)).viol = [] := by
@@ -109,6 +110,7 @@ theorem antSim_memP_in : antSim_memP_in.stmt := by
       (rd.commit ≠ (V n).dur.commit →
         uint.Z rd.commit ≤ (((V n).dur.write (rd.memRec (V n))).log.length : Int) ∧
         termAt (logOf ((V n).dur.write (rd.memRec (V n))).log) (uint.Z rd.commit) = uint.Z rd.term) →
+      (rd.ents = [] → rd.qs = []) →
       (V n).delivered ++ rd.ce <+: (V n).dur.log → LogTermsLe r₁.p →
       (∀ (it : QItem) (i : Int), LeaderPartD (memQ S1 r n.val it i) n
         (memView (V n) r₁ rd (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q)))) →
@@ -119,11 +121,11 @@ theorem antSim_memP_in : antSim_memP_in.stmt := by
         (setV V n { ((V n).drainOf r₁ rd) with
           pend := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q),
           mems := if w then (V n).mems ++ [rd.memRec (V n)] else (V n).mems }) net xnet) := by
-    intro hwr r hev hok1 hok hlog hec hcw hpfx hlt hLP hMC
+    intro hwr r hev hok1 hok hlog hec hcw hq0 hpfx hlt hLP hMC
     obtain rfl : w = true := hw.mpr hwr
     rw [if_pos rfl, hm, List.nil_append]
     exact memP_step hmsk hin hpre.1 hgc hs1 hgo1 hpre.2.2.1 hx ha hpar hm hpar0 htold hr hrl hev hok1 hok
-      hlog hec hcw hpfx hlt hLP hMC
+      hlog hec hcw hq0 hpfx hlt hLP hMC
   have hk := hx.hk
   cases hk with
   | camp _ _ hr' => cases hrl1.symm.trans hr'
@@ -140,7 +142,9 @@ theorem antSim_memP_in : antSim_memP_in.stmt := by
     have hlog : (V n).ps.log <+: r₁.p.log := ⟨_, hplog.symm⟩
     refine hfin (.inr (.inr (.inr (.inl (by rw [hents]; exact List.cons_ne_nil _ _))))) (hev_of hev) hok1
       hok' hlog (.inr (by rw [hC, hpc, hdc]))
-      (fun h => absurd (show rd.commit = (V n).dur.commit by rw [hC, hpc, hdc]) h) (memLead_pfx hx hlog (by rw [hpc]; exact hcl0)) ?_
+      (fun h => absurd (show rd.commit = (V n).dur.commit by rw [hC, hpc, hdc]) h)
+      (fun h => absurd h (by rw [hents]; exact List.cons_ne_nil _ _))
+      (memLead_pfx hx hlog (by rw [hpc]; exact hcl0)) ?_
       (fun it i => memLead_lpWin hs1 hok' hx hvc hrll hplog hmo hct hT0 hpt)
       (fun it i => memLead_mcKeep hs1 hok' hx hrl1 hpar0 hlog hpc)
     intro e he
@@ -159,7 +163,8 @@ theorem antSim_memP_in : antSim_memP_in.stmt := by
       rw [hents]; intro h; exact hne (List.mapIdx_eq_nil_iff.mp h)
     refine hfin (.inr (.inr (.inr (.inl hEne)))) (hev_of hev) hok1
       hok' hlog (.inr (by rw [hC, hpc, hdc]))
-      (fun h => absurd (show rd.commit = (V n).dur.commit by rw [hC, hpc, hdc]) h) (memLead_pfx hx hlog (by rw [hpc]; exact hcl0)) ?_
+      (fun h => absurd (show rd.commit = (V n).dur.commit by rw [hC, hpc, hdc]) h) (fun h => absurd h hEne)
+      (memLead_pfx hx hlog (by rw [hpc]; exact hcl0)) ?_
       (fun it i => memLead_lpProp hs1 hok' hx hvl hrll hmt hplog hpt)
       (fun it i => memLead_mcKeep hs1 hok' hx hrl1 hpar0 hlog hpc)
     intro e he
@@ -184,6 +189,10 @@ theorem antSim_memP_in : antSim_memP_in.stmt := by
       rw [← hx.base1]; exact hcm.2.1
     refine hfin hwr (hev_of hev) hok1 hok' ⟨[], by rw [hplog, List.append_nil]⟩ (.inl hents)
       (fun _ => by rw [hwl, hC, hT]; exact termAt_of_plog hplT)
+      (fun _ => List.eq_nil_iff_forall_not_mem.mpr fun q hq => by
+        have hq' := (hx.hro.2.2.2.2.2.2.2.1.mem_iff).mp hq
+        rw [List.mem_filter] at hq'
+        exact hns q hq'.1 (of_decide_eq_true hq'.2))
       (memLead_pfx hx ⟨[], by rw [hplog, List.append_nil]⟩ hcL)
       (fun e he => by rw [hpt]; rw [hplog] at he; exact hlt0 e he)
       (fun it i => memLead_lpCmt hs1 hx ha hbat hm hpar0 hvl hpl hpt hplog hlead hrll)

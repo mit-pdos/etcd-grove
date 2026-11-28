@@ -186,6 +186,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
     (hcw : rd.commit ≠ (V n).dur.commit →
       uint.Z rd.commit ≤ (((V n).dur.write (rd.memRec (V n))).log.length : Int) ∧
       termAt (logOf ((V n).dur.write (rd.memRec (V n))).log) (uint.Z rd.commit) = uint.Z rd.term)
+    (hq0 : rd.ents = [] → rd.qs = [])
     (hpfx : (V n).delivered ++ rd.ce <+: (V n).dur.log)
     (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) (hlt : LogTermsLe r₁.p)
     (hLP : LeaderPartD (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) n
@@ -225,7 +226,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
       · have := hx.hpre h; rw [hrl1] at this; cases this
     have hkk := kind_leadKeep hx.hk hrl1
     obtain ⟨-, -, -, -, -, -, hhd, -, -, -, -, -, -, -, -, hidx, -⟩ := hro
-    refine ⟨rfl, hpar0, hrl, hpre0, hx.hsn, rfl, hrl1, ?_, ?_, ?_, ?_, hec, ?_, hcw⟩
+    refine ⟨rfl, hpar0, hrl, hpre0, hx.hsn, rfl, hrl1, ?_, ?_, ?_, ?_, hec, ?_, hcw, ?_⟩
     · show (V n).dur.term = r₁.p.term; rw [hx.hdn, hkk.1]; rfl
     · show (V n).dur.vote = r₁.p.vote; rw [hx.hdn, hkk.2]; rfl
     · intro e0 he
@@ -236,6 +237,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
       exact commit_reachD hmsk hin hs.2.2.1 hvD hm hpar0 hr
     · show LogIdx ((V n).dur.write (rd.memRec (V n))).log
       rw [hDF hpar0]; exact hidx
+    · exact hq0
   exact memNode_of hs hok ha hpar hm htold hrl1 hNF hCL hLP (fun _ => hpend) hxpend hqs hlead
     (fun h => hx.hvs1 h) hDF hMC hPW
 

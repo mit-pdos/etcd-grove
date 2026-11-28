@@ -280,7 +280,9 @@ vote, its entries appended at the disk log's end, its commit not below the disk'
 together (a win's or a proposal's keeps the commit, a commit's has no entries; Sim round 20, lead-approved);
 the disk's log after the write has every entry at its position (`LogIdx`, raft's full log; Sim round 21,
 lead-approved); a moved commit is within that log, at an entry of the write's term (raft's `maybeCommit`:
-`CmtOk`; what `OnDisk`'s commit branch reads of `TermLen`; Sim round 22, lead-approved). -/
+`CmtOk`; what `OnDisk`'s commit branch reads of `TermLen`; Sim round 22, lead-approved); a write storing
+nothing has no self-acknowledgement waiting (a commit's `Ready` sends the leader nothing; Sim round 23,
+lead-approved). -/
 def ParWriteOk (R : RunCfg) (v : NodeView) : Prop :=
   R.md.async = false → R.drv.batch = false → ∀ m ∈ v.mems,
     v.mems = [m] ∧ v.parts = [] ∧ m.role = .leader ∧ m.pre = false ∧ m.snap = none ∧ m.bat = false ∧
@@ -289,7 +291,8 @@ def ParWriteOk (R : RunCfg) (v : NodeView) : Prop :=
     uint.Z v.dur.commit ≤ uint.Z v.ps.commit ∧ (m.ents = [] ∨ m.commit = v.dur.commit) ∧
     LogIdx (v.dur.write m).log ∧
     (m.commit ≠ v.dur.commit → uint.Z m.commit ≤ ((v.dur.write m).log.length : Int) ∧
-      AntCheck.termAt (logOf (v.dur.write m).log) (uint.Z m.commit) = uint.Z m.term)
+      AntCheck.termAt (logOf (v.dur.write m).log) (uint.Z m.commit) = uint.Z m.term) ∧
+    (m.ents = [] → v.qs = [])
 
 /-- **A leader's self-acknowledgement waiting for its write** (`-parallel`, #33 B2 round 11): a win's
 or a proposal's `Ready` queues the leader's acknowledgement of its new last index, whose ack fact

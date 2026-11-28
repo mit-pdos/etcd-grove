@@ -50,6 +50,7 @@ structure WrCtx (R : RunCfg) (S : State) (n : Fin R.N) (v : NodeView) (m : MemRe
   hidx : LogIdx (v.dur.write m).log
   hcmt : m.commit ≠ v.dur.commit → uint.Z m.commit ≤ ((v.dur.write m).log.length : Int) ∧
     termAt (logOf (v.dur.write m).log) (uint.Z m.commit) = uint.Z m.term
+  hqs0 : m.ents = [] → v.qs = []
   hw : v.dur.write m = durOf v.r
   hT : S.currentTerm[n.val]! = uint.Z m.term
   hV : S.vote n.val = nameOf m.vote
@@ -64,14 +65,14 @@ variable {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net 
 theorem wrCtx_of {rest : List MemRec} (hv : NodeOkD R dec S net n (V n)) (ha : R.md.async = false)
     (hbat : R.drv.batch = false) (hm : (V n).mems = m :: rest) : rest = [] ∧ WrCtx R S n (V n) m := by
   obtain ⟨d1, d2, -, -, d5, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, d21, -, -, -, -, d26⟩ := hv
-  obtain ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14⟩ :=
+  obtain ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15⟩ :=
     d26 ha hbat m (by rw [hm]; exact List.mem_cons_self ..)
   have hrest : rest = [] := by rw [hm] at p1; exact (List.cons.inj p1).2
   have hw : (V n).dur.write m = durOf (V n).r := by
     have h := d21 p2; rw [p1] at h; exact h
   have hmt : m.term = (V n).ps.term := congrArg DurW.term hw
   have hmv : m.vote = (V n).ps.vote := congrArg DurW.vote hw
-  refine ⟨hrest, ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, hw,
+  refine ⟨hrest, ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, hw,
     by rw [d1.1, p8, hmt], by rw [d1.2.1, p9, hmv], d1.2.2.1, d1.2.2.2,
     by rw [d2.1, p7]; rfl, by unfold QueueIs at d5; rw [d5, p1]; rfl⟩⟩
 
