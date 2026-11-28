@@ -268,7 +268,7 @@ theorem NewServer.wp_proofRG
   · iPkgInit
   -- the stopped member's image
   iunfold srvDiskImageAt at Himg
-  icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
+  icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, #Hpair, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
     Hfiles, Hsdimg⟩
   -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes (`srvSnapRO`'s)
   icases srvFilesC_dataDir_len _ _ _ _ $$ Hfiles with ⟨%Hddl, Hfiles⟩
@@ -293,12 +293,13 @@ theorem NewServer.wp_proofRG
   -- `bootstrap`'s restart contract at the image (D6 T4: its instance, `bootstrapAtR`)
   ihave #Hboot' := HbootR
   iunfold bootstrapAtR at Hboot'
-  ihave Hbc := Hboot' $$ [] []
+  ihave Hbc := Hboot' $$ [] [] []
   · ipureintro
     exact ⟨Hsw.2.1, Hsw.2.2, Hbl, Hbco, Hfnc, Hdwd, Hdisk.1, Hbwb, Hpurl, Hcvl⟩
   · iexists ρo.rd.kv, A, u
     iframe Hmvi
     ipureintro; exact ⟨Himr.2, Himg, Hist⟩
+  · iexact Hpair
   wp_apply Hbc $$ [Hrauth Hfiles] as %b %err Hb
   · iframe; iframe Hcfgro Hzlg Hvoff
     iright; iexact Hfg

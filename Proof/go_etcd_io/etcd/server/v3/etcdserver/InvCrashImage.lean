@@ -112,6 +112,9 @@ def srvCrashImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S
       imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
       imageStOk (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A)⌝ ∗
     (∃ u : Bool, mvcc.api.mvccImage D (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) u) ∗
+    -- (keepfix (c) step 1, 2026-11-28) the stored pair is a committed entry, or the index 0 (`srvDiskImageAt`'s
+    -- row; from the backend image's `bkTermRow` and the committed prefix, `srvRLogLb_ciPair`)
+    (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)) ∗
     confAt γ.cl (uint.nat i) m ∗ confRowW γ.cl i D m ∗
     wal.crashImageR γ.cl S σ ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
