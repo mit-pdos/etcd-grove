@@ -1699,7 +1699,6 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
   storeLogs_fstore_win_k γ rc i s prev pt ents lci j j lc D g hpre
     ⟨Nat.le_refl _, fun m h1 h2 => absurd h2 (by omega)⟩ hg Ψ
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, |s.log|)`'s commit
 (`truncate_upd`). -/
 theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
@@ -1708,8 +1707,8 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
       pendHyps γ i s (.trunc prev pt ents lci j) -∗
       (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log.take (prev + j) } -∗
         stVS rc D g -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      |==> (logWin γ rc i (.del (prev + 1 + j) s.log.length) ∗
-      (logWin γ rc i (.del (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+      |==> (logWin γ rc i (.del true (prev + 1 + j) s.log.length) ∗
+      (logWin γ rc i (.del true (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) s.log.length hi')
           ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hh Hk
@@ -1724,24 +1723,7 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
   iunfold logWin at HW
   icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -, -, #Hlb⟩)
   rotate_left
-  · -- the compaction window: it deletes only durable entries, but the truncation's top is above `dur`
-    cases hop
-    iintro Hnc
-    imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, -, -⟩
-    iunfold durCore at Hc
-    icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, -⟩
-    unfold srvVq
-    icombine Hsv Hq gives %Hag
-    have hs := Hag.2
-    simp only [Prod.mk.injEq] at hs
-    obtain ⟨hs, -, -⟩ := hs
-    rw [hs]
-    imod (gprot.truncate_gt_dur γ _ crash_gprot_store i s prev pt ents lci j hpre) $$ [HI Ho Hh] with ⟨Ho, %hgt⟩
-    · iframe #; try iframe
-    ihave %hle := gprot.durView_lb γ i _ _ _ $$ [Hdv Hlb]
-    · iframe #; try iframe
-    have := hpre.2.2.2.1
-    exfalso; omega
+  · cases hop
   ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.trunc prev pt ents lci j) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
@@ -1790,7 +1772,6 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
   ihave HΨ := Hk $$ Hpw Hv Hst [] 
   · ipureintro; exact hdur
   iexact HΨ
--/
 
 /-- (R2) **`SetUint64(CurrentTerm, t)`'s commit** (`setCurrentTerm`): no model step; the term step
 recorded pending (`tp`, its `tpRes` moved into the crash state), fired at the atomic store
