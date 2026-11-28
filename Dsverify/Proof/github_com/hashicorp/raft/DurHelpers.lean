@@ -100,6 +100,54 @@ theorem gprotN_diff_cidxN_durN : (↑gprotN : CoPset) ⊆ (⊤ \ ↑cidxN) \ ↑
   gprotN_sub_diff "dur" gprotN_diff_cidxN
 theorem gprotN_diff_durN : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
 
+section dur
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.Assumptions]
+
+open Iris Iris.BI Iris.ProofMode
+
+variable (γ : GNames) (rc : RCtx GF) (i : SID)
+
+theorem srvV_eq (s : SState) : srvV rc s = srvVP rc s none none := rfl
+
+/-- **A read of the main goroutine's protocol state** (`durStep` with the crash state unchanged):
+with its view `srvV rc s`, an update that uses `srvOwn γ i s` and gives it back. -/
+theorem durRead {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) :
+    srvDurInv γ rc i ∗ srvV rc s ∗ P ∗
+      (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢ |NC={E}=> srvV rc s ∗ Q := by
+  iintro ⟨#Hd, Hs, HP, Hf⟩
+  ihave H := durStep γ rc i hE s none none iprop(P ∗ (srvOwn γ i s -∗ P -∗
+      |={E \ ↑durN}=> srvOwn γ i s ∗ Q))
+    (fun X' => iprop(⌜X'.s = s ∧ X'.tp = none ∧ X'.dp = none⌝ ∗ Q)) $$ [Hs HP Hf]
+  · iframe #
+    iframe HP Hf
+    isplitl [Hs]
+    · rw [srvV_eq]; iexact Hs
+    iintro %X %hX HX Hs ⟨HP, Hf⟩
+    rcases hX with ⟨hs, htp, hdp⟩
+    unfold durBody
+    icases HX with ⟨Ho, Hrest⟩
+    rw [hs]
+    imod Hf $$ Ho HP with ⟨Ho, HQ⟩
+    imodintro
+    iexists X
+    rw [hs, htp, hdp]
+    iframe
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  iapply ncfupd_wand
+  isplitl [H]
+  · iexact H
+  iintro ⟨%X', Hs, %h, HQ⟩
+  rcases h with ⟨hs, htp, hdp⟩
+  rw [hs, htp, hdp]
+  iframe HQ
+  rw [srvV_eq]; iexact Hs
+
+end dur
+
 end github_com.hashicorp.raft
 
 end Perennial
