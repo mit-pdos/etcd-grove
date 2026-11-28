@@ -74,8 +74,7 @@ theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
     $$ HInv Hdur Hpw Hs Hst Hci
   ihave Hwin2 := Hwin $$ []
   · iintro Hpw Hs Hst Hvo; imodintro; iframe
-  icases Hwin2 with ⟨HW, HAU⟩
-  imod HW
+  imod Hwin2 with ⟨HW, HAU⟩
   rw [Hwt]
   wp_apply_core HsetU $$ Hk1s HW
   iintro HW Hnc

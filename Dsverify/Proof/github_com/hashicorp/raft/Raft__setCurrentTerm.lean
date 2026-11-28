@@ -51,8 +51,7 @@ theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
     $$ Hdur Hpw Hs Hst Htp
   ihave Hwin2 := Hwin $$ []
   · iintro Hpw Hs Hst; imodintro; iframe
-  icases Hwin2 with ⟨HW, HAU⟩
-  imod HW
+  imod Hwin2 with ⟨HW, HAU⟩
   rw [Hwt]
   wp_auto
   wp_apply_core HsetU $$ Hk0s HW

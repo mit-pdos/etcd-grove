@@ -235,6 +235,37 @@ theorem logRead_main (s : SState) (Ψ : LogAbs → IProp GF) :
   · ipureintro; rw [← hs.1]; exact hl.1.1
   · iexact Hv
 
+/-- **A read of the log store at `k` by the main goroutine**, `k` past its compaction frontier `cm`
+(its authority): the store holds the log's entry at `k` (`logOk`, from `lo ≤ c + 1 ≤ cm + 1`). -/
+theorem logRead_main_k (s : SState) (q : Qp) (cm k : Nat) (hk : cm < k) (Ψ : LogAbs → IProp GF) :
+    srvDurInv γ rc i -∗ srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗
+      (∀ A : LogAbs, ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
+          (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
+        srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗ Ψ A) -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
+  iintro #Hd Hv Ha Hw
+  iapply (logRead_au γ rc i iprop(srvV rc s ∗ monoNatAuthOwn rc.dur.comp q cm ∗
+      (∀ A : LogAbs, ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
+          (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
+        srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗ Ψ A)) Ψ)
+    $$ Hd [Hv Ha Hw]
+  · iframe
+  iintro %X Hc ⟨Hv, Ha, Hw⟩
+  rw [srvV_eq]
+  ihave ⟨Hc, Hv, %hs⟩ := durCore_srvVP_agree γ rc i X s none none $$ [$Hc $Hv]
+  unfold durCore
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, #Hcomp, Hrest⟩
+  unfold compLb
+  ihave %hc := monoNatLbOwn_valid _ _ _ _ $$ [$Ha $Hcomp]
+  imodintro
+  iframe; iframe #
+  iapply Hw
+  · ipureintro
+    rw [← hs.1]
+    refine ⟨Hp.1.1, fun hkl => Hp.1.2 k (by have := Hp.2.1; omega) hkl⟩
+  · iexact Hv
+  · iexact Ha
+
 end dur
 
 end github_com.hashicorp.raft

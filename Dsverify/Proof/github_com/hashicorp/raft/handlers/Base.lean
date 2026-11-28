@@ -257,7 +257,7 @@ theorem mainOwnAt_intro (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SS
       ownChan γl Bool (.Buffered bs) ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
       verifyRegistry γ rc i ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c ⊢ mainOwnAt r γ rc i s st := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 -/
 
@@ -310,7 +310,7 @@ theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
       ownChan γl Bool (.Buffered bs) ∗
       verifyRegistry γ rc i ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c ⊢ mainOwnAt r γ rc i s st := by
   iintro ⟨Hs, Hpw, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, #Hcfg, #Hccf, #Hcmt, #Hlch, #Hlchan, Hlown,
     Hvreg, Hpnd, Hcomp⟩
   unfold mainOwnAt
