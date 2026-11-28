@@ -675,3 +675,33 @@ token-free `LeaderWithID` spec. Reported to coordinator-E.
 Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the clients' registration and claim
 lemmas over `kitQ`, the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
 `Sys.op`/`try` and `Client`, the orchestrator and the admin, and the link.
+
+### S5d batch 1 (branch `hraft-s5d/2026-11-28`): the server machine's helpers, the draw, the conf protocol
+
+- **Kit change 6** (approved by coordinator-E, #48 7233410712): `Server` registers its API before
+  `go srv.Accept(listen(...))` (it used to serve first). Net's `Server.Accept.spec` asks that every service the rpc world
+  gives the address be registered (`srvServes`), and a request before `Register(api)` would be answered "can't find
+  service"; peers' and clients' failed dials are retried. `TestDeployment` passes.
+- **The draw of the first configuration** (coordinator-E's design (a)-(e), (e1), #48 7233410712). `gprot.GNames` fixes
+  the genesis, `bootConfiguration(n0)`, and `n0` is drawn by the orchestrator at run time, while the rpc world's specs
+  are fixed at the start. So `gprot.alloc` is split: `alloc_names` (the names and the protocol's initial ghost state,
+  no receipt: the start allocates one protocol per size 3 and 5) and `alloc_init` (= `alloc_core`, the two receipts:
+  the orchestrator, after its draw); `alloc` is their composition (one protocol, nothing added). The draw is
+  `chosen γc n` (`Choice.lean`, persistent, agreeing). The world's specs are wraps: `svcK γc Sn` (`∃ n, chosen n ∗
+  Sn n`) for `RaftRPC`, whose callers know the draw, and `svcKE γc ok Sn` (`⌜ok⌝ ∗ ∀ n, chosen n -∗ |={⊤}=> Sn n`)
+  for the API, whose clients do not: the server, which does, turns the deposit into the drawn protocol's (so the
+  clients' registration of an operation runs in the server's method, on the client's draw-free resources).
+- **`rpctransport` over the wrapped world**: `peerOk` and `New.spec` take `svcAt` (the world's spec at the peer's
+  address accepts `raftSvc`'s deposits), `Transport.send` weakens the encoder's continuation with the new
+  `CodecLaws.enc_mono` (ledger 2026-11-28). `raftRcvLaws_svcK`/`apiRcvLaws_svcK` (`ChoiceRcv.lean`, `ApiRcvK.lean`): the
+  receiver laws for the wrapped specs, from the drawn protocol's.
+- **The server machines' share** (`ServerShare.lean`): `HK` (the draw, the protocol and frontier per size, the rpc
+  world, the share tokens), `kitSS` (the world's services at the servers' addresses), `srvPkg K n j` (what server `j`
+  runs raft with in the protocol of size `n`), `drawInv` (the draw, with every server's package until it takes it),
+  `claim_pkg` (server `j`, knowing the draw, takes its package), `srvShare`, `srvBoot`, the specs' `errOk`.
+- **Proved over the real code** (`Dsverify/{Spec,Proof}/.../hraftnet/`): `rnd`, `serverID`, `serverAddr` (`sidOf`, the
+  number in decimal), `peers` (`peersUpTo 6`), `bootConfiguration` (`bootSrvs n0`, a valid configuration over the six
+  servers, `srvsOkIn_bootSrvs`), `raftConfig` (`cfgOk`), `ServerAddrs`/`ConfAddrs`/`ClientAddrs`, `listen`, and the
+  conf protocol's `awaitConf` (`ConfDefs.lean`: `confProto γc`, a prefix of the drawn size's byte; vr's proof on one
+  byte).
+- Next (S5d): `Server` (its spec is drafted: `srvShare`, `srvBoot`, a thread token), then `Sys.try`/`op`/`Client`.

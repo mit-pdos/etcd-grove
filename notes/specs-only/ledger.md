@@ -9326,3 +9326,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (`Raft__GetConfiguration.lean`). `API.Status` waits on it with `snapFut.wp_cf_Error` (the sixth conjunct of
   `deferError.Error.spec`, unchanged). No top-level statement changes.
 - **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).
+
+## 2026-11-28: `rpctransport.New.spec` takes `svcAt`; `CodecLaws` gains `enc_mono` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/New.lean` (the kit's transport,
+  S4b) and its vocabulary `rpctransport/Trans.lean` (`peerOk`), `rpctransport/CodecLaws.lean` (`CodecLaws`).
+- **Defect.** Too strong a premise for the server machine (S5d): `New` asked each peer's rpc address to have the
+  service spec `raftSvc γ snapP a` exactly (`W.SS na svcName = some (raftSvc γ snapP a)`), but the deployment's rpc
+  world is fixed at its start, before the orchestrator draws the first configuration's size, so the world's spec
+  is the wrap `svcK γc (fun n => raftSvc (γs n) …)` over the protocols of both sizes (coordinator-E, #48 7233410712).
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/kit.go`: `chooseN0` at run time, `configure`;
+  `server.go`'s `bootConfiguration(n0)`, the genesis of `gprot.GNames`.
+- **Change.** `peerOk`'s and `New.spec`'s per-peer fact is `svcAt γ snapP W a na`: the world's spec `S` at `na`
+  accepts every `raftSvc γ snapP a` deposit (`svcAt_of_eq` gives it for the old form, so the old premise implies
+  the new one); `Transport.send` converts the deposit with `CodecLaws.enc_mono`, a new law (the encoder's
+  continuation can be weakened), proved of the generated codec (`hraftCodec_enc_mono`, emitted into
+  `hraftCodecLaws` by `etc/dsv/tools/hraft-codec.py`). No caller outside the kit; no top-level statement changes.
+- **Decision.** Untrusted specs, proved here (S5d, coordinator-E's approval of the draw's design on #48).
