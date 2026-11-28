@@ -224,18 +224,80 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   ihave #HlogsC := Hlogs
   iunfold isLogStore at Hlogs
   icases Hlogs with ⟨#HLastIdx, #HFirstIdx, #HGetLog, #HStoreLogs, #HStoreLog, #HDelRange, -⟩
-  fold bootV at Hboot
   wp_auto
   wp_apply wp_ValidateConfig $$ [$Hcp] as Hcp
   · ipureintro; exact Hcfg
   -- the current term: the crash state's (no term step pending)
   wp_bind (App (Val #(methods _ _ _)) _)
   iapply HGetU $$ HkCTs Htok
-  iapply (bootRead_S γ rc i X.A X.lat X.s X.tp X.dp) $$ [Hboot Hsv]
-  · iframe #; iframe
-    iintro Hboot Hsv %X1 %HX1
-    iintro Htok
-    sorry
+  iapply (bootRead_S γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged)
+  iframe #
+  iframe Hsv HstV
+  isplitl [Hboot]
+  · unfold bootV; iexact Hboot
+  iintro Hboot Hsv HstV %X1 %HX1 Htok
+  obtain ⟨-, -, hs1, htp1, -, hD1, -, hp1⟩ := HX1
+  have htd : termDurOk X1.D X1.s X1.tp := hp1.2.2.2.1
+  rw [hD1] at htd ⊢
+  rw [hs1, htp1, htp] at htd
+  have hct : uint.nat ((X.D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0)) = X.s.term := by
+    rcases htd with ⟨-, h⟩ | ⟨t, h, -⟩ | ⟨h, -⟩ <;> first | exact h | cases h
+  generalize hctv : (X.D.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0) = ct at hct
+  wp_auto
+  -- LastIndex: the largest stored index
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HLastIdx $$ Htok
+  iapply (bootRead_L γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged)
+  iframe #
+  iframe Hsv HstV Hboot
+  iintro Hboot Hsv HstV %X2 %HX2 Htok
+  obtain ⟨hA2, -⟩ := HX2
+  rw [hA2]
+  wp_auto
+  ipersist logs
+  -- the last entry stored (none if the store is empty)
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ bootV rc X.A X.lat ∗ srvVP rc X.s X.tp X.dp ∗
+      stVS rc X.D X.A.staged ∗ rtok tid ∗ (∃ e : GoInterface, err_ptr ↦ e) ∗ ∃ lv : Log, lastLog_ptr ↦ lv ∗
+      ⌜lv.Index' = X.A.hi ∧ (X.A.hi = W64 0 → lv.Term' = W64 0) ∧
+        (X.A.hi ≠ W64 0 → ∃ e, X.A.m.lookup (uint.nat X.A.hi) = some e ∧ uint.nat lv.Term' = e.term)⌝)))
+    $$ [Hboot Hsv HstV Htok lastLog err lastIndex] [-]
+  · wp_if_destruct
+    · have hne : X.A.hi ≠ W64 0 := by intro h; rw [h] at Hif; simp at Hif
+      obtain ⟨e, he⟩ : ∃ e, X.A.m.lookup (uint.nat X.A.hi) = some e := by
+        rcases hhi2 with h | h
+        · exact absurd h hne
+        · exact h
+      wp_bind (App (App (Val #(methods _ _ _)) _) _)
+      iapply HGetLog $$ lastLog Htok
+      iapply (bootRead_L γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged)
+      iframe #
+      iframe Hsv HstV Hboot
+      iintro Hboot Hsv HstV %X3 %HX3 %err' Hpost Htok
+      obtain ⟨hA3, -⟩ := HX3
+      rw [hA3] at *
+      unfold getLogPost
+      rw [he]
+      icases Hpost with ⟨%Herr, %lv, lastLog, #HlvIs⟩
+      subst Herr
+      wp_auto
+      unfold logIs
+      icases HlvIs with ⟨%h, -⟩
+      isplitr; · ipureintro; trivial
+      iframe
+      ipureintro
+      refine ⟨by apply BitVec.eq_of_toNat_eq; simpa using h.1, fun h' => absurd h' hne, fun _ => ⟨e, rfl, h.2.1⟩⟩
+    · isplitr; · ipureintro; trivial
+      iframe
+      ipureintro
+      have h0 : X.A.hi = W64 0 := by
+        apply BitVec.eq_of_toNat_eq
+        have : ¬ (uint.Z (W64 0) < uint.Z X.A.hi) := Hif
+        simp at this ⊢; word
+      exact ⟨h0.symm, fun _ => rfl, fun h => absurd h0 h⟩
+  iintro %v ⟨%hv, Hboot, Hsv, HstV, Htok, ⟨%e0, err⟩, %lv, lastLog, %HlvIdx⟩
+  subst hv
+  wp_auto
   sorry
 
 end proof
