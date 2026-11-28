@@ -8,8 +8,7 @@ etcdserver WAL's `walSave_holds`, without snapshots.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDur
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1Phases
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB2Phases
 
 @[expose] public section
 
@@ -98,6 +97,24 @@ theorem storageHolds_saveW (D : RaftState) (dk : AntSim.DurW) (H : HardStateM)
     have hk : (uint.Z e0.Index' - 0 - 1).toNat = uint.nat e0.Index' - 1 := by omega
     show _ = List.take (uint.Z e0.Index' - 0 - 1).toNat D.ents ++ e0 :: t
     rw [hk, hents]
+
+/-- **`storageHolds_saveW` at an iteration** (`loopRestB2`'s facts at `rs₂` after the write): from the
+loop head's disk at the loop head's durable state, the `Ready`'s write (`oh` the disk's hard state or the
+`Ready`'s, as `phsNext`) leaves the disk at the `Ready`'s durable state (`rs₂.dur`), its term within the
+ceiling, given the `Ready`'s commit at least the disk's (`AntSim.commit_reachD`) and its term within the
+ceiling (`rawNode_term_tc`). -/
+theorem DrainIterB1.holds_saveW (γ : AntNames) (j : Fin γ.R.N) (I : DrainIterB1) (oh : Option HardStateM)
+    (hok : I.OkB2 γ j) (h0 : StorageHolds I.rs.dur (diskContents I.v.dur))
+    (hoh : oh.getD (HardStateM.mk I.v.dur.term I.v.dur.vote I.v.dur.commit) = phsNext I.rs.phs I.h)
+    (hsv : SaveOk I.v.dur I.es) (hc : uint.Z I.v.dur.commit ≤ uint.Z I.r.p.commit)
+    (htc : uint.Z I.r.p.term ≤ uint.Z I.rs.tc) :
+    StorageHolds I.rs₂.dur (diskContents (saveW I.v.dur oh I.es)) ∧
+      uint.Z I.rs₂.dur.term ≤ uint.Z I.rs₂.tc := by
+  have hph : phsNext I.rs.phs I.h = HardStateM.mk I.r.p.term I.r.p.vote I.r.p.commit :=
+    hok.2.2.2.2.1.2.1
+  refine ⟨storageHolds_saveW I.rs.dur I.v.dur _ oh I.es h0 hoh hsv (by rw [hph]; exact hc), ?_⟩
+  show uint.Z (phsNext I.rs.phs I.h).Term' ≤ uint.Z I.rs.tc
+  rw [hph]; exact htc
 
 end pure
 
