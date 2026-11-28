@@ -151,22 +151,90 @@ theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id
         ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id))) := by
   sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 -/
-/-- **The install's `setLastApplied(s)`** (its logically atomic update): the pending record
-`(s, st, id)` (the main goroutine's half, back from the restore) finds the main goroutine's half of
-`lastApplied`'s authority in `snapCell` at `a < s`; it takes it, and the authority moves to `s`; the
-record ends (`none`), and the latest (the install's) is now at most `lastApplied` (`applLb s`) and
-installed while following (`snapFollow`, kept from the pending case). -/
-theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s st : Nat) (id : GoString)
-    (Ψ : IProp GF) :
-    snapCell rc γ i ∗ ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id)) ∗
-      (ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
-        monoNatAuthOwn rc.dur.applied (1 : Qp).half s -∗ Ψ) ⊢
-    |={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
-      ⌜a ≤ s⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half s ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+/-- **The install's `setLastApplied(x)`** (its crash-token atomic update; hraft_robust: over `srvDurInv`):
+the pending record `(x, st, id)` (the main goroutine's half, back from the restore) finds the main
+goroutine's half of `lastApplied`'s authority in `latestDur`'s pending case at `a < x`; it takes it, and
+the authority moves to `x`; the record ends (`none`). With no discard pending (the keep case: the log
+has the snapshot's entry, durable) the latest is now durable and at most `lastApplied`, and the half
+comes back; with a discard pending the half stays in `latestDur` (lent until the discard). -/
+theorem install_applied_au (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (dp : Option DiscPend)
+    (x st : Nat) (id : GoString) (Ψ : IProp GF) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvVP rc s none dp ∗ ghostVar rc.dur.pend (1 : Qp).half (some (x, st, id)) ∗
+      (srvVP rc s none dp -∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+        (⌜dp = none⌝ ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half x ∨ ⌜dp ≠ none⌝) -∗ Ψ) ⊢
+    |NC={⊤ \ ↑appliedN, ∅}=> ▷ ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+      ⌜a ≤ x⌝ ∗ (monoNatAuthOwn rc.dur.applied (1 : Qp).half x ={∅, ⊤ \ ↑appliedN}=∗ Ψ) := by
+  have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑appliedN) \ ↑durN := by
+    unfold appliedN durN raftN gprotN; solve_ndisj
+  iintro ⟨#HI, #Hd0, Hv, Hpend, HΨ⟩ Hnc
+  iunfold srvDurInv at Hd0
+  icases Hd0 with ⟨#Hd, #Hbo⟩
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑appliedN) (by unfold durN raftN appliedN; solve_ndisj) $$ Hd
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  unfold durBody
+  icases HX with ⟨>Hs, Hdv, Hlc, Htc, Hcc, >Hsv, Hst, Htv, Hcv, HownL, HownS, HownSS, >%HpA, >%HpB, Hbp,
+    Hcomp, >%HpC, >%HpD, Hla, Hld, >Hpd, Hrest⟩
+  unfold srvVP
+  ihave %Hag := ghostVar_agree _ _ _ _ _ $$ Hsv Hv
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  ihave %Hpq := ghostVar_agree _ _ _ _ _ $$ Hpend Hpd
+  -- the pending case of `latestDur`
+  unfold latestDur
+  icases Hld with ⟨Hlat, Hcase⟩
+  rw [← Hpq]
+  imod later_exists_except0 $$ Hcase with ⟨%m, Hcase⟩
+  imod later_exists_except0 $$ Hcase with ⟨%b, Hcase⟩
+  imod later_exists_except0 $$ Hcase with ⟨%a, Hcase⟩
+  icases Hcase with ⟨>%Hm, Hfol, >Happ⟩
+  obtain ⟨hl, hid, hidx, htm, hax⟩ := Hm
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists a
+  iframe Happ
+  isplitr; · ipureintro; omega
+  iintro Happ
+  imod Hmask with -
+  imod ghostVar_update_halves (none : Option (Nat × Nat × GoString)) _ _ _ $$ Hpend Hpd with ⟨Hpend, Hpd⟩
+  -- the pend clause: a discard pending, or the snapshot's entry in the log, durable
+  have hpc := HpB.2.1 x st id Hpq.symm
+  rcases hdc : X.dp with _ | d
+  · -- no discard pending: the latest durable and at most `lastApplied`; the half comes back
+    have hpm : prevMatch X.s.log x st ∧ x ≤ X.s.dur.1 := by
+      rcases hpc with ⟨ℓ, h⟩ | h
+      · rw [hdc] at h; cases h
+      · exact h
+    imod srvOwn_durLb γ _ hE i X.s $$ [$HI $Hs] with ⟨Hs, #Hdl⟩
+    ihave #Hdx := durLb_mono γ i X.s.dur.1 x hpm.2 $$ Hdl
+    ihave #Hax := applLb_get rc _ x $$ Happ
+    imod Hclose $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS Hbp Hcomp Hla Hlat Hfol Hpd Hrest]
+      with -
+    · inext
+      iexists { X with pend := none }
+      simp only
+      iframe
+      sorry
+    imodintro
+    iapply HΨ $$ [Hv] Hpend
+    · unfold srvVP; rw [← hs, ← htp, ← hdp]; iexact Hv
+    ileft; iframe; ipureintro; rw [← hdp, hdc]
+  · -- a discard pending: the half stays in `latestDur` until the discard
+    imod Hclose $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS Hbp Hcomp Hla Hlat Hfol Hpd Hrest
+      Happ] with -
+    · inext
+      iexists { X with pend := none }
+      simp only
+      iframe
+      sorry
+    imodintro
+    iapply HΨ $$ [Hv] Hpend
+    · unfold srvVP; rw [← hs, ← htp, ← hdp]; iexact Hv
+    iright; ipureintro; rw [← hdp, hdc]; simp
+
 
 /-- **A main-goroutine read of the log store** (`GetLog(k)`'s atomic update; hraft_robust: over
 `srvDurInv`, the main goroutine's view at `s` with any pending discard) past the compaction frontier
