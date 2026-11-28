@@ -344,7 +344,7 @@ theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF))
       (pbStringValueRT (GF := GF)).toProtoMsg) :
     ⊢ ∀ Rep : ProtoMsgT GF,
       ⌜grpcRepModelOf GF Rep.ty = some Rep ∧
-        Rep.ty = (⟨reqWire (GF := GF), repWire (GF := GF), Spec⟩ : GrpcEntry GF).Wp.ty⌝ -∗
+        Rep.ty = (⟨reqWire (GF := GF), repWire (GF := GF), Spec, false⟩ : GrpcEntry GF).Wp.ty⌝ -∗
       □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
   iintro %Rep %hRt
   obtain ⟨hR, hty⟩ := hRt

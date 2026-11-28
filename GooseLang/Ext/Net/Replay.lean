@@ -161,7 +161,7 @@ inductive MStep : NetGlobal → (String → Option NetLocal) → Ev → NetGloba
     (String → Option NetLocal) → Prop
   | step {g loc n op v e' L L' g' loc'} :
       loc n = some L →
-      (∀ h, ExtSemantics.step (E := netExt) op v h L g e' h L' g') →
+      (∀ tf h, ExtSemantics.step (E := netExt) tf op v h L g e' h L' g') →
       loc' n = some L' → (∀ m, m ≠ n → loc' m = loc m) →
       MStep g loc (.step n op v e') g' loc'
   | crash {g loc n L L' loc'} :
@@ -471,13 +471,13 @@ theorem mstep_same {w : World} {n : String} {op : String} {v : val} {e' : Expr} 
     {L : CLocal} (hL : alGet w.locs n = some L)
     (hs : IsNetStep op v L.abs w.global e' L.abs g') :
     MStep w.global w.loc (.step n op v e') g' w.loc :=
-  MStep.step (loc_of hL) (fun _ => ⟨rfl, .inr hs⟩) (loc_of hL) (fun _ _ => rfl)
+  MStep.step (loc_of hL) (fun _ _ => ⟨rfl, .inr hs⟩) (loc_of hL) (fun _ _ => rfl)
 
 theorem mstep_set {w : World} {n : String} {op : String} {v : val} {e' : Expr} {L L' : CLocal}
     (hL : alGet w.locs n = some L)
     (hs : IsNetStep op v L.abs w.global e' L'.abs w.global) :
     MStep w.global w.loc (.step n op v e') (w.setLoc n L').global (w.setLoc n L').loc :=
-  MStep.step (loc_of hL) (fun _ => ⟨rfl, .inr hs⟩) (by rw [World.loc_setLoc]; simp)
+  MStep.step (loc_of hL) (fun _ _ => ⟨rfl, .inr hs⟩) (by rw [World.loc_setLoc]; simp)
     (fun m hm => by rw [World.loc_setLoc]; simp [Ne.symm hm])
 
 theorem lookup_conns {w : World} {c : Nat} {cn : NetConn} (h : alGet w.conns c = some cn) :

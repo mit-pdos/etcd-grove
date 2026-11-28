@@ -7,7 +7,7 @@ module
 
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 public import Proof.github_com.anishathalye.porcupine.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base

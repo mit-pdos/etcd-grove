@@ -1,10 +1,10 @@
 package dist
 
-// The store workload's wire: the driver's Input and Output (examples/k8s/etcd3, through the copy
-// storecopy) as bytes, every field in order through examples/etcd/dist/enc, and the Output's Raw
+// The store workload's wire: the driver's Input and Output (examples/k8s/etcd3, through its
+// export.go) as bytes, every field in order through examples/etcd/dist/enc, and the Output's Raw
 // (what the store returned, which only the maintainers' checker reads) in an encoding of the
 // values the store returns: an *Obj or *ObjList, a *storage.StorageError, the callbacks' own
-// errors, a *apierrors.StatusError (its Status as JSON), and watch events of those objects or of a
+// errors, a *apierrors.StatusError (its Status), and watch events of those objects or of a
 // *metav1.Status. The API server's machine checks that the Raw it sends decodes to a value
 // reflect.DeepEqual to the store's (RawOK): Kubernetes' checker compares responses with
 // reflect.DeepEqual, so a Raw that would not survive the wire is flagged, never sent altered, and
@@ -12,19 +12,19 @@ package dist
 // whether the store answered etcd's "compacted" (Compacted), read off the store's own answer.
 
 import (
-	"encoding/json"
 	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/enc"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 
-	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
 )
 
 // StoreOut is an API server's answer: the driver's output, whether its Raw crossed the wire
@@ -160,6 +160,95 @@ const (
 	rawLost
 )
 
+// encOptI64 appends an *int64: whether it is not nil, then its value.
+func encOptI64(e *enc.Enc, p *int64) {
+	e.Bool(p != nil)
+	if p != nil {
+		e.I64(*p)
+	}
+}
+
+func decOptI64(d *enc.Dec) *int64 {
+	if !d.Bool() {
+		return nil
+	}
+	x := d.I64()
+	return &x
+}
+
+// encStatus appends a metav1.Status (a watch's Error event's object, a StatusError's status), every
+// field in order, nil pointers and slices as such (until 2026-11-27, G5: as JSON).
+func encStatus(e *enc.Enc, st metav1.Status) {
+	e.Str(st.Kind)
+	e.Str(st.APIVersion)
+	e.Str(st.SelfLink)
+	e.Str(st.ResourceVersion)
+	e.Str(st.Continue)
+	encOptI64(e, st.RemainingItemCount)
+	e.Bool(st.ShardInfo != nil)
+	if st.ShardInfo != nil {
+		e.Str(st.ShardInfo.Selector)
+	}
+	e.Str(st.Status)
+	e.Str(st.Message)
+	e.Str(string(st.Reason))
+	e.Bool(st.Details != nil)
+	if dt := st.Details; dt != nil {
+		e.Str(dt.Name)
+		e.Str(dt.Group)
+		e.Str(dt.Kind)
+		e.Str(string(dt.UID))
+		e.Bool(dt.Causes == nil)
+		e.Int(len(dt.Causes))
+		for _, c := range dt.Causes {
+			e.Str(string(c.Type))
+			e.Str(c.Message)
+			e.Str(c.Field)
+		}
+		e.I64(int64(dt.RetryAfterSeconds))
+	}
+	e.I64(int64(st.Code))
+}
+
+func decStatus(d *enc.Dec) metav1.Status {
+	var st metav1.Status
+	st.Kind = d.Str()
+	st.APIVersion = d.Str()
+	st.SelfLink = d.Str()
+	st.ResourceVersion = d.Str()
+	st.Continue = d.Str()
+	st.RemainingItemCount = decOptI64(d)
+	if d.Bool() {
+		st.ShardInfo = &metav1.ShardInfo{Selector: d.Str()}
+	}
+	st.Status = d.Str()
+	st.Message = d.Str()
+	st.Reason = metav1.StatusReason(d.Str())
+	if d.Bool() {
+		dt := &metav1.StatusDetails{}
+		dt.Name = d.Str()
+		dt.Group = d.Str()
+		dt.Kind = d.Str()
+		dt.UID = types.UID(d.Str())
+		isNil := d.Bool()
+		n := d.Int()
+		if !isNil {
+			dt.Causes = []metav1.StatusCause{}
+		}
+		for i := 0; d.Ok && i < n; i++ {
+			var c metav1.StatusCause
+			c.Type = metav1.CauseType(d.Str())
+			c.Message = d.Str()
+			c.Field = d.Str()
+			dt.Causes = append(dt.Causes, c)
+		}
+		dt.RetryAfterSeconds = int32(d.I64())
+		st.Details = dt
+	}
+	st.Code = int32(d.I64())
+	return st
+}
+
 // encObject appends a returned object (nil, *Obj, *ObjList, *metav1.Status); false if it is
 // another.
 func encObject(e *enc.Enc, o runtime.Object) bool {
@@ -191,13 +280,12 @@ func encObject(e *enc.Enc, o runtime.Object) bool {
 			e.I64(*v.RemainingItemCount)
 		}
 	case *metav1.Status:
-		b, err := json.Marshal(v)
-		if v == nil || err != nil {
+		if v == nil {
 			e.Int(rawLost)
 			return false
 		}
 		e.Int(rawStatus)
-		e.Str(string(b))
+		encStatus(e, *v)
 	default:
 		e.Int(rawLost)
 		return false
@@ -230,11 +318,8 @@ func decObject(d *enc.Dec) runtime.Object {
 		}
 		return l
 	case rawStatus:
-		st := &metav1.Status{}
-		if json.Unmarshal([]byte(d.Str()), st) != nil {
-			d.Ok = false
-		}
-		return st
+		st := decStatus(d)
+		return &st
 	case rawLost:
 		// not carried: RawOK is false, and the orchestrator reads no Raw
 		return nil
@@ -262,13 +347,12 @@ func encErr(e *enc.Enc, err error) bool {
 		}
 		return true
 	case *apierrors.StatusError:
-		b, jerr := json.Marshal(v.ErrStatus)
-		if jerr != nil {
+		if v == nil {
 			e.Int(rawLost)
 			return false
 		}
 		e.Int(rawStatusErr)
-		e.Str(string(b))
+		encStatus(e, v.ErrStatus)
 		return true
 	}
 	if err == del {
@@ -298,11 +382,7 @@ func decErr(d *enc.Dec) error {
 		}
 		return &storage.StorageError{Code: code, Key: key, ResourceVersion: rv}
 	case rawStatusErr:
-		var st metav1.Status
-		if json.Unmarshal([]byte(d.Str()), &st) != nil {
-			d.Ok = false
-		}
-		return &apierrors.StatusError{ErrStatus: st}
+		return &apierrors.StatusError{ErrStatus: decStatus(d)}
 	case rawDeleteRejected:
 		return del
 	case rawUpdateRejected:

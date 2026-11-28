@@ -96,7 +96,7 @@ end model
 
 section inj
 variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
-variable [GoSemanticsFunctions] [go.CoreSemantics]
+variable [GoLocalContext] [GoSemanticsFunctions] [go.CoreSemantics]
 variable [ta : github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Input.TypeAssumptions]
 
 theorem boxS_inj (a b : GoString) : boxS a = boxS b ↔ a = b := by

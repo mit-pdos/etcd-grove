@@ -23,6 +23,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // checkRealLogged is Check (the same cache, RunLin2 call, failureFree and realCheck), logging the
@@ -70,9 +71,16 @@ func checkRealLogged(t *testing.T, s storage.Interface, st0 mstore, h0 []mstore,
 }
 
 // TestRealChecker: one member (Main's setup, on ports of its own), 8 unary clients of 300
-// operations and 16 watchers of 8 watches, in a process of its own (inChild).
+// operations and 16 watchers of 8 watches, in a process of its own (inChild). Member k8s7g's WAL
+// area and data directory (fixed paths, under etcdstart.WALBase and DataBase) are made empty before
+// the run and removed after it, so that a run never starts from a previous run's WAL.
 func TestRealChecker(t *testing.T) {
 	inChild(t, "TestRealChecker", "", func(t *testing.T) {
+		walarea.Reset(t, "k8s7g")
+		t.Cleanup(func() {
+			os.RemoveAll(walarea.Area("k8s7g"))
+			os.RemoveAll(walarea.DataDir("k8s7g"))
+		})
 		lg := zap.NewNop()
 		cl := "127.0.0.1:23991"
 		srv, err := etcdstart.StartServer("k8s7g", "127.0.0.1:23990", cl, lg)

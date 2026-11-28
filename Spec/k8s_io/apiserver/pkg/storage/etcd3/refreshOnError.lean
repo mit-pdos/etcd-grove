@@ -40,8 +40,8 @@ abbrev refreshOnError.spec : Prop :=
     (R : w64 → w64 → KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (ownStateX c st s x ∗
       (if s.current then iprop(True) else iprop(getStateOk c key ign R f ∗
-        ∀ R0 m, |==> □ [∧list] y ∈ c.ms, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
-          kvReadAu y.γr.kv (R R0 m)))) }}
+        ∀ R0 m, |==> □ [∧list] γv ∈ c.K.kvs, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
+          kvReadAu γv (R R0 m)))) }}
     (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.refreshOnError)) (Val #st))
       (Val #err)) (Val #f))
   {{ (st' : Loc) (err' : GoInterface), RET (PairV #st' #err'); levelTok 0 ∗ (if s.current then iprop(⌜st' = st ∧ err' = err⌝ ∗ ownStateX c st s x)

@@ -108,10 +108,14 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.gokv.trusted_proph',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
+         # (2026-11-27) its workload and model, moved out of the driver
+         'github_com.mit_pdos.etcd_grove.examples.lib.txnwork',
          'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
          'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
+         # (2026-11-27) its set-up, workload and checks, moved out of the driver
+         'github_com.mit_pdos.etcd_grove.examples.lib.authwork',
          # the auth3 Scope's A1 (2026-11-14): authkv with three members
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
          # authN (2026-11-15, notes/authN-plan.md): auth3 with any number of members
@@ -2063,7 +2067,9 @@ SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
 its message, read-only (`wp_New_errorString_struct`). Its initializer allocates them, initializes
 its imports and runs their translated initializers.''',
     imports=['Proof.errors.NewVarCell'],
-    alloc_types={x: 'GoInterface' for x, _ in _K8E},
+    # (k8s-dist G2, 2026-11-27) `export.go`'s `crossCheck` (a `bool` only `CrossCheckWatches`, a test
+    # hook, sets): allocated, not in the fact
+    alloc_types={**{x: 'GoInterface' for x, _ in _K8E}, 'crossCheck': 'Bool'},
     before={'$end': ['try wp_auto'] + [l for _, t in _K8E for l in [
         f'wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %x{t} ⟨#M{t}, #C{t}⟩',
         'try wp_auto']]},
@@ -2554,7 +2560,7 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
     pre=['/-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,',
          '`Unwrap`, `GRPCStatus` or `Is` method: a theorem of the method set goose emits',
          '(`EtcdError.TypeAssumptions.method_set`), as `EtcdGrove.ErrorStringLeaf`. -/',
-         'class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where',
+         'class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where',
          '  leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩',
          '  noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none',
          '  noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none',

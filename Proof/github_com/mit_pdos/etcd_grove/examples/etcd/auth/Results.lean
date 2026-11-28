@@ -1,5 +1,5 @@
 /-
-The authentication example's results (`examples/etcd/auth/authkv.go`; the auth plan's E2b), restated,
+The authentication example's results (`examples/lib/authwork/authkv.go`; the auth plan's E2b), restated,
 with the trust base of each printed in the build log (`#print axioms`). Lean-first (no Rocq
 counterpart).
 

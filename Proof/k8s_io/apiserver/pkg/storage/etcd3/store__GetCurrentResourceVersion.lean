@@ -45,14 +45,14 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem store.GetCurrentResourceVersion.wp_proof
     (wp_prepareKey : store.prepareKey.spec (GF := GF) (hG := hG))
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
-    (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG))
     (wp_ErrorfPlain : fmt.ErrorfPlain.spec (GF := GF) (hG := hG)) :
     store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd k Q hk hkl
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Hau⟩
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hkh⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
@@ -82,9 +82,9 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (hK.getLatest (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hlt Hau]
+      ci cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hlt Hau]
     as %resp %gerr ⟨Hlt, Hget⟩
   · iframe #
     iframe Hlt

@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
   go_etcd_io.etcd.server.v3.etcdserver
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The address of `s.consistIndex`. -/
 abbrev srvCIAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"consistIndex" s

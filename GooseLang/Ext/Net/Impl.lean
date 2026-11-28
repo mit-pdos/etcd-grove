@@ -810,7 +810,7 @@ end step
 /-- D10. A crash drops the listeners. D26. A machine's process starts with no listener
 (`NetLocal.init`), and the network with no connection (`NetGlobal.init`). -/
 instance net_semantics : ExtSemantics netExt where
-  step := NetStep
+  step := fun _ => NetStep
   crash L L' := L' = { L with lis := ∅ }
   initLocal L _ := L.init
   initGlobal g := g.init

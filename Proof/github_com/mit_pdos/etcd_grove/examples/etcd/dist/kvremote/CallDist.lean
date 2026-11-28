@@ -14,20 +14,20 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.CallDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.ClientCallDistLaws
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.vrOf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.kvsFrom
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withKVs
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.cmpsFor
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.opsOf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.thenOf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.elseOf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.txnRes
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withRes
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callPut
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callDel
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callGet
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callList
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callTxn
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.vrOf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.kvsFrom
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.withKVs
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.cmpsFor
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.opsOf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.thenOf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.elseOf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.txnRes
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.withRes
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callPut
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callDel
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callGet
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callList
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callTxn
 public import Spec.go_etcd_io.etcd.client.v3.WithRange
 public import Spec.go_etcd_io.etcd.client.v3.txn__If
 public import Perennial.Proof.context.Link
@@ -49,7 +49,7 @@ namespace EtcdGrove
 namespace etcd_txnlin
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin go_etcd_io.etcd.server.v3.etcdserver
+open github_com.mit_pdos.etcd_grove.examples.lib.txnwork go_etcd_io.etcd.server.v3.etcdserver
 open EtcdGrove.etcd_dist
 
 section proof
@@ -57,7 +57,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt 
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
@@ -71,10 +71,10 @@ theorem callGet_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
-      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callGet)) (Val #cl))
+      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callGet)) (Val #cl))
         (Val #key))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
         ∃ σ : KVState, □ Q σ ∗
@@ -177,10 +177,10 @@ theorem callList_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (Q : KVState → IProp GF),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
-      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callList)) (Val #cl))
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callList)) (Val #cl))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
         ∃ σ : KVState, □ Q σ ∗
           ⌜y = listOut (W64 (σ.rev : Int))
@@ -262,10 +262,10 @@ theorem callPut_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
     Γ.auth = false →
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (key val : GoString) (Q : KVState → IProp GF), key.length ≤ inMax → val.length ≤ inMax →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.put (linkv.putOp key val)) Q) }}
-      (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callPut))
+      (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callPut))
         (Val #cl)) (Val #key)) (Val #val))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
         ∃ σ : KVState, Q σ ∗
@@ -325,10 +325,10 @@ theorem callDel_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
     Γ.auth = false →
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.deleteRange (linkv.delOp key)) Q) }}
-      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callDel)) (Val #cl))
+      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callDel)) (Val #cl))
         (Val #key))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
         ∃ σ : KVState, Q σ ∗
@@ -400,10 +400,10 @@ theorem callTxn_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
     ∀ (x : Input) (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
       (Q : KVState → IProp GF), decIn x = some (.txn cs t e) → t ++ e ≠ [] →
       minBytesLe inMax (.txn cs t e) →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ callUpd Γ.kv (.txn cs t e) Q) }}
-      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callTxn)) (Val #cl))
+      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callTxn)) (Val #cl))
         (Val #x))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
         ∃ σ : KVState, callRes (.txn cs t e) Q σ ∗
@@ -552,10 +552,10 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
       errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
       ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
-      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
           (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
-        (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callGet)) (Val #cl))
+        (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callGet)) (Val #cl))
           (Val #key))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
           ∃ σ : KVState, □ Q σ ∗
@@ -565,10 +565,10 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
       errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
       ∀ (Q : KVState → IProp GF),
-      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
           (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
-        (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callList)) (Val #cl))
+        (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callList)) (Val #cl))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
           ∃ σ : KVState, □ Q σ ∗
             ⌜y = listOut (W64 (σ.rev : Int))
@@ -578,10 +578,10 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
       Γ.auth = false →
       errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
       ∀ (key val : GoString) (Q : KVState → IProp GF), key.length ≤ inMax → val.length ≤ inMax →
-      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
           (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.put (linkv.putOp key val)) Q) }}
-        (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callPut))
+        (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callPut))
           (Val #cl)) (Val #key)) (Val #val))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
           ∃ σ : KVState, Q σ ∗
@@ -592,10 +592,10 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
       Γ.auth = false →
       errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
       ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
-      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
           (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.deleteRange (linkv.delOp key)) Q) }}
-        (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callDel)) (Val #cl))
+        (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callDel)) (Val #cl))
           (Val #key))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
           ∃ σ : KVState, Q σ ∗
@@ -610,10 +610,10 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
         (t e : List (linkv.MOp GoString GoString))
         (Q : KVState → IProp GF), decIn x = some (.txn cs t e) → t ++ e ≠ [] →
         minBytesLe inMax (.txn cs t e) →
-      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+      {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
           (kvClientAt cl api eps V Γ ∗ callUpd Γ.kv (.txn cs t e) Q) }}
-        (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callTxn)) (Val #cl))
+        (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.callTxn)) (Val #cl))
           (Val #x))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
           ∃ σ : KVState, callRes (.txn cs t e) Q σ ∗
@@ -629,10 +629,10 @@ theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π :
     Γ.auth = false →
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         (kvClientAt cl api eps V Γ ∗ callUpd Γ.kv i Q) }}
-      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.call)) (Val #cl))
+      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.txnwork.call)) (Val #cl))
         (Val #x))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
         ∃ σ : KVState, callRes i Q σ ∗

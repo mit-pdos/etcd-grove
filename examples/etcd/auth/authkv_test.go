@@ -64,7 +64,7 @@ func TestMainRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// the refusals, by kind
+	// the refusals, by kind ("badtoken" is authwork's badToken)
 	u, v, anon := newCli("u", uPw), newCli("v", vPw), newCli("", "")
 	want := func(who string, err, kind error) {
 		if !errors.Is(err, kind) {
@@ -79,7 +79,7 @@ func TestMainRun(t *testing.T) {
 	want("v", err, rpctypes.ErrPermissionDenied)
 	_, err = anon.Put(ctx, "a/anon/x", "x")
 	want("anon", err, rpctypes.ErrUserEmpty)
-	_, err = anon.Put(metadata.AppendToOutgoingContext(ctx, "token", badToken), "a/bad/x", "x")
+	_, err = anon.Put(metadata.AppendToOutgoingContext(ctx, "token", "badtoken"), "a/bad/x", "x")
 	want("bad", err, rpctypes.ErrInvalidAuthToken)
 	if _, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Username: "u",
 		Password: "wrong", Logger: lg}); !errors.Is(err, rpctypes.ErrAuthFailed) {

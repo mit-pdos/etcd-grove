@@ -23,6 +23,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetAnn
 public import Spec.k8s_io.apimachinery.pkg.runtime.Decode
 public import Spec.k8s_io.apiserver.pkg.storage.AnnotateInitialEventsEndBookmark
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.EtcdClientInProc
 
 @[expose] public section
 
@@ -45,13 +46,14 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- **The driver's store configuration** (see the file header): over the kubernetes client `kc`
-(its etcd client `cl`, at the members `ms`, its watch environment `V`), the metrics trackers
+(its etcd client `cl`, the in-process client of the members `ms` with the watch environment `V`,
+`inProcEtcd ms V`), the metrics trackers
 `mt lt` (`New`'s), the history names `γh`. -/
-def storeCfgD (kc cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (mt lt : Loc)
+def storeCfgD [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (kc cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (mt lt : Loc)
     (γh : GName) : k8s.StoreCfg GF DObj :=
   { S := driverSpec, codec := codecI, vi := versionerI, ti := identityI, di := decoderI,
     pathPrefix := go!"/registry", resourcePrefix := go!"/objs", gr := ⟨[], go!"objs"⟩, kc := kc,
-    cl := cl, ms := ms, V := V, mt := mt, lt := lt, γh := γh }
+    cl := cl, K := inProcEtcd ms V, mt := mt, lt := lt, γh := γh }
 
 end cfg
 

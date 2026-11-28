@@ -15,7 +15,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVDeleteDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TxnCommitDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.CallDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Link
 public import Spec.go_etcd_io.etcd.client.v3.kv__Txn
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
@@ -316,7 +316,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt 
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]

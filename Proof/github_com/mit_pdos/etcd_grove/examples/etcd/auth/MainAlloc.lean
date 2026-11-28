@@ -11,7 +11,7 @@ start (`authHistView … [srvAuthSt0]`, what `SetUp` takes).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn

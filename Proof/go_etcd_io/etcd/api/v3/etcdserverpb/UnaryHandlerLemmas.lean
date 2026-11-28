@@ -192,7 +192,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
   iapply Hd2 $$ Hb
   inext
   iintro %err Herr
-  icases Herr with (⟨%Herr, #Hr, Ho⟩ | ⟨#Hnh, #Hse0⟩)
+  icases Herr with (⟨%Herr, #Hr, Ho⟩ | ⟨#Hnh, #Hse0, -⟩)
   all_goals try ihave #Hse := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ Hse0
   · subst Herr
     wp_auto

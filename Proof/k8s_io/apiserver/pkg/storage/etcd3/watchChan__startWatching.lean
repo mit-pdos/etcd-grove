@@ -256,7 +256,7 @@ theorem watchChan.startWatching.wp_proof
   subst Hwp
   ihave #Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, #Hcl, -, #Hregs, -, #Hlst⟩
+  icases Hst' with ⟨%Hsp, -, -, -, -, -, -, -, -, -, -, -, -, #Hkcl, -, #Hlst⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, %Hrp⟩
   ihave #Pcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
