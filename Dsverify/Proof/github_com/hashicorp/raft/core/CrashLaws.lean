@@ -59,6 +59,34 @@ theorem crash_least (P : Nat → Prop) (n : Nat) :
         · rw [show m = n by omega]; exact hn
     · exact Or.inr ⟨m, by omega, hP, hj⟩
 
+/-! ### The pending install's prefix through a log step -/
+
+theorem prevMatch_append (L es : RLog) (x st : Nat) (h : prevMatch L x st) : prevMatch (L ++ es) x st := by
+  rcases h with h | ⟨h1, h2⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨by simp; omega, by rw [termAt_append_left _ _ _ h1]; exact h2⟩
+
+theorem prevMatch_take (L : RLog) (n x st : Nat) (hx : x ≤ n) (h : prevMatch L x st) :
+    prevMatch (L.take n) x st := by
+  rcases h with h | ⟨h1, h2⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨by simp; omega, by rw [termAt_take _ _ _ hx]; exact h2⟩
+
+/-- (R2) The pending-install facts through a log step that keeps the durable prefix. -/
+theorem q2_step (lo : Nat) (lat : SnapLatest) (pend : Option (Nat × Nat × GoString)) (dp : Option DiscPend)
+    (L L' : RLog) (d d' : Nat) (hd : d ≤ d')
+    (hL : ∀ x st, x ≤ d → prevMatch L x st → prevMatch L' x st)
+    (h : (∀ dd, dp = some dd → lo ≤ dd.x) ∧
+      (∀ x st id, pend = some (x, st, id) → (∃ ℓ, dp = some ⟨x, st, ℓ⟩) ∨ (prevMatch L x st ∧ x ≤ d)) ∧
+      lo ≤ latIdxD lat + 1) :
+    (∀ dd, dp = some dd → lo ≤ dd.x) ∧
+      (∀ x st id, pend = some (x, st, id) → (∃ ℓ, dp = some ⟨x, st, ℓ⟩) ∨ (prevMatch L' x st ∧ x ≤ d')) ∧
+      lo ≤ latIdxD lat + 1 := by
+  refine ⟨h.1, fun x st id hp => ?_, h.2.2⟩
+  rcases h.2.1 x st id hp with h1 | ⟨h1, h2⟩
+  · exact Or.inl h1
+  · exact Or.inr ⟨hL x st h2 h1, by omega⟩
+
 /-! ## Masks -/
 
 theorem crash_hE_dur {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) : (↑durN : CoPset) ⊆ E :=
@@ -139,7 +167,7 @@ theorem durStepV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Ter
     try rw [hdp]
     iframe
     ipureintro
-    exact ⟨hlo, hlc, hvm, htd, by have := hci.1; omega, hci.2⟩
+    exact ⟨hlo, hlc, hvm, htd, by have := hci.1; omega, ⟨q2_step _ _ _ _ _ _ _ _ hle (fun x st _ h => h) hci.2.1, hci.2.2⟩⟩
   imodintro
   iframe Hnc
   iexists d
@@ -886,17 +914,17 @@ theorem installDiscard_core (X : SrvDur) (s : SState) (d : DiscPend) (A' : LogAb
     (hd : X.s = s ∧ X.dp = some d ∧ X.pend = none)
     (hA : A'.m = ∅ ∧ A'.staged = X.A.staged ∧ A'.ci = X.A.ci) :
     Inv γ ∗ durCore γ rc i X ∗ srvVP rc s X.tp (some d) ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half c0 ∗
-      latLb rc d.x ⊢ |={E}=>
+      latLb rc d.x ∗ applLb rc d.x ⊢ |={E}=>
       ∃ (X' : SrvDur), durCore γ rc i X' ∗ srvVP rc X'.s X.tp none ∗
         monoNatAuthOwn rc.dur.comp (1 : Qp).half d.x ∗ durLb γ i d.x ∗
         ([∗list] k ↦ e ∈ X'.s.log, CIdx γ (k + 1) e) ∗
         ⌜X'.A = A' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend ∧ X'.dp = none ∧ X'.c = d.x ∧
           X'.lo = d.x + 1 ∧ X'.s.log.length = d.x ∧ lastTerm X'.s.log = d.st ∧ X'.s.dur.1 = d.x ∧
           X'.s.term = s.term ∧ X'.s.vterm = s.vterm ∧ X'.s.vcand = s.vcand ∧ X'.s.cidx = s.cidx⌝ := by
-  iintro ⟨#HI, Hc, Hv, Hcm, #Hll⟩
+  iintro ⟨#HI, Hc, Hv, Hcm, #Hll, #Happ⟩
   obtain ⟨hs, hdp, hpe⟩ := hd
   iunfold durCore at Hc
-  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla, Hbp⟩
   rw [hs, hdp] at Hp ⊢
   obtain ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, hpd, hll⟩, hcd, hq5a, hq5b⟩⟩ := Hp
   have hcx := hcd d rfl
@@ -916,9 +944,20 @@ theorem installDiscard_core (X : SrvDur) (s : SState) (d : DiscPend) (A' : LogAb
   unfold srvVP
   imod (ghostVar_update_halves ({ s with log := L', dur := dd }, X.tp, (none : Option DiscPend)) rc.dur.sv _ _)
     $$ Hsv Hv with ⟨Hsv, Hv⟩
+  ihave Hbp' : bootPinF rc X.lat X.pend none $$ [Hbp]
+  · unfold bootPinF
+    icases Hbp with (Hb | -)
+    · ileft; iexact Hb
+    · iright
+      obtain ⟨m, b, hlm, hmi, -⟩ := hq5b d rfl
+      rw [hlm]
+      unfold latApplF
+      iright
+      rw [hmi]
+      iexact Happ
   imodintro
   iexists ({ X with s := { s with log := L', dur := dd }, A := A', lo := d.x + 1, c := d.x, dp := none })
-  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hla]
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hla Hbp']
   · iunfold durCore
     dsimp only
     rw [hA.2.1]
@@ -1439,7 +1478,7 @@ theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
     ipureintro
     try simp only [and_true]
     refine ⟨logOk_store _ _ _ _ hlo, hlc, hvm, htd, ?_⟩
-    exact ⟨by rw [hstg]; exact hg, hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
+    exact ⟨by rw [hstg]; exact hg, q2_step _ _ _ _ _ _ _ _ (Nat.le_refl _) (fun x st _ h => prevMatch_append _ _ _ _ h) hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
   isplitl []
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
   ihave HΨ := Hk $$ Hpw Hv Hst Hidx
@@ -1508,7 +1547,7 @@ theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (
     ipureintro
     try simp only [and_true]
     refine ⟨logOk_store _ _ _ _ hlo, hlc, hvm, htd, ?_⟩
-    exact ⟨by rw [hstg]; exact hg, hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
+    exact ⟨by rw [hstg]; exact hg, q2_step _ _ _ _ _ _ _ _ (Nat.le_refl _) (fun x st _ h => prevMatch_append _ _ _ _ h) hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
   isplitl []
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
   ihave HΨ := Hk $$ Hpw Hv Hst Hcf Hidx
@@ -1603,7 +1642,7 @@ theorem storeLogs_fstore_win_k (s : SState) (prev pt : Nat) (ents : RLog) (lci j
       iframe
       ipureintro
       try simp only [and_true]
-      refine ⟨hlog, hlc, hvm, htd, ?_, hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
+      refine ⟨hlog, hlc, hvm, htd, ?_, q2_step _ _ _ _ _ _ _ _ (Nat.le_refl _) (fun x st _ h => prevMatch_append _ _ _ _ h) hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
       rw [hstg]; exact hg.1 rfl
     isplitl []
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
@@ -1631,7 +1670,7 @@ theorem storeLogs_fstore_win_k (s : SState) (prev pt : Nat) (ents : RLog) (lci j
       iframe
       ipureintro
       try simp only [and_true]
-      refine ⟨hlog, hlc, hvm, htd, ?_, hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
+      refine ⟨hlog, hlc, hvm, htd, ?_, q2_step _ _ _ _ _ _ _ _ (by omega) (fun x st _ h => prevMatch_append _ _ _ _ h) hci.2.1, hci.2.2.1, (by simp), (by simp)⟩
       rw [hstg]; have := hg.2 v rfl; omega
     isplitl []
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
@@ -1742,7 +1781,7 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
     iframe
     ipureintro
     try simp only [and_true]
-    refine ⟨?_, hlc, hvm, htd, ⟨hci.1, hci.2.1, hci.2.2.1, (by simp), (by simp)⟩⟩
+    refine ⟨?_, hlc, hvm, htd, ⟨hci.1, q2_step _ _ _ _ _ _ _ _ (Nat.le_refl _) (fun x st hx h => prevMatch_take _ _ _ _ (by omega) h) hci.2.1, hci.2.2.1, (by simp), (by simp)⟩⟩
     rw [show prev + 1 + j = (prev + j) + 1 by omega]
     exact logOk_delete _ _ _ _ _ _ hlo (Nat.le_refl _)
   isplitl []
@@ -2025,7 +2064,272 @@ theorem dead_fire {E : CoPset} (hE : ↑gprotN ⊆ E)
     (hst : pendStoreOk p s X A' D') :
     Inv γ ∗ srvDead γ rc i X ∗ winRes γ rc i s p ⊢ |={E}=> ∃ X' : SrvDur, deadCore γ rc i X' ∗
       ⌜X'.A.m = A'.m ∧ X'.A.ci = A'.ci ∧ X'.D = D' ∧ X'.lat = X.lat⌝ := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  unfold srvDead
+  iintro ⟨#HI, ⟨Hc, Hsv, Hst⟩, HW⟩
+  iunfold winRes at HW
+  icases HW with ⟨-, Hq, ⟨%D0, %g0, Hsq, %hwp⟩, Hh, %hpre⟩
+  unfold srvVPq stVq
+  icombine Hsv Hq gives %h1
+  icombine Hst Hsq gives %h2
+  have e1 := h1.2
+  have e2 := h2.2
+  simp only [Prod.mk.injEq] at e1 e2
+  obtain ⟨hs, htp, hdp⟩ := e1
+  obtain ⟨hD, hg⟩ := e2
+  iunfold deadCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, %Hp, Hlat, Htp, Hdp⟩
+  rw [hs, htp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci, hgrp⟩ := Hp
+  cases p with
+  | app es =>
+    simp only [pendDp] at hdp
+    rw [hdp] at hgrp ⊢
+    obtain ⟨hm, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    icases Hh with ⟨#Hl, Hr, Hops⟩
+    imod (gprot.leaderAppendCmd_upd γ _ hE i s es hpre) $$ [HI Ho Hlc Hl Hr Hops] with ⟨Ho, Hlc, -⟩
+    · iframe #; try iframe
+    imodintro
+    iexists ({ X with s := { s with log := s.log ++ es }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+    iunfold deadCore
+    dsimp only
+    try rw [hdp]
+    rw [hD']
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    refine ⟨⟨?_, hlc, hvm, htd, ?_, by simpa using And.intro (q2_step X.lo X.lat X.pend none s.log (s.log ++ es) s.dur.1 (s.dur.1) (Nat.le_refl _) (fun x st _ h => prevMatch_append _ _ _ _ h) hgrp.1) hgrp.2⟩, by simp, by simp, by simp, by simp⟩
+    · have := logOk_store X.A s.log es X.lo hlo
+      rw [hm]; exact this
+    · rw [hc, hg]; exact hwp
+  | cfg e k p' =>
+    simp only [pendDp] at hdp
+    rw [hdp] at hgrp ⊢
+    obtain ⟨hm, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    icases Hh with ⟨#Hl, Hcf, #Hci, Hr⟩
+    imod (gprot.leaderAppendCfg_upd γ _ hE i s e k p' hpre) $$ [HI Ho Hlc Hl Hcf Hci Hr] with ⟨Ho, Hlc, -, -⟩
+    · iframe #; try iframe
+    imodintro
+    iexists ({ X with s := { s with log := s.log ++ [e] }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+    iunfold deadCore
+    dsimp only
+    try rw [hdp]
+    rw [hD']
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    refine ⟨⟨?_, hlc, hvm, htd, ?_, by simpa using And.intro (q2_step X.lo X.lat X.pend none s.log (s.log ++ [e]) s.dur.1 (s.dur.1) (Nat.le_refl _) (fun x st _ h => prevMatch_append _ _ _ _ h) hgrp.1) hgrp.2⟩, by simp, by simp, by simp, by simp⟩
+    · have := logOk_store X.A s.log [e] X.lo hlo
+      rw [hm]; exact this
+    · rw [hc, hg]; exact hwp
+  | trunc prev pt ents lci j =>
+    simp only [pendDp] at hdp
+    rw [hdp] at hgrp ⊢
+    obtain ⟨hm, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    icases Hh with #Hae
+    imod (gprot.truncate_upd γ _ hE i s prev pt ents lci j hpre) $$ [HI Ho Hlc Hae] with ⟨Ho, Hlc, %hdur⟩
+    · iframe #; try iframe
+    imodintro
+    iexists ({ X with s := { s with log := s.log.take (prev + j) }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+    iunfold deadCore
+    dsimp only
+    try rw [hdp]
+    rw [hD']
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    refine ⟨⟨?_, hlc, hvm, htd, ?_, by simpa using And.intro (q2_step X.lo X.lat X.pend none s.log (s.log.take (prev + j)) s.dur.1 (s.dur.1) (Nat.le_refl _) (fun x st hx h => prevMatch_take _ _ _ _ (by omega) h) hgrp.1) hgrp.2⟩, by simp, by simp, by simp, by simp⟩
+    · have := logOk_delete X.A s.log X.lo (prev + j) s.log.length X.A.hi hlo (Nat.le_refl _)
+      rw [hm, show prev + 1 + j = prev + j + 1 by omega]; exact this
+    · rw [hc]; exact hci
+  | vote c li lt =>
+    simp only [pendDp] at hdp
+    rw [hdp] at hgrp ⊢
+    obtain ⟨hm, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    imod (gprot.srvOwn_facts γ _ hE i s) $$ [HI Ho] with ⟨Ho, -, %hf⟩
+    · iframe #; try iframe
+    imod (gprot.grantVote_upd γ _ hE i c s li lt hpre.1 hpre.2) $$ [HI Ho Hh] with ⟨Ho, -⟩
+    · iframe #; try iframe
+    have hT : uint.nat (W64 s.term) = s.term := by have := hf.2.2.2.2.2.1; word
+    imodintro
+    iexists ({ X with s := { s with vterm := s.term, vcand := c }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+    iunfold deadCore
+    dsimp only
+    try rw [hdp]
+    rw [hD']
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    refine ⟨⟨(logOk_m X.A _ _ _ hm).2 hlo, hlc, ?_, ?_, by rw [hc]; exact hci, by simpa using hgrp⟩, by simp, by simp, by simp, by simp⟩
+    · unfold voteMatches
+      rw [gprot.lookup_ins, if_pos rfl]
+      simp only [Option.getD_some]
+      refine ⟨hT, Or.inr (Or.inr ?_)⟩
+      rw [hD]; exact hwp
+    · unfold termDurOk at htd ⊢
+      rw [gprot.lookup_ins, if_neg (by decide)]
+      exact htd
+  | term tp =>
+    simp only [pendDp] at hdp
+    rw [hdp] at hgrp ⊢
+    obtain ⟨hm, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    cases tp with
+    | set t =>
+      iunfold tpRes at Hh
+      imod (gprot.setTerm_upd γ _ hE i s t hpre) $$ [HI Ho Htc Hh] with ⟨Ho, Htc, -⟩
+      · iframe #; try iframe
+      imod (gprot.srvOwn_facts γ _ hE i { s with term := t }) $$ [HI Ho] with ⟨Ho, -, %hf⟩
+      · iframe #; try iframe
+      have ht : uint.nat (W64 t) = t := by have := hf.2.2.2.2.2.1; simp only at this; word
+      imodintro
+      iexists ({ X with s := { s with term := t }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+      iunfold deadCore
+      dsimp only
+      try rw [hdp]
+      rw [hD']
+      simp only [tpRes, dpRes]
+      iframe
+      ipureintro
+      refine ⟨⟨(logOk_m X.A _ _ _ hm).2 hlo, hlc, ?_, ?_, by rw [hc]; exact hci, by simpa using hgrp⟩, by simp, by simp, by simp, by simp⟩
+      · unfold voteMatches at hvm ⊢
+        rw [gprot.lookup_ins, if_neg (by decide)]
+        obtain ⟨h1, h2⟩ := hvm
+        refine ⟨h1, ?_⟩
+        rcases h2 with h | h | h
+        · exact Or.inl h
+        · exact Or.inr (Or.inl (by simp only; simp only [pendPre] at hpre; omega))
+        · exact Or.inr (Or.inr h)
+      · unfold termDurOk
+        rw [gprot.lookup_ins, if_pos rfl]
+        simp only [Option.getD_some, termPendVal]
+        exact Or.inl ⟨trivial, ht⟩
+    | elect =>
+      iunfold tpRes at Hh
+      imod (gprot.electTerm_upd γ _ hE i s) $$ [HI Ho Htc Hh] with ⟨Ho, Htc, -, -, -, -, -⟩
+      · iframe #; try iframe
+      imod (gprot.srvOwn_facts γ _ hE i { s with term := s.term + 1 }) $$ [HI Ho] with ⟨Ho, -, %hf⟩
+      · iframe #; try iframe
+      have ht : uint.nat (W64 (s.term + 1)) = s.term + 1 := by have := hf.2.2.2.2.2.1; simp only at this; word
+      imodintro
+      iexists ({ X with s := { s with term := s.term + 1 }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+      iunfold deadCore
+      dsimp only
+      try rw [hdp]
+      rw [hD']
+      simp only [tpRes, dpRes]
+      iframe
+      ipureintro
+      refine ⟨⟨(logOk_m X.A _ _ _ hm).2 hlo, hlc, ?_, ?_, by rw [hc]; exact hci, by simpa using hgrp⟩, by simp, by simp, by simp, by simp⟩
+      · unfold voteMatches at hvm ⊢
+        rw [gprot.lookup_ins, if_neg (by decide)]
+        obtain ⟨h1, h2⟩ := hvm
+        refine ⟨h1, ?_⟩
+        rcases h2 with h | h | h
+        · exact Or.inl h
+        · exact Or.inr (Or.inl (by simp only; omega))
+        · exact Or.inr (Or.inr h)
+      · unfold termDurOk
+        rw [gprot.lookup_ins, if_pos rfl]
+        simp only [Option.getD_some, termPendVal]
+        exact Or.inl ⟨trivial, ht⟩
+  | fstore prev pt ents lci j lc =>
+    simp only [pendDp] at hdp
+    rw [hdp] at hgrp ⊢
+    obtain ⟨⟨k, hkj, hov, hm⟩, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    icases Hh with #Hae
+    obtain ⟨hpm, hmu, hcase, hlcv⟩ := hpre
+    have hlog := logOk_fstore X.A s.log ents X.lo prev j k hlo hkj hov hcase
+    have hlog' : logOk (LogAbs.mk A'.m X.A.hi X.A.staged A'.ci) (s.log ++ ents.drop j) X.lo :=
+      (logOk_m (X.A.store (prev + k + 1) (ents.drop k)) _ _ _ (by rw [hm]; rfl)).2 hlog
+    have hpmm : prevMatch (s.log ++ ents.drop j) prev pt ∧
+        matchedUpTo (s.log ++ ents.drop j) prev ents ents.length := by
+      rcases hcase with ⟨hjl, hlen⟩ | ⟨hj, hlen⟩
+      · exact crash_matched_store s.log prev pt ents j hpm hmu hlen (by omega)
+      · subst hj; rw [List.drop_length, List.append_nil]; exact ⟨hpm, hmu⟩
+    obtain ⟨hpm', hmu'⟩ := hpmm
+    ihave Hol : |={E}=> (srvOwn γ i { s with log := s.log ++ ents.drop j } ∗
+        logCouple γ i (s.log ++ ents.drop j)) $$ [Ho Hlc]
+    · rcases hcase with ⟨hjl, hlen⟩ | ⟨hj, hlen⟩
+      · iapply (gprot.followerStore_upd γ _ hE i s prev pt ents lci j ⟨hpm, hmu, hjl, hlen⟩)
+        iframe; iframe #
+      · subst hj
+        rw [List.drop_length, List.append_nil, show ({ s with log := s.log } : SState) = s from rfl]
+        imodintro; iframe
+    imod Hol with ⟨Ho, Hlc⟩
+    rcases lc with _ | v
+    · imodintro
+      iexists ({ X with s := { s with log := s.log ++ ents.drop j }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+      iunfold deadCore
+      dsimp only
+      try rw [hdp]
+      rw [hD']
+      simp only [tpRes, dpRes]
+      iframe
+      ipureintro
+      refine ⟨⟨hlog', hlc, hvm, htd, ?_, by simpa using And.intro (q2_step X.lo X.lat X.pend none s.log (s.log ++ ents.drop j) s.dur.1 (s.dur.1) (Nat.le_refl _) (fun x st _ h => prevMatch_append _ _ _ _ h) hgrp.1) hgrp.2⟩, by simp, by simp, by simp, by simp⟩
+      · rw [hc, hg]; exact hwp.1 rfl
+    · obtain ⟨hv1, hv2⟩ := hlcv v rfl
+      imod (gprot.learnCommitFollower γ _ hE i { s with log := s.log ++ ents.drop j } prev pt ents lci v
+        ⟨hpm', hmu', hv1, hv2⟩) $$ [HI Ho Hdv Hae] with ⟨%d, Ho, Hdv, -, %hd⟩
+      · iframe #; try iframe
+      dsimp only at hd
+      imodintro
+      iexists ({ X with s := { s with log := s.log ++ ents.drop j, dur := d }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', tp := none })
+      iunfold deadCore
+      dsimp only
+      try rw [hdp]
+      rw [hD']
+      simp only [tpRes, dpRes]
+      iframe
+      ipureintro
+      refine ⟨⟨hlog', hlc, hvm, htd, ?_, by simpa using And.intro (q2_step X.lo X.lat X.pend none s.log (s.log ++ ents.drop j) s.dur.1 (d.1) (by omega) (fun x st _ h => prevMatch_append _ _ _ _ h) hgrp.1) hgrp.2⟩, by simp, by simp, by simp, by simp⟩
+      · rw [hc, hg]; have := hwp.2 v rfl; omega
+  | discard d =>
+    simp only [pendDp] at hdp
+    obtain ⟨hm, hc, hD'⟩ := hst
+    iunfold pendHyps at Hh
+    icases Hh with ⟨#Hae, #Hl⟩
+    rw [hdp] at hgrp ⊢
+    obtain ⟨⟨hdl, hpd, hll⟩, hcd, hq5a, hq5b⟩ := hgrp
+    obtain ⟨m, b, hlat, hmi, hmt⟩ := hq5b d rfl
+    imod (gprot.srvOwn_durLb γ _ hE i s) $$ [HI Ho] with ⟨Ho, #Hdl0⟩
+    · iframe #; try iframe
+    imod (gprot.installDiscard_upd γ _ hE i s d.x d.st d.ℓ hpre.1 hpre.2.1 hpre.2.2) $$ [HI Ho Hlc Hdv Hae Hl]
+      with ⟨%L', %dd, Ho, Hlc, Hdv, #Hlbx, %hL, -⟩
+    · iframe #; try iframe
+    ihave %hmono := gprot.durView_lb γ i _ dd.1 s.dur.1 $$ [Hdv Hdl0]
+    · iframe #; try iframe
+    ihave Hnl : latestDur γ rc i X.lat none none $$ [Hlat]
+    · unfold latestDur
+      icases Hlat with ⟨Hlok, -⟩
+      iframe Hlok
+      dsimp only
+      iright; iexists m, b
+      isplitl []
+      · ipureintro; exact hlat
+      ileft; rw [hmi]; iframe Hlbx; ipureintro; rfl
+    imodintro
+    iexists ({ X with s := { s with log := L', dur := dd }, A := LogAbs.mk A'.m X.A.hi X.A.staged A'.ci, D := D', lo := d.x + 1, c := d.x, pend := none, dp := none, tp := none })
+    iunfold deadCore
+    dsimp only
+    rw [hD']
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    refine ⟨⟨?_, by omega, hvm, htd, by rw [hc]; exact Nat.le_trans hci hmono,
+      ⟨⟨fun d' h => (by cases h), fun x st id h => (by cases h), ?_⟩, fun d' h => (by cases h), by simp,
+        fun d' h => (by cases h)⟩⟩, by simp, by simp, by simp, by simp⟩
+    · unfold logOk
+      rw [hm]
+      constructor
+      · intro k e h; simp at h
+      · intro k h1 h2; omega
+    · rw [hlat]; simp only [latIdxD]; omega
 
 /-- (R2) No window survived: the dead state as is. -/
 theorem srvDead_deadCore (X : SrvDur) : srvDead γ rc i X ⊢ deadCore γ rc i X := by
@@ -2047,7 +2351,143 @@ theorem dead_vacant {E : CoPset} (hE : ↑gprotN ⊆ E)
       ∃ X' : SrvDur, srvVacant γ rc' i X' ∗
         ⌜X'.s.cidx = 0 ∧ X'.tp = none ∧ X'.A = A' ∧ X'.D = D' ∧ X'.lat = lat' ∧
           X'.s.log = X.s.log ∧ X'.s.dur = X.s.dur⌝ := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  obtain ⟨hAm, hAci, hstg, hD', hlat', hsnap⟩ := h
+  iintro ⟨#HI, Hc, HL, HS, HSS⟩
+  iunfold deadCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, %Hp, Hlat, Htp, Hdp⟩
+  obtain ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, hpd, hll⟩, hcd, hq5a, hq5b⟩⟩ := Hp
+  imod (gprot.srvOwn_durLb γ _ hE i X.s) $$ [HI Ho] with ⟨Ho, #Hdd⟩
+  · iframe #; try iframe
+  -- the pending term step
+  ihave Hs1 : |={E}=> ∃ s1 : SState, srvOwn γ i s1 ∗ termCouple γ i s1.term ∗
+      ⌜s1.log = X.s.log ∧ s1.dur = X.s.dur ∧ s1.cidx = X.s.cidx ∧ s1.vterm = X.s.vterm ∧
+        s1.vcand = X.s.vcand ∧ X.s.term ≤ s1.term ∧ termDurOk X.D s1 none ∧
+        (X.dp ≠ none → s1.term = X.s.term)⌝ $$ [Ho Htc Htp]
+  · rcases htpX : X.tp with _ | (t | _)
+    · try rw [htpX] at htd
+      imodintro
+      iexists X.s
+      iframe
+      ipureintro
+      exact ⟨rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, htd, fun _ => rfl⟩
+    · try rw [htpX] at htd
+      try rw [htpX] at hq5a
+      try rw [htpX]
+      unfold termDurOk at htd
+      rcases htd with ⟨h1, _⟩ | ⟨t', h1, h2, h3⟩ | ⟨h1, _⟩
+      · cases h1
+      · have ht : t = t' := TermPend.set.inj (Option.some.inj h1)
+        subst ht
+        iunfold tpRes at Htp
+        imod (gprot.setTerm_upd γ _ hE i X.s t h3) $$ [HI Ho Htc Htp] with ⟨Ho, Htc, -⟩
+        · iframe #; try iframe
+        imodintro
+        iexists { X.s with term := t }
+        iframe
+        ipureintro
+        refine ⟨rfl, rfl, rfl, rfl, rfl, h3, Or.inl ⟨rfl, h2⟩, fun hne => ?_⟩
+        rcases hq5a with h | h
+        · cases h
+        · exact absurd h hne
+      · cases h1
+    · try rw [htpX] at htd
+      try rw [htpX] at hq5a
+      try rw [htpX]
+      unfold termDurOk at htd
+      rcases htd with ⟨h1, _⟩ | ⟨t', h1, h2, h3⟩ | ⟨h1, h2⟩
+      · cases h1
+      · cases h1
+      · iunfold tpRes at Htp
+        imod (gprot.electTerm_upd γ _ hE i X.s) $$ [HI Ho Htc Htp] with ⟨Ho, Htc, -, -, -, -, -⟩
+        · iframe #; try iframe
+        imodintro
+        iexists { X.s with term := X.s.term + 1 }
+        iframe
+        ipureintro
+        refine ⟨rfl, rfl, rfl, rfl, rfl, by simp only; omega, Or.inl ⟨rfl, h2⟩, fun hne => ?_⟩
+        rcases hq5a with h | h
+        · cases h
+        · exact absurd h hne
+  imod Hs1 with ⟨%s1, Ho, Htc, %hs1⟩
+  obtain ⟨hl1, hd1, hc1, hv1, hvc1, hle1, htd1, hdp1⟩ := hs1
+  -- the commit index reset (the atomic is volatile)
+  rw [← hc1]
+  imod (gprot.setCidx_upd γ _ hE i s1 0 (Nat.zero_le _)) $$ [HI Ho Hcc] with ⟨Ho, Hcc⟩
+  · iframe #; try iframe
+  -- the snapshot store's part, without the dead generation's `lastApplied`
+  ihave Hlv : latestDurV γ rc' i lat' X.dp $$ [Hlat]
+  · unfold latestDur latestDurV
+    rw [hlat', latestOk_snapP γ rc rc' X.lat hsnap]
+    icases Hlat with ⟨Hlok, Hbr⟩
+    iframe Hlok
+    rcases hpX : X.pend with _ | ⟨x, st, id⟩
+    · try rw [hpX]
+      icases Hbr with (%hn | ⟨%m, %b, %hl, (⟨#Hdl, %hdn⟩ | ⟨#Hsf, %hdpd, -⟩)⟩)
+      · ileft; ipureintro; exact hn
+      · iright; iexists m, b; isplitl []; · ipureintro; exact hl
+        ileft; iframe Hdl; ipureintro; exact hdn
+      · iright; iexists m, b; isplitl []; · ipureintro; exact hl
+        iright; iframe Hsf; ipureintro; exact hdpd
+    · try rw [hpX]
+      icases Hbr with ⟨%m, %b, %a, %hl, #Hsf, -⟩
+      obtain ⟨hl1, hid, hx, hst, -⟩ := hl
+      iright; iexists m, b; isplitl []; · ipureintro; exact hl1
+      rcases hpd x st id hpX with ⟨ℓ, hℓ⟩ | ⟨hpm, hxd⟩
+      · iright
+        rw [hx, hst]
+        iframe Hsf
+        ipureintro
+        exact ⟨ℓ, by rw [hℓ]⟩
+      · rcases hdpX : X.dp with _ | d'
+        · ileft
+          rw [hx]
+          ihave #Hx := gprot.durLb_mono γ i _ x hxd $$ Hdd
+          iframe Hx
+          ipureintro; rfl
+        · obtain ⟨m', b', hl', hm1, hm2⟩ := hq5b d' hdpX
+          have hl2 := hl1.symm.trans hl'
+          simp only [Option.some.injEq, Prod.mk.injEq] at hl2
+          obtain ⟨rfl, rfl⟩ := hl2
+          iright
+          rw [hx, hst]
+          iframe Hsf
+          ipureintro
+          refine ⟨d'.ℓ, ?_⟩
+          rcases d' with ⟨dx, dst, dl⟩
+          simp only at hm1 hm2 ⊢
+          rw [← hm1, ← hm2, hx, hst]
+  ihave Hdp' : dpRes γ i { s1 with cidx := 0 } X.dp $$ [Hdp]
+  · rcases hdpX : X.dp with _ | d
+    · simp only [dpRes]; itrivial
+    · try rw [hdpX]
+      have ht1 : s1.term = X.s.term := hdp1 (by rw [hdpX]; simp)
+      unfold dpRes
+      dsimp only
+      rw [ht1, hl1]
+      iexact Hdp
+  ihave Htp' : tpRes γ (none : Option TermPend) $$ []
+  · simp only [tpRes]; itrivial
+  imodintro
+  iexists ({ X with s := { s1 with cidx := 0 }, A := A', D := D', lat := lat', pend := none, tp := none })
+  unfold srvVacant
+  dsimp only
+  rw [hd1, hl1]
+  iframe
+  ipureintro
+  refine ⟨⟨(logOk_m X.A A' _ _ hAm).2 hlo, hlc, ?_, ?_, by rw [hAci]; exact hci,
+    hstg, rfl, ⟨⟨hdl, fun x st id h => (by cases h), by rw [hlat']; exact hll⟩, hcd,
+      Or.inl rfl, by rw [hlat']; exact hq5b⟩⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  · rw [hD']
+    unfold voteMatches at hvm ⊢
+    obtain ⟨h1, h2⟩ := hvm
+    refine ⟨by rw [hv1]; exact h1, ?_⟩
+    rcases h2 with h | h | h
+    · exact Or.inl (by rw [hv1]; exact h)
+    · exact Or.inr (Or.inl (by simp only; rw [hv1]; omega))
+    · exact Or.inr (Or.inr (by rw [hvc1]; exact h))
+  · rw [hD']
+    unfold termDurOk at htd1 ⊢
+    exact htd1
 
 end dead
 
