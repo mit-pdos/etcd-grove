@@ -2294,7 +2294,7 @@ theorem NewServer.wp_proofRG
     · iExactEq HsnapB; rfl
     -- the apply thread's resources at the image's log `A` (`applyBuiltR .off`, P3's table)
     iunfold applyBuiltR
-    have hci : ciEff γA γA.m0.1 = i := by unfold ciEff; split <;> simp_all [Hm0.2]
+    have hci : ciEff γA γA.m0.1 = i := by unfold ciEff; split <;> exact Hm0.2.1
     iexists ⟨γA.m0.1, γA.m0.1, W64 0, false⟩, W64 0, W64 0, false, i, srvAuthSt0
     -- (keepfix (c)) the apply thread's mirror, `bootOkR`'s seed
     ihave Hrt' : iprop(∃ rt : w64, ciRaftTerm (GF := GF) γA.ci rt) $$ [Hrt]
@@ -2304,9 +2304,9 @@ theorem NewServer.wp_proofRG
     · ipureintro
       have hlt := List.length_take_le σ.b A
       unfold loopOk
-      refine ⟨⟨rfl, ?_⟩, hci.symm, ?_⟩
+      refine ⟨⟨rfl, ?_, stLoaded_self_of_k0 _ _ (fun h => h)⟩, hci.symm, ?_⟩
       · dsimp only
-        rw [hci, Hm0.2]
+        rw [hci, Hm0.2.1]
         word
       · exact Hiz
     isplitl [Hown]
