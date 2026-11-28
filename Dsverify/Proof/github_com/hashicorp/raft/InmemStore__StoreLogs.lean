@@ -203,6 +203,7 @@ theorem github_com.hashicorp.raft.InmemStore.StoreLogs.wp_proof :
   subst hkn
   iapply wp_ncfupd _ _ rfl
   iintro Hnc
+  imod (fupd_mask_subseteq (PROP := IProp GF) (E1 := ⊤) (E2 := ⊤ \ ↑storeN) (by solve_ndisj)) with Hmask
   imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc2 HAU with ⟨%L, HL, Hclose⟩
   ihave %HLeq := inmemLogs_agree γs _ L c.L $$ HL Hgl
@@ -213,6 +214,7 @@ theorem github_com.hashicorp.raft.InmemStore.StoreLogs.wp_proof :
   imod inmemLogs_update γs c.L c.L (c.L.store first es) $$ HL Hgl with ⟨HL, Hgl⟩
   imod conc_update γs c { c with L := c.L.store first es, lo := low, lm := lm } $$ Hgc with Hgc
   imod Hclose $$ HL with HΦ
+  imod Hmask with -
   imodintro
   iframe Hnc
   ihave #Hpers' : (concPers (GF := GF) { c with L := c.L.store first es, lo := low, lm := lm }) $$ [Hpers]

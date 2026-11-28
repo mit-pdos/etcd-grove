@@ -31,8 +31,8 @@ abbrev github_com.hashicorp.raft.InmemStore.SetUint64.spec : Prop :=
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
       key ↦*□ kb) -∗
-    (|NC={⊤,∅}=> ▷ ∃ st, kvView γs st ∗
-      (kvView γs { st with ints := st.ints.insert kb v } ={∅,⊤}=∗ Φ #interface.nil)) -∗
+    (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ st, kvView γs st ∗
+      (kvView γs { st with ints := st.ints.insert kb v } ={∅,⊤ \ ↑storeN}=∗ Φ #interface.nil)) -∗
     WP (App (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"SetUint64")) (Val #key))
       (Val #v)) {{ Φ }}
 

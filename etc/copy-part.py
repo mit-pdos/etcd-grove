@@ -3,7 +3,7 @@
 
 usage: etc/copy-part.py [--part NAME]... [--check] [--list]
 
-  --part    only this part (RaftNoAx or KvRaft; repeatable; default: both).
+  --part    only this part (RaftNoAx, KvRaft or Dsverify; repeatable; default: all).
   --check   write nothing; exit 1 if a copy differs from what is checked in (or is missing, or a
             copy is stale), listing the files.
   --list    print the modules of the closure that the part has (copied or generated), with why
@@ -217,7 +217,10 @@ class Part:
         return out
 
     def owned(self):
-        return [o for _, os_ in self.pieces() for o in os_]
+        out = [o for _, os_ in self.pieces() for o in os_]
+        # (Dsverify) only the packages the copy is for: the part translates many more, its own
+        only = getattr(self, "only_owned", None)
+        return out if only is None else [o for o in out if o in only]
 
     def piece_source(self, owned):
         """The source tree whose goose piece translates the same package as the part's piece owning
@@ -304,11 +307,31 @@ def kvraft_gen_init_paths():
     return sorted(gen_init().kvraft_paths())
 
 
+# (hraft_robust R3, 2026-11-28) `Dsverify/`'s copy of the bodied `durable`'s proofs (the hraft kit's disk,
+# `examples/hraftnet/disk`, writes its files through it): its roots are durable's `Link`, `Crash` and `Boot`
+# (the disk's specs and crash lemma use them), read with the part's own files first; its source is
+# `WalTester/` (the bodied `durable` over fsExt) and the main tree. Only the closure that reaches the part's
+# `durable` translation is copied (the rest of `Dsverify/` is its own).
+DSV_DURABLE = "Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable"
+
+
+def dsverify_roots(part):
+    return [f"{DSV_DURABLE}.{x}" for x in ("Link", "Crash", "Boot")]
+
+
+def dsverify_gen_init_paths():
+    return [f"Proof/{DSV_DURABLE[len('Proof.'):].replace('.', '/')}/Init.lean"]
+
+
 PARTS = {
     "RaftNoAx": Part("RaftNoAx", [""], raftnoax_roots, False, {}, raftnoax_gen_init_paths),
+    "Dsverify": Part("Dsverify", ["WalTester", ""], dsverify_roots, True, {}, dsverify_gen_init_paths),
     "KvRaft": Part("KvRaft", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, {},
                   kvraft_gen_init_paths),
 }
+
+
+PARTS["Dsverify"].only_owned = {os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")}
 
 
 def closure(part):

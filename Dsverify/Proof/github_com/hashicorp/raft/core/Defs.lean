@@ -106,6 +106,9 @@ structure DurNames where
   comp : GName
   pend : GName
   tok : GName
+  /-- (hraft_robust, R2 req. 2) `ghostVar (Option Pend)`: the main goroutine's pending write (`none`
+  between writes; `some p` from a write's start to its commit, ½ lent in its window `winRes`). -/
+  pw : GName
 
 /-- One server's context: its ghost names and the client predicates fixed at `NewRaft`. -/
 structure RCtx [GooseExts] (GF : BundledGFunctors) where
@@ -1022,6 +1025,24 @@ inductive Pend where
   | vote (c : SID) (li lt : Nat)
   | term (tp : TermPend)
 
+/-- (hraft_robust, R2 req. 2) `Pend` is countable (the main goroutine's pending-write record `pw`). -/
+def Pend.code : Pend → Nat × Pos
+  | .app es => (0, Pos.Countable.encode es)
+  | .cfg e k p => (1, Pos.Countable.encode (e, k, p))
+  | .trunc prev pt ents lci j => (2, Pos.Countable.encode (prev, pt, ents, lci, j))
+  | .fstore prev pt ents lci j lc => (3, Pos.Countable.encode (prev, pt, ents, lci, j, lc))
+  | .discard d => (4, Pos.Countable.encode d)
+  | .vote c li lt => (5, Pos.Countable.encode (c, li, lt))
+  | .term tp => (6, Pos.Countable.encode tp)
+
+instance pend_countable : Pos.Countable Pend :=
+  Pos.Countable.ofInjective (fun p => Pos.Countable.encode p.code)
+    (by
+      intro a b h
+      have h := Pos.encode_inj h
+      cases a <;> cases b <;> (try simp only [Pend.code, Prod.mk.injEq] at h) <;> (try omega) <;>
+        (obtain ⟨-, h⟩ := h; have h := Pos.encode_inj h; simp_all))
+
 /-- (hraft_robust L0) The pure premises of the pending step `p`'s law, over the protocol state `s`. -/
 def pendPre (γ : GNames) (i : SID) (s : SState) : Pend → Prop
   | .app es => ∀ e ∈ es, e.term = s.term ∧ (e.kind = kCommand ∨ e.kind = kNoop ∨ e.kind = kBarrier)
@@ -1076,7 +1097,7 @@ goroutine's view of `s` (lent to the store, so `s` is frozen in the window: only
 changes it), and the law's premises over `s`. The write's caller lends it (the contracts' `W`); the
 write's atomic update gives it back, and the store's crash lemma, if the new contents survived. -/
 def winRes (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (p : Pend) : IProp GF :=
-  iprop(srvVq rc s ∗ (∃ (D : StableAbs) (g : w64), stVq rc D g ∗ ⌜winPure s D g p⌝) ∗
+  iprop(ghostVar rc.dur.pw (1 : Qp).half (some p) ∗ srvVq rc s ∗ (∃ (D : StableAbs) (g : w64), stVq rc D g ∗ ⌜winPure s D g p⌝) ∗
     pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
 
 /-- (stage 3) **The FSM goroutine's answer to a snapshot request** `f` (`fsmSnapshotCh`): nil with the
@@ -1526,7 +1547,7 @@ the main goroutine's thread token (passed separately), the leader state (`leader
 def mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32) : IProp GF :=
   iprop(∃ (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (cidx li : w64)
       (lch : Loc) (γl : ChanNames) (bs : List Bool) (c : Nat),
-    srvV rc s ∗ ⌜True⌝ ∗
+    srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
     (∃ g : w64, stVS rc sst g ∗ ⌜uint.nat g ≤ s.dur.1⌝) ∗ ⌜voteMatches sst s⌝ ∗
     ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
     ghostVar rc.names.state (1 : Qp).half st ∗
@@ -1555,7 +1576,7 @@ channel, `appendConfigurationEntry` takes it (its new entry's parent is then the
 def mainOwnAtSt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) : IProp GF :=
   iprop(∃ (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (li : w64)
       (lch : Loc) (γl : ChanNames) (bs : List Bool) (c : Nat),
-    srvV rc s ∗ ⌜True⌝ ∗
+    srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
     (∃ g : w64, stVS rc sst g ∗ ⌜uint.nat g ≤ s.dur.1⌝) ∗ ⌜voteMatches sst s⌝ ∗
     ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
     ghostVar rc.names.state (1 : Qp).half stLeader ∗

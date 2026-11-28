@@ -41,9 +41,15 @@ GOOSE = dict(
 # net/rpc's and net/http's initializers are `Net/`'s (external; their `wp_initialize'` and first-run
 # `wp_init_first` Net's interim axioms, `etc/gen-init.py`'s `NET_AXIOM_INITS`), as craq's
 HRAFT = 'github_com.hashicorp.raft'
+# (hraft_robust R3) `examples/lib/durable`, translated with its bodies into the part (the kit's own
+# translation of a package the main tree keeps trusted): its configuration is WalTester's
+_DURABLE = 'github_com.mit_pdos.etcd_grove.examples.lib.durable'
+OWN = {_DURABLE}
 HRAFT_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s in range(1, 7)]
 PKGS = [HRAFT, f'{HRAFT}.examples.snapstore', f'{HRAFT}.examples.hraftnet.rpctransport',
-        f'{HRAFT}.examples.hraftnet.service', f'{HRAFT}.examples.hraftnet'] + \
+        f'{HRAFT}.examples.hraftnet.service', f'{HRAFT}.examples.hraftnet',
+        # hraft_robust (R3): the durable stores
+        f'{HRAFT}.examples.hraftnet.disk', _DURABLE] + \
     [f'{HRAFT}.examples.hraftnet.cmd.{n}' for n in HRAFT_NODES]
 # the twelve commands' package tables (the deployment's boots)
 PROGRAMS = {f'{HRAFT}.examples.hraftnet.cmd.{n}':
@@ -51,7 +57,9 @@ PROGRAMS = {f'{HRAFT}.examples.hraftnet.cmd.{n}':
             for n in HRAFT_NODES}
 HYP_INITS = []
 # the main tree's packages net/http's closure needs, added to `NET_MAIN` (as craq's)
-MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
+MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls',
+        # (hraft_robust R3) the bodied durable's imports that os does not import
+        'internal.filepathlite', 'path.filepath']
 MAIN_GEN = ['bufio']
 
 # raft's `errors.New` package variables, with their messages (api.go, kept.go, replication.go,
@@ -76,6 +84,9 @@ RAFT_ERRS = dict(
     errShortBuffer="encoding: short buffer",
 )
 SNAP_ERRS = dict(ErrNoSnapshot="snapstore: no such snapshot", ErrClosed="snapstore: sink closed")
+# the disk's (codec.go, disk.go, snap.go)
+DISK_ERRS = dict(ErrCorrupt="disk: corrupt file", ErrNotFound="not found", ErrMissing="disk: missing file",
+                 ErrNoSnapshot="disk: no such snapshot", ErrClosed="disk: sink closed")
 
 
 # raft's three stable-store keys (raft.go), with the bytes they hold
@@ -183,6 +194,12 @@ allocates its variables, initializes its imports and runs their translated initi
     fin = SPECIAL[f'{HRAFT}.examples.snapstore']['finish']
     i = fin.index('unfold _root_.Perennial.errors.newVar')
     fin[i:i] = ['unfold isInit']
+    # (hraft_robust R3) the disk's fact: its error variables' `errors.newVar`s
+    SPECIAL[f'{HRAFT}.examples.hraftnet.disk'] = errs_cfg(list(DISK_ERRS), {})
+    fin = SPECIAL[f'{HRAFT}.examples.hraftnet.disk']['finish']
+    i = fin.index('unfold _root_.Perennial.errors.newVar')
+    fin[i:i] = ['unfold isInit']
+    SPECIAL[_DURABLE] = g.WT_SPECIAL[_DURABLE]
     return SPECIAL
 
 

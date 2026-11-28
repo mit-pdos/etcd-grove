@@ -28,8 +28,8 @@ variable [package_sem : github_com.hashicorp.raft.examples.snapstore.Assumptions
 abbrev github_com.hashicorp.raft.examples.snapstore.Store.List.spec : Prop :=
   ∀ (st : Loc) (γ : GName) (eof : GoInterface) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.snapstore ∗ isStore st γ eof ∗
-      (|NC={⊤,∅}=> ▷ ∃ old, ownLatest γ old ∗
-        (ownLatest γ old ={∅,⊤}=∗ ∀ (sl : GoSlice) (ps : List Loc),
+      (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ old, ownLatest γ old ∗
+        (ownLatest γ old ={∅,⊤ \ ↑storeN}=∗ ∀ (sl : GoSlice) (ps : List Loc),
           sl ↦* ps -∗
           (match old with
             | none => iprop(⌜ps = []⌝)

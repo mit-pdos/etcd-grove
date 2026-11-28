@@ -46,11 +46,13 @@ theorem github_com.hashicorp.raft.InmemStore.GetLog.wp_proof :
   -- the linearization point: the contents are `c.L` while the read lock is held
   iapply wp_ncfupd _ _ rfl
   iintro Hnc
+  imod (fupd_mask_subseteq (PROP := IProp GF) (E1 := ⊤) (E2 := ⊤ \ ↑storeN) (by solve_ndisj)) with Hmask
   imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc3 HAU with ⟨%L, HL, Hclose⟩
   ihave %HLeq := inmemLogs_agree γs _ L c.L $$ HL Hgl
   subst HLeq
   imod Hclose $$ HL with HΦ
+  imod Hmask with -
   imodintro
   iframe Hnc
   wp_auto
