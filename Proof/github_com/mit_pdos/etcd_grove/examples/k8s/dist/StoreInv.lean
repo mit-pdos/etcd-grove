@@ -561,6 +561,51 @@ def revOwnD (γ : KNames) (σ : KVState) : IProp GF :=
 instance revOwnD_timeless (γ : KNames) (σ : KVState) : Timeless (revOwnD (GF := GF) γ σ) := by
   unfold revOwnD; infer_instance
 
+/-- `KHistID` over foreign revisions: their changes are not under `/registry/`. -/
+theorem khistID_foreign (γ : KNames) {σl σ : KVState} {m : List (List mvcc.Change)} (h : KHistID γ σl)
+    (hc : σ.compacted = σl.compacted) (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m)
+    (hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) : KHistID γ σ := by
+  obtain ⟨h0, hb0, ho, h1⟩ := h
+  refine ⟨hc ▸ h0, hb ▸ hb0, fun cs hcs => ?_, ?_⟩
+  · rw [hm] at hcs
+    rcases List.mem_append.1 hcs with h' | h'
+    · exact ho cs h'
+    · rw [List.filter_eq_nil_iff.2 (fun ch hch => by simpa using hf cs h' ch hch)]; simp
+  · unfold KVState.rev at h1 ⊢; rw [hc, hm, List.length_append]; omega
+
+/-- **The revisions' map catches up over foreign revisions** (at least one: the new current state
+gets its own entry). -/
+theorem revOwnD_catchup (γ : KNames) {σl σ : KVState} {m : List (List mvcc.Change)}
+    (hc : σ.compacted = σl.compacted) (hb : σ.base = σl.base) (hm : σ.changes = σl.changes ++ m)
+    (hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) (hne : m ≠ []) :
+    revOwnD (GF := GF) γ σl ⊢ |==> revOwnD γ σ := by
+  have hlt : σl.rev < σ.rev := by
+    unfold KVState.rev; rw [hc, hm, List.length_append]
+    have := List.length_pos_iff.2 hne; omega
+  have hext : k8s.KvExt σl σ := ⟨hc.symm, hb.symm, ⟨m, hm.symm⟩⟩
+  iintro H
+  iunfold revOwnD at H
+  icases H with ⟨%Mr, HA, -, %Hok, Hch, %Hkh⟩
+  have hfresh : Mr !! σ.rev = none := Hok.2.1 _ hlt
+  imod ghost_map_insert_persist σ.rev σ hfresh $$ HA with ⟨HA, #He⟩
+  ihave Hch := monoListAuthOwn_update σ.changes hext.2.2 $$ Hch
+  imod Hch with ⟨Hch, -⟩
+  imodintro
+  iunfold revOwnD
+  iexists _
+  iframe He HA Hch
+  ipureintro
+  refine ⟨⟨GMap.lookup_insert _ _ _, fun n hn => ?_, fun n s hs => ?_⟩,
+    khistID_foreign γ Hkh hc hb hm hf⟩
+  · rw [GMap.lookup_insert_ne _ _ (by omega)]
+    exact Hok.2.1 n (by omega)
+  · by_cases e : σ.rev = n
+    · subst e
+      rw [GMap.lookup_insert] at hs
+      cases hs; exact ⟨rfl, rfl, List.prefix_refl _⟩
+    · rw [GMap.lookup_insert_ne _ _ e] at hs
+      have h1 := Hok.2.2 n s hs; exact ⟨h1.1.trans hext.1, h1.2.1.trans hext.2.1, h1.2.2.trans hext.2.2⟩
+
 /-- **The store's half of the invariant at the last state `σl` it saw** (`kInvBody` without etcd's client
 half): the lintest ghost history `h` over `pMF`, the pending writes, the revisions' states, the store's
 history, and the relation; `σl` extends the share's start `σ₀`. -/
