@@ -8605,3 +8605,81 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Evidence.** `~/coordinator-notes/plans/keepfix-c-design.md` (rev 2 and its step-1 notes).
 - **Proposed change.** Quantify `cl` and pass it through (at the server, `γr.raft.raft.cl`); no other change.
 - **Decision.** Mechanical consequence of the approved rows.
+
+## 2026-11-28: the apply chain carries the raft term's mirror (keepfix (c) step 1, G3/G4)
+
+- **Spec.** `EtcdServer.applyAll.specBatch`, `.specSnapM`; `EtcdServer.applyEntries.specBatchAt`;
+  `EtcdServer.apply.specAt`; `EtcdServer.applyEntryNormal.spec` (and `ModeSpecs.lean`'s `specOff`/`specOn`);
+  `EtcdServer.snapshot.spec`; `EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch`;
+  `EtcdServer.applySnapshot.specSnapM` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`).
+- **Defect.** After the approved step-1 rows the cindex operations these functions call (`ConsistentIndex`,
+  `SetConsistentIndex`, `SetBackend`, the new `SetRaftTerm`) take and give back the apply thread's mirror
+  `ciRaftTerm γ.ci rt`, and the post-lock hook (`hookSpec`, row A) and every stored pair (`srvCITriple0 cl k t rt`)
+  need `rt ≠ 0`; the specs carry no mirror. The fork's `applyAll` (b1512efdd, `server.go:991-993`) now calls
+  `s.consistIndex.SetRaftTerm(apply.raftTerm)` when the batch has entries or a non-empty snapshot.
+- **Evidence.** `~/coordinator-notes/plans/keepfix-c-callers.md` ("Named sub-goals" 2, G3, G4).
+- **Proposed change.** Each spec takes the mirror and gives it back. `apply`, `applyEntryNormal` and
+  `applySnapshot.specSnapM` (whose reload stores the snapshot's pair) also take `rt ≠ 0` (they run only inside a
+  batch after `SetRaftTerm`); `applyEntries` takes `unapplied ai ms = [] ∨ rt ≠ 0`. `applyAll` takes the mirror at
+  `rtm` and returns it at Go's value after the call (`specBatch`: `rtm` for an empty batch, `rtMax rtm rt` else;
+  `specSnapM`: `rtMax rtm rt`), with the premise `unapplied ai ms = [] ∨ rtMax rtm rt ≠ 0` (`specBatch`) or
+  `rtMax rtm rt ≠ 0` (`specSnapM`): sub-goal 2, which `run` discharges (from raft's `hsCommitted` bound and
+  `nodeDriver_hardStateTerm` on a first start, the seeded mirror on a restart). `applyAll.specSnapM` and
+  `applySnapshot.specSnapM`'s inline meta-read premise moves to `metaTMR cl π` with `metaRaftTermOf D = π.rk0`
+  (the approved `srvMetaSnap cl γ`'s text, S2), at `cl := γr.raft.raft.cl`. All stronger premises only by what
+  the approved rows force; posts stronger (one more resource). `applySnapshot.specSnapM` also takes
+  `□ srvCIPair γr.raft.raft.cl sv.Metadata'.Index' tI` (the image's stored pair committed; its caller
+  `applyAll.specSnapM` has it from the image certificate's term row, `srvImage`/`srvImageOn`, at `metaIs D (i, tI)`),
+  for the reload's `ConsistentIndex()` (kaashoek's SnapApplyWalk item, #50). The applier's indexer contract
+  `srvCiC` (InvApplier.lean, untrusted def under trusted `srvFieldsAt`, ghost-only) gains the mirror in its
+  resource `C` (lead-approved 2026-11-28).
+- **Decision.** Mechanical consequence of the approved rows; the rt ≠ 0 premise is sub-goal 2 of the callers plan
+  (etcd_safe lead, 2026-11-28).
+## 2026-11-28: `bootstrap`'s first start builds its hooks over `metaTMR γ.cl` (keepfix (c) step 1, helper A)
+
+- **Spec.** `bootstrapBackend.spec` (and `bootBackendRows`, `bootBackendNew`, `bootBackendData`, `BootParts.lean`),
+  `bootstrapBackend.metaSnap.law`, `bootstrap.spec`; the hook lemmas `hooksOk_server_fut`, `backend_server_hooks_of`
+  (`BuildLemmas.lean`) and `snap_create`/`boot_create`/`snapOpenK` (`SnapApplyOpen.lean`); new pending law
+  `srvTermPos_of_cluster.law` (`BuildLemmas.lean`) and `NewServer.wp_proof*`'s hypothesis `hTermPos`.
+- **Defect.** `bootOk` (approved) puts the boot backend's batch lock at `metaTMR γ.cl γA.ph`, its `isCI` at
+  `srvCITriple0 γ.cl` and the mirror `ciRaftTerm γA.ci 0`; the hooks `bootstrapBackend` builds keep `metaTMR` across
+  a save only given `srvTermPos γ.cl` (a save of term 0 keeps the stored term), which nothing in `bootstrap.spec`'s
+  precondition gives (no `isCluster`, and `SrvRaft` does not tie `cl.bootLen` to `boot`).
+- **Evidence.** `CindexBackend.lean`'s `metaTMR_after_save` (its `srvTermPos` premise); `bootstrap.spec`'s text.
+- **Proposed change.** `bootstrapBackend.spec` takes `cl` (in place of the pair predicate `CP`) and `srvTermPos cl`
+  in its precondition; its rows at `srvCITriple0 cl`, `metaTMR cl`, `"Hrt" ∷ ciRaftTerm γA.ci 0`, the data's
+  `metaRaftTermOf D = γA.rk0`. `bootstrap.spec` (and the axioms' statements `bootstrap.specDist`, `bootstrap.specOne`,
+  and the contracts `bootstrapContract`, `bootstrapLeftContract` stated as it) gain `srvTermPos γ.cl` in the
+  precondition: a weakening of the axioms. Its caller, `NewServer`, derives it from `srvRaftLogInv` (`srvClusterOk`'s
+  `isCluster` and `bootLen = boot.length`, the boot log non-empty) by `srvTermPos_of_cluster.law`, pending until the
+  bootlaw merge brings raft's `isCommittedLogLb_term_pos` (then proved, and the hypothesis goes).
+- **Decision.** Approved by the lead (relayed coordinator decision, 2026-11-28): the axioms' weakening is approved;
+  the reviewer checks the text.
+
+## 2026-11-28: `srvStopChans` at `metaTMR` (keepfix (c) step 1 fix, helper A)
+
+- **Spec.** `srvStopChans` (`SnapRO.lean`), `srvSnapRes`, `srvSnapBoot`, `srvSnapApplied`, `srvSnapAppliedG` (through
+  `srvStopChans`); `srvStopChans_boot`.
+- **Defect.** `srvStopChans` stated the server backend's `isBackend` at the old lock resource `metaTM`, while the
+  approved `srvBeHooked` (same post, `NewServer_dist`'s through `srvBuiltG`'s `srvSnapBoot`) states it at
+  `metaTMR cl γ.ph`: the post asserted one backend's `isBackend` at two lock resources (probably inconsistent), and
+  `bootOk`'s `Hnew` gives only the `metaTMR` one.
+- **Evidence.** `SnapRO.lean:580` (before), `InvApplier.lean`'s `srvBeHooked`, `InvBoot.lean`'s `Hnew`.
+- **Proposed change.** `srvStopChans cl γA d` at `batchLockInv γA (metaTMR cl γA.ph d.γB d.P)`; `srvSnapRes s E γA cl`;
+  `srvSnapBoot` passes `γr.raft.raft.cl`; `srvSnapApplied`/`srvSnapAppliedG` use `γr.raft.raft.cl` (their `γr`).
+- **Decision.** Approved by the coordinator (2026-11-28, via the lead); reviewer to confirm the fixed post is
+  consistent.
+
+## 2026-11-28: the restart images carry the stored pair's row (keepfix (c) step 1 (b), helper A)
+
+- **Spec.** `srvDiskImageAt` (InvRestart), `srvCrashImageAt` (InvCrashImage), `bootstrapAtR` (NewServerRAt), dist's
+  `memberImageRows` (MemberCrash, B1's output).
+- **Defect.** keepfix-d's restart contracts take `(⌜i = 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D))`, but nothing the
+  restart (`NewServer.specR`/`specRAt`/`specC`) holds supplies it: the images had no term row.
+- **Evidence.** InvRestart.lean:770 and InvCrashImage.lean:186 (the contracts' premise); the images' texts.
+- **Proposed change.** Both images gain the row `(⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D))`. The graceful
+  image's producers are the stop paths, from the stopped backend's `metaTMR` (S5's row). The crash image's producer
+  is dist's `crashImage_of`, from `memberImageRows`, which T10 supplies from `bkImg`'s `bkTermRow` and the committed
+  prefix (`srvRLogLb_ciPair`). `bootstrapAtR` takes the premise and the restart proofs pass the image's row.
+- **Decision.** Approved by the lead (relayed, 2026-11-28; (b) and the crash image's row, weakenings of
+  `NewServer.specC`/`NewServerC_dist`); the reviewer checks the texts.

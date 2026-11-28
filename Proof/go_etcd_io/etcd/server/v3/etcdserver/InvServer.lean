@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CIPair
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetRaftTerm
 
 @[expose] public section
 
@@ -309,6 +310,34 @@ theorem wp_ci_advance (hS : consistentIndex.SetConsistentIndex.spec (GF := GF) (
   iapply ci_advance_au γ st i hp hle hlt _ $$ Hinv Hst
   iintro Hst
   iapply HΦ $$ Hst
+
+/-- (keepfix (c) step 1) The raised raft term is not 0 when either side is not. -/
+theorem rtMax_ne0 {rt r : w64} (h : rt ≠ W64 0 ∨ r ≠ W64 0) : rtMax rt r ≠ W64 0 := by
+  unfold rtMax
+  split <;> rename_i hl <;> intro h0 <;> subst h0 <;> rcases h with h | h <;>
+    first | exact h rfl | (apply h; word) | (exfalso; word)
+
+/-- (keepfix (c) step 1) `applyAll`'s `s.consistIndex.SetRaftTerm(r)` (`server.go:991-993`), at the server's
+triple predicate: the mirror goes to `rtMax rt r`; the predicate survives, since its raft term only has to be
+non-zero. -/
+theorem wp_ci_setRaftTerm (hR : consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG))
+    (cl : Cluster) (γ : ApplyNames) (ci : Loc) (rt r : w64) :
+    ⊢ ∀ Φ : val → IProp GF,
+      (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      isCI ci γ.ci (srvCITriple0 cl) ∗ ciRaftTerm γ.ci rt) -∗
+      ▷ (ciRaftTerm γ.ci (rtMax rt r) -∗ Φ #()) -∗
+      WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetRaftTerm"))
+        (Val #r)) {{ Φ }} := by
+  iintro %Φ ⟨#Hpkg, #Hci, Hrt⟩ HΦ
+  iapply (hR ci γ.ci (srvCITriple0 cl) rt r) $$ [Hrt] HΦ
+  iframe Hpkg Hci Hrt
+  imodintro
+  iintro %k %t #Hp
+  iunfold srvCITriple0 at Hp
+  icases Hp with ⟨#Hp, %Hne⟩
+  iunfold srvCITriple0
+  iframe Hp
+  ipureintro; exact rtMax_ne0 (Or.inl Hne)
 
 end derived
 

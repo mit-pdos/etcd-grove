@@ -241,10 +241,10 @@ theorem snapObsA (cl : Cluster) (γA : ApplyNames) (γ : backend.BNames) (P : ba
     · ipureintro; left; exact h0
     icases Hrow with (%h0 | #Hrow)
     · ipureintro; left; exact h0
-    ihave %He := srvCIPair_agree cl _ _ _ $$ [$Hrow $Hpk]
+    ihave %He := srvCIPair_agree cl (ciEff γA s.k) t tk $$ [$Hrow $Hpk]
     ipureintro; right; exact He
   ipureintro
-  refine ⟨⟨Hob.1, Hterm.imp_right (fun h => h ▸ ht)⟩, Hob.2⟩
+  refine ⟨⟨Hob.1, Hterm.imp_right (fun (h : t = tk) => h ▸ ht)⟩, Hob.2⟩
 
 -- (the mvcc merge, 2026-11-06) `lean`'s `srvBeSnapOk_window` (over `backend.Snapshot`) and
 -- `soleWriter_idxWf` (mvcc's sole writer) are dropped with F2's route.
@@ -522,26 +522,6 @@ theorem bkLendW_none (E : apply.AEnv GF) :
   iintro Hl
   imodintro
   iexact Hl
-
-/-- (keepfix (c) step 1) **The hooks' `srvTermPos` at the server's cluster** (`srvRaftLogInv_termPos`, from the
-KV invariants' raft log invariant, in either auth mode). -/
-theorem isServerM_termPos (hTP : srvTermPos_of_cluster.law (GF := GF)) (on : Bool) (s : Loc) (γ : ApplyNames)
-    (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ srvTermPos γr.raft.raft.cl := by
-  iintro #Hsrv
-  iunfold isServerM at Hsrv
-  icases Hsrv with ⟨-, -, -, #Hat, -⟩
-  iunfold srvAtomicsM at Hat
-  icases Hat with ⟨-, -, #Hkvi⟩
-  ihave #Hrl : srvRaftLogInv γr.raft $$ []
-  · cases on
-    · rw [srvKVInvsM_false] at *; iunfold srvKVInvs at Hkvi
-      icases Hkvi with ⟨-, -, #H, -⟩; iexact H
-    · ihave #Hkvi' : srvKVInvsOn E γr srvAuthSt0 $$ []
-      · iapply srvKVInvsM_true; iexact Hkvi
-      iunfold srvKVInvsOn at Hkvi'
-      icases Hkvi' with ⟨-, -, #H, -⟩; iexact H
-  iapply srvRaftLogInv_termPos hTP γr.raft $$ Hrl
 
 /-- **The store invariant of a server, in either auth mode** (`srvKVInvs`', `srvKVInvsOn`'s), with
 its witness and permit persistent and timeless (`envWitOk`). -/

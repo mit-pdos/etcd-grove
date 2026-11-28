@@ -93,12 +93,16 @@ abbrev EtcdServer.apply.specAt (P : auth.AuthMode → Prop) : Prop :=
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
     (rp : RestartPt) (A : List EntryModel) (γp : WTNames) (dv : Option NodeH) (w : Nat) (g : w64)
-    (sa : auth.AuthState),
+    (sa : auth.AuthState) (rt : w64),
   P E.authMode → receiptBound GF ≤ 2 ^ 48 →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn E.lm ms →
   logPutsOk ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) ms →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+  -- (keepfix (c) step 1) the apply thread's mirror of the raft term field (given back), not 0: the batch
+  -- runs after `applyAll`'s `SetRaftTerm`, and every entry's store (the hook's, the deferred
+  -- `SetConsistentIndex`) is a triple at it
+  rt ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ciRaftTerm γ.ci rt ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
@@ -118,7 +122,7 @@ abbrev EtcdServer.apply.specAt (P : auth.AuthMode → Prop) : Prop :=
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop);
-        srvFS s ∗ dvView ρ.raft dv (ghostOf rp (A ++ ms)) ∗
+        srvFS s ∗ ciRaftTerm γ.ci rt ∗ dvView ρ.raft dv (ghostOf rp (A ++ ms)) ∗
         (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
         srvApRes s γr (ghostOf rp (A ++ ms)) ∗
         (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc) (g' : w64),

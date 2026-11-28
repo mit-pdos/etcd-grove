@@ -843,6 +843,9 @@ def memberImageRows (k : MemberKN GF) (dd : GoString) (i : w64) (A : List EntryM
       imageRestAt k.ρo.rd.kv k.γ.boot i (k.ρo.rd.raft.pre ++ A) D ∧
       imageStOk (kvModel k.ρo.rd.kv A) (crevOf k.ρo.rd.kv A)⌝ ∗
     (∃ u : Bool, mvcc.api.mvccImage D (kvModel k.ρo.rd.kv A) (crevOf k.ρo.rd.kv A) u) ∗
+    -- (keepfix (c) step 1, 2026-11-28) the stored pair a committed entry, or the index 0 (`srvCrashImageAt`'s
+    -- row; T10's source: `bkImg`'s `bkTermRow` with the committed prefix, `srvRLogLb_ciPair`)
+    (⌜i = W64 0⌝ ∨ srvCIPair k.γ.cl i (metaTermOf D)) ∗
     confAt k.γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
     backend.fileHolds (config.backendPathOf dd) D ∗
     (∃ c : Nat, ⌜c ≤ uint.nat i + 1⌝ ∗ monoNatAuthOwn k.γm 1 c))
@@ -996,7 +999,8 @@ theorem crashImage_of (k : MemberKN GF) (id : w64) (dd : GoString) (r' : GName) 
         (fun j => monoNatLbOwn k.γm (uint.nat j + 1)) := .rfl
   unfold memberDurOut memberImageRows srvCrashImageAt wal.crashImageR srvFilesC confRowW snapRowB2
   rw [hρ]
-  iintro ⟨⟨HrS, Hvac, %hp, Hsc, -, Hl⟩, ⟨HA, %hi, Hmv, Hconf, %hcs, Hfh, %c, %hc, Hauth⟩, Hwf, Hinv, Hreg⟩
+  iintro ⟨⟨HrS, Hvac, %hp, Hsc, -, Hl⟩, ⟨HA, %hi, Hmv, #Hpair, Hconf, %hcs, Hfh, %c, %hc, Hauth⟩, Hwf, Hinv,
+    Hreg⟩
   obtain ⟨hS, hb, hag, hrf⟩ := hp
   obtain ⟨hB2, -⟩ := hB
   isplitl [Hvac]; · iexact Hvac
@@ -1005,6 +1009,7 @@ theorem crashImage_of (k : MemberKN GF) (id : w64) (dd : GoString) (r' : GName) 
   isplitl [HA]; · iapply e1; iexact HA
   isplitr; · ipureintro; exact hi
   isplitl [Hmv]; · iexact Hmv
+  isplitr; · iexact Hpair
   isplitl [Hconf]; · iexact Hconf
   isplitr; · ileft; ipureintro; exact hcs
   isplitl [Hsc Hl]

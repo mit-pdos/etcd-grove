@@ -95,7 +95,9 @@ def bootstrapLeftContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-        wal.bootResLeft cfg }}
+        wal.bootResLeft cfg ∗
+        -- (keepfix (c), 2026-11-28) as `bootstrapContract`'s
+        srvTermPos γ.cl }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))

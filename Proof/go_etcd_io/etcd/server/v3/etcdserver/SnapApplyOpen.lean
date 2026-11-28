@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /- (T10 session 10) Generic over the apply protocol's image row `Rw` (`consInv γA Rw`). -/
 variable {Rw : TRow GF}
 -- (keepfix-d) the consistent index's pair predicate (`isCI ci γ CP`)
-variable {CP : w64 → w64 → IProp GF}
+variable {CP : w64 → w64 → w64 → IProp GF}
 
 /-- **What `applySnapshot` keeps of a backend it opens** (D22 receiver epochs, S8d): the
 announcement of the fresh physical names `futPhys π0 γB` in the protocol's futures (its claim
@@ -44,11 +44,12 @@ token and index), which `ci_swap_au` turns into the registration at `SetBackend`
 backend's close right (`γB.cls`, which the futures' deposit does not name); (J8a-4, 2026-11-01)
 the meta reads of the new backend at those names (`applySnapshot.specSnapM`'s premise at its fresh
 keys and payment rights, `snap_create`). -/
-def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (γB : backend.BNames) :
-    IProp GF :=
+def snapOpenK (cl : Cluster) (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams)
+    (γB : backend.BNames) : IProp GF :=
   iprop(ghostVar γB.cls 1 () ∗
     □ (∀ (W : IProp GF) (b : Loc),
-      backend.isBackend γB P W (batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P)) b -∗
+      backend.isBackend γB P W
+        (batchLockInv (γA.withPh (futPhys π0 γB)) (metaTMR cl (futPhys π0 γB) γB P)) b -∗
       isMetaBackend (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
         (readView (γA.withPh (futPhys π0 γB)))) ∗
@@ -60,30 +61,36 @@ open's write invariant `W` back (strict M1: the store's `mvccW gx`; until then `
 (`ci_announce`: the payment rights deposited in the futures) and the announcement; (J8a-4,
 2026-11-01) with `applySnapshot.specSnapM`'s meta premise `HmS`, applied to the fresh keys and
 payment rights before they go, the new backend's meta reads. -/
-theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (D : backend.Data)
-    (W : IProp GF) (hm : metaIs D π0.m0) (hP : ciKeys P) :
+theorem snap_create (cl : Cluster) (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams)
+    (D : backend.Data) (W : IProp GF) (hm : metaIs D π0.m0) (hr : metaRaftTermOf D = π0.rk0)
+    (hP : ciKeys P) :
     □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-      ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+      ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
       backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
       backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
       □ ∀ (W : IProp GF) (b : Loc),
-        backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+        backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTMR cl π γB P)) b -∗
         isMetaBackend (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
           (readView (γA.withPh π))) ⊢
+    -- (keepfix (c), S5) the image's stored pair committed, or its index 0
+    (⌜π0.m0.1 = W64 0⌝ ∨ □ srvCIPair cl π0.m0.1 π0.m0.2) -∗
     inv applyN (consInv (GF := GF) γA Rw) -∗ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
       W -∗
       ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ={⊤}=∗
-        W ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
-        snapOpenK γA π0 P γB := by
-  iintro #HmS #Hinv Hpend Hmt HW %γB ⟨Hk, Hfr⟩
-  have hc : ciKeys P ∧ metaIs D (futPhys π0 γB).m0 ∧ (futPhys π0 γB).bwb = γB.wb ∧
-      (futPhys π0 γB).bopn = γB.opn := ⟨hP, hm, rfl, rfl⟩
+        W ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTMR cl (futPhys π0 γB) γB P) ∗
+        snapOpenK cl γA π0 P γB := by
+  iintro #HmS #Hpr #Hinv Hpend Hmt HW %γB ⟨Hk, Hfr⟩
+  have hc : ciKeys P ∧ metaIs D (futPhys π0 γB).m0 ∧ metaRaftTermOf D = (futPhys π0 γB).rk0 ∧
+      (futPhys π0 γB).bwb = γB.wb ∧ (futPhys π0 γB).bopn = γB.opn := ⟨hP, hm, hr, rfl, rfl⟩
   icases HmS $$ %(futPhys π0 γB) %γB %P %D %hc Hk Hfr with ⟨Hk, Hfr, #HmB⟩
-  ihave HTM : metaTM (GF := GF) γB P π0.m0 $$ [Hk]
-  · iunfold metaTM; iexists D; iframe Hk; ipureintro; exact hm
-  imod ci_announce γA (futPhys π0 γB) γB (metaTM γB P) π0.m0 rfl rfl rfl $$ Hinv Hfr Hpend Hmt HTM
-    with ⟨Hbl, Hcls, %j, %γc, Htc, #Hidx⟩
+  ihave HTM : metaTMR (GF := GF) cl (futPhys π0 γB) γB P π0.m0 $$ [Hk]
+  · iunfold metaTMR; iexists D; iframe Hk
+    isplitr; · ipureintro; exact hm
+    isplitr; · iexact Hpr
+    ileft; ipureintro; exact ⟨rfl, hr⟩
+  imod ci_announce γA (futPhys π0 γB) γB (metaTMR cl (futPhys π0 γB) γB P) π0.m0 rfl rfl rfl
+    $$ Hinv Hfr Hpend Hmt HTM with ⟨Hbl, Hcls, %j, %γc, Htc, #Hidx⟩
   imodintro
   iframe HW Hbl
   iunfold snapOpenK
@@ -96,39 +103,43 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
 registry's first). At the open of data `D` whose meta keys are `γA.m0`, the fresh backend's own keys
 and payment rights (`OpenBackend`'s `openPre` wand arguments), with the protocol's pieces
 `consInv_alloc` gives (at `bwb := γB.wb`, `bopn := γB.opn`), make the batch lock's resource
-`batchLockInv γA (metaTM γB P)`, give the payment rights back, and through `bootOk`'s
+`batchLockInv γA (metaTMR cl γA.ph γB P)`, give the payment rights back, and through `bootOk`'s
 `#HmetaSnap` at `π := γA.ph` give the meta reads of every backend with that lock resource:
 `bootOk`'s `#Hmeta` is this step's output at `bootstrap`'s open (names-only, so `bootOk` states it). -/
-theorem boot_create (γA : ApplyNames) (γB : backend.BNames) (P : backend.BParams)
-    (D : backend.Data) (hP : ciKeys P) (hm : metaIs D γA.m0) (hwb : γA.ph.bwb = γB.wb)
-    (hopn : γA.ph.bopn = γB.opn) :
+theorem boot_create (cl : Cluster) (γA : ApplyNames) (γB : backend.BNames) (P : backend.BParams)
+    (D : backend.Data) (hP : ciKeys P) (hm : metaIs D γA.m0) (hr : metaRaftTermOf D = γA.rk0)
+    (hwb : γA.ph.bwb = γB.wb) (hopn : γA.ph.bopn = γB.opn) :
     □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-      ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+      ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
       backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
       backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
       □ ∀ (W : IProp GF) (b : Loc),
-        backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+        backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTMR cl π γB P)) b -∗
         isMetaBackend (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
           (readView (γA.withPh π))) ⊢
+    (⌜γA.m0.1 = W64 0⌝ ∨ □ srvCIPair cl γA.m0.1 γA.m0.2) -∗
     token γA.pend -∗ ghostVar γA.mt (1 : Qp).half γA.m0.1 -∗ applyRegd γA -∗
       backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
-      batchLockInv (GF := GF) γA (metaTM γB P) ∗ backend.bFresh γB ∗
+      batchLockInv (GF := GF) γA (metaTMR cl γA.ph γB P) ∗ backend.bFresh γB ∗
         □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv γA (metaTM γB P)) b -∗
+          backend.isBackend γB P W (batchLockInv γA (metaTMR cl γA.ph γB P)) b -∗
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView γA) := by
-  iintro #HmS Hpend Hmt #Hreg Hk Hfr
-  have hc : ciKeys P ∧ metaIs D γA.ph.m0 ∧ γA.ph.bwb = γB.wb ∧ γA.ph.bopn = γB.opn :=
-    ⟨hP, hm, hwb, hopn⟩
+  iintro #HmS #Hpr Hpend Hmt #Hreg Hk Hfr
+  have hc : ciKeys P ∧ metaIs D γA.ph.m0 ∧ metaRaftTermOf D = γA.ph.rk0 ∧ γA.ph.bwb = γB.wb ∧
+      γA.ph.bopn = γB.opn := ⟨hP, hm, hr, hwb, hopn⟩
   icases HmS $$ %γA.ph %γB %P %D %hc Hk Hfr with ⟨Hk, Hfr, #HmB⟩
   iframe Hfr HmB
   iunfold batchLockInv
   iexists γA.m0
   iframe Hmt Hpend
   isplitl [Hk]
-  · iunfold metaTM; iexists D; iframe Hk; ipureintro; exact hm
+  · iunfold metaTMR; iexists D; iframe Hk
+    isplitr; · ipureintro; exact hm
+    isplitr; · iexact Hpr
+    ileft; ipureintro; exact ⟨rfl, hr⟩
   isplitr
   · iunfold applyRegdF; ileft; iexact Hreg
   ileft; ipureintro; rfl
@@ -179,48 +190,48 @@ state there, their registration, the new backend's deposited payment rights (`fu
 consistent index's owner share at `newbe`. -/
 theorem wp_ci_swapR (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (γ : ApplyNames) (ci : Loc) (s s' : ApplyState) (π' : ApplyPhys) (j : Nat) (γc : GName)
-    (b be : GoInterface)
+    (b be : GoInterface) (rt : w64)
     (hk' : s'.k = W64 0) (hps' : s'.pending = false) (hok : stOk (γ.withPh π') s')
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        isCI ci γ.ci CP ∗ inv applyN (consInv γ Rw) ∗ □ Rw.IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗
+        isCI ci γ.ci CP ∗ inv applyN (consInv γ Rw) ∗ □ Rw.IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗ ciRaftTerm γ.ci rt ∗
         ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
         monoListIdxOwn γ.fut j (π', γc)) -∗
-      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be -∗
+      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be ∗ ciRaftTerm γ.ci rt -∗
         Φ #()) -∗
       WP (App (Val (ci @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"SetBackend"))
         (Val #be)) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, #Hir, Hst, Hown, Hmt, Hwr, Htc, #Hidx⟩ HΦ
-  iapply (hSB ci γ.ci CP b be) $$ [Hown] [HΦ Hst Hmt Hwr Htc]
-  · iframe Hpkg Hci Hown
-  iapply ci_swap_auR γ s s' π' j γc (iprop(ciOwner ci be -∗ Φ #())) hk' hps' hok hle
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, #Hir, Hst, Hown, Hrt, Hmt, Hwr, Htc, #Hidx⟩ HΦ
+  iapply (hSB ci γ.ci CP b be rt) $$ [Hown Hrt] [HΦ Hst Hmt Hwr Htc]
+  · iframe Hpkg Hci Hown Hrt
+  iapply ci_swap_auR γ s s' π' j γc (iprop(ciOwner ci be -∗ ciRaftTerm γ.ci rt -∗ Φ #())) hk' hps' hok hle
     $$ Hinv Hir Hst Hmt Hwr Htc Hidx
-  iintro Hst Hreg Hfs Hown
+  iintro Hst Hreg Hfs Hown Hrt
   iapply HΦ
   iframe
 
 /-- `wp_ci_swapR` at the trivial image row. -/
 theorem wp_ci_swap (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (γ : ApplyNames) (ci : Loc) (s s' : ApplyState) (π' : ApplyPhys) (j : Nat) (γc : GName)
-    (b be : GoInterface)
+    (b be : GoInterface) (rt : w64)
     (hk' : s'.k = W64 0) (hps' : s'.pending = false) (hok : stOk (γ.withPh π') s')
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        isCI ci γ.ci CP ∗ inv applyN (consInv γ) ∗ applyThread γ s ∗ ciOwner ci b ∗
+        isCI ci γ.ci CP ∗ inv applyN (consInv γ) ∗ applyThread γ s ∗ ciOwner ci b ∗ ciRaftTerm γ.ci rt ∗
         ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
         monoListIdxOwn γ.fut j (π', γc)) -∗
-      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be -∗
+      (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be ∗ ciRaftTerm γ.ci rt -∗
         Φ #()) -∗
       WP (App (Val (ci @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"SetBackend"))
         (Val #be)) {{ Φ }} := by
-  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hown, Hmt, Hwr, Htc, #Hidx⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hown, Hrt, Hmt, Hwr, Htc, #Hidx⟩ HΦ
   ihave #Ht : iprop(□ (True : IProp GF)) $$ []
   · imodintro; itrivial
-  iapply (wp_ci_swapR (Rw := TRow.triv) hSB γ ci s s' π' j γc b be hk' hps' hok hle)
-    $$ [Hst Hown Hmt Hwr Htc] HΦ
-  iframe Hpkg Hci Hinv Ht Hst Hown Hmt Hwr Htc Hidx
+  iapply (wp_ci_swapR (Rw := TRow.triv) hSB γ ci s s' π' j γc b be rt hk' hps' hok hle)
+    $$ [Hst Hown Hrt Hmt Hwr Htc] HΦ
+  iframe Hpkg Hci Hinv Ht Hst Hown Hrt Hmt Hwr Htc Hidx
 
 end swap
 

@@ -622,7 +622,9 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
         -- `isBackend` carries it)
         ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-        wal.bootRes cfg }}
+        wal.bootRes cfg ∗
+        -- (keepfix (c), 2026-11-28) a committed entry of the cluster has a non-zero term (`bootstrap.spec`'s)
+        srvTermPos γ.cl }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))
@@ -636,7 +638,7 @@ instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.Se
 /-- **The boot apply thread on a fresh file** (2026-11-01, "bootOk's boot metadata"): `bootOk`'s
 `Hthr`, at `consInv_alloc`'s state, is at `⟨0, 0, 0, false⟩` when `γA.m0 = (0, 0)`. -/
 theorem thr_fresh (γA : ApplyNames) (h : γA.m0 = (W64 0, W64 0)) :
-    applyThread (GF := GF) γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ⊢
+    applyThread (GF := GF) γA ⟨γA.m0.1, γA.m0.1, W64 0, false⟩ ⊢
       applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ := by
   rw [h]
 

@@ -71,13 +71,16 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (γr : ReadNames) (rp : RestartPt) (A : List EntryModel) (γp : WTNames)
-    (dv : Option NodeH) (w : Nat) (g : w64) (sa : auth.AuthState),
+    (dv : Option NodeH) (w : Nat) (g : w64) (sa : auth.AuthState) (rt : w64),
   P E.authMode → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShapeM E.authOn E.lm (unapplied ai ms) → logPutsOk (unapplied ai ms) →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) (unapplied ai ms) →
   uint.Z g = uint.Z γr.raft.ai0 + (ghostOf rp A).length →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+  -- (keepfix (c) step 1) the apply thread's mirror of the raft term field (given back), not 0 when an entry
+  -- is applied (`apply`'s)
+  (unapplied ai ms = [] ∨ rt ≠ W64 0) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ciRaftTerm γ.ci rt ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
@@ -91,7 +94,7 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
       srvApRes s γr (ghostOf rp A) ∗ srvTokRights E (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
       (Val #ep)) (Val #ap))
-  {{ RET #(); srvFS s ∗ dvView ρ.raft dv (ghostOf rp (A ++ unapplied ai ms)) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
+  {{ RET #(); srvFS s ∗ ciRaftTerm γ.ci rt ∗ dvView ρ.raft dv (ghostOf rp (A ++ unapplied ai ms)) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗

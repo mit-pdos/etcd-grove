@@ -93,7 +93,7 @@ theorem bootstrap.wp_proof
     (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     bootstrap.spec (GF := GF) (hG := hG) := by
   intro _ _ cfg U γ N Hnf Hidr Hune HU Hfips HiOk Hvs Hlog Hmem
-  wp_start as ⟨%Hpure, #Hzlg, Hfg, Hvoff, #Hro, Hrauth, Hres⟩
+  wp_start as ⟨%Hpure, #Hzlg, Hfg, Hvoff, #Hro, Hrauth, Hres, #Htp⟩
   obtain ⟨Hcok, Hfresh, Hwb, Hdb⟩ := Hpure
   wp_auto
   ipersist cfg
@@ -208,9 +208,9 @@ theorem bootstrap.wp_proof
   wp_apply (hExist cfg) $$ [Hwa] as Hwp
   · iframe #; iunfold bootFs.walPart; iframe Hwa; ipureintro; exact Hwd
   -- `bootstrapBackend(cfg, false)`
-  wp_apply (hBack cfg N (srvCIPair γ.cl) Hlen Hcok Hwb Hdb) $$ [Hfg Hvoff Hff] as %bkl %berr
+  wp_apply (hBack cfg N γ.cl Hlen Hcok Hwb Hdb) $$ [Hfg Hvoff Hff] as %bkl %berr
     ⟨%Hberr, %bk, %γA, %cil, %d, %D, Hbk, %Hbk0, Hrows, Hnew, Hwbt⟩
-  · iframe Hfg Hvoff Hff; iframe #
+  · iframe Hfg Hvoff Hff Htp; iframe #
   subst Hberr
   wp_auto
   iunfold bootBackendRows at Hrows
@@ -232,7 +232,7 @@ theorem bootstrap.wp_proof
     iunfold bootLeft at Hleft
     icases Hleft with ⟨-, Hopen⟩
     ipersist Hbk
-    wp_apply (hClose bkl bk d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P))
+    wp_apply (hClose bkl bk d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTMR γ.cl γA.ph d.γB d.P))
       d.be) $$ [Hopen]
     · iframe Hopen; iframe Hbk HB HSC; ipureintro; exact Hbe.1
     iapply HΦ; ileft; ipureintro; exact Hne
@@ -253,7 +253,7 @@ theorem bootstrap.wp_proof
   ihave Hbk : (sto.backend' ↦ bk : IProp GF) $$ [Hbk]
   · rw [hstob]; iexact Hbk
   wp_apply (hFin cfg U c sl bc sto bk bw d (fun _ => mvcc.api.mvccW d.gx)
-      (fun γB => batchLockInv γA (metaTM γB d.P)) N D (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
+      (fun γB => batchLockInv γA (metaTMR γ.cl γA.ph γB d.P)) N D (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
       (DFrac.own 1) Hbc.2.2 HiOk Hbc.1 hhw Hbe.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.2.1
       Hbe.2.2.2.2.2.2.2.2.2.2.2.2.2)
     $$ [Hc Hs Hbk Hbw Hnew Hwbt Hclg Hlid Hcid Hcbe Hmu Hver Hmem0 Hrm Hrmm Hdg Hdgv Hml Hvc]
@@ -275,7 +275,7 @@ theorem bootstrap.wp_proof
     ihave Hbk : (bkl ↦ bk : IProp GF) $$ [Hbk]
     · rw [← hstob]; iexact Hbk
     ipersist Hbk
-    wp_apply (hClose bkl bk d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P))
+    wp_apply (hClose bkl bk d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTMR γ.cl γA.ph d.γB d.P))
       d.be) $$ [Hopen]
     · iframe Hopen; iframe Hbk HB HSC; ipureintro; exact Hbe.1
     iapply HΦ; ileft; ipureintro; exact Hne
@@ -330,9 +330,9 @@ theorem bootstrap.wp_proof
   isplitl [Hvcn HclBe Hmem]
   · iunfold bootClusterDone
     iframe Hvcn HclBe Hmem Hcl Hrc Hcid Hclg Hmembers Hisc
-  isplitl [Hthr Happ Hown Hlate Hpath]
+  isplitl [Hthr Happ Hown Hrt Hlate Hpath]
   · iunfold bootBackendRows
-    iframe Hthr Happ Hown Hlate Hpath HisCI Hcons Hbh Hmeta HmetaSnap HhkAt Hbfile
+    iframe Hthr Happ Hown Hrt Hlate Hpath HisCI Hcons Hbh Hmeta HmetaSnap HhkAt Hbfile
     ipureintro; exact ⟨Hci, Hbe⟩
   · iunfold bootBackendNew
     iexact Hnew

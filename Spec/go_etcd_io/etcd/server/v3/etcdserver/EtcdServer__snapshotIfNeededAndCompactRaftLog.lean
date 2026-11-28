@@ -42,7 +42,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
     (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : WTNames) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames)
-    (sa : auth.AuthState) (q : Qp) (γn : RNNames GF) (γm : GName),
+    (sa : auth.AuthState) (q : Qp) (γn : RNNames GF) (γm : GName) (rt : w64),
   loopOk γ st ai →
   -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
   -- `specFull`): the consistent index past `ai`, `Release` not failing
@@ -58,6 +58,8 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   -- compaction is at index `1` (`compactRaftLog`'s)
   (clusterNoSnap γr.raft.raft.cl → uint.nat ai ≤ w) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (keepfix (c) step 1) the apply thread's mirror of the raft term field, given back (`ConsistentIndex`'s)
+      ciRaftTerm γ.ci rt ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       -- (restart S6a) `snapshot`'s `Release`'s directory, its removal counter at least `ai`
       srvSnapDir s γm ∗ monoNatLbOwn γm (uint.nat ai) ∗
@@ -77,7 +79,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
       apply.applyTok E }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
       (Val #ep))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
+  {{ RET #(); ciRaftTerm γ.ci rt ∗ ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTokA γn (srvRAddr s) q ∗ apply.applyTok E ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 

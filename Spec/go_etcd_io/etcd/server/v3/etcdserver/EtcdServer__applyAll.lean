@@ -55,8 +55,14 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option NodeH) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames GF) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64),
+    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames GF) (rt : w64) (n : Nat) (rp : RestartPt) (g : w64)
+    (rtm : w64),
+  -- (keepfix (c) step 1, sub-goal 2) the raft term mirror after the batch's `SetRaftTerm` (`server.go:991-993`,
+  -- run when the batch has entries) not 0 when an entry is applied
+  (unapplied ai ms = [] ∨ rtMax rtm rt ≠ W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (keepfix (c) step 1) the apply thread's mirror of the raft term field
+      ciRaftTerm γ.ci rtm ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
       -- the mode, `logShapeM`)
       -- (strict M1, 2026-11-06; merge of `lean`) the receipts' bound in both modes, in place of
@@ -126,7 +132,9 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc) (g' : w64),
-        ⌜beSucc γ E γ' E'⌝ ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length (A ++ unapplied ai ms).length ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗
+        -- (keepfix (c) step 1) the mirror after `SetRaftTerm` (none for an empty batch)
+        ciRaftTerm γ'.ci (if ms.isEmpty then rtm else rtMax rtm rt) ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayCfg ep γr.raft rp.A₀.length (A ++ unapplied ai ms).length ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ srvApRes s γr (ghostOf rp (A ++ unapplied ai ms)) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
@@ -196,7 +204,10 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
     (sa : auth.AuthState)
     -- (R2d'a task 4; the swap, 2026-11-06) the ghost applied index `g` (Go's `ai` at most it) and the rest
     -- buckets' image `r0`
-    (g : w64) (r0 : apply.RestM),
+    (g : w64) (r0 : apply.RestM) (rtm : w64),
+  -- (keepfix (c) step 1, sub-goal 2) the raft term mirror after the payload's `SetRaftTerm` not 0 (the
+  -- reload stores the snapshot's pair at it)
+  rtMax rtm rt ≠ W64 0 →
   -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`)
   E.authMode ≠ .any →
   -- the snapshot past the applied index, below `2^61`, at least the boot log
@@ -222,6 +233,8 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   -- snapshot path frees the lessor window
   ¬ clusterNoSnap γr.raft.raft.cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (keepfix (c) step 1) the apply thread's mirror of the raft term field
+      ciRaftTerm γ.ci rtm ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
       -- the payload (`rnApSnap`'s)
       taEntriesAddr ap ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
@@ -255,13 +268,14 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- `authSnapKitM`); (restart S6, CP2 route (C)) at the ghost index `g`
       srvSnapOwn s ci E γr γ g ∗
       -- (J8a-4's, 2026-11-01) `applySnapshot.specSnapM`'s meta reads of the backend it opens, at
-      -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
+      -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries; keepfix (c), S2: `srvMetaSnap`'s
+      -- text, at the lock resource `metaTMR` of the server's cluster)
       □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
         backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
         □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTM γB P)) b -∗
+          backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTMR γr.raft.raft.cl π γB P)) b -∗
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γ.withPh π))) }}
@@ -270,7 +284,9 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   {{ RET #();
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (A' : List EntryModel) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayConfAddr ep ↦ (null : Loc) ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
+        ⌜beSucc γ E γ' E'⌝ ∗
+        -- (keepfix (c) step 1) the mirror after `SetRaftTerm`
+        ciRaftTerm γ'.ci (rtMax rtm rt) ∗ monoNatAuthOwn γr.cursor 1 n ∗ epReplayConfAddr ep ↦ (null : Loc) ∗ isServerM E.authOn s γ' ci TM' E' ρ γr ∗ srvApRes s γr A' ∗
         srvRLogLb γr.raft A' ∗
         epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
         epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
