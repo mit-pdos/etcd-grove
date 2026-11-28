@@ -58,8 +58,9 @@ theorem github_com.hashicorp.raft.Raft.setupAppendEntries.wp_proof
   ipersist Hlsl
   ihave ⟨#Hinv, -⟩ := isRaft_proto r γ rc i $$ Hr
   ihave #Hcc := isRaft_cidxCell r γ rc i $$ Hr
+  ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
   wp_auto
-  wp_apply wp_getCommitIndex.2 $$ [$Hinv $Hcc $Hl $Hlb] as %ci #Hci
+  wp_apply wp_getCommitIndex.2 $$ [$Hinv $Hcc $Hdur $Hl $Hlb] as %ci #Hci
   wp_apply wp_setPreviousLog $$ [$Hr $Hl $Hlb $Hreq $Htok] as %err ⟨Htok, %prev, %pt, Hreq, Hres⟩
   icases Hres with (⟨%Herr, #Hce⟩ | ⟨⟨%Herr, %Hprev⟩, #Hpo⟩)
   · cases err with

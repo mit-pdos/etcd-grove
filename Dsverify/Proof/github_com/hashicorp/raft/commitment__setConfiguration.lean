@@ -8,6 +8,7 @@ module
 
 public import Dsverify.Spec.github_com.hashicorp.raft.commitment__setConfiguration
 public import Dsverify.Spec.github_com.hashicorp.raft.commitment__recalculate
+public import Dsverify.Proof.github_com.hashicorp.raft.leader.DurView
 
 @[expose] public section
 
@@ -30,8 +31,8 @@ open github_com.hashicorp.raft github_com.hashicorp.raft.gprot github_com.hashic
 theorem github_com.hashicorp.raft.commitment.setConfiguration.wp_proof
     (wp_recalculate : github_com.hashicorp.raft.commitment.recalculate.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.commitment.setConfiguration.spec (GF := GF) (hG := hG) := by
-  intro γ i s cm c p
-  wp_start as ⟨#Hcm, #HInv, Hsrv, #Hldr, Hcc, #Hcfg, %Hpre⟩
+  intro γ rc i s cm c p
+  wp_start as ⟨#Hcm, #HInv, #Hdur, Hsrv, #Hldr, Hcc, #Hcfg, %Hpre⟩
   obtain ⟨hL1, hcv⟩ := Hpre
   iunfold cfgAtIs at Hcfg
   icases Hcfg with (⟨%h0, -⟩ | ⟨%ss, %eN, Hcv0, %HeN⟩)
@@ -40,8 +41,16 @@ theorem github_com.hashicorp.raft.commitment.setConfiguration.wp_proof
   icases Hcv0 with ⟨#Hss, %Hssok⟩
   obtain ⟨-, HeNent, HeNk, HeNd⟩ := HeN
   have hdomN : γ.cv eN.data = srvVoters ss := by rw [hcv, HeNd]; exact cfgDec_encode _ _ Hssok
-  imod llogPre_leader γ ⊤ (by solve_ndisj) i s $$ [Hsrv] with ⟨Hsrv, #Hpre⟩
+  ihave Hf := durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ ∗ leaderIs γ s.term i)
+    iprop(llogPre γ s.term s.log)
+    (by iintro ⟨⟨#HI, #Hl⟩, Hs⟩; iapply llogPre_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s; iframe; iframe #)
+    $$ [Hsrv]
   · iframe; iframe #
+  iapply (wp_ncfupd _ _ rfl)
+  iintro Hnc
+  imod Hf $$ Hnc with ⟨Hnc, Hsrv, #Hpre⟩
+  imodintro
+  iframe Hnc
   ihave #HidxN := llogPre_idx γ s.term s.log _ eN HeNent $$ Hpre
   wp_apply wp_with_defer as %defer Hdefer
   unfold isCommitment
@@ -54,9 +63,19 @@ theorem github_com.hashicorp.raft.commitment.setConfiguration.wp_proof
   ihave %Hpp := ccfgOwn_agree γ i s.term p p' $$ [Hcc Hcc']
   · iframe
   subst Hpp
-  imod installCfg_upd γ ⊤ (by solve_ndisj) i s p $$ [Hsrv Hcc Hcc'] with ⟨Hsrv, Hcc, Hcc'⟩
+  ihave Hf := durFact γ rc i (E := ⊤) (by solve_ndisj) s
+    iprop(Inv γ ∗ leaderIs γ s.term i ∗ ccfgOwn γ i s.term p ∗ ccfgOwn γ i s.term p)
+    iprop(ccfgOwn γ i s.term (lastCfgIdx s.log) ∗ ccfgOwn γ i s.term (lastCfgIdx s.log))
+    (by iintro ⟨⟨#HI, #Hl, H1, H2⟩, Hs⟩
+        iapply installCfg_upd γ (⊤ \ ↑durN) gprotN_diff_durN i s p; iframe; iframe #)
+    $$ [Hsrv Hcc Hcc']
   · iframe; iframe #
   wp_auto
+  iapply (wp_ncfupd _ _ rfl)
+  iintro Hnc
+  imod Hf $$ Hnc with ⟨Hnc, Hsrv, Hcc, Hcc'⟩
+  imodintro
+  iframe Hnc
   wp_apply (wp_map_make1 (K := SID) (V := w64) ServerID.ty go.uint64) as %mi2 Hmm2
   ihave %Hsllen := ownSlice_len $$ Hss
   ihave HI : (∃ (k : Nat) (mm2 : GMap SID w64), "Hctr" ∷ i_ptr ↦ W64 k ∗
