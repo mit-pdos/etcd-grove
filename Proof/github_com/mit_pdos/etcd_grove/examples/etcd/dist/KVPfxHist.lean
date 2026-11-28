@@ -32,6 +32,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist
 
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+
 section pure
 variable [GooseExts]
 
@@ -74,7 +76,7 @@ theorem chsFrom_nil (p : GoString) :
   | n, cs :: l, h => by
     have h1 : pfxOf p cs = [] :=
       List.filter_eq_nil_iff.2 (fun c hc => by simpa using h cs List.mem_cons_self c hc)
-    simp only [chsFrom, h1, if_pos rfl, List.nil_append]
+    simp only [chsFrom, h1, ite_true, List.nil_append]
     exact chsFrom_nil p (n + 1) l (fun cs' hcs' => h cs' (List.mem_cons_of_mem _ hcs'))
 
 /-- No revision in the history: no change under `p`. -/
