@@ -2157,6 +2157,7 @@ theorem NewServer.wp_proofRG
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuilt srvLeadInv
+    rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]
     iframe #
     ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, ⟨rfl, rfl⟩, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
@@ -2277,7 +2278,7 @@ theorem NewServer.wp_proofRG
     rw [Hrvs, GMap.elem_of_list_to_set, ← Hrid]
     exact Hrmem
   isplitr
-  · unfold srvMetaSnap; iexact HmetaSnap
+  · unfold srvMetaSnap; rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]; iexact HmetaSnap
   isplitr [Hsend w applyWait done stop stopping ctx cancel read leaderChanged SnapshotCountS SnapshotCatchUpEntriesS wg wgMu Hcmown Hnot Hlr3 Hlr4 Hfcr HWreg Hwtok]
   · -- `HBr`: the restart point (`srvBuiltRestartR .off` at `P := A.take σ.b`)
     iunfold srvBuiltRestartR

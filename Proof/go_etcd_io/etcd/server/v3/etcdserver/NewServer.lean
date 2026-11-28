@@ -2218,6 +2218,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuiltNA srvLeadInv
+    rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]
     iframe #
     ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, ⟨rfl, rfl⟩, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
@@ -2418,7 +2419,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     exact Hrmem
   isplitr
   · -- (J8b) `bootOk`'s meta reads, by name
-    unfold srvMetaSnap; iexact HmetaSnap
+    unfold srvMetaSnap; rw [show ρ.rd.raft.raft = γ by rw [HρRaft]]; iexact HmetaSnap
   isplitl [Hsend]
   · simp only [srvErM]; iexact Hsend
   isplitl [w]
