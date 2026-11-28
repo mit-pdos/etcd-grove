@@ -61,64 +61,7 @@ theorem prodS_send (γ : GNames) (rc : RCtx GF) (i : SID) (e k1 : Nat) (sl : GoS
       ∃ sent : List GoInterface, spscProducer rc.names.fsmCh sent ∗
         fsmP γ rc i sent.length (batchV sl) ∗
         (spscProducer rc.names.fsmCh (sent ++ [batchV sl]) -∗ prodS rc k1) := by
-  iintro ⟨Hps, Hb⟩
-  icases fsmBatchP_lt γ rc i e k1 _ $$ Hb with ⟨Hb, %Hek⟩
-  unfold prodS
-  icases Hps with ⟨%sent, %Mb, Hp, Ha, %Hdom, %Hle, Hend⟩
-  have hnone : Mb.lookup sent.length = none := by
-    have h := Hdom sent.length
-    cases hl : Mb.lookup sent.length with
-    | none => rfl
-    | some _ => exfalso; rw [hl] at h; simp at h
-  -- the start of this batch
-  ihave Hst : batchStart rc sent.length e $$ [Hend]
-  · unfold batchStart
-    icases Hend with (%Hn | ⟨%Hne, #Hend⟩)
-    · ileft; ipureintro; obtain ⟨rfl, rfl⟩ := Hn; exact ⟨rfl, rfl⟩
-    · cases hs : sent with
-      | nil => exact absurd hs Hne
-      | cons x xs =>
-        iright; iexists xs.length
-        isplitr
-        · ipureintro; simp
-        · subst hs
-          simp only [List.length_cons, Nat.add_sub_cancel]
-          iexact Hend
-  imod ghost_map_insert_persist sent.length k1 hnone $$ Ha with ⟨Ha, #Hend1⟩
-  imodintro
-  iexists sent
-  iframe Hp
-  isplitl [Hb Hst]
-  · unfold fsmP
-    iexists e, k1
-    simp only [Int.toNat_natCast]
-    iframe Hb Hst
-    isplitr
-    · ipureintro; omega
-    · unfold batchEnd; iexact Hend1
-  · iintro Hp
-    iexists sent ++ [batchV sl], Mb.insert sent.length k1
-    iframe Hp Ha
-    isplitr
-    · ipureintro
-      intro m
-      by_cases hm : m = sent.length
-      · subst hm; simp
-      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hm), Hdom m]
-        simp only [List.length_append, List.length_singleton]
-        omega
-    isplitr
-    · ipureintro
-      intro m k hmk
-      by_cases hm : m = sent.length
-      · subst hm; rw [GMap.lookup_insert] at hmk; cases hmk; omega
-      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hm)] at hmk; have := Hle m k hmk; omega
-    · iright
-      simp only [List.length_append, List.length_singleton, Nat.add_sub_cancel]
-      unfold batchEnd
-      isplitr
-      · ipureintro; simp
-      · iexact Hend1
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- The committed entry at `y` is no command. -/
 abbrev noCmd (γ : GNames) (y : Nat) : IProp GF :=
@@ -177,48 +120,11 @@ theorem cover_extend (γ : GNames) (e lk x : Nat) (ks : List Nat) (h1 : e ≤ lk
 
 theorem fsmProd_open (γ : GNames) (rc : RCtx GF) (a : Nat) :
     fsmProd γ rc a ⊢ ∃ e, prodS rc e ∗ ⌜e ≤ a⌝ ∗ noCmdBetween γ e (a + 1) := by
-  unfold fsmProd prodS
-  iintro ⟨%sent, %Mb, %e, Hp, Ha, %Hdom, Hend, Hnc⟩
-  iexists e
-  iframe Hnc
-  isplitl [Hp Ha Hend]
-  · iexists sent, Mb
-    iframe Hp
-    icases Hend with (%Hn | #Hend)
-    · iframe Ha
-      isplitr
-      · ipureintro; exact Hdom.1
-      isplitr
-      · ipureintro; exact Hdom.2.2
-      · ileft; ipureintro; exact Hn
-    · unfold batchEnd
-      ihave %Hl := ghost_map_lookup $$ Ha Hend
-      iframe Ha
-      isplitr
-      · ipureintro; exact Hdom.1
-      isplitr
-      · ipureintro; exact Hdom.2.2
-      · iright
-        iframe Hend
-        ipureintro
-        intro hs
-        subst hs
-        simp only [List.length_nil] at Hl
-        have h := (Hdom.1 0).mp (by rw [Hl]; rfl)
-        simp at h
-  · ipureintro; exact Hdom.2.1
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem fsmProd_close (γ : GNames) (rc : RCtx GF) (e a : Nat) (h : e ≤ a) :
     prodS rc e ∗ noCmdBetween γ e (a + 1) ⊢ fsmProd γ rc a := by
-  unfold fsmProd prodS
-  iintro ⟨⟨%sent, %Mb, Hp, Ha, %Hdom, %Hle, Hend⟩, Hnc⟩
-  iexists sent, Mb, e
-  iframe Hp Ha Hnc
-  isplitr
-  · ipureintro; exact ⟨Hdom, h, Hle⟩
-  · icases Hend with (%Hn | ⟨-, #Hend⟩)
-    · ileft; ipureintro; exact Hn
-    · iright; iexact Hend
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- `futures[k]` on the futures map, which may be `nil` (a follower's call). -/
 theorem wp_lookup_futs (fm : GoMap) (M : GMap w64 Loc) (k : w64) :
