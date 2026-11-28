@@ -1,17 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-# The server's WAL after a crash: `srvFilesC` and `walReadFacts` (etcd-dist D6, task T5)
+# The server's WAL after a crash: `walReadFacts` (etcd-dist D6, task T5)
 
 `notes/etcd-dist-d6.md` §2 (the rows "`srvFiles` from the crash frame", "`walReadFacts σ` of a crash
 image") and §6 (T5); `notes/wal-p8-handoff.md`. What a crashed member's data directory gives the
 restart's `bootstrap` (`bootstrapCrashContract`, `InvCrashImage.lean` on the D6 branches) of its WAL:
 
-* **the files** (`srvFilesC`): `srvFiles` (`InvRestart.lean`) with the WAL's files as a crash leaves them
-  (`walFilesC`, `storage/WalRecsCrash.lean`: no synced mark; see that file's header for why). The
-  graceful image's files are an instance (`srvFiles_srvFilesC`). **Proposed** for the crash image
-  (`srvCrashImageAt`) and `bootstrapCrashContract`'s pre in place of `srvFiles`; made by
-  `walFilesC_crash` from the WAL's crash (`walCrashWal`, whose relation is `walStCrashS` since P8) and the backend's
-  (interim axiom A1);
+* **the files**: (2026-11-28, keepfix (c) integration) `srvFilesC` and the crash image are held on
+  `etcd-safe-crashrestart-held/2026-11-28` (DELTA-8's row 3); the WAL's crash-side files `walFilesC`
+  (`storage/WalRecsCrash.lean`) stay, untrusted, with no fold;
 * **the read facts** (`walReadFacts σ`, `WalApi.lean`'s I1-I4) of what the restart reads, `σ = walRead I`
   for the crash image `I` (a prefix of the WAL's history): `walReadFacts_of_read`, from two conditions on
   the history that pass to prefixes (`walIdxLe`, `walCommitLe`: `storage/WalCrashRead.lean`), which the

@@ -271,7 +271,7 @@ theorem NewServer.wp_proofRG
   icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, #Hpair, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
     Hfiles, Hsdimg⟩
   -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes (`srvSnapRO`'s)
-  icases srvFilesC_dataDir_len _ _ _ _ $$ Hfiles with ⟨%Hddl, Hfiles⟩
+  icases srvFiles_dataDir_len _ _ _ _ $$ Hfiles with ⟨%Hddl, Hfiles⟩
   rw [Hρo] at Himp
   ihave #HA0 : srvRLogLb ⟨γ, [], W64 0⟩ A $$ []
   · rw [← Hρo]; iexact HA

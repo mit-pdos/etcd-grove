@@ -1,25 +1,16 @@
 /-
-**A restart's `NewServer` at one image** (etcd-dist D6, T4, 2026-11-24; `notes/etcd-dist-d6.md` §4):
-the hinge between the graceful restart's `NewServer.specR` and the crash restart's `NewServer.specC`.
+**A restart's `NewServer` at one image** (etcd-dist D6, T4, 2026-11-24; `notes/etcd-dist-d6.md` §4).
 
 `NewServer.specRAt` is `NewServer.specR` with `bootstrap`'s restart contract (`bootstrapRestartContract`,
 over every image) replaced by its instance at the image's witnesses `σ i A D M` (`bootstrapAtR`): the
-only use `NewServer.wp_proofRG` makes of the contract. Both contracts give that instance:
-
-* the graceful one directly (`bootstrapAtR_of_restart`), so `specR` follows (`NewServer.specR_of_RAt`);
-* the crash one (`bootstrapCrashContract`) at an image whose records meet the WAL's read facts
-  (`bootstrapAtR_of_crash`, its first case), which the crash image carries (`wal.crashImageR`).
-
-With the crash image turned into the graceful one when it is one (`srvCrashImageAt_disk`: the backend's
-index at or below the WAL's commit and at or above its snapshot and the bootstrap log, the stored
-`confState` the index's; the vacancy armed, `wal.stopImage` from `wal.crashImageR`), `specRAt` gives
-`specC` in that case (`NewServer.wp_proofC`). The other cases (the backend ahead of the WAL's commit,
-T10's weakened rows) are not instances of the graceful proof: see the proof file.
+only use `NewServer.wp_proofRG` makes of the contract. The graceful contract gives that instance
+(`bootstrapAtR_of_restart`), so `specR` follows (`NewServer.specR_of_RAt`). (2026-11-28, keepfix (c)
+integration: the crash restart's route, `bootstrapCrashContract` and `srvCrashImageAt_disk`, is held
+on `etcd-safe-crashrestart-held/2026-11-28` until DELTA-8's row 3 is decided.)
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerCrash
 
 @[expose] public section
 
@@ -61,7 +52,7 @@ def bootstrapAtR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : Boot
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
-        srvFilesC cfg.DataDir' id σ D }}
+        srvFiles cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }}))
@@ -99,107 +90,7 @@ theorem bootstrapAtR_of_restart (cfg : go_etcd_io.etcd.server.v3.config.ServerCo
   · iexact Hs
   iapply Hc $$ Hpr
 
-/-- The crash contract at an image whose records meet the WAL's read facts (the restart contract's
-`i ≤ σ.commit` puts the bootstrap log, below the index, below the commit: the crash contract's
-`γ.cl.bootLen ≤ σ.commit`, C-I2's restatement). -/
-theorem bootstrapAtR_of_crash (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-    (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) (σ : StorContents) (i : w64)
-    (L : List EntryModel) (D : backend.Data) (M : GMap Loc MemStorNamesRec) (hw : walReadFacts σ) :
-    bootstrapCrashContract (GF := GF) cfg U γ id N dir ⊢ bootstrapAtR cfg U γ id N dir σ i L D M := by
-  unfold bootstrapCrashContract bootstrapAtR
-  iintro ⟨#H, -⟩
-  imodintro
-  iintro %Hp Hs Hpr
-  ihave Hc := H $$ %σ %i %L %D %M [] [Hs]
-  · ipureintro; exact ⟨Hp.1, hw, Nat.le_trans Hp.2.2.1 Hp.2.1, Hp.2.2.2⟩
-  · iexact Hs
-  iapply Hc $$ Hpr
-
 end boot
-
-section image
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **A crash image that is a graceful one** (and its records meet the WAL's read facts): with the
-backend's index at or below the WAL's commit, at or above its snapshot (`snapRowB2`'s first case) and the
-bootstrap log, the stored `confState` the index's (`confRowW`'s first case; its second case, a `confState`
-one conf change ahead, is the same one: (T10s3b B8) both configurations are recorded over the committed
-log, `confAt_committed`, so both are the boot one under the server's raft-log invariant,
-`srv_confAt_eq_simple`), the vacancy armed
-(`nodeVacant_arm`: its crash token returned, for `specC`'s post; and the snapshot directory's crash
-token, `srvSnapKeep`, D-T7-2: the graceful image keeps only the handle), the WAL's slot `wal.stopImage` from
-`wal.crashImageR`; the rest is the same. Otherwise the crash image is returned with the reason (T10's
-restatement, 2026-11-25, weakened those rows). -/
-theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
-    (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
-    (M : GMap Loc MemStorNamesRec) (E : CoPset) (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E) :
-    srvRaftLogInv (GF := GF) ⟨γ, [], W64 0⟩ ∗ srvCrashImageAt (GF := GF) γ ρ id dd S σ i A D m M ⊢
-      |={E}=> (srvDiskImageAt γ ρ id dd S σ i A D m M ∗ ⌜walReadFacts σ⌝ ∗
-        (∃ x, nodeCrashTok γ.cl id x) ∗ srvSnapKeep γ id dd) ∨
-      (srvCrashImageAt γ ρ id dd S σ i A D m M ∗
-        ⌜¬ (uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i)⌝) := by
-  by_cases hg : uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i
-  rotate_left
-  · iintro ⟨-, Himg⟩
-    imodintro
-    iright
-    iframe Himg
-    ipureintro; exact hg
-  obtain ⟨hc, hb, hbl⟩ := hg
-  unfold srvCrashImageAt srvDiskImageAt wal.crashImageR snapRowB2
-  iintro ⟨#Hsrl, Hvac, HrS, %Hρ, #HA, %Himp, Hmv, #Hpair, #Hconf, Hcrow, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles,
-    ⟨%γd, %γm, %c, %Hsl, Hrow, Hsdi, Hmn⟩⟩
-  -- (T10s3b B8) the stored `confState` is the index's in both cases of `confRowW`: the configurations
-  -- at `i` and `i + 1` are both the boot one
-  ihave Hcs : |={E}=> ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ $$ [Hcrow]
-  · iunfold confRowW at Hcrow
-    icases Hcrow with (%H | ⟨%m', #Hm', %H⟩)
-    · imodintro; ipureintro; exact H
-    icases confAt_committed γ.cl (uint.nat i) m $$ Hconf with ⟨%l, #Hl1, %Hl1⟩
-    icases confAt_committed γ.cl (uint.nat i + 1) m' $$ Hm' with ⟨%l', #Hl2, %Hl2⟩
-    imod srv_confAt_eq_simple ⟨γ, [], W64 0⟩ l (uint.nat i) m Hl1 E hC hL $$ [$Hsrl $Hl1 $Hconf] with %Hm
-    imod srv_confAt_eq_simple ⟨γ, [], W64 0⟩ l' (uint.nat i + 1) m' Hl2 E hC hL $$ [$Hsrl $Hl2 $Hm']
-      with %Hm2
-    imodintro; ipureintro
-    rw [Hm, ← Hm2]; exact H
-  imod Hcs with %hcs
-  icases Hrow with (%Hrow | ⟨%j, %Hj, -, -⟩)
-  rotate_left
-  · iexfalso; ipureintro; omega
-  icases snapDirKeep_handle _ _ _ _ $$ Hsdi with ⟨#Hsdh, Hsdi⟩
-  imod nodeVacant_arm γ.cl id E $$ Hvac with ⟨%x, Hvac, Hct⟩
-  ihave Hws := wal.stopImage_intro γ.cl S σ i Hw.1 hb hc $$ [Hcert Hl]
-  · iframe Hcert Hl
-  imodintro
-  ileft
-  isplitl [Hvac HrS Hmv Hws Hreg Hfiles Hmn]
-  · iframe Hvac HrS HA Hmv Hpair Hconf Hws Hreg Hfiles
-    isplitr
-    · ipureintro; exact Hρ
-    isplitr
-    · ipureintro; exact Himp
-    isplitr
-    · ipureintro; exact hbl
-    isplitr
-    · ipureintro; exact hcs
-    iexists γd, γm, c
-    iframe Hsdh Hmn
-    ipureintro; exact ⟨Hsl, Hrow.2⟩
-  isplitr
-  · ipureintro; exact Hw.2
-  isplitl [Hct]
-  · iexists x
-    iexact Hct
-  iunfold srvSnapKeep
-  iexists γd, γm
-  iframe Hsdi
-  ipureintro; exact Hsl
-
-end image
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
