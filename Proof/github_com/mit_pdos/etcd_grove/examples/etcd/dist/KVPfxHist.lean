@@ -196,16 +196,16 @@ theorem commit_hist (σ : KVState) (cs : List mvcc.Change) :
 store's compare-put, compare-delete and else-get Txns under `/registry/`: `pfxLocal_txn`). -/
 theorem pfxLocal_commit (p : GoString) (f : KVState → KVState)
     (hf : ∀ σ, f σ = σ ∨ ∃ cs, f σ = σ.commit cs ∧ ∀ c ∈ cs, p <+: c.key) : PfxLocal p f := by
-  have hoth : ∀ σ (cs : List mvcc.Change), (∀ c ∈ cs, p <+: c.key) → ∀ q : GoString, ¬ q <+: p →
+  have hoth : ∀ (cs : List mvcc.Change), (∀ c ∈ cs, p <+: c.key) → ∀ q : GoString, ¬ q <+: p →
       ¬ p <+: q → ∀ c ∈ cs, ¬ q <+: c.key := by
-    intro σ cs hcs q hqp hpq c hc hqc
+    intro cs hcs q hqp hpq c hc hqc
     rcases List.prefix_or_prefix_of_prefix hqc (hcs c hc) with h | h
     · exact hqp h
     · exact hpq h
   refine ⟨fun σ q hqp hpq => ?_, fun σ => ?_⟩
   · rcases hf σ with h | ⟨cs, h, hcs⟩
     · rw [h]
-    · rw [h]; exact pfxView_commit_other q σ cs (hoth σ cs hcs q hqp hpq)
+    · rw [h]; exact pfxView_commit_other q σ cs (hoth cs hcs q hqp hpq)
   · rcases hf σ with h | ⟨cs, h, hcs⟩
     · rw [h]; exact ⟨rfl, rfl, [], by simp, by simp⟩
     · obtain ⟨h1, h2, new, h3, h4⟩ := commit_hist σ cs
