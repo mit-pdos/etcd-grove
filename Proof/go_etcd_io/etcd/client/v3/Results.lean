@@ -2796,7 +2796,7 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iExactEq Hau; rfl
   inext
@@ -2925,7 +2925,7 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iExactEq Hau; rfl
   inext
@@ -2991,7 +2991,7 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
       iunfold txnWriteOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iexact Hu
   inext

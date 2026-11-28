@@ -25,6 +25,30 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-28: etcd's table `etcdSvc`, the KV `_dist` contracts and `isKv`'s dup clause -- a remote member cannot supply `noRefusalAt`; the table is opaque (stage B′)
+
+- **Spec.** `etcd_dist.etcdSvc` (`Proof/.../examples/etcd/dist/S2Interim.lean`, trusted), `Serve_dist.spec`
+  (`Spec/.../dist/ServeDist.lean`, meaning only), the axioms `KV_{Put,Get,Delete,Compact}_dist`,
+  `Txn_Commit_dist` and the theorems `Client_{Put,Get}_dist` (`Spec/.../dist/*.lean`), the client's `isKv`
+  (`Proof/go_etcd_io/etcd/client/v3/KVService.lean`, the vocabulary of `kv.Put.spec`, ...) and its write path
+  (`kvReqPre`, `txnReqPre`, `reqPre`, `modePre`: `InvKVConn.lean`, `InvTxnBuilder.lean`), and the internal specs
+  `checkCompactRev.spec`, `watchShare` (`RunWatch.spec`, `RunCache.spec`), `client_{Get,List}_dist.law`.
+- **Defect.** Across machines the client's KV calls were five interim axioms, because `etcdSvc` had no law and
+  `isKv`'s at-most-once clause asked for `noRefusalAt` (opaque; only the in-process `etcd_noRefusal` gives it).
+- **Evidence.** `notes/etcdsvc-plan` (coordinator, stage B′), `notes/grpc-nr-e.md` (E: `GrpcEntry.nr`,
+  `isGrpcRpcsNR`); the users of the five axioms (`notes/etcdsvc-b.md`).
+- **Proposed change.** `etcdSvc` defined: with `Γ.auth = false`, the KV methods at stage A's view specs, flagged
+  `nr`; every other entry the new opaque `etcdSvcRest` (no law). `isKv`'s clause becomes `kvDupNR dup addrs`
+  (`noRefusalAt` at every endpoint, or flagged `Put`/`DeleteRange`/`Txn` entries at every endpoint), carried by
+  the write path to the interceptor's proof. `isKv_of_kvClientAt` proves `kvClientAt ⊢ isKv api Γ.kv false` for
+  an auth-off view; the five axioms and two theorems are deleted, their users re-proved over the client specs.
+  `checkCompactRev.spec`, `watchShare` and the Get/List laws gain `Γ.auth = false` (their users had `KV_Get_dist`/
+  `KV_Compact_dist`, which took no auth premise; every start's view has auth off). `Serve_dist`'s statement is
+  unchanged; it now claims an auth-off member's KV handlers never refuse (`grpcRunNRMd`): the auth store stays
+  disabled, the member is a voter (`notes/etcdsvc-b.md`). No top-level statement changes. Net −5 axioms.
+- **Decision.** Approved design B′ (coordinator, 2026-11-27; the guard `Γ.auth = false` approved as interim,
+  removed at N4). Trusted text drafted on `etcdsvc-b/2026-11-27`; landing waits for Upamanyu's review.
+
 ## 2026-11-27: grpc's service table -- no way to say "this method never refuses" except the opaque `noRefusalAt`
 
 - **Spec.** `GrpcEntry` (`Proof/google_golang_org/grpc/InvGrpcWire.lean`), `grpcServesEnt` (`InvGrpcRun.lean`),

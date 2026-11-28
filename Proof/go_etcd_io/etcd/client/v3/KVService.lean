@@ -1483,7 +1483,7 @@ theorem kvReqPre_wand (api : Loc) (addr : List GoString) (C P P' : IProp GF) [Pe
     (h : C ∗ P ⊢ P') : C ∗ kvReqPre api addr P ⊢ kvReqPre api addr P' := by
   iintro ⟨#HC, HP⟩
   unfold kvReqPre
-  icases HP with (#HP | ⟨%Hnr, HP⟩)
+  icases HP with (#HP | ⟨#Hnr, HP⟩)
   · ileft
     imodintro
     inext
@@ -1491,7 +1491,7 @@ theorem kvReqPre_wand (api : Loc) (addr : List GoString) (C P P' : IProp GF) [Pe
     iframe HC HP
   · iright
     isplitl []
-    · ipureintro; exact Hnr
+    · iexact Hnr
     inext
     iapply h
     iframe HC HP
@@ -1501,7 +1501,7 @@ theorem txnReqPre_wand (tp : Loc) (addr : List GoString) (C P P' : IProp GF) [Pe
     (h : C ∗ P ⊢ P') : C ∗ txnReqPre tp addr P ⊢ txnReqPre tp addr P' := by
   iintro ⟨#HC, HP⟩
   unfold txnReqPre
-  icases HP with (#HP | ⟨%Hnr, HP⟩)
+  icases HP with (#HP | ⟨#Hnr, HP⟩)
   · ileft
     imodintro
     inext
@@ -1509,7 +1509,7 @@ theorem txnReqPre_wand (tp : Loc) (addr : List GoString) (C P P' : IProp GF) [Pe
     iframe HC HP
   · iright
     isplitl []
-    · ipureintro; exact Hnr
+    · iexact Hnr
     inext
     iapply h
     iframe HC HP
@@ -1716,6 +1716,15 @@ at most once, D29) fired at most once. -/
 def writeUpd (rf : Bool) (P : IProp GF) : IProp GF :=
   iprop(□ P ∨ (⌜rf = true⌝ ∗ P))
 
+/-- **A client sends a write at most once, unless `dup`** (persistent; stage B′, 2026-11-28):
+`dup`, or no endpoint of `addrs` refuses a write (`kvWriteNR`). -/
+def kvDupNR (dup : Bool) (addrs : List GoString) : IProp GF :=
+  iprop(⌜dup = true⌝ ∨ kvWriteNR addrs)
+
+instance kvDupNR_persistent (dup : Bool) (addrs : List GoString) :
+    Persistent (kvDupNR (GF := GF) dup addrs) := by
+  unfold kvDupNR; infer_instance
+
 /-- A persistent update serves any client. -/
 theorem writeUpd_box (rf : Bool) (P : IProp GF) : (□ P : IProp GF) ⊢ writeUpd rf P := by
   unfold writeUpd; iintro #H; ileft; iexact H
@@ -1886,34 +1895,30 @@ theorem writeUpd_txn_nz (rf : Bool) (γ : KVNames) (t : TxnModel) (Q : KVState �
     iright; iframe H; ipureintro; exact Hr
 
 /-- A write's update, by the client's kind, is a `*kv`'s precondition at the endpoints `addrs`. -/
-theorem kvReqPre_of_upd (api : Loc) (addrs : List GoString) (rf : Bool)
-    (hr : rf = true → ∀ a ∈ addrs, noRefusalAt a) (P P' : IProp GF) (h : P ⊢ P') :
-    writeUpd rf P ⊢ kvReqPre api addrs P' := by
-  unfold writeUpd kvReqPre
-  iintro (#HP | ⟨%Hr, HP⟩)
+theorem kvReqPre_of_upd (api : Loc) (addrs : List GoString) (dup : Bool) (P P' : IProp GF)
+    (h : P ⊢ P') : kvDupNR dup addrs ∗ writeUpd (!dup) P ⊢ kvReqPre api addrs P' := by
+  unfold writeUpd kvReqPre kvDupNR
+  iintro ⟨#Hn, (#HP | ⟨%Hr, HP⟩)⟩
   · ileft; imodintro; inext; iapply h; iexact HP
   · iright
     isplitl []
-    · ipureintro; exact hr Hr
+    · icases Hn with (%Hd | #Hn)
+      · subst Hd; simp at Hr
+      · iexact Hn
     inext; iapply h; iexact HP
 
 /-- A write's update, by the client's kind, is a `*txn`'s precondition at the endpoints `addrs`. -/
-theorem txnReqPre_of_upd (tp : Loc) (addrs : List GoString) (rf : Bool)
-    (hr : rf = true → ∀ a ∈ addrs, noRefusalAt a) (P P' : IProp GF) (h : P ⊢ P') :
-    writeUpd rf P ⊢ txnReqPre tp addrs P' := by
-  unfold writeUpd txnReqPre
-  iintro (#HP | ⟨%Hr, HP⟩)
+theorem txnReqPre_of_upd (tp : Loc) (addrs : List GoString) (dup : Bool) (P P' : IProp GF)
+    (h : P ⊢ P') : kvDupNR dup addrs ∗ writeUpd (!dup) P ⊢ txnReqPre tp addrs P' := by
+  unfold writeUpd txnReqPre kvDupNR
+  iintro ⟨#Hn, (#HP | ⟨%Hr, HP⟩)⟩
   · ileft; imodintro; inext; iapply h; iexact HP
   · iright
     isplitl []
-    · ipureintro; exact hr Hr
+    · icases Hn with (%Hd | #Hn)
+      · subst Hd; simp at Hr
+      · iexact Hn
     inext; iapply h; iexact HP
-
-/-- A client that is refusal-free unless `dup` is one by `writeUpd`'s flag. -/
-theorem noRefusal_of_dup (addrs : List GoString) (dup : Bool)
-    (hr : dup = false → ∀ a ∈ addrs, noRefusalAt a) :
-    (!dup) = true → ∀ a ∈ addrs, noRefusalAt a :=
-  fun h => hr (by cases dup <;> simp_all)
 
 /-! ### From the members' replies to `γ`'s -/
 
@@ -2366,8 +2371,10 @@ end start_alloc
 over a connection to the endpoints `addrs` (`kvObjAt`), at each endpoint etcd's KV methods
 registered at the specs that name no member (`kvRegsV`: `etcdPutSpecV γ`, ...: the caller's update
 at `γ`, the reply's fields as the client's reply facts, `putStOkV`, ...; `Compact` on a compacting
-cluster), and, unless `dup`, refusal-free endpoints (`noRefusalAt`, D29: a write is delivered at
-most once). It names no member and no heap but the client's own, so a remote member can supply
+cluster), and, unless `dup`, no endpoint refusing a write (`kvDupNR`, `kvWriteNR`, D29: a write is
+delivered at most once): refusal-free endpoints (`noRefusalAt`, the in-process members') or, at every
+endpoint, flagged entries for `Put`, `DeleteRange` and `Txn` (`isGrpcRpcsNR`; stage B′, 2026-11-28: what an
+auth-off member's table gives across machines). It names no member and no heap but the client's own, so a remote member can supply
 it: a registration is a fact of the service table at the address (`isGrpcRpcMd`).
 
 A member serving etcd's auth-off specs at its own names (`kvRegsAt`) registers the view's
@@ -2559,7 +2566,7 @@ instance kvRegsV_persistent (a : GoString) (γ : KVNames) : Persistent (kvRegsV 
 /-- **The `*kv` `api` is a client of etcd's KV `γ`** (persistent; see the section header). -/
 def isKv (api : Loc) (γ : KVNames) (dup : Bool) : IProp GF :=
   iprop(∃ addrs : List GoString, kvObjAt api addrs ∗ ([∗list] a ∈ addrs, kvRegsV a γ) ∗
-    ⌜dup = false → ∀ a ∈ addrs, noRefusalAt a⌝)
+    kvDupNR dup addrs)
 
 instance isKv_persistent (api : Loc) (γ : KVNames) (dup : Bool) :
     Persistent (isKv (GF := GF) api γ dup) := by
@@ -2954,10 +2961,13 @@ theorem isKv_of_members (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvA
   isplitr
   · iunfold kvRegs at Hr
     iapply (kvRegsV_of_members γ hrb ms hn) $$ Hr
-  ipureintro
-  intro hd a ha
-  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 ha
-  exact hr hd x hx
+  unfold kvDupNR
+  cases dup
+  · iright
+    iapply (kvWriteNR_of_pure (GF := GF) _ (fun a ha => by
+      obtain ⟨x, hx, rfl⟩ := List.mem_map.1 ha
+      exact hr rfl x hx))
+  · ileft; ipureintro; rfl
 
 end viewMembers
 

@@ -6,7 +6,7 @@ The cache example's `Main` (`Proof/.../cache/Main.lean`) after its start, at the
 workload's adapter and writers (`RunWatch.lean`): `GenAll` picks the writers' Puts `trs` under `ck/`; the
 clients' adapter over the share's client half (`client.kmInv_alloc`, the plan's property `wkW (trs.map
 pairOf)`, true of the boot's changes `[[]]`); `newClient` (its failure ends the workload, `ended`); the
-client is the cache's at the adapter's model (`isEtcdClient_of_dist`: its gets by `KV_Get_dist`, its
+client is the cache's at the adapter's model (`isEtcdClient_of_dist`: its gets by `kv.Get.spec`, its
 watches by `Watch_dist`, its progress requests by `RequestProgress_dist`, all hypotheses); `cache.New` at
 the default configuration (`New.spec`; its error ends the workload) and `defer c.Close()` (`Cache.Close`,
 with the cache's whole "open" token, which the watch gives back); `WithCancel(Background())` and its
@@ -85,7 +85,7 @@ theorem RunCache.wp_proof
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
     (wp_ended : ended.spec (GF := GF) (hG := hG))
     (wp_checked : checked.spec (GF := GF) (hG := hG))
-    (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG))
+    (wp_Get : kv.Get.spec (GF := GF) (hG := hG))
     (wp_Watch : Watch_dist.spec (GF := GF) (hG := hG))
     (wp_RP : RequestProgress_dist.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
@@ -111,7 +111,7 @@ theorem RunCache.wp_proof
   wp_start as ⟨Htok, #Heps, #Hnodes, #Hready, Hsh⟩
   iunfold cacheShare at Hsh
   iunfold watchShare at Hsh
-  icases Hsh with ⟨%Γ, %σ₀, %Hσ0, #Hms, Hkv, HWS⟩
+  icases Hsh with ⟨%Γ, %σ₀, %Hσ0, %Hauth, #Hms, Hkv, HWS⟩
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
   · iapply _root_.Perennial.context.isClosedchanInit_of_init
@@ -198,7 +198,7 @@ theorem RunCache.wp_proof
   · iframe #
   ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl addrs (Classical.choice hV) Γ $$ [Hnc Hnp Hms]
   · iframe #
-  ihave #Hecl := isEtcdClient_of_dist wp_Get wp_Watch wp_RP cl api w addrs (Classical.choice hV) Γ γ
+  ihave #Hecl := isEtcdClient_of_dist wp_Get wp_Watch wp_RP cl api w addrs (Classical.choice hV) Γ Hauth γ
     hγk etcd_cache.ckPfx (by decide) (by decide) $$ [Pcli Ppb Pctx Hall Hkc Hwc Hkm]
   · iframe #
   (try wp_auto)

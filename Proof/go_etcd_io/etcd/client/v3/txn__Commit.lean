@@ -65,7 +65,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
   ipersist Hcsl; ipersist Hssl; ipersist Hfsl
   ihave Hrun' : reqPre conn0 go!"/etcdserverpb.KV/Txn" addr vs
       (attemptPre conn0 om Spec (txnWireOf b.model) Q) $$ [Hrun]
-  · iapply kvReqPre_conn api rkv conn0 go!"/etcdserverpb.KV/Txn" kvMethod_txn addr vs _ Hsc $$ [Hrun]
+  · iapply kvReqPre_conn api rkv conn0 go!"/etcdserverpb.KV/Txn" (.inr (.inr rfl)) addr vs _ Hsc $$ [Hrun]
     iframe Hremote Hrkv
     iapply txnReqPre_kv tp api addr $$ [Hrun]
     iframe Hrun
@@ -144,7 +144,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   iintro %Φ ⟨#Pc, Hlt, Hobj, #Hkt, #Hkv, %Hp, Hu, %Hsz⟩ HΦ
   ihave Hu := txnAu_upd dup γ (txnWireOf b.model) Q $$ Hu
   iunfold isKv at Hkv
-  icases Hkv with ⟨%addrs, #Hko, #Hregs, %Hnr⟩
+  icases Hkv with ⟨%addrs, #Hko, #Hregs, #Hnr⟩
   ihave Hobj := txnObjAt_conn tp api addr addrs ci cd b $$ [Hobj]
   · iframe Hobj; iframe #
   icases txnObjAt_kv tp addrs ci cd b $$ Hobj with ⟨%api', %conn, #Hkv', #Hkc, Hobj⟩
@@ -157,8 +157,11 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     · iapply (kvRegsV_rpcTxn addrs γ) $$ Hregs
     isplitl [Hu]; rotate_left
     · ipureintro; exact Hsz
-    iapply (txnReqPre_of_upd tp addrs (!dup) (noRefusal_of_dup addrs dup Hnr) _ _
-      (txnPre_V conn om γ (txnWireOf b.model) Q (txnWireOf_plain _ Hp.1) Hp.2)) $$ Hu
+    iapply (txnReqPre_of_upd tp addrs dup _ _
+      (txnPre_V conn om γ (txnWireOf b.model) Q (txnWireOf_plain _ Hp.1) Hp.2))
+    isplitl []
+    · iexact Hnr
+    · iexact Hu
   inext
   iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ

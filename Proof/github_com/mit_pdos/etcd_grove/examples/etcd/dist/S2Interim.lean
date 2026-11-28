@@ -4,20 +4,19 @@
 
 `notes/putget-dist-plan.md` §12, `notes/etcd-dist-plan.md` §18. The cluster's view (`DistView`, O1 option
 B: a Lean value the start fixes; no publication) and the address fact over it, since phase 7 S2's interface
-switch (2026-11-24) #24's own `grpcAddrAt a (etcdSvc Γ mid)` with only the table `etcdSvc` axiomatized (see
-its docstring).
+switch (2026-11-24) #24's own `grpcAddrAt a (etcdSvc Γ mid)`. The table `etcdSvc` is defined (stage B′,
+2026-11-28): with auth off, etcd's KV methods at the view's specs, flagged as never refusing; every other
+entry is `etcdSvcRest`'s (see their docstrings).
 
-One axiom (A1 `etcdSvc`; the start law `etcdAddr_set` is a theorem); the function axioms are in their own
-files beside this one: `ServeDist.lean` (the server side) and the clientv3 contracts `KVPutDist.lean`,
-`KVGetDist.lean`, `KVDeleteDist.lean`, `KVCompactDist.lean`, `TxnCommitDist.lean` (putget's
-`Client_Put_dist`/`Client_Get_dist` are theorems over the first two). Every other declaration is a
-definition or a proved law.
+One axiom (`etcdSvcRest`; the start law `etcdAddr_set` is a theorem); the server side's axiom is
+`ServeDist.lean`. Every other declaration is a definition or a proved law.
 -/
 module
 
 public import GooseLang.Ext.Net.Proto
 public import Proof.google_golang_org.grpc.InvGrpcWire
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.client.v3.KVServiceV
 
 @[expose] public section
 
@@ -44,9 +43,9 @@ member publishes anything and nothing about it changes across a restart.
   lessor is at `Γ.ls mid` (`memberUpL`/`memberUpOnL`, F7 step 3, 2026-11-26: `NewServer_dist` takes the name from
   the start, P-L1); the lease contracts read it. The starts that allocate no lessor slot set it to a constant
   (`ClusterNames.lsNone`).
-* `auth`: the cluster's auth mode. The KV write contracts are for `auth = false` only (refusal-free
-  members: a write is sent at most once); `Serve_dist` serves a member whose auth mode is the view's
-  (`memberUpL` with auth off, `memberUpOnL` with auth on).
+* `auth`: the cluster's auth mode. `etcdSvc` has etcd's KV entries (never refusing: a write is sent at
+  most once) for `auth = false` only (interim, until nomode N4); `Serve_dist` serves a member whose auth mode
+  is the view's (`memberUpL` with auth off, `memberUpOnL` with auth on).
 * `au mid`: member `mid`'s auth names (F7, 2026-11-26, the approved design's P-A1, `notes/etcd-dist-f7.md`).
   No axiom reads it yet: the auth-on drafts (`AuthViewDist.lean`) read it, sound because `Serve_dist` requires
   the member's auth store at `Γ.au mid` with auth on (`memberUpOnL`, F7 step 3, 2026-11-26; the review
@@ -62,25 +61,100 @@ constant until P-A1's start (no contract reads either yet): a start's view (`Clu
 def DistView.ofKV [GooseExts] (γk : KVNames) : DistView :=
   ⟨γk, fun _ => 0, false, fun _ => ⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0⟩⟩
 
-/-! ## The address fact (over phase 7 S2's interface; the table axiomatized: see `etcdSvc`) -/
+/-! ## The address fact (over phase 7 S2's interface; the table: `etcdSvc`) -/
 
-/-- **etcd's service table for the member `mid` of the cluster view `Γ`** (interim, axiomatized;
-heap-free: it takes no `HeapGS`, so every machine holds the same table). Its intended interpretation is
-#24's `etcdSvc` (`notes/phase7-plan.md` §1.3) at the view (`notes/etcd-dist-plan.md` §18.3): etcd's unary
-methods by full name, each at its messages' wire parts (`pbPutRequest.wire`, ...) with the member's
-handler spec at names agreeing with `Γ` (`kvCongr` of its KV names with `Γ.kv`), `grpcNoCall` for the
-methods no client of the theorems calls. It cannot be defined yet: the entries' specs need S2's etcd side
-(the handlers' contracts as wire specs, #24). It has no law: no proof can learn an entry of it, so nothing
-can call it through grpc's own `Invoke` (`isGrpcRpcMd` needs an entry of the table at the address), and
-only a server registering no method (unary or stream; its interceptors may be anything) serves it through
-`Server.Serve` (`grpcServes … [] [] []` holds vacuously: every call gets `Unimplemented`). The client-side
-contracts at the table (`KV_Put_dist`, `KV_Get_dist`, ...) are axioms of their own. A table is data, so
-the axiom is consistent (`GrpcSvc` is inhabited). Retired by S2's `etcdSvc` (the cluster id `cid` joins
-the view then, #24 05:09Z). -/
-axiom etcdSvc [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+/-- **The entries of etcd's table that no law describes** (interim, axiomatized; heap-free, the same on
+every machine). `etcdSvc` takes every entry from it but auth-off KV methods: etcd's other unary methods
+(Lease, Auth, Cluster, Maintenance, ...), its streams (Watch, LeaseKeepAlive), and with auth on its KV
+methods. It has no law: no proof learns an entry of it, so nothing calls such a method through grpc's
+`Invoke` (`isGrpcRpcMd` needs the entry) or opens such a stream, and a server serves it through
+`Server.Serve` only by registering no method under its names (`grpcServes`: every call there gets
+`Unimplemented`). The cross-machine axioms of those methods (`Lease_*_dist`, `Watch_dist`, `Auth_*_dist`,
+the `*On_dist` KV ones) are their contracts; `Serve_dist` is the only server of these entries. A table is
+data, so the axiom is consistent (`GrpcSvc` is inhabited). Retired entry by entry as each method's view
+spec is written (`notes/etcdsvc-b.md`). -/
+axiom etcdSvcRest [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
     {GF : BundledGFunctors} [GooseGlobalGS .hasLC GF]
     (Γ : DistView) (mid : w64) : GrpcSvc GF
+
+section table
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+variable [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF]
+
+/-- **etcd's KV methods at the KV names `γk`** (heap-free): `Put`, `Range`, `DeleteRange`, `Txn` and
+`Compact` at their messages' wire parts and the view specs `client.etcdPutSpecV γk`, ... (the specs
+naming no member, which the client's `isKv` registers), each flagged as never refusing (`nr`); no other
+method. -/
+def etcdKvSvc (γk : KVNames) : GrpcSvc GF := fun name =>
+  if name = go!"/etcdserverpb.KV/Put" then
+    some (.unary ⟨client.putReqWire, client.putRespWire, client.etcdPutSpecV γk, true⟩)
+  else if name = go!"/etcdserverpb.KV/Range" then
+    some (.unary ⟨client.rangeReqWire, client.rangeRespWire, client.etcdRangeSpecV γk, true⟩)
+  else if name = go!"/etcdserverpb.KV/DeleteRange" then
+    some (.unary ⟨client.delReqWire, client.delRespWire, client.etcdDeleteSpecV γk, true⟩)
+  else if name = go!"/etcdserverpb.KV/Txn" then
+    some (.unary ⟨client.txnReqWire, client.txnRespWire, client.etcdTxnSpecV γk, true⟩)
+  else if name = go!"/etcdserverpb.KV/Compact" then
+    some (.unary ⟨client.compactReqWire, client.compactRespWire, client.etcdCompactSpecV γk, true⟩)
+  else none
+
+/-- **etcd's service table for the member `mid` of the cluster view `Γ`** (heap-free: every machine
+holds the same table). With auth off (`Γ.auth = false`), etcd's KV methods are `etcdKvSvc Γ.kv`'s: the
+view specs at the cluster's KV names, flagged as never refusing. Every other entry is
+`etcdSvcRest Γ mid`'s (no law).
+
+What serving it claims (`Serve_dist`, `grpcServesEnt`): an auth-off member's KV handlers, through its
+interceptors, meet the view specs (its in-process specs at names `kvCongr` to `Γ.kv`, `etcdPutSpecV_M`,
+...) and never return a refusal (`grpcRunNRMd`): with auth off no auth refusal occurs, and the member is
+a voter for its whole life (`ServeDist.lean`; `notes/etcdsvc-b.md`).
+
+The guard `Γ.auth = false` is interim: there are no auth modes (one KV model, `nomode` N1-N4); once the
+KV view specs are single (N4) the guard goes and auth-on members serve the same entries. -/
+def etcdSvc (Γ : DistView) (mid : w64) : GrpcSvc GF := fun name =>
+  match Γ.auth, etcdKvSvc (GF := GF) Γ.kv name with
+  | false, some e => some e
+  | _, _ => etcdSvcRest Γ mid name
+
+theorem etcdSvc_kv (Γ : DistView) (mid : w64) (name : GoString) (e : GrpcSvcEntry GF)
+    (hauth : Γ.auth = false) (h : etcdKvSvc (GF := GF) Γ.kv name = some e) :
+    etcdSvc (GF := GF) Γ mid name = some e := by
+  unfold etcdSvc
+  rw [hauth, h]
+
+theorem etcdKvSvc_put (γk : KVNames) :
+    etcdKvSvc (GF := GF) γk go!"/etcdserverpb.KV/Put" =
+      some (.unary ⟨client.putReqWire, client.putRespWire, client.etcdPutSpecV γk, true⟩) := by
+  unfold etcdKvSvc
+  rw [if_pos rfl]
+
+theorem etcdKvSvc_range (γk : KVNames) :
+    etcdKvSvc (GF := GF) γk go!"/etcdserverpb.KV/Range" =
+      some (.unary ⟨client.rangeReqWire, client.rangeRespWire, client.etcdRangeSpecV γk, true⟩) := by
+  unfold etcdKvSvc
+  rw [if_neg (by decide), if_pos rfl]
+
+theorem etcdKvSvc_delete (γk : KVNames) :
+    etcdKvSvc (GF := GF) γk go!"/etcdserverpb.KV/DeleteRange" =
+      some (.unary ⟨client.delReqWire, client.delRespWire, client.etcdDeleteSpecV γk, true⟩) := by
+  unfold etcdKvSvc
+  rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
+
+theorem etcdKvSvc_txn (γk : KVNames) :
+    etcdKvSvc (GF := GF) γk go!"/etcdserverpb.KV/Txn" =
+      some (.unary ⟨client.txnReqWire, client.txnRespWire, client.etcdTxnSpecV γk, true⟩) := by
+  unfold etcdKvSvc
+  rw [if_neg (by decide), if_neg (by decide), if_neg (by decide), if_pos rfl]
+
+theorem etcdKvSvc_compact (γk : KVNames) :
+    etcdKvSvc (GF := GF) γk go!"/etcdserverpb.KV/Compact" =
+      some (.unary ⟨client.compactReqWire, client.compactRespWire, client.etcdCompactSpecV γk,
+        true⟩) := by
+  unfold etcdKvSvc
+  rw [if_neg (by decide), if_neg (by decide), if_neg (by decide), if_neg (by decide), if_pos rfl]
+
+end table
 
 section addr
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
@@ -92,7 +166,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- **The address `a` serves etcd's calls for the member `mid` of the view `Γ`** (persistent): `a`
 serves etcd's table (`grpcAddrAt`: its net-library protocols are grpc's opaque `grpcCliPI`/`grpcSrvPI`
 for the table, over a slot map). #24's `∃ σ, depSlotsCtx ∗ grpcAddrAt a (etcdSvc …)` (`grpcAddrAt`
-holds `depSlotsCtx`); only the table is axiomatized. -/
+holds `depSlotsCtx`). -/
 def etcdAddrAt (a : GoString) (Γ : DistView) (mid : w64) : IProp GF :=
   iprop(∃ σ : NetSlotGS, grpcAddrAt (Gg := Gg) (π := π) (σ := σ) a (etcdSvc (GF := GF) Γ mid))
 

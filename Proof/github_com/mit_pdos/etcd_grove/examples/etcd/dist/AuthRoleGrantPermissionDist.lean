@@ -32,10 +32,10 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 mirror are in the spec's docstring). What it asserts of clientv3 v3.6, grpc-go v1.84 (the model) and an auth-on
 etcd member over the net extension.
 
-**Why it is an axiom** (the standing rule's order, as `KV_Put_dist`): the real Go is translated and in one
+**Why it is an axiom** (the standing rule's order): the real Go is translated and in one
 process its in-process counterpart (the spec's docstring names it) is proved over `Invoke`'s registration; across
 machines the call goes through grpc's `Invoke` over the net extension, where no proof establishes the protocols of
-any bytes and `etcdSvc` has no law. A Go model with the same behaviour is the grpc model itself (the same gap).
+any bytes and `etcdSvc`'s entry is `etcdSvcRest`'s, with no law. A Go model with the same behaviour is the grpc model itself (the same gap).
 
 **Why it is true.** It is the in-process contract with the registration replaced by the address facts of the view
 (`servedBy`/`etcdAddrAt`: a success is answered only by `Serve_dist` at the member named), the token's binding
