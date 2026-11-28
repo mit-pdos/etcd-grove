@@ -132,6 +132,24 @@ theorem insEnt_eq (e : DEnt) (es : List DEnt) : insEnt e es = insR e es := by
       rw [hp]; simp only [insR, h, ↓reduceIte, List.getElem?_cons_zero, Option.map_some,
         Option.some.injEq, List.set_cons_zero, List.take_zero, List.drop_zero, List.nil_append]
 
+/-- `insert`'s loop ends at `insPos`. -/
+theorem insPos_eq (x : w64) (es : List DEnt) (i : Nat) (h1 : i ≤ es.length)
+    (h2 : ∀ j < i, ∀ f, es[j]? = some f → uint.nat f.idx < uint.nat x)
+    (h3 : ∀ f, es[i]? = some f → ¬ uint.nat f.idx < uint.nat x) : insPos x es = i := by
+  induction es generalizing i with
+  | nil => simp at h1; subst h1; rfl
+  | cons f fs ih =>
+    unfold insPos at ih ⊢
+    cases i with
+    | zero =>
+      have := h3 f rfl
+      simp [List.takeWhile_cons, this]
+    | succ i =>
+      have hf := h2 0 (by omega) f rfl
+      simp only [List.takeWhile_cons, decide_eq_true hf, ↓reduceIte, List.length_cons]
+      rw [ih i (by simp at h1; omega) (fun j hj g hg => h2 (j + 1) (by omega) g (by simpa using hg))
+        (fun g hg => h3 g (by simpa using hg))]
+
 theorem insR_mem (e : DEnt) (es : List DEnt) (x : DEnt) (h : x ∈ insR e es) : x = e ∨ x ∈ es := by
   induction es with
   | nil => simp [insR] at h; exact Or.inl h

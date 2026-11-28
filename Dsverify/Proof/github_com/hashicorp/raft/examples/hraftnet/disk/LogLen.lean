@@ -71,6 +71,22 @@ theorem ownSlice_log_length_lt (s : GoSlice) (vs : List Log) :
     simp only [List.length_map, List.length_range] at hlt
     omega
 
+/-- A pair inserted in the middle of a `[∗list]` of two lists. -/
+theorem bigSepL2_insert_mid {A B : Type} (Φ : A → B → IProp GF) (l1 : List A) (l2 : List B) (i : Nat)
+    (x : A) (y : B) (hl : l1.length = l2.length) :
+    ([∗list] a; b ∈ l1; l2, Φ a b) ∗ Φ x y ⊢
+      [∗list] a; b ∈ l1.take i ++ x :: l1.drop i; l2.take i ++ y :: l2.drop i, Φ a b := by
+  iintro ⟨H, Hxy⟩
+  have hlt : (l1.take i).length = (l2.take i).length := by simp [List.length_take, hl]
+  ihave H : ([∗list] a; b ∈ l1.take i ++ l1.drop i; l2.take i ++ l2.drop i, Φ a b) $$ [H]
+  · rw [List.take_append_drop, List.take_append_drop]; iexact H
+  ihave H := (BigSepL2.bigSepL2_append (Or.inl hlt)).1 $$ H
+  icases H with ⟨H1, H2⟩
+  iapply (BigSepL2.bigSepL2_append (Or.inl hlt)).2
+  iframe H1
+  iapply BigSepL2.bigSepL2_cons.2
+  iframe
+
 end lemmas
 
 end github_com.hashicorp.raft.examples.hraftnet.disk
