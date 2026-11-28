@@ -250,6 +250,71 @@ theorem bootRead_SS (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option Te
   ipureintro
   exact ⟨rfl, rfl, Hag.1, Hag.2.1, Hag.2.2, Hag2.1, Hag2.2, Hp⟩
 
+theorem getD_insert_same {K V : Type} [DecidableEq K] [Pos.Countable K] (m : GMap K V) (kb k : K) (v d : V)
+    (h : (m.lookup kb).getD d = v) : ((m.insert kb v).lookup k).getD d = (m.lookup k).getD d := by
+  by_cases hk : kb = k
+  · subst hk; rw [GMap.lookup_insert]; simpa using h.symm
+  · rw [GMap.lookup_insert_ne _ _ hk]
+
+/-- (hraft_robust R5) **An idempotent stable-store write during the boot** (`SetUint64(kb, v)` of the value
+`kb` already reads as, `getD`): the store's atomic update, with the stable view updated; the crash state's
+facts, which read the store through `getD`, are unchanged. -/
+theorem bootRewrite_S (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option TermPend)
+    (dp : Option DiscPend) (D : StableAbs) (g : w64) (kb : List w8) (v : w64)
+    (h : (D.ints.lookup kb).getD (W64 0) = v) (K : IProp GF) :
+    srvDurInvRaw γ rc i ∗ bootV rc A lat ∗ srvVP rc s tp dp ∗ stVS rc D g ∗
+      (bootV rc A lat -∗ srvVP rc s tp dp -∗ stVS rc { D with ints := D.ints.insert kb v } g -∗ K) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ st, rc.ownS st ∗
+      (rc.ownS { st with ints := st.ints.insert kb v } ={∅, ⊤ \ ↑storeN}=∗ K) := by
+  iintro ⟨#Hi, Hv, Hsv, Hst, HK⟩
+  iapply ncfupd_bind
+  isplitl [Hv]
+  · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
+    iframe #; iframe
+  iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, %Hp⟩ := durCore_pure γ rc i X $$ Hc
+  ihave ⟨Hc, Hsv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hsv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hD, hg⟩ := Hag2
+  subst hD hg
+  iapply ncfupd_of_fupd
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hld⟩
+  iexists _
+  iframe HS
+  iintro HS
+  imod Hmask with -
+  let D' : StableAbs := { X.D with ints := X.D.ints.insert kb v }
+  iunfold durCore at Hc
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, Hst', H8, H9, -, H10, H11, H12, H13, H14⟩
+  unfold stVS
+  imod ghostVar_update_halves (D', X.A.staged) _ _ _ $$ Hst Hst' with ⟨Hst, Hst'⟩
+  have hgetD : ∀ k, ((D'.ints.lookup k).getD (W64 0)) = (X.D.ints.lookup k).getD (W64 0) :=
+    fun k => getD_insert_same _ kb k v _ h
+  imod Hcl $$ %({ X with D := D' }) [H1 H2 H3 H4 H5 H6 Hst' H8 H9 H10 H11 H12 H13 H14] [HL HS HSS Hld]
+    with Hv
+  · iunfold durCore
+    simp only
+    iframe
+    ipureintro
+    obtain ⟨p1, p2, p3, p4, p5⟩ := Hp
+    refine ⟨p1, p2, ?_, ?_, p5⟩
+    · unfold voteMatches at p3 ⊢; rw [hgetD]; exact ⟨p3.1, p3.2⟩
+    · unfold termDurOk at p4 ⊢; rw [hgetD]; exact p4
+  · iunfold durStores
+    simp only
+    iframe
+  obtain ⟨hA, hlat⟩ := HX
+  simp only
+  rw [hA, hlat]
+  imodintro
+  iapply HK $$ Hv Hsv Hst
+
 end boot
 
 end github_com.hashicorp.raft

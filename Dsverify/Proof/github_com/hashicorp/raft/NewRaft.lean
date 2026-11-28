@@ -298,8 +298,153 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   iintro %v ⟨%hv, Hboot, Hsv, HstV, Htok, ⟨%e0, err⟩, %lv, lastLog, %HlvIdx⟩
   subst hv
   wp_auto
+  ihave #HtransC := Htrans
+  unfold isTransport
+  icases Htrans with ⟨#HrpcCh, #HConsumer, #HLocalAddr, #HEncPeer, #HDecPeer, #HSetHB, #HAEP,
+    #HAE, #HRV, #HPV, #HIS, #HTN⟩
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HLocalAddr
+  wp_auto
+  obtain ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hRCL, hNSR, hMA1, hMA2, hHB1, hHB2, hCT,
+    hSI, hLL1, hLL2, hET, hHT, hCT2, hSI2⟩ := Hcfg
+  rw [hPV]
+  wp_auto
+  wp_apply (chan.wp_make1 (V := Loc)) as %applyCh %γapply ⟨#HapplyCh, %HapplyCap, HapplyOwn⟩
+  rw [hBA]
+  wp_auto
+  wp_apply (chan.wp_make2 (V := GoInterface) (W64 128)) as %fsmCh %γfsm ⟨#HfsmCh, %HfsmCap, HfsmOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make1 (V := Loc)) as %snapCh %γsnap ⟨#HsnapCh, %HsnapCap, HsnapOwn⟩
+  wp_apply (chan.wp_make2 (V := Bool) (W64 1)) as %leaderCh %γlch ⟨#HlchCh, %HlchCap, HlchOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make1 (V := Loc)) as %ccCh %γcc ⟨#HccCh, %HccCap, HccOwn⟩
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HConsumer
+  wp_auto
+  wp_apply (chan.wp_make1 (V := Loc)) as %usCh %γus ⟨#HusCh, %HusCap, HusOwn⟩
+  wp_apply (chan.wp_make1 (V := Loc)) as %urCh %γur ⟨#HurCh, %HurCap, HurOwn⟩
+  wp_apply (chan.wp_make1 (V := Unit)) as %sdCh %γsd ⟨#HsdCh, %HsdCap, HsdOwn⟩
+  wp_apply (chan.wp_make2 (V := Loc) (W64 64)) as %vCh %γv ⟨#HvCh, %HvCap, HvOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make2 (V := Loc) (W64 8)) as %cfgsCh %γcfgs ⟨#HcfgsCh, %HcfgsCap, HcfgsOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make1 (V := Loc)) as %bsCh %γbs ⟨#HbsCh, %HbsCap, HbsOwn⟩
+  wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %obsM HobsM
+  wp_apply (chan.wp_make2 (V := Loc) (W64 1)) as %ltCh %γlt ⟨#HltCh, %HltCap, HltOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make2 (V := Unit) (W64 1)) as %lnCh %γln ⟨#HlnCh, %HlnCap, HlnOwn⟩
+  · ipureintro; decide
+  wp_apply (chan.wp_make2 (V := Unit) (W64 1)) as %fnCh %γfn ⟨#HfnCh, %HfnCap, HfnOwn⟩
+  · ipureintro; decide
+  rw [hPVD, Hpv]
+  wp_auto
+  irename «$r0» => Hr
+  generalize «$r0_ptr» = r at *
+  iStructNamed Hr
+  -- r.conf.Store(*conf)
+  ihave Hconfv := (sync.atomic.ownValue_zero (GF := GF) _ (DFrac.own 1)).mp $$ conf
+  wp_apply (sync.atomic.Value.wp_Store _ _ (by simp [interface.mkOk]))
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iframe Hconfv
+  isplitr
+  · ipureintro; trivial
+  iintro Hconfv
+  imod Hclose with _
+  imodintro
+  wp_auto
+  -- the leaderLock (needed by setState's setLeader)
+  have hb : threadBound GF ≤ 2 ^ 28 := htb.threadBound_le
+  imod sync.rwmutex.init_RWMutex (E := ⊤) (nroot.@"rw") (r.[Raft, go!"leaderLock"]) $$ leaderLock
+    with ⟨%γLL, #HllIs, HllSt, HllToks⟩
+  irename currentTerm => HcurTerm
+  iStructNamed raftState
+  irename currentTerm => FcurrentTerm
+  irename commitIndex => FcommitIndex
+  irename lastApplied => FlastApplied
+  irename state => Fstate
+  -- r.setState(Follower), inlined
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setState")]
+  wp_call
+  unfold Follower
+  wp_auto
+  wp_apply wp_setLeader_init $$ [$HllIs $HllSt $leaderAddr $leaderID] as ⟨HllSt, leaderAddr, leaderID⟩
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"getState")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"getState")]
+  wp_call
+  wp_auto
+  wp_apply sync.atomic.wp_LoadUint32
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iexists _
+  iframe Fstate
+  iintro Fstate
+  imod Hclose with _
+  imodintro
+  wp_auto
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"setState")]
+  wp_call
+  wp_auto
+  wp_apply sync.atomic.wp_StoreUint32
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iexists _
+  iframe Fstate
+  iintro Fstate
+  imod Hclose with _
+  imodintro
+  wp_auto
+  -- r.setCurrentTerm(currentTerm), inlined: the stored term rewritten (an idempotent write), then the atomic
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setCurrentTerm")]
+  wp_call
+  wp_auto
+  iunfold stVS at HstV
+  ihave ⟨HstV, HstQ⟩ := (ghostVar_split_half rc.dur.st (1 : Qp).half _).1 $$ HstV
+  ihave ⟨Hpw, HpwQ⟩ := (ghostVar_split_half rc.dur.pw 1 _).1 $$ Hpw
+  wp_bind (App (App (Val #(methods _ _ _)) _) _)
+  iapply HSetU $$ HkCTs [HstQ HpwQ]
+  · unfold stWin; iright; iright
+    iexists _, ct, X.D, X.A.staged
+    unfold stVq
+    iframe
+    ipureintro; exact ⟨rfl, hctv⟩
+  iintro HW
+  unfold stWin
+  icases HW with (⟨%s', %p', -, Hwr⟩ | ⟨%vb, %Hvb⟩ | ⟨%kb, %v, %D2, %g2, -, HstQ, HpwQ⟩)
+  · unfold winRes
+    icases Hwr with ⟨HpwQ, -⟩
+    icombine Hpw HpwQ gives %Hag
+    cases Hag.2
+  · cases Hvb
+  unfold stVq
+  icombine HstV HstQ gives %Hag
+  obtain ⟨-, Hag⟩ := Hag
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨rfl, rfl⟩ := Hag
+  icombine HstV HstQ as HstV
+  icombine Hpw HpwQ as Hpw
+  iapply (bootRewrite_S γ rc i X.A X.lat X.s X.tp X.dp X.D X.A.staged _ ct hctv)
+  iframe #
+  iframe Hboot Hsv
+  isplitl [HstV]
+  · unfold stVS; iexact HstV
+  iintro Hboot Hsv HstV
+  wp_auto
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"setCurrentTerm")]
+  wp_call
+  wp_auto
+  wp_apply sync.atomic.wp_StoreUint64
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iexists _
+  iframe FcurrentTerm
+  iintro FcurrentTerm
+  imod Hclose with _
+  imodintro
+  wp_auto
   sorry
-
-end proof
-
-end Perennial
