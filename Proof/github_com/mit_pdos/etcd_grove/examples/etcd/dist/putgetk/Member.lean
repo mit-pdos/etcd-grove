@@ -230,7 +230,7 @@ theorem Member.wp_proof
     (wp_bootstrap_dist : ∀ [π : Net.NetProtoGS] [MemStorReg GF],
       _root_.Perennial.EtcdGrove.bootstrap.specDist (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB S5 peers clients ps ctxs boot i peersSl clientsSl Hfips Hblf Hbgo Hi64 HLv Haf
+  intro π TB RB S5 peers clients ps ctxs boot i peersSl clientsSl Hfips Hblf Hbgo Hi64 HLv Haf
     Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)

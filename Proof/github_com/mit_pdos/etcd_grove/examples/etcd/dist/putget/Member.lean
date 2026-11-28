@@ -56,7 +56,7 @@ theorem Member.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB peer client id ctxs boot c Hbf hlp hlc HLv Haf Hbuq Hrf Hdbo Hms
+  intro π TB RB peer client id ctxs boot c Hbf hlp hlc HLv Haf Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := RB.receiptBound_le
   have HrbN : receiptBound GF ≤ 2 ^ 48 - 1 + 1 := Nat.le_trans RB.receiptBound_le (by decide)

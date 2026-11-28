@@ -74,7 +74,7 @@ fixed `Γ` across crashes is a crash-line item.
 The distinct-auth-names premise binds only auth-on views (re-review C's N2: `Γ.au` is never read with auth off,
 so an auth-off start need not pad it). -/
 abbrev Serve_dist.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (mid : w64) (Γ : DistView),
   -- with auth on, distinct auth names per member (the lease review's form; redundant given the tie below;

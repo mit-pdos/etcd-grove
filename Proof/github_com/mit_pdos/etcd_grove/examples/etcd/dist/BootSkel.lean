@@ -66,9 +66,7 @@ abbrev BootPremises [GoGlobalContext] [GoSemanticsFunctions] [lctx : GoLocalCont
 per machine from which its boot program is safe. -/
 def EtcdBootNC : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn)
@@ -86,9 +84,7 @@ boot WP holds from `True`. Discharged after D2 from the validator's spec (`WellF
 `d.WellFormed`). -/
 def EtcdBootNCBad : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
     (_Hfips : crypto.fips140.GodebugFips140Off),
@@ -102,7 +98,7 @@ distinct by `WellFormed`), on a malformed one at none; each machine's `FsInit` f
 `ServerStart`/`ClientStart`, the network's start from `Robust`'s own initial states. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
     etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
