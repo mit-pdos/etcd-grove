@@ -218,7 +218,11 @@ root back (what `WAL.Close` returns), what a restart reads from it `σ` (`walRea
 record applied, as `walRecs`): the files a graceful `Close` leaves (`walRecs_closeAU`). Without it the files
 admitted a history ending with a synced snapshot record above the saved commit, which `walRead` drops and the
 eager fold applies, so the restart contract (`bootstrapRestartContract`, whose post is `walRecs h σ`) was false
-of them; etcd's graceful runs never write it (`notes/axiom-review/bootstrap-restart-eagerfold.md`). -/
+of them; etcd's graceful runs never write it (`notes/axiom-review/bootstrap-restart-eagerfold.md`).
+**Describes only a cleanly closed WAL: produced only by `walRecs_closeAU`.** A crash-restart axiom or spec must
+use the crash model's read-based post (`walRead`), never `walFiles`. Counterexample: `SaveSnap` synced, process
+killed before `Save`; `ReadAll` skips the trailing snapshot record while the eager fold applies it
+(`examples/axiomcx/restarteagerfold`). -/
 @[no_expose] def walFiles (a : WalA GF) (id cid : w64) (σ : StorContents) (sized : Bool := false) :
     IProp GF :=
   letI := a.ext; letI := a.semOk; letI := a.has; letI := a.W
