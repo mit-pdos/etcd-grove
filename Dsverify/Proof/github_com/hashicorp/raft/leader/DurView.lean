@@ -105,6 +105,27 @@ theorem srvV_termLb (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : �
   imodintro
   iframe; iframe #
 
+/-- `durFact` for a law of the shape `Inv ∗ srvOwn ∗ R ⊢ |={E∖durN}=> srvOwn ∗ P` (`R`, `P` inferred). -/
+theorem durFactL (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : ↑durN ⊆ E) (s : SState)
+    {R P : IProp GF} (h : Inv γ ∗ srvOwn γ i s ∗ R ⊢ |={E \ ↑durN}=> srvOwn γ i s ∗ P) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ R ⊢ |NC={E}=> srvV rc s ∗ P := by
+  iintro ⟨#HI, #Hinv, Hv, HR⟩ Hnc
+  ihave Hacc := durAcc γ rc i hE $$ Hinv
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
+  unfold durBody srvV
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  icases HX with ⟨>Hsrv, Hdv, Hlc, Htc, Hcc, >Hsv, Hrest⟩
+  ihave %Hag := ghostVar_agree _ _ _ _ _ $$ Hsv Hv
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨hs, -, -⟩ := Hag
+  subst hs
+  imod h $$ [HR Hsrv] with ⟨Hsrv, HP⟩
+  · iframe; iframe #
+  imod Hclose $$ [Hsrv Hdv Hlc Htc Hcc Hsv Hrest] with -
+  · inext; iexists X; iframe
+  imodintro
+  iframe
+
 /-- (hraft_robust R4b) **A crash-token update before a step**, as an entailment: run `P ⊢ |NC={E}=> Q`
 before the next step of a non-value `e` (`wp_ncfupd`). A proof applies it with the law and the
 continuation: `iapply wp_ncmod _ _ rfl (srvV_facts γ rc i s)`, then frames `P` and introduces `Q`. -/

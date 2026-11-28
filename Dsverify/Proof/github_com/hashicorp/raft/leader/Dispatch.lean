@@ -20,6 +20,7 @@ public import Perennial.Spec.time.Now
 public import Dsverify.Proof.github_com.hashicorp.raft.gprot.Snap
 public import Dsverify.Proof.github_com.hashicorp.raft.handlers.Base
 public import Dsverify.Proof.github_com.hashicorp.raft.leader.MainCfg
+public import Dsverify.Proof.github_com.hashicorp.raft.core.CrashLaws
 
 @[expose] public section
 
@@ -207,12 +208,13 @@ theorem inflight_bound (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (E : 
 /-- (stage 2) A barrier future dispatched at `b > |log|` by the leader `i` of `s.term`: what the
 leader knows at dispatch (`barrierDisp`: a snapshot after the client's, in its term, where its
 log, so `llog s.term`, is shorter than `b`). -/
-theorem disp_barrier_prep (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (n0 b : Nat) (e : Entry)
+theorem disp_barrier_prep (γ : GNames) (rc : RCtx GF) (i : SID) (E : CoPset) (hE : ↑gprotN ⊆ E)
+    (s : SState) (n0 b : Nat) (e : Entry)
     (he : e.term = s.term) (hb : s.log.length < b) (hn0 : n0 ≤ s.log.length) (f : Loc) (P0 P1 : IProp GF)
     (φ : Prop) (P3 : IProp GF) :
     Inv γ ∗ srvOwn γ i s ∗ leaderIs γ s.term i ∗ len0Is γ s.term n0 ∗
       (P0 ∨ P1 ∨ (⌜φ⌝ ∗ ∃ sc : Snap, histLb γ sc ∗
-        deferResp (f.[logFuture, go!"deferError"]) (barrierQ γ rc i sc)) ∨ P3) ⊢ |={⊤}=>
+        deferResp (f.[logFuture, go!"deferError"]) (barrierQ γ rc i sc)) ∨ P3) ⊢ |={E}=>
     srvOwn γ i s ∗ (P0 ∨ P1 ∨ (⌜φ⌝ ∗ ∃ sc : Snap, barrierDisp γ i sc b e ∗
         deferResp (f.[logFuture, go!"deferError"]) (barrierQ γ rc i sc)) ∨ P3) := by
   iintro ⟨#HI, Hsrv, #Hldr, #Hlen0, (H0 | H1 | Hb | H3)⟩
@@ -221,7 +223,7 @@ theorem disp_barrier_prep (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (n
   rotate_left
   · imodintro; iframe
   icases Hb with ⟨%hφ, %sc, #Hsc, Hde⟩
-  imod srvOwn_now_leader γ ⊤ (by solve_ndisj) i s sc $$ [Hsrv] with ⟨Hsrv, %st, #Hst, %Hst⟩
+  imod srvOwn_now_leader γ E hE i s sc $$ [Hsrv] with ⟨Hsrv, %st, #Hst, %Hst⟩
   · iframe; iframe #
   imodintro
   iframe Hsrv
@@ -234,40 +236,6 @@ theorem disp_barrier_prep (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (n
   ipureintro
   exact ⟨by omega, by have := h1.2.2.2 s.term; omega, h1, h2⟩
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- (stage 2) The leader's protocol append before `StoreLogs` (stage 4: the protocol step `hstep` is
-the caller's, `leaderAppendCmd_upd` or `leaderAppendCfg_upd`, with its own resources `A`, `B`): the
-entries `es` become pending in `logCell` (`logPend`), and each gets its `llogIdx`. -/
-theorem log_pend_append (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (es : RLog) (A B : IProp GF)
-    (hstep : Inv γ ∗ srvOwn γ i s ∗ logCouple γ i s.log ∗ leaderIs γ s.term i ∗ receipt es.length ∗
-      ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗ A ⊢
-      |={⊤ \ ↑logN}=> srvOwn γ i { s with log := s.log ++ es } ∗ logCouple γ i (s.log ++ es) ∗
-        ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B) :
-    Inv γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ leaderIs γ s.term i ∗ receipt es.length ∗
-      ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ £ 1 ∗ A ⊢ |={⊤}=>
-      srvOwn γ i { s with log := s.log ++ es } ∗ ghostVar rc.names.logPend (1 : Qp).half es ∗
-      ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B := by
-  iintro ⟨#HInv, #HlogC, Hsrv, #Hldr, Hrc, Htoks, HlogPend, Hlc, HA⟩
-  unfold logCell
-  imod (inv_acc (E := ⊤) (N := logN) (by solve_ndisj)) $$ HlogC with ⟨HI, Hclose⟩
-  imod lc_fupd_elim_later $$ Hlc HI with ⟨%A, %L, %ps, %lo, %c, HownL, Hcouple, HpendC, %HA, #Hcl, %Hlo⟩
-  icombine HpendC HlogPend gives %Hps
-  obtain ⟨-, Hps⟩ := Hps
-  subst Hps
-  simp only [List.append_nil]
-  imod gprot.logCouple_agree γ (⊤ \ ↑logN) (by unfold gprotN logN raftN; solve_ndisj) i s L
-    $$ [Hsrv Hcouple] with ⟨Hsrv, Hcouple, %HL⟩
-  · iframe; iframe #
-  subst HL
-  imod hstep $$ [Hsrv Hcouple Hrc Htoks HA] with ⟨Hsrv, Hcouple, #Hidx, HB⟩
-  · iframe; iframe #
-  imod ghostVar_update_halves es _ _ _ $$ HpendC HlogPend with ⟨HpendC, HlogPend⟩
-  imod Hclose $$ [HownL Hcouple HpendC] with -
-  · inext; iexists A, s.log, es, lo, c; iframe; iframe Hcl; ipureintro; exact ⟨HA, Hlo⟩
-  imodintro
-  iframe; iframe #
--/
 
 /-- The dispatched futures as inflight items, the first at index `b`. -/
 def newItems : Nat → List DItem → List InflightItem
@@ -380,9 +348,10 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 open github_com.hashicorp.raft proto gprot
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- (stage 4) **`dispatchLogs`, generic in the futures' kinds** (`K`) and in the protocol step
-(`hstep`, with its own resources `A` → `B`): the parts of `mainOwnAt` it uses, the leader state with
+(hraft_robust: `hwin`, the window and atomic update of `StoreLogs` firing the step, with its own
+resources `A` → `B`: `storeLogs_app_win`, `storeLogs_cfg_win`): the parts of `mainOwnAt` it uses
+(the view `srvV`, the stable view with the staged commit index, durable), the leader state with
 any replication-map condition `P`; the dispatched entries `es` (one per future, of term `s.term`,
 kinds and data `K`) are appended. `dispatchLogs`' spec (`Kstd`, `leaderAppendCmd_upd`) and
 `appendConfigurationEntry` (one configuration entry, `leaderAppendCfg_upd`) instantiate it. -/
@@ -398,37 +367,43 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (sl : GoSlice) (dq : DFrac)
     (fs : List Loc) (a : Nat) (K : Nat → List w8 → Prop) (A B : IProp GF)
     (P : GMap SID Loc → Prop) (Hne : fs ≠ [])
-    (hstep : ∀ es : RLog, es.length = fs.length → (∀ e ∈ es, e.term = s.term ∧ K e.kind e.data) →
-      (Inv γ ∗ srvOwn γ i s ∗ logCouple γ i s.log ∗ leaderIs γ s.term i ∗ receipt es.length ∗
+    (D : StableAbs) (g : w64)
+    (hwin : ∀ es : RLog, es.length = fs.length → (∀ e ∈ es, e.term = s.term ∧ K e.kind e.data) →
+      ∀ g' : w64, uint.nat g' ≤ s.dur.1 →
+      (Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ stVS rc D g' ∗ leaderIs γ s.term i ∗ receipt es.length ∗
         ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗ A ⊢
-        |={⊤ \ ↑logN}=> srvOwn γ i { s with log := s.log ++ es } ∗ logCouple γ i (s.log ++ es) ∗
-          ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B)) :
+        logWin γ rc i (.store (s.log.length + 1) es) ∗
+        (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+          rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗
+            srvV rc { s with log := s.log ++ es } ∗ stVS rc D g' ∗
+            ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B)))) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
-       srvOwn γ i s ∗ ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
-       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1⌝ ∗
-       ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
+       srvV rc s ∗ stVS rc D g ∗ ⌜uint.nat g ≤ s.dur.1⌝ ∗
+       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
+       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1⌝ ∗ leaderIs γ s.term i ∗
        leaderOwnM r γ rc i s.term P s.log.length ∗
        sl ↦*{dq} fs ∗ ([∗list] f ∈ fs, dispOpen γ rc i K f) ∗ A }}
       (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"dispatchLogs")) (Val #sl))
     {{ RET #(); ∃ es : RLog, ⌜es.length = fs.length ∧ ∀ e ∈ es, e.term = s.term ∧ K e.kind e.data⌝ ∗
-        srvOwn γ i { s with log := s.log ++ es } ∗
+        srvV rc { s with log := s.log ++ es } ∗
+        (∃ g' : w64, stVS rc D g' ∗ ⌜uint.nat g' ≤ s.dur.1⌝) ∗
         ghostVar rc.names.lastLog (1 : Qp).half ((s.log ++ es).length, s.term) ∗
         monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
-        ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
         leaderOwnM r γ rc i s.term P (s.log ++ es).length ∗ sl ↦*{dq} fs ∗ B ∗
         ([∗list] j ↦ q ∈ fs.map (fun q => q.[logFuture, go!"log"]),
           ∃ e, ⌜es[j]? = some e⌝ ∗ logPtr q (s.log.length + 1 + j) e) }} := by
-  wp_start as ⟨#Hr, Hsrv, HlastLog, Happ, %Ha, HlogPend, #Hldr, Hl, Hsl, Hfs, HA⟩
+  wp_start as ⟨#Hr, Hsrv, Hst, %Hg, HlastLog, Happ, %Ha, #Hldr, Hl, Hsl, Hfs, HA⟩
   ihave ⟨#HInv, #Hvoter⟩ := isRaft_proto r γ rc i $$ Hr
   ihave #Hcells := isRaft_cells r γ rc i $$ Hr
   unfold raftCells
-  icases Hcells with ⟨#HtermC, #HcidxC, #HlogC, -, -, -, -⟩
-  imod gprot.srvOwn_facts γ ⊤ (by solve_ndisj) i s $$ [Hsrv] with ⟨Hsrv, -, %Hfacts⟩
-  · iframe; iexact HInv
+  icases Hcells with ⟨#HtermC, #HcidxC, #HdurI, -, -, -, -⟩
+  iapply wp_ncmod _ _ rfl (srvOwn_facts_R γ rc i (E := ⊤) (by solve_ndisj) s)
+  isplitl [Hsrv]; · iframe; iframe #
+  iintro ⟨Hsrv, -, %Hfacts⟩
   obtain ⟨Hg1, Hdurlen, Hcidx, Hvt, Ht1, Htlt, Hloglt, Hcfg1, Hkinds⟩ := Hfacts
   wp_auto
   wp_apply wp_Now as %now -
-  wp_apply wp_getCurrentTerm.1 $$ [$Hsrv $HInv $HtermC] with Hsrv
+  wp_apply wp_getCurrentTerm.1 $$ [$Hsrv $HInv $HtermC $HdurI] with Hsrv
   wp_apply wp_getLastIndex.1 r γ rc i s a $$ [$HlastLog $Hr $Hsrv $Happ] as %li ⟨%HliEq, HlastLog, Hsrv, Happ⟩
   · ipureintro; exact Ha
   ihave %Hsllen := ownSlice_len $$ Hsl
@@ -472,15 +447,17 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     icases Hrest with ⟨Hf, Hrest⟩
     unfold dispOpen
     icases Hf with ⟨%lv, %t0, %v0, %d, %x, Hlog, #Hd, #Hx, Hresp, Hdisp, %HK, Hde⟩
-    imod disp_barrier_prep γ rc i s n0 (s.log.length + 1 + k) ⟨s.term, uint.nat lv.Type', d⟩ rfl
-      (by omega) Hpbc.1 f
+    have hbp := disp_barrier_prep γ rc i (⊤ \ ↑durN) gprotN_diff_durN s n0 (s.log.length + 1 + k)
+      ⟨s.term, uint.nat lv.Type', d⟩ rfl (by omega) Hpbc.1 f
       iprop(⌜lv.Type' = W8 1⌝ ∗ deferResp (f.[logFuture, go!"deferError"]) (fun _ => iprop(True)))
       iprop(⌜lv.Type' = W8 0⌝ ∗ ∃ n : Nat,
         deferResp (f.[logFuture, go!"deferError"]) (futQ γ rc f d n) ∗ opTok γ d n)
       (lv.Type' = W8 4 ∧ d = [])
       iprop(⌜lv.Type' = W8 5⌝ ∗ deferResp (f.[logFuture, go!"deferError"]) cfgChangeQ)
-      $$ [Hsrv Hde] with ⟨Hsrv, Hde⟩
-    · iframe; iframe #
+    iapply wp_ncmod _ _ rfl (durFactL γ rc i (E := ⊤) (by solve_ndisj) s hbp)
+    isplitl [Hsrv Hde]
+    · iframe Hsrv; iframe #; iexact Hde
+    iintro ⟨Hsrv, Hde⟩
     rw [if_pos (show 0 ≤ sint.Z (W64 (k : Int)) ∧ sint.Z (W64 (k : Int)) < sint.Z sl.len by
       constructor <;> word)]
     wp_apply +noauto (wp_load_slice_index sl (sint.Z (W64 k)) fs dq f (by word)) $$ [$Hsl] with Hsl
@@ -547,62 +524,56 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     have hds : ds.map DItem.f = fs := by rw [Hkds, List.take_length]
     have hdslen : ds.length = fs.length := by rw [← hds, List.length_map]
     rw [Nat.sub_self, List.replicate_zero, List.append_nil]
-    wp_apply wp_getCommitIndex.1 $$ [$Hsrv $HInv $HcidxC] as Hsrv
-    wp_apply (lc := 1) wp_tryStageCommitIndex $$ [$Hr]
-    irename Hlc1 => Hlc0
+    wp_apply wp_getCommitIndex.1 $$ [$Hsrv $HInv $HcidxC $HdurI] as Hsrv
+    wp_apply wp_tryStageCommitIndex $$ [$Hr $Hst] as ⟨%g', Hst, %Hg'⟩
+    have hg' : uint.nat g' ≤ s.dur.1 := by
+      rcases Hg' with h | h
+      · subst h; have := Hcidx; have := Htlt; have := Hdurlen; have := Hloglt; word
+      · subst h; exact Hg
     ihave #Hifs := isRaft_ifaces r γ rc i $$ Hr
     unfold raftIfaces
     icases Hifs with ⟨%logsI, %stableI, %snapsI, %transI, %fsmI, %rpcCh, %eof, #Hlogs, #HlogStore, -⟩
     unfold isLogStore
     icases HlogStore with ⟨-, -, -, #HSL, -, -⟩
-    imod inflight_bound γ rc i s ⊤ (by solve_ndisj) fs0 $$ [Hsrv Hfs0] with ⟨Hsrv, Hfs0, %Hfs0b⟩
-    · iframe; iframe #
+    have hib := inflight_bound γ rc i s (⊤ \ ↑durN) gprotN_diff_durN fs0
+    iapply wp_ncmod _ _ rfl (durFactL γ rc i (E := ⊤) (by solve_ndisj) s hib)
+    isplitl [Hsrv Hfs0]
+    · iframe Hsrv; iframe #; iexact Hfs0
+    iintro ⟨Hsrv, Hfs0, %Hfs0b⟩
     ihave ⟨%Hes, #Hptrs, Htoks, Hresps⟩ := dDone_split γ rc i K s.term ds s.log.length $$ Hds
-    imod gprot.append_bound γ ⊤ (by solve_ndisj) i s fs.length $$ [Hsrv Hrc] with ⟨Hsrv, Hrc, %Hbound⟩
-    · iframe; iframe #
-    wp_auto_lc 1
+    iapply wp_ncmod _ _ rfl (append_bound_R γ rc i (E := ⊤) (by solve_ndisj) s fs.length)
+    isplitl [Hsrv Hrc]; · iframe; iframe #
+    iintro ⟨Hsrv, Hrc, %Hbound⟩
+    wp_auto
     have hlen : (ds.map DItem.e).length = fs.length := by rw [List.length_map, hdslen]
-    -- (stage 2) the leader appends to its protocol log before the store (`StoreLogs` takes each
-    -- entry's `llogIdx`): the appended entries are pending in `logCell` until the store holds them
+    -- (hraft_robust) the leader's appends fire at `StoreLogs`' commit (`hwin`), the window lent till then
     rw [show fs.length = (ds.map DItem.e).length by rw [List.length_map, hdslen]] at Hbound
     rw [show fs.length = (ds.map DItem.e).length by rw [List.length_map, hdslen]]
-    imod log_pend_append γ rc i s (ds.map DItem.e) A B (hstep _ hlen Hes)
-      $$ [Hsrv Hrc Htoks HlogPend Hlc0 HA] with ⟨Hsrv, HlogPend, #Hidx, HB⟩
+    ihave ⟨Hwin, Hau⟩ := hwin (ds.map DItem.e) hlen Hes g' hg' $$ [Hsrv Hst Hrc Htoks HA]
     · iframe; iframe #
     wp_apply HSL $$ %lsl %(DFrac.own 1) %(ds.map (fun d => d.f.[logFuture, go!"log"]))
-      %(s.log.length + 1) %(ds.map DItem.e) [] [$Hlsl] []
+      %(s.log.length + 1) %(ds.map DItem.e) [] [$Hlsl] [] [Hwin]
     · ipureintro; exact ⟨by simp, by omega⟩
     · iexact Hptrs
-    unfold logCell
-    imod (inv_acc (E := ⊤) (N := logN) (by solve_ndisj)) $$ HlogC with ⟨HI, Hclose⟩
-    imod lc_fupd_elim_later $$ Hlc1 HI with ⟨%A', %L', %ps', %lo', %c', HownL, Hcouple, HpendC, %HA', #Hcl', %Hlo'⟩
-    icombine HpendC HlogPend gives %Hps'
-    obtain ⟨-, Hps'⟩ := Hps'
-    subst Hps'
-    imod gprot.logCouple_agree γ (⊤ \ ↑logN) (by unfold gprotN logN raftN; solve_ndisj) i _ _
-      $$ [Hsrv Hcouple] with ⟨Hsrv, Hcouple, %HL'⟩
-    · iframe; iframe #
-    simp only at HL'
-    have HL'' : L' = s.log := List.append_cancel_right HL'
-    subst HL''
-    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑logN from Iris.Std.LawfulSet.empty_subset)
-    iintro Hmask
+    · iexact Hwin
+    iintro Hwin Hnc
+    imod Hau $$ Hwin Hnc with ⟨Hnc, Hau⟩
+    imodintro
+    iframe Hnc
     inext
-    iexists _
+    icases Hau with ⟨%A', HownL, Hcl⟩
+    iexists A'
     iframe HownL
     iintro HownL
-    imod Hmask
-    imod ghostVar_update_halves ([] : RLog) _ _ _ $$ HpendC HlogPend with ⟨HpendC, HlogPend⟩
-    imod Hclose $$ [HownL Hcouple HpendC]
-    · inext; iexists _, _, [], lo', c'; rw [List.append_nil]; iframe; iframe Hcl'
-      ipureintro; exact ⟨logMapOk_store A'.m s.log _ lo' HA', Hlo'⟩
+    imod Hcl $$ HownL with ⟨Hsrv, Hst, #Hidx, HB⟩
     imodintro
     iintro Hlsl
     ihave #Himm := isRaft_imm r γ rc i $$ Hr
     unfold raftImm
     icases Himm with ⟨-, #HlocalID, -, -, -, -⟩
-    imod gprot.ackLeader γ ⊤ (by solve_ndisj) i _ $$ [Hsrv] with ⟨Hsrv, #Hack⟩
-    · iframe; iframe #
+    iapply wp_ncmod _ _ rfl (ackLeader_R γ rc i (E := ⊤) (by solve_ndisj) _)
+    isplitl [Hsrv]; · iframe; iframe #
+    iintro ⟨Hsrv, #Hack⟩
     have Hlixeq : uint.nat lix = (s.log ++ ds.map DItem.e).length := by
       rw [List.length_append, List.length_map, hdslen]; exact Hlix
     wp_auto
@@ -665,13 +636,12 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     iapply HΦ
     iexists ds.map DItem.e
     isplitr; · ipureintro; first | exact ⟨hlen, Hes⟩ | exact ⟨rfl, Hes⟩
-    iframe Hsrv HlastLog Happ HlogPend Hsl HB Hptrs
+    iframe Hsrv HlastLog Happ Hsl HB Hptrs
+    isplitl [Hst]; · iexists g'; iframe; ipureintro; exact hg'
     iexists cc, cm, infl', fs0 ++ newItems (s.log.length + 1) ds, rs, rmap, nt, sd, n0
     rw [List.map_append, newItems_f]
     iframe; iframe #
     ipureintro; exact ⟨hsorted, Hcov, hcov'⟩
--/
-
 end proof
 
 end Perennial

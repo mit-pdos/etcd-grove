@@ -110,6 +110,21 @@ def confOwn (r : Loc) (γ : GNames) (i : SID) (s : SState) (a : Nat) : IProp GF 
 theorem mainRest_log (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat)
     (L : RLog) : mainRest r γ rc i { s with log := L } a ⊣⊢ mainRest r γ rc i s a := .rfl
 
+/-- (hraft_robust R4b) The stable store's view (with the staged commit index, durable) out of
+`mainRest` and back with another staged index, durable too. -/
+theorem mainRest_stV (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
+    mainRest r γ rc i s a ⊢ ∃ (D : StableAbs) (g : w64), stVS rc D g ∗ ⌜uint.nat g ≤ s.dur.1⌝ ∗
+      (∀ g' : w64, stVS rc D g' -∗ ⌜uint.nat g' ≤ s.dur.1⌝ -∗ mainRest r γ rc i s a) := by
+  unfold mainRest
+  iintro ⟨%sst, %lch, %γl, %bs, %c, ⟨%g, Hst, %Hg⟩, H⟩
+  iexists sst, g
+  iframe Hst
+  isplitr; · ipureintro; exact Hg
+  iintro %g' Hst %Hg'
+  iexists sst, lch, γl, bs, c
+  isplitl [Hst]; · iexists g'; iframe; ipureintro; exact Hg'
+  iexact H
+
 /-- (hraft_robust R4b) A leader's `mainOwnAt`, opened: its view `srvV`, `lastLog`, `lastApplied`, `leaderIs`,
 the rest and the configurations part. -/
 theorem mainOwnAt_lopen (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
