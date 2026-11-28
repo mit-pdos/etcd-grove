@@ -1166,4 +1166,159 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
       rw [hw]
       iframe Hcf'
       ipureintro; word
+  -- after the scan: the configurations are the log's; the commit index (0) reaches only an empty latest
+  have hidxE : uint.nat idx - 1 = s1.log.length := by have := hl1'.1; word
+  ihave #Hcf2 : (nrCfgFacts γ s1.log s1.log.length (latIdx X.lat) s1.term cfg ccfg cidx li : IProp GF) $$ []
+  · rw [← hidxE]; iexact Hcf
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"getCommitIndex")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"getCommitIndex")]
+  wp_call
+  wp_auto
+  wp_apply sync.atomic.wp_LoadUint64
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  inext
+  iexists _
+  iframe FcommitIndex
+  iintro FcommitIndex
+  imod Hclose with _
+  imodintro
+  wp_auto
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗ ∃ (ccfg' : Configuration) (cidx' : w64),
+      r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg li ∗
+      nrCfgFacts γ s1.log s1.log.length (latIdx X.lat) s1.term cfg ccfg' cidx' li)))
+    $$ [r Hcfgs] [-]
+  · wp_if_destruct
+    · have hli0 : li = W64 0 := by word
+      subst hli0
+      wp_apply wp_setCommittedConfiguration $$ [$Hcfgs] as Hcfgs
+      isplitr; · ipureintro; trivial
+      iframe r
+      iexists cfg, (W64 0)
+      iframe Hcfgs
+      iapply nrCfgFacts_commit γ s1.log s1.log.length _ s1.term cfg ccfg cidx (W64 0) $$ [$Hcf2]
+      rw [show uint.nat (W64 0) = 0 from rfl]
+      iapply cmtIdx_zero
+    · isplitr; · ipureintro; trivial
+      iframe r
+      iexists ccfg, cidx
+      iframe Hcfgs Hcf2
+  iintro %v ⟨%hv, r, %ccfg2, %cidx2, Hcfgs, #Hcf3⟩
+  subst hv
+  wp_auto
+  ------------------------------------------------------------------
+  -- the boot is over: `srvDurInv`
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  ihave H5 := bootEnd (GF := GF) γ rc' i (E := ⊤) (fun _ _ => CoPset.mem_full) A1 X.lat $$ [$Hdi' $Hboot Hlb]
+  · rcases X.lat with _ | ⟨m, b⟩
+    · itrivial
+    · iexact Hlb
+  imod H5 $$ Hnc with ⟨Hnc, #Hdinv⟩
+  iframe Hnc
+  imodintro
+  -- building `isRaft`: the locks
+  imod sync.init_RWMutex_threadPool_low (leaderLockP r) leaderLockN (r.[Raft, go!"leaderLock"]) γLL
+    hb $$ [leaderAddr leaderID] HllIs HllSt HllToks with ⟨%γpLL, #HllGuard, #HllPool⟩
+  · inext; unfold leaderLockP; iexists _, _; iframe
+  imod sync.init_RWMutex_qpool (lastContactP r) (E := ⊤) lastContactLockN
+    (r.[Raft, go!"lastContactLock"]) hb $$ [lastContact] lastContactLock
+    with ⟨%γpLC, #HlcGuard, #HlcPool⟩
+  · inext; unfold lastContactP; iexists _; iframe
+  imod sync.init_RWMutex_qpool (observersP γ rc' i r) (E := ⊤) observersLockN
+    (r.[Raft, go!"observersLock"]) hb $$ [observers HobsM] observersLock
+    with ⟨%γpOL, #HolGuard, #HolPool⟩
+  · inext; unfold observersP; iexists _, _; iframe
+    iapply BigSepM.bigSepM_empty.2; iempintro
+  -- the routines group
+  imod sync.init_WaitGroup (rgN.@"wg") _ $$ routinesGroup with ⟨%γwg, #HwgIs, Hwg, HwgW⟩
+  imod qbank_alloc (GF := GF) with ⟨%γqb, Hqb⟩
+  imod inv_alloc (rgN.@"inv") ⊤ (rgInv γwg γqb) $$ [Hwg HwgW Hqb] with #HrgInv
+  · inext; unfold rgInv; iexists 0; iframe
+  -- the cells
+  iStructNamed leaderState
+  imod inv_alloc termN ⊤ iprop(∃ t : w64,
+      r.[Raft, go!"raftState"].[raftState, go!"currentTerm"] ↦ t ∗ termV rc' (uint.nat t))
+    $$ [FcurrentTerm HtermV] with #HtermCell
+  · inext; iexists _; iframe FcurrentTerm
+    rw [hct]; unfold termV; rw [hdur]; iexact HtermV
+  imod inv_alloc cidxN ⊤ iprop(∃ c : w64,
+      r.[Raft, go!"raftState"].[raftState, go!"commitIndex"] ↦ c ∗ cidxV rc' (uint.nat c))
+    $$ [FcommitIndex HcidxV] with #HcidxCell
+  · inext; iexists _; iframe FcommitIndex
+    rw [show uint.nat (zeroValDef : raftState).commitIndex' = 0 from rfl, ← hci]; unfold cidxV; rw [hdur]
+    iexact HcidxV
+  imod inv_alloc stateN ⊤ iprop(∃ st : w32,
+      r.[Raft, go!"raftState"].[raftState, go!"state"] ↦ st ∗
+      ghostVar rc'.names.state (1 : Qp).half st ∗
+      ⌜st = stFollower ∨ st = stCandidate ∨ st = stLeader⌝)
+    $$ [Fstate Hgst'] with #HstateCell
+  · inext; iexists _; iframe; ipureintro; left; rfl
+  imod inv_alloc cftN ⊤ iprop(∃ b : Bool, sync.atomic.ownBool
+      (r.[Raft, go!"candidateFromLeadershipTransfer"]) (DFrac.own 1) b)
+    $$ [candidateFromLeadershipTransfer] with #HcftCell
+  · inext; iexists false; rw [sync.atomic.ownBool_unseal]; unfold sync.atomic.ownBoolDef
+    rw [show (zeroValDef : sync.atomic.Bool') =
+      ({ «_#0'» := zero_val _, v' := sync.atomic.b32w false } : sync.atomic.Bool') from rfl]
+    iexact candidateFromLeadershipTransfer
+  imod inv_alloc ltipN ⊤ iprop(∃ v : w32, r.[Raft, go!"leaderState"].[leaderState,
+      go!"leadershipTransferInProgress"] ↦ v)
+    $$ [leadershipTransferInProgress] with #HltipCell
+  · inext
+    iexists (W32 0)
+    rw [show (zeroValDef : leaderState).leadershipTransferInProgress' = W32 0 from rfl]
+    iexact leadershipTransferInProgress
+  -- the channels
+  imod start_bag (V := Loc) (applyP γ rc' i) ChanState.Idle applyCh γapply trivial $$ HapplyCh HapplyOwn
+    with #HapplyBag
+  imod start_bag (V := Unit) (fun _ => iprop(False)) ChanState.Idle sdCh γsd trivial $$ HsdCh HsdOwn
+    with #HsdBag
+  imod start_bag (V := Loc) (snapReqP γ rc') ChanState.Idle snapCh γsnap trivial
+    $$ HsnapCh HsnapOwn with #HsnapBag
+  imod start_bag (V := Loc) (ccfP γ) ChanState.Idle ccCh γcc trivial
+    $$ HccCh HccOwn with #HccBag
+  imod start_bag (V := Loc) userSnapP ChanState.Idle usCh γus trivial
+    $$ HusCh HusOwn with #HusBag
+  imod start_bag (V := Loc) (fun _ => iprop(False)) ChanState.Idle urCh γur trivial
+    $$ HurCh HurOwn with #HurBag
+  imod start_bag (V := Loc) (verifyP γ rc' i vCh) (ChanState.Buffered []) vCh γv trivial
+    $$ HvCh HvOwn with #HvBag
+  imod start_bag (V := Loc) (cfgReqP γ rc' i) (ChanState.Buffered []) cfgsCh γcfgs trivial
+    $$ HcfgsCh HcfgsOwn with #HcfgsBag
+  imod start_bag (V := Loc) (fun _ => iprop(False)) ChanState.Idle bsCh γbs trivial
+    $$ HbsCh HbsOwn with #HbsBag
+  imod start_bag (V := Loc) (ltfP γ i) (ChanState.Buffered []) ltCh γlt trivial
+    $$ HltCh HltOwn with #HltBag
+  imod start_bag (V := Unit) (fun _ => iprop(False)) (ChanState.Buffered []) lnCh γln trivial
+    $$ HlnCh HlnOwn with #HlnBag
+  imod start_bag (V := Unit) (fun _ => iprop(False)) (ChanState.Buffered []) fnCh γfn trivial
+    $$ HfnCh HfnOwn with #HfnBag
+  -- the immutable fields
+  ipersist protocolVersion
+  ipersist localID
+  ipersist localAddr
+  ipersist preVoteDisabled
+  ipersist noLegacyTelemetry
+  ipersist stable
+  ipersist trans
+  ipersist rpcCh
+  ipersist applyCh
+  ipersist fsmMutateCh
+  ipersist leaderCh
+  ipersist shutdownCh
+  ipersist fsmSnapshotCh
+  ipersist configurationChangeCh
+  ipersist userSnapshotCh
+  ipersist userRestoreCh
+  ipersist verifyCh
+  ipersist configurationsCh
+  ipersist bootstrapCh
+  ipersist leadershipTransferCh
+  ipersist leaderNotifyCh
+  ipersist followerNotifyCh
+  imod inv_alloc latestCfgN ⊤ (latestCfgCell r γ) $$ [Hlp Hpc] with #HlatInv
+  · inext; unfold latestCfgCell
+    iexists p; iframe
   sorry
