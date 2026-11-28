@@ -101,8 +101,58 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     ipureintro; exact ⟨rfl, fun _ => Hif⟩
   subst Hv
   cases b
-  · rw [if_neg (by simp), if_pos (decide_eq_true rfl)]
-    fail "exit"
+  · rw [if_neg (fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)),
+      if_pos (decide_eq_true rfl)]
+    ihave %Hlts := ownSlice_len $$ Hts
+    (try wp_auto)
+    ihave HJ : (∃ (i : w64) (m : Loc) (k : Nat), "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ m ∗
+        "Hinv" ∷ hhInv hh ∗ "#Hm" ∷ histOwn m (hs.take (hs.length - k)) ∗
+        "%Hi" ∷ ⌜sint.Z i + 1 = k ∧ k ≤ ts.length⌝ : IProp GF) $$ [i n Hinv]
+    · iexists _, nn, ts.length
+      iframe
+      ipureintro; constructor <;> word
+    wp_for HJ
+    wp_if_destruct
+    · have Hik : k = sint.nat i + 1 := by word
+      list_elem ts (sint.nat i) as t
+      have Hb' : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z tsl.len := ⟨by word, by word⟩
+      ihave #Ht := BigSepL.bigSepL_lookup Ht_lookup $$ Htso
+      obtain ⟨x, hx⟩ := take_succ_snoc hs (hs.length - k) (by omega)
+      ihave Ht2 : histOwn t (hs.take (hs.length - k) ++ [x]) $$ [Ht]
+      · rw [← hx, show hs.length - k + 1 = hs.length - sint.nat i by omega]
+        iexact Ht
+      icases (histOwn_snoc t _ x).1 $$ Ht2 with ⟨%hn, #Hp, #Hs, %Hnl, -⟩
+      iStructNamed Hp
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index _ (sint.Z i) ts _ t (by word) $$ [Hts] as Hts
+      · isplit
+        · iexact Hts
+        · ipureintro; exact Ht_lookup
+      (try simp only [Hb', _root_.and_self, ↓reduceIte])
+      wp_apply wp_load_slice_index _ (sint.Z i) ts _ t (by word) $$ [Hts] as Hts
+      · isplit
+        · iexact Hts
+        · ipureintro; exact Ht_lookup
+      (try wp_auto)
+      have Htl := List.length_take_le (hs.length - k) hs
+      wp_apply (wp_intern hh m (hs.take (hs.length - k)) hn.st' x hn.n') $$ [$Hinv $Hm $Hs]
+        as %c ⟨Hinv, #Hc⟩
+      · ipureintro; rw [Hnl]; word
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists _, c, sint.nat i
+      iframe
+      isplitr
+      · rw [show hs.length - sint.nat i = hs.length - k + 1 by omega, hx]
+        iexact Hc
+      ipureintro; constructor <;> word
+    · have Hk0 : k = 0 := by word
+      subst Hk0
+      (try wp_auto)
+      rw [show hs.take (hs.length - 0) = hs by simp]
+      iapply HΦ
+      iframe
   · rw [if_pos (decide_eq_true rfl)]
     have Hnn := Hb rfl
     (try wp_auto)
@@ -112,11 +162,12 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     iintro %lsl ⟨Hl, -⟩
     simp only [arrayLiteralSize1]
     wp_apply (wp_slice_append _ ts _ _ (DFrac.own 1)) $$ [$Hts $Hcap $Hl] as %tsl' ⟨Hts, Hcap, -⟩
-    have Hm : 0 < hs.length - ts.length := by
-      rcases Nat.eq_zero_or_pos (hs.length - ts.length) with h0 | h0
-      · exfalso
-        sorry
-      · exact h0
+    obtain h0 | Hm := Nat.eq_zero_or_pos (hs.length - ts.length)
+    · ihave Hn0 : histOwn nn [] $$ [Hn]
+      · rw [show ([] : List GSt) = hs.take (hs.length - ts.length) by rw [h0, List.take_zero]]
+        iexact Hn
+      icases (histOwn_nil nn).1 $$ Hn0 with %Hnull
+      exact absurd Hnull Hnn
     obtain ⟨x, hx⟩ := take_succ_snoc hs (hs.length - (ts.length + 1)) (by omega)
     ihave Hn2 : histOwn nn (hs.take (hs.length - (ts.length + 1)) ++ [x]) $$ [Hn]
     · rw [← hx, show hs.length - (ts.length + 1) + 1 = hs.length - ts.length by omega]
