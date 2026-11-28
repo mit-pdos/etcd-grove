@@ -59,7 +59,9 @@ theorem nodeOwnB2HD_loop_open (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : 
         genView γ.raft.raftNames (AntSim.nodeId j) x 1 g ∗
         ownDurGhost γ.raft.raftNames (AntSim.nodeId j) D ∗
         (⌜γ.mode.Async' = true⌝ ∨ slotFree γ.raft.raftNames (AntSim.nodeId j) g) ∗
-        ⌜RsViewB2 γ.mode rs v ∧ AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧
+        ⌜RsViewB2 γ.mode rs v ∧
+          AntSim.ReachIn (if γ.mode.Async' then AntSim.mskB25 else AntSim.mskB2) γ.R γ.dec
+            (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧
           (γ.mode.Async' = false → qs = [] ∧ ip = lcpLen v.r.p.log r₁.p.log) ∧ ByOkB2 v.byE ∧
           ViewNormal v ∧ rs.k = γ.R.k j⌝ ∗
         loopRestB2 γ j n v net₀ xnet₀ rs x g D hsl := by
@@ -89,7 +91,8 @@ theorem nodeOwnB2HD_loop_close (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n :
     (rn : Loc) (rs : RNState) (qs : List Msg) (ip : Nat) (x : CrashNames) (g : Nat) (D : RaftState)
     (hsl : Loc)
     (hrv : RsViewB2 γ.mode rs v)
-    (hR : AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁)
+    (hR : AntSim.ReachIn (if γ.mode.Async' then AntSim.mskB25 else AntSim.mskB2) γ.R γ.dec
+      (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁)
     (hsync : γ.mode.Async' = false → qs = [] ∧ ip = lcpLen v.r.p.log r₁.p.log)
     (hby : ByOkB2 v.byE) :
     n.[H.node, go!"rn"] ↦ rn ∗ rawNode γ.raft.raftNames γ.R.md rn (AntSim.nodeId j) rs r₁ qs ip ∗

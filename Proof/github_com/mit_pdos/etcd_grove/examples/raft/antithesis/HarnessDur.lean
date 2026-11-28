@@ -462,7 +462,8 @@ def nodeOwnB2HD (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntS
               (γ.mode.Batch' = false ∧ γ.mode.Async' = false → qs = [] ∧ ip = v.r.p.log.length) ∧
               (γ.mode.Async' = false → hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit)⌝)
           | .loop net₀ xnet₀ r₁ xs₁ => iprop(⌜r = r₁ ∧
-              AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧
+              AntSim.ReachIn (if γ.mode.Async' then AntSim.mskB25 else AntSim.mskB2) γ.R γ.dec
+                (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧
               (γ.mode.Async' = false → qs = [] ∧ ip = lcpLen v.r.p.log r₁.p.log ∧
                 hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit ∧ dk = v.dur ∧ v.parts = []) ∧
               ByOkB2 v.byE⌝ ∗

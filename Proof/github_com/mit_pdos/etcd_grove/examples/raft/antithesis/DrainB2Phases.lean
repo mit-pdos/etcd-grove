@@ -111,8 +111,8 @@ head's view `I.v`, record `I.rs` and durable ghost `I.rs.dur` (`n.hs` at `hsl`),
 the durable ghost, the enter promise (`readyEnterB2`); the `Ready`'s fields read-only (hard state,
 entries, committed entries, read states with raft's certificates), its append receipt to come
 (`readyOut`), its messages owned (a leader's certified at once: `RawNode.Ready.form`'s `Hlead`); the
-loop head's facts (`Reach` from the sent lists' lower bounds `net₀ xnet₀`, `n.hs` the view's disk's),
-the iteration's (`OkB2`). -/
+loop head's facts (`ReachIn` at B2's mask, B2.5's with async storage, from the sent lists' lower
+bounds `net₀ xnet₀`; `n.hs` the view's disk's), the iteration's (`OkB2`). -/
 def drainPreB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (I : DrainIterB1) (x : CrashNames) (g : Nat)
     (net₀ : List Msg) (xnet₀ : List XMsg) (hsl : Loc) : IProp GF :=
   iprop(n.[H.node, go!"rn"] ↦ I.rn ∗
@@ -130,7 +130,8 @@ def drainPreB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (I : DrainIterB1) (x
     ([∗list] q ∈ I.ms, msgOwnZ false q.loc (readyDq q.st) q.st) ∗
     (⌜roleAfter I.rs.role I.ss = StateLeader⌝ -∗
       [∗list] q ∈ I.ms, isRaftMsg γ.raft.raftNames (AntSim.nodeId j) q.st) ∗
-    ⌜AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j I.v I.r ∧
+    ⌜AntSim.ReachIn (if γ.mode.Async' then AntSim.mskB25 else AntSim.mskB2) γ.R γ.dec
+        (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j I.v I.r ∧
       (∀ q ∈ I.ms, DrainMsgOkB1 γ.R I.rs.tc q) ∧ I.OkB2 γ.toAntNames j⌝)
 
 /-- **The iteration's state after the report and the write** (`drainMidB1`'s, but `drain`'s locals),
