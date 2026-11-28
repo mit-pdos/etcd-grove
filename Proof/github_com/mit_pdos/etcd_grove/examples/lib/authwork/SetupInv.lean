@@ -620,7 +620,7 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
     icases Hpub with ⟨%e, #HLe, %He, #Hpa⟩
     ihave %Hidx := srvRLogLb_idx ρ.raft (L ++ [e]) $$ HLe
     have hv := srvIdxOkW_above _ _ _ Hidx hc0 e (by simp)
-    have hsnoc := srvAuthAtLog_snoc_adm ρ.kv srvAuthSt0 L e _ He.1 He.2.1 He.2.2 hv hna
+    have hsnoc := srvAuthAtLog_snoc_adm ρ.kv srvAuthSt0 L e _ He.1 He.2.1 He.2.2 hv (by rfl)
     have hset := setup_enable_ok hm _ _ hl he hok
     ihave Hpa' := authPubAt_on E.authMode γa _ hmode $$ Hpa
     icases Hpa' with ⟨%k, #Hk, #Hst⟩

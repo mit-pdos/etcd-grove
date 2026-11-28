@@ -802,7 +802,7 @@ theorem EtcdServer.RoleAdd.spec_on
   iexact H
 
 /-- **`s.UserGrantRole(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
-with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`, for a user name of at most `maxKeySize` bytes);
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`; nomode D3: any user name, which the store rewrites only when the user exists);
 the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
 `L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
 its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
@@ -812,7 +812,7 @@ abbrev EtcdServer.UserGrantRole.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF))
     (Q : List auth.AuthState → IProp GF) (r : Loc) (user role : GoString) (F : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authUserGrantRoleIs r (user, role) ∗
       adminPreOn s E ρ ctx tok cd F
         (adminHistAu s E ρ tok (irrUserGrantRole user role) Q) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserGrantRole"))
@@ -828,10 +828,10 @@ theorem EtcdServer.UserGrantRole.spec_on
     EtcdServer.UserGrantRole.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx tok cd Qa r user role F
   let Hh := adminHistAu (GF := GF) s E ρ tok (irrUserGrantRole user role) Qa
-  wp_start_folded as ⟨#Hreq, %Hn, HP⟩
+  wp_start_folded as ⟨#Hreq, HP⟩
   ihave #Hc : authRaftOk s ctx (irrUserGrantRole user role) etcdserverpb.AuthUserGrantRoleResponse.ty (adminPreOn s E ρ ctx tok cd F Hh)
       (adminOutOn s E ρ tok (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ []
-  · iapply authRaftOk_on hRR s E ρ ctx tok cd (irrUserGrantRole user role) F _ _ Qa _ rfl rfl (adminPropOk_userGrantRole user role Hn)
+  · iapply authRaftOk_on hRR s E ρ ctx tok cd (irrUserGrantRole user role) F _ _ Qa _ rfl rfl (adminPropOk_userGrantRole user role)
       (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
   wp_apply h s ctx r user role (adminPreOn s E ρ ctx tok cd F Hh)
       (adminOutOn s E ρ tok (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ [HP] as %resp %err H
@@ -840,7 +840,7 @@ theorem EtcdServer.UserGrantRole.spec_on
   iexact H
 
 /-- **`s.RoleGrantPermission(ctx, r)` with auth on** (the auth plan's E3z, 2026-10-27; `AdminOn.lean`): `spec`
-with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`, for a role name of at most `maxKeySize` bytes);
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`; nomode D3: any role name, which the store rewrites only when the role exists);
 the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
 `L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
 its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the
@@ -850,7 +850,7 @@ abbrev EtcdServer.RoleGrantPermission.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF))
     (Q : List auth.AuthState → IProp GF) (r : Loc) (name : GoString) (w : Option auth.PermW) (F : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authRoleGrantPermissionIs r (name, w) ∗
       adminPreOn s E ρ ctx tok cd F
         (adminHistAu s E ρ tok (irrRoleGrantPermission name w) Q) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RoleGrantPermission"))
@@ -866,10 +866,10 @@ theorem EtcdServer.RoleGrantPermission.spec_on
     EtcdServer.RoleGrantPermission.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx tok cd Qa r name w F
   let Hh := adminHistAu (GF := GF) s E ρ tok (irrRoleGrantPermission name w) Qa
-  wp_start_folded as ⟨#Hreq, %Hn, HP⟩
+  wp_start_folded as ⟨#Hreq, HP⟩
   ihave #Hc : authRaftOk s ctx (irrRoleGrantPermission name w) etcdserverpb.AuthRoleGrantPermissionResponse.ty (adminPreOn s E ρ ctx tok cd F Hh)
       (adminOutOn s E ρ tok (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ []
-  · iapply authRaftOk_on hRR s E ρ ctx tok cd (irrRoleGrantPermission name w) F _ _ Qa _ rfl rfl (adminPropOk_roleGrantPermission name w Hn)
+  · iapply authRaftOk_on hRR s E ρ ctx tok cd (irrRoleGrantPermission name w) F _ _ Qa _ rfl rfl (adminPropOk_roleGrantPermission name w)
       (irrNoZeroEnd_admin _ rfl rfl rfl) rfl .rfl (fun _ _ => .rfl)
   wp_apply h s ctx r name w (adminPreOn s E ρ ctx tok cd F Hh)
       (adminOutOn s E ρ tok (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ [HP] as %resp %err H

@@ -26,17 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.RoleRevokePermission(ctx, r)`** for a non-nil request `r`: `raftRequest` on the request
-`irrRoleRevokePermission` (`&pb.InternalRaftRequest{AuthRoleRevokePermission: r}`), taken as the contract `authRaftOk` for the
+/-- **`s.RoleRevokePermission(ctx, r)`** for the request `r` naming the role `role`, the key `key` and the range end `rangeEnd` (`apply.authRoleRevokePermissionIs`): `raftRequest` on the request
+`irrRoleRevokePermission role key rangeEnd` (`&pb.InternalRaftRequest{AuthRoleRevokePermission: r}`), taken as the contract `authRaftOk` for the
 response type `*pb.AuthRoleRevokePermissionResponse` (`AuthEntry.lean`: the proposal path is proved for the KV requests
 only, `reqPropOk`), over the caller's `P` answering `Q`; the outcome `authEntryOut`: the applied
 response (typed) with `Q resp nil`, or `nil` and the error with `Q null err`. The admin check of
 this request is the apply layer's (`apply.adminPass`, for the header's principal). -/
 abbrev EtcdServer.RoleRevokePermission.spec : Prop :=
-  ∀ (s : Loc) (ctx : GoInterfaceOk) (r : Loc) (P : IProp GF)
+  ∀ (s : Loc) (ctx : GoInterfaceOk) (r : Loc) (role key rangeEnd : GoString) (P : IProp GF)
     (Q : Loc → GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜r ≠ null⌝ ∗ P ∗
-      authRaftOk s ctx (irrRoleRevokePermission) etcdserverpb.AuthRoleRevokePermissionResponse.ty P Q }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authRoleRevokePermissionIs r (role, key, rangeEnd) ∗ P ∗
+      authRaftOk s ctx (irrRoleRevokePermission role key rangeEnd) etcdserverpb.AuthRoleRevokePermissionResponse.ty P Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RoleRevokePermission"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗ authEntryOut Q resp err }}

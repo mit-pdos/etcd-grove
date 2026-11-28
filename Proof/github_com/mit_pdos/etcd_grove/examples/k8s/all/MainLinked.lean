@@ -1,8 +1,7 @@
 /-
 `Main`'s callees linked (`notes/k8s-unified-scope.md`), by hand as the compactor's `MainLinked.lean`:
 `k8s_all.Main.wp_proof` applied to `holdToken`'s proof and to the two drivers' linked `MainPartition`
-results (`k8s_etcd3.wp_MainPartition`, `k8s_compactor.wp_MainPartition`, the latter under the named
-hypothesis of `clock.RealClock.After`). `Results.lean` restates it.
+results (`k8s_etcd3.wp_MainPartition`, `k8s_compactor.wp_MainPartition`). `Results.lean` restates it.
 -/
 module
 
@@ -37,16 +36,14 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
 variable [NaInvG GF]
-variable (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
 
-include h_After in
 /-- **The one closed Kubernetes theorem's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/Main.lean`), under the semantic premises of the
-two drivers' linked `MainPartition` results and the named hypothesis of `clock.RealClock.After`. -/
+two drivers' linked `MainPartition` results. -/
 theorem k8s_all.wp_Main :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
   k8s_all.Main.wp_proof k8s_all.holdToken.wp_proof k8s_etcd3.wp_MainPartition
-    (k8s_compactor.wp_MainPartition h_After)
+    k8s_compactor.wp_MainPartition
 
 /-- **`mulBelow`** (`mulBelow.lean`). -/
 theorem k8s_all.wp_mulBelow : k8s_all.mulBelow.spec (GF := GF) (hG := hG) :=
@@ -56,14 +53,13 @@ theorem k8s_all.wp_mulBelow : k8s_all.mulBelow.spec (GF := GF) (hG := hG) :=
 theorem k8s_all.wp_ParamsOk : k8s_all.ParamsOk.spec (GF := GF) (hG := hG) :=
   k8s_all.ParamsOk.wp_proof k8s_all.wp_mulBelow
 
-include h_After in
 /-- **The program's entry point does not panic** (`MainChecked.lean`; the pure-premises plan's P5,
 2026-11-24): `Main`'s linked triple behind `ParamsOk`, with the schedules `cluster3.RandomSchedule`
 draws. -/
 theorem k8s_all.wp_MainChecked :
     k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
   k8s_all.MainChecked.wp_proof k8s_all.wp_ParamsOk cluster3.wp_RandomSchedule
-    (k8s_all.wp_Main h_After)
+    k8s_all.wp_Main
 
 end results
 

@@ -90,6 +90,24 @@ namespace auth
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth
 
+section keys
+variable [GooseExts]
+
+/-- **Every stored user's name a bbolt key** at the state the batch transaction finds (nomode D3,
+2026-11-28: the premise of the writes that rewrite an existing user's record, `UserChangePassword`,
+`UserGrantRole`, `UserRevokeRole`; the fuel's `authSmall.names` gives it). -/
+abbrev userKeysOk (M : AuthMode) (hs : List AuthState) : Prop :=
+  ∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
+    n.length ≤ backend.maxKeySize
+
+/-- **Every stored role's name a bbolt key** (as `userKeysOk`; `RoleGrantPermission`'s and `RoleRevokePermission`'s rewrites;
+`authSmall.roleNames`). -/
+abbrev roleKeysOk (M : AuthMode) (hs : List AuthState) : Prop :=
+  ∀ s : AuthState, histLast M hs s → ∀ r : GoString, (s.roles !! r).isSome →
+    r.length ≤ backend.maxKeySize
+
+end keys
+
 section fields
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 

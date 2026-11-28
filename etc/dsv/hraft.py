@@ -269,4 +269,30 @@ def hraftStepBound : Nat := 2 ^ 62
 net/http's first initialization's `2 ^ 30`. -/
 def hraftThreadBound : Nat := 2 ^ 28''',
     ),
+    boot=dict(
+        # the table: server1's chain (etc/gen-init.py's cmd/server1/PkgTable.lean); every command's
+        # chain is the same but its own package
+        table='server1',
+        owned=[_HRAFTNET, 'net.rpc'],
+        table_doc='''The package facts of the hraft kit's boot (notes/dsv-hraft.md, "The boot"): generic in a program's
+table `G` that gives every package of `hraftnet`'s import closure its `isPkgInit` (`KitG G`), the
+facts at `G` (`wf_*`) and, for the packages whose closure avoids the kit's owned packages
+(`ownedPkgs`: `hraftnet`, whose first initialization the boot proves, and net/rpc's, Net's first run),
+at `gOff S G` for `S` a sub-list of `ownedPkgs` (`wfO_*`): the table in which the packages of `S` are
+not initialized yet.''',
+        cmds_doc='''The hraft kit's twelve commands' boots (notes/dsv-hraft.md, "The boot"): each command's
+initialization from the machine's empty package state, its first, through `hraftnet`'s
+(`BootLinked.lean`, `boot_hraftnet`), at the command's table (`getIsPkgInit`, its `PkgTable.lean`;
+`kitG`).''',
+        opens=['open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net',
+               f'open {HRAFT} {_HRAFTNET}',
+               'open EtcdGrove (wp_package_init_first)'],
+        attributes=['attribute [local instance] GooseGlobalGS.gooseInvGS'],
+        variables='''variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : cmd.{n}.Assumptions] [π : NetProtoGS]''',
+        returns="returns net/rpc's codec unregistered (`codecUnset`, net/rpc's first run's).",
+        q='net.rpc.codecUnset',
+        post='        isPkgInit (PROP := IProp GF) pkg_id.{pkg}.cmd.{n} ∗ net.rpc.codecUnset',
+    ),
 )

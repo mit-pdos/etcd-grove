@@ -79,7 +79,11 @@ stop in the same process: every write is visible to the next open, synced or not
 Q4). (walfiles-fold, 2026-11-28) The records `σ` are also the WAL history's eager fold (`walFiles`' second
 conjunct), as a graceful stop leaves them: without it `srvFiles` admitted a WAL ending with a synced snapshot
 record above the saved commit, on which `bootstrap` succeeds while the restart contract's post (`walRecs h σ`,
-the eager fold) cannot hold (`notes/axiom-review/bootstrap-restart-eagerfold.md`).
+the eager fold) cannot hold (`notes/axiom-review/bootstrap-restart-eagerfold.md`). (walcommitle,
+2026-11-28) Every prefix of that fold has its commit within its last index (`walFiles`' `walCommitLeFrom`,
+raft's `committed ≤ lastIndex`, which every `Save` of the raft loop keeps): without it `srvFiles` admitted a
+WAL with a `Save` whose commit is above its last index, whose `ReadAll` returns entries the fold dropped
+(C1, `notes/axiom-review/bootstrap-restart-commitle.md`).
 
 (out_size C3, 2026-11-12; freeze-c2 §4 MAJ-1, MAJ-2, MIN-3) **The WAL's files are sized**
 (`walFiles … true`). What that asserts (`walFiles`' trusted docstring): every entry record a

@@ -151,7 +151,7 @@ theorem commitOkOn_admin (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain) (st�
     refine ⟨fun _ _ => ?_, fun hkv => ?_⟩
     · apply authDet_of_sorted
       · exact rolesSorted_kvRaftOfOn c₀ ch _ L hsort
-      · exact hpw
+      · exact ⟨hpw, adminKindOk_cpSure rq hk⟩
     · rw [adminKindOk_nonAuthKV rq hk] at hkv; cases hkv
 
 /-- **A write-free entry keeps the mode-`on` model's state** (auth state, log and table): a request
@@ -173,7 +173,8 @@ theorem kvEntryOn_nonwrite (c₀ : w64) (ch : apply.Chain) (s : OnState)
   unfold kvEntryOn
   split
   · rw [hdec]
-    simp only [hna, Bool.false_eq_true, _root_.and_false, ↓reduceIte]
+    simp only [hna, adminDispatchKind_of_needAdmin_false rq hna, Bool.false_eq_true,
+      _root_.false_and, _root_.and_false, ↓reduceIte]
     split
     · rfl
     · rw [hk, hl]
@@ -264,11 +265,11 @@ def admRec (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (L : L
   auth.adminOk (srvAuthAtLog γk st₀ L) (some (auth.authInfoM (apply.principalOf rq))) ∧
     adminNext rq (srvAuthAtLog γk st₀ L) ≠ srvAuthAtLog γk st₀ L
 
-/-- An entry of a request needing the admin permission is recorded exactly when `admRec`. -/
+/-- An entry of a request of an admin kind is recorded exactly when `admRec`. -/
 theorem admEntry_iff_admRec (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (e : EntryModel) (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hv : uint.Z γk.c0 < uint.Z e.index)
-    (ha : apply.needAdminPermission rq = true) :
+    (ha : adminDispatchKind (apply.dispatchKind rq) = true) :
     admEntry γk.c0 (srvAuthAtLog γk st₀ L) e ↔ admRec γk st₀ rq L := by
   unfold admEntry admRec
   constructor
@@ -280,7 +281,7 @@ theorem admEntry_iff_admRec (γk : KVNames) (st₀ : auth.AuthState) (L : List E
 theorem srvAuthAtLog_snoc_adm (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
     (m : EntryModel) (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : uint.Z γk.c0 < uint.Z m.index)
-    (ha : apply.needAdminPermission rq = true) :
+    (ha : adminDispatchKind (apply.dispatchKind rq) = true) :
     srvAuthAtLog γk st₀ (L ++ [m]) = adminNext rq (srvAuthAtLog γk st₀ L) := by
   unfold srvAuthAtLog
   rw [kvRaftOfOn_snoc, kvEntryOn_admin _ _ _ m rq ht hd hdec hv ha]
@@ -874,8 +875,10 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
               split at hk <;> simp_all [writeKind]
             exact ⟨kvModelOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec) hna hw,
               kvLeasesOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec) hna hw⟩
-          · exact ⟨kvModelOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe hna,
-              kvLeasesOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe hna⟩
+          · exact ⟨kvModelOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe
+              (adminDispatchKind_of_adminKindOk _ hadm.1 hna),
+              kvLeasesOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe
+              (adminDispatchKind_of_adminKindOk _ hadm.1 hna)⟩
         have hent := hent2.1
         have hentL := hent2.2
         have hshe : entryShapeOn γk.lm e :=
@@ -900,7 +903,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         iunfold adminPropRes
         ipureintro
         have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L hadm.2.2.2
-        exact ⟨hs, authDet_of_sorted (apply.withHeader rq₀ hm) _ hs hadm.2.2.1⟩
+        exact ⟨hs, authDet_of_sorted (apply.withHeader rq₀ hm) _ hs ⟨hadm.2.2.1, adminKindOk_cpSure _ hadm.1⟩⟩
     · -- (5b) needing the admin permission: recorded in the history, its client's update fires
       obtain ⟨hadm, -, hna0, hQr⟩ := Had
       subst hQr
@@ -941,8 +944,10 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
               split at hk <;> simp_all [writeKind]
             exact ⟨kvModelOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec) hna hw,
               kvLeasesOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec) hna hw⟩
-          · exact ⟨kvModelOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe hna,
-              kvLeasesOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe hna⟩
+          · exact ⟨kvModelOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe
+              (adminDispatchKind_of_adminKindOk _ hadm.1 hna),
+              kvLeasesOn_snoc_admin γk st₀ L e (apply.withHeader rq₀ hm) het hdata (by rw [hed]; exact hdec) hidxe
+              (adminDispatchKind_of_adminKindOk _ hadm.1 hna)⟩
         have hent := hent2.1
         have hentL := hent2.2
         have hshe : entryShapeOn γk.lm e :=
@@ -954,13 +959,13 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         have hdec' : apply.irrDecode e.data = some (apply.withHeader rq₀ hm) := by
           rw [hed]; exact hdec
         have hsrt := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L hadm.2.2.2
-        have hdet := authDet_of_sorted (apply.withHeader rq₀ hm) _ hsrt hadm.2.2.1
+        have hdet := authDet_of_sorted (apply.withHeader rq₀ hm) _ hsrt ⟨hadm.2.2.1, adminKindOk_cpSure _ hadm.1⟩
         have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc (by omega)
         by_cases hr : admRec γk st₀ (apply.withHeader rq₀ hm) L
         · -- recorded: the history grows by the state after the entry
-          have hae := (admEntry_iff_admRec γk st₀ L e _ het hdata hdec' hidxe hna0).2 hr
+          have hae := (admEntry_iff_admRec γk st₀ L e _ het hdata hdec' hidxe (adminDispatchKind_of_adminKindOk _ hadm.1 hna0)).2 hr
           have hst := admStates_snoc_adm γk st₀ L e hae
-          have hnext := srvAuthAtLog_snoc_adm γk st₀ L e _ het hdata hdec' hidxe hna0
+          have hnext := srvAuthAtLog_snoc_adm γk st₀ L e _ het hdata hdec' hidxe (adminDispatchKind_of_adminKindOk _ hadm.1 hna0)
           iunfold srvRLog at HL
           ihave #Hlbe := monoListLbOwn_get γ.raft.log _ (L ++ [e]) $$ HL
           ihave #HlbL := monoListLbOwn_le L (List.prefix_append L [e]) $$ Hlbe
@@ -1014,7 +1019,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           ipureintro; exact hr
         · -- not recorded: the auth state, and so the history, kept
           have hae : ¬ admEntry γk.c0 (srvAuthAtLog γk st₀ L) e := fun h =>
-            hr ((admEntry_iff_admRec γk st₀ L e _ het hdata hdec' hidxe hna0).1 h)
+            hr ((admEntry_iff_admRec γk st₀ L e _ het hdata hdec' hidxe (adminDispatchKind_of_adminKindOk _ hadm.1 hna0)).1 h)
           ihave #HhL := monoListLbOwn_get γk.hist _ (admStates γk st₀ L) $$ Hh
           ihave HG := kvGrantIds_snoc_keep γk L e (hng e hed (by first
             | exact plainReqL_nonGrant _ _ (plainReqL_of_plainReq γk.lm _ hplain)

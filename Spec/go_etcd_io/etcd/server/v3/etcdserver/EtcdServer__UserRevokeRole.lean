@@ -26,17 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.UserRevokeRole(ctx, r)`** for a non-nil request `r`: `raftRequest` on the request
-`irrUserRevokeRole` (`&pb.InternalRaftRequest{AuthUserRevokeRole: r}`), taken as the contract `authRaftOk` for the
+/-- **`s.UserRevokeRole(ctx, r)`** for the request `r` naming the user `name` and the role `role` (`apply.authUserRevokeRoleIs`): `raftRequest` on the request
+`irrUserRevokeRole name role` (`&pb.InternalRaftRequest{AuthUserRevokeRole: r}`), taken as the contract `authRaftOk` for the
 response type `*pb.AuthUserRevokeRoleResponse` (`AuthEntry.lean`: the proposal path is proved for the KV requests
 only, `reqPropOk`), over the caller's `P` answering `Q`; the outcome `authEntryOut`: the applied
 response (typed) with `Q resp nil`, or `nil` and the error with `Q null err`. The admin check of
 this request is the apply layer's (`apply.adminPass`, for the header's principal). -/
 abbrev EtcdServer.UserRevokeRole.spec : Prop :=
-  ∀ (s : Loc) (ctx : GoInterfaceOk) (r : Loc) (P : IProp GF)
+  ∀ (s : Loc) (ctx : GoInterfaceOk) (r : Loc) (name role : GoString) (P : IProp GF)
     (Q : Loc → GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜r ≠ null⌝ ∗ P ∗
-      authRaftOk s ctx (irrUserRevokeRole) etcdserverpb.AuthUserRevokeRoleResponse.ty P Q }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authUserRevokeRoleIs r (name, role) ∗ P ∗
+      authRaftOk s ctx (irrUserRevokeRole name role) etcdserverpb.AuthUserRevokeRoleResponse.ty P Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserRevokeRole"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗ authEntryOut Q resp err }}

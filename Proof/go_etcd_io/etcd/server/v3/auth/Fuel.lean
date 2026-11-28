@@ -52,6 +52,8 @@ structure authSmall (st : AuthState) : Prop where
   utf8 : rolesUtf8 st
   /-- every user's and role's name non-empty (the re-review's m1) -/
   nonempty : namesOk st
+  /-- every role's name a bbolt key (nomode D3: the role-keyed writes of an existing role) -/
+  roleNames : ∀ r, (st.roles !! r).isSome → r.length ≤ backend.maxKeySize
   perms : ∃ L : List GoString, L.Nodup ∧ (∀ r, (st.roles !! r).isSome → r ∈ L) ∧
     permsOn st L ≤ st.revision
 
@@ -125,12 +127,12 @@ theorem permsFit_of_small (st : AuthState) (h : authSmall st) (hr : st.revision 
 theorem authSmall_bump (st : AuthState) (h : authSmall st) : authSmall (bump st) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
   exact ⟨h.nodup, fun u us hu => Nat.le_succ_of_le (h.roles u us hu), h.names, h.utf8, h.nonempty,
-    L, hL, hdom, by simp only [bump, permsOn] at hle ⊢; omega⟩
+    h.roleNames, L, hL, hdom, by simp only [bump, permsOn] at hle ⊢; omega⟩
 
 theorem authSmall_enabled (st : AuthState) (b : Bool) (h : authSmall st) :
     authSmall { st with enabled := b } := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  exact ⟨h.nodup, h.roles, h.names, h.utf8, h.nonempty, L, hL, hdom,
+  exact ⟨h.nodup, h.roles, h.names, h.utf8, h.nonempty, h.roleNames, L, hL, hdom,
     by simp only [permsOn] at hle ⊢; omega⟩
 
 /-- A user's record written (its roles without duplicates, at most the bumped revision in number,
@@ -140,7 +142,7 @@ theorem authSmall_bump_putUser (st : AuthState) (name : GoString) (us : User) (h
     (hu8 : ∀ x ∈ us, utf8Valid x) (hne : name ≠ [])
     (h : authSmall st) : authSmall (bump (putUser st name us)) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  refine ⟨?_, ?_, ?_, ?_, ?_, L, hL, hdom, by simp only [bump, putUser, permsOn] at hle ⊢; omega⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, h.roleNames, L, hL, hdom, by simp only [bump, putUser, permsOn] at hle ⊢; omega⟩
   · intro u us' hu
     by_cases e : name = u
     · subst e; simp only [bump, putUser, GMap.lookup_insert] at hu; cases hu; exact hus
@@ -167,7 +169,7 @@ theorem authSmall_bump_putUser (st : AuthState) (name : GoString) (us : User) (h
 theorem authSmall_bump_delUser (st : AuthState) (name : GoString) (h : authSmall st) :
     authSmall (bump (delUser st name)) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  refine ⟨?_, ?_, ?_, ?_, ?_, L, hL, hdom, by simp only [bump, delUser, permsOn] at hle ⊢; omega⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, h.roleNames, L, hL, hdom, by simp only [bump, delUser, permsOn] at hle ⊢; omega⟩
   · intro u us' hu
     by_cases e : name = u
     · subst e; simp [bump, delUser] at hu
@@ -194,6 +196,7 @@ theorem authSmall_bump_delUser (st : AuthState) (name : GoString) (h : authSmall
 /-- A role's permissions replaced by at most one more, with the revision bumped. -/
 theorem authSmall_bump_putRole (st : AuthState) (name : GoString) (ps : Role)
     (hps : ps.length ≤ ((st.roles !! name).getD []).length + 1) (hne : name ≠ [])
+    (hrn : name.length ≤ backend.maxKeySize)
     (h : authSmall st) : authSmall (bump (putRole st name ps)) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
   have hg : ∀ x, x ≠ name → (((putRole st name ps).roles !! x).getD []).length =
@@ -203,10 +206,13 @@ theorem authSmall_bump_putRole (st : AuthState) (name : GoString) (ps : Role)
   have hgn : (((putRole st name ps).roles !! name).getD []).length = ps.length := by
     simp only [putRole, GMap.lookup_insert, Option.getD_some]
   refine ⟨h.nodup, fun u us hu => Nat.le_succ_of_le (h.roles u us hu), h.names, h.utf8,
-    ⟨h.nonempty.1, fun n hn' => ?_⟩, ?_⟩
+    ⟨h.nonempty.1, fun n hn' => ?_⟩, fun r hr => ?_, ?_⟩
   · by_cases e : name = n
     · subst e; exact hne
     · apply h.nonempty.2 n; simpa only [bump, putRole, GMap.lookup_insert_ne _ _ e] using hn'
+  · by_cases e : name = r
+    · subst e; exact hrn
+    · apply h.roleNames r; simpa only [bump, putRole, GMap.lookup_insert_ne _ _ e] using hr
   by_cases hn : name ∈ L
   · refine ⟨L, hL, ?_, ?_⟩
     · intro r hr
@@ -243,7 +249,7 @@ theorem authSmall_bump_putRole (st : AuthState) (name : GoString) (ps : Role)
 theorem authSmall_bump_delRole (st : AuthState) (name : GoString) (h : authSmall st) :
     authSmall (bump (delRole st name)) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  refine ⟨?_, ?_, ?_, ?_, ?_, L, hL, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, L, hL, ?_, ?_⟩
   · intro u us hu
     simp only [bump, delRole, GMap.lookup_fmap] at hu
     cases e : st.users !! u with
@@ -284,6 +290,10 @@ theorem authSmall_bump_delRole (st : AuthState) (name : GoString) (h : authSmall
     · by_cases e : name = n
       · subst e; simp [bump, delRole] at hn
       · apply h.nonempty.2 n; simpa only [bump, delRole, GMap.lookup_delete_ne _ e] using hn
+  · intro r hr
+    by_cases e : name = r
+    · subst e; simp [bump, delRole] at hr
+    · apply h.roleNames r; simpa only [bump, delRole, GMap.lookup_delete_ne _ e] using hr
   · intro r hr
     by_cases e : name = r
     · subst e; simp [bump, delRole] at hr
@@ -400,7 +410,10 @@ theorem stepSmall_userRevokeRole (en : Bool) (name role : GoString) :
             (h.nonempty.1 name (by rw [hu]; rfl)) h⟩
       · cases hR
 
-theorem stepSmall_roleAdd (name : GoString) : StepSmall (stepOf (roleAddF name)) := by
+/-- `RoleAdd` of a name within bbolt's key bound (the request's premise; nomode D3: `authSmall`'s
+`roleNames`). -/
+theorem stepSmall_roleAdd (name : GoString) (hn : name.length ≤ backend.maxKeySize) :
+    StepSmall (stepOf (roleAddF name)) := by
   intro st st' h hR
   simp only [stepOf, roleAddF] at hR
   split at hR
@@ -409,7 +422,7 @@ theorem stepSmall_roleAdd (name : GoString) : StepSmall (stepOf (roleAddF name))
     split at hR
     · cases hR
     · cases hR
-      exact ⟨by simp [bump, putRole], authSmall_bump_putRole st name [] (by simp) hne h⟩
+      exact ⟨by simp [bump, putRole], authSmall_bump_putRole st name [] (by simp) hne hn h⟩
 
 theorem stepSmall_roleDelete (en : Bool) (role : GoString) :
     StepSmall (stepOf (roleDeleteF en role)) := by
@@ -431,7 +444,8 @@ theorem stepSmall_roleRevokePermission (role key rangeEnd : GoString) :
     split at hR
     · cases hR
       refine ⟨by simp [bump, putRole],
-        authSmall_bump_putRole st role _ ?_ (h.nonempty.2 role (by rw [hps]; rfl)) h⟩
+        authSmall_bump_putRole st role _ ?_ (h.nonempty.2 role (by rw [hps]; rfl))
+          (h.roleNames role (by rw [hps]; rfl)) h⟩
       rw [hps]; simp only [Option.getD_some]
       have := List.length_filter_le (fun p => decide ¬ permAt key rangeEnd p) ps
       omega
@@ -451,7 +465,8 @@ theorem stepSmall_roleGrantPermission (role : GoString) (w : Option PermW) :
       · rename_i ps hps
         cases hR
         refine ⟨by simp [bump, putRole],
-          authSmall_bump_putRole st role _ ?_ (h.nonempty.2 role (by rw [hps]; rfl)) h⟩
+          authSmall_bump_putRole st role _ ?_ (h.nonempty.2 role (by rw [hps]; rfl))
+          (h.roleNames role (by rw [hps]; rfl)) h⟩
         rw [hps]; simp only [Option.getD_some]
         have := List.length_filter_le (fun p => decide ¬ permAt w.key w.rangeEnd p) ps
         simp only [grantPerms, permInsert_length]; omega

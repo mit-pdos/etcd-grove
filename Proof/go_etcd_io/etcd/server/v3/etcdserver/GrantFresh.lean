@@ -120,7 +120,9 @@ theorem kvEntryOn_ids_sub (c₀ : w64) (ch : apply.Chain) (s : OnState) (m : Ent
       · exact Or.inl hi
       · split at hi
         · exact Or.inl hi
-        · exact kvTable_ids_sub c₀ ch s.2.2 m i hi
+        · split at hi
+          · exact Or.inl hi
+          · exact kvTable_ids_sub c₀ ch s.2.2 m i hi
     · exact Or.inl hi
   · exact kvTable_ids_sub c₀ ch s.2.2 m i hi
 

@@ -152,7 +152,7 @@ Reflector__syncWith: RealFIFO__Replace
 #
 # the reflector's list-watch (reflector.go, DaemonSet plan phase 4, fifth round). Named hypotheses
 # (`?`, no axioms this round): outside client-go, names-only: klog's FromContext, logr's V/Info,
-# utilnet.IsConnectionRefused, rand.Float64, RealClock.After, wait.Group.Start; boundary pending
+# utilnet.IsConnectionRefused, rand.Float64, wait.Group.Start; boundary pending
 # approval: the apierrors predicates, meta.ExtractListWithAlloc/LenList, Trace.Step (since k8s 7g,
 # 2026-11-19, `IsTooManyRequests` is an axiom, below without `?`; since (B'), 2026-11-20, `meta.ListAccessor`
 # is proved, and the typed lists' facts it gave are the pending `typedListMeta`, not a Go function);
@@ -171,7 +171,8 @@ errors_IsTooManyRequests: errors_reasonAndCodeForError
 errors_IsInternalError: ?
 net_IsConnectionRefused: ?
 rand_Float64: ?
-clock_RealClock__After: ?
+# (2026-11-28) over its body, `time.After` (Perennial's verified `time`)
+clock_RealClock__After:
 wait_Group__Start: ?
 meta_ListAccessor:
 typedListMeta: ?

@@ -51,6 +51,13 @@ inductive AdminReq where
   | roleGrantPermission (name : GoString) (w : Option auth.PermW)
   | authEnable
   | authenticate (name pre : GoString)
+  /-- (nomode D3, 2026-11-28) the six other admin requests -/
+  | authDisable
+  | userDelete (name : GoString)
+  | userChangePassword (name : GoString)
+  | userRevokeRole (name role : GoString)
+  | roleDelete (role : GoString)
+  | roleRevokePermission (role key rangeEnd : GoString)
 
 /-- The applier's method the request runs. -/
 @[reducible] def AdminReq.method : AdminReq → GoString
@@ -60,17 +67,31 @@ inductive AdminReq where
   | .roleGrantPermission _ _ => go!"RoleGrantPermission"
   | .authEnable => go!"AuthEnable"
   | .authenticate _ _ => go!"Authenticate"
+  | .authDisable => go!"AuthDisable"
+  | .userDelete _ => go!"UserDelete"
+  | .userChangePassword _ => go!"UserChangePassword"
+  | .userRevokeRole _ _ => go!"UserRevokeRole"
+  | .roleDelete _ => go!"RoleDelete"
+  | .roleRevokePermission _ _ _ => go!"RoleRevokePermission"
 
-/-- The request's name within bbolt's key bound (the step specs' premise; `AuthEnable` has none);
+/-- The request's name within bbolt's key bound where the step adds a record of that name
+(`UserAdd`, `RoleAdd`; nomode D3: a rewrite of an existing record takes
+`auth.userKeysOk`/`roleKeysOk` from the fuel instead);
 (2026-10-30) an `Authenticate`'s token prefix one the provider makes (`auth.tokPrefixOk`); (S0's
 F4, 2026-11-12) a `UserGrantRole`'s role valid UTF-8 (the decoded request's, `irrUtf8`). -/
 @[reducible] def AdminReq.nameOk : AdminReq → Prop
   | .userAdd n => n.length ≤ backend.maxKeySize
   | .roleAdd n => n.length ≤ backend.maxKeySize
-  | .userGrantRole u ro => u.length ≤ backend.maxKeySize ∧ utf8Valid ro
-  | .roleGrantPermission n _ => n.length ≤ backend.maxKeySize
+  | .userGrantRole _ ro => utf8Valid ro
+  | .roleGrantPermission _ _ => True
   | .authEnable => True
   | .authenticate _ pre => auth.tokPrefixOk pre
+  | .authDisable => True
+  | .userDelete _ => True
+  | .userChangePassword _ => True
+  | .userRevokeRole _ _ => True
+  | .roleDelete _ => True
+  | .roleRevokePermission _ _ _ => True
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -86,10 +107,17 @@ variable [sem : go.Semantics]
   | .roleGrantPermission _ _ => etcdserverpb.AuthRoleGrantPermissionResponse.ty
   | .authEnable => etcdserverpb.AuthEnableResponse.ty
   | .authenticate _ _ => etcdserverpb.AuthenticateResponse.ty
+  | .authDisable => etcdserverpb.AuthDisableResponse.ty
+  | .userDelete _ => etcdserverpb.AuthUserDeleteResponse.ty
+  | .userChangePassword _ => etcdserverpb.AuthUserChangePasswordResponse.ty
+  | .userRevokeRole _ _ => etcdserverpb.AuthUserRevokeRoleResponse.ty
+  | .roleDelete _ => etcdserverpb.AuthRoleDeleteResponse.ty
+  | .roleRevokePermission _ _ _ => etcdserverpb.AuthRoleRevokePermissionResponse.ty
 
 /-- The method's argument: the request `r`, or none (`AuthEnable()`). -/
 @[reducible] def AdminReq.arg (r : Loc) : AdminReq → val
   | .authEnable => #()
+  | .authDisable => #()
   | _ => #r
 
 /-- The request `r` holds the request (read-only: the auth package's request models). -/
@@ -101,6 +129,12 @@ variable [sem : go.Semantics]
   | .authEnable => iprop(True)
   | .authenticate n pre => iprop(∃ am : AuthenticateModel, authenticateIs r am ∗
       ⌜am.name = n ∧ am.simpleToken = pre⌝)
+  | .authDisable => iprop(True)
+  | .userDelete n => auth.userDeleteReqIs r n
+  | .userChangePassword n => iprop(auth.userChangePasswordReqIs r n ∗ auth.userChangePasswordSure r)
+  | .userRevokeRole n ro => auth.userRevokeRoleReqIs r n ro
+  | .roleDelete ro => auth.roleDeleteReqIs r ro
+  | .roleRevokePermission ro k e => auth.roleRevokePermissionReqIs r ro k e
 
 /-- **What the request needs besides `mPre`** (C1's A2, 2026-10-28): for an `Authenticate`, an
 index `x` that `ConsistentIndex()` returns under the resource it borrows from the critical section's
@@ -116,6 +150,13 @@ five that may append to the history `hs`, the cap's permission for their step (`
   | .authEnable => auth.capNextM (.on γa) hs auth.authEnableOwnR
   | .authenticate _ pre => iprop(∃ x : w64, ciSplitAt E Pre x ∗
       auth.tokFresh γa (auth.simpleTok pre x))
+  | .authDisable => auth.capNextM (.on γa) hs (auth.ownFlagR auth.authDisableF)
+  | .userDelete n => auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.userDeleteF en n))
+  | .userChangePassword n => auth.capNextM (.on γa) hs (auth.stepOf (auth.userChangePasswordF n))
+  | .userRevokeRole n ro =>
+      auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.userRevokeRoleF en n ro))
+  | .roleDelete ro => auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.roleDeleteF en ro))
+  | .roleRevokePermission ro k e => auth.capNextM (.on γa) hs (auth.roleRevokePermissionR ro k e)
 
 /-- **The request's result** with the error `err` for the authority family `Own` (E2l's
 `adminOutFu` at `Own = auth.authOwnFu`; E2v: an authority carrying a resource of its history,
@@ -138,6 +179,28 @@ refusal; (C1's A2) an `Authenticate`'s, at its response `resp`: the authority as
       auth.adminOutX (.on γa) (Own γa) hs (authEnableR M en) auth.noExtra err ∗
       ⌜err = GoInterface.nil → resp ≠ null⌝)
   | .authenticate n _ => iprop(Own γa hs ∗ authnOut γa n resp err)
+  | .authDisable => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
+      auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.authDisableF en)))
+        auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
+  | .userDelete n => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
+      auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.userDeleteF en n)))
+        auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
+  | .userChangePassword n =>
+      iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userChangePasswordF n)) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝)
+  | .userRevokeRole n ro => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
+      auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.userRevokeRoleF en n ro)))
+        auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
+  | .roleDelete ro => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
+      auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.roleDeleteF en ro)))
+        auth.noExtra err ∗
+      ⌜err = GoInterface.nil → resp ≠ null⌝)
+  | .roleRevokePermission ro k e =>
+      iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.roleRevokePermissionR ro k e) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝)
 
 /-- **The admin triples of the `applierV3` value `ai` of the chain `c`** in the mode `on γa`
 (see the file header), with the store's write resource `W` and the authority family `Own` (E2l's
@@ -364,6 +427,12 @@ theorem applierAdmin_backendX
     (hUGR : applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAD : applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG))
+    (hUD : applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hUC : applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG))
+    (hURR : applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRD : applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hRRP : applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG))
     (hAu : applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
@@ -400,7 +469,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn.1 hn.2) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | roleGrantPermission n w =>
@@ -408,7 +477,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | authEnable =>
@@ -418,6 +487,54 @@ theorem applierAdmin_backendX
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
     iapply (hAE E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm] HΦ
     iframe Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm
+    iframe #
+  | authDisable =>
+    simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
+    iintro !> %Φ ⟨-, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
+    iunfold adminWTs at Hwb
+    icases Hwb with ⟨Hw1, Hw2, Hw3⟩
+    iapply (hAD E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm] HΦ
+    iframe Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm
+    iframe #
+  | userDelete n =>
+    simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
+    iunfold adminWTs at Hwb
+    icases Hwb with ⟨Hw1, Hw2, Hw3⟩
+    iapply (hUD E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+    iframe #
+  | userChangePassword n =>
+    simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
+    iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
+    iunfold adminWTs at Hwb
+    icases Hwb with ⟨Hw1, Hw2, Hw3⟩
+    iapply (hUC E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
+    iframe #
+  | userRevokeRole n ro =>
+    simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
+    iunfold adminWTs at Hwb
+    icases Hwb with ⟨Hw1, Hw2, Hw3⟩
+    iapply (hURR E γa X W p r log Pre Q Post info hs n ro hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+    iframe #
+  | roleDelete ro =>
+    simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
+    iunfold adminWTs at Hwb
+    icases Hwb with ⟨Hw1, Hw2, Hw3⟩
+    iapply (hRD E γa X W p r log Pre Q Post info hs ro hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+    iframe #
+  | roleRevokePermission ro k e =>
+    simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
+    iunfold adminWTs at Hwb
+    icases Hwb with ⟨Hw1, Hw2, Hw3⟩
+    iapply (hRRP E γa X W p r log Pre Q Post info hs ro k e hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
     iframe #
   | authenticate n pre =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result, AdminReq.extraPre]
@@ -442,6 +559,12 @@ theorem applierAdmin_baseX
     (hUGR : applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAD : applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG))
+    (hUD : applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hUC : applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG))
+    (hURR : applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRD : applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hRRP : applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG))
     (hAu : applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (opts : ApplierOptions)
     (a : GoInterface) :
@@ -453,7 +576,7 @@ theorem applierAdmin_baseX
   iintro ⟨#Hpkg, #Hbk, #Hpb, #Hst⟩
   ihave #Hbs : backendAuthStepsX E pb X W $$ []
   · iunfold backendAuthStepsX; iexists opts; iframe Hpb Hst
-  iapply applierAdmin_backendX hUA hRA hUGR hRGP hAE hAu E X W pb $$ [Hpkg Hbk Hbs]
+  iapply applierAdmin_backendX hUA hRA hUGR hRGP hAE hAD hUD hUC hURR hRD hRRP hAu E X W pb $$ [Hpkg Hbk Hbs]
   iframe #
 
 /-- **The uber-applier's base applier's admin triples** (E2m, continued; generic, E2v): from
@@ -483,6 +606,12 @@ theorem applierAdmin_uberX
     (hUGR : applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
     (hRGP : applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
     (hAE : applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (hAD : applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG))
+    (hUD : applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hUC : applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG))
+    (hURR : applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRD : applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG))
+    (hRRP : applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG))
     (hAu : applierV3backend.Authenticate.specX (GF := GF) (hG := hG))
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc)
     (opts : ApplierOptions) :
@@ -491,7 +620,7 @@ theorem applierAdmin_uberX
       ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
         applierAdmin E (baseChain E.authOn) base W (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) :=
   applierAdmin_uberG E W _ (fun st => iprop(□ ∀ B : mvcc.KBReal, isAuthStepsX st (E.Pk B) E.f E.authMode X W (bkWTFor E) E.RD)) p opts
-    (fun a => applierAdmin_baseX hUA hRA hUGR hRGP hAE hAu E X W opts a)
+    (fun a => applierAdmin_baseX hUA hRA hUGR hRGP hAE hAD hUD hUC hURR hRD hRRP hAu E X W opts a)
 
 /-- **The alarms' wrappers' admin triples** (the auth plan's E2o): the base applier's, through
 `restoreAlarms`' capped and corrupt wrappers (`alarmShape`). -/
