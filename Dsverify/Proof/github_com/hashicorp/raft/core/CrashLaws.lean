@@ -946,15 +946,12 @@ theorem installDiscard_core (X : SrvDur) (s : SState) (d : DiscPend) (A' : LogAb
     $$ Hsv Hv with ⟨Hsv, Hv⟩
   ihave Hbp' : bootPinF rc X.lat X.pend none $$ [Hbp]
   · unfold bootPinF
-    icases Hbp with (Hb | -)
-    · ileft; iexact Hb
-    · iright
-      obtain ⟨m, b, hlm, hmi, -⟩ := hq5b d rfl
-      rw [hlm]
-      unfold latApplF
-      iright
-      rw [hmi]
-      iexact Happ
+    obtain ⟨m, b, hlm, hmi, -⟩ := hq5b d rfl
+    rw [hlm]
+    unfold latApplF
+    iright
+    rw [hmi]
+    iexact Happ
   imodintro
   iexists ({ X with s := { s with log := L', dur := dd }, A := A', lo := d.x + 1, c := d.x, dp := none })
   isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hla Hbp']
