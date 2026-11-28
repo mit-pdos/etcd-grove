@@ -271,10 +271,11 @@ instance stableAbs_countable : Pos.Countable StableAbs :=
       subst h1; subst h2; rfl)
 
 /-- The error `errors.New("not found")` (what `Get` of a missing key returns; raft compares its
-`Error()` with `"not found"`). -/
+`Error()` with `"not found"`). (hraft_robust R3) Its message field only, read-only: what `Error()` reads,
+and what a package variable's `errors.newVar` gives (the disk returns its `ErrNotFound`). -/
 def isNotFoundErr (err : GoInterface) : IProp GF :=
   iprop(∃ p : Loc, ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #p⌝ ∗
-    p ↦□ (errors.errorString.mk go!"not found"))
+    p.[errors.errorString, go!"s"] ↦□ go!"not found")
 
 /-- **The stable store contract** of `x`, whose abstract contents the client owns through `own`.
 Keys and values are read-only byte slices; reads take the thread's token. (Revised: `Get` returns any
