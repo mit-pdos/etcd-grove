@@ -240,6 +240,72 @@ theorem wr_lstore (hs : AntSimD R dec S V net xnet) (hgo : GlobalOk R S net G) (
     tlG := hgo.2.2.2.2.2.1
     logG := ⟨L, hLG, hLeq⟩ }
 
+set_option maxHeartbeats 4000000 in
+/-- **A leader's write with nothing stored and its commit kept** (`onDisk_lsame`): the binding's log,
+commit, confirmation, facts, `chain` and `termLen` kept; `WriteOk`. -/
+theorem wr_lsame (hs : AntSimD R dec S V net xnet) (hgo : GlobalOk R S net G)
+    (hx : WrCtx R S n (V n) m) (he : m.ents = []) (hcs : m.commit = (V n).dur.commit) :
+    ∃ p, S.step (evWrite (nodeId n) m.term m.vote m.commit m.ents m.snap) =
+        .ok (some (wrS S n.val (S.log[n.val]!) (uint.Z m.commit) (S.confirmed[n.val]!) S.msgs p S.chain
+          S.termLen [])) ∧
+      WriteOk R S G n (S.log[n.val]!) (uint.Z m.commit) (S.confirmed[n.val]!) S.msgs p S.chain S.termLen [] := by
+  have hsh := hs.1
+  have hc : S.cfg = R.cfg := hsh.1
+  have hv := hs.2.2.2.2 n
+  obtain ⟨⟨-, hb2, hb3, hb4, -, -, -, -, -, -, -, -, -, -, hb15, -, hb17, -⟩, -⟩ := hs.2.1
+  obtain ⟨lp1, lp2, -, -, -⟩ := hv.2.2.2.2.2.2.2.2.1 hx.hpl
+  have hmt := hx.mt
+  have hcm : uint.Z m.commit = S.commitIndex[n.val]! := by rw [hx.hcm, hcs]
+  have hll : S.ledLog.get (uint.Z m.term) = .ok (logOf (V n).r.full) := by rw [hmt]; exact lp2
+  obtain ⟨L, hLG, hLeq⟩ := wr_fullG hgo hx lp2
+  have hsend : sendableIn S.leaders S.ledLog S.chain S.termLen (AppendFact.mk (nameOf (nodeId n))
+      (nameOf (nodeId n)) (uint.Z m.term) 0 0 [] 0) = .ok true := by
+    have h := sendable_leader (S := S) (src := nameOf (nodeId n)) (dst := nameOf (nodeId n))
+      (lg := (V n).r.full) (T := uint.Z m.term) (p := 0) (pt := 0) (es := []) (c := 0)
+      (by rw [hmt]; exact lp1) hll (by unfold termAt; simp) (Nat.zero_le _) rfl (.inl rfl)
+    exact h
+  obtain ⟨p, hpm, hpc, hpms, hod⟩ := onDisk_lsame n hc m.byE m.term m.vote m.commit
+    (MemRec.item (nodeId n) m).m S.role S.leaders S.ledLog S.chain S.termLen S.viol
+    hx.hT.symm hx.hV.symm hx.hro hsend hcm
+  have hT := hx.hT
+  have hq0 : (S.queue.set n.val [])[n.val]! = [] :=
+    get!_set_self _ (by rw [hsh.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact n.isLt)
+  have hmc : (wrS S n.val (S.log[n.val]!) (uint.Z m.commit) (S.confirmed[n.val]!) S.msgs p S.chain
+      S.termLen []).memCommit n.val = .ok (uint.Z m.commit) := by
+    rw [memCommit_nil hq0]
+    exact congrArg Except.ok (get!_set_self _ (by rw [hsh.2.2.2.2.2.1]; exact n.isLt))
+  obtain ⟨c0, h0, h1, h2⟩ := hb15.2 n hx.hro
+  rw [hx.memCommit] at h0
+  obtain rfl : c0 = uint.Z m.commit := (Except.ok.inj h0).symm
+  refine ⟨p, wr_step hs hx (by rw [he]; exact hod), ?_⟩
+  exact {
+    lead := hx.hro
+    lself := by rw [hT]; exact List.contains_iff_mem.mp (by rw [hmt]; exact lp1)
+    cge := Int.le_of_eq hcm.symm
+    mcSelf := ⟨_, hmc, h1, h2⟩
+    mcGe := fun c0 h => by rw [hx.memCommit] at h; cases h; exact ⟨_, hmc, Int.le_refl _⟩
+    pre := hpm
+    pconf := hpc
+    pmsgs := fun a => by rw [hpms]; exact lset_minus_mem
+    msub := fun f hf => hf
+    mnew := fun f hf hn => absurd hf hn
+    cmono := .inl rfl
+    hconf := fun l hl' => hs.2.1.1.2.2.2.2.1 n l hl'
+    hchain := List.prefix_refl _
+    chainC := ⟨by rw [hcm]; exact (hb3 n).1, by rw [hcm]; exact (hb3 n).2⟩
+    tlLen := hb2
+    tlC := by
+      rcases hb4 n with h | ⟨q, hq, e1, e2⟩
+      · exact .inl (by rw [hcm]; exact h)
+      · exact .inr ⟨q, hq, e1, by rw [hcm]; exact e2⟩
+    tlDom := fun q hq => ⟨q, hq, rfl, Int.le_refl _⟩
+    tlSort := hb17
+    tlMono := fun _ => Int.le_refl _
+    tlNew := fun _ h => absurd h (Int.lt_irrefl _)
+    chainG := hgo.2.2.2.2.1
+    tlG := hgo.2.2.2.2.2.1
+    logG := hgo.2.2.1 n }
+
 end writeP2
 
 end AntSim
