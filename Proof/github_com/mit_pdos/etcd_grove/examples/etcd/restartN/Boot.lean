@@ -82,7 +82,8 @@ theorem firstPremises_of_specUnserved [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundL
   have hidm : id ∈ ids := List.mem_of_getElem? Hid
   have hmm : m ∈ members k := List.mem_of_getElem? Hm
   iapply (bootPremiseF_of_specUnserved hb N ps (LogEntry.toEntries boot 0) ctxs (dirN (members k) ids)
-    token m.Name' (etcdstart.urlsN (members k) m) id ((members k).map (·.Peer')) (restartNAddrs_lit k hk)
+    token m.Name' (etcdstart.urlsN (members k) m) id ((members k).map (fun m : GMember => m.Peer'))
+    (by have h := restartNAddrs_lit k hk; unfold restartNAddrs at h; exact h)
     hfips (Hbg.idRaft id hidm)
     (fun U hu => urlsN_shapeUnserved (members k) (members_names_nodup k hk) m hmm U hu)
     (fun U hu => by
