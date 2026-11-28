@@ -760,3 +760,30 @@ gen-pbschema, gen-driver-boottable), full build and `GATES_FAILFAST=0 LAKE_PACKA
 PERENNIAL_CHECKOUT=/shared/perennial-02e741641 etc/gates.sh` under `flock /shared/tmp/local-build.lock systemd-run --scope -p
 MemoryMax=60G`, then `etc/tcb-report.py --check`; build `-w1` too if it is to be queued. A failure to expect: a module that
 reached `wal.W1`/`wal.Codec` only through `FsExts.lean`'s dropped imports (add the import where it is used).
+
+### Handoff DELTA-7 (2026-11-28; lean `30e7e48f43` merged, Perennial `148615524`; built, gated)
+
+- **Merge** (`git fetch https://github.com/mit-pdos/etcd-grove.git lean` = `30e7e48f43`, ≥ `fb5a0550e2`): one conflict,
+  `examples/k8s/dist/go.sum` (ours, then `go mod tidy`, which only dropped stale bbolt sums); status-history rebuilt as lean's
+  lines in lean's order with this line's entries inserted (the merge had moved 2 lines): +37/−0 vs lean, +38/−0 with this entry.
+- **Perennial** `/shared/perennial-148615524` (`git worktree add` off the shared checkout, `.lake` seeded from `-02e741641`);
+  manifest `/shared/tmp/delta-manifest-148.json`; the worktree's `.lake/packages/perennial` symlink points at it.
+- **Generators**: gen-raft-tla, copy-part, gen-driver-boottable, kitgen, gen-specs-pkginit, gen-k8s-deep, gen-pbschema, goose
+  `--check` green; gen-init differed on `examples/etcd/dist/client/PkgTable.lean` (the server `storage` package's init list),
+  regenerated (`b1ad5e20c9`).
+- **Build** (`flock /shared/tmp/local-build.lock systemd-run --scope -p MemoryMax=60G lake --packages=… build`): green, 30837
+  jobs, **no fallout** from DELTA-6's dropped `wal.W1`/`wal.Codec` imports.
+- **Gates** (`GATES_FAILFAST=0`): every gate green but `issues`, `issues/INDEX.md` out of date (a count lean's merge brought,
+  31 reported by others), regenerated (`79bc4a2093`); tcb: matches `etc/tcb-baseline.txt` (367 axioms, 0 sorries, 90 opaques),
+  collections 71 match. No statement, axiom, trusted text, premise or `sorry` changed by this session.
+- **Statement vocabulary vs lean** (DELTA-6's method: `etc/theorem-tcb.py --no-comments` in both trees for its 49 names, plus
+  `crash_robust` twice with `--file` (walfs, crashlog), compared per (file, declaration) modulo `namespace`/`open`/`variable`
+  lines; `/shared/tmp/delta7/{cmp7.py,premdiff.txt}`, `leantree` a detached worktree at lean). Per theorem, added/changed/removed
+  declarations: `etcd_safe_nocrash` 190/115/25, `etcd_kv_safe_nocrash` 190/115/25, `putget_safe` 142/82/19,
+  `etcd_robust_single_process` 119/59/16, `etcd_leaseexpiryN_robust_single_process` 121/55/14, `k8s_robust_single_process`
+  121/55/14, `etcd_wal_safe` 0/1/0; `etcd_safe_of_boot` not in lean; the other 43 identical. New vs DELTA-6: lean's nocrash
+  theorems (`etcd_safe_nocrash` landed on lean since `f1c09cbade`) now reach the WAL/bbolt vocabulary the delta reworks
+  (wal `Ghost`, `InvWalCrash`, bbolt `Crash/Dur`, `Inv/BFile`, ...), so they inherit the single-process theorems' diff; one
+  **axiom-vocabulary** change: `proto.MarshalPb.spec` (the delta's P6, `9e8ed696c8`) adds `⌜l ≠ null → d ≠ slice.nil⌝` to the
+  post, reached by `etcd_safe_nocrash`, `etcd_kv_safe_nocrash`, `putget_safe`, `etcd_wal_safe`.
+- **Left**: `-w1` not rebuilt on this lean.
