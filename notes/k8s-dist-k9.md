@@ -774,7 +774,7 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   - the tail: `map.forRange` over `all` (`wp_map_for_range`, as `Set.UnsortedList`) collects the keys,
     `slices.Sort` (`Spec/slices/Sort.lean`) sorts them; strictness from the keys' `Nodup`; then the
     `byKey` loops (nested `map.forRange`, appends, sorts) only need to build `keyRevsOwn` for some `f`.
-- Build of record: see below.
+- **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `Spec…etcd3.rvOfMsg`) at `837a237247`: passed, 12266 jobs, 0 errors (`HistoryRevs.wp_proof` warns its WIP `sorry`; `Link` has none).
 - **Left in K9**: finish step 4 (above, plus G14 and `rvOfMsg`'s proof, then link `HistoryRevs:
   parseRV rvOfMsg decodeWEvents decodeItemRVs` (+ `slices.Sort` as Perennial's) in
   `etc/link-lean-first-k8setcd3.txt`); step 5 not started.
