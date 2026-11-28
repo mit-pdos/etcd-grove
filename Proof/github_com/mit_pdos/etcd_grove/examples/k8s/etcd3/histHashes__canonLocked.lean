@@ -42,7 +42,7 @@ theorem wp_hh_is (hh nn : Loc) :
     {{ hhInv (GF := GF) hh }}
       (App (App (Val (map.lookup1 (go.GoType.PointerType hnode.ty) go.bool))
         (App (Val (GoInstruction (GoLoad (go.GoType.MapType (go.GoType.PointerType hnode.ty) go.bool))))
-          (App (Val (GoInstruction (StructFieldRef histHashes.ty go!"is"))) (Val #hh)))) (Val #nn))
+          (Val #(structFieldRef histHashes go!"is" hh)))) (Val #nn))
     {{ (b : Bool), RET #b; hhInv hh }} := by
   iintro %Φ Hinv HΦ
   iunfold hhInv at Hinv
@@ -54,13 +54,15 @@ theorem wp_hh_is (hh nn : Loc) :
     iunfold hhInv
     iexists map.nil, map.nil, mg, C, I, G
     iframe
-    iright
-    iframe
+    ileft
+    ipureintro; exact ⟨rfl, rfl⟩
   · (try wp_auto)
     wp_apply (wp_map_lookup1 _ _ mi I nn (DFrac.own 1)) $$ [$HI] as HI
     iapply HΦ
     iunfold hhInv
     iexists mc, mi, mg, C, I, G
+    iframe
+    iright
     iframe
 
 theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF := GF) (hG := hG)) :
@@ -97,7 +99,42 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     iexists !b
     iframe
     ipureintro; exact ⟨rfl, fun _ => Hif⟩
-  fail "j3"
+  subst Hv
+  cases b
+  · rw [if_neg (by simp), if_pos (decide_eq_true rfl)]
+    fail "exit"
+  · rw [if_pos (decide_eq_true rfl)]
+    have Hnn := Hb rfl
+    (try wp_auto)
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %lsl ⟨Hl, -⟩
+    simp only [arrayLiteralSize1]
+    wp_apply (wp_slice_append _ ts _ _ (DFrac.own 1)) $$ [$Hts $Hcap $Hl] as %tsl' ⟨Hts, Hcap, -⟩
+    have Hm : 0 < hs.length - ts.length := by
+      rcases Nat.eq_zero_or_pos (hs.length - ts.length) with h0 | h0
+      · exfalso
+        sorry
+      · exact h0
+    obtain ⟨x, hx⟩ := take_succ_snoc hs (hs.length - (ts.length + 1)) (by omega)
+    ihave Hn2 : histOwn nn (hs.take (hs.length - (ts.length + 1)) ++ [x]) $$ [Hn]
+    · rw [← hx, show hs.length - (ts.length + 1) + 1 = hs.length - ts.length by omega]
+      iexact Hn
+    icases (histOwn_snoc nn _ x).1 $$ Hn2 with ⟨%hn, #Hp, #Hs, %Hnl, #Hpr⟩
+    iStructNamed Hp
+    (try wp_auto)
+    wp_for_post
+    iframe
+    iexists _, ts ++ [nn], hn.prev'
+    iframe
+    simp only [List.length_append, List.length_singleton]
+    isplitr
+    · iexact Hpr
+    isplitr
+    · iapply BigSepL.bigSepL_snoc.2
+      iframe #
+    ipureintro; omega
 
 end proof
 
