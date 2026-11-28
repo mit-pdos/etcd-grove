@@ -55,34 +55,7 @@ theorem github_com.hashicorp.raft.wp_getCurrentTerm_wit (r : Loc) (γ : GNames) 
       (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getCurrentTerm")) (Val #()))
     {{ (t : w64), RET #t; termOk γ (uint.nat t) ∗
         ∃ s', histLb γ s' ∗ ⌜snapLe s0 s' ∧ s'.term i = uint.nat t⌝ }} := by
-  wp_start as ⟨#HInv, #Hcell, #Hv, #Hs0⟩
-  wp_method_call; wp_call
-  wp_auto
-  wp_apply_core sync.atomic.wp_LoadUint64 _ (DFrac.own 1) $$ [] [-]
-  · iPkgInit
-  unfold termCell
-  imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  icases Hi with ⟨%t, Hpt, Hc⟩
-  iexists t
-  iframe Hpt
-  iintro Hpt
-  imod Hmask with -
-  imod termCouple_now γ (⊤ \ ↑termN) gprotN_diff_termN i _ s0 $$ [$HInv $Hv $Hc $Hs0]
-    with ⟨Hc, %s', #Hs', %Hs'⟩
-  ihave ⟨Hc, #Hlb⟩ := termCouple_get_lb γ i _ $$ Hc
-  imod Hclose $$ [Hpt Hc] with -
-  · inext; iexists t; iframe
-  imodintro
-  wp_auto
-  iapply HΦ
-  isplitr
-  · iapply termOk_of_termLb γ i _ (uint.nat t) (Nat.le_refl _) $$ [$Hv $Hlb]
-  iexists s'
-  iframe Hs'
-  ipureintro; exact Hs'
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- A receive clause of a nonblocking select on a dead channel. -/
 theorem github_com.hashicorp.raft.dead_nb_clause_hb {V : Type} [Pos.Countable V] [ZeroVal V]

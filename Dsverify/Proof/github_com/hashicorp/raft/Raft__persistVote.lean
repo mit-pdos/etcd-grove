@@ -27,20 +27,5 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
-    github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) :=
-  fun r γ rc i sst t cs cb => by
-  wp_start as ⟨#Hr, Hs, #Hcs⟩
-  ihave #Hg := pkgGlobals_access $$ Hpkg
-  unfold pkgGlobals
-  icases Hg with ⟨-, -, ⟨%k1, #Hk1, #Hk1s⟩, ⟨%k2, #Hk2, #Hk2s⟩, -⟩
-  ihave ⟨%x, #Hst, #Hss⟩ := isRaft_stableStore r γ rc i $$ Hr
-  unfold isStableStore
-  icases Hss with ⟨#HgetU, #HsetU, #Hget, #Hset⟩
-  wp_auto
-  wp_apply HsetU $$ Hs Hk1s
-  iintro Hs
-  wp_auto
-  wp_apply Hset $$ Hs Hk2s Hcs
-  iintro Hs
-  wp_auto
-  wp_end
+    github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) := by
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)

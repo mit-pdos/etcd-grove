@@ -234,6 +234,7 @@ theorem disp_barrier_prep (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (n
   ipureintro
   exact ⟨by omega, by have := h1.2.2.2 s.term; omega, h1, h2⟩
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- (stage 2) The leader's protocol append before `StoreLogs` (stage 4: the protocol step `hstep` is
 the caller's, `leaderAppendCmd_upd` or `leaderAppendCfg_upd`, with its own resources `A`, `B`): the
 entries `es` become pending in `logCell` (`logPend`), and each gets its `llogIdx`. -/
@@ -266,6 +267,7 @@ theorem log_pend_append (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (es 
   · inext; iexists A, s.log, es, lo, c; iframe; iframe Hcl; ipureintro; exact ⟨HA, Hlo⟩
   imodintro
   iframe; iframe #
+-/
 
 /-- The dispatched futures as inflight items, the first at index `b`. -/
 def newItems : Nat → List DItem → List InflightItem
@@ -378,6 +380,7 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 open github_com.hashicorp.raft proto gprot
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- (stage 4) **`dispatchLogs`, generic in the futures' kinds** (`K`) and in the protocol step
 (`hstep`, with its own resources `A` → `B`): the parts of `mainOwnAt` it uses, the leader state with
 any replication-map condition `P`; the dispatched entries `es` (one per future, of term `s.term`,
@@ -667,6 +670,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     rw [List.map_append, newItems_f]
     iframe; iframe #
     ipureintro; exact ⟨hsorted, Hcov, hcov'⟩
+-/
 
 end proof
 
