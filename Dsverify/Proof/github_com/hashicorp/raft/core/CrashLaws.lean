@@ -1407,6 +1407,55 @@ theorem winRes_back (s s' : SState) (p p' : Pend) (D : StableAbs) (g : w64) (hp0
   ipureintro
   exact ⟨⟨rfl, rfl⟩, hp, hw⟩
 
+/-- (R2) `winRes_make` from a pending-phase view (the install's discard: `srvVP s none (some d)`). -/
+theorem winRes_makeP (s : SState) (p : Pend) (D : StableAbs) (g : w64)
+    (h : pendPre γ i s p ∧ winPure s D g p) :
+    ghostVar rc.dur.pw 1 (none : Option Pend) ∗ srvVP rc s none (pendDp p) ∗ stVS rc D g ∗ pendHyps γ i s p ⊢
+      |==> (winRes γ rc i s p ∗ ghostVar rc.dur.pw (1 : Qp).half (some p) ∗ srvVPq rc s none (pendDp p) ∗
+        stVq rc D g) := by
+  iintro ⟨Hpw, Hv, Hst, Hh⟩
+  ihave Hpw := ghostVar_update (some p) rc.dur.pw (none : Option Pend) $$ Hpw
+  imod Hpw
+  ihave ⟨Hpw1, Hpw2⟩ := (ghostVar_split_half rc.dur.pw 1 (some p)).1 $$ Hpw
+  unfold srvVP stVS
+  ihave ⟨Hv1, Hv2⟩ := (ghostVar_split_half rc.dur.sv (1 : Qp).half _).1 $$ Hv
+  ihave ⟨Hs1, Hs2⟩ := (ghostVar_split_half rc.dur.st (1 : Qp).half _).1 $$ Hst
+  imodintro
+  unfold winRes srvVPq stVq
+  iframe Hpw2 Hv2 Hs2
+  iframe
+  ipureintro; exact ⟨h.2, h.1⟩
+
+theorem winRes_backP (s s' : SState) (p p' : Pend) (D : StableAbs) (g : w64) :
+    winRes γ rc i s' p' ∗ ghostVar rc.dur.pw (1 : Qp).half (some p) ∗ srvVPq rc s none (pendDp p) ∗
+      stVq rc D g ⊢
+      ⌜s' = s ∧ p' = p⌝ ∗ ghostVar rc.dur.pw 1 (some p) ∗ srvVP rc s none (pendDp p) ∗ stVS rc D g ∗
+        pendHyps γ i s p ∗ ⌜pendPre γ i s p ∧ winPure s D g p⌝ := by
+  iintro ⟨HW, Hpw, Hq, Hsq⟩
+  unfold winRes srvVPq stVq
+  icases HW with ⟨Hpw', Hq', ⟨%D', %g', Hs', %hw⟩, Hh, %hp⟩
+  icombine Hpw' Hpw gives %h1
+  icombine Hs' Hsq gives %h3
+  have e1 := h1.2
+  have e3 := h3.2
+  simp only [Option.some.injEq, Prod.mk.injEq] at e1 e3
+  subst e1
+  obtain ⟨rfl, rfl⟩ := e3
+  icombine Hq' Hq gives %h2
+  have e2 := h2.2
+  simp only [Prod.mk.injEq] at e2
+  obtain ⟨rfl, -, -⟩ := e2
+  ihave Hpw := (ghostVar_split_half rc.dur.pw 1 (some p')).2 $$ [Hpw' Hpw]
+  · iframe
+  unfold srvVP stVS
+  ihave Hv := (ghostVar_split_half rc.dur.sv (1 : Qp).half _).2 $$ [Hq' Hq]
+  · iframe
+  ihave Hst := (ghostVar_split_half rc.dur.st (1 : Qp).half _).2 $$ [Hs' Hsq]
+  · iframe
+  iframe
+  ipureintro
+  exact ⟨⟨rfl, rfl⟩, hp, hw⟩
+
 /-! ## The durable writes that fire a step (R1 §2.2)
 
 Each gives both arguments of the store's write contract: the window (`logWin`/`stWin` of the write,
@@ -1699,7 +1748,6 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
   storeLogs_fstore_win_k γ rc i s prev pt ents lci j j lc D g hpre
     ⟨Nat.le_refl _, fun m h1 h2 => absurd h2 (by omega)⟩ hg Ψ
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, |s.log|)`'s commit
 (`truncate_upd`). -/
 theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
@@ -1708,8 +1756,8 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
       pendHyps γ i s (.trunc prev pt ents lci j) -∗
       (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log.take (prev + j) } -∗
         stVS rc D g -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      |==> (logWin γ rc i (.del (prev + 1 + j) s.log.length) ∗
-      (logWin γ rc i (.del (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+      |==> (logWin γ rc i (.del true (prev + 1 + j) s.log.length) ∗
+      (logWin γ rc i (.del true (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) s.log.length hi')
           ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
   iintro #HI #Hd Hpw Hv Hst Hh Hk
@@ -1724,24 +1772,7 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
   iunfold logWin at HW
   icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -, -, #Hlb⟩)
   rotate_left
-  · -- the compaction window: it deletes only durable entries, but the truncation's top is above `dur`
-    cases hop
-    iintro Hnc
-    imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, -, -⟩
-    iunfold durCore at Hc
-    icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, -⟩
-    unfold srvVq
-    icombine Hsv Hq gives %Hag
-    have hs := Hag.2
-    simp only [Prod.mk.injEq] at hs
-    obtain ⟨hs, -, -⟩ := hs
-    rw [hs]
-    imod (gprot.truncate_gt_dur γ _ crash_gprot_store i s prev pt ents lci j hpre) $$ [HI Ho Hh] with ⟨Ho, %hgt⟩
-    · iframe #; try iframe
-    ihave %hle := gprot.durView_lb γ i _ _ _ $$ [Hdv Hlb]
-    · iframe #; try iframe
-    have := hpre.2.2.2.1
-    exfalso; omega
+  · cases hop
   ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.trunc prev pt ents lci j) p' D g rfl $$ [HW Hpw Hq Hsq]
   · iframe
   obtain ⟨rfl, rfl⟩ := heq
@@ -1790,7 +1821,133 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
   ihave HΨ := Hk $$ Hpw Hv Hst [] 
   · ipureintro; exact hdur
   iexact HΨ
--/
+
+/-- (R2, for R4b/R5) **An install's discard** at `DeleteRange(1, mx)`'s commit (`installDiscard_core`):
+the log becomes the committed prefix of length `d.x` (`mx` at least the log's last index, so the
+store is emptied), the snapshot store's record moves from the discard-pending case to the durable
+one (its `lastApplied` half, `a ≤ d.x`, goes back to the caller), the frontier to `d.x`. Takes the
+main goroutine's half of the pending-install record (none: the restore answered). -/
+theorem deleteRange_discard_win (s : SState) (d : DiscPend) (D : StableAbs) (g : w64) (mx c0 : Nat)
+    (hpre : pendPre γ i s (.discard d)) (hmx : s.log.length ≤ mx) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvVP rc s none (some d) -∗
+      stVS rc D g -∗ pendHyps γ i s (.discard d) -∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c0 -∗ latLb rc d.x -∗ applLb rc d.x -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ ∀ s' : SState, srvV rc s' -∗ stVS rc D g -∗
+        ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+        monoNatAuthOwn rc.dur.comp (1 : Qp).half d.x -∗ durLb γ i d.x -∗
+        ⌜s'.log.length = d.x ∧ lastTerm s'.log = d.st ∧ s'.dur.1 = d.x ∧ s'.term = s.term ∧
+          s'.vterm = s.vterm ∧ s'.vcand = s.vcand ∧ s'.cidx = s.cidx⌝ -∗
+        ([∗list] k ↦ e ∈ s'.log, CIdx γ (k + 1) e) -∗
+        (∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ d.x⌝) ={⊤ \ ↑storeN}=∗ Ψ) -∗
+      |==> (logWin γ rc i (.del true 1 mx) ∗
+      (logWin γ rc i (.del true 1 mx) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+        rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete 1 mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
+  iintro #HI #Hd Hpw Hv Hst Hh Hpe Hcm #Hll #Happ Hk
+  imod (winRes_makeP γ rc i s (.discard d) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst Hh] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iframe
+  imodintro
+  isplitl [HW]
+  · iunfold logWin; ileft; iexists s, (Pend.discard d); iframe HW; ipureintro; exact ⟨1, mx, rfl⟩
+  iintro HW
+  iunfold logWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx', %hop, -⟩)
+  rotate_left
+  · cases hop
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_backP γ rc i s s' (.discard d) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.discard d)) $$ Hpw
+  iintro Hnc
+  imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hlat⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN from Iris.Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iframe Hnc
+  inext
+  iexists X.A
+  iframe HL
+  iintro %hi' HL
+  imod Hmask
+  imod Hpw
+  -- the main goroutine's views agree with the crash state
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s' none (some d) $$ [Hc Hv]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla, Hbp⟩
+  icombine Hpend Hpe gives %hpe
+  have hpe' : X.pend = none := hpe.2
+  obtain ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, hpd, hll⟩, hcd, hq5a, hq5b⟩⟩ := Hp
+  have hmb := hq5b d hdp
+  obtain ⟨m, b, hlm, hmi, hmt⟩ := hmb
+  -- the store is emptied: every stored index is an entry of the log, in `1..mx`
+  have hempty : (X.A.delete 1 mx hi').m = ∅ := by
+    rw [LogAbs.delete_m]
+    apply GMap.ext
+    intro k
+    rw [crash_lookup_del, GMap.lookup_empty]
+    split
+    · rfl
+    · rename_i hr
+      rcases hk : X.A.m.lookup k with _ | e
+      · rfl
+      · have he := hlo.1 k e hk
+        rw [hs] at he
+        have := gprot.ent_pos he
+        have := gprot.ent_le_length he
+        exact absurd ⟨by omega, by omega⟩ hr
+  -- the snapshot store's record: the discard pending, with the caller's `lastApplied` half
+  unfold latestDur
+  icases Hlat with ⟨Hlok, Hbr⟩
+  rw [hpe']
+  icases Hbr with (%hn | ⟨%m', %b', %hl', (⟨-, %hdn⟩ | ⟨#Hsf, %hdpd, Happl⟩)⟩)
+  · rw [hlm] at hn; cases hn
+  · rw [hdp] at hdn; cases hdn
+  -- the discard on the core
+  icases Happl with ⟨%a, Happl, %ha⟩
+  have hax : a ≤ d.x := by
+    obtain ⟨ℓ, hℓ⟩ := hdpd
+    rw [hdp] at hℓ
+    cases hℓ
+    exact ha
+  ihave Hc : durCore γ rc i X $$ [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla Hbp]
+  · iunfold durCore
+    rw [hpe']
+    iframe
+    ipureintro
+    exact ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, fun x st id h => (by cases h), hll⟩, hcd, hq5a, hq5b⟩⟩
+  try rw [hs]
+  imod (installDiscard_core γ rc i crash_gprot_store X s' d (X.A.delete 1 mx hi') c0
+    ⟨hs, hdp, hpe'⟩ ⟨hempty, rfl, rfl⟩) $$ [HI Hc Hv Hcm Hll Happ]
+    with ⟨%X', Hc', Hv', Hcm, #Hlbx, HC, %hX'⟩
+  · rw [htp]; iframe; iframe #
+  obtain ⟨hA', hD', hlat', hpend', hdp', hc', hlo', hlen, hlt, hdur, hterm, hvt, hvc, hcx⟩ := hX'
+  -- the record moves to the durable case
+  ihave Hpe2 : ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) $$ [Hpe]
+  · iexact Hpe
+  imod Hcl $$ %X' Hc' [HL HS HSS Hlok] with -
+  · iunfold durStores
+    rw [hA', hD', hlat', hpend', hdp']
+    inext
+    iframe
+    unfold latestDur
+    rw [hpe']
+    iframe Hlok
+    iright
+    iexists m, b
+    isplitl []
+    · ipureintro; exact hlm
+    ileft
+    rw [hmi]
+    iframe Hlbx
+    ipureintro; rfl
+  rw [htp]
+  ihave HΨ := Hk $$ Hpw %X'.s [Hv'] Hst Hpe2 Hcm Hlbx [] HC [Happl]
+  · unfold srvV; unfold srvVP; iexact Hv'
+  · ipureintro; exact ⟨hlen, hlt, hdur, hterm, hvt, hvc, hcx⟩
+  · iexists a; iframe Happl; ipureintro; exact hax
+  iexact HΨ
 
 /-- (R2) **`SetUint64(CurrentTerm, t)`'s commit** (`setCurrentTerm`): no model step; the term step
 recorded pending (`tp`, its `tpRes` moved into the crash state), fired at the atomic store
