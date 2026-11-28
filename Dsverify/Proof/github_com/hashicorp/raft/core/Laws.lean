@@ -76,7 +76,7 @@ theorem isRaft_cv : isRaft r γ rc i ⊢ ⌜γ.cv = cfgDec γ.srvs⌝ := by
   iintro ⟨-, -, -, -, -, -, -, -, %H⟩; ipureintro; exact H
 
 theorem isRaft_logStore : isRaft r γ rc i ⊢
-    ∃ x : GoInterfaceOk, r.[Raft, go!"logs"] ↦□ (GoInterface.ok x) ∗ isLogStore x rc.ownL ∗
+    ∃ x : GoInterfaceOk, r.[Raft, go!"logs"] ↦□ (GoInterface.ok x) ∗ isLogStore x rc.ownL (logWin γ rc i) ∗
       ⌜go.typeSetContains x.ty MonotonicLogStore.ty = false⌝ := by
   iintro #H
   ihave #H2 := isRaft_ifaces r γ rc i $$ H
@@ -85,7 +85,7 @@ theorem isRaft_logStore : isRaft r γ rc i ⊢
   iexists l; iframe #; ipureintro; exact Hm
 
 theorem isRaft_stableStore : isRaft r γ rc i ⊢
-    ∃ x : GoInterfaceOk, r.[Raft, go!"stable"] ↦□ (GoInterface.ok x) ∗ isStableStore x rc.ownS := by
+    ∃ x : GoInterfaceOk, r.[Raft, go!"stable"] ↦□ (GoInterface.ok x) ∗ isStableStore x rc.ownS (stWin γ rc i) := by
   iintro #H
   ihave #H2 := isRaft_ifaces r γ rc i $$ H
   unfold raftIfaces
@@ -94,7 +94,7 @@ theorem isRaft_stableStore : isRaft r γ rc i ⊢
 
 theorem isRaft_snapshotStore : isRaft r γ rc i ⊢
     ∃ (x : GoInterfaceOk) (eof : GoInterface), r.[Raft, go!"snapshots"] ↦□ (GoInterface.ok x) ∗
-      isSnapStore x rc.ownSS eof ∗ globalAddr io.EOF ↦□ eof := by
+      isSnapStore x rc.ownSS eof (snapWin γ rc i) ∗ globalAddr io.EOF ↦□ eof := by
   iintro #H
   ihave #H2 := isRaft_ifaces r γ rc i $$ H
   unfold raftIfaces

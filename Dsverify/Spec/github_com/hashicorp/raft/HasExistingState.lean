@@ -27,11 +27,11 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 /-- `HasExistingState(logs, stable, snaps)` on an empty log and a stable store without a current
 term: false, nil. -/
 abbrev github_com.hashicorp.raft.HasExistingState.spec : Prop :=
-  ∀ (logsI stableI snapsI : GoInterfaceOk) (γ : GNames) (i : SID)
+  ∀ (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Qc : SnapshotMeta → List w8 → IProp GF) (logsI stableI snapsI : GoInterfaceOk) (γ : GNames) (i : SID)
     (ownL : LogAbs → IProp GF) (ownS : StableAbs → IProp GF) (ownSS : SnapLatest → IProp GF)
     (eof : GoInterface) (sst : StableAbs) (tid : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗
-     isLogStore logsI ownL ∗ isStableStore stableI ownS ∗ isSnapStore snapsI ownSS eof ∗
+     isLogStore logsI ownL Wl ∗ isStableStore stableI ownS Ws ∗ isSnapStore snapsI ownSS eof Qc ∗
      ownL LogAbs.empty ∗ ownS sst ∗ ⌜(sst.ints.lookup (go!"CurrentTerm" : List w8)).getD (W64 0) = W64 0⌝ ∗
      ownSS none ∗ rtok tid }}
     (App (App (App (Val (@! github_com.hashicorp.raft.HasExistingState)) (Val #(GoInterface.ok logsI)))
