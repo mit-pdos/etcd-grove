@@ -523,26 +523,6 @@ theorem bkLendW_none (E : apply.AEnv GF) :
   imodintro
   iexact Hl
 
-/-- (keepfix (c) step 1) **The hooks' `srvTermPos` at the server's cluster** (`srvRaftLogInv_termPos`, from the
-KV invariants' raft log invariant, in either auth mode). -/
-theorem isServerM_termPos (hTP : srvTermPos_of_cluster.law (GF := GF)) (on : Bool) (s : Loc) (γ : ApplyNames)
-    (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
-    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ srvTermPos γr.raft.raft.cl := by
-  iintro #Hsrv
-  iunfold isServerM at Hsrv
-  icases Hsrv with ⟨-, -, -, #Hat, -⟩
-  iunfold srvAtomicsM at Hat
-  icases Hat with ⟨-, -, #Hkvi⟩
-  ihave #Hrl : srvRaftLogInv γr.raft $$ []
-  · cases on
-    · rw [srvKVInvsM_false] at *; iunfold srvKVInvs at Hkvi
-      icases Hkvi with ⟨-, -, #H, -⟩; iexact H
-    · ihave #Hkvi' : srvKVInvsOn E γr srvAuthSt0 $$ []
-      · iapply srvKVInvsM_true; iexact Hkvi
-      iunfold srvKVInvsOn at Hkvi'
-      icases Hkvi' with ⟨-, -, #H, -⟩; iexact H
-  iapply srvRaftLogInv_termPos hTP γr.raft $$ Hrl
-
 /-- **The store invariant of a server, in either auth mode** (`srvKVInvs`', `srvKVInvsOn`'s), with
 its witness and permit persistent and timeless (`envWitOk`). -/
 theorem isServerM_kvStoreInv (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)

@@ -201,7 +201,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   -- step 4: the applier state
   -- (P6.2) the new applier at `E'`, and the auth part of the row there, by the mode (`kvAuthM_snap`)
   ihave ⟨#Hub', Huo'⟩ := Hube $$
-    %(snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci d' g d'.γB al ast lp cl d'.be) Hbo'
+    %(snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P) ci d' g d'.γB al ast lp cl d'.be) Hbo'
   ihave Hauar := kvAuthM_snap s γ ci E π0 d.P d' g up' opts' al ast lp cl ua γr A' hany
     ⟨ho4, ho5⟩ $$ [Hauar]
   · iframe #; iframe Hauar
@@ -240,7 +240,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
     iexists _
     iframe HEv
     ipureintro; exact hUok
-  ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci g d'.γB d' γr al ast lp
+  ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P) ci g d'.γB d' γr al ast lp
     cl _ memI A' rfl f E.authOn hbkG hmem hf
     $$ [Hrb Hrn Hcm Halb Haub Hclb Hleb HLt2 HEv]
   · iframe Hrb Hrn Hcm Halb Haub Hclb Hleb HLt2 HGI HRqT HEv
@@ -252,8 +252,8 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   · iunfold srvStopChans; rw [← hP']; iframe HB HSC
   imodintro
   iunfold srvSnapAppliedG
-  iexists snapγ γ π0 d'.γB, metaTM d'.γB d.P,
-    snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci d' g d'.γB al ast lp cl d'.be,
+  iexists snapγ γ π0 d'.γB, metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P,
+    snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d.P) ci d' g d'.γB al ast lp cl d'.be,
     (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
       #d'.be : GoInterface),
     snapSt (snapγ γ π0 d'.γB) sv.Metadata'.Index', d', x', spc, L

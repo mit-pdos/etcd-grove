@@ -179,8 +179,14 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (γw : RNNames GF) (q : Qp)
     -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (`applyAll`'s payload's): the walk
     -- frees the lessor window before `Recover`
-    (hns : ¬ clusterNoSnap γr.raft.raft.cl),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    (hns : ¬ clusterNoSnap γr.raft.raft.cl)
+    -- (keepfix (c) step 1) the apply thread's mirror of the raft term field (given back), not 0: the payload's
+    -- `SetRaftTerm` ran before (`applyAll`'s), and the reload stores the snapshot's pair at it
+    (rt : w64) (hrt : rt ≠ W64 0),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ciRaftTerm γ.ci rt ∗
+       -- (keepfix (c) step 1, #50) the image's stored pair is committed (its image certificate's term row,
+       -- `srvImage`): the reload's `ConsistentIndex()` stores it at the mirror
+       □ srvCIPair γr.raft.raft.cl sv.Metadata'.Index' tI ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
        -- (sweep repairs 1, W2) the first receive's payload: the storage's WAL records at or
@@ -261,19 +267,19 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of
        -- a backend the apply thread opens at the protocol's names `π` over an image whose meta keys
        -- are `π.m0`, from its fresh keys and payment rights (until then of any backend at any names
-       -- with `π.m0` the snapshot's, false)
+       -- with `π.m0` the snapshot's, false); (keepfix (c), S2) `srvMetaSnap`'s text, at `metaTMR`
        □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-         ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+         ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
          backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
          backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
          □ ∀ (W : IProp GF) (b : Loc),
-           backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTM γB P)) b -∗
+           backend.isBackend γB P W (batchLockInv (γ.withPh π) (metaTMR γr.raft.raft.cl π γB P)) b -∗
            isMetaBackend (interface.mkOk (go.GoType.PointerType
              go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
              (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
+    {{ RET #(); ciRaftTerm γ.ci rt ∗ srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
       notifyRcvN γnc 1 ∗ threadTok ∗ epReplayConfAddr ep ↦ (null : Loc) ∗ rnWalTokA γw (srvRAddr s) q }}
 
 /-- **`applySnapshot`'s spec** (J8b, 2026-11-01): the cases, the empty snapshot (`specEmpty`), a

@@ -38,9 +38,9 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nk γp w TM ρ sa q γn γm hok hci hrel hsz
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs nk γp w TM ρ sa q γn γm rt hok hci hrel hsz
     hγn hpre hnsw
-  wp_start as ⟨#Hsrv, #Hsd, #Hal, #Hsdir, #Hrmlb, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
+  wp_start as ⟨Hrtm, #Hsrv, #Hsd, #Hal, #Hsdir, #Hrmlb, #Hkv, #Hss, #Hsa, #HWP, #HWA, HSS, #Hfz, #Hecs, #Hft, #Hapl, Hai,
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
@@ -67,6 +67,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
   · -- nothing due: return
     (try wp_auto)
     iapply HΦ
+    iframe Hrtm
     iexists st
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
     isplitl [Hd Hm Hf]
@@ -93,20 +94,20 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     -- (E3p) `snapshot` takes the row's part shared by both auth modes
     icases srvApplyKVM_core E.authOn s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
     first
-      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nk (W64 0) γp ua q γn γm
+      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x true ms γs nk (W64 0) γp ua q γn γm rt
             hok hci hrel (by omega) hsz hγn hpre
-            $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
-          as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
+            $$ [Hrtm Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
+          as ⟨Hrtm, %st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #
-           iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
+           iframe Hrtm Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
            iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm)
-      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nk (W64 0) γp ua q γn γm
+      | (wp_apply hS s γ ci TM E ρ γr γw b ep st ai at' cs a t x false ms γs nk (W64 0) γp ua q γn γm rt
             hok hci hrel (by omega) hsz hγn hpre
-            $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
-          as ⟨%st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
+            $$ [Hrtm Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Hwh Htt]
+          as ⟨Hrtm, %st', HSS, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, Htt, %hst'⟩
          · iframe #
-           iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
+           iframe Hrtm Hai Hat Hcs Hst Hbe Happ Hlr HKV Hwt Htt
            iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hslb
            ipureintro; exact Hdm)
     iunfold srvSnapState at HSS
@@ -124,6 +125,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
     (try wp_auto)
     ihave HKV := HKVk $$ HKV
     iapply HΦ
+    iframe Hrtm
     iexists st'
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV Hfz Hwt Htt
     isplitl [Hd Hm Hf]

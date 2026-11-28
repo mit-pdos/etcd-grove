@@ -108,11 +108,11 @@ theorem EtcdServer.snapshot.wp_proof
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshot.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nk sl γp ua q γn γm Hloop Hci Hrel
+  intro s γ ci TM E ρ γr γw b ep st ai at' cs a t x toDisk ms γs nk sl γp ua q γn γm rt Hloop Hci Hrel
     Hpos Hsz Hγn Hpre
   cases toDisk
   all_goals (
-  wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hsdir, #Hrmlb, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv, %Hkve⟩, #Hwp, Hai,
+  wp_start as ⟨Hrtm, #Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hsdir, #Hrmlb, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv, %Hkve⟩, #Hwp, Hai,
     Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   -- (R2b-1 stage 5) the applied log's committed lower bound, kept from `srvSnapStor`
   iunfold srvSnapStor at Hstor
@@ -185,6 +185,7 @@ theorem EtcdServer.snapshot.wp_proof
       rw [Hb _ rfl Hptr rfl]
       (try wp_auto)
       iapply HΦ
+      iframe Hrtm
       iexists st
       iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
       isplitl [Hd Hm Hf]
@@ -203,13 +204,15 @@ theorem EtcdServer.snapshot.wp_proof
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #()))
-      iapply (wp_ci_get (Rw := TRow.triv) hCI _ γ ci b st Hloop.1) $$ [Hst Hbe]
-      · iframe #; iframe
-      iintro ⟨Hst, Hbe⟩
+      iapply (wp_ci_get (Rw := TRow.triv) hCI _ γ ci b rt st Hloop.1) $$ [Hst Hbe Hrtm]
+      · iframe #; iframe Hst Hbe Hrtm
+        ileft; ipureintro; exact stLoaded_self_k0 γ st Hloop.2.2
+      iintro ⟨Hst, Hbe, Hrtm⟩
       wp_apply hVer snap' (memSnapMade ai at' c []) (ciEff γ st.k) (by exact Hci) $$ []
       · iframe #
       (try wp_auto)
       iapply HΦ
+      iframe Hrtm
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
       iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
@@ -221,7 +224,7 @@ theorem EtcdServer.snapshot.wp_proof
       isplitl [Hcs]
       · iunfold epConfState; iframe Hcs Hcsok
       ipureintro
-      refine ⟨⟨by rw [hlp]; exact Hloop.1, by rw [hlpp, hlc]; exact Hloop.2⟩, hlc⟩
+      refine ⟨⟨by rw [hlp]; exact Hloop.1, by rw [hlpp, hlc]; exact Hloop.2.1, stLoaded_idem γ st⟩, hlc⟩
   · -- `toDisk`: the `Info` log, `forceDiskSnapshot := false`, `KV().Commit()`
     wp_apply hMID s sv.memberID $$ []
     · iframe #
@@ -321,6 +324,7 @@ theorem EtcdServer.snapshot.wp_proof
       rw [Hb _ rfl Hptr rfl]
       (try wp_auto)
       iapply HΦ
+      iframe Hrtm
       iexists st
       iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
       isplitl [Hd Hm Hf]
@@ -339,9 +343,10 @@ theorem EtcdServer.snapshot.wp_proof
       -- `verifyConsistentIndexIsLatest(snap, s.consistIndex.ConsistentIndex())`
       wp_bind (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"ConsistentIndex"))
         (Val #()))
-      iapply (wp_ci_get (Rw := TRow.triv) hCI _ γ ci b st Hloop.1) $$ [Hst Hbe]
-      · iframe #; iframe
-      iintro ⟨Hst, Hbe⟩
+      iapply (wp_ci_get (Rw := TRow.triv) hCI _ γ ci b rt st Hloop.1) $$ [Hst Hbe Hrtm]
+      · iframe #; iframe Hst Hbe Hrtm
+        ileft; ipureintro; exact stLoaded_self_k0 γ st Hloop.2.2
+      iintro ⟨Hst, Hbe, Hrtm⟩
       wp_apply hVer snap' (memSnapMade ai at' c []) (ciEff γ st.k) (by exact Hci) $$ []
       · iframe #
       (try wp_auto)
@@ -478,6 +483,7 @@ theorem EtcdServer.snapshot.wp_proof
       · iframe #
       (try wp_auto)
       iapply HΦ
+      iframe Hrtm
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
       iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
@@ -489,7 +495,7 @@ theorem EtcdServer.snapshot.wp_proof
       isplitl [Hcs]
       · iunfold epConfState; iframe Hcs Hcsok
       ipureintro
-      refine ⟨⟨by rw [hlp]; exact Hloop.1, by rw [hlpp, hlc]; exact Hloop.2⟩, hlc⟩
+      refine ⟨⟨by rw [hlp]; exact Hloop.1, by rw [hlpp, hlc]; exact Hloop.2.1, stLoaded_idem γ st⟩, hlc⟩
 
 end proof
 
