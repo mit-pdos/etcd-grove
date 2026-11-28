@@ -12,6 +12,7 @@ configuration.
 module
 
 public import Dsverify.Proof.github_com.hashicorp.raft.leader.Defs
+public import Dsverify.Proof.github_com.hashicorp.raft.leader.DurView
 
 @[expose] public section
 
@@ -79,10 +80,11 @@ theorem leaderOwnM_mono (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Na
   iframe
   ipureintro; exact ⟨H10, h _ H19⟩
 
-/-- `mainOwnAt` of a leader without the parts `dispatchLogs` uses and the configurations part. -/
+/-- `mainOwnAt` of a leader without the parts `dispatchLogs` uses and the configurations part
+(hraft_robust: the stable store's view with the staged commit index; no `durView`, which is in `srvDurInv`). -/
 def mainRest (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) : IProp GF :=
   iprop(∃ (sst : StableAbs) (lch : Loc) (γl : ChanNames) (bs : List Bool) (c : Nat),
-    durView γ i (1 : Qp).half s.dur.1 ∗ rc.ownS sst ∗ ⌜voteMatches sst s⌝ ∗
+    (∃ g : w64, stVS rc sst g ∗ ⌜uint.nat g ≤ s.dur.1⌝) ∗ ⌜voteMatches sst s⌝ ∗
     ghostVar rc.names.state (1 : Qp).half stLeader ∗
     (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
     verifyRegistry γ rc i ∗ fsmProd γ rc a ∗
@@ -108,25 +110,48 @@ def confOwn (r : Loc) (γ : GNames) (i : SID) (s : SState) (a : Nat) : IProp GF 
 theorem mainRest_log (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat)
     (L : RLog) : mainRest r γ rc i { s with log := L } a ⊣⊢ mainRest r γ rc i s a := .rfl
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
+/-- (hraft_robust R4b) A leader's `mainOwnAt`, opened: its view `srvV`, `lastLog`, `lastApplied`, `leaderIs`,
+the rest and the configurations part. -/
 theorem mainOwnAt_lopen (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
-    mainOwnAt r γ rc i s stLeader ⊢ ∃ a : Nat, srvOwn γ i s ∗
+    mainOwnAt r γ rc i s stLeader ⊢ ∃ a : Nat, srvV rc s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
-      mainRest r γ rc i s a ∗ confOwn r γ i s a := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+      leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwn r γ i s a := by
+  unfold mainOwnAt mainRest confOwn
+  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, Hsrv, -, HownS, %Hvm, HlastLog,
+    Hst, Hldr0, -, Hreg, Happ, %Ha, Hprod, Hpdn, Hcomp, %Hcp, Hconf, #Hcfg, #Hccfg, %Hli,
+    #Hcmt, #Hlch, #Hlchan, Hlown, %Hlcap⟩
+  icases Hldr0 with (%Hc | ⟨#Hldr, Hpub, Hcc, %n0, #Hn0, Hcix, Hcl⟩)
+  · exact absurd rfl Hc
+  iexists a
+  iframe Hsrv HlastLog Happ
+  isplitr; · ipureintro; exact Ha
+  isplitr; · iexact Hldr
+  isplitl [HownS Hst Hpub Hreg Hprod Hpdn Hcomp Hlown]
+  · iexists sst, lch, γl, bs, c
+    iframe; iframe #; ipureintro; exact ⟨Hvm, Hcp, Hlcap⟩
+  iexists cfg, ccfg, cidx, li
+  iframe; iframe #
+  ipureintro; exact Hli
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
--/
 theorem mainOwnAt_lclose (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
-    srvOwn γ i s ∗
+    srvV rc s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
-      mainRest r γ rc i s a ∗ confOwn r γ i s a ⊢ mainOwnAt r γ rc i s stLeader := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+      leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwn r γ i s a ⊢
+      mainOwnAt r γ rc i s stLeader := by
+  unfold mainOwnAt mainRest confOwn
+  iintro ⟨Hsrv, HlastLog, Happ, %Ha, #Hldr,
+    ⟨%sst, %lch, %γl, %bs, %c, HownS, %Hvm, Hst, Hpub, Hreg, Hprod, Hpdn, Hcomp, %Hcp, #Hlch,
+      #Hlchan, Hlown, %Hlcap⟩,
+    ⟨%cfg, %ccfg, %cidx, %li, Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩⟩
+  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
+  iframe Hsrv HownS HlastLog Hst Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
+  iframe #
+  isplitr; · ipureintro; exact Hvm
+  isplitl [Hpub Hcc Hcix Hcl]
+  · iright; iframe
+  ipureintro; exact ⟨Ha, Hcp, Hli, Hlcap⟩
 
 theorem confOwn_intro (r : Loc) (γ : GNames) (i : SID) (s : SState) (a : Nat)
     (cfg ccfg : Configuration) (cidx li : w64) (n0 : Nat)
@@ -178,12 +203,37 @@ theorem cfgAtIs_servers (γ : GNames) (L : RLog) (p : Nat) (c : Configuration) :
   · iexists []; iexact Hs
   · iexists ss; iexact Hs
 
-/-- A leader's log has a configuration entry (its commitment's configuration is one of its log's). -/
+/-- A leader's log has a configuration entry (its commitment's configuration is one of its log's).
+(hraft_robust R4b: through the crash invariant, `durFact`.) -/
 theorem mainOwnAt_leader_cfg [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : GNames) (rc : RCtx GF)
     (i : SID) (s : SState) :
-    Inv γ ∗ mainOwnAt r γ rc i s stLeader ⊢ |={⊤}=> mainOwnAt r γ rc i s stLeader ∗
-      ⌜1 ≤ lastCfgIdx s.log⌝ := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+    Inv γ ∗ srvDurInv γ rc i ∗ mainOwnAt r γ rc i s stLeader ⊢ |NC={⊤}=>
+      mainOwnAt r γ rc i s stLeader ∗ ⌜1 ≤ lastCfgIdx s.log⌝ := by
+  iintro ⟨#HInv, #Hdur, Hm⟩
+  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAt_lopen r γ rc i s $$ Hm
+  iunfold confOwn at Hconf
+  icases Hconf with ⟨%cfg, %ccfg, %cidx, %li, Hconfs, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩
+  iapply ncfupd_fupd_l
+  imod ccfgOwn_entry γ ⊤ (by solve_ndisj) i s.term (lastCfgIdx s.log) $$ [Hcc] with ⟨Hcc, %e0, #He0, %He0k⟩
+  · iframe; iframe #
+  imodintro
+  iapply ncfupd_wand
+  isplitl [Hsrv]
+  · iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ ∗ leaderIs γ s.term i ∗ llogIdx γ s.term (lastCfgIdx s.log) e0)
+      iprop(⌜ent s.log (lastCfgIdx s.log) = some e0⌝)
+    · iintro ⟨⟨#HI, #Hl, #Hx⟩, Hs⟩
+      iapply llogIdx_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s (lastCfgIdx s.log) e0
+      iframe; iframe #
+    iframe; iframe #
+  iintro ⟨Hsrv, %Hent0⟩
+  isplitl
+  · iapply mainOwnAt_lclose r γ rc i s a
+    iframe Hsrv HlastLog Happ Hrest
+    iframe #
+    isplitr; · ipureintro; exact Ha
+    iapply confOwn_intro r γ i s a cfg ccfg cidx li n0 Hli
+    iframe; iframe #
+  ipureintro; exact (proto.ent_le_length Hent0).1
 
 /-- (HUB-REQUEST L1, proposed) The configurations part of a leader's `mainOwnAt` when its latest
 configuration is the committed one (`configurations.committedIndex = latestIndex`, what
@@ -212,29 +262,51 @@ theorem confOwnSt_confOwn (r : Loc) (γ : GNames) (i : SID) (s : SState) (a : Na
   · ileft; ipureintro; right; exact h
   · iright; iexact Hk
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 theorem mainOwnAtSt_open (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
-    mainOwnAtSt r γ rc i s ⊢ ∃ a : Nat, srvOwn γ i s ∗
+    mainOwnAtSt r γ rc i s ⊢ ∃ a : Nat, srvV rc s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
-      mainRest r γ rc i s a ∗ confOwnSt r γ i s a := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+      leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwnSt r γ i s a := by
+  unfold mainOwnAtSt mainRest confOwnSt
+  iintro ⟨%a, %sst, %cfg, %ccfg, %li, %lch, %γl, %bs, %c, Hsrv, -, HownS, %Hvm, HlastLog,
+    Hst, ⟨#Hldr, Hpub, Hcc, %n0, #Hn0, Hcix, Hcl⟩, -, Hreg, Happ, %Ha, Hprod, Hpdn, Hcomp, %Hcp,
+    Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, #Hlch, #Hlchan, Hlown, %Hlcap⟩
+  iexists a
+  iframe Hsrv HlastLog Happ
+  isplitr; · ipureintro; exact Ha
+  isplitr; · iexact Hldr
+  isplitl [HownS Hst Hpub Hreg Hprod Hpdn Hcomp Hlown]
+  · iexists sst, lch, γl, bs, c
+    iframe; iframe #; ipureintro; exact ⟨Hvm, Hcp, Hlcap⟩
+  iexists cfg, ccfg, li
+  iframe; iframe #
+  ipureintro; exact Hli
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
--/
 theorem mainOwnAtSt_close (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : Nat) :
-    srvOwn γ i s ∗
+    srvV rc s ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ leaderIs γ s.term i ∗
-      mainRest r γ rc i s a ∗ confOwnSt r γ i s a ⊢ mainOwnAtSt r γ rc i s := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+      leaderIs γ s.term i ∗ mainRest r γ rc i s a ∗ confOwnSt r γ i s a ⊢ mainOwnAtSt r γ rc i s := by
+  unfold mainOwnAtSt mainRest confOwnSt
+  iintro ⟨Hsrv, HlastLog, Happ, %Ha, #Hldr,
+    ⟨%sst, %lch, %γl, %bs, %c, HownS, %Hvm, Hst, Hpub, Hreg, Hprod, Hpdn, Hcomp, %Hcp, #Hlch,
+      #Hlchan, Hlown, %Hlcap⟩,
+    ⟨%cfg, %ccfg, %li, Hconf, #Hcfg, #Hccfg, %Hli, #Hcmt, Hcc, %n0, #Hn0, Hcix, Hcl⟩⟩
+  iexists a, sst, cfg, ccfg, li, lch, γl, bs, c
+  iframe Hsrv HownS HlastLog Hst Hreg Happ Hprod Hpdn Hcomp Hconf Hlown
+  iframe #
+  isplitr; · ipureintro; exact Hvm
+  isplitl [Hpub Hcc Hcix Hcl]
+  · iframe
+  ipureintro; exact ⟨Ha, Hcp, Hli, Hlcap⟩
 
 theorem mainOwnAtSt_mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
     mainOwnAtSt r γ rc i s ⊢ mainOwnAt r γ rc i s stLeader := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  iintro Hm
+  ihave ⟨%a, Hsrv, HlastLog, Happ, %Ha, #Hldr, Hrest, Hconf⟩ := mainOwnAtSt_open r γ rc i s $$ Hm
+  ihave Hconf := confOwnSt_confOwn r γ i s a $$ Hconf
+  iapply mainOwnAt_lclose r γ rc i s a
+  iframe; iframe #; ipureintro; exact Ha
 
 end defs
 
