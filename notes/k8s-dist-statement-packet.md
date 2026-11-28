@@ -306,10 +306,8 @@ modules of the k8s cone see `k8sClient`, not the axioms. If S2's single spec sta
 ---
 
 ## D7. The run-size bounds of the shared porcupine model (K9-18), and how to get them
-
 The model's proofs need revisions `≤ 2^62` (K9-12, accepted) and `histCost xs ≤ 2^62` (K9-17: 7 per
 operation plus the decoded events and items). K9-18 says Perennial has no step-count resource; **it has one.**
-
 **(a), recommended: time receipts, which already exist; no Perennial change.** Lean Perennial's counterpart of
 Rocq's `steps_lb`/step credits is Mével-Jourdan-Pottier time receipts (`.lake/packages/perennial/README.md`
 68-105; `docs/PERENNIAL_PROOF_REFERENCE.md` 887-1000; `Perennial/GooseLang/Receipts.lean`). The bounded layer
@@ -336,13 +334,10 @@ counter (`Spec/.../k8s/daemonset/apimodel/Server__nextRV.lean`), and mvcc and th
    - revisions (K10): every reply revision lies inside a `srvLogCert` log, whose `⧖ (logCh log)` already
      bounds it (`srvLogCert_logOk`, `receiptBound GF ≤ 2^62`). K5's exported dist laws must surface
      `rev < 2^62` as a conjunct (a law added to the client package's API, proved from `srvLogCert_logOk`).
-   - Impact on existing proofs: none outside those specs and their callers. Receipts are added resources,
-     and the driver takes its receipts from its own steps, which no callee's proof consumes.
+   - Impact: none beyond those specs and their callers (receipts are an added resource; the driver's own steps' receipts are no callee's).
 3. *Size and risk*: roughly 300-600 Lean lines, 2-4 sessions (one each for the encoders, the history
-   invariant and the K5 law). Risks: (i) whether K5's laws can expose the revision bound without unsealing
-   (`etc/api/` rules: add a law, never unseal); (ii) threading `⧗` through a concurrent recording path if
-   the history is appended outside one lock. There is no framework risk: nothing goes to Perennial.
-
+   invariant and the K5 law). Risks: whether K5's laws can expose the revision bound by a law (never unseal), and
+   threading `⧗` if the history is appended outside one lock. No framework risk: nothing goes to Perennial.
 **(b), the fallback: a cap in the k8s driver.** Stop recording after `N = 2^40` operations. Take an angelic
 exit (`AngelicExit`, `Robustness/Statement.lean` 40-51) when an output decodes to more than `M = 2^20`
 elements or shows a revision `≥ 2^62`. Then `|xs| ≤ N` and `histCost xs ≤ (7 + 2M)·N` are facts of the
