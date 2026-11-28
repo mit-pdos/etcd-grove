@@ -100,7 +100,7 @@ abbrev userKeysOk (M : AuthMode) (hs : List AuthState) : Prop :=
   ∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
     n.length ≤ backend.maxKeySize
 
-/-- **Every stored role's name a bbolt key** (as `userKeysOk`; `RoleRevokePermission`'s rewrite;
+/-- **Every stored role's name a bbolt key** (as `userKeysOk`; `RoleGrantPermission`'s and `RoleRevokePermission`'s rewrites;
 `authSmall.roleNames`). -/
 abbrev roleKeysOk (M : AuthMode) (hs : List AuthState) : Prop :=
   ∀ s : AuthState, histLast M hs s → ∀ r : GoString, (s.roles !! r).isSome →

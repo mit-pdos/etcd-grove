@@ -384,8 +384,9 @@ theorem restReqOk_attr (rq : IRRModel) (rs : RestM) (a : MemberAttrModel) (h : r
     (rs.mem.lookup a.memberID).isSome = true := h hk a ha
 
 /-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
-only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
-`AuthFuel.lean`). The eleven that change the auth state (`SetUp`'s five, `UserAdd`, `RoleAdd`,
+only; `UserAdd`'s and `RoleAdd`'s names within bbolt's key bound (the step specs' premise; the rewrite
+kinds instead take `userKeysOk`/`roleKeysOk`, from the fuel's `authSmall`; the fuel bounds the rest,
+`AuthFuel.lean`). The ones that change the auth state (`SetUp`'s five, `UserAdd`, `RoleAdd`,
 `UserGrantRole`, `RoleGrantPermission`, `AuthEnable`, and since nomode D3, 2026-11-28,
 `AuthDisable`, `UserDelete`, `UserChangePassword`, `UserRevokeRole`, `RoleDelete`,
 `RoleRevokePermission`); not the lists. A `UserAdd`'s password choice cannot fail
