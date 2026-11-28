@@ -44,6 +44,21 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 variable (γ : GNames) (rc : RCtx GF) (i : SID)
 
+/-- The least `m < n` with `P m`, if any. -/
+theorem crash_least (P : Nat → Prop) (n : Nat) :
+    (∀ m, m < n → ¬ P m) ∨ ∃ m, m < n ∧ P m ∧ ∀ j, j < m → ¬ P j := by
+  induction n with
+  | zero => exact Or.inl (fun m h => absurd h (Nat.not_lt_zero _))
+  | succ n ih =>
+    rcases ih with h | ⟨m, hm, hP, hj⟩
+    · rcases Classical.em (P n) with hn | hn
+      · exact Or.inr ⟨n, by omega, hn, fun j hj' => h j hj'⟩
+      · refine Or.inl (fun m hm => ?_)
+        rcases Nat.lt_or_ge m n with h1 | h1
+        · exact h m h1
+        · rw [show m = n by omega]; exact hn
+    · exact Or.inr ⟨m, by omega, hP, hj⟩
+
 /-! ## Masks -/
 
 theorem crash_hE_dur {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) : (↑durN : CoPset) ⊆ E :=
@@ -413,6 +428,36 @@ theorem truncate_gt_dur_R (prev pt : Nat) (ents : RLog) (lci j : Nat)
   iintro Ho -
   iapply (gprot.truncate_gt_dur γ _ (crash_hE_gprot hE) i s prev pt ents lci j hpre) $$ [HI Ho HP]
   iframe HI Ho; iexact HP
+
+/-- (R2, for R4a's appendEntries) **A valid request matches the log up to the durable prefix**: with its
+previous entry matched, its entries agree with the log up to `dur` (a mismatch below `dur` would be a
+truncation of a durable entry: `truncate_gt_dur`). -/
+theorem aeValid_match_dur_R (prev pt : Nat) (ents : RLog) (lci : Nat) (hp : prevMatch s.log prev pt) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ aeValid γ s.term prev pt ents lci ⊢
+      |NC={E}=> srvV rc s ∗ ⌜matchedUpTo s.log prev ents (Min.min ents.length (s.dur.1 - prev))⌝ := by
+  iintro ⟨#HI, #Hd, Hv, #Hae⟩
+  iapply (durPeekV γ rc i (crash_hE_dur hE) s iprop(True) _)
+  iframe Hd Hv
+  isplitl []
+  · itrivial
+  iintro Ho -
+  imod (gprot.srvOwn_facts γ _ (crash_hE_gprot hE) i s) $$ [HI Ho] with ⟨Ho, -, %hf⟩
+  · iframe #; try iframe
+  have hdl := hf.2.1
+  rcases crash_least (fun m => termAt s.log (prev + 1 + m) ≠ termAt ents (m + 1))
+      (Min.min ents.length (s.dur.1 - prev)) with hall | ⟨m, hm, hne, hmin⟩
+  · imodintro
+    iframe
+    ipureintro
+    refine ⟨by omega, fun j' hj' => ⟨by omega, ?_⟩⟩
+    exact Classical.byContradiction (hall j' hj')
+  · have hmin' : ∀ j', j' < m → termAt s.log (prev + 1 + j') = termAt ents (j' + 1) :=
+      fun j' hj' => Classical.byContradiction (hmin j' hj')
+    imod (gprot.truncate_gt_dur γ _ (crash_hE_gprot hE) i s prev pt ents lci m
+      ⟨hp, ⟨by omega, fun j' hj' => ⟨by omega, hmin' j' hj'⟩⟩, by omega, by omega, hne⟩)
+      $$ [HI Ho Hae] with ⟨Ho, %hgt⟩
+    · iframe #; try iframe
+    exfalso; omega
 
 /-! ## In-memory commits (`dur` grows) -/
 
