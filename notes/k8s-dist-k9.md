@@ -883,4 +883,6 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   count has to come from the driver's own state, e.g. the history's length and the encoders' loop
   counts, bounded by the adequacy theorem's step bound). If K10 finds that unavailable, both bounds need
   the same fix (a Go-side cap in the driver).
-- Build of record: see the commit after this one.
+- **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`, `k8s.all.PkgTable`,
+  SpecPlan's etcd3 PkgInit) at `a7a07184d6`: passed, 12734 jobs, 0 errors (`HistoryRevs.wp_proof` warns its WIP
+  `sorry`; `Link` has none).
