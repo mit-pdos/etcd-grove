@@ -62,7 +62,7 @@ def durCore (X : SrvDur) : IProp GF :=
       (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
       (∀ d, X.dp = some d → X.c < d.x))⌝ ∗
     monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
-    tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
+    tpRes γ X.tp ∗ dpRes γ i X.s X.dp ∗ monoNatAuthOwn rc.dur.lat 1 (latIdxD X.lat))
 
 /-- (R2) **The rest of `durBody`**: the stores' client authorities and what raft keeps about the
 snapshot store (`latestDur`). -/
@@ -120,10 +120,10 @@ theorem durBody_split (X : SrvDur) :
     durBody γ rc i X ⊣⊢ durCore γ rc i X ∗ durStores γ rc i X ∗ bootPin rc X := by
   unfold durBody durCore durStores
   refine ⟨?_, ?_⟩
-  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, Hl, Hpe, Ht, Hd⟩
+  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, Hla, Hl, Hpe, Ht, Hd⟩
     iframe
     ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr⟩
-  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, Hc, Hpe, Ht, Hd⟩, ⟨HL, HS, HSS, Hl⟩, Hb⟩
+  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, Hc, Hpe, Ht, Hd, Hla⟩, ⟨HL, HS, HSS, Hl⟩, Hb⟩
     iframe
     isplitl []
     · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2.1⟩
@@ -282,6 +282,7 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
   imod (ghostVar_alloc ()) with ⟨%gtok, Htok⟩
   imod (ghostVar_alloc (none : Option Pend)) with ⟨%gpw, Hpw⟩
   imod (dghostVar_alloc (some (X.A, X.lat))) with ⟨%gboot, Hboot⟩
+  imod (mono_nat_own_alloc (latIdxD X.lat)) with ⟨%glat, Hla, -⟩
   ihave ⟨Hsv1, Hsv2⟩ := (ghostVar_split_half gsv 1 (X.s, X.tp, X.dp)).1 $$ Hsv
   ihave ⟨Hcomp1, Hcomp2⟩ := ((monoNatAuthOwn_fractional (GF := GF) gcomp X.c).fractional (1 : Qp).half (1 : Qp).half).1 $$ [Hcomp]
   · rw [Qp.half_add_half]; iexact Hcomp
@@ -292,10 +293,10 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
   icases dghostVar_split _ _ (.own (1 : Qp).half) (.own (1 : Qp).half) $$ [Hboot] with ⟨Hb1, Hb2⟩
   · rw [DFrac.op_own, Qp.half_add_half]; iexact Hboot
   rw [hpend]
-  rw [← latestDur_dur_none γ i rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩ X.lat X.dp]
-  imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩ } i X') ∨
-      crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩ }))
-    $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1 Hb1 Hcomp1] with #Hinv
+  rw [← latestDur_dur_none γ i rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ X.lat X.dp]
+  imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ } i X') ∨
+      crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ }))
+    $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1 Hb1 Hcomp1 Hla] with #Hinv
   · inext
     ileft
     iexists X
@@ -317,7 +318,7 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
       intro p hp; cases hp; rfl
     ipureintro; exact hdpl.2
   imodintro
-  iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩
+  iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩
   unfold srvDurInvRaw srvCrashTok srvVP stVS termV cidxV
   dsimp only
   iframe
@@ -360,7 +361,7 @@ theorem raft_crash {E : CoPset} (hE : ↑durN ⊆ E) :
     imodintro
     iexists X
     iunfold durBody at Hb
-    icases Hb with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HL, HS, HSS, %Hp, %Hq, -, Hcomp, %Hr, Hlat, Hpend, Htp, Hdp⟩
+    icases Hb with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HL, HS, HSS, %Hp, %Hq, -, Hcomp, %Hr, -, Hlat, Hpend, Htp, Hdp⟩
     unfold srvDead deadCore
     iframe
     ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr⟩
