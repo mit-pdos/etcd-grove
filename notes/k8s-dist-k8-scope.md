@@ -375,3 +375,49 @@ a copy to move to `History.lean`, whose `histAuth_next` becomes its corollary; `
 **Next**: settle 1-3; then `kInvDW_catchup : kInvDW γ c g0 σ₀ σl ∗ ⌜KVExt σ₀ σ ∧ pfxVH regP σ = pfxVH regP σl
 ∧ …⌝ ⊢ |==> kInvDW γ c g0 σ₀ σ` (the lintest ghost and `M` unchanged, `kOkD_foreign`, the two catch-ups), and the
 firings over `kvPfxP_au1H`/`readAuH` (`InvSteps.lean`'s `create_au`/`rw_au`/`pend_au1`/… with the catch-up first).
+
+## Handoff K8-8 (2026-11-28)
+
+**Coordinator decisions on K8-7's open points** (etcd-grove-03), and what came of them:
+1. **`σl.changes <+: σ.changes` in the callback: yes** (strengthen `kvPfxP_au1H`/`readAuH`, our own lemmas).
+   *Done.* A wand `∀ l, monoListLbOwn γh l -∗ ⌜l <+: σ.changes⌝` cannot be handed over while the invariant keeps
+   the authority, so the step now **holds the share's history authority over the firing**: `kvPfxP_au1H`'s callback
+   takes `monoListAuthOwn γh 1 σ.changes` and gives back `monoListAuthOwn γh 1 (f σ).changes` (it takes the
+   update's `monoListAuthOwn_update` itself; it no longer gets the lower bound of `f σ`, `monoListLbOwn_get` of the
+   returned authority gives it); `readAuH`'s takes and gives back `monoListAuthOwn γh 1 σ.changes`. No `_dist` axiom
+   or trusted text touched; nothing else called them. The store's `W` is now `kInvDV` (below), which keeps
+   `monoListLbOwn γsh σl.changes`; `mono_list_auth_lb_valid` gives the prefix fact (`kInvDV_catchup`).
+2. **A foreign lease grant: invisible to the prefix. Proved**, in the form "the store's half stays at `σl`":
+   `SameL σc σ` (equal `compacted`/`base`/`changes`: a state up to its `leases`); `sameL_of_rev` (no new revision
+   ⇒ `SameL`), `pfxVH_sameL`, `SameL.kvs_rev`, `abs_sameL` (`c.abs` reads `kvs`/`rev` only), `kvNext_sameL` (a
+   moving step from `σ` is one from `σc`). The one thing that reads leases is `revOwnD`'s map (`ghostMapElem γ.r
+   σl.rev □ σl`, `RevOk`'s `Mr !! rev = some σl`): its entry cannot become `σ`, so the catch-up does **not** move the
+   half to `σ` there; it stays at `σl`, and every later use goes through `SameL` (the store's next write is
+   `KvNext σl (f σ)` by `kvNext_sameL`; a read gives `kInvDV (pfxVH regP σ)` back by `kInvDV_of_sameL`). `kInvD`
+   reads no lease field otherwise (`KvExt`, `KvNext`, `kvWf`, `c.abs`, `KHistID`, `histAuth` don't).
+3. **`RevBoundD σ := σ.rev + 1 < 2^63`**, a named premise of `kInvDW_catchup`/`kInvDV_catchup` only (K10: the
+   client law from time receipts). Not assumed anywhere. *Open for the firings*: `σ` is bound inside the callback,
+   so the firing laws need it per state; a pure `∀ σ, KVExt σ₀ σ → RevBoundD σ` would be false, so the law's
+   premise must be Iris-level (e.g. `□ ∀ σ, monoListAuthOwn γsh 1 σ.changes -∗ ⌜RevBoundD σ⌝`, what K10's receipt
+   law must then give). Coordinator's call before the firings are stated.
+
+**`histAuth_step` stays in `StoreInv.lean`** (not moved to `History.lean`): `etc/importers.py --count` of
+`History.lean` is 135 modules, 23214 lines. Move it when `History.lean` changes anyway.
+
+**Proved** (`StoreInv.lean`, `KVPfxHist.lean`, no `sorry`, no statement/axiom/trusted change):
+`kInvDV`, `kInvDBody` = `∃ v, ghostVar γs ½ v ∗ kInvDV … v` (exactly `kvPfxP_au1H`'s client-invariant shape,
+`W := kInvDV γ c g0 γsh σ₀`; `kInvD`/`kInvDBody` take `γsh`, the share's history name);
+`kInvDW_catchup : KVExt σ₀ σ → pfxVH regP σ = pfxVH regP σl → σl.changes <+: σ.changes → RevBoundD σ →
+kInvDW … σl ⊢ |==> ∃ σc, ⌜SameL σc σ⌝ ∗ kInvDW … σc` (no new revision: `σc = σl`; otherwise `σ`, via
+`kOkD_foreign`, `revOwnD_catchup`, `shistOwn_catchup`); `kInvDV_catchup` (the same inside a firing, from the
+authority); `kInvDV_of_sameL`; `khistID_next`, `revOwnD_next`, `invD_next` (`inv_next` from `σc`: the store's
+own step `KvNext σ σ'`, `σ' ≠ σ`, with `kvWf c σc` from `KOkD`). `StoreInv` now imports `etcd3.InvSteps` (defs).
+
+**Next**: decide (3)'s per-state form; then the firings: `createD_au` etc. over `kvPfxP_au1H` at `f := kvOpStep op`
+(the AU's post is `etcdKV γk (kvOpStep op σ) ∗ ⌜kvRoom σ⌝`; the step facts `KvNext`/`kvWf`/`c.abs` come from
+`StepOk`/`kvNext_step` as in `k8sAu1_kvAu1`, `PfxLocal` from `PfxTxn.lean`): open `kInvDV` at `pfxVH regP σ`,
+`kInvDV_catchup`, then (`kvOpStep op σ = σ`: keep `σc`, `kInvDV_of_sameL`; else `invD_next` + `kOkD_ok`/… on
+`σc` + `linU_commit`), return the authority updated (`monoListAuthOwn_update`) and `kInvDV (pfxVH regP (f σ))`.
+
+**Build of record**: `lake build ...k8s.dist.StoreInv ...k8s.dist.PfxTxn` (every importer of `KVPfxHist`) at
+`f9acd4f0af` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5259 jobs, OK.
