@@ -243,6 +243,7 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   hgo1 : GlobalOk R S1 net G
   hl : RaftLaws G
   hdk : ∀ k : Fin R.N, (V k).dur = durOf (V k).r
+  hqa : ∀ k : Fin R.N, S1.queue[k.val]! = []
   hc : S1.cfg = R.cfg
   hn3 : n.val < S1.role.length
   hct3 : n.val < S1.currentTerm.length
@@ -358,6 +359,8 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDe
   refine ⟨S1, {
     hp := hp, hgc := hgc, hs1 := hs1, hgo1 := hgo1, hl := hl, hc := hsh.1
     hdk := fun k => ((hs1.2.2.2.2 k).sync (by rw [hmd]) hbt hspl hpar).2.1
+    hqa := fun k => by
+      rw [(hs1.2.2.2.2 k).queue, ((hs1.2.2.2.2 k).sync (by rw [hmd]) hbt hspl hpar).1]; rfl
     hn3 := by rw [hsh.2.2.2.2.2.2.1]; exact n.isLt
     hct3 := by rw [hsh.2.1]; exact n.isLt
     hlg3 := by rw [hsh.2.2.2.2.1]; exact n.isLt

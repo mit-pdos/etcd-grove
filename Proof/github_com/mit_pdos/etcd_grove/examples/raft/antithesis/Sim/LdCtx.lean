@@ -7,7 +7,7 @@ Lean-first (no Rocq counterpart).
 the state after `GC`, every node's disk raft's state. The leader kinds' `InMemory` evaluations read
 less: the binding's facts (`BindingOk`, `GlobalOk`), the network's and the node's own facts, the node's
 disk its raft state, and the uniqueness of a term's leader. `LdCtx` is that part, with the network
-and the node read at `liftC S1` (the commits raised to the announced ones: the state a B1 lemma reads
+read at `liftC S1` (the commits raised to the announced ones: the state a B1 lemma reads
 while other nodes have writes queued, parity B2's `-parallel`). B1's `RdCtx` gives it
 (`RdCtx.toLd`: no write is queued, `liftC S1 = S1`); so does the B2 relation for a `-parallel`
 leader with no write queued (`MemCtx.lean`) (#33 parity B2, Sim round 10).
@@ -52,7 +52,7 @@ theorem lead_unique {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
 
 /-- **A reported `Ready`'s node-local context** at node `n`, at the binding's state `S1` (after
 `GC`): `RdCtx` without the checker's prefix, the `GC` run and the whole relation; in their place the
-binding's facts at `S1`, the network's and the node's at `liftC S1`, the node's disk its raft state,
+binding's and the node's facts at `S1`, the network's at `liftC S1`, the node's disk its raft state,
 and a term's leader unique. -/
 structure LdCtx (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (r₁ : RState) (rd : ReadyD)
@@ -62,7 +62,7 @@ structure LdCtx (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView) (net : Lis
   hsh : Shape R S1
   hb : BindingOk R dec S1
   hnet : NetOk R (liftC S1) net
-  hv : NodeOk R dec (liftC S1) net n (V n)
+  hv : NodeOk R dec S1 net n (V n)
   hdn : (V n).dur = durOf (V n).r
   hlu : ∀ k : Fin R.N, S1.role[k.val]! = leader →
     S1.leaders.contains { server := nameOf (nodeId n), term := S1.currentTerm[k.val]! } = true → k = n
@@ -102,15 +102,14 @@ structure LdCtx (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView) (net : Lis
 /-- **B1's context is node-local's**: with no write queued anywhere, `liftC S1` is `S1`. -/
 theorem RdCtx.toLd {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
     {xnet : List XMsg} {evs : List Event} {G : RaftFacts} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
-    {S1 : State} (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
-    (hq : ∀ k : Fin R.N, S1.queue[k.val]! = []) : LdCtx R dec V net xnet G n r₁ rd S1 := by
+    {S1 : State} (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) : LdCtx R dec V net xnet G n r₁ rd S1 := by
   have hL : liftC S1 = S1 := liftC_self fun i hi => by
     rw [hx.hs1.1.2.2.2.2.2.1] at hi
-    exact hq ⟨i, hi⟩
+    exact hx.hqa ⟨i, hi⟩
   exact {
     hl := hx.hl, hgo1 := hx.hgo1, hsh := hx.hs1.1, hb := hx.hs1.2.1
     hnet := by rw [hL]; exact hx.hs1.2.2.1
-    hv := by rw [hL]; exact hx.hs1.2.2.2.2 n
+    hv := hx.hs1.2.2.2.2 n
     hdn := hx.hdk n
     hlu := fun k hk hn => lead_unique hx.hs1 hx.hgo1 hx.hl hx.hdk hk hn
     hc := hx.hc, hn3 := hx.hn3, hct3 := hx.hct3, hlg3 := hx.hlg3
@@ -119,6 +118,31 @@ theorem RdCtx.toLd {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeV
     hpre := hx.hpre, hsn := hx.hsn, hfl := hx.hfl, hrf := hx.hrf, hr := hx.hr, hro := hx.hro
     htold := hx.htold, htb := hx.htb, hin := hx.hin, hqs := hx.hqs, hqc := hx.hqc, hso := hx.hso
     hvs := hx.hvs, hvs1 := hx.hvs1, hk := hx.hk }
+
+/-- The `Ready`'s state keeps the base `base0` (`ReadyOutP`, snapshots off). -/
+theorem LdCtx.base1 {R : RunCfg} {dec : CCDec} {V : Fin R.N → NodeView} {net : List Msg}
+    {xnet : List XMsg} {G : RaftFacts} {n : Fin R.N} {r₁ : RState} {rd : ReadyD} {S1 : State}
+    (hx : LdCtx R dec V net xnet G n r₁ rd S1) : r₁.p.base = base0 := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, hsnapC, -⟩ := hx.hro
+  exact (hsnapC hx.hsnf).1
+
+/-- The `Ready`'s log's indices are its positions (`ReadyOutP`'s `LogIdx`, no ghost prefix). -/
+theorem LdCtx.logIdx1 {R : RunCfg} {dec : CCDec} {V : Fin R.N → NodeView} {net : List Msg}
+    {xnet : List XMsg} {G : RaftFacts} {n : Fin R.N} {r₁ : RState} {rd : ReadyD} {S1 : State}
+    (hx : LdCtx R dec V net xnet G n r₁ rd S1) : LogIdx r₁.p.log := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hidx, -⟩ := hx.hro
+  rw [hx.hfl] at hidx; exact hidx
+
+/-- Bootstrapped, a `Ready`'s term at least the node's old one is past `0`. -/
+theorem LdCtx.boot1 {R : RunCfg} {dec : CCDec} {V : Fin R.N → NodeView} {net : List Msg}
+    {xnet : List XMsg} {G : RaftFacts} {n : Fin R.N} {r₁ : RState} {rd : ReadyD} {S1 : State}
+    (hx : LdCtx R dec V net xnet G n r₁ rd S1)
+    (hle : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) : R.boot = true → 1 ≤ uint.Z r₁.p.term := by
+  intro hb
+  have h1 := hx.hb.bootTermOk.1 n
+  have e1 : S1.bootTerm = 1 := by
+    unfold State.bootTerm; rw [hx.hc]; show (if R.boot = true then (1 : Int) else 0) = 1; simp [hb]
+  rw [hx.d1] at h1; omega
 
 /-- The binding's facts at `liftC S1` but the commits are `S1`'s. -/
 theorem liftC_msgs (S : State) : (liftC S).msgs = S.msgs := rfl

@@ -151,8 +151,10 @@ variable {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net 
   {S1 : State}
 
 set_option maxHeartbeats 8000000 in
-/-- **`antSim_ready` for a candidate's win** (`ReadyKind.win`), its commit kept (`hpc`). -/
-theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
+/-- **A candidate's win in memory** over the node-local context (`ReadyKind.win`, its commit kept):
+the win's state and `InMemory` of its report evaluated (`inMemory_win`), with what `OnDisk` and the
+relation read. -/
+theorem win_mem (hx : LdCtx R dec V net xnet G n r₁ rd S1)
     (src : w64) (rej : Bool) (mt : GMap w64 w64) (hvc : (V n).ps.role = .candidate)
     (hsrc : (∃ m, RecvAt (nodeId n) net (V n) m ∧ m.ty = .voteResp ∧ m.term = (V n).ps.term ∧
         m.src = src ∧ m.reject = rej) ∨ (src = nodeId n ∧ rej = false ∧ ∃ q ∈ (V n).qs, q.ty = .voteResp))
@@ -161,15 +163,30 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     (hL : LeadC (CfgM.simple R.voters0 ∅) (nodeId n)
       (pwinState (nodeId n) { (V n).ps with votes := recordVote (V n).ps.votes src (!rej) } mt) r₁.p)
     (hents : rd.ents = [pleaderEntry (V n).ps]) (hpc : r₁.p.commit = (V n).ps.commit) :
-    ReadyGoal R dec V net xnet evs G n r₁ rd := by
-  have hb := hx.hs1.2.1
+    r₁.p.role = .leader ∧ r₁.p.term = (V n).ps.term ∧ r₁.p.vote = (V n).ps.vote ∧
+      r₁.p.log = (V n).ps.log ++ [pleaderEntry (V n).ps] ∧
+      (∀ j : Fin R.N, j ≠ n → matchOf r₁.p (nodeId j) = W64 0) ∧
+      S1.currentTerm[n.val]! = uint.Z r₁.p.term ∧ S1.ledLog.has (uint.Z r₁.p.term) = false ∧
+      tlOld S1.termLen (uint.Z r₁.p.term) = 0 ∧
+      (0 < uint.Z r₁.p.commit → termAt (logOf (V n).ps.log) (uint.Z r₁.p.commit) < uint.Z r₁.p.term) ∧
+      termAt (logOf r₁.p.log) (uint.Z r₁.p.commit) = termAt (logOf (V n).ps.log) (uint.Z r₁.p.commit) ∧
+      S1.confAt[n.val]! = 0 ∧ 0 < uint.Z r₁.p.term ∧
+      S1.inMemory n.val (evReady (nodeId n) (V n).byE (roleOf .leader) r₁.p.term r₁.p.vote r₁.p.commit
+          [pleaderEntry (V n).ps]) =
+        .ok { ok := true, role := S1.role.set n.val leader,
+              leaders := lset.add S1.leaders { server := nameOf (nodeId n), term := uint.Z r₁.p.term },
+              ledLog := S1.ledLog.with (uint.Z r₁.p.term) (logOf r₁.p.log),
+              ledConf := S1.ledConf.with (uint.Z r₁.p.term) (S1.config[n.val]!), config := S1.config,
+              confAt := S1.confAt, ledAt := S1.ledAt.with (uint.Z r₁.p.term) (S1.confAt[n.val]!),
+              elAt := S1.elAt.with (uint.Z r₁.p.term) (S1.confAt[n.val]!),
+              chain := S1.chain, termLen := S1.termLen, viol := S1.viol } := by
+  have hb := hx.hb
   have hgo1 := hx.hgo1
   have hl := hx.hl
-  have hnet := hx.hs1.2.2.1
-  have hv := hx.hs1.2.2.2.2 n
-  have ha := hx.ha
+  have hnet := hx.hnet
+  have hv := hx.hv
   have hc : S1.cfg = R.cfg := hx.hc
-  have hrl : S1.role.length = R.N := hx.hs1.1.2.2.2.2.2.2.1
+  have hrl : S1.role.length = R.N := hx.hsh.2.2.2.2.2.2.1
   have hn3 := hx.hn3
   have hrf := hx.hrf
   have hfl := hx.hfl
@@ -378,6 +395,51 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     (by rw [logOf_length]; exact hfirst0) (by rw [hpt']; rfl)
     (by rw [hLeq, logOf_length]; exact hcL0) hcm hrec hlc
   rw [with_with, hLeq] at hm'
+  exact ⟨hpl, hpt', hpv', hplog', hmt, hT, hnl, htl0, hcT, htermc, d11, hTpos, hm'⟩
+
+set_option maxHeartbeats 8000000 in
+/-- **`antSim_ready` for a candidate's win** (`ReadyKind.win`), its commit kept (`hpc`). -/
+theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
+    (src : w64) (rej : Bool) (mt : GMap w64 w64) (hvc : (V n).ps.role = .candidate)
+    (hsrc : (∃ m, RecvAt (nodeId n) net (V n) m ∧ m.ty = .voteResp ∧ m.term = (V n).ps.term ∧
+        m.src = src ∧ m.reject = rej) ∨ (src = nodeId n ∧ rej = false ∧ ∃ q ∈ (V n).qs, q.ty = .voteResp))
+    (hq : JQuorum (CfgM.simple R.voters0 ∅) (granted (recordVote (V n).ps.votes src (!rej))))
+    (hlm : LeaderMatchOk (nodeId n) (V n).ps mt)
+    (hL : LeadC (CfgM.simple R.voters0 ∅) (nodeId n)
+      (pwinState (nodeId n) { (V n).ps with votes := recordVote (V n).ps.votes src (!rej) } mt) r₁.p)
+    (hents : rd.ents = [pleaderEntry (V n).ps]) (hpc : r₁.p.commit = (V n).ps.commit) :
+    ReadyGoal R dec V net xnet evs G n r₁ rd := by
+  have hb := hx.hs1.2.1
+  have hgo1 := hx.hgo1
+  have hl := hx.hl
+  have ha := hx.ha
+  have hc : S1.cfg = R.cfg := hx.hc
+  have hrl : S1.role.length = R.N := hx.hs1.1.2.2.2.2.2.2.1
+  have hn3 := hx.hn3
+  have hrf := hx.hrf
+  have hfl := hx.hfl
+  have hlogG : r₁.p.log ∈ G.logs := by rw [← hfl]; exact hrf.1
+  obtain ⟨hb1, hb4, hb5, hb6, -, -, -, -, -, -, -, -, -, hb16, -, -, hb19, -⟩ := id hb
+  have hbase := hx.base1
+  have hidx := hx.logIdx1
+  have d3 := hx.d3
+  have hcfgI : S1.config[n.val]! = R.cfg.initConf := by
+    rw [hx.hconf, ← confView_c0]; unfold confView; rw [hx.hcf]; rfl
+  -- the win's state and `InMemory`
+  obtain ⟨hpl, -, hpv', hplog', hmt, hT, hnl, htl0, hcT, htermc, d11, hTpos, hm'⟩ :=
+    win_mem hx.toLd src rej mt hvc hsrc hq hlm hL hents hpc
+  have hGl := hrf.2.2.2.2.1 hpl
+  obtain ⟨l0, hcamp, hl0p⟩ := hGl.2
+  rw [hfl] at hl0p
+  have hcmi : S1.commitIndex[n.val]! = uint.Z r₁.p.commit := by rw [hx.d4, hpc]
+  have hcG : r₁.p.log.take (uint.nat r₁.p.commit) = G.committed.take (uint.nat r₁.p.commit) := by
+    rw [← hfl]; exact hrf.2.2.1
+  have hLeq : logOf (V n).ps.log ++ logOf [pleaderEntry (V n).ps] = logOf r₁.p.log := by
+    rw [hplog']; unfold logOf; rw [List.map_append]
+  have hfirst0 : uint.Z (pleaderEntry (V n).ps).Index' = ((V n).ps.log.length : Int) + 1 := by
+    have h := hidx (V n).ps.log.length (pleaderEntry (V n).ps)
+      (by rw [hplog', List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]; rfl)
+    exact h
   -- `OnDisk`
   have hL1eq : (S1.log[n.val]!).take (uint.Z (pleaderEntry (V n).ps).Index' - 1).toNat ++
       logOf [pleaderEntry (V n).ps] = logOf r₁.p.log := by

@@ -12,7 +12,7 @@ another voter's `Match` (which then reaches past the old log).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Ready
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.LdCtx
 
 @[expose] public section
 
@@ -143,26 +143,35 @@ variable {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net 
   {S1 : State}
 
 set_option maxHeartbeats 4000000 in
-/-- **`antSim_ready` for a leader's proposal** (`ReadyKind.prop`). -/
-theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
+/-- **A leader's proposal in memory** over the node-local context (`ReadyKind.prop`): its entries,
+raft's tally kept, the term's leader log raft's old one, and `InMemory` of its report evaluated
+(`inMemory_lprop`). -/
+theorem prop_mem (hx : LdCtx R dec V net xnet G n r₁ rd S1)
     (es : List EntryM) (hby : (V n).byE = go!"propose") (hvl : (V n).ps.role = .leader) (hne : es ≠ [])
     (hents : rd.ents = es.mapIdx (stamp (V n).ps.term (plastIndex (V n).ps)))
     (hplog : r₁.p.log = (V n).ps.log ++ rd.ents) (hpl : r₁.p.role = .leader)
     (hpt : r₁.p.term = (V n).ps.term) (hpv : r₁.p.vote = (V n).ps.vote)
     (hpc : r₁.p.commit = (V n).ps.commit) :
-    ReadyGoal R dec V net xnet evs G n r₁ rd := by
-  have hb := hx.hs1.2.1
+    ∃ e es', rd.ents = e :: es' ∧ r₁.p.matched = (V n).ps.matched ∧
+      S1.ledLog.get (uint.Z r₁.p.term) = .ok (logOf (V n).ps.log) ∧
+      termAt (logOf r₁.p.log) (uint.Z r₁.p.commit) = termAt (logOf (V n).ps.log) (uint.Z r₁.p.commit) ∧
+      S1.inMemory n.val (evReady (nodeId n) go!"propose" (roleOf .leader) r₁.p.term r₁.p.vote r₁.p.commit
+          (e :: es')) =
+        .ok { ok := true, role := S1.role.set n.val leader, leaders := S1.leaders,
+              ledLog := S1.ledLog.with (uint.Z r₁.p.term) (logOf r₁.p.log),
+              ledConf := S1.ledConf, config := S1.config, confAt := S1.confAt, ledAt := S1.ledAt,
+              elAt := S1.elAt, chain := S1.chain, termLen := S1.termLen, viol := S1.viol } := by
+  have hb := hx.hb
   have hgo1 := hx.hgo1
-  have hv := hx.hs1.2.2.2.2 n
-  have ha := hx.ha
+  have hv := hx.hv
   have hc : S1.cfg = R.cfg := hx.hc
-  have hrl : S1.role.length = R.N := hx.hs1.1.2.2.2.2.2.2.1
+  have hrl : S1.role.length = R.N := hx.hsh.2.2.2.2.2.2.1
   have hn3 := hx.hn3
   have hrf := hx.hrf
   have hfl := hx.hfl
   have hlogG : r₁.p.log ∈ G.logs := by rw [← hfl]; exact hrf.1
   have hfullL : logOf (V n).r.full = logOf (V n).ps.log := by
-    rw [← hx.d3, hv.disk.2.2.1, hx.hdk n]; rfl
+    rw [← hx.d3, hv.disk.2.2.1, hx.hdn]; rfl
   obtain ⟨lp1, lp2, lp3, lp4, -⟩ := hv.leader hvl
   rw [hfullL] at lp2
   rw [hx.d8] at lp3
@@ -228,6 +237,49 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hm' := inMemory_lprop n hc go!"propose" hdb r₁.p.term r₁.p.vote r₁.p.commit e es'
     (logOf (V n).ps.log) hrole hT hll hfirst hterms (by rw [hLeq, logOf_length]; exact hcL0) hcm hrec
   rw [hLeq] at hm'
+  exact ⟨e, es', hE, hmt, hll, htermc, hm'⟩
+
+set_option maxHeartbeats 4000000 in
+/-- **`antSim_ready` for a leader's proposal** (`ReadyKind.prop`). -/
+theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
+    (es : List EntryM) (hby : (V n).byE = go!"propose") (hvl : (V n).ps.role = .leader) (hne : es ≠ [])
+    (hents : rd.ents = es.mapIdx (stamp (V n).ps.term (plastIndex (V n).ps)))
+    (hplog : r₁.p.log = (V n).ps.log ++ rd.ents) (hpl : r₁.p.role = .leader)
+    (hpt : r₁.p.term = (V n).ps.term) (hpv : r₁.p.vote = (V n).ps.vote)
+    (hpc : r₁.p.commit = (V n).ps.commit) :
+    ReadyGoal R dec V net xnet evs G n r₁ rd := by
+  have hb := hx.hs1.2.1
+  have hgo1 := hx.hgo1
+  have hv := hx.hs1.2.2.2.2 n
+  have ha := hx.ha
+  have hc : S1.cfg = R.cfg := hx.hc
+  have hrl : S1.role.length = R.N := hx.hs1.1.2.2.2.2.2.2.1
+  have hn3 := hx.hn3
+  have hrf := hx.hrf
+  have hfl := hx.hfl
+  have hlogG : r₁.p.log ∈ G.logs := by rw [← hfl]; exact hrf.1
+  have hfullL : logOf (V n).r.full = logOf (V n).ps.log := by
+    rw [← hx.d3, hv.disk.2.2.1, hx.hdk n]; rfl
+  obtain ⟨lp1, lp2, lp3, lp4, -⟩ := hv.leader hvl
+  rw [hfullL] at lp2
+  rw [hx.d8] at lp3
+  have hbase := hx.base1
+  have hidx := hx.logIdx1
+  -- the proposal in memory
+  obtain ⟨e, es', hE, hmt, hll, htermc, hm'⟩ :=
+    prop_mem hx.toLd es hby hvl hne hents hplog hpl hpt hpv hpc
+  have hT : S1.currentTerm[n.val]! = uint.Z r₁.p.term := by rw [hx.d1, hpt]
+  have hlogn : S1.log[n.val]! = logOf (V n).ps.log := hx.d3
+  have hrole : S1.role[n.val]! = leader := by rw [hx.d5, hvl]; rfl
+  have hLeq : logOf (V n).ps.log ++ logOf (e :: es') = logOf r₁.p.log := by
+    rw [hplog, hE]; unfold logOf; rw [List.map_append]
+  have hfirst0 : uint.Z e.Index' = ((V n).ps.log.length : Int) + 1 := by
+    have h := hidx (V n).ps.log.length e (by rw [hplog, hE, List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]; rfl)
+    exact h
+  have hfirst : uint.Z e.Index' = ((logOf (V n).ps.log).length : Int) + 1 := by rw [logOf_length]; exact hfirst0
+  have hcmi : S1.commitIndex[n.val]! = uint.Z r₁.p.commit := by rw [hx.d4, hpc]
+  have hTL := (hb.termLenOk.2 n hrole)
+  rw [hlogn, hcmi, hT] at hTL
   -- `OnDisk`
   have hL1eq : (S1.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es') = logOf r₁.p.log := by
     rw [hlogn, hfirst, List.take_of_length_le (by omega), hLeq]

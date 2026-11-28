@@ -212,32 +212,42 @@ variable {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net 
   {S1 : State}
 
 set_option maxHeartbeats 4000000 in
-/-- **`antSim_ready` for a leader's commit** (`ReadyKind.cmt`). The `Acked` quorum (B 252) is read
-in the leader configuration at the node's term, the initial one: with conf changes off the leader
-log has no conf entry (`LedConfOk`), so its fold is the start (`cfgFold_normal`). -/
-theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
+/-- **A leader's commit in memory** over the node-local context (`ReadyKind.cmt`): the new commit
+acknowledged by a quorum at the `Ready`'s state, of its term, past the term's recorded one, and
+`InMemory` of its report evaluated (`inMemory_lcommit`). -/
+theorem cmt_mem (hx : LdCtx R dec V net xnet G n r₁ rd S1)
     (hvl : (V n).ps.role = .leader) (hpl : r₁.p.role = .leader) (hpt : r₁.p.term = (V n).ps.term)
-    (hpv : r₁.p.vote = (V n).ps.vote) (hplog : r₁.p.log = (V n).ps.log) (hents : rd.ents = [])
+    (_hpv : r₁.p.vote = (V n).ps.vote) (hplog : r₁.p.log = (V n).ps.log) (_hents : rd.ents = [])
     (hlt : uint.Z (V n).ps.commit < uint.Z r₁.p.commit)
-    (hcm : CmtOk (CfgM.simple R.voters0 ∅) r₁.p r₁.p.commit) (hns : NoSelf (nodeId n) r₁.p) :
-    ReadyGoal R dec V net xnet evs G n r₁ rd := by
+    (hcm : CmtOk (CfgM.simple R.voters0 ∅) r₁.p r₁.p.commit) (_hns : NoSelf (nodeId n) r₁.p) :
+    MatchOk S1 n r₁.p ∧ tlOld S1.termLen (uint.Z r₁.p.term) < uint.Z r₁.p.commit ∧
+      isQuorum (S1.acked n.val (uint.Z r₁.p.term) (uint.Z r₁.p.commit)) R.cfg.initConf = true ∧
+      termAt (logOf r₁.p.log) (uint.Z r₁.p.commit) = uint.Z r₁.p.term ∧
+      S1.ledLog.get (uint.Z r₁.p.term) = .ok (logOf r₁.p.log) ∧
+      S1.inMemory n.val (evReady (nodeId n) (V n).byE (roleOf .leader) r₁.p.term r₁.p.vote r₁.p.commit []) =
+        .ok { ok := true, role := S1.role.set n.val leader, leaders := S1.leaders, ledLog := S1.ledLog,
+              ledConf := S1.ledConf, config := S1.config, confAt := S1.confAt, ledAt := S1.ledAt,
+              elAt := S1.elAt,
+              chain := if (S1.chain.length : Int) < uint.Z r₁.p.commit then
+                (logOf r₁.p.log).take (uint.Z r₁.p.commit).toNat else S1.chain,
+              termLen := S1.termLen.with (uint.Z r₁.p.term) (uint.Z r₁.p.commit), viol := S1.viol } := by
   have hbE := reach_byE hx.hr
-  have hb := hx.hs1.2.1
-  have hnet := hx.hs1.2.2.1
-  have hv := hx.hs1.2.2.2.2 n
+  have hb := hx.hb
+  have hnet := hx.hnet
+  have hv := hx.hv
   have hc : S1.cfg = R.cfg := hx.hc
-  have hsh := hx.hs1.1
+  have hsh := hx.hsh
   have hrl : S1.role.length = R.N := hsh.2.2.2.2.2.2.1
   have hn3 := hx.hn3
   have hfl : r₁.full = r₁.p.log := hx.hfl
   obtain ⟨lp1, lp2, lp3, lp4, lp5⟩ := hv.leader hvl
   have hfull : logOf (V n).r.full = logOf (V n).ps.log := by
-    rw [← hx.d3, hv.disk.2.2.1, hx.hdk n]; rfl
+    rw [← hx.d3, hv.disk.2.2.1, hx.hdn]; rfl
   have hlenF : (V n).r.full.length = (V n).ps.log.length := by
     have := congrArg List.length hfull
     rw [logOf_length, logOf_length] at this; exact this
   have hMO : MatchOk S1 n r₁.p :=
-    (quiet_reachP hc hnet hx.d1 (fun q hq hne => (hv.qs q hq).qmsg hne)
+    (quiet_reachP (S := liftC S1) hc hnet hx.d1 (fun q hq hne => (hv.qs q hq).qmsg hne)
       hx.hr (hpl.trans hvl.symm) hpt
       hplog).2.2.1 hpl ⟨lp3, lp4⟩
   have hbase : r₁.p.base = base0 := hx.base1
@@ -272,6 +282,43 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hm' := inMemory_lcommit n hc (V n).byE hbE r₁.p.term r₁.p.vote r₁.p.commit (logOf r₁.p.log)
     R.cfg.initConf hrole hT hll hlc hcL hc0 hk hterm hq (cs_ok hx.hgo1.2.2.2.2.1 hcG)
     (lc_ok hx.hl hx.hgo1.2.2.2.1 hcGc hcG (hx.boot1 (by have := hx.d1; omega)))
+  exact ⟨hMO, hk, hq, hterm, hll, hm'⟩
+
+set_option maxHeartbeats 4000000 in
+/-- **`antSim_ready` for a leader's commit** (`ReadyKind.cmt`). The `Acked` quorum (B 252) is read
+in the leader configuration at the node's term, the initial one: with conf changes off the leader
+log has no conf entry (`LedConfOk`), so its fold is the start (`cfgFold_normal`). -/
+theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
+    (hvl : (V n).ps.role = .leader) (hpl : r₁.p.role = .leader) (hpt : r₁.p.term = (V n).ps.term)
+    (hpv : r₁.p.vote = (V n).ps.vote) (hplog : r₁.p.log = (V n).ps.log) (hents : rd.ents = [])
+    (hlt : uint.Z (V n).ps.commit < uint.Z r₁.p.commit)
+    (hcm : CmtOk (CfgM.simple R.voters0 ∅) r₁.p r₁.p.commit) (hns : NoSelf (nodeId n) r₁.p) :
+    ReadyGoal R dec V net xnet evs G n r₁ rd := by
+  have hb := hx.hs1.2.1
+  have hv := hx.hs1.2.2.2.2 n
+  have hc : S1.cfg = R.cfg := hx.hc
+  have hsh := hx.hs1.1
+  have hrl : S1.role.length = R.N := hsh.2.2.2.2.2.2.1
+  have hn3 := hx.hn3
+  have hfl : r₁.full = r₁.p.log := hx.hfl
+  obtain ⟨lp1, lp2, lp3, lp4, lp5⟩ := hv.leader hvl
+  have hfull : logOf (V n).r.full = logOf (V n).ps.log := by
+    rw [← hx.d3, hv.disk.2.2.1, hx.hdk n]; rfl
+  have hlenF : (V n).r.full.length = (V n).ps.log.length := by
+    have := congrArg List.length hfull
+    rw [logOf_length, logOf_length] at this; exact this
+  obtain ⟨hMO, hk, hq, hterm, hll, hm'⟩ := cmt_mem hx.toLd hvl hpl hpt hpv hplog hents hlt hcm hns
+  have hT : S1.currentTerm[n.val]! = uint.Z r₁.p.term := by rw [hx.d1, hpt]
+  have hlogn : S1.log[n.val]! = logOf r₁.p.log := by rw [hx.d3, hplog]
+  have hrole : S1.role[n.val]! = leader := by rw [hx.d5, hvl]; rfl
+  have hcG : r₁.p.log.take (uint.nat r₁.p.commit) = G.committed.take (uint.nat r₁.p.commit) := by
+    rw [← hfl]; exact hx.hrf.2.2.1
+  have hcL0 : uint.Z r₁.p.commit ≤ r₁.p.log.length := by
+    have := nat_commit_le hx.hrf; rw [hfl] at this; exact this
+  have hcL : uint.Z r₁.p.commit ≤ (logOf r₁.p.log).length := by rw [logOf_length]; exact hcL0
+  have hcmi : S1.commitIndex[n.val]! < uint.Z r₁.p.commit := by rw [hx.d4]; exact hlt
+  have hcGc := hx.hrf.2.2.2.1
+  have hc0 : 0 < uint.Z r₁.p.commit := by have := uint_Z_nonneg (V n).ps.commit; omega
   -- the new `chain` and `termLen`
   have himax : imax (tlOld S1.termLen (uint.Z r₁.p.term)) (uint.Z r₁.p.commit) = uint.Z r₁.p.commit := by
     unfold imax; split <;> omega

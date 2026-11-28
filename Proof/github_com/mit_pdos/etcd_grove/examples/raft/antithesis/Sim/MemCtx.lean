@@ -99,7 +99,7 @@ theorem ldCtxD_of {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : CCD
     · exact ready_kind hrP hro hfl hdl hsnr hch d8 (nodeId_ne_zero n) hv.voteSelf hin2 hqs hqc d7
     · exact kind_preFlag hro hfl hdl hch hrep hd hsnr hv.facts.preRole
   exact {
-    hl := hl, hgo1 := hgo1, hsh := hsh, hb := hs1.2.1.1, hnet := hnet, hv := hv, hdn := hd
+    hl := hl, hgo1 := hgo1, hsh := hsh, hb := hs1.2.1.1, hnet := hnet, hv := hv0, hdn := hd
     hlu := fun k hk hn => lead_uniqueD (R := R) hs1 hgo1 hl hk hn
     hc := hsh.1
     hn3 := by rw [hsh.2.2.2.2.2.2.1]; exact n.isLt
