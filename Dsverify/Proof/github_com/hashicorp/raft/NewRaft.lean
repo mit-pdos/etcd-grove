@@ -193,7 +193,6 @@ theorem genesisStore_m (g : Entry) (k : Nat) :
 theorem genesisStore_hi (g : Entry) : (LogAbs.empty.store 1 [g]).hi = W64 1 := by
   simp [LogAbs.store, LogAbs.empty]
 
-set_option pp.maxSteps 2000000 in
 set_option maxHeartbeats 4000000 in
 theorem github_com.hashicorp.raft.NewRaft.wp_proof
     (wp_ValidateConfig : github_com.hashicorp.raft.ValidateConfig.spec (GF := GF) (hG := hG))
@@ -1374,4 +1373,85 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   wp_auto
   rw [hSkip]
   wp_auto
-  sorry
+  -- the FSM goroutine's start: the restored position
+  ihave #Hfsm' := Hfsm
+  iunfold isFSM at Hfsm'
+  icases Hfsm' with ⟨#Hrp, -⟩
+  icases Hfsm0 with ⟨%k0, %res, Hown, %hk0, #Hnc0, Hr0⟩
+  ihave HfsmC : (fsmCons γ rc' : IProp GF) $$ [HfsmCons Hown Hr0]
+  · unfold fsmCons
+    iframe HfsmCons
+    iexists k0, res
+    iframe Hown Hnc0
+    isplitr; · ipureintro; exact hk0
+    icases Hr0 with (%h0 | Hr0)
+    · ileft; ipureintro; exact h0
+    · iright; iapply Hrp $$ Hr0
+  -- the main goroutine's resources
+  ihave Hgll : (ghostVar rc'.names.lastLog (1 : Qp).half (s1.log.length, lastTerm s1.log) : IProp GF) $$ [Hgll]
+  · rw [← hl1'.1, ← hl1'.2]; iexact Hgll
+  ihave Hgst : (ghostVar rc'.names.state (1 : Qp).half (W32 0) : IProp GF) $$ [Hgst]
+  · iexact Hgst
+  iunfold nrCfgFacts at Hcf3
+  icases Hcf3 with ⟨#Hli, #Hcidx, %Hcfgf, #Hcmt⟩
+  rw [List.take_length] at Hcfgf
+  ihave Hmain : (mainOwn r γ rc' i : IProp GF) $$ [Hsv Hpw HstV Hgll Hgst Happ HfsmProd Hgb Hcfgs
+      HlchOwn Hvtok Hvreg Hvlive Hvnm Hpend Hcomp]
+  · unfold mainOwn
+    iexists s1, (W32 0)
+    isplitl
+    rotate_left
+    · ileft; ipureintro; decide
+    unfold mainOwnAt
+    iexists (latIdx X.lat), D', cfg, ccfg2, cidx2, li, leaderCh, γlch, [], c1
+    unfold srvV
+    iunfold srvVP at Hsv
+    iframe Hsv Hpw Hgll Hgst Happ Hpend Hcomp Hcfgs HlchOwn
+    iframe #
+    isplitl [HstV]
+    · iexists X.A.staged; iframe HstV; ipureintro; exact hg1
+    isplitr; · ipureintro; exact hvm1
+    isplitr; · ileft; ipureintro; decide
+    isplitl [Hvtok Hvreg Hvlive Hvnm]
+    · unfold verifyRegistry
+      iexists ∅, ∅, ∅, ∅
+      iframe
+      isplitr
+      · ipureintro; simp
+      isplitr
+      · iapply BigSepM.bigSepM_empty.2; iempintro
+      · iapply BigSepM.bigSepM_empty.2; iempintro
+    isplitr; · ipureintro; exact ⟨hx1, by rw [hci1]; exact Nat.zero_le _⟩
+    isplitl [HfsmProd Hgb]
+    · unfold fsmProd; iexists [], ∅, (latIdx X.lat); iframe
+      isplitr
+      · ipureintro; simp
+      isplitr
+      · ileft; ipureintro; exact ⟨rfl, rfl⟩
+      unfold noCmdBetween; simp only [Nat.sub_self, List.range'_zero]
+      iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr; · ipureintro; exact hc1
+    isplitr; · ipureintro; exact Hcfgf
+    ipureintro; rw [HlchCap]; simp
+  ihave HlsAny : (leaderStateAny r rc' : IProp GF) $$ [commitCh commitment inflight replState notify
+      stepDown Hvnm']
+  · unfold leaderStateAny; iexists _, _, _, _, _, _; iframe
+  -- r.goFunc(r.run)
+  wp_apply (wp_goFunc r γ rc' i _ tid) $$ [$Hraft $Htok Hmain HlsAny] as Htok
+  · iintro %tid' Htok'
+    wp_apply (wp_run r γ rc' i tid') $$ [$Hraft $Hmain $HlsAny $Htok'] as Hf
+    iexfalso; iexact Hf
+  -- r.goFunc(r.runFSM)
+  wp_apply (wp_goFunc r γ rc' i _ tid) $$ [$Hraft $Htok HfsmC] as Htok
+  · iintro %tid' Htok'
+    wp_apply (wp_runFSM r γ rc' i tid') $$ [$Hraft $Htok' $HfsmC] as Hf
+    iexfalso; iexact Hf
+  -- r.goFunc(r.runSnapshots)
+  wp_apply (wp_goFunc r γ rc' i _ tid) $$ [$Hraft $Htok] as Htok
+  · iintro %tid' Htok'
+    wp_apply (wp_runSnapshots r γ rc' i tid') $$ [$Hraft $Htok'] as Hf
+    iexfalso; iexact Hf
+  wp_end
+  iframe
+  iexists rc'.names
+  iexact Hraft
