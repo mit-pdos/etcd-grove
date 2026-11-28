@@ -183,25 +183,25 @@ kept the authority (`AdminReq.result_keep`): an error, or `AuthEnable` already e
   | .authDisable => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
       auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.authDisableF en)))
         auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → en = false⌝)
   | .userDelete n => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
       auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.userDeleteF en n)))
         auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .userChangePassword n =>
       iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userChangePasswordF n)) auth.noExtra err ∗
-        ⌜err = GoInterface.nil → resp ≠ null⌝)
+        ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .userRevokeRole n ro => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
       auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.userRevokeRoleF en n ro)))
         auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .roleDelete ro => iprop(∃ en : Bool, auth.enabledVerdict M en ∗
       auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.roleDeleteF en ro)))
         auth.noExtra err ∗
-      ⌜err = GoInterface.nil → resp ≠ null⌝)
+      ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
   | .roleRevokePermission ro k e =>
       iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.roleRevokePermissionR ro k e) auth.noExtra err ∗
-        ⌜err = GoInterface.nil → resp ≠ null⌝)
+        ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
 
 /-- **The admin triples of the `applierV3` value `ai` of the chain `c`** in the mode `on γa`
 (see the file header), with the store's write resource `W` and the authority family `Own` (E2l's
@@ -256,6 +256,24 @@ theorem AdminReq.result_keep (Own : auth.AuthNames → List auth.AuthState → I
     rw [hen hk] at hR
     simpa [auth.stepOf, auth.authEnableF] using hR.2
   | authenticate n pre => simp only [AdminReq.result]; iintro ⟨H, -⟩; iexact H
+  | authDisable =>
+    simp only [AdminReq.result]
+    iintro ⟨%en, -, H, -, %hen⟩
+    iapply keep _ (Or.inr fun st o hR => ?_) $$ H
+    rw [hen hk] at hR
+    simpa [flagR, auth.stepOf, auth.authDisableF] using hR.2
+  | userDelete n =>
+    simp only [AdminReq.result]
+    iintro ⟨%en, -, H, -, %he⟩
+    iapply keep _ (Or.inl (he hk)) $$ H
+  | userRevokeRole n ro =>
+    simp only [AdminReq.result]
+    iintro ⟨%en, -, H, -, %he⟩
+    iapply keep _ (Or.inl (he hk)) $$ H
+  | roleDelete ro =>
+    simp only [AdminReq.result]
+    iintro ⟨%en, -, H, -, %he⟩
+    iapply keep _ (Or.inl (he hk)) $$ H
   | _ =>
     simp only [AdminReq.result]
     iintro ⟨H, -, %he⟩
@@ -528,7 +546,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn.1 hn.2) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
     · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
       iframe #
     inext
@@ -543,7 +561,7 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
     · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
       iframe #
     inext
@@ -575,49 +593,99 @@ theorem applierAdmin_backendX
     iintro !> %Φ ⟨-, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hAD E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm] HΦ
-    iframe Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm
-    iframe #
+    iapply (hAD E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm]
+    · iframe Ho HX Hrc HW Hw1 Hw2 Hw3 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, #HeI, HW, %en, Hpost, #Hv, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (en = false)
+    iframe Hpost
+    iexists en
+    iframe Hv Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | userDelete n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUD E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hUD E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, %en, #Hv, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost
+    iexists en
+    iframe Hv Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | userChangePassword n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hUC E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hUC E γa X W p r log Pre Q Post info hs n hM hb) $$ [Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Hsure Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | userRevokeRole n ro =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hURR E γa X W p r log Pre Q Post info hs n ro hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hURR E γa X W p r log Pre Q Post info hs n ro hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, %en, #Hv, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost
+    iexists en
+    iframe Hv Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | roleDelete ro =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRD E γa X W p r log Pre Q Post info hs ro hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hRD E γa X W p r log Pre Q Post info hs ro hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, %en, #Hv, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost
+    iexists en
+    iframe Hv Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | roleRevokePermission ro k e =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, Hwb, HW, Htt, Hm, #Hcap⟩ HΦ
     iunfold adminWTs at Hwb
     icases Hwb with ⟨Hw1, Hw2, Hw3⟩
-    iapply (hRRP E γa X W p r log Pre Q Post info hs ro k e hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
-    iframe #
+    iapply (hRRP E γa X W p r log Pre Q Post info hs ro k e hM hb) $$ [Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm]
+    · iframe Hr Ho HX Hrc HW Hw1 Hw2 Htt Hm
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, Hout, %Hrn⟩
+    iapply HΦ
+    iframe Htt HeI HW
+    iexists (err ≠ GoInterface.nil)
+    iframe Hpost Hout
+    ipureintro; exact ⟨Hrn, id⟩
   | authenticate n pre =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result, AdminReq.extraPre]
     iintro !> %Φ ⟨⟨%am, #Hr, %Ham⟩, ⟨Ho, HX⟩, -, -, HW, Htt, Hm, ⟨%x, #HSp, Hfr⟩⟩ HΦ

@@ -156,7 +156,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authDisableF en))⌝ ∗
           auth.capNextM M hs (auth.ownFlagR auth.authDisableF) }}
         (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
-      {{ RET #(); (Post ∨ Pre) ∗ W ∗ ∃ en : Bool, auth.enabledVerdict M en ∗
+      {{ RET #(); W ∗ ∃ en : Bool, (Post ∨ (Pre ∗ ⌜en = false⌝)) ∗ auth.enabledVerdict M en ∗
           auth.adminOutX M (ownX M X) hs (flagR M en (auth.stepOf (auth.authDisableF en)))
             auth.noExtra GoInterface.nil }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
@@ -165,7 +165,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userDeleteF en name))⌝ ∗
           auth.capNextM M hs (auth.ownFlagR (fun en => auth.userDeleteF en name)) }}
         (App (Val #(methods ai.ty go!"UserDelete" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserDeleteResponse resp err ∗
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOutX M (ownX M X) hs (flagR M en (auth.stepOf (auth.userDeleteF en name)))
@@ -177,7 +177,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.stepOf (auth.userChangePasswordF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.userChangePasswordF name)) }}
         (App (Val #(methods ai.ty go!"UserChangePassword" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.userChangePasswordF name))
             auth.noExtra err }}) ∗
@@ -187,7 +187,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userRevokeRoleF en name role))⌝ ∗
           auth.capNextM M hs (auth.ownFlagR (fun en => auth.userRevokeRoleF en name role)) }}
         (App (Val #(methods ai.ty go!"UserRevokeRole" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserRevokeRoleResponse resp err ∗
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOutX M (ownX M X) hs
@@ -200,7 +200,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜∀ s : auth.AuthState, auth.histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
             n.length ≤ backend.maxKeySize⌝ }}
         (App (Val #(methods ai.ty go!"RoleDelete" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleDeleteResponse resp err ∗
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOutX M (ownX M X) hs (flagR M en (auth.stepOf (auth.roleDeleteF en role)))
@@ -211,7 +211,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.roleRevokePermissionR role key rangeEnd)⌝ ∗
           auth.capNextM M hs (auth.roleRevokePermissionR role key rangeEnd) }}
         (App (Val #(methods ai.ty go!"RoleRevokePermission" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.roleRevokePermissionR role key rangeEnd)
             auth.noExtra err }}))
@@ -299,7 +299,7 @@ theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
   · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
     iapply H7 $$ %hs %Pre %Q %Post [Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
     · iframe
-    iintro !> ⟨HPP, HW, Hrest⟩
+    iintro !> ⟨HW, Hrest⟩
     iapply HΦ
     iframe
   isplitr
@@ -553,7 +553,7 @@ theorem isAuthStepsX_wIso (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : au
     ihave HW := Hb $$ HW
     iapply H7 $$ %hs %Pre %Q %Post [Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
     · iframe
-    iintro !> ⟨HPP, HW, Hrest⟩
+    iintro !> ⟨HW, Hrest⟩
     ihave HW := Ha $$ HW
     iapply HΦ
     iframe
@@ -773,11 +773,6 @@ theorem isAuthStepsX_of_authInvTB
     iapply (hDisable st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact Hok
     iintro !> ⟨%b, %sc, HA, HWR, %en, %Hen, HPP, #Hv, Hout⟩
-    -- (keepfix (c) integration) the no-lock disjunct (T10) weakened to the step's `Post ∨ Pre`
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
-    · icases HPP with (HP | ⟨HP, -⟩)
-      · ileft; iexact HP
-      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -786,10 +781,10 @@ theorem isAuthStepsX_of_authInvTB
       (fun stl o hl hR => ⟨fun γa hM => by
         subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
     iapply HΦ
-    iframe HPP HA
+    iframe HA
     isplitl [Hbe HT]
     · iexists be; iframe Hbe HT HΨ
-    iexists en; iframe Hv; iexact Hout
+    iexists en; iframe HPP Hv; iexact Hout
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
@@ -801,10 +796,6 @@ theorem isAuthStepsX_of_authInvTB
     iapply (hUserDelete st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hcs]
     · iframe; iframe #; ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HA, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
-    · icases HPP with (HP | ⟨HP, -⟩)
-      · ileft; iexact HP
-      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -829,10 +820,6 @@ theorem isAuthStepsX_of_authInvTB
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HA, HPP, HWR, Hresp, Hout⟩
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
-    · icases HPP with (HP | ⟨HP, -⟩)
-      · ileft; iexact HP
-      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -856,10 +843,6 @@ theorem isAuthStepsX_of_authInvTB
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
-    · icases HPP with (HP | ⟨HP, -⟩)
-      · ileft; iexact HP
-      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -884,10 +867,6 @@ theorem isAuthStepsX_of_authInvTB
     iapply (hRoleDelete st R M P f T Wb hs Pre Q Post r role b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hok, Hnm⟩
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
-    · icases HPP with (HP | ⟨HP, -⟩)
-      · ileft; iexact HP
-      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -911,10 +890,6 @@ theorem isAuthStepsX_of_authInvTB
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPP]
-    · icases HPP with (HP | ⟨HP, -⟩)
-      · ileft; iexact HP
-      · iright; iexact HP
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -1201,9 +1176,9 @@ abbrev applierV3backend.AuthDisable.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthDisable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+      ∃ en : Bool, apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (en = false) ∗
+        auth.enabledVerdict E.authMode en ∗
         auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.authDisableF en))) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
@@ -1222,7 +1197,7 @@ abbrev applierV3backend.UserDelete.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.userDeleteF en name))) auth.noExtra err ∗
@@ -1244,7 +1219,7 @@ abbrev applierV3backend.UserChangePassword.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserChangePassword")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.userChangePasswordF name)) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -1265,7 +1240,7 @@ abbrev applierV3backend.UserRevokeRole.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserRevokeRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.userRevokeRoleF en name role))) auth.noExtra err ∗
@@ -1288,7 +1263,7 @@ abbrev applierV3backend.RoleDelete.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.roleDeleteF en role))) auth.noExtra err ∗
@@ -1310,7 +1285,7 @@ abbrev applierV3backend.RoleRevokePermission.stepSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleRevokePermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.roleRevokePermissionR role key rangeEnd) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -1329,9 +1304,9 @@ abbrev applierV3backend.AuthDisable.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthDisable")) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+      ∃ en : Bool, apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (en = false) ∗
+        auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
           (flagR E.authMode en (auth.stepOf (auth.authDisableF en))) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -1351,7 +1326,7 @@ abbrev applierV3backend.UserDelete.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
@@ -1373,7 +1348,7 @@ abbrev applierV3backend.UserChangePassword.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserChangePassword")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.userChangePasswordF name)) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -1393,7 +1368,7 @@ abbrev applierV3backend.UserRevokeRole.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserRevokeRole")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
@@ -1415,7 +1390,7 @@ abbrev applierV3backend.RoleDelete.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleDelete")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
@@ -1437,7 +1412,7 @@ abbrev applierV3backend.RoleRevokePermission.fuelSpecX : Prop :=
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleRevokePermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗
-      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      apply.mPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post (err ≠ GoInterface.nil) ∗
       applyErrIs err ∗ W ∗
       auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.roleRevokePermissionR role key rangeEnd) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
@@ -1998,7 +1973,7 @@ theorem applierV3backend.AuthDisable.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as ⟨HPP, HW, %en, #Hv, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as ⟨HW, %en, HPP, #Hv, Hout⟩
   · iframe Hcap; ipureintro; exact hok
   wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
   ihave Hkv := Hkv $$ Hsw
@@ -2010,9 +1985,10 @@ theorem applierV3backend.AuthDisable.wp_stepX
   ihave #HeI : applyErrIs (GF := GF) GoInterface.nil $$ []
   · iapply applyErrIs_nil
   iapply HΦ
-  iframe
-  iframe #
-  iapply apply.mPost_backend
+  iframe Htt HW HeI
+  iexists en
+  iframe Hv Hout Hrn
+  iapply apply.mPostF_backend
   iframe
 
 theorem applierV3backend.UserDelete.wp_stepX
@@ -2042,7 +2018,7 @@ theorem applierV3backend.UserDelete.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -2052,7 +2028,7 @@ theorem applierV3backend.UserDelete.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.UserChangePassword.wp_stepX
@@ -2084,7 +2060,7 @@ theorem applierV3backend.UserChangePassword.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -2094,7 +2070,7 @@ theorem applierV3backend.UserChangePassword.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.UserRevokeRole.wp_stepX
@@ -2126,7 +2102,7 @@ theorem applierV3backend.UserRevokeRole.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -2136,7 +2112,7 @@ theorem applierV3backend.UserRevokeRole.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.RoleDelete.wp_stepX
@@ -2168,7 +2144,7 @@ theorem applierV3backend.RoleDelete.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -2178,7 +2154,7 @@ theorem applierV3backend.RoleDelete.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.RoleRevokePermission.wp_stepX
@@ -2210,7 +2186,7 @@ theorem applierV3backend.RoleRevokePermission.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
   · -- a response: its header
     icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
@@ -2220,7 +2196,7 @@ theorem applierV3backend.RoleRevokePermission.wp_stepX
     iapply HΦ
     iframe
     iframe #
-    iapply apply.mPost_backend
+    iapply apply.mPostF_backend
     iframe
 
 theorem applierV3backend.AuthDisable.wp_fuelX
@@ -2238,12 +2214,14 @@ theorem applierV3backend.AuthDisable.wp_fuelX
     fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_authDisable en) Hfk Hlt
   iapply (h E X W p log Pre Q Post info hs hok) $$ [Ho HX HW Hw1 Hw2 Hw3 Htt Hpre]
   · rw [hM]; iframe; iframe #
-  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
+  iintro !> %resp %err ⟨Htt, #He, HW, %en, Hpost, #Hv, Hout, Hrn⟩
   rw [hM]
   ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_flagR _ en _ (auth.stepSmall_authDisable en)) $$ [Hf Hout]
   · iframe
   iapply HΦ
-  iframe; iframe #
+  iframe Htt He HW
+  iexists en
+  iframe Hpost Hv Hout Hrn
 
 theorem applierV3backend.UserDelete.wp_fuelX
     (h : applierV3backend.UserDelete.stepSpecX (GF := GF) (hG := hG)) :
