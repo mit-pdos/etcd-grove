@@ -28,7 +28,7 @@ client's predicate of every stored triple survives the raise. -/
 abbrev consistentIndex.SetRaftTerm.spec : Prop :=
   ∀ (ci : Loc) (γ : CINames) (P : w64 → w64 → w64 → IProp GF) (rt r : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ P ∗
-      ciRaftTerm γ rt ∗ □ (∀ k t : w64, iprop(P k t rt -∗ P k t (rtMax rt r))) }}
+      ciRaftTerm γ rt ∗ □ (∀ k : w64, ∀ t : w64, P k t rt -∗ P k t (rtMax rt r)) }}
     (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetRaftTerm")) (Val #r))
   {{ RET #(); ciRaftTerm γ (rtMax rt r) }}
 
