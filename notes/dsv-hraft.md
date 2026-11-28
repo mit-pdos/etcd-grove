@@ -604,8 +604,9 @@ linearization point. Reads outside the log (S6) read some FSM's state, which may
 they need the frontier at their call (the barrier's bound) instead.
 
 `Store.Restore` takes `strconv.Atoi_dec.spec` (`Spec/strconv/Atoi_dec.lean`: `Atoi` of `Itoa(n)`, `n ≥ 0`,
-returns `(n, nil)`) as a callee hypothesis: true of Go, but Perennial's `Atoi` spec does not give the number
-(`notes/perennial-changes.md`). Not an axiom; to be proved over Perennial's `Atoi` (or in Perennial).
+returns `(n, nil)`) as a callee hypothesis, proved by `strconv.Atoi_dec.wp_proof` (`Proof/strconv/Atoi_dec.lean`,
+2026-11-28) from Perennial's functional `strconv.Atoi.spec` (Perennial `atoi-functional`: `Atoi`'s result is
+`parseInt s 10 0`'s); the kit's Link passes it for `Restore`'s `wp_Atoi`.
 
 ### The API service (batch 2)
 
