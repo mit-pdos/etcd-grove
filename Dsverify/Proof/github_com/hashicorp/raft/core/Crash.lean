@@ -270,24 +270,6 @@ theorem raft_crash {E : CoPset} (hE : ↑durN ⊆ E) :
       ∃ X : SrvDur, srvDead γ rc i X ∗ rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat := by
   sorry -- hraft_robust R2: proof pending
 
-/-- (R2) **The window resource at the main goroutine's state `s`** (what a write's caller lends as
-the contracts' `W`, `winAt_winRes`): its view `srvV rc s`, its stable-store view with the staged
-commit index (lent too, so that the crash knows the written commit index durable), the law's
-premises, and the store facts the step's coupling needs (`winPure`). -/
-def winPure (s : SState) (D : StableAbs) (g : w64) : Pend → Prop
-  | .app _ => uint.nat g ≤ s.dur.1
-  | .cfg _ _ _ => uint.nat g ≤ s.dur.1
-  | .fstore _ _ _ lci _ lc => (lc = none → uint.nat g ≤ s.dur.1) ∧
-      (∀ v, lc = some v → uint.nat g ≤ Min.min lci v)
-  | .vote c _ _ => D.bytes.lookup (go!"LastVoteCand" : List w8) = some c
-  | _ => True
-
-def winAt (s : SState) (p : Pend) : IProp GF :=
-  iprop(winRes γ rc i s p ∗ ∃ (D : StableAbs) (g : w64), stVS rc D g ∗ ⌜winPure s D g p⌝)
-
-theorem winAt_winRes (s : SState) (p : Pend) : winAt γ rc i s p ⊢ winRes γ rc i s p := by
-  sorry -- hraft_robust R2: proof pending
-
 /-- (R2) **What a write that fires `p` from `s` leaves in the stores** (`A'`, `D'`, against the dead
 state's `X.A`, `X.D`): what the store's crash lemma must say of the surviving image (the stores'
 volatile parts, `hi` and `staged`, are not constrained). -/
@@ -314,7 +296,7 @@ recorded (`tp`), fired by `dead_vacant`. -/
 theorem dead_fire {E : CoPset} (hE : ↑gprotN ⊆ E) [hRB : ReceiptBoundLe GF (2 ^ 62)]
     (p : Pend) (s : SState) (X : SrvDur) (A' : LogAbs) (D' : StableAbs)
     (hst : pendStoreOk p s X A' D') :
-    Inv γ ∗ srvDead γ rc i X ∗ winAt γ rc i s p ⊢ |={E}=> ∃ X' : SrvDur, deadCore γ rc i X' ∗
+    Inv γ ∗ srvDead γ rc i X ∗ winRes γ rc i s p ⊢ |={E}=> ∃ X' : SrvDur, deadCore γ rc i X' ∗
       ⌜X'.A.m = A'.m ∧ X'.A.ci = A'.ci ∧ X'.D = D' ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ := by
   sorry -- hraft_robust R2: proof pending
 
