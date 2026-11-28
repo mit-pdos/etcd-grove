@@ -12,7 +12,7 @@ state).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Ready
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.LdCtx
 
 @[expose] public section
 
@@ -183,26 +183,6 @@ theorem roleS_eq_leader {v : NodeView} (h : roleS v = leader) : v.ps.role = .lea
   split at h
   · exact absurd h cmt_precand_ne_leader
   · exact (roleOf_leader_iff _).mp h
-
-/-- **Election safety in the binding**: a leader `k` at its term, and a leader record of `n` at that
-term, are the same node (`GlobalOk`'s leaders are raft's, `RaftLaws`' election safety). -/
-theorem lead_unique {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
-    {xnet : List XMsg} {G : RaftFacts} {n k : Fin R.N}
-    (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G) (hl : RaftLaws G)
-    (hdk : ∀ k : Fin R.N, (V k).dur = durOf (V k).r)
-    (hk : S.role[k.val]! = leader)
-    (hn : S.leaders.contains { server := nameOf (nodeId n), term := S.currentTerm[k.val]! } = true) :
-    k = n := by
-  have hv := hs.2.2.2.2 k
-  have hvk : (V k).ps.role = .leader := by
-    have h := hv.mem.1
-    rw [hk] at h
-    exact (roleOf_leader_iff _).mp h.symm
-  have hkm := List.contains_iff_mem.mp (hv.leader hvk).1
-  have hnm := List.contains_iff_mem.mp hn
-  have hct : S.currentTerm[k.val]! = uint.Z (V k).ps.term := by rw [hv.disk.1, hdk k]; rfl
-  have h := hgo.leader_server hl hnm hkm hct
-  exact name_inj h.symm
 
 /-- **Normal entries leave the configuration**: the fold of entries none of which is a conf change
 (type 0) is its start. -/

@@ -13,6 +13,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.StmtsB2
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.GC
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.LiftC
 
 @[expose] public section
 
@@ -83,45 +84,6 @@ theorem netOkD_toB1 {R : RunCfg} {S : AntCheck.State} {net : List Msg} (hs : R.m
   obtain ⟨hty, ⟨i, hi, -, hti⟩, j, hj, hrc⟩ := h1 m hm
   exact ⟨hty, ⟨i, hi, hti hs⟩, j, hj,
     fun hle => netRcD_toB1 hi (hrc (Int.le_trans (effTerm_le S j.val) hle))⟩
-
-/-- With no `mem` queued, the in-memory commit is the disk's. -/
-theorem memCommit_nil {S : AntCheck.State} {i : Nat} (hq : S.queue[i]! = []) :
-    S.memCommit i = .ok (S.commitIndex[i]!) := by
-  unfold AntCheck.State.memCommit; rw [hq]; rfl
-
-/-- The binding's commits raised to the in-memory ones (`MemCommit`: the last queued `mem`'s) where
-these are above: the state a B1 lemma reads `LeadCommitMsgOk` in while some node has an announced,
-unwritten commit (a `-parallel` leader's requests are sent before their write). -/
-def liftC (S : AntCheck.State) : AntCheck.State :=
-  { S with commitIndex := S.commitIndex.mapIdx (fun i x =>
-      match S.memCommit i with
-      | .ok c => max x c
-      | .error _ => x) }
-
-theorem liftC_get (S : AntCheck.State) {i : Nat} (h : i < S.commitIndex.length) :
-    (liftC S).commitIndex[i]! =
-      match S.memCommit i with
-      | .ok c => max (S.commitIndex[i]!) c
-      | .error _ => S.commitIndex[i]! := by
-  simp only [liftC, getElem!_pos (S.commitIndex.mapIdx _) i (by simpa using h),
-    getElem!_pos S.commitIndex i h, List.getElem_mapIdx]
-
-theorem le_liftC (S : AntCheck.State) (i : Nat) : S.commitIndex[i]! ≤ (liftC S).commitIndex[i]! := by
-  by_cases h : i < S.commitIndex.length
-  · rw [liftC_get S h]
-    cases S.memCommit i
-    · exact Int.le_refl _
-    · exact Int.le_max_left _ _
-  · have h' : ¬ i < (liftC S).commitIndex.length := by simpa [liftC] using h
-    rw [getElem!_neg S.commitIndex i h, getElem!_neg _ i h']
-    exact Int.le_refl _
-
-theorem liftC_nil {S : AntCheck.State} {i : Nat} (hq : S.queue[i]! = []) :
-    (liftC S).commitIndex[i]! = S.commitIndex[i]! := by
-  by_cases h : i < S.commitIndex.length
-  · rw [liftC_get S h, memCommit_nil hq]; simp
-  · have h' : ¬ i < (liftC S).commitIndex.length := by simpa [liftC] using h
-    rw [getElem!_neg S.commitIndex i h, getElem!_neg _ i h']
 
 /-- `NetOkD` gives `NetOk` (sync) at the state with the commits raised to the in-memory ones. -/
 theorem netOkD_toB1L {R : RunCfg} {S : AntCheck.State} {net : List Msg} (hs : R.md.async = false)
