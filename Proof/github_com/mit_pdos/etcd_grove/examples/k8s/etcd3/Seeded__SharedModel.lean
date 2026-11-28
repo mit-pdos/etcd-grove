@@ -51,6 +51,30 @@ theorem gcfg_eq (a b : GCfg) (h1 : a.st.hist = b.st.hist) (h2 : a.st.st = b.st.s
   obtain ⟨⟨s2, hi2⟩, p2⟩ := b
   simp_all
 
+/-- `cfgSet.add`'s result, either way: the set holds what it held and `g`. -/
+theorem cfgSet_add_post (s hh : Loc) (gs : List GCfg) (g : GCfg) (b : Bool) :
+    (if b then cfgSetOwn (GF := GF) s hh (gs ++ [g]) else cfgSetOwn s hh gs ∗ ⌜g ∈ gs⌝) ⊢
+      ∃ gs', cfgSetOwn (GF := GF) s hh gs' ∗ ⌜∀ e, e ∈ gs' ↔ e ∈ gs ∨ e = g⌝ := by
+  cases b
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨H, %h⟩
+    iexists gs
+    iframe
+    ipureintro
+    intro e
+    constructor
+    · exact Or.inl
+    · rintro (h' | rfl)
+      · exact h'
+      · exact h
+  · simp only [↓reduceIte]
+    iintro H
+    iexists gs ++ [g]
+    iframe
+    ipureintro
+    intro e
+    simp
+
 theorem Seeded.SharedModel.wp_proof (wp_histOf : histOf.spec (GF := GF) (hG := hG))
     (wp_canonical : histHashes.canonical.spec (GF := GF) (hG := hG))
     (wp_skipTo : histHashes.skipTo.spec (GF := GF) (hG := hG))
@@ -160,7 +184,72 @@ theorem Seeded.SharedModel.wp_proof (wp_histOf : histOf.spec (GF := GF) (hG := h
   · ipureintro; exact ⟨trivial, nofun⟩
   isplitr
   · -- Step
-    sorry
+    unfold stepSpec
+    (try unfold stepPost)
+    simp only [sharedS]
+    iintro %k %v %S %i %o
+    iintro !> %Φ' ⟨%Hk, #Hrep, #Hio⟩ HΦ'
+    ihave #Hrep0 := Hrep
+    iunfold sharedRep at Hrep
+    icases Hio with ⟨%x, %y, %Hxy⟩
+    obtain ⟨rfl, rfl, Hxy⟩ := Hxy
+    icases Hrep with ⟨%sl, %cs, %gs, ⟨%hv, %hok, %hbd⟩, #Hs, #Hcs⟩
+    subst hv
+    ihave %Hl := ownSlice_len $$ Hs
+    ihave %Hlen := BigSepL2.bigSepL2_length $$ Hcs
+    wp_auto
+    wp_apply wp_bound x y
+    iStructNamed next
+    irename : ("_" ∷ True : IProp GF) => Hjunk
+    iclear Hjunk
+    ihave Hset : cfgSetOwn (GF := GF) next_ptr hhl [] $$ [hh list buckets]
+    · iunfold cfgSetOwn
+      iexists slice.nil, map.nil, [], ∅
+      iframe
+      isplitl
+      · iapply ownSlice_nil
+      isplitl
+      · iapply ownSliceCap_nil
+      isplitl
+      · iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2
+        iempintro
+      isplitl
+      · ipureintro; simp
+      ileft
+      ipureintro; exact ⟨rfl, rfl⟩
+    irename : (in_ptr ↦ x : IProp GF) => Hin
+    ihave HI : (∃ (j : w64) (c0 : mcfg) (ngs : List GCfg),
+        "i" ∷ i_ptr ↦ j ∗ "c" ∷ c_ptr ↦ c0 ∗ "Hset" ∷ cfgSetOwn next_ptr hhl ngs ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len ∧
+          ∀ e, e ∈ ngs ↔ ∃ c ∈ gs.take (sint.nat j), GoStep R (uint.nat mode) c x y e⌝ : IProp GF)
+      $$ [i c Hset]
+    · iexists W64 0, _, []
+      iframe
+      ipureintro; refine ⟨by word, by word, fun e => by rw [show sint.nat (W64 0) = 0 from rfl]; simp⟩
+    wp_for HI
+    by_cases Hif : sint.Z j < sint.Z sl.len
+    · (try simp only [decide_eq_true Hif, ↓reduceIte])
+      (try simp only [eq_self_iff_true, decide_true, ↓reduceIte])
+      wp_pures; cleanup_bool_decide; (try wp_auto); cleanup_bool_decide
+      have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj.1, Hif⟩
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      list_elem cs (sint.nat j) as c
+      list_elem gs (sint.nat j) as g
+      wp_apply wp_load_slice_index sl (sint.Z j) cs _ c Hj.1 $$ [Hs] as -
+      · isplit
+        · iexact Hs
+        · ipureintro; exact Hc_lookup
+      ihave #Hc := BigSepL2.bigSepL2_lookup (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
+        Hc_lookup Hg_lookup $$ Hcs
+      have Hgb := hbd g (List.mem_of_getElem? Hg_lookup)
+      have Htake : ∀ e, (∃ c ∈ gs.take (sint.nat (j + W64 1)), GoStep R (uint.nat mode) c x y e) ↔
+          (∃ c ∈ gs.take (sint.nat j), GoStep R (uint.nat mode) c x y e) ∨
+            GoStep R (uint.nat mode) g x y e := by
+        intro e
+        rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word, List.take_add_one, Hg_lookup]
+        simp [or_and_right, exists_or]
+      sorry
+    · sorry
   isplitr
   · ipureintro; nofun
   isplitr
