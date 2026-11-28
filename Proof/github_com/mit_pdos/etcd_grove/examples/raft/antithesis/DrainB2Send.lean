@@ -150,7 +150,8 @@ theorem mskB25_of_le {msk : AntSim.SimMask} (h : msk ≤ AntSim.mskB2) : msk ≤
 /-- **`-parallel`'s `mem` report's B2 step** (`antSim_memP_in.stmt` in `report_updB2`'s shape): at a
 reported leader's `Ready` (`ReachIn` over the lower bounds, `ReadyOutP`), raft's facts grown by the
 `Ready`'s (`FactsLe`, lawful, `ReadyFacts`); the view the drain's, its requests first, the write
-queued when it writes. -/
+queued when it writes. No `mem` is queued and no split write is in progress before it (the
+loop head's, synchronous storage). -/
 theorem memHstepD (h_mem : AntSim.antSim_memP_in.stmt) {R : AntSim.RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} (msk : AntSim.SimMask) (hmsk : msk ≤ AntSim.mskB2)
     (j : Fin R.N) (v : AntSim.NodeView) (r₁ : RState) (rd : AntSim.ReadyD) (w : Bool)
@@ -159,7 +160,8 @@ theorem memHstepD (h_mem : AntSim.antSim_memP_in.stmt) {R : AntSim.RunCfg} {dec 
     (hasync : R.md.async = false) (hbat : R.drv.batch = false) (hpar : R.drv.parallel = true)
     (hreach : AntSim.ReachIn msk R dec Adm net₀ xnet₀ j v r₁) (hout : AntSim.ReadyOutP R j v r₁ rd)
     (hlead : rd.role = .leader) (hsnap : rd.snap = none) (hrep : AntSim.Reported v rd)
-    (hw : w = true ↔ AntSim.Writes v rd) (htold : AntSim.Told v) (hterm : AntSim.TermRoom v) :
+    (hw : w = true ↔ AntSim.Writes v rd) (htold : AntSim.Told v) (hterm : AntSim.TermRoom v)
+    (_hmems : v.mems = []) (_hparts : v.parts = []) :
     ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
       (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
       AntSim.SimPreD R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
