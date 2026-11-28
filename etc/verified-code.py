@@ -47,7 +47,9 @@ into `Code/` and the Go modules counted, `counted_modules`) are `etc/goose.py`'s
 project's code is counted apart.  The specs are those of the linked results of every
 `Link.lean` under `Proof/` (etc/proof_roots.py), each about the functions of the
 project whose translation its directory names (the one owning `Code/<that directory>`,
-or `<root>/Code/...` for a part's `<root>/Proof/...`).  A spec of a package whose Go
+or `<root>/Code/...` for a part's `<root>/Proof/...`); a result's name is resolved by its
+qualifier (`pkg.T.M`), the path of a package below another's (`hraftnet.rpctransport.T.M`), or
+else in the Link's own package, a Link namespace that is no package's (`dsvcraq.`) dropped.  A spec of a package whose Go
 code is not in the sources (a dependency's, translated too, or a part's) is not
 counted, but listed with that package.
 
@@ -347,8 +349,21 @@ def local_proofs(objs):
             state = "unfinished"
         else:
             state = "verified"
-        out[(LINKS[r["module"]], fn)] = (state, not r["sorries"])
+        out[(LINKS[r["module"]], fn)] = (state, not r["sorries"], r["module"])
     return out
+
+
+def link_package(mod, pkgs):
+    """The package of `pkgs` whose directory a Link module's path names (`<root>.Proof.<dir>.Link`),
+    or None."""
+    parts = mod.split(".")[:-1]
+    root = parts[0] if parts[0] in proof_roots.PART_ROOTS else ""
+    d = "/".join(parts[2:] if root else parts[1:])
+    for q in pkgs:
+        r, path = unrooted(q)
+        if r == root and re.sub(r"[.-]", "_", path) == d:
+            return q
+    return None
 
 
 def qualifier(pkg):
@@ -383,15 +398,27 @@ def spec_namespaces(pkg):
     return _SPEC_NS[pkg]
 
 
-def resolve_local(fn, pkgs, part_pkgs, by_key, known):
+def resolve_local(fn, pkgs, part_pkgs, by_key, known, home=None):
     """The Go function a spec of this repository is about, and whether it is of a
     package of the project's `parts` (not the Go code of the sources, though its path
     may be), or None (Go's standard library: `slices.Sort`, `big.NewInt`, …).  `pkgs`
     are the project's packages, the first its main one; a name is qualified by the last
     segment of another (`pkg.T.M`, `pkg.F`; then it is of that package, translated or
-    not), or else is of the main package, or of another one that has it."""
+    not), or by the path of a package below another's (`hraftnet.rpctransport.T.M`), or else is
+    of `home` (the package of the Link naming it) if that has it, else of the main package, or of
+    another one that has it."""
     parts = [lean_ident(x) for x in fn.split(".")]
     qual = {qualifier(q): q for q in pkgs[1:]}
+    # a package named by the last segments of its path (`hraftnet.rpctransport`)
+    tails = {}
+    for q in pkgs:
+        seg = [qualifier(x) for x in unrooted(q)[1].split("/")]
+        for i in range(len(seg) - 1):
+            tails.setdefault(".".join(seg[i:]), q)
+    for k in range(len(parts) - 1, 1, -1):
+        q, rest = tails.get(".".join(parts[:k])), parts[k:]
+        if q and len(rest) <= 2:
+            return ((q, rest[0], rest[1]) if len(rest) == 2 else (q, "", rest[0])), False
     # a qualifier of both a part's package and another (`v3`: etcd's raft dependency and
     # clientv3) is the other's if that package has the function
     if len(parts) > 1 and parts[0] in {qualifier(q) for q in part_pkgs} and not (
@@ -406,7 +433,7 @@ def resolve_local(fn, pkgs, part_pkgs, by_key, known):
         if len(rest) <= 2:
             return ((pkg, rest[0], rest[1]) if len(rest) == 2 else (pkg, "", rest[0])), False
         return None
-    for pkg in pkgs:
+    for pkg in ([home] if home else []) + pkgs:
         key = (pkg, parts[0], parts[1]) if len(parts) == 2 else (pkg, "", parts[0])
         if key in by_key or key in known:
             return key, False
@@ -463,8 +490,18 @@ def main():
         state[k] = ("translated", False, "")
     outside = []
     dep_specs = collections.defaultdict(collections.Counter)  # package -> state -> specs
-    for (proj, fn), (s, free) in sorted(local.items()):
-        res = resolve_local(fn, pkgs[proj], part_pkgs[proj], by_key, goose | named)
+    for (proj, fn), (s, free, lmod) in sorted(local.items()):
+        home = link_package(lmod, pkgs[proj])
+        res = resolve_local(fn, pkgs[proj], part_pkgs[proj], by_key, goose | named, home)
+        # a Link's namespace that is no package's qualifier (`dsvcraq.`, a kit's Link): its names
+        # are of the Link's own package (`dsvcraq.wp_Client`: `craqnet.Client`), or qualified
+        lns = LINK_NS[lmod]
+        if (res is None or res[0] not in by_key) and lns.count(".") == 1 \
+                and lns[:-1] not in QUALIFIERS and fn.startswith(lns):
+            res2 = resolve_local(fn.removeprefix(lns), pkgs[proj], part_pkgs[proj], by_key,
+                                 goose | named, home)
+            if res2 is not None and res2[0] in by_key:
+                res = res2
         k, in_part = res if res else (None, False)
         if in_part:
             dep_specs[f"{k[0]} (translated into {part_pkgs[proj][k[0]]}/)"][s] += 1

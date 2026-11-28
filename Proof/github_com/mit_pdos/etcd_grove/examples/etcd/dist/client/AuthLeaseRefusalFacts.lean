@@ -46,26 +46,23 @@ theorem not_adminOk_setupSt (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.Aut
 theorem not_permitted_setupSt (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (k : GoString)
     (hk : k ≠ []) (hu : (info.Username' = go!"u" ∧ ¬ inRangeK k) ∨ info.Username' = go!"v") :
     ¬ auth.permitted (setupSt r) (auth.authInfoM info) k [] .read := by
-  have hs : auth.reqShape k [] := ⟨hk, Or.inl rfl⟩
   intro hp
   rcases hp with hen | hg
   · simp [setupSt] at hen
-  rw [auth.granted_iff_covers _ _ _ _ _ (setupSt_permKeysOk r) hs] at hg
   obtain ⟨-, u', hus, hc⟩ := hg
   simp only [auth.authInfoM] at hus
   rcases hu with ⟨hu', hnk⟩ | hv
   · rw [hu', setupSt_users_u] at hus; cases hus
     rcases hc with hroot | hc
     · exact not_isRoot_u hroot
-    · have := hc hs
-      simp only [auth.covers, if_pos rfl, auth.coversPoint, userPerms_u, List.mem_singleton,
-        exists_eq_left] at this
+    · have := (auth.coversX_point_iff _ _ _ _ (setupSt_permKeysOk r)).1 hc
+      simp only [auth.coversPoint, userPerms_u, List.mem_singleton, exists_eq_left] at this
       exact hnk ((permR_covers _ k).1 this)
   · rw [hv, setupSt_users_v] at hus; cases hus
     rcases hc with hroot | hc
     · exact not_isRoot_v hroot
-    · have := hc hs
-      simp [auth.covers, auth.coversPoint, userPerms_v] at this
+    · have := (auth.coversX_point_iff _ _ _ _ (setupSt_permKeysOk r)).1 hc
+      simp [auth.coversPoint, userPerms_v] at this
 
 end pure
 

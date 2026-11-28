@@ -57,9 +57,6 @@ theorem irrNoZeroEnd_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
 theorem reqPerms_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     reqPerms (apply.withHeader rq hm) = reqPerms rq := rfl
 
-theorem kvShapeAll_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
-    kvShapeAll (apply.withHeader rq hm) ↔ kvShapeAll rq := Iff.rfl
-
 theorem reqKVOp_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     reqKVOp (apply.withHeader rq hm) = reqKVOp rq := rfl
 
@@ -716,13 +713,13 @@ theorem reqPropOkM_of_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.H
   ipureintro; exact ha
 
 /-- **A mode-`on` KV write's permission at any header** (`reqPropOkM true`'s write case): a plain
-write of `op` (no range end `[0]`, of a good shape, every permission of the cache's shape), its
+write of `op` (no range end `[0]`, of a good shape), its
 client's update fired at most once, told its grant at the client's lower bound `L₀` of the requested
 log (`writeGrantG`), the result at the stamped header's grant (`grantedRes`). -/
 theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (op : KVOp)
     (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel) (hp : plainReq rq)
-    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape .none rq) (ha : kvShapeAll rq) :
+    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape .none rq) :
     srvReqLogLb (GF := GF) γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk srvAuthSt0 Gb rq L₀) Q ⊢
       reqPropOkM true γ γk Gb rq
         (fun hm => grantedRes γk srvAuthSt0 (apply.withHeader rq hm) γc Q) := by
@@ -741,7 +738,7 @@ theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
   isplitr
   · ipureintro
     exact ⟨Or.inl (plainReqL_of_plainReq _ _ ⟨hp.1, putgetKind_header _ _ hp.2⟩), hop, hz,
-      rqShape_mono _ _ hs, ha, rfl⟩
+      rqShape_mono _ _ hs, rfl⟩
   rw [grantIdOwn_withHeader]
   iapply grantIdOwn_plain γk rq hp
 
@@ -751,7 +748,7 @@ with its id's claim right, a revocation). -/
 theorem reqPropOkM_true_writeL (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (op : KVOp)
     (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel) (hp : writePropOk γk.lm rq)
-    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape γk.lm rq) (ha : kvShapeAll rq) :
+    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape γk.lm rq) :
     srvReqLogLb (GF := GF) γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk srvAuthSt0 Gb rq L₀) Q ∗
         grantIdOwn γk rq ⊢
       reqPropOkM true γ γk Gb rq
@@ -771,14 +768,14 @@ theorem reqPropOkM_true_writeL (γ : ServerRaftNames) (γk : KVNames)
   rw [grantIdOwn_withHeader]
   iframe Hgo
   ipureintro
-  exact ⟨hp, hop, hz, hs, ha, rfl⟩
+  exact ⟨hp, hop, hz, hs, rfl⟩
 
 /-- **A mode-`on` write-free proposal's permission at any header** (`reqPropOkM true`'s first
 case). -/
 theorem reqPropOkM_true_nowrite (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (hp : plainReq rq)
     (hnw : ¬ writeKind (apply.dispatchKind rq)) (hz : irrNoZeroEnd rq) (hs : rqShape .none rq)
-    (ha : kvShapeAll rq) (hat : attrIdOk γ.raft.cfg rq) :
+    (hat : attrIdOk γ.raft.cfg rq) :
     ⊢ reqPropOkM (GF := GF) true γ γk Gb rq (fun _ _ => iprop(True)) := by
   iunfold reqPropOkM
   isplitl
@@ -788,7 +785,7 @@ theorem reqPropOkM_true_nowrite (γ : ServerRaftNames) (γk : KVNames)
   iunfold reqPropOkOn
   ileft
   ipureintro
-  exact ⟨⟨hp.1, putgetKind_header _ _ hp.2⟩, hnw, hz, hs, ha, rfl⟩
+  exact ⟨⟨hp.1, putgetKind_header _ _ hp.2⟩, hnw, hz, hs, rfl⟩
 
 end defs
 
@@ -991,14 +988,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **What a put of `op` needs in the mode `on`** (`putPermit`'s, and a key not empty: the
-permission cache decides the put's check, `kvShapeAll`; the gRPC layer refuses an empty key,
-`ErrGRPCEmptyKey`; auth-lease S3b: the lease `0`, or any lease at the revocable lease mode). The
+/-- **What a put of `op` needs in the mode `on`** (`putPermit`'s; auth-lease S3b: the lease `0`, or any
+lease at the revocable lease mode; N1b-1: no longer a non-empty key, which only the shape of the
+put's check, `kvShapeAll`, needed). The
 client's update is told its grant when it fires (`writeGrantG`, at the caller's binding `Gb` and its
 lower bound `L₀` of the requested log; the auth-mode merge's step 5), the lease part included. -/
 def putPermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜(op.leaseID = W64 0 ∨ γk.lm = .revocable) ∧ op.key ≠ []⌝ ∗ ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
+  iprop(⌜op.leaseID = W64 0 ∨ γk.lm = .revocable⌝ ∗ ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
     kvAu1G γk (kvOpStep (.put op)) (writeGrantG γk srvAuthSt0 Gb (irrPut op) L₀) Q)
 
 /-- **A put's result in the mode `on`** at the header `hm` the server stamps and the committed log
@@ -1058,7 +1055,7 @@ theorem putPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
   iintro ⟨%Hlk, %L₀, #HL₀, Hau⟩
   ihave Hau := kvAu1G_mono γk _ _ (writeGrantG γk srvAuthSt0 Gb' (irrPut op) L₀) Q
     (fun σ => writeGrantG_mono γk srvAuthSt0 Gb Gb' _ L₀ σ hb) $$ Hau
-  obtain ⟨Hl, Hk⟩ := Hlk
+  have Hl := Hlk
   have hk := irrPut_kind op
   have hns : apply.noSideEffect (irrPut op) = false := by simp [apply.noSideEffect, irrPut, apply.irrEmpty]
   have hna : apply.needAdminPermission (irrPut op) = false := by
@@ -1080,20 +1077,11 @@ theorem putPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
   have hz : irrNoZeroEnd (irrPut op) := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
   have hs : rqShape γk.lm (irrPut op) := rqShape_put _ _ hk
-  have ha : kvShapeAll (irrPut op) := by
-    intro x hx
-    have hr : reqPerms (irrPut op) = apply.putPerms op := by unfold reqPerms; rw [hk]; rfl
-    rw [hr] at hx
-    have hsh : auth.reqShape op.key [] := ⟨Hk, Or.inl rfl⟩
-    unfold apply.putPerms at hx
-    cases hpk : op.base.prevKV <;> rw [hpk] at hx <;> simp at hx
-    · subst hx; exact hsh
-    · rcases hx with rfl | rfl <;> exact hsh
   have hq : putQhOn (GF := GF) γk op γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrPut op) hm) γc Q := rfl
   rw [hq]
   ihave Hgo := grantIdOwn_nonGrant (GF := GF) γk (irrPut op) (by rw [hk]; decide)
-  iapply reqPropOkM_true_writeL γ γk Gb' (irrPut op) (.put op) Q γc L₀ hp hop hz hs ha
+  iapply reqPropOkM_true_writeL γ γk Gb' (irrPut op) (.put op) Q γc L₀ hp hop hz hs
     $$ [$HL₀ $Hau $Hgo]
 
 /-- **A request of a kind the auth layer checks, dispatched to an outcome other than its
@@ -1299,11 +1287,11 @@ theorem putQhOn_res (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState →
   grantedRes_applied γk _ γc Q L lb log' skip
     (by rw [dispatchKind_withHeader, irrPut_kind]; rfl) h
 
-/-- **What a delete of `op` needs in the mode `on`** (`deletePermit`'s, and its key and range end
-of the shape the permission cache decides, `auth.reqShape`). -/
+/-- **What a delete of `op` needs in the mode `on`** (`deletePermit`'s: its range end not `"\x00"`;
+N1b-1: no longer its key and range end of the shape `auth.reqShape`). -/
 def deletePermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜op.base.rangeEnd ≠ [W8 0] ∧ auth.reqShape op.key op.base.rangeEnd⌝ ∗
+  iprop(⌜op.base.rangeEnd ≠ [W8 0]⌝ ∗
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.deleteRange op)) (writeGrantG γk srvAuthSt0 Gb (irrDeleteRange op) L₀) Q)
 
@@ -1355,7 +1343,7 @@ theorem deletePermitOn_nz (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.Hea
   unfold deletePermitOn
   iintro ⟨%Hzs, H⟩
   isplitr
-  · ipureintro; exact Hzs.1
+  · ipureintro; exact Hzs
   iframe H
   ipureintro; exact Hzs
 
@@ -1369,7 +1357,7 @@ theorem deletePermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
   iintro ⟨%Hzs, %L₀, #HL₀, Hau⟩
   ihave Hau := kvAu1G_mono γk _ _ (writeGrantG γk srvAuthSt0 Gb' (irrDeleteRange op) L₀) Q
     (fun σ => writeGrantG_mono γk srvAuthSt0 Gb Gb' _ L₀ σ hb) $$ Hau
-  obtain ⟨Hz, Hs⟩ := Hzs
+  have Hz := Hzs
   have hk := irrDeleteRange_kind op
   have hpl : plainCover (irrDeleteRange op) := by
     unfold plainCover
@@ -1385,31 +1373,19 @@ theorem deletePermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hz
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
   have hs : rqShape .none (irrDeleteRange op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
-  have ha : kvShapeAll (irrDeleteRange op) := by
-    intro x hx
-    have hr : reqPerms (irrDeleteRange op) = (op.key, op.base.rangeEnd, .write) ::
-        if op.base.prevKV then [(op.key, op.base.rangeEnd, .read)] else [] := by
-      unfold reqPerms; rw [hk]; rfl
-    rw [hr] at hx
-    cases hpk : op.base.prevKV <;> rw [hpk] at hx <;> simp at hx
-    · subst hx; exact Hs
-    · rcases hx with rfl | rfl <;> exact Hs
   have hq : deleteQhOn (GF := GF) γk op γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrDeleteRange op) hm) γc Q := rfl
   rw [hq]
-  iapply reqPropOkM_true_write γ γk Gb' (irrDeleteRange op) (.deleteRange op) Q γc L₀ hp hop hz hs ha
+  iapply reqPropOkM_true_write γ γk Gb' (irrDeleteRange op) (.deleteRange op) Q γc L₀ hp hop hz hs
     $$ [$HL₀ $Hau]
 
 /-- **What a writing transaction of `t` needs in the mode `on`** (the auth plan's E3d,
-2026-10-27): `txnPermit`'s, and every permission the transaction's checks need of the shape the
-permission cache decides (`kvShapeAll`: its comparisons' and operations' keys and range ends), for
-whichever wire transaction of `t` the request holds (E3e: a put's `PrevKv` read is of its key and
-its write's range end, so the shape is `t`'s); (auth-lease S3b) plain, or, at the revocable lease mode,
+2026-10-27): `txnPermit`'s (N1b-1: no longer every permission the transaction's checks need of the
+shape `kvShapeAll`); (auth-lease S3b) plain, or, at the revocable lease mode,
 plain but for its puts' leases (`txnPlainL`), the update told the lease part of its grant. -/
 def txnPermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
   iprop(⌜(txn.txnPlain t ∨ (γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧ txn.txnShape t ∧ txn.txnKeysNodup t⌝ ∗
-    ⌜∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)⌝ ∗
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.txn t)) (fun σ => iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
         writeGrantG γk srvAuthSt0 Gb (irrTxn tw) L₀ σ)) Q)
@@ -1431,7 +1407,7 @@ theorem txnPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     txnPermitOn (GF := GF) γ γk Gb tw.toModel Q ⊢
       reqPropOkM true γ γk Gb' (irrTxn tw) (txnQhOn γk tw γc Q) := by
   unfold txnPermitOn
-  iintro ⟨%Ht, %Ha, %L₀, #HL₀, Hau⟩
+  iintro ⟨%Ht, %L₀, #HL₀, Hau⟩
   -- the grant of this wire transaction is one of `t`'s
   ihave Hau := kvAu1G_mono γk _ _ (writeGrantG γk srvAuthSt0 Gb' (irrTxn tw) L₀) Q
     (fun σ => by
@@ -1467,7 +1443,7 @@ theorem txnPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn tw) hm) γc Q := rfl
   rw [hq]
   ihave Hgo := grantIdOwn_nonGrant (GF := GF) γk (irrTxn tw) (by rw [hk]; decide)
-  iapply reqPropOkM_true_writeL γ γk Gb' (irrTxn tw) (.txn tw.toModel) Q γc L₀ hp hop hz hs (Ha tw rfl)
+  iapply reqPropOkM_true_writeL γ γk Gb' (irrTxn tw) (.txn tw.toModel) Q γc L₀ hp hop hz hs
     $$ [$HL₀ $Hau $Hgo]
 
 
@@ -1477,11 +1453,9 @@ theorem txnPermitOn_mono (γ : ServerRaftNames) (γk : KVNames)
     (hb : ∀ hm, Gb' hm ⊢ Gb hm) :
     txnPermitOn (GF := GF) γ γk Gb t Q ⊢ txnPermitOn γ γk Gb' t Q := by
   unfold txnPermitOn
-  iintro ⟨%Ht, %Ha, %L₀, #HL₀, Hau⟩
+  iintro ⟨%Ht, %L₀, #HL₀, Hau⟩
   isplitr
   · ipureintro; exact Ht
-  isplitr
-  · ipureintro; exact Ha
   iexists L₀
   iframe HL₀
   ihave Hau := kvAu1G_mono γk _ _ (fun σ => iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
@@ -1496,15 +1470,13 @@ theorem txnPermitOn_mono (γ : ServerRaftNames) (γk : KVNames)
 
 /-- **What a writing transaction `t` needs, in the auth mode `on`**: `txnPermit`'s (plain, no zero
 range end, its shape; auth-lease S3b: with auth on at the revocable lease mode, plain but for its puts'
-leases), and with auth on (`⌜on = true⌝ → …`) every permission of the wire
-transaction of the shape the permission cache decides (`kvShapeAll`) and the update's grant under
+leases), and with auth on (`⌜on = true⌝ → …`) the update's grant under
 the caller's binding `Gb` (`writeGrantG`) told at the log `L₀` the caller saw. Off, it is
 `txnPermit` (`txnPermitM_false`, `txnPermit_of_false`); on, `txnPermitOn` (`txnPermitM_true`). -/
 def txnPermitM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
   iprop(⌜(txn.txnPlain t ∨ (on = true ∧ γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧
       txn.txnShape t ∧ txn.txnKeysNodup t⌝ ∗
-    ⌜on = true → ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)⌝ ∗
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.txn t)) (fun σ => iprop(⌜on = true⌝ → ∃ tw : txn.TxnModelW,
         ⌜tw.toModel = t⌝ ∗ writeGrantG γk srvAuthSt0 Gb (irrTxn tw) L₀ σ)) Q)
@@ -1519,8 +1491,6 @@ theorem txnPermitM_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.Head
   imodintro
   isplitr
   · ipureintro; exact ⟨Or.inl Ht.1, Ht.2⟩
-  isplitr
-  · ipureintro; intro h; cases h
   iexists []
   iframe HL
   iapply kvAu1_G $$ Hau
@@ -1530,7 +1500,7 @@ theorem txnPermit_of_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.He
     (t : TxnModel) (Q : KVState → IProp GF) :
     txnPermitM (GF := GF) false γ γk Gb t Q ⊢ txnPermit γk t Q := by
   unfold txnPermit txnPermitM kvOpAu1
-  iintro ⟨%Ht, -, %L₀, -, Hau⟩
+  iintro ⟨%Ht, %L₀, -, Hau⟩
   isplitr
   · ipureintro
     refine ⟨?_, Ht.2⟩
@@ -1551,27 +1521,23 @@ theorem txnPermitM_true (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.Heade
     txnPermitM (GF := GF) true γ γk Gb t Q ⊣⊢ txnPermitOn γ γk Gb t Q := by
   unfold txnPermitM txnPermitOn
   constructor
-  · iintro ⟨%Ht, %Ha, %L₀, #HL₀, Hau⟩
+  · iintro ⟨%Ht, %L₀, #HL₀, Hau⟩
     isplitr
     · ipureintro
       refine ⟨?_, Ht.2⟩
       rcases Ht.1 with h | ⟨-, h⟩
       · exact Or.inl h
       · exact Or.inr h
-    isplitr
-    · ipureintro; exact Ha rfl
     iexists L₀
     iframe HL₀
     iapply (kvAu1G_mono γk _ _ _ Q (fun σ => by iintro H %_; iexact H)) $$ Hau
-  · iintro ⟨%Ht, %Ha, %L₀, #HL₀, Hau⟩
+  · iintro ⟨%Ht, %L₀, #HL₀, Hau⟩
     isplitr
     · ipureintro
       refine ⟨?_, Ht.2⟩
       rcases Ht.1 with h | h
       · exact Or.inl h
       · exact Or.inr ⟨rfl, h⟩
-    isplitr
-    · ipureintro; intro _; exact Ha
     iexists L₀
     iframe HL₀
     iapply (kvAu1G_mono γk _ _ _ Q (fun σ => by iintro H; iapply H; ipureintro; rfl)) $$ Hau

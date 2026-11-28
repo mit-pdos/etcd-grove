@@ -69,7 +69,7 @@ theorem work_put_law_holds : work_put.law (GF := GF) (hG := hG) :=
 /-- **`cli.Delete(ctx, k)` of `who`'s**: a reply with no error was granted to `who`. -/
 theorem work_delete (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString) (hk : k ≠ [])
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString)
     (hγa : E.authMode = .on γa)
     (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) →
       opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
@@ -88,7 +88,7 @@ theorem work_delete (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.A
   · iframe #
   iunfold akKVOn at Hkv
   icases Hkv with ⟨-, -, #Hdel, -⟩
-  wp_apply (client_Delete_on cl api conn _ s E ρ cid mid ci (akOut who) cd k slice.nil _ [] hk hsz) $$ [$Hlt]
+  wp_apply (client_Delete_on cl api conn _ s E ρ cid mid ci (akOut who) cd k slice.nil _ [] hsz) $$ [$Hlt]
     as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   iapply HΦ
@@ -181,8 +181,7 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
 theorem work_get_law_holds : work_get.law (GF := GF) (hG := hG) :=
   work_get
 
-/-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`, of the shape the
-permission cache decides): a reply with no error was granted to `who` (`hop`: a granted
+/-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`): a reply with no error was granted to `who` (`hop`: a granted
 transaction keeps the history). -/
 theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
@@ -190,7 +189,6 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
     (hγa : E.authMode = .on γa)
     (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
     (hsz : txnSizeOk (txnWireOf b.model))
-    (hsh : ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw))
     (hro : txn.txnReadonly (txnWireOf b.model) = false)
     (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
     (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))) :
@@ -226,8 +224,8 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   wp_apply (client_txn_on tp api conn _ (srvTLSId s) E ρ ρ.rd cid mid (W64 0) n ci (akOut who) cd b
-      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] (fun _ => hin) hsz
-      (fun _ => hsh)) $$ [$Hlt Hobj] as %resp %err ⟨Hlt, Hout⟩
+      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] (fun _ => hin) hsz)
+      $$ [$Hlt Hobj] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iframe Hobj
     ileft
@@ -331,8 +329,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
   wp_apply (client_txn_on tp api conn _ (srvTLSId s) E ρ ρ.rd cid mid (W64 0) n ci (akOut who) cd
       ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩
       (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")))⌝))
-      [] (fun h => absurd h (by rw [hro]; decide)) hsz
-      (fun _ tw htw => t4M_shape _ _ hk tw (htw.trans hw))) $$ [$Hlt Hobj] as %resp %err ⟨Hlt, Hout⟩
+      [] (fun h => absurd h (by rw [hro]; decide)) hsz) $$ [$Hlt Hobj] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iframe Hobj
     ileft

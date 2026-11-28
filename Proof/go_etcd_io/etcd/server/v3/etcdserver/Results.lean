@@ -1427,7 +1427,7 @@ theorem auth_op_permitted_latest :
 
 /-- **`IsPutPermitted`, `IsRangePermitted`, `IsDeleteRangePermitted` on the apply thread at the
 latest state** (the auth plan's E2r): the verdict of their one permission at the latest state
-(`permVerdictL`; for a request of the cache's shape, `kvGranted`'s form, `auth.permVerdictL_granted`). -/
+(`permVerdictL`; in `kvGranted`'s form for every request, `auth.permVerdictL_granted`). -/
 theorem auth_put_permitted_latest :
     auth.authStore.IsPutPermitted.specL (GF := GF) (hG := hG) :=
   auth.authStore.IsPutPermitted.wp_latest auth_op_permitted_latest
@@ -2580,7 +2580,7 @@ theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (s
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
       ⌜plainReqL γr.kv.lm rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
         entryDetOn γr.kv.c0 (st, x.log, kvLeasesOn γr.kv st₀ A) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
-        noZeroEnds rq ∧ kvShapeAll rq⌝ ∗
+        noZeroEnds rq⌝ ∗
       EtcdGrove.apply.certPreVW true E x.chain rq x.log
         (EtcdGrove.apply.kvOutLT (.on γa) E.lg hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
           (.quota .backend) rq x.log (kvLeasesOn γr.kv st₀ A).ids) ∗

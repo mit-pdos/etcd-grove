@@ -108,12 +108,12 @@ v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
 Version:
 ResponseOp__GetResponseRange:
 Client__Endpoints:
-# the trust boundary: strconv's (U2), klog's Errorf (logging); clock.RealClock.After a named
-# hypothesis, as in client-go's link
+# the trust boundary: strconv's (U2), klog's Errorf (logging); clock.RealClock.After over its body
+# (2026-11-28, `time.After`, Perennial's verified `time`)
 strconv_FormatInt:
 strconv_ParseInt:
 v2_Errorf:
-clock_RealClock__After: ?
+clock_RealClock__After:
 # k8s.io/apimachinery/pkg/util/wait (`wait.go`, translated): the loop's context
 ContextForChannel:
 channelContext__Done:

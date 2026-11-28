@@ -77,8 +77,7 @@ theorem linkvInv_alloc_boot (γk : KVNames) (hlog : γk.log0 = [[], []])
     etcdKV (GF := GF) γk (kvModelSt γk (bootEntries bootLog)) ⊢
       |={Em}=> ∃ γ : LinkvNames, linkvInv γ γk ∗ linkvState γ (linkv.pInit TS) := by
   have h : kvModel γk (bootEntries bootLog) = [[], []] := by
-    unfold kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ ccOk ps bootLog hb, hlog]
+    rw [kvModel_bootE _ ps bootLog hb, hlog]
   unfold kvModelSt
   exact linkvInv_alloc γk _ (goodKV_empty _ (by rw [h, kvStateOf_kvs]; rfl))
     (linkv.absSt_init _ (by rw [h, kvStateOf_kvs]; rfl) (by rw [h, kvStateOf_rev]; rfl)) Em

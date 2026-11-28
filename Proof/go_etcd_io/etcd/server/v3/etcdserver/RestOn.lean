@@ -357,15 +357,6 @@ theorem noZeroEnds_revoke (rq : apply.IRRModel) (hk : apply.dispatchKind rq = .l
     noZeroEnds rq := by
   intro x hx; simp [reqPerms, hk] at hx
 
-/-- **A revocation's checked shapes** at a log whose leased keys are not empty. -/
-theorem kvShapedL_revoke (M : auth.AuthMode) (hs : List auth.AuthState) (log : mvcc.Log)
-    (rq : apply.IRRModel) (hk : apply.dispatchKind rq = .leaseRevoke) (hne : keysNonEmpty log) :
-    apply.kvShapedL M hs log rq := by
-  unfold apply.kvShapedL
-  rw [hk]
-  intro id _
-  exact leaseShapedL_of_keysNE M hs log id hne
-
 end leasePure
 
 section leaseArm

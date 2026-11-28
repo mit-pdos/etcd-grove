@@ -100,8 +100,7 @@ the root role, or one whose roles' permissions of type READ cover each key the w
 theorem watch_permitted_covers [GooseExts] (st : auth.AuthState) (ai : auth.AuthInfoM) (c : CreateReqM)
     (id : w64) (r : mvcc.WatchRange)
     (hp : auth.permitted st ai (apply.watchKey c.key) c.rangeEnd .read)
-    (hs : auth.reqShape (apply.watchKey c.key) c.rangeEnd) (hk : auth.permKeysOk st)
-    (hr : createRangeOk c id r) :
+    (hk : auth.permKeysOk st) (hr : createRangeOk c id r) :
     st.enabled = false ∨
       (ai.rev ≠ 0 ∧ ∃ u, st.users !! ai.user = some u ∧
         (auth.isRoot u ∨ ∀ x, r.covers x = true →
@@ -109,23 +108,9 @@ theorem watch_permitted_covers [GooseExts] (st : auth.AuthState) (ai : auth.Auth
   unfold auth.permitted at hp
   rcases hp with hp | hg
   · exact Or.inl hp
-  rw [auth.granted_iff_covers st ai _ _ _ hk hs] at hg
-  rcases hg with ⟨hrev, u, hu, hroot | hcov⟩
+  obtain ⟨hrev, u, hu, hroot | hcov⟩ := auth.granted_covers st ai _ _ _ hk hg
   · exact Or.inr ⟨hrev, u, hu, Or.inl hroot⟩
-  · right
-    refine ⟨hrev, u, hu, Or.inr ?_⟩
-    intro x hx
-    have hin := createRangeOk_inRange c id r x hr hx
-    have hc := hcov hs
-    unfold auth.covers at hc
-    by_cases h1 : c.rangeEnd = []
-    · simp only [h1, ↓reduceIte] at hc
-      unfold auth.inRange at hin
-      simp only [h1, ↓reduceIte] at hin
-      subst hin
-      exact hc
-    · simp only [h1, ↓reduceIte] at hc
-      exact hc x hin
+  · exact Or.inr ⟨hrev, u, hu, Or.inr fun x hx => hcov x (createRangeOk_inRange c id r x hr hx)⟩
 
 /-! ## The authorization of a created response, in the mode `on γa` -/
 
@@ -144,10 +129,10 @@ theorem watchAuthed_on (tag : GName) (γa : auth.AuthNames) (s : Loc) (tok : Opt
       ∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (i : Nat) (st : auth.AuthState),
         auth.authStateAt γa i st ∗ infoBoundT (srvTLSId s) (.on γa) tok info ∗
         ⌜n ≤ i ∧ auth.permitted st (auth.authInfoM info) (apply.watchKey key) rangeEnd .read ∧
-          auth.reqShape (apply.watchKey key) rangeEnd ∧ auth.permKeysOk st⌝ := by
+          auth.permKeysOk st⌝ := by
   iintro #Htag H
   iunfold watchAuthed at H
-  icases H with ⟨%M, %info, #Htag', #Hcl, #Hb, %Hs⟩
+  icases H with ⟨%M, %info, #Htag', #Hcl, #Hb⟩
   ihave %HM := auth.modeTag_agree tag (.on γa) M $$ Htag Htag'
   subst HM
   ihave ⟨%i, %st, #Hst, %Hp⟩ := apply.watchClassFrom_on γa n info key rangeEnd $$ Hcl
@@ -156,7 +141,7 @@ theorem watchAuthed_on (tag : GName) (γa : auth.AuthNames) (s : Loc) (tok : Opt
   iexists info, i, st
   iframe #
   ipureintro
-  exact ⟨Hp.1, Hp.2, Hs, Hk⟩
+  exact ⟨Hp.1, Hp.2, Hk⟩
 
 section api
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
@@ -187,12 +172,12 @@ theorem ctrlWatcher_authorized (r : WRun GF) (tok : Option GoString) (γa : auth
   simp only [Bool.false_eq_true, ↓reduceIte]
   iintro ⟨#Htag, H⟩
   icases H with ⟨%i, %Hrg, #Hreg, -, -, -, -, #Hau⟩
-  ihave ⟨%info, %j, %st, #Hst, #Hb, %Hn, %Hp, %Hs, %Hk⟩ :=
+  ihave ⟨%info, %j, %st, #Hst, #Hb, %Hn, %Hp, %Hk⟩ :=
     watchAuthed_on r.srv.tag γa r.srv.s tok c.bound c.key c.rangeEnd $$ Htag Hau
   iexists i, info, j, st
   iframe #
   ipureintro
-  exact ⟨Hrg, Hn, watch_permitted_covers st (auth.authInfoM info) c m.watchId i.rg Hp Hs Hk Hrg⟩
+  exact ⟨Hrg, Hn, watch_permitted_covers st (auth.authInfoM info) c m.watchId i.rg Hp Hk Hrg⟩
 
 end api
 

@@ -71,7 +71,7 @@ theorem watchCheckOk_tok (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
   icases Hc with ⟨%m, %md, %hk, #Hmd, #Ha⟩
   unfold attemptTokOk
   ihave #Htk := Ht $$ %m %md Hmd
-  icases v3rpc.watchAuthed_elim _ _ _ _ _ _ $$ Ha with ⟨%M, %info, #Htag, #Hcl, #Hb, -⟩
+  icases v3rpc.watchAuthed_elim _ _ _ _ _ _ $$ Ha with ⟨%M, %info, #Htag, #Hcl, #Hb⟩
   iexists m, auth.mdTokenOf md, M, info
   iframe Htag Hcl Hb Htk
   ipureintro; exact hk

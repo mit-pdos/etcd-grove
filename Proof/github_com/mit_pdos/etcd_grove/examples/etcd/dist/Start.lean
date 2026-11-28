@@ -104,8 +104,7 @@ theorem bootSt_facts (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64
     (kvModelSt γk (bootEntries bl)).kvs = [] ∧ (kvModelSt γk (bootEntries bl)).changes = [[]] ∧
       (kvModelSt γk (bootEntries bl)).rev = 1 := by
   have h : kvModel γk (bootEntries bl) = [[], []] := by
-    unfold kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) ps bl hb, hlog]
+    rw [kvModel_bootE _ ps bl hb, hlog]
   unfold kvModelSt
   rw [h]
   refine ⟨?_, rfl, ?_⟩

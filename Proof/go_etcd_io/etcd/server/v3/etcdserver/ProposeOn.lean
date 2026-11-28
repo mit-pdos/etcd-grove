@@ -9,8 +9,7 @@ nothing fires, the KV state is kept (`kvModelOn_snoc_refused`), and the proposer
 request was refused (`⌜¬ grantedAt …⌝`), which the apply thread's refusal answers to the client.
 
 - `reqPropOkOn`: what a proposal of `rq` needs in the mode `on` (`reqPropOk`'s first and third
-  cases: no KV write; a plain write with its client's update fired at most once, `kvOpAu1`), with
-  the request's permissions all of the shape the permission cache decides (`kvShapeAll`), so the
+  cases: no KV write; a plain write with its client's update fired at most once, `kvOpAu1`); the
   entry is determinate at any state (`commitOkOn_plain`, the committer's obligation `commitOkOn`).
 - `kv_prop_au_on`: the proposal's update from `kvInvOn`: the invariant extended by the entry
   (`kvInvOn_facts_snoc`, `kvWorkOn_snoc`), the client's update fired when granted
@@ -53,21 +52,18 @@ theorem reqKVOp_isKV (rq : apply.IRRModel) (op : KVOp) (h : reqKVOp rq = some op
   unfold plainCover at hp
   cases hk : apply.dispatchKind rq <;> rw [hk] at h hp <;> first | rfl | exact (hp : False).elim | (simp at h)
 
-theorem kvDet_of_shapeAll (st : auth.AuthState) (rq : apply.IRRModel) (h : kvShapeAll rq) :
-    kvDet st rq := fun _ => h
-
 /-- **The committer's obligation for a plain request's entry** (`commitOkOn`): admitted (plain), and
-determinate at any state (no admin permission needed; its check decided, `kvShapeAll`). -/
+determinate at any state (no admin permission needed). -/
 theorem commitOkOn_plain (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     (L : List EntryModel) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
     (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (hp : plainReq rq)
-    (hz : irrNoZeroEnd rq) (hs : kvShapeAll rq) : commitOkOn lm c₀ ch s₀ L e := by
+    (hz : irrNoZeroEnd rq) : commitOkOn lm c₀ ch s₀ L e := by
   refine ⟨fun _ _ rq' h => ?_, fun _ _ rq' h => ?_⟩
   · rw [hed, hdec] at h; cases h
-    exact Or.inl (Or.inl ⟨plainReqL_of_plainReq lm rq hp, noZeroEnds_of_irr rq hz, hs⟩)
+    exact Or.inl (Or.inl ⟨plainReqL_of_plainReq lm rq hp, noZeroEnds_of_irr rq hz⟩)
   · rw [hed, hdec] at h
     cases h
-    refine ⟨fun _ ha => ?_, fun _ => kvDet_of_shapeAll _ _ hs⟩
+    intro _ ha
     rw [plainReq_noAdminP rq hp] at ha
     cases ha
 
@@ -104,16 +100,16 @@ theorem writePropOk_authKV (rq : apply.IRRModel) (op : KVOp) (h : reqKVOp rq = s
 theorem commitOkOn_L (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain) (s₀ : OnState)
     (L : List EntryModel) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
     (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (hp : writePropOk lm rq)
-    (hz : irrNoZeroEnd rq) (hs : kvShapeAll rq) : commitOkOn lm c₀ ch s₀ L e := by
+    (hz : irrNoZeroEnd rq) : commitOkOn lm c₀ ch s₀ L e := by
   refine ⟨fun _ _ rq' h => ?_, fun _ _ rq' h => ?_⟩
   · rw [hed, hdec] at h; cases h
     rcases hp with hp | hp | hp
-    · exact Or.inl (Or.inl ⟨hp, noZeroEnds_of_irr rq hz, hs⟩)
+    · exact Or.inl (Or.inl ⟨hp, noZeroEnds_of_irr rq hz⟩)
     · exact Or.inl (Or.inr (Or.inl hp))
     · exact Or.inl (Or.inr (Or.inr hp))
   · rw [hed, hdec] at h
     cases h
-    refine ⟨fun _ ha => ?_, fun _ => kvDet_of_shapeAll _ _ hs⟩
+    intro _ ha
     rw [writePropOk_noAdmin lm rq hp] at ha
     cases ha
 
@@ -148,11 +144,10 @@ theorem commitOkOn_admin (lm : lease.Mode) (c₀ : w64) (ch : apply.Chain) (st�
   · rw [hed, hdec] at h; cases h; exact Or.inr ⟨hk, hns⟩
   · rw [hed, hdec] at h
     cases h
-    refine ⟨fun _ _ => ?_, fun hkv => ?_⟩
-    · apply authDet_of_sorted
-      · exact rolesSorted_kvRaftOfOn c₀ ch _ L hsort
-      · exact hpw
-    · rw [adminKindOk_nonAuthKV rq hk] at hkv; cases hkv
+    intro _ _
+    apply authDet_of_sorted
+    · exact rolesSorted_kvRaftOfOn c₀ ch _ L hsort
+    · exact hpw
 
 /-- **A write-free entry keeps the mode-`on` model's state** (auth state, log and table): a request
 that needs no admin permission and writes nothing, let through or refused. -/
@@ -538,8 +533,7 @@ the KV operation `op` with its client's update fired at most once, `Qr` its resu
 (`grantedRes`), the update told its grant when it fires (`writeGrantG`, at the client's lower bound
 `L₀` of the requested log; the auth-mode merge's step 5): a plain request or (auth-lease S3b, at the
 revocable lease mode) a leased put or transaction, a grant (with its id's claim right, `grantIdOwn`)
-or a revocation (`writePropOk`), every one carrying its client's update. Either with every permission
-of the cache's shape (`kvShapeAll`). Or (E3m) an admin request meeting `adminPropOk`, `Qr` its
+or a revocation (`writePropOk`), every one carrying its client's update. Or (E3m) an admin request meeting `adminPropOk`, `Qr` its
 step's determinacy at the commit (`adminPropRes`): one needing no admin permission (C1's
 `Authenticate`) with nothing else; one needing it (5b) with its client's update of the auth
 history (`histAu`), `Qr` also its result if recorded (`adminRecRes`). -/
@@ -548,12 +542,12 @@ def reqPropOkOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
   iprop((⌜plainReq (apply.withHeader rq₀ hm) ∧ ¬ writeKind (apply.dispatchKind (apply.withHeader rq₀ hm)) ∧
       irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape .none (apply.withHeader rq₀ hm) ∧
-      kvShapeAll (apply.withHeader rq₀ hm) ∧ Qr = fun _ => iprop(True)⌝) ∨
+      Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel),
       ⌜(plainReqL γk.lm (apply.withHeader rq₀ hm) ∨ grantPropOk γk.lm (apply.withHeader rq₀ hm) ∨
           revokePropOk γk.lm (apply.withHeader rq₀ hm)) ∧ reqKVOp (apply.withHeader rq₀ hm) = some op ∧
         irrNoZeroEnd (apply.withHeader rq₀ hm) ∧ rqShape γk.lm (apply.withHeader rq₀ hm) ∧
-        kvShapeAll (apply.withHeader rq₀ hm) ∧ Qr = grantedRes γk st₀ (apply.withHeader rq₀ hm) γc Q⌝ ∗
+        Qr = grantedRes γk st₀ (apply.withHeader rq₀ hm) γc Q⌝ ∗
       srvReqLogLb γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk st₀ Gb rq₀ L₀) Q ∗
       grantIdOwn γk (apply.withHeader rq₀ hm)) ∨
     ⌜adminPropOk st₀ (apply.withHeader rq₀ hm) ∧ irrNoZeroEnd (apply.withHeader rq₀ hm) ∧
@@ -650,7 +644,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   iunfold reqPropOkOn at Hok
   icases Hok with (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, #HL₀, Hau, Hgo⟩ | Had)
   · -- no KV write: the state kept, granted or refused
-    obtain ⟨hplain, hnw, hz, hshape, hsa, hQr⟩ := Hno
+    obtain ⟨hplain, hnw, hz, hshape, hQr⟩ := Hno
     subst hQr
     imodintro
     unfold srvPropAu1
@@ -695,13 +689,13 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         iframe HL Hσ Hh Hw' HG
         ipureintro
         exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
-          (commitOkOn_plain _ _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa) (by omega)
+          (commitOkOn_plain _ _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz) (by omega)
       imodintro
       iintro !>
       itrivial
   · -- a write (auth-lease S3b: plain or leased, a grant or a revocation), with its client's update
     -- fired at most once, when granted
-    obtain ⟨hplain, hop, hz, hshape, hsa, hQr⟩ := Hop
+    obtain ⟨hplain, hop, hz, hshape, hQr⟩ := Hop
     replace hplain : writePropOk γk.lm (apply.withHeader rq₀ hm) := hplain
     subst hQr
     have hna := writePropOk_noAdmin γk.lm (apply.withHeader rq₀ hm) hplain
@@ -743,7 +737,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) (entryPutsOk_of_data e d _ hed hdec hk) (attrEntryOk_of _ e d _ hed hdec ha) $$ Hw (Hecl $$ %e %hed)
       have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
-        (commitOkOn_L _ _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa) (by omega)
+        (commitOkOn_L _ _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz) (by omega)
       by_cases hg : grantedAt γk st₀ (apply.withHeader rq₀ hm) L
       · -- granted: the client's update fires at the commit
         icases Hucl with ⟨-, Hcommit⟩
@@ -1074,13 +1068,13 @@ theorem reqPropOkOn_qinv (γ γl : ServerRaftNames) (γk : KVNames) (st₀ : aut
       Qr = fun L => Q (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L) (admStates γk st₀ L)⌝ $$ [Hok]
   · iunfold reqPropOkOn at Hok
     icases Hok with (%Hno | ⟨%op, %Q, %γc, %L₀, %Hop, -⟩ | (%Had | ⟨%Qh, %Had, -⟩))
-    · ipureintro; exact ⟨fun _ _ => iprop(True), Hno.2.2.2.2.2⟩
+    · ipureintro; exact ⟨fun _ _ => iprop(True), Hno.2.2.2.2⟩
     · ipureintro
       refine ⟨fun x _ => iprop((⌜kvGrantedL x.1 (mvcc.leaseItemsOf (mvcc.stateAfter x.2.1))
           (apply.withHeader rq₀ hm) ∧ (γk.lm = .none → x.2.2 = [])⌝ ∗
         kvRes γc Q (kvStateOf x.2.1 x.2.2)) ∨
         ⌜¬ kvGrantedL x.1 (mvcc.leaseItemsOf (mvcc.stateAfter x.2.1)) (apply.withHeader rq₀ hm)⌝), ?_⟩
-      rw [Hop.2.2.2.2.2]; rfl
+      rw [Hop.2.2.2.2]; rfl
     · ipureintro
       refine ⟨fun x _ => iprop(⌜rolesSorted x.1 ∧ authDet (apply.withHeader rq₀ hm) x.1⌝), ?_⟩
       rw [Had.2.2.2]; rfl

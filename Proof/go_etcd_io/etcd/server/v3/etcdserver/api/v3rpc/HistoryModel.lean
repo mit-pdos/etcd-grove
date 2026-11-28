@@ -119,8 +119,8 @@ theorem histLog_two (γ : ServerRaftNames) (γk : KVNames) (L1 L2 : Log) :
   obtain ⟨e2, w2, l2, s2, -⟩ := h2
   have hc : L1 <+: L2 ∨ L2 <+: L1 := by
     rcases Hp with h | h
-    · exact List.prefix_or_prefix_of_prefix (e1.trans (kvRaftOf_prefix _ _ _ _ _ h)) e2
-    · exact List.prefix_or_prefix_of_prefix e1 (e2.trans (kvRaftOf_prefix _ _ _ _ _ h))
+    · exact List.prefix_or_prefix_of_prefix (e1.trans (kvModel_prefix _ _ _ h)) e2
+    · exact List.prefix_or_prefix_of_prefix e1 (e2.trans (kvModel_prefix _ _ _ h))
   obtain ⟨L, p1, p2, hL⟩ := longer_log hc
   refine ⟨L, p1, p2, ?_⟩
   rcases hL with rfl | rfl

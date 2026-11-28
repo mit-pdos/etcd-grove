@@ -227,8 +227,7 @@ theorem MainWatch.wp_proof
   -- the clients' adapter over the KV state, its property the plan's (the start: revision `1`, no
   -- change)
   have hboot : kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = [[], []] := by
-    unfold kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) ps
+    rw [kvModel_bootE _ ps
       (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog₁]
   have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes := by
     rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hboot]; exact wkW_start _

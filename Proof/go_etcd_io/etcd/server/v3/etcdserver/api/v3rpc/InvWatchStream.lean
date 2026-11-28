@@ -401,16 +401,13 @@ strengthened in G2, 2026-10-30): in the mode some tag of the store's owner tag n
 the auth info `info` at auth states recorded at indices at least the create's bound `n` (the
 client's `CreateReqM.bound`); with auth on, `info` bound to the stream's token `tok`
 (`infoBoundT`: the empty user, a token issued to `info`'s user, or the server's TLS identity; gated
-on the mode, the margin of `NewAuthStore`'s axiom, as in `isWatchPermitted.spec`); and the
-request's shape (`auth.reqShape`: a non-empty key, a range that is a point, open-ended or proper --
-mvcc's `Watch` refused the rest), so that in `on γa` every key the watcher covers was readable by
+on the mode, the margin of `NewAuthStore`'s axiom, as in `isWatchPermitted.spec`), so that in `on γa` every key the watcher covers was readable by
 that principal at a recorded state no older than `n` (`WatchClass.lean`, `ctrlWatcher_authorized`). -/
 def watchAuthed (tag : GName) (s : Loc) (tok : Option GoString) (n : Nat)
     (key rangeEnd : GoString) : IProp GF :=
   iprop(∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
     auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
-    □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info) ∗
-    ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝)
+    □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info))
 
 instance watchAuthed_persistent (tag : GName) (s : Loc) (tok : Option GoString) (n : Nat)
     (key rangeEnd : GoString) :
@@ -419,15 +416,14 @@ instance watchAuthed_persistent (tag : GName) (s : Loc) (tok : Option GoString) 
 
 /-- **What a passed check gives** (G2's freeze, 2026-10-30): the mode `M` and the auth info `info`
 the check classed, the mode's tag, the class at the bound `n`, with auth on `info` bound to the
-token, and the request's shape (for a client of `watchAuthed`, e.g. `client.watchCheckOk_tok`, in
+token (for a client of `watchAuthed`, e.g. `client.watchCheckOk_tok`, in
 place of unfolding it). -/
 theorem watchAuthed_elim (tag : GName) (s : Loc) (tok : Option GoString) (n : Nat)
     (key rangeEnd : GoString) :
     watchAuthed (GF := GF) tag s tok n key rangeEnd ⊢
       ∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
         auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
-        □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info) ∗
-        ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
+        □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info) := by
   unfold watchAuthed; iintro H; iexact H
 
 /-- **The stream's cancellation reason** (unit W-K, K1b): the client sent a cancel request for

@@ -18,11 +18,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-- **The auth state the mode-`on` KV model starts from**: the store's latest at the server's
-start (`newAuthStore_boot`: the history `[bootState, bump bootState]`, the revision committed
-once). -/
-def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
-
 section pure
 variable [GooseExts]
 
@@ -125,7 +120,7 @@ theorem srvRestM_nil (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (h : γr.
     srvRestM (GF := GF) on E γr [] = srvRest E γr [] := by
   cases on
   · rfl
-  · unfold srvRestM; rw [srvRest_eq_T]; unfold srvRestT appliedTableM appliedTable kvLeasesOn kvLeases
+  · unfold srvRestM; rw [srvRest_eq_T]; unfold srvRestT appliedTableM appliedTable kvLeasesOn
     simp only [h, List.append_nil, ↓reduceIte]; rfl
 
 /-- A conf change (a non-normal entry) leaves the mode's table (`appliedTable_cc`'s). -/

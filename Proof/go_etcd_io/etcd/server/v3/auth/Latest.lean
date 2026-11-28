@@ -709,36 +709,28 @@ section pure
 variable [GooseExts]
 
 /-- **The latest verdict of one permission, in `kvGranted`'s shape** (the auth plan's E2r, for
-E2q's model step, `etcdserver/KVAuthModel.lean`): for a request of the cache's shape, a check of
-`op` on `[key, rangeEnd)` passes exactly when, at the latest state, auth is disabled, or the token's
-revision is not `0` nor stale and its user exists with the root role or permissions covering the
-request (`granted_iff_covers`, from the latest state's non-empty permission keys). -/
+E2q's model step, `etcdserver/KVAuthModel.lean`; N1b-1: every request, Go's verdict `coversX`): a check
+of `op` on `[key, rangeEnd)` passes exactly when, at the latest state, auth is disabled, or the token's
+revision is not `0` nor stale and its user exists with the root role or Go's verdict on its roles'
+permissions passes. -/
 theorem permVerdictL_granted (γa : AuthNames) (hs : List AuthState) (ai : AuthInfoM)
     (key rangeEnd : GoString) (op : PermType) (err : GoInterface) (stl : AuthState)
-    (hl : hs.getLast? = some stl) (hsh : reqShape key rangeEnd)
+    (hl : hs.getLast? = some stl)
     (h : permVerdictL (.on γa) hs ai key rangeEnd op err) :
     err = GoInterface.nil ↔
       (stl.enabled = false ∨ (ai.rev ≠ 0 ∧ stl.revision ≤ ai.rev ∧
-        ∃ u, stl.users !! ai.user = some u ∧ (isRoot u ∨ covers stl u op key rangeEnd))) := by
-  have hk := (h stl hl).2.2
+        ∃ u, stl.users !! ai.user = some u ∧ (isRoot u ∨ coversX stl u op key rangeEnd = true))) := by
   rw [permVerdictL_iff γa hs ai key rangeEnd op err stl hl h]
-  unfold permitted
-  rw [granted_iff_covers stl ai key rangeEnd op hk hsh]
+  unfold permitted granted
   constructor
   · rintro ⟨hp | ⟨h0, u, hu, hc⟩, hr⟩
     · exact Or.inl hp
     · rcases hr with hr | hr
       · exact Or.inl hr
-      · refine Or.inr ⟨h0, hr, u, hu, ?_⟩
-        rcases hc with hc | hc
-        · exact Or.inl hc
-        · exact Or.inr (hc hsh)
+      · exact Or.inr ⟨h0, hr, u, hu, hc⟩
   · rintro (hd | ⟨h0, hr, u, hu, hc⟩)
     · exact ⟨Or.inl hd, Or.inl hd⟩
-    · refine ⟨Or.inr ⟨h0, u, hu, ?_⟩, Or.inr hr⟩
-      rcases hc with hc | hc
-      · exact Or.inl hc
-      · exact Or.inr fun _ => hc
+    · exact ⟨Or.inr ⟨h0, u, hu, hc⟩, Or.inr hr⟩
 
 theorem permVerdictL_permOp (M : AuthMode) (hs : List AuthState) (ai : AuthInfoM)
     (key rangeEnd : GoString) (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (op : PermType)

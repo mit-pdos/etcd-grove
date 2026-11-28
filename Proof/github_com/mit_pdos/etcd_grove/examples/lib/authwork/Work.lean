@@ -332,7 +332,7 @@ theorem Work.wp_proof
     simp [TxnModel.empty, t1M]
   (try wp_auto)
   have hk1 : keyOfK go!"a" who go!"t" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  obtain ⟨hp1, hin1, hsh1, hro1, hpl1⟩ := t1M_ok (keyOfK go!"a" who go!"t") go!"vt" hk1
+  obtain ⟨hp1, hin1, -, hro1, hpl1⟩ := t1M_ok (keyOfK go!"a" who go!"t") go!"vt" hk1
   have hop1 : akOpGranted who (.txn (txnWireOf (t1M (keyOfK go!"a" who go!"t") go!"vt"))) →
       opHistOk (.txn (txnWireOf (t1M (keyOfK go!"a" who go!"t") go!"vt"))) := by
     intro h
@@ -342,7 +342,7 @@ theorem Work.wp_proof
       (by rw [show writerK (keyOfK go!"a" go!"u" go!"t") = go!"u" by decide]; exact ⟨rfl, hr⟩)
   wp_apply (h_work_commit cl api conn tp addr s E ρ cid mid γa Lset n who ci cd
       ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ hγa hp1 hin1
-      (t1M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide)) hsh1
+      (t1M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
       hro1 hpl1 hop1)
     $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, Hres⟩
   · iframe #
@@ -429,7 +429,7 @@ theorem Work.wp_proof
     simp [TxnModel.empty, t2M]
   (try wp_auto)
   have hk2 : keyOfK go!"c" who go!"t1" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  obtain ⟨hp2, hin2, hsh2, hro2, hpl2⟩ := t2M_ok (keyOfK go!"a" who go!"t1")
+  obtain ⟨hp2, hin2, -, hro2, hpl2⟩ := t2M_ok (keyOfK go!"a" who go!"t1")
     (keyOfK go!"c" who go!"t1") go!"vt" (keyOfK_ne_nil _ _ _ (by decide)) hk2
   have hng2 : ¬ akOpGranted who (.txn (txnWireOf
       (t2M (keyOfK go!"a" who go!"t1") (keyOfK go!"c" who go!"t1") go!"vt"))) := fun h =>
@@ -440,7 +440,7 @@ theorem Work.wp_proof
       hγa hp2 hin2
       (t2M_size _ _ _ (keyOfK_principal_le hwho (by decide) (by decide))
         (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
-      hsh2 hro2 hpl2 (fun h => absurd h hng2))
+      hro2 hpl2 (fun h => absurd h hng2))
     $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, -⟩
   · iframe #
     iframe Hobj
@@ -531,7 +531,7 @@ theorem Work.wp_proof
     simp [TxnModel.empty, t3M]
   (try wp_auto)
   have hk2 : keyOfK go!"c" who go!"t2" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
-  obtain ⟨hp3, hin3, hsh3, hro3, hpl3⟩ := t3M_ok
+  obtain ⟨hp3, hin3, -, hro3, hpl3⟩ := t3M_ok
     (compareM (cmpKeyM .value (keyOfK go!"a" who go!"0")) .eq (.str go!"none"))
     (keyOfK go!"a" who go!"t2") (keyOfK go!"c" who go!"t2") go!"vt"
     ⟨keyOfK_ne_nil _ _ _ (by decide), Or.inl rfl⟩ (by simp [compareM, cmpKeyM])
@@ -550,7 +550,7 @@ theorem Work.wp_proof
           by simp [compareM, cmpKeyM], by simp [compareM, cmpKeyM]⟩
         (keyOfK_principal_le hwho (by decide) (by decide))
         (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
-      hsh3 hro3 hpl3 (fun h => absurd h hng3))
+      hro3 hpl3 (fun h => absurd h hng3))
     $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, -⟩
   · iframe #
     iframe Hobj
@@ -616,7 +616,7 @@ theorem Work.wp_proof
   (try wp_auto)
   have hkd : keyOfK go!"a" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
   wp_apply (h_work_delete cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"d")
-      hkd hγa (fun h => by
+      hγa (fun h => by
         obtain ⟨rfl, hr⟩ := akOpGranted_delete who _ hkd h
         exact opHistOk_delete_point _
           (by rw [show writerK (keyOfK go!"a" go!"u" go!"d") = go!"u" by decide]; exact ⟨rfl, hr⟩))
@@ -657,7 +657,7 @@ theorem Work.wp_proof
   (try wp_auto)
   have hkc : keyOfK go!"c" who go!"d" ≠ [] := keyOfK_ne_nil _ _ _ (by decide)
   wp_apply (h_work_delete cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"c" who go!"d")
-      hkc hγa
+      hγa
       (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _))
       (akDelete_sizeOk hwho (by decide) (by decide)))
     $$ [$Hlt] as %resp %err ⟨Hlt, %Herr⟩

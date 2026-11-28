@@ -318,15 +318,15 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
   · ipureintro
     refine ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hlog₁, hlog],
       by rw [hst₂, hst₁], by rw [hst₃, hst₁],
-      by funext B; unfold kvModel; rw [hc0₂, hch₂, hlog₂, hc0₁, hch₁, hlog₁],
-      by funext B; unfold kvModel; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],
+      by funext B; unfold kvModel kvFold; rw [hc0₂, hch₂, hlog₂, hc0₁, hch₁, hlog₁],
+      by funext B; unfold kvModel kvFold; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],
       by rw [hlog₂, hlog], by rw [hlog₃, hlog],
       kvSame_trans hs₂ (kvSame_symm hs₁), kvSame_trans hs₃ (kvSame_symm hs₁),
       by rw [hs₁.2.2.2.2.2.1, hkc], by rw [hs₁.2.2.2.2.2.2, hkr]⟩
   rw [← hboot]
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
     show kvModelSt ρ₁.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by
-      unfold kvModelSt kvLeases kvModel; rw [hc0₁, hch₁, hlog₁]]
+      unfold kvModelSt kvLeases kvModel kvFold; rw [hc0₁, hch₁, hlog₁]]
   iexact Hetcd
 
 /-- **What `Main` takes of the ghost state, for its cluster** (see the file header; hub step 7's
