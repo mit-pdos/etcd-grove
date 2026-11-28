@@ -68,7 +68,7 @@ end durable
 
 /-- On a crash, the files survive unchanged. -/
 instance durable_semantics : ExtSemantics durableExt where
-  step := DurableStep
+  step := fun _ => DurableStep
   crash fs fs' := fs' = fs
 
 end Perennial

@@ -82,7 +82,7 @@ theorem set_app_end {α : Type} (L v : List α) (y : α) (n : Nat) (hL : L.lengt
 theorem rpcAddrOf_fmt (k : Nat) :
     rpcAddrOf k = replicaIp k ++ go!":" ++ fmt.decimal (8500 + k) := rfl
 
-theorem sprintf_str_colon_int [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem sprintf_str_colon_int [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     [go.IntoValInj GoString] [go.IntoValInj w64] [go.string ↓u go.string]
     (x : GoString) (n : w64) (out : GoString)
     (h : out = _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
@@ -90,7 +90,7 @@ theorem sprintf_str_colon_int [GooseExts] [GoGlobalContext] [GoSemanticsFunction
     out = x ++ go!":" ++ fmt.decimal (sint.Z n) := by
   rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
-theorem sprintf_colon_int [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem sprintf_colon_int [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     [go.IntoValInj w64] [go.string ↓u go.string] (n : w64) (out : GoString)
     (h : out = _root_.Perennial.fmt.render [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
       [.int (sint.Z n)]) :

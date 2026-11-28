@@ -68,7 +68,7 @@ inductive Mode
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.lease
 
 section fields
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- `&le.<f>` -/
 abbrev lF (f : GoString) (lp : Loc) : Loc :=

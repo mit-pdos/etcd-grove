@@ -79,7 +79,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace EtcdGrove
 
 section errIs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **An `errors.New` error, as `errors.Is` sees it**: a pointer error (an `*errorString`,
 `errors.IsPointerError`: Go's `==` on it is Lean's equality), a leaf of an error tree without an

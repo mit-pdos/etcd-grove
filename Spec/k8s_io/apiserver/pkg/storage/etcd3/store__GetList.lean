@@ -46,7 +46,7 @@ abbrev store.GetList.spec : Prop :=
     (Q : w64 → KVState → IProp GF) (P : KVState → KVState → IProp GF),
   (∀ R σ, Q R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ R σ σ', Q R σ ∗ P σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝) →
-  (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  c.K.live →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ⌜prepareKeyM c.resourcePrefix key opts.Recursive' = some k ∧
         (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV opts.ResourceVersion' = some n ∧
@@ -57,9 +57,9 @@ abbrev store.GetList.spec : Prop :=
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ ctxNeverDone (GoInterface.ok ci) ∗ threadTok ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       L.listAt lx [] rv0 cont0 rem0 ∗
-      (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) ∗
+      (∀ R, |==> □ [∧list] γv ∈ c.K.kvs, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu γv (Q R)) ∗
       (□ ∀ R σ, □ Q R σ -∗
-        |==> □ [∧list] x ∈ c.ms, ⌜P σ = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (P σ)) }}
+        |==> □ [∧list] γv ∈ c.K.kvs, ⌜P σ = fun _ => iprop(True)⌝ ∨ kvReadAu γv (P σ)) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GetList")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #opts)) (Val #lx))

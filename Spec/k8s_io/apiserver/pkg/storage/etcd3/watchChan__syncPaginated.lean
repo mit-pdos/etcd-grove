@@ -42,7 +42,7 @@ abbrev watchChan.syncPaginated.spec : Prop :=
     (recur : Bool) (r0 : w64) (lbf : Nat) (q : Qp),
   (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
-  (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  c.K.live →
   m.forceInit = true → m.req ≤ lbf →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       storeWatchOk sp c W γk ∗ kWcProd wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur ∗

@@ -119,6 +119,57 @@ func TestSharedWatchList(t *testing.T) {
 	}
 }
 
+// TestSharedGaps checks SharedModel on the three histories outside the driver's generator that
+// linearize in the semantic model and that the search refused before G8, G9 and G10
+// (notes/k8s-dist-k4.md, "K4-3"): each is accepted from its first accepting mode on (and by
+// CheckShared), and rejected in every mode with a wrong value.
+// G8: a create with an unparsable MinRV (a write never reads it) answering a revision above the
+// seeds. G9: a pending create of a key without a name ("ns/"), a create at 10, then a Get of the
+// first key showing it at 7 (an anchor although its answer has no name); Lazy, by design, writes
+// the second create at 10 without landing the first, which it then cannot land at 7. G10: a Get-like kind
+// (Kind 7, which mstep answers with mget) at a MinRV of 10, answering the seed at 2.
+func TestSharedGaps(t *testing.T) {
+	s := k8s.SeededAt(2, 3)
+	cases := []struct {
+		name string
+		ins  []k8s.Input
+		outs func(value string) []k8s.Output
+		good string
+		from int
+	}{
+		{"G8", []k8s.Input{{Kind: k8s.KCreate, Key: "ns-1/pod-11", Val: "y", UID: "u1", MinRV: "a"}},
+			func(v string) []k8s.Output {
+				return []k8s.Output{{Namespace: "ns-1", Name: "pod-11", UID: "u1", Value: v, RV: 10}}
+			}, "y", k8s.Lazy},
+		{"G9", []k8s.Input{{Kind: k8s.KCreate, Key: "ns/", Val: "y", UID: "u0"},
+			{Kind: k8s.KCreate, Key: "ns/b", Val: "y", UID: "u2", Client: 1},
+			{Kind: k8s.KGet, Key: "ns/", Client: 2}},
+			func(v string) []k8s.Output {
+				return []k8s.Output{{Err: k8s.EOther}, {Namespace: "ns", Name: "b", UID: "u2", Value: "y", RV: 10},
+					{Namespace: "ns", UID: "u0", Value: v, RV: 7}}
+			}, "y", k8s.Eager},
+		{"G10", []k8s.Input{{Kind: 7, Key: "ns-1/pod-1", MinRV: k8s.RVBytes(10)}},
+			func(v string) []k8s.Output {
+				return []k8s.Output{{Namespace: "ns-1", Name: "pod-1", Value: v, RV: 2}}
+			}, "x", k8s.Lazy},
+	}
+	for _, c := range cases {
+		for _, value := range []string{c.good, "z"} {
+			ok := value == c.good
+			ops := sequential(c.ins, c.outs(value))
+			for _, mode := range []int{k8s.Lazy, k8s.Eager, k8s.Full} {
+				r := porcupine.CheckOperationsTimeout(s.SharedModel(k8s.HistoryRevs(ops), mode), ops, 0)
+				if want := ok && mode >= c.from; (r == porcupine.Ok) != want {
+					t.Errorf("%s, value %q, mode %d: %v, want ok %v", c.name, value, mode, r, want)
+				}
+			}
+			if r := sharedCheck(s, ops); (r == porcupine.Ok) != ok {
+				t.Errorf("%s, value %q: CheckShared %v, want ok %v", c.name, value, r, ok)
+			}
+		}
+	}
+}
+
 func created10Obj() k8s.Obj {
 	return k8s.Obj{Namespace: "ns-1", Name: "pod-11", UID: "u1", Value: "y", ResourceVersion: 10}
 }

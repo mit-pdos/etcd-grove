@@ -76,7 +76,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- A field of the `*lessor` `l`. -/
 abbrev lsF (f : GoString) (l : Loc) : Loc := structFieldRef go_etcd_io.etcd.client.v3.lessor f l

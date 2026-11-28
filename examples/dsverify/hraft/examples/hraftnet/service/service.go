@@ -324,11 +324,18 @@ type StatusReply struct {
 	Voters     uint64
 }
 
-// Status answers what this server knows of the cluster (args is not read).
+// Status answers what this server knows of the cluster (args is not read). LeaderWithID runs on a
+// goroutine of its own, which the method waits for (the same behavior: the fresh goroutine is what
+// gives its read lock a thread in the proof, since net/rpc's method goroutine lends none; as
+// rpctransport's deliver).
 func (a *API) Status(args *AdminArgs, reply *StatusReply) error {
 	reply.Leader = a.r.State() == raft.Leader
-	_, id := a.r.LeaderWithID()
-	reply.LeaderID = string(id)
+	idCh := make(chan raft.ServerID, 1)
+	go func() {
+		_, id := a.r.LeaderWithID()
+		idCh <- id
+	}()
+	reply.LeaderID = string(<-idCh)
 	f := a.r.GetConfiguration()
 	if err, ok := waitFuture(f, a.wait); ok && err == nil {
 		reply.Configured = true

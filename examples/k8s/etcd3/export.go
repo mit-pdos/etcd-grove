@@ -237,7 +237,9 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 		if r := rvOfMsg(out.ErrMsg); r != 0 {
 			obj(in.Key, r)
 		}
-		if out.Err == ENone && out.Name != "" {
+		// (G9) a successful answer's revision, with or without a name (a key without a
+		// "/"-suffix names an object with an empty name)
+		if out.Err == ENone {
 			obj(out.Namespace+"/"+out.Name, out.RV)
 			if in.Kind == KCreate || in.Kind == KDelete || (in.Kind == KUpdate && !in.NoOp) {
 				written[out.RV] = true
@@ -298,10 +300,10 @@ func (hh *histHashes) skipTo(c mcfg, t uint64) mcfg {
 }
 
 // target is the least revision a configuration at rv must be at for the operation in to answer
-// out (0: none): a write's new revision less one, the current revision a "not found" or a current
-// List names, the revision a past List reads, a Get's minimum resource version, the greatest
-// revision a watch's events name (and, for a watch-list with an event, its resource version, at
-// least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
+// out (0: none): a write's (create, delete, update) new revision less one, the current revision a
+// "not found" or a current List names, the revision a past List reads, any other kind's (a Get's)
+// minimum resource version, the greatest revision a watch's events name (and, for a watch-list
+// with an event, its resource version, at least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
 // and needs none.
 func target(in Input, out Output, rv uint64) uint64 {
 	if in.Kind == KWatch {
@@ -337,23 +339,27 @@ func target(in Input, out Output, rv uint64) uint64 {
 	if out.Err != ENone {
 		return 0
 	}
+	// (G8, G10; notes/k8s-dist-k4.md, "K4-3") the write arm only for the kinds mstep writes with
+	// (a write never reads its MinRV), the MinRV for every other kind (mstep answers it with mget,
+	// which checks it)
+	switch in.Kind {
+	case KCreate, KDelete, KUpdate:
+		if out.RV > rv {
+			return out.RV - 1
+		}
+		return 0
+	}
 	req, err := parseRV(in.MinRV)
 	if err != nil {
 		return 0
 	}
-	switch in.Kind {
-	case KList:
+	if in.Kind == KList {
 		if pastRead(in, req) {
 			return req
 		}
 		return out.ListRV
-	case KGet:
-		return req
 	}
-	if out.RV > rv {
-		return out.RV - 1
-	}
-	return 0
+	return req
 }
 
 // bound is the greatest revision a configuration may be at, after its pending writes took effect

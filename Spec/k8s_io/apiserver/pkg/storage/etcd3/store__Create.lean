@@ -50,7 +50,7 @@ abbrev store.Create.spec : Prop :=
   c.S.parseRV rv = some (W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt obj o rv ∗ c.S.objAt out o0 rv0 ∗
-      ([∧list] x ∈ c.ms, k8sAu1 x.γr.kv c
+      ([∧list] γv ∈ c.K.kvs, k8sAu1 γv c
         (fun s => (s.create (E := Empty) (c.pathPrefix ++ k) o 0).1) Φ)) }}
     (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Create")) (Val #(GoInterface.ok ci)))

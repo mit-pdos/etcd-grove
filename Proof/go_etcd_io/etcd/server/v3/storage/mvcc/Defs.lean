@@ -50,7 +50,7 @@ def kiGetVal (ki : KeyIndex) (atRev : w64) (e : GoInterface) (cs : w64) : val :=
 end defs
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The pointer `findGeneration` returns: `nil`, or the address of the generation at `i`. -/
 def genPtr (gs : GoSlice) : Option Nat → Loc
