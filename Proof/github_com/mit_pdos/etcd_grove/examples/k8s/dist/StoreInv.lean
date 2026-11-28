@@ -606,6 +606,142 @@ theorem revOwnD_catchup (γ : KNames) {σl σ : KVState} {m : List (List mvcc.Ch
     · rw [GMap.lookup_insert_ne _ _ e] at hs
       have h1 := Hok.2.2 n s hs; exact ⟨h1.1.trans hext.1, h1.2.1.trans hext.2.1, h1.2.2.trans hext.2.2⟩
 
+/-- **A foreign revision's entry changes no key under the store's prefix**. -/
+theorem chgOf_foreign_pfx (q : GoString) (hq : regP <+: q) {σa σb : KVState}
+    (he : σb.kvs.filter (fun v => decide (regP <+: v.key)) = σa.kvs.filter (fun v => decide (regP <+: v.key))) :
+    ((chgOf σa σb).map Prod.fst).filter (fun k => decide (q <+: k)) = [] := by
+  have hmem : ∀ v, regP <+: v.key → (v ∈ σb.kvs ↔ v ∈ σa.kvs) := fun v hv => by
+    have := congrArg (v ∈ ·) he
+    simpa [List.mem_filter, hv] using this
+  rw [List.filter_eq_nil_iff]
+  intro k hk hpk
+  have hpk' : regP <+: k := hq.trans (by simpa using hpk)
+  unfold chgOf at hk
+  simp only [List.map_append, List.map_map, List.mem_append, List.mem_map, List.mem_filter,
+    Function.comp_def, decide_eq_true_eq] at hk
+  rcases hk with ⟨v, ⟨hv, hn⟩, rfl⟩ | ⟨v, ⟨hv, hn⟩, rfl⟩
+  · exact hn ((hmem v hpk').1 hv)
+  · exact hn v ((hmem v hpk').2 hv) rfl
+
+/-- `histAuth_next` with only what its proof uses of the step (the revision and the new key-values'
+mod revisions), for foreign revisions, which may change several keys (to move to `History.lean`). -/
+theorem histAuth_step (γh : GName) (σ σ' : KVState) (hrev : σ'.rev = σ.rev + 1)
+    (hnew : ∀ v ∈ σ'.kvs, v ∈ σ.kvs ∨ v.modRev = W64 ((σ'.rev : Nat) : Int)) (hr : σ'.rev < 2 ^ 64) :
+    histAuth (GF := GF) γh σ ⊢ |==> (histAuth γh σ' ∗ revSeen γh σ σ') := by
+  have hs0 := KVStore.kvs_sorted σ.store
+  have hs := KVStore.kvs_sorted σ'.store
+  iintro H
+  iunfold histAuth at H
+  icases H with ⟨%H, HA, %Hok, #Hs⟩
+  have hR : uint.nat (W64 ((σ'.rev : Nat) : Int)) = σ'.rev := by
+    simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
+  have hfr : H !! W64 ((σ'.rev : Nat) : Int) = none := by
+    cases h : H !! W64 ((σ'.rev : Nat) : Int) with
+    | none => rfl
+    | some x =>
+      have := Hok _ _ h
+      omega
+  have hnd := chgOf_nodup σ σ' hs0 hs
+  imod ghost_map_insert_persist (W64 ((σ'.rev : Nat) : Int)) (chgOf σ σ') hfr $$ HA
+    with ⟨HA, #He⟩
+  imodintro
+  isplitl [HA]
+  · iunfold histAuth
+    iexists (H.insert (W64 ((σ'.rev : Nat) : Int)) (chgOf σ σ'))
+    iframe HA
+    isplitr
+    · ipureintro
+      intro r ch hv
+      by_cases e : W64 ((σ'.rev : Nat) : Int) = r
+      · subst e; omega
+      · rw [GMap.lookup_insert_ne _ _ e] at hv
+        have := Hok _ _ hv; omega
+    iunfold kvSeen
+    imodintro
+    iintro %v %hv
+    by_cases hin : v ∈ σ.kvs
+    · iunfold kvSeen at Hs
+      iapply Hs
+      ipureintro; exact hin
+    · have hm : v.modRev = W64 ((σ'.rev : Nat) : Int) := by
+        rcases hnew v hv with h | h
+        · exact absurd h hin
+        · exact h
+      iexists (chgOf σ σ')
+      rw [hm]
+      iframe He
+      ipureintro
+      exact ⟨chgOf_new σ σ' v hv hin, hnd⟩
+  · iunfold revSeen
+    imodintro
+    iintro %-
+    iexact He
+
+/-- **The store's history over one foreign revision**: its entry changes no key under the prefix. -/
+theorem shistOwn_foreign1 (c : StoreCfg GF DObj) (hcd : CfgD c) {σa σb : KVState} {cs : List mvcc.Change}
+    (hc : σb.compacted = σa.compacted) (hb : σb.base = σa.base) (hm : σb.changes = σa.changes ++ [cs])
+    (hf : ∀ ch ∈ cs, ¬ regP <+: ch.key) (hr : σb.rev < 2 ^ 63) :
+    shistOwn (GF := GF) c σa ⊢ |==> shistOwn c σb := by
+  have hf' : ∀ cs' ∈ [cs], ∀ ch ∈ cs', ¬ regP <+: ch.key := by simpa using hf
+  obtain ⟨hrb, hkb⟩ := kvs_snoc hc hb hm
+  have hnew : ∀ v ∈ σb.kvs, v ∈ σa.kvs ∨ v.modRev = W64 ((σb.rev : Nat) : Int) := by
+    intro v hv
+    rw [hkb] at hv
+    by_cases hmr : v.modRev = W64 ((σa.rev + 1 : Nat) : Int)
+    · right; rw [hmr, hrb]
+    · left; exact txn.mem_applyChanges_modRev cs σa.kvs v hv hmr
+  have he := at_ext_foreign regP hc hb hm hf' σb.rev (by omega)
+  have h0 := chgOf_foreign_pfx c.pfx (hcd.2 ▸ regP_kpfxD) (σa := σa) (σb := σb) he
+  iintro H
+  iunfold shistOwn at H
+  icases H with ⟨Hh, #Ho⟩
+  imod (histAuth_step c.γh σa σb hrb hnew (by omega)) $$ Hh with ⟨Hh, #Hs⟩
+  imodintro
+  iunfold shistOwn
+  iframe Hh
+  iunfold oneKeyRevs
+  imodintro
+  iintro %r %hr'
+  by_cases hlast : r = σb.rev
+  · subst hlast
+    iunfold revSeen at Hs
+    ihave He := Hs $$ %hrb
+    iexists (chgOf σa σb)
+    isplit
+    · iexact He
+    · ipureintro; rw [h0]; simp
+  · iunfold oneKeyRevs at Ho
+    iapply Ho
+    ipureintro; omega
+
+/-- **The store's history catches up over foreign revisions** (at least one). -/
+theorem shistOwn_catchup (c : StoreCfg GF DObj) (hcd : CfgD c) (σl : KVState) :
+    ∀ (m : List (List mvcc.Change)) (σ : KVState), m ≠ [] → σ.compacted = σl.compacted →
+      σ.base = σl.base → σ.changes = σl.changes ++ m → (∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) →
+      σ.rev < 2 ^ 63 → shistOwn (GF := GF) c σl ⊢ |==> shistOwn c σ := by
+  intro m
+  rw [← List.reverse_reverse m]
+  induction m.reverse with
+  | nil => intro σ hne; exact absurd rfl hne
+  | cons cs l ih =>
+    intro σ _ hc hb hm hf hr
+    rw [List.reverse_cons] at hm hf
+    have hcs : ∀ ch ∈ cs, ¬ regP <+: ch.key := hf cs (List.mem_append_right _ List.mem_cons_self)
+    by_cases hl : l = []
+    · subst hl
+      rw [List.reverse_nil, List.nil_append] at hm
+      exact shistOwn_foreign1 c hcd hc hb hm hcs hr
+    · let σ' : KVState := { σ with changes := σl.changes ++ l.reverse }
+      have hm' : σ.changes = σ'.changes ++ [cs] := by rw [hm, List.append_assoc]
+      have hr' : σ'.rev < 2 ^ 63 := by
+        have := (kvs_snoc (σa := σ') (σb := σ) rfl rfl hm').1; omega
+      have h1 := ih σ' (by simpa using hl) hc hb rfl
+        (fun cs' h => hf cs' (List.mem_append_left _ h)) hr'
+      iintro H
+      imod h1 $$ H with H
+      iapply (shistOwn_foreign1 c hcd (σa := σ') (σb := σ) rfl rfl hm' hcs hr)
+      iexact H
+
 /-- **The store's half of the invariant at the last state `σl` it saw** (`kInvBody` without etcd's client
 half): the lintest ghost history `h` over `pMF`, the pending writes, the revisions' states, the store's
 history, and the relation; `σl` extends the share's start `σ₀`. -/
