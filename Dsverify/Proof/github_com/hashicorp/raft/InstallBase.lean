@@ -555,20 +555,182 @@ theorem own_latestOk (γ : GNames) (rc : RCtx GF) (x tx : Nat) (id : GoString) (
   refine ⟨rfl, ?_, hb, rfl⟩
   word
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- **The snapshot goroutine's commit** (its sink's `Close`, `takeSnapshot`): its snapshot `(x, tx)`
-(at most `lastApplied` and durable) becomes the latest unless the latest is newer; during a pending
-install it is not newer (`x ≤ a < s`, `CIdx_term_mono`), so the pending case is kept. -/
+/-- `CIdx_term_mono` with its order premise as an implication. -/
+theorem CIdx_term_mono_imp (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (x y : Nat) (e1 e2 : Entry) :
+    Inv (GF := GF) γ ∗ CIdx γ x e1 ∗ CIdx γ y e2 ⊢ |={E}=> ⌜x ≤ y → e1.term ≤ e2.term⌝ := by
+  iintro ⟨#HI, #H1, #H2⟩
+  by_cases h : x ≤ y
+  · imod CIdx_term_mono γ E hE x y e1 e2 h $$ [$HI $H1 $H2] with %Ht
+    imodintro; ipureintro; intro _; exact Ht
+  · imodintro; ipureintro; intro h'; exact absurd h' h
+
+instance ib_CIdx_timeless (γ : GNames) (k : Nat) (e : Entry) : Timeless (CIdx (GF := GF) γ k e) := by
+  unfold CIdx; infer_instance
+
+/-- (hraft_robust R4b) **The snapshot goroutine's commit** (its sink's `Close`, `takeSnapshot`, inside
+`snapWrite_au`): its snapshot `(x, tx)` (at most `lastApplied` and durable) becomes the latest unless
+the latest is newer; during a pending install it is not newer (`x ≤ a < s`, `CIdx_term_mono`). The
+latest's index never decreases (committed entries' terms grow with their index), and it is at least
+`x` afterwards (`latLb`, for the compaction). -/
 theorem own_commit (γ : GNames) (rc : RCtx GF) (i : SID) (x tx : Nat) (id : GoString)
-    (cfg : Configuration) (ci : w64) (ss : List Server) (b : List w8) (e : Entry) (hx : 1 ≤ x)
-    (hx62 : x < 2 ^ 62) (he : e.term = tx) (htx : tx < 2 ^ 62) (hb : b.length < 2 ^ 63) :
-    Inv (GF := GF) γ ∗ snapCell rc γ i ∗ CIdx γ x e ∗ applLb rc x ∗ durLb γ i x ∗ rc.snapP x b ∗
-      cfgVal γ cfg ss ∗ snapCfg γ x (uint.nat ci) ss ⊢
-    |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗
-      (rc.ownSS (newerSnap old (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b) ={∅,⊤}=∗
-        True) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
+    (cfg : Configuration) (ci : w64) (b : List w8) (e : Entry) (hx : 1 ≤ x)
+    (hx62 : x < 2 ^ 62) (he : e.term = tx) (htx : tx < 2 ^ 62) :
+    Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ CIdx γ x e ∗ applLb rc x ∗ durLb γ i x ∗
+      latestOk γ rc (some (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b, b)) ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old, rc.ownSS old ∗
+      (rc.ownSS (newerSnap old (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b) ={∅, ⊤ \ ↑storeN}=∗
+        latLb rc x) := by
+  have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN := by
+    unfold storeN durN raftN gprotN; solve_ndisj
+  have hix : uint.nat (W64 x) = x := by word
+  have htt : uint.nat (W64 tx) = tx := by word
+  iintro ⟨#HI, #Hd, #HC, #Hlb, #Hdl, Hnew⟩
+  iapply (snapWrite_au γ rc i
+    (fun old => newerSnap old (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b)
+    iprop(latestOk γ rc (some (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b, b))) (latLb rc x))
+    $$ Hd [Hnew]
+  · iexact Hnew
+  iintro %X HX Hld Hnew
+  unfold durCore
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, Hcomp, Hpd, Htp, Hdp, Hlat⟩
+  unfold latestDur
+  icases Hld with ⟨Hlok, Hcase⟩
+  rcases hp : X.pend with _ | ⟨s0, st0, id0⟩
+  · rcases hl : X.lat with _ | ⟨m0, b0⟩
+    · -- no latest: the snapshot becomes it
+      simp only [hp, hl]
+      have hnew : newerSnap none (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b = some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) := rfl
+      imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp [latIdxD]) $$ Hlat with ⟨Hlat, #Hlbn⟩
+      imodintro
+      iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
+      simp only
+      try rw [hp]
+      isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+      · iframe
+        ipureintro
+        obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, h9⟩ := Hok
+        refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩, h9⟩
+        simp only [latIdxD, sinkMeta, hl] at h8 ⊢; omega
+      isplitl [Hnew]
+      · inext
+        simp only [hp]
+        iframe Hnew
+        iright; iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
+        isplitr; · ipureintro; rfl
+        ileft; simp only [sinkMeta]; rw [hix]; iexact Hdl
+      isplitr
+      · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
+      imodintro
+      unfold latLb
+      iapply monoNatLbOwn_le x (by simp only [latIdxD, sinkMeta]; omega) $$ Hlbn
+    · -- a latest `(m0, b0)`, own or installed (its discard done)
+      simp only [hp, hl]
+      unfold latestOk
+      icases Hlok with ⟨He0, HsP0, Hcf0, >%Hp0⟩
+      imod later_exists_except0 $$ He0 with ⟨%e0, He0⟩
+      icases He0 with ⟨>#HC0, >%He0⟩
+      by_cases hc : uint.nat m0.Term' < tx ∨ (uint.nat m0.Term' = tx ∧ uint.nat m0.Index' ≤ x)
+      · have hnew : newerSnap (some (m0, b0)) (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b = some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) := by
+          unfold newerSnap; simp only [sinkMeta, htt, hix]; rw [if_pos hc]
+        imod CIdx_term_mono_imp γ _ hE x (uint.nat m0.Index') e e0 $$ [$HI $HC $HC0] with %Ht
+        have hle : uint.nat m0.Index' ≤ x := by
+          rcases Nat.lt_or_ge x (uint.nat m0.Index') with h | h
+          · have := Ht (by omega); omega
+          · exact h
+        imod mono_nat_own_update (latIdxD (some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b))) (by simp only [latIdxD, sinkMeta]; omega)
+          $$ Hlat with ⟨Hlat, #Hlbn⟩
+        imodintro
+        iexists { X with lat := some ((sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b) }
+        simp only
+        try rw [hp]
+        isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+        · iframe
+          ipureintro
+          obtain ⟨h1, h2, h3, h4, h5, ⟨h6, h7, h8⟩, h9⟩ := Hok
+          refine ⟨h1, h2, h3, h4, h5, ⟨h6, fun _ _ _ h => by simp at h, ?_⟩, h9⟩
+          simp only [latIdxD, sinkMeta, hl] at h8 ⊢; rw [hix]; omega
+        isplitl [Hnew]
+        · inext
+          simp only [hp]
+          iframe Hnew
+          iright; iexists (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b), b
+          isplitr; · ipureintro; rfl
+          ileft; simp only [sinkMeta]; rw [hix]; iexact Hdl
+        isplitr
+        · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
+        imodintro
+        unfold latLb
+        iapply monoNatLbOwn_le x (by simp only [latIdxD, sinkMeta]; omega) $$ Hlbn
+      · have hnew : newerSnap (some (m0, b0)) (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b = some (m0, b0) := by
+          simp only [newerSnap, sinkMeta, htt, hix]; split <;> first | rfl | (exfalso; omega) | simp_all
+        imod CIdx_term_mono_imp γ _ hE (uint.nat m0.Index') x e0 e $$ [$HI $HC $HC0] with %Ht
+        have hge : x ≤ uint.nat m0.Index' := by
+          rcases Nat.lt_or_ge (uint.nat m0.Index') x with h | h
+          · have := Ht (by omega); exfalso; apply hc; omega
+          · exact h
+        ihave #Hlbn := monoNatLbOwn_get _ _ _ $$ Hlat
+        iclear Hnew
+        imodintro
+        iexists X
+        try rw [hp]
+        rw [hl]
+        isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+        · iframe; ipureintro; simp only [hp, hl] at Hok ⊢; exact Hok
+        isplitl [HsP0 Hcf0 Hcase]
+        · inext
+          dsimp only
+          isplitr [Hcase]
+          · iframe HsP0 Hcf0
+            isplitr
+            · iexists e0; iframe #; ipureintro; exact He0
+            ipureintro; exact Hp0
+          iexact Hcase
+        isplitr
+        · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
+        imodintro
+        unfold latLb
+        iapply monoNatLbOwn_le x (by (try rw [hl]); simp only [latIdxD]; exact hge) $$ Hlbn
+  · -- an install pending: its snapshot (above `lastApplied ≥ x`) stays the latest
+    simp only [hp]
+    imod later_exists_except0 $$ Hcase with ⟨%m, Hcase⟩
+    imod later_exists_except0 $$ Hcase with ⟨%b', Hcase⟩
+    imod later_exists_except0 $$ Hcase with ⟨%a', Hcase⟩
+    icases Hcase with ⟨>%Hm, Hfol, >Happ⟩
+    obtain ⟨hl, hid, hidx, htm, ha⟩ := Hm
+    ihave %Hxa := applLb_le rc _ _ _ $$ Happ Hlb
+    rw [hl]
+    unfold latestOk
+    icases Hlok with ⟨He0, HsP0, Hcf0, >%Hp0⟩
+    imod later_exists_except0 $$ He0 with ⟨%e0, He0⟩
+    icases He0 with ⟨>#HC0, >%He0⟩
+    imod CIdx_term_mono γ _ hE x (uint.nat m.Index') e e0 (by omega) $$ [$HI $HC $HC0] with %Ht
+    have hc : ¬ (uint.nat m.Term' < tx ∨ (uint.nat m.Term' = tx ∧ uint.nat m.Index' ≤ x)) := by omega
+    have hnew : newerSnap (some (m, b')) (sinkMeta (W64 1) (W64 x) (W64 tx) ci cfg id b) b = some (m, b') := by
+      simp only [newerSnap, sinkMeta, htt, hix]; split <;> first | rfl | (exfalso; omega) | simp_all
+    ihave #Hlbn := monoNatLbOwn_get _ _ _ $$ Hlat
+    iclear Hnew
+    imodintro
+    iexists X
+    try rw [hp]
+    rw [hl]
+    isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
+    · iframe; ipureintro; simp only [hp, hl] at Hok ⊢; exact Hok
+    isplitl [HsP0 Hcf0 Hfol Happ]
+    · inext
+      dsimp only
+      (try rw [hl]); (try unfold latestOk)
+      iframe HsP0 Hcf0
+      isplitr [Hfol Happ]
+      · isplitr
+        · iexists e0; iframe #; ipureintro; exact He0
+        ipureintro; exact Hp0
+      iexists m, b', a'; iframe; ipureintro; exact ⟨rfl, hid, hidx, htm, ha⟩
+    isplitr
+    · ipureintro; refine ⟨?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hnew.symm | (rw [hl]; exact hnew.symm)
+    imodintro
+    unfold latLb
+    iapply monoNatLbOwn_le x (by (try rw [hl]); simp only [latIdxD]; omega) $$ Hlbn
+
 
 /-- (Unfolds gprot's `InvBody`, a missing gprot law, as `ReplSnap.CIdx_lt`.) A committed entry's term
 is below the bound on terms (`2^62`). -/
