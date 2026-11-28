@@ -502,34 +502,35 @@ theorem logOk_delete (A : LogAbs) (L : RLog) (lo mn mx : Nat) (hi' : w64) (h : l
     | some e => exact (del_lookup_some A.m mn mx k e).2 ⟨hm, by omega⟩
 
 /-- (hraft_robust R4b) **A compaction** (`DeleteRange(mn, mx)`'s atomic update, any goroutine) up to
-`mx ≤ x` with the compaction frontier at least `x` (`compLb`): the store's window moves past `mx`. -/
-theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx x : Nat) (hmx : mx ≤ x)
-    (Ψ : IProp GF) :
-    srvDurInv γ rc i ∗ compLb rc x ∗ Ψ ⊢
+`mx` with the compaction frontier and the latest snapshot's index at least `mx` (`compLb`, `latLb`, its
+window): the store's window moves past `mx`. -/
+theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx : Nat) (Ψ : IProp GF) :
+    srvDurInv γ rc i ∗ compLb rc mx ∗ latLb rc mx ∗ Ψ ⊢
     |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A, rc.ownL A ∗
       (∀ hi' : w64, rc.ownL (A.delete mn mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
-  iintro ⟨#Hd, #Hc, HΨ⟩
-  iapply (logDelete_au γ rc i mn mx iprop(compLb rc x ∗ Ψ) Ψ) $$ Hd [HΨ]
+  iintro ⟨#Hd, #Hc, #Hl, HΨ⟩
+  iapply (logDelete_au γ rc i mn mx iprop(compLb rc mx ∗ latLb rc mx ∗ Ψ) Ψ) $$ Hd [HΨ]
   · iframe; iframe #
-  iintro %X %hi' HX ⟨#Hc, HΨ⟩
+  iintro %X %hi' HX ⟨#Hc, #Hl, HΨ⟩
   unfold durCore
-  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, #HcX, Hpd, Htp, Hdp⟩
-  obtain ⟨hlog, hlo, hv, ht, hci, hdp⟩ := Hok
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, Hcomp, Hpd, Htp, Hdp, Hlat⟩
+  ihave %Hmc := compLb_le rc _ X.c mx $$ Hcomp Hc
+  ihave %Hml : ⌜mx ≤ latIdxD X.lat⌝ $$ [Hlat]
+  · unfold latLb
+    ihave %Hv := monoNatLbOwn_valid _ _ _ _ $$ Hlat Hl
+    ipureintro; exact Hv.2
+  obtain ⟨hlog, hlo, hv, ht, hci, ⟨hdl, hpd, hll⟩, hdc⟩ := Hok
   imodintro
-  iexists { X with A := X.A.delete mn mx hi', lo := Max.max X.lo (mx + 1), c := Max.max X.c x }
-  isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hpd Htp Hdp]
+  iexists { X with A := X.A.delete mn mx hi', lo := Max.max X.lo (mx + 1) }
+  isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
   · iframe
-    isplitr
-    · ipureintro
-      refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hv, ht, hci, ?_⟩
-      · simp only [Nat.max_def]; split <;> split <;> omega
-      · sorry -- R4b Q4 (REQUESTS.md): a pending discard's index is past the compaction
-    by_cases hcx : X.c ≤ x
-    · rw [Nat.max_eq_right (show X.c ≤ x from hcx)]; iexact Hc
-    · rw [Nat.max_eq_left (show x ≤ X.c by omega)]; iexact HcX
+    ipureintro
+    refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hv, ht, hci, ⟨?_, hpd, ?_⟩, hdc⟩
+    · simp only [Nat.max_def]; split <;> omega
+    · intro d hd; have := hdl d hd; have := hdc d hd; simp only [Nat.max_def]; split <;> omega
+    · simp only [Nat.max_def]; split <;> omega
   isplitr; · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   imodintro; iexact HΨ
-
 
 /-- The snapshot goroutine's snapshot `(x, tx)` as the store's latest (`latestOk`; the length bound
 of its bytes from the store's commit, SNAP-2). -/

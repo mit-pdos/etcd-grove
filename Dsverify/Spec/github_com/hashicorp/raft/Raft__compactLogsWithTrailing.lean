@@ -31,7 +31,7 @@ fail). -/
 abbrev github_com.hashicorp.raft.Raft.compactLogsWithTrailing.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (x li tl : w64) (tid : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
-     compLb rc (uint.nat x) ∗ ⌜uint.nat x < 2 ^ 62⌝ ∗ rtok tid }}
+     compLb rc (uint.nat x) ∗ latLb rc (uint.nat x) ∗ ⌜uint.nat x < 2 ^ 62⌝ ∗ rtok tid }}
     (App (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"compactLogsWithTrailing")) (Val #x))
       (Val #li)) (Val #tl))
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ rtok tid }}

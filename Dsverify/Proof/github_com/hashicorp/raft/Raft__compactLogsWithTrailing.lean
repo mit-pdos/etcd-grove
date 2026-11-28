@@ -32,7 +32,7 @@ theorem github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof
     (wp_min : github_com.hashicorp.raft.min.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.Raft.compactLogsWithTrailing.spec (GF := GF) (hG := hG) :=
   fun r γ rc i x li tl tid => by
-  wp_start as ⟨#Hr, #Hcx, %Hx, Htok⟩
+  wp_start as ⟨#Hr, #Hcx, #Hlx, %Hx, Htok⟩
   ihave ⟨%lsx, #Hlsf, #Hls, -⟩ := isRaft_logStore r γ rc i $$ Hr
   ihave #HlogC := isRaft_durInv r γ rc i $$ Hr
   unfold isLogStore
@@ -53,10 +53,17 @@ theorem github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof
   · ipureintro; omega
   · unfold logWin; iright; iexists (uint.nat mn), (uint.nat mx)
     isplitr; · ipureintro; rfl
-    unfold compLb; iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hcx
+    unfold compLb latLb
+    isplitr
+    · iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hcx
+    · iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hlx
   iintro -
-  iapply (snapProof.logCell_compact γ rc i (uint.nat mn) (uint.nat mx) (uint.nat x) Hmxx _)
-  iframe HlogC Hcx
+  ihave #Hcm : compLb rc (uint.nat mx) $$ []
+  · unfold compLb; iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hcx
+  ihave #Hlm : latLb rc (uint.nat mx) $$ []
+  · unfold latLb; iapply monoNatLbOwn_le (uint.nat mx) Hmxx $$ Hlx
+  iapply (snapProof.logCell_compact γ rc i (uint.nat mn) (uint.nat mx) _)
+  iframe HlogC Hcm Hlm
   wp_auto
   iapply HΦ; iframe; ipureintro; rfl
 

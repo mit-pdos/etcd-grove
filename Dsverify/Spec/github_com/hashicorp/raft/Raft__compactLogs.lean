@@ -31,7 +31,7 @@ compaction frontier (`compLb rc x`: the log cell lets the store lose the entries
 abbrev github_com.hashicorp.raft.Raft.compactLogs.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (x : w64) (tid : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
-     compLb rc (uint.nat x) ∗ ⌜uint.nat x < 2 ^ 62⌝ ∗ rtok tid }}
+     compLb rc (uint.nat x) ∗ latLb rc (uint.nat x) ∗ ⌜uint.nat x < 2 ^ 62⌝ ∗ rtok tid }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"compactLogs")) (Val #x))
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ rtok tid }}
 
