@@ -294,7 +294,7 @@ theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
     (hcc : uint.nat li = lastCfgIdx s.log ∧
       (cidx = li ∨ (uint.nat cidx = lastCfgIdx (s.log.take (uint.nat li - 1)) ∧ a < uint.nat li)))
     (hcap : sint.Z γl.chanCap = 1 ∧ bs.length ≤ 1) :
-    srvV rc s ∗ stVS rc sst g ∗
+    srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc sst g ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       ghostVar rc.names.state (1 : Qp).half st ∗
       (⌜st ≠ stLeader⌝ ∨ leaderIs γ s.term i ∗ (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
@@ -311,14 +311,14 @@ theorem mainOwnAt_intro' (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : S
       verifyRegistry γ rc i ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
-  iintro ⟨Hs, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, #Hcfg, #Hccf, #Hcmt, #Hlch, #Hlchan, Hlown,
+  iintro ⟨Hs, Hpw, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, #Hcfg, #Hccf, #Hcmt, #Hlch, #Hlchan, Hlown,
     Hvreg, Hpnd, Hcomp⟩
   unfold mainOwnAt
   iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
   isplitl [Hs]
   · iexact Hs
-  isplitr
-  · itrivial
+  isplitl [Hpw]
+  · iexact Hpw
   isplitl [HS]
   · iexists g; iframe HS; ipureintro; exact hg
   isplitr

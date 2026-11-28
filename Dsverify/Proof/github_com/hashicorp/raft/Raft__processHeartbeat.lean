@@ -21,6 +21,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.RPC__Respond
 public import Dsverify.Proof.github_com.hashicorp.raft.handlers.Base
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
 public import Dsverify.Proof.github_com.hashicorp.raft.gprot.Snap
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Spec.errors.New
 public import Perennial.Spec.fmt.Errorf
@@ -48,14 +49,53 @@ open github_com.hashicorp.raft proto gprot
 /-- **A term read with a snapshot witness** (any goroutine): `getCurrentTerm` returns `t`, an
 existing term, and a snapshot later than `s0` in which `i`'s term is `t` (`termCouple_now` at the
 atomic load). -/
-theorem github_com.hashicorp.raft.wp_getCurrentTerm_wit (r : Loc) (γ : GNames) (i : SID)
+theorem github_com.hashicorp.raft.wp_getCurrentTerm_wit (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID)
     (s0 : Snap) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ Inv γ ∗ termCell r γ rc i ∗
-        isSrv γ i ∗ histLb γ s0 }}
+        srvDurInv γ rc i ∗ isSrv γ i ∗ histLb γ s0 }}
       (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getCurrentTerm")) (Val #()))
     {{ (t : w64), RET #t; termOk γ (uint.nat t) ∗
         ∃ s', histLb γ s' ∗ ⌜snapLe s0 s' ∧ s'.term i = uint.nat t⌝ }} := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  wp_start as ⟨#HInv, #Hcell, #Hdur, #Hv, #Hs0⟩
+  wp_method_call; wp_call
+  wp_auto
+  wp_apply_core sync.atomic.wp_LoadUint64_nc _ (DFrac.own 1) $$ [] [-]
+  · iPkgInit
+  iintro Hnc
+  unfold termCell
+  imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
+  ihave Hacc := durAcc γ rc i durN_diff_termN $$ Hdur
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose2⟩
+  iframe Hnc
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  icases Hi with ⟨%t, Hpt, Hc⟩
+  icases HX with ⟨%X, HX⟩
+  iexists t
+  iframe Hpt
+  iintro Hpt
+  imod Hmask with -
+  unfold durBody
+  icases HX with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hrest⟩
+  unfold termV
+  icombine Htv Hc gives %ht
+  imod termCouple_now γ _ gprotN_diff_termN_durN i _ s0 $$ [$HInv $Hv $Htc $Hs0]
+    with ⟨Htc, %s', #Hs', %Hs'⟩
+  ihave ⟨Htc, #Hlb⟩ := termCouple_get_lb γ i _ $$ Htc
+  imod Hclose2 $$ [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hrest] with -
+  · inext; iexists X; iframe
+  imod Hclose $$ [Hpt Hc] with -
+  · inext; iexists t; iframe
+  imodintro
+  wp_auto
+  iapply HΦ
+  rw [← ht.2]
+  isplitr
+  · iapply termOk_of_termLb γ i _ X.s.term (Nat.le_refl _) $$ [$Hv $Hlb]
+  iexists s'
+  iframe Hs'
+  ipureintro; exact Hs'
 
 /-- A receive clause of a nonblocking select on a dead channel. -/
 theorem github_com.hashicorp.raft.dead_nb_clause_hb {V : Type} [Pos.Countable V] [ZeroVal V]
@@ -123,6 +163,7 @@ theorem github_com.hashicorp.raft.Raft.processHeartbeat.wp_proof
   obtain ⟨HTe, -, -, -⟩ := Hnums
   ihave ⟨#HI, #Hvi⟩ := isRaft_proto r γ rc i $$ Hr
   ihave #Htc := isRaft_termCell r γ rc i $$ Hr
+  ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
   ihave #Hsc := isRaft_stateCell r γ rc i $$ Hr
   ihave #Hsd := isRaft_shutdownCh r γ rc i $$ Hr
   unfold deadField deadChan
@@ -140,7 +181,7 @@ theorem github_com.hashicorp.raft.Raft.processHeartbeat.wp_proof
   rw [Hc]
   wp_auto
   wp_apply wp_getRPCHeader r γ rc i $$ [$Hr] as %h0 #Hh0
-  wp_apply wp_getCurrentTerm_wit r γ i ss $$ [$HI $Htc $Hvi $Hss] as %t ⟨#Htok_t, %s', #Hs', %Hs'⟩
+  wp_apply wp_getCurrentTerm_wit r γ rc i ss $$ [$HI $Htc $Hdur $Hvi $Hss] as %t ⟨#Htok_t, %s', #Hs', %Hs'⟩
   wp_apply wp_getLastIndex.2 r γ rc i $$ [$Hr] as %li -
   ipersist Hp
   iStructNamed Hp

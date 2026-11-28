@@ -69,7 +69,7 @@ theorem github_com.hashicorp.raft.Raft.electSelf.wp_proof
   fun r γ rc i s tid => by
   wp_start as ⟨#Hr, Hmo, Htok⟩
   unfold mainOwnAt
-  icases Hmo with ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %cmp, Hsrv, -, ⟨%g, HownS, %Hg⟩, %Hvm, Hll, Hst,
+  icases Hmo with ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %cmp, Hsrv, Hpw, ⟨%g, HownS, %Hg⟩, %Hvm, Hll, Hst,
     Hldr, -, Hvreg, Happ, %Ha, Hfsm, Hpnd, Hcomp, %Hcmp, Hcfgs, #Hcfg, #Hccf, %Hcc, #Hcmt, #Hlch, #Hlchan,
     Hlown, %Hcap⟩
   ihave ⟨#HInv, #Hvi⟩ := isRaft_proto r γ rc i $$ Hr
@@ -104,9 +104,9 @@ theorem github_com.hashicorp.raft.Raft.electSelf.wp_proof
   have hgt : (↑gprotN : CoPset) ⊆ ⊤ \ ↑termN := by unfold gprotN termN raftN; solve_ndisj
   have ht : uint.nat (W64 (s.term : Int) + W64 1) = s.term + 1 := by
     have := Hsf.2.2.2.2.2.1; word
-  wp_apply (wp_setCurrentTerm r γ rc i s sst g (W64 (s.term : Int) + W64 1) .elect) $$ [Hsrv HownS Hrc]
-    with ⟨Hsrv, #Hlb, HownS, #Hcand, Hpub, Hcc1, Hcc2⟩
-  · iframe #; iframe Hsrv HownS
+  wp_apply (wp_setCurrentTerm r γ rc i s sst g (W64 (s.term : Int) + W64 1) .elect) $$ [Hsrv Hpw HownS Hrc]
+    with ⟨Hsrv, Hpw, #Hlb, HownS, #Hcand, Hpub, Hcc1, Hcc2⟩
+  · iframe #; iframe Hsrv Hpw HownS
     isplitl [Hrc]
     · simp only [tpRes]; iexact Hrc
     · ipureintro; right; exact ⟨rfl, ht⟩
@@ -149,14 +149,14 @@ theorem github_com.hashicorp.raft.Raft.electSelf.wp_proof
       "Hctr" ∷ i_ptr ↦ W64 k ∗ "server" ∷ server_ptr ↦ sv0 ∗ "%Hk" ∷ ⌜k ≤ ss.length⌝ ∗
       "Hauth" ∷ ghostMapAuth γv 1 M ∗
       "%HM" ∷ ⌜∀ j, (M.lookup j).isSome ↔ j ∈ srvVoters (ss.take k)⌝ ∗
-      "Hsrv" ∷ srvV rc s2 ∗ "HownS" ∷ stVS rc sst2 g ∗
+      "Hsrv" ∷ srvV rc s2 ∗ "Hpw" ∷ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ "HownS" ∷ stVS rc sst2 g ∗
       "%Hself" ∷ ⌜(i ∈ srvVoters (ss.take k) ∧
           s2 = { s with term := s.term + 1, vterm := s.term + 1, vcand := i } ∧
           voteMatches sst2 { s with term := s.term + 1, vterm := s.term + 1, vcand := i }) ∨
         (i ∉ srvVoters (ss.take k) ∧ s2 = { s with term := s.term + 1 } ∧
           sst2 = StableAbs.mk (sst.ints.insert (go!"CurrentTerm" : List w8)
             (W64 (s.term : Int) + W64 1)) sst.bytes)⌝ ∗
-      "Htok" ∷ rtok tid : IProp GF) $$ [i server Hauth Hsrv HownS Htok]
+      "Htok" ∷ rtok tid : IProp GF) $$ [i server Hauth Hsrv Hpw HownS Htok]
   · iexists 0, ∅, _, _, _
     iframe
     ipureintro
@@ -208,7 +208,7 @@ theorem github_com.hashicorp.raft.Raft.electSelf.wp_proof
       wp_auto
       wp_apply (wp_persistVote r γ rc sv.ID' { s with term := s.term + 1 } _ g (W64 (s.term : Int) + W64 1)
           h.Addr' sv.ID' s.log.length (lastTerm s.log))
-        $$ [Hsrv HownS] with ⟨Hsrv, #Hvote, HownS⟩
+        $$ [Hsrv Hpw HownS] with ⟨Hsrv, Hpw, #Hvote, HownS⟩
       · iframe; iframe #
         ipureintro; exact ⟨ht, by simp only; have := Hsf.2.2.2.1; omega, upToDate_refl s.log⟩
       wp_apply (wp_getRPCHeader r γ rc sv.ID') as %h2 #Hh2
@@ -345,10 +345,10 @@ theorem github_com.hashicorp.raft.Raft.electSelf.wp_proof
     ihave #Hcmt2 := cmtIdx_mono γ s.term (s.term + 1) s.log s.log (uint.nat cidx) (by omega) rfl $$ Hcmt
     iapply HΦ
     iexists γv, γc, { s with term := s.term + 1 }
-    isplitl [Hsrv HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
+    isplitl [Hsrv Hpw HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
     · ihave Hmo := mainOwnAt_intro' r γ rc i { s with term := s.term + 1 } stCandidate a _ g cfg ccfg cidx li
         lch γl bs cmp (voteMatches_term sst s _ _ Hvm (by omega)) Hg Ha Hcmp Hcc Hcap
-        $$ [Hsrv HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
+        $$ [Hsrv Hpw HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
       · iframe; iframe #; ileft; ipureintro; decide
       unfold mainOwnAt
       iexact Hmo
@@ -361,10 +361,10 @@ theorem github_com.hashicorp.raft.Raft.electSelf.wp_proof
   ihave #Hcmt2 := cmtIdx_mono γ s.term (s.term + 1) s.log s.log (uint.nat cidx) (by omega) rfl $$ Hcmt
   iapply HΦ
   iexists γv, γc, { s with term := s.term + 1, vterm := s.term + 1, vcand := i }
-  isplitl [Hsrv HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
+  isplitl [Hsrv Hpw HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
   · ihave Hmo := mainOwnAt_intro' r γ rc i { s with term := s.term + 1, vterm := s.term + 1, vcand := i }
       stCandidate a _ g cfg ccfg cidx li lch γl bs cmp hvm Hg Ha Hcmp Hcc Hcap
-      $$ [Hsrv HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
+      $$ [Hsrv Hpw HownS Hll Hst Happ Hfsm Hcfgs Hlown Hvreg Hpnd Hcomp]
     · iframe; iframe #; ileft; ipureintro; decide
     unfold mainOwnAt
     iexact Hmo

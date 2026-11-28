@@ -63,7 +63,7 @@ theorem github_com.hashicorp.raft.Raft.preElectSelf.wp_proof
   ihave #Htc := isRaft_termCell r γ rc sid $$ Hr
   ihave #Hdur := isRaft_durInv r γ rc sid $$ Hr
   unfold mainOwnAt
-  icases Hmain with ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %cmp, Hsrv, -, HS, %Hvm, Hll, Hst, Hldr,
+  icases Hmain with ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %cmp, Hsrv, Hpw, HS, %Hvm, Hll, Hst, Hldr,
     -, Hvreg, Hap, %Hale, Hprod, Hpnd, Hcomp, %Hcmp, Hcfgs, #Hcfg, #Hccfg, %Hcc, #Hcmt, #Hlch, #Hlchan, Hlown, %Hcap⟩
   icases cfgAtIs_srvs γ s.log _ cfg $$ Hcfg with ⟨%ss, #Hss, %Hok⟩
   ihave %Hsllen := ownSlice_len $$ Hss

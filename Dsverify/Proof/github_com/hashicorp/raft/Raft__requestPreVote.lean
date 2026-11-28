@@ -71,7 +71,7 @@ macro "pv_fin" : tactic => `(tactic| (
     iframe Htok
     isplitl
     · ihave Hmo := mainOwnAt_intro' r γ rc i s st a sst g cfg ccfg cidx li lch γl bs cmp Hvm Hg Ha Hcmp Hccfg Hcap
-        $$ [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
+        $$ [Hs Hpw HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
       · iframe; iframe Hcfg Hccf Hcmt Hlch Hlchan
       unfold mainOwnAt
       iexact Hmo
@@ -92,7 +92,7 @@ theorem github_com.hashicorp.raft.Raft.requestPreVote.wp_proof
   fun r γ rc i rpc p rq c T γc s st tid => by
   wp_start as ⟨#Hr, Hm, Htok, Hp, Hreq, #Hbag⟩
   unfold mainOwnAt
-  icases Hm with ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %cmp, Hs, -, ⟨%g, HS, %Hg⟩, %Hvm, Hll, Hst, Hstl,
+  icases Hm with ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %cmp, Hs, Hpw, ⟨%g, HS, %Hg⟩, %Hvm, Hll, Hst, Hstl,
     -, Hvreg, Happ, %Ha, Hprod, Hpnd, Hcomp, %Hcmp, Hcfgs, #Hcfg, #Hccf, %Hccfg, #Hcmt, #Hlch, #Hlchan, Hlown, %Hcap⟩
   icases cfgAtIs_srvs γ s.log _ cfg $$ Hcfg with ⟨%ss, #Hss, %Hok⟩
   unfold pvReq

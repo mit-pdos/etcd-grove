@@ -73,7 +73,7 @@ macro "rv_fail" s':term:max st':term:max sst':term:max hvm:term:max hpost:term:m
     iframe Htok
     isplitl
     · ihave Hmo := mainOwnAt_intro' r γ rc i $s' $st' a $sst' g cfg ccfg cidx mli lch γl bs cmp $hvm Hg Ha Hcmp Hccfg Hcap
-        $$ [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
+        $$ [Hs Hpw HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
       · iframe; iframe Hcfg Hccf Hcmt Hlch Hlchan
       unfold mainOwnAt
       iexact Hmo
@@ -98,7 +98,7 @@ theorem github_com.hashicorp.raft.Raft.requestVote.wp_proof
   fun r γ rc i rpc p rq c T li lt γc s st tid => by
   wp_start as ⟨#Hr, Hm, Htok, Hp, Hreq, #Hbag⟩
   unfold mainOwnAt
-  icases Hm with ⟨%a, %sst, %cfg, %ccfg, %cidx, %mli, %lch, %γl, %bs, %cmp, Hs, -, ⟨%g, HS, %Hg⟩, %Hvm, Hll, Hst, Hstl,
+  icases Hm with ⟨%a, %sst, %cfg, %ccfg, %cidx, %mli, %lch, %γl, %bs, %cmp, Hs, Hpw, ⟨%g, HS, %Hg⟩, %Hvm, Hll, Hst, Hstl,
     -, Hvreg, Happ, %Ha, Hprod, Hpnd, Hcomp, %Hcmp, Hcfgs, #Hcfg, #Hccf, %Hccfg, #Hcmt, #Hlch, #Hlchan, Hlown, %Hcap⟩
   icases cfgAtIs_srvs γ s.log _ cfg $$ Hcfg with ⟨%ss, #Hss, %Hsok⟩
   unfold rvReq
@@ -230,11 +230,11 @@ theorem github_com.hashicorp.raft.Raft.requestVote.wp_proof
         ∃ n0 : Nat, len0Is γ s1.term n0 ∗
           (⌜s1.cidx ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s1.term k p ∗ ⌜s1.cidx ≤ k⌝) ∗
           (⌜cidx ≠ mli ∨ uint.nat mli ≤ n0⌝ ∨ ∃ k p : Nat, commitIs γ s1.term k p ∗ ⌜uint.nat mli ≤ k⌝)) ∗ ⌜st1 = stFollower ∨ (st1 = st ∧ s1 = s)⌝ ∗
-      stVS rc sst1 g ∗ ⌜voteMatches sst1 s1⌝ ∗ «$r0_ptr» ↦ rv1 ∗
+      ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc sst1 g ∗ ⌜voteMatches sst1 s1⌝ ∗ «$r0_ptr» ↦ rv1 ∗
       ⌜rv1.RPCHeader' = h0 ∧ rv1.Granted' = false ∧ rv1.Peers' = slice.nil⌝ ∗
       termOk γ (uint.nat rv1.Term') ∗ termLb γ i T ∗ rtok tid)
-    at next with [Hs Hst Hstl HS Hrsp Htok]
-    as ⟨%s1, %st1, %sst1, %rv1, Hs, %Hs1, Hst, Hstl, %Hst1, HS, %Hvm1, Hrsp, %Hrv1, #Hrvt1, #HtlbT, Htok⟩
+    at next with [Hs Hst Hstl Hpw HS Hrsp Htok]
+    as ⟨%s1, %st1, %sst1, %rv1, Hs, %Hs1, Hst, Hstl, %Hst1, Hpw, HS, %Hvm1, Hrsp, %Hrv1, #Hrvt1, #HtlbT, Htok⟩
   · wp_apply wp_getCurrentTerm.1 r γ rc i s $$ [$HI $Htc $Hdur $Hs] as Hs
     wp_if_destruct
     · rw [show (Follower : val) = #stFollower from rfl]
@@ -242,7 +242,7 @@ theorem github_com.hashicorp.raft.Raft.requestVote.wp_proof
       · isplitr; · ipureintro; left; rfl
         iapply obsArg_state γ i s stFollower (by decide)
       ihave #HokT := termOk_of_candIs γ c T li lt $$ Hci
-      wp_apply wp_setCurrentTerm r γ rc i s sst g rq.Term' (.set T) $$ [$Hr $Hs $HS] as ⟨Hs, #HtlbT, HS, -⟩
+      wp_apply wp_setCurrentTerm r γ rc i s sst g rq.Term' (.set T) $$ [$Hr $Hs $Hpw $HS] as ⟨Hs, Hpw, #HtlbT, HS, -⟩
       · isplitl []
         · simp only [tpRes]; iexact HokT
         · ipureintro; left; exact ⟨by rw [HTe], by rw [HTe]; exact HT⟩
@@ -455,7 +455,7 @@ theorem github_com.hashicorp.raft.Raft.requestVote.wp_proof
     iframe Htok
     isplitl
     · ihave Hmo := mainOwnAt_intro' r γ rc i { s with term := T } st1 a sst1 g cfg ccfg cidx mli lch γl bs cmp Hvm1
-        Hg Ha Hcmp Hccfg Hcap $$ [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
+        Hg Ha Hcmp Hccfg Hcap $$ [Hs Hpw HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
       · iframe; iframe Hcfg Hccf Hcmt Hlch Hlchan
       unfold mainOwnAt
       iexact Hmo
@@ -500,7 +500,7 @@ theorem github_com.hashicorp.raft.Raft.requestVote.wp_proof
   wp_auto
   -- (8) grant: the protocol step `grantVote` at `persistVote`
   wp_apply wp_persistVote r γ rc i { s with term := T } sst1 g rq.Term' cb c li lt
-    $$ [$Hr $Hs $HS $Hcb $Hci] as ⟨Hs, #Hvote, HS⟩
+    $$ [$Hr $Hs $Hpw $HS $Hcb $Hci] as ⟨Hs, Hpw, #Hvote, HS⟩
   · ipureintro; exact ⟨HTe, Hvlt, Hup⟩
   have Hvm2 : voteMatches (StableAbs.mk (sst1.ints.insert (go!"LastVoteTerm" : List w8) rq.Term')
       (sst1.bytes.insert (go!"LastVoteCand" : List w8) c))
@@ -523,7 +523,7 @@ theorem github_com.hashicorp.raft.Raft.requestVote.wp_proof
   isplitl
   · ihave Hmo := mainOwnAt_intro' r γ rc i
       { { s with term := T } with vterm := ({ s with term := T } : SState).term, vcand := c } st1 a _
-      g cfg ccfg cidx mli lch γl bs cmp Hvm2 Hg Ha Hcmp Hccfg Hcap $$ [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
+      g cfg ccfg cidx mli lch γl bs cmp Hvm2 Hg Ha Hcmp Hccfg Hcap $$ [Hs Hpw HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
     · iframe; iframe Hcfg Hccf Hcmt Hlch Hlchan
     unfold mainOwnAt
     iexact Hmo

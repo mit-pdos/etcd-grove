@@ -31,7 +31,7 @@ open github_com.hashicorp.raft proto gprot
 theorem github_com.hashicorp.raft.Raft.persistVote.wp_proof :
     github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) :=
   fun r γ rc i s sst g t cs c li lt => by
-  wp_start as ⟨#Hr, Hs, Hst, #Hcs, #Hci, %Hpre⟩
+  wp_start as ⟨#Hr, Hs, Hpw, Hst, #Hcs, #Hci, %Hpre⟩
   ihave #Hg := pkgGlobals_access $$ Hpkg
   unfold pkgGlobals
   icases Hg with ⟨-, -, ⟨%k1, #Hk1, #Hk1s⟩, ⟨%k2, #Hk2, #Hk2s⟩, -⟩

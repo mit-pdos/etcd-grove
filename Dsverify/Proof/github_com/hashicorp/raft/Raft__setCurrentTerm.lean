@@ -33,7 +33,7 @@ theorem github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof
     (wp_rs_setCurrentTerm : github_com.hashicorp.raft.raftState.setCurrentTerm.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.Raft.setCurrentTerm.spec (GF := GF) (hG := hG) :=
   fun r γ rc i s sst g t tp => by
-  wp_start as ⟨#Hr, Hs, Hst, Htp, %Htp⟩
+  wp_start as ⟨#Hr, Hs, Hpw, Hst, Htp, %Htp⟩
   ihave #Hg := pkgGlobals_access $$ Hpkg
   unfold pkgGlobals
   icases Hg with ⟨-, ⟨%k0, #Hk0, #Hk0s⟩, -, -, -⟩
