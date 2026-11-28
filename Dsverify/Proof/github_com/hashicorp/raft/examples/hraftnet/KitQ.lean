@@ -15,7 +15,11 @@ fires that command's operation (`linStep`, proved here: `kitQ_linStep`):
   `lin`, a get's `□ lin`) while the datum is no command of `es` (pending); once it is (fired), the
   committed prefix `es1` ending at that command and either the operation's continuation `Φ` of the
   output (`firedOut`) or the client's token `γt` (it took `Φ` out). `Φ` is named by a saved predicate
-  `γΦ`, so the client that registered the entry recognizes it.
+  `γΦ`, so the client that registered the entry recognizes it;
+* **the read escrow** (S6, `rdsQ`; `g.rd`, a mono list): per read outside the log registered at the
+  frontier of length `n0` (`KitRead.lean`), its persistent update `□ lin`, and the outputs it got at every
+  command-ending frontier position `k ≥ n0` since (`rdEnt`), or the reader's token once it took one. Moving
+  the frontier fires every registered read at the new state (`rds_step`: helping).
 
 A command first moves past the frontier at one index only (gprot's `cmd_unique`), and its datum is
 registered (`cmd_committed_ops`), so its entry is pending when the frontier moves past it: the update
@@ -51,12 +55,17 @@ section pure
 variable [GooseExts]
 
 /-- The kit's ghost names: the model's state, the escrow's map, the clients' operation counters, the
-operation ids the clients reserved (`idInv`). -/
+operation ids the clients reserved (`idInv`), the read escrow's list (S6). -/
 structure KG where
   st : GName
   esc : GName
   seq : GName
   ids : GName
+  rd : GName
+
+/-- A read escrow entry's names and data: the reader's token, its saved continuation, its input, the
+frontier's length at its registration. -/
+abbrev RdX := GName × GName × HIn × Nat
 
 /-- The operation id a datum carries (its bytes 1 to 8, big-endian, `opID`'s): the client (the top byte)
 and the client's count (the other 56 bits). A function of the datum, so two data with different ids
@@ -139,6 +148,30 @@ theorem firedOut_eq (es ns : RLog) (e : Entry) (i : HIn) (hns : ∀ x ∈ ns, x.
   unfold firedOut
   rw [show (es ++ ns ++ [e]).dropLast = es ++ ns by simp, service.regOf_noncmds es ns hns]
 
+/-- A frontier position strictly inside the step `es ++ ns ++ [e]` ends with a non-command. -/
+theorem not_lastCmd_mid (es ns : RLog) (e : Entry) (hns : ∀ x ∈ ns, x.kind ≠ kCommand) (k : Nat)
+    (h1 : es.length < k) (h2 : k < (es ++ ns ++ [e]).length) :
+    ¬ service.lastCmd ((es ++ ns ++ [e]).take k) := by
+  intro hl
+  simp only [List.length_append, List.length_cons, List.length_nil] at h2
+  have hk : (es ++ ns ++ [e]).take k = es ++ ns.take (k - es.length) := by
+    rw [List.append_assoc, List.take_append, List.take_of_length_le (by omega),
+      List.take_append_of_le_length (by omega)]
+  rw [hk] at hl
+  have hne : ns.take (k - es.length) ≠ [] := by
+    intro h; rw [List.take_eq_nil_iff] at h
+    rcases h with h | rfl
+    · omega
+    · simp at h2; omega
+  obtain ⟨x, hx⟩ := Option.ne_none_iff_exists'.1 (mt List.getLast?_eq_none_iff.1 hne)
+  have hx' : (es ++ ns.take (k - es.length)).getLast? = some x := by
+    rw [List.getLast?_append, hx]; rfl
+  exact hns x (List.mem_of_mem_take (List.mem_of_getLast? hx)) (hl x hx')
+
+theorem take_step (es ns : RLog) (e : Entry) (k : Nat) (h : k ≤ es.length) :
+    (es ++ ns ++ [e]).take k = es.take k := by
+  rw [List.append_assoc, List.take_append_of_le_length h]
+
 end pure
 
 /-! ## The clients' state -/
@@ -160,13 +193,28 @@ def escEnt (γ : GNames) (g : KG) (es : RLog) (d : List w8) (γt γΦ : GName) (
      (∃ es1 : RLog, ⌜es1 <+: es ∧ ∃ e, es1.getLast? = some e ∧ e.kind = kCommand ∧ e.data = d⌝ ∗
         cIdxs γ es1 ∗ (Φ (firedOut i es1) ∨ token γt))))
 
+/-- **A read's escrow entry** `x = (γt, γΦ, i, n0)` at the frontier `es` (S6): the saved continuation
+`Φ`, the read's persistent update, the positions `ks` it was fired at (every command-ending position of
+`es` from `n0` on, none past `es`), and the outputs there, or the reader's token (it took one). -/
+def rdEnt (g : KG) (es : RLog) (x : RdX) : IProp GF :=
+  iprop(∃ (Φ : HOut → IProp GF) (ks : List Nat), savedPredOwn x.2.1 .discard Φ ∗
+    □ lin (Gg := hG.goose_globalGS) (regR g.st) x.2.2.1 Φ ∗
+    ⌜x.2.2.1.1.1 = false ∧ (∀ k ∈ ks, k ≤ es.length) ∧
+      ∀ k, x.2.2.2 ≤ k → k ≤ es.length → service.lastCmd (es.take k) → k ∈ ks⌝ ∗
+    (token x.1 ∨ [∗list] k ∈ ks, Φ (regB.step x.2.2.1 (regOf (es.take k))).2))
+
+/-- **The read escrow** at the frontier `es` (S6). -/
+def rdsQ (g : KG) (es : RLog) : IProp GF :=
+  iprop(∃ RS : List RdX, monoListAuthOwn g.rd 1 RS ∗ [∗list] x ∈ RS, rdEnt g es x)
+
 /-- **The clients' state at the frontier `es`** (see the file header). -/
 def kitQ (γ : GNames) (g : KG) (es : RLog) : IProp GF :=
   iprop(∃ (M : GMap (List w8) Nat) (E : GMap (List w8) (GName × GName × HIn)),
     Inv γ ∗ opsAuth γ M ∗ ghostMapAuth g.esc 1 E ∗
     ghostVar (A := service.Reg) g.st (1 : Qp).half (regOf es) ∗
     ⌜(∀ d n, M.lookup d = some n → ∃ x, E.lookup d = some x) ∧ putsShort es⌝ ∗
-    [∗map] d ↦ x ∈ E, ⌜datumOf x.2.2 d⌝ ∗ idTok g (idOf d) ∗ escEnt γ g es d x.1 x.2.1 x.2.2)
+    ([∗map] d ↦ x ∈ E, ⌜datumOf x.2.2 d⌝ ∗ idTok g (idOf d) ∗ escEnt γ g es d x.1 x.2.1 x.2.2) ∗
+    rdsQ g es)
 
 /-- The FSMs' context of the kit: the frontier `fr`, the clients' state. -/
 def kitFC (γ : GNames) (g : KG) (fr : GName) : service.FCtx GF := ⟨fr, kitQ γ g⟩
@@ -215,6 +263,96 @@ theorem slotUpd_linF (st : GName) (i : HIn) (Φ : HOut → IProp GF) :
   · exact .rfl
   · exact intuitionistically_elim
 
+/-- **A read fires at the model's state** (its update persistent; the state unchanged). -/
+theorem read_fire (st : GName) (i : HIn) (Φ : HOut → IProp GF) (s : service.Reg) (hw : i.1.1 = false) :
+    □ lin (Gg := hG.goose_globalGS) (regR st) i Φ ∗ ghostVar (A := service.Reg) st (1 : Qp).half s ⊢
+      |={⊤ \ kitE}=> ghostVar (A := service.Reg) st (1 : Qp).half s ∗ Φ (regB.step i s).2 := by
+  iintro ⟨#Hlin, Hst⟩
+  ihave HF := lin_linF (Gg := hG.goose_globalGS) (regR st) i Φ $$ Hlin
+  unfold linF
+  simp only [regR]
+  imod HF with ⟨%st', Hs, Hc⟩
+  ihave %Hag := ghostVar_agree st _ _ _ _ $$ Hs Hst
+  subst Hag
+  have hst : (regB.step i st').1 = st' := regB_reads_stay i st' (by simp only [regB]; exact hw)
+  rw [hst]
+  imod Hc $$ Hs with HΦ
+  imodintro
+  iframe Hst HΦ
+
+/-- **A read's entry follows a frontier step** (fired at the new state, `read_fire`). -/
+theorem rdEnt_step (g : KG) (es ns : RLog) (e : Entry) (hns : ∀ x ∈ ns, x.kind ≠ kCommand)
+    (x : RdX) :
+    ghostVar (A := service.Reg) g.st (1 : Qp).half (regOf (es ++ ns ++ [e])) ∗ rdEnt g es x ⊢
+      |={⊤ \ kitE}=> ghostVar (A := service.Reg) g.st (1 : Qp).half (regOf (es ++ ns ++ [e])) ∗
+        rdEnt g (es ++ ns ++ [e]) x := by
+  iintro ⟨Hst, Hx⟩
+  unfold rdEnt
+  icases Hx with ⟨%Φ, %ks, #HΦ, #Hlin, %hp, Hr⟩
+  obtain ⟨hw, hks, hall⟩ := hp
+  have hp' : x.2.2.1.1.1 = false ∧ (∀ k ∈ ks ++ [(es ++ ns ++ [e]).length], k ≤ (es ++ ns ++ [e]).length) ∧
+      ∀ k, x.2.2.2 ≤ k → k ≤ (es ++ ns ++ [e]).length →
+        service.lastCmd ((es ++ ns ++ [e]).take k) → k ∈ ks ++ [(es ++ ns ++ [e]).length] := by
+    refine ⟨hw, ?_, ?_⟩
+    · intro k hk
+      simp only [List.mem_append, List.mem_singleton] at hk
+      rcases hk with hk | rfl
+      · have := hks k hk; simp only [List.length_append, List.length_cons, List.length_nil]; omega
+      · exact Nat.le_refl _
+    · intro k h0 hle hl
+      simp only [List.mem_append, List.mem_singleton]
+      by_cases hk : k ≤ es.length
+      · left; rw [take_step es ns e k hk] at hl; exact hall k h0 hk hl
+      · by_cases hk2 : k = (es ++ ns ++ [e]).length
+        · right; exact hk2
+        · exfalso; exact not_lastCmd_mid es ns e hns k (by omega) (by omega) hl
+  icases Hr with (Ht | Hks)
+  · imodintro
+    iframe Hst
+    iexists Φ, ks ++ [(es ++ ns ++ [e]).length]
+    iframe HΦ Hlin
+    isplitr
+    · ipureintro; exact hp'
+    ileft; iexact Ht
+  · imod read_fire g.st x.2.2.1 Φ _ hw $$ [$Hlin $Hst] with ⟨Hst, HΦo⟩
+    imodintro
+    iframe Hst
+    iexists Φ, ks ++ [(es ++ ns ++ [e]).length]
+    iframe HΦ Hlin
+    isplitr
+    · ipureintro; exact hp'
+    iright
+    iapply BigSepL.bigSepL_snoc.2
+    isplitl [Hks]
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hks
+      intro j k hj
+      rw [take_step es ns e k (hks k (List.mem_of_getElem? hj))]
+    · rw [List.take_length]
+      iexact HΦo
+
+/-- **The read escrow follows a frontier step** (`rdEnt_step` for every entry). -/
+theorem rds_step (g : KG) (es ns : RLog) (e : Entry) (hns : ∀ x ∈ ns, x.kind ≠ kCommand) :
+    ∀ RS : List RdX,
+    ghostVar (A := service.Reg) g.st (1 : Qp).half (regOf (es ++ ns ++ [e])) ∗
+      ([∗list] x ∈ RS, rdEnt g es x) ⊢
+      |={⊤ \ kitE}=> ghostVar (A := service.Reg) g.st (1 : Qp).half (regOf (es ++ ns ++ [e])) ∗
+        [∗list] x ∈ RS, rdEnt g (es ++ ns ++ [e]) x
+  | [] => by
+    iintro ⟨Hst, -⟩
+    imodintro
+    iframe Hst
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | x :: RS => by
+    iintro ⟨Hst, Hl⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hl with ⟨Hx, Hl⟩
+    imod rdEnt_step g es ns e hns x $$ [$Hst $Hx] with ⟨Hst, Hx⟩
+    imod rds_step g es ns e hns RS $$ [$Hst $Hl] with ⟨Hst, Hl⟩
+    imodintro
+    iframe Hst
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hx Hl
+
 /-- **The kit's clients' law** (`linStep`, which the FSMs' context asks for). -/
 theorem kitQ_linStep (γ : GNames) (g : KG) (fr : GName) :
     ⊢ service.linStep (GF := GF) γ (kitFC γ g fr) := by
@@ -223,7 +361,9 @@ theorem kitQ_linStep (γ : GNames) (g : KG) (fr : GName) :
   obtain ⟨hns, he⟩ := h
   simp only
   unfold kitQ
-  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hME, Hents⟩
+  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hME, Hents, HR⟩
+  iunfold rdsQ at HR
+  icases HR with ⟨%RS, HRa, HRs⟩
   obtain ⟨hME, hsh⟩ := hME
   have hk : (es ++ ns ++ [e])[(es ++ ns).length]? = some e := by simp
   ihave #He := service.cIdxs_lookup γ _ _ e hk $$ Hc
@@ -246,11 +386,14 @@ theorem kitQ_linStep (γ : GNames) (g : KG) (fr : GName) :
     subst Hag
     imod ghostVar_update_halves (regB.step i (regOf es)).1 g.st _ _ $$ Hs Hst with ⟨Hs, Hst⟩
     imod Hc2 $$ Hs with HΦo
+    rw [← regOf_fire es ns e i hns he hd]
+    imod rds_step g es ns e hns RS $$ [$Hst $HRs] with ⟨Hst, HRs⟩
+    ihave HR : rdsQ g (es ++ ns ++ [e]) $$ [HRa HRs]
+    · unfold rdsQ; iexists RS; iframe HRa HRs
     imod Hclose
     imodintro
     iexists M, E
-    iframe Hinv Hops HE
-    rw [regOf_fire es ns e i hns he hd]
+    iframe Hinv Hops HE HR
     iframe Hst
     isplitr
     · ipureintro
@@ -359,10 +502,11 @@ the output once the frontier has passed the command. -/
 def kitTicket (g : KG) (d : List w8) (i : HIn) (Φ : HOut → IProp GF) : IProp GF :=
   iprop(∃ γt γΦ : GName, d ↪[g.esc]□ (γt, γΦ, i) ∗ savedPredOwn γΦ .discard Φ ∗ token γt)
 
-/-- The clients' state's ghost state before the draw: the escrow's map (empty) and the model's half. -/
+/-- The clients' state's ghost state before the draw: the escrow's map (empty), the model's half and
+the read escrow's list (empty). -/
 def kitPre (g : KG) : IProp GF :=
   iprop(ghostMapAuth (K := List w8) (V := GName × GName × HIn) g.esc 1 ∅ ∗
-    ghostVar (A := service.Reg) g.st (1 : Qp).half none)
+    ghostVar (A := service.Reg) g.st (1 : Qp).half none ∗ monoListAuthOwn (A := RdX) g.rd 1 [])
 
 /-- **The kit's ghost state at the deployment's start**: `kitPre` (for the draw, `kitQ_init`), the
 model's other half (for the far side's store), the ids' invariant and the clients' counters `S`. -/
@@ -373,6 +517,7 @@ theorem kit_start (S : GMap Nat Nat) :
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName × HIn) with ⟨%γe, HE⟩
   imod ghost_map_alloc (GF := GF) S with ⟨%γq, HS, Hfr⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat × Nat) (V := Unit) with ⟨%γi, HI⟩
+  imod mono_list_own_alloc (GF := GF) (A := RdX) [] with ⟨%γr, Hrd, -⟩
   icases (ghostVar_split_half (GF := GF) γs 1 (none : service.Reg)).1 $$ Hs with ⟨Hs1, Hs2⟩
   imod inv_alloc idN ⊤ iprop(∃ (S' : GMap Nat Nat) (I : GMap (Nat × Nat) Unit),
       ghostMapAuth (GF := GF) γq 1 S' ∗ ghostMapAuth γi 1 I ∗
@@ -383,10 +528,10 @@ theorem kit_start (S : GMap Nat Nat) :
     ipureintro
     intro c s h; cases h
   imodintro
-  iexists ⟨γs, γe, γq, γi⟩
+  iexists ⟨γs, γe, γq, γi, γr⟩
   iframe Hs2
-  isplitl [HE Hs1]
-  · iunfold kitPre; iframe HE Hs1
+  isplitl [HE Hs1 Hrd]
+  · iunfold kitPre; iframe HE Hs1 Hrd
   isplitr [Hfr]
   · unfold idInv; iexact Hinv
   unfold seqOwn
@@ -398,7 +543,7 @@ theorem kitQ_init (γ : GNames) (g : KG) :
     Inv (GF := GF) γ ∗ opsAuth γ ∅ ∗ kitPre g ⊢ kitQ γ g [] := by
   iintro ⟨#Hinv, Hops, Hpre⟩
   iunfold kitPre at Hpre
-  icases Hpre with ⟨HE, Hs1⟩
+  icases Hpre with ⟨HE, Hs1, Hrd⟩
   unfold kitQ
   iexists ∅, ∅
   iframe Hinv Hops HE
@@ -411,7 +556,13 @@ theorem kitQ_init (γ : GNames) (g : KG) :
     refine ⟨?_, ?_⟩
     · intro d n h; cases h
     · intro e he; cases he
-  iapply BI.BigSepM.bigSepM_empty.2
+  isplitr [Hrd]
+  · iapply BI.BigSepM.bigSepM_empty.2
+    itrivial
+  unfold rdsQ
+  iexists []
+  iframe Hrd
+  iapply BigSepL.bigSepL_nil.2
   itrivial
 
 /-- **The frontier's invariant at the draw**: the empty frontier (its ghost list `fr` allocated empty at
@@ -424,7 +575,7 @@ theorem frInv_init (γ : GNames) (g : KG) (fr : GName) :
   unfold service.frInv
   dsimp only [kitFC]
   imod inv_alloc service.frN ⊤ iprop(∃ es : RLog, monoListAuthOwn (A := Entry) fr 1 es ∗
-      service.cIdxs γ es ∗ ⌜service.lastCmd es⌝ ∗ kitQ γ g es) $$ [Hfr HQ] with #H
+      service.cIdxs γ es ∗ ⌜service.lastCmd es⌝ ∗ service.frDur γ es ∗ kitQ γ g es) $$ [Hfr HQ] with #H
   · inext
     iexists []
     iframe Hfr HQ
@@ -432,8 +583,10 @@ theorem frInv_init (γ : GNames) (g : KG) (fr : GName) :
     · unfold service.cIdxs
       iapply BigSepL.bigSepL_nil.2
       itrivial
-    ipureintro
-    intro e he; cases he
+    isplitr
+    · ipureintro
+      intro e he; cases he
+    unfold service.frDur; ileft; ipureintro; rfl
   imodintro
   iexact H
 
@@ -502,11 +655,11 @@ theorem kit_register (γ : GNames) (g : KG) (fr : GName) (d : List w8) (i : HIn)
       |={⊤}=> ∃ n, opTok γ d n ∗ kitTicket g d i Φ := by
   iintro ⟨#Hfr, Hlc, Hid, Hupd⟩
   unfold service.frInv
-  iinv Hfr with ⟨%es, >Hauth, >#Hc, >%Hlast, HQ⟩ Hclose
+  iinv Hfr with ⟨%es, >Hauth, >#Hc, >%Hlast, >#Hfd, HQ⟩ Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑service.frN) $$ Hlc HQ with HQ
   simp only [kitFC]
   unfold kitQ
-  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hpure, Hents⟩
+  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hpure, Hents, HR⟩
   obtain ⟨hME, hsh⟩ := hpure
   ihave %hE : ⌜E.lookup d = none⌝ $$ [Hents Hid]
   · cases hx : E.lookup d with
@@ -531,14 +684,14 @@ theorem kit_register (γ : GNames) (g : KG) (fr : GName) (d : List w8) (i : HIn)
   imod token_alloc (GF := GF) with ⟨%γt, Ht⟩
   imod saved_pred_alloc (GF := GF) Φ DFrac.discard DFrac.valid_discard with ⟨%γΦ, #HΦ⟩
   imod ghost_map_insert_persist d (γt, γΦ, i) hE $$ HE with ⟨HE, #Hel⟩
-  imod Hclose $$ [Hauth Hops HE Hst Hents Hupd Hid] with -
+  imod Hclose $$ [Hauth Hops HE Hst Hents Hupd Hid HR] with -
   · inext
     iexists es
-    iframe Hauth Hc
+    iframe Hauth Hc Hfd
     isplitr
     · ipureintro; exact Hlast
     iexists M.insert d L.length, E.insert d (γt, γΦ, i)
-    iframe Hinv Hops HE Hst
+    iframe Hinv Hops HE Hst HR
     isplitr
     · ipureintro
       refine ⟨?_, hsh⟩
@@ -606,14 +759,14 @@ theorem kit_claim (γ : GNames) (g : KG) (fr : GName) (d : List w8) (i : HIn) (�
   ihave %hlast' := cIdxs_last γ es' k e hlen $$ [Hc' He]
   · iframe #
   unfold service.frInv
-  iinv Hfr with ⟨%es, >Hauth, >#Hc, >%Hlast, HQ⟩ Hclose
+  iinv Hfr with ⟨%es, >Hauth, >#Hc, >%Hlast, >#Hfd, HQ⟩ Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑service.frN) $$ Hlc1 HQ with HQ
   unfold service.frLb
   simp only [kitFC]
   ihave %Hpre := mono_list_auth_lb_valid fr 1 es es' $$ Hauth Hlb
   obtain ⟨-, hpre'⟩ := Hpre
   unfold kitQ
-  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hpure, Hents⟩
+  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hpure, Hents, HR⟩
   obtain ⟨hME, hsh⟩ := hpure
   ihave %hx := ghost_map_lookup $$ HE Hel
   icases (BI.BigSepM.bigSepM_lookup_acc hx).1 $$ Hents with ⟨⟨%hd, Hid, Hent⟩, Hback⟩
@@ -640,14 +793,14 @@ theorem kit_claim (γ : GNames) (g : KG) (fr : GName) (d : List w8) (i : HIn) (�
     rw [hpre1, hpre', hkk, hlen]
   subst hes
   icases Hr with (HΦo | Ht')
-  · imod Hclose $$ [Hauth Hops HE Hst Hback Ht Hid] with -
+  · imod Hclose $$ [Hauth Hops HE Hst Hback Ht Hid HR] with -
     · inext
       iexists es
-      iframe Hauth Hc
+      iframe Hauth Hc Hfd
       isplitr
       · ipureintro; exact Hlast
       iexists M, E
-      iframe Hinv Hops HE Hst
+      iframe Hinv Hops HE Hst HR
       isplitr
       · ipureintro; exact ⟨hME, hsh⟩
       iapply Hback

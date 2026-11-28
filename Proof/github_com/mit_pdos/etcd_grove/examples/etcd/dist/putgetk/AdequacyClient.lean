@@ -40,7 +40,6 @@ set_option maxHeartbeats 1600000 in
 /-- **The client machine's boot** (see the file header). -/
 theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (ep : GoString) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (Γ : etcd_dist.DistView) (mid : w64) :

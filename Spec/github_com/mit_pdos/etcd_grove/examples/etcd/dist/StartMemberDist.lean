@@ -59,7 +59,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- **`StartMember` on a member machine** (PLACEHOLDER for S5; see the file header), at S5's names `S5`. -/
 abbrev StartMember_dist.spec [π : Net.NetProtoGS] (S5 : S5Draft (G := hG.goose_globalGS) GF) : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
+  ∀ (N : Nat) (name peerAddr client token : GoString)
     (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)

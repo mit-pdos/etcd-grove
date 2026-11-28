@@ -9,8 +9,10 @@ carry nothing). The requests' facts are what the API's method specs ask (`servic
 * `AddVoter`, `AddNonvoter`, `DemoteVoter`, `RemoveServer`: the ID of a protocol server (`γ.srvs`),
   at its address (its ID) for an addition; `LeadershipTransfer`: an empty ID, or a protocol server at
   its address; `Snapshot`, `Status`: nothing. Their replies carry nothing.
-* `Read` (S6): no request facts and no reply facts yet; S6 states the reads' (a read's `□ lin`, and
-  the answer at the frontier).
+* `Read` (S6): a gprot snapshot `sc` the read began after, covering its registration frontier of length
+  `n0` (`n0 ≤ sc.maxDur`), and the read's claim `rdClaim` (`ApiDefs.lean`: the clients' read escrow,
+  `KitRead.lean`), for the continuation `Ψ` of the reply's found/value; the reply's facts are
+  `Ok → Ψ Found V` (notes/dsv-hraft.md, "S6").
 -/
 module
 
@@ -72,8 +74,10 @@ def apiSvc (γ : GNames) (fc : FCtx GF) : net.rpc.MethodSpec GF :=
         answers (fun rep => iprop(∃ r : ApplyReplyV, ⌜rep = encApplyReply r⌝ ∗
           applyOut γ fc v.data n (applyRepOf r))) Φ)
     else if m = go!"Read" then
-      iprop(∃ v : ReadArgsV, ⌜bs = encReadArgs v⌝ ∗
-        answers (fun rep => iprop(∃ r : ReadReplyV, ⌜rep = encReadReply r⌝)) Φ)
+      iprop(∃ (v : ReadArgsV) (n0 : Nat) (sc : Snap) (Ψ : Bool → List w8 → IProp GF),
+        ⌜bs = encReadArgs v⌝ ∗ histLb γ sc ∗ ⌜n0 ≤ sc.maxDur⌝ ∗ rdClaim γ fc n0 Ψ ∗
+        answers (fun rep => iprop(∃ r : ReadReplyV, ⌜rep = encReadReply r⌝ ∗
+          (⌜r.ok = true⌝ -∗ Ψ r.found r.v))) Φ)
     else if m = go!"AddVoter" then adminDep (fun v => iprop(⌜addReqW γ v⌝)) bs Φ
     else if m = go!"AddNonvoter" then adminDep (fun v => iprop(⌜addReqW γ v⌝)) bs Φ
     else if m = go!"DemoteVoter" then adminDep (fun v => iprop(⌜srvReqW γ v⌝)) bs Φ
@@ -102,7 +106,7 @@ theorem apiSvc_Apply_enc γ fc bs Φ :
 theorem apiSvc_Read_enc γ fc bs Φ :
     apiSvc (GF := GF) γ fc go!"Read" bs Φ ⊢ ⌜∃ v, bs = encReadArgs v⌝ := by
   unfold apiSvc; rw [if_neg (by decide), if_pos rfl]
-  iintro ⟨%v, %h, -⟩
+  iintro ⟨%v, %n0, %sc, %Ψ, %h, -⟩
   ipureintro; exact ⟨v, h⟩
 
 theorem apiSvc_Status_enc γ fc bs Φ :

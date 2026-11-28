@@ -97,10 +97,7 @@ orchestrator machine and its client machines), is robust: no thread of any machi
 an unrecovered panic. -/
 def etcd_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-    -- carried over from the single-process theorems (review F7); each to go when its model is proved
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     -- the deployment (checked by the programs, not a premise)
     (d : Deployment)
@@ -126,9 +123,7 @@ machine crashing (`Robust []` over every machine: members, orchestrators, client
 theorem `etcd_safe` implies it. -/
 def etcd_robust_nocrash.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     (d : Deployment)
     (boot : List LogEntry) (Hbf : BootFacts d boot)

@@ -9549,3 +9549,25 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   strengthening: `R := C.enc args Ψ` gives the old spec). `Conn.Call.wp_proof` and `Transport.send` (its only
   caller) updated; no top-level statement changes.
 - **Decision.** Untrusted spec, proved here (S5f, #48).
+
+## 2026-11-28: the hraft kit's reads outside the log: `frInv`, `isStore`, `NewStore.spec`, `apiSvc`'s `Read`, `readCall.law` (hraft S6)
+
+- **Specs.** `Dsverify/Proof/.../hraftnet/service/FsmDefs.lean` (`frInv`, `isStore`, `frontier_apply`),
+  `Dsverify/Spec/.../hraftnet/service/NewStore.lean`, `ApiDefs.lean` (`apiMuInv`, `isAPI`), `ApiSvc.lean`
+  (`apiSvc`'s `Read`), `ClientDeps.lean` (`readCall.law`); all untrusted, proved.
+- **Defect.** Too weak for a read outside the log to linearize: (1) a read registered at the frontier must
+  find the frontier within the gprot snapshot it gives `Barrier`/`VerifyLeader` (whose bounds speak of the
+  servers' durable prefixes at the snapshot), and `frInv` kept only that the frontier is committed; (2)
+  `apiSvc`'s `Read` carried no facts, so its answer said nothing; (3) `API.Read`'s `WayVerify` skips the barrier
+  in a term whose barrier it saw complete (`barrierIn`), and `isAPI`'s mutex invariant kept only the term.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/service/service.go`: `API.Read`; raft's
+  `barrierOk`/`verifyOk` (`core/Defs.lean`); the lab's hr3 `readAt` (241f27e).
+- **Change.** (1) `frInv` holds `frDur γ es` (a server's durable prefix covers the frontier, `durLb`);
+  `frontier_apply` takes the moving server's `isSrv γ i ∗ durLb γ i |es'|` (`Store.Apply` has both: `isStore`
+  now holds `isSrv γ i`, and `NewStore.spec`'s premise gains `isSrv γ i`, which `Server` has). (2) `apiSvc`'s
+  `Read` deposit carries a snapshot `sc` covering the read's registration frontier and the claim `rdClaim`, its
+  reply `Ok → Ψ Found V` (design: `notes/dsv-hraft.md`, "S6"). (3) `apiMuInv` keeps `barrierFact` of the term
+  (`New` starts it at `0`). `readCall.law`'s premise gains `drawInv K ∗ £ 1 ∗ £ 1` (the server's registration of
+  the read); the law is proved (`readCall_law_holds`), no longer a hypothesis of `Sys.try.wp_proof`. No
+  top-level statement changes; no axiom.
+- **Decision.** Untrusted specs, proved here (S6, #48).
