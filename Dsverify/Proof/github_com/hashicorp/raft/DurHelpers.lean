@@ -100,6 +100,21 @@ theorem gprotN_diff_cidxN_durN : (↑gprotN : CoPset) ⊆ (⊤ \ ↑cidxN) \ ↑
   gprotN_sub_diff "dur" gprotN_diff_cidxN
 theorem gprotN_diff_durN : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
 
+/-- Writing the `CurrentTerm` key of the stable store keeps the last vote. -/
+theorem voteMatches_ct (D : StableAbs) (s : SState) (v : w64) (h : voteMatches D s) :
+    voteMatches { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) v } s := by
+  unfold voteMatches at *
+  simp only [GMap.lookup_insert_eq_iff]
+  rw [if_neg (by decide)]
+  exact h
+
+/-- The stored `CurrentTerm` after writing `v`. -/
+theorem ct_insert (D : StableAbs) (v : w64) :
+    ((D.ints.insert (go!"CurrentTerm" : List w8) v).lookup (go!"CurrentTerm" : List w8)).getD (W64 0) =
+      v := by
+  simp only [GMap.lookup_insert_eq_iff, if_pos, Option.getD_some]
+
+
 section dur
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

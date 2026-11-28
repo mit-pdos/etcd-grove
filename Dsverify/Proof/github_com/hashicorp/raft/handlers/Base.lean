@@ -220,12 +220,21 @@ theorem aeRespP_intro (γ : GNames) (i : SID) (T k : Nat) (hb : Prop) (ss : Snap
   iexists i; iexact Hh
 
 open proto gprot in
-/-- Writing the `CurrentTerm` key of the stable store keeps the last vote. -/
+/-- Writing the `CurrentTerm` key of the stable store keeps the last vote, for a term that does
+not go down (hraft_robust R4a: `voteMatches` admits a torn vote of a term below the current one). -/
 theorem voteMatches_term (sst : StableAbs) (s : SState) (v : w64) (t : Nat)
-    (h : voteMatches sst s) :
+    (h : voteMatches sst s) (ht : s.term ≤ t) :
     voteMatches { sst with ints := sst.ints.insert (go!"CurrentTerm" : List w8) v }
       { s with term := t } := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  unfold voteMatches at *
+  simp only [GMap.lookup_insert_eq_iff]
+  rw [if_neg (by decide)]
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨h1, ?_⟩
+  rcases h2 with h2 | h2 | h2
+  · exact Or.inl h2
+  · exact Or.inr (Or.inl (by omega))
+  · exact Or.inr (Or.inr h2)
 
 open proto gprot in
 /- hraft_robust L0: statement obsolete (its stage restates or deletes it)
