@@ -2,7 +2,7 @@
 # (#48). The roots are the Links of the raft package, of snapstore and of the kit
 # (Dsverify/Proof/github_com/hashicorp/raft/{,examples/snapstore/,examples/hraftnet/}Link.lean,
 # etc/gen-link.py --hraft, --hraft-snapstore, --hraft-kit: every proof applied to its callees'
-# results; the kit's over Net's proofs, remote's Link and the main tree's `strconv.Atoi_dec`); later
+# results; the kit's over Net's proofs, remote's Link and the main tree's `strconv.Atoi_dec`), and
 # the closed theorem `hraft_nocrash_robust` (examples/hraftnet/TopLevelRobustness.lean: twelve machines,
 # Robust [] under DistDeploy, no premise beyond the package assumptions). All of raft's 188 proofs are
 # linked (`io.Copy`'s two specs by Proof/io/Copy.lean, over Perennial's sync.Pool), and every proof of
@@ -17,4 +17,6 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Dsverify/Proof/github_com/hashicorp/
+axiom Perennial.net.http.wp_initialize'
+axiom Perennial.net.rpc.wp_initialize'
 opaque Perennial.net.http.godebugHttpmuxgo121
