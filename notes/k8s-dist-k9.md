@@ -355,7 +355,7 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `histHashes.canonLocked` (with `wp_hh_is`, the `is[n]` lookup under `hhInv`, and `take_succ_snoc`).
   Linked: `etc/link-lean-first-k8setcd3.txt` gains `mix strHash storeHash pendEqual histHashes__intern
   histHashes__canonLocked histHashes__canonical`; `Link.lean` regenerated (`etc/gen-link.py --k8setcd3`).
-  Build of record for `Link`: see the commit after this note.
+  Build of record: fk-lean2, target `...k8s.etcd3.Link` at `16fa883947` (the link commit), exit 0 (12207 jobs).
 - **`SharedDefs.lean` changes**: `ikey_safeMapKey`/`ckey_safeMapKey` (field-by-field `==`, as
   `client_go/util/consistency`'s keys); `arrayLiteralSize1` (shared by the proofs; one name per namespace,
   since `Link` imports every proof); `cfgSetOwn`'s buckets now record, for each index, that the list's
