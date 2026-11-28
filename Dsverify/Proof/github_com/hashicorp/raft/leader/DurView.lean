@@ -85,6 +85,48 @@ theorem durFact (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : ↑dur
   imodintro
   iframe
 
+/-- (hraft_robust R4b) **A crash-token update before a step**, as an entailment: run `P ⊢ |NC={E}=> Q`
+before the next step of a non-value `e` (`wp_ncfupd`). A proof applies it with the law and the
+continuation: `iapply wp_ncmod _ _ rfl (srvV_facts γ rc i s)`, then frames `P` and introduces `Q`. -/
+theorem wp_ncmod {E : CoPset} (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) {P Q : IProp GF}
+    (hPQ : P ⊢ |NC={E}=> Q) :
+    P ∗ (Q -∗ WP e @ E {{ Φ }}) ⊢ WP e @ E {{ Φ }} := by
+  iintro ⟨HP, HW⟩
+  iapply (wp_ncfupd _ _ h)
+  iintro Hnc
+  ihave H := hPQ $$ HP
+  imod H $$ Hnc with ⟨Hnc, HQ⟩
+  imodintro
+  iframe Hnc
+  iapply HW $$ HQ
+
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)] in
+/-- `gprot.srvOwn_facts` through the view. -/
+theorem srvV_facts (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={⊤}=> srvV rc s ∗ isSrv γ i ∗
+      ⌜(s.log = [] ∨ ent s.log 1 = some γ.g) ∧ s.dur.1 ≤ s.log.length ∧ s.cidx ≤ s.dur.1 ∧
+        s.vterm ≤ s.term ∧ (s.log ≠ [] → 1 ≤ s.term) ∧ s.term < 2 ^ 62 ∧ s.log.length < 2 ^ 62 ∧
+        (∀ k e, ent s.log k = some e → e.kind = kConfig → cfgValid γ.srvs (γ.cv e.data)) ∧
+        (∀ k e, ent s.log k = some e →
+          e.kind = kCommand ∨ e.kind = kNoop ∨ e.kind = kBarrier ∨ e.kind = kConfig)⌝ := by
+  have h := srvOwn_facts (GF := GF) γ (⊤ \ ↑durN) gprotN_diff_durN i s
+  iintro ⟨#HI, #Hd, Hv⟩
+  iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s iprop(Inv γ) _ h $$ [$Hd $Hv $HI]
+
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)] in
+/-- `gprot.llogIdx_leader` through the view. -/
+theorem srvV_llogIdx_leader (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (k : Nat) (e : Entry) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ∗ llogIdx γ s.term k e ⊢
+      |NC={⊤}=> srvV rc s ∗ ⌜ent s.log k = some e⌝ := by
+  have h : iprop(Inv (GF := GF) γ ∗ leaderIs γ s.term i ∗ llogIdx γ s.term k e) ∗ srvOwn γ i s ⊢
+      |={⊤ \ ↑durN}=> srvOwn γ i s ∗ ⌜ent s.log k = some e⌝ := by
+    iintro ⟨⟨#HI, #Hl, #Hx⟩, Hs⟩
+    iapply llogIdx_leader γ (⊤ \ ↑durN) gprotN_diff_durN i s k e
+    iframe; iframe #
+  iintro ⟨#HI, #Hd, Hv, #Hl, #Hx⟩
+  iapply durFact γ rc i (E := ⊤) (by solve_ndisj) s _ _ h $$ [$Hd $Hv]
+  iframe #
+
 end dur
 
 end github_com.hashicorp.raft

@@ -69,7 +69,13 @@ theorem dead_nb_clause' {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto 
 theorem mainOwnAt_state (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32) :
     mainOwnAt r γ rc i s st ⊢ ghostVar rc.names.state (1 : Qp).half st ∗
       (ghostVar rc.names.state (1 : Qp).half st -∗ mainOwnAt r γ rc i s st) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  unfold mainOwnAt
+  iintro ⟨%a, %sst, %cfg, %ccfg, %cidx, %li, %lch, %γl, %bs, %c, H1, -, H3, %H4, H5, Hst, H7⟩
+  iframe Hst
+  iintro Hst
+  iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, c
+  iframe
+  ipureintro; exact H4
 
 theorem github_com.hashicorp.raft.Raft.run.wp_proof
     (wp_getState : github_com.hashicorp.raft.raftState.getState.spec (GF := GF) (hG := hG))
