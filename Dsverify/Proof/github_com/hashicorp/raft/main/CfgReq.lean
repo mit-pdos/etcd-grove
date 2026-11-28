@@ -184,7 +184,6 @@ theorem mainOwnAt_cfgReq [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : GNam
         (by rw [ent_take _ _ _ (by omega)]; exact he') $$ H
     · ipureintro; exact hP.2 y e' (by omega) (by omega) he'
   isplitr; · unfold applLb; iexact Hax
-  isplitr; · iexact Hcx
   iintro Hcfgs
   iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, Nat.max c x
   iframe
