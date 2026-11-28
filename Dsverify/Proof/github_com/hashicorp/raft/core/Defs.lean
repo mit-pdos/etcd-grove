@@ -62,6 +62,9 @@ structure RNames where
   state : GName
   /-- `ghostVar (Nat × Nat)`: `lastLogIndex/Term` (`lastLock` ½, main goroutine ½). -/
   lastLog : GName
+  /-- (hraft_robust, R5 Q8) `dghostVar (Option (w64 × w64 × w64 × w64))`: `lastLock`'s fields pinned
+  during `NewRaft` (`some`, ½ the lock's invariant, ½ `NewRaft`); then `none`, discarded (in `raftCells`). -/
+  llb : GName
   /-- the FSM batch channel `fsmMutateCh` (SPSC: main goroutine → FSM goroutine). -/
   fsmCh : SpscNames
   /-- `ghostMap Nat Nat` (persistent elements): batch `n` of `fsmMutateCh` ends at index `k`. -/
@@ -416,7 +419,9 @@ def lastLockInv (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
       (if uint.nat li < uint.nat si then (uint.nat si, uint.nat st) else (uint.nat li, uint.nat lt)) ∗
     (⌜si = W64 0⌝ ∨ ∃ e : Entry, CIdx γ (uint.nat si) e ∗ ⌜e.term = uint.nat st⌝ ∗
       applLb rc (uint.nat si) ∗
-      (durLb γ i (uint.nat si) ∨ snapFollow γ i (uint.nat si) (uint.nat st))))
+      (durLb γ i (uint.nat si) ∨ snapFollow γ i (uint.nat si) (uint.nat st))) ∗
+    (dghostVar rc.names.llb DFrac.discard (none : Option (w64 × w64 × w64 × w64)) ∨
+      dghostVar rc.names.llb (DFrac.own (1 : Qp).half) (some (li, lt, si, st))))
 
 /-- A `sync.RWMutex` at `rw` guarding the fractional `P`: writers use the persistent guard,
 readers borrow a reader token from a quarter thread pool (namespace `N`) with their quarter
@@ -1101,7 +1106,7 @@ def pendPre (γ : GNames) (i : SID) (s : SState) : Pend → Prop
   | .trunc prev pt ents _ j => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
       j < ents.length ∧ prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1)
   | .fstore prev pt ents lci j lc => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
-      j < ents.length ∧ s.log.length = prev + j ∧
+      ((j < ents.length ∧ s.log.length = prev + j) ∨ (j = ents.length ∧ prev + j ≤ s.log.length)) ∧
       (∀ v, lc = some v → v ≤ prev + ents.length ∧ 0 < Min.min lci v)
   | .discard d => d.ℓ ≠ i ∧ 1 ≤ d.x ∧ ¬ prevMatch s.log d.x d.st
   | .vote _ li lt => s.vterm < s.term ∧ upToDate li lt s.log
@@ -1360,7 +1365,8 @@ instance raftConf_persistent r γ i : Persistent (raftConf (GF := GF) r γ i) :=
 /-- `isRaft`'s cells. -/
 def raftCells (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   iprop(termCell r γ rc i ∗ cidxCell r γ rc i ∗ srvDurInv γ rc i ∗ stateCell r rc ∗
-    appliedCell r rc ∗ cftCell r ∗ ltipCell r ∗ ⌜True⌝)
+    appliedCell r rc ∗ cftCell r ∗ ltipCell r ∗
+    dghostVar rc.names.llb DFrac.discard (none : Option (w64 × w64 × w64 × w64)))
 
 instance raftCells_persistent r γ rc i : Persistent (raftCells (GF := GF) r γ rc i) := by
   unfold raftCells; infer_instance
