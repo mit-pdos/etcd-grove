@@ -80,11 +80,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`isServer`'s fields but `w`** (persistent): `srvFieldsAt` without `s.w` (which `start` sets). -/
-def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
-      hookSpec γ ci TM v.hook ∗
+      hookSpec γ ci cl TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
@@ -92,11 +92,11 @@ def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
-      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci E)
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore ∗ srvBeHooked s γ ci cl E)
 
-instance srvFieldsBuilt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (v : SrvFields) :
-    Persistent (srvFieldsBuilt s γ ci TM E v) := by
+instance srvFieldsBuilt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (cl : Cluster)
+    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (v : SrvFields) :
+    Persistent (srvFieldsBuilt s γ ci cl TM E v) := by
   unfold srvFieldsBuilt; infer_instance
 
 /-- **`isServerReq`'s fields but `w` and `done`** (persistent; `srvReqFieldsAt` without them and
@@ -224,7 +224,10 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
+    ciApplying ci a t ∗
+    -- (keepfix (c)) the apply thread's mirror of the raft term field: 0 on a first start (`applyBuiltNA`'s)
+    ciRaftTerm γ.ci (W64 0) ∗
+    srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ srvApplyKVW E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKV`'s)
@@ -268,7 +271,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     IProp GF :=
   iprop(-- the server's views but the fields `start` sets
     "#Hci" ∷ isServerCI s γ ci γr.raft.raft.cl ∗
-    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E v) ∗
+    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci γr.raft.raft.cl TM E v) ∗
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗

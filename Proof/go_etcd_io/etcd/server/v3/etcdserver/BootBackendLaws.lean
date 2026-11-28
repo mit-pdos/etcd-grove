@@ -45,15 +45,16 @@ abbrev bootstrapBackend.existFree.law : Prop :=
 premise at the open"), at any names `γ` whose protocol invariant is allocated. `bootstrapBackend.spec`
 states it in its post (`bootBackendRows`), so its proof must make it; no callee's spec gives it
 (the real backend's `ReadTx` is not proved to meet `metaReadTx` at `readView`). The same text is
-`srvMetaSnap γ` (`InvRunRes.lean`). -/
+`srvMetaSnap cl γ` (`InvRunRes.lean`). (keepfix (c), S2: at the cluster `cl`, the lock resource `metaTMR cl π`, and
+the raft-term key the one opened with.) -/
 abbrev bootstrapBackend.metaSnap.law : Prop :=
-  ∀ γA : ApplyNames, inv applyN (consInv (GF := GF) γA) ⊢
+  ∀ (cl : Cluster) (γA : ApplyNames), inv applyN (consInv (GF := GF) γA) ⊢
     □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
         backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
         □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTMR cl π γB P)) b -∗
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γA.withPh π)))

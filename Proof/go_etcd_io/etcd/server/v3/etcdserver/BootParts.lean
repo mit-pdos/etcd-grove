@@ -414,36 +414,39 @@ def bootClusterDone (U : BootURLs) (cfg : go_etcd_io.etcd.server.v3.config.Serve
 bucket empty (`HD`), every rest bucket empty or absent (`HDr`'s first part), and `Meta` empty
 (`HmEmpty`). `Finalize`'s buckets come after (`bootGo.withMemBkts`). -/
 def bootBackendData (γA : ApplyNames) (d : mvcc.KBReal) (D : backend.Data) : Prop :=
-  metaIs D γA.m0 ∧ mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅ ∧
+  metaIs D γA.m0 ∧ metaRaftTermOf D = γA.rk0 ∧ mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅ ∧
     (∀ n ∈ mvcc.restBuckets, (D.lookup n).getD ∅ = ∅) ∧
     (D.lookup go_etcd_io.etcd.server.v3.storage.schema.metaName).getD ∅ = ∅
 
 /-- **The backend constructor's post at the server's resources**, `bootOk`'s `Hnew` (`backend.New`'s
 `newPostK` at the apply protocol `γA`'s batch lock, the store's late registration, and `bootLeft N`),
 over the data `D`. -/
-def bootBackendNew (N : Nat) (γA : ApplyNames) (d : mvcc.KBReal) (D : backend.Data) : IProp GF :=
+def bootBackendNew (cl : Cluster) (N : Nat) (γA : ApplyNames) (d : mvcc.KBReal) (D : backend.Data) :
+    IProp GF :=
   backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
-    (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D
+    (fun γB => batchLockInv γA (metaTMR cl γA.ph γB d.P)) (bootLeft N) d.be D
 
 /-- **The rows of `bootOk` that `bootstrapBackend` makes, but `Hnew`** (`bootstrap.go:259-309`):
-`Hci HisCI Hcons Hbh Hthr Happ Hown Hmeta HmetaSnap Hbe HhkAt Hlate Hpath Hbfile`, verbatim. -/
+`Hci HisCI Hcons Hbh Hthr Happ Hown Hrt Hmeta HmetaSnap Hbe HhkAt Hlate Hpath Hbfile`, verbatim (keepfix (c): at
+the cluster `cl`, the triple predicate `srvCITriple0 cl`, the raft-term mirror `Hrt`). -/
 def bootBackendRows (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (bk : bootstrappedBackend)
-    (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal) (CP : w64 → w64 → IProp GF)
+    (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal) (cl : Cluster)
     (Rw : TRow GF := TRow.triv) : IProp GF :=
   iprop("%Hci" ∷ ⌜bk.ci' = ciIface cil⌝ ∗
-    "#HisCI" ∷ isCI cil γA.ci CP ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
+    "#HisCI" ∷ isCI cil γA.ci (srvCITriple0 cl) ∗ "#Hcons" ∷ inv applyN (consInv γA Rw) ∗
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
     "Hthr" ∷ applyThread γA ⟨γA.m0.1, γA.m0.1, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
+    "Hrt" ∷ ciRaftTerm γA.ci (W64 0) ∗
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
     "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
-        ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
+        ⌜ciKeys P ∧ metaIs D π.m0 ∧ metaRaftTermOf D = π.rk0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
         backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
         backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ∗
         □ ∀ (W : IProp GF) (b : Loc),
-          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTM γB P)) b -∗
+          backend.isBackend γB P W (batchLockInv (γA.withPh π) (metaTMR cl π γB P)) b -∗
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γA.withPh π))) ∗
@@ -508,14 +511,14 @@ created keeps the meta keys, the empty `Key` bucket and the empty `Meta`, its re
 and the three membership buckets are present and empty: `bootOk`'s `Hm0 HD HDr HmEmpty`. -/
 theorem bootBackendData_withMemBkts (γA : ApplyNames) (d : mvcc.KBReal) (D : backend.Data)
     (h : bootBackendData γA d D) :
-    metaIs (bootGo.withMemBkts D) γA.m0 ∧
+    metaIs (bootGo.withMemBkts D) γA.m0 ∧ metaRaftTermOf (bootGo.withMemBkts D) = γA.rk0 ∧
     mvcc.keyView (backend.vData d.P (bootGo.withMemBkts D, ⟨∅, W64 0⟩)) ∅ ∧
     ((∀ n ∈ mvcc.restBuckets, ((bootGo.withMemBkts D).lookup n).getD ∅ = ∅) ∧
       (bootGo.withMemBkts D).lookup go!"members" = some ∅ ∧
       (bootGo.withMemBkts D).lookup go!"members_removed" = some ∅ ∧
       (bootGo.withMemBkts D).lookup go!"cluster" = some ∅) ∧
     ((bootGo.withMemBkts D).lookup go_etcd_io.etcd.server.v3.storage.schema.metaName).getD ∅ = ∅ := by
-  obtain ⟨hm, hk, hr, he⟩ := h
+  obtain ⟨hm, hrk, hk, hr, he⟩ := h
   have hb : ∀ n, (n = go!"cluster" ∨ n = go!"members_removed" ∨ n = go!"members") →
       backend.bktOf D n = ∅ := by
     intro n hn
@@ -545,8 +548,9 @@ theorem bootBackendData_withMemBkts (γA : ApplyNames) (d : mvcc.KBReal) (D : ba
     apply GMap.ext
     intro nk
     simp only [backend.vData, backend.vOf, hdget]
-  refine ⟨?_, hv ▸ hk, ⟨?_, ?_, ?_, ?_⟩, ?_⟩
+  refine ⟨?_, ?_, hv ▸ hk, ⟨?_, ?_, ?_, ?_⟩, ?_⟩
   · unfold metaIs; rw [hdget]; exact hm
+  · unfold metaRaftTermOf; rw [hdget]; exact hrk
   · intro n hn
     rw [hl n]
     split
@@ -587,10 +591,10 @@ theorem bootOk_of_parts (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U
       snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
       snapFreeAll (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
       bootRaftBuilt cfg U bv ∗ bootClusterDone U cfg bc.cl' d.be ∗
-      bootBackendRows cfg bk γA cil d (srvCIPair γ.cl) ∗ bootBackendNew N γA d (bootGo.withMemBkts D) ⊢
+      bootBackendRows cfg bk γA cil d γ.cl ∗ bootBackendNew γ.cl N γA d (bootGo.withMemBkts D) ⊢
     bootOk cfg γ (bootGo.id cfg U) (bootGo.ctxs U cfg.InitialClusterToken') N
       (bootGo.dir U cfg.InitialClusterToken') b := by
-  obtain ⟨hm0, hkv, hdr, hme⟩ := bootBackendData_withMemBkts γA d D hD
+  obtain ⟨hm0, hrk0, hkv, hdr, hme⟩ := bootBackendData_withMemBkts γA d D hD
   obtain ⟨-, hnd, hnz, hin⟩ := hok
   iintro ⟨Hb, Hsto, Hbk, Hbw, Hbc, Hbv, %Hprt, Hwal, #Hss, Hsdo, Hsfree, Hr, Hcl, Hbe, Hnew⟩
   iunfold bootRaftBuilt at Hr
@@ -609,7 +613,7 @@ theorem bootOk_of_parts (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U
   iunfold srvMembersDir at Hmembers
   iframe Hb Hsto Hbk Hbw Hbc Hbv Hwal Hss Hsdo Hsfree Hc Hlok Hreg Hrauth Hmlock Hlog0 Hend Hsnone
     Hfresh Hpeers Hctx Hcl Hrc Hcid Hclg Hvcn Hrms Hmembers Hisc HclBe Hmem HisCI
-    Hcons Hbh Hthr Happ Hown Hmeta HmetaSnap HhkAt Hnew Hlate Hpath Hbfile Hsmeta
+    Hcons Hbh Hthr Happ Hown Hrt Hmeta HmetaSnap HhkAt Hnew Hlate Hpath Hbfile Hsmeta
   obtain ⟨hcfg, hhb, hlg, hcid⟩ := Hraft
   isplitr
   · ipureintro; exact Hprt
@@ -629,7 +633,7 @@ theorem bootOk_of_parts (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U
   isplitr
   · ipureintro; exact Hbe
   isplitr
-  · ipureintro; exact hm0
+  · ipureintro; exact ⟨hm0, hrk0⟩
   isplitr
   · ipureintro; exact hkv
   isplitr

@@ -622,7 +622,9 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
         -- `isBackend` carries it)
         ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-        wal.bootRes cfg }}
+        wal.bootRes cfg ∗
+        -- (keepfix (c), 2026-11-28) a committed entry of the cluster has a non-zero term (`bootstrap.spec`'s)
+        srvTermPos γ.cl }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))

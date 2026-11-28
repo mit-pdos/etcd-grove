@@ -214,7 +214,7 @@ def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     IProp GF :=
   iprop("#Hci" ∷ isServerCI s γ ci γr.raft.raft.cl ∗
-    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E v) ∗
+    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci γr.raft.raft.cl TM E v) ∗
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuiltM C.isOn s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗

@@ -54,21 +54,23 @@ directory's length bound is `cfg.BackendPath()`'s spec's (`bootstrap` derives it
 abbrev bootstrapBackend.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (N : Nat)
-    -- (keepfix-d) the consistent index's pair predicate (`isCI cil γA.ci CP`; a fresh backend's pair is
-    -- `(0, 0)`, so any)
-    (CP : w64 → w64 → IProp GF),
+    -- (keepfix (c)) the server's cluster: the consistent index's triple predicate `srvCITriple0 cl` and
+    -- the batch lock's resource `metaTMR cl` (until then any pair predicate `CP`)
+    (cl : Cluster),
   cfg.DataDir'.length < 2 ^ 60 →
   bootCfgOk cfg → N + 7 + bootWB ≤ backend.wbInit → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       zapLoggerOk cfg.Logger' ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-      ⌜EtcdVerifyOff⌝ ∗ backend.fileFree (config.backendPathOf cfg.DataDir') }}
+      ⌜EtcdVerifyOff⌝ ∗ backend.fileFree (config.backendPathOf cfg.DataDir') ∗
+      -- (keepfix (c)) a committed entry's term is not 0: what the hooks need to keep `metaTMR`
+      srvTermPos cl }}
     (App (App (Val (@! bootstrapBackend)) (Val #cfg)) (Val #false))
   {{ (bkl : Loc) (err : GoInterface), RET (PairV #bkl #err);
       ⌜err = GoInterface.nil⌝ ∗
       ∃ (bk : bootstrappedBackend) (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal) (D : backend.Data),
         bkl ↦ bk ∗ ⌜bk.snapshot' = null ∧ bootBackendData γA d D⌝ ∗
-        bootBackendRows cfg bk γA cil d CP ∗ bootBackendNew N γA d D ∗ backend.wbTok d.γB }}
+        bootBackendRows cfg bk γA cil d cl ∗ bootBackendNew cl N γA d D ∗ backend.wbTok d.γB }}
 
 end spec
 

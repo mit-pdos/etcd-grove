@@ -574,15 +574,16 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
 R2b-3d stage 3; until then `backend.isStopChansE`, at some resources): the lock's resource
 `mvcc.api.mvccW d.gx` (the store's write invariant at its registration name; the mvcc merge,
 2026-11-06: until then `mvcc.lateWD d`, `bootstrap`'s `lateWB` or a walked backend's, F2's) and the
-batch lock's client resource at the apply thread's names `γA` (`batchLockInv γA (metaTM d.γB d.P)`),
+batch lock's client resource at the apply thread's names `γA` (`batchLockInv γA (metaTMR cl γA.ph d.γB d.P)`;
+keepfix (c): at the server's cluster `cl`, the resource `srvBeHooked` names; until then `metaTM d.γB d.P`),
 what `NewServer` and the snapshot walk open it with. `Cleanup`'s `backend.Close` gives the stopped
 lock's view at them (`bStopView`), which the apply thread's halves observe (the stop image). -/
-def srvStopChans (γA : ApplyNames) (d : mvcc.KBReal) : IProp GF :=
-  iprop(backend.isBackend d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be ∗
-    backend.isStopChans d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be)
+def srvStopChans (cl : Cluster) (γA : ApplyNames) (d : mvcc.KBReal) : IProp GF :=
+  iprop(backend.isBackend d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTMR cl γA.ph d.γB d.P)) d.be ∗
+    backend.isStopChans d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTMR cl γA.ph d.γB d.P)) d.be)
 
-instance srvStopChans_persistent (γA : ApplyNames) (d : mvcc.KBReal) :
-    Persistent (srvStopChans (GF := GF) γA d) := by
+instance srvStopChans_persistent (cl : Cluster) (γA : ApplyNames) (d : mvcc.KBReal) :
+    Persistent (srvStopChans (GF := GF) cl γA d) := by
   unfold srvStopChans; infer_instance
 
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
@@ -597,11 +598,11 @@ backend's `Close` goroutine takes them), the alarm store's field (until 2026-11-
 (2026-11-04, the restart plan's R2b-3d) the backend's file there. (Until strict M1, 2026-11-06,
 also the KV's closer, `srvKVCloserW`, for `store.Restore`: over the API, `Restore` takes mvcc's
 open token, the apply thread's `apply.cmpOwn`.) -/
-def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) : IProp GF :=
+def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) (cl : Cluster) : IProp GF :=
   iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
     ⌜E.BkTie = srvBkTie d⌝ ∗
     -- (2026-11-04, the restart plan's R2b-3d stage 3) at the server's own resources (`srvStopChans`)
-    srvStopChans γA d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+    srvStopChans cl γA d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     -- MERGE-TODO(close): `lean`'s `srvKVCloserW s E` was here (see above)
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.bPath d.γB.db (config.backendPathOf dd) ∗
@@ -612,7 +613,7 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) : IProp GF :=
 removal counter (restart S6a; until then the snapshot-taken counter), its authority at `0` (until J8a-6, 2026-11-01, the reader-slot stock);
 (D22 J1b) the backend's own resources (`srvSnapRes`). -/
 def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames) : IProp GF :=
-  iprop(∃ γm : GName, srvSnapRO s ci E γr γm ∗ monoNatAuthOwn γm 1 0 ∗ srvSnapRes s E γA)
+  iprop(∃ γm : GName, srvSnapRO s ci E γr γm ∗ monoNatAuthOwn γm 1 0 ∗ srvSnapRes s E γA γr.raft.raft.cl)
 
 /-- **The apply thread's snapshot resources at the applied index `ai`** (D22 J1b, 2026-10-31;
 `notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the member's removal counter
@@ -717,7 +718,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗
     -- MERGE-TODO(close): `lean`'s `srvKVCloserW s E'` was here (the KV's closer; over the API, the
     -- apply thread's `mvccOpen E'.γ` in `srvApplyKV`)
-    srvStopChans γ' d' ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    srvStopChans γr.raft.raft.cl γ' d' ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γm 1 (uint.nat sv.Metadata'.Index' + 1) ∗
     backend.bPath d'.γB.db bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗

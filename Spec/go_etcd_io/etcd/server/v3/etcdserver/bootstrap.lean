@@ -74,7 +74,11 @@ abbrev bootstrap.spec : Prop :=
       zapLoggerOk cfg.Logger' ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
       ⌜EtcdVerifyOff⌝ ∗ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-      wal.bootRes cfg }}
+      wal.bootRes cfg ∗
+      -- (keepfix (c), 2026-11-28) a committed entry of the cluster has a non-zero term (`srvTermPos`, from
+      -- raft's `isCommittedLogLb_term_pos` at the caller's `isCluster`): what the backend hooks `bootstrap`
+      -- builds need to keep the batch lock's resource `metaTMR γ.cl` across a save
+      srvTermPos γ.cl }}
     (App (Val (@! bootstrap)) (Val #cfg))
   {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
       ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗
