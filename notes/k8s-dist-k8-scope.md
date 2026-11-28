@@ -116,3 +116,34 @@ until K9 lands, then `lean`. Builds under `systemd-run --scope -p MemoryMax=56G`
    rebuild at the end, not per edit.
 
 Not now: K8-5's dist half, K8-7 end to end, the `Txn` error arm (wait for D1-D3 and GAP-2's rule-#8 approval).
+
+## Handoff K8-1 (2026-11-28)
+
+Branch `k8s-dist-k8/2026-11-28`: `k8s-dist-k9/2026-11-28` (@ `d0a5e7e1d2`) merged in; the three risk tests of §3
+in `examples/k8s/dist/risk_test.go` (test file only; each run a child process with fresh one-member etcds,
+`go1.27.3`). All passed, no failure:
+
+- **`TestCompactedProvenance`** (risk 1): 100 runs, 110 s; 168,000 operations (4 clients × 400, 2 watchers × 40),
+  8,230 compactions at the current revision (about one per ms of run). 4,871 compacted answers: 4,823 under
+  `PastRead`, 48 under `PinnedRead` only, **0 at no old revision**. By kind: list 4,822, watch 49 (no Get or
+  write ever answered compacted). Risk 1 not observed.
+- **`TestForeignHeavy`** (risk 2): 120 runs, 140 s, cycling modes `throughout` / `tail` (foreign writer from the
+  last unary answer on) / `none` (no foreign writer), 40 each; 50,400 store operations, 260,141 foreign
+  revisions (≈10 per store operation in the foreign modes). `CheckShared` Ok in all 120 (lazy model).
+  `NoForeign` held in 8 `tail` and 4 `none` runs, never in `throughout`; `RealCheck` Ok in all 12. Note:
+  `NoForeign` is false in most runs even with no foreign writer (Gen's MinRVs above the last write's
+  revision are anchors above `M`), so the RealCheck arm of the dist driver runs rarely.
+- **`TestRealCheckShifted`** (risk 3): 10 runs, 329 s; one sequential input sequence (3 clients × 120 + a watch
+  every 10) on a cluster seeded at 2, 3 and, renumbered (2→5, 3→9, r≥4 → r+6), on one seeded at 5, 9 (foreign
+  revisions 2-4, 6-8, the seeds' bytes copied). Unary answers identical up to the renumbering in all runs;
+  `RealCheck` Ok/Ok (seeds 2,3 / 5,9) in all; crossed (history with the other seeds) Illegal/Illegal (non-vacuity);
+  `CheckShared(SeededAt(5,9))` Ok. Note: Go's `realCheck` reads only the seeded store `st0`, not the padded
+  history; the padding matters only to the Lean `RunOk`.
+
+K8-1's Lean not started on the branch (coordinator, at the context limit). A draft of `runOk_seedShared`
+(`seedAt`, `seedSharedL_hist`, `histN_seedShared`, `seedAt_ok`, `seedAt_change`; never checked) is at
+`/shared/tmp/k8-1-NoForeignErase.draft.lean`, meant for `Proof/.../k8s/dist/NoForeignErase.lean`.
+`noForeign_erase` not drafted: `PRun`/`FailureFreeL` do not exist; its conclusion should be what
+`realCheck_pure` takes (`IsLinearization (linkv.pM (kSpec g0) decOp) (histOf lops) (List.range lops.length)`),
+probably via a `linkv.PStep` run along the order; the collapse of trailing foreign steps is `SharedRename`'s
+renaming (`CutW`, `mstepL_ren`).
