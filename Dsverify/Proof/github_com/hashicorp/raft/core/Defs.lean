@@ -91,8 +91,8 @@ from `RNames`, since `durBody` mentions them.)
   `cidxV`; ½ in `termCell`/`cidxCell`, ½ in `durBody`);
 * `applied`: `mono_nat`, the `lastApplied` cell's value (authority: cell ½, main goroutine ½; lower
   bounds `applLb`);
-* `comp`: `mono_nat`, the compaction frontier (authority: the main goroutine's; lower bounds
-  `compLb`, one in `durBody`);
+* `comp`: `mono_nat`, the compaction frontier (authority: ½ the main goroutine's, ½ `durBody`'s, at
+  `X.c`, so a compaction's `compLb x` bounds `x ≤ X.c`, below a pending discard's index: R4b Q4);
 * `pend`: `ghostVar (Option (Nat × Nat × GoString))`, the install pending between the install's
   `sink.Close()` and the restore's answer (½ `durBody`, ½ the main goroutine, lent to the restore);
 * `tok`: the crash token of `srvDurInv` (`srvCrashTok`, `ghostVar tok 1 ()`, held by the crash
@@ -1015,7 +1015,8 @@ def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
     ⌜(∀ d, X.dp = some d → X.lo ≤ d.x) ∧
       (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat⌝ ∗
     bootPin rc X ∗
-    compLb rc X.c ∗ latestDur γ rc i X.lat X.pend X.dp ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
+    monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ⌜∀ d, X.dp = some d → X.c < d.x⌝ ∗
+    latestDur γ rc i X.lat X.pend X.dp ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
 /-- (hraft_robust L0) The crash token of `srvDurInv` (held by the generation's crash wand). -/
@@ -1598,7 +1599,7 @@ def mainOwnAt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st 
     verifyRegistry γ rc i ∗
     monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗ fsmProd γ rc a ∗
     ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-    monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗
+    monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗ ⌜c ≤ a⌝ ∗
     r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
     cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat cidx) ccfg ∗
     ⌜uint.nat li = lastCfgIdx s.log ∧
@@ -1627,7 +1628,7 @@ def mainOwnAtSt (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) : 
     verifyRegistry γ rc i ∗
     monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ s.dur.1 ∧ s.cidx ≤ a⌝ ∗ fsmProd γ rc a ∗
     ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-    monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗
+    monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗ ⌜c ≤ a⌝ ∗
     r.[Raft, go!"configurations"] ↦ configurations.mk ccfg li cfg li ∗
     cfgAtIs γ s.log (uint.nat li) cfg ∗ cfgAtIs γ s.log (uint.nat li) ccfg ∗
     ⌜uint.nat li = lastCfgIdx s.log⌝ ∗
