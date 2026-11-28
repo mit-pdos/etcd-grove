@@ -1282,7 +1282,7 @@ frontier) lends only the frontier's bound. (Pre-model writes, `BootstrapCluster`
 R5/the kit.) -/
 def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
   iprop((∃ (s : SState) (p : Pend), ⌜pendLogOk s p op⌝ ∗ winRes γ rc i s p) ∨
-    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx ∗ latLb rc mx))
+    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx ∗ latLb rc mx ∗ durLb γ i mx))
 
 /-- (hraft_robust) **Raft's window family for its stable store** (`isStableStore`'s `Ws`): the vote's second
 write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
@@ -1292,9 +1292,10 @@ def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
 
 /-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
 snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
-`latestDur` keeps). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
+`latestDur` keeps), given the bytes' bound (the store has it from its Go slice: its commit and its crash
+lemma; R4b). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
 def snapWin (γ : GNames) (rc : RCtx GF) (i : SID) (m : SnapshotMeta) (b : List w8) : IProp GF :=
-  iprop(latestOk γ rc (some (m, b)) ∗
+  iprop(⌜b.length < 2 ^ 63⌝ -∗ latestOk γ rc (some (m, b)) ∗
     (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
 
 /-- `isRaft`'s interface values and their contracts. (Stage 3: the log store over a partial map,
