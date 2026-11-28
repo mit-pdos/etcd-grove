@@ -6,6 +6,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.disk.Disk__persist
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.disk.Disk__encode
 public import Dsverify.Spec.github_com.mit_pdos.etcd_grove.examples.lib.durable.Write
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.disk.WriteLemmas
 
 @[expose] public section
 
@@ -24,18 +25,6 @@ variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.disk.Assumpt
 variable [dur_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
 
 open github_com.hashicorp.raft proto github_com.hashicorp.raft.examples.hraftnet.disk EtcdGrove
-
-/-- `durWriteSync`'s result weakened. -/
-theorem dk_writeSync_wand (γ : DurFs.DurGS) (P Q : IProp GF) :
-    DurFs.durWriteSync (GF := GF) γ P ∗ (P -∗ Q) ⊢ DurFs.durWriteSync γ Q := by
-  iintro ⟨H, HW⟩ Hnc
-  ihave H := H $$ Hnc
-  iapply DurFs.durAupd_wand_post
-  iframe H
-  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iintro %_ ⟨Hnc, HP⟩
-  iframe Hnc
-  iapply HW $$ HP
 
 theorem github_com.hashicorp.raft.examples.hraftnet.disk.Disk.persist.wp_proof
     (wp_encode : github_com.hashicorp.raft.examples.hraftnet.disk.Disk.encode.spec (GF := GF) (hG := hG))

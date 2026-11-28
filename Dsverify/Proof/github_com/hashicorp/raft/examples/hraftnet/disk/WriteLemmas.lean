@@ -59,6 +59,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.disk.Assumptions]
 
+/-- `durWriteSync`'s result weakened. -/
+theorem dk_writeSync_wand (γ : DurFs.DurGS) (P Q : IProp GF) :
+    DurFs.durWriteSync (GF := GF) γ P ∗ (P -∗ Q) ⊢ DurFs.durWriteSync γ Q := by
+  iintro ⟨H, HW⟩ Hnc
+  ihave H := H $$ Hnc
+  iapply DurFs.durAupd_wand_post
+  iframe H
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iintro %_ ⟨Hnc, HP⟩
+  iframe Hnc
+  iapply HW $$ HP
+
 /-- **`durable.Write`'s atomic updates for a write** (see the file header). -/
 theorem diskWriteAU (g : DiskGen) (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Wf : IProp GF)
     (I I' : DiskImg) (stg : w64) (op : DiskOp) (P : IProp GF)
