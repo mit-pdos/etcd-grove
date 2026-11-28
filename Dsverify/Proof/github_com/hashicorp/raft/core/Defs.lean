@@ -199,14 +199,14 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- The `Config` the server runs with (what `ValidateConfig` accepts, and the choices of the
 verified scope): protocol version 3, local id `i`, no notify channel, no batched apply channel,
-pre-vote on, startup not skipped, no restore of committed logs, no snapshot restore at start,
+pre-vote on, startup not skipped, (hraft_robust) any `RestoreCommittedLogs`, no snapshot restore at start,
 `1 ≤ MaxAppendEntries ≤ 64`, timeouts as `ValidateConfig` wants. (Stage 3: any
 `SnapshotThreshold` and `TrailingLogs`: servers snapshot and compact.) (Stage 4) A removed server keeps
 running (`ShutdownOnRemove` off: a leader removed from the configuration steps down to `Follower`). -/
 def cfgOk (c : Config) (i : SID) : Prop :=
   c.ProtocolVersion' = W64 3 ∧ c.LocalID' = i ∧ i ≠ [] ∧ c.NotifyCh' = chan.nil ∧
   c.BatchApplyCh' = false ∧ c.PreVoteDisabled' = false ∧ c.skipStartup' = false ∧
-  c.RestoreCommittedLogs' = false ∧ c.NoSnapshotRestoreOnStart' = false ∧
+  c.NoSnapshotRestoreOnStart' = false ∧
   1 ≤ uint.nat c.MaxAppendEntries' ∧ uint.nat c.MaxAppendEntries' ≤ 64 ∧
   5000000 ≤ sint.Z c.HeartbeatTimeout' ∧ sint.Z c.HeartbeatTimeout' ≤ sint.Z c.ElectionTimeout' ∧
   1000000 ≤ sint.Z c.CommitTimeout' ∧ 5000000 ≤ sint.Z c.SnapshotInterval' ∧
@@ -1279,7 +1279,7 @@ def raftImm (r : Loc) (i : SID) : IProp GF :=
   iprop(r.[Raft, go!"protocolVersion"] ↦□ (W64 3) ∗
     r.[Raft, go!"localID"] ↦□ (i : ServerID) ∗ r.[Raft, go!"localAddr"] ↦□ (i : ServerAddress) ∗
     r.[Raft, go!"preVoteDisabled"] ↦□ false ∗ (∃ nlt : Bool, r.[Raft, go!"noLegacyTelemetry"] ↦□ nlt) ∗
-    r.[Raft, go!"RestoreCommittedLogs"] ↦□ false)
+    (∃ rcl : Bool, r.[Raft, go!"RestoreCommittedLogs"] ↦□ rcl))
 
 instance raftImm_persistent r i : Persistent (raftImm (GF := GF) r i) := by
   unfold raftImm; infer_instance

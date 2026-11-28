@@ -129,7 +129,7 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
   icases fsmProd_open γ rc a $$ Hprod with ⟨%e0, Hps, %He0, Htail⟩
   obtain ⟨-, Hdl, -, -, -, -, Hlen, -, Hkinds⟩ := Hfacts
   have Hmae := Hc
-  obtain ⟨-, -, -, -, -, -, -, -, -, Hmae1, Hmae2, -⟩ := Hmae
+  obtain ⟨-, -, -, -, -, -, -, -, Hmae1, Hmae2, -⟩ := Hmae
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) c.MaxAppendEntries' (by word)) as %sl0 ⟨Hsl0, Hcap0, %Hsl0c⟩
   have Hla1 : uint.nat (la + W64 1) = a + 1 := by
     have : uint.nat la < uint.nat idx := by word
