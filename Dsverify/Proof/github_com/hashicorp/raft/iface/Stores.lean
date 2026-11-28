@@ -63,7 +63,9 @@ def storeN : Namespace := nroot .@ "hraftstore"
 `DeleteRange(mn, mx)`. The index of the client's window family (`isLogStore`'s `Wl`). -/
 inductive LogOp where
   | store (first : Nat) (es : RLog)
-  | del (mn mx : Nat)
+  /-- `main`: a tag the caller chooses (raft: its main goroutine's deletes or the snapshot goroutine's
+  compaction), so that its window families tell the two apart. -/
+  | del (main : Bool) (mn mx : Nat)
 
 /-- (hraft_robust, R3 Q2) **A write of the stable store**: `SetUint64(key, v)`, `Set(key, vb)`. The index of
 the client's window family (`isStableStore`'s `Ws`). -/
@@ -207,9 +209,9 @@ def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) (Wl : LogOp → I
         WP (App (Val #(methods x.ty go!"StoreLog" x.v)) (Val #p)) {{ Φ }}) ∗
     -- `DeleteRange(mn, mx)`: delete the entries at `mn..mx` (none if `mx < mn`); `LastIndex` is some
     -- value afterwards. (`mx < 2^64 - 1`: InmemStore's loop `j <= max` would not end.)
-    □ (∀ (mn mx : w64) (Φ : val → IProp GF),
-        ⌜uint.nat mx < 2 ^ 64 - 1⌝ -∗ Wl (.del (uint.nat mn) (uint.nat mx)) -∗
-        (Wl (.del (uint.nat mn) (uint.nat mx)) -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
+    □ (∀ (main : Bool) (mn mx : w64) (Φ : val → IProp GF),
+        ⌜uint.nat mx < 2 ^ 64 - 1⌝ -∗ Wl (.del main (uint.nat mn) (uint.nat mx)) -∗
+        (Wl (.del main (uint.nat mn) (uint.nat mx)) -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
           (∀ hi' : w64, own (A.delete (uint.nat mn) (uint.nat mx) hi')
             ={∅,⊤ \ ↑storeN}=∗ Φ #interface.nil)) -∗
         WP (App (App (Val #(methods x.ty go!"DeleteRange" x.v)) (Val #mn)) (Val #mx)) {{ Φ }}) ∗
