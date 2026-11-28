@@ -149,13 +149,14 @@ theorem bootPin_agree (X : SrvDur) (A : LogAbs) (lat : SnapLatest) :
       dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (A, lat)) ∗ bootV rc A lat ∗
         ⌜X.A = A ∧ X.lat = lat⌝ := by
   unfold bootPin bootV
-  iintro ⟨(⟨%o, Ho, %Hp⟩ | ⟨Hd, -⟩), Hv⟩
+  iintro ⟨(Ho | ⟨Hd, -⟩), Hv⟩
   · icombine Ho Hv gives %Hag
-    obtain ⟨-, rfl⟩ := Hag
-    obtain h := Hp (A, lat) rfl
-    simp only [Prod.mk.injEq] at h
+    obtain ⟨-, h⟩ := Hag
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨h1, h2⟩ := h
+    rw [← h1, ← h2]
     iframe
-    ipureintro; exact ⟨h.1.symm, h.2.symm⟩
+    ipureintro; exact ⟨h1, h2⟩
   · icombine Hd Hv gives %Hag
     cases Hag.2
 
@@ -189,9 +190,7 @@ theorem bootOpen {E : CoPset} (hE : ↑durN ⊆ E) (A : LogAbs) (lat : SnapLates
     iframe
     unfold bootPin
     ileft
-    iexists _
-    iframe
-    ipureintro; intro p hp; cases hp; rfl
+    iexact Hb
   imodintro
   iexact Hv
 
