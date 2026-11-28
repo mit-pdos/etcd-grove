@@ -164,6 +164,14 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     imod snapRecv_kv_jump E γr A A' x Hif.pre (by have := Hif.hst.2; omega) $$ Hkvi Hka HA'
       with ⟨%Hxch, HkaL⟩
     obtain ⟨tI, hmeta⟩ := Hif.hmetaI
+    -- (keepfix (c) step 1, #50) the image's stored pair committed (its certificate's term row)
+    ihave #HcpI : srvCIPair γr.raft.raft.cl sv.Metadata'.Index' tI $$ []
+    · ihave #HimgU := Himg
+      first | iunfold srvImage at HimgU | iunfold srvImageOn at HimgU
+      icases HimgU with ⟨-, (%h0 | #Hp)⟩
+      · exfalso; rw [h0] at hai; word
+      · have hmt : metaTermOf D = tI := metaTermOf_of_metaIs hmeta
+        rw [← hmt]; iexact Hp
     -- the backend's own resources
     iunfold srvSnapRes at Hsres
     icases Hsres with ⟨%d0, %al0, %dd, %Hkb0, Hstopc, Hbo, #Hal0, #Hdd, Hpath, -⟩
@@ -231,7 +239,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     simp only [hneS, decide_false]
     (try wp_auto)
     wp_apply (wp_ci_setRaftTerm hSRT γr.raft.raft.cl γ ci rtm rt) $$ [Hrtm] as Hrtm
-    · iframe HcipkgG HisCIG Hrtm
+    · iframe HisCIG Hrtm
     (try wp_auto)
     rw [Hoff] at hS
     simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM, kvModelM_false, srvRestRpM_false] at hS
@@ -499,7 +507,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           (try wp_auto)
           wp_if_destruct
           · -- The message belongs to the term of this apply batch.
-            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %True.intro Hcursor
+            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %rfl Hcursor
             (try wp_auto)
             -- Installing this snapshot already established the backend index at the apply cursor.
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
@@ -706,6 +714,14 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   imod snapRecv_kv_jumpOn E γr A A' x _ Hif.pre (by have := Hif.hst.2; omega) $$ Hkvi Hka HA'
     with ⟨%Hxch, HkaL⟩
   obtain ⟨tI, hmeta⟩ := Hif.hmetaI
+  -- (keepfix (c) step 1, #50) the image's stored pair committed (its certificate's term row)
+  ihave #HcpI : srvCIPair γr.raft.raft.cl sv.Metadata'.Index' tI $$ []
+  · ihave #HimgU := Himg
+    first | iunfold srvImage at HimgU | iunfold srvImageOn at HimgU
+    icases HimgU with ⟨-, (%h0 | #Hp)⟩
+    · exfalso; rw [h0] at hai; word
+    · have hmt : metaTermOf D = tI := metaTermOf_of_metaIs hmeta
+      rw [← hmt]; iexact Hp
   -- the auth store's `Recover` facts at the image's log
   ihave #HauS : snapAuthResM E.authMode s ast E.RD γr A' $$ []
   · iapply snapAuthResM_on s ast E γr A' γa hM; iframe Hauf HauSK
@@ -772,7 +788,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   simp only [hneS, decide_false]
   (try wp_auto)
   wp_apply (wp_ci_setRaftTerm hSRT γr.raft.raft.cl γ ci rtm rt) $$ [Hrtm] as Hrtm
-  · iframe HcipkgG HisCIG Hrtm
+  · iframe HisCIG Hrtm
   (try wp_auto)
   rw [hon] at hS
   simp only [srvApplyKVM_true, kvModelM_true] at hS
@@ -1050,7 +1066,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         (try wp_auto)
         wp_if_destruct
         · -- The message belongs to the term of this apply batch.
-          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %True.intro Hcursor
+          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %rfl Hcursor
           (try wp_auto)
           -- Installing this snapshot already established the backend index at the apply cursor.
           ihave #HW' : srvWTPool E' γp $$ []
