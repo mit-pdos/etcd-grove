@@ -453,3 +453,12 @@ search at the cluster's revision (both answer the next revision, so the cut is t
 
 **Left**: K4 is done. The search side (`SearchRun` is what Go's full mode computes) and K8's link from
 the real history to `SRun` are other stages' (`notes/k8s-dist-lean-plan.md`).
+
+## Handoff K4-6 (2026-11-28, branch `k8s-dist-k4/2026-11-27`)
+
+**`CRel.ok` is proved, and so is `fullComplete : FullComplete`.** Build of record: fk-lean1,
+`fklean1-check.sh`, target `...k8s.dist.SharedComplete` at commit `01b4ec2d61`, exit 0, with no `sorry` in
+`SharedComplete` (one linter warning: a tactic never executed, line 124, in `mstepL_nf`'s case closer).
+`#print axioms fullComplete`: `[propext, Classical.choice, Quot.sound]` (checked with `lake env lean`
+against that build's oleans). The theorem and its premises: "K4-6" above. K4 has nothing left. The next
+step is the coordinator's: land, and choose the next K-stage (G7-G10's Go fixes, K8).
