@@ -31,7 +31,7 @@ theorem github_com.hashicorp.raft.Raft.config.wp_proof :
     github_com.hashicorp.raft.Raft.config.spec (GF := GF) (hG := hG) := by
   intro r γ rc i
   wp_start as #His
-  ihave ⟨%c, #Hv, %Hc⟩ := isRaft_config r γ rc i $$ His
+  ihave ⟨%c, #Hv, %Hc⟩ := isRaftCore_config r γ rc i $$ His
   wp_auto
   wp_apply_core sync.atomic.Value.wp_Load _ DFrac.discard $$ [] [-]
   · iPkgInit

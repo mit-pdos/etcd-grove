@@ -1386,6 +1386,15 @@ def raftCells (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
 instance raftCells_persistent r γ rc i : Persistent (raftCells (GF := GF) r γ rc i) := by
   unfold raftCells; infer_instance
 
+/-- (hraft_robust rcl) `raftCells` without its last conjunct, the end of `NewRaft`'s `lastLock` pin
+(`llb` discarded): what `isRaftCore` holds of the cells. -/
+def raftCellsCore (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  iprop(termCell r γ rc i ∗ cidxCell r γ rc i ∗ srvDurInv γ rc i ∗ stateCell r rc ∗
+    appliedCell r rc ∗ cftCell r ∗ ltipCell r)
+
+instance raftCellsCore_persistent r γ rc i : Persistent (raftCellsCore (GF := GF) r γ rc i) := by
+  unfold raftCellsCore; infer_instance
+
 /-- `isRaft`'s locks and routines group. -/
 def raftLocks (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   iprop(sync.isMutex (r.[Raft, go!"raftState"].[raftState, go!"lastLock"]) (lastLockInv r γ rc i) ∗
@@ -1455,6 +1464,23 @@ theorem isRaft_unseal : @isRaft = @isRaftDef := by funext; with_unfolding_all rf
 
 instance isRaft_persistent r γ rc i : Persistent (isRaft (GF := GF) r γ rc i) := by
   rw [isRaft_unseal]; unfold isRaftDef; infer_instance
+
+/-- The body of `isRaftCore` (see `isRaftCore`). -/
+def isRaftCoreDef (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  iprop(Inv γ ∗ isSrv γ i ∗ raftImm r i ∗ raftIfaces r γ rc i ∗ raftConf r γ i ∗
+    raftCellsCore r γ rc i ∗ raftLocks r γ rc i ∗ raftChans r γ rc i ∗ ⌜γ.cv = cfgDec γ.srvs⌝)
+
+/-- (hraft_robust rcl) **`isRaft` but for the end of `NewRaft`'s `lastLock` pin**: `isRaft` is
+`isRaftCore` and `dghostVar rc.names.llb DFrac.discard none` (`isRaft_iff_core`). For what runs while
+`NewRaft` still pins `lastLock`'s fields: `restoreFromCommittedLogs`' `processLogs` (and its `config`), which
+`RestoreCommittedLogs` runs before the configuration scan reads the pinned snapshot index. Sealed: use
+the laws of `core/Laws.lean`. -/
+@[irreducible] def isRaftCore (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  isRaftCoreDef r γ rc i
+theorem isRaftCore_unseal : @isRaftCore = @isRaftCoreDef := by funext; with_unfolding_all rfl
+
+instance isRaftCore_persistent r γ rc i : Persistent (isRaftCore (GF := GF) r γ rc i) := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef; infer_instance
 
 /-! ## The commitment -/
 

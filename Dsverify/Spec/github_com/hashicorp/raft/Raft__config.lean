@@ -24,10 +24,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
-/-- `(*Raft).config`: The configuration (stored once by `NewRaft`). -/
+/-- `(*Raft).config`: The configuration (stored once by `NewRaft`). (hraft_robust rcl) Over `isRaftCore` (`isRaft` frames it), for `processLogs` during `NewRaft`. -/
 abbrev github_com.hashicorp.raft.Raft.config.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaftCore r γ rc i }}
     (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"config")) (Val #()))
   {{ (c : Config), RET #c; ⌜cfgOk c i⌝ }}
 

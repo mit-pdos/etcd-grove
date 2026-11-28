@@ -70,6 +70,88 @@ theorem isRaft_chans : isRaft r γ rc i ⊢ raftChans r γ rc i := by
   rw [isRaft_unseal]; unfold isRaftDef
   iintro ⟨-, -, -, -, -, -, -, #H, -⟩; iexact H
 
+/-! ### `isRaftCore` (hraft_robust rcl) -/
+
+/-- **`isRaft` is `isRaftCore` and the end of `NewRaft`'s `lastLock` pin.** -/
+theorem isRaft_iff_core : isRaft r γ rc i ⊣⊢
+    isRaftCore r γ rc i ∗ dghostVar rc.names.llb DFrac.discard (none : Option (w64 × w64 × w64 × w64)) := by
+  rw [isRaft_unseal, isRaftCore_unseal]; unfold isRaftDef isRaftCoreDef raftCells raftCellsCore
+  constructor
+  · iintro ⟨#H1, #H2, #H3, #H4, #H5, ⟨#C1, #C2, #C3, #C4, #C5, #C6, #C7, #C8⟩, #H7, #H8, %H9⟩
+    iframe #; ipureintro; exact H9
+  · iintro ⟨⟨#H1, #H2, #H3, #H4, #H5, ⟨#C1, #C2, #C3, #C4, #C5, #C6, #C7⟩, #H7, #H8, %H9⟩, #C8⟩
+    iframe #; ipureintro; exact H9
+
+theorem isRaft_core : isRaft r γ rc i ⊢ isRaftCore r γ rc i :=
+  (isRaft_iff_core r γ rc i).1.trans sep_elim_left
+
+theorem isRaft_of_core :
+    isRaftCore r γ rc i ∗ dghostVar rc.names.llb DFrac.discard (none : Option (w64 × w64 × w64 × w64)) ⊢
+      isRaft r γ rc i :=
+  (isRaft_iff_core r γ rc i).2
+
+/-- `iframe`/`$H` prove `isRaftCore` from `isRaft`. -/
+instance isRaft_frame_core (p : Bool) :
+    Iris.ProofMode.Frame p (isRaft r γ rc i) (isRaftCore r γ rc i) iprop(emp) where
+  frame := sep_emp.1.trans (intuitionisticallyIf_elim.trans (isRaft_core r γ rc i))
+
+theorem isRaftCore_proto : isRaftCore r γ rc i ⊢ Inv γ ∗ isSrv γ i := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef
+  iintro ⟨#H1, #H2, -⟩; iframe #
+
+theorem isRaftCore_imm : isRaftCore r γ rc i ⊢ raftImm r i := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef
+  iintro ⟨-, -, #H, -⟩; iexact H
+
+theorem isRaftCore_ifaces : isRaftCore r γ rc i ⊢ raftIfaces r γ rc i := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef
+  iintro ⟨-, -, -, #H, -⟩; iexact H
+
+theorem isRaftCore_conf : isRaftCore r γ rc i ⊢ raftConf r γ i := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef
+  iintro ⟨-, -, -, -, #H, -⟩; iexact H
+
+theorem isRaftCore_cells : isRaftCore r γ rc i ⊢ raftCellsCore r γ rc i := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef
+  iintro ⟨-, -, -, -, -, #H, -⟩; iexact H
+
+theorem isRaftCore_chans : isRaftCore r γ rc i ⊢ raftChans r γ rc i := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef
+  iintro ⟨-, -, -, -, -, -, -, #H, -⟩; iexact H
+
+theorem isRaftCore_logStore : isRaftCore r γ rc i ⊢
+    ∃ x : GoInterfaceOk, r.[Raft, go!"logs"] ↦□ (GoInterface.ok x) ∗ isLogStore x rc.ownL (logWin γ rc i) ∗
+      ⌜go.typeSetContains x.ty MonotonicLogStore.ty = false⌝ := by
+  iintro #H
+  ihave #H2 := isRaftCore_ifaces r γ rc i $$ H
+  unfold raftIfaces
+  icases H2 with ⟨%l, %s, %sn, %t, %f, %ch, %eof, #Hl, #Hli, %Hm, -⟩
+  iexists l; iframe #; ipureintro; exact Hm
+
+theorem isRaftCore_config : isRaftCore r γ rc i ⊢
+    ∃ c : Config, sync.atomic.ownValue (r.[Raft, go!"conf"]) DFrac.discard
+      (interface.mkOk Config.ty #c) ∗ ⌜cfgOk c i⌝ := by
+  iintro #H
+  ihave #H2 := isRaftCore_conf r γ rc i $$ H
+  unfold raftConf
+  icases H2 with ⟨%c, #Hc, %Hok, -⟩
+  iexists c; iframe #; ipureintro; exact Hok
+
+theorem isRaftCore_fsmCh : isRaftCore r γ rc i ⊢
+    ∃ ch : Loc, r.[Raft, go!"fsmMutateCh"] ↦□ ch ∗
+      isSpsc (V := GoInterface) rc.names.fsmCh ch (fsmP γ rc i) (fun _ => iprop(False)) := by
+  iintro #H
+  ihave #H2 := isRaftCore_chans r γ rc i $$ H
+  unfold raftChans
+  icases H2 with ⟨-, -, -, ⟨%ch, #Hch, #Hb⟩, -⟩
+  iexists ch; iframe #
+
+theorem isRaftCore_shutdownCh : isRaftCore r γ rc i ⊢ deadField Unit r go!"shutdownCh" := by
+  iintro #H
+  ihave #H2 := isRaftCore_chans r γ rc i $$ H
+  unfold raftChans
+  icases H2 with ⟨-, -, -, -, -, -, -, -, -, #H3, -⟩; iexact H3
+
 /-- (stage 4) The protocol's decoding of a configuration's voters is `DecodeConfiguration`'s. -/
 theorem isRaft_cv : isRaft r γ rc i ⊢ ⌜γ.cv = cfgDec γ.srvs⌝ := by
   rw [isRaft_unseal]; unfold isRaftDef
