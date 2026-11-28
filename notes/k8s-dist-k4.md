@@ -462,3 +462,24 @@ the real history to `SRun` are other stages' (`notes/k8s-dist-lean-plan.md`).
 `#print axioms fullComplete`: `[propext, Classical.choice, Quot.sound]` (checked with `lake env lean`
 against that build's oleans). The theorem and its premises: "K4-6" above. K4 has nothing left. The next
 step is the coordinator's: land, and choose the next K-stage (K8; G7-G10's Go fixes have landed, "K4-7").
+
+## K4-7: queue-ready (2026-11-28, branch `k8s-dist-k4/2026-11-27`)
+
+- lean `766f9e4acb` merged (G1-G10's Go fixes in `examples/k8s/etcd3/export.go`: G1-G7 from
+  `k8s-dist-go/2026-11-27`, G8-G10 from `k8s-dist-g8/2026-11-27`); the notes above that called them K9's now
+  say they have landed.
+- `SharedComplete.lean`: the unreachable alternatives the linter flagged (`mstepL_nf`'s closer, line 124;
+  one of `mstepL_wr`'s, line 143) removed. No statement changed.
+- **Lean against the landed Go** (checked, not changed here; for K9): `targetL` is `target` as landed
+  (watch arm with G7, `ENotFound`, the write arm only for create/delete/update with G8, a List's past read or
+  current revision, every other kind's `MinRV` with G10), and `stepL` is `step` (watch kept on `watchOk`, a
+  failed write prepended to the pending list, a failed read keeps the configuration, else `Model`'s answer).
+  One mismatch in the premise: `OpAnchors` asks every watch event but an Error (`e.t ≠ 4`) to be an anchor,
+  while `HistoryRevs` anchors only `Type < WError` and `WBookmark`; `decodeWEvents` takes any type byte, so a
+  `WBad` (5) or larger event's revision is not one of Go's anchors. K9 either narrows `OpAnchors` to
+  `e.t < 4` (what `evMaxL` and `target` read) or shows such an operation never appears in an `SRun`.
+- Reach: no `Link`/`Results`/`MainLinked` root imports the `Shared*` modules, so `etc/tcb-report.py` and
+  `etc/verified-code.py` do not see them (a pure lemma library until K8/K9 link it).
+- Checks at `472ce29f00` (fk-lean1, Perennial `148615524`): full build and `GATES_FAILFAST=0 etc/gates.sh`
+  all pass (1993 s); trust base matches `etc/tcb-baseline.txt` (367 axioms, 0 sorries); no unreachable-tactic
+  warning left in `k8s/dist`. K4 is ready to queue.
