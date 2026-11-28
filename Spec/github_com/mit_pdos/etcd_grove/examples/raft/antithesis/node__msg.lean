@@ -30,9 +30,9 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 
 /-- See the file header. -/
 abbrev node.msg.spec : Prop :=
-  ∀ (c : Loc) (γ : AntNames) (n : Loc) (j : Fin γ.R.N) (ml : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt), st.msg.Type' ≠ MsgSnap → AllNormal st.ents →
+  ∀ (c : Loc) (n : Loc) (md : H.Mode) (ml : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt), st.msg.Type' ≠ MsgSnap → AllNormal st.ents →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antCluster c γ ∗ nodeRO c γ n j ∗ msgPtsC ml dq dqe cap st }}
+      n.[H.node, go!"c"] ↦□ c ∗ c.[H.Cluster, go!"mode"] ↦□ md ∗ msgPtsC ml dq dqe cap st }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"msg")) (Val #ml))
   {{ (g : AntCheck.G.Msg), RET #g; msgPtsC ml dq dqe cap st ∗ AntCheck.msgRO g (msgOfSt st st.msg.To') ∗
       ⧗ st.ents.length }}

@@ -1,5 +1,5 @@
 /-
-Lean-first (no Rocq counterpart). #33 parity B1: the proof of
+Lean-first (no Rocq counterpart). #33 parity B1 (B2: the spec reads only `n.c` and `c.mode`): the proof of
 `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/node__entries.lean`.
 -/
 module
@@ -29,21 +29,12 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 
 theorem node.entries.wp_proof (wp_entriesOf : entriesOf.spec (GF := GF) (hG := hG)) :
     node.entries.spec (GF := GF) (hG := hG) := by
-  intro c γ n j sl dq els es hnorm
-  wp_start as ⟨#Hc, #Hn, Hsl, #Hents⟩
-  ihave #Hc' := Hc
-  iunfold antCluster at Hc'
-  icases Hc' with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, %Hmode, #Hr, #Hrec, #Hro, #Hnodes, #Hstop, #Hbc,
-    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm⟩
-  ihave #Hn' := Hn
-  iunfold nodeRO at Hn'
-  icases Hn' with ⟨%ch, %d, #Hnc, #Hid, #Hname, #Hin, #Hbag, #Hd, #Hlog⟩
-  iunfold clusterRO at Hro
-  icases Hro with ⟨%nsl, %ivl, #Hns, #Hnsl, %HN, #Hm, #Hiv, #Hivs⟩
+  intro c n md sl dq els es hnorm
+  wp_start as ⟨#Hnc, #Hm, Hsl, #Hents⟩
   ihave Hm' := Hm
   iStructNamed Hm'
   wp_auto
-  wp_apply wp_entriesOf sl dq els es γ.mode.Nodes' hnorm $$ [$Hpkg $Hsl $Hents] as %out ⟨Hsl, #Hout, Hr⟩
+  wp_apply wp_entriesOf sl dq els es md.Nodes' hnorm $$ [$Hpkg $Hsl $Hents] as %out ⟨Hsl, #Hout, Hr⟩
   try wp_auto
   iapply HΦ
   iframe

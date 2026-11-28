@@ -9,6 +9,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessPersist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__reportCause
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__emit
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.SpecsB2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessReportB2
 
 @[expose] public section
 
@@ -70,6 +72,56 @@ theorem node.reportCause.wp_proof (wp_emit : node.emit.spec (GF := GF) (hG := hG
         AntCheck.fCause]
       iframe Hm
       ipureintro; decide
+    try wp_auto
+    iapply HΦ
+    iframe
+
+/-- **`node.reportCause.specB2`** (#33 parity B2; staged beside B1's `wp_proof`): the cell cleared, its
+report through `emit` (`causeStep`). -/
+theorem node.reportCause.wp_proofB2 (wp_emit : node.emit.specB2 (GF := GF) (hG := hG)) :
+    node.reportCause.specB2 (GF := GF) (hG := hG) := by
+  intro c γ n j cl o Q dead fuse
+  cases o with
+  | none =>
+    simp only [causeStep, Option.isSome_none, Bool.false_eq_true, ↓reduceIte, Option.toList,
+      List.map_nil, reports]
+    wp_start as ⟨#Hc, #Hn, Hk, Hcl, Hpc, Hrep⟩
+    iunfold pendingCause at Hpc
+    icases Hpc with (⟨%Hnil, -⟩ | ⟨%g, %m, ⟨-, %Ho⟩, -, -⟩)
+    · subst Hnil
+      wp_auto
+      iapply HΦ
+      iframe
+    · cases Ho
+  | some ev =>
+    simp only [causeStep, Option.isSome_some, ↓reduceIte, Option.toList, List.map_cons, List.map_nil]
+    wp_start as ⟨#Hc, #Hn, Hk, Hcl, Hpc, Hrep⟩
+    iunfold pendingCause at Hpc
+    icases Hpc with (⟨-, %Ho⟩ | ⟨%g, %m, ⟨%Hnn, %Ho⟩, Hg, #Hm⟩)
+    · cases Ho
+    cases Ho
+    wp_auto
+    wp_if_destruct
+    · exact absurd rfl Hnn
+    wp_apply wp_emit c γ n j _ (recvEvM m) Q dead fuse $$ [$Hpkg $Hc $Hn $Hk Hrep «$a0»]
+      as %b ⟨Hk, %Hb, HQ⟩
+    · iframe Hrep
+      iunfold eventOwn
+      iexists _
+      iframe
+      simp only [recvEvM, AntCheck.fieldRO, AntCheck.fieldIs, AntCheck.fieldZ, AntCheck.fieldRel]
+      isplitr
+      · ipureintro
+        refine ⟨trivial, trivial, trivial, ?_⟩
+        simp only [AntCheck.hasBit, AntCheck.fB, AntCheck.fA, AntCheck.fBy, AntCheck.fRole, AntCheck.fTerm,
+          AntCheck.fVote, AntCheck.fCommit, AntCheck.fFirst, AntCheck.fLastIndex, AntCheck.fLastTerm,
+          AntCheck.fApplied, AntCheck.fSnap, AntCheck.fW, AntCheck.fMore, AntCheck.fIndex, AntCheck.fCtx]
+        decide
+      simp only [AntCheck.hasBit, AntCheck.fEntries, AntCheck.fVoters, AntCheck.fOutgoing, AntCheck.fMsg,
+        AntCheck.fCause]
+      iframe Hm
+      ipureintro; decide
+    subst Hb
     try wp_auto
     iapply HΦ
     iframe

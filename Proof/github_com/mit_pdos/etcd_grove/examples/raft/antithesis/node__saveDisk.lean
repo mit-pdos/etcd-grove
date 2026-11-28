@@ -8,6 +8,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessPersist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__saveDisk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.disk__save
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.SpecsB2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessReportB2
 
 @[expose] public section
 
@@ -41,6 +43,30 @@ theorem node.saveDisk.wp_proof (wp_save : disk.save.spec (GF := GF) (hG := hG)) 
   iframe Hdisk
   iunfold emitOk
   iframe
+
+/-- **`node.saveDisk.specB2`** (#33 parity B2; staged beside B1's `wp_proof`): the write when alive,
+nothing when dead. -/
+theorem node.saveDisk.wp_proofB2 (wp_save : disk.save.spec (GF := GF) (hG := hG)) :
+    node.saveDisk.specB2 (GF := GF) (hG := hG) := by
+  intro c γ n j d w hp oh sl els es dead fuse hok
+  wp_start as ⟨#Hc, #Hn, #Hd, Hk, Hdisk, Hhs, #Hsl, #Hents⟩
+  iunfold killOwn at Hk
+  icases Hk with ⟨Hdead, Hfuse⟩
+  cases dead
+  · wp_auto
+    wp_apply wp_save d w hp oh sl els es hok $$ [$Hpkg $Hdisk $Hhs $Hsl $Hents] as Hdisk
+    try wp_auto
+    iapply HΦ
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe Hdisk
+    iunfold killOwn
+    iframe
+  · wp_auto
+    iapply HΦ
+    simp only [↓reduceIte]
+    iframe Hdisk
+    iunfold killOwn
+    iframe
 
 end proof
 
