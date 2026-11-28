@@ -464,11 +464,11 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   imod ghost_map_alloc_empty (K := Loc) (V := Unit) with ⟨%γvlive, Hvlive⟩
   imod ghost_map_alloc_empty (K := Loc) (V := Unit) with ⟨%γvnm, Hvnm⟩
   icases (ghostMapAuth_halves γvnm (∅ : GMap Loc Unit)).mp $$ Hvnm with ⟨Hvnm, Hvnm'⟩
-  let rc0 : RCtx GF := { rc with names := ⟨γst, γll, γllb, ⟨γfsm, γst, γst⟩, γb, γvtok, γvreg, γvlive, γvnm⟩ }
+  let rc0 : RCtx GF := { rc with names := ⟨γst, γll, γllb, latIdx X.lat, ⟨γfsm, γst, γst⟩, γb, γvtok, γvreg, γvlive, γvnm⟩ }
   imod start_spsc fsmCh (fsmP γ rc0 i) (fun _ => iprop(False)) γfsm $$ HfsmCh [HfsmOwn]
     with ⟨%γspsc, #HfsmSpsc, HfsmProd, HfsmCons⟩
   · iright; iexact HfsmOwn
-  let rc' : RCtx GF := { rc with names := ⟨γst, γll, γllb, γspsc, γb, γvtok, γvreg, γvlive, γvnm⟩ }
+  let rc' : RCtx GF := { rc with names := ⟨γst, γll, γllb, latIdx X.lat, γspsc, γb, γvtok, γvreg, γvlive, γvnm⟩ }
   have hfsmP : fsmP γ rc0 i = fsmP γ rc' i := rfl
   rw [hfsmP] at *
   -- lastLock, its fields pinned by NewRaft (`llb`)
