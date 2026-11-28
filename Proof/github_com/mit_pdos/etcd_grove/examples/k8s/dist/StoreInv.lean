@@ -135,6 +135,94 @@ theorem valsOkP_foreign {σl σ : KVState} {m : List (List mvcc.Change)}
     (hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) (h : valsOkP σl) : valsOkP σ :=
   regAll_foreign (fun v => ∀ d, driverCodec.dec v.value = some d → d.1.val.length ≤ 2 ^ 20) hc hb hm hf h
 
+
+/-! ### `KRelH` at foreign revisions -/
+
+theorem regP_kpfxD : regP <+: kpfxD := ⟨go!"objs", rfl⟩
+
+theorem regP_mkeyL (n : GoString) : regP <+: mkeyL n :=
+  regP_kpfxD.trans ⟨go!"/" ++ n, rfl⟩
+
+theorem findKey_filter_of (p : EtcdKv → Bool) (k : GoString) (h : ∀ v : EtcdKv, v.key = k → p v = true) :
+    ∀ s : List EtcdKv, mvcc.findKey k (s.filter p) = mvcc.findKey k s
+  | [] => rfl
+  | v :: s => by
+    have ih := findKey_filter_of p k h s
+    unfold mvcc.findKey at ih ⊢
+    by_cases hv : v.key = k
+    · rw [List.filter_cons_of_pos (h v hv)]; simp [hv]
+    · by_cases hp : p v = true
+      · rw [List.filter_cons_of_pos hp]; simp [hv, ih]
+      · rw [List.filter_cons_of_neg hp]; simp [hv, ih]
+
+/-- **`KRelS` reads only the key-values under `/registry/`**: a store with the same ones is related to
+the same items, at any revision. -/
+theorem krelS_foreign {s s' : KVStore} {r : Nat} {g : GSt} (r' : Nat) (h : KRelS s r g)
+    (he : s'.kvs.filter (fun v => decide (regP <+: v.key)) = s.kvs.filter (fun v => decide (regP <+: v.key))) :
+    KRelS s' r' ⟨g.items, W64 (r' : Int)⟩ := by
+  refine ⟨h.1, rfl, fun n => ?_⟩
+  have hk : ∀ t : KVStore, mvcc.findKey (mkeyL n) t.kvs =
+      mvcc.findKey (mkeyL n) (t.kvs.filter (fun v => decide (regP <+: v.key))) := fun t =>
+    (findKey_filter_of _ _ (fun v hv => by rw [hv]; simpa using regP_mkeyL n) t.kvs).symm
+  have := h.2.2 n
+  rw [absK_mkeyL] at this ⊢
+  rw [hk s', he, ← hk s]
+  exact this
+
+/-- Two states with the same compaction, base and changes have the same revisions. -/
+theorem at_congr {σ σ' : KVState} (hc : σ'.compacted = σ.compacted) (hb : σ'.base = σ.base)
+    (hch : σ'.changes = σ.changes) : σ'.rev = σ.rev ∧ ∀ r, σ'.at r = σ.at r := by
+  refine ⟨by unfold KVState.rev; rw [hc, hch], fun r => ?_⟩
+  unfold KVState.at; rw [hc, hb, hch]
+
+theorem krelH_congr {h : HSt} {σ σ' : KVState} (hc : σ'.compacted = σ.compacted) (hb : σ'.base = σ.base)
+    (hch : σ'.changes = σ.changes) (H : KRelH h σ) : KRelH h σ' := by
+  obtain ⟨er, ea⟩ := at_congr hc hb hch
+  simpa only [KRelH, KVState.store, er, ea] using H
+
+/-- One more revision: its rev and current key-values. -/
+theorem kvs_snoc {σa σb : KVState} {cs : List mvcc.Change} (hc : σb.compacted = σa.compacted)
+    (hb : σb.base = σa.base) (hm : σb.changes = σa.changes ++ [cs]) :
+    σb.rev = σa.rev + 1 ∧ σb.kvs = mvcc.applyChanges (W64 ((σa.rev + 1 : Nat) : Int)) σa.kvs cs := by
+  refine ⟨by unfold KVState.rev; rw [hc, hm, List.length_append]; simp; omega, ?_⟩
+  rw [KVState.kvs_eq, KVState.kvs_eq σa, hc, hb, hm, runFrom_append]
+  rfl
+
+/-- **One foreign revision**: the configuration's foreign step keeps the relation. -/
+theorem krelH_foreign1 {h : HSt} {σa σb : KVState} {cs : List mvcc.Change} (hrel : KRelH h σa)
+    (hlen : h.hist.length = σa.rev) (hc : σb.compacted = σa.compacted) (hb : σb.base = σa.base)
+    (hm : σb.changes = σa.changes ++ [cs]) (hf : ∀ ch ∈ cs, ¬ regP <+: ch.key) (hr : σb.rev < 2 ^ 63) :
+    KRelH (foreignL h) σb ∧ (foreignL h).hist.length = σb.rev := by
+  obtain ⟨-, hcur, hhist, hmod⟩ := hrel
+  have hf' : ∀ cs' ∈ [cs], ∀ ch ∈ cs', ¬ regP <+: ch.key := by simpa using hf
+  obtain ⟨hrb, hkb⟩ := kvs_snoc hc hb hm
+  have hrv0 : W64 (σa.rev : Int) = h.st.rv := hcur.2.1
+  have hst : (foreignL h).st = ⟨h.st.items, W64 (σb.rev : Int)⟩ := by
+    simp only [foreignL]; rw [← hrv0, hrb]; congr 1; push_cast; word
+  have hS : KRelS σb.store σb.rev (foreignL h).st := by
+    rw [hst]
+    exact krelS_foreign σb.rev hcur (at_ext_foreign regP hc hb hm hf' σb.rev (by omega))
+  have hhs : (foreignL h).hist = h.hist ++ [(foreignL h).st] := rfl
+  refine ⟨⟨hr, hS, fun r h1 h2 => ?_, fun r hr' v hv => ?_⟩, by rw [hhs]; simp [hlen, hrb]⟩
+  · have hrw : uint.nat (W64 (r : Int)) = r := by
+      simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
+    by_cases hle : r ≤ σa.rev
+    · rw [at_ext_below hc hb hm r hle, hhs, histAtL_snoc_le _ _ _ (by rw [hrw, hlen]; exact hle)]
+      exact hhist r h1 hle
+    · have hre : r = σb.rev := by omega
+      rw [hhs, histAtL_snoc_gt _ _ _ (by rw [hrw, hlen]; omega), hre]
+      exact hS
+  · by_cases hle : r ≤ σa.rev
+    · rw [at_ext_below hc hb hm r hle] at hv
+      exact hmod r hle v hv
+    · have hre : r = σb.rev := by omega
+      rw [hre] at hv
+      have hv' : v ∈ σb.kvs := hv
+      rw [hkb] at hv'
+      by_cases hmr : v.modRev = W64 ((σa.rev + 1 : Nat) : Int)
+      · rw [hmr]; simp only [W64, uint.Z] at *; word
+      · exact hmod σa.rev (Nat.le_refl _) v (txn.mem_applyChanges_modRev cs σa.kvs v hv' hmr)
+
 end pure
 
 section defs
@@ -161,16 +249,106 @@ structure KOkD (c : StoreCfg GF DObj) (g0 : HSt) (S : linkv.PSet HSt Input) (σ 
 /-- **The catch-up over foreign revisions** (the statement; K8-3's next proof): the store last saw `σl`,
 the share's firing hands it `σ`, whose changes extend `σl`'s by revisions with no change under
 `/registry/` (`pfxChs_same_ext` of equal `pfxVH regP`); `σ` is well formed for the store and leaves room
-for one more revision. The relation holds at `σ`, the model state unchanged: the configuration related to
+for one more revision (`kvWf`/`kvWfHist` of `σ` follow: `kvWfHist_foreign1`, `kvWf_of_hist`). The relation holds at `σ`, the model state unchanged: the configuration related to
 `σl` takes `σ.rev - σl.rev` foreign steps (`FClosed.foreign`), each appending the unchanged store. -/
 abbrev kOkD_foreign.law (c : StoreCfg GF DObj) (g0 : HSt) : Prop :=
   ∀ (S : linkv.PSet HSt Input) (σl σ : KVState) (M : GMap Nat Input) (nx : Nat)
     (m : List (List mvcc.Change)),
     CfgD c → KOkD c g0 S σl M nx →
     σ.compacted = σl.compacted → σ.base = σl.base → σ.changes = σl.changes ++ m →
-    (∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) →
-    kvWf c σ → kvWfHist c σ → σ.rev + 1 < 2 ^ 63 →
+    (∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) → σ.rev + 1 < 2 ^ 63 →
     KOkD c g0 S σ M nx
+
+/-- **A foreign revision keeps `kvWfHist`**: its key-values under the store's prefix are the last
+revision's, and its mod revisions are the old ones or its own. -/
+theorem kvWfHist_foreign1 (c : StoreCfg GF DObj) (hcd : CfgD c) {σa σb : KVState} {cs : List mvcc.Change}
+    (hw : kvWfHist c σa) (hc : σb.compacted = σa.compacted) (hb : σb.base = σa.base)
+    (hm : σb.changes = σa.changes ++ [cs]) (hf : ∀ ch ∈ cs, ¬ regP <+: ch.key) (hr : σb.rev < 2 ^ 63) :
+    kvWfHist c σb := by
+  have hf' : ∀ cs' ∈ [cs], ∀ ch ∈ cs', ¬ regP <+: ch.key := by simpa using hf
+  obtain ⟨hrb, hkb⟩ := kvs_snoc hc hb hm
+  intro r hr' v hv
+  by_cases hle : r ≤ σa.rev
+  · rw [at_ext_below hc hb hm r hle] at hv
+    exact hw r hle v hv
+  have hre : r = σb.rev := by omega
+  subst hre
+  have hv' : v ∈ σb.kvs := hv
+  refine ⟨fun hp => ?_, ?_⟩
+  · have hpr : regP <+: v.key := regP_kpfxD.trans (hcd.2 ▸ hp)
+    have he := at_ext_foreign regP hc hb hm hf' σb.rev (by omega)
+    have hmem : v ∈ (σb.at σb.rev).kvs.filter (fun v => decide (regP <+: v.key)) :=
+      List.mem_filter.2 ⟨hv, by simpa using hpr⟩
+    rw [he] at hmem
+    exact (hw σa.rev (Nat.le_refl _) v (List.mem_filter.1 hmem).1).1 hp
+  · rw [hkb] at hv'
+    by_cases hmr : v.modRev = W64 ((σa.rev + 1 : Nat) : Int)
+    · rw [hmr]; simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
+    · have := (hw σa.rev (Nat.le_refl _) v (txn.mem_applyChanges_modRev cs σa.kvs v hv' hmr)).2
+      omega
+
+theorem kvWfHist_congr (c : StoreCfg GF DObj) {σ σ' : KVState} (hc : σ'.compacted = σ.compacted)
+    (hb : σ'.base = σ.base) (hch : σ'.changes = σ.changes) (H : kvWfHist c σ) : kvWfHist c σ' := by
+  obtain ⟨er, ea⟩ := at_congr hc hb hch
+  simpa only [kvWfHist, er, ea] using H
+
+/-- **`kvWf` of `kvWfHist`** (at the current revision) and the revision's bound. -/
+theorem kvWf_of_hist (c : StoreCfg GF DObj) (σ : KVState) (hh : kvWfHist c σ) (hr : σ.rev + 1 < 2 ^ 63) :
+    kvWf c σ := by
+  have hmem : ∀ k x, (linkv.absSt σ).kv k = some x →
+      ∃ v ∈ σ.kvs, v.key = k ∧ x = linkv.absVR v := by
+    intro k x hx
+    simp only [linkv.absSt, linkv.absM, Option.map_eq_some_iff] at hx
+    obtain ⟨v, hf, rfl⟩ := hx
+    exact ⟨v, List.mem_of_find?_eq_some hf, by simpa using List.find?_some hf, rfl⟩
+  refine ⟨KVStore.kvs_sorted _, fun k x hp hx => ?_, fun k x hx => ?_, hr⟩
+  · obtain ⟨v, hv, rfl, rfl⟩ := hmem k x hx
+    exact Option.isSome_iff_ne_none.2 ((hh σ.rev (Nat.le_refl _) v hv).1 hp)
+  · obtain ⟨v, hv, rfl, rfl⟩ := hmem k x hx
+    exact (hh σ.rev (Nat.le_refl _) v hv).2
+
+/-- The foreign revisions `m`, one at a time (`FClosed.foreign`). -/
+theorem kOkD_foreign_aux (c : StoreCfg GF DObj) (hcd : CfgD c) {g0 : HSt} {S : linkv.PSet HSt Input}
+    (hcl : FClosed g0 S) {σl : KVState} {cf : GCfg} (hS : S cf) (hrel : KRelH cf.st σl)
+    (hlen : cf.st.hist.length = σl.rev) (hw : kvWfHist c σl) :
+    ∀ (m : List (List mvcc.Change)) (σ : KVState), σ.compacted = σl.compacted → σ.base = σl.base →
+      σ.changes = σl.changes ++ m → (∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key) → σ.rev < 2 ^ 63 →
+      ∃ cf', S cf' ∧ KRelH cf'.st σ ∧ cf'.st.hist.length = σ.rev ∧ cf'.pend = cf.pend ∧ kvWfHist c σ := by
+  intro m
+  rw [← List.reverse_reverse m]
+  induction m.reverse with
+  | nil =>
+    intro σ hc hb hm _ _
+    rw [List.reverse_nil, List.append_nil] at hm
+    obtain ⟨er, -⟩ := at_congr hc hb hm
+    exact ⟨cf, hS, krelH_congr hc hb hm hrel, by rw [er]; exact hlen, rfl, kvWfHist_congr c hc hb hm hw⟩
+  | cons cs l ih =>
+    intro σ hc hb hm hf hr
+    rw [List.reverse_cons] at hm hf
+    let m' := l.reverse
+    let σ' : KVState := { σ with changes := σl.changes ++ m' }
+    have hm' : σ.changes = σ'.changes ++ [cs] := by rw [hm, List.append_assoc]
+    have hr' : σ'.rev < 2 ^ 63 := by
+      have := (kvs_snoc (σa := σ') (σb := σ) rfl rfl hm').1; omega
+    obtain ⟨cf', hS', hrel', hlen', hpend, hw'⟩ :=
+      ih σ' hc hb rfl (fun cs' h => hf cs' (List.mem_append_left _ h)) hr'
+    have hcs : ∀ ch ∈ cs, ¬ regP <+: ch.key := hf cs (List.mem_append_right _ List.mem_cons_self)
+    have hnw : NoWrap cf' := by
+      have e := hrel'.2.1.2.1
+      unfold NoWrap; rw [← e]; simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
+    obtain ⟨hk, hl⟩ := krelH_foreign1 (σa := σ') (σb := σ) hrel' hlen' rfl rfl hm' hcs hr
+    exact ⟨⟨foreignL cf'.st, cf'.pend⟩, hcl.foreign hS' hnw, hk, hl, hpend,
+      kvWfHist_foreign1 c hcd (σa := σ') (σb := σ) hw' rfl rfl hm' hcs hr⟩
+
+/-- **The catch-up over foreign revisions.** -/
+theorem kOkD_foreign (c : StoreCfg GF DObj) (g0 : HSt) : kOkD_foreign.law c g0 := by
+  intro S σl σ M nx m hcd H hc hb hm hf hr
+  obtain ⟨cf, hS, hrel, hlen, hperm⟩ := H.cfg
+  obtain ⟨cf', hS', hrel', hlen', hpend, hwh⟩ :=
+    kOkD_foreign_aux c hcd H.closed hS hrel hlen H.hwf m σ hc hb hm hf (by omega)
+  exact { closed := H.closed, wf := kvWf_of_hist c σ hwh hr, hwf := hwh,
+          keys := keysOkP_foreign hc hb hm hf H.keys, vals := valsOkP_foreign hc hb hm hf H.vals,
+          fresh := H.fresh, ins := H.ins, cfg := ⟨cf', hS', hrel', hlen', hpend ▸ hperm⟩ }
 
 /-- **The revisions' states on the shared KV** (`revOwn` with `KHistID`). -/
 def revOwnD (γ : KNames) (σ : KVState) : IProp GF :=
