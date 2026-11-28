@@ -113,6 +113,9 @@ structure DurNames where
   end of `NewRaft`, `some (A, lat)` (½ `durBody`, ½ `NewRaft`): the stores' state the restore reads is the
   arm-time one; then `none`, discarded (`bootOver`, in `srvDurInv`). -/
   boot : GName
+  /-- (hraft_robust, R4b) `mono_nat`: the latest snapshot's index (`latIdxD`; authority in `durBody`,
+  lower bounds `latLb`: a closed own snapshot's index, which its compaction then lends). -/
+  lat : GName
 
 /-- One server's context: its ghost names and the client predicates fixed at `NewRaft`. -/
 structure RCtx [GooseExts] (GF : BundledGFunctors) where
@@ -969,6 +972,12 @@ def latIdxD (lat : SnapLatest) : Nat :=
   | none => 0
   | some (m, _) => uint.nat m.Index'
 
+/-- (hraft_robust, R4b) The latest snapshot's index is at least `x` (persistent). -/
+def latLb (rc : RCtx GF) (x : Nat) : IProp GF := monoNatLbOwn rc.dur.lat x
+
+instance latLb_persistent rc x : Persistent (latLb (GF := GF) rc x) := by
+  unfold latLb; infer_instance
+
 /-- (hraft_robust L0) **A server's state that survives a crash** (R1 §1.3): its protocol state `s`,
 its log store's state `A` (with `logCell`'s bound `lo` and compaction frontier `c`), its stable store's
 `D`, the pending term step `tp`, its snapshot store's latest `lat` and pending install `pend`, and the
@@ -1017,6 +1026,7 @@ def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
       (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1⌝ ∗
     bootPin rc X ∗
     monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ⌜∀ d, X.dp = some d → X.c < d.x⌝ ∗
+    monoNatAuthOwn rc.dur.lat 1 (latIdxD X.lat) ∗
     latestDur γ rc i X.lat X.pend X.dp ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
@@ -1247,11 +1257,14 @@ instance raftImm_persistent r i : Persistent (raftImm (GF := GF) r i) := by
 /-! ### The stores' window families (hraft_robust, R3 Q2) -/
 
 /-- (hraft_robust) The log store write `op` that the pending step `p` at state `s` makes (its `StoreLogs`
-or `DeleteRange`; `False` for a step that is not a log write). -/
+or `DeleteRange`; `False` for a step that is not a log write). A follower's append may re-store, from
+`prev + k + 1`, entries the protocol log already has (R4a: `appendEntries` compares with the raw last log
+index, below the snapshot's after a restart over a compacted log); they equal the log's. -/
 def pendLogOk (s : SState) : Pend → LogOp → Prop
   | .app es, op => op = .store (s.log.length + 1) es
   | .cfg e _ _, op => op = .store (s.log.length + 1) [e]
-  | .fstore prev _ ents _ j _, op => op = .store (prev + j + 1) (ents.drop j)
+  | .fstore prev _ ents _ j _, op => ∃ k, k ≤ j ∧ op = .store (prev + k + 1) (ents.drop k) ∧
+      ∀ m, k ≤ m → m < j → ent s.log (prev + m + 1) = ents[m]?
   | .trunc prev _ _ _ j, op => op = .del (prev + 1 + j) s.log.length
   | .discard _, op => ∃ mx, op = .del 1 mx
   | _, _ => False
@@ -1269,7 +1282,7 @@ frontier) lends only the frontier's bound. (Pre-model writes, `BootstrapCluster`
 R5/the kit.) -/
 def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
   iprop((∃ (s : SState) (p : Pend), ⌜pendLogOk s p op⌝ ∗ winRes γ rc i s p) ∨
-    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx))
+    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx ∗ latLb rc mx))
 
 /-- (hraft_robust) **Raft's window family for its stable store** (`isStableStore`'s `Ws`): the vote's second
 write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
