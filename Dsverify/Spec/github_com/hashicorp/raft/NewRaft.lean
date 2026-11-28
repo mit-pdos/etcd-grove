@@ -34,7 +34,8 @@ through `goFunc`); returns `r` with `isRaft` (for `rc` with the generation's raf
 error. Needs the thread bound `2 ^ 28` (its `RWMutex` thread pools). The stores' contracts are over
 raft's window families (`logWin`, `stWin`, `snapWin`) of `rc`. (Stage 4) The protocol's decoding of a
 configuration's voters is `DecodeConfiguration`'s (`γ.cv = cfgDec γ.srvs`; `isRaft` keeps it).
-(`RestoreCommittedLogs` is still `false`, `cfgOk`: REQUESTS.md Q5.) -/
+(`RestoreCommittedLogs` is still `false`, `cfgOk`: REQUESTS.md Q5.) A store holding a snapshot gives
+`FirstIndex` as its smallest key (`isLogStoreFirst`, for fix 2). -/
 abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
   ThreadBoundLe GF (2 ^ 28) →
   ∀ (cp : Loc) (c : Config) (fsmI logsI stableI snapsI transI : GoInterfaceOk) (rpcCh : Loc)
@@ -46,12 +47,12 @@ abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
      globalAddr io.EOF ↦□ eof ∗
      isTransport transI γ rc.snapP i rpcCh ∗ ⌜go.typeSetContains transI.ty WithPreVote.ty = true⌝ ∗
      Inv γ ∗ isSrv γ i ∗ srvDurInvRaw γ rc i ∗
-     dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) ∗
      srvVP rc X.s X.tp X.dp ∗ stVS rc X.D X.A.staged ∗ termV rc X.s.term ∗ cidxV rc X.s.cidx ∗
-     monoNatAuthOwn rc.dur.applied 1 0 ∗ monoNatAuthOwn rc.dur.comp 1 X.c ∗
+     monoNatAuthOwn rc.dur.applied 1 0 ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗
      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
      ghostVar rc.dur.pw 1 (none : Option Pend) ∗
-     ⌜RecOk X⌝ ∗
+     dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) ∗
+     ⌜RecOk X⌝ ∗ (⌜X.lat = none⌝ ∨ isLogStoreFirst logsI rc.ownL) ∗
      ⌜γ.cv = cfgDec γ.srvs ∧ ∃ ss, srvsOk γ ss ∧ γ.g = genesisOf ss⌝ ∗ rc.fsmOwn 0 ∗ rtok tid }}
     (App (App (App (App (App (App (Val (@! github_com.hashicorp.raft.NewRaft)) (Val #cp)) (Val #(GoInterface.ok fsmI))) (Val #(GoInterface.ok logsI))) (Val #(GoInterface.ok stableI))) (Val #(GoInterface.ok snapsI))) (Val #(GoInterface.ok transI)))
   {{ (r : Loc), RET (PairV #r #interface.nil);
