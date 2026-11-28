@@ -121,7 +121,8 @@ reported (`reportCause`, `emit(sendEv)`: `sendHstepD`) and handed over (`sendMsg
 left (the requests' entries normal, as `sendEv` needs, also when dead); a kill on the way (`emit`'s fuse) leaves the rest unreported and unsent. Then `K` at the view
 `v₂`, `v₁` but for its pending messages (alive: the other messages, `reqPend … ms.length`), `told` (set
 once the cause is reported: a `Ready` without requests whose `mem` was not reported reports none) and
-the undo record (none and made once a request is reported); the requests frozen (`drainMsgsParB2`). -/
+the undo record (none and made once a request is reported); the requests frozen (`drainMsgsParB2`);
+with no fuse burning, nothing killed. -/
 abbrev parReqB2.stmt : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (np rdp bp c n : Loc) (γ : AntNamesB2) (j : Fin γ.R.N)
     (I : DrainIterB1) (msk : AntSim.SimMask) (v₁ : AntSim.NodeView) (net₁ : List Msg)
@@ -144,7 +145,8 @@ abbrev parReqB2.stmt : Prop :=
           (xnet₂ : List XMsg),
         np ↦ n ∗ bp ↦ I.v.byE ∗ rdp ↦ I.rd ∗ killOwn n dead' fuse' ∗ n.[H.node, go!"cause"] ↦ cl' ∗
           viewFrag γ.toAntNames j v₂ ∗ parCauseB2 γ j dead' v₂ cl' net₂ xnet₂ ∗
-          ⌜(dead = true → dead' = true) ∧ net₁ <+: net₂ ∧ xnet₁ <+: xnet₂ ∧
+          ⌜(fuse = W64 0 → dead' = dead ∧ fuse' = W64 0) ∧
+            (dead = true → dead' = true) ∧ net₁ <+: net₂ ∧ xnet₁ <+: xnet₂ ∧
             (∃ (P : List Msg) (T : Bool) (U : Option AntSim.DurW) (M : Bool),
               v₂ = { v₁ with pend := P, told := T, undo := U, made := M } ∧
               ((U = v₁.undo ∧ M = v₁.made) ∨ (U = none ∧ M = true)) ∧ (T = v₁.told ∨ T = true) ∧
@@ -160,19 +162,20 @@ its undo the disk before it. -/
 abbrev parWroteV (v : AntSim.NodeView) (m : AntSim.MemRec) : AntSim.NodeView :=
   { v with dur := v.dur.write m, undo := some v.dur, made := false, mems := [], jobs := AntSim.markHead v.jobs }
 
-/-- **`parallel`'s write** (`node.parallel.writeE` with `write` set, then the continuation `K`), at a
+/-- **`parallel`'s write** (`node.parallel.writeE` with `write` set, `parallel`'s last statement), at a
 mask `msk` within B2's that the run's relation admits, synchronous storage without batching, `-parallel`:
 the `write` report (`announce(stateEv("write", hs, rd.Entries))`: `writeHstepD`, the view's one queued
 `mem` `m`, alive), the disk written (`saveDisk(whs, …)`, `whs` the hard state `hp` if it is not `n.hs`'s
 `hsl`, as `oh`), `wrote` (`wroteHstepD`), the storage (`storeSave`), `n.hs = hs`. A kill on the way
 (`announce`'s fuse, before or after its record, or `emit`'s) leaves the rest unrecorded and, before
-`saveDisk`, the disk unwritten (`wr`); dead on entry, nothing is recorded or written. -/
+`saveDisk`, the disk unwritten (`wr`); dead on entry, nothing is recorded or written; with no fuse
+burning, nothing killed. -/
 abbrev parWriteB2.stmt : Prop :=
   ∀ (np rdp hsp wrp c n : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (I : DrainIterB1)
     (msk : AntSim.SimMask) (v : AntSim.NodeView) (m : AntSim.MemRec) (net : List Msg) (xnet : List XMsg)
     (dead : Bool) (fuse : w64) (hp hsl : Loc) (hs hs0 : HardStateM) (oh : Option HardStateM)
     (d : Loc) (dk : AntSim.DurW) (els : List Loc) (ms : Loc) (γs : MemStorNames) (k : Nat)
-    (old : List EntryM) (q : Qp) (K : Expr) (Φ : val → IProp GF),
+    (old : List EntryM) (q : Qp) (Φ : val → IProp GF),
   msk ≤ AntSim.mskB2 →
   (∀ S V net xnet, AntSim.AntSimD γ.R γ.dec S V net xnet → AntSim.InMask msk γ.R net xnet) →
   γ.mode.Async' = false → γ.mode.Batch' = false → γ.mode.Parallel' = true →
@@ -200,14 +203,14 @@ abbrev parWriteB2.stmt : Prop :=
           entsPtsZ γs.sz I.rd.Entries' DFrac.discard I.es ∗
           (if I.es = [] then emp else memLog γs k (DFrac.own 1) I.es ∗ memEnd γs (k + I.es.length)) ∗
           viewFrag γ.toAntNames j v' ∗ runLive γ q ∗ sentLb γ.toAntNames net' ∗ xsentLb γ.toAntNames xnet' ∗
-          ⌜(dead = true → dead' = true ∧ wr = false ∧ v' = v) ∧
+          ⌜(fuse = W64 0 → dead' = dead ∧ fuse' = W64 0) ∧
+            (dead = true → dead' = true ∧ wr = false ∧ v' = v) ∧
             (dead' = false → wr = true ∧ v' = { parWroteV v m with undo := none, made := true }) ∧
             ((wr = false ∧ v' = v) ∨ (dead' = true ∧ v' = parWroteV v m) ∨
               (dead' = false ∧ wr = true ∧ v' = { parWroteV v m with undo := none, made := true })) ∧
             net <+: net' ∧ xnet <+: xnet'⌝ -∗
-          WP K {{ Φ }}) ⊢
-    WP (App (App (Val exceptionSeq) (Lam BAnon K))
-      (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.parallel.writeE np rdp hsp wrp))
+          Φ executeVal) ⊢
+    WP (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.parallel.writeE np rdp hsp wrp)
       {{ Φ }}
 
 end defs

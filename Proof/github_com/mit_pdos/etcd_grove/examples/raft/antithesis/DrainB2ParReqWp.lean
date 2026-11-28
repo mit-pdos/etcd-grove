@@ -83,6 +83,15 @@ theorem causeStep_dead (o : Option AntCheck.Event) (f : w64) :
   unfold causeStep
   cases o <;> simp [emitStep_dead]
 
+/-- `emit` with no fuse burning: recorded, the fields kept. -/
+theorem emitStep_zero (f : w64) (h : uint.Z f = 0) : emitStep false f = (true, false, f) := by
+  unfold emitStep; simp [h]
+
+/-- `reportCause` with no fuse burning: its report (if any) recorded, the fields kept. -/
+theorem causeStep_zero (o : Option AntCheck.Event) (f : w64) (h : uint.Z f = 0) :
+    causeStep o false f = (true, false, f) := by
+  unfold causeStep; rw [emitStep_zero f h]; cases o.isSome <;> rfl
+
 /-- `reportCause`'s outcome by whether a cause is pending. -/
 theorem causeStep_isSome (o : Option AntCheck.Event) (b : Bool) (h : o.isSome = b) (d : Bool)
     (f : w64) : causeStep o d f = if b then emitStep d f else (true, d, f) := by
@@ -397,13 +406,14 @@ def parSendQ (γ : AntNamesB2) (j : Fin γ.R.N) (q : Qp) (v' : AntSim.NodeView) 
 variable's cell): the locals, the kill fields, the cause cell, the view's fragment, the requests
 frozen and the others owned, the run's liveness share and the network's adder. -/
 def parLoopB2 (np rdp bp c n : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (I : DrainIterB1)
-    (v₁ : AntSim.NodeView) (net₁ : List Msg) (xnet₁ : List XMsg) (dead : Bool) (q : Qp) (mp : Loc)
-    (i : Nat) : IProp GF :=
+    (v₁ : AntSim.NodeView) (net₁ : List Msg) (xnet₁ : List XMsg) (dead : Bool) (fuse : w64) (q : Qp)
+    (mp : Loc) (i : Nat) : IProp GF :=
   iprop(∃ (dd : Bool) (ff : w64) (cc : Loc) (vv : AntSim.NodeView) (net : List Msg)
       (xnet : List XMsg) (x : Loc),
     np ↦ n ∗ bp ↦ I.v.byE ∗ rdp ↦ I.rd ∗ killOwn n dd ff ∗ n.[H.node, go!"cause"] ↦ cc ∗
     viewFrag γ.toAntNames j vv ∗ parCauseB2 γ j dd vv cc net xnet ∗
-    ⌜ParInvB2 v₁ net₁ xnet₁ dead I.ms i dd vv net xnet⌝ ∗ mp ↦ x ∗
+    ⌜ParInvB2 v₁ net₁ xnet₁ dead I.ms i dd vv net xnet ∧ (fuse = W64 0 → dd = dead ∧ ff = W64 0)⌝ ∗
+    mp ↦ x ∗
     ([∗list] m ∈ I.ms, if isRequestTy m.st.msg.Type' then frozenMsg m.loc m.st
       else msgOwnZ false m.loc (readyDq m.st) m.st) ∗
     runLive γ q ∗ netAdder c γ.toAntNames q ∗ threadTok)
@@ -462,19 +472,21 @@ theorem parReqB2
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   wp_apply (wp_slice_range_ro (V := Loc) _ I.rd.Messages' (I.ms.map QMsg.loc) (DFrac.own 1) _
-    (parLoopB2 np rdp bp c n γ j I v₁ net₁ xnet₁ dead qp m_ptr))
+    (parLoopB2 np rdp bp c n γ j I v₁ net₁ xnet₁ dead fuse qp m_ptr))
     $$ Hsl [Hnp Hbp Hrdp Hk Hcl Hvf Hpc m Hfz Hl Hadd Htt]
   · iunfold parLoopB2
     iexists dead, fuse, cl, v₁, net₁, xnet₁, _
     iframe Hnp Hbp Hrdp Hk Hcl Hvf Hpc m Hfz Hl Hadd Htt
     ipureintro
+    refine ⟨?_, fun h => ⟨rfl, h⟩⟩
     exact ⟨fun h => h, List.prefix_refl _, List.prefix_refl _, v₁.pend, v₁.told, v₁.undo, v₁.made,
       rfl, .inl ⟨rfl, rfl⟩, .inl rfl, fun h => (hal h).1⟩
   · imodintro
     iintro %i %x %hx HP Hs
     iunfold parLoopB2 at HP
-    icases HP with ⟨%dd, %ff, %cc, %vv, %net, %xnet, %x0, Hnp, Hbp, Hrdp, Hk, Hcl, Hvf, Hpc, %Hinv,
+    icases HP with ⟨%dd, %ff, %cc, %vv, %net, %xnet, %x0, Hnp, Hbp, Hrdp, Hk, Hcl, Hvf, Hpc, %HinvF,
       Hm, Hfz, Hl, Hadd, Htt⟩
+    obtain ⟨Hinv, Hfu⟩ := HinvF
     have hi : i < I.ms.length := by
       have := (List.getElem?_eq_some_iff.1 hx).1; simpa using this
     have hxe : x = I.ms[i].loc := by
@@ -548,7 +560,7 @@ theorem parReqB2
             $$ [$Hpkg $Hc $Hn $Hk $Hcl $Hpco $Hpre] as ⟨Hk, Hcl, HQ⟩
           ihave HQ := ite_true_ent hc1 $$ HQ
           rw [hc2]
-          generalize (causeStep o false ff).2.2 = ff2
+          generalize hff2 : (causeStep o false ff).2.2 = ff2
           iunfold parCauseQ at HQ
           icases HQ with ⟨%b, %net₂, %xnet₂, %Hb, #Hlb2, #Hxlb2, Hvf, Hl⟩
           wp_take_receipt as Hr2
@@ -600,7 +612,7 @@ theorem parReqB2
             subst Hb'
             ihave HQ := ite_true_ent hrec2 $$ HQ
             rw [emitStep_rec hrec2]
-            generalize (emitStep false ff2).2.2 = ff3
+            generalize hff3 : (emitStep false ff2).2.2 = ff3
             iunfold parSendQ at HQ
             icases HQ with ⟨Hvf, Hl, %net₃, %xnet₃, #Hlb3, #Hxlb3, %Hn3⟩
             haveI := h_tlp γ.raft I.ms[i].st.msg.Term'
@@ -629,10 +641,13 @@ theorem parReqB2
             · iapply (parCauseB2_alive γ j _ null net₃ xnet₃).2
               iframe Hco Hlb3 Hxlb3
             ipureintro
-            refine ⟨(fun h => by rw [hdead] at h; cases h), hn.trans (Hb.2.2.1.trans Hn3.1),
+            refine ⟨⟨(fun h => by rw [hdead] at h; cases h), hn.trans (Hb.2.2.1.trans Hn3.1),
               hx.trans (Hb.2.2.2.trans Hn3.2.2.1), reqPend I.ms (i + 1), b, none, true, ?_,
-              .inr ⟨rfl, rfl⟩, told_ok hvv hTT Hb.2.1, fun _ => rfl⟩
-            rw [hvv]
+              .inr ⟨rfl, rfl⟩, told_ok hvv hTT Hb.2.1, fun _ => rfl⟩, fun h0 => ⟨hdead.symm, ?_⟩⟩
+            · rw [hvv]
+            · have hz : uint.Z ff = 0 := by rw [(Hfu h0).2]; rfl
+              rw [← hff3, ← hff2, causeStep_zero o ff hz]
+              rw [emitStep_zero ff hz]; exact (Hfu h0).2
           · -- `emit`'s fuse kills
             have hrec2' : (emitStep false ff2).1 = false := by simpa using hrec2
             ihave Hpre2 : (if (emitStep false ff2).1 then reports γ.strm
@@ -643,6 +658,10 @@ theorem parReqB2
             wp_apply +noauto wp_emit c γ n j p (sendEvM I.v.byE I.ms[i].st) emp false ff2
               $$ [$Hpkg $Hc $Hn $Hk $Hev $Hpre2] as %b' ⟨Hk, -, -⟩
             rw [emitStep_kill hrec2']
+            have hnz : fuse = W64 0 → False := fun h0 => by
+              have hz : uint.Z ff = 0 := by rw [(Hfu h0).2]; rfl
+              rw [← hff2, causeStep_zero o ff hz] at hrec2'
+              rw [emitStep_zero ff hz] at hrec2'; cases hrec2'
             generalize (emitStep false ff2).2.2 = ff3
             ihave Hsf : (⌜true = true⌝ ∨ sendFacts (GF := GF) γ.toAntNames I.ms[i].st) $$ []
             · ileft; ipureintro; rfl
@@ -659,8 +678,8 @@ theorem parReqB2
             isplitr
             · iapply (parCauseB2_dead_null (GF := GF) γ j { vv with told := b } net₂ xnet₂)
             ipureintro
-            refine ⟨fun _ => rfl, hn.trans Hb.2.2.1, hx.trans Hb.2.2.2, P, b, U, M, ?_, hUM,
-              told_ok hvv hTT Hb.2.1, fun h => by cases h⟩
+            refine ⟨⟨fun _ => rfl, hn.trans Hb.2.2.1, hx.trans Hb.2.2.2, P, b, U, M, ?_, hUM,
+              told_ok hvv hTT Hb.2.1, fun h => by cases h⟩, fun h0 => (hnz h0).elim⟩
             rw [hvv]
         · -- the cause's report kills
           icases causeOwn_pendingB2 γ.toAntNames j vv cc $$ Hco with ⟨%o, Hpco, %Ho⟩
@@ -678,6 +697,9 @@ theorem parReqB2
           wp_apply +noauto wp_reportCause c γ n j cc o emp false ff
             $$ [$Hpkg $Hc $Hn $Hk $Hcl $Hpco $Hpre] as ⟨Hk, Hcl, -⟩
           rw [hc2]
+          have hnz : fuse = W64 0 → False := fun h0 => by
+            have hz : uint.Z ff = 0 := by rw [(Hfu h0).2]; rfl
+            rw [causeStep_zero o ff hz] at hc1; cases hc1
           generalize (causeStep o false ff).2.2 = ff2
           wp_auto
           wp_apply +noauto wp_sendEv c γ n j I.v.byE I.ms[i].loc DFrac.discard DFrac.discard false
@@ -705,7 +727,7 @@ theorem parReqB2
           iframe Hnp Hbp Hrdp Hk Hcl Hvf Hm Hfz Hl Hadd Htt
           isplitr
           · iapply (parCauseB2_dead_null (GF := GF) γ j vv net xnet)
-          ipureintro; exact parInvB2_dead Hinv0
+          ipureintro; exact ⟨parInvB2_dead Hinv0, fun h0 => (hnz h0).elim⟩
       · -- dead
         icases parCauseB2_dead γ j vv cc net xnet $$ Hpc with ⟨%o, Hpco⟩
         ihave Hpre := causeDead_pre (GF := GF) γ.strm o ff (atNode (AntSim.nameOf (AntSim.nodeId j)))
@@ -738,7 +760,7 @@ theorem parReqB2
         iframe Hnp Hbp Hrdp Hk Hcl Hvf Hm Hfz Hl Hadd Htt
         isplitr
         · iapply (parCauseB2_dead_null (GF := GF) γ j vv net xnet)
-        ipureintro; exact parInvB2_dead Hinv
+        ipureintro; exact ⟨parInvB2_dead Hinv, Hfu⟩
     · -- not a request
       have hr' : isRequestTy I.ms[i].st.msg.Type' = false := by simpa using hr
       ihave Hacc := (BigSepL.bigSepL_lookup_acc (Φ := fun _ (m : QMsg) => if isRequestTy m.st.msg.Type'
@@ -760,17 +782,18 @@ theorem parReqB2
       iunfold parLoopB2
       iexists dd, ff, cc, vv, net, xnet, I.ms[i].loc
       iframe Hnp Hbp Hrdp Hk Hcl Hvf Hpc Hm Hfz Hl Hadd Htt
-      ipureintro; exact parInvB2_other hi hr' Hinv
+      ipureintro; exact ⟨parInvB2_other hi hr' Hinv, Hfu⟩
   iintro HP Hs
   iunfold parLoopB2 at HP
-  icases HP with ⟨%dd, %ff, %cc, %vv, %net, %xnet, %x0, Hnp, Hbp, Hrdp, Hk, Hcl, Hvf, Hpc, %Hinv,
+  icases HP with ⟨%dd, %ff, %cc, %vv, %net, %xnet, %x0, Hnp, Hbp, Hrdp, Hk, Hcl, Hvf, Hpc, %HinvF,
     Hm, Hfz, Hl, Hadd, Htt⟩
+  obtain ⟨Hinv, Hfu⟩ := HinvF
   rw [List.length_map] at Hinv
   wp_auto
   iapply HΦ $$ %dd %ff %cc %vv %net %xnet
   iframe Hnp Hbp Hrdp Hk Hcl Hvf Hpc Hl Hadd Htt
   isplitr
-  · ipureintro; exact Hinv
+  · ipureintro; exact ⟨Hfu, Hinv⟩
   iunfold drainMsgsParB2
   iframe Hs Hcap Hrm
   isplitl

@@ -34,14 +34,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
 /-- See the file header. `hp` is `drain`'s `hs`: the `Ready`'s hard state if it has one, else `n.hs`
-(`hsl`). -/
+(`hsl`); a new one differs from the loop head's (`Ready`'s post), so `hs != n.hs` is the write's. No
+split writes (`Split' = 0`: B2's scope; B2.5 lifts it). -/
 abbrev node.parallel.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (I : DrainIterB1) (x : CrashNames) (g : Nat) (net₀ : List Msg) (xnet₀ : List XMsg) (hsl hp : Loc)
     (q : Qp),
-  γ.mode.Async' = false → γ.mode.Batch' = false → γ.mode.Parallel' = true →
+  γ.mode.Async' = false → γ.mode.Batch' = false → γ.mode.Parallel' = true → γ.mode.Split' = W64 0 →
   roleAfter I.rs.role I.ss = StateLeader →
-  (HsNew I.h → hp = I.rd.HardState') → (¬ HsNew I.h → hp = hsl) →
+  (HsNew I.h → hp = I.rd.HardState') → (¬ HsNew I.h → hp = hsl) → (HsNew I.h → I.h ≠ I.rs.phs) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ ⌜DrainB2 γ.scope γ.mode⌝ ∗
       drainPreB2 γ j n I x g net₀ xnet₀ hsl ∗ nodeExitB2 c γ q ∗ threadTok }}

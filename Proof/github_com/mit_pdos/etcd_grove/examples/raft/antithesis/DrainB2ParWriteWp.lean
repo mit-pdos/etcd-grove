@@ -78,6 +78,28 @@ theorem emitStep_norec_dead {d : Bool} {f : w64} (h : (emitStep d f).1 = false) 
   · exact emitStep_kill h
   · exact emitStep_dead2 f
 
+/-- With no fuse burning, `announce` and `emit` kill nothing. -/
+theorem parWrite_fuse0 {dead dead1 : Bool} {fuse fuse1 : w64} (h0 : uint.Z fuse = 0)
+    (hann : ((emitStep dead fuse).1 = false ∧ dead1 = (emitStep dead fuse).2.1 ∧
+        fuse1 = (emitStep dead fuse).2.2) ∨
+      ((emitStep dead fuse).1 = true ∧ ((dead1 = false ∧ fuse1 = (emitStep dead fuse).2.2) ∨
+        ((emitStep dead fuse).2.2 = W64 1 ∧ dead1 = true ∧ fuse1 = W64 0)))) :
+    (emitStep dead1 fuse1).2.1 = dead ∧ uint.Z (emitStep dead1 fuse1).2.2 = 0 := by
+  cases dead
+  · rw [emitStep_zero fuse h0] at hann
+    rcases hann with ⟨h1, -, -⟩ | ⟨-, ⟨h2, h3⟩ | ⟨h2, -, -⟩⟩
+    · cases h1
+    · have h3' : fuse1 = fuse := h3
+      rw [h2, h3', emitStep_zero fuse h0]; exact ⟨rfl, h0⟩
+    · exfalso; have : uint.Z fuse = 1 := by rw [show fuse = W64 1 from h2]; rfl
+      omega
+  · rw [emitStep_dead] at hann
+    rcases hann with ⟨-, h2, h3⟩ | ⟨h1, -⟩
+    · have h2' : dead1 = true := h2
+      have h3' : fuse1 = fuse := h3
+      rw [h2', h3', emitStep_dead]; exact ⟨rfl, h0⟩
+    · cases h1
+
 theorem ite_bnot {α : Sort _} (d : Bool) (a b : α) :
     (if (!d) = true then a else b) = (if d = true then b else a) := by
   cases d <;> rfl
@@ -125,7 +147,7 @@ theorem parWriteB2
     (wp_storeSave : node.storeSave.spec (GF := GF) (hG := hG)) :
     parWriteB2.stmt (GF := GF) (hG := hG) := by
   intro np rdp hsp wrp c n γ j I msk v m net xnet dead fuse hp hsl hs hs0 oh d dk els ms γs k old qp
-    K Φ hmsk hinm has hbt hpar hnorm hsave hidx hkb hal
+    Φ hmsk hinm has hbt hpar hnorm hsave hidx hkb hal
   iintro ⟨#Hpkg, #Hc, #Hn, Hnp, Hrdp, Hhsp, Hwrp, Hhs, #HhsR, #Hoh, #Hd, Hdisk, Hk, #Hsl, #Hbig, Hms,
     #Hlock, Hmeta, Hpre, HentsZ, Hvf, Hl, #Hlb, #Hxlb, HΦ⟩
   ihave #Hc' := Hc
@@ -328,7 +350,10 @@ theorem parWriteB2
   iframe
   iframe Hlb' Hxlb'
   ipureintro
-  exact ⟨Hfin.1.1, Hfin.1.2.1, Hfin.1.2.2, Hfin.2.1, Hfin.2.2⟩
+  refine ⟨fun h0 => ?_, Hfin.1.1, Hfin.1.2.1, Hfin.1.2.2, Hfin.2.1, Hfin.2.2⟩
+  have hz : uint.Z fuse = 0 := by rw [h0]; rfl
+  obtain ⟨h1, h2⟩ := parWrite_fuse0 hz Hann.2
+  exact ⟨h1, by rw [← h2] at *; word⟩
 
 end par
 
