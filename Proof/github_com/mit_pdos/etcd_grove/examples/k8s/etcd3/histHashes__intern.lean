@@ -166,6 +166,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       ipureintro; word
   · (try wp_auto)
     wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [$HC] as HC
+    ipersist «$r0»
     (try wp_auto)
     wp_apply wp_slice_literal
     isplitr
@@ -178,7 +179,6 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     (try wp_auto)
     wp_apply (wp_mapInsert _ mi' I' _ true) $$ [$HI] as HI
     (try wp_auto)
-    ipersist «$r0»
     iapply HΦ
     isplitl [Hc Hi HC HI Hg Hgs Hns' Hcap' Hback]
     · iunfold hhInv
