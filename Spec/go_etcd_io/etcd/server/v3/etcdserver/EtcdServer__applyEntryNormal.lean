@@ -75,9 +75,13 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
     (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel) (sa : auth.AuthState)
-    (A₀ : List EntryModel) (r : apply.RestM),
+    (A₀ : List EntryModel) (r : apply.RestM) (rt : w64),
   E.authMode ≠ .any →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+  -- (keepfix (c) step 1) the apply thread's mirror of the raft term field (given back), not 0 (inside a
+  -- batch, after `applyAll`'s `SetRaftTerm`): the deferred `SetConsistentIndex` and the hook store the
+  -- triple at it
+  rt ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ciRaftTerm γ.ci rt ∗
       -- the auth-on-only rows, both cases': one time receipt under the receipts' bound, and
       -- (auth-schema-fix F1) three write-back tokens of the tie's backend, an admin step's
       (if E.authOn then iprop(⧗ 1 ∗ apply.adminWTs E) else iprop(True)) ∗
@@ -109,7 +113,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
+  {{ RET #(); applyBackend γ ci b ∗ ciRaftTerm γ.ci rt ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
       (if v3 then iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVM E.authOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗

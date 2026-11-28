@@ -92,9 +92,9 @@ abbrev EtcdServer.applyEntryNormal.specOff : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
     (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel) (A₀ : List EntryModel)
-    (r : apply.RestM),
-  E.authOn = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    (r : apply.RestM) (rt : w64),
+  E.authOn = false → rt ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ciRaftTerm γ.ci rt ∗
       (if v3 then iprop(
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗
         applyThread γ st ∗ applyBackend γ ci b ∗
@@ -118,7 +118,7 @@ abbrev EtcdServer.applyEntryNormal.specOff : Prop :=
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
+  {{ RET #(); applyBackend γ ci b ∗ ciRaftTerm γ.ci rt ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
       (if v3 then iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m true x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
@@ -146,9 +146,9 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
     (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel) (γa : auth.AuthNames)
-    (sa : auth.AuthState) (A₀ : List EntryModel) (r : apply.RestM),
-  E.authMode = .on γa →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    (sa : auth.AuthState) (A₀ : List EntryModel) (r : apply.RestM) (rt : w64),
+  E.authMode = .on γa → rt ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ciRaftTerm γ.ci rt ∗
       (if v3 then iprop(
         isServerM true s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
@@ -174,7 +174,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
           ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
+  {{ RET #(); applyBackend γ ci b ∗ ciRaftTerm γ.ci rt ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvFS s ∗
       (if v3 then iprop(
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
           srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
@@ -192,62 +192,62 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
 theorem EtcdServer.applyEntryNormal.spec_off
     (h : EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.specOff (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ b e m st v3 x γr ot v A A₀ r hoff
+  intro s γ ci TM E ρ b e m st v3 x γr ot v A A₀ r rt hoff hrt
   have hm : E.authMode = .off := by
     rw [apply.AEnv.authOn_eq] at hoff
     cases h' : E.authMode <;> simp_all [auth.AuthMode.isOn]
   have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
     intro k; unfold srvTokRights; rw [hm]
-  have := h s γ ci TM E ρ b e m st v3 x γr ot v A srvAuthSt0 A₀ r (by rw [hm]; simp)
+  have := h s γ ci TM E ρ b e m st v3 x γr ot v A srvAuthSt0 A₀ r rt (by rw [hm]; simp) hrt
   rw [hoff] at this
   cases v3
   · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, srvRestRpM_false, Bool.false_eq_true,
       ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0, %HmA,
+    iintro %Φ ⟨#Hpkg, Hrt, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0, %HmA,
       %Hpo⟩ HΦ
-    iapply this $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs HRS] HΦ
-    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hcm HRS HA0
+    iapply this $$ [Hrt He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs HRS] HΦ
+    iframe Hpkg Hrt Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hcm HRS HA0
     isplitr; · itrivial
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, fun h => absurd h (by simp), Hpo.2.2.2.2⟩
   · simp only [isServerM_false, srvApplyKVM_false, kvAppliedM_false,
       entryOkM_false, hT, srvRestM_false, Bool.false_eq_true, ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, Hlog,
+    iintro %Φ ⟨#Hpkg, Hrt, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
-    iapply this $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
-    · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
+    iapply this $$ [Hrt Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
+    · iframe Hpkg Hrt Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
       isplitr; · itrivial
       ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2⟩
     inext
-    iintro ⟨Hbe, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
+    iintro ⟨Hbe, Hrt, Hlr, Hgr, Hmr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
     iapply HΦ
-    iframe Hbe Hlr Hgr Hmr Hfs Hst
+    iframe Hbe Hrt Hlr Hgr Hmr Hfs Hst
     iexists x', out; iframe HKV Hdel Hap Hka HRS; ipureintro; exact Hstep
 
 /-- **`specOn`**, `spec` in the mode `on` (the auth-mode merge's corollary). -/
 theorem EtcdServer.applyEntryNormal.spec_on
     (h : EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa A₀ r hM
+  intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa A₀ r rt hM hrt
   have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
-  have := h s γ ci TM E ρ b e m st v3 x γr ot v A sa A₀ r (by rw [hM]; simp)
+  have := h s γ ci TM E ρ b e m st v3 x γr ot v A sa A₀ r rt (by rw [hM]; simp) hrt
   rw [hon] at this
   cases v3
   · simp only [srvApplyKVM_true, entryOkM_true, Bool.false_eq_true, ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hawt, #Hcm, HRS, #HA0,
+    iintro %Φ ⟨#Hpkg, Hrt, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hawt, #Hcm, HRS, #HA0,
       %HmA, %Hpo⟩ HΦ
-    iapply this $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt HRS] HΦ
-    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hcm HRS HA0
+    iapply this $$ [Hrt He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt HRS] HΦ
+    iframe Hpkg Hrt Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hcm HRS HA0
     isplitr; · ipureintro; exact fun _ => Hpo.2.2.2.2.1
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1,
       fun _ => Hpo.2.2.2.2.2.1, Hpo.2.2.2.2.2.2⟩
   · simp only [srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
       ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hawt, Hao, Hlog,
+    iintro %Φ ⟨#Hpkg, Hrt, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hawt, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
-    iapply this $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hka HRS Hv3 Htok] HΦ
-    iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+    iapply this $$ [Hrt Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hka HRS Hv3 Htok] HΦ
+    iframe Hpkg Hrt Hsrv Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
     isplitr; · ipureintro; exact fun _ => Hpre.2.2.2
     ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1⟩
 
@@ -602,7 +602,7 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iunfold isServerBuilt at H
   icases H with ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩
   iunfold applyBuilt at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Hrt, Halg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hrdat, Hao,
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Hrt0, Halg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hrdat, Hao,
     #Hlog, Hkr, Hfs⟩
   imod authOn_false_of_run E γr ua x₀ ai₀ c₀ [] $$ [$Hkvi $Hkv $Hkr] with ⟨%hoff, Hkv, Hkr⟩
   imodintro
@@ -612,7 +612,7 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hkvi Hti Hci' Hrn HEr Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb
   iunfold applyBuilt
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Hrt Halg Hbm Hrdk Hbo HRA HAR Hrdat Hao Hlog Hkr Hfs
+  iframe Hth Hbe Hca Hrt0 Halg Hbm Hrdk Hbo HRA HAR Hrdat Hao Hlog Hkr Hfs
   isplitr
   · ipureintro; exact Hlo
   iexists ua

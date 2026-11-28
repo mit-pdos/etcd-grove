@@ -37,13 +37,13 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
     (d' : mvcc.KBReal) (g : GoFunc) (al ast lp cl : Loc) (hP : d'.P = P) (hgnn : g ≠ func.nil)
     (hcK : ciKeys d'.P) (hhP : storage.hooksParams d'.P) (hk : Loc) :
     isServerM on s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
-      isServerCI s (snapγ γ π0 d'.γB) ci γr.raft.raft.cl ∗ hookSpec (snapγ γ π0 d'.γB) ci (metaTM d'.γB P) #g ∗
+      isServerCI s (snapγ γ π0 d'.γB) ci γr.raft.raft.cl ∗ hookSpec (snapγ γ π0 d'.γB) ci γr.raft.raft.cl (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) #g ∗
       -- (2026-11-02, branch `snap-window`) the new backend's hooks, the server's `s.beHooks`
       backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
       backend.isBackend d'.γB d'.P (mvcc.api.mvccW d'.gx)
-        (batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)) d'.be ⊢
-    isServerM on s (snapγ γ π0 d'.γB) ci (metaTM d'.γB P)
-      (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ γr := by
+        (batchLockInv (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P)) d'.be ⊢
+    isServerM on s (snapγ γ π0 d'.γB) ci (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P)
+      (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ γr := by
   subst hP
   unfold isServerM srvFieldsAtM
   iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn, %Hrdb⟩, #Hcl, #Hci', #Hhook, #HhkAt, #HbhF, #HB⟩
@@ -55,8 +55,8 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
   icases Hbeh with ⟨%d0, %bh, %lgh, %gx0, -, #HbhF0, #Hbh, -, -⟩
   icombine HbhF HbhF0 gives %Hbh0
   subst Hbh0
-  ihave #Hbeh' : srvBeHooked s (snapγ γ π0 d'.γB) ci
-      (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci d' g d'.γB al ast lp cl d'.be) $$ []
+  ihave #Hbeh' : srvBeHooked s (snapγ γ π0 d'.γB) ci γr.raft.raft.cl
+      (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d'.P) ci d' g d'.γB al ast lp cl d'.be) $$ []
   · iunfold srvBeHooked
     iexists d', hk, lgh, d'.gx
     iframe HbhF Hbh HhkAt HB
@@ -65,7 +65,7 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
   icombine Hcl Hclv gives %Heq
   subst Heq
   have hok : srvEnvOk s (snapγ γ π0 d'.γB) ci
-      (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci d' g d'.γB al ast lp v.cluster d'.be) v.cluster :=
+      (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d'.P) ci d' g d'.γB al ast lp v.cluster d'.be) v.cluster :=
     ⟨Henv.1, rfl, Henv.2.2.1, d'.γB, _, rfl, rfl, d', al, ast, lp, rfl, rfl, rfl⟩
   rw [srvAtomicsM_snapE, srvGenAt_snapE]
   isplitr
@@ -75,7 +75,7 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
   isplitr
   · iexists { v with hook := #g }
     simp only
-    rw [show waitInvM on v.w ρ (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci d' g d'.γB al ast lp
+    rw [show waitInvM on v.w ρ (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB d'.P) ci d' g d'.γB al ast lp
       v.cluster d'.be) = waitInvM on v.w ρ E from rfl]
     -- (the lease-expiry plan's X4) `lessorOk` at the environment's flag and auth mode, unchanged
     rw [snapE_lg, snapE_authMode]

@@ -1630,6 +1630,10 @@ theorem snap.Message.wp_CloseNotify :
     snap.Message.CloseNotify.spec (GF := GF) (hG := hG) :=
   snap.Message.CloseNotify.wp_proof
 
+theorem consistentIndex.wp_SetRaftTerm :
+    consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG) :=
+  consistentIndex.SetRaftTerm.wp_proof
+
 theorem syscall.wp_Exit :
     syscall.Exit.spec (GF := GF) (hG := hG) :=
   syscall.Exit.wp_proof
@@ -1857,10 +1861,6 @@ theorem config.ServerConfig.wp_ShouldDiscover :
 theorem config.ServerConfig.wp_hasLocalMember :
     config.ServerConfig.hasLocalMember.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.hasLocalMember.wp_proof fmt.wp_Errorf
-
-theorem consistentIndex.wp_SetRaftTerm :
-    consistentIndex.SetRaftTerm.spec (GF := GF) (hG := hG) :=
-  consistentIndex.SetRaftTerm.wp_proof
 
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
@@ -3199,7 +3199,7 @@ theorem EtcdServer.wp_sendMergedSnap :
 
 theorem EtcdServer.wp_applyAll [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog raftpb.Message.wp_GetTerm EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap raftpb.Message.wp_GetTo EtcdServer.wp_ReportSnapshot mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend.backend.wp_Snapshot storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog raftpb.Message.wp_GetTerm EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap raftpb.Message.wp_GetTo EtcdServer.wp_ReportSnapshot mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccImage_snapshot_law_holds backend.backend.wp_Snapshot storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket wp_IsEmptySnap consistentIndex.wp_SetRaftTerm
 
 theorem EtcdServer.wp_setLead :
     EtcdServer.setLead.spec (GF := GF) (hG := hG) :=

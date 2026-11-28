@@ -50,13 +50,13 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (hnl : ∀ (k : GoString) (id : w64),
       mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A')) !! ⟨k⟩ = some id → id ∈ L)
     (hEw : E.win = none ∧ E.stq = (1 : Qp).half.half) :
-    apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
-      apply.uberOwn (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' (apply.alarmChain (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be).authOn false false) ∗
+    apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
+      apply.uberOwn (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' (apply.alarmChain (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be).authOn false false) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
       srvApi.wStQ E.γs E.stq (kvModelM on γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
       E.Wt none ∗
       mvcc.api.mvccOpen E.γ ∗
-      mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)) ∗
+      mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P)) ∗
       backend.plHookRO d'.γB g ∗
       lease.leaseOwn (mvcc.api.mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A'))) ∗
       lease.lessorRdOf (mvcc.api.mvccLeases E.γ) ∗
@@ -66,14 +66,14 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d') ∗
       srvBeRO d' ∗ backend.bkRPool d'.γB d'.P d'.be ∗ apply.bkRT d' ∗
       revAuth E x.log ∗
-      kvAuthM on s (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) st ∗
+      kvAuthM on s (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be) (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) st ∗
       srvWAddr s ↦□ w0 ∗
       waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
       RD0 ⊢
     |={⊤}=> ∃ x' : apply.ApplyKV,
       ⌜x'.log = kvModelM on γr.kv A' ∧ x'.chain = apply.alarmChain E.authOn false false ∧
         x'.crev = crevOf γr.kv A'⌝ ∗
-      srvApplyKVM on s (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ.wait x' st := by
+      srvApplyKVM on s (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ.wait x' st := by
   iintro ⟨#Hub, Huo, Hua, HwSt, HcrO, HWtn, HmO, HmB, #Hhk, Hlo, Hlr, Hrv, HLt, Hrdat, HRD, Hbe, Hγbe, #Hro,
     Hpl, Hrt, Hra, Hauar, #Hw, #Hwok, HRD0⟩
   ihave #Hlk := leasesKnown_of_items (GF := GF) L _ hnl
@@ -121,7 +121,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       iunfold lease.lessorUserW
       simp only [snapE_γ]
       iframe Hlo Hlr Hrv
-      rw [show apply.ltHalf (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl
+      rw [show apply.ltHalf (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl
         d'.be) L = apply.ltHalf E L from rfl]
       iframe HLt
     iunfold apply.cmpOwn
@@ -160,10 +160,10 @@ theorem kvAuthM_snap (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (P : backend.BParams) (d' : mvcc.KBReal) (g : GoFunc) (up' : Loc) (opts' : apply.ApplierOptions) (al ast lp cl : Loc)
     (ua : GoInterface) (γr : ReadNames) (A' : List EntryModel) (hany : E.authMode ≠ .any)
     (hopts : opts'.AuthStore' = auth.authIface ast ∧ opts'.Lessor' = lease.lessorIface lp) :
-    apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
+    apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
       srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
-      snapAuthRowM E.authMode s E ua ast γr A' d' (batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)) g ⊢
-    kvAuthM E.authOn s (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be)
+      snapAuthRowM E.authMode s E ua ast γr A' d' (batchLockInv (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P)) g ⊢
+    kvAuthM E.authOn s (snapE E (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P) ci d' g d'.γB al ast lp cl d'.be)
       (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface)
       (srvAuthAtLog γr.kv srvAuthSt0 A') := by
   iintro ⟨#Hub, #Hauf, #Hlef, Hrow⟩
@@ -203,7 +203,7 @@ theorem kvAuthM_snap (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       iframe Hpub Hlat Hbd
       ipureintro; exact Hau
     iunfold srvAuthApplyResB
-    iexists ast, d', batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)
+    iexists ast, d', batchLockInv (snapγ γ π0 d'.γB) (metaTMR γr.raft.raft.cl (futPhys π0 d'.γB) d'.γB P)
     simp only [snapE_authMode, snapE_Pk, snapE_f, snapE_RD, snapE_RW, snapE_RO, snapE_BkTie]
     try rw [hM]
     iframe Hauf Hrow

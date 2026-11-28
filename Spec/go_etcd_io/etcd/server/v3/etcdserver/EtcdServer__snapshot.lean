@@ -58,7 +58,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
     (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : WTNames) (ua : GoInterface) (q : Qp)
-    (γn : RNNames GF) (γm : GName),
+    (γn : RNNames GF) (γm : GName) (rt : w64),
   -- (wal-link L3, 2026-11-19: until then `storage.releaseOk`) the snapshot directory's reads not failing
   -- (`snapOpensOk`, whose `dirReadOk` covers `Release`)
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.snapOpensOk →
@@ -71,6 +71,8 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   -- log before the wrapper's: the snapshot's index is the applied log's length)
   γn.node = γr.raft.raft → γr.raft.pre = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (keepfix (c) step 1) the apply thread's mirror of the raft term field, given back (`ConsistentIndex`'s)
+      ciRaftTerm γ.ci rt ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
       srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
       srvSnapStor ms γs γr nk ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
@@ -90,7 +92,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       apply.applyTok E }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
       (Val #toDisk))
-  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
+  {{ RET #(); ciRaftTerm γ.ci rt ∗ ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗
       rnWalTokA γn (srvRAddr s) q ∗ apply.applyTok E ∗

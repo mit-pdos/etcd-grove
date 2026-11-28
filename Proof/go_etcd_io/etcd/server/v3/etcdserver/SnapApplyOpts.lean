@@ -93,13 +93,13 @@ theorem snap_backendOptsOk
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ∗
       isServerCI s (snapγ γ π0 γB) ci γr.raft.raft.cl ∗
-      backend.isBackend d'.γB d'.P W (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) d'.be ∗
+      backend.isBackend d'.γB d'.P W (batchLockInv (snapγ γ π0 γB) (metaTMR γr.raft.raft.cl (futPhys π0 γB) γB P)) d'.be ∗
       backend.plHookRO γB g ∗
       □ mvcc.api.isMvcc E.kv E.γ ∗ apply.envAus E ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
       lease.lessorCfg lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
       lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ⊢
-    apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci d' g γB al ast lp cl d'.be)
+    apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTMR γr.raft.raft.cl (futPhys π0 γB) γB P) ci d' g γB al ast lp cl d'.be)
       opts' := by
   subst hγB
   obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9⟩ := hopts

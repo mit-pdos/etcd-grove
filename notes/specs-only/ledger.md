@@ -8606,6 +8606,35 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** Quantify `cl` and pass it through (at the server, `γr.raft.raft.cl`); no other change.
 - **Decision.** Mechanical consequence of the approved rows.
 
+## 2026-11-28: the apply chain carries the raft term's mirror (keepfix (c) step 1, G3/G4)
+
+- **Spec.** `EtcdServer.applyAll.specBatch`, `.specSnapM`; `EtcdServer.applyEntries.specBatchAt`;
+  `EtcdServer.apply.specAt`; `EtcdServer.applyEntryNormal.spec` (and `ModeSpecs.lean`'s `specOff`/`specOn`);
+  `EtcdServer.snapshot.spec`; `EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch`;
+  `EtcdServer.applySnapshot.specSnapM` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`).
+- **Defect.** After the approved step-1 rows the cindex operations these functions call (`ConsistentIndex`,
+  `SetConsistentIndex`, `SetBackend`, the new `SetRaftTerm`) take and give back the apply thread's mirror
+  `ciRaftTerm γ.ci rt`, and the post-lock hook (`hookSpec`, row A) and every stored pair (`srvCITriple0 cl k t rt`)
+  need `rt ≠ 0`; the specs carry no mirror. The fork's `applyAll` (b1512efdd, `server.go:991-993`) now calls
+  `s.consistIndex.SetRaftTerm(apply.raftTerm)` when the batch has entries or a non-empty snapshot.
+- **Evidence.** `~/coordinator-notes/plans/keepfix-c-callers.md` ("Named sub-goals" 2, G3, G4).
+- **Proposed change.** Each spec takes the mirror and gives it back. `apply`, `applyEntryNormal` and
+  `applySnapshot.specSnapM` (whose reload stores the snapshot's pair) also take `rt ≠ 0` (they run only inside a
+  batch after `SetRaftTerm`); `applyEntries` takes `unapplied ai ms = [] ∨ rt ≠ 0`. `applyAll` takes the mirror at
+  `rtm` and returns it at Go's value after the call (`specBatch`: `rtm` for an empty batch, `rtMax rtm rt` else;
+  `specSnapM`: `rtMax rtm rt`), with the premise `unapplied ai ms = [] ∨ rtMax rtm rt ≠ 0` (`specBatch`) or
+  `rtMax rtm rt ≠ 0` (`specSnapM`): sub-goal 2, which `run` discharges (from raft's `hsCommitted` bound and
+  `nodeDriver_hardStateTerm` on a first start, the seeded mirror on a restart). `applyAll.specSnapM` and
+  `applySnapshot.specSnapM`'s inline meta-read premise moves to `metaTMR cl π` with `metaRaftTermOf D = π.rk0`
+  (the approved `srvMetaSnap cl γ`'s text, S2), at `cl := γr.raft.raft.cl`. All stronger premises only by what
+  the approved rows force; posts stronger (one more resource). `applySnapshot.specSnapM` also takes
+  `□ srvCIPair γr.raft.raft.cl sv.Metadata'.Index' tI` (the image's stored pair committed; its caller
+  `applyAll.specSnapM` has it from the image certificate's term row, `srvImage`/`srvImageOn`, at `metaIs D (i, tI)`),
+  for the reload's `ConsistentIndex()` (kaashoek's SnapApplyWalk item, #50). The applier's indexer contract
+  `srvCiC` (InvApplier.lean, untrusted def under trusted `srvFieldsAt`, ghost-only) gains the mirror in its
+  resource `C` (lead-approved 2026-11-28).
+- **Decision.** Mechanical consequence of the approved rows; the rt ≠ 0 premise is sub-goal 2 of the callers plan
+  (etcd_safe lead, 2026-11-28).
 ## 2026-11-28: `bootstrap`'s first start builds its hooks over `metaTMR γ.cl` (keepfix (c) step 1, helper A)
 
 - **Spec.** `bootstrapBackend.spec` (and `bootBackendRows`, `bootBackendNew`, `bootBackendData`, `BootParts.lean`),

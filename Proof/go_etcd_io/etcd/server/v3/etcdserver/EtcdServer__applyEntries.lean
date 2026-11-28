@@ -68,10 +68,10 @@ theorem EtcdServer.applyEntries.wp_proofBatch
     (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.specBatch (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
-  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g sa hM hRB Hms
-    Hai1 Hok hEok hEpk hdv Hg0
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g sa rt hM hRB Hms
+    Hai1 Hok hEok hEpk hdv Hg0 Hrt0
   unfold EtcdServer.apply.spec EtcdServer.apply.specAt at hApply
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv, Hst, Hbe, Happ, Hlr, Hgr, Hmr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
+  wp_start as ⟨Hrtm, #Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv, Hst, Hbe, Happ, Hlr, Hgr, Hmr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -87,7 +87,7 @@ theorem EtcdServer.applyEntries.wp_proofBatch
     ihave #Hcv2 : epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai [])) cs $$ []
     · rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact Hcv
     iapply HΦ
-    iframe Hfs
+    iframe Hfs Hrtm
     isplitl [Hdv]
     · rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact Hdv
     isplitl [Hrun]
@@ -178,6 +178,7 @@ theorem EtcdServer.applyEntries.wp_proofBatch
     have hun : unapplied ai ms = ms.drop k := by
       rw [unapplied_eq_drop ai ms (uint.Z f0) (fun n m h => (Hfrom.2.2 n m h).1), hkdef, hoff]
     rw [hun] at hEok hEpk hdv
+    have hrt0 : rt ≠ W64 0 := Hrt0.resolve_left (by rw [hun]; exact hne')
     ihave #Hdvr2 : iprop(dvRes s ρ.raft dv (A ++ ms.drop k)) $$ []
     · rw [← hun]; iexact Hdvr
     ihave #Hkb' : iprop(kvBatchR γr (ciEff γ st.k) ai rp A (ms.drop k)) $$ []
@@ -197,12 +198,12 @@ theorem EtcdServer.applyEntries.wp_proofBatch
       iapply Hbc
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
-      (ai + 1) ep cs rac st a t x γr rp A γp dv w g sa hM hRB hne' hfrom' hok' hEok hEpk hdv
-      $$ [Hst Hbe Happ Hcs Hcv Hlr Hgr Hmr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
-      as %appt %appi %stop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, %g', Hst, HtokR, Hbe, Happ, Hcs, #Hcv', Hlr, Hgr, Hmr, Hao, #HWA',
+      (ai + 1) ep cs rac st a t x γr rp A γp dv w g sa rt hM hRB hne' hfrom' hok' hEok hEpk hdv hrt0
+      $$ [Hrtm Hst Hbe Happ Hcs Hcv Hlr Hgr Hmr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
+      as %appt %appi %stop ⟨Hfs, Hrtm, Hdv, Hrun, HAR, %st', %a', %at', %csl, %g', Hst, HtokR, Hbe, Happ, Hcs, #Hcv', Hlr, Hgr, Hmr, Hao, #HWA',
         ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
-      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hcv Hlr Hgr Hmr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
+      iframe Hrtm Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hcv Hlr Hgr Hmr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
         Hdv Hdvr2 Hrun HAR HtokR
       ipureintro; exact Hg0
     obtain ⟨hg', hli, hlt, hok2, hci2, hstop⟩ := Hpost
@@ -223,7 +224,7 @@ theorem EtcdServer.applyEntries.wp_proofBatch
     ihave #Hcv2 : epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) csl $$ []
     · rw [hun]; iexact Hcv'
     iapply HΦ
-    iframe Hfs
+    iframe Hfs Hrtm
     isplitl [Hdv]
     · rw [hun]; iexact Hdv
     isplitl [Hrun]
@@ -257,7 +258,7 @@ theorem EtcdServer.applyEntries.wp_proofBatch
     ihave #Hcv2 : epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs $$ []
     · rw [hun, List.append_nil]; iexact Hcv
     iapply HΦ
-    iframe Hfs
+    iframe Hfs Hrtm
     isplitl [Hdv]
     · rw [hun, List.append_nil]; iexact Hdv
     isplitl [Hrun]
