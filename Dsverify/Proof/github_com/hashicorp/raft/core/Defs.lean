@@ -1050,13 +1050,34 @@ def pendHyps (γ : GNames) (i : SID) (s : SState) : Pend → IProp GF
   | .vote c li lt => candIs γ c s.term li lt
   | .term tp => tpRes γ (some tp)
 
+/-- (hraft_robust, R2) A quarter of the main goroutine's view of its state (`srvV` is two of them). -/
+def srvVq (rc : RCtx GF) (s : SState) : IProp GF :=
+  ghostVar rc.dur.sv (1 : Qp).half.half (s, (none : Option TermPend), (none : Option DiscPend))
+
+/-- (hraft_robust, R2) A quarter of the main goroutine's stable-store view (`stVS` is two of them). -/
+def stVq (rc : RCtx GF) (D : StableAbs) (g : w64) : IProp GF := ghostVar rc.dur.st (1 : Qp).half.half (D, g)
+
+/-- (hraft_robust, R2) What a crash needs of a write's surviving image, beyond the step's premises: a log
+write makes the staged commit index (written with it) durable (for a follower's append that learns a
+commit, at most the commit it learns); the vote's second write finds the candidate stored by its first. -/
+def winPure (s : SState) (D : StableAbs) (g : w64) : Pend → Prop
+  | .app _ => uint.nat g ≤ s.dur.1
+  | .cfg _ _ _ => uint.nat g ≤ s.dur.1
+  | .fstore _ _ _ lci _ lc => (lc = none → uint.nat g ≤ s.dur.1) ∧
+      (∀ v, lc = some v → uint.nat g ≤ Min.min lci v)
+  | .vote c _ _ => D.bytes.lookup (go!"LastVoteCand" : List w8) = some c
+  | _ => True
+
 /-- (hraft_robust L0, R1 §3) **The window resource of a write that fires `p`** at the state `s` (a
-parameter, so that the writer knows the view it gets back is of its own `s`; the crash law and a store's
-window take `∃ s p`): the main goroutine's view of `s` (lent to the store, so `s` is frozen in the window: only the main goroutine
+parameter; the crash law and a store's window take `∃ s p`): a quarter of the main goroutine's views of
+`s` and of the stable store (R2: the writer keeps the other quarters, so the window it gets back agrees
+with its own `s`, `D`, `g`), the facts a crash needs of the surviving image (`winPure`), and the main
+goroutine's view of `s` (lent to the store, so `s` is frozen in the window: only the main goroutine
 changes it), and the law's premises over `s`. The write's caller lends it (the contracts' `W`); the
 write's atomic update gives it back, and the store's crash lemma, if the new contents survived. -/
 def winRes (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (p : Pend) : IProp GF :=
-  iprop(srvV rc s ∗ pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
+  iprop(srvVq rc s ∗ (∃ (D : StableAbs) (g : w64), stVq rc D g ∗ ⌜winPure s D g p⌝) ∗
+    pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
 
 /-- (stage 3) **The FSM goroutine's answer to a snapshot request** `f` (`fsmSnapshotCh`): nil with the
 request's fields set to the FSM's position `x ≥ 1` (the end of an item it processed, `batchEnd`), its
