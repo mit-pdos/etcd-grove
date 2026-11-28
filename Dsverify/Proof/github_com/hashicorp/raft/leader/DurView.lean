@@ -9,6 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Crash
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 
@@ -50,8 +51,6 @@ instance dv_termCouple_timeless (γ : GNames) (i : SID) (t : Nat) :
 instance dv_cidxCouple_timeless (γ : GNames) (i : SID) (c : Nat) :
     Timeless (cidxCouple (GF := GF) γ i c) := by
   unfold cidxCouple; infer_instance
-
-theorem gprotN_diff_durN : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
 
 /-- The main goroutine's view agrees with the crash state's (no pending step). -/
 theorem srvV_agree (rc : RCtx GF) (X : SrvDur) (s : SState) :
