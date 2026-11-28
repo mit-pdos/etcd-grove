@@ -36,14 +36,14 @@ abbrev github_com.hashicorp.raft.Raft.processLogs.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ srvV rc s ∗
      ⌜uint.nat idx ≤ s.dur.1⌝ ∗
      fsmProd γ rc a ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
-     monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗ rtok tid ∗
+     monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗ ⌜c ≤ a⌝ ∗ rtok tid ∗
      (⌜fm = null ∧ M = ∅⌝ ∨ fm ↦$ M) ∗
      ([∗map] k ↦ f ∈ M, ∃ e : Entry, futResp γ rc i f (uint.nat k) e ∗
         ⌜ent s.log (uint.nat k) = some e⌝) }}
     (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"processLogs")) (Val #idx)) (Val #fm))
   {{ RET #(); srvV rc s ∗ fsmProd γ rc (Max.max a (uint.nat idx)) ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half (Max.max a (uint.nat idx)) ∗
-      monoNatAuthOwn rc.dur.comp 1 c ∗ rtok tid ∗
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗ rtok tid ∗
       (⌜fm = null⌝ ∨ fm ↦$ M) }}
 
 end spec

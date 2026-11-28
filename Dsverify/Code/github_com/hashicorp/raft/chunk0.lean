@@ -1803,6 +1803,7 @@ noncomputable def NewRaft.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Raft.ty) go!"getLastSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Raft.ty)))) (Var "r"))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1926,6 +1927,32 @@ noncomputable def NewRaft.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Raft.ty) go!"getLastSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Raft.ty)))) (Var "r"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "snapTerm" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "snapIdx" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Log.ty go!"Index"))) (Var "lastLog"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIdx")))))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIdx"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapTerm"))
+  (App (Val (GoInstruction (CompositeLiteral Log.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Index")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression go.uint64 (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapIdx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapTerm"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Raft.ty) go!"setLastLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Log.ty))) (Pair (Var "lastLog") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapTerm") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "snapIdx") (Var "$r0")))))))))))))))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Raft.ty) go!"getLastSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Raft.ty)))) (Var "r"))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -2174,7 +2201,7 @@ noncomputable def NewRaft.impl [GooseExts] [GoGlobalContext] : val :=
     of them can be restored. This is called at initialization time, and is
     completely unsafe to call at any other time.
 
-    go: api.go:645:16 -/
+    go: api.go:654:16 -/
 noncomputable def Raft.restoreSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2311,7 +2338,7 @@ noncomputable def Raft.restoreSnapshot.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType SnapshotMeta.ty))))) (Pair (Var "snapshots") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: api.go:691:16 -/
+/-- go: api.go:700:16 -/
 noncomputable def Raft.tryRestoreSingleSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "snapshot"
@@ -2394,7 +2421,7 @@ noncomputable def Raft.tryRestoreSingleSnapshot.impl [GooseExts] [GoGlobalContex
 
 /-- restoreFromCommittedLogs recovers the Raft node from committed logs.
 
-    go: api.go:713:16 -/
+    go: api.go:722:16 -/
 noncomputable def Raft.restoreFromCommittedLogs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2503,7 +2530,7 @@ noncomputable def Raft.restoreFromCommittedLogs.impl [GooseExts] [GoGlobalContex
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: api.go:746:16 -/
+/-- go: api.go:755:16 -/
 noncomputable def Raft.config.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2523,7 +2550,7 @@ noncomputable def Raft.config.impl [GooseExts] [GoGlobalContext] : val :=
     instance. All fields will be copied from rc into the new configuration, even
     if they are zero valued.
 
-    go: api.go:754:16 -/
+    go: api.go:763:16 -/
 noncomputable def Raft.ReloadConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rc"
@@ -2599,7 +2626,7 @@ noncomputable def Raft.ReloadConfig.impl [GooseExts] [GoGlobalContext] : val :=
     synchronization would be required to safely use this in a read-modify-write
     pattern for reloadable configuration options.
 
-    go: api.go:786:16 -/
+    go: api.go:795:16 -/
 noncomputable def Raft.ReloadableConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2638,7 +2665,7 @@ noncomputable def Raft.ReloadableConfig.impl [GooseExts] [GoGlobalContext] : val
     listing just itself as a Voter, then invoke AddVoter() on it to add other
     servers to the cluster.
 
-    go: api.go:806:16 -/
+    go: api.go:815:16 -/
 noncomputable def Raft.BootstrapCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "configuration"
@@ -2683,7 +2710,7 @@ noncomputable def Raft.BootstrapCluster.impl [GooseExts] [GoGlobalContext] : val
     or the leader is unknown.
     Deprecated: use LeaderWithID instead.
 
-    go: api.go:823:16 -/
+    go: api.go:832:16 -/
 noncomputable def Raft.Leader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2713,7 +2740,7 @@ noncomputable def Raft.Leader.impl [GooseExts] [GoGlobalContext] : val :=
     It may return empty strings if there is no current leader
     or the leader is unknown.
 
-    go: api.go:833:16 -/
+    go: api.go:842:16 -/
 noncomputable def Raft.LeaderWithID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2765,7 +2792,7 @@ noncomputable def Raft.LeaderWithID.impl [GooseExts] [GoGlobalContext] : val :=
     ErrAbortedByRestore is returned. In this case the write effectively failed
     since its effects will not be present in the FSM after the restore.
 
-    go: api.go:856:16 -/
+    go: api.go:865:16 -/
 noncomputable def Raft.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cmd"
@@ -2790,7 +2817,7 @@ noncomputable def Raft.Apply.impl [GooseExts] [GoGlobalContext] : val :=
     currently taken from the submitted Log are Data and Extensions. See
     Apply for details on error cases.
 
-    go: api.go:863:16 -/
+    go: api.go:872:16 -/
 noncomputable def Raft.ApplyLog.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "log"
@@ -2855,7 +2882,7 @@ noncomputable def Raft.ApplyLog.impl [GooseExts] [GoGlobalContext] : val :=
     limit the amount of time we wait for the command to be started. This
     must be run on the leader, or it will fail.
 
-    go: api.go:895:16 -/
+    go: api.go:904:16 -/
 noncomputable def Raft.Barrier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "timeout"
@@ -2914,7 +2941,7 @@ noncomputable def Raft.Barrier.impl [GooseExts] [GoGlobalContext] : val :=
     to prevent returning stale data from the FSM after the peer has lost
     leadership.
 
-    go: api.go:919:16 -/
+    go: api.go:928:16 -/
 noncomputable def Raft.VerifyLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2951,7 +2978,7 @@ noncomputable def Raft.VerifyLeader.impl [GooseExts] [GoGlobalContext] : val :=
 /-- GetConfiguration returns the latest configuration. This may not yet be
     committed. The main loop can access this directly.
 
-    go: api.go:933:16 -/
+    go: api.go:942:16 -/
 noncomputable def Raft.GetConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -2987,7 +3014,7 @@ noncomputable def Raft.GetConfiguration.impl [GooseExts] [GoGlobalContext] : val
 
     Deprecated: Use AddVoter/AddNonvoter instead.
 
-    go: api.go:944:16 -/
+    go: api.go:953:16 -/
 noncomputable def Raft.AddPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "peer"
@@ -3022,7 +3049,7 @@ noncomputable def Raft.AddPeer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Deprecated: Use RemoveServer instead.
 
-    go: api.go:962:16 -/
+    go: api.go:971:16 -/
 noncomputable def Raft.RemovePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "peer"
@@ -3063,7 +3090,7 @@ noncomputable def Raft.RemovePeer.impl [GooseExts] [GoGlobalContext] : val :=
     fail. If nonzero, timeout is how long this server should wait before the
     configuration change log entry is appended.
 
-    go: api.go:982:16 -/
+    go: api.go:991:16 -/
 noncomputable def Raft.AddVoter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "id"
@@ -3108,7 +3135,7 @@ noncomputable def Raft.AddVoter.impl [GooseExts] [GoGlobalContext] : val :=
     this updates the server's address. This must be run on the leader or it will
     fail. For prevIndex and timeout, see AddVoter.
 
-    go: api.go:1000:16 -/
+    go: api.go:1009:16 -/
 noncomputable def Raft.AddNonvoter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "id"
@@ -3151,7 +3178,7 @@ noncomputable def Raft.AddNonvoter.impl [GooseExts] [GoGlobalContext] : val :=
     leader is being removed, it will cause a new election to occur. This must be
     run on the leader or it will fail. For prevIndex and timeout, see AddVoter.
 
-    go: api.go:1016:16 -/
+    go: api.go:1025:16 -/
 noncomputable def Raft.RemoveServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "id"
@@ -3193,7 +3220,7 @@ noncomputable def Raft.RemoveServer.impl [GooseExts] [GoGlobalContext] : val :=
     does nothing. This must be run on the leader or it will fail. For prevIndex
     and timeout, see AddVoter.
 
-    go: api.go:1033:16 -/
+    go: api.go:1042:16 -/
 noncomputable def Raft.DemoteVoter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "id"
@@ -3233,7 +3260,7 @@ noncomputable def Raft.DemoteVoter.impl [GooseExts] [GoGlobalContext] : val :=
     This is not a graceful operation. Provides a future that
     can be used to block until all background routines have exited.
 
-    go: api.go:1048:16 -/
+    go: api.go:1057:16 -/
 noncomputable def Raft.Shutdown.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3287,7 +3314,7 @@ noncomputable def Raft.Shutdown.impl [GooseExts] [GoGlobalContext] : val :=
     that can be used to block until complete, and that contains a function that
     can be used to open the snapshot.
 
-    go: api.go:1066:16 -/
+    go: api.go:1075:16 -/
 noncomputable def Raft.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3339,7 +3366,7 @@ noncomputable def Raft.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
     the leader commits ahead of its followers, so should only be used for disaster
     recovery into a fresh cluster, and should not be used in normal operations.
 
-    go: api.go:1092:16 -/
+    go: api.go:1101:16 -/
 noncomputable def Raft.Restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "meta"
@@ -3441,7 +3468,7 @@ noncomputable def Raft.Restore.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- State returns the state of this raft peer.
 
-    go: api.go:1138:16 -/
+    go: api.go:1147:16 -/
 noncomputable def Raft.State.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3468,7 +3495,7 @@ noncomputable def Raft.State.impl [GooseExts] [GoGlobalContext] : val :=
     `true` values, they may deduce that leadership was lost and regained while
     the receiver was processing first leadership transition.
 
-    go: api.go:1153:16 -/
+    go: api.go:1162:16 -/
 noncomputable def Raft.LeaderCh.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3485,7 +3512,7 @@ noncomputable def Raft.LeaderCh.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- String returns a string representation of this Raft node.
 
-    go: api.go:1158:16 -/
+    go: api.go:1167:16 -/
 noncomputable def Raft.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3507,7 +3534,7 @@ noncomputable def Raft.String.impl [GooseExts] [GoGlobalContext] : val :=
 /-- LastContact returns the time of last contact by a leader.
     This only makes sense if we are currently a follower.
 
-    go: api.go:1164:16 -/
+    go: api.go:1173:16 -/
 noncomputable def Raft.LastContact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3559,7 +3586,7 @@ noncomputable def Raft.LastContact.impl [GooseExts] [GoGlobalContext] : val :=
 
     All other values are uint64s, formatted as strings.
 
-    go: api.go:1196:16 -/
+    go: api.go:1205:16 -/
 noncomputable def Raft.Stats.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3760,7 +3787,7 @@ noncomputable def Raft.Stats.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- CurrentTerm returns the current term.
 
-    go: api.go:1257:16 -/
+    go: api.go:1266:16 -/
 noncomputable def Raft.CurrentTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3778,7 +3805,7 @@ noncomputable def Raft.CurrentTerm.impl [GooseExts] [GoGlobalContext] : val :=
 /-- LastIndex returns the last index in stable storage,
     either from the last log or from the last snapshot.
 
-    go: api.go:1263:16 -/
+    go: api.go:1272:16 -/
 noncomputable def Raft.LastIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3797,7 +3824,7 @@ noncomputable def Raft.LastIndex.impl [GooseExts] [GoGlobalContext] : val :=
     This API maybe helpful for server to implement the read index optimization
     as described in the Raft paper.
 
-    go: api.go:1270:16 -/
+    go: api.go:1279:16 -/
 noncomputable def Raft.CommitIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3820,7 +3847,7 @@ noncomputable def Raft.CommitIndex.impl [GooseExts] [GoGlobalContext] : val :=
     it to its internal state. Thus, the application's state may lag behind this
     index.
 
-    go: api.go:1281:16 -/
+    go: api.go:1290:16 -/
 noncomputable def Raft.AppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3848,7 +3875,7 @@ noncomputable def Raft.AppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
     the latest version. If a follower cannot be promoted, it will fail
     gracefully.
 
-    go: api.go:1297:16 -/
+    go: api.go:1306:16 -/
 noncomputable def Raft.LeadershipTransfer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3884,7 +3911,7 @@ noncomputable def Raft.LeadershipTransfer.impl [GooseExts] [GoGlobalContext] : v
     however in a cluster where not every node has the latest version. If a
     follower cannot be promoted, it will fail gracefully.
 
-    go: api.go:1312:16 -/
+    go: api.go:1321:16 -/
 noncomputable def Raft.LeadershipTransferToServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "id"

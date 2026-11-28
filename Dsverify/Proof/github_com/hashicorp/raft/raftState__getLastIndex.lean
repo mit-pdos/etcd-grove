@@ -11,6 +11,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.raftState__getLastIndex
 public import Dsverify.Spec.github_com.hashicorp.raft.max
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.core.LastLock
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 

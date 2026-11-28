@@ -1,0 +1,336 @@
+/-
+(hraft_robust R4a) Helpers of the term, vote and follower proofs: namespace facts for the masks of
+`srvDurInv` (`durN`) under the cells' openings, and
+
+**`sync/atomic`'s `LoadUint64` and `StoreUint64` with a crash-token atomic update**:
+Perennial's specs (`sync.atomic.LoadUint64.spec`, `StoreUint64.spec`) take a plain atomic update
+(`|={⊤,∅}=>`), in which a client cannot open an invariant shared with later generations
+(`srvDurInv`, `inv_nc_acc`). These are the same specs with `|NC={⊤,∅}=>`, proved as Perennial's are,
+over the same models (`TrustedCode/sync/atomic.lean`: one byte atomic), with `wp_atomic_nc` at the
+atomic step. A local workaround: the general change (the atomics' atomic updates as crash-token
+updates, as the channels' are) belongs in Perennial (`notes/perennial-changes.md`).
+-/
+module
+
+public import Perennial.Proof.sync.atomic.Link
+public import Perennial.GooseLang.NotCrashed
+public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
+public import Dsverify.Proof.github_com.hashicorp.raft.core.CrashLaws
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : sync.atomic.Assumptions]
+
+/-- `sync.atomic.LoadUint64` with a crash-token atomic update. -/
+theorem sync.atomic.wp_LoadUint64_nc (addr : Loc) (dq : DFrac) :
+    ⊢ ∀ Φ : val → IProp GF, isPkgInit (PROP := IProp GF) pkg_id.sync.atomic -∗
+      (|NC={⊤,∅}=> ▷ ∃ v : w64, addr ↦{dq} v ∗ (addr ↦{dq} v ={∅,⊤}=∗ Φ #v)) -∗
+      WP (App (Val (@! sync.atomic.LoadUint64)) (Val #addr)) {{ Φ }} := by
+  wp_start as _
+  iapply wp_atomic_nc _ _ rfl
+  iintro Hnc
+  imod HΦ $$ Hnc with ⟨Hnc, HΦ⟩
+  iframe Hnc
+  imodintro
+  icases HΦ with ⟨%v, Haddr, HΦ⟩
+  wp_apply_core wp_load_bytes_typed _ _ addr dq v $$ Haddr
+  iintro Haddr
+  iapply HΦ $$ Haddr
+
+/-- `sync.atomic.StoreUint64` with a crash-token atomic update. -/
+theorem sync.atomic.wp_StoreUint64_nc (addr : Loc) (v : w64) :
+    ⊢ ∀ Φ : val → IProp GF, isPkgInit (PROP := IProp GF) pkg_id.sync.atomic -∗
+      (|NC={⊤,∅}=> ▷ ∃ oldv : w64, addr ↦ oldv ∗ (addr ↦ v ={∅,⊤}=∗ Φ #())) -∗
+      WP (App (App (Val (@! sync.atomic.StoreUint64)) (Val #addr)) (Val #v)) {{ Φ }} := by
+  wp_start as _
+  wp_bind (SwapBytes _ _ _)
+  iapply wp_atomic_nc _ _ rfl
+  iintro Hnc
+  imod HΦ $$ Hnc with ⟨Hnc, HΦ⟩
+  iframe Hnc
+  imodintro
+  icases HΦ with ⟨%oldv, Haddr, HΦ⟩
+  wp_apply_core wp_swap_bytes_typed _ _ addr oldv v $$ Haddr
+  iintro Haddr
+  imod HΦ $$ Haddr with HΦ
+  imodintro
+  wp_pures
+  iexact HΦ
+
+end proof
+
+namespace github_com.hashicorp.raft
+
+open proto gprot
+
+/-- Two distinct namespaces of raft are disjoint: `raftN.@x` stays inside `E` minus `raftN.@y`. -/
+theorem raftN_sub_diff {x y : String} (hxy : x ≠ y) {E : CoPset} (h : (↑(raftN.@x) : CoPset) ⊆ E) :
+    (↑(raftN.@x) : CoPset) ⊆ E \ ↑(raftN.@y) := by
+  intro p hp
+  rw [LawfulSet.mem_diff]
+  exact ⟨h p hp, fun h' => ndot_ne_disjoint raftN hxy p ⟨hp, h'⟩⟩
+
+/-- The protocol invariant's namespace stays inside `E` minus a namespace of raft. -/
+theorem gprotN_sub_diff (y : String) {E : CoPset} (h : (↑gprotN : CoPset) ⊆ E) :
+    (↑gprotN : CoPset) ⊆ E \ ↑(raftN.@y) := by
+  intro p hp
+  rw [LawfulSet.mem_diff]
+  exact ⟨h p hp, fun h' => (LawfulSet.mem_diff.mp (gprotN_diff_raft y p hp)).2 h'⟩
+
+theorem durN_diff_termN : (↑durN : CoPset) ⊆ ⊤ \ ↑termN :=
+  raftN_sub_diff (by decide) (fun _ _ => CoPset.mem_full)
+theorem durN_diff_cidxN : (↑durN : CoPset) ⊆ ⊤ \ ↑cidxN :=
+  raftN_sub_diff (by decide) (fun _ _ => CoPset.mem_full)
+theorem gprotN_diff_termN_durN : (↑gprotN : CoPset) ⊆ (⊤ \ ↑termN) \ ↑durN :=
+  gprotN_sub_diff "dur" gprotN_diff_termN
+theorem gprotN_diff_cidxN_durN : (↑gprotN : CoPset) ⊆ (⊤ \ ↑cidxN) \ ↑durN :=
+  gprotN_sub_diff "dur" gprotN_diff_cidxN
+theorem gprotN_diff_durN : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
+
+/-- The wrapper laws' mask condition inside a cell's opening, or anywhere below `⊤ \ raftN.@y`. -/
+theorem gd_sub {E : CoPset} (h1 : (↑gprotN : CoPset) ⊆ E) (h2 : (↑durN : CoPset) ⊆ E) :
+    (↑gprotN ∪ ↑durN : CoPset) ⊆ E := by
+  intro p hp
+  rcases LawfulSet.mem_union.mp hp with h | h
+  · exact h1 p h
+  · exact h2 p h
+
+theorem gd_diff_termN : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ \ ↑termN := gd_sub gprotN_diff_termN durN_diff_termN
+theorem gd_diff_cidxN : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ \ ↑cidxN := gd_sub gprotN_diff_cidxN durN_diff_cidxN
+theorem gd_top : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ := fun _ _ => CoPset.mem_full
+
+/-- Writing the `CurrentTerm` key of the stable store keeps the last vote. -/
+theorem voteMatches_ct (D : StableAbs) (s : SState) (v : w64) (h : voteMatches D s) :
+    voteMatches { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) v } s := by
+  unfold voteMatches at *
+  simp only [GMap.lookup_insert_eq_iff]
+  rw [if_neg (by decide)]
+  exact h
+
+/-- The stored `CurrentTerm` after writing `v`. -/
+theorem ct_insert (D : StableAbs) (v : w64) :
+    ((D.ints.insert (go!"CurrentTerm" : List w8) v).lookup (go!"CurrentTerm" : List w8)).getD (W64 0) =
+      v := by
+  simp only [GMap.lookup_insert_eq_iff, if_pos, Option.getD_some]
+
+
+section dur
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.Assumptions]
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
+
+open Iris Iris.BI Iris.ProofMode
+
+variable (γ : GNames) (rc : RCtx GF) (i : SID)
+
+/-- Two `mono_nat` authority fragments agree, keeping both. -/
+theorem auth_agree_keep (γa : GName) (q1 q2 : Qp) (n1 n2 : Nat) :
+    (monoNatAuthOwn (GF := GF) γa q1 n1 ∗ monoNatAuthOwn γa q2 n2 : IProp GF) ⊢
+      (monoNatAuthOwn γa q1 n1 ∗ monoNatAuthOwn γa q2 n2) ∗ ⌜n1 = n2⌝ := by
+  refine (BI.and_intro .rfl ?_).trans BI.persistent_and_sep_mp
+  iintro ⟨H1, H2⟩
+  ihave %h := monoNatAuthOwn_agree γa q1 q2 n1 n2 $$ H1 H2
+  ipureintro; exact h.2
+
+
+theorem srvV_eq (s : SState) : srvV rc s = srvVP rc s none none := rfl
+
+theorem stV_eq (D : StableAbs) : stV rc D = iprop(∃ g : w64, stVS rc D g) := rfl
+
+/-- **A read of the main goroutine's protocol state** (R2's `durPeek` at `srvV`):
+with its view `srvV rc s`, an update that uses `srvOwn γ i s` and gives it back. -/
+theorem durRead {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) :
+    srvDurInv γ rc i ∗ srvV rc s ∗ P ∗
+      (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢ |NC={E}=> srvV rc s ∗ Q := by
+  rw [srvV_eq]
+  exact durPeek γ rc i hE s none none P Q
+
+/-- **Rewriting an atomic update's post**: a store contract's update, from one whose commit gives
+`Q a` to one whose commit gives `Q' a`. -/
+theorem au_post {A : Type} {E : CoPset} (P P' Q Q' : A → IProp GF) :
+    (|NC={E, ∅}=> ▷ ∃ a, P a ∗ (P' a ={∅, E}=∗ Q a)) -∗ (∀ a, Q a -∗ Q' a) -∗
+      |NC={E, ∅}=> ▷ ∃ a, P a ∗ (P' a ={∅, E}=∗ Q' a) := by
+  iintro Hau Hw Hnc
+  imod Hau $$ Hnc with ⟨Hnc, Hau⟩
+  iframe Hnc
+  imodintro
+  inext
+  icases Hau with ⟨%a, Hp, Hcl⟩
+  iexists a
+  iframe Hp
+  iintro Hp
+  imod Hcl $$ Hp with HQ
+  imodintro
+  iapply Hw $$ HQ
+
+/-- **A read of the stable store by the main goroutine**: its view `stVS rc D g` pins the store's
+contents. -/
+theorem stRead_main (D : StableAbs) (g : w64) :
+    srvDurInv γ rc i -∗ stVS rc D g -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
+        (rc.ownS D0 ={∅, ⊤ \ ↑storeN}=∗ stVS rc D g ∗ ⌜D0 = D⌝) := by
+  iintro #Hd Hv
+  iapply (stableRead_au γ rc i (stVS rc D g) (fun D0 => iprop(stVS rc D g ∗ ⌜D0 = D⌝))) $$ Hd Hv
+  iintro %X Hc Hv
+  ihave ⟨Hc, Hv, %h⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hv]
+  · iframe
+  imodintro
+  iframe
+  ipureintro; exact h.1
+
+/-- The server's term, as a persistent lower bound (with the main goroutine's view). -/
+theorem srvV_termLb {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) :
+    srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ termLb γ i s.term := by
+  iintro ⟨#Hd, Hv⟩
+  rw [srvV_eq]
+  ihave H := durStep γ rc i hE s none none iprop(True)
+    (fun X' => iprop(⌜X'.s = s ∧ X'.tp = none ∧ X'.dp = none⌝ ∗ termLb γ i s.term)) $$ [Hv]
+  · iframe Hd Hv
+    isplitl []
+    · itrivial
+    iintro %X %hX Hc Hs Hv -
+    rcases hX with ⟨h1, h2, h3⟩
+    unfold durCore
+    icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hrest⟩
+    ihave ⟨Htc, #Hlb⟩ := termCouple_get_lb γ i _ $$ Htc
+    imodintro
+    iexists X
+    rw [h1, h2, h3]
+    iframe
+    iframe #
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  iapply ncfupd_wand
+  isplitl [H]
+  · iexact H
+  iintro ⟨%X', Hs, %h, #Hlb⟩
+  rcases h with ⟨h1, h2, h3⟩
+  rw [h1, h2, h3]
+  iframe Hs
+  iexact Hlb
+
+/-- **A read of the log store by the main goroutine** (`GetLog`): every entry the store holds is the
+main goroutine's log's (`logOk`). -/
+theorem logRead_main (s : SState) (Ψ : LogAbs → IProp GF) :
+    srvDurInv γ rc i -∗ srvV rc s -∗
+      (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗ srvV rc s -∗ Ψ A) -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
+  iintro #Hd Hv Hw
+  iapply (logRead_au γ rc i iprop(srvV rc s ∗
+      (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗ srvV rc s -∗ Ψ A)) Ψ)
+    $$ Hd [Hv Hw]
+  · iframe
+  iintro %X Hc ⟨Hv, Hw⟩
+  rw [srvV_eq]
+  ihave ⟨Hc, Hv, %hs⟩ := durCore_srvVP_agree γ rc i X s none none $$ [$Hc $Hv]
+  ihave ⟨Hc, %hl⟩ := durCore_logOk γ rc i (E := ⊤) (fun _ _ => CoPset.mem_full) X $$ Hc
+  imodintro
+  iframe Hc
+  iapply Hw
+  · ipureintro; rw [← hs.1]; exact hl.1.1
+  · iexact Hv
+
+/-- **A read of the log store at `k` by the main goroutine**, `k` past its compaction frontier `cm`
+(its authority): the store holds the log's entry at `k` (`logOk`, from `lo ≤ c + 1 ≤ cm + 1`). -/
+theorem logRead_main_k (s : SState) (q : Qp) (cm k : Nat) (hk : cm < k) (Ψ : LogAbs → IProp GF) :
+    srvDurInv γ rc i -∗ srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗
+      (∀ A : LogAbs, ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
+          (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
+        srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗ Ψ A) -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
+  iintro #Hd Hv Ha Hw
+  iapply (logRead_au γ rc i iprop(srvV rc s ∗ monoNatAuthOwn rc.dur.comp q cm ∗
+      (∀ A : LogAbs, ⌜(∀ k' e, A.m.lookup k' = some e → ent s.log k' = some e) ∧
+          (k ≤ s.log.length → A.m.lookup k = ent s.log k)⌝ -∗
+        srvV rc s -∗ monoNatAuthOwn rc.dur.comp q cm -∗ Ψ A)) Ψ)
+    $$ Hd [Hv Ha Hw]
+  · iframe
+  iintro %X Hc ⟨Hv, Ha, Hw⟩
+  rw [srvV_eq]
+  ihave ⟨Hc, Hv, %hs⟩ := durCore_srvVP_agree γ rc i X s none none $$ [$Hc $Hv]
+  unfold durCore
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hca, Hrest⟩
+  ihave ⟨⟨Hca, Ha⟩, %hc⟩ := auth_agree_keep rc.dur.comp (1 : Qp).half q X.c cm $$ [Hca Ha]
+  · iframe
+  imodintro
+  iframe Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hca Hrest
+  isplitr
+  · ipureintro; exact Hp
+  try imodintro
+  iapply Hw $$ [] Hv Ha
+  ipureintro
+  rw [← hs.1]
+  refine ⟨Hp.1.1, fun hkl => Hp.1.2 k (by have := Hp.2.1; have := hc; omega) hkl⟩
+
+theorem compHalves (n : Nat) :
+    (monoNatAuthOwn (GF := GF) rc.dur.comp 1 n : IProp GF) ⊣⊢
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half n ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half n := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (monoNatAuthOwn_fractional rc.dur.comp n).fractional _ _
+
+/-- **Raising the compaction frontier** to `x` (the configurations answer, `cfgReqQ`'s `compLb`): the
+main goroutine's half and `durBody`'s, outside an install (`dp = none`, pinned by `srvV`). -/
+theorem compRaise (s : SState) (c x : Nat) :
+    srvDurInv γ rc i ∗ srvV rc s ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half c ⊢
+      |NC={⊤}=> srvV rc s ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half (Nat.max c x) ∗ compLb rc x := by
+  iintro ⟨#Hd, Hv, Hc⟩
+  rw [srvV_eq]
+  ihave H := durStep γ rc i (E := ⊤) (fun _ _ => CoPset.mem_full) s none none
+    iprop(monoNatAuthOwn rc.dur.comp (1 : Qp).half c)
+    (fun X' => iprop(⌜X'.s = s ∧ X'.tp = none ∧ X'.dp = none⌝ ∗
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half (Nat.max c x) ∗ compLb rc x)) $$ [Hv Hc]
+  · iframe Hd Hv Hc
+    iintro %X %hX Hco HSt Hv Hc
+    rcases X with ⟨Xs, XA, Xlo, Xc, XD, Xtp, Xlat, Xpend, Xdp⟩
+    rcases hX with ⟨h1, h2, h3⟩
+    simp only at h1 h2 h3
+    subst h1 h2 h3
+    unfold durCore
+    icases Hco with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hca, Hrest⟩
+    ihave ⟨⟨Hca, Hc⟩, %hc⟩ := auth_agree_keep rc.dur.comp (1 : Qp).half (1 : Qp).half Xc c $$ [Hca Hc]
+    · iframe
+    subst hc
+    ihave Hfull := (compHalves rc Xc).2 $$ [Hca Hc]
+    · iframe
+    imod (mono_nat_own_update (Nat.max Xc x) (Nat.le_max_left _ _)) $$ Hfull with ⟨Hfull, #Hlb⟩
+    ihave ⟨Ha1, Ha2⟩ := (compHalves rc (Nat.max Xc x)).1 $$ Hfull
+    imodintro
+    iexists ⟨Xs, XA, Xlo, Nat.max Xc x, XD, none, Xlat, Xpend, none⟩
+    iframe
+    isplitr
+    · ipureintro
+      obtain ⟨p1, p2, p3, p4, p5, p6, p7⟩ := Hp
+      refine ⟨p1, ?_, p3, p4, p5, p6, fun d hd => by cases hd⟩
+      exact Nat.le_trans p2 (Nat.add_le_add_right (Nat.le_max_left Xc x) 1)
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, rfl⟩
+    unfold compLb
+    iapply monoNatLbOwn_le x (Nat.le_max_right _ _) $$ Hlb
+  iapply ncfupd_wand
+  isplitl [H]
+  · iexact H
+  iintro ⟨%X', Hs, %h, Hc, #Hlb⟩
+  rcases h with ⟨h1, h2, h3⟩
+  rw [h1, h2, h3]
+  iframe; iframe #
+
+end dur
+
+end github_com.hashicorp.raft
+
+end Perennial
