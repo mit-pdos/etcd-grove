@@ -15,7 +15,7 @@ The plan is `/shared/tmp/ps2/hraft/PLAN.md`, agreed on mit-pdos/etcd-grove#48 by
 **S0 (2026-11-27, branch `hraft-s0/2026-11-27`): done.** The fork is in-tree. It is translated into
 the part `Dsverify/` by project `dsv-hraft` (`etc/dsv/hraft.py`), and its two packages' initializers
 are generated and proved (`etc/gen-init.py`). There is no proof of any function yet, no `Link` and
-no tcb collection: the collection `etc/tcb-collections/dsv-hraft.txt` comes with the first `Link`.
+no tcb collection (P5 added both: `etc/tcb-collections/dsv-hraft.txt`).
 
 The trust added is none:
 
@@ -34,6 +34,34 @@ function, no axiom, `sorry` or premise.
 **S4 (2026-11-27, branch `hraft-s4/2026-11-27`): the transport's proof, in progress.** First the two
 program changes coordinator-E approved for it (#48 7228496199; "The kit's changes for the transport
 proof" below), for the next packet to Upamanyu.
+Batch 2: the pure layer (`copyBytes`, `toHeader`/`fromHeader`, the 16 conversions, the size check's 7
+bounds), over `Proof/.../hraftnet/rpctransport/Wire.lean`. Batch 3: `Conn` (`NewConn`, `get`, `drop`, `Call`
+over Net's `DialTimeout`, `rpc_register`, `NewClient`, `Client.Go`, `Close`, `time.After`;
+`rpctransport/Conn.lean`), with kit change 3. Left: the codec laws (the generated codec's encodings and
+decodings of the wire structs: stated as `CodecLaws` in `rpctransport/CodecLaws.lean`, round trips over
+the pure encodings of `WireEnc.lean`, to prove of the generated codec), the transport's methods and `New`
+(over the service spec `raftSvc` of `rpctransport/Facts.lean`: the lab's message facts over wire values),
+the receiver
+(`RaftRPC`, `deliver`), the pipeline, and the link.
+
+**S4b (2026-11-27, branch `hraft-s4b/2026-11-27`): the transport's methods, receiver and pipeline proved.**
+Vocabulary `rpctransport/Trans.lean`: server `i`'s transport (`isTrans t γ snapP i W C`, persistent: its
+address, its consumer channel `isRpcChan γ snapP i`, its peers, each raft address `a` a `Conn` to a net/rpc
+server whose `RaftRPC` service is `raftSvc γ snapP a` (`peerOk`), the heartbeat handler under the mutex
+(`hbInv`: nil or `hbHandler γ i`), the registered codec `C` and `⌜CodecLaws C⌝`, S4c's laws, so every
+result is parametric in them); the receiver `isRcv`; `errStr` (the `errors.New` errors the transport makes:
+`errOk`, `errNoFmt`); the pipeline's `futQ`/`isPip` (the lab's `PipeBase`). `WireLen.lean`: a request
+whose `*BoundN` is at most `MaxRequest` has an encoding that fits `maxFrameN`. `Ents.lean`: raft's
+read-only `logPtr`s as wire contents and back. Proved (specs and proofs, over the real code): `New`,
+`Receiver`, `send` (`Conn.Call` at the peer), `Consumer`, `LocalAddr`, `EncodePeer`, `DecodePeer`,
+`SetHeartbeatHandler`, the five calls (conversion, size check, `send` with the codec laws, the response
+facts rebuilt from `raftSvc`'s), `isHeartbeat`, `deliver` (the handler on a fresh goroutine,
+`wp_fork_rtok`), the five `RaftRPC` methods (the lab's message predicates rebuilt from `raftSvc`'s wire
+facts; their specs are what S4c's `methodOk` takes), the four `appendFuture` methods, `pipeline.run`,
+`AppendEntries`, `Consumer`, `Close` and `AppendEntriesPipeline` (the lab's inproc proofs, ported).
+`rpctransport/IsTransport.lean`: `Transport_isTransport`, from the method specs (hypotheses, as a proof's
+callees), `isPkgInit ∗ isTrans t … ⊢ ∃ ch, isTransport ⟨*Transport, #t⟩ γ snapP i ch`. Kit change 4
+(below, approved). Not linked yet (the kit's `Link`, S5). No axiom, `sorry` or premise.
 
 ## Provenance
 
@@ -125,7 +153,7 @@ The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift 
   becomes `Spec/io/Copy.lean` in the main tree (no general `io.Copy` spec existed), still to prove over
   Perennial's `io.Copy` body (P4). Not ported (the dropped harness): `inproc` (but its readers), `recorder`,
   `kvmodel`, porcupine, `hr3`, `Goal`, `DsvStatement`.
-- **P4** (next): the 185 code-proof files, in four independent groups (`/shared/tmp/ps2/hraft/P4-SPLIT.md`).
+- **P4** (done): the 185 code-proof files, in four independent groups (`/shared/tmp/ps2/hraft/P4-SPLIT.md`).
   Two lab axioms are to be proved there: `fmt.wp_Errorf_tnErr` (`FmtErrorf.lean`) and `io.Copy`'s.
   - **Group C** (branch `hraft-p4c/2026-11-27`): layers 3-5 (21 files). `Raft__installSnapshot` takes
     `io.Copy.spec` and `io.Copy_Discard.spec` as callee hypotheses, as for raft's own callees (the lab used
@@ -138,7 +166,28 @@ The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift 
     `err` needs it; (3) `io.Copy_Discard.spec`'s `w` is any value `Discard` holds: Perennial's `io` fact
     (`io.isInit`, `"#HDiscard"`) says only that `Discard` holds some fixed `Writer`, not `discard{}`, and
     says nothing of `blackHolePool`, which `discard.ReadFrom` takes its buffer from: proving it needs that
-    fact strengthened in Perennial (its initializer stores `discard{}`; mechanical). Left to the link (P5).
+    fact strengthened in Perennial (its initializer stores `discard{}`; mechanical). **Settled** (branch
+    `hraft-iocopy/2026-11-27`, ledger 2026-11-27): the spec takes (1) and (2) (`io.streamReader`'s post has
+    `io.ptrTyped err`; `InstallBase`'s `eof_ptrTyped` gives it for `streamReaderOk`'s `nil`/`io.EOF`), and
+    `streamReader`/`streamWriter` are in `streamReaderOk`'s WP form over the resolved call (`methods ty m v`);
+    for (3) Perennial `148615524` translates `discard.ReadFrom` and its `io.isInit` gains `"#HDiscardV"`
+    (`discard{}`) and `"#HblackHolePool"` (proved). Proved in `Proof/io/Copy.lean`: `io.Copy.wp_proof`, and
+    `io.Copy_Discard.wp_proof wp_Get wp_Put` (callees `sync.Pool.Get.spec`/`Put.spec`, Perennial's
+    `sync.Pool.wp_Get`/`wp_Put`): P5's `Link.lean` passes these, no axiom.
+- **P5** (branch `hraft-p5/2026-11-27`): the Links, `Dsverify/Proof/github_com/hashicorp/raft/Link.lean` and
+  `.../raft/examples/snapstore/Link.lean`, generated by dsverify-lab's link generator ported as
+  `etc/dsv/tools/hraft-link.py` (modes `etc/gen-link.py --hraft`/`--hraft-snapstore`, so `etc/gates.sh` checks
+  them as every generated Link). Every `wp_proof` is applied to its callees' results: raft's and snapstore's
+  own, Perennial's (`bytes`, `errors`, `fmt`, `strconv`, `strings`, `sync`, `sync/atomic`, `time` Links) and
+  `FmtErrorf`'s theorem for the one `spec_<v>` variant a proof takes (`fmt.wp_Errorf_tnErr`; the generator
+  refuses an axiom there). The results are `Perennial.EtcdGrove.raft.<…>.wp_<f>` and
+  `Perennial.EtcdGrove.snapstore.<…>.wp_<f>` (`etc/proof_roots.py`: every Link's results are under
+  `Perennial.EtcdGrove`; the package's qualifier first, as `etc/verified-code.py` reads a result). Trust base: collection
+  `etc/tcb-collections/dsv-hraft.txt` (none of this repository's axioms or `sorry`s). All 188 proofs are linked:
+  `Raft.installSnapshot`'s `io.Copy.spec`/`io.Copy_Discard.spec` (`Spec/io/Copy.lean`) by `Proof/io/Copy.lean`
+  (branch `hraft-iocopy`), `Copy_Discard`'s over Perennial's `sync.Pool.wp_Get`/`wp_Put`; until then that cone
+  (`installSnapshot`, `processRPC`, `runFollower`, `runCandidate`, `leaderLoop`, `runLeader`, `run`, `NewRaft`)
+  was left out (the generator's `PENDING`, now empty).
 
 ## The kit (S1)
 
@@ -219,8 +268,9 @@ alone 8-12 s first). Together: 1459 statements (66.7%) against hr3's 1457 (66.6%
 
 ## The kit's changes for the transport proof (S4)
 
-Two changes to `rpctransport` (the theorem's program), approved by coordinator-E (#48 7228496199), to go
-in the next packet to Upamanyu. The lab's transport contract (`iface/Net.lean`, `isTransport`) was the
+Four changes to `rpctransport` (the theorem's program), for the next packet to Upamanyu: 1 and 2 approved
+by coordinator-E (#48 7228496199), 3 (behavior-preserving) reported on #48 7229406627, 4 approved by
+coordinator-E (#48, S4b, 2026-11-27). The lab's transport contract (`iface/Net.lean`, `isTransport`) was the
 in-process transport's; over Net's net/rpc model it met two differences:
 
 1. **The size check (option B).** Net's `Client.Go.spec` asks that the encoded request fit a frame
@@ -243,7 +293,49 @@ in-process transport's; over Net's net/rpc model it met two differences:
    handler with `go fn(r)` and waits on `respCh` as before: **behavior-preserving** (upstream's
    NetworkTransport runs it on the connection's goroutine, which waits for the answer either way).
 
-The diff (`git diff` of `rpctransport.go`, S1's against S4's):
+3. **`Conn.Call` reads the received call** (S4 batch 3, reported on #48 7229406627): `case done :=
+   <-call.Done: if done.Error != nil`, where S1 read `call.Error` after `case <-call.Done`. Net's
+   `Client.Go.spec` gives the call's outcome (its `Error` field, `callPost`) for the value received on
+   `Done`, not for the `*Call` `Go` returned; net/rpc sends that same `*Call`, and Go's `rpc.Client.Call`
+   reads the received one (`call := <-client.Go(...).Done; return call.Error`). **Behavior-preserving.**
+   Diff:
+
+```diff
+@@ -377,4 +377,5 @@ func (p *Conn) Call(method string, args any, reply any, d time.Duration) uint64
+ 	select {
+-	case <-call.Done:
+-		if call.Error != nil {
++	case done := <-call.Done:
++		// done is call (net/rpc sends the call on its Done), read as rpc.Client.Call does
++		if done.Error != nil {
+ 			p.drop(c)
+```
+
+4. **`RaftRPC.InstallSnapshot` answers a failed install with a constant message** (S4b): `reply.Err =
+   installFailed` (`"rpctransport: snapshot install failed"`) where S1 sent `err.Error()`. The contract lets
+   raft's `installSnapshot` answer with any non-nil error (`isRpcP`'s `rpcRespAnyP`: `io.Copy`'s, the sink's
+   `Close`, the FSM's `Restore`, `decodePeers`'), whose `Error()` nothing specifies, so calling it cannot be
+   proved. Only the error text the leader gets changes; the leader's raft only tests that error against nil
+   (the contract's InstallSnapshot gives the sender `⌜err ≠ nil⌝`). Not taken: strengthening `rpcRespAnyP` to
+   `errOk`, which would change raft's side (the store and FSM contracts). Diff:
+
+```diff
++// installFailed is the error message of a failed install: raft's InstallSnapshot error may be any
++// error (io.Copy's, the sink's, the FSM's Restore's), whose Error() the receiver does not call; the
++// sender only tests the error against nil.
++const installFailed = "rpctransport: snapshot install failed"
++
+ func (s *RaftRPC) InstallSnapshot(args *SnapReq, reply *SnapResp) error {
+ 	resp, err := s.t.deliver(fromSnapReq(args), snapstore.NewReader(args.Data), false)
+ 	if err != nil {
+ 		reply.Failed = true
+-		reply.Err = err.Error()
++		reply.Err = installFailed
+ 		return nil
+ 	}
+```
+
+The diff of changes 1 and 2 (`git diff` of `rpctransport.go`, S1's against S4's batch 1):
 
 ```diff
 @@ -10,4 +10,5 @@

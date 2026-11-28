@@ -79,6 +79,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
+       etc/gen-link.py --hraft > Dsverify/Proof/github_com/hashicorp/raft/Link.lean
+       etc/gen-link.py --hraft-snapstore > Dsverify/Proof/github_com/hashicorp/raft/examples/snapstore/Link.lean
        etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
@@ -811,6 +813,13 @@ if sys.argv[1:2] in (["--kvraft"], ["--kvraft-udp"]):
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
                     udp=sys.argv[1] == "--kvraft-udp")
     sys.exit(0)
+if sys.argv[1:2] in (["--hraft"], ["--hraft-snapstore"]):
+    # hashicorp/raft's two Links (the part Dsverify/, notes/dsv-hraft.md): dsverify-lab's generator,
+    # ported (`etc/dsv/tools/hraft-link.py`), which prints the one asked for
+    import subprocess  # noqa: E402
+    _here = os.path.dirname(os.path.abspath(__file__))
+    sys.exit(subprocess.call([sys.executable, os.path.join(_here, "dsv", "tools", "hraft-link.py"), "--stdout",
+                              "raft" if sys.argv[1] == "--hraft" else "raft/examples/snapstore"]))
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
     sys.dont_write_bytecode = True  # no etc/__pycache__
