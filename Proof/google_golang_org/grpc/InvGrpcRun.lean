@@ -138,7 +138,10 @@ instance grpcSrvStreamChainAll_persistent (sics : List GoFunc) (si : GoFunc) :
 /-- **What `gs` serves for the entry `ent` of the name `name`**: a clause per kind.
 * A unary entry names no stream (C3 of `notes/axiom-review/s2-interface.md`: a unary call of a
   stream's name would run the stream's handler), and a unary method `gs` registers under its name has
-  that entry, at its registered message models, met by its handler as a run (`grpcRunOkMd`).
+  that entry, at its registered message models, met by its handler as a run (`grpcRunOkMd`); if the
+  entry is flagged as never refusing (`GrpcEntry.nr`), by a run that returns `nil` or an error with
+  no refusal's description (`grpcRunNRMd`: the run is the method handler's, so it covers grpc's
+  `dec` and the server's interceptors).
 * A stream entry names no unary method (C3's mirror: a `NewStream` of a unary method's name runs the
   wrapped unary handler on a stream, the model's `server.go:778-785`), and a stream `gs` registers
   under its name has that entry, at its registered message models: the entry's request content gives
@@ -150,10 +153,10 @@ def grpcServesEnt (ics sics : List GoFunc) (regs sregs : List (GoString × GoFun
     (name : GoString) : GrpcSvcEntry GF → IProp GF
   | .unary e => iprop(⌜name ∉ sregs.map Prod.fst⌝ ∗ ∀ (mh : GoFunc) (srv : GoInterface),
       ⌜(name, mh, srv) ∈ regs⌝ -∗
-      ∃ (Req Rep : ProtoMsgT GF) (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
+      ∃ (Req Rep : ProtoMsgT GF) (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (nr : Bool),
         ⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep ∧
-          e = ⟨Req.toProtoMsg.wire, Rep.toProtoMsg.wire, Spec⟩⌝ ∗
-        grpcRunOkMd #mh srv ics Spec)
+          e = ⟨Req.toProtoMsg.wire, Rep.toProtoMsg.wire, Spec, nr⟩⌝ ∗
+        if nr then grpcRunNRMd #mh srv ics Spec else grpcRunOkMd #mh srv ics Spec)
   | .stream e => iprop(⌜name ∉ regs.map Prod.fst⌝ ∗ ∀ (mh : GoFunc) (srv : GoInterface),
       ⌜(name, mh, srv) ∈ sregs⌝ -∗
       ∃ (Req Rep : StreamMsgT GF) (up₀ : Nat → Req.M → IProp GF)
@@ -352,10 +355,11 @@ theorem grpcServes_start (ics sics : List GoFunc) (regs sregs : List (GoString �
       rw [List.map_append] at hnd
       exact (List.nodup_append.mp hnd).2.2 name hmem name hs rfl
     iintro %mh %srv %hin
-    iexists Req, Rep, (grpcGoEntry ics regs name Req Rep).spec
+    iexists Req, Rep, (grpcGoEntry ics regs name Req Rep).spec, false
     isplitr
     · ipureintro
       exact ⟨(htys name Req Rep hty).1, (htys name Req Rep hty).2, rfl⟩
+    simp only [Bool.false_eq_true, ↓reduceIte]
     iapply grpcRunOkMd_goEntry ics regs sregs name mh srv Req Rep hnd hin
   · simp only [grpcServesEnt]
     isplitr
@@ -430,10 +434,10 @@ theorem grpc.serve (addr : GoString) (ics : List GoFunc)
       have he := grpcStartSvc_go ics regs tys sms m.name _
         (grpcGoSvc_some ics regs tys m.name m.handler m.srv m.Req m.Rep (hreg m hm) (hty m hm))
       have he' : grpcStartSvc ics regs tys sms m.name = some (.unary ⟨m.Req.toProtoMsg.wire,
-          m.Rep.toProtoMsg.wire, (grpcGoEntry ics regs m.name m.Req m.Rep).spec⟩) := he
+          m.Rep.toProtoMsg.wire, (grpcGoEntry ics regs m.name m.Req m.Rep).spec, false⟩) := he
       iintro #Ha #Hr
       ihave Hg0 := isGrpcRpcMd_of_addr (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
-          (grpcStartSvc ics regs tys sms) (grpcGoEntry ics regs m.name m.Req m.Rep).spec he' $$ Ha
+          (grpcStartSvc ics regs tys sms) (grpcGoEntry ics regs m.name m.Req m.Rep).spec false he' $$ Ha
       iapply (isGrpcRpcMd_mono_wand (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
         (grpcGoEntry ics regs m.name m.Req m.Rep).spec m.spec) $$ [] Hg0
       imodintro
