@@ -118,6 +118,50 @@ theorem good_ite {P : w64 → Prop} {A : GMap w64 Bool} (v : w64) (h : Good P A)
           exact (GMap.lookup_insert_is_Some A v u true).2 (by by_cases h : v = u <;> simp_all)
       · right; rw [GMap.lookup_insert]; rfl
 
+/-- Every revision `HistoryRevs` may record for `(x, y)` (`opCost` of them). -/
+def insL (x : Input) (y : Output) : List w64 :=
+  [(parseRVD x.MinRV').getD 0, (parseRVD x.PreRV').getD 0, x.Cached'.ResourceVersion', y.ErrRV',
+    y.ListRV', y.RV', rvOfMsgL y.ErrMsg'] ++
+  ((decWEventsL y.WEvents').getD []).map (fun e => e.o.ResourceVersion') ++
+  ((decItemRVsL y.Items').getD []).map (fun o => o.ResourceVersion')
+
+theorem keys_ite_sub {S : w64 → Prop} {m : GMap w64 Bool} {v : w64} (hv : S v)
+    (h : ∀ k, (m !! k).isSome → S k) :
+    ∀ k, ((if v = W64 0 then m else <[v := true]> m) !! k).isSome → S k := by
+  intro k hk
+  by_cases h0 : v = W64 0
+  · rw [if_pos h0] at hk; exact h k hk
+  · rw [if_neg h0] at hk
+    rcases (GMap.lookup_insert_is_Some m v k true).1 hk with rfl | ⟨_, hk⟩
+    · exact hv
+    · exact h k hk
+
+theorem keys_insert_sub {S : w64 → Prop} {m : GMap w64 Bool} {v : w64} (hv : S v)
+    (h : ∀ k, (m !! k).isSome → S k) : ∀ k, ((<[v := true]> m) !! k).isSome → S k := by
+  intro k hk
+  rcases (GMap.lookup_insert_is_Some m v k true).1 hk with rfl | ⟨_, hk⟩
+  · exact hv
+  · exact h k hk
+
+theorem insL_length (x : Input) (y : Output) : (insL x y).length = opCost x y := by
+  simp [insL, opCost]; omega
+
+theorem histCost_eq (xs : List (Input × Output)) :
+    (xs.flatMap fun p => insL p.1 p.2).length = histCost xs := by
+  rw [List.length_flatMap]
+  unfold histCost
+  congr 1
+  apply List.map_congr_left
+  intro p _
+  exact insL_length _ _
+
+/-- A map whose keys are all in `L` has at most `L.length` of them. -/
+theorem size_le_of_keys {V : Type} (m : GMap w64 V) (L : List w64)
+    (h : ∀ k, (m !! k).isSome → k ∈ L) : GMap.size m ≤ L.length := by
+  rw [GMap.size_eq_dom_list_length]
+  exact List.Nodup.length_le_of_subset (GMap.nodup_dom_list m)
+    (fun k hk => h k ((GMap.mem_dom_list m k).1 hk))
+
 end pure
 
 section proof
@@ -128,30 +172,34 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-/-- The maps `all` (`am`) and `byKey` (`bm`), `all` holding every nonzero `u` with `P u`. -/
-def allSt (am bm : GoMap) (P : w64 → Prop) : IProp GF :=
+/-- The maps `all` (`am`) and `byKey` (`bm`), `all` holding every nonzero `u` with `P u`, and every
+key of `all` and of `byKey`'s maps in `S` (the revisions the history may record: their number bounds
+the maps' sizes). -/
+def allSt (S : w64 → Prop) (am bm : GoMap) (P : w64 → Prop) : IProp GF :=
   iprop(∃ (A : GMap w64 Bool) (B : GMap GoString GoMap), am ↦$ A ∗ bm ↦$ B ∗
-    ([∗map] _k ↦ l ∈ B, ∃ m : GMap w64 Bool, l ↦$ m) ∗ ⌜Good P A⌝)
+    ([∗map] _k ↦ l ∈ B, ∃ m : GMap w64 Bool, l ↦$ m ∗ ⌜∀ k, (m !! k).isSome → S k⌝) ∗
+    ⌜Good P A ∧ ∀ k, (A !! k).isSome → S k⌝)
 
-theorem allSt_mono (am bm : GoMap) {P Q : w64 → Prop} (hq : ∀ u, Q u → P u) :
-    allSt (GF := GF) am bm P ⊢ allSt am bm Q := by
+theorem allSt_mono (S : w64 → Prop) (am bm : GoMap) {P Q : w64 → Prop} (hq : ∀ u, Q u → P u) :
+    allSt (GF := GF) S am bm P ⊢ allSt S am bm Q := by
   unfold allSt
   iintro ⟨%A, %B, HA, HB, HBs, %HG⟩
   iexists A, B
   iframe
   ipureintro
-  exact good_mono HG hq
+  exact ⟨good_mono HG.1 hq, HG.2⟩
 
-theorem allSt_mono0 (am bm : GoMap) {P Q : w64 → Prop} (hq : ∀ u, Q u → P u ∨ u = 0) :
-    allSt (GF := GF) am bm P ⊢ allSt am bm Q := by
+theorem allSt_mono0 (S : w64 → Prop) (am bm : GoMap) {P Q : w64 → Prop}
+    (hq : ∀ u, Q u → P u ∨ u = 0) :
+    allSt (GF := GF) S am bm P ⊢ allSt S am bm Q := by
   unfold allSt
   iintro ⟨%A, %B, HA, HB, HBs, %HG⟩
   iexists A, B
   iframe
   ipureintro
-  refine ⟨HG.1, fun u hu => ?_⟩
+  refine ⟨⟨HG.1.1, fun u hu => ?_⟩, HG.2⟩
   rcases hq u hu with h | h
-  · exact HG.2 u h
+  · exact HG.1.2 u h
   · exact Or.inl h
 
 theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
@@ -159,7 +207,8 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     (wp_decodeWEvents : decodeWEvents.spec (GF := GF) (hG := hG))
     (wp_decodeItemRVs : decodeItemRVs.spec (GF := GF) (hG := hG)) :
     HistoryRevs.spec (GF := GF) (hG := hG) := by
-  intro sl ops xs dq Hops Hok
+  intro sl ops xs dq Hops Hok Hcost
+  generalize hS : (fun v : w64 => v ∈ xs.flatMap fun p => insL p.1 p.2) = S
   wp_start as Hs
   wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %am Ham
@@ -187,11 +236,13 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
       rw [if_neg Hif]
       iframe
   ihave #Hobj : iprop(∀ (key : GoString) (v : w64) (A : GMap w64 Bool) (B : GMap GoString GoMap),
-      {{ am ↦$ A ∗ bm ↦$ B ∗ [∗map] _k ↦ l ∈ B, ∃ m : GMap w64 Bool, l ↦$ m }}
+      {{ ⌜S v⌝ ∗ am ↦$ A ∗ bm ↦$ B ∗
+          [∗map] _k ↦ l ∈ B, ∃ m : GMap w64 Bool, l ↦$ m ∗ ⌜∀ k, (m !! k).isSome → S k⌝ }}
         (App (App (Val #fo) (Val #key)) (Val #v))
       {{ RET #(); am ↦$ (if v = W64 0 then A else <[v := true]> A) ∗
-          ∃ B' : GMap GoString GoMap, bm ↦$ B' ∗ [∗map] _k ↦ l ∈ B', ∃ m : GMap w64 Bool, l ↦$ m }}) $$ []
-  · iintro %key %v %A %B !> %Φ' ⟨HA, HB, HBs⟩ HΦ'
+          ∃ B' : GMap GoString GoMap, bm ↦$ B' ∗
+            [∗map] _k ↦ l ∈ B', ∃ m : GMap w64 Bool, l ↦$ m ∗ ⌜∀ k, (m !! k).isSome → S k⌝ }}) $$ []
+  · iintro %key %v %A %B !> %Φ' ⟨%hSv, HA, HB, HBs⟩ HΦ'
     rw [← hfo, ← recv_eq_func_mk]
     wp_auto
     wp_if_destruct
@@ -219,9 +270,12 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
       rw [if_neg Hif]
       iframe
       iapply (BigSepM.bigSepM_insert (Φ := fun (_ : GoString) (l : GoMap) =>
-        iprop(∃ m : GMap w64 Bool, ownMap (GF := GF) l (DFrac.own 1) m)) hBk).2
+        iprop(∃ m : GMap w64 Bool, ownMap (GF := GF) l (DFrac.own 1) m ∗
+          ⌜∀ k, (m !! k).isSome → S k⌝)) hBk).2
       iframe
-    · ihave ⟨⟨%m0, Hl0⟩, HBs⟩ := (BigSepM.bigSepM_lookup_acc hBk).1 $$ HBs
+      ipureintro
+      exact keys_insert_sub hSv (fun k hk => by simp at hk)
+    · ihave ⟨⟨%m0, Hl0, %Hm0⟩, HBs⟩ := (BigSepM.bigSepM_lookup_acc hBk).1 $$ HBs
       ihave %Hl0nn := ownMap_not_nil $$ Hl0
       rw [show ((some l0).getD (zero_val GoMap)) = l0 from rfl, decide_eq_false Hl0nn]
       (try wp_auto)
@@ -236,9 +290,12 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
       iapply HBs
       iexists _
       iframe
+      ipureintro
+      exact keys_insert_sub hSv Hm0
   ihave #Hnum' : iprop(∀ (v : w64) (P : w64 → Prop),
-      {{ allSt am bm P }} (App (Val #fn) (Val #v)) {{ RET #(); allSt am bm (fun u => P u ∨ u = v) }}) $$ []
-  · iintro %v %P !> %Φ' Hst HΦ'
+      {{ ⌜S v⌝ ∗ allSt S am bm P }} (App (Val #fn) (Val #v))
+      {{ RET #(); allSt S am bm (fun u => P u ∨ u = v) }}) $$ []
+  · iintro %v %P !> %Φ' ⟨%hSv, Hst⟩ HΦ'
     unfold allSt
     icases Hst with ⟨%A, %B, HA, HB, HBs, %HG⟩
     wp_apply Hnum $$ HA as HA
@@ -246,19 +303,22 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     iexists _, B
     iframe
     ipureintro
-    exact good_ite v HG
+    exact ⟨good_ite v HG.1, keys_ite_sub hSv HG.2⟩
   ihave #Hobj' : iprop(∀ (key : GoString) (v : w64) (P : w64 → Prop),
-      {{ allSt am bm P }} (App (App (Val #fo) (Val #key)) (Val #v))
-      {{ RET #(); allSt am bm (fun u => P u ∨ u = v) }}) $$ []
-  · iintro %key %v %P !> %Φ' Hst HΦ'
+      {{ ⌜S v⌝ ∗ allSt S am bm P }} (App (App (Val #fo) (Val #key)) (Val #v))
+      {{ RET #(); allSt S am bm (fun u => P u ∨ u = v) }}) $$ []
+  · iintro %key %v %P !> %Φ' ⟨%hSv, Hst⟩ HΦ'
     unfold allSt
     icases Hst with ⟨%A, %B, HA, HB, HBs, %HG⟩
-    wp_apply Hobj $$ [$HA $HB $HBs] as ⟨HA, %B', HB, HBs⟩
+    wp_apply Hobj $$ [HA HB HBs] as ⟨HA, %B', HB, HBs⟩
+    · iframe
+      ipureintro
+      exact hSv
     iapply HΦ'
     iexists _, B'
     iframe
     ipureintro
-    exact good_ite v HG
+    exact ⟨good_ite v HG.1, keys_ite_sub hSv HG.2⟩
   iclear Hnum Hobj
   clear hfn hfo
   ipersist obj
@@ -267,7 +327,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
   ihave %Hlen := ownSlice_len $$ Hs
   ihave HI : (∃ (j : w64) (opv : github_com.anishathalye.porcupine.Operation) (W : GMap w64 Bool),
       "i" ∷ i_ptr ↦ j ∗ "op" ∷ op_ptr ↦ opv ∗ "Hwm" ∷ wm ↦$ W ∗
-      "Hst" ∷ allSt am bm (fun u => ∃ p ∈ xs.take (sint.nat j), OpReq p.1 p.2 u) ∗
+      "Hst" ∷ allSt S am bm (fun u => ∃ p ∈ xs.take (sint.nat j), OpReq p.1 p.2 u) ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len⌝ : IProp GF) $$ [i op Hwm Ham Hbm]
   · iexists W64 0, _, _
     iframe
@@ -279,7 +339,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
       · iapply BigSepM.bigSepM_empty.2
         itrivial
       ipureintro
-      refine ⟨fun k hk => by simp at hk, fun u hu => ?_⟩
+      refine ⟨⟨fun k hk => by simp at hk, fun u hu => ?_⟩, fun k hk => by simp at hk⟩
       obtain ⟨p, hp, _⟩ := hu
       rw [show sint.nat (W64 0) = 0 by word] at hp
       simp at hp
@@ -297,7 +357,8 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         List.getElem?_eq_getElem h2]
       rfl
     have hok := Hok _ (List.getElem_mem h2)
-    generalize xs[sint.nat j] = pj at hR hjx hok
+    have hmem := List.getElem_mem h2
+    generalize xs[sint.nat j] = pj at hR hjx hok hmem
     obtain ⟨x, y⟩ := pj
     simp only [Hb', _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index sl (sint.Z j) ops dq (ops[sint.nat j]) Hj.1 $$ [Hs] as Hs
@@ -310,7 +371,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     rw [hR.2]
     (try wp_auto)
     generalize hPj : (fun u => ∃ p ∈ xs.take (sint.nat j), OpReq p.1 p.2 u) = Pj
-    wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm (fun u => Pj u ∨
+    wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm (fun u => Pj u ∨
         parseRVD x.MinRV' = some u)) at next with [Hst «in» out] as ⟨«in», out, Hst⟩
     · wp_apply wp_parseRV as %n %err Hp
       rcases hd : parseRVD x.MinRV' with _ | m <;> isimp only [hd] at Hp
@@ -319,20 +380,26 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         (try wp_auto)
         wp_join_done
         (try iframe)
-        iapply (allSt_mono am bm (P := Pj)
+        iapply (allSt_mono S am bm (P := Pj)
           (fun u hu => by simpa using hu))
         iexact Hst
       · icases Hp with %h
         obtain ⟨rfl, rfl⟩ := h
         (try wp_auto)
-        wp_apply Hnum' $$ Hst as Hst
+        wp_apply Hnum' $$ [Hst] as Hst
+        · iframe
+          ipureintro
+          refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+          simp [insL, *]
+          (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+          (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
         (try wp_auto)
         wp_join_done
         (try iframe)
-        iapply (allSt_mono am bm (P := fun u => Pj u ∨ u = n)
+        iapply (allSt_mono S am bm (P := fun u => Pj u ∨ u = n)
           (fun u hu => by simpa [eq_comm] using hu))
         iexact Hst
-    wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm (fun u => (Pj u ∨
+    wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm (fun u => (Pj u ∨
         parseRVD x.MinRV' = some u) ∨ (x.HasPreRV' = true ∧ parseRVD x.PreRV' = some u)))
         at next with [Hst «in» out] as ⟨«in», out, Hst⟩
     · (try wp_auto)
@@ -343,7 +410,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         (try wp_auto)
         cases hb : x.HasPreRV' <;> (try wp_auto) <;> wp_join_done <;>
           (try iframe) <;>
-          iapply (allSt_mono am bm (P := fun u => Pj u ∨
+          iapply (allSt_mono S am bm (P := fun u => Pj u ∨
             parseRVD x.MinRV' = some u) (fun u hu => by simpa using hu)) <;> iexact Hst
       · icases Hp with %h
         obtain ⟨rfl, rfl⟩ := h
@@ -352,36 +419,48 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         · (try wp_auto)
           wp_join_done
           (try iframe)
-          iapply (allSt_mono am bm (P := fun u => Pj u ∨
+          iapply (allSt_mono S am bm (P := fun u => Pj u ∨
             parseRVD x.MinRV' = some u) (fun u hu => by simpa using hu))
           iexact Hst
         · (try wp_auto)
-          wp_apply Hnum' $$ Hst as Hst
+          wp_apply Hnum' $$ [Hst] as Hst
+          · iframe
+            ipureintro
+            refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+            simp [insL, *]
+            (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+            (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
           (try wp_auto)
           wp_join_done
           (try iframe)
-          iapply (allSt_mono am bm (P := fun u => (Pj u ∨
+          iapply (allSt_mono S am bm (P := fun u => (Pj u ∨
             parseRVD x.MinRV' = some u) ∨ u = n) (fun u hu => by simpa [eq_comm] using hu))
           iexact Hst
     generalize hP2 : (fun u => (Pj u ∨ parseRVD x.MinRV' = some u) ∨
       (x.HasPreRV' = true ∧ parseRVD x.PreRV' = some u)) = P2
-    wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm P2)
+    wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm P2)
         at next with [Hst «in» out] as ⟨«in», out, Hst⟩
     · (try wp_auto)
       cases hc : x.UseCached'
       · (try wp_auto)
         wp_join_done
       · (try wp_auto)
-        wp_apply Hobj' $$ Hst as Hst
+        wp_apply Hobj' $$ [Hst] as Hst
+        · iframe
+          ipureintro
+          refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+          simp [insL, *]
+          (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+          (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
         (try wp_auto)
         wp_join_done
         (try iframe)
-        iapply (allSt_mono am bm (P := fun u => P2 u ∨ u = x.Cached'.ResourceVersion')
+        iapply (allSt_mono S am bm (P := fun u => P2 u ∨ u = x.Cached'.ResourceVersion')
           (fun u hu => Or.inl hu))
         iexact Hst
     wp_if_destruct
     · have hK := Hif
-      wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm (fun u => P2 u ∨ (y.WFailed' = false ∧
+      wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm (fun u => P2 u ∨ (y.WFailed' = false ∧
           ∃ evs, decWEventsL y.WEvents' = some evs ∧ ∃ e ∈ evs, e.t < 4 ∧ e.o.ResourceVersion' = u)))
           at next with [Hst «in» out] as ⟨«in», out, Hst⟩
       · (try wp_auto)
@@ -392,7 +471,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
           (try wp_auto)
           wp_join_done
           (try iframe)
-          iapply (allSt_mono am bm (P := P2) (fun u hu => by simpa using hu))
+          iapply (allSt_mono S am bm (P := P2) (fun u hu => by simpa using hu))
           iexact Hst
         icases Hd with ⟨%hok, Hd⟩
         iunfold wevsOwnM at Hd
@@ -404,18 +483,18 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         · (try wp_auto)
           wp_join_done
           (try iframe)
-          iapply (allSt_mono am bm (P := P2) (fun u hu => by simpa using hu))
+          iapply (allSt_mono S am bm (P := P2) (fun u hu => by simpa using hu))
           iexact Hst
         (try wp_auto)
         ihave %Hwl := ownSlice_len $$ Hws
         irename «in» => Hin
-        ihave Hst := allSt_mono am bm (Q := fun u => P2 u ∨
+        ihave Hst := allSt_mono S am bm (Q := fun u => P2 u ∨
           ∃ e ∈ (ws.map wevOf).take (sint.nat (W64 0)), e.t < 4 ∧ e.o.ResourceVersion' = u)
           (fun u hu => hu.elim id (fun ⟨e, he, _⟩ => by
             rw [show sint.nat (W64 0) = 0 by word] at he; simp at he)) $$ Hst
         ihave HJ : (∃ (k : w64) (evv : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WEvent),
             "i" ∷ i_ptr ↦ k ∗ "ev" ∷ ev_ptr ↦ evv ∗ "Hws" ∷ esl ↦* ws ∗
-            "Hst" ∷ allSt am bm (fun u => P2 u ∨
+            "Hst" ∷ allSt S am bm (fun u => P2 u ∨
               ∃ e ∈ (ws.map wevOf).take (sint.nat k), e.t < 4 ∧ e.o.ResourceVersion' = u) ∗
             "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z esl.len⌝ : IProp GF) $$ [i ev Hws Hst]
         · iexists W64 0, _
@@ -447,8 +526,14 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
             · exact Or.inr ⟨ht, hrv.symm⟩
           (try wp_auto)
           wp_if_destruct
-          · wp_apply Hnum' $$ Hst as Hst
-            ihave Hst := allSt_mono am bm (fun u hu => (hstep u hu).imp id (fun h => h.2)) $$ Hst
+          · wp_apply Hnum' $$ [Hst] as Hst
+            · iframe
+              ipureintro
+              refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+              simp [insL, *]
+              (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+              (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
+            ihave Hst := allSt_mono S am bm (fun u hu => (hstep u hu).imp id (fun h => h.2)) $$ Hst
             wp_for_post
             iframe
             iexists k + W64 1, w
@@ -457,15 +542,21 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
             constructor <;> word
           (try wp_auto)
           wp_if_destruct
-          · wp_apply Hobj' $$ Hst as Hst
-            ihave Hst := allSt_mono am bm (fun u hu => (hstep u hu).imp id (fun h => h.2)) $$ Hst
+          · wp_apply Hobj' $$ [Hst] as Hst
+            · iframe
+              ipureintro
+              refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+              simp [insL, *]
+              (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+              (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
+            ihave Hst := allSt_mono S am bm (fun u hu => (hstep u hu).imp id (fun h => h.2)) $$ Hst
             wp_for_post
             iframe
             iexists k + W64 1, w
             iframe
             ipureintro
             constructor <;> word
-          · ihave Hst := allSt_mono am bm (fun u hu => (hstep u hu).elim id
+          · ihave Hst := allSt_mono S am bm (fun u hu => (hstep u hu).elim id
               (fun h => absurd h.1 (by word))) $$ Hst
             wp_for_post
             iframe
@@ -480,7 +571,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
             List.take_of_length_le (by simp; word)
           wp_join_done
           (try iframe)
-          iapply (allSt_mono am bm (P := fun u => P2 u ∨
+          iapply (allSt_mono S am bm (P := fun u => P2 u ∨
             ∃ e ∈ (ws.map wevOf).take (sint.nat k), e.t < 4 ∧ e.o.ResourceVersion' = u)
             (fun u hu => hu.imp id (fun ⟨_, evs, he, h⟩ => by
             simp only [Option.some.injEq] at he; subst he; rw [hfull]; exact h)))
@@ -502,42 +593,66 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
           · obtain ⟨_, hw, evs, he, e, hm, ht⟩ := h
             exact Or.inr ⟨hw, evs, he, e, hm, ht.1, ht.2⟩
           · exact absurd hK hk5
-        iapply (allSt_mono am bm hfin)
+        iapply (allSt_mono S am bm hfin)
         iexact Hst
       ipureintro
       constructor <;> word
     · have hK := Hif
-      wp_apply Hnum' $$ Hst as Hst
+      wp_apply Hnum' $$ [Hst] as Hst
+      · iframe
+        ipureintro
+        refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+        simp [insL, *]
+        (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+        (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
       (try wp_auto)
-      wp_apply Hnum' $$ Hst as Hst
+      wp_apply Hnum' $$ [Hst] as Hst
+      · iframe
+        ipureintro
+        refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+        simp [insL, *]
+        (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+        (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
       (try wp_auto)
       wp_apply wp_rvOfMsg
       (try wp_auto)
       ipersist r
-      wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm (fun u => ((P2 u ∨ u = y.ErrRV') ∨
+      wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm (fun u => ((P2 u ∨ u = y.ErrRV') ∨
           u = y.ListRV') ∨ u = rvOfMsgL y.ErrMsg')) at next with [Hst «in» out] as ⟨«in», out, Hst⟩
       · (try wp_auto)
         wp_if_destruct
         · (try wp_auto)
           wp_join_done
           (try iframe)
-          iapply (allSt_mono0 am bm (P := fun u => (P2 u ∨ u = y.ErrRV') ∨ u = y.ListRV')
+          iapply (allSt_mono0 S am bm (P := fun u => (P2 u ∨ u = y.ErrRV') ∨ u = y.ListRV')
             (fun u hu => hu.imp id (fun h => h.trans Hif)))
           iexact Hst
         · (try wp_auto)
-          wp_apply Hobj' $$ Hst as Hst
+          wp_apply Hobj' $$ [Hst] as Hst
+          · iframe
+            ipureintro
+            refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+            simp [insL, *]
+            (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+            (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
           (try wp_auto)
           wp_join_done
       generalize hP3 : (fun u => ((P2 u ∨ u = y.ErrRV') ∨ u = y.ListRV') ∨ u = rvOfMsgL y.ErrMsg') = P3
       wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ (∃ W' : GMap w64 Bool, wm ↦$ W') ∗
-          allSt am bm (fun u => P3 u ∨ (y.Err' = W64 0 ∧ u = y.RV')))
+          allSt S am bm (fun u => P3 u ∨ (y.Err' = W64 0 ∧ u = y.RV')))
           at next with [Hst «in» out Hwm] as ⟨«in», out, ⟨%W1, Hwm⟩, Hst⟩
       · (try wp_auto)
         wp_if_destruct
         · (try wp_auto)
-          wp_apply Hobj' $$ Hst as Hst
+          wp_apply Hobj' $$ [Hst] as Hst
+          · iframe
+            ipureintro
+            refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+            simp [insL, *]
+            (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+            (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
           (try wp_auto)
-          ihave Hst := allSt_mono am bm (P := fun u => P3 u ∨ u = y.RV')
+          ihave Hst := allSt_mono S am bm (P := fun u => P3 u ∨ u = y.RV')
             (Q := fun u => P3 u ∨ (y.Err' = W64 0 ∧ u = y.RV')) (fun u hu => hu.imp id (fun h => h.2)) $$ Hst
           repeat' (wp_if_destruct <;> (try wp_auto))
           all_goals (try (cases hn : x.NoOp' <;> simp only [Bool.not_true, Bool.not_false] <;>
@@ -550,7 +665,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         · (try wp_auto)
           wp_join_done
           (try iframe)
-          iapply (allSt_mono am bm (P := P3) (fun u hu => hu.elim id (fun h => absurd h.1 Hif)))
+          iapply (allSt_mono S am bm (P := P3) (fun u hu => hu.elim id (fun h => absurd h.1 Hif)))
           iexact Hst
       generalize hP4 : (fun u => P3 u ∨ (y.Err' = W64 0 ∧ u = y.RV')) = P4
       have hfin : ∀ u, (∃ p ∈ xs.take (sint.nat (j + W64 1)), OpReq p.1 p.2 u) →
@@ -586,7 +701,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         iexists j + W64 1, _, W1
         iframe
         isplitl
-        · iapply (allSt_mono am bm (P := P4) (fun u hu => (fun u hu => hu.elim id (fun h => absurd h.1 Hif)) u (hfin u hu)))
+        · iapply (allSt_mono S am bm (P := P4) (fun u hu => (fun u hu => hu.elim id (fun h => absurd h.1 Hif)) u (hfin u hu)))
           iexact Hst
         ipureintro
         constructor <;> word
@@ -600,7 +715,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         iexists j + W64 1, _, W1
         iframe
         isplitl
-        · iapply (allSt_mono am bm (P := P4) (fun u hu => (fun u hu => hu.elim id (fun h => absurd h.2.1 Hif)) u (hfin u hu)))
+        · iapply (allSt_mono S am bm (P := P4) (fun u hu => (fun u hu => hu.elim id (fun h => absurd h.2.1 Hif)) u (hfin u hu)))
           iexact Hst
         ipureintro
         constructor <;> word
@@ -616,7 +731,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         iexists j + W64 1, _, W1
         iframe
         isplitl
-        · iapply (allSt_mono am bm (P := P4) (fun u hu => (fun u hu => by simpa [hd] using hu) u (hfin u hu)))
+        · iapply (allSt_mono S am bm (P := P4) (fun u hu => (fun u hu => by simpa [hd] using hu) u (hfin u hu)))
           iexact Hst
         ipureintro
         constructor <;> word
@@ -624,14 +739,14 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
       subst hok
       (try wp_auto)
       ihave %Hwl := ownSlice_len $$ Hws
-      ihave Hst := allSt_mono am bm (Q := fun u => P4 u ∨
+      ihave Hst := allSt_mono S am bm (Q := fun u => P4 u ∨
         ∃ e ∈ ds.take (sint.nat (W64 0)), e.ResourceVersion' = u)
         (fun u hu => hu.elim id (fun ⟨e, he, _⟩ => by
           rw [show sint.nat (W64 0) = 0 by word] at he; simp at he)) $$ Hst
       ihave HJ : (∃ (k : w64) (itv : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.item),
           "i" ∷ i_ptr ↦ k ∗ "it" ∷ it_ptr ↦ itv ∗
           "Hws" ∷ isl ↦* ds.map (fun o => github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.item.mk (objKeyL o) o false) ∗
-          "Hst" ∷ allSt am bm (fun u => P4 u ∨
+          "Hst" ∷ allSt S am bm (fun u => P4 u ∨
             ∃ e ∈ ds.take (sint.nat k), e.ResourceVersion' = u) ∗
           "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z isl.len⌝ : IProp GF) $$ [i it Hws Hst]
       · iexists W64 0, _
@@ -662,8 +777,14 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
           · exact Or.inl (Or.inr ⟨e, he', hrv⟩)
           · exact Or.inr hrv.symm
         (try wp_auto)
-        wp_apply Hobj' $$ Hst as Hst
-        ihave Hst := allSt_mono am bm hstep $$ Hst
+        wp_apply Hobj' $$ [Hst] as Hst
+        · iframe
+          ipureintro
+          refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+          simp [insL, *]
+          (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+          (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
+        ihave Hst := allSt_mono S am bm hstep $$ Hst
         wp_for_post
         iframe
         iexists k + W64 1, _
@@ -679,7 +800,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         iexists j + W64 1, _, W1
         iframe
         isplitl
-        · iapply (allSt_mono am bm (P := fun u => P4 u ∨
+        · iapply (allSt_mono S am bm (P := fun u => P4 u ∨
           ∃ e ∈ ds.take (sint.nat k), e.ResourceVersion' = u) (fun u hu => (fun u hu => hu.imp id (fun ⟨_, _, ds', he, h⟩ => by
             rw [hd] at he; simp only [Option.some.injEq] at he; subst he; rw [hfull]; exact h)) u (hfin u hu)))
           iexact Hst

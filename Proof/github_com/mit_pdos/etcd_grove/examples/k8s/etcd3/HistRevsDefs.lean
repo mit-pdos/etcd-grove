@@ -166,6 +166,15 @@ def HistOpOk (x : Input) (y : Output) : Prop :=
   x.PreRV'.length < rvPatL.length ∧
   (x.Kind' = W64 4 → y.Err' = W64 0 → (decItemRVsL y.Items').isSome ∧ y.Items'.length < 2 ^ 64)
 
+/-- **How many revisions `HistoryRevs` may record for one operation**: at most seven (`MinRV`,
+`PreRV`, the cached object's, `ErrRV`, `ListRV`, `RV`, the error message's) plus one per decoded
+watch event and one per decoded list item. -/
+def opCost (x : Input) (y : Output) : Nat :=
+  7 + ((decWEventsL y.WEvents').getD []).length + ((decItemRVsL y.Items').getD []).length
+
+/-- `opCost` summed over a history: a bound on the sizes of the maps `HistoryRevs` builds. -/
+def histCost (xs : List (Input × Output)) : Nat := (xs.map fun p => opCost p.1 p.2).sum
+
 end pure
 
 end k8s_etcd3

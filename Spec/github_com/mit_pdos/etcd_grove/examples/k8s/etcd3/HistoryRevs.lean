@@ -3,7 +3,8 @@
 `HistoryRevs(ops)` (export.go, notes/k8s-dist-k9.md §2.7): a `Revs` whose anchors are sorted, nonzero,
 and (with 0) name every revision each operation shows (`AnchorsOk`), for operations whose inputs and
 outputs are boxed `Input`s and `Output`s and meet `HistOpOk` (a precondition string shorter than
-`rvOfMsg`'s pattern, a successful list's items that decode). The keys' revisions (`byKey`,
+`rvOfMsg`'s pattern, a successful list's items that decode), and at most `2^62` revisions to record
+(`histCost`: `slices.Sort` takes slices no longer than that). The keys' revisions (`byKey`,
 `fastByKey`) are whatever Go computed: `settle` only adds configurations with them.
 -/
 module
@@ -35,6 +36,7 @@ abbrev HistoryRevs.spec : Prop :=
     (xs : List (Input × Output)) (dq : DFrac),
   List.Forall₂ (fun o p => o.Input' = boxIn p.1 ∧ o.Output' = boxOut p.2) ops xs →
   (∀ p ∈ xs, HistOpOk p.1 p.2) →
+  histCost xs ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       sl ↦*{dq} ops }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HistoryRevs)) (Val #sl))
