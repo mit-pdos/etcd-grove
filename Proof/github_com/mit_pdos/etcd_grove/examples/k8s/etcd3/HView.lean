@@ -156,6 +156,11 @@ theorem watchOkL_false (x : Input) (y : Output) (h : HSt) (all : List WEv)
     · rfl
     · simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]; rw [hp]
 
+/-- The test `initialPrefixOk` runs at revision `r`. -/
+def prefAt (x : Input) (n : Nat) (evs : List WEv) (h : HSt) (r : Nat) : Bool :=
+  evsEqL ((initialEventsL x (histN h.hist r)).take n) evs &&
+    decide (n ≤ (initialEventsL x (histN h.hist r)).length)
+
 /-- The Go `hview` `v` is a view of the history holding `hs` (see the file header). -/
 def hviewOwn (v : hview) (hs : List GSt) : IProp GF :=
   iprop(histOwn v.h' hs ∗ ∃ ss : List mstore, v.sts' ↦*□ ss ∗

@@ -27,11 +27,6 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-/-- The test `initialPrefixOk` runs at revision `r`. -/
-def prefAt (x : Input) (n : Nat) (evs : List WEv) (h : HSt) (r : Nat) : Bool :=
-  evsEqL ((initialEventsL x (histN h.hist r)).take n) evs &&
-    decide (n ≤ (initialEventsL x (histN h.hist r)).length)
-
 theorem initialPrefixOk.wp_proof
     (wp_initialEvents : initialEvents.spec (GF := GF) (hG := hG))
     (wp_histAt : histAt.spec (GF := GF) (hG := hG))
