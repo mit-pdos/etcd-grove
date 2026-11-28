@@ -62,6 +62,9 @@ structure RNames where
   state : GName
   /-- `ghostVar (Nat × Nat)`: `lastLogIndex/Term` (`lastLock` ½, main goroutine ½). -/
   lastLog : GName
+  /-- (hraft_robust, R5 Q8) `dghostVar (Option (w64 × w64 × w64 × w64))`: `lastLock`'s fields pinned
+  during `NewRaft` (`some`, ½ the lock's invariant, ½ `NewRaft`); then `none`, discarded (in `raftCells`). -/
+  llb : GName
   /-- the FSM batch channel `fsmMutateCh` (SPSC: main goroutine → FSM goroutine). -/
   fsmCh : SpscNames
   /-- `ghostMap Nat Nat` (persistent elements): batch `n` of `fsmMutateCh` ends at index `k`. -/
@@ -416,7 +419,9 @@ def lastLockInv (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
       (if uint.nat li < uint.nat si then (uint.nat si, uint.nat st) else (uint.nat li, uint.nat lt)) ∗
     (⌜si = W64 0⌝ ∨ ∃ e : Entry, CIdx γ (uint.nat si) e ∗ ⌜e.term = uint.nat st⌝ ∗
       applLb rc (uint.nat si) ∗
-      (durLb γ i (uint.nat si) ∨ snapFollow γ i (uint.nat si) (uint.nat st))))
+      (durLb γ i (uint.nat si) ∨ snapFollow γ i (uint.nat si) (uint.nat st))) ∗
+    (dghostVar rc.names.llb DFrac.discard (none : Option (w64 × w64 × w64 × w64)) ∨
+      dghostVar rc.names.llb (DFrac.own (1 : Qp).half) (some (li, lt, si, st))))
 
 /-- A `sync.RWMutex` at `rw` guarding the fractional `P`: writers use the persistent guard,
 readers borrow a reader token from a quarter thread pool (namespace `N`) with their quarter
@@ -1101,7 +1106,7 @@ def pendPre (γ : GNames) (i : SID) (s : SState) : Pend → Prop
   | .trunc prev pt ents _ j => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
       j < ents.length ∧ prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1)
   | .fstore prev pt ents lci j lc => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
-      j < ents.length ∧ s.log.length = prev + j ∧
+      ((j < ents.length ∧ s.log.length = prev + j) ∨ (j = ents.length ∧ prev + j ≤ s.log.length)) ∧
       (∀ v, lc = some v → v ≤ prev + ents.length ∧ 0 < Min.min lci v)
   | .discard d => d.ℓ ≠ i ∧ 1 ≤ d.x ∧ ¬ prevMatch s.log d.x d.st
   | .vote _ li lt => s.vterm < s.term ∧ upToDate li lt s.log
@@ -1125,6 +1130,16 @@ def pendHyps (γ : GNames) (i : SID) (s : SState) : Pend → IProp GF
 def srvVq (rc : RCtx GF) (s : SState) : IProp GF :=
   ghostVar rc.dur.sv (1 : Qp).half.half (s, (none : Option TermPend), (none : Option DiscPend))
 
+/-- (hraft_robust, R5 Q7) A quarter of the main goroutine's view inside a pending phase (`srvVP`). -/
+def srvVPq (rc : RCtx GF) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) : IProp GF :=
+  ghostVar rc.dur.sv (1 : Qp).half.half (s, tp, dp)
+
+/-- (hraft_robust, R5 Q7) The pending discard while the step `p`'s write is in its window: an install's
+discard is written with its discard recorded (`dp = some d`), every other write with none. -/
+def pendDp : Pend → Option DiscPend
+  | .discard d => some d
+  | _ => none
+
 /-- (hraft_robust, R2) A quarter of the main goroutine's stable-store view (`stVS` is two of them). -/
 def stVq (rc : RCtx GF) (D : StableAbs) (g : w64) : IProp GF := ghostVar rc.dur.st (1 : Qp).half.half (D, g)
 
@@ -1147,7 +1162,7 @@ goroutine's view of `s` (lent to the store, so `s` is frozen in the window: only
 changes it), and the law's premises over `s`. The write's caller lends it (the contracts' `W`); the
 write's atomic update gives it back, and the store's crash lemma, if the new contents survived. -/
 def winRes (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (p : Pend) : IProp GF :=
-  iprop(ghostVar rc.dur.pw (1 : Qp).half (some p) ∗ srvVq rc s ∗ (∃ (D : StableAbs) (g : w64), stVq rc D g ∗ ⌜winPure s D g p⌝) ∗
+  iprop(ghostVar rc.dur.pw (1 : Qp).half (some p) ∗ srvVPq rc s none (pendDp p) ∗ (∃ (D : StableAbs) (g : w64), stVq rc D g ∗ ⌜winPure s D g p⌝) ∗
     pendHyps γ i s p ∗ ⌜pendPre γ i s p⌝)
 
 /-- (stage 3) **The FSM goroutine's answer to a snapshot request** `f` (`fsmSnapshotCh`): nil with the
@@ -1266,7 +1281,7 @@ def pendLogOk (s : SState) : Pend → LogOp → Prop
   | .fstore prev _ ents _ j _, op => ∃ k, k ≤ j ∧ op = .store (prev + k + 1) (ents.drop k) ∧
       ∀ m, k ≤ m → m < j → ent s.log (prev + m + 1) = ents[m]?
   | .trunc prev _ _ _ j, op => op = .del (prev + 1 + j) s.log.length
-  | .discard _, op => ∃ mx, op = .del 1 mx
+  | .discard _, op => ∃ mn mx, op = .del mn mx
   | _, _ => False
 
 /-- (hraft_robust) The stable store write `op` that the pending step `p` at state `s` makes. -/
@@ -1288,7 +1303,10 @@ def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
 write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
 def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
   iprop((∃ (s : SState) (p : Pend), ⌜pendStOk s p op⌝ ∗ winRes γ rc i s p) ∨
-    (∃ vb : List w8, ⌜op = .set (go!"LastVoteCand" : List w8) vb⌝))
+    (∃ vb : List w8, ⌜op = .set (go!"LastVoteCand" : List w8) vb⌝) ∨
+    (∃ (kb : List w8) (v : w64) (D : StableAbs) (g : w64),
+      ⌜op = .setU kb v ∧ (D.ints.lookup kb).getD (W64 0) = v⌝ ∗ stVq rc D g ∗
+      ghostVar rc.dur.pw (1 : Qp).half (none : Option Pend)))
 
 /-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
 snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
@@ -1347,7 +1365,8 @@ instance raftConf_persistent r γ i : Persistent (raftConf (GF := GF) r γ i) :=
 /-- `isRaft`'s cells. -/
 def raftCells (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   iprop(termCell r γ rc i ∗ cidxCell r γ rc i ∗ srvDurInv γ rc i ∗ stateCell r rc ∗
-    appliedCell r rc ∗ cftCell r ∗ ltipCell r ∗ ⌜True⌝)
+    appliedCell r rc ∗ cftCell r ∗ ltipCell r ∗
+    dghostVar rc.names.llb DFrac.discard (none : Option (w64 × w64 × w64 × w64)))
 
 instance raftCells_persistent r γ rc i : Persistent (raftCells (GF := GF) r γ rc i) := by
   unfold raftCells; infer_instance
