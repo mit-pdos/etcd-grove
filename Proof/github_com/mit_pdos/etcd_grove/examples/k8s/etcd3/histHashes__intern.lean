@@ -66,21 +66,22 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       iframe
   wp_apply wp_storeHash st s $$ [$Hst] as %hv -
   (try wp_auto)
-  wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [HC] as HC
-  fail "c0"
+  wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [$HC] as HC
   ihave Hsl : (∃ ns : List Loc,
       ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) ↦* ns ∗
       ownSliceCap Loc ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) (DFrac.own 1) ∗
       ([∗list] c ∈ ns, canonNode (ikey.mk prev n hv) c) ∗
-      ⌜ns = [] ∨ C' !! ikey.mk prev n hv = some ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice))⌝ ∗
-      (∀ sl' : GoSlice, (∃ ns' : List Loc, sl' ↦* ns' ∗ ownSliceCap Loc sl' (DFrac.own 1) ∗
+      ((∀ sl' : GoSlice, (∃ ns' : List Loc, sl' ↦* ns' ∗ ownSliceCap Loc sl' (DFrac.own 1) ∗
           [∗list] c ∈ ns', canonNode (ikey.mk prev n hv) c) -∗
         [∗map] k ↦ sl ∈ <[ikey.mk prev n hv := sl']> C', ∃ ns : List Loc, sl ↦* ns ∗
-          ownSliceCap Loc sl (DFrac.own 1) ∗ [∗list] n ∈ ns, canonNode k n) : IProp GF) $$ [HCs]
+          ownSliceCap Loc sl (DFrac.own 1) ∗ [∗list] n ∈ ns, canonNode k n) ∧
+       ((∃ ns' : List Loc, ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) ↦* ns' ∗
+          ownSliceCap Loc ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)) (DFrac.own 1) ∗
+          [∗list] c ∈ ns', canonNode (ikey.mk prev n hv) c) -∗
+        [∗map] k ↦ sl ∈ C', ∃ ns : List Loc, sl ↦* ns ∗
+          ownSliceCap Loc sl (DFrac.own 1) ∗ [∗list] n ∈ ns, canonNode k n)) : IProp GF) $$ [HCs]
   · cases hC : C' !! ikey.mk prev n hv with
     | none =>
-      ihave Hrest := (BigSepM.bigSepM_subseteq (m₂ := Iris.Std.PartialMap.delete C' (ikey.mk prev n hv))
-        LawfulPartialMap.delete_subset_self) $$ HCs
       iexists []
       isplitr
       · iapply ownSlice_nil
@@ -88,24 +89,57 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       · iapply ownSliceCap_nil
       isplitr
       · iapply BigSepL.bigSepL_nil.2; itrivial
-      isplitr
-      · ipureintro; exact .inl rfl
-      iintro %sl' Hsl'
-      iapply BigSepM.bigSepM_insert_delete.2
-      iframe
+      isplit
+      · iintro %sl' Hsl'
+        iapply (BigSepM.bigSepM_insert hC).2
+        iframe
+      · iintro -
+        iexact HCs
     | some sl0 =>
       icases (BigSepM.bigSepM_delete hC).1 $$ HCs with ⟨⟨%ns, Hns, Hcap, #Hcn⟩, Hrest⟩
       iexists ns
       iframe
-      isplitr
-      · ipureintro; exact .inr rfl
-      iintro %sl' Hsl'
-      iapply BigSepM.bigSepM_insert_delete.2
-      iframe
-  icases Hsl with ⟨%ns, Hns, Hcap, #Hcn, %Hns0, Hback⟩
+      isplit
+      · iintro %sl' Hsl'
+        iapply BigSepM.bigSepM_insert_delete.2
+        iframe
+      · iintro Hsl'
+        iapply (BigSepM.bigSepM_delete hC).2
+        iframe
+  icases Hsl with ⟨%ns, Hns, Hcap, #Hcn, Hback⟩
   ihave %Hlns := ownSlice_len $$ Hns
   (try wp_auto)
-  fail "ctx2"
+  ihave HJ : (∃ (j : w64) (cv : Loc), "i" ∷ i_ptr ↦ j ∗ "c" ∷ c_ptr ↦ cv ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j⌝ : IProp GF) $$ [i c]
+  · iexists W64 0, _
+    iframe
+    ipureintro; word
+  wp_for HJ
+  wp_if_destruct
+  · have Hb' := And.intro Hj Hif
+    list_elem ns (sint.nat j) as v
+    simp only [Hb', _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index _ (sint.Z j) ns _ v Hj $$ [Hns] as Hns
+    · isplit
+      · iexact Hns
+      · ipureintro; exact Hv_lookup
+    ihave #Hcv := BigSepL.bigSepL_lookup Hv_lookup $$ Hcn
+    iunfold canonNode at Hcv
+    icases Hcv with ⟨%hn, #Hvp, %Hk, %s', #Hs'⟩
+    (try wp_auto)
+    wp_apply wp_storeEqual hn.st' st s' s $$ [$Hs' $Hst]
+    wp_if_destruct
+    · (try wp_auto)
+      wp_for_post
+      (try wp_auto)
+      fail "ret"
+    · wp_for_post
+      iframe
+      iexists j + W64 1, _
+      iframe
+      ipureintro; word
+  · (try wp_auto)
+    fail "notfound"
 
 end proof
 
