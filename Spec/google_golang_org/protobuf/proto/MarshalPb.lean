@@ -34,7 +34,10 @@ invalid UTF-8 in a proto3 string or a message changed while it is encoded, which
 the frozen `roC` exclude; an allocation above `maxAlloc` panics, which the size premise excludes.
 The result is not `nil` for a non-nil `*T` (`l ≠ null`): an empty encoding is
 `emptyBytesForMessage(m)` (`proto/encode.go:119-146`), the non-nil `emptyBuf[:]` for a valid message;
-a nil `*T` is an invalid message, for which it is `nil`. -/
+a nil `*T` is an invalid message, for which it is `nil`. The non-nil post (added 9e8ed696c8): Go test
+`examples/pbschema/marshalnonnil_test.go` (every registered type, empty and populated, at v1.36.12), ledger
+`notes/specs-only/ledger.md` 2026-11-28; approval (coordinator-E, #50, after an independent axiom review)
+pending. -/
 abbrev proto.MarshalPb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (l : Loc) (c : I.data.C), I.data.marshals (I.data.modelOf c) → I.data.size c < 2 ^ 48 →
