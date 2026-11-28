@@ -175,6 +175,61 @@ theorem commit_peekB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimMask)
     iapply runLive_excl γ q
     iframe Hl Hover
 
+/-- **(B2) The run's relation at node `j` and its view's log certified** (`drain_peekRecsB1`'s over
+`antInvB2`): a checker state and sent lists extending the lower bounds, within the mask, at which the
+network and node `j` at its view `v` are related (`NetOkD`, `NodeOkD`); the view's full log's records
+(`readyOutP_d`'s `hvidx`, `hag`). -/
+theorem drain_peekRecsB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimMask) (c : Loc)
+    (γ : AntNamesB2) (j : Fin γ.R.N) (q : Qp) (v : AntSim.NodeView) (net₀ : List Msg)
+    (xnet₀ : List XMsg)
+    (hinm : ∀ S V net xnet, AntSim.AntSimD γ.R γ.dec S V net xnet → AntSim.InMask msk γ.R net xnet) :
+    antClusterB2 (GF := GF) c γ ∗ sentLb γ.toAntNames net₀ ∗ xsentLb γ.toAntNames xnet₀ ∗
+        viewFrag γ.toAntNames j v ∗ runLive γ q ⊢
+      |={⊤}=> ⌜∃ (S : AntCheck.State) (net : List Msg) (xnet : List XMsg), net₀ <+: net ∧
+          xnet₀ <+: xnet ∧ AntSim.InMask msk γ.R net xnet ∧ AntSim.NetOkD γ.R S net ∧
+          AntSim.NodeOkD γ.R γ.dec S net j v⌝ ∗
+        logRecs γ.raft.raftNames base0 v.r.full ∗ ⌜AntSim.LogIdx v.r.full⌝ ∗
+        viewFrag γ.toAntNames j v ∗ runLive γ q := by
+  iintro ⟨#Hc, #Hlb, #Hxlb, Hv, Hl⟩
+  ihave #Hc' := Hc
+  iunfold antClusterB2 at Hc'
+  icases Hc' with ⟨%cfg, %r, %ns, %stop, -, -, -, -, -, -, -, -, -, -, -, #Hinv, %Hrf, -⟩
+  iunfold sentLb at Hlb
+  iunfold xsentLb at Hxlb
+  iinv Hinv with >Hi Hclose
+  iunfold antInvB2 at Hi
+  icases Hi with (Hi | Hover)
+  · iunfold antOpenB2 at Hi
+    icases Hi with ⟨%evs, %S, %V, %net, %xnet, %G, Hstr, Hviews, Hnet, Hxnet, %Hpure, #HF⟩
+    ihave %Hpre := mono_list_auth_lb_valid (GF := GF) γ.sent 1 net net₀ $$ Hnet Hlb
+    ihave %Hxpre := mono_list_auth_lb_valid (GF := GF) γ.xsent 1 xnet xnet₀ $$ Hxnet Hxlb
+    imod h_vu (⊤ \ ↑antN) γ.toAntNames j V v v $$ [Hv Hviews] with ⟨%HVj, Hv, Hviews⟩
+    · iframe Hv Hviews
+    rw [setV_self_s HVj]
+    ihave #HF' := HF
+    iunfold raftFactsOwn at HF'
+    icases HF' with ⟨-, -, #Hlogs, -, -, -⟩
+    have hmem : v.r.full ∈ G.logs := by rw [← HVj]; exact Hpure.2.2.2 j
+    ihave ⟨#Hrv, %Hli⟩ := BigSepL.bigSepL_mem
+      (Φ := fun l => iprop(logRecs γ.raft.raftNames base0 l ∗ ⌜AntSim.LogIdx l⌝)) hmem $$ Hlogs
+    have hA := Hpure.1.2.1
+    imod Hclose $$ [Hstr Hviews Hnet Hxnet] with -
+    · inext
+      iunfold antInvB2
+      ileft
+      iunfold antOpenB2
+      iexists evs, S, V, net, xnet, G
+      iframe Hstr Hviews Hnet Hxnet HF
+      ipureintro; exact Hpure
+    imodintro
+    iframe Hv Hl Hrv
+    ipureintro
+    exact ⟨⟨S, net, xnet, Hpre.2, Hxpre.2, hinm S V net xnet hA, hA.2.2.1,
+      by rw [← HVj]; exact hA.2.2.2.2 j⟩, Hli⟩
+  · iexfalso
+    iapply runLive_excl γ q
+    iframe Hl Hover
+
 /-- **An alive node's view holds no `mem` record** (synchronous storage, no batching: `QueueView` over
 empty queues and no item). -/
 theorem nodeMemB2_mems_nil (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
