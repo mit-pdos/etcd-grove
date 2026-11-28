@@ -559,6 +559,59 @@ theorem dk_kv_found {V : Type} (kv : List (List w8 × V)) (i : Nat) (p : List w8
   subst heq
   exact ofList_lookup_first kv i p hp h
 
+/-! ### `Set`/`SetUint64`'s loop -/
+
+/-- The loop's update of one pair. -/
+def updV {V : Type} (k : List w8) (v : V) (p : List w8 × V) : List w8 × V := if p.1 = k then (p.1, v) else p
+
+theorem updV_fst {V : Type} (k : List w8) (v : V) (p : List w8 × V) : (updV k v p).1 = p.1 := by
+  unfold updV; split <;> rfl
+
+theorem setKV_found {V : Type} (k : List w8) (v : V) (kv : List (List w8 × V)) (h : k ∈ kv.map Prod.fst) :
+    setKV k v kv = kv.map (updV k v) := by
+  unfold setKV; rw [if_pos h]; rfl
+
+theorem setKV_new {V : Type} (k : List w8) (v : V) (kv : List (List w8 × V)) (h : k ∉ kv.map Prod.fst) :
+    setKV k v kv = kv ++ [(k, v)] := by
+  unfold setKV; rw [if_neg h]
+
+/-- The values after the loop's first `i` steps. -/
+def valsAt {V : Type} (kv : List (List w8 × V)) (k : List w8) (v : V) (i : Nat) : List (List w8 × V) :=
+  (kv.take i).map (updV k v) ++ kv.drop i
+
+theorem valsAt_zero {V : Type} (kv : List (List w8 × V)) (k : List w8) (v : V) : valsAt kv k v 0 = kv := by
+  simp [valsAt]
+
+theorem valsAt_len {V : Type} (kv : List (List w8 × V)) (k : List w8) (v : V) :
+    valsAt kv k v kv.length = kv.map (updV k v) := by
+  simp [valsAt]
+
+theorem valsAt_length {V : Type} (kv : List (List w8 × V)) (k : List w8) (v : V) (i : Nat) :
+    (valsAt kv k v i).length = kv.length := by
+  simp [valsAt]; omega
+
+theorem valsAt_step {V : Type} (kv : List (List w8 × V)) (k : List w8) (v : V) (i : Nat) (p : List w8 × V)
+    (hp : kv[i]? = some p) : valsAt kv k v (i + 1) = (valsAt kv k v i).set i (updV k v p) := by
+  have hi : i < kv.length := (List.getElem?_eq_some_iff.1 hp).1
+  unfold valsAt
+  rw [List.take_add_one, hp, List.drop_eq_getElem_cons hi, (List.getElem?_eq_some_iff.1 hp).2]
+  have hl : ((kv.take i).map (updV k v)).length = i := by simp; omega
+  rw [List.set_append_right _ _ (by omega), hl, Nat.sub_self]
+  simp
+
+theorem valsAt_get {V : Type} (kv : List (List w8 × V)) (k : List w8) (v : V) (i : Nat) (p : List w8 × V)
+    (hp : kv[i]? = some p) : (valsAt kv k v i)[i]? = some p := by
+  have hi : i < kv.length := (List.getElem?_eq_some_iff.1 hp).1
+  unfold valsAt
+  rw [List.getElem?_append_right (by simp; omega)]
+  simp only [List.length_map, List.length_take, Nat.min_eq_left (Nat.le_of_lt hi), Nat.sub_self,
+    List.getElem?_drop, Nat.add_zero]
+  exact hp
+
+theorem take_keys_succ {V : Type} (kv : List (List w8 × V)) (i : Nat) (p : List w8 × V) (hp : kv[i]? = some p) :
+    (kv.take (i + 1)).map Prod.fst = (kv.take i).map Prod.fst ++ [p.1] := by
+  rw [List.take_add_one, hp]; simp
+
 /-! ## The first index -/
 
 /-- The first entry's index is the smallest key. -/
