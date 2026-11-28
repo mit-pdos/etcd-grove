@@ -12,6 +12,5 @@ Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_r
 Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust anon:google_golang_org.grpc.InitHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
 Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust anon:raxos.hyp.grpc.GrpcHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
 Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust anon:raxos.hyp.sync.MapHyp unwitnessed grandfathered (2026-11-28): an anonymous premise, in the statement before the gate saw the form; no witness yet
-Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hafter unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hprem₁ unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hprem₂ unwitnessed grandfathered (2026-11-25): no witness yet
