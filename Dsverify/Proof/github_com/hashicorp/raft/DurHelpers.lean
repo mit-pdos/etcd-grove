@@ -15,7 +15,7 @@ module
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.GooseLang.NotCrashed
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
-public import Dsverify.Proof.github_com.hashicorp.raft.core.Crash
+public import Dsverify.Proof.github_com.hashicorp.raft.core.CrashLaws
 
 @[expose] public section
 
@@ -99,6 +99,59 @@ theorem gprotN_diff_termN_durN : (↑gprotN : CoPset) ⊆ (⊤ \ ↑termN) \ ↑
 theorem gprotN_diff_cidxN_durN : (↑gprotN : CoPset) ⊆ (⊤ \ ↑cidxN) \ ↑durN :=
   gprotN_sub_diff "dur" gprotN_diff_cidxN
 theorem gprotN_diff_durN : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
+
+/-- The wrapper laws' mask condition inside a cell's opening, or anywhere below `⊤ \ raftN.@y`. -/
+theorem gd_sub {E : CoPset} (h1 : (↑gprotN : CoPset) ⊆ E) (h2 : (↑durN : CoPset) ⊆ E) :
+    (↑gprotN ∪ ↑durN : CoPset) ⊆ E := by
+  intro p hp
+  rcases LawfulSet.mem_union.mp hp with h | h
+  · exact h1 p h
+  · exact h2 p h
+
+theorem gd_diff_termN : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ \ ↑termN := gd_sub gprotN_diff_termN durN_diff_termN
+theorem gd_diff_cidxN : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ \ ↑cidxN := gd_sub gprotN_diff_cidxN durN_diff_cidxN
+theorem gd_top : (↑gprotN ∪ ↑durN : CoPset) ⊆ ⊤ := fun _ _ => CoPset.mem_full
+
+/-- Writing the `CurrentTerm` key of the stable store keeps the last vote. -/
+theorem voteMatches_ct (D : StableAbs) (s : SState) (v : w64) (h : voteMatches D s) :
+    voteMatches { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) v } s := by
+  unfold voteMatches at *
+  simp only [GMap.lookup_insert_eq_iff]
+  rw [if_neg (by decide)]
+  exact h
+
+/-- The stored `CurrentTerm` after writing `v`. -/
+theorem ct_insert (D : StableAbs) (v : w64) :
+    ((D.ints.insert (go!"CurrentTerm" : List w8) v).lookup (go!"CurrentTerm" : List w8)).getD (W64 0) =
+      v := by
+  simp only [GMap.lookup_insert_eq_iff, if_pos, Option.getD_some]
+
+
+section dur
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.hashicorp.raft.Assumptions]
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
+
+open Iris Iris.BI Iris.ProofMode
+
+variable (γ : GNames) (rc : RCtx GF) (i : SID)
+
+theorem srvV_eq (s : SState) : srvV rc s = srvVP rc s none none := rfl
+
+theorem stV_eq (D : StableAbs) : stV rc D = iprop(∃ g : w64, stVS rc D g) := rfl
+
+/-- **A read of the main goroutine's protocol state** (R2's `durPeek` at `srvV`):
+with its view `srvV rc s`, an update that uses `srvOwn γ i s` and gives it back. -/
+theorem durRead {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) :
+    srvDurInv γ rc i ∗ srvV rc s ∗ P ∗
+      (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢ |NC={E}=> srvV rc s ∗ Q := by
+  rw [srvV_eq]
+  exact durPeek γ rc i hE s none none P Q
+
+end dur
 
 end github_com.hashicorp.raft
 
