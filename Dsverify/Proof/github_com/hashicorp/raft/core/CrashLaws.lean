@@ -62,6 +62,18 @@ theorem crash_hE_gprot {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) : (↑gpr
 
 /-! ## Generic: a step of gprot's halves with the main goroutine's view -/
 
+/-- (R2) The main goroutine's plain view agrees with the crash state (no pending step). -/
+theorem durCore_srvV_agree (X : SrvDur) (s : SState) :
+    durCore γ rc i X ∗ srvV rc s ⊢ durCore γ rc i X ∗ srvV rc s ∗ ⌜X.s = s ∧ X.tp = none ∧ X.dp = none⌝ :=
+  durCore_srvVP_agree γ rc i X s none none
+
+theorem durStores_with (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
+    durStores γ rc i { X with s := s, tp := tp, dp := dp } = durStores γ rc i X := rfl
+
+theorem dpRes_dur (s : SState) (d : Nat × Nat) (dp : Option DiscPend) :
+    dpRes (GF := GF) γ i { s with dur := d } dp = dpRes γ i s dp := by
+  cases dp <;> rfl
+
 /-- (R2) **A look at gprot's `srvOwn`** with the main goroutine's view, the state unchanged. -/
 theorem durPeek {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option TermPend)
     (dp : Option DiscPend) (P Q : IProp GF) :
@@ -92,15 +104,30 @@ theorem durStepV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (tp : Option Ter
         |={E \ ↑durN}=> ∃ d : Nat × Nat, srvOwn γ i { s with dur := d } ∗
           durView γ i (1 : Qp).half d.1 ∗ ⌜s.dur.1 ≤ d.1⌝ ∗ Q { s with dur := d }) ⊢
       |NC={E}=> ∃ d : Nat × Nat, srvVP rc { s with dur := d } tp dp ∗ Q { s with dur := d } := by
-  sorry -- hraft_robust R2: proof pending
-
-/-- (R2) The main goroutine's plain view agrees with the crash state (no pending step). -/
-theorem durCore_srvV_agree (X : SrvDur) (s : SState) :
-    durCore γ rc i X ∗ srvV rc s ⊢ durCore γ rc i X ∗ srvV rc s ∗ ⌜X.s = s ∧ X.tp = none ∧ X.dp = none⌝ :=
-  durCore_srvVP_agree γ rc i X s none none
-
-theorem durStores_with (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
-    durStores γ rc i { X with s := s, tp := tp, dp := dp } = durStores γ rc i X := rfl
+  iintro ⟨#Hd, Hv, HP, Hf⟩ Hnc
+  imod (durOpen γ rc i hE) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp⟩
+  rw [hs, htp, hdp] at *
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  imod Hf $$ Ho Hdv HP with ⟨%d, Ho, Hdv, %hle, HQ⟩
+  unfold srvVP
+  imod (ghostVar_update_halves ({ s with dur := d }, tp, dp) rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  rw [← dpRes_dur γ i s d dp]
+  rw [← durStores_with γ rc i X { s with dur := d } tp dp]
+  imod Hcl $$ %({ X with s := { s with dur := d }, tp := tp, dp := dp }) [Ho Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpend Htp Hdp] Hs with -
+  · iunfold durCore
+    dsimp only
+    iframe
+    ipureintro
+    exact ⟨hlo, hlc, hvm, htd, by omega⟩
+  imodintro
+  iframe Hnc
+  iexists d
+  iframe
 
 /-- (R2) `durPeek` at the main goroutine's plain view. -/
 theorem durPeekV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF) :
@@ -108,6 +135,15 @@ theorem durPeekV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P Q : IProp GF)
       (srvOwn γ i s -∗ P -∗ |={E \ ↑durN}=> srvOwn γ i s ∗ Q) ⊢
       |NC={E}=> srvV rc s ∗ Q :=
   durPeek γ rc i hE s none none P Q
+
+/-- (R2) `durStepV` at the main goroutine's plain view. -/
+theorem durStepVV {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) (P : IProp GF) (Q : SState → IProp GF) :
+    srvDurInv γ rc i ∗ srvV rc s ∗ P ∗
+      (srvOwn γ i s -∗ durView γ i (1 : Qp).half s.dur.1 -∗ P -∗
+        |={E \ ↑durN}=> ∃ d : Nat × Nat, srvOwn γ i { s with dur := d } ∗
+          durView γ i (1 : Qp).half d.1 ∗ ⌜s.dur.1 ≤ d.1⌝ ∗ Q { s with dur := d }) ⊢
+      |NC={E}=> ∃ d : Nat × Nat, srvV rc { s with dur := d } ∗ Q { s with dur := d } :=
+  durStepV γ rc i hE s none none P Q
 
 /-! ## The fact laws (the state unchanged) -/
 
@@ -384,7 +420,28 @@ theorem learnCommitLeader_R (k k' p m : Nat) (hk : k ≤ k') :
       pubOwn γ i s.term m ⊢
       |NC={E}=> ∃ d : Nat × Nat, srvV rc { s with dur := d } ∗ durLb γ i k ∗
         pubOwn γ i s.term (Max.max m k) ∗ pubIs γ s.term k ∗ ⌜d.1 = Max.max s.dur.1 k⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, #Hl, #Hc, Hp⟩ Hnc
+  imod (durStepVV γ rc i (crash_hE_dur hE) s (pubOwn γ i s.term m)
+    (fun s' => iprop(durLb γ i k ∗ pubOwn γ i s.term (Max.max m k) ∗ pubIs γ s.term k ∗
+      ⌜s'.dur.1 = Max.max s.dur.1 k⌝))) $$ [Hd Hv Hp] Hnc with ⟨Hnc, %d, Hv, #Hlb, Hp, #Hpub, %hd⟩
+  · iframe Hd Hv Hp
+    iintro Ho Hdv Hp
+    imod (gprot.learnCommitLeader γ _ (crash_hE_gprot hE) i s k k' p m hk) $$ [HI Ho Hdv Hl Hc Hp]
+      with ⟨%d, Ho, Hdv, #Hlb, Hp, #Hpub, %hd⟩
+    · iframe #; try iframe
+    imodintro
+    iexists d
+    iframe
+    iframe #
+    ipureintro
+    exact ⟨by omega, hd⟩
+  imodintro
+  iframe Hnc
+  iexists d
+  iframe
+  iframe #
+  ipureintro
+  exact hd
 
 theorem learnCommitFollower_R (prev pt : Nat) (ents : RLog) (lci v : Nat)
     (hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents ents.length ∧
@@ -392,7 +449,30 @@ theorem learnCommitFollower_R (prev pt : Nat) (ents : RLog) (lci v : Nat)
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ aeValid γ s.term prev pt ents lci ⊢
       |NC={E}=> ∃ d : Nat × Nat, srvV rc { s with dur := d } ∗ durLb γ i (Min.min lci v) ∗
         ⌜d.1 = Max.max s.dur.1 (Min.min lci v)⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, #Hd, Hv, #Hae⟩ Hnc
+  imod (durStepVV γ rc i (crash_hE_dur hE) s iprop(True)
+    (fun s' => iprop(durLb γ i (Min.min lci v) ∗ ⌜s'.dur.1 = Max.max s.dur.1 (Min.min lci v)⌝)))
+    $$ [Hd Hv] Hnc with ⟨Hnc, %d, Hv, #Hlb, %hd⟩
+  · iframe Hd Hv
+    isplitl []
+    · itrivial
+    iintro Ho Hdv -
+    imod (gprot.learnCommitFollower γ _ (crash_hE_gprot hE) i s prev pt ents lci v hpre) $$ [HI Ho Hdv Hae]
+      with ⟨%d, Ho, Hdv, #Hlb, %hd⟩
+    · iframe #; try iframe
+    imodintro
+    iexists d
+    iframe
+    iframe #
+    ipureintro
+    exact ⟨by omega, hd⟩
+  imodintro
+  iframe Hnc
+  iexists d
+  iframe
+  iframe #
+  ipureintro
+  exact hd
 
 end facts
 
@@ -554,13 +634,33 @@ theorem setCidx_R (s : SState) (c c0 : Nat) (hc : c ≤ s.dur.1) :
 theorem termV_agree_R (s : SState) (tp : Option TermPend) (dp : Option DiscPend) (t : Nat) :
     srvDurInv γ rc i ∗ srvVP rc s tp dp ∗ termV rc t ⊢
       |NC={E}=> srvVP rc s tp dp ∗ termV rc t ∗ ⌜t = s.term⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hd, Hv, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_termV_agree γ rc i X t $$ [Hc Ht]
+  · iframe
+  imod Hcl $$ %X Hc Hs with -
+  imodintro
+  iframe
+  ipureintro
+  rw [← Hat, Hag.1]
 
 /-- (R2) The commit index atomic's view is the main goroutine's (was `cidxCouple_agree`). -/
 theorem cidxV_agree_R (s : SState) (tp : Option TermPend) (dp : Option DiscPend) (c : Nat) :
     srvDurInv γ rc i ∗ srvVP rc s tp dp ∗ cidxV rc c ⊢
       |NC={E}=> srvVP rc s tp dp ∗ cidxV rc c ∗ ⌜c = s.cidx⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#Hd, Hv, Ht⟩ Hnc
+  imod (durOpen γ rc i (crash_hE_dur hE)) $$ Hd Hnc with ⟨Hnc, %X, Hc, Hs, Hcl⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvVP_agree γ rc i X s tp dp $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Ht, %Hat⟩ := durCore_cidxV_agree γ rc i X c $$ [Hc Ht]
+  · iframe
+  imod Hcl $$ %X Hc Hs with -
+  imodintro
+  iframe
+  ipureintro
+  rw [← Hat, Hag.1]
 
 /-- (R2) The term atomic's value is a lower bound of the server's term (was `termCouple_get_lb`). -/
 theorem termV_lb_R (t : Nat) :
