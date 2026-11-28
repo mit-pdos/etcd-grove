@@ -798,7 +798,7 @@ theorem install_prep (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st :
     |NC={⊤}=> ∃ (d : Nat × Nat) (dp : Option DiscPend), srvV rc { s with dur := d } ∗
       dpRes γ i { s with dur := d } dp ∗
       ⌜s.dur.1 ≤ d.1 ∧ ((dp = none ∧ prevMatch s.log x st ∧ x ≤ d.1) ∨
-        (∃ ℓ', dp = some ⟨x, st, ℓ'⟩ ∧ ℓ' ≠ i ∧ ¬ prevMatch s.log x st))⌝ := by
+        (dp = some ⟨x, st, ℓ⟩ ∧ ¬ prevMatch s.log x st))⌝ := by
   iintro ⟨#HI, #Hd, Hv, #Hae, #Hl⟩
   by_cases hpm : prevMatch s.log x st
   · iapply ncfupd_wand
@@ -819,7 +819,7 @@ theorem install_prep (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st :
     simp only [dpRes]
     iframe Hae Hl
     ipureintro
-    exact ⟨⟨hℓ, hx, hpm⟩, Nat.le_refl _, Or.inr ⟨ℓ, rfl, hℓ, hpm⟩⟩
+    exact ⟨⟨hℓ, hx, hpm⟩, Nat.le_refl _, Or.inr ⟨by simp, hpm⟩⟩
 
 /-- `CIdx_term_mono` with its order premise as an implication. -/
 theorem CIdx_term_mono_imp (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (x y : Nat) (e1 e2 : Entry) :
@@ -1287,6 +1287,26 @@ theorem restore_open (γ : GNames) (rc : RCtx GF) (i : SID) (fx : GoInterfaceOk)
   iapply HΨ $$ %m %b %mp %rd %R [] Hmp Hrc HR HsP Hpend
   ipureintro; exact ⟨rfl, Ht, He1.2⟩
 
+
+/-- `install_cfgs` through the main goroutine's view. -/
+theorem install_cfgs_R (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
+    (x ci : Nat) (ss : List Server) (c : Configuration) (hx : x ≤ s.dur.1) :
+    Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ (snapCfg γ x ci ss ∗ c.Servers' ↦*□ ss) ⊢ |NC={⊤}=>
+      srvV rc s ∗ (cfgAtIs γ s.log ci c ∗ cmtIdx γ s.term s.log ci ∗
+      ⌜lastCfgIdx (s.log.take x) = ci ∧ 1 ≤ ci ∧ ci ≤ x ∧ x ≤ s.log.length⌝) := by
+  apply durFactL γ rc i (E := ⊤) (by solve_ndisj) s
+  iintro ⟨#HI, Hs, #Hsc, #Hc⟩
+  imod install_cfgs γ (⊤ \ ↑durN) dvN_gprot_dur i s x ci ss c hx $$ [$HI $Hs $Hsc $Hc]
+    with ⟨Hs, #H1, #H2, %H3⟩
+  imodintro
+  iframe Hs H1 H2
+  ipureintro; exact H3
+
+theorem srvVP_none (rc : RCtx GF) (s : SState) : srvVP rc s none none ⊢ srvV rc s := by
+  unfold srvVP srvV; exact .rfl
+
+theorem srvV_srvVP (rc : RCtx GF) (s : SState) : srvV rc s ⊢ srvVP rc s none none := by
+  unfold srvVP srvV; exact .rfl
 
 end github_com.hashicorp.raft.snapProof
 
