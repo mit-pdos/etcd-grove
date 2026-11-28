@@ -42,6 +42,7 @@ def invokeOut (method : GoString) (addrs : List GoString) (Rep : ProtoMsgT GF) (
       ∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗
       ⌜(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) →
         d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝ ∗
+      (isGrpcRpcsNR addrs method -∗ ⌜d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝) ∗
       (⌜d ∈ handlerDescs⌝ -∗ Ψe d)))
 
 /-- **`Invoke` on a connection with no interceptor** (see the file header). -/
