@@ -25,6 +25,8 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 # (putgetN, the clusterN Scope, 2026-11-15) a cluster of any size: the members' vocabulary and the allocation
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
+# (2026-11-27, out of putgetN for the multi-machine theorem) the peer-URL directory of k members (`dirN`) and its laws
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DirN
 # (authN, 2026-11-15) the k-member start with auth on
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersAuthDefs
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocNOn
@@ -45,6 +47,8 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
 # (2026-11-25, etcd_safe's bootstrap interim axiom) `bootPremise` from `bootstrap.spec`: the bridge an example
 # uses to drop `bootstrap`'s contract as a premise (`etcd_dist.BootDist` builds the dist variant on it)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootBridge
+# (2026-11-27, premises to axioms) `bootPremiseR` from `bootstrap.specRestart` (the interim restart axiom)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootRestart
 # the package's initialization
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked

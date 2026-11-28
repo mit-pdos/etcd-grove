@@ -13,7 +13,8 @@ over the keys of every lease of a listing at an index from `m` on (`Leases`). `f
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Env
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseEnv
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
 
 @[expose] public section
 
@@ -33,7 +34,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
 /-- See the file header. -/
 abbrev foreign.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+  ∀ [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (cli : Loc) (who addr : GoString) (id : w64) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γa : auth.AuthNames) (n m : Nat) (Qr : KVState → IProp GF) (R : IProp GF),

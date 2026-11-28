@@ -20,7 +20,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.startC
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Alloc
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Partitioner
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Check
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 public import Spec.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
@@ -54,7 +54,7 @@ theorem Main.wp_proof
     (wp_partitioner : cluster3.Partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
+  intro N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
     Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts

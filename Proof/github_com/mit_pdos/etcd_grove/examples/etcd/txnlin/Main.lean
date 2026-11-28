@@ -16,7 +16,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Check
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
@@ -60,7 +60,7 @@ theorem Main.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)

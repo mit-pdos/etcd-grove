@@ -54,7 +54,7 @@ theorem MainPartition.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainPartition.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA k N ids ps ctxs boot clients ops watchers wops sched steps ThB RcB RcN HLv hk1 hk
+  intro EK RT SC ST VA k N ids ps ctxs boot clients ops watchers wops sched steps ThB RcB RcN HLv hk1 hk
     Hlen Hbf HwbN Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 Hw0 H31 Hops Hwops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -142,7 +142,10 @@ theorem MainPartition.wp_proof
   · simp only [storeCfgD]
     iframe
     iexact Hsr
-  ihave #Hinvs := kInvs_of_same γ (storeCfgD kc cl ms V mt lt γh) g0s γk ms hsame $$ Hinv
+  ihave #Hinvs := kInvs_of_same γ (storeCfgD kc cl ms V mt lt γh) g0s γk
+    ((storeCfgD kc cl ms V mt lt γh).K.kvs) (fun y hy => by
+      simp only [storeCfgD, k8s.inProcEtcd, List.mem_map] at hy
+      obtain ⟨z, hz, rfl⟩ := hy; exact hsame z hz) $$ Hinv
   -- (stage E) the client's watcher over the cluster's KV, so the store's watch fields
   ihave #Hone1 := one_read_au γ (storeCfgD kc cl ms V mt lt γh) g0s γk $$ Hinv
   ihave #Pio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
@@ -177,12 +180,11 @@ theorem MainPartition.wp_proof
   wp_apply (wp_Check γ sp (storeCfgD kc cl ms V mt lt γh) g0s γk st0 h0 hs clients ops watchers wops
       (W64 0) rfl rfl rfl rfl rfl hAs hse (by omega)
       (by intro y hy; apply hnr; rw [← Hsva]; exact List.mem_map_of_mem hy)
-      hmsne (by omega) H0 Hw0 H31 Hops Hwops Hmul
+      (by simpa [storeCfgD, k8s.inProcEtcd] using hmsne) (by omega) H0 Hw0 H31 Hops Hwops Hmul
       (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp)
       (by simp [g0s, st3]) runOk_g0s)
     $$ [Hks Hst0 Hhs] as %r %hr
-  · rw [show (storeCfgD kc cl ms V mt lt γh).ms = ms from rfl]
-    iframe #
+  · iframe #
     iframe Hks Hst0 Hhs
   have hok : r = go!"Ok" := hr.2 (by decide)
   subst hok

@@ -24,10 +24,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.write
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked
 public import Proof.context.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
@@ -38,7 +38,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_partition
 
-open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.etcd.partition github_com.mit_pdos.etcd_grove.examples.etcd.txnlin github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine
+open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.etcd.partition github_com.mit_pdos.etcd_grove.examples.lib.txnwork github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
@@ -100,11 +100,11 @@ theorem wp_config :
     EtcdGrove.etcd_partition.config.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.config.wp_proof
 
-theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_startCluster :
     EtcdGrove.etcd_partition.startCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.startCluster.wp_proof wp_config cluster3.wp_StartCluster cluster3.wp_NewClient
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_Main :
     EtcdGrove.etcd_partition.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.Main.wp_proof zap.wp_NewNop wp_startCluster cluster3.wp_Partitioner wp_Check
 
@@ -112,7 +112,7 @@ theorem wp_writer :
     EtcdGrove.etcd_partition.writer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny client_Put_km_law_holds
 
-theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_MainWatch :
     EtcdGrove.etcd_partition.MainWatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.MainWatch.wp_proof etcdstart.wp_GenAll zap.wp_NewNop wp_startCluster cluster3.wp_Partitioner wp_writer etcdstart.wp_MaxRev etcdstart.wp_Collect etcdstart.wp_Check context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 

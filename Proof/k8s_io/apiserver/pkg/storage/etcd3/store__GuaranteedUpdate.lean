@@ -376,13 +376,12 @@ theorem store.GuaranteedUpdate.wp_proof
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GuaranteedUpdate.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key dest o0 rv0 ign pp pr cx ca f uf W _ Φu k
+  intro _ Obj _ E _ sp c ci cd key dest o0 rv0 ign pp pr cx ca f uf W _ Φu k
   wp_start as ⟨Hlt, #Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, #Hpp, Hca, HW, #Hau, #Hup⟩
   obtain ⟨hk, hkl, hfsz, hzsz, hcsz, hD1⟩ := Hpre
   ihave Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, -⟩
+  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, #Hmeta⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []

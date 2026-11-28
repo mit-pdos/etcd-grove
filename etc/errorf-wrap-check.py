@@ -79,7 +79,8 @@ REVIEWED_INIT = {
     # ready")` goes through `EtcdGrove.fmt.wp_Errorf` (since fmtmodel a theorem over Perennial's), its steps are other functions'
     'Proof/go_etcd_io/etcd/cache/v3/InitLinked.lean': 'format without %; its Errorf step is EtcdGrove.fmt.wp_Errorf',
     # (#23, 2026-11-22) api/meta's `errNotList`/`errNotObject` (`fmt.Errorf` of constants without `%`)
-    'Proof/k8s_io/apimachinery/pkg/api/meta/Init.lean': 'formats without %: Go returns errors.New(format); fmt.wp_Errorf',
+    # (prove-metav1, 2026-11-27: its `wp_initialize'` moved to `InitLinked.lean`, as metav1's)
+    'Proof/k8s_io/apimachinery/pkg/api/meta/InitLinked.lean': 'formats without %: Go returns errors.New(format); fmt.wp_Errorf',
     # (dsv-rabia, 2026-11-23) gogo-generated `ErrInvalidLengthMessage`/`ErrIntOverflowMessage`/
     # `ErrUnexpectedEndOfGroupMessage = fmt.Errorf("proto: ...")` (constants without `%`); its
     # `var _ = fmt.Errorf` is a function value, not a call

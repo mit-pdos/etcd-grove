@@ -311,10 +311,13 @@ abbrev raft.Step.untracedTriple : Prop :=
       -- (raft-final phase 2, 2026-10-29) but a transfer request, which may record the node's
       -- leader and term in `NGhost.xw` (the forward's witness, `ownStepGhost_xw_record`)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
+                   (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
       -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows
-      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+      "%Hxwframe" ∷ ⌜(m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs, xsrc := s'.gh.xsrc } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)) ∧
+                   (∀ f, f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (m.Type' = MsgTransferLeader ∧ f = m.From'))⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)

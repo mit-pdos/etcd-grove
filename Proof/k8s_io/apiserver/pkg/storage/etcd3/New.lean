@@ -60,8 +60,11 @@ theorem New.wp_proof
     (wp_Ctx : Client.Ctx.spec (GF := GF) (hG := hG))
     (wp_TypeOf : reflect.TypeOf.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ S kc cl ms V γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1 hu1 hu2 htb hpk
-  wp_start as ⟨#Hkc, #Hnc, #Hwo, #Hregs, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
+  intro _ Obj _ S kc cl K γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1 hu1 hu2 htb hpk
+  wp_start as ⟨#Hkc, #Hkcl, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
+  ihave #Hkcl0 := Hkcl
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hkh⟩
   ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
   -- (sweep repairs 1, B5) the default gate's specs, `features`' fact
@@ -177,7 +180,7 @@ theorem New.wp_proof
       ipersist «$r0»
       -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
       wp_apply Chk $$ []
-      · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
+      · icases (hK.ctxFields cl) $$ Hkh with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
         iunfold EtcdGrove.clientCheckFields at HF
         icases HF with ⟨⟨%mp, #Hmp, %Hmpn⟩, ⟨%mu, #Hmu, %Hmun⟩⟩
         icombine Hcx Hcx' gives %Hcxe

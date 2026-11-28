@@ -12,6 +12,9 @@
 //   - TestTableIsDescriptor: the table and the enum's descriptor have the same numbers and names (no
 //     aliases: one name per number).
 //
+// healthstatus_test.go does the same for grpc's HealthCheckResponse_ServingStatus.String, whose model
+// is the grpc model's switch on the four values (models/grpc).
+//
 // Run: GOWORK=off go test ./premisefix/enumstring/ (from examples/).
 package enumstring
 

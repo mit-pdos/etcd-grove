@@ -13,7 +13,8 @@ instantiated (`Spec/Proof/.../adt/intervalTree__{Insert,Intersects,Contains}_byt
 in `Link.lean`; `notes/decisions.md`, "S2b of the auth plan"). Here: the empty tree is a
 bytes-affine tree (`ownIvtB_of_empty`: `NewIntervalTree`'s string-affine postcondition), a built
 tree can be made read-only (`ownIvtB_persist`, the cache's trees are never modified), the entries
-are in the tree's order (`ownIvtB_sorted`), and `bytesKey`'s comparison contract from
+are in the tree's order (`ownIvtB_sorted`), the same for the exact tree (`ownIvtTB`, nomode X-a3:
+what the auth cache holds, `Insert_bytes`/`Contains_bytes` state it), and `bytesKey`'s comparison contract from
 `BytesAffineComparable.Compare`'s spec (`bytesKey_ok`).
 -/
 module
@@ -178,6 +179,39 @@ theorem ownIvtB_of_empty (t : Loc) : ownIvt (GF := GF) t [] 1 ⊢ ownIvtB t [] (
     · rw [ownNode_leaf]; ipureintro; exact Hroot
     ipureintro
     exact ⟨rfl, hok, hsorted, hcount, hlen⟩
+
+include sem package_sem in
+/-- **The tree at `t` is exactly `T` over bytes-affine keys**, at `dq` (nomode X-a3): `ownIvtT` for
+`bytesKey`; what the auth store's permission cache holds (each tree the one its inserts build). -/
+def ownIvtTB (t : Loc) (T : RbT Entry) (dq : DFrac) : IProp GF :=
+  ownIvtT bytesKey t T dq
+
+instance ownIvtTB_persistent (t : Loc) (T : RbT Entry) :
+    Persistent (ownIvtTB (GF := GF) t T .discard) := by
+  unfold ownIvtTB; infer_instance
+
+/-- A built exact tree made read-only. -/
+theorem ownIvtTB_persist (t : Loc) (T : RbT Entry) :
+    ownIvtTB (GF := GF) t T (DFrac.own 1) ⊢ |==> ownIvtTB t T .discard :=
+  ownIvtT_persist bytesKey t T
+
+/-- The exact tree's entries are in the tree's order. -/
+theorem ownIvtTB_sorted (t : Loc) (T : RbT Entry) (dq : DFrac) :
+    ownIvtTB (GF := GF) t T dq ⊢ ⌜IvSorted T.inorder⌝ :=
+  ownIvtT_sorted bytesKey t T dq
+
+/-- The exact tree holds its entries. -/
+theorem ownIvtTB_B (t : Loc) (T : RbT Entry) (dq : DFrac) :
+    ownIvtTB (GF := GF) t T dq ⊢ ownIvtB t T.inorder dq :=
+  ownIvtT_K bytesKey t T dq
+
+/-- The empty tree (`NewIntervalTree`'s) is the bytes-affine leaf. -/
+theorem ownIvtTB_of_empty (t : Loc) : ownIvt (GF := GF) t [] 1 ⊢ ownIvtTB t .leaf (DFrac.own 1) := by
+  unfold ownIvtTB
+  iintro H
+  ihave H := ownIvtB_of_empty t $$ H
+  iunfold ownIvtB at H
+  iapply ownIvtK_nil bytesKey t (DFrac.own 1) $$ H
 
 end reprs
 

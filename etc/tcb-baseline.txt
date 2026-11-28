@@ -36,7 +36,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
-axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
@@ -56,7 +55,6 @@ axiom Perennial.raxos.hyp.proto.Unmarshal.wp_proof
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addrClaim
@@ -76,6 +74,7 @@ axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bootstrap.wp_proofOne
+axiom bootstrap.wp_proofRestart
 axiom bootstrap.wp_proof_dist
 axiom bridge.New.wp_proof
 axiom bridge.bridge.Blackhole.wp_proof
@@ -98,16 +97,11 @@ axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom etcdResolver_grpc
-axiom etcd_dist.KV_Compact_dist.wp_proof
-axiom etcd_dist.KV_Delete_dist.wp_proof
-axiom etcd_dist.KV_Get_dist.wp_proof
-axiom etcd_dist.KV_Put_dist.wp_proof
 axiom etcd_dist.NewPeerHandler_dist.wp_proof
 axiom etcd_dist.NewServer_dist.wp_proof
 axiom etcd_dist.PeerServe_dist.wp_proof
 axiom etcd_dist.RequestProgress_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
-axiom etcd_dist.Txn_Commit_dist.wp_proof
 axiom etcd_dist.Watch_dist.wp_proof
 axiom etcd_dist.authd.Auth_AuthEnable_dist.wp_proof
 axiom etcd_dist.authd.Auth_RoleAdd_dist.wp_proof
@@ -124,7 +118,7 @@ axiom etcd_dist.authd.Lease_TimeToLiveOn_dist.wp_proof
 axiom etcd_dist.authd.New_user_dist.wp_proof
 axiom etcd_dist.authd.Txn_CommitOn_dist.wp_proof
 axiom etcd_dist.authd.WatchOn_dist.wp_proof
-axiom etcd_dist.etcdSvc
+axiom etcd_dist.etcdSvcRest
 axiom etcd_dist.view.Client_LeaseLeases_dist.wp_proof
 axiom etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
 axiom etcd_dist.view.Lease_GrantLive_dist.wp_proof
@@ -151,7 +145,6 @@ axiom grpcResolverAt
 axiom grpcSrvAtLis
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
-axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
 axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof

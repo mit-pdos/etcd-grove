@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev store.pagedChunks.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (kp : GoString)
     (opts : k8s_io.apiserver.pkg.storage.ListOptions) (rev0 lim0 : w64)
@@ -40,7 +40,7 @@ abbrev store.pagedChunks.spec : Prop :=
     (c.pathPrefix ++ k).length ≤ opKeyMax) →
   (∀ R σ, Q R σ ⊢ ⌜kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ R σ σ', Q R σ ∗ P σ σ' ⊢ ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝) →
-  kp ≠ [] → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  kp ≠ [] → c.K.live →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType

@@ -108,6 +108,7 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthServi
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 6
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKV\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKVOn\.lean::  # 3
+lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/KVServiceV\.lean::etcd(Put|Txn)SpecV_M::  # (stage A, 2026-11-27; coordinator 2026-11-28) the view's Put/Txn meet a member's auth-off spec (`etcdPutSpecM false`, `etcdTxnSpecM false`); removed at N4 (nomode-packet)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/AuthnServedOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/WatchLawsHist\.lean::  # 1
 lit-mode model ^Proof/go_etcd_io/etcd/client/v3/WatchFire\.lean::srvKVCoreM_someNx::kvModelM (true|false)$  # 2 (mvcc-api, 2026-11-07): the mode-generic lemma's `cases on`, each branch naming the KV model at its case's mode
@@ -115,7 +116,7 @@ lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/De
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/MemberSplit\.lean::memberUp_req::  # 1 (M1, 2026-11-26): the request view split off etcdstart's auth-off `memberUp` (its `isServerReqM false`, Defs above), for the auth-off NewPeerHandler_dist/PeerServe_dist; moves with `memberUp` in the mode cleanup
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/WatchSrv\.lean::srvWOk_of_readOn::  # 1 (R9, 2026-11-07): the auth-on twin of `srvWOk_of_read`, as `memberUpOn`; moves with the read views (`isServerReadM`) in stage 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainServe\.lean::  # 3
-lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv\.lean::  # 1
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/authwork/WorkEnv\.lean::  # 1
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/startServer\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/startMember\.lean::  # 3 (auth3 A1, 2026-11-14): authkv's startServer at a member of three
 lit-mode unmoved ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/barrier\.lean::  # 1 (auth3 A2, 2026-11-14): a member started with auth on (memberUpOn_served's read view), as authkv's WorkEnv

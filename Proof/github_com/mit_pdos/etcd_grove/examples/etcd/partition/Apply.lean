@@ -9,7 +9,7 @@ operation with the caller's atomic update, as the closure in linkvtxn's `Check` 
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Apply
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Apply
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 theorem Apply.wp_proof (wp_Apply : etcd_txnlin.Apply.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ γ cls clis hAs hne
+  intro γ cls clis hAs hne
   iintro #Hpkg #Plkv #Pcli #Hcls #Hok
   iintro %i
   imodintro

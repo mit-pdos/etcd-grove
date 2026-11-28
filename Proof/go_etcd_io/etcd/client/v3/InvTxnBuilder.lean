@@ -89,7 +89,7 @@ instance txnKvIs_persistent (tp api : Loc) : Persistent (txnKvIs (GF := GF) tp a
 /-- **A transaction's precondition on a `*txn`** (2026-10-20, linkv-txn stage A; `kvReqPre`'s):
 persistent, or (2026-10-21, D29) ordinary over a refusal-free connection. -/
 def txnReqPre (tp : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
-  iprop(□ ▷ P ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
+  iprop(□ ▷ P ∨ (kvWriteNR addr ∗ ▷ P))
 
 theorem txnReqPre_box (tp : Loc) (addr : List GoString) (P : IProp GF) :
     (□ ▷ P : IProp GF) ⊢ txnReqPre tp addr P := by
@@ -100,9 +100,9 @@ theorem txnReqPre_kv (tp api : Loc) (addr : List GoString) (P : IProp GF) :
     txnKvIs tp api ∗ txnReqPre tp addr P ⊢ kvReqPre api addr P := by
   iintro ⟨-, H⟩
   unfold txnReqPre kvReqPre
-  icases H with (#H | ⟨%Hnr, H⟩)
+  icases H with (#H | ⟨#Hnr, H⟩)
   · ileft; iexact H
-  · iright; iframe H; ipureintro; exact Hnr
+  · iright; iframe H Hnr
 
 theorem comparesAt_nil : ⊢ comparesAt (GF := GF) [] [] := by
   unfold comparesAt

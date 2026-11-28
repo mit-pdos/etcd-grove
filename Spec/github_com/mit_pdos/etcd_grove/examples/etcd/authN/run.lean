@@ -23,7 +23,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersAuthDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Base
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
@@ -48,7 +48,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assum
 
 /-- See the file header. -/
 abbrev run.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+  ∀ [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (srvsl msl : GoSlice) (lg : Loc) (ss : List Loc) (xs : List (GMember × MemberG GF))
     (x0 : GMember × MemberG GF) (γn : NetNames GF),

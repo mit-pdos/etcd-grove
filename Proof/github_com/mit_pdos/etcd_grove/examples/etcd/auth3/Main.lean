@@ -17,7 +17,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.startMembe
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
 public import Spec.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
@@ -135,7 +135,7 @@ theorem Main.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
+  intro ES FS RS N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
     Hms hAs
   wp_start as ⟨Hs₁, Hs₂, Hs₃, Htok, #Hprem⟩
   iunfold premises at Hprem

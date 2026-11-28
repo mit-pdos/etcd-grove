@@ -38,7 +38,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **A member's watch registration at `addr`** (persistent): the `Watch` stream there at its watch
 server `R` and the server's watch facts (`srvWOf E γr false`), the watch server, the laws of those

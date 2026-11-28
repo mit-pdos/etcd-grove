@@ -28,7 +28,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.CollectPlan
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWrites
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.context.ErrAny
@@ -121,7 +121,7 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
+  intro ES FS RS N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
     HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts

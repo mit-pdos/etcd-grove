@@ -54,7 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__watchEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Served
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 @[expose] public section
@@ -100,7 +100,7 @@ theorem Main.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS N id ctxs boot nw nops Hbf Htb HLv Hrb48 HrbN HwbN Haf
+  intro ES FS RS N id ctxs boot nw nops Hbf Htb HLv Hrb48 HrbN HwbN Haf
     Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Hstart, Htok, #Hprem⟩

@@ -182,6 +182,7 @@ public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.strconv.Itoa
 public import Proof.strings.HasSuffix
 public import Proof.strings.ToLower
 public import Proof.time.Duration__Seconds
@@ -348,6 +349,10 @@ theorem zap.wp_String :
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Info.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
+
+theorem strconv.wp_Itoa :
+    EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.Itoa.wp_proof
 
 theorem «attribute».wp_Bool :
     EtcdGrove.«attribute».Bool.spec (GF := GF) (hG := hG) :=
@@ -608,7 +613,7 @@ theorem wp_NewLeaseServer :
     EtcdGrove.v3rpc.NewLeaseServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.NewLeaseServer.wp_proof wp_newHeader zap.wp_NewNop
 
-theorem wp_NewMaintenanceServer [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_NewMaintenanceServer :
     EtcdGrove.v3rpc.NewMaintenanceServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.NewMaintenanceServer.wp_proof EtcdServer.wp_KV mvcc.api.mvccApi_watchableStore_HashStorage_wp_api wp_newHeader zap.wp_NewNop
 
@@ -806,7 +811,7 @@ theorem health.Server.wp_SetServingStatus :
 
 theorem grpc_health_v1.HealthCheckResponse_ServingStatus.wp_String :
     EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
+  EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof strconv.wp_Itoa
 
 theorem healthNotifier.wp_startServe :
     EtcdGrove.v3rpc.healthNotifier.startServe.spec (GF := GF) (hG := hG) :=
@@ -824,7 +829,7 @@ theorem grpc_prometheus.ServerMetrics.wp_InitializeMetrics :
     EtcdGrove.grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 
-theorem wp_Server [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_Server :
     EtcdGrove.v3rpc.Server.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.Server.wp_proof grpc.wp_CustomCodec grpc.wp_StatsHandler otelgrpc.wp_NewServerHandler grpc.wp_ChainUnaryInterceptor grpc.wp_ChainStreamInterceptor grpc.wp_MaxRecvMsgSize grpc.wp_MaxSendMsgSize grpc.wp_MaxConcurrentStreams grpc.wp_NewServer wp_getServerMetrics wp_newLogUnaryInterceptor grpc_prometheus.ServerMetrics.wp_UnaryServerInterceptor wp_newUnaryInterceptor grpc_prometheus.ServerMetrics.wp_StreamServerInterceptor wp_newStreamInterceptor config.ServerConfig.wp_MaxRequestBytesWithOverhead wp_NewQuotaKVServer etcdserverpb.wp_RegisterKVServer wp_NewWatchServer etcdserverpb.wp_RegisterWatchServer wp_NewQuotaLeaseServer etcdserverpb.wp_RegisterLeaseServer wp_NewClusterServer etcdserverpb.wp_RegisterClusterServer wp_NewAuthServer etcdserverpb.wp_RegisterAuthServer health.wp_NewServer wp_newHealthNotifier grpc_health_v1.wp_RegisterHealthServer wp_NewMaintenanceServer etcdserverpb.wp_RegisterMaintenanceServer grpc_prometheus.ServerMetrics.wp_InitializeMetrics
 
@@ -992,7 +997,7 @@ theorem quotaLeaseServer.wp_LeaseGrant :
     EtcdGrove.v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.quotaLeaseServer.LeaseGrant.wp_proof quotaAlarmer.wp_check
 
-theorem serverWatchStream.wp_close [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem serverWatchStream.wp_close :
     EtcdGrove.v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.serverWatchStream.close.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds
 
@@ -1008,15 +1013,15 @@ theorem traceutil.Tracer.wp_Start :
     EtcdGrove.traceutil.Tracer.Start.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Tracer.Start.wp_proof
 
-theorem serverWatchStream.wp_recvLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem serverWatchStream.wp_recvLoop :
     EtcdGrove.v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.serverWatchStream.recvLoop.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds serverWatchStream.wp_isWatchPermitted serverWatchStream.wp_newResponseHeader wp_FiltersFromRequest errors.wp_Is traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool zap.Logger.wp_Error zap.wp_Error
 
-theorem serverWatchStream.wp_sendLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem serverWatchStream.wp_sendLoop :
     EtcdGrove.v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds wp_IsCreateEvent context.wp_TODO mvcc.api.mvccApi_wsChan_recv_law_holds mvcc.api.mvccApi_wsRecv_ok_law_holds mvcc.api.mvccApi_wsSentLb_zero_law_holds verify.wp_Assert _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.wp_ReportEventReceived
 
-theorem watchServer.wp_Watch [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem watchServer.wp_Watch :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr errors.wp_Is errors.wp_IsStatusErr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
 

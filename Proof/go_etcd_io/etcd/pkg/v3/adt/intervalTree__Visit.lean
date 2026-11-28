@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.VisitL
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.StrKey
 
 @[expose] public section
@@ -34,7 +35,7 @@ theorem adt.intervalTree.Visit.wp_proof
   unfold adt.ownIvt
   rw [adt.affIvl_eq (GF := GF)]
   wp_start_folded as ⟨Ht, #Hivv, HI⟩
-  wp_apply (h_Visit_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t L #b #e
+  wp_apply (adt.Visit_gen_L h_Visit_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t L #b #e
     .discard .discard b e (DFrac.own q) ivv I (fun _ => iprop(False))) $$ [Ht HI]
     as ⟨-, -, %ps, %es, %r, %hpl, HI, Hwand⟩
   · simp only [adt.strKey_keyAt]

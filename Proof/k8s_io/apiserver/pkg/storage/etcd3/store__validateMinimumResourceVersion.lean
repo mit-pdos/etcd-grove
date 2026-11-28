@@ -33,7 +33,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem store.validateMinimumResourceVersion.wp_proof
     (wp_TooLarge : storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG)) :
     store.validateMinimumResourceVersion.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c m n rev
+  intro _ Obj _ sp c m n rev
   wp_start as ⟨#Hs, %hp⟩
   by_cases hm : m = []
   · subst hm
@@ -47,8 +47,7 @@ theorem store.validateMinimumResourceVersion.wp_proof
   · wp_auto
     rw [decide_eq_false hm]
     iunfold isStore at Hs
-    icases Hs with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-      #Hcl, #Hone, #Hregs, #Hcon, -⟩
+    icases Hs with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
     iunfold contractOk at Hcon
     icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, #Hmeta⟩
     iunfold versionerOk at Hver

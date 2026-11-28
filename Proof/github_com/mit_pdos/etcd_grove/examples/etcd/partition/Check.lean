@@ -11,8 +11,8 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Gen
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Model
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Gen
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Check
@@ -46,11 +46,11 @@ theorem Check.wp_proof
     (wp_Gen : etcd_txnlin.Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ γ cls clis clients ops dur hAs Hrb hne H0 H31 Hops Hmul
+  intro γ cls clis clients ops dur hAs Hrb hne H0 H31 Hops Hmul
   wp_start as ⟨#Hcc, #Hcls, #Hok, Hst⟩
   wp_auto
   ipersist clis
-  ihave #Plkv : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+  ihave #Plkv : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork
       $$ []
   · iPkgInit
   ihave #Plt : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest

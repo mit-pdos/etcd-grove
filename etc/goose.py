@@ -9,9 +9,9 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvraft, raft-tla, tracecheck, antithesis, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, k8s-all, k8s-dist, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -418,7 +418,11 @@ PROJECTS = [
         # d26dd5da6 (branch `goose-lean-ttlkeys`, on df6af0c36; pushed 2026-11-26): `LeaseTimeToLive`
         # checks read permission on the keys it returns (`checkLeaseTimeToLiveKeys`,
         # issues/etcd-lease-timetolive-keys-toctou.md).
-        rev="d26dd5da6f383bc9b06a957d685360dc12f8faf2",
+        # Then (nomode X-a1, 2026-11-27) 18ab647b0 (branch `goose-lean-permsort`, on d26dd5da6;
+        # pushed 2026-11-27): `permSlice.Less` orders a role's
+        # permissions by (key, range end), so the stored record is the canonical sorted one
+        # whatever the grant history (notes/nomode-x.md; issues/etcd-auth-perm-order-go-version.md).
+        rev="18ab647b02772b34e5fd61b3f3c9417bfffab059",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -1292,6 +1296,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlin")],
     ),
     Project(
+        name="txnwork",
+        # linkvtxn's workload and porcupine model as a library (moved verbatim out of
+        # examples/etcd/txnlin on 2026-11-27, so that the multi-machine example imports no
+        # single-process driver): Gen, Call, Apply, Model and their helpers. A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd, lintest and porcupine
+        # projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "txnwork"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "txnwork")],
+    ),
+    Project(
         name="linkv3p",
         # linkvtxn's workload under network partitions (notes/partition-plan.md): three members
         # started in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
@@ -1359,6 +1379,21 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth")],
+    ),
+    Project(
+        name="authwork",
+        # authkv's set-up, workload and checks as a library (moved verbatim out of
+        # examples/etcd/auth on 2026-11-27, so that the multi-machine example imports no
+        # single-process driver): SetUp, Work, Principals, CheckHistory, LastIn, Permitted and their
+        # helpers. A package of the examples' Go module (examples/go.mod); its imports are the etcd
+        # project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "authwork"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "authwork")],
     ),
     Project(
         name="auth3",
@@ -1465,20 +1500,6 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseN")],
-    ),
-    Project(
-        name="leaseexpiryN",
-        # the lease-expiry example with any number of members (notes/leaseN-plan.md): Main(k)
-        # starts k members in-process (etcdstart.Members, etcdstart.StartMembers), each serving its
-        # raft handler and its gRPC API, grants a lease through every member, and checks at every
-        # member that the lease granted through it, once gone from its listing, stays gone (run).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "etcd", "leaseexpiryN"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseexpiryN")],
     ),
     Project(
         name="txnlinfaultsN",
@@ -2046,6 +2067,27 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "all")],
+    ),
+    Project(
+        name="k8s-dist",
+        # k8s_safe's program as a distributed deployment (notes/k8s-dist.md,
+        # notes/k8s-dist-lean-plan.md G6): package `.` of examples/k8s/dist, a Go module of its own
+        # requiring the two drivers' modules (examples/k8s/etcd3, examples/k8s/compactor, with their
+        # export.go) by path and everything else at examples/k8s/etcd3/go.mod's pins (CLIENT_GO_PINS,
+        # GO_MOD_PINS), with bodies: the deployment and its entry points (Orchestrator,
+        # NodeDeployment), the store's and the compactor's machines and orchestrators, their codecs.
+        # Everything it names outside the package is the k8s-apiserver, k8s-compactor, putget-dist
+        # (etcd-dist's client, deployment and enc), etcd and other projects' translations (the empty
+        # root), Remote and `net` the part Net/'s.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8s", "dist"),
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "k8s.io=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "github.com/mit-pdos/etcd-grove=",
+                    "github.com/anishathalye/porcupine=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "os=", "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "dist")],
     ),
     Project(
         name="kvwitness",

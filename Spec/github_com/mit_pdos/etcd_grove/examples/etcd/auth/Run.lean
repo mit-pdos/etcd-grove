@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Run(s, addr, lg)` (`examples/etcd/auth/authkv.go`; the auth3 Scope's Q6, `notes/auth3-scope.md`):
+`Run(s, addr, lg)` (`examples/lib/authwork/authkv.go`; the auth3 Scope's Q6, `notes/auth3-scope.md`):
 `Main()` after the member's start, shared with `examples/etcd/auth3`, which runs it on its first
 member: `s`'s gRPC API served at `addr` (`etcdstart.Serve`), a client of `addr` with no user name
 that sets up the auth state and enables auth (`SetUp`), clients of `addr` that authenticate as root,
@@ -20,11 +20,12 @@ the first consistent index `0` and the start log `[[], []]` (`alloc`'s, the boot
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientAuth
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
@@ -48,7 +49,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+  ∀ [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (s lg : Loc) (addr : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (γn : NetNames GF)
     (id : w64) (γa : auth.AuthNames),

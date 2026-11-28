@@ -65,7 +65,7 @@ theorem Run.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro CS lg N id ctxs boot ThB RcB RcN Hbf hlv HwbN Haf Hbuq Hdbo
+  intro lg N id ctxs boot ThB RcB RcN Hbf hlv HwbN Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Hstart, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#HpremF, #HbR⟩

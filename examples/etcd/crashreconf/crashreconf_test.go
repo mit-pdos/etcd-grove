@@ -35,8 +35,8 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/txnwork"
 )
 
 var (
@@ -163,7 +163,7 @@ func crasher(rng *rand.Rand, nodes []*node, stop chan struct{}, kills *atomic.In
 }
 
 // runWorkload is lintest.Run's driver (runClient on clients goroutines, ops operations each,
-// txnlin.Gen's inputs, the monotonic clock), with a pause of pace before each operation; it
+// txnwork.Gen's inputs, the monotonic clock), with a pause of pace before each operation; it
 // returns the history.
 func runWorkload(apply func(any) any, clients int, ops int, pace time.Duration) []porcupine.Operation {
 	clock := lintest.MonotonicClock()
@@ -175,7 +175,7 @@ func runWorkload(apply func(any) any, clients int, ops int, pace time.Duration) 
 			defer wg.Done()
 			for i := 0; i < ops; i++ {
 				time.Sleep(pace)
-				in := txnlin.Gen(id)
+				in := txnwork.Gen(id)
 				call := clock()
 				out := apply(in)
 				ret := clock()
@@ -312,7 +312,7 @@ func runRound(t *testing.T, base string, seed int64) round {
 	r.learnerRemoves = logs.FilterMessage(MsgLearnerRemoved).Len()
 	r.ops = len(hist)
 	for _, op := range hist {
-		if op.Output.(txnlin.Output).Err {
+		if op.Output.(txnwork.Output).Err {
 			r.failed++
 		}
 	}
@@ -340,7 +340,7 @@ func runRound(t *testing.T, base string, seed int64) round {
 	}
 
 	cstart := time.Now()
-	model := txnlin.Model()
+	model := txnwork.Model()
 	res, info := porcupine.CheckOperationsVerbose(model, hist, *flagCheck)
 	r.check = time.Since(cstart)
 	r.result = res

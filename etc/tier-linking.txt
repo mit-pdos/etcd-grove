@@ -7,7 +7,7 @@ Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink  # srvApi_wp_*: raft's no
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults  # mvccApi_compactChan_law_holds: over mvcc's Link and store.Compact.core_proof
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults  # mvccApi_*_wp_api: mvcc's API laws at mvcc's and backend's Links
 RaftWitness.Proof.go_etcd_io.raft.v3.MemstorageInstance  # is_Storage_MemoryStorage: the Storage interface at the witness raft's Link (MemoryStorage.wp_*)
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # etcd_auth.client_Delete_on: over linked results
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn  # etcd_auth.client_Delete_on: over linked results
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe  # etcd_auth.ak_served_kv: over linked results
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Init  # etcd.cache.wp_initialize'_res: over linked results
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls  # etcd_compactwatch.client_Get_round: over linked results
@@ -43,7 +43,6 @@ Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main  # Main.wp_
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.lease.Main  # Main.wp_proof: over kv_lease_served, kv_lease_served_false
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.run  # run.wp_proof: over kv_lease_served_go
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Main  # Main.wp_proof: over kv_lease_served
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.run  # run.wp_proof: over kv_lease_served_go
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Main  # Main.wp_proof: over kv_lease_served
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch  # MainWatch.wp_proof: over isEtcdWatcher_of_km
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Main  # Main.wp_proof: over kv_served, client_Put_own, client_Get_own

@@ -33,12 +33,11 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.updateState.wp_proof : store.updateState.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c st s f uf
+  intro _ Obj _ E _ sp c st s f uf
   wp_start as ⟨#Hst, Hos, #Hup⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, -⟩
+  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   iunfold versionerOk at Hver

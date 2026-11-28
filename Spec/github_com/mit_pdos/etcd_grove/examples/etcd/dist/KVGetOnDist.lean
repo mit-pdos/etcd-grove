@@ -30,8 +30,8 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **`KV_GetOn_dist`: `(*kv).Get(ctx, key, opts...)` across machines, auth on** (`KV_Get_dist`'s
-statement, for an auth-on view, at the principal of `cfg`; a success also names the member `mid` that
+/-- **`KV_GetOn_dist`: `(*kv).Get(ctx, key, opts...)` across machines, auth on** (`kv.Get.spec`'s
+statement at a `kvClientAt`, for an auth-on view, at the principal of `cfg`; a success also names the member `mid` that
 served it and its check (`readCheckedD`): its verdict at its published auth index `m`, whose state is the
 history's after a requested prefix `L ⊒ L₀` (the barrier's floor, `authFloorD`: a linearizable read's
 check is no older than its read index, which is at least every commit before the call), and the

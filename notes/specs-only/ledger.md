@@ -8,6 +8,51 @@ plan stays the target the real proofs converge toward: no silent edits.
 One entry per defect, newest first, in this format:
 
 ```
+## 2026-11-27: the interval tree's specs -- the tree's shape hidden, `visit` under a query premise (nomode X-a2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/pkg/v3/adt/`: `intervalTree.insertFixup.spec`, `intervalTree.Insert_gen.spec`,
+  `intervalNode.visit.spec`, `intervalTree.Visit_gen.spec`, `intervalTree.Contains_gen.spec` (no SpecPlan
+  counterpart states the shape).
+- **Defect.** The specs gave the tree's entries only (`ownIvtK K t L`), and `visit`/`Visit`/`Contains` their result
+  only for a query that is not empty-and-finite (`b = "" ∨ b < e`), some sublist/boolean otherwise. etcd's auth
+  check calls `Contains` on any range Go accepts, inverted ones included, whose answer depends on the tree's
+  shape (`visit` prunes on the subtrees' `max`): with the shape hidden, the verdict cannot be a function of the
+  auth state (design X).
+- **Evidence.** `issues/etcd-auth-perm-order-go-version.md`; the D2 tests (`d2_shape_test.go`).
+- **Proposed change.** `ownIvtT K t T dq` (`Defs.lean`): the tree is exactly `T`; `ownIvtK` unchanged, equivalent to
+  `∃ T, ownIvtT K t T dq ∗ ⌜T.inorder = L⌝` (`ownIvtK_T`, `ownIvtT_K`; an empty tree is `.leaf`, `ownIvtK_nil`, so
+  `NewIntervalTree`'s spec stays). `insertFixup`: the tree is also `C.fixup tz` (`RbCtx.fixup`, the loop as a
+  function). `Insert_gen`: on `ownIvtT`, the result `T.insertRB z` (descent, red leaf, fixup), with its entries
+  `ivtInsert z T.inorder`. `visit`/`Visit_gen`: no query premise, no `IvSorted`; the visited entries are
+  `T.visitL q` when no visitor stopped, a non-empty prefix of it else; the visitor is told a prefix. `Contains_gen`:
+  `r = containsT q T` (the scan over `visitL`) for every query. The entry-level forms follow
+  (`VisitL.lean`: `Visit_gen_L`, `Insert_gen_L`; `containsT_eq`), so the string- and bytes-affine instance specs
+  (`Insert`, `Insert_bytes`, `Visit`, `Contains`, `Contains_bytes`, `Stab`, `Union`) and the clients (mvcc's watcher
+  groups, v3rpc, auth) are unchanged.
+- **Decision.** Accepted (coordinator, design X, 2026-11-27: "visit/Visit: visited entries = a prefix of T.visitL q,
+  with NO query premise; Contains: result = containsT q T; NewIntervalTree: T = leaf").
+
+## 2026-11-27: the auth model's roles -- a role's record matches the state only up to order (nomode X-a1)
+
+- **Spec.** `auth.grantPerms` (`Proof/.../auth/Steps.lean`, in `roleGrantPermissionR`: the step of
+  `authStore.RoleGrantPermission.spec`), `auth.roleOut`/`roleOutX` (`Buckets.lean`: the reads of
+  `Spec/.../storage/schema/{unsafeGetRole,authBackend__GetRole,authReadTx__UnsafeGetRole,authBatchTx__UnsafeGetRole}.lean`),
+  `auth.roleGetOut` (`Reads.lean`: `authStore.RoleGet.spec`), the batch contract's `UnsafePutRole` (`authBatchTxLk`,
+  `InvAuth.lean`), and the backend's `schema.rolesAt`/`authBucketsAre` (`InvAuthBackend.lean`).
+- **Defect.** `permSlice.Less` compared keys only, so a role's record kept same-key permissions in grant-history
+  order; the model appended (`grantPerms`) and every read promised the state's permissions up to order
+  (`rr.toRole.Perm ps`). The permission cache's interval tree is built from the record in record order, so
+  with the record's order unknown the cache's shape (and the verdict on an inverted range, which depends on it:
+  `issues/etcd-auth-perm-order-go-version.md`) is not a function of the state.
+- **Evidence.** The D2 tests (`d2_shape_test.go`): two grant orders of one permission set give two records and
+  two verdicts on `[d, c)`.
+- **Proposed change.** The fork sorts by (key, range end) (`goose-lean-permsort`, local, unpushed). `grantPerms`
+  inserts at the sorted place (`permInsert`, order `permLt`); `roleOut`/`roleOutX`/`rolesAt`/`authBucketsAre`/
+  `UnsafePutRole`'s premise say the record's model role **is** the state's (`rr.toRole = ps`) and is strictly sorted
+  (`ps.Pairwise permLt`: distinct ranges), as the users' records already are (`roles.Pairwise GoStringLt`);
+  `roleGetOut` gives the state's permissions in order. Strengthening only; no axiom or top-level premise moves.
+- **Decision.** Accepted (coordinator, design X, 2026-11-27: "roleOut uses equality instead of permutation").
+
 ## <date>: <spec> -- <one-line defect>
 
 - **Spec.** The file and the declaration (`SpecPlan/Spec/<pkg>/<fn>.lean`, `<fn>.spec`; or a law,
@@ -24,6 +69,129 @@ One entry per defect, newest first, in this format:
 
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
+
+## 2026-11-28: `walFiles` / `walRecs` -- admit histories with a saved commit above the last index, where Go's `ReadAll` differs from the model (C1)
+
+- **Spec.** `walRecs` and `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), through `srvFiles`
+  the pre of `bootstrapRestartContract` (`etcdserver/InvRestart.lean`), the statement of the interim axiom
+  `bootstrap.wp_proofRestart` (`Spec/.../etcdserver/bootstrapRestart.lean`) on branch `etcd-safe-rule41rm/2026-11-27`.
+- **Defect.** `walRecs`' `Save` law (`walRecs_saveAU`) takes any hard state, so `walRecs`, and from it `walFiles`
+  (`walRecs_closeAU`), admit WAL histories where some prefix has its commit above its last index (`walCommitLe`
+  false). On those the eager fold and `walRead` agree and `walReadFacts σ` holds, yet Go's restart read
+  (`ValidSnapshotEntries`, the newest record, `Open`, `ReadAll`) returns other entries than `σ`, so `bootOkR`'s
+  `σ` (`wal.restartOk`'s `walRecs h σ`) is false of Go there. Not reachable: in the verified programs the only
+  writer is raft's node loop through `isWalStorage`'s `Save`/`SaveSnap` laws, and raft keeps
+  `committed ≤ lastIndex` in every `Ready`; `walFiles`/`walRecs` are `@[no_expose]`, and Go's `bootstrap` is
+  unexported. The axiom's soundness rests on that invariant of the producer, which no statement records.
+- **Evidence.** The fresh review of `bootstrap.wp_proofRestart` after walfiles-fold
+  (`~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.md`, verdict sound with condition C1). Its
+  differential test `TestBrrDifferential` (copy: `~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.walread_diff_test.go.txt`,
+  run in a scratch copy of the fork's `server/storage/wal`): of 100000 random histories the Lean write laws admit,
+  29036 kept (eager fold = `walRead`, `walReadFacts`), 4 mismatches, every one with `walCommitLe` false; with only
+  `walCommitLe` histories, 7350 kept, 0 mismatches. Minimal counterexample (`TestBrrMinimal`):
+  1. `Save(hs{T1,C1}, ents 1..6)`;
+  2. `SaveSnapshot(3)` (above commit 1: the model clears the entries);
+  3. `Save(hs{T1,C4}, [])` (commit 4 above the last index 3);
+  4. `SaveSnapshot(4)`.
+  The model and `walRead` give base 4, no entries, commit 4; Go reads `err = nil`, commit 4, entries `[5 6]` (it
+  clears entries only at the start record 4, not at the earlier record 3). Not an etcd history: raft never
+  persists step 3. It is our spec gap, not a Go bug (no `issues/` or `nonissues/` file).
+- **Proposed change.** `walRecs` carries `walCommitLe` (or `WalEnc.walReadsBack`, the premise of the proved
+  real-WAL read `readAllFold_zero_eq`), and `walFiles` with it through `walRecs_closeAU`; WAL `Save`'s spec
+  (`walRecs_saveAU`) requires the hard state empty or its commit ≤ the last index after the save, which the raft
+  driver supplies (raft's `Ready` invariant). The constraint goes on the producer, not into a new law.
+- **Decision.** Land rule41rm with C1 recorded (`bootstrap.wp_proofRestart`'s docstring, `notes/audit.md`;
+  approved by the etcd_safe lead under Upamanyu's delegation, 2026-11-28); the follow-up is owned on the walfiles line.
+
+## 2026-11-28: etcd's table `etcdSvc`, the KV `_dist` contracts and `isKv`'s dup clause -- a remote member cannot supply `noRefusalAt`; the table is opaque (stage B′)
+
+- **Spec.** `etcd_dist.etcdSvc` (`Proof/.../examples/etcd/dist/S2Interim.lean`, trusted), `Serve_dist.spec`
+  (`Spec/.../dist/ServeDist.lean`, meaning only), the axioms `KV_{Put,Get,Delete,Compact}_dist`,
+  `Txn_Commit_dist` and the theorems `Client_{Put,Get}_dist` (`Spec/.../dist/*.lean`), the client's `isKv`
+  (`Proof/go_etcd_io/etcd/client/v3/KVService.lean`, the vocabulary of `kv.Put.spec`, ...) and its write path
+  (`kvReqPre`, `txnReqPre`, `reqPre`, `modePre`: `InvKVConn.lean`, `InvTxnBuilder.lean`), and the internal specs
+  `checkCompactRev.spec`, `watchShare` (`RunWatch.spec`, `RunCache.spec`), `client_{Get,List}_dist.law`.
+- **Defect.** Across machines the client's KV calls were five interim axioms, because `etcdSvc` had no law and
+  `isKv`'s at-most-once clause asked for `noRefusalAt` (opaque; only the in-process `etcd_noRefusal` gives it).
+- **Evidence.** `notes/etcdsvc-plan` (coordinator, stage B′), `notes/grpc-nr-e.md` (E: `GrpcEntry.nr`,
+  `isGrpcRpcsNR`); the users of the five axioms (`notes/etcdsvc-b.md`).
+- **Proposed change.** `etcdSvc` defined: with `Γ.auth = false`, the KV methods at stage A's view specs, flagged
+  `nr`; every other entry the new opaque `etcdSvcRest` (no law). `isKv`'s clause becomes `kvDupNR dup addrs`
+  (`noRefusalAt` at every endpoint, or flagged `Put`/`DeleteRange`/`Txn` entries at every endpoint), carried by
+  the write path to the interceptor's proof. `isKv_of_kvClientAt` proves `kvClientAt ⊢ isKv api Γ.kv false` for
+  an auth-off view; the five axioms and two theorems are deleted, their users re-proved over the client specs.
+  `checkCompactRev.spec`, `watchShare` and the Get/List laws gain `Γ.auth = false` (their users had `KV_Get_dist`/
+  `KV_Compact_dist`, which took no auth premise; every start's view has auth off). `Serve_dist`'s statement is
+  unchanged; it now claims an auth-off member's KV handlers never refuse (`grpcRunNRMd`): the auth store stays
+  disabled, the member is a voter (`notes/etcdsvc-b.md`). No top-level statement changes. Net −5 axioms.
+- **Decision.** Approved design B′ (coordinator, 2026-11-27; the guard `Γ.auth = false` approved as interim,
+  removed at N4). Trusted text drafted on `etcdsvc-b/2026-11-27`; landing waits for Upamanyu's review.
+## 2026-11-28: `walFiles` (hence `srvFiles` and `bootstrapRestartContract`) -- the files' records are only what a restart reads, not the history's eager fold
+
+- **Spec.** `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), the WAL part of `srvFiles`
+  (`etcdserver/InvRestart.lean`), the pre of the trusted premise `bootstrapRestartContract` of
+  `etcd_robust_single_process` (`etcd_restartN.premises`, `etcd_restart1.premises`).
+- **Defect.** Vacuous premise (false statement). The pre fixes `σ` by `walRead (walSrvHist d.H) = some σ` (the
+  snapshot records above the saved commit dropped); the post (`bootOkR` → `wal.restartOk` → `walOpened` →
+  `walRecs h σ`) asks for the eager fold `walFoldChkFrom walFresh (walSrvHist d.H) = some σ`. They differ on a
+  WAL ending with a synced snapshot record above the commit: `Save(commit 5, entries 1..5)`, `SaveSnapshot(3)`,
+  `SaveSnapshot(10)`, `Close`; `bootstrap` returns `nil` on it and no post state exists, so the premise is
+  false and the theorem vacuous.
+- **Evidence.** `notes/axiom-review/bootstrap-restart-eagerfold.md`; the review `/shared/tmp/efr/report.md`
+  (2026-11-28); Go: `examples/axiomcx/restarteagerfold` (the WAL read, `err = nil`, commit 5, entries `[4 5]`)
+  and `examples/axiomcx/restarteagerfoldboot` (a real member's files with such a record, restarted by
+  `embed.StartEtcd`: ready).
+- **Proposed change.** `walFiles`' pure fact gains the conjunct `walFoldChkFrom walFresh (walSrvHist d.H) =
+  some σ` (only that: not DELTA-8's `σ.b ≤ σ.commit` variant). The producer `walRecs_closeAU` already has it
+  (its `hf.1`); no consumer unfolds `walFiles`. etcd's graceful runs never write the excluded files (the note's
+  (d)). No axiom or `sorry` moves; the statement of `etcd_robust_single_process` changes only through
+  `walFiles`.
+- **Decision.** Accepted (coordinator-E, #50, 2026-11-28 01:31Z, under Upamanyu's delegation); applied on
+  branch `walfiles-fold/2026-11-28`.
+
+## 2026-11-27: grpc's service table -- no way to say "this method never refuses" except the opaque `noRefusalAt`
+
+- **Spec.** `GrpcEntry` (`Proof/google_golang_org/grpc/InvGrpcWire.lean`), `grpcServesEnt` (`InvGrpcRun.lean`),
+  `grpcInvokerOk` (`InvGrpc.lean`; `ClientConn.Invoke`'s axiom), `grpcDecOk` (`InvGrpcBase.lean`; `Server.Serve`'s).
+- **Defect.** Too weak for a user: the only route from a server to the client's "not a refusal" is the per-address
+  opaque `noRefusalAt` (with `etcd_noRefusal`, `grpcSrvAtLis`), so a table that is a definition (`etcdSvc`, stage B′)
+  cannot carry the fact, and its five KV `_dist` axioms stay.
+- **Evidence.** `notes/grpc-nr-e.md`; the packet `etcdsvc-grpc-nr-packet` (option E).
+- **Proposed change.** `GrpcEntry.nr : Bool`; `grpcSvcNRAt`/`isGrpcRpcNR`/`isGrpcRpcsNR`; `grpcServesEnt`'s unary clause
+  gives `grpcRunNRMd` (the run contract plus "nil or not a refusal") for a flagged entry; `grpcInvokerOk`'s error arm
+  gains `isGrpcRpcsNR addrs method -∗ ⌜d ∉ refusalDescs⌝`; `grpcDecOk`'s error arm gains `notDescIn refusalDescs`.
+  Every existing entry unflagged. No top-level statement changes.
+- **Decision.** Accepted (the user, option E, 2026-11-27); trusted text, lands after the coordinator's check.
+
+## 2026-11-25: the antithesis harness's `CfgOk` -- `0 ≤ MaxDelay` goes with the delay (#33 S4)
+
+- **Spec.** `Proof/.../raft/antithesis/HarnessDefs.lean` (`CfgOk`, `defaultCfg`, `clusterRO`), the premise
+  of `Spec/.../raft/antithesis/RunCluster.lean`; `Cluster__isolate.lean`, `Cluster__isolatedNow.lean`
+  (removed); the headers of `Cluster__send.lean`, `DefaultConfig.lean`, `RunCluster.lean`.
+- **Defect.** None in the spec: the Go program lost the knobs it was about (the robustness review's items
+  4, 5, 7, 8: no per-message delay, drops or isolator; an unbounded proposer).
+- **Evidence.** `send` no longer calls `below(uint64(MaxDelay) + 1)`; `Config` has no `MaxDelay`,
+  `Cluster` no `isoMu`/`isolated`.
+- **Proposed change.** `CfgOk cfg := cfg.Nodes' = W64 3 ∧ 0 < sint.Z cfg.Tick'`; `clusterRO` without the
+  mutex; `defaultCfg` the three remaining fields. `RunCluster.spec`, `Main.spec`, `Cluster.send.spec`
+  unchanged but for their headers. No SpecPlan counterpart.
+- **Decision.** Applied (the S4 lead's brief: spec changes that only drop what the removed knobs needed).
+## 2026-11-27: `bootstrap.specDist` and the dist member specs -- the 64-member cap is below the single-process theorems' 1000
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapDist.lean` (`bootstrap.specDist`, the interim axiom
+  `bootstrap.wp_proof_dist`'s statement); `Spec/.../examples/etcd/dist/server/ConfigOf.lean` (`ConfigOf.spec`),
+  `Spec/.../examples/etcd/dist/client/NodeMain.lean` (`NodeMain.spec`); the deployment bound `typed.maxMembers`
+  (now in `Proof/.../examples/etcd/dist/MaxMembers.lean`) and Go's `deployment.MaxMembers`. No SpecPlan counterpart.
+- **Defect.** Too weak for rule 41 (the multi-machine `etcd_safe_nocrash` subsumes the single-process theorems, which
+  reach 1000 members): the axiom's premise `GMap.size U.initMap ≤ 64` capped every deployment at 64 members.
+- **Evidence.** `bootstrap.spec` (#34) allows `2 ^ 58` entries (`bootGo.initMapOk`), and
+  `etcd_dist.bootstrap.specDist_of_spec` derives `specDist` without the cap; every other bound is arithmetic at 1000
+  (`initMapOk`'s joined-URL total 1000 * 300 < 2 ^ 61, `peersMax = 2 ^ 20`, `clusterAllocN`'s receipts, `ConfigOf`'s
+  `append`); Go: `TestWellFormedMaxMembers` (`examples/etcd/dist/dist_test.go`).
+- **Proposed change.** The premise becomes `GMap.size U.initMap ≤ etcd_dist.typed.maxMembers`, `typed.maxMembers = 1000`
+  (= `deployment.MaxMembers`); `ConfigOf.spec`'s and `NodeMain.spec`'s literal 64 become `typed.maxMembers`.
+- **Decision.** Accepted (Upamanyu, 2026-11-27, rule 41 item 2, via the etcd_safe lead); applied on
+  `etcd-safe-rule41/2026-11-27`; the axiom's delta review survives (`notes/axiom-review/bootstrap-dist.md`, 2026-11-27).
 
 ## 2026-11-26: `EtcdServer.leaseTimeToLive`'s contract owns no reply keys (F7 fork, SPECULATIVE)
 
@@ -6443,6 +6611,1510 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+
+## 2026-11-24: `RawNode.Step.form`'s scope premise, a sender among the voters (#33 S4, P-raft-3)
+
+- **Spec.** `RawNode.Step.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the strengthened triple's
+  scope premise `S → st.msg.Type' ∈ antStepTypes ∧ (st.msg.Type' = MsgHeartbeatResp → st.ctx = [])`, under which
+  the post is the exact `RecvEnd ps m ps'`.
+- **Defect.** False: a response (`MsgHeartbeatResp` with no context, a rejecting `MsgAppResp`/`MsgVoteResp`) from
+  a sender not in the progress map (`From = 99`) at a term `t' > ps.term`, `t' ≤ rs.tc`: `NetMsgOk` and
+  `isMessage` hold, but raft's `Step` guard `IsResponseMsg(m.Type) && !IsLocalMsgTarget(m.From) &&
+  r.trk.Progress[m.From] == nil` returns `errStepPeer` without stepping, so `ps' = ps`, while `RecvEnd` at
+  `m.term > ps.term` requires the step-down.
+- **Evidence.** Found proving `RawNode.Step.wp_absProof` (helper of the S4 lead): raft v3.7 `rawnode.go`,
+  `RawNode.Step`.
+- **Proposed change.** Add `st.msg.From' ∈ γ.reCfg` to the scope premise: in the scope the progress map's domain
+  is the configuration's ids, which contain the voters `γ.reCfg`, so the early return is refuted. The harness
+  supplies it from `NetFacts` (`m.src = nodeId i`) and `reCfg = voters3`. Not a raft bug: etcd never steps a
+  response from a non-member (its transport drops them), and the API form's `S := True` callers are the
+  harness's only.
+- **Decision.** Applied (branch `antithesis-s4`, the lead).
+
+## 2026-11-24: `RawNode.Ready.form`'s post, a new hard state differs from the last one (#33 S4, P-raft-3)
+
+- **Spec.** `RawNode.Ready.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the strengthened triple's
+  `%Hout`; and `RawNode.readyWithoutAccept.spec` (`Spec/go_etcd_io/raft/v3/RawNode__readyWithoutAccept.lean`).
+- **Defect.** Too weak for the Antithesis harness's drain: the `Ready`'s hard state `h` is related to the node's
+  only through `phsNext rs.phs h`, so a client cannot tell a non-empty `h` that repeats the last hard state
+  handed out from a new one. The TLA+ binding reports a hard-state change only when there is one.
+- **Evidence.** raft v3.7 `rawnode.go`, `readyWithoutAccept`: `if hardSt := r.hardState();
+  !isHardStateEqual(hardSt, rn.prevHardSt) { rd.HardState = hardSt }` (`prevHardSt`'s record is `rs.phs`,
+  `prevHS`).
+- **Proposed change.** Add, under the scope guard of `%Hout`, `¬ (h.Term' = 0 ∧ h.Vote' = 0 ∧ h.Commit' = 0) →
+  h ≠ rs.phs`; `readyWithoutAccept.spec` gains it unguarded (`%Hhnew`), from its `isHardStateEqual` branch.
+  A strengthening: the old specs (`RawNode.Ready.spec`, through `spec_of_abs`) are unchanged.
+- **Decision.** Applied (branch `antithesis-s4`, the lead's decision; helper F).
+
+## 2026-11-24: `TickEnd`'s heartbeats and `stepLeader`'s `MsgBeat` clause leave the heartbeat's context free (#33 S4, msgShape)
+
+- **Spec.** `LeaderNonpropResultC`'s `MsgBeat` clause (`Spec/go_etcd_io/raft/v3/stepLeader.lean`, in
+  `stepLeader.spec`), and the protocol end relation `TickEnd`'s heartbeat arm (`Proof/go_etcd_io/raft/v3/Protocol/
+  InputEnd.lean`), lifted by `tickEnd_of_stepEnd_beat` (`InputEndLift.lean`).
+- **Defect.** Too weak for the Antithesis harness: `stepLeader` says only `HbCtxOk s.rd.ro m'.ctx` of a
+  heartbeat's context (nil or some position), `TickEnd` nothing, so `msgShape.stmt`'s "a heartbeat (and its
+  response) carries no context" (`Sim/MsgShapeStmt.lean`, what `RawNode.Step`'s `NetFacts` needs at the
+  receiver) is not derivable: a `TickEnd` with a heartbeat of context `[1]` satisfies every premise.
+- **Evidence.** raft v3.7 `raft.go` `bcastHeartbeat`: `r.bcastHeartbeatWithCtx(r.readOnly.heartbeatCtx())`,
+  nil with no read request pending (the fork's `heartbeatCtx`; `raft.bcastHeartbeat.spec` already gives
+  `m.ctx = hbCtx s.rd.ro`, which `stepLeader/Rest.lean` weakened to `HbCtxOk`).
+- **Proposed change.** (1) `stepLeader`'s clause: `m'.ctx = hbCtx s.rd.ro` in place of `HbCtxOk s.rd.ro m'.ctx`
+  (stronger; `hbCtx_ok` recovers the old). (2) `TickEnd`'s heartbeat arm gains `x.ctx = []`; its lifting
+  takes `s.role = .leader → s.rd.ro.pending = []`, which `RnScope` gains (appended last) and every absProof
+  keeps (a win resets the read-only object, `pbecomeLeader`'s `rdNL`; no input of the harness's scope adds a
+  read request). (3) `msgShape.stmt`'s cause premise gains `m.ty = .heartbeat → m.ctx = []` (`NetFacts`).
+- **Decision.** Accepted (the lead, 2026-11-24). (1) and (3) applied by helper F; (2) to land with the
+  `RnScope` scope change (the raft helper's successor), then `msgShape := msgShape_of tickHbCtx`.
+  (2) applied with the scope change below (`tickEnd_of_stepEnd_beat` takes `(toPState s).rd.ro.pending = []`;
+  `roEmpty_iff`, `tickEnd_ro`, `recvEnd_ro` keep it), and `Sim/MsgShape.lean` proves `tickHbCtx` and `msgShape`.
+
+## 2026-11-24: `NewRawNode.emptyStartAbsSpec`'s precondition is unsatisfiable: the scope required the static mode (#33 S4)
+
+- **Spec.** `RnScope` and `rnScopeAt` (`Proof/go_etcd_io/raft/v3/RawNodeAt.lean`), `NewRawNode.emptyStartForm`
+  (`RawNodeAbsSpecs.lean`), `NewRawNode.restartAtSpec`'s scope premise (`RawNodeStart.lean`), `rawNode_scope.law`
+  (`RawNodeApi.lean`).
+- **Defect.** Vacuous: `RnScope`'s first conjunct was `rs.mode = .static` and `emptyStartForm` assumed
+  `γ.rnMode = .static`, but `isCluster` (its pre) forces the cluster's nodes into the dynamic mode of the
+  decoder that decides nothing (`UniNames`, `ModeDec`: `γ.mode = (RNMode.dyn noDec …).all`, `InvApi.lean`).
+  No harness could meet the premise; every `absSpec` in the scope was usable only vacuously.
+- **Evidence.** `InvApi.lean` `ModeDec`/`UniNames`; `RawNodeStart.lean` (the restart's `Hin` proof
+  already refuted the static mode from `Hmd`).
+- **Proposed change.** The scope admits the dynamic mode: `RnScope`'s first conjunct becomes
+  `rs.mode.isDyn = true → rs.cfg.cfg.outgoing = ∅`; `rnScopeAt γ id` owns `RnCfgIn γ id rs` (the node among
+  `γ.reCfg`, in the dynamic mode `rs.cfg.cfg.incoming = γ.reCfg`, and `γ.reTrace = none`); the proofs read the
+  configuration by mode (`ownStepGhost_cfgScope`: static `CfgStatic`, dynamic `ghostRestM`'s `g.cfg.cfg = c`)
+  into `CfgScope` (`cfgScope_of`). `emptyStartForm` drops `γ.rnMode = .static` for
+  `γ.raftNames.reCfg = GMap.listToSet vs ∧ cv.ID' ∈ vs`; `restartAtSpec`'s premise for
+  `m.voters = reCfg ∧ m.votersOutgoing = ∅ ∧ cv.ID' ∈ reCfg`. `rawNode_scope.law` states
+  `id ∈ γ.reCfg ∧ γ.reTrace = none ∧ (isDyn → incoming = reCfg ∧ outgoing = ∅)` (was `rs.mode = .static`).
+  `RnScope` also gains, last, `s.role = .leader → s.rd.ro.pending = []` (entry above).
+- **Decision.** Applied (the lead's option (a), branch `antithesis-s4`; raft helper).
+
+## 2026-11-24: `RawNode.Advance.form`'s in-progress boundary fact is false in general (#33 S4)
+
+- **Spec.** `RawNode.Advance.form`'s exact effect (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the
+  conjunct `ip' = min ip (lcpLen ps.log ps'.log)`.
+- **Defect.** False when the boundary is below the log's end: a `Ready` hands out `(2,b)`; a `MsgApp`
+  truncates to `(2,c)` (`ip = 1`); a later leader's `MsgApp` writes `(2,b)` back (`ip` stays `1`); the
+  `Advance` that steps the storage acknowledgement of `(2,b)` then finds it at the log (`ip' = 2`, not
+  `min 1 2 = 1`).
+- **Evidence.** The trace above (round 3 of the antithesis S4 plan); `unstable.stableTo` and
+  `acceptInProgress` raise `offsetInProgress` to the acknowledged index when the entry still matches.
+- **Proposed change.** The fact at a boundary at the log's end only:
+  `ip = ps.log.length → ip' = min ip (lcpLen ps.log ps'.log)`. The harness meets it: after a `Ready`,
+  `ip = |log|` (`Ready`'s `ip' = ps.log.length`), so an acknowledgement's index is at most `ip` and the
+  `max` is a no-op (a self-vote's `becomeLeader` append leaves `inprogress` alone).
+- **Decision.** Applied (the lead's round-3 decision; raft helper G). `drainAdvance` passes its `hip`.
+
+## 2026-11-24: the antithesis harness's thread tokens: `RunCluster`, `Main`, `Cluster.run` (#33 S4)
+
+- **Spec.** `Spec/.../raft/antithesis/RunCluster.lean`, `Main.lean` (precondition `isPkgInit` only)
+  and `Cluster__run.lean` (post `True`).
+- **Defect.** Unprovable: `RunCluster`'s boot drains call `Cluster.drain`, which takes a
+  `threadTok`, and nothing in `RunCluster`'s precondition gives one; a goroutine forked with
+  `wp_fork_tok_body` must end holding its token, and `Cluster.run`'s post gave none back.
+- **Evidence.** `RunCluster`'s proof (the boot loop's `wp_drain`; the `go c.run(n)` loop).
+- **Proposed change.** `RunCluster` and `Main` take `threadTok` (as other examples' `Main` specs:
+  the adequacy gives the main thread its token); `RunCluster` returns it (`runOver c ∗ threadTok`);
+  `Cluster.run`'s post `{{ RET #(); threadTok }}` (its proof holds the token throughout).
+- **Decision.** Applied (the lead's decision; RunCluster helper F, round 3).
+
+## 2026-11-24: `RawNode.Advance.form`'s exact effect needs no queued pre-vote response (#33 S4)
+
+- **Spec.** `RawNode.Advance.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the conjunct
+  `AdvanceEnd (rnCfg γ) id ps qs ps'` in the scope.
+- **Defect.** Unprovable from `ownRawNodeAt`: a queued self-addressed `MsgPreVoteResp` of term
+  `s.term + 1` (a pre-candidate's own vote, `campaign(campaignPreElection)`) has no `RecvEnd`. Go's
+  `Step` keeps the term for a granted pre-vote response of a higher term (`m.Type == MsgPreVoteResp &&
+  !m.Reject`), while `RecvEnd`'s preamble (`PreEnd`) raises it to the message's term. Nothing in
+  `ownRawNodeAt` (`RnScope`: pre-vote off now) excludes such a message from the queue.
+- **Evidence.** `RawNode__AdvanceAbs.lean`'s loop (`advStep_pure`): the self response's `RecvEnd` is
+  `recvEnd_of_stepEnd_net`, for the harness's types only.
+- **Proposed change.** A premise in the scope: `(S → ∀ q ∈ qs, q.ty ≠ .preVoteResp)`. The harness meets it:
+  after a `Ready` the queue is the outbox's self-addressed messages, a self-acknowledgement or a
+  self-vote (`SelfOut`, `qs_noPreVote`); `DrainIter.Ok` carries it.
+- **Decision.** Applied (the lead's decision; Advance helper F).
+
+## 2026-11-24: `RawNode.Ready`'s messages may be untyped (#33 S4)
+
+- **Spec.** `RawNode.Ready.form`'s `%Hout` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`) and
+  `RawNode.readyWithoutAccept.spec`'s post: nothing said every message handed out reads as a protocol
+  message (`absMsgOf`), which `Cluster.drain` needs (its interim `readyMsgsOk.law`, `habs`).
+- **Defect.** Not provable from the invariant: `XfOk` allowed untyped queued messages
+  (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`) at any untraced node, and nothing in the phys
+  state told a node that has never stepped a transfer request apart.
+- **Evidence.** The drain proof's `habs` (Cluster__drain.lean), and raft: the only untyped messages
+  `send` queues are `sendTimeoutNow`'s and `stepFollower`'s forward, both under a transfer request's
+  step or a transferee (`leadTransferee`, stored by `stepLeader`'s transfer arm).
+- **Proposed change.** A ghost bit `NGhost.xs` (a transfer request was stepped), set by `raft.Step`'s
+  transfer arm at a follower or a leader before the step (`ownRaftPhysC_set_xs`, `ownStepGhost_set_xs`,
+  `stepGates_xw` generalized), never cleared; `XfOk`'s last clause `xs = false → lt = 0 ∧ every queued
+  message typed`; `SendOk`'s transfer clause carries `xs = true`; `sendTimeoutNow`, `stepLeader` (transfer)
+  and `stepFollower` (transfer at a node with a leader) take it; `raft.Step`'s `%Hxwframe` frames `xs`
+  with `xw`; `RnScope` gains `xs = false`; `readyWithoutAccept` (in the scope) and `Ready`'s `%Hout` (under
+  `S`) give `∀ q ∈ ms, (absMsgOf q.st).isSome`; `readyMsgsOk.law` keeps only the destinations (`hvot`). The flag-free alternative (state-only posts with `lt = 0`) was evaluated and is blocked: the physical queue is not in `NState` (`s.outbox` drops untyped messages), and `lt = 0` holds with a forwarded transfer or a surviving `MsgTimeoutNow` queued.
+- **Decision.** Applied (the lead's approval: `SendOk`'s clause, `Ready`'s `%Hout`; raft helper H2).
+
+## 2026-11-25: a `Ready`'s messages go to the nodes, proved; `readyMsgsOk.law` retired (#33 S4)
+
+- **Spec.** The antithesis Link's last hypothesis, `AntHarness.readyMsgsOk.law` (Cluster__drain.lean:
+  every message a `Ready` hands out is to one of the three nodes), and the statements its proof reads:
+  raft's `ReplSends` and the heartbeat posts (`Defs.lean`, `raft__bcastHeartbeat(WithCtx).lean`,
+  `stepLeader.lean`'s `LeaderNonpropResultC`), `Protocol/InputEnd.lean`'s `AppSendOk`/`WinEnd`/
+  `SendsEnd`/`ProposeEnd`/`TickEnd`, `RawNode.Propose.form` (`RawNodeAbsSpecs.lean`), `ownRawNodeAt`
+  (`RawNodeAt.lean`), `NewRawNode.restartAtSpec` (`RawNodeStart.lean`), `AntSim.InputStep`,
+  `NodeOk`'s `LeadOk`/`LeadHint` (`Sim/Rel.lean`, `Sim/Quiet.lean`) and `msgShape.stmt`
+  (`Sim/MsgShapeStmt.lean`).
+- **Defect.** The destinations were assumed: no raft statement said where a leader's appends and
+  heartbeats go (`ReplSends` said it of a snapshot only, the heartbeat posts and `AppSendOk`/`TickEnd`
+  nothing), and the Sim said nothing of the leader hint a follower forwards a proposal to.
+- **Evidence.** `maybeSendAppend` sends only to a peer of the progress map (`to ∈ domSet s.progress`, its
+  gate premise); `bcastHeartbeat` visits the progress map; the progress map's ids are the
+  configuration's (`ownTrackerC`, `CfgM.ids`); in the scope the configuration has no learners and its
+  voters are the names' (`CfgScope`), so `c.ids = (rnCfg γ).ids` = the three nodes (`cfgM3`). Responses
+  go to the sender of the handled message (a node, `NetOk`); a campaign's requests to the voters; a
+  forwarded proposal to the leader hint, which is `0` or a node (`LeadIn`, kept by every input).
+- **Change.**
+  1. `ReplSends`' third conjunct `m.ty = .snap → m.dst ∈ domSet s.progress` becomes
+     `m.dst ∈ domSet s.progress` (every message); `raft.bcastHeartbeat(WithCtx).spec` and
+     `LeaderNonpropResultC`'s `MsgBeat` arm gain `m.dst ∈ domSet s.progress` as the per-message
+     conjunction's last conjunct (raft sub-helper, fca4fd042c).
+  2. `AppSendOk c id s m := AppOk id s m ∧ AppCommitEq s m ∧ m.dst ∈ c.ids` (was without `c` and the
+     third conjunct); `WinEnd`, `SendsEnd`, `ProposeEnd` take the configuration `c`; `TickEnd`'s
+     heartbeat arm gains `x.dst ∈ c.ids` (last conjunct). `RawNode.Propose.form`'s `%Hend` is
+     `ProposeEnd (rnCfg γ) id …`; `AntSim.InputStep`'s proposal `ProposeEnd cfgM3 id …`. The lifting
+     scope `LiftScope`/`FnScope` (`InputEndLift.lean`, proof-internal) gains `c` and
+     `domSet progress = c.ids`.
+  3. The scope's configuration facts `RnCfgIn` (`RawNodeAt.lean`, read by `rnScopeAt`, so by
+     `ownRawNodeAt` and `RawNode.acceptReady.spec`'s precondition at `sc = true`) gain
+     `rs.mode.isDyn = true ∧ rs.cfg.cfg.learners = ∅`: the dynamic mode and no learners, so the
+     configuration's ids are the voters (`RnCfgIn.learners`, `CfgScope.ids`). (The lead first approved
+     `ownRawNodeAt`'s `"%Hlrn" ∷ ⌜sc = true → cf.learners = ∅⌝`; `acceptReady`'s precondition is
+     `ownRawNodeReadyS` and `rnScopeAt`, with no `ownRawNodeAt` to read it from, so it sits in
+     `rnScopeAt`, on `rs.cfg`, which every API of the scope keeps.) No API of the scope (`sc = true`)
+     changes the configuration (`ApplyConfChange` is not in the scoped API: only `node__run_gated`
+     uses it, through `ownRawNode`); the scope's start, `NewRawNode.restartAtSpec`'s `sc = true`
+     premise, gains `m.learners = ∅` (met by `emptyStartAbsSpec`'s `Membership.simple`; its only
+     callers are `RawNodeStart.lean`'s two, `restartSpec` at `sc = false` and
+     `wp_proofEmptyStartAbs` at `sc = true`; `RawNodeStart` has no RaftTla/RaftNoAx/KvNet copy); its
+     mode is dynamic already (`isCluster`). Static mode leaves the scope: a grep of `rnScopeAt`,
+     `RnScope`, `RnCfgIn` over every tree (main, RaftTla, RaftNoAx, KvNet, RaftWitness, the examples)
+     finds one place that establishes the scope from scratch, `RawNodeStart.lean`'s `rnScopeAt_start`
+     (main tree only, at `restartAtSpec`'s dynamic `rs0`); every other site reads it or carries it
+     (`rnScopeAt_keep(If)`, mode and `cfg` kept); no example outside raft names it. `CfgM.ids` moves from `InvTrackerC.lean` to
+     `Protocol/StepC.lean` (next to `CfgM.voters`), for `InputEnd.lean`.
+  4. `NodeOk`'s `LeadOk` and `LeadHint` gain `LeadIn` (the leader hint is `0` or a node).
+  5. `msgShape.stmt`'s premise on the `Ready` is its messages clause only (`rd.msgs` the outbox's
+     messages to other nodes, was all of `ReadyOutP`, whose last conjunct is the destinations); its
+     conclusion gains `ReadyMsgsToVoters rd`. `drainReady_pure` drops `hvot`; `Cluster.drain.wp_proof`
+     drops `(h_rdm : readyMsgsOk.law)`, which is deleted, with the `?(h_readyMsgsOk …)` line of
+     etc/link-lean-first-antithesis.txt; Link.lean's `AntHarness.wp_Main` has no hypothesis.
+- **Decision.** Applied (the lead's approvals of 1-3, option (a); 4-5 authorized by the destinations
+  brief). No new axiom or top-level premise; a hypothesis of the top-level result retired.
+
+## 2026-11-25: the RawNode scope over a mode; the end relations' node constant and `RState` forms (#33 parity B1)
+
+- **Spec.** `RawNodeAt.lean`'s `RnScope`, `RnCfgIn`, `rnScopeAt`, `ownRawNodeAt` (and the two laws);
+  `RawNodeAbsSpecs.lean`'s `absSpec`s and forms' `%Hend`; `RawNodeApi.lean`'s `rawNode`;
+  `RawNodeStart.lean`'s `restartAtSpec`; `Spec/go_etcd_io/raft/v3/RawNode__{acceptReady,readyWithoutAccept}.lean`;
+  `Protocol/InputEnd.lean`'s `PreEnd`/`HandleEnd`/`RecvEnd`/`TickEnd`/`AdvanceEnd`.
+- **Defect.** The scope was one flag (`sc : Bool`) and the end relations had no node constant, so
+  neither can say "pre-vote on" or "reads on" (notes/antithesis-parity-design.md §1, §2, R2).
+- **Change** (design §2, §1.2, §1.3; e2fb75df8e, 07832a3f40).
+  1. `RnScope md`/`RnCfgIn md` (each of today's conjuncts guarded by its `RnMode` flag),
+     `rnScopeAt γ id (sc : Option RnMode)`, `ownRawNodeAt … (sc : Option RnMode)`: `none` is the old
+     `false`, `some {}` the old `true` (`RnScope_empty`, `RnCfgIn_empty`: `{}` is today's flat
+     conjunction, kept as `RnScopeBasic`/`RnCfgInBasic` for the proofs that read it by position).
+     Interim (until B1's second phase proves the other modes): the statements of the first harness's
+     scope quantify over `b : Bool` at `basicScope b` (`some {}`/`none`).
+  2. `PreEnd`, `HandleEnd`, `RecvEnd`, `TickEnd`, `AdvanceEnd` take `k : NodeK` first; every arm word
+     for word (the new arms are B1's second phase); the RawNode specs at `k = {}`. `TickEnd`'s
+     heartbeat arm says `x.ctx = hbCtx s.rd.ro` (was `[]`; equal when the read-only queue is empty,
+     the basic scope). New definitions (no proof uses them yet): `CampaignEnd`, `PreCampaignEnd`,
+     `ctxTransfer`, and the `RState` forms `KeepCfg`, `PciNext`, `FpNext`, `RecvEndR`, `TickEndR`,
+     `AckEndR` (arms 1-3; `AutoLeaveEnd` with B3), `AdvanceEndR`, `UnappliedConf`, `CampaignEndR`,
+     `TransferEndR`, `TimeoutNowEndR` (the preamble written out), `SnapStatusEndR` (not in the design's
+     text: `r' = r`, or a leader's probe), `ApplyConfEndR`, `StoreAckEndR`.
+- **Decision.** Applied (the lead's brief, B1 stages 1-2; stage 1 reviewed). No new axiom or
+  top-level premise; no theorem weakened (`spec_of_abs` and the old specs unchanged).
+
+## 2026-11-25 — antithesis parity B1: the Sim's statements over N servers (#33)
+
+- **Files.** `Proof/.../antithesis/Sim/{Abs,Rel,Stmts,MsgShapeStmt}.lean`
+  (`notes/antithesis-parity-design.md` §3).
+- **Change.** The refinement's statements move from S4's three-node, default-scope run to the run's
+  configuration `RunCfg` (`N` servers, `K` initial voters, boot, per-node `NodeK`, the mask `RnMode`,
+  the driver's `DrvMode`). `NodeView` is over `RState`, with the binding's disk, announced write,
+  queue, reads and configuration of the node (`ps` kept as a projection). `DurableIs` is split into
+  `DiskIs`/`MemIs`/`SyncDisk`/`UndoIs`/`QueueIs`/`ReadsIs`/`ConfLag`/`NodeFacts`. `AntSim R dec S V net
+  xnet` and the `SimPre`/`SimStep` frame. Statements for every report kind: init, boot (fresh, after
+  restart), recv (protocol, transfer), quiet, ready, send (protocol, transfer), apply, readreq, read,
+  mem, write, wrote, flush, net, made, conf, restore, snap, gc; `msgShape.stmt` over the mask's types.
+- **Deviations from the design (the lead's decisions, 2026-11-25).** `SyncDisk` without `Idle`, with
+  `undo ≠ none → made = false`, gated on sync and no batch/split/parallel; ready/send/sendX/apply move
+  `undo`/`made`; `evBoot` at commit 0 (Go writes `HardState{Term: 1}`); `antSim_init` takes
+  `BootFacts` (isLeader 1 1 and the term-1 campaign log, discharged by the raft side from the boot
+  allocation); BindingOk's leader conjunct admits BootInit's leader of term 1; `entOf`'s conf arm in
+  B3; `proposeConf` by type and bytes; `RunCfg.drv`; `NodeView` gains `rpend`, `xcause`, read floors;
+  fresh `boot` sets `alive`; `PendOk`'s redundant `_ => False` arm dropped; `RaftLaws` unchanged.
+- **Decision.** Approved by the lead. No new axiom or top-level premise; the Sim proofs migrate in
+  step 3.
+
+## 2026-11-25 — antithesis parity B1: the mask's invariants, `applyConf` out of `Reach` (#33)
+
+- **Files.** `Proof/.../antithesis/Sim/{Rel,Stmts,MsgShapeStmt}.lean`, new `Sim/Scope.lean`.
+- **Defect.** (1) `antSim_quiet.stmt` (and `antSim_ready.stmt`) were false in every mode:
+  `Quiet.noReady` after `Reach.input (.applyConf k)` moves `r.cfg` to the applied configuration while
+  the view's `conf` stays (no `conf` report yet), so `ConfLag` fails (N=2, K=1, a follower with the
+  committed conf entry `[e]` at `cidx = 0`, `dec [] e = some (.apply op)`, `ccStepB op R.c0 = some cs'
+  ≠ R.c0`, `(([e]), cs') ∈ G.confs`). (2) Under `md.confChanges = false` / `md.snapshots = false`
+  nothing kept conf entries out of the logs, the network and proposals, or snapshot messages out of
+  the network, so `NodeFacts`' initial configuration and `base0` were not preserved.
+- **Change.** `InputStep`: `.applyConf` is no input (`antSim_conf` takes `ApplyConfChange` and its
+  report as one step, as the driver reports `conf` at the apply); `.proposeConf` needs
+  `md.confChanges = true`. `EntsNormal` moved from `MsgShapeStmt` to `Rel` (unchanged). `MsgMask R m`
+  (confChanges off: an append's or proposal's entries normal; snapshots off: no `.snap`); `NodeFacts`
+  gains `r.snap = false` (snapshots off), `EntsNormal` of the full and disk logs (confChanges off),
+  and `MsgMask` of the `Ready`'s unsent messages; `NetOk` gains `MsgMask` of every message;
+  `ReadyOutP`'s snapshots-off clause gains no `.snap` in the outbox. `Scope.lean`: `SimMask`,
+  `InMask`, `Input.InMask`, `ReachIn`/`QuietIn`, `mskS4 ≤ mskB1 ≤ mskTop`; the proofs are
+  `antSim_X_in msk (hmsk : msk ≤ mskS4)`, widened by later batches, the plain statements at `mskTop`.
+- **Decision.** Approved by the lead (2026-11-25; `MsgMask` in `NodeFacts` for the pending messages
+  is what keeps `NetOk`'s at `send`). No new axiom or top-level premise.
+- **Addendum (step 3, same day; for the lead's review).** Two invariant strengthenings the migration
+  needed, both true in every mode: `NodeFacts` gains `uint.Z v.dur.term ≤ uint.Z v.ps.term` (`GC` keeps
+  a leader's and a candidate's records at raft's term, which it reached only through `DiskIs`'s disk
+  term: the S4 proof read the term off `DurableIs` directly); `SyncDisk` concludes `v.mems = []` instead
+  of assuming it (sync, no batch/split/parallel: no `mem` report, so no queued write; `apply`'s
+  `memCommit` and `boot` read the queue empty, which S4's `BindingOk` stated directly).
+
+## 2026-11-25 — antithesis parity B1 stage 3: the RawNode forms over `RState`, the node constant `rs.k` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/{ApiVocab,RawNodeAt,RawNodeAtLemmas,RawNodeAtScope,RawNodeReadyAt,
+  RawNodeAbsSpecs,RawNodeStartSpec,RawNodeStart,RawNodeApi,RawNodeApiLinked,RawNodeSpecOfAbs,StepEndIp,
+  RawNode__{Step,Tick,Propose,HasReady,Ready,Advance}Abs,RawNode__{acceptReady,readyWithoutAccept}}.lean`,
+  `Spec/go_etcd_io/raft/v3/RawNode__{acceptReady,readyWithoutAccept}.lean`, new `StepEndBk.lean`.
+- **Change (design §1.1, §4, §5).** `toRState rs fp s` (RawNodeAt); `ownRawNodeAt`'s index `ps : PState`
+  becomes `r : RState` (`"%Hps" : toRState rs fp s = r`). The forms take `R … rs r qs ip` and
+  `S : RnMode → Prop` (`∀ md, S md → End`; absSpec at `fun md => basicScope sc = some md`, the API at
+  `fun md => md = {}`). Ends: `Step` `∀ Adm, RecvEndR Adm rs.k id r m r'`, `Propose` the same at the
+  proposal message, `Tick` `TickEndR rs.k id r r'`, `HasReady`/`Ready` read `r.p` (`Ready`'s node after at
+  an `r'` with `r' = rAccepted r` under `S`), `NewRawNode` at `rInit (stOf …)` with `k := cfgK cv`.
+  `restartAtSpec (sc : Option RnMode)` with per-flag premises (`RestartScopeOk`) and post at `restartR`.
+  The rawNode laws read `r.p`. `rnCfg γ` is gone from the forms (the node's `r.cfg.cfg`).
+- **The node constant (lead's decision, 2026-11-25).** `RNState.k : NodeK := {}` (constant), tied by
+  `KTie rs s := NodeK.mk s.prevote s.cq s.sdr = rs.k`. **Placement deviation:** the tie is a conjunct of
+  `rnScopeAt` (the scope part of `ownRawNodeAt`), not of `ownRawNodeAt`'s body: `ownRawNode_at.law` makes
+  every `ownRawNode` an `ownRawNodeAt` at `none`, and an `ownRawNode`'s `rs.k` is unconstrained.
+  The start spec exports `rs.k = cfgK cv`.
+- **`pci` deviation.** `toRState`'s `pci` is `pciR s` (the code's at a leader, `0` elsewhere:
+  `StepLemmasR`'s existing reading, `rOf`), not `s.pci`: no new raft invariant ("a non-leader's
+  `pendingConfIndex` is 0") is needed.
+- **Interim (open).** `Advance`'s end stays the protocol reading's `AdvanceEnd rs.k r.cfg.cfg id r.p qs r'.p`:
+  `AdvanceEndR`'s `AckEndR` needs a storage acknowledgement to keep `pendingConfIndex`, which
+  `raft.Step.spec` does not state (`LocalStepOk`/`AckEnd` give the role, the protocol reading, `applied`,
+  not `pci`). Proposed raft spec change (to the lead): `LocalStepOk` (Spec/…/raft__Step.lean) adds
+  `(m.Type' = MsgStorageAppendResp ∨ m.Type' = MsgStorageApplyResp) → s'.pci = s.pci`.
+- **Decision.** Stage 3 per the lead's brief; the `k` field approved; no new axiom or top-level premise.
+
+## 2026-11-25 — antithesis parity B1, Sim step 3c: three NodeOk facts and Advance without a snapshot (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/{Rel,Stmts,MsgShapeStmt,Scope}.lean`.
+- **Defects found migrating `send` and `quiet` (Sim helper), with the lead's decisions (2026-11-25).**
+  1. `send` of a leader's append or heartbeat needs the binding's role `leader`; `MemIs` gives
+     `roleStr v.pre v.ps.role`, so `v.pre` must be false at a leader. **Change:** `NodeFacts` gains
+     `v.pre = true → v.ps.role = .follower` (a reported pre-candidate is a follower to raft, `toPState`;
+     `ReadyOutP` gives it at every `ready`, `Quiet` keeps the role).
+  2. `send` of an acknowledgement reads `pending[n]` as the handled append, but the `told` conjunct is a
+     disjunction over `cause`/`xcause`. **Change:** `NodeOk`'s `xcause` conjunct becomes
+     `xcause = some x → x.dst = nodeId n ∧ v.cause = none`.
+  3. Nothing kept a `Ready`'s pending messages within the run's types (pre-vote, read-index with those
+     features off), so a `send` could put a message outside `InMask` on the network. **Change:**
+     `MsgMask` gains `NetTy R.md m.ty ∨ m.ty = .propose` (`NetTy` moved from `MsgShapeStmt.lean` to
+     `Rel.lean`, unchanged).
+  4. **False statement:** `antSim_quiet` at the S4 mask. `Reach.advance` admits `AckEndR`'s third arm
+     (`StepR.applySnap`) with no snapshot pending: a fresh follower, `j = 0`, `sn = true`, any `cs'` with
+     `([], cs') ∈ G.confs`, gives `r.snap = true`, `r.cfg = cs'`, which `NodeFacts.snap0`/`conf0` exclude
+     with snapshots and conf changes off. **Change (lead: option b):** `Reach.advance` and
+     `ReachIn.advance` take `R.md.snapshots = false → AdvanceNoSnap …` (new in `Stmts.lean`: `AdvanceEndR`
+     with the storage acknowledgement `AckEndR`'s first or second arm). No raft relation changes. B3
+     lifts it (design §7, item 7).
+
+## 2026-11-26 — antithesis parity B1, Sim step 3c: a leader has no read request pending without reads (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/{Rel,Init,MsgShape}.lean`.
+- **Defect found migrating `msgShape` (Sim helper; lead's decision Q5, 2026-11-25, leader-only form).**
+  `TickEnd`'s heartbeats now carry `ctx = hbCtx s.rd.ro` (not `[]`), so `msgShape.stmt`'s "a heartbeat
+  with no context without reads" needs the read-only queue empty at a leader's tick; nothing in
+  `NodeOk` said so. **Change:** `NodeFacts` gains a 10th conjunct
+  `R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = []` (projection `NodeFacts.roPend`).
+  Inductive: a node becomes leader only through `pbecomeLeader` (`rd := rdNL`, the queue reset), and
+  with reads off no read request is queued. Leader-only so that the initial and restarted states
+  (`PInitR`, `RestartR`: followers, `rd` unconstrained) need nothing new; no harness obligation.
+- `msgShape_in` (`Sim/MsgShape.lean`): `msgShape.stmt`'s conclusion over `ReachIn` at `msk ≤ mskS4`.
+
+## 2026-11-26 — antithesis parity B1 stage 3b: `RawNode.Advance` ends in `AdvanceEndR`; `AckEnd` keeps `pendingConfIndex` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/{LemmasStepGates,raft__Step,raft__Step/MsgStorageAppendResp,
+  raft__Step/MsgStorageApplyResp,TracedRaftStepBundle,RawNodeAbsSpecs,RawNode__AdvanceAbs}.lean` (Proof's
+  `raft__Step.lean`: the snapshot acknowledgement's close, one `rfl`), and the part copies (RaftTla,
+  RaftNoAx, KvNet; regenerated, `--check` clean, not built yet).
+- **Raft statement strengthening (lead's decision, 2026-11-26).** `AckEnd m s s'` (a storage
+  acknowledgement's end, claimed traced or in `AckScope`, i.e. `autoLeave = false`) gains
+  `∧ s'.pci = s.pci`; so do the `Hack` conjuncts of `wp_Step_MsgStorageAppendResp_none` and
+  `wp_Step_MsgStorageApplyResp` (each constructs `s'` as `s` or `{ s with logst := … }`: `rfl`).
+  **Withdrawn:** the earlier-approved `LocalStepOk` conjunct `(MsgStorageAppendResp ∨ MsgStorageApplyResp)
+  → s'.pci = s.pci` (Spec/…/raft__Step.lean) is false: at a leader of a joint configuration with
+  `autoLeave`, `appliedTo` proposes the empty `ConfChangeV2` and moves `pendingConfIndex`. `LocalStepOk`
+  and `Spec/…/raft__Step.lean` are unchanged.
+- **Form change (design §4).** `RawNode.Advance.form`'s end (under `S`, untraced): `∀ Adm dec,
+  NoUndecConfIn dec r'.full r.cidx (uint.nat r'.applied) → AdvanceEndR Adm dec rs.k id r qs r'`
+  (replaces the interim `AdvanceEnd rs.k r.cfg.cfg id r.p qs r'.p`). The premise is `StepR.advance`'s,
+  the caller's: no undecided conf entry among the entries applied. The end's storage acknowledgements
+  are `AckEndR`'s second arm (`applied` moved to the end state's, `cidx := max r.cidx applied`).
+- **Proof.** The loop reads the node as `advR rs fp a s1 = { toRState rs fp s1 with applied := a }`
+  (`applied` frozen at the start's); a self-addressed response is `RecvEndR` there (`recvEndR_advR`, the
+  bookkeeping from `bk_of_stepEnd_net`), an acknowledgement leaves it (`advR_ack`, from `AckEnd`).
+- **Decision.** No new axiom, no new top-level premise; `#print axioms RawNode.*.wp_apiProof` std only.
+
+## 2026-11-26 — antithesis parity B1: `Cluster.spawn.spec` at a function value whose call ends normally (#33)
+
+- **Files.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Cluster__spawn.lean`; the proof
+  `Proof/…/antithesis/Cluster__spawn.lean` (`Cluster.spawn.wp_proof : Cluster.spawn.spec`).
+- **Correction (lead's Q1, approved).** The statement was false: `f : val` may be a panic value (the
+  call's beta step and `spawn`'s `GoAlloc` of `f` need a value `#f`), and the premise
+  `threadTok -∗ WP (f #()) {{ fun _ => threadTok }}` lets `f` end in a panic on the forked goroutine.
+  **Now:** `(f : GoFunc)`, the call `spawn(#f)`, and the premise
+  `threadTok -∗ WP (#f #()) {{ v, ⌜v = #()⌝ ∗ threadTok }}`. The post is unchanged.
+- **Callers.** `RunCluster` (the behaviours' spawns, not yet proved) passes each behaviour's method
+  value and its spec's `{{ RET #(); threadTok }}`, which is this premise.
+- **Decision.** No new axiom, no new top-level premise (a driver-internal spec).
+
+## 2026-11-26 — antithesis parity B1 phase 2: `RawNode.Campaign` over `ownRawNodeAt`, `CampaignEndR`'s election context existential (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean` (`CampaignEndR`), `RawNodeAbsSpecs.lean`
+  (`RawNode.Campaign.form`/`absSpec`, new), `RawNodeApi.lean` (`RawNode.Campaign.apiSpec`, new),
+  `RawNode__CampaignAbs.lean` (new: `RawNode.Campaign.wp_absProof`), `RawNodeApiLinked.lean`
+  (`RawNode.Campaign.apiSpec_of_abs`, `wp_apiProof`), `StepEndIp.lean` (`campaignEndR_of_stepEnd_hup`).
+- **Change.** `CampaignEndR`'s election arm `k.prevote = false ∧ ∃ cl, CampaignEnd r.cfg.cfg id r.p cl r'.p`
+  (was `cl = []`): `hup`'s spec (`HupGuard`) leaves the request context existential; design §1.2 allows the
+  `∃ cl` form until it is pinned (lead's decision 2026-11-26: tighten back to `[]` once `HupGuard` is pinned).
+  `RawNode.Campaign`'s strengthened triple: the old spec's premises and post, plus in the scope `md = {}`
+  `CampaignEndR rs.k id r r'` and the in-progress boundary `min ip (lcpLen …)`. The old
+  `RawNode.Campaign.spec` keeps its own proof (no `spec_of_abs`).
+- **Decision.** Approved by the lead (B1 phase 2, item 2). No new axiom, no new top-level premise; `#print axioms
+  RawNode.Campaign.wp_absProof` std only.
+
+## 2026-11-26 — antithesis parity B1: `node.sendMsg.spec` at a frozen message (#33)
+
+- **File.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/node__sendMsg.lean`.
+- **Correction (lead's decision).** The statement took and gave back `msgPtsC ml dq DFrac.discard cap st`
+  for any `dq`, but `sendMsg`'s `proto.Clone` (`proto.ClonePb.spec`) needs the persistent `msgRoC`, which
+  exists only at `dq = DFrac.discard`. **Now:** `msgPtsC ml DFrac.discard DFrac.discard cap st` (no `dq`);
+  the drain's Ready messages are frozen.
+- **Decision.** No new axiom, no new top-level premise (a driver-internal spec).
+
+## 2026-11-26 — antithesis parity B1 phase 2 (iii): `HupGuard` at the campaign type; `CampaignEndR` back to `cl = []` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/SpecResults.lean` (`HupGuard`, `HupOkC`), `Spec/go_etcd_io/raft/v3/raft__hup.lean`
+  (post `HupOkC c id t s s'`), `Spec/go_etcd_io/raft/v3/stepFollower.lean` (`FollowerStepResultC`'s `MsgTimeoutNow`
+  arm `HupOkC c id campaignTransfer s s'`), `LemmasStepGates.lean` (`StepEnd`'s `MsgHup` conjunct
+  `HupOkC c id (hupType s) s s'`), `Protocol/InputEnd.lean` (`CampaignEndR`), `StepEndIp.lean`
+  (`campaignEndR_of_stepEnd_hup`), and the users (`raft__hup`, `stepFollower`, `TracedUntracedStep`, `StepLemmasR`,
+  `raft__Step/{Base,MsgHup,MsgRest}`, `TracedRaftStepHup`, `InputEndLift`, `StepEndBk`, `RawNode__CampaignAbs`).
+- **Change (strengthening).** `HupGuard c id t s s'` / `HupOkC c id t s s'` take `hup`'s campaign type `t`:
+  the campaign arm is `(t = campaignPreElection → s.prevote = true) ∧ ∃ peers pvs, peers ≡ₚ … ∧
+  s' = { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t) with prvals := pvs }`
+  (was: `∃ pre … cl`, kind and context existential). `raft.hup.spec`'s proof already had both
+  (`raft.campaign.spec`'s post). `HupGuard.exists_pre_ctx` gives the old shape to the users that read neither.
+  `CampaignEndR`'s election arm back to `CampaignEnd r.cfg.cfg id r.p [] r'.p` (was `∃ cl`, the previous entry),
+  and `campaignEndR_of_stepEnd_hup` now proves both arms (`hk : k.prevote = s.prevote`, no `LiftScope`): the
+  pre-vote arm `PreCampaignEnd` from `hupType s = campaignPreElection` (`toPState_becomePrecandidate`, a non-leader's
+  `matched`/`rd` already reset).
+- **Decision.** Lead's decision (iii), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim): `NodeFacts` takes the node, a pre-candidate only with pre-vote on (#33)
+
+- **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`NodeFacts`, `NodeOk`).
+- **Change (strengthening of an invariant).** `NodeFacts R v` is now `NodeFacts R n v` (the node `n : Fin R.N`),
+  with an 11th conjunct `v.pre = true → (R.k n).prevote = true` (`NodeFacts.preVote`): the reported role is
+  `precandidate` only at a node with pre-vote on. Init: `pre = false`; a `Ready`'s view takes `pre := rd.pre`, and
+  `ReadyOutP` gives `rd.pre = true → (R.k n).prevote = true`. `ReadyKind`'s `reportedO_of` needs `v.pre = false`,
+  which below `mskS4` (`R.k n = {}`) this gives. Users follow: `Init`, `Quiet`, `ReadyRel` (`ReadyOk.facts`).
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1: `memoryOf.spec` takes the disk log's numbering (#33)
+
+- **File.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/memoryOf.lean`.
+- **Change (two pure premises).** `memoryOf.spec` now assumes `∀ i e, w.log[i]? = some e → uint.nat e.Index' = 1 + i`
+  and `1 + w.log.length ≤ 2 ^ 61`: `MemoryStorage.Append.spec`'s premises at `k = 1` (`Append` panics on a gap),
+  which `diskOwn d w` does not give. `node.start`'s caller discharges them (trivially for an empty disk; B2's
+  restarts carry the log-indices fact with the view). Proof: `Proof/.../antithesis/memoryOf.lean`.
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
+
+## 2026-11-26 — antithesis parity B1: `memoryOf.spec` returns the fresh storage's snapshot resources (#33)
+
+- **File.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/memoryOf.lean`.
+- **Change (post strengthened).** `memoryOf.spec`'s post gains `memSnapNone γs memSnapEmpty ∗
+  memStorFresh ms γs 0 memSnapEmpty`: `NewMemoryStorage.spec`'s two resources the proof used to drop
+  (`SetHardState` and `Append` leave them alone). `node.start` needs them: `storeBase`/`storeConf` take
+  `memStorFresh ms γs 0 sv` at a snapshot of index `0`, and attaching the storage to raft (`restartStorage`)
+  consumes it. Proof: `Proof/.../antithesis/memoryOf.lean` keeps them.
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
+
+## 2026-11-26 — antithesis parity B1 (Sim): `BindingOk` bounds terms and vote requests by the boot term (#33)
+
+- **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`BootTermOk`, `BindingOk`),
+  `Sim/ReadyRel.lean` (`ReadyOk.mnew`).
+- **Change (strengthening of an invariant).** `BindingOk R dec S` gains an 18th conjunct `BootTermOk R.N S`:
+  `∀ n : Fin R.N, S.bootTerm ≤ S.currentTerm[n.val]!` and `∀ f ∈ S.msgs, f.type = "vote" → S.bootTerm < f.term`
+  (`BindingOk.bootTermOk`). The nodes start at `bootTerm`, terms only grow, and only `elect` adds vote facts, at
+  `currentTerm + 1`. `State.voteOf` ignores votes at a term `≤ bootTerm`, so with `R.boot = true` (`bootTerm = 1`)
+  a campaign's and a grant's recorded vote need it (`ReadyOk.hvote`'s `S.bootTerm < t1`). `ReadyOk.mnew`'s vote arm
+  now carries the bound (`f.type = "vote" ∧ S.bootTerm < f.term`). Construction sites follow: `Init` (terms at
+  `bootT R`, no facts), `GC` (facts a subset), `SendRel` (a send adds no vote fact), `ReadyRel.rr_binding`.
+- **Decision.** Approved by the lead (2026-11-26, the general form, so B1's ready result covers `R.boot = true`).
+  No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (i): `StepEnd` describes five more types; `TrStepTy` for the traced statements (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/LemmasStepGates.lean` (`StepEndTy`, new `TrStepTy`, `TrStepTy.stepEndTy`,
+  coercion `TrStepTy.coeStepEndTy`), the close sites in `Proof/go_etcd_io/raft/v3/raft__Step.lean`, the branch posts
+  of `raft__Step/{MsgCheckQuorum,MsgReadIndex,MsgReadIndexResp,MsgRest,ElectionLemmas,MsgPreVoteResp{,_eq,_gt,_lt}}.lean`,
+  and ten `Traced*.lean` files (a rename only, below).
+- **Change (strengthening of the `stepClose` premise of `raft.Step.spec`; its text is unchanged).** `StepEndTy`, the
+  types whose end state `StepEnd` gives, grows from ten to fifteen: `MsgPreVoteResp`, `MsgReadIndex`,
+  `MsgReadIndexResp`, `MsgTimeoutNow`, `MsgCheckQuorum`, each its role's step function's result (`StepFnEnd`), or the
+  stale/step-down arms. The close sites prove it from the branch posts' new `"%Hend"`; before, the closing wand got
+  nothing for these types (`end_ty`). The traced statements keep the old ten under the new name `TrStepTy`
+  (`stepTrTy_ne_xfer` would be false for the wider set). A coercion passes a `TrStepTy` premise to a `StepEnd`.
+- **Traced files: a mechanical rename.** In `Proof/go_etcd_io/raft/v3/`: `sed -i '/have hty : StepEndTy m.Type. := by
+  unfold StepEndTy; simp \[hp.1\]/!s/\bStepEndTy\b/TrStepTy/g'` on TracedEscrow, TracedNodeRun, TracedRaftStep,
+  TracedRaftStepBundle, TracedRaftStepLocal, TracedRaftStepRecvAppAccFol, TracedRaftStepRecvVoteResp, TracedRawNode,
+  TracedRawNodeAdvance and TracedRawNodeRep (`.lean`), nothing else.
+- **Deviation from the approved list.** `MsgTransferLeader` is NOT added yet (sixteen were approved). `Step`'s
+  transfer branch runs its step function at `{ s with gh := { s.gh with xw := X, xs := b } }` (the transfer's ghost
+  record), so the end it proves is `StepEnd … s₁ s'`, not at `s`: false at `s` whenever the record changes
+  (`FollowerStepResultC`'s transfer arm gives `s' = s₁ ≠ s`). It needs a `StepEnd` conjunct for that type at the
+  recorded ghost; it goes in with the pre-vote stage's change to the step-function conjunct.
+- **Decision.** Lead's decision (i), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim): `LedConfOk`'s leader logs normal with conf changes off; `QsOk`'s self-acknowledgement only at a leader (#33)
+
+- **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`LedConfOk`, `QsOk`),
+  `Sim/ReadyRel.lean` (`ReadyOk.lconf`).
+- **Change (strengthening of two invariants).** (1) `LedConfOk R dec S`'s witness log `l` of a led term also gives
+  `R.md.confChanges = false → EntsNormal l` (and `ReadyOk.lconf` the same clause). A win records the candidate's
+  log, a proposal appends normal entries, and with conf changes off every log is normal (`NodeFacts.conf0`), so
+  the leader configuration at a led term is the initial one (`cfgFold_normal`): what `ready_cmt`'s `Acked` quorum
+  (B 252) is read in. Sites: `Init` (`bootLog`), `GC` (same witness), `ReadyRel.rr_binding` (via `ReadyOk.lconf`),
+  `ReadyProp` (old witness ++ the proposal's normal entries), `ReadyWin` (the new log, normal by the new view's
+  `NodeFacts`), `ReadyCmt`/`ReadyMain` (`ledLog` unchanged). (2) `QsOk`'s self-acknowledgement arm gains
+  `v.ps.role = .leader` (`q.ty = .appResp ∧ v.ps.role = .leader ∧ AckIn …`): only a leader queues one, and a node
+  that steps down empties its outbox. So a candidate's queued self-messages are all self-votes (`RdCtx.hqc`), the
+  new leader ignores them in `Advance`, and a win keeps the commit (`ReadyKind.win`'s last premise, `ready_win`'s
+  `hpc`; at `R.K = 1` nothing else excludes a commit). Producers: `ReadyProp`/`ReadyWin` (from `qs_self`'s leader
+  arm), `ReadyCmt`/`ReadyMain` (no queued self-message), `Quiet` and `Init` (none), `SendRel`, `GC`, `ReadyRel`
+  (role kept); consumers shift by one.
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise.
+
+### 2026-11-26 — `nodeOwn` (antithesis parity B1, `HarnessRun.lean`): the `RawNode`'s node constant is the run's
+
+- **Spec.** `nodeOwn c γ j n v ph`'s started pure conjunct (`RsView rs v ∧ v.alive = true ∧ …`).
+- **Defect.** The input proofs (`node.tick`, `node.campaign`, `node.propose`, …) build `Reach.input`, whose step
+  (`InputStep`) is at the run's node flags `R.k j`; `RawNode`'s ends (`TickEndR`, `CampaignEndR`, `RecvEndR`) are at the
+  client record's `rs.k`. Nothing in `nodeOwn` related the two, so no input proof could close.
+- **Change.** The conjunct gains `rs.k = γ.R.k j`. `node.start` gets it from `NewRawNode`'s post (`k := cfgK cv`) and
+  `ModeRun` (`R.k n = modeK m`); every `RawNode` post keeps `rs.k`.
+- **Decision.** Lead's decision (group D, Q1), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (ii): `StepEnd` a structure with the pre-vote and transfer ends; the lease facts (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/LemmasStepGates.lean` (`StepEndBody`, `StepEndTyB`, `StepEndG`, `PreVoteEnd`,
+  `PreVoteStepEnd`, `structure StepEnd`, `StepEnd.coeFun`), `Proof/go_etcd_io/raft/v3/raft__Step.lean` (close sites:
+  `end_mk`, `end_ty`, the pre-vote and transfer closes), `raft__Step/*.lean` (branch posts at `StepEndG`; `MsgPreVote*`
+  posts' `"%Hpv"`; `ElectionLemmas` `wp_lease_check`, `prevote_resp_tail`; `Base` `PreVoteEnd.grant'/reject'`).
+- **Change (strengthening of the `stepClose` premise of `raft.Step.spec`; its text is unchanged; lead's route (S)).**
+  `StepEnd c id m ents ctx s s'` is now a `Prop` structure: `gated : StepEndTy m.Type' → StepEndBody …` (the four arms
+  as before), `prevote : ¬ StaleMsg s m → m.Type' = MsgPreVote → PreVoteStepEnd id m ctx s s'` (ignored within the
+  lease, or `PreVoteEnd`: granted iff `VoteGrant s m`, the answer queued, no vote recorded) and `xfer : ¬ StaleMsg s m →
+  m.Type' = MsgTransferLeader → ∃ X b pvs, StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xs := b } } m
+  pvs) m ents ctx s'` (the step function's result at the transfer's ghost record, which `Step` writes before it). A
+  `CoeFun` onto `gated` keeps every reader's `h hty` as it was: no Traced* file changes.
+  `MsgVote`'s ignored arm (and `prevote`'s) carries `Step`'s lease check (raft.go `inLease`, `force`): `s.cq = true ∧
+  s.lead ≠ 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ "CampaignTransfer" ∧ s' = s` (was `s.cq = true ∧ s' = s`); a
+  disjunction still, `electionElapsed` being outside the model (design R1). Branch posts give `StepEndG` (the body on
+  `StepEndTyB` = `StepEndTy` or `MsgTransferLeader`); the close sites build the structure.
+- **Decision.** Lead's decision (route (S), PreVote + (ii)), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: the end relations' new arms (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean`. (`PreTermKeep`: renamed from the commit's `PreKeep`, which clashed with `Spec/…/raft__Step.lean`'s `PreKeep`.)
+- **Change (the per-input end relations, design §1.2; definitions only, lifting next).** New: `PreTermKeep`, `LeaseIgnore`,
+  `StaleEnd`, `CampaignSends`, `HbSendOk`, `ReleaseEnd`, `PreVoteEndP`, `ReadIdxEnd`, `ReadAckEnd`, `SnapEnd` (B3),
+  `TransferRecvEndR`. `PreEnd` gains the `PreTermKeep` arm; `RecvEnd` the `StaleEnd` stale arm (was `s' = s`) and the lease
+  arm; `HandleEnd` is total (pre-vote, pre-vote response, read index and response, snapshot; `heartbeatResp` gains the
+  read acknowledgement) in place of the `∃ B r, StepC` fallback; `AppRespEnd` gains the commit that releases deferred
+  reads (`ReleaseEnd`); `TickEnd`'s campaign is `CampaignEnd … []` under `k.prevote = false`, plus the pre-campaign and
+  the check-quorum step-down; `TransferEndR`'s forward is at a follower and at its term; `TimeoutNowEndR` admits a
+  leader's appends. Departures from the design's sketch, each forced by the fork's code or its specs: no `k.prevote`
+  guard on `PreEnd`'s `PreTermKeep` arm (`Step` reads no flag there); `RecvEnd`'s main arm does not exclude `LeaseIgnore`
+  (the lease timer is outside `PState`); the read-index heartbeats carry `hbCtx` of the new queue (the fork's
+  positions), not the request's context; `ReadIdxEnd`/`TransferEndR` forward only at a follower (`stepCandidate` drops);
+  `.readIndexResp` only at a follower; `ReleaseEnd` (missing from the sketch); `PreVoteEnd` renamed `PreVoteEndP`
+  (`LemmasStepGates`' `PreVoteEnd` is the `NState` form).
+- **Decision.** Lead's sequencing (InputEnd arms after the Sim's ReadyAll), 2026-11-26. No new axiom, no new top-level
+  premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim phase 2): a received transfer is `TransferRecvEndR` (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Stmts.lean`.
+- **Change.** `InputStep`'s `.recvX` arm for a `MsgTransferLeader` is `TransferRecvEndR (nodeId n) r x r' xs` (the
+  received, term-stamped forward: stale ignored, a higher term a step-down to a follower with no leader, or at the node's
+  term `TransferEndR` at `x.src`), was `TransferEndR (nodeId n) r x.src r' xs` (which had no arm for the forward's term).
+- **Decision.** Lead's decision, 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3): the transfer ends without their untyped messages (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean`.
+- **Change (weakening).** `TransferEndR id r to r'` and `TransferRecvEndR id r x r'` lose the `xs : List XMsg` argument
+  and its conjuncts (the `MsgTimeoutNow` to the transferee, the follower's forward): the model drops both from the
+  outbox (`raft.sendTimeoutNow.spec`, `FollowerStepResultC`'s `s' = s`), so no RawNode spec can give them there; a
+  `Ready`'s untyped messages are read off its queue instead (`xmsgOf`, `XReadyOk`, Q3 item 4). `TransferEndR`'s protocol
+  part is now `r'.p = r.p ∨ (leader ∧ to ∈ voters ∧ to ≠ id ∧ SendsEnd)` (the arms that differed only in `xs` merged).
+- **Decision.** Lead's decision (Q3 approved), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim phase 2, stage A): the Sim at `mskB1a` (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean`, `Sim/Stmts.lean` (and the
+  Sim proofs).
+- **Change.** `NodeFacts`' read conjunct is `R.md.reads = false → v.ps.rd.pend = [] ∧ (v.ps.role = .leader →
+  v.ps.rd.ro.pending = [])` (was the leader half only; RnScope's reads conjunct: no deferred read request, which
+  `AppRespEnd`'s new `ReleaseEnd` arm would release). `MsgMask` gains `R.md.reads = false → (m.ty = .heartbeat ∨
+  m.ty = .heartbeatResp) → m.ctx = []` (no read acknowledgement, `HandleEnd .heartbeatResp`'s `ReadAckEnd` arm).
+  `PInitR` gains `r.p.rd.pend = []` (a fresh node, raft's `rInit`). `InputStep`'s `.recvX` transfer arm and `.transfer`
+  arm are `TransferRecvEndR … ∧ xs = []` / `TransferEndR … ∧ xs = []` (48f500bd1e: the relations lost `xs`). The
+  `_in` theorems are at `msk ≤ mskB1a` (`mskS4` with Campaign and non-voters), via interim readings of the end
+  relations below that mask (`Sim/Scope.lean`, retired by stage B).
+- **Decision.** Lead's decisions (Q1, Q2, PInitR, the `xs` arms), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3 item 1): `XfOk` gains the untyped messages' facts (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/InvRaftPhys.lean` (`XQOk`, `XfOk`'s last conjunct, the queue accessors'
+  premise), `Proof/go_etcd_io/raft/v3/raft__send.lean` (the producer), `RawNode__acceptReady.lean` (a projection).
+- **Change (raft invariant strengthening, untrusted).** `XQOk id s st`: a queued `MsgTimeoutNow` is from `id` at a term
+  past `0`; a `MsgTimeoutNow` or a stamped `MsgTransferLeader` is not self-addressed and of a term at most the node's.
+  `XfOk` gains `∀ m ∈ l, XQOk id s m.st`; `ownRaftPhysC_msgs`/`_msgsAA` take it of the appended message, which
+  `raft.send` proves from `SendOk`'s transfer clause (no `Spec` text change); a term raised keeps it (`XQOk.mono`).
+- **Decision.** Lead's decision (Q3 approved), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3 items 3-4, Q1): Ready's transfer messages, TransferLeader's form, the read heartbeats' shape (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/{RawNodeAt,RawNodeAbsSpecs,RawNode__ReadyAbs}.lean`;
+  `Spec/go_etcd_io/raft/v3/{sendMsgReadIndexResponse,releasePendingReadIndexMessages,stepLeader}.lean` and their proofs,
+  consumers `raft__Step/{resp_lemmas,AppRespMid,MsgReadIndex}.lean`, `StepEndIp.lean`, `InputEndLift.lean` (projections).
+- **Change.** (Q3) `xmsgOf` (a `MsgTimeoutNow`/`MsgTransferLeader` as an `XMsg`), `XReadyOk γ id p x` (a `MsgTimeoutNow`
+  from the node at a term past `0`; a `MsgTimeoutNow` or a stamped forward to another node at most the node's term; a
+  stamped forward to a member of `γ.reCfg`; the forward clauses guarded by `x.term ≠ 0` as `XQOk` and `XfOk`'s record are;
+  no destination fact for a `MsgTimeoutNow`, lead's option 1). `RawNode.Ready.form`'s `%Hout`: every message handed out
+  reads as a protocol or a transfer message, the latter `XReadyOk` at `r.p` (was: every message a protocol one; the basic
+  scope's proof gives the old fact as the left disjunct). New `RawNode.TransferLeader.form`/`.absSpec` (`TransferEndR`, only
+  at a scope with transfer on; no premise on the target), not yet proved. (Q1) `HbShape s m` (no index, log term or
+  entries, to a peer of the progress map: `bcastHeartbeat`'s post) added to `SendRIResult`, `ReleaseResult` and
+  `ReleaseHbs` (raft-internal specs, strengthened; their proofs pass `bcastHeartbeat`'s facts through).
+- **Decision.** Lead's decisions (Q3 approved, option 1; Q1 approved), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1: the bootstrapped start, route (b): `ownLogGhost.Hboot` a prefix fact (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/{GhostState,StepGhost,ReadIndex,Refinement,Enter}.lean`,
+  `Proof/go_etcd_io/raft/v3/{InvRawnode,RawNodeStartSpec,RawNodeStart,RestartNode}.lean`, mechanical:
+  `Proof/go_etcd_io/raft/v3/{InvNodeRun,RawNode__StepAbs}.lean` (the untraced snapshot restore),
+  mechanical: `Proof/go_etcd_io/raft/v3/Traced{RaftStepRecvHb,RaftStepRecvCand,RaftStepRecvUTHb,RaftStepRecvAppAcc,RaftStepRecvAppAccFol,RaftStepRecvAppAccCand,RaftStepRecvAppAccUT,NodeRun,RawNodeAdvance,RawNodeRep,RawNode}.lean`,
+  `RawNode__TickAbs.lean` (one line, a traced use of `ownStepGhost_bootCommit`). Part copies regenerated separately.
+- **Why.** The driver boots each node from `HardState{Term:1}` over its storage's bootstrap entries (commit `0`: the
+  binding's `BootInit` has `commitIndex = 0`, and a boot report with commit `1` is rejected, ant4-b1boot). The
+  protocol invariant `ownLogGhost.Hboot : |reBoot| ≤ commit` is false there.
+- **Change (untrusted protocol-ghost invariant).** `ownLogGhost`'s `%Hboot` was `⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝`,
+  is `⌜γ.reBoot <+: fp ++ s.log ∧ (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z s.commit)⌝` (the full log
+  starts with the bootstrap log; the commit past it only in a traced cluster, where `RawNode.Bootstrap` commits it).
+  Kept by `ownLogGhost_upd` through a new output conjunct of its wand (`reBoot <+: F → |reBoot| ≤ |F'|`): the app
+  accept's cut is never below the bootstrap log's end (both logs have the boot entries there, `logRecs_boot_termAt`),
+  nor a snapshot restore's index (the node then has the leader's entry there). Lemmas with a new meaning:
+  `ownLogGhost_boot` (`(reTrace ≠ none → |reBoot| ≤ commit) ∧ (reBoot ≠ [] → 1 ≤ term)`),
+  `ownStepGhost_bootCommit` (`s.gh.tr.isSome → …`), `ownRaftGhost_bootLe`, `ownRaftGhost_hbFacts`,
+  `ownRaftGhost_hbHigher` (premise `γ.reTrace ≠ none`), `ownStepGhost_appAccFacts` (premise `s.gh.tr.isSome`),
+  `ownLogGhost_boot_commit` (private; now at a leader's commit of its own term, from the prefix and `isLeader_boot`).
+  `raft_restart`: its premise `|reBoot| ≤ c` is now `γ.reTrace ≠ none → |reBoot| ≤ c`, and its per-state facts
+  gain `(|reBoot| ≤ c ∨ |reBoot| ≤ S.last)`. `NewRawNode.restartSpec` and `NewRawNode.restartAtSpec`:
+  `γ.bootLen ≤ σ.commit` → `γ.bootLen ≤ σ.last` (both state `Cluster.trace γ = none`, so no trace half); weaker.
+  `RestartNode.spec` unchanged. `ownRaftGhost_noXfer_of_commit` / `ownRaftGhost_noSnap_of_commit` (a node at
+  commit `0` is of a cluster with no bootstrap log) take `γ.reTrace ≠ none` (unused today).
+  The untraced snapshot restore (`InvNodeRun`'s `MsgSnap` arm, `RawNode__StepAbs`'s `step_tail`) used the old
+  `|reBoot| ≤ commit` for `snapLocOk`'s `|reBoot| < snapshot index`; it now gets it from two new lemmas:
+  `isMessage_snap_bootTerm` (Refinement: a snapshot message at or below the bootstrap log's end has the boot entry's
+  term at its index, from the leader's full log and `logRecs_boot_termAt`) and `ownStepGhost_bootTerms` (InvRawnode:
+  past the commit index and up to the bootstrap log's end the node's log has the boot entries' terms, from the
+  field's prefix), with the restore's `¬ PlogMatches` (`SnapLogStep`): the snapshot index is past the bootstrap log.
+  Statements of `snapLocOk`, `readySnap` and the node API unchanged.
+- **Decision.** Lead's decisions on route (b) (b1-boot-resume.md), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim phase 2): the boot record, the transfer messages' facts (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean`, `Sim/Stmts.lean` (and the
+  Sim proofs).
+- **Change (boot, route (b)).** `BootFacts R G` moves from Stmts to Rel and is now `bootLog R ∈ G.logs ∧
+  (R.boot = true → ∀ j t, (j, t) ∈ G.leaders → 2 ≤ uint.Z t)` (was: node 1 the leader of term 1 with the empty
+  campaign log in `G`; raft has no leader of term 1 once the boot log is written, `isCampK`). `GlobalOk` exempts the
+  binding's own boot record: a leader record is `(R.boot ∧ server = node 1 ∧ term = 1) ∨` raft's; a `ledLog` entry is
+  `(R.boot ∧ p = (1, boot log)) ∨` certified; and `GlobalOk` gains `BootFacts R G` as its 8th conjunct (the harness
+  re-proves it when `G` grows: logs only grow, raft's new leaders are past term 1).
+- **Change (transfer, Q3).** `XNetOk`: every transfer message's term within some server's term, and a
+  `MsgTimeoutNow`'s within its receiver's (design §6.4; the dst-server and src-server clauses dropped: at a receipt
+  the binding checks only the receiver, which the network routes to). `XPendOk N id p x` (at the protocol state `p`):
+  to another server, term ≤ `p.term`, a `MsgTimeoutNow` the node's own. `ReadyOutP` drops its `xs` argument;
+  `rd.xmsgs = xs` becomes `∀ x ∈ rd.xmsgs, XPendOk R.N (nodeId n) r.p x` (raft's `XReadyOk` at the `Ready`); the view
+  keeps its protocol state through the drain, so `NodeOk`'s queue conjunct is `XPendOk … v.ps x`. `RaftFacts` gains
+  `acks` (raft's `isAcked`: node, term, index); `GlobalOk` gains its 9th conjunct (a nonzero certified acknowledgement
+  is at a term its node has reached; the harness proves it as `G` grows, the acknowledgement having been sent after
+  its write); `antSim_init`'s `G` has no acknowledgement yet (`G.acks = []`); `antSim_sendX` takes `XMsgFacts G x` (a
+  `MsgTimeoutNow`'s transferee acknowledged at its term, raft's, added before the report). `Reach`, `InputStep` and
+  `Quiet.silentReady` lose the transfer messages `xs` (always `[]` since 48f500bd1e), and `antSim_ready` its `xs`
+  binder; the harness's uses follow (HarnessInput, HarnessRun's `loop` phase invariant, node.tick/campaign/propose:
+  minimal edits, the phase's `xs₁` field kept).
+- **Decision.** Lead's decisions (Q1, Q2 and the acknowledgement form of the `MsgTimeoutNow` fact, 2026-11-26;
+  `XPendOk` at the view's protocol state, the binding's terms derived at `sendX`). No new axiom, no new top-level
+  premise (the harness's new obligations: `BootFacts`, the acknowledgements' terms, `XMsgFacts`).
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `readreq` keeps the binding's last `MaxReads` requests (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Stmts.lean` (`readsTrunc`,
+  `readsAsk`, `antSim_readreq.stmt`), `Sim/Reads.lean` (the proof).
+- **Change (correction of a false statement).** `antSim_readreq.stmt`'s new view records the request as
+  `readsAsk (V n).reads (ctx, G.committed.length)`: appended, the oldest dropped past `MaxReads = 16`, as the
+  binding's `ReadAsked` does (B 660). As stated before (plain append) it was false: with 16 outstanding contexts a
+  17th `readreq` leaves the binding 16 requests and the view 17, breaking `ReadsIs` (reachable: raft leaves a
+  request unanswered at a follower with no leader or a leader without a commit in its term).
+- **Decision.** Lead's decision, 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3 item 2): the transfer scope's membership facts in `rnScopeAt` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/RawNodeAt.lean` (`XScopeOk`, `XScopeOk.keep`, `rnScopeAt`'s pure part),
+  `RawNodeAtLemmas.lean`, `RawNodeReadyAt.lean` (`rnScopeAt_keepAll`'s `hx`, default `⟨rfl, rfl, rfl⟩`),
+  `RawNodeAtScope.lean`, `RawNodeStart.lean` (`rnScopeAt_start`, the restart's `HxR`).
+- **Change (strengthening of the RawNode scope).** At `some md`, `rnScopeAt` gains `md.transfer = true → XScopeOk γ s`:
+  the known leader (`(toPState s).lead`) `0` or in `γ.reCfg`, every stamped transfer request's destination
+  (`s.gh.xw`'s keys' first component) in `γ.reCfg`, a known leader only past term `0`. Vacuous at `some {}`; the
+  restart proves it (no leader, `xw = ∅`).
+- **Decision.** Lead-approved (Q3 item 2). No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: a pre-candidate campaigns only on a granted pre-vote response (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean` (`HandleEnd`'s `.preVoteResp` arm).
+- **Change (narrowing of an end relation; the Sim's request S2).** The arm at a follower with no leader (how a
+  pre-candidate reads) was `s' = s ∨ CampaignSends c id s [] s'`; it is now
+  `s' = s ∨ (m.reject = false ∧ CampaignSends c id s [] s')`. As written before, a rejection of a higher term (the
+  preamble makes the node a follower with no leader at that term) allowed a campaign that skips a term. raft:
+  a higher-term rejection makes the node a follower (`becomeFollower(m.Term, None)`, `PreTermKeep` covers only grants),
+  and `stepFollower` ignores a `MsgPreVoteResp`; at the node's term, `stepCandidate`'s `poll` records the rejection as
+  a "no" (`recordVote` keeps an earlier answer), which never makes a pending tally a win. No raft proof produced or
+  read the arm (the lifting at `LiftScope` excludes pre-candidates).
+- **Lifting, not yet.** Its producer from `StepEnd` (`CandidateStepResultC`'s `PrecandVoteRespResultC`: `won → JQuorum c
+  (granted (recordVote s.votes from (!reject)))`) needs the raft invariant "a pre-candidate's recorded tally is not a
+  quorum" for the rejection case (with a rejection the new tally's grants are the old ones'); not in raft today.
+- **Decision.** Lead's request (2026-11-26). No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: a leader's transfer sends go to a voter other than itself; `RawNode.ReportUnreachable` over `ownRawNodeAt` (#33)
+
+- **Files.** `Spec/go_etcd_io/raft/v3/stepLeader.lean` (`LeaderNonpropResultC`'s arm of the five local/transfer
+  types), `Proof/go_etcd_io/raft/v3/stepLeader/Rest.lean` (`rest_res`, `wp_stepLeader_transfer`),
+  `raft__Step/MsgRest.lean` (a destructuring); `RawNodeAbsSpecs.lean` (`RawNode.ReportUnreachable.form`/`.absSpec`),
+  `RawNodeApi.lean` (`.apiSpec`), `RawNode__ReportUnreachableAbs.lean` (new), `RawNodeApiLinked.lean`,
+  `RawNodeAtLemmas.lean` (`rnScopeAt_someMd`).
+- **Change 1 (strengthening of a Spec post; lead-approved option (a)).** The arm's `ReplSends id s ms` is now
+  `ReplSends id s ms ∧ (m.Type' = MsgTransferLeader → ms ≠ [] → m.From' ∈ c.voters ∧ m.From' ≠ id)`: a transfer's
+  `sendAppend` goes to the transferee, tracked (`pr != nil`), not a learner (`!pr.IsLearner`), not the leader
+  (`leadTransferee != r.id`). Proved in `wp_stepLeader_transfer` from `ownTrackerC_pure` (`domSet prs = c.ids`,
+  `LearnerFlagsC`). Placed in the `ReplSends` slot (not last) so that no `Traced*` destructuring changes. It gives
+  `TransferEndR`'s leader arm its `to ∈ r.cfg.cfg.voters ∧ to ≠ id`.
+- **Change 2 (new spec).** `RawNode.ReportUnreachable.form R`: the node's predicate unchanged (`r' = r`, `rs`, `qs`,
+  `ip` too), design §4's row; `absSpec` at `some md` with `md.snapshots = false` and `md.confChanges = false` (the lead's
+  B1 condition for the abs proofs at a general mode: `raft.Step.untracedNs` and `AckScope`); `apiSpec` over `rawNode`.
+- **Decision.** Lead-approved (2026-11-26). No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): the pre-vote facts of the Sim's invariant (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`MemIs`, `PendOk`, `QsOk`,
+  `PreVoterOk` (new), `NetOk`), `Sim/Abs.lean` (`RunCfg.hpv`); the Sim proofs follow (GC, Init, Boot, Outbox, MsgShape,
+  SendRel, Send, Quiet, ReadyRel, Ready, ReadyMain, ReadyCmt, ReadyProp, ReadyWin). Requests S1, S3-S7 of the PreVote/CQ
+  widening (counterexamples in ant4-briefs/b1-sim-widen-resume.md); S2 is raft's (57cff2a9b9).
+- **S1 (`MemIs`, a correction).** The binding's role is `roleOf v.ps.role` (was `roleS v`, i.e. `"precandidate"` when
+  the view's pre flag is set): `inMemory` stores `"follower"` for a reported `"precandidate"` (B 248-249). With pre-vote
+  off the two agree (`v.pre = false`, `NodeFacts.preVote`). `ReadyOk.hrole` follows.
+- **S3 (pre-vote voters).** `PendOk`'s `.preVote` arm gains `id ∈ v.r.cfg.cfg.voters` (`PreCampaignEnd`'s guard), its
+  `.preVoteResp` arm `q.reject = false → ∃ m, v.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src` (a grant answers the
+  handled request); `NetOk` gains a sixth conjunct `∀ m ∈ net, PreVoterOk R m` (without conf changes a pre-vote request
+  from a voter of `R.voters0`, a granted response to one). Why: `HandleEnd`'s pre-vote win is `CampaignSends`, which
+  tests no promotability; the binding's `Unpromotable` rejects a non-voter's candidacy. `PendOk.congr` takes the
+  configuration; `pendOk_of_reach` moved from Outbox to MsgShape (it reads `reach_keep`'s configuration).
+- **S4 (`PendOk .appResp`).** A second disjunct: a stale `MsgApp`/`MsgHeartbeat`'s empty answer (`StaleEnd`,
+  check-quorum or pre-vote on): the cause of a term below the node's, `q = Msg.mk .appResp id m.src v.ps.term false 0 0
+  0 0 []`. The binding accepts it unchanged (B 553-556; `Send.send_appRespStale_eq`), proved in `antSim_send_in`.
+- **S5 (`QsOk`).** Takes the run (`QsOk R S n v q`); the common prefix is `src = dst = id ∧ reject = false`, then
+  either the old two arms at the node's term or a pre-candidate's self pre-vote response (`q.term = v.ps.term + 1`,
+  the node a voter of its configuration, `(R.k n).prevote = true`). `QsOk.old` (Outbox) gives the old shape at
+  `(R.k n).prevote = false`; `RdCtx.hkn : R.k n = {}`.
+- **S6 (`NetOk`'s sender term).** `uint.Z m.term ≤ currentTerm[i]` becomes `PreTermKeep m ∨ …`: a pre-vote request is at
+  its sender's next term, a granted response at the request's; both keep the receiver's term (`PreEnd`'s third arm), so
+  no `adopt` reads it. Below `mskB1a` the S4 types exclude the new disjunct (`InMsg.notPre`).
+- **S7 (`RunCfg.hpv`, a new field).** `∀ n, (k n).prevote = true → md.prevote = true`: the driver draws a node's
+  `PreVote` within the scope (`DrawMode`: `pv = true → s.PreVote' = true`, `ModeRun`'s `R.k n = modeK m` and
+  `R.md = scopeMd s`); `MsgMask`'s `NetTy` for the node's pre-vote messages needs it. A harness obligation where `R` is
+  built from the mode (no such construction yet; `R3` proves it).
+- **Decision.** Lead-approved (2026-11-26: S1, S3-S7 as requested). No new axiom. S7 restricts the runs every Sim
+  statement is over (a `RunCfg` field, which the harness discharges from `DrawMode`); no other premise. Every `_in`
+  theorem keeps its statement (mask `mskB1a`).
+
+## 2026-11-26 — antithesis parity B1 phase 2: `readMsg` moves from the Sim to the end relations (#33)
+- **Change.** `readMsg id ctx` (`RawNode.ReadIndex(ctx)`'s local `MsgReadIndex`, `Entries: [{Data: ctx}]`) moves,
+  text unchanged, from `Sim/Stmts.lean` (namespace `AntSim`) to `Protocol/InputEnd.lean` (namespace `EtcdGrove`), so
+  that raft's `RawNode.ReadIndex.form` can state its end at it. `InputStep`'s `.readIndex` arm resolves the same
+  name (parent namespace). Lead-approved; no statement changes meaning.
+
+## 2026-11-26 — antithesis parity B1 phase 2: NOTE for B3 (conf changes): the narrowed pre-vote response arm (#33)
+- 57cff2a9b9's `HandleEnd` `.preVoteResp` arm (a pre-candidate campaigns only on a grant) relies on "a pre-candidate's
+  pending tally is not a quorum". That is FALSE with configuration changes: `switchToConfig` keeps `trk.Votes`, so a
+  shrink can make the pending tally a quorum, and the next (rejecting) response then wins `poll` and campaigns. B1 proves
+  the arm at `md.confChanges = false` only (RnScope's pre-candidate conjunct); **B3 item**: widen the arm (or the
+  invariant) before conf changes are on.
+
+## 2026-11-26 — antithesis parity B1 group G: `nodeOwn`'s `.down` phase carries the node's raft resources (#33)
+- **Spec.** `HarnessRun.lean`'s `nodeOwn … .down` (the harness's node-goroutine state before `node.start`).
+- **Defect.** `.down` held no raft resource, but `node.start`'s `NewRawNode` (`restartAtSpec`) takes the id's vacant
+  slot, the durable state its storage holds (`raftState`, from which `nodeRaft`'s `rnTermLB`/`rnBudget` come), the
+  configuration of no entry (`confAt γ 0 …`), the cluster with `readyFits`, and the cluster's static facts. In a
+  bootstrapped run the storage holds `node.start`'s boot write (`HardState{Term: 1}`, the entry `{1, 1, bootData}`), so
+  the durable state must be that one (`StorageHolds`), not `RaftState.init`.
+- **Change.** `.down` gains `nodeDownRaft γ j` (new def): `nodeVacant`, `raftState … (downDur γ.R)` (`downDur`: the
+  boot write's state `⟨1, 0, base0, bootLog R, 0, 0⟩` when `R.boot`, else `RaftState.init`), `confAt γ.raft 0
+  (Membership.simple R.voters0)`, `∃ Nr, isCluster γ.raft Nr ∗ readyFits γ.raft Nr`, and the pure static facts
+  (snapshots on, untraced, no data bound, `bootLen`, and `nodeRaft`'s name facts).
+- **Provenance.** Raft's new `ClusterAllocRun.lean` (`cluster_alloc_run`: a cluster whose client writes its own
+  bootstrap log, one normal entry, `NormBoot`; every id at the boot write's durable state, `ownDurGhost_boot`), at the
+  run's `R` by `RunClusterAlloc.antRaft_alloc`. No axiom, no new premise.
+- **Decision.** Lead-approved (2026-11-26, group G blocker 1). Every other phase unchanged.
+
+## 2026-11-26 — antithesis parity B1 phase 2: a pre-candidate's tally is not a quorum (`RnScope`) (#33)
+- **Change.** `RnScope md rs s` (RawNodeAt.lean) gains a last conjunct `md.confChanges = false → md.prevote = true →
+  s.role = .preCandidate → ¬ JQuorum rs.cfg.cfg (granted s.votes)`: without configuration changes, a pre-candidate's
+  tally is not a quorum of its configuration (only `hup` makes a pre-candidate, votes reset, the self pre-vote queued
+  and not yet polled; a won tally campaigns in the same step). It is what `HandleEnd`'s narrowed `.preVoteResp` arm
+  (57cff2a9b9) needs. The `md.prevote = true` guard (lead-confirmed) keeps `RnScope_empty` an iff with no new
+  `RnScopeBasic` conjunct; it loses nothing, since with pre-vote off there is no pre-candidate (`role = .preCandidate →
+  s.prevote = true`, and `RnScope` gives `s.prevote = false`).
+- **Producers.** The restart (`RawNodeStart`: a follower); `RnScope_empty` (vacuous at `{}`); `rnScopeAt_keepAll`'s
+  callers (role and tally kept). The inputs that move a pre-candidate prove it with the general-mode lifting (item 4).
+- **Decision.** Lead-approved (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `readMsg` at `From` 0, without the node id (#33)
+- **Defect.** `readMsg id ctx` had `src = id`, but `RawNode.ReadIndex` steps `pb.Message{Type: MsgReadIndex, Entries:
+  [{Data: ctx}]}` with `From` unset. `ReadIdxEnd` records `m.src` exactly (the deferred request, the read-only queue's
+  `⟨commit, src, ents⟩`), so `RecvEndR … (readMsg id ctx) r'` was false for the real step.
+- **Change.** `readMsg (ctx)` (Protocol/InputEnd.lean): `src = 0`, the id parameter dropped; `InputStep`'s
+  `.readIndex` arm (Sim/Stmts.lean) `RecvEndR Adm (R.k n) (nodeId n) r (readMsg c) r'`. Behaviour is the same: a
+  leader answers a request from `0` or itself locally (`preadRespond`), a follower's forward stamps its own id.
+- **Decision.** Lead-approved (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `RawNode.ReadIndex` over `ownRawNodeAt` (#33)
+- **Spec (new form).** `RawNode.ReadIndex.form R S` (RawNodeAbsSpecs.lean, design §4's row): `RawNode.ReadIndex.spec`'s
+  pre (the context read-only and within the data bound, `rdFresh`, `readAu`, `isCommitted L0`, `rdCred γ 1`) over the
+  node predicate `R`, a premise `∀ md, S md → md.reads = true`; post the client's record and the in-progress boundary
+  kept (the message's term is `0`; the log unchanged), the deposit (`∃ Lc, L0 <+: Lc ∗ readReq ∗ isRead`, as the old
+  spec), and `∀ md, S md → ∀ Adm, RecvEndR Adm rs.k id r (readMsg c) r'`. `RawNode.ReadIndex.absSpec`: at `some md`
+  for every mode without snapshots or configuration changes (`raft.Step.untracedNs`, `AckScope`), `S = (· = md)`.
+- **Proof.** `RawNode__ReadIndexAbs.lean`: `readIdxEnd_of_stepEnd` (`StepEnd` on a local `MsgReadIndex`: `ReadIdxEnd`
+  at the protocol reading, every role, and the state framed but for the outbox, the read state and same-`Match`
+  `Progress` values); `RawNode.ReadIndex.wp_absProof`. `rnScopeAt_keepSome` (RawNodeReadyAt.lean): the scope kept at
+  one mode (the read state grows, which a mode without reads excludes).
+- **Not yet.** `RawNode.ReadIndex.apiSpec`: the sealed `rawNode` is at `some {}` (reads off) until item 4's step D.
+- **Decision.** Design §4 (lead-approved row). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `QsOk`'s self pre-votes are the whole queue (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`QsOk`); the Sim proofs follow
+  (Scope, Outbox, MsgBounds, MsgShape, Quiet, ReadyKind, Ready).
+- **Change.** `QsOk`'s third disjunct (a pre-candidate's self pre-vote) gains `∧ ∀ q' ∈ v.qs, q'.ty = .preVoteResp`.
+  Why: `Advance` of a mixed queue (a self-vote at `T` and a self pre-vote at `T + 1`, which a per-message `QsOk`
+  allowed) is not a no-op at the end (at `T = 0` the term-0 vote is tallied; at `T = 2^64 - 1` the wrap adopts a term);
+  the queue is one `Ready`'s `msgsAfterAppend`, one input's, and a pre-campaign queues only its own pre-vote, so the
+  conjunct is true. `Scope.AdvanceEnd.split` reads it: a queue of acknowledgements and self-votes steps as stage A's
+  reading, a queue of self pre-votes does nothing or campaigns (`advanceEnd_pre`).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise; an invariant strengthening.
+- **Proof-internal (not a statement).** `Quiet.reach_selfFree` (nothing self-addressed at an unchanged role, term and
+  log) is false at `mskB1p` (a pre-candidate's repeat pre-campaign queues its self pre-vote); replaced by
+  `reach_selfPre` (every self-addressed message a granted self pre-vote at the next term, from a voter with pre-vote on),
+  used only by `nodeOk_quiet`.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `PendOk`'s pre-vote rejection at the node's term; `send` of the pre-vote types (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`PendOk`); the Sim proofs follow
+  (Outbox, SendRel, Send).
+- **Change.** `PendOk`'s `.preVoteResp` case gains `q.reject = true → q.term = v.ps.term`. Why: raft answers a rejected
+  pre-vote request at its own term (`StaleEnd`'s stale request, `PreVoteEndP`'s refusal), so a sent rejection is at a
+  term its sender has (`NetOk`'s sender clause: a rejection is not `PreTermKeep`). `SendOk` (SendRel, proof-internal)
+  admits the pre-vote types (`ty`), a `PreTermKeep` sender term (`src`) and carries `PreVoterOk` (`pvo`);
+  `antSim_send_in` is at `msk ≤ mskB1p` (the binding's `isUnmodelled` sends change nothing: `send_pre_eq`).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise; an invariant strengthening.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `BindingOk`'s leader records not a candidate; `Reach.stay` at a drain's `by` (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`BindingOk`),
+  `Sim/Stmts.lean` (`Reach.stay`), `Sim/Scope.lean` (`ReachIn.stay`, `ReachP.stay`); the Sim proofs follow (Init, Mono,
+  ReadyRel's `ReadyOk.rstay`, ReadyWin, ReadyMain, ReadyCmt, ReadyProp).
+- **Change.** (Q1) `BindingOk`'s leaders conjunct: a node's leader record at its current term needs
+  `S.role[n] ≠ candidate` (was `S.role[n] = leader ∨ (R.boot ∧ l.term = 1)`). Why: with check quorum a leader steps
+  down to a follower at its term and its record stays (B 248 `role1`, no record removed), which the old conjunct
+  rejects; its only reader (ReadyWin, a candidate's win at its term has no leader record of that term) needs only
+  "not a candidate". The boot disjunct is subsumed (`BootInit`'s term-1 leader is a follower). `ReadyOk.rstay` becomes
+  `ro[n] = candidate → t1 = currentTerm[n] → role[n] = candidate` (only a campaign makes a candidate, at a new term).
+  (Q2) `Reach.stay` gains `DrainBy v.byE`: a `Ready` reported at the view's own state (only the pre-candidate flag
+  changed, which `ReadyOutP` does not tie to raft's protocol state) is evaluated with `by = v.byE`, which the binding
+  accepts only for a drain's `by`; the harness has `ByOk v.byE` at every drain.
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise: Q1 weakens an invariant
+  conjunct (still enough for its reader); Q2 adds a hypothesis to a `Reach` constructor, which the harness discharges.
+
+## 2026-11-26 — antithesis parity B1 phase 2: the `MsgTimeoutNow` witness (`NGhost.xt`, option (b)) and the transfer frames (#33)
+- **Spec (raft.Step.spec, lead- and #44-cleared, branch-only).** `%Hframe` gains the premise `(m.Type' = MsgAppResp →
+  m.From' ≠ id → s.lt = W64 0)`; `%Hxwframe`'s premise widens to `MsgTransferLeader ∨ (MsgAppResp ∧ From ≠ id ∧
+  lt ≠ 0)`, its ghost frame gains `xt := s'.gh.xt`, and it gains the xw-growth conjunct (`∀ p ∈ s'.gh.xw, p ∈ s.gh.xw ∨
+  (p = (s.lead, s.term) ∧ follower ∧ lead ≠ 0)`: the one record a step adds is a follower's forward). Weaker than before
+  only on an append response from another node while the node has a transferee (it may now record in `gh.xt`).
+- **Spec (callees).** `SendOk`'s transfer clause (c): a `MsgTimeoutNow`'s `(To, term)` is in `NGhost.xt`;
+  `raft.sendTimeoutNow.spec` takes `(s.gh.xt !! (to, s.term)).isSome`; `stepLeader.spec` takes it at a transfer request
+  from a peer whose `Match` is the last index, and at an accepted append response from the transferee at the last
+  index (`raft.Step` records it before the step). The proof-level `XQOk` (queued untyped messages) gains the same clause.
+- **API vocabulary.** `isRaftMsg` gains a last conjunct: a `MsgTimeoutNow`'s destination acknowledged an index past `0`
+  at the message's term (`∃ i, uint.Z i ≠ 0 ∗ isAcked γ To Term i`, durable): what the harness's `send` of it reports
+  (`XMsgFacts`). `XReadyOk`'s docstring points to it.
+- **Proof.** `NGhost.xt` with witnesses `xtW` (inside `xfW`); `raft.Step` records `(transferee, term)` before a leader's
+  transfer request (witness: `matchedOk`'s ack of the transferee's `Match` = last index, `ownRaftGhost_matched_ack`,
+  last index ≥ 1 `ownRaftGhost_leader_last1`, LemmasXt.lean) and before an append response from another node with a
+  transferee (`dispatch_AppRespX`: witness `isMessage`'s ack of the response's index = last index); the ghost state
+  goes through the gates and the close at `s` and is recorded after it (at `s` or past `maybeCommit`).
+  `StepEnd` (LemmasStepGates) gains `xtr` (`XtRec`: such a response, untraced) at the recorded state; `gated` takes
+  `¬ XtRec`; `xfer` names `xt`. `stepGates_xt`/`leaderGates_xt` (TracedStepGates): the gates read no `xt`.
+- **Mechanical.** The restated frames (TracedRaftStepBundle, TracedUntracedRaftStep, TracedRawNodeAdvance, RaftStepNoSnap)
+  and the bare ghost frames by `frame_rw.py`; `gated`'s readers by `gated_rw.py` (`(by xtrec_tac)`); the `%Hframe` users'
+  one-argument appends (a traced node's `lt = 0`, the type, an `Advance` step's own sender).
+- **Decision.** Lead's option (b) (2026-11-26), #44 cleared. No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `RawNode.TransferLeader` over `ownRawNodeAt` at a transfer-on mode (#33)
+- **Spec (changed scope).** `RawNode.TransferLeader.absSpec` (RawNodeAbsSpecs.lean): was `∀ sc : Option RnMode` with
+  `S = (sc = some ·)` (no proof); now, as ReadIndex/ReportUnreachable, at `some md` for every mode without snapshots or
+  configuration changes (`raft.Step.untracedNs`, `AckScope`), `S = (· = md)`; the form (premise `∀ md, S md →
+  md.transfer = true`, post `TransferEndR id r to r'`) unchanged. No scope with transfer off had a use (the form's
+  premise excludes it); `sc = none` (outside the harness) keeps the old `RawNode.TransferLeader.spec`.
+- **Proof.** `RawNode__TransferLeaderAbs.lean` (new): `transferEnd_of_stepEnd` (`StepEnd.xfer` on a local
+  `MsgTransferLeader`: the state but for the ghost records, `lt`, the outbox and same-`Match` `Progress` values; the
+  protocol reading kept, or a leader's `SendsEnd` to the transferee, a voter other than the node), `transferEndR_of`,
+  `RawNode.TransferLeader.wp_absProof`; the scope's `XScopeOk` kept from `%Hxwframe`'s growth conjunct (the one record a
+  step adds is a follower's forward to its leader, a member by `XScopeOk`'s lead clause). `rnScopeAt_keepSomeX`
+  (RawNodeReadyAt.lean): `rnScopeAt_keepSome` given `XScopeOk` across the step.
+- **Not yet.** `RawNode.TransferLeader.apiSpec` (step D: the sealed `rawNode` at `some md`).
+- **Decision.** Design §4's row (lead-approved); successor 9's plan. No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, item 5: a reported role read by `roleProto` (#33)
+- **Spec (weakened, then strengthened at a pre-candidate; lead-approved, design §4).** `roleProto : StateType → Role`
+  (RawNodeAt.lean; `StatePreCandidate` and unknown values ↦ follower; `roleProto_roleGo`, `roleProto_stateW64`).
+  `PIdle`'s role conjunct `roleGo ps.role = rs.role` → `roleProto rs.role = ps.role`; `ReadyOut`'s first conjunct
+  `roleAfter rs.role ss = roleGo ps.role` → `roleProto (roleAfter rs.role ss) = ps.role ∧ (roleAfter rs.role ss =
+  StatePreCandidate → ps.lead = W64 0)` (a reported pre-candidate a follower with no leader). The old forms imply the
+  new (`roleProto ∘ roleGo = id`; `roleGo` never gives `StatePreCandidate`), and the new hold at a pre-candidate, which
+  the old did not: what HasReady/Ready at a pre-vote-on mode need.
+- **Proof.** `pidle_of_hasReady` no longer reads pre-vote off (`ownRaftPhysC_precand` dropped from HasReady's proof);
+  `RawNode.Ready.wp_absProof` from readyWithoutAccept's `roleAfter rs.role ss = stateW64 s.role` alone
+  (`toPState_lead_of_stateW64`). No consumer read the old conjuncts (Sim uses its own `ReadyOutP`; the harness carries
+  `PIdle` unopened).
+- **Decision.** Lead's item 5 (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `StepEnd.prevote` on a stale `MsgPreVote` (#33)
+- **Spec (strengthened, internal).** `StepEnd.prevote` (LemmasStepGates.lean) was `¬ StaleMsg s m → m.Type' = MsgPreVote →
+  PreVoteStepEnd …`; now `m.Type' = MsgPreVote → PreVoteStepAll …` (new abbrev: stale → `s' = sendMsgs s
+  [Msg.plain .preVoteResp id m.From' s.term true]`, Go's `m.Term < r.Term` arm; not stale → `PreVoteStepEnd` as
+  before). `raft.Step.spec`'s text unchanged (StepEnd is its `stepClose` premise's content, a definition).
+- **Proof.** The four branch posts `"%Hpv"` (raft__Step/MsgPreVote{,_eq,_gt,_lt}.lean) at `PreVoteStepAll`; `_lt` proves the
+  stale arm (`rfl`); ElectionLemmas' two closers wrap theirs by `PreVoteStepAll.of_fresh`; raft__Step.lean's `end_mk`,
+  `end_ty`, the AppRespX and transfer closes and the PreVote close adapted. For `StaleEnd`'s third arm in the lifting.
+- **Decision.** Lead's decision 4 (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1: a fresh node's view, the storage registry, `memoryOf`'s dummy entry (#33)
+- **Files.** `HarnessRun.lean` (`nodeOwn`'s `.down`, `antCluster`), `RunCluster.lean` (`viewInit`, `RunCluster.wp_proof`'s
+  hypotheses), `Spec/.../antithesis/memoryOf.lean`, and a `variable [AntStor GF]` line in the 62 Spec/Proof files of the
+  antithesis package that mention `antCluster` or a spec that does (mechanical).
+- **`.down`.** Its pure part was `v.alive = false ∧ v.Idle ∧ v.dur = durOf v.r ∧ PInitR γ.R v.r`; now
+  `AntSim.FreshView γ.R v ∧ v.byE = go!"boot"` (FreshView implies the four). `node.start` needs it: `antSim_boot`
+  takes `FreshView` of the node's view, and `drain` is called with the view's `by` (`"boot"`; the boot report keeps
+  it). `viewInit` gets `byE := go!"boot"` (`FreshView` does not constrain `byE`; `antSim_init` holds at any).
+- **`antCluster`.** Takes `[AntStor GF]` and gains `antStorInv` (the registry `node.start` registers its
+  `bootStorage` in). `RunCluster.wp_proof` allocates the registry and its invariant, then takes the run's storage
+  model `antStorageModelNC` (`AntStorageStart.lean`, S4's `RunClusterStorage` restored) by `letI`; its six callee
+  hypotheses that mention `antCluster` are now `∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC; …spec`
+  (S4's pattern). `RunCluster.spec`, `Main.spec` and the top level unchanged.
+- **`memoryOf.spec`.** The post also returns `memLog γs 0 DFrac.discard [zero_val EntryM]` (`NewMemoryStorage`'s
+  dummy entry; `node.start`'s `Term(0)` in a run without boot reads it).
+- **Decision.** Lead (2026-11-26), all three. No axiom, no top-level premise (driver-internal statements).
+
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B, reads): the read-index messages, a forwarded read request at term 0, reads only with reads on (#33)
+- **Rel (C4).** `MsgShape`: `m.src ≠ m.dst` only for `m.ty ≠ .readIndex`, and a read request is at term `0` with a
+  proposal (`(m.ty = .propose ∨ m.ty = .readIndex) → m.term = W64 0`). A follower passing a forwarded `MsgReadIndex`
+  on to its leader keeps its `From` (raft's `send` stamps `From` only when unset), which may be that leader (A forwards
+  to B; B, now A's follower, sends it back to A with `From = A`; raft answers it locally, `preadRespond`; raft's
+  `NetMsgOk` allows it); `send` stamps no term on it.
+- **Rel (C1).** `PendOk .readIndex`: `q.term = W64 0 ∧ ∃ j, q.src = nodeId j` (was `q.src = id`: the forward keeps the
+  source); `PendOk .readIndexResp`: `q.src = id ∧ q.term = v.ps.term` (`preadRespond` stamps the node's term; `send`
+  needs `NetOk`'s sender term). `NodeFacts` gains a 12th conjunct (`NodeFacts.readSrc`): every deferred request's
+  `From` and a leader's read-only queue's sources are `0` or a node, so that an answer (`MsgReadIndexResp`) is to a
+  server (`PendOk`); sources enter only with a `MsgReadIndex` (`ReadIdxEnd`), `pbecomeLeader` resets the queue.
+- **Rel (C4, C1), entries.** `MsgMask`'s first conjunct `R.md.confChanges = false → (app ∨ propose) → EntsNormal
+  m.entries` → `R.md.confChanges = false → EntsNormal m.entries` for every type (only an append, a proposal, a read
+  request and its answer carry entries; a read request's is its context, which `preadRespond` hands back in the
+  `MsgReadIndexResp`, and `ReadyMsgShape` needs it normal). `NodeFacts`' 12th conjunct (`NodeFacts.readSrc`) also states,
+  without conf changes, `EntsNormal` of every deferred request's entries (`rd.pend`) and of a leader's queued requests'
+  (`ro.pending`): they enter only with a `MsgReadIndex` (`ReadIdxEnd`), the local one's entry normal (`readMsg`), a
+  network one's by `MsgMask`.
+- **Stmts.** `Reach.input`'s recv premise `m.term ≠ W64 0` → `(m.ty ≠ .readIndex → m.term ≠ W64 0)`: a forwarded
+  read request is at term `0` and is delivered (the driver drops only `MsgProp` with Forward off); raft's `Step` takes
+  it (`m.Term == 0`, `RecvEnd`'s first arm). `InputStep`'s `.readIndex c` arm gains `R.md.reads = true` (the driver's
+  reader runs only with reads on; raft's `ReadIndex` spec gives `RecvEndR` only then); without it the plain statements
+  are false at `R.md.reads = false` (`NodeFacts.roPend`, `MsgMask`'s `NetTy`). Harness obligations: the recv premise
+  from raft's stamped-type message facts (as at S4), `R.md.reads = true` at a `ReadIndex` input.
+- **MsgShapeStmt.** `ReadyMsgShape`'s `q.src = id` only for `q.ty ≠ .readIndex` (same reason as `MsgShape`).
+- **Open (B2).** `RestartR` lacks `r0.p.rd.pend = []` for the read-source conjunct at `bootR` (design §7 item 8).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no top-level premise beyond the two
+  harness-discharged hypotheses above.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step B: `RnScope`'s pre-candidate and membership facts (#33)
+- **Spec (strengthened scope; lead's decisions 1 and 2).** `RnScope md id rs s` (RawNodeAt.lean; the node id added as an
+  argument) gains two last conjuncts: `md.prevote = true → s.role = .preCandidate → s.lead = W64 0` (Go's
+  `becomePreCandidate` `r.lead = None`; every later `lead` write changes the role) and `md.confChanges = false →
+  md.nonVoters = true → s.role ≠ .follower → id ∈ domSet s.prvals` (only a promotable node campaigns, `hup`/HupOkC's
+  `id ∉ c.voters → s' = s`; with a fixed configuration a leader stays a member). Both vacuous at `{}`
+  (`RnScope_empty` unchanged in content, `id` implicit). Producers: the restart (a follower), the three inputs proved at
+  a general mode (ReportUnreachable, ReadIndex, TransferLeader: role and lead kept, `Progress` values of the same `Match`:
+  `RnScope.with_prvals`, `mem_domSet_of_prvalsMatch`; `transferEnd_of_stepEnd`'s `prvalsMatch` fact now unconditional).
+  The other inputs re-prove them with the lifting at a general mode (step C).
+- **Decision.** Lead's decisions 1 and 2 (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step D (first part): the sealed `rawNode` at a mode; `NewRawNode.restartAtApiSpec` (#33)
+- **Spec (sealed predicate's signature; lead's order for node.start).** `rawNode γ md rn id rs r qs ip :=
+  ownRawNodeAt … (some md)` (RawNodeApi.lean; until now fixed at `some {}`). Every apiSpec and law instantiates it at
+  `md = {}` (`fun γ => rawNode γ {}`), text and proofs otherwise unchanged; their generalization to `∀ md` is step D's rest.
+- **New statement.** `NewRawNode.restartAtApiSpec` (RawNodeStartApi.lean, a defs module): `NewRawNode.restartAtSpec
+  (some md)`'s text over `rawNode γ.raftNames md …`, for every `md` with `snapshots = false` and `confChanges = false`;
+  premises `RestartScopeOk … md` directly, `storCapF (interface.ok si) 0` unguarded; the post's ghost prefix `[]` (the
+  boundary is `base0` without snapshots). Proved in RawNodeApiLinked.lean (`NewRawNode.wp_proofRestartAtApi`, from
+  `NewRawNode_restartAt_impl (some md)`). `restartR` and `RestartScopeOk` moved from RawNodeStart.lean (proof tier) to
+  RawNodeStartApi.lean, unchanged, so the harness can name them.
+- **Users to adapt (not the raft helper's files).** HarnessRun.lean:521, HarnessInput.lean:116 and :125 write `rawNode
+  γ.raft.raftNames rn …`: insert the mode (`{}` today, `γ.R.md` once the apiSpecs are at `∀ md`).
+- **Decision.** Lead's order (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1: `TimeoutNowEndR`'s campaign arm only at a follower (#33)
+- **Spec (tightened end relation; Sim's request).** `TimeoutNowEndR` (Protocol/InputEnd.lean): the campaign arm is
+  `p1.role = .follower ∧ CampaignEnd … p1 ctxTransfer r'.p` (`p1` after the preamble). Go (`raft.go` v3.7.0):
+  `stepCandidate` ignores `MsgTimeoutNow` (`:1712`, also a pre-candidate's step function), `stepLeader` has no arm for it;
+  only `stepFollower` campaigns (`:1758`). Spec stepCandidate's result gives `s' = s` for it, so the tightened form is
+  provable; the leader's `SendsEnd` arm stays (stepLeader's spec: `ReplSends`). A pre-candidate reads as a follower in
+  `PState` (its ignoring is the `r'.p = p1` arm). Nothing proves `TimeoutNowEndR` yet; the Sim does not use the looser
+  form. Part copies.
+- **Decision.** Sim helper's request via the lead (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step B: `StepEnd.xstale`, a stale received `MsgTransferLeader` (#33)
+- **Spec (strengthened end state; additive).** `StepEnd` (LemmasStepGates.lean, `raft.Step.spec`'s post) gains a fifth
+  field `xstale : StaleMsg s m → m.Type' = MsgTransferLeader → ∃ X Y b, s' = { s with gh := { s.gh with xw := X, xt := Y,
+  xs := b } }`. Defect: `xfer` covers only a fresh request and `gated` excludes the type, so `StepEnd` said nothing of a
+  stale forwarded transfer request (a follower's forward stamped with an older term), while `TransferRecvEndR`'s first
+  arm needs the `RState` kept. Evidence: Go's `Step` (`raft.go`, `m.Term < r.Term` arm) ignores a stale
+  `MsgTransferLeader` (neither a leader message nor a pre-vote, so no answer); `raft__Step.lean`'s transfer branch already
+  had it (`(Hend (.inr hT)).1 hst : s' = s_x ∨ LowSend …`, `LowSend` impossible by type). `raft.Step.spec`'s text
+  unchanged. Constructors extended: `raft__Step.lean`'s `end_mk`/`end_ty` macros and its two explicit tuples (the transfer
+  branch, from `Hend`'s stale conjunct; the pre-vote branch, vacuous by type).
+- **Use.** `transferRecvEndR_of_stale` / `transferRecvEndR_of_stepEnd` (RawNode__TransferLeaderAbs.lean):
+  `TransferRecvEndR` at the `RState` reading for every received transfer request (stale, higher term, current).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C0: `RawNode.Step.form` at the mode's types, the transfer arm (#33)
+- **Spec (the lead's statement, design §2/§4).** RawNodeAbsSpecs.lean: new `stepTypes md` (design §2's text:
+  `antStepTypes` and the pre-vote, read-index, transfer, forwarding, snapshot and storage-acknowledgement types by flag;
+  `stepTypes_empty : stepTypes {} = antStepTypes`). `RawNode.Step.form`'s scope premise: the type in `stepTypes md`
+  (was `antStepTypes`), a heartbeat response's empty context only at `md.reads = false`, the sender still in
+  `γ.reCfg` (the lead's decision 2: in B1 a non-voter never sends; `γ.ids` and an `errStepPeer` arm are a B3 item).
+  Post `%Hend` gains the Sim's `InputStep .recvX` text (Sim/Stmts.lean:106-108) at the message's transfer reading:
+  `∀ x, xmsgOf st = some x → (x.ty = .timeoutNow ∧ TimeoutNowEndR id r x r') ∨ (x.ty = .transferLeader ∧
+  TransferRecvEndR id r x r')`. No `errStepPeer` disjunct: with the sender in `γ.reCfg` and no configuration change
+  the sender has a `Progress`, so the path is not taken (the lead's decision 3, "whichever is simpler and sound").
+  At `md = {}` (the only scope proved so far) the new conjunct is vacuous (`antStep_xmsg_none`).
+  StepEndNetK.lean: `stepTypes_sub` (snapshots, forwarding, async off → `stepTypes md ⊆ netTypesK`).
+- **Decision.** The Antithesis lead (2026-11-26, decisions 1-3). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C: `PrecandVoteRespResultC`'s non-win exact (#33)
+- **Spec (strengthened internal result; additive).** `PrecandVoteRespResultC` (Spec/go_etcd_io/raft/v3/stepCandidate.lean,
+  `stepCandidate`'s pre-candidate `MsgPreVoteResp` result) gains `(won = false → ¬ JQuorum c (granted votes'))`. Defect:
+  only `won = true → JQuorum …` was stated, so a pending `poll` could leave a pre-candidate at a quorum tally, and
+  `RnScope`'s conjunct "a pre-candidate's tally is not a quorum" (conf changes off) was not provably kept by
+  `RawNode.Step`. Evidence: Go's `poll` is exact (`raft__poll.spec`: `res = VoteWon ↔ JQuorum c (granted votes')`), and
+  `stepCandidate` campaigns exactly on `VoteWon`. Proof: stepCandidate.lean's `Hres_pv` takes the conjunct, discharged
+  from `Hwon` in the lost and pending branches. Readers destructuring it gain one `_` (StepEndBk, InputEndLift,
+  raft__Step/prevote_lemmas). Part copies.
+- **Use.** StepEndRole.lean (new): `RoleFn` (a pre-candidate after a B1 network step was one before, its leader kept, its
+  tally kept or not a quorum; a follower leaves the follower role only as a voter), `roleFn_of_stepEnd`.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C1: `RawNode.Step.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (the lead's statement, decision 1).** RawNodeAbsSpecs.lean: `RawNode.Step.absSpec := ∀ sc : Option RnMode,
+  (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧ md.forwarding = false ∧ md.async = false) →
+  RawNode.Step.form (ownRawNodeAt … sc) (fun md => sc = some md)` (was `∀ sc : Bool` at `basicScope sc`, i.e. only
+  `md = {}`). The premise names the four features B1 does not turn on: forwarding (a network `MsgProp` is in
+  `stepTypes md` and has no proof yet) and async (the storage acknowledgements) besides the lead's "snapshots and
+  configuration changes off". `spec_of_abs` instantiates `none` (premise vacuous), `apiSpec_of_abs` `some {}`.
+- **Proof.** RawNode__StepAbs.lean at `sc = some md`: `RecvEndR` by `recvEnd_of_stepEnd_netK` over `LiftScopeK`, the
+  transfer arm by `timeoutNowEndR_of_stepEnd` / `transferRecvEndR_of_stepEnd`, the boundary by `ipEnd_of_stepEnd_netK`,
+  the scope kept by `RnScope.step` (StepEndRole.lean: the pre-candidate and membership conjuncts from `RoleFn`; the
+  reads-off conjunct now for every B1 type, `recvEnd_rd_nr` and the transfer relations' `rd_lead`) and `XScopeOk`
+  (the leader kept, cleared, the sender or the node itself, `recvEnd_lead`; a known leader's term past `0`,
+  `ownStepGhost_leadNz`; `xw` grown only by a forward to a known leader).
+- **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C2: `RawNode.Tick.absSpec` and `RawNode.Campaign.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (the lead's statement, decision 1, as C1's).** RawNodeAbsSpecs.lean: `RawNode.Tick.absSpec` and
+  `RawNode.Campaign.absSpec := ∀ sc : Option RnMode, (∀ md, sc = some md → snapshots, confChanges, forwarding, async off)
+  → form (ownRawNodeAt … sc) (fun md => sc = some md)` (were `∀ sc : Bool` at `basicScope sc`). `spec_of_abs` at `none`,
+  `apiSpec_of_abs` at `some {}`.
+- **Proof.** RawNode__TickAbs / RawNode__CampaignAbs at `some md`: `TickEnd` at any flags (`tickHbEnd_lift`: the quorum
+  check's step-down, `TickEnd`'s last arm, `cqEndN_of_stepEnd`; the heartbeats' context `hbCtx` of the read-only queue at
+  any read state); the scope kept by `RnScope.stepG` (a pre-campaign's pre-candidate has no leader and an empty tally,
+  `hupRole_of_stepEnd`, `not_jquorum_granted_empty`; `tick_role`), `XScopeOk` (`tickEnd_lead`). Lifting lemmas generalized
+  (no statement of record): `tickEnd_of_stepEnd_beat`, `logst_of_stepEnd_beat`, `bk_of_stepEnd_beat` take the role facts
+  they read instead of `LiftScope`, `bk_of_stepEnd_hup` none, `tickEnd_of_stepEnd_beat` no empty read-only queue.
+- **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C3 (Propose): `RawNode.Propose.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (the lead's statement, decision 1, as C1's).** RawNodeAbsSpecs.lean: `RawNode.Propose.absSpec := ∀ sc : Option
+  RnMode, (∀ md, sc = some md → snapshots, confChanges, forwarding, async off) → form (ownRawNodeAt … sc) (fun md => sc =
+  some md)` (was `∀ sc : Bool` at `basicScope sc`). `spec_of_abs` at `none`, `apiSpec_of_abs` at `some {}`.
+- **Proof.** RawNode__ProposeAbs at `some md`: `ProposeEnd` over `LiftScopeK` (`FnScope`); the scope kept by
+  `RnScope.stepG` (the role kept, `LocalFrame`; a pre-candidate drops the proposal and keeps its state,
+  `preCand_of_stepEnd_prop`), `XScopeOk` (`proposeEnd_lead`). Lifting lemmas generalized (no statement of record):
+  `proposeEnd_of_stepEnd`/`recvEnd_of_stepEnd_prop` take `FnScope`, `logGrow_of_stepEnd_prop`/`bk_of_stepEnd_prop` no scope.
+- **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C3 (Advance, HasReady): `RawNode.Advance.absSpec` and `RawNode.HasReady.absSpec` at every scope `Option RnMode`; `Advance.form`'s pre-vote premise only at pre-vote off (#33)
+- **Spec (the lead's statements).** RawNodeAbsSpecs.lean: `RawNode.Advance.absSpec` and `RawNode.HasReady.absSpec := ∀ sc :
+  Option RnMode, (∀ md, sc = some md → snapshots, confChanges, forwarding, async off) → …` at `ownRawNodeAt … sc` (were
+  `∀ sc : Bool` at `basicScope sc`; decision 1, as C1/C2); HasReady's idle fact `∀ md, sc = some md → PIdle … ∧ ip = …`
+  (was `sc = true →`). **`RawNode.Advance.form`'s premise weakened** (lead's decision, design §2 table): `∀ md, S md →
+  md.prevote = false → ∀ q ∈ qs, q.ty ≠ .preVoteResp` (was `∀ md, S md → ∀ q ∈ qs, …`): at pre-vote on a queued
+  `MsgPreVoteResp` (the pre-candidate's self answer) is stepped as any self-addressed response, `RecvEnd` at the node's
+  flags (`recvEnd_of_stepEnd_netK`, the pre-candidate's tally below a quorum from `RnScope`). The proof no longer reads the
+  premise. `spec_of_abs` at `none`, `apiSpec_of_abs` at `some {}`.
+- **Proof-internal (no statement of record).** `AckEnd` (LemmasStepGates.lean) gains `s'.lead = s.lead ∧ s'.votes = s.votes`
+  (`toPState` hides both at a pre-candidate; `RnScope`'s pre-candidate conjuncts through `Advance`'s storage
+  acknowledgements), proved by `rfl` in raft__Step/MsgStorageAppendResp.lean, MsgStorageApplyResp.lean and raft__Step.lean's
+  snapshot-acknowledgement close (the end states are `s` with the log, progress and learner maps replaced).
+  RawNode__AdvanceAbs at `some md`: `advStep_pure` over `LiftScopeK` (`RoleFn`, the leader kept, cleared or the node as a
+  new leader: `recvEnd_lead_resp`; storage acknowledgements `roleFn_ack`), the loop's invariant `RnScope md ∧ XScopeOk`.
+  RawNode__HasReadyAbs at `some md` (`durTie_scopeOpt`, `pidle_of_hasReady` reads the log's boundary only).
+- **Decision.** The Antithesis lead (2026-11-26: decision 1; the `Advance.form` premise at pre-vote off). No axiom, no premise
+  added.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C4: `RawNode.readyWithoutAccept.spec`/`acceptReady.spec` and `RawNode.Ready.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (approved, C4).** Spec/…/RawNode__readyWithoutAccept.lean and RawNode__acceptReady.lean: `sc : Bool` → `sc :
+  Option RnMode` with decision 1's premise `∀ md, sc = some md → snapshots, confChanges, forwarding, async off` (the
+  proofs read the scope's no-snapshot facts; the approved text named only the type change); `basicScope sc` → `sc`.
+  readyWithoutAccept's in-scope fact `∀ md, sc = some md → rs.delivered ++ ce <+: r.p.log ∧ … ∧ (md.transfer = false →
+  ∀ q ∈ ms, (absMsgOf q.st).isSome)` (was `sc = true → roleGo r.p.role = stateW64 s.role ∧ … ∧ ∀ q ∈ ms, …`: the
+  role conjunct dropped, unused since 30c8840abc; typed only at transfer off). acceptReady's `%Hout` at `∀ md, sc = some md
+  →`. RawNodeAbsSpecs.lean: `RawNode.Ready.absSpec` at decision 1's form (was `∀ sc : Bool`).
+- **Proof.** RawNode__readyWithoutAccept/acceptReady at `Option RnMode` (`rnScopeAt_pureOpt`, `rnScopeAt_keepOpt`,
+  `durTie_scopeOpt`). RawNode__ReadyAbs at `some md`: the transfer conjuncts of `Ready.form` (each message typed or a
+  transfer message; `XReadyOk`) from the named state's queues (`ownRawNodeReadyS_xq`: `ownRaftPhysReady`'s `XfOk`,
+  `outboxRelP`, `MsSub`; `xmsgOf_isSome_of_shape`, `xReadyOk_of` with the scope's `XScopeOk` at transfer on; typed at
+  transfer off). Users at `none`: TracedRawNodeReady.lean, node__run_gated.lean (mechanical: `false` → `none (fun _ h =>
+  by cases h)`), RawNodeSpecOfAbs.
+- **Decision.** The Antithesis lead (C4 approved; decision 1). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step D: the RawNode apiSpecs and `rawNode` laws at every mode (#33)
+- **Spec.** RawNodeApi.lean: `RawNode.{Step,Tick,Campaign,Propose,Ready,Advance}.apiSpec := ∀ md : RnMode, md.snapshots =
+  false → md.confChanges = false → md.forwarding = false → md.async = false → form (fun γ => rawNode γ md) (fun md' =>
+  md' = md)` (were at `{}`); `ReportUnreachable.apiSpec`, `HasReady.apiSpec` likewise; **new** `RawNode.ReadIndex.apiSpec`
+  and `RawNode.TransferLeader.apiSpec` (their forms over `rawNode γ md`, the forms' own reads/transfer premises). The
+  `rawNode` laws (wf, noSnap, logTerms, phsTerm, scope, logRecs, leader, tally, commit, committed, commitInv, entries,
+  term_tc, raise_tc, appended) at `∀ md` with the same four premises; `rawNode_scope` also takes `md.nonVoters = false`
+  (its `id ∈ γ.reCfg` is `RnCfgIn`'s non-voter conjunct). `NewRawNode.emptyStartApiSpec` still at `{}` (boot, deferred).
+- **Proof.** RawNodeApiLinked: `apiSpec_of_abs` at `some md` (`some_eq_some_md`); `rawNode_ghost` at a mode without
+  snapshots (the scope's no-snapshot conjunct); new `ReadIndex/TransferLeader.wp_apiProof`.
+- **Decision.** The Antithesis lead (D; decision 1's scope). `rawNode_scope`'s non-voter premise: flagged to the lead.
+  No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: `PInitR`'s read state fresh (#33)
+- **Spec (strengthened Sim definition; node.start's request).** `PInitR R r` (Sim/Rel.lean): the last conjunct
+  `r.p.rd.pend = []` → `r.p.rd = {}` (no `ReadState`, a fresh read-only object, no deferred request).
+- **Defect / evidence.** `NewRawNode` restarts a node at `restartR … = {restartP … with …}`, whose read state is
+  `initPState`'s `{}`; `nodeOwn`'s `.loop` phase after `node.start`'s restart needs the restarted state to be the
+  view's (`Reach.stay`), and `FreshView` (through `PInitR`) left `rd.states`, `rd.ro` unconstrained, so the equality
+  was unprovable (`HarnessStart.restartR_fresh`).
+- **Users.** `FreshView` is a premise everywhere it is consumed (`antSim_init`, `antSim_boot`, `nodeOwn .down`); its one
+  producer is `RunCluster.viewInit_fresh` (`viewInit`'s `rd` is `{}`: still `rfl`). Sim/Init.lean derives the old
+  `rd.pend = []` from it; Sim/Boot.lean and `HarnessStart.fresh_dur` ignore the conjunct.
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S1): the Sim's ready and quiet theorems at any admissibility (#33)
+- **Spec.** `AntSim.rdCtx_of`, `AntSim.antSim_ready_in`, `AntSim.antSim_quiet_in` (Sim/Ready, ReadyAll, Quiet) and
+  HarnessInput's `antSim_quiet_in.law`: the `Reach`/`Quiet` premise at an implicit `{Adm}` instead of `admOf G`
+  (a generalization: `admOf G` is one instance).
+- **Defect.** The harness's `.loop` phase carries `Reach … (AdmFold γ.dec γ.R.c0)`, and a `StepR` derivation at `AdmFold`
+  does not transport to `admOf G`; the drain could not apply the theorems.
+- **Evidence.** The proofs read `Adm` only through `ReachIn.toP` and `nodeOk_quiet`, both `Adm`-generic: no proof edit
+  beyond the binder.
+- **Decision.** The Antithesis lead (S1, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S4, part 1): `RawNode.Ready`'s post gains the pre-candidate's pre-vote flag and the read states (#33)
+- **Spec.** RawNodeAbsSpecs.lean, `RawNode.Ready.form`'s `%Hout` (under `∀ md, S md`) gains
+  `(roleAfter rs.role ss = StatePreCandidate → rs.k.prevote = true) ∧ sts = r.p.rd.states` (a strengthening).
+  Spec/…/RawNode__readyWithoutAccept.lean: the named state's pure facts gain `sts = s.rd.states ∧
+  (s.role = .preCandidate → s.prevote = true)` (a strengthening of the internal spec; readers other than
+  RawNode__ReadyAbs drop the conjunction with `-`, unchanged).
+- **Defect.** The drain's `ReadyOutP` (Sim) needs a reported pre-candidate's pre-vote flag on (`R.k n`, via
+  `RsView`'s `rs.k`) and the `Ready`'s read states to be the node's; the post said neither (`ReadyOut` has no
+  read clause).
+- **Evidence.** readyWithoutAccept already instantiated `sts := s.rd.states` and had `Hprecand`
+  (`ownRaftPhysC_precand`) in scope; RawNode__ReadyAbs reads `rs.k.prevote = s.prevote` off the scope's `KTie`.
+- **Decision.** The Antithesis lead (S4 (a)(b), approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S2): `RsView` relates the last reported role (#33)
+- **Spec.** HarnessRun.lean's `RsView` (nodeOwn's record against the view) gains `roleStr rs.role = AntSim.roleS v`
+  (S4's `rs.role = roleGo v.ps.role`, which parity had dropped).
+- **Defect.** A `Ready` with a `nil` `SoftState` reports `n.role`, i.e. `rs.role` (`roleAfter rs.role none`); without the
+  clause the drain could not relate it to the view's role (`ReadyOut`'s role reading).
+- **Evidence.** Inputs do not move `rs.role` nor the view's `pre`/`r` (`rsView_noteInput`'s new `hrole`, `rfl` by
+  default); node.start's fresh node is a follower. Mechanical: node__tick/node__campaign read `rs.flw` as
+  `hrv.2.2.2.2.2.1`; node__start's tuple gains the role component.
+- **Decision.** The Antithesis lead (S2, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S4 (d), part 1): the cluster's acknowledgement maps named for exactly its ids (#33)
+- **Spec.** Protocol/Facts.lean `ownRaftGhost_alloc_core_reg_tr`'s post gains `⌜domSet γ.reAcks = ids⌝` (first conjunct;
+  `alloc_maps` already proved it, the proof dropped it); `ownRaftGhost_alloc_core_reg` unchanged (drops it).
+  ClusterAllocRun's `cluster_alloc_run` (and the private `cluster_alloc_normBoot`) gain `domSet γ.raftNames.reAcks =
+  GMap.listToSet ids`; RunClusterAlloc's `antRaft_alloc` gains `∀ a, (γr.raftNames.reAcks !! a).isSome → ∃ j : Fin R.N,
+  a = AntSim.nodeId j`. All strengthenings of allocation posts.
+- **Defect.** The drain's `XPendOk` needs a `MsgTimeoutNow`'s destination to be a server; raft hands out only `isRaftMsg`'s
+  `isAcked γ dst t i` (i ≠ 0), whose node has an acknowledgement map, and no fact said which ids have one.
+- **Evidence.** Static names fact from the allocation; callers' patterns gain one component (InvApiBoot `-`, RunCluster
+  `Hacks`). Part 2 (antCluster's pure facts) follows group D's antCluster edit.
+- **Decision.** The Antithesis lead ((d) as allocation plumbing, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S5): a `MsgTimeoutNow`'s term bounded at its receipt (#33)
+- **Spec (Sim, lead-approved receiver-side route).** Stmts.lean `Reach.input` and Scope.lean `ReachIn.input`: the
+  recvX premise gains `x.ty = .timeoutNow → uint.Z x.term ≤ uint.Z v.dur.term`. ReachP's `campX` (Scope, internal)
+  gains `uint.Z x.term ≤ uint.Z v.ps.term` (last field). Retired: `XNetOk`'s `MsgTimeoutNow` clause (Rel.lean),
+  `XMsgFacts` and `antSim_sendX.stmt`'s `XMsgFacts G x` premise (Stmts), `RaftFacts.acks` and `GlobalOk`'s ack clause
+  (Rel), `antSim_init.stmt`'s `G.acks = []` premise, `FactsLe`'s `G'.acks = G.acks` (DrainSteps), `ReadyKind.campX`
+  (now unreachable). New raft law `isAcked_term_le` (AckedTerm.lean, proved): `ownDurGhost γ id S -∗ isAcked γ id t i
+  -∗ ⌜i ≠ 0 → t ≤ S.term⌝ ∗ ownDurGhost γ id S`.
+- **Defect.** The design's sender-side derivation (§6.4: at `sendX`, `LeaderPart`'s ack + `AckTermsOk`) needs the
+  leader's `Match[dst] ≠ 0` at the message's term in the view's state; raft's `Ready` gives only `x.term ≤ p.term` and
+  `isAcked`, and the stronger fact is false at a general `Ready` (a leader steps down with the message queued:
+  raft.go:1284, `reset` keeps `r.msgs`). `G.acks` was never grown (no route linked raft's `isAcked` to it).
+- **Evidence.** The receiver owns its durable ghost: `isAcked`'s fragment `(t,i) ↪[γa]□ ()` against `durShares`'
+  `ghostMapAuth γa ½ E.acks` (`ghost_map_lookup`), `durPers` bounds `E.acks`' keys by `S.term`. The consumers
+  (`quiet_reachP`, `selfPre_reachP`, `ready_cmt`'s `MatchOk`, `kind_of_reach`) read the campX field; `xnetOk_of_xpend`
+  keeps the first clause; GlobalOk's projections after `BootFacts` shift (Send, ReadyRel). Every theorem strengthened
+  or unchanged; the harness's node.step (group D) proves the new premise from `netXMsg`'s `isAcked` clause.
+- **Decision.** The Antithesis lead (S5 receiver-side route, points 1-5, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group D (Q2/Q3, (a)): the network's transfer messages carry what `RawNode.Step` takes; read credits minted by the receiver (#33)
+- **Spec.** HarnessRun.lean: `XNetFacts` += `Index' = 0 ∧ LogTerm' = 0 ∧ Commit' = 0 ∧ ents = [] ∧ Reject' = false` (Q3(a));
+  `netXMsg` and `sendFacts`' transfer arm += `□ (⌜Type' = MsgTransferLeader ∧ Term' ≠ 0⌝ -∗ isLeader γ To' Term')` (Q3(b));
+  and (lead's (a)) `□ (⌜Type' = MsgTimeoutNow⌝ -∗ ∃ i, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ To' Term' i)`;
+  `causeOwn`'s pending arm is a protocol message's
+  (`evRecv`) or a transfer message's (`evRecvX`, `xcause`) (Q2); new `rdMinter γ := □ (⧗ 1 ={⊤}=∗ rdCred γ 1)`, a conjunct
+  of `antCluster` (after `propMinter`). Q5 (`netMsg` += the read credit) is replaced by the receiver's minting:
+  `node.step` mints a stepped `MsgReadIndex`'s credit for a time receipt (`rdMinter`), so `netMsg`/`sendMsg` and
+  `Cluster.send` carry none (a time receipt per clone is not reachable in `Cluster.send`'s loop: its resolutions are
+  taken by the loop's automation).
+  ClusterAllocRun's `isCluster_rdMint` (new, proved: `isCluster γ N -∗ ⧗ 1 ={E}=∗ rdCred γ.raftNames 1` from the
+  cluster's read-credit exchange `rdPool`, as raft's `node.ReadIndex` mints with `rdPool_mint`).
+- **Defect.** `RawNode.Step` takes a `MsgReadIndex`'s read credit and a stamped `MsgTransferLeader`'s `isLeader`; the
+  in-flight messages carried neither, and the driver may deliver a message twice (each a clone, each stepped).
+- **Evidence.** CloneMsgLaw: `netXMsg_of_clone` takes the isLeader and the acknowledgement, `rdCred_of_receipt` (for
+  node.step); Cluster__send passes the persistent facts to each clone; RunCluster builds `rdMinter`
+  (`isCluster_rdMint`); node__start's antCluster pattern gains one component.
+- **Decision.** The Antithesis lead (Q2, Q3, (a) approved; the credits from the cluster's read-credit exchange, no new raft law). No
+  axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: raft's transfer and sender facts at non-voters on (#33)
+- **Spec (lead-approved).** RawNodeAt.lean `XScopeOk γ md s` (gains the mode): the known leader's membership only at
+  `md.nonVoters = false`; each `NGhost.xw` record `(p.1, p.2)` past term `0` (`p.2 ≠ 0`, unguarded) and, at non-voters
+  off only, `p.1 ∈ γ.reCfg`; `lead ≠ 0 → term ≠ 0` unchanged. InvRaftPhys.lean `XfOk` clause 3: a queued
+  `MsgTransferLeader` is recorded in `xw` at any term (the `Term' ≠ 0 →` guard dropped; `raft.send`'s spec already
+  gives the record unguarded). RawNodeAbsSpecs.lean `XReadyOk γ md id p x` (gains the mode): every transfer message to
+  another node at a term at most the node's (the `timeoutNow ∨ term ≠ 0` guard dropped), a new
+  `x.ty = .transferLeader → x.term ≠ 0`, and the forward's destination in `γ.reCfg` only at `md.nonVoters = false`
+  (its `term ≠ 0` guard dropped). `RawNode.Step.form`: the scope premise's `From' ∈ γ.reCfg` only at
+  `md.nonVoters = false`; `%Hend` gains a first arm `(r' = r ∧ ip' = ip) ∨ (the RecvEndR / XMsg / ip conjunction)`.
+  RawNodeApi.lean `rawNode_scope.law`: the `md.nonVoters = false →` premise dropped; only its `id ∈ γ.reCfg` conjunct
+  is guarded by it (`RnCfgIn`'s).
+- **Defect.** With non-voters on, the harness cannot show a message's sender to be a voter (group D: the
+  `isMessage`/`isLeader` route gives no membership: `isLeader` is `isWin`; `reWins`/`isCampK` carry none). Raft returns
+  `errStepPeer` with its state unchanged for a response from a sender with no `Progress`, so the sender premise and the
+  leader-membership facts it fed are needed only at non-voters off. The drain needs a handed-out `MsgTransferLeader`'s
+  term past `0` without assuming it.
+- **Deviation from the requested text.** The unchanged arm has no `err = errStepPeer` conjunct: that error value is
+  existential inside `isInitialized` (Base.lean), not a term a spec can name. The driver reads `Step`'s error only for
+  `MsgProp` (node.go); the arm is taken only for response types, so never for a `MsgProp` (group D agreed).
+- **Evidence.** A stamped forward is recorded only at a follower's `(lead, term)` with `lead ≠ 0` (`%Hxwframe`'s growth
+  conjunct), and `XScopeOk`'s last clause gives `term ≠ 0`. RawNode__StepAbs's `errStepPeer` early return proves the new
+  arm (`errStepLocal` is still impossible in the scope). Mechanical: `XfOk.of_fields`/`xw_insert`/`snoc`,
+  `ownRaftPhysC_msgs(AA)`'s premise, raft__send's transfer case, LemmasReadyR's three `Hxw` arguments
+  (`fun h _ => …`), the XScopeOk keep sites (Start, Advance, Campaign, Tick, Propose, TransferLeader, Step, Ready).
+- **Decision.** The Antithesis lead (approved via group D, 2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: node.sendMsg proved; its spec's no-responses premise (#33)
+- **Spec (lead-approved, option (B)).** `Spec/.../antithesis/node__sendMsg.lean` `node.sendMsg.spec` gains
+  `⌜st.resps = []⌝` after `⌜γ.mode.SnapStatus' = false⌝`.
+- **Defect.** Go clones the message (`proto.Clone`) before `Cluster.send` drops it; the clone's law (`cloneMsg.law`,
+  the registered `ClonePb`) needs a message with no responses. `sendFacts`' protocol and transfer arms give it
+  (`NetMsgOk`'s last conjunct), but its first arm (a `MsgProp` at forwarding off) does not.
+- **Evidence.** The caller (the drain) has, for each message of a `Ready`, raft's `isRaftMsg` (`Henter`), whose
+  `SentMsgShape` ends in `st.resps = []`. `sendFacts` unchanged (the alternative, (A), was a conjunct of its first arm).
+- **Proof.** `node.sendMsg.wp_proof` (node__sendMsg.lean, NEW): `msgPtsCC_ro_split` (the content read-only, the
+  capacity kept), `cloneMsg_law_of`, `msgPtsCC_clone_net`, `Cluster.send.spec`. `#print axioms`: std +
+  `pbMessageC_reg` (baseline TCB, as `Cluster.send`'s).
+- **Decision.** The Antithesis lead (2026-11-26). No new axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S4 (d), part 2): the cluster's winners maps named for exactly its ids; `antCluster` carries both names facts (#33)
+- **Spec.** Protocol/Facts.lean `ownRaftGhost_alloc_core_reg_tr`'s first conjunct is now `⌜domSet γ.reAcks = ids ∧
+  domSet γ.reWins = ids⌝` (`alloc_maps`' fact for the winners map, which the proof dropped). ClusterAllocRun's
+  `cluster_alloc_run` (and `cluster_alloc_normBoot`) gain `domSet γ.raftNames.reWins = GMap.listToSet ids`;
+  RunClusterAlloc's `antRaft_alloc` gains `∀ a, (γr.raftNames.reWins !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId
+  j`. HarnessRun's `antCluster` gains a last pure conjunct: both facts (acknowledgement and winners maps named for the
+  run's servers only), proved in `RunCluster`. All strengthenings of allocation posts / a persistent cluster fact.
+- **Defect.** The drain's `XPendOk` needs a transfer message's destination to be a server. Raft hands out only
+  `isRaftMsg`'s certificates: a `MsgTimeoutNow`'s `isAcked γ dst t i` (i ≠ 0, so `reAcks !! dst = some _`) and a stamped
+  `MsgTransferLeader`'s `isLeader γ dst t` (its `isWinCore`: `reWins !! dst = some _`; new lemma `isLeader_wins`,
+  AckedTerm.lean, with `isRaftMsg_xdst` reading both). No fact said which ids have those maps. Drain side
+  (DrainSteps `xdst_server`): the certificates' maps plus `antCluster`'s facts give the destination a server;
+  DrainBridge's `xPendOk_of` takes it (`htn`, `htr`) in place of the interim `hcfg`/`hnv` (non-voters are on in B1,
+  so `XReadyOk`'s configuration clause is not usable).
+- **Evidence.** Callers' patterns: ClusterAllocRun's `%Hdom` split, RunClusterAlloc `Hwins`, RunCluster `Hwins` and
+  the antCluster intro, `node__start`/`Cluster__proposer`'s antCluster patterns gain a trailing `-` (the other sites end
+  in a name that already absorbs the tail).
+- **Decision.** The Antithesis lead (forward-destination route, steps 2-3, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: raft's read-mint law for the harness (rawNode_read_mint) (#33)
+- **Law (lead-approved, corrected statement).** RawNodeStartSpec.lean `rawNode_read_mint (γ N U c E) (HE : ↑N ⊆ E) :
+  ⊢ isCluster γ N -∗ ownReadCtxs γ U -∗ ⌜c ∉ U⌝ ={E}=∗ ownReadCtxs γ (insert c U) ∗ rdFresh γ.raftNames c ∗
+  readAu γ.raftNames (fun _ => True)`: a client holding the read contexts' authority mints an unused context's
+  fresh token and raft's trivial read update, for its own `RawNode.ReadIndex` (the antithesis driver's `node.readIndex`).
+  ClusterAllocRun `cluster_alloc_run` (and the private `cluster_alloc_normBoot`) also return `ownReadCtxs γ ∅` (was
+  dropped); RunClusterAlloc `antRaft_alloc` returns it (`RunCluster` names it `HU`, unused until the reader's
+  `readerOwn` carries it).
+- **Why not the requested general form** (`ctxAu γ N Q` premise, `readAu (qrOf Q)`): unsound. `RawNode.ReadIndex`
+  accepts the fresh token with ANY read update `Qr`, so a deposit of `c` need not be at `qrOf Q`; yet the adapter's
+  `readStateOk_ctx` would give `□ Q` of a read state of `c` to whoever holds `isReadCtx c Q`. Also the adapter's
+  invariant required every key of its fresh-token map `RF` to be deposited already (`rdKeys`: `readReq`; `rdFreshOk`:
+  `isRead … (qrOf Q)`), which a token handed out before the deposit breaks.
+- **Invariant change (InvApi, untrusted).** `apiInvBody` gains `RL : GMap (List w8) GName` and `rdLent γ RL :=
+  [∗map] c ↦ γq ∈ RL, c ↪[γ.ctxs]□ (γq, []) ∗ savedPredOwn γq (DFrac.own 1) (fun _ => True)`; `rdKeys γ RF RL` per
+  key `readKey γ c ∨ (⌜(RL !! c).isSome⌝ ∗ ∃ γq, c ↪[γ.ctxs]□ (γq, []))`, `rdFreshOk γ RF RL` per key
+  `readDep γ c ∨ ⌜(RL !! c).isSome⌝`. A lent context's `ctxs` name has its saved predicate owned whole by the
+  invariant, so no `isReadCtx` of it exists (`rdLent_ctx_absurd`: `own 1 • discard` invalid). `api_read_ensure` and
+  `readStateOk_ctx_impl` (via the new `api_readReq_ctx`) dismiss the lent case by it; `api_readReq_dep` now returns
+  only `readKey` (a lent context's from the request itself at `l0 = []`). New: `api_readAu_true` (raft's trivial read
+  update from the adapter's invariant alone), `api_read_lend` (the law's body). Public node-API statements unchanged.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: RawNode.HasReady's false arm without read states (#33)
+- **Spec (lead-approved, post-only; PIdle unchanged).** RawNodeAbsSpecs.lean `RawNode.HasReady.absSpec`'s false arm:
+  `⌜(∀ md, sc = some md → PIdle rs r.p ∧ ip = r.p.log.length) ∧ r.p.rd.states = []⌝` (was the first conjunct only).
+  RawNodeApi.lean `RawNode.HasReady.apiSpec`: `⌜b = false → PIdle rs r.p ∧ ip = r.p.log.length ∧ r.p.rd.states = []⌝`.
+- **Defect.** Go's `HasReady` is true whenever raft holds read states (`rawnode.go`'s `len(r.readStates) != 0`); the
+  specs did not say so, and the antithesis drain's exit needs `QuietIn.noReady`'s `r₁.p.rd.states = []`.
+- **Evidence/Proof.** RawNode__HasReadyAbs's false case already derives `Hrd0 : s.rd.states = []` (the read states'
+  slice length 0); passed to the post. RawNodeApiLinked's `apiSpec_of_abs` threads it; RawNodeSpecOfAbs unchanged
+  (drops the pure fact). Also: ApiVocab's `isRaftMsg` comment (MsgTimeoutNow clause: read by the receiver as
+  `isAcked_term_le`), and Protocol/RnMode.lean's doc reference to `raft_antithesis_robust_msgs`. Part copies.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group D: RsView ties raft's durable term to the disk's; nodeOwn_acked proved (#33)
+- **Statement (HarnessRun, lead-approved).** `RsView rs v` gains its last conjunct `rs.dur.term = v.dur.term`: raft's
+  durable ghost's term (`nodeRaft`'s `ownDurGhost γ id rs.dur`) is the disk's. It holds across a `Ready`: raft's post
+  moves `rs.dur` to `readyDurable rs.dur (phsNext rs.phs h) L es`, whose term is `(phsNext rs.phs h).Term'`, the new
+  `rs.phs`'s term, which `RsView`'s first conjunct makes the disk's; every input keeps `rs.dur` (`rsView_noteInput`);
+  `node.start` has `rs.dur = downDur R`, whose term is the fresh disk's (`1` bootstrapped, else `0`).
+- **Retired hypothesis.** `nodeOwn_acked.law` (HarnessStep) is now the theorem `nodeOwn_acked` (`isAcked_term_le` on
+  `nodeRaft`'s durable ghost, RsView's new conjunct); `node.step.wp_proof` no longer takes it.
+- **Mechanical.** node__start (the conjunct at the start), DrainB1Loop (rsView_role/drain_exit's role projection
+  `.2.2.2.2.2.2` → `.2.2.2.2.2.2.1`, the new conjunct kept at `{v with r := r₁, qs := []}`).
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: RawNode.Ready's messages typed at transfer off (#33)
+- **Spec (lead-approved).** RawNodeAbsSpecs.lean `RawNode.Ready.form`'s `%Hout` gains, after the `XReadyOk` clause,
+  `(md.transfer = false → ∀ q ∈ ms, (absMsgOf q.st).isSome)` (the drain's send side: a protocol message for `netMsg`).
+- **Evidence/Proof.** `RawNode.readyWithoutAccept.spec` already states it (its scope conjunct's last clause, from
+  `XfOk`'s typed-until-a-transfer-request clause); RawNode__ReadyAbs passes it. Part copies.
+- **Not added (needs a Step premise; reported to the lead):** zero Index/LogTerm/Commit/Reject of a handed-out transfer
+  message. A follower forwards a stepped `MsgTransferLeader` with only `To` changed (stepFollower), and raft's Step
+  premise `NetMsgOk` constrains a stepped `MsgTransferLeader` only in its entries and context.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group D: the reader mints raft's read resources; node.readIndex proved (#33)
+- **Statements (HarnessRun, lead-approved plumbing for `rawNode_read_mint`).** `readerOwn γ k` gains raft's contexts
+  `ownReadCtxs γ.raft S_k` (the same set `"r1" … "r(k-1)"` as the harness's) and `∃ N, isCluster γ.raft N`;
+  `readOk γ ctx` gains `rdFresh γ.raft.raftNames ctx ∗ readAu γ.raft.raftNames (fun _ => True) ∗ ⧗ 1`. The receipt
+  (beyond the approved list; reported to the lead): `node.readIndex`'s `readreq` report weighs 2 and only `emit`'s
+  resolution precedes it, so the reader passes one receipt (its `deliver` resolution's). The read credit is
+  `node.readIndex`'s own (`rdMinter`, the receipt of `ReadIndex`'s resolution).
+- **HarnessReport (group D's lemma, only caller node.readIndex).** `report_updG`/`report_auG`: `hstep` also takes the
+  run's relation `AntRun` (what `runInMask` takes, for `antSim_readreq_in`'s `InMask`); the continuation also gets
+  `raftFactsOwn γ.raft.raftNames G` (persistent; `ReadIndex`'s `isCommitted γ G.committed`, `L0 := G.committed`, the
+  committed log whose length the view records as the read's floor).
+- **Proofs.** Cluster__reader (`rawNode_read_mint` per context, freshness `rctx_fresh`), RunCluster (`HU` and
+  `isCluster` at `antRaftN` into `readerOwn γ 1`), node__readIndex (NEW: `readreq` by `report_updG` +
+  `antSim_readreq_in` at `mskB1`, `RawNode.ReadIndex`, `view_input` at `.readIndex ctx`, `Reach.input`, `input "read"`).
+- **Open (for the drain's `read` report).** `ReadIndex`'s `∃ Lc, ⌜G.committed <+: Lc⌝ ∗ readReq γ ctx Lc` is dropped:
+  nothing in `nodeOwn`/the invariant keeps it for the view's read `(ctx, G.committed.length)`.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: transfer messages' zero numbers through raft (#33)
+- **Spec (lead-approved; coordinator OK for the shared lines).** ApiVocab `SentMsgShape`: its third clause (the unstamped
+  types' term) becomes a pair, `((Type' = MsgProp ∨ Type' = MsgReadIndex → Term' = 0) ∧ (Type' = MsgTimeoutNow ∨
+  Type' = MsgTransferLeader → st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧ st.msg.Commit' = W64 0 ∧
+  st.msg.Reject' = false))`: positions kept, and no etcdserver file reads that clause (they read the 4th, 6th-8th),
+  so no etcdserver change (also RaftNoAx's own ApiVocab). NetMsgOk's transfer clause and raft.Step's `RestMsgOk` += the
+  same four facts of a `MsgTransferLeader`. stepFollower.spec's transfer premise (and TracedUntracedStep's restatement)
+  += them; raft.send.spec's transfer case += them of `m`. RawNodeAbsSpecs `RawNode.Ready.form`'s `%Hout` += `∀ q ∈ ms,
+  ∀ x, xmsgOf q.st = some x → q.st.msg.Index' = W64 0 ∧ q.st.msg.LogTerm' = W64 0 ∧ q.st.msg.Commit' = W64 0 ∧
+  q.st.msg.Reject' = false`. InvNodeChan `netP_local` takes them of a local `MsgTransferLeader` (its four callers: literals or by type).
+- **Defect.** The Go report of a transfer message carries Index/LogTerm/Commit/Reject and the Antithesis binding expects
+  zeros; raft did not say so. Real traffic has them: raft builds `MsgTimeoutNow` and the local `MsgTransferLeader` with
+  only type, ends (and term), and every `MsgTransferLeader` on the wire is a forward of a local one (a follower changes
+  only `To`, `send` stamps `Term`). So the forward needs it of the stepped message: Step's premise (`NetMsgOk`/
+  `RestMsgOk`), which the node API gets from the sender's `SentMsgShape` (`NetMsgOk.of_shape`) and RawNode callers
+  from their transport (the antithesis harness: `XNetFacts`).
+- **Proof.** ApiVocab (`SentMsgShape.ok`), NetMsgOk.of_shape, raft__send (transfer case `Hzf`; `sent_tac`'s new arm), sendTimeoutNow (literals), stepFollower
+  (the forward passes `Hzf`), raft__Step / MsgRest (`wp_Step_MsgTransferLeader` takes them, passes them to
+  stepFollower), RawNode__TransferLeader(Abs) (literals), RawNode__ReadyAbs (`xmsgOf_zero`), InvNodeChan and node__
+  ReportUnreachable/TransferLeadership/ForgetLeader/ReportSnapshot; harness DrainB1Send (`xnetFacts_of_ready`'s
+  NetMsgOk transfer arm from its `XZero`; `hz.1`). Part copies.
+- **Trust.** No axiom statement or TopLevel file names SentMsgShape or its direct users (lead's check): an untrusted
+  vocabulary strengthening. No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1, group D: nodeOwn keeps each pending read's raft request (#33)
+- **Statement (HarnessRun, lead-approved 2026-11-27).** `readsOwn γ v := [∗list] p ∈ v.reads, ∃ Lc, readReq
+  γ.raft.raftNames p.1 Lc ∗ ⌜p.2 ≤ Lc.length⌝` (persistent), a conjunct of `nodeOwn`'s started part after `csPts`;
+  DrainB1Loop's `loopRest` carries it too (same place). The drain's `read` report reads a read's floor bound from it.
+- **Proofs.** node__readIndex: `nodeOwn_read_open` (replaces `nodeOwn_reads_open`), `bigSepL_readsTrunc`, `readsOwn_ask`; `readView` renamed `readreqView` (DrainSteps has a `readView`; the Link imports both);
+  `ReadIndex`'s `readReq γ ctx Lc` (with `G.committed <+: Lc`) kept for the new view read. node__start: no read at the
+  start (`FreshView`'s `reads = []`). HarnessInput/HarnessStep/DrainB1Loop: mechanical (the conjunct threaded).
+- **Recorded.** The lead's approval of `readOk`'s `⧗ 1` (the `readreq` report's second receipt; 74fd3d1d11's entry).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: the read requests' numbers with reads on (#33)
+- **Defect.** `AntSim.readyMsgNums` asks `ReadNums (2 ^ 61) v.ps` (deferred reads' entries, a leader's queued reads'
+  index and entries) and, for a `MsgReadIndex` cause, its `MsgNums`; with reads on no invariant had them (only
+  `readNums_noReads`/`causeNums_noReads`, reads off).
+- **Why not `NodeFacts += ReadNums (2 ^ 61) v.ps` (the first proposal).** Quiet steps carry no number facts: a leader
+  with no entry of its term committed defers a received `MsgReadIndex` (`ReadIdxEnd` arm 1: `rd.pend` grows, nothing
+  sent, `Quiet.noReady`), and `nodeOk_quiet`/the law `antSim_quiet_in` have only `m ∈ net` and its `MsgMask`, no
+  number; and a queued read's index is the commit of the moment, which no `Sim` fact bounds (`StateNums` is the
+  harness's).
+- **Statement (Sim/Rel, lead-approved 2026-11-27).** `MsgNums`/`EntNums` moved from MsgBounds to Rel. `MsgMask` +=
+  `(m.ty = .readIndex → MsgNums (2 ^ 61) m)` (a local request, `readMsg`, has no numbers; a follower forwards one
+  with its numbers). `NodeFacts` += `ReadOk v.ps`, `ReadOk s := (∀ p ∈ s.rd.pend, EntNums (2 ^ 61) p.2) ∧ (s.role =
+  .leader → ∀ r ∈ s.rd.ro.pending, uint.Z r.index ≤ uint.Z s.commit ∧ EntNums (2 ^ 61) r.ents)`. Untracked Sim
+  vocabulary (MShape += the same `MsgReadIndex` clause). ViewNormal and NetFacts unchanged.
+- **Proofs.** Sim/ReadNums.lean (new): `commit_reachP`/`commit_reach` (commits only grow), `readOk_*`/`readOk_reach`
+  (as `readSrc_*`), `readNums_reach` (`ReadNums (2 ^ 61) v.ps` from `ReadOk` and the reached state's `StateNums`),
+  `causeReadNums`; DrainB1ReadNums.lean (new): `causeNums_reach` (reads on or off). MsgShape (`outShape_readIdx`'s
+  forward arm), Quiet, Ready (`afterOk_of`), Init; DrainB1Send's `pend_shape` (mechanical `-`).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: a forwarded MsgTransferLeader's sender is a server (#33)
+- **Defect.** `node.drain` needs, of a `Ready`'s forwarded `MsgTransferLeader`, `∃ i, x.src = nodeId i`
+  (`DrainMsgOkB1`); raft tracked nothing of a forward's `From`. A forward is only of an unstamped request
+  (`stepFollower`'s premise; a stamped one reaches only its term's leader, `#Hxfer`): its `From` is
+  `RawNode.TransferLeader`'s target or a stepped request's `From`; `send` puts the node's id for an unset `From`.
+- **Statement (raft, lead-approved 2026-11-27, design R2).** `NGhost.xsrc : GMap w64 Unit` (pure ghost, no witness, only
+  grows): the forwarded requests' senders. `raft.Step`'s transfer arm records `m.From'` (at a follower or a leader)
+  with `xw`'s record (`ownRaftPhysC_xsrc_record`, `ownStepGhost_set_xsrc`); `%Hxwframe`'s ghost equation names
+  `xsrc` and a 5th clause (`f ∈ s'.gh.xsrc → f ∈ s.gh.xsrc ∨ (MsgTransferLeader ∧ f = m.From')`); `SendOk`'s transfer
+  arm and `stepFollower`'s transfer premise take the record. **`XQOk`** (not `XfOk`, the lead's approved deviation:
+  `send` stamps `From := id` for `From = 0`) += `MsgTransferLeader → From = id ∨ (xsrc !! From).isSome`. Scope only:
+  `XScopeOk` += `∀ f, (xsrc !! f).isSome → (γ.reAcks !! f).isSome`; `RawNode.Step.form`'s scope premise +=
+  `MsgTransferLeader → (γ.reAcks !! From).isSome`; `RawNode.TransferLeader.form` += `∀ md, S md → (γ.reAcks !!
+  to).isSome`; `XReadyOk` += `x.ty = .transferLeader → x.src = id ∨ (γ.reAcks !! x.src).isSome`. `raft.Step.spec`
+  takes no new premise; the old `RawNode.Step.spec`/`RawNode.TransferLeader.spec`, the node API (`node.Step`,
+  `stepIn`, `isRaftMsg`) unchanged: no obligation on etcdserver or the kv drivers.
+- **Statement (harness, lead-approved).** `antCluster`'s names conjunct and `antRaft_alloc`'s post += `∀ j : Fin γ.R.N,
+  (γ.raft.raftNames.reAcks !! nodeId j).isSome` (from `ClusterAllocRun`'s `domSet reAcks = listToSet ids`).
+- **Proofs.** node.step and node.transferLeader discharge the scope premises (XNetFacts' server sender; the
+  spec's server target). The drain closes `DrainMsgOkB1`'s transfer clause from `XReadyOk` and `antCluster`.
+## 2026-11-27 — antithesis parity B1: the `read` and `apply` reports' receipts are the callee's (#33)
+- **Defect.** `node.reads.spec` and `node.applyCommitted.spec` took `reports γ.strm (…) Q` for all their reports up
+  front, so the caller had to hold `⧗ 2` per read state and `⧗ (|ce| + 2)` for the `apply` report before the call;
+  `node.drain`'s iteration end (`tailE`) has a bounded number of steps before each call and no other receipts
+  (`drainMidB1` carries none), so `drainAdvanceB1.stmt` was unprovable for an unbounded number of read states or
+  committed entries. (S4 reported `apply` inline, with `entriesOf`'s `⧗ ce.length`.)
+- **Statement (Spec, lead-approved 2026-11-27; edits of the one spec each).** `node.reads.spec`'s pre:
+  `reports γ.strm ((if rss = [] then [] else o.toList).map (atNode nm)) (readsAfter γ.strm nm rss Q)`, with
+  `readsAfter γr nm [] Q = Q`, `readsAfter γr nm (r :: rs) Q = ⧗ 2 -∗ reports γr [atNode nm (readEvM r)]
+  (readsAfter γr nm rs Q)` (each iteration's `reportCause` and `emit` steps supply them). `node.applyCommitted.spec`'s
+  pre: `reports γ.strm ((if es = [] then [] else o.toList).map (atNode nm)) (if es = [] then Q else ⧗ (es.length + 2)
+  -∗ reports γ.strm [atNode nm (applyEvM by_ es)] Q)` (`GetIndex`, `entries` and its `⧗ es.length`). Posts unchanged.
+- **Proofs.** node__reads (`readsLeft` over `readsAfter`, `wp_take_receipt` at `reportCause` and `emit`),
+  node__applyCommitted (`wp_take_receipt` at `GetIndex` and `entries`). Callers: only the drain (not yet linked).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: a read state's index within `2 ^ 61` (#33)
+- **Defect.** The drain's `read` report needs `(evRead id ctx i).NumsOk` (`uint.Z i < 2 ^ 61`; also `readEvM`'s
+  `sint.Z` against `evRead`'s `uint.Z`), and no invariant bounded a `Ready`'s read states: a follower's takes its index
+  from a received `MsgReadIndexResp`, on which nothing bounded the numbers, and the view's own read states were in no
+  fact (always `[]` in practice: `accepted` clears them, `Quiet.noReady` has none, the boot state none).
+- **Why not `MsgMask += (m.ty = .readIndexResp → MsgNums (2 ^ 61) m)` (the first proposal).** `MsgMask` is also
+  `NodeFacts`' clause of the pending messages, which the `Ready` step sets from `MShape`, without numbers: an answer's
+  index is a queued request's, at most the leader's commit, bounded only by the drain's `StateNums`.
+- **Statement (Sim/Rel, lead-approved 2026-11-27).** `NetOk`'s last conjunct `∀ m ∈ net, m.ty = .readIndexResp →
+  MsgNums (2 ^ 61) m` (net grows only by `send`: `send_rel`/`antSim_send_in` and `DrainSteps.sendHstep` take
+  `q.ty = .readIndexResp → MsgNums (2 ^ 61) q`, which the drain's send loop reads off `DrainMsgOkB1`). `NodeFacts`'
+  last conjunct `ReadOk v.ps ∧ v.ps.rd.states = []` (the strong form held at every step: Init, `Quiet.noReady`'s
+  premise, `drainOf`/`afterReady`'s `accepted`); `NodeFacts.states0`.
+- **Fallout.** Send.lean/Scope.lean (`PreVoterOk`'s position), Init (`NetOk`'s seven conjuncts, the boot state's
+  `rd`), Quiet (`nodeOk_quiet`'s two arms), Ready (`afterOk_of`), DrainSteps (`sendHstep`), DrainB1SendWp (the premise).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: `RawNode.Advance`'s end with no snapshot applied, its premise over the inputs (#33)
+- **Spec.** `RawNode.Advance.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the scoped post's
+  `AdvanceEndR`; through it `RawNode.Advance.absSpec` and `RawNode.Advance.apiSpec` (`RawNodeApi`).
+- **Defect.** The drain's advance phase (`drainAdvanceB1.stmt`) steps the Sim with `AdvanceNoSnap` (`AdvanceEndR`
+  whose storage acknowledgement applies no snapshot, the B1 mode has snapshots off), and the post gave only
+  `AdvanceEndR`, whose `AckEndR` has the snapshot arm: nothing excluded it. And the post's premise,
+  `NoUndecConfIn dec r'.full r.cidx (uint.nat r'.applied)`, was over the call's output `r'`, which no `rawNode` law
+  relates to the inputs: the caller could not discharge it.
+- **Statement (lead-approved 2026-11-27).** The inner `AdvanceEndR Adm dec rs.k id r qs r'` becomes
+  `AdvanceEndR Adm dec rs.k id r qs r' ∧ (md.snapshots = false → AdvanceEndRNoSnap Adm dec rs.k id r qs r')`
+  (`Protocol/InputEnd.lean`'s `AdvanceEndRNoSnap`, `AckEndR`'s first two arms); its premise
+  `NoUndecConfIn dec r'.full r.cidx (uint.nat r'.applied)` becomes `NoUndecConfIn dec r.full r.cidx
+  rs.delivered.length` (over the inputs).
+- **Proof.** `RawNode__AdvanceAbs.lean`: the proof only ever ended with `AckEndR`'s second arm (`StepR.advance`), so the
+  loop invariant (`Hae1`) and `advStep_pure` carry `AdvanceEndRNoSnap` in place of `AdvanceEndR`, and the post gives
+  both (`AdvanceEndRNoSnap.advanceEndR`). The premise: at the end `uint.nat r'.applied = rs.delivered.length`, and
+  both logs (start and end, base `0` with snapshots off) start with `rs.delivered` (`ownStepGhost_cmt_ents` against
+  the persistent `isCommitted γ rs.delivered`, the log long enough by `ownRaftLog_committed`; helpers
+  `ownRaftPhysC_commitLe`, `AdvAbs.take_eq_of_ents`, `AdvAbs.noUndec_of_take`, `AdvAbs.take_append_congr`), so the
+  two full logs agree on their first `rs.delivered.length` entries. No hypothesis added. No other consumer used the
+  post's conjunct (it was not yet applied).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
 ## 2026-11-23: rpc protocols of a listener's addresses (`rpcLisP`); `Server.Accept.spec` on a wildcard listener; `rpcAccepted` with a cut handshake answer; `ansPend` knows the answer was written (net/rpc model, server over HTTP)
 
 - **Specs.** `Net/Proof/net/rpc/Proto.lean` (`rpcLisP`), `Net/Spec/net/rpc/Server__Accept.lean`,
@@ -7705,3 +9377,175 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   For the member specs: keep `kvShapeAll` on transactions; the delete can drop `reqShape` by the inexact-verdict
   route above (untrusted, a few days), if wanted.
 - **Decision.** Open: stopped and reported to the dsverify-net lead (2026-11-27); no spec or proof changed.
+## 2026-11-27: the auth verdict as Go's, for every request (nomode X-a3)
+
+- **Spec.** The auth model's verdict vocabulary (`auth/Model.lean`: `granted`, `refusedV`; `auth/PermTree.lean`:
+  `cacheVerdictP`, `cacheEntryIs`; `InvAuth.lean`: `permsAt`, `cacheVerdict`; `FreshCheck.lean`: `permRefusalFrom`;
+  `Latest.lean`: `permVerdictL`) and the cache's specs (`checkKeyInterval`, `checkKeyPoint`, `getMergedPerms`,
+  adt's `Insert_bytes`, `Contains_bytes`).
+- **Defect.** The verdict was stated only for requests of the cache's shape (`reqShape`: non-empty key, point,
+  open-ended or proper range); for the others (`[k, k)`, inverted, empty key) nothing, so the request side needed
+  shape premises (`reqShape`, `kvShapeAll`, `kvDet`), which the decision of 2026-11-27 (no shape premise) removes.
+- **Evidence.** Go's verdict for every class (measured, `d2_*_test.go`): a function of the state once the trees are
+  exact (X-a1: canonical role order; X-a2: exact tree specs). `coversX` states it: `Intersects` of the point for an
+  empty range end, `containsT` of the queried interval on `treeOf` (the tree `getMergedPerms` builds) otherwise.
+- **Change.** As in `notes/nomode-x.md`, "X-a3" (before/after of each definition): `granted`/`refusedV`/
+  `cacheVerdictP`/`cacheVerdict`/`permRefusalFrom` over `coversX`, no `reqShape` guard, no `permKeysOk` premise;
+  the cache entry is the exact trees (`permsAt` over `adt.ownIvtTB`, `cacheEntryIs`: `Tr = treeOf .read …`);
+  `checkKeyInterval` returns `containsT` for every query; `permVerdictL` also carries `permKeysOk` of the latest
+  state (for the bridge `permVerdictL_granted`). Bridges (`PermTree.lean`): `coversX_iff_covers`,
+  `granted_iff_covers` (under `reqShape` and `permKeysOk`), `coversX_emptyKey`, `coversX_point_of_not_lt`. The
+  request side's shape premises stay until N1b.
+- **Decision.** Design X, decided by the user 2026-11-27 (`~/coordinator-notes/plans/nomode-packet.md`); trusted-
+  visible definitions to independent review before landing.
+
+## 2026-11-28: a role holds its stored permissions, unknown types included (nomode X-a4)
+
+- **Spec.** The auth model's `Perm` (`auth/Model.lean`), `permOfWire`/`RoleRec.toRole` (`Buckets.lean`),
+  `grantPerms`/`roleRevokePermissionR` (`Steps.lean`), and through `Perm.covers`/`ivlsOf` the verdict
+  vocabulary (`coversPoint`, `coversRange`, `covers`, `coversX`, `granted`; `kvGranted` uses `covers`).
+- **Defect.** `RoleGrantPermission` stores a permission of any `PermType` unchecked (`store.go:845-849 at the pin `18ab647b0``);
+  `RoleRevokePermission` removes on `(Key, RangeEnd)` whatever the type (`store.go:700-704`). The model
+  dropped unknown types (`permOfWire = none`), so revoke was a relation (a success allowed whatever the
+  model's role), not a function of the model's state (the D3 blocker, `notes/nomode-n1.md` on
+  `nomode-n1/2026-11-27`; `nonissues/etcd-auth-unknown-permtype-stored.md`).
+- **Evidence.** `TestD3RevokeUnknownTypedPermission` (the nonissue's test): grant of `PermType 7`, revoke
+  succeeds (revision +1); on a role without it, `ErrPermissionNotGranted`.
+- **Change.** `Perm.ty` is the stored `int32` (`w32`, any value); `permKind` decodes READ/WRITE/READWRITE
+  (`range_perm_cache.go:53-63`'s switch, no default), `Perm.grants` is false for another value, so the
+  checks and the tree build ignore it exactly where Go does; `permOfWire` is total, `toRole` a `map`;
+  `grantPerms` always inserts the granted permission; `roleRevokePermissionR` is a function (an error iff
+  no stored permission is on the range). Before/after in `notes/nomode-x.md`, "X-a4".
+- **Decision.** Option 1 of the D3 blocker, decided by the coordinator for the user (2026-11-28).
+## 2026-11-27: the k8s storage library's specs take the etcd client through `k8sClient` (k8s-dist K5)
+
+- **Specs.** `Spec/k8s_io/apiserver/pkg/storage/etcd3/*` that name `StoreCfg.ms`/`V` (store `Get`, `GetList`,
+  `getList`, `pagedChunks`, `Create`, `Delete`, `conditionalDelete`, `deleteOnce`, `updateOnce`,
+  `GuaranteedUpdate`, `GetCurrentResourceVersion`, `refreshOnError`, `Watch`, `watcher.Watch`,
+  `watchChan.{run,startWatching,sync,syncPaginated}`, `New`, the compactor's), and the driver's
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/{Apply,Check,call,watchEvents,runWatch}`).
+- **Defect.** Not a wrong spec: the statements hard-code the in-process client (`StoreCfg.ms : List SrvAt`, `V`,
+  `isNewClient … ∗ [∗list] kvRegsAt`, per-member `x.γr.kv`, `noRefusalAt x.addr`), so a client of a cluster over
+  the network (k8s-dist K7, #24 S2) would re-thread about 550 modules.
+- **Evidence.** `notes/k8s-dist-lean-plan.md` §2.3 and §4.1.
+- **Change.** `StoreCfg`'s `ms`/`V` become `K : K8sEtcd GF` (`EtcdClient.lean`); `isStore` holds `k8sClient c.K
+  c.cl`; in the specs `∀ x ∈ c.ms, noRefusalAt x.addr` becomes `c.K.live`, `[∗list]/[∧list] x ∈ c.ms, F x.γr.kv`
+  becomes `[∗list]/[∧list] γ ∈ c.K.kvs, F γ`, `c.ms ≠ []` becomes `c.K.kvs ≠ []`. The in-process instance
+  `inProcEtcd ms V` gives back exactly the old statements (`bigAndL_map`/`bigSepL_map`, definitional `live`).
+  The library's proofs take no client spec as a callee. No top-level statement, axiom, premise or trusted text
+  changes (`k8s_all`'s and authz's `TopLevelRobustness` Spec files byte-identical).
+- **Decision.** Coordinator brief (K5, 2026-11-27); intermediate specs only.
+- **Extension (K5-3, 2026-11-27).** The interface grew while the specs moved onto it; each addition is a
+  Spec-visible part of `K8sEtcd`/`K8sEtcd.Laws` (defs `EtcdClient.lean`), named by the specs through
+  `k8sClient`: `K.kvAt api` and the laws `kvField`/`kvGet` (the watch's initial list, C2: `wp_syncGet` now takes
+  `□ c.K.kvAt api`), `ctxFields` (`New`'s ctx and `CheckClient` fields), the derived `K8sEtcd.Laws.getLatest`,
+  and C3 for the compactor: `K.txnAt` (a transaction of the client's `KV.Txn`) and the laws `endpoints` (returns
+  `K.eps`), `kvTxn`, `txnIf`/`txnThen`/`txnElse`, `casCommit` (the round's `casClientTxn`, update at each of
+  `K.kvs`). The compactor's specs (`Compact`, `compactor.{runCompactLoop,runWatchLoop}`, `NewCompactor`,
+  `StartCompactorPerEndpoint`) take `K` and `k8sClient K cl` for `ms`/`V`/`isNewClient … ∗ clientWriteOnce … ∗
+  [∗list] kvRegsAt` (also dropped from `Compact`'s post: persistent), `∀ γ ∈ K.kvs, kvSame γ γk`, `casOk K.kvs`
+  (`casOk` over `List KVNames`), `[∗list] ep ∈ K.eps, epOf …`. `Compact`'s `Client.Compact` and
+  `getCompactRev`'s `Get` still go through `clientKvOk cl γk`, and `runWatchLoop`'s `Watch` through
+  `clientWatchOk`: per-cluster predicates already, as the store's watch (K5-2), so no law. The in-process
+  proofs (`inProcEtcd_laws`) take the specs as hypotheses; `inProcEtcd_laws.law` is proved in the linking
+  module `InProcLinked.lean` and passed to the drivers' proofs (`newStore`) as `=k8s.inProcEtcd_laws_law_holds`.
+## 2026-11-27: grpc health `HealthCheckResponse_ServingStatus.String.spec` takes its package's `isPkgInit` (prove-healthstr)
+
+- **Spec.** `grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec`
+  (`Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`), until now the
+  trust-boundary axiom `….String.wp_proof` with precondition `True`.
+- **Defect.** None of Go: the axiom is replaced by a proof over goose's translation of the grpc model's method
+  (`models/grpc/health/grpc_health_v1/health.pb.go`, a `MODEL:` switch in place of protoimpl's `EnumStringOf`;
+  etcd-grove#24 7225943254), whose decimal fallback `strconv.Itoa` needs `strconv`'s `isPkgInit`, which the
+  precondition `True` does not give.
+- **Evidence.** `EnumStringOf` calls `strconv.Itoa` (protobuf-go v1.36.12 `internal/impl/api_export.go:74-80`); the
+  model's package imports `strconv`. The only caller, `healthNotifier.startServe` (`v3rpc/health.go`), derives the
+  package's `isPkgInit` from v3rpc's (`iPkgInit`).
+- **Change.** The precondition becomes `isPkgInit pkg_id.google_golang_org.grpc.health.grpc_health_v1`, SpecPlan's
+  (`SpecPlan/Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`); the
+  post is unchanged. No top-level statement changes.
+- **Decision.** Upamanyu, through coordinator-E (#24 7225943254: a Go model overlay, not a TrustedCode model).
+## 2026-11-27: `io.Copy.spec`, `io.Copy_Discard.spec`: the reader not a `*LimitedReader`, its errors well-typed, the calls in resolved form (hraft-iocopy)
+
+- **Spec.** `io.Copy.spec`, `io.Copy_Discard.spec` and their vocabulary `io.streamReader`, `io.streamWriter`
+  (`Spec/io/Copy.lean`, the lab's `KitStd.Spec.io.Copy`, ported in hraft P3; callee hypotheses of
+  `Raft__installSnapshot`), assumed in the lab, to be proved over Perennial's translated `io.Copy`, `copyBuffer` and
+  `discard.ReadFrom`.
+- **Defect.** Not provable as stated (P4 group C, `notes/dsv-hraft.md`): (1) `io.Copy.spec` admits a reader whose
+  dynamic type is `*io.LimitedReader` (not an `io.WriterTo`), for which `copyBuffer` loads `l.N` to size its buffer,
+  memory `streamReader` does not own; (2) `copyBuffer` and `discard.ReadFrom` compare the reader's error with
+  `io.EOF` (`er != EOF`), which the model steps only for a pointer-typed error whose value is a location
+  (`io.ptrTyped`), which `streamReader` does not say; (3) `io.Copy_Discard.spec`'s `w` is any value `Discard`
+  holds, and Perennial's `io` fact said nothing of which (nor of `blackHolePool`, where `ReadFrom` takes its buffer).
+- **Evidence.** Go 1.27 `io.go` `copyBuffer` (`if l, ok := src.(*LimitedReader); ok && int64(size) > l.N`, `if er
+  != EOF`) and `discard.ReadFrom` (`blackHolePool.Get().(*[]byte)`, `if err == EOF`); Perennial's
+  `Perennial/Code/io.lean`. The only caller's readers: the RPC's stream and the install's `*countingReader`
+  (`streamReaderOk`: errors `nil` or `io.EOF`, an `*errors.errorString`), so both premises hold there.
+- **Change.** (1) `io.Copy.spec` takes `ts ≠ *io.LimitedReader` (exactly what makes `copyBuffer` keep the 32 KiB
+  buffer); (2) `io.streamReader`'s post adds `io.ptrTyped err` (Perennial's `io.readerOk` has it too); (3) Perennial
+  `io.isInit` gains `"#HDiscardV"` (`Discard` holds `discard{}`) and `"#HblackHolePool"` (a pool of 8192-byte
+  buffers), proved from the translated initializer (no axiom; Perennial branch `io-discard-init`); the spec's `w`
+  stays any value `Discard` holds. Also `streamReader`/`streamWriter` take the reader and writer as
+  `GoInterfaceOk`, state the call in its resolved form (`methods ty "Read" v`, as Perennial's `io.readerOk` and
+  this repository's `io.readerStream`), the form a proof reaches after the call's method resolution, and are WP
+  specs in `streamReaderOk`'s form (continuation not under a later: the readers and sinks that meet them are given by
+  such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
+  top-level statement changes.
+- **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).
+
+## 2026-11-28: `Raft.GetConfiguration.spec` gives the future's `deferWait` (hraft S5c)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/Raft__GetConfiguration.lean` (hashicorp/raft, ported from
+  dsverify-lab; its only user was raft's Link).
+- **Defect.** Too weak for the kit's `API.Status` (S5c): the post gave the future's `configurations` field but not
+  the right to wait for its answer, so a caller could not call `Error()` (`waitFuture(f, …)`) on it; the lab's
+  hr3 client never called it.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/service/service.go`, `API.Status`: `waitFuture(f,
+  a.wait)` then `f.Configuration()`.
+- **Change.** The post gains `deferWait (f.[configurationsFuture, "deferError"]) (fun _ => True)` (the consumer side
+  of `init`'s channel, the `err` and `ShutdownCh` fields still zero); a strengthening, proved
+  (`Raft__GetConfiguration.lean`). `API.Status` waits on it with `snapFut.wp_cf_Error` (the sixth conjunct of
+  `deferError.Error.spec`, unchanged). No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).
+
+## 2026-11-28: `rpctransport.New.spec` takes `svcAt`; `CodecLaws` gains `enc_mono` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/New.lean` (the kit's transport,
+  S4b) and its vocabulary `rpctransport/Trans.lean` (`peerOk`), `rpctransport/CodecLaws.lean` (`CodecLaws`).
+- **Defect.** Too strong a premise for the server machine (S5d): `New` asked each peer's rpc address to have the
+  service spec `raftSvc γ snapP a` exactly (`W.SS na svcName = some (raftSvc γ snapP a)`), but the deployment's rpc
+  world is fixed at its start, before the orchestrator draws the first configuration's size, so the world's spec
+  is the wrap `svcK γc (fun n => raftSvc (γs n) …)` over the protocols of both sizes (coordinator-E, #48 7233410712).
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/kit.go`: `chooseN0` at run time, `configure`;
+  `server.go`'s `bootConfiguration(n0)`, the genesis of `gprot.GNames`.
+- **Change.** `peerOk`'s and `New.spec`'s per-peer fact is `svcAt γ snapP W a na`: the world's spec `S` at `na`
+  accepts every `raftSvc γ snapP a` deposit (`svcAt_of_eq` gives it for the old form, so the old premise implies
+  the new one); `Transport.send` converts the deposit with `CodecLaws.enc_mono`, a new law (the encoder's
+  continuation can be weakened), proved of the generated codec (`hraftCodec_enc_mono`, emitted into
+  `hraftCodecLaws` by `etc/dsv/tools/hraft-codec.py`). No caller outside the kit; no top-level statement changes.
+- **Decision.** Untrusted specs, proved here (S5d, coordinator-E's approval of the draw's design on #48).
+
+## 2026-11-28: `service.New.spec`'s post gives `a ≠ null` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/service/New.lean` (the kit's API, S5b).
+- **Defect.** Too weak for the server machine: `Server.Register` of the API (`apiRcv`) needs the receiver not
+  `nil`, and `isAPI` holds only its fields' points-tos, from which `a ≠ null` does not follow.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/server.go`: `srv.Register(api)` of `service.New`'s result.
+- **Change.** The post gains `⌜a ≠ null⌝` (`typedPointsto_not_null` of the allocated `API`, before its fields are
+  split); a strengthening, proved. Its only caller is `Server`. No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5d).
+
+## 2026-11-28: `rpctransport.Conn.Call.spec`'s deposit given back on `CallNotSent` (hraft S5f)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/Conn__Call.lean` (the kit's
+  transport, S4; proved, no axiom).
+- **Defect.** Too weak for the kit's clients: on `CallNotSent` the post gave back the encoder's premise `C.enc args
+  Ψ`, a WP of the encoder, from which a caller cannot recover the deposit inside `Ψ`; a client retries its
+  operation at the next server, with a fresh argument struct, after `CallNotSent`, and needs its operation's state
+  back.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/rpctransport/rpctransport.go`: `Conn.Call` returns
+  `CallNotSent` when the dial fails, before it uses `args`; `kit.go`'s `Sys.op` retries `try` at the next server.
+- **Change.** The premise is `R ∗ (R -∗ C.enc args Ψ)` for any `R`, and `CallNotSent` gives `R ∗ D` back (a
+  strengthening: `R := C.enc args Ψ` gives the old spec). `Conn.Call.wp_proof` and `Transport.send` (its only
+  caller) updated; no top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5f, #48).

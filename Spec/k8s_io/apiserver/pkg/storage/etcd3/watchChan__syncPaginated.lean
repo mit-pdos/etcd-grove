@@ -34,7 +34,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev watchChan.syncPaginated.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] [Pos.Countable Obj] (wc sp : Loc) (c : StoreCfg GF Obj)
     (W : WatchSpec GF Obj) (γk : KVNames) (γ : KWatchNames) (cd : context.ContextDesc (IProp GF))
     (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool) (m : KWatchMode)
@@ -42,7 +42,7 @@ abbrev watchChan.syncPaginated.spec : Prop :=
     (recur : Bool) (r0 : w64) (lbf : Nat) (q : Qp),
   (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
-  (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  c.K.live →
   m.forceInit = true → m.req ≤ lbf →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       storeWatchOk sp c W γk ∗ kWcProd wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur ∗

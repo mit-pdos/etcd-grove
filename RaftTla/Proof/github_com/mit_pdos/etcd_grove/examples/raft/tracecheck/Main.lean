@@ -74,10 +74,11 @@ theorem Main.wp_proof
     (wp_ConvertEvents : ConvertEvents.spec (GF := GF) (hG := hG))
     (wp_NewTrace : Etcdraft.NewTrace.spec (GF := GF) (hG := hG))
     (wp_CheckTrace : Etcdraft.CheckTrace.spec (GF := GF) (hG := hG))
-    (wp_TLCOK : Etcdraft.Result.TLCOK.spec (GF := GF) (hG := hG)) :
+    (wp_TLCOK : Etcdraft.Result.TLCOK.spec (GF := GF) (hG := hG))
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro _ Hrb
-  wp_start as ⟨#Hcc, #Hprem⟩
+  wp_start as #Hcc
   ihave #Hed : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft $$ []
   · iPkgInit
@@ -87,8 +88,11 @@ theorem Main.wp_proof
   wp_apply wp_below (W64 5) (by decide) $$ [$Hpkg] as %b %Hb
   obtain ⟨nv, Hnv, H1, H5, H61⟩ := nodes_draw b Hb.1 Hb.2
   try wp_auto
-  ihave #Hpn : tracecheck.premises (GF := GF) nv (tracecheck.bootLog nv) $$ []
-  · iapply Hprem; ipureintro; exact ⟨H1, H5⟩
+  -- (2026-11-28: until then a precondition) `proto.Marshal`'s bytes at the bootstrap log's conf
+  -- changes, from its trust-boundary spec and `proto`'s initialization
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hpn := tracecheck.premises_of_spec wp_MarshalBoot nv $$ Hpp
   wp_apply (wp_RunConcurrent Hrb nv (tracecheck.bootLog nv) (tracecheck.bootLogFacts_bootLog nv H61)
       _ (workload_nodes b nv Hnv H1 H5)) $$ [Hcc Hpn]
     as %c Hrun

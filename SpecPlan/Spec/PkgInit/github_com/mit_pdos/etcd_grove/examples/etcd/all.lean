@@ -5,18 +5,8 @@ public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.all
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.authN
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.authlease
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.cache
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.compacted
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.partition
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.restart1
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.restartN
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 
 @[expose] public section
 noncomputable section

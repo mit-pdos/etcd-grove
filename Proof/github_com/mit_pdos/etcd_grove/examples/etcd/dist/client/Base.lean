@@ -10,7 +10,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Base
 public import Proof.github_com.anishathalye.porcupine.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base

@@ -160,7 +160,7 @@ theorem kv.Do.wp_generic
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.val) Qp) $$ [Hrun]
     · simp only [putReqOp, putWireOf, hlease, hpk, hiv, hil]
-      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" kvMethod_put addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" (.inl rfl) addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_Put rkv conn addr Sp Qp ci om cd _ _ o.key o.val sl vs $$ [Hlt «$r0» Hrun']
       as %resp %err ⟨Hlt, -, Hres⟩
@@ -220,7 +220,7 @@ theorem kv.Do.wp_generic
           unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.base.rangeEnd) Qd) $$ [Hrun]
     · simp only [deleteReqOp, deleteWireOf, hpk]
-      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" kvMethod_deleteRange addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" (.inr (.inl rfl)) addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci om cd _ _ o.key o.base.rangeEnd sl vs
       $$ [Hlt «$r0» Hrun'] as %resp %err ⟨Hlt, -, Hres⟩
@@ -353,7 +353,7 @@ theorem kv.Do.wp_proof
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
   iunfold isKv at Hkv
-  icases Hkv with ⟨%addrs, #Hobj, #Hregs, %Hnr⟩
+  icases Hkv with ⟨%addrs, #Hobj, #Hregs, #Hnr⟩
   icases (kvObjAt_conn api addrs).1 $$ Hobj with ⟨%conn, #Hobj⟩
   iapply (kv.Do.wp_generic wp_IsSortOptionValid wp_toRangeRequest wp_retry_Range wp_retry_Put
     wp_retry_DeleteRange wp_ContextError api conn addrs ci om cd opv o
@@ -384,8 +384,11 @@ theorem kv.Do.wp_proof
       isplitl []
       · iapply (kvRegsV_rpcPut addrs γ) $$ Hregs
       ihave Hu := writeAu_upd dup γ _ Q $$ Hu
-      iapply (kvReqPre_of_upd api addrs (!dup) (noRefusal_of_dup addrs dup Hnr) _ _
-        (putPre_V conn om γ (putWireOf o) Q Hp.2)) $$ Hu
+      iapply (kvReqPre_of_upd api addrs dup _ _
+        (putPre_V conn om γ (putWireOf o) Q Hp.2))
+      isplitl []
+      · iexact Hnr
+      · iexact Hu
     · iright
       iright
       isplitl []
@@ -393,8 +396,11 @@ theorem kv.Do.wp_proof
       isplitl []
       · iapply (kvRegsV_rpcDelete addrs γ) $$ Hregs
       ihave Hu := writeAu_upd dup γ _ Q $$ Hu
-      iapply (kvReqPre_of_upd api addrs (!dup) (noRefusal_of_dup addrs dup Hnr) _ _
-        (delPre_V conn om γ (deleteWireOf o) Q Hd.2)) $$ Hu
+      iapply (kvReqPre_of_upd api addrs dup _ _
+        (delPre_V conn om γ (deleteWireOf o) Q Hd.2))
+      isplitl []
+      · iexact Hnr
+      · iexact Hu
   inext
   iintro %r %err ⟨Hlt, -, Hout⟩
   iapply HΦ

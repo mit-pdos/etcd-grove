@@ -60,16 +60,16 @@ theorem store.updateOnce.wp_proof
     (wp_String : «attribute».String.spec (GF := GF) (hG := hG))
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_V : klog.V.spec (GF := GF) (hG := hG))
-    (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG))
-    (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
+    (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     store.updateOnce.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl v p ign pre f o' W Φu
+  intro _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl v p ign pre f o' W Φu
     hk hkl hpre hok hosz hw
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, %Hspn, Hos, #Hfrom, %Hign, #Hdsl, Hout, %Hv, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hkh⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   iunfold contractOk at Hcon
@@ -115,7 +115,7 @@ theorem store.updateOnce.wp_proof
     (try wp_auto)
     wp_apply _root_.Perennial.time.wp_Now as %t0 -
     (try wp_auto)
-    ihave Hau' := (k8sAusRW_kvAu1 c.ms c (updStep key ign c.S.zero pre f) W Φu
+    ihave Hau' := (k8sAusRW_kvAu1 c.K.kvs c (updStep key ign c.S.zero pre f) W Φu
       (.txn (kubernetes.optPutTxn key val s.rev true)) trivial
       (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
         (kubernetes.optPutTxn key val s.rev true)).1)
@@ -131,9 +131,9 @@ theorem store.updateOnce.wp_proof
       (m := go!"OptimisticPut")]
     wp_call
     (try wp_auto)
-    wp_apply (wp_kPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+    wp_apply (hK.optimisticPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
-          #c.kc)) c.ms c.V ci cd key vsl val s.rev ⟨true, zero_val _⟩ _ rfl hkl (hosz val Hval)) $$ [Hlt Hau']
+          #c.kc)) ci cd key vsl val s.rev ⟨true, zero_val _⟩ _ rfl hkl (hosz val Hval)) $$ [Hlt Hau']
       as %resp %perr ⟨Hlt, Hput⟩
     · iframe #
       iframe Hlt

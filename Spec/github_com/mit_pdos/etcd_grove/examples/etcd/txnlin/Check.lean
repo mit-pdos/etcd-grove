@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Check(cli, clients, ops, timeout)` (`examples/etcd/txnlin/etcd_txnlin.go`; linkv-txn stage G, as
+`Check(cli, clients, ops, timeout)` (`examples/lib/txnwork/etcd_txnlin.go`; linkv-txn stage G, as
 `examples/linkv`'s): `lintest.Run` with the
 model `Model()`, the closure `func(input any) any { return Apply(cli, input) }`, the generator
 `Gen` and the clock `lintest.CounterClock()`. Over `New`'s client `cli` (`Apply.spec`'s
@@ -16,7 +16,8 @@ Stated under the cache package's assumptions and `errors.As`'s target, as `Apply
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Calls
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
@@ -38,8 +39,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (γ : LinkvNames) (cl : Loc) (ep : GoString)
+  ∀ (γ : LinkvNames) (cl : Loc) (ep : GoString)
     (V : EtcdGrove.client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
     (clients ops dur : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

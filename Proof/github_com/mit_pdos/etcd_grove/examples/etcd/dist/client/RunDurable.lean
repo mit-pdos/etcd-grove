@@ -6,8 +6,8 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/RunDurab
 defers `Close`, and allocates durable's invariant from its share's half with `n` puts' tokens
 (`durInv_alloc`). The put loop keeps the acknowledgements `acks` (the slice `acked`), the tokens of the puts
 not yet sent, and the fired witness of the acknowledged ones (`durFiredAll`): put `j` (`wp_cliPut` over
-`KV_Put_dist`) carries its token in its one-shot update (`durPutAu`), and a `nil` reply gives `durFired`. The
-range (`wp_cliGet` over `KV_Get_dist`, one `WithPrefix` option) reads `durReadOk` (`durGetAu`): its key-values
+`kv.Put.spec`) carries its token in its one-shot update (`durPutAu`), and a `nil` reply gives `durFired`. The
+range (`wp_cliGet` over `kv.Get.spec`, one `WithPrefix` option) reads `durReadOk` (`durGetAu`): its key-values
 are the prefix's (`durRange_eq`), each a put's at version `1`, and every acknowledged put's key is among them.
 The check loop over the reply: the inner loop finds the last `j` with `durableKey(j)` the key (it exists), whose
 value is `durVal j` (`durVal_of_key`), and marks `seen[j]` (keys distinct below 256: `durKey_inj`); the last loop
@@ -123,8 +123,8 @@ theorem RunDurable.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithPrefix : EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG))
     (wp_Close : EtcdGrove.Client.Close.spec (GF := GF) (hG := hG))
-    (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG))
-    (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) :
+    (wp_KV_Put : kv.Put.spec (GF := GF) (hG := hG))
+    (wp_KV_Get : kv.Get.spec (GF := GF) (hG := hG)) :
     RunDurable.spec (GF := GF) (hG := hG) := by
   intro π eps addrs n hn hV Htb hpl hAs
   wp_start as ⟨Hlt, #Heps, Hsh⟩
@@ -330,7 +330,7 @@ theorem RunDurable.wp_proof
   have hsz := (dur_sizes 0).2
   wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx _ [withPrefixM]
       iprop(True) (fun σ => iprop(⌜durReadOk (sint.nat m) (fun j' => acks[j']? = some true) σ⌝))
-      durGet_ok hser hsz)
+      durGet_ok hser hsz Hauth)
     $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
   · iframe Hlt
     iframe #

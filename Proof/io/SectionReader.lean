@@ -37,7 +37,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section plain
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- See the file header. -/
 def io.writerPlain (w : GoInterfaceOk) : Prop := methodSet w.ty !! go!"ReadFrom" = none

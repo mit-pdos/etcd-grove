@@ -23,17 +23,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-/-- **`t.Contains(ivl)` over bytes-affine keys**: `containsRes` (`Contains.lean`: `Visit` over the
-query in tree order, the greedy scan) for a query whose begin is the top `""` or below its end
-(`Visit`'s premise, `intervalTree.Visit.spec`); some boolean otherwise. -/
+/-- **`t.Contains(ivl)` over bytes-affine keys** (`intervalTree.Contains_gen.spec` with
+`bytesKey`), on the exact tree (`ownIvtTB`), for any query: `containsT` (`Contains.lean`: the greedy
+scan over the entries `Visit` visits). -/
 abbrev adt.intervalTree.Contains_bytes.spec : Prop :=
-  ∀ (t : Loc) (L : List adt.Entry) (b e : GoSlice) (bs es : GoString) (db de dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvtB t L dq ∗
+  ∀ (t : Loc) (T : adt.RbT adt.Entry) (b e : GoSlice) (bs es : GoString) (db de dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvtTB t T dq ∗
       b ↦*{db} bs ∗ e ↦*{de} es }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Contains"))
       (Val #(adt.bytesIvl b e)))
-  {{ (r : Bool), RET #r; adt.ownIvtB t L dq ∗ b ↦*{db} bs ∗ e ↦*{de} es ∗
-      ⌜(bs = go!"" ∨ adt.affLt bs es) → r = adt.containsRes (bs, es) L⌝ }}
+  {{ (r : Bool), RET #r; adt.ownIvtTB t T dq ∗ b ↦*{db} bs ∗ e ↦*{de} es ∗
+      ⌜r = adt.containsT (bs, es) T⌝ }}
 
 end spec
 

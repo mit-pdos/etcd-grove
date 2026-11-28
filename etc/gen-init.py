@@ -85,7 +85,6 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putgetN',
          # leaseN (2026-11-16, notes/leaseN-plan.md): the lease examples with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.leaseN',
-         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN',
          # txnlinfaultsN (2026-11-15, notes/txnlinfaultsN-plan.md): partition with any number of members
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
@@ -108,10 +107,14 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.gokv.trusted_proph',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
+         # (2026-11-27) its workload and model, moved out of the driver
+         'github_com.mit_pdos.etcd_grove.examples.lib.txnwork',
          'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
          'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
+         # (2026-11-27) its set-up, workload and checks, moved out of the driver
+         'github_com.mit_pdos.etcd_grove.examples.lib.authwork',
          # the auth3 Scope's A1 (2026-11-14): authkv with three members
          'github_com.mit_pdos.etcd_grove.examples.etcd.auth3',
          # authN (2026-11-15, notes/authN-plan.md): auth3 with any number of members
@@ -153,6 +156,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
 # and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
+# (#33 S4) the Antithesis harness (examples/raft/antithesis) and its checker (`check`), for the
+# closed theorem: no package variables, their facts `True` (`Base.lean`, `check/Base.lean`), so no
+# `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is for the adequacy proof
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.raft.antithesis')
 # (fmt1-errno, 2026-11-24, #9 decision (B) 7127751995) the osfs examples (crashlog, walfs, bboltfs),
 # whose closed theorems took their initializer as a hypothesis (`Hinit_wp`; bboltfs: its spec with
 # `pkgFacts` as its post): now `os`'s path specs take `isPkgInit os`, and their `wp_initialize'` is
@@ -650,11 +657,12 @@ SPECIAL['runtime'] = dict(
 which `Version` returns, holds some string, read-only for good. Its initializer runs the trusted
 model of `buildVersion`'s initialization (Perennial's `TrustedCode/runtime.lean`: it allocates the
 variable and stores an arbitrary string, the linker's; Perennial's `runtime.wp_buildVersion_init`,
-whose cell is made persistent here), initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return. (Until Perennial
-`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated.)
+whose cell is made persistent here), initializes its imports, and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return. Its other 94 initialized
+variables are skipped (goose `[[skip]]`, Perennial's `Code/runtime.toml`: the runtime's own tables and
+state, which no translated code reads), so its initializer does not run them. (Until Perennial
+`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated; until 2026-11-27 the
+94 were names-only, run as `X.init`s that the trust-boundary axiom `opaqueInitsOk` said return.)
 
 And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
@@ -2549,7 +2557,7 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
     pre=['/-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,',
          '`Unwrap`, `GRPCStatus` or `Is` method: a theorem of the method set goose emits',
          '(`EtcdError.TypeAssumptions.method_set`), as `EtcdGrove.ErrorStringLeaf`. -/',
-         'class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where',
+         'class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where',
          '  leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩',
          '  noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none',
          '  noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none',
@@ -4869,6 +4877,26 @@ their translated initializers: `UnstructuredJSONScheme`, an empty struct literal
                 '⟨(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans '
                 '(go.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Serializer.ty))⟩'],
             '$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']})
+# (prove-metav1, 2026-11-27) metav1's `init.1` translated (`localSchemeBuilder.Register(RegisterConversions)`,
+# until then `initFuncsOk`) with the two variables it reads, and `ParameterCodec` skipped (its goose config;
+# until then `opaqueInitsOk`)
+SPECIAL['k8s_io.apimachinery.pkg.apis.«meta».v1'] = dict(doc='''Its fact is `True`. Its initializer allocates
+`schemeBuilder` (no initializer: nil) and `localSchemeBuilder`, initializes its imports, runs
+`localSchemeBuilder`'s translated initializer (`&schemeBuilder`), its untranslated `init.0`
+(`register.go`: types registered into `scheme` through `reflect`), which the trust-boundary axiom
+`initFuncsOk` says returns, and its translated `init.1` (`zz_generated.conversion.go`;
+prove-metav1, 2026-11-27, until then `initFuncsOk`), which appends `RegisterConversions` to
+`schemeBuilder` (`runtime.SchemeBuilder.Register.wp_proof`). (`ParameterCodec`, until then
+`opaqueInitsOk`, is skipped: its goose config.)''',
+    alloc_types={'localSchemeBuilder': 'Loc', 'schemeBuilder': 'GoSlice'},
+    imports=['Proof.k8s_io.apimachinery.pkg.runtime.SchemeBuilder__Register'],
+    after={'init.«1»': ['wp_apply wp_slice_literal (V := GoFunc)', 'isplitr', '· ipureintro; rfl',
+                        'iintro %sl ⟨Hsl, -⟩', 'try wp_auto',
+                        'ihave Hn := ownSlice_nil (V := GoFunc) (DFrac.own 1)',
+                        'ihave Hnc := ownSliceCap_nil (V := GoFunc)',
+                        'wp_apply (EtcdGrove.runtime.SchemeBuilder.Register.wp_proof (hG := hG) _ slice.nil [] _ _ _)'
+                        ' $$ [HschemeBuilder Hn Hnc Hsl] as -',
+                        '· iframe', '  isplitl [] <;> iassumption', 'try wp_auto']})
 # (prove-k8s3, 2026-11-21) grpclog's `internal`, imported (types only) so that grpclog's `LoggerV2`
 # is its interface: its variables' initializers, translated.
 SPECIAL['google_golang_org.grpc.grpclog.internal'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
@@ -5956,12 +5984,10 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
-            # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
-            # tables, restored
+            # (2026-11-23, etcd-grove#28) k8s_safe_single_process's table, restored (leaseexpiryN's went with
+            # its theorem, 2026-11-27, rule 41)
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean'}
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
@@ -5987,6 +6013,9 @@ for _c in ['server', 'client']:
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
+# (#33 S4) the Antithesis harness, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.raft.antithesis'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/PkgTable.lean'
 
 # (fmt1-errno, 2026-11-24) the osfs examples' boot programs, for their closed (crash) theorems
 for _ex in ['crashlog', 'walfs', 'bboltfs']:

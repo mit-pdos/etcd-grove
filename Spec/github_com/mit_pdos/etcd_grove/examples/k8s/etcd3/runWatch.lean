@@ -48,8 +48,7 @@ theorem plainOut_wEventsRawOut (s : GoString) (rsl : GoSlice) :
 
 /-- See the file header. -/
 abbrev runWatch.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     (sp : Loc) (c : StoreCfg GF DObj) (γk : KVNames) (x : Input) (k : GoString) (n : w64)
     (Q : Nat → KVState → IProp GF),
@@ -57,7 +56,7 @@ abbrev runWatch.spec : Prop :=
   (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ ∧
     kvRevFits σ.rev⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
-  (∀ m ∈ c.ms, noRefusalAt m.addr) → threadBound GF ≤ 2 ^ 30 - 1 →
+  c.K.live → threadBound GF ≤ 2 ^ 30 - 1 →
   (x.Skip' = false → prepareKeyM c.resourcePrefix x.WKey' x.Recursive' = some k ∧
     (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV x.MinRV' = some n ∧ uint.Z n < 2 ^ 63 - 1) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (k8s.isStore sp c ∗

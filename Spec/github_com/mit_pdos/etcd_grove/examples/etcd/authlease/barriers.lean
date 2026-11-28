@@ -8,7 +8,8 @@ members') and precondition (`barrierPre`): `true` gives `barrier`'s success at e
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Env
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseEnv
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
 
 @[expose] public section
 
@@ -29,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 
 /-- See the file header. -/
 abbrev barriers.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+  ∀ [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (msl : GoSlice) (lg : Loc) (ms : List etcdstart.GMember) (bs : List (BArgs GF)),
   ms.map (·.Client') = bs.map (·.addr) → threadBound GF ≤ 2 ^ 30 →

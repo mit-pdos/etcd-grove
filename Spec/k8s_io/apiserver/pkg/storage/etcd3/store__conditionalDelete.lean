@@ -40,7 +40,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev store.conditionalDelete.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (out : GoInterface) (o0 : Obj)
     (rv0 : GoString) (v : _root_.Perennial.reflect.Value) (p : Loc) (pp : Loc) (pr : KPre)
@@ -51,7 +51,7 @@ abbrev store.conditionalDelete.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗
       ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ preAt pp pr ∗ cachedOk c key cx ca ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key (c.S.preF pr) validate) W Φ) ∗
+      ([∗list] γv ∈ c.K.kvs, k8sAuRW γv c (delStep key (c.S.preF pr) validate) W Φ) ∗
       validateOk c validate vf) }}
     (App (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"conditionalDelete"))

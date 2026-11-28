@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main()` (`examples/etcd/auth/authkv.go`; the auth plan's E2b, D-AU5): one etcd member started in
+`Main()` (`examples/lib/authwork/authkv.go`; the auth plan's E2b, D-AU5): one etcd member started in
 process with the simple token provider (on `authkv`'s ports), a client with no user name that
 sets up the auth state and enables auth (`SetUp`: root with the root role, role `r` granted
 `READWRITE` on `[a, b)`, users `u` with `r` and `v` with no role), clients that authenticate as
@@ -30,9 +30,10 @@ The premises are watchkv's for the server's start, stated before the proof, whic
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientAuth
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
@@ -54,7 +55,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+  ∀ [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   etcd_putget.BootFacts id ctxs boot →

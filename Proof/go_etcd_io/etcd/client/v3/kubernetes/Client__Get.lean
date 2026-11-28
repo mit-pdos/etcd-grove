@@ -15,7 +15,7 @@ module
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithLimit
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
@@ -47,7 +47,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG))
     (h_range_any : client.client_range_any.law (GF := GF) (hG := hG)) :
     Client.Get.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key opts Q0 hrev hk
+  intro _ kc ms V ci cd key opts Q0 hrev hk
   wp_start as ⟨Hlt, #Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
   wp_auto
   wp_apply (linkv.wp_NewProph_typed (τ := w64) github_com.goose_lang.primitive.wp_NewProph)

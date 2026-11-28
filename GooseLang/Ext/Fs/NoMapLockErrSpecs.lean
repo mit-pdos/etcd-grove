@@ -24,20 +24,21 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 section step
 variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 
 /-- **A covered lock or mapping call ends `MapLockOk` when it can** (`NoMapLockErr`, from the
 semantics' step). -/
 theorem noMapLockErr_step {Sio : IoSet} [hsat : FsStepSat (NoMapLockErr Sio)] {o : String}
     {v : val} {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
-    (hs : S.step o v h st g e' h' st' g') (hc : MapLockCovers Sio o v st)
+    (hs : S.step tf o v h st g e' h' st' g') (hc : MapLockCovers Sio o v st)
     (hex : ∃ e'' st'', IsFsStep o v st e'' st'' ∧ MapLockOk o v e'') : MapLockOk o v e' :=
   hsat.sat o v h st g e' h' st' g' hs hc hex
 
 /-- Every step of `munmap` returns 0 when every inode is covered. -/
 theorem munmap_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (v : val) :
-    ∀ h st g e' h' st' g', S.step "Munmap" v h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "Munmap" v h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -57,7 +58,7 @@ non-blocking lock request) `EAGAIN`, when every inode is covered. -/
 theorem flock_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (fd how : w64) (req : Option Bool) (nb : Bool) (hhow : flockReq how.toNat = some (req, nb))
     (hk : req = none ∨ nb = true) :
-    ∀ h st g e' h' st' g', S.step "Flock" (PairV (#fd) (#how)) h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "Flock" (PairV (#fd) (#how)) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ (r = #(0 : w64) ∨ (req ≠ none ∧ r = #EAGAIN)) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -140,7 +141,7 @@ theorem mmap_noFail {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i,
     (hlen : 0 < len.toInt) (hprot : prot.toNat = PROT_READ)
     (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) :
     ∀ h st e h' st', st.proc.fds !! fd = some d →
-      S.step "Mmap" (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))) h st ()
+      S.step tf "Mmap" (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))) h st ()
         (osRes (#null) e) h' st' () → e ≠ 0 → False := by
   intro h st e h' st' hfd hs he
   obtain ⟨base, hpos, hal, hnone⟩ := exists_map_base st.proc.maps
@@ -160,7 +161,7 @@ theorem mmap_noFail {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i,
 /-- Every step of a file's `close(fd)` returns 0 when every inode is covered (`NoIoErr`). -/
 theorem close_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (fd : w64) :
-    ∀ h st g e' h' st' g', S.step "Close" (#fd) h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "Close" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -179,7 +180,7 @@ inode covered): its success when there is no conflict, its wait when there is on
 `NoIoErr` keeps only those. -/
 theorem ofdLockW_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (fd typ : w64) :
-    ∀ h st e' h' st', S.step "OfdLock" (PairV (#fd) (PairV (#(W64 38)) (#typ))) h st () e' h' st' () →
+    ∀ h st e' h' st', S.step tf "OfdLock" (PairV (#fd) (PairV (#(W64 38)) (#typ))) h st () e' h' st' () →
       e' = Val (#(0 : w64)) ∨ ∃ w : val, e' = ExternalOp fsExt.name "OfdLock" (Val w) := by
   intro h st e' h' st' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -215,7 +216,7 @@ theorem ofdLockW_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, S
 covered), as `ofdLockW_noErr`. -/
 theorem flockW_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (fd how : w64) (ex : Bool) (hhow : flockReq how.toNat = some (some ex, false)) :
-    ∀ h st e' h' st', S.step "Flock" (PairV (#fd) (#how)) h st () e' h' st' () →
+    ∀ h st e' h' st', S.step tf "Flock" (PairV (#fd) (#how)) h st () e' h' st' () →
       e' = Val (#(0 : w64)) ∨ e' = ExternalOp fsExt.name "Flock" (Val (PairV (#fd) (#how))) := by
   intro h st e' h' st' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)

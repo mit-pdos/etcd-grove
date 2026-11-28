@@ -200,6 +200,17 @@ def ownIvtK (K : KeyRep (GF := GF)) (t : Loc) (L : List Entry) (dq : DFrac) : IP
     ⌜T.inorder = L ∧ RbOk T ∧ IvSorted L ∧ tv.count' = W64 L.length ∧ L.length < 2 ^ 63⌝)
 
 include sem package_sem in
+/-- **The tree at `t` is exactly `T`** over the keys `K` (nomode X-a2): as `ownIvtK`, with the
+red-black tree itself, not only its entries; what `Insert` (`RbT.insertRB`), `Visit`
+(`RbT.visitL`) and `Contains` (`containsT`) compute, so that a tree built by inserts is a
+function of the inserts. -/
+def ownIvtT (K : KeyRep (GF := GF)) (t : Loc) (T : RbT Entry) (dq : DFrac) : IProp GF :=
+  iprop(∃ tv : intervalTree,
+    t ↦{dq} tv ∗ ownSentinel tv.sentinel' dq ∗
+    ownNode K tv.sentinel' dq tv.sentinel' tv.root' T ∗
+    ⌜RbOk T ∧ IvSorted T.inorder ∧ tv.count' = W64 T.inorder.length ∧ T.inorder.length < 2 ^ 63⌝)
+
+include sem package_sem in
 /-- **The tree at `t` holds the entries `L` over string-affine keys**, at the fraction `q`
 (the watchable store reads its groups under its lock's read side): `ownIvtK` for `strKey`. -/
 def ownIvt (t : Loc) (L : List Entry) (q : Qp) : IProp GF :=

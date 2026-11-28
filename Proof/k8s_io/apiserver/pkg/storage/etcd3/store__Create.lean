@@ -65,14 +65,14 @@ theorem store.Create.wp_proof
     (wp_String : «attribute».String.spec (GF := GF) (hG := hG))
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG))
-    (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
-    (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
+    (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG)) :
     store.Create.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
+  intro _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, #Hk8, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hkh⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
@@ -173,14 +173,14 @@ theorem store.Create.wp_proof
       (try wp_auto)
       have hpfx : c.pfx <+: c.pathPrefix ++ k := prepareKeyM_prefix _ _ _ _ _ hk
       have hdv : c.S.dec v = some (o, true) := c.S.dec_toS_encode o v Hv
-      have hm : ∀ (i : Nat) (x : client.SrvAt GF), c.ms[i]? = some x →
-          k8sAu1 (GF := GF) x.γr.kv c (fun s => (s.create (E := Empty) (c.pathPrefix ++ k) o 0).1) Ψ ⊢
-          kvOpAu1 x.γr.kv (.txn (kubernetes.optPutTxn (c.pathPrefix ++ k) v (W64 0) false))
+      have hm : ∀ (i : Nat) (x : KVNames), c.K.kvs[i]? = some x →
+          k8sAu1 (GF := GF) x c (fun s => (s.create (E := Empty) (c.pathPrefix ++ k) o 0).1) Ψ ⊢
+          kvOpAu1 x (.txn (kubernetes.optPutTxn (c.pathPrefix ++ k) v (W64 0) false))
             (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) :=
         fun i x hx => by
           iintro HAU
           unfold kvOpAu1
-          iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial
+          iapply (k8sAu1_kvAu1 x c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial
             (fun σ hw => keysIn_optPut _ _ _ _ _ hpfx σ hw.1)
             (fun σ _ => kvOne_optPut _ _ _ _ σ)) $$ HAU
       ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
@@ -188,9 +188,9 @@ theorem store.Create.wp_proof
         (m := go!"OptimisticPut")]
       wp_call
       (try wp_auto)
-      wp_apply (wp_kPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+      wp_apply (hK.optimisticPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
-            #c.kc)) c.ms c.V ci' cd (c.pathPrefix ++ k) vsl v (W64 0)
+            #c.kc)) ci' cd (c.pathPrefix ++ k) vsl v (W64 0)
           ⟨false, zero_val _⟩ (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) rfl hkl (hosz v Hv)) $$ [Hlt Hau']
         as %resp %perr ⟨Hlt, Hput⟩
       · iframe #

@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.lessor__TimeToLive
 public import Spec.go_etcd_io.etcd.client.v3.lessor__Leases
 public import Spec.go_etcd_io.etcd.client.v3.WithAttachedKeys
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.LeaseAttempts
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
@@ -46,7 +47,7 @@ theorem foreign.wp_proof
     (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG))
     (wp_WithAttachedKeys : WithAttachedKeys.spec (GF := GF) (hG := hG)) :
     foreign.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS cli who addr id s E ρ γa n m Qr R hwho hon hAs
+  intro ES FS RS cli who addr id s E ρ γa n m Qr R hwho hon hAs
   wp_start as ⟨Hlt, #Htk, #Hsv, #Hn, #Hm, HR, #HQr, #HnoR, #HnoT, #HnoL⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

@@ -71,7 +71,7 @@ theorem wp_post_named (e : Expr) (Φ : val → IProp GF) :
 /-- `GetList`'s loop before page `i` (pure): the first page's state `σ` and revision `R` (`σ`'s, or
 the past revision `R0` asked), the scope from page `i`'s start is the scope after its first `m`
 key-values, the loop state `st` is `chunkL` on those, not full, and the counters are in range. -/
-def pgFacts [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+def pgFacts [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     {Obj : Type} [DecidableEq Obj] (c : StoreCfg GF Obj) (sel : Obj → Bool) (kp : GoString)
     (recur : Bool) (lim : Nat) (n R0 : w64) (σ : KVState) (R : w64) (i m : Nat)
     (st : k8s_etcd3.ListModel.LState w8 (Obj × Nat)) (nev : w64) : Prop :=
@@ -109,13 +109,12 @@ theorem store.GetList.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GetList.spec (GF := GF) (hG := hG) := by
   have hKind : go.IsStrictlyComparable _root_.Perennial.reflect.Kind.underlying w64 := wp_KindCompare
-  intro _ _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP hnr
+  intro _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP hnr
   wp_start as ⟨#Hst, %Hpre, #Hsel, #Hlc, #Hrs, #Hctx, #Hce, #Hk8, #Hnd, Htt, %htb, Hlx, HQ, #HP⟩
   obtain ⟨hk, hkl, hrv, hmatch, hcont, hn63, hlim⟩ := Hpre
   ihave #Hst0 := Hst
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩
   ihave #Hlst0 := Hlst
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%af, %γp, #Faf, #Haf, -, %Hutf, %Hrp⟩

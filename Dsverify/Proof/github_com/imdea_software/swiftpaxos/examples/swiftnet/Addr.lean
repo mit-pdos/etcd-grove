@@ -61,7 +61,7 @@ theorem addrs_lt (i : Nat) (a : GoString) (ha : addrs[i]? = some a) : i < 13 := 
   have := (List.getElem?_eq_some_iff.mp ha).1; simpa [addrs] using this
 
 section sprintf
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
 
 theorem IntArgValue.uniq_uint64' [go.IntoValInj w64] (n : w64) :
     ∀ z', fmt.IntArgValue (interface.mk go.uint64 #n) z' → z' = uint.Z n := by

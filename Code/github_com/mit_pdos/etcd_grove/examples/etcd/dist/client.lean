@@ -6,7 +6,7 @@ public import Perennial.Code.time
 public import Code.go_uber_org.zap
 public import Code.google_golang_org.grpc
 public import Code.go_etcd_io.etcd.client.v3
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.auth
+public import Code.github_com.mit_pdos.etcd_grove.examples.lib.authwork
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Code.google_golang_org.grpc.metadata
 public import Net.Code.net
@@ -108,9 +108,6 @@ attribute [irreducible] Result.ty
 
 @[reducible] noncomputable def compactRetention [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
-
-@[reducible] noncomputable def kvCheckTimeout [GooseExts] [GoGlobalContext] : val :=
-  #(W64 120000000000)
 
 @[reducible] noncomputable def leaseReadID [GooseExts] [GoGlobalContext] : val :=
   #(W64 7)
@@ -541,14 +538,14 @@ noncomputable def collectFor.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- RunAuth is the auth workload (authN's run minus its members' gRPC serving, copied; Lean:
     Workload.auth; alone in its deployment, which has the token provider): through a client of
-    eps[0], authkv's set-up (auth.SetUp: the auth state set up and auth enabled); root's barrier at
+    eps[0], authkv's set-up (authwork.SetUp: the auth state set up and auth enabled); root's barrier at
     every member; then the four principals' workloads at once, each at its own machine (nodes[c] is
-    auth.Principals()[c]'s: remotePrincipals, NodeMain) through its own client (auth.Work): the
+    authwork.Principals()[c]'s: remotePrincipals, NodeMain) through its own client (authwork.Work): the
     client with no token through eps[0], u and the client with an invalid token through eps[1 mod k],
     v through eps[2 mod k] (principalClient); then root's Put of z/end, root's
-    watch of everything from revision 1 up to it, checked by auth.CheckHistory (every write one its
+    watch of everything from revision 1 up to it, checked by authwork.CheckHistory (every write one its
     principal was permitted), and u's watch of [a, b), whose events must all be keys u may read.
-    Every refusal the checks expect is any error (auth.Work's refused): an error never counts as a
+    Every refusal the checks expect is any error (authwork.Work's refused): an error never counts as a
     write not applied, since the history check reads what was applied.
 
     go: auth.go:88:6 -/
@@ -692,7 +689,7 @@ noncomputable def RunAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "uch"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "ucancel"))
   (Let "$a2" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.LastIn []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.LastIn []))) (Val #())) (Var "$a0")))
   (App (App (App (App (Val (GoInstruction (FuncResolve collectFor []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -718,7 +715,7 @@ noncomputable def RunAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val #(go!"u"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty go!"Key"))) (Var "e")))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Permitted []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Permitted []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"dist auth: u's watch reported a key u may not read")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -751,7 +748,7 @@ noncomputable def RunAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Event.ty)))) (Var "evs"))
   (Let "$a1" (Val #(go!"z/end"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CheckHistory []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.CheckHistory []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (Let "$a0" (Val #(go!"auth: root's watch ended"))
   (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
@@ -837,7 +834,7 @@ noncomputable def RunAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUp []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (Let "$a0" (Val #(go!"auth: the set-up failed"))
   (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1303,11 +1300,20 @@ noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 /-- foreign (authlease's checks 3-5, adapted): who is refused the revocation of id, a lease of
-    another principal (Lz or Lu, never who's own); its TimeToLive with keys, if it succeeds, returns no
-    key forbidden, the key of id who may not read; and who lists the leases, the result ignored:
-    Leases' replies carry lease IDs only, no key, so nothing of them is checked.
+    another principal (Lz or Lu, never who's own), and no reply discloses a key who cannot read: its
+    TimeToLive with keys is refused or returns no key forbidden (the key of id who may not read), and
+    its Leases returns lease IDs only (the result ignored: it carries no key).
 
-    go: authlease.go:102:6 -/
+    Refusal of TimeToLive with keys and of Leases is not demanded, as the single-process authlease's
+    foreign does: there it tests etcd's all-or-nothing policy (checkLeaseTimeToLive and
+    checkLeaseLeases refuse when the lease holds any key the user may not read), which etcd does not
+    keep while a member applies a snapshot. applySnapshot calls lessor.Recover, which reloads every
+    lease with no key attached, before kv.Restore re-attaches the keys (etcd's
+    server/etcdserver/server.go applySnapshot, server/lease/lessor.go initAndRecover); both checks
+    read the member's lessor and pass in between. A Go test at etcd's main fails on it:
+    issues/etcd-lease-auth-snapshot-restore-keyless.md.
+
+    go: authlease.go:111:6 -/
 noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -1438,7 +1444,7 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
 /-- absent (authlease's, copied) reports whether root's Get of k succeeded and found no key; it
     panics if the Get succeeded and found one.
 
-    go: authlease.go:124:6 -/
+    go: authlease.go:133:6 -/
 noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "root"
   (Lam "k"
@@ -1519,7 +1525,7 @@ noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
     "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
     lessor; the checks are refusals, made by the receiving member before it forwards.
 
-    go: authlease.go:147:6 -/
+    go: authlease.go:156:6 -/
 noncomputable def RunAuthLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "ready"
@@ -2039,7 +2045,7 @@ noncomputable def RunAuthLease.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUp []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (Let "$a0" (Val #(go!"authLease: the set-up failed"))
   (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3723,9 +3729,11 @@ noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RunKV runs the kv workload (see above) with the client machines nodes (client c's at nodes[c],
     its clientv3 client of every endpoint, preferring eps[c mod k]); no set-up (ready at once). A
     client machine that is not listening yet is a call without an answer (no wait: the harness starts
-    the orchestrator once its client machines listen).
+    the orchestrator once its client machines listen). Porcupine's search has no timeout (0): the check
+    always runs to its verdict, Ok or Illegal. The Unknown branch below is kept (porcupine returns
+    Unknown only on a timeout, which a timeout of 0 never sets; the proof does not rely on that).
 
-    go: kv.go:28:6 -/
+    go: kv.go:24:6 -/
 noncomputable def RunKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nodes"
   (Lam "ops"
@@ -3738,7 +3746,7 @@ noncomputable def RunKV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
-  (Let "$a2" (Val kvCheckTimeout)
+  (Let "$a2" (Val #(W64 0))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Orch []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4586,7 +4594,7 @@ noncomputable def RunLeaseExpiry.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad Result.ty))) (Var "$res0")))))
 
 /-- How long a call from the orchestrator to a client machine may take: a writer's whole loop (each
-    Put within the request timeout), a principal's whole auth.Work (a dozen requests and a refused
+    Put within the request timeout), a principal's whole authwork.Work (a dozen requests and a refused
     watch's wait). A call that takes longer is a call without an answer (see above).
 
     go: nodes.go:42:6 -/
@@ -4940,7 +4948,7 @@ noncomputable def remoteWriters.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.any)))) (Pair (Var "ins") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.PutRec.ty)))) (Var "$res0")))))))
 
-/-- principalCodec is a principal's call: its name in, whether auth.Work ran out (false: its client
+/-- principalCodec is a principal's call: its name in, whether authwork.Work ran out (false: its client
     failed to connect).
 
     go: nodes.go:128:6 -/
@@ -5140,7 +5148,7 @@ noncomputable def principalClient.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- principalOp is a principal machine's call for principal who: auth.Work through a client of its
+/-- principalOp is a principal machine's call for principal who: authwork.Work through a client of its
     own (sys is the endpoints), made for the call and closed after it.
 
     go: nodes.go:171:6 -/
@@ -5178,7 +5186,7 @@ noncomputable def principalOp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Work []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Work []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli")))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -5202,8 +5210,8 @@ noncomputable def principalOp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "who") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
 
-/-- remotePrincipals runs every principal's auth.Work at its client machine (nodes[c] is principal
-    auth.Principals()[c]'s), all at once, and reports how many answered that it ran.
+/-- remotePrincipals runs every principal's authwork.Work at its client machine (nodes[c] is principal
+    authwork.Principals()[c]'s), all at once, and reports how many answered that it ran.
 
     go: nodes.go:184:6 -/
 noncomputable def remotePrincipals.impl [GooseExts] [GoGlobalContext] : val :=
@@ -5211,7 +5219,7 @@ noncomputable def remotePrincipals.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "nodes"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Principals []))) (Val #())) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Principals []))) (Val #())) (Val #()))
   (Let "ps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.any)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ps"))
@@ -6334,7 +6342,7 @@ noncomputable def checkGet.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.google_golang_org.grpc.metadata, pkg_id.net, pkg_id.sync, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.strconv, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.google_golang_org.grpc.metadata, pkg_id.net, pkg_id.sync, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.strconv, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -6368,7 +6376,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -6507,7 +6515,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_auth_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
+  import_authwork_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
@@ -6587,7 +6595,7 @@ attribute [instance] Assumptions.Result_instance
   Assumptions.import_zap_Assumption
   Assumptions.import_grpc_Assumption
   Assumptions.import_clientv3_Assumption
-  Assumptions.import_auth_Assumption
+  Assumptions.import_authwork_Assumption
   Assumptions.import_etcdstart_Assumption
   Assumptions.import_metadata_Assumption
   Assumptions.import_net_Assumption

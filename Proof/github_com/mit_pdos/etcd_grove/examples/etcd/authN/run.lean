@@ -17,33 +17,33 @@
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Work
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Principals
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CheckHistory
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.LastIn
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUp
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Work
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Principals
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.CheckHistory
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.LastIn
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient
 public import Spec.context.ErrAny
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkEnv
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Perennial.Proof.sync.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn
 public import Spec.context.WithTimeoutBackground
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.go_etcd_io.etcd.client.v3.WithPrefix
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithRange
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Permitted
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.RootWatch
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Permitted
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.RootWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCalls
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run
@@ -174,7 +174,7 @@ theorem mod_len_sint (len : w64) (L c : Nat) (hkl : uint.nat len = L) (hL : 0 < 
 the thread token (from the `GoAttach` resources `grpcUpOn` holds), and what serving its Lease service
 in its lease mode `m` takes (`leaseReady`: authN's members are in mode `.none` and drop it; authlease's
 `serve_member_lease` serves the Lease service of its `.revocable` members from it). -/
-theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem serve_member [HasExt idIssueExt]
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF))
@@ -327,7 +327,7 @@ theorem run.wp_proof
     (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS srvsl msl lg ss xs x0 γn hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
+  intro ES FS RS srvsl msl lg ss xs x0 γn hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
     hlog hsc
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   have hk1 : 1 ≤ xs.length := by

@@ -13,7 +13,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.newUse
 public import Spec.context.ErrAny
 public import Spec.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn
 public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
@@ -62,7 +62,7 @@ theorem barrier.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     barrier.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS addr lg V s E ρ cid mid γa γz hs Lset Lc r Q Hpe Htb HEo hAs
+  intro ES FS RS addr lg V s E ρ cid mid γa γz hs Lset Lc r Q Hpe Htb HEo hAs
   wp_start as ⟨Hlt, #Hlgz, #HAu, #HKV, #Hrd, #Hfz, #HLs, %Hh, #HLc, %HLcst, #HQ⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
   isimp only [hon] at Hrd

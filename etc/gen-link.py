@@ -48,12 +48,14 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --lintest-logkvsnap > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/Link.lean
        etc/gen-link.py --lintest-logkvrw > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/Link.lean
        etc/gen-link.py --lintest-logkvappend > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/Link.lean
-       etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean
+       etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/lib/txnwork/Link.lean
+       etc/gen-link.py --linkvtxn-main > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean
        etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Link.lean
        etc/gen-link.py --prophkv > Proof/github_com/mit_pdos/etcd_grove/examples/goose/prophkv/Link.lean
        etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/Link.lean
-       etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean
+       etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/lib/authwork/Link.lean
+       etc/gen-link.py --authkv-main > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean
        etc/gen-link.py --k8s > Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean
        etc/gen-link.py --k8s-etcd3 > Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean
        etc/gen-link.py --cacher > Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean
@@ -68,6 +70,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
        etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
        etc/gen-link.py --antcheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean
+       etc/gen-link.py --antithesis > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --wal-tester > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Link.lean
@@ -76,6 +79,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
+       etc/gen-link.py --hraft > Dsverify/Proof/github_com/hashicorp/raft/Link.lean
+       etc/gen-link.py --hraft-snapstore > Dsverify/Proof/github_com/hashicorp/raft/examples/snapstore/Link.lean
        etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
@@ -188,6 +193,10 @@ and `Result.TLCOK`'s results from it.
 `--antcheck` links the proofs of Antithesis's model's checker (`examples/raft/antithesis/check`,
 #33 S3b, `notes/antithesis-check-design.md` §10), from etc/link-lean-first-antcheck.txt: every
 callee is in the package.
+`--antithesis` links the Antithesis harness's proofs (`examples/raft/antithesis`, #33 S4,
+`notes/antithesis-s4-design.md`), from etc/link-lean-first-antithesis.txt: the checker's results
+(`@`, `--antcheck`'s Link), raft's storage and getters (`@`), Perennial's `sync`, `time` and
+`strconv` (`=`); a function not proved yet is pending (`?`).
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
@@ -422,16 +431,24 @@ LEAN_FIRST = {
                         "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend.Assumptions",
                         "The log-applied register's variant's proofs (`examples/lib/lintest/logkvappend`)",
                         [""]),
-    # the linearizability instance over the robustness tester's KV workload (examples/etcd/txnlin,
-    # notes/linkv-txn-plan.md): its porcupine model (stage E), `Apply` (stage F), its generator,
-    # `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the client's, `@`;
-    # stage G)
+    # the linearizability instance's KV workload (the library examples/lib/txnwork, moved out of
+    # examples/etcd/txnlin on 2026-11-27; notes/linkv-txn-plan.md): its porcupine model (stage E),
+    # `Apply` (stage F), its generator (stage G)
     "--linkvtxn": ("link-lean-first-linkvtxn.txt",
-                   "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                   "github_com.mit_pdos.etcd_grove.examples.lib.txnwork "
                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                    "github_com.anishathalye.porcupine",
-                   "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions",
-                   "The KV-workload linearizability instance's proofs (`examples/etcd/txnlin`)", [""]),
+                   "github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Assumptions",
+                   "The KV-workload linearizability instance's workload proofs (`examples/lib/txnwork`)", [""]),
+    # its driver (examples/etcd/txnlin): `Check` (over lintest's, `@`) and `Main` (over the server's,
+    # v3rpc's and the client's, `@`; stage G), over the library's results (`REUSES`)
+    "--linkvtxn-main": ("link-lean-first-linkvtxn-main.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.txnwork "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions",
+                        "The KV-workload linearizability instance's driver proofs (`examples/etcd/txnlin`)", [""]),
     # the three-member instance under network partitions (examples/etcd/partition, notes/partition-plan.md):
     # its `startCluster` (over `--cluster3`'s `StartCluster` and `NewClient`, `@`; until 2026-11-05
     # its own `startMember`, `startBridge`, `partitioner`), `Apply` (over linkvtxn's `Apply`, `@`),
@@ -439,7 +456,7 @@ LEAN_FIRST = {
     # `MainWatch` (over `--cluster3`'s `Partitioner`, `@`)
     "--linkv3p": ("link-lean-first-linkv3p.txt",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.partition "
-                  "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                  "github_com.mit_pdos.etcd_grove.examples.lib.txnwork "
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                   "github_com.anishathalye.porcupine",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions",
@@ -455,12 +472,19 @@ LEAN_FIRST = {
                   "github_com.mit_pdos.etcd_grove.examples.etcd.watch",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assumptions",
                   "The watch example's proofs (`examples/etcd/watch`)", [""]),
-    # the authentication example (examples/etcd/auth, the auth plan's E2b): its pure checks and
-    # `Main` (not proved yet)
+    # the authentication example's set-up, workload and checks (the library examples/lib/authwork,
+    # moved out of examples/etcd/auth on 2026-11-27; the auth plan's E2b)
     "--authkv": ("link-lean-first-authkv.txt",
-                 "github_com.mit_pdos.etcd_grove.examples.etcd.auth",
-                 "github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions",
-                 "The authentication example's proofs (`examples/etcd/auth`)", [""]),
+                 "github_com.mit_pdos.etcd_grove.examples.lib.authwork",
+                 "github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions",
+                 "The authentication example's workload proofs (`examples/lib/authwork`)", [""]),
+    # its driver (examples/etcd/auth): the member's start, `Run` and `Main`, over the library's
+    # results (`REUSES`)
+    "--authkv-main": ("link-lean-first-authkv-main.txt",
+                      "github_com.mit_pdos.etcd_grove.examples.etcd.auth "
+                      "github_com.mit_pdos.etcd_grove.examples.lib.authwork",
+                      "github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions",
+                      "The authentication example's driver proofs (`examples/etcd/auth`)", [""]),
     # the cache watch example (examples/etcd/cache): watchkv's functions, the cache watch's options,
     # and `Main` (over the server's, v3rpc's, the client's, `context`'s and the cache's, `@`)
     "--cachekv": ("link-lean-first-cachekv.txt",
@@ -572,6 +596,14 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions",
                    "The proofs of the checker of Antithesis's model of raft (`examples/raft/antithesis/"
                    "check`, the Go transcription of `EtcdRaft.tla` and `EtcdBinding.tla`)", [""]),
+    # the Antithesis harness (examples/raft/antithesis, #33 S4): over the checker's results, raft's
+    # and Perennial's
+    "--antithesis": ("link-lean-first-antithesis.txt",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.antithesis",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions",
+                     "The Antithesis harness's proofs (`examples/raft/antithesis`: three verified raft "
+                     "`RawNode`s run concurrently, their reports checked against Antithesis's model)",
+                     [""]),
     # (etcd-dist D2, 2026-11-24) etcd_safe's deployment check (`examples/etcd/dist/deployment`) and the
     # member ids it computes (`membership.NewMember`'s chain, also in the server's list)
     "--deployment": ("link-lean-first-deployment.txt",
@@ -595,18 +627,21 @@ EXT_OPENS = {"--bboltfs": "\nopen Fs\n"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
 # model of `idutil`'s `Generator.Next` steps through it, so every mode whose links reach `Next`'s
 # proof (the server's, and those linking over it) takes its `HasExt`.
-for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
+for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--linkvtxn", "--linkvtxn-main", "--watchkv", "--authkv", "--authkv-main",
            "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
     EXTS[_m] = "[HasExt idIssueExt]"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--linkvtxn-main": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--authkv-main": "etcd_auth", "--cachekv": "etcd_cache", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs", "--deployment": "etcd_dist"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
-REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
+REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"],
+          # (2026-11-27) the drivers over their workload libraries' Links
+          "--linkvtxn-main": ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Link"],
+          "--authkv-main": ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
@@ -618,7 +653,7 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # (the import tiers, 2026-11-18) the client's laws its proofs take (`=client.*_law_holds`,
                  # `=etcd_txnlin.*_law_holds` callees)
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
-                           "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
+                           "Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
                  "--raft": ["Perennial.Proof.time.Link", "Perennial.Proof.strings.Link"],
                  # (fmt stage 1, 2026-11-24) Perennial's `strings.Join` (raft's `strings.Join`, `=` callee)
@@ -697,20 +732,22 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
-for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--linkvtxn-main", "--k8setcd3", "--cluster3", "--authkv", "--authkv-main"]:
     EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
 # (premises to axioms, 2026-11-24) the examples' bootstrap logs' `bootMarshal` from `proto.Marshal`'s
 # trust-boundary axiom at a boot conf change (`=_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof`)
-for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--linkvtxn-main", "--k8setcd3", "--cluster3", "--authkv", "--authkv-main"]:
     EXTRA_IMPORTS[_m].append("Proof.google_golang_org.protobuf.proto.MarshalBootConfChange")
 # (the import tiers, 2026-11-18) the laws of the client's linked calls the call proofs take
 # (`=client.*_law_holds`, `=*_law_holds` of `CallsLinked.lean`)
 EXTRA_IMPORTS["--linkvtxn"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
-                                "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"]
+                                "Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.CallsLinked"]
 EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# K5: the in-process client's laws (`=k8s.inProcEtcd_laws_law_holds`, newStore)
+EXTRA_IMPORTS["--k8setcd3"] += ["Proof.k8s_io.apiserver.pkg.storage.etcd3.InProcLinked"]
 # (#26, 2026-11-24) `bytes.Buffer`'s `Write` and `Bytes` proved over Perennial's (`=_root_.Perennial.bytes.*`)
 EXTRA_IMPORTS["--k8setcd3"] += ["Perennial.Proof.bytes.Link"]
 EXTRA_IMPORTS["--server"] += ["Proof.bytes.BufferLinked"]
@@ -733,8 +770,24 @@ EXTRA_IMPORTS.setdefault("--linkv3p", []).append(
 # the checker of Antithesis's model: the budget laws (pure, defs modules) its proofs take (`=AntCheck.State.*`)
 EXTRA_IMPORTS["--antcheck"] = ["Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within." + m
                                for m in ["Combined", "GC", "ActionCfg", "Init0"]]
-EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
-                              "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
+# the Antithesis harness: Perennial's `sync`, `time` and `strconv` results (`=` callees)
+EXTRA_IMPORTS["--antithesis"] = ["Perennial.Proof.sync.Link", "Perennial.Proof.time.Link",
+                                 "Perennial.Proof.strconv.Link",
+                                 # (2026-11-24) raft's `RawNode` API (its `wp_apiProof`s and laws)
+                                 # and its start, `proto.Clone` at the message type
+                                 "Proof.go_etcd_io.raft.v3.RawNodeApiLinked",
+                                 # (parity B1) the harness's laws and the simulation's statements at
+                                 # B1's mask, proved
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessLaws",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunInMaskB1",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet",
+                                 # (parity B1) node.drain's phases and the simulation's lemmas it takes
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReadyAll",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1ReadStates",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1SendWp",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1AdvWp"]
+EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn",
+                              "Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
@@ -760,6 +813,13 @@ if sys.argv[1:2] in (["--kvraft"], ["--kvraft-udp"]):
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
                     udp=sys.argv[1] == "--kvraft-udp")
     sys.exit(0)
+if sys.argv[1:2] in (["--hraft"], ["--hraft-snapstore"]):
+    # hashicorp/raft's two Links (the part Dsverify/, notes/dsv-hraft.md): dsverify-lab's generator,
+    # ported (`etc/dsv/tools/hraft-link.py`), which prints the one asked for
+    import subprocess  # noqa: E402
+    _here = os.path.dirname(os.path.abspath(__file__))
+    sys.exit(subprocess.call([sys.executable, os.path.join(_here, "dsv", "tools", "hraft-link.py"), "--stdout",
+                              "raft" if sys.argv[1] == "--hraft" else "raft/examples/snapstore"]))
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
     sys.dont_write_bytecode = True  # no etc/__pycache__
@@ -810,7 +870,7 @@ if ALIAS:
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
 NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--linkv3p",
-            "--linkvtxn", "--kvwitness", "--k8setcd3"}
+            "--linkvtxn", "--linkvtxn-main", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
 # `[StorageModel GF]` are instantiated there.
@@ -818,7 +878,17 @@ LOCAL_INSTANCES = {}
 # The modes whose blocked results take only the pending hypotheses they reach (k8s 7e-2,
 # 2026-11-10: the etcd3 store's list path pends specs the compactor, linked into a closed
 # result, does not reach); the others take every pending hypothesis
-PER_FN_PENDING = {"--k8s-etcd3"}
+PER_FN_PENDING = {"--k8s-etcd3", "--antithesis"}
+# (2026-11-26, the Antithesis harness, parity B1) the specs over the harness's storage registry
+# (`[AntStor GF]`, `AntStorage.lean`) take it as a binder, beside the storage model; a result whose
+# proof holds only at the registry's model (`attribute [local instance] antStorageModelNC`:
+# `node.start`, over `NewRawNode`'s restart at that model), and every result linking one, is stated
+# at that model (`letI : StorageModel GF := antStorageModelNC`), as `RunCluster`'s hypotheses take
+# it (a caller taking such a hypothesis passes `=(fun [AntHarness.AntStor GF] => letI : … ; <result>)`);
+# a pending spec over the registry is a hypothesis at every storage model and registry
+ANT_STOR = "[AntStor GF]"
+ANT_STOR_BINDER = "[AntHarness.AntStor GF]"
+ANT_NC = "AntHarness.antStorageModelNC"
 # The modes whose `@` callees with no Link of their own package are looked up in every imported Link
 # (k8s 7e-4: the driver's `storage`/`labels`/`fields` callees, linked in the k8s etcd3 store's Link)
 EXT_ANY_LINK = {"--k8setcd3"}
@@ -935,11 +1005,34 @@ def proof_module(fn):
     return f"{prefix[fn]}Proof.{where[fn]}"
 
 fns, callees, external, pending = [], {}, set(), set()
+# (2026-11-24, the Antithesis harness) a pending law: a line `?(<name> : <type>)` declares a hypothesis
+# (a statement not proved yet, not a function's spec) of every result whose `=` callees name it
+pending_laws = {}
+
+
+def split_callees(cs):
+    """The callees of a line: whitespace-separated, except inside parentheses (an `=(<term>)`
+    callee is a term applied to arguments)."""
+    out, cur, depth = [], "", 0
+    for ch in cs:
+        if ch.isspace() and depth == 0:
+            if cur:
+                out.append(cur)
+            cur = ""
+            continue
+        depth += (ch == "(") - (ch == ")")
+        cur += ch
+    if cur:
+        out.append(cur)
+    return out
 # the mode's functions and their callees (`etc/link-lean-first-<mode>.txt`)
 with open(os.path.join(here, mode[0])) as f:
     for line in f:
         line = line.split("#")[0].strip()
         if not line:
+            continue
+        if line.startswith("?("):
+            pending_laws[line[2:].partition(":")[0].strip()] = line[1:]
             continue
         fn, _, cs = line.partition(":")
         fn = fn.strip()
@@ -961,7 +1054,7 @@ with open(os.path.join(here, mode[0])) as f:
             # reach it (`section links_pending`)
             pending.add(fn)
             cs = ""
-        callees[fn] = cs.split()
+        callees[fn] = split_callees(cs)
 fns.sort()
 
 
@@ -1126,12 +1219,27 @@ if cache:
 order, seen = [], set()
 
 
+def term_names(c):
+    return set(re.findall(r"[\w.«»'_]+", c[1:]))
+
+
+def eq_refs(c):
+    """The functions of this mode whose results an `=` term names."""
+    if "(" not in c:
+        return []
+    names = term_names(c)
+    return [f for f in fns if f in spec and result(f) in names]
+
+
 def visit(fn):
     if fn in seen:
         return
     seen.add(fn)
     for c in callees[fn]:
         if c.startswith("="):
+            # a term naming results of this Link (`=(drainSend AntHarness.Recorder.wp_record …)`)
+            for f in eq_refs(c):
+                visit(f)
             continue
         visit(c)
     order.append(fn)
@@ -1221,13 +1329,22 @@ variable [sem : go.Semantics]
             # a term given as is (`=http.respWrite_ok`): a boundary statement's axiom, or another
             # library's linked result, which no spec file of a mode names; `~` separates its arguments
             # (`=rnNewStorageOk_law_holds~raftpb.SnapshotMetadata.wp_GetIndex`, wal-nostorageok)
-            return f"({c[1:].replace('~', ' ')})" if "~" in c else c[1:]
+            t = f"({c[1:].replace('~', ' ')})" if "~" in c else c[1:]
+            if sys.argv[1] in PER_FN_PENDING:
+                # (parity B1) a result of `links_pending` the term names, applied to the pending
+                # hypotheses it reaches
+                for f in eq_refs(c):
+                    if f in blocked and f not in pending and reach.get(f):
+                        t = re.sub(r"(?<![\w.])" + re.escape(result(f)) + r"(?![\w.])",
+                                   "(" + result(f) + " " + " ".join(hyp(p) for p in sorted(reach[f])) + ")", t)
+            return t
         if c in pending:
             return hyp(c)
         if c in blocked:
             # a result of `links_pending`: applied to the pending hypotheses (section variables
             # are not applied automatically)
-            return "(" + result(c) + " " + " ".join(hyp(p) for p in sorted(reach[c])) + ")"
+            return "(" + result(c) + " " + " ".join(
+                [hyp(p) for p in sorted(reach[c])] + sorted(pending_laws)) + ")"
         # a callee's result named like the theorem's last component (`leaseCache.wp_evalCmp`
         # calling `wp_evalCmp`; `bootstrappedRaft.wp_newRaftNode` calling `wp_newRaftNode`,
         # 2026-10-16) would resolve to the theorem itself: qualify it
@@ -1252,6 +1369,16 @@ variable [sem : go.Semantics]
                 csrc = open(spec_file(c)).read()
             except Exception:
                 continue
+            # (2026-11-24, the Antithesis harness) an `@` callee whose result in its Link is at any
+            # `[StorageModel GF]` (raft's `MemoryStorage` methods: their specs do not name it, their
+            # proofs do), in a mode with no storage model of its own (`LOCAL_INSTANCES`)
+            if (c in external and sys.argv[1] not in LOCAL_INSTANCES
+                    and os.path.exists(os.path.join(root, *external_link(c).split(".")) + ".lean")
+                    and re.search(r"^theorem " + re.escape(result(c)) + r" \[StorageModel GF\]",
+                                  open(os.path.join(root, *external_link(c).split(".")) + ".lean").read(),
+                                  re.M)):
+                r = True
+                break
             if (not any(r in csrc for r in STOR_REGS)
                     and ("[StorageModel GF]" in csrc or needs_sm(c, depth + 1))):
                 r = True
@@ -1264,6 +1391,14 @@ variable [sem : go.Semantics]
         body = f"{specref(fn)}.wp_proof{sfx(fn)}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
+        if fn in ant_nc:
+            allg = (" [AllG GF]" if "[AllG GF]" in src and fn not in blocked else "") + " " + ANT_STOR_BINDER
+            allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES if p in premises[fn])
+            return (f"theorem {result(fn)}{allg} :\n"
+                    f"    letI : StorageModel GF := {ANT_NC}\n"
+                    f"    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) := by\n"
+                    f"  letI : StorageModel GF := {ANT_NC}\n"
+                    f"  exact ({body} :\n      {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))\n")
         allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
         # the key-value store's specs take its storage registry
         allg += "".join(" " + r for r in STOR_REGS if r in src)
@@ -1288,6 +1423,8 @@ variable [sem : go.Semantics]
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)
         elif "[MemStorReg GF]" in src:
             allg += " [MemStorReg GF]"
+        if sys.argv[1] == "--antithesis" and ANT_STOR in src:
+            allg += " " + ANT_STOR_BINDER
         allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES
                         if p in premises[fn] and premise_binder(p) not in em)
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) :=\n"
@@ -1395,7 +1532,10 @@ variable [sem : go.Semantics]
     # last, with the pending specs as hypotheses
     blocked = set(pending)
     for fn in order:
-        if any(c in blocked for c in callees[fn]):
+        if any(c in blocked for c in callees[fn]) or any(
+                c.startswith("=") and (term_names(c) & set(pending_laws)
+                                       or any(f in blocked for f in eq_refs(c)))
+                for c in callees[fn]):
             blocked.add(fn)
     # the pending functions each blocked result reaches (k8s 7e-2, 2026-11-10): a result takes
     # only those as hypotheses, so that adding a pending function does not change the statements of
@@ -1403,9 +1543,24 @@ variable [sem : go.Semantics]
     reach = {fn: {fn} for fn in pending}
     for fn in order:
         if fn in blocked and fn not in pending:
-            reach[fn] = set().union(*(reach.get(c, set()) for c in callees[fn]))
+            reach[fn] = set().union(*(reach.get(c, set()) for c in callees[fn]),
+                                    # (parity B1) and those of the results an `=` term names
+                                    *(reach.get(f, set()) for c in callees[fn]
+                                      if c.startswith("=") for f in eq_refs(c)))
     if sys.argv[1] not in PER_FN_PENDING:
         reach = {fn: set(pending) for fn in reach}
+    # the results stated at the harness registry's storage model (`ANT_NC`): a proof stated only
+    # there, and every result linking one
+    ant_nc = set()
+    if sys.argv[1] == "--antithesis":
+        for fn in order:
+            if fn in external or fn in pending or fn in reused:
+                continue
+            pf = proof_file(fn)
+            if ((os.path.exists(pf) and "attribute [local instance] antStorageModelNC" in open(pf).read())
+                    or any(c in ant_nc for c in callees[fn])):
+                ant_nc.add(fn)
+
     generic = [fn for fn in order if fn not in haslc and fn not in external and fn not in blocked
                and fn not in reused]
     special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked
@@ -1434,11 +1589,14 @@ variable [sem : go.Semantics]
             return open(spec_file(fn)).read()
         pend_allg = any("[AllG GF]" in pend_src(fn) for fn in pending)
         hyps = ("variable [AllG GF]\n" if pend_allg else "") + "\n".join(
-            f"variable ({hyp(fn)} : "
-            + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
-            + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
-            for fn in sorted(pending))
-        names = " ".join(hyp(fn) for fn in sorted(pending))
+            [f"variable ({hyp(fn)} : "
+             + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
+             + (f"∀ [StorageModel GF] {ANT_STOR_BINDER}, " if sys.argv[1] == "--antithesis"
+                and ANT_STOR in pend_src(fn) else "")
+             + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
+             for fn in sorted(pending)]
+            + [f"variable {pending_laws[n]}" for n in sorted(pending_laws)])
+        names = " ".join([hyp(fn) for fn in sorted(pending)] + sorted(pending_laws))
         # one `include` of every pending hypothesis for the section; in a `PER_FN_PENDING` mode,
         # each result includes the hypotheses it reaches
         per_fn = (sys.argv[1] in PER_FN_PENDING

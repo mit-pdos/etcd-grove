@@ -22,7 +22,6 @@ axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
-axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
@@ -30,7 +29,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addrClaim
@@ -74,7 +72,6 @@ axiom grpcResolverAt
 axiom grpcSrvAtLis
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
-axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
 axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof

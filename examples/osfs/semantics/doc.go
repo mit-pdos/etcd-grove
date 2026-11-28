@@ -65,6 +65,19 @@
 //	meta_enoent.go                ENOENT only for a missing path     ENOENT, Open, DirReadNext (pending review)
 //	                              or a removed directory
 //
+// link(2), which the semantics does not model (no Link step): the assumptions
+// of the trust-boundary axiom snap.Snapshotter.SaveDBFrom.wp_proof and of
+// snapDirInvH (branch etcd-safe-crash-delta-now/2026-11-27; 2026-11-28;
+// meta_link_test.go holds the live measurements, notes/axiom-review/fs-link/
+// the crash harness; both run on C, notes/axiom-review/fs-link/results.md):
+//
+//	meta_link_no_replace.go       link never replaces: EEXIST,       SaveDBFrom.wp_proof (the keep), snapDirBody
+//	                              atomic with the creation (i)       (fileFreeDur → snapFileAt)
+//	meta_link_crash.go            crash before the dir fsync: the    backend.fileAtPend, pendNamed, snapFileAt,
+//	                              name absent or the synced file (ii) snapDir_crash_law_holds
+//	meta_link_shared_inode.go     crash between link and unlink:     snap.snapDirOwn (tmp* names, no inode)
+//	                              tmp and fn, one inode (iii)
+//
 // File locks (2026-11-15, the user's approval of lock state; pending review,
 // notes/wal-units/locks.md; locks_test.go holds their measurements):
 //

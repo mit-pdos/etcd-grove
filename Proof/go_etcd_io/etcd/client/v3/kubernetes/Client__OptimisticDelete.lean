@@ -16,7 +16,7 @@ public import Spec.go_etcd_io.etcd.client.v3.OpDelete
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.CallsLaws
 public import Spec.go_etcd_io.etcd.client.v3.kv__Txn
 public import Spec.go_etcd_io.etcd.client.v3.txn__If
 
@@ -54,7 +54,7 @@ theorem Client.OptimisticDelete.wp_proof
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
     (h_txn_Commit_st : etcd_txnlin.txn_Commit_st.law (GF := GF) (hG := hG)) :
     Client.OptimisticDelete.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key rev opts Q hk
+  intro _ kc ms V ci cd key rev opts Q hk
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hctx, #Hce, Hau⟩
   wp_auto
   ihave #Hnil0 := optsAt_nil (GF := GF)

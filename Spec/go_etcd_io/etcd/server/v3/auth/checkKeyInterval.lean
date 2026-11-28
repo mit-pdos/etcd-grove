@@ -24,20 +24,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- `checkKeyInterval(lg, p, key, rangeEnd, permtyp)`: the tree of the permission type (`READ`
 the read tree, `WRITE` the write tree; otherwise `lg.Panic`) queried with `[key, rangeEnd)`
-(`rangeEnd` `nil` when open-ended; `Contains`): for a non-empty key and an open-ended or proper
-range, whether the entries cover every key of the queried interval (`queryIvl`, `adt.inIvl`;
-`adt.containsRes_iff`), else some boolean; the slices kept. -/
+(`rangeEnd` `nil` when open-ended, `queryIvl`; `Contains`): `adt.containsT` of the query on that
+tree, for every query; the slices kept. -/
 abbrev auth.checkKeyInterval.spec : Prop :=
-  ∀ (lg p : Loc) (Lr Lw : List adt.Entry) (key re : GoSlice) (k e : GoString) (dk de : DFrac)
+  ∀ (lg p : Loc) (Tr Tw : adt.RbT adt.Entry) (key re : GoSlice) (k e : GoString) (dk de : DFrac)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ permsAt p Lr Lw ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ permsAt p Tr Tw ∗
       key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyInterval)) (Val #lg))
       (Val #p)) (Val #key)) (Val #re)) (Val #pt))
   {{ (b : Bool), RET #b; key ↦*{dk} k ∗ re ↦*{de} e ∗
-      ⌜k ≠ [] → (auth.isOpenEnded e ∨ go.GoStringLt k e) →
-        (b = true ↔ ∀ x, adt.inIvl (queryIvl k e) x →
-          ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 x)⌝ }}
+      ⌜b = adt.containsT (queryIvl k e) (if pt = W32 0 then Tr else Tw)⌝ }}
 
 end spec
 

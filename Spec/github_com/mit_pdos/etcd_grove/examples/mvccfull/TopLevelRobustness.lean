@@ -71,7 +71,6 @@ def mvccfull_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
      (r : GoString)
     (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)

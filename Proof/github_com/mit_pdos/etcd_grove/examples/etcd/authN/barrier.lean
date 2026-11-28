@@ -14,7 +14,7 @@ public import Spec.context.ErrAny
 public import Spec.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CallLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.CallLaws
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
 
@@ -65,7 +65,7 @@ theorem barrier.wp_proof
     (h_client_Get_on : etcd_auth.client_Get_on.law (GF := GF) (hG := hG))
     (h_authTokReg_of : client.authTokReg_of.law (GF := GF) (hG := hG)) :
     barrier.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS addr lg V s E ρ cid mid γa γz hs Lset Lc r Hpe Htb HEo hAs
+  intro ES FS RS addr lg V s E ρ cid mid γa γz hs Lset Lc r Hpe Htb HEo hAs
   wp_start as ⟨Hlt, #Hlgz, #HAu, #HKV, #Hrd, #Hfz, #HLs, %Hh, #HLc, %HLcst⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit

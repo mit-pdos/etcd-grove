@@ -364,7 +364,7 @@ structure RunFields where
   leaderChanged : Loc
 
 section addrsR
-variable [GoSemanticsFunctions]
+variable [GoLocalContext] [GoSemanticsFunctions]
 abbrev srvErrorcAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"errorc" s
 abbrev srvStopAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"stop" s
 abbrev srvCancelAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"cancel" s

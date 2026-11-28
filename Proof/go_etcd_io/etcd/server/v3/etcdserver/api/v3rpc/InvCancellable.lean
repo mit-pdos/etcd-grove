@@ -31,7 +31,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section names
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The `lock` field of the `*cancellableContext` `l`. -/
 abbrev v3rpc.ccLockF (l : Loc) : Loc :=

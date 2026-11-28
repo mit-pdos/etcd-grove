@@ -36,7 +36,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev watcher.Watch.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] [Pos.Countable Obj] (wp sp : Loc) (c : StoreCfg GF Obj)
     (W : WatchSpec GF Obj) (γk : KVNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (kp : GoString) (n : w64) (opts : k8s_io.apiserver.pkg.storage.ListOptions) (sie : Option Bool)
@@ -44,7 +44,7 @@ abbrev watcher.Watch.spec : Prop :=
   (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ ∧
     kvRevFits σ.rev⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
-  (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  c.K.live →
   c.pfx <+: kp → kp ≠ [] → kp.length ≤ opKeyMax → (opts.Recursive' = true → go!"/" <:+ kp) →
   uint.Z n < 2 ^ 63 - 1 → opts.ProgressNotify' = false → opts.RecordTimestamps' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
@@ -53,7 +53,7 @@ abbrev watcher.Watch.spec : Prop :=
       sendInitIs opts.SendInitialEvents' sie ∗ selPredOk c.S opts.Predicate' sel emp ∗
       watchListOn ∗ rangeStreamOff ∗
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗
-      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)) ∗
+      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (hG := hG)) ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ readAus c γk (Q 0) ∗
       (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev))) }}
     (App (App (App (App (Val (wp @!! go.GoType.PointerType

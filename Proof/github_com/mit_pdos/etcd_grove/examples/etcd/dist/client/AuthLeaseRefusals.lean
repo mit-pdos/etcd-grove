@@ -12,7 +12,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthCell
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.LeaseDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Refusals
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRefusalFacts
 
 @[expose] public section
 

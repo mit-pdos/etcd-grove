@@ -116,7 +116,7 @@ def k8sctx.k8sCtxOk (ctx : GoInterfaceOk) : IProp GF :=
   iprop(context.valueAt ctx audit.auditKeyAny (fun _ => True) ∗
     context.valueAt ctx utiltrace.traceKeyAny utiltrace.traceRes ∗
     context.valueAt ctx rtrace.traceKeyAny rtrace.taskRes ∗
-    context.valueAt ctx flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)) ∗
+    context.valueAt ctx flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (hG := hG)) ∗
     context.libCtxOk ctx)
 
 instance k8sctx.k8sCtxOk_persistent (ctx : GoInterfaceOk) :

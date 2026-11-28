@@ -14,7 +14,7 @@ as linkvtxn's.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Calls
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
@@ -36,12 +36,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
+  ∀ (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
     (clis : List Loc),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → clis ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition -∗
-    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin -∗
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.txnwork -∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 -∗
     cls ↦*□ clis -∗ ([∗list] cl ∈ clis, clientOk γ cl) -∗
     iprop(∀ i : GoInterface,

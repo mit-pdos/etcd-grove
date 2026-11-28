@@ -16,10 +16,10 @@ public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.encoding.base64.InitLinked
 public import Proof.encoding.json.Init
-public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
-public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
+public import Proof.k8s_io.apimachinery.pkg.api.errors.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.api.meta.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.api.validate.content.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.fields.Init
 public import Proof.k8s_io.apimachinery.pkg.labels.Init
 public import Proof.k8s_io.apimachinery.pkg.runtime.Init

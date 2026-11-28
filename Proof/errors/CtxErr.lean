@@ -229,7 +229,7 @@ instance errors.noMatchTree_persistent (P : (GoError → Prop) → Prop) (N : Go
 `status.FromError` finds no status in it (v1.84.0 `status/status.go:96-127`: the type assertion and
 `errors.As` to `GRPCStatus() *Status`), and `fmt` prints it with its `Error()`. Of every error of
 `notCtxTree`'s trees (nonleaf-status-errs, 2026-11-26). -/
-def errors.plainErrNode [GoSemanticsFunctions] (ii : GoInterfaceOk) : Prop :=
+def errors.plainErrNode [GoLocalContext] [GoSemanticsFunctions] (ii : GoInterfaceOk) : Prop :=
   methodSet ii.ty !! go!"As" = none ∧ methodSet ii.ty !! go!"GRPCStatus" = none ∧
     methodSet ii.ty !! go!"Format" = none
 

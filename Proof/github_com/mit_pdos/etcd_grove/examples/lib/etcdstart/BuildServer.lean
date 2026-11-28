@@ -32,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 theorem BuildServer.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG)) :
     BuildServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
+  intro N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
     dir id γ ρ E₀ Φs γn lm ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf
     Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
@@ -51,7 +51,7 @@ theorem BuildServer.wp_proof
 theorem BuildServer.wp_proofRestart
     (wp_newServer : newServer.specRestart (GF := GF) (hG := hG)) :
     BuildServer.specRestart (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
+  intro N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs
     dir id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg

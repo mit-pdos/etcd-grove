@@ -1,5 +1,5 @@
 /-
-The KV-workload linearizability instance's results (`examples/etcd/txnlin/etcd_txnlin.go`; linkv-txn
+The KV-workload linearizability instance's results (`examples/lib/txnwork/etcd_txnlin.go`; linkv-txn
 stage G), restated, with the trust base of each printed in the build log (`#print axioms`).
 Lean-first (no Rocq counterpart).
 
@@ -43,8 +43,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_txnlin.wp_Main`). -/
-theorem linkvtxn_Main
-    [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem linkvtxn_Main :
     etcd_txnlin.Main.spec (GF := GF) (hG := hG) :=
   etcd_txnlin.wp_Main
 

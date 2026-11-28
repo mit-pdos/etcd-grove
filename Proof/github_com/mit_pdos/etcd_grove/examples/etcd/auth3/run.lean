@@ -17,33 +17,33 @@
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Work
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Principals
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CheckHistory
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.LastIn
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUp
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Work
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Principals
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.CheckHistory
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.LastIn
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient
 public import Spec.context.ErrAny
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkEnv
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Perennial.Proof.sync.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn
 public import Spec.context.WithTimeoutBackground
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.go_etcd_io.etcd.client.v3.WithPrefix
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithRange
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Permitted
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.RootWatch
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Permitted
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.RootWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCalls
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
@@ -91,7 +91,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assum
 /-- **A member served** (`Run`'s `Serve` step): `etcdstart.Serve(s, addr)` with the ghost steps
 `ak_served_kv` and `ak_served_watch`; on success, the member's served facts at its environment and
 the thread token (from the `GoAttach` resources `grpcUpOn` holds). -/
-theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem serve_member
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF))
@@ -218,7 +218,7 @@ theorem run.wp_proof
     (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS s₁ s₂ s₃ lg a₁ a₂ a₃ ρ₁ ρ₂ ρ₃ E₁₀ E₂₀ E₃₀ γn id₁ id₂ id₃ γa₁ γa₂ γa₃
+  intro ES FS RS s₁ s₂ s₃ lg a₁ a₂ a₃ ρ₁ ρ₂ ρ₃ E₁₀ E₂₀ E₃₀ γn id₁ id₂ id₃ γa₁ γa₂ γa₃
     Hpe₁ Hpe₂ Hpe₃ Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0 hlog hs₂ hs₃
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨#Hlgz, Ha₁, Ha₂, Ha₃, Hup₁, Hup₂, Hup₃, #Hhist, Hview⟩

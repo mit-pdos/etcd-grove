@@ -21,9 +21,9 @@ public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_opentelemetry_io.otel.attribute.InitLinked
 public import Proof.google_golang_org.grpc.metadata.InitLinked
-public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
-public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
-public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
+public import Proof.k8s_io.apimachinery.pkg.api.errors.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.api.meta.InitLinked
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.conversion.Init
 public import Proof.k8s_io.apimachinery.pkg.fields.Init
 public import Proof.k8s_io.apimachinery.pkg.labels.Init

@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main(clients, ops)` (`examples/etcd/txnlin/etcd_txnlin.go`; linkv-txn stage G): one etcd member started
+`Main(clients, ops)` (`examples/lib/txnwork/etcd_txnlin.go`; linkv-txn stage G): one etcd member started
 in process (as `examples/linkv`'s `Main`, on `linkvtxn`'s ports), a client with etcd's
 default configuration (its default retries; D29), and `Check(cli, clients, ops, 0)`, with a panic if porcupine reports the
 history `Illegal`.
@@ -40,8 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+  ∀ (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64),
   etcd_putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 →

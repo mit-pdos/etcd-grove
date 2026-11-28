@@ -25,6 +25,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 section step
 variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 
 /-- **`open(2)` without `O_CREAT` of a covered `d/b` holding nothing**, `d` a directory: a failure is
 `ENOENT`, or `EINTR` with no free fd. -/
@@ -33,7 +34,7 @@ theorem openAbsent_noErrAt {d b : GoString} {j : Ino} {k : Nat} {fl : w64} (hne 
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
     (hd : st.lookup d = some (.dir j)) (hb : NameOk b) (hlk : st.lookup (child d b) = none)
-    (hs : S.step "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) h st g e' h' st' g') :
+    (hs : S.step tf "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) h st g e' h' st' g') :
     ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → e = ENOENT ∨ e = EINTR := by
   obtain ⟨⟨Sio, -, h1, h2, hp⟩, hfit⟩ := hne
   have hst := (fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)).1

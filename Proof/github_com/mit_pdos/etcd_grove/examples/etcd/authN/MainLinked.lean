@@ -18,12 +18,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.barrier
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.newUserClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn
 public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 
 @[expose] public section
@@ -74,7 +74,7 @@ theorem etcd_authN.wp_barrier :
 
 /-- **authN's `run`**: authkv's run across the `k` members (`run.lean`), over authkv's linked
 `SetUp`, `Work` and checks (`auth/Link.lean`). -/
-theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_authN.wp_run :
     etcd_authN.run.spec (GF := GF) (hG := hG) :=
   etcd_authN.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_authN.wp_newUserClient etcd_authN.wp_barrier

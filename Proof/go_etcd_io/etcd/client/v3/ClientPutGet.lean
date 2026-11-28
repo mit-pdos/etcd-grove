@@ -59,7 +59,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 -- (2026-11-23) `putGetInv_alloc_log` moved to `PutGetInvAlloc.lean` (a defs module).
@@ -204,7 +203,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **What a linearizable range's reply says** (any range at the latest revision): the client's

@@ -45,7 +45,7 @@ theorem watchEvents.wp_proof
     (wp_FE : fieldSel.Empty.spec (GF := GF) (hG := hG))
     (wp_GA : getAttrs.spec (GF := GF) (hG := hG)) :
     watchEvents.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c γk x k n Q hS hQ hQQ hnr htb hk hkl hn hn63
+  intro _ _ sp c γk x k n Q hS hQ hQQ hnr htb hk hkl hn hn63
   wp_start as ⟨Hlt, #Hst, #Hsw, #Hwl, #Hrs, HQ0, #HQup⟩
   wp_auto
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

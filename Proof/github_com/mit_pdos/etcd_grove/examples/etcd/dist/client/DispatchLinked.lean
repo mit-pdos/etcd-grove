@@ -80,7 +80,7 @@ theorem wp_OrchestratorFull : Orchestrator.spec (GF := GF) (hG := hG) :=
           intro π ρ
           exact MainReady.wp_proofKv _ wp_NodeCount
             (RunKV.wp_proof _ (fun nodes ns ops =>
-              EtcdGrove.kvremote.wp_Orch (ρ := ρ) nodes ns ops (W64 120000000000))))
+              EtcdGrove.kvremote.wp_Orch (ρ := ρ) nodes ns ops (W64 0))))
         wp_RunWatch wp_RunCache wp_RunCompact wp_RunPutGet wp_RunDurable
         wp_RunLeaseRead wp_RunLeaseCatchup wp_RunLeaseExpiry wp_MainReadyAuth wp_RunAuthLease))
 

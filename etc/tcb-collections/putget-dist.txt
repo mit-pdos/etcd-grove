@@ -24,7 +24,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom WithRequireLeader.wp_proof
 axiom addrClaim
 axiom apply.memberEnc_id_learner
@@ -36,10 +35,8 @@ axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom etcdResolver_grpc
-axiom etcd_dist.KV_Get_dist.wp_proof
-axiom etcd_dist.KV_Put_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
-axiom etcd_dist.etcdSvc
+axiom etcd_dist.etcdSvcRest
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -80,9 +77,15 @@ axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom pbAuthenticateRequestT_reg
 axiom pbAuthenticateResponseT_reg
+axiom pbDeleteRangeRequestT_reg
+axiom pbDeleteRangeResponseT_reg
 axiom pbEntryC_reg
 axiom pbHsC_reg
 axiom pbMessageC_reg
+axiom pbPutRequestT_reg
+axiom pbPutResponseT_reg
+axiom pbRangeRequestT_reg
+axiom pbRangeResponseT_reg
 axiom pbRecordC_reg
 axiom pbSnapC_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
@@ -198,7 +201,5 @@ opaque prometheus.vecLabels
 opaque snap.dirReadOk
 opaque snapDecode
 opaque storage.dbOpensOk
-opaque streamRepModelOf
-opaque streamReqModelOf
 opaque trace.otelSpan
 opaque v3rpc.ctxCauseOkRaw

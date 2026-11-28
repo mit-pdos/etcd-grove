@@ -1,5 +1,5 @@
 /-
-`Main()` (`examples/etcd/auth/authkv.go`; the auth plan's E2b): **proved** (2026-10-31), over its
+`Main()` (`examples/lib/authwork/authkv.go`; the auth plan's E2b): **proved** (2026-10-31), over its
 callees' specs. Lean-first (no Rocq counterpart).
 
 The steps: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
@@ -21,7 +21,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Spec.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainAlloc
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
@@ -54,7 +54,7 @@ theorem Main.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro ES FS RS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩

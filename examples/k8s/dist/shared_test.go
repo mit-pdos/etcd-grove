@@ -7,7 +7,7 @@ import (
 
 	"github.com/anishathalye/porcupine"
 
-	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
 )
 
 // sequential is the history of the operations in order, each returning before the next is called.
@@ -93,14 +93,91 @@ func TestSharedModel(t *testing.T) {
 	}
 }
 
+// TestSharedWatchList checks SharedModel on a watch-list (SendInitialEvents true) at a resource
+// version above every revision the history writes, whose answer ends before its
+// initial-events-end bookmark: Model's check accepts it only at a configuration at that resource
+// version or above, so target moves there (G7; notes/k8s-dist-k4.md, "The gap"). The history
+// linearizes (foreign revisions 4..10, then the watch: the store at 10 has pod-1 at 2), and every
+// mode accepts it; with pod-1's value wrong, every mode rejects it.
+func TestSharedWatchList(t *testing.T) {
+	s := k8s.SeededAt(2, 3)
+	in := k8s.Input{Kind: k8s.KWatch, WKey: "/objs/", Recursive: true, MinRV: k8s.RVBytes(10), SendInit: 2,
+		Bookmarks: true, Match: k8s.MNotOlderThan}
+	for _, c := range []struct {
+		value string
+		ok    bool
+	}{{"x", true}, {"z", false}} {
+		out := k8s.Output{WEvents: k8s.EncodeWEvents([]k8s.WEvent{{Type: k8s.WAdded,
+			Obj: k8s.Obj{Namespace: "ns-1", Name: "pod-1", Value: c.value, ResourceVersion: 2}}})}
+		ops := sequential([]k8s.Input{in}, []k8s.Output{out})
+		for _, mode := range []int{k8s.Lazy, k8s.Eager, k8s.Full} {
+			r := porcupine.CheckOperationsTimeout(s.SharedModel(k8s.HistoryRevs(ops), mode), ops, 0)
+			if (r == porcupine.Ok) != c.ok {
+				t.Errorf("value %q, mode %d: %v, want ok %v", c.value, mode, r, c.ok)
+			}
+		}
+	}
+}
+
+// TestSharedGaps checks SharedModel on the three histories outside the driver's generator that
+// linearize in the semantic model and that the search refused before G8, G9 and G10
+// (notes/k8s-dist-k4.md, "K4-3"): each is accepted from its first accepting mode on (and by
+// CheckShared), and rejected in every mode with a wrong value.
+// G8: a create with an unparsable MinRV (a write never reads it) answering a revision above the
+// seeds. G9: a pending create of a key without a name ("ns/"), a create at 10, then a Get of the
+// first key showing it at 7 (an anchor although its answer has no name); Lazy, by design, writes
+// the second create at 10 without landing the first, which it then cannot land at 7. G10: a Get-like kind
+// (Kind 7, which mstep answers with mget) at a MinRV of 10, answering the seed at 2.
+func TestSharedGaps(t *testing.T) {
+	s := k8s.SeededAt(2, 3)
+	cases := []struct {
+		name string
+		ins  []k8s.Input
+		outs func(value string) []k8s.Output
+		good string
+		from int
+	}{
+		{"G8", []k8s.Input{{Kind: k8s.KCreate, Key: "ns-1/pod-11", Val: "y", UID: "u1", MinRV: "a"}},
+			func(v string) []k8s.Output {
+				return []k8s.Output{{Namespace: "ns-1", Name: "pod-11", UID: "u1", Value: v, RV: 10}}
+			}, "y", k8s.Lazy},
+		{"G9", []k8s.Input{{Kind: k8s.KCreate, Key: "ns/", Val: "y", UID: "u0"},
+			{Kind: k8s.KCreate, Key: "ns/b", Val: "y", UID: "u2", Client: 1},
+			{Kind: k8s.KGet, Key: "ns/", Client: 2}},
+			func(v string) []k8s.Output {
+				return []k8s.Output{{Err: k8s.EOther}, {Namespace: "ns", Name: "b", UID: "u2", Value: "y", RV: 10},
+					{Namespace: "ns", UID: "u0", Value: v, RV: 7}}
+			}, "y", k8s.Eager},
+		{"G10", []k8s.Input{{Kind: 7, Key: "ns-1/pod-1", MinRV: k8s.RVBytes(10)}},
+			func(v string) []k8s.Output {
+				return []k8s.Output{{Namespace: "ns-1", Name: "pod-1", Value: v, RV: 2}}
+			}, "x", k8s.Lazy},
+	}
+	for _, c := range cases {
+		for _, value := range []string{c.good, "z"} {
+			ok := value == c.good
+			ops := sequential(c.ins, c.outs(value))
+			for _, mode := range []int{k8s.Lazy, k8s.Eager, k8s.Full} {
+				r := porcupine.CheckOperationsTimeout(s.SharedModel(k8s.HistoryRevs(ops), mode), ops, 0)
+				if want := ok && mode >= c.from; (r == porcupine.Ok) != want {
+					t.Errorf("%s, value %q, mode %d: %v, want ok %v", c.name, value, mode, r, want)
+				}
+			}
+			if r := sharedCheck(s, ops); (r == porcupine.Ok) != ok {
+				t.Errorf("%s, value %q: CheckShared %v, want ok %v", c.name, value, r, ok)
+			}
+		}
+	}
+}
+
 func created10Obj() k8s.Obj {
 	return k8s.Obj{Namespace: "ns-1", Name: "pod-11", UID: "u1", Value: "y", ResourceVersion: 10}
 }
 
 // TestReplayHistory checks a store history RunStore dumped (DIST_DUMP; the file named by
-// DIST_HISTORY) as RunStore does, for profiling the check; with DIST_CROSS set, every watch step
-// is checked both by watchOk and by the shared model's indexed copy of it, which must agree;
-// DIST_CHECK_TIMEOUT (a duration) replaces each mode's CheckTimeout.
+// DIST_HISTORY) as RunStore does, for profiling the check; DIST_CHECK_TIMEOUT (a duration) replaces
+// each mode's CheckTimeout. (examples/k8s/etcd3's TestCrossCheckWatches checks such a history's
+// watch steps both by watchOk and by the shared model's indexed copy of it.)
 func TestReplayHistory(t *testing.T) {
 	p := os.Getenv("DIST_HISTORY")
 	if p == "" {
@@ -110,8 +187,6 @@ func TestReplayHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	k8s.CrossCheckWatches(os.Getenv("DIST_CROSS") != "")
-	defer k8s.CrossCheckWatches(false)
 	start := time.Now()
 	revs := k8s.HistoryRevs(ops)
 	timeout := CheckTimeout

@@ -41,7 +41,7 @@ namespace StepProof
 /-- `MsgPreVote`: answered with a `MsgPreVoteResp`, whatever the term; the node's own
 state never changes (no step-down, no vote recorded). The protocol step is one
 `StepC.sendFree`, consuming nothing. -/
-theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgPreVote {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (R : StepG GF) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
@@ -62,10 +62,12 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (stage R4) the message, as `Step` received it
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1 (ii)) the end state (`StepEnd`'s `prevote`)
+        "%Hpv" ∷ ⌜PreVoteStepAll id m ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗

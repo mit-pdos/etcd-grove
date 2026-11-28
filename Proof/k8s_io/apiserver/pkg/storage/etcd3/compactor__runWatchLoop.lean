@@ -116,11 +116,13 @@ theorem compactor.runWatchLoop.wp_proof
     (wp_WithRev : EtcdGrove.WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_fromWatchResponse : compactor.fromWatchResponse.spec (GF := GF) (hG := hG))
-    (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runWatchLoop.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl eps V γk recorded γc sc γs
-  wp_start as ⟨Hlt, #Hc, #Hstop, #Hcl, #Hko, #Hwo, #Hkr⟩
+  intro _ c cl K γk recorded γc sc γs
+  wp_start as ⟨Hlt, #Hc, #Hstop, #HK, #Hko, #Hwo, #Hkr⟩
+  ihave #HK' := HK
+  iunfold k8sClient at HK'
+  icases HK' with ⟨%hK, #Hh⟩
   rw [show k8s_io.apiserver.pkg.storage.etcd3.compactRevKey = #compactRevKey from rfl]
   ihave #Hc' := Hc
   iunfold compactorCore at Hc'
@@ -144,9 +146,6 @@ theorem compactor.runWatchLoop.wp_proof
   ihave ⟨%wom, #Hwom⟩ := EtcdGrove.context.watchCtx_outMD _ _ $$ Hwctx
   iunfold clientWatchOk at Hwo
   icases Hwo with ⟨%w, %Vw, #Hwf, #Hcw, %Hkst⟩
-  ihave #Hcl' := Hcl
-  iunfold isNewClient at Hcl'
-  icases Hcl' with ⟨-, #Hrco, -, -⟩
   (try wp_auto)
   wp_apply wp_ContextForChannel sc
   (try wp_auto)
@@ -173,7 +172,7 @@ theorem compactor.runWatchLoop.wp_proof
       | nil => exact absurd rfl Herr
       | ok ei =>
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps', Hesl, -⟩
+      wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl ⟨Hlt, Hesl⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal
@@ -273,7 +272,7 @@ theorem compactor.runWatchLoop.wp_proof
       | nil => exact absurd rfl Herr'
       | ok ei =>
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps', Hesl, -⟩
+      wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl ⟨Hlt, Hesl⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal

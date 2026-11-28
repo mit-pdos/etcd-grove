@@ -15,32 +15,24 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/authN"
-	"github.com/mit-pdos/etcd-grove/examples/etcd/authlease"
-	"github.com/mit-pdos/etcd-grove/examples/etcd/leaseN"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/restartN"
-	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlinfaultsN"
-	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
-// maxMembers is the drivers' own bound on each k-member part's member count (k1, ..., k5).
+// maxMembers is the driver's own bound on the k-member part's member count (k5).
 const maxMembers = 1000
 
-// idBound is etcd_safe's bound on a k-member part's member count (notes/etcd-unified-scope.md §2.2 B,
-// decision N2): the member count up to which the 16 low bits of the ids of the process's every member
-// are distinct (TestMemberIDs), txnlinfaultsN's 1000 and the other parts' 300.
+// idBound is etcd_restart_robust_single_process's bound on the k-member part's member count (ParamsOk's 300,
+// notes/etcd-unified-scope.md §2.2 B, decision N2): the member count up to which the 16 low bits of
+// the ids of the process's every member are distinct (TestMemberIDs).
 func idBound(pfx string) int {
-	if pfx == "txnlinfaultsN" {
-		return 1000
-	}
 	return 300
 }
 
 // A k-member part: its members are etcdstart.Members(pfx, k, peerBase, clientBase) at token; bridged
-// says its members' gRPC APIs are behind bridges at bridgeBase+i (txnlinfaultsN), clientServed that
-// its members' client addresses are listened on (all but restartN's).
+// says its members' gRPC APIs are behind bridges at bridgeBase+i, clientServed that its members'
+// client addresses are listened on (restartN's are not).
 type kPart struct {
 	pfx          string
 	peerBase     uint64
@@ -52,18 +44,12 @@ type kPart struct {
 
 func kParts() []kPart {
 	return []kPart{
-		{"txnlinfaultsN", txnlinfaultsN.PeerBase, txnlinfaultsN.ClientBase, txnlinfaultsN.Token, true,
-			txnlinfaultsN.BridgeBase},
-		{"authN", authN.PeerBase, authN.ClientBase, authN.Token, true, 0},
-		{"authlease", authlease.PeerBase, authlease.ClientBase, authlease.Token, true, 0},
-		{"leaseN", leaseN.PeerBase, leaseN.ClientBase, leaseN.Token, true, 0},
 		{"restartN", restartN.PeerBase, restartN.ClientBase, restartN.Token, false, 0},
 	}
 }
 
 // A part of fixed members: each member's name and peer address, the cluster's token, and the
-// addresses the part listens on. Copied from the drivers (partition's and leasecatchup's config,
-// compactwatch's, compacted's, cache's and restart1's constants: unexported there).
+// addresses the part listens on. Copied from the driver (restart1's constants: unexported there).
 type fixedPart struct {
 	names   []string
 	peers   []string
@@ -73,20 +59,7 @@ type fixedPart struct {
 
 func fixedParts() []fixedPart {
 	return []fixedPart{
-		{[]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"},
-			[]string{"127.0.0.1:23841", "127.0.0.1:23842", "127.0.0.1:23843"}, "linkv3p",
-			[]string{"127.0.0.1:23841", "127.0.0.1:23842", "127.0.0.1:23843",
-				"127.0.0.1:23831", "127.0.0.1:23832", "127.0.0.1:23833",
-				"127.0.0.1:23851", "127.0.0.1:23852", "127.0.0.1:23853"}},
-		{[]string{"leasecatchup-1", "leasecatchup-2", "leasecatchup-3"},
-			[]string{"127.0.0.1:24011", "127.0.0.1:24012", "127.0.0.1:24013"}, "leasecatchup",
-			[]string{"127.0.0.1:24011", "127.0.0.1:24012", "127.0.0.1:24013",
-				"127.0.0.1:24021", "127.0.0.1:24022", "127.0.0.1:24023",
-				"127.0.0.1:24031", "127.0.0.1:24032", "127.0.0.1:24033"}},
-		// one-member clusters: the token is the member's name, the peer address is not served
-		{[]string{"compactkv"}, []string{"127.0.0.1:23804"}, "compactkv", []string{"127.0.0.1:23794"}},
-		{[]string{"cachekv"}, []string{"127.0.0.1:23883"}, "cachekv", []string{"127.0.0.1:23873"}},
-		{[]string{"putgetc"}, []string{"127.0.0.1:23801"}, "putgetc", []string{"127.0.0.1:23791"}},
+		// a one-member cluster: the token is the member's name, the peer address is not served
 		{[]string{"restart1"}, []string{"127.0.0.1:23811"}, "restart1", nil},
 	}
 }
@@ -105,8 +78,7 @@ func memberID(t *testing.T, name string, peer string, token string) uint64 {
 	return uint64(cl.MemberIDs()[0])
 }
 
-// TestAddrs checks that the addresses the parts listen on are disjoint (until 2026-11-21 authN's and
-// restartN's peer ranges were both 29000+i, notes/etcd-unified-scope.md §2.2 A), at every part's largest
+// TestAddrs checks that the addresses the parts listen on are disjoint, at the k-member part's largest
 // member count (a k-member part's addresses at k are a prefix of those at maxMembers), and that
 // every port is at most 65535.
 func TestAddrs(t *testing.T) {
@@ -203,63 +175,14 @@ func TestMemberIDs(t *testing.T) {
 		}
 	}
 	sort.Slice(lows, func(i, j int) bool { return lows[i] < lows[j] })
-	t.Logf("at k1 = ... = k5 = %d: %d colliding members over %d low halves", maxMembers, n, len(lows))
+	t.Logf("at k5 = %d: %d colliding members over %d low halves", maxMembers, n, len(lows))
 	for _, low := range lows[:min(5, len(lows))] {
 		t.Logf("  low %#04x: %v", low, byLow[low])
 	}
 }
 
-// isolate returns the steps that, after delay, cut member m from the k-1 others.
-func isolate(delay time.Duration, k int, m int) []cluster3.Step {
-	var steps []cluster3.Step
-	for o := 0; o < k; o++ {
-		if o != m {
-			steps = append(steps, cluster3.Step{Delay: delay, Kind: cluster3.PeerCut, A: m, B: o})
-			delay = 0
-		}
-	}
-	return steps
-}
-
-// heal returns the steps that, after delay, mend member m's links to the k-1 others.
-func heal(delay time.Duration, k int, m int) []cluster3.Step {
-	var steps []cluster3.Step
-	for o := 0; o < k; o++ {
-		if o != m {
-			steps = append(steps, cluster3.Step{Delay: delay, Kind: cluster3.PeerMend, A: m, B: o})
-			delay = 0
-		}
-	}
-	return steps
-}
-
-// schedule is the drivers' tests' schedule for k members (txnlinfaultsN's and partition's
-// TestMainRun's): after half a second, each member isolated in turn for three seconds, back to
-// back; during the first isolation the last member's clients blackholed, and as it ends that
-// unblackholed and member (1 mod k)'s client connections dropped.
-func schedule(k int) []cluster3.Step {
-	var sched []cluster3.Step
-	for m := 0; m < k; m++ {
-		delay := time.Duration(0)
-		if m == 0 {
-			delay = 500 * time.Millisecond
-		}
-		sched = append(sched, isolate(delay, k, m)...)
-		if m == 0 {
-			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: k - 1})
-		}
-		sched = append(sched, heal(3*time.Second, k, m)...)
-		if m == 0 {
-			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: k - 1},
-				cluster3.Step{Kind: cluster3.ClientDrop, A: 1 % k})
-		}
-	}
-	return sched
-}
-
-// TestMainRun runs Main once, every k-member part at ETCDALL_K members (default 3), with the drivers'
-// tests' workloads (txnlinfaultsN: 3 clients of 150 operations; partition's watch: 3 writers of 300;
-// cache: 4 writers of 25) and schedules, after resetting every member's WAL area and data directory.
+// TestMainRun runs Main once, restartN at ETCDALL_K members (default 3), after resetting every
+// member's WAL area and data directory.
 // It passes if Main returns: a failed check is a panic. (A part whose start fails returns without
 // its check; TestAddrs is what rules out a start failing on a taken address.)
 func TestMainRun(t *testing.T) {
@@ -272,10 +195,9 @@ func TestMainRun(t *testing.T) {
 		k = v
 	}
 	t.Chdir(t.TempDir())
-	walarea.ResetFamily(t, "txnlinfaultsN", "linkv3p", "authN", "authlease", "leaseN",
-		"leasecatchup", "restartN")
-	walarea.Reset(t, "compactkv", "putgetc", "cachekv", "restart1")
+	walarea.ResetFamily(t, "restartN")
+	walarea.Reset(t, "restart1")
 	start := time.Now()
-	Main(k, 3, 150, schedule(int(k)), 3, 300, schedule(3), 4, 25, k, k, k, k)
+	Main(k)
 	t.Logf("Main(k = %d) took %v", k, time.Since(start))
 }

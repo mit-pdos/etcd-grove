@@ -705,14 +705,22 @@ error `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: `serverStre
 `*status.Error`s and the raw `io.ErrUnexpectedEOF` of its second `recv`, a leaf). That holds for
 `Server.Serve`'s HTTP/2 transport only, the one `Server.Serve`'s axiom covers: under `ServeHTTP`,
 `mapRecvMsgError` returns a raw `transport.ConnectionError`, not a leaf
-(`notes/axiom-review/hs6.md`). -/
+(`notes/axiom-review/hs6.md`). Since grpc-nr-e (2026-11-27) the error's description is none of
+`refusalDescs` either: `dec` is `serverStream.RecvMsg` (`server.go:1283`), whose errors are grpc's
+own (`stream.go:1921-1969`: the cardinality violations, `io.ErrUnexpectedEOF`'s `"unexpected EOF"`,
+`toRPCErr` of `recv`'s, `"grpc: failed to unmarshal the received message: …"`, `rpc_util.go:1064`;
+a program-registered codec's or decompressor's error is wrapped under that `"grpc: …"` prefix),
+none of etcd's four refusal strings or the old balancer's two. The Go model's `dec`
+(`models/grpc/model_transport.go:921,928`) also returns `Unavailable` with the raw net read error's
+text (`"EOF"`, a `net.OpError`'s `"read tcp …"`), likewise none of them. -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
   iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #l : GoInterface)))
     {{ (err : GoInterface), RET #err;
         (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨
           (notHandlerErr err ∗
-            go_etcd_io.etcd.cache.v3.statusErrOk err) }})
+            go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            go_etcd_io.etcd.cache.v3.notDescIn go_etcd_io.etcd.cache.v3.refusalDescs err) }})
 
 instance grpcDecOk_persistent (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) :
     Persistent (grpcDecOk dec Req m) := by
@@ -726,7 +734,8 @@ theorem grpcDecOk_ty (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) (T : go.GoTy
     {{ (err : GoInterface), RET #err;
         (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨
           (notHandlerErr err ∗
-            go_etcd_io.etcd.cache.v3.statusErrOk err) }}) := by
+            go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            go_etcd_io.etcd.cache.v3.notDescIn go_etcd_io.etcd.cache.v3.refusalDescs err) }}) := by
   subst hT; unfold grpcDecOk; exact .rfl
 
 /-- **The method handler `mh` with the service `srv`, under the chain `ics`, meets `Spec` with
@@ -1124,6 +1133,45 @@ instance grpcRunOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInte
     (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
     Persistent (grpcRunOkMd mh srv ics Spec) := by
   unfold grpcRunOkMd; infer_instance
+
+/-- **The run contract of a unary handler that never refuses** (grpc-nr-e, 2026-11-27): `grpcRunOkMd`,
+and the error is `nil` or one whose description is none of `refusalDescs` (`notDescIn`). The run is
+the method handler's, through the server's interceptor chain `ics` and grpc's `dec`, so an
+interceptor's early error (etcd's learner refusal, `v3rpc/interceptor.go:54`) is covered. What a
+flagged entry's handler meets (`grpcServesEnt`). -/
+def grpcRunNRMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
+    (Spec : GrpcSpecMd Req Rep) : IProp GF :=
+  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+    {{ threadTok ∗ £ 1 ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
+        grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+      (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
+    {{ (resp err : GoInterface), RET (PairV #resp #err); threadTok ∗
+        (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+        handlerErrOut Ψe err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+        (⌜err = GoInterface.nil⌝ ∨
+          go_etcd_io.etcd.cache.v3.notDescIn go_etcd_io.etcd.cache.v3.refusalDescs err) }})
+
+instance grpcRunNRMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
+    Persistent (grpcRunNRMd mh srv ics Spec) := by
+  unfold grpcRunNRMd; infer_instance
+
+/-- A run contract that never refuses is a run contract. -/
+theorem grpcRunNRMd_ok {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
+    grpcRunNRMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec := by
+  iintro #Hm
+  unfold grpcRunOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ Hpre HΨ
+  iunfold grpcRunNRMd at Hm
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui Hpre
+  inext
+  iintro %resp %err ⟨HT, Hok, Ho, #Hse, -⟩
+  iapply HΨ
+  iframe
+  iexact Hse
 
 /-- A run contract at a spec is one at a stronger spec. -/
 theorem grpcRunOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)

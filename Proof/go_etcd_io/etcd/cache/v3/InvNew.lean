@@ -36,7 +36,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- `&client.KV` (the embedded `KV` of a `*clientv3.Client`). -/
 abbrev clientKVAddr (cl : Loc) : Loc := structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl

@@ -67,7 +67,7 @@ theorem MainPartition.wp_proof
     (wp_writer : writer.spec (GF := GF) (hG := hG))
     (wp_apiserver : apiserver.spec (GF := GF) (hG := hG)) :
     MainPartition.spec (GF := GF) (hG := hG) := by
-  intro CS k N ids ps ctxs boot sched steps hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf
+  intro k N ids ps ctxs boot sched steps hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf
     Hbuq Hrf Hdbo Hms hAs
   haveI : ThreadBoundLe GF (2 ^ 28) := ⟨Htb⟩
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨Hrb48⟩

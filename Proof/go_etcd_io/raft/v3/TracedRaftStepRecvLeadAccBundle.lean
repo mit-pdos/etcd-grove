@@ -261,7 +261,7 @@ theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) L
   · -- the closing wand
     iunfold stepClose
     iintro %s' %B %recv %_ %hend %_ Hout
-    obtain ⟨pvsF, hfe⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+    obtain ⟨pvsF, hfe⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
     rw [hpre pvsF] at hfe
     have hsc := leadAcc_scope hp hfe
     obtain ⟨pvsE, n, hpvsE, hranE, hnranE, hlogE, hSE⟩ : ∃ (pvs : GMap w64 Progress) (n : w64),
@@ -271,7 +271,7 @@ theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) L
         (¬ AppRespRan s m.From' m.Index' → n = s.logst.committed) ∧
         s'.logst = { s.logst with committed := n } ∧
         ∀ C, SimIdleS C s' = SimIdleS C { s with logst := { s.logst with committed := n }, prvals := pvs } := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       exact leadAcc_end hp h
     unfold stepOutG
