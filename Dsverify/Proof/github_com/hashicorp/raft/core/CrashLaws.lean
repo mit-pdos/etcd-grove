@@ -1106,6 +1106,37 @@ theorem crash_matched_store (L : RLog) (prev pt : Nat) (ents : RLog) (j : Nat)
       rw [termAt_append_right _ _ _ (by omega), termAt_drop _ _ _ (by omega)]
       congr 1; omega
 
+/-- `LogAbs.del` pointwise. -/
+theorem crash_lookup_del (m : GMap Nat Entry) (mn mx k : Nat) :
+    (LogAbs.del m mn mx).lookup k = if mn ≤ k ∧ k ≤ mx then none else m.lookup k := by
+  unfold LogAbs.del
+  show (GMap.filter _ m) !! k = _
+  rw [GMap.lookup_filter]
+  by_cases hr : mn ≤ k ∧ k ≤ mx
+  · rw [if_pos hr]; cases m !! k <;> simp [Option.filter, hr]
+  · rw [if_neg hr]; cases hc : m !! k <;> simp [Option.filter, hr]
+
+/-- (R2) Deleting the log's tail from `n + 1` keeps the store's coupling with the log's prefix. -/
+theorem logOk_delete (A : LogAbs) (L : RLog) (lo n mx : Nat) (hi : w64) (h : logOk A L lo)
+    (hmx : L.length ≤ mx) : logOk (A.delete (n + 1) mx hi) (L.take n) lo := by
+  obtain ⟨h1, h2⟩ := h
+  unfold logOk
+  rw [LogAbs.delete_m]
+  constructor
+  · intro k e hk
+    rw [crash_lookup_del] at hk
+    split at hk
+    · cases hk
+    · rename_i hr
+      have he := h1 k e hk
+      have hkL := gprot.ent_le_length he
+      rw [ent_take _ _ _ (by omega)]; exact he
+  · intro k hlo hk
+    rw [crash_lookup_del]
+    have hkn : k ≤ n := by simp at hk; omega
+    rw [if_neg (by omega), ent_take _ _ _ hkn]
+    exact h2 k hlo (by simp at hk; omega)
+
 /-- (R2) **Lending a window**: the pending-write record set to `p` (half lent), a quarter of each
 view lent. -/
 theorem winRes_make (s : SState) (p : Pend) (D : StableAbs) (g : w64)
@@ -1420,15 +1451,93 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
 /-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, |s.log|)`'s commit
 (`truncate_upd`). -/
 theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
-    (hpre : pendPre γ i s (.trunc prev pt ents lci j)) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ pendHyps γ i s (.trunc prev pt ents lci j) -∗
-      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log.take (prev + j) } -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      ∀ (D : StableAbs) (g : w64), stVS rc D g -∗
+    (D : StableAbs) (g : w64) (hpre : pendPre γ i s (.trunc prev pt ents lci j)) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗
+      pendHyps γ i s (.trunc prev pt ents lci j) -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log.take (prev + j) } -∗
+        stVS rc D g -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
       |==> (logWin γ rc i (.del (prev + 1 + j) s.log.length) ∗
       (logWin γ rc i (.del (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) s.log.length hi')
-          ={∅, ⊤ \ ↑storeN}=∗ stVS rc D g -∗ Ψ))) := by
-  sorry -- hraft_robust R2: proof pending
+          ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
+  iintro #HI #Hd Hpw Hv Hst Hh Hk
+  iunfold pendHyps at Hh
+  icases Hh with #Hh
+  imod (winRes_make γ rc i s (.trunc prev pt ents lci j) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iunfold pendHyps; iframe; iexact Hh
+  imodintro
+  isplitl [HW]
+  · iunfold logWin; ileft; iexists s, (Pend.trunc prev pt ents lci j); iframe HW; ipureintro; rfl
+  iintro HW
+  iunfold logWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%mn, %mx, %hop, -, -, #Hlb⟩)
+  rotate_left
+  · -- the compaction window: it deletes only durable entries, but the truncation's top is above `dur`
+    cases hop
+    iintro Hnc
+    imod (durOpen γ rc i crash_dur_storeN) $$ Hd Hnc with ⟨Hnc, %X, Hc, -, -⟩
+    iunfold durCore at Hc
+    icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, -⟩
+    unfold srvVq
+    icombine Hsv Hq gives %Hag
+    have hs := Hag.2
+    simp only [Prod.mk.injEq] at hs
+    obtain ⟨hs, -, -⟩ := hs
+    rw [hs]
+    imod (gprot.truncate_gt_dur γ _ crash_gprot_store i s prev pt ents lci j hpre) $$ [HI Ho Hh] with ⟨Ho, %hgt⟩
+    · iframe #; try iframe
+    ihave %hle := gprot.durView_lb γ i _ _ _ $$ [Hdv Hlb]
+    · iframe #; try iframe
+    have := hpre.2.2.2.1
+    exfalso; omega
+  ihave ⟨%heq, Hpw, Hv, Hst, Hh, -⟩ := winRes_back γ rc i s s' (.trunc prev pt ents lci j) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.trunc prev pt ents lci j)) $$ Hpw
+  iapply (logDelete_au γ rc i (prev + 1 + j) s'.log.length
+    iprop(srvV rc s' ∗ stVS rc D g ∗ pendHyps γ i s' (.trunc prev pt ents lci j) ∗ (|==> ghostVar rc.dur.pw 1 (none : Option Pend)) ∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s' with log := s'.log.take (prev + j) } -∗
+        stVS rc D g -∗ ⌜s'.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hv Hst Hh Hpw Hk]
+  · iframe
+  iintro %X %hi' Hc ⟨Hv, Hst, Hh, Hpw, Hk⟩
+  imod Hpw
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s' $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  obtain ⟨hD, hstg⟩ := Hag2
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  rw [hs, htp, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  iunfold pendHyps at Hh
+  icases Hh with #Hae
+  imod (gprot.truncate_upd γ _ crash_gprot_store i s' prev pt ents lci j hpre) $$ [HI Ho Hlc Hae]
+    with ⟨Ho, Hlc, %hdur⟩
+  · iframe #; try iframe
+  unfold srvV
+  imod (ghostVar_update_halves ({ s' with log := s'.log.take (prev + j) }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imodintro
+  iexists ({ X with s := { s' with log := s'.log.take (prev + j) }, A := X.A.delete (prev + 1 + j) s'.log.length hi', tp := none })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
+  · iunfold durCore
+    dsimp only
+    try rw [hdp]
+    rw [LogAbs.delete_staged, LogAbs.delete_ci]
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨?_, hlc, hvm, htd, hci⟩
+    rw [show prev + 1 + j = (prev + j) + 1 by omega]
+    exact logOk_delete _ _ _ _ _ _ hlo (Nat.le_refl _)
+  isplitl []
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
+  ihave HΨ := Hk $$ Hpw Hv Hst [] 
+  · ipureintro; exact hdur
+  iexact HΨ
 
 /-- (R2) **`SetUint64(CurrentTerm, t)`'s commit** (`setCurrentTerm`): no model step; the term step
 recorded pending (`tp`, its `tpRes` moved into the crash state), fired at the atomic store
@@ -1445,7 +1554,76 @@ theorem setUint64_term_win (s : SState) (tp : TermPend) (tv : Nat) (D : StableAb
         |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
           (rc.ownS { D0 with ints := D0.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) }
             ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd Hpw Hv Hst Htp Hk
+  have hpre : pendPre γ i s (.term tp) := by
+    rcases ht with ⟨rfl, h⟩ | ⟨rfl, _⟩
+    · exact h
+    · trivial
+  imod (winRes_make γ rc i s (.term tp) D g ⟨hpre, trivial⟩) $$ [Hpw Hv Hst Htp] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iunfold pendHyps; iframe
+  imodintro
+  isplitl [HW]
+  · iunfold stWin; ileft; iexists s, (Pend.term tp); iframe HW; ipureintro
+    rcases ht with ⟨rfl, _⟩ | ⟨rfl, rfl⟩ <;> rfl
+  iintro HW
+  iunfold stWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩)
+  rotate_left
+  · cases hop
+  ihave ⟨%heq, Hpw, Hv, Hst, Htp, -⟩ := winRes_back γ rc i s s' (.term tp) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.term tp)) $$ Hpw
+  iapply (stableWrite_au γ rc i (fun D0 => { D0 with ints := D0.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) })
+    iprop(srvV rc s' ∗ stVS rc D g ∗ pendHyps γ i s' (.term tp) ∗ (|==> ghostVar rc.dur.pw 1 (none : Option Pend)) ∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvVP rc s' (some tp) none -∗
+        stVS rc { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) } g ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hv Hst Htp Hpw Hk]
+  · iframe
+  iintro %X Hc ⟨Hv, Hst, Htp, Hpw, Hk⟩
+  imod Hpw
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s' $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  obtain ⟨hD, hstg⟩ := Hag2
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, -, Hdp, Hla⟩
+  rw [hs, htp, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  iunfold pendHyps at Htp
+  unfold srvV srvVP stVS
+  imod (ghostVar_update_halves (s', some tp, (none : Option DiscPend)) rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imod (ghostVar_update_halves ({ X.D with ints := X.D.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) }, X.A.staged) rc.dur.st _ _)
+    $$ Hst0 Hst with ⟨Hst0, Hst⟩
+  have htv : uint.nat (W64 tv) = tv := by word
+  imodintro
+  iexists ({ X with D := { X.D with ints := X.D.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) }, tp := some tp })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
+  · iunfold durCore
+    dsimp only
+    rw [hs]
+    try rw [hdp]
+    simp only [dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨hlo, hlc, ?_, ?_, hci⟩
+    · unfold voteMatches at hvm ⊢
+      rw [gprot.lookup_ins, if_neg (by decide)]
+      exact hvm
+    · unfold termDurOk
+      rw [gprot.lookup_ins, if_pos rfl]
+      simp only [Option.getD_some]
+      rcases ht with ⟨rfl, h⟩ | ⟨rfl, rfl⟩
+      · exact Or.inr (Or.inl ⟨_, rfl, htv, h⟩)
+      · exact Or.inr (Or.inr ⟨rfl, htv⟩)
+  isplitl []
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
+  rw [hD, hstg]
+  dsimp only
+  ihave HΨ := Hk $$ Hpw Hv Hst
+  iexact HΨ
 
 /-- (R2) **`Set(LastVoteCand, c)`'s commit** (`persistVote`'s first write, after fix 3): no step
 (`voteMatches` holds by `s.vterm < s.term`); the window is `stWin`'s right disjunct. -/
@@ -1459,7 +1637,50 @@ theorem set_voteCand_win (s : SState) (D : StableAbs) (g : w64) (c : List w8)
         |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
           (rc.ownS { D0 with bytes := D0.bytes.insert (go!"LastVoteCand" : List w8) c }
             ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hd Hv Hst Hk
+  isplitl []
+  · iunfold stWin; iright; iexists c; ipureintro; rfl
+  iintro -
+  iapply (stableWrite_au γ rc i (fun D0 => { D0 with bytes := D0.bytes.insert (go!"LastVoteCand" : List w8) c })
+    iprop(srvV rc s ∗ stVS rc D g ∗
+      (srvV rc s -∗ stVS rc { D with bytes := D.bytes.insert (go!"LastVoteCand" : List w8) c } g ={⊤ \ ↑storeN}=∗ Ψ)) Ψ)
+    $$ Hd [Hv Hst Hk]
+  · iframe
+  iintro %X Hc ⟨Hv, Hst, Hk⟩
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  obtain ⟨hD, hstg⟩ := Hag2
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  rw [hs, htp, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  unfold stVS
+  imod (ghostVar_update_halves ({ X.D with bytes := X.D.bytes.insert (go!"LastVoteCand" : List w8) c }, X.A.staged) rc.dur.st _ _)
+    $$ Hst0 Hst with ⟨Hst0, Hst⟩
+  imodintro
+  iexists ({ X with D := { X.D with bytes := X.D.bytes.insert (go!"LastVoteCand" : List w8) c } })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
+  · iunfold durCore
+    dsimp only
+    try rw [hs]
+    try rw [htp]
+    try rw [hdp]
+    iframe
+    ipureintro
+    refine ⟨hlo, hlc, ?_, ?_, hci⟩
+    · unfold voteMatches at hvm ⊢
+      exact ⟨hvm.1, Or.inr (Or.inl hv)⟩
+    · unfold termDurOk at htd ⊢
+      exact htd
+  isplitl []
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
+  rw [hD, hstg]
+  dsimp only
+  ihave HΨ := Hk $$ Hv Hst
+  iexact HΨ
 
 /-- (R2) **`SetUint64(LastVoteTerm, s.term)`'s commit** (`persistVote`'s second write): the vote
 (`grantVote_upd`), `LastVoteCand = c` already stored. -/
@@ -1475,7 +1696,76 @@ theorem setUint64_vote_win (s : SState) (c : SID) (li lt : Nat) (D : StableAbs) 
         |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
           (rc.ownS { D0 with ints := D0.ints.insert (go!"LastVoteTerm" : List w8) (W64 s.term) }
             ={∅, ⊤ \ ↑storeN}=∗ Ψ))) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #HI #Hd Hpw Hv Hst Hcand Hk
+  imod (winRes_make γ rc i s (.vote c li lt) D g ⟨hpre, hc⟩) $$ [Hpw Hv Hst Hcand] with ⟨HW, Hpw, Hq, Hsq⟩
+  · iunfold pendHyps; iframe
+  imodintro
+  isplitl [HW]
+  · iunfold stWin; ileft; iexists s, (Pend.vote c li lt); iframe HW; ipureintro; rfl
+  iintro HW
+  iunfold stWin at HW
+  icases HW with (⟨%s', %p', %hok, HW⟩ | ⟨%vb, %hop⟩)
+  rotate_left
+  · cases hop
+  ihave ⟨%heq, Hpw, Hv, Hst, Hcand, -⟩ := winRes_back γ rc i s s' (.vote c li lt) p' D g $$ [HW Hpw Hq Hsq]
+  · iframe
+  obtain ⟨rfl, rfl⟩ := heq
+  ihave Hpw := ghostVar_update (none : Option Pend) rc.dur.pw (some (Pend.vote c li lt)) $$ Hpw
+  iapply (stableWrite_au γ rc i (fun D0 => { D0 with ints := D0.ints.insert (go!"LastVoteTerm" : List w8) (W64 s'.term) })
+    iprop(srvV rc s' ∗ stVS rc D g ∗ pendHyps γ i s' (.vote c li lt) ∗ (|==> ghostVar rc.dur.pw 1 (none : Option Pend)) ∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s' with vterm := s'.term, vcand := c } -∗
+        stVS rc { D with ints := D.ints.insert (go!"LastVoteTerm" : List w8) (W64 s'.term) } g -∗
+        voteIs γ i s'.term c ={⊤ \ ↑storeN}=∗ Ψ)) Ψ) $$ Hd [Hv Hst Hcand Hpw Hk]
+  · iframe
+  iintro %X Hc ⟨Hv, Hst, Hcand, Hpw, Hk⟩
+  imod Hpw
+  ihave ⟨Hc, Hv, %Hag⟩ := durCore_srvV_agree γ rc i X s' $$ [Hc Hv]
+  · iframe
+  ihave ⟨Hc, Hst, %Hag2⟩ := durCore_stVS_agree γ rc i X D g $$ [Hc Hst]
+  · iframe
+  obtain ⟨hs, htp, hdp⟩ := Hag
+  obtain ⟨hD, hstg⟩ := Hag2
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  rw [hs, htp, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci⟩ := Hp
+  iunfold pendHyps at Hcand
+  imod (gprot.srvOwn_facts γ _ crash_gprot_store i s') $$ [HI Ho] with ⟨Ho, -, %hf⟩
+  · iframe #; try iframe
+  imod (gprot.grantVote_upd γ _ crash_gprot_store i c s' li lt hpre.1 hpre.2) $$ [HI Ho Hcand]
+    with ⟨Ho, #Hvote⟩
+  · iframe #; try iframe
+  unfold srvV stVS
+  imod (ghostVar_update_halves ({ s' with vterm := s'.term, vcand := c }, (none : Option TermPend), (none : Option DiscPend))
+    rc.dur.sv _ _) $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imod (ghostVar_update_halves ({ X.D with ints := X.D.ints.insert (go!"LastVoteTerm" : List w8) (W64 s'.term) }, X.A.staged) rc.dur.st _ _)
+    $$ Hst0 Hst with ⟨Hst0, Hst⟩
+  have hT : uint.nat (W64 s'.term) = s'.term := by have := hf.2.2.2.2.2.1; word
+  imodintro
+  iexists ({ X with s := { s' with vterm := s'.term, vcand := c }, D := { X.D with ints := X.D.ints.insert (go!"LastVoteTerm" : List w8) (W64 s'.term) }, tp := none })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hdp Hla]
+  · iunfold durCore
+    dsimp only
+    try rw [hdp]
+    simp only [tpRes, dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨hlo, hlc, ?_, ?_, hci⟩
+    · unfold voteMatches
+      rw [gprot.lookup_ins, if_pos rfl]
+      simp only [Option.getD_some]
+      refine ⟨hT, Or.inr (Or.inr ?_)⟩
+      rw [hD]; exact hc
+    · unfold termDurOk at htd ⊢
+      rw [gprot.lookup_ins, if_neg (by decide)]
+      exact htd
+  isplitl []
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, by first | rfl | exact hdp⟩
+  rw [hD, hstg]
+  dsimp only
+  ihave HΨ := Hk $$ Hpw Hv Hst Hvote
+  iexact HΨ
 
 end commits
 
