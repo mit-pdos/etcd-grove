@@ -203,25 +203,26 @@ theorem viewsP_local {ps : List (GoString × GName)} {i : Nat} {p : GoString} {�
   intro k e hk he
   exact pfxVH_local hf σ e.1 (hap k i e (p, γ) hk he hi) (hap i k (p, γ) e (Ne.symm hk) hi he)
 
-/-- **An owner's update of the KV, fired at most once, reading the history** (F5): `kvPfx_au1`'s, for an
-owner under the discipline `okp` (`hok`: the update's changes satisfy it); the step also learns the state's
-compaction revision and base, that its changes keep the discipline, and the changes after the update (a lower
-bound at `γh`). -/
+/-- **An owner's update of the KV, fired at most once, reading the history** (`KVPfxDist.kvPfx_au1H`'s,
+at the ghost value `pfxVH`, and from a lower bound `l0` of the changes, e.g. the owner's last update's): the
+step learns that the changes extend `l0`; with its `W` recording `pfxVH p` at `l0`'s state, `pfxChs_same_ext`
+then says no change after `l0` is under `p`. -/
 theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Change → Prop) (γh : GName)
     (σ₀ : KVState) (s : String) (hs : s ≠ "share")
-    (W : PfxV → IProp GF) [hW : ∀ v, Timeless (W v)]
+    (W : PfxV → IProp GF) [hW : ∀ v, Timeless (W v)] (l0 : List (List mvcc.Change))
     (f : KVState → KVState) (hf : PfxLocal p f)
     (hok : ∀ σ new, (f σ).changes = σ.changes ++ new → ∀ cs ∈ new, ∀ c ∈ cs, okp c)
     (Q : KVState → IProp GF) :
     kvPfxHP γk p γ okp γh σ₀ ∗
       inv (client.kvClientN .@ s) iprop(∃ v, ghostVar γ (1 : Qp).half v ∗ W v) ∗
-      (∀ σ, ⌜KVExt σ₀ σ ∧ PfxChOk p okp σ.changes⌝ -∗
+      monoListLbOwn γh l0 ∗
+      (∀ σ, ⌜l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes⌝ -∗
         monoListLbOwn γh (f σ).changes -∗ W (pfxVH p σ) ==∗ W (pfxVH p (f σ)) ∗ Q σ) ⊢
     AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
       <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }> := by
   have Hm := client.kvClientN_mask
   have Hm2 := kvShareN_mask s hs
-  iintro ⟨#Hpfx, #Hinv, Hstep⟩
+  iintro ⟨#Hpfx, #Hinv, #Hl0, Hstep⟩
   iunfold kvPfxHP at Hpfx
   icases Hpfx with ⟨%ps, %i, %ok, %Hps, #Hsh⟩
   obtain ⟨Hap, Hi, Hok⟩ := Hps
@@ -254,10 +255,11 @@ theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Chan
     subst Hv
     imod (ghostVar_update_halves (pfxVH p (f σ)) γ (pfxVH p σ) (pfxVH p σ)) $$ Hhalf Hown
       with ⟨Hhalf, Hown⟩
+    ihave %Hp := mono_list_auth_lb_valid (GF := GF) γh 1 σ.changes l0 $$ Hh Hl0
     have hpre : σ.changes <+: (f σ).changes := by rw [hnew]; exact List.prefix_append _ _
     imod (monoListAuthOwn_update (f σ).changes hpre) $$ Hh with ⟨Hh, #Hlb⟩
-    have hpre' : KVExt σ₀ σ ∧ PfxChOk p okp σ.changes :=
-      ⟨Hσok.1, fun cs hcs c hc hpc =>
+    have hpre' : l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes :=
+      ⟨Hp.2, Hσok.1, fun cs hcs c hc hpc =>
         (Hok c).1 (Hσok.2 (p, γ) (List.mem_of_getElem? Hi) cs hcs c hc hpc)⟩
     imod Hstep $$ %σ %hpre' Hlb HW with ⟨HW, HQ⟩
     ihave Hrest := viewsP_frame ps i σ (f σ) (viewsP_local Hap Hi hf σ) $$ Hrest
