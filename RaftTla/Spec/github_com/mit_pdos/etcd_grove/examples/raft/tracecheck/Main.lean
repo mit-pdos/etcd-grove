@@ -10,10 +10,11 @@ contexts; the adequacy theorem gets it from the program's initialization, as `ra
 for a time-receipt bound `tcRunFits GF` (`receiptBound GF + 5 ≤ 2^61`, named since 2026-11-12,
 `Fits.lean`; `RunConcurrent.spec`'s: the traced cluster's at most five bootstrap entries within raft's
 `readyFits`; it also bounds the event count below the checker's `numBound = 2^61`, through the
-recorder's receipts), the thread bound `ThreadBoundLe GF (2^31)` and the bootstrap log's premise at
-every size `Main` can draw (`tracecheck.premises nv (tracecheck.bootLog nv)`, `Defs.lean`; the log's
-pure facts are proved, `tracecheck.bootLogFacts_bootLog`), passed to `RunConcurrent` at the size drawn
-(`notes/trace-check-design.md` §2.1).
+recorder's receipts) and the thread bound `ThreadBoundLe GF (2^31)` (`notes/trace-check-design.md`
+§2.1). The bootstrap log's `proto.Marshal` contract (`tracecheck.premises nv (tracecheck.bootLog nv)`,
+`Defs.lean`), which `RunConcurrent` takes at the size drawn, is no longer a precondition (2026-11-28):
+`Main.wp_proof` derives it from `proto.Marshal`'s spec at boot conf changes
+(`proto.MarshalBootConfChange.spec`, a callee hypothesis) and `proto`'s initialization.
 -/
 module
 
@@ -43,9 +44,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 abbrev Main.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)], tcRunFits GF →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
-      context.isClosedchanInit ∗
-      □ (∀ nv : Nat, ⌜1 ≤ nv ∧ nv ≤ tracecheck.maxNodes⌝ -∗
-          tracecheck.premises nv (tracecheck.bootLog nv)) }}
+      context.isClosedchanInit }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Main)) (Val #()))
   {{ RET #(); True }}
 

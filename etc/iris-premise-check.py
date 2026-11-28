@@ -6,7 +6,11 @@ A top-level statement is a `def X.spec : Prop` in a `Spec/**/TopLevelRobustness.
 (an entailment or a class over the Go heap: `(Hprem : ∀ hG : HeapGS .., ⊢ X.premises ..)`,
 `(Hsort : ∀ hG : HeapGS .., sort.Slice.spec ..)`). The pure-premise gate leaves these out, and one
 of them, `Hctx : ∀ hG, ContextReadErrs ..`, was unsatisfiable for a month
-(`notes/axiom-review/ctx-readerrs-vacuity.md`): every result taking it was vacuous.
+(`notes/axiom-review/ctx-readerrs-vacuity.md`): every result taking it was vacuous. An anonymous
+premise, a parenthesized `(∀ G L, letI := heapAt G L; P) → …` after the `∀` binders (Dsverify's
+form), is one too when it mentions `HeapGS`, `⊢` or `heapAt` (it is stated at every heap); it is
+listed under the name `anon:<head>`, `<head>` the constant it applies under its `∀`s and `letI`s
+(`anon:google_golang_org.grpc.InitHyp`).
 
 Every such binder must be listed in `etc/iris-premise-baseline.txt`, one per line,
 
@@ -78,6 +82,49 @@ def binders(body: str) -> list[tuple[str, str]]:
     return res
 
 
+def anon_premises(body: str) -> list[tuple[str, str]]:
+    """The anonymous premises of a statement's body: its depth-0 `( … )` groups followed by `→`, as
+    (`anon:<head>`, type)."""
+    res, depth, start = [], 0, -1
+    for i, c in enumerate(body):
+        if c in "([{":
+            if depth == 0 and c == "(":
+                start = i
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+            if depth == 0 and c == ")" and start >= 0:
+                if body[i + 1:].lstrip().startswith("→"):
+                    inner = body[start + 1:i]
+                    res.append(("anon:" + premise_head(inner), inner))
+                start = -1
+    return res
+
+
+def premise_head(ty: str) -> str:
+    """The constant a premise applies, under its leading `∀ …,` binders and `letI … ;` bindings."""
+    s = ty.strip()
+    while True:
+        if s.startswith("∀"):
+            d = 0
+            for j, c in enumerate(s):
+                if c in "([{":
+                    d += 1
+                elif c in ")]}":
+                    d -= 1
+                elif c == "," and d == 0:
+                    s = s[j + 1:].strip()
+                    break
+            else:
+                break
+        elif s.startswith("letI") and ";" in s:
+            s = s[s.index(";") + 1:].strip()
+        else:
+            break
+    m = re.match(r"[^\s()]+", s)
+    return m.group(0) if m else "?"
+
+
 def current() -> dict[tuple[str, str], str]:
     """(statement, binder) -> the binder's type, for every Iris binder."""
     res: dict[tuple[str, str], str] = {}
@@ -94,6 +141,9 @@ def current() -> dict[tuple[str, str], str]:
                 if "HeapGS" in ty or "⊢" in ty:
                     for nm in name.split():
                         res[(f"{spec}:{m.group(1)}", nm)] = " ".join(ty.split())
+            for name, ty in anon_premises(body[k + 1:]):
+                if "HeapGS" in ty or "⊢" in ty or "heapAt" in ty:
+                    res[(f"{spec}:{m.group(1)}", name)] = " ".join(ty.split())
     return res
 
 
