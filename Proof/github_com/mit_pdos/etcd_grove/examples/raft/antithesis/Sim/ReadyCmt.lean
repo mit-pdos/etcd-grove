@@ -338,7 +338,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
         by have := f2.2; rw [uZ_toNat_nat] at this; exact this⟩)
     have e : ((uint.nat r₁.p.commit : Nat) : Int) = uint.Z r₁.p.commit := by word
     rw [e] at h; exact h
-  obtain ⟨p, hpm, hod⟩ := onDisk_lcommit n hc (V n).byE r₁.p.term r₁.p.vote r₁.p.commit
+  obtain ⟨p, hpm, -, -, hod⟩ := onDisk_lcommit n hc (V n).byE r₁.p.term r₁.p.vote r₁.p.commit
     (if (V n).byE = go!"recv" then S1.pending[n.val]! else []) (S1.role.set n.val leader) S1.leaders
     S1.ledLog ch tl S1.viol hT.symm (by rw [hx.d2, hpv]) (get!_set_self _ hn3) hsend hcmi
     (by rw [hlogn]; exact hcL)

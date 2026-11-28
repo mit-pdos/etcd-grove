@@ -675,7 +675,8 @@ theorem onDisk_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
     (hcs : comparable ch ((S.log[n.val]!).take (uint.Z c).toNat) = .ok true)
     (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
-    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧ p.confirmed = S.confirmed[n.val]! ∧
+      p.msgs = lset.minus S.msgs S.msgs ∧
       S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .leader) t v c [], M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
             S.msgs S.votes ld ll p
@@ -696,7 +697,32 @@ theorem onDisk_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
   od_run2 [ox_L1_nil hX, ox_f_lnil hX rfl, ox_acks_lnil hX rfl, ox_conf1_lnil hX rfl,
     ox_ch1 hX (ox_L1_nil hX) hcL, ox_newC hX (ox_L1_nil hX) hcL, hne, hge, hv', hst, hcm', hadv, hcL',
     hro, hsend, hcs, anyM_lc hlc, hsub, isPrefix_take, hcb1, hcb2, take_len_c hcL]
-  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl, rfl, rfl⟩
+
+/-- **A leader's write with nothing stored and its commit unchanged** (a `-parallel` leader's queued
+write: #33 parity B2, Sim round 20): its own request (an empty append at its term, commit `0`)
+`Sendable`. -/
+theorem onDisk_lsame {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str) (t v c : w64)
+    (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry))
+    (ch : List Entry) (tl : TermFn Int) (vi : SSet)
+    (ht : uint.Z t = S.currentTerm[n.val]!) (hv : nameOf v = S.vote n.val) (hro : ro[n.val]! = leader)
+    (hsend : sendableIn ld ll ch tl (AppendFact.mk (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z t) 0 0 []
+      0) = .ok true)
+    (hcm : uint.Z c = S.commitIndex[n.val]!) :
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧ p.confirmed = S.confirmed[n.val]! ∧
+      p.msgs = lset.minus S.msgs S.msgs ∧
+      S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .leader) t v c [], M⟩ false ro ld ll ch tl vi
+        = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
+            S.msgs S.votes ld ll p ch tl vi)) := by
+  have hne : (uint.Z t != S.currentTerm[n.val]!) = false := by rw [ht]; exact bne_self_eq_false _
+  have hge : decide (uint.Z t ≥ S.currentTerm[n.val]!) = true := decide_eq_true (by omega)
+  have hv' : (nameOf v != S.vote n.val) = false := by rw [hv]; exact bne_self_eq_false _
+  have hst : (uint.Z t == S.currentTerm[n.val]!) = true := by rw [ht]; exact beq_self_eq_true _
+  have hcm' : (uint.Z c != S.commitIndex[n.val]!) = false := by rw [hcm]; exact bne_self_eq_false _
+  have hadv : decide (uint.Z c > S.commitIndex[n.val]!) = false := decide_eq_false (by omega)
+  od_run2 [ox_L1_nil hX, ox_f_lnil hX rfl, ox_acks_lnil hX rfl, ox_conf1_lnil hX rfl,
+    ox_ch1_noadv hX hadv, hne, hge, hv', hst, hcm', hadv, hro, hsend]
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl, rfl, rfl⟩
 
 /-- **A leader's store** (`WinEnd`'s empty entry, `ProposeEnd`'s proposal: `appendEntry` at the
 log's end), its commit unchanged: its own request `Sendable` from its leader log `lT` at its term
@@ -720,6 +746,9 @@ theorem onDisk_lstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg
     (hch : ch.take (uint.Z c).toNat =
       ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).take (uint.Z c).toNat) :
     ∃ p : Pre, PreOk S n.val ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) p ∧
+      p.confirmed = S.confirmed[n.val]! ∧
+      p.msgs = lset.minus (lset.add S.msgs (ackFact (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z t)
+              (uint.Z e.Index' - 1 + (es'.length + 1 : Nat)))) S.msgs ∧
       S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .leader) t v c (e :: es'), M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none
             ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) (uint.Z c) ro
@@ -749,7 +778,7 @@ theorem onDisk_lstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg
   od_run2 [hL1 hX, ox_f_lcons hX rfl hll, ox_acks_lcons hX rfl, ox_conf1_lcons hX rfl hll,
     ox_ackAt_lcons hX rfl hll, ox_ch1_noadv hX hadv, hne, hge, hv', hst, hcm', hadv, hro, hsend, hfe,
     hsuf, hsub0, isPrefix_take, hee, anyM_lm hlm, firstOf]
-  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, pre_store_log _ _ _ (by simp only; omega)⟩, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, pre_store_log _ _ _ (by simp only; omega)⟩, rfl, rfl, rfl⟩
 
 end kinds
 

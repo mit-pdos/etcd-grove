@@ -297,7 +297,7 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
       (by rw [hplog]; simp) (by rw [hplog, ← hE]; simp) (.inl rfl)
     have e1 : (((V n).ps.log.length : Nat) : Int) = uint.Z e.Index' - 1 := by omega
     rw [e1] at h; exact h
-  obtain ⟨p, hpm, hod⟩ := onDisk_lstore n hc go!"propose" r₁.p.term r₁.p.vote r₁.p.commit e es'
+  obtain ⟨p, hpm, -, -, hod⟩ := onDisk_lstore n hc go!"propose" r₁.p.term r₁.p.vote r₁.p.commit e es'
     (if go!"propose" = go!"recv" then S1.pending[n.val]! else []) (S1.role.set n.val leader) S1.leaders
     (S1.ledLog.with (uint.Z r₁.p.term) (logOf r₁.p.log)) S1.chain S1.termLen S1.viol (logOf r₁.p.log) eqb
     hT.symm (by rw [hx.d2, hpv]) (get!_set_self _ hn3) (by rw [hlogn, logOf_length]; exact hfirst0)

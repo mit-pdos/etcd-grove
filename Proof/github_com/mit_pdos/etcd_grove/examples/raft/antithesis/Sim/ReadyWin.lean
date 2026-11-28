@@ -465,7 +465,7 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
       (by rw [hplog']; simp) (by rw [hplog']; simp) (.inl rfl)
     have e1 : (((V n).ps.log.length : Nat) : Int) = uint.Z (pleaderEntry (V n).ps).Index' - 1 := by omega
     rw [e1] at h; exact h
-  obtain ⟨p, hpm, hod⟩ := onDisk_lstore n hc (V n).byE r₁.p.term r₁.p.vote r₁.p.commit (pleaderEntry (V n).ps) []
+  obtain ⟨p, hpm, -, -, hod⟩ := onDisk_lstore n hc (V n).byE r₁.p.term r₁.p.vote r₁.p.commit (pleaderEntry (V n).ps) []
     (if (V n).byE = go!"recv" then S1.pending[n.val]! else []) (S1.role.set n.val leader)
     (lset.add S1.leaders { server := nameOf (nodeId n), term := uint.Z r₁.p.term })
     (S1.ledLog.with (uint.Z r₁.p.term) (logOf r₁.p.log)) S1.chain S1.termLen S1.viol (logOf r₁.p.log) eqb
