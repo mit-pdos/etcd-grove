@@ -64,7 +64,8 @@ theorem memView_of {R : RunCfg} {dec : CCDec} {V : Fin R.N → NodeView} {n : Fi
     (hpar0 : (V n).parts = []) (hro : ReadyOutP R n (V n) r₁ rd) (hsn : rd.snap = none)
     (hP : ∀ q, q ∈ P ↔ q ∈ rd.msgs)
     (hpfx : (V n).delivered ++ rd.ce <+: (V n).dur.log)
-    (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) (hcl : CandLt r₁.p) (hlt : LogTermsLe r₁.p) :
+    (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) (hcl : CandLt r₁.p) (hlt : LogTermsLe r₁.p)
+    (hsm : SelfMatchLe (nodeId n) (accepted r₁).p rd.qs) :
     NodeFactsD R n (memView (V n) r₁ rd P) ∧ ConfLag dec R (memView (V n) r₁ rd P) ∧
       (∀ q ∈ P, PendOk R.N (nodeId n) (memView (V n) r₁ rd P) q) ∧
       (∀ x ∈ rd.xmsgs, XPendOk R.N (nodeId n) (accepted r₁).p x) ∧
@@ -74,7 +75,7 @@ theorem memView_of {R : RunCfg} {dec : CCDec} {V : Fin R.N → NodeView} {n : Fi
   obtain ⟨f1, f2, f3, -, -, f6, f7, -, f9, f10, f11, f12, f13, f14, f15⟩ := ha.facts
   obtain ⟨-, -, v3, v4, -, -, -, v8, -⟩ := hv
   refine ⟨⟨fun _ => f1, f2, fun h => ⟨(f3 h).1, (f3 h).2.1, (v3 h).2.2⟩, v4, hpfx, fun _ => ?_,
-    fun q hq => f7 q ((hP q).mp hq), Int.le_trans v8 hterm, f9, f10, f11, f12, f13, f14, f15, hcl, hlt⟩,
+    fun q hq => f7 q ((hP q).mp hq), Int.le_trans v8 hterm, f9, f10, f11, f12, f13, f14, f15, hcl, hlt, hsm⟩,
     ha.confLag, fun q hq => ha.hpend q ((hP q).mp hq), ha.hxpend, ha.hlead, fun _ => hw⟩
   show _ ≤ uint.nat (([rd.memRec (V n)] ++ (V n).parts).foldl DurW.write (V n).dur).commit
   rw [hpar0]

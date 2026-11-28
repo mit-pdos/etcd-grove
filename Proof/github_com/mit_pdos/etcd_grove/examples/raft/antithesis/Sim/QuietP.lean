@@ -14,6 +14,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.B1Carry
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.SelfMatch
 
 @[expose] public section
 
@@ -228,14 +229,14 @@ theorem nodeOk_syncOffD {R : RunCfg} {dec : CCDec} {S0 : State} {net : List Msg}
     {v w : NodeView} (ha : R.md.async = false) (hb : R.drv.batch = false)
     (hpar : R.drv.parallel = true) (hm : v.mems = []) (hdu : v.dur = w.dur) (hun : v.undo = w.undo)
     (hp0 : v.parts = []) (hj : v.jobs = []) (haj : v.ajobs = []) (huf : UndoFacts R w) (hbo : BindingOkM R dec S0)
-    (hcl : CandLt v.ps) (hlt : LogTermsLe v.ps)
+    (hcl : CandLt v.ps) (hlt : LogTermsLe v.ps) (hsm : SelfMatchLe (nodeId n) v.ps v.qs)
     (h : NodeOk R.syncOff dec (stripU n S0) net n v) : NodeOkD R dec (stripU n S0) net n v := by
   obtain ⟨d1, d2, d3, d4, d5, d6, d7, hf, hl, hc, hp, hx, hqs, ht, hca, hxc, hlo, hvs⟩ := h
   have hd : v.dur = durOf v.r := (d3 ha rfl rfl rfl).2.1
   obtain ⟨f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15⟩ := hf
   refine ⟨d1, d2, fun _ _ _ hp0 => (by rw [hpar] at hp0; cases hp0), d4, d5, d6, d7,
     ⟨fun _ => f1, f2, f3, f4, f5, fun _ => by rw [hm, hp0]; exact f6, f7, f8, f9, f10, f11, f12, f13, f14,
-      f15, hcl, hlt⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
+      f15, hcl, hlt, hsm⟩, fun hrl => ?_, fun hrc => ?_, fun _ => hp,
     fun hb' => (by rw [hb] at hb'; cases hb'), hx, fun q hq => .inl (hqs q hq), ht, hca, hxc, hlo, hvs, ?_, ?_, ?_, ?_,
     fun _ _ => (d3 ha rfl rfl rfl).2.2, (memCommitOk_of_disk (S := S0) hbo d1 hd :)⟩
   · obtain ⟨l1, l2, l3, l4, l5, l6⟩ := hl hrl
@@ -325,13 +326,20 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
     rw [hm] at this; exact this
   have hjo := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   have hfD : NodeFactsD R n (V n) := hv.2.2.2.2.2.2.2.1
-  have hlt0 : LogTermsLe (V n).ps := hfD.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  have hlt0 : LogTermsLe (V n).ps := hfD.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   obtain ⟨hmd, -⟩ := hin.syncOff.b1 (SimMask.b1Of_le hmsk)
   have hfp0 : (V n).r.fp = [] :=
     (hfD.2.1 (by rw [show R.md = R.syncOff.md from rfl, hmd])).2.1
   have huf := hv.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
   have hqn' : (stripU n S).queue[n.val]! = [] := hqn
   have hv' := nodeOk_liftC (R := R.syncOff) hqn' (nodeOkD_syncOff ha hb hm hparts hd hu (nodeOkD_stripU hb hv))
+  have hnB1 : NetOk R.syncOff (liftC (stripU n S)) net := netOkD_toB1L ha hsh.2.2.2.2.2.1 (netOkD_stripU n hn)
+  have hrP := ReachIn.toP (SimMask.b1Of_le hmsk) hin.syncOff hnB1 hv' hr.syncOff
+  have hsm : SelfMatchLe (nodeId n) (accepted r₁).p rd.qs :=
+    selfMatchLe_ready hfD.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+      (fun q hq ht => (hv'.qs q hq).lead_of_app ht) hrP hrop hv'.facts.outbox hv'.leadOk.1
+      (fun m hm h4 => ⟨h4, hnB1.2.2.1 m hm⟩) (fun m hm => (hnB1.2.2.1 m hm).2.1)
+      (fun q hq hne => (hv'.qs q hq).self hne)
   have hq : QuietIn msk.b1Of R.syncOff dec Adm net xnet n (V n) ((V n).drainOf r₁ rd) :=
     .silentReady _ r₁ rd hr.syncOff hrop hrep
   have h1 := nodeOk_unliftC (R := R.syncOff) hqn'
@@ -344,7 +352,7 @@ theorem antSim_quietP_in (msk : SimMask) (hmsk : msk ≤ mskB2) :
         rw [hrop.1, hc'] at hrl; cases hrl)
       (logTermsLe_quiet (r₁ := r₁) hlt0 hd hfp0
         ((reach_fp (SimMask.b1Of_le hmsk) hin.syncOff hv' hr.syncOff).trans hfp0) hrop hsnr hrep :)
-      h1)
+      hsm h1)
   have h3 := nodeOkD_pendPerm (rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q))
     (fun q => by
       show q ∈ _ ↔ q ∈ rd.msgs

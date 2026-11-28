@@ -167,9 +167,14 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
       cases isReqM q <;> simp
   have hA := afterOk_loc (SimMask.b1Of_le hmsk) hin.syncOff hx.hnet (nodeOk_liftC hx.hq0 hx.hv)
     hr.syncOff hro
+  have hvD := hs.2.2.2.2 n
+  have hsm : SelfMatchLe (nodeId n) (accepted r₁).p rd.qs :=
+    selfMatchLe_ready (nodeOkD_factsS hvD).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+      (fun q hq ht => qsD_lead (nodeOkD_qsS hvD q hq) ht) hx.hr hro hx.d7 hx.hv.leadOk.1 hx.hin
+      (fun m hm => (hx.hnet.2.2.1 m hm).2.1) hx.hqs
   obtain ⟨hNF, hCL, hpend, hxpend, hlead, hDF⟩ :=
     memView_of (P := rd.msgs.filter isReqM ++ rd.msgs.filter (fun q => !isReqM q)) hA
-      (hs.2.2.2.2 n).2.2.2.2.2.2.2.1 hpar0 hro hx.hsn hP hpfx hterm hcl hlt
+      hvD.2.2.2.2.2.2.2.1 hpar0 hro hx.hsn hP hpfx hterm hcl hlt hsm
   exact memNode_of hs hok ha hpar hm htold hrl1 hNF hCL hLP (fun _ => hpend) hxpend hqs hlead
     (fun h => hx.hvs1 h) hDF hMC
 

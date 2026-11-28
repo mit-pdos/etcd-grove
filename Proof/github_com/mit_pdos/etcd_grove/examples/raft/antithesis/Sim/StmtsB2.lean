@@ -125,14 +125,24 @@ parity B2, Sim round 15, lead-approved). -/
 def LogTermsLe (s : PState) : Prop :=
   ∀ e ∈ s.log, uint.Z e.Term' ≤ uint.Z s.term
 
+/-- **A leader's own `Match` within its log**, and so are its queued self-acknowledgements' indices:
+`reset` sets the leader's own `Match` to its last index, only its own acknowledgements raise it, each
+of an index it appended (`appendEntry`'s `pselfAck`, at the last index then), and a leader's log only
+grows (#33 parity B2, Sim round 16, lead-approved). What a proposal's `LeaderPartD` reads: the indices
+up to the leader's own `Match` are of its log before the proposal. -/
+def SelfMatchLe (id : w64) (s : PState) (qs : List Msg) : Prop :=
+  s.role = .leader → uint.Z (matchOf s id) ≤ plogLastIndexZ s.base s.log ∧
+    ∀ q ∈ qs, q.ty = .appResp → uint.Z q.index ≤ plogLastIndexZ s.base s.log
+
 /-- **C1, raft's side, B2** (`NodeFacts` with two conjuncts guarded): raft's outbox is empty between
 `Ready`s only when not batching (a batching node takes several inputs before its `Ready`); what was
 handed out is within the disk's commit only in sync mode (async: the apply goroutine may hand out
 entries whose commit is not yet written; they are within the binding's `chain`, `ApplyChainOk`),
 and sync, within the commit of the disk with the announced writes made (a `-parallel` leader's `mem`
 announces a commit its write makes later; #33 B2 round 11). The other conjuncts are `NodeFacts`', and
-a candidate's log of earlier terms (`CandLt`, Sim round 14) and the log's terms at most the term
-(`LogTermsLe`, Sim round 15). -/
+a candidate's log of earlier terms (`CandLt`, Sim round 14), the log's terms at most the term
+(`LogTermsLe`, Sim round 15) and a leader's own `Match` and queued self-acknowledgements within its log
+(`SelfMatchLe`, Sim round 16). -/
 def NodeFactsD (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   (R.drv.batch = false → v.ps.outbox = []) ∧
   (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
@@ -150,7 +160,8 @@ def NodeFactsD (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
     (R.md.confChanges = false → EntsNormal p.2)) ∧
   (v.ps.role = .leader → ∀ q ∈ v.ps.rd.ro.pending, (q.src = W64 0 ∨ ∃ j : Fin R.N, q.src = nodeId j) ∧
     (R.md.confChanges = false → EntsNormal q.ents)) ∧
-  ReadOk v.ps ∧ v.ps.rd.states = [] ∧ CandLt v.ps ∧ LogTermsLe v.ps
+  ReadOk v.ps ∧ v.ps.rd.states = [] ∧ CandLt v.ps ∧ LogTermsLe v.ps ∧
+  SelfMatchLe (nodeId n) v.ps v.qs
 
 /-- **A leader's confirmation, B2**: once the disk holds raft's whole log (sync) or an entry of the
 leader's term (its win's write is announced), its `confirmed` is at its term and covers the disk's
