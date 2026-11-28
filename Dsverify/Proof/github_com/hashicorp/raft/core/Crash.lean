@@ -50,6 +50,23 @@ theorem durAcc {E : CoPset} (hE : ↑durN ⊆ E) :
 `durBody` minus the stores' client authorities and `latestDur` (which mention the client's
 predicates, not known to be timeless) is timeless: opening `srvDurInv` strips its later. -/
 
+/-- (R2) `latApplOk` over the fields it reads. -/
+def latApplF (rc : RCtx GF) (lat : SnapLatest) (pend : Option (Nat × Nat × GoString))
+    (dp : Option DiscPend) : IProp GF :=
+  match lat with
+  | none => iprop(True)
+  | some (m, _) => iprop(⌜pend ≠ none ∨ dp ≠ none⌝ ∨ applLb rc (uint.nat m.Index'))
+
+theorem latApplOk_eq (rc : RCtx GF) (X : SrvDur) : latApplOk rc X = latApplF rc X.lat X.pend X.dp := by
+  unfold latApplOk latApplF; rfl
+
+/-- (R2) The boot pin after the boot (`bootOver`): the boot record's half at none (the boot not yet
+closed in the body), or the latest snapshot's `lastApplied` bound. -/
+def bootPinF (rc : RCtx GF) (lat : SnapLatest) (pend : Option (Nat × Nat × GoString))
+    (dp : Option DiscPend) : IProp GF :=
+  iprop(dghostVar rc.dur.boot (DFrac.own (1 : Qp).half) (none : Option (LogAbs × SnapLatest)) ∨
+    latApplF rc lat pend dp)
+
 /-- (R2) **The timeless part of `durBody`**: gprot's halves, the views' halves, the couplings, the
 compaction bound, the pending-install record's half and the pending steps' premises. -/
 def durCore (X : SrvDur) : IProp GF :=
@@ -59,11 +76,12 @@ def durCore (X : SrvDur) : IProp GF :=
     ghostVar rc.dur.tv (1 : Qp).half X.s.term ∗ ghostVar rc.dur.cv (1 : Qp).half X.s.cidx ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+      (∀ x st id, X.pend = some (x, st, id) → (∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∨ (prevMatch X.s.log x st ∧ x ≤ X.s.dur.1)) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
       ((∀ d, X.dp = some d → X.c < d.x) ∧ ((X.tp = none ∨ X.dp = none) ∧
         (∀ d, X.dp = some d → ∃ m b, X.lat = some (m, b) ∧ uint.nat m.Index' = d.x ∧ uint.nat m.Term' = d.st))))⌝ ∗
     monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
-    tpRes γ X.tp ∗ dpRes γ i X.s X.dp ∗ monoNatAuthOwn rc.dur.lat 1 (latIdxD X.lat))
+    tpRes γ X.tp ∗ dpRes γ i X.s X.dp ∗ monoNatAuthOwn rc.dur.lat 1 (latIdxD X.lat) ∗
+    bootPinF rc X.lat X.pend X.dp)
 
 /-- (R2) **The rest of `durBody`**: the stores' client authorities and what raft keeps about the
 snapshot store (`latestDur`). -/
@@ -113,25 +131,50 @@ instance crash_dpRes_timeless γ i s dp : Timeless (dpRes (GF := GF) γ i s dp) 
 
 end timeless
 
+instance crash_latApplF_timeless (rc : RCtx GF) (lat : SnapLatest) (pend : Option (Nat × Nat × GoString))
+    (dp : Option DiscPend) : Timeless (latApplF rc lat pend dp) := by
+  unfold latApplF applLb; rcases lat with _ | ⟨m, b⟩ <;> infer_instance
+
+instance crash_bootPinF_timeless (rc : RCtx GF) (lat : SnapLatest) (pend : Option (Nat × Nat × GoString))
+    (dp : Option DiscPend) : Timeless (bootPinF rc lat pend dp) := by
+  unfold bootPinF; infer_instance
+
 instance durCore_timeless (X : SrvDur) : Timeless (durCore γ rc i X) := by
   unfold durCore; infer_instance
 
-/-- (R2) `durBody` is its core, its stores and the boot pin. -/
+/-- (R2) `durBody`, after the boot (`bootOver`), is its core and its stores. -/
 theorem durBody_split (X : SrvDur) :
-    durBody γ rc i X ⊣⊢ durCore γ rc i X ∗ durStores γ rc i X ∗ bootPin rc X := by
-  unfold durBody durCore durStores
-  refine ⟨?_, ?_⟩
-  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, %Hs5, Hla, Hl, Hpe, Ht, Hd⟩
-    iframe
-    ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr, Hs5⟩
-  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, Hc, Hpe, Ht, Hd, Hla⟩, ⟨HL, HS, HSS, Hl⟩, Hb⟩
+    bootOver rc ∗ durBody γ rc i X ⊢ durCore γ rc i X ∗ durStores γ rc i X := by
+  unfold durBody durCore durStores bootPin bootOver
+  iintro ⟨#Hbo, H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, %Hs5, Hla, Hl, Hpe, Ht, Hd⟩
+  icases Hb with (⟨%o, Hb, %ho⟩ | ⟨-, Hlo⟩)
+  · icombine Hb Hbo gives %h
+    have ho' : o = none := h.2
+    subst ho'
     iframe
     isplitl []
-    · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2.1⟩
+    · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr, Hs5⟩
+    unfold bootPinF; ileft; iexact Hb
+  · iframe
     isplitl []
-    · ipureintro; exact Hp.2.2.2.2.2.1
-    iframe
-    ipureintro; exact Hp.2.2.2.2.2.2
+    · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr, Hs5⟩
+    unfold bootPinF; iright; rw [← latApplOk_eq]; iexact Hlo
+
+theorem durBody_join (X : SrvDur) :
+    bootOver rc ∗ durCore γ rc i X ∗ durStores γ rc i X ⊢ durBody γ rc i X := by
+  unfold durBody durCore durStores bootPin bootOver bootPinF
+  iintro ⟨#Hbo, ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, Hc, Hpe, Ht, Hd, Hla, Hbp⟩, ⟨HL, HS, HSS, Hl⟩⟩
+  iframe
+  isplitl []
+  · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2.1⟩
+  isplitl []
+  · ipureintro; exact Hp.2.2.2.2.2.1
+  isplitl [Hbp]
+  · icases Hbp with (Hb | Hlo)
+    · ileft; iexists none; iframe; ipureintro; intro p hp; cases hp
+    · iright; iframe Hbo; rw [latApplOk_eq]; iexact Hlo
+  iframe
+  ipureintro; exact Hp.2.2.2.2.2.2
 
 /-- (R2) **Opening `srvDurInv`**, the core without its later (timeless), the stores under it. -/
 theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
@@ -141,8 +184,9 @@ theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
   iintro ⟨#Hi, #Hbo⟩ Hnc
   imod (durAcc γ rc i hE) $$ Hi Hnc with ⟨Hnc, HX, Hcl⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩
-  ihave HX := later_mono (durBody_split γ rc i X).1 $$ HX
-  icases HX with ⟨>Hc, Hs, -⟩
+  ihave HX := later_mono (durBody_split γ rc i X) $$ [HX]
+  · iapply later_sep.2; iframe; inext; iexact Hbo
+  icases HX with ⟨>Hc, Hs⟩
   imodintro
   iframe Hnc
   iexists X
@@ -152,11 +196,8 @@ theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
   iapply later_exists_mp
   iexists X'
   inext
-  iapply (durBody_split γ rc i X').2
-  iframe
-  unfold bootPin
-  iright
-  unfold bootOver at *
+  iapply (durBody_join γ rc i X')
+  iframe Hc' Hs'
   iexact Hbo
 
 /-- (R2) The main goroutine's view agrees with the crash state. -/
@@ -235,7 +276,7 @@ facts, and its index durable or installed while following with its discard pendi
 def latestDurV (lat : SnapLatest) (dp : Option DiscPend) : IProp GF :=
   iprop(latestOk γ rc lat ∗
     (⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
-      (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term') ∗
+      (durLb γ i (uint.nat m.Index') ∗ ⌜dp = none⌝ ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term') ∗
         ⌜∃ ℓ, dp = some ⟨uint.nat m.Index', uint.nat m.Term', ℓ⟩⌝)))
 
 /-- (hraft_robust L0, R1 §1.3, §6.1) **What a generation of server `i` starts from**: gprot's halves
@@ -249,7 +290,7 @@ def srvVacant (X : SrvDur) : IProp GF :=
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1 ∧ uint.nat X.A.staged ≤ X.s.dur.1 ∧ X.pend = none ∧
       (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-        (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+        (∀ x st id, X.pend = some (x, st, id) → (∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∨ (prevMatch X.s.log x st ∧ x ≤ X.s.dur.1)) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
         ((∀ d, X.dp = some d → X.c < d.x) ∧ ((X.tp = none ∨ X.dp = none) ∧
         (∀ d, X.dp = some d → ∃ m b, X.lat = some (m, b) ∧ uint.nat m.Index' = d.x ∧ uint.nat m.Term' = d.st))))⌝ ∗
     latestDurV γ rc i X.lat X.dp ∗
@@ -264,10 +305,6 @@ theorem latestOk_snapP (rc0 rc1 : RCtx GF) (lat : SnapLatest) (h : rc1.snapP = r
 theorem latestOk_dur (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) :
     latestOk γ { rc0 with dur := dn } lat = latestOk γ rc0 lat := by
   rcases lat with _ | ⟨m, b⟩ <;> rfl
-
-theorem latestDur_dur_none (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) (dp : Option DiscPend) :
-    latestDur γ { rc0 with dur := dn } i lat none dp = latestDur γ rc0 i lat none dp := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- (R2) **Arming a generation** (at boot, before its WP): fresh crash-state names, the crash
 invariant (for the context `rc` with those names and the generation's store handles), the crash
@@ -321,13 +358,13 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
     · rw [latestOk_snapP γ rc0 { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ } X.lat rfl]; iexact Hlok
     dsimp only
     iframe Hlok
-    icases Hbr with (%hn | ⟨%m, %b, %hl, (#Hdl | ⟨#Hsf, %hdpd⟩)⟩)
+    icases Hbr with (%hn | ⟨%m, %b, %hl, (⟨#Hdl, %hdn⟩ | ⟨#Hsf, %hdpd⟩)⟩)
     · isplitl []
       · ileft; ipureintro; exact hn
       ileft; iexact Hap2
     · isplitl []
       · iright; iexists m, b; isplitl []; · ipureintro; exact hl
-        ileft; iexact Hdl
+        ileft; iframe Hdl; ipureintro; exact hdn
       ileft; iexact Hap2
     · isplitl [Hap2]
       · iright; iexists m, b; isplitl []; · ipureintro; exact hl
@@ -371,7 +408,7 @@ def deadCore (X : SrvDur) : IProp GF :=
     termCouple γ i X.s.term ∗ cidxCouple γ i X.s.cidx ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+      (∀ x st id, X.pend = some (x, st, id) → (∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∨ (prevMatch X.s.log x st ∧ x ≤ X.s.dur.1)) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
       ((∀ d, X.dp = some d → X.c < d.x) ∧ ((X.tp = none ∨ X.dp = none) ∧
         (∀ d, X.dp = some d → ∃ m b, X.lat = some (m, b) ∧ uint.nat m.Index' = d.x ∧ uint.nat m.Term' = d.st))))⌝ ∗
     latestDur γ rc i X.lat X.pend X.dp ∗ tpRes γ X.tp ∗ dpRes γ i X.s X.dp)

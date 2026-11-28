@@ -89,6 +89,52 @@ theorem encU64_getElem? (x : w64) (i : Nat) (hi : i < 8) :
     (encU64 x)[i]? = some (W8 (uint.Z (x >>> W64 (8 * (i : Int))))) := by
   simp [encU64, hi]
 
+/-! ### List lemmas of the encoders' and decoders' loops (codec round trip) -/
+
+theorem dk_flatMap_take_succ {α β : Type} (l : List α) (f : α → List β) (i : Nat) (x : α)
+    (h : l[i]? = some x) : (l.take (i + 1)).flatMap f = (l.take i).flatMap f ++ f x := by
+  rw [List.take_add_one, h]; simp
+
+theorem dk_flatMap_take_length {α β : Type} (l : List α) (f : α → List β) (i : Nat)
+    (h : i = l.length) : (l.take i).flatMap f = l.flatMap f := by
+  rw [h, List.take_length]
+
+theorem dk_flatMap_drop {α β : Type} (l : List α) (f : α → List β) (i : Nat) (x : α)
+    (h : l[i]? = some x) : (l.drop i).flatMap f = f x ++ (l.drop (i + 1)).flatMap f := by
+  rw [List.drop_eq_getElem_cons (List.getElem?_eq_some_iff.1 h).1]
+  rw [(List.getElem?_eq_some_iff.1 h).2]; simp
+
+/-- A slice's length as a word. -/
+theorem dk_w64_of_length {α : Type} (l : List α) (n : w64) (h : l.length = sint.nat n ∧ 0 ≤ sint.Z n) :
+    n = W64 l.length := by
+  rw [h.1]; word
+
+/-- A loop index below a slice's length. -/
+theorem dk_idx_lt (i n : w64) (k : Nat) (h : k = sint.nat n ∧ 0 ≤ sint.Z n) (hi : 0 ≤ sint.Z i)
+    (hlt : sint.Z i < sint.Z n) : sint.nat i < k := by
+  rw [h.1]; word
+
+/-- A loop index at a slice's length. -/
+theorem dk_idx_eq (i n : w64) (k : Nat) (h : k = sint.nat n ∧ 0 ≤ sint.Z n) (hi : sint.Z i ≤ sint.Z n)
+    (hge : ¬ sint.Z i < sint.Z n) : sint.nat i = k := by
+  rw [h.1]; word
+
+theorem dk_idx_succ (i n : w64) (hi : 0 ≤ sint.Z i) (hlt : sint.Z i < sint.Z n) :
+    sint.nat (i + W64 1) = sint.nat i + 1 ∧ 0 ≤ sint.Z (i + W64 1) ∧ sint.Z (i + W64 1) ≤ sint.Z n := by
+  refine ⟨?_, ?_, ?_⟩ <;> word
+
+theorem dk_toNat_sint (i : w64) : (sint.Z i).toNat = sint.nat i := rfl
+
+/-- A decoder's loop index below a decoded count. -/
+theorem dk_ulen_lt (i : w64) (n : Nat) (hn : n < 2 ^ 63) (h : uint.Z i < uint.Z (W64 (n : Int))) :
+    uint.nat i < n := by word
+
+theorem dk_ulen_eq (i : w64) (n : Nat) (hn : n < 2 ^ 63) (hi : uint.nat i ≤ n)
+    (h : ¬ uint.Z i < uint.Z (W64 (n : Int))) : uint.nat i = n := by word
+
+theorem dk_usucc (i : w64) (n : Nat) (hn : n < 2 ^ 63) (h : uint.nat i < n) :
+    uint.nat (i + W64 1) = uint.nat i + 1 := by word
+
 section rep
 open Iris Iris.BI Iris.ProofMode
 variable [GooseExts] [GooseSemantics] [GooseInterp]
