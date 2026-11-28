@@ -107,7 +107,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (30)
+## Reported by others (33)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -121,6 +121,9 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [server: a request arriving as the member's own removal is applied can crash the member](etcd-unary-interceptor-learner-removed.md) | yes | etcd-io/etcd#21966 issue open; etcd-io/etcd#22188 pr open; etcd-io/etcd#22205 pr open; etcd-io/etcd#21967 pr closed; etcd-io/etcd#18606 pr merged |
 | [clientv3: a progress notification right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-progress-closed-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open; etcd-io/etcd#21981 pr closed |
 | [clientv3: a reconnect right after a watch is canceled can crash the client with "send on closed channel"](etcd-watch-resume-closing-substream.md) | yes | etcd-io/etcd#21969 issue closed; etcd-io/etcd#22191 pr open |
+| [raft: a crash inside `InstallSnapshot` keeps the log the install was to discard, and a restarted leader replicates conflicting entries](hraft-installsnapshot-crash-keeps-log.md) | yes | hashicorp/raft#721 issue open |
+| [raft: a crash between the two writes of a vote lets the server vote, after its restart, for a candidate whose log is behind its own](hraft-persistvote-torn-vote.md) | yes | hashicorp/raft#746 issue open; hashicorp/raft#747 pr open; hashicorp/raft#661 issue closed |
+| [raft: a server restarting with `RestoreCommittedLogs` loses the configurations in the entries it replays, and counts votes and commitment in an older one](hraft-restore-committed-logs-config.md) | yes | hashicorp/raft#728 issue open; hashicorp/raft#731 pr open |
 | [raft: `VerifyLeader` counts a non-voter's heartbeat response as a vote, so a deposed leader's consistent read is stale](hraft-verifyleader-nonvoter-vote.md) | yes | hashicorp/raft#725 issue open; hashicorp/raft#740 pr open |
 | [clientv3/leasing: after a failed range delete, the leasing KV keeps serving keys etcd deleted](leasing-evictrange-key.md) | yes | etcd-io/etcd#21869 pr closed; etcd-io/etcd#21589 pr closed; etcd-io/etcd#20704 issue closed |
 | [raft: TLA+ trace validation rejects a correct run with a stale leader (`LeaderCompletenessInv` is false)](raft-tla-leader-completeness-stale-leader.md) | yes | etcd-io/raft#549 issue open |

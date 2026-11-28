@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -142,5 +143,129 @@ func TestRobust(t *testing.T) {
 	bin := build(t, t.TempDir(), cover != "")
 	for i := 0; i < rounds; i++ {
 		round(t, i, bin, cover)
+	}
+}
+
+// roundCrash runs the crash deployment once (hraft_robust): the servers are the restartable
+// machines (`covmachine rserver<id> DIR`, rserver.ServerR over its data directory DIR, a directory
+// of its own, or its disk's mount in the power modes), each in a group of its own, so that any
+// number of them may be down at once; each is killed (SIGKILL) at random and restarted after a
+// random downtime, its filesystem synced (kill) or its disk's power lost (power), per
+// HRAFTROBUST_CRASH (kill, power or mixed; default kill). The clients and the orchestrator never
+// crash. The network faults are round's. Each server's log starts every incarnation with what its
+// directory held (disk.Describe).
+func roundCrash(t *testing.T, i int, bin string, cover string) {
+	n, err := robust.NewNetwork("hrc" + strconv.Itoa(os.Getpid()%10000))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer n.Close()
+	var ms []*robust.Machine
+	for _, name := range names() {
+		m, err := n.AddMachine(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ms = append(ms, m)
+	}
+	work, err := os.MkdirTemp("", "hraftrobustcrash-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var env []string
+	if cover != "" {
+		env = append(env, "GOCOVERDIR="+cover)
+	}
+	w := os.Getenv("HRAFTNET_WARM")
+	if w == "" {
+		w = "1"
+	}
+	env = append(env, "HRAFTNET_WARM="+w, "HRAFTNET_OPS="+os.Getenv("HRAFTNET_OPS"))
+	mode := os.Getenv("HRAFTROBUST_CRASH")
+	if mode == "" {
+		mode = robust.CrashKill
+	}
+	cfg := robust.Config{Crash: mode, CrashPause: envMs("HRAFTROBUST_CRASH_MS", 1500),
+		Downtime: envMs("HRAFTROBUST_DOWN_MS", 2000), Netns: true, Deadline: 10 * time.Minute, FaultsAtStart: true,
+		NetPause: envMs("HRAFTROBUST_PAUSE_MS", 300), NetHold: envMs("HRAFTROBUST_HOLD_MS", 1000)}
+	r, err := robust.NewRun(cfg, robust.Command{Path: bin, Env: env}, n, work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Stop()
+	var groups []*robust.Group
+	for k := 0; k < 6; k++ {
+		g := r.NewGroup()
+		rs, err := g.Add(names()[k], ms[k])
+		if err != nil {
+			t.Fatal(err)
+		}
+		rs.Args = []string{"r" + names()[k], rs.Dir}
+		groups = append(groups, g)
+	}
+	for _, g := range groups {
+		if err := g.Start(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var nodes []robust.Client
+	for k, name := range names()[6:11] {
+		nodes = append(nodes, robust.Client{Name: name, Machine: ms[6+k], Args: []string{name}})
+	}
+	orch := []robust.Client{{Name: "orch", Machine: ms[11], Args: []string{"orch"}}}
+	t0 := time.Now()
+	r.RunClients(nodes, orch, ms)
+	t.Logf("round %d: %v; crashes: %s; network: %s", i, time.Since(t0).Round(time.Second), r.Stats.String(), r.NetStats())
+	for k := 0; k < 6; k++ {
+		t.Logf("round %d, %s's incarnations:\n%s", i, names()[k], starts(r.LogPath(names()[k])))
+	}
+	if err := r.Err(); err != nil {
+		t.Fatalf("round %d: %v (logs kept in %s)", i, err, work)
+	}
+	if os.Getenv("HRAFTROBUST_KEEP") == "" {
+		os.RemoveAll(work)
+	}
+}
+
+// starts is the lines of the log path that say what a server's directory held as it started.
+func starts(path string) string {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err.Error()
+	}
+	out := ""
+	for _, l := range strings.Split(string(b), "\n") {
+		if strings.HasPrefix(l, "covmachine: ") {
+			out += "  " + l + "\n"
+		}
+	}
+	return out
+}
+
+// TestRobustCrash runs HRAFTROBUST_ROUNDS rounds of the crash deployment (roundCrash). Set
+// HRAFTROBUST_RUN=1 to run it.
+func TestRobustCrash(t *testing.T) {
+	if os.Getenv("HRAFTROBUST_RUN") == "" {
+		t.Skip("set HRAFTROBUST_RUN=1 to run (processes and network namespaces)")
+	}
+	if robust.RerunTest(t, "TestRobustCrash", "120m", testing.Short(), []string{"HRAFTROBUST_RUN=1",
+		"HRAFTROBUST_ROUNDS=" + os.Getenv("HRAFTROBUST_ROUNDS"), "HRAFTROBUST_COVER=" + os.Getenv("HRAFTROBUST_COVER"),
+		"HRAFTNET_WARM=" + os.Getenv("HRAFTNET_WARM"), "HRAFTNET_OPS=" + os.Getenv("HRAFTNET_OPS"),
+		"HRAFTROBUST_PAUSE_MS=" + os.Getenv("HRAFTROBUST_PAUSE_MS"), "HRAFTROBUST_HOLD_MS=" + os.Getenv("HRAFTROBUST_HOLD_MS"),
+		"HRAFTROBUST_CRASH=" + os.Getenv("HRAFTROBUST_CRASH"), "HRAFTROBUST_CRASH_MS=" + os.Getenv("HRAFTROBUST_CRASH_MS"),
+		"HRAFTROBUST_DOWN_MS=" + os.Getenv("HRAFTROBUST_DOWN_MS"), "HRAFTROBUST_KEEP=" + os.Getenv("HRAFTROBUST_KEEP")}) {
+		return
+	}
+	if err := robust.NetnsAvailable(); err != nil {
+		t.Skipf("no network namespaces: %v", err)
+	}
+	rounds := 2
+	if v, err := strconv.Atoi(os.Getenv("HRAFTROBUST_ROUNDS")); err == nil && v > 0 {
+		rounds = v
+	}
+	cover := os.Getenv("HRAFTROBUST_COVER")
+	bin := build(t, t.TempDir(), cover != "")
+	for i := 0; i < rounds; i++ {
+		roundCrash(t, i, bin, cover)
 	}
 }

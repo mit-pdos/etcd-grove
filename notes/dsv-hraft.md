@@ -978,3 +978,52 @@ kit's `Link` are the next batches.
   token); the packages' facts the callees take (`hraftnet`, `sync`, `log`, net/rpc's mutex and server variables,
   `rpcInit_access`) from the command's.
 - Counts (`etc/theorem-loc.py hraft_nocrash_robust`): see `notes/STATUS.md`'s entry.
+
+## hraft_robust: R0 (branch `hraft-r0/2026-11-28`, pending approval, #48)
+
+The plan: `/shared/tmp/ps2/hraft/PLAN-ROBUST.md`, decisions (a)-(g) asked on #48 (7237258330). R0 is the Go
+and the statement, with no proof; nothing of it lands before coordinator-E approves the packet on #48.
+
+**Bug tests** (`issues/hraft-harness/run.sh`, against v1.8.0 `0f543c0`, `main` `dd4346d` and the fork): each
+fails at both upstream revisions and passes on the fork with its fix.
+
+| issue | test | upstream | fix (branch `hraft-r0-fixes/2026-11-28`) |
+|---|---|---|---|
+| `issues/hraft-restore-committed-logs-config` | the lab's `repro-restorecommitted` | #728 (PR #731) | the lab's reference `0001`: `NewRaft` scans every entry after the snapshot, the latest configuration committed if the restored commit index reaches it |
+| `issues/hraft-installsnapshot-crash-keeps-log` | the lab's `repro-installcrash` | #721 (fails there without a crash) | the lab's reference `0002`: `NewRaft` finishes the discard when the log holds entries at or below the snapshot but not its last entry |
+| `issues/hraft-persistvote-torn-vote` | new: B's stable store imaged before each write of its vote, B restarted from each | **confirmed**; #746 (Antithesis, open), PR #747 (writes the candidate first) | the vote as one record `LastVote` (8-byte term, then the candidate), #48's recommended shape (b) |
+
+The fixes change raft's `NewRaft`, `requestVote`, `persistVote` and raft's package variables (the keys), so
+`hraft_nocrash_robust`'s proofs of them (and raft's `Init`, `RAFT_KEYS` in `etc/dsv/hraft.py`) must be redone
+with them: they are on their own branch, off this one, to land with R4/R5's re-proofs (or as a stage of
+their own), not with R0.
+
+**The kit (Go).** `hraftnet` is unchanged (so is `hraft_nocrash_robust`'s program, but for the fixes above).
+New:
+- `examples/hraftnet/disk`: `Disk` (raft's `LogStore`, `StableStore`, `CommitTrackingLogStore`: the log a
+  partial map kept by index, `LastIndex` the highest index held, the stable keys as association lists, a staged
+  commit index written with the next `StoreLogs`), every change rewriting `dir/raft` whole with
+  `durable.Write`; `Snaps` (`snapstore`'s single retention), `Close` writing `dir/snap` (metadata, bytes and the
+  next ID); `Fresh`/`FreshSnaps` (empty, written), `Open`/`OpenSnaps` (decoded, an error on a missing or
+  undecodable file); a hand-written codec (`codec.go`). `AppendedAt` is not kept. `disk_test.go`: reopen
+  round trips.
+- `examples/hraftnet/rserver`: `ServerR(id, dir)`, Server's program over `disk`, `RestoreCommittedLogs` drawn
+  per start; the first start (no marker `dir/n0`) waits for n0, starts from `Fresh` stores, bootstraps if
+  `id <= n0`, writes the marker last and only then acknowledges n0 (`awaitConfDurable`); a restart opens the
+  stores and acknowledges resends of the marker's n0. Server's unexported helpers are copied into
+  `helpers.go` (unchanged), since `rserver` is a package of its own to keep `hraftnet` as it is.
+- `cmd/rserver1..6` (hand-written, not kitgen's: kitgen's roles are the no-crash `system`).
+- The translation: `examples/lib/durable` with its bodies into `Dsverify/` (project `durable`'s third part,
+  KvRaft's configuration), `disk`, `rserver`, `cmd/rserver*` in project `dsv-hraft` (`etc/dsv/hraft.py`; its
+  lean roots map `durable` to `Dsverify` and `os`, `path/filepath` to the main tree's). No goose `.toml`, no
+  `[[skip]]` or names-only entry, no `TrustedCode`. `gen-init` has no configuration for the new packages yet
+  (R3/R6).
+- Tests: `examples/dsverify/hraftrobust`'s `TestRobustCrash` (the robust harness: the servers restartable, each
+  in a group of its own, killed with `SyncFS` or power loss; `covmachine rserver<id> DIR` prints what `DIR`
+  holds before each start).
+
+**The statement.** `hraft_robust.spec` in the same `TopLevelRobustness.lean` (its header: what it says, the one
+premise, the extensions, the trust), over `TopLevelCrashDefs.lean` (hand-written: `bootFs`, `crashServers`,
+`stableMachines`, `fsOf`, `hraftDataDir`; kitgen's `TopLevelDefs.lean` unchanged): `Robust (crashServers σ)
+(stableMachines σ) g hraftThreadBound hraftStepBound` over `kvraftExts`, premise: `/var/lib/hraft` an empty
+root on each server's machine. Witness: `hraft_robust.premisesSat` (`TopLevelWitness.lean`). Built on the VM.

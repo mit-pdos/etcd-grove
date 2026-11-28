@@ -3,13 +3,15 @@
 // Command covmachine is one machine of the hraft kit's deployment, for the multi-process runs of
 // examples/dsverify/hraftrobust (not in the kit's build: tag covmachine): `covmachine
 // <server1..6|client0..4|orch>` runs that machine's program (hraftnet.Server, Client, Orch, as its
-// command of ../cmd does). Built with -cover -covermode=atomic and run with GOCOVERDIR set, it
+// command of ../cmd does); `covmachine rserver<1..6> DIR` runs the restartable server machine's
+// (rserver.ServerR) over the data directory DIR, after printing what DIR holds (disk.Describe). Built with -cover -covermode=atomic and run with GOCOVERDIR set, it
 // writes its coverage counters there every 200 ms and on SIGTERM (a machine is killed, never
 // ends). With HRAFTNET_WARM=MS, the orchestrator is hraftnet.WarmOrch(MS, OPS), OPS from
 // HRAFTNET_OPS (default 8: the tests' small workload).
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"runtime/coverage"
@@ -19,11 +21,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft/examples/hraftnet"
+	"github.com/hashicorp/raft/examples/hraftnet/disk"
+	"github.com/hashicorp/raft/examples/hraftnet/rserver"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		panic("usage: covmachine <server1..6|client0..4|orch>")
+	if len(os.Args) != 2 && !(len(os.Args) == 3 && strings.HasPrefix(os.Args[1], "rserver")) {
+		panic("usage: covmachine <server1..6|client0..4|orch> | covmachine rserver<1..6> DIR")
 	}
 	d := os.Getenv("GOCOVERDIR")
 	if d != "" {
@@ -50,6 +54,13 @@ func main() {
 			panic(err)
 		}
 		hraftnet.Client(c)
+	case strings.HasPrefix(w, "rserver"):
+		id, err := strconv.ParseUint(w[7:], 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("covmachine: " + w + " starts on " + os.Args[2] + ": " + disk.Describe(os.Args[2]))
+		rserver.ServerR(id, os.Args[2])
 	case strings.HasPrefix(w, "server"):
 		id, err := strconv.ParseUint(w[6:], 10, 64)
 		if err != nil {
