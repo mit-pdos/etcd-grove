@@ -132,26 +132,6 @@ theorem install_close (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id 
   imodintro
   iexact Hpend
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- **The install's commit** (its sink's `Close`): the store's latest is none, or at most
-`lastApplied = a < s` (the main goroutine's half of the authority) with a committed entry of a term
-`≤ st` (`CIdx_term_mono`): the install's snapshot is newer and becomes the latest; the pending
-record `(s, st, id)` is set, with the main goroutine's half of `lastApplied`'s authority moved into
-`snapCell`. -/
-theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s st a : Nat) (id : GoString)
-    (ver idx term cfgIdx : w64) (cfg : Configuration) (b : List w8) (e : Entry)
-    (hs : uint.nat idx = s) (ht : uint.nat term = st) (hver : ver = W64 1) (ss : List Server)
-    (hb : b.length < 2 ^ 63) (has : a < s) (h1 : 1 ≤ s) (he : e.term = st) :
-    Inv (GF := GF) γ ∗ snapCell rc γ i ∗ CIdx γ s e ∗ snapFollow γ i s st ∗ rc.snapP s b ∗
-      cfgVal γ cfg ss ∗ snapCfg γ s (uint.nat cfgIdx) ss ∗
-      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
-      ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
-    |={⊤,∅}=> ▷ ∃ old, rc.ownSS old ∗
-      (rc.ownSS (newerSnap old (sinkMeta ver idx term cfgIdx cfg id b) b) ={∅,⊤}=∗
-        ghostVar rc.dur.pend (1 : Qp).half (some (s, st, id))) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
-
--/
 /-- **The install's `setLastApplied(x)`** (its crash-token atomic update; hraft_robust: over `srvDurInv`):
 the pending record `(x, st, id)` (the main goroutine's half, back from the restore) finds the main
 goroutine's half of `lastApplied`'s authority in `latestDur`'s pending case at `a < x`; it takes it, and
@@ -349,26 +329,6 @@ theorem del_lookup_some (m : GMap Nat Entry) (mn mx k : Nat) (e : Entry) :
   have h := GMap.mapLookup_filter_Some (fun k (_ : Entry) => decide (¬ (mn ≤ k ∧ k ≤ mx))) m k e
   simp only [decide_eq_true_eq] at h
   exact h
-
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- **The install's discard** (`DeleteRange(1, |log|)`'s atomic update, then `setLastLog(s, st)`):
-the store loses every entry (they are all within `1..|log|`), the protocol log becomes the committed
-prefix up to `x` (`installDiscard_upd`) and the store's window starts past it (`lo = x + 1`, the
-compaction frontier raised to `x` first). -/
-theorem logCell_discard (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st : Nat) (ℓ : SID)
-    (hℓ : ℓ ≠ i) (hx : 1 ≤ x) (hn : ¬ prevMatch s.log x st) (mx : Nat) (hmx : mx = s.log.length)
-    (Ψ : IProp GF) :
-    Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗
-      aeValid γ s.term x st [] x ∗ leaderIs γ s.term ℓ ∗
-      ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗ compLb rc x ∗
-      (∀ (L' : RLog) (d : Nat × Nat), srvOwn γ i { s with log := L', dur := d } -∗
-        durView γ i (1 : Qp).half d.1 -∗ durLb γ i x -∗
-        ⌜L'.length = x ∧ lastTerm L' = st ∧ d.1 = x⌝ -∗
-        ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) -∗ Ψ) ⊢
-    |={⊤,∅}=> ▷ ∃ A, rc.ownL A ∗
-      (∀ hi' : w64, rc.ownL ⟨LogAbs.del A.m 1 mx, hi'⟩ ={∅,⊤}=∗ Ψ) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
 
 instance batchStart_persistent (rc : RCtx GF) (n k : Nat) :
     Persistent (batchStart (GF := GF) rc n k) := by
@@ -690,6 +650,139 @@ theorem own_latestOk (γ : GNames) (rc : RCtx GF) (x tx : Nat) (id : GoString) (
   ipureintro
   refine ⟨rfl, ?_, hb, rfl⟩
   word
+
+/-- A latest snapshot at or below `x` has a term at most `x`'s committed entry's. -/
+theorem latest_term_le (γ : GNames) (rc : RCtx GF) (E : CoPset) (hE : ↑gprotN ⊆ E) (lat : SnapLatest)
+    (x : Nat) (e : Entry) (hx : latIdxD lat ≤ x) :
+    Inv (GF := GF) γ ∗ CIdx γ x e ∗ latestOk γ rc lat ⊢ |={E}=>
+      ⌜∀ m0 b0, lat = some (m0, b0) → uint.nat m0.Term' ≤ e.term⌝ := by
+  iintro ⟨#HI, #HC, Hlok⟩
+  rcases lat with _ | ⟨m0, b0⟩
+  · imodintro; ipureintro; intro _ _ h; cases h
+  · unfold latestOk
+    icases Hlok with ⟨⟨%e0, #HC0, %He0⟩, -⟩
+    simp only [latIdxD] at hx
+    imod CIdx_term_mono γ E hE (uint.nat m0.Index') x e0 e hx $$ [$HI $HC0 $HC] with %Ht
+    imodintro; ipureintro
+    intro m b h
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    omega
+
+/-- (hraft_robust R4b) **The install's commit** (its sink's `Close`, inside `snapWrite_au`): with no install
+nor discard pending (the main goroutine's views), the store's latest is none or at most `lastApplied = a < x`
+(`latApplF`) with a committed entry of a term `≤ st` (`CIdx_term_mono`): the install's snapshot is newer
+and becomes the latest; the pending record `(x, st, id)` is set, the main goroutine's half of
+`lastApplied`'s authority moved into `latestDur`, and the discard `dp'` recorded when the log lacks the
+snapshot's entry (otherwise the entry is durable). -/
+theorem install_commit (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (x st a c : Nat) (id : GoString)
+    (ver idx term cfgIdx : w64) (cfg : Configuration) (b : List w8) (e : Entry) (dp' : Option DiscPend)
+    (hs : uint.nat idx = x) (ht : uint.nat term = st) (has : a < x) (hca : c ≤ a) (hx1 : 1 ≤ x)
+    (he : e.term = st)
+    (hdp : (dp' = none ∧ prevMatch s.log x st ∧ x ≤ s.dur.1) ∨
+      (∃ ℓ, dp' = some ⟨x, st, ℓ⟩ ∧ ℓ ≠ i ∧ ¬ prevMatch s.log x st)) :
+    Inv (GF := GF) γ ∗ srvDurInv γ rc i ∗ CIdx γ x e ∗ snapFollow γ i x st ∗
+      latestOk γ rc (some ((sinkMeta ver idx term cfgIdx cfg id b), b)) ∗
+      srvV rc s ∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗
+      dpRes γ i s dp' ⊢
+    |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old, rc.ownSS old ∗
+      (rc.ownSS (newerSnap old (sinkMeta ver idx term cfgIdx cfg id b) b) ={∅, ⊤ \ ↑storeN}=∗
+        srvVP rc s none dp' ∗ ghostVar rc.dur.pend (1 : Qp).half (some (x, st, id)) ∗
+        monoNatAuthOwn rc.dur.comp (1 : Qp).half c) := by
+  have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN := by
+    unfold storeN durN raftN gprotN; solve_ndisj
+  iintro ⟨#HI, #Hd0, #HC, #Hfol, Hnew, Hv, Hpend, Happ, Hcm, Hdpr⟩ Hnc
+  iunfold srvDurInv at Hd0
+  icases Hd0 with ⟨#Hd, #Hbo⟩
+  ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑storeN) (by unfold durN raftN storeN; solve_ndisj) $$ Hd
+  imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Hnc
+  inext
+  unfold durBody
+  icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HownL, HownS, HownSS, %HpA, %HpB, Hbp,
+    Hcomp, %HpC, %HpD, Hlat, Hld, Hpd, Htp, Hdp⟩
+  iexists X.lat
+  iframe HownSS
+  iintro HownSS
+  imod Hmask with -
+  unfold srvV
+  ihave %Hag := ghostVar_agree _ _ _ _ _ $$ Hsv Hv
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨hs0, htp0, hdp0⟩ := Hag
+  ihave %Hpq := ghostVar_agree _ _ _ _ _ $$ Hpd Hpend
+  ihave %Hcq := monoNatAuthOwn_agree _ _ _ _ _ $$ Hcomp Hcm
+  obtain ⟨-, hcq⟩ := Hcq
+  -- the boot is over: the old latest is at most `lastApplied` (no install nor discard pending)
+  unfold bootPin
+  icases Hbp with (Hb | ⟨#Hbn, Hlap⟩)
+  · unfold bootOver; icombine Hb Hbo gives %h; simp at h
+  ihave %Hold : ⌜latIdxD X.lat ≤ a⌝ $$ [Hlap Happ]
+  · unfold latApplOk
+    rcases hl : X.lat with _ | ⟨m0, b0⟩
+    · ipureintro; simp [latIdxD]
+    · dsimp only
+      icases Hlap with (%Hn | #Hal)
+      · exfalso; rcases Hn with h | h
+        · exact h Hpq
+        · exact h hdp0
+      ihave %Hle := applLb_le rc _ _ _ $$ Happ Hal
+      ipureintro; simp only [latIdxD]; exact Hle
+  -- the old latest's entry: the install's snapshot is newer
+  unfold latestDur
+  icases Hld with ⟨Hlok, -⟩
+  imod latest_term_le γ rc _ hE X.lat x e (by omega) $$ [$HI $HC $Hlok] with %Hlt
+  have Hnewer : newerSnap X.lat (sinkMeta ver idx term cfgIdx cfg id b) b =
+      some ((sinkMeta ver idx term cfgIdx cfg id b), b) := by
+    rcases hl : X.lat with _ | ⟨m0, b0⟩
+    · rfl
+    · have h1 := Hlt m0 b0 hl
+      rw [hl] at Hold; simp only [latIdxD] at Hold
+      unfold newerSnap sinkMeta; dsimp only
+      rw [if_pos (by rw [hs, ht]; omega)]
+  imod mono_nat_own_update (latIdxD (some ((sinkMeta ver idx term cfgIdx cfg id b), b)))
+    (show latIdxD X.lat ≤ uint.nat idx by omega) $$ Hlat with ⟨Hlat, -⟩
+  imod ghostVar_update_halves (X.s, X.tp, dp') _ _ _ $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imod ghostVar_update_halves (some (x, st, id)) _ _ _ $$ Hpd Hpend with ⟨Hpd, Hpend⟩
+  rw [Hnewer]
+  imod Hclose $$ [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv HownL HownS HownSS Hcomp Hpd Htp Hdpr Hlat Hnew Happ]
+    with -
+  · inext
+    iexists { X with lat := some ((sinkMeta ver idx term cfgIdx cfg id b), b), pend := some (x, st, id), dp := dp' }
+    simp only
+    rw [hs0]
+    iframe
+    have hlo : X.lo ≤ x := by have := HpA.2.1; omega
+    isplitr; · ipureintro; rw [← hs0]; exact HpA
+    isplitr
+    · ipureintro
+      refine ⟨fun d hd => ?_, fun x1 st1 id1 h => ?_, ?_⟩
+      · rcases hdp with ⟨h1, -⟩ | ⟨ℓ, h1, -⟩ <;> rw [h1] at hd <;> cases hd; exact hlo
+      · simp only [Option.some.injEq, Prod.mk.injEq] at h
+        obtain ⟨rfl, rfl, rfl⟩ := h
+        rcases hdp with ⟨-, h2, h3⟩ | ⟨ℓ, h1, -⟩
+        · right; exact ⟨h2, h3⟩
+        · left; exact ⟨ℓ, h1⟩
+      · simp only [latIdxD, sinkMeta]; omega
+    isplitl []
+    · iright; iframe Hbn; unfold latApplOk; dsimp only; ileft; ipureintro; left; simp
+    isplitr
+    · ipureintro; intro d hd
+      rcases hdp with ⟨h1, -⟩ | ⟨ℓ, h1, -⟩ <;> rw [h1] at hd <;> cases hd; dsimp only; omega
+    isplitr
+    · ipureintro
+      refine ⟨Or.inl htp0, fun d hd => ?_⟩
+      rcases hdp with ⟨h1, -⟩ | ⟨ℓ, h1, -⟩ <;> rw [h1] at hd <;> cases hd
+      exact ⟨_, _, rfl, hs, ht⟩
+    iexists (sinkMeta ver idx term cfgIdx cfg id b), b
+    isplitr; · ipureintro; exact ⟨rfl, rfl, hs, ht, has⟩
+    iexact Hfol
+  imodintro
+  iframe Hpend Hcm
+  unfold srvVP; rw [← hs0, ← htp0]; iexact Hv
 
 /-- `CIdx_term_mono` with its order premise as an implication. -/
 theorem CIdx_term_mono_imp (γ : GNames) (E : CoPset) (hE : ↑gprotN ⊆ E) (x y : Nat) (e1 e2 : Entry) :
