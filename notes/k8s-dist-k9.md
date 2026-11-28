@@ -886,3 +886,38 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
 - **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`, `k8s.all.PkgTable`,
   SpecPlan's etcd3 PkgInit) at `a7a07184d6`: passed, 12734 jobs, 0 errors (`HistoryRevs.wp_proof` warns its WIP
   `sorry`; `Link` has none).
+
+## The counts the bounds need (K9-18, 2026-11-28; no Lean yet)
+
+Step 5 (`histCost xs ≤ 2^62`, K9-17) and K10 (every revision `≤ 2^62`, K9-12) both need a count the
+caller's proof can see. `Robust` bounds the run (`n < bound` over `DistCrashNstepsBelow`) from outside
+the program logic: no WP proof sees `n`, and Perennial has no step-count resource.
+- **(a) Counts from the driver's own state, tied to the adequacy step bound.** Needs a Perennial
+  change first: a step-receipt resource (each step gives a token, adequacy bounds the tokens by `n`,
+  as Rocq Perennial's `steps_lb`), then every driver loop must spend one per operation and per
+  encoded element. General, faithful (no program change), but a framework change designed and
+  reviewed on its own (CLAUDE.md, "Changes to Perennial") plus threading receipts through every loop.
+- **(b) A cap in the Go driver.** The driver stops recording after `N` operations (say `2^40`) and
+  stops the run on an output that decodes to more than `M` elements or shows a revision `≥ 2^62`
+  (a plain check, an exit, never a panic). Both bounds are then facts of the driver's own invariant
+  (`|xs| ≤ N`, `histCost xs ≤ (7 + 2M)·N`), proved where they are used, no framework change. Cost:
+  a change to the statement's program (coordinator approval, rule #8); no real run reaches the caps.
+- **Recommendation: (b).** It closes both premises now and locally; (a) can later replace the caps
+  if Perennial gains step receipts for other reasons.
+
+## Handoff K9-18 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **`HistoryRevs.wp_proof` has no `sorry`** and is linked (`HistoryRevs: parseRV rvOfMsg
+  decodeWEvents decodeItemRVs =_root_.Perennial.slices.wp_Sort` in `etc/link-lean-first-k8setcd3.txt`,
+  `Link.lean` regenerated: `wp_HistoryRevs`). The two maps of `r`, then the outer loop over `byKey`
+  (invariant: `rb ↦$ RB ∗ [∗map] RB, slOwn`, the same for `rf`, keys of `RB`/`RF` in `bks.take p`, so
+  the current key is absent: `not_mem_take_of_getElem?`), the inner loop over the key's map with the
+  map as `withKey RB key sb` (`withKey_lookup`, `withKey_insert`) and `L.length ≤ i`, both sorts
+  (`L.length ≤ size mm ≤ 2^62` as for `all`), `withKey_fold` back into the map; at the end
+  `slOwn_choose` (choice of the key's list and persistence, `⌜M !! k = none → f k = []⌝`), the struct
+  recombined with `typedPointsto_combine`, `anchorsOk_of`.
+- **Next**: step 5 (`CheckShared` over an `SRun`) with the premise `histCost xs ≤ 2^62`; how its count
+  is obtained: the section above (recommendation (b), a driver cap, needs the coordinator's decision).
+- **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`,
+  `k8s.all.PkgTable`, SpecPlan's etcd3 PkgInit) at `13fef8c4ac`: passed, 12734 jobs, 0 errors, no `sorry`
+  outside the generated (axiomatized-type) instances.
