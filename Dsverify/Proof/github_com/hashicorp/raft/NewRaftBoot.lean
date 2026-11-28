@@ -879,6 +879,75 @@ theorem bootRead_L_discard (A : LogAbs) (lat : SnapLatest) (s : SState) (d : Dis
   · ipureintro; exact ⟨hlen, hlt, hdur, hterm, hvt, hvc, hcx⟩
   · iexists a; iframe Happl; ipureintro; exact hax
 
+/-- (hraft_robust R5) **`setLastLog` with `lastLock`'s fields pinned** (`NewRaft`'s, before `isRaft`). -/
+theorem setLastLog_pinned (r : Loc) (li lt si st li' lt' : w64) (Φ : val → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗
+      sync.isMutex (r.[Raft, go!"raftState"].[raftState, go!"lastLock"]) (lastLockInv r γ rc i) ∗
+      dghostVar rc.names.llb (DFrac.own (1 : Qp).half) (some (li, lt, si, st)) ∗
+      ghostVar rc.names.lastLog (1 : Qp).half (uint.nat li, uint.nat lt) ∗
+      (dghostVar rc.names.llb (DFrac.own (1 : Qp).half) (some (li', lt', si, st)) -∗
+        ghostVar rc.names.lastLog (1 : Qp).half (uint.nat li', uint.nat lt') -∗ Φ #()) ⊢
+    WP (App (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastLog")) (Val #li')) (Val #lt'))
+      {{ Φ }} := by
+  iintro ⟨#Hpkg, #HlastLock, Hllb, Hgll, HK⟩
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"setLastLog")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"setLastLog")]
+  wp_call
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$HlastLock] as ⟨Hlocked, HR⟩
+  iunfold lastLockInv at HR
+  icases HR with ⟨%li0, %lt0, %si0, %st0, HlI, HlT, HsI, HsT, Hgll', #Hsn, Hb⟩
+  icases Hb with (Hb | Hb)
+  · icombine Hb Hllb gives %Hag; cases Hag.2
+  icombine Hb Hllb gives %Hag
+  obtain ⟨-, Hag⟩ := Hag
+  simp only [Option.some.injEq, Prod.mk.injEq] at Hag
+  obtain ⟨h1, h2, h3, h4⟩ := Hag
+  subst li0 lt0 si0 st0
+  wp_auto
+  imod ghostVar_update_halves (uint.nat li', uint.nat lt') rc.names.lastLog _ _ $$ Hgll Hgll' with ⟨Hgll, Hgll'⟩
+  imod dghostVar_update_halves (some (li', lt', si, st)) _ _ _ $$ Hb Hllb with ⟨Hb, Hllb⟩
+  wp_apply sync.Mutex.wp_Unlock $$ [$HlastLock $Hlocked HlI HlT HsI HsT Hgll' Hb]
+  · inext; unfold lastLockInv
+    iexists _, _, _, _
+    iframe HlI HlT HsI HsT Hgll'
+    iframe #
+    iright; iexact Hb
+  iapply HK $$ Hllb Hgll
+
+/-- (hraft_robust R5) **`getLastSnapshot` with `lastLock`'s fields pinned**. -/
+theorem getLastSnapshot_pinned (r : Loc) (li lt si st : w64) (Φ : val → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗
+      sync.isMutex (r.[Raft, go!"raftState"].[raftState, go!"lastLock"]) (lastLockInv r γ rc i) ∗
+      dghostVar rc.names.llb (DFrac.own (1 : Qp).half) (some (li, lt, si, st)) ∗
+      (dghostVar rc.names.llb (DFrac.own (1 : Qp).half) (some (li, lt, si, st)) -∗ Φ (PairV #si #st)) ⊢
+    WP (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastSnapshot")) (Val #())) {{ Φ }} := by
+  iintro ⟨#Hpkg, #HlastLock, Hllb, HK⟩
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"getLastSnapshot")]
+  wp_call
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"getLastSnapshot")]
+  wp_call
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$HlastLock] as ⟨Hlocked, HR⟩
+  iunfold lastLockInv at HR
+  icases HR with ⟨%li0, %lt0, %si0, %st0, HlI, HlT, HsI, HsT, Hgll', #Hsn, Hb⟩
+  icases Hb with (Hb | Hb)
+  · icombine Hb Hllb gives %Hag; cases Hag.2
+  icombine Hb Hllb gives %Hag
+  obtain ⟨-, Hag⟩ := Hag
+  simp only [Option.some.injEq, Prod.mk.injEq] at Hag
+  obtain ⟨h1, h2, h3, h4⟩ := Hag
+  subst li0 lt0 si0 st0
+  wp_auto
+  wp_apply sync.Mutex.wp_Unlock $$ [$HlastLock $Hlocked HlI HlT HsI HsT Hgll' Hb]
+  · inext; unfold lastLockInv
+    iexists _, _, _, _
+    iframe HlI HlT HsI HsT Hgll'
+    iframe #
+    iright; iexact Hb
+  iapply HK $$ Hllb
+
 end gp
 
 end boot
