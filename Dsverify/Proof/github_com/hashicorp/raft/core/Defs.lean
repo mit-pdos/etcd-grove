@@ -961,6 +961,13 @@ def latestDur (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest)
           ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
           snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a))
 
+/-- (hraft_robust, R2) The latest snapshot's index (`0`: none). The compaction frontier stays at most it
+(compaction follows its snapshot's `Close`). -/
+def latIdxD (lat : SnapLatest) : Nat :=
+  match lat with
+  | none => 0
+  | some (m, _) => uint.nat m.Index'
+
 /-- (hraft_robust L0) **A server's state that survives a crash** (R1 §1.3): its protocol state `s`,
 its log store's state `A` (with `logCell`'s bound `lo` and compaction frontier `c`), its stable store's
 `D`, the pending term step `tp`, its snapshot store's latest `lat` and pending install `pend`, and the
@@ -1005,7 +1012,9 @@ def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
     rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1⌝ ∗
-    ⌜∀ d, X.dp = some d → X.lo ≤ d.x⌝ ∗ bootPin rc X ∗
+    ⌜(∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat⌝ ∗
+    bootPin rc X ∗
     compLb rc X.c ∗ latestDur γ rc i X.lat X.pend X.dp ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 

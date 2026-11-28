@@ -192,7 +192,7 @@ def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) (Wl : LogOp → I
     -- write the staged commit index; committed (durable) at the atomic update, `W` lent till then
     □ (∀ (sl : GoSlice) (dq : DFrac) (ptrs : List Loc) (first : Nat) (es : RLog)
           (Φ : val → IProp GF),
-        ⌜ptrs.length = es.length ∧ first + es.length < 2 ^ 64⌝ -∗
+        ⌜1 ≤ first ∧ ptrs.length = es.length ∧ first + es.length < 2 ^ 64⌝ -∗
         sl ↦*{dq} ptrs -∗
         ([∗list] k ↦ p ∈ ptrs, ∃ e, ⌜es[k]? = some e⌝ ∗ logPtr p (first + k) e) -∗
         Wl (.store first es) -∗
@@ -201,7 +201,7 @@ def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) (Wl : LogOp → I
         WP (App (Val #(methods x.ty go!"StoreLogs" x.v)) (Val #sl)) {{ Φ }}) ∗
     -- `StoreLog(l)`: the same for one entry
     □ (∀ (p : Loc) (first : Nat) (e : Entry) (Φ : val → IProp GF),
-        ⌜first < 2 ^ 64⌝ -∗ logPtr p first e -∗ Wl (.store first [e]) -∗
+        ⌜1 ≤ first ∧ first < 2 ^ 64⌝ -∗ logPtr p first e -∗ Wl (.store first [e]) -∗
         (Wl (.store first [e]) -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
           (own (A.store first [e]) ={∅,⊤ \ ↑storeN}=∗ Φ #interface.nil)) -∗
         WP (App (Val #(methods x.ty go!"StoreLog" x.v)) (Val #p)) {{ Φ }}) ∗
@@ -225,19 +225,29 @@ def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) (Wl : LogOp → I
           rtok tid -∗
           (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
             (own A ={∅,⊤ \ ↑storeN}=∗ (rtok tid -∗ Φ (PairV #A.readCi #interface.nil)))) -∗
-          WP (App (Val #(methods x.ty go!"GetCommitIndex" x.v)) (Val #())) {{ Φ }})) ∗
-    -- (hraft_robust, R5 Q2) `FirstIndex()` atomically: `0` only for an empty store, and at most every
-    -- stored index (fix 2 of `NewRaft` compares it with the snapshot's index)
+          WP (App (Val #(methods x.ty go!"GetCommitIndex" x.v)) (Val #())) {{ Φ }})))
+
+instance isLogStore_persistent x own Wl : Persistent (isLogStore (GF := GF) x own Wl) := by
+  unfold isLogStore; infer_instance
+
+/-- (hraft_robust, R5 Q2) **An exact `FirstIndex`**, which only some log stores have (the disk: its smallest
+key; not `InmemStore`, whose `lowIndex` can exceed a key stored below it, or stay at a deleted index):
+`FirstIndex()` atomically: `0` for an empty store, otherwise its smallest key (fix 2 of `NewRaft` compares it
+with the snapshot's index). With `isLogStore`'s `1 ≤ first`, a store whose answer is its
+smallest key has it. -/
+def isLogStoreFirst (x : GoInterfaceOk) (own : LogAbs → IProp GF) : IProp GF :=
+  iprop(
     □ (∀ (tid : Nat) (Φ : val → IProp GF),
         rtok tid -∗
         (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
           (own A ={∅,⊤ \ ↑storeN}=∗ ∀ r : w64,
-            ⌜(uint.nat r = 0 → A.m = ∅) ∧ (∀ k e, A.m.lookup k = some e → uint.nat r ≤ k)⌝ -∗
+            ⌜(uint.nat r = 0 ∧ A.m = ∅) ∨
+              ((A.m.lookup (uint.nat r)).isSome ∧ ∀ k e, A.m.lookup k = some e → uint.nat r ≤ k)⌝ -∗
             rtok tid -∗ Φ (PairV #r #interface.nil))) -∗
         WP (App (Val #(methods x.ty go!"FirstIndex" x.v)) (Val #())) {{ Φ }}))
 
-instance isLogStore_persistent x own Wl : Persistent (isLogStore (GF := GF) x own Wl) := by
-  unfold isLogStore; infer_instance
+instance isLogStoreFirst_persistent x own : Persistent (isLogStoreFirst (GF := GF) x own) := by
+  unfold isLogStoreFirst; infer_instance
 
 /-! ## The stable store -/
 
