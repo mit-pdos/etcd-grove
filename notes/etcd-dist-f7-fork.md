@@ -800,3 +800,35 @@ and NTP)". The question: may the crash theorems assume that the wall clock read 
 reboot is not before the previous incarnation's start (plus its issued ids / 256 ms)? Lean's docstring assumes
 it for a restart in one process only. Nothing on lean needs the reboot form (no top-level theorem restarts a
 crashed machine); the crash line's restart proofs will, when they reach `idutil.NewGenerator` after a crash.
+
+### Handoff DELTA-8 (2026-11-28; branch at lean `30e7e48f43` + the delta; built, gated; option (b) NOT applied)
+
+- **Option (b) is not feasible as stated**, for two reasons (`notes/axiom-review/bootstrap-crash-eagerfold.md`):
+  1. Lean's own `bootstrapRestartContract` has the same flaw. Its pre `srvFiles` fixes `σ` by `walRead` and its
+     post (`wal.restartOk` → `walOpened` → `walRecs`) by the eager fold. A WAL ending with a synced snapshot
+     record above its commit (`Save(commit 5, 1..5)`, `SaveSnapshot(3)`, `SaveSnapshot(10)`, a graceful `Close`)
+     satisfies `srvFiles` and reads back without error (`examples/axiomcx/restarteagerfold`, measured at
+     `30df685e4`). So lean's `etcd_robust_single_process` premise is false (the theorem is vacuous), and
+     rule41rm's `bootstrap.wp_proofRestart` (premise `walReadFacts σ`, which the counterexample's `σ` meets)
+     would be a **false axiom**: it should not land with this post. Argued plus Go; no Lean counterexample,
+     no `axiom`-skill review yet.
+  2. The delta's restart proof needs the branch's post: `wal.restartOk_startK` → `rnDurK_alloc_law_holds` takes
+     the synced mark at `|Hs|`, `walIdxLe`, `walCommitLeFrom`, which lean's `restartOk` does not give.
+  - Minimal changed text (for the lead): in `walFiles`/`walFilesC` (`storage/WalRecs.lean`, `WalRecsCrash.lean`),
+    `walRead (walSrvHist d.H) = some σ` → `walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧ σ.b ≤ σ.commit`
+    (gives `walRead` by `walRead_of_fold`; the graceful `Close`'s `walRecs_closeAU` already has both), with the
+    contract's pre back to `srvFiles` and the branch's `restartOk` kept (the review found its three conjuncts
+    true). The crash path then needs the post over the reader instead. Not applied (rule #8).
+- **Crash path on lean**: `bootstrapCrashContract` is not on lean; on the delta no top-level statement reaches it
+  (a law, and `NewServerC_dist.wp_proof`, in no root's TCB). No statement is vacuous "on the crash path" through it.
+- **Done**: the note + README row + Go test (task 1); idutil's docstring back to lean's, the clock assumption
+  above "Pending Upamanyu" (task 3); doc fixes (task 4: `openbackend-dbopts.md` re-checked at the pins,
+  `DbOpts.lean` `db.go:304`, `SaveDBFrom` links `db.go:39-98` + the untested `link(2)` assumption, `Net.lean`,
+  `ReleaseSnapDBs`' unclaimed `E \ M` files, `OpenBackend`/`bootstrapDist`/`bootstrapOne`/`NewServer_dist`
+  cited at `30df685e4`/`2f6fcff`). Status-history: already +39/−0 vs `30e7e48f43` (the "6 deletions" did not
+  reproduce; vs current lean `ee0d41ff1c` it is +36/−2, which a lean merge settles).
+- **Build/gates/TCB** (`/shared/tmp/delta8-run.sh`): build green (30837 jobs), `GATES_FAILFAST=0 etc/gates.sh`
+  green, `tcb-report.py --check` matches (367 axioms, 0 sorries, 90 opaques).
+- **Left**: TRUST-1's diff not rerun (no statement text changed, so row 3 is still there, as TRUST-1 found it);
+  rule41rm (`f94fb4e12f`) **not landed** on lean (`ee0d41ff1c`), so not merged; the lead's decision on the
+  fixes above; an `axiom`-skill review of the lean-contract claim.
