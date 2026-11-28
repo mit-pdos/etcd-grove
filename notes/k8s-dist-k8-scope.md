@@ -558,4 +558,4 @@ read keys outside the watched prefix before the change. Coordinator's call (a pr
 **Next**: decide the `kvKeysShortP` spec change; then the dist makers (`list_maker`/`plainL_maker{,P}` over one
 shared KV), `Apply`'s list case on `listQD`, and the rest of K8's port list.
 
-**Build of record**: see below.
+**Build of record**: `lake build …k8s.dist.StoreRW …k8s.dist.StoreList …k8s.dist.PfxTxn` (every importer of `StoreInv`/`KVPfxHist`) at `c70184a225` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5263 jobs, OK.
