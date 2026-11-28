@@ -50,30 +50,36 @@ def HWf (h : HSt) : Prop := h.hist.length = uint.nat h.st.rv ∧ h.hist.getLast?
 def gapsL (s : GSt) (len j : Nat) : List GSt :=
   (List.range j).map fun m => ⟨s.items, W64 ((len + m + 1 : Nat) : Int)⟩
 
-open Classical in
-instance ikey_decEq : DecidableEq ikey := Classical.decEq _
+instance ikey_decEq : DecidableEq ikey := fun a b => Classical.propDecidable (a = b)
 
-open Classical in
-instance ckey_decEq : DecidableEq ckey := Classical.decEq _
+instance ckey_decEq : DecidableEq ckey := fun a b => Classical.propDecidable (a = b)
 
 end pure
 
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+/-! ## The map keys' values are injective (as `client_go/util/consistency`'s) -/
 
-include sem package_sem in
+section inj
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [go.BasicIntoValInj] [ikey.TypeAssumptions] [ckey.TypeAssumptions]
+
+/-- Two values with a field's deterministic projection have equal projections (`proj_eq`). -/
+theorem fld_eq {t : Tag} {f : GoInstruction} {a b : val} {ea eb : Expr}
+    (ha : go.IsGoStepPureDetTagged t f a ea) (hb : go.IsGoStepPureDetTagged t f b eb)
+    (h : a = b) : ea = eb := by
+  have h1 := ha.isGoStep_det_internal.isGoStep_pure_det
+  have h2 := hb.isGoStep_det_internal.isGoStep_pure_det
+  subst h
+  rw [h2] at h1
+  exact cast (congrFun h1 eb) rfl
+
 theorem ikey_intoVal_inj : Function.Injective (intoVal (V := ikey)) := by
   intro x y h
   have h : (#x : val) = #y := h
-  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+  have := go.intoVal_inj (Expr.Val.inj (fld_eq
     (ikey.TypeAssumptions.get_prev x) (ikey.TypeAssumptions.get_prev y) h))
-  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+  have := go.intoVal_inj (Expr.Val.inj (fld_eq
     (ikey.TypeAssumptions.get_n x) (ikey.TypeAssumptions.get_n y) h))
-  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+  have := go.intoVal_inj (Expr.Val.inj (fld_eq
     (ikey.TypeAssumptions.get_h x) (ikey.TypeAssumptions.get_h y) h))
   cases x; cases y; simp_all
 
@@ -81,18 +87,27 @@ include sem package_sem in
 theorem ckey_intoVal_inj : Function.Injective (intoVal (V := ckey)) := by
   intro x y h
   have h : (#x : val) = #y := h
-  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+  have := go.intoVal_inj (Expr.Val.inj (fld_eq
     (ckey.TypeAssumptions.get_hist x) (ckey.TypeAssumptions.get_hist y) h))
-  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+  have := go.intoVal_inj (Expr.Val.inj (fld_eq
     (ckey.TypeAssumptions.get_rv x) (ckey.TypeAssumptions.get_rv y) h))
-  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+  have := go.intoVal_inj (Expr.Val.inj (fld_eq
     (ckey.TypeAssumptions.get_np x) (ckey.TypeAssumptions.get_np y) h))
-  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+  have := go.intoVal_inj (Expr.Val.inj (fld_eq
     (ckey.TypeAssumptions.get_h x) (ckey.TypeAssumptions.get_h y) h))
   cases x; cases y; simp_all
 
-instance ikey_intoValInj : go.IntoValInj ikey := ⟨ikey_intoVal_inj (sem := sem) (package_sem := package_sem)⟩
-instance ckey_intoValInj : go.IntoValInj ckey := ⟨ckey_intoVal_inj (sem := sem) (package_sem := package_sem)⟩
+instance ikey_intoValInj : go.IntoValInj ikey := ⟨ikey_intoVal_inj⟩
+instance ckey_intoValInj : go.IntoValInj ckey := ⟨ckey_intoVal_inj⟩
+
+end inj
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- A node of `canon[k]`: `k`'s `prev` and `n`, holding some store (read-only). -/
 def canonNode (k : ikey) (c : Loc) : IProp GF :=
