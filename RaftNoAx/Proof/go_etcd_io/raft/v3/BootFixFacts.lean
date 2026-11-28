@@ -228,9 +228,9 @@ theorem raftBootFix_law : raftBootFix.law (GF := GF) := by
     rw [← HTn3]
     -- the old maps' fragments (by statement: `durShares_frags`), and the histories (L6b)
     imod durShares_frags E _ id Ed HsE $$ Hsh Hslot with ⟨Hsh, #Hfr⟩
-    imod bootB_hists E _ id S Ed kd fp F (W64 (ci : Int)) c rt Tn e.term HrN Hfull Hwf HwF
-        (by rw [Hci64]; omega) (by rw [Hci64]; omega) HtF' HA HTn1 HTn2 Hak Hvh
-        $$ Hinv HrF HcF HkF Hfp HrS Hcm Hfr Hai Hhs Hsh with ⟨Hsh, %kd', #Hkl', #Hhs'⟩
+    imod bootB_hists E _ id S Ed kd fp F (W64 (ci : Int)) c rt Tn e.term Hfull Hwf HwF
+        (by rw [Hci64]; omega) (by rw [Hci64]; omega) HtF' HA HTn1 HTn2 Hak Hvh (by rw [Hci64]; omega)
+        $$ HrF HcF HkF Hfp HrS Hcm Hfr Hai Hhs Hsh with ⟨Hsh, %kd', #Hkl', #Hhs'⟩
     imod raft_vacant_close E _ id x Ed Tn HrN (Hfresh Tn HTn1) $$ Hnc Hvac Hsh with
       ⟨Hnc, Hvac, Hsh, #Hcn⟩
     ihave #Hd' := (entails_wand (durPers_snapBase _ id S Ed F (W64 (ci : Int)) c rt Tn e.term kd'

@@ -246,36 +246,6 @@ to `Tn`): the empty log at the base `(t, ci)`. -/
 def bootSnapState (Tn t ci : w64) : RaftState :=
   { term := Tn, vote := W64 0, base := entryID.mk t ci, ents := [], commit := ci, wcommit := ci }
 
-/-- (L6b, design N3) **The acknowledgements' histories in branch B**: the full log replaced by the
-committed prefix `F.take ci` of a certified log `F` (certificate at `c ≥ ci`, term `rt ≤ Tn`), where
-the old full log disagrees with `F` at `ci` (`plogTermAt S.base S.ents ci ≠ some t`), at the raised
-term `Tn > S.term` with the vote cleared. Each entered acknowledgement `(T_a, i)` keeps its history
-(`hist_replace`, from a leader log `Y` of a term in `[T_a, bndD S' kd')` holding the committed prefix
-through `ci`: the certificate's log, or the acknowledgement's leader's (`ackInF`) by leader
-completeness); a known leader `kd'` of `Tn` when the certificate's term is `Tn` (`klOkD`: the node
-has no vote at `Tn`). Never opens the slot invariant (B2). -/
-theorem bootB_hists (Em : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps)
-    (kd : Option w64) (fp F : List EntryM) (ci c rt Tn t : w64) :
-    ↑(raftN γ) ⊆ Em →
-    FullOk S.base fp → PlogWf S.base S.ents → PlogWf base0 F →
-    uint.Z S.commit < uint.Z ci → uint.Z ci ≤ uint.Z c →
-    plogTermAt base0 F ci = some t → plogTermAt S.base S.ents ci ≠ some t →
-    uint.Z S.term < uint.Z Tn → uint.Z rt ≤ uint.Z Tn →
-    (∀ k, (E.acks !! k).isSome → uint.Z k.1 ≤ uint.Z S.term) →
-    VoteHistOkD E.voted S →
-    ⊢ raftCommitInv (GF := GF) γ -∗ logRecs γ base0 F -∗ commitIn γ F c rt -∗
-      isCommitted γ (F.take (uint.Z c).toNat) -∗
-      logRecs γ base0 fp -∗ logRecs γ S.base S.ents -∗
-      isCommitted γ ((fp ++ S.ents).take (uint.Z S.commit).toNat) -∗
-      durFrags γ id E -∗ □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2) -∗
-      ([∗map] k ↦ _u ∈ E.acks, hist γ (fp ++ S.ents) k.1 k.2 (bndD S kd)) -∗
-      durShares γ id (1 : Qp).half E ={Em}=∗
-      durShares γ id (1 : Qp).half E ∗ ∃ kd' : Option w64,
-        klOkD γ id (bootSnapState Tn t ci) kd' ∗
-        [∗map] k ↦ _u ∈ E.acks,
-          hist γ (F.take (uint.Z ci).toNat) k.1 k.2 (bndD (bootSnapState Tn t ci) kd') := by
-  sorry
-
 /-- A full log's prefix of length `n` has its terms at the indices up to `n`. -/
 theorem plogTermAt_take_base0 (F : List EntryM) (n : Nat) (j : w64) (h : uint.Z j ≤ n) :
     plogTermAt base0 (F.take n) j = plogTermAt base0 F j := by
@@ -287,6 +257,224 @@ theorem plogTermAt_take_base0 (F : List EntryM) (n : Nat) (j : w64) (h : uint.Z 
   · simp [h1, h2]
   simp only [h1, h2, ↓reduceIte]
   rw [List.getElem?_take, if_pos (by omega)]
+
+/-- A full log's prefix of length `ci` has no term past `ci`. -/
+theorem plogTermAt_take_none (F : List EntryM) (ci j : w64) (h : uint.Z ci < uint.Z j) :
+    plogTermAt base0 (F.take (uint.Z ci).toNat) j = none := by
+  have := uint_Z_nonneg ci
+  unfold plogTermAt
+  simp only [base0_index, show ¬ (uint.Z j < 0) by omega, show ¬ (uint.Z j = 0) by omega,
+    ↓reduceIte]
+  rw [List.getElem?_take, if_neg (by omega)]
+  rfl
+
+/-- Histories across a cut at `L`: the new log `F'` is `Y` up to `L` and empty past it, `Y` is
+an `okL` log at every index up to `L`, and the old log `F` disagreed with `Y` at `L`
+(`hist_replace` with the replaced range starting at `1` and an `okL` log in place of a leader's).
+-/
+theorem hist_cut (γ : RaftNames) (F F' Y : List EntryM) (t i : w64) (B B' : Int) (L : w64) :
+    B ≤ B' → 0 < uint.Z L →
+    (∀ j : w64, uint.Z j ≤ uint.Z L →
+       plogTermAt base0 F' j = plogTermAt base0 Y j ∧ (plogTermAt base0 Y j).isSome) →
+    plogTermAt base0 F L ≠ plogTermAt base0 Y L →
+    (∀ j : w64, uint.Z L < uint.Z j → plogTermAt base0 F' j = none) →
+    ⊢ (∀ (j : w64), ∀ (_ : uint.Z j ≤ uint.Z L), okL (GF := GF) γ t B' j Y) -∗
+      hist γ F t i B -∗ hist γ F' t i B' := by
+  intro HB HL Hmid Hdiff Hhigh
+  iintro #HY #Hh
+  unfold hist
+  iintro %j %Hj
+  by_cases HjL : uint.Z j ≤ uint.Z L
+  · obtain ⟨Heq, Hs⟩ := Hmid j HjL
+    ileft; iexists Y
+    isplitr; · iapply HY $$ %j %HjL
+    ipureintro; rw [Heq]; exact ⟨Hs, rfl⟩
+  · iright
+    have HsY := (Hmid L (Int.le_refl _)).2
+    icases Hh $$ %L %(⟨HL, by omega⟩ : 0 < uint.Z L ∧ uint.Z L ≤ uint.Z i) with
+      (⟨%X, #HX, %Hs⟩ | ⟨%j', %X1, %X2, %Hj', #H1, #H2, %Hd⟩)
+    · iexists L, X, Y
+      isplitr; · ipureintro; omega
+      isplitr; · iapply okL_mono γ t B B' L X HB $$ HX
+      isplitr; · iapply HY $$ %L %(Int.le_refl _)
+      ipureintro; exact ⟨Hs.1, HsY, by rw [Hs.2]; exact Hdiff⟩
+    · iexists j', X1, X2
+      isplitr; · ipureintro; omega
+      isplitr; · iapply okL_mono γ t B B' j' X1 HB $$ H1
+      isplitr; · iapply okL_mono γ t B B' j' X2 HB $$ H2
+      ipureintro; exact Hd
+
+/-- A node whose votes are all of terms below `T` is in no quorum that won `T`: a member's vote
+for the winner would be in its vote map (`durShares`'s authority). -/
+theorem durShares_noVote (γ : RaftNames) (id : w64) (Q : Qp) (E : DurMaps) (ldr T : w64)
+    (q : GSet w64) :
+    (∀ t, (E.voted !! t).isSome → uint.Z t < uint.Z T) →
+    ⊢ durShares (GF := GF) γ id Q E -∗ isWin γ ldr T q -∗ ⌜id ∉ q⌝ ∗ durShares γ id Q E := by
+  intro Hlt
+  iintro Hsh #Hw
+  by_cases hq : id ∈ q
+  · ihave #Hvs := isWin_votes γ ldr T q $$ Hw
+    ihave #Hv := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T ldr)
+      ((GMap.elem_of_gset _ _).mp hq) $$ Hvs
+    unfold durShares isVote
+    icases Hsh with ⟨%γv, %γa, %γc, %γl, %γe, %Hn, Hv', Ha, Hc, Hl, He⟩
+    icases Hv with ⟨%γv', %Hγv', #Hf⟩
+    rw [Hn.1] at Hγv'; cases Hγv'
+    ihave %Hk := ghost_map_lookup $$ Hv' Hf
+    have := Hlt T (by rw [Hk]; rfl)
+    exact absurd this (Int.lt_irrefl _)
+  · iframe Hsh
+    ipureintro; exact hq
+
+/-- (L6b, one acknowledgement, a certificate `cq t' n G` with `ci ≤ c ≤ n`) The cut keeps a
+history: `G` agrees with `F` up to `c` and is an `okL` log of `t` at every index up to `ci` -- as
+the leader's log of `t' ≥ t`, or as a committed log of `t' < t`. -/
+theorem bootB_hist_cert (γ : RaftNames) (Fo F G : List EntryM) (ci c n t' t Ta i : w64)
+    (B B' : Int) :
+    B ≤ B' → uint.Z t' < B' → 0 < uint.Z ci → uint.Z ci ≤ uint.Z c → uint.Z c ≤ uint.Z n →
+    plogTermAt base0 F ci = some t → plogTermAt base0 Fo ci ≠ some t →
+    (∀ j : w64, uint.Z j ≤ uint.Z c → plogTermAt base0 G j = plogTermAt base0 F j) →
+    ⊢ cq (GF := GF) γ t' n G -∗ hist γ Fo Ta i B -∗ hist γ (F.take (uint.Z ci).toNat) Ta i B' := by
+  intro HB Ht' Hci0 Hcic Hcn HtF Hdiff HM
+  iintro #Hcq #Hh
+  icases cq_base γ t' n G $$ Hcq with ⟨-, #Hf⟩
+  ihave #HY : (∀ (j : w64), ∀ (_ : uint.Z j ≤ uint.Z ci), okL (GF := GF) γ Ta B' j G) $$ []
+  · iintro %j %Hj
+    unfold okL
+    by_cases Hta : uint.Z Ta ≤ uint.Z t'
+    · ileft; iexists t'
+      isplitr; · ipureintro; omega
+      iexact Hf
+    · iright; ileft; iexists t', n
+      isplitr; · ipureintro; omega
+      iexact Hcq
+  iapply hist_cut γ Fo (F.take (uint.Z ci).toNat) G Ta i B B' ci HB Hci0
+    (fun j hj => by
+      rw [plogTermAt_take_base0 F _ j (by omega), HM j (by omega)]
+      exact ⟨rfl, full_term_at_some F j ci (by rw [HtF]; rfl) hj⟩)
+    (by rw [HM ci Hcic, HtF]; exact Hdiff)
+    (fun j hj => plogTermAt_take_none F ci j hj) $$ HY Hh
+
+/-- (L6b, one acknowledgement, the certificate the bootstrap log, `ci` within it) The cut keeps a
+history: `F`'s prefix is the bootstrap log's, an `okL` log at every index within it. -/
+theorem bootB_hist_boot (γ : RaftNames) (Fo F : List EntryM) (ci t Ta i : w64) (B B' : Int) :
+    B ≤ B' → 0 < uint.Z ci → uint.Z ci ≤ γ.reBoot.length →
+    plogTermAt base0 F ci = some t → plogTermAt base0 Fo ci ≠ some t →
+    F.take (uint.Z ci).toNat = γ.reBoot.take (uint.Z ci).toNat →
+    ⊢ hist (GF := GF) γ Fo Ta i B -∗ hist γ (F.take (uint.Z ci).toNat) Ta i B' := by
+  intro HB Hci0 Hcib HtF Hdiff Htk
+  iintro #Hh
+  ihave #HY : (∀ (j : w64), ∀ (_ : uint.Z j ≤ uint.Z ci), okL (GF := GF) γ Ta B' j γ.reBoot) $$ []
+  · iintro %j %Hj
+    unfold okL
+    iright; iright
+    ipureintro; exact ⟨by omega, rfl⟩
+  have HB' : ∀ j : w64, uint.Z j ≤ uint.Z ci →
+      plogTermAt base0 γ.reBoot j = plogTermAt base0 F j := fun j hj => by
+    rw [← plogTermAt_take_base0 F (uint.Z ci).toNat j (by omega), Htk,
+      plogTermAt_take_base0 _ (uint.Z ci).toNat j (by omega)]
+  iapply hist_cut γ Fo (F.take (uint.Z ci).toNat) γ.reBoot Ta i B B' ci HB Hci0
+    (fun j hj => by
+      rw [plogTermAt_take_base0 F _ j (by omega), HB' j hj]
+      exact ⟨rfl, full_term_at_some F j ci (by rw [HtF]; rfl) hj⟩)
+    (by rw [HB' ci (Int.le_refl _), HtF]; exact Hdiff)
+    (fun j hj => plogTermAt_take_none F ci j hj) $$ HY Hh
+
+/-- (L6b, design N3) **The acknowledgements' histories in branch B**: the full log replaced by the
+committed prefix `F.take ci` of a certified log `F` (certificate at `c ≥ ci`, term `rt ≤ Tn`), where
+the old full log disagrees with `F` at `ci` (`plogTermAt S.base S.ents ci ≠ some t`), at the raised
+term `Tn > S.term` with the vote cleared; the old base is at most `ci`, so the old full log
+disagrees with `F` at `ci`. Each entered acknowledgement `(T_a, i)` keeps its history (`hist_cut`,
+from an `okL` log agreeing with `F` through `ci`: the bootstrap log, or the certificate's log, as its
+leader's log when `T_a ≤ t'` and as a committed log when `t' < T_a`); a known leader `kd'` of `Tn`
+when the certificate's term is `Tn` (`klOkD`: the node has no vote at `Tn`, `durShares_noVote`).
+Opens no invariant. -/
+theorem bootB_hists (Em : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps)
+    (kd : Option w64) (fp F : List EntryM) (ci c rt Tn t : w64) :
+    FullOk S.base fp → PlogWf S.base S.ents → PlogWf base0 F →
+    uint.Z S.commit < uint.Z ci → uint.Z ci ≤ uint.Z c →
+    plogTermAt base0 F ci = some t → plogTermAt S.base S.ents ci ≠ some t →
+    uint.Z S.term < uint.Z Tn → uint.Z rt ≤ uint.Z Tn →
+    (∀ k, (E.acks !! k).isSome → uint.Z k.1 ≤ uint.Z S.term) →
+    VoteHistOkD E.voted S → uint.Z S.base.index' ≤ uint.Z ci →
+    ⊢ logRecs (GF := GF) γ base0 F -∗ commitIn γ F c rt -∗
+      isCommitted γ (F.take (uint.Z c).toNat) -∗
+      logRecs γ base0 fp -∗ logRecs γ S.base S.ents -∗
+      isCommitted γ ((fp ++ S.ents).take (uint.Z S.commit).toNat) -∗
+      durFrags γ id E -∗ □ (durFrags γ id E -∗ [∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2) -∗
+      ([∗map] k ↦ _u ∈ E.acks, hist γ (fp ++ S.ents) k.1 k.2 (bndD S kd)) -∗
+      durShares γ id (1 : Qp).half E ={Em}=∗
+      durShares γ id (1 : Qp).half E ∗ ∃ kd' : Option w64,
+        klOkD γ id (bootSnapState Tn t ci) kd' ∗
+        [∗map] k ↦ _u ∈ E.acks,
+          hist γ (F.take (uint.Z ci).toNat) k.1 k.2 (bndD (bootSnapState Tn t ci) kd') := by
+  intro Hfull _Hwf HwF Hsc Hcic HtF HtS HT HrT Hak Hvh Hbi
+  iintro #HrF #HcF - - - - - - Hhs Hsh
+  have Hci0 : 0 < uint.Z ci := by have := uint_Z_nonneg S.commit; omega
+  have Hdiff : plogTermAt base0 (fp ++ S.ents) ci ≠ some t := by
+    rw [full_term_at _ _ _ _ Hfull Hbi]; exact HtS
+  have HBle : bndD S kd ≤ uint.Z Tn := by unfold bndD; cases kd <;> simp only <;> omega
+  ihave #Hj := commitIn_j γ F c rt $$ HcF
+  iunfold commitJ at Hj
+  icases Hj with (%Hb | ⟨%t', %n, %G, #Hcq, %Hcn⟩)
+  · -- the bootstrap log: `F`'s prefix up to `ci` is the bootstrap log's
+    icases logRecs_boot_take γ F HwF $$ HrF with %Htk0
+    have HtR := plogTermAt_some_range _ _ _ _ HtF
+    unfold plogLastIndexZ at HtR; rw [base0_index] at HtR
+    have Htk := Htk0 (uint.Z ci).toNat (by omega) (by omega)
+    imodintro
+    iframe Hsh
+    iexists none
+    isplitr; · unfold klOkD; ipureintro; trivial
+    iapply BigSepM.bigSepM_impl $$ Hhs
+    iintro !> %k %_u %_Hk #Hh
+    iapply bootB_hist_boot γ (fp ++ S.ents) F ci t k.1 k.2 (bndD S kd)
+      (bndD (bootSnapState Tn t ci) none) HBle Hci0 (by omega)
+      HtF Hdiff Htk $$ Hh
+  · -- a certificate `cq t' n G`: `G` agrees with `F` up to `c`
+    obtain ⟨Hcn, Htr, Hag⟩ := Hcn
+    icases cq_base γ t' n G $$ Hcq with ⟨%HGn, #Hf⟩
+    icases leadFull_wf γ t' G $$ Hf with ⟨%HGp, #HGr⟩
+    have HGc : (plogTermAt base0 G c).isSome := full_term_at_some G c n (by rw [HGn]; rfl) Hcn
+    icases full_match γ G F c HGp.1 HwF HGc Hag $$ HGr HrF with %HM
+    -- its leader, which (at `Tn`) the node did not vote for: its votes are of terms `≤ S.term`
+    icases leadFull_camp γ t' G $$ Hf with ⟨%ldr, %F0, #Hl, -, -⟩
+    iunfold isLeader at Hl
+    icases Hl with ⟨%q, #Hw⟩
+    ihave ⟨%Hnq, Hsh⟩ : ⌜uint.Z t' = uint.Z Tn → id ∉ q⌝ ∗ durShares γ id (1 : Qp).half E $$ [Hsh]
+    · by_cases Htn : uint.Z t' = uint.Z Tn
+      · icases durShares_noVote γ id _ E ldr t' q
+          (fun t0 h => by have := Hvh.1 t0 h; omega) $$ Hsh Hw with ⟨%Hq, Hsh⟩
+        iframe Hsh
+        ipureintro; intro _; exact Hq
+      · iframe Hsh
+        ipureintro; intro h; exact absurd h Htn
+    imodintro
+    iframe Hsh
+    by_cases Htn : uint.Z t' = uint.Z Tn
+    · -- the certificate's term is `Tn`: its leader is known, the bound `Tn + 1`
+      have HtT : t' = Tn := uint_Z_inj.mp Htn
+      iexists some ldr
+      isplitr
+      · unfold klOkD bootSnapState
+        dsimp only
+        iexists q
+        rw [← HtT]
+        iframe Hw
+        ipureintro; intro _; exact Hnq Htn
+      iapply BigSepM.bigSepM_impl $$ Hhs
+      iintro !> %k %_u %_Hk #Hh
+      iapply bootB_hist_cert γ (fp ++ S.ents) F G ci c n t' t k.1 k.2 (bndD S kd)
+        (bndD (bootSnapState Tn t ci) (some ldr))
+        (by show bndD S kd ≤ uint.Z Tn + 1; omega)
+        (by show uint.Z t' < uint.Z Tn + 1; omega) Hci0 Hcic Hcn HtF Hdiff HM $$ Hcq Hh
+    · iexists none
+      isplitr; · unfold klOkD; ipureintro; trivial
+      iapply BigSepM.bigSepM_impl $$ Hhs
+      iintro !> %k %_u %_Hk #Hh
+      iapply bootB_hist_cert γ (fp ++ S.ents) F G ci c n t' t k.1 k.2 (bndD S kd)
+        (bndD (bootSnapState Tn t ci) none) HBle
+        (by show uint.Z t' < uint.Z Tn; omega) Hci0 Hcic Hcn HtF Hdiff HM $$ Hcq Hh
 
 /-- (L6a) **The durable invariants of branch B** (the log replaced by the committed prefix
 `F.take ci`, at the base `(t, ci)`, the term raised to `Tn` with the vote cleared and its campaign key

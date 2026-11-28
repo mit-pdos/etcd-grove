@@ -390,14 +390,13 @@ when the certificate's term is `Tn` (`klOkD`: the node has no vote at `Tn`, `dur
 Opens no invariant. -/
 theorem bootB_hists (Em : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (E : DurMaps)
     (kd : Option w64) (fp F : List EntryM) (ci c rt Tn t : w64) :
-    ↑(raftN γ) ⊆ Em →
     FullOk S.base fp → PlogWf S.base S.ents → PlogWf base0 F →
     uint.Z S.commit < uint.Z ci → uint.Z ci ≤ uint.Z c →
     plogTermAt base0 F ci = some t → plogTermAt S.base S.ents ci ≠ some t →
     uint.Z S.term < uint.Z Tn → uint.Z rt ≤ uint.Z Tn →
     (∀ k, (E.acks !! k).isSome → uint.Z k.1 ≤ uint.Z S.term) →
     VoteHistOkD E.voted S → uint.Z S.base.index' ≤ uint.Z ci →
-    ⊢ raftCommitInv (GF := GF) γ -∗ logRecs γ base0 F -∗ commitIn γ F c rt -∗
+    ⊢ logRecs (GF := GF) γ base0 F -∗ commitIn γ F c rt -∗
       isCommitted γ (F.take (uint.Z c).toNat) -∗
       logRecs γ base0 fp -∗ logRecs γ S.base S.ents -∗
       isCommitted γ ((fp ++ S.ents).take (uint.Z S.commit).toNat) -∗
@@ -408,8 +407,8 @@ theorem bootB_hists (Em : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (E
         klOkD γ id (bootSnapState Tn t ci) kd' ∗
         [∗map] k ↦ _u ∈ E.acks,
           hist γ (F.take (uint.Z ci).toNat) k.1 k.2 (bndD (bootSnapState Tn t ci) kd') := by
-  intro _HEm Hfull _Hwf HwF Hsc Hcic HtF HtS HT HrT Hak Hvh Hbi
-  iintro - #HrF #HcF - - - - - - Hhs Hsh
+  intro Hfull _Hwf HwF Hsc Hcic HtF HtS HT HrT Hak Hvh Hbi
+  iintro #HrF #HcF - - - - - - Hhs Hsh
   have Hci0 : 0 < uint.Z ci := by have := uint_Z_nonneg S.commit; omega
   have Hdiff : plogTermAt base0 (fp ++ S.ents) ci ≠ some t := by
     rw [full_term_at _ _ _ _ Hfull Hbi]; exact HtS
