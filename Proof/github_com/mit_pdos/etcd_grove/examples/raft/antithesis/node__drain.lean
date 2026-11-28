@@ -122,27 +122,6 @@ theorem readyEnts_idx_d {l es : List EntryM} (hl : AntSim.LogIdx l)
     have : uint.nat e.Index' = (uint.Z e.Index').toNat := rfl
     omega
 
-/-- **The disk a reported `Ready`'s write leaves** (`saveW`): the `Ready`'s hard state `H` (the
-write's, or the disk's when it writes none) and the log `l` the `Ready`'s entries make of the disk's. -/
-theorem saveW_ready (w : AntSim.DurW) (oh : Option HardStateM) (es : List EntryM) (H : HardStateM)
-    (l : List EntryM) (hoh : oh.getD (HardStateM.mk w.term w.vote w.commit) = H)
-    (hnil : es = [] → l = w.log)
-    (hcons : ∀ e0 ∈ es.head?, l = w.log.take (uint.nat e0.Index' - 1) ++ es) :
-    saveW w oh es = ⟨H.Term', H.Vote', H.Commit', l⟩ := by
-  cases oh with
-  | none =>
-    simp only [Option.getD_none] at hoh
-    subst hoh
-    cases es with
-    | nil => rw [hnil rfl]; rfl
-    | cons e0 t => rw [hcons e0 rfl]; rfl
-  | some h0 =>
-    simp only [Option.getD_some] at hoh
-    subst hoh
-    cases es with
-    | nil => rw [hnil rfl]; rfl
-    | cons e0 t => rw [hcons e0 rfl]; rfl
-
 attribute [-instance] pure_wp_slice_for_range in
 theorem node.drain.wp_proof
     (wp_HasReady : RawNode.HasReady.apiSpec (GF := GF) (hG := hG))

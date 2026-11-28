@@ -85,17 +85,17 @@ abbrev node.start.specB2 : Prop :=
   {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok }}
 
 /-- **`(*node).emit(p)` under B2**: dead, nothing recorded; a fuse that burns out kills, nothing
-recorded; otherwise recorded (`emitStep`). -/
+recorded; otherwise recorded (`emitStep`). The caller's update (`reports`) is asked for, and `Q` given
+back, only when it records (an update cannot be returned unfired). -/
 abbrev node.emit.specB2 : Prop :=
   ∀ (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (p : Loc) (ev : AntCheck.Event) (Q : IProp GF)
     (dead : Bool) (fuse : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ killOwn n dead fuse ∗ eventOwn p ev ∗
-      reports γ.strm [atNode (AntSim.nameOf (AntSim.nodeId j)) ev] Q }}
+      (if (emitStep dead fuse).1 then reports γ.strm [atNode (AntSim.nameOf (AntSim.nodeId j)) ev] Q else emp) }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"emit")) (Val #p))
   {{ (b : Bool), RET #b; killOwn n (emitStep dead fuse).2.1 (emitStep dead fuse).2.2 ∗
-      ⌜b = (emitStep dead fuse).1⌝ ∗
-      if b then Q else reports γ.strm [atNode (AntSim.nameOf (AntSim.nodeId j)) ev] Q }}
+      ⌜b = (emitStep dead fuse).1⌝ ∗ (if b then Q else emp) }}
 
 /-- **`(*node).announce(p)` under B2**: `emit`'s, and, recorded with a fuse of `1` left, a kill
 between the announcement and the write (`below(2) == 0`): recorded and dead. -/
@@ -104,14 +104,14 @@ abbrev node.announce.specB2 : Prop :=
     (dead : Bool) (fuse : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ killOwn n dead fuse ∗ eventOwn p ev ∗
-      reports γ.strm [atNode (AntSim.nameOf (AntSim.nodeId j)) ev] Q }}
+      (if (emitStep dead fuse).1 then reports γ.strm [atNode (AntSim.nameOf (AntSim.nodeId j)) ev] Q else emp) }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"announce")) (Val #p))
   {{ (b : Bool) (dead' : Bool) (fuse' : w64), RET #b; killOwn n dead' fuse' ∗
       ⌜(b = true → dead' = false) ∧
         (((emitStep dead fuse).1 = false ∧ dead' = (emitStep dead fuse).2.1 ∧ fuse' = (emitStep dead fuse).2.2) ∨
          ((emitStep dead fuse).1 = true ∧ ((dead' = false ∧ fuse' = (emitStep dead fuse).2.2) ∨
            ((emitStep dead fuse).2.2 = W64 1 ∧ dead' = true ∧ fuse' = W64 0))))⌝ ∗
-      if (emitStep dead fuse).1 then Q else reports γ.strm [atNode (AntSim.nameOf (AntSim.nodeId j)) ev] Q }}
+      (if (emitStep dead fuse).1 then Q else emp) }}
 
 /-- **`(*node).saveDisk(hs, ents)` under B2**: the write when alive; nothing when dead. -/
 abbrev node.saveDisk.specB2 : Prop :=
@@ -156,17 +156,17 @@ abbrev node.sendEv.specB2 : Prop :=
   {{ (p : Loc), RET #p; msgPtsC ml dq dqe cap st ∗ eventOwn p (sendEvM by_ st) ∗ ⧗ st.ents.length }}
 
 /-- **`(*node).reportCause()` under B2**: the cause cell cleared; its report, if any, through `emit`
-(`causeStep`: dead or killed now, not recorded, the reports kept). -/
+(`causeStep`: dead or killed now, not recorded; the update asked for only when it records). -/
 abbrev node.reportCause.specB2 : Prop :=
   ∀ (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (cl : Loc) (o : Option AntCheck.Event) (Q : IProp GF)
     (dead : Bool) (fuse : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ killOwn n dead fuse ∗ n.[H.node, go!"cause"] ↦ cl ∗
-      pendingCause cl o ∗ reports γ.strm (o.toList.map (atNode (AntSim.nameOf (AntSim.nodeId j)))) Q }}
+      pendingCause cl o ∗
+      (if (causeStep o dead fuse).1 then reports γ.strm (o.toList.map (atNode (AntSim.nameOf (AntSim.nodeId j)))) Q else emp) }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"reportCause")) (Val #()))
   {{ RET #(); killOwn n (causeStep o dead fuse).2.1 (causeStep o dead fuse).2.2 ∗ n.[H.node, go!"cause"] ↦ null ∗
-      if (causeStep o dead fuse).1 then Q
-      else reports γ.strm (o.toList.map (atNode (AntSim.nameOf (AntSim.nodeId j)))) Q }}
+      (if (causeStep o dead fuse).1 then Q else emp) }}
 
 /-- **`(*node).parts(hs, ents)` under B2**: one write (`Split = 0`, B1's), or `splitTermEntriesCommit`'s
 up to three: the term and vote with the old commit, the entries, the commit (each part's `after` the

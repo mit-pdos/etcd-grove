@@ -1,15 +1,17 @@
 /-
 Lean-first (no Rocq counterpart). #33 parity B2, driver group E: **a synchronous `Ready` read at the
 loop head under B2** (`DrainB1Report.readyOutP_b1` over `NodeOkD`): `readyOutP_d`, raft's `Ready` post
-is the Sim's `ReadyOutP` there, with `Sim/MsgShape`'s `reach_fp`, `dst_reach` over `NodeOkD` taken as
-laws (`DrainB2Laws`) and the disk's log the view's full log (`hdl`: the caller's, from `DiskFold`
+is the Sim's `ReadyOutP` there, with `Sim/ReachD`'s `reach_fpD`, `dst_reachD` (`reach_fp`, `dst_reach`
+over `NodeOkD`) and the disk's log the view's full log (`hdl`: the caller's, from `DiskFold`
 with no `mem` queued).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1Report
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB2Laws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.StmtsB2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MsgShape
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.CarryD
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReachD
 
 @[expose] public section
 
@@ -43,10 +45,10 @@ theorem nodeOkD_dur {R : AntSim.RunCfg} {dec : CCDec} {S : AntCheck.State} {net 
   exact this
 
 /-- **Raft's `Ready` at a loop head is the Sim's `ReadyOutP`, B2** (`readyOutP_b1` over `NodeOkD`,
-unbatched, synchronous): the disk's log the view's full log (`hdl`), no ghost prefix (`reach_fpD.law`,
-`NodeFactsD`), the messages' destinations servers (`dst_reachD.law`), log matching from the two logs'
+unbatched, synchronous): the disk's log the view's full log (`hdl`), no ghost prefix (`AntSim.reach_fpD`,
+`NodeFactsD`), the messages' destinations servers (`AntSim.dst_reachD`), log matching from the two logs'
 records. Also: the node's full log is its protocol log. -/
-theorem readyOutP_d (h_fp : reach_fpD.law) (h_dst : dst_reachD.law)
+theorem readyOutP_d
     {msk : AntSim.SimMask} (hmsk : msk ≤ AntSim.mskB2)
     {R : AntSim.RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop}
     {S : AntCheck.State} {net : List Msg} {xnet : List XMsg} {j : Fin R.N} {v : AntSim.NodeView}
@@ -69,12 +71,12 @@ theorem readyOutP_d (h_fp : reach_fpD.law) (h_dst : dst_reachD.law)
     AntSim.ReadyOutP R j v r (readyDOf r (roleAfter rs.role ss) es ce ms qs sts) ∧
       r.full = r.p.log ∧ v.r.full = v.r.p.log := by
   obtain ⟨hsn, -, -⟩ := AntSim.InMask.b2 hmsk hin
-  have hfp := h_fp hmsk hin hbt hok hri
+  have hfp := AntSim.reach_fpD hmsk hin hbt hok hri
   have hfp0 := ((nodeOkD_facts hok).2.1 hsn).2.1
   have hfull : r.full = r.p.log := by simp [RState.full, hfp, hfp0]
   have hvfull : v.r.full = v.r.p.log := by simp [RState.full, hfp0]
   have hidx := logIdx_of_wf hwf
-  have hds := h_dst hmsk hin hbt hnet hok hri
+  have hds := AntSim.dst_reachD hmsk hin hbt hnet hok hri
   refine ⟨readyOutP_of hrv (reach_ce hri.reach) (hfp.trans hfp0) (hdl.trans hvfull) hip hout hfirst hqs
     hpk has hx hsts (fun _ => hns) (by rw [hfull]; exact hidx) ?_ ?_, hfull, hvfull⟩
   · intro k e f he hf ht

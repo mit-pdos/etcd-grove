@@ -6,12 +6,15 @@ pure parts:
 - `reqPend`: the view's pending messages at the loop's `i`th message (the requests from the `i`th
   on, then every other message), its start (`reqPend_zero`, `antSim_quietP_in`'s order), its steps
   (`reqPend_succ_req`, `reqPend_succ_other`) and its end (`reqPend_length`, `parallel`'s post);
-- `sendHstepD`: a request's `send` report's B2 step (`antSim_sendD_in.law`), `DrainSteps.sendHstep`'s.
+- `sendHstepD`: a request's `send` report's B2 step (`Sim/SendD`'s `antSim_sendD_in`), `DrainSteps.sendHstep`'s;
+- `memHstepD`, `writeHstepD`, `wroteHstepD`: the `mem`, `write` and `wrote` reports' B2 steps
+  (`StmtsB2`'s `antSim_memP_in`, `antSim_write_in`, `antSim_wrote_in`), in `report_updB2`'s shape.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB2Cause
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainSteps
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.SendD
 
 @[expose] public section
 
@@ -110,14 +113,15 @@ theorem reqPend_length (ms : List QMsg) :
   unfold reqPend
   rw [List.drop_length]; rfl
 
-/-- **A request's `send` report's B2 step** (`sendHstep`'s over `SimPreD`, `antSim_sendD_in.law`):
+/-- **A request's `send` report's B2 step** (`sendHstep`'s over `SimPreD`, `AntSim.antSim_sendD_in`):
 the next pending message `q`, its facts grown by the message's (`sendExt_b1`'s). -/
-theorem sendHstepD (h_send : antSim_sendD_in.law) {R : AntSim.RunCfg} {dec : CCDec}
+theorem sendHstepD {R : AntSim.RunCfg} {dec : CCDec}
     (msk : AntSim.SimMask) (hmsk : msk ≤ AntSim.mskB2) (j : Fin R.N) (v : AntSim.NodeView) (q : Msg)
     (rest : List Msg) (net₀ : List Msg) (xnet₀ : List XMsg)
     (hinm : ∀ S V net xnet, AntSim.AntSimD R dec S V net xnet → AntSim.InMask msk R net xnet)
     (hasync : R.md.async = false) (hbat : R.drv.batch = false) (hpend : v.pend = q :: rest)
-    (htold : AntSim.Told v) :
+    (htold : AntSim.Told v) (hnum : q.ty = .readIndexResp → AntSim.MsgNums (2 ^ 61) q)
+    (hparts : v.parts = []) (hmr : v.mems = [] ∨ AntSim.isReqM q = true) :
     ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
       (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
       AntSim.SimPreD R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
@@ -133,8 +137,95 @@ theorem sendHstepD (h_send : antSim_sendD_in.law) {R : AntSim.RunCfg} {dec : CCD
     ⟨hpre.1, hpre.2.1, hL, globalOk_mono hpre.2.2.2 hle⟩
   refine ⟨?_, hL, setV_logs hlogs hle.2.2.2.1 (hle.2.2.2.1 _ (hlogs j))⟩
   simp only [List.append_nil]
-  exact h_send msk hmsk R dec S V net xnet evs G j q rest (hinm S V net xnet hpre.2.1) hpre' hasync
-    hbat hpend htold hmf
+  exact AntSim.antSim_sendD_in msk hmsk R dec S V net xnet evs G j q rest (hinm S V net xnet hpre.2.1)
+    hpre' hasync hbat hpend htold hmf hnum hparts hmr
+
+/-- B2's masks are B2.5's. -/
+theorem mskB25_of_le {msk : AntSim.SimMask} (h : msk ≤ AntSim.mskB2) : msk ≤ AntSim.mskB25 := by
+  have h' : AntSim.SimMask.Le msk AntSim.mskB2 := h
+  obtain ⟨⟨m1, m2, m3, m4, m5, m6, m7, -, m9⟩, hk, h3, h4, h5, h6, -, h8⟩ := h'
+  show AntSim.SimMask.Le msk AntSim.mskB25
+  exact ⟨⟨m1, m2, m3, m4, m5, m6, m7, fun _ => rfl, m9⟩, hk, h3, h4, h5, h6, fun _ => rfl, h8⟩
+
+/-- **`-parallel`'s `mem` report's B2 step** (`antSim_memP_in.stmt` in `report_updB2`'s shape): at a
+reported leader's `Ready` (`ReachIn` over the lower bounds, `ReadyOutP`), raft's facts grown by the
+`Ready`'s (`FactsLe`, lawful, `ReadyFacts`); the view the drain's, its requests first, the write
+queued when it writes. -/
+theorem memHstepD (h_mem : AntSim.antSim_memP_in.stmt) {R : AntSim.RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} (msk : AntSim.SimMask) (hmsk : msk ≤ AntSim.mskB2)
+    (j : Fin R.N) (v : AntSim.NodeView) (r₁ : RState) (rd : AntSim.ReadyD) (w : Bool)
+    (net₀ : List Msg) (xnet₀ : List XMsg)
+    (hinm : ∀ S V net xnet, AntSim.AntSimD R dec S V net xnet → AntSim.InMask msk R net xnet)
+    (hasync : R.md.async = false) (hbat : R.drv.batch = false) (hpar : R.drv.parallel = true)
+    (hreach : AntSim.ReachIn msk R dec Adm net₀ xnet₀ j v r₁) (hout : AntSim.ReadyOutP R j v r₁ rd)
+    (hlead : rd.role = .leader) (hsnap : rd.snap = none) (hrep : AntSim.Reported v rd)
+    (hw : w = true ↔ AntSim.Writes v rd) (htold : AntSim.Told v) (hterm : AntSim.TermRoom v) :
+    ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
+      (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
+      AntSim.SimPreD R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
+      (FactsLe R G0 G ∧ AntSim.RaftLaws G ∧ AntSim.ReadyFacts G (AntSim.nodeId j) r₁) →
+      V j = v → net₀ <+: net → xnet₀ <+: xnet →
+      AntSim.SimStepD R dec evs G
+          (AntSim.evMem (AntSim.nodeId j) v.byE (AntSim.roleStr rd.pre rd.role) rd.term rd.vote
+            rd.commit rd.ents none w)
+          (AntSim.setV V j { (v.drainOf r₁ rd) with
+            pend := rd.msgs.filter AntSim.isReqM ++ rd.msgs.filter (fun q => !AntSim.isReqM q),
+            mems := if w then v.mems ++ [rd.memRec v] else v.mems }) (net ++ []) (xnet ++ []) ∧
+        AntSim.RaftLaws G ∧
+        ∀ i : Fin R.N, (AntSim.setV V j { (v.drainOf r₁ rd) with
+            pend := rd.msgs.filter AntSim.isReqM ++ rd.msgs.filter (fun q => !AntSim.isReqM q),
+            mems := if w then v.mems ++ [rd.memRec v] else v.mems } i).r.full ∈ G.logs := by
+  intro evs S V net xnet G0 G hpre hlogs ⟨hle, hL, hrf⟩ hVj hn hx
+  subst hVj
+  have hpre' : AntSim.SimPreD R dec S V net xnet evs G :=
+    ⟨hpre.1, hpre.2.1, hL, globalOk_mono hpre.2.2.2 hle⟩
+  refine ⟨?_, hL, setV_logs hlogs hle.2.2.2.1 hrf.1⟩
+  simp only [List.append_nil]
+  exact h_mem msk hmsk R dec S V net xnet evs G j r₁ rd w Adm (hinm S V net xnet hpre.2.1) hpre'
+    hasync hbat hpar (hreach.mono hn hx) hout hlead hsnap hrep hw htold hrf hterm
+
+/-- **`-parallel`'s `write` report's B2 step** (`antSim_write_in.stmt`): the oldest queued `mem`'s
+write announced, its undo the disk before it; raft's facts unchanged. -/
+theorem writeHstepD (h_write : AntSim.antSim_write_in.stmt) {R : AntSim.RunCfg} {dec : CCDec}
+    (msk : AntSim.SimMask) (hmsk : msk ≤ AntSim.mskB2) (j : Fin R.N) (v : AntSim.NodeView)
+    (m : AntSim.MemRec) (rest : List AntSim.MemRec)
+    (hinm : ∀ S V net xnet, AntSim.AntSimD R dec S V net xnet → AntSim.InMask msk R net xnet)
+    (hbat : R.drv.batch = false) (hpar : R.drv.parallel = true) (hasync : R.md.async = false)
+    (hmems : v.mems = m :: rest) (net₀ : List Msg) (xnet₀ : List XMsg) :
+    ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
+      (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
+      AntSim.SimPreD R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
+      G = G0 → V j = v → net₀ <+: net → xnet₀ <+: xnet →
+      AntSim.SimStepD R dec evs G (AntSim.evWrite (AntSim.nodeId j) m.term m.vote m.commit m.ents m.snap)
+          (AntSim.setV V j { v with dur := v.dur.write m, undo := some v.dur, made := false, mems := rest, jobs := AntSim.markHead v.jobs }) (net ++ []) (xnet ++ []) ∧
+        AntSim.RaftLaws G ∧
+        ∀ i : Fin R.N, (AntSim.setV V j { v with dur := v.dur.write m, undo := some v.dur, made := false, mems := rest, jobs := AntSim.markHead v.jobs } i).r.full ∈ G.logs := by
+  intro evs S V net xnet G0 G hpre hlogs hG hVj _ _
+  subst hG hVj
+  refine ⟨?_, hpre.2.2.1, setV_logs hlogs (fun _ h => h) (hlogs j)⟩
+  simp only [List.append_nil]
+  exact h_write msk (mskB25_of_le hmsk) R dec S V net xnet evs G j m rest (hinm S V net xnet hpre.2.1)
+    hpre hbat (.inr hpar) hmems (fun h => by rw [hasync] at h; cases h)
+
+/-- **`wrote`'s B2 step** (`antSim_wrote_in.stmt`, `-parallel`): the announced write made. -/
+theorem wroteHstepD (h_wrote : AntSim.antSim_wrote_in.stmt) {R : AntSim.RunCfg} {dec : CCDec}
+    (msk : AntSim.SimMask) (hmsk : msk ≤ AntSim.mskB2) (j : Fin R.N) (v : AntSim.NodeView)
+    (hinm : ∀ S V net xnet, AntSim.AntSimD R dec S V net xnet → AntSim.InMask msk R net xnet)
+    (hpar : R.drv.parallel = true) (hundo : v.undo ≠ none) (net₀ : List Msg) (xnet₀ : List XMsg) :
+    ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
+      (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
+      AntSim.SimPreD R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
+      G = G0 → V j = v → net₀ <+: net → xnet₀ <+: xnet →
+      AntSim.SimStepD R dec evs G (AntSim.evWrote (AntSim.nodeId j))
+          (AntSim.setV V j { v with undo := none, made := true }) (net ++ []) (xnet ++ []) ∧
+        AntSim.RaftLaws G ∧
+        ∀ i : Fin R.N, (AntSim.setV V j { v with undo := none, made := true } i).r.full ∈ G.logs := by
+  intro evs S V net xnet G0 G hpre hlogs hG hVj _ _
+  subst hG hVj
+  refine ⟨?_, hpre.2.2.1, setV_logs hlogs (fun _ h => h) (hlogs j)⟩
+  simp only [List.append_nil]
+  exact h_wrote msk hmsk R dec S V net xnet evs G j (hinm S V net xnet hpre.2.1) hpre
+    (.inr (.inl hpar)) hundo
 
 end pure
 
