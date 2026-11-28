@@ -517,4 +517,16 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     $$ [FlastApplied Happ'] with #HappliedCell
   · inext; iexists _; iframe FlastApplied
     rw [show uint.nat (zeroValDef : raftState).lastApplied' = 0 from rfl]; iexact Happ'
+  -- restore the latest snapshot
+  imod (sync.atomic.ownValue_dfractional (GF := GF) _ _).dfractional_persist (DFrac.own 1) $$ Hconfv
+    with #Hconfv
+  ipersist snapshots
+  ipersist fsm
+  ihave Hlp0 := ownPointer_zero_cfg _ $$ latestConfiguration
+  wp_apply (wp_restoreSnapshot r γ i rc' c snapsI fsmI eof X.A X.lat X.s X.tp X.dp lv.Index' lv.Term'
+      (zero_val Configuration) (zero_val Configuration) (W64 0) (W64 0) null tid)
+    $$ [$Hboot $Hpend $Hsv $Happ $Hllb $configurations $Hlp0 $HfsmOwn $Htok]
+    as ⟨Hboot, Hpend, Hsv, Htok, #Hlat, Hres⟩
+  · iframe #
+    ipureintro; exact hNSR
   sorry
