@@ -216,6 +216,12 @@ def isDisk (g : DiskGen) (d : Loc) (Wl : LogOp → IProp GF) (Ws : StableOp → 
 instance isDisk_persistent g d Wl Ws Wf : Persistent (isDisk (GF := GF) g d Wl Ws Wf) := by
   unfold isDisk; infer_instance
 
+/-- **`Get`'s not-found error**: the global `ErrNotFound`'s value, an `*errorString` whose message is
+`"not found"` (what `errors.newVar` gives of it; `isNotFoundErr` asks for the whole struct, see R3's notes). -/
+def dkNotFound (err : GoInterface) : IProp GF :=
+  iprop(∃ p : Loc, ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #p⌝ ∗
+    p.[errors.errorString, go!"s"] ↦□ go!"not found")
+
 end res
 
 end github_com.hashicorp.raft.examples.hraftnet.disk

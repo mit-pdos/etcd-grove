@@ -537,6 +537,28 @@ theorem ofList_lookup_none' {K V : Type} [DecidableEq K] (kv : List (K × V)) (k
   obtain ⟨q, hq, rfl⟩ := List.mem_map.1 hm
   exact h q hq rfl
 
+/-! ### The stable store's loops -/
+
+theorem dk_kv_skip {V : Type} (kv : List (List w8 × V)) (i : Nat) (p : List w8 × V) (kb : List w8)
+    (hp : kv[i]? = some p) (hne : p.1 ≠ kb) (h : ∀ j < i, ∀ q, kv[j]? = some q → q.1 ≠ kb) :
+    ∀ j < i + 1, ∀ q, kv[j]? = some q → q.1 ≠ kb := by
+  intro j hj q hq
+  by_cases hji : j = i
+  · subst hji; rw [hp] at hq; cases hq; exact hne
+  · exact h j (by omega) q hq
+
+theorem dk_kv_none {V : Type} (kv : List (List w8 × V)) (kb : List w8)
+    (h : ∀ j < kv.length, ∀ q, kv[j]? = some q → q.1 ≠ kb) : ∀ q ∈ kv, q.1 ≠ kb := by
+  intro q hq
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hq
+  exact h j hj _ (List.getElem?_eq_getElem hj)
+
+theorem dk_kv_found {V : Type} (kv : List (List w8 × V)) (i : Nat) (p : List w8 × V) (kb : List w8)
+    (hp : kv[i]? = some p) (heq : p.1 = kb) (h : ∀ j < i, ∀ q, kv[j]? = some q → q.1 ≠ kb) :
+    (GMap.ofList kv).lookup kb = some p.2 := by
+  subst heq
+  exact ofList_lookup_first kv i p hp h
+
 /-! ## The first index -/
 
 /-- The first entry's index is the smallest key. -/
