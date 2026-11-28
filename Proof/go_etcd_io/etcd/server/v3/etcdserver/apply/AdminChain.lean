@@ -199,8 +199,8 @@ kept the authority (`AdminReq.result_keep`): an error, or `AuthEnable` already e
       auth.adminOutX (.on γa) (Own γa) hs (flagR M en (auth.stepOf (auth.roleDeleteF en ro)))
         auth.noExtra err ∗
       ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
-  | .roleRevokePermission ro k e =>
-      iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.roleRevokePermissionR ro k e) auth.noExtra err ∗
+  | .roleRevokePermission ro key e =>
+      iprop(auth.adminOutX (.on γa) (Own γa) hs (auth.roleRevokePermissionR ro key e) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ ∗ ⌜k → err ≠ GoInterface.nil⌝)
 
 /-- **The admin triples of the `applierV3` value `ai` of the chain `c`** in the mode `on γa`
