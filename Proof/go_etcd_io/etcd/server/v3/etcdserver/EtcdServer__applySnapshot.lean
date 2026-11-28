@@ -275,7 +275,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         (fun h => by rw [hlgE] at h; cases h)
         (apply.restLeasesWith f0 (srvIds E (appliedTableM E.authOn γr A).ids) r0) u hxA hbr hGTP hSTP hCIg γp hrbw stp γd γt img nt hnt hNAB hAR halarm halbi hmbP hlp hNAuB A' hauthI hAA' hst (fun k id h => by rw [hsI]; exact hnlW k id h) hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc γw q hAG hTODO hns rt hrt) $$ [Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR]
       · iframe #
-        iframe Hrtm HcpI Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR
+        iframe Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR
       iintro !> ⟨Hw, Hrcv, Htk, Hboot, HwT, Hrtm⟩
       have hUok' : srvEverOk E A' (U ++ recs.map (·.1)) := by
         refine ⟨fun h => (by rw [hlgE] at h; cases h), fun hr u hu => ?_⟩
@@ -386,7 +386,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       hbe0 (fun h => by cases h) (by simp) (fun h => by cases h) (by simp) List.Perm.nil
       (fun _ => ⟨rfl, rfl⟩) r0 u hxA hbr hGTP hSTP hCIg γp hrbw stp γd γt img nt hnt hNAB hAR halarm halbi hmbP hlp hNAuB A' hauthI hAA' hst hnlE hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc γw q hAG hTODO hns rt hrt) $$ [Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR]
     · iframe #
-      iframe Hrtm HcpI Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR
+      iframe Hrtm Hrcv HwT Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS HCp Htlive Hmsi Hcs0 Hboot HoOh Htk HauR
       rw [apply.ltHalf_false E [] hlgE, apply.everOwn_false E [] hlgE]
       simp only [List.map_nil]
       isplitr; · itrivial

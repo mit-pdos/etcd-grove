@@ -218,13 +218,13 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     iunfold isServer at HsrvG
     icases HsrvG with ⟨-, #HsciG, -⟩
     iunfold isServerCI at HsciG
-    icases HsciG with ⟨-, #HisCIG, -⟩
+    icases HsciG with ⟨#HcifG, #HisCIG, -⟩
     ihave #HrpkgG : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
     ihave #HcipkgG : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
     · iPkgInit
     wp_apply hIES sn DFrac.discard (some sv) $$ [Hsnv] as %bE ⟨%HbE, Hsnv⟩
-    · iframe HrpkgG; simp only [snapOpt]; iexact Hsnv
+    · simp only [snapOpt]; iexact Hsnv
     simp only [Option.elim] at HbE
     subst HbE
     have hneS : sv.Metadata'.Index' ≠ W64 0 := by intro h; rw [h] at hai; word
@@ -759,13 +759,13 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   iunfold isServerM at HsrvG
   icases HsrvG with ⟨-, #HsciG, -⟩
   iunfold isServerCI at HsciG
-  icases HsciG with ⟨-, #HisCIG, -⟩
+  icases HsciG with ⟨#HcifG, #HisCIG, -⟩
   ihave #HrpkgG : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #HcipkgG : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
   wp_apply hIES sn DFrac.discard (some sv) $$ [Hsnv] as %bE ⟨%HbE, Hsnv⟩
-  · iframe HrpkgG; simp only [snapOpt]; iexact Hsnv
+  · simp only [snapOpt]; iexact Hsnv
   simp only [Option.elim] at HbE
   subst HbE
   have hneS : sv.Metadata'.Index' ≠ W64 0 := by intro h; rw [h] at hai; word
