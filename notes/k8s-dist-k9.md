@@ -838,3 +838,6 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   strictness from `Nodup`; the nested `byKey` loops building `keyRevsOwn`; persist; `anchorsOk_of`
   (`HG.2` with `0 ∨`, `HG.1` for `a ≠ 0`). Then link `HistoryRevs`.
 - Step 5 not started. `notes/STATUS.md` not updated for K9 (K9's entry goes in at landing).
+- **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`, `all.PkgTable`,
+  SpecPlan's etcd3 PkgInit) at `4c906f8205`: passed, 12734 jobs, 0 errors (`HistoryRevs.wp_proof` warns its
+  WIP `sorry`; `Link` has none).
