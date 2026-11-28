@@ -519,13 +519,13 @@ theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx : Nat) (Ψ
   · unfold latLb
     ihave %Hv := monoNatLbOwn_valid _ _ _ _ $$ Hlat Hl
     ipureintro; exact Hv.2
-  obtain ⟨hlog, hlo, hv, ht, hci, ⟨hdl, hpd, hll⟩, hdc⟩ := Hok
+  obtain ⟨hlog, hlo, hv, ht, hci, ⟨hdl, hpd, hll⟩, ⟨hdc, hrest⟩⟩ := Hok
   imodintro
   iexists { X with A := X.A.delete mn mx hi', lo := Max.max X.lo (mx + 1) }
   isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hcomp Hpd Htp Hdp Hlat]
   · iframe
     ipureintro
-    refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hv, ht, hci, ⟨?_, hpd, ?_⟩, hdc⟩
+    refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hv, ht, hci, ⟨?_, hpd, ?_⟩, ⟨hdc, hrest⟩⟩
     · simp only [Nat.max_def]; split <;> omega
     · intro d hd; have := hdl d hd; have := hdc d hd; simp only [Nat.max_def]; split <;> omega
     · simp only [Nat.max_def]; split <;> omega
