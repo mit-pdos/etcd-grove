@@ -421,3 +421,49 @@ own step `KvNext σ σ'`, `σ' ≠ σ`, with `kvWf c σc` from `KOkD`). `StoreIn
 
 **Build of record**: `lake build ...k8s.dist.StoreInv ...k8s.dist.PfxTxn` (every importer of `KVPfxHist`) at
 `f9acd4f0af` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5259 jobs, OK.
+
+## Handoff K8-9 (2026-11-28)
+
+**Coordinator decision on K8-8's point 3** (etcd-grove-03): the revision bound is an Iris premise of the firing
+laws, `□ ∀ σ, monoListAuthOwn γsh 1 σ.changes -∗ ⌜RevBoundD σ⌝`, kept in exactly one place for K10 to target.
+*Done*: `revBoundD_law γsh` (`StoreInv.lean`, beside `RevBoundD`), assumed nowhere yet. **A write's firing does not
+need it**: `kvPfxP_au1H`'s step now learns the server's `kvRoom σ` (`σ.rev + 4 ≤ 2^63`, already in the AU's
+post when the step runs), which gives `RevBoundD σ` and the `+2` room `kOkD_ok`/`invD_next` need. Only the read
+firings (`kvPfxP_readAuH`: no `kvRoom`) will take `revBoundD_law`. Note: the law's wand consumes the authority;
+keep it with `□ (P -∗ ⌜φ⌝) ∗ P ⊢ ⌜φ⌝ ∗ P` (derivable through `P ⊢ P ∧ P`).
+
+**`kvPfxP_au1H` changed** (our proved lemma, no caller but ours; no top-level statement, axiom, trusted text or
+`sorry` touched): its step is a fancy update at `kvPfxCbE := ((⊤ \ srvRaftN) \ kvN) \ kvClientN` (`kvPfxCbE_sub`:
+inside the mask left after both client invariants are open), and learns `kvRoom σ`. Needed because the store's
+step commits lintest's update (a fancy update), which a `==∗` step cannot.
+
+**Proved** (`Proof/.../k8s/dist/StoreFire.lean`, new, no `sorry`):
+- `drvED := drvE ∪ kvClientN`, `kStateD` (lintest's state over `pMF`, `kInvDW`'s run), `linUD` (`linU` over `pMF`
+  at mask `⊤ \ drvED`; `ioOk` reused from `k8setcd3S`), `linUD_commit`, `runF_snoc`, `stepF_box`, `kStep_ansD`.
+  **K10 must provide `linUD`** from the dist lintest's atomic update (its invariant outside `drvED`).
+- `kvPfxP_au1HG`: `kvPfxP_au1H` restated in the `HeapGS` context (the ghost state's instances through `hG`;
+  `iexact` cannot unify `monoListLbOwn` across `Gg := hG.goose_globalGS` and `hG`, a term-mode `exact` can).
+- `invD_fire` (the store's step from the caught-up `σc`, both `KvNext` cases: `σd = σc` if etcd's state does not
+  move, else `σ'`), `kInvDV_fire` (the value back at `pfxVH regP σ'`, authority updated), `kvWf_sameL`,
+  `keysIn_sameL`, `kInvDV_timeless`.
+- **`createD_au`** (`create_au`): `kvPfxHP γk regP γs okS γsh σ₀ ∗ kInvD … ∗ monoListLbOwn γsh l0 ∗ linUD γ g0
+  (boxIn x) Φ ⊢ AU <{∃∃ σ, etcdKV γk σ}> @ (⊤ \ srvRaftN) \ kvN, ∅ <{etcdKV γk (kvOpStep op σ) ∗ ⌜kvRoom σ⌝, COMM
+  contAt … ∗ ansOk …}>`, for an `op` with `PfxLocal regP`, `okS` of its changes, `StepOk c op create`, `KeysIn`,
+  `KvOne` (`k8sAu1_kvAu1`'s premises; the caller has them from `PfxTxn.lean`/`stepOk_create`).
+- **`pendD_au1`** (`pend_au1`): the same firing consuming `pendTok γ n x`, `kOkD_pend`, `COMM True`.
+
+**Not done, and why** (decide before the next session's Lean):
+1. **`rw_au`, `pend_rw`** (`k8sAuRW`: a *persistent* write update whose step may decline, `b = false`, handing a
+   token when it fires): the share has only the one-shot `kvPfxP_au1H` and the persistent *read* `kvPfxP_readAuH`.
+   Needs a new share law `kvPfxP_auRWH` (persistent AU, `□` step choosing `b`, `f σ` or `σ`), proved like
+   `kvPfxP_au1H` in `KVPfxHist.lean`. Then the ports are `createD_au`'s recipe.
+2. **Read firings** (`plain_read_au`, `get_read_au`, `list_read_au`, `plainL_read_au`) over `kvPfxP_readAuH`:
+   (a) `get_read_au`/`list_read_au` commit lintest's update inside the step: `kvPfxP_readAuH`'s step must become a
+   fancy update at `kvPfxCbE`, as `kvPfxP_au1H`'s did. (b) **A fact missing**: `plainQ` (and the read posts) say
+   `σ.rev + 2 < 2^63`; `RevBoundD σ` is `σ.rev + 1 < 2^63`, and a read learns no `kvRoom`. Either `RevBoundD`
+   becomes `σ.rev + 2 < 2^63` (K10's law then owes `+2`) or the read posts change: coordinator's call. Not
+   weakened here.
+3. `write_err_commit`, `read_err_commit` commit at once (no firing): port with `linUD_commit`, no share law.
+
+**Build of record**: `lake build …k8s.dist.StoreFire …k8s.dist.PfxTxn` (every importer of `KVPfxHist`, plus the
+new file) at `1e3875d434` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5260 jobs, OK.
