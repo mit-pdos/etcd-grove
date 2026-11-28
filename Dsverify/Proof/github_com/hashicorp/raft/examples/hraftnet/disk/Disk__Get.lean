@@ -57,7 +57,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.disk.Disk.Get.wp_proof
   imod (diskReadS g Wl Ws Wf I stg (fun st => iprop(
       (∀ vb, ⌜st.bytes.lookup kb = some vb⌝ -∗ ∀ s : GoSlice, s ↦*□ vb -∗ Φ (PairV #s #interface.nil)) ∧
       (⌜∀ vb, st.bytes.lookup kb = some vb → vb = []⌝ -∗
-        ∀ err : GoInterface, dkNotFound err -∗ Φ (PairV #(Perennial.zero_val GoSlice) #err)))))
+        ∀ err : GoInterface, isNotFoundErr err -∗ Φ (PairV #(Perennial.zero_val GoSlice) #err)))))
     $$ Hinv Hrec Hlc1 Hlc2 HAU Hnc with ⟨Hnc, Hrec, HΦ⟩
   imodintro
   iframe Hnc
@@ -133,7 +133,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.disk.Disk.Get.wp_proof
     icases HΦ with ⟨-, HΦ⟩
     iapply HΦ
     · ipureintro; intro vb h; rw [hnone] at h; cases h
-    · iunfold dkNotFound; iexists xnf; iframe #; ipureintro; rfl
+    · iunfold isNotFoundErr; iexists xnf; iframe #; ipureintro; rfl
 
 end sec
 
