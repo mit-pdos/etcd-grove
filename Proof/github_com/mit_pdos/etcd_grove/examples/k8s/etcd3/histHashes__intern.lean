@@ -58,7 +58,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     iframe
     iapply BigSepM.bigSepM_empty.2
     itrivial
-  · icases Hci with [%Hnil | ⟨HC, HI, HCs⟩]
+  · icases Hci with (%Hnil | ⟨HC, HI, HCs⟩)
     · exact absurd Hnil.1 (by assumption)
     · iexists mc, mi, C, I
       iframe
