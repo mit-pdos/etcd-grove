@@ -9311,3 +9311,18 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
   top-level statement changes.
 - **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).
+
+## 2026-11-28: `Raft.GetConfiguration.spec` gives the future's `deferWait` (hraft S5c)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/Raft__GetConfiguration.lean` (hashicorp/raft, ported from
+  dsverify-lab; its only user was raft's Link).
+- **Defect.** Too weak for the kit's `API.Status` (S5c): the post gave the future's `configurations` field but not
+  the right to wait for its answer, so a caller could not call `Error()` (`waitFuture(f, …)`) on it; the lab's
+  hr3 client never called it.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/service/service.go`, `API.Status`: `waitFuture(f,
+  a.wait)` then `f.Configuration()`.
+- **Change.** The post gains `deferWait (f.[configurationsFuture, "deferError"]) (fun _ => True)` (the consumer side
+  of `init`'s channel, the `err` and `ShutdownCh` fields still zero); a strengthening, proved
+  (`Raft__GetConfiguration.lean`). `API.Status` waits on it with `snapFut.wp_cf_Error` (the sixth conjunct of
+  `deferError.Error.spec`, unchanged). No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (task S5c, coordinator-E on #48).

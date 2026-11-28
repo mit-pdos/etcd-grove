@@ -35,11 +35,11 @@ variable [go_gctx : GoGlobalContext]
 /-- `raft_tracecheck_robust.spec`
 (`RaftTla/Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/TopLevelRobustness.lean`). -/
 theorem raft_tracecheck_robust : raft_tracecheck_robust.spec := by
-  intro lctx sem package_sem hLog Hprem σ g
+  intro lctx sem package_sem hLog σ g
   exact
     Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn Hsteps =>
       (raft_tracecheck_safe
-        Hprem σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
+        σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end closed
 end EtcdGrove

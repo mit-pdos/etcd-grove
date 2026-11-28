@@ -5,10 +5,10 @@
 `premise_sat%` (`Robustness/PremiseSat.lean`): `raft_tracecheck_robust`
 (`RaftTla/Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/TopLevelRobustness.lean`) has
 premises that hold together with `Robust`'s antecedents (one fresh machine, its extension `idIssueExt`
-in any state). Its one premise, `Hprem` (`proto.Marshal`'s contract at the bootstrap log's conf
-changes), is an Iris premise, which `premise_sat%` leaves out (class (a)); the bootstrap log's pure
-facts, a premise until 2026-11-24, are proved (`tracecheck.bootLogFacts_bootLog`). Checked by
-`etc/premise-witness.py`.
+in any state). It has no premise of its own (2026-11-28: the Iris premise `Hprem`, `proto.Marshal`'s
+contract at the bootstrap log's conf changes, is now the trust-boundary axiom
+`proto.MarshalBootConfChange.wp_proof`; the bootstrap log's pure facts, a premise until 2026-11-24, are
+proved, `tracecheck.bootLogFacts_bootLog`). Checked by `etc/premise-witness.py`.
 -/
 module
 

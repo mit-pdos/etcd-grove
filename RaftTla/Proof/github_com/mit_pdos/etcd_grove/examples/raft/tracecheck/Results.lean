@@ -14,8 +14,9 @@ The trace check's results (`examples/raft/tracecheck`, the closed program of
 * **`raft_tracecheck_safe_of`**: §1.2's `raft_tracecheck_safe` (no execution of the package's
   initialization then `Main()`, of `n + 6 ≤ 2^61` steps along which fewer than `2^31` threads are
   live at once, panics or gets stuck; the main thread's
-  result is `#()`), given the bootstrap log's facts and premises (`Defs.lean`). Everything `Main`
-  calls is proved, over raft's linked results (`Proof/go_etcd_io/raft/v3/Linked.lean`, `Link.lean`)
+  result is `#()`), with no premise (2026-11-28: `proto.Marshal`'s contract at the bootstrap log's
+  conf changes, until then a premise, from the trust-boundary axiom `proto.MarshalBootConfChange.wp_proof`,
+  the main tree's, copied). Everything else `Main` calls is proved, over raft's linked results (`Proof/go_etcd_io/raft/v3/Linked.lean`, `Link.lean`)
   and the checker's (`etcdraft/Link.lean`): `Main`, `DefaultCConfig`, `RunConcurrent` (the harness,
   `RunConcurrent.lean`) with its goroutines (`app`, `handleReady`, `send`, the drivers), the
   recorder, `ConvertEvents`, the checker's `NewTrace`, `CheckTrace` and `Result.TLCOK`, the package
@@ -46,6 +47,7 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.TracedLinked
 public import RaftTla.Proof.go_etcd_io.raft.v3.Link
 public import Proof.context.WithTimeoutBackground
 public import RaftTla.Proof.google_golang_org.protobuf.proto.ClonePb
+public import RaftTla.Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Perennial.Proof.sync.Link
 public import Robustness.Statement
 
@@ -212,6 +214,7 @@ theorem tcMainSpec_of (h : HarnessOpen) : tcMainSpec := by
   exact Main.wp_proof DefaultCConfig.wp_proof below.wp_proof (tc_wp_RunConcurrent h)
     (Cluster.Events.wp_proof (SyncRecorder.Events.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock))
     ConvertEvents.wp_proof Etcdraft.wp_NewTrace Etcdraft.wp_CheckTrace Etcdraft.Result.wp_TLCOK
+    proto.MarshalBootConfChange.wp_proof
 
 /-- **The trace check never fails, from `HarnessOpen`** (`raft_tracecheck_safe`,
 `notes/trace-check-design.md` §1.2, given `HarnessOpen`): every real execution of
@@ -220,13 +223,10 @@ theorem tcMainSpec_of (h : HarnessOpen) : tcMainSpec := by
 reordering, isolations), its trace converted and checked against raft's TLA+ trace specification
 (`CheckTrace(tr, true)`), and a panic unless TLC would accept it -- from a fresh state with one
 thread, of `n` steps with `n + 6 ≤ 2^61` along which fewer than `2^31` threads are ever live at
-once (`RealNstepsBelow`), given the bootstrap log's premise (at `tracecheck.bootLog nv`, every `nv` `Main` can draw), has no
-stuck thread and no thread that ended in a panic. -/
+once (`RealNstepsBelow`), has no stuck thread and no thread that ended in a panic. -/
 theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
-    (Hprem : ∀ nv : Nat, 1 ≤ nv → nv ≤ tracecheck.maxNodes → ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) nv (tracecheck.bootLog nv))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n + 6 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -234,7 +234,7 @@ theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  tracecheck_adequate_of (tcMainSpec_of h) Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2
+  tracecheck_adequate_of (tcMainSpec_of h) σ g Hlctx Hinit Hthreads n Hn κs t2 σ2
     Hsteps
 
 /-- **The trace check never fails** (`notes/trace-check-design.md` §1.2; 2026-11-12, trace-check step 5:
@@ -242,8 +242,6 @@ theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem :
 theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
-    (Hprem : ∀ nv : Nat, 1 ≤ nv → nv ≤ tracecheck.maxNodes → ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) nv (tracecheck.bootLog nv))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n + 6 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -251,7 +249,7 @@ theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  raft_tracecheck_safe_of harnessOpen Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+  raft_tracecheck_safe_of harnessOpen σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end closed
 
