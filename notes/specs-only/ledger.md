@@ -25,6 +25,20 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: grpc's service table -- no way to say "this method never refuses" except the opaque `noRefusalAt`
+
+- **Spec.** `GrpcEntry` (`Proof/google_golang_org/grpc/InvGrpcWire.lean`), `grpcServesEnt` (`InvGrpcRun.lean`),
+  `grpcInvokerOk` (`InvGrpc.lean`; `ClientConn.Invoke`'s axiom), `grpcDecOk` (`InvGrpcBase.lean`; `Server.Serve`'s).
+- **Defect.** Too weak for a user: the only route from a server to the client's "not a refusal" is the per-address
+  opaque `noRefusalAt` (with `etcd_noRefusal`, `grpcSrvAtLis`), so a table that is a definition (`etcdSvc`, stage B′)
+  cannot carry the fact, and its five KV `_dist` axioms stay.
+- **Evidence.** `notes/grpc-nr-e.md`; the packet `etcdsvc-grpc-nr-packet` (option E).
+- **Proposed change.** `GrpcEntry.nr : Bool`; `grpcSvcNRAt`/`isGrpcRpcNR`/`isGrpcRpcsNR`; `grpcServesEnt`'s unary clause
+  gives `grpcRunNRMd` (the run contract plus "nil or not a refusal") for a flagged entry; `grpcInvokerOk`'s error arm
+  gains `isGrpcRpcsNR addrs method -∗ ⌜d ∉ refusalDescs⌝`; `grpcDecOk`'s error arm gains `notDescIn refusalDescs`.
+  Every existing entry unflagged. No top-level statement changes.
+- **Decision.** Accepted (the user, option E, 2026-11-27); trusted text, lands after the coordinator's check.
+
 ## 2026-11-25: the antithesis harness's `CfgOk` -- `0 ≤ MaxDelay` goes with the delay (#33 S4)
 
 - **Spec.** `Proof/.../raft/antithesis/HarnessDefs.lean` (`CfgOk`, `defaultCfg`, `clusterRO`), the premise
@@ -9214,3 +9228,30 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (`SpecPlan/Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`); the
   post is unchanged. No top-level statement changes.
 - **Decision.** Upamanyu, through coordinator-E (#24 7225943254: a Go model overlay, not a TrustedCode model).
+## 2026-11-27: `io.Copy.spec`, `io.Copy_Discard.spec`: the reader not a `*LimitedReader`, its errors well-typed, the calls in resolved form (hraft-iocopy)
+
+- **Spec.** `io.Copy.spec`, `io.Copy_Discard.spec` and their vocabulary `io.streamReader`, `io.streamWriter`
+  (`Spec/io/Copy.lean`, the lab's `KitStd.Spec.io.Copy`, ported in hraft P3; callee hypotheses of
+  `Raft__installSnapshot`), assumed in the lab, to be proved over Perennial's translated `io.Copy`, `copyBuffer` and
+  `discard.ReadFrom`.
+- **Defect.** Not provable as stated (P4 group C, `notes/dsv-hraft.md`): (1) `io.Copy.spec` admits a reader whose
+  dynamic type is `*io.LimitedReader` (not an `io.WriterTo`), for which `copyBuffer` loads `l.N` to size its buffer,
+  memory `streamReader` does not own; (2) `copyBuffer` and `discard.ReadFrom` compare the reader's error with
+  `io.EOF` (`er != EOF`), which the model steps only for a pointer-typed error whose value is a location
+  (`io.ptrTyped`), which `streamReader` does not say; (3) `io.Copy_Discard.spec`'s `w` is any value `Discard`
+  holds, and Perennial's `io` fact said nothing of which (nor of `blackHolePool`, where `ReadFrom` takes its buffer).
+- **Evidence.** Go 1.27 `io.go` `copyBuffer` (`if l, ok := src.(*LimitedReader); ok && int64(size) > l.N`, `if er
+  != EOF`) and `discard.ReadFrom` (`blackHolePool.Get().(*[]byte)`, `if err == EOF`); Perennial's
+  `Perennial/Code/io.lean`. The only caller's readers: the RPC's stream and the install's `*countingReader`
+  (`streamReaderOk`: errors `nil` or `io.EOF`, an `*errors.errorString`), so both premises hold there.
+- **Change.** (1) `io.Copy.spec` takes `ts ≠ *io.LimitedReader` (exactly what makes `copyBuffer` keep the 32 KiB
+  buffer); (2) `io.streamReader`'s post adds `io.ptrTyped err` (Perennial's `io.readerOk` has it too); (3) Perennial
+  `io.isInit` gains `"#HDiscardV"` (`Discard` holds `discard{}`) and `"#HblackHolePool"` (a pool of 8192-byte
+  buffers), proved from the translated initializer (no axiom; Perennial branch `io-discard-init`); the spec's `w`
+  stays any value `Discard` holds. Also `streamReader`/`streamWriter` take the reader and writer as
+  `GoInterfaceOk`, state the call in its resolved form (`methods ty "Read" v`, as Perennial's `io.readerOk` and
+  this repository's `io.readerStream`), the form a proof reaches after the call's method resolution, and are WP
+  specs in `streamReaderOk`'s form (continuation not under a later: the readers and sinks that meet them are given by
+  such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
+  top-level statement changes.
+- **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).

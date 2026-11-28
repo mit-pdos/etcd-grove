@@ -16,7 +16,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Check
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve

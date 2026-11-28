@@ -186,37 +186,64 @@ cl (ms.map SrvAt.addr) V ∗ [∗list] x ∈ ms, kvRegsAt x` and per-member read
 | etcd-dist `client.Rotate`, `CallAll`, `enc` | verified (`Spec/.../etcd/dist/client/{Rotate,CallAll}.lean`, `dist/enc/`) |
 | etcd-dist `client.AwaitCluster`, `ConnectRetry`, `AwaitAccept` (`client.go:90`, `nodes.go:202`, `await.go:17`) | **new** (small: a Get loop, `New` with no proxy, dials) |
 | `etcdstart.NewClients` | verified |
-| `dist.go`: `MainReady`, `NodeMain`, new `Orchestrator`/`NodeDeployment`/`WellFormed` (G1) | **new**, small |
+| `dist.go`: `MainReady`, `NodeMain`; `deploy.go` (G1): `Deployment`, `WellFormed`, `Workload`/`Node`, `MainDeployment`, `Orchestrator`, `NodeDeployment` | **new**, small |
 | `store.go`: `StoreNode`, `RunStore`, `CheckShared` | **new** (RunStore's check orchestration: 100 lines) |
-| `storecopy/export.go`: `SharedModel` (settle, landings, `histHashes`, `watchOkIdx`/`hview` memo, three modes), `HistoryRevs`, `NoForeign`, `PastRead`/`PinnedRead`, `SeedShared`, `Serve`/`Record` | **new, the bulk** (969 lines). `Serve`/`Record` are `Apply` split at its prophecy and reuse its proof |
-| `storecopy/{k8setcd3,watch,realcheck}.go` | byte-for-byte copies of the proved driver. **Reuse needs G2** (below) or generated proof copies |
+| `examples/k8s/etcd3/export.go` (G2; `storecopy/export.go` before): `SharedModel` (settle, landings, `histHashes`, `watchOkIdx`/`hview` memo, three modes), `HistoryRevs`, `NoForeign`, `PastRead`/`PinnedRead`, `SeedShared`, `Serve`/`Record` | **new, the bulk** (969 lines). `Serve`/`Record` are `Apply` split at its prophecy and reuse its proof |
+| the driver `examples/k8s/etcd3` itself (`k8setcd3.go`, `watch.go`, `realcheck.go`) | proved (`k8s_safe`); since G2 the dist program calls it directly, no copies |
 | `storecodec.go` (Input/StoreOut/Raw codecs, 443 lines) | **new** (kvremote's codecs are the pattern) |
 | `compactor.go`: `CompactorNode`, `RunCompactor`, codec | **new**, small |
-| `compactorcopy`: `WriterAt` (the writer with a key parameter), `NewOwn`/`NewShared`, `Sample`/`CheckLog` (`check` split in two) | **new**, a modification of the proved `writer`/`check` |
+| `examples/k8s/compactor/export.go` (G2; `compactorcopy` before): `WriterAt` (the writer with a key parameter), `NewOwn`/`NewShared`, `Sample`/`CheckLog` (`check` split in two) | **new**, a modification of the proved `writer`/`check` |
 
-**Go changes the Lean side needs (G-list; a Go session; G2 needs the user's OK):**
+**Go changes the Lean side needs (G-list; a Go session; G2 needs the user's OK).** All done
+(2026-11-27, session KGO-1, branch `k8s-dist-go/2026-11-27`); G2 approved by the user 2026-11-27.
 
 - **G1.** Make `Deployment`/`WellFormed` program code (out of `deploy_test.go`), add the client machines'
   addresses, and add the entry points `Orchestrator(d, j)` and `NodeDeployment(d, n)` (check, then dispatch),
   as etcd-dist's `client.Orchestrator` (`client.go:186`). The members keep `server.MainDeployment(d.Cluster, i)`.
   The `ready` callback becomes the harness's file marker, outside the verified path.
+  **Done** (`4c98d57bf5`, G4's `be3a08968a`): `examples/k8s/dist/deploy.go`. `Deployment{Cluster, StoreW,
+  CompW, StoreAddrs, CompAddrs}` (`StoreAddrs`: `AddrCount(StoreW)` = clients + watchers, client `c` on API
+  server machine `c mod Apiservers`; `CompAddrs`: `CompactorMachines` = 6); `WellFormed` also checks the
+  addresses (counts, `deployment.AddrOk`, `≤ deployment.MaxLen`, distinct, none a member's peer or client);
+  `d.Workload(j)` (0 store, 1 compactor), `d.Node(n)` (the store's `Apiservers` machines, then the
+  compactor's 6); `MainDeployment(d, j, obs)`, `Orchestrator(d, j)` = `MainDeployment(d, j,
+  Observer{Ready: func() {}})`, `NodeDeployment(d, n)`. `ready` became an `Observer{Ready, History}`
+  (G4), the test's file marker and history dump.
 - **G2.** Put `export.go` into the drivers' own packages (`examples/k8s/etcd3`, `examples/k8s/compactor`) and
   drop the copies.
   - Adding files changes no proved function, so `k8s_safe`'s proof is unaffected.
   - Without this, every proof of the copied 2,955 lines must be duplicated under the copies' Go path: a
     generated copy (as `etc/gen-raft-tla.py` or `etc/copy-part.py`), about 40k lines.
   - It reverses k8s-dist.md's "Copies" decision, so it needs the user's OK.
+  **Done** (`7656dd8044`): `examples/k8s/{etcd3,compactor}/export.go`; the copies and `TestVerbatim` gone;
+  no existing driver file changed (`git diff` of the drivers: the two added files only). `WriterAt`,
+  `Sample`/`CheckLog` are in `examples/k8s/compactor/export.go`, new functions beside the unchanged
+  `writer`/`check`.
 - **G3.** Add `DialOptions: []grpc.DialOption{grpc.WithNoProxy()}` in `newKubeClient` (`store.go:57`), which
-  every dist axiom's `clientNoProxy` requires.
+  every dist axiom's `clientNoProxy` requires. **Done** (`be3a08968a`).
 - **G4.** Take `dumpHistory`/`LoadHistory` (`gob`, `os`, `DIST_DUMP`: `store.go:201-255`) off the binaries' path:
-  a test-only hook, since `gob` has no model.
+  a test-only hook, since `gob` has no model. **Done** (`be3a08968a`): they are in `history_test.go`;
+  `RunStore` calls `obs.History(seeded, ops)` before its check when it is not nil (`Orchestrator`'s is nil).
 - **G5.** Encode `metav1.Status`/`StatusError` with `enc` instead of `encoding/json` (`storecodec.go`).
-  Otherwise GAP-3 needs an axiom.
+  Otherwise GAP-3 needs an axiom. **Done** (`1b42cde51e`): `encStatus`/`decStatus`, every field in order;
+  the program code imports no `encoding/json`, `encoding/gob` or `os`.
 - **G6.** Add a goose project `k8s-dist` (`etc/goose.py`: its own `go.mod`'s pins, `GO_MOD_PINS`/`CLIENT_GO_PINS`
   as in k8s-dist.md), translated into the main tree. Its names are distinct once G2 drops the copies.
-- **G7** (K4-1, `notes/k8s-dist-k4.md`). In `target` (`storecopy/export.go`), a watch-list (`SendInit == 2`)
-  with a non-Error event targets at least `max(MinRV, 1)`. Without it the full mode is incomplete on such
-  watch-lists, which the generator never makes, so the fallback is a history premise.
+  **Done** (`bd0abb5948`): `Code/` and `GeneratedProof/github_com/mit_pdos/etcd_grove/examples/k8s/dist.lean`;
+  projects k8s-apiserver and k8s-compactor re-translated for `export.go` (new definitions only). Not
+  yet built in Lean, and no `etc/gen-init.py` entry: K1-K3's.
+- **G7** (from K4, `notes/k8s-dist-k4.md` "The gap"). In `SharedModel`'s `target`, watch arm: for
+  `SendInit == 2` with a non-Error event, `max(t, max(req, 1))`. **Done** (`152e1a4634`):
+  `TestSharedWatchList` (K4's counterexample: every mode accepts, and rejects it with a wrong value; all
+  three answered Illegal before the fix).
+- **G8, G9, G10** (from K4-3, `notes/k8s-dist-k4.md` "K4-3", branch `k8s-dist-k4/2026-11-27`). G8: `target`
+  parses `MinRV` only for the kinds that read it (a create, delete or update never does); G9: `HistoryRevs`
+  anchors every successful answer's revision, with or without a name; G10: `target`'s write arm only for
+  `KCreate`, `KDelete`, `KUpdate`, every other kind its `MinRV` (`mstep` answers it with `mget`). **Done**
+  (branch `k8s-dist-g8/2026-11-27`): `TestSharedGaps` (K4-3's three counterexamples: CheckShared and Full
+  accept each, and reject it with a wrong value in every mode; Lazy, by design, still rejects G9's, whose
+  pending create it cannot land below a later write it applied first; before the fix every mode and
+  CheckShared answered Illegal on all three).
 
 ## 4. Stages (riskiest first), with estimates
 
@@ -275,7 +302,7 @@ shape, with a one-line Go fix (G7); one cluster stays feasible.**
   (checked in Go 2026-11-27). The driver's generator never makes it (watch-lists draw no future
   resource version), but the theorem would otherwise need that as a premise on the history.
 - **G7** (Go, with K9's session): in `target`'s watch arm, for `SendInit == 2` with a non-Error event,
-  return `max(t, max(req, 1))`. This is the least revision the check needs.
+  return `max(t, max(req, 1))`. This is the least revision the check needs. (Landed: `152e1a4634`, §3.)
 - Lean: `Proof/.../examples/k8s/dist/SharedPlace.lean` (pure, no imports) proves the revision-number
   core: the canonical landing is a full landing (`canonL_mem`), is no later than the cluster's
   (`canonL_le`), and no named revision tells them apart (`canonL_cut`); `canonAll_ok` covers a settle
@@ -287,3 +314,46 @@ shape, with a one-line Go fix (G7); one cluster stays feasible.**
   search as Lean functions (`targetL` with G7, `landingsL`, `settleL`), the renaming invariance of
   `kstepL`/`mlistL`/`watchOkL`, and the theorem. It imports `KWatch.lean`'s cone, so it needs a
   seeded build host.
+
+## Handoff KGO-1 (2026-11-27, branch `k8s-dist-go/2026-11-27`)
+
+**State.** G1-G7 done, one commit each but G3/G4 (together): G2 `7656dd8044`, G7 `152e1a4634`, G1
+`4c98d57bf5`, G3+G4 `be3a08968a`, G5 `1b42cde51e`, G6 `bd0abb5948` (§3 has what each did). The
+drivers' existing files are byte-identical (`git diff` of `examples/k8s/{etcd3,compactor}`: only the
+added `export.go`); the drivers' `go.mod`s are unchanged; `examples/k8s/dist/go.mod` tidied.
+
+**Tests.** `go vet` clean for `examples/k8s/{etcd3,compactor,all,dist}`. `go test`: etcd3 (372 s) and
+its `correctness`, compactor, all, dist (unit tests: `TestStoreCodec` with every `Status` field,
+`TestWellFormed` with the address checks and `Node`, `TestSharedModel`, `TestSharedWatchList`, `TestCheckLog`)
+all pass. `etc/goose.py --check` passes (every project up to date, the examples' pins). The new and
+changed translations: `Code/`, `GeneratedProof/.../examples/k8s/dist.lean` (new); `etcd3.lean`,
+`compactor.lean` (additions only; the etcd3 generated proof now goose-chunked into `etcd3/chunk{1,2,3}.lean`;
+each package's `Assumptions` gains the new functions' and types' fields).
+
+**Left.**
+- `TestDist` (the deployment, network namespaces) was **not** re-run after G1-G5: `cd examples/k8s/dist;
+  GOTOOLCHAIN=go1.27.3 DIST_RUN=1 go test -run '^TestDist$' -short -v` (k8s-dist.md "Running it").
+  G1 changed how the test starts the processes (each gets the `Deployment` as JSON and calls
+  `MainDeployment`/`NodeDeployment`; the client machines are made before the cluster starts, by
+  `RandomDeployment`'s `nodes`).
+- Lean (K1-K3): build the new translation and the re-translated drivers (`k8s_safe` must still build:
+  the `Assumptions` classes grew), `etc/gen-init.py` entries for `examples/k8s/dist`.
+- New names for K5/K9: `dist.Deployment{Cluster, StoreW, CompW, StoreAddrs, CompAddrs}`, `Deployment.Workload`,
+  `Deployment.Node`, `dist.WellFormed`, `dist.MainDeployment`, `dist.Orchestrator`, `dist.NodeDeployment`,
+  `dist.Observer{Ready, History}` (`MainReady`/`RunStore` take it), `dist.StoreWorkload`/`CompactorWorkload`,
+  `dist.encStatus`/`decStatus`/`encOptI64`/`decOptI64`; `etcd3.EncodeWEvents` (test helper).
+
+## Handoff KGO-2 (2026-11-27, branch `k8s-dist-go/2026-11-27`)
+
+**Done.** `TestDist -short` re-run after G1: passes (one deployment, three members; store checked, model
+only, 3 compacted errors accepted; compactor 10 of 10 logs; 1 kill, 1 partition). lean merged
+(`692db2737e`, Perennial `02e741641`); `etc/goose.py --check` passes at that pin. etcd3's `export.go`
+adds a package variable (`crossCheck`, a test hook's `bool`) and imports `sort`: `etc/gen-init.py`
+allocates it (`alloc_types` `Bool`; the fact `drvInit` unchanged), and `k8s/etcd3/{Init,InitLinked}` and
+`k8s/all/PkgTable` are regenerated; SpecPlan's `PkgInit` for etcd3 regenerated and for dist added. No proof
+needed a fix: the grown `Assumptions` classes and etcd3's chunked generated proof built as they were.
+Gates (`etc/gates.sh`, fk-lean2): all pass; trust base matches the baseline (368 axioms, 0 `sorry`s).
+`GeneratedProof/.../k8s/dist.lean` has no `sorry` and the translation no axiom.
+
+**Left.** `examples/k8s/dist` is not a `gen-init` root: no proof reaches it yet; K5's (its `Base.lean`, fact
+`True`: the package has no variable or `init`). Ready to queue (K1-K3).

@@ -19,7 +19,7 @@ module
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Do
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.attempt
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.hang
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Proph
 
 @[expose] public section
 

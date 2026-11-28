@@ -36,7 +36,7 @@ shared cluster linearizes in a **semantic** model (below); the porcupine check t
   `genWatchFrom` never gives a watch-list a future resource version (`m == 6` redrawn), so its
   `MinRV` is at most a revision an earlier answer of the same client showed, and every shown revision
   is at most the search's configuration's from then on. Using that in K8 would need a real-time,
-  per-client premise on the history. **Fix instead (G7, a Go change for K9's session):** in
+  per-client premise on the history. **Fix instead (G7, a Go change; landed, `152e1a4634`, branch `k8s-dist-go/2026-11-27`):** in
   `target`'s watch arm, for `in.SendInit == 2` with at least one non-Error event, return
   `max(t, max(req, 1))` (`req` = `parseRV(in.MinRV)`). It is the least revision the check needs, so it
   costs no completeness; with a bookmark it changes nothing (`brv ≥ req` is checked). Soundness is
@@ -242,8 +242,8 @@ the anchors change, so K9 must match them in Go).
   successful write answering `RV > rv` is `RV - 1`, the cluster's revision before it, whether or not
   `RV` is an anchor; the step's write is at `RV` on both sides (`ρ` the identity there). No case needed.
 
-Go side (for K9's session, branch `k8s-dist-go/2026-11-27`): G8, G9 and G10 in `examples/k8s/etcd3/export.go`
-(`target`, `HistoryRevs`), with the two histories above as tests.
+Go side: G8, G9 and G10 in `examples/k8s/etcd3/export.go` (`target`, `HistoryRevs`), with the histories above
+as tests (`TestSharedGaps`). **Landed** (branch `k8s-dist-g8/2026-11-27`, on lean by `766f9e4acb`).
 
 ## Handoff K4-3 (2026-11-27, branch `k8s-dist-k4/2026-11-27`)
 
@@ -258,8 +258,7 @@ step needs of `ρ`: fixes 0, `ρ (a + 1) = b + 1`, no wrap, stored revisions fit
 is the settle step (`a`, `b` = the landing less one on each side) and the step's write (`a = b`).
 
 **`FullComplete` as K4-2 stated it was false** (three counterexamples, G8-G10 above); the statement now
-carries the fixes. The Go side must get G8-G10 (K9's session); until then the Lean search is not the
-Go one on those histories.
+carries the fixes. The Go side got G8-G10 (branch `k8s-dist-g8/2026-11-27`, on lean by `766f9e4acb`).
 
 **Left, in order** (the plan of K4-2's handoff, refined):
 
@@ -442,7 +441,8 @@ the full mode's landings over the anchors `A`, `skipTo` the target, `Model`'s st
 
 It holds for the search **with G7-G10** (`targetL` and `stepL` as the Go must be changed to: the
 watch-list target, a write's target without `MinRV`, the answer's revision anchored with or without a
-name, every `mget` kind's `MinRV`); those Go fixes are K9's. No new counterexample in K4-6.
+name, every `mget` kind's `MinRV`); those Go fixes have landed (G1-G7 in `k8s-dist-go/2026-11-27`, G8-G10 in
+`k8s-dist-g8/2026-11-27`; on lean by `766f9e4acb`, "K4-7" below). No new counterexample in K4-6.
 
 **K4-6's lemmas** (`SharedComplete.lean`): `mstepL_nf`, `mstepL_wr`, `mstepL_rd`, `mlistL_bound`,
 `mlistL_nf`, `HRel.items_le`, **`kstepL_target`** (the cluster's answer's target is at most its
@@ -461,4 +461,4 @@ the real history to `SRun` are other stages' (`notes/k8s-dist-lean-plan.md`).
 `SharedComplete` (one linter warning: a tactic never executed, line 124, in `mstepL_nf`'s case closer).
 `#print axioms fullComplete`: `[propext, Classical.choice, Quot.sound]` (checked with `lake env lean`
 against that build's oleans). The theorem and its premises: "K4-6" above. K4 has nothing left. The next
-step is the coordinator's: land, and choose the next K-stage (G7-G10's Go fixes, K8).
+step is the coordinator's: land, and choose the next K-stage (K8; G7-G10's Go fixes have landed, "K4-7").

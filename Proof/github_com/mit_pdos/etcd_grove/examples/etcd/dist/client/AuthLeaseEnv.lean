@@ -9,8 +9,8 @@ reuses it (names and namespace `etcd_authlease` unchanged).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkEnv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkEnv
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
@@ -22,7 +22,7 @@ public import Proof.go_etcd_io.etcd.client.v3.AuthnSpec
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOn
 public import Proof.go_etcd_io.etcd.client.v3.LeaseSpecs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseCellModel
 

@@ -121,7 +121,7 @@ theorem mstepL_nf (x : Input) (st : GSt) (h : (mstepL x st).2.Err' = W64 1) :
   all_goals
     simp only [notFoundL, errOutL, existsL, invalidObjL, invalidOutL, rejectedL, otherL, tooLargeL,
       zeroOutL, objOutL]
-    first | (intro; trivial) | (intro; rfl) | (intro h; exact absurd h (by decide))
+    intro; trivial
 
 /-- A successful write answers at most the next revision, when the store's items are at most its
 revision. -/
@@ -140,7 +140,6 @@ theorem mstepL_wr (x : Input) (st : GSt)
     first
     | (intro h; exact absurd h (by decide))
     | (intro; omega)
-    | (intro; rename_i hh; have := hit _ (lookupL_mem _ _ hh.1); omega)
     | (intro; simp; done)
     | (intro; have hl : (lookupL st.items x.Key').snd = true := (by simp_all)
        have := hit _ (lookupL_mem _ _ hl); omega)

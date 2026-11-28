@@ -16,8 +16,8 @@ key's value is its model value's (`keyValue_absM`).
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TxnModelKV
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.ModelKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.TxnModelKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.ModelKV
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
 

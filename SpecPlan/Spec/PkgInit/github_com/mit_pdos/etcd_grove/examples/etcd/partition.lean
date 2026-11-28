@@ -11,10 +11,10 @@ public import Perennial.Proof.github_com.goose_lang.primitive.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
-public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.lintest
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.third_party.bridge
 
 @[expose] public section

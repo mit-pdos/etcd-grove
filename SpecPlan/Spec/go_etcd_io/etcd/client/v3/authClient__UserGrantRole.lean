@@ -1,7 +1,7 @@
 /-
 `(*clientv3.authClient).UserGrantRole` (`client/v3/auth.go`).
 
-Users: `examples/etcd/auth/authkv.go` (`SetUp`), snippet `clientv3client/auth.go`; through the `Auth` bundle (and the promoted `Client.UserGrantRole`) (`authAt_methods`, `authHandle_authAt`).
+Users: `examples/lib/authwork/authkv.go` (`SetUp`), snippet `clientv3client/auth.go`; through the `Auth` bundle (and the promoted `Client.UserGrantRole`) (`authAt_methods`, `authHandle_authAt`).
 
 Proof sketch: allocates the request message (`reqOwn`, 3h's `protoRest_zero` and field writes), calls
 `auth.remote.UserGrantRole(ctx, req, auth.callOpts...)` (`authHandle` over a ready client: `remote` a `remoteAuthAt` value,

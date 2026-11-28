@@ -15,7 +15,7 @@ module
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithLimit
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas

@@ -23,7 +23,7 @@ model (`Model.lean`'s `KSt`) refines it is stage 6b.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Callbacks
 
 @[expose] public section

@@ -21,7 +21,7 @@ reuses it (names and namespace `etcd_authlease` unchanged).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseEnv
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCalls
 
 @[expose] public section
 
