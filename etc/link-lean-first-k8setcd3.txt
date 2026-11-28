@@ -45,6 +45,8 @@ pendEqual: inputEqual
 histHashes__intern: storeHash storeEqual
 histHashes__canonLocked: histHashes__intern
 histHashes__canonical: histHashes__canonLocked
+histHashes__skipTo: histHashes__canonLocked histHashes__intern histLen
+cfgSet__add: histHashes__canonical storeHash storeEqual pendEqual
 histAt:
 closure: addConfig mstep removeAt advance
 # (stage 7e-3) the model's list: `mlist`, over the store's list helpers (`@`) and the driver's

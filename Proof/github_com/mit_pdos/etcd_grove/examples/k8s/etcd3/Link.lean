@@ -36,6 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__putW
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cachedObj
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cfgSet__add
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.changeAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.checkedEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.closure
@@ -126,6 +127,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histHashes__canonLocked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histHashes__canonical
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histHashes__intern
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histHashes__skipTo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histLen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformFromStorage
@@ -534,6 +536,38 @@ theorem cache.wp_putW :
 theorem wp_cachedObj :
     EtcdGrove.k8s_etcd3.cachedObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.cachedObj.wp_proof
+
+theorem wp_mix :
+    EtcdGrove.k8s_etcd3.mix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.mix.wp_proof
+
+theorem wp_strHash :
+    EtcdGrove.k8s_etcd3.strHash.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.strHash.wp_proof wp_mix
+
+theorem wp_storeHash :
+    EtcdGrove.k8s_etcd3.storeHash.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.storeHash.wp_proof wp_mix wp_strHash
+
+theorem histHashes.wp_intern :
+    EtcdGrove.k8s_etcd3.histHashes.intern.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histHashes.intern.wp_proof wp_storeHash wp_storeEqual
+
+theorem histHashes.wp_canonLocked :
+    EtcdGrove.k8s_etcd3.histHashes.canonLocked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histHashes.canonLocked.wp_proof histHashes.wp_intern
+
+theorem histHashes.wp_canonical :
+    EtcdGrove.k8s_etcd3.histHashes.canonical.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histHashes.canonical.wp_proof histHashes.wp_canonLocked
+
+theorem wp_pendEqual :
+    EtcdGrove.k8s_etcd3.pendEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.pendEqual.wp_proof wp_inputEqual
+
+theorem cfgSet.wp_add :
+    EtcdGrove.k8s_etcd3.cfgSet.add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cfgSet.add.wp_proof histHashes.wp_canonical wp_storeHash wp_storeEqual wp_pendEqual
 
 theorem wp_changeAt :
     EtcdGrove.k8s_etcd3.changeAt.spec (GF := GF) (hG := hG) :=
@@ -1139,29 +1173,9 @@ theorem fieldSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.wp_proof
 
-theorem wp_mix :
-    EtcdGrove.k8s_etcd3.mix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.mix.wp_proof
-
-theorem wp_strHash :
-    EtcdGrove.k8s_etcd3.strHash.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.strHash.wp_proof wp_mix
-
-theorem wp_storeHash :
-    EtcdGrove.k8s_etcd3.storeHash.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.storeHash.wp_proof wp_mix wp_strHash
-
-theorem histHashes.wp_intern :
-    EtcdGrove.k8s_etcd3.histHashes.intern.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.histHashes.intern.wp_proof wp_storeHash wp_storeEqual
-
-theorem histHashes.wp_canonLocked :
-    EtcdGrove.k8s_etcd3.histHashes.canonLocked.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.histHashes.canonLocked.wp_proof histHashes.wp_intern
-
-theorem histHashes.wp_canonical :
-    EtcdGrove.k8s_etcd3.histHashes.canonical.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.histHashes.canonical.wp_proof histHashes.wp_canonLocked
+theorem histHashes.wp_skipTo :
+    EtcdGrove.k8s_etcd3.histHashes.skipTo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.histHashes.skipTo.wp_proof histHashes.wp_canonLocked histHashes.wp_intern wp_histLen
 
 theorem labelSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
@@ -1170,10 +1184,6 @@ theorem labelSel.wp_RequiresExactMatch :
 theorem wp_newCache :
     EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newCache.wp_proof
-
-theorem wp_pendEqual :
-    EtcdGrove.k8s_etcd3.pendEqual.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.pendEqual.wp_proof wp_inputEqual
 
 end links_hasLC
 
