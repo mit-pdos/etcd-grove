@@ -3495,7 +3495,11 @@ noncomputable def permSlice.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
-/-- go: store.go:805:24 -/
+/-- Less orders the permissions by key, then by range end: a role's permissions have distinct
+    ranges (RoleGrantPermission replaces the one on the granted range), so the sorted record is
+    the same whatever order they were granted in.
+
+    go: store.go:808:24 -/
 noncomputable def permSlice.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "perms"
   (Lam "i"
@@ -3505,17 +3509,34 @@ noncomputable def permSlice.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "perms" (App (Val (GoInstruction (GoAlloc permSlice.ty))) (Var "perms"))
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef permSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "perms")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef permSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "perms")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef permSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "perms")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef permSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "perms")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef permSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "perms")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef permSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad permSlice.ty))) (Var "perms")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "c")) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "c")) (Val #(W64 0))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "c") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
-/-- go: store.go:809:24 -/
+/-- go: store.go:815:24 -/
 noncomputable def permSlice.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "perms"
   (Lam "i"
@@ -3535,7 +3556,7 @@ noncomputable def permSlice.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Pair (Var "$l0") (Var "$r0")))))))))))))
   (Val #())))))
 
-/-- go: store.go:813:22 -/
+/-- go: store.go:819:22 -/
 noncomputable def authStore.RoleGrantPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "r"
@@ -3696,7 +3717,7 @@ noncomputable def authStore.RoleGrantPermission.impl [GooseExts] [GoGlobalContex
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: store.go:862:22 -/
+/-- go: store.go:868:22 -/
 noncomputable def authStore.isOpPermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "userName"
@@ -3833,7 +3854,7 @@ noncomputable def authStore.isOpPermitted.impl [GooseExts] [GoGlobalContext] : v
   (Val #()))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))))
 
-/-- go: store.go:903:22 -/
+/-- go: store.go:909:22 -/
 noncomputable def authStore.IsPutPermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3856,7 +3877,7 @@ noncomputable def authStore.IsPutPermitted.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: store.go:907:22 -/
+/-- go: store.go:913:22 -/
 noncomputable def authStore.IsRangePermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3881,7 +3902,7 @@ noncomputable def authStore.IsRangePermitted.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
-/-- go: store.go:911:22 -/
+/-- go: store.go:917:22 -/
 noncomputable def authStore.IsDeleteRangePermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3906,7 +3927,7 @@ noncomputable def authStore.IsDeleteRangePermitted.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
-/-- go: store.go:915:22 -/
+/-- go: store.go:921:22 -/
 noncomputable def authStore.IsAdminPermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3986,7 +4007,7 @@ noncomputable def authStore.IsAdminPermitted.impl [GooseExts] [GoGlobalContext] 
     before Recover can replace that backend: the server closes a replaced
     backend only after Recover, and closing waits for read transactions to unlock.
 
-    go: store.go:941:22 -/
+    go: store.go:947:22 -/
 noncomputable def authStore.lockedReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -4020,7 +4041,7 @@ noncomputable def authStore.lockedReadTx.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"beMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad AuthReadTx.ty))) (Var "$res0"))))))
 
-/-- go: store.go:949:22 -/
+/-- go: store.go:955:22 -/
 noncomputable def authStore.IsAuthEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -4048,7 +4069,7 @@ noncomputable def authStore.IsAuthEnabled.impl [GooseExts] [GoGlobalContext] : v
 
 /-- NewAuthStore creates a new AuthStore.
 
-    go: store.go:956:6 -/
+    go: store.go:962:6 -/
 noncomputable def NewAuthStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "be"
@@ -4153,7 +4174,7 @@ noncomputable def NewAuthStore.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))))
   (App (Val (GoInstruction (GoLoad AuthStore.ty))) (Var "$res0"))))))))
 
-/-- go: store.go:1006:6 -/
+/-- go: store.go:1012:6 -/
 noncomputable def hasRootRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -4175,7 +4196,7 @@ noncomputable def hasRootRole.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: store.go:1012:22 -/
+/-- go: store.go:1018:22 -/
 noncomputable def authStore.commitRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "tx"
@@ -4192,7 +4213,7 @@ noncomputable def authStore.commitRevision.impl [GooseExts] [GoGlobalContext] : 
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.AddUint64 []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: store.go:1017:22 -/
+/-- go: store.go:1023:22 -/
 noncomputable def authStore.setRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "rev"
@@ -4205,7 +4226,7 @@ noncomputable def authStore.setRevision.impl [GooseExts] [GoGlobalContext] : val
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.StoreUint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (Val #()))))
 
-/-- go: store.go:1021:22 -/
+/-- go: store.go:1027:22 -/
 noncomputable def authStore.Revision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -4221,7 +4242,7 @@ noncomputable def authStore.Revision.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: store.go:1072:22 -/
+/-- go: store.go:1078:22 -/
 noncomputable def authStore.AuthInfoFromCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -4374,7 +4395,7 @@ noncomputable def authStore.AuthInfoFromCtx.impl [GooseExts] [GoGlobalContext] :
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthInfo.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: store.go:1102:22 -/
+/-- go: store.go:1108:22 -/
 noncomputable def authStore.GenTokenPrefix.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -4397,7 +4418,7 @@ noncomputable def authStore.GenTokenPrefix.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: store.go:1106:6 -/
+/-- go: store.go:1112:6 -/
 noncomputable def decomposeOpts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "optstr"
@@ -4538,7 +4559,7 @@ noncomputable def decomposeOpts.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- NewTokenProvider creates a new token provider.
 
-    go: store.go:1139:6 -/
+    go: store.go:1145:6 -/
 noncomputable def NewTokenProvider.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "tokenOpts"
@@ -4664,7 +4685,7 @@ noncomputable def NewTokenProvider.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenType") (Var "$r0"))))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: store.go:1175:22 -/
+/-- go: store.go:1181:22 -/
 noncomputable def authStore.WithRoot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -4801,7 +4822,7 @@ noncomputable def authStore.WithRoot.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "$res0"))))))
 
-/-- go: store.go:1215:22 -/
+/-- go: store.go:1221:22 -/
 noncomputable def authStore.HasRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "user"
@@ -4878,7 +4899,7 @@ noncomputable def authStore.HasRole.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore AuthBatchTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
-/-- go: store.go:1238:22 -/
+/-- go: store.go:1244:22 -/
 noncomputable def authStore.BcryptCost.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -4893,7 +4914,7 @@ noncomputable def authStore.BcryptCost.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
-/-- go: store.go:1242:22 -/
+/-- go: store.go:1248:22 -/
 noncomputable def authStore.setupMetricsReporter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon

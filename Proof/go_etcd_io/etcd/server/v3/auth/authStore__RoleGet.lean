@@ -71,7 +71,7 @@ theorem auth.authStore.RoleGet.wp_proof :
     ipureintro; rfl
   ihave Hro' := roleOut_some _ sta name Hif $$ Hro
   icases Hro' with ⟨%ps, %rr, %Hrr, Hro⟩
-  obtain ⟨Hlook, Hrrn, Hrrp⟩ := Hrr
+  obtain ⟨Hlook, Hrrn, Hrrp, -⟩ := Hrr
   iunfold ownRole at Hro
   icases Hro with ⟨%rms, %rnm, %rkp, %pl, %rsc, Hrp, #Hrnm, #Hrkp, %Hpl, Hperms⟩
   icases typedPointsto_split _ _ _ $$ Hrp with Hrp
