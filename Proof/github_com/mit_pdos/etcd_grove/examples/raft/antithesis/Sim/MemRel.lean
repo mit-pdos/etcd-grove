@@ -326,8 +326,8 @@ theorem mem_relD (hs : AntSimD R dec S V net xnet) (hgo : GlobalOk R S net G)
   refine ⟨⟨mq_shape hs.1 hok, mq_binding hs hok hit, mq_net hs hok hit, hs.2.2.2.1, fun k => ?_⟩,
     mq_global hgo hok⟩
   by_cases hk : k = n
-  · subst hk; simp only [setV, if_true]; exact hw
-  · simp only [setV, if_neg hk]; exact mq_node_other hs hok ha hk
+  · subst hk; rw [show setV V k w k = w by simp [setV]]; exact hw
+  · rw [show setV V n w k = V k by simp [setV, hk]]; exact mq_node_other hs hok ha hk
 
 end main
 
