@@ -152,26 +152,6 @@ theorem pass_exists (c : Chain) (rq : IRRModel) (log : mvcc.Log) (X : Outcome �
   obtain ⟨oc, h, hne⟩ := chainStep_exists_ne_auth backendStep rq log ⟨oc0, h0, backendStep_ne_auth _ _ _ h0⟩ c
   exact ⟨oc, hX oc h, hne⟩
 
-/-- The range end a check saw keeps the cache's shape. -/
-theorem reqShape_authEndOf (k m e : GoString) (he : authEndOf m e) (h : auth.reqShape k m) :
-    auth.reqShape k e := by
-  rcases he with rfl | ⟨rfl, -⟩
-  · exact h
-  · exact ⟨h.1, Or.inl rfl⟩
-
-/-- One checked permission of the shape the model's has. -/
-theorem shapedL_one_of (M : auth.AuthMode) (hs : List auth.AuthState) (L : List Perm3)
-    (k m e : GoString) (op : auth.PermType) (h : shapedL M hs L) (hm : (k, m, op) ∈ L)
-    (he : authEndOf m e) : shapedL M hs [(k, e, op)] := by
-  cases M with
-  | on γa =>
-    intro stl hl hen x hx
-    simp only [List.mem_singleton] at hx
-    subst hx
-    exact reqShape_authEndOf k m e he (h stl hl hen (k, m, op) hm)
-  | off => trivial
-  | any => trivial
-
 /-- A check's verdict in the mode `off` is a pass (`isAuthStore`'s `M.isOn = false → err = nil`). -/
 theorem permVerdictL_isOn (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
     (k e : GoString) (op : auth.PermType) (err : GoInterface)
@@ -438,7 +418,7 @@ abbrev apply.authApplierV3.Range.specL : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.applierSpec E c inner ∗
       apply.rangePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log ∗
-      L hs ∗ ⌜apply.shapedL E.authMode hs (apply.rangePermsM o)⌝ ∗ apply.applyTok E }}
+      L hs ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.rangePostL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq o log resp err
@@ -460,8 +440,7 @@ abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
         (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
           apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
             ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
-      srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.deletePermsM o)⌝ ∗
-      apply.applyTok E }}
+      srvApi.kvLogLb E.γs F ∗ L hs ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
@@ -483,7 +462,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.Range.wp_latest :
     apply.authApplierV3.Range.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log info L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, HL, %Hsh, Htt⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, HL, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
@@ -504,9 +483,6 @@ theorem apply.authApplierV3.Range.wp_latest :
   have hkey : o.key = k := by rw [Ho]; simp only [txn.rangeOpOf.proj_key]
   have hre : o.base.rangeEnd = txn.rangeEndOf esl e := by rw [Ho]; simp only [txn.rangeOpOf.proj_base]
   have hend : apply.authEndOf o.base.rangeEnd e := by rw [hre]; exact apply.authEndOf_rangeEndOf esl e Hel.1
-  have hsh1 : apply.shapedL E.authMode hs [(k, e, .read)] := by
-    rw [← hkey]
-    exact apply.shapedL_one_of _ _ _ _ _ _ _ Hsh (List.mem_singleton.2 rfl) hend
   subst Hsti
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -519,7 +495,7 @@ theorem apply.authApplierV3.Range.wp_latest :
     as %err ⟨Hinfo, -, -, Hard, HL, #HeI, %Hvl, #Hpv⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   have Hoff := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hvl
-  have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hvl hsh1
+  have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hvl
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
@@ -586,7 +562,7 @@ theorem apply.authApplierV3.Range.wp_latest :
 theorem apply.authApplierV3.DeleteRange.wp_latest :
     apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log F Pre Q Post info L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #HF, HL, %Hsh, Htt⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #HF, HL, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
@@ -611,9 +587,6 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   have hre : o.base.rangeEnd = txn.rangeEndOf esl e := by rw [Ho]; simp only [txn.deleteOpOf.proj_base]
   have hpk : o.base.prevKV = pk := by rw [Ho]; simp only [txn.deleteOpOf.proj_base]
   have hend : apply.authEndOf o.base.rangeEnd e := by rw [hre]; exact apply.authEndOf_rangeEndOf esl e Hel.1
-  have hshw : apply.shapedL E.authMode hs [(k, e, .write)] := by
-    rw [← hkey]
-    exact apply.shapedL_one_of _ _ _ _ _ _ _ Hsh (List.mem_cons_self ..) hend
   subst Hsti
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -627,7 +600,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     as %err ⟨Hinfo, -, -, Hard, HL, #HeI, %Hvw, #Hpw⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   have Hoff := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hvw
-  have Honew := apply.verdictL_one _ _ _ _ _ _ _ Hvw hshw
+  have Honew := apply.verdictL_one _ _ _ _ _ _ _ Hvw
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
@@ -699,15 +672,11 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     exact Honew.1 rfl
   wp_auto
   ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hkv
-  have hshr : apply.shapedL E.authMode hs [(k, e, .read)] := by
-    rw [← hkey]
-    refine apply.shapedL_one_of _ _ _ _ _ _ _ Hsh ?_ hend
-    simp [apply.deletePermsM, hpk]
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard %hs [Hinfo Hard HL]
     as %err ⟨Hinfo, -, -, Hard, HL, #HeI, %Hvr, #Hpr⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   have Hoff' := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hvr
-  have Honer := apply.verdictL_one _ _ _ _ _ _ _ Hvr hshr
+  have Honer := apply.verdictL_one _ _ _ _ _ _ _ Hvr
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>

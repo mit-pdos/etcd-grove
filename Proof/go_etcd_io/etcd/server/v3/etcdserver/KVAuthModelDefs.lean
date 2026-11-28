@@ -222,7 +222,9 @@ def reqPerms (rq : apply.IRRModel) : List apply.Perm3 :=
 permissions, at one state: the apply thread is the store's only writer): every permission the
 request needs passes, each check passing when auth is disabled, or when the principal's revision
 is not `0` (`ErrUserEmpty`) and not below the store's (`ErrAuthOldRevision`) and its user exists
-with the root role or with permissions covering it. A request needing no permission (a transaction
+with the root role or Go's verdict on its roles' permissions passes (`auth.coversX`, the permission
+cache's answer, exact for every request: N1b-1, until then the coverage `auth.covers`, exact only on
+the shape `auth.reqShape` the log had to keep). A request needing no permission (a transaction
 without comparisons or operations) is let through whatever the principal, as the code applies it
 unchecked (E2v; until then the model asked the revision and the user of it too). -/
 def kvGranted (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
@@ -230,7 +232,7 @@ def kvGranted (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
     ((auth.authInfoM (apply.principalOf rq)).rev ≠ 0 ∧
       st.revision ≤ (auth.authInfoM (apply.principalOf rq)).rev ∧
       ∃ u, st.users !! (auth.authInfoM (apply.principalOf rq)).user = some u ∧
-        (auth.isRoot u ∨ auth.covers st u x.2.2 x.1 x.2.1))
+        (auth.isRoot u ∨ auth.coversX st u x.2.2 x.1 x.2.1 = true))
 
 /-- With auth disabled, every request is let through. -/
 theorem kvGranted_of_disabled (st : auth.AuthState) (rq : apply.IRRModel)
@@ -260,8 +262,10 @@ mode-`on` log, `plainEntryOn`): the one end at which a check can see another ran
 model's (`authEndOf`: a non-`nil` empty `RangeEnd` on the wire, which the model reads as `"\x00"`). -/
 def noZeroEnds (rq : apply.IRRModel) : Prop := ∀ x ∈ reqPerms rq, x.2.1 ≠ [W8 0]
 
-/-- **Every permission the request needs is of the shape the permission cache decides** (since E3o
-kept by the mode-`on` log, `plainEntryOn`): the check is decided at any state (`kvDet`). -/
+/-- **Every permission the request needs is of the shape `auth.reqShape`** (the cache's answer is the
+coverage `auth.covers` there). No longer part of the model or the log (N1b-1: `kvGranted` is Go's
+verdict for every request); kept as the vocabulary of the dist axioms that still take it as a premise
+(`KVDeleteOnDist`, `TxnCommitOnDist`). -/
 def kvShapeAll (rq : apply.IRRModel) : Prop :=
   ∀ x ∈ reqPerms rq, auth.reqShape x.1 x.2.1
 
@@ -332,11 +336,6 @@ theorem noZeroEnds_of_irr (rq : apply.IRRModel) (h : irrNoZeroEnd rq) : noZeroEn
     · cases hx
   · cases hx
 
-/-- **The check is decided at `st`**: with auth enabled, every permission the request needs is of
-the shape the permission cache decides (`auth.reqShape`). -/
-def kvDet (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
-  st.enabled = true → ∀ x ∈ reqPerms rq, auth.reqShape x.1 x.2.1
-
 /-! ## The model -/
 
 /-- **The mode-`on` model's state** (auth-lease S3a): the auth state, the KV log and the lease table. -/
@@ -344,14 +343,15 @@ abbrev OnState := auth.AuthState × mvcc.Log × LeaseTable
 
 /-- **One lease's keys writable by the principal at `st`** (auth-lease S3a; `checkLeasePuts`' check of one
 lease at one state): auth disabled, or the principal an admin there (no revision: `IsAdminPermitted`), or
-every key attached to the lease writable by the principal (a lease attaching no key passes). -/
+every key attached to the lease writable by the principal (a lease attaching no key passes; a key's
+check Go's verdict `auth.coversX` on the point, N1b-1). -/
 def leaseOk (st : auth.AuthState) (a : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : Prop :=
   st.enabled = false ∨ auth.adminOk st (some (auth.authInfoM a)) ∨
     ∀ k : GoString, I.lookup ⟨k⟩ = some id →
       ((auth.authInfoM a).rev ≠ 0 ∧ st.revision ≤ (auth.authInfoM a).rev ∧
         ∃ u, st.users !! (auth.authInfoM a).user = some u ∧
-          (auth.isRoot u ∨ auth.covers st u .write k []))
+          (auth.isRoot u ∨ auth.coversX st u .write k [] = true))
 
 /-- **The lease part of the apply-time check** (auth-lease S3a; `checkLeasePuts` of a put, of a
 transaction's puts, of a revocation); a grant is not checked at apply. -/

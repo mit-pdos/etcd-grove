@@ -768,13 +768,14 @@ theorem not_leaseOk_setupSt (r : Nat) (a : go_etcd_io.etcd.server.v3.auth.AuthIn
     · rw [hu', etcd_auth.setupSt_users_u] at hus; cases hus
       rcases hc with hroot | hc
       · exact etcd_auth.not_isRoot_u hroot
-      · simp only [auth.covers, auth.coversPoint, etcd_auth.userPerms_u, List.mem_singleton,
-          exists_eq_left] at hc
+      · have hc := (auth.coversX_point_iff _ _ _ _ (etcd_auth.setupSt_permKeysOk r)).1 hc
+        simp only [auth.coversPoint, etcd_auth.userPerms_u, List.mem_singleton, exists_eq_left] at hc
         exact hk ((etcd_auth.permR_covers _ k).1 hc)
     · rw [hv, etcd_auth.setupSt_users_v] at hus; cases hus
       rcases hc with hroot | hc
       · exact etcd_auth.not_isRoot_v hroot
-      · simp [auth.covers, auth.coversPoint, etcd_auth.userPerms_v] at hc
+      · have hc := (auth.coversX_point_iff _ _ _ _ (etcd_auth.setupSt_permKeysOk r)).1 hc
+        simp [auth.coversPoint, etcd_auth.userPerms_v] at hc
 
 /-- `z/lease` is not in `[a, b)`: u may not write it. -/
 theorem not_inRangeK_zK : ¬ etcd_auth.inRangeK zK := by

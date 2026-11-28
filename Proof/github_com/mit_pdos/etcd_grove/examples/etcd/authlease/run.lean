@@ -54,14 +54,13 @@ section pure
 variable [GooseExts]
 
 /-- **u's leased transaction's shape** (`client_txn_on`'s and `txnUpdAtOn`'s side conditions):
-`Txn().Then(OpPut(k, "v", WithLease(L)))` writes, fits a gRPC message, each permission of the shape the
-cache decides, a leased (not plain) transaction, no zero range end, the nested shape. -/
-theorem leaseTxn_ok (k : GoString) (L : w64) (hk : k ≠ []) (hkl : k.length ≤ 2 ^ 20) :
+`Txn().Then(OpPut(k, "v", WithLease(L)))` writes, fits a gRPC message, a leased (not plain)
+transaction, no zero range end, the nested shape. -/
+theorem leaseTxn_ok (k : GoString) (L : w64) (hkl : k.length ≤ 2 ^ 20) :
     txn.txnReadonly (txnWireOf (leaseTxn k L)) = false ∧ txnSizeOk (txnWireOf (leaseTxn k L)) ∧
-    (∀ tw : txn.TxnModelW, tw.toModel = txnWireOf (leaseTxn k L) → kvShapeAll (irrTxn tw)) ∧
     txnPlainL (txnWireOf (leaseTxn k L)) ∧ txnNoZeroEnd (txnWireOf (leaseTxn k L)) ∧
     client.txnNestOk (txnWireOf (leaseTxn k L)) := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · simp [leaseTxn, txnWireOf, opWire, txn.txnReadonly, txn.opIsGet]
   · refine txnSizeOk_of_bounds (N := 2 ^ 20) (M := 3) ⟨?_, ?_, ?_⟩ ?_ (by decide)
     · intro c hc; simp [leaseTxn, txnWireOf] at hc
@@ -71,13 +70,6 @@ theorem leaseTxn_ok (k : GoString) (L : w64) (hk : k ≠ []) (hkl : k.length ≤
       simp only [TxnOp.bytesLe]; exact ⟨hkl, by decide⟩
     · intro o ho; simp [leaseTxn, txnWireOf] at ho
     · simp [TxnModel.nodes, leaseTxn, txnWireOf, opWire, TxnOp.nodes]
-  · intro tw htw
-    refine etcd_auth.kvShapeAll_irrTxn tw (by rw [htw]; simp [leaseTxn, txnWireOf]) ?_
-    rw [htw]
-    intro op hop
-    simp [leaseTxn, txnWireOf, opWire] at hop
-    subst hop
-    exact hk
   · simp [txnPlainL, txn.txnLeased, leaseTxn, txnWireOf, opWire, txn.opsLeased, txn.opLeased]
   · refine ⟨by simp [leaseTxn, txnWireOf], ?_, by simp [leaseTxn, txnWireOf, txnOpsNoZeroEnd]⟩
     simp [leaseTxn, txnWireOf, opWire, txnOpsNoZeroEnd, txnOpNoZeroEnd]
@@ -853,7 +845,7 @@ theorem run.wp_proof
   ihave #Hc₂ : committedAtLeast xu.2.ρ.rd (W64 0) $$ []
   · iapply (committedAtLeast_of_rlog xu.2.ρ.rd (W64 0) Lc (by word))
     iexact HLc₂
-  obtain ⟨hro, htsz, htsh, htpl, htnz, htnest⟩ := leaseTxn_ok tK lu (by decide) (by decide)
+  obtain ⟨hro, htsz, htpl, htnz, htnest⟩ := leaseTxn_ok tK lu (by decide)
   ihave #HTx₂ : isGrpcRpcMd xu.1.Client' go!"/etcdserverpb.KV/Txn"
       (client.etcdTxnSpecOn (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd wu.cid wu.mid) $$ []
   · iunfold akKVOn at HKV₂
@@ -902,7 +894,7 @@ theorem run.wp_proof
   (try wp_auto)
   wp_apply (client.client_txn_on tp uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
       wu.cid wu.mid (W64 0) i₂ tctx none tcd ⟨leaseTxn tK lu, false, true, false⟩ (psAtLeast γc 3) F₂
-      (fun h => by simp [hro] at h) htsz (fun _ => htsh)) $$ [$Hlt Hobj] as %tresp %terr ⟨Hlt, Ht⟩
+      (fun h => by simp [hro] at h) htsz) $$ [$Hlt Hobj] as %tresp %terr ⟨Hlt, Ht⟩
   · iframe Hobj; iframe #
     ileft
     imodintro
@@ -1089,7 +1081,7 @@ theorem run.wp_proof
       (opChecksLease_txn su wu.E _ xK lz) hcellZ
       (Or.inr (Or.inr (Or.inr ⟨rfl, not_inRangeK_zK⟩))) $$ [Hinvu HlbZ Hps1 Hfix₂ Htls₂]
   · iframe #
-  obtain ⟨hro', htsz', htsh', htpl', htnz', htnest'⟩ := leaseTxn_ok xK lz (by decide) (by decide)
+  obtain ⟨hro', htsz', htpl', htnz', htnest'⟩ := leaseTxn_ok xK lz (by decide)
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
@@ -1134,7 +1126,7 @@ theorem run.wp_proof
   (try wp_auto)
   wp_apply (client.client_txn_on tp3 uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
       wu.cid wu.mid (W64 0) i₂ xctx none xcd ⟨leaseTxn xK lz, false, true, false⟩ (fun _ => iprop(False)) F₂
-      (fun h => by simp [hro'] at h) htsz' (fun _ => htsh')) $$ [$Hlt Hobj3] as %xresp %xerr ⟨Hlt, Hx⟩
+      (fun h => by simp [hro'] at h) htsz') $$ [$Hlt Hobj3] as %xresp %xerr ⟨Hlt, Hx⟩
   · iframe Hobj3; iframe #
     ileft
     imodintro

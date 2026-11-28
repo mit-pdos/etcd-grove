@@ -45,8 +45,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.Apply(r, shouldApplyV3)` on a KV request with no alarm set, the verdict at the latest
 state** (see the file header): `Apply.spec`'s triple with the current chain the base one, the base
-applier's KV triples at the latest state (`applierKVL`), the latest-state resource `L hs` and the
-checked permissions' shape (`kvShapedL`); besides `Apply.spec`'s postcondition, `L hs` back and,
+applier's KV triples at the latest state (`applierKVL`) and the latest-state resource `L hs`; besides `Apply.spec`'s postcondition, `L hs` back and,
 for a dispatched and applied request, its outcome decided at the latest state for its principal
 (`kvOutL` at `principalOf rq`). (Strict M1, 2026-11-06: over `Apply.spec`'s restated resources,
 `kvOwnPre` in place of `kvOwn ∗ storeWT ∗ cPre`, the floor `kvLogLb`, the thread's token in and
@@ -68,8 +67,7 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗
       (∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
         apply.applierKVL E (apply.baseChain E.authOn) ci base L) ∗ L hs ∗
-      ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true ∧
-        apply.kvShapedL E.authMode hs x.log rq⌝ }}
+      ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ apply.revokeOwn E rq ∗
     ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
@@ -121,7 +119,7 @@ theorem apply.uberApplier.Apply.wp_kvL
     apply.uberApplier.Apply.kvSpecL (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 F Pre Q Post rs ci L hs T
   wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, %Hok, %Hwin, %Hskip, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, #Hbase, HL, %Hx⟩
-  obtain ⟨Hch, Hkk, Hsh⟩ := Hx
+  obtain ⟨Hch, Hkk⟩ := Hx
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #HsW, %HcE, #Hsh⟩
   ihave #Hs := apply.applierSpecW_at _ _ _ $$ HsW
@@ -167,7 +165,7 @@ theorem apply.uberApplier.Apply.wp_kvL
       $$ [Hres Ha Hkv Htt HFS HSp HRO HLt Hrv HL]
     · iframe #
       iframe Hres Ha Hkv Htt HFS HSp HRO HLt Hrv HL
-      ipureintro; exact ⟨Hok, Hwin, HcE, Hkk, Hsh⟩
+      ipureintro; exact ⟨Hok, Hwin, HcE, Hkk⟩
     inext
     iintro %ar ⟨Htt, Hrt, Hres, HFS, Hrv, Hra, HB⟩
     iapply HΦ'

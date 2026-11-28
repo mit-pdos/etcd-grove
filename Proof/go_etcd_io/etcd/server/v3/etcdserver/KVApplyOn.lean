@@ -81,7 +81,7 @@ theorem outcomeOn_eq (c₀ : w64) (ch : apply.Chain) (s o : OnState)
         split
         · rename_i ha
           rw [if_pos ha] at ho
-          have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1
+          have hdet := hd hm.1 hm.2 rq hdec ha.1
             (needAdminPermission_of_adminDispatchKind rq ha.2)
           obtain ⟨h1, h2⟩ := ho
           exact Prod.ext (adminNext_of_det rq s.1 o.1 hdet h1).symm h2
@@ -109,7 +109,7 @@ theorem outcomeOn_model (c₀ : w64) (ch : apply.Chain) (s : OnState)
           ¬ auth.adminOk s.1 (some (auth.authInfoM (apply.principalOf rq)))
       · simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_pos hrf]
       by_cases ha : uint.Z c₀ < uint.Z m.index ∧ adminDispatchKind (apply.dispatchKind rq) = true
-      · have hdet := (hd hm.1 hm.2 rq hdec).1 ha.1 (needAdminPermission_of_adminDispatchKind rq ha.2)
+      · have hdet := hd hm.1 hm.2 rq hdec ha.1 (needAdminPermission_of_adminDispatchKind rq ha.2)
         simp only [outcomeOn, kvEntryOn, if_pos hm, hdec, if_neg hrf, if_pos ha]
         refine ⟨?_, trivial⟩
         simp only [adminNext, dif_pos hdet]

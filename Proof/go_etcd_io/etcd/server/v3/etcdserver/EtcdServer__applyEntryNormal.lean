@@ -69,9 +69,9 @@ variable [GooseExts]
 generic apply arms cover (`plainOrCmpG lm`: plain, an admitted grant or revocation) or a leased put or
 transaction (read through `kvCover`'s facts), and no admin one. -/
 theorem plainOrCmpG_of_entryOn (lm : lease.Mode) (rq : apply.IRRModel)
-    (h : (plainReqL lm rq ∧ noZeroEnds rq ∧ kvShapeAll rq) ∨ grantPropOk lm rq ∨ revokePropOk lm rq) :
+    (h : (plainReqL lm rq ∧ noZeroEnds rq) ∨ grantPropOk lm rq ∨ revokePropOk lm rq) :
     (plainOrCmpG lm rq ∨ kvCover rq) ∧ ¬ apply.adminKindOk rq := by
-  rcases h with ⟨hpL, -, -⟩ | hg | hr
+  rcases h with ⟨hpL, -⟩ | hg | hr
   · have hpk := (plainReqL_facts lm rq hpL).2.2
     refine ⟨?_, fun h => adminKindOk_notPutget rq h hpk⟩
     rcases plainReqL_cases lm rq hpL with hp | -
@@ -1460,8 +1460,7 @@ theorem Apply_kvSpecL_win (h : apply.Apply.kvSpecL (GF := GF) (hG := hG)) :
       srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗ L hs ∗
-      ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true ∧
-        apply.kvShapedL E.authMode hs x.log rq⌝ }}
+      ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗
@@ -1979,7 +1978,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       icases Hai with ⟨-, -, #Hev⟩
       hook_pre
       ihave ⟨%f, %Hfb, HRS, HLt, #HGI, #HRq, HEv⟩ := srvRestM_open true E γr A $$ HRS
-      rcases Hpe Htyp hdata rq hdec with ((⟨hpL, hz, hsa⟩ | hgr | hgr) | ⟨hadm, hns⟩)
+      rcases Hpe Htyp hdata rq hdec with ((⟨hpL, hz⟩ | hgr | hgr) | ⟨hadm, hns⟩)
       rotate_left
       · -- (auth-lease S3a §6) a grant: `apply.Apply` (the auth layer passes a grant through), the
         -- log kept, the table the model's step (`kvEntryOn_grant`)
@@ -2144,9 +2143,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · iframe Hfu Htie
         ihave HL : auth.latestResC stl (.on γa) T hs $$ [HL HT]
         · iunfold auth.latestResC; iframe HL; simp only [auth.authWHeldM]; iexact HT
-        -- the model's state at the entry: its keys' leases live, no id `0`, its leased keys not empty
+        -- the model's state at the entry: its keys' leases live, no id `0`
         imod (kvInvOn_log0 γr.raft γr.kv srvAuthSt0) $$ HkI' with %Hln0
-        imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 (A ++ [m]) $$ HkI' HrI' HAm with %HpcA
         have hSm : (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) =
             kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A := Hxl
         have hlive : liveSt (kvLeasesOn γr.kv srvAuthSt0 A).ids (mvcc.stateAfter x.log) := by
@@ -2156,10 +2154,6 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         have h0 : W64 0 ∉ (kvLeasesOn γr.kv srvAuthSt0 A).ids := by
           have h := kvRaftOfOn_ne0 γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A
             (by simp [LeaseTable.ids])
-          rw [← hSm] at h; exact h
-        have hne : keysNonEmpty x.log := by
-          have h := keysNonEmpty_kvRaftOfOn γr.kv.lm γr.kv.c0 γr.kv.ch0 srvAuthSt0 γr.kv.log0 A
-            (fun m' hm' => HpcA.1 m' (List.mem_append_left _ hm')) Hln0
           rw [← hSm] at h; exact h
         ihave #HcpW : apply.certPreVW true E x.chain rq x.log
             (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend)
@@ -2210,8 +2204,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               have ho := outcomeOn_of_kvOutL_revoke γr.kv.c0 (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq Htyp hdata
                 hdec hv hna hk γa hs Hhl (noZeroEnds_revoke rq hk) hlive h0 oc' h1
               rw [Hch]; exact congrArg (fun s : OnState => s.2.1) (outcomeOn_eq γr.kv.c0 _ _ _ m Hdet ho)), Hwn.1⟩,
-            by rw [Hch, hAuthOn]; rfl, by rw [hk]; rfl, ?_⟩
-          exact kvShapedL_revoke _ hs x.log rq hk hne
+            by rw [Hch, hAuthOn]; rfl, by rw [hk]; rfl⟩
         ihave HKV := srvApplyKVW_of E wn ua x' Hwn.1 $$ HKV
         have HXo' : ∀ o b, out = .dispatched o b → apply.kvOutL (.on γa) hs
             (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq x.log o := by
@@ -2311,15 +2304,6 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           -- (the auth-on snapshot plan's Prove step) the checks take the write token too
           ihave HL : auth.latestResC stl (.on γa) T hs $$ [HL HT]
           · iunfold auth.latestResC; iframe HL; simp only [auth.authWHeldM]; iexact HT
-          -- the model's state at the entry: its leased keys not empty (`kvShapedL_of_logL`)
-          imod (kvInvOn_log0 γr.raft γr.kv srvAuthSt0) $$ HkI' with %Hln0
-          imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 (A ++ [m]) $$ HkI' HrI' HAm with %HpcA
-          have hne : keysNonEmpty x.log := by
-            have h := keysNonEmpty_kvRaftOfOn γr.kv.lm γr.kv.c0 γr.kv.ch0 srvAuthSt0 γr.kv.log0 A
-              (fun m' hm' => HpcA.1 m' (List.mem_append_left _ hm')) Hln0
-            have hSm : (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) =
-                kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A := Hxl
-            rw [← hSm] at h; exact h
           have hpK : plainReqL γr.kv.lm rq := by rw [hlmE]; exact hpL
           have hlmK : E.lg = false → γr.kv.lm = .none := fun hg => by
             rw [hlmE]; exact apply.AEnv.lm_of_lg_false hg
@@ -2376,8 +2360,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               have ho := outcomeOn_of_kvOutLL γr.kv.lm γr.kv.c0 (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m rq Htyp
                 hdata hdec hv hna hkv hpK γa hs Hhl hz oc' h1 (Or.inr (by rw [hTids hlg]; exact he))
               rw [Hch]; exact congrArg (fun s : OnState => s.2.1) (outcomeOn_eq γr.kv.c0 _ _ _ m Hdet ho)), Hwn.1⟩,
-              by rw [Hch, hAuthOn]; rfl, apply.authKVKind_of_isKVKind _ hkv, ?_⟩
-            rw [hM]; exact kvShapedL_of_logL _ hs x.log rq hz hsa hne
+              by rw [Hch, hAuthOn]; rfl, apply.authKVKind_of_isKVKind _ hkv⟩
           ihave HKV := srvApplyKVW_of E wn ua x' Hwn.1 $$ HKV
           have hnr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
             rw [h] at hkv; simp [apply.isKVKind] at hkv
@@ -2600,7 +2583,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         -- (H5) the cap raised to the log with `m`, and the step's cap permission
         have hsaA : srvAuthAtLog γr.kv (auth.bump auth.bootState) A = sa := by
           unfold srvAuthAtLog; rw [show auth.bump auth.bootState = srvAuthSt0 from rfl, ← Hxl]
-        have hdetA : authDet rq sa := (Hdet Htyp hdata rq hdec).1 hv hna
+        have hdetA : authDet rq sa := Hdet Htyp hdata rq hdec hv hna
         iunfold auth.authOwnFu at Hfu
         icases Hfu with ⟨Hown, Hfuel⟩
         imod authHistTie_raise E γr γa A m rq hs sa

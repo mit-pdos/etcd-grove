@@ -134,7 +134,7 @@ proofs that use it (the import tiers); `work_delete_law_holds` proves it. -/
 abbrev work_delete.law : Prop :=
   ∀ (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
-      (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString) (hk : k ≠ [])
+      (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (k : GoString)
       (hγa : E.authMode = .on γa)
       (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) → opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
       (hsz : opSizeOk (opDeleteModel k [])),
@@ -178,7 +178,6 @@ abbrev work_commit.law : Prop :=
       (hγa : E.authMode = .on γa)
       (hp : TxnModel.plain (txnWireOf b.model)) (hin : txnModelIn (txnWireOf b.model))
       (hsz : txnSizeOk (txnWireOf b.model))
-      (hsh : ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw))
       (hro : txn.txnReadonly (txnWireOf b.model) = false)
       (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
       (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))),

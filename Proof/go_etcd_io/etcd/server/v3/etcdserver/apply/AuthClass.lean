@@ -792,21 +792,6 @@ theorem watchClassFrom_of_classResFrom (M : auth.AuthMode) (n : Nat)
   unfold watchClassFrom watchPerms watchKey
   iintro H; iexact H
 
-/-- A registered watch's request has the shape the permission cache decides (`auth.reqShape`):
-mvcc's `Watch` registers `[k, e')` (`e'` the rewritten range end: empty for `"\x00"`) only for
-`e' = []` or `k < e'`. -/
-theorem reqShape_of_watch (key e : GoString)
-    (h : (if e = [W8 0] then [] else e) = [] ∨
-      go.GoStringLt (watchKey key) (if e = [W8 0] then [] else e)) :
-    auth.reqShape (watchKey key) e := by
-  refine ⟨watchKey_ne_nil key, ?_⟩
-  by_cases he : e = [W8 0]
-  · right; left; rw [he]; rfl
-  · simp only [he, ↓reduceIte] at h
-    rcases h with h | h
-    · left; exact h
-    · right; right; exact h
-
 end defs
 
 end apply

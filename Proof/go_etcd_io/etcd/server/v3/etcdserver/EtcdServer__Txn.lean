@@ -1087,7 +1087,7 @@ theorem EtcdServer.Txn.wp_proof
       (try isimp only [Bool.false_eq_true, ↓reduceIte] at Hnp)
       ihave Hnp := (txnPermitM_true _ _ _ _ _).1 $$ Hnp
       iunfold txnPermitOn at Hnp
-      icases Hnp with ⟨%Ht, %Ha, Hau⟩
+      icases Hnp with ⟨%Ht, Hau⟩
       (try wp_auto)
       wp_apply time.wp_Now as %now -
       (try wp_auto)
@@ -1190,8 +1190,6 @@ theorem EtcdServer.Txn.wp_proof
           iunfold txnPermitOn
           isplitr
           · ipureintro; exact Ht
-          isplitr
-          · ipureintro; exact Ha
           iexact Hau
         iexists _; iexact Header
       (try wp_auto)
