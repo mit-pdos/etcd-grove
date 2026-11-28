@@ -260,7 +260,7 @@ discharged wherever K8-8 calls `fullComplete` on the same `h0`. Nothing else bey
   `skipToL_le`, `stepL_sound`; at `m` no write advances (it would answer `m+1 > m`, against `NoForeignOk`).
   `M = max m h0.rv` handles `m < h0.rv`.
 
-**Build of record**: see the commit after this note (fk-lean1, `wt/k8s-dist-k8/2026-11-28`).
+**Build of record**: `lake build ...k8s.dist.NoForeignErase` at `d07756f54b` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5289 jobs, OK.
 
 **Left for K8**: K8-8 wires `noForeign_erase` + `pRun_run` into `realCheck_pure` (step 1 of Handoff K8-2:
 `decOp`, the same `ord`); the `pMF` decision (K8-3 §1) is still open.
