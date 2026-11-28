@@ -754,6 +754,31 @@ Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof th
   yet.
 - Next (S5d): `Sys.try`/`op`/`Client` (the clients' side of (e1): see `S5-HANDOFF.md`).
 
+### S5e (branch `hraft-s5e/2026-11-28`): the kit's `Model()` and `Gen`
+
+- **The pure simulation** (`ModelSet.lean`, craq's `craqnet/ModelSet.lean` adapted to the register): `stepSpec` asks
+  `step`'s verdict to be exactly whether `pSeq regB` allows the step, so the Go state `(a, P)` (the register
+  `State{Present, V}`, the values of the pending writes `Pend = P.map pendV`) **brackets** the model's set: `Sim a P S`
+  holds every configuration reachable from `⟨a, P⟩` (`Funl`) and only configurations reachable from `a` with pending
+  inputs whose *values* are some of `P`'s (`Fall`). Values, not inputs: Go keeps only a write's value, and a read of
+  `w` erases the first pending write of value `w` (`findPend`/`erasePend`), which need not be the input a
+  configuration applied (two writes of one value in different ways); `map_erase_perm` closes the gap. `goStep` is
+  kit.go's `step` on the decoded answer; `sim_step` (the verdict is `goStep`'s, the next set bracketed by its next
+  state), from `reach_cons`, `reach_sub`, `reach_val` (the register after late effects: before, or a pending write's
+  value, which may be taken to have fired first). Side conditions kept in the rep: every pending input a write, the
+  register's value short (`RegOk`: the get's answer `bndO (regOut st)` is then the register's).
+- **The Go side** (`ModelDefs.lean`): `pushPend`, `findPend`, `erasePend` over read-only `[]string`, `wp_step` (every
+  branch of `step`; `find_idx`: `findPend`'s index is `P`'s first write of the value, `goStep`'s `find?`), `regDec`
+  (boxed `In`, boxed short `Out`; `decAns`), `regS0`/`regRep`/`regS` (the porcupine model spec), `regS_pendDec` and
+  `regR_encOut_inj` (remote's `Check` premises, for the orchestrator), `Model.spec`, `Gen.spec`.
+- **`Model.wp_proof`, `Gen.wp_proof`** (`KitProof.lean`), over the real code. `Equal` is always false (nothing to
+  prove beyond its triple). **`Gen.spec` is `isPkgInit hraftnet ⊢ genSpec …`**: `Gen` calls `strconv.Itoa`, whose spec
+  needs `strconv`'s initialization, and `lintest.genSpec`'s triple has no package premise (the other kits' `Gen`
+  build their digits by hand); the orchestrator holds `isPkgInit hraftnet` where it passes `Gen`. A write's value
+  `"v" ++ Itoa(c) ++ "." ++ Itoa(n)` is shorter than 256 bytes by `fmtInt_length_le`; a read's way is below 3.
+- Not linked yet (as `Codec.wp_proof`): the orchestrator (S6) passes `Model.wp_proof`, `Codec.wp_proof`,
+  `Gen.wp_proof`, `regS_pendDec`, `regR_encOut_inj` to remote's `Check`. No axiom, `sorry` or premise.
+
 ### S5f batch 1 (branch `hraft-s5f/2026-11-28`): the kit's ghost state at the start, the clients' commands
 
 - **The clients' ghost state is allocated at the start** (S5d's design change; an untrusted restructuring): a client
