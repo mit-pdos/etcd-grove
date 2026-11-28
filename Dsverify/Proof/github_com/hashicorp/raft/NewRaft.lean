@@ -523,10 +523,25 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   ipersist snapshots
   ipersist fsm
   ihave Hlp0 := ownPointer_zero_cfg _ $$ latestConfiguration
+  ihave Hboot : (bootV rc' X.A X.lat : IProp GF) $$ [Hboot]
+  · unfold bootV; iexact Hboot
+  have hdur : rc'.dur = rc.dur := rfl
+  ihave Hsv : (srvVP rc' X.s X.tp X.dp : IProp GF) $$ [Hsv]
+  · unfold srvVP; rw [hdur]; iexact Hsv
+  ihave Hpend : (ghostVar rc'.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) : IProp GF) $$ [Hpend]
+  · rw [hdur]; iexact Hpend
+  ihave Happ : (monoNatAuthOwn rc'.dur.applied (1 : Qp).half 0 ∨ ⌜∃ d, X.dp = some d⌝ : IProp GF) $$ [Happ]
+  · rw [hdur]; iexact Happ
   wp_apply (wp_restoreSnapshot r γ i rc' c snapsI fsmI eof X.A X.lat X.s X.tp X.dp lv.Index' lv.Term'
       (zero_val Configuration) (zero_val Configuration) (W64 0) (W64 0) null tid)
-    $$ [$Hboot $Hpend $Hsv $Happ $Hllb $configurations $Hlp0 $HfsmOwn $Htok]
+    $$ [$Hboot $Hpend $Hsv $Happ $Hllb configurations $Hlp0 $HfsmOwn $Htok]
     as ⟨Hboot, Hpend, Hsv, Htok, #Hlat, Hres⟩
   · iframe #
-    ipureintro; exact hNSR
+    isplitr; · ipureintro; exact hNSR
+    isplitr; · rw [show snapWin γ rc' i = snapWin γ rc i from rfl]; iexact Hsnaps
+    isplitr; · rw [show srvDurInvRaw γ rc' i = srvDurInvRaw γ rc i from rfl]; iexact Hdi
+    isplitr; · unfold appliedCell; iexact HappliedCell
+    rw [show (zero_val configurations : configurations) = configurations.mk (zero_val Configuration) (W64 0)
+      (zero_val Configuration) (W64 0) from rfl]
+    iexact configurations
   sorry
