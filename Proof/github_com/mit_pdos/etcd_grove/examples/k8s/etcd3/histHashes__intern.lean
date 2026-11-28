@@ -109,7 +109,6 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
       · iintro Hsl'
         iapply (BigSepM.bigSepM_delete hC).2
         iframe
-        iexact Hsl'
   icases Hsl with ⟨%ns, Hns, Hcap, #Hcn, Hback⟩
   ihave %Hlns := ownSlice_len $$ Hns
   (try wp_auto)
@@ -138,13 +137,37 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     · (try wp_auto)
       wp_for_post
       (try wp_auto)
-      fail "ret"
+      iapply HΦ
+      isplitl [Hc Hi HC HI Hg Hgs Hns Hcap Hback]
+      · iunfold hhInv
+        iexists mc', mi', mg, C', I', G
+        iframe
+        iright
+        iframe
+        icases Hback with ⟨-, Hb2⟩
+        iapply Hb2
+        iexists ns
+        iframe
+        iframe #
+      · subst Hif
+        simp only at Hk
+        iapply (histOwn_snoc v hs s').2
+        iexists hn
+        isplitr
+        · iexact Hvp
+        isplitr
+        · iexact Hs'
+        isplitr
+        · ipureintro; rw [Hk.2]; word
+        rw [Hk.1]; iexact Hprev
     · wp_for_post
       iframe
       iexists j + W64 1, _
       iframe
       ipureintro; word
-  · rw [if_pos rfl]
+  · have Hge : ¬ (sint.Z j < sint.Z ((C' !! ikey.mk prev n hv).getD (zero_val GoSlice)).len) :=
+      fun h => Hif (by rw [_root_.decide_eq_true h])
+    simp only [Hge, decide_false, Bool.false_eq_true, ↓reduceIte]
     (try wp_auto)
     wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [$HC] as HC
     (try wp_auto)
