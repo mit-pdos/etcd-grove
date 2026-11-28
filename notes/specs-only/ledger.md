@@ -9671,6 +9671,33 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   the read); the law is proved (`readCall_law_holds`), no longer a hypothesis of `Sys.try.wp_proof`. No
   top-level statement changes; no axiom.
 - **Decision.** Untrusted specs, proved here (S6, #48).
+
+## 2026-11-28: `HistoryRevs.spec` has no size bound for `slices.Sort` (k8s-dist K9-16)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/HistoryRevs.lean`, `HistoryRevs.spec`.
+- **Defect.** `HistoryRevs` sorts `r.anchors` (all of `all`'s keys) and each `r.byKey[k]`/`r.fastByKey[k]`
+  with `slices.Sort`, whose spec (`Spec/slices/Sort.lean`, Perennial's `slices.Sort.spec`) takes
+  `xs.length ≤ 2 ^ 62`. Those lengths are the sizes of maps the function builds (`GMap.size A` for
+  `all`, the per-key maps' sizes), and nothing in the spec bounds them: Go never calls `len` on them
+  (`wp_map_len_lt`, which K9-14 planned on, needs a `len` call, and gives only `< 2 ^ 63`), and
+  Perennial's map model has no size bound of its own. The number of keys is at most the number of
+  `num`/`obj` calls: 6 per operation plus each watch's decoded events plus each list's decoded items.
+- **Evidence.** The ops loop is proved (K9-16, `HistoryRevs.wp_proof`); the tail's first `slices.Sort`
+  needs `GMap.size A ≤ 2 ^ 62`, and the context has no fact about `A`'s size.
+- **Proposed change.** Add a premise bounding that count, e.g. `histCost xs ≤ 2 ^ 62` with
+  `histCost xs := Σ_{(x, y) ∈ xs} (6 + (decWEventsL y.WEvents').getD [] |>.length +
+  (decItemRVsL y.Items').getD [] |>.length)`, and carry `GMap.size A ≤ n` (and the per-key maps' sizes
+  `≤ n`) in `allSt`, `n` the calls so far (`Hnum'`/`Hobj'` take `n` to `n + 1`). Its caller (step 5's
+  check) discharges it from the history's size (the run's step bound). Alternative: a premise
+  bounding the length of every string of the history and `xs.length`.
+- **Decision (coordinator etcd-grove-03, 2026-11-28).** Add the premise `histCost xs ≤ 2 ^ 62` (an internal
+  spec, not a top-level one); track the map sizes in `allSt`. Done (K9-17): `opCost`/`histCost` in
+  `HistRevsDefs.lean` (`opCost` counts 7, not the 6 proposed above: `MinRV`, `PreRV`, the cached object,
+  `ErrRV`, `ListRV`, `RV`, the error message; plus the decoded events and items). The sizes are bounded
+  not by a call count but by a fixed key set: `allSt S` keeps every key of `all` and of `byKey`'s maps in
+  `S = xs.flatMap insL` (each `num`/`obj` call site shows its value is in `insL x y`), so
+  `GMap.size ≤ (xs.flatMap insL).length = histCost xs` (`size_le_of_keys`, `histCost_eq`); this left the
+  ops loop's 25 `allSt_mono` weakenings untouched. Discharge at step 5: see Handoff K9-17.
 ## 2026-11-28: `kvModel`/`kvLeases` (and so `kvRevLbZ`/`kvRevLb`) -- the fold of the auth-aware model from `srvAuthSt0` (nomode N1b-2)
 
 - **Spec.** `kvModel`, `kvLeases` (`Proof/.../etcdserver/InvRequest.lean`), the vocabulary of `kvRevLbZ`/`kvRevLb`,

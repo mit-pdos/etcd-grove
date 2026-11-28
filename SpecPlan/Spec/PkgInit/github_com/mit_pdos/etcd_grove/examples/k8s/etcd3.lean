@@ -6,7 +6,6 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.slices.Base
 public import Perennial.Proof.sort.Base
-public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.anishathalye.porcupine
@@ -18,6 +17,7 @@ public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage.etcd3
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap

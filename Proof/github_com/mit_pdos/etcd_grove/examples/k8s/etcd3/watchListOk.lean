@@ -7,6 +7,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histAt
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialEvents
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.eventsEqual
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HView
 
 @[expose] public section
 
@@ -28,27 +29,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-theorem watchListOkL_some (x : Input) (req : Nat) (evs : List WEv) (h : HSt) (k : Nat) (e : WEv)
-    (hfi : evs.findIdx? (fun e => e.t = 3) = some k) (hk : evs[k]? = some e) :
-    watchListOkL x req evs h =
-      if !e.o.Annotated' then false
-      else if (req ≠ 0 ∧ uint.nat e.o.ResourceVersion' < req) ∨ uint.nat e.o.ResourceVersion' < 1 ∨
-          uint.nat h.st.rv < uint.nat e.o.ResourceVersion' then false
-      else if !evsEqL (initialEventsL x (histN h.hist (uint.nat e.o.ResourceVersion'))) (evs.take k)
-        then false
-      else reliableOkL x req (evs.drop k) h := by
-  unfold watchListOkL
-  rw [hfi]
-  simp only [List.getD_eq_getElem?_getD, hk, Option.getD_some]
-
-theorem cfgOwn_hist (c : mcfg) (g : GCfg) :
-    cfgOwn (GF := GF) c g ⊢ histOwn c.hist' g.st.hist ∗ ⌜g.st.hist.length < 2 ^ 64⌝ := by
-  unfold cfgOwn
-  iintro ⟨-, #Hh, -, %H⟩
-  isplit
-  · iexact Hh
-  · ipureintro; exact H
 
 theorem watchListOk.wp_proof
     (wp_firstBookmark : firstBookmark.spec (GF := GF) (hG := hG))

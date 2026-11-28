@@ -96,6 +96,9 @@ theorem parseRV.wp_proof : parseRV.spec (GF := GF) (hG := hG) := by
   rw [this]
   isplitr
   · ipureintro; nofun
+  isplitl
+  rotate_left
+  · ipureintro; rfl
   iunfold go_etcd_io.etcd.cache.v3.errStrOk
   imodintro
   iintro %e %he

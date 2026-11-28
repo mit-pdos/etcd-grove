@@ -6,6 +6,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.evRange
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableLo
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wantEvents
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.nonBookmarks
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HView
 
 @[expose] public section
 
@@ -27,14 +28,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-theorem reliableOkL_eq (x : Input) (req : Nat) (evs : List WEv) (h : HSt) (lo0 hi : Nat)
-    (hR : evRangeL evs = some (lo0, hi)) :
-    reliableOkL x req evs h =
-      if x.Match' = W64 2 ∧ req = 0 then false
-      else if uint.nat h.st.rv + 1 < hi then false
-      else evsEqL (eventsInL x h.hist (reliableLoL x req lo0) hi) (evs.filter fun e => e.t ≠ 3) := by
-  unfold reliableOkL reliableLoL; rw [hR]
 
 theorem reliableOk.wp_proof
     (wp_eventsEqual : eventsEqual.spec (GF := GF) (hG := hG))

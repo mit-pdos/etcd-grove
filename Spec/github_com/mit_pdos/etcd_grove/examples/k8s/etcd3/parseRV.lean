@@ -34,7 +34,7 @@ abbrev parseRV.spec : Prop :=
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       match parseRVD s with
       | some m => ⌜err = GoInterface.nil ∧ n = m⌝
-      | none => ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err }}
+      | none => ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err ∗ ⌜n = W64 0⌝ }}
 
 end spec
 

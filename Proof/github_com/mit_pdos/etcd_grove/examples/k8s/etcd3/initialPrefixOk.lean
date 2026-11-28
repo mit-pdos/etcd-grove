@@ -4,6 +4,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialPref
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialEvents
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histAt
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.eventsEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HView
 
 @[expose] public section
 
@@ -25,20 +26,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-/-- The test `initialPrefixOk` runs at revision `r`. -/
-def prefAt (x : Input) (n : Nat) (evs : List WEv) (h : HSt) (r : Nat) : Bool :=
-  evsEqL ((initialEventsL x (histN h.hist r)).take n) evs &&
-    decide (n ≤ (initialEventsL x (histN h.hist r)).length)
-
-theorem range'_any_snoc (f : Nat → Bool) (m r : Nat) (h : m ≤ r) :
-    (List.range' m (r + 1 - m)).any f = ((List.range' m (r - m)).any f || f r) := by
-  rw [show r + 1 - m = (r - m) + 1 by omega, List.range'_concat, List.any_append]
-  simp [show m + (r - m) = r by omega]
-
-theorem range'_any_mono (f : Nat → Bool) (m a b : Nat) (h1 : m ≤ a) (h2 : a ≤ b)
-    (h : (List.range' m (a - m)).any f = true) : (List.range' m (b - m)).any f = true := by
-  rw [show b - m = (a - m) + (b - a) by omega, ← List.range'_append_1, List.any_append, h]
 
 theorem initialPrefixOk.wp_proof
     (wp_initialEvents : initialEvents.spec (GF := GF) (hG := hG))

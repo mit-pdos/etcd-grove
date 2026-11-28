@@ -6,6 +6,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toEvent
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histAt
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeKey
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.keyInScope
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HView
 
 @[expose] public section
 
@@ -27,38 +28,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-theorem eventsInL_succ_of_lt2 (x : Input) (hs : List GSt) (lo hi : Nat) (h : lo < 2) :
-    eventsInL x hs lo hi = eventsInL x hs (lo + 1) hi := by
-  unfold eventsInL
-  rcases Nat.lt_or_ge lo hi with hl | hl
-  · obtain ⟨n, hn⟩ : ∃ n, hi - lo = n + 1 := ⟨hi - lo - 1, by omega⟩
-    have hn' : hi - (lo + 1) = n := by omega
-    have hev : evAtL x hs lo = none := by simp [evAtL]; omega
-    rw [hn, hn', List.range'_succ, List.filterMap_cons, hev]
-  · rw [show hi - lo = 0 by omega, show hi - (lo + 1) = 0 by omega]
-    rfl
-
-theorem eventsInL_max2 (x : Input) (hs : List GSt) (lo hi : Nat) :
-    eventsInL x hs lo hi = eventsInL x hs (max lo 2) hi := by
-  rcases Nat.lt_or_ge lo 2 with h | h
-  · rw [eventsInL_succ_of_lt2 x hs lo hi h]
-    rcases Nat.lt_or_ge (lo + 1) 2 with h2 | h2
-    · rw [eventsInL_succ_of_lt2 x hs (lo + 1) hi h2]
-      congr 1; omega
-    · congr 1; omega
-  · congr 1; omega
-
-theorem eventsInL_snoc (x : Input) (hs : List GSt) (s r : Nat) (h : s ≤ r) :
-    eventsInL x hs s (r + 1) = eventsInL x hs s r ++ (evAtL x hs r).toList := by
-  unfold eventsInL
-  rw [show r + 1 - s = (r - s) + 1 by omega, List.range'_concat, List.filterMap_append]
-  congr 1
-  rw [show s + 1 * (r - s) = r by omega]
-  simp only [List.filterMap_cons, List.filterMap_nil]
-  cases evAtL x hs r <;> rfl
-
-theorem histAtL_eq_histN (hs : List GSt) (r : w64) : histAtL hs r = histN hs (uint.nat r) := rfl
 
 theorem wantEvents.wp_proof
     (wp_changeAt : changeAt.spec (GF := GF) (hG := hG))

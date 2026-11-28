@@ -576,7 +576,7 @@ theorem HRel.watchOk (h : HRel A n0 ρ W s c) (hn0 : 1 ≤ n0) (x : Input) (y : 
     have := List.any_eq_false.mp (Bool.eq_false_iff.mpr h5) e he; simp at this; omega
   have hA : ∀ e ∈ all.filter (fun e => e.t ≠ 4), uint.nat e.o.ResourceVersion' ∈ A := fun e he => by
     have he' := List.mem_filter.mp he
-    exact hanc.2.2.1 hk hwf all hd e he'.1 (by simpa using he'.2)
+    exact hanc.2.2.1 hk hwf all hd e he'.1 (by have h5e := h5' e he'.1; have h4e : e.t ≠ 4 := (by simpa using he'.2); omega)
   have hmax : evMaxL all ≤ uint.nat s.st.rv := by
     refine Nat.le_trans ?_ htg
     unfold targetL; rw [if_pos hk, if_neg hf, hd]; dsimp only
