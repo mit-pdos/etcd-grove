@@ -878,19 +878,65 @@ theorem durCore_facts (X : SrvDur) :
 
 /-- (R2) The installed snapshot's discard on the opened core (`installDiscard_upd`, R4b/R5's
 `DeleteRange` with `Pend.discard`): the new log and durable prefix, the main goroutine's view (lent
-in the window) and the pending discard cleared; the store coupling is the caller's (the delete's
-range covers every stored entry; the frontier raised to `x`). -/
-theorem installDiscard_core (X : SrvDur) (s : SState) (d : DiscPend) (A' : LogAbs) (c' : Nat)
-    (hd : X.s = s ∧ X.dp = some d)
-    (hA : (∀ k e, A'.m.lookup k = some e → d.x < k) ∧ A'.staged = X.A.staged ∧ A'.ci = X.A.ci)
-    (hc : d.x ≤ c') :
-    Inv γ ∗ durCore γ rc i X ∗ srvVP rc s X.tp (some d) ∗ compLb rc c' ⊢ |={E}=>
-      ∃ (X' : SrvDur), durCore γ rc i X' ∗ srvVP rc X'.s X.tp none ∗ durLb γ i d.x ∗
+in the window) and the pending discard cleared, the store emptied by the delete (`A'.m = ∅`, R5 Q4:
+the log after the discard is the committed prefix of length `d.x`, none of which the store keeps),
+the store's lower bound `d.x + 1` and the compaction frontier raised to `d.x` (with the main
+goroutine's half of its authority; the latest snapshot is at least `d.x`, `latLb`). -/
+theorem installDiscard_core (X : SrvDur) (s : SState) (d : DiscPend) (A' : LogAbs) (c0 : Nat)
+    (hd : X.s = s ∧ X.dp = some d ∧ X.pend = none)
+    (hA : A'.m = ∅ ∧ A'.staged = X.A.staged ∧ A'.ci = X.A.ci) :
+    Inv γ ∗ durCore γ rc i X ∗ srvVP rc s X.tp (some d) ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half c0 ∗
+      latLb rc d.x ⊢ |={E}=>
+      ∃ (X' : SrvDur), durCore γ rc i X' ∗ srvVP rc X'.s X.tp none ∗
+        monoNatAuthOwn rc.dur.comp (1 : Qp).half d.x ∗ durLb γ i d.x ∗
         ([∗list] k ↦ e ∈ X'.s.log, CIdx γ (k + 1) e) ∗
-        ⌜X'.A = A' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend ∧ X'.dp = none ∧
-          X'.s.log.length = d.x ∧ lastTerm X'.s.log = d.st ∧ X'.s.dur.1 = d.x ∧
+        ⌜X'.A = A' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend ∧ X'.dp = none ∧ X'.c = d.x ∧
+          X'.lo = d.x + 1 ∧ X'.s.log.length = d.x ∧ lastTerm X'.s.log = d.st ∧ X'.s.dur.1 = d.x ∧
           X'.s.term = s.term ∧ X'.s.vterm = s.vterm ∧ X'.s.vcand = s.vcand ∧ X'.s.cidx = s.cidx⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  iintro ⟨#HI, Hc, Hv, Hcm, #Hll⟩
+  obtain ⟨hs, hdp, hpe⟩ := hd
+  iunfold durCore at Hc
+  icases Hc with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst0, Htv, Hcv, %Hp, Hcomp, Hpend, Htp, Hdp, Hla⟩
+  rw [hs, hdp] at Hp ⊢
+  obtain ⟨hlo, hlc, hvm, htd, hci, ⟨⟨hdl, hpd, hll⟩, hcd⟩⟩ := Hp
+  have hcx := hcd d rfl
+  iunfold dpRes at Hdp
+  icases Hdp with ⟨#Hae, #Hl, %hpre⟩
+  imod (gprot.srvOwn_durLb γ _ hE i s) $$ [HI Ho] with ⟨Ho, #Hdl0⟩
+  · iframe #; try iframe
+  imod (gprot.installDiscard_upd γ _ hE i s d.x d.st d.ℓ hpre.1 hpre.2.1 hpre.2.2) $$ [HI Ho Hlc Hdv Hae Hl]
+    with ⟨%L', %dd, Ho, Hlc, Hdv, #Hlbx, %hL, HC⟩
+  · iframe #; try iframe
+  ihave %hmono := gprot.durView_lb γ i _ dd.1 s.dur.1 $$ [Hdv Hdl0]
+  · iframe #; try iframe
+  unfold latLb
+  ihave %hlat := monoNatLbOwn_valid rc.dur.lat 1 _ d.x $$ Hla Hll
+  imod (gprot.monoNat_update_halves rc.dur.comp X.c c0 d.x (by omega)) $$ [Hcomp Hcm] with ⟨Hcomp, Hcm, -⟩
+  · iframe
+  unfold srvVP
+  imod (ghostVar_update_halves ({ s with log := L', dur := dd }, X.tp, (none : Option DiscPend)) rc.dur.sv _ _)
+    $$ Hsv Hv with ⟨Hsv, Hv⟩
+  imodintro
+  iexists ({ X with s := { s with log := L', dur := dd }, A := A', lo := d.x + 1, c := d.x, dp := none })
+  isplitl [Ho Hdv Hlc Htc Hcc Hsv Hst0 Htv Hcv Hcomp Hpend Htp Hla]
+  · iunfold durCore
+    dsimp only
+    rw [hA.2.1]
+    simp only [dpRes]
+    iframe
+    ipureintro
+    try simp only [and_true]
+    refine ⟨?_, by omega, hvm, htd, by rw [hA.2.2]; exact Nat.le_trans hci hmono, ⟨⟨fun d' h => (by cases h), ?_, by have := hlat.2; omega⟩, fun d' h => (by cases h)⟩⟩
+    · unfold logOk
+      rw [hA.1]
+      constructor
+      · intro k e h; simp at h
+      · intro k h1 h2; omega
+    · intro x st id h; rw [hpe] at h; cases h
+  iframe
+  iframe #
+  ipureintro
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, hL.1, hL.2.1, hL.2.2, rfl, rfl, rfl, rfl⟩
 
 end core
 
