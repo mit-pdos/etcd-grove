@@ -54,6 +54,8 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     (try wp_auto)
     wp_apply (wp_map_make1 (K := Loc) (V := Bool) _ _) as %m2 Hm2
     (try wp_auto)
+    isplitr
+    · ipureintro; rfl
     iexists m1, m2, ∅, ∅
     iframe
     iapply BigSepM.bigSepM_empty.2
@@ -62,7 +64,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     · exact absurd Hnil.1 (by assumption)
     · iexists mc, mi, C, I
       iframe
-  wp_apply wp_storeHash st s $$ [Hst] as %hv -
+  wp_apply wp_storeHash st s $$ [$Hst] as %hv -
   (try wp_auto)
   wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [HC] as HC
   ihave Hsl : (∃ ns : List Loc,
