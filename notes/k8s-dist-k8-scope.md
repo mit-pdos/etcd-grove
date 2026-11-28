@@ -193,3 +193,8 @@ step: `linkv.PReach` then `PStep`) and `pRun_run` (a `PRun` is a run of `pSeq (k
    bookmarks are anchors). This is the bulk: a per-kind lemma, `mstepL_ren`'s read counterpart.
 `realCheck_pure` also takes `GOks` and `hn`; `IsLinearization` there is with `List.range lops.length`, so the
 dist linearization ghost must order `lops` as the in-process one does (K8-3's `pMF` decision).
+
+Build of record: `lake build Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.NoForeignErase` at `5349a789f5`,
+5270 jobs, OK, on **fk-lean1** (worktree `wt/k8s-dist-k8/2026-11-28`, seeded from `lean-warm`): fk-lean2 has
+46 GB free, below `remote-check.sh`'s 65 GB to seed a worktree. The edit loop ran in fk-lean2's K9 worktree
+(`rcheck8.sh`: my file copied there, the imports identical; the copy removed after).
