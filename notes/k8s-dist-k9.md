@@ -631,7 +631,7 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   watchOkIdx` in `etc/link-lean-first-k8setcd3.txt`, `Link.lean` regenerated with `etc/gen-link.py
   --k8setcd3 > Link.lean`). Build of record (fk-lean2, target `etcd3.Link`) at `c3bd22b9c5`: passed,
   12259 jobs.
-- **SharedModel, started** (`698e6380a6`, checked with `rc.sh`, built as a target; nothing imports it
+- **SharedModel, started** (`698e6380a6`, checked with `rc.sh`; build of record at `698e6380a6` with it as a second target passed; nothing imports it
   yet): `Proof/.../etcd3/SharedModelDefs.lean` (defs tier) and
   `Spec/.../etcd3/Seeded__SharedModel.lean`. Departures from §2.1's sketch, each forced:
   - states are `GCfg → Prop` (the repository has no Mathlib `Set`; as `linkv.PSet`); porcupine's model
