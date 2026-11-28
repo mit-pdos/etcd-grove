@@ -3,7 +3,7 @@
 `settle(hh, revs, c, b, full, in, out)` (export.go, notes/k8s-dist-k9.md §2.2): the configurations
 `c` settles to, each pending write taking effect (or dropped, where it has no effect) at one of
 `landingsL`'s revisions, in any order: exactly `GoSettle`'s (duplicates allowed), each well-formed.
-DRAFT (K9-5): `SettleOk`'s bounds are a guess at what the proof needs; revise with the proof.
+`SettleOk`: the bounds the proof needs (K9-6).
 -/
 module
 

@@ -30,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev cfgSet.add.spec : Prop :=
   ∀ (s hh : Loc) (gs : List GCfg) (c : mcfg) (g : GCfg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ hhOwn hh ∗ cfgSetOwn s hh gs ∗ cfgOwn c g ∗ ⌜gs.length + 1 < 2 ^ 63⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ hhOwn hh ∗ cfgSetOwn s hh gs ∗ cfgOwn c g }}
     (App (Val (s @!! go.GoType.PointerType cfgSet.ty @!! go!"add")) (Val #c))
   {{ (b : Bool), RET #b; if b then cfgSetOwn s hh (gs ++ [g]) else cfgSetOwn s hh gs ∗ ⌜g ∈ gs⌝ }}
 

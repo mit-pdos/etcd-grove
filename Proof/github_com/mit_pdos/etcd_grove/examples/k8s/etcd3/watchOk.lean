@@ -7,6 +7,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.bookmarksOk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchListOk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.SharedLand
 
 @[expose] public section
 
@@ -28,34 +29,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-theorem decWEventsL_t (n : Nat) : ∀ (s : GoString), s.length ≤ n → ∀ evs, decWEventsL s = some evs →
-    ∀ e ∈ evs, e.t < 256 := by
-  induction n with
-  | zero =>
-    intro s hs evs h e he
-    have : s = [] := List.eq_nil_of_length_eq_zero (by omega)
-    subst this
-    rw [decWEventsL] at h
-    simp at h; subst h; simp at he
-  | succ n ih =>
-    intro s hs evs h e he
-    rw [decWEventsL] at h
-    split at h
-    · simp at h; subst h; simp at he
-    · split at h
-      · simp at h
-      · dsimp only at h
-        split at h
-        · simp at h
-        · split at h
-          · simp at h
-          · rename_i o _
-            obtain ⟨rest, hrest, rfl⟩ := Option.map_eq_some_iff.1 h
-            simp only [List.mem_cons] at he
-            rcases he with rfl | he
-            · exact BitVec.isLt _
-            · exact ih _ (by simp; omega) rest hrest e he
 
 theorem watchOkL_eq (x : Input) (y : Output) (h : HSt) (all : List WEv) (reqw : w64)
     (hf : (y.WFailed' || x.Skip') = false) (hd : decWEventsL y.WEvents' = some all)

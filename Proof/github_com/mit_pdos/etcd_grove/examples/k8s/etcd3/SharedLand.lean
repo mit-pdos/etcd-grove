@@ -65,6 +65,35 @@ decreasing_by
   have : s.length ≠ 0 := by simpa using h
   omega
 
+/-- `decodeWEvents`' event types are bytes. -/
+theorem decWEventsL_t (n : Nat) : ∀ (s : GoString), s.length ≤ n → ∀ evs, decWEventsL s = some evs →
+    ∀ e ∈ evs, e.t < 256 := by
+  induction n with
+  | zero =>
+    intro s hs evs h e he
+    have : s = [] := List.eq_nil_of_length_eq_zero (by omega)
+    subst this
+    rw [decWEventsL] at h
+    simp at h; subst h; simp at he
+  | succ n ih =>
+    intro s hs evs h e he
+    rw [decWEventsL] at h
+    split at h
+    · simp at h; subst h; simp at he
+    · split at h
+      · simp at h
+      · dsimp only at h
+        split at h
+        · simp at h
+        · split at h
+          · simp at h
+          · rename_i o _
+            obtain ⟨rest, hrest, rfl⟩ := Option.map_eq_some_iff.1 h
+            simp only [List.mem_cons] at he
+            rcases he with rfl | he
+            · exact BitVec.isLt _
+            · exact ih _ (by simp; omega) rest hrest e he
+
 /-- **`shows(in, out, key, r)`**: the answer `y` to `x` needs a write of `key` at `r` to have taken
 effect. -/
 def showsL (x : Input) (y : Output) (key : GoString) (r : w64) : Bool :=
@@ -106,12 +135,18 @@ def landingsL (R : RevsL) (rv : w64) (w : Input) (b : w64) (full : Bool) (x : In
 abbrev GoSettle (R : RevsL) (b : w64) (full : Bool) (x : Input) (y : Output) : GCfg → GCfg → Prop :=
   k8s_dist.SettleWith fun c w => (landingsL R c.st.st.rv w b full x y).map uint.nat
 
-/-- The revisions `settle` may reach stay below `2^63` (each landing below `2^63 - 1`): every
-revision `R` names, the answer's, and the configuration's. -/
+/-- **`settle`'s bounds**: every revision `settle` may land a write at (`R`'s, the answer's, the
+configuration's next), with as many pending writes again after it, stays below `2^63` (each landing
+moves the revision to at most it, or one past the revision, and removes a pending write); the store's
+items with the pending writes stay below `2^63` (each write adds at most one item); the pending inputs
+are writes. -/
 def SettleOk (R : RevsL) (y : Output) (g : GCfg) : Prop :=
-  (∀ a ∈ R.anchors, uint.nat a + 1 < 2 ^ 63) ∧ (∀ k, ∀ a ∈ R.byKey k, uint.nat a < 2 ^ 63) ∧
-  (∀ k, ∀ a ∈ R.fastByKey k, uint.nat a < 2 ^ 63) ∧ uint.nat y.RV' < 2 ^ 63 ∧
-  uint.nat g.st.st.rv + 1 < 2 ^ 63
+  (∀ a ∈ R.anchors, uint.nat a + g.pend.length + 2 ≤ 2 ^ 63) ∧
+  (∀ k, ∀ a ∈ R.byKey k, uint.nat a + g.pend.length + 1 ≤ 2 ^ 63) ∧
+  (∀ k, ∀ a ∈ R.fastByKey k, uint.nat a + g.pend.length + 1 ≤ 2 ^ 63) ∧
+  uint.nat y.RV' + g.pend.length + 1 ≤ 2 ^ 63 ∧
+  uint.nat g.st.st.rv + g.pend.length + 1 ≤ 2 ^ 63 ∧
+  g.st.st.items.length + g.pend.length < 2 ^ 63 ∧ ∀ p ∈ g.pend, isWriteL p = true
 
 end pure
 

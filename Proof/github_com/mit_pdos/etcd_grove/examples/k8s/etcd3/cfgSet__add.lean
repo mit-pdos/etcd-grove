@@ -73,7 +73,7 @@ theorem cfgSet.add.wp_proof
     (wp_pendEqual : pendEqual.spec (GF := GF) (hG := hG)) :
     cfgSet.add.spec (GF := GF) (hG := hG) := by
   intro s hh gs c g
-  wp_start as ⟨#Hhh, Hset, #Hc, %Hgs⟩
+  wp_start as ⟨#Hhh, Hset, #Hc⟩
   iunfold cfgSetOwn at Hset
   icases Hset with ⟨%lsl, %mb, %cs, %B, Hsh, Hsl, Hsb, Hcs, Hcap, Hcg, %Hcsl, Hb⟩
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hcg
@@ -250,6 +250,7 @@ theorem cfgSet.add.wp_proof
     iintro %l2 ⟨Hl2, -⟩
     simp only [arrayLiteralSize1]
     wp_apply (wp_slice_append _ cs _ _ (DFrac.own 1)) $$ [$Hcs $Hcap $Hl2] as %lsl' ⟨Hcs', Hcap2', -⟩
+    ihave %Hcsl2 := ownSlice_len $$ Hcs'
     (try wp_auto)
     iapply HΦ
     simp only [↓reduceIte]
@@ -262,7 +263,7 @@ theorem cfgSet.add.wp_proof
       iframe #
       ipureintro; exact Hchl
     isplitr
-    · ipureintro; simp only [List.length_append, List.length_singleton]; omega
+    · ipureintro; rw [Hcsl2.1]; word
     iright
     iframe
     icases Hback with ⟨Hb1, -⟩

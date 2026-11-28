@@ -86,6 +86,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctnes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.objectRV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.validateMaybeLastEventError
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.watchRevisionRange
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeItemRVs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__Decode
@@ -202,6 +203,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.sameObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seed
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seedOne
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.setItem
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.shows
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.step
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.storeEqual
@@ -885,6 +887,10 @@ theorem k8s_correctness.WatchValidator.wp_ValidateWatch :
     EtcdGrove.k8s_correctness.WatchValidator.ValidateWatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.WatchValidator.ValidateWatch.wp_proof k8s_correctness.WatchValidator.wp_checkWatch k8s_correctness.wp_validateMaybeLastEventError k8s_correctness.WatchValidator.wp_validateBookmarks k8s_correctness.WatchValidator.wp_splitInitialEvents k8s_correctness.wp_objectRV k8s_correctness.WatchValidator.wp_validateInitialEvents k8s_correctness.WatchValidator.wp_validateReliable
 
+theorem wp_decodeItemRVs :
+    EtcdGrove.k8s_etcd3.decodeItemRVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeItemRVs.wp_proof wp_parseRV wp_decodeObj
+
 theorem wp_decodeWEvents :
     EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
@@ -1184,6 +1190,10 @@ theorem labelSel.wp_RequiresExactMatch :
 theorem wp_newCache :
     EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newCache.wp_proof
+
+theorem wp_shows :
+    EtcdGrove.k8s_etcd3.shows.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.shows.wp_proof wp_decodeWEvents wp_decodeItemRVs
 
 end links_hasLC
 

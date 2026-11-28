@@ -103,6 +103,9 @@ encodeV0: encodeWith
 encodeItems: encodeObj rvBytes
 getField:
 decodeObj: getField
+# (K9 step 2) where a pending write lands: `shows`
+decodeItemRVs: parseRV decodeObj
+shows: decodeWEvents decodeItemRVs
 # apimachinery's runtime, with bodies (stage 6c): what the driver's contract rests on (the trust
 # boundary: `bytes.Buffer`'s and `reflect`'s specs, and `conversion.EnforcePtr`)
 Buffer__Bytes: =_root_.Perennial.bytes.Buffer.wp_Bytes
