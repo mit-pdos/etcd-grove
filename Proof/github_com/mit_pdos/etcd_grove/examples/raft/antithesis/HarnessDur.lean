@@ -496,7 +496,8 @@ def downInvB2 (c : Loc) (γ : AntNamesB2) (ns : List Loc) : IProp GF :=
       if ds[j.val]! then iprop(∃ v : AntSim.NodeView, nodeOwnB2 c γ j ns[j.val]! v .down) else iprop(emp))
 
 /-- **The cluster under B2** (`antCluster`'s, with the `mu` lock's invariant `downInvB2`, the nodes'
-records `nodeROB2`, the invariant `antInvB2`). -/
+records `nodeROB2`, the invariant `antInvB2`); raft's static facts a `Ready`'s report reads (the boot
+log, raft's namespace outside the driver's: `nodeRaft`'s, which B2's node state does not keep). -/
 def antClusterB2 [AntStor GF] (c : Loc) (γ : AntNamesB2) : IProp GF :=
   iprop(∃ (cfg : H.Config) (r : Loc) (ns : List Loc) (stop : Loc),
     c.[H.Cluster, go!"cfg"] ↦□ cfg ∗ ⌜CfgOk cfg⌝ ∗
@@ -511,7 +512,9 @@ def antClusterB2 [AntStor GF] (c : Loc) (γ : AntNamesB2) : IProp GF :=
     antStorInv ∗
     ⌜(∀ a : w64, (γ.raft.raftNames.reAcks !! a).isSome → ∃ j : Fin γ.R.N, a = AntSim.nodeId j) ∧
       (∀ a : w64, (γ.raft.raftNames.reWins !! a).isSome → ∃ j : Fin γ.R.N, a = AntSim.nodeId j) ∧
-      (∀ j : Fin γ.R.N, (γ.raft.raftNames.reAcks !! AntSim.nodeId j).isSome)⌝)
+      (∀ j : Fin γ.R.N, (γ.raft.raftNames.reAcks !! AntSim.nodeId j).isSome) ∧
+      γ.raft.raftNames.reBoot = AntSim.bootLog γ.R ∧
+      (↑(raftN γ.raft.raftNames) : CoPset) ⊆ ⊤ \ ↑antN⌝)
 
 /-- The node goroutines' join's namespace (`nodesWg` under B2: `sync.tokJoin`, its counter backed by
 thread tokens, since the restarter adds without bound). -/
