@@ -1101,7 +1101,7 @@ def pendPre (γ : GNames) (i : SID) (s : SState) : Pend → Prop
   | .trunc prev pt ents _ j => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
       j < ents.length ∧ prev + 1 + j ≤ s.log.length ∧ termAt s.log (prev + 1 + j) ≠ termAt ents (j + 1)
   | .fstore prev pt ents lci j lc => prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents j ∧
-      j < ents.length ∧ s.log.length = prev + j ∧
+      ((j < ents.length ∧ s.log.length = prev + j) ∨ (j = ents.length ∧ prev + j ≤ s.log.length)) ∧
       (∀ v, lc = some v → v ≤ prev + ents.length ∧ 0 < Min.min lci v)
   | .discard d => d.ℓ ≠ i ∧ 1 ≤ d.x ∧ ¬ prevMatch s.log d.x d.st
   | .vote _ li lt => s.vterm < s.term ∧ upToDate li lt s.log
@@ -1300,7 +1300,8 @@ def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
   iprop((∃ (s : SState) (p : Pend), ⌜pendStOk s p op⌝ ∗ winRes γ rc i s p) ∨
     (∃ vb : List w8, ⌜op = .set (go!"LastVoteCand" : List w8) vb⌝) ∨
     (∃ (kb : List w8) (v : w64) (D : StableAbs) (g : w64),
-      ⌜op = .setU kb v ∧ (D.ints.lookup kb).getD (W64 0) = v⌝ ∗ stVq rc D g))
+      ⌜op = .setU kb v ∧ (D.ints.lookup kb).getD (W64 0) = v⌝ ∗ stVq rc D g ∗
+      ghostVar rc.dur.pw (1 : Qp).half (none : Option Pend)))
 
 /-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
 snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
