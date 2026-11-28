@@ -38,8 +38,8 @@ abbrev github_com.hashicorp.raft.InmemStore.StoreLogs.spec : Prop :=
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
       ⌜ptrs.length = es.length ∧ first + es.length ≤ 2 ^ 64⌝ ∗ sl ↦*{dq} ptrs ∗
       ([∗list] k ↦ p ∈ ptrs, ∃ e, ⌜es[k]? = some e⌝ ∗ logPtr p (first + k) e)) -∗
-    (|NC={⊤,∅}=> ▷ ∃ A, inmemLogs γs A ∗
-      (inmemLogs γs (A.store first es) ={∅,⊤}=∗ (sl ↦*{dq} ptrs -∗ Φ #interface.nil))) -∗
+    (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, inmemLogs γs A ∗
+      (inmemLogs γs (A.store first es) ={∅,⊤ \ ↑storeN}=∗ (sl ↦*{dq} ptrs -∗ Φ #interface.nil))) -∗
     WP (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"StoreLogs")) (Val #sl))
       {{ Φ }}
 

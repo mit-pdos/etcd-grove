@@ -36,9 +36,9 @@ abbrev github_com.hashicorp.raft.InmemStore.DeleteRange.spec : Prop :=
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
       ⌜uint.nat mx < 2 ^ 64 - 1⌝) -∗
-    (|NC={⊤,∅}=> ▷ ∃ A, inmemLogs γs A ∗
+    (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, inmemLogs γs A ∗
       (∀ hi' : w64, inmemLogs γs (A.delete (uint.nat mn) (uint.nat mx) hi')
-        ={∅,⊤}=∗ Φ #interface.nil)) -∗
+        ={∅,⊤ \ ↑storeN}=∗ Φ #interface.nil)) -∗
     WP (App (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"DeleteRange"))
       (Val #mn)) (Val #mx)) {{ Φ }}
 

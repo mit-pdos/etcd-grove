@@ -109,7 +109,7 @@ theorem github_com.hashicorp.raft.examples.snapstore.New.wp_proof
     (wp_Cancel : github_com.hashicorp.raft.examples.snapstore.Sink.Cancel.spec (GF := GF) (hG := hG))
     (wp_ID : github_com.hashicorp.raft.examples.snapstore.Sink.ID.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.examples.snapstore.New.spec (GF := GF) (hG := hG) :=
-  fun eof => by
+  fun eof Qc => by
   wp_start as #Heof
   iapply wp_fupd
   wp_auto
@@ -138,11 +138,12 @@ theorem github_com.hashicorp.raft.examples.snapstore.New.wp_proof
     inext
     iintro %k %id ⟨#Hcore, Hopen⟩
     iapply HΦ
-    iintro %Q %R Hcm
+    iintro %R Hcm
     imodintro
     iexists _
     isplitr
-    · iapply sink_isSink wp_Write wp_Close wp_Cancel wp_ID k st γ eof id ver idx term cfgIdx cfg Q R
+    · iapply sink_isSink wp_Write wp_Close wp_Cancel wp_ID k st γ eof id ver idx term cfgIdx cfg
+        (fun bs => Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs) R
       iframe #
     simp only [sinkOwn]
     iframe
