@@ -2,9 +2,10 @@
 The hraft kit's server machines' share of the deployment (notes/dsv-hraft.md, S5d; coordinator-E, #48
 7233410712: the protocol per first-configuration size, the orchestrator's draw).
 
-* `HK GF`: the deployment's ghost names: the draw `γc` (`Choice.lean`), raft's protocol `γs n` and
-  the FSMs' frontier `fcs n` per size `n` (3 or 5), the rpc world `W`, and the servers' share
-  tokens `sh`.
+* `HK GF`: the deployment's ghost names: the draw `γc` (`Choice.lean`), raft's protocol `γs n` per
+  size `n` (3 or 5), the kit's clients' ghost names `g` and the FSMs' frontier's `fr` (one of each:
+  only the drawn protocol gets its frontier, `frInv_init`), the rpc world `W`, and the servers' share
+  tokens `sh`. The FSMs' context of the size `n` is `fcs n` (`kitFC`).
 * `kitSS K`: the world's service specs at the servers' addresses: `RaftRPC` is the drawn protocol's
   `raftSvc` of the address's raft server (wrapped, `svcK`), `API` the drawn protocol's `apiSvc`
   (wrapped so a caller that does not know the draw can call: `svcKE`, coordinator-E's (e1)); nothing
@@ -12,8 +13,9 @@ The hraft kit's server machines' share of the deployment (notes/dsv-hraft.md, S5
 * `srvPkg K n j`: what server `j` runs raft with in the protocol of size `n`: the protocol's
   invariant and `j`'s share of it (`gprot.alloc_init`'s), the frontier's invariant and its clients'
   law.
-* `drawInv K`: the draw, once (`chosen γc n`), with every server's package of the drawn protocol,
-  until the server takes it (its `shareTok`).
+* `drawInv K`: the draw, once (`chosen γc n`), with the drawn protocol's frontier invariant (for
+  the clients, who learn the draw in a server's answer, `draw_frInv`) and every server's package of
+  the drawn protocol, until the server takes it (its `shareTok`).
 -/
 module
 
@@ -22,6 +24,7 @@ public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.ApiSvc
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.rpctransport.Trans
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.ServerDefs
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.service.FsmDefs
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.KitQ
 
 @[expose] public section
 
@@ -45,7 +48,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 structure HK (GF : BundledGFunctors) where
   γc : GName
   γs : Nat → GNames
-  fcs : Nat → FCtx GF
+  g : KG
+  fr : GName
   W : net.rpc.RpcWorld GF
   sh : GName
 
@@ -53,6 +57,9 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [package_sem : github_com.hashicorp.raft.Assumptions]
+
+/-- The FSMs' context of the protocol of size `n`: the frontier `fr`, the kit's clients' state. -/
+def HK.fcs (K : HK GF) (n : Nat) : FCtx GF := kitFC (K.γs n) K.g K.fr
 
 /-- The API's methods' argument bytes are encodings of their argument structs. -/
 def apiArgsOk (M : GoString) (bs : List w8) : Prop :=
@@ -106,7 +113,7 @@ and, per server, its package or its token (it took the package). -/
 def drawInv (K : HK GF) : IProp GF :=
   inv drawN iprop(∃ m : GMap Nat Nat, ghostMapAuth K.γc 1 m ∗
     (⌜m = ∅⌝ ∨ ∃ n : Nat, ⌜m = (∅ : GMap Nat Nat).insert 0 n⌝ ∗ drawTok K ∗
-      [∗list] j ∈ List.range' 1 6, (srvPkg K n j ∨ shareTok K j)))
+      frInv (K.γs n) (K.fcs n) ∗ [∗list] j ∈ List.range' 1 6, (srvPkg K n j ∨ shareTok K j)))
 
 instance drawInv_persistent (K : HK GF) : Persistent (drawInv K) := by
   unfold drawInv; infer_instance
@@ -263,7 +270,7 @@ theorem claim_pkg (K : HK GF) (n j : Nat) (hj : 1 ≤ j ∧ j ≤ 6) :
   imod lc_fupd_elim_later $$ Hlc Hcase with Hcase
   unfold chosen
   ihave %Hl := ghost_map_lookup $$ Ha Hc
-  icases Hcase with (%Hm | ⟨%n', %Hm, Hd, Hlist⟩)
+  icases Hcase with (%Hm | ⟨%n', %Hm, Hd, #Hfi, Hlist⟩)
   · subst Hm
     exfalso
     simp at Hl
@@ -281,7 +288,7 @@ theorem claim_pkg (K : HK GF) (n j : Nat) (hj : 1 ≤ j ∧ j ≤ 6) :
       iframe Ha
       iright
       iexists n'
-      iframe Hd
+      iframe Hd Hfi
       isplitr; · ipureintro; rfl
       ihave H := Hrest $$ %j [Htok]
       · iright; iexact Htok
@@ -294,6 +301,37 @@ theorem claim_pkg (K : HK GF) (n j : Nat) (hj : 1 ≤ j ∧ j ≤ 6) :
     exfalso
     have := DFrac.valid_op_own hv.1
     simp at this
+
+/-- **Who knows the draw `n` gets the drawn protocol's frontier invariant** (a later credit: it is under
+the draw invariant's later). -/
+theorem draw_frInv (K : HK GF) (n : Nat) :
+    £ 1 ∗ drawInv K ∗ chosen K.γc n ⊢ |={⊤}=> frInv (K.γs n) (K.fcs n) := by
+  iintro ⟨Hlc, #Hinv, #Hc⟩
+  unfold drawInv
+  iinv Hinv with ⟨%m, >Ha, Hcase⟩ Hclose
+  imod lc_fupd_elim_later $$ Hlc Hcase with Hcase
+  unfold chosen
+  ihave %Hl := ghost_map_lookup $$ Ha Hc
+  icases Hcase with (%Hm | ⟨%n', %Hm, Hd, #Hfi, Hlist⟩)
+  · subst Hm
+    exfalso
+    simp at Hl
+  subst Hm
+  have hn : n' = n := by
+    have := Hl
+    rw [show ((∅ : GMap Nat Nat).insert 0 n').lookup 0 = some n' from lookup_insert _ _ _] at this
+    exact Option.some.inj this
+  subst hn
+  imod Hclose $$ [Ha Hd Hlist] with -
+  · inext
+    iexists _
+    iframe Ha
+    iright
+    iexists n'
+    iframe Hd Hfi Hlist
+    ipureintro; rfl
+  imodintro
+  iexact Hfi
 
 end defs
 

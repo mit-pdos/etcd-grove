@@ -753,3 +753,25 @@ Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the client's proof th
   `errOk`), the sleep loop. Callees are hypotheses (the API's `Read` obligation `mRead` among them, S6). Not linked
   yet.
 - Next (S5d): `Sys.try`/`op`/`Client` (the clients' side of (e1): see `S5-HANDOFF.md`).
+
+### S5f batch 1 (branch `hraft-s5f/2026-11-28`): the kit's ghost state at the start, the clients' commands
+
+- **The clients' ghost state is allocated at the start** (S5d's design change; an untrusted restructuring): a client
+  cannot know the drawn protocol, so `KG` (one for both sizes, now a field `g` of `HK`, with the frontier's name
+  `fr`; `HK.fcs n := kitFC (γs n) g fr` is a definition, no longer a field) is allocated by `kit_start` (the model's
+  halves, the escrow's empty map, the clients' counters and the **ids' invariant** `idInv g`), and the draw makes
+  the drawn protocol's clients' state and frontier from it (`kitQ_init`, `frInv_init`: `Inv γ ∗ opsAuth γ ∅ ∗
+  kitPre g`, the frontier's list allocated empty at the start). `kitQ_alloc` is gone.
+- **Freshness by id reservations**, not by the counters inside `kitQ`: a client reserves the id `(c, m)` of its next
+  operation in `idInv` (`id_reserve`: its counter `seqOwn g c m` moves to `m + 1`, it gets the exclusive
+  `idTok g (c, m)`), and the escrow keeps each registered datum's `idTok g (idOf d)`, so `kit_register` (which now
+  takes `idTok g (idOf d)` in place of `seqOwn` and `idOf d = (c, m)`) sees that the datum is not registered.
+  The counter stays with the client when a deposit is lost (a failed call), which the counter inside `kitQ` could not.
+- **`drawInv`'s drawn branch holds the drawn protocol's `frInv`** (persistent); `draw_frInv` (a later credit) gives
+  it to whoever knows the draw: the server's method registering a client's operation, the client claiming it.
+- **`rpctransport.Conn.Call.spec`**: the deposit is a resource `R` with a wand to the encoder's premise, and
+  `CallNotSent` gives `R` back (the code returns before touching the arguments), so a client retries at the next
+  server with its operation's state (ledger 2026-11-28; `Transport.send` passes the encoder's premise itself).
+- **The clients' commands** (`ClientDefs.lean`, pure): `opIDB c s` (`opID`'s bytes, `beBytes` of `c << 56 |
+  s % 2^56`), `cmdB` (`command`'s), `idOf_cmdB` (`idOf (cmdB c s ..) = (c, s % 2^56)` for `c < 256`, by
+  `beBytes_fold`), `datumOf_cmdB`. **Proved over the real code**: `opID` (the loop, as rabia's `putU64`), `command`.

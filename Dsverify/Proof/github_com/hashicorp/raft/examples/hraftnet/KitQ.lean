@@ -50,11 +50,13 @@ open service (regOf cIdxs isPut putVal)
 section pure
 variable [GooseExts]
 
-/-- The kit's ghost names: the model's state, the escrow's map, the clients' operation counters. -/
+/-- The kit's ghost names: the model's state, the escrow's map, the clients' operation counters, the
+operation ids the clients reserved (`idInv`). -/
 structure KG where
   st : GName
   esc : GName
   seq : GName
+  ids : GName
 
 /-- The operation id a datum carries (its bytes 1 to 8, big-endian, `opID`'s): the client (the top byte)
 and the client's count (the other 56 bits). A function of the datum, so two data with different ids
@@ -146,6 +148,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The reservation of the operation id `p`** (client, count): exclusive; the client takes it from
+`idInv` (`id_reserve`) and the escrow keeps it with the entry of a datum of that id, so a datum is
+registered at most once (`kit_register`). -/
+def idTok (g : KG) (p : Nat × Nat) : IProp GF := ghostMapElem (K := Nat × Nat) (V := Unit) g.ids p (DFrac.own 1) ()
+
 /-- **The escrow's entry of the datum `d`**, at the frontier `es` (see the file header). -/
 def escEnt (γ : GNames) (g : KG) (es : RLog) (d : List w8) (γt γΦ : GName) (i : HIn) : IProp GF :=
   iprop(∃ Φ : HOut → IProp GF, savedPredOwn γΦ .discard Φ ∗
@@ -155,13 +162,11 @@ def escEnt (γ : GNames) (g : KG) (es : RLog) (d : List w8) (γt γΦ : GName) (
 
 /-- **The clients' state at the frontier `es`** (see the file header). -/
 def kitQ (γ : GNames) (g : KG) (es : RLog) : IProp GF :=
-  iprop(∃ (M : GMap (List w8) Nat) (E : GMap (List w8) (GName × GName × HIn)) (S : GMap Nat Nat),
-    Inv γ ∗ opsAuth γ M ∗ ghostMapAuth g.esc 1 E ∗ ghostMapAuth g.seq 1 S ∗
+  iprop(∃ (M : GMap (List w8) Nat) (E : GMap (List w8) (GName × GName × HIn)),
+    Inv γ ∗ opsAuth γ M ∗ ghostMapAuth g.esc 1 E ∗
     ghostVar (A := service.Reg) g.st (1 : Qp).half (regOf es) ∗
-    ⌜(∀ d n, M.lookup d = some n → ∃ x, E.lookup d = some x) ∧
-      (∀ d x, E.lookup d = some x → ∃ m, S.lookup (idOf d).1 = some m ∧ (idOf d).2 < m) ∧
-      putsShort es⌝ ∗
-    [∗map] d ↦ x ∈ E, ⌜datumOf x.2.2 d⌝ ∗ escEnt γ g es d x.1 x.2.1 x.2.2)
+    ⌜(∀ d n, M.lookup d = some n → ∃ x, E.lookup d = some x) ∧ putsShort es⌝ ∗
+    [∗map] d ↦ x ∈ E, ⌜datumOf x.2.2 d⌝ ∗ idTok g (idOf d) ∗ escEnt γ g es d x.1 x.2.1 x.2.2)
 
 /-- The FSMs' context of the kit: the frontier `fr`, the clients' state. -/
 def kitFC (γ : GNames) (g : KG) (fr : GName) : service.FCtx GF := ⟨fr, kitQ γ g⟩
@@ -218,15 +223,15 @@ theorem kitQ_linStep (γ : GNames) (g : KG) (fr : GName) :
   obtain ⟨hns, he⟩ := h
   simp only
   unfold kitQ
-  icases HQ with ⟨%M, %E, %S, #Hinv, Hops, HE, HS, Hst, %hME, Hents⟩
-  obtain ⟨hME, hfr, hsh⟩ := hME
+  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hME, Hents⟩
+  obtain ⟨hME, hsh⟩ := hME
   have hk : (es ++ ns ++ [e])[(es ++ ns).length]? = some e := by simp
   ihave #He := service.cIdxs_lookup γ _ _ e hk $$ Hc
   imod cmd_committed_ops γ _ frN_gprotN M _ e $$ [$Hinv $Hops $He] with ⟨Hops, %hM⟩
   obtain ⟨n, hn, -⟩ := hM he
   obtain ⟨⟨γt, γΦ, i⟩, hx⟩ := hME _ _ hn
   imod not_cmdIn_es γ es ns e he $$ [$Hinv $Hc] with %hnot
-  ihave ⟨⟨%hd, Hent⟩, Hrest⟩ := BI.BigSepM.bigSepM_lookup_acc_impl hx $$ Hents
+  ihave ⟨⟨%hd, Hid, Hent⟩, Hrest⟩ := BI.BigSepM.bigSepM_lookup_acc_impl hx $$ Hents
   unfold escEnt
   icases Hent with ⟨%Φ, #HΦ, Hent⟩
   icases Hent with (⟨%-, Hupd⟩ | ⟨%es1, ⟨%hpre, %e1, %hl, %hk1, %hd1⟩, -, -⟩)
@@ -243,17 +248,17 @@ theorem kitQ_linStep (γ : GNames) (g : KG) (fr : GName) :
     imod Hc2 $$ Hs with HΦo
     imod Hclose
     imodintro
-    iexists M, E, S
-    iframe Hinv Hops HE HS
+    iexists M, E
+    iframe Hinv Hops HE
     rw [regOf_fire es ns e i hns he hd]
     iframe Hst
     isplitr
     · ipureintro
-      exact ⟨hME, hfr, putsShort_fire es ns e i hsh hns hd⟩
+      exact ⟨hME, putsShort_fire es ns e i hsh hns hd⟩
     iapply Hrest
     · imodintro
-      iintro %d %x %_ %hne ⟨%hdx, Hd⟩
-      iframe %hdx
+      iintro %d %x %_ %hne ⟨%hdx, Hidd, Hd⟩
+      iframe %hdx Hidd
       icases Hd with ⟨%Ψ, #HΨ, Hd⟩
       iexists Ψ
       iframe HΨ
@@ -272,7 +277,7 @@ theorem kitQ_linStep (γ : GNames) (g : KG) (fr : GName) :
         refine ⟨hp2.trans ?_, hl2⟩
         rw [List.append_assoc]
         exact List.prefix_append es (ns ++ [e])
-    · iframe %hd
+    · iframe %hd Hid
       iexists Φ
       iframe HΦ
       iright
@@ -332,9 +337,21 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **Client `c`'s operation counter** at `m`: its registered operations' ids are `(c, s)` with `s < m`
-(exclusive; the client's system keeps it). -/
+/-- **Client `c`'s operation counter** at `m`: the ids `(c, s)` it reserved have `s < m` (exclusive;
+the client's system keeps it). -/
 def seqOwn (g : KG) (c m : Nat) : IProp GF := c ↪[g.seq] m
+
+def idN : Namespace := nroot.@"hraftids"
+
+/-- **The ids' invariant** (allocated at the deployment's start, `kit_start`, so the clients, which do
+not know the drawn protocol, can reserve ids): every reserved id `(c, s)` has `s` below client `c`'s
+counter. -/
+def idInv (g : KG) : IProp GF :=
+  inv idN iprop(∃ (S : GMap Nat Nat) (I : GMap (Nat × Nat) Unit), ghostMapAuth g.seq 1 S ∗
+    ghostMapAuth g.ids 1 I ∗ ⌜∀ c s, I.lookup (c, s) = some () → ∃ m, S.lookup c = some m ∧ s < m⌝)
+
+instance idInv_persistent (g : KG) : Persistent (idInv (GF := GF) g) := by
+  unfold idInv; infer_instance
 
 /-- **A registered operation's claim** on its datum `d` (input `i`, continuation `Φ`): the escrow's
 entry (persistent), the saved continuation and the client's token, which `kit_claim` swaps for `Φ` of
@@ -342,37 +359,122 @@ the output once the frontier has passed the command. -/
 def kitTicket (g : KG) (d : List w8) (i : HIn) (Φ : HOut → IProp GF) : IProp GF :=
   iprop(∃ γt γΦ : GName, d ↪[g.esc]□ (γt, γΦ, i) ∗ savedPredOwn γΦ .discard Φ ∗ token γt)
 
-/-- **The clients' state at the start** (the empty frontier): the model's other half (for the far side's
-store) and the counters `S` of the clients (`seqOwn`). -/
-theorem kitQ_alloc (γ : GNames) (S : GMap Nat Nat) :
-    Inv (GF := GF) γ ∗ opsAuth γ ∅ ⊢ |==> ∃ g : KG, kitQ γ g [] ∗
-      ghostVar (A := service.Reg) g.st (1 : Qp).half none ∗ [∗map] c ↦ m ∈ S, seqOwn g c m := by
-  iintro ⟨#Hinv, Hops⟩
+/-- The clients' state's ghost state before the draw: the escrow's map (empty) and the model's half. -/
+def kitPre (g : KG) : IProp GF :=
+  iprop(ghostMapAuth (K := List w8) (V := GName × GName × HIn) g.esc 1 ∅ ∗
+    ghostVar (A := service.Reg) g.st (1 : Qp).half none)
+
+/-- **The kit's ghost state at the deployment's start**: `kitPre` (for the draw, `kitQ_init`), the
+model's other half (for the far side's store), the ids' invariant and the clients' counters `S`. -/
+theorem kit_start (S : GMap Nat Nat) :
+    ⊢ |={⊤}=> ∃ g : KG, kitPre (GF := GF) g ∗ ghostVar (A := service.Reg) g.st (1 : Qp).half none ∗
+      idInv g ∗ [∗map] c ↦ m ∈ S, seqOwn g c m := by
   imod ghostVar_alloc (GF := GF) (none : service.Reg) with ⟨%γs, Hs⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName × HIn) with ⟨%γe, HE⟩
   imod ghost_map_alloc (GF := GF) S with ⟨%γq, HS, Hfr⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Nat × Nat) (V := Unit) with ⟨%γi, HI⟩
   icases (ghostVar_split_half (GF := GF) γs 1 (none : service.Reg)).1 $$ Hs with ⟨Hs1, Hs2⟩
+  imod inv_alloc idN ⊤ iprop(∃ (S' : GMap Nat Nat) (I : GMap (Nat × Nat) Unit),
+      ghostMapAuth (GF := GF) γq 1 S' ∗ ghostMapAuth γi 1 I ∗
+      ⌜∀ c s, I.lookup (c, s) = some () → ∃ m, S'.lookup c = some m ∧ s < m⌝) $$ [HS HI] with #Hinv
+  · inext
+    iexists S, ∅
+    iframe HS HI
+    ipureintro
+    intro c s h; cases h
   imodintro
-  iexists ⟨γs, γe, γq⟩
+  iexists ⟨γs, γe, γq, γi⟩
   iframe Hs2
+  isplitl [HE Hs1]
+  · iunfold kitPre; iframe HE Hs1
   isplitr [Hfr]
-  · unfold kitQ
-    iexists ∅, ∅, S
-    iframe Hinv Hops HE HS
-    isplitl [Hs1]
-    · have h0 : service.regOf ([] : RLog) = none := rfl
-      rw [h0]
-      iexact Hs1
+  · unfold idInv; iexact Hinv
+  unfold seqOwn
+  iexact Hfr
+
+/-- **The clients' state at the draw** (the empty frontier), from the drawn protocol's invariant and its
+commands' authority. -/
+theorem kitQ_init (γ : GNames) (g : KG) :
+    Inv (GF := GF) γ ∗ opsAuth γ ∅ ∗ kitPre g ⊢ kitQ γ g [] := by
+  iintro ⟨#Hinv, Hops, Hpre⟩
+  iunfold kitPre at Hpre
+  icases Hpre with ⟨HE, Hs1⟩
+  unfold kitQ
+  iexists ∅, ∅
+  iframe Hinv Hops HE
+  isplitl [Hs1]
+  · have h0 : service.regOf ([] : RLog) = none := rfl
+    rw [h0]
+    iexact Hs1
+  isplitr
+  · ipureintro
+    refine ⟨?_, ?_⟩
+    · intro d n h; cases h
+    · intro e he; cases he
+  iapply BI.BigSepM.bigSepM_empty.2
+  itrivial
+
+/-- **The frontier's invariant at the draw**: the empty frontier (its ghost list `fr` allocated empty at
+the start), the clients' state at it. -/
+theorem frInv_init (γ : GNames) (g : KG) (fr : GName) :
+    Inv (GF := GF) γ ∗ opsAuth γ ∅ ∗ kitPre g ∗ monoListAuthOwn (A := Entry) fr 1 [] ⊢
+      |={⊤}=> service.frInv γ (kitFC γ g fr) := by
+  iintro ⟨#Hinv, Hops, Hpre, Hfr⟩
+  ihave HQ := kitQ_init γ g $$ [$Hinv $Hops $Hpre]
+  unfold service.frInv
+  dsimp only [kitFC]
+  imod inv_alloc service.frN ⊤ iprop(∃ es : RLog, monoListAuthOwn (A := Entry) fr 1 es ∗
+      service.cIdxs γ es ∗ ⌜service.lastCmd es⌝ ∗ kitQ γ g es) $$ [Hfr HQ] with #H
+  · inext
+    iexists []
+    iframe Hfr HQ
     isplitr
-    · ipureintro
-      refine ⟨?_, ?_, ?_⟩
-      · intro d n h; cases h
-      · intro d x h; cases h
-      · intro e he; cases he
-    iapply BI.BigSepM.bigSepM_empty.2
-    itrivial
-  · unfold seqOwn
-    iexact Hfr
+    · unfold service.cIdxs
+      iapply BigSepL.bigSepL_nil.2
+      itrivial
+    ipureintro
+    intro e he; cases he
+  imodintro
+  iexact H
+
+/-- **Client `c` reserves the id `(c, m)`** (its counter at `m`, moved past it). -/
+theorem id_reserve (g : KG) (c m : Nat) :
+    idInv (GF := GF) g ∗ seqOwn g c m ⊢ |={⊤}=> seqOwn g c (m + 1) ∗ idTok g (c, m) := by
+  iintro ⟨#Hi, Hseq⟩
+  unfold idInv
+  iinv Hi with ⟨%S, %I, >HS, >HI, >%h⟩ Hclose
+  unfold seqOwn
+  ihave %hS := ghost_map_lookup $$ HS Hseq
+  have hI : I.lookup (c, m) = none := by
+    cases hx : I.lookup (c, m) with
+    | none => rfl
+    | some u =>
+      obtain ⟨m', hm', hlt⟩ := h c m (by cases u; exact hx)
+      rw [hS] at hm'; cases hm'
+      omega
+  imod ghost_map_insert (c, m) () hI $$ HI with ⟨HI, Hel⟩
+  imod ghost_map_update (m + 1) $$ HS Hseq with ⟨HS, Hseq⟩
+  imod Hclose $$ [HS HI] with -
+  · inext
+    iexists S.insert c (m + 1), I.insert (c, m) ()
+    iframe HS HI
+    ipureintro
+    intro c' s' h'
+    by_cases hcs : (c', s') = (c, m)
+    · cases hcs
+      exact ⟨m + 1, GMap.lookup_insert_eq _ _ _, by omega⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hcs)] at h'
+      obtain ⟨m', hm', hlt⟩ := h c' s' h'
+      by_cases hc : c' = c
+      · subst hc
+        rw [hS] at hm'; cases hm'
+        exact ⟨m + 1, GMap.lookup_insert_eq _ _ _, by omega⟩
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hc)]
+        exact ⟨m', hm', hlt⟩
+  imodintro
+  iframe Hseq
+  unfold idTok
+  iexact Hel
 
 /-- The datum of an unregistered operation is no command of a committed prefix. -/
 theorem not_cmdIn_ops (γ : GNames) (es : RLog) (M : GMap (List w8) Nat) (d : List w8)
@@ -389,33 +491,33 @@ theorem not_cmdIn_ops (γ : GNames) (es : RLog) (M : GMap (List w8) Nat) (d : Li
     cases hn
   · imodintro; iframe Hops; ipureintro; exact h
 
-/-- **A client registers its operation** on input `i` (its datum `d`, whose id is the client's `c` and its
-counter `m`), giving the update `slotUpd` of `i` with the continuation `Φ` to the escrow: it gets the
-command's token `opTok` (for `API.Apply`'s deposit), its counter moved past `d`'s id, and the claim. -/
-theorem kit_register (γ : GNames) (g : KG) (fr : GName) (c m : Nat) (d : List w8) (i : HIn)
-    (Φ : HOut → IProp GF) (hd : datumOf i d) (hid : idOf d = (c, m)) :
-    service.frInv γ (kitFC γ g fr) ∗ £ 1 ∗ seqOwn g c m ∗
+/-- **An operation is registered** on input `i` (its datum `d`, whose id the client reserved,
+`id_reserve`), giving the update `slotUpd` of `i` with the continuation `Φ` to the escrow: the
+command's token `opTok` (for `API.Apply`'s deposit) and the claim. (On the server's thread: the
+client's deposit, `ClientDeps.lean`.) -/
+theorem kit_register (γ : GNames) (g : KG) (fr : GName) (d : List w8) (i : HIn)
+    (Φ : HOut → IProp GF) (hd : datumOf i d) :
+    service.frInv γ (kitFC γ g fr) ∗ £ 1 ∗ idTok g (idOf d) ∗
       slotUpd (Gg := hG.goose_globalGS) (regR g.st) i Φ ⊢
-      |={⊤}=> ∃ n, opTok γ d n ∗ seqOwn g c (m + 1) ∗ kitTicket g d i Φ := by
-  iintro ⟨#Hfr, Hlc, Hseq, Hupd⟩
+      |={⊤}=> ∃ n, opTok γ d n ∗ kitTicket g d i Φ := by
+  iintro ⟨#Hfr, Hlc, Hid, Hupd⟩
   unfold service.frInv
   iinv Hfr with ⟨%es, >Hauth, >#Hc, >%Hlast, HQ⟩ Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑service.frN) $$ Hlc HQ with HQ
   simp only [kitFC]
   unfold kitQ
-  icases HQ with ⟨%M, %E, %S, #Hinv, Hops, HE, HS, Hst, %hpure, Hents⟩
-  obtain ⟨hME, hfr, hsh⟩ := hpure
-  unfold seqOwn
-  ihave %hS := ghost_map_lookup $$ HS Hseq
-  have hE : E.lookup d = none := by
-    cases hx : E.lookup d with
-    | none => rfl
+  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hpure, Hents⟩
+  obtain ⟨hME, hsh⟩ := hpure
+  ihave %hE : ⌜E.lookup d = none⌝ $$ [Hents Hid]
+  · cases hx : E.lookup d with
+    | none => ipureintro; rfl
     | some x =>
-      obtain ⟨m', hm', hlt⟩ := hfr d x hx
-      rw [hid] at hm' hlt
-      rw [hS] at hm'
-      cases hm'
-      simp at hlt
+      ihave ⟨⟨-, Hid2, -⟩, -⟩ := (BI.BigSepM.bigSepM_lookup_acc hx).1 $$ Hents
+      unfold idTok
+      ihave %hv := ghostMapElem_valid_2 _ _ _ _ _ _ $$ Hid Hid2
+      exfalso
+      have := DFrac.valid_op_own hv.1
+      simp at this
   have hM : M.lookup d = none := by
     cases hx : M.lookup d with
     | none => rfl
@@ -429,41 +531,27 @@ theorem kit_register (γ : GNames) (g : KG) (fr : GName) (c m : Nat) (d : List w
   imod token_alloc (GF := GF) with ⟨%γt, Ht⟩
   imod saved_pred_alloc (GF := GF) Φ DFrac.discard DFrac.valid_discard with ⟨%γΦ, #HΦ⟩
   imod ghost_map_insert_persist d (γt, γΦ, i) hE $$ HE with ⟨HE, #Hel⟩
-  imod ghost_map_update (m + 1) $$ HS Hseq with ⟨HS, Hseq⟩
-  imod Hclose $$ [Hauth Hops HE HS Hst Hents Hupd] with -
+  imod Hclose $$ [Hauth Hops HE Hst Hents Hupd Hid] with -
   · inext
     iexists es
     iframe Hauth Hc
     isplitr
     · ipureintro; exact Hlast
-    iexists M.insert d L.length, E.insert d (γt, γΦ, i), S.insert c (m + 1)
-    iframe Hinv Hops HE HS Hst
+    iexists M.insert d L.length, E.insert d (γt, γΦ, i)
+    iframe Hinv Hops HE Hst
     isplitr
     · ipureintro
-      refine ⟨?_, ?_, hsh⟩
-      · intro d' n' h'
-        by_cases hdd : d' = d
-        · subst hdd; exact ⟨_, GMap.lookup_insert_eq _ _ _⟩
-        · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at h' ⊢
-          exact hME d' n' h'
-      · intro d' x h'
-        by_cases hdd : d' = d
-        · subst hdd
-          rw [hid]
-          exact ⟨m + 1, GMap.lookup_insert_eq _ _ _, by simp⟩
-        · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at h'
-          obtain ⟨m', hm', hlt⟩ := hfr d' x h'
-          by_cases hc : (idOf d').1 = c
-          · rw [hc] at hm' ⊢
-            rw [hS] at hm'
-            cases hm'
-            exact ⟨m + 1, GMap.lookup_insert_eq _ _ _, by omega⟩
-          · rw [GMap.lookup_insert_ne _ _ (Ne.symm hc)]
-            exact ⟨m', hm', hlt⟩
+      refine ⟨?_, hsh⟩
+      intro d' n' h'
+      by_cases hdd : d' = d
+      · subst hdd; exact ⟨_, GMap.lookup_insert_eq _ _ _⟩
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at h' ⊢
+        exact hME d' n' h'
     iapply (BI.BigSepM.bigSepM_insert hE).2
     iframe Hents
     isplitr
     · ipureintro; exact hd
+    iframe Hid
     unfold escEnt
     iexists Φ
     iframe HΦ
@@ -472,7 +560,7 @@ theorem kit_register (γ : GNames) (g : KG) (fr : GName) (c m : Nat) (d : List w
     ipureintro; exact hnot
   imodintro
   iexists L.length
-  iframe Htok Hseq
+  iframe Htok
   unfold kitTicket
   iexists γt, γΦ
   iframe Hel HΦ Ht
@@ -525,10 +613,10 @@ theorem kit_claim (γ : GNames) (g : KG) (fr : GName) (d : List w8) (i : HIn) (�
   ihave %Hpre := mono_list_auth_lb_valid fr 1 es es' $$ Hauth Hlb
   obtain ⟨-, hpre'⟩ := Hpre
   unfold kitQ
-  icases HQ with ⟨%M, %E, %S, #Hinv, Hops, HE, HS, Hst, %hpure, Hents⟩
-  obtain ⟨hME, hfr, hsh⟩ := hpure
+  icases HQ with ⟨%M, %E, #Hinv, Hops, HE, Hst, %hpure, Hents⟩
+  obtain ⟨hME, hsh⟩ := hpure
   ihave %hx := ghost_map_lookup $$ HE Hel
-  icases (BI.BigSepM.bigSepM_lookup_acc hx).1 $$ Hents with ⟨⟨%hd, Hent⟩, Hback⟩
+  icases (BI.BigSepM.bigSepM_lookup_acc hx).1 $$ Hents with ⟨⟨%hd, Hid, Hent⟩, Hback⟩
   unfold escEnt
   icases Hent with ⟨%Φ', #HΦ', Hent⟩
   icases Hent with (⟨%hnot, -⟩ | ⟨%es1, ⟨%hpre1, %e1, %hl1, %hk1, %hd1⟩, #Hc1, Hr⟩)
@@ -552,19 +640,20 @@ theorem kit_claim (γ : GNames) (g : KG) (fr : GName) (d : List w8) (i : HIn) (�
     rw [hpre1, hpre', hkk, hlen]
   subst hes
   icases Hr with (HΦo | Ht')
-  · imod Hclose $$ [Hauth Hops HE HS Hst Hback Ht] with -
+  · imod Hclose $$ [Hauth Hops HE Hst Hback Ht Hid] with -
     · inext
       iexists es
       iframe Hauth Hc
       isplitr
       · ipureintro; exact Hlast
-      iexists M, E, S
-      iframe Hinv Hops HE HS Hst
+      iexists M, E
+      iframe Hinv Hops HE Hst
       isplitr
-      · ipureintro; exact ⟨hME, hfr, hsh⟩
+      · ipureintro; exact ⟨hME, hsh⟩
       iapply Hback
       isplitr
       · ipureintro; exact hd
+      iframe Hid
       iexists Φ'
       iframe HΦ'
       iright

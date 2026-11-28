@@ -9353,3 +9353,18 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Change.** The post gains `⌜a ≠ null⌝` (`typedPointsto_not_null` of the allocated `API`, before its fields are
   split); a strengthening, proved. Its only caller is `Server`. No top-level statement changes.
 - **Decision.** Untrusted spec, proved here (S5d).
+
+## 2026-11-28: `rpctransport.Conn.Call.spec`'s deposit given back on `CallNotSent` (hraft S5f)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/rpctransport/Conn__Call.lean` (the kit's
+  transport, S4; proved, no axiom).
+- **Defect.** Too weak for the kit's clients: on `CallNotSent` the post gave back the encoder's premise `C.enc args
+  Ψ`, a WP of the encoder, from which a caller cannot recover the deposit inside `Ψ`; a client retries its
+  operation at the next server, with a fresh argument struct, after `CallNotSent`, and needs its operation's state
+  back.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/rpctransport/rpctransport.go`: `Conn.Call` returns
+  `CallNotSent` when the dial fails, before it uses `args`; `kit.go`'s `Sys.op` retries `try` at the next server.
+- **Change.** The premise is `R ∗ (R -∗ C.enc args Ψ)` for any `R`, and `CallNotSent` gives `R ∗ D` back (a
+  strengthening: `R := C.enc args Ψ` gives the old spec). `Conn.Call.wp_proof` and `Transport.send` (its only
+  caller) updated; no top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5f, #48).

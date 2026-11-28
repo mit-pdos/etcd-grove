@@ -66,9 +66,14 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.Transport.send.
       iframe HR
       isplitr; · ipureintro; exact Hl
       iapply Hincl $$ Hd
-    wp_apply (wp_Call p W na (svcName ++ go!"." ++ M) svcName M S req reply Φm Rargs D Θ C d)
+    wp_apply (wp_Call p W na (svcName ++ go!"." ++ M) svcName M S req reply Φm Rargs D Θ C d
+        (C.enc req (fun bs => iprop(⌜bs.length ≤ net.rpc.maxFrameN⌝ ∗ S M bs Φm ∗ Rargs))))
       $$ [$Hc $Hcodec $Henc $HD $Hdec] as %r Hr
-    · ipureintro; exact ⟨⟨Hsplit, HS, Hrne⟩, Hlen⟩
+    · isplitr
+      · ipureintro; exact ⟨Hsplit, HS, Hrne⟩
+      isplitr
+      · ipureintro; exact Hlen
+      iintro H; iexact H
     (try simp only [CallOK])
     icases Hr with (⟨%Hr0, -, %rep, HΘ⟩ | ⟨%Hr1, -⟩ | %Hr2)
     · subst Hr0
