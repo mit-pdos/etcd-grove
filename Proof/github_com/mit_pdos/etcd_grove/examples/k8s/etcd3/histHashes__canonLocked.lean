@@ -115,7 +115,7 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
       ipureintro; constructor <;> word
     wp_for HJ
     wp_if_destruct
-    · have Hif' := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
+    · have Hif' := Hif
       have Hik : k = sint.nat i + 1 := by word
       list_elem ts (sint.nat i) as t
       have Hb' : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z tsl.len := ⟨by word, by word⟩
@@ -150,13 +150,14 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
       · rw [show hs.length - sint.nat i = hs.length - k + 1 by omega, hx]
         iexact Hc
       ipureintro; constructor <;> word
-    · have Hif' : ¬ (sint.Z (W64 0) ≤ sint.Z i) := fun h => Hif (by rw [_root_.decide_eq_true h])
+    · have Hif' := Hif
       have Hk0 : k = 0 := by word
       subst Hk0
       (try wp_auto)
       rw [show hs.take (hs.length - 0) = hs by simp]
       iapply HΦ
       iframe
+      iexact Hm
   · rw [if_pos (decide_eq_true rfl)]
     have Hnn := Hb rfl
     (try wp_auto)
