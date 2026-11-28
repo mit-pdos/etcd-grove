@@ -803,7 +803,120 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
             Or.inr ⟨by trivial, ?_, by omega, by omega⟩⟩
           · intro k hk1 hk2; omega
           · rw [HlvIdx.1, hhi0]; have := He.2; simp; omega
-        · sorry
+        · -- a store with entries: `FirstIndex` is its smallest key, at most the snapshot's index
+          wp_bind (App (Val #(methods _ _ _)) _)
+          iapply HFI $$ Htok
+          iapply (bootRead_L (GF := GF) γ rc' i X.A (some (m, b)) X.s none (some d) D' X.A.staged)
+          iframe #
+          iframe Hsv HstV Hboot
+          iintro Hboot Hsv HstV %X4 %HX4 %r0 %Hr0 Htok
+          rw [HX4.1] at Hr0
+          wp_auto
+          obtain ⟨hr0s, hr0m⟩ : (X.A.m !! uint.nat r0).isSome ∧ ∀ k e, X.A.m !! k = some e → uint.nat r0 ≤ k := by
+            rcases Hr0 with ⟨-, h⟩ | h
+            · exact absurd h hAe
+            · exact h
+          obtain ⟨e0, he0⟩ := Option.isSome_iff_exists.mp hr0s
+          have hr0pos : 0 < uint.nat r0 := (proto.ent_le_length (hlog2.1 _ _ he0)).1
+          have hr0x : uint.nat r0 ≤ d.x := by
+            rcases Nat.lt_or_ge X.s.log.length d.x with hlt | hge'
+            · have := (proto.ent_le_length (hlog2.1 _ _ he0)).2; omega
+            · obtain ⟨e3, he3⟩ := proto.ent_isSome X.s.log d.x Hdpp.2.1 hge'
+              have h3 := hlog2.2 d.x hlo hge'
+              rw [he3] at h3
+              exact hr0m _ _ h3
+          wp_if_destruct
+          all_goals try (exfalso; word; done)
+          try simp only [Hif, decide_true]
+          try wp_auto
+          wp_if_destruct
+          all_goals try (exfalso; word; done)
+          try simp only [Hif, decide_true]
+          try wp_auto
+          -- the store's entry at the snapshot's index, if any, is not the snapshot's (else the log would match it)
+          wp_bind (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) _) _ _)
+          iapply (wp_wand (Φ := fun v => iprop(⌜v = #true⌝ ∗ bootV rc' X.A (some (m, b)) ∗
+              srvVP rc' X.s none (some d) ∗ stVS rc' D' X.A.staged ∗ rtok tid ∗ snapTerm_ptr ↦ m.Term')))
+            $$ [Hboot Hsv HstV Htok «at» snapTerm] [-]
+          · wp_bind (App (App (Val #(methods _ _ _)) _) _)
+            iapply HGetLog $$ «at» Htok
+            iapply (bootRead_L (GF := GF) γ rc' i X.A (some (m, b)) X.s none (some d) D' X.A.staged)
+            iframe #
+            iframe Hsv HstV Hboot
+            iintro Hboot Hsv HstV %X5 %HX5 %err' Hpost Htok
+            rw [HX5.1]
+            unfold getLogPost
+            rcases hgl : X.A.m !! uint.nat m.Index' with _ | e2
+            · icases Hpost with ⟨%Herr, -, -⟩
+              cases err'
+              all_goals try (exfalso; exact Herr rfl; done)
+              wp_auto
+              iframe
+              ipureintro; trivial
+            · icases Hpost with ⟨%Herr, %lva, Hat, #Hlva⟩
+              subst Herr
+              unfold logIs
+              icases Hlva with ⟨%hlva, -⟩
+              have hTa : lva.Term' ≠ m.Term' := by
+                intro hT
+                apply Hdpp.2.2
+                have he2 := hlog2.1 _ _ hgl
+                rw [← hxd, ← htd]
+                right
+                refine ⟨(proto.ent_le_length he2).2, ?_⟩
+                rw [proto.termAt_of_ent he2, ← hlva.2.1, hT]
+              wp_auto
+              iframe
+              ipureintro
+              simp [hTa]
+          iintro %v ⟨%hv, Hboot, Hsv, HstV, Htok, snapTerm⟩
+          subst hv
+          wp_auto
+          -- `DeleteRange(first, lastLog.Index)`: the discard
+          have hlvhi : lv.Index' = X.A.hi := HlvIdx.1
+          have hhiL : uint.nat X.A.hi ≤ X.s.log.length := by
+            rcases hhi2 with h | ⟨e2, h⟩
+            · rw [h]; simp
+            · exact (proto.ent_le_length (hlog2.1 _ _ h)).2
+          have hall : ∀ k e, X.A.m !! k = some e → uint.nat r0 ≤ k ∧ k ≤ uint.nat lv.Index' := by
+            intro k e h; rw [hlvhi]; exact ⟨hr0m _ _ h, hhi1 _ _ h⟩
+          wp_bind (App (App (Val #(methods _ _ _)) _) _)
+          iapply (wp_wand (Φ := fun v => iprop(⌜v = #interface.nil⌝ ∗
+              ∃ (s' : SState) (hi' : w64) (a : Nat), ghostVar rc'.dur.pw 1 (none : Option Pend) ∗ srvV rc' s' ∗
+                stVS rc' D' X.A.staged ∗ ghostVar rc'.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+                monoNatAuthOwn rc'.dur.comp (1 : Qp).half d.x ∗ monoNatAuthOwn rc'.dur.applied (1 : Qp).half a ∗
+                ⌜a ≤ d.x⌝ ∗
+                ⌜s'.log.length = d.x ∧ lastTerm s'.log = d.st ∧ s'.dur.1 = d.x ∧ s'.term = X.s.term ∧
+                  s'.vterm = X.s.vterm ∧ s'.vcand = X.s.vcand ∧ s'.cidx = X.s.cidx⌝ ∗
+                bootV rc' (X.A.delete (uint.nat r0) (uint.nat lv.Index') hi') (some (m, b)))))
+            $$ [Hboot Hsv HstV Hpend Hcomp Hpw Hph] [-]
+          · imod (bootDiscard_win (GF := GF) γ rc' i X.A (some (m, b)) X.s d D' X.A.staged (uint.nat r0)
+              (uint.nat lv.Index') X.c hpre hall
+              iprop(⌜(#interface.nil : val) = #interface.nil⌝ ∗
+                ∃ (s' : SState) (hi' : w64) (a : Nat), ghostVar rc'.dur.pw 1 (none : Option Pend) ∗ srvV rc' s' ∗
+                stVS rc' D' X.A.staged ∗ ghostVar rc'.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
+                monoNatAuthOwn rc'.dur.comp (1 : Qp).half d.x ∗ monoNatAuthOwn rc'.dur.applied (1 : Qp).half a ∗
+                ⌜a ≤ d.x⌝ ∗
+                ⌜s'.log.length = d.x ∧ lastTerm s'.log = d.st ∧ s'.dur.1 = d.x ∧ s'.term = X.s.term ∧
+                  s'.vterm = X.s.vterm ∧ s'.vcand = X.s.vcand ∧ s'.cidx = X.s.cidx⌝ ∗
+                bootV rc' (X.A.delete (uint.nat r0) (uint.nat lv.Index') hi') (some (m, b))))
+              $$ Hinv Hdi' Hboot Hpw Hsv HstV Hph Hpend Hcomp Hll Hlb' []
+              with ⟨HW, Hau⟩
+            · iintro Hpw %s' %hi' Hsv HstV Hpend Hcomp #Hdx %Hs' #HCs ⟨%a, Happ, %ha⟩ Hboot
+              imodintro
+              isplitr; · ipureintro; rfl
+              iexists s', hi', a
+              iframe
+              ipureintro; exact ⟨ha, Hs'⟩
+            rw [show logWin γ rc i = logWin γ rc' i from rfl]
+            iapply HDelRange $$ %true %r0 %lv.Index' [] HW
+            · ipureintro
+              rw [hlvhi]; omega
+            iexact Hau
+          iintro %v ⟨%hv, %s', %hi', %a, Hpw, Hsv, HstV, Hpend, Hcomp, Happ, %ha, %Hs', Hboot⟩
+          subst hv
+          wp_auto
+          sorry
   iintro %v ⟨%hv, Hfix, Htok, r, Hlb⟩
   subst hv
   wp_auto
