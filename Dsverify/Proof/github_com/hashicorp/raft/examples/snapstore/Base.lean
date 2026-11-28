@@ -82,18 +82,7 @@ variable [package_sem : github_com.hashicorp.raft.examples.snapstore.Assumptions
 
 open github_com.hashicorp.raft
 
-instance snapshotMeta_countable : Pos.Countable SnapshotMeta :=
-  Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.Version', m.ID', m.Index', m.Term', m.Peers',
-      m.Configuration'.Servers', m.ConfigurationIndex', m.Size'))
-    (by
-      intro a b h
-      have h := Pos.encode_inj h
-      obtain ⟨a1, a2, a3, a4, a5, ⟨a6⟩, a7, a8⟩ := a
-      obtain ⟨b1, b2, b3, b4, b5, ⟨b6⟩, b7, b8⟩ := b
-      simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
-      subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
+-- (hraft_robust) `snapshotMeta_countable` moved to `iface/Stores.lean`.
 
 theorem newerSnap_upd (m0 m : SnapshotMeta) (b0 b : List w8)
     (h : uint.Z m0.Term' < uint.Z m.Term' ∨ (m0.Term' = m.Term' ∧ uint.Z m0.Index' ≤ uint.Z m.Index')) :
