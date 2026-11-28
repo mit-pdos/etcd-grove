@@ -210,13 +210,11 @@ theorem leaseGrantPermit_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     unfold reqKVOp; rw [hk]; rfl
   have hz : irrNoZeroEnd (irrLeaseGrant id ttl) := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrLeaseGrant, apply.irrEmpty] at h
-  have ha : kvShapeAll (irrLeaseGrant id ttl) := by
-    intro x hx; unfold reqPerms at hx; rw [hk] at hx; simp at hx
   have hq : grantQhOn (GF := GF) γk id ttl γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrLeaseGrant id ttl) hm) γc (Q id) := rfl
   rw [hq]
   iapply reqPropOkM_true_writeL γ γk Gb' (irrLeaseGrant id ttl) (.leaseGrant id ttl) (Q id) γc L₀
-    (Or.inr (Or.inl hg)) hop hz (rqShape_grant _ _ hg) ha $$ [$HL₀ $Hau $Hgo]
+    (Or.inr (Or.inl hg)) hop hz (rqShape_grant _ _ hg) $$ [$HL₀ $Hau $Hgo]
 
 /-- **A revocation's permit is its proposal in the mode `on`.** -/
 theorem leaseRevokePermit_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
@@ -233,14 +231,12 @@ theorem leaseRevokePermit_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     unfold reqKVOp; rw [hk]; rfl
   have hz : irrNoZeroEnd (irrLeaseRevoke id) := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrLeaseRevoke, apply.irrEmpty] at h
-  have ha : kvShapeAll (irrLeaseRevoke id) := by
-    intro x hx; unfold reqPerms at hx; rw [hk] at hx; simp at hx
   have hq : revokeQhOn (GF := GF) γk id γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrLeaseRevoke id) hm) γc Q := rfl
   rw [hq]
   ihave Hgo := grantIdOwn_nonGrant (GF := GF) γk (irrLeaseRevoke id) (by rw [hk]; decide)
   iapply reqPropOkM_true_writeL γ γk Gb' (irrLeaseRevoke id) (.leaseRevoke id) Q γc L₀
-    (Or.inr (Or.inr hr)) hop hz (rqShape_revoke _ _ hr) ha $$ [$HL₀ $Hau $Hgo]
+    (Or.inr (Or.inr hr)) hop hz (rqShape_revoke _ _ hr) $$ [$HL₀ $Hau $Hgo]
 
 /-- **A grant's success, in the auth mode `on`**: off nothing; on, for the lease `id` the response
 names (`ID`), the header `hm` the server stamped bound to the context, the grant of `id` stamped with

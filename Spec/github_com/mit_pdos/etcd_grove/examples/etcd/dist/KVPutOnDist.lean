@@ -38,8 +38,9 @@ by the principal of `cfg`; a success tells the member and its grant, `writeCheck
 nothing). A lease `0`, or the revocable lease mode, as `etcdPutSpecOn`'s filter: this is also F2's
 `KV_PutLease_dist` row (`Put` with `WithLease(id)`, auth on), at `leaseID ≠ 0`; the lease's attach is
 `kvOpStep`'s (the update's `Q` sees it), its absence `ErrLeaseNotFound` (a refusal, no step).
-No revision lower bound: the in-process `etcdPutSpecMW` gives one only with auth off, and auth-on revisions
-follow `kvModelOn`, not `kvRevLb`'s `kvModel` (weakened 2026-11-27, `notes/axiom-review/onrevlb-weakening.md`).
+No revision lower bound: the in-process `etcdPutSpecMW` gives one only with auth off; the bound was dropped
+while `kvRevLb` read the auth-off model (2026-11-27, `notes/axiom-review/onrevlb-weakening.md`) and is not
+re-added (since N1b-2 `kvRevLb`'s `kvModel` is `kvModelOn γk srvAuthSt0`; re-adding waits for N5).
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVPutOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-a.md` (`d946f6cbda`) SOUND, `f7-rerev-a.md` (`6d9d9fd662`) SOUND. Unchanged since (`f7-changed-since-review.md`) but for the 2026-11-27 weakening above. -/

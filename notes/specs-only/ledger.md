@@ -70,6 +70,40 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-28: the auth-on KV model's verdict (`kvGranted`, `leaseOk`) is the coverage, exact only on `reqShape`; the log and every auth-on spec ask the shape (nomode N1b-1)
+
+- **Spec.** The model (`Proof/.../etcdserver/KVAuthModelDefs.lean`: `kvGranted`, `leaseOk`, `kvDet`;
+  `KVAuthModel.lean`: `plainEntryOn`, `entryDetOn`, so `kvInvOn`'s `plainLogOn`/`detLogOn`); the apply thread's
+  latest-state specs (`apply/AuthLatest.lean`: `granted1`, `shapedL`, `leaseShapedL`; `apply.*.specL` of `Range`,
+  `DeleteRange`, `Put`, `Txn`, `LeaseRevoke`, `checkLeasePuts*`, `checkPutAuth`, `checkTxnPermission`,
+  `CheckTxnAuth`, `dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `Apply.kvSpecL`, `applierKVL`, `uberKVC`:
+  `kvShapedL`, `shapedMay`); the proposers' permits (`ReqOn.lean`: `reqPropOkOn`, `putPermitOn`'s non-empty key,
+  `deletePermitOn`, `txnPermitOn`, `txnPermitM`); the server's request rows (`ServerKVOn.lean`: `kvReqShape` in
+  `kvDepPreOn`/`kvDepPreM`/`kvDepPreML`); the client's gRPC specs with auth on (`KVServiceOn.lean`:
+  `etcdDeleteSpecOnW`, `etcdTxnSpecOnW`, `etcdDeleteSpecMW`, `etcdTxnSpecMW`; `client_delete_on`'s `key ≠ []`,
+  `client_txn_on`'s `hsh`, `etcdDeleteSpecV_M`'s `hsh`); the watch registration (`InvWatchStream.lean`:
+  `watchAuthed`'s `reqShape`).
+- **Defect.** The model's verdict was the coverage `auth.covers`, which is Go's verdict (`auth.coversX`, X-a3)
+  only on `auth.reqShape` (non-empty key; point, open-ended or proper range) in a state with valid ranges. So the
+  mode-`on` log had to keep every check of that shape (`plainEntryOn`'s `kvShapeAll`, `detLogOn`'s `kvDet`), and
+  every proposer and client spec with auth on asked it of the request: a proof-only premise on requests Go
+  accepts (an empty or inverted range, an empty key), against D2 (Upamanyu, 2026-11-27: no shape premise; the
+  model correct for every request Go accepts).
+- **Evidence.** X-a3 (`notes/nomode-x.md`): `coversX` is a function of the auth state for every request; the
+  bridges `coversX_iff_covers`, `coversX_emptyKey`, `coversX_point_of_not_lt`.
+- **Proposed change.** `kvGranted` and `leaseOk` over `auth.coversX … = true` (Go's verdict, every request);
+  `granted1` likewise; `permVerdictL_granted` without its `reqShape` premise (`permVerdictL_iff`'s exactness);
+  `kvDet` deleted and `entryDetOn` only the admin determinacy; `plainEntryOn` without `kvShapeAll`; `shapedL`,
+  `leaseShapedL`, `shapedMay`, `kvShapedL` and every premise of them deleted; the permits, rows, gRPC specs and
+  client results above without the shape (`kvShapeAll`, `reqShape`, and `putPermitOn`'s/`client_delete_on`'s
+  non-empty key, which only the shape needed); `watchAuthed` without `reqShape` (`watch_permitted_covers` through
+  the new `granted_covers`: Go's verdict covers every key of the range, for every request). Exceptions:
+  `reqShape`/`kvShapeAll` stay as definitions for the etcd_safe lead's `KV_DeleteOn_dist`/`Txn_CommitOn_dist`
+  axioms (their premises, removed at N5) and the authwork example's dist path that discharges them. Strengthening
+  everywhere but `apply_kv_entry_pre_on` (`etcdserver/Results.lean`), whose conclusion loses `kvShapeAll rq`: the
+  log no longer carries it. No axiom, no top-level premise added. Before/after: `notes/nomode-n1b.md`.
+- **Decision.** Decided by Upamanyu (D2, 2026-11-27); staged by the coordinator as N1b-1 (2026-11-28).
+
 ## 2026-11-27: `kvEntryOn` (the auth-aware KV model) -- an admin field beside a KV field drops the KV op (D1)
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/KVAuthModelDefs.lean`, `kvEntryOn` (and its
@@ -9637,6 +9671,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   the read); the law is proved (`readCall_law_holds`), no longer a hypothesis of `Sys.try.wp_proof`. No
   top-level statement changes; no axiom.
 - **Decision.** Untrusted specs, proved here (S6, #48).
+## 2026-11-28: `kvModel`/`kvLeases` (and so `kvRevLbZ`/`kvRevLb`) -- the fold of the auth-aware model from `srvAuthSt0` (nomode N1b-2)
+
+- **Spec.** `kvModel`, `kvLeases` (`Proof/.../etcdserver/InvRequest.lean`), the vocabulary of `kvRevLbZ`/`kvRevLb`,
+  which `kv.Put.spec`, `kv.Compact.spec`, `txn.Commit.spec`, `EtcdServer.Compact.spec` and the client `_dist`
+  contracts name (their text unchanged).
+- **Defect.** Two models of one log (auth-free `kvRaftOf`, auth-aware `kvRaftOfOn`), so a mode: `kvRevLb` spoke of
+  the auth-free one, which an auth-on server does not follow (`notes/axiom-review/onrevlb-weakening.md`).
+- **Evidence.** The no-mode packet (local `nomode-packet.md`, sections 1-2); the porting lemma `kvRaftOfOn_disabled`.
+- **Change.** `kvFold γk L := kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) L`; `kvModel := (kvFold ·).2.1`,
+  `kvLeases := (kvFold ·).2.2`, `kvAuth := (kvFold ·).1`. Equal to the old values on every log with no `AuthEnable`
+  (`kvFold_off`), which every `plainLogM` log is (`noAuthEnable_of_plainLogM`): under auth off `kvRevLbZ` holds of
+  the same revisions. `notes/nomode-n1b.md`, "N1b-2".
+- **Decision.** The user (no auth modes; one `kvModel`, one `kvRevLb`), relayed by the dsverify-net lead; the
+  meaning change of `kvRevLb` is trusted-visible and goes in the statement review.
 ## 2026-11-28: the rewrite kinds' name bounds replaced by the stored names' (nomode D3, narrowed)
 
 - **Spec.** `apply.adminKindOk` (UserGrantRole, RoleGrantPermission, UserChangePassword, UserRevokeRole,

@@ -57,10 +57,11 @@ theorem latestOk_and (M : auth.AuthMode) (hs : List auth.AuthState) (P Q : auth.
 
 /-- **One permission granted at the state `stl`** to the principal `ai` (`kvGranted`'s form for
 one permission, `etcdserver/KVAuthModel.lean`): auth disabled, or the principal's revision not `0`
-and not below the store's, and its user existing with the root role or covering the permission. -/
+and not below the store's, and its user existing with the root role or Go's verdict on the
+permission passing (`auth.coversX`, N1b-1: every request). -/
 def granted1 (stl : auth.AuthState) (ai : auth.AuthInfoM) (x : Perm3) : Prop :=
   stl.enabled = false ∨ (ai.rev ≠ 0 ∧ stl.revision ≤ ai.rev ∧
-    ∃ u, stl.users !! ai.user = some u ∧ (auth.isRoot u ∨ auth.covers stl u x.2.2 x.1 x.2.1))
+    ∃ u, stl.users !! ai.user = some u ∧ (auth.isRoot u ∨ auth.coversX stl u x.2.2 x.1 x.2.1 = true))
 
 /-- **The checks of `perms` all passed at the latest state**. -/
 def passedL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
@@ -71,11 +72,6 @@ def passedL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
 def refusedL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
     (perms : List Perm3) : Prop :=
   latestOk M hs (fun stl => ∃ x ∈ perms, ¬ granted1 stl ai x)
-
-/-- **The permissions are of the cache's shape whenever auth is enabled** at the latest state (the
-model's `kvDet`): what makes a check's verdict exact. -/
-def shapedL (M : auth.AuthMode) (hs : List auth.AuthState) (perms : List Perm3) : Prop :=
-  latestOk M hs (fun stl => stl.enabled = true → ∀ x ∈ perms, auth.reqShape x.1 x.2.1)
 
 theorem passedL_nil (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) :
     passedL M hs ai [] := by
@@ -116,27 +112,11 @@ theorem refusedL_append_left (M : auth.AuthMode) (hs : List auth.AuthState) (ai 
   | off => trivial
   | any => trivial
 
-theorem shapedL_append (M : auth.AuthMode) (hs : List auth.AuthState) (l1 l2 : List Perm3) :
-    shapedL M hs (l1 ++ l2) ↔ shapedL M hs l1 ∧ shapedL M hs l2 := by
-  cases M with
-  | on γa =>
-    constructor
-    · intro h
-      exact ⟨fun stl hl he x hx => h stl hl he x (List.mem_append_left l2 hx),
-        fun stl hl he x hx => h stl hl he x (List.mem_append_right l1 hx)⟩
-    · rintro ⟨h1, h2⟩ stl hl he x hx
-      rcases List.mem_append.1 hx with hx | hx
-      · exact h1 stl hl he x hx
-      · exact h2 stl hl he x hx
-  | off => exact ⟨fun _ => ⟨trivial, trivial⟩, fun _ => trivial⟩
-  | any => exact ⟨fun _ => ⟨trivial, trivial⟩, fun _ => trivial⟩
-
-/-- **One check's latest verdict, in `granted1`'s form**: for a permission of the cache's shape
-whenever auth is enabled, a pass is the permission granted at the latest state and a refusal its
-negation. -/
+/-- **One check's latest verdict, in `granted1`'s form** (every request, N1b-1): a pass is the
+permission granted at the latest state and a refusal its negation. -/
 theorem verdictL_one (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
     (k e : GoString) (op : auth.PermType) (err : GoInterface)
-    (hv : auth.permVerdictL M hs ai k e op err) (hsh : shapedL M hs [(k, e, op)]) :
+    (hv : auth.permVerdictL M hs ai k e op err) :
     (err = GoInterface.nil → passedL M hs ai [(k, e, op)]) ∧
       (err ≠ GoInterface.nil → refusedL M hs ai [(k, e, op)]) := by
   cases M with
@@ -145,23 +125,11 @@ theorem verdictL_one (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.A
     · intro herr stl hl x hx
       simp only [List.mem_singleton] at hx
       subst hx
-      obtain ⟨hp, -⟩ := hv stl hl
-      obtain ⟨hpm, hrev⟩ := hp herr
-      unfold granted1
-      by_cases hen : stl.enabled = false
-      · exact Or.inl hen
-      · have hen' : stl.enabled = true := by simpa using hen
-        have hs1 := hsh stl hl hen' (k, e, op) (List.mem_singleton.2 rfl)
-        have := (auth.permVerdictL_granted γa hs ai k e op err stl hl hs1 hv).1 herr
-        exact this
+      exact (auth.permVerdictL_granted γa hs ai k e op err stl hl hv).1 herr
     · intro herr stl hl
       refine ⟨(k, e, op), List.mem_singleton.2 rfl, ?_⟩
-      obtain ⟨-, hr, -⟩ := hv stl hl
-      have hrv := hr herr
-      have hen : stl.enabled = true := hrv.1
-      have hs1 := hsh stl hl hen (k, e, op) (List.mem_singleton.2 rfl)
       intro hg
-      exact herr ((auth.permVerdictL_granted γa hs ai k e op err stl hl hs1 hv).2 hg)
+      exact herr ((auth.permVerdictL_granted γa hs ai k e op err stl hl hv).2 hg)
   | off => exact ⟨fun _ => trivial, fun _ => trivial⟩
   | any => exact ⟨fun _ => trivial, fun _ => trivial⟩
 
@@ -183,13 +151,6 @@ def leaseRefusedL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.Auth
   latestOk M hs (fun stl => ¬ auth.adminOk stl (some ai) ∧
     ∃ k : GoString, I.lookup ⟨k⟩ = some id ∧ ¬ granted1 stl ai (k, [], .write))
 
-/-- **The lease's keys are of the cache's shape whenever auth is enabled** at the latest state (what
-makes each key's check exact). -/
-def leaseShapedL (M : auth.AuthMode) (hs : List auth.AuthState)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : Prop :=
-  latestOk M hs (fun stl => stl.enabled = true →
-    ∀ k : GoString, I.lookup ⟨k⟩ = some id → auth.reqShape k [])
-
 /-- A lease attaching no key passes (whatever the principal). -/
 theorem leasePassedL_of_none (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
@@ -206,15 +167,6 @@ theorem leaseRefusedL_none_false (γa : auth.AuthNames) (hs : List auth.AuthStat
     (h : ∀ k : GoString, I.lookup ⟨k⟩ ≠ some id) (hr : leaseRefusedL (.on γa) hs ai I id) : False := by
   obtain ⟨-, k, hk, -⟩ := hr stl hl
   exact h k hk
-
-/-- A lease attaching no key is of the shape. -/
-theorem leaseShapedL_of_none (M : auth.AuthMode) (hs : List auth.AuthState)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
-    (h : ∀ k : GoString, I.lookup ⟨k⟩ ≠ some id) : leaseShapedL M hs I id := by
-  cases M with
-  | on γa => intro stl _ _ k hk; exact absurd hk (h k)
-  | off => trivial
-  | any => trivial
 
 end pure
 

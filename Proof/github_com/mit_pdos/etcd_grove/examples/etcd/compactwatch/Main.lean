@@ -162,9 +162,8 @@ theorem Main.wp_proof
   rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]
   imod (roundsInv_alloc ρ.rd (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) keysL
       go!"v" ⊤ (by
-        have h := (kvRaftOf_extends ρ.rd.kv.c0 ρ.rd.kv.ch0 ρ.rd.kv.log0
-          (bootEntries (LogEntry.toEntries boot 0))).length_le
-        unfold kvModel; rw [hlog] at h ⊢; simpa using h)
+        have h := (kvModel_extends ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))).length_le
+        rw [hlog] at h; simpa using h)
       (by
         rw [etcdstart.kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
         intro cs hcs

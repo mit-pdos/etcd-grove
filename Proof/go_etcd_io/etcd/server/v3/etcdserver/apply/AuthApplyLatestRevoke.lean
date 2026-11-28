@@ -64,7 +64,7 @@ abbrev apply.authApplierV3.LeaseRevoke.specL : Prop :=
         info r rq id log T rs Pre Q Post
         (apply.authOutLL E.authMode hs (auth.authInfoM info) c rq log []
           (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) ∗
-      L hs ∗ ⌜apply.leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) id⌝ }}
+      L hs }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗ L hs ∗
@@ -120,7 +120,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
     (hLP : apply.checkLeasePuts.specL (GF := GF) (hG := hG)) :
     apply.authApplierV3.LeaseRevoke.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq id log T rs Pre Q Post info L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, Htt, Hpre, HL, %Hsh⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, Htt, Hpre, HL⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.isApplyLessor at Hle
@@ -140,7 +140,6 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
   wp_apply (hLP st le E.RD E.authMode L hs (mvcc.api.mvccLeases E.γ) Lw
       (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ info (DFrac.own 1) id)
     $$ [$Hst $Htl $Hu $Hinfo $Hard $HL] as %err ⟨Hu, Hinfo, Hard, HL, #HeI, %Hoff, #Hlc, %Hvd⟩
-  · ipureintro; exact Hsh
   ihave Hkv := Hkv $$ Hard Hu
   cases err with
   | ok e' =>

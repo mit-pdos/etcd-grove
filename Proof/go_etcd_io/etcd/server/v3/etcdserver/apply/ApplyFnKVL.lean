@@ -80,8 +80,7 @@ def apply.uberKVC (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
         ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
         E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
         apply.ltHalf E T ∗ apply.revokeOwn E rq ∗ L hs ∗
-        ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true ∧
-          apply.kvShapedL E.authMode hs x.log rq⌝ }}
+        ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true⌝ }}
       (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
     {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ apply.revokeOwn E rq ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
@@ -103,7 +102,7 @@ instance apply.uberKVC_persistent (ua : GoInterface) (E : apply.AEnv GF) (ci : a
 /-- **`apply.Apply(lg, e, ua, w, shouldApplyV3)` on a KV entry with no alarm set, the verdict at
 the latest state** (see the file header): `Apply.spec`'s triple with the uber-applier's base KV
 triples at the latest state (`uberKVL`), the current chain the base one, the latest-state resource
-`L hs` and the checked permissions' shape (`kvShapedL`); besides `Apply.spec`'s postcondition,
+`L hs`; besides `Apply.spec`'s postcondition,
 `L hs` back and, for a dispatched and applied request, its outcome decided at the latest state
 for its principal (`kvOutL` at `principalOf rq`). (Strict M1, 2026-11-06: the apply thread's KV
 resources as `uberApplier.Apply.spec` takes them, `kvOwnPre` with the contract at `kvBk`'s backend,
@@ -126,8 +125,7 @@ abbrev apply.Apply.kvSpecL : Prop :=
       srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗ L hs ∗
-      ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true ∧
-        apply.kvShapedL E.authMode hs x.log rq⌝ }}
+      ⌜x.chain = apply.baseChain E.authOn ∧ apply.authKVKind (apply.dispatchKind rq) = true⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗

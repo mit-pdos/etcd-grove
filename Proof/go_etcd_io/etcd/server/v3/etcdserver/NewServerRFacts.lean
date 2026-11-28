@@ -45,7 +45,7 @@ theorem restartNames_bkRestAtL {ρ ρ' : ReqNames} (h : restartNames ρ ρ') (b 
     (L : List EntryModel) (D : backend.Data) :
     bkRestAtL ρ'.rd.kv b L D ↔ bkRestAtL ρ.rd.kv b L D := by
   obtain ⟨-, h2, h3, -⟩ := h.2.1
-  unfold bkRestAtL kvLeases; rw [h2, h3]
+  unfold bkRestAtL; rw [h2, h3]
 
 /-- (The restarted lessor's requested TTLs) **`tableReq` of a table is at most the records' TTLs**,
 for records whose ids are the table's (`imageLeasesAt_recs`'s facts): `NewLessor.spec`'s premise at
@@ -75,7 +75,7 @@ theorem restart_noGrant (γr : ReadNames) (A : List EntryModel) (hpre : γr.raft
     rw [KVNames.lg_eq] at hlg; simpa using hlg
   have hp := Hpl.1
   rw [hlm] at hp
-  unfold appliedTable kvLeases
+  unfold appliedTable
   rw [hpre, List.nil_append, kvTableOf_plainM _ _ _ A hp]
   rfl
 
@@ -429,7 +429,7 @@ theorem srvRest_restart (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     rw [apply.restLeasesWith_mem]
     iframe Hmem
     have hbk := restartBk_eq d D c0 boot A f (appliedTable γr A).ids
-      (by unfold appliedTable; rw [hpre, List.nil_append]; exact hb)
+      (by unfold appliedTable; rw [hpre, List.nil_append, hc0]; exact hb)
     isplitl [Hc]
     · iapply (rbOwnIn_congr d.γB _ _ _ (fun n _ => hbk n)).1 $$ Hc
     isplitl [Hp]

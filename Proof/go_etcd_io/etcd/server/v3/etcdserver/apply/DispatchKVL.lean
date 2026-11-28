@@ -77,21 +77,6 @@ def winTgtL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
     (log : mvcc.Log) (w : Option lease.LWin) (T : List w64) : Prop :=
   (∃ oc, kvOutL M hs ai ci rq log oc ∧ oc ≠ .rejected .auth) → winTgt w rq log T
 
-/-- **The KV request's checked permissions are of the cache's shape** at the latest state whenever
-auth is enabled (the model's `kvDet`): what the methods' exact verdicts take; (auth-lease S2) the leases' keys of the
-log's state too. -/
-def kvShapedL (M : auth.AuthMode) (hs : List auth.AuthState) (log : mvcc.Log) (rq : IRRModel) : Prop :=
-  match dispatchKind rq with
-  | .range => ∀ o, rq.range = some o → shapedL M hs (rangePermsM o)
-  | .put => ∀ o, rq.put = some o → shapedL M hs (putPerms o) ∧
-      leaseShapedL M hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID
-  | .deleteRange => ∀ o, rq.deleteRange = some o → shapedL M hs (deletePermsM o)
-  | .txn => ∀ t, rq.txnW = some t → shapedMay M hs (txnMay t) ∧
-      ∀ o ∈ txnPutsW t, leaseShapedL M hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID
-  | .leaseRevoke => ∀ id, rq.leaseRevoke = some id →
-      leaseShapedL M hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) id
-  | _ => True
-
 /-- **The kinds the auth layer checks with a verdict that changes the KV state** (auth-lease S2): the
 KV kinds and the revocation (`authChecks` without the two reads `UserGet`/`RoleGet`); the kinds of the
 latest-state triples. -/
@@ -133,10 +118,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
       {{ putPreW E c (.ok ai) info r rq o log Pre Q Post
             (authOutLL E.authMode hs (auth.authInfoM info) ci rq log (putPerms o)
               (mvcc.leaseItemsOf (mvcc.stateAfter log)) [o.leaseID]) ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗
-          ⌜shapedL E.authMode hs (putPerms o) ∧
-            leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID⌝ ∗
-          apply.applyTok E }}
+          srvApi.kvLogLb E.γs F ∗ L hs ∗ apply.applyTok E }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post
@@ -149,7 +131,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
             (fun oc => ∃ e, authEndOf o.base.rangeEnd e ∧
               authOutL E.authMode hs (auth.authInfoM info) ci rq log
                 ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜shapedL E.authMode hs (deletePermsM o)⌝ ∗ apply.applyTok E }}
+          srvApi.kvLogLb E.γs F ∗ L hs ∗ apply.applyTok E }}
         (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (deleteAnswerIs log o resp err) Pre Post
@@ -159,8 +141,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
           L hs ∗ traceRes trace ∗ apply.applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState),
-      {{ rangePre E c (.ok ai) info r rq o log ∗ L hs ∗ ⌜shapedL E.authMode hs (rangePermsM o)⌝ ∗
-          apply.applyTok E }}
+      {{ rangePre E c (.ok ai) info r rq o log ∗ L hs ∗ apply.applyTok E }}
         (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           rangePostL E c (.ok ai) info rq o log resp err
@@ -174,10 +155,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
             (txnOutLL E.authMode hs (auth.authInfoM info) ci rq log tw
               (mvcc.leaseItemsOf (mvcc.stateAfter log))) ∗
           txn.txnRequestIsW r tw ∗ ⌜rq.txnW = some tw⌝ ∗
-          srvApi.kvLogLb E.γs F ∗ L hs ∗
-          ⌜shapedMay E.authMode hs (txnMay tw) ∧ ∀ o ∈ txnPutsW tw,
-            leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID⌝ ∗
-          apply.applyTok E }}
+          srvApi.kvLogLb E.γs F ∗ L hs ∗ apply.applyTok E }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post
@@ -190,8 +168,7 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
       {{ revokePreW E c (.ok ai) info r rq id log T rs Pre Q Post
             (authOutLL E.authMode hs (auth.authInfoM info) ci rq log []
               (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) ∗
-          L hs ∗ ⌜leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) id⌝ ∗
-          apply.applyTok E }}
+          L hs ∗ apply.applyTok E }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           apply.applyTok E ∗ L hs ∗
@@ -219,8 +196,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 file header): `dispatch.spec`'s triple for a KV request or a revocation (`authKVKind`, auth-lease S2: with
 the revocation's resources as `dispatch.spec` threads them, the live set's half `T`, `revokeOwn`, the
 rest after `revokeRest`, its answer `revokeAnsR`; until then `isKVKind`) with the current applier's
-KV triples at the latest state (`applierKVL`), the latest-state resource `L hs` and the checked
-permissions' shape (`kvShapedL`); besides `dispatch.spec`'s postcondition, `L hs` back and, when
+KV triples at the latest state (`applierKVL`) and the latest-state resource `L hs` (N1b-1: no
+shape of the checked permissions, Go's verdict being exact for every request); besides `dispatch.spec`'s postcondition, `L hs` back and, when
 applied, the outcome decided at the latest state (`kvOutL`). (Strict M1, 2026-11-06: over
 `dispatch.spec`'s restated resources, `kvOwnPre` in place of `kvOwn ∗ storeWT ∗ cPre`, the floor
 `kvLogLb`, the thread's token in and back with a reader token of the backend.) -/
@@ -240,7 +217,7 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
       srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗
       apply.applierKVL E c ci a L ∗ L hs ∗
-      ⌜apply.authKVKind (apply.dispatchKind rq) = true ∧ apply.kvShapedL E.authMode hs log rq⌝ }}
+      ⌜apply.authKVKind (apply.dispatchKind rq) = true⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ apply.chainResAny c a ∗
       E.FS ∗ apply.revokeOwn E rq ∗ apply.revokeAnsR E rq ar ∗
@@ -291,50 +268,46 @@ theorem apply.applierKVL_auth
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info %hs
     imodintro
-    iintro %Φ' ⟨Hpre, #HF, HL, %Hsh, Htt⟩ HΦ'
+    iintro %Φ' ⟨Hpre, #HF, HL, Htt⟩ HΦ'
     iapply (hPut E ci inner p r rq o log F Pre Q Post info L hs) $$ [Hpre HL Htt] HΦ'
     iframe Hpre HL Htt
     iframe #
-    ipureintro; exact Hsh
   isplitr
   · -- DeleteRange
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info %hs
     imodintro
-    iintro %Φ' ⟨Hpre, #HF, HL, %Hsh, Htt⟩ HΦ'
+    iintro %Φ' ⟨Hpre, #HF, HL, Htt⟩ HΦ'
     iapply (hDel E ci inner p r rq o log F Pre Q Post info L hs) $$ [Hpre HL Htt] HΦ'
     iframe Hpre HL Htt
     iframe #
-    ipureintro; exact Hsh
   isplitr
   · -- Range
     imodintro
     iintro %r %rq %o %log %info %hs
     imodintro
-    iintro %Φ' ⟨Hpre, HL, %Hsh, Htt⟩ HΦ'
+    iintro %Φ' ⟨Hpre, HL, Htt⟩ HΦ'
     iapply (hRange E ci inner p r rq o log info L hs) $$ [Hpre HL Htt] HΦ'
     iframe Hpre HL Htt
     iframe #
-    ipureintro; exact Hsh
   isplitr
   · -- Txn
     imodintro
     iintro %r %skip %rq %t %tw %log %F %Pre %Q %Post %info %hs
     imodintro
-    iintro %Φ' ⟨Hpre, #HRW, %Htw, #HF, HL, %Hsh, Htt⟩ HΦ'
+    iintro %Φ' ⟨Hpre, #HRW, %Htw, #HF, HL, Htt⟩ HΦ'
     iapply (hTxn E ci inner p r skip rq t tw log F Pre Q Post info L hs) $$ [Hpre HL Htt] HΦ'
     iframe Hpre HL Htt
     iframe #
-    ipureintro; exact ⟨Htw, Hsh⟩
+    ipureintro; exact Htw
   · -- LeaseRevoke (auth-lease S2)
     imodintro
     iintro %r %rq %id %log %T %rs %Pre %Q %Post %info %hs
     imodintro
-    iintro %Φ' ⟨Hpre, HL, %Hsh, Htt⟩ HΦ'
+    iintro %Φ' ⟨Hpre, HL, Htt⟩ HΦ'
     iapply (hRev E ci inner p r rq id log T rs Pre Q Post info L hs) $$ [Hpre HL Htt] HΦ'
     iframe Hpre HL Htt
     iframe #
-    ipureintro; exact Hsh
 
 set_option hygiene false in
 /-- Persist the result struct `ar` (all stores done) and split it into its fields (read-only
@@ -526,7 +499,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
     cases hlg : E.lg
     · rw [Hwin.2 hlg]; exact apply.winTgt_none _ _ _
     · rw [h hlg]; exact Hwin.1 hlg hx
-  obtain ⟨Hkk, Hsh⟩ := Hx
+  have Hkk := Hx
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
@@ -712,8 +685,6 @@ theorem apply.uberApplier.dispatch.wp_kvL
     have hk : dispatchKind rq = .range := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    have hsh : apply.shapedL E.authMode hh (apply.rangePermsM x) := by
-      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h x hs
     ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn true E log Pre Q Post $$ Hkv
     wp_apply HRangeL $$ %lRa %rq %x %log %info %hh [Hkv Hres HL Htt] as %resp %trace %err ⟨Hpost, HL, Htrc, Htt⟩
     · isplitl [Hkv Hres]
@@ -722,7 +693,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
         · ipureintro; exact ⟨hs, hk, hok x hs⟩
         iframe HR
         iframe
-      iframe HL Htt; ipureintro; exact hsh
+      iframe HL Htt
     iunfold apply.rangePostL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, #Hcls⟩
     have Hst := Hst0.1
@@ -745,27 +716,22 @@ theorem apply.uberApplier.dispatch.wp_kvL
     have hk : dispatchKind rq = .put := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    have hsh : apply.shapedL E.authMode hh (apply.putPerms x) ∧
-        apply.leaseShapedL E.authMode hh (mvcc.leaseItemsOf (mvcc.stateAfter log)) x.leaseID := by
-      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h x hs
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
     ihave ⟨%Lm, Hmp⟩ := (apply.mPre_iff_at E c _ info log Pre Q Post).1 $$ Hmp
     ihave ⟨%HLm, Hmp, HLt⟩ := apply.mPreAt_ltHalf E c _ info log Lm T Pre Q Post $$ [$Hmp $HLt]
     wp_apply HPutL $$ %lPu %rq %x %log %F %Pre %Q %Post %info %hh [Hmp HL Htt] as %resp %trace %err ⟨Hpost, HL, Htrc, Htt⟩
     · iframe HF HL Htt
-      isplitl [Hmp]
-      · iunfold apply.putPreW
-        isplitr
-        · ipureintro; exact ⟨hs, hk, hok.1, hok.2 x hs⟩
-        ihave #HcpK := apply.certPreW_mono E c rq log _ _
-          (fun oc (h : _ ∧ apply.leaseExactL Lm rq log oc) => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h.1⟩,
-            fun hlg => HLm hlg ▸ h.2⟩) $$ Hcp
-        iframe HR
-        iexists Lm
-        isplitr
-        · ipureintro; exact fun ⟨oc, hX, hne⟩ => hwL Lm HLm ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩
-        iframe HcpK Hmp
-      ipureintro; exact hsh
+      iunfold apply.putPreW
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok.1, hok.2 x hs⟩
+      ihave #HcpK := apply.certPreW_mono E c rq log _ _
+        (fun oc (h : _ ∧ apply.leaseExactL Lm rq log oc) => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h.1⟩,
+          fun hlg => HLm hlg ▸ h.2⟩) $$ Hcp
+      iframe HR
+      iexists Lm
+      isplitr
+      · ipureintro; exact fun ⟨oc, hX, hne⟩ => hwL Lm HLm ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩
+      iframe HcpK Hmp
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
     ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
@@ -787,22 +753,18 @@ theorem apply.uberApplier.dispatch.wp_kvL
     have hk : dispatchKind rq = .deleteRange := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    have hsh : apply.shapedL E.authMode hh (apply.deletePermsM x) := by
-      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h x hs
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
     wp_apply HDelL $$ %lDe %rq %x %log %F %Pre %Q %Post %info %hh [Hmp HL Htt] as %resp %trace %err ⟨Hpost, HL, Htrc, Htt⟩
     · iframe HF HL Htt
-      isplitl [Hmp]
-      · iunfold apply.deletePreW
-        isplitr
-        · ipureintro; exact ⟨hs, hk, hok x hs⟩
-        ihave #HcpK := apply.certPreW_mono E c rq log _ _
-          (fun oc h => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩, fun _ =>
-            apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)⟩) $$ Hcp
-        iframe HR HcpK Hmp
-        iexists T; ipureintro
-        exact fun ⟨oc, hX, hne⟩ => hwL T (fun _ => rfl) ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩
-      ipureintro; exact hsh
+      iunfold apply.deletePreW
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok x hs⟩
+      ihave #HcpK := apply.certPreW_mono E c rq log _ _
+        (fun oc h => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩, fun _ =>
+          apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)⟩) $$ Hcp
+      iframe HR HcpK Hmp
+      iexists T; ipureintro
+      exact fun ⟨oc, hX, hne⟩ => hwL T (fun _ => rfl) ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
     ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
@@ -830,9 +792,6 @@ theorem apply.uberApplier.dispatch.wp_kvL
       | none => rw [h'] at h; cases h
       | some tw => exact ⟨tw, rfl⟩
     ihave #HRW := apply.optReqIs_some _ _ _ _ htw $$ HTxW
-    have hsh : apply.shapedMay E.authMode hh (apply.txnMay tw) ∧ ∀ o ∈ apply.txnPutsW tw,
-        apply.leaseShapedL E.authMode hh (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID := by
-      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h tw htw
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
     ihave ⟨%Lm, Hmp⟩ := (apply.mPre_iff_at E c _ info log Pre Q Post).1 $$ Hmp
     ihave ⟨%HLm, Hmp, HLt⟩ := apply.mPreAt_ltHalf E c _ info log Lm T Pre Q Post $$ [$Hmp $HLt]
@@ -852,7 +811,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
           exact ⟨fun ⟨oc, hX, hne⟩ => hwL Lm HLm ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨tw, htw, hX⟩, hne⟩,
             (hok x hs).2.2.1⟩
         iframe HcpK Hmp
-      ipureintro; exact ⟨htw, hsh⟩
+      ipureintro; exact htw
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, ⟨%Lk, %Hex, Hkv⟩, Hres, HPP, #Hcls, -⟩
     ihave ⟨%HLk, Hkv, HLt⟩ := apply.kvOwnAt_ltHalf E _ Lk T $$ [$Hkv $HLt]
@@ -890,8 +849,6 @@ theorem apply.uberApplier.dispatch.wp_kvL
     have hok : E.lm = .revocable ∧ putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
       have h := (apply.rqOk_leaseRevoke _ _ _ hk).1 Hok.1
       exact ⟨h.1, h.2.2.1, h.2.2.2⟩
-    have hsh : apply.leaseShapedL E.authMode hh (mvcc.leaseItemsOf (mvcc.stateAfter log)) x := by
-      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h x hs
     iunfold apply.revokeOwn at Hrv
     rw [if_pos hk] at *
     icases Hrv with ⟨Hrdat, #Hrev⟩
@@ -899,20 +856,18 @@ theorem apply.uberApplier.dispatch.wp_kvL
     wp_apply HRevL $$ %lLR %rq %x %log %T %(apply.restAfter rq true rs) %Pre %Q %Post %info %hh
       [Hmp HL Htt Hrdat HLt HRO] as %resp %err ⟨Htt, HL, Hpost⟩
     · iframe HL Htt
-      isplitl [Hmp Hrdat HLt HRO]
-      · iunfold apply.revokePreW
-        isplitr
-        · ipureintro; exact ⟨hs, hk, hok.2.1, hok.2.2⟩
-        ihave #HcpK := apply.certPreW_mono E c rq log _ _
-          (fun oc h => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩, fun _ =>
-            apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)⟩) $$ Hcp
-        iframe HR HcpK Hmp
-        iunfold apply.revokeRes
-        iframe
-        iframe #
-        ipureintro
-        exact ⟨hok.1, fun ⟨oc, hX, hne⟩ => hwL T (fun _ => rfl) ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩⟩
-      ipureintro; exact hsh
+      iunfold apply.revokePreW
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok.2.1, hok.2.2⟩
+      ihave #HcpK := apply.certPreW_mono E c rq log _ _
+        (fun oc h => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h⟩, fun _ =>
+          apply.leaseExactL_other T rq log oc (by rw [hk]; decide) (by rw [hk]; decide)⟩) $$ Hcp
+      iframe HR HcpK Hmp
+      iunfold apply.revokeRes
+      iframe
+      iframe #
+      ipureintro
+      exact ⟨hok.1, fun ⟨oc, hX, hne⟩ => hwL T (fun _ => rfl) ⟨oc, by simp only [apply.kvOutL, hk]; exact ⟨x, hs, hX⟩, hne⟩⟩
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, ⟨Hans, HRa⟩, Hkv, Hres, HPP, #Hcls, -⟩
     ihave Hkv := apply.kvOwn_of_atP E _ _ $$ Hkv

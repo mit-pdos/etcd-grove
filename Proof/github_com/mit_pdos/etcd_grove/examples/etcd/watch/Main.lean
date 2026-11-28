@@ -184,8 +184,8 @@ theorem Main.wp_proof
   -- watchkv's invariant over the KV state's half, at the plan: the bootstrap log changes no KV
   -- state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes = [[]] := by
-    unfold kvModelSt kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) _ (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
+    unfold kvModelSt
+    rw [kvModel_bootE _ _ (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
     rfl
   imod (wkInv_alloc ρ.rd.kv _ (trs.map pairOf) (by rw [hσ0]; exact wkW_start _))
     $$ Hetcd with ⟨%γc, #Hwk⟩

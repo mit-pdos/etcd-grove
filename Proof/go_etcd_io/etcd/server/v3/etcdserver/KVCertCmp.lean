@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 /-- Two KV names that agree on what the model reads have the same model. -/
 theorem kvModel_congr (γk γk' : KVNames) (hc0 : γk'.c0 = γk.c0) (hch : γk'.ch0 = γk.ch0)
     (hlog : γk'.log0 = γk.log0) (A : List EntryModel) : kvModel γk' A = kvModel γk A := by
-  unfold kvModel; rw [hc0, hch, hlog]
+  unfold kvModel kvFold; rw [hc0, hch, hlog]
 
 end cmp
 

@@ -173,13 +173,13 @@ theorem stop_imageAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   simp only [auth.AuthMode.isOn, appliedTableM_false] at hrest
   unfold appliedTable at hrest
   have hpre : γr.raft.pre = [] := by rw [hraft]
-  have hn : E.lg = false → (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
+  have hn : E.lg = false → (kvTableOf γr.kv.c0 γr.kv.ch0 [] (γr.raft.pre ++ A)).ids = [] := by
     intro hlg
     have hpl : plainLogM γr.kv.cmp .none A := by
       have := Hpl0.1
       rw [Hlmk, apply.AEnv.lm_of_lg_false hlg] at this
       exact this
-    rw [hpre, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A hpl]; rfl
+    rw [hpre, List.nil_append, kvTableOf_plainM _ _ _ A hpl]; rfl
   have hrestL := bkRestAtL_of_M_off E.lg hn hrest
   rw [← hlog, ← hx.2]
   isplitr

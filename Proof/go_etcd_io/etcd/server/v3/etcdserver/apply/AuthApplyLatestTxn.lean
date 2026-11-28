@@ -125,11 +125,6 @@ theorem opsPutsW_of_getElem (ops : List txn.TxnOpW) (i : Nat) (op : txn.TxnOpW) 
       simp only [List.getElem?_cons_succ] at h
       simp [opsPutsW, ih i h]
 
-/-- **The checkable permissions are of the cache's shape whenever auth is enabled** at the latest
-state. -/
-def shapedMay (M : auth.AuthMode) (hs : List auth.AuthState) (May : Perm3 → Prop) : Prop :=
-  latestOk M hs (fun stl => stl.enabled = true → ∀ x, May x → auth.reqShape x.1 x.2.1)
-
 /-- **A checkable permission refused at the latest state.** -/
 def refusedMay (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
     (May : Perm3 → Prop) : Prop :=
@@ -145,24 +140,6 @@ def txnOutLL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM
       ∃ o ∈ txnPutsW tw, leaseRefusedL M hs ai I o.leaseID)) ∨
     (chainStep backendStep c rq log oc ∧ (∃ L, txnChecked tw L ∧ passedL M hs ai L) ∧
       ∀ o ∈ txnPutsW tw, leasePassedL M hs ai I o.leaseID)
-
-theorem shapedMay_one (M : auth.AuthMode) (hs : List auth.AuthState) (May : Perm3 → Prop)
-    (x : Perm3) (h : shapedMay M hs May) (hx : May x) : shapedL M hs [x] := by
-  cases M with
-  | on γa =>
-    intro stl hl hen y hy
-    simp only [List.mem_singleton] at hy
-    subst hy
-    exact h stl hl hen y hx
-  | off => trivial
-  | any => trivial
-
-theorem shapedMay_mono (M : auth.AuthMode) (hs : List auth.AuthState) (May May' : Perm3 → Prop)
-    (hm : ∀ x, May' x → May x) (h : shapedMay M hs May) : shapedMay M hs May' := by
-  cases M with
-  | on γa => intro stl hl hen x hx; exact h stl hl hen x (hm x hx)
-  | off => trivial
-  | any => trivial
 
 theorem refusedMay_of_one (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
     (May : Perm3 → Prop) (x : Perm3) (hx : May x) (h : refusedL M hs ai [x]) :
@@ -265,9 +242,7 @@ abbrev apply.checkTxnPermission.specL : Prop :=
     (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
-      ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t ∗
-      ⌜apply.shapedMay on hs (apply.txnMay t) ∧
-        ∀ o ∈ apply.txnPutsW t, apply.leaseShapedL on hs I o.leaseID⌝ }}
+      ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
   {{ (err : GoInterface), RET #err; lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
@@ -289,9 +264,7 @@ abbrev apply.CheckTxnAuth.specL : Prop :=
     (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
-      ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t ∗
-      ⌜apply.shapedMay on hs (apply.txnMay t) ∧
-        ∀ o ∈ apply.txnPutsW t, apply.leaseShapedL on hs I o.leaseID⌝ }}
+      ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
   {{ (err : GoInterface), RET #err; lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
@@ -321,10 +294,7 @@ abbrev apply.authApplierV3.Txn.specL : Prop :=
         (apply.txnOutLL E.authMode hs (auth.authInfoM info) c rq log tw
           (mvcc.leaseItemsOf (mvcc.stateAfter log))) ∗
       txn.txnRequestIsW r tw ∗ ⌜rq.txnW = some tw⌝ ∗
-      srvApi.kvLogLb E.γs F ∗ Lr hs ∗
-      ⌜apply.shapedMay E.authMode hs (apply.txnMay tw) ∧ ∀ o ∈ apply.txnPutsW tw,
-        apply.leaseShapedL E.authMode hs (mvcc.leaseItemsOf (mvcc.stateAfter log)) o.leaseID⌝ ∗
-      apply.applyTok E }}
+      srvApi.kvLogLb E.γs F ∗ Lr hs ∗ apply.applyTok E }}
     (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
@@ -350,9 +320,7 @@ def apply.txnPermTL (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
   iprop(□ ∀ (rt : Loc) (t : txn.TxnModelW) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
-      ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t ∗
-      ⌜apply.shapedMay on hs (apply.txnMay t) ∧
-        ∀ o ∈ apply.txnPutsW t, apply.leaseShapedL on hs I o.leaseID⌝ -∗
+      ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t -∗
     (▷ ∀ err : GoInterface, lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
         authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
         (∀ _ : err = GoInterface.nil,
@@ -384,9 +352,7 @@ theorem apply.checkTxnReqs_latest
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
       ai ↦{dq} info ∗ RD ∗ Lr hs ∗
-      reqs ↦*□ ps ∗ txn.requestOpsIsW ps ops ∗ apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq w ∗
-      ⌜apply.shapedMay on hs (apply.opsMay ops) ∧
-        ∀ o ∈ apply.opsPutsW ops, apply.leaseShapedL on hs I o.leaseID⌝ }}
+      reqs ↦*□ ps ∗ txn.requestOpsIsW ps ops ∗ apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq w }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
   {{ (err : GoInterface), RET #err; lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
@@ -399,8 +365,7 @@ theorem apply.checkTxnReqs_latest
         (err ≠ GoInterface.nil → apply.refusedMay on hs (auth.authInfoM info) (apply.opsMay ops) ∨
           ∃ o ∈ apply.opsPutsW ops, apply.leaseRefusedL on hs (auth.authInfoM info) I o.leaseID)⌝ }} := by
   intro st le RD on Lr hs γl Lw I ai info dq reqs ps ops wn
-  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hreqs, #Hops, #IH, %Hsh⟩
-  obtain ⟨Hsh, Hshl⟩ := Hsh
+  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hreqs, #Hops, #IH⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hreqs
   ihave #Hst' := Hst
   iunfold apply.isAuthStoreL at Hst'
@@ -461,14 +426,13 @@ theorem apply.checkTxnReqs_latest
       have hko : o.key = k := by rw [Ho]; simp only [txn.rangeOpOf.proj_key]
       have hmay : apply.opsMay ops (k, e, .read) :=
         apply.opsMay_of_getElem ops _ _ _ hop' (by rw [← hko]; exact ⟨e, hend, rfl⟩)
-      have hsh1 := apply.shapedMay_one _ _ _ _ Hsh hmay
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
       wp_apply HRange $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard %hs [Hai Hrd HL]
         as %err ⟨Hai, -, -, Hrd, HL, #HeI1, %Hv1, #Hpv1⟩
       · iframe; iframe #; try (ipureintro; exact Hkb)
-      have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv1 hsh1
+      have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv1
       have Hoff := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv1
       cases err with
       | nil =>
@@ -527,20 +491,11 @@ theorem apply.checkTxnReqs_latest
       icases Hr' with ⟨%Hrn, -⟩
       have hmays : ∀ x ∈ apply.putPerms o, apply.opsMay ops x := fun x hx =>
         apply.opsMay_of_getElem ops _ _ _ hop' hx
-      have hshp : apply.shapedL on hs (apply.putPerms o) := by
-        cases on with
-        | on γa =>
-          intro stl hl hen x hx
-          exact Hsh stl hl hen x (hmays x hx)
-        | off => trivial
-        | any => trivial
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
       wp_apply (hPut _ le RD on Lr hs γl Lw I ai info dq r o wn)
         $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hr] as %err ⟨Hu, Hai, Hrd, HL, #HeI2, %Hof2, #Hcls2, %Hvd⟩
-      · ipureintro
-        exact ⟨hshp, Hshl o (apply.opsPutsW_of_getElem ops _ _ o hop' (by simp [apply.opPutsW]))⟩
       cases err with
       | nil =>
         ihave ⟨#Hpc0, #Hlk0⟩ := Hcls2 $$ %rfl
@@ -602,8 +557,6 @@ theorem apply.checkTxnReqs_latest
         apply.opsMay_of_getElem ops _ _ _ hop' (by rw [← hko]; exact ⟨e, hend, Or.inl rfl⟩)
       have hmayr : pk = true → apply.opsMay ops (k, e, .read) := fun hp =>
         apply.opsMay_of_getElem ops _ _ _ hop' (by rw [← hko]; exact ⟨e, hend, Or.inr ⟨hpk.trans hp, rfl⟩⟩)
-      have hshw := apply.shapedMay_one _ _ _ _ Hsh hmayw
-      have hshr := fun hp => apply.shapedMay_one _ _ _ _ Hsh (hmayr hp)
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
@@ -612,7 +565,7 @@ theorem apply.checkTxnReqs_latest
         wp_apply HDel $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard %hs [Hai Hrd HL]
           as %err ⟨Hai, -, -, Hrd, HL, #HeI3, %Hv3, #Hpv3⟩
         · iframe; iframe #; try (ipureintro; exact Hkb)
-        have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv3 hshw
+        have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv3
         have Hoff := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv3
         cases err with
         | nil =>
@@ -669,7 +622,7 @@ theorem apply.checkTxnReqs_latest
       wp_apply HRange $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard %hs [Hai Hrd HL]
         as %err ⟨Hai, -, -, Hrd, HL, #HeI4, %Hv4, #Hpv4⟩
       · iframe; iframe #; try (ipureintro; exact Hkb)
-      have Honer := apply.verdictL_one _ _ _ _ _ _ _ Hv4 (hshr rfl)
+      have Honer := apply.verdictL_one _ _ _ _ _ _ _ Hv4
       have Hoffr := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv4
       cases err with
       | ok e' =>
@@ -688,7 +641,7 @@ theorem apply.checkTxnReqs_latest
       wp_apply HDel $$ %ai %info %dq %ksl %esl %k %e %DFrac.discard %DFrac.discard %hs [Hai Hrd HL]
         as %err ⟨Hai, -, -, Hrd, HL, #HeI5, %Hv5, #Hpv5⟩
       · iframe; iframe #; try (ipureintro; exact Hkb)
-      have Honew := apply.verdictL_one _ _ _ _ _ _ _ Hv5 hshw
+      have Honew := apply.verdictL_one _ _ _ _ _ _ _ Hv5
       have Hoffw := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv5
       cases err with
       | nil =>
@@ -753,17 +706,13 @@ theorem apply.checkTxnReqs_latest
       have hmays : ∀ x, apply.txnMay ({ cmps := cs, thenOps := ts, elseOps := es } : txn.TxnModelW) x →
           apply.opsMay ops x := fun x hx =>
         apply.opsMay_of_getElem ops _ _ _ hop' hx
-      have hshn : apply.shapedMay on hs
-          (apply.txnMay ({ cmps := cs, thenOps := ts, elseOps := es } : txn.TxnModelW)) :=
-        apply.shapedMay_mono _ _ _ _ hmays Hsh
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
       iunfold apply.txnPermTL at IH
       wp_apply IH $$ %r %({ cmps := cs, thenOps := ts, elseOps := es } : txn.TxnModelW) [Hu Hai Hrd HL]
         as %err ⟨Hu, Hai, Hrd, HL, #HeI6, %Hof6, #Hcls6, %Hvd6⟩
-      · iframe; iframe #; ipureintro
-        exact ⟨hshn, fun o ho => Hshl o (apply.opsPutsW_of_getElem ops _ _ o hop' ho)⟩
+      · iframe; iframe #
       cases err with
       | nil =>
         ihave ⟨#Ht0, #Hlt0⟩ := Hcls6 $$ %rfl
@@ -836,8 +785,7 @@ theorem apply.checkTxnPermission.wp_latest
     apply.checkTxnPermission.specL (GF := GF) (hG := hG) := by
   intro st le RD on Lr hs γl Lw I ai info dq rt t wn
   iloeb as IH generalizing %rt %t
-  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hrt, %Hsh⟩
-  obtain ⟨Hsh, Hshl⟩ := Hsh
+  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hrt⟩
   ihave #IHT : apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq wn $$ []
   · iunfold apply.txnPermTL; iexact IH
   iclear IH
@@ -891,13 +839,12 @@ theorem apply.checkTxnPermission.wp_latest
     have hend : apply.authEndOf cm.rangeEnd e := by rw [Hce]; exact apply.authEndOf_rangeEndOf esl e Hel.1
     have hmay : apply.txnMay t (cm.key, e, .read) :=
       Or.inl (apply.cmpsMay_of_getElem _ _ cm e hcm hend)
-    have hsh1 := apply.shapedMay_one _ _ _ _ Hsh hmay
     obtain ⟨Lp, hLp, hLpass⟩ := Hpass
     wp_auto
     wp_apply HRange $$ %ai %info %dq %ksl %esl %cm.key %e %DFrac.discard %DFrac.discard %hs [Hai Hrd HL]
       as %err ⟨Hai, -, -, Hrd, HL, #HeI7, %Hv7, #Hpv7⟩
     · iframe; iframe #; try (ipureintro; exact Hkb)
-    have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv7 hsh1
+    have Hone := apply.verdictL_one _ _ _ _ _ _ _ Hv7
     have Hoff := apply.permVerdictL_isOn _ _ _ _ _ _ _ Hv7
     cases err with
     | nil =>
@@ -931,14 +878,8 @@ theorem apply.checkTxnPermission.wp_latest
         Or.inl (apply.refusedMay_of_one _ _ _ _ _ hmay (Hone.2 (fun h => by cases h)))⟩
   have hle : t.cmps.length ≤ sint.nat n := by unfold sint.nat at *; word
   rw [List.take_of_length_le hle] at Hpass
-  have hsht : apply.shapedMay on hs (apply.opsMay t.thenOps) :=
-    apply.shapedMay_mono _ _ _ _ (fun x hx => Or.inr (Or.inl hx)) Hsh
-  have hshe : apply.shapedMay on hs (apply.opsMay t.elseOps) :=
-    apply.shapedMay_mono _ _ _ _ (fun x hx => Or.inr (Or.inr hx)) Hsh
   wp_apply (apply.checkTxnReqs_latest hPut _ le RD on Lr hs γl Lw I ai info dq ssl sps t.thenOps wn)
     $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hssl $Hss $IHT] as %err ⟨Hu, Hai, Hrd, HL, #HeI8, %Hof8, #Hcls8, %Hvd8⟩
-  · ipureintro
-    exact ⟨hsht, fun o ho => Hshl o (List.mem_append_left _ ho)⟩
   cases err with
   | ok e' =>
     wp_auto
@@ -956,8 +897,6 @@ theorem apply.checkTxnPermission.wp_latest
   wp_auto
   wp_apply (apply.checkTxnReqs_latest hPut _ le RD on Lr hs γl Lw I ai info dq fsl fps t.elseOps wn)
     $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hfsl $Hfs $IHT] as %err ⟨Hu, Hai, Hrd, HL, #HeI9, %Hof9, #Hcls9, %Hvd9⟩
-  · ipureintro
-    exact ⟨hshe, fun o ho => Hshl o (List.mem_append_right _ ho)⟩
   iapply HΦ; iframe Hu Hai Hrd HL HeI9
   isplitl []
   · ipureintro; exact Hof9
@@ -996,17 +935,16 @@ theorem apply.CheckTxnAuth.wp_latest
     (hTxn : apply.checkTxnPermission.specL (GF := GF) (hG := hG)) :
     apply.CheckTxnAuth.specL (GF := GF) (hG := hG) := by
   intro st le RD on Lr hs γl Lw I ai info dq rt t wn
-  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hrt, %Hsh⟩
+  wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hrt⟩
   wp_auto
   wp_apply (hTxn st le RD on Lr hs γl Lw I ai info dq rt t wn) $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hrt] as %err Hai
-  · ipureintro; exact Hsh
   iapply HΦ; iexact Hai
 
 theorem apply.authApplierV3.Txn.wp_latest
     (hTxn : apply.CheckTxnAuth.specL (GF := GF) (hG := hG)) :
     apply.authApplierV3.Txn.specL (GF := GF) (hG := hG) := by
   intro E c inner p r skip rq t tw log F Pre Q Post info Lr hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #Hrw, %Htw, #HF, HL, %Hsh, Htt⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #Hrw, %Htw, #HF, HL, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.isApplyLessor at Hle
@@ -1032,7 +970,6 @@ theorem apply.authApplierV3.Txn.wp_latest
   wp_apply (hTxn st le E.RD E.authMode Lr hs (mvcc.api.mvccLeases E.γ) Lw
       (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ info (DFrac.own 1) r tw E.win)
     $$ [$Hst $Htl $Hu $Hinfo $Hard $HL $Hrw] as %err ⟨Hu, Hinfo, Hard, HL, #HeI, %Hoff, #Hcls, %Hvd⟩
-  · ipureintro; exact Hsh
   ihave Hkv := Hkv $$ Hard Hu
   cases err with
   | ok e' =>

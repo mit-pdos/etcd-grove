@@ -118,7 +118,7 @@ theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (B : List EntryModel)
 theorem kvModelM_prefix (on : Bool) (γk : KVNames) (A B : List EntryModel) (h : A <+: B) :
     kvModelM on γk A <+: kvModelM on γk B := by
   cases on
-  · exact kvRaftOf_prefix _ _ _ _ _ h
+  · exact kvModel_prefix _ _ _ h
   · obtain ⟨D, rfl⟩ := h
     show (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) A).2.1 <+:
       (kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0, []) (A ++ D)).2.1

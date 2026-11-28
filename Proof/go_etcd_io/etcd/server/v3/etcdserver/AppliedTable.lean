@@ -18,9 +18,11 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-/-- **The lease table of the applied log** `A`, after the raft node's prefix. -/
+/-- **The lease table of the applied log** `A`, after the raft node's prefix: the auth-free
+model's (`kvTableOf`; the auth mode off's twin of `appliedTableM true`, until N2 merges them; until
+N1b-2, 2026-11-28, written `kvLeases γr.kv (γr.raft.pre ++ A)`, which was this). -/
 def appliedTable [GooseExts] (γr : ReadNames) (A : List EntryModel) : LeaseTable :=
-  kvLeases γr.kv (γr.raft.pre ++ A)
+  kvTableOf γr.kv.c0 γr.kv.ch0 [] (γr.raft.pre ++ A)
 
 /-- **An empty prefix grants nothing** (m-a): the table of the prefix alone is empty. -/
 theorem kvLeases_pre [GooseExts] (γr : ReadNames) (h : γr.raft.pre = []) :
@@ -31,7 +33,7 @@ theorem kvLeases_pre [GooseExts] (γr : ReadNames) (h : γr.raft.pre = []) :
 
 theorem appliedTable_snoc [GooseExts] (γr : ReadNames) (A : List EntryModel) (m : EntryModel) :
     appliedTable γr (A ++ [m]) = kvTable γr.kv.c0 γr.kv.ch0 (appliedTable γr A) m := by
-  unfold appliedTable kvLeases; rw [← List.append_assoc, kvTableOf_snoc]
+  unfold appliedTable; rw [← List.append_assoc, kvTableOf_snoc]
 
 /-- A grant is no cluster request. -/
 theorem dispatchKind_leaseGrant_noCluster (rq : apply.IRRModel)

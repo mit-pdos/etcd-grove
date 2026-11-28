@@ -36,8 +36,9 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 next endpoint on `Unavailable`), its success the member's check (`txnReadCheckedD`); a writing one's is
 `writeAuD` (resent after a token refresh), its success the grant of `irrTxn` (`writeCheckedD`, nested
 operations included). The error arm claims nothing. No revision lower bound for a writing transaction: the
-in-process `etcdTxnSpecMW` gives one only with auth off, and auth-on revisions follow `kvModelOn`, not
-`kvRevLb`'s `kvModel` (weakened 2026-11-27, `notes/axiom-review/onrevlb-weakening.md`).
+in-process `etcdTxnSpecMW` gives one only with auth off; the bound was dropped while `kvRevLb` read the
+auth-off model (2026-11-27, `notes/axiom-review/onrevlb-weakening.md`) and is not re-added (since N1b-2
+`kvRevLb`'s `kvModel` is `kvModelOn γk srvAuthSt0`; re-adding waits for N5).
 
 **Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; reviewed SOUND,
 `notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write
