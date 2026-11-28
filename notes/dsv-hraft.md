@@ -662,6 +662,16 @@ token-free `LeaderWithID` spec. Reported to coordinator-E.
   law `linStep` for it: the command's datum is registered (`cmd_committed_ops`) and no command of the frontier
   (`cmd_unique`), so its entry is pending and fires with the register after the frontier, which is the FSM's answer.
 
-Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): `Status`'s proof, the clients' registration and claim
+### S5c batch 1 (branch `hraft-s5c/2026-11-28`): `API.Status`
+
+- **`Raft.GetConfiguration.spec`** gains the future's `deferWait` (answer `True`; ledger 2026-11-28), proved: the
+  consumer side of `init`'s channel, `err` and `ShutdownCh` still zero.
+- **`API.Status`** (`service/API__Status.lean`): `State`; `LeaderWithID` on the forked goroutine, with the quarter
+  thread token `wp_fork_rtok` gives it, its answer on a 1-buffered bag channel (predicate `True`); `GetConfiguration`
+  and `waitFuture` on its future (`snapFut.wp_cf_Error`); on `nil`, the loop over the latest configuration's servers
+  (`cfgOpt`'s `Servers' ↦*□ ss`). The reply carries no facts. `apiMeth_Status` (`ApiRcvSvc.lean`) replaces the
+  receiver's `mStatus` hypothesis: `apiRcvLaws_of`/`apiRcv_apiSvc` take `API.Status.spec` instead.
+
+Still to do in S5 (`/shared/tmp/ps2/hraft/S5-HANDOFF.md`): the clients' registration and claim
 lemmas over `kitQ`, the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `CodecProof`), the server machine,
 `Sys.op`/`try` and `Client`, the orchestrator and the admin, and the link.
