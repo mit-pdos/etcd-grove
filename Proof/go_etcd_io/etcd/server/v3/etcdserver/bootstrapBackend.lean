@@ -231,6 +231,8 @@ theorem bootstrapBackend.wp_proof
     (mvcc.api.mvccW gx) hm0 hr0 hciK $$ HmS Hpr0 Hinv Hpd0 Hmt0a HlateW
   ihave #HisCI0 : isCI cil γ0.ci (srvCITriple0 cl) $$ []
   · rw [hγci]; iexact HisCI
+  ihave Hrt0 : ciRaftTerm (GF := GF) γ0.ci (W64 0) $$ [Hrt]
+  · rw [hγci]; iexact Hrt
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
@@ -297,8 +299,8 @@ theorem bootstrapBackend.wp_proof
   · iunfold applyBackend; iframe Hown HmB
   wp_apply (wp_ci_get (Rw := TRow.triv) hCIg (srvCITriple0 cl) (γ0.withPh π') cil _ (W64 0)
       ⟨W64 0, W64 0, W64 0, false⟩ rfl)
-    $$ [Hst Hab Hrt] as ⟨Hst, Hab, Hrt⟩
-  · iframe Hst Hab Hrt; isplitr; · iexact HisCI0
+    $$ [Hst Hab Hrt0] as ⟨Hst, Hab, Hrt⟩
+  · iframe Hst Hab Hrt0; isplitr; · iexact HisCI0
     isplitr
     · rw [show consInv (GF := GF) (γ0.withPh π') = consInv γ0 from rfl]; iexact Hinv
     -- (keepfix-d) the fresh backend's index is 0
