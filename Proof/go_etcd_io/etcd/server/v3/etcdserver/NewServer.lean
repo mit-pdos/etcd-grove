@@ -1888,7 +1888,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     isplitr
     · ipureintro; rfl
     isplitr
-    · iexact HSCE
+    · rw [HρRaft]; iexact HSCE
     -- (R2b-3d) the backend's file at the backend path (`bootOk`'s)
     iexact Hbfile
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
@@ -2208,7 +2208,9 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     iunfold srvTpPend; iexists γy, srv_ptr; iframe Htpp Htpinv srv
     ipureintro; exact HM0.2.2
   unfold srvBuiltG
-  iframe Htpp' HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
+  ihave #HsCIρ : isServerCI (GF := GF) s γA cil ρ.rd.raft.raft.cl $$ []
+  · rw [HρRaft]; iexact HsCI
+  iframe Htpp' HsCIρ Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
