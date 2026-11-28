@@ -748,6 +748,7 @@ theorem hraftCodecLaws : CodecLaws (hraftCodec (GF := GF)) where
   dec_PreVoteResp := dec_PreVoteResp
   dec_SnapResp := dec_SnapResp
   dec_TimeoutResp := dec_TimeoutResp
+  enc_mono := hraftCodec_enc_mono
 
 '''
 
