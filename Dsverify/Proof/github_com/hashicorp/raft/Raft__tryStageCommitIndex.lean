@@ -27,10 +27,13 @@ open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.Raft.tryStageCommitIndex.wp_proof :
     github_com.hashicorp.raft.Raft.tryStageCommitIndex.spec (GF := GF) (hG := hG) :=
-  fun r γ rc i c => by
-  wp_start as #Hr
+  fun r γ rc i c D g => by
+  wp_start as ⟨#Hr, Hst⟩
   ihave #Himm := isRaft_imm r γ rc i $$ Hr
   unfold raftImm
   icases Himm with ⟨-, -, -, -, -, #Hrcl⟩
   wp_auto
-  wp_end
+  iapply HΦ
+  iexists g
+  iframe
+  ipureintro; exact Or.inr rfl

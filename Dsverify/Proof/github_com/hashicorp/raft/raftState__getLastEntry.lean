@@ -10,6 +10,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.raftState__getLastEntry
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.core.LastLock
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 

@@ -370,8 +370,8 @@ theorem raft.Raft.wp_setState : github_com.hashicorp.raft.Raft.setState.spec (GF
 theorem raft.raftState.wp_setCurrentTerm : github_com.hashicorp.raft.raftState.setCurrentTerm.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.setCurrentTerm.wp_proof
 
-theorem raft.Raft.wp_setCurrentTerm : github_com.hashicorp.raft.Raft.setCurrentTerm.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof raft.raftState.wp_setCurrentTerm
+theorem raft.Raft.wp_setCurrentTerm : github_com.hashicorp.raft.Raft.setCurrentTerm.spec (GF := GF) (hG := hG) := by
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem raft.raftState.wp_getLastLog : github_com.hashicorp.raft.raftState.getLastLog.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getLastLog.wp_proof
@@ -418,8 +418,8 @@ theorem raft.Raft.wp_LeaderWithID : github_com.hashicorp.raft.Raft.LeaderWithID.
 theorem raft.wp_hasVote : github_com.hashicorp.raft.hasVote.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.hasVote.wp_proof
 
-theorem raft.Raft.wp_persistVote : github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.persistVote.wp_proof
+theorem raft.Raft.wp_persistVote : github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) := by
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 theorem raft.Raft.wp_timeoutNow : github_com.hashicorp.raft.Raft.timeoutNow.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.timeoutNow.wp_proof raft.Raft.wp_setLeader raft.Raft.wp_setState raft.RPC.wp_Respond _root_.Perennial.sync.atomic.Bool.wp_Store

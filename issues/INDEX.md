@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (86)
+## Not reported (87)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -29,6 +29,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [clientv3: after a reconnect, a watch from a future revision can deliver events below its start revision](etcd-watch-resume-below-start-revision.md) | yes | etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20263 pr closed; etcd-io/etcd#15248 pr merged |
 | [raft: a candidate counts its votes against the quorum of the configuration it had before its pre-vote, and two leaders win one term](hraft-candidate-stale-quorum.md) | yes | hashicorp/raft#727 issue open |
 | [raft: `InstallSnapshot` that keeps the log forgets a newer configuration entry in it, and two leaders commit different entries at one index](hraft-installsnapshot-drops-newer-configuration.md) | yes | hashicorp/raft#721 issue open; hashicorp/raft#728 issue open |
+| [raft: after a restart whose log ends below the snapshot, a delayed AppendEntries rolls the latest configuration back](hraft-restart-empty-log-config-rollback.md) | yes | hashicorp/raft#728 issue open; hashicorp/raft#741 issue open; hashicorp/raft#697 issue open, hashicorp/raft#721 issue open |
 | [raft: `VerifyLeader` counts the leader's own vote after it removed or demoted itself, so its consistent read is stale](hraft-verifyleader-removed-leader-self-vote.md) | yes | hashicorp/raft#725 issue open; hashicorp/raft#740 pr open |
 | [raft: a read after `Barrier` and `VerifyLeader` (Consul's consistent read) can miss a write another server already returned](hraft-verifyleader-single-voter-fsm-lag.md) | yes | hashicorp/raft#603 issue closed |
 | [apiserver etcd3: GuaranteedUpdate from a cached object that changes nothing ignores a failed resource version precondition](k8s-etcd3-cached-noop-skips-preconditions.md) | yes | kubernetes/kubernetes#82303 pr closed; kubernetes/kubernetes#89828 pr closed |

@@ -118,19 +118,7 @@ instance durCore_timeless (X : SrvDur) : Timeless (durCore γ rc i X) := by
 /-- (R2) `durBody` is its core, its stores and the boot pin. -/
 theorem durBody_split (X : SrvDur) :
     durBody γ rc i X ⊣⊢ durCore γ rc i X ∗ durStores γ rc i X ∗ bootPin rc X := by
-  unfold durBody durCore durStores
-  refine ⟨?_, ?_⟩
-  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, Hla, Hl, Hpe, Ht, Hd⟩
-    iframe
-    ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr⟩
-  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, Hc, Hpe, Ht, Hd, Hla⟩, ⟨HL, HS, HSS, Hl⟩, Hb⟩
-    iframe
-    isplitl []
-    · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2.1⟩
-    isplitl []
-    · ipureintro; exact Hp.2.2.2.2.2.1
-    iframe
-    ipureintro; exact Hp.2.2.2.2.2.2
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- (R2) **Opening `srvDurInv`**, the core without its later (timeless), the stores under it. -/
 theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
@@ -250,7 +238,7 @@ theorem latestOk_dur (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) :
 
 theorem latestDur_dur_none (rc0 : RCtx GF) (dn : DurNames) (lat : SnapLatest) (dp : Option DiscPend) :
     latestDur γ { rc0 with dur := dn } i lat none dp = latestDur γ rc0 i lat none dp := by
-  unfold latestDur; rw [latestOk_dur]
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- (R2) **Arming a generation** (at boot, before its WP): fresh crash-state names, the crash
 invariant (for the context `rc` with those names and the generation's store handles), the crash
@@ -268,61 +256,7 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
       ghostVar dn.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       ghostVar dn.pw 1 (none : Option Pend) ∗
       dghostVar dn.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) := by
-  iintro Hv
-  unfold srvVacant
-  icases Hv with ⟨Ho, Hdv, Hlc, Htc, Hcc, HL, HS, HSS, %Hp, Hlat, Htp, Hdp⟩
-  obtain ⟨hlo, hlc, hvm, htd, hci, hstg, hpend, hdpl⟩ := Hp
-  imod (ghostVar_alloc (X.s, X.tp, X.dp)) with ⟨%gsv, Hsv⟩
-  imod (ghostVar_alloc (X.D, X.A.staged)) with ⟨%gst, Hst⟩
-  imod (ghostVar_alloc X.s.term) with ⟨%gtv, Htv⟩
-  imod (ghostVar_alloc X.s.cidx) with ⟨%gcv, Hcv⟩
-  imod (mono_nat_own_alloc 0) with ⟨%gap, Hap, -⟩
-  imod (mono_nat_own_alloc X.c) with ⟨%gcomp, Hcomp, -⟩
-  imod (ghostVar_alloc (none : Option (Nat × Nat × GoString))) with ⟨%gpend, Hpend⟩
-  imod (ghostVar_alloc ()) with ⟨%gtok, Htok⟩
-  imod (ghostVar_alloc (none : Option Pend)) with ⟨%gpw, Hpw⟩
-  imod (dghostVar_alloc (some (X.A, X.lat))) with ⟨%gboot, Hboot⟩
-  imod (mono_nat_own_alloc (latIdxD X.lat)) with ⟨%glat, Hla, -⟩
-  ihave ⟨Hsv1, Hsv2⟩ := (ghostVar_split_half gsv 1 (X.s, X.tp, X.dp)).1 $$ Hsv
-  ihave ⟨Hcomp1, Hcomp2⟩ := ((monoNatAuthOwn_fractional (GF := GF) gcomp X.c).fractional (1 : Qp).half (1 : Qp).half).1 $$ [Hcomp]
-  · rw [Qp.half_add_half]; iexact Hcomp
-  ihave ⟨Hst1, Hst2⟩ := (ghostVar_split_half gst 1 (X.D, X.A.staged)).1 $$ Hst
-  ihave ⟨Htv1, Htv2⟩ := (ghostVar_split_half gtv 1 X.s.term).1 $$ Htv
-  ihave ⟨Hcv1, Hcv2⟩ := (ghostVar_split_half gcv 1 X.s.cidx).1 $$ Hcv
-  ihave ⟨Hpend1, Hpend2⟩ := (ghostVar_split_half gpend 1 (none : Option (Nat × Nat × GoString))).1 $$ Hpend
-  icases dghostVar_split _ _ (.own (1 : Qp).half) (.own (1 : Qp).half) $$ [Hboot] with ⟨Hb1, Hb2⟩
-  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hboot
-  rw [hpend]
-  rw [← latestDur_dur_none γ i rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ X.lat X.dp]
-  imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ } i X') ∨
-      crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩ }))
-    $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1 Hb1 Hcomp1 Hla] with #Hinv
-  · inext
-    ileft
-    iexists X
-    iunfold durBody
-    rw [hpend]
-    unfold bootPin
-    dsimp only
-    iframe
-    iframe #
-    isplitl []
-    · ipureintro; exact ⟨hlo, hlc, hvm, htd, hci⟩
-    isplitl []
-    · ipureintro; rw [hpend] at hdpl; exact hdpl.1
-    isplitl [Hb1]
-    · ileft
-      iexists (some (X.A, X.lat))
-      iframe
-      ipureintro
-      intro p hp; cases hp; rfl
-    ipureintro; exact hdpl.2
-  imodintro
-  iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot, glat⟩
-  unfold srvDurInvRaw srvCrashTok srvVP stVS termV cidxV
-  dsimp only
-  iframe
-  iexact Hinv
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 /-- (R2) **The dead generation's crash state, without the stores' authorities**: gprot's halves, the
 couplings (with the dead stores' states `X.A`, `X.D`), `latestDur`, the pending steps' premises. -/

@@ -10,6 +10,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.raftState__setCommitIndex
 public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 
@@ -30,7 +31,31 @@ open github_com.hashicorp.raft proto gprot
 
 theorem github_com.hashicorp.raft.raftState.setCommitIndex.wp_proof :
     github_com.hashicorp.raft.raftState.setCommitIndex.spec (GF := GF) (hG := hG) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  intro r γ rc i x Q
+  wp_start as ⟨#Hcell, Hupd⟩
+  (try (wp_method_call; wp_call))
+  wp_auto
+  wp_apply_core sync.atomic.wp_StoreUint64_nc _ _ $$ [] [-]
+  · iPkgInit
+  iintro Hnc
+  unfold cidxCell cidxV
+  imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%t, >Hpt, >Hc⟩
+  ihave Hu := Hupd $$ %(uint.nat t) Hc
+  imod Hu $$ Hnc with ⟨Hnc, Hc, HQ⟩
+  iframe Hnc
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iexists t
+  iframe Hpt
+  iintro Hpt
+  imod Hmask with -
+  imod Hclose $$ [Hpt Hc] with -
+  · inext; iexists x; iframe
+  imodintro
+  wp_auto
+  iapply HΦ $$ HQ
 
 end proof
 
