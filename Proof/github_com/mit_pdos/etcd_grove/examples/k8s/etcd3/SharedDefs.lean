@@ -1,0 +1,145 @@
+/-
+Lean-first (no Rocq counterpart).
+
+# The shared model's Go values (k8s-dist K9, `notes/k8s-dist-k9.md` §2)
+
+The vocabulary of the specs of `SharedModel`'s search (`examples/k8s/etcd3/export.go`):
+
+- `HWf h`: a configuration the search holds, its history one store per revision, the last its store
+  (§2.0);
+- `gapsL s len j`: the `j` foreign stores `skipTo` appends to a history of length `len` whose last
+  store is `s` (`foreignL`'s, read off the Go: the items unchanged, the revision `histLen + 1`);
+- `hhInv hh`: what `hh.mu` protects (§2.3): the maps `canon` and `is` (both `nil`, or both made), each
+  node in `canon[k]` a node of `k`'s `prev` and `n` holding some store (`canonNode`), `is` anything
+  (nothing relies on it: `canonLocked` walks the caller's own history), and `gaps[base]` the nodes of
+  `base`'s history with `i + 1` foreign stores appended (`gapsOwn`). Hash-consing is for speed: no
+  spec relies on two equal histories being one node, only on one node holding one history;
+- `hhOwn hh`: `hh`'s mutex, with `hhInv hh` (persistent);
+- `cfgSetOwn s hh gs`: a `cfgSet` at `s` over `hh`, its list holding the configurations `gs`, its
+  buckets' indices into the list.
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedSearch
+public import Perennial.Proof.sync.Base
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace k8s_etcd3
+
+open Iris Iris.BI
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
+  (mstore mcfg hnode item Input Output state histHashes cfgSet ikey ckey)
+
+/-! ## Well-formed configurations and the foreign stores -/
+
+section pure
+variable [GooseExts]
+
+/-- **A configuration the search holds** (§2.0): one store per revision, the last the store. -/
+def HWf (h : HSt) : Prop := h.hist.length = uint.nat h.st.rv ∧ h.hist.getLast? = some h.st
+
+/-- The `j` foreign stores `skipTo` appends to a history of length `len` whose last store is `s`. -/
+def gapsL (s : GSt) (len j : Nat) : List GSt :=
+  (List.range j).map fun m => ⟨s.items, W64 ((len + m + 1 : Nat) : Int)⟩
+
+open Classical in
+instance ikey_decEq : DecidableEq ikey := Classical.decEq _
+
+open Classical in
+instance ckey_decEq : DecidableEq ckey := Classical.decEq _
+
+end pure
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+
+include sem package_sem in
+theorem ikey_intoVal_inj : Function.Injective (intoVal (V := ikey)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (ikey.TypeAssumptions.get_prev x) (ikey.TypeAssumptions.get_prev y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (ikey.TypeAssumptions.get_n x) (ikey.TypeAssumptions.get_n y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (ikey.TypeAssumptions.get_h x) (ikey.TypeAssumptions.get_h y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem ckey_intoVal_inj : Function.Injective (intoVal (V := ckey)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (ckey.TypeAssumptions.get_hist x) (ckey.TypeAssumptions.get_hist y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (ckey.TypeAssumptions.get_rv x) (ckey.TypeAssumptions.get_rv y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (ckey.TypeAssumptions.get_np x) (ckey.TypeAssumptions.get_np y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (ckey.TypeAssumptions.get_h x) (ckey.TypeAssumptions.get_h y) h))
+  cases x; cases y; simp_all
+
+instance ikey_intoValInj : go.IntoValInj ikey := ⟨ikey_intoVal_inj (sem := sem) (package_sem := package_sem)⟩
+instance ckey_intoValInj : go.IntoValInj ckey := ⟨ckey_intoVal_inj (sem := sem) (package_sem := package_sem)⟩
+
+/-- A node of `canon[k]`: `k`'s `prev` and `n`, holding some store (read-only). -/
+def canonNode (k : ikey) (c : Loc) : IProp GF :=
+  iprop(∃ hn : hnode, c ↦□ hn ∗ ⌜hn.prev' = k.prev' ∧ hn.n' = k.n'⌝ ∗ ∃ s : GSt, storeOwn hn.st' s)
+
+instance canonNode_persistent (k : ikey) (c : Loc) : Persistent (canonNode (GF := GF) k c) := by
+  unfold canonNode; infer_instance
+
+/-- `gaps[base]`: the nodes of `base`'s history (`hs`, its last `s`) with `i + 1` foreign stores
+appended, `i` the node's index (see the file header). -/
+def gapsOwn (base : Loc) (sl : GoSlice) : IProp GF :=
+  iprop(∃ (ns : List Loc) (hs : List GSt) (s : GSt),
+    sl ↦* ns ∗ ownSliceCap Loc sl (DFrac.own 1) ∗ histOwn base hs ∗
+    ⌜hs.getLast? = some s ∧ hs.length + ns.length < 2 ^ 63⌝ ∗
+    [∗list] i ↦ n ∈ ns, histOwn n (hs ++ gapsL s hs.length (i + 1)))
+
+/-- **What `hh.mu` protects** (see the file header). -/
+def hhInv (hh : Loc) : IProp GF :=
+  iprop(∃ (mc mi mg : GoMap) (C : GMap ikey GoSlice) (I : GMap Loc Bool) (G : GMap Loc GoSlice),
+    structFieldRef histHashes go!"canon" hh ↦ mc ∗ structFieldRef histHashes go!"is" hh ↦ mi ∗
+    structFieldRef histHashes go!"gaps" hh ↦ mg ∗
+    (⌜mc = map.nil ∧ mi = map.nil⌝ ∨
+      mc ↦$ C ∗ mi ↦$ I ∗
+      [∗map] k ↦ sl ∈ C, ∃ ns : List Loc, sl ↦* ns ∗ ownSliceCap Loc sl (DFrac.own 1) ∗
+        [∗list] n ∈ ns, canonNode k n) ∗
+    (⌜mg = map.nil⌝ ∨ mg ↦$ G ∗ [∗map] b ↦ sl ∈ G, gapsOwn b sl))
+
+/-- **`hh`'s mutex**, protecting `hhInv hh` (persistent). -/
+def hhOwn (hh : Loc) : IProp GF :=
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isMutex (structFieldRef histHashes go!"mu" hh) (hhInv hh))
+
+instance hhOwn_persistent (hh : Loc) : Persistent (hhOwn (GF := GF) hh) := by
+  unfold hhOwn; infer_instance
+
+/-- **A `cfgSet` at `s` over `hh`** holding the configurations `gs` (in its list's order), its
+buckets' indices into the list. -/
+def cfgSetOwn (s hh : Loc) (gs : List GCfg) : IProp GF :=
+  iprop(∃ (lsl : GoSlice) (mb : GoMap) (cs : List mcfg) (B : GMap ckey GoSlice),
+    structFieldRef cfgSet go!"hh" s ↦ hh ∗ structFieldRef cfgSet go!"list" s ↦ lsl ∗
+    structFieldRef cfgSet go!"buckets" s ↦ mb ∗
+    lsl ↦* cs ∗ ownSliceCap mcfg lsl (DFrac.own 1) ∗ ([∗list] c;g ∈ cs;gs, cfgOwn c g) ∗
+    ⌜cs.length < 2 ^ 63⌝ ∗
+    (⌜mb = map.nil ∧ cs = []⌝ ∨ mb ↦$ B ∗ [∗map] _k ↦ sl ∈ B, ∃ is : List w64,
+      sl ↦* is ∗ ownSliceCap w64 sl (DFrac.own 1) ∗ ⌜∀ i ∈ is, 0 ≤ sint.Z i ∧ sint.nat i < cs.length⌝))
+
+end defs
+
+end k8s_etcd3
+end EtcdGrove
+end Perennial
