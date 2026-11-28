@@ -134,6 +134,9 @@ func ServerR(id uint64, dir string) {
 	if err := srv.Register(api); err != nil {
 		return
 	}
+	// Serve once both services are registered (kit change 6: a request that arrives before its
+	// service is registered would be answered "can't find service"; peers and clients retry a
+	// failed dial).
 	go srv.Accept(listen(hraftnet.ServerAddrs()[id-1]))
 	for {
 		time.Sleep(time.Duration(hraftnet.IdleMs) * time.Millisecond)
