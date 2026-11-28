@@ -8,7 +8,8 @@ caller's `A`) exist only after the store's catch-up, inside the share's step (`k
 - `kvSeen_sameL`: the condition's hypotheses (`kvWf`, the revision, `kvSeen` hence `A`) read a state only up
   to its leases. Its conclusion does not (`kvOpStep` of a put or transaction naming a lease reads the lease
   table), which is why `h` is applied at the real `σ`, never at the caught-up `σc`.
-- `rwCallD` (`rwCall` over `linUD`), `rwD_au` (`rw_au` then `k8sAuRW_kvAu1`).
+- `rwCallD` (`rwCall` over `linUD`), `rwD_au` (`rw_au` then `k8sAuRW_kvAu1`), `pendD_rw` (`pend_rw` then
+  `k8sAuRW_kvAu1`).
 -/
 module
 
@@ -183,6 +184,105 @@ theorem rwD_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γ
     · iexfalso
       iapply tok_excl γt
       iframe Htok Htok'
+  · -- a plain read: etcd's state does not move, the token comes back
+    have hb' : (ok σ || hand σ) = false := by simpa using hb
+    have hokσ : ok σ = false := by simp only [Bool.or_eq_false_iff] at hb'; exact hb'.1
+    have hid : kvOpStep op σ = σ := (hst.2 hokσ).1
+    ihave HW : kInvDW γ c g0 σ₀ σc $$ [Hh Hp Hr Hs]
+    · iunfold kInvDW
+      iexists hh, S, M, nx
+      iframe
+      ipureintro; exact ⟨hel, hrun, hok⟩
+    ihave ⟨Ha, HW⟩ := kInvDV_of_sameL γ c g0 γsh (1 : Qp) hs $$ [Ha HW]
+    · iframe
+    rw [hid]
+    imodintro
+    iframe Ha HW
+    simp only [hb', Bool.false_eq_true, ↓reduceIte]
+    iframe Htok
+    unfold rdFacts
+    iframe Hseenσ
+    ipureintro; exact ⟨⟨hwσ, hr⟩, HAσ⟩
+
+/-- **A write whose prophecy says `EOther`, its pending effect, on the shared KV** (`pend_rw`, then
+`k8sAuRW_kvAu1` at `op`): given the pending write's token, the client's one-shot update at `op` is the share's;
+where `ok σ || hand σ` (at the real state, from `h` there, as `rwD_au`) the pending write `n ↦ x` takes effect,
+its token consumed (`kOkD_pend`); otherwise etcd's state does not move and the token comes back. -/
+theorem pendD_rw (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk : KVNames)
+    (γs γsh : GName) (okS : mvcc.Change → Prop) (σ₀ : KVState) (l0 : List (List mvcc.Change))
+    (eD eU : GoInterface) (n : Nat) (x : Input)
+    (op : KVOp) (hop : op.isKV) (hloc : etcd_dist.PfxLocal regP (kvOpStep op))
+    (hokS : ∀ σ new, (kvOpStep op σ).changes = σ.changes ++ new → ∀ cs ∈ new, ∀ ch ∈ cs, okS ch)
+    (ok hand : KVState → Bool) (A : KVState → Prop)
+    (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
+      (ok σ = true → kvWf c (kvOpStep op σ) ∧
+        c.abs (kvOpStep op σ) = (kStep eD eU x (c.abs σ)).1) ∧
+      (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → (kStep eD eU x (c.abs σ)).1 = c.abs σ)))
+    (hkeys : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ))
+    (hone : ∀ σ, kvWf c σ → KvOne σ (kvOpStep op σ)) :
+    etcd_dist.kvPfxHP γk regP γs okS γsh σ₀ ∗ kInvD γ c g0 γs γsh σ₀ ∗ monoListLbOwn γsh l0 ∗
+      □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝) ⊢
+    □ (pendTok γ n x -∗
+      kvOpAu1 γk op (fun σ => iprop(
+        (if ok σ || hand σ then iprop(True) else pendTok γ n x) ∗ rdFacts c σ ∗ ⌜A σ⌝))) := by
+  unfold kInvD drvDInvN kInvDBody kvOpAu1 kvAu1
+  iintro ⟨#Hpfx, #Hinv, #Hl0, #HA⟩
+  iintro !> Htok
+  iapply (kvPfxP_au1HG γk regP γs okS γsh σ₀ "k8s" (by decide) (kInvDV γ c g0 γsh σ₀) l0
+    (kvOpStep op) hloc hokS)
+  isplitl []
+  · iexact Hpfx
+  isplitl []
+  · iexact Hinv
+  isplitl []
+  · iexact Hl0
+  iintro %σ %Hpre Ha HW
+  obtain ⟨-, he, -, hroom⟩ := Hpre
+  have hrb : RevBoundD σ := by unfold RevBoundD; unfold kvRoom at hroom; omega
+  imod (kInvDV_catchup γ c hc g0 γsh he hrb) $$ [Ha HW] with ⟨Ha, %σc, %hs, H⟩
+  · iframe
+  iunfold kInvDW at H
+  icases H with ⟨%hh, %S, %M, %nx, Hh, Hp, Hr, Hs, %Hpure⟩
+  obtain ⟨hel, hrun, hok⟩ := Hpure
+  have hwσ : kvWf c σ := (kvWf_sameL c hs).1 hok.wf
+  have hr : σ.rev + 2 < 2 ^ 63 := kvRoom_two hroom
+  ihave ⟨Hs, #Hseen⟩ := histOwn_seen c σc $$ Hs
+  ihave #Hseenσ := (show kvSeen (GF := GF) c.γh σc ⊢ kvSeen c.γh σ by
+    rw [kvSeen_sameL c.γh hs]) $$ Hseen
+  ihave %HAσ := HA $$ %σ Hseenσ
+  have hst := h σ hwσ hr HAσ
+  by_cases hb : (ok σ || hand σ) = true
+  · -- the pending write takes effect
+    have hlin : kvWf c (kvOpStep op σ) ∧
+        c.abs (kvOpStep op σ) = (kStep eD eU x (c.abs σ)).1 := by
+      cases hokσ : ok σ
+      · obtain ⟨hid, hhd⟩ := hst.2 hokσ
+        have hh' : hand σ = true := by simpa [hokσ] using hb
+        rw [hid]; exact ⟨hwσ, (hhd hh').symm⟩
+      · exact hst.1 hokσ
+    obtain ⟨hw', habs'⟩ := hlin
+    have hn : KvNext σ (kvOpStep op σ) := kvNext_step op σ hop (hone σ hwσ)
+    have hac := abs_sameL c hs
+    imod (invD_fire γ c hs hn hok.wf hw' hroom (kStep_oneKey c eD eU x σ _ habs')) $$ [Hr Hs]
+      with ⟨%σd, %Hd, Hr, Hs, -⟩
+    · iframe
+    obtain ⟨hsd, hnd, -⟩ := Hd
+    have hwd : kvWf c σd := (kvWf_sameL c hsd).2 hw'
+    have hacd := abs_sameL c hsd
+    have hrc : σc.rev + 2 < 2 ^ 63 := by rw [hs.kvs_rev.2]; exact hr
+    iunfold pendTok at Htok
+    ihave %Hn := ghost_map_lookup $$ Hp Htok
+    imod ghost_map_delete $$ Hp Htok with Hp
+    have Hok' := kOkD_pend hc hok eD eU n x Hn (by rw [hacd, hac]; exact habs') hwd hnd
+      (keysIn_sameL hs (fun v hv => by rw [hsd.kvs_rev.1] at hv; exact hkeys σ hwσ v hv)) hrc
+    imod (kInvDV_fire γ c g0 γsh he hn hsd hh S _ nx hrun Hok') $$ [Ha Hh Hp Hr Hs] with ⟨Ha, HW⟩
+    · iframe
+    imodintro
+    iframe Ha HW
+    simp only [hb, ↓reduceIte]
+    unfold rdFacts
+    iframe Hseenσ
+    ipureintro; exact ⟨⟨hwσ, hr⟩, HAσ⟩
   · -- a plain read: etcd's state does not move, the token comes back
     have hb' : (ok σ || hand σ) = false := by simpa using hb
     have hokσ : ok σ = false := by simp only [Bool.or_eq_false_iff] at hb'; exact hb'.1
