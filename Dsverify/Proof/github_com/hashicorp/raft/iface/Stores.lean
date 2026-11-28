@@ -63,7 +63,9 @@ def storeN : Namespace := nroot .@ "hraftstore"
 `DeleteRange(mn, mx)`. The index of the client's window family (`isLogStore`'s `Wl`). -/
 inductive LogOp where
   | store (first : Nat) (es : RLog)
-  | del (mn mx : Nat)
+  /-- `main`: a tag the caller chooses (raft: its main goroutine's deletes or the snapshot goroutine's
+  compaction), so that its window families tell the two apart. -/
+  | del (main : Bool) (mn mx : Nat)
 
 /-- (hraft_robust, R3 Q2) **A write of the stable store**: `SetUint64(key, v)`, `Set(key, vb)`. The index of
 the client's window family (`isStableStore`'s `Ws`). -/
@@ -207,9 +209,9 @@ def isLogStore (x : GoInterfaceOk) (own : LogAbs → IProp GF) (Wl : LogOp → I
         WP (App (Val #(methods x.ty go!"StoreLog" x.v)) (Val #p)) {{ Φ }}) ∗
     -- `DeleteRange(mn, mx)`: delete the entries at `mn..mx` (none if `mx < mn`); `LastIndex` is some
     -- value afterwards. (`mx < 2^64 - 1`: InmemStore's loop `j <= max` would not end.)
-    □ (∀ (mn mx : w64) (Φ : val → IProp GF),
-        ⌜uint.nat mx < 2 ^ 64 - 1⌝ -∗ Wl (.del (uint.nat mn) (uint.nat mx)) -∗
-        (Wl (.del (uint.nat mn) (uint.nat mx)) -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
+    □ (∀ (main : Bool) (mn mx : w64) (Φ : val → IProp GF),
+        ⌜uint.nat mx < 2 ^ 64 - 1⌝ -∗ Wl (.del main (uint.nat mn) (uint.nat mx)) -∗
+        (Wl (.del main (uint.nat mn) (uint.nat mx)) -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, own A ∗
           (∀ hi' : w64, own (A.delete (uint.nat mn) (uint.nat mx) hi')
             ={∅,⊤ \ ↑storeN}=∗ Φ #interface.nil)) -∗
         WP (App (App (Val #(methods x.ty go!"DeleteRange" x.v)) (Val #mn)) (Val #mx)) {{ Φ }}) ∗
@@ -458,7 +460,9 @@ about it). Every call returns a nil error except `Open` of a snapshot that is no
   bytes, `|bs| < 2^63`, which the store has from its Go slice), and gets the sink, open and empty;
   (hraft_robust R3 Q2) its close obligation is the store's window family at the sink's metadata,
   `Qc (sinkMeta … id bs) bs` (fixed with the store, so that its crash lemma gives back a resource the
-  client recognizes);
+  client recognizes), with a per-sink obligation `Qx bs` the caller fixes at `Create` (its per-generation
+  resources the commit updates; a durable store holds it until the commit and may drop it at a crash; on
+  `Cancel` the caller keeps it, `Close` being never called);
 * `List()`: the latest's metadata (a slice of 0 or 1 pointers), atomically;
 * `Open(id)`: atomically, the latest's metadata and a reader over a copy of its bytes if its id is
   `id` (`readCloserOk`, with `io.EOF`'s value `eof`), otherwise an error (`openPost`). -/
@@ -467,11 +471,12 @@ def isSnapStore (x : GoInterfaceOk) (own : SnapLatest → IProp GF) (eof : GoInt
   iprop(
     □ (∀ (ver idx term cfgIdx : w64) (cfg : Configuration) (trans : GoInterface) (Φ : val → IProp GF),
         (∀ (k : GoInterfaceOk) (id : GoString),
-          (∀ (R : List w8 → IProp GF),
-            (∀ (bs : List w8), ⌜bs.length < 2 ^ 63⌝ -∗ Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ old, own old ∗
+          (∀ (Qx R : List w8 → IProp GF),
+            (∀ (bs : List w8), ⌜bs.length < 2 ^ 63⌝ -∗ Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs -∗
+              Qx bs -∗ |NC={⊤ \ ↑storeN,∅}=> ▷ ∃ old, own old ∗
               (own (newerSnap old (sinkMeta ver idx term cfgIdx cfg id bs) bs) ={∅,⊤ \ ↑storeN}=∗ R bs)) -∗
             |==> ∃ own' : Option (List w8) → IProp GF,
-              isSink k id own' (fun bs => Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs) R ∗
+              isSink k id own' (fun bs => iprop(Qc (sinkMeta ver idx term cfgIdx cfg id bs) bs ∗ Qx bs)) R ∗
               own' (some [])) -∗
           Φ (PairV #(GoInterface.ok k) #interface.nil)) -∗
         WP (App (App (App (App (App (App (Val #(methods x.ty go!"Create" x.v)) (Val #ver))
