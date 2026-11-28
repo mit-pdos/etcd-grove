@@ -58,9 +58,10 @@ def durCore (X : SrvDur) : IProp GF :=
     ghostVar rc.dur.sv (1 : Qp).half (X.s, X.tp, X.dp) ∗ ghostVar rc.dur.st (1 : Qp).half (X.D, X.A.staged) ∗
     ghostVar rc.dur.tv (1 : Qp).half X.s.term ∗ ghostVar rc.dur.cv (1 : Qp).half X.s.cidx ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
-      uint.nat X.A.ci ≤ X.s.dur.1 ∧ ((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat)⌝ ∗
-    compLb rc X.c ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
+      uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+      (∀ d, X.dp = some d → X.c < d.x))⌝ ∗
+    monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
 /-- (R2) **The rest of `durBody`**: the stores' client authorities and what raft keeps about the
@@ -119,12 +120,17 @@ theorem durBody_split (X : SrvDur) :
     durBody γ rc i X ⊣⊢ durCore γ rc i X ∗ durStores γ rc i X ∗ bootPin rc X := by
   unfold durBody durCore durStores
   refine ⟨?_, ?_⟩
-  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, Hl, Hpe, Ht, Hd⟩
+  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, %Hp, %Hq, Hb, Hc, %Hr, Hl, Hpe, Ht, Hd⟩
     iframe
-    ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq⟩
+    ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr⟩
   · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, Hc, Hpe, Ht, Hd⟩, ⟨HL, HS, HSS, Hl⟩, Hb⟩
     iframe
-    ipureintro; exact ⟨⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2.1⟩, Hp.2.2.2.2.2⟩
+    isplitl []
+    · ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2.1⟩
+    isplitl []
+    · ipureintro; exact Hp.2.2.2.2.2.1
+    iframe
+    ipureintro; exact Hp.2.2.2.2.2.2
 
 /-- (R2) **Opening `srvDurInv`**, the core without its later (timeless), the stores under it. -/
 theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
@@ -232,8 +238,9 @@ def srvVacant (X : SrvDur) : IProp GF :=
     rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1 ∧ uint.nat X.A.staged ≤ X.s.dur.1 ∧ X.pend = none ∧
-      ((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-        (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat)⌝ ∗
+      (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+        (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+        (∀ d, X.dp = some d → X.c < d.x))⌝ ∗
     latestDur γ rc i X.lat X.pend X.dp ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
@@ -257,7 +264,7 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
       srvDurInvRaw γ { rc0 with dur := dn } i ∗ srvCrashTok { rc0 with dur := dn } ∗
       srvVP { rc0 with dur := dn } X.s X.tp X.dp ∗ stVS { rc0 with dur := dn } X.D X.A.staged ∗
       termV { rc0 with dur := dn } X.s.term ∗ cidxV { rc0 with dur := dn } X.s.cidx ∗
-      monoNatAuthOwn dn.applied 1 0 ∗ monoNatAuthOwn dn.comp 1 X.c ∗
+      monoNatAuthOwn dn.applied 1 0 ∗ monoNatAuthOwn dn.comp (1 : Qp).half X.c ∗
       ghostVar dn.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       ghostVar dn.pw 1 (none : Option Pend) ∗
       dghostVar dn.boot (DFrac.own (1 : Qp).half) (some (X.A, X.lat)) := by
@@ -270,12 +277,14 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
   imod (ghostVar_alloc X.s.term) with ⟨%gtv, Htv⟩
   imod (ghostVar_alloc X.s.cidx) with ⟨%gcv, Hcv⟩
   imod (mono_nat_own_alloc 0) with ⟨%gap, Hap, -⟩
-  imod (mono_nat_own_alloc X.c) with ⟨%gcomp, Hcomp, #Hclb⟩
+  imod (mono_nat_own_alloc X.c) with ⟨%gcomp, Hcomp, -⟩
   imod (ghostVar_alloc (none : Option (Nat × Nat × GoString))) with ⟨%gpend, Hpend⟩
   imod (ghostVar_alloc ()) with ⟨%gtok, Htok⟩
   imod (ghostVar_alloc (none : Option Pend)) with ⟨%gpw, Hpw⟩
   imod (dghostVar_alloc (some (X.A, X.lat))) with ⟨%gboot, Hboot⟩
   ihave ⟨Hsv1, Hsv2⟩ := (ghostVar_split_half gsv 1 (X.s, X.tp, X.dp)).1 $$ Hsv
+  ihave ⟨Hcomp1, Hcomp2⟩ := ((monoNatAuthOwn_fractional (GF := GF) gcomp X.c).fractional (1 : Qp).half (1 : Qp).half).1 $$ [Hcomp]
+  · rw [Qp.half_add_half]; iexact Hcomp
   ihave ⟨Hst1, Hst2⟩ := (ghostVar_split_half gst 1 (X.D, X.A.staged)).1 $$ Hst
   ihave ⟨Htv1, Htv2⟩ := (ghostVar_split_half gtv 1 X.s.term).1 $$ Htv
   ihave ⟨Hcv1, Hcv2⟩ := (ghostVar_split_half gcv 1 X.s.cidx).1 $$ Hcv
@@ -286,25 +295,27 @@ theorem raft_arm {E : CoPset} (rc0 : RCtx GF) (X : SrvDur) :
   rw [← latestDur_dur_none γ i rc0 ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩ X.lat X.dp]
   imod (inv_alloc durN E iprop((∃ X' : SrvDur, durBody γ { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩ } i X') ∨
       crashed ∗ srvCrashTok { rc0 with dur := ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩ }))
-    $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1 Hb1] with #Hinv
+    $$ [Ho Hdv Hlc Htc Hcc HL HS HSS Hlat Htp Hdp Hsv1 Hst1 Htv1 Hcv1 Hpend1 Hb1 Hcomp1] with #Hinv
   · inext
     ileft
     iexists X
     iunfold durBody
     rw [hpend]
-    unfold compLb bootPin
+    unfold bootPin
     dsimp only
     iframe
     iframe #
     isplitl []
     · ipureintro; exact ⟨hlo, hlc, hvm, htd, hci⟩
     isplitl []
-    · ipureintro; rw [hpend] at hdpl; exact hdpl
-    ileft
-    iexists (some (X.A, X.lat))
-    iframe
-    ipureintro
-    intro p hp; cases hp; rfl
+    · ipureintro; rw [hpend] at hdpl; exact hdpl.1
+    isplitl [Hb1]
+    · ileft
+      iexists (some (X.A, X.lat))
+      iframe
+      ipureintro
+      intro p hp; cases hp; rfl
+    ipureintro; exact hdpl.2
   imodintro
   iexists ⟨gsv, gst, gtv, gcv, gap, gcomp, gpend, gtok, gpw, gboot⟩
   unfold srvDurInvRaw srvCrashTok srvVP stVS termV cidxV
@@ -318,8 +329,9 @@ def deadCore (X : SrvDur) : IProp GF :=
   iprop(srvOwn γ i X.s ∗ durView γ i (1 : Qp).half X.s.dur.1 ∗ logCouple γ i X.s.log ∗
     termCouple γ i X.s.term ∗ cidxCouple γ i X.s.cidx ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
-      uint.nat X.A.ci ≤ X.s.dur.1 ∧ ((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat)⌝ ∗
+      uint.nat X.A.ci ≤ X.s.dur.1 ∧ (((∀ d, X.dp = some d → X.lo ≤ d.x) ∧
+      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1) ∧
+      (∀ d, X.dp = some d → X.c < d.x))⌝ ∗
     latestDur γ rc i X.lat X.pend X.dp ∗ tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
 /-- (R2) What `raft_crash` leaves: `deadCore` and `durBody`'s halves of the main goroutine's state
@@ -348,10 +360,10 @@ theorem raft_crash {E : CoPset} (hE : ↑durN ⊆ E) :
     imodintro
     iexists X
     iunfold durBody at Hb
-    icases Hb with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HL, HS, HSS, %Hp, %Hq, -, Hcomp, Hlat, Hpend, Htp, Hdp⟩
+    icases Hb with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, HL, HS, HSS, %Hp, %Hq, -, Hcomp, %Hr, Hlat, Hpend, Htp, Hdp⟩
     unfold srvDead deadCore
     iframe
-    ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq⟩
+    ipureintro; exact ⟨Hp.1, Hp.2.1, Hp.2.2.1, Hp.2.2.2.1, Hp.2.2.2.2, Hq, Hr⟩
   · unfold srvCrashTok
     icombine Htok Htok' gives %H
     exact absurd H.1 (Qp_one_add_not_le _)
