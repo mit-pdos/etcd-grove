@@ -30,7 +30,7 @@ abbrev github_com.hashicorp.raft.examples.hraftnet.service.snapshot.Persist.spec
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet.service ∗ snapVal γ fc sn x ∗
       isSink k id own Q R ∗ □ (∀ b, snapP γ fc x b -∗ Q b) ∗ own (some []) }}
     (App (Val (sn @!! go.GoType.PointerType snapshot.ty @!! go!"Persist")) (Val #(GoInterface.ok k)))
-  {{ RET #interface.nil; own none }}
+  {{ RET #interface.nil; own none ∗ ∃ b, R b }}
 
 end spec
 

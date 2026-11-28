@@ -48,7 +48,8 @@ theorem snapVal_fsmSnapOk
     iapply (wp_Persist γ fc sn x k id own Q R) $$ [Hown]
     · iframe; iframe #
     inext
-    iexact HΦ
+    iintro ⟨Hown, HR⟩
+    iapply HΦ $$ Hown HR
   · imodintro
     iintro %Φ HΦ
     iapply (wp_Release sn) $$ []

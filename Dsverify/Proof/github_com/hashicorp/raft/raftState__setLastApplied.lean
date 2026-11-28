@@ -10,6 +10,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.raftState__setLastApplied
 public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.core.LastLock
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 
 @[expose] public section
 
@@ -34,12 +35,14 @@ theorem github_com.hashicorp.raft.raftState.setLastApplied.wp_proof :
   wp_start as #Hcell
   wp_method_call; wp_call
   wp_auto
-  wp_apply_core sync.atomic.wp_StoreUint64 _ _ $$ [] [-]
+  wp_apply_core sync.atomic.wp_StoreUint64_nc _ _ $$ [] [-]
   · iPkgInit
+  iintro Hnc
   unfold appliedCell
   imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hcell with ⟨Hi, Hclose⟩
-  imod HΦ with HAU
+  imod HΦ $$ Hnc with ⟨Hnc, HAU⟩
   imodintro
+  iframe Hnc
   inext
   icases Hi with ⟨%y, Hpt, Hg'⟩
   icases HAU with ⟨%a, Ha, %Hax, Hcl⟩
