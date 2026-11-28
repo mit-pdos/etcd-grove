@@ -214,6 +214,27 @@ theorem srvV_termLb {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) :
   iframe Hs
   iexact Hlb
 
+/-- **A read of the log store by the main goroutine** (`GetLog`): every entry the store holds is the
+main goroutine's log's (`logOk`). -/
+theorem logRead_main (s : SState) (Ψ : LogAbs → IProp GF) :
+    srvDurInv γ rc i -∗ srvV rc s -∗
+      (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗ srvV rc s -∗ Ψ A) -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
+  iintro #Hd Hv Hw
+  iapply (logRead_au γ rc i iprop(srvV rc s ∗
+      (∀ A : LogAbs, ⌜∀ k e, A.m.lookup k = some e → ent s.log k = some e⌝ -∗ srvV rc s -∗ Ψ A)) Ψ)
+    $$ Hd [Hv Hw]
+  · iframe
+  iintro %X Hc ⟨Hv, Hw⟩
+  rw [srvV_eq]
+  ihave ⟨Hc, Hv, %hs⟩ := durCore_srvVP_agree γ rc i X s none none $$ [$Hc $Hv]
+  ihave ⟨Hc, %hl⟩ := durCore_logOk γ rc i X $$ Hc
+  imodintro
+  iframe Hc
+  iapply Hw
+  · ipureintro; rw [← hs.1]; exact hl.1.1
+  · iexact Hv
+
 end dur
 
 end github_com.hashicorp.raft
