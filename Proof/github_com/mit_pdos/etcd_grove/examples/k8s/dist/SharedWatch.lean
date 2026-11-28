@@ -616,7 +616,7 @@ theorem HRel.watchOk (h : HRel A n0 ρ W s c) (hn0 : 1 ≤ n0) (x : Input) (y : 
   · rw [hp] at hok; cases hok
   rw [hp] at hok
   dsimp only at hok ⊢
-  have hreq : uint.nat reqw ∈ A := hanc.1 reqw hp
+  have hreq : uint.nat reqw ∈ A := hanc.1 (Or.inl hk) reqw hp
   by_cases hsi : x.SendInit' = W64 2
   · rw [if_pos hsi] at hok ⊢
     rcases hb : evs.findIdx? (fun e => e.t = 3) with _ | b

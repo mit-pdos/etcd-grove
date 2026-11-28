@@ -40,7 +40,7 @@ def plainIO (p : Input × Output) : Input × Output := (p.1, plainOut p.2)
 theorem opAnchors_mono {A B : List Nat} (hAB : ∀ a ∈ A, a ∈ B) {x : Input} {y : Output}
     (h : OpAnchors A x y) : OpAnchors B x y := by
   obtain ⟨h1, h2, h3, h4⟩ := h
-  refine ⟨fun r hr => hAB _ (h1 r hr), fun r hp hr => hAB _ (h2 r hp hr),
+  refine ⟨fun hc r hr => hAB _ (h1 hc r hr), fun r hp hr => hAB _ (h2 r hp hr),
     fun hk hf evs he e hm ht => hAB _ (h3 hk hf evs he e hm ht), fun hk => ?_⟩
   obtain ⟨a1, a2, a3, a4, a5⟩ := h4 hk
   exact ⟨hAB _ a1, hAB _ a2, fun he => hAB _ (a3 he), fun hk' he os ho o hm => hAB _ (a4 hk' he os ho o hm),

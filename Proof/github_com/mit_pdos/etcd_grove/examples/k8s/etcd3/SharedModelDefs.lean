@@ -146,7 +146,7 @@ theorem targetL_lt (x : Input) (y : Output) (rv : Nat) (h : RevsBelow x y) :
         have hm := evMaxL_lt evs (2 ^ 62) (by omega) hev
         split
         · split
-          · next req hreq => have := hmin req hreq; omega
+          · next req hreq => have := hmin (Or.inl h5) req hreq; omega
           · exact hm
         · exact hm
   · next h5 =>
@@ -160,13 +160,13 @@ theorem targetL_lt (x : Input) (y : Output) (rv : Nat) (h : RevsBelow x y) :
       · omega
       · next req hreq =>
         split
-        · exact hmin req hreq
+        · exact hmin (Or.inr (by intro h6; simp_all)) req hreq
         · exact hL
     split
     · split <;> omega
     · split
       · omega
-      · next req hreq => exact hmin req hreq
+      · next req hreq => exact hmin (Or.inr (by intro h6; simp_all)) req hreq
 
 /-- **`landingsL`'s bound**: a landing is the next revision, or past it and at most `2^62`. -/
 theorem landingsL_le (R : RevsL) (rv : w64) (w : Input) (b : w64) (full : Bool) (x : Input)
@@ -365,7 +365,7 @@ theorem sharedBounded_stepIdxOk (x : Input) (y : Output) (B k : Nat) (hB : B < 2
   refine ⟨by omega, by omega, by omega, fun _ => ⟨?_, fun n hn => ?_⟩, fun _ => hw⟩
   · have : uint.nat g.st.st.rv < 2 ^ 63 := by omega
     word
-  · have := hmin n hn
+  · have := hmin (Or.inl ‹x.Kind' = W64 5›) n hn
     word
 
 end lemmas

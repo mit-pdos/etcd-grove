@@ -213,7 +213,9 @@ func HistoryRevs(ops []porcupine.Operation) Revs {
 	for _, op := range ops {
 		in := op.Input.(Input)
 		out := op.Output.(Output)
-		if r, err := parseRV(in.MinRV); err == nil {
+		// (G15) not the MinRV of a Get or List answered ETooLarge: the answer says only that the
+		// store's revision is below it, which shows no revision (NoForeign's anchor test)
+		if r, err := parseRV(in.MinRV); err == nil && (in.Kind == KWatch || out.Err != ETooLarge) {
 			num(r)
 		}
 		if r, err := parseRV(in.PreRV); in.HasPreRV && err == nil {
@@ -729,7 +731,8 @@ func (s Seeded) Floor() uint64 {
 // revision above the seeds, so that a history without any explains it and Kubernetes' checker,
 // whose model numbers the revisions itself as Model does, applies: the revisions its successful
 // writes answer with above the seeded store's are exactly the next ones, from it up to the greatest
-// M, and no revision any input or output names is above M.
+// M, and no revision any input or output names is above M (HistoryRevs: but the MinRV of an
+// operation answered ETooLarge, G15).
 func (s Seeded) NoForeign(ops []porcupine.Operation) bool {
 	writes := map[uint64]bool{}
 	m := s.st0.rv

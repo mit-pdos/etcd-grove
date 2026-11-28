@@ -299,7 +299,7 @@ theorem CRel.ok (hn0 : 1 ≤ n0) {d g : GCfg} (hc : CRel A n0 d g) (hnw : NoWrap
     refine ⟨ρ, W, ?_, h'⟩
     dsimp only
     by_cases h0 : y.Err' = W64 0
-    · refine mlistL_ren h' x (by rw [← hyl]; exact h4) hanc.1
+    · refine mlistL_ren h' x (by rw [← hyl]; exact h4) (hanc.1 (Or.inr (by rw [h0]; decide)))
         (fun os ho => hk5.2.2.2.1 h4k h0 os (by rw [hyl]; exact ho)) ?_
       intro _ req hq
       have e : T = (if pastReadL x req then uint.nat req else uint.nat y.ListRV') := by

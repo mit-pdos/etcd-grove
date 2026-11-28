@@ -43,7 +43,7 @@ def NoForeignOk (f : w64) (xs : List (Input × Output)) (m : w64) : Prop :=
 theorem opAnchors_mono {A B : List Nat} {x : Input} {y : Output} (h : k8s_dist.OpAnchors A x y)
     (hAB : ∀ a ∈ A, a ∈ B) : k8s_dist.OpAnchors B x y := by
   obtain ⟨h1, h2, h3, h4⟩ := h
-  refine ⟨fun r hr => hAB _ (h1 r hr), fun r a b => hAB _ (h2 r a b),
+  refine ⟨fun hc r hr => hAB _ (h1 hc r hr), fun r a b => hAB _ (h2 r a b),
     fun a b evs c e he d => hAB _ (h3 a b evs c e he d), fun hk => ?_⟩
   obtain ⟨g1, g2, g3, g4, g5⟩ := h4 hk
   exact ⟨hAB _ g1, hAB _ g2, fun a => hAB _ (g3 a), fun a b os c o ho => hAB _ (g4 a b os c o ho),

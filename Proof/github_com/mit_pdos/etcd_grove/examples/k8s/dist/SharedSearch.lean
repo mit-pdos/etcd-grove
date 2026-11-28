@@ -108,14 +108,15 @@ inductive SearchRun (A : List Nat) : GCfg → List (Input × Output) → Prop wh
       SearchStep A c x y e → SearchRun A e ops → SearchRun A c ((x, y) :: ops)
 
 /-- **The revisions one operation names** are anchors (`HistoryRevs`, `notes/k8s-dist-k4.md` §2):
-its minimum resource version and resource-version precondition (where they parse); an answer's error
+its minimum resource version (but a Get's or List's answered `tooLargeL`, error 6: G15,
+`notes/k8s-dist-k9.md`) and resource-version precondition (where they parse); an answer's error
 revision and list revision, a successful answer's object's revision (with or without a name: G9, `notes/k8s-dist-k4.md`, "K4-3: more
 gaps"); the revisions of a
 successful list's items, of a watch's events and bookmarks (types below 4, Error's: Go's `HistoryRevs`,
 which anchors no Error event and no bad one, type 5 or more; K9-1), and of the object a failed
 resource-version precondition's message names (Go's `rvOfMsg`). -/
 def OpAnchors (A : List Nat) (x : Input) (y : Output) : Prop :=
-  (∀ r, parseRVD x.MinRV' = some r → uint.nat r ∈ A) ∧
+  ((x.Kind' = W64 5 ∨ y.Err' ≠ W64 6) → ∀ r, parseRVD x.MinRV' = some r → uint.nat r ∈ A) ∧
   (∀ r, x.HasPreRV' = true → parseRVD x.PreRV' = some r → uint.nat r ∈ A) ∧
   (x.Kind' = W64 5 → y.WFailed' = false → ∀ evs, decWEventsL y.WEvents' = some evs → ∀ e ∈ evs,
     e.t < 4 → uint.nat e.o.ResourceVersion' ∈ A) ∧

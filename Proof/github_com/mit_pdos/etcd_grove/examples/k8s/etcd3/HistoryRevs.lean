@@ -35,9 +35,13 @@ open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj Revs)
 section pure
 variable [GooseExts]
 
+/-- `OpAnchors` asks the minimum resource version of a watch and of an operation not answered
+`tooLargeL` (G15, `notes/k8s-dist-k9.md`). -/
+def MinOk (x : Input) (y : Output) : Prop := x.Kind' = W64 5 ∨ y.Err' ≠ W64 6
+
 /-- `u` is a revision `OpAnchors` asks of `(x, y)` (see the file header). -/
 def OpReq (x : Input) (y : Output) (u : w64) : Prop :=
-  parseRVD x.MinRV' = some u ∨ (x.HasPreRV' = true ∧ parseRVD x.PreRV' = some u) ∨
+  (MinOk x y ∧ parseRVD x.MinRV' = some u) ∨ (x.HasPreRV' = true ∧ parseRVD x.PreRV' = some u) ∨
   (x.Kind' = W64 5 ∧ y.WFailed' = false ∧ ∃ evs, decWEventsL y.WEvents' = some evs ∧
     ∃ e ∈ evs, e.t < 4 ∧ e.o.ResourceVersion' = u) ∨
   (x.Kind' ≠ W64 5 ∧ (u = y.ErrRV' ∨ u = y.ListRV' ∨ (y.Err' = W64 0 ∧ u = y.RV') ∨
@@ -49,7 +53,7 @@ def OpReq (x : Input) (y : Output) (u : w64) : Prop :=
 theorem opAnchors_of (A : List Nat) (x : Input) (y : Output)
     (h : ∀ u, OpReq x y u → uint.nat u ∈ A) : k8s_dist.OpAnchors A x y := by
   unfold k8s_dist.OpAnchors
-  refine ⟨fun r hr => h r (Or.inl hr), fun r h1 h2 => h r (Or.inr (Or.inl ⟨h1, h2⟩)),
+  refine ⟨fun hc r hr => h r (Or.inl ⟨hc, hr⟩), fun r h1 h2 => h r (Or.inr (Or.inl ⟨h1, h2⟩)),
     fun hk hw evs hevs e he ht => h _ (Or.inr (Or.inr (Or.inl ⟨hk, hw, evs, hevs, e, he, ht, rfl⟩))),
     fun hk => ⟨h _ (Or.inr (Or.inr (Or.inr ⟨hk, Or.inl rfl⟩))),
       h _ (Or.inr (Or.inr (Or.inr ⟨hk, Or.inr (Or.inl rfl)⟩))),
@@ -461,7 +465,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     (try wp_auto)
     generalize hPj : (fun u => ∃ p ∈ xs.take (sint.nat j), OpReq p.1 p.2 u) = Pj
     wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm (fun u => Pj u ∨
-        parseRVD x.MinRV' = some u)) at next with [Hst «in» out] as ⟨«in», out, Hst⟩
+        (MinOk x y ∧ parseRVD x.MinRV' = some u))) at next with [Hst «in» out] as ⟨«in», out, Hst⟩
     · wp_apply wp_parseRV as %n %err Hp
       rcases hd : parseRVD x.MinRV' with _ | m <;> isimp only [hd] at Hp
       · icases Hp with ⟨%hne, -, %h0⟩
@@ -475,21 +479,51 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
       · icases Hp with %h
         obtain ⟨rfl, rfl⟩ := h
         (try wp_auto)
-        wp_apply Hnum' $$ [Hst] as Hst
-        · iframe
-          ipureintro
-          refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
-          simp [insL, *]
-          (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
-          (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
-        (try wp_auto)
-        wp_join_done
-        (try iframe)
-        iapply (allSt_mono S am bm (P := fun u => Pj u ∨ u = n)
-          (fun u hu => by simpa [eq_comm] using hu))
-        iexact Hst
+        -- (G15) the MinRV is recorded unless the operation is not a watch and is answered tooLarge
+        by_cases hk5 : x.Kind' = W64 5
+        · simp only [hk5, _root_.decide_true]
+          (try wp_auto)
+          wp_apply Hnum' $$ [Hst] as Hst
+          · iframe
+            ipureintro
+            refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+            simp [insL, *]
+            (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+            (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
+          (try wp_auto)
+          wp_join_done
+          (try iframe)
+          iapply (allSt_mono S am bm (P := fun u => Pj u ∨ u = n)
+            (fun u hu => hu.imp id (fun h => (Option.some.inj h.2).symm)))
+          iexact Hst
+        · simp only [hk5, decide_false]
+          (try wp_auto)
+          by_cases h6 : y.Err' = W64 6
+          · simp only [h6, _root_.decide_true, Bool.not_true]
+            (try wp_auto)
+            have hnmo : ¬MinOk x y := fun h => h.elim hk5 (fun h' => h' h6)
+            wp_join_done
+            (try iframe)
+            iapply (allSt_mono S am bm (P := Pj)
+              (fun u hu => hu.elim id (fun h => absurd h.1 hnmo)))
+            iexact Hst
+          · simp only [h6, decide_false, Bool.not_false]
+            (try wp_auto)
+            wp_apply Hnum' $$ [Hst] as Hst
+            · iframe
+              ipureintro
+              refine hS ▸ List.mem_flatMap.2 ⟨_, hmem, ?_⟩
+              simp [insL, *]
+              (try (right; right; right; right; right; right; right; left; exact ⟨_, List.mem_of_getElem? Hw_lookup, rfl⟩))
+              (try (right; right; right; right; right; right; right; right; exact ⟨_, List.mem_of_getElem? hl, rfl⟩))
+            (try wp_auto)
+            wp_join_done
+            (try iframe)
+            iapply (allSt_mono S am bm (P := fun u => Pj u ∨ u = n)
+              (fun u hu => hu.imp id (fun h => (Option.some.inj h.2).symm)))
+            iexact Hst
     wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm (fun u => (Pj u ∨
-        parseRVD x.MinRV' = some u) ∨ (x.HasPreRV' = true ∧ parseRVD x.PreRV' = some u)))
+        (MinOk x y ∧ parseRVD x.MinRV' = some u)) ∨ (x.HasPreRV' = true ∧ parseRVD x.PreRV' = some u)))
         at next with [Hst «in» out] as ⟨«in», out, Hst⟩
     · (try wp_auto)
       wp_apply wp_parseRV as %n %err Hp
@@ -500,7 +534,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         cases hb : x.HasPreRV' <;> (try wp_auto) <;> wp_join_done <;>
           (try iframe) <;>
           iapply (allSt_mono S am bm (P := fun u => Pj u ∨
-            parseRVD x.MinRV' = some u) (fun u hu => by simpa using hu)) <;> iexact Hst
+            (MinOk x y ∧ parseRVD x.MinRV' = some u)) (fun u hu => by simpa using hu)) <;> iexact Hst
       · icases Hp with %h
         obtain ⟨rfl, rfl⟩ := h
         (try wp_auto)
@@ -509,7 +543,7 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
           wp_join_done
           (try iframe)
           iapply (allSt_mono S am bm (P := fun u => Pj u ∨
-            parseRVD x.MinRV' = some u) (fun u hu => by simpa using hu))
+            (MinOk x y ∧ parseRVD x.MinRV' = some u)) (fun u hu => by simpa using hu))
           iexact Hst
         · (try wp_auto)
           wp_apply Hnum' $$ [Hst] as Hst
@@ -523,9 +557,9 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
           wp_join_done
           (try iframe)
           iapply (allSt_mono S am bm (P := fun u => (Pj u ∨
-            parseRVD x.MinRV' = some u) ∨ u = n) (fun u hu => by simpa [eq_comm] using hu))
+            (MinOk x y ∧ parseRVD x.MinRV' = some u)) ∨ u = n) (fun u hu => by simpa [eq_comm] using hu))
           iexact Hst
-    generalize hP2 : (fun u => (Pj u ∨ parseRVD x.MinRV' = some u) ∨
+    generalize hP2 : (fun u => (Pj u ∨ (MinOk x y ∧ parseRVD x.MinRV' = some u)) ∨
       (x.HasPreRV' = true ∧ parseRVD x.PreRV' = some u)) = P2
     wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt S am bm P2)
         at next with [Hst «in» out] as ⟨«in», out, Hst⟩

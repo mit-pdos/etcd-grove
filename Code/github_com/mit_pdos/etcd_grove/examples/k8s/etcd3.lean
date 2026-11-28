@@ -1689,7 +1689,7 @@ noncomputable def HistoryRevs.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "r" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KWatch)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "out"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ETooLarge)))))) (Val #false)))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "r"))
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.uint64] false []))))) (Var "num")) (Var "$a0"))))
@@ -1723,7 +1723,7 @@ noncomputable def HistoryRevs.impl [GooseExts] [GoGlobalContext] : val :=
     revision appended to the history), or c if it is at t or beyond. The stores appended to a
     history node are built once and shared (gaps), so that histories that skip alike are one.
 
-    go: export.go:281:23 -/
+    go: export.go:283:23 -/
 noncomputable def histHashes.skipTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "c"
@@ -1827,7 +1827,7 @@ noncomputable def histHashes.skipTo.impl [GooseExts] [GoGlobalContext] : val :=
     with an event, its resource version, at least 1). A write that answers with a revision at most rv is a no-op update (the stored object)
     and needs none.
 
-    go: export.go:310:6 -/
+    go: export.go:312:6 -/
 noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -2039,7 +2039,7 @@ noncomputable def target.impl [GooseExts] [GoGlobalContext] : val :=
     write's answer's revision, the current revision a "not found" or a current List names, one less
     than a too-large resource version.
 
-    go: export.go:371:6 -/
+    go: export.go:373:6 -/
 noncomputable def bound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -2128,7 +2128,7 @@ noncomputable def bound.impl [GooseExts] [GoGlobalContext] : val :=
     if b > 0 or where the answer needs w at that revision (shows), and the answer's own revision
     for w's key; with full, those and every anchor and the one after it, whatever the bound.
 
-    go: export.go:399:6 -/
+    go: export.go:401:6 -/
 noncomputable def landings.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "revs"
   (Lam "c"
@@ -2260,7 +2260,7 @@ noncomputable def landings.impl [GooseExts] [GoGlobalContext] : val :=
     write's refusal on key (exists, rejected, a failed precondition), which shows an object there
     and not its revision.
 
-    go: export.go:433:6 -/
+    go: export.go:435:6 -/
 noncomputable def shows.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -2420,7 +2420,7 @@ noncomputable def shows.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- intern is the canonical node of the store st after the canonical history prev (hh.mu held).
 
-    go: export.go:489:23 -/
+    go: export.go:491:23 -/
 noncomputable def histHashes.intern.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "prev"
@@ -2504,7 +2504,7 @@ noncomputable def histHashes.intern.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- canonical is h's canonical node.
 
-    go: export.go:507:23 -/
+    go: export.go:509:23 -/
 noncomputable def histHashes.canonical.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "h"
@@ -2532,7 +2532,7 @@ noncomputable def histHashes.canonical.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef histHashes.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType histHashes.ty)))) (Var "hh")))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hnode.ty)))) (Var "$res0"))))))
 
-/-- go: export.go:513:23 -/
+/-- go: export.go:515:23 -/
 noncomputable def histHashes.canonLocked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "h"
@@ -2587,7 +2587,7 @@ noncomputable def histHashes.canonLocked.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType hnode.ty)))) (Pair (Var "n") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hnode.ty)))) (Var "$res0"))))))
 
-/-- go: export.go:526:6 -/
+/-- go: export.go:528:6 -/
 noncomputable def mix.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "v"
@@ -2609,7 +2609,7 @@ noncomputable def mix.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "h") (App (Val (GoInstruction (GoOp GoXor go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "h")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v")))))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: export.go:532:6 -/
+/-- go: export.go:534:6 -/
 noncomputable def strHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "s"
@@ -2651,7 +2651,7 @@ noncomputable def strHash.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- storeHash is a hash of a store (its revision and items).
 
-    go: export.go:541:6 -/
+    go: export.go:543:6 -/
 noncomputable def storeHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -2741,7 +2741,7 @@ noncomputable def storeHash.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "h") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
 
-/-- go: export.go:575:18 -/
+/-- go: export.go:577:18 -/
 noncomputable def cfgSet.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -2825,7 +2825,7 @@ noncomputable def cfgSet.add.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: export.go:592:6 -/
+/-- go: export.go:594:6 -/
 noncomputable def pendEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -2876,7 +2876,7 @@ noncomputable def pendEqual.impl [GooseExts] [GoGlobalContext] : val :=
 /-- settle is every configuration c reaches by its pending writes taking effect, in any order, each
     at one of its landings (Model's closure, with the revision chosen).
 
-    go: export.go:606:6 -/
+    go: export.go:608:6 -/
 noncomputable def settle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hh"
   (Lam "revs"
@@ -3043,7 +3043,7 @@ noncomputable def settle.impl [GooseExts] [GoGlobalContext] : val :=
     the one before is not; CheckShared (examples/k8s/dist) runs them in turn on Illegal, and only
     Full's Illegal is a verdict.
 
-    go: export.go:652:17 -/
+    go: export.go:654:17 -/
 noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "revs"
@@ -3297,7 +3297,7 @@ noncomputable def Seeded.SharedModel.impl [GooseExts] [GoGlobalContext] : val :=
     through cli, at whatever revisions they get; the history has the empty store up to the first,
     then each seed's store up to the next revision it reaches. False if a Put failed.
 
-    go: export.go:702:6 -/
+    go: export.go:704:6 -/
 noncomputable def SeedShared.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Seeded.ty))) (App (Val (GoInstruction (GoZeroVal Seeded.ty))) (Val #())))
@@ -3446,7 +3446,7 @@ noncomputable def SeedShared.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Floor is the seeded store's revision (the resource versions drawn are floored at it).
 
-    go: export.go:724:17 -/
+    go: export.go:726:17 -/
 noncomputable def Seeded.Floor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3465,9 +3465,10 @@ noncomputable def Seeded.Floor.impl [GooseExts] [GoGlobalContext] : val :=
     revision above the seeds, so that a history without any explains it and Kubernetes' checker,
     whose model numbers the revisions itself as Model does, applies: the revisions its successful
     writes answer with above the seeded store's are exactly the next ones, from it up to the greatest
-    M, and no revision any input or output names is above M.
+    M, and no revision any input or output names is above M (HistoryRevs: but the MinRV of an
+    operation answered ETooLarge, G15).
 
-    go: export.go:733:17 -/
+    go: export.go:736:17 -/
 noncomputable def Seeded.NoForeign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ops"
@@ -3550,7 +3551,7 @@ noncomputable def Seeded.NoForeign.impl [GooseExts] [GoGlobalContext] : val :=
 /-- AcceptAll is a model that accepts every history: RunLin2 with it only runs the clients and
     returns their history, which the caller checks.
 
-    go: export.go:753:6 -/
+    go: export.go:756:6 -/
 noncomputable def AcceptAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -3610,7 +3611,7 @@ noncomputable def AcceptAll.impl [GooseExts] [GoGlobalContext] : val :=
     version (pastRead: Exact, or the legacy match recursive with a limit), or a watch from a resource
     version above 0.
 
-    go: export.go:764:6 -/
+    go: export.go:767:6 -/
 noncomputable def PastRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3667,7 +3668,7 @@ noncomputable def PastRead.impl [GooseExts] [GoGlobalContext] : val :=
     getStartWatchResourceVersion; and the etcd client resumes a broken watch stream from the last
     revision it received).
 
-    go: export.go:781:6 -/
+    go: export.go:784:6 -/
 noncomputable def PinnedRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3684,7 +3685,7 @@ noncomputable def PinnedRead.impl [GooseExts] [GoGlobalContext] : val :=
 /-- SeededAt is the seeded store SeedShared makes when its Puts get the revisions r1 < r2 (the
     driver's seed: 2 and 3), without a cluster: for the tests and for rechecking a dumped history.
 
-    go: export.go:787:6 -/
+    go: export.go:790:6 -/
 noncomputable def SeededAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r1"
   (Lam "r2"
@@ -3797,7 +3798,7 @@ noncomputable def SeededAt.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- SeedRevs are the seeds' revisions.
 
-    go: export.go:804:17 -/
+    go: export.go:807:17 -/
 noncomputable def Seeded.SeedRevs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -3849,7 +3850,7 @@ noncomputable def Seeded.SeedRevs.impl [GooseExts] [GoGlobalContext] : val :=
     output's events), and RVBytes rvBytes (a resource version's string): for the tests of
     SharedModel.
 
-    go: export.go:813:6 -/
+    go: export.go:816:6 -/
 noncomputable def EncodeItems.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "items"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3864,7 +3865,7 @@ noncomputable def EncodeItems.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: export.go:814:6 -/
+/-- go: export.go:817:6 -/
 noncomputable def EncodeWEvents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3879,7 +3880,7 @@ noncomputable def EncodeWEvents.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: export.go:815:6 -/
+/-- go: export.go:818:6 -/
 noncomputable def RVBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3896,7 +3897,7 @@ noncomputable def RVBytes.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- viewFrom is h's view from the revision lo (at least 1).
 
-    go: export.go:835:6 -/
+    go: export.go:838:6 -/
 noncomputable def viewFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "lo"
@@ -3963,7 +3964,7 @@ noncomputable def viewFrom.impl [GooseExts] [GoGlobalContext] : val :=
 /-- at is histAt(v.h, r): the store at r from the view when r is in it (every revision has its node:
     histOf, advance and skipTo append one per revision), histAt otherwise.
 
-    go: export.go:851:16 -/
+    go: export.go:854:16 -/
 noncomputable def hview.«at».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Lam "r"
@@ -3994,7 +3995,7 @@ noncomputable def hview.«at».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- watchOkIdx is watchOk.
 
-    go: export.go:859:6 -/
+    go: export.go:862:6 -/
 noncomputable def watchOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "out"
@@ -4125,7 +4126,7 @@ noncomputable def watchOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- watchListOkIdx is watchListOk.
 
-    go: export.go:885:6 -/
+    go: export.go:888:6 -/
 noncomputable def watchListOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "req"
@@ -4214,7 +4215,7 @@ noncomputable def watchListOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- initialPrefixOkIdx is initialPrefixOk.
 
-    go: export.go:904:6 -/
+    go: export.go:907:6 -/
 noncomputable def initialPrefixOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "req"
@@ -4300,7 +4301,7 @@ noncomputable def initialPrefixOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- reliableOkIdx is reliableOk.
 
-    go: export.go:923:6 -/
+    go: export.go:926:6 -/
 noncomputable def reliableOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "req"
@@ -4381,7 +4382,7 @@ noncomputable def reliableOkIdx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- wantEventsIdx is wantEvents.
 
-    go: export.go:939:6 -/
+    go: export.go:942:6 -/
 noncomputable def wantEventsIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "lo"
@@ -4480,7 +4481,7 @@ noncomputable def wantEventsIdx.impl [GooseExts] [GoGlobalContext] : val :=
     after it backtracks). The lock is held around the lookup and around the store, not around
     watchOkIdx. (The cross-check of watchOkIdx against watchOk is a test: TestCrossCheckWatches.)
 
-    go: export.go:973:6 -/
+    go: export.go:976:6 -/
 noncomputable def stepIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "memo"
   (Lam "c"
