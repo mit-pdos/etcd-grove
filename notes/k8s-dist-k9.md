@@ -378,3 +378,51 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `simp only [arrayLiteralSize6]` (a `rfl` lemma) to name the slice. Loop conditions come out of
   `wp_if_destruct` sometimes as `sint.Z j < …` and sometimes as `#(decide …) = #true` (read the goal).
 - **No `sorry`**, no axiom. WIP commits on the branch are build iterations (squash before landing, or keep).
+
+## Handoff K9-4 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Merges**: lean at `4b456e0c9f` (K4 landed; both K4 premise changes kept: `OpAnchors`'s `e.t < 4`,
+  `SettleL.land`'s `l < 2 ^ 64`; no conflict), then `k8s-dist-g11/2026-11-28` as fetched (`c650569b19`,
+  G11-G13; not yet on lean), clean. The Perennial pin is now `e5c2d6f62`: fk-lean2 has it built
+  (`/home/ubuntu/eg/perennial-e5c2d6f62`, `pbuild-e5c2d6f62.sh`, exit 0), and the branch's fk-lean2 worktree
+  has rebuilt onto it (5256 jobs for the targets below), so the next builds are incremental.
+- **`hhInv` split** (`SharedDefs.lean`): `hhInv hh := hhCanon hh ∗ hhGaps hh`; `canon`/`is` in `hhCanon`,
+  `gaps` in `hhGaps`. `intern`'s and `canonLocked`'s specs now take `hhCanon` (they never touch `gaps`).
+  Why: `skipTo` calls `intern` while it holds `gaps[base]` outside the map. With the old spec,
+  `intern` would hand back an `hhInv` with a fresh `gaps` map, possibly `nil`, and then
+  `hh.gaps[base] = g` could not be proved panic-free. `canonical`'s proof splits `hhInv` after `Lock`
+  and joins it again before `Unlock`.
+  **Built** (fk-lean2, at `25ddd45730`): `SharedDefs`, `histHashes__intern`, `histHashes__canonLocked` and
+  `histHashes__canonical` all compile with the split.
+- **`cfgSet.add`** (`Proof/.../etcd3/cfgSet__add.lean`, WIP): the proof is started: the `buckets == nil`
+  join and the `canonical` call. The build at `25ddd45730` failed on two trivial errors, not yet fixed:
+  (1) `bucketIdx`/`bucketIdx_snoc` need `variable [GooseExts]` (wrap them in `section pure variable
+  [GooseExts] … end pure`, as in `histHashes__skipTo.lean`); (2) `BigSepL.bigSepL2_length` is not the
+  name (find the `[∗list] _;_` length lemma; or take the length from `ownSlice_len` of `Hcs`). After those,
+  check the goal at the trailing `done`. The plan for the rest: `buckets[k]`'s slice comes out of the map
+  with two restore wands, as in `intern`'s `Hsl`. The insert wand should already be stated against
+  `cs ++ [c']` (use `buckets_snoc`, written in the file, on the rest of the map). Then the range loop
+  (`pure_wp_slice_for_range` turns it into a `wp_for`, invariant as in `intern`), and the `&&` of
+  `storeEqual`/`pendEqual`. A match gives `gd = g`: equal store, equal pending writes, and
+  `d.hist' = k.hist' = c'`, so `histOwn_agree_len` gives the same history. Otherwise append `len(list)`
+  to the bucket and `c'` to the list.
+- **`skipTo`** (`Proof/.../etcd3/histHashes__skipTo.lean`, WIP, not built yet): the pure lemmas
+  `gapsL_succ` and `repeat_foreignL_gaps` (`skipToL`'s history is `hs ++ gapsL s |hs| j`, under `HWf`).
+  The proof covers the `t ≤ rv` return (`skipToL_le`) and the `nil` history (impossible: `HWf`'s last
+  store, then `typedPointsto_not_null`), then stops at `done`. The plan for the rest:
+  1. `Lock`, split `hhInv`, `canonLocked` gives `base`.
+  2. The `gaps == nil` join, as in `cfgSet.add`.
+  3. Take `gaps[base]` out with one insert wand (`∀ sl', gapsOwn base sl' -∗ [∗map] … <[base := sl']> G'`).
+     Its `hs` is `c`'s history by `histOwn_agree_len`, so its last store is `c`'s store by `HWf`.
+  4. Loop invariant: `g ↦ gsl ∗ gsl ↦* ns ∗ cap ∗ [∗list] i ↦ n ∈ ns, histOwn n (hs ++ gapsL s |hs| (i+1))
+     ∗ hhCanon hh ∗ ⌜|hs| + |ns| < 2^63⌝`. The body is `histLen` and `intern`, then append.
+  5. `map.insert`, then load `g[t-rv-1]` *before* applying the insert wand (the wand consumes
+     `gsl ↦* ns`).
+  6. `Unlock`; the result follows from `repeat_foreignL_gaps`.
+- **Left (step 1)**, after `cfgSet.add` and `skipTo`: `settle`'s spec and proof, then `SharedModel`'s.
+  `settle` needs `landings` (and `shows`, `sort.Search`, a closure) specified and proved first, or at
+  least `landingsL` defined from the Go. `SharedModel` also needs `bound`, `target` and `stepIdx`
+  (step 2). Then link the new proofs (`etc/link-lean-first-k8setcd3.txt`: `histHashes__skipTo`,
+  `cfgSet__add`, with `histLen` among their callees; `etc/gen-link.py --k8setcd3`).
+- **No `sorry`**, no axiom. The two WIP files end in `done`, so they do not build; neither is in `Link`.
+  The WIP commits are build iterations.
