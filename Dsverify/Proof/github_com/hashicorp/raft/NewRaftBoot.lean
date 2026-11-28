@@ -6,6 +6,7 @@ boot pin's other half, which fixes the stores' state the restore reads (`X.A`, `
 module
 
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Crash
+public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftRec
 
 @[expose] public section
 
@@ -314,6 +315,72 @@ theorem bootRewrite_S (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option 
   rw [hA, hlat]
   imodintro
   iapply HK $$ Hv Hsv Hst
+
+theorem dghostVar_halves' {A : Type} [Pos.Countable A] (γ' : GName) (a : A) :
+    dghostVar (GF := GF) γ' (DFrac.own 1) a ⊢
+      dghostVar γ' (DFrac.own (1 : Qp).half) a ∗ dghostVar γ' (DFrac.own (1 : Qp).half) a := by
+  have h := dghostVar_split (GF := GF) γ' a (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
+  rw [DFrac.op_own, Qp.half_add_half] at h
+  iintro H
+  iapply h $$ H
+
+/-- (hraft_robust R5) **The snapshot store during the boot, as `restoreSnapshot` reads it**: an atomic read
+of the pinned latest, which also gives what the crash state keeps about it (`latFacts`; no install pending:
+the main goroutine's half of `pend`). -/
+theorem bootSnapAcc (fx : GoInterfaceOk) (A : LogAbs) (lat : SnapLatest) :
+    srvDurInvRaw γ rc i ∗ isFSM fx γ i rc.fsmOwn rc.respP rc.snapP ⊢
+    □ (bootV rc A lat ∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
+      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old, rc.ownSS old ∗ ⌜old = lat⌝ ∗
+        (rc.ownSS old ={∅, ⊤ \ ↑storeN}=∗
+          (bootV rc A lat ∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString))) ∗
+          latFacts γ rc i lat)) := by
+  iintro ⟨#Hi, #Hfsm⟩ !> ⟨Hv, Hpe⟩
+  iapply ncfupd_bind
+  isplitl [Hv]
+  · iapply (bootOpen γ rc i (E := ⊤ \ ↑storeN) boot_dur_storeN A lat) $$ [Hv]
+    iframe #; iframe
+  iintro ⟨%X, %HX, Hc, Hs, Hcl⟩
+  iunfold durCore at Hc
+  icases Hc with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hp, H10, Hpe', H12, H13, H14⟩
+  icombine Hpe Hpe' gives %Hag
+  have hpe : X.pend = none := Hag.2.symm
+  iapply ncfupd_of_fupd
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold durStores at Hs
+  icases Hs with ⟨HL, HS, HSS, Hld⟩
+  obtain ⟨hA, hlat⟩ := HX
+  subst hA hlat
+  iexists _
+  iframe HSS
+  isplitr
+  · ipureintro; rfl
+  iintro HSS
+  imod Hmask with -
+  -- the persistent facts of the latest
+  ihave #Hlf : (latFacts γ rc i X.lat : IProp GF) $$ [Hld]
+  · rw [hpe]
+    unfold latestDur latFacts
+    rcases hl : X.lat with _ | ⟨m, b⟩
+    · itrivial
+    · icases Hld with ⟨Hok, Hd⟩
+      unfold latestOk
+      icases Hok with ⟨#He, Hsp, #Hcf, %Hv⟩
+      ihave #Hsp' := isFSM_snapP_persistent fx γ i rc.fsmOwn rc.respP rc.snapP _ b $$ [Hfsm Hsp]
+      · iframe #; iexact Hsp
+      icases Hd with (%Hn | ⟨%m', %b', %Hmb, Hd⟩)
+      · cases Hn
+      cases Hmb
+      icases Hd with (#Hd | ⟨#Hd, -⟩)
+      · dsimp only; iframe #; ipureintro; exact ⟨Hv.1, Hv.2.2.2⟩
+      · dsimp only; iframe #; ipureintro; exact ⟨Hv.1, Hv.2.2.2⟩
+  imod Hcl $$ %X [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hpe' H12 H13 H14] [HL HS HSS Hld] with Hv
+  · iunfold durCore; iframe; ipureintro; exact Hp
+  · iunfold durStores; iframe
+  imodintro
+  iframe
+  iframe #
 
 end boot
 
