@@ -182,7 +182,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
     (ha : R.md.async = false) (hpar : R.drv.parallel = true)
     (hm : (V n).mems = []) (hpar0 : (V n).parts = []) (htold : Told (V n))
     (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hrl : rd.role = .leader)
-    (hlog : (V n).ps.log <+: r₁.p.log)
+    (hlog : (V n).ps.log <+: r₁.p.log) (hec : rd.ents = [] ∨ rd.commit = (V n).dur.commit)
     (hpfx : (V n).delivered ++ rd.ce <+: (V n).dur.log)
     (hterm : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) (hlt : LogTermsLe r₁.p)
     (hLP : LeaderPartD (memQ S r n.val (MemRec.item (nodeId n) (rd.memRec (V n))) i) n
@@ -222,7 +222,7 @@ theorem memNode_lead {msk : SimMask} (hmsk : msk ≤ mskB2) {Adm : List EntryM �
       · have := hx.hpre h; rw [hrl1] at this; cases this
     have hkk := kind_leadKeep hx.hk hrl1
     obtain ⟨-, -, -, -, -, -, hhd, -, -, -, -, -, -, -, -, hidx, -⟩ := hro
-    refine ⟨rfl, hpar0, hrl, hpre0, hx.hsn, rfl, hrl1, ?_, ?_, ?_, ?_⟩
+    refine ⟨rfl, hpar0, hrl, hpre0, hx.hsn, rfl, hrl1, ?_, ?_, ?_, ?_, hec⟩
     · show (V n).dur.term = r₁.p.term; rw [hx.hdn, hkk.1]; rfl
     · show (V n).dur.vote = r₁.p.vote; rw [hx.hdn, hkk.2]; rfl
     · intro e0 he
