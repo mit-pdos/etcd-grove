@@ -16,6 +16,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Ready
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.QuietP
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReachD
 
 @[expose] public section
 
@@ -80,6 +81,67 @@ theorem memView_of {R : RunCfg} {dec : CCDec} {V : Fin R.N → NodeView} {n : Fi
   show _ ≤ uint.nat ((V n).dur.write (rd.memRec (V n))).commit
   rw [hw]
   exact f6
+
+/-- A `Ready` of a leader keeps the view's term and vote (`ReadyKind`'s leader kinds: a win, a
+proposal, a commit). -/
+theorem kind_leadKeep {cf : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView}
+    {ps₁ : PState} {rd : ReadyD} (hk : ReadyKind cf id net xnet v ps₁ rd)
+    (hl : ps₁.role = .leader) : ps₁.term = v.ps.term ∧ ps₁.vote = v.ps.vote := by
+  cases hk with
+  | camp _ _ hr => cases hl.symm.trans hr
+  | grant _ _ _ _ _ _ _ hr => cases hl.symm.trans hr
+  | adopt _ _ _ _ _ hr => cases hl.symm.trans hr
+  | follow hr => cases hl.symm.trans hr
+  | store _ _ _ _ _ hr => cases hl.symm.trans hr
+  | hb _ _ _ _ _ hr => cases hl.symm.trans hr
+  | win _ _ _ _ _ _ _ hlc => exact ⟨hlc.2.1, hlc.2.2.1⟩
+  | prop _ _ _ _ _ _ _ ht hv => exact ⟨ht, hv⟩
+  | cmt _ _ ht hv => exact ⟨ht, hv⟩
+  | adoptX _ _ _ _ _ _ _ _ hr => cases hl.symm.trans hr
+
+/-- **A leader's `Ready` keeps the disk's term and vote**, B2, sync and unbatched, with no write
+queued and no split write in progress: the disk is raft's state (`DiskFold`), and a `Ready` reported
+as a leader's is at an unchanged state or of one of `ReadyKind`'s leader kinds, which keep the term
+and vote (`kind_leadKeep`). -/
+theorem leadHs_reachD {msk : SimMask} (hmsk : msk ≤ mskB2) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {rd : ReadyD}
+    (hin : InMask msk R net xnet) (_has : R.md.async = false) (hbt : R.drv.batch = false)
+    (hnet : NetOkD R S net) (hok : NodeOkD R dec S net n v) (hm : v.mems = []) (hparts : v.parts = [])
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) (hro : ReadyOutP R n v r₁ rd)
+    (hl : rd.role = .leader) :
+    r₁.p.term = v.dur.term ∧ r₁.p.vote = v.dur.vote := by
+  have hf := nodeOkD_factsS hok
+  obtain ⟨hsn0, -, -⟩ := InMask.b2 hmsk hin
+  have hs0 := hf.2.1 hsn0
+  have hdf : DiskFold v := hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+  have hd : v.dur = durOf v.r := by
+    have := hdf hparts; rw [hm] at this; exact this
+  have hdl : v.dur.log = v.ps.log := by
+    rw [hd]; show v.r.fp ++ v.r.p.log = _; rw [hs0.2.1]; rfl
+  rw [hd]
+  show r₁.p.term = v.ps.term ∧ r₁.p.vote = v.ps.vote
+  by_cases hch : Changed v r₁.p
+  case neg =>
+    exact ⟨Classical.byContradiction fun h => hch (.inl h),
+      Classical.byContradiction fun h => hch (.inr (.inl h))⟩
+  have hfu : r₁.full = r₁.p.log := by
+    unfold RState.full; rw [reach_fpD hmsk hin hbt hok hr, hs0.2.1]; rfl
+  have hro' := hro
+  obtain ⟨hR, -, -, -, -, -, -, -, -, -, -, -, -, -, hsnapC, -, -⟩ := hro'
+  have hsnr : rd.snap = none := (hsnapC hsn0).2.1
+  have hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → q.ty = .voteResp := by
+    intro hc q hq hne
+    rcases nodeOkD_qsS hok q hq with hq' | hw
+    · rcases (hq'.notPre hne).2.2.2.2 with ⟨-, hl', -⟩ | ⟨h, -⟩
+      · rw [hc] at hl'; cases hl'
+      · exact h
+    · cases hc.symm.trans hw.2.2.2.2.2.1
+  have hkd := ready_kind (ReachIn.toPD hmsk hin hnet hok hr) hro hfu hdl hsnr hch hs0.1
+    (nodeId_ne_zero n) hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+    (fun m hmn h4 => ⟨h4, hnet.2.2.1 m hmn⟩) (fun q hq hne => qsD_self (nodeOkD_qsS hok q hq) hne)
+    hqc (hf.1 hbt)
+  exact kind_leadKeep hkd (hR.symm.trans hl)
 
 end memView
 
