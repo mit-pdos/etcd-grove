@@ -54,8 +54,8 @@ theorem wp_hh_is (hh nn : Loc) :
     iunfold hhInv
     iexists map.nil, map.nil, mg, C, I, G
     iframe
-    ileft
-    ipureintro; exact ⟨rfl, rfl⟩
+    iright
+    iframe
   · (try wp_auto)
     wp_apply (wp_map_lookup1 _ _ mi I nn (DFrac.own 1)) $$ [$HI] as HI
     iapply HΦ
@@ -86,10 +86,17 @@ theorem histHashes.canonLocked.wp_proof (wp_intern : histHashes.intern.spec (GF 
     · iapply BigSepL.bigSepL_nil.2; itrivial
     ipureintro; simp
   wp_for HI
-  wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ hhInv hh ∗ ⌜b = true → nn ≠ null⌝))
-    with [Hinv] as ⟨%b, %Hv, Hinv, %Hb⟩
-  · fail "j1"
-  · fail "j2"
+  wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ hhInv hh ∗ hh_ptr ↦ hh ∗ n_ptr ↦ nn ∗
+      ⌜b = true → nn ≠ null⌝)) with [Hinv hh n] as ⟨%b, %Hv, Hinv, hh, n, %Hb⟩
+  · iexists false
+    iframe
+    ipureintro; exact ⟨rfl, nofun⟩
+  · (try wp_auto)
+    wp_apply (wp_hh_is hh nn) $$ [$Hinv] as %b Hinv
+    (try wp_auto)
+    iexists !b
+    iframe
+    ipureintro; exact ⟨rfl, fun _ => Hif⟩
   fail "j3"
 
 end proof
