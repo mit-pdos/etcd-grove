@@ -7,10 +7,9 @@
 between the state the operation found and its outcome (`Outcome`): refused with one of the
 package's errors (`AuthErr`, the state unchanged), nothing to do (`same`: `nil`, the state
 unchanged), or the next state (`next`: the records written and the revision bumped,
-`commitRevision`). Most steps are functions (`userAddF`, ...); the two whose result the Go code
-leaves to a sort (`UserGrantRole` sorts the user's roles, `RoleGrantPermission` the role's
-permissions by key, unstably) or to a wire detail the model does not keep (a permission of an
-unknown type, which `RoleRec.toRole` drops) are relations.
+`commitRevision`). Most steps are functions (`userAddF`, ...), written as relations of one outcome
+where convenient (`roleRevokePermissionR`, `roleGrantPermissionR`); the one whose result the Go code
+leaves to a sort (`UserGrantRole` sorts the user's roles) is a relation.
 
 **The reads of `as.enabled` outside `enabledMu`** (`UserDelete`, `UserRevokeRole`, `RoleDelete`
 refuse to touch `root` when auth is enabled; `AuthEnable`/`AuthDisable` read it under the lock
@@ -206,21 +205,41 @@ def permAt (key rangeEnd : GoString) (p : Perm) : Prop := p.key = key ∧ p.rang
 instance permAt_decidable (key rangeEnd : GoString) (p : Perm) : Decidable (permAt key rangeEnd p) :=
   inferInstanceAs (Decidable (p.key = key ∧ p.rangeEnd = rangeEnd))
 
-/-- `RoleRevokePermission(role, key, rangeEnd)`: no such role (`ErrRoleNotFound`); else the
-role's permissions without those on `[key, rangeEnd)`, or `ErrPermissionNotGranted` when none
-of the model's are (the code compares the record's permissions, among which one of an unknown
-type, outside the model, may match: so a success is allowed whatever the model's). -/
+/-- `RoleRevokePermission(role, key, rangeEnd)` (`store.go:686-719`): no such role
+(`ErrRoleNotFound`); else, when some stored permission is on `[key, rangeEnd)` (`bytes.Equal` on
+both, whatever its type, `store.go:700-704`), the role's permissions without those, else
+`ErrPermissionNotGranted` (nothing removed, `store.go:706-708`). A function of the state (nomode
+X-a4: the role holds every stored permission). -/
 def roleRevokePermissionR (role key rangeEnd : GoString) : StepRel := fun st o =>
   match st.roles !! role with
   | none => o = .err .roleNotFound
   | some ps =>
-    (o = .err .permissionNotGranted ∧ ∀ p ∈ ps, ¬ permAt key rangeEnd p) ∨
-    o = .next (bump (putRole st role (ps.filter fun p => ¬ permAt key rangeEnd p)))
+    if ∃ p ∈ ps, permAt key rangeEnd p then
+      o = .next (bump (putRole st role (ps.filter fun p => ¬ permAt key rangeEnd p)))
+    else o = .err .permissionNotGranted
 
-/-- **The role's permissions after granting `w`**: those not on `w`'s range, and `w`'s if of a known
-type (a permission of an unknown type, `permOfWire w = none`, is not the model's). -/
+/-- `p` inserted into `ps` before the first permission it is below (`permLt`): into a role sorted by
+`permLt`, at its sorted place. -/
+def permInsert (p : Perm) : Role → Role
+  | [] => [p]
+  | q :: qs => if permLt p q then p :: q :: qs else q :: permInsert p qs
+
+/-- **The role's permissions after granting `w`**: those not on `w`'s range, with `w`'s inserted at
+its place in the order `permSlice.Less` sorts by (`permInsert`), whatever its type (`store.go:845-849`
+stores it unchecked; nomode X-a4). -/
 def grantPerms (ps : Role) (w : PermW) : Role :=
-  ps.filter (fun p => ¬ permAt w.key w.rangeEnd p) ++ (permOfWire w).toList
+  permInsert (permOfWire w) (ps.filter (fun p => ¬ permAt w.key w.rangeEnd p))
+
+theorem permInsert_perm (p : Perm) : ∀ l : Role, (permInsert p l).Perm (p :: l)
+  | [] => List.Perm.refl _
+  | q :: qs => by
+    simp only [permInsert]
+    split
+    · exact List.Perm.refl _
+    · exact ((permInsert_perm p qs).cons q).trans (List.Perm.swap p q qs)
+
+theorem permInsert_length (p : Perm) (l : Role) : (permInsert p l).length = l.length + 1 :=
+  (permInsert_perm p l).length_eq
 
 open Classical in
 /-- `RoleGrantPermission(role, w)` for the wire permission `w` (`Buckets.lean`): no permission
@@ -228,10 +247,9 @@ given (`ErrPermissionNotGiven`, `w = none`); an invalid range (`ErrInvalidAuthMg
 `isValidPermissionRange`); no such role (`ErrRoleNotFound`); else the role's permissions on `w`'s
 range replaced by `w` (`grantPerms`). The fork's code (`acafa0317`, the auth plan's E3z,
 2026-10-27; `issues/etcd-auth-grant-permission-same-key.md`) drops every permission on the range,
-appends `w` and sorts the record by key (`sort.Sort`, unstable): the record's order is not the
-model's, which a role's record matches up to order (`roleOut`). A function of the state: until
-E3z the code updated the first permission of `w`'s key in place, appending beside it otherwise,
-and the step was a relation (any permutation, or the entry replaced), not determinate. -/
+appends `w` and sorts the record by (key, range end) (`sort.Sort`, `permSlice.Less`: the fork's
+`goose-lean-permsort`, nomode X-a1): a role's ranges being distinct, the sorted record is the
+model's role, in order (`roleOut`). -/
 def roleGrantPermissionR (role : GoString) (w : Option PermW) : StepRel := fun st o =>
   match w with
   | none => o = .err .permissionNotGiven
@@ -255,7 +273,7 @@ theorem permKeysOk_delUser (st : AuthState) (name : GoString) (h : permKeysOk st
     permKeysOk (delUser st name) := h
 
 theorem permKeysOk_putRole (st : AuthState) (name : GoString) (ps : Role) (h : permKeysOk st)
-    (hps : ∀ p ∈ ps, p.key ≠ []) : permKeysOk (putRole st name ps) := by
+    (hps : ∀ p ∈ ps, rangeValid p.key p.rangeEnd) : permKeysOk (putRole st name ps) := by
   intro r ps' hr p hp
   by_cases hrn : name = r
   · subst hrn
@@ -276,8 +294,9 @@ theorem permKeysOk_delRole (st : AuthState) (name : GoString) (h : permKeysOk st
     exact h r ps hr p hp
 
 /-- The `next` state of a step at a state with valid permission keys has them. -/
-theorem permKeysOk_of_perm {ps ps' : Role} (hp : ps'.Perm ps) (h : ∀ p ∈ ps, p.key ≠ []) :
-    ∀ p ∈ ps', p.key ≠ [] := fun p hp' => h p (hp.mem_iff.1 hp')
+theorem permKeysOk_of_perm {ps ps' : Role} (hp : ps'.Perm ps)
+    (h : ∀ p ∈ ps, rangeValid p.key p.rangeEnd) :
+    ∀ p ∈ ps', rangeValid p.key p.rangeEnd := fun p hp' => h p (hp.mem_iff.1 hp')
 
 /-! ## The authority, and an operation's outcome in the mode -/
 

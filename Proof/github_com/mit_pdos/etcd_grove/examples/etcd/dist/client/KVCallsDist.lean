@@ -4,15 +4,14 @@
 
 `notes/etcd-dist-plan.md` §23. `wp_cliPut` (with `CompactCallsDist`'s `wp_cliGetR`): the promoted methods of `New`'s client (`cli.Put`
 with no options, `cli.Get` with any options, at the latest revision, linearizable) at the cluster's view, from
-`KV_Put_dist`/`KV_Get_dist` taken as hypotheses (as `Client_Put_dist`/`Client_Get_dist` are proved): the put
+the client specs `kv.Put.spec`/`kv.Get.spec` taken as hypotheses, at the client's `isKv` of an auth-off view
+(`isKv_of_kvClientAt`): the put
 with any one-shot update of the put's step, the get with any read update, its answer the server's selection
 at the state the update read (`txn.srvRangeOk` at the state's key-values). `optsAt_single`: a one-option
 variadic slice.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KVWorkDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CompactCallsDist
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
@@ -60,7 +59,7 @@ theorem optsAt_single (sl : GoSlice) (f : GoFunc) (g : OpFull → OpFull) :
 set_option maxHeartbeats 800000 in
 /-- **`cli.Put(ctx, key, val)` across machines** (see the file header), with a one-shot update `Q` of the
 put's step. -/
-theorem wp_cliPut (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
+theorem wp_cliPut (wp_Put : kv.Put.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
     (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
     (Q : KVState → IProp GF) (hsz : opSizeOk (opPutModel key val [])) (hauth : Γ.auth = false) :
@@ -76,10 +75,11 @@ theorem wp_cliPut (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG)) [π : Net
   ihave #Hkc' := Hkc
   iunfold kvClientAt at Hkc'
   icases Hkc' with ⟨-, -, #Hkvf, -⟩
+  ihave #Hkv := isKv_of_kvClientAt cl api eps V Γ hauth $$ Hkc
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (wp_KV_Put cl api eps V Γ ci cd key val slice.nil [] Q hauth)
+  wp_apply (wp_Put api Γ.kv false ci cd key val slice.nil [] Q)
     $$ [Hlt Hau] as %resp %err ⟨Hlt, Hout⟩
   · (try iframe Hlt)
     iframe #
@@ -94,7 +94,7 @@ theorem wp_cliPut (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG)) [π : Net
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt
-  icases Hout with (⟨%Herr, %m, %σ, -, HQ, -, -⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, -, HQ, -, -⟩ | ⟨%Herr, -⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr

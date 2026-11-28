@@ -97,16 +97,11 @@ axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom etcdResolver_grpc
-axiom etcd_dist.KV_Compact_dist.wp_proof
-axiom etcd_dist.KV_Delete_dist.wp_proof
-axiom etcd_dist.KV_Get_dist.wp_proof
-axiom etcd_dist.KV_Put_dist.wp_proof
 axiom etcd_dist.NewPeerHandler_dist.wp_proof
 axiom etcd_dist.NewServer_dist.wp_proof
 axiom etcd_dist.PeerServe_dist.wp_proof
 axiom etcd_dist.RequestProgress_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
-axiom etcd_dist.Txn_Commit_dist.wp_proof
 axiom etcd_dist.Watch_dist.wp_proof
 axiom etcd_dist.authd.Auth_AuthEnable_dist.wp_proof
 axiom etcd_dist.authd.Auth_RoleAdd_dist.wp_proof
@@ -123,7 +118,7 @@ axiom etcd_dist.authd.Lease_TimeToLiveOn_dist.wp_proof
 axiom etcd_dist.authd.New_user_dist.wp_proof
 axiom etcd_dist.authd.Txn_CommitOn_dist.wp_proof
 axiom etcd_dist.authd.WatchOn_dist.wp_proof
-axiom etcd_dist.etcdSvc
+axiom etcd_dist.etcdSvcRest
 axiom etcd_dist.view.Client_LeaseLeases_dist.wp_proof
 axiom etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
 axiom etcd_dist.view.Lease_GrantLive_dist.wp_proof

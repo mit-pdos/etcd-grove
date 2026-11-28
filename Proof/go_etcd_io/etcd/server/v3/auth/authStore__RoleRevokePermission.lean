@@ -1,8 +1,9 @@
 /-
 Proof of the spec of the same name (the auth plan's S4b, 2026-10-24). Lean-first (no Rocq
 counterpart). The loop over the role's permission messages keeps those not on `[key, rangeEnd)`
-(both `bytes.Equal`), in order; the model's permissions are those of a known type
-(`RoleRec.toRole`), so the kept ones are the model's without those on the range.
+(both `bytes.Equal`), in order; the model's permissions are the record's (`RoleRec.toRole`, every
+type: nomode X-a4), so the kept ones are the model's without those on the range, and nothing is
+removed exactly when no stored permission is on it.
 -/
 module
 
@@ -56,51 +57,40 @@ theorem map_snd_filter_zip {α β : Type} (xs : List α) (bs : List β) (p : β 
       simp only [List.zip_cons_cons, List.filter_cons]
       cases hp : p b <;> simp [ih bs h, hp]
 
-/-- A known type keeps the key and the range end. -/
-theorem permOfWire_some_range {w : PermW} {p : Perm} (h : permOfWire w = some p) :
-    p.key = w.key ∧ p.rangeEnd = w.rangeEnd := by
-  unfold permOfWire at h
-  split at h
-  · cases h; exact ⟨rfl, rfl⟩
-  · split at h
-    · cases h; exact ⟨rfl, rfl⟩
-    · split at h
-      · cases h; exact ⟨rfl, rfl⟩
-      · cases h
-
 /-- The model's permissions of the kept wire permissions: the model's without those on the
 range. -/
-theorem filterMap_filter_keepW (ws : List PermW) (key rangeEnd : GoString) :
-    (ws.filter (keepW key rangeEnd)).filterMap permOfWire =
-      (ws.filterMap permOfWire).filter (fun p => decide ¬ permAt key rangeEnd p) := by
+theorem map_filter_keepW (ws : List PermW) (key rangeEnd : GoString) :
+    (ws.filter (keepW key rangeEnd)).map permOfWire =
+      (ws.map permOfWire).filter (fun p => decide ¬ permAt key rangeEnd p) := by
   induction ws with
   | nil => rfl
   | cons w ws ih =>
-    simp only [List.filter_cons, List.filterMap_cons]
-    cases hw : permOfWire w with
-    | none =>
-      cases hk : keepW key rangeEnd w <;> simp [List.filterMap_cons, hw, ih]
-    | some p =>
-      obtain ⟨hk, hr⟩ := permOfWire_some_range hw
-      have hb : keepW key rangeEnd w = !decide (permAt key rangeEnd p) := by
-        unfold keepW
-        by_cases h1 : w.key = key <;> by_cases h2 : w.rangeEnd = rangeEnd <;>
-          simp [permAt, hk, hr, h1, h2]
-      cases hk' : keepW key rangeEnd w <;> rw [hk'] at hb <;>
-        simp [List.filterMap_cons, hw, ih, List.filter_cons, ← hb]
+    simp only [List.filter_cons, List.map_cons]
+    have hb : keepW key rangeEnd w = !decide (permAt key rangeEnd (permOfWire w)) := by
+      unfold keepW
+      by_cases h1 : w.key = key <;> by_cases h2 : w.rangeEnd = rangeEnd <;>
+        simp [permAt, permOfWire, h1, h2]
+    cases hk' : keepW key rangeEnd w <;> rw [hk'] at hb <;>
+      simp [ih, List.filter_cons, ← hb]
 
 /-- No wire permission dropped: none of the model's is on the range. -/
 theorem none_on_of_all_kept (ws : List PermW) (key rangeEnd : GoString)
     (h : ∀ w ∈ ws, keepW key rangeEnd w = true) :
-    ∀ p ∈ ws.filterMap permOfWire, ¬ permAt key rangeEnd p := by
+    ∀ p ∈ ws.map permOfWire, ¬ permAt key rangeEnd p := by
   intro p hp
-  obtain ⟨w, hw, hpw⟩ := List.mem_filterMap.mp hp
-  obtain ⟨hk, hr⟩ := permOfWire_some_range hpw
+  obtain ⟨w, hw, rfl⟩ := List.mem_map.mp hp
   have := h w hw
   unfold keepW at this
-  unfold permAt; rw [hk, hr]
+  show ¬ (w.key = key ∧ w.rangeEnd = rangeEnd)
   intro ⟨h1, h2⟩
   simp [h1, h2] at this
+
+/-- A wire permission dropped: the model's on the range. -/
+theorem on_of_dropped (w : PermW) (key rangeEnd : GoString) (h : keepW key rangeEnd w = false) :
+    permAt key rangeEnd (permOfWire w) := by
+  unfold keepW at h
+  show w.key = key ∧ w.rangeEnd = rangeEnd
+  simpa using h
 
 /-- Every second component of a zip of equal lengths is in it. -/
 theorem exists_mem_zip_of_mem_snd {α β : Type} (xs : List α) (bs : List β) (b : β)
@@ -200,7 +190,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     iexists eRNF; iframe HeRNF; ipureintro; rfl
   ihave Hrole' := roleOut_some _ st0 role Hif $$ Hrole
   icases Hrole' with ⟨%ps, %rr, %Hrr, Hrole⟩
-  obtain ⟨Hlook, Hrrn, Hrrps⟩ := Hrr
+  obtain ⟨Hlook, Hrrn, Hrrps, Hsrt0⟩ := Hrr
   iunfold ownRole at Hrole
   icases Hrole with ⟨%rms, %rnm, %rkp, %pps, %rsc, Hrp, #Hrnm, #Hrkp, %Hplen, #Hperms⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hrp
@@ -368,7 +358,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
       exact List.length_filter_eq_length_iff.mp hl2
     have hnone : ∀ p ∈ ps, ¬ permAt key rangeEnd p := by
       intro p hp
-      exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk p (Hrrps.symm.subset hp)
+      exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk p (by show p ∈ rr.toRole; rw [Hrrps]; exact hp)
     wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
@@ -390,16 +380,34 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
-      simp only [roleRevokePermissionR, Hlook]
-      first | exact Or.inl ⟨rfl, hnone⟩ | exact Or.inl ⟨trivial, hnone⟩
+      have hnc : ¬ ∃ p ∈ ps, permAt key rangeEnd p := fun ⟨p, hp, hpa⟩ => hnone p hp hpa
+      simp only [roleRevokePermissionR, Hlook, hnc, ↓reduceIte]
     simp only [outRes, authErrOf, AuthErr.var]
     iframe Hown
     iexists ePNG; iframe HePNG; ipureintro; rfl
   -- some permission revoked: the role put
   let rr' : RoleRec := { name := rr.name, perms := kept.map Prod.snd }
-  have hps' : rr'.toRole.Perm (ps.filter (fun p => ¬ permAt key rangeEnd p)) := by
-    show ((kept.map Prod.snd).filterMap permOfWire).Perm _
-    rw [hsnd, auth.filterMap_filter_keepW]; exact Hrrps.filter _
+  have hps' : rr'.toRole = ps.filter (fun p => ¬ permAt key rangeEnd p) := by
+    show (kept.map Prod.snd).map permOfWire = _
+    rw [hsnd, auth.map_filter_keepW]; unfold RoleRec.toRole at Hrrps; rw [Hrrps]
+  -- something was revoked: a stored permission is on the range
+  have hsome : ∃ p ∈ ps, permAt key rangeEnd p := by
+    apply Classical.byContradiction
+    intro hno
+    have hallk : ∀ w ∈ rr.perms, auth.keepW key rangeEnd w = true := by
+      intro w hw
+      cases hk : auth.keepW key rangeEnd w
+      · exact absurd ⟨permOfWire w, by rw [← Hrrps]; exact List.mem_map_of_mem hw,
+          auth.on_of_dropped w key rangeEnd hk⟩ hno
+      · rfl
+    have hl2 : kept.length = pps.length := by
+      have h0 : (kept.map Prod.snd).length = rr.perms.length := by
+        rw [hsnd, List.filter_eq_self.2 hallk]
+      rw [List.length_map] at h0; rw [h0, Hplen]
+    have h1 := Hsll.1; have h2 := Hkl.1; have h3 := Hsll.2; have h4 := Hkl.2
+    rw [List.length_map] at h1
+    have heq : rkp.len = sl.len := by word
+    first | exact Hif heq | exact Hif heq.symm | exact Hif (by rw [heq]) | (simp [heq] at Hif)
   imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #uu))
   iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) %AuthSess.init [HL Hrc Hsw Huu]
@@ -417,7 +425,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     ipureintro
     exact ⟨by decide, show 0 < rr.name.length by
         rw [Hrrn]; exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 role (by rw [Hlook]; rfl)),
-      show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps'⟩
+      show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps', Hsrt0.filter _⟩
   inext
   iintro ⟨HL, Hsw, Huu⟩
   (try wp_auto)
@@ -426,8 +434,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   · iExactEq HL; show Lk (putRole st0 rr.name _) Post = _; rw [Hrrn, hps'eq]
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have hstep : roleRevokePermissionR role key rangeEnd st0 (.next (bump (putRole st0 role ps'))) := by
-    simp only [roleRevokePermissionR, Hlook]
-    right; rw [hps'eq]
+    simp only [roleRevokePermissionR, Hlook, hsome, ↓reduceIte, hps'eq]
   obtain ⟨Hrevfit, Hfit, -⟩ := Hok st0 Hl0
   have Hfit' := (Hfit _ _ hstep rfl).1
   ihave #Hcn := capNextM_use M hs _ st0 (bump (putRole st0 role ps')) Hl0 hstep $$ Hcap

@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.client.v3.OpCompact
 public import Spec.go_etcd_io.etcd.client.v3.CompactOp__toRequest
 public import Spec.go_etcd_io.etcd.client.v3.retryKVClient__Compact
 public import Spec.go_etcd_io.etcd.client.v3.ContextError
+public import Proof.go_etcd_io.etcd.client.v3.KVMembers
 
 @[expose] public section
 
@@ -25,81 +26,49 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-theorem kv.Compact.wp_proof
+/-- `kv.Compact` for any spec registered for `Compact` (`kv.Compact.specG`): `OpCompact`, its
+request, the retry client's `Compact` at the spec, the error through `ContextError`. -/
+theorem kv.Compact.wp_generic
     (wp_OpCompact : OpCompact.spec (GF := GF) (hG := hG))
     (wp_toRequest : CompactOp.toRequest.spec (GF := GF) (hG := hG))
     (wp_retry_Compact : retryKVClient.Compact.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
-    kv.Compact.spec (GF := GF) (hG := hG) := by
-  intro api γ dup ci cd rev Hr1 Hcmp
-  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hrv⟩
-  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
-  iunfold metadata.outgoingCtxOkC at HctxO
-  icases HctxO with ⟨%om, #Hom⟩
-  iunfold isKv at Hkv
-  icases Hkv with ⟨%ms, #Hkv⟩
-  iunfold isKvOf at Hkv
-  icases Hkv with ⟨#Hobj, #Hregs, -, %Hm⟩
-  obtain ⟨Hns, -, -⟩ := Hm
-  iunfold kvObjAt at Hobj
-  icases Hobj with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
+    kv.Compact.specG (GF := GF) (hG := hG) := by
+  intro api conn addr ci om cd rev Sc Qc
+  wp_start as ⟨Hlt, #Hobj, #Hom, #Hctx, #Hce, #Hrpc, #Hpre⟩
+  iunfold kvObjAtC at Hobj
+  icases Hobj with ⟨%rkv, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, %Hsc⟩
-  -- the members' spec of `Compact`: each member has reached `rev`, in compaction mode
-  have hmem : ∀ k (x : SrvAt GF), ms[k]? = some x →
-      (iprop(□ kvRevLbZ γ (sint.Z rev + γ.cret)) : IProp GF) ⊢
-        kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret) := fun k x hk => by
-    have hs := Hns x (List.mem_of_getElem? hk)
-    rw [hs.2.2.2.2.2.2]
-    exact intuitionistically_elim.trans (kvRevLbZ_same γ x.γr.kv (kvSame_symm hs) _)
-  ihave #HC := (BigSepL.bigSepL_intro (Φ := fun _ (x : SrvAt GF) => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) hmem) $$ Hrv
-  ihave #HR := (BigAndL.bigAndL_intro (Φ := fun _ (x : SrvAt GF) => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) hmem) $$ Hrv
   wp_auto
   wp_apply wp_OpCompact rev $$ []
   wp_apply wp_toRequest _ $$ [] as %p ⟨%req, Hreq, %Hrq⟩
   obtain ⟨hrv, hph, hun⟩ := Hrq
   simp only at hrv hph
-  ihave Hrun : reqPre conn go!"/etcdserverpb.KV/Compact" (ms.map SrvAt.addr) vs
-      (attemptPre conn om (GrpcSpec.md (kvCompactSpec ms))
-        ⟨req.Revision', req.Physical'⟩ (fun _ => iprop(True))) $$ []
+  ihave Hrun : reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
+      (attemptPre conn om Sc ⟨req.Revision', req.Physical'⟩ Qc) $$ []
   · iapply reqPre_box
-    imodintro
-    inext
     rw [hrv, hph]
-    iapply (attemptPre_md (Req := pbCompactionRequest) (Rep := pbCompactionResponse) conn
-      om (kvCompactSpec ms) ⟨rev, false⟩ (fun _ => iprop(True)))
-    unfold kvCompactSpec
-    iapply (anySpec_intro ms (fun x => etcdCompactSpec x.E x.γr x.cid x.mid) ⟨rev, false⟩
-      (fun _ => iprop(True)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret))
-      (fun x hx => by
-        iintro ⟨#Hx, -⟩
-        unfold etcdCompactSpec etcdCompactSpecW
-        isplitr
-        · ipureintro
-          refine ⟨Hr1, rfl, ?_⟩
-          rw [(Hns x hx).2.2.2.2.2.1]; exact Hcmp
-        iframe Hx
-        iintro %m -
-        itrivial))
-    iframe HC HR
-  wp_apply wp_retry_Compact rkv conn (ms.map SrvAt.addr) (GrpcSpec.md (kvCompactSpec ms))
-      (fun _ => iprop(True)) ci om cd p req sl vs $$ [Hlt Hreq Hrun] as %resp %err ⟨Hlt, -, Hres⟩
+    iexact Hpre
+  wp_apply wp_retry_Compact rkv conn addr Sc Qc ci om cd p req sl vs $$ [Hlt Hreq Hrun]
+    as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
-    isplitl []
-    · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcCompact ms) $$ Hregs
     ipureintro; exact hun
   iunfold compactCallOut at Hres
-  icases Hres with (⟨%Herr, %m, #Hm, -⟩ | ⟨%Herr, #Hse, #Hcl⟩)
+  icases Hres with (⟨%Herr, %m, #Hm, HQ⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     wp_auto
     iapply HΦ
     iframe Hlt
+    unfold compactCallOut
     ileft
-    isplitl []
+    isplitr
     · ipureintro; rfl
     iexists m
-    iexact Hm
+    isplitl []
+    · iexact Hm
+    iexact HQ
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
     cases err with
     | nil => exact absurd rfl Hne
@@ -111,11 +80,64 @@ theorem kv.Compact.wp_proof
       ihave #Hcl' := Hclw $$ Hcl
       iapply HΦ
       iframe Hlt
+      unfold compactCallOut
       iright
-      unfold kvErr
       iframe #
       ipureintro
-      exact ⟨⟨(Herr'.2 (by simp)).1, rfl⟩, (Herr'.2 (by simp)).2⟩
+      exact ⟨(Herr'.2 (by simp)).1, (Herr'.2 (by simp)).2, rfl⟩
+
+/-- `kv.Compact` on a `*kv` of etcd's KV `γ` (stage A, 2026-11-27): `kv.Compact.wp_generic` at the
+view spec its endpoints register on a compacting cluster (`isKv`, `kvRegsV_rpcCompact`), met by the
+caller's revision reached. -/
+theorem kv.Compact.wp_proof
+    (wp_OpCompact : OpCompact.spec (GF := GF) (hG := hG))
+    (wp_toRequest : CompactOp.toRequest.spec (GF := GF) (hG := hG))
+    (wp_retry_Compact : retryKVClient.Compact.spec (GF := GF) (hG := hG))
+    (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
+    kv.Compact.spec (GF := GF) (hG := hG) := by
+  intro api γ dup ci cd rev Hr1 Hcmp
+  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hctx, #Hce, #Hrv⟩ HΦ
+  ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
+  iunfold metadata.outgoingCtxOkC at HctxO
+  icases HctxO with ⟨%om, #Hom⟩
+  iunfold isKv at Hkv
+  icases Hkv with ⟨%addrs, #Hobj, #Hregs, -⟩
+  icases (kvObjAt_conn api addrs).1 $$ Hobj with ⟨%conn, #Hobj⟩
+  iapply (kv.Compact.wp_generic wp_OpCompact wp_toRequest wp_retry_Compact wp_ContextError api conn
+    addrs ci om cd rev (etcdCompactSpecV γ) (fun _ => iprop(True))) $$ [Hlt]
+  · iframe #
+    iframe Hlt
+    isplitl []
+    · iapply (kvRegsV_rpcCompact addrs γ Hcmp) $$ Hregs
+    imodintro
+    inext
+    unfold attemptPre etcdCompactSpecV
+    iintro %md -
+    isplitr
+    · imodintro; iintro %_; itrivial
+    isplitr
+    · ipureintro; exact ⟨Hr1, rfl, Hcmp⟩
+    isplitr
+    · iexact Hrv
+    iintro %m
+    itrivial
+  inext
+  iintro %resp %err ⟨Hlt, Hres⟩
+  iapply HΦ
+  iframe Hlt
+  iunfold compactCallOut at Hres
+  icases Hres with (⟨%Herr, %m, #Hm, -⟩ | ⟨%Herr, #Hse, #Hcl⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    iexists m
+    iexact Hm
+  · iright
+    isplitl []
+    · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    unfold kvErr
+    iframe #
+    ipureintro; exact Herr.2.1
 
 end proof
 

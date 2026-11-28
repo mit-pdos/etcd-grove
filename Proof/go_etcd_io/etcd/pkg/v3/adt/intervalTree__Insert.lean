@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NodeLemmas
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.StrKey
 
 @[expose] public section
@@ -33,7 +34,9 @@ theorem adt.intervalTree.Insert.wp_proof
   unfold adt.ownIvt
   rw [adt.affIvl_eq (GF := GF)]
   wp_start_folded as ⟨Ht, %hlen⟩
-  wp_apply (h_Insert_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t L #b #e b e v)
+  icases adt.ownIvtK_T adt.strKey t L _ $$ Ht with ⟨%T, Ht, %hTL⟩
+  subst hTL
+  wp_apply (h_Insert_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t T #b #e b e v)
     $$ [Ht] as Ht
   · simp only [adt.strKey_keyAt]
     iframe Ht
@@ -41,7 +44,9 @@ theorem adt.intervalTree.Insert.wp_proof
     all_goals (try (isplitl []; · ipureintro; trivial))
     all_goals (try (ipureintro; exact hlen))
   iapply HΦ
-  iexact Ht
+  icases Ht with ⟨Ht, %hin⟩
+  rw [← hin]
+  iapply adt.ownIvtT_K _ _ _ _ $$ Ht
 
 end proof
 

@@ -26,14 +26,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 `WRITE` the write tree; otherwise `lg.Panic`) queried with the point `key` (`Intersects`): whether
 some entry holds the key (`adt.inIvl`; `adt.stab_point_iff`); the key's slice kept. -/
 abbrev auth.checkKeyPoint.spec : Prop :=
-  ∀ (lg p : Loc) (Lr Lw : List adt.Entry) (key : GoSlice) (k : GoString) (dk : DFrac)
+  ∀ (lg p : Loc) (Tr Tw : adt.RbT adt.Entry) (key : GoSlice) (k : GoString) (dk : DFrac)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ permsAt p Lr Lw ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ permsAt p Tr Tw ∗
       key ↦*{dk} k ∗ ⌜permTypOk pt⌝ ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyPoint)) (Val #lg)) (Val #p))
       (Val #key)) (Val #pt))
   {{ (b : Bool), RET #b; key ↦*{dk} k ∗
-      ⌜b = true ↔ ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 k⌝ }}
+      ⌜b = true ↔ ∃ z ∈ (if pt = W32 0 then Tr else Tw).inorder, adt.inIvl z.1 k⌝ }}
 
 end spec
 

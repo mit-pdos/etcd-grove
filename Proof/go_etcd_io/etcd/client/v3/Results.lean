@@ -92,6 +92,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLeaseLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
+public import Proof.go_etcd_io.etcd.client.v3.KVServiceV
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
 public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
 
@@ -2296,22 +2297,13 @@ theorem etcd_runOks_of_slot (ics : List GoFunc) (s : Loc) (E : apply.AEnv GF) (�
     iapply bigSepL_cons_intro'
     iframe #
 
-/-- **etcd's server serves its KV methods, with others, in its auth mode** (`etcd_kv_served_with`'s
-over the auth mode `E.authOn`, the auth component's stage 5; per-type stage B3: each run on a fork
-of grpc's, `grpc.serve`): the server at `addr` (with the streams `sms`) serves the KV methods at the specs over the mode
-(`etcdKVMethodsM`) and the methods `ms` (each meeting grpc's run contract), the KV runs borrowing
-their readers from the server's built pools (`srvRevokeBuilt`: `raftPool`, the inner pool) and its
-run pool (`srvRunPool`), with the levels they take (`srvLevels`). The server's views in its mode
-(`isServerReqM E.authOn`, `isServerReadM E.authOn`, the published auth index `srvAuthLb`, the KV
-server's answers `srvKVAnsM E.authOn`); with auth off, its read names are the request path's
-(`hρ`). -/
-theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
+/-- **etcd's KV methods meet grpc's run contract, in the server's auth mode** (`etcd_kv_servedM_with`'s
+part before `grpc.serve`; stage S1 of the defined `etcdSvc`, 2026-11-27): the generated handlers on the
+quota wrapper `q`, under the chain `[il, im, iu]`, at the specs over the mode, the runs borrowing from
+the server's pools. -/
+theorem etcd_kvRunOksM (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface)) (sms : List (GrpcStreamMethod GF)) (ms : List (GrpcMethod GF))
-    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs)
-    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs)
-    (hmt : ∀ m ∈ ms, etcdTys (GF := GF) m.name = some (m.Req, m.Rep)) (hρ : E.authOn = false → ρ.rd = γr)
-    (HL : srvLevels (GF := GF)) :
+    (hρ : E.authOn = false → ρ.rd = γr) (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
@@ -2322,16 +2314,20 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
-        (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ⊢
-      |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecM E.authOn (srvTLSId s) E ρ cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecM E.authOn (srvTLSId s) E γr cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecM E.authOn (srvTLSId s) E ρ cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecM E.authOn (srvTLSId s) E ρ γr cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Compact" (GrpcSpec.md (etcdCompactSpecM E.authOn E ρ cid mid)) ∗
-        [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
-  iintro ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrp,
-    #Hxs⟩
+        srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+      □ (grpcRunOkMd (Req := pbPutRequest) (Rep := pbPutResponse) (@! etcdserverpb._KV_Put_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdPutSpecM E.authOn (srvTLSId s) E ρ cid mid) ∗
+        grpcRunOkMd (Req := pbRangeRequest) (Rep := pbRangeResponse) (@! etcdserverpb._KV_Range_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdRangeSpecM E.authOn (srvTLSId s) E γr cid mid) ∗
+        grpcRunOkMd (Req := pbDeleteRangeRequest) (Rep := pbDeleteRangeResponse)
+          (@! etcdserverpb._KV_DeleteRange_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdDeleteSpecM E.authOn (srvTLSId s) E ρ cid mid) ∗
+        grpcRunOkMd (Req := pbTxnRequest) (Rep := pbTxnResponse) (@! etcdserverpb._KV_Txn_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdTxnSpecM E.authOn (srvTLSId s) E ρ γr cid mid) ∗
+        grpcRunOkMd (Req := pbCompactionRequest) (Rep := pbCompactionResponse)
+          (@! etcdserverpb._KV_Compact_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (GrpcSpec.md (etcdCompactSpecM E.authOn E ρ cid mid))) := by
+  iintro ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, #Hb, #Hrp⟩
   ihave #Hp := etcd_putHandlerM p s E ρ γr cid mid n hρ $$ []
   · iframe #; ipureintro; exact Hany
   ihave #Hr := etcd_rangeHandlerM p s E ρ γr cid mid n $$ []
@@ -2427,6 +2423,125 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
   ihave #Hmc' := etcd_runOk_of_slot (@! etcdserverpb._KV_Compact_Handler)
     (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) _ s E γr _ HL $$ [Hmc]
   · iframe #
+  imodintro
+  isplitl []
+  · iexact Hmp'
+  isplitl []
+  · iexact Hmr'
+  isplitl []
+  · iexact Hmd'
+  isplitl []
+  · iexact Hmt'
+  iexact Hmc'
+
+/-- **etcd's KV methods meet grpc's run contract at the view specs** (stage S1 of the defined
+`etcdSvc`, 2026-11-27): with auth off, at KV names `γk` of the same KV as the member's read names
+(`kvSame`), the store's receipts bounded, `etcd_kvRunOksM`'s contracts at the specs that quantify
+the member away (`etcdPutSpecV γk`, ...: `etcdPutSpecV_M`, ...). -/
+theorem etcd_kvRunOksV (p q s : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
+    (γk : KVNames) (hon : E.authOn = false) (hρ : ρ.rd = γr) (hk : kvSame γr.kv γk)
+    (hrb : receiptBound GF ≤ 2 ^ 62) (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
+        srvAuthLb s E ∗
+        v3rpc.kvServerAt p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none) cid mid n ∗
+        □ (|==> idCred ρ.ids 1) ∗
+        v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+        srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
+        srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+        srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+      □ (grpcRunOkMd (Req := pbPutRequest) (Rep := pbPutResponse) (@! etcdserverpb._KV_Put_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdPutSpecV (GF := GF) γk) ∗
+        grpcRunOkMd (Req := pbRangeRequest) (Rep := pbRangeResponse) (@! etcdserverpb._KV_Range_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdRangeSpecV (GF := GF) γk) ∗
+        grpcRunOkMd (Req := pbDeleteRangeRequest) (Rep := pbDeleteRangeResponse)
+          (@! etcdserverpb._KV_DeleteRange_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdDeleteSpecV (GF := GF) γk) ∗
+        grpcRunOkMd (Req := pbTxnRequest) (Rep := pbTxnResponse) (@! etcdserverpb._KV_Txn_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdTxnSpecV (GF := GF) γk) ∗
+        grpcRunOkMd (Req := pbCompactionRequest) (Rep := pbCompactionResponse)
+          (@! etcdserverpb._KV_Compact_Handler)
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu] (etcdCompactSpecV (GF := GF) γk)) := by
+  have hk' : kvSame ρ.rd.kv γk := by rw [hρ]; exact hk
+  have hP : ∀ md o Φ Ψe, etcdPutSpecV (GF := GF) γk md o Φ Ψe ⊢
+      |==> etcdPutSpecM E.authOn (srvTLSId s) E ρ cid mid md o Φ Ψe := by
+    rw [hon]; exact etcdPutSpecV_M (srvTLSId s) E ρ cid mid γk hk' hrb
+  have hR : ∀ md o Φ Ψe, etcdRangeSpecV (GF := GF) γk md o Φ Ψe ⊢
+      |==> etcdRangeSpecM E.authOn (srvTLSId s) E γr cid mid md o Φ Ψe := by
+    exact etcdRangeSpecV_M E.authOn (srvTLSId s) E γr cid mid γk hk hrb
+  have hD : ∀ md o Φ Ψe, etcdDeleteSpecV (GF := GF) γk md o Φ Ψe ⊢
+      |==> etcdDeleteSpecM E.authOn (srvTLSId s) E ρ cid mid md o Φ Ψe := by
+    exact etcdDeleteSpecV_M E.authOn (srvTLSId s) E ρ cid mid γk hk' hrb
+      (fun _ h => by rw [hon] at h; cases h)
+  have hT : ∀ md t Φ Ψe, etcdTxnSpecV (GF := GF) γk md t Φ Ψe ⊢
+      |==> etcdTxnSpecM E.authOn (srvTLSId s) E ρ γr cid mid md t Φ Ψe := by
+    rw [hon]; exact etcdTxnSpecV_M (srvTLSId s) E ρ γr cid mid γk hρ hk hrb
+  have hC : ∀ md o Φ Ψe, etcdCompactSpecV (GF := GF) γk md o Φ Ψe ⊢
+      |==> GrpcSpec.md (etcdCompactSpecM E.authOn E ρ cid mid) md o Φ Ψe := by
+    exact etcdCompactSpecV_M E.authOn E ρ cid mid γk hk' hon
+  iintro H
+  ihave #Hall := etcd_kvRunOksM p q s E ρ γr cid mid n il im iu (fun _ => hρ) HL $$ H
+  icases Hall with ⟨#H1, #H2, #H3, #H4, #H5⟩
+  imodintro
+  isplitl []
+  · iapply (grpcRunOkMd_mono_upd (Req := pbPutRequest) (Rep := pbPutResponse) _ _ _ _ _ hP)
+    iexact H1
+  isplitl []
+  · iapply (grpcRunOkMd_mono_upd (Req := pbRangeRequest) (Rep := pbRangeResponse) _ _ _ _ _ hR)
+    iexact H2
+  isplitl []
+  · iapply (grpcRunOkMd_mono_upd (Req := pbDeleteRangeRequest) (Rep := pbDeleteRangeResponse)
+      _ _ _ _ _ hD)
+    iexact H3
+  isplitl []
+  · iapply (grpcRunOkMd_mono_upd (Req := pbTxnRequest) (Rep := pbTxnResponse) _ _ _ _ _ hT)
+    iexact H4
+  iapply (grpcRunOkMd_mono_upd (Req := pbCompactionRequest) (Rep := pbCompactionResponse)
+    _ _ _ _ _ hC)
+  iexact H5
+
+/-- **etcd's server serves its KV methods, with others, in its auth mode** (`etcd_kv_served_with`'s
+over the auth mode `E.authOn`, the auth component's stage 5; per-type stage B3: each run on a fork
+of grpc's, `grpc.serve`): the server at `addr` (with the streams `sms`) serves the KV methods at the specs over the mode
+(`etcdKVMethodsM`) and the methods `ms` (each meeting grpc's run contract), the KV runs borrowing
+their readers from the server's built pools (`srvRevokeBuilt`: `raftPool`, the inner pool) and its
+run pool (`srvRunPool`), with the levels they take (`srvLevels`). The server's views in its mode
+(`isServerReqM E.authOn`, `isServerReadM E.authOn`, the published auth index `srvAuthLb`, the KV
+server's answers `srvKVAnsM E.authOn`); with auth off, its read names are the request path's
+(`hρ`). -/
+theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface)) (sms : List (GrpcStreamMethod GF)) (ms : List (GrpcMethod GF))
+    (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs)
+    (hmt : ∀ m ∈ ms, etcdTys (GF := GF) m.name = some (m.Req, m.Rep)) (hρ : E.authOn = false → ρ.rd = γr)
+    (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
+        srvAuthLb s E ∗
+        v3rpc.kvServerAt p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none) cid mid n ∗
+        □ (|==> idCred ρ.ids 1) ∗
+        v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+        srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
+        srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+        grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
+        (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ⊢
+      |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecM E.authOn (srvTLSId s) E ρ cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecM E.authOn (srvTLSId s) E γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecM E.authOn (srvTLSId s) E ρ cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecM E.authOn (srvTLSId s) E ρ γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Compact" (GrpcSpec.md (etcdCompactSpecM E.authOn E ρ cid mid)) ∗
+        [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
+  iintro ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrp,
+    #Hxs⟩
+  ihave #Hall := etcd_kvRunOksM p q s E ρ γr cid mid n il im iu hρ HL $$ []
+  · iframe #; ipureintro; exact Hany
+  icases Hall with ⟨#Hmp', #Hmr', #Hmd', #Hmt', #Hmc'⟩
   imod (grpc.serve addr [il, im, iu] regs etcdTys sms (etcdKVMethodsM E.authOn q s E ρ γr cid mid ++ ms)
     (by
       intro x hx
@@ -2679,7 +2794,7 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iExactEq Hau; rfl
   inext
@@ -2808,7 +2923,7 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iExactEq Hau; rfl
   inext
@@ -2874,7 +2989,7 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64)
       iunfold txnWriteOnce at Ho
       icases Ho with %Hnr
       isplitl []
-      · ipureintro; exact Hnr
+      · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
       inext
       iexact Hu
   inext

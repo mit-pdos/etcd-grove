@@ -84,9 +84,8 @@ theorem isKv_of_regs [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumpti
     (γk : KVNames) (hst : kvSame γr.kv γk) (hrb : receiptBound GF ≤ 2 ^ 62) :
     kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ⊢ |==> isKv api γk true := by
   iintro ⟨#Ho, #Hr⟩
-  imod (srvStart_alloc (GF := GF) (srvsAt addr E γr cid mid)) with #Hs
   imodintro
-  iapply (isKv_intro api γk true (srvsAt addr E γr cid mid)
+  iapply (isKv_of_members api γk true (srvsAt addr E γr cid mid)
     (fun x hx => by obtain ⟨a, -, rfl⟩ := srvsAt_mem hx; exact hst) (fun h => by cases h) hrb)
   rw [srvsAt_addr]
   iframe #

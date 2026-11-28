@@ -60,9 +60,9 @@ theorem checkCompactRev.wp_proof
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : Watch_dist.spec (GF := GF) (hG := hG))
     (wp_CompactRev : etcdstart.CompactRev.spec (GF := GF) (hG := hG))
-    (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) :
+    (wp_KV_Get : kv.Get.spec (GF := GF) (hG := hG)) :
     checkCompactRev.spec (GF := GF) (hG := hG) := by
-  intro π cl key eps V Γ γr γ γF γh σ₀ l0 hpk hkl hcr hAs
+  intro π cl key eps V Γ γr γ γF γh σ₀ l0 hpk hkl hcr hauth hAs
   wp_start as ⟨Hlt, #Hnc, #Hnp, #Hms, #Hkvi, #Hpfx, #Hcw, #Hf, #Hl0⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -162,7 +162,7 @@ theorem checkCompactRev.wp_proof
     opSizeOk_opGetModel (K := 70) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)
   wp_apply (wp_cliGetR wp_KV_Get cl api eps V Γ lctx lcd key slice.nil [] iprop(True)
       (fun σ => iprop(⌜cwSeen σ₀ l key σ⌝))
-      ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl hsz)
+      ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl hsz hauth)
     $$ [Hlt] as %lresp %lerr ⟨Hlt, -, Hget⟩
   · iframe Hlt
     iframe #

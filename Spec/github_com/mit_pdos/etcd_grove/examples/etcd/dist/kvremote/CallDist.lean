@@ -8,12 +8,11 @@ facts, `kvClientAt cl api eps V Γ` (N2's drafts, `dist/ClientViewDist.lean`: `N
 the endpoints `eps`, its `KV` field the `*kv` `api`, every endpoint a member of the view `Γ`), and one
 update at the cluster's KV names `Γ.kv` (`callUpd`). The post is `Call.spec`'s: the failed call's output
 (`errOut`), or a successful one at the state `σ` the update fired at (`callRes`), the model's answer at
-`σ` when `σ` is good, `σ`'s revision fitting a word. For a cluster with auth off (`Γ.auth = false`, the
-drafts' write calls': a write is sent at most once).
+`σ` when `σ` is good, `σ`'s revision fitting a word. For a cluster with auth off (`Γ.auth = false`: the
+table has etcd's KV entries, flagged as never refusing, for an auth-off view; a write is sent at most once).
 
-`svc` is the drafts' table parameter (A1 restated at the view). Proved in
-`Proof/.../dist/kvremote/CallDist.lean` over the drafts `KV_Put_dist`, `KV_Get_dist`,
-`KV_Delete_dist`, `Txn_Commit_dist` (hypotheses).
+Proved in `Proof/.../dist/kvremote/CallDist.lean` over the client calls' laws (`ClientCallDistLaws.lean`,
+proved from the client's specs at the client's `isKv` of the view, stage B′).
 -/
 module
 

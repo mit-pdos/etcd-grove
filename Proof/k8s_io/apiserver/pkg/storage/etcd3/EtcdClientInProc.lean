@@ -128,7 +128,7 @@ theorem cas_commit [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     iunfold client.txnWriteOnce at Hone
     icases Hone with %Hnr
     isplitl []
-    · ipureintro; exact Hnr
+    · iapply (kvWriteNR_of_pure (GF := GF) _ Hnr)
     inext
     iexact Hau'
   inext
