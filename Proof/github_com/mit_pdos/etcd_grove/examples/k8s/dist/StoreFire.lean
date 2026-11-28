@@ -291,6 +291,89 @@ theorem createD_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt)
   · rw [hsd.2.1]; exact (kvNext_ext hn).2.1.symm.trans he.2.1
   · rw [hsd.2.2]; exact he.2.2.trans hpre
 
+/-- **The store's value back after its step** (the end of a write's firing): the share moved from `σ` to
+`σ'`, the store's half to `σd`, `σ'` up to its leases; the authority follows the share. -/
+theorem kInvDV_fire (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γsh : GName) {σ₀ σ σ' σd : KVState}
+    (he : etcd_dist.KVExt σ₀ σ) (hn : KvNext σ σ') (hsd : SameL σd σ') (h : List OpV)
+    (S : linkv.PSet HSt Input) (M : GMap Nat Input) (nx : Nat)
+    (hrun : run (pMF g0 decOp) (fInit g0) h = some S) (hok : KOkD c g0 S σd M nx) :
+    monoListAuthOwn γsh 1 σ.changes ∗ ghostVar γ.h (1 : Qp).half h ∗ ghostMapAuth γ.p 1 M ∗
+      revOwnD (GF := GF) γ σd ∗ shistOwn c σd ⊢
+      |==> (monoListAuthOwn γsh 1 σ'.changes ∗ kInvDV γ c g0 γsh σ₀ (etcd_dist.pfxVH regP σ')) := by
+  iintro ⟨Ha, Hh, Hp, Hr, Hs⟩
+  have hpre : σ.changes <+: σ'.changes := (kvNext_ext hn).2.2
+  imod (monoListAuthOwn_update (GF := GF) σ'.changes hpre) $$ Ha with ⟨Ha, #Hlb⟩
+  imodintro
+  iframe Ha
+  iunfold kInvDV
+  iexists σd
+  rw [← hsd.2.2]
+  iframe Hlb
+  isplit
+  · ipureintro; exact pfxVH_sameL regP hsd
+  iunfold kInvDW
+  iexists h, S, M, nx
+  iframe Hh Hp Hr Hs
+  ipureintro
+  refine ⟨⟨?_, ?_, ?_⟩, hrun, hok⟩
+  · rw [hsd.1]; exact (kvNext_ext hn).1.symm.trans he.1
+  · rw [hsd.2.1]; exact (kvNext_ext hn).2.1.symm.trans he.2.1
+  · rw [hsd.2.2]; exact he.2.2.trans hpre
+
+/-- **A write whose prophecy says `EOther`, its pending effect, on the shared KV** (`Create`; `pend_au1`): at
+the store's firing (the share's, `kvPfxP_au1H`) the pending write `n ↦ x` takes effect, its token consumed. -/
+theorem pendD_au1 (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk : KVNames)
+    (γs γsh : GName) (okS : mvcc.Change → Prop) (σ₀ : KVState) (l0 : List (List mvcc.Change))
+    (eD eU : GoInterface) (n : Nat) (x : Input) (hk : x.Kind' = W64 0)
+    (op : KVOp) (hop : op.isKV) (hloc : etcd_dist.PfxLocal regP (kvOpStep op))
+    (hokS : ∀ σ new, (kvOpStep op σ).changes = σ.changes ++ new → ∀ cs ∈ new, ∀ ch ∈ cs, okS ch)
+    (hstep : StepOk c op (fun s => (s.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).1))
+    (hkeys : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ))
+    (hone : ∀ σ, kvWf c σ → KvOne σ (kvOpStep op σ)) :
+    etcd_dist.kvPfxHP γk regP γs okS γsh σ₀ ∗ kInvD γ c g0 γs γsh σ₀ ∗ monoListLbOwn γsh l0 ∗
+      pendTok γ n x ⊢
+    AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+      <{ etcdKV γk (kvOpStep op σ) ∗ ⌜kvRoom σ⌝, COMM iprop(True) }> := by
+  unfold kInvD drvDInvN kInvDBody
+  iintro ⟨#Hpfx, #Hinv, #Hl0, Htok⟩
+  iapply (kvPfxP_au1HG γk regP γs okS γsh σ₀ "k8s" (by decide) (kInvDV γ c g0 γsh σ₀) l0
+    (kvOpStep op) hloc hokS)
+  isplitl []
+  · iexact Hpfx
+  isplitl []
+  · iexact Hinv
+  isplitl []
+  · iexact Hl0
+  iintro %σ %Hpre Ha HW
+  obtain ⟨-, he, -, hroom⟩ := Hpre
+  have hrb : RevBoundD σ := by unfold RevBoundD; unfold kvRoom at hroom; omega
+  imod (kInvDV_catchup γ c hc g0 γsh he hrb) $$ [Ha HW] with ⟨Ha, %σc, %hs, H⟩
+  · iframe
+  iunfold kInvDW at H
+  icases H with ⟨%h, %S, %M, %nx, Hh, Hp, Hr, Hs, %Hpure⟩
+  obtain ⟨_hel, hrun, hok⟩ := Hpure
+  have hwσ : kvWf c σ := (kvWf_sameL c hs).1 hok.wf
+  obtain ⟨hw', habs⟩ := hstep σ hwσ (kvRoom_two hroom)
+  have hn : KvNext σ (kvOpStep op σ) := kvNext_step op σ hop (hone σ hwσ)
+  have habs' : c.abs (kvOpStep op σ) = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
+  have hac := abs_sameL c hs
+  imod (invD_fire γ c hs hn hok.wf hw' hroom (kStep_oneKey c eD eU x σ _ habs')) $$ [Hr Hs]
+    with ⟨%σd, %Hd, Hr, Hs, -⟩
+  · iframe
+  obtain ⟨hsd, hnd, -⟩ := Hd
+  have hwd : kvWf c σd := (kvWf_sameL c hsd).2 hw'
+  have hacd := abs_sameL c hsd
+  have hrc : σc.rev + 2 < 2 ^ 63 := by rw [hs.kvs_rev.2]; exact kvRoom_two hroom
+  iunfold pendTok at Htok
+  ihave %Hn := ghost_map_lookup $$ Hp Htok
+  imod ghost_map_delete $$ Hp Htok with Hp
+  have Hok' := kOkD_pend hc hok eD eU n x Hn (by rw [hacd, hac]; exact habs') hwd hnd
+    (keysIn_sameL hs (fun v hv => by rw [hsd.kvs_rev.1] at hv; exact hkeys σ hwσ v hv)) hrc
+  imod (kInvDV_fire γ c g0 γsh he hn hsd h S _ nx hrun Hok') $$ [Ha Hh Hp Hr Hs] with ⟨Ha, HW⟩
+  · iframe
+  imodintro
+  iframe Ha HW
+
 end defs
 
 end k8s_dist
