@@ -152,8 +152,8 @@ theorem mainOwnAt_cfgReq [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : GNam
   ihave #Hdx := durLb_mono γ i _ x (by omega) $$ Hd
   ihave #Hal := monoNatLbOwn_get _ _ _ $$ Happ
   ihave #Hax := monoNatLbOwn_le x Hxa $$ Hal
-  imod mono_nat_own_update (Nat.max c x) (Nat.le_max_left _ _) $$ Hcomp with ⟨Hcomp, #Hcl⟩
-  ihave #Hcx := monoNatLbOwn_le x (Nat.le_max_right _ _) $$ Hcl
+  ihave H4 := compRaise γ rc i s c x $$ [$Hdur $Hs $Hcomp]
+  imod H4 $$ Hnc with ⟨Hnc, Hs, Hcomp, #Hcx⟩
   imodintro
   iframe Hnc
   iexists ccfg, cfg, cidx, li, ss
@@ -184,7 +184,7 @@ theorem mainOwnAt_cfgReq [hRB : ReceiptBoundLe GF (2 ^ 62)] (r : Loc) (γ : GNam
         (by rw [ent_take _ _ _ (by omega)]; exact he') $$ H
     · ipureintro; exact hP.2 y e' (by omega) (by omega) he'
   isplitr; · unfold applLb; iexact Hax
-  isplitr; · unfold compLb; iexact Hcx
+  isplitr; · iexact Hcx
   iintro Hcfgs
   iexists a, sst, cfg, ccfg, cidx, li, lch, γl, bs, Nat.max c x
   iframe
