@@ -1028,7 +1028,8 @@ def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1⌝ ∗
     ⌜(∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-      (∀ x st id, X.pend = some (x, st, id) → (∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∨ prevMatch X.s.log x st) ∧ X.lo ≤ latIdxD X.lat + 1⌝ ∗
+      (∀ x st id, X.pend = some (x, st, id) →
+        (∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∨ (prevMatch X.s.log x st ∧ x ≤ X.s.dur.1)) ∧ X.lo ≤ latIdxD X.lat + 1⌝ ∗
     bootPin rc X ∗
     monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ⌜∀ d, X.dp = some d → X.c < d.x⌝ ∗
     ⌜(X.tp = none ∨ X.dp = none) ∧
