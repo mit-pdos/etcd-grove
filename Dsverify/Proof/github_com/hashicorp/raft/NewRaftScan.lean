@@ -61,6 +61,33 @@ def bootF (γ : GNames) (s : SState) (lat : SnapLatest) (dp : Option DiscPend) :
   (∀ d, dp = some d → s.dur.1 < d.x) ∧
   (dp = none → latIdx lat ≤ s.dur.1 ∧ (lat ≠ none → ∃ e, ent s.log (latIdx lat) = some e ∧ e.term = latTerm lat))
 
+/-- (hraft_robust R5b) **`NewRaft`'s `lastLog` is the protocol log's last entry** when the log store's
+largest key `hi` reaches the latest snapshot's index `x`. -/
+theorem lastLog_of_hi (A : LogAbs) (L : RLog) (x : Nat) (lv : Log)
+    (h1 : ∀ k e, A.m.lookup k = some e → ent L k = some e)
+    (hhi1 : ∀ k e, A.m.lookup k = some e → k ≤ uint.nat A.hi)
+    (hhi2 : A.hi = W64 0 ∨ ∃ e, A.m.lookup (uint.nat A.hi) = some e)
+    (habove : ∀ k, x < k → k ≤ L.length → A.m.lookup k = ent L k)
+    (hlv : lv.Index' = A.hi ∧ (A.hi = W64 0 → lv.Term' = W64 0) ∧
+      (A.hi ≠ W64 0 → ∃ e, A.m.lookup (uint.nat A.hi) = some e ∧ uint.nat lv.Term' = e.term))
+    (hge : x ≤ uint.nat A.hi) :
+    uint.nat lv.Index' = L.length ∧ uint.nat lv.Term' = lastTerm L := by
+  obtain ⟨hle, hx⟩ := rec_hi A L x h1 hhi1 hhi2 habove
+  have heq : uint.nat A.hi = L.length := by
+    by_cases h : x < L.length
+    · exact hx h
+    · omega
+  obtain ⟨hi, ht0, hte⟩ := hlv
+  refine ⟨by rw [hi]; exact heq, ?_⟩
+  by_cases h0 : A.hi = W64 0
+  · have hl0 : L.length = 0 := by rw [← heq, h0]; rfl
+    rw [ht0 h0, show uint.nat (W64 0) = 0 from rfl]
+    unfold lastTerm; rw [hl0, termAt_zero]
+  · obtain ⟨e, he, ht⟩ := hte h0
+    have he' := h1 _ _ he
+    rw [heq] at he'
+    unfold lastTerm; rw [termAt_of_ent he', ht]
+
 theorem gprotN_durN : (↑gprotN : CoPset) ⊆ ⊤ \ ↑durN := gprotN_diff_raft "dur"
 
 end pure

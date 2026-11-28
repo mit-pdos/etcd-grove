@@ -596,10 +596,157 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   obtain ⟨hlen0, hdl0, hents0, hdpd0, hdpn0⟩ := HF
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
-      fixPost (GF := GF) rc' false X.lat D' X.A.staged X.s.term lastLog_ptr ∗ rtok tid)))
-    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog Htok] [-]
-  · sorry
-  iintro %v ⟨%hv, Hfix, Htok⟩
+      fixPost (GF := GF) rc' false X.lat D' X.A.staged X.s.term lastLog_ptr ∗ rtok tid ∗ r_ptr ↦ r)))
+    $$ [Hboot Hsv Hpend Hpw HstV Hcomp Happ Hllb Hgll lastLog Htok r snapIdx snapTerm] [-]
+  · rw [htp]
+    rcases hL : X.lat with _ | ⟨m, b⟩
+    · -- no snapshot: nothing to discard
+      have hdpN : X.dp = none := by
+        rcases hd : X.dp with _ | d
+        · rfl
+        · obtain ⟨m, b, h, -⟩ := hdpl2 d hd; rw [hL] at h; cases h
+      rw [hdpN]
+      simp only [latIdxW, latTermW]
+      wp_if_destruct
+      · exfalso; simp at Hif
+      icases Happ with (Happ | %hd)
+      rotate_left
+      · obtain ⟨d, hd⟩ := hd; cases hd
+      isplitr; · ipureintro; trivial
+      iframe Htok r
+      unfold fixPost
+      simp only [latIdxW, latTermW, latIdx]
+      iexists X.s, X.A, lv, X.c
+      iframe
+      ipureintro
+      have habove' := habove
+      rw [hL] at habove' hcl
+      obtain ⟨h1, h2⟩ := lastLog_of_hi X.A X.s.log 0 lv hlog2.1 hhi1 hhi2 habove' HlvIdx (Nat.zero_le _)
+      simp only [latIdx] at hcl habove'
+      exact ⟨rfl, hci, hvmD, hstg, Nat.zero_le _, hcl, habove', Or.inl ⟨h1, h2, Nat.zero_le _⟩⟩
+    · simp only [latIdxW, latTermW]
+      iunfold latFacts at Hlat
+      icases Hlat with ⟨-, ⟨%e, #HCe, %He⟩, -, -, -⟩
+      wp_if_destruct
+      rotate_left
+      · exfalso; apply Hif; have := He.2; word
+      icases Hfirst with (%hn | #HFI)
+      · cases hn
+      iunfold isLogStoreFirst at HFI
+      simp only [Hif, decide_true]
+      wp_auto
+      have habove' := habove
+      rw [hL] at habove' hcl hdplat hpref hdpn0
+      simp only [latIdx, latTerm] at habove' hcl hdplat hpref hdpn0 hdpd0
+      rw [show rc.ownL = rc'.ownL from rfl]
+      rcases hdp : X.dp with _ | d
+      · -- no discard pending: the store holds the snapshot's entry, or nothing at or below it
+        obtain ⟨hxd, hex⟩ := hdpn0 hdp
+        obtain ⟨e', he', he't⟩ := hex (by simp)
+        wp_bind (App (Val #(methods _ _ _)) _)
+        iapply HFI $$ Htok
+        iapply (bootRead_L (GF := GF) γ rc' i X.A (some (m, b)) X.s none none D' X.A.staged)
+        iframe #
+        iframe Hsv HstV Hboot
+        iintro Hboot Hsv HstV %X4 %HX4 %r0 %Hr0 Htok
+        rw [HX4.1] at Hr0
+        wp_auto
+        rcases Hr0 with ⟨hr0, hA0⟩ | ⟨hr0s, hr0m⟩
+        · -- an empty store: the log is the snapshot's prefix (nothing above it stored)
+          wp_if_destruct
+          · exfalso; word
+          try simp only [Hif, decide_false]
+          try wp_auto
+          isplitr; · ipureintro; trivial
+          iframe Htok r
+          unfold fixPost
+          simp only [latIdxW, latTermW, latIdx, latTerm]
+          iexists X.s, X.A, lv, X.c
+          icases Happ with (Happ | %hd)
+          rotate_left
+          · obtain ⟨d, hd⟩ := hd; cases hd
+          iframe
+          ipureintro
+          have hhi0 : X.A.hi = W64 0 := by
+            rcases hhi2 with h | ⟨e2, h⟩
+            · exact h
+            · rw [hA0] at h; simp at h
+          have hlx : X.s.log.length = uint.nat m.Index' := by
+            have h1 := (proto.ent_le_length he').2
+            rcases Nat.lt_or_ge (uint.nat m.Index') X.s.log.length with hlt | hge'
+            · have h2 := habove' X.s.log.length hlt (Nat.le_refl _)
+              obtain ⟨e3, he3⟩ := proto.ent_isSome X.s.log X.s.log.length (by omega) (Nat.le_refl _)
+              rw [he3, hA0] at h2; simp at h2
+            · omega
+          refine ⟨rfl, hci, hvmD, hstg, hxd, hcl, habove', Or.inr ⟨by trivial, ?_, hlx, ?_⟩⟩
+          · rw [HlvIdx.1, hhi0]; have := He.2; simp; omega
+          · unfold lastTerm; rw [hlx, proto.termAt_of_ent he', he't]
+        · -- a store with a smallest key `r0`
+          obtain ⟨e0, he0⟩ := Option.isSome_iff_exists.mp hr0s
+          have hr0pos : 0 < uint.nat r0 := (proto.ent_le_length (hlog2.1 _ _ he0)).1
+          have hge : uint.nat m.Index' ≤ uint.nat X.A.hi := by
+            by_cases hle : uint.nat r0 ≤ uint.nat m.Index'
+            · obtain ⟨e2, he2⟩ := hpref hdp _ _ he0 hle
+              exact hhi1 _ _ he2
+            · have := hhi1 _ _ he0; omega
+          obtain ⟨hlI, hlT⟩ := lastLog_of_hi X.A X.s.log _ lv hlog2.1 hhi1 hhi2 habove' HlvIdx hge
+          wp_if_destruct
+          rotate_left
+          · exfalso; apply Hif; word
+          try simp only [Hif, decide_true]
+          try wp_auto
+          wp_if_destruct
+          · -- the store holds the snapshot's entry, of the snapshot's term: kept
+            obtain ⟨e2, he2⟩ := hpref hdp _ _ he0 (by word)
+            have he2' : e2 = e' := by have := hlog2.1 _ _ he2; rw [he'] at this; cases this; rfl
+            subst he2'
+            wp_bind (App (App (Val #(methods _ _ _)) _) _)
+            iapply HGetLog $$ «at» Htok
+            iapply (bootRead_L (GF := GF) γ rc' i X.A (some (m, b)) X.s none none D' X.A.staged)
+            iframe #
+            iframe Hsv HstV Hboot
+            iintro Hboot Hsv HstV %X5 %HX5 %err' Hpost Htok
+            rw [HX5.1]
+            unfold getLogPost
+            rw [he2]
+            icases Hpost with ⟨%Herr, %lva, Hat, #Hlva⟩
+            subst Herr
+            unfold logIs
+            icases Hlva with ⟨%hlva, -⟩
+            have hTa : lva.Term' = m.Term' := by
+              apply BitVec.eq_of_toNat_eq
+              have := hlva.2.1; rw [he't] at this; simpa using this
+            wp_auto
+            wp_if_destruct
+            all_goals try (exfalso; simp [hTa] at Hif; done)
+            isplitr; · ipureintro; trivial
+            iframe Htok r
+            unfold fixPost
+            simp only [latIdxW, latTermW, latIdx, latTerm]
+            iexists X.s, X.A, lv, X.c
+            icases Happ with (Happ | %hd)
+            rotate_left
+            · obtain ⟨d, hd⟩ := hd; cases hd
+            iframe
+            ipureintro
+            refine ⟨rfl, hci, hvmD, hstg, hxd, hcl, habove', Or.inl ⟨hlI, hlT, ?_⟩⟩
+            rw [HlvIdx.1]; exact hge
+          · try simp only [Hif, decide_false]
+            try wp_auto
+            isplitr; · ipureintro; trivial
+            iframe Htok r
+            unfold fixPost
+            simp only [latIdxW, latTermW, latIdx, latTerm]
+            iexists X.s, X.A, lv, X.c
+            icases Happ with (Happ | %hd)
+            rotate_left
+            · obtain ⟨d, hd⟩ := hd; cases hd
+            iframe
+            ipureintro
+            refine ⟨rfl, hci, hvmD, hstg, hxd, hcl, habove', Or.inl ⟨hlI, hlT, ?_⟩⟩
+            rw [HlvIdx.1]; exact hge
+      · sorry
+  iintro %v ⟨%hv, Hfix, Htok, r⟩
   subst hv
   wp_auto
   -- fix 4: lastLog raised to the snapshot's last entry when below
