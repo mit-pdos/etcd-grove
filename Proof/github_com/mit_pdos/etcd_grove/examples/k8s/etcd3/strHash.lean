@@ -47,7 +47,9 @@ theorem strHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG)) :
   have e : (W64 (s.length : Int) : w64) = BitVec.ofNat 64 s.length := BitVec.ofInt_natCast _ _
   wp_if_destruct
   · have Hlt : sint.Z j < sint.Z (BitVec.ofNat 64 s.length) := by
-      first | simpa [e] using Hif | exact Classical.byContradiction fun h => by simp [e, h] at Hif
+      first | simpa [e] using Hif | exact Classical.byContradiction fun h => by
+        simp only [e, h, decide_false] at Hif
+        exact absurd (GoGlobalContext.intoVal_inj_bool Hif) (by decide)
     have hb : s[sint.nat j]? = some (s.getD (sint.nat j) (W8 0)) := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by word)]; rfl
     rw [if_pos Hj.1, hb]
