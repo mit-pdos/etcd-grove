@@ -29,14 +29,14 @@ configuration's voters is `DecodeConfiguration`'s (`γ.cv = cfgDec γ.srvs`; `is
 encodes a valid configuration. -/
 abbrev github_com.hashicorp.raft.NewRaft.spec : Prop :=
   ThreadBoundLe GF (2 ^ 28) →
-  ∀ (cp : Loc) (c : Config) (fsmI logsI stableI snapsI transI : GoInterfaceOk) (rpcCh : Loc)
+  ∀ (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Qc : SnapshotMeta → List w8 → IProp GF) (cp : Loc) (c : Config) (fsmI logsI stableI snapsI transI : GoInterfaceOk) (rpcCh : Loc)
     (γ : GNames) (i : SID) (ownL : LogAbs → IProp GF) (ownS : StableAbs → IProp GF)
     (ownSS : SnapLatest → IProp GF) (eof : GoInterface) (snapP : Nat → List w8 → IProp GF)
     (fsmOwn : Nat → IProp GF) (respP : Nat → GoInterface → IProp GF) (sst : StableAbs) (tid : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ cp ↦ c ∗ ⌜cfgOk c i⌝ ∗
      isFSM fsmI γ i fsmOwn respP snapP ∗ ⌜fsmNotBatching fsmI⌝ ∗
-     isLogStore logsI ownL ∗ ⌜go.typeSetContains logsI.ty MonotonicLogStore.ty = false⌝ ∗
-     isStableStore stableI ownS ∗ isSnapStore snapsI ownSS eof ∗ globalAddr io.EOF ↦□ eof ∗
+     isLogStore logsI ownL Wl ∗ ⌜go.typeSetContains logsI.ty MonotonicLogStore.ty = false⌝ ∗
+     isStableStore stableI ownS Ws ∗ isSnapStore snapsI ownSS eof Qc ∗ globalAddr io.EOF ↦□ eof ∗
      isTransport transI γ snapP i rpcCh ∗ ⌜go.typeSetContains transI.ty WithPreVote.ty = true⌝ ∗
      ownL (LogAbs.empty.store 1 (initSrv γ.cv γ.g i).log) ∗ ownS sst ∗ ownSS none ∗
      ⌜sst.ints.lookup (go!"CurrentTerm" : List w8) =
