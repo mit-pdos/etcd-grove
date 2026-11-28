@@ -321,4 +321,38 @@ variable [package_sem : cmd.{n}.Assumptions] [π : NetProtoGS]''',
         q='net.rpc.codecUnset',
         post='        isPkgInit (PROP := IProp GF) pkg_id.{pkg}.cmd.{n} ∗ net.rpc.codecUnset',
     ),
+    # hraft_robust: the restartable server machines' commands `cmd/rserver1..6` (package `rserver`),
+    # their table rserver1's chain, in `rserver`'s namespace; the boot lemma `rserver.boot_rserver`
+    # (`RBootLinked.lean`): `rserver`'s first initialization, through `rpctransport`'s, net/rpc's first
+    # run (the packages whose first run is proved there: `rserver`, `rpctransport`, net/rpc)
+    boots=[dict(
+        table='rserver1',
+        table_pkg=f'{_HRAFTNET}.rserver',
+        table_ns='rserver.',
+        cmds=[f'rserver{s}' for s in range(1, 7)],
+        cmds_file='RBootCmdsLinked.lean',
+        boot='rserver.boot_rserver',
+        boot_import=f'Dsverify.Proof.{_HRAFTNET}.RBootLinked',
+        owned=[f'{_HRAFTNET}.rserver', f'{_HRAFTNET}.rpctransport', 'net.rpc'],
+        table_doc='''The package facts of the hraft kit's restartable servers' boot (hraft_robust; notes/dsv-hraft.md, "The
+boot"): generic in a program's table `G` that gives every package of `rserver`'s import closure its
+`isPkgInit` (`KitG G`), the facts at `G` (`wf_*`) and, for the packages whose closure avoids the owned
+packages (`ownedPkgs`: `rserver` and `rpctransport`, whose first initializations the boot proves, and
+net/rpc's, Net's first run), at `gOff S G` for `S` a sub-list of `ownedPkgs` (`wfO_*`): the table in which
+the packages of `S` are not initialized yet.''',
+        cmds_doc='''The hraft kit's restartable server commands' boots (hraft_robust; notes/dsv-hraft.md, "The boot"):
+each command's initialization from the machine's empty package state, its first, through `rserver`'s
+(`RBootLinked.lean`, `rserver.boot_rserver`), at the command's table (`getIsPkgInit`, its
+`PkgTable.lean`; `kitG`).''',
+        opens=['open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net',
+               f'open {HRAFT} {_HRAFTNET}',
+               'open EtcdGrove (wp_package_init_first)'],
+        attributes=['attribute [local instance] GooseGlobalGS.gooseInvGS'],
+        variables='''variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : cmd.{n}.Assumptions] [π : NetProtoGS]''',
+        returns="returns net/rpc's codec unregistered (`codecUnset`, net/rpc's first run's), as the servers'.",
+        q='net.rpc.codecUnset',
+        post='        isPkgInit (PROP := IProp GF) pkg_id.{pkg}.cmd.{n} ∗ net.rpc.codecUnset',
+    )],
 )
