@@ -509,7 +509,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
           (try wp_auto)
           wp_if_destruct
           · -- The message belongs to the term of this apply batch.
-            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %rfl Hcursor
+            ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %trivial Hcursor
             (try wp_auto)
             -- Installing this snapshot already established the backend index at the apply cursor.
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
@@ -1070,7 +1070,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         (try wp_auto)
         wp_if_destruct
         · -- The message belongs to the term of this apply batch.
-          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %rfl Hcursor
+          ihave ⟨Hcursor, %hidxRaft⟩ := Hidx $$ %trivial Hcursor
           (try wp_auto)
           -- Installing this snapshot already established the backend index at the apply cursor.
           ihave #HW' : srvWTPool E' γp $$ []
