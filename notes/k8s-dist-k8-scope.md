@@ -467,3 +467,44 @@ step commits lintest's update (a fancy update), which a `==∗` step cannot.
 
 **Build of record**: `lake build …k8s.dist.StoreFire …k8s.dist.PfxTxn` (every importer of `KVPfxHist`, plus the
 new file) at `1e3875d434` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5260 jobs, OK.
+
+## Handoff K8-10 (2026-11-28)
+
+**Coordinator decision on K8-9's point 3** (etcd-grove-03): `RevBoundD σ` is `σ.rev + 2 < 2^63` (K10's receipt
+law gives revisions `< 2^62`, so the `+2` costs nothing there); the read results are not changed. *Done*
+(`StoreInv.lean`; `kInvDW_catchup` passes `kOkD_foreign` its `+1` by `omega`). Note: `kvPfxP_readAuH`'s proof
+already had the server's `kvRoom σ` (the post of `kvAu`, so of `kvReadAu`); its step now learns it, as
+`kvPfxP_au1H`'s, so **no firing uses `revBoundD_law`** (still defined, assumed nowhere). The coordinator may
+drop it, or keep it for K10.
+
+**Proved** (no `sorry`, no top-level statement, axiom, trusted text or premise touched):
+- `writeD_err_commit`, `readD_err_commit` (`StoreFire.lean`; `write_err_commit`/`read_err_commit`): open
+  `kInvD`, commit `linUD` (`drvED_mask_top`), the store's half unchanged but for lintest's run (and the pending
+  write's token). `kInvDBody_timeless`.
+- `kvPfxP_readAuH` (`KVPfxHist.lean`, our lemma, no caller but ours): the step is a fancy update at
+  `kvPfxCbE` and learns `kvRoom σ`.
+- `StoreRead.lean` (new): `callN_cb`, `drvED_cb_call`, `revOwnD_elem`, `kvPfxP_readAuHG`; **`getD_read_au`**
+  (`get_read_au`) over `getCallD` (`getCall` over `linUD`) and `readQD` (`readQ`, its commit bit holding the
+  store's caught-up state `σc`, `SameL σc σ`: a later firing at `R` catches up to the same `σc` through the
+  revisions' map, but the real state may differ in its leases); **`listD_read_au`** (`list_read_au`) over
+  `listCallD` and `listQD` = `∃ σc, ⌜SameL σc σ⌝ ∗` `listQ`'s facts at `σc`, **restricted to `/registry/`**
+  (`keysOkP`, `valsOkP`; `listQ`'s `kvKeysShort` has no counterpart, foreign keys may be long). Whether the list
+  pages (`plainL_read_au`) and `Apply`'s list case can live with these is the next port's question.
+- **`kvPfxP_auRWH`** (`KVPfxHist.lean`): `kvPfxP_au1H`'s step, persistent (`□ AU`), at `F b` for the `b` the
+  caller's commit chooses (`∀∀ b`), the caller handing `P b σ` to the step, `COMM Q b σ`; `pfxLocal_ite`,
+  `changes_ite_ok` give `F b := if b then f else id` its premises.
+
+**Not done: `rw_au`, `pend_rw`. Decide first** (a design question, not a port): `k8sAuRW`'s pre hands the caller
+`⌜kvWf c σ⌝ ∗ kvSeen c.γh σ`, and with `b = true` the caller hands `W ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧
+KvNext σ σ' ∧ KeysIn c.pfx σ σ'⌝` (`k8sAuRW_kvAu1` proves these from `kvSeen`'s `A σ`). On the shared KV the
+store's facts exist only after its catch-up, inside the step: the AU's pre can give the caller nothing but
+`etcdKV γk σ`. Proposal: `rwD_au` at a fixed `op` (as `createD_au`), the AU `□ AU <{∃∃ σ, etcdKV γk σ}> <{∀∀ b,
+etcdKV γk (if b then kvOpStep op σ else σ) ∗ ⌜kvRoom σ⌝ ∗ (if b then dghostVar γt 1 () else True), COMM if b then
+contAt … ∗ ansOk … else True}>` (`kvPfxP_auRWH` at `F b := if b then kvOpStep op else id`, `P b := if b then
+token`), with `k8sAuRW_kvAu1`'s `h` (in terms of `ok`/`hand`/`A`) as a premise that the *step* discharges from
+the caught-up `σc` (`kvWf`, `kvSeen` at `σc`; needs `A` stable under `SameL`), the caller choosing `b := ok σ ||
+hand σ` from the real `σ`. Then `rwD_au` is `createD_au`'s body in the `b = true` branch and
+`getD_read_au`'s no-op in the other.
+
+**Build of record**: `lake build …k8s.dist.StoreRead …k8s.dist.PfxTxn` (every importer of `KVPfxHist`, the
+new file) at `4b2358cb41` on fk-lean1 (`wt/k8s-dist-k8/2026-11-28`): 5261 jobs, OK.
