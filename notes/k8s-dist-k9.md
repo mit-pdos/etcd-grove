@@ -841,3 +841,46 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
 - **Build of record** (fk-lean2, targets `etcd3.Link`, `etcd3.HistoryRevs`, `etcd3.InitLinked`, `all.PkgTable`,
   SpecPlan's etcd3 PkgInit) at `4c906f8205`: passed, 12734 jobs, 0 errors (`HistoryRevs.wp_proof` warns its
   WIP `sorry`; `Link` has none).
+
+## Handoff K9-17 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **The size bound is in** (coordinator's decision, ledger 2026-11-28 "`HistoryRevs.spec` has no size
+  bound"): `HistoryRevs.spec` takes `histCost xs ≤ 2 ^ 62` (`opCost x y = 7 + |decoded events| + |decoded
+  items|`, `HistRevsDefs.lean`). In the proof, `allSt S am bm P` (`S` = `xs.flatMap insL`, generalized as
+  `hS`) keeps every key of `all` and of `byKey`'s maps in `S`; `Hnum'`/`Hobj'` (and the raw `Hobj`) take
+  `⌜S v⌝` in their precondition, each call site proving `v ∈ insL x y` (`hmem : (x, y) ∈ xs`); so
+  `GMap.size ≤ histCost xs` (`size_le_of_keys`, `histCost_eq`).
+- **Tail, done**: `all`'s keys collected into `r.anchors` (`wp_map_for_range`, invariant as
+  `Set__UnsortedList.lean`), `slices.Sort` (`wp_Sort` is now a hypothesis of `wp_proof`;
+  `lessImplements_uint64`, `StrictWeakOrder_unsigned_lt` from `Perennial.Proof.slices.Results`), giving
+  `ks'` with `Hperm : keys ≡ₚ ks'`, `Hsorted`, `Hknodup`, `Hkset`.
+- **WIP, one `sorry`** (marked "WIP (K9-17)", after the anchors' `Sort`): the two `map` makes, the nested
+  `byKey` loops, the return. Not linked (`HistoryRevs` is not yet in `etc/link-lean-first-k8setcd3.txt`;
+  add it with `=_root_.Perennial.slices.wp_Sort` once the `sorry` is gone, then `etc/gen-link.py
+  --k8setcd3`). Plan for the loops:
+  - outer `wp_map_for_range` over `bm` (`B`, `HB`), `HBs` in the invariant, opened per key with
+    `bigSepM_lookup_acc` (its `⌜∀ k, (m !! k).isSome → S k⌝` gives `GMap.size m ≤ 2^62` as for `A`);
+    invariant: `rb ↦$ RB ∗ [∗map] k ↦ s ∈ RB, ∃ L, s ↦* L ∗ ownSliceCap w64 s 1` (same for `rf`/`RF`),
+    `⌜∀ k, (RB !! k).isSome → k ∈ ks.take p⌝` (so the current key is absent, by `Nodup`), `m_ptr`, `k_ptr`,
+    `wm ↦$ W`, the two fields;
+  - inner loop over the key's map: keep `RB0` (the map at the key's start) and `so : Option GoSlice`, the
+    map being `so.elim RB0 (<[key := ·]> RB0)`, the current slice `so.getD slice.nil ↦* L ∗ cap` with
+    `L.length ≤ i` (nil: `ownSlice_nil`, `ownSliceCap_nil`); lookup gives `(RB !! key).getD nil` either
+    way (`GMap.lookup_insert`, `insert_insert`); the same for `fastByKey` under `!written[v]`;
+  - then `slices.Sort` of both (`L.length ≤ size m ≤ 2^62`), put the slices back (`bigSepM_insert`);
+  - at the end `keyRevsOwn` needs a function `f`: choose it from `[∗map] k ↦ s ∈ M, ∃ L, …` by a choice
+    lemma as `bigSepM_choice_keys` (`client/v3/MapSplit.lean`), persist (`ownSlice_persist`,
+    `ownMap_persist`), and `anchorsOk_of` with `HG.1` (`0 ∨`, `HG.1.1` for `a ≠ 0`); strictness of
+    `ks'` from `Hsorted` and `Hperm.nodup_iff`.
+- **Discharging the premise at step 5** (`CheckShared` over an `SRun`). `histCost xs` is `7·|xs|` plus the
+  events and items the history's outputs decode to. `|xs|` is at most the number of operations the run
+  recorded, each taking at least one step, so below `2^48`. Each decoded event or item is one the run's
+  client built or received and encoded into the output string by a loop, at least one step each (and a
+  decoded element takes at least one byte of the string), so their total is below `2^48` too:
+  `histCost xs < 9 · 2^48 < 2^52`. This is the same route as K10's discharge of the revision bound (K9-12,
+  "the run's step bound"), and needs what that one needs: the run's step bound visible in the caller's
+  proof as a count of operations and of encoded elements (Perennial has no step-count resource; the
+  count has to come from the driver's own state, e.g. the history's length and the encoders' loop
+  counts, bounded by the adequacy theorem's step bound). If K10 finds that unavailable, both bounds need
+  the same fix (a Go-side cap in the driver).
+- Build of record: see the commit after this one.

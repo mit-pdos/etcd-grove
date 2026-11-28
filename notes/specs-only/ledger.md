@@ -9590,4 +9590,11 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `≤ n`) in `allSt`, `n` the calls so far (`Hnum'`/`Hobj'` take `n` to `n + 1`). Its caller (step 5's
   check) discharges it from the history's size (the run's step bound). Alternative: a premise
   bounding the length of every string of the history and `xs.length`.
-- **Decision.** Open: for the coordinator (the spec's caller is step 5's).
+- **Decision (coordinator etcd-grove-03, 2026-11-28).** Add the premise `histCost xs ≤ 2 ^ 62` (an internal
+  spec, not a top-level one); track the map sizes in `allSt`. Done (K9-17): `opCost`/`histCost` in
+  `HistRevsDefs.lean` (`opCost` counts 7, not the 6 proposed above: `MinRV`, `PreRV`, the cached object,
+  `ErrRV`, `ListRV`, `RV`, the error message; plus the decoded events and items). The sizes are bounded
+  not by a call count but by a fixed key set: `allSt S` keeps every key of `all` and of `byKey`'s maps in
+  `S = xs.flatMap insL` (each `num`/`obj` call site shows its value is in `insL x y`), so
+  `GMap.size ≤ (xs.flatMap insL).length = histCost xs` (`size_le_of_keys`, `histCost_eq`); this left the
+  ops loop's 25 `allSt_mono` weakenings untouched. Discharge at step 5: see Handoff K9-17.
