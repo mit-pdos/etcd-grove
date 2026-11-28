@@ -13,7 +13,7 @@ axiom Client.Close.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom etcdResolver_grpc
-axiom etcd_dist.etcdSvc
+axiom etcd_dist.etcdSvcRest
 axiom etcd_dist.view.Client_LeaseLeases_dist.wp_proof
 axiom etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
 axiom etcd_dist.view.Lease_GrantLive_dist.wp_proof

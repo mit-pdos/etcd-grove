@@ -67,7 +67,7 @@ theorem Check.wp_proof
     (wp_failureFree : failureFree.spec (GF := GF) (hG := hG))
     (wp_realCheck : realCheck.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp c g0 γk s0 hsl hs clients ops watchers wops dur hc hpfx hrp hdi hvi hAs hse htb
+  intro _ _ γ sp c g0 γk s0 hsl hs clients ops watchers wops dur hc hpfx hrp hdi hvi hAs hse htb
     hnr hne Hrb H0 Hw0 H31 Hops Hwops Hmul Hg0 Hrv0 hrun0
   wp_start as ⟨#Hcc, #Hst, #Hrs, #Hinvs, Hks, #HinvK, #Hsw, #Hwl, #Hs0, #Hsl, #Hhs⟩
   ihave %Hs0rv : ⌜s0.rv' = g0.st.rv⌝ $$ [Hs0]

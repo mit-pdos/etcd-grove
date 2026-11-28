@@ -32,7 +32,7 @@ abbrev github_com.hashicorp.raft.examples.hraftnet.service.New.spec : Prop :=
       isRaft r γ rc i ∗ ⌜rc.respP = respP γ fc alb⌝ ∗ isStore γ fc alb i fsm }}
     (App (App (App (App (Val (@! github_com.hashicorp.raft.examples.hraftnet.service.New))
       (Val #r)) (Val #fsm)) (Val #enq)) (Val #wt))
-  {{ (a : Loc), RET #a; isAPI a γ rc i fc alb }}
+  {{ (a : Loc), RET #a; isAPI a γ rc i fc alb ∗ ⌜a ≠ null⌝ }}
 
 end spec
 

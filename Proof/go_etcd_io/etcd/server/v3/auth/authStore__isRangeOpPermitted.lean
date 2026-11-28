@@ -89,9 +89,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
       iunfold cacheRd
       iframe Hrd Hk He
       iapply (cacheVerdict_entry M user k e pt b Lr Lw Hpt) $$ Hent
-      intro _ _
-      rw [if_pos Hif]
-      exact Hb
+      exact ⟨fun _ => Hb, fun h => absurd Hif h⟩
     · rw [he0] at Hif
       wp_apply (h_checkKeyInterval lg p Lr Lw key re k e dk de pt) $$ [$Hp $Hk $He]
         as %b ⟨Hk, He, %Hb⟩
@@ -103,11 +101,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
       iunfold cacheRd
       iframe Hrd Hk He
       iapply (cacheVerdict_entry M user k e pt b Lr Lw Hpt) $$ Hent
-      intro hk hr
-      rw [if_neg Hif]
-      rcases hr with h | h
-      · exact absurd h Hif
-      · exact Hb hk h
+      exact ⟨fun h => absurd h Hif, fun _ => Hb⟩
 
 end proof
 

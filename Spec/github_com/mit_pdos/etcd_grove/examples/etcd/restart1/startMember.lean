@@ -39,7 +39,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.As
 
 /-- See the file header. -/
 abbrev startMember.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (lg : Loc) (bootLog : List EntryM)
+  ∀ (N : Nat) (lg : Loc) (bootLog : List EntryM)
     (ctxs : List (List w8)) (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
@@ -61,7 +61,7 @@ abbrev startMember.spec : Prop :=
 
 /-- See the file header (`specRestart`). -/
 abbrev startMember.specRestart : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (lg : Loc) (bootLog : List EntryM)
+  ∀ (N : Nat) (lg : Loc) (bootLog : List EntryM)
     (ctxs : List (List w8)) (id : w64) (γ : SrvRaft) (ρ : ReqNames) (γn : NetNames GF)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   N + 7 + bootWB ≤ backend.wbInit →

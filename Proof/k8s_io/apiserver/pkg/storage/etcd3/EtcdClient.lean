@@ -80,7 +80,7 @@ variable [sem : go.Semantics]
 compactor's endpoints and round transaction), on any
 `kubernetes.Client` `kc` over a client whose handle holds (see the file header). -/
 structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
-  get : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+  get : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (kc : go_etcd_io.etcd.client.v3.kubernetes.Client) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString)
@@ -101,7 +101,7 @@ structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
           go_etcd_io.etcd.cache.v3.errCellOk err ∗
           (⌜key ≠ [] ∧ K.live⌝ →
             k8s.rangeErrSound opts.Revision' (fun R σ => ∃ m, Q R m σ) err)) }}
-  list : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+  list : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (kc : go_etcd_io.etcd.client.v3.kubernetes.Client)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (pfx : GoString)
@@ -121,7 +121,7 @@ structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
         (⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
           go_etcd_io.etcd.cache.v3.errCellOk err ∗
           (⌜pfx ≠ [] ∧ K.live⌝ → rangeErrSound opts.Revision' Q err))) }}
-  optimisticPut : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+  optimisticPut : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (kc : go_etcd_io.etcd.client.v3.kubernetes.Client) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF))
@@ -146,7 +146,7 @@ structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
           else iprop(⌜resp.KV' = null⌝))) ∨
         ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
           go_etcd_io.etcd.cache.v3.errCellOk err) }}
-  optimisticDelete : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+  optimisticDelete : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (kc : go_etcd_io.etcd.client.v3.kubernetes.Client) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF))
@@ -182,7 +182,7 @@ structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
   /-- C2: the `Get` of a client's `*kv` `api` with the options `gs` (a linearizable range, unsorted), with the read update `Qr`
   at each of `K.kvs`: `nil` and the reply `m` at a state `σ` the update fired at, `m` the server's
   answer at `σ`; or a client error (`kClientErr`'s body). -/
-  kvGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+  kvGet : ∀
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (api : Loc) (ctx : GoInterfaceOk) (cdw : context.ContextDesc (IProp GF)) (pk : GoString)
     (osl : GoSlice) (gs : List (OpFull → OpFull)) (Qr : KVState → IProp GF),
@@ -246,7 +246,7 @@ structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
   `K.kvs` (each the KV `γk`), fired at most once: the reply's verdict and responses the server's run
   at the state `σ` the update fired at, its revision `σ`'s after it, positive and reached; or a client
   error (`kvErr`). -/
-  casCommit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (γk : KVNames),
+  casCommit : ∀ (tp : Loc) (γk : KVNames),
     (∀ γ ∈ K.kvs, kvSame γ γk) →
     ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (ev rev : w64)
       (Q : KVState → IProp GF), b.model = casClientTxn ev rev →
@@ -265,7 +265,7 @@ structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
 /-- **`Client.Get` at the latest revision** through the client's laws, as the store's unary paths
 call it (`kubernetes.Client.Get.latest`'s statement over `K`). -/
 theorem K8sEtcd.Laws.getLatest {K : K8sEtcd GF} (hK : K.Laws)
-    [go_etcd_io.etcd.client.v3.kubernetes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (kc : go_etcd_io.etcd.client.v3.kubernetes.Client) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString)

@@ -33,7 +33,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem store.validateMinimumResourceVersion.wp_proof
     (wp_TooLarge : storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG)) :
     store.validateMinimumResourceVersion.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c m n rev
+  intro _ Obj _ sp c m n rev
   wp_start as ⟨#Hs, %hp⟩
   by_cases hm : m = []
   · subst hm

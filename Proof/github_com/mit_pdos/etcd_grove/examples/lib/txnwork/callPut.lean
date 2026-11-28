@@ -37,7 +37,7 @@ theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (h_client_Put_st : client.client_Put_st.law (GF := GF) (hG := hG)) :
     callPut.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs key val Q hkl hvl
+  intro cl ms V hAs key val Q hkl hvl
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit

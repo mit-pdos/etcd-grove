@@ -87,7 +87,7 @@ theorem StartMember.wp_proof
     (wp_holdToken : holdToken.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF)) (hR : mvcc.api.mvccState_reachable.law (GF := GF)) :
     StartMember.spec (GF := GF) (hG := hG) := by
-  intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
+  intro cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn cmp lm Hcfg
     Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HnL Hpf Hcf Haf Hbuq Hrf Hdbo Hms
     HlP

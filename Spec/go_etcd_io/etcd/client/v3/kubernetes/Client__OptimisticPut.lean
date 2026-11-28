@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 /-- See the file header. -/
 abbrev Client.OptimisticPut.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (kc : go_etcd_io.etcd.client.v3.kubernetes.Client) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (vsl : GoSlice) (val : GoString) (rev : w64)

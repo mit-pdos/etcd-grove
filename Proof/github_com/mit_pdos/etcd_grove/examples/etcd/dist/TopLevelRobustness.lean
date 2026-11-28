@@ -194,7 +194,7 @@ theorem etcd_safe_nocrash_of_split (Hoff : EtcdBootNCAt (fun d => d.cfg.auth = f
   etcd_safe_nocrash_of_bootWF (etcdBootNC_of_split Hoff Ha Hal)
 
 /-- **`etcd_safe_nocrash`** (`notes/etcd-dist-plan.md` §27, §30): every workload kind of the single-process
-`etcd_robust_single_process` (but its restarts, `etcd_safe`'s), plus `leaseExpiry` and partitions, on any
+`etcd_restart_robust_single_process` (but its restarts, `etcd_safe`'s), plus `leaseExpiry` and partitions, on any
 deployment, from the boot of every class (`etcdBootNCOff_holds`, `etcdAuthBootNC_holds`,
 `etcdAuthLeaseBootNC_holds`). No hypothesis: `etcd_kv_safe_nocrash` can now be `etcd_kv_safe_nocrash_of_full
 etcd_safe_nocrash` (§27.4 Q4). -/

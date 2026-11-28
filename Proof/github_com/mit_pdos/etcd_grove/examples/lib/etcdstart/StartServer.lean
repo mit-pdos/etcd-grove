@@ -37,7 +37,7 @@ theorem StartServer.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN hvs hrule
+  intro N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN hvs hrule
     hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 HnL Hpf Hcf Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -102,7 +102,7 @@ theorem StartServer.wp_proofAt
     (wp_newServer : newServer.specAt (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartServer.specAt (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn lm γl Htb Hrb48 HrbN HwbN hvs hrule
+  intro N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn lm γl Htb Hrb48 HrbN HwbN hvs hrule
     hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 HnL Hpf Hcf Haf Hbuq Hdbo
   wp_start as ⟨Hlslot, #Hpkg0, #Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg

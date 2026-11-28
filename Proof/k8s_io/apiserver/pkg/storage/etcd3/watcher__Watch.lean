@@ -53,7 +53,7 @@ theorem watcher.Watch.wp_proof
     (wp_Stop : watchChan.Stop.spec (GF := GF) (hG := hG))
     (wp_ResultChan : watchChan.ResultChan.spec (GF := GF) (hG := hG)) :
     watcher.Watch.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wp sp c W γk ci cd kp n opts sie sel emp Q HQok Hhist Hnr Hpfx Hkp Hklen Hsuf Hn
+  intro _ Obj _ _ wp sp c W γk ci cd kp n opts sie sel emp Q HQok Hhist Hnr Hpfx Hkp Hklen Hsuf Hn
     Hpn Hrt
   wp_start as ⟨Hlt, #Hst, #Hsw, #Hwp, #Hsie, #Hsel, #Hwl, #Hrs, #Hctx, #Hmd, #Hce, #Hsig, %Htb, #Hra,
     #Hre⟩

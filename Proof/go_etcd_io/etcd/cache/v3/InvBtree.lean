@@ -709,7 +709,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
 /-- `btree.New[T](degree, less)` (`New` → `NewWithFreeList(degree, less,
 NewFreeList(DefaultFreeListSize))`): an empty tree, for `1 < degree <= 2^62` (Go panics with "bad

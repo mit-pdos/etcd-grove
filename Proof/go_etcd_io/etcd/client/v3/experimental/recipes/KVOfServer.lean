@@ -46,7 +46,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **What the recipes' contracts need beyond the specs** (persistent; see the file header). -/
 def kmRecipesRest (api : Loc) (γ : client.KMNames) [client.KMWritable γ] (pfx : GoString) : IProp GF :=

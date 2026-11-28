@@ -37,7 +37,7 @@ theorem Main.wp_proof
     (wp_store : k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG))
     (wp_comp : k8s_compactor.MainPartition.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS SE RT SC ST SV k N ids ps ctxs boot k₂ ids' ps' ctxs' boot' clients ops
+  intro SE RT SC ST SV k N ids ps ctxs boot k₂ ids' ps' ctxs' boot' clients ops
     watchers wops sched₁ sched₂ steps₁ steps₂ TB RB48 RBN HLv hk1 hk hlen Hbf hk₂1 hk₂ hlen' Hbf' HwbN
     Haf Hbuq Hrf Hdbo Hms hAs Hse Hot Hc0 Hw0 Hc31 Hops Hwops Hmul
   wp_start as ⟨Hms1, Hbs1, Hms2, Hbs2, #Hs1, #Hs2, Htok, #Hprem1, #Hprem2, Hreg⟩

@@ -38,8 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
+  ∀ (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
     (clis : List Loc) (clients ops dur : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   receiptBound GF ≤ 2 ^ 63 → clis ≠ [] →

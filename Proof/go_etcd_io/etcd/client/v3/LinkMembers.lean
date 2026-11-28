@@ -50,6 +50,11 @@ theorem v3.txn.wp_CommitG :
     EtcdGrove.txn.Commit.specG (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Commit.wp_generic v3.retryKVClient.wp_Txn v3.wp_ContextError
 
+theorem v3.kv.wp_CompactG :
+    EtcdGrove.kv.Compact.specG (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Compact.wp_generic v3.wp_OpCompact v3.CompactOp.wp_toRequest
+    v3.retryKVClient.wp_Compact v3.wp_ContextError
+
 theorem v3.kv.wp_DoM :
     EtcdGrove.kv.Do.specM (GF := GF) (hG := hG) :=
   EtcdGrove.kv.Do.wp_members v3.Op.wp_IsSortOptionValid v3.Op.wp_toRangeRequest

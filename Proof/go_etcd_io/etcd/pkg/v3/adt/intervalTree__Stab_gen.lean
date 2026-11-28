@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab_gen
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.VisitL
 
 @[expose] public section
 
@@ -56,7 +57,7 @@ theorem adt.intervalTree.Stab_gen.wp_proof
   let I : List (Loc × adt.Entry) → IProp GF := fun acc =>
     iprop(∃ sl : GoSlice, ivs_ptr ↦ sl ∗ sl ↦* acc.map Prod.fst ∗ ownSliceCap Loc sl (DFrac.own 1) ∗
       [∗list] x ∈ acc, ⌜x.1 ≠ null⌝ ∗ K.ivAt x.1 q x.2)
-  wp_apply (h_Visit_gen K hK t L vb ve db de b e q _ I (fun _ => iprop(False)))
+  wp_apply (adt.Visit_gen_L h_Visit_gen K hK t L vb ve db de b e q _ I (fun _ => iprop(False)))
     $$ [Ht Hkb Hke ivs] as ⟨Hkb, Hke, %ps, %es, %r, %hpl, HI, Hwand⟩
   · iframe Ht Hkb Hke
     isplitr [ivs]

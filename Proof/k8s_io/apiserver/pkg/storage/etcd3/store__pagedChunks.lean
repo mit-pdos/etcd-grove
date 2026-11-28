@@ -89,7 +89,7 @@ theorem store.pagedChunks.wp_proof
     (wp_getList : store.getList.spec (GF := GF) (hG := hG))
     (wp_listReadError : store.listReadError.spec (GF := GF) (hG := hG)) :
     store.pagedChunks.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd kp opts rev0 lim0 Q P hkp hrev hlim hcont hrk hQ hP hkne hnr
+  intro _ Obj _ sp c ci cd kp opts rev0 lim0 Q P hkp hrev hlim hcont hrk hQ hP hkne hnr
   wp_start as ⟨#Hst, #Hctx, #Hce, %htb⟩
   (try wp_auto)
   iapply HΦ

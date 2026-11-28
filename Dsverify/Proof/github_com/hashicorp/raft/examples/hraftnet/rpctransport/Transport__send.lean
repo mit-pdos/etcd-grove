@@ -53,13 +53,27 @@ theorem github_com.hashicorp.raft.examples.hraftnet.rpctransport.Transport.send.
     ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a p => peerOk (GF := GF) γ snapP W a p)
       (show get? P j = some p from hP)) $$ HP
     iunfold peerOk at Hp
-    icases Hp with ⟨%na, #Hc, %HS⟩
+    icases Hp with ⟨%na, #Hc, #Hsv⟩
+    iunfold svcAt at Hsv
+    icases Hsv with ⟨%S, %HS, #Hincl⟩
     wp_auto
     have hsm : (go!"RaftRPC." : GoString) ++ M = svcName ++ go!"." ++ M := rfl
     rw [hsm]
-    wp_apply (wp_Call p W na (svcName ++ go!"." ++ M) svcName M (raftSvc γ snapP j) req reply Φm Rargs D Θ C d)
+    ihave Henc := Hlaws.enc_mono req _
+      (fun bs => iprop(⌜bs.length ≤ net.rpc.maxFrameN⌝ ∗ S M bs Φm ∗ Rargs)) $$ [Henc]
+    · iframe Henc
+      iintro %bs ⟨%Hl, Hd, HR⟩
+      iframe HR
+      isplitr; · ipureintro; exact Hl
+      iapply Hincl $$ Hd
+    wp_apply (wp_Call p W na (svcName ++ go!"." ++ M) svcName M S req reply Φm Rargs D Θ C d
+        (C.enc req (fun bs => iprop(⌜bs.length ≤ net.rpc.maxFrameN⌝ ∗ S M bs Φm ∗ Rargs))))
       $$ [$Hc $Hcodec $Henc $HD $Hdec] as %r Hr
-    · ipureintro; exact ⟨⟨Hsplit, HS, Hrne⟩, Hlen⟩
+    · isplitr
+      · ipureintro; exact ⟨Hsplit, HS, Hrne⟩
+      isplitr
+      · ipureintro; exact Hlen
+      iintro H; iexact H
     (try simp only [CallOK])
     icases Hr with (⟨%Hr0, -, %rep, HΘ⟩ | ⟨%Hr1, -⟩ | %Hr2)
     · subst Hr0

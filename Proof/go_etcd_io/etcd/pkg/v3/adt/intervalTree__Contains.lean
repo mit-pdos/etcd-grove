@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NodeLemmas
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.StrKey
 
 @[expose] public section
@@ -33,15 +34,19 @@ theorem adt.intervalTree.Contains.wp_proof
   unfold adt.ownIvt
   rw [adt.affIvl_eq (GF := GF)]
   wp_start_folded as Ht
-  wp_apply (h_Contains_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t L
+  ihave %hs := adt.ownIvtK_sorted adt.strKey _ _ _ $$ Ht
+  icases adt.ownIvtK_T adt.strKey t L _ $$ Ht with ⟨%T, Ht, %hTL⟩
+  subst hTL
+  wp_apply (h_Contains_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t T
     #b #e .discard .discard b e (DFrac.own q)) $$ [Ht] as %r ⟨Ht, -, -, %Hres⟩
   · simp only [adt.strKey_keyAt]
     iframe Ht
     all_goals (try (isplitl []; · ipureintro; trivial))
     all_goals (try (ipureintro; trivial))
   iapply HΦ
+  ihave Ht := adt.ownIvtT_K _ _ _ _ $$ Ht
   iframe Ht
-  ipureintro; exact Hres
+  ipureintro; intro hq; rw [Hres]; exact adt.containsT_eq _ T hs hq
 
 end proof
 

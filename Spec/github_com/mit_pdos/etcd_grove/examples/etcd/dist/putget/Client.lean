@@ -7,8 +7,8 @@ counterpart); `notes/putget-dist-plan.md` §12.
 **The triple:** from the package's `isPkgInit`, the level token and the client's share of the distributed
 start over the interim cross-machine vocabulary (`clientShare`: the member's client address set to serve
 etcd's table for the member `mid` of the cluster's view `Γ`, auth off, and the putget invariant at read names
-whose KV names are the view's), `Client` does not panic. Its `Put` and `Get` are `etcd_dist.Client_Put_dist`
-and `etcd_dist.Client_Get_dist` (theorems over the interim clientv3 contracts `KV_Put_dist`, `KV_Get_dist`).
+whose KV names are the view's), `Client` does not panic. Its `Put` and `Get` are the client's `kv.Put.spec` and
+`kv.Get.spec` at the client's `isKv` of the auth-off view (`Proof/.../dist/putget/ClientCalls.lean`).
 
 **The pure premises:** the endpoint plain (`clientv3.New`'s), the logic's thread bound
 (`NewClient`'s), `errors.As`'s target `rpctypes.EtcdError` (the request contexts' errors,

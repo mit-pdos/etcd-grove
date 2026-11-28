@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_bytes
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NodeLemmas
 
 @[expose] public section
 
@@ -29,12 +30,12 @@ theorem adt.intervalTree.Contains_bytes.wp_proof
     (h_BytesAffineComparable_Compare :
       adt.BytesAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Contains_bytes.spec (GF := GF) (hG := hG) := by
-  intro t L b e bs es db de dq
-  unfold adt.ownIvtB
+  intro t T b e bs es db de dq
+  unfold adt.ownIvtTB
   rw [adt.bytesIvl_eq (GF := GF)]
   wp_start_folded as ⟨Ht, Hb, He⟩
   wp_apply (h_Contains_gen adt.bytesKey (adt.bytesKey_ok h_BytesAffineComparable_Compare)
-    t L #b #e db de bs es dq) $$ [Ht Hb He] as %r ⟨Ht, Hb, He, %Hres⟩
+    t T #b #e db de bs es dq) $$ [Ht Hb He] as %r ⟨Ht, Hb, He, %Hres⟩
   · simp only [adt.bytesKey_keyAt]
     iframe Ht
     isplitl [Hb]
