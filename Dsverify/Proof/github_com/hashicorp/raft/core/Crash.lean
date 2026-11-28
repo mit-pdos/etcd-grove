@@ -117,7 +117,7 @@ generation's: the store's crash lemma (stage R3, `diskCrash`) re-keys them to th
 handles at the surviving image, which is `X'`'s. -/
 theorem raft_crash {E : CoPset} (hE : ↑gprotN ∪ ↑durN ⊆ E) (p : Option Pend) :
     crashed -∗ srvCrashTok rc -∗ srvDurInv γ rc i -∗ Inv γ -∗
-      (match p with | none => iprop(True) | some p => winRes γ rc i p) ={E}=∗
+      (match p with | none => iprop(True) | some p => ∃ s, winRes γ rc i s p) ={E}=∗
       ∃ X' : SrvDur, srvVacant γ rc i X' ∗
         ⌜X'.s.cidx = 0 ∧ X'.tp = none⌝ := by
   sorry -- hraft_robust L0: R2
