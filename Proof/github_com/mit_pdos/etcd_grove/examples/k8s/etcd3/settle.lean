@@ -7,6 +7,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.landings
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mstep
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.removeAt
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedHist
 
 @[expose] public section
 
@@ -20,7 +21,7 @@ namespace k8s_etcd3
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (mstore mcfg Input Output Revs)
-open k8s_dist (SettleWith skipToL foreignL)
+open k8s_dist (SettleWith skipToL foreignL mstepL_same mstepL_changed advanceL_same advanceL_new)
 
 section pure
 variable [GooseExts]
@@ -66,7 +67,7 @@ theorem hwf_foreignL (h : HSt) (hw : HWf h) (hr : uint.nat h.st.rv + 1 < 2 ^ 64)
   unfold HWf at hw ⊢
   simp only [foreignL, List.length_append, List.length_singleton, List.getLast?_append,
     List.getLast?_singleton, Option.some_or]
-  refine ⟨?_, rfl⟩
+  refine ⟨?_, by simp⟩
   rw [hw.1]; word
 
 theorem hwf_repeat_foreignL (n : Nat) (h : HSt) (hw : HWf h) (hr : uint.nat h.st.rv + n < 2 ^ 64) :
@@ -82,7 +83,8 @@ theorem hwf_repeat_foreignL (n : Nat) (h : HSt) (hw : HWf h) (hr : uint.nat h.st
 
 theorem hwf_skipToL (h : HSt) (t : Nat) (hw : HWf h) (ht : t < 2 ^ 64) : HWf (skipToL h t) := by
   unfold skipToL
-  exact (hwf_repeat_foreignL _ h hw (by have := (h.st.rv).isLt; omega)).1
+  have : uint.nat h.st.rv < 2 ^ 64 := by word
+  exact (hwf_repeat_foreignL (t - uint.nat h.st.rv) h hw (by omega)).1
 
 theorem hwf_kstepL (x : Input) (h : HSt) (hw : HWf h) (hx : isWriteL x = true)
     (hr : uint.nat h.st.rv + 1 < 2 ^ 64) : HWf (kstepL x h).1 := by
@@ -94,7 +96,7 @@ theorem hwf_kstepL (x : Input) (h : HSt) (hw : HWf h) (hx : isWriteL x = true)
     unfold HWf at hw ⊢
     simp only [List.length_append, List.length_singleton, List.getLast?_append,
       List.getLast?_singleton, Option.some_or]
-    refine ⟨?_, rfl⟩
+    refine ⟨?_, by simp⟩
     rw [this, hw.1]; word
 
 /-- The landings' revisions: the next one, or one of `R`'s or the answer's, past it. -/
@@ -136,25 +138,29 @@ theorem landingsL_mem (R : RevsL) (g : GCfg) (rv : w64) (w : Input) (b : w64) (f
     simp only [List.mem_singleton] at hr
     subst hr; exact hY
   have h1 : l ∈ [rv + W64 1] ++ ((if full then R.byKey else R.fastByKey) w.Key').filter
-      (landOkL rv w b full x y) → _ := fun hm => by
+      (landOkL rv w b full x y) → (uint.nat l = uint.nat rv + 1 ∨
+        (uint.nat rv + 1 < uint.nat l ∧ uint.nat l + g.pend.length + 1 ≤ 2 ^ 63)) := fun hm => by
     rcases List.mem_append.1 hm with hm | hm
     · simp only [List.mem_singleton] at hm
       subst hm; exact Or.inl hnext
     · exact Or.inr (hfil _ hkey hm)
   unfold landingsL at hl
   dsimp only at hl
-  split_ifs at hl
-  all_goals first
-    | exact h1 hl
-    | (rcases List.mem_append.1 hl with hm | hm
-       · first
-         | exact h1 hm
-         | (rcases List.mem_append.1 hm with hm | hm
-            · exact h1 hm
-            · exact Or.inr (hfil _ hy hm))
-       · first
-         | exact Or.inr (hfil _ hanc hm)
-         | exact Or.inr (hfil _ hy hm))
+  cases full
+  · simp only [Bool.false_eq_true, if_false] at hl h1
+    split at hl
+    · rcases List.mem_append.1 hl with hm | hm
+      · exact h1 hm
+      · exact Or.inr (hfil _ hy hm)
+    · exact h1 hl
+  · simp only [if_true] at hl h1
+    rcases List.mem_append.1 hl with hm | hm
+    · split at hm
+      · rcases List.mem_append.1 hm with hm | hm
+        · exact h1 hm
+        · exact Or.inr (hfil _ hy hm)
+      · exact h1 hm
+    · exact Or.inr (hfil _ hanc hm)
 
 /-- The landings of `GoSettle R b full x y`. -/
 abbrev landF (R : RevsL) (b : w64) (full : Bool) (x : Input) (y : Output) : GCfg → Input → List Nat :=
@@ -168,7 +174,7 @@ def SGood (g e : GCfg) : Prop :=
 
 theorem sgood_init (R : RevsL) (y : Output) (g : GCfg) (hw : HWf g.st) (hok : SettleOk R y g) :
     SGood g g :=
-  ⟨hw, hok.2.2.2.2.2.2, le_refl _, le_refl _, hok.2.2.2.2.1⟩
+  ⟨hw, hok.2.2.2.2.2.2, Nat.le_refl _, Nat.le_refl _, hok.2.2.2.2.1⟩
 
 theorem sgood_succ (R : RevsL) (b : w64) (full : Bool) (x : Input) (y : Output) (g d e : GCfg)
     (i : Nat) (hok : SettleOk R y g) (hd : SGood g d) (hi : i < d.pend.length)
@@ -233,7 +239,7 @@ theorem setInv_skip {L : GCfg → Input → List Nat} {g d : GCfg} {sgs wg : Lis
     · exact Or.inl he
     · exact Or.inr he
     · exact Or.inl hm
-  refine ⟨fun e he => h1 e (by simp only [List.mem_append] at he ⊢; tauto), sub _ h2,
+  refine ⟨fun e he => h1 e (by simp only [List.mem_append] at he ⊢; rcases he with he | he <;> simp [he]), sub _ h2,
     fun d' hd i hi e he => sub _ (h3 d' hd i hi e he)⟩
 
 theorem setInv_add (R : RevsL) (b : w64) (full : Bool) (x : Input) (y : Output) {g d : GCfg}
@@ -246,7 +252,7 @@ theorem setInv_add (R : RevsL) (b : w64) (full : Bool) (x : Input) (y : Output) 
       e ∈ (sgs ++ [d]) ++ (wg ++ settleSuccsUpTo (landF R b full x y) d d.pend.length) :=
     fun e he => by
       simp only [List.mem_append, List.mem_singleton] at he ⊢
-      tauto
+      rcases he with he | he | he <;> simp [he]
   have hsu : ∀ e ∈ settleSuccsUpTo (landF R b full x y) d d.pend.length,
       ∃ i < d.pend.length, e ∈ settleSuccs (landF R b full x y) d i := by
     intro e he
@@ -295,7 +301,10 @@ theorem settle.wp_proof
   wp_start as ⟨#Hhh, #Hr, #Hc, %Hpre⟩
   obtain ⟨Hwf, Hok⟩ := Hpre
   wp_auto
+  irename hh => Hhhp
   iStructNamed set
+  irename : ("_" ∷ True : IProp GF) => Hjunk
+  iclear Hjunk
   ihave Hset : cfgSetOwn (GF := GF) set_ptr hh [] $$ [hh list buckets]
   · iunfold cfgSetOwn
     iexists slice.nil, map.nil, [], ∅
@@ -312,6 +321,12 @@ theorem settle.wp_proof
     ileft
     ipureintro; exact ⟨rfl, rfl⟩
   (try wp_auto)
+  wp_apply wp_slice_literal (V := mcfg) (l := [c])
+  isplitr
+  · ipureintro; rfl
+  iintro %wsl ⟨Hw, Hwcap⟩
+  wp_auto
+  irename : (in_ptr ↦ x : IProp GF) => Hin
   ihave HI : (∃ (sw : GoSlice) (wcs : List mcfg) (sgs wgs : List GCfg),
       "Hset" ∷ cfgSetOwn set_ptr hh sgs ∗
       "work" ∷ work_ptr ↦ sw ∗ "Hw" ∷ sw ↦* wcs ∗
@@ -326,6 +341,7 @@ theorem settle.wp_proof
   wp_for HI
   ihave %Hwl := ownSlice_len $$ Hw
   ihave %Hwlen := BigSepL2.bigSepL2_length $$ Hwcs
+  have Hw0 : ¬ 0 < sint.Z sw.len → wcs = [] := fun hz => List.eq_nil_of_length_eq_zero (by word)
   wp_if_destruct
   · have Hpos : 0 < sint.Z sw.len := by
       have h0 : sint.Z (W64 0) = 0 := rfl
@@ -354,9 +370,10 @@ theorem settle.wp_proof
       rw [show sint.nat (sw.len - W64 1) = wc.length by word, show sint.nat (W64 0) = 0 from rfl]
       simp [subslice]]
     wp_auto
-    wp_apply wp_cfgSet__add set_ptr hh sgs d h $$ [$Hset $Hd] as %ok Hset
+    wp_apply wp_cfgSet__add set_ptr hh sgs d h $$ [$Hset $Hd $Hhh] as %ok Hset
     cases ok
     case false =>
+      isimp only [Bool.false_eq_true, ↓reduceIte] at Hset
       icases Hset with ⟨Hset, %hm⟩
       (try wp_auto)
       wp_for_post
@@ -396,17 +413,19 @@ theorem settle.wp_proof
       ipureintro; word
     wp_for HJ
     wp_if_destruct
-    · have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z d.pend'.len := ⟨Hj.1, Hif⟩
+    · have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z d.pend'.len := ⟨Hj.1, by simpa using Hif⟩
       have hjl : sint.nat j < h.pend.length := by word
+      have hits : h.st.st.items.length + 1 < 2 ^ 63 := by have := Hok.2.2.2.2.2.1; omega
       simp only [Hb', _root_.and_self, ↓reduceIte]
       list_elem h.pend (sint.nat j) as w
       have hx : pendAt h (sint.nat j) = w := by
         rw [pendAt_eq h _ hjl]
         exact Option.some.inj ((List.getElem?_eq_getElem hjl).symm.trans Hw_lookup)
-      wp_apply wp_load_slice_index d.pend' (sint.Z j) h.pend DFrac.discard w Hj.1 $$ [Hdp] as _
+      wp_apply wp_load_slice_index d.pend' (sint.Z j) h.pend DFrac.discard w Hj.1 $$ [Hdp] as Hjunk
       · isplit
         · iexact Hdp
         · ipureintro; exact Hw_lookup
+      iclear Hjunk
       (try wp_auto)
       wp_apply wp_removeAt d.pend' h.pend DFrac.discard j $$ [$Hdp] as %np ⟨-, Hnp, -⟩
       · ipureintro; exact Hb'
@@ -458,19 +477,19 @@ theorem settle.wp_proof
           intro he; apply Hif; rw [Hnkrv, Hdsrv, he]
         have hwr : isWriteL w = true := hpw w (List.mem_of_getElem? Hw_lookup)
         wp_apply wp_landings r R d w b full x y $$ [$Hr] as %lsl ⟨Hls, -⟩
-        rw [Hdsrv] at Hls ⊢
+        rw [Hdsrv]
         imod ownSlice_persist _ _ _ $$ Hls with #Hls
         ihave %Hlsl := ownSlice_len $$ Hls
         (try wp_auto)
         let land : w64 → GCfg := fun lw =>
           ⟨(kstepL w (skipToL h.st (uint.nat lw - 1))).1, removeAtL h.pend (sint.nat j)⟩
         ihave HK : (∃ (k : w64) (lv : w64) (sw'' : GoSlice) (ncs' : List mcfg),
-            "Hk" ∷ «$i_ptr» ↦ k ∗ "l" ∷ l_ptr ↦ lv ∗
+            "Hk" ∷ i_ptr ↦ k ∗ "l" ∷ l_ptr ↦ lv ∗
             "work" ∷ work_ptr ↦ sw'' ∗ "Hw" ∷ sw'' ↦* (wc ++ ncs ++ ncs') ∗
             "Hwcap" ∷ ownSliceCap mcfg sw'' (DFrac.own 1) ∗
             "#Hn'" ∷ ([∗list] c;g ∈ ncs';((landingsL R h.st.st.rv w b full x y).take (sint.nat k)).map land,
               cfgOwn c g) ∗
-            "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z lsl.len⌝ : IProp GF) $$ [l work Hw Hwcap]
+            "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z lsl.len⌝ : IProp GF) $$ [i l work Hw Hwcap]
         · iexists W64 0, _, _, []
           rw [List.append_nil, show sint.nat (W64 0) = 0 from rfl]
           iframe
@@ -484,10 +503,11 @@ theorem settle.wp_proof
         · have Hkb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z lsl.len := ⟨Hk.1, Hif⟩
           simp only [Hkb, _root_.and_self, ↓reduceIte]
           list_elem (landingsL R h.st.st.rv w b full x y) (sint.nat k) as lw
-          wp_apply wp_load_slice_index lsl (sint.Z k) _ DFrac.discard lw Hk.1 $$ [Hls] as _
+          wp_apply wp_load_slice_index lsl (sint.Z k) _ DFrac.discard lw Hk.1 $$ [Hls] as Hjunk
           · isplit
             · iexact Hls
             · ipureintro; exact Hlw_lookup
+          iclear Hjunk
           have hlm := landingsL_mem R g h.st.st.rv w b full x y Hok (by omega) lw
             (List.mem_of_getElem? Hlw_lookup)
           have hlw1 : uint.nat (lw - W64 1) = uint.nat lw - 1 := by word
@@ -495,7 +515,7 @@ theorem settle.wp_proof
           wp_apply wp_skipTo hh d h (lw - W64 1) $$ [] as %e #He
           · iframe #
             ipureintro; exact ⟨hhw, by rw [hlw1]; omega⟩
-          rw [hlw1] at He ⊢
+          rw [hlw1]
           ihave #He' : cfgOwn (GF := GF) e ⟨skipToL h.st (uint.nat lw - 1), h.pend⟩ $$ [He]
           · iexact He
           isimp only [cfgOwn] at He'
@@ -517,7 +537,7 @@ theorem settle.wp_proof
               (mstepL w (skipToL h.st (uint.nat lw - 1)).st).1, removeAtL h.pend (sint.nat j)⟩ : GCfg) =
               land lw := by
             simp only [land, kstepL_write w _ hwr]
-          rw [hland] at Hc'
+          rw [hland]
           wp_apply wp_slice_literal (l := [c'])
           isplitr
           · ipureintro; rfl
@@ -530,7 +550,7 @@ theorem settle.wp_proof
           rw [List.append_assoc, List.append_assoc]
           iframe
           have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
-          rw [hk1, List.take_add_one, Hlw_lookup, List.map_append]
+          rw [hk1, List.take_add_one, Hlw_lookup, Option.toList_some, List.map_append, List.map_singleton]
           isplitl []
           · iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ c g => cfgOwn (GF := GF) c g)).2
             isplit
@@ -539,7 +559,7 @@ theorem settle.wp_proof
           ipureintro; word
         · -- every landing pushed
           have hk : sint.nat k = (landingsL R h.st.st.rv w b full x y).length := by word
-          rw [hk, List.take_length] at Hn'
+          rw [hk, List.take_length]
           (try wp_auto)
           wp_for_post
           iframe
@@ -550,11 +570,11 @@ theorem settle.wp_proof
               (landingsL R h.st.st.rv w b full x y).map land := by
             simp only [settleSuccs, hx, if_neg hdiff, landF, List.map_map]
             rfl
+          ihave %Hnl := BigSepL2.bigSepL2_length $$ Hn
           rw [hj1, settleSuccsUpTo_succ, hs]
           isplitl []
           · iapply (BigSepL2.bigSepL2_append
-              (Φ := fun _ (c : mcfg) (g : GCfg) => cfgOwn (GF := GF) c g) (Or.inl (by
-                first | (ihave %a := BigSepL2.bigSepL2_length $$ Hn; exact a) | omega))).2
+              (Φ := fun _ (c : mcfg) (g : GCfg) => cfgOwn (GF := GF) c g) (Or.inl Hnl)).2
             isplit
             · iexact Hn
             · iexact Hn'
@@ -577,7 +597,7 @@ theorem settle.wp_proof
   · have Hz : ¬ 0 < sint.Z sw.len := by
       have h0 : sint.Z (W64 0) = 0 := rfl
       rw [h0] at Hif; exact Hif
-    have hw0 : wcs = [] := List.eq_nil_of_length_eq_zero (by word)
+    have hw0 : wcs = [] := Hw0 Hz
     have hg0 : wgs = [] := List.eq_nil_of_length_eq_zero (by rw [← Hwlen, hw0]; rfl)
     subst hg0
     obtain ⟨h1, h2⟩ := setInv_done Hinv
