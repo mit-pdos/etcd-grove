@@ -31,10 +31,10 @@ theorem github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.encode.wp_proof
     (wp_encodeConfiguration :
       github_com.hashicorp.raft.examples.hraftnet.disk.encodeConfiguration.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.encode.spec (GF := GF) (hG := hG) := by
-  intro s S
-  unfold snapsMem encSnap
+  intro s S has mv dt
+  unfold snapsMemAt encSnap
   rcases hS : S.latest with _ | ⟨m, bs⟩
-  · wp_start as ⟨%has, %mv, %dt, Hhas, Hmeta, Hdata, Hnid, %Hh⟩
+  · wp_start as ⟨Hhas, Hmeta, Hdata, Hnid, %Hh⟩
     subst Hh
     wp_auto
     wp_apply (wp_putUint64 slice.nil []) $$ [] as %b0 ⟨Hb, Hcap⟩
@@ -45,8 +45,8 @@ theorem github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.encode.wp_proof
     iapply HΦ
     dsimp only
     iframe
-    ipureintro; rfl
-  · wp_start as ⟨%has, %mv, %dt, Hhas, Hmeta, Hdata, Hnid, %Hh, #Hm, #Hd⟩
+    ipureintro; first | rfl | trivial
+  · wp_start as ⟨Hhas, Hmeta, Hdata, Hnid, %Hh, #Hm, #Hd⟩
     subst Hh
     iunfold metaRep at Hm
     icases Hm with ⟨%Hmf, #Hc⟩
@@ -71,7 +71,7 @@ theorem github_com.hashicorp.raft.examples.hraftnet.disk.Snaps.encode.wp_proof
     simp only [List.nil_append, List.append_assoc]
     iframe
     isplitr
-    · ipureintro; rfl
+    · ipureintro; first | rfl | trivial
     isplitl
     · iunfold metaRep
       isplitr

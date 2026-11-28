@@ -258,6 +258,19 @@ def snapsMem0 (s : Loc) : IProp GF :=
     s.[Snaps, go!"has"] ↦ false ∗ s.[Snaps, go!"meta"] ↦ mv ∗ s.[Snaps, go!"data"] ↦ dt ∗
     s.[Snaps, go!"nextID"] ↦ nid ∗ ⌜mv.Peers' = slice.nil⌝)
 
+/-- **`*Snaps` `s`'s fields at the image `S`, with the field values `has`, `mv`, `dt`** (`snapsMem`'s body: what
+`encode` leaves exactly as it found it). -/
+def snapsMemAt (s : Loc) (S : SnapImg) (has : Bool) (mv : SnapshotMeta) (dt : GoSlice) : IProp GF :=
+  iprop(s.[Snaps, go!"has"] ↦ has ∗ s.[Snaps, go!"meta"] ↦ mv ∗ s.[Snaps, go!"data"] ↦ dt ∗
+    s.[Snaps, go!"nextID"] ↦ S.nextID ∗
+    match S.latest with
+    | none => ⌜has = false⌝
+    | some (m, b) => ⌜has = true⌝ ∗ metaRep mv m b.length ∗ dt ↦*□ b)
+
+theorem snapsMem_eq (s : Loc) (S : SnapImg) :
+    snapsMem (GF := GF) s S = iprop(∃ (has : Bool) (mv : SnapshotMeta) (dt : GoSlice), snapsMemAt s S has mv dt) :=
+  rfl
+
 end rep2
 
 end github_com.hashicorp.raft.examples.hraftnet.disk
