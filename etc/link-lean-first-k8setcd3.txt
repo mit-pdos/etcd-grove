@@ -108,6 +108,8 @@ decodeItemRVs: parseRV decodeObj
 rvOfMsg: parseRV
 # (K9 step 4) the revisions a history records: `HistoryRevs`
 HistoryRevs: parseRV rvOfMsg decodeWEvents decodeItemRVs =_root_.Perennial.slices.wp_Sort
+# (K9 step 5) the distributed driver's check of the shared store's history (`examples/k8s/dist`)
+CheckShared: Seeded__SharedModel CheckOperationsTimeout
 shows: decodeWEvents decodeItemRVs
 target: decodeWEvents parseRV pastRead
 bound: parseRV pastRead isWrite
@@ -250,6 +252,7 @@ SuggestsClientDelay: errors_AsNoMatch
 meta_ListAccessor:
 errors_IsTooManyRequests: errors_reasonAndCodeForError
 CheckOperationsVerbose: @
+CheckOperationsTimeout: @
 LinearizationInfo__PartialLinearizations: @
 correctness_checkKey: PrepareKey
 correctness_keyInScope: TrimSuffix

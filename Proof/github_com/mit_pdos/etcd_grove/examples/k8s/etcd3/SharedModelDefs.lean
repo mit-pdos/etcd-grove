@@ -398,6 +398,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
+include sem package_sem in
+/-- Porcupine's operation of `x` and `y`, decoded. -/
+theorem decIO_box (x : Input) (y : Output) : decIO (boxIn x, boxOut y) = some (x, y) := by
+  have h : ∃ p : Input × Output, (boxIn x, boxOut y) = (boxIn p.1, boxOut p.2) := ⟨(x, y), rfl⟩
+  unfold decIO
+  simp only [h, ↓reduceDIte]
+  have hs : (boxIn x, boxOut y) = (boxIn h.choose.1, boxOut h.choose.2) := h.choose_spec
+  have h1 := (GoInterfaceOk.mk.inj (GoInterface.ok.inj (congrArg Prod.fst hs))).2
+  have h2 := (GoInterfaceOk.mk.inj (GoInterface.ok.inj (congrArg Prod.snd hs))).2
+  have e : h.choose = (x, y) :=
+    Prod.ext (Input_intoVal_inj (sem := sem) (package_sem := package_sem) h1).symm
+      (Output_intoVal_inj (sem := sem) (package_sem := package_sem) h2).symm
+  rw [e]
+
 /-- `v` is a `state` whose configurations are exactly `S` (a configuration may be listed more than
 once), each `SharedBounded B k`. -/
 def sharedRep (B k : Nat) (v : GoInterface) (S : GCfg → Prop) : IProp GF :=

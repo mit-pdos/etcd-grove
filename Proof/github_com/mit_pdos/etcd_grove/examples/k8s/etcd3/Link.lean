@@ -11,6 +11,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.AnnotateInitialEventsEndBookmark
 public import Proof.bytes.Buffer__Bytes
 public import Proof.bytes.Buffer__Write
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.CheckShared
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
 public import Proof.k8s_io.apiserver.pkg.storage.HasInitialEventsEndBookmarkAnnotation
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HistoryRevs
@@ -297,10 +298,6 @@ theorem bytes.Buffer.wp_Write :
     EtcdGrove.bytes.Buffer.Write.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bytes.Buffer.Write.wp_proof _root_.Perennial.bytes.Buffer.wp_Write
 
-theorem conversion.wp_EnforcePtr :
-    EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.conversion.EnforcePtr.wp_proof
-
 theorem wp_parseRV :
     EtcdGrove.k8s_etcd3.parseRV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.parseRV.wp_proof
@@ -313,14 +310,6 @@ theorem wp_decodeObj :
     EtcdGrove.k8s_etcd3.decodeObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.decodeObj.wp_proof wp_getField
 
-theorem ObjList.wp_DeepCopyObject :
-    EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.wp_proof
-
-theorem ObjList.wp_GetContinue :
-    EtcdGrove.k8s_etcd3.ObjList.GetContinue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.ObjList.GetContinue.wp_proof
-
 theorem wp_rvBytes :
     EtcdGrove.k8s_etcd3.rvBytes.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.rvBytes.wp_proof
@@ -328,6 +317,30 @@ theorem wp_rvBytes :
 theorem wp_rvString :
     EtcdGrove.k8s_etcd3.rvString.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.rvString.wp_proof wp_rvBytes
+
+theorem wp_putField :
+    EtcdGrove.k8s_etcd3.putField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.putField.wp_proof
+
+theorem wp_encodeWith :
+    EtcdGrove.k8s_etcd3.encodeWith.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.encodeWith.wp_proof wp_putField
+
+theorem wp_encodeObj :
+    EtcdGrove.k8s_etcd3.encodeObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.encodeObj.wp_proof wp_encodeWith
+
+theorem conversion.wp_EnforcePtr :
+    EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.conversion.EnforcePtr.wp_proof
+
+theorem ObjList.wp_DeepCopyObject :
+    EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.ObjList.DeepCopyObject.wp_proof
+
+theorem ObjList.wp_GetContinue :
+    EtcdGrove.k8s_etcd3.ObjList.GetContinue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.ObjList.GetContinue.wp_proof
 
 theorem ObjList.wp_GetResourceVersion :
     EtcdGrove.k8s_etcd3.ObjList.GetResourceVersion.spec (GF := GF) (hG := hG) :=
@@ -352,18 +365,6 @@ theorem Obj.wp_GetUID :
 theorem Obj.wp_SetAnnotations :
     EtcdGrove.k8s_etcd3.Obj.SetAnnotations.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Obj.SetAnnotations.wp_proof
-
-theorem wp_putField :
-    EtcdGrove.k8s_etcd3.putField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.putField.wp_proof
-
-theorem wp_encodeWith :
-    EtcdGrove.k8s_etcd3.encodeWith.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.encodeWith.wp_proof wp_putField
-
-theorem wp_encodeObj :
-    EtcdGrove.k8s_etcd3.encodeObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.encodeObj.wp_proof wp_encodeWith
 
 theorem reflect.Value.wp_Type :
     EtcdGrove.reflect.Value.Type.spec (GF := GF) (hG := hG) :=
@@ -466,42 +467,6 @@ theorem storage.wp_AnnotateInitialEventsEndBookmark :
     EtcdGrove.storage.AnnotateInitialEventsEndBookmark.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.AnnotateInitialEventsEndBookmark.wp_proof apimeta.wp_Accessor
 
-theorem storage.wp_HasInitialEventsEndBookmarkAnnotation :
-    EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.wp_proof apimeta.wp_Accessor
-
-theorem wp_rvOfMsg :
-    EtcdGrove.k8s_etcd3.rvOfMsg.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.rvOfMsg.wp_proof wp_parseRV
-
-theorem wp_decodeWEvents :
-    EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
-
-theorem wp_decodeItemRVs :
-    EtcdGrove.k8s_etcd3.decodeItemRVs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeItemRVs.wp_proof wp_parseRV wp_decodeObj
-
-theorem wp_HistoryRevs :
-    EtcdGrove.k8s_etcd3.HistoryRevs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.HistoryRevs.wp_proof wp_parseRV wp_rvOfMsg wp_decodeWEvents wp_decodeItemRVs _root_.Perennial.slices.wp_Sort
-
-theorem storage.wp_isErrCode :
-    EtcdGrove.storage.isErrCode.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.isErrCode.wp_proof
-
-theorem storage.wp_IsNotFound :
-    EtcdGrove.storage.IsNotFound.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.IsNotFound.wp_proof storage.wp_isErrCode
-
-theorem Obj.wp_DeepCopyObject :
-    EtcdGrove.k8s_etcd3.Obj.DeepCopyObject.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Obj.DeepCopyObject.wp_proof
-
-theorem Obj.wp_SetResourceVersion :
-    EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.wp_proof _root_.Perennial.strconv.wp_ParseUint
-
 theorem wp_histLen :
     EtcdGrove.k8s_etcd3.histLen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.histLen.wp_proof
@@ -545,6 +510,10 @@ theorem histHashes.wp_canonical :
 theorem histHashes.wp_skipTo :
     EtcdGrove.k8s_etcd3.histHashes.skipTo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.histHashes.skipTo.wp_proof histHashes.wp_canonLocked histHashes.wp_intern wp_histLen
+
+theorem wp_decodeWEvents :
+    EtcdGrove.k8s_etcd3.decodeWEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeWEvents.wp_proof wp_parseRV wp_decodeObj
 
 theorem wp_pastRead :
     EtcdGrove.k8s_etcd3.pastRead.spec (GF := GF) (hG := hG) :=
@@ -810,6 +779,10 @@ theorem wp_removeAt :
     EtcdGrove.k8s_etcd3.removeAt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.removeAt.wp_proof
 
+theorem wp_decodeItemRVs :
+    EtcdGrove.k8s_etcd3.decodeItemRVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeItemRVs.wp_proof wp_parseRV wp_decodeObj
+
 theorem wp_shows :
     EtcdGrove.k8s_etcd3.shows.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.shows.wp_proof wp_decodeWEvents wp_decodeItemRVs
@@ -825,6 +798,38 @@ theorem wp_settle :
 theorem Seeded.wp_SharedModel :
     EtcdGrove.k8s_etcd3.Seeded.SharedModel.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Seeded.SharedModel.wp_proof wp_histOf histHashes.wp_canonical histHashes.wp_skipTo wp_target wp_bound wp_stepIdx wp_settle cfgSet.wp_add wp_storeEqual wp_pendEqual
+
+theorem k8s_dist.wp_CheckShared :
+    EtcdGrove.k8s_dist.CheckShared.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_dist.CheckShared.wp_proof Seeded.wp_SharedModel porcupine.wp_CheckOperationsTimeout
+
+theorem storage.wp_HasInitialEventsEndBookmarkAnnotation :
+    EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.HasInitialEventsEndBookmarkAnnotation.wp_proof apimeta.wp_Accessor
+
+theorem wp_rvOfMsg :
+    EtcdGrove.k8s_etcd3.rvOfMsg.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.rvOfMsg.wp_proof wp_parseRV
+
+theorem wp_HistoryRevs :
+    EtcdGrove.k8s_etcd3.HistoryRevs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.HistoryRevs.wp_proof wp_parseRV wp_rvOfMsg wp_decodeWEvents wp_decodeItemRVs _root_.Perennial.slices.wp_Sort
+
+theorem storage.wp_isErrCode :
+    EtcdGrove.storage.isErrCode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.isErrCode.wp_proof
+
+theorem storage.wp_IsNotFound :
+    EtcdGrove.storage.IsNotFound.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.IsNotFound.wp_proof storage.wp_isErrCode
+
+theorem Obj.wp_DeepCopyObject :
+    EtcdGrove.k8s_etcd3.Obj.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Obj.DeepCopyObject.wp_proof
+
+theorem Obj.wp_SetResourceVersion :
+    EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Obj.SetResourceVersion.wp_proof _root_.Perennial.strconv.wp_ParseUint
 
 theorem storage.StorageError.wp_Unwrap :
     EtcdGrove.storage.StorageError.Unwrap.spec (GF := GF) (hG := hG) :=
