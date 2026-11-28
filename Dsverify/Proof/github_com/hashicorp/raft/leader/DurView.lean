@@ -69,6 +69,8 @@ theorem durFact (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : ↑dur
     (R P : IProp GF) (h : R ∗ srvOwn γ i s ⊢ |={E \ ↑durN}=> srvOwn γ i s ∗ P) :
     srvDurInv γ rc i ∗ srvV rc s ∗ R ⊢ |NC={E}=> srvV rc s ∗ P := by
   iintro ⟨#Hinv, Hv, HR⟩ Hnc
+  iunfold srvDurInv at Hinv
+  icases Hinv with ⟨#Hinv, -⟩
   ihave Hacc := durAcc γ rc i hE $$ Hinv
   imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
   unfold durBody srvV
@@ -90,6 +92,8 @@ variable [hRB : ReceiptBoundLe GF (2 ^ 62)] in
 theorem srvV_termLb (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : ↑durN ⊆ E) (s : SState) :
     srvDurInv γ rc i ∗ srvV rc s ⊢ |NC={E}=> srvV rc s ∗ termLb γ i s.term := by
   iintro ⟨#Hinv, Hv⟩ Hnc
+  iunfold srvDurInv at Hinv
+  icases Hinv with ⟨#Hinv, -⟩
   ihave Hacc := durAcc γ rc i hE $$ Hinv
   imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
   unfold durBody srvV
@@ -110,6 +114,8 @@ theorem durFactL (γ : GNames) (rc : RCtx GF) (i : SID) {E : CoPset} (hE : ↑du
     {R P : IProp GF} (h : Inv γ ∗ srvOwn γ i s ∗ R ⊢ |={E \ ↑durN}=> srvOwn γ i s ∗ P) :
     Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ R ⊢ |NC={E}=> srvV rc s ∗ P := by
   iintro ⟨#HI, #Hinv, Hv, HR⟩ Hnc
+  iunfold srvDurInv at Hinv
+  icases Hinv with ⟨#Hinv, -⟩
   ihave Hacc := durAcc γ rc i hE $$ Hinv
   imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
   unfold durBody srvV

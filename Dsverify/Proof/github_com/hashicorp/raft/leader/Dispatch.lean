@@ -372,11 +372,11 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
       ∀ g' : w64, uint.nat g' ≤ s.dur.1 →
       (Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗ leaderIs γ s.term i ∗ receipt es.length ∗
         ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗ A ⊢
-        |==> logWin γ rc i (.store (s.log.length + 1) es) ∗
+        |==> (logWin γ rc i (.store (s.log.length + 1) es) ∗
         (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
           rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗
             srvV rc { s with log := s.log ++ es } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗
-            ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B)))) :
+            ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ∗ B))))) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗
        srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g ∗ ⌜uint.nat g ≤ s.dur.1⌝ ∗
        ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
@@ -552,7 +552,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     ihave Hwin := hwin (ds.map DItem.e) hlen Hes g' hg' $$ [Hsrv Hpw Hst Hrc Htoks HA]
     · iframe; iframe #
     iapply fupd_wp
-    icases Hwin with ⟨>Hwin, Hau⟩
+    imod Hwin with ⟨Hwin, Hau⟩
     imodintro
     wp_apply HSL $$ %lsl %(DFrac.own 1) %(ds.map (fun d => d.f.[logFuture, go!"log"]))
       %(s.log.length + 1) %(ds.map DItem.e) [] [$Hlsl] [] [Hwin]

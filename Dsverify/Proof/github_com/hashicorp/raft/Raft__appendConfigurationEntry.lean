@@ -149,12 +149,12 @@ theorem github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof
         receipt es.length ∗
         ([∗list] e ∈ es.filter (fun e => decide (e.kind = kCommand)), ∃ n, opTok γ e.data n) ∗
         (ccfgOwn γ i s.term (lastCfgIdx s.log) ∗ commitIs γ s.term k p) ⊢
-        |==> logWin γ rc i (.store (s.log.length + 1) es) ∗
+        |==> (logWin γ rc i (.store (s.log.length + 1) es) ∗
         (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
           rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗
             srvV rc { s with log := s.log ++ es } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc D g' ∗
             ([∗list] j ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + j) e) ∗
-            ccfgOwn γ i s.term (lastCfgIdx s.log)))) := by
+            ccfgOwn γ i s.term (lastCfgIdx s.log))))) := by
     intro es hlen hes g' hg'
     obtain ⟨e, rfl⟩ := List.length_eq_one_iff.mp hlen
     have he := hes e (List.mem_singleton.2 rfl)

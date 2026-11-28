@@ -368,6 +368,8 @@ theorem termLb_bound (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) 
   iintro ⟨#Hc, #Hd, #Hlb⟩ Hnc
   unfold termCell termV
   iinv Hc with ⟨%t, >Ht, >Htv⟩ Hclose
+  iunfold srvDurInv at Hd
+  icases Hd with ⟨#Hd, -⟩
   ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑termN) durN_diff_termN $$ Hd
   imod Hacc $$ Hnc with ⟨Hnc, HX, Hcl2⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩
@@ -418,6 +420,8 @@ theorem wp_getLog_repl (γ : GNames) (rc : RCtx GF) (i : SID) (T : Nat) (x : GoI
   have hE : (↑gprotN : CoPset) ⊆ (⊤ \ ↑storeN) \ ↑durN := by
     unfold storeN durN raftN gprotN; solve_ndisj
   iintro Hnc
+  iunfold srvDurInv at Hdur
+  icases Hdur with ⟨#Hdur, -⟩
   ihave Hacc := durAcc γ rc i (E := ⊤ \ ↑storeN) (by unfold storeN durN raftN; solve_ndisj) $$ Hdur
   imod Hacc $$ Hnc with ⟨Hnc, HX, Hclose⟩
   imod later_exists_except0 $$ HX with ⟨%X, HX⟩

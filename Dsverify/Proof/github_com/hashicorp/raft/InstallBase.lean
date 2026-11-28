@@ -505,20 +505,21 @@ theorem logCell_compact (γ : GNames) (rc : RCtx GF) (i : SID) (mn mx x : Nat) (
   iintro %X %hi' HX ⟨#Hc, HΨ⟩
   unfold durCore
   icases HX with ⟨Hs, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hok, #HcX, Hpd, Htp, Hdp⟩
-  obtain ⟨hlog, hlo, hrest⟩ := Hok
+  obtain ⟨hlog, hlo, hv, ht, hci, hdp⟩ := Hok
   imodintro
   iexists { X with A := X.A.delete mn mx hi', lo := Max.max X.lo (mx + 1), c := Max.max X.c x }
-  iframe HΨ
-  isplitl
+  isplitl [Hs Hdv Hlc Htc Hcc Hsv Hst Htv Hcv Hpd Htp Hdp]
   · iframe
     isplitr
     · ipureintro
-      refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hrest⟩
-      simp only [Nat.max_def]; split <;> split <;> omega
+      refine ⟨logOk_delete X.A X.s.log X.lo mn mx hi' hlog, ?_, hv, ht, hci, ?_⟩
+      · simp only [Nat.max_def]; split <;> split <;> omega
+      · sorry -- R4b Q4 (REQUESTS.md): a pending discard's index is past the compaction
     by_cases hcx : X.c ≤ x
     · rw [Nat.max_eq_right (show X.c ≤ x from hcx)]; iexact Hc
     · rw [Nat.max_eq_left (show x ≤ X.c by omega)]; iexact HcX
-  ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  isplitr; · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  imodintro; iexact HΨ
 
 
 /-- The snapshot goroutine's snapshot `(x, tx)` as the store's latest (`latestOk`; the length bound
