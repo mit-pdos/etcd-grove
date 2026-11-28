@@ -44,13 +44,17 @@ def latTerm (lat : SnapLatest) : Nat :=
 * every entry of the protocol log above the latest snapshot is stored (the configuration scan and
   `restoreFromCommittedLogs`' replay read them; `GetLog`'s failure panics in the scan): from the vacant
   state's `logOk` with `lo ≤ c + 1 ≤ latIdx + 1`;
-* (fix 2) a pending discard is of the latest snapshot. -/
+* (fix 2) a pending discard is of the latest snapshot; with none pending, the store holds no entry at or below
+  the latest's index unless it holds the latest's (compaction deletes a prefix: else fix 2 would discard a log
+  the protocol keeps). -/
 def RecOk (X : SrvDur) : Prop :=
   X.tp = none ∧ X.s.cidx = 0 ∧ X.pend = none ∧ X.c ≤ latIdx X.lat ∧
   (∀ k e, X.A.m.lookup k = some e → k ≤ uint.nat X.A.hi) ∧
   (X.A.hi = W64 0 ∨ ∃ e, X.A.m.lookup (uint.nat X.A.hi) = some e) ∧
   (∀ k, latIdx X.lat < k → k ≤ X.s.log.length → X.A.m.lookup k = ent X.s.log k) ∧
-  (∀ d, X.dp = some d → latIdx X.lat = d.x ∧ latTerm X.lat = d.st)
+  (∀ d, X.dp = some d → latIdx X.lat = d.x ∧ latTerm X.lat = d.st) ∧
+  (X.dp = none → ∀ k e, X.A.m.lookup k = some e → k ≤ latIdx X.lat →
+    ∃ e', X.A.m.lookup (latIdx X.lat) = some e')
 
 end pure
 
@@ -77,7 +81,7 @@ theorem RecOk_fresh (cv : List w8 → List SID) (g : Entry) (i : SID) (sst : Sta
   by_cases hm : i ∈ cv g.data
   · simp only [initSrv, hm, ite_true]
     have hhi : (LogAbs.empty.store 1 [g]).hi = W64 1 := by simp [LogAbs.store, LogAbs.empty]
-    refine ⟨trivial, trivial, trivial, Nat.zero_le _, ?_, ?_, ?_, ?_⟩
+    refine ⟨trivial, trivial, trivial, Nat.zero_le _, ?_, ?_, ?_, ?_, ?_⟩
     · intro k e h
       rw [genesisStore_lookup] at h
       rw [hhi]
@@ -89,12 +93,16 @@ theorem RecOk_fresh (cv : List w8 → List SID) (g : Entry) (i : SID) (sst : Sta
       have : k = 1 := by simp at hk; omega
       subst this; rw [genesisStore_lookup]; simp [ent]
     · intro d h; cases h
+    · intro _ k e h hk
+      have : k = 0 := by omega
+      subst this; rw [genesisStore_lookup] at h; simp at h
   · simp only [initSrv, hm, ite_false]
-    refine ⟨trivial, trivial, trivial, Nat.zero_le _, ?_, ?_, ?_, ?_⟩
+    refine ⟨trivial, trivial, trivial, Nat.zero_le _, ?_, ?_, ?_, ?_, ?_⟩
     · intro k e h; simp [LogAbs.store, LogAbs.empty, LogAbs.ins] at h
     · left; rfl
     · intro k _ hk; simp at hk; omega
     · intro d h; cases h
+    · intro _ k e h; simp [LogAbs.store, LogAbs.empty, LogAbs.ins] at h
 
 end fresh
 
