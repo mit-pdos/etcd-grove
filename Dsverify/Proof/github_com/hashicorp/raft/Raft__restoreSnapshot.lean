@@ -46,9 +46,9 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     (wp_setLatestConfiguration :
       github_com.hashicorp.raft.Raft.setLatestConfiguration.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.Raft.restoreSnapshot.spec (GF := GF) (hG := hG) := by
-  intro r γ i rc c x fx eof lat P n t c0 l0 i0 li0 p0 tid
-  wp_start as ⟨#Hconf, %Hnsr, #Hsnaps, #Hsn, #Heof, #Hfsml, #Hfsm, HP, #Hacc, #Hlat, #Happc, Happ,
-    #Hll, Hgll, Hcfgs, Hlp, Hfo, Htok⟩
+  intro r γ i rc c x fx eof lat P li lt c0 l0 i0 li0 p0 tid
+  wp_start as ⟨#Hconf, %Hnsr, #Hsnaps, #Hsn, #Heof, #Hfsml, #Hfsm, HP, #Hacc, #Happc, Happ,
+    #Hll, Hgll, Hllb, Hcfgs, Hlp, Hfo, Htok⟩
   wp_auto
   ihave #Hsn' := Hsn
   iunfold isSnapStore at Hsn'
@@ -66,7 +66,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
   iexists _
   iframe Hown
   iintro Hown
-  imod Hcl $$ Hown with HP
+  imod Hcl $$ Hown with ⟨HP, #Hlat⟩
   imodintro
   iintro %sl %ps Hsl Hps Htok
   wp_auto
@@ -82,6 +82,7 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     · exfalso; simp at Hsll; word
     iapply HΦ
     iframe
+    unfold latFacts; itrivial
   · skip
     icases Hps with ⟨%mp, %Hps, Hmp⟩
     subst Hps
@@ -89,17 +90,38 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     wp_for
     wp_if_destruct
     rotate_left
-    · exfalso; simp at Hsll; word
+    · exfalso; simp at Hsll
+      have : ¬ (sint.Z (W64 0) < sint.Z sl.len) := fun h => Hif h
+      word
     rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len from ⟨by word, Hif⟩)]
     wp_apply (wp_load_slice_index sl (sint.Z (W64 0)) [mp] (DFrac.own 1) mp (by word)) $$ [$Hsl] as Hsl
     · ipureintro; simp
-    unfold latFacts
-    icases Hlat with ⟨#HsP, ⟨%e, #HC, %He⟩, #Hdl, ⟨%ss, #Hcv, #Hscfg⟩, %Hvp⟩
+    ihave #Hlat0 := Hlat
+    iunfold latFacts at Hlat0
+    icases Hlat0 with ⟨#HsP, ⟨%e, #HC, %He⟩, #Hdl, ⟨%ss, #Hcv, #Hscfg⟩, %Hvp⟩
     wp_apply (wp_tryRestoreSingleSnapshot r c x fx rc.ownSS eof (snapWin γ rc i) γ i rc.fsmOwn rc.respP
       rc.snapP mp m b P 0 tid) $$ [$Hmp $HP $Hfo $Htok] as ⟨Hmp, HP, Htok, %k0, %res, Hfo, %Hk0, #Hnc, Hres⟩
     · iframe #
+      isplitr
+      · ipureintro; exact Hnsr
+      isplitr
+      · iintro HP
+        ihave Hl := Hacc $$ HP
+        iapply ncfupd_wand
+        isplitl [Hl]
+        · iexact Hl
+        iintro Hl
+        inext
+        icases Hl with ⟨%old, Hown, %Hold, Hcl⟩
+        iexists old
+        iframe Hown
+        isplitr
+        · ipureintro; exact Hold
+        iintro Hown
+        imod Hcl $$ Hown with ⟨HP, -⟩
+        imodintro; iexact HP
       ipureintro
-      exact ⟨Hnsr, Nat.zero_le _⟩
+      exact Nat.zero_le _
     -- setLastApplied(m.Index)
     wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastApplied")) _)
     iapply (wp_setLastApplied r rc m.Index') $$ [$Hpkg $Happc]
@@ -122,50 +144,24 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     wp_auto
     wp_apply (sync.Mutex.wp_Lock _ (lastLockInv r γ rc i)) $$ [$Hll] as ⟨Hown, HL⟩
     iunfold lastLockInv at HL
-    icases HL with ⟨%li0, %lt0, %si0, %st0, Hx, Hy, Hsi, Hst, Hg', #Hsn0⟩
-    icombine Hgll Hg' gives %Hag
-    have Hag := Hag.2
-    -- the new effective last entry is the spec's
-    ihave %hg : (⌜(if uint.nat li0 < uint.nat m.Index' then (uint.nat m.Index', uint.nat m.Term')
-        else (uint.nat li0, uint.nat lt0)) =
-        (if n < uint.nat m.Index' then (uint.nat m.Index', uint.nat m.Term') else (n, t))⌝ : IProp GF) $$ [Happ]
-    · icases Hsn0 with (%h0 | ⟨%e0, #HC0, %He0, #Hlb0, -⟩)
-      · subst h0
-        simp only [show uint.nat (W64 0) = 0 from rfl, Nat.not_lt_zero, ite_false] at Hag
-        obtain ⟨rfl, rfl⟩ := Prod.mk.inj Hag
-        ipureintro; rfl
-      · ihave %hle := applLb_le rc (1 : Qp).half (uint.nat m.Index') (uint.nat si0) $$ [Happ Hlb0]
-        · iframe; iexact Hlb0
-        by_cases hl : uint.nat li0 < uint.nat si0
-        · rw [if_pos hl] at Hag
-          obtain ⟨rfl, rfl⟩ := Prod.mk.inj Hag
-          rw [if_pos (by omega : uint.nat li0 < uint.nat m.Index')]
-          by_cases hs : uint.nat si0 < uint.nat m.Index'
-          · rw [if_pos hs]; ipureintro; rfl
-          · have hs' : uint.nat si0 = uint.nat m.Index' := by omega
-            rw [if_neg hs]
-            have hsw : si0 = m.Index' := by apply BitVec.eq_of_toNat_eq; simpa using hs'
-            subst hsw
-            ihave %hee : (⌜e0 = e⌝ : IProp GF) $$ []
-            · iapply (restore_CIdx_agree γ (uint.nat m.Index') e0 e)
-              isplitr
-              · iexact HC0
-              · iexact HC
-            subst hee
-            ipureintro
-            rw [← He0, He.1]
-        · rw [if_neg hl] at Hag
-          obtain ⟨rfl, rfl⟩ := Prod.mk.inj Hag
-          ipureintro; rfl
+    icases HL with ⟨%li1, %lt1, %si1, %st1, Hx, Hy, Hsi, Hst, Hg', #Hsn0, Hb⟩
+    icases Hb with (Hb | Hb)
+    · icombine Hb Hllb gives %Hag; cases Hag.2
+    icombine Hb Hllb gives %Hag
+    obtain ⟨-, Hag⟩ := Hag
+    simp only [Option.some.injEq, Prod.mk.injEq] at Hag
+    obtain ⟨h1, h2, h3, h4⟩ := Hag
+    subst li1 lt1 si1 st1
+    imod dghostVar_update_halves (some (li, lt, m.Index', m.Term')) _ _ _ $$ Hb Hllb with ⟨Hb, Hllb⟩
     wp_auto
-    imod ghostVar_update_halves (if uint.nat li0 < uint.nat m.Index' then (uint.nat m.Index', uint.nat m.Term')
-        else (uint.nat li0, uint.nat lt0)) _ _ _ $$ Hgll Hg' with ⟨Hgll, Hg'⟩
+    imod ghostVar_update_halves (if uint.nat li < uint.nat m.Index' then (uint.nat m.Index', uint.nat m.Term')
+        else (uint.nat li, uint.nat lt)) _ _ _ $$ Hgll Hg' with ⟨Hgll, Hg'⟩
     ihave #HappLb := monoNatLbOwn_get _ _ _ $$ Happ
-    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hll Hown Hx Hy Hsi Hst Hg']
+    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hll Hown Hx Hy Hsi Hst Hg' Hb]
     · iframe #; iframe
       inext
       iunfold lastLockInv
-      iexists li0, lt0, m.Index', m.Term'
+      iexists li, lt, m.Index', m.Term'
       iframe
       iright
       iexists e
@@ -183,7 +179,6 @@ theorem github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
     wp_apply hslc $$ [$Hcfgs $Hlp $Hss] as ⟨Hcfgs, -, %pc, %cfg', Hlp, #Hpc, Hss2⟩
     wp_for_post
     iapply HΦ
-    rw [← hg]
     iframe
     iframe #
     ipureintro; exact Hk0

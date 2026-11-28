@@ -22,6 +22,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.Raft__processHeartbeat
 public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftBase
+public import Dsverify.Proof.github_com.hashicorp.raft.NewRaftBoot
 
 @[expose] public section
 
@@ -177,14 +178,6 @@ theorem ownPointer_zero_cfg (u : Loc) :
       sync.atomic.ownPointer (T' := Configuration) u (DFrac.own 1) null := by
   rw [sync.atomic.ownPointer_unseal]; unfold sync.atomic.ownPointerDef; exact .rfl
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
-/-- (stage 3) A fresh snapshot store's invariant: nothing stored, no install pending. -/
-theorem snapCell_alloc (rc : github_com.hashicorp.raft.RCtx GF) (γ : github_com.hashicorp.raft.gprot.GNames)
-    (i : github_com.hashicorp.raft.proto.SID) :
-    rc.ownSS none ∗ ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ⊢
-      |={⊤}=> github_com.hashicorp.raft.snapCell rc γ i := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
--/
 
 /-- The bootstrapped log store's map: the genesis at index 1. -/
 theorem genesisStore_m (g : Entry) (k : Nat) :
@@ -215,7 +208,35 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     (wp_runSnapshots : github_com.hashicorp.raft.Raft.runSnapshots.spec (GF := GF) (hG := hG))
     (wp_processHeartbeat : github_com.hashicorp.raft.Raft.processHeartbeat.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.NewRaft.spec (GF := GF) (hG := hG) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+  intro htb cp c fsmI logsI stableI snapsI transI rpcCh γ i rc eof X tid
+  wp_start as ⟨Hcp, %Hcfg, #Hfsm, %Hnb, #Hlogs, %Hnmono, #Hstable, #Hsnaps, #Heof, #Htrans, %Hpv,
+    #Hinv, #Hvoter, #Hdi, Hsv, HstV, HtermV, HcidxV, Happ, Hcomp, Hpend, Hpw, Hboot, %Hrec, #Hfirst, %Hg,
+    HfsmOwn, Htok⟩
+  obtain ⟨Hcv, ss, Hss, Hgss⟩ := Hg
+  obtain ⟨htp, hci, hpend, hcl, hhi1, hhi2, habove, hdplat, hpref⟩ := Hrec
+  ihave #Hglob := pkgGlobals_access $$ Hpkg
+  unfold pkgGlobals
+  icases Hglob with ⟨⟨%errf, #Herrs⟩, ⟨%kCT, #HkCT, #HkCTs⟩, ⟨%kLVT, #HkLVT, #HkLVTs⟩,
+    ⟨%kLVC, #HkLVC, #HkLVCs⟩, #HobsId⟩
+  ihave #HstableC := Hstable
+  iunfold isStableStore at Hstable
+  icases Hstable with ⟨#HGetU, #HSetU, #HGet, #HSet⟩
+  ihave #HlogsC := Hlogs
+  iunfold isLogStore at Hlogs
+  icases Hlogs with ⟨#HLastIdx, #HFirstIdx, #HGetLog, #HStoreLogs, #HStoreLog, #HDelRange, -⟩
+  fold bootV at Hboot
+  wp_auto
+  wp_apply wp_ValidateConfig $$ [$Hcp] as Hcp
+  · ipureintro; exact Hcfg
+  -- the current term: the crash state's (no term step pending)
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HGetU $$ HkCTs Htok
+  iapply (bootRead_S γ rc i X.A X.lat X.s X.tp X.dp) $$ [Hboot Hsv]
+  · iframe #; iframe
+    iintro Hboot Hsv %X1 %HX1
+    iintro Htok
+    sorry
+  sorry
 
 end proof
 
