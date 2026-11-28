@@ -2464,7 +2464,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     isplitr
     · ipureintro
       have hm0 := Hci.2
-      refine ⟨⟨rfl, ?_⟩, ?_⟩ <;> simp [ciEff, hm0]
+      refine ⟨⟨rfl, ?_, ?_⟩, ?_⟩ <;> simp [ciEff, stLoaded, hm0]
     isplitl [Hown]
     · unfold applyBackend
       iframe Hown Hmeta
