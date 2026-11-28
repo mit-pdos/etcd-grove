@@ -964,7 +964,8 @@ def latestDur (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest)
     (match pend with
       | none => ⌜lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜lat = some (m, b)⌝ ∗
           (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term') ∗
-            ⌜∃ ℓ, dp = some ⟨uint.nat m.Index', uint.nat m.Term', ℓ⟩⌝)
+            ⌜∃ ℓ, dp = some ⟨uint.nat m.Index', uint.nat m.Term', ℓ⟩⌝ ∗
+            ∃ a : Nat, monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜a ≤ uint.nat m.Index'⌝)
       | some (s, st, id) => ∃ (m : SnapshotMeta) (b : List w8) (a : Nat),
           ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
           snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a))
