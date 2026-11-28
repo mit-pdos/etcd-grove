@@ -52,7 +52,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 
 /-- See the file header. -/
 abbrev Member.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
+  ∀ [π : NetProtoGS]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     (peer client : GoString) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (c : etcd_dist.ClusterNames),

@@ -61,7 +61,7 @@ set_option maxHeartbeats 1600000 in
 /-- See the file header. -/
 theorem wp_StartServer1_slice (wp_StartServer : StartServer.specAt (GF := GF) (hG := hG))
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) [go_etcd_io.etcd.cache.v3.Assumptions]
+    (hne : mvcc.api.names_nonempty.law)
     (N : Nat) (name peer client : GoString) (lg : Loc) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) (Hbf : BootFacts id ctxs boot)
     (hpl : types.plainPeerURL (go!"http://" ++ peer)) (hu : utf8Valid name) (hn : name.length ≤ 200)

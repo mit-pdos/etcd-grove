@@ -50,6 +50,25 @@ theorem newServer.wp_proof
   iapply HΦ
   iexact Hres
 
+/-- `newServer.wp_proof` with `bootstrap`'s contract borrowing a frame `R` (2026-11-27): `newServerMode.specF`. -/
+theorem newServer.wp_proofF
+    (wp_newServerMode : newServerMode.specF (GF := GF) (hG := hG)) :
+    newServer.specF (GF := GF) (hG := hG) := by
+  intro N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
+    ρ E₀ Φs γn cmp lm R ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Hret Haf Hbuq
+    Hdbo
+  wp_start as ⟨HR, #Hpkg, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
+  (try wp_auto)
+  wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
+      peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm R HwbN hvs hrule
+      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL (v3compactor.bootCfg_off _ _ _ _ Hret) Haf Hbuq Hdbo)
+    $$ [HR Htok Hmb Hfresh] as %s %err Hres
+  · iframe; iframe #
+  (try wp_auto)
+  iapply HΦ
+  iexact Hres
+
 /-- `newServer.wp_proof` with the lessor at the caller's name (F7 step 2): `newServerMode.specAt`. -/
 theorem newServer.wp_proofAt
     (wp_newServerMode : newServerMode.specAt (GF := GF) (hG := hG)) :

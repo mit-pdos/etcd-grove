@@ -204,6 +204,39 @@ instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM
     Persistent (bootPremise (GF := GF) N ps bootLog ctxs dir token name Uok id) := by
   unfold bootPremise; infer_instance
 
+/-- **`bootPremise` with a frame `R`** (2026-11-27, restartN's first boots): at every configuration and URLs the
+member's (`cfgOk`, `Uok`) and server raft names of the cluster, `bootstrap`'s contract borrowing `R` for the call
+(`bootstrapContractF`); `bootPremise` gives it at any `R` (`bootPremiseF_of`). -/
+def bootPremiseF (R : IProp GF) (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
+    (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) :
+    IProp GF :=
+  iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
+      ⌜cfgOk token name cfg ∧ Uok U ∧
+        γ.vs = ps ∧ γ.rule = srvRule (W64 0) bootLog ∧ γ.boot = bootLog⌝ -∗
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContractF R cfg U γ id ctxs N dir)
+
+instance bootPremiseF_persistent (R : IProp GF) (N : Nat) (ps : List w64) (bootLog : List EntryM)
+    (ctxs : List (List w8)) (dir : w64 → List GoString) (token name : GoString)
+    (Uok : BootURLs → Prop) (id : w64) :
+    Persistent (bootPremiseF (GF := GF) R N ps bootLog ctxs dir token name Uok id) := by
+  unfold bootPremiseF; infer_instance
+
+/-- `bootPremise` at any frame (`bootstrapContractF_of`). -/
+theorem bootPremiseF_of (R : IProp GF) (N : Nat) (ps : List w64) (bootLog : List EntryM)
+    (ctxs : List (List w8)) (dir : w64 → List GoString) (token name : GoString)
+    (Uok : BootURLs → Prop) (id : w64) :
+    bootPremise (GF := GF) N ps bootLog ctxs dir token name Uok id ⊢
+      bootPremiseF (GF := GF) R N ps bootLog ctxs dir token name Uok id := by
+  iintro #H
+  iunfold bootPremise at H
+  iunfold bootPremiseF
+  imodintro
+  iintro %cfg %U %γ %Hp
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  iapply (bootstrapContractF_of (GF := GF) R cfg U γ id ctxs N dir)
+  iapply H
+  ipureintro; exact Hp
+
 /-- **`bootPremise` from an example's own form of it** (its `premises`' clause, at its configuration
 predicate `cfgOk'` and URLs predicate `Uok'`): this one asks less, when the shared start's
 configuration meets the example's (`Hc`) and its URLs too (`Hu`). -/

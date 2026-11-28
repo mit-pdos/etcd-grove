@@ -48,7 +48,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 
 /-- See the file header. -/
 abbrev Member.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : Net.NetProtoGS]
+  ∀ [π : Net.NetProtoGS]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)]
     (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) GF)
     (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)

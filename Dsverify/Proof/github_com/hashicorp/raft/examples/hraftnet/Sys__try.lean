@@ -1,7 +1,7 @@
 /-
 `hraftnet.Sys.try`'s proof (notes/dsv-hraft.md, S5f): an `Apply` with the operation's state as the
 deposit (`apply_dep`), its answer claimed (`apply_done`) or the state back; a read outside the log by
-S6's `readCall.law`.
+`readCall.law`, proved from `Conn.Call.spec` (`readCall_law_holds`, `ReadCall.lean`, S6).
 -/
 module
 
@@ -9,6 +9,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.Sys__try
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.rpctransport.Conn__Call
 public import Dsverify.Spec.github_com.hashicorp.raft.examples.hraftnet.apiTimeout
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.CodecApi
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.ReadCall
 
 @[expose] public section
 
@@ -45,9 +46,9 @@ set_option goose.wp.extras true
 
 theorem Sys.try.wp_proof
     (wp_Call : rpctransport.Conn.Call.spec (GF := GF) (hG := hG))
-    (wp_read : readCall.law (GF := GF) (hG := hG))
     (wp_apiTimeout : apiTimeout.spec (GF := GF)) :
     Sys.try.spec (GF := GF) (hG := hG) := by
+  have wp_read := readCall_law_holds (GF := GF) (hG := hG) wp_Call
   intro K s sv j cmd d i Ψ hj1 hj6 hd hdl
   unfold sysConns cliEnv
   wp_start as ⟨⟨#Hpk, #Hpkr, %Hss, #Hdi, #Hcod⟩, Hs, ⟨%ps, #Hps, %Hpl, #Hcs⟩, #Hcmd, Hst, #Hru⟩
@@ -175,7 +176,7 @@ theorem Sys.try.wp_proof
     · (try wp_auto)
       wp_alloc ap as Hap
       (try wp_auto)
-      wp_apply wp_apiTimeout as %dd -
+      wp_apply (lc := 2) wp_apiTimeout as %dd -
       ihave %Hlen := ownSlice_len _ _ _ $$ Hps
       obtain ⟨p, hp⟩ : ∃ p, ps[uint.nat j - 1]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
       have hs : 0 ≤ sint.Z (j - W64 1) ∧ sint.Z (j - W64 1) < sint.Z sv.conns'.len := by
@@ -192,7 +193,7 @@ theorem Sys.try.wp_proof
         · cases h
         · exact Hif h
       wp_apply (wp_read K p (uint.nat j - 1) ⟨(false, way, v), hok⟩ Ψ ap «$r0_ptr» dd rfl Hif (by omega))
-        $$ [$Hpkr $Hc $Hcod $Hap $«$r0» $Hlin] as %r Hr
+        $$ [$Hpkr $Hc $Hcod $Hdi $Hlc1 $Hlc2 $Hap $«$r0» $Hlin] as %r Hr
       · ipureintro; exact Hss
       icases Hr with (⟨%Hr0, %w, Hw, Hok⟩ | %Hr1 | %Hr2)
       · subst Hr0

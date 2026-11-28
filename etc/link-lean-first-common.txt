@@ -31,6 +31,12 @@ etcdstart_StartServer+At: etcdstart_newServer+At EtcdServer__Start
 # (the restart plan's R2a, 2026-11-02) `BuildServer`: `newServer` with the compactor off, serving
 # nothing (`examples/etcd/restart` keeps its listeners)
 etcdstart_BuildServer: etcdstart_newServer
+# (2026-11-27) the same with `bootstrap`'s contract borrowing a frame (`bootPremiseF`, `NewServer.specAtA`):
+# restartN's first boots, which lend `bootstrap` every member's peer address
+etcdserver_NewServer+AtA: @
+etcdstart_newServerMode+F: features_NewDefaultServerFeatureGate etcdserver_NewServer+AtA
+etcdstart_newServer+F: etcdstart_newServerMode+F
+etcdstart_BuildServer+F: etcdstart_newServer+F
 # (restart S7.4, 2026-11-14) at a restart: `newServerMode` over `NewServer.specR` (linked in the
 # server's `Link.lean`), the restarted names allocated from the cluster's facts (the mvcc API's
 # nonempty names, a proved law)
