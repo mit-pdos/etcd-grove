@@ -48,6 +48,8 @@ structure WrCtx (R : RunCfg) (S : State) (n : Fin R.N) (v : NodeView) (m : MemRe
   hdc : uint.Z v.dur.commit ≤ uint.Z v.ps.commit
   hec : m.ents = [] ∨ m.commit = v.dur.commit
   hidx : LogIdx (v.dur.write m).log
+  hcmt : m.commit ≠ v.dur.commit → uint.Z m.commit ≤ ((v.dur.write m).log.length : Int) ∧
+    termAt (logOf (v.dur.write m).log) (uint.Z m.commit) = uint.Z m.term
   hw : v.dur.write m = durOf v.r
   hT : S.currentTerm[n.val]! = uint.Z m.term
   hV : S.vote n.val = nameOf m.vote
@@ -62,14 +64,14 @@ variable {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net 
 theorem wrCtx_of {rest : List MemRec} (hv : NodeOkD R dec S net n (V n)) (ha : R.md.async = false)
     (hbat : R.drv.batch = false) (hm : (V n).mems = m :: rest) : rest = [] ∧ WrCtx R S n (V n) m := by
   obtain ⟨d1, d2, -, -, d5, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, d21, -, -, -, -, d26⟩ := hv
-  obtain ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13⟩ :=
+  obtain ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14⟩ :=
     d26 ha hbat m (by rw [hm]; exact List.mem_cons_self ..)
   have hrest : rest = [] := by rw [hm] at p1; exact (List.cons.inj p1).2
   have hw : (V n).dur.write m = durOf (V n).r := by
     have h := d21 p2; rw [p1] at h; exact h
   have hmt : m.term = (V n).ps.term := congrArg DurW.term hw
   have hmv : m.vote = (V n).ps.vote := congrArg DurW.vote hw
-  refine ⟨hrest, ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, hw,
+  refine ⟨hrest, ⟨p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, hw,
     by rw [d1.1, p8, hmt], by rw [d1.2.1, p9, hmv], d1.2.2.1, d1.2.2.2,
     by rw [d2.1, p7]; rfl, by unfold QueueIs at d5; rw [d5, p1]; rfl⟩⟩
 
@@ -305,6 +307,247 @@ theorem wr_lsame (hs : AntSimD R dec S V net xnet) (hgo : GlobalOk R S net G)
     chainG := hgo.2.2.2.2.1
     tlG := hgo.2.2.2.2.2.1
     logG := hgo.2.2.1 n }
+
+/-- A sorted function holding `(t, v)` is unchanged by `with t v`. -/
+theorem with_mem_self {f : TermFn Int} {t v : Int} (hs : f.Pairwise (fun a b => a.1 < b.1))
+    (h : (t, v) ∈ f) : f.with t v = f := by
+  induction f with
+  | nil => cases h
+  | cons p ps ih =>
+    rw [List.pairwise_cons] at hs
+    unfold TermFn.with
+    rcases List.mem_cons.mp h with h1 | h1
+    · subst h1; simp
+    · have hlt := hs.1 _ h1
+      simp only at hlt
+      rw [if_neg (by omega), ih hs.2 h1]
+
+set_option maxHeartbeats 4000000 in
+/-- **A leader's write of a moved commit** (`onDisk_lcommit`): nothing stored, the commit moved to the
+queued one, which `InMemory` recorded at the `mem` (`TermLenOkM`: it is at an entry of the leader's
+term, `ParWriteOk`), so `chain` and `termLen` are kept; `WriteOk`. -/
+theorem wr_lcommit (hs : AntSimD R dec S V net xnet) (hgo : GlobalOk R S net G) (hl : RaftLaws G)
+    (hx : WrCtx R S n (V n) m) (he : m.ents = []) (hcs : m.commit ≠ (V n).dur.commit) :
+    ∃ p, S.step (evWrite (nodeId n) m.term m.vote m.commit m.ents m.snap) =
+        .ok (some (wrS S n.val (S.log[n.val]!) (uint.Z m.commit) (S.confirmed[n.val]!) S.msgs p S.chain
+          S.termLen [])) ∧
+      WriteOk R S G n (S.log[n.val]!) (uint.Z m.commit) (S.confirmed[n.val]!) S.msgs p S.chain S.termLen [] := by
+  have hsh := hs.1
+  have hc : S.cfg = R.cfg := hsh.1
+  have hv := hs.2.2.2.2 n
+  have hbM := hs.2.1.1
+  obtain ⟨⟨-, hb2, hb3, hb4, -, -, -, -, -, -, -, -, -, -, hb15, -, hb17, -⟩, -⟩ := hs.2.1
+  obtain ⟨lp1, lp2, -, -, lp5⟩ := hv.2.2.2.2.2.2.2.2.1 hx.hpl
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hMC, -⟩ := hv
+  have hmt := hx.mt
+  have hT := hx.hT
+  have hlogn := hx.hlog
+  have hwl : ((V n).dur.write m).log = (V n).dur.log := by
+    simp only [DurW.write, he, List.head?_nil]
+  have hfull : (V n).r.full = (V n).dur.log := by rw [← hx.mlog, hwl]
+  obtain ⟨hcL, hcT⟩ := hx.hcmt hcs
+  rw [hwl] at hcL hcT
+  have hdc' : uint.Z (V n).dur.commit ≤ uint.Z m.commit := by rw [hx.mc]; exact hx.hdc
+  have hlt : uint.Z (V n).dur.commit < uint.Z m.commit := by
+    rcases Int.lt_or_eq_of_le hdc' with h | h
+    · exact h
+    · exact absurd (uint_Z_inj.mp h).symm hcs
+  have hcmi : S.commitIndex[n.val]! < uint.Z m.commit := by rw [hx.hcm]; exact hlt
+  have hc0 : 0 < uint.Z m.commit := by have := uint_Z_nonneg (V n).dur.commit; omega
+  have hnat : ((uint.nat m.commit : Nat) : Int) = uint.Z m.commit := by word
+  obtain ⟨c0, h0, h1, h2⟩ := hb15.2 n hx.hro
+  rw [hx.memCommit] at h0
+  obtain rfl : c0 = uint.Z m.commit := (Except.ok.inj h0).symm
+  have htA : termAt (S.log[n.val]!) (uint.Z m.commit) = S.currentTerm[n.val]! := by rw [hlogn, hcT, hT]
+  have htlc : tlOld S.termLen (uint.Z m.term) = uint.Z m.commit := by
+    have h3 := h1 htA; rw [hT] at h3 h2; omega
+  have hmemT : (uint.Z m.term, uint.Z m.commit) ∈ S.termLen := by
+    rcases tlOld_cases S.termLen (uint.Z m.term) with h | ⟨q, hq, e1, e2⟩
+    · omega
+    · have hq' : q = (uint.Z m.term, uint.Z m.commit) := by
+        rw [htlc] at e2; exact Prod.ext e1 e2
+      rw [← hq']; exact hq
+  have hcch : uint.Z m.commit ≤ (S.chain.length : Int) := hb2 _ hmemT
+  obtain ⟨-, hMCt, -⟩ := hMC hx.hpar0
+  have hchT : S.chain.take (uint.Z m.commit).toNat = (S.log[n.val]!).take (uint.Z m.commit).toNat := by
+    rw [hlogn, ← hfull, uZ_toNat_nat, hx.mc]; exact hMCt
+  have hll : S.ledLog.get (uint.Z m.term) = .ok (logOf (V n).r.full) := by rw [hmt]; exact lp2
+  have hsend : sendableIn S.leaders S.ledLog S.chain S.termLen (AppendFact.mk (nameOf (nodeId n))
+      (nameOf (nodeId n)) (uint.Z m.term) 0 0 [] (uint.Z m.commit)) = .ok true := by
+    have h := sendable_leader (S := S) (src := nameOf (nodeId n)) (dst := nameOf (nodeId n))
+      (lg := (V n).r.full) (T := uint.Z m.term) (p := 0) (pt := 0) (es := []) (c := uint.nat m.commit)
+      (by rw [hmt]; exact lp1) hll (by unfold termAt; simp) (Nat.zero_le _) rfl
+      (.inr ⟨by rw [hfull]; omega, by omega, ⟨_, hmemT, Int.le_refl _, by omega⟩,
+        by have h4 := hchT; rw [hlogn, ← hfull, uZ_toNat_nat] at h4; exact h4⟩)
+    rw [hnat] at h; exact h
+  have hcbc : (S.confirmed[n.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (S.confirmed[n.val]!).index := by
+    obtain ⟨k1, k2⟩ := lp5 (.inl hfull.symm)
+    exact ⟨by rw [k1, hmt], by omega⟩
+  have hcs' : comparable S.chain ((S.log[n.val]!).take (uint.Z m.commit).toNat) = .ok true :=
+    comparable_of_prefix (List.prefix_refl S.chain) (by rw [← hchT]; exact List.take_prefix _ _)
+  obtain ⟨-, y, hy0, hyG⟩ := hgo.2.2.2.2.2.1 _ hmemT
+  have hy : uint.Z y = uint.Z m.term := hy0
+  obtain ⟨c', hc', hchd⟩ := hgo.2.2.2.2.1
+  have hcc : (uint.Z m.commit).toNat ≤ c' := by
+    rw [hchd, logOf_length, List.length_take] at hcch; omega
+  have hlogG : (S.log[n.val]!).take (uint.Z m.commit).toNat = (logOf G.committed).take (uint.Z m.commit).toNat := by
+    rw [← hchT, hchd, logOf_take, logOf_take, List.take_take, Nat.min_eq_left hcc]
+  have hT1 : R.boot = true → 1 ≤ uint.Z y := by
+    intro hb
+    have hb1 := hbM.bootTermOk.1 n
+    have e1 : S.bootTerm = 1 := by
+      unfold State.bootTerm; rw [hc]; show (if R.boot = true then (1 : Int) else 0) = 1; simp [hb]
+    rw [hT, ← hy] at hb1; omega
+  have hlc : ∀ q ∈ S.ledLog, q.1 > uint.Z m.term →
+      isPrefix ((S.log[n.val]!).take (uint.Z m.commit).toNat) q.2 = .ok true := by
+    intro q hq hgt
+    rw [hlogG]
+    exact lc_ok (L := G.committed) hl hgo.2.2.2.1 (by rw [← uZ_toNat_nat]; exact hyG) rfl hT1 q hq
+      (by rw [hy]; exact hgt)
+  obtain ⟨p, hpm, hpc, hpms, hod⟩ := onDisk_lcommit n hc m.byE m.term m.vote m.commit
+    (MemRec.item (nodeId n) m).m S.role S.leaders S.ledLog S.chain S.termLen S.viol
+    hx.hT.symm hx.hV.symm hx.hro hsend hcmi (by rw [hlogn, logOf_length]; exact hcL) hcbc hcs' hlc
+    (fun _ => hchT)
+  have hchl : ¬ (S.commitIndex[n.val]! < uint.Z m.commit ∧ (S.chain.length : Int) < uint.Z m.commit) :=
+    fun h => by omega
+  have htl2 : S.termLen.with (uint.Z m.term) (imax (tlOld S.termLen (uint.Z m.term)) (uint.Z m.commit)) =
+      S.termLen := by
+    rw [htlc]; unfold imax; rw [if_pos (Int.le_refl _)]; exact with_mem_self hb17 hmemT
+  rw [if_neg hchl, htl2] at hod
+  have hq0 : (S.queue.set n.val [])[n.val]! = [] :=
+    get!_set_self _ (by rw [hsh.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact n.isLt)
+  have hmc : (wrS S n.val (S.log[n.val]!) (uint.Z m.commit) (S.confirmed[n.val]!) S.msgs p S.chain
+      S.termLen []).memCommit n.val = .ok (uint.Z m.commit) := by
+    rw [memCommit_nil hq0]
+    exact congrArg Except.ok (get!_set_self _ (by rw [hsh.2.2.2.2.2.1]; exact n.isLt))
+  refine ⟨p, wr_step hs hx (by rw [he]; exact hod), ?_⟩
+  exact {
+    lead := hx.hro
+    lself := by rw [hT]; exact List.contains_iff_mem.mp (by rw [hmt]; exact lp1)
+    cge := Int.le_of_lt hcmi
+    mcSelf := ⟨_, hmc, h1, h2⟩
+    mcGe := fun c0 h => by rw [hx.memCommit] at h; cases h; exact ⟨_, hmc, Int.le_refl _⟩
+    pre := hpm
+    pconf := hpc
+    pmsgs := fun a => by rw [hpms]; exact lset_minus_mem
+    msub := fun f hf => hf
+    mnew := fun f hf hn => absurd hf hn
+    cmono := .inl rfl
+    hconf := fun l hl' => hs.2.1.1.2.2.2.2.1 n l hl'
+    hchain := List.prefix_refl _
+    chainC := ⟨hcch, hchT⟩
+    tlLen := hb2
+    tlC := .inr ⟨_, hmemT, Int.le_of_eq hT.symm, Int.le_refl _⟩
+    tlDom := fun q hq => ⟨q, hq, rfl, Int.le_refl _⟩
+    tlSort := hb17
+    tlMono := fun _ => Int.le_refl _
+    tlNew := fun _ h => absurd h (Int.lt_irrefl _)
+    chainG := hgo.2.2.2.2.1
+    tlG := hgo.2.2.2.2.2.1
+    logG := hgo.2.2.1 n }
+
+/-- The disk's log is a prefix of its log after the queued write (its entries start at the end). -/
+theorem WrCtx.dur_pfx (hx : WrCtx R S n (V n) m) : (V n).dur.log <+: ((V n).dur.write m).log := by
+  unfold DurW.write
+  cases h : m.ents.head? with
+  | none => exact List.prefix_refl _
+  | some e0 =>
+    have hf := hx.hfirst e0 (by rw [h]; rfl)
+    have hnat : uint.nat e0.Index' - 1 = (V n).dur.log.length := by word
+    simp only; rw [hnat, List.take_length]; exact List.prefix_append _ _
+
+set_option hygiene false in
+local notation "S₂" => wrS S n.val L1 c cf M p ch tl []
+
+set_option maxHeartbeats 4000000 in
+/-- **Node `n`'s part after its queued write** (sync, unbatched, `-parallel`): the disk is the write's,
+the disk before it the undo record, nothing queued; given the binding's log and commit the write's, its
+confirmation covering raft's full log at raft's term, and the self-acknowledgements waiting for the
+write recorded. -/
+theorem wr_node_self {L1 : List Entry} {c : Int} {cf : Confirmed} {M : List Fact} {p : Pre}
+    {ch : List Entry} {tl : TermFn Int}
+    (hs : AntSimD R dec S V net xnet) (hok : WriteOk R S G n L1 c cf M p ch tl [])
+    (ha : R.md.async = false) (hbat : R.drv.batch = false) (hpar : R.drv.parallel = true)
+    (hx : WrCtx R S n (V n) m) (hL1 : L1 = logOf ((V n).dur.write m).log) (hc : c = uint.Z m.commit)
+    (hcf : cf.term = uint.Z (V n).ps.term ∧ ((V n).r.full.length : Int) ≤ cf.index)
+    (hQ : ∀ q ∈ (V n).qs, QsAckW n (V n) q →
+      AckIn (S₂) (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z (V n).ps.term) (uint.Z q.index)) :
+    NodeOkD R dec (S₂) net n
+      { V n with dur := (V n).dur.write m, undo := some (V n).dur, made := false, mems := [],
+                 jobs := markHead (V n).jobs } := by
+  have hsh := hs.1
+  obtain ⟨d1, d2, -, -, -, d6, d7, d8, d9, -, d11, -, d13, d14, d15, d16, d17, d18, d19, -,
+    -, d22, -, -, d25, -⟩ := hs.2.2.2.2 n
+  have hmt := hx.mt
+  obtain ⟨f1, f2, f3, f4, f5, f6, f7, -, rest⟩ := d8
+  refine ⟨⟨?_, ?_, ?_, ?_⟩, d2, fun _ _ _ h => absurd hpar (by rw [h]; decide), ?_, ?_, d6, d7, ?_, ?_,
+    fun h => absurd (hx.hpl.symm.trans h) (by decide), d11, fun h => absurd hbat (by rw [h]; decide), d13,
+    ?_, d15, d16, d17, d18, d19, ?_, fun _ => hx.hw, ?_, fun h => absurd h (by rw [ha]; decide),
+    fun _ _ _ => rfl, ?_, parWriteOk_nil rfl⟩
+  · show S.currentTerm[n.val]! = uint.Z m.term; exact hx.hT
+  · show S.vote n.val = nameOf m.vote; exact hx.hV
+  · rw [wr_log_n hsh]; exact hL1
+  · rw [wr_cm_n hsh]; exact hc
+  · refine ⟨by rw [wr_undo_n hsh]; simp, fun u hu => ?_⟩
+    rw [wr_undo_n hsh] at hu
+    obtain rfl := Option.some.inj hu
+    obtain ⟨pm, pt, pvt, pvf, pc, pl⟩ := hok.pre
+    refine ⟨pm, (V n).dur, rfl, by rw [pt, d1.1], ?_, by rw [pc, d1.2.2.2], ?_⟩
+    · rw [pvt, pvf, pt]; exact d1.2.1
+    · rw [wr_log_n hsh, pl, d1.2.2.1]
+  · unfold QueueIs
+    show (S.queue.set n.val [])[n.val]! = []
+    exact get!_set_self _ (by rw [hsh.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact n.isLt)
+  · have h6 : R.md.async = false → ((V n).delivered ++ (V n).ce).length ≤
+        uint.nat ((V n).dur.write m).commit := fun h => by
+      have := f6 h; rw [hx.hm, hx.hpar0] at this; exact this
+    refine ⟨f1, f2, fun h => ⟨(f3 h).1, (f3 h).2.1, ?_⟩, hx.hidx, ?_, fun h => ?_, f7, ?_, rest⟩
+    · show EntsNormal ((V n).dur.write m).log; rw [hx.mlog]; exact (f3 h).2.1
+    · exact List.IsPrefix.trans f5 hx.dur_pfx
+    · show ((V n).delivered ++ (V n).ce).length ≤
+        uint.nat ((([] : List MemRec) ++ (V n).parts).foldl DurW.write ((V n).dur.write m)).commit
+      rw [hx.hpar0]; exact h6 h
+    · show uint.Z m.term ≤ uint.Z (V n).ps.term; rw [hmt]; exact Int.le_refl _
+  · intro hl
+    obtain ⟨l1, l2, l3, l4, -⟩ := d9 hl
+    refine ⟨l1, l2, fun j k h1 h2 => wr_ackInX hsh hok (l3 j k h1 h2),
+      fun j hj => (l4 j hj).imp id (wr_ackInX hsh hok), fun _ => ?_⟩
+    rw [wr_cf_n hsh]
+    show cf.term = _ ∧ ((((V n).dur.write m).log.length : Nat) : Int) ≤ cf.index
+    rw [hx.mlog]; exact hcf
+  · intro q hq
+    rcases d14 q hq with ⟨q1, q2, q3, q4⟩ | h
+    · refine .inl ⟨q1, q2, q3, ?_⟩
+      rcases q4 with ⟨t1, ⟨y1, y2, ⟨a, ha', a1⟩⟩ | y⟩ | y
+      · exact .inl ⟨t1, .inl ⟨y1, y2, ⟨a, hok.msub a ha', a1⟩⟩⟩
+      · exact .inl ⟨t1, .inr y⟩
+      · exact .inr y
+    · have hA := hQ q hq h
+      obtain ⟨a1, a2, a3, a4, a5, a6, -, -⟩ := h
+      exact .inl ⟨a1, a2, a3, .inl ⟨a5, .inl ⟨a4, a6, hA⟩⟩⟩
+  · intro d hd
+    obtain rfl := Option.some.inj hd.symm
+    refine ⟨f4, fun h => (f3 h).2.2, ?_⟩
+    show uint.Z (V n).dur.term ≤ uint.Z m.term
+    rw [hx.hdt, hmt]; exact Int.le_refl _
+  · obtain ⟨j1, j2, j3, -, -, -⟩ := d22
+    obtain ⟨hj, haj⟩ := j1 ha
+    refine ⟨fun _ => ⟨by show markHead (V n).jobs = []; rw [hj]; rfl, haj⟩, ?_, j3,
+      fun h => absurd h (by rw [ha]; decide), ?_, fun h => absurd h (by rw [ha]; decide)⟩
+    · show ∀ j ∈ (markHead (V n).jobs).drop 1, _; rw [hj]; intro j h; cases h
+    · show ∀ j ∈ markHead (V n).jobs, _; rw [hj]; intro j h; cases h
+  · intro hp
+    obtain ⟨m1, m2, m3⟩ := d25 hp
+    have hl := hok.hchain.length_le
+    have hk' : uint.nat (V n).ps.commit ≤ S.chain.length := by word
+    refine ⟨show uint.Z (V n).ps.commit ≤ (ch.length : Int) by omega, ?_, ?_⟩
+    · show ch.take _ = _
+      rw [rr_take_prefix hok.hchain hk']; exact m2
+    · rcases m3 with h | ⟨x, hx, h1, h2⟩
+      · exact .inl h
+      · obtain ⟨x', hx', e1, e2⟩ := hok.tlDom x hx
+        exact .inr ⟨x', hx', show x'.1 ≤ uint.Z (V n).ps.term by omega,
+          show uint.Z (V n).ps.commit ≤ x'.2 by omega⟩
 
 end writeP2
 
