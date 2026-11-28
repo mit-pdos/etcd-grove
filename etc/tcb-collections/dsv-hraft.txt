@@ -9,6 +9,10 @@
 # the kit. The closed theorem's `#print axioms`: Lean's three and Net/'s interim axioms
 # net.rpc.wp_initialize', net.http.wp_initialize' (the machines' boots run net/rpc's initializer, which
 # runs net/http's), as craq's and gryff's; none of this kit's own.
+# Since 2026-11-28 (hraft_robust R7) also `hraft_robust` (same file: the six servers crash and restart,
+# `cmd/rserver1..6` over the file extension; Robust (crashServers σ) (stableMachines σ), over Net's
+# `robust_of_netFsBootT`, Net/Statement/NetFsBridgeT.lean), and the restartable server's proofs
+# (examples/hraftnet/rserver/, its Link): the pattern below covers them.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-hraft.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-hraft.txt --check    against the lines below

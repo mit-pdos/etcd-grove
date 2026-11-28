@@ -16,6 +16,7 @@ public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.StartAt
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.Mains
 public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.BootCmdsLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
+public import Dsverify.Proof.github_com.hashicorp.raft.examples.hraftnet.StableBoot
 
 @[expose] public section
 
@@ -34,6 +35,7 @@ namespace github_com.hashicorp.raft.examples.hraftnet
 open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote
 open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)
 
+section nocrash
 attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
   GooseGlobalGS.gooseInvGS
 
@@ -302,6 +304,232 @@ theorem hraft_nocrash_robust : hraft_nocrash_robust.spec := by
     iempintro
 
 #print axioms hraft_nocrash_robust
+
+end nocrash
+
+/-! ## `hraft_robust`: servers that crash and restart
+
+Over the crash bridge with the thread bound and the registry (`Net.robust_of_netFsBootT`,
+`Net/Statement/NetFsBridgeT.lean`), at `kvraftGF` (`kvraftExts`): the addresses by kernel evaluation
+(`StartCrash.lean`); the start (`hraft_start`, the no-crash deployment's, at the start's heap
+`atStartFs lctx G`); the stable machines (the orchestrator and the clients: their no-crash boots and
+`main`s, `StableBoot.lean`); the restartable servers' obligations from the start's `srvShare K j`
+(`hraft_robust_of`'s hypotheses: server `j`'s precondition `Pc K j` of every generation, its first
+generation from the share and the machine's first file system, an empty root at `hraftDataDir`, and
+every generation's `CrashBootWpT`). -/
+
+section crash
+open NetFs
+attribute [local instance] kvraftExts kvraftExtsSemantics kvraftExtsInterp kvraftExtsCrashInterp
+  kvraftExts_hasNet kvraftExts_hasFs GooseGlobalGS.gooseInvGS
+
+/-- **`hraft_robust` from the restartable servers' obligations** (see the section's header): for some
+precondition `Pc K j` of server `j`'s generations, its first generation (`Hfirst`) and every
+generation's boot (`Hcrash`). -/
+theorem hraft_robust_of [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
+    [orch_sem : cmd.orch.Assumptions]
+    [client0_sem : cmd.client0.Assumptions]
+    [client1_sem : cmd.client1.Assumptions]
+    [client2_sem : cmd.client2.Assumptions]
+    [client3_sem : cmd.client3.Assumptions]
+    [client4_sem : cmd.client4.Assumptions]
+    [rserver1_sem : cmd.rserver1.Assumptions]
+    [rserver2_sem : cmd.rserver2.Assumptions]
+    [rserver3_sem : cmd.rserver3.Assumptions]
+    [rserver4_sem : cmd.rserver4.Assumptions]
+    [rserver5_sem : cmd.rserver5.Assumptions]
+    [rserver6_sem : cmd.rserver6.Assumptions]
+    [go.BasicIntoValInj]
+    (Pc : ∀ [GooseGlobalGS .hasLC kvraftGF] [NetProtoGS] [ReceiptBoundLe kvraftGF (2 ^ 62)],
+      HK kvraftGF → Nat → GooseLocalGS kvraftGF → IProp kvraftGF)
+    (Hfirst : ∀ [G : GooseGlobalGS .hasLC kvraftGF] [π : NetProtoGS]
+        [ReceiptBoundLe kvraftGF (2 ^ 62)] (K : HK kvraftGF) (j : Nat), 1 ≤ j ∧ j ≤ 6 →
+      ∀ st : Fs.OsState, hraftDataDir ∈ st.fs.roots.map (·.1) →
+        (∀ c, st.lookup (joinPath hraftDataDir [c]) = none) →
+        srvShare (hG := atStartFs lctx G) K j ⊢ ∀ L : GooseLocalGS kvraftGF,
+          ⌜L.goose_go_local_context = lctx⌝ -∗ fsStartRes L st -∗
+          ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc K j L)
+    (Hcrash : ∀ [G : GooseGlobalGS .hasLC kvraftGF] [π : NetProtoGS]
+        [ReceiptBoundLe kvraftGF (2 ^ 62)] (K : HK kvraftGF) (j : Nat) (e : Expr), 1 ≤ j ∧ j ≤ 6 →
+      rserverBoots[j - 1]? = some e → CrashBootWpT hraftThreadBound e (Pc K j))
+    (σ : Nat → state) (g : GlobalState)
+    (Hdir : ∀ j, 6 ≤ j → j < 12 →
+      hraftDataDir ∈ (fsOf (σ j)).fs.roots.map (·.1) ∧
+      ∀ c, (fsOf (σ j)).lookup (joinPath hraftDataDir [c]) = none) :
+    Robustness.Robust (crashServers σ) (stableMachines σ) g hraftThreadBound hraftStepBound := by
+  refine robust_of_netFsBootT (GF := kvraftGF) hraftKitAddrs (crashServers σ) (stableMachines σ) g
+    hraftThreadBound hraftStepBound hraftKitAddrs_nodup hraftKitAddrs_ok ?_
+  intro G π hrb
+  haveI hRB : ReceiptBoundLe kvraftGF (2 ^ 62) := ⟨hrb⟩
+  have hrb64 : receiptBound kvraftGF ≤ 2 ^ 64 := by
+    have := hRB.receiptBound_le; omega
+  iintro #Hreg Hs
+  imod hraft_start (hG := atStartFs lctx G) $$ Hreg Hs with ⟨%ρ, %K, %γp, Ho, Hcs, Hss⟩
+  isimp only [range5] at Hcs
+  isimp only [range'16] at Hss
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc0, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc1, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc2, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc3, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc4, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs1, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs2, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs3, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs4, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs5, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs6, -⟩
+  ihave H1 := Hfirst K 1 ⟨by omega, by omega⟩ _ (Hdir 6 (by omega) (by omega)).1
+    (Hdir 6 (by omega) (by omega)).2 $$ Hs1
+  ihave H2 := Hfirst K 2 ⟨by omega, by omega⟩ _ (Hdir 7 (by omega) (by omega)).1
+    (Hdir 7 (by omega) (by omega)).2 $$ Hs2
+  ihave H3 := Hfirst K 3 ⟨by omega, by omega⟩ _ (Hdir 8 (by omega) (by omega)).1
+    (Hdir 8 (by omega) (by omega)).2 $$ Hs3
+  ihave H4 := Hfirst K 4 ⟨by omega, by omega⟩ _ (Hdir 9 (by omega) (by omega)).1
+    (Hdir 9 (by omega) (by omega)).2 $$ Hs4
+  ihave H5 := Hfirst K 5 ⟨by omega, by omega⟩ _ (Hdir 10 (by omega) (by omega)).1
+    (Hdir 10 (by omega) (by omega)).2 $$ Hs5
+  ihave H6 := Hfirst K 6 ⟨by omega, by omega⟩ _ (Hdir 11 (by omega) (by omega)).1
+    (Hdir 11 (by omega) (by omega)).2 $$ Hs6
+  imodintro
+  iexists fun i => Pc K (i + 1)
+  iexists fun i => if i = 0 then iprop(orchShare (hG := atStartFs lctx G) (ρ := ρ) K γp)
+      else if i = 1 then iprop(cliShare (hG := atStartFs lctx G) (ρ := ρ) K 0)
+      else if i = 2 then iprop(cliShare (hG := atStartFs lctx G) (ρ := ρ) K 1)
+      else if i = 3 then iprop(cliShare (hG := atStartFs lctx G) (ρ := ρ) K 2)
+      else if i = 4 then iprop(cliShare (hG := atStartFs lctx G) (ρ := ρ) K 3)
+      else if i = 5 then iprop(cliShare (hG := atStartFs lctx G) (ρ := ρ) K 4)
+      else iprop(True)
+  isplitr
+  · -- every server's generations
+    ipureintro
+    intro i m hm
+    have hi : i < 6 := by
+      have := (List.getElem?_eq_some_iff.mp hm).1
+      simpa [crashServers] using this
+    have hb := crashServers_boot σ i m hm
+    exact Hcrash K (i + 1) m.1 ⟨by omega, by omega⟩ (by simpa using hb)
+  isplitr
+  · -- the orchestrator and the clients
+    ipureintro
+    intro j m hm
+    refine StableBootWpT.of_stableBootWp _ _ _ _ (stableBootWp_of _ _ _ ?_)
+    intro Lexts Lheap Lgs Lthr Lcr
+    letI hG : HeapGS .hasLC kvraftGF := ⟨G, ⟨Lexts, lctx, Lheap, Lgs, Lthr, Lcr⟩⟩
+    match j, hm with
+    | 0, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro HP Hgs
+      iapply wp_bootFs cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit net.rpc.codecUnset
+          cmd.orch.wp_boot (orchShare (hG := hG) (ρ := ρ) K γp)
+          (cmd.orch.wp_main EtcdGrove.hraftnet.wp_Orch K γp) $$ [HP] Hgs
+      iapply orchShare_atFs G Lexts Lheap Lgs Lthr Lcr K γp $$ HP
+    | 1, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro HP Hgs
+      iapply wp_bootFs cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit
+          net.rpc.codecUnset cmd.client0.wp_boot (cliShare (hG := hG) (ρ := ρ) K 0)
+          (cmd.client0.wp_main EtcdGrove.hraftnet.wp_Client K hrb64) $$ [HP] Hgs
+      iapply cliShare_atFs G Lexts Lheap Lgs Lthr Lcr K 0 $$ HP
+    | 2, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro HP Hgs
+      iapply wp_bootFs cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit
+          net.rpc.codecUnset cmd.client1.wp_boot (cliShare (hG := hG) (ρ := ρ) K 1)
+          (cmd.client1.wp_main EtcdGrove.hraftnet.wp_Client K hrb64) $$ [HP] Hgs
+      iapply cliShare_atFs G Lexts Lheap Lgs Lthr Lcr K 1 $$ HP
+    | 3, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro HP Hgs
+      iapply wp_bootFs cmd.client2.initialize' cmd.client2.main _ cmd.client2.getIsPkgInit
+          net.rpc.codecUnset cmd.client2.wp_boot (cliShare (hG := hG) (ρ := ρ) K 2)
+          (cmd.client2.wp_main EtcdGrove.hraftnet.wp_Client K hrb64) $$ [HP] Hgs
+      iapply cliShare_atFs G Lexts Lheap Lgs Lthr Lcr K 2 $$ HP
+    | 4, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro HP Hgs
+      iapply wp_bootFs cmd.client3.initialize' cmd.client3.main _ cmd.client3.getIsPkgInit
+          net.rpc.codecUnset cmd.client3.wp_boot (cliShare (hG := hG) (ρ := ρ) K 3)
+          (cmd.client3.wp_main EtcdGrove.hraftnet.wp_Client K hrb64) $$ [HP] Hgs
+      iapply cliShare_atFs G Lexts Lheap Lgs Lthr Lcr K 3 $$ HP
+    | 5, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro HP Hgs
+      iapply wp_bootFs cmd.client4.initialize' cmd.client4.main _ cmd.client4.getIsPkgInit
+          net.rpc.codecUnset cmd.client4.wp_boot (cliShare (hG := hG) (ρ := ρ) K 4)
+          (cmd.client4.wp_main EtcdGrove.hraftnet.wp_Client K hrb64) $$ [HP] Hgs
+      iapply cliShare_atFs G Lexts Lheap Lgs Lthr Lcr K 4 $$ HP
+    | _ + 6, hm => simp [stableMachines] at hm
+  isplitl [H1 H2 H3 H4 H5 H6]
+  · -- every server's first generation
+    simp only [crashServers]
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H1]
+    · simp only [Nat.zero_add, Nat.reduceAdd]
+      iexact H1
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H2]
+    · simp only [Nat.zero_add, Nat.reduceAdd]
+      iexact H2
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H3]
+    · simp only [Nat.zero_add, Nat.reduceAdd]
+      iexact H3
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H4]
+    · simp only [Nat.zero_add, Nat.reduceAdd]
+      iexact H4
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H5]
+    · simp only [Nat.zero_add, Nat.reduceAdd]
+      iexact H5
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H6]
+    · simp only [Nat.zero_add, Nat.reduceAdd]
+      iexact H6
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  · -- the stable machines' shares
+    simp only [stableMachines]
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Ho]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iexact Ho
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc0]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iexact Hc0
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc1]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iexact Hc1
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc2]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iexact Hc2
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc3]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iexact Hc3
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc4]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iexact Hc4
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+
+end crash
 
 end github_com.hashicorp.raft.examples.hraftnet
 end Perennial
