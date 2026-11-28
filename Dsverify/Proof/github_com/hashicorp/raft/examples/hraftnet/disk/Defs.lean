@@ -182,6 +182,44 @@ def diskMem0 (d : Loc) : IProp GF :=
     d.[Disk, go!"ikeys"] ↦ slice.nil ∗ d.[Disk, go!"ivals"] ↦ slice.nil ∗
     d.[Disk, go!"staged"] ↦ W64 0 ∗ d.[Disk, go!"commit"] ↦ W64 0)
 
+open Iris.ProofMode in
+/-- A fresh `*Disk` holds the empty image (what `Fresh` writes), nothing staged. -/
+theorem diskMem0_empty (d : Loc) :
+    diskMem0 (GF := GF) d ⊢ diskMem d ⟨[], [], [], W64 0⟩ (W64 0) := by
+  unfold diskMem0
+  iintro ⟨Hents, Hkeys, Hvals, Hikeys, Hivals, Hstaged, Hcommit⟩
+  iunfold diskMem
+  iexists slice.nil, slice.nil, slice.nil, slice.nil, slice.nil, [], [], [], []
+  iframe
+  simp only [List.map_nil]
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · iapply ownSliceCap_nil
+  isplitl
+  · iapply BigSepL2.bigSepL2_nil.2; itrivial
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · iapply ownSliceCap_nil
+  isplitl
+  · iapply BigSepL2.bigSepL2_nil.2; itrivial
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · iapply ownSliceCap_nil
+  isplitl
+  · iapply BigSepL2.bigSepL2_nil.2; itrivial
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · iapply ownSliceCap_nil
+  isplitl
+  · iapply BigSepL2.bigSepL2_nil.2; itrivial
+  isplitl
+  · iapply ownSlice_nil
+  iapply ownSliceCap_nil
+
 /-- The server a `Server` value holds. -/
 def srvOf (sv : Server) : SServer := ⟨sv.Suffrage', sv.ID', sv.Address'⟩
 
