@@ -106,7 +106,7 @@ theorem at_ext_foreign {σl σ : KVState} {m : List (List mvcc.Change)} (q : GoS
   have hle : σ.compacted ≤ r := by unfold KVState.rev at hr; omega
   rw [KVState.at_kvs σ r hle, KVState.kvs_eq σl, hc, hb, hm]
   unfold KVState.rev at hr
-  rw [List.take_append_eq_append_take, List.take_of_length_le (by omega), runFrom_append']
+  rw [List.take_append, List.take_of_length_le (by omega), runFrom_append']
   exact filter_runFrom_other q _ _ _ (fun cs hcs => hf cs (List.mem_of_mem_take hcs))
 
 end pure
