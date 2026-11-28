@@ -1699,6 +1699,7 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
   storeLogs_fstore_win_k γ rc i s prev pt ents lci j j lc D g hpre
     ⟨Nat.le_refl _, fun m h1 h2 => absurd h2 (by omega)⟩ hg Ψ
 
+/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, |s.log|)`'s commit
 (`truncate_upd`). -/
 theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
@@ -1789,6 +1790,7 @@ theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j 
   ihave HΨ := Hk $$ Hpw Hv Hst [] 
   · ipureintro; exact hdur
   iexact HΨ
+-/
 
 /-- (R2) **`SetUint64(CurrentTerm, t)`'s commit** (`setCurrentTerm`): no model step; the term step
 recorded pending (`tp`, its `tpRes` moved into the crash state), fired at the atomic store

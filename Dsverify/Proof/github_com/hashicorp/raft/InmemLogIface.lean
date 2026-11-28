@@ -77,7 +77,7 @@ theorem inmem_isLogStore
     · iapply HAU $$ HW
   isplitr
   · imodintro
-    iintro %mn %mx %Φ %Hmx HW HAU
+    iintro %main %mn %mx %Φ %Hmx HW HAU
     iapply (wp_DeleteRange γs i mn mx) $$ [] [HW HAU]
     · iframe #; ipureintro; exact Hmx
     · iapply HAU $$ HW
