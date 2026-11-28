@@ -420,14 +420,14 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     iframe
     ipureintro; exact ⟨rfl, hctv⟩
   iintro HW
-  unfold stWin
+  iunfold stWin at HW
   icases HW with (⟨%s', %p', -, Hwr⟩ | ⟨%vb, %Hvb⟩ | ⟨%kb, %v, %D2, %g2, -, HstQ, HpwQ⟩)
   · unfold winRes
     icases Hwr with ⟨HpwQ, -⟩
     icombine Hpw HpwQ gives %Hag
     cases Hag.2
   · cases Hvb
-  unfold stVq
+  iunfold stVq at HstQ
   icombine HstV HstQ gives %Hag
   obtain ⟨-, Hag⟩ := Hag
   simp only [Prod.mk.injEq] at Hag
@@ -1321,4 +1321,57 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   imod inv_alloc latestCfgN ⊤ (latestCfgCell r γ) $$ [Hlp Hpc] with #HlatInv
   · inext; unfold latestCfgCell
     iexists p; iframe
+  ihave #Hraft : (isRaft r γ rc' i : IProp GF) $$ []
+  · rw [isRaft_unseal]; unfold isRaftDef
+    isplitr; · iexact Hinv
+    isplitr; · iexact Hvoter
+    isplitr
+    · unfold raftImm; rw [hLID] at *; iframe #
+    isplitr
+    · unfold raftIfaces
+      rw [show logWin γ rc' i = logWin γ rc i from rfl, show stWin γ rc' i = stWin γ rc i from rfl,
+        show snapWin γ rc' i = snapWin γ rc i from rfl, show rc'.ownL = rc.ownL from rfl,
+        show rc'.ownS = rc.ownS from rfl, show rc'.ownSS = rc.ownSS from rfl, show rc'.snapP = rc.snapP from rfl,
+        show rc'.fsmOwn = rc.fsmOwn from rfl, show rc'.respP = rc.respP from rfl]
+      iexists logsI, stableI, snapsI, transI, fsmI, rpcCh, eof
+      iframe #
+      repeat' (first
+        | iexact Hfsm
+        | iexact Hsnaps
+        | iexact Heof
+        | iexact HlogsC
+        | (unfold isLogStore getLogPost; iexact HlogsC)
+        | iexact HstableC
+        | (unfold isStableStore; iexact HstableC)
+        | (rw [show (stWin γ rc i) = (fun op => stWin γ rc i op) from rfl]; unfold stWin; iexact HstableC)
+        | iexact HtransC
+        | (unfold isTransport; iexact HtransC)
+        | (ipureintro; first | exact Hnmono | exact Hpv | exact Hnb | exact ⟨Hpv, Hnb⟩)
+        | isplitr)
+    isplitr
+    · unfold raftConf
+      iexists c
+      iframe #
+      ipureintro; exact ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hRCL, hNSR, hMA1, hMA2,
+        hHB1, hHB2, hCT, hSI, hLL1, hLL2, hET, hHT, hCT2, hSI2⟩
+    isplitr
+    · unfold raftCells termCell cidxCell stateCell appliedCell cftCell ltipCell
+      iframe #
+    isplitr
+    · unfold raftLocks rwLock
+      iframe #
+      unfold rgOk; iexists γwg, γqb; iframe #; ipureintro; exact hb
+    isplitr
+    · unfold raftChans deadField deadChan
+      iframe #
+    · ipureintro; exact Hcv
+  -- the heartbeat fast path: the transport may call `r.processHeartbeat` from now on
+  wp_bind (App (Val #(methods _ _ _)) _)
+  iapply HSetHB
+  · iapply hbHandler_intro
+    iintro !> %v %tid' %Φ' Hv Htok' HΦ'
+    iapply wp_processHeartbeat r γ rc' i v tid' $$ %Φ' [$Hpkg $Hraft $Hv $Htok'] HΦ'
+  wp_auto
+  rw [hSkip]
+  wp_auto
   sorry
