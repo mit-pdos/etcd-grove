@@ -83,7 +83,6 @@ theorem ikey_intoVal_inj : Function.Injective (intoVal (V := ikey)) := by
     (ikey.TypeAssumptions.get_h x) (ikey.TypeAssumptions.get_h y) h))
   cases x; cases y; simp_all
 
-include sem package_sem in
 theorem ckey_intoVal_inj : Function.Injective (intoVal (V := ckey)) := by
   intro x y h
   have h : (#x : val) = #y := h
