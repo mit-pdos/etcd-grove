@@ -99,8 +99,8 @@ theorem storeHash.wp_proof (wp_mix : mix.spec (GF := GF) (hG := hG))
     · (try wp_auto)
       wp_apply wp_mix as %h4 -
       (try wp_auto)
-      wp_if_destruct <;> (try wp_auto) <;> (try wp_apply wp_mix as %h5 -) <;> (try wp_auto) <;>
-        wp_if_destruct <;> (try wp_auto) <;> (try wp_apply wp_mix as %h6 -) <;> (try wp_auto) <;>
+      cases w.obj'.Annotated' <;> (try wp_auto) <;> (try wp_apply wp_mix as %h5 -) <;> (try wp_auto) <;>
+        cases w.canon' <;> (try wp_auto) <;> (try wp_apply wp_mix as %h6 -) <;> (try wp_auto) <;>
         (wp_for_post; iframe; iexists j + W64 1, _, _; iframe; ipureintro; exact ⟨by word, by word⟩)
   · iapply HΦ
     itrivial
