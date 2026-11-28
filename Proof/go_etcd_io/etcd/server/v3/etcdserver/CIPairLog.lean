@@ -122,8 +122,8 @@ theorem srvTermPos_of_cluster_holds : srvTermPos_of_cluster.law (GF := GF) := by
   obtain ⟨-, he, ht⟩ := h
   have h1 := Hpos e (List.mem_of_getElem? he)
   intro h0
-  rw [← ht, h0] at h1
-  simp at h1
+  rw [ht, h0] at h1
+  revert h1; decide
 
 end ghostHeap
 
