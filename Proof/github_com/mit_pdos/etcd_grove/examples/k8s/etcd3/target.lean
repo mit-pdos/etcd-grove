@@ -4,6 +4,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.target
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeWEvents
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.pastRead
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.HView
 
 @[expose] public section
 
@@ -25,15 +26,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-/-- The builtin `max` of two `uint64`s. -/
-theorem wp_max_u64 (a b : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.max [go.uint64, go.uint64])) (Val #a)) (Val #b))
-    {{ (m : w64), RET #m; ⌜uint.nat m = max (uint.nat a) (uint.nat b)⌝ }} := by
-  wp_start
-  wp_if_destruct
-  all_goals (iapply HΦ; ipureintro; rw [Nat.max_def]; split <;> word)
 
 theorem sint_lt4_iff (t : w64) (h : uint.nat t < 256) :
     sint.Z t < sint.Z (W64 4) ↔ uint.nat t < 4 := by

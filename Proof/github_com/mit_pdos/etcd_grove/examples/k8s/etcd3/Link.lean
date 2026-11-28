@@ -132,6 +132,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histHashes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histHashes__skipTo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histLen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.hview__at
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformFromStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformToStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialEvents
@@ -227,6 +228,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner_
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__PrepareObjectForStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__UpdateObject
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.viewFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wantEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchList
@@ -1191,6 +1193,10 @@ theorem histHashes.wp_skipTo :
     EtcdGrove.k8s_etcd3.histHashes.skipTo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.histHashes.skipTo.wp_proof histHashes.wp_canonLocked histHashes.wp_intern wp_histLen
 
+theorem hview.wp_at :
+    EtcdGrove.k8s_etcd3.hview.at.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.hview.at.wp_proof wp_histAt
+
 theorem labelSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.wp_proof
@@ -1214,6 +1220,10 @@ theorem wp_settle :
 theorem wp_target :
     EtcdGrove.k8s_etcd3.target.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.target.wp_proof wp_decodeWEvents wp_parseRV wp_pastRead
+
+theorem wp_viewFrom :
+    EtcdGrove.k8s_etcd3.viewFrom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.viewFrom.wp_proof wp_histLen
 
 end links_hasLC
 
