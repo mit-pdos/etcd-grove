@@ -68,7 +68,7 @@ theorem decimal_addrPort (x : GoString) (n : w64) (h : 0 ≤ sint.Z n) :
   simp [digitW8]
 
 section sprintf
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
 
 theorem sprintf_str_d [go.IntoValInj GoString] [go.IntoValInj w64] (x : GoString) (n : w64)
     (out : GoString)

@@ -30,7 +30,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 /-- The method set of `*errors.errorString` has no `As`, `Unwrap` or `Is` method (Go's `errors`
 package gives it only `Error`). -/
-class ErrorStringLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class ErrorStringLeaf [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   leaf : ∀ v : val,
     _root_.Perennial.errors.isLeafError
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, v⟩
@@ -47,8 +47,8 @@ class ErrorStringLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Pro
     go!"Error" = some (go.signature.Signature [] false [go.string])
 
 /-- An `errors.New` error (a `*errorString`) is a leaf pointer error without an `Is` method. -/
-theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
-    (x : Loc) :
+theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+    [ErrorStringLeaf] (x : Loc) :
     _root_.Perennial.errors.IsPointerError
         ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
       _root_.Perennial.errors.isLeafError
@@ -60,8 +60,8 @@ theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [E
 /-- An `errors.New` error is a leaf pointer error without an `Is`, a `GRPCStatus` (the server's
 `errLeaf`; k8s etcd3 7c, HS-6) or a `Format` method (premise-fixes-4), whose `Error` is
 `Error() string` (fmt soundness 2). -/
-theorem errorString_errLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
-    (x : Loc) :
+theorem errorString_errLeaf [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+    [ErrorStringLeaf] (x : Loc) :
     _root_.Perennial.errors.IsPointerError
         ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
       _root_.Perennial.errors.isLeafError

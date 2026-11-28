@@ -26,7 +26,7 @@ section pure
 open _root_.Perennial.fmt
 
 /-- `Sprintf("%d.%d.%d", a, b, c)` of three `uint64`s. -/
-theorem semver.sprintf_ddd [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem semver.sprintf_ddd [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     [go.IntoValInj w64] [go.string ↓u go.string] (a b c : w64) (out : GoString)
     (h : SprintfOut go!"%d.%d.%d" [interface.mkOk go.uint64 #a, interface.mkOk go.uint64 #b,
       interface.mkOk go.uint64 #c] out) :
@@ -46,7 +46,7 @@ theorem semver.sprintf_ddd [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
   simp [decimalPad_zero]
 
 /-- `Sprintf(p ++ "%s", x)` of a string `x`, `p` one byte other than `%`. -/
-theorem semver.sprintf_cs [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem semver.sprintf_cs [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     [go.IntoValInj GoString] (c : w8) (hc : c ≠ W8 37) (x : GoString) (out : GoString)
     (h : SprintfOut (c :: go!"%s") [interface.mkOk go.string #x] out) :
     out = c :: x := by

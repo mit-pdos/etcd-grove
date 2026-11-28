@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
 
 section argok
-variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- An argument `fmt` formats safely: `nil` or a well-formed basic value. -/
 def argOkP (a : GoInterface) : Prop := a = GoInterface.nil ∨ ∃ ii, a = interface.ok ii ∧ fmt.ArgWf ii

@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section pure
-variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- A dynamic type outside `T`'s type set and, for a non-interface `T`, of another underlying type is
 not assignable to `T`, and the model decides it. -/
