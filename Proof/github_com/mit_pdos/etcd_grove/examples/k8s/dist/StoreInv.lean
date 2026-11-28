@@ -750,20 +750,147 @@ def kInvDW (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (σ₀ σl : KVState)
     ghostVar γ.h (1 : Qp).half h ∗ ghostMapAuth γ.p 1 M ∗ revOwnD γ σl ∗ shistOwn c σl ∗
     ⌜etcd_dist.KVExt σ₀ σl ∧ run (pMF g0 decOp) (fInit g0) h = some S ∧ KOkD c g0 S σl M nx⌝)
 
-/-- The invariant's contents: the prefix's ghost half `γs` at `pfxVH regP σl`, and the store's half at `σl`. -/
-def kInvDBody (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs : GName) (σ₀ : KVState) : IProp GF :=
-  iprop(∃ σl : KVState, ghostVar γs (1 : Qp).half (etcd_dist.pfxVH regP σl) ∗ kInvDW γ c g0 σ₀ σl)
+/-- **The store's value of the share's ghost variable** (`KVPfxHist`'s `W`): `v` is `pfxVH regP σl` at the
+last state `σl` the store saw, with a lower bound of `σl`'s changes in the share's history `γsh` (K8-8: the
+firings' authority over the history then says `σl`'s changes are a prefix of the current state's), and the
+store's half at `σl`. -/
+def kInvDV (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γsh : GName) (σ₀ : KVState)
+    (v : etcd_dist.PfxV) : IProp GF :=
+  iprop(∃ σl : KVState, ⌜v = etcd_dist.pfxVH regP σl⌝ ∗ monoListLbOwn γsh σl.changes ∗ kInvDW γ c g0 σ₀ σl)
+
+/-- The invariant's contents (`KVPfxHist`'s client invariant): the prefix's ghost half `γs` and the store's
+value of it. -/
+def kInvDBody (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs γsh : GName) (σ₀ : KVState) : IProp GF :=
+  iprop(∃ v, ghostVar γs (1 : Qp).half v ∗ kInvDV γ c g0 γsh σ₀ v)
 
 /-- The invariant's namespace. -/
 def drvDInvN : Namespace := client.kvClientN .@ "k8s"
 
 /-- **The store's invariant on the shared KV.** -/
-def kInvD (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs : GName) (σ₀ : KVState) : IProp GF :=
-  iprop(inv drvDInvN (kInvDBody γ c g0 γs σ₀))
+def kInvD (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs γsh : GName) (σ₀ : KVState) : IProp GF :=
+  iprop(inv drvDInvN (kInvDBody γ c g0 γs γsh σ₀))
 
-instance kInvD_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs : GName) (σ₀ : KVState) :
-    Persistent (kInvD (GF := GF) γ c g0 γs σ₀) := by
+instance kInvD_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γs γsh : GName) (σ₀ : KVState) :
+    Persistent (kInvD (GF := GF) γ c g0 γs γsh σ₀) := by
   unfold kInvD; infer_instance
+
+/-! ### The catch-up of `kInvDW` (K8-8; decisions of Handoff K8-7) -/
+
+/-- **The bound on the share's revision the catch-up needs** (decision 3): one more revision fits in
+etcd's revisions. A named premise of the catch-up and of the firings, never assumed elsewhere; K10
+discharges it by the client law from time receipts (`srvLogCert`'s `⧖`, as K9's revision bound). -/
+def RevBoundD (σ : KVState) : Prop := σ.rev + 1 < 2 ^ 63
+
+/-- **Two states equal up to the lessor's table** (decision 2): what a foreign lease grant, which moves no
+revision, changes. -/
+def SameL (σc σ : KVState) : Prop :=
+  σc.compacted = σ.compacted ∧ σc.base = σ.base ∧ σc.changes = σ.changes
+
+theorem SameL.refl (σ : KVState) : SameL σ σ := ⟨rfl, rfl, rfl⟩
+
+/-- **No new revision, the same changes** (decision 2): two states extending the start, the first's
+changes a prefix of the second's, at the same revision have the same changes. -/
+theorem sameL_of_rev {σ₀ σl σ : KVState} (hl : etcd_dist.KVExt σ₀ σl) (he : etcd_dist.KVExt σ₀ σ)
+    (hp : σl.changes <+: σ.changes) (hr : σ.rev = σl.rev) : SameL σl σ := by
+  refine ⟨hl.1.trans he.1.symm, hl.2.1.trans he.2.1.symm, ?_⟩
+  have hlen : σ.changes.length = σl.changes.length := by
+    unfold KVState.rev at hr; rw [he.1, hl.1] at hr; omega
+  exact hp.eq_of_length hlen.symm
+
+/-- **A lease-only difference is invisible to the prefix** (decision 2): the key-values under `p` (at every
+revision) and the history of `p` are the same. -/
+theorem pfxVH_sameL (p : GoString) {σc σ : KVState} (hs : SameL σc σ) :
+    etcd_dist.pfxVH p σ = etcd_dist.pfxVH p σc := by
+  obtain ⟨er, ea⟩ := at_congr hs.1 hs.2.1 hs.2.2
+  simp only [etcd_dist.pfxVH, etcd_dist.pfxView, etcd_dist.pfxChs, KVState.kvs, KVState.store, er, ea,
+    hs.1, hs.2.2]
+
+/-- **The store's steps read a state only up to its leases** (decision 2): a step from `σ` that moves is a
+step from a state equal to `σ` up to its leases. -/
+theorem kvNext_sameL {σc σ σ' : KVState} (hs : SameL σc σ) (hn : KvNext σ σ') (hne : σ' ≠ σ) :
+    KvNext σc σ' := by
+  rcases hn with h | ⟨h1, h2, h3, h4⟩
+  · exact absurd h hne
+  obtain ⟨er, ea⟩ := at_congr hs.1 hs.2.1 hs.2.2
+  have hk : σc.kvs = σ.kvs := by unfold KVState.kvs KVState.store; rw [er, ea]
+  right
+  refine ⟨by rw [er]; exact h1, by rw [hk]; exact h2, ?_, ?_⟩
+  · obtain ⟨a, b, d⟩ := h3; exact ⟨hs.1.trans a, hs.2.1.trans b, hs.2.2 ▸ d⟩
+  · unfold KvOne at h4 ⊢; rw [hs.2.2]; exact h4
+
+/-- **The store's half catches up with the share's state** (up to its leases): the store last saw `σl`;
+the share is at `σ`, extending `σl` with the same `pfxVH regP`, so the revisions in between have no change
+under `/registry/` (`pfxChs_same_ext`). With none, the half stays at `σl` (decision 2: `σ` is `σl` up to its
+leases); otherwise `kOkD_foreign` and the ghost catch-ups take it to `σ`, the lintest ghost and the pending
+writes unchanged. -/
+theorem kInvDW_catchup (γ : KNames) (c : StoreCfg GF DObj) (hcd : CfgD c) (g0 : HSt) {σ₀ σl σ : KVState}
+    (he : etcd_dist.KVExt σ₀ σ) (hv : etcd_dist.pfxVH regP σ = etcd_dist.pfxVH regP σl)
+    (hp : σl.changes <+: σ.changes) (hrb : RevBoundD σ) :
+    kInvDW γ c g0 σ₀ σl ⊢ |==> ∃ σc, ⌜SameL σc σ⌝ ∗ kInvDW γ c g0 σ₀ σc := by
+  obtain ⟨m, hm⟩ := hp
+  iintro H
+  iunfold kInvDW at H
+  icases H with ⟨%h, %S, %M, %nx, Hh, Hp, Hr, Hs, %Hpure⟩
+  obtain ⟨hel, hrun, hok⟩ := Hpure
+  have hc : σ.compacted = σl.compacted := he.1.trans hel.1.symm
+  have hb : σ.base = σl.base := he.2.1.trans hel.2.1.symm
+  have hf : ∀ cs ∈ m, ∀ ch ∈ cs, ¬ regP <+: ch.key := by
+    have := etcd_dist.pfxChs_same_ext hel he ⟨m, hm⟩ (congrArg Prod.snd hv)
+    rw [← hm, List.drop_left] at this; exact this
+  by_cases hne : m = []
+  · subst hne
+    imodintro
+    iexists σl
+    isplit
+    · ipureintro; exact ⟨hc.symm, hb.symm, by simpa using hm⟩
+    iunfold kInvDW
+    iexists h, S, M, nx
+    iframe Hh Hp Hr Hs
+    ipureintro; exact ⟨hel, hrun, hok⟩
+  · have hm' : σ.changes = σl.changes ++ m := hm.symm
+    have hok' := kOkD_foreign c g0 S σl σ M nx m hcd hok hc hb hm' hf hrb
+    imod (revOwnD_catchup γ hc hb hm' hf hne) $$ Hr with Hr
+    imod (shistOwn_catchup c hcd σl m σ hne hc hb hm' hf (by unfold RevBoundD at hrb; omega)) $$ Hs
+      with Hs
+    imodintro
+    iexists σ
+    isplit
+    · ipureintro; exact SameL.refl σ
+    iunfold kInvDW
+    iexists h, S, M, nx
+    iframe Hh Hp Hr Hs
+    ipureintro; exact ⟨he, hrun, hok'⟩
+
+/-- **The catch-up inside a firing** (`kvPfxP_au1H`/`kvPfxP_readAuH`'s step, which holds the share's
+history): the store's value of the ghost variable at the share's `σ` gives its half at a state equal to `σ`
+up to its leases. -/
+theorem kInvDV_catchup (γ : KNames) (c : StoreCfg GF DObj) (hcd : CfgD c) (g0 : HSt) (γsh : GName)
+    {σ₀ σ : KVState} (he : etcd_dist.KVExt σ₀ σ) (hrb : RevBoundD σ) :
+    monoListAuthOwn γsh 1 σ.changes ∗ kInvDV γ c g0 γsh σ₀ (etcd_dist.pfxVH regP σ) ⊢
+      |==> (monoListAuthOwn γsh 1 σ.changes ∗ ∃ σc, ⌜SameL σc σ⌝ ∗ kInvDW γ c g0 σ₀ σc) := by
+  iintro ⟨Ha, H⟩
+  iunfold kInvDV at H
+  icases H with ⟨%σl, %hv, #Hlb, H⟩
+  ihave %Hp := mono_list_auth_lb_valid (GF := GF) γsh 1 σ.changes σl.changes $$ Ha Hlb
+  imod (kInvDW_catchup (GF := GF) γ c hcd g0 he hv Hp.2 hrb) $$ H with H
+  imodintro
+  iframe Ha
+  iexact H
+
+/-- **The store's value back at a state equal to the share's up to its leases** (the end of a read's
+firing: `σc` is the share's state but for its leases). -/
+theorem kInvDV_of_sameL (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γsh : GName) {σ₀ σc σ : KVState}
+    (q : Qp) (hs : SameL σc σ) :
+    monoListAuthOwn γsh q σ.changes ∗ kInvDW γ c g0 σ₀ σc ⊢
+      monoListAuthOwn γsh q σ.changes ∗ kInvDV γ c g0 γsh σ₀ (etcd_dist.pfxVH regP σ) := by
+  iintro ⟨Ha, H⟩
+  ihave #Hlb := monoListLbOwn_get γsh q σ.changes $$ Ha
+  iframe Ha
+  iunfold kInvDV
+  iexists σc
+  rw [← hs.2.2]
+  iframe H Hlb
+  ipureintro; exact pfxVH_sameL regP hs
 
 end defs
 

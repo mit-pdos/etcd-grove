@@ -304,7 +304,10 @@ theorem viewsP_local {ps : List (GoString × GName)} {i : Nat} {p : GoString} {�
 /-- **An owner's update of the KV, fired at most once, reading the history** (`KVPfxDist.kvPfx_au1H`'s,
 at the ghost value `pfxVH`, and from a lower bound `l0` of the changes, e.g. the owner's last update's): the
 step learns that the changes extend `l0`; with its `W` recording `pfxVH p` at `l0`'s state, `pfxChs_same_ext`
-then says no change after `l0` is under `p`. -/
+then says no change after `l0` is under `p`. The step holds the history's authority over the firing (at the
+state's changes, handed back at the update's: it takes the update's step itself, `monoListAuthOwn_update`),
+so a lower bound its `W` keeps (the owner's last state's changes, inside its invariant) is a prefix of the
+state's changes (K8-8, decision 1). -/
 theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Change → Prop) (γh : GName)
     (σ₀ : KVState) (s : String) (hs : s ≠ "share")
     (W : PfxV → IProp GF) [hW : ∀ v, Timeless (W v)] (l0 : List (List mvcc.Change))
@@ -315,7 +318,8 @@ theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Chan
       inv (client.kvClientN .@ s) iprop(∃ v, ghostVar γ (1 : Qp).half v ∗ W v) ∗
       monoListLbOwn γh l0 ∗
       (∀ σ, ⌜l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes⌝ -∗
-        monoListLbOwn γh (f σ).changes -∗ W (pfxVH p σ) ==∗ W (pfxVH p (f σ)) ∗ Q σ) ⊢
+        monoListAuthOwn γh 1 σ.changes -∗ W (pfxVH p σ) ==∗
+          monoListAuthOwn γh 1 (f σ).changes ∗ W (pfxVH p (f σ)) ∗ Q σ) ⊢
     AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
       <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }> := by
   have Hm := client.kvClientN_mask
@@ -355,11 +359,10 @@ theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Chan
       with ⟨Hhalf, Hown⟩
     ihave %Hp := mono_list_auth_lb_valid (GF := GF) γh 1 σ.changes l0 $$ Hh Hl0
     have hpre : σ.changes <+: (f σ).changes := by rw [hnew]; exact List.prefix_append _ _
-    imod (monoListAuthOwn_update (f σ).changes hpre) $$ Hh with ⟨Hh, #Hlb⟩
     have hpre' : l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes :=
       ⟨Hp.2, Hσok.1, fun cs hcs c hc hpc =>
         (Hok c).1 (Hσok.2 (p, γ) (List.mem_of_getElem? Hi) cs hcs c hc hpc)⟩
-    imod Hstep $$ %σ %hpre' Hlb HW with ⟨HW, HQ⟩
+    imod Hstep $$ %σ %hpre' Hh HW with ⟨Hh, HW, HQ⟩
     ihave Hrest := viewsP_frame ps i σ (f σ) (viewsP_local Hap Hi hf σ) $$ Hrest
     have hnext : KVExt σ₀ (f σ) ∧ ∀ e ∈ ps, PfxChOk e.1 (ok e.1) (f σ).changes := by
       refine ⟨⟨by rw [hc]; exact Hσok.1.1, by rw [hb]; exact Hσok.1.2.1,
@@ -380,7 +383,8 @@ theorem kvPfxP_au1H (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Chan
 
 /-- **An owner's persistent read update of the KV, reading the history** (F5): `kvPfx_readAu`'s, the step
 also learning that the state's changes extend `l0` (a lower bound the caller has), its compaction revision
-and base, that its changes keep the owner's discipline, and their lower bound. -/
+and base, that its changes keep the owner's discipline, and holding the history's authority over the
+firing, handed back unchanged (a lower bound its `W` keeps is a prefix of the state's changes). -/
 theorem kvPfxP_readAuH (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.Change → Prop) (γh : GName)
     (σ₀ : KVState) (s : String) (hs : s ≠ "share")
     (W : PfxV → IProp GF) [hW : ∀ v, Timeless (W v)] (l0 : List (List mvcc.Change))
@@ -389,7 +393,8 @@ theorem kvPfxP_readAuH (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.C
       inv (client.kvClientN .@ s) iprop(∃ v, ghostVar γ (1 : Qp).half v ∗ W v) ∗
       monoListLbOwn γh l0 ∗
       □ (∀ σ, ⌜l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes⌝ -∗
-        monoListLbOwn γh σ.changes -∗ W (pfxVH p σ) ==∗ W (pfxVH p σ) ∗ □ Q σ) ⊢
+        monoListAuthOwn γh 1 σ.changes -∗ W (pfxVH p σ) ==∗
+          monoListAuthOwn γh 1 σ.changes ∗ W (pfxVH p σ) ∗ □ Q σ) ⊢
     kvReadAu γk Q := by
   have Hm := client.kvClientN_mask
   have Hm2 := kvShareN_mask s hs
@@ -424,14 +429,13 @@ theorem kvPfxP_readAuH (γk : KVNames) (p : GoString) (γ : GName) (okp : mvcc.C
   · iintro ⟨Hσ, %Hroom⟩
     imod Hmask with -
     ihave %Hp := mono_list_auth_lb_valid (GF := GF) γh 1 σ.changes l0 $$ Hh Hl0
-    ihave #Hlb := monoListLbOwn_get γh 1 σ.changes $$ Hh
     icases (viewsP_acc ps i p γ Hi σ).1 $$ Hviews with ⟨Hown, Hrest⟩
     ihave %Hv := ghostVar_agree γ v _ (pfxVH p σ) _ $$ Hhalf Hown
     subst Hv
     have hpre' : l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk p okp σ.changes :=
       ⟨Hp.2, Hσok.1, fun cs hcs c hc hpc =>
         (Hok c).1 (Hσok.2 (p, γ) (List.mem_of_getElem? Hi) cs hcs c hc hpc)⟩
-    imod Hstep $$ %σ %hpre' Hlb HW with ⟨HW, #HQ⟩
+    imod Hstep $$ %σ %hpre' Hh HW with ⟨Hh, HW, #HQ⟩
     imod Hcloses $$ [Hσ Hown Hrest Hh] with -
     · inext; iexists σ; iframe Hσ Hh
       isplitl [Hown Hrest]
