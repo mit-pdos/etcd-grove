@@ -605,6 +605,36 @@ theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState)
   iapply HK $$ Hv Hsv Hpe
   unfold applLb; iexact Hlb
 
+section gp
+variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
+
+/-- (hraft_robust R5) **A durable index's entry is the committed one**: with `durLb x`, the server's log holds
+at `x` the committed entry there. -/
+theorem srvOwn_ent_durLb {E : CoPset} (hE : ↑gprotN ⊆ E) (s : SState) (x : Nat) (e : Entry) :
+    Inv (GF := GF) γ ∗ srvOwn γ i s ∗ durLb γ i x ∗ CIdx γ x e ⊢ |={E}=>
+      srvOwn γ i s ∗ ⌜ent s.log x = some e ∧ x ≤ s.dur.1 ∧ s.dur.1 ≤ s.log.length⌝ := by
+  iintro ⟨#HI, Hs, #Hd, #Hc⟩
+  imod gprot.durLb_le γ E hE i s x $$ [$HI $Hs $Hd] with ⟨Hs, %hx⟩
+  imod gprot.srvOwn_facts γ E hE i s $$ [$HI $Hs] with ⟨Hs, -, %Hf⟩
+  imod gprot.srvOwn_CLb γ E hE i s $$ [$HI $Hs] with ⟨Hs, #HL⟩
+  ihave #Hc' := Hc
+  iunfold gprot.CIdx at Hc'
+  icases Hc' with ⟨%h1, #Hm⟩
+  have hdl : s.dur.1 ≤ s.log.length := Hf.2.1
+  have hlen : (s.log.take s.dur.1).length = s.dur.1 := by simp; omega
+  obtain ⟨e', he'⟩ := proto.ent_isSome (s.log.take s.dur.1) x h1 (by omega)
+  ihave #HC' := gprot.CLb_idx γ _ x e' he' $$ HL
+  iunfold gprot.CIdx at HC'
+  icases HC' with ⟨-, #Hm'⟩
+  ihave %Heq := mono_list_idx_agree γ.C (x - 1) e' e $$ Hm' Hm
+  subst Heq
+  iframe
+  ipureintro
+  refine ⟨?_, hx, hdl⟩
+  rw [← proto.ent_take s.log s.dur.1 x hx]; exact he'
+
+end gp
+
 end boot
 
 end github_com.hashicorp.raft

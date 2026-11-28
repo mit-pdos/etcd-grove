@@ -56,6 +56,25 @@ def RecOk (X : SrvDur) : Prop :=
   (X.dp = none → ∀ k e, X.A.m.lookup k = some e → k ≤ latIdx X.lat →
     ∃ e', X.A.m.lookup (latIdx X.lat) = some e')
 
+/-- (hraft_robust R5) **`LastIndex` against the protocol log** at boot: at most the log's length (every stored
+entry is a log entry), and the length itself when the log goes past the latest snapshot `x` (its last entry is
+stored). -/
+theorem rec_hi (A : LogAbs) (L : RLog) (x : Nat)
+    (h1 : ∀ k e, A.m.lookup k = some e → ent L k = some e)
+    (hhi1 : ∀ k e, A.m.lookup k = some e → k ≤ uint.nat A.hi)
+    (hhi2 : A.hi = W64 0 ∨ ∃ e, A.m.lookup (uint.nat A.hi) = some e)
+    (habove : ∀ k, x < k → k ≤ L.length → A.m.lookup k = ent L k) :
+    uint.nat A.hi ≤ L.length ∧ (x < L.length → uint.nat A.hi = L.length) := by
+  have hle : uint.nat A.hi ≤ L.length := by
+    rcases hhi2 with h | ⟨e, he⟩
+    · rw [h]; simp
+    · exact (proto.ent_le_length (h1 _ _ he)).2
+  refine ⟨hle, fun hx => ?_⟩
+  obtain ⟨e, he⟩ := proto.ent_isSome L L.length (by omega) (Nat.le_refl _)
+  have hs : A.m.lookup L.length = some e := by rw [habove _ hx (Nat.le_refl _)]; exact he
+  have := hhi1 _ _ hs
+  omega
+
 end pure
 
 section defs
