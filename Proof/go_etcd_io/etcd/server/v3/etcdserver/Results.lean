@@ -1655,13 +1655,37 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
         iprop(auth.authWB st M P f T Wb ∗ auth.tpAdmin st M) Wb (auth.authRd st R M) :=
-  EtcdGrove.apply.isAuthStepsX_of_authInvT auth_auth_enable_tie
-    (auth.authStore.UserAdd.wp_tieSure auth.authStore.wp_commitRevision
+  EtcdGrove.apply.isAuthStepsX_of_authInvT
+    (auth.authStore.AuthEnable.wp_tieB auth.authStore.wp_refreshRangePermCache
+      auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info)
+    (auth.authStore.UserAdd.wp_tieSureB auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
-      zap.Logger.wp_Info) auth_role_add_tie
-    auth_user_grant_role_tie auth_role_grant_permission_tie
+      zap.Logger.wp_Info)
+    (auth.authStore.RoleAdd.wp_tieB auth.authStore.wp_commitRevision zap.wp_String
+      zap.Logger.wp_Info)
+    (auth.authStore.UserGrantRole.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Warn
+      zap.Logger.wp_Info)
+    (auth.authStore.RoleGrantPermission.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache auth.wp_isValidPermissionRange zap.wp_String
+      zap.wp_ByteString zap.Logger.wp_Info)
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
-      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) st R M P f T Wb
+      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write)
+    (auth.authStore.AuthDisable.wp_tieB auth.authStore.wp_commitRevision zap.Logger.wp_Info)
+    (auth.authStore.UserDelete.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
+      zap.Logger.wp_Info)
+    (auth.authStore.UserChangePassword.wp_tieSureB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
+      zap.wp_Strings zap.Logger.wp_Info)
+    (auth.authStore.UserRevokeRole.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
+      zap.Logger.wp_Info)
+    (auth.authStore.RoleDelete.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Error zap.Logger.wp_Info)
+    (auth.authStore.RoleRevokePermission.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Info)
+    st R M P f T Wb
 
 theorem apply_UserAdd_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) :=
@@ -1688,6 +1712,36 @@ theorem apply_AuthEnable_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
   EtcdGrove.apply.applierV3backend.AuthEnable.wp_fuelX
     (EtcdGrove.apply.applierV3backend.AuthEnable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
 
+theorem apply_AuthDisable_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.AuthDisable.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.AuthDisable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_UserDelete_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserDelete.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.UserDelete.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_UserChangePassword_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserChangePassword.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.UserChangePassword.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_UserRevokeRole_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_RoleDelete_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleDelete.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.RoleDelete.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_RoleRevokePermission_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.apply.applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleRevokePermission.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.RoleRevokePermission.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
 /-- **The backend applier's `Authenticate` with auth on** (C1's A2, `apply/AuthStepsX.lean`). -/
 theorem apply_Authenticate_specX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Authenticate.specX (GF := GF) (hG := hG) :=
@@ -1705,7 +1759,8 @@ theorem apply_admin_backendX [go_etcd_io.etcd.cache.v3.Assumptions] (E : EtcdGro
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) W
         (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) :=
   EtcdGrove.apply.applierAdmin_backendX apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
-    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX E X W p
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_AuthDisable_fuelX apply_UserDelete_fuelX apply_UserChangePassword_fuelX apply_UserRevokeRole_fuelX apply_RoleDelete_fuelX apply_RoleRevokePermission_fuelX
+    apply_Authenticate_specX E X W p
 
 end latestApply
 
@@ -1818,7 +1873,8 @@ theorem server_uber_auth_steps_on [go_etcd_io.etcd.cache.v3.Assumptions] (s : Lo
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestResC stl (.on γa) γc) :=
   srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
-    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_Authenticate_specX
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX apply_AuthDisable_fuelX apply_UserDelete_fuelX apply_UserChangePassword_fuelX apply_UserRevokeRole_fuelX apply_RoleDelete_fuelX apply_RoleRevokePermission_fuelX
+    apply_Authenticate_specX
     (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
     Perennial.EtcdGrove.apply.applierV3backend.wp_Apply s ua E γa st hM
 
@@ -2154,6 +2210,20 @@ theorem srv_auth_tp_on : authSrvTPAt (GF := GF) (hG := hG) true :=
       zap.wp_ByteString zap.Logger.wp_Info)
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
       auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write)
+    (auth.authStore.AuthDisable.wp_tieB auth.authStore.wp_commitRevision zap.Logger.wp_Info)
+    (auth.authStore.UserDelete.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
+      zap.Logger.wp_Info)
+    (auth.authStore.UserChangePassword.wp_tieSureB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
+      zap.wp_Strings zap.Logger.wp_Info)
+    (auth.authStore.UserRevokeRole.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error
+      zap.Logger.wp_Info)
+    (auth.authStore.RoleDelete.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Error zap.Logger.wp_Info)
+    (auth.authStore.RoleRevokePermission.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Info)
     auth.authStore.wp_CheckPassword auth.authStore.wp_GenTokenPrefix
     schema.authBatchTx.wp_Lock schema.authBatchTx.wp_Unlock schema.authBatchTx.wp_UnsafePutUser
     schema.authBatchTx.wp_UnsafeDeleteUser schema.authBatchTx.wp_UnsafePutRole
@@ -2205,7 +2275,8 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_lease_revoke_latest,
     apply_UserAdd_fuelX,
     apply_RoleAdd_fuelX, apply_UserGrantRole_fuelX, apply_RoleGrantPermission_fuelX,
-    apply_AuthEnable_fuelX, apply_Authenticate_specX,
+    apply_AuthEnable_fuelX, apply_AuthDisable_fuelX, apply_UserDelete_fuelX, apply_UserChangePassword_fuelX, apply_UserRevokeRole_fuelX, apply_RoleDelete_fuelX, apply_RoleRevokePermission_fuelX,
+    apply_Authenticate_specX,
     EtcdGrove.apply.authApplierV3.Apply.wp_latest
     Perennial.EtcdGrove.apply.wp_needAdminPermission,
     Perennial.EtcdGrove.apply.applierV3backend.wp_Apply⟩ mvcc.api.mvccApi_New_wp_proof

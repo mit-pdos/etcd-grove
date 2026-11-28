@@ -9418,3 +9418,25 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   such WP specs, with no step to take a later off); pre and post otherwise unchanged. Proved in `Proof/io/Copy.lean`; `Raft__installSnapshot` and `InstallBase` discharge the premises. No
   top-level statement changes.
 - **Decision.** Untrusted spec, proved here; the caller still proves (the task, coordinator-E on #48).
+## 2026-11-28: the request model, its decoder axioms and the admin step for the six unmodelled admin kinds (nomode D3)
+
+- **Spec.** `apply.IRRModel` (`authUserDelete`, `authUserChangePassword`, `authUserRevokeRole`, `authRoleDelete`,
+  `authRoleRevokePermission`), `apply.internalRaftRequestIs` and `irrNoHdrIs` (their fields), so the trust-boundary
+  statements written in them (`pbutil.MustUnmarshalMessage.wp_proof`'s `irrDecode`, `proto.MarshalIRR.spec`);
+  `adminStateR`/`adminStepO`/`adminNext` (`KVAuthModelDefs.lean`), `apply.adminKindOk` (`Chain.lean`); the store's
+  `X.specTB` for `AuthDisable`, `UserDelete`, `UserRevokeRole`, `RoleDelete`, `RoleRevokePermission` and
+  `UserChangePassword.specTSureB` (`LatestTie.lean`); `apply.isAuthStepsX` (six clauses), the backend's
+  `X.stepSpecX`/`fuelSpecX`, `apply.AdminReq` (six constructors); `EtcdServer.{UserDelete,UserRevokeRole,RoleDelete,
+  RoleRevokePermission}.spec` (the request's names, as `RoleAdd.spec`'s).
+- **Defect.** The six kinds were a `Bool` in the request model and excluded by `adminKindOk`, so a log with one of
+  them was outside every mode-`on` statement (`notes/nomode-n1.md`, Step 3).
+- **Evidence.** `store.go` at the fork pin `18ab647b0` (`AuthDisable` 305-324, `UserDelete` 473-500,
+  `UserChangePassword` 502-545, `UserRevokeRole` 611-656, `RoleRevokePermission` 686-722, `RoleDelete` 724-765);
+  `apply/auth.go` `needAdminPermission` (all six need the admin permission); `v3_server.go:949-964`
+  (`EtcdServer.UserChangePassword` proposes the bcrypt hash, base64-encoded, with `Password` cleared).
+- **Change.** Each field an `Option` of the request's model (`authUserDeleteIs` = `auth.userDeleteReqIs`, ...;
+  `ChangePasswordModel` with its `pwSure`); `adminStateR` steps the six (the flag the steps read the state's own);
+  `adminKindOk` admits them (the user's or role's name a bbolt key where the store writes that key; a
+  `UserChangePassword`'s password choice that cannot fail). Exact before/after: `notes/nomode-n1.md`, "D3".
+- **Decision.** D3 approved by the coordinator for Upamanyu (2026-11-27/28); the trusted-visible text goes to his
+  review packet before landing.

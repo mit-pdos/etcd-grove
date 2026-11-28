@@ -54,6 +54,22 @@ theorem authEnableR_on (γa : auth.AuthNames) (en : Bool) (st : auth.AuthState) 
     (h : authEnableR (.on γa) en st o) : auth.stepOf (auth.authEnableF st.enabled) st o := by
   rw [h.1 γa rfl]; exact h.2
 
+/-- **A flag-reading step at the flag `en` its store read** (nomode D3, 2026-11-28: `AuthDisable`,
+`UserDelete`, `UserRevokeRole`, `RoleDelete`, as `authEnableR`), that flag the latest state's in the
+mode `on`. -/
+def flagR (M : auth.AuthMode) (en : Bool) (R : auth.StepRel) : auth.StepRel :=
+  fun st o => (∀ γa, M = .on γa → st.enabled = en) ∧ R st o
+
+theorem stepSmall_flagR (M : auth.AuthMode) (en : Bool) (R : auth.StepRel) (h : auth.StepSmall R) :
+    auth.StepSmall (flagR M en R) :=
+  fun st st' hs hR => h st st' hs hR.2
+
+/-- In the mode `on`, `flagR` is the step at the state's own flag. -/
+theorem flagR_on (γa : auth.AuthNames) (en : Bool) (F : Bool → auth.AuthState → auth.Outcome)
+    (st : auth.AuthState) (o : auth.Outcome) (h : flagR (.on γa) en (auth.stepOf (F en)) st o) :
+    auth.stepOf (F st.enabled) st o := by
+  rw [h.1 γa rfl]; exact h.2
+
 end pure
 
 section defs
@@ -132,7 +148,73 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           (Val #pw))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ RD ∗
           auth.authOwn M hs ∗ X hs ∗ W ∗ auth.authenticated M hs name resp err ∗
-          (⌜err = GoInterface.nil⌝ ∨ ∃ e : auth.AuthErr, auth.authErrOf e err) }}))
+          (⌜err = GoInterface.nil⌝ ∨ ∃ e : auth.AuthErr, auth.authErrOf e err) }}) ∗
+    -- (nomode D3, 2026-11-28) the six other admin requests; the flag-reading four at the flag the
+    -- store read (`flagR`), their cap at the state's own flag (`auth.ownFlagR`), as `AuthEnable`
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF),
+      {{ auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authDisableF en))⌝ ∗
+          auth.capNextM M hs (auth.ownFlagR auth.authDisableF) }}
+        (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
+      {{ RET #(); (Post ∨ Pre) ∗ W ∗ ∃ en : Bool, auth.enabledVerdict M en ∗
+          auth.adminOutX M (ownX M X) hs (flagR M en (auth.stepOf (auth.authDisableF en)))
+            auth.noExtra GoInterface.nil }}) ∗
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
+      {{ auth.userDeleteReqIs r name ∗ auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗
+          srvApi.csContractA P f Pre Q Post ∗
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userDeleteF en name))⌝ ∗
+          auth.capNextM M hs (auth.ownFlagR (fun en => auth.userDeleteF en name)) }}
+        (App (Val #(methods ai.ty go!"UserDelete" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+          applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserDeleteResponse resp err ∗
+          ∃ en : Bool, auth.enabledVerdict M en ∗
+            auth.adminOutX M (ownX M X) hs (flagR M en (auth.stepOf (auth.userDeleteF en name)))
+              auth.noExtra err }}) ∗
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
+      {{ auth.userChangePasswordReqIs r name ∗ auth.userChangePasswordSure r ∗
+          ⌜name.length ≤ backend.maxKeySize⌝ ∗ auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗
+          srvApi.csContractA P f Pre Q Post ∗
+          ⌜auth.stepOk M hs (auth.stepOf (auth.userChangePasswordF name))⌝ ∗
+          auth.capNextM M hs (auth.stepOf (auth.userChangePasswordF name)) }}
+        (App (Val #(methods ai.ty go!"UserChangePassword" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+          applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗
+          auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.userChangePasswordF name))
+            auth.noExtra err }}) ∗
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString),
+      {{ auth.userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+          auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.userRevokeRoleF en name role))⌝ ∗
+          auth.capNextM M hs (auth.ownFlagR (fun en => auth.userRevokeRoleF en name role)) }}
+        (App (Val #(methods ai.ty go!"UserRevokeRole" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+          applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserRevokeRoleResponse resp err ∗
+          ∃ en : Bool, auth.enabledVerdict M en ∗
+            auth.adminOutX M (ownX M X) hs
+              (flagR M en (auth.stepOf (auth.userRevokeRoleF en name role))) auth.noExtra err }}) ∗
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (role : GoString),
+      {{ auth.roleDeleteReqIs r role ∗ auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗
+          srvApi.csContractA P f Pre Q Post ∗
+          ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.roleDeleteF en role))⌝ ∗
+          auth.capNextM M hs (auth.ownFlagR (fun en => auth.roleDeleteF en role)) ∗
+          ⌜∀ s : auth.AuthState, auth.histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
+            n.length ≤ backend.maxKeySize⌝ }}
+        (App (Val #(methods ai.ty go!"RoleDelete" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+          applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleDeleteResponse resp err ∗
+          ∃ en : Bool, auth.enabledVerdict M en ∗
+            auth.adminOutX M (ownX M X) hs (flagR M en (auth.stepOf (auth.roleDeleteF en role)))
+              auth.noExtra err }}) ∗
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (role key rangeEnd : GoString),
+      {{ auth.roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜role.length ≤ backend.maxKeySize⌝ ∗
+          auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
+          ⌜auth.stepOk M hs (auth.roleRevokePermissionR role key rangeEnd)⌝ ∗
+          auth.capNextM M hs (auth.roleRevokePermissionR role key rangeEnd) }}
+        (App (Val #(methods ai.ty go!"RoleRevokePermission" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+          applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗
+          auth.adminOutX M (ownX M X) hs (auth.roleRevokePermissionR role key rangeEnd)
+            auth.noExtra err }}))
 
 instance isAuthStepsX_persistent (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMode)
     (X : List auth.AuthState → IProp GF) (W Wb RD : IProp GF) :
@@ -167,7 +249,7 @@ theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
     (X : List auth.AuthState → IProp GF) (W Y Wb RD : IProp GF) :
     isAuthStepsX (GF := GF) st P f M X W Wb RD ⊢ isAuthStepsX st P f M X iprop(W ∗ Y) Wb RD := by
   iunfold isAuthStepsX
-  iintro ⟨%ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6⟩
+  iintro ⟨%ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12⟩
   iexists ai
   isplitr
   · ipureintro; exact Hai
@@ -206,10 +288,52 @@ theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
     iintro !> %resp %err ⟨HPP, HW, Hrest⟩
     iapply HΦ
     iframe
+  isplitr
   · iintro !> %hs %Pre %Q %Post %ctx %name %pw %Φ !> ⟨Hon, HRD, Ho, HX, ⟨HW, HY⟩, Hcs, Hctx⟩ HΦ
     iapply H6 $$ %hs %Pre %Q %Post %ctx %name %pw [Hon HRD Ho HX HW Hcs Hctx]
     · iframe
     iintro !> %resp %err ⟨HPP, HRD, Ho, HX, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
+    iapply H7 $$ %hs %Pre %Q %Post [Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
+    · iframe
+    iintro !> ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    iapply H8 $$ %hs %Pre %Q %Post %r %name [Hr Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    iapply H9 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    iapply H10 $$ %hs %Pre %Q %Post %r %name %role [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨Hr, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap, Hnm⟩ HΦ
+    iapply H11 $$ %hs %Pre %Q %Post %r %role [Hr Ho HX HW Hw1 Hw2 Hcs Hok Hcap Hnm]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  · iintro !> %hs %Pre %Q %Post %r %role %key %re %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    iapply H12 $$ %hs %Pre %Q %Post %r %role %key %re [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
     iapply HΦ
     iframe
 
@@ -221,7 +345,7 @@ theorem isAuthStepsX_wbMono (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
     (X : List auth.AuthState → IProp GF) (W Wb Wb' RD : IProp GF) :
     □ (Wb' -∗ Wb) ∗ isAuthStepsX (GF := GF) st P f M X W Wb RD ⊢ isAuthStepsX st P f M X W Wb' RD := by
   iunfold isAuthStepsX
-  iintro ⟨#Hc, %ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6⟩
+  iintro ⟨#Hc, %ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12⟩
   iexists ai
   isplitr
   · ipureintro; exact Hai
@@ -256,7 +380,44 @@ theorem isAuthStepsX_wbMono (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
     ihave Hw2 := Hc $$ Hw2
     iapply H5 $$ %hs %Pre %Q %Post %r %name %w [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
     iframe
+  isplitr
   · iexact H6
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, HX, HW, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    ihave Hw3 := Hc $$ Hw3
+    iapply H7 $$ %hs %Pre %Q %Post [Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H8 $$ %hs %Pre %Q %Post %r %name [Hr Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H9 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H10 $$ %hs %Pre %Q %Post %r %name %role [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨Hr, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap, Hnm⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H11 $$ %hs %Pre %Q %Post %r %role [Hr Ho HX HW Hw1 Hw2 Hcs Hok Hcap Hnm] HΦ
+    iframe
+  · iintro !> %hs %Pre %Q %Post %r %role %key %re %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H12 $$ %hs %Pre %Q %Post %r %role %key %re [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
+    iframe
 
 /-- **An admin operation's result's error** is one the apply layer can take (`adminOut_applyErrIs`
 for an authority family). -/
@@ -319,138 +480,127 @@ theorem adminOutX_rel (M : auth.AuthMode) (Own : List auth.AuthState → IProp G
   · ileft; iexists e; iframe Ho He; ipureintro; exact hx
   · iright; iexists st, o; iframe Hr; ipureintro; exact ⟨ho.1, h st o ho.1 ho.2⟩
 
-/-- **`isAuthStepsX` of the real store** at `st`, with `X = auth.tieRes st M` and the write
-resource but the halves (`auth.authWB`) with the provider's admin share, from E2s's `X.specT`. -/
-theorem isAuthStepsX_of_authInvT
-    (hEnable : auth.authStore.AuthEnable.specT (GF := GF) (hG := hG))
-    (hUserAdd : auth.authStore.UserAdd.specTSure (GF := GF) (hG := hG))
-    (hRoleAdd : auth.authStore.RoleAdd.specT (GF := GF) (hG := hG))
-    (hUserGrantRole : auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG))
-    (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG))
-    (hAuthn : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
-        iprop(auth.authWB st M P f T Wb ∗ auth.tpAdmin st M) Wb (auth.authRd st R M) := by
-  iintro ⟨#Hpkg, #Hinv⟩
+open Iris.ProofMode in
+/-- **The admin steps at an equivalent write resource** (nomode D3, 2026-11-28): `W` is only
+framed by the steps. -/
+theorem isAuthStepsX_wIso (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMode)
+    (X : List auth.AuthState → IProp GF) (W W' Wb RD : IProp GF) :
+    □ (W -∗ W') ∗ □ (W' -∗ W) ∗ isAuthStepsX (GF := GF) st P f M X W Wb RD ⊢
+      isAuthStepsX st P f M X W' Wb RD := by
+  iintro ⟨#Ha, #Hb, Hst⟩
+  iunfold isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12⟩
   iunfold isAuthStepsX
-  iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
+  iexists ai
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact Hai
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hw3, Hcs, %Hok, #Hcap⟩ HΦ
-    iunfold auth.tieRes at HX
-    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave #Hcap := auth.capNextM_authEnableOwn_at M hs b0
-      (fun γa hM stl hl => by subst hM; exact ((Ht stl hl).1).symm) $$ Hcap
-    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
-    · iframe; iframe #
-    iapply (hEnable st R M P f T Wb hs Pre Q Post b0 sc0) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
-    · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
-    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
-    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
-    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
-    · iframe; iframe #
-    -- (E3c) the flag read is the admin side's half, tied to the latest state
-    ihave Hout := adminOutX_rel M _ hs _ (authEnableR M en) _ err
-      (fun stl o hl hR => ⟨fun γa hM => by
-        subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
-    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hon, Ho, HX, HW, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
+    · iframe
+    iintro !> %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
     iapply HΦ
-    iframe HPP HW HA Ha
-    iexists en; iframe Hv; iexact Hout
+    iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
-    iunfold auth.tieRes at HX
-    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
-    · iframe; iframe #
-    iapply (hUserAdd st R M P f T Wb hs Pre Q Post r name b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
-    · iframe; iframe #; isplitr
-      · ipureintro; exact Hn
-      ipureintro; exact Hok
-    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
-    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
-    · iframe; iframe #
-    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H2 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
     iapply HΦ
-    iframe HPP HW HA Ha Hresp; iexact Hout
+    iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
-    iunfold auth.tieRes at HX
-    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
-    · iframe; iframe #
-    iapply (hRoleAdd st R M P f T Wb hs Pre Q Post r name b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
-    · iframe; iframe #; isplitr
-      · ipureintro; exact Hn
-      ipureintro; exact Hok
-    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
-    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
-    · iframe; iframe #
-    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H3 $$ %hs %Pre %Q %Post %r %name [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
     iapply HΦ
-    iframe HPP HW HA Ha Hresp; iexact Hout
+    iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hb, %Hok, #Hcap⟩ HΦ
-    iunfold auth.tieRes at HX
-    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
-    · iframe; iframe #
-    iapply (hUserGrantRole st R M P f T Wb hs Pre Q Post r user role b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
-    · iframe; iframe #; isplitr
-      · ipureintro; exact Hn
-      isplitr
-      · ipureintro; exact Hb
-      ipureintro; exact Hok
-    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
-    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
-    · iframe; iframe #
-    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hu, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H4 $$ %hs %Pre %Q %Post %r %user %role [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hu Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
     iapply HΦ
-    iframe HPP HW HA Ha Hresp; iexact Hout
+    iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
-    iunfold auth.tieRes at HX
-    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
-    · iframe; iframe #
-    iapply (hRoleGrantPermission st R M P f T Wb hs Pre Q Post r name w b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
-    · iframe; iframe #; isplitr
-      · ipureintro; exact Hn
-      ipureintro; exact Hok
-    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
-    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
-    · iframe; iframe #
-    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H5 $$ %hs %Pre %Q %Post %r %name %w [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
     iapply HΦ
-    iframe HPP HW HA Ha Hresp; iexact Hout
-  -- (C1's A2) `Authenticate`: the store's `specTB` at the halves the tie holds, which it keeps
-  · iintro !> %hs %Pre %Q %Post %ctx %name %pw %Φ !> ⟨%Hon, HRD, Ho, HX, ⟨HW, HA⟩, Hcs, Hctx⟩ HΦ
-    iunfold auth.authRd at HRD
-    icases HRD with ⟨Hen, HRD'⟩
-    iunfold auth.tieRes at HX
-    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    iunfold auth.authWB at HW
-    icases HW with ⟨⟨%be, Hbe⟩, HT⟩
-    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
-    · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hAuthn st R M P f T Wb hs Pre Q Post ctx name pw b0 sc0 be) $$ [Hen Ho HWR Hcs Hctx]
-    · iframe; iframe #
-    iintro !> %resp %err ⟨HPP, Hen, Ho, HWR, Hau, #He⟩
-    iunfold auth.authWRxB at HWR
-    icases HWR with ⟨Hbe, HT, Hfl, -, Hca, -⟩
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %ctx %name %pw %Φ !> ⟨Hon, HRD, Ho, HX, HW, Hcs, Hctx⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H6 $$ %hs %Pre %Q %Post %ctx %name %pw [Hon HRD Ho HX HW Hcs Hctx]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HRD, Ho, HX, HW, Hrest⟩
+    ihave HW := Ha $$ HW
     iapply HΦ
-    iframe HPP Ho Hau He HA
-    isplitl [Hen HRD']
-    · iunfold auth.authRd; iframe
-    isplitl [Hfl Hca]
-    · iunfold auth.tieRes; iexists b0, sc0; iframe; iframe #; ipureintro; exact Ht
-    iunfold auth.authWB; iframe HT; iexists be; iframe Hbe
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, HX, HW, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H7 $$ %hs %Pre %Q %Post [Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
+    · iframe
+    iintro !> ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H8 $$ %hs %Pre %Q %Post %r %name [Hr Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H9 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H10 $$ %hs %Pre %Q %Post %r %name %role [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨Hr, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap, Hnm⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H11 $$ %hs %Pre %Q %Post %r %role [Hr Ho HX HW Hw1 Hw2 Hcs Hok Hcap Hnm]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
+    iapply HΦ
+    iframe
+  · iintro !> %hs %Pre %Q %Post %r %role %key %re %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave HW := Hb $$ HW
+    iapply H12 $$ %hs %Pre %Q %Post %r %role %key %re [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    ihave HW := Ha $$ HW
+    iapply HΦ
+    iframe
 
 /-- **`isAuthStepsX` of the real store, keeping its backend** (the auth plan's E3l): as
 `isAuthStepsX_of_authInvT`, with the write resource's backend `be` kept by each step (E3l's
@@ -463,6 +613,12 @@ theorem isAuthStepsX_of_authInvTB
     (hUserGrantRole : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
     (hAuthn : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
+    (hDisable : auth.authStore.AuthDisable.specTB (GF := GF) (hG := hG))
+    (hUserDelete : auth.authStore.UserDelete.specTB (GF := GF) (hG := hG))
+    (hChangePassword : auth.authStore.UserChangePassword.specTSureB (GF := GF) (hG := hG))
+    (hUserRevokeRole : auth.authStore.UserRevokeRole.specTB (GF := GF) (hG := hG))
+    (hRoleDelete : auth.authStore.RoleDelete.specTB (GF := GF) (hG := hG))
+    (hRoleRevokePermission : auth.authStore.RoleRevokePermission.specTB (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (Ψ : go_etcd_io.etcd.server.v3.auth.AuthBackend → IProp GF) [hΨ : ∀ be, Persistent (Ψ be)] :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
@@ -586,6 +742,7 @@ theorem isAuthStepsX_of_authInvTB
     · iexists be; iframe Hbe HT HΨ
     iexact Hout
   -- (C1's A2) `Authenticate`: the store's `specTB`, which keeps the backend and the halves
+  isplitr
   · iintro !> %hs %Pre %Q %Post %ctx %name %pw %Φ !> ⟨%Hon, HRD, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, Hctx⟩ HΦ
     iunfold auth.authRd at HRD
     icases HRD with ⟨Hen, HRD'⟩
@@ -605,6 +762,187 @@ theorem isAuthStepsX_of_authInvTB
     isplitl [Hfl Hca]
     · iunfold auth.tieRes; iexists b0, sc0; iframe; iframe #; ipureintro; exact Ht
     iexists be; iframe Hbe HT HΨ
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hw3, Hcs, %Hok, #Hcap⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave #Hcap := auth.capNextM_ownFlag_at M hs _ b0
+      (fun γa hM stl hl => by subst hM; exact ((Ht stl hl).1).symm) $$ Hcap
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hDisable st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
+    · iframe; iframe #; ipureintro; exact Hok
+    iintro !> ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    ihave Hout := adminOutX_rel M _ hs _ (flagR M en (auth.stepOf (auth.authDisableF en))) _ _
+      (fun stl o hl hR => ⟨fun γa hM => by
+        subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
+    iapply HΦ
+    iframe HPP HA
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexists en; iframe Hv; iexact Hout
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave #Hcap := auth.capNextM_ownFlag_at M hs _ b0
+      (fun γa hM stl hl => by subst hM; exact ((Ht stl hl).1).symm) $$ Hcap
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hUserDelete st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hcs]
+    · iframe; iframe #; ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HA, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    ihave Hout := adminOutX_rel M _ hs _ (flagR M en (auth.stepOf (auth.userDeleteF en name))) _ _
+      (fun stl o hl hR => ⟨fun γa hM => by
+        subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
+    icases adminOutX_applyErrIs M _ hs _ _ _ $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexists en; iframe Hv; iexact Hout
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hChangePassword st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HA, HPP, HWR, Hresp, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    icases adminOutX_applyErrIs M _ hs _ _ _ $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexact Hout
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave #Hcap := auth.capNextM_ownFlag_at M hs _ b0
+      (fun γa hM stl hl => by subst hM; exact ((Ht stl hl).1).symm) $$ Hcap
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hUserRevokeRole st R M P f T Wb hs Pre Q Post r name role b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    ihave Hout := adminOutX_rel M _ hs _ (flagR M en (auth.stepOf (auth.userRevokeRoleF en name role))) _ _
+      (fun stl o hl hR => ⟨fun γa hM => by
+        subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
+    icases adminOutX_applyErrIs M _ hs _ _ _ $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexists en; iframe Hv; iexact Hout
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨#Hr, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap, %Hnm⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave #Hcap := auth.capNextM_ownFlag_at M hs _ b0
+      (fun γa hM stl hl => by subst hM; exact ((Ht stl hl).1).symm) $$ Hcap
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hRoleDelete st R M P f T Wb hs Pre Q Post r role b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
+    · iframe; iframe #; ipureintro; exact ⟨Hok, Hnm⟩
+    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, %en, %Hen, #Hv, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    ihave Hout := adminOutX_rel M _ hs _ (flagR M en (auth.stepOf (auth.roleDeleteF en role))) _ _
+      (fun stl o hl hR => ⟨fun γa hM => by
+        subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
+    icases adminOutX_applyErrIs M _ hs _ _ _ $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexists en; iframe Hv; iexact Hout
+  · iintro !> %hs %Pre %Q %Post %r %role %key %re %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hRoleRevokePermission st R M P f T Wb hs Pre Q Post r role key re b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ _ b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    icases adminOutX_applyErrIs M _ hs _ _ _ $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexact Hout
+
+/-- **`isAuthStepsX` of the real store** at `st`, with `X = auth.tieRes st M` and the write
+resource but the halves (`auth.authWB`) with the provider's admin share: `isAuthStepsX_of_authInvTB`
+at a trivial `Ψ` (nomode D3, 2026-11-28: until then a proof of its own from E2s's `X.specT`). -/
+theorem isAuthStepsX_of_authInvT
+    (hEnable : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG))
+    (hUserAdd : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG))
+    (hRoleAdd : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
+    (hUserGrantRole : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
+    (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
+    (hAuthn : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
+    (hDisable : auth.authStore.AuthDisable.specTB (GF := GF) (hG := hG))
+    (hUserDelete : auth.authStore.UserDelete.specTB (GF := GF) (hG := hG))
+    (hChangePassword : auth.authStore.UserChangePassword.specTSureB (GF := GF) (hG := hG))
+    (hUserRevokeRole : auth.authStore.UserRevokeRole.specTB (GF := GF) (hG := hG))
+    (hRoleDelete : auth.authStore.RoleDelete.specTB (GF := GF) (hG := hG))
+    (hRoleRevokePermission : auth.authStore.RoleRevokePermission.specTB (GF := GF) (hG := hG))
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
+        iprop(auth.authWB st M P f T Wb ∗ auth.tpAdmin st M) Wb (auth.authRd st R M) := by
+  iintro ⟨#Hpkg, #Hinv⟩
+  ihave #H := isAuthStepsX_of_authInvTB hEnable hUserAdd hRoleAdd hUserGrantRole
+    hRoleGrantPermission hAuthn hDisable hUserDelete hChangePassword hUserRevokeRole hRoleDelete
+    hRoleRevokePermission st R M P f T Wb (fun _ => iprop(True)) $$ [$Hpkg $Hinv]
+  iapply (isAuthStepsX_wIso (auth.authIface st) P f M (auth.tieRes st M)
+    iprop((∃ be : go_etcd_io.etcd.server.v3.auth.AuthBackend, ((auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗
+      auth.authWBackendOk be M P f T Wb) ∗ T) ∗ iprop(True)) ∗ auth.tpAdmin st M)
+    iprop(auth.authWB st M P f T Wb ∗ auth.tpAdmin st M) Wb (auth.authRd st R M))
+  isplitr
+  · iintro !> ⟨⟨%be, ⟨Hbe, HT⟩, -⟩, HA⟩
+    iframe HA
+    iunfold auth.authWB
+    iframe HT
+    iexists be; iexact Hbe
+  isplitr
+  · iintro !> ⟨HW, HA⟩
+    iframe HA
+    iunfold auth.authWB at HW
+    icases HW with ⟨⟨%be, Hbe⟩, HT⟩
+    iexists be
+    iframe Hbe HT
+  iexact H
 
 end proof
 
@@ -822,6 +1160,261 @@ abbrev applierV3backend.AuthEnable.fuelSpecX : Prop :=
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
           (authEnableR E.authMode en) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.AuthDisable()` performs the model's step carrying `X`** (`AuthDisable.stepSpec`'s; nomode D3). -/
+abbrev applierV3backend.AuthDisable.stepSpecX : Prop :=
+  ∀ (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState),
+    (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authDisableF en))) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM E.authMode hs (auth.ownFlagR auth.authDisableF) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthDisable")) (Val #()))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.authDisableF en))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.UserDelete(r)` performs the model's step carrying `X`** (`UserDelete.stepSpec`'s; nomode D3). -/
+abbrev applierV3backend.UserDelete.stepSpecX : Prop :=
+  ∀ (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (name : GoString),
+    (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.userDeleteF en name))) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userDeleteReqIs r name ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM E.authMode hs (auth.ownFlagR (fun en => auth.userDeleteF en name)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserDelete")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.userDeleteF en name))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.UserChangePassword(r)` performs the model's step carrying `X`** (`UserChangePassword.stepSpec`'s; nomode D3). -/
+abbrev applierV3backend.UserChangePassword.stepSpecX : Prop :=
+  ∀ (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (name : GoString),
+    name.length ≤ backend.maxKeySize →
+    auth.stepOk E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userChangePasswordReqIs r name ∗
+        auth.userChangePasswordSure r ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserChangePassword")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.userChangePasswordF name)) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.UserRevokeRole(r)` performs the model's step carrying `X`** (`UserRevokeRole.stepSpec`'s; nomode D3). -/
+abbrev applierV3backend.UserRevokeRole.stepSpecX : Prop :=
+  ∀ (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (name role : GoString),
+    name.length ≤ backend.maxKeySize →
+    (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.userRevokeRoleF en name role))) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userRevokeRoleReqIs r name role ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM E.authMode hs (auth.ownFlagR (fun en => auth.userRevokeRoleF en name role)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserRevokeRole")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.userRevokeRoleF en name role))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.RoleDelete(r)` performs the model's step carrying `X`** (`RoleDelete.stepSpec`'s; nomode D3). -/
+abbrev applierV3backend.RoleDelete.stepSpecX : Prop :=
+  ∀ (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (role : GoString),
+    (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.roleDeleteF en role))) →
+    (∀ s : auth.AuthState, auth.histLast E.authMode hs s → ∀ n : GoString, (s.users !! n).isSome →
+      n.length ≤ backend.maxKeySize) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleDeleteReqIs r role ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM E.authMode hs (auth.ownFlagR (fun en => auth.roleDeleteF en role)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleDelete")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX E.authMode (ownX E.authMode X) hs (flagR E.authMode en (auth.stepOf (auth.roleDeleteF en role))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.RoleRevokePermission(r)` performs the model's step carrying `X`** (`RoleRevokePermission.stepSpec`'s; nomode D3). -/
+abbrev applierV3backend.RoleRevokePermission.stepSpecX : Prop :=
+  ∀ (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (role key rangeEnd : GoString),
+    role.length ≤ backend.maxKeySize →
+    auth.stepOk E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleRevokePermissionReqIs r role key rangeEnd ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleRevokePermission")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.roleRevokePermissionR role key rangeEnd) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.AuthDisable()` in the mode `on γa`, from the fuel, carrying `X`** (`AuthDisable.fuelSpec`'s; nomode D3). -/
+abbrev applierV3backend.AuthDisable.fuelSpecX : Prop :=
+  ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
+    (p : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState),
+    E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM (.on γa) hs (auth.ownFlagR auth.authDisableF) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthDisable")) (Val #()))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
+          (flagR E.authMode en (auth.stepOf (auth.authDisableF en))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.UserDelete(r)` in the mode `on γa`, from the fuel, carrying `X`** (`UserDelete.fuelSpec`'s; nomode D3). -/
+abbrev applierV3backend.UserDelete.fuelSpecX : Prop :=
+  ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
+    (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (name : GoString),
+    E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userDeleteReqIs r name ∗
+        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.userDeleteF en name)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserDelete")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
+          (flagR E.authMode en (auth.stepOf (auth.userDeleteF en name))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.UserChangePassword(r)` in the mode `on γa`, from the fuel, carrying `X`** (`UserChangePassword.fuelSpec`'s; nomode D3). -/
+abbrev applierV3backend.UserChangePassword.fuelSpecX : Prop :=
+  ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
+    (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (name : GoString),
+    E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userChangePasswordReqIs r name ∗
+        auth.userChangePasswordSure r ∗ auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM (.on γa) hs (auth.stepOf (auth.userChangePasswordF name)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserChangePassword")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.userChangePasswordF name)) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.UserRevokeRole(r)` in the mode `on γa`, from the fuel, carrying `X`** (`UserRevokeRole.fuelSpec`'s; nomode D3). -/
+abbrev applierV3backend.UserRevokeRole.fuelSpecX : Prop :=
+  ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
+    (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (name role : GoString),
+    E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userRevokeRoleReqIs r name role ∗
+        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.userRevokeRoleF en name role)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserRevokeRole")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
+          (flagR E.authMode en (auth.stepOf (auth.userRevokeRoleF en name role))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.RoleDelete(r)` in the mode `on γa`, from the fuel, carrying `X`** (`RoleDelete.fuelSpec`'s; nomode D3). -/
+abbrev applierV3backend.RoleDelete.fuelSpecX : Prop :=
+  ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
+    (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (role : GoString),
+    E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleDeleteReqIs r role ∗
+        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM (.on γa) hs (auth.ownFlagR (fun en => auth.roleDeleteF en role)) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleDelete")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
+        auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
+          (flagR E.authMode en (auth.stepOf (auth.roleDeleteF en role))) auth.noExtra err ∗
+        ⌜err = GoInterface.nil → resp ≠ null⌝ }}
+
+/-- **`a.RoleRevokePermission(r)` in the mode `on γa`, from the fuel, carrying `X`** (`RoleRevokePermission.fuelSpec`'s; nomode D3). -/
+abbrev applierV3backend.RoleRevokePermission.fuelSpecX : Prop :=
+  ∀ (E : AEnv GF) (γa : auth.AuthNames) (X : List auth.AuthState → IProp GF) (W : IProp GF)
+    (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (hs : List auth.AuthState) (role key rangeEnd : GoString),
+    E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → role.length ≤ backend.maxKeySize →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleRevokePermissionReqIs r role key rangeEnd ∗
+        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
+        auth.capNextM (.on γa) hs (auth.roleRevokePermissionR role key rangeEnd) ∗
+        apply.applyTok E ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleRevokePermission")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.roleRevokePermissionR role key rangeEnd) auth.noExtra err ∗
         ⌜err = GoInterface.nil → resp ≠ null⌝ }}
 
 /-- **What an `Authenticate` returns, with auth on** (C1's A2, 2026-10-28): an error (one of the
@@ -1225,7 +1818,7 @@ theorem applierV3backend.Authenticate.wp_specX
   subst Hoo
   ihave #Hst := Hst $$ %B
   iunfold apply.isAuthStepsX at Hst
-  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, #HA⟩
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, #HA, -⟩
   iunfold apply.authenticateIs at Hr
   icases Hr with ⟨%Hrnn, #Hname, #Hpw, #Htok⟩
   iStructNamed Hopts
@@ -1350,6 +1943,385 @@ theorem applierV3backend.Authenticate.wp_specX
     subst Htv
     iunfold auth.tokOk at Hiss
     iexact Hiss
+
+/-! ### The six other admin requests (nomode D3, 2026-11-28) -/
+
+theorem applierV3backend.AuthDisable.wp_stepX
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.AuthDisable.stepSpecX (GF := GF) (hG := hG) := by
+  intro E X W p log Pre Q Post info hs hok
+  wp_start as ⟨#Hb, #Hs, Ho, HX, HW, Hw1, Hw2, Hw3, #Hcap, Htt, Hpre⟩
+  icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthStepsX at Hs'
+  icases Hs' with ⟨%opts, #Hopts, #Hst⟩
+  ihave #Hst := Hst $$ %B
+  iunfold apply.isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, #HM, -⟩
+  iStructNamed Hopts
+  wp_auto
+  rw [Hai]
+  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as ⟨HPP, HW, %en, #Hv, Hout⟩
+  · iframe Hcap; ipureintro; exact hok
+  wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
+  ihave Hkv := Hkv $$ Hsw
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
+  ihave %Hlnn := typedPointsto_not_null _ _ _ $$ Hl
+  ihave Hrn : ⌜GoInterface.nil = GoInterface.nil → l ≠ null⌝ $$ []
+  · ipureintro; intro _; exact Hlnn
+  ihave #HeI : applyErrIs (GF := GF) GoInterface.nil $$ []
+  · iapply applyErrIs_nil
+  iapply HΦ
+  iframe
+  iframe #
+  iapply apply.mPost_backend
+  iframe
+
+theorem applierV3backend.UserDelete.wp_stepX
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.UserDelete.stepSpecX (GF := GF) (hG := hG) := by
+  intro E X W p r log Pre Q Post info hs name hok
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
+  icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthStepsX at Hs'
+  icases Hs' with ⟨%opts, #Hopts, #Hst⟩
+  ihave #Hst := Hst $$ %B
+  iunfold apply.isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, #HM, -⟩
+  iStructNamed Hopts
+  wp_auto
+  rw [Hai]
+  wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, %en, #Hv, Hout⟩
+  · iframe Hcap Hr; ipureintro; exact hok
+  iunfold auth.respOk at Hresp
+  icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
+  wp_if_destruct
+  · -- no response
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+  · -- a response: its header
+    icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
+    · exact absurd Hn Hif
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+
+theorem applierV3backend.UserChangePassword.wp_stepX
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.UserChangePassword.stepSpecX (GF := GF) (hG := hG) := by
+  intro E X W p r log Pre Q Post info hs name hn hok
+  wp_start as ⟨#Hb, #Hs, #Hr, #Hsure, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
+  icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthStepsX at Hs'
+  icases Hs' with ⟨%opts, #Hopts, #Hst⟩
+  ihave #Hst := Hst $$ %B
+  iunfold apply.isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, #HM, -⟩
+  iStructNamed Hopts
+  wp_auto
+  rw [Hai]
+  wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
+  · iframe Hcap Hr Hsure; isplitr
+    · ipureintro; exact hn
+    ipureintro; exact hok
+  iunfold auth.respOk at Hresp
+  icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
+  wp_if_destruct
+  · -- no response
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+  · -- a response: its header
+    icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
+    · exact absurd Hn Hif
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+
+theorem applierV3backend.UserRevokeRole.wp_stepX
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.UserRevokeRole.stepSpecX (GF := GF) (hG := hG) := by
+  intro E X W p r log Pre Q Post info hs name role hn hok
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
+  icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthStepsX at Hs'
+  icases Hs' with ⟨%opts, #Hopts, #Hst⟩
+  ihave #Hst := Hst $$ %B
+  iunfold apply.isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, #HM, -⟩
+  iStructNamed Hopts
+  wp_auto
+  rw [Hai]
+  wp_apply HM $$ %hs %Pre %Q %Post %r %name %role [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, %en, #Hv, Hout⟩
+  · iframe Hcap Hr; isplitr
+    · ipureintro; exact hn
+    ipureintro; exact hok
+  iunfold auth.respOk at Hresp
+  icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
+  wp_if_destruct
+  · -- no response
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+  · -- a response: its header
+    icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
+    · exact absurd Hn Hif
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+
+theorem applierV3backend.RoleDelete.wp_stepX
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.RoleDelete.stepSpecX (GF := GF) (hG := hG) := by
+  intro E X W p r log Pre Q Post info hs role hok hnm
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
+  icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthStepsX at Hs'
+  icases Hs' with ⟨%opts, #Hopts, #Hst⟩
+  ihave #Hst := Hst $$ %B
+  iunfold apply.isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, #HM, -⟩
+  iStructNamed Hopts
+  wp_auto
+  rw [Hai]
+  wp_apply HM $$ %hs %Pre %Q %Post %r %role [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, %en, #Hv, Hout⟩
+  · iframe Hcap Hr; isplitr
+    · ipureintro; exact hok
+    ipureintro; exact hnm
+  iunfold auth.respOk at Hresp
+  icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
+  wp_if_destruct
+  · -- no response
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+  · -- a response: its header
+    icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
+    · exact absurd Hn Hif
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+
+theorem applierV3backend.RoleRevokePermission.wp_stepX
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.RoleRevokePermission.stepSpecX (GF := GF) (hG := hG) := by
+  intro E X W p r log Pre Q Post info hs role key rangeEnd hn hok
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
+  icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthStepsX at Hs'
+  icases Hs' with ⟨%opts, #Hopts, #Hst⟩
+  ihave #Hst := Hst $$ %B
+  iunfold apply.isAuthStepsX at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, -, #HM⟩
+  iStructNamed Hopts
+  wp_auto
+  rw [Hai]
+  wp_apply HM $$ %hs %Pre %Q %Post %r %role %key %rangeEnd [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
+  · iframe Hcap Hr; isplitr
+    · ipureintro; exact hn
+    ipureintro; exact hok
+  iunfold auth.respOk at Hresp
+  icases Hresp with ⟨%Hnn, Hhdr⟩
+  ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
+  · ipureintro; exact Hnn.2
+  wp_if_destruct
+  · -- no response
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+  · -- a response: its header
+    icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
+    · exact absurd Hn Hif
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
+    ihave Hkv := Hkv $$ Hsw
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iframe
+
+theorem applierV3backend.AuthDisable.wp_fuelX
+    (h : applierV3backend.AuthDisable.stepSpecX (GF := GF) (hG := hG)) :
+    applierV3backend.AuthDisable.fuelSpecX (GF := GF) (hG := hG) := by
+  intro E γa X W p log Pre Q Post info hs hM hb
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, HOF, HX, Hrc, HW, Hw1, Hw2, Hw3, #Hcap, Htt, Hpre⟩ HΦ
+  iunfold auth.authOwnFu at HOF
+  icases HOF with ⟨Ho, Hf⟩
+  ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
+  · iframe
+  icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
+  obtain ⟨k, Hfk, Hlt⟩ := Hk
+  have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authDisableF en)) :=
+    fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_authDisable en) Hfk Hlt
+  iapply (h E X W p log Pre Q Post info hs hok) $$ [Ho HX HW Hw1 Hw2 Hw3 Htt Hpre]
+  · rw [hM]; iframe; iframe #
+  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
+  rw [hM]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_flagR _ en _ (auth.stepSmall_authDisable en)) $$ [Hf Hout]
+  · iframe
+  iapply HΦ
+  iframe; iframe #
+
+theorem applierV3backend.UserDelete.wp_fuelX
+    (h : applierV3backend.UserDelete.stepSpecX (GF := GF) (hG := hG)) :
+    applierV3backend.UserDelete.fuelSpecX (GF := GF) (hG := hG) := by
+  intro E γa X W p r log Pre Q Post info hs name hM hb
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
+  iunfold auth.authOwnFu at HOF
+  icases HOF with ⟨Ho, Hf⟩
+  ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
+  · iframe
+  icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
+  obtain ⟨k, Hfk, Hlt⟩ := Hk
+  have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.userDeleteF en name)) :=
+    fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userDelete en name) Hfk Hlt
+  iapply (h E X W p r log Pre Q Post info hs name hok) $$ [Hr Ho HX HW Hw1 Hw2 Htt Hpre]
+  · rw [hM]; iframe; iframe #
+  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
+  rw [hM]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_flagR _ en _ (auth.stepSmall_userDelete en name)) $$ [Hf Hout]
+  · iframe
+  iapply HΦ
+  iframe; iframe #
+
+theorem applierV3backend.UserChangePassword.wp_fuelX
+    (h : applierV3backend.UserChangePassword.stepSpecX (GF := GF) (hG := hG)) :
+    applierV3backend.UserChangePassword.fuelSpecX (GF := GF) (hG := hG) := by
+  intro E γa X W p r log Pre Q Post info hs name hM hb hn
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, Hsure, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
+  iunfold auth.authOwnFu at HOF
+  icases HOF with ⟨Ho, Hf⟩
+  ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
+  · iframe
+  icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
+  obtain ⟨k, Hfk, Hlt⟩ := Hk
+  have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.userChangePasswordF name)) :=
+    hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userChangePassword name) Hfk Hlt
+  iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HX HW Hw1 Hw2 Htt Hpre]
+  · rw [hM]; iframe; iframe #
+  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout, Hrn⟩
+  rw [hM]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_userChangePassword name) $$ [Hf Hout]
+  · iframe
+  iapply HΦ
+  iframe; iframe #
+
+theorem applierV3backend.UserRevokeRole.wp_fuelX
+    (h : applierV3backend.UserRevokeRole.stepSpecX (GF := GF) (hG := hG)) :
+    applierV3backend.UserRevokeRole.fuelSpecX (GF := GF) (hG := hG) := by
+  intro E γa X W p r log Pre Q Post info hs name role hM hb hn
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
+  iunfold auth.authOwnFu at HOF
+  icases HOF with ⟨Ho, Hf⟩
+  ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
+  · iframe
+  icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
+  obtain ⟨k, Hfk, Hlt⟩ := Hk
+  have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.userRevokeRoleF en name role)) :=
+    fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userRevokeRole en name role) Hfk Hlt
+  iapply (h E X W p r log Pre Q Post info hs name role hn hok) $$ [Hr Ho HX HW Hw1 Hw2 Htt Hpre]
+  · rw [hM]; iframe; iframe #
+  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
+  rw [hM]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_flagR _ en _ (auth.stepSmall_userRevokeRole en name role)) $$ [Hf Hout]
+  · iframe
+  iapply HΦ
+  iframe; iframe #
+
+theorem applierV3backend.RoleDelete.wp_fuelX
+    (h : applierV3backend.RoleDelete.stepSpecX (GF := GF) (hG := hG)) :
+    applierV3backend.RoleDelete.fuelSpecX (GF := GF) (hG := hG) := by
+  intro E γa X W p r log Pre Q Post info hs role hM hb
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
+  iunfold auth.authOwnFu at HOF
+  icases HOF with ⟨Ho, Hf⟩
+  ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
+  · iframe
+  icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
+  obtain ⟨k, Hfk, Hlt⟩ := Hk
+  have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.roleDeleteF en role)) :=
+    fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleDelete en role) Hfk Hlt
+  have hnames : ∀ s : auth.AuthState, auth.histLast E.authMode hs s →
+      ∀ n : GoString, (s.users !! n).isSome → n.length ≤ backend.maxKeySize := by
+    intro s hl n hn
+    rw [hM] at hl
+    exact (auth.fuelOk_last γa hs k s Hfk hl).2.names n hn
+  iapply (h E X W p r log Pre Q Post info hs role hok hnames) $$ [Hr Ho HX HW Hw1 Hw2 Htt Hpre]
+  · rw [hM]; iframe; iframe #
+  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
+  rw [hM]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_flagR _ en _ (auth.stepSmall_roleDelete en role)) $$ [Hf Hout]
+  · iframe
+  iapply HΦ
+  iframe; iframe #
+
+theorem applierV3backend.RoleRevokePermission.wp_fuelX
+    (h : applierV3backend.RoleRevokePermission.stepSpecX (GF := GF) (hG := hG)) :
+    applierV3backend.RoleRevokePermission.fuelSpecX (GF := GF) (hG := hG) := by
+  intro E γa X W p r log Pre Q Post info hs role key rangeEnd hM hb hn
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
+  iunfold auth.authOwnFu at HOF
+  icases HOF with ⟨Ho, Hf⟩
+  ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
+  · iframe
+  icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
+  obtain ⟨k, Hfk, Hlt⟩ := Hk
+  have hok : auth.stepOk E.authMode hs (auth.roleRevokePermissionR role key rangeEnd) :=
+    hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleRevokePermission role key rangeEnd) Hfk Hlt
+  iapply (h E X W p r log Pre Q Post info hs role key rangeEnd hn hok) $$ [Hr Ho HX HW Hw1 Hw2 Htt Hpre]
+  · rw [hM]; iframe; iframe #
+  iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout, Hrn⟩
+  rw [hM]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_roleRevokePermission role key rangeEnd) $$ [Hf Hout]
+  · iframe
+  iapply HΦ
+  iframe; iframe #
 
 end applier
 

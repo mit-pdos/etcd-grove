@@ -64,6 +64,12 @@ theorem authSrvTPAt_on (h25 : auth.NewTokenProvider.specAt (GF := GF) (hG := hG)
     (hUserGrantRoleB : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermissionB : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
     (hAuthnB : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
+    (hDisableB : auth.authStore.AuthDisable.specTB (GF := GF) (hG := hG))
+    (hUserDeleteB : auth.authStore.UserDelete.specTB (GF := GF) (hG := hG))
+    (hChangePasswordB : auth.authStore.UserChangePassword.specTSureB (GF := GF) (hG := hG))
+    (hUserRevokeRoleB : auth.authStore.UserRevokeRole.specTB (GF := GF) (hG := hG))
+    (hRoleDeleteB : auth.authStore.RoleDelete.specTB (GF := GF) (hG := hG))
+    (hRoleRevokePermissionB : auth.authStore.RoleRevokePermission.specTB (GF := GF) (hG := hG))
     (hCP : auth.authStore.CheckPassword.spec (GF := GF) (hG := hG))
     (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
     (rLk : schema.authBatchTx.Lock.spec (GF := GF) (hG := hG))
@@ -154,7 +160,7 @@ theorem authSrvTPAt_on (h25 : auth.NewTokenProvider.specAt (GF := GF) (hG := hG)
     exact ⟨rfl, fun _ => rfl, fun γa' h => by cases h; rfl⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hAdminLbO hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hRangeLbR hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-    hRoleGrantPermissionB hAuthnB hCP hGT
+    hRoleGrantPermissionB hAuthnB hDisableB hUserDeleteB hChangePasswordB hUserRevokeRoleB hRoleDeleteB hRoleRevokePermissionB hCP hGT
     rLk rUn rPU rDU rPR rDR rSE rSR rGU rGR rEn rRev rGA rBTs rFCs rGUb rGRb rGAb rGARs rBT rFC rRT rRL rRU
     rURr rFEr rLI rUL rCm rUP rDel rUR rFE rID rName rSafe rRTs rRLs rRUs rGUt rGRt rEnt rRevt rGAt rCABs
     rLO rCB _ γa (auth.simpleAdmin p))

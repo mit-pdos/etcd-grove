@@ -140,3 +140,102 @@ Ways out, each needing a decision:
 3. `adminKindOk` admits only known-typed grants, plus the same tie strengthening: a narrower premise
    (top-level statements change).
 Recommended: 2 (the Go code is the spec; an unknown permission type is enforced nowhere).
+
+## D3: the six admin kinds modelled (2026-11-28)
+
+Approved by the coordinator for the user (2026-11-27/28), after X-a4 made `roleRevokePermissionR` a
+function (`notes/nomode-x.md`). Ledger: `notes/specs-only/ledger.md`, 2026-11-28. The step functions
+(`auth/Steps.lean`) are unchanged: rechecked against `store.go` at the fork pin `18ab647b0`
+(`AuthDisable` 305-324: a disabled store's is a no-op, else disabled and bumped; `UserDelete` 473-500;
+`UserChangePassword` 502-545: the record rewritten with the same roles, bumped; `UserRevokeRole` 611-656;
+`RoleRevokePermission` 686-722; `RoleDelete` 724-765: every user holding the role rewritten, which
+`delRole`'s `fmap filter` equals on the state). Every success bumps the revision whatever the flag.
+
+**Trusted-visible definitions: before / after.**
+
+- `apply.IRRModel` (`apply/InvRequest.lean`). Before: `authUserDelete authUserChangePassword
+  authUserRevokeRole authRoleDelete authRoleRevokePermission : Bool`. After: `authUserDelete : Option
+  GoString` (the name), `authUserChangePassword : Option ChangePasswordModel` (`{ name password hashed :
+  GoString }`), `authUserRevokeRole : Option (GoString × GoString)` (name, role), `authRoleDelete : Option
+  GoString` (role), `authRoleRevokePermission : Option (GoString × GoString × GoString)` (role, key, range
+  end). `authDisable : Bool` is unchanged (its request has no field). `ChangePasswordModel.pwSure m :=
+  auth.pwSureP m.password m.hashed false` (new; `pwSureP` is `UserAdd`'s).
+- `apply.dispatchKind`, `apply.needAdminPermission`, `reqTypeName`: `rq.authUserDelete` read as
+  `rq.authUserDelete.isSome` (the five alike). Same meaning.
+- `apply.internalRaftRequestIs` and `irrNoHdrIs` (`InvProposer.lean`). Before, the five fields:
+  `irrField p go!"AuthUserDelete" (fun l => presentIs l rq.authUserDelete)` (set iff not nil). After:
+  `irrField p go!"AuthUserDelete" (fun l => optReqIs l rq.authUserDelete authUserDeleteIs)`, likewise
+  `authUserChangePasswordIs`, `authUserRevokeRoleIs`, `authRoleDeleteIs`, `authRoleRevokePermissionIs`
+  (new): nil iff unset, else the message's fields read-only: `authUserDeleteIs r n := auth.userDeleteReqIs
+  r n` (`Name`), `authUserChangePasswordIs u m` (`Name`, `Password`, `HashedPassword` at `m`'s),
+  `authUserRevokeRoleIs r (n, ro) := auth.userRevokeRoleReqIs r n ro` (`Name`, `Role`),
+  `authRoleDeleteIs r ro := auth.roleDeleteReqIs r ro` (`Role`), `authRoleRevokePermissionIs r (ro, k, e)
+  := auth.roleRevokePermissionReqIs r ro k e` (`Role`; `Key`, `RangeEnd` slices holding `k`, `e`). So
+  `pbutil.MustUnmarshalMessage.wp_proof` and `proto.MarshalIRR.spec` (text unchanged) now say the decoded
+  request carries these fields, and that an encoded request decodes back to them (`irrWireOf`).
+- `auth.userChangePasswordSure r` (`auth/Requests.lean`, new): the request's `Password` and
+  `HashedPassword` meet `pwSureP _ _ false`.
+- `adminStateR` (`KVAuthModelDefs.lean`). Before: arms for `UserAdd`, `RoleAdd`, `UserGrantRole`,
+  `RoleGrantPermission`, `AuthEnable`, every other kind `st' = st`. After, added before the default:
+
+  ```lean
+  | .authDisable => authRelState (auth.stepOf (auth.authDisableF st.enabled)) st st'
+  | .authUserDelete => match rq.authUserDelete with
+      | some n => authRelState (auth.stepOf (auth.userDeleteF st.enabled n)) st st'
+      | none => st' = st
+  | .authUserChangePassword => match rq.authUserChangePassword with
+      | some m => (¬ m.pwSure ∧ st' = st) ∨
+          authRelState (auth.stepOf (auth.userChangePasswordF m.name)) st st'
+      | none => st' = st
+  | .authUserRevokeRole => match rq.authUserRevokeRole with
+      | some (n, ro) => authRelState (auth.stepOf (auth.userRevokeRoleF st.enabled n ro)) st st'
+      | none => st' = st
+  | .authRoleDelete => match rq.authRoleDelete with
+      | some ro => authRelState (auth.stepOf (auth.roleDeleteF st.enabled ro)) st st'
+      | none => st' = st
+  | .authRoleRevokePermission => match rq.authRoleRevokePermission with
+      | some (ro, k, e) => authRelState (auth.roleRevokePermissionR ro k e) st st'
+      | none => st' = st
+  ```
+
+  The admin check (`if auth.adminOk st … then … else st' = st`) is unchanged. `adminStepO` gains the same
+  six (without the `¬ pwSure` disjunct). `adminNext`, `authDet` are unchanged in text.
+- `apply.adminKindOk` (`apply/Chain.lean`). Before: the six fell to `| _ => False`. After:
+
+  ```lean
+  | .authDisable => True
+  | .authUserDelete => True
+  | .authUserChangePassword =>
+      ∀ m, rq.authUserChangePassword = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
+  | .authUserRevokeRole =>
+      ∀ n ro, rq.authUserRevokeRole = some (n, ro) → n.length ≤ backend.maxKeySize
+  | .authRoleDelete => True
+  | .authRoleRevokePermission =>
+      ∀ ro k e, rq.authRoleRevokePermission = some (ro, k, e) → ro.length ≤ backend.maxKeySize
+  ```
+
+  The name bounds are the store specs' premises where the store writes that key (`UnsafePutUser`,
+  `UnsafePutRole`), as `UserGrantRole`'s; `pwSure` is `UserAdd`'s, what `EtcdServer.UserChangePassword`
+  proposes when a password is set (a request with an empty `Password` it proposes as sent: `pwSure` iff its
+  `HashedPassword` is base64, a workload premise as `UserAdd`'s).
+- `EtcdServer.{UserDelete,UserRevokeRole,RoleDelete,RoleRevokePermission}.spec`: before, `⌜r ≠ null⌝` and
+  the request `irrUserDelete` (a `Bool`); after, the request's model (`apply.authUserDeleteIs r name`, ...)
+  and `irrUserDelete name` (`irrUserRevokeRole name role`, `irrRoleDelete role`, `irrRoleRevokePermission
+  role key rangeEnd`), as `RoleAdd.spec`'s.
+
+**The encoding.** The heap predicates name the fields the verified store proofs already read (`auth.*ReqIs`,
+the Goose struct fields of `etcdserverpb`); the decoder's claim for them is protobuf's round trip of proto3
+`string`/`bytes` fields inside a set message field. Measured (scratch Go test against the fork's `api`
+module, protobuf-go v1.36.12, `go1.27`): each of the six set alone, with names, empty contents, and `Key:
+[]byte{}`/`RangeEnd: nil`, survives `proto.Marshal`/`proto.Unmarshal` with presence and fields equal
+(empty and nil `bytes` both read as `[]` in the model); a `Role` of `"\xff"` makes `Marshal` fail
+(`MarshalIRR.spec`'s error arm).
+
+**The proofs.** The store's `X.specTB` (backend kept, the flag read `= b0`) for the five, from their
+`specT` proofs; `UserChangePassword.specTSureB` (no `ErrNoPasswordUser` under `userChangePasswordSure`, as
+`UserAdd`'s). `isAuthStepsX` gains six clauses (the flag-reading four at `flagR`, their cap at the state's
+own flag, `auth.ownFlagR`); `isAuthStepsX_of_authInvT` is now `_of_authInvTB` at `Ψ = True`
+(`isAuthStepsX_wIso`). `AdminReq`, `applierAdmin_backendX`, `dispatch.adminSpec` (`DispatchAdmin.lean`),
+`adminOut_model` (`ApplyTieOn.lean`), `capRel` (`AuthTie.lean`), `rolesSorted`/`authDet_of_sorted`
+(`KVAuthShape.lean`; `adminDetReq` gains `UserChangePassword`'s `pwSure`, from `adminKindOk`),
+`adminStateR_wf`, `adminStateR_enabled`, `adminStateR_ord` take the six.

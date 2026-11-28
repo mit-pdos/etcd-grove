@@ -53,6 +53,13 @@ def apply.adminReqOf (rq : apply.IRRModel) : Option apply.AdminReq :=
   | .authRoleGrantPermission => rq.authRoleGrantPermission.map (fun nw => .roleGrantPermission nw.1 nw.2)
   | .authEnable => some .authEnable
   | .authenticate => rq.authenticate.map (fun am => .authenticate am.name am.simpleToken)
+  | .authDisable => some .authDisable
+  | .authUserDelete => rq.authUserDelete.map .userDelete
+  | .authUserChangePassword => rq.authUserChangePassword.map (fun m => .userChangePassword m.name)
+  | .authUserRevokeRole => rq.authUserRevokeRole.map (fun nr => .userRevokeRole nr.1 nr.2)
+  | .authRoleDelete => rq.authRoleDelete.map .roleDelete
+  | .authRoleRevokePermission =>
+      rq.authRoleRevokePermission.map (fun rke => .roleRevokePermission rke.1 rke.2.1 rke.2.2)
   | _ => none
 
 section defs
@@ -328,16 +335,16 @@ theorem apply.uberApplier.dispatch.wp_admin
   ihave %nAD := apply.presentIs_null _ _ $$ HAD
   ihave %nAS := apply.presentIs_null _ _ $$ HAS
   ihave %nUA := apply.optReqIs_null _ _ _ (apply.authUserAddIs_nn lUA) $$ HUA
-  ihave %nUD := apply.presentIs_null _ _ $$ HUD
-  ihave %nUC := apply.presentIs_null _ _ $$ HUC
+  ihave %nUD := apply.optReqIs_null _ _ _ (apply.authUserDeleteIs_nn lUD) $$ HUD
+  ihave %nUC := apply.optReqIs_null _ _ _ (apply.authUserChangePasswordIs_nn lUC) $$ HUC
   ihave %nUGR := apply.optReqIs_null _ _ _ (apply.authUserGrantRoleIs_nn lUGR) $$ HUGR
-  ihave %nURR := apply.presentIs_null _ _ $$ HURR
+  ihave %nURR := apply.optReqIs_null _ _ _ (apply.authUserRevokeRoleIs_nn lURR) $$ HURR
   ihave %nUL := apply.presentIs_null _ _ $$ HUL
   ihave %nRL := apply.presentIs_null _ _ $$ HRL
   ihave %nRA := apply.optReqIs_null _ _ _ (apply.authRoleAddIs_nn lRA) $$ HRA
-  ihave %nRD := apply.presentIs_null _ _ $$ HRD
+  ihave %nRD := apply.optReqIs_null _ _ _ (apply.authRoleDeleteIs_nn lRD) $$ HRD
   ihave %nRGP := apply.optReqIs_null _ _ _ (apply.authRoleGrantPermissionIs_nn lRGP) $$ HRGP
-  ihave %nRRP := apply.presentIs_null _ _ $$ HRRP
+  ihave %nRRP := apply.optReqIs_null _ _ _ (apply.authRoleRevokePermissionIs_nn lRRP) $$ HRRP
   ihave %nDT := apply.presentIs_null _ _ $$ HDT
   ihave #Hsp := Hs
   iunfold apply.applierSpec at Hsp
@@ -623,14 +630,63 @@ theorem apply.uberApplier.dispatch.wp_admin
     ipureintro; exact Hrn
   have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthDisable (D22, 2026-10-23: not admitted, `rqOk`)
+  · -- AuthDisable (nomode D3, 2026-11-28: admitted in the mode `on`)
     have hl : lAD ≠ null := by simpa using Hif
     have hs : rq.authDisable = true := by
       cases h : rq.authDisable
       · exact absurd (nAD.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authDisable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, hs]
-    exact absurd Hadmk (by simp [apply.adminKindOk, hk])
+    have hnm : (apply.AdminReq.authDisable).nameOk := by
+      trivial
+    ihave Hx : (apply.AdminReq.authDisable).extraPre E γa hh Pre $$ [Hx]
+    · iunfold apply.adminExtra at Hx
+      simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
+      iexact Hx
+    wp_apply Hat $$ %(apply.AdminReq.authDisable) %(null : Loc) %γa %hh %log %Pre %Q %Post %info [] [Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
+    · iunfold apply.AdminReq.reqIs
+      iframe
+      (try dsimp only)
+      (try iframe HR HS)
+      (try iexact HR)
+      (try itrivial)
+    iunfold apply.mPost at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨%en, Hv, Hdone, %Hrn⟩
+    join_ar
+    iframe Hres Ha HW
+    iexists (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iapply apply.resTrace_of $$ H0
+      iapply apply.traceRes_null
+    isplitl []
+    · simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+      iframe %hn
+      iexists _
+      iframe H0
+      isplitl; rotate_left
+      · iexact HeI
+      simp only [apply.dispatchAnswer, hk]
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
+    simp only [apply.adminDone, ↓reduceIte]
+    iexists _, (apply.AdminReq.authDisable), resp
+    iframe H0
+    isplitr
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk], rfl⟩
+    iunfold apply.AdminReq.result
+    iexists en
+    iframe Hv
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
   have zAuthDisable : rq.authDisable = false := nAD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthStatus
@@ -703,25 +759,124 @@ theorem apply.uberApplier.dispatch.wp_admin
     ipureintro; exact Hrn
   have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserDelete (D22, 2026-10-23: not admitted, `rqOk`)
+  · -- AuthUserDelete (nomode D3, 2026-11-28: admitted in the mode `on`)
     have hl : lUD ≠ null := by simpa using Hif
-    have hs : rq.authUserDelete = true := by
-      cases h : rq.authUserDelete
-      · exact absurd (nUD.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUD.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUD
     have hk : dispatchKind rq = .authUserDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, hs]
-    exact absurd Hadmk (by simp [apply.adminKindOk, hk])
-  have zAuthUserDelete : rq.authUserDelete = false := nUD.1 (by simpa using Hif)
+    have hnm : (apply.AdminReq.userDelete x).nameOk := by
+      trivial
+    iunfold apply.authUserDeleteIs at HR
+    ihave Hx : (apply.AdminReq.userDelete x).extraPre E γa hh Pre $$ [Hx]
+    · iunfold apply.adminExtra at Hx
+      simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
+      iexact Hx
+    wp_apply Hat $$ %(apply.AdminReq.userDelete x) %lUD %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
+    · iunfold apply.AdminReq.reqIs
+      iframe
+      (try dsimp only)
+      (try iframe HR HS)
+      (try iexact HR)
+      (try itrivial)
+    iunfold apply.mPost at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨%en, Hv, Hdone, %Hrn⟩
+    join_ar
+    iframe Hres Ha HW
+    iexists (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iapply apply.resTrace_of $$ H0
+      iapply apply.traceRes_null
+    isplitl []
+    · simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+      iframe %hn
+      iexists _
+      iframe H0
+      isplitl; rotate_left
+      · iexact HeI
+      simp only [apply.dispatchAnswer, hk]
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
+    simp only [apply.adminDone, ↓reduceIte]
+    iexists _, (apply.AdminReq.userDelete x), resp
+    iframe H0
+    isplitr
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
+    iunfold apply.AdminReq.result
+    iexists en
+    iframe Hv
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
+  have zAuthUserDelete : rq.authUserDelete = none := nUD.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserChangePassword (D22, 2026-10-23: not admitted, `rqOk`)
+  · -- AuthUserChangePassword (nomode D3, 2026-11-28: admitted in the mode `on`)
     have hl : lUC ≠ null := by simpa using Hif
-    have hs : rq.authUserChangePassword = true := by
-      cases h : rq.authUserChangePassword
-      · exact absurd (nUC.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUC.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUC
     have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
-    exact absurd Hadmk (by simp [apply.adminKindOk, hk])
-  have zAuthUserChangePassword : rq.authUserChangePassword = false := nUC.1 (by simpa using Hif)
+    have hnm : (apply.AdminReq.userChangePassword x.name).nameOk := by
+      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
+      exact (h x hs).1
+    have hsure : x.pwSure := by
+      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
+      exact (h x hs).2
+    ihave #HS := apply.authUserChangePasswordIs_sure _ _ hsure $$ HR
+    ihave #HR := apply.authUserChangePasswordIs_req _ _ $$ HR
+    ihave Hx : (apply.AdminReq.userChangePassword x.name).extraPre E γa hh Pre $$ [Hx]
+    · iunfold apply.adminExtra at Hx
+      simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
+      iexact Hx
+    wp_apply Hat $$ %(apply.AdminReq.userChangePassword x.name) %lUC %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
+    · iunfold apply.AdminReq.reqIs
+      iframe
+      (try dsimp only)
+      (try iframe HR HS)
+      (try iexact HR)
+      (try itrivial)
+    iunfold apply.mPost at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨Hdone, %Hrn⟩
+    join_ar
+    iframe Hres Ha HW
+    iexists (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iapply apply.resTrace_of $$ H0
+      iapply apply.traceRes_null
+    isplitl []
+    · simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+      iframe %hn
+      iexists _
+      iframe H0
+      isplitl; rotate_left
+      · iexact HeI
+      simp only [apply.dispatchAnswer, hk]
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
+    simp only [apply.adminDone, ↓reduceIte]
+    iexists _, (apply.AdminReq.userChangePassword x.name), resp
+    iframe H0
+    isplitr
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
+    iunfold apply.AdminReq.result
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
+  have zAuthUserChangePassword : rq.authUserChangePassword = none := nUC.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGrantRole (the auth plan's E2n: admitted in the mode `on`)
     have hl : lUGR ≠ null := by simpa using Hif
@@ -789,15 +944,64 @@ theorem apply.uberApplier.dispatch.wp_admin
     exact absurd Hadmk (by simp [apply.adminKindOk, hk])
   have zAuthUserGet : rq.authUserGet = none := nUG.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserRevokeRole (D22, 2026-10-23: not admitted, `rqOk`)
+  · -- AuthUserRevokeRole (nomode D3, 2026-11-28: admitted in the mode `on`)
     have hl : lURR ≠ null := by simpa using Hif
-    have hs : rq.authUserRevokeRole = true := by
-      cases h : rq.authUserRevokeRole
-      · exact absurd (nURR.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nURR.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HURR
     have hk : dispatchKind rq = .authUserRevokeRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, hs]
-    exact absurd Hadmk (by simp [apply.adminKindOk, hk])
-  have zAuthUserRevokeRole : rq.authUserRevokeRole = false := nURR.1 (by simpa using Hif)
+    have hnm : (apply.AdminReq.userRevokeRole x.1 x.2).nameOk := by
+      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
+      exact h x.1 x.2 hs
+    iunfold apply.authUserRevokeRoleIs at HR
+    ihave Hx : (apply.AdminReq.userRevokeRole x.1 x.2).extraPre E γa hh Pre $$ [Hx]
+    · iunfold apply.adminExtra at Hx
+      simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
+      iexact Hx
+    wp_apply Hat $$ %(apply.AdminReq.userRevokeRole x.1 x.2) %lURR %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
+    · iunfold apply.AdminReq.reqIs
+      iframe
+      (try dsimp only)
+      (try iframe HR HS)
+      (try iexact HR)
+      (try itrivial)
+    iunfold apply.mPost at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨%en, Hv, Hdone, %Hrn⟩
+    join_ar
+    iframe Hres Ha HW
+    iexists (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iapply apply.resTrace_of $$ H0
+      iapply apply.traceRes_null
+    isplitl []
+    · simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+      iframe %hn
+      iexists _
+      iframe H0
+      isplitl; rotate_left
+      · iexact HeI
+      simp only [apply.dispatchAnswer, hk]
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
+    simp only [apply.adminDone, ↓reduceIte]
+    iexists _, (apply.AdminReq.userRevokeRole x.1 x.2), resp
+    iframe H0
+    isplitr
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
+    iunfold apply.AdminReq.result
+    iexists en
+    iframe Hv
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
+  have zAuthUserRevokeRole : rq.authUserRevokeRole = none := nURR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleAdd (the auth plan's E2n: admitted in the mode `on`)
     have hl : lRA ≠ null := by simpa using Hif
@@ -921,25 +1125,120 @@ theorem apply.uberApplier.dispatch.wp_admin
     exact absurd Hadmk (by simp [apply.adminKindOk, hk])
   have zAuthRoleGet : rq.authRoleGet = none := nRG.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleRevokePermission (D22, 2026-10-23: not admitted, `rqOk`)
+  · -- AuthRoleRevokePermission (nomode D3, 2026-11-28: admitted in the mode `on`)
     have hl : lRRP ≠ null := by simpa using Hif
-    have hs : rq.authRoleRevokePermission = true := by
-      cases h : rq.authRoleRevokePermission
-      · exact absurd (nRRP.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRRP.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRRP
     have hk : dispatchKind rq = .authRoleRevokePermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, hs]
-    exact absurd Hadmk (by simp [apply.adminKindOk, hk])
-  have zAuthRoleRevokePermission : rq.authRoleRevokePermission = false := nRRP.1 (by simpa using Hif)
+    have hnm : (apply.AdminReq.roleRevokePermission x.1 x.2.1 x.2.2).nameOk := by
+      have h := Hadmk; simp only [apply.adminKindOk, hk] at h
+      exact h x.1 x.2.1 x.2.2 hs
+    iunfold apply.authRoleRevokePermissionIs at HR
+    ihave Hx : (apply.AdminReq.roleRevokePermission x.1 x.2.1 x.2.2).extraPre E γa hh Pre $$ [Hx]
+    · iunfold apply.adminExtra at Hx
+      simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
+      iexact Hx
+    wp_apply Hat $$ %(apply.AdminReq.roleRevokePermission x.1 x.2.1 x.2.2) %lRRP %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
+    · iunfold apply.AdminReq.reqIs
+      iframe
+      (try dsimp only)
+      (try iframe HR HS)
+      (try iexact HR)
+      (try itrivial)
+    iunfold apply.mPost at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨Hdone, %Hrn⟩
+    join_ar
+    iframe Hres Ha HW
+    iexists (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iapply apply.resTrace_of $$ H0
+      iapply apply.traceRes_null
+    isplitl []
+    · simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+      iframe %hn
+      iexists _
+      iframe H0
+      isplitl; rotate_left
+      · iexact HeI
+      simp only [apply.dispatchAnswer, hk]
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
+    simp only [apply.adminDone, ↓reduceIte]
+    iexists _, (apply.AdminReq.roleRevokePermission x.1 x.2.1 x.2.2), resp
+    iframe H0
+    isplitr
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
+    iunfold apply.AdminReq.result
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
+  have zAuthRoleRevokePermission : rq.authRoleRevokePermission = none := nRRP.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleDelete (D22, 2026-10-23: not admitted, `rqOk`)
+  · -- AuthRoleDelete (nomode D3, 2026-11-28: admitted in the mode `on`)
     have hl : lRD ≠ null := by simpa using Hif
-    have hs : rq.authRoleDelete = true := by
-      cases h : rq.authRoleDelete
-      · exact absurd (nRD.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRD.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRD
     have hk : dispatchKind rq = .authRoleDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, hs]
-    exact absurd Hadmk (by simp [apply.adminKindOk, hk])
-  have zAuthRoleDelete : rq.authRoleDelete = false := nRD.1 (by simpa using Hif)
+    have hnm : (apply.AdminReq.roleDelete x).nameOk := by
+      trivial
+    iunfold apply.authRoleDeleteIs at HR
+    ihave Hx : (apply.AdminReq.roleDelete x).extraPre E γa hh Pre $$ [Hx]
+    · iunfold apply.adminExtra at Hx
+      simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
+      iexact Hx
+    wp_apply Hat $$ %(apply.AdminReq.roleDelete x) %lRD %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
+    · iunfold apply.AdminReq.reqIs
+      iframe
+      (try dsimp only)
+      (try iframe HR HS)
+      (try iexact HR)
+      (try itrivial)
+    iunfold apply.mPost at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.AdminReq.result at Hdone
+    icases Hdone with ⟨%en, Hv, Hdone, %Hrn⟩
+    join_ar
+    iframe Hres Ha HW
+    iexists (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro; simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+    isplitl []
+    · iapply apply.resTrace_of $$ H0
+      iapply apply.traceRes_null
+    isplitl []
+    · simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+      iframe %hn
+      iexists _
+      iframe H0
+      isplitl; rotate_left
+      · iexact HeI
+      simp only [apply.dispatchAnswer, hk]
+      first | itrivial | (iexists _; ipureintro; exact ⟨rfl, Hrn⟩)
+    simp only [apply.adminDone, ↓reduceIte]
+    iexists _, (apply.AdminReq.roleDelete x), resp
+    iframe H0
+    isplitr
+    · ipureintro; exact ⟨by simp [apply.adminReqOf, hk, hs], rfl⟩
+    iunfold apply.AdminReq.result
+    iexists en
+    iframe Hv
+    isplitl [Hdone]
+    · iexact Hdone
+    ipureintro; exact Hrn
+  have zAuthRoleDelete : rq.authRoleDelete = none := nRD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserList (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUL ≠ null := by simpa using Hif

@@ -79,23 +79,20 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   ihave %h13 := apply.optReqIs_nil l13 rq.authUserAdd _ apply.authUserAddIs_nn $$ H13
   have e13 : rq.authUserAdd.isSome = !decide (l13 = null) := by
     cases hc : rq.authUserAdd <;> simp_all
-  iunfold apply.presentIs at H14
-  icases H14 with %h14
-  have e14 : rq.authUserDelete = !decide (l14 = null) := by
+  ihave %h14 := apply.optReqIs_nil l14 rq.authUserDelete _ apply.authUserDeleteIs_nn $$ H14
+  have e14 : rq.authUserDelete.isSome = !decide (l14 = null) := by
     cases hc : rq.authUserDelete <;> simp_all
   ihave %h15 := apply.optReqIs_nil l15 rq.authUserGet _ apply.authUserGetIs_nn $$ H15
   have e15 : rq.authUserGet.isSome = !decide (l15 = null) := by
     cases hc : rq.authUserGet <;> simp_all
-  iunfold apply.presentIs at H16
-  icases H16 with %h16
-  have e16 : rq.authUserChangePassword = !decide (l16 = null) := by
+  ihave %h16 := apply.optReqIs_nil l16 rq.authUserChangePassword _ apply.authUserChangePasswordIs_nn $$ H16
+  have e16 : rq.authUserChangePassword.isSome = !decide (l16 = null) := by
     cases hc : rq.authUserChangePassword <;> simp_all
   ihave %h17 := apply.optReqIs_nil l17 rq.authUserGrantRole _ apply.authUserGrantRoleIs_nn $$ H17
   have e17 : rq.authUserGrantRole.isSome = !decide (l17 = null) := by
     cases hc : rq.authUserGrantRole <;> simp_all
-  iunfold apply.presentIs at H18
-  icases H18 with %h18
-  have e18 : rq.authUserRevokeRole = !decide (l18 = null) := by
+  ihave %h18 := apply.optReqIs_nil l18 rq.authUserRevokeRole _ apply.authUserRevokeRoleIs_nn $$ H18
+  have e18 : rq.authUserRevokeRole.isSome = !decide (l18 = null) := by
     cases hc : rq.authUserRevokeRole <;> simp_all
   iunfold apply.presentIs at H19
   icases H19 with %h19
@@ -108,9 +105,8 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   ihave %h21 := apply.optReqIs_nil l21 rq.authRoleAdd _ apply.authRoleAddIs_nn $$ H21
   have e21 : rq.authRoleAdd.isSome = !decide (l21 = null) := by
     cases hc : rq.authRoleAdd <;> simp_all
-  iunfold apply.presentIs at H22
-  icases H22 with %h22
-  have e22 : rq.authRoleDelete = !decide (l22 = null) := by
+  ihave %h22 := apply.optReqIs_nil l22 rq.authRoleDelete _ apply.authRoleDeleteIs_nn $$ H22
+  have e22 : rq.authRoleDelete.isSome = !decide (l22 = null) := by
     cases hc : rq.authRoleDelete <;> simp_all
   ihave %h23 := apply.optReqIs_nil l23 rq.authRoleGet _ apply.authRoleGetIs_nn $$ H23
   have e23 : rq.authRoleGet.isSome = !decide (l23 = null) := by
@@ -118,9 +114,8 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   ihave %h24 := apply.optReqIs_nil l24 rq.authRoleGrantPermission _ apply.authRoleGrantPermissionIs_nn $$ H24
   have e24 : rq.authRoleGrantPermission.isSome = !decide (l24 = null) := by
     cases hc : rq.authRoleGrantPermission <;> simp_all
-  iunfold apply.presentIs at H25
-  icases H25 with %h25
-  have e25 : rq.authRoleRevokePermission = !decide (l25 = null) := by
+  ihave %h25 := apply.optReqIs_nil l25 rq.authRoleRevokePermission _ apply.authRoleRevokePermissionIs_nn $$ H25
+  have e25 : rq.authRoleRevokePermission.isSome = !decide (l25 = null) := by
     cases hc : rq.authRoleRevokePermission <;> simp_all
   ihave %h26 := apply.optReqIs_nil l26 rq.clusterVersionSet _ apply.clusterVersionSetIs_nn $$ H26
   have e26 : rq.clusterVersionSet.isSome = !decide (l26 = null) := by

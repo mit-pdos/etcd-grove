@@ -111,6 +111,63 @@ theorem adminStateR_ord (rq : apply.IRRModel) (st st' : auth.AuthState)
             simp only [Bool.not_eq_true] at hen
             simp [hen]
           · simp_all [outState]
+    · -- (nomode D3) `AuthDisable`
+      obtain ⟨o, ho, rfl⟩ := h
+      simp only [auth.stepOf, auth.authDisableF] at ho
+      subst ho
+      split
+      · exact authOrd_bump st _ (by simp)
+      · simp_all [outState]
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf, auth.userDeleteF] at ho
+        subst ho
+        split
+        · simp_all [outState]
+        split
+        · simp_all [outState]
+        · exact authOrd_bump st _ (by simp [auth.delUser])
+      · exact absurd h hne
+    · split at h
+      · rcases h with ⟨-, h⟩ | ⟨o, ho, rfl⟩
+        · exact absurd h hne
+        · simp only [auth.stepOf, auth.userChangePasswordF] at ho
+          subst ho
+          split
+          · simp_all [outState]
+          · exact authOrd_bump st _ (by simp)
+      · exact absurd h hne
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf, auth.userRevokeRoleF] at ho
+        subst ho
+        split
+        · simp_all [outState]
+        split
+        · simp_all [outState]
+        split
+        · exact authOrd_bump st _ (by simp [auth.putUser])
+        · simp_all [outState]
+      · exact absurd h hne
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf, auth.roleDeleteF] at ho
+        subst ho
+        split
+        · simp_all [outState]
+        split
+        · simp_all [outState]
+        · exact authOrd_bump st _ (by simp [auth.delRole])
+      · exact absurd h hne
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.roleRevokePermissionR] at ho
+        split at ho
+        · subst ho; simp_all [outState]
+        · split at ho
+          · subst ho; exact authOrd_bump st _ (by simp [auth.putRole])
+          · subst ho; simp_all [outState]
+      · exact absurd h hne
   · exact absurd h hne
 
 /-- **The model's admin step, where it changes the state, raises its order.** -/
@@ -269,6 +326,12 @@ def apply.AdminReq.capRel : apply.AdminReq → auth.StepRel
   | .roleGrantPermission n w => auth.roleGrantPermissionR n w
   | .authEnable => auth.authEnableOwnR
   | .authenticate _ _ => fun _ _ => False
+  | .authDisable => auth.ownFlagR auth.authDisableF
+  | .userDelete n => auth.ownFlagR (fun en => auth.userDeleteF en n)
+  | .userChangePassword n => auth.stepOf (auth.userChangePasswordF n)
+  | .userRevokeRole n ro => auth.ownFlagR (fun en => auth.userRevokeRoleF en n ro)
+  | .roleDelete ro => auth.ownFlagR (fun en => auth.roleDeleteF en ro)
+  | .roleRevokePermission ro k e => auth.roleRevokePermissionR ro k e
 
 /-- **A next state of a request's step is above it in order.** -/
 theorem capRel_ord (ad : apply.AdminReq) (sa st' : auth.AuthState)
@@ -321,6 +384,46 @@ theorem capRel_ord (ad : apply.AdminReq) (sa st' : auth.AuthState)
           simp [hen]
         · cases hR
   | authenticate n p => exact hR.elim
+  | authDisable =>
+    simp only [apply.AdminReq.capRel, auth.ownFlagR, auth.authDisableF] at hR
+    split at hR
+    · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp)
+    · cases hR
+  | userDelete n =>
+    simp only [apply.AdminReq.capRel, auth.ownFlagR, auth.userDeleteF] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · cases hR
+      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.delUser])
+  | userChangePassword n =>
+    simp only [apply.AdminReq.capRel, auth.stepOf, auth.userChangePasswordF] at hR
+    split at hR
+    · cases hR
+    · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp)
+  | userRevokeRole n ro =>
+    simp only [apply.AdminReq.capRel, auth.ownFlagR, auth.userRevokeRoleF] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · cases hR
+      · split at hR
+        · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.putUser])
+        · cases hR
+  | roleDelete ro =>
+    simp only [apply.AdminReq.capRel, auth.ownFlagR, auth.roleDeleteF] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · cases hR
+      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.delRole])
+  | roleRevokePermission ro k e =>
+    simp only [apply.AdminReq.capRel, auth.roleRevokePermissionR] at hR
+    split at hR
+    · cases hR
+    · split at hR
+      · injection hR with hR; subst hR; exact authOrd_bump _ _ (by simp [auth.putRole])
+      · cases hR
 
 /-- **An admitted step of the request is the model's** (`adminStateR`). -/
 theorem capRel_adminStateR (rq : apply.IRRModel) (ad : apply.AdminReq) (sa st' : auth.AuthState)
@@ -366,6 +469,39 @@ theorem capRel_adminStateR (rq : apply.IRRModel) (ad : apply.AdminReq) (sa st' :
       simp only [hm, Option.map_some, Option.some.injEq] at had
       subst had
       exact hR.elim
+  · simp only [Option.some.injEq] at had
+    subst had
+    exact ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authUserDelete with
+    | none => simp [hm] at had
+    | some n =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authUserChangePassword with
+    | none => simp [hm] at had
+    | some mm =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact Or.inr ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authUserRevokeRole with
+    | none => simp [hm] at had
+    | some nr =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authRoleDelete with
+    | none => simp [hm] at had
+    | some ro =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact ⟨.next st', hR, rfl⟩
+  · cases hm : rq.authRoleRevokePermission with
+    | none => simp [hm] at had
+    | some x =>
+      simp only [hm, Option.map_some, Option.some.injEq] at had
+      subst had
+      exact ⟨.next st', hR, rfl⟩
   · cases had
 
 /-- An `Authenticate` request model's admin request is of its kind. -/

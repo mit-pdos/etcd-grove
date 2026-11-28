@@ -111,13 +111,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.RoleRevokePermission.wp_tie
+theorem auth.authStore.RoleRevokePermission.wp_tieB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.RoleRevokePermission.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T Wb hs Pre Q Post r role key rangeEnd b0 sc0
+    auth.authStore.RoleRevokePermission.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T Wb hs Pre Q Post r role key rangeEnd b0 sc0 be
   wp_start as ⟨#Hinv, #Hr, %Hrolelen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
   icases authErrVar_of_init .permissionNotGranted $$ Hpkg with ⟨%ePNG, #HePNG⟩
@@ -129,8 +129,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold roleRevokePermissionReqIs at Hr
   icases Hr with ⟨%Hrnn, #HRole, ⟨%ks, #HKey, #Hks⟩, ⟨%res, #HRE, #Hres⟩⟩
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
@@ -171,7 +171,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
@@ -367,7 +367,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
@@ -505,7 +505,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   isplitl [HPost]
   · ileft; iexact HPost
   isplitl [Hbe HT Hfl Hca]
-  · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
@@ -523,6 +523,14 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     all_goals rfl
   · ipureintro; trivial
 
+
+theorem auth.authStore.RoleRevokePermission.wp_tie
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.RoleRevokePermission.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleRevokePermission.specT_of_TB (auth.authStore.RoleRevokePermission.wp_tieB h_commitRevision h_refresh h_String h_Info)
 
 theorem auth.authStore.RoleRevokePermission.wp_proof
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))

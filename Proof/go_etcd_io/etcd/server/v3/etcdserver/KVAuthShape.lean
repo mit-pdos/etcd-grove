@@ -18,9 +18,11 @@ permissions compared up to order): one successor at every state
 (`relState_roleGrantPermission_unique`). Until then it was a relation, unique only at a role with
 no permission, which the proposer had to know.
 
-`authDet_of_sorted`: an admin entry is determinate at a sorted state when it is `UserAdd` with a
-password choice that cannot fail (`pwSure`, E2t/E2x), `RoleAdd`, `UserGrantRole`,
-`RoleGrantPermission`, `AuthEnable`, or any other kind (which keeps the state).
+`roleRevokePermissionR` is a function since nomode X-a4 (the role holds every stored permission).
+
+`authDet_of_sorted`: an admin entry is determinate at a sorted state when it is `UserAdd` or
+`UserChangePassword` with a password choice that cannot fail (`pwSure`, E2t/E2x; nomode D3), or any
+other kind.
 -/
 module
 
@@ -129,6 +131,23 @@ theorem rolesSorted_putUser (st : auth.AuthState) (name : GoString) (us : auth.U
   · subst e; simp only [auth.putUser, GMap.lookup_insert] at hu; cases hu; exact hus
   · simp only [auth.putUser, GMap.lookup_insert_ne _ _ e] at hu; exact h u us' hu
 
+theorem rolesSorted_delUser (st : auth.AuthState) (name : GoString) (h : rolesSorted st) :
+    rolesSorted (auth.delUser st name) := by
+  intro u us hu
+  by_cases e : name = u
+  · subst e; simp [auth.delUser] at hu
+  · simp only [auth.delUser, GMap.lookup_delete_ne _ e] at hu; exact h u us hu
+
+theorem rolesSorted_delRole (st : auth.AuthState) (name : GoString) (h : rolesSorted st) :
+    rolesSorted (auth.delRole st name) := by
+  intro u us hu
+  simp only [auth.delRole, GMap.lookup_fmap] at hu
+  cases e : st.users !! u with
+  | none => rw [e] at hu; cases hu
+  | some us0 =>
+    rw [e] at hu; simp only [Option.map_some, Option.some.injEq] at hu
+    subst hu; exact (h u us0 e).filter _
+
 theorem rolesSorted_bootState : rolesSorted auth.bootState := by
   intro u us h
   simp [auth.bootState] at h
@@ -215,6 +234,78 @@ theorem rolesSorted_adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState)
         · split at hs
           · cases hs; exact rolesSorted_enabled st true h
           · cases hs
+    · -- (nomode D3) `AuthDisable`
+      obtain ⟨o, ho, rfl⟩ := hR
+      apply rolesSorted_outState st o h
+      intro s hs
+      simp only [auth.stepOf, auth.authDisableF] at ho
+      subst ho
+      split at hs
+      · cases hs; exact rolesSorted_bump _ (rolesSorted_enabled st false h)
+      · cases hs
+    · split at hR
+      · obtain ⟨o, ho, rfl⟩ := hR
+        apply rolesSorted_outState st o h
+        intro s hs
+        simp only [auth.stepOf, auth.userDeleteF] at ho
+        subst ho
+        split at hs
+        · cases hs
+        · split at hs
+          · cases hs
+          · cases hs; exact rolesSorted_bump _ (rolesSorted_delUser st _ h)
+      · subst hR; exact h
+    · split at hR
+      · rcases hR with ⟨-, rfl⟩ | ⟨o, ho, rfl⟩
+        · exact h
+        · apply rolesSorted_outState st o h
+          intro s hs
+          simp only [auth.stepOf, auth.userChangePasswordF] at ho
+          subst ho
+          split at hs
+          · cases hs
+          · cases hs; exact rolesSorted_bump _ h
+      · subst hR; exact h
+    · split at hR
+      · obtain ⟨o, ho, rfl⟩ := hR
+        apply rolesSorted_outState st o h
+        intro s hs
+        simp only [auth.stepOf, auth.userRevokeRoleF] at ho
+        subst ho
+        split at hs
+        · cases hs
+        · split at hs
+          · cases hs
+          · rename_i us hus
+            split at hs
+            · cases hs
+              exact rolesSorted_bump _ (rolesSorted_putUser st _ _ ((h _ us hus).filter _) h)
+            · cases hs
+      · subst hR; exact h
+    · split at hR
+      · obtain ⟨o, ho, rfl⟩ := hR
+        apply rolesSorted_outState st o h
+        intro s hs
+        simp only [auth.stepOf, auth.roleDeleteF] at ho
+        subst ho
+        split at hs
+        · cases hs
+        · split at hs
+          · cases hs
+          · cases hs; exact rolesSorted_bump _ (rolesSorted_delRole st _ h)
+      · subst hR; exact h
+    · split at hR
+      · obtain ⟨o, ho, rfl⟩ := hR
+        apply rolesSorted_outState st o h
+        intro s hs
+        subst hs
+        simp only [auth.roleRevokePermissionR] at ho
+        split at ho
+        · cases ho
+        · split at ho
+          · cases ho; exact rolesSorted_bump _ (rolesSorted_putRole st _ _ h)
+          · cases ho
+      · subst hR; exact h
     · subst hR; exact h
   · subst hR; exact h
 
@@ -312,10 +403,41 @@ theorem relState_roleGrantPermission_unique (r : GoString) (w : Option auth.Perm
   · rintro ⟨o', ho', rfl⟩; rw [(ho o').1 ho']
   · rintro rfl; exact ⟨o, (ho o).2 rfl, rfl⟩
 
-/-- **The proposer's side of an admin entry's determinacy** (see the header): a `UserAdd` whose
-password choice cannot fail; every other kind as it is. -/
+/-- `RoleRevokePermission` has exactly one successor (nomode X-a4: a function of the state). -/
+theorem relState_roleRevokePermission_unique (ro k e : GoString) (st : auth.AuthState) :
+    ∃ s, ∀ st', authRelState (auth.roleRevokePermissionR ro k e) st st' ↔ st' = s := by
+  obtain ⟨o, ho⟩ : ∃ o, ∀ o', auth.roleRevokePermissionR ro k e st o' ↔ o' = o := by
+    unfold auth.roleRevokePermissionR
+    try simp only
+    split
+    · exact ⟨_, fun _ => Iff.rfl⟩
+    · split <;> exact ⟨_, fun _ => Iff.rfl⟩
+  refine ⟨outState st o, fun st' => ⟨?_, ?_⟩⟩
+  · rintro ⟨o', ho', rfl⟩; rw [(ho o').1 ho']
+  · rintro rfl; exact ⟨o, (ho o).2 rfl, rfl⟩
+
+/-- A relation with exactly one successor, as `authDet`'s body. -/
+theorem det_of_unique {P : auth.AuthState → Prop} (h : ∃ s, ∀ st', P st' ↔ st' = s) :
+    ∃ st', P st' ∧ ∀ st'', P st'' → st'' = st' := by
+  obtain ⟨s, hs⟩ := h
+  exact ⟨s, (hs s).2 rfl, fun st'' h'' => (hs st'').1 h''⟩
+
+/-- **The proposer's side of an admin entry's determinacy** (see the header): a `UserAdd`, and a
+`UserChangePassword` that `dispatch` applies (nomode D3), whose password choice cannot fail; every
+other kind as it is. -/
 def adminDetReq (rq : apply.IRRModel) : Prop :=
-  ∀ m, rq.authUserAdd = some m → m.pwSure
+  (∀ m, rq.authUserAdd = some m → m.pwSure) ∧
+    (apply.dispatchKind rq = .authUserChangePassword →
+      ∀ m, rq.authUserChangePassword = some m → m.pwSure)
+
+/-- An admitted `UserChangePassword` has a password choice that cannot fail (`adminKindOk`). -/
+theorem adminKindOk_cpSure (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.dispatchKind rq = .authUserChangePassword →
+      ∀ m, rq.authUserChangePassword = some m → m.pwSure := by
+  intro hk m hm
+  unfold apply.adminKindOk at h
+  rw [hk] at h
+  exact (h m hm).2
 
 /-- **An admin entry is determinate at a sorted state** meeting `adminDetReq`. -/
 theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : rolesSorted st)
@@ -325,7 +447,7 @@ theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : roles
   · split
     · split
       · rename_i m hm
-        have hsure := hpw m hm
+        have hsure := hpw.1 m hm
         obtain ⟨s, hs⟩ := (⟨_, relState_stepOf_iff (auth.userAddF m.name) st⟩ :
           ∃ s, ∀ st', authRelState (auth.stepOf (auth.userAddF m.name)) st st' ↔ st' = s)
         refine ⟨s, Or.inr ((hs s).2 rfl), fun st'' h'' => ?_⟩
@@ -350,6 +472,30 @@ theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : roles
     · obtain ⟨s, hs⟩ := (⟨_, relState_stepOf_iff (auth.authEnableF st.enabled) st⟩ :
         ∃ s, ∀ st', authRelState (auth.stepOf (auth.authEnableF st.enabled)) st st' ↔ st' = s)
       exact ⟨s, (hs s).2 rfl, fun st'' h'' => (hs st'').1 h''⟩
+    · -- (nomode D3) `AuthDisable`
+      exact det_of_unique ⟨_, relState_stepOf_iff (auth.authDisableF st.enabled) st⟩
+    · split
+      · exact det_of_unique ⟨_, relState_stepOf_iff _ st⟩
+      · exact ⟨st, rfl, fun _ h => h⟩
+    · split
+      · rename_i m hm
+        have hsure := hpw.2 (by assumption) m hm
+        obtain ⟨s, hs⟩ := (⟨_, relState_stepOf_iff (auth.userChangePasswordF m.name) st⟩ :
+          ∃ s, ∀ st', authRelState (auth.stepOf (auth.userChangePasswordF m.name)) st st' ↔ st' = s)
+        refine ⟨s, Or.inr ((hs s).2 rfl), fun st'' h'' => ?_⟩
+        rcases h'' with ⟨hn, -⟩ | h''
+        · exact absurd hsure hn
+        · exact (hs st'').1 h''
+      · exact ⟨st, rfl, fun _ h => h⟩
+    · split
+      · exact det_of_unique ⟨_, relState_stepOf_iff _ st⟩
+      · exact ⟨st, rfl, fun _ h => h⟩
+    · split
+      · exact det_of_unique ⟨_, relState_stepOf_iff _ st⟩
+      · exact ⟨st, rfl, fun _ h => h⟩
+    · split
+      · exact det_of_unique (relState_roleRevokePermission_unique _ _ _ st)
+      · exact ⟨st, rfl, fun _ h => h⟩
     · exact ⟨st, rfl, fun _ h => h⟩
   · exact ⟨st, rfl, fun _ h => h⟩
 

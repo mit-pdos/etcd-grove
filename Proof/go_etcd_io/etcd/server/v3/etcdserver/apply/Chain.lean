@@ -385,10 +385,13 @@ theorem restReqOk_attr (rq : IRRModel) (rs : RestM) (a : MemberAttrModel) (h : r
 
 /-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
 only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
-`AuthFuel.lean`). `SetUp`'s five: `UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`
-(whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds.
-A `UserAdd`'s password choice cannot fail (`UserAddModel.pwSure`, the server's own form, which
-`EtcdServer.UserAdd` proposes: E2x), so its outcome is the step's alone (E3a). (C1's A2,
+`AuthFuel.lean`). The eleven that change the auth state (`SetUp`'s five, `UserAdd`, `RoleAdd`,
+`UserGrantRole`, `RoleGrantPermission`, `AuthEnable`, and since nomode D3, 2026-11-28,
+`AuthDisable`, `UserDelete`, `UserChangePassword`, `UserRevokeRole`, `RoleDelete`,
+`RoleRevokePermission`); not the lists. A `UserAdd`'s and a `UserChangePassword`'s password choice
+cannot fail (`UserAddModel.pwSure`, `ChangePasswordModel.pwSure`: the server's own form, which
+`EtcdServer.UserAdd` and `EtcdServer.UserChangePassword` propose: E2x), so its outcome is the
+step's alone (E3a). (C1's A2,
 2026-10-28) And `Authenticate`, which writes nothing (`GetUser` only reads its name: no key bound),
 in a request needing no admin permission (`needAdminPermission` reads the request's fields, the
 dispatch its first: a request with an admin field beside it would pass the admin check and still
@@ -404,6 +407,15 @@ def adminKindOk (rq : IRRModel) : Prop :=
   | .authEnable => True
   | .authenticate => needAdminPermission rq = false ∧
       ∀ am, rq.authenticate = some am → auth.tokPrefixOk am.simpleToken
+  | .authDisable => True
+  | .authUserDelete => True
+  | .authUserChangePassword =>
+      ∀ m, rq.authUserChangePassword = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
+  | .authUserRevokeRole =>
+      ∀ n ro, rq.authUserRevokeRole = some (n, ro) → n.length ≤ backend.maxKeySize
+  | .authRoleDelete => True
+  | .authRoleRevokePermission =>
+      ∀ ro k e, rq.authRoleRevokePermission = some (ro, k, e) → ro.length ≤ backend.maxKeySize
   | _ => False
 
 /-- **The per-request premise in the auth mode `M`** (E2m, continued): `rqOk`, or, in the mode `on`

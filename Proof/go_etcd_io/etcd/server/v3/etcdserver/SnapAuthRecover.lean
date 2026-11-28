@@ -208,6 +208,68 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
         · split at hn
           · cases hn; exact auth.permKeysOk_enabled _ _ hs
           · cases hn
+    · -- (nomode D3) `AuthDisable`
+      refine authRelState_wf _ (auth.stepSmall_authDisable st.enabled) ?_ st st' h hR
+      intro s s' hs hn
+      simp only [auth.stepOf, auth.authDisableF] at hn
+      split at hn
+      · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_enabled _ _ hs)
+      · cases hn
+    · split at hR <;> rename_i n hn
+      · refine authRelState_wf _ (auth.stepSmall_userDelete st.enabled n) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.userDeleteF] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_delUser _ _ hs)
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i m hm
+      · rcases hR with ⟨-, rfl⟩ | hR
+        · exact ⟨h, Nat.le_succ _⟩
+        · refine authRelState_wf _ (auth.stepSmall_userChangePassword m.name) ?_ st st' h hR
+          intro s s' hs hn
+          simp only [auth.stepOf, auth.userChangePasswordF] at hn
+          split at hn
+          · cases hn
+          · cases hn; exact auth.permKeysOk_bump _ hs
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i n ro hnr
+      · refine authRelState_wf _ (auth.stepSmall_userRevokeRole st.enabled n ro) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.userRevokeRoleF] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · split at hn
+            · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_putUser _ _ _ hs)
+            · cases hn
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i ro hro
+      · refine authRelState_wf _ (auth.stepSmall_roleDelete st.enabled ro) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.stepOf, auth.roleDeleteF] at hn
+        split at hn
+        · cases hn
+        · split at hn
+          · cases hn
+          · cases hn; exact auth.permKeysOk_bump _ (auth.permKeysOk_delRole _ _ hs)
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
+    · split at hR <;> rename_i ro k e hrke
+      · refine authRelState_wf _ (auth.stepSmall_roleRevokePermission ro k e) ?_ st st' h hR
+        intro s s' hs hn
+        simp only [auth.roleRevokePermissionR] at hn
+        split at hn
+        · cases hn
+        · rename_i ps hps
+          split at hn
+          · cases hn
+            exact auth.permKeysOk_bump _ (auth.permKeysOk_putRole _ _ _ hs
+              (fun p hp => hs ro ps hps p (List.mem_filter.1 hp).1))
+          · cases hn
+      · subst hR; exact ⟨h, Nat.le_succ _⟩
     · subst hR; exact ⟨h, Nat.le_succ _⟩
   · subst hR; exact ⟨h, Nat.le_succ _⟩
 

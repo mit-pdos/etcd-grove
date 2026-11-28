@@ -53,36 +53,41 @@ def irrAuthenticate (am : apply.AuthenticateModel) : apply.IRRModel :=
   { apply.irrEmpty with authenticate := some am }
 /-- `&pb.InternalRaftRequest{AuthUserAdd: r}` for `r` holding `m` (its name, passwords and options). -/
 def irrUserAdd (m : apply.UserAddModel) : apply.IRRModel := { apply.irrEmpty with authUserAdd := some m }
-/-- `&pb.InternalRaftRequest{AuthUserDelete: r}`. -/
-def irrUserDelete : apply.IRRModel := { apply.irrEmpty with authUserDelete := true }
+/-- `&pb.InternalRaftRequest{AuthUserDelete: r}` for `r` naming `name`. -/
+def irrUserDelete (name : GoString) : apply.IRRModel :=
+  { apply.irrEmpty with authUserDelete := some name }
 /-- `&pb.InternalRaftRequest{AuthUserGet: r}` for `r` naming `name`. -/
 def irrUserGet (name : GoString) : apply.IRRModel := { apply.irrEmpty with authUserGet := some name }
-/-- `&pb.InternalRaftRequest{AuthUserChangePassword: r}`. -/
-def irrUserChangePassword : apply.IRRModel :=
-  { apply.irrEmpty with authUserChangePassword := true }
+/-- `&pb.InternalRaftRequest{AuthUserChangePassword: r}` for `r` holding `m` (its name and passwords). -/
+def irrUserChangePassword (m : apply.ChangePasswordModel) : apply.IRRModel :=
+  { apply.irrEmpty with authUserChangePassword := some m }
 /-- `&pb.InternalRaftRequest{AuthUserGrantRole: r}` for `r` naming the user `user` and the role
 `role`. -/
 def irrUserGrantRole (user role : GoString) : apply.IRRModel :=
   { apply.irrEmpty with authUserGrantRole := some (user, role) }
-/-- `&pb.InternalRaftRequest{AuthUserRevokeRole: r}`. -/
-def irrUserRevokeRole : apply.IRRModel := { apply.irrEmpty with authUserRevokeRole := true }
+/-- `&pb.InternalRaftRequest{AuthUserRevokeRole: r}` for `r` naming the user `name` and the role
+`role`. -/
+def irrUserRevokeRole (name role : GoString) : apply.IRRModel :=
+  { apply.irrEmpty with authUserRevokeRole := some (name, role) }
 /-- `&pb.InternalRaftRequest{AuthUserList: r}`. -/
 def irrUserList : apply.IRRModel := { apply.irrEmpty with authUserList := true }
 /-- `&pb.InternalRaftRequest{AuthRoleList: r}`. -/
 def irrRoleList : apply.IRRModel := { apply.irrEmpty with authRoleList := true }
 /-- `&pb.InternalRaftRequest{AuthRoleAdd: r}` for `r` naming `name`. -/
 def irrRoleAdd (name : GoString) : apply.IRRModel := { apply.irrEmpty with authRoleAdd := some name }
-/-- `&pb.InternalRaftRequest{AuthRoleDelete: r}`. -/
-def irrRoleDelete : apply.IRRModel := { apply.irrEmpty with authRoleDelete := true }
+/-- `&pb.InternalRaftRequest{AuthRoleDelete: r}` for `r` naming `role`. -/
+def irrRoleDelete (role : GoString) : apply.IRRModel :=
+  { apply.irrEmpty with authRoleDelete := some role }
 /-- `&pb.InternalRaftRequest{AuthRoleGet: r}` for `r` naming `name`. -/
 def irrRoleGet (name : GoString) : apply.IRRModel := { apply.irrEmpty with authRoleGet := some name }
 /-- `&pb.InternalRaftRequest{AuthRoleGrantPermission: r}` for `r` naming the role `name` with the
 permission `w`. -/
 def irrRoleGrantPermission (name : GoString) (w : Option auth.PermW) : apply.IRRModel :=
   { apply.irrEmpty with authRoleGrantPermission := some (name, w) }
-/-- `&pb.InternalRaftRequest{AuthRoleRevokePermission: r}`. -/
-def irrRoleRevokePermission : apply.IRRModel :=
-  { apply.irrEmpty with authRoleRevokePermission := true }
+/-- `&pb.InternalRaftRequest{AuthRoleRevokePermission: r}` for `r` naming the role `role`, the key
+`key` and the range end `rangeEnd`. -/
+def irrRoleRevokePermission (role key rangeEnd : GoString) : apply.IRRModel :=
+  { apply.irrEmpty with authRoleRevokePermission := some (role, key, rangeEnd) }
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

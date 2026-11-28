@@ -156,26 +156,23 @@ kind is neither of the pre-v3 kinds nor a store kind, so its dispatched outcome 
 theorem applyStep_admin_keep (rq : apply.IRRModel) (x x' : apply.ApplyKV) (out : apply.ApplyOut)
     (hk : apply.adminKindOk rq) (h : apply.applyStep rq true x x' out) :
     x'.log = x.log ∧ x'.chain = x.chain := by
-  have hkd : apply.dispatchKind rq = .authUserAdd ∨ apply.dispatchKind rq = .authRoleAdd ∨
-      apply.dispatchKind rq = .authUserGrantRole ∨
-      apply.dispatchKind rq = .authRoleGrantPermission ∨ apply.dispatchKind rq = .authEnable ∨
-      apply.dispatchKind rq = .authenticate := by
-    unfold apply.adminKindOk at hk
-    split at hk <;> simp_all
   have hpv : apply.preV3Kind (apply.dispatchKind rq) = false := by
-    rcases hkd with h | h | h | h | h | h <;> rw [h] <;> rfl
+    unfold apply.adminKindOk at hk
+    split at hk <;> rename_i heq <;> simp_all [apply.preV3Kind]
   have hsk : apply.storeKind (apply.dispatchKind rq) = false := by
-    rcases hkd with h | h | h | h | h | h <;> rw [h] <;> rfl
+    unfold apply.adminKindOk at hk
+    split at hk <;> rename_i heq <;> simp_all [apply.storeKind]
   have hna : apply.dispatchKind rq ≠ .alarm := by
-    rcases hkd with h | h | h | h | h | h <;> rw [h] <;> decide
+    intro h; unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
+  have hng : apply.dispatchKind rq ≠ .leaseGrant := by
+    intro h; unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
   cases out with
   | skipped => obtain ⟨-, rfl⟩ := h; exact ⟨rfl, rfl⟩
   | rejected => obtain ⟨-, rfl⟩ := h; exact ⟨rfl, rfl⟩
   | dispatched o b =>
     obtain ⟨-, hd, hl, hc⟩ := h
     unfold apply.dispatchStep at hd
-    rw [if_neg (by simp [hpv]),
-      if_neg (by rcases hkd with h | h | h | h | h | h <;> simp [h, apply.storeKind])] at hd
+    rw [if_neg (by simp [hpv]), if_neg (by simp [hsk, hng])] at hd
     refine ⟨hl.trans hd, ?_⟩
     rcases hc with hc | ⟨-, hal, -⟩
     · exact hc
@@ -437,6 +434,176 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
       rw [hkd] at hka
       rw [hka.1] at hn
       cases hn
+    · -- `AuthDisable` (nomode D3)
+      cases had
+      simp only [apply.AdminReq.result]
+      icases Hres with ⟨%en, -, Hx, -⟩
+      ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hx
+      obtain ⟨h1, h2, h3⟩ := h
+      rw [hl] at h1; cases h1
+      have hO : adminStepO rq st o' := by
+        unfold adminStepO; rw [hkd]
+        exact apply.flagR_on γa en auth.authDisableF st o' h2
+      iexists histAfter hs o', outState st o'
+      iframe Ho
+      isplitr
+      · ipureintro
+        exact ⟨histAfter_last hs st o' hl, adminStateR_of_stepO rq st o' ha hO⟩
+      iunfold adminTieAr
+      iright
+      iright
+      isplitr
+      · ipureintro; exact ⟨o, b, rfl⟩
+      iexists v
+      iframe Hv
+      ipureintro
+      intro hn
+      exact ⟨ha, o', hO, h3 hn, rfl⟩
+    · -- `UserDelete` (nomode D3)
+      cases hm : rq.authUserDelete with
+      | none => simp [hm] at had
+      | some n =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        icases Hres with ⟨%en, -, Hx, -⟩
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hx
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        have hO : adminStepO rq st o' := by
+          unfold adminStepO; rw [hkd]
+          exact ⟨n, hm, apply.flagR_on γa en (fun en => auth.userDeleteF en n) st o' h2⟩
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl, adminStateR_of_stepO rq st o' ha hO⟩
+        iunfold adminTieAr
+        iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        exact ⟨ha, o', hO, h3 hn, rfl⟩
+    · -- `UserChangePassword` (nomode D3)
+      cases hm : rq.authUserChangePassword with
+      | none => simp [hm] at had
+      | some m =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        icases Hres with ⟨Hres, -⟩
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        have hO : adminStepO rq st o' := by
+          unfold adminStepO; rw [hkd]
+          exact ⟨m, hm, h2⟩
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl, adminStateR_of_stepO rq st o' ha hO⟩
+        iunfold adminTieAr
+        iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        exact ⟨ha, o', hO, h3 hn, rfl⟩
+    · -- `UserRevokeRole` (nomode D3)
+      cases hm : rq.authUserRevokeRole with
+      | none => simp [hm] at had
+      | some nr =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        icases Hres with ⟨%en, -, Hx, -⟩
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hx
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        have hO : adminStepO rq st o' := by
+          unfold adminStepO; rw [hkd]
+          exact ⟨nr.1, nr.2, hm, apply.flagR_on γa en (fun en => auth.userRevokeRoleF en nr.1 nr.2) st o' h2⟩
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl, adminStateR_of_stepO rq st o' ha hO⟩
+        iunfold adminTieAr
+        iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        exact ⟨ha, o', hO, h3 hn, rfl⟩
+    · -- `RoleDelete` (nomode D3)
+      cases hm : rq.authRoleDelete with
+      | none => simp [hm] at had
+      | some ro =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        icases Hres with ⟨%en, -, Hx, -⟩
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hx
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        have hO : adminStepO rq st o' := by
+          unfold adminStepO; rw [hkd]
+          exact ⟨ro, hm, apply.flagR_on γa en (fun en => auth.roleDeleteF en ro) st o' h2⟩
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl, adminStateR_of_stepO rq st o' ha hO⟩
+        iunfold adminTieAr
+        iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        exact ⟨ha, o', hO, h3 hn, rfl⟩
+    · -- `RoleRevokePermission` (nomode D3)
+      cases hm : rq.authRoleRevokePermission with
+      | none => simp [hm] at had
+      | some x =>
+        simp only [hm, Option.map_some, Option.some.injEq] at had
+        subst had
+        simp only [apply.AdminReq.result]
+        icases Hres with ⟨Hres, -⟩
+        ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
+        obtain ⟨h1, h2, h3⟩ := h
+        rw [hl] at h1; cases h1
+        have hO : adminStepO rq st o' := by
+          unfold adminStepO; rw [hkd]
+          exact ⟨x.1, x.2.1, x.2.2, hm, h2⟩
+        iexists histAfter hs o', outState st o'
+        iframe Ho
+        isplitr
+        · ipureintro
+          exact ⟨histAfter_last hs st o' hl, adminStateR_of_stepO rq st o' ha hO⟩
+        iunfold adminTieAr
+        iright
+        iright
+        isplitr
+        · ipureintro; exact ⟨o, b, rfl⟩
+        iexists v
+        iframe Hv
+        ipureintro
+        intro hn
+        exact ⟨ha, o', hO, h3 hn, rfl⟩
     · cases had
 
 end res2

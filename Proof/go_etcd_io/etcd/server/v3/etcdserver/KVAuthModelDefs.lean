@@ -44,10 +44,10 @@ open Classical in
 /-- **An admitted admin entry's effect on the auth state** (`st` to `st'`): with the principal
 admin-permitted at `st` (`auth.adminOk`; `authApplierV3.Apply` checks it of `needAdminPermission`
 requests), its kind's step (`auth/Steps.lean`; the flag the steps read is `st`'s: the apply thread
-applies at the latest state); otherwise nothing. `UserAdd` may also be refused with
-`ErrNoPasswordUser` (the state kept), unless its password choice cannot fail
-(`UserAddModel.pwSure`, the auth plan's E2t: the request model keeps it). An entry of another
-kind keeps the state (the mode-`on` log admits none: `plainEntryOn`). -/
+applies at the latest state); otherwise nothing. `UserAdd` and `UserChangePassword` may also be
+refused with `ErrNoPasswordUser` (the state kept), unless their password choice cannot fail
+(`UserAddModel.pwSure`, `ChangePasswordModel.pwSure`: the request model keeps it). An entry of
+another kind keeps the state. (Nomode D3, 2026-11-28: the six kinds from `AuthDisable` on.) -/
 def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
   if auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) then
     match apply.dispatchKind rq with
@@ -68,6 +68,28 @@ def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
         | some (r, w) => authRelState (auth.roleGrantPermissionR r w) st st'
         | none => st' = st
     | .authEnable => authRelState (auth.stepOf (auth.authEnableF st.enabled)) st st'
+    | .authDisable => authRelState (auth.stepOf (auth.authDisableF st.enabled)) st st'
+    | .authUserDelete =>
+        match rq.authUserDelete with
+        | some n => authRelState (auth.stepOf (auth.userDeleteF st.enabled n)) st st'
+        | none => st' = st
+    | .authUserChangePassword =>
+        match rq.authUserChangePassword with
+        | some m => (¬ m.pwSure ∧ st' = st) ∨
+            authRelState (auth.stepOf (auth.userChangePasswordF m.name)) st st'
+        | none => st' = st
+    | .authUserRevokeRole =>
+        match rq.authUserRevokeRole with
+        | some (n, ro) => authRelState (auth.stepOf (auth.userRevokeRoleF st.enabled n ro)) st st'
+        | none => st' = st
+    | .authRoleDelete =>
+        match rq.authRoleDelete with
+        | some ro => authRelState (auth.stepOf (auth.roleDeleteF st.enabled ro)) st st'
+        | none => st' = st
+    | .authRoleRevokePermission =>
+        match rq.authRoleRevokePermission with
+        | some (ro, k, e) => authRelState (auth.roleRevokePermissionR ro k e) st st'
+        | none => st' = st
     | _ => st' = st
   else st' = st
 
@@ -83,6 +105,16 @@ def adminStepO (rq : apply.IRRModel) (st : auth.AuthState) (o : auth.Outcome) : 
   | .authRoleGrantPermission =>
       ∃ n w, rq.authRoleGrantPermission = some (n, w) ∧ auth.roleGrantPermissionR n w st o
   | .authEnable => auth.stepOf (auth.authEnableF st.enabled) st o
+  | .authDisable => auth.stepOf (auth.authDisableF st.enabled) st o
+  | .authUserDelete => ∃ n, rq.authUserDelete = some n ∧ auth.stepOf (auth.userDeleteF st.enabled n) st o
+  | .authUserChangePassword =>
+      ∃ m, rq.authUserChangePassword = some m ∧ auth.stepOf (auth.userChangePasswordF m.name) st o
+  | .authUserRevokeRole =>
+      ∃ n ro, rq.authUserRevokeRole = some (n, ro) ∧
+        auth.stepOf (auth.userRevokeRoleF st.enabled n ro) st o
+  | .authRoleDelete => ∃ ro, rq.authRoleDelete = some ro ∧ auth.stepOf (auth.roleDeleteF st.enabled ro) st o
+  | .authRoleRevokePermission =>
+      ∃ ro k e, rq.authRoleRevokePermission = some (ro, k, e) ∧ auth.roleRevokePermissionR ro k e st o
   | _ => False
 
 /-- **An admin entry succeeded from `st` to `st'`** (the auth plan's E3x, 2026-10-27): its
@@ -111,10 +143,11 @@ theorem adminNext_of_det (rq : apply.IRRModel) (st st' : auth.AuthState) (hd : a
   have hc := Classical.choose_spec hd
   exact ((hc.2 st' h).trans (hc.2 _ hc.1).symm).symm
 
-/-- **A successful admin step is one of the model's** (`adminStepOk`, `adminStateR`). -/
-theorem adminStateR_of_stepOk (rq : apply.IRRModel) (st st' : auth.AuthState)
-    (h : adminStepOk rq st st') : adminStateR rq st st' := by
-  obtain ⟨ha, o, hO, -, rfl⟩ := h
+/-- **An admin step's outcome, with the principal admin-permitted, is one of the model's**
+(`adminStepO`, `adminStateR`). -/
+theorem adminStateR_of_stepO (rq : apply.IRRModel) (st : auth.AuthState) (o : auth.Outcome)
+    (ha : auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))))
+    (hO : adminStepO rq st o) : adminStateR rq st (outState st o) := by
   unfold adminStateR
   rw [if_pos ha]
   unfold adminStepO at hO
@@ -124,7 +157,19 @@ theorem adminStateR_of_stepOk (rq : apply.IRRModel) (st st' : auth.AuthState)
   · obtain ⟨u, r, hu, h⟩ := hO; simp only [hu]; exact ⟨o, h, rfl⟩
   · obtain ⟨n, w, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
   · exact ⟨o, hO, rfl⟩
+  · exact ⟨o, hO, rfl⟩
+  · obtain ⟨n, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
+  · obtain ⟨m, hm, h⟩ := hO; simp only [hm]; exact Or.inr ⟨o, h, rfl⟩
+  · obtain ⟨n, ro, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
+  · obtain ⟨n, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
+  · obtain ⟨ro, k, e, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
   · exact hO.elim
+
+/-- **A successful admin step is one of the model's** (`adminStepOk`, `adminStateR`). -/
+theorem adminStateR_of_stepOk (rq : apply.IRRModel) (st st' : auth.AuthState)
+    (h : adminStepOk rq st st') : adminStateR rq st st' := by
+  obtain ⟨ha, o, hO, -, rfl⟩ := h
+  exact adminStateR_of_stepO rq st o ha hO
 
 /-- **A successful admin step at a determinate entry is the model's step**. -/
 theorem adminNext_of_stepOk (rq : apply.IRRModel) (st st' : auth.AuthState) (hd : authDet rq st)
@@ -659,6 +704,46 @@ theorem adminStateR_enabled (rq : apply.IRRModel) (st st' : auth.AuthState)
           · split at ho <;> (subst ho; exact hen)
       · subst h; exact hen
     · rename_i hk'; exact absurd hk' hk
+    · -- (nomode D3) `AuthDisable` clears the flag
+      obtain ⟨o, ho, rfl⟩ := h
+      simp only [auth.stepOf] at ho; subst ho
+      unfold auth.authDisableF
+      split
+      · rfl
+      · exact hen
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf] at ho; subst ho
+        unfold auth.userDeleteF
+        (repeat' split) <;> exact hen
+      · subst h; exact hen
+    · split at h
+      · rcases h with ⟨-, rfl⟩ | ⟨o, ho, rfl⟩
+        · exact hen
+        · simp only [auth.stepOf] at ho; subst ho
+          unfold auth.userChangePasswordF
+          (repeat' split) <;> exact hen
+      · subst h; exact hen
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf] at ho; subst ho
+        unfold auth.userRevokeRoleF
+        (repeat' split) <;> exact hen
+      · subst h; exact hen
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        simp only [auth.stepOf] at ho; subst ho
+        unfold auth.roleDeleteF
+        (repeat' split) <;> exact hen
+      · subst h; exact hen
+    · split at h
+      · obtain ⟨o, ho, rfl⟩ := h
+        unfold auth.roleRevokePermissionR at ho
+        try simp only at ho
+        split at ho
+        · subst ho; exact hen
+        · split at ho <;> (subst ho; exact hen)
+      · subst h; exact hen
     · subst h; exact hen
   · subst h; exact hen
 
