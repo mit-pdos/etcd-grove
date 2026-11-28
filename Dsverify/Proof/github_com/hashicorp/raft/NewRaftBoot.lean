@@ -449,14 +449,14 @@ theorem durN_diff_appliedN : (↑durN : CoPset) ⊆ ⊤ \ ↑appliedN := by
 snapshot `d.x = x`): the main goroutine's half of the `lastApplied` authority is in the crash state
 (`latestDur`'s discard-pending case); the store raises both halves to `x` and puts it back. -/
 theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState) (tp : Option TermPend)
-    (d : DiscPend) (x : w64) (hx : uint.nat x = d.x) (Φ : val → IProp GF) :
+    (d : DiscPend) (m0 : SnapshotMeta) (b0 : List w8) (hlat0 : lat = some (m0, b0)) (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ appliedCell r rc ∗ srvDurInvRaw γ rc i ∗
       bootV rc A lat ∗ srvVP rc s tp (some d) ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
       (bootV rc A lat -∗ srvVP rc s tp (some d) -∗
         ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) -∗
-        applLb rc (uint.nat x) -∗ Φ #()) ⊢
-    WP (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastApplied")) (Val #x)) {{ Φ }} := by
+        applLb rc (uint.nat m0.Index') -∗ Φ #()) ⊢
+    WP (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"setLastApplied")) (Val #m0.Index')) {{ Φ }} := by
   iintro ⟨#Hpkg, #Hcell, #Hi, Hv, Hsv, Hpe, HK⟩
   wp_method_call; wp_call
   wp_method_call; wp_call
@@ -477,6 +477,10 @@ theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState)
   icombine Hpe Hpe' gives %Hpg
   have hpe : X.pend = none := Hpg.2.symm
   obtain ⟨m, b, hlat, hmi, hmt⟩ := Hp.2.2.2.2.2.2.2.2 d Hag.2.2
+  have hm0 : m = m0 ∧ b = b0 := by
+    have := HX.2; rw [hlat, hlat0] at this; simp only [Option.some.injEq, Prod.mk.injEq] at this; exact this
+  obtain ⟨rfl, rfl⟩ := hm0
+  have hx : uint.nat m.Index' = d.x := hmi
   iframe Hnc
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -499,7 +503,7 @@ theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState)
   cases Hmb
   icases Hd with (⟨-, %Hdn⟩ | ⟨#Hsf, %Hdp, %a', Ha', %Ha'le⟩)
   · cases Hdn
-  imod applied_halves_update rc a' (uint.nat a) (uint.nat x) (by omega) $$ [Ha' Hca] with ⟨-, Ha', Hca⟩
+  imod applied_halves_update rc a' (uint.nat a) (uint.nat m.Index') (by omega) $$ [Ha' Hca] with ⟨-, Ha', Hca⟩
   · iframe
   ihave #Hlb := monoNatLbOwn_get _ _ _ $$ Hca
   imod Hmask with -
@@ -511,13 +515,13 @@ theorem setLastApplied_dp (r : Loc) (A : LogAbs) (lat : SnapLatest) (s : SState)
     isplitr; · ipureintro; rfl
     iright; iframe #
     isplitr; · ipureintro; exact Hdp
-    iexists (uint.nat x); iframe; ipureintro; omega
+    iexists (uint.nat m.Index'); iframe; ipureintro; omega
   imod Hcl0 $$ [Hpt Hca] with -
-  · inext; iexists x; iframe
+  · inext; iexists m.Index'; iframe
   imodintro
   simp only at HX
-  obtain ⟨hA, hl⟩ := HX
-  subst hA hl
+  obtain ⟨hA, -⟩ := HX
+  subst hA hlat0
   wp_auto
   iapply HK $$ Hv Hsv Hpe
   unfold applLb; iexact Hlb
